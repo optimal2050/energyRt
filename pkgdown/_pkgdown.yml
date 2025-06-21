@@ -42,12 +42,15 @@ development:
 navbar:
   # bg: light
   structure:
-    left:  [intro, reference, articles, roadmap, logo, news]
+    left:  [intro, reference, roadmap, articles, news]
     right: [search, github, lightswitch]
   components:
     news:
       text: News
       href: news/index.html
+    roadmap:
+      text: "{dev-status}"
+      href: articles/roadmap.html
     articles:
       text: Tutorials
       menu:
@@ -59,17 +62,14 @@ navbar:
         href: articles/helloworld.html
   #     - text: Suggested Workflow
   #       href: articles/workflow.html
-    roadmap:
-      text: Roadmap
-      href: articles/roadmap.html
       # menu:
       # - text: near term
       #   href: articles/model.html
       # - text: long term
         # href: articles/help.html
-    logo:
-      text: Logo
-      href: articles/logo.html
+    # logo:
+    #   text: Logo
+    #   href: articles/logo.html
 
 reference:
 - title: Classes
@@ -127,7 +127,6 @@ reference:
   - matches("^tsl")
   - matches("tsl_guess_format")
   - matches("drop_na_cols")
-
   - matches("obj2mem")
   - matches("isInMemory")
   - matches("register")
@@ -161,7 +160,13 @@ reference:
   contents:
   - matches("en_install_julia_pkgs")
   - matches("en_obj2df")
-  - get_slot_info
+  - starts_with("collect_")
+  - starts_with("get_")
+  - starts_with("complete_")
+  - starts_with("expand_")
+  - matches("countdown_timer")
+  - matches("map_|named_|is_")
+  # - get_slot_info
 
 # - title: All other
 #   contents: lacks_concepts("none")

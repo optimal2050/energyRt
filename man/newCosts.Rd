@@ -7,15 +7,15 @@
 newCosts(name, variable, desc = "", mult = NULL, subset = NULL, misc = NULL)
 }
 \arguments{
-\item{name}{\code{get_slot_info("costs", "name")}}
+\item{name}{\code{get_slot_doc("costs", "name")}}
 
-\item{variable}{\code{get_slot_info("costs", "variable")}}
+\item{variable}{\code{get_slot_doc("costs", "variable")}}
 
-\item{desc}{\code{get_slot_info("costs", "desc")}}
+\item{desc}{\code{get_slot_doc("costs", "desc")}}
 
-\item{mult}{\code{get_slot_info("costs", "mult")}}
+\item{mult}{\code{get_slot_doc("costs", "mult")}}
 
-\item{subset}{\code{get_slot_info("costs", "subset")}}
+\item{subset}{\code{get_slot_doc("costs", "subset")}}
 }
 \value{
 costs object with given specifications.

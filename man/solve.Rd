@@ -7,20 +7,20 @@
 \alias{solve,scenario,character-method}
 \title{Functions and methods to solve model and scenario objects}
 \usage{
-solve_model(obj, name = NULL, ...)
+solve_model()
 
 \S4method{solve}{model,character}(a, b, ...)
 
-solve_scenario(obj, name = obj@name, ...)
+solve_scenario()
 
 \S4method{solve}{scenario,character}(a, b, ...)
 }
 \arguments{
+\item{...}{}
+
 \item{obj}{model or scenario object}
 
 \item{name}{character name of scenario to return}
-
-\item{...}{}
 
 \item{solver}{a character or list with solver settings}
 

@@ -81,7 +81,7 @@ to add custom constraints to the model.
 Custom constraints extend the functionality of the model by adding
 user-defined constraints to the optimization problem.
 If the predefined constraints are not sufficient to describe the problem,
-custom constraints can be used to add linear equlity or inequality
+custom constraints can be used to add linear equality or inequality
 constraints to define additional relationships between the variables.
 In many cases this can be done without writing constraints in the GAMS,
 Julia/JuMP, Python/Pyomo, or GLPK-MathProg languages by using the

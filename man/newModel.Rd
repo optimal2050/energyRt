@@ -30,7 +30,7 @@ mod <- newModel(
   desc = "My first model",
   data = model_repository,
   discount = 0.05,
-  horizon = newHorizon(period = 2020:2050, 
+  horizon = newHorizon(period = 2020:2050,
                        intervals = rep(5, 10)),
   calendar = calendars$d365h24
   )

@@ -70,12 +70,12 @@ install from <https://www.r-project.org/>), we also recommend RStudio
 Environment) for R. The installation of the package is done via the
 `pak` or `remotes` packages:
 
-`pak::pkg_install("energyRt/energyRt@v0.50")`\
+`pak::pkg_install("optimal2050/energyRt@v0.50")`\
 or\
-`remotes::install_github("energyRt/energyRt", ref = "v0.50")`
+`remotes::install_github("optimal2050/energyRt", ref = "v0.50")`
 
 The next step would be to install at least one of the solvers: GAMS,
 GLPK, Python/Pyomo, Julia/JuMP. Please refer to the respective websites
-for installation instructions. More detaileds is available on the
+for installation instructions. More details available on the
 [IDEEA](https://ideea-model.github.io/IDEEA/articles/install.html) model
 website, a project based on the **energyRt** package.

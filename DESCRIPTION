@@ -1,8 +1,8 @@
 Package: energyRt
 Type: Package
 Title: Energy systems modeling toolbox in R, development version
-Version: 0.50.10.9000
-Date: 2024-11-20
+Version: 0.50.12.9000
+Date: 2025-06-20
 Authors@R: 
   c(person(given = "Oleg", 
           family = "Lugovoy", 
@@ -18,8 +18,8 @@ Authors@R:
           email = "tarunsharma@ms.iitr.ac.in",
           role = c("ctb"),
           comment = c(ORCID = "0000-0003-3636-2858")))
-URL: https://energyRt.org, https://github.com/energyRt/energyRt
-BugReports: https://github.com/energyRt/energyRt/issues
+URL: https://energyRt.org, https://github.com/optimal2050/energyRt
+BugReports: https://github.com/optimal2050/energyRt/issues
 Description: Energy systems modeling toolbox in R
 Depends: R (>= 4.3)
 Imports: methods, grid, generics, data.table, DBI, RSQLite, tibble,
@@ -65,13 +65,18 @@ Collate:
     'class-scenario.R'
     'add2set.R'
     'arrow.R'
+    'print.R'
+    'plot.R'
+    'check.R'
     'utils.R'
     'convert.R'
     'data2slots.R'
     'draw.R'
     'energyRt-package.R'
+    'fn.R'
     'get_data.R'
     'install.R'
+    'interp.R'
     'interpolate.R'
     'interpolate2.R'
     'interpolate_new.R'
@@ -79,7 +84,7 @@ Collate:
     'solve.R'
     'levcost.R'
     'obj2modInp.R'
-    'print.R'
+    'obj2modInp2.R'
     'read.R'
     'registry.R'
     'start_msg.R'
