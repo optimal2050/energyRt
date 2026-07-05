@@ -25,3 +25,4 @@ drafts/
 *.lxi
 inst/doc
 \.DS_Store
+.positai

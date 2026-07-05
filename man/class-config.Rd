@@ -43,7 +43,7 @@ scenario settings.
 }}
 
 \seealso{
-Other class config settings scenario model: 
+Other class config settings scenario model:
 \code{\link{class-settings}}
 }
 \concept{class config settings scenario model}

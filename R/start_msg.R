@@ -2,8 +2,7 @@
   packageStartupMessage(
     glue::glue('energyRt {utils::packageVersion("energyRt")}-dev ({utils::packageDate("energyRt")})'),
     "\nDevelopment version, please report bugs/issues:",
-    "\nhttps://github.com/energyRt/energyRt/issues",
-    "\nStable 'beta': pak::pkg_install('energyRt/energyRt@v0.50')"
+    "\nhttps://github.com/optimal2050/energyRt/issues"
     )
 
   # options

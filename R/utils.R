@@ -1,8 +1,59 @@
 # Some commonly used functions
 
 
+#' Countdown timer to use in R scripts
+#'
+#' @param seconds numeric, time in seconds to count down
+#' @param warn_message character, warning message to display before the countdown
+#' @param start_message character, message to display at the beginning of the countdown
+#' @param count_message character, message to display during the countdown
+#' @param final_message character, message to display at the end of the countdown
+#'
+#' @returns NULL
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' countdown_timer(10)
+#' countdown_timer(10, warn_message = "Something important is going to happen in 10 seconds.")
+#' }
+countdown_timer <- function(
+    seconds,
+    warn_message = NULL,
+    start_message = "Press Esc (Ctrl+C in terminal) to interrupt the execution.\n",
+    count_message = "\rTime remaining: %2d seconds",
+    final_message = "-> resuming...\n"
+    ) {
+  if (!is.numeric(seconds) || seconds < 0) {
+    stop("Input must be a positive numeric value.")
+  } else if (seconds == 0) {
+    return(invisible(NULL))
+  }
 
-factors_in_prams <- function(x) {
+  if (!is.null(warn_message)) {
+    message(warn_message)
+  }
+
+  # message("Press Ctrl+C to interrupt the countdown.")
+  cat(start_message)
+
+  for (i in seq(seconds, 1, by = -1)) {
+    # cat(sprintf("\rTime remaining: %2d seconds", i)) # Replace previous line
+    cat(sprintf(count_message, i)) # Replace previous line
+    flush.console() # Ensure the message is printed immediately
+    Sys.sleep(1)
+  }
+  i <- 0
+  # cat("\rTime remaining:  0 seconds\nCountdown complete!\n") # Final message
+  # cat(sprintf("\rTime remaining:  0 seconds\n%s\n", end_message)) # Final message
+  cat(sprintf(count_message, i), final_message) # Final message
+}
+
+# Example usage
+# countdown_timer(10)
+
+
+factors_in_params <- function(x) {
   # x - list
   # if (inherits(x, "list")) y <- lapply()
   # browser()
@@ -288,7 +339,7 @@ fact2char <- function(df, asTibble = TRUE) {
 #' set_progress_bar("pbcol")
 #' }
 set_progress_bar <- function(type = "bw", show = TRUE, clear = FALSE) {
-  if (interactive()) progressr::handlers(global = show)
+  if (interactive()) progressr::handlers(global = show) # results a warning
   options(progressr.clear = clear)
   if (is.null(type)) return(invisible(NULL))
   if (type == "bw") {
@@ -461,3 +512,146 @@ fEAC <- function(invcost, discount, olife) {
   }
   (invcost * discount) / (1 - (1 + discount) ^ (-olife))
 }
+
+
+#' Check if an element of a set is "ANY*" or NA
+#'
+#' @param x character, vector of a set elements
+#' @param na logical, if TRUE, NA values are included
+#' @param any_mask character, regular expression to match "ANY*" elements
+#'
+#' @returns logical vector, TRUE if an element of the set is "ANY*"
+#' @export
+#'
+#' @examples
+#' is_any(c("ANY", "ANYREGION", "ANYSLICE", "ANYYEAR", "A", "B"))
+is_any <- function(x, na = TRUE, any_mask = "^ANY_?[A-Z]*$") {
+  # x - vector
+  # na - logical, if TRUE, NA values are included
+  ii <- grepl(any_mask, x)
+  if (na) {
+    ii <- ii | is.na(x)
+  }
+  return(ii)
+}
+
+if (F) {
+  # year as factor
+  y <- seq(2000, 2020, 5)
+  yy <- factor(y, ordered = TRUE)
+  yy <- factor(y, levels = y, ordered = TRUE)
+  yy <- factor(y, levels = y, labels = y, ordered = TRUE)
+  yy
+  labels(yy)
+  levels(yy)
+  as.character(yy)
+  as.integer(yy)
+  as.integer(levels(yy))
+
+}
+
+# Flatten a model's repository list into a single named list of its objects'
+# `@data`. Used by `model` `[` indexing (R/class-model.R). Relocated here from the
+# (retired) interpolate2.R so that file can be archived.
+flatten_mod_data <- function(x) {
+  ll <- list()
+  for (i in seq_along(x)) {
+    ll <- c(ll, x[[i]]@data)
+  }
+  ll
+}
+
+
+# Flatten a model / scenario / repository / object to a flat list of the leaf
+# S4 model objects (the ones that carry data slots).
+.collect_model_objects <- function(x) {
+  if (methods::is(x, "scenario")) x <- x@model
+  if (methods::is(x, "model")) {
+    objs <- list()
+    for (rp in x@data) {
+      objs <- c(objs, if (methods::is(rp, "repository")) rp@data else list(rp))
+    }
+    return(objs)
+  }
+  if (methods::is(x, "repository")) return(x@data)
+  list(x)
+}
+
+#' Find where value(s) are stored across a model's objects
+#'
+#' Reflectively walks every slot of every object in a `model` / `scenario` /
+#' `repository` (or a single S4 model object) and reports where the given
+#' value(s) appear: the object, its class, the slot, and -- for `data.frame`
+#' slots -- the column. Handy for tracking down a stray label, e.g. an
+#' undeclared region (`"ES_off"`) or a mistyped commodity.
+#'
+#' @param x a `model`, `scenario`, `repository`, or a single model object (S4).
+#' @param pattern character vector of value(s) to look for.
+#' @param fixed if `TRUE` (default) match exactly; if `FALSE`, treat `pattern`
+#'   as a regular expression (matched with [grepl()], alternated over the vector).
+#' @param slots optional character vector restricting which slot names to search.
+#' @param classes optional character vector restricting which object classes to
+#'   search (e.g. `"technology"`).
+#'
+#' @returns a `data.frame` with columns `object`, `class`, `slot`, `column`,
+#'   `value`, `n` -- one row per (object, slot, column, matched value); `column`
+#'   is `NA` for atomic slots and `n` counts the matching elements/rows. Empty
+#'   (0-row) data.frame when nothing matches.
+#'
+#' @examples
+#' \dontrun{
+#' find_in_model(mod, c("ES_off", "PT_off"))   # locate stray regions
+#' find_in_model(scen, "BIO", fixed = FALSE)    # regex over every object
+#' find_in_model(mod, "ES_off", classes = "technology")
+#' }
+#' @family model
+#' @export
+find_in_model <- function(x, pattern, fixed = TRUE, slots = NULL,
+                          classes = NULL) {
+  objs <- .collect_model_objects(x)
+  pattern <- as.character(pattern)
+  rx <- paste(pattern, collapse = "|")
+  matched <- function(v) {
+    cv <- as.character(v)
+    if (fixed) cv[!is.na(cv) & cv %in% pattern] else cv[!is.na(cv) & grepl(rx, cv)]
+  }
+  hits <- list()
+  for (o in objs) {
+    if (!isS4(o)) next
+    if (!is.null(classes) && !inherits(o, classes)) next
+    o_class <- class(o)[1]
+    o_name <- if ("name" %in% methods::slotNames(o)) {
+      as.character(methods::slot(o, "name"))[1]
+    } else {
+      NA_character_
+    }
+    for (sn in methods::slotNames(o)) {
+      if (identical(sn, "misc")) next
+      if (!is.null(slots) && !(sn %in% slots)) next
+      v <- methods::slot(o, sn)
+      cols <- if (is.data.frame(v)) colnames(v) else list(NULL)
+      for (cc in cols) {
+        vals <- matched(if (is.null(cc)) v else v[[cc]])
+        if (length(vals) == 0) next
+        tab <- table(vals)
+        hits[[length(hits) + 1L]] <- data.frame(
+          object = o_name, class = o_class, slot = sn,
+          column = if (is.null(cc)) NA_character_ else cc,
+          value = names(tab), n = as.integer(tab),
+          stringsAsFactors = FALSE
+        )
+      }
+    }
+  }
+  if (length(hits) == 0L) {
+    return(data.frame(
+      object = character(0), class = character(0), slot = character(0),
+      column = character(0), value = character(0), n = integer(0),
+      stringsAsFactors = FALSE
+    ))
+  }
+  do.call(rbind, hits)
+}
+
+
+

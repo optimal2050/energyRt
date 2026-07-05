@@ -3,23 +3,17 @@
 \docType{class}
 \name{class-constraint}
 \alias{class-constraint}
-\alias{class-summand}
+\alias{summand-class}
 \title{An S4 class to represent a custom constraint.}
 \description{
 Class \code{constraint} is used to define custom constraints in the optimization problem.
 \ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
-
-Class \code{summand} stores information about linear
-terms (a multiplier and a variable)
-in the \code{lhs} of the constraint class.
-It is auto-created by \code{newConstraint} function
-and is not intended to be used directly by the user.
 }
 \details{
 Custom constraints extend the functionality of the model by adding
 user-defined constraints to the optimization problem.
 If the predefined constraints are not sufficient to describe the problem,
-custom constraints can be used to add linear equlity or inequality
+custom constraints can be used to add linear equality or inequality
 constraints to define additional relationships between the variables.
 In many cases this can be done without writing constraints in the GAMS,
 Julia/JuMP, Python/Pyomo, or GLPK-MathProg languages by using the
@@ -53,32 +47,16 @@ for which the summand is defined.
 \item{\code{lhs}}{list. List of summands for the left-hand-side of the equation. This slot is created automatically from all named of unnamed lists passed to the \code{newConstraint} function, except for the named arguments.}
 
 \item{\code{misc}}{list. Any additional information or parameters to store in the constraint object.}
-
-\item{\code{desc}}{character. Description of the linear term.}
-
-\item{\code{variable}}{character. Name of the variable.}
-
-\item{\code{for.sum}}{list. List of sets for which the summand will be created.}
-
-\item{\code{mult}}{data.frame. Multiplying coefficients to the variable for each set in the \code{for.sum} slot.}
-
-\item{\code{defVal}}{numeric. Default value for the summand.}
-
-\item{\code{misc}}{list. Additional information.}
 }}
 
 \seealso{
-Other class constraint policy: 
+Other class constraint policy:
 \code{\link{class-costs}},
-\code{\link{newConstraint}()},
-\code{\link{newCosts}()},
-\code{\link{newSubsidy}()},
-\code{\link{newTax}()},
+\code{\link[=newConstraint]{newConstraint()}},
+\code{\link[=newCosts]{newCosts()}},
+\code{\link[=newSubsidy]{newSubsidy()}},
+\code{\link[=newTax]{newTax()}},
 \code{\link{subsidy-class}},
 \code{\link{tax-class}}
-
-Other class constraint: 
-\code{\link{newConstraint}()}
 }
-\concept{class constraint}
 \concept{class constraint policy}

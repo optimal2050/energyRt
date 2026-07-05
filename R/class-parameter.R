@@ -8,15 +8,15 @@
 #' The class and related methods and functions are not
 #' intended for direct use by the user.
 #'
-#' @slot name `r get_slot_info("parameter", "name")`
-#' @slot desc `r get_slot_info("parameter", "desc")`
-#' @slot type `r get_slot_info("parameter", "type")`
-#' @slot dimSets `r get_slot_info("parameter", "dimSets")`
-#' @slot defVal `r get_slot_info("parameter", "defVal")`
-#' @slot data `r get_slot_info("parameter", "data")`
-#' @slot interpolation `r get_slot_info("parameter", "interpolation")`
-#' @slot inClass `r get_slot_info("parameter", "inClass")`
-#' @slot misc `r get_slot_info("parameter", "misc")`
+#' @slot name `r get_slot_doc("parameter", "name")`
+#' @slot desc `r get_slot_doc("parameter", "desc")`
+#' @slot type `r get_slot_doc("parameter", "type")`
+#' @slot dimSets `r get_slot_doc("parameter", "dimSets")`
+#' @slot defVal `r get_slot_doc("parameter", "defVal")`
+#' @slot data `r get_slot_doc("parameter", "data")`
+#' @slot interpolation `r get_slot_doc("parameter", "interpolation")`
+#' @slot inClass `r get_slot_doc("parameter", "inClass")`
+#' @slot misc `r get_slot_doc("parameter", "misc")`
 #'
 #' @name class-parameter
 #'
@@ -77,7 +77,9 @@ setMethod("initialize", signature = "parameter",
            inClass = NULL,
            colName = NULL,
            cls = NULL,
-           slot = NULL) {
+           slot = NULL,
+           dropIfEmpty = NULL,
+           prune = NULL) {
 
     # if (name == "DEBUG") browser() # DEBUG
     # expected_sets <- c(
@@ -170,6 +172,22 @@ setMethod("initialize", signature = "parameter",
       }
     }
     # .Object@inClass$colName <- colName
+    # Per-parameter default policy (overrides the global `drop_default` of
+    # `interpolate_parameters`). `dropIfEmpty = TRUE` lets a parameter collapse
+    # to empty when all its values equal the default, so an unused constraint is
+    # dropped; `FALSE` keeps the default-valued rows so a structurally required
+    # parameter (e.g. `pTechCap2act`) is always emitted. `NULL` (absent in the
+    # spec) falls back to the global flag.
+    if (!is.null(dropIfEmpty) && length(dropIfEmpty) == 1 &&
+        !is.na(dropIfEmpty)) {
+      .Object@misc$dropIfEmpty <- as.logical(dropIfEmpty)
+    }
+    # `prune: { value: v }` (modInp.yml) lets `prune_parameters()` drop rows
+    # equal to `v` (lossless when `v == defVal`; absent tuples read as default).
+    # The dependent variable-column removal is multimod `trim`'s cascade job.
+    if (!is.null(prune)) {
+      .Object@misc$prune <- prune
+    }
     .Object
   }
 )
@@ -186,6 +204,14 @@ newSet <- function(dimSets) {
 }
 
 # setGeneric('.dat2par', function(obj, data) standardGeneric(".dat2par"))
+
+# .dat2par: NULL ####
+setMethod(
+  ".dat2par", signature(obj = "parameter", data = "NULL"),
+  function(obj, data) {
+    return(obj)
+  }
+)
 
 # .dat2par: data.frame ####
 setMethod(
@@ -208,7 +234,9 @@ setMethod(
       data <- select(data, all_of(colnames(obj@data)))
       if (any(colnames(data) == "type")) {
         if (any(!(data$type %in% c("lo", "up")))) {
-          stop("Internal error: Wrong new data 2")
+          stop("Wrong type of bounds in parameter ", obj@name, "\n",
+               "Expected: lo, up\nGot: ", paste(unique(data$type), collapse = ", "),
+               "\nParameter: ", obj@name, "\nData:\n", head(data), "\n")
         }
         data$type <- factor(data$type, levels = c("lo", "up"))
       }
@@ -216,11 +244,14 @@ setMethod(
         if (i != "type") data[[i]] <- as.character(data[[i]])
       }
       # class2 <- function(x) if (class(x) == 'integer') 'numeric' else class(x)
-      class2 <- function(x) if (inherits(x, "integer")) "numeric" else class(x)
+      # class2 <- function(x) if (inherits(x, "integer")) "numeric" else class(x)
       if (nrow(obj@data) > 0 && # !!! rewrite with exact match
-          any(sapply(data, class2) != sapply(obj@data, class))) {
-        # browser()
-        stop("Internal error: Wrong new data 3")
+          any(sapply(data, class) != sapply(obj@data, class))) {
+        browser()
+        stop("Column classes mismatch: ", obj@name, "\n",
+             "Expected: ", paste(sapply(obj@data, class), collapse = ", "),
+             "\nGot: ", paste(sapply(data, class), collapse = ", "),
+             "\nParameter: ", obj@name, "\nData:\n", head(data), "\n")
       }
       # data <- data[apply(data, 1, function(x) all(!is.na(x))), , drop = FALSE]
       data <- drop_na(data)
@@ -417,10 +448,4 @@ setMethod("print", "parameter", function(x, ...) {
   }
 })
 
-setMethod(
-  ".dat2par", signature(obj = "parameter", data = "NULL"),
-  function(obj, data) {
-    return(obj)
-  }
-)
 

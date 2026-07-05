@@ -5,13 +5,13 @@
 #' @inherit newSubsidy description
 #'
 #' @md
-#' @slot name `r get_slot_info("sub", "name")`
-#' @slot desc `r get_slot_info("sub", "desc")`
-#' @slot comm `r get_slot_info("sub", "comm")`
-#' @slot region `r get_slot_info("sub", "region")`
-#' @slot defVal `r get_slot_info("sub", "defVal")`
-#' @slot sub `r get_slot_info("sub", "sub")`
-#' @slot misc `r get_slot_info("sub", "misc")`
+#' @slot name `r get_slot_doc("sub", "name")`
+#' @slot desc `r get_slot_doc("sub", "desc")`
+#' @slot comm `r get_slot_doc("sub", "comm")`
+#' @slot region `r get_slot_doc("sub", "region")`
+#' @slot defVal `r get_slot_doc("sub", "defVal")`
+#' @slot sub `r get_slot_doc("sub", "sub")`
+#' @slot misc `r get_slot_doc("sub", "misc")`
 #'
 #' @export
 #' @family class constraint policy
@@ -63,13 +63,13 @@ setClass("sub",
 #' Subsidies are used to represent the financial support provided to
 #' production, consumption, or balance of a commodity.
 #'
-#' @param name `r get_slot_info("sub", "name")`
-#' @param desc `r get_slot_info("sub", "desc")`
-#' @param comm `r get_slot_info("sub", "comm")`
-#' @param region `r get_slot_info("sub", "region")`
-#' @param defVal `r get_slot_info("sub", "defVal")`
-#' @param sub `r get_slot_info("sub", "sub")`
-#' @param misc `r get_slot_info("sub", "misc")`
+#' @param name `r get_slot_doc("sub", "name")`
+#' @param desc `r get_slot_doc("sub", "desc")`
+#' @param comm `r get_slot_doc("sub", "comm")`
+#' @param region `r get_slot_doc("sub", "region")`
+#' @param defVal `r get_slot_doc("sub", "defVal")`
+#' @param sub `r get_slot_doc("sub", "sub")`
+#' @param misc `r get_slot_doc("sub", "misc")`
 #'
 #' @return An object of class `sub`
 #' @family class constraint policy

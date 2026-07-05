@@ -6,10 +6,10 @@
 #' @description
 #' Class 'settings' inherits all slots from class 'config' and adds the following:
 #' 
-#' @slot subset `r get_slot_info("settings", "subset")`
-#' @slot yearFraction `r get_slot_info("settings", "yearFraction")`
-#' @slot solver `r get_slot_info("settings", "solver")`
-#' @slot sourceCode `r get_slot_info("settings", "sourceCode")`
+#' @slot subset `r get_slot_doc("settings", "subset")`
+#' @slot yearFraction `r get_slot_doc("settings", "yearFraction")`
+#' @slot solver `r get_slot_doc("settings", "solver")`
+#' @slot sourceCode `r get_slot_doc("settings", "sourceCode")`
 #'
 #' @family class config settings scenario model
 #'

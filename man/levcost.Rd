@@ -2,22 +2,130 @@
 % Please edit documentation in R/levcost.R
 \name{levcost}
 \alias{levcost}
-\title{Calculate levelized costs of commodity production}
+\alias{levcost,repository-method}
+\alias{levcost,model-method}
+\alias{levcost,scenario-method}
+\title{Levelized cost of commodity production}
 \usage{
 levcost(object, comm, name, ...)
+
+\S4method{levcost}{repository}(object, comm, name, ...)
+
+\S4method{levcost}{model}(object, comm, name, ...)
+
+\S4method{levcost}{scenario}(object, comm, name, ...)
 }
 \arguments{
-\item{object}{model, scenario, or technology object}
+\item{object}{A \code{technology} (or list thereof), \code{repository},
+\code{model}, or solved \code{scenario} object.}
 
-\item{comm}{commodity name for which to calculate levelized costs}
+\item{comm}{Character vector or \code{NULL}.  Output commodity(ies) to
+use for LCOE normalisation.  \code{NULL} uses all commodities in the
+resolved output group.}
 
-\item{name}{name of the object for which to calculate levelized costs}
+\item{name}{Character. For \code{technology}, a name tag; for
+\code{repository}/\code{model}/\code{scenario}, the name of the technology /
+process to price.}
 
-\item{...}{}
+\item{...}{Additional arguments passed to the underlying implementation.
+For \code{technology} objects the most useful are:
+\describe{
+\item{\code{group}}{Character or \code{NULL}.  Output group name.}
+\item{\code{repo}}{A \code{repository} or list of energyRt objects
+(supplies, commodities, weather) to supplement the mini-model.}
+\item{\code{fuel_costs}}{Named numeric vector \code{[commodity -> cost]}
+for input commodities not found in \code{repo}.}
+\item{\code{autocomplete}}{Logical, default \code{FALSE}
+(\code{repository}/\code{model} methods). When \code{TRUE}, input
+commodities without a supply in the container are auto-supplied
+(zero-cost, or priced via \code{fuel_costs}) instead of returning
+\code{NULL}.}
+\item{\code{discount}}{Numeric (0–1), default \code{0.05}.}
+\item{\code{base_year}}{Integer or \code{NULL}.}
+\item{\code{horizon}}{A \code{horizon} object, numeric year vector, or
+\code{NULL} (derives from \code{@olife}).}
+\item{\code{calendar}}{A \code{calendar} object or \code{NULL}.}
+\item{\code{timeframe}}{\code{"ANNUAL"} (default) or \code{"native"}.
+\code{"ANNUAL"} prices the technology on a single annual time-slice: any
+weather profile is collapsed to an annual capacity factor (applied as the
+technology's annual availability), so capacity is sized to serve unit
+annual demand at that factor (textbook LCOE). \code{"native"} keeps the
+supplied (sub-annual) calendar and normalises by total generation --
+useful when the technology is analysed together with storage or
+transmission, where sub-annual dispatch matters.}
+\item{\code{backstop}}{Logical, default \code{TRUE}. Enables a very
+expensive dummy-import slack on the output commodity balance so the
+mini-model always solves even when the technology cannot serve a slice on
+its own; the slack cost is excluded from the LCOE.}
+\item{\code{region}}{Character or \code{NULL}.}
+\item{\code{weather}}{A \code{weather} object, list of weather objects,
+or \code{NULL}.}
+\item{\code{frontier}}{Logical, default \code{FALSE}.  When \code{TRUE}
+additional solves are performed to map the production frontier for
+technologies with multi-commodity grouped output and share constraints.}
+\item{\code{solver}}{Solver spec list, default
+\code{solver_options$glpk}.}
+\item{\code{as_scenario}}{Logical, default \code{FALSE}.  When
+\code{TRUE} the full solved \code{scenario} is returned with LCOE
+tables attached to \code{scenario@misc}.}
+\item{\code{verbose}}{Logical, default \code{TRUE}.}
+}}
+}
+\value{
+For \code{technology} input: a list of class \code{"levcost"} with fields:
+\describe{
+\item{\code{$levcost}}{data.frame – total levelized cost by year.}
+\item{\code{$levcost_npv}}{Named numeric – NPV-weighted average LCOE.}
+\item{\code{$cost_breakdown}}{data.frame – tidy cost components by year.
+Components: \code{eac}, \code{fixom}, \code{varom}, \code{supply},
+\code{import}, \code{export} (negative, a credit).}
+\item{\code{$cost_breakdown_npv}}{data.frame – NPV-weighted component
+breakdown.}
+\item{\code{$cost_yearly}}{data.frame – wide undiscounted cost table with
+activity, capacity, per-commodity outputs and inputs.}
+\item{\code{$levcost_per_act}}{data.frame or \code{NULL}.}
+\item{\code{$frontier}}{data.frame or \code{NULL} (requires
+\code{frontier = TRUE} and multi-commodity grouped output).}
+\item{\code{$scenario}}{The solved \code{scenario} object.}
+}
+For a list of technology objects: a named list of class
+\code{"levcost_list"}.
 }
 \description{
-Calculate levelized costs of commodity production
+Computes the levelized cost of energy (LCOE) for a \code{technology},
+\code{repository}, \code{model}, or \code{scenario} object.
+}
+\details{
+\describe{
+\item{\code{technology}}{a minimal single-technology energyRt model is built
+around the technology, solved, and the LCOE derived from the resulting
+cost and production variables.}
+\item{\code{repository} / \code{model}}{give the technology \code{name}; the
+method selects the related commodity and supply objects from the container
+and prices the named technology as above. If an input commodity has no
+supply in the container, it returns \code{NULL} with a message unless
+\code{autocomplete = TRUE} (which adds a zero-cost / \code{fuel_costs}
+supply). The \code{model} method also takes the calendar, region, horizon
+and discount rate from the model's configuration (each overridable).}
+\item{\code{scenario}}{an \emph{ex-post} cost of the named process in the
+\emph{solved} scenario: the discounted sum of its own costs (annualised
+investment \code{vTechEac}, \code{vTechFixom}, \code{vTechVarom}, plus
+attributed fuel cost) divided by its discounted output. Fuel is attributed
+from \code{vTechInp}; a technology with a \emph{grouped} input (whose
+per-commodity consumption is not a solution variable) therefore reports no
+fuel component.}
+}
 }
 \examples{
-NA
+\dontrun{
+lc <- levcost(my_tech, discount = 0.07, base_year = 2025)
+lc$levcost_npv
+lc$cost_breakdown
+autoplot(lc)
+autoplot(lc, type = "npv")
+
+# List of technologies (each solved independently):
+lc_list <- levcost(list(tech1, tech2), discount = 0.07)
+autoplot(lc_list, type = "npv")
+}
 }

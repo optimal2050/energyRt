@@ -57,7 +57,7 @@ set_gdxlib_path <- function(path = NULL) {
       path <- paste0(path, "/")
     }
   }
-  options(gdxlib_path = path, env = "energyRt")
+  options::opt_set("gdxlib_path", path, env = "energyRt")
 }
 
 #' @rdname solver
@@ -132,12 +132,21 @@ get_gdxlib_path <- function() {
   # if (trim) scen <- fold(scen)
   # browser()
   .write_inc_solver(scen, arg, "option lp = cplex;", ".gms", "cplex")
-  if (is.null(scen@status$fullsets)) stop("scen@status$fullsets not found")
-  if (!scen@status$fullsets) {
-    .toGams <- function(x) .toGams0(x, TRUE)
-  } else {
-    .toGams <- function(x) .toGams0(x, FALSE)
+  if (is.null(scen@status$sparse)) stop("scen@status$sparse not found")
+  # GAMS needs a DENSE scenario: it has no native parameter default (an absent
+  # tuple reads as 0, so omitting non-zero-default rows would be silently wrong)
+  # and it does not substitute fold wildcards. Require an explicit dense build
+  # rather than transforming here at write time -- a write-time unfold/densify
+  # cannot faithfully reproduce the full `sparse = FALSE` interpolation (notably
+  # map wildcards such as `mTradeRetUp`, which the value-parameter densify does
+  # not touch).
+  if (isTRUE(scen@status$sparse)) {
+    stop("GAMS export requires a dense scenario. Re-interpolate with ",
+         "interp_mod(..., sparse = FALSE) (which also disables folding), then ",
+         "write to GAMS.")
   }
+  # A dense scenario is always written with the dense (full-set) GAMS form.
+  .toGams <- function(x) .toGams0(x, FALSE)
   run_code <- scen@settings@sourceCode[["GAMS"]]
 
   # For downsize
@@ -204,9 +213,11 @@ get_gdxlib_path <- function() {
   close(zz_output)
   zz_data_gms <- file(fp(arg$tmp.dir, "data.gms"), "w")
   if (grepl("gdx", scen@settings@solver$export_format, ignore.case = TRUE)) {
-    if (!scen@status$fullsets) {
-      stop('for export_format = "gdx", ',
-           'interpolation parameter fullsets must be TRUE')
+    if (isTRUE(scen@status$sparse)) {
+      # Should not happen: the sparse scenario is densified at the top of
+      # .write_model_GAMS. Defensive guard against a future code path.
+      stop('for export_format = "gdx", the scenario must be dense ',
+           '(rebuild with interp_mod(..., sparse = FALSE))')
     }
     # Generate gdx
     # browser()
@@ -257,7 +268,7 @@ get_gdxlib_path <- function() {
   }
   close(zz_data_gms)
   ### Model code to text
-  .generate_gpr_gams_file(arg$tmp.dir)
+  .write_gams_project_file(arg$tmp.dir)
   fn <- file(fp(arg$tmp.dir, "energyRt.gms"), "w")
   zz_constrains <- file(fp(arg$tmp.dir, "inc_constraints.gms"), "w")
   cat(run_code[1:grep("[$]include[[:space:]]*data.gms", run_code)], sep = "\n",
@@ -744,5 +755,23 @@ get_gdxlib_path <- function() {
       ", ", sep = "")
   # cat(format(round(Sys.time() - tStart), 1))
 }
+
+.write_gams_project_file <- function(tmp.dir) {
+  # Generates GAMS-project file
+  fn <- file(paste(tmp.dir, "/energyRt_project.gpr", sep = ""), "w")
+  cat(c(
+    "[RP:MDL]", "1=", "", "[OPENWINDOW_1]",
+    "FILE0=energyRt.gms",
+    "FILE1=energyRt.lst",
+    "FILE2=input/data.gdx",
+    "FILE2=output/output.gdx",
+    # gsub('[/][/]*', '\\\\', paste('FILE0=', tmp.dir, '/energyRt.gms', sep = '')),
+    # gsub('[/][/]*', '\\\\', paste('FILE1=', tmp.dir, '/energyRt.lst', sep = '')),
+    "", "MAXIM=1",
+    "TOP=50", "LEFT=50", "HEIGHT=400", "WIDTH=400", ""
+  ), sep = "\n", file = fn)
+  close(fn)
+}
+
 
 # end ####

@@ -1,0 +1,497 @@
+pTechWeatherAf:
+  name: pTechWeatherAf
+  type: bounds
+  dimSets:
+  - weather
+  - tech
+  defVal:
+  - 1.0
+  - 1.0
+  interpolation:
+  - back.inter.forth
+  - back.inter.forth
+  class: technology
+  colName: waf
+pTechWeatherAfs:
+  name: pTechWeatherAfs
+  type: bounds
+  dimSets:
+  - weather
+  - tech
+  defVal:
+  - 1.0
+  - 1.0
+  interpolation:
+  - back.inter.forth
+  - back.inter.forth
+  class: technology
+  colName: wafs
+pTechWeatherAfc:
+  name: pTechWeatherAfc
+  type: bounds
+  dimSets:
+  - weather
+  - tech
+  - comm
+  defVal:
+  - 1.0
+  - 1.0
+  interpolation:
+  - back.inter.forth
+  - back.inter.forth
+  class: technology
+  colName: wafc
+pTechCap2act:
+  name: pTechCap2act
+  type: numpar
+  dimSets: tech
+  defVal: 1.0
+  interpolation: back.inter.forth
+  class: technology
+pTechEac:
+  name: pTechEac
+  type: numpar
+  dimSets:
+  - tech
+  - region
+  - year
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: technology
+  colName: invcost
+pTechEmisComm:
+  name: pTechEmisComm
+  type: numpar
+  dimSets:
+  - tech
+  - comm
+  defVal: 1.0
+  interpolation: back.inter.forth
+  class: technology
+  colName: combustion
+pTechOlife:
+  name: pTechOlife
+  type: numpar
+  dimSets:
+  - tech
+  - region
+  defVal: 1.0
+  interpolation: back.inter.forth
+  class: technology
+  colName: olife
+pTechFixom:
+  name: pTechFixom
+  type: numpar
+  dimSets:
+  - tech
+  - region
+  - year
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: technology
+  colName: fixom
+pTechInvcost:
+  name: pTechInvcost
+  type: numpar
+  dimSets:
+  - tech
+  - region
+  - year
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: technology
+  colName: invcost
+pTechStock:
+  name: pTechStock
+  type: numpar
+  dimSets:
+  - tech
+  - region
+  - year
+  defVal: 0.0
+  interpolation: .inter.
+  class: technology
+  colName: stock
+pTechVarom:
+  name: pTechVarom
+  type: numpar
+  dimSets:
+  - tech
+  - region
+  - year
+  - slice
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: technology
+  colName: varom
+pTechAf:
+  name: pTechAf
+  type: bounds
+  dimSets:
+  - tech
+  - region
+  - year
+  - slice
+  defVal:
+  - 0.0
+  - 1.0
+  interpolation:
+  - back.inter.forth
+  - back.inter.forth
+  class: technology
+  colName: af
+pTechRampUp:
+  name: pTechRampUp
+  type: numpar
+  dimSets:
+  - tech
+  - region
+  - year
+  - slice
+  defVal: .inf
+  interpolation: back.inter.forth
+  class: technology
+  colName: rampup
+pTechRampDown:
+  name: pTechRampDown
+  type: numpar
+  dimSets:
+  - tech
+  - region
+  - year
+  - slice
+  defVal: .inf
+  interpolation: back.inter.forth
+  class: technology
+  colName: rampdown
+pTechAfs:
+  name: pTechAfs
+  type: bounds
+  dimSets:
+  - tech
+  - region
+  - year
+  - slice
+  defVal:
+  - 0.0
+  - .inf
+  interpolation:
+  - back.inter.forth
+  - back.inter.forth
+  class: technology
+  colName: afs
+pTechGinp2use:
+  name: pTechGinp2use
+  type: numpar
+  dimSets:
+  - tech
+  - group
+  - region
+  - year
+  - slice
+  defVal: 1.0
+  interpolation: back.inter.forth
+  class: technology
+  colName: ginp2use
+pTechCinp2ginp:
+  name: pTechCinp2ginp
+  type: numpar
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - slice
+  defVal: 1.0
+  interpolation: back.inter.forth
+  class: technology
+  colName: cinp2ginp
+pTechUse2cact:
+  name: pTechUse2cact
+  type: numpar
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - slice
+  defVal: 1.0
+  interpolation: back.inter.forth
+  class: technology
+  colName: use2cact
+pTechAct2AInp:
+  name: pTechAct2AInp
+  type: numpar
+  dimSets:
+  - tech
+  - acomm
+  - region
+  - year
+  - slice
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: technology
+  colName: act2ainp
+pTechCap2AInp:
+  name: pTechCap2AInp
+  type: numpar
+  dimSets:
+  - tech
+  - acomm
+  - region
+  - year
+  - slice
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: technology
+  colName: cap2ainp
+pTechAct2AOut:
+  name: pTechAct2AOut
+  type: numpar
+  dimSets:
+  - tech
+  - acomm
+  - region
+  - year
+  - slice
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: technology
+  colName: act2aout
+pTechCap2AOut:
+  name: pTechCap2AOut
+  type: numpar
+  dimSets:
+  - tech
+  - acomm
+  - region
+  - year
+  - slice
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: technology
+  colName: cap2aout
+pTechNCap2AInp:
+  name: pTechNCap2AInp
+  type: numpar
+  dimSets:
+  - tech
+  - acomm
+  - region
+  - year
+  - slice
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: technology
+  colName: cap2aout
+pTechNCap2AOut:
+  name: pTechNCap2AOut
+  type: numpar
+  dimSets:
+  - tech
+  - acomm
+  - region
+  - year
+  - slice
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: technology
+  colName: cap2aout
+pTechCinp2AInp:
+  name: pTechCinp2AInp
+  type: numpar
+  dimSets:
+  - tech
+  - acomm
+  - comm
+  - region
+  - year
+  - slice
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: technology
+  colName: cinp2ainp
+pTechCout2AInp:
+  name: pTechCout2AInp
+  type: numpar
+  dimSets:
+  - tech
+  - acomm
+  - comm
+  - region
+  - year
+  - slice
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: technology
+  colName: cout2ainp
+pTechCinp2AOut:
+  name: pTechCinp2AOut
+  type: numpar
+  dimSets:
+  - tech
+  - acomm
+  - comm
+  - region
+  - year
+  - slice
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: technology
+  colName: cinp2aout
+pTechCout2AOut:
+  name: pTechCout2AOut
+  type: numpar
+  dimSets:
+  - tech
+  - acomm
+  - comm
+  - region
+  - year
+  - slice
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: technology
+  colName: cout2aout
+pTechCact2cout:
+  name: pTechCact2cout
+  type: numpar
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - slice
+  defVal: 1.0
+  interpolation: back.inter.forth
+  class: technology
+  colName: cact2cout
+pTechCinp2use:
+  name: pTechCinp2use
+  type: numpar
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - slice
+  defVal: 1.0
+  interpolation: back.inter.forth
+  class: technology
+  colName: cinp2use
+pTechCvarom:
+  name: pTechCvarom
+  type: numpar
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - slice
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: technology
+  colName: cvarom
+pTechAvarom:
+  name: pTechAvarom
+  type: numpar
+  dimSets:
+  - tech
+  - acomm
+  - region
+  - year
+  - slice
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: technology
+  colName: avarom
+pTechShare:
+  name: pTechShare
+  type: bounds
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - slice
+  defVal:
+  - 0.0
+  - 1.0
+  interpolation:
+  - back.inter.forth
+  - back.inter.forth
+  class: technology
+  colName: share
+pTechAfc:
+  name: pTechAfc
+  type: bounds
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - slice
+  defVal:
+  - 0.0
+  - .inf
+  interpolation:
+  - back.inter.forth
+  - back.inter.forth
+  class: technology
+  colName: afc
+pTechCap:
+  name: pTechCap
+  type: bounds
+  dimSets:
+  - tech
+  - region
+  - year
+  defVal:
+  - 0.0
+  - .inf
+  interpolation:
+  - inter.forth
+  - inter.forth
+  class: technology
+  colName: cap
+pTechNewCap:
+  name: pTechNewCap
+  type: bounds
+  dimSets:
+  - tech
+  - region
+  - year
+  defVal:
+  - 0.0
+  - .inf
+  interpolation:
+  - inter.forth
+  - inter.forth
+  class: technology
+  colName: ncap
+pTechRet:
+  name: pTechRet
+  type: bounds
+  dimSets:
+  - tech
+  - region
+  - year
+  defVal:
+  - 0.0
+  - .inf
+  interpolation:
+  - inter.forth
+  - inter.forth
+  class: technology
+  colName: ret
+pTechRetCost:
+  name: pTechRetCost
+  type: numpar
+  dimSets:
+  - tech
+  - region
+  - year
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: technology
+  colName: retcost

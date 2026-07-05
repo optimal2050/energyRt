@@ -1,11 +1,11 @@
 # A model with three regions, interregional trade, and a single good
-library(energyRt)
-library(dplyr)
-library(ggplot2)
+# library(energyRt)
+devtools::load_all(".")
+library(tidyverse)
 library(data.table)
 
 # Names of the regions
-reg_names <- paste0("R", 1:3)
+reg_names <- paste0("R", 1:2)
 reg_names
 nreg <- length(reg_names)
 
@@ -24,7 +24,7 @@ nreg <- length(reg_names)
 # )
 
 N_DAYS <- nreg
-N_HOURS <- 4
+N_HOURS <- 5
 
 timetable_d_h <- energyRt::make_timetable(
   list(
@@ -34,9 +34,12 @@ timetable_d_h <- energyRt::make_timetable(
 )
 
 calendar_d_h <- newCalendar(
-  name = "CALENDAR_D_H",
-  timetable = timetable_d_h
+  name = glue::glue("CALENDAR_D{N_DAYS}_H{N_HOURS}"),
+  timetable = timetable_d_h,
+  desc = glue::glue("Calendar with {N_DAYS} days and {N_HOURS} hours")
 )
+calendar_d_h@name
+calendar_d_h@desc
 
 mod_calendar <- calendar_d_h
 
@@ -56,6 +59,7 @@ SUP_INP <- newSupply(
     cost = 1
   )
 )
+draw(SUP_INP)
 
 # Demand
 
@@ -70,6 +74,7 @@ DEM_OUT <- newDemand(
   dem = 1
   )
 )
+draw(DEM_OUT)
 
 # technology
 TECH <- newTechnology(
@@ -79,17 +84,19 @@ TECH <- newTechnology(
   invcost = list(invcost = 100),
   fixom = list(fixom = 1),
   varom = list(varom = .1),
-  olife = list(olife = 100),
+  olife = list(olife = 25),
   af = list(af.fx = 1),
   weather = list(weather = "WEA", waf.fx = 1),
   cap2act = N_DAYS * N_HOURS,
 )
+draw(TECH)
 
 TECH2 <- TECH |>
   update(name = "TECH2") |>
   update(input = list(comm = "INP", combustion = 0),
          invcost = list(invcost = 200),
          varom = list(varom = .2))
+draw(TECH2)
 
 # Weather factors
 wea_tbl <- expand_grid(
@@ -135,13 +142,15 @@ TRADE <- newTrade(
   ),
   # trade = data.frame()
   cap2act = N_DAYS * N_HOURS,
-  olife = list(olife = 100),
-  invcost = data.frame(region = reg_names, invcost = 100/nreg)
+  olife = list(olife = 25),
+  invcost = data.frame(region = reg_names, invcost = 100/nreg),
+  fixom = data.frame(region = reg_names, fixom = 1/nreg)
+  # varom = data.frame(region = reg_names, varom = .1/nreg)
 )
 
 # Model
 repo <- newRepository(
-  name = "three-region-model-repo",
+  name = glue::glue("r{nreg}_repo"),
   # commodities
   INP, OUT, EMIS,
   # Supply
@@ -158,18 +167,48 @@ repo <- newRepository(
 summary(repo)
 
 mod <- newModel(
-  name = "three-region-model",
+  name = glue::glue("r{nreg}"),
   region = reg_names,
   repository = repo,
   calendar = mod_calendar,
-  discount = 0,
-  horizon = newHorizon(2030)
+  discount = 0.0,
+  horizon = newHorizon(period = 2030:2040, name = "by1")
 )
 
 getHorizon(mod)
 
 # Solve
-scen <- solve(mod, tmp.del = FALSE)
+set_default_solver(solver_options$gams_gdx_cplex)
+scen_by_1 <- solve(mod, tmp.del = FALSE)
+
+
+# by 5 years
+horizon_by_5 <- newHorizon(period = 2030:2040, intervals = c(1, 5, 5),
+                           name = "by5", mid_is_end = F)
+horizon_by_5
+scen_by_5 <- solve(mod, horizon = horizon_by_5, tmp.del = FALSE)
+
+# by 10 years
+horizon_by_10 <- newHorizon(period = 2030:2040, intervals = c(1, 10, 10),
+                            name = "by10", mid_is_end = F)
+horizon_by_10
+
+scen_by_10 <- solve(mod, horizon = horizon_by_10, tmp.del = FALSE)
+
+sns <- list(by1 = scen_by_1, by5 = scen_by_5, by10 = scen_by_10)
+getData(sns, "vObjective", merge = TRUE)
+
+# costs
+getData(sns, name_ = "cost|eac", parameters = F, merge = TRUE, process = T) |>
+  pivot_wider(names_from = scenario) |>
+  filter(by1 > 0 | by5 > 0) |>
+  # filter(year == 2030) |>
+  as.data.table() |>
+  group_by(name) |>
+  group_split() |>
+  lapply(as.data.table)
+
+
 
 # Subset calendar
 sub_timetable <- mod_calendar@timetable |>

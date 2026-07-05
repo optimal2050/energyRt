@@ -1,0 +1,3590 @@
+# AUTO-GENERATED SKELETON by data-raw/make_mapping_spec.R
+# Auto fields (name, dims, gates_var, gates_eq) are refreshed on re-run.
+# Annotation fields (recipe, source, predicate, join_keys, filter_by,
+# depends_on) are filled MANUALLY and preserved across re-runs.
+mAggOut:
+  name: mAggOut
+  dims:
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: vAggOutTot
+  gates_eq: eqAggOutTot
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mAggregateFactor:
+  name: mAggregateFactor
+  dims:
+  - comm
+  - comm
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mCommReg:
+  name: mCommReg
+  dims:
+  - comm
+  - region
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: closure
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on:
+  - mSupComm
+  - mImpComm
+  - mDemComm
+  - mTradeComm
+  - mTechInpComm
+  - mTechOutComm
+  - mStorageComm
+  - mExpComm
+  - mTechAInp
+  - mTechAOut
+mCommSlice:
+  name: mCommSlice
+  dims:
+  - comm
+  - slice
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: calendar
+  source: calendar
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mCommSliceOrParent:
+  name: mCommSliceOrParent
+  dims:
+  - comm
+  - slice
+  - slicep
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: calendar
+  source: calendar
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mDemComm:
+  name: mDemComm
+  dims:
+  - dem
+  - comm
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mDummyExport:
+  name: mDummyExport
+  dims:
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: vDummyExport
+  gates_eq: []
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mDummyExportCost:
+  name: mDummyExportCost
+  dims:
+  - comm
+  - region
+  - year
+  gates_var: vDummyExportCost
+  gates_eq: eqDummyExportCost
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mDummyImport:
+  name: mDummyImport
+  dims:
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: vDummyImport
+  gates_eq: []
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mDummyImportCost:
+  name: mDummyImportCost
+  dims:
+  - comm
+  - region
+  - year
+  gates_var: vDummyImportCost
+  gates_eq: eqDummyImportCost
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mEmsFuelTot:
+  name: mEmsFuelTot
+  dims:
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: vEmsFuelTot
+  gates_eq: eqEmsFuelTot
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+meqBalFx:
+  name: meqBalFx
+  dims:
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: eqBalFx
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqBalLo:
+  name: meqBalLo
+  dims:
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: eqBalLo
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqBalUp:
+  name: meqBalUp
+  dims:
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: eqBalUp
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqExportRowLo:
+  name: meqExportRowLo
+  dims:
+  - expp
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: eqExportRowLo
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqImportRowLo:
+  name: meqImportRowLo
+  dims:
+  - imp
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: eqImportRowLo
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqLECActivity:
+  name: meqLECActivity
+  dims:
+  - tech
+  - region
+  - year
+  gates_var: []
+  gates_eq: eqLECActivity
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqStorageAfLo:
+  name: meqStorageAfLo
+  dims:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: eqStorageAfLo
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqStorageAfUp:
+  name: meqStorageAfUp
+  dims:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: eqStorageAfUp
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqStorageInpLo:
+  name: meqStorageInpLo
+  dims:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: eqStorageInpLo
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqStorageInpUp:
+  name: meqStorageInpUp
+  dims:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: eqStorageInpUp
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqStorageOutLo:
+  name: meqStorageOutLo
+  dims:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: eqStorageOutLo
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqStorageOutUp:
+  name: meqStorageOutUp
+  dims:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: eqStorageOutUp
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqStorageStore:
+  name: meqStorageStore
+  dims:
+  - stg
+  - comm
+  - region
+  - year
+  - slicep
+  - slice
+  gates_var: []
+  gates_eq: eqStorageStore
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqSupAvaLo:
+  name: meqSupAvaLo
+  dims:
+  - sup
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: eqSupAvaLo
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqSupReserveLo:
+  name: meqSupReserveLo
+  dims:
+  - sup
+  - comm
+  - region
+  gates_var: []
+  gates_eq: eqSupReserveLo
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqTechActGrp:
+  name: meqTechActGrp
+  dims:
+  - tech
+  - group
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: eqTechActGrp
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqTechActSng:
+  name: meqTechActSng
+  dims:
+  - tech
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: eqTechActSng
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqTechAfcInpLo:
+  name: meqTechAfcInpLo
+  dims:
+  - tech
+  - region
+  - comm
+  - year
+  - slice
+  gates_var: []
+  gates_eq: eqTechAfcInpLo
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqTechAfcInpUp:
+  name: meqTechAfcInpUp
+  dims:
+  - tech
+  - region
+  - comm
+  - year
+  - slice
+  gates_var: []
+  gates_eq: eqTechAfcInpUp
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqTechAfcOutLo:
+  name: meqTechAfcOutLo
+  dims:
+  - tech
+  - region
+  - comm
+  - year
+  - slice
+  gates_var: []
+  gates_eq: eqTechAfcOutLo
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqTechAfcOutUp:
+  name: meqTechAfcOutUp
+  dims:
+  - tech
+  - region
+  - comm
+  - year
+  - slice
+  gates_var: []
+  gates_eq: eqTechAfcOutUp
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqTechAfLo:
+  name: meqTechAfLo
+  dims:
+  - tech
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: eqTechAfLo
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqTechAfsLo:
+  name: meqTechAfsLo
+  dims:
+  - tech
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: eqTechAfsLo
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqTechAfsUp:
+  name: meqTechAfsUp
+  dims:
+  - tech
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: eqTechAfsUp
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqTechAfUp:
+  name: meqTechAfUp
+  dims:
+  - tech
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: eqTechAfUp
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqTechGrp2Grp:
+  name: meqTechGrp2Grp
+  dims:
+  - tech
+  - region
+  - group
+  - groupp
+  - year
+  - slice
+  gates_var: []
+  gates_eq: eqTechGrp2Grp
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqTechGrp2Sng:
+  name: meqTechGrp2Sng
+  dims:
+  - tech
+  - region
+  - group
+  - commp
+  - year
+  - slice
+  gates_var: []
+  gates_eq: eqTechGrp2Sng
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqTechRetiredNewCap:
+  name: meqTechRetiredNewCap
+  dims:
+  - tech
+  - region
+  - year
+  gates_var: []
+  gates_eq: eqTechRetiredNewCap
+  recipe: lifespan
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqTechShareInpLo:
+  name: meqTechShareInpLo
+  dims:
+  - tech
+  - region
+  - group
+  - comm
+  - year
+  - slice
+  gates_var: []
+  gates_eq: eqTechShareInpLo
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqTechShareInpUp:
+  name: meqTechShareInpUp
+  dims:
+  - tech
+  - region
+  - group
+  - comm
+  - year
+  - slice
+  gates_var: []
+  gates_eq: eqTechShareInpUp
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqTechShareOutLo:
+  name: meqTechShareOutLo
+  dims:
+  - tech
+  - region
+  - group
+  - comm
+  - year
+  - slice
+  gates_var: []
+  gates_eq: eqTechShareOutLo
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqTechShareOutUp:
+  name: meqTechShareOutUp
+  dims:
+  - tech
+  - region
+  - group
+  - comm
+  - year
+  - slice
+  gates_var: []
+  gates_eq: eqTechShareOutUp
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqTechSng2Grp:
+  name: meqTechSng2Grp
+  dims:
+  - tech
+  - region
+  - comm
+  - groupp
+  - year
+  - slice
+  gates_var: []
+  gates_eq: eqTechSng2Grp
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqTechSng2Sng:
+  name: meqTechSng2Sng
+  dims:
+  - tech
+  - region
+  - comm
+  - commp
+  - year
+  - slice
+  gates_var: []
+  gates_eq: eqTechSng2Sng
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqTradeCapFlow:
+  name: meqTradeCapFlow
+  dims:
+  - trade
+  - comm
+  - year
+  - slice
+  gates_var: []
+  gates_eq: eqTradeCapFlow
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqTradeFlowLo:
+  name: meqTradeFlowLo
+  dims:
+  - trade
+  - comm
+  - src
+  - dst
+  - year
+  - slice
+  gates_var: []
+  gates_eq: eqTradeFlowLo
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqTradeFlowUp:
+  name: meqTradeFlowUp
+  dims:
+  - trade
+  - comm
+  - src
+  - dst
+  - year
+  - slice
+  gates_var: []
+  gates_eq: eqTradeFlowUp
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mExpComm:
+  name: mExpComm
+  dims:
+  - expp
+  - comm
+  gates_var: vExportRowCum
+  gates_eq: eqExportRowCum
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mExport:
+  name: mExport
+  dims:
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: vExportTot
+  gates_eq: eqExportTot
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mExportIrCost:
+  name: mExportIrCost
+  dims:
+  - trade
+  - region
+  - year
+  gates_var: vExportIrCost
+  gates_eq: eqExportIrCost
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mExportRow:
+  name: mExportRow
+  dims:
+  - expp
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: vExportRow
+  gates_eq: []
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mExportRowCost:
+  name: mExportRowCost
+  dims:
+  - expp
+  - region
+  - year
+  gates_var: vExportRowCost
+  gates_eq: eqExportRowCost
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mExportRowCumUp:
+  name: mExportRowCumUp
+  dims:
+  - expp
+  - comm
+  gates_var: []
+  gates_eq: eqExportRowResUp
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mExportRowUp:
+  name: mExportRowUp
+  dims:
+  - expp
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: eqExportRowUp
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mExpSlice:
+  name: mExpSlice
+  dims:
+  - expp
+  - slice
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: calendar
+  source: calendar
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mFxComm:
+  name: mFxComm
+  dims: comm
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mImpComm:
+  name: mImpComm
+  dims:
+  - imp
+  - comm
+  gates_var: vImportRowCum
+  gates_eq: eqImportRowCum
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mImport:
+  name: mImport
+  dims:
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: vImportTot
+  gates_eq: eqImportTot
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mImportIrCost:
+  name: mImportIrCost
+  dims:
+  - trade
+  - region
+  - year
+  gates_var: vImportIrCost
+  gates_eq: eqImportIrCost
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mImportRow:
+  name: mImportRow
+  dims:
+  - imp
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: vImportRow
+  gates_eq: []
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mImportRowCost:
+  name: mImportRowCost
+  dims:
+  - imp
+  - region
+  - year
+  gates_var: vImportRowCost
+  gates_eq: eqImportRowCost
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mImportRowCumUp:
+  name: mImportRowCumUp
+  dims:
+  - imp
+  - comm
+  gates_var: []
+  gates_eq: eqImportRowResUp
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mImportRowUp:
+  name: mImportRowUp
+  dims:
+  - imp
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: eqImportRowUp
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mImpSlice:
+  name: mImpSlice
+  dims:
+  - imp
+  - slice
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: calendar
+  source: calendar
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mLECRegion:
+  name: mLECRegion
+  dims: region
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mLoComm:
+  name: mLoComm
+  dims: comm
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mMidMilestone:
+  name: mMidMilestone
+  dims: year
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: calendar
+  source: calendar
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mMilestoneFirst:
+  name: mMilestoneFirst
+  dims: year
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: calendar
+  source: calendar
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mMilestoneHasNext:
+  name: mMilestoneHasNext
+  dims: year
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: calendar
+  source: calendar
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mMilestoneLast:
+  name: mMilestoneLast
+  dims: year
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: calendar
+  source: calendar
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mMilestoneNext:
+  name: mMilestoneNext
+  dims:
+  - year
+  - yearp
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: calendar
+  source: calendar
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mSameRegion:
+  name: mSameRegion
+  dims:
+  - region
+  - regionp
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: calendar
+  source: calendar
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mSameSlice:
+  name: mSameSlice
+  dims:
+  - slice
+  - slicep
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: calendar
+  source: calendar
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mSliceFamily:
+  name: mSliceFamily
+  dims:
+  - slice
+  - slicep
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: calendar
+  source: calendar
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mSliceFYearNext:
+  name: mSliceFYearNext
+  dims:
+  - slice
+  - slicep
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: calendar
+  source: calendar
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mSliceNext:
+  name: mSliceNext
+  dims:
+  - slice
+  - slicep
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: calendar
+  source: calendar
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mSliceParentChild:
+  name: mSliceParentChild
+  dims:
+  - slice
+  - slicep
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: calendar
+  source: calendar
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mSliceParentChildE:
+  name: mSliceParentChildE
+  dims:
+  - slice
+  - slicep
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: calendar
+  source: calendar
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageAInp:
+  name: mStorageAInp
+  dims:
+  - stg
+  - comm
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageAOut:
+  name: mStorageAOut
+  dims:
+  - stg
+  - comm
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageCap2AInp:
+  name: mStorageCap2AInp
+  dims:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mStorageCap2AOut:
+  name: mStorageCap2AOut
+  dims:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mStorageCapLo:
+  name: mStorageCapLo
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: []
+  gates_eq: eqStorageCapLo
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageCapUp:
+  name: mStorageCapUp
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: []
+  gates_eq: eqStorageCapUp
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageCinp2AInp:
+  name: mStorageCinp2AInp
+  dims:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mStorageCinp2AOut:
+  name: mStorageCinp2AOut
+  dims:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mStorageComm:
+  name: mStorageComm
+  dims:
+  - stg
+  - comm
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageCout2AInp:
+  name: mStorageCout2AInp
+  dims:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mStorageCout2AOut:
+  name: mStorageCout2AOut
+  dims:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mStorageEac:
+  name: mStorageEac
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: vStorageEac
+  gates_eq: eqStorageEac
+  recipe: lifespan
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageFixom:
+  name: mStorageFixom
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: vStorageFixom
+  gates_eq: eqStorageFixom
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageFullYear:
+  name: mStorageFullYear
+  dims: stg
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: calendar
+  source: calendar
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageInpTot:
+  name: mStorageInpTot
+  dims:
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: vStorageInpTot
+  gates_eq: eqStorageInpTot
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mStorageNCap2AInp:
+  name: mStorageNCap2AInp
+  dims:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mStorageNCap2AOut:
+  name: mStorageNCap2AOut
+  dims:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mStorageNew:
+  name: mStorageNew
+  dims:
+  - stg
+  - region
+  - year
+  gates_var:
+  - vStorageInv
+  - vStorageNewCap
+  gates_eq: eqStorageInv
+  recipe: lifespan
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageNewCapLo:
+  name: mStorageNewCapLo
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: []
+  gates_eq: eqStorageNewCapLo
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageNewCapUp:
+  name: mStorageNewCapUp
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: []
+  gates_eq: eqStorageNewCapUp
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageOlifeInf:
+  name: mStorageOlifeInf
+  dims:
+  - stg
+  - region
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: lifespan
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageOutTot:
+  name: mStorageOutTot
+  dims:
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: vStorageOutTot
+  gates_eq: eqStorageOutTot
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mStorageRetLo:
+  name: mStorageRetLo
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageRetUp:
+  name: mStorageRetUp
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageSpan:
+  name: mStorageSpan
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: vStorageCap
+  gates_eq: eqStorageCap
+  recipe: lifespan
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageStg2AInp:
+  name: mStorageStg2AInp
+  dims:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mStorageStg2AOut:
+  name: mStorageStg2AOut
+  dims:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mStorageVarom:
+  name: mStorageVarom
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: vStorageVarom
+  gates_eq: eqStorageVarom
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageWeatherAfLo:
+  name: mStorageWeatherAfLo
+  dims:
+  - weather
+  - stg
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageWeatherAfUp:
+  name: mStorageWeatherAfUp
+  dims:
+  - weather
+  - stg
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageWeatherCinpLo:
+  name: mStorageWeatherCinpLo
+  dims:
+  - weather
+  - stg
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageWeatherCinpUp:
+  name: mStorageWeatherCinpUp
+  dims:
+  - weather
+  - stg
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageWeatherCoutLo:
+  name: mStorageWeatherCoutLo
+  dims:
+  - weather
+  - stg
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageWeatherCoutUp:
+  name: mStorageWeatherCoutUp
+  dims:
+  - weather
+  - stg
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mSubCost:
+  name: mSubCost
+  dims:
+  - comm
+  - region
+  - year
+  gates_var: vSubsCost
+  gates_eq: eqSubsCost
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mSupAva:
+  name: mSupAva
+  dims:
+  - sup
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: vSupOut
+  gates_eq: []
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mSupAvaUp:
+  name: mSupAvaUp
+  dims:
+  - sup
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: eqSupAvaUp
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mSupComm:
+  name: mSupComm
+  dims:
+  - sup
+  - comm
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mSupOutTot:
+  name: mSupOutTot
+  dims:
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: vSupOutTot
+  gates_eq: eqSupOutTot
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mSupReserveUp:
+  name: mSupReserveUp
+  dims:
+  - sup
+  - comm
+  - region
+  gates_var: []
+  gates_eq: eqSupReserveUp
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mSupSlice:
+  name: mSupSlice
+  dims:
+  - sup
+  - slice
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: calendar
+  source: calendar
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mSupSpan:
+  name: mSupSpan
+  dims:
+  - sup
+  - region
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mSupWeatherLo:
+  name: mSupWeatherLo
+  dims:
+  - weather
+  - sup
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mSupWeatherUp:
+  name: mSupWeatherUp
+  dims:
+  - weather
+  - sup
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTaxCost:
+  name: mTaxCost
+  dims:
+  - comm
+  - region
+  - year
+  gates_var: vTaxCost
+  gates_eq: eqTaxCost
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechAct2AInp:
+  name: mTechAct2AInp
+  dims:
+  - tech
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mTechAct2AOut:
+  name: mTechAct2AOut
+  dims:
+  - tech
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mTechAfcUp:
+  name: mTechAfcUp
+  dims:
+  - tech
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechAfUp:
+  name: mTechAfUp
+  dims:
+  - tech
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechAInp:
+  name: mTechAInp
+  dims:
+  - tech
+  - comm
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechAInpCommAgg:
+  name: mTechAInpCommAgg
+  dims:
+  - tech
+  - comm
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechAInpCommAggSlice:
+  name: mTechAInpCommAggSlice
+  dims:
+  - tech
+  - comm
+  - slice
+  - slicep
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechAInpCommSameSlice:
+  name: mTechAInpCommSameSlice
+  dims:
+  - tech
+  - comm
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechAOut:
+  name: mTechAOut
+  dims:
+  - tech
+  - comm
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechAOutCommAgg:
+  name: mTechAOutCommAgg
+  dims:
+  - tech
+  - comm
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechAOutCommAggSlice:
+  name: mTechAOutCommAggSlice
+  dims:
+  - tech
+  - comm
+  - slice
+  - slicep
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechAOutCommSameSlice:
+  name: mTechAOutCommSameSlice
+  dims:
+  - tech
+  - comm
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechCap2AInp:
+  name: mTechCap2AInp
+  dims:
+  - tech
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mTechCap2AOut:
+  name: mTechCap2AOut
+  dims:
+  - tech
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mTechCapLo:
+  name: mTechCapLo
+  dims:
+  - tech
+  - region
+  - year
+  gates_var: []
+  gates_eq: eqTechCapLo
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechCapUp:
+  name: mTechCapUp
+  dims:
+  - tech
+  - region
+  - year
+  gates_var: []
+  gates_eq: eqTechCapUp
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechCinp2AInp:
+  name: mTechCinp2AInp
+  dims:
+  - tech
+  - comm
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mTechCinp2AOut:
+  name: mTechCinp2AOut
+  dims:
+  - tech
+  - comm
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mTechCout2AInp:
+  name: mTechCout2AInp
+  dims:
+  - tech
+  - comm
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mTechCout2AOut:
+  name: mTechCout2AOut
+  dims:
+  - tech
+  - comm
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mTechEac:
+  name: mTechEac
+  dims:
+  - tech
+  - region
+  - year
+  gates_var: vTechEac
+  gates_eq: []
+  recipe: lifespan
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechEmsFuel:
+  name: mTechEmsFuel
+  dims:
+  - tech
+  - comm
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechFixom:
+  name: mTechFixom
+  dims:
+  - tech
+  - region
+  - year
+  gates_var: vTechFixom
+  gates_eq: eqTechFixom
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechFullYear:
+  name: mTechFullYear
+  dims: tech
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: calendar
+  source: calendar
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechGroupComm:
+  name: mTechGroupComm
+  dims:
+  - tech
+  - group
+  - comm
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechInpComm:
+  name: mTechInpComm
+  dims:
+  - tech
+  - comm
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechInpCommAgg:
+  name: mTechInpCommAgg
+  dims:
+  - tech
+  - comm
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechInpCommAggSlice:
+  name: mTechInpCommAggSlice
+  dims:
+  - tech
+  - comm
+  - slice
+  - slicep
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechInpCommSameSlice:
+  name: mTechInpCommSameSlice
+  dims:
+  - tech
+  - comm
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechInpGroup:
+  name: mTechInpGroup
+  dims:
+  - tech
+  - group
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechInpTot:
+  name: mTechInpTot
+  dims:
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: vTechInpTot
+  gates_eq: eqTechInpTot
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mTechInv:
+  name: mTechInv
+  dims:
+  - tech
+  - region
+  - year
+  gates_var: vTechInv
+  gates_eq: eqTechInv
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechNCap2AInp:
+  name: mTechNCap2AInp
+  dims:
+  - tech
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mTechNCap2AOut:
+  name: mTechNCap2AOut
+  dims:
+  - tech
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mTechNew:
+  name: mTechNew
+  dims:
+  - tech
+  - region
+  - year
+  gates_var: vTechNewCap
+  gates_eq: []
+  recipe: lifespan
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechNewCapLo:
+  name: mTechNewCapLo
+  dims:
+  - tech
+  - region
+  - year
+  gates_var: []
+  gates_eq: eqTechNewCapLo
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechNewCapUp:
+  name: mTechNewCapUp
+  dims:
+  - tech
+  - region
+  - year
+  gates_var: []
+  gates_eq: eqTechNewCapUp
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechOlifeInf:
+  name: mTechOlifeInf
+  dims:
+  - tech
+  - region
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: lifespan
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechOneComm:
+  name: mTechOneComm
+  dims:
+  - tech
+  - comm
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechOutComm:
+  name: mTechOutComm
+  dims:
+  - tech
+  - comm
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechOutCommAgg:
+  name: mTechOutCommAgg
+  dims:
+  - tech
+  - comm
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechOutCommAggSlice:
+  name: mTechOutCommAggSlice
+  dims:
+  - tech
+  - comm
+  - slice
+  - slicep
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechOutCommSameSlice:
+  name: mTechOutCommSameSlice
+  dims:
+  - tech
+  - comm
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechOutGroup:
+  name: mTechOutGroup
+  dims:
+  - tech
+  - group
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechOutTot:
+  name: mTechOutTot
+  dims:
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: vTechOutTot
+  gates_eq: eqTechOutTot
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mTechRampDown:
+  name: mTechRampDown
+  dims:
+  - tech
+  - region
+  - year
+  - slice
+  - slicep
+  gates_var: []
+  gates_eq: eqTechRampDown
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechRampUp:
+  name: mTechRampUp
+  dims:
+  - tech
+  - region
+  - year
+  - slice
+  - slicep
+  gates_var: []
+  gates_eq: eqTechRampUp
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechRetCost:
+  name: mTechRetCost
+  dims:
+  - tech
+  - region
+  - year
+  gates_var: vTechRetCost
+  gates_eq: eqTechRetCost
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechRetirement:
+  name: mTechRetirement
+  dims: tech
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechRetLo:
+  name: mTechRetLo
+  dims:
+  - tech
+  - region
+  - year
+  gates_var: []
+  gates_eq: eqTechRetLo
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechRetUp:
+  name: mTechRetUp
+  dims:
+  - tech
+  - region
+  - year
+  gates_var: []
+  gates_eq: eqTechRetUp
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechSlice:
+  name: mTechSlice
+  dims:
+  - tech
+  - slice
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: calendar
+  source: calendar
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechSpan:
+  name: mTechSpan
+  dims:
+  - tech
+  - region
+  - year
+  gates_var: vTechCap
+  gates_eq:
+  - eqTechCap
+  - eqTechEac
+  recipe: lifespan
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechUpgrade:
+  name: mTechUpgrade
+  dims:
+  - tech
+  - techp
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechVarom:
+  name: mTechVarom
+  dims:
+  - tech
+  - region
+  - year
+  gates_var: vTechVarom
+  gates_eq: eqTechVarom
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechWeatherAfcLo:
+  name: mTechWeatherAfcLo
+  dims:
+  - weather
+  - tech
+  - comm
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechWeatherAfcUp:
+  name: mTechWeatherAfcUp
+  dims:
+  - weather
+  - tech
+  - comm
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechWeatherAfLo:
+  name: mTechWeatherAfLo
+  dims:
+  - weather
+  - tech
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechWeatherAfsLo:
+  name: mTechWeatherAfsLo
+  dims:
+  - weather
+  - tech
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechWeatherAfsUp:
+  name: mTechWeatherAfsUp
+  dims:
+  - weather
+  - tech
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTechWeatherAfUp:
+  name: mTechWeatherAfUp
+  dims:
+  - weather
+  - tech
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTradeCapacityVariable:
+  name: mTradeCapacityVariable
+  dims: trade
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTradeCapLo:
+  name: mTradeCapLo
+  dims:
+  - trade
+  - year
+  gates_var: []
+  gates_eq: eqTradeCapLo
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTradeCapUp:
+  name: mTradeCapUp
+  dims:
+  - trade
+  - year
+  gates_var: []
+  gates_eq: eqTradeCapUp
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTradeComm:
+  name: mTradeComm
+  dims:
+  - trade
+  - comm
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTradeEac:
+  name: mTradeEac
+  dims:
+  - trade
+  - region
+  - year
+  gates_var:
+  - vTradeEac
+  - vTradeInv
+  gates_eq: eqTradeEac
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTradeFixom:
+  name: mTradeFixom
+  dims:
+  - trade
+  - region
+  - year
+  gates_var: vTradeFixom
+  gates_eq: eqTradeFixom
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTradeInv:
+  name: mTradeInv
+  dims:
+  - trade
+  - region
+  - year
+  gates_var: []
+  gates_eq: eqTradeInv
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTradeIr:
+  name: mTradeIr
+  dims:
+  - trade
+  - src
+  - dst
+  - year
+  - slice
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mTradeIrAInp:
+  name: mTradeIrAInp
+  dims:
+  - trade
+  - comm
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mTradeIrAOut:
+  name: mTradeIrAOut
+  dims:
+  - trade
+  - comm
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mTradeIrCdst2Ainp:
+  name: mTradeIrCdst2Ainp
+  dims:
+  - trade
+  - comm
+  - src
+  - dst
+  - year
+  - slice
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mTradeIrCdst2Aout:
+  name: mTradeIrCdst2Aout
+  dims:
+  - trade
+  - comm
+  - src
+  - dst
+  - year
+  - slice
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mTradeIrCsrc2Ainp:
+  name: mTradeIrCsrc2Ainp
+  dims:
+  - trade
+  - comm
+  - src
+  - dst
+  - year
+  - slice
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mTradeIrCsrc2Aout:
+  name: mTradeIrCsrc2Aout
+  dims:
+  - trade
+  - comm
+  - src
+  - dst
+  - year
+  - slice
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mTradeNew:
+  name: mTradeNew
+  dims:
+  - trade
+  - year
+  gates_var: vTradeNewCap
+  gates_eq: []
+  recipe: lifespan
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTradeNewCapLo:
+  name: mTradeNewCapLo
+  dims:
+  - trade
+  - year
+  gates_var: []
+  gates_eq: eqTradeNewCapLo
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTradeNewCapUp:
+  name: mTradeNewCapUp
+  dims:
+  - trade
+  - year
+  gates_var: []
+  gates_eq: eqTradeNewCapUp
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTradeOlifeInf:
+  name: mTradeOlifeInf
+  dims: trade
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: lifespan
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTradeRetLo:
+  name: mTradeRetLo
+  dims:
+  - trade
+  - year
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTradeRetUp:
+  name: mTradeRetUp
+  dims:
+  - trade
+  - year
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTradeRoutes:
+  name: mTradeRoutes
+  dims:
+  - trade
+  - src
+  - dst
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTradeSlice:
+  name: mTradeSlice
+  dims:
+  - trade
+  - slice
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: calendar
+  source: calendar
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mTradeSpan:
+  name: mTradeSpan
+  dims:
+  - trade
+  - year
+  gates_var: vTradeCap
+  gates_eq: eqTradeCap
+  recipe: lifespan
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mUpComm:
+  name: mUpComm
+  dims: comm
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mvBalance:
+  name: mvBalance
+  dims:
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: vBalance
+  gates_eq: eqBal
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mvDemInp:
+  name: mvDemInp
+  dims:
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: vDemInp
+  gates_eq: eqDemInp
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mvInpTot:
+  name: mvInpTot
+  dims:
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: vInpTot
+  gates_eq: eqInpTot
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mvOutTot:
+  name: mvOutTot
+  dims:
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: vOutTot
+  gates_eq: eqOutTot
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mvStorageAInp:
+  name: mvStorageAInp
+  dims:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: vStorageAInp
+  gates_eq: eqStorageAInp
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mvStorageAOut:
+  name: mvStorageAOut
+  dims:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: vStorageAOut
+  gates_eq: eqStorageAOut
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mvStorageStore:
+  name: mvStorageStore
+  dims:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+  gates_var:
+  - vStorageInp
+  - vStorageOut
+  - vStorageStore
+  gates_eq: eqStorageClear
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mvSupCost:
+  name: mvSupCost
+  dims:
+  - sup
+  - region
+  - year
+  gates_var: vSupCost
+  gates_eq: eqSupCost
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mvSupReserve:
+  name: mvSupReserve
+  dims:
+  - sup
+  - comm
+  - region
+  gates_var: vSupReserve
+  gates_eq: eqSupReserve
+  recipe: value
+  source: param
+  predicate: '!is.na(value)'
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mvTechAct:
+  name: mvTechAct
+  dims:
+  - tech
+  - region
+  - year
+  - slice
+  gates_var: vTechAct
+  gates_eq: []
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mvTechAInp:
+  name: mvTechAInp
+  dims:
+  - tech
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: vTechAInp
+  gates_eq: eqTechAInp
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mvTechAOut:
+  name: mvTechAOut
+  dims:
+  - tech
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: vTechAOut
+  gates_eq: eqTechAOut
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mvTechInp:
+  name: mvTechInp
+  dims:
+  - tech
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: vTechInp
+  gates_eq: []
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mvTechOut:
+  name: mvTechOut
+  dims:
+  - tech
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: vTechOut
+  gates_eq: []
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mvTechRetiredNewCap:
+  name: mvTechRetiredNewCap
+  dims:
+  - tech
+  - region
+  - year
+  - year
+  gates_var: vTechRetiredNewCap
+  gates_eq: []
+  recipe: lifespan
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mvTechRetiredStock:
+  name: mvTechRetiredStock
+  dims:
+  - tech
+  - region
+  - year
+  gates_var:
+  - vTechRetiredStockCum
+  - vTechRetiredStock
+  gates_eq:
+  - eqTechRetiredStock
+  - eqTechRetiredStockCum
+  recipe: lifespan
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mvTotalCost:
+  name: mvTotalCost
+  dims:
+  - region
+  - year
+  gates_var: vTotalCost
+  gates_eq: eqCost
+  recipe: cost_agg
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mvTotalUserCosts:
+  name: mvTotalUserCosts
+  dims:
+  - region
+  - year
+  gates_var: vTotalUserCosts
+  gates_eq: []
+  recipe: cost_agg
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mvTradeCost:
+  name: mvTradeCost
+  dims:
+  - region
+  - year
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: cost_agg
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mvTradeIr:
+  name: mvTradeIr
+  dims:
+  - trade
+  - comm
+  - region
+  - region
+  - year
+  - slice
+  gates_var: vTradeIr
+  gates_eq: []
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mvTradeIrAInp:
+  name: mvTradeIrAInp
+  dims:
+  - trade
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: vTradeIrAInp
+  gates_eq: eqTradeIrAInp
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mvTradeIrAInpTot:
+  name: mvTradeIrAInpTot
+  dims:
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: vTradeIrAInpTot
+  gates_eq: eqTradeIrAInpTot
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mvTradeIrAOut:
+  name: mvTradeIrAOut
+  dims:
+  - trade
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: vTradeIrAOut
+  gates_eq: eqTradeIrAOut
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mvTradeIrAOutTot:
+  name: mvTradeIrAOutTot
+  dims:
+  - comm
+  - region
+  - year
+  - slice
+  gates_var: vTradeIrAOutTot
+  gates_eq: eqTradeIrAOutTot
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+  depends_on: []
+mvTradeRowCost:
+  name: mvTradeRowCost
+  dims:
+  - region
+  - year
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: cost_agg
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mWeatherRegion:
+  name: mWeatherRegion
+  dims:
+  - weather
+  - region
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mWeatherSlice:
+  name: mWeatherSlice
+  dims:
+  - weather
+  - slice
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: calendar
+  source: calendar
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+

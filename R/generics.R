@@ -10,8 +10,10 @@ setGeneric("convert", function(x, ...) UseMethod("convert"))
 
 # setGeneric("write.sc", function(x, ...) UseMethod("write.sc")) # use function instead
 
+setGeneric("plot", function(x, y, ...) UseMethod("plot"))
 setGeneric("read", function(...) UseMethod("read")) #
 setGeneric("interpolate", function(object, ...) UseMethod("interpolate"))
+setGeneric("design", function(x, ...) standardGeneric("design"))
 
 # setGeneric("update", function(object, ...) UseMethod("update"))
 
@@ -21,6 +23,7 @@ setGeneric("setHorizon", function(obj, ...) standardGeneric("setHorizon"))
 setGeneric("getHorizon", function(obj) standardGeneric("getHorizon"))
 setGeneric("setCalendar", function(obj, ...) standardGeneric("setCalendar"))
 setGeneric("getCalendar", function(obj) standardGeneric("getCalendar"))
+setGeneric("getUnits", function(object, ...) standardGeneric("getUnits"))
 
 
 # energyRt internal methods

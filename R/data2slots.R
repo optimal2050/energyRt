@@ -13,8 +13,8 @@
 #' @return created or updated object with the added/updated data in the object slots.
 #' @noRd
 .data2slots <- function(
-    class_name = NULL, 
-    x, 
+    class_name = NULL,
+    x,
     ...,
     ignore_args = NULL,
     ignore_classes = NULL,
@@ -78,11 +78,15 @@
         if (is.data.frame(dat)) {
           # data in the same (data.frame) format
           if (any(!(colnames(dat) %in% colnames(slot(obj, s))))) {
+            # !!! ToDo: take columns from "new()" or from the class
             # Check column names
-            stop(paste('Unknown column "', s, '"in the slot: "',
+            stop(paste(
+              'Unknown column "',
               paste(colnames(dat)[!(colnames(dat) %in% colnames(slot(obj, s)))],
-                collapse = '", "'
-              ), '"\n',
+              '"in the slot: "',
+              s,
+              collapse = '", "'),
+              '"\n',
               sep = ""
             ))
           }

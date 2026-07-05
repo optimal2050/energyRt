@@ -31,6 +31,7 @@ head_val = {
     "vTechAct": "tech,region,year,slice,value",
     "vTechInp": "tech,comm,region,year,slice,value",
     "vTechOut": "tech,comm,region,year,slice,value",
+    "vTechOutRY": "tech,comm,region,year,value",
     "vTechAInp": "tech,comm,region,year,slice,value",
     "vTechAOut": "tech,comm,region,year,slice,value",
     "vSupOut": "sup,comm,region,year,slice,value",

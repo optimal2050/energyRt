@@ -1,29 +1,29 @@
 # Class trade ####
 #' An S4 class to represent inter-regional trade
-#' 
+#'
 #' @name class-trade
 #'
 #' @inherit newTrade details
 #'
 #' @md
-#' @slot name `r get_slot_info("trade", "name")`
-#' @slot desc `r get_slot_info("trade", "desc")`
-#' @slot commodity `r get_slot_info("trade", "commodity")`
-#' @slot routes `r get_slot_info("trade", "routes")`
-#' @slot trade `r get_slot_info("trade", "trade")`
-#' @slot aux `r get_slot_info("trade", "aux")`
-#' @slot aeff `r get_slot_info("trade", "aeff")`
-#' @slot invcost `r get_slot_info("trade", "invcost")`
-#' @slot fixom `r get_slot_info("trade", "fixom")`
-#' @slot varom `r get_slot_info("trade", "varom")`
-#' @slot olife `r get_slot_info("trade", "olife")`
-#' @slot start `r get_slot_info("trade", "start")`
-#' @slot end `r get_slot_info("trade", "end")`
-#' @slot capacity `r get_slot_info("trade", "capacity")`
-#' @slot capacityVariable `r get_slot_info("trade", "capacityVariable")`
-#' @slot cap2act `r get_slot_info("trade", "cap2act")`
-#' @slot optimizeRetirement `r get_slot_info("trade", "optimizeRetirement")`
-#' @slot misc `r get_slot_info("trade", "misc")`
+#' @slot name `r get_slot_doc("trade", "name")`
+#' @slot desc `r get_slot_doc("trade", "desc")`
+#' @slot commodity `r get_slot_doc("trade", "commodity")`
+#' @slot routes `r get_slot_doc("trade", "routes")`
+#' @slot trade `r get_slot_doc("trade", "trade")`
+#' @slot aux `r get_slot_doc("trade", "aux")`
+#' @slot aeff `r get_slot_doc("trade", "aeff")`
+#' @slot invcost `r get_slot_doc("trade", "invcost")`
+#' @slot fixom `r get_slot_doc("trade", "fixom")`
+#' @slot varom `r get_slot_doc("trade", "varom")`
+#' @slot olife `r get_slot_doc("trade", "olife")`
+#' @slot start `r get_slot_doc("trade", "start")`
+#' @slot end `r get_slot_doc("trade", "end")`
+#' @slot capacity `r get_slot_doc("trade", "capacity")`
+#' @slot capacityVariable `r get_slot_doc("trade", "capacityVariable")`
+#' @slot cap2act `r get_slot_doc("trade", "cap2act")`
+#' @slot optimizeRetirement `r get_slot_doc("trade", "optimizeRetirement")`
+#' @slot misc `r get_slot_doc("trade", "misc")`
 #'
 #' @include class-storage.R
 #'
@@ -87,6 +87,7 @@ setClass("trade",
       src = character(),
       dst = character(),
       year = integer(),
+      slice = character(),
       varom = numeric(),
       markup = numeric(),
       stringsAsFactors = FALSE
@@ -96,6 +97,7 @@ setClass("trade",
       year = integer(),
       invcost = numeric(),
       wacc = numeric(),
+      eac = numeric(),
       retcost = numeric(),
       stringsAsFactors = FALSE
     ),
@@ -108,13 +110,13 @@ setClass("trade",
       stringsAsFactors = FALSE
     ),
     start = data.frame(
-      # start = integer(),
-      start = -Inf, # temporary, ToDO: similar to other processes
+      start = integer(),
+      # start = -Inf, # temporary, ToDO: similar to other processes
       stringsAsFactors = FALSE
     ),
     end = data.frame(
-      # end = integer(),
-      end = Inf,  # temporary, ToDO: similar to other processes
+      end = integer(),
+      # end = Inf,  # temporary, ToDO: similar to other processes
       stringsAsFactors = FALSE
     ),
     capacity = data.frame(
@@ -177,24 +179,24 @@ setMethod("initialize", "trade", function(.Object, ...) {
 #' (aka transmission lines).
 #'
 #' @md
-#' @param name `r get_slot_info("trade", "name")`
-#' @param desc `r get_slot_info("trade", "desc")`
-#' @param commodity `r get_slot_info("trade", "commodity")`
-#' @param routes `r get_slot_info("trade", "routes")`
-#' @param trade `r get_slot_info("trade", "trade")`
-#' @param fixom `r get_slot_info("trade", "fixom")`
-#' @param varom `r get_slot_info("trade", "varom")`
-#' @param invcost `r get_slot_info("trade", "invcost")`
-#' @param olife `r get_slot_info("trade", "olife")`
-#' @param start `r get_slot_info("trade", "start")`
-#' @param end `r get_slot_info("trade", "end")`
-#' @param capacity `r get_slot_info("trade", "capacity")`
-#' @param capacityVariable `r get_slot_info("trade", "capacityVariable")`
-#' @param aux `r get_slot_info("trade", "aux")`
-#' @param aeff `r get_slot_info("trade", "aeff")`
-#' @param cap2act `r get_slot_info("trade", "cap2act")`
-#' @param optimizeRetirement `r get_slot_info("trade", "optimizeRetirement")`
-#' @param misc `r get_slot_info("trade", "misc")`
+#' @param name `r get_slot_doc("trade", "name")`
+#' @param desc `r get_slot_doc("trade", "desc")`
+#' @param commodity `r get_slot_doc("trade", "commodity")`
+#' @param routes `r get_slot_doc("trade", "routes")`
+#' @param trade `r get_slot_doc("trade", "trade")`
+#' @param fixom `r get_slot_doc("trade", "fixom")`
+#' @param varom `r get_slot_doc("trade", "varom")`
+#' @param invcost `r get_slot_doc("trade", "invcost")`
+#' @param olife `r get_slot_doc("trade", "olife")`
+#' @param start `r get_slot_doc("trade", "start")`
+#' @param end `r get_slot_doc("trade", "end")`
+#' @param capacity `r get_slot_doc("trade", "capacity")`
+#' @param capacityVariable `r get_slot_doc("trade", "capacityVariable")`
+#' @param aux `r get_slot_doc("trade", "aux")`
+#' @param aeff `r get_slot_doc("trade", "aeff")`
+#' @param cap2act `r get_slot_doc("trade", "cap2act")`
+#' @param optimizeRetirement `r get_slot_doc("trade", "optimizeRetirement")`
+#' @param misc `r get_slot_doc("trade", "misc")`
 #'
 #' @return trade object with given specifications.
 #' @export
@@ -217,7 +219,7 @@ setMethod("initialize", "trade", function(.Object, ...) {
 #'   olife = list(olife = 60)
 #' )
 #' draw(PIPELINE1)
-#' 
+#'
 #' PIPELINE2 <- newTrade(
 #'   name = "PIPELINE2",
 #'   desc = "Some transport pipeline",

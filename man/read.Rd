@@ -27,5 +27,5 @@ scen <- read(scen)
 }
 }
 \seealso{
-\code{\link[=solve]{solve()}} to run the script, solve the scenario. \code{\link[=write_sc]{write_sc()}} to read
+\code{\link[=solve]{solve()}} to run the script, solve the scenario. \code{\link[=write_sc]{write_sc()}} to write model inputs.
 }

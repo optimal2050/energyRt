@@ -27,7 +27,7 @@ Calendars, settings, and configurations cannot be stored in the repository, they
 have separate slots in model or scenario objects.
 }
 \seealso{
-Other repository model data: 
+Other repository model data:
 \code{\link{class-repository}}
 }
 \concept{repository model data}

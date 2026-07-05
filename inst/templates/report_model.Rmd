@@ -1,0 +1,95 @@
+---
+title: "`r params$title`"
+output:
+  html_document:
+    self_contained: true
+  pdf_document:
+    latex_engine: pdflatex
+params:
+  title:        "Model report"
+  model_name:   ""
+  model_desc:   ""
+  config_df:    NULL
+  counts_df:    NULL
+  comm_df:      NULL
+  sup_df:       NULL
+  dem_df:       NULL
+  trd_df:       NULL
+  cns_df:       NULL
+  windows_plot: NULL
+  techs:        NULL
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+library(ggplot2)
+kb <- function(df, ...) if (!is.null(df) && nrow(df) > 0) knitr::kable(df, row.names = FALSE, ...)
+```
+
+`r if (isTRUE(nzchar(params$model_desc))) params$model_desc`
+
+## Configuration
+
+```{r config}
+kb(params$config_df)
+```
+
+## Contents
+
+```{r counts}
+kb(params$counts_df)
+```
+
+```{r windows, fig.width=8, fig.height=4.5, eval=!is.null(params$windows_plot)}
+params$windows_plot
+```
+
+## Commodities
+
+```{r comm}
+kb(params$comm_df)
+```
+
+## Supply
+
+```{r sup}
+kb(params$sup_df)
+```
+
+## Demand
+
+```{r dem}
+kb(params$dem_df)
+```
+
+```{r trd-header, results='asis', eval=!is.null(params$trd_df)}
+cat("## Trade\n")
+```
+
+```{r trd, eval=!is.null(params$trd_df)}
+kb(params$trd_df)
+```
+
+```{r cns-header, results='asis', eval=!is.null(params$cns_df)}
+cat("## User constraints\n")
+```
+
+```{r cns, eval=!is.null(params$cns_df)}
+kb(params$cns_df)
+```
+
+## Processes
+
+```{r techs, results='asis', fig.width=6, fig.height=4}
+for (tt in params$techs) {
+  cat("\n\n### ", tt$name,
+      if (nzchar(tt$desc)) paste0(" --- ", tt$desc), "\n\n", sep = "")
+  if (!is.null(tt$draw_file) && file.exists(tt$draw_file)) {
+    cat("![](", gsub("\\\\", "/", tt$draw_file), "){width=70%}\n\n", sep = "")
+  }
+  if (!is.null(tt$info_df) && nrow(tt$info_df) > 0) {
+    print(knitr::kable(tt$info_df, row.names = FALSE))
+    cat("\n")
+  }
+}
+```

@@ -1,33 +1,35 @@
 #' An S4 class to represent model input
 #' @name class-modInp
-#' 
+#'
 #' @description
 #' `modInp` class is used to store interpolated date for the model input parameters.
-#' It includes all the model sets, mappings, and parameters, interpolated to the 
+#' It includes all the model sets, mappings, and parameters, interpolated to the
 #' scenario's calendar and horizon. The class is automatically created during the
 #' interpolation step and is not intended to be created by users.
-#' 
-#' @slot set `r get_slot_info("modInp", "set")`
-#' @slot parameters `r get_slot_info("modInp", "parameters")`
-#' @slot gams.equation `r get_slot_info("modInp", "gams.equation")`
-#' @slot costs.equation `r get_slot_info("modInp", "costs.equation")`
-#' @slot misc `r get_slot_info("modInp", "misc")`
+#'
+#' @slot set `r get_slot_doc("modInp", "set")`
+#' @slot parameters `r get_slot_doc("modInp", "parameters")`
+#' @slot gams.equation `r get_slot_doc("modInp", "gams.equation")`
+#' @slot costs.equation `r get_slot_doc("modInp", "costs.equation")`
+#' @slot misc `r get_slot_doc("modInp", "misc")`
 #'
 #' @include class-parameter.R
 #'
 setClass(
   "modInp",
   representation(
-    set = "list", # rename to dimSets
+    set = "list", # !!! renaming - to be removed
+    sets = "list", # !!! transiting from `set` to 'sets'
     parameters = "list", #
     # modelVersion = "character",  # !!! in use ???
     # solver = "character", # !!! in use ???
-    gams.equation = "list", # add_constraints?
-    costs.equation = "character", # list? add_to_objective?
+    gams.equation = "list", # user_constraints?
+    costs.equation = "character", # list? user_costs?
     misc = "list"
   ),
   prototype(
-    set = list(), # !!! rename to `dimSets`???
+    set = list(), # !!! to be removed
+    sets = list(), # !!! transiting from `set` to 'sets'
     parameters = list(),
     # modelVersion = "",
     # solver = "",
@@ -74,7 +76,9 @@ setMethod("initialize", "modInp", function(.Object) {
         defVal = ob[[i]]$defVal,
         interpolation = ob[[i]]$interpolation,
         colName = ob[[i]]$colName,
-        cls = ob[[i]]$class
+        cls = ob[[i]]$class,
+        dropIfEmpty = ob[[i]]$dropIfEmpty,
+        prune = ob[[i]]$prune
       )
     }
   }

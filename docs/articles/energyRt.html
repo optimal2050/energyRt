@@ -6,15 +6,14 @@
 <meta http-equiv="X-UA-Compatible" content="IE=edge">
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>Introduction to energyRt • energyRt</title>
-<!-- favicons --><link rel="icon" type="image/png" sizes="16x16" href="../favicon-16x16.png">
-<link rel="icon" type="image/png" sizes="32x32" href="../favicon-32x32.png">
-<link rel="apple-touch-icon" type="image/png" sizes="180x180" href="../apple-touch-icon.png">
-<link rel="apple-touch-icon" type="image/png" sizes="120x120" href="../apple-touch-icon-120x120.png">
-<link rel="apple-touch-icon" type="image/png" sizes="76x76" href="../apple-touch-icon-76x76.png">
-<link rel="apple-touch-icon" type="image/png" sizes="60x60" href="../apple-touch-icon-60x60.png">
+<!-- favicons --><link rel="icon" type="image/png" sizes="96x96" href="../favicon-96x96.png">
+<link rel="icon" type="”image/svg+xml”" href="../favicon.svg">
+<link rel="apple-touch-icon" sizes="180x180" href="../apple-touch-icon.png">
+<link rel="icon" sizes="any" href="../favicon.ico">
+<link rel="manifest" href="../site.webmanifest">
 <script src="../lightswitch.js"></script><script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
+<script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Introduction to energyRt">
 <!-- Google tag (gtag.js) --><script async src="https://www.googletagmanager.com/gtag/js?id=G-CYBYJ238Q5"></script><script>
@@ -33,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.50.09.9001</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.70.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -44,22 +43,27 @@
       <ul class="navbar-nav me-auto">
 <li class="active nav-item"><a class="nav-link" href="../articles/energyRt.html">Get started</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
+<li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Roadmap</a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-tutorials" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Tutorials</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials">
 <li><a class="dropdown-item" href="../articles/install.html">Installation</a></li>
-    <li><a class="dropdown-item" href="../articles/helloworld.html">Hello World!</a></li>
+    <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
+    <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
+    <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
+    <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
+    <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
+    <li><a class="dropdown-item" href="../articles/autoplot.html">autoplot()</a></li>
   </ul>
 </li>
-<li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Roadmap</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/logo.html">Logo</a></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
       </ul>
 <ul class="navbar-nav">
 <li class="nav-item"><form class="form-inline" role="search">
  <input class="form-control" type="search" name="search-input" id="search-input" autocomplete="off" aria-label="Search site" placeholder="Search for" data-search-index="../search.json">
 </form></li>
-<li class="nav-item"><a class="external-link nav-link" href="https://github.com/energyRt/energyRt/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
+<li class="nav-item"><a class="external-link nav-link" href="https://github.com/optimal2050/energyRt/" aria-label="GitHub"><span class="fa fab fa-github fa-lg"></span></a></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-lightswitch" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true" aria-label="Light switch"><span class="fa fa-sun"></span></button>
   <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="dropdown-lightswitch">
@@ -83,16 +87,237 @@
       <img src="../logo.png" class="logo" alt=""><h1>Introduction to energyRt</h1>
             
       
-      <small class="dont-index">Source: <a href="https://github.com/energyRt/energyRt/blob/HEAD/vignettes/energyRt.Rmd" class="external-link"><code>vignettes/energyRt.Rmd</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/optimal2050/energyRt/blob/HEAD/vignettes/energyRt.Rmd" class="external-link"><code>vignettes/energyRt.Rmd</code></a></small>
       <div class="d-none name"><code>energyRt.Rmd</code></div>
     </div>
 
     
     
+<div class="section level2">
+<h2 id="the-idea">The idea<a class="anchor" aria-label="anchor" href="#the-idea"></a>
+</h2>
+<p>An energy system is a network of <strong>flows</strong>: primary
+resources are extracted or harvested, converted by technologies, moved,
+stored, and finally consumed as useful energy. Planning such a system —
+what to build, when, and how to run it — is an optimization problem:
+meet demand in every place and moment at the lowest total cost, subject
+to physics and policy.</p>
+<p><strong>energyRt</strong> is a macro-language for stating that
+problem in R. You describe the <em>system</em> — fuels, technologies,
+resources, demands — as R objects, and the package compiles them into a
+full capacity-expansion and dispatch optimization model: it derives the
+sets, writes the equations, runs a solver, and returns the solution as
+tidy tables. The modeling layer (hundreds of index-mapping and
+bookkeeping decisions) is generated, so your code stays at the level of
+the energy system itself.</p>
+</div>
+<div class="section level2">
+<h2 id="one-model-four-backends">One model, four backends<a class="anchor" aria-label="anchor" href="#one-model-four-backends"></a>
+</h2>
+<p>The energyRt optimization model — around one hundred predefined
+equations, extendable with <code><a href="../reference/newConstraint.html">newConstraint()</a></code> — is implemented
+in four mathematical programming languages:</p>
+<ul>
+<li>
+<strong>GLPK / MathProg</strong> — open source; bundled with Rtools
+on Windows, so it works out of the box;</li>
+<li>
+<strong>Julia / JuMP</strong> — open source, with fast solvers like
+HiGHS;</li>
+<li>
+<strong>Python / Pyomo</strong> — open source, CBC/HiGHS and
+others;</li>
+<li>
+<strong>GAMS</strong> — the commercial standard in energy-systems
+work.</li>
+</ul>
+<p>The <em>same</em> model object solves on any backend with consistent
+results — start on GLPK with zero setup, switch to a faster or
+institutional solver later without touching your model. The full
+mathematical formulation is documented in the <a href="https://energyrt.org/articles/energyRt_model_equations.pdf" class="external-link">model
+equations PDF</a>; the <a href="https://energyrt.org/articles/backends.html" class="external-link">solver backends
+article</a> covers configuration.</p>
+</div>
+<div class="section level2">
+<h2 id="the-bricks">The bricks<a class="anchor" aria-label="anchor" href="#the-bricks"></a>
+</h2>
+<p>Models are assembled from a small set of object types:</p>
+<table class="table">
+<colgroup>
+<col width="33%">
+<col width="33%">
+<col width="33%">
+</colgroup>
+<thead><tr class="header">
+<th>Brick</th>
+<th>Constructor</th>
+<th>Role</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>commodity</td>
+<td><code><a href="../reference/newCommodity.html">newCommodity()</a></code></td>
+<td>an energy carrier or accounting flow (GAS, ELC, CO2)</td>
+</tr>
+<tr class="even">
+<td>technology</td>
+<td><code><a href="../reference/technology.html">newTechnology()</a></code></td>
+<td>a conversion process — the richest object</td>
+</tr>
+<tr class="odd">
+<td>supply</td>
+<td><code><a href="../reference/newSupply.html">newSupply()</a></code></td>
+<td>a source: fuel at a price, or a free resource</td>
+</tr>
+<tr class="even">
+<td>demand</td>
+<td><code><a href="../reference/newDemand.html">newDemand()</a></code></td>
+<td>a sink: final consumption to be met</td>
+</tr>
+<tr class="odd">
+<td>storage</td>
+<td><code><a href="../reference/storage.html">newStorage()</a></code></td>
+<td>shifts a commodity across time slices</td>
+</tr>
+<tr class="even">
+<td>weather</td>
+<td><code><a href="../reference/newWeather.html">newWeather()</a></code></td>
+<td>capacity factors and other exogenous profiles</td>
+</tr>
+<tr class="odd">
+<td>repository</td>
+<td><code><a href="../reference/newRepository.html">newRepository()</a></code></td>
+<td>a bag of bricks — the parts library</td>
+</tr>
+<tr class="even">
+<td>model</td>
+<td><code><a href="../reference/newModel.html">newModel()</a></code></td>
+<td>repository + regions + calendar + horizon</td>
+</tr>
+<tr class="odd">
+<td>scenario</td>
+<td>
+<code><a href="../reference/interpolate_model.html">interpolate_model()</a></code> /
+<code><a href="../reference/solve_model.html">solve_scenario()</a></code>
+</td>
+<td>a model instance, solved</td>
+</tr>
+</tbody>
+</table>
+<p>A technology converts inputs to outputs through the chain
+<code>input → use → activity → output</code>; costs, capacity,
+availability, emissions and secondary flows all attach to it. The <a href="https://energyrt.org/articles/model-bricks.html" class="external-link">model bricks
+article</a> walks through every object in depth.</p>
+</div>
+<div class="section level2">
+<h2 id="a-five-minute-model">A five-minute model<a class="anchor" aria-label="anchor" href="#a-five-minute-model"></a>
+</h2>
+<p>One fuel, one power plant, one demand — a complete, solvable
+system:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://energyRt.org">energyRt</a></span><span class="op">)</span></span></code></pre></div>
-<p>…</p>
-  </main>
+<code class="sourceCode R"><span><span class="va">GAS</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newCommodity.html">newCommodity</a></span><span class="op">(</span><span class="st">"GAS"</span>, timeframe <span class="op">=</span> <span class="st">"ANNUAL"</span><span class="op">)</span></span>
+<span><span class="va">ELC</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newCommodity.html">newCommodity</a></span><span class="op">(</span><span class="st">"ELC"</span>, timeframe <span class="op">=</span> <span class="st">"ANNUAL"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">SUP_GAS</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newSupply.html">newSupply</a></span><span class="op">(</span><span class="st">"SUP_GAS"</span>, commodity <span class="op">=</span> <span class="st">"GAS"</span>,</span>
+<span>                     availability <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>cost <span class="op">=</span> <span class="fl">6.0</span><span class="op">)</span><span class="op">)</span>   <span class="co"># fuel price, MEUR/PJ</span></span>
+<span></span>
+<span><span class="va">EGAS</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/technology.html">newTechnology</a></span><span class="op">(</span><span class="st">"EGAS"</span>,</span>
+<span>  input   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>comm <span class="op">=</span> <span class="st">"GAS"</span><span class="op">)</span>, output <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>comm <span class="op">=</span> <span class="st">"ELC"</span><span class="op">)</span>,</span>
+<span>  ceff    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>comm <span class="op">=</span> <span class="st">"GAS"</span>, cinp2use <span class="op">=</span> <span class="fl">0.55</span><span class="op">)</span>,        <span class="co"># 55% efficient</span></span>
+<span>  invcost <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>invcost <span class="op">=</span> <span class="fl">900</span><span class="op">)</span>,                              <span class="co"># MEUR/GW</span></span>
+<span>  fixom   <span class="op">=</span> <span class="fl">25</span>, cap2act <span class="op">=</span> <span class="fl">31.536</span>, olife <span class="op">=</span> <span class="fl">25L</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">DEM_ELC</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newDemand.html">newDemand</a></span><span class="op">(</span><span class="st">"DEM_ELC"</span>, commodity <span class="op">=</span> <span class="st">"ELC"</span>,</span>
+<span>                     dem <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>dem <span class="op">=</span> <span class="fl">50</span><span class="op">)</span><span class="op">)</span>               <span class="co"># 50 PJ a year</span></span>
+<span></span>
+<span><span class="fu"><a href="../reference/draw.html">draw</a></span><span class="op">(</span><span class="va">EGAS</span><span class="op">)</span></span></code></pre></div>
+<p><img src="energyRt_files/figure-html/hello-build-1.png"><!-- --></p>
+<p>Bind the bricks to space and time, and solve on GLPK:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newModel.html">newModel</a></span><span class="op">(</span><span class="st">"HELLO"</span>,</span>
+<span>  data    <span class="op">=</span> <span class="fu"><a href="../reference/newRepository.html">newRepository</a></span><span class="op">(</span><span class="st">"parts"</span>, <span class="va">GAS</span>, <span class="va">ELC</span>, <span class="va">SUP_GAS</span>, <span class="va">EGAS</span>, <span class="va">DEM_ELC</span><span class="op">)</span>,</span>
+<span>  region  <span class="op">=</span> <span class="st">"R1"</span>, discount <span class="op">=</span> <span class="fl">0.05</span>,</span>
+<span>  horizon <span class="op">=</span> <span class="fu"><a href="../reference/newHorizon.html">newHorizon</a></span><span class="op">(</span>period <span class="op">=</span> <span class="fl">2025</span><span class="op">:</span><span class="fl">2040</span>, intervals <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">5</span>, <span class="fl">10</span><span class="op">)</span>,</span>
+<span>                       mid_is_end <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_model.html">solve_scenario</a></span><span class="op">(</span><span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod</span>, name <span class="op">=</span> <span class="st">"BASE"</span><span class="op">)</span>,</span>
+<span>                       solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">glpk</span>,</span>
+<span>                       echo <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>    <span class="co"># echo = FALSE silences the solver log</span></span></code></pre></div>
+<p>Results come back as tidy tables:</p>
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen</span>, <span class="st">"vObjective"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>   <span class="co"># total discounted system cost, MEUR</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 1 × 3</span></span></span>
+<span><span class="co">#&gt;   scenario name       value</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> BASE     vObjective <span style="text-decoration: underline;">6</span>677.</span></span>
+<span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen</span>, <span class="st">"vTechCap"</span>,   merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>   <span class="co"># capacity the model built, GW</span></span>
+<span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 3 × 6</span></span></span>
+<span><span class="co">#&gt;   scenario name     tech  region  year value</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> BASE     vTechCap EGAS  R1      <span style="text-decoration: underline;">2</span>025  1.59</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> BASE     vTechCap EGAS  R1      <span style="text-decoration: underline;">2</span>030  1.59</span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> BASE     vTechCap EGAS  R1      <span style="text-decoration: underline;">2</span>040  1.59</span></span></code></pre></div>
+<p>The model built 1.59 GW of gas capacity — exactly enough to deliver
+50 PJ a year — and the solution reports every flow, cost, and capacity
+variable at the same level of detail.</p>
+</div>
+<div class="section level2">
+<h2 id="how-it-stands-out">How it stands out<a class="anchor" aria-label="anchor" href="#how-it-stands-out"></a>
+</h2>
+<p><strong>One language end to end.</strong> Data preparation, model
+formulation, solving, and analysis all happen in R: your inputs arrive
+via the tidyverse, and results return as tibbles ready for
+<code>dplyr</code> and <code>ggplot2</code>. There is no export-import
+seam between the model and your analysis.</p>
+<p><strong>Solver independence.</strong> Institutional modeling
+ecosystems typically bind you to one platform. energyRt’s four
+equivalent backends mean a class can run on GLPK, a research group on
+JuMP, and an agency on GAMS — same model, same results.</p>
+<p><strong>Built for scale.</strong> A sparse interpolation engine
+materializes only the set-tuples a scenario needs, and scenarios are
+stored in Arrow-backed folders (<code><a href="../reference/save_scenario.html">save_scenario()</a></code> /
+<code><a href="../reference/load_scenario.html">load_scenario()</a></code>) that load lazily — larger-than-memory
+results remain workable.</p>
+<p><strong>Analysis built in.</strong> <code><a href="../reference/levcost.html">levcost()</a></code> prices a
+technology <em>a-priori</em> (a textbook LCOE from a unit-demand
+mini-model) or <em>ex-post</em> from a solved scenario;
+<code><a href="../reference/report.html">report()</a></code> renders a technology or process datasheet;
+<code><a href="../reference/draw.html">draw()</a></code> diagrams any technology; <code><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot()</a></code>
+covers calendars, commodities, weather, costs and more.</p>
+<p><strong>A complete teaching model.</strong> The UTOPIA electricity
+model ships with the package — both as step-by-step vignettes and as the
+ready <code>utopia_modules</code> data kit with scenario levers
+(CO<sub>2</sub> cap, carbon tax, renewable share, nuclear moratorium) —
+so the path from “hello world” to policy analysis is paved.</p>
+<p>energyRt sits alongside established energy-modeling frameworks (the
+TIMES/MESSAGE/OSeMOSYS family) as an R-native alternative: the same
+class of capacity-expansion models, formulated and analyzed without
+leaving R.</p>
+</div>
+<div class="section level2">
+<h2 id="where-next">Where next<a class="anchor" aria-label="anchor" href="#where-next"></a>
+</h2>
+<ol style="list-style-type: decimal">
+<li>
+<a href="https://energyrt.org/articles/model-bricks.html" class="external-link">Model
+bricks</a> — every object type in depth, including fuel blends,
+auxiliary flows, and user constraints.</li>
+<li>
+<code><a href="../articles/utopia-build.html">vignette("utopia-build")</a></code> — <em>UTOPIA I</em>: build a
+multi-region electricity model brick by brick.</li>
+<li>
+<code><a href="../articles/utopia-use.html">vignette("utopia-use")</a></code> — <em>UTOPIA II</em>: solve it
+and run policy scenarios.</li>
+<li>
+<a href="https://energyrt.org/articles/backends.html" class="external-link">Solver
+backends</a> — GLPK, JuMP, Pyomo, GAMS, and NEOS.</li>
+<li>
+<a href="https://energyrt.org/articles/workflow.html" class="external-link">Workflow</a> —
+extracting, editing, saving and comparing scenarios.</li>
+</ol>
+</div>
+  </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
+    </nav></aside>
 </div>
 
 
@@ -102,7 +327,7 @@
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.1.1.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
 </div>
 
     </footer>

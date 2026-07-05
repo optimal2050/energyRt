@@ -132,22 +132,7 @@ for c, r, y, s in mvBalance:
             + "\n"
         )
 f.close()
-flist.write("vBalanceRY\n")
-f = open("output/vBalanceRY.csv", "w")
-f.write("comm,region,year,value\n")
-for c, r, y in mBalanceRY:
-    if model.vBalanceRY[(c, r, y)].value != 0:
-        f.write(
-            str(c)
-            + ","
-            + str(r)
-            + ","
-            + str(y)
-            + ","
-            + str(model.vBalanceRY[(c, r, y)].value)
-            + "\n"
-        )
-f.close()
+# [agg-rewrite] vBalanceRY output retired
 flist.write("vTotalCost\n")
 f = open("output/vTotalCost.csv", "w")
 f.write("region,year,value\n")
@@ -511,6 +496,7 @@ for t, c, r, y, s in mvTechOut:
             + "\n"
         )
 f.close()
+# [agg-rewrite] vTechOutRY output retired
 flist.write("vTechAInp\n")
 f = open("output/vTechAInp.csv", "w")
 f.write("tech,comm,region,year,slice,value\n")
@@ -623,22 +609,7 @@ for c, r, y, s in mvOutTot:
             + "\n"
         )
 f.close()
-flist.write("vOutTotRY\n")
-f = open("output/vOutTotRY.csv", "w")
-f.write("comm,region,year,value\n")
-for c, r, y in mOutTotRY:
-    if model.vOutTotRY[(c, r, y)].value != 0:
-        f.write(
-            str(c)
-            + ","
-            + str(r)
-            + ","
-            + str(y)
-            + ","
-            + str(model.vOutTotRY[(c, r, y)].value)
-            + "\n"
-        )
-f.close()
+# [agg-rewrite] vOutTotRY output retired
 flist.write("vInpTot\n")
 f = open("output/vInpTot.csv", "w")
 f.write("comm,region,year,slice,value\n")
@@ -657,62 +628,8 @@ for c, r, y, s in mvInpTot:
             + "\n"
         )
 f.close()
-flist.write("vInpTotRY\n")
-f = open("output/vInpTotRY.csv", "w")
-f.write("comm,region,year,value\n")
-for c, r, y in mInpTotRY:
-    if model.vInpTotRY[(c, r, y)].value != 0:
-        f.write(
-            str(c)
-            + ","
-            + str(r)
-            + ","
-            + str(y)
-            + ","
-            + str(model.vInpTotRY[(c, r, y)].value)
-            + "\n"
-        )
-f.close()
-flist.write("vInp2Lo\n")
-f = open("output/vInp2Lo.csv", "w")
-f.write("comm,region,year,slice,slicep,value\n")
-for c, r, y, s, sp in mvInp2Lo:
-    if model.vInp2Lo[(c, r, y, s, sp)].value != 0:
-        f.write(
-            str(c)
-            + ","
-            + str(r)
-            + ","
-            + str(y)
-            + ","
-            + str(s)
-            + ","
-            + str(sp)
-            + ","
-            + str(model.vInp2Lo[(c, r, y, s, sp)].value)
-            + "\n"
-        )
-f.close()
-flist.write("vOut2Lo\n")
-f = open("output/vOut2Lo.csv", "w")
-f.write("comm,region,year,slice,slicep,value\n")
-for c, r, y, s, sp in mvOut2Lo:
-    if model.vOut2Lo[(c, r, y, s, sp)].value != 0:
-        f.write(
-            str(c)
-            + ","
-            + str(r)
-            + ","
-            + str(y)
-            + ","
-            + str(s)
-            + ","
-            + str(sp)
-            + ","
-            + str(model.vOut2Lo[(c, r, y, s, sp)].value)
-            + "\n"
-        )
-f.close()
+# [agg-rewrite] vInpTotRY output retired
+# [agg-rewrite] vInp2Lo/vOut2Lo output extraction removed (variables retired)
 flist.write("vSupOutTot\n")
 f = open("output/vSupOutTot.csv", "w")
 f.write("comm,region,year,slice,value\n")

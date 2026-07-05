@@ -42,34 +42,44 @@ development:
 navbar:
   # bg: light
   structure:
-    left:  [intro, reference, articles, roadmap, logo, news]
+    left:  [intro, reference, roadmap, articles, news]
     right: [search, github, lightswitch]
   components:
     news:
       text: News
       href: news/index.html
+    roadmap:
+      text: Roadmap
+      href: articles/roadmap.html
     articles:
       text: Tutorials
       menu:
       - text: Installation
         href: articles/install.html
+      - text: Solver backends
+        href: articles/backends.html
       # - text: Framework
         # href: articles/help.html
-      - text: Hello World!
-        href: articles/helloworld.html
-  #     - text: Suggested Workflow
-  #       href: articles/workflow.html
-    roadmap:
-      text: Roadmap
-      href: articles/roadmap.html
+      - text: Model bricks
+        href: articles/model-bricks.html
+      - text: Time resolution
+        href: articles/time-resolution.html
+      - text: "UTOPIA I: building the model"
+        href: articles/utopia-build.html
+      - text: "UTOPIA II: running scenarios"
+        href: articles/utopia-use.html
+      - text: Workflow
+        href: articles/workflow.html
+      - text: autoplot()
+        href: articles/autoplot.html
       # menu:
       # - text: near term
       #   href: articles/model.html
       # - text: long term
         # href: articles/help.html
-    logo:
-      text: Logo
-      href: articles/logo.html
+    # logo:
+    #   text: Logo
+    #   href: articles/logo.html
 
 reference:
 - title: Classes
@@ -103,6 +113,8 @@ reference:
   - ends_with("ettings")
   - ends_with("alendar")
   - ends_with("orizon")
+  - calendars
+  - horizons
 
 - title: Solving
   contents:
@@ -110,11 +122,24 @@ reference:
   - starts_with("write")
   - starts_with("read")
   - starts_with("solve")
+  - matches("mapping")
+  - trim_parameters_by_maps
+  - validate_scenario_parameters
+
+- title: Remote solver (NEOS)
+  contents:
+  - starts_with("neos")
+
+- title: Reporting
+  contents:
+  - starts_with("report")
 
 - title: Data manimulation
   contents:
   - matches("convert")
   - matches("data")
+  - getObject
+  - getMix
   - matches("find")
   - matches("rename")
   - matches("revalue")
@@ -127,13 +152,13 @@ reference:
   - matches("^tsl")
   - matches("tsl_guess_format")
   - matches("drop_na_cols")
-
   - matches("obj2mem")
   - matches("isInMemory")
   - matches("register")
   - matches("get_registry")
   - matches("save_scenario")
   - matches("load_scenario")
+  - starts_with("utopia")
 
 
 - title: Visualisation
@@ -141,11 +166,13 @@ reference:
   - matches("draw")
   - matches("plot")
   - matches("show")
+  - matches("design")
 
 - title: Validation
   contents:
   - starts_with("check")
   - matches("levcost")
+  - tech_share_frontier
 
 - title: Exporting
   contents:
@@ -159,9 +186,17 @@ reference:
 
 - title: utils
   contents:
-  - matches("en_install_julia_pkgs")
+  - starts_with("en_install")
+  - starts_with("en_setup")
+  - starts_with("en_check")
   - matches("en_obj2df")
-  - get_slot_info
+  - starts_with("collect_")
+  - starts_with("get_")
+  - starts_with("complete_")
+  - starts_with("expand_")
+  - matches("countdown_timer")
+  - matches("map_|named_|is_")
+  # - get_slot_info
 
 # - title: All other
 #   contents: lacks_concepts("none")

@@ -62,6 +62,13 @@ to/from \code{energyRt} options.
 This (optional) function sets path to GAMS directory to R-options. It might be useful if for the cases when several different version (and licenses) of GAMS installed, to easily switch between them. It is also possible to set different path for GAMS and GAMS Data Exchange (GDX) libraries.
 If GDX path is not set, the GAMS path will be used. If GAMS path is not set, the default system GAMS-path (OS environment variables) instead.
 }
+\details{
+By default energyRt auto-detects the \code{glpsol} executable on the
+session \code{PATH} (via \code{\link[base:Sys.which]{base::Sys.which()}}). On Windows this picks up the copy
+\strong{bundled with Rtools} (Rtools ships the GLPK dev kit), so an Rtools user
+needs no separate GLPK install. Use \code{set_glpk_path()} only to point at a
+standalone GLPK installation, which then takes precedence over auto-detection.
+}
 \examples{
 # set_gams_path("C:/GAMS/win64/32.2/")
 

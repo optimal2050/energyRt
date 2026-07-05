@@ -320,5 +320,10 @@ ECOAL <- newTechnology(
 draw(ECOAL)
 
 }
+\seealso{
+Other technology process:
+\code{\link[=read_technology_xlsx]{read_technology_xlsx()}},
+\code{\link[=write_technology_xlsx]{write_technology_xlsx()}}
+}
 \concept{technology process}
 \concept{update technology process}

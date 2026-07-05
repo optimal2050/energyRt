@@ -1,8 +1,8 @@
 Package: energyRt
 Type: Package
-Title: Energy systems modeling toolbox in R, development version
-Version: 0.50.09.9001
-Date: 2024-11-19
+Title: Energy Systems Modeling Toolbox
+Version: 0.70.0.9000
+Date: 2026-07-05
 Authors@R: 
   c(person(given = "Oleg", 
           family = "Lugovoy", 
@@ -18,29 +18,45 @@ Authors@R:
           email = "tarunsharma@ms.iitr.ac.in",
           role = c("ctb"),
           comment = c(ORCID = "0000-0003-3636-2858")))
-URL: https://energyRt.org, https://github.com/energyRt/energyRt
-BugReports: https://github.com/energyRt/energyRt/issues
-Description: Energy systems modeling toolbox in R
+URL: https://energyRt.org, https://github.com/optimal2050/energyRt
+BugReports: https://github.com/optimal2050/energyRt/issues
+Description: A macro-language for energy system modeling in R. Describe an
+    energy system as R objects (commodities, technologies, supply, demand,
+    storage, trade), compile it into a capacity-expansion and dispatch
+    optimization model, solve it on one of four interchangeable backends
+    (GLPK/MathProg, Julia/JuMP, Python/Pyomo, or GAMS), and analyze tidy
+    results with built-in tools for levelized costs, technology reports,
+    and plotting.
 Depends: R (>= 4.3)
 Imports: methods, grid, generics, data.table, DBI, RSQLite, tibble,
         tidyr, dplyr, rlang, stringr, lubridate, purrr, arrow,
         progressr, tictoc, cli, zoo, registry, options (>= 0.2.0),
         glue, plyr, grDevices, utils
-Suggests: pak, gdxtools, knitr, rmarkdown, sf, yaml, ggplot2, testthat
-        (>= 3.0.0), devtools
+Suggests: pak, gdxtools (== 0.7.1), knitr, rmarkdown, sf, yaml, ggplot2, testthat
+        (>= 3.0.0), devtools, openxlsx, jsonlite, readxl, httr2, xml2,
+        base64enc, tinytex, patchwork
 SystemRequirements: Julia (>= 1.6) with JuMP or Python (>= 3.7) with
         Pyomo or GAMS (>= 24.9) or GLPK (>= 4.0)
 License: AGPL (>= 3)
-RoxygenNote: 7.3.2
 VignetteBuilder: knitr
 LazyData: true
 Encoding: UTF-8
 Collate: 
+    'arrow.R'
     'defaults.R'
     'docs.R'
     'options.R'
     'generics.R'
     'class-calendar.R'
+    'class-horizon.R'
+    'class-repository.R'
+    'class-config.R'
+    'class-model.R'
+    'class-parameter.R'
+    'class-modInp.R'
+    'print.R'
+    'plot.R'
+    'check.R'
     'class-commodity.R'
     'class-demand.R'
     'class-supply.R'
@@ -54,41 +70,62 @@ Collate:
     'class-subsidy.R'
     'class-constraint.R'
     'class-costs.R'
-    'class-horizon.R'
-    'class-config.R'
-    'class-settings.R'
-    'class-repository.R'
-    'class-model.R'
-    'class-parameter.R'
-    'class-modInp.R'
     'class-modOut.R'
+    'class-settings.R'
     'class-scenario.R'
-    'add2set.R'
-    'arrow.R'
     'utils.R'
     'convert.R'
     'data2slots.R'
+    'densify.R'
+    'design.R'
     'draw.R'
+    'eac.R'
     'energyRt-package.R'
+    'exchange.R'
+    'fold.R'
+    'fold_artificial.R'
     'get_data.R'
+    'get_data_objects.R'
+    'get_object.R'
+    'get_region.R'
     'install.R'
-    'interpolate.R'
-    'interpolate2.R'
-    'interpolate_new.R'
+    'interp.R'
+    'interp_progress.R'
+    'interp_shared.R'
     'interpolation_funs.R'
+    'legacy_api_shims.R'
     'solve.R'
     'levcost.R'
+    'map_calendar.R'
+    'map_closure.R'
+    'map_constraint.R'
+    'map_costagg.R'
+    'map_filter.R'
+    'map_lifespan.R'
+    'map_membership.R'
+    'map_value.R'
+    'mapping_engine.R'
+    'mapping_helpers.R'
+    'mapping_registry.R'
+    'model_size.R'
+    'neos.R'
     'obj2modInp.R'
-    'print.R'
+    'plot_scenario.R'
+    'prune.R'
     'read.R'
     'registry.R'
+    'report.R'
     'start_msg.R'
     'timeslices.R'
+    'units.R'
+    'utopia-data.R'
+    'utopia_profiles.R'
     'write.R'
     'write_gams.R'
     'write_glpk.R'
     'write_jump.R'
     'write_pyomo.R'
+    'xlsx-technology.R'
 Config/testthat/edition: 3
 Config/testthat/parallel: false
 Roxygen: list(markdown = TRUE)
@@ -98,3 +135,4 @@ Author: Oleg Lugovoy [aut, cre] (<https://orcid.org/0000-0001-5546-9875>),
   Vladimir Potashnikov [aut],
   Tarun Sharma [ctb] (<https://orcid.org/0000-0003-3636-2858>)
 Maintainer: Oleg Lugovoy <olugovoy@optimalsolution.dev>
+Config/roxygen2/version: 8.0.0

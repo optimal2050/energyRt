@@ -138,18 +138,32 @@ get_python_path <- function() {
   dir.create(fp(arg$tmp.dir, "input"), showWarnings = FALSE)
   dir.create(fp(arg$tmp.dir, "output"), showWarnings = FALSE)
   # if (!is.null(scen@settings@solver$SQLite) && scen@settings@solver$SQLite) {
-  if (is.null(scen@settings@solver$export_format)) {
-    SQLite <- FALSE
-  } else {
-    SQLite <- tolower(scen@settings@solver$export_format) == "sqlite"
-  }
-  if (is.null(SQLite)) SQLite <- FALSE
+  .ex_fmt <- scen@settings@solver$export_format
+  SQLite <- !is.null(.ex_fmt) && tolower(.ex_fmt) == "sqlite"
+  use_arrow_in <- !is.null(.ex_fmt) &&
+    tolower(.ex_fmt) %in% c("feather", "ipc", "arrow", "parquet")
+  # Both SQLite and Arrow load data through read_set()/read_dict() (.toPyomSQLite
+  # code-gen); the default (per-parameter .py) path inlines dicts via .toPyomo.
+  use_readfn <- SQLite || use_arrow_in
   if (SQLite) {
     ### Generate SQLite file
     .write_sqlite_list(
       dat = .get_scen_data(scen),
       sqlFile = fp(arg$tmp.dir, "input/data.db")
     )
+  } else if (use_arrow_in) {
+    # One Arrow IPC file per table in input/; read_set/read_dict (energyRtConcrete
+    # .py) read them when `_DATA_FORMAT = "arrow"`. Coerce factors to plain strings
+    # so pyarrow returns the labels (not categorical codes).
+    .dat <- .get_scen_data(scen)
+    for (.i in names(.dat)) {
+      .d <- as.data.frame(.dat[[.i]])
+      .d[] <- lapply(.d, function(x) if (is.factor(x)) as.character(x) else x)
+      .write_exchange_table(.d, fp(arg$tmp.dir, paste0("input/", .i)),
+                            format = "feather")
+    }
+    run_code <- gsub('_DATA_FORMAT = "sqlite"', '_DATA_FORMAT = "arrow"',
+                     run_code, fixed = TRUE)
   }
   .write_inc_solver(scen, arg, "opt = SolverFactory('cplex');", ".py", "cplex")
   # Add constraint
@@ -197,7 +211,7 @@ get_python_path <- function() {
         } else {
           if (any(grep("^.Cns", i))) {
             # if (!is.null(scen@settings@solver$SQLite) && scen@settings@solver$SQLite) {
-            if (SQLite) {
+            if (use_readfn) {
               cat(.toPyomSQLite(scen@modInp@parameters[[i]]),
                 sep = "\n",
                 file = zz_constr
@@ -211,7 +225,7 @@ get_python_path <- function() {
             }
           } else if (any(grep("^.Costs", i))) {
             # if (!is.null(scen@settings@solver$SQLite) && scen@settings@solver$SQLite) {
-            if (SQLite) {
+            if (use_readfn) {
               cat(.toPyomSQLite(scen@modInp@parameters[[i]]),
                 sep = "\n",
                 file = zz_costs
@@ -224,7 +238,7 @@ get_python_path <- function() {
               )
             }
           } else {
-            if (SQLite) {
+            if (use_readfn) {
               cat(.toPyomSQLite(scen@modInp@parameters[[i]]),
                 sep = "\n",
                 file = zz_inp_file
@@ -298,6 +312,26 @@ get_python_path <- function() {
   close(zz_constr)
   close(zz_costs)
   zz_modout <- file(fp(arg$tmp.dir, "/output.py"), "w")
+  # Arrow solution output: write each variable DIRECTLY as Arrow IPC (no CSV
+  # round-trip). Inject a `_VarFile` class (a drop-in for the CSV file handle: the
+  # unchanged `f.write(...)` / `f.close()` calls accumulate rows and emit
+  # `output/<var>.arrow` on close) and retarget the per-variable
+  # `open("output/v<Name>.csv")` (Concrete) / `open("output/" + str(v) + ".csv")`
+  # (Abstract) to `open_var(...)`. Meta files (variable_list / raw_data_set / log)
+  # keep streaming CSV. CSV output is unchanged when not Arrow.
+  .im_fmt <- scen@settings@solver$import_format
+  if (!is.null(.im_fmt) &&
+      tolower(.im_fmt) %in% c("feather", "ipc", "arrow", "parquet")) {
+    cat(.pyomo_arrow_output_helpers(), sep = "\n", file = zz_modout)
+    run_codeout <- gsub(
+      'open\\("output/(v[A-Z][A-Za-z0-9_]*)\\.csv", "w"\\)',
+      'open_var("output/\\1.csv")', run_codeout
+    )
+    run_codeout <- gsub(
+      'open\\("output/" \\+ str\\(v\\) \\+ "\\.csv", "w"\\)',
+      'open_var("output/" + str(v) + ".csv")', run_codeout
+    )
+  }
   cat(run_codeout, sep = "\n", file = zz_modout)
   close(zz_modout)
   .write_inc_files(arg, scen, ".py")
@@ -1043,4 +1077,56 @@ get_python_path <- function() {
                gsub("[[][]]", "",
                     .eqt.to.pyomo.jump(gsub(".*[.][.][ ]*", "", eqt))))
   rs
+}
+
+# Python `_VarFile` helper for DIRECT per-variable Arrow solution output. A drop-in
+# for the CSV file handle: `open_var()` replaces `open(..., "w")`; the unchanged
+# `f.write(s)` / `f.close()` calls accumulate rows (the first write is the CSV
+# header line) and write `output/<var>.arrow` (zstd) on close, typing the `value`
+# column float64, year/yearp int64, and the dimension columns string. Injected by
+# `.write_model_PYOMO` only when the solution is imported as Arrow.
+.pyomo_arrow_output_helpers <- function() {
+  c(
+    "import pyarrow as _pa",
+    "import pyarrow.feather as _feather",
+    "",
+    "",
+    "class _VarFile:",
+    "    def __init__(self, csvpath):",
+    "        self.base = csvpath[:-4]",
+    "        self.header = None",
+    "        self.rows = []",
+    "",
+    "    def write(self, s):",
+    "        for line in s.splitlines():",
+    "            if not line:",
+    "                continue",
+    '            parts = line.split(",")',
+    "            if self.header is None:",
+    "                self.header = parts",
+    "            else:",
+    "                self.rows.append(parts)",
+    "",
+    "    def close(self):",
+    "        def _f(v):",
+    "            try:",
+    "                return float(v)",
+    "            except (ValueError, TypeError):",
+    "                return None",
+    "        arrs = []",
+    "        for i, c in enumerate(self.header):",
+    "            vals = [r[i] for r in self.rows]",
+    '            if c == "value":',
+    "                arrs.append(_pa.array([_f(v) for v in vals], type=_pa.float64()))",
+    '            elif c in ("year", "yearp"):',
+    "                arrs.append(_pa.array([int(v) for v in vals], type=_pa.int64()))",
+    "            else:",
+    "                arrs.append(_pa.array([str(v) for v in vals], type=_pa.string()))",
+    '        _feather.write_feather(_pa.table(arrs, names=self.header), self.base + ".arrow", compression="zstd", compression_level=15)',
+    "",
+    "",
+    "def open_var(csvpath):",
+    "    return _VarFile(csvpath)",
+    ""
+  )
 }

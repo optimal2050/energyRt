@@ -12,32 +12,32 @@
 #' shocks (weather factors).
 #' @md
 #'
-#' @slot name `r get_slot_info("technology", "name")`
-#' @slot desc `r get_slot_info("technology", "desc")`
-#' @slot input `r get_slot_info("technology", "input")`
-#' @slot output `r get_slot_info("technology", "output")`
-#' @slot aux `r get_slot_info("technology", "aux")`
-#' @slot units `r get_slot_info("technology", "units")`
-#' @slot group `r get_slot_info("technology", "group")`
-#' @slot cap2act `r get_slot_info("technology", "cap2act")`
-#' @slot geff `r get_slot_info("technology", "geff")`
-#' @slot ceff `r get_slot_info("technology", "ceff")`
-#' @slot aeff `r get_slot_info("technology", "aeff")`
-#' @slot af `r get_slot_info("technology", "af")`
-#' @slot afs `r get_slot_info("technology", "afs")`
-#' @slot weather `r get_slot_info("technology", "weather")`
-#' @slot fixom `r get_slot_info("technology", "fixom")`
-#' @slot varom `r get_slot_info("technology", "varom")`
-#' @slot invcost `r get_slot_info("technology", "invcost")`
-#' @slot start `r get_slot_info("technology", "start")`
-#' @slot end `r get_slot_info("technology", "end")`
-#' @slot olife `r get_slot_info("technology", "olife")`
-#' @slot capacity `r get_slot_info("technology", "capacity")`
-#' @slot optimizeRetirement `r get_slot_info("technology", "optimizeRetirement")`
-#' @slot fullYear `r get_slot_info("technology", "fullYear")`
-#' @slot timeframe `r get_slot_info("technology", "timeframe")`
-#' @slot region `r get_slot_info("technology", "region")`
-#' @slot misc `r get_slot_info("technology", "misc")`
+#' @slot name `r get_slot_doc("technology", "name")`
+#' @slot desc `r get_slot_doc("technology", "desc")`
+#' @slot input `r get_slot_doc("technology", "input")`
+#' @slot output `r get_slot_doc("technology", "output")`
+#' @slot aux `r get_slot_doc("technology", "aux")`
+#' @slot units `r get_slot_doc("technology", "units")`
+#' @slot group `r get_slot_doc("technology", "group")`
+#' @slot cap2act `r get_slot_doc("technology", "cap2act")`
+#' @slot geff `r get_slot_doc("technology", "geff")`
+#' @slot ceff `r get_slot_doc("technology", "ceff")`
+#' @slot aeff `r get_slot_doc("technology", "aeff")`
+#' @slot af `r get_slot_doc("technology", "af")`
+#' @slot afs `r get_slot_doc("technology", "afs")`
+#' @slot weather `r get_slot_doc("technology", "weather")`
+#' @slot fixom `r get_slot_doc("technology", "fixom")`
+#' @slot varom `r get_slot_doc("technology", "varom")`
+#' @slot invcost `r get_slot_doc("technology", "invcost")`
+#' @slot start `r get_slot_doc("technology", "start")`
+#' @slot end `r get_slot_doc("technology", "end")`
+#' @slot olife `r get_slot_doc("technology", "olife")`
+#' @slot capacity `r get_slot_doc("technology", "capacity")`
+#' @slot optimizeRetirement `r get_slot_doc("technology", "optimizeRetirement")`
+#' @slot fullYear `r get_slot_doc("technology", "fullYear")`
+#' @slot timeframe `r get_slot_doc("technology", "timeframe")`
+#' @slot region `r get_slot_doc("technology", "region")`
+#' @slot misc `r get_slot_doc("technology", "misc")`
 #'
 #' @rdname class-technology
 #' @include class-supply.R
@@ -221,6 +221,7 @@ setClass("technology",
       year = integer(),
       invcost = numeric(),
       wacc = numeric(),
+      eac = numeric(),
       retcost = numeric(),
       stringsAsFactors = FALSE
     ),
@@ -278,32 +279,32 @@ setMethod("initialize", "technology", function(.Object, ...) {
 #' Every argument has a specific format as described below and in the class
 #' documentation.
 #'
-#' @param name `r get_slot_info("technology", "name")`
-#' @param desc `r get_slot_info("technology", "desc")`
-#' @param input `r get_slot_info("technology", "input")`
-#' @param output `r get_slot_info("technology", "output")`
-#' @param group `r get_slot_info("technology", "group")`
-#' @param aux `r get_slot_info("technology", "aux")`
-#' @param units `r get_slot_info("technology", "units")`
-#' @param cap2act `r get_slot_info("technology", "cap2act")`
-#' @param geff `r get_slot_info("technology", "geff")`
-#' @param ceff `r get_slot_info("technology", "ceff")`
-#' @param aeff `r get_slot_info("technology", "aeff")`
-#' @param af `r get_slot_info("technology", "af")`
-#' @param afs `r get_slot_info("technology", "afs")`
-#' @param weather `r get_slot_info("technology", "weather")`
-#' @param capacity `r get_slot_info("technology", "capacity")`
-#' @param invcost `r get_slot_info("technology", "invcost")`
-#' @param fixom `r get_slot_info("technology", "fixom")`
-#' @param varom `r get_slot_info("technology", "varom")`
-#' @param olife `r get_slot_info("technology", "olife")`
-#' @param region `r get_slot_info("technology", "region")`
-#' @param start `r get_slot_info("technology", "start")`
-#' @param end `r get_slot_info("technology", "end")`
-#' @param timeframe `r get_slot_info("technology", "timeframe")`
-#' @param fullYear `r get_slot_info("technology", "fullYear")`
-#' @param optimizeRetirement `r get_slot_info("technology", "optimizeRetirement")`
-#' @param misc `r get_slot_info("technology", "misc")`
+#' @param name `r get_slot_doc("technology", "name")`
+#' @param desc `r get_slot_doc("technology", "desc")`
+#' @param input `r get_slot_doc("technology", "input")`
+#' @param output `r get_slot_doc("technology", "output")`
+#' @param group `r get_slot_doc("technology", "group")`
+#' @param aux `r get_slot_doc("technology", "aux")`
+#' @param units `r get_slot_doc("technology", "units")`
+#' @param cap2act `r get_slot_doc("technology", "cap2act")`
+#' @param geff `r get_slot_doc("technology", "geff")`
+#' @param ceff `r get_slot_doc("technology", "ceff")`
+#' @param aeff `r get_slot_doc("technology", "aeff")`
+#' @param af `r get_slot_doc("technology", "af")`
+#' @param afs `r get_slot_doc("technology", "afs")`
+#' @param weather `r get_slot_doc("technology", "weather")`
+#' @param capacity `r get_slot_doc("technology", "capacity")`
+#' @param invcost `r get_slot_doc("technology", "invcost")`
+#' @param fixom `r get_slot_doc("technology", "fixom")`
+#' @param varom `r get_slot_doc("technology", "varom")`
+#' @param olife `r get_slot_doc("technology", "olife")`
+#' @param region `r get_slot_doc("technology", "region")`
+#' @param start `r get_slot_doc("technology", "start")`
+#' @param end `r get_slot_doc("technology", "end")`
+#' @param timeframe `r get_slot_doc("technology", "timeframe")`
+#' @param fullYear `r get_slot_doc("technology", "fullYear")`
+#' @param optimizeRetirement `r get_slot_doc("technology", "optimizeRetirement")`
+#' @param misc `r get_slot_doc("technology", "misc")`
 #'
 #' @family technology process
 #' @rdname technology

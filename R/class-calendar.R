@@ -8,20 +8,20 @@
 #' time-frames and time-slices.
 #'
 #' @md
-#' @slot name `r get_slot_info("calendar", "name")`
-#' @slot desc `r get_slot_info("calendar", "desc")`
-#' @slot timeframes `r get_slot_info("calendar", "timeframes")`
-#' @slot year_fraction `r get_slot_info("calendar", "year_fraction")`
-#' @slot timetable `r get_slot_info("calendar", "timetable")`
-#' @slot slice_share `r get_slot_info("calendar", "slice_share")`
-#' @slot default_timeframe `r get_slot_info("calendar", "default_timeframe")`
-#' @slot timeframe_rank `r get_slot_info("calendar", "timeframe_rank")`
-#' @slot slices_in_frame `r get_slot_info("calendar", "slices_in_frame")`
-#' @slot slice_family `r get_slot_info("calendar", "slice_family")`
-#' @slot slice_ancestry `r get_slot_info("calendar", "slice_ancestry")`
-#' @slot next_in_timeframe `r get_slot_info("calendar", "next_in_timeframe")`
-#' @slot next_in_year `r get_slot_info("calendar", "next_in_year")`
-#' @slot misc `r get_slot_info("calendar", "misc")`
+#' @slot name `r get_slot_doc("calendar", "name")`
+#' @slot desc `r get_slot_doc("calendar", "desc")`
+#' @slot timeframes `r get_slot_doc("calendar", "timeframes")`
+#' @slot year_fraction `r get_slot_doc("calendar", "year_fraction")`
+#' @slot timetable `r get_slot_doc("calendar", "timetable")`
+#' @slot slice_share `r get_slot_doc("calendar", "slice_share")`
+#' @slot default_timeframe `r get_slot_doc("calendar", "default_timeframe")`
+#' @slot timeframe_rank `r get_slot_doc("calendar", "timeframe_rank")`
+#' @slot slices_in_frame `r get_slot_doc("calendar", "slices_in_frame")`
+#' @slot slice_family `r get_slot_doc("calendar", "slice_family")`
+#' @slot slice_ancestry `r get_slot_doc("calendar", "slice_ancestry")`
+#' @slot next_in_timeframe `r get_slot_doc("calendar", "next_in_timeframe")`
+#' @slot next_in_year `r get_slot_doc("calendar", "next_in_year")`
+#' @slot misc `r get_slot_doc("calendar", "misc")`
 #'
 #' @include generics.R defaults.R
 #' @rdname class-calendar
@@ -169,7 +169,7 @@ make_timetable <- function(struct = list(ANNUAL = "ANNUAL"),
   # browser()
   .check_timetable(dtf, year_fraction = year_fraction) # check validity
   dtf <- dplyr::arrange(dtf, across(1:slice))
-  dtf$weight <- 1.
+  dtf$weight <- 1./year_fraction
   return(dtf)
 }
 
@@ -207,12 +207,12 @@ if (F) {
 #' @name newCalendar
 #'
 #'
-#' @param name `r get_slot_info("calendar", "name")`
-#' @param desc `r get_slot_info("calendar", "desc")`
-#' @param timetable `r get_slot_info("calendar", "timetable")`
-#' @param year_fraction `r get_slot_info("calendar", "year_fraction")`
-#' @param default_timeframe `r get_slot_info("calendar", "default_timeframe")`
-#' @param misc `r get_slot_info("calendar", "misc")`
+#' @param name `r get_slot_doc("calendar", "name")`
+#' @param desc `r get_slot_doc("calendar", "desc")`
+#' @param timetable `r get_slot_doc("calendar", "timetable")`
+#' @param year_fraction `r get_slot_doc("calendar", "year_fraction")`
+#' @param default_timeframe `r get_slot_doc("calendar", "default_timeframe")`
+#' @param misc `r get_slot_doc("calendar", "misc")`
 #' @param ... ignored
 #'
 #' @rdname newCalendar
@@ -256,8 +256,10 @@ newCalendar <- function(
   arg <- list(...)
   arg$name <- name
   arg$desc <- desc
+  arg$misc <- misc
   if (!is.null(arg$name)) obj@name <- arg$name
   if (!is.null(arg$desc)) obj@desc <- arg$desc
+  if (!is.null(arg$misc)) obj@misc <- arg$misc
   if (!is.null(arg$default_timeframe)) {
     if (!(obj@default_timeframe %in% names(obj@timeframes))) {
       stop(
@@ -767,6 +769,7 @@ if (F) {
 # =============================================================================#
 # Check if slice level exist ####
 # =============================================================================#
+# !!! superceded by .check_timeframe
 .checkSliceLevel <- function(app, approxim) {
   # browser()
   timeframes <- names(approxim$calendar@timeframe_rank)
@@ -782,6 +785,13 @@ if (F) {
     }
   }
 }
+
+.check_timeframe <- function(obj, scen) {
+  # the function checks if the given timeframe is valid
+  # ...
+}
+
+
 # =============================================================================#
 # Disaggregate slice ####
 # e.g. from WINTER to WINTER_DAY and WINTER_NIGHT

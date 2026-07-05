@@ -7,7 +7,7 @@
 save_scenario(
   scen,
   path = scen@path,
-  format = "parquet",
+  format = get_arrow_format(),
   overwrite = TRUE,
   clean_start = FALSE,
   write_log = TRUE,

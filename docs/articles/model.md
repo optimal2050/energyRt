@@ -1,0 +1,17 @@
+# energyRt model framework
+
+The **energyRt** model comprises around one hundred predefined equations
+describing energy technologies, the energy system, and its operation.
+Additional equations can be added with
+[`newConstraint()`](https://energyRt.org/reference/newConstraint.md) or
+directly in the model code. The model is formulated in four alternative
+math-programming languages:
+[GAMS](https://github.com/optimal2050/energyRt/tree/master/gams),
+[Python/Pyomo](https://github.com/optimal2050/energyRt/tree/master/pyomo),
+[GLPK/Mathprog](https://github.com/optimal2050/energyRt/tree/master/glpk),
+and
+[Julia/JuMP](https://github.com/optimal2050/energyRt/tree/master/julia).
+The mathematical formulation is documented in the [model equations
+PDF](https://github.com/optimal2050/energyRt/blob/master/vignettes/articles/energyRt_model_equations.pdf);
+for the concepts behind the package, start with the [introduction
+vignette](https://energyrt.org/articles/energyRt.html).

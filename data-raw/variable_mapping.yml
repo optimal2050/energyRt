@@ -34,10 +34,6 @@ vOutTot: vOutTot( comm , region , year , slice ) $ mvOutTot( comm , region , yea
   , slice )
 vInpTot: vInpTot( comm , region , year , slice ) $ mvInpTot( comm , region , year
   , slice )
-vInp2Lo: vInp2Lo( comm , region , year , slice , slice ) $ mvInp2Lo( comm , region
-  , year , slice , slice )
-vOut2Lo: vOut2Lo( comm , region , year , slice , slice ) $ mvOut2Lo( comm , region
-  , year , slice , slice )
 vSupOutTot: vSupOutTot( comm , region , year , slice ) $ mSupOutTot( comm , region
   , year , slice )
 vTechInpTot: vTechInpTot( comm , region , year , slice ) $ mTechInpTot( comm , region

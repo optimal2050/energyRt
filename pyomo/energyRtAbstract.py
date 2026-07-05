@@ -77,6 +77,11 @@ model.vTechOut = Var(
     domain=pyo.NonNegativeReals,
     doc="Commodity output from technology - tech timeframe",
 )
+model.vTechOutRY = Var(
+    model.mTechOutRY,
+    domain=pyo.NonNegativeReals,
+    doc="Commodity output from technology - tech timeframe",
+)
 model.vTechAInp = Var(
     model.mvTechAInp, domain=pyo.NonNegativeReals, doc="Auxiliary commodity input"
 )
@@ -718,33 +723,11 @@ model.eqTechRetCost = Constraint(
         if (t, r, yp, y) in model.mvTechRetiredNewCap
     ),
 )
-# eqTechEac(tech, region, year)$mTechEac(tech, region, year)
+# eqTechEac(tech, region, year)$mTechSpan(tech, region, year)
 model.eqTechEac = Constraint(
-    model.mTechEac,
+    model.mTechSpan,
     rule=lambda model, t, r, y: model.vTechEac[t, r, y]
-    == sum(
-        model.pTechEac[t, r, yp]
-        * (
-            model.vTechNewCap[t, r, yp]
-            - sum(
-                model.vTechRetiredNewCap[t, r, yp, ye]
-                for ye in model.year
-                if (
-                    (t, r, yp, ye) in model.mvTechRetiredNewCap
-                    and model.ordYear[y] >= model.ordYear[ye]
-                )
-            )
-        )
-        for yp in model.year
-        if (
-            (t, r, yp) in model.mTechNew
-            and model.ordYear[y] >= model.ordYear[yp]
-            and (
-                model.ordYear[y] < model.pTechOlife[t, r] + model.ordYear[yp]
-                or (t, r) in model.mTechOlifeInf
-            )
-        )
-    ),
+    == model.pTechEac[t, r, y] * model.vTechCap[t, r, y],
 )
 # eqTechInv(tech, region, year)$mTechInv(tech, region, year)
 model.eqTechInv = Constraint(
@@ -1139,19 +1122,7 @@ model.eqStorageInv = Constraint(
 model.eqStorageEac = Constraint(
     model.mStorageEac,
     rule=lambda model, st1, r, y: model.vStorageEac[st1, r, y]
-    == sum(
-        model.pStorageEac[st1, r, yp] * model.vStorageNewCap[st1, r, yp]
-        for yp in model.year
-        if (
-            (st1, r, yp) in model.mStorageNew
-            and model.ordYear[y] >= model.ordYear[yp]
-            and (
-                (st1, r) in model.mStorageOlifeInf
-                or model.ordYear[y] < model.pStorageOlife[st1, r] + model.ordYear[yp]
-            )
-            and model.pStorageInvcost[st1, r, yp] != 0
-        )
-    ),
+    == model.pStorageEac[st1, r, y] * model.vStorageCap[st1, r, y],
 )
 # eqStorageFixom(stg, region, year)$mStorageFixom(stg, region, year)
 model.eqStorageFixom = Constraint(
@@ -1455,18 +1426,7 @@ model.eqTradeInv = Constraint(
 model.eqTradeEac = Constraint(
     model.mTradeEac,
     rule=lambda model, t1, r, y: model.vTradeEac[t1, r, y]
-    == sum(
-        model.pTradeEac[t1, r, yp] * model.vTradeNewCap[t1, yp]
-        for yp in model.year
-        if (
-            (t1, yp) in model.mTradeNew
-            and model.ordYear[y] >= model.ordYear[yp]
-            and (
-                model.ordYear[y] < model.pTradeOlife[t1] + model.ordYear[yp]
-                or t1 in model.mTradeOlifeInf
-            )
-        )
-    ),
+    == model.pTradeEac[t1, r, y] * model.vTradeCap[t1, y],
 )
 # eqTradeFixom(trade, region, year)$mTradeFixom(trade, region, year)
 model.eqTradeFixom = Constraint(
@@ -1785,6 +1745,17 @@ model.eqTechOutTot = Constraint(
         )
         for t in model.tech
         if (t, c) in model.mTechAOutCommAgg
+    ),
+)
+# eqTechOutRY(tech, comm, region, year)$mTechOutRY(tech, comm, region, year)
+model.eqTechOutRY = Constraint(
+    model.mTechOutRY,
+    rule=lambda model, t, c, r, y: model.vTechOutRY[t, c, r, y]
+    == sum(
+        model.pSliceWeight[y, s]
+        * (model.vTechOut[t, c, r, y, s] if (t, c, r, y, s) in model.mvTechOut else 0)
+        for s in model.slice
+        if (c, r, y, s) in model.mTechOutTot
     ),
 )
 # eqStorageInpTot(comm, region, year, slice)$mStorageInpTot(comm, region, year, slice)

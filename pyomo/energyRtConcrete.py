@@ -33,15 +33,27 @@ class toPar:
 exec(open("inc1.py").read())
 model = ConcreteModel()
 import pandas as pd
-import sqlite3
 
-con = sqlite3.connect("input/data.db")
+# Data source: "sqlite" (input/data.db) or "arrow" (input/<name>.arrow). The R
+# writer (energyRt) rewrites this line at write time based on export_format.
+_DATA_FORMAT = "sqlite"
+if _DATA_FORMAT == "sqlite":
+    import sqlite3
+
+    _con = sqlite3.connect("input/data.db")
+
+    def _read_tbl(name):
+        return pd.read_sql_query(f'SELECT * FROM "{name}"', _con)
+
+else:
+    import pyarrow.feather as _feather
+
+    def _read_tbl(name):
+        return _feather.read_feather("input/" + name + ".arrow")
 
 
 def read_set(name):
-    # tbl = pd.read_sql_query("SELECT * from " + name, con)
-    query = f'SELECT * FROM "{name}"'
-    tbl = pd.read_sql_query(query, con)
+    tbl = _read_tbl(name)
     if tbl.shape[1] > 1:
         return tbl.to_records(index=False).tolist()
     else:
@@ -49,9 +61,7 @@ def read_set(name):
 
 
 def read_dict(name):
-    # tbl = pd.read_sql_query("SELECT * from " + name, con)
-    query = f'SELECT * FROM "{name}"'
-    tbl = pd.read_sql_query(query, con)
+    tbl = _read_tbl(name)
     if tbl.shape[1] > 2:
         idx = pd.MultiIndex.from_frame(tbl.drop(columns="value"))
     else:
@@ -83,9 +93,6 @@ model.vEmsFuelTot = Var(
     mEmsFuelTot, doc="Total emissions from fuels combustion (technologies)"
 )
 model.vBalance = Var(mvBalance, doc="Net commodity balance (all sources)")
-model.vBalanceRY = Var(
-    mBalanceRY, doc="Net commodity balance by region and year (weighted)"
-)
 model.vTotalCost = Var(mvTotalCost, doc="Regional annual total costs (weighted)")
 model.vObjective = Var(doc="Objective costs")
 model.vTaxCost = Var(mTaxCost, doc="Total tax levies (tax costs)")
@@ -143,31 +150,12 @@ model.vOutTot = Var(
     domain=pyo.NonNegativeReals,
     doc="Total commodity output (all processes) (weighted)",
 )
-model.vOutTotRY = Var(
-    mOutTotRY,
-    domain=pyo.NonNegativeReals,
-    doc="Total commodity output (all processes) (weighted)",
-)
 model.vInpTot = Var(
     mvInpTot,
     domain=pyo.NonNegativeReals,
     doc="Total commodity input (all processes) (weighted)",
 )
-model.vInpTotRY = Var(
-    mInpTotRY,
-    domain=pyo.NonNegativeReals,
-    doc="Total commodity input (all processes) (weighted)",
-)
-model.vInp2Lo = Var(
-    mvInp2Lo,
-    domain=pyo.NonNegativeReals,
-    doc="Desagregation of slices for input parent to (grand)child",
-)
-model.vOut2Lo = Var(
-    mvOut2Lo,
-    domain=pyo.NonNegativeReals,
-    doc="Desagregation of slices for output parent to (grand)child",
-)
+# [agg-rewrite] vInp2Lo/vOut2Lo retired (up-aggregation in eqInpTot/eqOutTot)
 model.vSupOutTot = Var(
     mSupOutTot, domain=pyo.NonNegativeReals, doc="Total commodity supply (weighted)"
 )
@@ -1123,10 +1111,12 @@ if verbose:
         " s)",
         sep="",
     )
-# eqTechEac(tech, region, year)$mTechEac(tech, region, year)
+# eqTechEac(tech, region, year)$mTechSpan(tech, region, year)
 if verbose:
     print("eqTechEac ", end="")
 sys.stdout.flush()
+# [eac-fix] vintaged new-capacity form (pTechEac applies to NEW capacity only);
+# reverted from the simplified pTechEac*vTechCap (which charged annuity on stock too).
 model.eqTechEac = Constraint(
     mTechEac,
     rule=lambda model, t, r, y: model.vTechEac[t, r, y]
@@ -1863,6 +1853,7 @@ if verbose:
 if verbose:
     print("eqStorageEac ", end="")
 sys.stdout.flush()
+# [eac-fix] vintaged new-capacity form (pStorageEac applies to NEW capacity only).
 model.eqStorageEac = Constraint(
     mStorageEac,
     rule=lambda model, st1, r, y: model.vStorageEac[st1, r, y]
@@ -2457,6 +2448,8 @@ if verbose:
 if verbose:
     print("eqTradeEac ", end="")
 sys.stdout.flush()
+# [eac-fix] vintaged new-capacity form (pTradeEac applies to NEW capacity only);
+# vTradeNewCap has no region index.
 model.eqTradeEac = Constraint(
     mTradeEac,
     rule=lambda model, t1, r, y: model.vTradeEac[t1, r, y]
@@ -2677,28 +2670,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqBalanceRY(comm, region, year)$mBalanceRY(comm, region, year)
-if verbose:
-    print("eqBalanceRY ", end="")
-sys.stdout.flush()
-model.eqBalanceRY = Constraint(
-    mBalanceRY,
-    rule=lambda model, c, r, y: model.vBalanceRY[c, r, y]
-    == sum(
-        pSliceWeight.get((y, s))
-        * (model.vBalance[c, r, y, s] if (c, r, y, s) in mvBalance else 0)
-        for s in slice
-        if (c, r, y, s) in mvBalance
-    ),
-)
-if verbose:
-    print(
-        datetime.datetime.now().strftime("%H:%M:%S"),
-        " (",
-        round(time.time() - seconds, 2),
-        " s)",
-        sep="",
-    )
+# [agg-rewrite] eqBalanceRY/vBalanceRY retired (dead reporting)
 # eqOutTot(comm, region, year, slice)$mvOutTot(comm, region, year, slice)
 if verbose:
     print("eqOutTot ", end="")
@@ -2714,14 +2686,11 @@ model.eqOutTot = Constraint(
     + (model.vStorageOutTot[c, r, y, s] if (c, r, y, s) in mStorageOutTot else 0)
     + (model.vImportTot[c, r, y, s] if (c, r, y, s) in mImport else 0)
     + (model.vTradeIrAOutTot[c, r, y, s] if (c, r, y, s) in mvTradeIrAOutTot else 0)
-    + (
-        sum(
-            model.vOut2Lo[c, r, y, sp, s]
-            for sp in slice
-            if ((sp, s) in mSliceParentChild and (c, r, y, sp, s) in mvOut2Lo)
-        )
-        if (c, r, y, s) in mOutSub
-        else 0
+    # [agg-rewrite] up-aggregation of immediately-finer children (replaces vOut2Lo)
+    + sum(
+        pSliceAgg.get((y, s, sp), 0) * model.vOutTot[c, r, y, sp]
+        for sp in slice
+        if ((s, sp) in mSliceFamily and (c, r, y, sp) in mvOutTot)
     ),
 )
 if verbose:
@@ -2732,53 +2701,9 @@ if verbose:
         " s)",
         sep="",
     )
-# eqOutTotRY(comm, region, year)$mOutTotRY(comm, region, year)
-if verbose:
-    print("eqOutTotRY ", end="")
-sys.stdout.flush()
-model.eqOutTotRY = Constraint(
-    mOutTotRY,
-    rule=lambda model, c, r, y: model.vOutTotRY[c, r, y]
-    == sum(
-        pSliceWeight.get((y, s))
-        * (model.vOutTot[c, r, y, s] if (c, r, y, s) in mvOutTot else 0)
-        for s in slice
-        if (c, r, y, s) in mvOutTot
-    ),
-)
-if verbose:
-    print(
-        datetime.datetime.now().strftime("%H:%M:%S"),
-        " (",
-        round(time.time() - seconds, 2),
-        " s)",
-        sep="",
-    )
-# eqOut2Lo(comm, region, year, slice)$mOut2Lo(comm, region, year, slice)
-if verbose:
-    print("eqOut2Lo ", end="")
-sys.stdout.flush()
-model.eqOut2Lo = Constraint(
-    mOut2Lo,
-    rule=lambda model, c, r, y, s: sum(
-        model.vOut2Lo[c, r, y, s, sp] for sp in slice if (c, r, y, s, sp) in mvOut2Lo
-    )
-    == (model.vSupOutTot[c, r, y, s] if (c, r, y, s) in mSupOutTot else 0)
-    + (model.vEmsFuelTot[c, r, y, s] if (c, r, y, s) in mEmsFuelTot else 0)
-    + (model.vAggOutTot[c, r, y, s] if (c, r, y, s) in mAggOut else 0)
-    + (model.vTechOutTot[c, r, y, s] if (c, r, y, s) in mTechOutTot else 0)
-    + (model.vStorageOutTot[c, r, y, s] if (c, r, y, s) in mStorageOutTot else 0)
-    + (model.vImportTot[c, r, y, s] if (c, r, y, s) in mImport else 0)
-    + (model.vTradeIrAOutTot[c, r, y, s] if (c, r, y, s) in mvTradeIrAOutTot else 0),
-)
-if verbose:
-    print(
-        datetime.datetime.now().strftime("%H:%M:%S"),
-        " (",
-        round(time.time() - seconds, 2),
-        " s)",
-        sep="",
-    )
+# [agg-rewrite] eqOutTotRY/vOutTotRY retired (dead reporting)
+# [agg-rewrite] eqOut2Lo removed: replaced by up-aggregation in eqOutTot
+# (vOut2Lo retired). Mirrors GLPK.
 # eqInpTot(comm, region, year, slice)$mvInpTot(comm, region, year, slice)
 if verbose:
     print("eqInpTot ", end="")
@@ -2792,14 +2717,11 @@ model.eqInpTot = Constraint(
     + (model.vStorageInpTot[c, r, y, s] if (c, r, y, s) in mStorageInpTot else 0)
     + (model.vExportTot[c, r, y, s] if (c, r, y, s) in mExport else 0)
     + (model.vTradeIrAInpTot[c, r, y, s] if (c, r, y, s) in mvTradeIrAInpTot else 0)
-    + (
-        sum(
-            model.vInp2Lo[c, r, y, sp, s]
-            for sp in slice
-            if ((sp, s) in mSliceParentChild and (c, r, y, sp, s) in mvInp2Lo)
-        )
-        if (c, r, y, s) in mInpSub
-        else 0
+    # [agg-rewrite] up-aggregation of immediately-finer children (replaces vInp2Lo)
+    + sum(
+        pSliceAgg.get((y, s, sp), 0) * model.vInpTot[c, r, y, sp]
+        for sp in slice
+        if ((s, sp) in mSliceFamily and (c, r, y, sp) in mvInpTot)
     ),
 )
 if verbose:
@@ -2810,50 +2732,9 @@ if verbose:
         " s)",
         sep="",
     )
-# eqInpTotRY(comm, region, year)$mInpTotRY(comm, region, year)
-if verbose:
-    print("eqInpTotRY ", end="")
-sys.stdout.flush()
-model.eqInpTotRY = Constraint(
-    mInpTotRY,
-    rule=lambda model, c, r, y: model.vInpTotRY[c, r, y]
-    == sum(
-        pSliceWeight.get((y, s))
-        * (model.vInpTot[c, r, y, s] if (c, r, y, s) in mvInpTot else 0)
-        for s in slice
-        if (c, r, y, s) in mvInpTot
-    ),
-)
-if verbose:
-    print(
-        datetime.datetime.now().strftime("%H:%M:%S"),
-        " (",
-        round(time.time() - seconds, 2),
-        " s)",
-        sep="",
-    )
-# eqInp2Lo(comm, region, year, slice)$mInp2Lo(comm, region, year, slice)
-if verbose:
-    print("eqInp2Lo ", end="")
-sys.stdout.flush()
-model.eqInp2Lo = Constraint(
-    mInp2Lo,
-    rule=lambda model, c, r, y, s: sum(
-        model.vInp2Lo[c, r, y, s, sp] for sp in slice if (c, r, y, s, sp) in mvInp2Lo
-    )
-    == (model.vTechInpTot[c, r, y, s] if (c, r, y, s) in mTechInpTot else 0)
-    + (model.vStorageInpTot[c, r, y, s] if (c, r, y, s) in mStorageInpTot else 0)
-    + (model.vExportTot[c, r, y, s] if (c, r, y, s) in mExport else 0)
-    + (model.vTradeIrAInpTot[c, r, y, s] if (c, r, y, s) in mvTradeIrAInpTot else 0),
-)
-if verbose:
-    print(
-        datetime.datetime.now().strftime("%H:%M:%S"),
-        " (",
-        round(time.time() - seconds, 2),
-        " s)",
-        sep="",
-    )
+# [agg-rewrite] eqInpTotRY/vInpTotRY retired (dead reporting)
+# [agg-rewrite] eqInp2Lo removed: replaced by up-aggregation in eqInpTot
+# (vInp2Lo retired). Mirrors GLPK.
 # eqSupOutTot(comm, region, year, slice)$mSupOutTot(comm, region, year, slice)
 if verbose:
     print("eqSupOutTot ", end="")
@@ -2959,6 +2840,7 @@ if verbose:
         " s)",
         sep="",
     )
+# [agg-rewrite] eqTechOutRY/vTechOutRY retired (dead reporting)
 # eqStorageInpTot(comm, region, year, slice)$mStorageInpTot(comm, region, year, slice)
 if verbose:
     print("eqStorageInpTot ", end="")

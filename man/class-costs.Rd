@@ -5,9 +5,7 @@
 \alias{class-costs}
 \title{An S4 class to add costs to objective function}
 \description{
-Costs object is used to define
-additional costs to add to the model's
-objective function.
+\ifelse{html}{\href{https://lifecycle.r-lib.org/articles/stages.html#experimental}{\figure{lifecycle-experimental.svg}{options: alt='[Experimental]'}}}{\strong{[Experimental]}}
 }
 \section{Slots}{
 
@@ -26,12 +24,12 @@ objective function.
 }}
 
 \seealso{
-Other class constraint policy: 
+Other class constraint policy:
 \code{\link{class-constraint}},
-\code{\link{newConstraint}()},
-\code{\link{newCosts}()},
-\code{\link{newSubsidy}()},
-\code{\link{newTax}()},
+\code{\link[=newConstraint]{newConstraint()}},
+\code{\link[=newCosts]{newCosts()}},
+\code{\link[=newSubsidy]{newSubsidy()}},
+\code{\link[=newTax]{newTax()}},
 \code{\link{subsidy-class}},
 \code{\link{tax-class}}
 }

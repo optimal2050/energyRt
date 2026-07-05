@@ -1,0 +1,135 @@
+---
+title: "energyRt — interpolation & solve settings comparison"
+date: "`r format(Sys.Date())`"
+output:
+  html_document:
+    toc: true
+    toc_float: true
+    df_print: paged
+params:
+  model_file: "tmp/espt.RData"   # RData holding the model object (relative to project root)
+  model_object: "mod"            # name of the model object inside model_file
+  horizon_period: 2024           # newHorizon(period = ...) applied to every build
+  solve: false                   # FALSE = interpolation comparison only; TRUE = also solve
+  solvers: ["julia_highs_barrier", "pyomo_cbc"]  # solver_options names (lists scale; GLPK only for small models)
+  solve_settings: null           # NULL = solve every setting; or a subset of setting names
+  glpk_path: "c:/Users/admin/.conda/envs/multimod/Library/bin"      # set if GLPK isn't on PATH
+  julia_path: "c:/Users/admin/AppData/Local/Microsoft/WindowsApps/" # set for julia_* solvers
+  python_path: "c:/Users/admin/.conda/envs/pypsa-eur"               # set for pyomo_* solvers
+---
+
+```{r setup, include = FALSE}
+knitr::opts_chunk$set(echo = TRUE, message = FALSE, warning = FALSE,
+                      collapse = TRUE)
+# Load the in-development package (knit with knit_root_dir = package root, so
+# "." is the package). Falls back to the installed package.
+if (requireNamespace("devtools", quietly = TRUE) && file.exists("DESCRIPTION")) {
+  suppressMessages(devtools::load_all(".", quiet = TRUE))
+} else {
+  suppressMessages(library(energyRt))
+}
+suppressMessages(library(knitr))
+
+# Load the model object (`params$model_object`) from `params$model_file`.
+stopifnot(file.exists(params$model_file))
+.e <- new.env(); load(params$model_file, envir = .e)
+mod <- get(params$model_object, envir = .e)
+
+# Apply the requested horizon (period) to every build.
+hz <- newHorizon(period = params$horizon_period)
+
+# Point the package at the solver toolchains needed by the requested solvers.
+if (isTRUE(params$solve)) {
+  sv <- params$solvers
+  if (any(grepl("glpk",  sv)) && nzchar(params$glpk_path  %||% ""))
+    try(set_glpk_path(params$glpk_path),   silent = TRUE)
+  if (any(grepl("julia", sv)) && nzchar(params$julia_path %||% ""))
+    try(set_julia_path(params$julia_path), silent = TRUE)
+  if (any(grepl("pyomo", sv)) && nzchar(params$python_path %||% ""))
+    try(set_python_path(params$python_path), silent = TRUE)
+}
+```
+
+This report interpolates a model under several storage settings and compares the
+resulting size. When `params$solve = TRUE` it then solves each build with the
+requested solver(s) and checks that the objective is invariant to the storage
+settings.
+
+```{r config, echo = FALSE}
+# The interpolation settings grid compared below. Edit to taste.
+settings <- list(
+  sparse_prune         = list(fold = FALSE, sparse = TRUE, prune = TRUE),
+  fold_sparse_prune    = list(fold = TRUE,  sparse = TRUE, prune = TRUE),
+  foldall_sparse_prune = list(
+    fold = c("region", "slice", "year", "comm", "tech", "stg", "trade"),
+    sparse = TRUE, prune = TRUE)
+)
+
+cat("model       :", params$model_object, "from", params$model_file, "\n")
+cat("horizon     : newHorizon(period =", params$horizon_period, ")\n")
+cat("settings    :", paste(names(settings), collapse = ", "), "\n")
+cat("solve       :", params$solve, "\n")
+if (isTRUE(params$solve)) cat("solvers     :", paste(params$solvers, collapse = ", "), "\n")
+```
+
+# Interpolation comparison
+
+```{r run}
+if (isTRUE(params$solve)) {
+  # Interpolate + solve in one pass (keeps scenarios), so we don't interpolate
+  # twice. The interpolation-size table is `res$interp`.
+  solve_grid <- if (is.null(params$solve_settings)) settings else
+    settings[params$solve_settings]
+  solver_list <- lapply(params$solvers, function(n) solver_options[[n]])
+  res <- compare_solve_settings(mod, settings = solve_grid,
+                                solvers = solver_list, horizon = hz)
+  interp_tbl <- res$interp
+  top_tbl    <- res$top
+} else {
+  res <- compare_interp_settings(mod, settings = settings, horizon = hz)
+  interp_tbl <- res$summary
+  top_tbl    <- res$top
+}
+```
+
+Size of each interpolated build (in memory):
+
+```{r interp-table, echo = FALSE}
+kable(interp_tbl, format.args = list(big.mark = ","),
+      caption = "Per-setting build size and time")
+```
+
+Largest parameters by row count, per setting (blank = folded to a wildcard or
+not in the top list):
+
+```{r top-table, echo = FALSE}
+kable(utils::head(top_tbl, 15), format.args = list(big.mark = ","),
+      caption = "Top parameters (rows) per setting")
+```
+
+# Solve comparison
+
+```{r solve-table, echo = FALSE, eval = isTRUE(params$solve)}
+kable(res$summary, format.args = list(big.mark = ","),
+      caption = "Objective, time and status per setting x solver")
+```
+
+```{r solve-invariance, echo = FALSE, eval = isTRUE(params$solve)}
+# The objective must NOT depend on storage settings: per solver it should match
+# across fold / sparse / prune. (Printed by the comparison object.)
+ok <- res$summary[res$summary$ok & !is.na(res$summary$objective), , drop = FALSE]
+for (sl in unique(ok$solver)) {
+  v <- ok$objective[ok$solver == sl]
+  same <- length(v) < 2 ||
+    diff(range(v)) <= 1e-6 * max(1, abs(stats::median(v)))
+  cat(sprintf("%-12s objective: %s  [%s]\n", sl,
+              paste(format(v, digits = 8), collapse = "  "),
+              if (same) "invariant across settings" else "DIFFERS — investigate"))
+}
+```
+
+```{r no-solve-note, echo = FALSE, eval = !isTRUE(params$solve)}
+cat("Solving is disabled (params$solve = FALSE).\n",
+    "Set `solve: true` (and `solvers`) in the YAML params to run the solve",
+    "comparison.\n")
+```

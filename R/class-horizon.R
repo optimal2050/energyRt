@@ -3,10 +3,10 @@
 #' An S4 class to represent model/scenario planning horizon with intervals (year-steps)
 #' @name class-horizon
 #' 
-#' @slot name `r get_slot_info("horizon", "name")`
-#' @slot desc `r get_slot_info("horizon", "desc")`
-#' @slot period `r get_slot_info("horizon", "period")`
-#' @slot intervals `r get_slot_info("horizon", "intervals")`
+#' @slot name `r get_slot_doc("horizon", "name")`
+#' @slot desc `r get_slot_doc("horizon", "desc")`
+#' @slot period `r get_slot_doc("horizon", "period")`
+#' @slot intervals `r get_slot_doc("horizon", "intervals")`
 #'
 #' @rdname class-horizon
 #' @family settings model scenario
@@ -42,13 +42,13 @@ setClass(
 #' 
 #' @rdname newHorizon
 #'
-#' @param name `r get_slot_info("horizon", "name")` 
+#' @param name `r get_slot_doc("horizon", "name")` 
 #' @param period (optional) integer vector with a range or a sequence of years to define
 #' the full period of the model/scenario. If not provided, the range of 'intervals' will be used. 
 #' @param intervals (optional) either data.frame or integer vector. 
 #' The data.frame must have `start`, `mid`, and `end` columns with modeled interval. 
 #' The vector will be considered as lengths of each modeled interval in period.
-#' @param desc `r get_slot_info("horizon", "desc")`
+#' @param desc `r get_slot_doc("horizon", "desc")`
 #' @param force_BY_interval_to_1_year logical, if TRUE (default), the base-year (first) interval will be forced to one year.
 #' @param mid_is_end logical, if TRUE, the mid-year will be set to the end of the interval.
 #' @param mid_is_start logical, if TRUE, the mid-year will be set to the start of the interval.

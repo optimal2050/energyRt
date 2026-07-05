@@ -3,6 +3,7 @@
 \docType{class}
 \name{class-scenario}
 \alias{class-scenario}
+\alias{scenario}
 \title{An S4 class to represent scenario, an interpolated and/or solved model.}
 \description{
 An S4 class to represent scenario, an interpolated and/or solved model.
@@ -32,6 +33,6 @@ An S4 class to represent scenario, an interpolated and/or solved model.
 }}
 
 \seealso{
-\code{\link[=interpolate(), solve(), register(), summary(), newScenario]{interpolate(), solve(), register(), summary(), newScenario()}}
+\code{interpolate()}, \code{solve()}, \code{register()}, \code{summary()}, \code{newScenario()}
 }
 \concept{class scenario}

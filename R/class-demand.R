@@ -3,13 +3,13 @@
 #' @name class-demand
 #'
 #' @md
-#' @slot name `r get_slot_info("demand", "name")`
-#' @slot desc `r get_slot_info("demand", "desc")`
-#' @slot commodity `r get_slot_info("demand", "commodity")`
-#' @slot unit `r get_slot_info("demand", "unit")`
-#' @slot dem `r get_slot_info("demand", "dem")`
-#' @slot region `r get_slot_info("demand", "region")`
-#' @slot misc `r get_slot_info("demand", "misc")`
+#' @slot name `r get_slot_doc("demand", "name")`
+#' @slot desc `r get_slot_doc("demand", "desc")`
+#' @slot commodity `r get_slot_doc("demand", "commodity")`
+#' @slot unit `r get_slot_doc("demand", "unit")`
+#' @slot dem `r get_slot_doc("demand", "dem")`
+#' @slot region `r get_slot_doc("demand", "region")`
+#' @slot misc `r get_slot_doc("demand", "misc")`
 #'
 #' @include class-commodity.R
 #' @rdname class-demand
@@ -48,13 +48,13 @@ setMethod("initialize", "demand", function(.Object, ...) {
 
 #' Create new demand object
 #'
-#' @param name `r get_slot_info("demand", "name")`
-#' @param desc `r get_slot_info("demand", "desc")`
-#' @param commodity `r get_slot_info("demand", "commodity")`
-#' @param unit `r get_slot_info("demand", "unit")`
-#' @param dem `r get_slot_info("demand", "dem")`
-#' @param region `r get_slot_info("demand", "region")`
-#' @param misc `r get_slot_info("demand", "misc")`
+#' @param name `r get_slot_doc("demand", "name")`
+#' @param desc `r get_slot_doc("demand", "desc")`
+#' @param commodity `r get_slot_doc("demand", "commodity")`
+#' @param unit `r get_slot_doc("demand", "unit")`
+#' @param dem `r get_slot_doc("demand", "dem")`
+#' @param region `r get_slot_doc("demand", "region")`
+#' @param misc `r get_slot_doc("demand", "misc")`
 #'
 #' @rdname newDemand
 #' @order 1

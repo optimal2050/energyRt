@@ -45,11 +45,6 @@ utils::globalVariables(
 ## draw.technology ####
 draw.technology <- function(obj, ...) {
   # browser()
-
-  # com_tbl <- bind_rows(
-  #   obj@input |>  mutate(io = "cinp", .before = 1),
-  #   obj@output |> mutate(io = "cout", .before = 1)
-  # ) |>
   com_inp <- obj@input |>
     mutate(io = "cinp", .before = 1) |>
     rowwise() |>
@@ -132,12 +127,25 @@ draw.technology <- function(obj, ...) {
           two_lines = if_else(all(grepl("use2cact", parameter)), TRUE, FALSE),
           bracket_type = NULL
         ),
+        smin = if_else(all(is.na(share.lo)) & all(is.na(share.fx)),
+                       0,
+                       min(share.lo, share.fx, Inf, na.rm = TRUE)
+        ),
+        smax = if_else(all(is.na(share.up)) & all(is.na(share.fx)),
+                       1,
+                       max(share.up, share.fx, -Inf, na.rm = TRUE)
+        ),
         share_lbl = paste0(
           # paste0(round(100 * min(share.lo, share.fx, na.rm = TRUE), 2), "%,",
           #        round(100 * max(share.up, share.fx, na.rm = TRUE), 2), "%")
+          # paste0(
+          #   min(share.lo, share.fx, na.rm = TRUE), ",",
+          #   max(share.up, share.fx, na.rm = TRUE)
+          # )
           paste0(
-            min(share.lo, share.fx, na.rm = TRUE), ",",
-            max(share.up, share.fx, na.rm = TRUE)
+            format_number(smin),
+            ",",
+            format_number(smax)
           )
         ),
         lab_par = make_label(
@@ -2551,8 +2559,12 @@ shorten_string <- function(string, n, add_number = NULL) {
 
 format_number <- function(x, accuracy = .01) {
   sapply(x, function(value) {
-    if (value == 0) {
-      "0."
+    if (is.na(value) || is.nan(value) || is.infinite(value)) {
+      return(value)
+    } else if (value == 0) {
+      "0"
+    } else if (value == 1) {
+      "1"
     } else if (value >= 1e4) {
       # For large numbers, show fewer digits with scale suffix
       scales::label_scientific(accuracy = 0)(value)

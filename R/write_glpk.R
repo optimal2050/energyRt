@@ -5,6 +5,12 @@
 #'
 #' @return sets the path to the GLPK library in R options and returns NULL.
 #'
+#' @details By default energyRt auto-detects the `glpsol` executable on the
+#'   session `PATH` (via [base::Sys.which()]). On Windows this picks up the copy
+#'   **bundled with Rtools** (Rtools ships the GLPK dev kit), so an Rtools user
+#'   needs no separate GLPK install. Use `set_glpk_path()` only to point at a
+#'   standalone GLPK installation, which then takes precedence over auto-detection.
+#'
 #' @rdname solver
 #' @family solver glpk
 #'
@@ -37,15 +43,54 @@ get_glpk_path <- function() {
   options::opt("glpk_path")
 }
 
+# Resolve the `glpsol` executable for the built-in GLPK backend.
+#
+# Priority:
+#   1. a directory configured via `set_glpk_path()` (standalone GLPK install);
+#   2. `glpsol` on the session PATH via `Sys.which()` - on Windows this picks up
+#      the copy BUNDLED WITH RTOOLS (rtools bundles the full GLPK dev kit), so an
+#      Rtools user needs no separate GLPK install;
+#   3. known Rtools toolchain locations (in case Rtools is installed but not on
+#      the session PATH);
+#   4. a bare `"glpsol"` resolved by the OS at run time (last resort).
+#
+# Returns the executable path (or bare command) as a length-1 character.
+.find_glpsol <- function() {
+  gp <- get_glpk_path()
+  if (!is.null(gp) && nzchar(gp)) return(file.path(gp, "glpsol"))
+
+  found <- Sys.which("glpsol")
+  if (nzchar(found)) return(unname(found))
+
+  if (.Platform$OS.type == "windows") {
+    cand <- Sys.glob(c(
+      file.path(Sys.getenv("RTOOLS45_HOME"), "*", "bin", "glpsol.exe"),
+      file.path(Sys.getenv("RTOOLS44_HOME"), "*", "bin", "glpsol.exe"),
+      "C:/rtools4*/x86_64-w64-mingw32.static.posix/bin/glpsol.exe"))
+    cand <- cand[file.exists(cand)]
+    if (length(cand)) return(normalizePath(cand[1], winslash = "/"))
+  }
+  "glpsol"
+}
+
+# Build a `glpsol` command line, quoting the executable if its path has spaces.
+.glpsol_cmdline <- function(exe = .find_glpsol(),
+                            args = "-m energyRt.mod -d energyRt.dat") {
+  if (grepl(" ", exe, fixed = TRUE)) exe <- shQuote(exe)
+  paste(exe, args)
+}
+
 # MathProg GLPK (& MathProg with CBC) ####
-.write_model_GLPK_CBC <- function(arg, scen) {
+# `sm_fun` selects the parameter -> GMPL data converter (`.sm_to_glpk`, which
+# writes each parameter's full `@data` slot).
+.write_model_GLPK_CBC <- function(arg, scen, sm_fun = .sm_to_glpk) {
   run_code <- scen@settings@sourceCode[["GLPK"]]
   dir.create(paste(arg$tmp.dir, "/output", sep = ""), showWarnings = FALSE)
   file_w <- c()
   for (j in c("set", "map", "numpar", "bounds")) {
     for (i in names(scen@modInp@parameters)) {
       if (scen@modInp@parameters[[i]]@type == j) {
-        file_w <- c(file_w, .sm_to_glpk(scen@modInp@parameters[[i]]))
+        file_w <- c(file_w, sm_fun(scen@modInp@parameters[[i]]))
       }
     }
   }
@@ -157,11 +202,9 @@ get_glpk_path <- function() {
 
   if (is.null(scen@settings@solver$cmdline) || scen@settings@solver$cmdline == "") {
     if (toupper(scen@settings@solver$lang) == "GLPK") {
-      scen@settings@solver$cmdline <- "glpsol -m energyRt.mod -d energyRt.dat"
-      if (!is.null(get_glpk_path())) {
-        scen@settings@solver$cmdline <-
-          file.path(get_glpk_path(), scen@settings@solver$cmdline)
-      }
+      # Default to an auto-detected glpsol (bundled with Rtools on Windows);
+      # `set_glpk_path()` overrides to a standalone GLPK install. See .find_glpsol().
+      scen@settings@solver$cmdline <- .glpsol_cmdline()
     } else {
       scen@settings@solver$cmdline <- "cbc energyRt.mod%energyRt.dat -solve"
     }
@@ -171,15 +214,10 @@ get_glpk_path <- function() {
 }
 
 
-
+# Convert one scenario parameter to GMPL (GLPK/CBC) text. The interp_mod()
+# pipeline keeps each parameter's `@data` slot authoritative, so the whole slot
+# is written (no legacy `@misc$nValues` trimming).
 .sm_to_glpk <- function(obj) {
-  if (obj@misc$nValues != -1) {
-    if (nrow(obj@data) > obj@misc$nValues) {
-      warning("Ignoring rows in ", obj@name, "\n",
-      "Check the number of rows in @data and @misc$nValues")
-      obj@data <- obj@data[seq(length.out = obj@misc$nValues), , drop = FALSE]
-    }
-  }
   if (obj@type == "set") {
     if (nrow(obj@data) == 0) {
       ret <- c(paste("set ", obj@name, " := ;", sep = ""), "")

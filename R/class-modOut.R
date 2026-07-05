@@ -7,11 +7,11 @@
 #' results of a solved scenario. It is not intended to be used
 #' as a standalone object.
 #'
-#' @slot sets `r get_slot_info("modOut", "sets")`
-#' @slot variables `r get_slot_info("modOut", "variables")`
-#' @slot stage `r get_slot_info("modOut", "stage")`
-#' @slot solutionLogs `r get_slot_info("modOut", "solutionLogs")`
-#' @slot misc `r get_slot_info("modOut", "misc")`
+#' @slot sets `r get_slot_doc("modOut", "sets")`
+#' @slot variables `r get_slot_doc("modOut", "variables")`
+#' @slot stage `r get_slot_doc("modOut", "stage")`
+#' @slot solutionLogs `r get_slot_doc("modOut", "solutionLogs")`
+#' @slot misc `r get_slot_doc("modOut", "misc")`
 #'
 #' @include class-modInp.R
 #' @rdname class-modOut

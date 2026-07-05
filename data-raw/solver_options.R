@@ -34,6 +34,67 @@ pyomo_glpk <- Pyomo
 pyomo_glpk$name <- "pyomo_glpk"
 pyomo_glpk$solver <- "glpk"
 
+## Python/Pyomo via NEOS (remote solve; no local solver, needs env var NEOS_EMAIL)
+# The scenario is still BUILT locally (Pyomo reads the data into the
+# ConcreteModel); only the SOLVE is dispatched to NEOS, which serialises the
+# model to NL and runs the chosen commercial solver. Implemented as an
+# `inc_solver` override: a tiny shim makes `opt` a duck-typed object whose
+# `.solve(model, tee=...)` calls SolverManagerFactory('neos'), so the baked
+# `opt.solve(model, tee=True)` in the template works unchanged and the solution
+# is loaded back for the usual output extraction. `solver` must be unset (the
+# writer forbids both `solver` and `inc_solver`).
+# `options` is a named list of CPLEX/solver option -> value passed to the remote
+# solver. With no options we keep the simple string form (opt='<solver>') that
+# needs no local solver plugin; with options we build a SolverFactory object and
+# set its .options (Pyomo's documented way to pass solver settings via NEOS).
+.pyomo_neos_inc_solver <- function(neos_solver = "cplex", options = list()) {
+  head <- c(
+    "import os as _os",
+    "from pyomo.opt import SolverManagerFactory as _SMF",
+    "if not _os.environ.get('NEOS_EMAIL'):",
+    "    raise RuntimeError('Set the NEOS_EMAIL environment variable to use the pyomo NEOS backend.')")
+  if (!length(options)) {
+    body <- c(
+      "class _NeosOpt:",
+      "    def __init__(self, solver):",
+      "        self._mgr = _SMF('neos'); self._solver = solver; self.options = {}",
+      "    def solve(self, model, **kw):",
+      "        return self._mgr.solve(model, opt=self._solver)",
+      sprintf("opt = _NeosOpt('%s')", neos_solver))
+  } else {
+    opts_py <- paste0("{", paste(sprintf("'%s': %s", names(options),
+      unlist(options)), collapse = ", "), "}")
+    body <- c(
+      "from pyomo.environ import SolverFactory as _SF",
+      "class _NeosOpt:",
+      "    def __init__(self, solver, options):",
+      "        self._mgr = _SMF('neos'); self._opt = _SF(solver)",
+      "        self.options = self._opt.options",
+      "        for _k, _v in options.items(): self._opt.options[_k] = _v",
+      "    def solve(self, model, **kw):",
+      "        return self._mgr.solve(model, opt=self._opt)",
+      sprintf("opt = _NeosOpt('%s', %s)", neos_solver, opts_py))
+  }
+  paste(c(head, body), collapse = "\n")
+}
+
+neos_pyomo_cplex <- Pyomo
+neos_pyomo_cplex$name <- "neos_pyomo_cplex"
+neos_pyomo_cplex$solver <- NULL
+neos_pyomo_cplex$inc_solver <- .pyomo_neos_inc_solver("cplex")
+
+neos_pyomo_cbc <- Pyomo
+neos_pyomo_cbc$name <- "neos_pyomo_cbc"
+neos_pyomo_cbc$solver <- NULL
+neos_pyomo_cbc$inc_solver <- .pyomo_neos_inc_solver("cbc")
+
+# CPLEX barrier (lpmethod 4) without crossover (solutiontype 2)
+neos_pyomo_cplex_barrier <- Pyomo
+neos_pyomo_cplex_barrier$name <- "neos_pyomo_cplex_barrier"
+neos_pyomo_cplex_barrier$solver <- NULL
+neos_pyomo_cplex_barrier$inc_solver <- .pyomo_neos_inc_solver(
+  "cplex", list(lpmethod = 4, solutiontype = 2))
+
 
 ## Julia/JuMP ####
 julia_cbc <- list(
@@ -171,8 +232,8 @@ lpmethod 4
 solutiontype 2
 
 *printoptions 1
-*names no
-*freegamsmodel 1
+names no
+freegamsmodel 1
 *memoryemphasis 1
 
 *barcolnz 5
@@ -253,6 +314,36 @@ gams_cbc <- list(
   solver = "CBC"
 )
 
+## GAMS via NEOS (remote solve; text data, no local GAMS/gdx; needs NEOS_EMAIL)
+# backend = "neos" makes .call_solver submit the written GAMS model to NEOS and
+# fetch results instead of running gams locally. Data is sent as inlined TEXT
+# (no gdx), so no local GAMS install is required. neos_solver/neos_category pick
+# the remote solver and NEOS problem category.
+neos_gams_cplex <- gams_cplex
+neos_gams_cplex$name <- "neos_gams_cplex"
+neos_gams_cplex$backend <- "neos"
+neos_gams_cplex$neos_solver <- "CPLEX"
+neos_gams_cplex$neos_category <- "milp"
+
+neos_gams_cbc <- gams_cbc
+neos_gams_cbc$name <- "neos_gams_cbc"
+neos_gams_cbc$backend <- "neos"
+neos_gams_cbc$neos_solver <- "CBC"
+neos_gams_cbc$neos_category <- "milp"
+
+# CPLEX barrier: inc3 becomes inc3.gms (included by energyRt.gms), writing a
+# cplex.opt with lpmethod 4 (barrier) + solutiontype 2 (no crossover). The block
+# travels with the inlined model to NEOS.
+neos_gams_cplex_barrier <- neos_gams_cplex
+neos_gams_cplex_barrier$name <- "neos_gams_cplex_barrier"
+neos_gams_cplex_barrier$inc3 <- paste(
+  "energyRt.OptFile = 1;",
+  "$onecho > cplex.opt",
+  "lpmethod 4",
+  "solutiontype 2",
+  "$offecho",
+  sep = "\n")
+
 gams_gdx_cbc <- list(
   name = "gams_gdx_cbc",
   lang = "GAMS",
@@ -261,19 +352,37 @@ gams_gdx_cbc <- list(
   solver = "CBC"
 )
 
+# Arrow IPC/feather exchange variants: model data AND solution exchanged as
+# Arrow IPC (feather, zstd) instead of SQLite/RData (input) and CSV (output).
+pyomo_cbc_arrow <- pyomo_cbc
+pyomo_cbc_arrow$name <- "pyomo_cbc_arrow"
+pyomo_cbc_arrow$export_format <- "feather"
+pyomo_cbc_arrow$import_format <- "feather"
+
+julia_highs_arrow <- julia_highs
+julia_highs_arrow$name <- "julia_highs_arrow"
+julia_highs_arrow$export_format <- "feather"
+julia_highs_arrow$import_format <- "feather"
+
 solver_options <- list(
   # GLPK
   glpk = glpk,
   # Python/Pyomo
   pyomo_cbc = pyomo_cbc,
+  pyomo_cbc_arrow = pyomo_cbc_arrow,
   pyomo_cplex = pyomo_cplex,
   pyomo_cplex_barrier = pyomo_cplex_barrier,
   pyomo_glpk = pyomo_glpk,
+  # Python/Pyomo via NEOS (remote solve)
+  neos_pyomo_cplex = neos_pyomo_cplex,
+  neos_pyomo_cplex_barrier = neos_pyomo_cplex_barrier,
+  neos_pyomo_cbc = neos_pyomo_cbc,
   # julia
   julia_cbc = julia_cbc,
   julia_cplex = julia_cplex,
   julia_cplex_barrier = julia_cplex_barrier,
   julia_highs = julia_highs,
+  julia_highs_arrow = julia_highs_arrow,
   julia_highs_barrier = julia_highs_barrier,
   julia_glpk = julia_glpk,
   julia_highs_simplex = julia_highs_simplex,
@@ -284,7 +393,11 @@ solver_options <- list(
   gams_gdx_cplex_barrier = gams_gdx_cplex_barrier,
   gams_gdx_cplex_parallel = gams_gdx_cplex_parallel,
   gams_csv_cbc = gams_cbc,
-  gams_gdx_cbc = gams_gdx_cbc
+  gams_gdx_cbc = gams_gdx_cbc,
+  # GAMS via NEOS (remote)
+  neos_gams_cplex = neos_gams_cplex,
+  neos_gams_cplex_barrier = neos_gams_cplex_barrier,
+  neos_gams_cbc = neos_gams_cbc
 )
 
 usethis::use_data(solver_options, overwrite = TRUE)

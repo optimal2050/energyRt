@@ -1,22 +1,258 @@
 ---
-title: " Installation and Settings"
-editor_options: 
+title: "Installation and Settings"
+editor_options:
   chunk_output_type: console
 ---
 
 ```{r, include = FALSE}
 knitr::opts_chunk$set(
   collapse = TRUE,
-  eval = TRUE,
+  eval = FALSE,
   comment = "#>"
 )
 ```
 
-```{r setup, include = FALSE, eval = FALSE}
-library(energyRt)
-get_julia_path()
-set_julia_path("/Users/USER/.juliaup/bin/")
-en_install_julia_pkgs()
-set_default_solver(solver_options$julia_highs)
+energyRt formulates an optimization model once and hands it to one of several
+mathematical-programming **backends**. You only need *one* of them to get
+started; you can add more later and cross-check results between them.
+
+| Backend | Software to install | License | Notes |
+|---|---|---|---|
+| **GLPK** | `glpsol` executable | open-source | Easiest to install; slow on very large models. |
+| **Julia / JuMP** | Julia + `JuMP`, `HiGHS` | open-source | Fast (HiGHS barrier); recommended for large models. |
+| **Python / Pyomo** | Python + `pyomo` + a solver (CBC) | open-source | Convenient if you already use conda. |
+| **GAMS** | GAMS distribution | proprietary | Needs a license; also enables GDX I/O. |
+
+The package ships helpers to **detect** what you have and **auto-install the
+library layer** (R/Julia/Python packages). The *system software* itself (Julia,
+Python, conda, GAMS) is installed by you, with guidance below.
+
+## 1. Install R and energyRt
+
+Install R (≥ 4.3) — platform installers:
+[Windows](https://cran.r-project.org/bin/windows/base/),
+[macOS](https://cran.r-project.org/bin/macosx/),
+[Ubuntu/Debian](https://cran.r-project.org/bin/linux/ubuntu/). We recommend
+[RStudio](https://posit.co/download/rstudio-desktop/) as the IDE.
+
+The quickest install is one line — it sets up `pak`, reports any Linux system
+libraries to install, installs all dependencies, then energyRt itself:
+
+```{r}
+source("https://raw.githubusercontent.com/optimal2050/energyRt/main/inst/install.R")
+install_energyRt()
 ```
 
+Then verify your setup in a fresh session with `library(energyRt); en_setup()`.
+
+Prefer to install directly? energyRt's CRAN dependencies are pulled in
+automatically by `pak` (no local sibling packages are required):
+
+```{r}
+install.packages("pak")
+pak::pkg_install("optimal2050/energyRt")
+
+# or, with remotes:
+# install.packages("remotes")
+# remotes::install_github("optimal2050/energyRt")
+```
+
+Installing energyRt does not install a solver: you still need at least one
+backend (below). The GAMS GDX bridge (`gdxtools`) is pulled later by
+`en_install_deps()` if you use the GAMS backend.
+
+**Install fails on Linux?** If the install stops with
+`dependencies '...' are not available for package 'energyRt'`, one CRAN import
+(often one that needs a system library) failed and aborted the rest. Install the
+imports one by one so the failure is isolated and reported:
+
+```{r}
+install.packages("pak")
+
+# energyRt's direct CRAN imports (base packages are omitted):
+deps <- c(
+  "generics", "data.table", "DBI", "RSQLite", "tibble", "tidyr", "dplyr",
+  "rlang", "stringr", "lubridate", "purrr", "arrow", "progressr", "tictoc",
+  "cli", "zoo", "registry", "options", "glue", "plyr",
+  # suggested — plots and reports (optional but recommended, see section 7):
+  "ggplot2", "patchwork", "knitr", "rmarkdown", "tinytex", "sf"
+)
+
+failed <- character(0)
+for (pkg in deps) {
+  ok <- tryCatch(
+    {
+      pak::pkg_install(pkg, ask = FALSE)
+      message("  [ok]   ", pkg)
+      TRUE
+    },
+    error = function(e) {
+      message("  [FAIL] ", pkg, ": ", conditionMessage(e))
+      FALSE
+    }
+  )
+  if (!ok) failed <- c(failed, pkg)
+}
+
+if (length(failed) == 0) {
+  message("All dependencies installed — installing energyRt itself:")
+  pak::pkg_install("optimal2050/energyRt")
+} else {
+  message("Failed packages: ", paste(failed, collapse = ", "))
+}
+```
+
+On Linux, a package that fails to compile is missing a system library. Ask
+`pak` which apt packages are required, install them, then re-run the loop:
+
+```{r}
+pak::pkg_sysreqs("optimal2050/energyRt")   # lists the apt packages
+# e.g. sudo apt install libcurl4-openssl-dev libssl-dev libxml2-dev
+```
+
+## 2. Check what you already have
+
+```{r}
+library(energyRt)
+en_check_dependencies()   # solver backends: GLPK / Julia / Python / GAMS / GDX
+en_check_packages()       # R packages, optional extras, LaTeX engine, MuseScore
+```
+
+`en_check_dependencies()` prints a status table — for each backend: installed?,
+version, path, and a hint for what to do next — and tells you whether at least
+one solver is ready. Each backend also has its own detector, e.g.
+`en_check_julia()`, `en_check_python()`, `en_check_pyomo()`, `en_check_glpk()`,
+`en_check_gams()`. `en_check_packages()` complements it by checking energyRt's R
+dependencies, optional packages (plots/reports), and external tools (a LaTeX
+engine, MuseScore). `en_setup()` runs both.
+
+## 3. Install the system software (one or more backends)
+
+Pick at least one. These are the only manual steps; commands are grouped by
+operating system.
+
+- **GLPK** — the `glpsol` executable.
+  - *Windows*: **already included** — `glpsol.exe` ships with **Rtools 4.5**
+    (which you already have, since Rtools is needed to build energyRt from
+    source), at `C:/rtools45/x86_64-w64-mingw32.static.posix/bin`. No separate
+    install.
+  - *macOS*: `brew install glpk`.
+  - *Ubuntu/Debian*: `sudo apt install glpk-utils`.
+  - If `glpsol` is not detected, set the path —
+    `set_glpk_path("C:/rtools45/x86_64-w64-mingw32.static.posix/bin")`
+    (macOS/Ubuntu package managers put it on the `PATH` automatically).
+- **Julia** — install via [juliaup](https://github.com/JuliaLang/juliaup).
+  - *Windows*: `winget install julia -s msstore` (or the official installer).
+  - *macOS*: `brew install juliaup` (or `curl -fsSL https://install.julialang.org | sh`).
+  - *Ubuntu*: `curl -fsSL https://install.julialang.org | sh`.
+  - Then `set_julia_path("~/.juliaup/bin/")` if Julia is not already on the `PATH`.
+- **Python** — install [Miniforge](https://github.com/conda-forge/miniforge)
+  (recommended; gives you `conda`).
+  - *Windows*: run the `Miniforge3` installer; avoid the Microsoft Store "App
+    execution alias" python — `en_check_python()` flags it as non-functional.
+  - *macOS*: `brew install miniforge` (or the `arm64`/`x86_64` installer).
+  - *Ubuntu*: `bash Miniforge3-Linux-x86_64.sh` from the
+    [releases](https://github.com/conda-forge/miniforge/releases/latest).
+- **GAMS** — install from <https://www.gams.com/download/> (license required),
+  then point energyRt at the GAMS system directory:
+  - *Windows*: `set_gams_path("C:/GAMS/<version>/")`.
+  - *macOS*: `set_gams_path("/Library/Frameworks/GAMS.framework/Versions/Current/Resources")`.
+  - *Ubuntu*: `set_gams_path("/opt/gams/gams<version>_linux_x64_64_sfx")`.
+
+## 4. Auto-install the library layer
+
+Once the runtimes are present, install the packages each backend needs in one
+call:
+
+```{r}
+en_install_deps()   # detects runtimes, then installs Julia + Python + R libs
+```
+
+`en_install_deps()` runs a dependency check, installs only the safe library
+layer for the runtimes it finds (skipping — with a warning — any runtime that is
+missing), and re-checks at the end. You can also install per backend:
+
+```{r}
+en_install_julia_pkgs()      # JuMP, HiGHS, Cbc, Clp, ... into the Julia env
+en_install_python_deps()     # conda env "energyRt" with pyomo + cbc (or pip)
+en_install_python_deps(use_conda = FALSE)  # pip into the configured python
+```
+
+### Manual alternative
+
+If a helper fails, run the same steps by hand.
+
+R layer — the GAMS GDX bridge (not on CRAN) plus optional I/O helpers:
+
+```r
+pak::pkg_install("lolow/gdxtools")   # or remotes::install_github("lolow/gdxtools")
+install.packages(c("jsonlite", "readxl", "openxlsx"))
+```
+
+Julia layer — from the Julia REPL (or `julia -e "..."`):
+
+```julia
+using Pkg
+Pkg.add(["JuMP", "HiGHS", "Cbc", "Clp", "RData", "RCall",
+         "CodecBzip2", "Gadfly", "DataFrames", "CSV", "SQLite", "Dates"])
+```
+
+Python/Pyomo layer — conda (recommended) or pip:
+
+```bash
+conda create -y -n energyRt python
+conda install -y -n energyRt -c conda-forge pyomo pandas pyarrow coincbc
+# pip fallback (no CBC binary): python -m pip install --upgrade pyomo pandas pyarrow
+```
+
+## 5. Point energyRt at the installations
+
+If a runtime is not on your `PATH`, set its path (persisted in energyRt
+options). For Python/Pyomo, point at the conda environment created above:
+
+```{r}
+set_julia_path("~/.juliaup/bin/")             # same on all platforms
+set_python_path("~/.conda/envs/energyRt")     # or the env you created
+set_glpk_path("C:/rtools45/x86_64-w64-mingw32.static.posix/bin")  # Windows (Rtools 4.5); unneeded on macOS/Ubuntu
+set_gams_path("C:/GAMS/<version>/")           # see step 3 for macOS/Ubuntu paths
+```
+
+## 6. Verify end-to-end
+
+Re-check (everything you installed should now be green), choose a default
+solver, and solve a tiny model:
+
+```{r}
+en_check_dependencies(solver_pkgs = TRUE)   # also verifies JuMP/HiGHS in Julia
+set_default_solver(solver_options$julia_highs_barrier)  # or solver_options$glpk
+
+# a minimal model solve confirms the full toolchain works
+# (see the "Model bricks" article for assembling a model)
+```
+
+If two or more backends are installed, solving the same scenario with each and
+comparing objectives is the strongest check that your setup is correct.
+
+## 7. Optional extras
+
+Everything below is optional — energyRt solves models without any of it.
+
+```{r}
+# plotting (all autoplot()/draw() charts) + levcost side-by-side panels
+install.packages(c("ggplot2", "patchwork"))
+
+# report(): HTML datasheets & model/scenario reports need pandoc.
+# RStudio ships pandoc; outside RStudio install it from pandoc.org
+# (or reuse Quarto's: Sys.setenv(RSTUDIO_PANDOC = "<quarto>/bin/tools")).
+install.packages("rmarkdown")
+
+# report(format = "pdf" / "tex") additionally needs a LaTeX toolchain:
+install.packages("tinytex")
+tinytex::install_tinytex()
+
+# maps for plot_trade_map() / the utopia$map layouts
+install.packages("sf")
+
+# GAMS gdx exchange
+# install.packages("gdxtools", repos = "...")   # see the gdxtools README
+```

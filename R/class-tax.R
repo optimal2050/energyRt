@@ -3,13 +3,13 @@
 #' @name tax-class
 #' @inherit newTax description
 #'
-#' @slot name `r get_slot_info("tax", "name")`
-#' @slot desc `r get_slot_info("tax", "desc")`
-#' @slot comm `r get_slot_info("tax", "comm")`
-#' @slot region `r get_slot_info("tax", "region")`
-#' @slot defVal `r get_slot_info("tax", "defVal")`
-#' @slot tax `r get_slot_info("tax", "tax")`
-#' @slot misc `r get_slot_info("tax", "misc")`
+#' @slot name `r get_slot_doc("tax", "name")`
+#' @slot desc `r get_slot_doc("tax", "desc")`
+#' @slot comm `r get_slot_doc("tax", "comm")`
+#' @slot region `r get_slot_doc("tax", "region")`
+#' @slot defVal `r get_slot_doc("tax", "defVal")`
+#' @slot tax `r get_slot_doc("tax", "tax")`
+#' @slot misc `r get_slot_doc("tax", "misc")`
 #'
 #' @include class-weather.R
 #' @family class constraint policy
@@ -56,13 +56,13 @@ setClass("tax",
 #' Taxes are used to represent the financial levy imposed on production,
 #' consumption, or balance of a commodity.
 #'
-#' @param name `r get_slot_info("tax", "name")`
-#' @param desc `r get_slot_info("tax", "desc")`
-#' @param comm `r get_slot_info("tax", "comm")`
-#' @param region `r get_slot_info("tax", "region")`
-#' @param defVal `r get_slot_info("tax", "defVal")`
-#' @param tax `r get_slot_info("tax", "tax")`
-#' @param misc `r get_slot_info("tax", "misc")`
+#' @param name `r get_slot_doc("tax", "name")`
+#' @param desc `r get_slot_doc("tax", "desc")`
+#' @param comm `r get_slot_doc("tax", "comm")`
+#' @param region `r get_slot_doc("tax", "region")`
+#' @param defVal `r get_slot_doc("tax", "defVal")`
+#' @param tax `r get_slot_doc("tax", "tax")`
+#' @param misc `r get_slot_doc("tax", "misc")`
 #'
 #' @return An object of class `tax`
 #' @family class constraint policy

@@ -5,15 +5,16 @@
 #'
 #' @inherit newCosts description
 #'
+#' @description
 #' `r lifecycle::badge("experimental")`
 #'
 #' @md
-#' @slot name `r get_slot_info("costs", "name")`
-#' @slot desc `r get_slot_info("costs", "desc")`
-#' @slot variable `r get_slot_info("costs", "variable")`
-#' @slot subset `r get_slot_info("costs", "subset")`
-#' @slot mult `r get_slot_info("costs", "mult")`
-#' @slot misc `r get_slot_info("costs", "misc")`
+#' @slot name `r get_slot_doc("costs", "name")`
+#' @slot desc `r get_slot_doc("costs", "desc")`
+#' @slot variable `r get_slot_doc("costs", "variable")`
+#' @slot subset `r get_slot_doc("costs", "subset")`
+#' @slot mult `r get_slot_doc("costs", "mult")`
+#' @slot misc `r get_slot_doc("costs", "misc")`
 #'
 #' @include class-constraint.R
 #' @family class constraint policy
@@ -52,12 +53,12 @@ setMethod("initialize", "costs", function(.Object, ...) {
 #' objective function.
 #'
 #' @md
-#' @param name `get_slot_info("costs", "name")`
+#' @param name `get_slot_doc("costs", "name")`
 #'
-#' @param variable `get_slot_info("costs", "variable")`
-#' @param desc `get_slot_info("costs", "desc")`
-#' @param mult `get_slot_info("costs", "mult")`
-#' @param subset `get_slot_info("costs", "subset")`
+#' @param variable `get_slot_doc("costs", "variable")`
+#' @param desc `get_slot_doc("costs", "desc")`
+#' @param mult `get_slot_doc("costs", "mult")`
+#' @param subset `get_slot_doc("costs", "subset")`
 #'
 #' @return costs object with given specifications.
 #' @family class constraint policy

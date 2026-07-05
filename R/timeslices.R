@@ -32,6 +32,56 @@
 #'
 "tsl_sets"
 
+#' Example calendars
+#'
+#' A named list of ready-to-use [calendar][class-calendar] objects covering
+#' common sub-annual time resolutions. Pass any element to [newModel()] /
+#' `setCalendar()`, inspect it with [plot()] / `autoplot()`, or use it as a
+#' template for [newCalendar()].
+#'
+#' @format A named list of `calendar` objects, including:
+#' \describe{
+#'   \item{season_dn}{Four seasons x day/night (8 slices).}
+#'   \item{d365}{Daily resolution, 365 days.}
+#'   \item{utopia_annual}{UTOPIA: annual resolution (1 slice).}
+#'   \item{utopia_seasons}{UTOPIA: 4 seasons x 3 dayparts (DAY/NIGHT/PEAK) with
+#'     representative shares (12 slices) -- the default UTOPIA resolution.}
+#'   \item{utopia_m12h24}{UTOPIA: 12 months x 24 hours (288 slices).}
+#'   \item{d365_h24}{Full hourly year: 365 days x 24 hours (8760 slices).}
+#'   \item{d365_h24_subset_1day_per_month}{Representative subset: one day per
+#'     month at hourly resolution (288 slices, `year_fraction` ~ 12/365).}
+#' }
+#' The `utopia_*` calendars are built from energyRt's own constructors; the
+#' hourly `d365_h24*` calendars are imported from the IDEEA package. See
+#' `data-raw/calendars.R` for the generating script.
+#'
+#' @seealso [newCalendar()], [make_timetable()], [horizons]
+#' @examples
+#' names(calendars)
+#' plot(calendars$season_dn)
+"calendars"
+
+#' Example planning horizons
+#'
+#' A named list of ready-to-use [horizon][class-horizon] objects with common
+#' milestone-year structures. Pass any element to [newModel()] / `setHorizon()`,
+#' or visualize it with [plot()] / `autoplot()`.
+#'
+#' @format A named list of `horizon` objects, including:
+#' \describe{
+#'   \item{Y2020_2060_by_5}{2020-2060 in 5-year steps (base year 2020).}
+#'   \item{Y2020_2060_by_10}{2020-2060 in 10-year steps.}
+#'   \item{Y2020, Y2030, Y2040, Y2050, Y2060, Y2070}{single-year horizons.}
+#' }
+#' Imported from the IDEEA package; see `data-raw/calendars.R` for the
+#' generating script.
+#'
+#' @seealso [newHorizon()], [calendars]
+#' @examples
+#' names(horizons)
+#' plot(horizons$Y2020_2060_by_5)
+"horizons"
+
 # tsl_sets <- list(
 #   d365 = list(
 #     YDAY = paste0("d", formatC(1:365, width = 3, flag = "0"))),
@@ -143,6 +193,7 @@ tsl2dtm <- function(tsl, format = tsl_guess_format(tsl), tmz = "UTC",
   }
   y <- NULL
   m <- NULL
+  # w <- NULL
   d <- NULL
   h <- NULL
   if (grepl("y", format)) y <- tsl2year(tsl)
@@ -303,7 +354,7 @@ tsl2month <- function(tsl, format = tsl_guess_format(tsl), return.null = TRUE) {
 #' Guess format of time-slices
 #' @name tsl_guess_format
 #'
-#' @param tsl
+#' @param tsl character vector of time-slice names.
 #'
 #' @return
 #' Character vector with the guessed format of the time-slices

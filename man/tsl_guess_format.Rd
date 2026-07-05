@@ -7,7 +7,7 @@
 tsl_guess_format(tsl)
 }
 \arguments{
-\item{tsl}{}
+\item{tsl}{character vector of time-slice names.}
 }
 \value{
 Character vector with the guessed format of the time-slices

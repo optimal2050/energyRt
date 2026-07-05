@@ -1,4 +1,22 @@
-getData <- function(...) UseMethod("getData")
+#' Extract data from energyRt objects
+#'
+#' Generic accessor. Dispatches on the object class:
+#' \itemize{
+#'   \item \code{scenario} (or a list of scenarios): interpolated/solved data
+#'     from \code{modInp}/\code{modOut} -- see the \code{scenario} method below.
+#'   \item model objects (\code{technology}, \code{commodity}, \code{storage},
+#'     \code{supply}, \code{demand}, \code{trade}, ...): the object's own
+#'     \emph{raw input} slot data (pre-interpolation).
+#'   \item \code{model} / \code{repository}: raw input slots stacked across all
+#'     contained objects.
+#' }
+#'
+#' @param scen a \code{scenario} (or list of scenarios), a model object, a
+#'   \code{model}, or a \code{repository}.
+#' @param ... passed to the dispatched method (filters, \code{name}, \code{merge}, ...).
+#' @seealso the per-class methods for the full argument list.
+#' @export
+getData <- function(scen, ...) UseMethod("getData")
 
 #' Performs search for available data in _scenario_ object.
 #'
@@ -16,8 +34,10 @@ getData <- function(...) UseMethod("getData")
 #' @return list with variables and parameters name, each includes _dim_ and _names_ character vectors.
 #'
 #' @export
-findData <- function(scen, dataType = c("parameters", "variables"),
-                     setsNames_ = NULL, valueColumn = TRUE,
+findData <- function(scen,
+                     dataType = c("parameters", "variables"),
+                     setsNames_ = NULL,
+                     valueColumn = TRUE,
                      allSets = TRUE,
                      ignore.case = FALSE,
                      # anyOfTheSets = !allSets,
@@ -133,13 +153,16 @@ findData <- function(scen, dataType = c("parameters", "variables"),
 
 #' Extracts information from scenario objects, based on filters.
 #'
+#' @rdname getData
 #' @param scen Object scenario or list of scenarios.
 #' @param ... filters for various sets (setname = c(val1, val2) or setname_ = "matching pattern"), see details.
 #' @param name character vector with names of parameters and/or variables.
-#' @param merge if TRUE, the search results will be merged in one dataframe; the named list will be returned if FALSE.
+#' @param merge if TRUE, the search results will be merged in one dataframe; the named list will be returned if FALSE. When TRUE, a data.frame (empty if nothing matched) is always returned, never NULL.
+#' @param timeframe controls sub-annual time aggregation of results that carry a `slice` column. One of `"lowest"` (default, aggregate/sum flows up to the coarsest level, normally `ANNUAL`), `"highest"` (native/finest, as stored), `"all"` (return every timeframe level stacked), or an explicit calendar level name (e.g. `"SEASON"`, `"YDAY"`) to aggregate to that level. Non-slice data, and state/level variables (e.g. `vStorageStore`) for which summing over slices is meaningless, are returned unchanged.
 #' @param process if TRUE, dimensions "tech", "stg", "trade", "imp", "expp", "dem", and "sup" will be renamed with "process".
 #' @param parameters if TRUE, parameters will be included in the search and returned if found.
 #' @param variables if TRUE, variables will be included in the search and returned if found.
+#' @param maps if TRUE, map-type parameters (membership mappings, no `value` column) are also returned.
 #' @param na.rm if TRUE, NA values will be dropped.
 #' @param digits if integer, indicates the number of decimal places for rounding, if NULL - no actions.
 #' @param drop.zeros logical, should rows containing zero values be filtered out.
@@ -150,7 +173,7 @@ findData <- function(scen, dataType = c("parameters", "variables"),
 #' @param stringsAsFactors logical, should the sets values be converted to factors?
 #' @param yearsAsFactors logical, should `year` be converted to factors? Set 'year' is integer by default.
 #' @param scenNameInList logical, should the name of the scenarios be used if not provided in the list with several scenarios?
-#' @param verbose
+#' @param verbose logical, print progress and diagnostic messages.
 #'
 #' @aliases getData get_data
 #'
@@ -163,15 +186,19 @@ findData <- function(scen, dataType = c("parameters", "variables"),
 #' names(elc2050)
 #' elc2050$vBalance
 #' }
+#' @method getData scenario
 #' @export
-getData <- function(
+getData.scenario <- function(
     scen,
     name = NULL,
     ...,
     merge = FALSE,
+    timeframe = c("lowest", "highest", "all"),
     process = FALSE,
     parameters = TRUE,
     variables = TRUE,
+    sets = FALSE,
+    maps = FALSE,
     ignore.case = TRUE,
     newNames = NULL,
     newValues = NULL,
@@ -189,6 +216,7 @@ getData <- function(
     yearsAsFactors = FALSE,
     drop_duplicated_scenarios = TRUE,
     scenNameInList = as.logical(length(scen) - 1),
+    unfold = TRUE,
     verbose = FALSE) {
   # if (name == "vObjective") browser()
   # browser()
@@ -219,7 +247,7 @@ getData <- function(
     ii <- sapply(scen, class) == "scenario"
     if (sum(ii) == 0) {
       message("Scenario object is not found")
-      return(NULL)
+      return(.getdata_empty(merge, asTibble))
     }
     scen <- scen[ii] # keep scenarios only
     nm <- names(scen)
@@ -263,10 +291,23 @@ getData <- function(
   parvar <- c(parameters = parameters, variables = variables)
   for (s in 1:length(scen)) { # loop over scenarios
     sc <- names(scen)[s]
-    # Temporary solution for missing "comm" in "pDemand"
-    # browser()
+    # Data availability: an un-interpolated scenario has no modInp parameters and
+    # an unsolved one has no modOut variables. Skip gracefully instead of erroring.
+    avail <- c(
+      parameters = tryCatch(length(scen[[s]]@modInp@parameters) > 0,
+        error = function(e) FALSE),
+      variables = tryCatch(length(scen[[s]]@modOut@variables) > 0,
+        error = function(e) FALSE)
+    )
+    if (verbose && !any(avail)) {
+      message("Scenario '", sc, "' has no interpolated/solved data to extract.")
+    }
     # if(is.null(scen[[sc]]@modInp@parameters$pDemand@data$comm)) {scen[[sc]] <- .addComm2pDemand(scen[[sc]])}
     for (datype in names(parvar)[parvar]) { # loop over data sources
+      if (!isTRUE(avail[[datype]])) {
+        if (verbose) cat("No", datype, "available in scenario '", sc, "'.\n")
+        next
+      }
       if (verbose) cat("Extracting data from", datype, "\n")
       if (length(nflt1) > 0) {
         sets_names <- paste0("^", nflt1, "$")
@@ -275,8 +316,26 @@ getData <- function(
       }
       lt <- findData(scen[[s]],
         dataType = datype, setsNames_ = sets_names,
+        valueColumn = !(sets || maps),
         ignore.case = ignore.case
       )
+      # Restrict parameters by type: value-bearing always; sets/maps on request.
+      # (Reproduces the old `valueColumn = !sets` gate while adding `maps`.)
+      if (datype == "parameters" && (sets || maps)) {
+        keep_types <- c("numpar", "bounds")
+        if (sets) keep_types <- c(keep_types, "set", "map")
+        if (maps) keep_types <- c(keep_types, "map")
+        keep_types <- unique(keep_types)
+        ptype <- vapply(names(lt), function(nm) {
+          p <- scen[[s]]@modInp@parameters[[nm]]
+          if (is.null(p) || !methods::.hasSlot(p, "type")) {
+            return(NA_character_)
+          }
+          t <- p@type
+          if (length(t) != 1L) NA_character_ else as.character(t)[1]
+        }, character(1))
+        lt <- lt[is.na(ptype) | ptype %in% keep_types]
+      }
       pvNames <- names(lt)
       # filter for variable/parameter names
       if (!is.null(name)) {
@@ -307,7 +366,7 @@ getData <- function(
         # browser()
         if (length(clNames) == 0) {
           warning("Inconsistent combination of filters.")
-          return(NULL)
+          return(.getdata_empty(merge, asTibble))
         }
         # find pars/vars which have any of the col-names for filtration
         ii <- sapply(lt, function(x) {
@@ -335,6 +394,16 @@ getData <- function(
             )
             if (!is.null(dat)) {
               dat <- collect(dat)
+            }
+            # Unfold wildcard (NA) rows of folded parameters back to explicit
+            # members at read time, using the scenario's membership maps.
+            if (isTRUE(unfold) && !is.null(dat) && nrow(dat) > 0) {
+              fi <- scen[[s]]@modInp@parameters[[pv]]@misc[["fold_info"]]
+              if (!is.null(fi) && isTRUE(fi[["folded"]])) {
+                dat <- unfold_scenario_parameter(
+                  scen[[s]], scen[[s]]@modInp@parameters[[pv]]
+                )
+              }
             }
             # temporary. ToDo: rewrite filter-algo for lazy-data
             # if (!is.null(scen[[sc]]@modInp@parameters[[pv]])) {
@@ -474,6 +543,12 @@ getData <- function(
     ll <- lapply(ll, function(x) renameSets(x, newNames))
   }
 
+  # Sub-annual time aggregation (slice roll-up), see `timeframe` argument.
+  if (length(ll) > 0) {
+    cal <- tryCatch(scen[[1]]@settings@calendar, error = function(e) NULL)
+    if (!is.null(cal)) ll <- .apply_timeframe(ll, cal, timeframe)
+  }
+
   if (merge) {
     if (length(ll) == 1) {
       dat <- ll[[1]]
@@ -487,9 +562,9 @@ getData <- function(
         )
       }
     } else {
-      dat <- NULL
+      dat <- .getdata_empty(merge = TRUE, asTibble = asTibble)
     }
-    if (!is.null(dat)) {
+    if (!is.null(dat) && ncol(dat) > 0) {
       if (na.rm) {
         ii <- rowSums(apply(dat, 2, is.na))
         dat <- dat[!ii, ]
@@ -555,9 +630,141 @@ getData <- function(
   }
 }
 
+#' A list of scenarios dispatches through the same scenario extractor (its body
+#' already handles a list of scenarios).
+#' @rdname getData
+#' @method getData list
+#' @export
+getData.list <- getData.scenario
+
+#' @rdname getData
+#' @method getData default
+#' @export
+getData.default <- function(scen, ...) {
+  stop(
+    "getData() has no method for class '", paste(class(scen), collapse = "/"),
+    "'. Supported: scenario (or list of scenarios), model, repository, and ",
+    "model objects (technology, commodity, storage, supply, demand, trade).",
+    call. = FALSE
+  )
+}
+
 #' @rdname getData
 #' @export
 get_data <- getData
+
+# ---- getData helpers: empty result + timeframe (slice) aggregation ----------
+
+# Uniform "nothing found" return: an (empty) data.frame when merge = TRUE,
+# an empty list otherwise. Keeps `merge = TRUE` from ever returning NULL.
+.getdata_empty <- function(merge, asTibble = TRUE) {
+  if (!isTRUE(merge)) {
+    return(list())
+  }
+  if (isTRUE(asTibble)) tibble::tibble() else data.frame()
+}
+
+# Canonical slice -> integer rank (1 = ANNUAL / coarsest; larger = finer),
+# derived from the number of ancestors each slice has in the calendar.
+.slice_rank_map <- function(calendar) {
+  slices <- calendar@slice_share$slice
+  anc <- calendar@slice_ancestry # columns: parent (ancestor), child
+  if (is.null(anc) || nrow(anc) == 0 || length(slices) == 0) {
+    return(stats::setNames(rep(1L, length(slices)), slices))
+  }
+  nanc <- table(factor(anc$child, levels = slices))
+  stats::setNames(as.integer(nanc) + 1L, slices)
+}
+
+# Map every canonical slice to its representative at `target_rank`:
+#   finer slices -> their ancestor at target_rank; at-or-coarser -> themselves.
+.slice_target_map <- function(calendar, target_rank) {
+  rk <- .slice_rank_map(calendar)
+  anc <- calendar@slice_ancestry
+  out <- character(0)
+  if (!is.null(anc) && nrow(anc) > 0) {
+    keep <- rk[anc$parent] == target_rank # ancestors sitting exactly at target
+    out <- stats::setNames(anc$parent[keep], anc$child[keep])
+  }
+  self <- names(rk)[rk <= target_rank] # at or coarser than target: keep as-is
+  c(out, stats::setNames(self, self))
+}
+
+# State/level variables whose slice dimension is a snapshot, not a flow: summing
+# them over slices is meaningless, so timeframe roll-up leaves them at native
+# resolution. Extend as needed.
+.timeframe_state_vars <- c("vStorageStore")
+
+# Aggregate one data.frame to `target_rank` by summing `value` over child slices.
+.aggregate_timeframe_df <- function(df, calendar, target_rank) {
+  if (is.na(target_rank)) {
+    return(df)
+  }
+  if (!("slice" %in% names(df)) || !("value" %in% names(df))) {
+    return(df)
+  }
+  # never sum a stored-level / state variable across slices
+  if ("name" %in% names(df) && any(df$name %in% .timeframe_state_vars)) {
+    return(df)
+  }
+  map <- .slice_target_map(calendar, target_rank)
+  tgt <- unname(map[as.character(df$slice)])
+  na <- is.na(tgt)
+  tgt[na] <- as.character(df$slice)[na] # unknown slices: leave untouched
+  if (all(tgt == as.character(df$slice))) {
+    return(df) # nothing to roll up
+  }
+  df$slice <- tgt
+  grp <- setdiff(names(df), "value")
+  out <- df |>
+    dplyr::group_by(dplyr::across(dplyr::all_of(grp))) |>
+    dplyr::summarise(value = sum(value), .groups = "drop")
+  as.data.frame(out)
+}
+
+# Apply the requested `timeframe` to a list of result data.frames.
+#   "highest" -> native (unchanged); "lowest" -> coarsest (ANNUAL);
+#   "all"     -> native + every coarser aggregate, stacked;
+#   <level>   -> aggregate to that named calendar level.
+.apply_timeframe <- function(ll, calendar, timeframe) {
+  if (length(ll) == 0) {
+    return(ll)
+  }
+  rank <- calendar@timeframe_rank
+  if (length(rank) <= 1) {
+    return(ll)
+  } # single-level calendar: nothing to aggregate
+  tf <- as.character(timeframe)[1]
+  if (identical(tolower(tf), "highest")) {
+    return(ll)
+  }
+
+  if (identical(tolower(tf), "all")) {
+    ranks <- sort(unique(as.integer(rank)), decreasing = TRUE)
+    out <- lapply(ll, function(df) {
+      if (!("slice" %in% names(df)) || !("value" %in% names(df))) {
+        return(df)
+      }
+      pieces <- lapply(ranks, function(r) .aggregate_timeframe_df(df, calendar, r))
+      dplyr::distinct(dplyr::bind_rows(pieces))
+    })
+    names(out) <- names(ll)
+    return(out)
+  }
+
+  # keyword ("lowest") or an explicit calendar level name
+  target_rank <- if (tf %in% names(rank)) {
+    as.integer(rank[[tf]])
+  } else if (identical(tolower(tf), "lowest")) {
+    as.integer(min(rank))
+  } else {
+    stop(
+      "Unknown 'timeframe' = '", tf, "'. Use 'lowest', 'highest', 'all', ",
+      "or a calendar level name: ", paste(names(rank), collapse = ", ")
+    )
+  }
+  lapply(ll, function(df) .aggregate_timeframe_df(df, calendar, target_rank))
+}
 
 if (F) { # test
   load("energyRt_tutorial/data/utopia_scen_BAU.RData")

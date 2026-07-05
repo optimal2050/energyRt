@@ -73,7 +73,7 @@ editor_options:
 -   The code clean-up and documentation are in progress to comply with
     CRAN requirements.
 -   The very first draft of the package CRAN-like
-    [manual](https://github.com/energyRt/energyRt/blob/master/man/figures/energyRt-manual.pdf)
+    [manual](https://github.com/optimal2050/energyRt/blob/master/man/figures/energyRt-manual.pdf)
     is added.
 -   The version might be unstable due to ongoing changes.
 

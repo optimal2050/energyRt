@@ -1,343 +1,62 @@
-# Solve model and scenario objects ####
-# Functions and methods. Multiple methods in this file aim adopting the
-# generic `base::solve(a, b, ...)` method to `solve(obj, name, ...)`
+# =============================================================================#
+# solve.R -- solver framework (write / run / read) + the interp_mod pipeline
+# entry points solve_mod()/solve_scen() (merged here from the former solve_new.R).
+# The shared framework (.executeScenario) is also used by the archived legacy
+# entry points (depreciated/R/solve_legacy.R). The public legacy names
+# interpolate_model()/solve_model()/solve_scenario()/`solve` are repurposed in
+# R/legacy_api_shims.R.
+# =============================================================================#
 
-#' Functions and methods to solve model and scenario objects
-#'
-#' The function interpolates model, writes the script in a directory, runs the external software to solve the model, reads the solution results, and returns a scenario object with the solution.
-#'
-#' @param obj model or scenario object
-#' @param name character name of scenario to return
-#' @param solver a character or list with solver settings
-#' @param tmp.dir character path to temporary directory
-#' @param tmp.del logical delete temporary directory after the run
-#' @param ...
-#'
-#' @seealso [read_solution()]
-#'
-#' @rdname solve
-#' @return
-#' When the first argument is a model object, the function
-#' @export
-solve_model <- function(
-    obj,
-    name = NULL,
-    # name = paste("scen", obj@name, sep = "_"),
-    # solver = NULL,
-    # tmp.path = fp(getwd(), "/solwork"),
-    # tmp.time = format(Sys.time(), "%Y%m%d%H%M%S%Z", tz = Sys.timezone()),
-    # tmp.name = paste(solver, obj@name, name, tmp.time, sep = "_"),
-    # path = NULL,
-    # sol.dir = NULL,
-    # sol.del = TRUE,
-    # tmp.dir = NULL,
-    # tmp.del = TRUE,
-    # force = FALSE,
-    ...) {
-  # 'solve*' return a scenario object, objects from '...' are either
-  # passed to 'interpolate' or used to overwrite the newly created
-  # scenario object.
-
-  if (!inherits(obj, c("model", "scenario")))
-    stop("The first argument must be either model or scenario object")
-
-  arg <- list(..., name = name)
-              # name = name, solver = solver, path = path,
-              # tmp.del = tmp.del, tmp.dir = tmp.dir)
-  # if (!is.null(arg$name)) name <- arg$name
-  if (is.null(arg$tmp.del)) arg$tmp.del <- TRUE
-  if (is.null(arg$force)) arg$force <- FALSE
-
-  # browser()
-
-  if (inherits(obj, "scenario")) {
-    # stop("The first argument must be a model object")
-    if (obj@status$optimal) {
-      if (!arg$force) {
-        message(
-          "The scenario is already solved to optimal.\n",
-          "Use 'force = TRUE' to solve it again.\n",
-          "Use 'interpolate(..., force = TRUE)' to interpolate it again.\n")
-        return(obj)
-      } else {
-        # message(".")
-        if (is.null(arg$name)) arg$name <- obj@name
-      }
-    }
-  }
-
-  if (is.null(arg$name)) arg$name <- paste("scen", obj@name, sep = "_")
-  # arg <- list(..., name = name, solver = solver, path = path,
-  #             tmp.del = tmp.del, tmp.dir = tmp.dir)
-
-  # arg$solver <- solver
-  # browser()
-  if (is.null(arg$solver)) {
-    # if (inherits(obj, "model") && !is.null(obj@config@solver)) {
-    #   arg$solver <- obj@config@solver
-    # } else
-    if (inherits(obj, "scenario") && !is.null(obj@settings@solver)) {
-      arg$solver <- obj@settings@solver
-    } else {
-      arg$solver <- get_default_solver()
-    }
-  }
-  if (is.null(arg$path)) {
-    if (inherits(obj, "scenario")) {
-      if (is_empty(obj@path)) {
-        arg$path <- fp(get_scenarios_path(), make_scenario_dirname(obj))
-      } else {
-        arg$path <- obj@path
-      }
-    } else {
-      # arg$path <- fp(get_scenarios_path(), arg$name)
-      arg$path <- NULL
-    }
-  }
-  # Filter from '...' objects to pass to 'interpolate'
-  obj_to_interpolate <- c(
-    "repository", "list", newRepository("")@permit, # model data
-    "config", "settings", "calendar", "horizon" # settings
-    ) |> unique()
-
-  ii <- names(arg) %in% c(
-    obj_to_interpolate, "data",
-    "name", "desc", "misc", "inMemory", "path", # scenario
-    "force",
-    # settings
-    "discountFirstYear", "optimizeRetirement", "defVal", "interpolation",
-    "debug", "sourceCode", "region"
-    # "solver" # !!! add later
-    )
-  ii <- ii |
-    (sapply(arg, function(x) class(x)[1]) %in% c(
-    c(obj_to_interpolate, "list"))
-    )
-
-  # browser()
-  # Interpolate if necessary
-  scen <- do.call(interpolate, c(list(object = obj), arg[ii]))
-  # scen <- interpolate(obj, arg[ii])
-
-  # browser()
-
-  # the remaining objects will be passed to .executeScenario
-  arg <- c(arg[!ii], arg["solver"], force = arg[["force"]])
-  arg$interpolate <- FALSE
-  arg$write <- !scen@status$script
-
-  # get name for the tmp.dir
-  arg$name <- scen@name
-
-  arg <- get_tmp_dir(scen, arg)
-  # tmp.dir <- arg$tmp.dir
-  # tmp.del <- arg$tmp.del
-
-  # Run the scenario
-  solve.time.start <- proc.time()[3]
-  if (is.null(arg$echo)) arg$echo <- TRUE
-
-  if (is.null(arg$name)) {
-    name <- paste("scen", obj@name, sep = "_")
-    warning('Scenario name is not specified, using default name: ',
-            arg$name)
-  }
-  # browser()
-  # if (is.null(arg$tmp.dir) || arg$tmp.dir == "") {
-  if (is_empty(arg$tmp.dir)) {
-    stop("Incorrect directory tmp.dir: ", arg$tmp.dir)
-  }
-  if (isTRUE(arg$echo)) {
-    tmp.msg <- sub(getwd(), "", arg$tmp.dir)
-    cat("Solver directory: ", tmp.msg, "\n")
-    cat("Starting time: ", format(Sys.time()), "\n")
-  }
-  # scen <- interpolate(obj, name = name)
-  # browser()
-  arg$scen <- scen
-  # arg$name <- scen@name
-  # arg$solver <- solver
-  # arg$tmp.dir <- tmp.dir
-  # arg$tmp.del <- tmp.del
-  if (is.null(arg$read.solution)) {
-    if (is.null(arg$wait) || isTRUE(arg$wait)) {
-      arg$read.solution <- TRUE
-    } else {
-      arg$read.solution <- FALSE
-    }
-  }
-  # browser()
-  scen <- do.call(.executeScenario, arg)
-  # scen <- .executeScenario(scen,
-  #   name = name, solver = solver,
-  #   tmp.dir = tmp.dir, tmp.del = tmp.del, ..., read.solution = TRUE
-  # )
-  if (arg$tmp.del) unlink(arg$tmp.dir, recursive = TRUE)
-  scen
+# ---- "smart" path helpers ----------------------------------------------------
+# Build a filesystem-safe slug from parts, dropping empty/NA and case-insensitive
+# duplicate components (e.g. when the scenario and model share a name).
+.path_slug <- function(..., sep = "_") {
+  parts <- unlist(list(...), use.names = FALSE)
+  parts <- parts[!is.na(parts)]
+  parts <- trimws(as.character(parts))
+  parts <- parts[nzchar(parts)]
+  parts <- gsub("[^A-Za-z0-9]+", "-", parts) # path-safe
+  parts <- gsub("(^-+)|(-+$)", "", parts)
+  parts <- parts[nzchar(parts)]
+  parts <- parts[!duplicated(parts)] # drop exact repeats (e.g. scenario==model)
+  paste(parts, collapse = sep)
 }
 
-# a function to use in solve methods
-solve.model <- function(a, b, ...) {
-  arg <- list(...)
-  # browser()
-  if (missing(b)) {
-    if (!is.null(arg$name)) {
-      b <- arg$name
-      arg$name <- NULL
+# Smart solver-directory name: {backend}_{solver}_{method}. Prefers an explicit
+# `solver$name` (curated, e.g. "julia_highs"); otherwise derives from the
+# backend (solver$backend or solver$lang), solver, and method (solver$method or
+# inferred from a "barrier"/"simplex" hint).
+.solver_dir_name <- function(solver) {
+  if (is.null(solver)) {
+    return("")
+  }
+  if (!is.null(solver$name) && nzchar(solver$name)) {
+    return(solver$name)
+  }
+  method <- solver$method
+  if (is.null(method) || !nzchar(method)) {
+    hint <- paste(c(solver$name, names(solver)), collapse = " ")
+    method <- if (grepl("barrier", hint, ignore.case = TRUE)) {
+      "barrier"
+    } else if (grepl("simplex", hint, ignore.case = TRUE)) {
+      "simplex"
     } else {
-      b <- NULL
+      NULL
     }
   }
-  if (!is.null(arg$obj)) stop("'obj' is 'a' argument in `solve(a, b, ..)` method")
-  if (!is.null(arg$name)) stop("'name' is 'b' argument in `solve(a, b, ..)` method")
-  arg$obj <- a
-  if (!is.null(b)) arg$name <- b
-  arg$interpolate <- TRUE
-  arg$write <- TRUE
-  # browser()
-  do.call(solve_model, arg)
+  backend <- solver$backend
+  if (is.null(backend) || !nzchar(backend)) backend <- solver$lang
+  nm <- .path_slug(backend, solver$solver, method)
+  if (!nzchar(nm)) "solver" else nm
 }
 
-## solve(model, character) ####
-#' @rdname solve
-#' @export
-setMethod("solve", signature(a = "model", b = "character"), solve.model)
-
-## solve(model, missing) ####
-#' @export
-#' @noRd
-setMethod("solve", signature(a = "model", b = "missing"), solve.model)
-
-# .S3method("solve", "model", .solve_model)
-
-#' Solve scenario
-#'
-#' @export
-#' @rdname solve
-solve_scenario <- function(
-    obj,
-    name = obj@name,
-    # solver = obj@settings@solver,
-    # path = obj@path,
-    # tmp.dir = obj@misc$tmp.dir,
-    # tmp.del = FALSE,
-    # force = FALSE,
-    ...) {
-  # browser()
-  arg <- list(name = name, ...)
-  if (obj@status$optimal) {
-    if (isFALSE(arg$force)) {
-      message("The scenario is already solved to optimal.\nUse 'force = TRUE' to solve it again")
-      return(obj)
-    }
-  }
-  # if (is_empty(arg$solver)) arg$solver <- obj@settings@solver
-  # if (is_empty(arg$path)) arg$path <- obj@path
-  if (is_empty(arg$tmp.del)) arg$tmp.del <- FALSE
-  # if (is_empty(arg$force)) arg$force <- FALSE
-  # if (is_empty(arg$tmp.dir)) arg <- get_tmp_dir(obj, arg)
-  arg$obj <- obj
-
-  do.call(solve_model, arg)
-
-  # solve_model(obj,
-  #             name = name,
-  #             solver = obj@settings@solver,
-  #             path = obj@path,
-  #             tmp.dir = obj@misc$tmp.dir,
-  #             tmp.del = FALSE,
-  #             force = FALSE,
-  #             ...)
+# Smart scenario-folder name: {scenario}_{model}_{calendar}_{horizon}.
+# Empty and duplicate components are dropped.
+.scenario_dir_name <- function(scenario_name, model_name = "",
+                               calendar_name = "", horizon_name = "") {
+  nm <- .path_slug(scenario_name, model_name, calendar_name, horizon_name)
+  if (!nzchar(nm)) as.character(scenario_name)[1] else nm
 }
-
-
-# solve_scenario <- function(obj = NULL, tmp.dir = NULL, solver = NULL, ...) {
-#   scen <- obj
-#   browser()
-#   arg <- list(...)
-#   if (is.null(tmp.dir)) {
-#     if (is.null(scen)) {
-#       stop("At least one of two parameters ('scen' or 'tmp.dir') should be specified")
-#     } else {
-#       tmp.dir <- scen@misc$tmp.dir
-#     }
-#   } else {
-#     if (!is.null(scen)) scen@misc$tmp.dir <- tmp.dir
-#   }
-#   if (is.character(solver)) solver <- list(lang = solver)
-#   solv_par <- read.csv(paste0(.fix_path(tmp.dir), "solver"), stringsAsFactors = FALSE)
-#   solver_list <- list()
-#   for (i in seq_len(nrow(solv_par))) {
-#     tmp <- solv_par[i, "value"]
-#     if (tmp %in% c("TRUE", "FALSE")) tmp <- (tmp == "TRUE")
-#     solver_list[[solv_par[i, "name"]]] <- tmp
-#   }
-#   browser()
-#   if (!is.null(scen) && !is.null(scen@settings@solver)) {
-#     for (i in grep("^(inc[1-5]|files)$", names(scen@settings@solver),
-#       value = TRUE, invert = TRUE
-#     )) {
-#       solver_list[[i]] <- scen@settings@solver[[i]]
-#     }
-#   }
-#   for (i in grep("^(inc[1-5]|files)$", names(solver), value = TRUE, invert = TRUE)) {
-#     solver_list[[i]] <- solver[[i]]
-#   }
-#   if (is.null(scen)) {
-#     scen <- new("scenario")
-#   }
-#
-#   arg$scen <- scen
-#   arg$tmp.dir <- tmp.dir
-#   arg$solver <- solver_list
-#   arg$run <- TRUE
-#   arg$write <- FALSE
-#   do.call(.executeScenario, arg)
-#
-#   # .executeScenario(
-#   #   scen = scen, run = TRUE, solver = solver_list,
-#   #   tmp.dir = tmp.dir, write = FALSE, ...
-#   # )
-# }
-
-# a function to use in solve methods
-solve.scenario <- function(a, b, ...) {
-  # browser()
-  if (missing(b)) b <- NULL
-  arg <- list(...)
-  if (!is.null(arg$obj)) stop("'obj' is 'a' argument in `solve(a, b, ..)` method")
-  if (!is.null(arg$name)) stop("'name' is 'b' argument in `solve(a, b, ..)` method")
-  arg$obj <- a
-  if (!is.null(b)) arg$name <- b else arg$name <- arg$obj@name
-  if (is_empty(arg[["run"]])) arg$run <- TRUE
-  do.call(solve_scenario, arg)
-}
-
-## solve(scenario, character) ####
-#' @rdname solve
-#' @export
-setMethod("solve", signature(a = "scenario", b = "character"), solve.scenario)
-
-## solve(scenario, missing) ####
-#' @export
-#' @noRd
-setMethod("solve", signature(a = "scenario", b = "missing"), solve.scenario)
-
-## solve(missing, missing) ####
-#' @export
-#' @noRd
-setMethod("solve", signature(a = "missing", b = "missing"), function(...) {
-  # browser()
-  arg <- list(...)
-  if (is.null(arg$obj)) do.call(NextMethod, arg)
-  if (is(arg$obj, "scenario")) {
-    return(do.call(solve_scenario, arg))
-  } else if (is(arg$obj, "model")) {
-    return(do.call(solve_model, arg))
-  } else {
-    NextMethod(arg)
-  }
-})
 
 get_tmp_dir <- function(scen = NULL, arg = NULL) {
   # solver directory (tmp.dir) convention name
@@ -402,11 +121,8 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
     tmp.name <- arg[["tmp.name"]]
     arg[["tmp.name"]] <- NULL
   } else if (!is_empty(arg[["solver"]])) {
-    if (!is_empty(arg[["solver"]]$name)) {
-      tmp.name <- arg[["solver"]]$name
-    } else {
-      tmp.name <- paste(arg[["solver"]]$lang, arg[["solver"]]$solver, sep = "_")
-    }
+    # smart solver dir: {backend}_{solver}_{method} (or curated solver$name)
+    tmp.name <- .solver_dir_name(arg[["solver"]])
   # } else if (isTRUE(arg[["tmp.del"]])) {
     # tmp.name <- format(Sys.time(), "%Y%m%d%H%M%S%Z", tz = "UTC")
   } else {
@@ -605,7 +321,9 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
   }
   # browser()
   if (isTRUE(arg$run)) .call_solver(arg, scen)
-  if (isTRUE(arg$read.solution) && isTRUE(arg$run)) scen <- read_solution(scen)
+  if (isTRUE(arg$read.solution) && isTRUE(arg$run)) {
+    scen <- read_solution(scen, echo = arg$echo)
+  }
 
   return(scen)
 }
@@ -618,25 +336,38 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
   }
   if (arg$echo) cat("Starting ", scen@settings@solver$lang, "\n")
   gams_run_time <- proc.time()[3]
+
+  # Remote backend: submit to NEOS instead of running a local solver process.
+  # The WRITE phase already produced the model in arg$tmp.dir; .neos_call_solver
+  # submits it, waits, and drops the returned solution CSVs into tmp.dir/output/
+  # so read_solution() is unchanged. (Pyomo-on-NEOS is NOT here: it is an
+  # ordinary local `python` run whose remoteness lives inside the generated .py.)
+  if (identical(scen@settings@solver$backend, "neos")) {
+    rs <- .neos_call_solver(arg, scen)
+    if (rs != 0) stop(paste("NEOS solve error code", rs))
+    if (arg$echo) cat("", round(proc.time()[3] - gams_run_time, 2), "s\n", sep = "")
+    return(invisible())
+  }
+
   tryCatch(
     {
       setwd(arg$tmp.dir)
       if (.Platform$OS.type == "windows") {
-        if (arg$invisible) {
+        if (arg$invisible || !isTRUE(arg$echo)) {
           cmd <- ""
         } else {
           cmd <- if_else(interactive(),  "cmd /k", "")
         }
         rs <- system(paste(cmd, scen@settings@solver$cmdline), #' gams energyRt.gms', arg$gamsCompileParameter),
-          invisible = arg$invisible, wait = arg$wait
-          # show.output.on.console = arg$show.output.on.console
+          invisible = arg$invisible, wait = arg$wait,
+          # `echo = FALSE` silences the solver's own console output too
+          ignore.stdout = !isTRUE(arg$echo)
         )
       } else {
-        # browser()
         rs <- system(paste(scen@settings@solver$cmdline),
-          # invisible = arg$invisible,
-          wait = arg$wait
-          # show.output.on.console = arg$show.output.on.console
+          wait = arg$wait,
+          # `echo = FALSE` silences the solver's own console output too
+          ignore.stdout = !isTRUE(arg$echo)
         )
       }
       setwd(HOMEDIR)
@@ -656,17 +387,229 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
   if (arg$echo) cat("", round(proc.time()[3] - gams_run_time, 2), "s\n", sep = "")
 }
 
-.generate_gpr_gams_file <- function(tmp.dir) {
-  # Generates GAMS-project file
-  fn <- file(paste(tmp.dir, "/energyRt_project.gpr", sep = ""), "w")
-  cat(c(
-    "[RP:MDL]", "1=", "", "[OPENWINDOW_1]",
-    "FILE0=energyRt.gms",
-    "FILE1=energyRt.lst",
-    # gsub('[/][/]*', '\\\\', paste('FILE0=', tmp.dir, '/energyRt.gms', sep = '')),
-    # gsub('[/][/]*', '\\\\', paste('FILE1=', tmp.dir, '/energyRt.lst', sep = '')),
-    "", "MAXIM=1",
-    "TOP=50", "LEFT=50", "HEIGHT=400", "WIDTH=400", ""
-  ), sep = "\n", file = fn)
-  close(fn)
+# Submit a written GAMS scenario to NEOS and stage the results for read_solution.
+# Returns 0 on a "Normal" completion, non-zero otherwise. Requires env var
+# NEOS_EMAIL. Uses TEXT data (inlined `$include`s, no gdx) so no local GAMS/gdx
+# library is needed. Fields on the solver option: $neos_solver (NEOS solver name,
+# default $solver or CPLEX), $neos_category (default "milp"), $neos_max_wait.
+.neos_call_solver <- function(arg, scen) {
+  s <- scen@settings@solver
+  if (!identical(toupper(s$lang), "GAMS")) {
+    stop("backend = 'neos' is currently supported only for GAMS solver options ",
+         "(e.g. solver_options$neos_gams_cplex). For Python use ",
+         "solver_options$neos_pyomo_cplex (an ordinary local run that submits ",
+         "to NEOS itself).", call. = FALSE)
+  }
+  email <- get_neos_email()
+  if (is.null(email)) {
+    stop("No NEOS email set. Use set_neos_email('you@example.com') or set the ",
+         "NEOS_EMAIL environment variable.", call. = FALSE)
+  }
+  gms <- file.path(arg$tmp.dir, "energyRt.gms")
+  if (!file.exists(gms)) stop("NEOS: 'energyRt.gms' not found in ", arg$tmp.dir)
+
+  # Inline model + text data into one self-contained .gms (flat NEOS workspace).
+  model <- neos_gams_inline(gms, arg$tmp.dir, flatten = TRUE)
+  if (nchar(model, type = "bytes") > 16777216L) {
+    stop(sprintf(paste0("NEOS job input is %.1f MB, over the ~16 MB cap. Reduce ",
+      "the model (sample the calendar / prune) before submitting."),
+      nchar(model, type = "bytes") / 1e6), call. = FALSE)
+  }
+
+  xml <- neos_build_gams_xml(
+    model = model, email = email,
+    solver = s$neos_solver %||% s$solver %||% "CPLEX",
+    category = s$neos_category %||% "milp",
+    gdx = "", wantgdx = "yes", wantlst = "yes",
+    comments = paste0("energyRt ", scen@name))
+
+  if (arg$echo) cat("Submitting to NEOS ...\n")
+  h <- neos_submit_job(xml, timeout = 300)
+  if (arg$echo) cat("  NEOS job ", h$job, "\n", sep = "")
+  neos_wait(h$job, h$password, poll = 5,
+            max_wait = s$neos_max_wait %||% 1800, verbose = isTRUE(arg$echo))
+  cc <- neos_completion_code(h$job, h$password)
+  if (arg$echo) cat("  NEOS completion: ", cc, "\n", sep = "")
+
+  # Fetch the returned workspace zip; copy its solution CSVs into tmp.dir/output/
+  # (the model wrote them flat since we flattened `output/`), which is exactly
+  # where read_solution() looks (variable_list.csv, log.csv, per-variable CSVs).
+  zb <- neos_get_output_file(h$job, h$password, "solver-output.zip", timeout = 300)
+  zf <- file.path(arg$tmp.dir, "neos-output.zip")
+  writeBin(zb, zf)
+  ux <- file.path(arg$tmp.dir, "_neos_unzip")
+  unlink(ux, recursive = TRUE); dir.create(ux, showWarnings = FALSE)
+  utils::unzip(zf, exdir = ux)
+  outdir <- file.path(arg$tmp.dir, "output")
+  dir.create(outdir, showWarnings = FALSE, recursive = TRUE)
+  csvs <- list.files(ux, pattern = "\\.csv$", full.names = TRUE, recursive = TRUE)
+  if (!length(csvs)) {
+    stop("NEOS job ", h$job, " returned no CSV output (completion: ", cc,
+         "). See the .lst in ", ux, call. = FALSE)
+  }
+  file.copy(csvs, outdir, overwrite = TRUE)
+
+  if (identical(cc, "Normal")) 0L else 1L
+}
+
+# NEW version ####
+
+# =============================================================================#
+# Solve model / scenario objects via the interp_mod() mapping pipeline.
+# (Merged from the former solve_new.R.) solve_mod()/solve_scen() build the
+# interpolated scenario with interp_mod() and reuse the write/run/read framework
+# above (.executeScenario()). The public legacy names interpolate_model() /
+# solve_model() / solve_scenario() wrap these in legacy_api_shims.R.
+# =============================================================================#
+
+
+
+# Finalise an `interp_mod()`-built scenario so the write / solve framework can
+# run on it: attach the solver source-code templates and flag the scenario as
+# interpolated. Mirrors the tail of `interpolate()`.
+.finalize_interp <- function(scen, check = TRUE) {
+  if (is_empty(scen@settings@sourceCode)) {
+    scen@settings@sourceCode <- .modelCode
+  }
+  scen@status$interpolated <- TRUE
+  scen@status$script <- FALSE
+  if (isTRUE(check)) scen <- .check_scen_par(scen)
+  scen
+}
+
+# Load on-disk parameter data back into the in-memory `@data` slots so the
+# `write_*` helpers (which read `@data` directly) see the full model. No-op for
+# an in-memory scenario. The parameter store on disk is left untouched.
+.materialize_modInp <- function(scen) {
+  if (!isOnDisk(scen@modInp)) {
+    return(scen)
+  }
+  for (nm in names(scen@modInp@parameters)) {
+    p <- scen@modInp@parameters[[nm]]
+    if (!isOnDisk(p)) next
+    d <- get_data_slot(p) # reads from the on-disk parameter store
+    if (is.null(d)) d <- p@data
+    # Normalise column classes after the parquet/csv round-trip: an all-NA folded
+    # column (region/slice) comes back as `vctrs_unspecified` and a whole-number
+    # value narrows to integer, so force the in-memory classes (character dims,
+    # integer year, numeric value) to match an in-memory build exactly.
+    p@data <- force_cols_classes(d)
+    # Keep `nValues` consistent so the writers do not trim the materialised rows.
+    if (!is.null(p@misc$nValues) && p@misc$nValues != -1) {
+      p@misc$nValues <- nrow(p@data)
+    }
+    scen@modInp@parameters[[nm]] <- mark_inMemory(p)
+  }
+  scen@modInp <- mark_inMemory(scen@modInp)
+  scen
+}
+
+#' Solve a model or an interpolated scenario built with the new pipeline
+#'
+#' `solve_mod()` interpolates a model with [interpolate_model()] and solves it.
+#' `solve_scen()` solves a scenario that was already interpolated with
+#' [interpolate_model()]. Both reuse the existing write / run / read framework
+#' (`.executeScenario()`), so any solver backend supported by the legacy
+#' [solve_model()] (GLPK/GMPL, GAMS, Pyomo, JuMP) works unchanged.
+#'
+#' @param obj a model object (`solve_mod()`) or an interpolated scenario object
+#'   (`solve_scen()`).
+#' @param name character name of the scenario to create / return.
+#' @param solver a character or list with solver settings. When `NULL`, the
+#'   scenario's own solver settings or `get_default_solver()` are used.
+#' @param ondisk,fold passed to [interpolate_model()]. Defaults (`FALSE`/`FALSE`) keep
+#'   parameters in memory and unfolded, matching the shape the writers expect.
+#' @param tmp.dir character path to the solver working directory.
+#' @param tmp.del logical, delete the working directory after the run.
+#' @param force logical, re-solve a scenario already solved to optimal.
+#' @param ... for `solve_mod()`, arguments are routed to [interpolate_model()]
+#'   (settings / calendar / horizon / model data) or to the solver run
+#'   (`tmp.dir`, `tmp.del`, `force`, `read.solution`, `wait`, `echo`, `run`,
+#'   `n.threads`, ...). For `solve_scen()`, arguments are passed to
+#'   `.executeScenario()`. Set `echo = FALSE` for a quiet run: it silences both
+#'   the progress messages and the solver's own console output.
+#'
+#' @seealso [solve_model()], [interpolate_model()], [read_solution()]
+#' @return a scenario object with the solution.
+#' @rdname solve_mod
+#' @export
+solve_mod <- function(obj, name = NULL, solver = NULL,
+                      ondisk = FALSE, fold = FALSE, ...) {
+  if (!inherits(obj, "model")) {
+    stop("`solve_mod()` expects a model object. ",
+         "Use `solve_scen()` for an interpolated scenario.")
+  }
+  dots <- list(...)
+  # Arguments that belong to the solver run rather than to interpolation.
+  solve_args <- c("tmp.dir", "tmp.del", "force", "read.solution", "wait",
+                  "echo", "run", "n.threads", "invisible",
+                  "show.output.on.console", "open.folder")
+  is_solve <- names(dots) %in% solve_args
+  iarg <- dots[!is_solve]
+  sarg <- dots[is_solve]
+
+  scen <- do.call(
+    interp_mod,
+    c(list(mod = obj, name = name, ondisk = ondisk, fold = fold), iarg)
+  )
+
+  do.call(solve_scen, c(list(obj = scen, solver = solver), sarg))
+}
+
+#' @rdname solve_mod
+#' @export
+solve_scen <- function(obj, name = obj@name, solver = NULL, tmp.dir = NULL,
+                       tmp.del = FALSE, force = FALSE, ...) {
+  if (!inherits(obj, "scenario")) {
+    stop("`solve_scen()` expects a scenario built by `interp_mod()`. ",
+         "Use `solve_mod()` for a model object.")
+  }
+  if (!isTRUE(obj@status$interpolated)) {
+    stop("Scenario is not interpolated. Build it with `interp_mod()` ",
+         "or call `solve_mod()` on the model.")
+  }
+  if (isTRUE(obj@status$optimal) && !isTRUE(force)) {
+    message("The scenario is already solved to optimal.\n",
+            "Use 'force = TRUE' to solve it again.")
+    return(obj)
+  }
+
+  scen <- .finalize_interp(obj)
+  scen@name <- name
+
+  # The `write_*` helpers read each parameter's in-memory `@data` slot. For an
+  # on-disk scenario those slots are empty (data lives in the parameter store),
+  # so the model would be written out empty. Load the parameter data back into
+  # memory before writing.
+  scen <- .materialize_modInp(scen)
+
+  # A folded scenario (interp_mod(fold = TRUE)) carries NA wildcards in the
+  # trimmable dimensions. Make it solver-ready by replacing the wildcard with the
+  # artificial set member and substituting it into the chosen backend's model
+  # code. No-op for an unfolded scenario. Substitution is implemented for GLPK
+  # (`[]`), JuMP (`[(...)]` / `haskey`) and Pyomo (`.get((...))`); GAMS still needs
+  # declaration-aware `()` handling.
+  .blk <- .fold_code_block(if (!is.null(solver)) {
+    if (is.list(solver)) solver$lang else solver
+  } else scen@settings@solver$lang)
+  if (.blk %in% c("GLPK", "JuMP", "PYOMOConcrete")) {
+    scen <- apply_fold_artificial(scen, backends = .blk)
+  }
+
+  arg <- list(...)
+  arg$interpolate <- FALSE
+  arg$write <- TRUE
+  arg$force <- force
+  if (!is.null(solver)) arg$solver <- solver
+  if (!is.null(tmp.dir)) arg$tmp.dir <- tmp.dir
+  arg$tmp.del <- tmp.del
+  if (is.null(arg$read.solution)) arg$read.solution <- TRUE
+  arg$scen <- scen
+
+  scen <- do.call(.executeScenario, arg)
+
+  if (isTRUE(tmp.del) && !is.null(arg$tmp.dir)) {
+    unlink(arg$tmp.dir, recursive = TRUE)
+  }
+  scen
 }

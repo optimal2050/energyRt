@@ -9,11 +9,11 @@
 #' @inherit newRepository description
 #'
 #' @md
-#' @slot name `r get_slot_info("repository", "name")`
-#' @slot desc `r get_slot_info("repository", "desc")`
-#' @slot data `r get_slot_info("repository", "data")`
-#' @slot permit `r get_slot_info("repository", "permit")`
-#' @slot misc `r get_slot_info("repository", "misc")`
+#' @slot name `r get_slot_doc("repository", "name")`
+#' @slot desc `r get_slot_doc("repository", "desc")`
+#' @slot data `r get_slot_doc("repository", "data")`
+#' @slot permit `r get_slot_doc("repository", "permit")`
+#' @slot misc `r get_slot_doc("repository", "misc")`
 #'
 #' @export
 #' @family repository model data
@@ -59,10 +59,10 @@ setMethod("initialize", "repository", function(.Object, ...) {
 #' have separate slots in model or scenario objects.
 #'
 #' @md
-#' @param name `r get_slot_info("repository", "name")`
-#' @param ... `r get_slot_info("repository", "data")`
-#' @param desc `r get_slot_info("repository", "desc")`
-#' @param misc `r get_slot_info("repository", "misc")`
+#' @param name `r get_slot_doc("repository", "name")`
+#' @param ... `r get_slot_doc("repository", "data")`
+#' @param desc `r get_slot_doc("repository", "desc")`
+#' @param misc `r get_slot_doc("repository", "misc")`
 #'
 #' @export
 #' @family repository model data
@@ -178,10 +178,10 @@ setMethod("print", "repository", function(x) {
 })
 
 ## show ####
-# @method show repository
-# @export
-# @family repository
-#setMethod("show", "repository", function(object) print(object))
+#' @method show repository
+#' @export
+#' @family repository
+setMethod("show", "repository", function(object) print(object))
 
 ## length ####
 #' @method length repository
