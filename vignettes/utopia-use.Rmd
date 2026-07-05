@@ -18,6 +18,9 @@ knitr::opts_chunk$set(
   echo = TRUE, eval = FALSE, message = FALSE, warning = FALSE,
   fig.width = 7, fig.height = 4.2, fig.retina = TRUE
 )
+# defined here (this chunk always runs) so `eval = have_sf` chunk options below
+# resolve while the vignette is frozen; set TRUE when un-freezing to build maps.
+have_sf <- FALSE
 ```
 
 # Overview
