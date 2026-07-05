@@ -3,6 +3,7 @@
 \docType{class}
 \name{class-model}
 \alias{class-model}
+\alias{model}
 \title{An S4 class to represent model}
 \description{
 An S4 class to represent model

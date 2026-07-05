@@ -1,0 +1,40 @@
+# An S4 class to represent model input
+
+`modInp` class is used to store interpolated date for the model input
+parameters. It includes all the model sets, mappings, and parameters,
+interpolated to the scenario's calendar and horizon. The class is
+automatically created during the interpolation step and is not intended
+to be created by users.
+
+## Slots
+
+- `set`:
+
+  list. named list of character vectors with sets used in the model.
+
+- `parameters`:
+
+  list. named list of `parameter` objects with three tipes - set:
+  detailed description of the set - parameter: all model parameters,
+  interpolated for every milestone year in the model horizon if
+  applicable. Names of parameters start with 'p'
+
+  - mapping sets: auxiliary, automatically created sets used to narrow
+    the dimension of variables and constraints
+
+- `gams.equation`:
+
+  list. named list of custom constraints added to the model from the
+  `constraint` class. The name of the slot is outdated and will be
+  changed in the future.
+
+- `costs.equation`:
+
+  list. named list of custom costs added to the model's objective from
+  the `costs` class. The name of the slot is outdated and will be
+  changed in the future.
+
+- `misc`:
+
+  list. Any additional information or data to store in the object. Also
+  used to store paths to the data files of objects stored on the disk.

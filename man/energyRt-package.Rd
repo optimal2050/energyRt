@@ -4,18 +4,18 @@
 \name{energyRt-package}
 \alias{energyRt}
 \alias{energyRt-package}
-\title{energyRt: Energy systems modeling toolbox in R, development version}
+\title{energyRt: Energy Systems Modeling Toolbox}
 \description{
 \if{html}{\figure{logo.png}{options: style='float: right' alt='logo' width='120'}}
 
-Energy systems modeling toolbox in R
+A macro-language for energy system modeling in R. Describe an energy system as R objects (commodities, technologies, supply, demand, storage, trade), compile it into a capacity-expansion and dispatch optimization model, solve it on one of four interchangeable backends (GLPK/MathProg, Julia/JuMP, Python/Pyomo, or GAMS), and analyze tidy results with built-in tools for levelized costs, technology reports, and plotting.
 }
 \seealso{
 Useful links:
 \itemize{
   \item \url{https://energyRt.org}
-  \item \url{https://github.com/energyRt/energyRt}
-  \item Report bugs at \url{https://github.com/energyRt/energyRt/issues}
+  \item \url{https://github.com/optimal2050/energyRt}
+  \item Report bugs at \url{https://github.com/optimal2050/energyRt/issues}
 }
 
 }
@@ -24,6 +24,7 @@ Useful links:
 
 Authors:
 \itemize{
+  \item Oleg Lugovoy \email{olugovoy@optimalsolution.dev} (\href{https://orcid.org/0000-0001-5546-9875}{ORCID})
   \item Vladimir Potashnikov \email{potashnikov.vu@gmail.com}
 }
 

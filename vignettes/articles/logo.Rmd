@@ -21,7 +21,7 @@ knitr::opts_chunk$set(
 
 In this age of AI, with tools like ChatGPT and DALL-E, why not tap into the collective knowledge of human creativity? That’s exactly what we did. While none of the AI-generated logos are perfect straight out of the box—given the current state of AI—they do offer intriguing perspectives and design ideas. As part of an ongoing, iterative process, the most promising prototypes will serve as energyRt logo for a week, before being replaced by another one, until the final design is chosen.
 
-If you’d like to share your own logo idea, feel free to submit it via [GitHub Issues](https://github.com/energyRt/energyRt/issues) or send it by [email](<optimal2050@optimalsolution.dev>).
+If you’d like to share your own logo idea, feel free to submit it via [GitHub Issues](https://github.com/optimal2050/energyRt/issues) or send it by [email](<optimal2050@optimalsolution.dev>).
 
 ```{r, include=TRUE, echo=FALSE, fig.cap="v03", fig.align='center', fig.height=3}
 library(knitr)

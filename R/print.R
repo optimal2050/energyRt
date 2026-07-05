@@ -5,6 +5,7 @@
 #'
 #' @inheritParams print
 #'
+#' @include class-model.R class-modInp.R
 #' @export
 #'
 setGeneric("print", function(x, ...) UseMethod("print"))

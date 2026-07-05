@@ -19,20 +19,27 @@
 # via `...`.
 # =============================================================================#
 
-#' Interpolate a model (legacy name; new pipeline)
+#' Deprecated: `interp_mod()` is now [interpolate_model()]
 #'
-#' Thin wrapper over [interp_mod()] preserving the legacy `interpolate_model()`
-#' entry point. Returns an interpolated scenario.
-#' @param object a `model` (or `scenario`, whose `@model` is re-interpolated).
-#' @param ... passed to [interp_mod()].
-#' @seealso [interp_mod()]
-#' @export
-interpolate_model <- function(object, ...) {
-  args <- list(...)
-  if (is.null(args$ondisk)) args$ondisk <- FALSE
-  if (is.null(args$fold))   args$fold   <- FALSE
-  if (inherits(object, "scenario")) object <- object@model
-  do.call(interp_mod, c(list(object), args))
+#' @description
+#' `interp_mod()` was the working name of the new interpolation pipeline; it has
+#' been renamed to [interpolate_model()] (same engine). This alias keeps the
+#' original `interp_mod()` defaults (`ondisk = TRUE`, `fold = TRUE`) for backward
+#' compatibility and issues a one-time deprecation message.
+#' @inheritParams interpolate_model
+#' @return an interpolated scenario (see [interpolate_model()]).
+#' @keywords internal
+#' @noRd
+interp_mod <- function(mod, name = NULL, ...,
+                       desc = NULL, ondisk = TRUE, overwrite = FALSE,
+                       fold = TRUE, sparse = TRUE, prune = TRUE,
+                       validate = TRUE, code = NULL,
+                       verbose = getOption("energyRt.verbose", FALSE)) {
+  .Deprecated("interpolate_model")
+  interpolate_model(mod, name = name, ..., desc = desc, ondisk = ondisk,
+                    overwrite = overwrite, fold = fold, sparse = sparse,
+                    prune = prune, validate = validate, code = code,
+                    verbose = verbose)
 }
 
 setMethod("interpolate", signature(object = "model"),
@@ -43,25 +50,36 @@ setMethod("interpolate", signature(object = "scenario"),
 
 #' Solve a model or scenario (legacy names; new pipeline)
 #'
-#' `solve_model()` interpolates a model (or routes a scenario to
-#' `solve_scenario()`) and solves it via [solve_mod()]. `solve_scenario()` solves
-#' an interpolated scenario via [solve_scen()] (interpolating first if needed).
+#' `solve_model()` is the "do everything" entry point: it interpolates a model
+#' via [interpolate_model()] and solves it (or, given an un-interpolated
+#' scenario, interpolates it first), then routes to [solve_mod()] / [solve_scen()].
+#' `solve_scenario()` **expects an already-interpolated scenario** and only solves
+#' it via [solve_scen()]; it does **not** re-interpolate (an un-interpolated
+#' scenario is an error pointing to `solve_model()` / `interpolate_model()`).
 #' @param obj a `model` or `scenario`.
 #' @param ... passed to [solve_mod()] / [solve_scen()].
 #' @seealso [solve_mod()], [solve_scen()]
 #' @rdname solve_model
 #' @export
 solve_model <- function(obj, ...) {
-  if (inherits(obj, "scenario")) return(solve_scenario(obj, ...))
+  if (inherits(obj, "scenario")) {
+    # convenience: interpolate an un-interpolated scenario before solving. An
+    # already-interpolated scenario is solved as-is (its build knobs preserved).
+    if (!isTRUE(obj@status$interpolated)) {
+      obj <- interpolate_model(obj@model, name = obj@name)
+    }
+    return(do.call(solve_scen, c(list(obj), list(...))))
+  }
   do.call(solve_mod, c(list(obj), list(...)))
 }
 
 #' @rdname solve_model
 #' @export
 solve_scenario <- function(obj, ...) {
-  if (inherits(obj, "scenario") && !isTRUE(obj@status$interpolated)) {
-    obj <- interpolate_model(obj@model, name = obj@name)
-  }
+  # Expects an interpolated scenario: delegate straight to solve_scen(), which
+  # errors (pointing to solve_model() / interpolate_model()) if it is not
+  # interpolated. Never silently re-interpolates (which would use default build
+  # args, not the scenario's original sparse/fold/prune settings).
   do.call(solve_scen, c(list(obj), list(...)))
 }
 

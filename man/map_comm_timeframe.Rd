@@ -2,7 +2,7 @@
 % Please edit documentation in R/interp.R
 \name{map_comm_timeframe}
 \alias{map_comm_timeframe}
-\title{Expand sets for parameter}
+\title{Operational timeframe of a commodities}
 \usage{
 map_comm_timeframe(scen, comm = NULL)
 }
@@ -12,22 +12,10 @@ map_comm_timeframe(scen, comm = NULL)
 \item{comm}{character vector of commodity names, if not provided,
 all commodities retrieved from the scenario object using the
 \code{collect_set_names} function.}
-
-\item{x}{data frame with columns for sets and parameters}
-
-\item{param}{name of the parameter to expand sets for}
-
-\item{full_sets}{list of full sets to expand}
-
-\item{filter_sets}{list of sets with subset elements to filter}
-
-\item{...}{additional arguments}
 }
 \value{
-data frame with expanded sets for the \code{param} parameter.
-The parameter value(s) are repeated for each NA element of the
-combination of sets.
+a named list mapping each commodity to its timeframe.
 }
 \description{
-Expand NA sets in a data frame where parameter is not NA
+Operational timeframe of a commodities
 }

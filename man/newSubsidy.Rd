@@ -61,12 +61,12 @@ SUB_BIO <- newSub(
  )
 }
 \seealso{
-Other class constraint policy: 
+Other class constraint policy:
 \code{\link{class-constraint}},
 \code{\link{class-costs}},
-\code{\link{newConstraint}()},
-\code{\link{newCosts}()},
-\code{\link{newTax}()},
+\code{\link[=newConstraint]{newConstraint()}},
+\code{\link[=newCosts]{newCosts()}},
+\code{\link[=newTax]{newTax()}},
 \code{\link{subsidy-class}},
 \code{\link{tax-class}}
 }

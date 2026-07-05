@@ -1,10 +1,57 @@
-# New interpolation functions for model objects
-
-interp_mod <- function(mod, name = NULL, ...,
-                       desc = NULL, ondisk = TRUE, overwrite = FALSE,
-                       fold = TRUE, sparse = TRUE, prune = TRUE,
+#' Interpolate a model into a solver-ready scenario
+#'
+#' @description
+#' Builds an interpolated [scenario] from a [model] via the mapping pipeline:
+#' collects sets from the model objects, builds the membership / calendar /
+#' lifespan / value / constraint / cost mappings, extracts and interpolates the
+#' numeric parameters over the milestone years, and (optionally) folds, prunes
+#' and validates the result. The returned scenario is ready for [solve_model()] /
+#' [solve_scenario()].
+#'
+#' @param mod a [model] object, or a [scenario] (its `@model` is re-interpolated).
+#' @param name character scenario name. If `NULL`, a default `scen_<model>` is
+#'   used (with a warning).
+#' @param ... additional energyRt objects folded into the model BEFORE the
+#'   pipeline runs: `settings`, `config`, `calendar`, `horizon`, a whole
+#'   `repository`, or individual model "bricks" (`technology`, `commodity`,
+#'   `storage`, ...). This is how a scenario overrides or extends the model (e.g.
+#'   pass a sampled `calendar` to interpolate on a reduced time resolution).
+#' @param desc character scenario description.
+#' @param ondisk logical; store each parameter's data in the on-disk parameter
+#'   store rather than the in-memory `@data` slot. `FALSE` (default) keeps data in
+#'   memory, which the solver writers read directly; `TRUE` suits very large
+#'   models (data is materialised back to memory at solve time).
+#' @param overwrite logical; overwrite an existing on-disk scenario of the same
+#'   name.
+#' @param fold logical or character; whole-column "fold" of trimmable dimensions
+#'   to NA wildcards to shrink the data. `TRUE` folds `region` + `slice`; `FALSE`
+#'   (default) folds nothing; a character vector selects dims among
+#'   `region`, `slice`, `year`, `comm`, `tech`, `stg`, `trade`. A folded scenario
+#'   is expanded to solver-ready form at solve time.
+#' @param sparse logical; the storage knob. `TRUE` drops `value == defVal` rows
+#'   (and folds); `FALSE` materialises the default over each parameter's full
+#'   domain (and unfolds).
+#' @param prune logical; drop interpolated rows that fall outside the
+#'   equation-domain maps (no effect on the solution, smaller data).
+#' @param validate logical; run post-interpolation consistency checks (schema,
+#'   duplicate keys, map/parameter coverage).
+#' @param code optional named list overriding solver source-code blocks
+#'   (`GLPK`, `GAMS`, `JuMP`, `PYOMOConcrete`, ...), each either a script-file
+#'   path or a character vector of lines. Lets a model-script version be supplied
+#'   at interpolation time without rebuilding `sysdata` (handy to A/B templates).
+#' @param verbose logical; print per-step progress.
+#'
+#' @return an interpolated [scenario] object.
+#' @seealso [solve_model()], [solve_scenario()], the `interpolate` S4 method.
+#' @family interpolation
+#' @export
+interpolate_model <- function(mod, name = NULL, ...,
+                       desc = NULL, ondisk = FALSE, overwrite = FALSE,
+                       fold = FALSE, sparse = TRUE, prune = TRUE,
                        validate = TRUE, code = NULL,
                        verbose = getOption("energyRt.verbose", FALSE)) {
+  # Accept a scenario (re-interpolate its model), matching the legacy interface.
+  if (inherits(mod, "scenario")) mod <- mod@model
   # `...` (after `mod`/`name`) accepts ANY energyRt objects -- settings, config,
   # calendar, horizon, whole repositories, or individual model "bricks"
   # (technology/commodity/...) -- and folds them into the model BEFORE the
@@ -48,11 +95,18 @@ interp_mod <- function(mod, name = NULL, ...,
   # !!! ... process arguments, add settings, ...
   args <- list(...)
 
-  if (ondisk && is.null(args$path)) {
-    scen@path <- fp(get_scenarios_path(), scen@name) |> .fix_path()
-  } else if (!is.null(args$path)) {
+  # Scenario folder: an explicit `path` wins; otherwise a "smart" folder name
+  # {scenario}_{model}_{calendar}_{horizon} (from the model's own
+  # calendar/horizon here; recomputed from the final settings at the end to
+  # reflect any `...` overrides).
+  explicit_path <- !is.null(args$path)
+  if (explicit_path) {
     scen@path <- args$path |> .fix_path()
     args$path <- NULL
+  } else {
+    scen@path <- fp(get_scenarios_path(), .scenario_dir_name(
+      scen@name, mod@name, mod@config@calendar@name, mod@config@horizon@name
+    )) |> .fix_path()
   }
 
   # scenario directory ####
@@ -438,15 +492,18 @@ interp_mod <- function(mod, name = NULL, ...,
   classes <- NULL
 
   .n_obj <- sum(vapply(scen@model@data, function(r) length(r@data), integer(1)))
-  .interp_step(verbose, paste0("ob2mi: interpolating ", .n_obj, " model objects"))
+  .interp_step(verbose, paste0("ob2mi: interpolating ", .n_obj, " model objects"),
+               oneline = FALSE)
   .prg <- if (.n_obj > 0) progressr::progressor(steps = .n_obj) else NULL
   for (i in seq(along = scen@model@data)) {
     for (j in seq(along = scen@model@data[[i]]@data)) {
       if (is.null(classes) || inherits(scen@model@data[[i]]@data[[j]], classes)) {
+        # Advance the bar for EVERY object (incl. skipped ones) so it reaches
+        # 100%; otherwise it freezes short of the end and looks stuck.
+        if (!is.null(.prg)) .prg(message = scen@model@data[[i]]@data[[j]]@name)
         # User constraints are compiled later (.interp_user_constraints), after
         # the variable domain maps they reference (e.g. mTechNew) are built.
         if (inherits(scen@model@data[[i]]@data[[j]], "constraint")) next
-        if (!is.null(.prg)) .prg(message = scen@model@data[[i]]@data[[j]]@name)
         scen <- ob2mi(scen, scen@model@data[[i]]@data[[j]], list())
       }
     }
@@ -682,6 +739,17 @@ interp_mod <- function(mod, name = NULL, ...,
   }
   scen@status$interpolated <- TRUE
   scen@status$script <- FALSE
+  scen@status$solved <- FALSE
+  # Refresh the smart scenario-folder name from the FINAL settings (so a
+  # calendar/horizon passed via `...` is reflected). Only for in-memory
+  # scenarios and default (non-explicit) paths -- an on-disk directory has
+  # already been created at the early path.
+  if (!explicit_path && !ondisk) {
+    scen@path <- fp(get_scenarios_path(), .scenario_dir_name(
+      scen@name, scen@model@name,
+      scen@settings@calendar@name, scen@settings@horizon@name
+    )) |> .fix_path()
+  }
   # Storage-state flags mirroring the build knobs (self-describing for the
   # writers, model_size(), and save/reload). `sparse`: parameters omit
   # value==defVal rows -- a native-default backend (MathProg/JuMP/Pyomo) reads an
@@ -699,7 +767,7 @@ interp_mod <- function(mod, name = NULL, ...,
   # aborting by default; the folded pipeline permits wildcard NAs in trimmable
   # dimensions.
   if (isTRUE(validate)) {
-    .interp_step(verbose, "validating parameters")
+    .interp_step(verbose, "validating parameters", oneline = FALSE)
     # Permit fold wildcards (NA) only in the dimensions actually folded this run.
     validate_scenario_parameters(
       scen, fold = if (isTRUE(sparse)) fold_dims else character(0),
@@ -737,6 +805,42 @@ interp_mod <- function(mod, name = NULL, ...,
   # Build the engine's set-value/calendar context once and reuse it.
   approxim <- .constraint_approxim(scen)
   for (o in cns) scen <- ob2mi(scen, o, list(approxim = approxim))
+  scen
+}
+
+# Populate pDummyImportCost / pDummyExportCost from the config `@debug` table.
+# `dbg` columns: comm, region, year, slice, dummyImport, dummyExport. Rows with a
+# finite cost enable the slack; NA in comm / region / year / slice is a wildcard
+# expanded to all commodities / regions / milestone years / slices.
+.interp_dummy_slack <- function(scen, ss, mid) {
+  dbg <- ss@debug
+  if (!is.data.frame(dbg) || nrow(dbg) == 0) return(scen)
+  all_comm   <- unique(unlist(lapply(scen@model@data, function(x)
+    unlist(lapply(x@data, function(y) if (is(y, "commodity")) y@name else NULL)))))
+  all_region <- ss@region
+  all_year   <- as.integer(mid)
+  all_slice  <- ss@calendar@slice_share$slice
+  for (spec in list(c(col = "dummyImport", par = "pDummyImportCost"),
+                    c(col = "dummyExport", par = "pDummyExportCost"))) {
+    col <- spec[["col"]]; par <- spec[["par"]]
+    if (!col %in% names(dbg)) next
+    rows <- dbg[is.finite(suppressWarnings(as.numeric(dbg[[col]]))), , drop = FALSE]
+    if (nrow(rows) == 0) next
+    exp <- do.call(rbind, lapply(seq_len(nrow(rows)), function(i) {
+      r  <- rows[i, ]
+      cc <- if (is.na(r$comm))   all_comm   else as.character(r$comm)
+      rr <- if (is.na(r$region)) all_region else as.character(r$region)
+      yy <- if (is.na(r$year))   all_year   else as.integer(r$year)
+      sl <- if (is.na(r$slice))  all_slice  else as.character(r$slice)
+      e  <- expand.grid(comm = cc, region = rr, year = yy, slice = sl,
+                        stringsAsFactors = FALSE)
+      e$value <- as.numeric(r[[col]]); e
+    }))
+    if (is.null(exp) || nrow(exp) == 0) next
+    exp <- exp[!duplicated(exp[c("comm", "region", "year", "slice")]), , drop = FALSE]
+    scen@modInp@parameters[[par]] <-
+      .dat2par(scen@modInp@parameters[[par]], as.data.table(exp))
+  }
   scen
 }
 
@@ -784,11 +888,18 @@ interp_mod <- function(mod, name = NULL, ...,
   names(approxim$all_comm) <- NULL
 
   # Build the calendar / horizon / discount parameters via the `ob2mi`
-  # "settings" method (R/obj2modInp2.R), which writes the in-memory `@data`
+  # "settings" method (R/obj2modInp.R), which writes the in-memory `@data`
   # slots of `scen@modInp@parameters`. Ported from the legacy `.obj2modInp`
   # settings method; the overlapping calendar maps it also builds are refreshed
   # by the calendar recipe that runs next.
   scen <- ob2mi(scen, ss, list(approxim = approxim))
+
+  # Dummy import / export slack costs from `config@debug`. A finite cost enables
+  # a slack term in the corresponding commodity balance (the model may import /
+  # export the commodity at that penalty), guaranteeing feasibility. The default
+  # cost is Inf (no slack). NA in a dimension is a wildcard, expanded here to all
+  # commodities / regions / milestone years / slices (no interpolation needed).
+  scen <- .interp_dummy_slack(scen, ss, mid)
 
   # Persist the freshly-built parameters to the on-disk store so they survive
   # `save_scenario()` / reload and are seen by the writers. No-op in memory.
@@ -799,7 +910,8 @@ interp_mod <- function(mod, name = NULL, ...,
       "mSliceFYearNext", "pDiscount", "pSliceShare", "pSliceWeight",
       "mMilestoneLast", "mMilestoneFirst", "mMilestoneNext",
       "mMilestoneHasNext", "mSameSlice", "mSameRegion", "ordYear",
-      "pYearFraction", "cardYear", "pPeriodLen", "pDiscountFactor"
+      "pYearFraction", "cardYear", "pPeriodLen", "pDiscountFactor",
+      "pDummyImportCost", "pDummyExportCost"
     )
     for (nm in built) {
       p <- scen@modInp@parameters[[nm]]
@@ -851,8 +963,6 @@ interp_slot <- function(obj, slot, overrides) {
 #'
 #' @returns a character vector of set elements
 #' @export
-#'
-#' @examples
 collect_set_elements <- function(obj, set_name) {
   # browser()
 
@@ -998,12 +1108,12 @@ if (F) {
 #' @param scen scenario object
 #' @param func function to apply to every object of class `classes`
 #' in the scenario's model data
-#' @param ...
+#' @param ... additional arguments passed to `func`.
 #' @param classes character vector of class names to apply the function to
 #' @param return_list logical, if TRUE, return a list of results, otherwise
 #' return a vector of results
 #'
-#' @returns
+#' @returns a list or vector of `func` results, one per matching object.
 #' @export
 apply_to_scenario_data <- function(
     scen,
@@ -1119,7 +1229,7 @@ apply_to_parameters <- function(
                   "vintage", "weather", "stg", "sub", "dst", "src",
                   "acomm", "sup", "dem", "expp", "imp", "trade")
   }
-  browser()
+  invisible()  # browser() disabled
   col_ord <- colnames(x)
 
   if (!is.null(par_name)) {
@@ -1194,12 +1304,10 @@ apply_to_parameters <- function(
 #' If character vector, it is converted to a data frame with one column.
 #' If names list, the `set_name` is taken from the names of the list.
 #' If data frame, all columns matching `x` are considered as a complete set.
-#' @param ...
+#' @param ... additional arguments (currently unused).
 #'
-#' @returns
+#' @returns a data frame with the completed set combinations.
 #' @export
-#'
-#' @examples
 complete_set <- function(
     x, # data.frame
     set_name, # name of the set to complete
@@ -1365,8 +1473,6 @@ guess_sets <- function(x) {}
 #'
 #' @returns data frame with expanded rows
 #' @export
-#'
-#' @examples
 expand_na_rows <- function(data, column, all_values, group_cols = NULL) {
   # browser()
   # checks
@@ -1788,8 +1894,6 @@ if (F) {
 #'
 #' @returns data frame with interpolated values for the parameter
 #' @export
-#'
-#' @examples
 interpolate_numpar <- function(
     data,
     value_col,
@@ -1945,8 +2049,6 @@ interpolate_numpar <- function(
 #'
 #' @returns data frame with interpolated values for the parameter
 #' @export
-#'
-#' @examples
 interpolate_bounds <- function(
     data,
     value_col,
@@ -2425,7 +2527,18 @@ validate_scenario_parameters <- function(scen, fold = TRUE,
                  stringsAsFactors = FALSE)
   }
 
-  for (pn in names(scen@modInp@parameters)) {
+  # Progress bar: this pass scans every parameter's rows (and the value-map
+  # coverage joins below), the slowest stage on large models. Mirror ob2mi's
+  # progressor so a registered handler shows movement instead of a frozen line.
+  # Silent when no handler is set. Steps: all parameters + all value maps.
+  pnames <- names(scen@modInp@parameters)
+  .n_val <- length(pnames) + length(.value_map_def)
+  .prg <- if (.n_val > 0) progressr::progressor(steps = .n_val) else NULL
+
+  for (pn in pnames) {
+    # Advance for EVERY parameter (incl. skipped types/empties) so the bar
+    # reaches 100% instead of freezing short of the end.
+    if (!is.null(.prg)) .prg(message = pn)
     param <- scen@modInp@parameters[[pn]]
     ptype <- as.character(param@type)
     if (!(ptype %in% c("numpar", "bounds", "map"))) next
@@ -2492,6 +2605,7 @@ validate_scenario_parameters <- function(scen, fold = TRUE,
   # `pStorageCostInp`) that is covered by a sibling (`pStorageCostStore`) is not
   # reported.
   for (mp in names(.value_map_def)) {
+    if (!is.null(.prg)) .prg(message = mp)
     mpar <- scen@modInp@parameters[[mp]]
     if (is.null(mpar)) next
     md <- get_data_slot(mpar)
@@ -2739,18 +2853,17 @@ interpolate_parameters <- function(scen, drop_default = FALSE) {
 "ANYSLICE"
 "ANYVINTAGE"
 
-#' Expand sets for parameter
-#'
-#' @description Expand NA sets in a data frame where parameter is not NA
-#' @param x data frame with columns for sets and parameters
-#' @param param name of the parameter to expand sets for
-#' @param full_sets list of full sets to expand
-#' @param filter_sets list of sets with subset elements to filter
-#' @param ... additional arguments
-#' @returns data frame with expanded sets for the `param` parameter.
-#' The parameter value(s) are repeated for each NA element of the
-#' combination of sets.
-#' @noRd
+# Expand sets for parameter
+#
+# Expand NA sets in a data frame where parameter is not NA
+# @param x data frame with columns for sets and parameters
+# @param param name of the parameter to expand sets for
+# @param full_sets list of full sets to expand
+# @param filter_sets list of sets with subset elements to filter
+# @param ... additional arguments
+# @returns data frame with expanded sets for the `param` parameter.
+# The parameter value(s) are repeated for each NA element of the
+# combination of sets.
 # @export
 # .expand_sets <- function(x,
 #                         param,
@@ -2831,10 +2944,8 @@ interpolate_parameters <- function(scen, drop_default = FALSE) {
 #' all commodities retrieved from the scenario object using the
 #' `collect_set_names` function.
 #'
-#' @returns
+#' @returns a named list mapping each commodity to its timeframe.
 #' @export
-#'
-#' @examples
 map_comm_timeframe <- function(scen, comm = NULL) {
   apply_to_scenario_data(
     scen = scen,
@@ -2856,10 +2967,8 @@ map_comm_timeframe <- function(scen, comm = NULL) {
 #' @param comm_timeframe character vector of commodity timeframes, if not provided,
 #' will be retrieved from the scenario object
 #'
-#' @returns
+#' @returns a named list mapping each process to its operational timeframe.
 #' @export
-#'
-#' @examples
 get_process_timeframe <- function(scen, process = NULL,
                                   comm_timeframe = NULL) {
   # browser()
@@ -3004,10 +3113,8 @@ get_process_timeframe <- function(scen, process = NULL,
 #' all processes retrieved from the scenario object
 #' @param classes character vector of class names to search for
 #'
-#' @returns
+#' @returns a named list mapping each process to its class.
 #' @export
-#'
-#' @examples
 get_process_class <- function(scen, process = NULL, classes = NULL) {
   # collect classes for processes in the scenario
   if (is.null(classes)) {
@@ -3039,10 +3146,8 @@ get_process_class <- function(scen, process = NULL, classes = NULL) {
 #' all processes retrieved from the scenario object
 #' @param classes character vector of class names to search for
 #'
-#' @returns
+#' @returns a named list mapping each process to its input commodities.
 #' @export
-#'
-#' @examples
 get_process_inputs <- function(scen, process = NULL, classes = NULL) {
   if (is.null(classes)) {
     classes <- c(
@@ -3082,14 +3187,13 @@ get_process_inputs <- function(scen, process = NULL, classes = NULL) {
 
 #' Get output commodities for each process
 #'
-#' @param scen
-#' @param process
-#' @param classes
+#' @param scen scenario object
+#' @param process character vector of process names, if not provided,
+#' all processes retrieved from the scenario object
+#' @param classes character vector of class names to search for
 #'
-#' @returns
+#' @returns a named list mapping each process to its output commodities.
 #' @export
-#'
-#' @examples
 get_process_outputs <- function(scen, process = NULL, classes = NULL) {
   if (is.null(classes)) {
     classes <- c(
@@ -3197,14 +3301,13 @@ get_process_outputs <- function(scen, process = NULL, classes = NULL) {
 
 #' Get auxiliary commodities for each process
 #'
-#' @param scen
-#' @param process
-#' @param classes
+#' @param scen scenario object
+#' @param process character vector of process names, if not provided,
+#' all processes retrieved from the scenario object
+#' @param classes character vector of class names to search for
 #'
-#' @returns
+#' @returns a named list mapping each process to its auxiliary commodities.
 #' @export
-#'
-#' @examples
 get_process_aux <- function(scen, process = NULL, classes = NULL) {
   if (is.null(classes)) {
     classes <- c("process", "technology", "storage", "trade")
@@ -3245,7 +3348,7 @@ get_process_aux <- function(scen, process = NULL, classes = NULL) {
 #' @param return_list logical, if TRUE, return a list of results, otherwise
 #' data.frame with columns `process` and `comm`
 #'
-#' @returns
+#' @returns a named list, or a data.frame with columns `process` and `comm`.
 #' @export
 get_process_comm <- function(scen, process = NULL, classes = NULL,
                              return_list = TRUE) {
@@ -3745,7 +3848,7 @@ get_process_years <- function(scen, process = NULL, classes = NULL) {
 
 #' Return default value for one, several, or all parameters
 #'
-#' @param scen
+#' @param scen scenario object
 #' @param pname character, parameter name, as it appears in the model
 #' @param sname character, short name of the parameter, as it appears in classes
 #' @param class character, class of the parameter to search for

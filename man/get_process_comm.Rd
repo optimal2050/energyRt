@@ -16,6 +16,9 @@ get_process_comm(scen, process = NULL, classes = NULL, return_list = TRUE)
 \item{return_list}{logical, if TRUE, return a list of results, otherwise
 data.frame with columns \code{process} and \code{comm}}
 }
+\value{
+a named list, or a data.frame with columns \code{process} and \code{comm}.
+}
 \description{
 Commodities associated with a processes
 }

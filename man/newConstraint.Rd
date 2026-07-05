@@ -105,17 +105,17 @@ isConstraint(1)
 isConstraint(newConstraint(""))
 }
 \seealso{
-Other class constraint policy: 
+Other class constraint policy:
 \code{\link{class-constraint}},
 \code{\link{class-costs}},
-\code{\link{newCosts}()},
-\code{\link{newSubsidy}()},
-\code{\link{newTax}()},
+\code{\link[=newCosts]{newCosts()}},
+\code{\link[=newSubsidy]{newSubsidy()}},
+\code{\link[=newTax]{newTax()}},
 \code{\link{subsidy-class}},
 \code{\link{tax-class}}
 
-Other class constraint: 
-\code{\link{class-constraint}}
+Other class constraint:
+\code{\link{class-summand}}
 }
 \concept{class constraint}
 \concept{class constraint policy}

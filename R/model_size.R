@@ -38,9 +38,9 @@
 
 #' Size estimate of an interpolated scenario and the result of folding
 #'
-#' @param scen a scenario built by [interp_mod()].
+#' @param scen a scenario built by [interpolate_model()].
 #' @param top_n number of largest parameters to list.
-#' @return an S3 `model_size` object (see [print.model_size()]).
+#' @return an S3 `model_size` object (see `print.model_size()`).
 #' @export
 model_size <- function(scen, top_n = 15L) {
   P <- scen@modInp@parameters
@@ -145,13 +145,13 @@ print.model_size <- function(x, ...) {
 #'
 #' @param mod a `model`.
 #' @param settings a *named* list of setting combinations; each element is a list
-#'   of arguments forwarded to [interp_mod()], e.g.
+#'   of arguments forwarded to [interpolate_model()], e.g.
 #'   `list(fold = TRUE, sparse = TRUE, prune = TRUE)`. When `NULL` a default grid
 #'   (dense / sparse / sparse+prune / fold+sparse+prune / fold-all) is used.
 #' @param ... arguments forwarded to EVERY `interp_mod()` call, e.g.
 #'   `horizon = newHorizon(period = 2024)`.
 #' @param name base scenario name; each build is `"<name>_<setting>"`.
-#' @param verbose forwarded to [interp_mod()] (per-build progress).
+#' @param verbose forwarded to [interpolate_model()] (per-build progress).
 #' @param top_n number of largest parameters to keep per build.
 #' @param keep_scen if `TRUE`, the interpolated scenarios are returned in
 #'   `$scen` (handy to feed a later solve step). Off by default to save memory.
@@ -176,7 +176,7 @@ print.model_size <- function(x, ...) {
 #'                    sparse = TRUE, prune = TRUE)),
 #'   horizon = newHorizon(period = 2024))
 #' }
-#' @seealso [model_size()], [interp_mod()]
+#' @seealso [model_size()], [interpolate_model()]
 #' @export
 compare_interp_settings <- function(mod, settings = NULL, ...,
                                     name = "cmp", verbose = FALSE,

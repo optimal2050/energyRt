@@ -1,14 +1,14 @@
 #' An S4 class to represent a supply of a commodity
 #'
-#' @slot name `r get_slot_info("supply", "name")`
-#' @slot desc `r get_slot_info("supply", "desc")`
-#' @slot commodity `r get_slot_info("supply", "commodity")`
-#' @slot unit `r get_slot_info("supply", "unit")`
-#' @slot weather `r get_slot_info("supply", "weather")`
-#' @slot reserve `r get_slot_info("supply", "reserve")`
-#' @slot availability `r get_slot_info("supply", "availability")`
-#' @slot region `r get_slot_info("supply", "region")`
-#' @slot misc `r get_slot_info("supply", "misc")`
+#' @slot name `r get_slot_doc("supply", "name")`
+#' @slot desc `r get_slot_doc("supply", "desc")`
+#' @slot commodity `r get_slot_doc("supply", "commodity")`
+#' @slot unit `r get_slot_doc("supply", "unit")`
+#' @slot weather `r get_slot_doc("supply", "weather")`
+#' @slot reserve `r get_slot_doc("supply", "reserve")`
+#' @slot availability `r get_slot_doc("supply", "availability")`
+#' @slot region `r get_slot_doc("supply", "region")`
+#' @slot misc `r get_slot_doc("supply", "misc")`
 #'
 #' @include class-demand.R
 #'
@@ -76,15 +76,15 @@ setMethod("initialize", "supply", function(.Object, ...) {
 #' to the model, with given reserves, availability, and costs.
 #'
 #' @md
-#' @param name `r get_slot_info("supply", "name")`
-#' @param desc `r get_slot_info("supply", "desc")`
-#' @param commodity `r get_slot_info("supply", "commodity")`
-#' @param unit `r get_slot_info("supply", "unit")`
-#' @param weather `r get_slot_info("supply", "weather")`
-#' @param reserve `r get_slot_info("supply", "reserve")`
-#' @param availability `r get_slot_info("supply", "availability")`
-#' @param region `r get_slot_info("supply", "region")`
-#' @param misc `r get_slot_info("supply", "misc")`
+#' @param name `r get_slot_doc("supply", "name")`
+#' @param desc `r get_slot_doc("supply", "desc")`
+#' @param commodity `r get_slot_doc("supply", "commodity")`
+#' @param unit `r get_slot_doc("supply", "unit")`
+#' @param weather `r get_slot_doc("supply", "weather")`
+#' @param reserve `r get_slot_doc("supply", "reserve")`
+#' @param availability `r get_slot_doc("supply", "availability")`
+#' @param region `r get_slot_doc("supply", "region")`
+#' @param misc `r get_slot_doc("supply", "misc")`
 #'
 #' @rdname newSupply
 #' @order 1

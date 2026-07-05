@@ -20,7 +20,7 @@ Class 'settings' inherits all slots from class 'config' and adds the following:
 }}
 
 \seealso{
-Other class config settings scenario model: 
+Other class config settings scenario model:
 \code{\link{class-config}}
 }
 \concept{class config settings scenario model}

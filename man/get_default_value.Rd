@@ -16,6 +16,8 @@ get_default_value(
 )
 }
 \arguments{
+\item{scen}{scenario object}
+
 \item{pname}{character, parameter name, as it appears in the model}
 
 \item{sname}{character, short name of the parameter, as it appears in classes}

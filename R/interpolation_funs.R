@@ -18,7 +18,7 @@
   # browser()
   # if (parameter == "rhs") browser() # DEBUG
   if (length(defVal) != 1 || is.na(defVal) || is.null(defVal)) {
-    browser()
+    invisible()  # browser() disabled
     stop("defVal value is not defined")
   }
   # browser()
@@ -53,7 +53,7 @@
   approxim <- approxim[names(approxim) %in% prior]
   # drop excess columns
   # dtf <- dtf[, colnames(dtf) %in% c(prior, parameter), drop = FALSE]
-  if (anyDuplicated(c(prior, parameter))) browser() # DEBUG-
+  if (anyDuplicated(c(prior, parameter))) invisible()  # browser() disabled # DEBUG-
   dtf <- select(dtf, all_of(c(prior, parameter)))
   # Sort column
   # dtf <- dtf[, c(
@@ -116,7 +116,7 @@
     f2 <- apply(tmp_nona, 2, all)
     if (all(f1 == f2)) { # Could be small appr
       # obj2 <- dtf[, c(f1, TRUE), drop = FALSE]
-      if (anyDuplicated(colnames(dtf))) browser() # mappings check
+      if (anyDuplicated(colnames(dtf))) invisible()  # browser() disabled # mappings check
       obj2 <- dtf |> select(all_of(colnames(dtf)[c(f1, TRUE)]))
       for (i in colnames(obj2)[-ncol(obj2)]) {
         obj2 <- obj2[obj2[[i]] %in% approxim2[[i]], , drop = FALSE]
@@ -129,7 +129,7 @@
           obj2 <- merge0(obj2, approxim2[i])
         }
         # return(obj2[, colnames(dtf)])
-        if (anyDuplicated(colnames(dtf))) browser() # mappings check
+        if (anyDuplicated(colnames(dtf))) invisible()  # browser() disabled # mappings check
         return(select(obj2, all_of(colnames(dtf))))
       }
     }
@@ -152,7 +152,7 @@
       stringsAsFactors = FALSE, responseName = parameter)
     # browser()
     # dd <- dd[, c(prior, parameter), drop = FALSE]
-    if (anyDuplicated(c(prior, parameter))) browser() # mappings check
+    if (anyDuplicated(c(prior, parameter))) invisible()  # browser() disabled # mappings check
     dd <- dd |> select(all_of(c(prior, parameter)))
   } else {
     dd <- as.data.frame.table(
@@ -165,7 +165,7 @@
     # KK <- colSums(ii * t(is.na(dtf[, true_prior[true_prior %in% prior],
     #                                drop = FALSE])))
     sel_col <- true_prior[true_prior %in% prior]
-    if (anyDuplicated(sel_col)) browser() # mappings check
+    if (anyDuplicated(sel_col)) invisible()  # browser() disabled # mappings check
     KK <- colSums(ii * t(is.na(select(dtf, all_of(sel_col)))))
     # dobj <- as.matrix(dtf[, -ncol(dtf), drop = FALSE])
     dobj <- as.matrix(select(dtf, -ncol(dtf)))
@@ -492,7 +492,7 @@
       stnd <- c(stnd[stnd != "src" & stnd != "dst"], "region")
     }
     stnd <- stnd[!(stnd %in% mtp@misc$not_need_interpolate)]
-    if (any(ls(globalenv()) == "kstat")) browser()
+    if (any(ls(globalenv()) == "kstat")) invisible()  # browser() disabled
     # dd <- cbind(d3, dd[, c(stnd, "value"), drop = FALSE])
     dd <- cbind(d3, select(dd, all_of(c(stnd, "value"))))
   }
@@ -586,7 +586,7 @@
       cbind(d3, select(dd, all_of(c(stnd, "type", "value"))))
     }, silent = TRUE)
     if (inherits(dd, "try-error")) { #!!! Debug
-      browser()
+      invisible()  # browser() disabled
     }
 
 
@@ -595,7 +595,7 @@
   if (!is.null(remove_duplicate) && nrow(dd) != 0) {
     fl <- rep(TRUE, nrow(dd))
     for (i in seq_along(remove_duplicate)) {
-      browser() # duplicated columns?
+      invisible()  # browser() disabled # duplicated columns?
       fl <- (fl & dd[, remove_duplicate[[i]][1]] != dd[, remove_duplicate[[i]][2]])
     }
     dd <- dd[fl, , drop = FALSE]

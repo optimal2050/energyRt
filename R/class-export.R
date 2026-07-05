@@ -6,13 +6,13 @@
 #' @inherit newExport details
 #'
 #' @md
-#' @slot name `r get_slot_info("export", "name")`
-#' @slot desc `r get_slot_info("export", "desc")`
-#' @slot commodity `r get_slot_info("export", "commodity")`
-#' @slot unit `r get_slot_info("export", "unit")`
-#' @slot reserve `r get_slot_info("export", "reserve")`
-#' @slot exp `r get_slot_info("export", "exp")`
-#' @slot misc `r get_slot_info("export", "misc")`
+#' @slot name `r get_slot_doc("export", "name")`
+#' @slot desc `r get_slot_doc("export", "desc")`
+#' @slot commodity `r get_slot_doc("export", "commodity")`
+#' @slot unit `r get_slot_doc("export", "unit")`
+#' @slot reserve `r get_slot_doc("export", "reserve")`
+#' @slot exp `r get_slot_doc("export", "exp")`
+#' @slot misc `r get_slot_doc("export", "misc")`
 #'
 #' @include class-import.R
 #' @family class export process
@@ -84,13 +84,13 @@ setMethod("initialize", "export", function(.Object, ...) {
 #' model horizon.
 #'
 #' @md
-#' @param name `r get_slot_info("export", "name")`
-#' @param desc  `r get_slot_info("export", "desc")`
-#' @param commodity `r get_slot_info("export", "commodity")`
-#' @param unit `r get_slot_info("export", "unit")`
-#' @param reserve `r get_slot_info("export", "reserve")`
-#' @param exp `r get_slot_info("export", "exp")`
-#' @param misc `r get_slot_info("export", "misc")`
+#' @param name `r get_slot_doc("export", "name")`
+#' @param desc  `r get_slot_doc("export", "desc")`
+#' @param commodity `r get_slot_doc("export", "commodity")`
+#' @param unit `r get_slot_doc("export", "unit")`
+#' @param reserve `r get_slot_doc("export", "reserve")`
+#' @param exp `r get_slot_doc("export", "exp")`
+#' @param misc `r get_slot_doc("export", "misc")`
 #'
 #' @return export object with given specifications.
 #' @rdname newExport

@@ -2,17 +2,18 @@
 # setTimeSlices <- .setTimeSlices
 
 #' An S4 class to represent model
-#' 
-#' @name class-model
 #'
-#' @slot name `r get_slot_info("model", "name")`
-#' @slot desc `r get_slot_info("model", "desc")`
-#' @slot data `r get_slot_info("model", "data")`
-#' @slot config `r get_slot_info("model", "config")`
-#' @slot misc `r get_slot_info("model", "misc")`
+#' @name class-model
+#' @aliases model
+#'
+#' @slot name `r get_slot_doc("model", "name")`
+#' @slot desc `r get_slot_doc("model", "desc")`
+#' @slot data `r get_slot_doc("model", "data")`
+#' @slot config `r get_slot_doc("model", "config")`
+#' @slot misc `r get_slot_doc("model", "misc")`
 #'
 #' @include class-config.R class-repository.R
-#' 
+#'
 #' @export
 setClass("model",
   representation(
@@ -60,7 +61,7 @@ setMethod("initialize", "model", function(.Object, ...) {
 #'   desc = "My first model",
 #'   data = model_repository,
 #'   discount = 0.05,
-#'   horizon = newHorizon(period = 2020:2050, 
+#'   horizon = newHorizon(period = 2020:2050,
 #'                        intervals = rep(5, 10)),
 #'   calendar = calendars$d365h24
 #'   )
@@ -75,6 +76,16 @@ newModel <- function(name = "", desc = "", ...) {
   obj@desc <- desc
   arg <- list(...)
   if (is_empty(arg)) return(obj)
+
+  ## flatten unnamed lists if any ####
+  # browser()
+  # nn <- names(arg)
+  ii <- sapply(seq_along(arg), function(i) {
+    inherits(arg[[i]], "list") && names(arg)[[i]] == ""
+    })
+  if (any(ii)) {
+    arg <- list_flatten(arg, name_spec = "{inner}")
+  }
   #
   ## named slots ####
   repo <- newRepository("default")
@@ -86,7 +97,8 @@ newModel <- function(name = "", desc = "", ...) {
     } else {
       obj@misc <- c(obj@misc, arg$misc)
     }
-    arg$misc <- NULL}
+    arg$misc <- NULL
+  }
   ### @data | @repository ####
   if (!is.null(arg$data) | !is.null(arg$repository)) {
     if (is.null(arg$data)) {
@@ -98,6 +110,7 @@ newModel <- function(name = "", desc = "", ...) {
     if (inherits(arg$data, c("repository"))) {
       repo <- arg$data
     } else if (!inherits(arg$data, "list")) {
+      # arg$data <- purrr::list_flatten(arg$data, name_spec = "{inner}")
       repo <- do.call("add", c(object = repo, arg$data))
     } else {
       stop('"data" ("repository") must be a "repository" or "list" object')
@@ -181,9 +194,18 @@ newModel <- function(name = "", desc = "", ...) {
   if (any(ii)) obj <- add(obj, arg[ii])
   arg <- arg[!ii]
   if (is_empty(arg)) return(obj)
-  warning("Ignoring ", length(arg), " arguments.\n",
-          "names: ", paste(names(arg), collapse = ", "), "\nclasses: ",
-          paste(sapply(arg, class), collapse = ", "))
+  for (i in seq_along(arg)) {
+    if (inherits(arg[[i]], "list")) {
+      arg_i <- purrr::flatten(arg[[i]])
+      for (j in seq_along(arg_i)) {
+        obj <- add(obj, arg_i[[j]])
+      }
+    }
+  }
+  # if (length(arg) > 0)
+  # warning("Ignoring ", length(arg), " arguments.\n",
+  #         "names: ", paste(names(arg), collapse = ", "), "\nclasses: ",
+  #         paste(sapply(arg, class), collapse = ", "))
   obj
 #
 #   config_slots <- config_slots[config_slots %in% names(args)]
@@ -284,13 +306,6 @@ add.model <- function(obj, ..., overwrite = FALSE, repo_name = NULL) {
   # if (class(obj) != "model") stop('Applying add.model to class ', class(obj))
   arg <- list(...)
   while (any(sapply(arg, function(x) class(x)[1] == 'list'))) {
-    # fl <- seq_along(arg)[sapply(arg, class) == 'list']
-    # for (i in fl) {
-    #   for (j in seq_along(arg[[i]])) {
-    #     arg[[length(arg) + 1]] <- arg[[i]][[j]]
-    #   }
-    # }
-    # arg <- arg[-fl]
     arg <- list_flatten(arg, name_spec = "{inner}")
   }
   ## Calendar from solve must be added to interpolate
@@ -411,6 +426,8 @@ summary.model <- function(object, ...) {
   # invisible(object)
 }
 
+#' @rdname summary
+#' @method summary model
 #' @export
 setMethod("summary", "model", summary.model)
 

@@ -15,6 +15,9 @@ all processes retrieved from the scenario object}
 \item{comm_timeframe}{character vector of commodity timeframes, if not provided,
 will be retrieved from the scenario object}
 }
+\value{
+a named list mapping each process to its operational timeframe.
+}
 \description{
 Get operational timeframe of processes
 }

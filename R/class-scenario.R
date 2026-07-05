@@ -1,21 +1,22 @@
 #' An S4 class to represent scenario, an interpolated and/or solved model.
 #' @name class-scenario
+#' @aliases scenario
 #'
-#' @slot name `r get_slot_info("scenario", "name")`
-#' @slot desc `r get_slot_info("scenario", "desc")`
-#' @slot model `r get_slot_info("scenario", "model")`
-#' @slot settings `r get_slot_info("scenario", "settings")`
-#' @slot modInp `r get_slot_info("scenario", "modInp")`
-#' @slot modOut `r get_slot_info("scenario", "modOut")`
-#' @slot status `r get_slot_info("scenario", "status")`
-#' @slot inMemory `r get_slot_info("scenario", "inMemory")`
-#' @slot path `r get_slot_info("scenario", "path")`
-#' @slot misc `r get_slot_info("scenario", "misc")`
+#' @slot name `r get_slot_doc("scenario", "name")`
+#' @slot desc `r get_slot_doc("scenario", "desc")`
+#' @slot model `r get_slot_doc("scenario", "model")`
+#' @slot settings `r get_slot_doc("scenario", "settings")`
+#' @slot modInp `r get_slot_doc("scenario", "modInp")`
+#' @slot modOut `r get_slot_doc("scenario", "modOut")`
+#' @slot status `r get_slot_doc("scenario", "status")`
+#' @slot inMemory `r get_slot_doc("scenario", "inMemory")`
+#' @slot path `r get_slot_doc("scenario", "path")`
+#' @slot misc `r get_slot_doc("scenario", "misc")`
 #'
 #' @include class-modOut.R class-settings.R
 #' @family class scenario
 #'
-#' @seealso [interpolate(), solve(), register(), summary(), newScenario()]
+#' @seealso `interpolate()`, `solve()`, `register()`, `summary()`, `newScenario()`
 #'
 #' @export
 setClass("scenario",
@@ -61,8 +62,8 @@ setMethod("initialize", "scenario", function(.Object, ...) {
 
 #' Generate a new scenario object
 #'
-#' @param name `r get_slot_info("scenario", "name")`
-#' @param path `r get_slot_info("scenario", "path")`
+#' @param name `r get_slot_doc("scenario", "name")`
+#' @param path `r get_slot_doc("scenario", "path")`
 #' @param ... any model objects or settings to be assigned to the scenario.
 #' @param env_name character. Name of the environment to register the scenario. Default is ".scen". Used only if registry is provided. (in development)
 #' @param registry optional registry object to register the scenario. (in development)
@@ -137,6 +138,16 @@ summary.scenario <- function(object, ...) {
   }
   cat("Size:", size(scen),"\n")
 }
+#' Summarize a model or scenario
+#'
+#' Prints a concise summary of a [model][class-model] or
+#' [scenario][class-scenario] object: name, description, contents and — for a
+#' solved scenario — the solution status and size.
+#'
+#' @param object a `model` or `scenario` object.
+#' @param ... additional arguments (currently unused).
+#' @return The `object`, invisibly; called for its printed summary.
+#' @name summary
 #' @rdname summary
 #' @method summary scenario
 #' @export

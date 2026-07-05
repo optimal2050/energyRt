@@ -17,7 +17,10 @@ If character vector, it is converted to a data frame with one column.
 If names list, the \code{set_name} is taken from the names of the list.
 If data frame, all columns matching \code{x} are considered as a complete set.}
 
-\item{...}{}
+\item{...}{additional arguments (currently unused).}
+}
+\value{
+a data frame with the completed set combinations.
 }
 \description{
 Replaces \code{NA} values in a data frame column \code{set_name} with missing values

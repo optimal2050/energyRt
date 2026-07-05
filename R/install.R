@@ -204,3 +204,68 @@ en_install_deps <- function(julia = TRUE, python = TRUE, r = TRUE, recheck = TRU
   return(invisible())
 }
 
+
+#' Set up energyRt after installation
+#'
+#' @description
+#' A one-call "am I ready?" entry point to run *after* energyRt is installed. It
+#' reports the operating system, prints the system libraries to install on Linux
+#' (report only --- it never runs `sudo`), and prints the status tables from
+#' [en_check_dependencies()] (solver backends) and [en_check_packages()] (R
+#' packages, training extras, and external tools). It installs nothing itself:
+#' use the
+#' `install_energyRt()` bootstrap (see the Installation article) to install
+#' energyRt and its dependencies, and [en_install_deps()] to set up the
+#' solver-backend library layer.
+#'
+#' @param ref character. Package reference used to query system requirements on
+#'   Linux (default `"optimal2050/energyRt"`).
+#'
+#' @return A list, invisibly, with elements `os` (character), `deps` (the tibble
+#'   from [en_check_dependencies()]) and `packages` (the tibble from
+#'   [en_check_packages()]).
+#' @family solver
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' en_setup()
+#' }
+en_setup <- function(ref = "optimal2050/energyRt") {
+  os <- .en_os()
+  cli::cli_h2("energyRt setup")
+  cli::cli_alert_info("Operating system: {os}")
+
+  # System libraries: report only --- never run sudo on the user's behalf.
+  if (os == "linux") {
+    if (requireNamespace("pak", quietly = TRUE)) {
+      sq <- tryCatch(pak::pkg_sysreqs(ref), error = function(e) NULL)
+      cmds <- if (!is.null(sq)) c(sq$pre_install, sq$install_scripts) else character(0)
+      cmds <- cmds[nzchar(cmds)]
+      if (length(cmds)) {
+        cli::cli_alert_info(paste0(
+          "System libraries may be required. Run these commands in a terminal ",
+          "(you will be prompted for your password):"))
+        cli::cli_code(paste("sudo", cmds))
+      } else {
+        cli::cli_alert_success("No additional system libraries reported.")
+      }
+    } else {
+      cli::cli_alert_info(
+        'Install {.pkg pak} to list required system libraries: install.packages("pak")')
+    }
+  } else {
+    cli::cli_alert_success(
+      "No system libraries to install on {os} (on Windows, GLPK ships with Rtools).")
+  }
+
+  # Dependency status: reuse the existing read-only reports.
+  deps <- en_check_dependencies()
+  pkgs <- en_check_packages()
+
+  cli::cli_alert_info(
+    "Next: install a solver backend (see the Installation article), or run {.code en_install_deps()} for the solver library layer.")
+
+  invisible(list(os = os, deps = deps, packages = pkgs))
+}
+

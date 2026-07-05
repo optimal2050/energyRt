@@ -81,10 +81,8 @@ get_glpk_path <- function() {
 }
 
 # MathProg GLPK (& MathProg with CBC) ####
-# `sm_fun` selects the parameter -> GMPL data converter. The default
-# `.sm_to_glpk` trims `@data` to `@misc$nValues` (legacy behaviour). The new
-# `interp_mod()` pipeline keeps `@data` authoritative, so `.write_model_GLPK_CBC2`
-# passes `.sm_to_glpk2`, which ignores `nValues` and writes the full `@data`.
+# `sm_fun` selects the parameter -> GMPL data converter (`.sm_to_glpk`, which
+# writes each parameter's full `@data` slot).
 .write_model_GLPK_CBC <- function(arg, scen, sm_fun = .sm_to_glpk) {
   run_code <- scen@settings@sourceCode[["GLPK"]]
   dir.create(paste(arg$tmp.dir, "/output", sep = ""), showWarnings = FALSE)
@@ -216,31 +214,10 @@ get_glpk_path <- function() {
 }
 
 
-# nValues-free GLPK/CBC writer for the new `interp_mod()` pipeline.
-# Identical to `.write_model_GLPK_CBC` but converts each parameter with
-# `.sm_to_glpk2`, which writes the full `@data` instead of trimming to
-# `@misc$nValues`. Use this when `@data` is authoritative (mapping engine).
-.write_model_GLPK_CBC2 <- function(arg, scen) {
-  .write_model_GLPK_CBC(arg, scen, sm_fun = .sm_to_glpk2)
-}
-
-
-# nValues-free counterpart of `.sm_to_glpk`: force `nValues = -1` so the whole
-# `@data` slot is written, then delegate to the shared converter.
-.sm_to_glpk2 <- function(obj) {
-  obj@misc$nValues <- -1L
-  .sm_to_glpk(obj)
-}
-
-
+# Convert one scenario parameter to GMPL (GLPK/CBC) text. The interp_mod()
+# pipeline keeps each parameter's `@data` slot authoritative, so the whole slot
+# is written (no legacy `@misc$nValues` trimming).
 .sm_to_glpk <- function(obj) {
-  if (obj@misc$nValues != -1) {
-    if (nrow(obj@data) > obj@misc$nValues) {
-      warning("Ignoring rows in ", obj@name, "\n",
-      "Check the number of rows in @data and @misc$nValues")
-      obj@data <- obj@data[seq(length.out = obj@misc$nValues), , drop = FALSE]
-    }
-  }
   if (obj@type == "set") {
     if (nrow(obj@data) == 0) {
       ret <- c(paste("set ", obj@name, " := ;", sep = ""), "")

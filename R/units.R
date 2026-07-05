@@ -28,6 +28,7 @@
 #' }
 #'
 #' @rdname getUnits
+#' @name getUnits
 #' @include generics.R
 #' @export
 NULL

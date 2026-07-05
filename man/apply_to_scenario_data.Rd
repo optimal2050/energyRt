@@ -12,10 +12,15 @@ apply_to_scenario_data(scen, func, ..., classes = NULL, as_list = TRUE)
 \item{func}{function to apply to every object of class \code{classes}
 in the scenario's model data}
 
+\item{...}{additional arguments passed to \code{func}.}
+
 \item{classes}{character vector of class names to apply the function to}
 
 \item{return_list}{logical, if TRUE, return a list of results, otherwise
 return a vector of results}
+}
+\value{
+a list or vector of \code{func} results, one per matching object.
 }
 \description{
 Apply function to scenario data

@@ -14,19 +14,36 @@
 #' Levelized cost of commodity production
 #'
 #' Computes the levelized cost of energy (LCOE) for a \code{technology},
-#' \code{scenario}, or \code{model} object.
+#' \code{repository}, \code{model}, or \code{scenario} object.
 #'
-#' For a \code{technology} object a minimal single-technology energyRt model is
-#' built around the technology, solved, and the LCOE is derived from the
-#' resulting cost and production variables.  For \code{scenario} and
-#' \code{model} objects the method is currently a stub (see Details).
+#' \describe{
+#'   \item{\code{technology}}{a minimal single-technology energyRt model is built
+#'     around the technology, solved, and the LCOE derived from the resulting
+#'     cost and production variables.}
+#'   \item{\code{repository} / \code{model}}{give the technology \code{name}; the
+#'     method selects the related commodity and supply objects from the container
+#'     and prices the named technology as above. If an input commodity has no
+#'     supply in the container, it returns \code{NULL} with a message unless
+#'     \code{autocomplete = TRUE} (which adds a zero-cost / \code{fuel_costs}
+#'     supply). The \code{model} method also takes the calendar, region, horizon
+#'     and discount rate from the model's configuration (each overridable).}
+#'   \item{\code{scenario}}{an \emph{ex-post} cost of the named process in the
+#'     \emph{solved} scenario: the discounted sum of its own costs (annualised
+#'     investment \code{vTechEac}, \code{vTechFixom}, \code{vTechVarom}, plus
+#'     attributed fuel cost) divided by its discounted output. Fuel is attributed
+#'     from \code{vTechInp}; a technology with a \emph{grouped} input (whose
+#'     per-commodity consumption is not a solution variable) therefore reports no
+#'     fuel component.}
+#' }
 #'
-#' @param object  A \code{technology} S4 object, a list of technology objects,
-#'   a \code{scenario}, or a \code{model} object.
+#' @param object  A \code{technology} (or list thereof), \code{repository},
+#'   \code{model}, or solved \code{scenario} object.
 #' @param comm    Character vector or \code{NULL}.  Output commodity(ies) to
 #'   use for LCOE normalisation.  \code{NULL} uses all commodities in the
 #'   resolved output group.
-#' @param name    Character.  Name tag for the result.
+#' @param name    Character. For \code{technology}, a name tag; for
+#'   \code{repository}/\code{model}/\code{scenario}, the name of the technology /
+#'   process to price.
 #' @param ...     Additional arguments passed to the underlying implementation.
 #'   For \code{technology} objects the most useful are:
 #'   \describe{
@@ -35,11 +52,28 @@
 #'       (supplies, commodities, weather) to supplement the mini-model.}
 #'     \item{\code{fuel_costs}}{Named numeric vector \code{[commodity -> cost]}
 #'       for input commodities not found in \code{repo}.}
+#'     \item{\code{autocomplete}}{Logical, default \code{FALSE}
+#'       (\code{repository}/\code{model} methods). When \code{TRUE}, input
+#'       commodities without a supply in the container are auto-supplied
+#'       (zero-cost, or priced via \code{fuel_costs}) instead of returning
+#'       \code{NULL}.}
 #'     \item{\code{discount}}{Numeric (0–1), default \code{0.05}.}
 #'     \item{\code{base_year}}{Integer or \code{NULL}.}
 #'     \item{\code{horizon}}{A \code{horizon} object, numeric year vector, or
 #'       \code{NULL} (derives from \code{@olife}).}
 #'     \item{\code{calendar}}{A \code{calendar} object or \code{NULL}.}
+#'     \item{\code{timeframe}}{\code{"ANNUAL"} (default) or \code{"native"}.
+#'       \code{"ANNUAL"} prices the technology on a single annual time-slice: any
+#'       weather profile is collapsed to an annual capacity factor (applied as the
+#'       technology's annual availability), so capacity is sized to serve unit
+#'       annual demand at that factor (textbook LCOE). \code{"native"} keeps the
+#'       supplied (sub-annual) calendar and normalises by total generation --
+#'       useful when the technology is analysed together with storage or
+#'       transmission, where sub-annual dispatch matters.}
+#'     \item{\code{backstop}}{Logical, default \code{TRUE}. Enables a very
+#'       expensive dummy-import slack on the output commodity balance so the
+#'       mini-model always solves even when the technology cannot serve a slice on
+#'       its own; the slack cost is excluded from the LCOE.}
 #'     \item{\code{region}}{Character or \code{NULL}.}
 #'     \item{\code{weather}}{A \code{weather} object, list of weather objects,
 #'       or \code{NULL}.}
@@ -93,26 +127,373 @@ setGeneric("levcost", function(object, comm, name, ...) {
   standardGeneric("levcost")
 })
 
-setMethod("levcost", "model", function(object, comm, name, ...) {
-  message(
-    "levcost() for a 'model' object is not yet implemented.\n",
-    "To compute LCOE for a single technology use levcost(<technology>, ...)."
-  )
-  invisible(NA)
-})
-
-setMethod("levcost", "scenario", function(object, comm, name, ...) {
-  message(
-    "levcost() for a solved 'scenario' is not yet implemented.\n",
-    "To compute LCOE for a single technology use levcost(<technology>, ...)."
-  )
-  invisible(NA)
-})
-
 setMethod("levcost", "technology", function(object, comm, name, ...) {
   comm_arg <- if (missing(comm)) NULL else comm
   levcost_technology_(object, comm = comm_arg, ...)
 })
+
+# ── levcost() for containers: repository & model ─────────────────────────────
+# Find a named technology inside a repository/model/scenario.
+.levcost_find_tech <- function(container, name) {
+  techs <- tryCatch(getObjects(container, "technology"), error = function(e) list())
+  if (!is.null(name) && name %in% names(techs)) techs[[name]] else NULL
+}
+
+# Commodities a technology consumes (main + grouped inputs).
+.levcost_input_comms <- function(tech) {
+  ic <- character(0)
+  if (nrow(tech@input) > 0) ic <- unique(as.character(tech@input$comm))
+  unique(ic[!is.na(ic) & nzchar(ic)])
+}
+
+# Commodities that have a supply object in the container.
+.levcost_supplied_comms <- function(container) {
+  sups <- tryCatch(getObjects(container, "supply"), error = function(e) list())
+  unique(unlist(lapply(sups, function(s) as.character(s@commodity))))
+}
+
+# Regions a technology spans (from its region-bearing data slots), so the caller
+# can price it in one of them.
+.levcost_tech_regions <- function(tech) {
+  regs <- character(0)
+  for (sl in methods::slotNames(tech)) {
+    x <- tryCatch(methods::slot(tech, sl), error = function(e) NULL)
+    if (sl == "region" && is.character(x)) regs <- c(regs, x)
+    else if (is.data.frame(x) && "region" %in% names(x)) regs <- c(regs, as.character(x$region))
+  }
+  unique(regs[!is.na(regs) & nzchar(regs)])
+}
+
+# The LCOE mini-model is single-region; a kit technology may carry data for
+# several regions. Subset every region-bearing slot to `region` (keeping
+# region-agnostic NA rows) and pin the @region slot, so the mini-model declares
+# exactly the one region it prices.
+.levcost_subset_tech_region <- function(tech, region) {
+  region <- region[1]
+  for (sl in methods::slotNames(tech)) {
+    x <- tryCatch(methods::slot(tech, sl), error = function(e) NULL)
+    if (sl == "region" && is.character(x) && length(x) > 0) {
+      methods::slot(tech, sl) <- region
+    } else if (is.data.frame(x) && "region" %in% names(x) && nrow(x) > 0) {
+      keep <- is.na(x$region) | as.character(x$region) == region
+      methods::slot(tech, sl) <- x[keep, , drop = FALSE]
+    }
+  }
+  tech
+}
+
+# Annual (share-weighted) capacity factor of a weather object, by region & year.
+# `slice_share` (from the native calendar) supplies the per-slice weights; when
+# absent a plain mean is used. Returns a data.frame(region, year, cf).
+.levcost_weather_annual_cf <- function(wobj, slice_share) {
+  wd <- tryCatch(wobj@weather, error = function(e) NULL)
+  if (is.null(wd) || nrow(wd) == 0 || !"wval" %in% names(wd))
+    return(data.frame(region = character(), year = integer(), cf = numeric()))
+  wcol <- NULL
+  if (!is.null(slice_share) && "slice" %in% names(slice_share)) {
+    wcol <- if ("share" %in% names(slice_share)) "share"
+            else if ("weight" %in% names(slice_share)) "weight" else NULL
+  }
+  # NA-safe grouping key over region x year (weather year is often NA = all
+  # years; `split()` on a factor would silently drop NA groups).
+  agg_by <- function(df, wc) {
+    yk  <- ifelse(is.na(df$year), "\rNA", as.character(df$year))
+    key <- paste(as.character(df$region), yk, sep = "\r")
+    do.call(rbind, lapply(split(df, key), function(d) {
+      cf <- if (is.null(wc)) mean(d$wval) else sum(d$wval * d[[wc]]) / sum(d[[wc]])
+      data.frame(region = d$region[1], year = d$year[1], cf = cf,
+                 stringsAsFactors = FALSE)
+    }))
+  }
+  if (!is.null(wcol)) {
+    m <- merge(wd, as.data.frame(slice_share)[, c("slice", wcol)], by = "slice")
+    if (nrow(m) > 0) return(agg_by(m, wcol))
+  }
+  agg_by(wd, NULL)
+}
+
+# Collapse a technology's weather dependence to an annual availability factor.
+# Each @weather row (weather name + waf.lo/up/fx coefficient) is turned into the
+# matching af.lo/up/fx = coefficient x annual-CF row on @af; the @weather slot is
+# then cleared so the mini-model needs no weather object or sub-annual calendar.
+.levcost_weatherize_annual <- function(tech, weather_objects, slice_share,
+                                       verbose = TRUE) {
+  wdf <- tech@weather
+  if (nrow(wdf) == 0) return(tech)
+  wmap <- list()
+  for (w in weather_objects) if (isS4(w) && .hasSlot(w, "name")) wmap[[w@name]] <- w
+  af_proto <- tech@af[0, , drop = FALSE]
+  af_cols  <- names(af_proto)
+  new_rows <- list()
+  for (i in seq_len(nrow(wdf))) {
+    wr    <- wdf[i, , drop = FALSE]
+    wname <- as.character(wr$weather)
+    wobj  <- wmap[[wname]]
+    if (is.null(wobj)) {
+      if (verbose) message("levcost(): no weather object '", wname,
+                           "' for annual CF of '", tech@name, "'; skipping.")
+      next
+    }
+    cf <- .levcost_weather_annual_cf(wobj, slice_share)
+    if (nrow(cf) == 0) next
+    bound <- NULL
+    for (b in c("fx", "up", "lo")) {
+      col <- paste0("waf.", b)
+      if (col %in% names(wr) && !is.na(wr[[col]])) {
+        bound <- b; coef <- as.numeric(wr[[col]]); break
+      }
+    }
+    if (is.null(bound)) { bound <- "up"; coef <- 1 }
+    r <- af_proto[rep(1L, nrow(cf)), , drop = FALSE]
+    if (nrow(r) == 0) {                       # empty @af: build a fresh frame
+      r <- data.frame(region = cf$region, year = cf$year, slice = NA_character_,
+                      af.lo = NA_real_, af.up = NA_real_, af.fx = NA_real_,
+                      rampup = NA_real_, rampdown = NA_real_,
+                      stringsAsFactors = FALSE)
+      af_cols <- names(r)
+    } else {
+      r$region <- cf$region; r$year <- cf$year
+      if ("slice" %in% af_cols) r$slice <- NA_character_
+    }
+    afc <- paste0("af.", bound)
+    if (afc %in% af_cols) r[[afc]] <- coef * cf$cf
+    new_rows[[length(new_rows) + 1L]] <- r
+  }
+  if (length(new_rows) > 0) {
+    add <- do.call(rbind, new_rows)
+    tech@af <- if (nrow(tech@af) > 0) rbind(tech@af, add[, names(tech@af)]) else add
+  }
+  tech@weather <- tech@weather[0, , drop = FALSE]
+  tech
+}
+
+# Subset a weather object's @region slot and @weather table to a single region.
+.levcost_subset_weather_region <- function(w, region) {
+  region <- region[1]
+  if (.hasSlot(w, "region") && is.character(w@region) && length(w@region) > 0)
+    w@region <- region
+  if (.hasSlot(w, "weather") && is.data.frame(w@weather) &&
+      "region" %in% names(w@weather) && nrow(w@weather) > 0) {
+    keep <- is.na(w@weather$region) | as.character(w@weather$region) == region
+    w@weather <- w@weather[keep, , drop = FALSE]
+  }
+  w
+}
+
+# Shared LCOE for a technology named `name` inside a repository/model. Selects
+# the related commodity, supply and weather objects from the container; if an
+# input commodity has no supply, returns NULL with a message unless
+# `autocomplete = TRUE` (which lets the mini-model add a zero-cost /
+# `fuel_costs` supply).
+.levcost_container <- function(container, name, comm = NULL, autocomplete = FALSE,
+                               fuel_costs = NULL, verbose = TRUE, ...) {
+  if (is.null(name) || !nzchar(name)) {
+    message("levcost(): please give the technology `name = ` to price.")
+    return(invisible(NULL))
+  }
+  tech <- .levcost_find_tech(container, name)
+  if (is.null(tech)) {
+    message("levcost(): technology '", name, "' not found in the ",
+            class(container)[1], ".")
+    return(invisible(NULL))
+  }
+  in_comms <- .levcost_input_comms(tech)
+  # a commodity is "covered" if the container supplies it, an IMPORT prices it
+  # (rest-of-world fuel at its import price), or `fuel_costs` prices it
+  imps <- tryCatch(getObjects(container, "import"), error = function(e) list())
+  for (im in imps) {
+    cm <- tryCatch(as.character(im@commodity)[1], error = function(e) NA_character_)
+    if (is.na(cm) || cm %in% names(fuel_costs)) next
+    pr <- tryCatch(suppressWarnings(as.numeric(im@imp$price)), error = function(e) NULL)
+    pr <- pr[is.finite(pr)]
+    if (length(pr) > 0) fuel_costs[cm] <- mean(pr)
+  }
+  covered  <- unique(c(.levcost_supplied_comms(container), names(fuel_costs)))
+  missing  <- setdiff(in_comms, covered)
+  if (length(missing) > 0 && !isTRUE(autocomplete)) {
+    message("levcost(): technology '", name, "' consumes commodity(ies) with no ",
+            "supply in the ", class(container)[1], ": ",
+            paste(missing, collapse = ", "), ".\n",
+            "  Set autocomplete = TRUE to add zero-cost supplies, or pass e.g. ",
+            "fuel_costs = c(", missing[1], " = <price>).")
+    return(invisible(NULL))
+  }
+  dots <- list(...)
+  # the mini-model is single-region: pick one region the tech spans and subset
+  # its data to it (a multi-region kit tech would otherwise reference regions the
+  # mini-model has not declared, or mismatch demand rows)
+  reg1 <- dots$region
+  if (is.null(reg1)) {
+    tr <- .levcost_tech_regions(tech)
+    reg1 <- if (length(tr) > 0) tr[1] else NULL
+  } else {
+    reg1 <- reg1[1]
+  }
+  if (!is.null(reg1)) {
+    tech <- .levcost_subset_tech_region(tech, reg1)
+    dots$region <- reg1
+  }
+  # attach ONLY the weather object(s) this technology references (thermal techs
+  # have an empty @weather slot and need none), region-subset to `reg1` so they
+  # do not reference regions the single-region mini-model has not declared
+  if (is.null(dots$weather)) {
+    wneed <- tryCatch(unique(as.character(tech@weather$weather)), error = function(e) character(0))
+    wneed <- wneed[!is.na(wneed) & nzchar(wneed)]
+    if (length(wneed) > 0) {
+      wall <- tryCatch(getObjects(container, "weather"), error = function(e) list())
+      wsel <- wall[intersect(names(wall), wneed)]
+      if (length(wsel) > 0) {
+        if (!is.null(reg1)) wsel <- lapply(wsel, .levcost_subset_weather_region, region = reg1)
+        dots$weather <- unname(wsel)
+      }
+    }
+  }
+  # the container's commodities + supplies become the levcost `repo`
+  repo <- c(tryCatch(getObjects(container, "commodity"), error = function(e) list()),
+            tryCatch(getObjects(container, "supply"),     error = function(e) list()))
+  do.call(levcost_technology_, c(list(tech, comm = comm, repo = repo,
+    fuel_costs = fuel_costs, verbose = verbose), dots))
+}
+
+#' @rdname levcost
+setMethod("levcost", "repository", function(object, comm, name, ...) {
+  comm_arg <- if (missing(comm)) NULL else comm
+  name_arg <- if (missing(name)) NULL else name
+  .levcost_container(object, name = name_arg, comm = comm_arg, ...)
+})
+
+# Extract a scalar discount rate from a model's config (wacc / sdr / legacy).
+.levcost_model_discount <- function(cfg, default = 0.05) {
+  d <- tryCatch(cfg@discount, error = function(e) NULL)
+  if (is.null(d) || !is.data.frame(d) || nrow(d) == 0) return(default)
+  for (col in c("sdr", "wacc", "discount")) {
+    if (col %in% names(d)) {
+      v <- suppressWarnings(as.numeric(d[[col]]))
+      v <- v[is.finite(v) & v > 0]
+      if (length(v) > 0) return(mean(v))
+    }
+  }
+  default
+}
+
+#' @rdname levcost
+setMethod("levcost", "model", function(object, comm, name, ...) {
+  comm_arg <- if (missing(comm)) NULL else comm
+  name_arg <- if (missing(name)) NULL else name
+  cfg  <- object@config
+  dots <- list(...)
+  # take calendar / region / horizon / discount from the model unless overridden
+  cal <- if (!is.null(dots$calendar)) dots$calendar else {
+    x <- tryCatch(cfg@calendar, error = function(e) NULL)
+    if (!is.null(x) && length(x@timeframe_rank) > 1) x else NULL
+  }
+  reg <- if (!is.null(dots$region)) dots$region else {
+    x <- tryCatch(cfg@region, error = function(e) NULL)
+    if (length(x) > 0) x else NULL      # all model regions (mini-model declares them)
+  }
+  hor <- if (!is.null(dots$horizon)) dots$horizon else {
+    x <- tryCatch(cfg@horizon, error = function(e) NULL)
+    if (!is.null(x) && nrow(x@intervals) > 0) x else NULL
+  }
+  disc <- if (!is.null(dots$discount)) dots$discount else .levcost_model_discount(cfg)
+  dots$calendar <- dots$region <- dots$horizon <- dots$discount <- NULL
+  do.call(.levcost_container, c(list(object, name = name_arg, comm = comm_arg,
+    calendar = cal, region = reg, horizon = hor, discount = disc), dots))
+})
+
+#' @rdname levcost
+setMethod("levcost", "scenario", function(object, comm, name, ...) {
+  .levcost_scenario(object, name = if (missing(name)) NULL else name,
+                    comm = if (missing(comm)) NULL else comm, ...)
+})
+
+# Fuel cost of a process in a solved scenario: sum over inputs of
+# vTechInp[tech, comm] x mean supply price of that commodity, by year.
+.levcost_scenario_fuel <- function(scen, name) {
+  inp <- tryCatch(getData(scen, "vTechInp", tech = name, merge = TRUE),
+                  error = function(e) NULL)
+  if (is.null(inp) || !nrow(inp)) return(setNames(numeric(0), character(0)))
+  sups <- tryCatch(getObjects(scen@model, "supply"), error = function(e) list())
+  price <- list()
+  for (s in sups) {
+    cm <- as.character(s@commodity)
+    av <- tryCatch(as.data.frame(s@availability), error = function(e) NULL)
+    if (!is.null(av) && "cost" %in% names(av) && nrow(av) > 0)
+      price[[cm]] <- mean(suppressWarnings(as.numeric(av$cost)), na.rm = TRUE)
+  }
+  pr <- unlist(price[as.character(inp$comm)]); pr[is.na(pr)] <- 0
+  a <- aggregate(inp$value * pr, list(year = as.integer(inp$year)), sum, na.rm = TRUE)
+  setNames(a$x, as.character(a$year))
+}
+
+# Ex-post levelized cost of a process in a SOLVED scenario: the discounted sum of
+# the process's own costs (annualised investment `vTechEac`, `vTechFixom`,
+# `vTechVarom`, plus attributed fuel cost) divided by its discounted output.
+.levcost_scenario <- function(scen, name, comm = NULL, discount = NULL,
+                              base_year = NULL, verbose = TRUE, ...) {
+  if (is.null(name) || !nzchar(name)) {
+    message("levcost(): please give the process `name = ` to price."); return(invisible(NULL))
+  }
+  if (!isTRUE(scen@status$interpolated) ||
+      is.null(tryCatch(scen@modOut, error = function(e) NULL)) ||
+      length(scen@modOut@variables) == 0) {
+    message("levcost(): the scenario is not solved -- solve it first."); return(invisible(NULL))
+  }
+  out_all <- tryCatch(getData(scen, "vTechOut", tech = name, merge = TRUE),
+                      error = function(e) NULL)
+  if (is.null(out_all) || !nrow(out_all)) {
+    message("levcost(): process '", name, "' has no output in the solved scenario."); return(invisible(NULL))
+  }
+  if (!is.null(comm)) out_all <- out_all[as.character(out_all$comm) %in% comm, , drop = FALSE]
+  ms <- suppressWarnings(as.integer(scen@modInp@sets$year))
+  ms <- ms[is.finite(ms)]; if (!length(ms)) ms <- sort(unique(as.integer(out_all$year)))
+  if (is.null(base_year)) base_year <- min(ms)
+  if (is.null(discount)) discount <- .levcost_model_discount(scen@settings)
+
+  by_year <- function(df) {
+    if (is.null(df) || !nrow(df)) return(setNames(numeric(0), character(0)))
+    a <- aggregate(df$value, list(year = as.integer(df$year)), sum, na.rm = TRUE)
+    setNames(a$x, as.character(a$year))
+  }
+  gy <- function(v) by_year(tryCatch(getData(scen, v, tech = name, merge = TRUE),
+                                     error = function(e) NULL))
+  eac <- gy("vTechEac"); fixom <- gy("vTechFixom"); varom <- gy("vTechVarom")
+  fuel <- .levcost_scenario_fuel(scen, name)
+  out  <- by_year(out_all)
+
+  yrs <- sort(unique(as.integer(c(names(eac), names(fixom), names(varom),
+                                  names(fuel), names(out)))))
+  pick <- function(v, y) { x <- v[as.character(y)]; x[is.na(x)] <- 0; unname(x) }
+  comp <- data.frame(
+    year  = yrs,
+    eac   = pick(eac, yrs),   fixom = pick(fixom, yrs),
+    varom = pick(varom, yrs), fuel  = pick(fuel, yrs),
+    output = pick(out, yrs), stringsAsFactors = FALSE)
+  comp$total <- comp$eac + comp$fixom + comp$varom + comp$fuel
+  disc <- (1 + discount)^(comp$year - base_year)
+  npv_cost <- sum(comp$total / disc)
+  npv_out  <- sum(comp$output / disc)
+  lcoe_npv <- if (is.finite(npv_out) && npv_out > 0) npv_cost / npv_out else NA_real_
+
+  comp$levcost <- ifelse(comp$output > 0, comp$total / comp$output, NA_real_)
+  # component name "supply" matches the technology levcost / autoplot convention
+  breakdown <- data.frame(
+    year = rep(comp$year, 4),
+    component = rep(c("eac", "fixom", "varom", "supply"), each = nrow(comp)),
+    value = c(comp$eac, comp$fixom, comp$varom, comp$fuel), stringsAsFactors = FALSE)
+  bd_npv <- aggregate(value ~ component,
+    transform(breakdown, value = value / rep((1 + discount)^(comp$year - base_year), 4)),
+    sum)
+  bd_npv$value <- bd_npv$value / npv_out
+
+  structure(list(
+    levcost = data.frame(tech = name, comm = paste(unique(out_all$comm), collapse = "+"),
+                         year = comp$year, levcost = comp$levcost, stringsAsFactors = FALSE),
+    levcost_npv = setNames(lcoe_npv, name),
+    cost_breakdown = breakdown, cost_breakdown_npv = bd_npv,
+    cost_yearly = comp, units = list(costs = "MEUR", activity = "PJ"),
+    scenario = scen), class = "levcost")
+}
 
 # ── tech_share_frontier ─────────────────────────────────────────────────────────
 # Standalone helper: extract feasible share ranges for ALL grouped inputs and
@@ -477,7 +858,7 @@ levcost_chain_ <- function(
   # New mapping pipeline: interpolate in memory (unfolded, so the writers see
   # explicit rows) then solve. `solve_scen()` writes, runs and reads the solution
   # in one call (replacing the legacy write_sc / solve_scenario / read_solution).
-  scen <- interp_mod(mdl, name = sn, ondisk = FALSE, fold = FALSE, ...)
+  scen <- interpolate_model(mdl, name = sn, ondisk = FALSE, fold = FALSE, ...)
   scen <- solve_scen(scen, solver = solver)
 
   # ── 12. Extract results ───────────────────────────────────────────────────
@@ -601,9 +982,11 @@ levcost_technology_ <- function(
     base_year      = NULL,
     horizon        = NULL,
     calendar       = NULL,
+    timeframe      = c("ANNUAL", "native"),
     region         = NULL,
     weather        = NULL,
     frontier       = FALSE,
+    backstop       = TRUE,
     solver         = solver_options$glpk,
     as_scenario    = FALSE,
     verbose        = TRUE,
@@ -636,6 +1019,12 @@ levcost_technology_ <- function(
   if (!inherits(object, "technology"))
     stop("`object` must be an energyRt 'technology' object or a list thereof.")
   tech_name <- if (nzchar(object@name)) object@name else "TECH"
+  timeframe  <- match.arg(timeframe)
+  # native slice shares of the supplied calendar, used to weight weather into an
+  # annual capacity factor when `timeframe = "ANNUAL"` (captured before the
+  # calendar is overridden to annual below).
+  native_slice_share <- if (!is.null(calendar) && .hasSlot(calendar, "slice_share"))
+    calendar@slice_share else NULL
 
   # ── 1b. Strip capacity constraints (distort unit-demand mini-model) ─────────
   if (nrow(object@capacity) > 0) {
@@ -663,7 +1052,13 @@ levcost_technology_ <- function(
       if (length(reg_candidates) > 1 && verbose)
         message("Multiple regions in technology; using first: '", region, "'.")
     }
+  } else {
+    region <- region[1]
   }
+  # The mini-model is single-region; subset a multi-region technology's data to
+  # the resolved region so it does not reference undeclared regions.
+  if (length(.levcost_tech_regions(object)) > 1)
+    object <- .levcost_subset_tech_region(object, region)
 
   # ── 3. Resolve output group / commodities ───────────────────────────────────
   out_df       <- object@output
@@ -855,6 +1250,27 @@ levcost_technology_ <- function(
     else stop("`weather` must be a 'weather' object or a list of 'weather' objects.")
   }
 
+  # ── 7b. Annual timeframe (default) ──────────────────────────────────────────
+  # `levcost` measures the cost of dispatchable generation, so by default it
+  # prices the technology on an ANNUAL timeframe: any weather profile is
+  # collapsed to an annual capacity factor (share-weighted mean, applied as the
+  # technology's annual availability), the weather objects are dropped, and a
+  # single-slice annual calendar is used. This sizes capacity to serve unit
+  # annual demand at the technology's capacity factor (textbook LCOE) and avoids
+  # the sub-annual must-run overbuild artefact. `timeframe = "native"` keeps the
+  # supplied (sub-annual) calendar and normalises by total generation — useful
+  # when the technology is studied together with storage or transmission.
+  if (identical(timeframe, "ANNUAL")) {
+    if (nrow(object@weather) > 0) {
+      wobjs <- lapply(weather_objects, .levcost_subset_weather_region,
+                      region = region)
+      object <- .levcost_weatherize_annual(object, wobjs,
+                                           native_slice_share, verbose = verbose)
+    }
+    weather_objects <- list()
+    calendar <- newCalendar()          # annual, single ANNUAL slice
+  }
+
   # ── 8. Auto-create commodity objects ─────────────────────────────────────────
   # Include aux_comms so auxiliary commodities referenced in @aeff are declared
   # in the mini-model commodity set even when not in @input / @output.
@@ -865,6 +1281,11 @@ levcost_technology_ <- function(
       cm_obj <- repo_comms[[cm]]
       if (isS4(cm_obj) && .hasSlot(cm_obj, "emis") && nrow(cm_obj@emis) > 0)
         cm_obj@emis <- cm_obj@emis[0L, , drop = FALSE]
+      # On the annual timeframe every commodity must resolve to the single ANNUAL
+      # slice; a repo commodity carrying a sub-annual timeframe would mismatch the
+      # calendar (mCommSlice).
+      if (identical(timeframe, "ANNUAL") && .hasSlot(cm_obj, "timeframe"))
+        cm_obj@timeframe <- "ANNUAL"
       commodity_objects[[cm]] <- cm_obj
     } else {
       unit_val <- ""
@@ -942,6 +1363,23 @@ levcost_technology_ <- function(
     }
   }
 
+  # ── 9.9. Backstop slack (dummy import) ─────────────────────────────────────
+  # A unit-demand mini-model can be infeasible when the technology cannot serve
+  # every slice on its own (e.g. solar at night on a sub-annual calendar). Enable
+  # the model's built-in dummy-import slack (via config `@debug`) at a very high
+  # cost for each output commodity, so the balance always closes; the technology
+  # is still dispatched to its physical limit (the slack is far dearer than any
+  # real cost), and the slack's cost is excluded from the LCOE, which is
+  # normalised by the technology's own output.
+  BACKSTOP_PRICE  <- 1e6
+  backstop_debug  <- NULL
+  if (isTRUE(backstop) && length(all_out_comms) > 0) {
+    backstop_debug <- data.frame(
+      comm = all_out_comms, region = NA_character_, year = NA_integer_,
+      slice = NA_character_, dummyImport = BACKSTOP_PRICE, dummyExport = Inf,
+      stringsAsFactors = FALSE)
+  }
+
   # ── 10. Inner helpers ────────────────────────────────────────────────────────
   make_demands_ <- function(dvals) {
     lapply(setNames(names(dvals), names(dvals)), function(cm) {
@@ -973,10 +1411,11 @@ levcost_technology_ <- function(
       calendar = calendar,
       horizon  = hor
     )
+    if (!is.null(backstop_debug)) mdl@config@debug <- backstop_debug
     sn   <- paste0("lc_", tech_name, suffix)
     # New mapping pipeline (see levcost_chain_): interpolate in memory, unfolded,
     # then write + run + read via solve_scen() in one call.
-    scen <- interp_mod(mdl, name = sn, ondisk = FALSE, fold = FALSE, ...)
+    scen <- interpolate_model(mdl, name = sn, ondisk = FALSE, fold = FALSE, ...)
     solve_scen(scen, solver = solver)
   }
 
@@ -1012,11 +1451,22 @@ levcost_technology_ <- function(
                   cost_yearly = NULL, levcost_per_act = NULL, scen = sc))
     }
 
-    tc_df      <- as.data.frame(tc)
+    # Own system cost = total minus the backstop dummy-import cost. The slack only
+    # covers slices the technology physically cannot serve; its (deliberately
+    # huge) cost is not the technology's and must not enter the LCOE.
+    tc_df  <- agg_yr(as.data.frame(tc))            # year, value
+    imp_yr <- agg_yr(sfget("vDummyImportCost"))
+    if (!is.null(imp_yr) && nrow(imp_yr) > 0) {
+      mm <- merge(tc_df, imp_yr, by = "year", all.x = TRUE, suffixes = c("", "_imp"))
+      mm$value_imp[is.na(mm$value_imp)] <- 0
+      tc_df <- data.frame(year = as.integer(mm$year),
+                          value = mm$value - mm$value_imp, stringsAsFactors = FALSE)
+    }
     tc_df$year <- as.integer(tc_df$year)
-    tc_df[["scenario"]] <- NULL
 
-    # Resolve normaliser
+    # Resolve normaliser: the technology's OWN output, so the LCOE is cost per
+    # unit the technology actually produces (not per unit of demand, part of
+    # which the backstop may serve).
     norm_yr  <- NULL
     prim_dem <- 1
     if (use_act_norm) {
@@ -1026,7 +1476,15 @@ levcost_technology_ <- function(
     } else if (!is.null(primary_comm)) {
       prim_dem <- max(dem_vals[[primary_comm]], 1e-9)
     } else {
-      prim_dem <- max(sum(unlist(dem_vals)), 1e-9)
+      out_d <- sfget("vTechOut")
+      if (!is.null(out_d) && "comm" %in% names(out_d))
+        out_d <- out_d[out_d$comm %in% out_comms, , drop = FALSE]
+      out_ag <- agg_yr(out_d)
+      if (!is.null(out_ag) && nrow(out_ag) > 0 &&
+          all(is.finite(out_ag$value)) && all(out_ag$value > 0))
+        norm_yr <- setNames(out_ag$value, as.character(out_ag$year))
+      else
+        prim_dem <- max(sum(unlist(dem_vals)), 1e-9)
     }
 
     normalise_ <- function(yr_int, val) {
@@ -1042,6 +1500,7 @@ levcost_technology_ <- function(
     names(lc_tbl)[names(lc_tbl) == "value"] <- "levcost"
     lc_tbl$levcost <- normalise_(lc_tbl$year, lc_tbl$levcost)
     lc_tbl$tech  <- tech_name; lc_tbl$group <- group_val; lc_tbl$comm <- comm_lbl
+    lc_tbl$region <- region
     cf <- c("tech", "group", "comm", "region", "year", "levcost")
     lc_tbl <- lc_tbl[, c(cf, setdiff(names(lc_tbl), cf)), drop = FALSE]
 
@@ -1105,8 +1564,8 @@ levcost_technology_ <- function(
                     fixom = fixom_val,
                     varom = varom_val,
                     supply = agg_yr(sfget("vSupCost")))
-    im <- sfget("vImportRowCost")
-    if (!is.null(im)) cmp_raw[["import"]] <- agg_yr(im)
+    # NB: vDummyImportCost is the backstop slack and is deliberately excluded — it
+    # is not part of the technology's own levelized cost.
     ex <- sfget("vExportRowCost")
     if (!is.null(ex)) {
       ea <- agg_yr(ex)
@@ -1609,15 +2068,9 @@ print.share_frontier_plots <- function(x, ...) {
 }
 
 # ── autoplot / print methods ────────────────────────────────────────────────────
-
-# Define local autoplot generic if ggplot2 is not attached.
-if (!exists("autoplot", mode = "function", inherits = TRUE)) {
-  autoplot <- function(object, ...) {
-    if (!requireNamespace("ggplot2", quietly = TRUE))
-      stop("Package 'ggplot2' is required for autoplot.")
-    UseMethod("autoplot")
-  }
-}
+# autoplot() is the ggplot2 generic; energyRt registers its methods against it
+# with the fully-qualified S3method(ggplot2::autoplot, <class>) form (delayed
+# registration, no hard ggplot2 dependency). Users call it via library(ggplot2).
 
 .levcost_comp_order  <- c("eac", "fixom", "varom", "supply", "import", "export")
 .levcost_comp_labels <- c(eac    = "EAC (Annualised Inv.)",
@@ -1654,7 +2107,7 @@ print.levcost_list <- function(x, ...) {
   invisible(x)
 }
 
-#' @export
+#' @exportS3Method ggplot2::autoplot
 autoplot.levcost <- function(object,
                              type = c("components", "npv", "totals",
                                       "frontier", "input_frontier"),
@@ -1894,7 +2347,7 @@ autoplot.levcost <- function(object,
   p
 }
 
-#' @export
+#' @exportS3Method ggplot2::autoplot
 autoplot.levcost_list <- function(object,
                                   type = c("components", "npv", "totals",
                                            "frontier", "input_frontier"),

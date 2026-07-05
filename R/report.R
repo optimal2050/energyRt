@@ -14,18 +14,46 @@
 #' object.  The layout and content are controlled by the \code{template}
 #' argument.
 #'
-#' @param object An energyRt S4 object.  Currently supports \code{technology}.
+#' For a \code{technology}, the datasheet describes that technology. For a
+#' \code{repository}, \code{model}, or solved \code{scenario}, give the
+#' technology via \code{name = }: the same datasheet is produced, but the
+#' embedded levelized cost is computed for that container / solution (the
+#' \code{scenario} method uses the \emph{ex-post} cost from the solved model).
+#'
+#' \strong{Without} \code{name}, the container methods report the whole object:
+#' \describe{
+#'   \item{\code{model} / \code{repository}}{a full model report -- the
+#'     configuration (regions, horizon, calendar, discount), an inventory of
+#'     commodities / supplies / demands / trade / constraints, the process
+#'     availability windows chart, and every technology and storage described
+#'     one-by-one (diagram + key parameters).}
+#'   \item{\code{scenario}}{a results overview of the solved scenario -- solve
+#'     status and objective, generation / capacity / new-capacity mixes (via
+#'     \code{\link{getMix}} and \code{autoplot}), a sub-annual dispatch profile
+#'     when the calendar has one, emissions and cost tables.}
+#' }
+#'
+#' @param object An energyRt S4 object: \code{technology}, \code{repository},
+#'   \code{model}, or solved \code{scenario}.
+#' @param name Character (container/scenario methods). Name of the technology /
+#'   process to report.
 #' @param template Character.  Template name that defines which parameters to
 #'   display.  Currently \code{"generic"} is built into the package.  Pass the
 #'   absolute path to a custom \code{.Rmd} file to use your own template.
 #'   Default \code{NULL} selects \code{"generic"} automatically.
 #' @param image_file Character.  Optional path to a PNG/JPG image displayed in
 #'   the upper-right corner of the page.  \code{NULL} skips the image.
-#' @param file Character.  Destination file path.  Defaults to a temporary file
-#'   with the extension appropriate for \code{format}.
-#' @param format Character.  Output format: \code{"pdf"} (default),
-#'   \code{"html"}, or \code{"tex"} (standalone LaTeX source).  Multiple
-#'   values are accepted; one file is produced per format.
+#' @param file Character.  Destination file path.  Defaults to
+#'   \code{report_<name>} in the current working directory, with the extension
+#'   appropriate for \code{format}.
+#' @param format Character.  Output format: \code{"html"} (default),
+#'   \code{"pdf"}, or \code{"tex"} (standalone LaTeX source).  Multiple values
+#'   are accepted; one file is produced per format.  \code{"pdf"}/\code{"tex"}
+#'   require a LaTeX installation (e.g. \code{tinytex::install_tinytex()}) and
+#'   are skipped with a warning when none is found.
+#' @param open Logical.  Open the rendered report in the system browser/viewer
+#'   when done.  Defaults to \code{interactive()} (opens in an interactive
+#'   session, stays quiet in scripts and knits).
 #' @param levcost A \code{levcost} (or \code{levcost_list}) object returned by
 #'   \code{\link{levcost}}, or \code{NULL} (default).  When \code{NULL} and any
 #'   \code{levcost} keyword arguments are passed via \code{...} (e.g.
@@ -50,11 +78,42 @@
 setGeneric(
   "report",
   function(object, template = NULL, image_file = NULL, file = NULL,
-           format = c("pdf", "html", "tex"),
-           levcost = NULL, cost_unit = NULL, ...) {
+           format = c("html", "pdf", "tex"),
+           levcost = NULL, cost_unit = NULL, open = interactive(), ...) {
     standardGeneric("report")
   }
 )
+
+# TRUE when a LaTeX toolchain is available for pdf/tex output.
+.report_has_latex <- function() {
+  nzchar(Sys.which("pdflatex")) || nzchar(Sys.which("xelatex")) ||
+    (requireNamespace("tinytex", quietly = TRUE) &&
+       isTRUE(tryCatch(tinytex::is_tinytex(), error = function(e) FALSE)))
+}
+
+# Drop pdf/tex from `format` (with a helpful warning) when LaTeX is missing.
+.report_check_formats <- function(format) {
+  needs_latex <- format %in% c("pdf", "tex")
+  if (any(needs_latex) && !.report_has_latex()) {
+    warning("No LaTeX installation found -- skipping format(s): ",
+            paste(format[needs_latex], collapse = ", "),
+            ". Install one with tinytex::install_tinytex(), ",
+            "or use format = \"html\".", call. = FALSE)
+    format <- format[!needs_latex]
+    if (length(format) == 0) format <- "html"
+  }
+  format
+}
+
+# Open the first rendered file in the system viewer/browser.
+.report_open <- function(out_files, open) {
+  if (isTRUE(open) && length(out_files) > 0) {
+    pick <- out_files[grepl("\\.(html|pdf)$", out_files)]
+    if (length(pick) > 0)
+      tryCatch(utils::browseURL(pick[1]), error = function(e) invisible(NULL))
+  }
+  invisible(NULL)
+}
 
 # ── technology method ──────────────────────────────────────────────────────────
 
@@ -64,10 +123,13 @@ setMethod(
   "report",
   "technology",
   function(object, template = NULL, image_file = NULL, file = NULL,
-           format = c("pdf", "html", "tex"),
-           levcost = NULL, cost_unit = NULL, ...) {
+           format = c("html", "pdf", "tex"),
+           levcost = NULL, cost_unit = NULL, open = interactive(), ...) {
 
-    format <- match.arg(format, c("pdf", "html", "tex"), several.ok = TRUE)
+    # default = html only (pdf/tex need LaTeX); explicit requests are honoured
+    format <- if (missing(format)) "html" else
+      match.arg(format, c("html", "pdf", "tex"), several.ok = TRUE)
+    format <- .report_check_formats(format)
 
     # -- resolve template --------------------------------------------------
     tmpl_name <- if (is.null(template)) "generic" else template
@@ -102,9 +164,10 @@ setMethod(
     }
 
     # -- output file base (extension stripped) ------------------------------
+    # default: report_<NAME> in the working directory (findable, deterministic)
     if (is.null(file)) {
-      file_base <- tempfile(
-        pattern = paste0("report_", gsub("[^A-Za-z0-9_]", "_", object@name), "_"))
+      file_base <- file.path(getwd(),
+        paste0("report_", gsub("[^A-Za-z0-9_]", "_", object@name)))
     } else {
       file_base <- tools::file_path_sans_ext(file)
     }
@@ -168,7 +231,7 @@ setMethod(
             plot.margin      = ggplot2::margin(2, 4, 2, 2)
           )
         levcost_plot <- tryCatch({
-          p <- autoplot(lc_obj, type = "npv", cost_unit = cost_unit)
+          p <- ggplot2::autoplot(lc_obj, type = "npv", cost_unit = cost_unit)
           if (!is.null(p)) p + compact_theme else NULL
         }, error = function(e) {
           warning("levcost plot (type='npv') failed: ", conditionMessage(e))
@@ -176,7 +239,7 @@ setMethod(
         })
         if (!is.null(lc_obj$frontier) && nrow(lc_obj$frontier) > 0) {
           frontier_plot <- tryCatch({
-            p <- autoplot(lc_obj, type = "frontier", cost_unit = cost_unit)
+            p <- ggplot2::autoplot(lc_obj, type = "frontier", cost_unit = cost_unit)
             if (!is.null(p)) p + compact_theme else NULL
           }, error = function(e) {
             warning("frontier plot failed: ", conditionMessage(e))
@@ -247,9 +310,377 @@ setMethod(
       out_files <- c(out_files, fout)
     }
 
+    .report_open(out_files, open)
     invisible(if (length(out_files) == 1L) out_files[1L] else out_files)
   }
 )
+
+# ── repository / model / scenario methods ────────────────────────────────────
+# Report a technology from a container: reuse the technology datasheet, injecting
+# the levelized cost computed for that container / solved scenario. Give the
+# technology via `name = ` (in `...`).
+.report_lc_params <- c("comm", "group", "autocomplete", "fuel_costs", "discount",
+                       "base_year", "horizon", "calendar", "region", "weather",
+                       "frontier", "solver", "verbose")
+
+.report_container <- function(container, tech_source, object_for_levcost,
+                              template, image_file, file, format, levcost,
+                              cost_unit, name, dots, open = interactive()) {
+  if (is.null(name) || !nzchar(name)) {
+    message("report(): give the technology/process `name = ` to report.")
+    return(invisible(NULL))
+  }
+  tech <- .levcost_find_tech(tech_source, name)
+  if (is.null(tech)) {
+    message("report(): technology '", name, "' not found in the ",
+            class(container)[1], ".")
+    return(invisible(NULL))
+  }
+  lc_dots     <- dots[intersect(names(dots), .report_lc_params)]
+  render_dots <- dots[setdiff(names(dots), .report_lc_params)]
+  if (is.null(lc_dots$verbose)) lc_dots$verbose <- FALSE
+  if (is.null(levcost)) {
+    levcost <- tryCatch(
+      do.call(energyRt::levcost, c(list(object_for_levcost, name = name), lc_dots)),
+      error = function(e) {
+        warning("levcost() failed in report(): ", conditionMessage(e)); NULL
+      })
+    if (is.null(levcost)) {
+      message("report(): could not compute levelized cost for '", name, "'.")
+      return(invisible(NULL))
+    }
+  }
+  do.call(report, c(list(tech, template = template, image_file = image_file,
+    file = file, format = format, levcost = levcost, cost_unit = cost_unit,
+    open = open), render_dots))
+}
+
+# ── whole-object reports ──────────────────────────────────────────────────────
+# report(model) / report(repository) without `name`: a full model report --
+# configuration + inventory + every process one-by-one.
+# report(scenario) without `name`: a results overview built on getMix()/autoplot.
+
+# Shared render loop for the whole-object templates.
+.report_render <- function(tmpl_name, params, file, format, render_dots, stub,
+                           open = interactive()) {
+  format <- .report_check_formats(
+    match.arg(format, c("html", "pdf", "tex"), several.ok = TRUE))
+  tmpl <- if (!is.null(tmpl_name) && file.exists(tmpl_name)) {
+    normalizePath(tmpl_name, mustWork = TRUE)
+  } else {
+    .find_report_template(tmpl_name)
+  }
+  # default: report_<name> in the working directory (findable, deterministic)
+  file_base <- if (is.null(file)) {
+    file.path(getwd(), paste0("report_", gsub("[^A-Za-z0-9_]", "_", stub)))
+  } else {
+    tools::file_path_sans_ext(file)
+  }
+  file_base <- normalizePath(file_base, mustWork = FALSE)
+  out_files <- character(0)
+  for (fmt in format) {
+    ext  <- switch(fmt, pdf = ".pdf", html = ".html", tex = ".tex")
+    fout <- paste0(file_base, ext)
+    out_fmt <- switch(fmt,
+      pdf  = rmarkdown::pdf_document(latex_engine = "pdflatex"),
+      html = rmarkdown::html_document(self_contained = TRUE),
+      tex  = rmarkdown::latex_document())
+    do.call(rmarkdown::render, c(
+      list(input = tmpl, output_format = out_fmt, output_file = fout,
+           params = params, envir = new.env(parent = globalenv()),
+           quiet = TRUE),
+      render_dots))
+    message("Report written to: ", fout)
+    out_files <- c(out_files, fout)
+  }
+  .report_open(out_files, open)
+  invisible(if (length(out_files) == 1L) out_files[1L] else out_files)
+}
+
+# Compact parameter table for one process (technology or storage).
+.proc_info_df <- function(p) {
+  rows <- list()
+  add <- function(k, v) {
+    v <- v[!is.na(v) & nzchar(as.character(v))]
+    if (length(v) > 0)
+      rows[[length(rows) + 1L]] <<- data.frame(parameter = k,
+        value = paste(unique(v), collapse = ", "), stringsAsFactors = FALSE)
+  }
+  gs <- function(sl) tryCatch(methods::slot(p, sl), error = function(e) NULL)
+  inp <- gs("input"); out <- gs("output")
+  if (is.data.frame(inp) && nrow(inp) > 0) add("input", as.character(inp$comm))
+  if (is.data.frame(out) && nrow(out) > 0) add("output", as.character(out$comm))
+  cm <- gs("commodity")                                   # storage
+  if (is.character(cm) && length(cm) > 0) add("commodity", cm)
+  ceff <- gs("ceff")
+  if (is.data.frame(ceff) && nrow(ceff) > 0) {
+    for (cc in intersect(c("cinp2use", "cact2cout", "cinp2ginp"), names(ceff))) {
+      v <- ceff[[cc]]; v <- v[!is.na(v)]
+      if (length(v) > 0) add(cc, paste(signif(v, 3)))
+    }
+  }
+  geff <- gs("geff")
+  if (is.data.frame(geff) && "ginp2use" %in% names(geff)) {
+    v <- geff$ginp2use[!is.na(geff$ginp2use)]
+    if (length(v) > 0) add("ginp2use", paste(signif(v, 3)))
+  }
+  num_rng <- function(d, col, unit = "") {
+    if (is.data.frame(d) && col %in% names(d)) {
+      v <- suppressWarnings(as.numeric(d[[col]])); v <- v[is.finite(v)]
+      if (length(v) > 0) {
+        r <- range(v)
+        return(paste0(if (r[1] == r[2]) signif(r[1], 4) else
+          paste(signif(r[1], 4), "-", signif(r[2], 4)), unit))
+      }
+    }
+    NA_character_
+  }
+  add("invcost", num_rng(gs("invcost"), "invcost"))
+  add("fixom",   num_rng(gs("fixom"),   "fixom"))
+  add("varom",   num_rng(gs("varom"),   "varom"))
+  ol <- gs("olife")
+  if (is.data.frame(ol) && nrow(ol) > 0) add("olife", ol$olife[1])
+  st <- gs("start")
+  if (is.data.frame(st) && nrow(st) > 0) add("start", st$start[1])
+  cap <- gs("capacity")
+  if (is.data.frame(cap) && "stock" %in% names(cap)) {
+    v <- cap$stock[!is.na(cap$stock)]
+    if (length(v) > 0) add("stock (total)", signif(sum(v), 4))
+  }
+  w <- gs("weather")
+  if (is.data.frame(w) && nrow(w) > 0) add("weather", as.character(w$weather))
+  if (length(rows) == 0) return(NULL)
+  do.call(rbind, rows)
+}
+
+.report_model <- function(object, template, file, format, dots,
+                          open = interactive()) {
+  is_model <- inherits(object, "model")
+  nm   <- if (nzchar(object@name)) object@name else class(object)[1]
+  desc <- tryCatch(object@desc, error = function(e) "")
+
+  # -- configuration (model only) ------------------------------------------
+  config_df <- NULL
+  horizon <- NULL
+  if (is_model) {
+    cfg <- object@config
+    horizon <- tryCatch(cfg@horizon, error = function(e) NULL)
+    cal     <- tryCatch(cfg@calendar, error = function(e) NULL)
+    pair <- function(k, v) data.frame(setting = k, value = v,
+                                      stringsAsFactors = FALSE)
+    cfg_rows <- list(pair("regions", paste(cfg@region, collapse = ", ")))
+    if (!is.null(horizon) && nrow(horizon@intervals) > 0) {
+      cfg_rows <- c(cfg_rows,
+        list(pair("horizon", paste(range(horizon@period), collapse = " - ")),
+             pair("milestone years",
+                  paste(horizon@intervals$mid, collapse = ", "))))
+    }
+    if (!is.null(cal)) {
+      ns <- tryCatch(nrow(cal@slice_share), error = function(e) NA)
+      cfg_rows <- c(cfg_rows, list(pair("calendar",
+        paste0(if (nzchar(cal@name)) cal@name else "(unnamed)",
+               " (", ns, " slices)"))))
+    }
+    dsc <- tryCatch(cfg@discount, error = function(e) NULL)
+    if (is.data.frame(dsc) && nrow(dsc) > 0) {
+      for (col in c("sdr", "wacc", "discount")) {
+        v <- suppressWarnings(as.numeric(dsc[[col]]))
+        v <- v[is.finite(v)]
+        if (length(v) > 0) {
+          cfg_rows <- c(cfg_rows, list(pair("discount",
+            paste(unique(signif(v, 4)), collapse = ", "))))
+          break
+        }
+      }
+    }
+    cfg_rows <- c(cfg_rows, list(pair("optimizeRetirement",
+      as.character(isTRUE(cfg@optimizeRetirement)))))
+    config_df <- do.call(rbind, cfg_rows)
+  }
+
+  gobj <- function(cls) tryCatch(getObjects(object, cls),
+                                 error = function(e) list())
+  comms <- gobj("commodity"); sups <- gobj("supply"); dems <- gobj("demand")
+  stgs  <- gobj("storage");   trds <- gobj("trade")
+  cns   <- gobj("constraint"); techs <- gobj("technology")
+
+  counts_df <- data.frame(
+    class = c("commodity", "supply", "demand", "technology", "storage",
+              "trade", "constraint"),
+    count = c(length(comms), length(sups), length(dems), length(techs),
+              length(stgs), length(trds), length(cns)),
+    stringsAsFactors = FALSE)
+  counts_df <- counts_df[counts_df$count > 0, , drop = FALSE]
+
+  comm_df <- if (length(comms) > 0) do.call(rbind, lapply(comms, function(x) {
+    em <- if (nrow(x@emis) > 0)
+      paste(x@emis$comm, x@emis$emis, x@emis$unit, collapse = "; ") else ""
+    data.frame(name = x@name, timeframe = x@timeframe[1], emissions = em,
+               stringsAsFactors = FALSE)
+  })) else NULL
+
+  sup_df <- if (length(sups) > 0) do.call(rbind, lapply(sups, function(x) {
+    cost <- if (nrow(x@availability) > 0 && "cost" %in% names(x@availability)) {
+      v <- x@availability$cost[!is.na(x@availability$cost)]
+      if (length(v) > 0) paste(unique(signif(range(v), 4)), collapse = " - ") else ""
+    } else ""
+    data.frame(name = x@name, commodity = paste(x@commodity, collapse = ", "),
+               cost = cost, stringsAsFactors = FALSE)
+  })) else NULL
+
+  dem_df <- if (length(dems) > 0) do.call(rbind, lapply(dems, function(x) {
+    tot <- if (nrow(x@dem) > 0 && "dem" %in% names(x@dem)) {
+      v <- x@dem$dem[!is.na(x@dem$dem)]
+      if (length(v) > 0) signif(sum(v), 4) else NA
+    } else NA
+    data.frame(name = x@name, commodity = paste(x@commodity, collapse = ", "),
+               total = tot, stringsAsFactors = FALSE)
+  })) else NULL
+
+  trd_df <- if (length(trds) > 0) data.frame(name = names(trds),
+    stringsAsFactors = FALSE) else NULL
+  cns_df <- if (length(cns) > 0) data.frame(name = names(cns),
+    desc = vapply(cns, function(x)
+      tryCatch(x@desc, error = function(e) ""), character(1)),
+    stringsAsFactors = FALSE) else NULL
+
+  windows_plot <- if (requireNamespace("ggplot2", quietly = TRUE)) tryCatch(
+    plot_process_windows(object, horizon = horizon), error = function(e) NULL)
+    else NULL
+
+  # -- per-process sections --------------------------------------------------
+  tech_list <- lapply(c(techs, stgs), function(p) {
+    draw_file <- tryCatch({
+      tf <- tempfile(pattern = "report_draw_", fileext = ".png")
+      grDevices::png(tf, width = 900, height = 600, res = 150, bg = "white")
+      draw(p)
+      grDevices::dev.off()
+      if (file.exists(tf) && file.info(tf)$size > 5000) tf else NULL
+    }, error = function(e) {
+      tryCatch(grDevices::dev.off(), error = function(e2) NULL)
+      NULL
+    })
+    list(name = p@name,
+         desc = tryCatch(p@desc, error = function(e) ""),
+         draw_file = draw_file,
+         info_df = .proc_info_df(p))
+  })
+
+  params <- list(
+    title      = paste0("Model report: ", nm),
+    model_name = nm, model_desc = desc,
+    config_df  = config_df, counts_df = counts_df,
+    comm_df = comm_df, sup_df = sup_df, dem_df = dem_df,
+    trd_df = trd_df, cns_df = cns_df,
+    windows_plot = windows_plot, techs = tech_list)
+
+  tmpl <- if (is.null(template)) "model" else template
+  .report_render(tmpl, params, file, format, dots, nm, open = open)
+}
+
+.report_scenario <- function(scen, template, file, format, dots,
+                             open = interactive()) {
+  nm <- if (nzchar(scen@name)) scen@name else "scenario"
+  gd <- function(v) tryCatch(
+    as.data.frame(getData(scen, name = v, merge = TRUE, drop.zeros = FALSE)),
+    error = function(e) NULL)
+
+  obj    <- gd("vObjective")
+  status_df <- data.frame(
+    item  = c("scenario", "solved (optimal)", "solver",
+              "objective (total discounted cost)"),
+    value = c(nm, as.character(isTRUE(scen@status$optimal)),
+              tryCatch(paste(scen@settings@solver$lang), error = function(e) ""),
+              if (!is.null(obj) && nrow(obj) > 0)
+                format(signif(obj$value[1], 6), big.mark = ",") else "n/a"),
+    stringsAsFactors = FALSE)
+
+  ap <- function(...) if (requireNamespace("ggplot2", quietly = TRUE))
+    tryCatch(ggplot2::autoplot(scen, ...), error = function(e) NULL) else NULL
+  gen_plot    <- ap("generation")
+  cap_plot    <- ap("capacity")
+  newcap_plot <- ap("new_capacity")
+  # dispatch profile over a sub-annual sample when the calendar has one
+  gen_day_plot <- NULL
+  sl <- tryCatch(unique(.mix_fetch(scen, "vTechOut", native = TRUE)$slice),
+                 error = function(e) NULL)
+  sl <- setdiff(sl, "ANNUAL")
+  if (length(sl) > 1) {
+    pref <- sub("_.*$", "", sl[1])
+    gen_day_plot <- ap("generation", slice = paste0("^", pref, "_"))
+  }
+
+  emis <- gd("vEmsFuelTot")
+  emis_df <- if (!is.null(emis) && nrow(emis) > 0) {
+    ag <- stats::aggregate(value ~ comm + year, emis, sum)
+    ag$value <- signif(ag$value, 5); ag
+  } else NULL
+
+  cost <- gd("vTotalCost")
+  cost_df <- if (!is.null(cost) && nrow(cost) > 0) {
+    ag <- stats::aggregate(value ~ year, cost, sum)
+    names(ag)[2] <- "total cost"; ag[["total cost"]] <- signif(ag[["total cost"]], 6)
+    ag
+  } else NULL
+
+  desc <- tryCatch(scen@desc, error = function(e) "")
+  if (is.null(desc) || length(desc) == 0) desc <- ""
+  params <- list(
+    title = paste0("Scenario report: ", nm),
+    scen_name = nm, scen_desc = desc,
+    status_df = status_df,
+    gen_plot = gen_plot, gen_day_plot = gen_day_plot,
+    cap_plot = cap_plot, newcap_plot = newcap_plot,
+    emis_df = emis_df, cost_df = cost_df)
+
+  tmpl <- if (is.null(template)) "scenario" else template
+  .report_render(tmpl, params, file, format, dots, nm, open = open)
+}
+
+#' @rdname report
+#' @export
+setMethod("report", "repository",
+  function(object, template = NULL, image_file = NULL, file = NULL,
+           format = c("html", "pdf", "tex"), levcost = NULL, cost_unit = NULL,
+           open = interactive(), ...) {
+    if (missing(format)) format <- "html"
+    dots <- list(...); name <- dots[["name"]]; dots[["name"]] <- NULL
+    if (is.null(name)) {
+      return(.report_model(object, template, file, format, dots, open = open))
+    }
+    .report_container(object, object, object, template, image_file, file, format,
+                      levcost, cost_unit, name, dots, open = open)
+  })
+
+#' @rdname report
+#' @export
+setMethod("report", "model",
+  function(object, template = NULL, image_file = NULL, file = NULL,
+           format = c("html", "pdf", "tex"), levcost = NULL, cost_unit = NULL,
+           open = interactive(), ...) {
+    if (missing(format)) format <- "html"
+    dots <- list(...); name <- dots[["name"]]; dots[["name"]] <- NULL
+    if (is.null(name)) {
+      return(.report_model(object, template, file, format, dots, open = open))
+    }
+    .report_container(object, object, object, template, image_file, file, format,
+                      levcost, cost_unit, name, dots, open = open)
+  })
+
+#' @rdname report
+#' @export
+setMethod("report", "scenario",
+  function(object, template = NULL, image_file = NULL, file = NULL,
+           format = c("html", "pdf", "tex"), levcost = NULL, cost_unit = NULL,
+           open = interactive(), ...) {
+    if (missing(format)) format <- "html"
+    dots <- list(...); name <- dots[["name"]]; dots[["name"]] <- NULL
+    if (is.null(name)) {
+      return(.report_scenario(object, template, file, format, dots, open = open))
+    }
+    .report_container(object, object@model, object, template, image_file, file,
+                      format, levcost, cost_unit, name, dots, open = open)
+  })
 
 # ── format wrappers ────────────────────────────────────────────────────────────
 

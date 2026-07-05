@@ -8,13 +8,13 @@
 #' @inherit newImport details
 #'
 #' @md
-#' @slot name `r get_slot_info("import", "name")`
-#' @slot desc `r get_slot_info("import", "desc")`
-#' @slot commodity `r get_slot_info("import", "commodity")`
-#' @slot unit `r get_slot_info("import", "unit")`
-#' @slot reserve `r get_slot_info("import", "reserve")`
-#' @slot imp `r get_slot_info("import", "imp")`
-#' @slot misc `r get_slot_info("import", "misc")`
+#' @slot name `r get_slot_doc("import", "name")`
+#' @slot desc `r get_slot_doc("import", "desc")`
+#' @slot commodity `r get_slot_doc("import", "commodity")`
+#' @slot unit `r get_slot_doc("import", "unit")`
+#' @slot reserve `r get_slot_doc("import", "reserve")`
+#' @slot imp `r get_slot_doc("import", "imp")`
+#' @slot misc `r get_slot_doc("import", "misc")`
 #'
 #' @include class-trade.R
 #' @family class import
@@ -80,13 +80,13 @@ setMethod("initialize", "import", function(.Object, ...) {
 #' define the price of the imported commodity.
 #' "Reserve" sets the total amount that can be imported over the model horizon.
 #'
-#' @param name `r get_slot_info("import", "name")`
-#' @param desc `r get_slot_info("import", "desc")`
-#' @param commodity `r get_slot_info("import", "commodity")`
-#' @param unit `r get_slot_info("import", "unit")`
-#' @param reserve `r get_slot_info("import", "reserve")`
-#' @param imp `r get_slot_info("import", "imp")`
-#' @param misc `r get_slot_info("import", "misc")`
+#' @param name `r get_slot_doc("import", "name")`
+#' @param desc `r get_slot_doc("import", "desc")`
+#' @param commodity `r get_slot_doc("import", "commodity")`
+#' @param unit `r get_slot_doc("import", "unit")`
+#' @param reserve `r get_slot_doc("import", "reserve")`
+#' @param imp `r get_slot_doc("import", "imp")`
+#' @param misc `r get_slot_doc("import", "misc")`
 #'
 #' @return import object with given specifications.
 #' @rdname newImport

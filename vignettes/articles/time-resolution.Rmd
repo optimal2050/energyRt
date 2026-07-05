@@ -1,0 +1,153 @@
+---
+title: "Time resolution: calendars and slices"
+editor_options:
+  chunk_output_type: console
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE, comment = "#>",
+  eval = requireNamespace("ggplot2", quietly = TRUE),
+  message = FALSE, warning = FALSE,
+  fig.width = 7, fig.height = 4.2, fig.retina = TRUE
+)
+```
+
+```{r setup}
+library(energyRt)
+library(ggplot2)
+```
+
+# Why sub-annual time matters
+
+Annual averages hide what makes energy systems hard: the sun sets, wind stalls,
+demand peaks in the evening. A model that balances electricity once a year sees
+none of it — storage is pointless, solar looks dispatchable, peak capacity is
+free. A **calendar** gives the model sub-annual **time slices**, and the slice
+count is the main dial between realism and model size:
+
+| calendar | structure | slices |
+|---|---|---:|
+| `utopia_annual` | one annual slice | 1 |
+| `utopia_seasons` | 4 seasons × day/night/peak | 12 |
+| `utopia_s4h24` | 4 seasons × 24 hours | 96 |
+| `utopia_m12h24` | 12 months × 24 hours | 288 |
+| `d365` | 365 days | 365 |
+
+Model variables scale roughly linearly with slices — the 96-slice UTOPIA base
+case solves in seconds on GLPK, the 288-slice variant is noticeably heavier.
+
+# The `make_timetable()` grammar
+
+A calendar's structure is a **nested named list**: each element is a *level*
+(e.g. `SEASON`, `HOUR`), holding its *slices*. Slice names must be
+alphanumeric (they become set elements in the solver files). The simplest form
+lists slice names — the year is divided equally:
+
+```{r tt-equal}
+tt <- make_timetable(list(
+  SEASON = c("WIN", "SPR", "SUM", "AUT"),
+  HOUR   = paste0("h", formatC(0:23, width = 2, flag = "0"))
+))
+head(tt)          # 4 x 24 = 96 leaf slices, equal shares
+```
+
+Unequal **shares** are given per slice; a nested `list(<share>, <LEVEL> = ...)`
+attaches child levels. UTOPIA's 12-slice calendar makes peak hours short and
+winter nights long:
+
+```{r tt-shares}
+tt12 <- make_timetable(list(
+  SEASON = list(
+    WIN = list(1 / 4, HOUR = list(DAY =  9 / 24, NGT = 12 / 24, PK = 3 / 24)),
+    SPR = list(1 / 4, HOUR = list(DAY = 11 / 24, NGT = 11 / 24, PK = 2 / 24)),
+    SUM = list(1 / 4, HOUR = list(DAY = 12 / 24, NGT =  9 / 24, PK = 3 / 24)),
+    AUT = list(1 / 4, HOUR = list(DAY = 11 / 24, NGT = 11 / 24, PK = 2 / 24))
+  )
+))
+head(tt12)
+```
+
+# From timetable to calendar
+
+`newCalendar()` turns a timetable into a `calendar` object. Note that `name`
+is the *first* argument — always pass the timetable by name (`timetable =`),
+or name `name`/`desc` so the timetable lands in the right slot:
+
+```{r calendar}
+cal <- newCalendar(timetable = tt, name = "s4h24")
+cal@name
+nrow(cal@slice_share)          # slices with their share of the year
+head(as.data.frame(cal@slice_share), 3)
+cal@timeframe_rank             # levels, coarsest (ANNUAL) to finest
+```
+
+The derived slots do the bookkeeping the model needs:
+
+* **`@slice_share`** — each slice's share of the year (the weight used
+  whenever slice values are aggregated);
+* **`@timeframes`** — the slice sets at every level (`ANNUAL`, `SEASON`, ...);
+* **`@timeframe_rank`** — the level hierarchy; a commodity's `timeframe`
+  picks the level it is balanced on.
+
+`autoplot()` draws the nested structure:
+
+```{r cal-plot, fig.height = 5}
+autoplot(cal)
+```
+
+# Ready-made calendars
+
+The package ships a `calendars` list, built by `data-raw/calendars.R` with
+exactly the grammar above — including the whole UTOPIA family:
+
+```{r calendars-data}
+names(calendars)
+calendars$utopia_seasons@desc
+```
+
+Pick one and pass it to `newModel(calendar = ...)`; the UTOPIA vignettes use
+`calendars$utopia_s4h24` throughout.
+
+# Slice-string helpers
+
+Slice names encode time; a few helpers translate between encodings:
+
+```{r helpers}
+hour2HOUR(c(0, 13, 23))        # hour of day -> "h00" "h13" "h23"
+yday2YDAY(c(1, 365))           # day of year -> "d001" "d365"
+head(tsl_formats)              # known slice-name formats (a dataset)
+```
+
+`tsl2dtm()` / `dtm2tsl()` convert slice strings to/from date-times — useful
+when joining model output with observed hourly data.
+
+# Timeframes: commodities and processes
+
+Every commodity carries a `timeframe` — the calendar level it is **balanced**
+on. Fuels are typically `ANNUAL`; electricity `HOUR`:
+
+```{r timeframes, eval = FALSE}
+ELC <- newCommodity("ELC", timeframe = "HOUR")    # balanced every slice
+COA <- newCommodity("COA", timeframe = "ANNUAL")  # balanced once a year
+```
+
+A process operates at the *finest* timeframe among its commodities (a gas
+plant producing hourly `ELC` is dispatched hourly), overridable via
+`newTechnology(timeframe = ...)` — see the
+[model bricks article](model-bricks.html) for details. The practical
+consequence: raising the calendar's resolution refines *only* the commodities
+and processes whose timeframes follow it — annual bookkeeping stays cheap.
+
+# Choosing a resolution
+
+* Start coarse (`utopia_seasons`-like, ~12 slices) while the model structure
+  is in flux — solves are instant.
+* Move to hour-within-season (`utopia_s4h24`, 96) once storage, VRE profiles
+  or peak pricing matter — intra-day dynamics need real hours.
+* Full-year hourly detail (`utopia_m12h24`, 288 or `d365`+hours) is for final
+  runs; check tractability with `model_size()` first.
+
+The [UTOPIA vignettes](utopia-build.html) build one model and run it on these
+calendars interchangeably — resolution is a configuration choice, not a
+rewrite.

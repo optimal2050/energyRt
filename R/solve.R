@@ -1,10 +1,62 @@
 # =============================================================================#
-# solve.R -- SHARED solver framework (write / run / read).
-# Used by BOTH the new interp_mod/solve_scen pipeline (R/solve_new.R) and the
-# archived legacy entry points (depreciated/R/solve_legacy.R). The legacy
-# solve_model()/solve_scenario()/`solve` methods were split out during the
-# legacy retirement; public names are repurposed in R/legacy_api_shims.R.
+# solve.R -- solver framework (write / run / read) + the interp_mod pipeline
+# entry points solve_mod()/solve_scen() (merged here from the former solve_new.R).
+# The shared framework (.executeScenario) is also used by the archived legacy
+# entry points (depreciated/R/solve_legacy.R). The public legacy names
+# interpolate_model()/solve_model()/solve_scenario()/`solve` are repurposed in
+# R/legacy_api_shims.R.
 # =============================================================================#
+
+# ---- "smart" path helpers ----------------------------------------------------
+# Build a filesystem-safe slug from parts, dropping empty/NA and case-insensitive
+# duplicate components (e.g. when the scenario and model share a name).
+.path_slug <- function(..., sep = "_") {
+  parts <- unlist(list(...), use.names = FALSE)
+  parts <- parts[!is.na(parts)]
+  parts <- trimws(as.character(parts))
+  parts <- parts[nzchar(parts)]
+  parts <- gsub("[^A-Za-z0-9]+", "-", parts) # path-safe
+  parts <- gsub("(^-+)|(-+$)", "", parts)
+  parts <- parts[nzchar(parts)]
+  parts <- parts[!duplicated(parts)] # drop exact repeats (e.g. scenario==model)
+  paste(parts, collapse = sep)
+}
+
+# Smart solver-directory name: {backend}_{solver}_{method}. Prefers an explicit
+# `solver$name` (curated, e.g. "julia_highs"); otherwise derives from the
+# backend (solver$backend or solver$lang), solver, and method (solver$method or
+# inferred from a "barrier"/"simplex" hint).
+.solver_dir_name <- function(solver) {
+  if (is.null(solver)) {
+    return("")
+  }
+  if (!is.null(solver$name) && nzchar(solver$name)) {
+    return(solver$name)
+  }
+  method <- solver$method
+  if (is.null(method) || !nzchar(method)) {
+    hint <- paste(c(solver$name, names(solver)), collapse = " ")
+    method <- if (grepl("barrier", hint, ignore.case = TRUE)) {
+      "barrier"
+    } else if (grepl("simplex", hint, ignore.case = TRUE)) {
+      "simplex"
+    } else {
+      NULL
+    }
+  }
+  backend <- solver$backend
+  if (is.null(backend) || !nzchar(backend)) backend <- solver$lang
+  nm <- .path_slug(backend, solver$solver, method)
+  if (!nzchar(nm)) "solver" else nm
+}
+
+# Smart scenario-folder name: {scenario}_{model}_{calendar}_{horizon}.
+# Empty and duplicate components are dropped.
+.scenario_dir_name <- function(scenario_name, model_name = "",
+                               calendar_name = "", horizon_name = "") {
+  nm <- .path_slug(scenario_name, model_name, calendar_name, horizon_name)
+  if (!nzchar(nm)) as.character(scenario_name)[1] else nm
+}
 
 get_tmp_dir <- function(scen = NULL, arg = NULL) {
   # solver directory (tmp.dir) convention name
@@ -69,11 +121,8 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
     tmp.name <- arg[["tmp.name"]]
     arg[["tmp.name"]] <- NULL
   } else if (!is_empty(arg[["solver"]])) {
-    if (!is_empty(arg[["solver"]]$name)) {
-      tmp.name <- arg[["solver"]]$name
-    } else {
-      tmp.name <- paste(arg[["solver"]]$lang, arg[["solver"]]$solver, sep = "_")
-    }
+    # smart solver dir: {backend}_{solver}_{method} (or curated solver$name)
+    tmp.name <- .solver_dir_name(arg[["solver"]])
   # } else if (isTRUE(arg[["tmp.del"]])) {
     # tmp.name <- format(Sys.time(), "%Y%m%d%H%M%S%Z", tz = "UTC")
   } else {
@@ -236,11 +285,7 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
     } else if (any(grep("^(glpk|cbcb)$", scen@settings@solver$lang,
       ignore.case = TRUE
     ))) {
-      if (isTRUE(arg$glpk_writer_v2)) {
-        scen <- .write_model_GLPK_CBC2(arg, scen)
-      } else {
-        scen <- .write_model_GLPK_CBC(arg, scen)
-      }
+      scen <- .write_model_GLPK_CBC(arg, scen)
     } else if (any(grep("^pyomo", scen@settings@solver$lang, ignore.case = TRUE))) {
       scen <- .write_model_PYOMO(arg, scen)
     } else if (any(grep("^jump$", scen@settings@solver$lang, ignore.case = TRUE))) {
@@ -276,7 +321,9 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
   }
   # browser()
   if (isTRUE(arg$run)) .call_solver(arg, scen)
-  if (isTRUE(arg$read.solution) && isTRUE(arg$run)) scen <- read_solution(scen)
+  if (isTRUE(arg$read.solution) && isTRUE(arg$run)) {
+    scen <- read_solution(scen, echo = arg$echo)
+  }
 
   return(scen)
 }
@@ -306,21 +353,21 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
     {
       setwd(arg$tmp.dir)
       if (.Platform$OS.type == "windows") {
-        if (arg$invisible) {
+        if (arg$invisible || !isTRUE(arg$echo)) {
           cmd <- ""
         } else {
           cmd <- if_else(interactive(),  "cmd /k", "")
         }
         rs <- system(paste(cmd, scen@settings@solver$cmdline), #' gams energyRt.gms', arg$gamsCompileParameter),
-          invisible = arg$invisible, wait = arg$wait
-          # show.output.on.console = arg$show.output.on.console
+          invisible = arg$invisible, wait = arg$wait,
+          # `echo = FALSE` silences the solver's own console output too
+          ignore.stdout = !isTRUE(arg$echo)
         )
       } else {
-        # browser()
         rs <- system(paste(scen@settings@solver$cmdline),
-          # invisible = arg$invisible,
-          wait = arg$wait
-          # show.output.on.console = arg$show.output.on.console
+          wait = arg$wait,
+          # `echo = FALSE` silences the solver's own console output too
+          ignore.stdout = !isTRUE(arg$echo)
         )
       }
       setwd(HOMEDIR)
@@ -407,12 +454,162 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
 
 # NEW version ####
 
-# Functions and methods to solve model and scenario objects
+# =============================================================================#
+# Solve model / scenario objects via the interp_mod() mapping pipeline.
+# (Merged from the former solve_new.R.) solve_mod()/solve_scen() build the
+# interpolated scenario with interp_mod() and reuse the write/run/read framework
+# above (.executeScenario()). The public legacy names interpolate_model() /
+# solve_model() / solve_scenario() wrap these in legacy_api_shims.R.
+# =============================================================================#
 
-# solve_model <- function() {}
-
-# solve_scenario <- function() {}
-
-# solver_link <- function() {} # replace .executeScenario
 
 
+# Finalise an `interp_mod()`-built scenario so the write / solve framework can
+# run on it: attach the solver source-code templates and flag the scenario as
+# interpolated. Mirrors the tail of `interpolate()`.
+.finalize_interp <- function(scen, check = TRUE) {
+  if (is_empty(scen@settings@sourceCode)) {
+    scen@settings@sourceCode <- .modelCode
+  }
+  scen@status$interpolated <- TRUE
+  scen@status$script <- FALSE
+  if (isTRUE(check)) scen <- .check_scen_par(scen)
+  scen
+}
+
+# Load on-disk parameter data back into the in-memory `@data` slots so the
+# `write_*` helpers (which read `@data` directly) see the full model. No-op for
+# an in-memory scenario. The parameter store on disk is left untouched.
+.materialize_modInp <- function(scen) {
+  if (!isOnDisk(scen@modInp)) {
+    return(scen)
+  }
+  for (nm in names(scen@modInp@parameters)) {
+    p <- scen@modInp@parameters[[nm]]
+    if (!isOnDisk(p)) next
+    d <- get_data_slot(p) # reads from the on-disk parameter store
+    if (is.null(d)) d <- p@data
+    # Normalise column classes after the parquet/csv round-trip: an all-NA folded
+    # column (region/slice) comes back as `vctrs_unspecified` and a whole-number
+    # value narrows to integer, so force the in-memory classes (character dims,
+    # integer year, numeric value) to match an in-memory build exactly.
+    p@data <- force_cols_classes(d)
+    # Keep `nValues` consistent so the writers do not trim the materialised rows.
+    if (!is.null(p@misc$nValues) && p@misc$nValues != -1) {
+      p@misc$nValues <- nrow(p@data)
+    }
+    scen@modInp@parameters[[nm]] <- mark_inMemory(p)
+  }
+  scen@modInp <- mark_inMemory(scen@modInp)
+  scen
+}
+
+#' Solve a model or an interpolated scenario built with the new pipeline
+#'
+#' `solve_mod()` interpolates a model with [interpolate_model()] and solves it.
+#' `solve_scen()` solves a scenario that was already interpolated with
+#' [interpolate_model()]. Both reuse the existing write / run / read framework
+#' (`.executeScenario()`), so any solver backend supported by the legacy
+#' [solve_model()] (GLPK/GMPL, GAMS, Pyomo, JuMP) works unchanged.
+#'
+#' @param obj a model object (`solve_mod()`) or an interpolated scenario object
+#'   (`solve_scen()`).
+#' @param name character name of the scenario to create / return.
+#' @param solver a character or list with solver settings. When `NULL`, the
+#'   scenario's own solver settings or `get_default_solver()` are used.
+#' @param ondisk,fold passed to [interpolate_model()]. Defaults (`FALSE`/`FALSE`) keep
+#'   parameters in memory and unfolded, matching the shape the writers expect.
+#' @param tmp.dir character path to the solver working directory.
+#' @param tmp.del logical, delete the working directory after the run.
+#' @param force logical, re-solve a scenario already solved to optimal.
+#' @param ... for `solve_mod()`, arguments are routed to [interpolate_model()]
+#'   (settings / calendar / horizon / model data) or to the solver run
+#'   (`tmp.dir`, `tmp.del`, `force`, `read.solution`, `wait`, `echo`, `run`,
+#'   `n.threads`, ...). For `solve_scen()`, arguments are passed to
+#'   `.executeScenario()`. Set `echo = FALSE` for a quiet run: it silences both
+#'   the progress messages and the solver's own console output.
+#'
+#' @seealso [solve_model()], [interpolate_model()], [read_solution()]
+#' @return a scenario object with the solution.
+#' @rdname solve_mod
+#' @export
+solve_mod <- function(obj, name = NULL, solver = NULL,
+                      ondisk = FALSE, fold = FALSE, ...) {
+  if (!inherits(obj, "model")) {
+    stop("`solve_mod()` expects a model object. ",
+         "Use `solve_scen()` for an interpolated scenario.")
+  }
+  dots <- list(...)
+  # Arguments that belong to the solver run rather than to interpolation.
+  solve_args <- c("tmp.dir", "tmp.del", "force", "read.solution", "wait",
+                  "echo", "run", "n.threads", "invisible",
+                  "show.output.on.console", "open.folder")
+  is_solve <- names(dots) %in% solve_args
+  iarg <- dots[!is_solve]
+  sarg <- dots[is_solve]
+
+  scen <- do.call(
+    interp_mod,
+    c(list(mod = obj, name = name, ondisk = ondisk, fold = fold), iarg)
+  )
+
+  do.call(solve_scen, c(list(obj = scen, solver = solver), sarg))
+}
+
+#' @rdname solve_mod
+#' @export
+solve_scen <- function(obj, name = obj@name, solver = NULL, tmp.dir = NULL,
+                       tmp.del = FALSE, force = FALSE, ...) {
+  if (!inherits(obj, "scenario")) {
+    stop("`solve_scen()` expects a scenario built by `interp_mod()`. ",
+         "Use `solve_mod()` for a model object.")
+  }
+  if (!isTRUE(obj@status$interpolated)) {
+    stop("Scenario is not interpolated. Build it with `interp_mod()` ",
+         "or call `solve_mod()` on the model.")
+  }
+  if (isTRUE(obj@status$optimal) && !isTRUE(force)) {
+    message("The scenario is already solved to optimal.\n",
+            "Use 'force = TRUE' to solve it again.")
+    return(obj)
+  }
+
+  scen <- .finalize_interp(obj)
+  scen@name <- name
+
+  # The `write_*` helpers read each parameter's in-memory `@data` slot. For an
+  # on-disk scenario those slots are empty (data lives in the parameter store),
+  # so the model would be written out empty. Load the parameter data back into
+  # memory before writing.
+  scen <- .materialize_modInp(scen)
+
+  # A folded scenario (interp_mod(fold = TRUE)) carries NA wildcards in the
+  # trimmable dimensions. Make it solver-ready by replacing the wildcard with the
+  # artificial set member and substituting it into the chosen backend's model
+  # code. No-op for an unfolded scenario. Substitution is implemented for GLPK
+  # (`[]`), JuMP (`[(...)]` / `haskey`) and Pyomo (`.get((...))`); GAMS still needs
+  # declaration-aware `()` handling.
+  .blk <- .fold_code_block(if (!is.null(solver)) {
+    if (is.list(solver)) solver$lang else solver
+  } else scen@settings@solver$lang)
+  if (.blk %in% c("GLPK", "JuMP", "PYOMOConcrete")) {
+    scen <- apply_fold_artificial(scen, backends = .blk)
+  }
+
+  arg <- list(...)
+  arg$interpolate <- FALSE
+  arg$write <- TRUE
+  arg$force <- force
+  if (!is.null(solver)) arg$solver <- solver
+  if (!is.null(tmp.dir)) arg$tmp.dir <- tmp.dir
+  arg$tmp.del <- tmp.del
+  if (is.null(arg$read.solution)) arg$read.solution <- TRUE
+  arg$scen <- scen
+
+  scen <- do.call(.executeScenario, arg)
+
+  if (isTRUE(tmp.del) && !is.null(arg$tmp.dir)) {
+    unlink(arg$tmp.dir, recursive = TRUE)
+  }
+  scen
+}

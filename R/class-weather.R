@@ -6,14 +6,14 @@
 #' @inherit newWeather details
 #'
 #' @md
-#' @slot name `r get_slot_info("weather", "name")`
-#' @slot desc `r get_slot_info("weather", "desc")`
-#' @slot unit `r get_slot_info("weather", "unit")`
-#' @slot region `r get_slot_info("weather", "region")`
-#' @slot timeframe `r get_slot_info("weather", "timeframe")`
-#' @slot defVal `r get_slot_info("weather", "defVal")`
-#' @slot weather `r get_slot_info("weather", "weather")`
-#' @slot misc `r get_slot_info("weather", "misc")`
+#' @slot name `r get_slot_doc("weather", "name")`
+#' @slot desc `r get_slot_doc("weather", "desc")`
+#' @slot unit `r get_slot_doc("weather", "unit")`
+#' @slot region `r get_slot_doc("weather", "region")`
+#' @slot timeframe `r get_slot_doc("weather", "timeframe")`
+#' @slot defVal `r get_slot_doc("weather", "defVal")`
+#' @slot weather `r get_slot_doc("weather", "weather")`
+#' @slot misc `r get_slot_doc("weather", "misc")`
 #'
 #' @include class-export.R
 #' @family class weather data
@@ -67,13 +67,13 @@ setMethod("initialize", "weather", function(.Object, ...) {
 #' !!!Additional details...
 #'
 #' @md
-#' @param name `r get_slot_info("weather", "name")`
-#' @param desc `r get_slot_info("weather", "desc")`
-#' @param unit `r get_slot_info("weather", "unit")`
-#' @param region `r get_slot_info("weather", "region")`
-#' @param timeframe `r get_slot_info("weather", "timeframe")`
-#' @param defVal `r get_slot_info("weather", "defVal")`
-#' @param weather `r get_slot_info("weather", "weather")`
+#' @param name `r get_slot_doc("weather", "name")`
+#' @param desc `r get_slot_doc("weather", "desc")`
+#' @param unit `r get_slot_doc("weather", "unit")`
+#' @param region `r get_slot_doc("weather", "region")`
+#' @param timeframe `r get_slot_doc("weather", "timeframe")`
+#' @param defVal `r get_slot_doc("weather", "defVal")`
+#' @param weather `r get_slot_doc("weather", "weather")`
 #'
 #' @return weather object with given specifications.
 #' @export

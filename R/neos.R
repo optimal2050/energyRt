@@ -140,7 +140,7 @@ set_neos_email <- function(email = NULL) {
     httr2::request(.neos_endpoint()) |>
       httr2::req_body_raw(body, type = "text/xml") |>
       httr2::req_timeout(timeout) |>
-      httr2::req_user_agent("energyRt (https://github.com/energyRt/energyRt)") |>
+      httr2::req_user_agent("energyRt (https://github.com/optimal2050/energyRt)") |>
       httr2::req_perform(),
     error = function(e)
       stop("NEOS request failed (", method, "): ", conditionMessage(e),

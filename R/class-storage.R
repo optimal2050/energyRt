@@ -5,27 +5,27 @@
 #' @inherit newStorage details
 #'
 #' @md
-#' @slot name `r get_slot_info("storage", "name")`
-#' @slot desc `r get_slot_info("storage", "desc")`
-#' @slot commodity `r get_slot_info("storage", "commodity")`
-#' @slot aux `r get_slot_info("storage", "aux")`
-#' @slot region `r get_slot_info("storage", "region")`
-#' @slot start `r get_slot_info("storage", "start")`
-#' @slot end `r get_slot_info("storage", "end")`
-#' @slot olife `r get_slot_info("storage", "olife")`
-#' @slot capacity `r get_slot_info("storage", "capacity")`
-#' @slot charge `r get_slot_info("storage", "charge")`
-#' @slot seff `r get_slot_info("storage", "seff")`
-#' @slot af `r get_slot_info("storage", "af")`
-#' @slot aeff `r get_slot_info("storage", "aeff")`
-#' @slot fixom `r get_slot_info("storage", "fixom")`
-#' @slot varom `r get_slot_info("storage", "varom")`
-#' @slot invcost `r get_slot_info("storage", "invcost")`
-#' @slot fullYear `r get_slot_info("storage", "fullYear")`
-#' @slot cap2stg `r get_slot_info("storage", "cap2stg")`
-#' @slot weather `r get_slot_info("storage", "weather")`
-#' @slot optimizeRetirement `r get_slot_info("storage", "optimizeRetirement")`
-#' @slot misc `r get_slot_info("storage", "misc")`
+#' @slot name `r get_slot_doc("storage", "name")`
+#' @slot desc `r get_slot_doc("storage", "desc")`
+#' @slot commodity `r get_slot_doc("storage", "commodity")`
+#' @slot aux `r get_slot_doc("storage", "aux")`
+#' @slot region `r get_slot_doc("storage", "region")`
+#' @slot start `r get_slot_doc("storage", "start")`
+#' @slot end `r get_slot_doc("storage", "end")`
+#' @slot olife `r get_slot_doc("storage", "olife")`
+#' @slot capacity `r get_slot_doc("storage", "capacity")`
+#' @slot charge `r get_slot_doc("storage", "charge")`
+#' @slot seff `r get_slot_doc("storage", "seff")`
+#' @slot af `r get_slot_doc("storage", "af")`
+#' @slot aeff `r get_slot_doc("storage", "aeff")`
+#' @slot fixom `r get_slot_doc("storage", "fixom")`
+#' @slot varom `r get_slot_doc("storage", "varom")`
+#' @slot invcost `r get_slot_doc("storage", "invcost")`
+#' @slot fullYear `r get_slot_doc("storage", "fullYear")`
+#' @slot cap2stg `r get_slot_doc("storage", "cap2stg")`
+#' @slot weather `r get_slot_doc("storage", "weather")`
+#' @slot optimizeRetirement `r get_slot_doc("storage", "optimizeRetirement")`
+#' @slot misc `r get_slot_doc("storage", "misc")`
 #'
 #' @include class-technology.R
 #'
@@ -64,18 +64,18 @@ setClass("storage",
     commodity = "",
     start = data.frame(
       region = character(),
-      start = numeric(),
+      start = integer(),
       stringsAsFactors = FALSE
     ),
     end = data.frame(
       region = character(),
-      end = numeric(),
+      end = integer(),
       stringsAsFactors = FALSE
     ),
     olife = data.frame(
       region = character(),
       # year = integer(), # add year to distinguish vintages
-      olife = numeric(),
+      olife = integer(),
       stringsAsFactors = FALSE
     ),
     charge = data.frame(
@@ -152,6 +152,7 @@ setClass("storage",
       year = integer(),
       invcost = numeric(),
       wacc = numeric(),
+      eac = numeric(),
       retcost = numeric(),
       stringsAsFactors = FALSE
     ),
@@ -218,27 +219,27 @@ setMethod("initialize", "storage", function(.Object, ...) {
 #' when commodity time-frame is "HOUR" and the parent time-frame is "DAY" then
 #' the storage cycle will be a calendar day).
 #'
-#' @param name `r get_slot_info("storage", "name")`
-#' @param desc `r get_slot_info("storage", "desc")`
-#' @param commodity `r get_slot_info("storage", "commodity")`
-#' @param aux `r get_slot_info("storage", "aux")`
-#' @param region `r get_slot_info("storage", "region")`
-#' @param start `r get_slot_info("storage", "start")`
-#' @param end `r get_slot_info("storage", "end")`
-#' @param olife `r get_slot_info("storage", "olife")`
-#' @param charge `r get_slot_info("storage", "charge")`
-#' @param seff `r get_slot_info("storage", "seff")`
-#' @param aeff `r get_slot_info("storage", "aeff")`
-#' @param af `r get_slot_info("storage", "af")`
-#' @param fixom `r get_slot_info("storage", "fixom")`
-#' @param varom `r get_slot_info("storage", "varom")`
-#' @param invcost `r get_slot_info("storage", "invcost")`
-#' @param capacity `r get_slot_info("storage", "capacity")`
-#' @param cap2stg `r get_slot_info("storage", "cap2stg")`
-#' @param fullYear `r get_slot_info("storage", "fullYear")`
-#' @param weather `r get_slot_info("storage", "weather")`
-#' @param optimizeRetirement `r get_slot_info("storage", "optimizeRetirement")`
-#' @param misc `r get_slot_info("storage", "misc")`
+#' @param name `r get_slot_doc("storage", "name")`
+#' @param desc `r get_slot_doc("storage", "desc")`
+#' @param commodity `r get_slot_doc("storage", "commodity")`
+#' @param aux `r get_slot_doc("storage", "aux")`
+#' @param region `r get_slot_doc("storage", "region")`
+#' @param start `r get_slot_doc("storage", "start")`
+#' @param end `r get_slot_doc("storage", "end")`
+#' @param olife `r get_slot_doc("storage", "olife")`
+#' @param charge `r get_slot_doc("storage", "charge")`
+#' @param seff `r get_slot_doc("storage", "seff")`
+#' @param aeff `r get_slot_doc("storage", "aeff")`
+#' @param af `r get_slot_doc("storage", "af")`
+#' @param fixom `r get_slot_doc("storage", "fixom")`
+#' @param varom `r get_slot_doc("storage", "varom")`
+#' @param invcost `r get_slot_doc("storage", "invcost")`
+#' @param capacity `r get_slot_doc("storage", "capacity")`
+#' @param cap2stg `r get_slot_doc("storage", "cap2stg")`
+#' @param fullYear `r get_slot_doc("storage", "fullYear")`
+#' @param weather `r get_slot_doc("storage", "weather")`
+#' @param optimizeRetirement `r get_slot_doc("storage", "optimizeRetirement")`
+#' @param misc `r get_slot_doc("storage", "misc")`
 #' @return storage object
 #'
 #' @name newStorage
@@ -315,7 +316,7 @@ setMethod("initialize", "storage", function(.Object, ...) {
 #'     waf.fx = 0.9, wcinp.lo = 0.9,
 #'     wcinp.fx = 0.9, wcinp.up = 0.9, wcout.lo = 0.9, wcout.fx = 0.9,
 #'     wcout.up = 0.9
-#'   ), 
+#'   ),
 #'   optimizeRetirement = FALSE,
 #'   misc = list()
 #'   )

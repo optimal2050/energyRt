@@ -26,12 +26,12 @@ additional costs to add to the model's
 objective function.
 }
 \seealso{
-Other class constraint policy: 
+Other class constraint policy:
 \code{\link{class-constraint}},
 \code{\link{class-costs}},
-\code{\link{newConstraint}()},
-\code{\link{newSubsidy}()},
-\code{\link{newTax}()},
+\code{\link[=newConstraint]{newConstraint()}},
+\code{\link[=newSubsidy]{newSubsidy()}},
+\code{\link[=newTax]{newTax()}},
 \code{\link{subsidy-class}},
 \code{\link{tax-class}}
 }

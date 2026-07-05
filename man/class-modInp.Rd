@@ -13,7 +13,7 @@ interpolation step and is not intended to be created by users.
 \section{Slots}{
 
 \describe{
-\item{\code{set}}{list. named list of character vectors with sets used in the model. # used for interpolation only}
+\item{\code{set}}{list. named list of character vectors with sets used in the model.}
 
 \item{\code{parameters}}{list. named list of \code{parameter} objects with three tipes - set: detailed description of the set - parameter: all model parameters, interpolated for every milestone
 year in the model horizon if applicable. Names of parameters start
@@ -21,7 +21,7 @@ with 'p'
 \itemize{
 \item mapping sets: auxiliary, automatically created sets used to narrow
 the dimension of variables and constraints
-}exported to solver}
+}}
 
 \item{\code{gams.equation}}{list. named list of custom constraints added to the model from the \code{constraint} class. The name of the slot is outdated and will be changed in the future.}
 

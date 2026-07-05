@@ -22,7 +22,7 @@ Use \code{newRepository} to create a new repository object.
 }}
 
 \seealso{
-Other repository model data: 
-\code{\link{newRepository}()}
+Other repository model data:
+\code{\link[=newRepository]{newRepository()}}
 }
 \concept{repository model data}

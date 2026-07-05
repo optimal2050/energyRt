@@ -1,0 +1,69 @@
+---
+title: "`r params$title`"
+output:
+  html_document:
+    self_contained: true
+  pdf_document:
+    latex_engine: pdflatex
+params:
+  title:        "Scenario report"
+  scen_name:    ""
+  scen_desc:    ""
+  status_df:    NULL
+  gen_plot:     NULL
+  gen_day_plot: NULL
+  cap_plot:     NULL
+  newcap_plot:  NULL
+  emis_df:      NULL
+  cost_df:      NULL
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+library(ggplot2)
+kb <- function(df, ...) if (!is.null(df) && nrow(df) > 0) knitr::kable(df, row.names = FALSE, ...)
+```
+
+`r if (isTRUE(nzchar(params$scen_desc))) params$scen_desc`
+
+## Overview
+
+```{r status}
+kb(params$status_df)
+```
+
+## Generation
+
+```{r gen, fig.width=8, fig.height=4.5, eval=!is.null(params$gen_plot)}
+params$gen_plot
+```
+
+```{r gen-day, fig.width=8, fig.height=4.5, eval=!is.null(params$gen_day_plot)}
+params$gen_day_plot
+```
+
+## Capacity
+
+```{r cap, fig.width=8, fig.height=4.5, eval=!is.null(params$cap_plot)}
+params$cap_plot
+```
+
+```{r newcap, fig.width=8, fig.height=4.5, eval=!is.null(params$newcap_plot)}
+params$newcap_plot
+```
+
+```{r emis-header, results='asis', eval=!is.null(params$emis_df)}
+cat("## Emissions\n")
+```
+
+```{r emis}
+kb(params$emis_df)
+```
+
+```{r cost-header, results='asis', eval=!is.null(params$cost_df)}
+cat("## Costs\n")
+```
+
+```{r cost}
+kb(params$cost_df)
+```

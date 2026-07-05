@@ -7,7 +7,15 @@
 get_process_outputs(scen, process = NULL, classes = NULL)
 }
 \arguments{
-\item{classes}{}
+\item{scen}{scenario object}
+
+\item{process}{character vector of process names, if not provided,
+all processes retrieved from the scenario object}
+
+\item{classes}{character vector of class names to search for}
+}
+\value{
+a named list mapping each process to its output commodities.
 }
 \description{
 Get output commodities for each process

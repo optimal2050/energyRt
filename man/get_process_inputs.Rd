@@ -14,6 +14,9 @@ all processes retrieved from the scenario object}
 
 \item{classes}{character vector of class names to search for}
 }
+\value{
+a named list mapping each process to its input commodities.
+}
 \description{
 Get inputs of processes
 }
