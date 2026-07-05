@@ -6,6 +6,11 @@ get_data_slot <- function(obj) {
   data <- NULL
   if (isOnDisk(obj)) {
     data <- get_lazy_data(obj, "data")
+    # The csv/parquet round-trip loses column types: an all-NA column (e.g. a
+    # folded `region`/`slice`, or a map built on a region-wildcard parameter)
+    # comes back as `logical`, which then breaks type-sensitive joins in the
+    # fold / unfold passes. Restore the canonical classes on every on-disk read.
+    if (!is.null(data) && nrow(data) > 0) data <- force_cols_classes(data)
   }
   if (is.null(data)) {
     data <- obj@data
@@ -136,7 +141,7 @@ setMethod(
       obj@data <- data
     }
     # update the number of values in the parameter
-    # obj@misc$nValues <- obj@misc$nValues + nrow(data)
+    obj@misc$nValues <- nrow(data)
     return(obj)
   }
 )
@@ -213,7 +218,9 @@ setMethod(
 
       # write data to disk
       partitioning_dim <- NULL
-      obj2disk(obj, path = path)
+      obj@data <- data
+      obj <- obj2disk(obj, path = path)
+      obj@data <- reset_slot(obj@data)
     } else {
       obj@data <- rbindlist(
         list(as.data.table(obj@data), as.data.table(data)),
@@ -225,8 +232,28 @@ setMethod(
 
     if (ncol(obj@data) != 1) browser()
     if (is.factor(obj@data[[1]])) browser()
-    # obj@misc$nValues <- obj@misc$nValues + length(data)
+    obj@misc$nValues <- if (isOnDisk(obj)) nrow(data) else nrow(obj@data)
     obj
+  }
+)
+
+# d2p: NULL path (in-memory) ####
+# Delegates to the `character`-path methods, whose bodies already handle a
+# NULL path (in-memory assignment). Registering these signatures lets the
+# mapping engine and interp pipeline run in memory (`path = NULL`).
+setMethod(
+  "d2p",
+  signature(obj = "parameter", data = "data.frame", path = "NULL"),
+  function(obj, data, path = NULL) {
+    getMethod("d2p", c("parameter", "data.frame", "character"))(obj, data, NULL)
+  }
+)
+
+setMethod(
+  "d2p",
+  signature(obj = "parameter", data = "character", path = "NULL"),
+  function(obj, data, path = NULL) {
+    getMethod("d2p", c("parameter", "character", "character"))(obj, data, NULL)
   }
 )
 
@@ -284,6 +311,62 @@ update_parameter <- function(scen, param, data, path = NULL) {
   return(scen)
 }
 
+# Pack the wide bounds columns (<colName>.lo / .up / .fx) of an object slot into
+# the long (type, value) format expected by the interpolation engine. Only the
+# `id_cols` that are present in the slot are carried; rows with NA bound values
+# are dropped. Returns NULL when the slot has no finite bound, so callers can
+# skip empty parameters. Mirrors the bounds branch of `make_data_param()`.
+.pack_bounds_long <- function(slot_df, colName, id_cols) {
+  if (is.null(slot_df) || nrow(slot_df) == 0) {
+    return(NULL)
+  }
+  slot_df <- as.data.frame(slot_df)
+  bound_cols <- paste0(colName, c(".lo", ".up", ".fx"))
+  present <- intersect(bound_cols, colnames(slot_df))
+  if (length(present) == 0) {
+    return(NULL)
+  }
+  keep <- intersect(id_cols, colnames(slot_df))
+  out <- slot_df |>
+    select(all_of(c(keep, present))) |>
+    pivot_longer(
+      cols = all_of(present),
+      names_to = "type",
+      values_to = "value",
+      names_prefix = paste0(colName, "."),
+      values_drop_na = TRUE
+    ) |>
+    filter(!is.na(value))
+  out <- .expand_fx_bounds(out)
+  if (nrow(out) == 0) {
+    return(NULL)
+  }
+  as.data.frame(out)
+}
+
+# Expand fixed bounds: a `type == "fx"` row means the bound is fixed
+# (lower == upper == value). The stored `type` factor carries only levels
+# lo/up, and the downstream bound maps select on lo/up (their `types` lists
+# include "fx" defensively), so materialise each fx row into a `lo` and an `up`
+# row here, while `type` is still a plain character column.
+.expand_fx_bounds <- function(dat) {
+  if (is.null(dat) || !"type" %in% colnames(dat) || nrow(dat) == 0) {
+    return(dat)
+  }
+  fx <- as.character(dat$type) == "fx"
+  fx[is.na(fx)] <- FALSE
+  if (!any(fx)) {
+    return(dat)
+  }
+  fx_rows <- dat[fx, , drop = FALSE]
+  lo_rows <- fx_rows
+  lo_rows$type <- "lo"
+  up_rows <- fx_rows
+  up_rows$type <- "up"
+  dplyr::bind_rows(dat[!fx, , drop = FALSE], lo_rows, up_rows)
+}
+
+
 # ob2mi: scenario, ... ####
 # =============================================================================#
 ## commodity ####
@@ -300,9 +383,11 @@ setMethod(
     # obj <- .filter_data_in_slots(obj, extra_params$region, "region")
 
     ## pEmissionFactor ####
+    # comm = emission commodity (e.g. CO2), commp = fuel being consumed
+    # (matches legacy obj2modInp.R orientation).
     dat <- data.table(
-      comm = obj@name,
-      commp = obj@emis$comm,
+      comm = obj@emis$comm,
+      commp = obj@name,
       value = as.numeric(obj@emis$emis)
     ) |>
       force_cols_classes()
@@ -430,7 +515,11 @@ setMethod(
           '" is not declared in the model.'
         )
       }
-      dat <- dat[region %in% dem@region]
+      # NB: `dat` has a column named `dem` (the demand name), which would shadow
+      # the `dem` object inside data.table's NSE, so `dem@region` must be taken
+      # into a local first.
+      dem_regions <- dem@region
+      dat <- dat[region %in% dem_regions]
     }
     scen <- update_parameter(scen, "pDemand", dat)
 
@@ -490,6 +579,10 @@ setMethod(
       value = as.numeric(exp@exp$price)
     ) |>
       force_cols_classes()
+    # A NA region means "all regions the export operates in". The export class
+    # has no explicit @region slot yet, so get_region() returns nothing and we
+    # fall back to all model regions.
+    dat <- .expand_na_region(dat, c(get_region(exp), scen@modInp@sets$region))
     scen <- update_parameter(scen, "pExportRowPrice", dat)
 
     ## pExportRowRes ####
@@ -497,27 +590,22 @@ setMethod(
     # pExportRowRes <- NULL
     # if (exp@reserve != Inf) pExportRowRes <- data.table(expp = exp@name, value = exp@reserve)
     # obj@parameters[["pExportRowRes"]] <- .dat2par(obj@parameters[["pExportRowRes"]], pExportRowRes)
-    dat <- data.table(
-      expp = exp@name,
-      value = exp@reserve
-    ) |>
-      force_cols_classes()
-    scen <- update_parameter(scen, "pExportRowRes", dat)
+    if (length(exp@reserve) == 1 && !is.na(exp@reserve) && is.finite(exp@reserve)) {
+      dat <- data.table(expp = exp@name, value = as.numeric(exp@reserve))
+      scen <- update_parameter(scen, "pExportRowRes", dat)
+    }
 
     ## pExportRow ####
     # scen@modInp@parameters$pExportRow@data
     # pExportRow <- .interp_bounds(exp@exp, "exp", obj@parameters[["pExportRow"]], approxim, "expp", exp@name)
     # obj@parameters[["pExportRow"]] <- .dat2par(obj@parameters[["pExportRow"]], pExportRow)
-    dat <- data.table(
-      expp = exp@name,
-      region = exp@exp$region,
-      year = exp@exp$year,
-      slice = exp@exp$slice,
-      type = exp@exp$type,
-      value = as.numeric(exp@exp$value)
-    ) |>
-      force_cols_classes()
-    scen <- update_parameter(scen, "pExportRow", dat)
+    dat <- .pack_bounds_long(exp@exp, "exp", c("region", "year", "slice"))
+    if (!is.null(dat)) {
+      dat <- data.table(expp = exp@name, dat) |>
+        .force_year_class_df()
+      dat <- .expand_na_region(dat, c(get_region(exp), scen@modInp@sets$region))
+      scen <- update_parameter(scen, "pExportRow", dat)
+    }
 
 
     # mExportRow <- merge0(merge0(mExpSlice, list(region = approxim$region)), list(year = approxim$mileStoneYears))
@@ -639,6 +727,10 @@ setMethod(
       value = as.numeric(imp@imp$price)
     ) |>
       .force_year_class_df()
+    # A NA region means "all regions the import operates in". The import class
+    # has no explicit @region slot yet, so get_region() returns nothing and we
+    # fall back to all model regions.
+    dat <- .expand_na_region(dat, c(get_region(imp), scen@modInp@sets$region))
     scen <- update_parameter(scen, "pImportRowPrice", dat)
 
     ## pImportRowRes ####
@@ -646,11 +738,10 @@ setMethod(
     # pImportRowRes <- NULL
     # if (imp@reserve != Inf) pImportRowRes <- data.table(imp = imp@name, value = imp@reserve)
     # obj@parameters[["pImportRowRes"]] <- .dat2par(obj@parameters[["pImportRowRes"]], pImportRowRes)
-    dat <- data.table(
-      imp = imp@name,
-      value = imp@reserve
-    )
-    scen <- update_parameter(scen, "pImportRowRes", dat)
+    if (length(imp@reserve) == 1 && !is.na(imp@reserve) && is.finite(imp@reserve)) {
+      dat <- data.table(imp = imp@name, value = as.numeric(imp@reserve))
+      scen <- update_parameter(scen, "pImportRowRes", dat)
+    }
 
     ## pImportRow ####
     # scen@modInp@parameters$pImportRow@data
@@ -659,15 +750,13 @@ setMethod(
     #   obj@parameters[["pImportRow"]], approxim, "imp", imp@name
     # )
     # obj@parameters[["pImportRow"]] <- .dat2par(obj@parameters[["pImportRow"]], pImportRow)
-    dat <- data.table(
-      imp = imp@name,
-      region = imp@imp$region,
-      year = imp@imp$year,
-      slice = imp@imp$slice,
-      type = imp@imp$type,
-      value = as.numeric(imp@imp$value)
-    )
-    scen <- update_parameter(scen, "pImportRow", dat)
+    dat <- .pack_bounds_long(imp@imp, "imp", c("region", "year", "slice"))
+    if (!is.null(dat)) {
+      dat <- data.table(imp = imp@name, dat) |>
+        .force_year_class_df()
+      dat <- .expand_na_region(dat, c(get_region(imp), scen@modInp@sets$region))
+      scen <- update_parameter(scen, "pImportRow", dat)
+    }
 
     # mImportRow <- merge0(merge0(mImpSlice, list(region = approxim$region)), list(year = approxim$mileStoneYears))
     # if (!is.null(pImportRow) && nrow(pImportRow) != 0) {
@@ -844,16 +933,12 @@ setMethod(
     # obj@parameters[["pSupReserve"]] <-
     #   .dat2par(obj@parameters[["pSupReserve"]], pSupReserve)
     # browser()
-    dat <- data.table(
-      sup = sup@name,
-      comm = sup@commodity,
-      region = sup@reserve$region,
-      year = sup@reserve$year,
-      type = sup@reserve$type,
-      value = as.numeric(sup@reserve$value)
-    ) |>
-      force_cols_classes()
-    scen <- update_parameter(scen, "pSupReserve", dat)
+    dat <- .pack_bounds_long(sup@reserve, "res", c("region"))
+    if (!is.null(dat)) {
+      dat <- data.table(sup = sup@name, comm = sup@commodity, dat) |>
+        force_cols_classes()
+      scen <- update_parameter(scen, "pSupReserve", dat)
+    }
 
     ## pSupAva ####
     # scen@modInp@parameters$pSupAva@data
@@ -863,17 +948,12 @@ setMethod(
     #   c(sup@name, sup@commodity)
     # )
     # obj@parameters[["pSupAva"]] <- .dat2par(obj@parameters[["pSupAva"]], pSupAva)
-    dat <- data.table(
-      sup = sup@name,
-      comm = sup@commodity,
-      region = sup@availability$region,
-      year = sup@availability$year,
-      slice = sup@availability$slice,
-      type = sup@availability$type,
-      value = as.numeric(sup@availability$ava)
-    ) |>
-      force_cols_classes()
-    scen <- update_parameter(scen, "pSupAva", dat)
+    dat <- .pack_bounds_long(sup@availability, "ava", c("region", "year", "slice"))
+    if (!is.null(dat)) {
+      dat <- data.table(sup = sup@name, comm = sup@commodity, dat) |>
+        force_cols_classes()
+      scen <- update_parameter(scen, "pSupAva", dat)
+    }
 
 
 
@@ -1032,14 +1112,12 @@ setMethod(
 
     ## pSupWeather ####
     # scen@modInp@parameters$pSupWeather@data
-    dat <- data.table(
-      weather = sup@weather$weather,
-      sup = sup@name,
-      type = sup@weather$type,
-      value = as.numeric(sup@weather$value)
-    ) |>
-      force_cols_classes()
-    scen <- update_parameter(scen, "pSupWeather", dat)
+    dat <- .pack_bounds_long(sup@weather, "wava", c("weather"))
+    if (!is.null(dat)) {
+      dat$sup <- sup@name
+      dat <- force_cols_classes(dat)
+      scen <- update_parameter(scen, "pSupWeather", dat)
+    }
 
     # t1 <- mSupAva[, c("sup", "region", "year")] |> unique()
     # t1 <- t1[!duplicated(t1), ]
@@ -1129,1304 +1207,229 @@ setMethod(
   "ob2mi",
   signature(scen = "scenario", obj = "technology", extra_params = "list"),
   function(scen, obj, extra_params = list()) {
-    # browser()
-    # .checkSliceLevel(app, approxim)
-    # tech <- .upper_case(app)
-    tech <- obj
-    # if (length(tech@timeframe) == 0) {
-    #   use_cmd <- unique(
-    #     sapply(c(tech@output$comm, tech@output$comm, tech@aux$acomm),
-    #            function(x) approxim$commodity_slice_map[x])
-    #   )
-    #   tech@timeframe <- colnames(approxim$calendar@timetable)[
-    #     max(c(approxim$calendar@timeframe_rank[c(use_cmd, recursive = TRUE)],
-    #           recursive = TRUE))
-    #   ]
-    # }
-
-    ## pTechCap2act ####
-    # scen@modInp@parameters$pTechCap2act@data
-    browser()
-
-    dat <- data.table(
-      tech = tech@name,
-      value = get_lazy_data(tech, "cap2act", default = NA_real_)
-    ) |> force_cols_classes()
-    scen <- update_parameter(scen, "pTechCap2act", dat)
-
-    make_data_param(
-      scen = scen,
-      slot_data = dat,
-      par_name = "pTechCap2act",
-      short_name = "cap2act",
-      class_col = "tech"
-      # data = dat,
-      # dim_sets = c("tech"),
-      # value_col = "value"
-    )
-
-    # @capacity ####
-    sl <- get_lazy_data(tech, "capacity")
-
-    ## pTechStock ####
-    # scen@modInp@parameters$pTechStock@data
-    x <- sl |>
-      select(any_of(c(scen@modInp@parameters$pTechStock@dimSets, "stock"))) |>
-      filter(!is.na(stock)) |>
-      unique()
-
-    dat <- data.table(
-      tech = tech@name,
-      region = x$region,
-      year = x$year,
-      slice = x$slice,
-      value = as.numeric(x$stock)
-    ) |>
-      force_cols_classes()
-    scen <- update_parameter(scen, "pTechStock", dat)
-
-    ## pTechCap ####
-    # !!! ToDo: finish
-
-    ## pTechNewCap ####
-
-    ## pTechRet ####
-
-    # @ceff ####
-    sl <- get_lazy_data(tech, "ceff")
-
-    ## pTechCinp2use ####
-    # scen@modInp@parameters$pTechCinp2use@data
-    x <- sl |>
-      select(any_of(c(scen@modInp@parameters$pTechCinp2use@dimSets, "cinp2use"))) |>
-      filter(!is.na(cinp2use)) |>
-      unique()
-    dat <- data.table(
-      tech = tech@name,
-      comm = x$comm,
-      region = x$region,
-      year = x$year,
-      slice = x$slice,
-      value = as.numeric(x$cinp2use)
-    ) |>
-      force_cols_classes()
-    scen <- update_parameter(scen, "pTechCinp2use", dat)
-
-
-    ## pTechUse2cact ####
-    # scen@modInp@parameters$pTechUse2cact@data
-    x <- sl |>
-      select(any_of(c(scen@modInp@parameters$pTechUse2cact@dimSets, "use2cact"))) |>
-      filter(!is.na(use2cact)) |>
-      unique()
-    dat <- data.table(
-      tech = tech@name,
-      comm = x$comm,
-      region = x$region,
-      year = x$year,
-      slice = x$slice,
-      value = as.numeric(x$use2cact)
-    ) |>
-      force_cols_classes()
-    scen <- update_parameter(scen, "pTechUse2cact", dat)
-
-    ## pTechCact2cout ####
-    # scen@modInp@parameters$pTechCact2cout@data
-    x <- sl |>
-      select(any_of(c(scen@modInp@parameters$pTechCact2cout@dimSets, "cact2cout"))) |>
-      filter(!is.na(cact2cout)) |>
-      unique()
-    dat <- data.table(
-      tech = tech@name,
-      comm = x$comm,
-      region = x$region,
-      year = x$year,
-      slice = x$slice,
-      value = as.numeric(x$cact2cout)
-    ) |>
-      force_cols_classes()
-    scen <- update_parameter(scen, "pTechCact2cout", dat)
-
-    ## pTechCinp2ginp ####
-    # scen@modInp@parameters$pTechCinp2ginp@data
-    x <- sl |>
-      select(any_of(c(scen@modInp@parameters$pTechCinp2ginp@dimSets, "cinp2ginp"))) |>
-      filter(!is.na(cinp2ginp)) |>
-      unique()
-    dat <- data.table(
-      tech = tech@name,
-      comm = x$comm,
-      region = x$region,
-      year = x$year,
-      slice = x$slice,
-      value = as.numeric(x$cinp2ginp)
-    ) |>
-      force_cols_classes()
-    scen <- update_parameter(scen, "pTechCinp2ginp", dat)
-
-    ## pTechShare ####
-    # scen@modInp@parameters$pTechShare@data
-    # !!! ToDo: finish
-
-    ## pTechAfc ####
-    # scen@modInp@parameters$pTechAfc@data
-    # !!! ToDo: finish
-
-    ## @geff ####
-    sl <- get_lazy_data(tech, "geff")
-
-    ## pTechGinp2use ####
-    # scen@modInp@parameters$pTechGinp2use@data
-    x <- sl |>
-      select(any_of(c(scen@modInp@parameters$pTechGinp2use@dimSets, "ginp2use"))) |>
-      filter(!is.na(ginp2use)) |>
-      unique()
-    dat <- data.table(
-      tech = tech@name,
-      group = x$group,
-      region = x$region,
-      year = x$year,
-      slice = x$slice,
-      value = as.numeric(x$ginp2use)
-    ) |>
-      force_cols_classes()
-    scen <- update_parameter(scen, "pTechGinp2use", dat)
-
-    ## @aeff ####
-    sl <- get_lazy_data(tech, "aeff")
-
-    ## pTechCinp2AInp ####
-    # scen@modInp@parameters$pTechCinp2AInp@data
-    # x <- sl |>
-    #   select(any_of(c(scen@modInp@parameters$pTechCinp2AInp@dimSets, "cinp2ainp"))) |>
-    #   filter(!is.na(cinp2ainp)) |>
-    #   unique()
-    # dat <- data.table(
-    #   tech = tech@name,
-    #   acomm = x$acomm,
-    #   comm = x$comm,
-    #   region = x$region,
-    #   year = x$year,
-    #   slice = x$slice,
-    #   value = as.numeric(x$cinp2ainp)
-    # ) |>
-    #   force_cols_classes()
-
-    browser()
-
-    dat <-  make_data_param(
-      scen, slot_data = sl, obj_name = tech@name,
-      par_name = "pTechCinp2AInp", short_name = "cinp2ainp",
-      class_col = "tech")
-    scen <- update_parameter(scen, "pTechCinp2AInp", dat)
-
-    ## pTechCinp2AInp ####
-    dat <-  make_data_param(
-      scen, slot_data = sl, obj_name = tech@name,
-      par_name = "pTechCinp2AInp", short_name = "cinp2ainp",
-      class_col = "tech")
-    scen <- update_parameter(scen, "pTechCinp2AInp", dat)
-
-    ## pTechCout2AInp ####
-    # scen@modInp@parameters$pTechCout2AInp@data
-    dat <-  make_data_param(
-      scen, slot_data = sl, obj_name = tech@name,
-      par_name = "pTechCout2AInp", short_name = "cout2ainp",
-      class_col = "tech")
-    scen <- update_parameter(scen, "pTechCout2AInp", dat)
-
-    ## pTechCout2AOut ####
-    # scen@modInp@parameters$pTechCout2AOut@data
-    dat <- make_data_param(
-      scen, slot_data = sl, obj_name = tech@name,
-      par_name = "pTechCout2AOut", short_name = "cout2aout",
-      class_col = "tech")
-    scen <- update_parameter(scen, "pTechCout2AOut", dat)
-
-    ## pTechAct2AInp ####
-    # scen@modInp@parameters$pTechAct2AInp@data
-    dat <- make_data_param(
-      scen, slot_data = sl, obj_name = tech@name,
-      par_name = "pTechAct2AInp", short_name = "act2ainp",
-      class_col = "tech")
-    scen <- update_parameter(scen, "pTechAct2AInp", dat)
-
-    ## pTechAct2AOut ####
-    # scen@modInp@parameters$pTechAct2AOut@data
-    dat <- make_data_param(
-      scen, slot_data = sl, obj_name = tech@name,
-      par_name = "pTechAct2AOut", short_name = "act2aout",
-      class_col = "tech")
-    scen <- update_parameter(scen, "pTechAct2AOut", dat)
-
-    ## pTechCap2AInp ####
-    # scen@modInp@parameters$pTechCap2AInp@data
-    dat <- make_data_param(
-      scen, slot_data = sl, obj_name = tech@name,
-      par_name = "pTechCap2AInp", short_name = "cap2ainp",
-      class_col = "tech")
-    scen <- update_parameter(scen, "pTechCap2AInp", dat)
-
-    ## pTechCap2AOut ####
-    # scen@modInp@parameters$pTechCap2AOut@data
-    dat <- make_data_param(
-      scen, slot_data = sl, obj_name = tech@name,
-      par_name = "pTechCap2AOut", short_name = "cap2aout",
-      class_col = "tech")
-    scen <- update_parameter(scen, "pTechCap2AOut", dat)
-
-    ## pTechNCap2AInp ####
-    # scen@modInp@parameters$pTechNCap2AInp@data
-    dat <- make_data_param(
-      scen, slot_data = sl, obj_name = tech@name,
-      par_name = "pTechNCap2AInp", short_name = "ncap2ainp",
-      class_col = "tech")
-    scen <- update_parameter(scen, "pTechNCap2AInp", dat)
-
-    ## pTechNCap2AOut ####
-    # scen@modInp@parameters$pTechNCap2AOut@data
-    dat <- make_data_param(
-      scen, slot_data = sl, obj_name = tech@name,
-      par_name = "pTechNCap2AOut", short_name = "ncap2aout",
-      class_col = "tech")
-    scen <- update_parameter(scen, "pTechNCap2AOut", dat)
-
-    ## !!! sinp2ainp .... drop? ####
-
-
-    ## @af ####
-    sl <- get_lazy_data(tech, "af")
-    # !!! ToDo: finish
-
-    ## @afs ####
-    sl <- get_lazy_data(tech, "afs")
-    # !!! ToDo: finish
-
-    ## @weather ####
-    sl <- get_lazy_data(tech, "weather")
-    # !!! ToDo: finish
-
-    ## @start ####
-    # scen@modInp@parameters$pTechStart@data
-
-    ## @end ####
-
-    ## @varom ####
-
-    ## @fixom ####
-
-    ## @invcost ####
-
-    ##
-
-
-
-    # Disaggregated AFS, if there is a timeframe level
-    # if (nrow(tech@afs) != 0 &&
-    #     any(tech@afs$slice %in% names(approxim$calendar@timeframes))) {
-    #   chk <- seq_len(nrow(tech@afs))[tech@afs$slice %in%
-    #                                    names(approxim$calendar@timeframes)]
-    #   for (cc in chk) {
-    #     slc <- approxim$calendar@timeframes[[tech@afs[cc, "slice"]]]
-    #     tmp <- tech@afs[rep(cc, length(slc)), ]
-    #     tmp$slice <- slc
-    #     tech@afs <- rbind(tech@afs, tmp)
-    #   }
-    #   tech@afs <- tech@afs[-chk, ]
-    # }
-    # approxim <- .fix_approximation_list(approxim, lev = tech@timeframe)
-    # tech <- .disaggregateSliceLevel(tech, approxim)
-    # mTechSlice <- data.table(
-    #   tech = rep(tech@name, length(approxim$slice)), slice = approxim$slice,
-    #   stringsAsFactors = FALSE
-    # )
-    # obj@parameters[["mTechSlice"]] <-
-    #   .dat2par(obj@parameters[["mTechSlice"]], mTechSlice)
-    # if (length(tech@region) != 0) {
-    #   approxim$region <- approxim$region[approxim$region %in% tech@region]
-    #   ss <- getSlots("technology")
-    #   ss <- names(ss)[ss %in% "data.frame"]
-    #   ss <- ss[sapply(ss, function(x) {
-    #     (any(colnames(slot(tech, x)) == "region") &&
-    #        any(!is.na(slot(tech, x)$region)))
-    #   })]
-    #   for (sl in ss) {
-    #     if (any(!is.na(slot(tech, sl)$region) &
-    #             !(slot(tech, sl)$region %in% tech@region))) {
-    #       rr <- !is.na(slot(tech, sl)$region) &
-    #         !(slot(tech, sl)$region %in% tech@region)
-    #       warning(
-    #         paste('There are data technology "', tech@name,
-    #               '"for unused region: "',
-    #               paste(unique(slot(tech, sl)$region[rr]), collapse = '", "'),
-    #               '"',
-    #               sep = ""
-    #         )
-    #       )
-    #       slot(tech, sl) <- slot(tech, sl)[!rr, , drop = FALSE]
-    #     }
-    #   }
-    # }
-    # tech <- .filter_data_in_slots(tech, approxim$region, "region")
-    # Map
-    # ctype <- checkInpOut(tech)
-    # # Need choose comm more accuracy
-    # approxim_comm <- approxim
-    # approxim_comm[["comm"]] <- rownames(ctype$comm)
-    # if (length(approxim_comm[["comm"]]) != 0) {
-    #   pTechCvarom <- .interp_numpar(tech@varom, "cvarom",
-    #                                 obj@parameters[["pTechCvarom"]], approxim_comm, "tech", tech@name
-    #                                 # remValue = 0
-    #   )
-    #   obj@parameters[["pTechCvarom"]] <-
-    #     .dat2par(obj@parameters[["pTechCvarom"]], pTechCvarom)
-    # } else {
-    #   pTechCvarom <- NULL
-    # }
-    approxim_acomm <- approxim
-    approxim_acomm[["acomm"]] <- rownames(ctype$aux)
-    if (length(approxim_acomm[["acomm"]]) != 0) {
-      pTechAvarom <- .interp_numpar(tech@varom, "avarom",
-                                    obj@parameters[["pTechAvarom"]], approxim_acomm, "tech", tech@name
-                                    # remValue = 0
-      )
-      obj@parameters[["pTechAvarom"]] <-
-        .dat2par(obj@parameters[["pTechAvarom"]], pTechAvarom)
-    } else {
-      pTechAvarom <- NULL
-    }
-    approxim_comm[["comm"]] <- rownames(ctype$comm)
-    if (length(approxim_comm[["comm"]]) != 0) {
-      pTechAfc <- .interp_bounds(tech@ceff, "afc",
-                                 obj@parameters[["pTechAfc"]], approxim_comm, "tech", tech@name,
-                                 remValueUp = Inf, remValueLo = 0
-      )
-      obj@parameters[["pTechAfc"]] <-
-        .dat2par(obj@parameters[["pTechAfc"]], pTechAfc)
-    } else {
-      pTechAfc <- NULL
-    }
-    # Stock & Capacity
-    stock_exist <- .interp_numpar(
-      tech@capacity,
-      "stock",
-      obj@parameters[["pTechStock"]],
-      approxim,
-      "tech",
-      tech@name
-    )
-    obj@parameters[["pTechStock"]] <-
-      .dat2par(obj@parameters[["pTechStock"]], stock_exist)
-
-    if (nrow(tech@capacity) > 0) {
-      # browser()
-      pTechCap <- .interp_bounds(
-        tech@capacity, "cap",
-        obj@parameters[["pTechCap"]], approxim, "tech", tech@name,
-        remValueUp = Inf, remValueLo = 0
-      )
-      obj@parameters[["pTechCap"]] <-
-        .dat2par(obj@parameters[["pTechCap"]], pTechCap)
-      rm(pTechCap)
-
-      pTechNewCap <- .interp_bounds(
-        tech@capacity, "ncap",
-        obj@parameters[["pTechNewCap"]], approxim, "tech", tech@name,
-        remValueUp = Inf, remValueLo = 0
-      )
-      obj@parameters[["pTechNewCap"]] <-
-        .dat2par(obj@parameters[["pTechNewCap"]], pTechNewCap)
-      rm(pTechNewCap)
-
-      # browser()
-      pTechRet <- .interp_bounds(
-        tech@capacity, "ret",
-        obj@parameters[["pTechRet"]], approxim, "tech", tech@name,
-        remValueUp = Inf, remValueLo = 0
-      )
-      obj@parameters[["pTechRet"]] <-
-        .dat2par(obj@parameters[["pTechRet"]], pTechRet)
-      rm(pTechRet)
-    }
-
-    olife <- .interp_numpar(
-      tech@olife, "olife",
-      obj@parameters[["pTechOlife"]], approxim,
-      "tech", tech@name
-      # , removeDefault = FALSE
-    )
-    obj@parameters[["pTechOlife"]] <-
-      .dat2par(obj@parameters[["pTechOlife"]], olife)
-    # browser() # !!!!! check warning msg
-    dd0 <- .process_lifespan(approxim, tech, "tech", stock_exist)
-    dd0$new <- dd0$new[dd0$new$year %in% approxim$mileStoneYears &
-                         dd0$new$region %in% approxim$region, , drop = FALSE]
-    dd0$span <- dd0$span[dd0$span$year %in% approxim$mileStoneYears &
-                           dd0$span$region %in% approxim$region, , drop = FALSE]
-    obj@parameters[["mTechNew"]] <-
-      .dat2par(obj@parameters[["mTechNew"]], dd0$new)
-
-    invcost <- .interp_numpar(tech@invcost, "invcost",
-                              obj@parameters[["pTechInvcost"]], approxim,
-                              "tech", tech@name)
-
-    # !!! temporary fix (adding eac from slots) !!!
-    pTechEac <- .interp_numpar(tech@invcost, "eac",
-                               obj@parameters[["pTechEac"]],
-                               approxim, "tech", tech@name
-    )
-
-    if (!is.null(invcost) || !is.null(pTechEac)) {
-      # browser()
-      minvcost <- merge0(dd0$new, invcost)
-      obj@parameters[["mTechInv"]] <-
-        .dat2par(obj@parameters[["mTechInv"]],
-                 minvcost[, -"value"])
-      obj@parameters[["pTechInvcost"]] <-
-        .dat2par(obj@parameters[["pTechInvcost"]], invcost)
-      obj@parameters[["mTechEac"]] <-
-        .dat2par(obj@parameters[["mTechEac"]], dd0$eac)
-    }
-
-    # browser()
-    retcost <- .interp_numpar(tech@invcost, "retcost",
-                              obj@parameters[["pTechRetCost"]], approxim,
-                              "tech", tech@name)
-    if (!is.null(retcost) ) {
-      obj@parameters[["pTechRetCost"]] <-
-        .dat2par(obj@parameters[["pTechRetCost"]], retcost)
-
-      mretcost <- retcost |> select(-value) |> unique()
-      if (!is_null(mretcost) && approxim$optimizeRetirement) {
-        # && scen@settings@optimizeRetirement
-        obj@parameters[["mTechRetCost"]] <-
-          .dat2par(obj@parameters[["mTechRetCost"]], mretcost)
-      }
-    }
-
-    # browser()
-    obj@parameters[["mTechSpan"]] <-
-      .dat2par(obj@parameters[["mTechSpan"]], dd0$span)
-
-    # Calculate/add EAC from invcost !!! needs adjustments
-    # pTechEac <- NULL
-    if (nrow(dd0$new) > 0 && !is.null(invcost)) {
-      # browser()
-      salv_data <- merge0(dd0$new, approxim$discount, all.x = TRUE)
-      salv_data$value[is.na(salv_data$value)] <- 0
-      salv_data$discount <- salv_data$value
-      salv_data$value <- NULL
-      olife$olife <- olife$value # !!! check multi-region values, add year dim
-      olife$value <- NULL
-      salv_data <- merge0(salv_data, olife)
-      invcost$invcost <- invcost$value
-      invcost$value <- NULL
-      salv_data <- merge0(salv_data, invcost)
-      # EAC
-      salv_data$eac <- salv_data$invcost / salv_data$olife
-      fl <- (salv_data$discount != 0 & salv_data$olife != Inf)
-      salv_data$eac[fl] <- salv_data$invcost[fl] *
-        (salv_data$discount[fl] *
-           (1 + salv_data$discount[fl])^salv_data$olife[fl] /
-           ((1 + salv_data$discount[fl])^salv_data$olife[fl] - 1)
+    for (s in slotNames(obj)) {
+      if (s %in% c("name", "timeframe", "commodity", "region", "misc")) {next}
+      slot_info <- get_slot_meta(class(obj), s)
+      if (is_empty(slot_info)) {next}
+      slot_data <- get_lazy_data(obj, s)
+      for (p in slot_info) {
+        dat <- make_data_param(
+          scen = scen,
+          obj_name = obj@name,
+          slot_data = slot_data,
+          par_meta = p,
+          class_col = "tech"
+          # par_name = p$name,
+          # short_name = p$colName
         )
-      fl <- (salv_data$discount != 0 & salv_data$olife == Inf)
-      salv_data$eac[fl] <- salv_data$invcost[fl] * salv_data$discount[fl]
-
-      salv_data$tech <- tech@name
-      salv_data$value <- salv_data$eac
-      # browser()
-      # pTechEac <- salv_data[, c("tech", "region", "year", "value")]
-      pTechEac <- salv_data |> select(all_of(c("tech", "region", "year", "value")))
-      # co <- c(obj@parameters[["pTechEac"]]@dimSets, "value")
-      # obj@parameters[["pTechEac"]] <-
-      # .dat2par(obj@parameters[["pTechEac"]],
-      #          unique(select(pTechEac, all_of(co))))
-      # unique(pTechEac[, c(obj@parameters[["pTechEac"]]@dimSets, "value")]))
-    }
-
-    # (temporary fix) Overwrite pTechEac if eac is provided
-    if (nrow(tech@invcost) > 0 && any(!is.na(tech@invcost$eac)) &&
-        any(tech@invcost$eac != 0)) {
-      pTechEac <- .interp_numpar(
-        tech@invcost, "eac", obj@parameters[["pTechEac"]],
-        approxim, "tech", tech@name)
-    }
-    if (!is.null(pTechEac)) {
-      obj@parameters[["pTechEac"]] <-
-        .dat2par(obj@parameters[["pTechEac"]], pTechEac)
-    }
-    browser()
-    pTechAf <- .interp_bounds(tech@af, "af",
-                              obj@parameters[["pTechAf"]], approxim, "tech", tech@name,
-                              remValueUp = Inf, remValueLo = 0
-    )
-    obj@parameters[["pTechAf"]] <-
-      .dat2par(obj@parameters[["pTechAf"]], pTechAf)
-    if (nrow(tech@afs) > 0) {
-      afs_slice <- unique(tech@afs$slice)
-      afs_slice <- afs_slice[!is.na(afs_slice)]
-      approxim.afs <- approxim
-      approxim.afs$slice <- afs_slice
-      pTechAfs <- .interp_bounds(
-        tech@afs, "afs",
-        obj@parameters[["pTechAfs"]],
-        approxim.afs, "tech",
-        tech@name,
-        remValueUp = Inf,
-        remValueLo = 0
-      )
-      obj@parameters[["pTechAfs"]] <-
-        .dat2par(obj@parameters[["pTechAfs"]], pTechAfs)
-    } else {
-      pTechAfs <- NULL
-    }
-
-    approxim_comm[["comm"]] <-
-      rownames(ctype$comm)[
-        ctype$comm$type == "input" & is.na(ctype$comm[, "group"])
-      ]
-    if (length(approxim_comm[["comm"]]) != 0) {
-      pTechCinp2use <- .interp_numpar(
-        tech@ceff, "cinp2use",
-        obj@parameters[["pTechCinp2use"]], approxim_comm, "tech", tech@name
-      )
-      obj@parameters[["pTechCinp2use"]] <-
-        .dat2par(obj@parameters[["pTechCinp2use"]], pTechCinp2use)
-    } else {
-      pTechCinp2use <- NULL
-    }
-    approxim_comm[["comm"]] <- rownames(ctype$comm)[ctype$comm$type == "output"]
-    if (length(approxim_comm[["comm"]]) != 0) {
-      pTechUse2cact <- .interp_numpar(
-        tech@ceff, "use2cact",
-        obj@parameters[["pTechUse2cact"]], approxim_comm, "tech", tech@name
-      )
-      obj@parameters[["pTechUse2cact"]] <-
-        .dat2par(obj@parameters[["pTechUse2cact"]], pTechUse2cact)
-      pTechCact2cout <- .interp_numpar(
-        tech@ceff, "cact2cout",
-        obj@parameters[["pTechCact2cout"]], approxim_comm, "tech", tech@name
-      )
-      obj@parameters[["pTechCact2cout"]] <-
-        .dat2par(obj@parameters[["pTechCact2cout"]], pTechCact2cout)
-      if (any(!is.na(tech@ceff$cact2cout) & (tech@ceff$cact2cout == 0 | tech@ceff$cact2cout == Inf))) {
-        stop("cact2cout is not correct ", tech@name)
-      }
-      if (any(!is.na(tech@ceff$use2cact) &
-              (tech@ceff$use2cact == 0 | tech@ceff$use2cact == Inf))) {
-        stop("use2cact is not correct ", tech@name)
-      }
-    } else {
-      pTechUse2cact <- NULL
-      pTechCact2cout <- NULL
-    }
-    approxim_comm[["comm"]] <-
-      rownames(ctype$comm)[ctype$comm$type == "input" & !is.na(ctype$comm[, "group"])]
-    if (length(approxim_comm[["comm"]]) != 0) {
-      pTechCinp2ginp <- .interp_numpar(
-        tech@ceff, "cinp2ginp",
-        obj@parameters[["pTechCinp2ginp"]], approxim_comm, "tech", tech@name
-      )
-      obj@parameters[["pTechCinp2ginp"]] <-
-        .dat2par(obj@parameters[["pTechCinp2ginp"]], pTechCinp2ginp)
-    } else {
-      pTechCinp2ginp <- NULL
-    }
-    if (tech@optimizeRetirement) {
-      # browser()
-      obj@parameters[["mTechRetirement"]] <-
-        .dat2par(obj@parameters[["mTechRetirement"]], data.table(tech = tech@name))
-    }
-    # if (length(tech@upgrade.technology) != 0) {
-    #   obj@parameters[["mTechUpgrade"]] <- .dat2par(
-    #     obj@parameters[["mTechUpgrade"]],
-    #     data.table(tech = rep(tech@name, length(tech@upgrade.technology)),
-    #                techp = tech@upgrade.technology)
-    #   )
-    # }
-    cmm <- rownames(ctype$comm)[ctype$comm$type == "input"]
-    if (length(cmm) != 0) {
-      mTechInpComm <- data.table(tech = rep(tech@name, length(cmm)), comm = cmm)
-      obj@parameters[["mTechInpComm"]] <-
-        .dat2par(obj@parameters[["mTechInpComm"]], mTechInpComm)
-    } else {
-      mTechInpComm <- NULL
-    }
-    # browser()
-
-    cmm <- rownames(ctype$comm)[ctype$comm$type == "output"]
-    if (length(cmm) != 0) {
-      mTechOutComm <- data.table(tech = rep(tech@name, length(cmm)), comm = cmm)
-      obj@parameters[["mTechOutComm"]] <-
-        .dat2par(obj@parameters[["mTechOutComm"]], mTechOutComm)
-    } else {
-      mTechOutComm <- NULL
-    }
-    cmm <- rownames(ctype$comm)[is.na(ctype$comm$group)]
-    if (length(cmm) != 0) {
-      mTechOneComm <- data.table(tech = rep(tech@name, length(cmm)), comm = cmm)
-      obj@parameters[["mTechOneComm"]] <-
-        .dat2par(obj@parameters[["mTechOneComm"]], mTechOneComm)
-    } else {
-      mTechOneComm <- NULL
-    }
-    approxim_comm[["comm"]] <- rownames(ctype$comm)[!is.na(ctype$comm$group)]
-    if (length(approxim_comm[["comm"]]) != 0) {
-      pTechShare <- .interp_bounds(tech@ceff, "share",
-                                   obj@parameters[["pTechShare"]], approxim_comm, "tech", tech@name,
-                                   remValueUp = 1, remValueLo = 0
-      )
-      obj@parameters[["pTechShare"]] <-
-        .dat2par(obj@parameters[["pTechShare"]], pTechShare)
-    } else {
-      pTechShare <- NULL
-    }
-    cmm <- rownames(ctype$comm)[ctype$comm$comb != 0]
-    if (length(cmm) != 0) {
-      obj@parameters[["pTechEmisComm"]] <- .dat2par(
-        obj@parameters[["pTechEmisComm"]],
-        data.table(
-          tech = rep(tech@name, nrow(ctype$comm)),
-          comm = rownames(ctype$comm),
-          value = ctype$comm$comb
-        )
-      )
-    }
-    gpp <- rownames(ctype$group)[ctype$group$type == "input"]
-    if (length(gpp) != 0) {
-      mTechInpGroup <- data.table(tech = rep(tech@name, length(gpp)), group = gpp)
-      obj@parameters[["mTechInpGroup"]] <-
-        .dat2par(obj@parameters[["mTechInpGroup"]], mTechInpGroup)
-    } else {
-      mTechInpGroup <- NULL
-    }
-    gpp <- rownames(ctype$group)[ctype$group$type == "output"]
-    if (length(gpp) != 0) {
-      mTechOutGroup <- data.table(tech = rep(tech@name, length(gpp)), group = gpp)
-      obj@parameters[["mTechOutGroup"]] <-
-        .dat2par(obj@parameters[["mTechOutGroup"]], mTechOutGroup)
-    } else {
-      mTechOutGroup <- NULL
-    }
-    approxim_group <- approxim
-    approxim_group[["group"]] <- rownames(ctype$group)[ctype$group$type == "input"]
-    if (length(approxim_group[["group"]]) != 0) {
-      pTechGinp2use <- .interp_numpar(
-        tech@geff, "ginp2use",
-        obj@parameters[["pTechGinp2use"]], approxim_group, "tech", tech@name
-      )
-      obj@parameters[["pTechGinp2use"]] <-
-        .dat2par(obj@parameters[["pTechGinp2use"]], pTechGinp2use)
-    } else {
-      pTechGinp2use <- NULL
-    }
-    if (nrow(ctype$group) > 0) {
-      obj@parameters[["group"]] <- addMultipleSet(obj@parameters[["group"]], rownames(ctype$group))
-    }
-    fl <- !is.na(ctype$comm$group)
-    if (any(fl)) {
-      mTechGroupComm <- data.table(
-        tech = rep(tech@name, sum(fl)), group = ctype$comm$group[fl],
-        comm = rownames(ctype$comm)[fl], stringsAsFactors = FALSE
-      )
-      obj@parameters[["mTechGroupComm"]] <- .dat2par(obj@parameters[["mTechGroupComm"]], mTechGroupComm)
-    } else {
-      mTechGroupComm <- NULL
-    }
-    if (any(ctype$aux$output)) {
-      cmm <- rownames(ctype$aux)[ctype$aux$output]
-      mTechAOut <- data.table(tech = rep(tech@name, length(cmm)), comm = cmm)
-      obj@parameters[["mTechAOut"]] <- .dat2par(obj@parameters[["mTechAOut"]], mTechAOut)
-    } else {
-      mTechAOut <- NULL
-    }
-    if (any(ctype$aux$input)) {
-      cmm <- rownames(ctype$aux)[ctype$aux$input]
-      mTechAInp <- data.table(tech = rep(tech@name, length(cmm)), comm = cmm)
-      obj@parameters[["mTechAInp"]] <- .dat2par(obj@parameters[["mTechAInp"]], mTechAInp)
-    } else {
-      mTechAInp <- NULL
-    }
-
-    # numpar & bounds
-    # obj@parameters[["pTechCap2act"]] <- .dat2par(
-    #   obj@parameters[["pTechCap2act"]],
-    #   data.table(tech = tech@name, value = tech@cap2act)
-    # )
-    pTechFixom <- .interp_numpar(tech@fixom, "fixom",
-                                 obj@parameters[["pTechFixom"]],
-                                 approxim, "tech", tech@name)
-    obj@parameters[["pTechFixom"]] <-
-      .dat2par(obj@parameters[["pTechFixom"]], pTechFixom)
-    pTechVarom <- .interp_numpar(tech@varom, "varom",
-                                 obj@parameters[["pTechVarom"]],
-                                 approxim, "tech", tech@name)
-    obj@parameters[["pTechVarom"]] <-
-      .dat2par(obj@parameters[["pTechVarom"]], pTechVarom)
-
-    ## Move from reduce
-    # browser()
-    mTechNew <- dd0$new
-    mTechSpan <- dd0$span
-    pTechOlife <- olife
-    if (tech@optimizeRetirement) {
-      if (!is.null(stock_exist)) {
-        stock_exists <- stock_exist |>
-          filter(value != 0) |>
-          select(-any_of("value"))
-        # browser()
-        obj@parameters[["mvTechRetiredStock"]] <- .dat2par(
-          obj@parameters[["mvTechRetiredStock"]], stock_exists)
-      }
-
-      # stock_exist[stock_exist$value != 0, colnames(stock_exist) != "value"]
-      # select(filter(stock_exist, value != 0), -any_of("value"))
-      # stock_exist[stock_exist$value != 0, colnames(stock_exist) != "value"]
-      # )
-    }
-    # browser()
-    if (nrow(dd0$new) > 0 && tech@optimizeRetirement) {
-      obj@parameters[["meqTechRetiredNewCap"]] <-
-        .dat2par(obj@parameters[["meqTechRetiredNewCap"]], mTechNew)
-
-
-      mvTechRetiredCap0 <- merge0(merge0(mTechNew, mTechSpan, by = c("tech", "region")),
-                                  pTechOlife,
-                                  by = c("tech", "region")
-      )
-      mvTechRetiredCap0 <- mvTechRetiredCap0[(
-        mvTechRetiredCap0$year.x + mvTechRetiredCap0$olife > mvTechRetiredCap0$year.y &
-          mvTechRetiredCap0$year.x <= mvTechRetiredCap0$year.y), -5]
-      colnames(mvTechRetiredCap0)[3:4] <- c("year", "year.1")
-      mvTechRetiredCap0 <- filter(mvTechRetiredCap0, year != year.1)
-      obj@parameters[["mvTechRetiredNewCap"]] <- .dat2par(
-        obj@parameters[["mvTechRetiredNewCap"]],
-        mvTechRetiredCap0
-      )
-    }
-    mvTechAct <- merge0(mTechSpan, mTechSlice, by = "tech")
-    obj@parameters[["mvTechAct"]] <-
-      .dat2par(obj@parameters[["mvTechAct"]], mvTechAct)
-    # Stay only variable with non zero output
-    # browser()
-    merge_table <- function(mvTechInp, pTechCinp2use) {
-      if (is.null(pTechCinp2use) || nrow(pTechCinp2use) == 0) {
-        return(NULL)
-      }
-      return(merge0(
-        mvTechInp,
-        # pTechCinp2use[pTechCinp2use$value != 0 & pTechCinp2use$value != Inf,
-        #               colnames(pTechCinp2use) != "value", drop = FALSE]
-        select(
-          filter(pTechCinp2use, value != 0 & value < Inf),
-          -any_of("value")
-        )
-      ))
-    }
-    merge_table2 <- function(mvTechInp, pTechCinp2use, pTechCinp2ginp) {
-      if (is.null(pTechCinp2use)) {
-        return(merge_table(mvTechInp, pTechCinp2ginp))
-      }
-      if (is.null(pTechCinp2ginp)) {
-        return(merge_table(mvTechInp, pTechCinp2use))
-      }
-      merge0(mvTechInp, unique(rbind(
-        pTechCinp2use[pTechCinp2use$value != 0 & pTechCinp2use$value != Inf, ],
-        pTechCinp2ginp[pTechCinp2ginp$value != 0 & pTechCinp2ginp$value != Inf, ]
-      )))
-    }
-    # browser()
-    if (!is.null(mTechInpComm)) {
-      mvTechInp <- merge0(mvTechAct, mTechInpComm, by = "tech")
-      mvTechInp <- merge_table2(mvTechInp, pTechCinp2use, pTechCinp2ginp)
-      obj@parameters[["mvTechInp"]] <-
-        .dat2par(obj@parameters[["mvTechInp"]], mvTechInp)
-    } else {
-      mvTechInp <- NULL
-    }
-    if (!is.null(mTechOutComm)) {
-      mvTechOut <- merge0(mvTechAct, mTechOutComm, by = "tech")
-      obj@parameters[["mvTechOut"]] <-
-        .dat2par(obj@parameters[["mvTechOut"]], mvTechOut)
-      # browser()
-      # mvTechOutS <- mvTechOut |>
-      #   left_join()
-
-      mTechOutRY <- mvTechOut |> select(-slice) |> unique()
-      obj@parameters[["mTechOutRY"]] <-
-        .dat2par(obj@parameters[["mTechOutRY"]], mTechOutRY)
-
-    } else {
-      mvTechOut <- NULL
-    }
-    if (!is.null(mTechAInp)) {
-      mvTechAInp <- merge0(mvTechAct, mTechAInp, by = "tech")
-      obj@parameters[["mvTechAInp"]] <-
-        .dat2par(obj@parameters[["mvTechAInp"]], mvTechAInp)
-    } else {
-      mvTechAInp <- NULL
-    }
-    if (!is.null(mTechAOut)) {
-      # browser()
-      mvTechAOut <- merge0(mvTechAct, mTechAOut, by = "tech")
-      obj@parameters[["mvTechAOut"]] <-
-        .dat2par(obj@parameters[["mvTechAOut"]], mvTechAOut)
-    } else {
-      mvTechAOut <- NULL
-    }
-    #### aeff ####
-    if (nrow(tech@aeff) != 0) {
-      if (any(is.na(tech@aeff$acomm))) {
-        stop(paste0("NA values in column acomm, slot aeff ", tech@name))
-      }
-      if (any(is.na(tech@aeff[apply(!is.na(tech@aeff[, c("cinp2ainp", "cinp2aout", "cout2ainp", "cout2aout"), drop = FALSE]), 1, any), "comm"]))) {
-        stop(paste0("NA value in column comm, slot aeff ", tech@name), "\n",
-             "Parameter 'aeff' requires commodity specification.")
-      }
-      for (i in 1:4) {
-        tech@aeff <- tech@aeff[!is.na(tech@aeff$acomm), ]
-        ll <- c("cinp2ainp", "cinp2aout", "cout2ainp", "cout2aout")[i]
-        tbl <- c("pTechCinp2AInp", "pTechCinp2AOut", "pTechCout2AInp",
-                 "pTechCout2AOut")[i]
-        tbl2 <- c("mTechCinp2AInp", "mTechCinp2AOut", "mTechCout2AInp",
-                  "mTechCout2AOut")[i]
-        # browser()
-        # yy <- tech@aeff[!is.na(tech@aeff[, ll]), ]
-        yy <- tech@aeff[!is.na(tech@aeff[[ll]]), ]
-        if (nrow(yy) != 0) {
-          approxim_commp <- approxim
-          approxim_commp$acomm <- unique(yy$acomm)
-          approxim_commp$comm <- unique(yy$comm)
-          tmp <- .interp_numpar(yy, ll, obj@parameters[[tbl]],
-                                approxim_commp, "tech", tech@name)
-          tmp <- tmp[tmp$value != 0, ]
-          if (nrow(tmp) > 0) {
-            obj@parameters[[tbl]] <- .dat2par(obj@parameters[[tbl]], tmp)
-            tmp$value <- NULL
-            if (!all(c("tech", "acomm", "comm", "region", "year", "slice") %in%
-                     colnames(tmp))) {
-              if (i %in% c(1, 3)) {
-                tmp <- merge0(tmp, mvTechInp)
-              } else {
-                tmp <- merge0(tmp, mvTechOut)
-              }
-            }
-            tmp$comm.1 <- tmp$comm
-            tmp$comm <- tmp$acomm
-            tmp$acomm <- NULL
-            obj@parameters[[tbl2]] <-
-              .dat2par(obj@parameters[[tbl2]], tmp[!duplicated(tmp), ])
-          }
-        }
+        scen <- update_parameter(scen, p$name, dat)
       }
     }
-    dd <- data.frame(
-      list = c(
-        "pTechAct2AOut", "pTechCap2AOut", "pTechNCap2AOut",
-        "pTechAct2AInp", "pTechCap2AInp", "pTechNCap2AInp"
-      ),
-      table = c("act2aout", "cap2aout", "ncap2aout",
-                "act2ainp", "cap2ainp", "ncap2ainp"),
-      tab2 = c("mTechAct2AOut", "mTechCap2AOut", "mTechNCap2AOut",
-               "mTechAct2AInp", "mTechCap2AInp", "mTechNCap2AInp"),
-      stringsAsFactors = FALSE
-    )
-    # browser()
-    for (i in 1:nrow(dd)) {
-      approxim_comm <- approxim_comm[names(approxim_comm) != "comm"]
-      approxim_comm[["acomm"]] <-
-        unique(tech@aeff[!is.na(tech@aeff[, dd$table[i]]), "acomm"])
-      if (length(approxim_comm[["acomm"]]) != 0) {
-        tmp <- .interp_numpar(tech@aeff, dd$table[i],
-                              obj@parameters[[dd$list[i]]],
-                              approxim_comm, "tech", tech@name)
-        obj@parameters[[dd[i, "list"]]] <-
-          .dat2par(obj@parameters[[dd[i, "list"]]], tmp)
-        if (!all(c("tech", "acomm", "region", "year", "slice") %in% colnames(tmp))) {
-          if (i <= 3) ll <- mvTechInp else ll <- mvTechOut
-          ll$comm <- NULL
-          tmp <- merge0(tmp, unique(ll))
-        }
-        tmp$comm <- tmp$acomm
-        tmp$acomm <- NULL
-        tmp$value <- NULL
-        if (ncol(tmp) != ncol(mvTechAct) + 1) {
-          tmp <- merge0(tmp, mvTechAct)
-        }
-        obj@parameters[[dd[i, "tab2"]]] <-
-          .dat2par(obj@parameters[[dd[i, "tab2"]]], tmp)
-      }
-    }
-    #### aeff end
-    if (!is.null(mTechInpGroup) && !is.null(mTechOutGroup)) {
-      meqTechGrp2Grp <- merge0(
-        merge0(mTechInpGroup, mTechOutGroup, by = "tech", suffix = c("", ".1")),
-        mvTechAct
-      )[, c("tech", "region", "group", "group.1", "year", "slice")]
-      obj@parameters[["meqTechGrp2Grp"]] <-
-        .dat2par(obj@parameters[["meqTechGrp2Grp"]], meqTechGrp2Grp)
-    } else {
-      meqTechGrp2Grp <- NULL
-    }
-    if (!is.null(mTechInpGroup) || !is.null(mTechOutGroup)) {
-      # browser()
-      mpTechShareLo <- pTechShare |>
-        filter(type == "lo" & value > 0) |>
-        select(-any_of(c("value", "type")))
-      # mpTechShareUp <- pTechShare[pTechShare$type == "up" & pTechShare$value < 1,
-      #                             colnames(pTechShare) != "value"]
-      mpTechShareUp <- pTechShare |>
-        filter(type == "up" & value > 0) |>
-        select(-any_of(c("value", "type")))
 
-    } else {
-      mpTechShareUp <- NULL
-      mpTechShareLo <- NULL
-    }
-    if (!is.null(mvTechOut) && !is.null(mTechOutGroup) && !is.null(mTechGroupComm)) {
-      techGroupOut <- merge0(merge0(mvTechOut, mTechOutGroup), mTechGroupComm)
-    } else {
-      techGroupOut <- NULL
-    }
-    if (!is.null(mvTechInp) && !is.null(mTechInpGroup) && !is.null(mTechGroupComm)) {
-      techGroupInp <- merge0(merge0(mvTechInp, mTechInpGroup), mTechGroupComm)
-    } else {
-      techGroupInp <- NULL
-    }
-    if (!is.null(mvTechInp) && !is.null(mTechOneComm)) {
-      # browser()
-      techSingInp <- merge0(mvTechInp, mTechOneComm)
-      if (!is.null(pTechCinp2use)) {
-        techSingInp <- merge0(
-          techSingInp,
-          # pTechCinp2use[pTechCinp2use$value != 0,
-          #               colnames(pTechCinp2use) %in% colnames(techSingInp),
-          #               drop = FALSE]
-          select(
-            filter(pTechCinp2use, value != 0),
-            any_of(colnames(techSingInp))
-          )
-        )
-      }
-      if (nrow(techSingInp) == 0) techSingInp <- NULL
-    } else {
-      techSingInp <- NULL
-    }
-    if (!is.null(mvTechOut) && !is.null(mTechOneComm)) {
-      techSingOut <- merge0(mvTechOut, mTechOneComm)
-      if (!is.null(pTechCact2cout)) {
-        techSingOut <- merge0(
-          techSingOut,
-          # pTechCact2cout[pTechCact2cout$value != 0,
-          #                colnames(pTechCact2cout) %in% colnames(techSingOut),
-          #                drop = FALSE]
-          select(
-            filter(pTechCact2cout, value != 0),
-            any_of(colnames(techSingOut))
-          )
-        )
-      }
-      if (nrow(techSingOut) == 0) techSingOut <- NULL
-    } else {
-      techSingOut <- NULL
-    }
-    if (!is.null(mTechInpGroup) && !is.null(techSingOut)) {
-      meqTechGrp2Sng <- merge0(mTechInpGroup, techSingOut)
-      obj@parameters[["meqTechGrp2Sng"]] <-
-        .dat2par(obj@parameters[["meqTechGrp2Sng"]], meqTechGrp2Sng)
-    } else {
-      meqTechGrp2Sng <- NULL
-    }
-    if (!is.null(mTechOutGroup) && !is.null(techSingInp)) {
-      meqTechSng2Grp <- merge0(mTechOutGroup, techSingInp)
-      obj@parameters[["meqTechSng2Grp"]] <-
-        .dat2par(obj@parameters[["meqTechSng2Grp"]], meqTechSng2Grp)
-    } else {
-      meqTechSng2Grp <- NULL
-    }
-
-    if (!is.null(techSingInp) && !is.null(techSingOut)) {
-      # browser()
-      meqTechSng2Sng <- merge0(techSingInp, techSingOut,
-                               by = c("tech", "region", "year", "slice"),
-                               suffixes = c("", ".1"))
-      # filter out unavailable combinations
-      # browser()
-      obj@parameters[["meqTechSng2Sng"]] <-
-        .dat2par(obj@parameters[["meqTechSng2Sng"]], meqTechSng2Sng)
-    } else {
-      meqTechSng2Sng <- NULL
-    }
-    if (!is.null(mpTechShareLo) && !is.null(techGroupOut)) {
-      # browser()
-      meqTechShareOutLo <- merge0(mpTechShareLo, techGroupOut)
-      obj@parameters[["meqTechShareOutLo"]] <- .dat2par(
-        obj@parameters[["meqTechShareOutLo"]],
-        select(meqTechShareOutLo,
-               all_of(obj@parameters[["meqTechShareOutLo"]]@dimSets)
-        )
-      )
-    } else {
-      meqTechShareOutLo <- NULL
-    }
-    if (!is.null(mpTechShareUp) && !is.null(techGroupOut)) {
-      meqTechShareOutUp <- merge0(mpTechShareUp, techGroupOut)
-      obj@parameters[["meqTechShareOutUp"]] <- .dat2par(
-        obj@parameters[["meqTechShareOutUp"]],
-        select(
-          meqTechShareOutUp,
-          all_of(obj@parameters[["meqTechShareOutUp"]]@dimSets)
-        )
-        # meqTechShareOutUp[, obj@parameters[["meqTechShareOutUp"]]@dimSets]
-      )
-    } else {
-      meqTechShareOutUp <- NULL
-    }
-    if (!is.null(mpTechShareLo) && !is.null(techGroupInp)) {
-      meqTechShareInpLo <- merge0(mpTechShareLo, techGroupInp)
-      obj@parameters[["meqTechShareInpLo"]] <- .dat2par(
-        obj@parameters[["meqTechShareInpLo"]],
-        select(
-          meqTechShareInpLo,
-          all_of(obj@parameters[["meqTechShareInpLo"]]@dimSets)
-        )
-        # meqTechShareInpLo[, obj@parameters[["meqTechShareInpLo"]]@dimSets]
-      )
-    } else {
-      meqTechShareInpLo <- NULL
-    }
-    if (!is.null(mpTechShareUp) && !is.null(techGroupInp)) {
-      meqTechShareInpUp <- merge0(mpTechShareUp, techGroupInp)
-      obj@parameters[["meqTechShareInpUp"]] <- .dat2par(
-        obj@parameters[["meqTechShareInpUp"]],
-        # meqTechShareInpUp[, obj@parameters[["meqTechShareInpUp"]]@dimSets]
-        select(
-          meqTechShareInpUp,
-          all_of(obj@parameters[["meqTechShareInpUp"]]@dimSets)
-        )
-      )
-    } else {
-      meqTechShareInpUp <- NULL
-    }
-
-    ####
-    outer_inf <- function(mvTechAct, pTechAf) {
-      merge0(mvTechAct,
-             # pTechAf[pTechAf$value != Inf & pTechAf$type == "up",
-             #         colnames(pTechAf) %in% colnames(mvTechAct),
-             #         drop = FALSE]
-             select(
-               filter(pTechAf, value != Inf & type == "up"),
-               any_of(colnames(mvTechAct))
-             )
-      )
-    }
-    if (!is.null(pTechAf) && any(pTechAf$value != 0 & pTechAf$type == "lo")) {
-      obj@parameters[["meqTechAfLo"]] <-
-        .dat2par(
-          obj@parameters[["meqTechAfLo"]],
-          merge0(mvTechAct,
-                 # pTechAf[pTechAf$value != 0 & pTechAf$type == "lo",
-                 #         colnames(pTechAf)[colnames(pTechAf) %in% colnames(mvTechAct)],
-                 #         drop = FALSE]
-                 select(
-                   filter(pTechAf, value != 0 & type == "lo"),
-                   any_of(colnames(mvTechAct))
-                 )
-          )
-        )
-    }
-    obj@parameters[["meqTechAfUp"]] <-
-      .dat2par(obj@parameters[["meqTechAfUp"]], outer_inf(mvTechAct, pTechAf))
-    if (!is.null(pTechAfs)) {
-      obj@parameters[["meqTechAfsLo"]] <-
-        .dat2par(
-          obj@parameters[["meqTechAfsLo"]],
-          merge0(
-            mTechSpan,
-            # pTechAfs[
-            #   pTechAfs$value != 0 & pTechAfs$type == "lo",
-            #   colnames(pTechAfs)[
-            #     colnames(pTechAfs) %in%
-            #       obj@parameters[["meqTechAfsLo"]]@dimSets]
-            #   ]
-            select(
-              filter(pTechAfs, value != 0 & type == "lo"),
-              any_of(obj@parameters[["meqTechAfsLo"]]@dimSets)
-            )
-          )
-        )
-      meqTechAfsUp <- merge0(
-        mTechSpan,
-        # pTechAfs[pTechAfs$value != Inf & pTechAfs$type == "up",
-        #          colnames(pTechAfs) %in% obj@parameters[["meqTechAfsUp"]]@dimSets,
-        #          drop = FALSE]
-        select(
-          filter(pTechAfs, value != Inf & type == "up"),
-          any_of(obj@parameters[["meqTechAfsUp"]]@dimSets)
-        )
-      )
-      obj@parameters[["meqTechAfsUp"]] <-
-        .dat2par(obj@parameters[["meqTechAfsUp"]], meqTechAfsUp)
-    }
-    if (!is.null(techSingOut)) {
-      obj@parameters[["meqTechActSng"]] <-
-        .dat2par(obj@parameters[["meqTechActSng"]], techSingOut)
-    } else {
-      meqTechActSng <- NULL
-    }
-    if (!is.null(mTechOutGroup)) {
-      obj@parameters[["meqTechActGrp"]] <-
-        .dat2par(obj@parameters[["meqTechActGrp"]],
-                 merge0(mvTechAct, mTechOutGroup))
-    } else {
-      meqTechActGrp <- NULL
-    }
-    if (!is.null(pTechAfc)) {
-      merge_afc <- function(prm, mvTechOut, pTechAfc, type) {
-        if (is.null(pTechAfc) || nrow(pTechAfc) == 0) {
-          return(prm)
-        }
-        if (type == "up") {
-          # pTechAfc <- pTechAfc[
-          #   pTechAfc$value != Inf & pTechAfc$type == "up",
-          #   colnames(pTechAfc) %in%  obj@parameters[["meqTechAfcOutLo"]]@dimSets,
-          #   drop = FALSE]
-          pTechAfc <- pTechAfc |>
-            filter(value != Inf, type == "up") |>
-            select(any_of(obj@parameters[["meqTechAfcOutLo"]]@dimSets))
-        } else {
-          # pTechAfc <- pTechAfc[
-          #   pTechAfc$value != 0 & pTechAfc$type == "lo",
-          #   colnames(pTechAfc) %in% obj@parameters[["meqTechAfcOutLo"]]@dimSets,
-          #   drop = FALSE]
-          pTechAfc <- pTechAfc |>
-            filter(value != 0 & type == "lo") |>
-            select(any_of(obj@parameters[["meqTechAfcOutLo"]]@dimSets))
-        }
-        if (nrow(pTechAfc) == 0) {
-          return(prm)
-        }
-        return(.dat2par(prm, merge0(mvTechOut, pTechAfc)))
-      }
-      obj@parameters[["meqTechAfcOutLo"]] <-
-        merge_afc(obj@parameters[["meqTechAfcOutLo"]], mvTechOut, pTechAfc, "lo")
-      obj@parameters[["meqTechAfcOutUp"]] <-
-        merge_afc(obj@parameters[["meqTechAfcOutUp"]], mvTechOut, pTechAfc, "up")
-      obj@parameters[["meqTechAfcInpLo"]] <-
-        merge_afc(obj@parameters[["meqTechAfcInpLo"]], mvTechInp, pTechAfc, "lo")
-      obj@parameters[["meqTechAfcInpUp"]] <-
-        merge_afc(obj@parameters[["meqTechAfcInpUp"]], mvTechInp, pTechAfc, "up")
-    }
-
-    if (nrow(tech@weather) > 0) { # !!!ToDo: dplyr
-      tmp <- .toWeatherImply(tech@weather, "waf", "tech", tech@name)
-      obj@parameters[["pTechWeatherAf"]] <-
-        .dat2par(obj@parameters[["pTechWeatherAf"]], tmp$par)
-      obj@parameters[["mTechWeatherAfUp"]] <-
-        .dat2par(obj@parameters[["mTechWeatherAfUp"]], tmp$mapup)
-      obj@parameters[["mTechWeatherAfLo"]] <-
-        .dat2par(obj@parameters[["mTechWeatherAfLo"]], tmp$maplo)
-
-      tmp <- .toWeatherImply(tech@weather, "wafs", "tech", tech@name)
-      obj@parameters[["pTechWeatherAfs"]] <-
-        .dat2par(obj@parameters[["pTechWeatherAfs"]], tmp$par)
-      obj@parameters[["mTechWeatherAfsUp"]] <-
-        .dat2par(obj@parameters[["mTechWeatherAfsUp"]], tmp$mapup)
-      obj@parameters[["mTechWeatherAfsLo"]] <-
-        .dat2par(obj@parameters[["mTechWeatherAfsLo"]], tmp$maplo)
-
-      if (any(is.na(tech@weather$comm)[
-        apply(!is.na(tech@weather[, c("wafc.lo", "wafc.up", "wafc.fx"),
-                                  drop = FALSE]), 1, any)])) {
-        stop("comm must be defined for wafc.* parameters")
-      }
-      tmp <- .toWeatherImply(tech@weather, "wafc", "tech", tech@name, "comm")
-      obj@parameters[["pTechWeatherAfc"]] <-
-        .dat2par(obj@parameters[["pTechWeatherAfc"]], tmp$par)
-      obj@parameters[["mTechWeatherAfcUp"]] <-
-        .dat2par(obj@parameters[["mTechWeatherAfcUp"]], tmp$mapup)
-      obj@parameters[["mTechWeatherAfcLo"]] <-
-        .dat2par(obj@parameters[["mTechWeatherAfcLo"]], tmp$maplo)
-    }
-
-    if (all(ctype$comm$type != "output")) {
-      stop('Techology "', tech@name, '", there is not activity commodity')
-    }
-    # mTechOMCost(tech, region, year)
-    # mTechOMCost <- NULL
-    mTechFixom <- NULL
-    add_omcost <- function(x, y) {
-      if (is.null(y) || all(y$value == 0)) {
-        return(x)
-      }
-      x <- rbind(
-        x,
-        merge0(
-          mTechSpan,
-          # pTechFixom[pTechFixom$value != 0,
-          #            colnames(pTechFixom) %in% colnames(mTechSpan),
-          #            drop = FALSE]
-          select(
-            filter(y, value != 0),
-            any_of(colnames(mTechSpan))
-          )
-        )
-      )
-      return(unique(x))
-    }
-
-    # browser()
-    mTechFixom <- add_omcost(mTechFixom, pTechFixom)
-    if (!is.null(mTechFixom)) {
-      mTechFixom <- merge0(mTechFixom[!duplicated(mTechFixom), ], mTechSpan)
-      obj@parameters[["mTechFixom"]] <-
-        .dat2par(obj@parameters[["mTechFixom"]], mTechFixom)
-    }
-    mTechVarom <- NULL
-    mTechVarom <- add_omcost(mTechVarom, pTechVarom)
-    mTechVarom <- add_omcost(mTechVarom, pTechCvarom)
-    mTechVarom <- add_omcost(mTechVarom, pTechAvarom)
-    if (!is.null(mTechVarom)) {
-      mTechVarom <- merge0(mTechVarom, mTechSpan)
-      obj@parameters[["mTechVarom"]] <-
-        .dat2par(obj@parameters[["mTechVarom"]], mTechVarom)
-    }
-
-    ### Ramp
-    if (tech@fullYear) {
-      obj@parameters[["mTechFullYear"]] <- .dat2par(
-        obj@parameters[["mTechFullYear"]],
-        data.table(tech = tech@name)
-      )
-    }
-
-    obj <- .add_ramp0(obj, "rampup", tech, mvTechAct, approxim)
-    obj <- .add_ramp0(obj, "rampdown", tech, mvTechAct, approxim)
-
-    # browser()
-    # "mTechRampSliceNext" # tech, region, year, slice, slicep
-    # ramp_data <- c(tech@af$rampdown, tech@af$rampup)
-    # if (!is_empty(ramp_data) && any(!is.na(ramp_data))) {
-    #
-    #   if (tech@fullYear) {
-    #     mTechRampSliceNext <- obj@parameters[["mSliceFYearNext"]]@data
-    #   } else {
-    #     mTechRampSliceNext <- obj@parameters[["mSliceNext"]]@data
-    #   }
-    #   tech_name <- tech@name
-    #   mTechRampSliceNext <- mTechRampSliceNext |>
-    #     mutate(tech = tech_name, .before = 1) |>
-    #     merge0(mvTechAct) |>
-    #     select(all_of(obj@parameters[["mTechRampSliceNext"]]@dimSets))
-    #   obj@parameters[["mTechRampSliceNext"]] <-
-    #     .dat2par(obj@parameters[["mTechRampSliceNext"]], mTechRampSliceNext)
-    # }
-    obj
+    return(scen)
   }
 )
 
+# =============================================================================#
+## storage ####
+# =============================================================================#
+setMethod(
+  "ob2mi",
+  signature(scen = "scenario", obj = "storage", extra_params = "list"),
+  function(scen, obj, extra_params = list()) {
+    for (s in slotNames(obj)) {
+      if (s %in% c("name", "timeframe", "commodity", "region")) {next}
+      slot_info <- get_slot_meta(class(obj), s)
+      if (is_empty(slot_info)) {next}
+      slot_data <- get_lazy_data(obj, s)
+      for (p in slot_info) {
+        # mod@data$utopia_repository@data$STGELC@seff
+        if ("comm" %in% p$dimSets && is.null(slot_data$comm)) {
+          slot_data <- slot_data |> mutate(comm = obj@commodity, .before = 1)
+        }
+        dat <- make_data_param(
+          scen = scen,
+          obj_name = obj@name,
+          slot_data = slot_data,
+          par_meta = p,
+          class_col = "stg"
+        )
+        scen <- update_parameter(scen, p$name, dat)
+      }
+    }
+    return(scen)
+  }
+)
+
+# =============================================================================#
+## trade ####
+# =============================================================================#
+setMethod(
+  "ob2mi",
+  signature(scen = "scenario", obj = "trade", extra_params = "list"),
+  function(scen, obj, extra_params = list()) {
+    for (s in slotNames(obj)) {
+      if (s %in% c("name", "timeframe", "commodity", "region")) {next}
+      slot_info <- get_slot_meta(class(obj), s)
+      if (is_empty(slot_info)) {next}
+      slot_data <- get_lazy_data(obj, s)
+      for (p in slot_info) {
+        dat <- make_data_param(
+          scen = scen,
+          obj_name = obj@name,
+          slot_data = slot_data,
+          par_meta = p,
+          class_col = "trade"
+        )
+        scen <- update_parameter(scen, p$name, dat)
+      }
+    }
+    return(scen)
+  }
+)
+
+# =============================================================================#
+## tax ####
+# =============================================================================#
+setMethod(
+  "ob2mi",
+  signature(scen = "scenario", obj = "tax", extra_params = "list"),
+  function(scen, obj, extra_params = list()) {
+    for (s in slotNames(obj)) {
+      if (s %in% c("name", "timeframe", "commodity", "region")) {next}
+      slot_info <- get_slot_meta(class(obj), s)
+      if (is_empty(slot_info)) {next}
+      slot_data <- get_lazy_data(obj, s)
+      # The commodity is carried on the object (@comm), not in the data slot.
+      # An empty @region means the tax applies to all regions (kept as NA and
+      # expanded when the mTaxCost map is built); a non-empty @region restricts
+      # the tax to those regions.
+      slot_data <- slot_data |> mutate(comm = obj@comm, .before = 1)
+      if (length(obj@region) > 0) {
+        slot_data <- slot_data |>
+          select(-any_of("region")) |>
+          tidyr::crossing(region = obj@region)
+      }
+      for (p in slot_info) {
+        dat <- make_data_param(
+          scen = scen,
+          obj_name = obj@name,
+          slot_data = slot_data,
+          par_meta = p,
+          class_col = "tax"
+        )
+        scen <- update_parameter(scen, p$name, dat)
+      }
+    }
+    return(scen)
+  }
+)
+
+# =============================================================================#
+## sub ####
+# =============================================================================#
+setMethod(
+  "ob2mi",
+  signature(scen = "scenario", obj = "sub", extra_params = "list"),
+  function(scen, obj, extra_params = list()) {
+    for (s in slotNames(obj)) {
+      if (s %in% c("name", "timeframe", "commodity", "region")) {next}
+      # The S4 class is "sub" but its modInp parameters are registered under
+      # the "subsidy" class; look them up by the modInp class name.
+      slot_info <- get_slot_meta("subsidy", s)
+      if (is_empty(slot_info)) {next}
+      slot_data <- get_lazy_data(obj, s)
+      # The commodity is carried on the object (@comm), not in the data slot.
+      # An empty @region means the subsidy applies to all regions (kept as NA
+      # and expanded when the mSubCost map is built); a non-empty @region
+      # restricts the subsidy to those regions.
+      slot_data <- slot_data |> mutate(comm = obj@comm, .before = 1)
+      if (length(obj@region) > 0) {
+        slot_data <- slot_data |>
+          select(-any_of("region")) |>
+          tidyr::crossing(region = obj@region)
+      }
+      for (p in slot_info) {
+        dat <- make_data_param(
+          scen = scen,
+          obj_name = obj@name,
+          slot_data = slot_data,
+          par_meta = p,
+          class_col = "sub"
+        )
+        scen <- update_parameter(scen, p$name, dat)
+      }
+    }
+    return(scen)
+  }
+)
+
+# =============================================================================#
+## constraint (user-defined) ####
+# =============================================================================#
+# A user constraint compiles to the solver-agnostic GAMS-string IR
+# (`scen@modInp@gams.equation[[name]]`) plus its supporting `pCns*`/`mCns*`
+# parameters; the writers (write_glpk / write_jump / write_pyomo / write_gams)
+# translate that IR per backend. Codegen reuses the proven `.getSetEquation`
+# engine. Unlike the per-object methods above, this runs AFTER the mapping
+# pipeline (via `.interp_user_constraints()` in interp.R), because a constraint
+# references variable domain maps (e.g. mTechNew) that must already exist.
+#
+# `approxim` (the engine's set-value/calendar context) is taken from
+# `extra_params$approxim` when supplied, else rebuilt here from `scen` -- same
+# shape the settings builder uses. (Retiring `approxim` + the engine's legacy
+# slice-ancestry/*RY slice handling in favour of mSliceFamily/pSliceAgg + a
+# per-summand `timeframe` is deferred.)
+setMethod(
+  "ob2mi",
+  signature(scen = "scenario", obj = "constraint", extra_params = "list"),
+  function(scen, obj, extra_params = list()) {
+    approxim <- extra_params$approxim
+    if (is.null(approxim)) approxim <- .constraint_approxim(scen)
+
+    # Upgrade any summand serialized before the `timeframe` slot existed, so
+    # `.getSetEquation` can read `@timeframe` without erroring on old models.
+    obj@lhs <- lapply(obj@lhs, .upgrade_summand)
+
+    # The engine reads model sets from the legacy `@set` slot; the new pipeline
+    # populates `@sets`. Shim a working copy, generate, then drop the shim.
+    mi <- scen@modInp
+    mi@set <- scen@modInp@sets
+    mi <- .getSetEquation(mi, obj, approxim)
+    mi@set <- list()
+    scen@modInp <- mi
+    scen
+  }
+)
+
+# Set-value / calendar context the constraint IR engine needs, derived directly
+# from `scen` (mirrors the `approxim` the settings builder assembles).
+.constraint_approxim <- function(scen) {
+  ss <- scen@settings
+  mid <- as.integer(scen@modInp@sets$year)
+  growth <- if (length(mid) > 0) c(diff(mid), 1L) else integer(0)
+  names(growth) <- as.character(mid)
+  list(
+    region = scen@modInp@sets$region,
+    year = ss@horizon@period,
+    slice = scen@modInp@sets$slice,
+    calendar = ss@calendar,
+    solver = NULL,
+    mileStoneYears = mid,
+    mileStoneForGrowth = growth,
+    fullsets = TRUE,
+    optimizeRetirement = ss@optimizeRetirement
+  )
+}
+
+# The unwired ob2mi("horizon") and ob2mi("calendar") methods were archived to
+# depreciated/R/ob2mi-horizon-calendar.R (never dispatched; ob2mi("horizon") was
+# the sole consumer of the `fn` list in the archived R/fn.R). Horizon/calendar
+# parameters are built by ob2mi("settings") below and the `calendar` recipe.
+
+# =============================================================================#
+## settings ####
+# =============================================================================#
 
 
 # =============================================================================#
@@ -2436,23 +1439,32 @@ setMethod(
   "ob2mi",
   signature(scen = "scenario", obj = "settings", extra_params = "list"),
   function(scen, obj, extra_params = list()) {
-    # browser()
-    # clean_list <- c(
-    #   "mSliceParentChild", "mSliceParentChildE", "mSliceNext",
-    #   "mSliceFYearNext", "pDiscount", "pSliceShare", "pDummyImportCost",
-    #   "pDummyExportCost",
-    #   "pSliceWeight",
-    #   # "mStartMilestone", "mEndMilestone",
-    #   "mMilestoneLast", "mMilestoneFirst", "mMilestoneNext",
-    #   "mMilestoneHasNext", "mSameSlice", "mSameRegion", "ordYear",
-    #   "pYearFraction",
-    #   "cardYear", "pPeriodLen", "pDiscountFactor" #, "mDiscountZero"
-    # )
-    # for (i in clean_list) {
-    #   obj@parameters[[i]] <- .resetParameter(obj@parameters[[i]])
-    # }
-    # obj <- .drop_config_param(obj)
-    # app <- .filter_data_in_slots(app, approxim$region, "region")
+    # Settings -> modInp parameters. Relocated verbatim from the legacy
+    # `.obj2modInp(modInp, settings, approxim)` method (R/obj2modInp.R) so the
+    # interpolation pipeline no longer depends on it. The original variable names
+    # are kept so the body stays identical to the legacy source: `app` is the
+    # settings object, `obj` the modInp, `approxim` the interpolation context
+    # assembled by `.interp_settings_params()` and passed via `extra_params`.
+    app      <- obj
+    approxim <- extra_params$approxim
+    obj      <- scen@modInp
+
+    clean_list <- c(
+      "mSliceParentChild", "mSliceParentChildE", "mSliceNext",
+      "mSliceFYearNext", "pDiscount", "pSliceShare", "pDummyImportCost",
+      "pDummyExportCost",
+      "pSliceWeight",
+      # "mStartMilestone", "mEndMilestone",
+      "mMilestoneLast", "mMilestoneFirst", "mMilestoneNext",
+      "mMilestoneHasNext", "mSameSlice", "mSameRegion", "ordYear",
+      "pYearFraction",
+      "cardYear", "pPeriodLen", "pDiscountFactor" #, "mDiscountZero"
+    )
+    for (i in clean_list) {
+      obj@parameters[[i]] <- .resetParameter(obj@parameters[[i]])
+    }
+    obj <- .drop_config_param(obj)
+    app <- .filter_data_in_slots(app, approxim$region, "region")
     obj@parameters[["mSliceParentChild"]] <- .dat2par(
       obj@parameters[["mSliceParentChild"]],
       data.table(
@@ -2572,6 +1584,24 @@ setMethod(
       # )
       pSliceWeight_tmp
     )
+    # agg-rewrite: intensive slice-aggregation weight pSliceAgg[year, parent, child]
+    # = pSliceWeight[year, child] / pSliceWeight[year, parent], over IMMEDIATE
+    # parent-child pairs (@slice_family). Used to up-aggregate commodity totals
+    # between adjacent levels (eqOutTot/eqInpTot), replacing *2Lo disaggregation.
+    pSliceAgg_tmp <- dplyr::as_tibble(approxim$calendar@slice_family) |>
+      dplyr::transmute(slice = as.character(parent),
+                       slicep = as.character(child)) |>
+      dplyr::left_join(dplyr::rename(pSliceWeight_tmp,
+                                     slicep = slice, w_child = value),
+                       by = "slicep") |>
+      dplyr::left_join(dplyr::rename(pSliceWeight_tmp, w_parent = value),
+                       by = c("year", "slice")) |>
+      dplyr::filter(!is.na(w_child) & !is.na(w_parent) & w_parent != 0) |>
+      dplyr::transmute(year, slice, slicep, value = w_child / w_parent) |>
+      as.data.table()
+    obj@parameters[["pSliceAgg"]] <- .dat2par(
+      obj@parameters[["pSliceAgg"]], pSliceAgg_tmp)
+    rm(pSliceAgg_tmp)
     # browser()
     rm(a, b, ab, pSliceWeight_tmp)
 
@@ -2647,7 +1677,8 @@ setMethod(
     obj@parameters[["pYearFraction"]] <-
       .dat2par(obj@parameters[["pYearFraction"]], pYearFraction)
     obj@parameters[["pYearFraction"]]@defVal <- 1 # !!! temporary fix
-    obj
+    scen@modInp <- obj
+    scen
   }
 )
 
@@ -2684,27 +1715,150 @@ force_cols_classes <- function(dtf) {
     }
   }
 
+  # The `value` column is always numeric (double): source slots may declare it
+  # as integer (e.g. trade `olife = integer()`), which would otherwise clash
+  # with the numeric `value` column of the target parameter in `d2p`.
+  if (!is.null(dtf[["value"]]) && !inherits(dtf[["value"]], "numeric")) {
+    dtf[["value"]] <- as.numeric(dtf[["value"]])
+  }
+
+  # The bounds `type` column is a factor (levels lo, up) in memory but round-trips
+  # through CSV as plain character; restore the factor so an on-disk parameter is
+  # byte-identical to an in-memory one.
+  if (!is.null(dtf[["type"]]) && !is.factor(dtf[["type"]])) {
+    dtf[["type"]] <- factor(as.character(dtf[["type"]]), levels = c("lo", "up"))
+  }
+
   as.data.table(dtf)
 }
 
 # =============================================================================#
-make_data_param <- function(scen, slot_data, obj_name, par_name,
-                            short_name, class_col) {
+# .expand_na_region: materialise wildcard (NA) region rows of a collected
+# parameter to explicit regions.
+#
+# A NA in the `region` column means "applies to every operative region of the
+# object". Such rows are expanded to one row per region in `regs` (the object's
+# regions, or all model regions when the object declares none). Rows that
+# already carry an explicit region win at the same non-region key, so a NA
+# wildcard never overrides or duplicates a region the user set explicitly.
+# =============================================================================#
+.expand_na_region <- function(dat, regs) {
+  if (is.null(dat) || !"region" %in% colnames(dat) || nrow(dat) == 0) {
+    return(dat)
+  }
+  na_rows <- is.na(dat$region)
+  if (!any(na_rows)) {
+    return(dat)
+  }
+  regs <- unique(as.character(regs))
+  regs <- regs[!is.na(regs) & nzchar(regs)]
+  if (length(regs) == 0) {
+    return(dat)
+  }
+  was_dt <- data.table::is.data.table(dat)
+  dat <- as.data.frame(dat)
+  key <- setdiff(colnames(dat), c("region", "value", "type"))
+  explicit <- dat[!na_rows, , drop = FALSE]
+  wild <- dat[na_rows, setdiff(colnames(dat), "region"), drop = FALSE]
+  grid <- dplyr::cross_join(wild, data.frame(region = regs,
+                                             stringsAsFactors = FALSE))
+  # Explicit region rows win over a wildcard at the same full key.
+  if (nrow(explicit) > 0) {
+    grid <- dplyr::anti_join(grid, explicit, by = c(key, "region"))
+  }
+  out <- dplyr::bind_rows(explicit, grid[, colnames(dat), drop = FALSE])
+  if (was_dt) data.table::as.data.table(out) else out
+}
+
+# =============================================================================#
+make_data_param <- function(
+    scen,
+    obj_name,
+    slot_data,
+    par_meta,
+    class_col = NULL
+    # par_name,
+    # short_name,
+    # class_col
+    # scen = scen,
+    # obj_name = tech@name,
+    # slot_data = slot_data,
+    # par_meta = p
+  ) {
+
+  # if (par_meta$name == "pTechCap2act") browser()
+
   if (!inherits(slot_data, "data.frame")) {
     slot_data <- data.frame(value = slot_data)
+    short_name <- "value"
+  } else {
+    short_name <- par_meta$colName
   }
-  browser()
-  dat <- slot_data |>
-    select(any_of(c(
-      scen@modInp@parameters[[par_name]]@dimSets,
-      short_name
+  if (par_meta$type == "bounds") {
+    # browser()
+    bound_names <- paste0(par_meta$colName, c(".lo", ".up", ".fx"))
+    # names(bound_names) <- c("lo", "up", "fx")
+
+    dat <- slot_data |>
+      select(any_of(c(
+        scen@modInp@parameters[[par_meta$name]]@dimSets,
+        bound_names
+      )))
+
+    if (!is.null(class_col) && is.null(dat[[class_col]])) {
+      dat <- dat |> mutate({{class_col}} := obj_name, .before = 1)
+    }
+
+    # Pack RAW (sparse) bounds in long format with `type` in {lo, up, fx}.
+    # Interpolation is deferred to `interpolate_parameters`.
+    dat <- dat |>
+      pivot_longer(
+        cols = any_of(bound_names),
+        names_to = "type",
+        values_to = "value",
+        names_prefix = paste0(par_meta$colName, ".")
+      )
+
+    # fixed (fx) bounds -> explicit lo + up rows (see .expand_fx_bounds)
+    dat <- .expand_fx_bounds(dat)
+
+    dat <- dat |>
+      select(all_of(c(
+        scen@modInp@parameters[[par_meta$name]]@dimSets,
+        "type", "value"
       ))) |>
-    rename(value = short_name) |>
+      force_cols_classes()
+
+  } else {
+  # browser()
+    # Pack RAW (sparse) numeric values. Interpolation is deferred to
+    # `interpolate_parameters`.
+    dat <- slot_data |>
+      select(any_of(c(
+        scen@modInp@parameters[[par_meta$name]]@dimSets,
+        short_name
+        ))) |>
+      rename(value = short_name) |>
+      filter(!is.na(value)) |>
+      unique()
+
+    if (!is.null(class_col) && is.null(dat[[class_col]])) {
+      dat <- dat |> mutate({{class_col}} := obj_name, .before = 1)
+    }
+
+    dat <- dat |>
+      select(all_of(c(
+        scen@modInp@parameters[[par_meta$name]]@dimSets,
+        "value"
+      ))) |>
+      force_cols_classes()
+  }
+
+  # !!! add optional or essential info to metadata and filter NAs for optional
+  dat <- dat |>
     filter(!is.na(value)) |>
     unique()
-  dat <- dat |>
-    mutate({{class_col}} := obj_name) |>
-    force_cols_classes()
+
   dat
 }
 # =============================================================================#

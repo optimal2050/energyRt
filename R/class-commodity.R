@@ -10,14 +10,14 @@
 #' The creation of a commodity object is done with the `newCommodity` function.
 #'
 #' @md
-#' @slot name `r get_slot_info("commodity", "name")`
-#' @slot desc `r get_slot_info("commodity", "desc")`
-#' @slot limtype `r get_slot_info("commodity", "limtype")`
-#' @slot timeframe `r get_slot_info("commodity", "timeframe")`
-#' @slot unit `r get_slot_info("commodity", "unit")`
-#' @slot emis `r get_slot_info("commodity", "emis")`
-#' @slot agg `r get_slot_info("commodity", "agg")`
-#' @slot misc `r get_slot_info("commodity", "misc")`
+#' @slot name `r get_slot_doc("commodity", "name")`
+#' @slot desc `r get_slot_doc("commodity", "desc")`
+#' @slot limtype `r get_slot_doc("commodity", "limtype")`
+#' @slot timeframe `r get_slot_doc("commodity", "timeframe")`
+#' @slot unit `r get_slot_doc("commodity", "unit")`
+#' @slot emis `r get_slot_doc("commodity", "emis")`
+#' @slot agg `r get_slot_doc("commodity", "agg")`
+#' @slot misc `r get_slot_doc("commodity", "misc")`
 #'
 #' @rdname class-commodity
 #' @family class, commodity
@@ -64,14 +64,14 @@ setMethod("initialize", "commodity", function(.Object, ...) {
 #' Create new commodity object
 #'
 #' @md
-#' @param name `r get_slot_info("commodity", "name")`
-#' @param desc `r get_slot_info("commodity", "desc")`
-#' @param limtype `r get_slot_info("commodity", "limtype")`
-#' @param timeframe `r get_slot_info("commodity", "timeframe")`
-#' @param unit `r get_slot_info("commodity", "unit")`
-#' @param agg `r get_slot_info("commodity", "agg")`
-#' @param emis `r get_slot_info("commodity", "emis")`
-#' @param misc `r get_slot_info("commodity", "misc")`
+#' @param name `r get_slot_doc("commodity", "name")`
+#' @param desc `r get_slot_doc("commodity", "desc")`
+#' @param limtype `r get_slot_doc("commodity", "limtype")`
+#' @param timeframe `r get_slot_doc("commodity", "timeframe")`
+#' @param unit `r get_slot_doc("commodity", "unit")`
+#' @param agg `r get_slot_doc("commodity", "agg")`
+#' @param emis `r get_slot_doc("commodity", "emis")`
+#' @param misc `r get_slot_doc("commodity", "misc")`
 #'
 #' @return commodity object
 #' @export

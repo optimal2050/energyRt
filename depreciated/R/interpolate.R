@@ -26,6 +26,24 @@ interpolate_model <- function(object, ...) { #- returns class scenario
   # browser()
   obj <- object
   arg <- list(...)
+  # browser()
+  if (any(sapply(arg, function(x) inherits(x, "list")))) {
+    # !!! temporary fix to avoid unlisting solver list
+    arg_names <- names(arg)
+    solv <- NULL
+    if (any(arg_names %in% "solver")) {
+      solv <- arg$solver
+      arg$solver <- NULL
+    }
+    arg0 <- try(purrr::list_flatten(arg, name_spec = "{inner}"))
+    if (inherits(arg, "try-error")) {
+      warning("Potential error in arguments list.")
+    } else {
+      arg <- arg0
+    }
+    arg$solver <- solv
+    rm(arg0, solv)
+  }
   tictoc::tic()
   # browser()
   interpolation_start_time <- proc.time()[3]
@@ -655,7 +673,7 @@ interpolate_model <- function(object, ...) { #- returns class scenario
   filter_comreg <- function(p, y = mCommReg) {
     p@data <-
       p@data |>
-      semi_join(y, by = intersect(colnames(p@data), colnames(y))) |>
+      dplyr::semi_join(y, by = intersect(colnames(p@data), colnames(y))) |>
       unique()
     p@misc$nValues <- nrow(p@data)
     p
@@ -685,7 +703,7 @@ interpolate_model <- function(object, ...) { #- returns class scenario
   #   unique() |>
   #   right_join(mCommReg, by = "comm") |>
   #   filter(!is.na(tech))
-
+  # browser()
   scen@modInp@parameters[["mTechNew"]] <-
     filter_comreg(scen@modInp@parameters[["mTechNew"]], y_tech_reg)
   # scen@modInp@parameters[["mTechNew"]] |> filter_comreg(y_out)
@@ -924,6 +942,9 @@ subset_slices_repo <- function(repo, yearFraction = 1, keep_slices = NULL) {
   if (yearFraction == 1) {
     return(repo)
   }
+  if (length(repo) == 0) {
+    return(repo)
+  }
   # browser()
   if (inherits(repo, "list")) {
     # list of repositories
@@ -1121,11 +1142,25 @@ subset_slices_repo <- function(repo, yearFraction = 1, keep_slices = NULL) {
     # assign('test', prec@parameters[[i]], globalenv())
     # if (i == 342) browser()
     # if (prec@parameters[[i]]@name == "pTechRet") browser() # DEBUG
-    if (any(prec@parameters[[i]]@inClass$colName != "")) {
-      prec@parameters[[i]]@defVal <-
-        as.numeric(ss@defVal[1, prec@parameters[[i]]@inClass$colName])
+    cn <- prec@parameters[[i]]@inClass$colName
+    if (!any(!is.na(cn) & cn != "")) next
+    # The configuration tables (`ss@defVal` / `ss@interpolation`) store the
+    # lower/upper bounds of `bounds` parameters in the `<colName>.lo` /
+    # `<colName>.up` columns, whereas `numpar` parameters use `<colName>`
+    # directly. Look up the matching column(s) accordingly and only override
+    # the registry (modInp) defaults when the configuration actually defines
+    # them, otherwise keep the registry values.
+    if (as.character(prec@parameters[[i]]@type) == "bounds") {
+      lookup <- c(paste0(cn[[1]], ".lo"), paste0(cn[[1]], ".up"))
+    } else {
+      lookup <- cn
+    }
+    if (all(lookup %in% colnames(ss@defVal))) {
+      prec@parameters[[i]]@defVal <- as.numeric(ss@defVal[1, lookup])
+    }
+    if (all(lookup %in% colnames(ss@interpolation))) {
       prec@parameters[[i]]@interpolation <-
-        as.character(ss@interpolation[1, prec@parameters[[i]]@inClass$colName])
+        as.character(ss@interpolation[1, lookup])
     }
   }
   prec
@@ -1158,16 +1193,21 @@ subset_slices_repo <- function(repo, yearFraction = 1, keep_slices = NULL) {
   approxim
 }
 # Get commodity slice map for interpolate
-.get_map_commodity_slice_map <- function(obj) {
+.get_map_commodity_slice_map_obj <- function(obj) {
   xx <- list()
   for (i in seq(along = obj@data)) {
     for (j in seq(along = obj@data[[i]]@data)) { #
-      prec <- .add2set(prec, obj@data[[i]]@data[[j]], approxim = approxim)
+      prec <- .add2set(
+        prec,
+        obj@data[[i]]@data[[j]],
+        approxim = approxim)
       if (is(obj@data[[i]]@data[[j]], "commodity")) {
         if (length(obj@data[[i]]@data[[j]]@timeframe) == 0) {
-          obj@data[[i]]@data[[j]]@timeframe <- approxim$calendar@default_timeframe
+          obj@data[[i]]@data[[j]]@timeframe <-
+            approxim$calendar@default_timeframe
         }
-        commodity_slice_map[[obj@data[[i]]@data[[j]]@name]] <- obj@data[[i]]@data[[j]]@timeframe
+        commodity_slice_map[[obj@data[[i]]@data[[j]]@name]] <-
+          obj@data[[i]]@data[[j]]@timeframe
       }
     }
   }
@@ -1245,9 +1285,13 @@ subset_slices_repo <- function(repo, yearFraction = 1, keep_slices = NULL) {
 
 # Add commodity slice_level map to approxim
 .get_map_commodity_slice_map <- function(scen) {
-  .apply_to_code_ret_list(scen = scen, clss = "commodity", func = function(x) {
-    list(name = x@name, val = x@timeframe)
-  })
+  .apply_to_code_ret_list(
+    scen = scen,
+    clss = "commodity",
+    func = function(x) {
+      list(name = x@name, val = x@timeframe)
+    }
+  )
 }
 
 
@@ -1400,7 +1444,7 @@ subset_slices_repo <- function(repo, yearFraction = 1, keep_slices = NULL) {
 }
 .get_objects_len_name <- function(scen) {
   (25 + max(c(30, max(c(sapply(scen@model@data, function(x) {
-    max(sapply(x@data, function(y) nchar(y@name)))
+    max(if (length(x@data) > 0) sapply(x@data, function(y) nchar(y@name)) else 0)
   }), recursive = TRUE)))))
 }
 

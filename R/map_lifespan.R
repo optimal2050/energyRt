@@ -54,6 +54,29 @@
   .set_lifespan_map(scen, name, df, f$key, fmp)
 }
 
+# mStorageOlifeInf: (stg, region) for storages with a FINITE olife, over their
+# operating regions (mStorageSpan). NOTE: storage uses the OPPOSITE convention to
+# technology (which lists INFINITE-olife). It is redundant with the
+# `ordYear < pStorageOlife + ordYear[yp]` clause in eqStorageCap, so it is
+# behaviour-neutral; ported for v0.51 parity. Faithful port of obj2modInp.R:1055.
+map_mStorageOlifeInf <- function(scen, fmp) {
+  span <- .gds(scen, "mStorageSpan")
+  if (is.null(span)) return(scen)
+  fin <- apply_to_scenario_data(
+    scen = scen, classes = "storage", as_list = TRUE,
+    func = function(x) {
+      ol <- as.data.frame(x@olife)
+      if (nrow(ol) == 0 || all(is.infinite(ol$olife))) return(NULL)
+      o <- list(); o[[x@name]] <- data.frame(stg = x@name, stringsAsFactors = FALSE)
+      o
+    })
+  fdf <- dplyr::bind_rows(fin)
+  if (is.null(fdf) || nrow(fdf) == 0) return(scen)
+  sr <- dplyr::distinct(dplyr::select(span, dplyr::any_of(c("stg", "region"))))
+  df <- dplyr::distinct(dplyr::inner_join(sr, fdf, by = "stg"))
+  .set_map(scen, "mStorageOlifeInf", df, fmp)
+}
+
 # One technology capacity-retirement map (delegates to the shared builder, which
 # self-gates on settings@optimizeRetirement and builds only the requested name).
 .lifespan_retire_one <- function(scen, name, fmp) {
@@ -79,7 +102,7 @@ map_mTechOlifeInf    <- function(scen, fmp) .lifespan_inf_map(scen,    "mTechOli
 map_mStorageNew      <- function(scen, fmp) .lifespan_window_map(scen, "mStorageNew",      "storage", "new",  fmp)
 map_mStorageSpan     <- function(scen, fmp) .lifespan_window_map(scen, "mStorageSpan",     "storage", "span", fmp)
 map_mStorageEac      <- function(scen, fmp) .lifespan_window_map(scen, "mStorageEac",      "storage", "span", fmp)
-map_mStorageOlifeInf <- function(scen, fmp) .lifespan_inf_map(scen,    "mStorageOlifeInf", "storage",        fmp)
+# map_mStorageOlifeInf defined above (storage uses the finite-olife convention).
 map_mTradeNew        <- function(scen, fmp) .lifespan_window_map(scen, "mTradeNew",      "trade", "new",  fmp)
 map_mTradeSpan       <- function(scen, fmp) .lifespan_window_map(scen, "mTradeSpan",     "trade", "span", fmp)
 map_mTradeOlifeInf   <- function(scen, fmp) .lifespan_inf_map(scen,    "mTradeOlifeInf", "trade",        fmp)

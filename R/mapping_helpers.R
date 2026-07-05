@@ -41,6 +41,24 @@
   dplyr::semi_join(df, cr, by = by)
 }
 
+# .fold_join(): inner-join `dom` with a possibly-FOLDED `src` (a parameter read
+# mid-recipe, before unfolding). A fully-NA `src` column is a wildcard ("all
+# members") and must NOT constrain the join — a plain join keys on shared columns
+# and NA never matches an explicit member, which would wrongly drop every `dom`
+# row and empty the map. Drop fully-NA `src` columns, then join on the shared
+# remaining columns; the explicit-membered `dom` supplies the wildcarded dims.
+# (Canonical form of the fold-aware fix also applied in value_on_window,
+# .build_constraint_join_map and .build_tech_group_maps' refine.)
+.fold_join <- function(dom, src) {
+  if (is.null(src) || nrow(as.data.frame(src)) == 0) return(src)
+  src <- as.data.frame(src)
+  keep <- vapply(src, function(col) !all(is.na(col)), logical(1))
+  src <- src[, keep, drop = FALSE]
+  by <- intersect(colnames(as.data.frame(dom)), colnames(src))
+  if (length(by) == 0) return(as.data.frame(dom))
+  dplyr::inner_join(as.data.frame(dom), src, by = by)
+}
+
 # value_on_window(): domain of a derived "value" map = the points where one or
 # more interpolated p* parameters carry a defined (non-NA) value, projected onto
 # the map's dimensions and optionally intersected with a lifespan window map.
@@ -77,6 +95,13 @@ value_on_window <- function(scen, name, source, window = NULL, gate = NULL, fmp)
     win_par <- scen@modInp@parameters[[window]]
     win <- if (is.null(win_par)) NULL else get_data_slot(win_par)
     if (is.null(win) || nrow(win) == 0) return(scen)
+    # The source parameter is read at recipe time while still FOLDED: a dimension
+    # that is entirely NA is a wildcard ("all members"), so it must not constrain
+    # the join with the explicit-membered window (`merge0` joins on shared columns
+    # and NA never matches an explicit member, which would wrongly empty the map).
+    # Drop fully-NA source columns; the window then supplies those dimensions.
+    keep <- vapply(src, function(col) !all(is.na(col)), logical(1))
+    src  <- src[, keep, drop = FALSE]
     df <- merge0(as.data.frame(win), src)
   } else {
     df <- src

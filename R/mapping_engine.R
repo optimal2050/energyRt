@@ -804,10 +804,11 @@ recipe_calendar <- function(scen, names, fmp) scen
 #' @returns updated scenario object.
 #' @keywords internal
 # Value maps whose derivation depends on filter-recipe maps and are therefore
-# built inside recipe_filter (which runs after recipe_value would). Listed here
-# so recipe_value does not report them as pending.
+# emitted as side-effects of their filter `map_*` siblings in R/map_filter.R
+# (recipe_value runs before filter, so the source maps are absent there). Listed
+# here so recipe_value does not report them as pending.
 .value_maps_built_in_filter <- c(
-  "mInpSub", "mOutSub",
+  # [agg-rewrite] mInpSub/mOutSub removed
   "mDummyImportCost", "mDummyExportCost",
   "mImportRowCost", "mExportRowCost",
   "mImportIrCost", "mExportIrCost"
@@ -834,839 +835,16 @@ recipe_value <- function(scen, names, fmp) {
 
 # --------------------------------------------------------------------------- #
 # Recipe "filter": activity / flow domains (variable index sets)
-# --------------------------------------------------------------------------- #
-
-# These maps define the actual (region, year, slice, commodity) domains over
-# which the activity / flow variables are defined. They are derived by joining
-# the operation windows (lifespan recipe: mTechSpan / mStorageSpan), the
-# membership commodity maps (membership recipe: mTechInpComm / mTechOutComm /
-# mTechAInp / mTechAOut / mSupComm / mStorageComm / mStorageAInp / mStorageAOut)
-# and the per-object slice maps (calendar recipe: mTechSlice / mSupSlice), then
-# restricting commodity flows to feasible (commodity, region) pairs via the
-# commodity-region closure map (closure recipe: mCommReg).
 #
-# This first implementation covers the core technology, supply and storage
-# activity / flow domains. Aggregation totals, aux-conversion, trade flows,
-# demand, import/export-row and lower-bound (`*2Lo`) maps are reported as
-# pending and added in subsequent rounds.
-
-# Core activity / flow maps handled by this recipe so far.
-.filter_core_maps <- c(
-  "mvTechAct", "mvTechInp", "mvTechOut", "mTechOutRY",
-  "mvTechAInp", "mvTechAOut",
-  "mSupAva",
-  "mvStorageStore", "mvStorageAInp", "mvStorageAOut"
-)
-
-.build_filter_core <- function(scen, want, fmp) {
-  # read a stored mapping as a data.frame (NULL when absent / empty)
-  gds <- function(nm) {
-    p <- scen@modInp@parameters[[nm]]
-    if (is.null(p)) return(NULL)
-    d <- get_data_slot(p)
-    if (is.null(d) || nrow(d) == 0) return(NULL)
-    as.data.frame(d)
-  }
-  # persist a map only when it was requested
-  setm <- function(scen, nm, df) {
-    if (!nm %in% want || is.null(df) || nrow(df) == 0) return(scen)
-    .set_map(scen, nm, df, fmp)
-  }
-  # restrict commodity flows to feasible (commodity, region) pairs
-  cr <- gds("mCommReg")
-  filt <- function(df, region_col = "region") {
-    if (is.null(df) || nrow(df) == 0) return(df)
-    df <- as.data.frame(df)
-    if (is.null(cr) || nrow(cr) == 0) return(df[0, , drop = FALSE])
-    by <- if (region_col == "region") {
-      c("comm", "region")
-    } else {
-      c("comm", stats::setNames("region", region_col))
-    }
-    dplyr::semi_join(df, cr, by = by)
-  }
-
-  milestones <- as.integer(scen@settings@horizon@intervals$mid)
-  proc_slice <- .process_slice_df(scen)
-  pclass     <- get_process_class(scen)
-
-  ## --- technology ---------------------------------------------------------
-  tech_span  <- gds("mTechSpan")
-  tech_slice <- .proc_slice_for(proc_slice, pclass, "technology", "tech")
-  act <- NULL
-  if (!is.null(tech_span) && !is.null(tech_slice)) {
-    act <- as.data.frame(merge0(tech_span, tech_slice))
-    scen <- setm(scen, "mvTechAct", act)
-  }
-  if (!is.null(act)) {
-    inp <- gds("mTechInpComm")
-    if (!is.null(inp)) {
-      scen <- setm(scen, "mvTechInp", filt(as.data.frame(merge0(act, inp))))
-    }
-    out <- gds("mTechOutComm")
-    if (!is.null(out)) {
-      mvTechOut <- filt(as.data.frame(merge0(act, out)))
-      scen <- setm(scen, "mvTechOut", mvTechOut)
-      ry <- dplyr::distinct(dplyr::select(mvTechOut,
-        dplyr::any_of(c("tech", "comm", "region", "year"))))
-      scen <- setm(scen, "mTechOutRY", ry)
-    }
-    ainp <- gds("mTechAInp")
-    if (!is.null(ainp)) {
-      scen <- setm(scen, "mvTechAInp", filt(as.data.frame(merge0(act, ainp))))
-    }
-    aout <- gds("mTechAOut")
-    if (!is.null(aout)) {
-      scen <- setm(scen, "mvTechAOut", filt(as.data.frame(merge0(act, aout))))
-    }
-  }
-
-  ## --- supply -------------------------------------------------------------
-  sup_span  <- gds("mSupSpan")
-  sup_comm  <- gds("mSupComm")
-  sup_slice <- .proc_slice_for(proc_slice, pclass, "supply", "sup")
-  if (!is.null(sup_span) && !is.null(sup_comm) && !is.null(sup_slice) &&
-      length(milestones) > 0) {
-    ava <- merge0(sup_span, sup_comm)
-    ava <- merge0(ava, sup_slice)
-    ava <- merge0(as.data.frame(ava), data.frame(year = milestones))
-    scen <- setm(scen, "mSupAva", filt(as.data.frame(ava)))
-  }
-
-  ## --- storage ------------------------------------------------------------
-  stg_span  <- gds("mStorageSpan")
-  stg_comm  <- gds("mStorageComm")
-  stg_slice <- .proc_slice_for(proc_slice, pclass, "storage", "stg")
-  store <- NULL
-  if (!is.null(stg_span) && !is.null(stg_comm) && !is.null(stg_slice)) {
-    store <- merge0(stg_span, stg_comm)
-    store <- as.data.frame(merge0(store, stg_slice))
-    scen <- setm(scen, "mvStorageStore", filt(store))
-  }
-  if (!is.null(store)) {
-    base <- dplyr::select(store, -dplyr::any_of("comm"))
-    sa_inp <- gds("mStorageAInp")
-    if (!is.null(sa_inp)) {
-      scen <- setm(scen, "mvStorageAInp",
-                   filt(as.data.frame(merge0(base, sa_inp))))
-    }
-    sa_out <- gds("mStorageAOut")
-    if (!is.null(sa_out)) {
-      scen <- setm(scen, "mvStorageAOut",
-                   filt(as.data.frame(merge0(base, sa_out))))
-    }
-  }
-  scen
-}
-
+# FULLY MIGRATED to R/map_filter.R (per-mapping registry). Every filter-recipe
+# map is registry-backed, so build_mappings() never routes a name to a filter
+# fallback; the legacy `.build_filter_core` / `.build_filter_derived` /
+# `recipe_filter` builders were ARCHIVED to drafts/legacy-mapping/filter.R.
+# The shared helpers they used (.trade_aux_derived, .io_row_maps, .aux_conv_map)
+# stay live above; the setm_any side-effect maps (meqSupAvaLo, meq*RowLo,
+# m*RowCumUp, mInpSub/mOutSub, *Cost, mTradeRoutes) are now emitted as
+# side-effects of their filter siblings in R/map_filter.R.
 # --------------------------------------------------------------------------- #
-# Derived total / aggregation / balance maps (recipe "filter", source derived)
-# --------------------------------------------------------------------------- #
-# These maps are not flow-domain primitives but aggregations / unions of the
-# core flow maps, restricted to each commodity's native slice resolution via the
-# commodity slice-or-parent map (`mCommSliceOrParent`). They mirror the legacy
-# `.make_mapping` derivations in R/write.R: the per-process input / output
-# totals (`mTech*Tot`, `mSupOutTot`, `mStorage*Tot`), the emission and
-# aggregate-output totals, the inter-regional trade aux totals, the commodity
-# balance domains (`mvInpTot` / `mvOutTot` / `mvBalance`) and their
-# year-resolution projections (`m*TotRY`, `mBalanceRY`).
-
-# Maps handled by the derived-totals builder.
-.filter_derived_maps <- c(
-  "mvDemInp",
-  "mTechInpTot", "mTechOutTot", "mSupOutTot",
-  "mStorageInpTot", "mStorageOutTot",
-  "mEmsFuelTot", "mAggOut", "mAggregateFactor",
-  "mImportRow", "mImportRowUp",
-  "mExportRow", "mExportRowUp",
-  "mDummyImport", "mDummyExport",
-  "mExport", "mImport",
-  "mSupAvaUp",
-  "mTechAct2AInp", "mTechAct2AOut",
-  "mTechCap2AInp", "mTechCap2AOut",
-  "mTechNCap2AInp", "mTechNCap2AOut",
-  "mTechCinp2AInp", "mTechCinp2AOut",
-  "mTechCout2AInp", "mTechCout2AOut",
-  "mStorageStg2AInp", "mStorageStg2AOut",
-  "mStorageCinp2AInp", "mStorageCinp2AOut",
-  "mStorageCout2AInp", "mStorageCout2AOut",
-  "mStorageCap2AInp", "mStorageCap2AOut",
-  "mStorageNCap2AInp", "mStorageNCap2AOut",
-  "mTradeIr", "mvTradeIr",
-  "mTradeIrAInp", "mTradeIrAOut",
-  "mTradeIrCsrc2Ainp", "mTradeIrCdst2Ainp",
-  "mTradeIrCsrc2Aout", "mTradeIrCdst2Aout",
-  "mvTradeIrAInp", "mvTradeIrAOut",
-  "mvTradeIrAInpTot", "mvTradeIrAOutTot",
-  "mInp2Lo", "mOut2Lo", "mvInp2Lo", "mvOut2Lo",
-  "mvInpTot", "mvOutTot", "mvBalance",
-  "mInpTotRY", "mOutTotRY", "mBalanceRY"
-)
-
-.build_filter_derived <- function(scen, want, fmp) {
-  # read a stored mapping / parameter as a data.frame (NULL when absent / empty)
-  gds <- function(nm) {
-    p <- scen@modInp@parameters[[nm]]
-    if (is.null(p)) return(NULL)
-    d <- get_data_slot(p)
-    if (is.null(d) || nrow(d) == 0) return(NULL)
-    as.data.frame(d)
-  }
-  setm <- function(scen, nm, df) {
-    if (!nm %in% want || is.null(df) || nrow(df) == 0) return(scen)
-    .set_map(scen, nm, df, fmp)
-  }
-  # store unconditionally (regardless of `want`) when the parameter slot exists;
-  # used for intermediates that other maps in this recipe depend on.
-  setm_any <- function(scen, nm, df) {
-    if (is.null(df) || nrow(df) == 0) return(scen)
-    if (is.null(scen@modInp@parameters[[nm]])) return(scen)
-    .set_map(scen, nm, df, fmp)
-  }
-
-  csop       <- gds("mCommSliceOrParent")
-  cr         <- gds("mCommReg")
-  comm_slice <- gds("mCommSlice")
-  regions    <- as.character(scen@settings@region)
-  milestones <- as.integer(scen@settings@horizon@intervals$mid)
-  ry_cols    <- c("comm", "region", "year", "slice")
-
-  # restrict a (comm, region, ...) total to feasible commodity-region pairs
-  filt_cr <- function(df) {
-    if (is.null(df) || nrow(df) == 0) return(df)
-    if (is.null(cr) || nrow(cr) == 0) return(df[0, , drop = FALSE])
-    dplyr::inner_join(df, cr, by = c("comm", "region"))
-  }
-  # row-bind several frames projected to the (comm, region, year, slice) domain,
-  # dropping NULL / empty pieces, then de-duplicate
-  bind_ry <- function(...) {
-    fr <- Filter(function(x) !is.null(x) && nrow(as.data.frame(x)) > 0,
-                 list(...))
-    if (length(fr) == 0) return(NULL)
-    fr <- lapply(fr, function(x) {
-      x <- as.data.frame(x)
-      x[, intersect(ry_cols, colnames(x)), drop = FALSE]
-    })
-    .reduce_dup(dplyr::bind_rows(fr))
-  }
-
-  ## --- demand input domain ------------------------------------------------
-  # mvDemInp: each demand commodity over its own slices x region x milestones.
-  if ("mvDemInp" %in% want) {
-    dc <- gds("mDemComm")
-    if (!is.null(dc) && !is.null(comm_slice) &&
-        length(regions) > 0 && length(milestones) > 0) {
-      di <- merge0(dc, comm_slice)
-      di <- merge0(as.data.frame(di),
-                   data.frame(region = regions, stringsAsFactors = FALSE))
-      di <- merge0(as.data.frame(di), data.frame(year = milestones))
-      scen <- setm(scen, "mvDemInp", di)
-    }
-  }
-
-  ## --- technology input / output totals -----------------------------------
-  mvTechInp  <- gds("mvTechInp")
-  mvTechAInp <- gds("mvTechAInp")
-  if ("mTechInpTot" %in% want &&
-      (!is.null(mvTechInp) || !is.null(mvTechAInp))) {
-    pieces <- lapply(Filter(Negate(is.null), list(mvTechInp, mvTechAInp)),
-                     function(x) dplyr::select(x, -dplyr::any_of("tech")))
-    tot <- .reduce_total_map(.reduce_sect(dplyr::bind_rows(pieces)), csop)
-    scen <- setm(scen, "mTechInpTot", filt_cr(tot))
-  }
-  mvTechOut  <- gds("mvTechOut")
-  mvTechAOut <- gds("mvTechAOut")
-  if ("mTechOutTot" %in% want &&
-      (!is.null(mvTechOut) || !is.null(mvTechAOut))) {
-    pieces <- lapply(Filter(Negate(is.null), list(mvTechOut, mvTechAOut)),
-                     function(x) dplyr::select(x, -dplyr::any_of("tech")))
-    tot <- .reduce_total_map(.reduce_sect(dplyr::bind_rows(pieces)), csop)
-    scen <- setm(scen, "mTechOutTot", filt_cr(tot))
-  }
-
-  ## --- supply output total ------------------------------------------------
-  # drop the leading `sup` column of mSupAva (legacy mSupAva[, -1]).
-  mSupAva <- gds("mSupAva")
-  if ("mSupOutTot" %in% want && !is.null(mSupAva)) {
-    scen <- setm(scen, "mSupOutTot",
-                 .reduce_sect(mSupAva[, -1, drop = FALSE]))
-  }
-
-  ## --- supply availability bound domains ----------------------------------
-  # mSupAvaUp: restrict the supply availability domain mSupAva to the
-  # (sup, comm, region, year) keys with a finite non-default upper bound
-  # (legacy obj2modInp.R L1467-1475). The lower-bound counterpart meqSupAvaLo is
-  # a constraint-recipe map sharing the same derivation, built here and skipped
-  # by recipe_constraint. The bounds in pSupAva are folded over `slice`, so the
-  # join carries mSupAva's slices.
-  if (!is.null(mSupAva)) {
-    pSupAva <- gds("pSupAva")
-    if (!is.null(pSupAva)) {
-      sk <- intersect(c("sup", "comm", "region", "year"), colnames(pSupAva))
-      up <- unique(pSupAva[pSupAva$type == "up" & !is.na(pSupAva$value) &
-                             is.finite(pSupAva$value) & pSupAva$value != 0,
-                           sk, drop = FALSE])
-      if (nrow(up) > 0) {
-        scen <- setm(scen, "mSupAvaUp",
-                     filt_cr(.reduce_dup(dplyr::inner_join(mSupAva, up,
-                                                           by = sk))))
-      }
-      lo <- unique(pSupAva[pSupAva$type == "lo" & !is.na(pSupAva$value) &
-                             pSupAva$value != 0, sk, drop = FALSE])
-      if (nrow(lo) > 0) {
-        scen <- setm_any(scen, "meqSupAvaLo",
-                         filt_cr(.reduce_dup(dplyr::inner_join(mSupAva, lo,
-                                                               by = sk))))
-      }
-    }
-  }
-
-  ## --- row (import / export) flow domains ---------------------------------
-  # mImportRow / mExportRow and their upper-bound restrictions, built from the
-  # interpolated bounds parameters via .io_row_maps. The lower-bound and
-  # cumulative-reserve counterparts are constraint-recipe maps, built later.
-  imp_maps <- .io_row_maps("imp", gds("mImpSlice"), gds("mImpComm"),
-                           gds("pImportRow"), gds("pImportRowRes"),
-                           regions, milestones)
-  scen <- setm(scen, "mImportRow",   filt_cr(imp_maps$row))
-  scen <- setm(scen, "mImportRowUp", filt_cr(imp_maps$up))
-  # constraint-recipe counterparts (lower bound / cumulative reserve); built
-  # here because they share the .io_row_maps derivation. recipe_constraint
-  # skips them (see .constraint_maps_built_in_filter).
-  scen <- setm_any(scen, "meqImportRowLo",  filt_cr(imp_maps$lo))
-  scen <- setm_any(scen, "mImportRowCumUp", imp_maps$cumup)
-
-  exp_maps <- .io_row_maps("expp", gds("mExpSlice"), gds("mExpComm"),
-                           gds("pExportRow"), gds("pExportRowRes"),
-                           regions, milestones)
-  scen <- setm(scen, "mExportRow",   filt_cr(exp_maps$row))
-  scen <- setm(scen, "mExportRowUp", filt_cr(exp_maps$up))
-  scen <- setm_any(scen, "meqExportRowLo",  filt_cr(exp_maps$lo))
-  scen <- setm_any(scen, "mExportRowCumUp", exp_maps$cumup)
-
-  ## --- dummy import / export domains --------------------------------------
-  # mDummyImport / mDummyExport: the (comm, region, year, slice) tuples with a
-  # finite dummy slack cost (default Inf -> empty), restricted to feasible
-  # commodity-region pairs (legacy write.R L802-826).
-  build_dummy <- function(scen, param, nm) {
-    if (!nm %in% want) return(scen)
-    d <- gds(param)
-    if (is.null(d)) return(scen)
-    d <- d[!is.na(d$value) & is.finite(d$value), , drop = FALSE]
-    if (nrow(d) == 0) return(scen)
-    d <- d[, intersect(c("comm", "region", "year", "slice"), colnames(d)),
-           drop = FALSE]
-    setm(scen, nm, filt_cr(.reduce_dup(d)))
-  }
-  scen <- build_dummy(scen, "pDummyImportCost", "mDummyImport")
-  scen <- build_dummy(scen, "pDummyExportCost", "mDummyExport")
-
-  ## --- auxiliary-conversion domains ---------------------------------------
-  # mTech*2A* / mStorage*2A*: the (key, comm, region, year, slice) tuples on
-  # which an activity / capacity / flow drives an auxiliary commodity flow.
-  # Built from the interpolated conversion-factor parameters (pTechAct2AInp,
-  # ...) by relabelling the auxiliary commodity as `comm` and materialising the
-  # spatial / temporal dimensions through the relevant flow domain (legacy
-  # technology / storage aeff loops). These maps are unreferenced by the model
-  # equations, so they are pure index sets. Empty unless an object declares an
-  # auxiliary commodity with a non-zero conversion factor.
-  mvTechAct    <- gds("mvTechAct")
-  mvStorageAInp <- gds("mvStorageAInp")
-  mvStorageAOut <- gds("mvStorageAOut")
-  aux_specs <- list(
-    # tech activity / capacity drivers (single commodity = auxiliary) -> mvTechAct
-    list("mTechAct2AInp",  "pTechAct2AInp",  mvTechAct, FALSE),
-    list("mTechAct2AOut",  "pTechAct2AOut",  mvTechAct, FALSE),
-    list("mTechCap2AInp",  "pTechCap2AInp",  mvTechAct, FALSE),
-    list("mTechCap2AOut",  "pTechCap2AOut",  mvTechAct, FALSE),
-    list("mTechNCap2AInp", "pTechNCap2AInp", mvTechAct, FALSE),
-    list("mTechNCap2AOut", "pTechNCap2AOut", mvTechAct, FALSE),
-    # tech commodity-flow drivers (second commodity retained as comm.1).
-    # The driving flow commodity lives in the input domain for *2AInp and the
-    # output domain for *2AOut (legacy obj2modInp.R L2253-2258).
-    list("mTechCinp2AInp", "pTechCinp2AInp", mvTechInp, TRUE),
-    list("mTechCinp2AOut", "pTechCinp2AOut", mvTechOut, TRUE),
-    list("mTechCout2AInp", "pTechCout2AInp", mvTechInp, TRUE),
-    list("mTechCout2AOut", "pTechCout2AOut", mvTechOut, TRUE),
-    # storage drivers (single commodity = auxiliary) -> aux flow domain.
-    list("mStorageStg2AInp",  "pStorageStg2AInp",  mvStorageAInp,  FALSE),
-    list("mStorageStg2AOut",  "pStorageStg2AOut",  mvStorageAOut,  FALSE),
-    list("mStorageCinp2AInp", "pStorageCinp2AInp", mvStorageAInp,  FALSE),
-    list("mStorageCinp2AOut", "pStorageCinp2AOut", mvStorageAOut,  FALSE),
-    list("mStorageCout2AInp", "pStorageCout2AInp", mvStorageAInp,  FALSE),
-    list("mStorageCout2AOut", "pStorageCout2AOut", mvStorageAOut,  FALSE),
-    list("mStorageCap2AInp",  "pStorageCap2AInp",  mvStorageAInp,  FALSE),
-    list("mStorageCap2AOut",  "pStorageCap2AOut",  mvStorageAOut,  FALSE),
-    list("mStorageNCap2AInp", "pStorageNCap2AInp", mvStorageAInp,  FALSE),
-    list("mStorageNCap2AOut", "pStorageNCap2AOut", mvStorageAOut,  FALSE)
-  )
-  for (sp in aux_specs) {
-    nm <- sp[[1]]
-    if (!nm %in% want) next
-    m <- .aux_conv_map(gds(sp[[2]]), sp[[3]], second_comm = sp[[4]])
-    scen <- setm(scen, nm, filt_cr(m))
-  }
-
-
-  # legacy uses rbind(mvStorageAInp[, -1], mvStorageStore[, -1]) for BOTH the
-  # input and output totals.
-  mvStorageAInp  <- gds("mvStorageAInp")
-  mvStorageStore <- gds("mvStorageStore")
-  if (!is.null(mvStorageAInp) || !is.null(mvStorageStore)) {
-    pieces <- lapply(Filter(Negate(is.null),
-                            list(mvStorageAInp, mvStorageStore)),
-                     function(x) x[, -1, drop = FALSE])
-    stot <- .reduce_sect(dplyr::bind_rows(pieces))
-    scen <- setm(scen, "mStorageInpTot", stot)
-    scen <- setm(scen, "mStorageOutTot", stot)
-  }
-
-  ## --- emission-fuel total ------------------------------------------------
-  # mTechEmsFuel = (tech, comm, comm.1, region, year, slice) linking each
-  # technology's input commodity to the emission commodity it generates, then
-  # aggregated to mEmsFuelTot. Empty unless emission factors are present.
-  # Membership follows every technology consuming a fuel that has an emission
-  # factor; the combustion coefficient (pTechEmisComm, default 1) only scales
-  # the emission, so a tech is excluded only when combustion is explicitly 0.
-  if ("mEmsFuelTot" %in% want) {
-    effac <- gds("pEmissionFactor")
-    if (!is.null(mvTechInp) && !is.null(effac)) {
-      effac <- effac[!is.na(effac$value) & effac$value != 0, , drop = FALSE]
-      effac <- .reduce_dup(effac)
-      if (nrow(effac) > 0) {
-        # mvTechInp has comm = consumed fuel; treat it as commp for the join.
-        ti <- dplyr::rename(mvTechInp, commp = "comm")
-        emis <- gds("pTechEmisComm")
-        if (!is.null(emis)) {
-          zero <- emis[!is.na(emis$value) & emis$value == 0,
-                       c("tech", "comm"), drop = FALSE]
-          if (nrow(zero) > 0) {
-            zero <- dplyr::rename(zero, commp = "comm")
-            ti <- dplyr::anti_join(ti, zero, by = c("tech", "commp"))
-          }
-        }
-        ems <- merge0(effac, ti, by = "commp")
-        keep <- intersect(c("tech", "comm", "commp", "region", "year", "slice"),
-                          colnames(ems))
-        ems <- as.data.frame(ems)[, keep, drop = FALSE]
-        ems <- filt_cr(ems)
-        if (!is.null(ems) && nrow(ems) > 0) {
-          ems_fuel <- dplyr::rename(dplyr::distinct(ems), comm.1 = "commp")
-          scen <- .set_map(scen, "mTechEmsFuel", ems_fuel, fmp)
-          tot <- .reduce_total_map(.reduce_sect(ems, ry_cols), csop)
-          scen <- setm(scen, "mEmsFuelTot", tot)
-        }
-      }
-    }
-  }
-
-  ## --- aggregate-factor membership ----------------------------------------
-  # mAggregateFactor = (comm, comm.1) linking each aggregate commodity to its
-  # component commodity (legacy write.R: pAggregateFactor value != 0).
-  if ("mAggregateFactor" %in% want) {
-    agg <- gds("pAggregateFactor")
-    if (!is.null(agg)) {
-      agg <- agg[!is.na(agg$value) & agg$value != 0, , drop = FALSE]
-      if (nrow(agg) > 0) {
-        af <- dplyr::distinct(dplyr::rename(
-          agg[, c("comm", "commp"), drop = FALSE], comm.1 = "commp"))
-        scen <- .set_map(scen, "mAggregateFactor", af, fmp)
-      }
-    }
-  }
-
-  ## --- aggregate-output total ---------------------------------------------
-  if ("mAggOut" %in% want) {
-    agg <- gds("pAggregateFactor")
-    if (!is.null(agg) && length(regions) > 0 && length(milestones) > 0 &&
-        !is.null(comm_slice)) {
-      slices <- unique(comm_slice$slice)
-      a <- .reduce_sect(agg, "comm")
-      a <- merge0(a, data.frame(region = regions, stringsAsFactors = FALSE))
-      a <- merge0(as.data.frame(a), data.frame(year = milestones))
-      a <- merge0(as.data.frame(a),
-                  data.frame(slice = as.character(slices),
-                             stringsAsFactors = FALSE))
-      scen <- setm(scen, "mAggOut",
-                   .reduce_total_map(.reduce_dup(a), csop))
-    }
-  }
-
-  ## --- inter-regional trade route / flow domain ---------------------------
-  # mTradeRoutes: per-trade (src, dst) pairs, straight from each trade object's
-  # `routes` slot. Tagged recipe "constraint" in the spec, but built here as an
-  # intermediate because the inter-regional flow maps below depend on it.
-  # mTradeIr:  trade flow domain = routes x slices x years. The year domain is
-  #            the trade's operation span (mTradeSpan) for capacity-variable
-  #            trades, otherwise all milestone years. Faithful port of
-  #            obj2modInp.R L3258.
-  # mvTradeIr: mTradeIr tagged with the traded commodity (via mTradeComm).
-  trade_slice <- gds("mTradeSlice")
-  trade_span  <- gds("mTradeSpan")
-  trade_comm  <- gds("mTradeComm")
-  trade_info <- apply_to_scenario_data(
-    scen = scen, classes = "trade", as_list = TRUE,
-    func = function(x) {
-      rt <- x@routes
-      if (is.null(rt) || nrow(rt) == 0) return(list())
-      o <- list()
-      o[[x@name]] <- list(
-        routes = data.frame(
-          trade = x@name, src = as.character(rt$src),
-          dst = as.character(rt$dst), stringsAsFactors = FALSE
-        ),
-        capvar = isTRUE(x@capacityVariable)
-      )
-      o
-    }
-  )
-  if (length(trade_info) > 0) {
-    routes_all <- do.call(rbind, lapply(trade_info, `[[`, "routes"))
-    rownames(routes_all) <- NULL
-    routes_all <- .reduce_dup(routes_all)
-    scen <- setm_any(scen, "mTradeRoutes", routes_all)
-
-    if (!is.null(trade_slice)) {
-      ir_pieces <- list()
-      for (nm in names(trade_info)) {
-        rt <- trade_info[[nm]]$routes
-        sl <- trade_slice[trade_slice$trade == nm, , drop = FALSE]
-        if (nrow(sl) == 0) next
-        base <- as.data.frame(merge0(rt, sl))     # trade, src, dst, slice
-        if (trade_info[[nm]]$capvar && !is.null(trade_span)) {
-          yrs <- trade_span$year[trade_span$trade == nm]
-        } else {
-          yrs <- milestones
-        }
-        if (length(yrs) == 0) next
-        ir_pieces[[nm]] <- as.data.frame(
-          merge0(base, data.frame(year = as.integer(yrs)))
-        )
-      }
-      if (length(ir_pieces) > 0) {
-        mTradeIr <- .reduce_dup(do.call(rbind, ir_pieces))
-        mTradeIr <- mTradeIr[, c("trade", "src", "dst", "year", "slice"),
-                             drop = FALSE]
-        scen <- setm(scen, "mTradeIr", mTradeIr)
-        if (!is.null(trade_comm)) {
-          mvTradeIr <- as.data.frame(merge0(mTradeIr, trade_comm))
-          mvTradeIr <- mvTradeIr[, c("trade", "comm", "src", "dst",
-                                     "year", "slice"), drop = FALSE]
-          scen <- setm(scen, "mvTradeIr", mvTradeIr)
-        }
-
-        ## --- inter-regional trade aux flow chain ----------------------
-        # Aux commodities consumed (AInp) / produced (AOut) by a trade flow,
-        # plus the per-route coefficient domains and their region projections.
-        # Faithful port of obj2modInp.R L2920-2989 (membership) and
-        # L3270-3388 (derived maps). The interpolated aux-coefficient params
-        # (pTradeIrCsrc2Ainp etc.) are read back and projected onto mTradeIr.
-        pCsrc2Ainp <- gds("pTradeIrCsrc2Ainp")
-        pCdst2Ainp <- gds("pTradeIrCdst2Ainp")
-        pCsrc2Aout <- gds("pTradeIrCsrc2Aout")
-        pCdst2Aout <- gds("pTradeIrCdst2Aout")
-
-        nz_comm <- function(p) {
-          if (is.null(p)) return(character(0))
-          p <- as.data.frame(p)
-          if (!all(c("acomm", "value") %in% names(p))) return(character(0))
-          unique(p$acomm[!is.na(p$value) & p$value != 0])
-        }
-        nz_trade_comm <- function(p) {
-          if (is.null(p)) return(NULL)
-          p <- as.data.frame(p)
-          p <- p[!is.na(p$value) & p$value != 0, , drop = FALSE]
-          if (nrow(p) == 0) return(NULL)
-          .reduce_dup(p[, c("trade", "acomm"), drop = FALSE])
-        }
-
-        # membership: mTradeIrAInp / mTradeIrAOut (trade, comm)
-        ainp_m <- .reduce_dup(rbind(nz_trade_comm(pCsrc2Ainp),
-                                    nz_trade_comm(pCdst2Ainp)))
-        aout_m <- .reduce_dup(rbind(nz_trade_comm(pCsrc2Aout),
-                                    nz_trade_comm(pCdst2Aout)))
-        if (!is.null(ainp_m) && nrow(ainp_m) > 0) {
-          names(ainp_m)[names(ainp_m) == "acomm"] <- "comm"
-          scen <- setm(scen, "mTradeIrAInp", ainp_m)
-        }
-        if (!is.null(aout_m) && nrow(aout_m) > 0) {
-          names(aout_m)[names(aout_m) == "acomm"] <- "comm"
-          scen <- setm(scen, "mTradeIrAOut", aout_m)
-        }
-
-        # derived per-route coefficient maps + region projections (mvTradeIr*)
-        proj_region <- function(m, dim_col) {
-          if (is.null(m) || nrow(m) == 0) return(NULL)
-          a <- .reduce_dup(m[, c("trade", "comm", dim_col, "year", "slice"),
-                             drop = FALSE])
-          names(a)[names(a) == dim_col] <- "region"
-          a
-        }
-        if (length(nz_comm(pCsrc2Ainp)) > 0 ||
-            length(nz_comm(pCdst2Ainp)) > 0) {
-          mCsrc2Ainp <- .trade_aux_derived(pCsrc2Ainp, mTradeIr)
-          mCdst2Ainp <- .trade_aux_derived(pCdst2Ainp, mTradeIr)
-          scen <- setm(scen, "mTradeIrCsrc2Ainp", mCsrc2Ainp)
-          scen <- setm(scen, "mTradeIrCdst2Ainp", mCdst2Ainp)
-          mvAInp <- .reduce_dup(rbind(proj_region(mCsrc2Ainp, "src"),
-                                      proj_region(mCdst2Ainp, "dst")))
-          scen <- setm(scen, "mvTradeIrAInp", mvAInp)
-        }
-        if (length(nz_comm(pCsrc2Aout)) > 0 ||
-            length(nz_comm(pCdst2Aout)) > 0) {
-          mCsrc2Aout <- .trade_aux_derived(pCsrc2Aout, mTradeIr)
-          mCdst2Aout <- .trade_aux_derived(pCdst2Aout, mTradeIr)
-          scen <- setm(scen, "mTradeIrCsrc2Aout", mCsrc2Aout)
-          scen <- setm(scen, "mTradeIrCdst2Aout", mCdst2Aout)
-          mvAOut <- .reduce_dup(rbind(proj_region(mCsrc2Aout, "src"),
-                                      proj_region(mCdst2Aout, "dst")))
-          scen <- setm(scen, "mvTradeIrAOut", mvAOut)
-        }
-      }
-    }
-  }
-
-  ## --- inter-regional trade aux totals ------------------------------------
-  mvTradeIrAInp <- gds("mvTradeIrAInp")
-  if ("mvTradeIrAInpTot" %in% want && !is.null(mvTradeIrAInp)) {
-    scen <- setm(scen, "mvTradeIrAInpTot",
-                 .reduce_total_map(.reduce_sect(mvTradeIrAInp, ry_cols), csop))
-  }
-  mvTradeIrAOut <- gds("mvTradeIrAOut")
-  if ("mvTradeIrAOutTot" %in% want && !is.null(mvTradeIrAOut)) {
-    scen <- setm(scen, "mvTradeIrAOutTot",
-                 .reduce_total_map(.reduce_sect(mvTradeIrAOut, ry_cols), csop))
-  }
-
-  ## --- import / export to Rest-of-World flow domains ----------------------
-  # mExport / mImport: the (comm, region, year, slice) domains for the
-  # Rest-of-World row exchange (mExportRow / mImportRow) unioned with the
-  # inter-regional trade flows (mTradeIr x mTradeComm), each remapped to the
-  # commodity's own slice resolution via mCommSliceOrParent. Faithful port of
-  # legacy write.R L876-940. Export keeps the source region (src) and drops the
-  # destination; import keeps the destination (dst) and drops the source. Built
-  # unconditionally because the balance / coarse-slice maps below depend on
-  # them; recipe reporting is satisfied via `.filter_derived_maps`.
-  csop2 <- csop
-  if (!is.null(csop2)) {
-    names(csop2)[names(csop2) == "slicep"] <- "slice.1"
-  }
-  mTradeComm_d <- gds("mTradeComm")
-  mTradeIr_d   <- gds("mTradeIr")
-  io_row <- function(row_nm) {
-    d <- gds(row_nm)
-    if (is.null(d) || is.null(csop2)) return(NULL)
-    x <- .reduce_sect(as.data.frame(d)[, ry_cols, drop = FALSE], ry_cols)
-    names(x)[names(x) == "slice"] <- "slice.1"
-    out <- as.data.frame(merge0(x, csop2))   # by comm, slice.1 -> native slice
-    if (nrow(out) == 0) return(NULL)
-    .reduce_dup(out[, ry_cols, drop = FALSE])
-  }
-  io_ir <- function(region_col, drop_col) {
-    if (is.null(mTradeComm_d) || is.null(mTradeIr_d) || is.null(csop2)) {
-      return(NULL)
-    }
-    trd <- as.data.frame(merge0(mTradeComm_d, mTradeIr_d))
-    names(trd)[names(trd) == "slice"] <- "slice.1"
-    trd[[drop_col]] <- NULL
-    names(trd)[names(trd) == region_col] <- "region"
-    out <- as.data.frame(merge0(trd, csop2))  # by comm, slice.1 -> native slice
-    if (nrow(out) == 0) return(NULL)
-    .reduce_dup(out[, ry_cols, drop = FALSE])
-  }
-  mExport <- .reduce_dup(dplyr::bind_rows(io_row("mExportRow"),
-                                          io_ir("src", "dst")))
-  scen <- setm_any(scen, "mExport", mExport)
-  mImport <- .reduce_dup(dplyr::bind_rows(io_row("mImportRow"),
-                                          io_ir("dst", "src")))
-  scen <- setm_any(scen, "mImport", mImport)
-
-  ## --- coarser-than-native flow substitution chain ------------------------
-  # for2Lo: for each commodity, its native slice's *parent* slice (one level
-  # up). Used to detect flow totals tagged at a coarser slice than the
-  # commodity's own resolution (e.g. an ANNUAL output of a seasonal commodity),
-  # which must be redistributed to the commodity's native slices through a
-  # substitution variable. Faithful port of legacy write.R L1024-1090.
-  #
-  # mInp2Lo / mOut2Lo  : flow-total rows whose slice is coarser than native.
-  # mvInp2Lo / mvOut2Lo: those rows expanded to (coarse slice, native slice.1).
-  # mInpSub / mOutSub  : the (comm, region, year, native slice) substitution
-  #                      domain (recipe "value" in the spec, but built here
-  #                      because it depends on these filter maps; recipe_value
-  #                      skips them).
-  spc <- gds("mSliceParentChild")          # (slice = parent, slicep = child)
-  if (!is.null(comm_slice) && !is.null(spc)) {
-    a1 <- comm_slice
-    colnames(a1)[2] <- "slicep"
-    for2Lo <- as.data.frame(merge0(a1, spc, by = "slicep"))
-    for2Lo$slicep <- NULL
-    for2Lo <- .reduce_dup(for2Lo)            # (comm, slice = parent)
-
-    build_2lo <- function(pieces) {
-      fr <- Filter(function(x) !is.null(x) && nrow(as.data.frame(x)) > 0,
-                   pieces)
-      if (length(fr) == 0 || is.null(for2Lo) || nrow(for2Lo) == 0) return(NULL)
-      fr <- lapply(fr, function(x) {
-        x <- as.data.frame(x)
-        x[, ry_cols, drop = FALSE]
-      })
-      base <- .reduce_dup(dplyr::bind_rows(fr))
-      out <- as.data.frame(merge0(base, for2Lo, by = c("comm", "slice")))
-      out <- out[, ry_cols, drop = FALSE]
-      out <- out[!is.na(out$comm) & !is.na(out$slice), , drop = FALSE]
-      if (nrow(out) == 0) return(NULL)
-      # drop rows already at the commodity's native slice level
-      key  <- paste0(out$comm, "#", out$slice)
-      nkey <- paste0(comm_slice$comm, "#", comm_slice$slice)
-      out <- out[!(key %in% nkey), , drop = FALSE]
-      if (nrow(out) == 0) NULL else out
-    }
-    expand_2lo <- function(m2lo) {
-      if (is.null(m2lo) || nrow(m2lo) == 0) return(NULL)
-      mv <- as.data.frame(merge0(m2lo, spc))
-      mv <- mv[, c("comm", "region", "year", "slice", "slicep"),
-               drop = FALSE]
-      cs2 <- comm_slice
-      colnames(cs2)[2] <- "slicep"
-      mv <- as.data.frame(merge0(mv, cs2))
-      colnames(mv)[colnames(mv) == "slicep"] <- "slice.1"
-      mv[, c("comm", "region", "year", "slice", "slice.1"), drop = FALSE]
-    }
-    sub_from <- function(mv) {
-      if (is.null(mv) || nrow(mv) == 0) return(NULL)
-      s <- mv[!duplicated(mv[, -4]), -4, drop = FALSE]
-      colnames(s)[4] <- "slice"
-      s
-    }
-
-    m_inp2lo <- build_2lo(list(
-      gds("mTechInpTot"), gds("mStorageInpTot"),
-      gds("mExport"), gds("mvTradeIrAInpTot")
-    ))
-    m_out2lo <- build_2lo(list(
-      gds("mSupOutTot"), gds("mEmsFuelTot"), gds("mAggOut"),
-      gds("mTechOutTot"), gds("mStorageOutTot"),
-      gds("mImport"), gds("mvTradeIrAOutTot")
-    ))
-    scen <- setm(scen, "mInp2Lo", m_inp2lo)
-    scen <- setm(scen, "mOut2Lo", m_out2lo)
-
-    mv_inp2lo <- expand_2lo(m_inp2lo)
-    mv_out2lo <- expand_2lo(m_out2lo)
-    scen <- setm(scen, "mvInp2Lo", mv_inp2lo)
-    scen <- setm(scen, "mvOut2Lo", mv_out2lo)
-
-    scen <- setm_any(scen, "mInpSub", sub_from(mv_inp2lo))
-    scen <- setm_any(scen, "mOutSub", sub_from(mv_out2lo))
-  }
-
-  ## --- commodity balance domains ------------------------------------------
-  # mvInpTot / mvOutTot: union of all input- / output-side flow totals,
-  # restricted to each commodity's own slice level via mCommSlice. Upstream
-  # pieces still pending (mDummyExport/Import, mExport/mImport, mInpSub/mOutSub)
-  # are absent here and simply contribute no rows.
-  restrict_comm_slice <- function(df) {
-    if (is.null(df) || nrow(df) == 0 || is.null(comm_slice)) return(df)
-    dplyr::distinct(as.data.frame(merge0(df, comm_slice)))
-  }
-  inptot <- bind_ry(
-    gds("mvDemInp"), gds("mDummyExport"), gds("mTechInpTot"),
-    gds("mStorageInpTot"), gds("mExport"), gds("mvTradeIrAInpTot"),
-    gds("mInpSub")
-  )
-  inptot <- restrict_comm_slice(inptot)
-  outtot <- bind_ry(
-    gds("mDummyImport"), gds("mSupOutTot"), gds("mEmsFuelTot"),
-    gds("mAggOut"), gds("mTechOutTot"), gds("mStorageOutTot"),
-    gds("mImport"), gds("mvTradeIrAOutTot"), gds("mOutSub")
-  )
-  outtot <- restrict_comm_slice(outtot)
-
-  scen <- setm(scen, "mvInpTot", inptot)
-  scen <- setm(scen, "mvOutTot", outtot)
-
-  if ("mInpTotRY" %in% want && !is.null(inptot) && nrow(inptot) > 0) {
-    scen <- setm(scen, "mInpTotRY",
-                 dplyr::distinct(dplyr::select(inptot, -dplyr::any_of("slice"))))
-  }
-  if ("mOutTotRY" %in% want && !is.null(outtot) && nrow(outtot) > 0) {
-    scen <- setm(scen, "mOutTotRY",
-                 dplyr::distinct(dplyr::select(outtot, -dplyr::any_of("slice"))))
-  }
-
-  bal <- bind_ry(inptot, outtot)
-  scen <- setm(scen, "mvBalance", bal)
-  if ("mBalanceRY" %in% want && !is.null(bal) && nrow(bal) > 0) {
-    scen <- setm(scen, "mBalanceRY",
-                 dplyr::distinct(dplyr::select(bal, -dplyr::any_of("slice"))))
-  }
-
-  ## --- import / export / dummy / trade cost domains -----------------------
-  # Cost maps (recipe "value" in the spec) derived from the flow-domain filter
-  # maps. Built here because recipe_value runs before recipe_filter, so the
-  # source maps are not yet available there; recipe_value skips them (see
-  # .value_maps_built_in_filter). Faithful port of legacy write.R L832-846
-  # (dummy) and L1101-1145 (row / inter-regional).
-  dregionyear <- if (length(regions) > 0 && length(milestones) > 0) {
-    expand.grid(region = as.character(regions), year = as.integer(milestones),
-                stringsAsFactors = FALSE)
-  } else {
-    NULL
-  }
-  # mDummy*Cost: project the dummy flow domain onto (comm, region, year).
-  cost_sect <- function(scen, src_nm, nm) {
-    d <- gds(src_nm)
-    p <- scen@modInp@parameters[[nm]]
-    if (is.null(d) || is.null(p)) return(scen)
-    setm_any(scen, nm, .reduce_sect(d, p@dimSets))
-  }
-  scen <- cost_sect(scen, "mDummyImport", "mDummyImportCost")
-  scen <- cost_sect(scen, "mDummyExport", "mDummyExportCost")
-  # mImportRowCost / mExportRowCost: unique (key, region, year) of the row flow
-  # domain, intersected with the model's region x year grid.
-  cost_row <- function(scen, src_nm, nm) {
-    d <- gds(src_nm)
-    p <- scen@modInp@parameters[[nm]]
-    if (is.null(d) || is.null(p) || is.null(dregionyear)) return(scen)
-    x <- .reduce_sect(d, p@dimSets)
-    setm_any(scen, nm, as.data.frame(merge0(x, dregionyear)))
-  }
-  scen <- cost_row(scen, "mImportRow", "mImportRowCost")
-  scen <- cost_row(scen, "mExportRow", "mExportRowCost")
-  # mImportIrCost / mExportIrCost: trade flow domain with the destination /
-  # source region renamed to `region`, projected onto (trade, region, year).
-  cost_ir <- function(scen, ren_from, nm) {
-    mti <- gds("mTradeIr")
-    p <- scen@modInp@parameters[[nm]]
-    if (is.null(mti) || is.null(p) || is.null(dregionyear)) return(scen)
-    names(mti)[names(mti) == ren_from] <- "region"
-    keep <- intersect(p@dimSets, colnames(mti))
-    x <- .reduce_sect(mti[, keep, drop = FALSE])
-    setm_any(scen, nm, as.data.frame(merge0(x, dregionyear)))
-  }
-  scen <- cost_ir(scen, "dst", "mImportIrCost")
-  scen <- cost_ir(scen, "src", "mExportIrCost")
-
-  scen
-}
-
-recipe_filter <- function(scen, names, fmp) {
-  want <- intersect(names, .filter_core_maps)
-  if (length(want) > 0) {
-    scen <- .build_filter_core(scen, want, fmp)
-  }
-  want_der <- intersect(names, .filter_derived_maps)
-  if (length(want_der) > 0) {
-    scen <- .build_filter_derived(scen, want_der, fmp)
-  }
-  pending <- setdiff(names, c(.filter_core_maps, .filter_derived_maps))
-  if (length(pending) > 0) {
-    message("recipe 'filter': ", length(pending),
-            " mapping(s) pending engine implementation: ",
-            paste(pending, collapse = ", "))
-  }
-  scen
-}
 
 # --------------------------------------------------------------------------- #
 # Recipe "constraint": equation index domains derived from the activity / flow
@@ -1674,8 +852,9 @@ recipe_filter <- function(scen, names, fmp) {
 # --------------------------------------------------------------------------- #
 
 # Constraint-recipe maps whose derivation is shared with a filter-recipe map and
-# are therefore built inside recipe_filter (which runs before recipe_constraint).
-# Listed here so recipe_constraint does not report them as pending.
+# are therefore emitted as side-effects of their filter `map_*` siblings in
+# R/map_filter.R (map_mSupAvaUp, map_mImportRow, map_mExportRow), which run before
+# recipe_constraint. Listed here so recipe_constraint does not report them as pending.
 .constraint_maps_built_in_filter <- c(
   "meqImportRowLo", "meqExportRowLo",
   "mImportRowCumUp", "mExportRowCumUp",
@@ -1720,6 +899,14 @@ recipe_filter <- function(scen, names, fmp) {
 #   types  : character vector of `type` values to keep from `source`, or NULL.
 #   drop   : value predicate on `source` -- "lo" keeps value != 0,
 #            "up" keeps value != Inf, NULL applies no value filter.
+#   structural : TRUE for an equation that MUST be instantiated over its whole
+#            `domain` because its DEFAULT bound binds (e.g. `af.up` defaults to 1,
+#            so activity <= capacity holds everywhere). For these the `source`
+#            bound is only the per-cell coefficient (applied at write time), NOT a
+#            domain filter, so the map is the full `domain` regardless of whether
+#            an explicit bound is set. Omit / FALSE for CONDITIONAL equations whose
+#            default is trivial (`af.lo` = 0: activity >= 0), which exist only
+#            where a non-default bound is declared (`domain` intersect `source`).
 # --------------------------------------------------------------------------- #
 .constraint_map_def <- list(
   # C1 commodity balance: restrict the balance domain to commodities that
@@ -1732,7 +919,7 @@ recipe_filter <- function(scen, names, fmp) {
   meqTechAfLo     = list(domain = "mvTechAct", source = "pTechAf",
                          types = "lo", drop = "lo"),
   meqTechAfUp     = list(domain = "mvTechAct", source = "pTechAf",
-                         types = "up", drop = "up"),
+                         types = "up", drop = "up", structural = TRUE),
   meqTechAfsLo    = list(domain = "mTechSpan", source = "pTechAfs",
                          types = "lo", drop = "lo"),
   meqTechAfsUp    = list(domain = "mTechSpan", source = "pTechAfs",
@@ -1766,7 +953,7 @@ recipe_filter <- function(scen, names, fmp) {
   meqStorageAfLo  = list(domain = "mvStorageStore", source = "pStorageAf",
                          types = "lo", drop = "lo"),
   meqStorageAfUp  = list(domain = "mvStorageStore", source = "pStorageAf",
-                         types = "up", drop = "up"),
+                         types = "up", drop = "up", structural = TRUE),
   meqStorageInpLo = list(domain = "mvStorageStore", source = "pStorageCinp",
                          types = "lo", drop = "lo"),
   meqStorageInpUp = list(domain = "mvStorageStore", source = "pStorageCinp",
@@ -1827,6 +1014,20 @@ recipe_filter <- function(scen, names, fmp) {
   if (is.null(p)) return(scen)
   if (!is.null(def$gate) && !isTRUE(slot(scen@settings, def$gate))) return(scen)
 
+  # Structural equation: instantiated over its WHOLE domain (its default bound
+  # binds), so the source bound does not filter the domain -- emit the full domain.
+  if (isTRUE(def$structural)) {
+    if (is.null(def$domain)) return(scen)
+    dp <- scen@modInp@parameters[[def$domain]]
+    if (is.null(dp)) return(scen)
+    dom <- get_data_slot(dp)
+    if (is.null(dom) || nrow(dom) == 0) return(scen)
+    df <- as.data.frame(dom) |>
+      dplyr::select(dplyr::any_of(p@dimSets)) |>
+      dplyr::distinct()
+    return(.set_map(scen, name, df, fmp))
+  }
+
   # Optional bound parameter / membership source, type- and value-filtered.
   src <- NULL
   if (!is.null(def$source)) {
@@ -1865,7 +1066,13 @@ recipe_filter <- function(scen, names, fmp) {
   } else if (is.null(src)) {
     dom
   } else {
-    as.data.frame(merge0(dom, src))
+    # The bound source is read while still FOLDED: a fully-NA dimension is a
+    # wildcard ("all members") and must not constrain the join with the
+    # explicit-membered domain (merge0 joins on shared columns and NA never
+    # matches an explicit member, which would wrongly empty the map). Drop
+    # fully-NA source columns; the domain supplies those dimensions.
+    keep <- vapply(src, function(col) !all(is.na(col)), logical(1))
+    as.data.frame(merge0(dom, src[, keep, drop = FALSE]))
   }
   if (is.null(res) || nrow(res) == 0) return(scen)
 
@@ -1976,16 +1183,21 @@ recipe_filter <- function(scen, names, fmp) {
   pTechCinp2use  <- gdf("pTechCinp2use")
   pTechCact2cout <- gdf("pTechCact2cout")
 
-  # Restrict a single-commodity domain to cells carrying a non-zero conversion
-  # factor (mirrors the optional refinement in the legacy `techSing*`).
+  # Drop single-commodity domain cells whose conversion factor is EXPLICITLY zero.
+  # The conversion params (pTechCinp2use / pTechCact2cout, defVal = 1) are stored
+  # sparsely, so a cell ABSENT from `conv` carries the default (1, non-zero) and
+  # must be KEPT — only cells set to 0 are removed. (The legacy stored `conv`
+  # densely with all-1 values, so an inner-join happened to keep everything;
+  # against sparse storage that inner-join wrongly drops every default-valued cell,
+  # emptying the domain. Mirrors the optional refinement in the legacy `techSing*`.)
   refine <- function(dom, conv) {
     if (is.null(dom) || is.null(conv)) return(dom)
     if (is.null(conv$value)) return(dom)
-    conv <- conv[conv$value != 0, , drop = FALSE]
-    if (nrow(conv) == 0) return(NULL)
-    keep <- intersect(colnames(dom), colnames(conv))
-    conv <- dplyr::distinct(dplyr::select(conv, dplyr::all_of(keep)))
-    out <- as.data.frame(merge0(dom, conv))
+    zero <- conv[!is.na(conv$value) & conv$value == 0, , drop = FALSE]
+    if (nrow(zero) == 0) return(dom)
+    keep <- intersect(colnames(dom), colnames(zero))
+    zero <- dplyr::distinct(dplyr::select(zero, dplyr::all_of(keep)))
+    out <- dplyr::anti_join(dom, zero, by = keep)
     if (nrow(out) == 0) return(NULL)
     out
   }
@@ -2266,7 +1478,7 @@ build_mappings <- function(scen, fmp = NULL,
       calendar   = recipe_calendar(scen, nms, fmp),
       # lifespan fully migrated to R/map_lifespan.R (registry); no fallback.
       value      = recipe_value(scen, nms, fmp),
-      filter     = recipe_filter(scen, nms, fmp),
+      # filter fully migrated to R/map_filter.R (registry); no fallback.
       constraint = recipe_constraint(scen, nms, fmp),
       # cost_agg fully migrated to R/map_costagg.R (registry); no fallback.
       # The remaining recipes are implemented incrementally; until each is

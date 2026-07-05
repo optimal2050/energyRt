@@ -114,7 +114,7 @@ print.summand <- function(x) {
 }
 
 #------------------------------------------------------------------------------
-print.model <- function(x) {
+print.model <- function(x, ...) {
   # print model
   if_print_data_frame <- function(x, sl) {
     if (nrow(slot(x, sl)) != 0) {
@@ -125,14 +125,24 @@ print.model <- function(x) {
   }
   cat("Name: ", x@name, "\n")
   if (length(x@desc) != 0 && x@desc != "") cat("desc: ", x@desc, "\n")
-  print(x@config)
-  if (length(x@data) != 0) {
-    for (i in 1:length(x@data)) {
-      cat("Repository ", i, "(", class(x@data[[i]]), "):\n", sep = "")
-      print(x@data[[i]])
-    }
-  }
+  # print(x@config)
+  # if (length(x@data) != 0) {
+  #   for (i in 1:length(x@data)) {
+  #     cat("Repository ", i, "(", class(x@data[[i]]), "):\n", sep = "")
+  #     print(x@data[[i]])
+  #   }
+  # }
 }
+
+#' @export
+setMethod("print", "model", function(x, ...) {
+  print.model(x, ...)
+})
+
+#' @export
+setMethod("show", "model", function(object) {
+  print(object)
+})
 
 #------------------------------------------------------------------------------
 print.region <- function(x) {

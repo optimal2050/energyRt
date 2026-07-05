@@ -8,26 +8,15 @@ dapply <- function(x, f, ...) {
     cc <- sapply(x[[i]]@data, FUN = f, ...)
     ll <- c(ll, cc)
   }
-  ll
+  unlist(ll)
 }
 
 if (F) {
   dapply(m@data, "class")
 }
 
-flatten_mod_data <- function(x) {
-  # browser()
-  ll <- list()
-  for (i in 1:length(x)) {
-    d <- x[[i]]@data
-    ll <- c(ll, d)
-  }
-  ll
-}
-
-if (F) {
-  flatten_mod_data(m@data)
-}
+# `flatten_mod_data()` lives in R/utils.R (it is also used outside this legacy
+# file, by model `[` indexing in R/class-model.R).
 
 expand_regions <- function(x, regions = NULL) {
   # browser()
@@ -41,6 +30,7 @@ expand_regions <- function(x, regions = NULL) {
 }
 
 fmSupCommReg <- function(m, regions = NULL) {
+  # browser()
   # m - model
   ii <- dapply(m@data, inherits, "supply")
   if (sum(ii) == 0) return(data.table(sup = "", comm = "", region = "")[0,])

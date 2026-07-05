@@ -5,6 +5,12 @@
 #'
 #' @return sets the path to the GLPK library in R options and returns NULL.
 #'
+#' @details By default energyRt auto-detects the `glpsol` executable on the
+#'   session `PATH` (via [base::Sys.which()]). On Windows this picks up the copy
+#'   **bundled with Rtools** (Rtools ships the GLPK dev kit), so an Rtools user
+#'   needs no separate GLPK install. Use `set_glpk_path()` only to point at a
+#'   standalone GLPK installation, which then takes precedence over auto-detection.
+#'
 #' @rdname solver
 #' @family solver glpk
 #'
@@ -37,15 +43,56 @@ get_glpk_path <- function() {
   options::opt("glpk_path")
 }
 
+# Resolve the `glpsol` executable for the built-in GLPK backend.
+#
+# Priority:
+#   1. a directory configured via `set_glpk_path()` (standalone GLPK install);
+#   2. `glpsol` on the session PATH via `Sys.which()` - on Windows this picks up
+#      the copy BUNDLED WITH RTOOLS (rtools bundles the full GLPK dev kit), so an
+#      Rtools user needs no separate GLPK install;
+#   3. known Rtools toolchain locations (in case Rtools is installed but not on
+#      the session PATH);
+#   4. a bare `"glpsol"` resolved by the OS at run time (last resort).
+#
+# Returns the executable path (or bare command) as a length-1 character.
+.find_glpsol <- function() {
+  gp <- get_glpk_path()
+  if (!is.null(gp) && nzchar(gp)) return(file.path(gp, "glpsol"))
+
+  found <- Sys.which("glpsol")
+  if (nzchar(found)) return(unname(found))
+
+  if (.Platform$OS.type == "windows") {
+    cand <- Sys.glob(c(
+      file.path(Sys.getenv("RTOOLS45_HOME"), "*", "bin", "glpsol.exe"),
+      file.path(Sys.getenv("RTOOLS44_HOME"), "*", "bin", "glpsol.exe"),
+      "C:/rtools4*/x86_64-w64-mingw32.static.posix/bin/glpsol.exe"))
+    cand <- cand[file.exists(cand)]
+    if (length(cand)) return(normalizePath(cand[1], winslash = "/"))
+  }
+  "glpsol"
+}
+
+# Build a `glpsol` command line, quoting the executable if its path has spaces.
+.glpsol_cmdline <- function(exe = .find_glpsol(),
+                            args = "-m energyRt.mod -d energyRt.dat") {
+  if (grepl(" ", exe, fixed = TRUE)) exe <- shQuote(exe)
+  paste(exe, args)
+}
+
 # MathProg GLPK (& MathProg with CBC) ####
-.write_model_GLPK_CBC <- function(arg, scen) {
+# `sm_fun` selects the parameter -> GMPL data converter. The default
+# `.sm_to_glpk` trims `@data` to `@misc$nValues` (legacy behaviour). The new
+# `interp_mod()` pipeline keeps `@data` authoritative, so `.write_model_GLPK_CBC2`
+# passes `.sm_to_glpk2`, which ignores `nValues` and writes the full `@data`.
+.write_model_GLPK_CBC <- function(arg, scen, sm_fun = .sm_to_glpk) {
   run_code <- scen@settings@sourceCode[["GLPK"]]
   dir.create(paste(arg$tmp.dir, "/output", sep = ""), showWarnings = FALSE)
   file_w <- c()
   for (j in c("set", "map", "numpar", "bounds")) {
     for (i in names(scen@modInp@parameters)) {
       if (scen@modInp@parameters[[i]]@type == j) {
-        file_w <- c(file_w, .sm_to_glpk(scen@modInp@parameters[[i]]))
+        file_w <- c(file_w, sm_fun(scen@modInp@parameters[[i]]))
       }
     }
   }
@@ -157,11 +204,9 @@ get_glpk_path <- function() {
 
   if (is.null(scen@settings@solver$cmdline) || scen@settings@solver$cmdline == "") {
     if (toupper(scen@settings@solver$lang) == "GLPK") {
-      scen@settings@solver$cmdline <- "glpsol -m energyRt.mod -d energyRt.dat"
-      if (!is.null(get_glpk_path())) {
-        scen@settings@solver$cmdline <-
-          file.path(get_glpk_path(), scen@settings@solver$cmdline)
-      }
+      # Default to an auto-detected glpsol (bundled with Rtools on Windows);
+      # `set_glpk_path()` overrides to a standalone GLPK install. See .find_glpsol().
+      scen@settings@solver$cmdline <- .glpsol_cmdline()
     } else {
       scen@settings@solver$cmdline <- "cbc energyRt.mod%energyRt.dat -solve"
     }
@@ -170,6 +215,22 @@ get_glpk_path <- function() {
   scen
 }
 
+
+# nValues-free GLPK/CBC writer for the new `interp_mod()` pipeline.
+# Identical to `.write_model_GLPK_CBC` but converts each parameter with
+# `.sm_to_glpk2`, which writes the full `@data` instead of trimming to
+# `@misc$nValues`. Use this when `@data` is authoritative (mapping engine).
+.write_model_GLPK_CBC2 <- function(arg, scen) {
+  .write_model_GLPK_CBC(arg, scen, sm_fun = .sm_to_glpk2)
+}
+
+
+# nValues-free counterpart of `.sm_to_glpk`: force `nValues = -1` so the whole
+# `@data` slot is written, then delegate to the shared converter.
+.sm_to_glpk2 <- function(obj) {
+  obj@misc$nValues <- -1L
+  .sm_to_glpk(obj)
+}
 
 
 .sm_to_glpk <- function(obj) {

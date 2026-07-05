@@ -143,6 +143,7 @@ tsl2dtm <- function(tsl, format = tsl_guess_format(tsl), tmz = "UTC",
   }
   y <- NULL
   m <- NULL
+  # w <- NULL
   d <- NULL
   h <- NULL
   if (grepl("y", format)) y <- tsl2year(tsl)

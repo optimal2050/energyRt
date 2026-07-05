@@ -173,11 +173,34 @@ get_julia_path <- function() {
     if (is.data.table(x)) as.data.frame(x) else x
     })
 
-  save("dat", file = fp(arg$tmp.dir, "data.RData"))
-
-  cat('using RData\nusing DataFrames\ndt = load("data.RData")["dat"]\n',
-    sep = "\n", file = zz_data_julia
-  )
+  # Data exchange: Arrow IPC/feather (one file per table in `input/`, read in
+  # Julia via Arrow.jl) when the solver requests it, else the legacy single
+  # `data.RData` (read via RData.jl). Julia's Arrow.jl reads IPC ("feather"); a
+  # `parquet` request is served as feather here (Arrow.jl does not read parquet).
+  .ex_fmt <- scen@settings@solver$export_format
+  .use_arrow <- !is.null(.ex_fmt) &&
+    tolower(.ex_fmt) %in% c("feather", "ipc", "arrow", "parquet")
+  if (.use_arrow) {
+    in_dir <- fp(arg$tmp.dir, "input")
+    dir.create(in_dir, showWarnings = FALSE)
+    for (i in names(dat)) {
+      .write_exchange_table(dat[[i]], fp(in_dir, i), format = "feather")
+    }
+    cat(paste(
+      "using Arrow",
+      "using DataFrames",
+      "dt = Dict{String, DataFrame}()",
+      'for _f in readdir("input")',
+      '    endswith(_f, ".arrow") || continue',
+      '    dt[replace(_f, ".arrow" => "")] = DataFrame(Arrow.Table(joinpath("input", _f)))',
+      "end\n", sep = "\n"),
+      file = zz_data_julia)
+  } else {
+    save("dat", file = fp(arg$tmp.dir, "data.RData"))
+    cat('using RData\nusing DataFrames\ndt = load("data.RData")["dat"]\n',
+      sep = "\n", file = zz_data_julia
+    )
+  }
   # browser()
   for (j in c("set", "map", "numpar", "bounds")) {
     for (i in names(scen@modInp@parameters)) {
@@ -231,6 +254,21 @@ get_julia_path <- function() {
   cat(run_code[-(1:nobj)], sep = "\n", file = zz_mod)
   close(zz_mod)
   zz_modout <- file(fp(arg$tmp.dir, "/output.jl"), "w")
+  # Arrow solution output: write each variable DIRECTLY as Arrow IPC (no CSV
+  # round-trip). Inject a `_VarFile` helper (a drop-in for the CSV file handle:
+  # the unchanged `println(fv, ...)` / `close(fv)` calls accumulate rows and emit
+  # `output/<var>.arrow` on close) and retarget only the per-variable
+  # `open("output/v<Name>.csv")` to `open_var(...)`. Meta files (variable_list /
+  # raw_data_set / log) keep streaming CSV. CSV output is unchanged when not Arrow.
+  .im_fmt <- scen@settings@solver$import_format
+  if (!is.null(.im_fmt) &&
+      tolower(.im_fmt) %in% c("feather", "ipc", "arrow", "parquet")) {
+    cat(.jump_arrow_output_helpers(), sep = "\n", file = zz_modout)
+    run_codeout <- gsub(
+      'open\\("output/(v[A-Z][A-Za-z0-9_]*)\\.csv", "w"\\)',
+      'open_var("output/\\1.csv")', run_codeout
+    )
+  }
   cat(run_codeout, sep = "\n", file = zz_modout)
   close(zz_modout)
   .write_inc_files(arg, scen, ".jl")
@@ -646,4 +684,40 @@ names(.alias_set) <- .set_al
   }
   rs <- paste0(rs, .eqt.to.julia(gsub(".*[.][.][ ]*", "", eqt)))
   rs
+}
+
+# Julia `_VarFile` helper for DIRECT per-variable Arrow solution output. A drop-in
+# for the CSV file handle: `open_var()` replaces `open(..., "w")`; the unchanged
+# `println(vf, ...)` / `close(vf)` calls (dispatched on `_VarFile`) accumulate rows
+# and write `output/<var>.arrow` (zstd) on close. The first `println` (the CSV
+# header string) sets the column names; row `println`s drop the interleaved ","
+# separators. Empty variables emit a typed 0-row table. Injected by
+# `.write_model_JuMP` only when the solution is imported as Arrow.
+.jump_arrow_output_helpers <- function() {
+  c(
+    "using Arrow, DataFrames",
+    "mutable struct _VarFile",
+    "    base::String",
+    "    header::Vector{String}",
+    "    rows::Vector{Vector{Any}}",
+    "end",
+    'open_var(csvpath::String) = _VarFile(replace(csvpath, ".csv" => ""), String[], Vector{Any}[])',
+    "function Base.println(vf::_VarFile, args...)",
+    "    if isempty(vf.header)",
+    '        vf.header = String.(split(args[1], ","))',
+    "    else",
+    '        push!(vf.rows, collect(Any, Iterators.filter(a -> a != ",", args)))',
+    "    end",
+    "end",
+    "function Base.close(vf::_VarFile)",
+    "    n = length(vf.rows)",
+    "    cols = Pair{Symbol, Any}[]",
+    "    for (i, c) in enumerate(vf.header)",
+    '        col = n == 0 ? (c == "value" ? Float64[] : String[]) : [vf.rows[r][i] for r in 1:n]',
+    "        push!(cols, Symbol(c) => col)",
+    "    end",
+    '    Arrow.write(vf.base * ".arrow", DataFrame(cols); compress = :zstd)',
+    "end",
+    ""
+  )
 }

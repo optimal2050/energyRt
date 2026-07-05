@@ -1,5 +1,4 @@
-#' @export
-get_interpolation_rule <- function(x) {
+.get_interpolation_rule <- function(x) {
   stopifnot(is.character(x))
   if (!exists(".defInt")) load("R/sysdata.rda")
   sapply(x, function(i) .defInt[[i]])
@@ -16,15 +15,15 @@ get_interpolation_rule <- function(x) {
 #' @inherit newConstraint details
 #'
 #' @md
-#' @slot name `r get_slot_info("constraint", "name")`
-#' @slot desc `r get_slot_info("constraint", "desc")`
-#' @slot eq `r get_slot_info("constraint", "eq")`
-#' @slot for.each `r get_slot_info("constraint", "for.each")`
-#' @slot rhs `r get_slot_info("constraint", "rhs")`
-#' @slot defVal `r get_slot_info("constraint", "defVal")`
-#' @slot interpolation `r get_slot_info("constraint", "interpolation")`
-#' @slot lhs `r get_slot_info("constraint", "lhs")`
-#' @slot misc `r get_slot_info("constraint", "misc")`
+#' @slot name `r get_slot_doc("constraint", "name")`
+#' @slot desc `r get_slot_doc("constraint", "desc")`
+#' @slot eq `r get_slot_doc("constraint", "eq")`
+#' @slot for.each `r get_slot_doc("constraint", "for.each")`
+#' @slot rhs `r get_slot_doc("constraint", "rhs")`
+#' @slot defVal `r get_slot_doc("constraint", "defVal")`
+#' @slot interpolation `r get_slot_doc("constraint", "interpolation")`
+#' @slot lhs `r get_slot_doc("constraint", "lhs")`
+#' @slot misc `r get_slot_doc("constraint", "misc")`
 #'
 #'
 #' @include class-subsidy.R
@@ -53,7 +52,7 @@ setClass("constraint",
     for.each = data.frame(),
     rhs = data.frame(),
     defVal = as.numeric(NA),
-    interpolation = get_interpolation_rule("rhs"),
+    interpolation = .get_interpolation_rule("rhs"),
     lhs = list(),
     # ! Misc
     misc = list()
@@ -77,15 +76,49 @@ setMethod("initialize", "constraint", function(.Object, ...) {
 #' and is not intended to be used directly by the user.
 #'
 #' @md
-#' @slot desc `r get_slot_info("summand", "desc")`
-#' @slot variable `r get_slot_info("summand", "variable")`
-#' @slot for.sum `r get_slot_info("summand", "for.sum")`
-#' @slot mult `r get_slot_info("summand", "mult")`
-#' @slot defVal `r get_slot_info("summand", "defVal")`
-#' @slot misc `r get_slot_info("summand", "misc")`
+#' @slot desc `r get_slot_doc("summand", "desc")`
+#' @slot variable `r get_slot_doc("summand", "variable")`
+#' @slot for.sum `r get_slot_doc("summand", "for.sum")`
+#' @slot mult `r get_slot_doc("summand", "mult")`
+#' @slot defVal `r get_slot_doc("summand", "defVal")`
+#' @slot misc `r get_slot_doc("summand", "misc")`
 #'
 #' @family class constraint
 #' @order 2
+# Bring a `summand` created before the `timeframe` slot existed up to the
+# current class definition. Old serialized objects lack the slot, so accessing
+# `@timeframe` errors ("no slot of name ..."); add it (S4 slots are attributes)
+# with the prototype default. Called on every summand at constraint compile time.
+.upgrade_summand <- function(s) {
+  if (methods::is(s, "summand") &&
+      !("timeframe" %in% names(attributes(s)))) {
+    attr(s, "timeframe") <- NA_character_
+  }
+  s
+}
+
+# Upgrade every summand of every constraint in a model (in each repository) so
+# legacy models serialized before the `timeframe` slot interpolate cleanly.
+# Called once at the top of interp_mod(), before anything reads the constraints.
+.upgrade_model_summands <- function(mod) {
+  for (i in seq_along(mod@data)) {
+    rp <- mod@data[[i]]
+    if (!methods::is(rp, "repository")) next
+    objs <- rp@data
+    hit <- FALSE
+    for (j in seq_along(objs)) {
+      o <- objs[[j]]
+      if (methods::is(o, "constraint") && length(o@lhs) > 0) {
+        o@lhs <- lapply(o@lhs, .upgrade_summand)
+        objs[[j]] <- o
+        hit <- TRUE
+      }
+    }
+    if (hit) mod@data[[i]]@data <- objs
+  }
+  mod
+}
+
 #' @rdname class-constraint
 #' @export
 setClass("summand",
@@ -93,6 +126,7 @@ setClass("summand",
     desc = "character",
     variable = "character",
     for.sum = "list",
+    timeframe = "character",
     mult = "data.frame",
     defVal = "numeric",
     misc = "list"
@@ -102,6 +136,12 @@ setClass("summand",
     desc = NULL,
     variable = NULL,
     for.sum = list(),
+    # `timeframe` pins the slice level the variable is taken at (e.g. "ANNUAL",
+    # "SEASON"): the variable's `slice` dimension is restricted to that level's
+    # slices, so summing them yields the level aggregate without double-counting
+    # across levels. NA = no restriction (sum the variable's native slices).
+    # Replaces the need for the *RY (year-resolution) aggregate variables.
+    timeframe = NA_character_,
     mult = data.frame(),
     defVal = 1,
     misc = list()
@@ -120,7 +160,7 @@ setClass("summand",
 #' Custom constraints extend the functionality of the model by adding
 #' user-defined constraints to the optimization problem.
 #' If the predefined constraints are not sufficient to describe the problem,
-#' custom constraints can be used to add linear equlity or inequality
+#' custom constraints can be used to add linear equality or inequality
 #' constraints to define additional relationships between the variables.
 #' In many cases this can be done without writing constraints in the GAMS,
 #' Julia/JuMP, Python/Pyomo, or GLPK-MathProg languages by using the
@@ -135,8 +175,8 @@ setClass("summand",
 #' for which the summand is defined.
 #'
 #'
-#' @param name `r get_slot_info("constraint", "name")`
-#' @param desc `r get_slot_info("constraint", "desc")`
+#' @param name `r get_slot_doc("constraint", "name")`
+#' @param desc `r get_slot_doc("constraint", "desc")`
 #' @param ... named or unnamed list(s) of left-hand side (LHS)
 #' linear terms (summands) to define the constraint.
 #' Every summand is defined as a list with the following elements:
@@ -150,8 +190,8 @@ setClass("summand",
 #' @param for.each list or data.frame with sets that define the dimension of the constraint.
 #' @param rhs a numeric value, list or data frame with sets and numeric values for each constraint.
 #' Note: zero values will be replaced with `replace_zerros` to avoid dropping them by the interpolation algorithms.
-#' @param defVal `r get_slot_info("constraint", "defVal")`
-#' @param interpolation `r get_slot_info("constraint", "interpolation")`
+#' @param defVal `r get_slot_doc("constraint", "defVal")`
+#' @param interpolation `r get_slot_doc("constraint", "interpolation")`
 #' @param replace_zerros numeric value to replace zero values in `rhs` and `defVal`. Default is `1e-20`.
 #'
 #' @return Object of class `constraint`.
@@ -198,6 +238,7 @@ newConstraint <- function(
     }
     if (is.na(defVal)) defVal <- rhs
     rhs <- data.frame()
+    # rhs <- data.frame(rhs = rhs, stringsAsFactors = FALSE)
   }
   if (!is.data.frame(rhs) && is.list(rhs)) {
     tmp <- sapply(rhs, length)
@@ -209,6 +250,7 @@ newConstraint <- function(
   if (!is.data.frame(rhs) && is.list(rhs) && length(rhs) == 1 && length(rhs[[1]]) == 1) {
     if (is.na(defVal)) defVal <- rhs[[1]]
     rhs <- data.frame()
+    # rhs <- data.frame(rhs = rhs[[1]], stringsAsFactors = FALSE)
   }
   if (is.data.frame(rhs) && ncol(rhs) == 1 && nrow(rhs) == 1) {
     if (is.na(defVal)) defVal <- rhs[1, 1]
@@ -266,6 +308,10 @@ newConstraint <- function(
       }
       obj@for.each <- tmp
     } else if (is.data.frame(for.each)) {
+      if (anyDuplicated(for.each)) {
+        stop("Duplicated rows in 'for.each' parameter: ",
+             for.each[duplicated(for.each), ])
+      }
       obj@for.each <- for.each
     } else {
       stop("Unrecognized 'for.each' parameter. Failed to build the costraint.")
@@ -306,12 +352,23 @@ addSummand <- function(
     variable = NULL,
     mult = data.frame(),
     for.sum = list(),
+    timeframe = NA_character_,
     arg) {
+  # browser()
   if (!is.null(names(arg))) {
     if (any(names(arg) == "variable")) variable <- arg$variable
     if (any(names(arg) == "mult")) mult <- arg$mult
     if (any(names(arg) == "for.sum")) for.sum <- arg$for.sum
     if (any(names(arg) == "defVal")) defVal <- arg$defVal
+    if (any(names(arg) == "timeframe")) timeframe <- arg$timeframe
+    if (any(names(arg) == "for.each")) {
+      stop(
+        "The 'for.each' parameter is set of the entire constraint and",
+        " cannot be changed in linear terms. \n",
+        " Constraint: ", eqt@name, "\n Variable: ", variable, "\n for.each: ",
+        lapply(arg[["for.each"]], head), "\n Use 'for.sum' parameter instead."
+        )
+    }
   }
   # eqt, variable, mult, for.sum, arg
   st <- new("summand")
@@ -331,12 +388,21 @@ addSummand <- function(
   if (is.data.frame(mult)) {
     st@mult <- mult
   } else {
+    if (length(mult) != 1) {
+      stop(paste0("Multiplier parameter ('mult') must be a constant or a data.frame with sets."))
+    }
     st@defVal <- mult
+    # st@mult <- data.frame(value = mult, stringsAsFactors = FALSE)
   }
   st@for.sum <- for.sum
+  st@timeframe <- if (is.null(timeframe) || length(timeframe) == 0) {
+    NA_character_
+  } else {
+    as.character(timeframe)[1]
+  }
   # browser()
   if (all(names(.variable_set) != variable)) {
-    stop(paste0('Unknown variables "', variable, '"in summands "', eqt@name, '"'))
+    stop(paste0('Unknown variable "', variable, '"in summand "', eqt@name, '"'))
   }
   need.set <- .variable_set[[variable]]
   need.set <- need.set[!(need.set %in% c(names(eqt@for.each), names(st@for.sum)))]
@@ -347,7 +413,9 @@ addSummand <- function(
     st@for.sum[sapply(st@for.sum, is.null)] <- NA
   }
   if (!all(names(st@mult) %in% c(names(eqt@for.each), names(st@for.sum), "value"))) {
-    stop(paste0('Wrong mult parameter, excessive set: "', paste0(names(st@mult)[!(names(st@mult) %in% names(st@for.sum))], collapse = '", "'), '"'))
+    stop(paste0('Unrecognized set(s) in mult parameter: "',
+                paste0(names(st@mult)[!(names(st@mult) %in% names(st@for.sum))],
+                       collapse = '", "'), '"'))
   }
   names(st@defVal) <- NULL
   names(st@variable) <- NULL
@@ -361,6 +429,7 @@ addSummand <- function(
 
 # Calculate do equation need additional set, and add it
 .getSetEquation <- function(prec, stm, approxim) {
+  # if (grepl("THERM", stm@name)) browser()
   # browser()
   # if (stm@name == "CO2_CAP") browser()
   # if (grepl("CESR_", stm@name)) browser()
@@ -384,23 +453,10 @@ addSummand <- function(
   stop.constr <- function(x) {
     stop(paste0('Constraint "', stm@name, '" error: ', x))
   }
-  get.all.child <- function(x) {
-    # !!! Rewrite
-    unique(
-      c(
-        x,
-        c(
-          # approxim$calendar@slice_ancestry[
-          #   approxim$calendar@slice_ancestry$parent %in% x,
-          #   "child"]
-          filter(
-            approxim$calendar@slice_ancestry,
-            approxim$calendar@slice_ancestry$parent %in% x
-          )[["child"]]
-        )
-      )
-    )
-  }
+  # (The legacy `get.all.child` slice-ancestry helper was removed: variable
+  # domains now carry every slice level, so slice restrictions -- including
+  # those derived from a summand `timeframe` -- are taken literally. See the
+  # for.sum slice handling below and the `timeframe` resolution loop.)
   # all.set contain all set for for.each & lhs
   # Estimate is need sum for for.each
   # set.map need special mapping or consist all set
@@ -455,6 +511,34 @@ addSummand <- function(
   } else {
     for.each.set <- NULL
   }
+
+  # Resolve per-summand `timeframe` to an explicit `slice` restriction. The
+  # variable is taken at exactly the slices of that timeframe level
+  # (calendar@timeframes), so summing them yields the level aggregate without
+  # double-counting across levels -- replacing the *RY year-resolution
+  # variables. Applied here, before the slice handling below picks it up as a
+  # for.sum restriction.
+  for (i in seq_along(stm@lhs)) {
+    # Defensive: summand objects serialized before the `timeframe` slot existed
+    # lack it; treat those as no timeframe (NA).
+    tf <- tryCatch(stm@lhs[[i]]@timeframe, error = function(e) NA_character_)
+    if (length(tf) != 1 || is.na(tf)) next
+    if (!("slice" %in% .variable_set[[stm@lhs[[i]]@variable]])) {
+      stop.constr(paste0(
+        'timeframe = "', tf, '" set on variable "', stm@lhs[[i]]@variable,
+        '" which has no slice dimension.'
+      ))
+    }
+    lev <- approxim$calendar@timeframes[[tf]]
+    if (is.null(lev) || length(lev) == 0) {
+      stop.constr(paste0(
+        'unknown timeframe "', tf, '". Available: ',
+        paste(names(approxim$calendar@timeframes), collapse = ", ")
+      ))
+    }
+    stm@lhs[[i]]@for.sum$slice <- as.character(lev)
+  }
+
   # lhs
   for (i in seq_along(stm@lhs)) {
     # browser()
@@ -483,9 +567,13 @@ addSummand <- function(
       !sapply(is.na(stm@lhs[[i]]@for.sum), all)]
     # Fill add.map for for.lhs
     for (j in st) {
+      # Restrict to the EXACT for.sum values (incl. slice). The legacy
+      # slice-ancestry expansion (get.all.child) is retired: variable domains
+      # now carry every slice level, so a slice restriction -- e.g. one derived
+      # from a summand `timeframe` -- must be taken literally to avoid
+      # double-counting across levels.
       if (!is.null(stm@lhs[[i]]@for.sum[[j]]) &&
-        !all(prec@set[[j]] %in% stm@lhs[[i]]@for.sum[[j]]) && (j != "slice" ||
-        !all(prec@set[[j]] %in% get.all.child(stm@lhs[[i]]@for.sum[[j]])))) {
+        !all(prec@set[[j]] %in% stm@lhs[[i]]@for.sum[[j]])) {
         # check if the same set in lhs exist
         fl <- FALSE
         if (all(!c(all.set[nn[need.set == j], c("lead.year", "lag.year")],
@@ -619,12 +707,13 @@ addSummand <- function(
     " "
   )
   # Add rhs
-  if (nrow(stm@rhs) != 0 &&
-    (any(stm@rhs$rhs != 0) ||
-      (stm@defVal != 0 && nrow(stm@for.each) > nrow(stm@rhs)))) {
-    # Complicated rhs
-    # Generate approxim
-    # browser()
+  # browser() # rhs value or data.frame
+  if (nrow(stm@rhs) != 0 && ncol(stm@rhs) != 1) {
+      # (any(stm@rhs$rhs != 0) ||
+      #  (stm@defVal != 0 && nrow(stm@for.each) > nrow(stm@rhs))
+      #  )
+      # ) {
+    # RHS is a data.frame
     approxim2 <-
       approxim[unique(
         c(
@@ -665,17 +754,34 @@ addSummand <- function(
     # yy[apply(select(yy, all_of(n1)), 1, paste0, collapse = "##") %in%
     #     apply(select(stm@for.each, all_of(n1)), 1, paste0, collapse = "##"),]
     # same using dplyr
-    suppressMessages({
-      yy <- yy |> right_join(select(stm@for.each, all_of(n1)))
-    })
-
+    if (ncol(yy) == 1) {
+      stopifnot(names(yy) == "value")
+      stopifnot(nrow(yy) == 1)
+    } else {
+    # suppressMessages({
+      col_nms <- intersect(colnames(yy), n1)
+      yy <- yy |> right_join(select(stm@for.each, all_of(n1)), by = col_nms)
+    # })
+    }
     prec@parameters[[xx@name]] <- .dat2par(xx, yy)
     # Add mult
     res$equation <- paste0(
       res$equation, xx@name, "(",
       paste0(need.set0, collapse = ", "), ")"
     )
+  } else if (is.data.frame(stm@rhs) && nrow(stm@rhs) == 1 && ncol(stm@rhs) == 1) {
+    # rhs is a 1x1 data.frame -> scalar literal
+    res$equation <- paste0(res$equation, stm@rhs$rhs)
   } else {
+    # No rhs data.frame (or a scalar): use the constraint's `defVal` as a
+    # constant RHS, applied to every for.each tuple. (Empty `rhs` is the common
+    # "sum(...) <op> defVal" form, e.g. newConstraint(..., defVal = 100).)
+    if (length(stm@defVal) != 1 || is.na(stm@defVal)) {
+      stop.constr(paste0(
+        "RHS is empty and 'defVal' is not a single non-NA value; ",
+        "provide `rhs` or a scalar `defVal`."
+      ))
+    }
     res$equation <- paste0(res$equation, stm@defVal)
   }
 
@@ -724,7 +830,7 @@ addSummand <- function(
           if (!all(colnames(stm@lhs[[i]]@mult) %in%
             c(for.each.set, need.set, "value"))) {
             stop(paste0(
-              "There are unknown set in constraint ",
+              "Unrecognized set in constraint ",
               stm@name, ", mult ", i, ': "',
               paste0(
                 colnames(stm@lhs[[i]]@mult)[
@@ -773,11 +879,15 @@ addSummand <- function(
         prec@parameters[[xx@name]] <- .dat2par(xx, yy)
       }
       # Add mult
+      # browser()
       vrb.lhs <- paste0(
-        xx@name, "(", paste0(need.set, collapse = ", "),
-        ") * ", vrb.lhs
+        xx@name,
+        if_else(length(need.set) > 0,
+                paste0("(", paste0(need.set, collapse = ", "), ")"),
+                ""),
+        " * ", vrb.lhs
       )
-    } else if (stm@lhs[[i]]@defVal != 1) {
+    # } else if (stm@lhs[[i]]@defVal != 1) {
       vrb.lhs <- paste0(stm@lhs[[i]]@defVal, " * ", vrb.lhs)
     }
     # Replace setsname

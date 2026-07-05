@@ -43,3 +43,5 @@ depreciated/*
 dev/*
 
 ^LICENSE\.md$
+^\.positai$
+^\.claude$

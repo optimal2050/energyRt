@@ -1,81 +1,126 @@
-## energyRt <a href="https://energyrt.org/articles/logo.html"><img src="man/figures/logo.png" align="right" height="120" alt="Logo-search" /></a>
+## energyRt <a href="https://energyrt.org/articles/logo.html"><img src="man/figures/logo.png" align="right" height="120" alt="energyRt hex logo" /></a>
+
+[![Lifecycle: maturing](https://img.shields.io/badge/lifecycle-maturing-blue.svg)](https://lifecycle.r-lib.org/articles/stages.html)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
 
 **energyRt** (*energy* system modeling *R-t*oolbox /ˈɛnərdʒi ɑrt/) is a
-set of classes, methods, and functions that define a macro-language for
-energy system modeling within the R environment. This package offers a
-high-level, user-friendly interface that simplifies the development and
-analysis of complex energy models. By abstracting much of the underlying
-complexity, **energyRt** allows users to concentrate on strategic and
-analytical aspects rather than the technical details of coding.
+macro-language for energy system modeling in R. You describe an energy system —
+its fuels, technologies, resources and demands — as R objects; **energyRt**
+compiles them into a full capacity-expansion & dispatch optimization model,
+solves it, and returns tidy results ready for `dplyr`/`ggplot2` analysis. The
+technical layer (sets, equations, solver files, results parsing) is generated
+for you, so you concentrate on the system you are modeling, not on the code
+that optimizes it.
 
-**Key Features:**
+### One model, four backends
 
--   **User-Friendly Interface: energyRt** enables users to define energy
-    systems, input data, and configure scenarios using intuitive,
-    domain-specific commands. It is designed to be accessible for both
-    experienced modelers and those new to the field.
--   **Seamless R Integration:** The package integrates seamlessly with
-    R’s extensive ecosystem of packages, allowing users to utilize
-    powerful data handling and visualization tools within their energy
-    modeling projects.
--   The **energyRt** optimization
-    [model](https://energyrt.github.io/book/model.html) is implemented
-    in four widely-used mathematical programming languages, both
-    proprietary and open-source: [GAMS](http://www.gams.com/),
-    [GLPK/Mathprog](https://www.gnu.org/software/glpk/),
-    [Python/Pyomo](http://www.pyomo.org/),
-    [Julia/JuMP](http://www.juliaopt.org/JuMP.jl/stable/). The package
-    is designed to work seamlessly with any of these versions, allowing
-    users to solve models using their preferred software while ensuring
-    consistent and equivalent results across all platforms.
--   **Modular Model Construction: energyRt** supports the construction
-    of models in a modular fashion, enabling incremental development,
-    individual component testing, and code reuse across different
-    projects. This modularity, combined with R’s interactive
-    environment, promotes an iterative approach to modeling where
-    assumptions can be tested, and results explored in real-time.
--   **Applications: energyRt** is designed to facilitate the creation of
-    sophisticated energy system models, offering both flexibility and
-    depth for detailed analysis. It is an essential tool for
-    researchers, policymakers, and industry professionals engaged in
-    long-term energy system planning, energy transition, and
-    decarbonization efforts.
+The energyRt optimization model (~100 predefined equations, extendable with
+`newConstraint()`) is implemented in four mathematical-programming languages.
+The *same* model object solves on any of them, with consistent results:
 
-The package website: <https://energyrt.org>\
-Documentation in progress: <https://energyrt.github.io/book/>
+| Backend | Language | License |
+|---|---|---|
+| [GLPK / MathProg](https://www.gnu.org/software/glpk/) | (bundled with Rtools on Windows) | open source |
+| [Julia / JuMP](https://jump.dev/) | Julia + HiGHS | open source |
+| [Python / Pyomo](http://www.pyomo.org/) | Python + CBC/HiGHS | open source |
+| [GAMS](http://www.gams.com/) | GAMS | commercial |
 
-### Development status
+Start on zero-setup GLPK; switch backends later without touching your model.
 
-**energyRt** is currently in preparation for its first release and
-publication on [CRAN](https://cran.r-project.org/). The major milestone
-for the package is the version **v0.50** (*"half-way-there"*), a proof
-of concept with a full-featured and efficient model written in four
-math-prog languages, with R-interface for the model design, processing
-results, and producing reports. This version will have frozen model
-code, classes and methods. Any updates will address only potential fixes
-and new features with minimal impact on already existing modeling
-projects.
+### Quickstart
 
-Further development, versions starting from **v0.9** towards the
-**v1.0** will have fully reviewed model and classes with the goal to
-further increase efficiency, reduce memory footprint and computational
-burden for both the model and its R interface, and significantly extend
-features.
+A complete model — one fuel, one power plant, one demand — built, solved and
+read in ~20 lines (GLPK, no external setup needed on Windows with Rtools):
+
+``` r
+library(energyRt)
+
+GAS <- newCommodity("GAS", timeframe = "ANNUAL")
+ELC <- newCommodity("ELC", timeframe = "ANNUAL")
+
+SUP_GAS <- newSupply("SUP_GAS", commodity = "GAS",
+                     availability = data.frame(cost = 6.0))   # fuel price, MEUR/PJ
+
+EGAS <- newTechnology("EGAS",
+  input   = list(comm = "GAS"), output = list(comm = "ELC"),
+  ceff    = data.frame(comm = "GAS", cinp2use = 0.55),        # 55% efficient
+  invcost = list(invcost = 900),                              # MEUR/GW
+  fixom   = 25, cap2act = 31.536, olife = 25L)
+
+DEM_ELC <- newDemand("DEM_ELC", commodity = "ELC",
+                     dem = data.frame(dem = 50))               # 50 PJ a year
+
+mod <- newModel("HELLO",
+  data    = newRepository("parts", GAS, ELC, SUP_GAS, EGAS, DEM_ELC),
+  region  = "R1", discount = 0.05,
+  horizon = newHorizon(period = 2025:2040, intervals = c(1, 5, 10),
+                       mid_is_end = TRUE))
+
+scen <- solve_scenario(interpolate_model(mod, name = "BASE"),
+                       solver = solver_options$glpk)
+
+getData(scen, "vObjective", merge = TRUE)   # total discounted system cost
+getData(scen, "vTechCap",   merge = TRUE)   # capacity the model built, GW
+```
+
+The [Get started](https://energyrt.org/articles/energyRt.html) vignette walks
+through this example and the ideas behind it.
+
+### What's in the box
+
+- **Model bricks** — commodities, technologies (with efficiencies, fuel blends
+  & shares, auxiliary flows like emissions or cooling water), supply, demand,
+  storage, weather, trade; `draw()` sketches any technology as a diagram.
+  → [Model bricks](https://energyrt.org/articles/model-bricks.html)
+- **UTOPIA teaching model** — a complete multi-region electricity model built
+  step by step, shipped as the `utopia_modules` data kit with ready scenario
+  levers (CO₂ cap, carbon tax, renewable share, nuclear moratorium).
+  → [UTOPIA I: building the model](https://energyrt.org/articles/utopia-build.html)
+  · [UTOPIA II: running scenarios](https://energyrt.org/articles/utopia-use.html)
+- **Levelized cost** — `levcost()` prices a technology *a-priori* (screening,
+  textbook LCOE) or *ex-post* from a solved scenario, with `autoplot()` cost
+  breakdowns.
+- **Reports** — `report()` renders an HTML/PDF datasheet for a technology or a
+  solved process, `levcost` included.
+- **Scenario workflow** — tidy result extraction with `getData()`, scenario
+  editing & re-solving, Arrow-backed `save_scenario()`/`load_scenario()` for
+  larger-than-memory results.
+  → [Workflow](https://energyrt.org/articles/workflow.html)
+  · [Plotting](https://energyrt.org/articles/autoplot.html)
+
+### Learn more
+
+- [Get started](https://energyrt.org/articles/energyRt.html) — the core idea in
+  ten minutes.
+- [Tutorials](https://energyrt.org/articles/) — installation, solver backends,
+  model bricks, UTOPIA, workflow, plotting.
+- **useR! workshop** — a hands-on training course built on energyRt and the
+  UTOPIA model (Quarto book, in preparation).
+- [IDEEA](https://ideea-model.github.io/IDEEA/) — an open multi-region model of
+  India's power system, built with energyRt: a production-scale application.
 
 ## Installation
 
-Assuming that R is already installed (if not, please download and
-install from <https://www.r-project.org/>), we also recommend RStudio
-(<https://www.rstudio.com/>), a powerful IDE (Integrated Development
-Environment) for R. The installation of the package is done via the
-`pak` or `remotes` packages:
+``` r
+pak::pkg_install("optimal2050/energyRt")
+# or
+remotes::install_github("optimal2050/energyRt")
+```
 
-`pak::pkg_install("optimal2050/energyRt@v0.50")`\
-or\
-`remotes::install_github("optimal2050/energyRt", ref = "v0.50")`
+To reproduce **pre-2026 models**, install the frozen legacy release instead:
+`pak::pkg_install("optimal2050/energyRt@v0.50")`.
 
-The next step would be to install at least one of the solvers: GAMS,
-GLPK, Python/Pyomo, Julia/JuMP. Please refer to the respective websites
-for installation instructions. More details available on the
-[IDEEA](https://ideea-model.github.io/IDEEA/articles/install.html) model
-website, a project based on the **energyRt** package.
+You will need at least one solver backend. On Windows, **GLPK ships with
+Rtools** — no extra setup. For Julia/JuMP, Python/Pyomo, or GAMS see the
+[installation article](https://energyrt.org/articles/install.html) and the
+[solver backends article](https://energyrt.org/articles/backends.html).
+
+### Development status
+
+The current development line (**v0.60.x**) modernizes the interpolation
+pipeline, scenario storage, and analysis tools (`levcost`, `report`,
+`autoplot`) on the way to **v1.0**. The **v0.50** release (*"half-way-there"*)
+is frozen and remains available for pre-2026 modeling projects; its model
+code, classes and methods will receive fixes only.
+
+The package website: <https://energyrt.org>

@@ -116,17 +116,7 @@ end;
 
 close(fvBalance);
 
-fvBalanceRY = open("output/vBalanceRY.csv", "w");
-
-println(fvBalanceRY, "comm,region,year,value");
-
-for (c, r, y) in mBalanceRY
-    if JuMP.value(vBalanceRY[(c, r, y)]) != 0
-        println(fvBalanceRY, c, ",", r, ",", y, ",", JuMP.value(vBalanceRY[(c, r, y)]))
-    end
-end;
-
-close(fvBalanceRY);
+# [agg-rewrite] vBalanceRY output retired
 
 fvTotalCost = open("output/vTotalCost.csv", "w");
 
@@ -522,26 +512,7 @@ for (t, c, r, y, s) in mvTechOut
 end;
 close(fvTechOut);
 
-fvTechOutRY = open("output/vTechOutRY.csv", "w");
-println(fvTechOutRY, "tech,comm,region,year,value");
-for (t, c, r, y) in mTechOutRY
-    if JuMP.value(vTechOutRY[(t, c, r, y)]) != 0
-        println(
-            fvTechOutRY,
-            t,
-            ",",
-            c,
-            ",",
-            r,
-            ",",
-            y,
-            ",",
-            JuMP.value(vTechOutRY[(t, c, r, y)]),
-        )
-    end
-end;
-close(fvTechOutRY);
-
+# [agg-rewrite] vTechOutRY output retired
 fvTechAInp = open("output/vTechAInp.csv", "w");
 println(fvTechAInp, "tech,comm,region,year,slice,value");
 for (t, c, r, y, s) in mvTechAInp
@@ -635,15 +606,7 @@ for (c, r, y, s) in mvOutTot
 end;
 close(fvOutTot);
 
-fvOutTotRY = open("output/vOutTotRY.csv", "w");
-println(fvOutTotRY, "comm,region,year,value");
-for (c, r, y) in mOutTotRY
-    if JuMP.value(vOutTotRY[(c, r, y)]) != 0
-        println(fvOutTotRY, c, ",", r, ",", y, ",", JuMP.value(vOutTotRY[(c, r, y)]))
-    end
-end;
-close(fvOutTotRY);
-
+# [agg-rewrite] vOutTotRY output retired
 fvInpTot = open("output/vInpTot.csv", "w");
 println(fvInpTot, "comm,region,year,slice,value");
 for (c, r, y, s) in mvInpTot
@@ -653,59 +616,8 @@ for (c, r, y, s) in mvInpTot
 end;
 close(fvInpTot);
 
-fvInpTotRY = open("output/vInpTotRY.csv", "w");
-println(fvInpTotRY, "comm,region,year,value");
-for (c, r, y) in mInpTotRY
-    if JuMP.value(vInpTotRY[(c, r, y)]) != 0
-        println(fvInpTotRY, c, ",", r, ",", y, ",", JuMP.value(vInpTotRY[(c, r, y)]))
-    end
-end;
-close(fvInpTotRY);
-
-fvInp2Lo = open("output/vInp2Lo.csv", "w");
-println(fvInp2Lo, "comm,region,year,slice,slicep,value");
-for (c, r, y, s, sp) in mvInp2Lo
-    if JuMP.value(vInp2Lo[(c, r, y, s, sp)]) != 0
-        println(
-            fvInp2Lo,
-            c,
-            ",",
-            r,
-            ",",
-            y,
-            ",",
-            s,
-            ",",
-            sp,
-            ",",
-            JuMP.value(vInp2Lo[(c, r, y, s, sp)]),
-        )
-    end
-end;
-close(fvInp2Lo);
-
-fvOut2Lo = open("output/vOut2Lo.csv", "w");
-println(fvOut2Lo, "comm,region,year,slice,slicep,value");
-for (c, r, y, s, sp) in mvOut2Lo
-    if JuMP.value(vOut2Lo[(c, r, y, s, sp)]) != 0
-        println(
-            fvOut2Lo,
-            c,
-            ",",
-            r,
-            ",",
-            y,
-            ",",
-            s,
-            ",",
-            sp,
-            ",",
-            JuMP.value(vOut2Lo[(c, r, y, s, sp)]),
-        )
-    end
-end;
-close(fvOut2Lo);
-
+# [agg-rewrite] vInpTotRY output retired
+# [agg-rewrite] vInp2Lo/vOut2Lo output extraction removed (variables retired)
 fvSupOutTot = open("output/vSupOutTot.csv", "w");
 println(fvSupOutTot, "comm,region,year,slice,value");
 for (c, r, y, s) in mSupOutTot
@@ -1284,7 +1196,6 @@ println(vrb_list, "vTechVarom");
 println(vrb_list, "vSupCost");
 println(vrb_list, "vEmsFuelTot");
 println(vrb_list, "vBalance");
-println(vrb_list, "vBalanceRY");
 println(vrb_list, "vTotalCost");
 println(vrb_list, "vObjective");
 println(vrb_list, "vTaxCost");
@@ -1308,18 +1219,13 @@ println(vrb_list, "vTechCap");
 println(vrb_list, "vTechAct");
 println(vrb_list, "vTechInp");
 println(vrb_list, "vTechOut");
-println(vrb_list, "vTechOutRY");
 println(vrb_list, "vTechAInp");
 println(vrb_list, "vTechAOut");
 println(vrb_list, "vSupOut");
 println(vrb_list, "vSupReserve");
 println(vrb_list, "vDemInp");
 println(vrb_list, "vOutTot");
-println(vrb_list, "vOutTotRY");
 println(vrb_list, "vInpTot");
-println(vrb_list, "vInpTotRY");
-println(vrb_list, "vInp2Lo");
-println(vrb_list, "vOut2Lo");
 println(vrb_list, "vSupOutTot");
 println(vrb_list, "vTechInpTot");
 println(vrb_list, "vTechOutTot");

@@ -1,0 +1,3518 @@
+region:
+  name: region
+  type: set
+  dimSets: region
+  class: settings
+  slot: region
+  function: self
+year:
+  name: year
+  type: set
+  dimSets: year
+  class: horizon
+  slot: intervals
+  colName: mid
+  function: self
+slice:
+  name: slice
+  type: set
+  dimSets: slice
+comm:
+  name: comm
+  type: set
+  dimSets: comm
+sup:
+  name: sup
+  type: set
+  dimSets: sup
+dem:
+  name: dem
+  type: set
+  dimSets: dem
+tech:
+  name: tech
+  type: set
+  dimSets: tech
+group:
+  name: group
+  type: set
+  dimSets: group
+stg:
+  name: stg
+  type: set
+  dimSets: stg
+expp:
+  name: expp
+  type: set
+  dimSets: expp
+imp:
+  name: imp
+  type: set
+  dimSets: imp
+trade:
+  name: trade
+  type: set
+  dimSets: trade
+weather:
+  name: weather
+  type: set
+  dimSets: weather
+pYear:
+  name: pYear
+  dimSets: year
+  type: numpar
+  class: horizon
+  slot: intervals
+  colName: mid
+  function: pYear
+pPeriodLen:
+  name: pPeriodLen
+  dimSets: year
+  type: numpar
+  class: horizon
+  function: pPeriodLen
+ordYear:
+  name: ordYear
+  dimSets: year
+  type: numpar
+  class: horizon
+  function: ordYear
+cardYear:
+  name: cardYear
+  dimSets: year
+  type: numpar
+  class: horizon
+  function: cardYear
+pLECLoACT:
+  name: pLECLoACT
+  dimSets: region
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: ~
+pSliceShare:
+  name: pSliceShare
+  dimSets: slice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: calendar
+  slot: slice_share
+  colName: share
+  function: pSliceShare
+pSliceWeight:
+  name: pSliceWeight
+  dimSets:
+  - year
+  - slice
+  type: numpar
+  defVal: 1.0
+  interpolation: back.inter.forth
+  class: calendar
+  slot: slice_share
+  colName: weight
+  function: pSliceWeight
+pDummyImportCost:
+  name: pDummyImportCost
+  dimSets:
+  - comm
+  - region
+  - year
+  - slice
+  type: numpar
+  defVal: .inf
+  interpolation: back.inter.forth
+  class: settings
+  slot: debug
+  colName: dummyImport
+pDummyExportCost:
+  name: pDummyExportCost
+  dimSets:
+  - comm
+  - region
+  - year
+  - slice
+  type: numpar
+  defVal: .inf
+  interpolation: back.inter.forth
+  class: settings
+  slot: debug
+  colName: dummyExport
+pYearFraction:
+  name: pYearFraction
+  dimSets: year
+  type: numpar
+  defVal: 1.0
+  interpolation: back.inter.forth
+  class: settings
+  slot: yearFraction
+  function: slot_self
+pDiscount:
+  name: pDiscount
+  dimSets:
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: settings
+  slot: discount
+  colName: discount
+pWacc:
+  name: pWacc
+  dimSets:
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: settings
+  slot: discount
+  colName: wacc
+pSdr:
+  name: pSdr
+  dimSets:
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: settings
+  slot: discount
+  colName: sdr
+pDiscountFactor:
+  name: pDiscountFactor
+  dimSets:
+  - region
+  - year
+  type: numpar
+  defVal: 1.0
+  interpolation: back.inter.forth
+  class: settings
+pEmissionFactor:
+  name: pEmissionFactor
+  dimSets:
+  - comm
+  - commp
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: commodity
+  slot: emis
+  colName: emis
+pAggregateFactor:
+  name: pAggregateFactor
+  dimSets:
+  - comm
+  - commp
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: commodity
+  slot: agg
+  colName: agg
+pWeather:
+  name: pWeather
+  dimSets:
+  - weather
+  - region
+  - year
+  - slice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: wval
+  class: weather
+  slot: weather
+pSupWeather:
+  name: pSupWeather
+  dimSets:
+  - weather
+  - sup
+  type: bounds
+  defVal:
+  - 1.0
+  - 1.0
+  interpolation:
+  - back.inter.forth
+  - back.inter.forth
+  class: supply
+  slot: weather
+  colName: wava
+pSupCost:
+  name: pSupCost
+  dimSets:
+  - sup
+  - comm
+  - region
+  - year
+  - slice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: cost
+  class: supply
+  slot: availability
+pSupReserve:
+  name: pSupReserve
+  dimSets:
+  - sup
+  - comm
+  - region
+  type: bounds
+  defVal:
+  - 0.0
+  - .inf
+  interpolation:
+  - back.inter.forth
+  - back.inter.forth
+  colName: res
+  class: supply
+  slot: reserve
+pSupAva:
+  name: pSupAva
+  dimSets:
+  - sup
+  - comm
+  - region
+  - year
+  - slice
+  type: bounds
+  defVal:
+  - 0.0
+  - .inf
+  interpolation:
+  - back.inter.forth
+  - back.inter.forth
+  colName: ava
+  class: supply
+  slot: availability
+pDemand:
+  name: pDemand
+  dimSets:
+  - dem
+  - comm
+  - region
+  - year
+  - slice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: demand
+  slot: dem
+  colName: dem
+  # function: pDemand
+pExportRowPrice:
+  name: pExportRowPrice
+  dimSets:
+  - expp
+  - region
+  - year
+  - slice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: export
+  slot: availability
+  colName: price
+pExportRow:
+  name: pExportRow
+  dimSets:
+  - expp
+  - region
+  - year
+  - slice
+  type: bounds
+  defVal:
+  - 0.0
+  - .inf
+  interpolation:
+  - back.inter.forth
+  - back.inter.forth
+  class: export
+  slot: availability
+  colName: exp
+pExportRowRes:
+  name: pExportRowRes
+  dimSets: expp
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: export
+  slot: reserve
+pImportRowPrice:
+  name: pImportRowPrice
+  dimSets:
+  - imp
+  - region
+  - year
+  - slice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: import
+  slot: availability
+  colName: price
+pImportRow:
+  name: pImportRow
+  dimSets:
+  - imp
+  - region
+  - year
+  - slice
+  type: bounds
+  defVal:
+  - 0.0
+  - .inf
+  interpolation:
+  - back.inter.forth
+  - back.inter.forth
+  class: import
+  slot: availability
+  colName: imp
+pImportRowRes:
+  name: pImportRowRes
+  dimSets: imp
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: import
+  slot: reserve
+pTechWeatherAf:
+  name: pTechWeatherAf
+  type: bounds
+  dimSets:
+  - weather
+  - tech
+  defVal:
+  - 1.0
+  - 1.0
+  interpolation:
+  - back.inter.forth
+  - back.inter.forth
+  class: technology
+  slot: weather
+  colName: waf
+pTechWeatherAfs:
+  name: pTechWeatherAfs
+  type: bounds
+  dimSets:
+  - weather
+  - tech
+  defVal:
+  - 1.0
+  - 1.0
+  interpolation:
+  - back.inter.forth
+  - back.inter.forth
+  class: technology
+  slot: weather
+  colName: wafs
+pTechWeatherAfc:
+  name: pTechWeatherAfc
+  type: bounds
+  dimSets:
+  - weather
+  - tech
+  - comm
+  defVal:
+  - 1.0
+  - 1.0
+  interpolation:
+  - back.inter.forth
+  - back.inter.forth
+  class: technology
+  slot: weather
+  colName: wafc
+pTechCap2act:
+  name: pTechCap2act
+  type: numpar
+  dimSets: tech
+  defVal: 1.0
+  interpolation: back.inter.forth
+  class: technology
+  slot: cap2act
+pTechEac:
+  name: pTechEac
+  type: numpar
+  dimSets:
+  - tech
+  - region
+  - year
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: technology
+  slot: invcost
+  colName: invcost
+pTechEmisComm:
+  name: pTechEmisComm
+  type: numpar
+  dimSets:
+  - tech
+  - comm
+  defVal: 1.0
+  interpolation: back.inter.forth
+  class: technology
+  slot: input
+  colName: combustion
+pTechOlife:
+  name: pTechOlife
+  type: numpar
+  dimSets:
+  - tech
+  - region
+  defVal: 1.0
+  interpolation: back.inter.forth
+  class: technology
+  slot: olife
+  colName: olife
+pTechFixom:
+  name: pTechFixom
+  type: numpar
+  dimSets:
+  - tech
+  - region
+  - year
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: technology
+  slot: fixom
+  colName: fixom
+pTechInvcost:
+  name: pTechInvcost
+  type: numpar
+  dimSets:
+  - tech
+  - region
+  - year
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: technology
+  slot: invcost
+  colName: invcost
+pTechStock:
+  name: pTechStock
+  type: numpar
+  dimSets:
+  - tech
+  - region
+  - year
+  defVal: 0.0
+  interpolation: .inter.
+  class: technology
+  slot: capacity
+  colName: stock
+pTechVarom:
+  name: pTechVarom
+  type: numpar
+  dimSets:
+  - tech
+  - region
+  - year
+  - slice
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: technology
+  slot: varom
+  colName: varom
+pTechAf:
+  name: pTechAf
+  type: bounds
+  dimSets:
+  - tech
+  - region
+  - year
+  - slice
+  defVal:
+  - 0.0
+  - 1.0
+  interpolation:
+  - back.inter.forth
+  - back.inter.forth
+  class: technology
+  slot: af
+  colName: af
+pTechRampUp:
+  name: pTechRampUp
+  type: numpar
+  dimSets:
+  - tech
+  - region
+  - year
+  - slice
+  defVal: .inf
+  interpolation: back.inter.forth
+  class: technology
+  slot: rampup
+  colName: rampup
+pTechRampDown:
+  name: pTechRampDown
+  type: numpar
+  dimSets:
+  - tech
+  - region
+  - year
+  - slice
+  defVal: .inf
+  interpolation: back.inter.forth
+  class: technology
+  slot: rampdown
+  colName: rampdown
+pTechAfs:
+  name: pTechAfs
+  type: bounds
+  dimSets:
+  - tech
+  - region
+  - year
+  - slice
+  defVal:
+  - 0.0
+  - .inf
+  interpolation:
+  - back.inter.forth
+  - back.inter.forth
+  class: technology
+  slot: afs
+  colName: afs
+pTechGinp2use:
+  name: pTechGinp2use
+  type: numpar
+  dimSets:
+  - tech
+  - group
+  - region
+  - year
+  - slice
+  defVal: 1.0
+  interpolation: back.inter.forth
+  class: technology
+  slot: geff
+  colName: ginp2use
+pTechCinp2ginp:
+  name: pTechCinp2ginp
+  type: numpar
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - slice
+  defVal: 1.0
+  interpolation: back.inter.forth
+  class: technology
+  slot: ceff
+  colName: cinp2ginp
+pTechUse2cact:
+  name: pTechUse2cact
+  type: numpar
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - slice
+  defVal: 1.0
+  interpolation: back.inter.forth
+  class: technology
+  slot: ceff
+  colName: use2cact
+pTechAct2AInp:
+  name: pTechAct2AInp
+  type: numpar
+  dimSets:
+  - tech
+  - acomm
+  - region
+  - year
+  - slice
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: technology
+  slot: aeff
+  colName: act2ainp
+pTechCap2AInp:
+  name: pTechCap2AInp
+  type: numpar
+  dimSets:
+  - tech
+  - acomm
+  - region
+  - year
+  - slice
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: technology
+  slot: aeff
+  colName: cap2ainp
+pTechAct2AOut:
+  name: pTechAct2AOut
+  type: numpar
+  dimSets:
+  - tech
+  - acomm
+  - region
+  - year
+  - slice
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: technology
+  slot: aeff
+  colName: act2aout
+pTechCap2AOut:
+  name: pTechCap2AOut
+  type: numpar
+  dimSets:
+  - tech
+  - acomm
+  - region
+  - year
+  - slice
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: technology
+  slot: aeff
+  colName: cap2aout
+pTechNCap2AInp:
+  name: pTechNCap2AInp
+  type: numpar
+  dimSets:
+  - tech
+  - acomm
+  - region
+  - year
+  - slice
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: technology
+  slot: aeff
+  colName: cap2aout
+pTechNCap2AOut:
+  name: pTechNCap2AOut
+  type: numpar
+  dimSets:
+  - tech
+  - acomm
+  - region
+  - year
+  - slice
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: technology
+  slot: aeff
+  colName: cap2aout
+pTechCinp2AInp:
+  name: pTechCinp2AInp
+  type: numpar
+  dimSets:
+  - tech
+  - acomm
+  - comm
+  - region
+  - year
+  - slice
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: technology
+  slot: aeff
+  colName: cinp2ainp
+pTechCout2AInp:
+  name: pTechCout2AInp
+  type: numpar
+  dimSets:
+  - tech
+  - acomm
+  - comm
+  - region
+  - year
+  - slice
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: technology
+  slot: aeff
+  colName: cout2ainp
+pTechCinp2AOut:
+  name: pTechCinp2AOut
+  type: numpar
+  dimSets:
+  - tech
+  - acomm
+  - comm
+  - region
+  - year
+  - slice
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: technology
+  slot: aeff
+  colName: cinp2aout
+pTechCout2AOut:
+  name: pTechCout2AOut
+  type: numpar
+  dimSets:
+  - tech
+  - acomm
+  - comm
+  - region
+  - year
+  - slice
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: technology
+  slot: aeff
+  colName: cout2aout
+pTechCact2cout:
+  name: pTechCact2cout
+  type: numpar
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - slice
+  defVal: 1.0
+  interpolation: back.inter.forth
+  class: technology
+  slot: ceff
+  colName: cact2cout
+pTechCinp2use:
+  name: pTechCinp2use
+  type: numpar
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - slice
+  defVal: 1.0
+  interpolation: back.inter.forth
+  class: technology
+  slot: ceff
+  colName: cinp2use
+pTechCvarom:
+  name: pTechCvarom
+  type: numpar
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - slice
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: technology
+  slot: varom
+  colName: cvarom
+pTechAvarom:
+  name: pTechAvarom
+  type: numpar
+  dimSets:
+  - tech
+  - acomm
+  - region
+  - year
+  - slice
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: technology
+  slot: varom
+  colName: avarom
+pTechShare:
+  name: pTechShare
+  type: bounds
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - slice
+  defVal:
+  - 0.0
+  - 1.0
+  interpolation:
+  - back.inter.forth
+  - back.inter.forth
+  class: technology
+  slot: ceff
+  colName: share
+pTechAfc:
+  name: pTechAfc
+  type: bounds
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - slice
+  defVal:
+  - 0.0
+  - .inf
+  interpolation:
+  - back.inter.forth
+  - back.inter.forth
+  class: technology
+  slot: ceff
+  colName: afc
+pTechCap:
+  name: pTechCap
+  type: bounds
+  dimSets:
+  - tech
+  - region
+  - year
+  defVal:
+  - 0.0
+  - .inf
+  interpolation:
+  - inter.forth
+  - inter.forth
+  class: technology
+  slot: capacity
+  colName: cap
+pTechNewCap:
+  name: pTechNewCap
+  type: bounds
+  dimSets:
+  - tech
+  - region
+  - year
+  defVal:
+  - 0.0
+  - .inf
+  interpolation:
+  - inter.forth
+  - inter.forth
+  class: technology
+  slot: capacity
+  colName: ncap
+pTechRet:
+  name: pTechRet
+  type: bounds
+  dimSets:
+  - tech
+  - region
+  - year
+  defVal:
+  - 0.0
+  - .inf
+  interpolation:
+  - inter.forth
+  - inter.forth
+  class: technology
+  slot: capacity
+  colName: ret
+pTechRetCost:
+  name: pTechRetCost
+  type: numpar
+  dimSets:
+  - tech
+  - region
+  - year
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: technology
+  slot: invcost
+  colName: retcost
+pStorageWeatherAf:
+  name: pStorageWeatherAf
+  dimSets:
+  - weather
+  - stg
+  type: bounds
+  defVal:
+  - 1.0
+  - 1.0
+  interpolation:
+  - back.inter.forth
+  - back.inter.forth
+  class: storage
+  slot: weather
+  colName: waf
+pStorageWeatherCinp:
+  name: pStorageWeatherCinp
+  dimSets:
+  - weather
+  - stg
+  type: bounds
+  defVal:
+  - 1.0
+  - 1.0
+  interpolation:
+  - back.inter.forth
+  - back.inter.forth
+  class: storage
+  slot: weather
+  colName: wcinp
+pStorageWeatherCout:
+  name: pStorageWeatherCout
+  dimSets:
+  - weather
+  - stg
+  type: bounds
+  defVal:
+  - 1.0
+  - 1.0
+  interpolation:
+  - back.inter.forth
+  - back.inter.forth
+  class: storage
+  slot: weather
+  colName: wcout
+pStorageOlife:
+  name: pStorageOlife
+  dimSets:
+  - stg
+  - region
+  type: numpar
+  defVal: 1.0
+  interpolation: back.inter.forth
+  colName: olife
+  class: storage
+  slot: olife
+pStorageStock:
+  name: pStorageStock
+  dimSets:
+  - stg
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: stock
+  class: storage
+  slot: capacity
+pStorageFixom:
+  name: pStorageFixom
+  dimSets:
+  - stg
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: fixom
+  class: storage
+  slot: fixom
+pStorageInvcost:
+  name: pStorageInvcost
+  dimSets:
+  - stg
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: invcost
+  class: storage
+  slot: invcost
+pStorageEac:
+  name: pStorageEac
+  dimSets:
+  - stg
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: invcost
+  class: storage
+  slot: invcost
+pStorageInpEff:
+  name: pStorageInpEff
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+  type: numpar
+  defVal: 1.0
+  interpolation: back.inter.forth
+  colName: inpeff
+  class: storage
+  slot: seff
+pStorageOutEff:
+  name: pStorageOutEff
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+  type: numpar
+  defVal: 1.0
+  interpolation: back.inter.forth
+  colName: outeff
+  class: storage
+  slot: seff
+pStorageStgEff:
+  name: pStorageStgEff
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+  type: numpar
+  defVal: 1.0
+  interpolation: back.inter.forth
+  colName: stgeff
+  class: storage
+  slot: seff
+pStorageCostStore:
+  name: pStorageCostStore
+  dimSets:
+  - stg
+  - region
+  - year
+  - slice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: stgcost
+  class: storage
+  slot: varom
+pStorageCostInp:
+  name: pStorageCostInp
+  dimSets:
+  - stg
+  - region
+  - year
+  - slice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: inpcost
+  class: storage
+  slot: varom
+pStorageCostOut:
+  name: pStorageCostOut
+  dimSets:
+  - stg
+  - region
+  - year
+  - slice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: outcost
+  class: storage
+  slot: varom
+pStorageAf:
+  name: pStorageAf
+  dimSets:
+  - stg
+  - region
+  - year
+  - slice
+  type: bounds
+  defVal:
+  - 0.0
+  - 1.0
+  interpolation:
+  - back.inter.forth
+  - back.inter.forth
+  colName: af
+  class: storage
+  slot: af
+pStorageCap2stg:
+  name: pStorageCap2stg
+  dimSets: stg
+  type: numpar
+  defVal: 1.0
+  interpolation: back.inter.forth
+  class: storage
+  slot: cap2stg
+pStorageCinp:
+  name: pStorageCinp
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+  type: bounds
+  defVal:
+  - 0.0
+  - .inf
+  interpolation:
+  - back.inter.forth
+  - back.inter.forth
+  colName: cinp
+  class: storage
+  slot: af
+pStorageCout:
+  name: pStorageCout
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+  type: bounds
+  defVal:
+  - 0.0
+  - .inf
+  interpolation:
+  - back.inter.forth
+  - back.inter.forth
+  colName: cout
+  class: storage
+  slot: af
+pStorageStg2AInp:
+  name: pStorageStg2AInp
+  dimSets:
+  - stg
+  - acomm
+  - region
+  - year
+  - slice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: stg2ainp
+  class: storage
+  slot: aeff
+pStorageStg2AOut:
+  name: pStorageStg2AOut
+  dimSets:
+  - stg
+  - acomm
+  - region
+  - year
+  - slice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: stg2aout
+  class: storage
+  slot: aeff
+pStorageCinp2AInp:
+  name: pStorageCinp2AInp
+  dimSets:
+  - stg
+  - acomm
+  - region
+  - year
+  - slice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: cinp2ainp
+  class: storage
+  slot: aeff
+pStorageCinp2AOut:
+  name: pStorageCinp2AOut
+  dimSets:
+  - stg
+  - acomm
+  - region
+  - year
+  - slice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: cinp2aout
+  class: storage
+  slot: aeff
+pStorageCout2AInp:
+  name: pStorageCout2AInp
+  dimSets:
+  - stg
+  - acomm
+  - region
+  - year
+  - slice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: cout2ainp
+  class: storage
+  slot: aeff
+pStorageCout2AOut:
+  name: pStorageCout2AOut
+  dimSets:
+  - stg
+  - acomm
+  - region
+  - year
+  - slice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: cout2aout
+  class: storage
+  slot: aeff
+pStorageCap2AInp:
+  name: pStorageCap2AInp
+  dimSets:
+  - stg
+  - acomm
+  - region
+  - year
+  - slice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: cap2ainp
+  class: storage
+  slot: aeff
+pStorageCap2AOut:
+  name: pStorageCap2AOut
+  dimSets:
+  - stg
+  - acomm
+  - region
+  - year
+  - slice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: cap2aout
+  class: storage
+  slot: aeff
+pStorageNCap2AInp:
+  name: pStorageNCap2AInp
+  dimSets:
+  - stg
+  - acomm
+  - region
+  - year
+  - slice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: ncap2ainp
+  class: storage
+  slot: aeff
+pStorageNCap2AOut:
+  name: pStorageNCap2AOut
+  dimSets:
+  - stg
+  - acomm
+  - region
+  - year
+  - slice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: ncap2aout
+  class: storage
+  slot: aeff
+pStorageNCap2Stg:
+  name: pStorageNCap2Stg
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+  type: numpar
+  defVal: 0.0
+  interpolation: ''
+  colName: ncap2stg
+  class: storage
+  slot: aeff
+pStorageCharge:
+  name: pStorageCharge
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+  type: numpar
+  defVal: 0.0
+  interpolation: ''
+  colName: charge
+  class: storage
+  slot: charge
+pStorageCap:
+  name: pStorageCap
+  dimSets:
+  - stg
+  - region
+  - year
+  type: bounds
+  defVal:
+  - 0.0
+  - .inf
+  interpolation:
+  - inter.forth
+  - inter.forth
+  colName: cap
+  class: storage
+  slot: capacity
+pStorageNewCap:
+  name: pStorageNewCap
+  dimSets:
+  - stg
+  - region
+  - year
+  type: bounds
+  defVal:
+  - 0.0
+  - .inf
+  interpolation:
+  - inter.forth
+  - inter.forth
+  colName: ncap
+  class: storage
+  slot: capacity
+pStorageRet:
+  name: pStorageRet
+  dimSets:
+  - stg
+  - region
+  - year
+  type: bounds
+  defVal:
+  - 0.0
+  - .inf
+  interpolation:
+  - inter.forth
+  - inter.forth
+  colName: ret
+  class: storage
+  slot: capacity
+pStorageRetCost:
+  name: pStorageRetCost
+  dimSets:
+  - stg
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: retcost
+  class: storage
+  slot: invcost
+pTradeIrCsrc2Aout:
+  name: pTradeIrCsrc2Aout
+  dimSets:
+  - trade
+  - acomm
+  - src
+  - dst
+  - year
+  - slice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: csrc2aout
+  class: trade
+  slot: aeff
+pTradeIrCsrc2Ainp:
+  name: pTradeIrCsrc2Ainp
+  dimSets:
+  - trade
+  - acomm
+  - src
+  - dst
+  - year
+  - slice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: csrc2ainp
+  class: trade
+  slot: aeff
+pTradeIrCdst2Aout:
+  name: pTradeIrCdst2Aout
+  dimSets:
+  - trade
+  - acomm
+  - src
+  - dst
+  - year
+  - slice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: cdst2aout
+  class: trade
+  slot: aeff
+pTradeIrCdst2Ainp:
+  name: pTradeIrCdst2Ainp
+  dimSets:
+  - trade
+  - acomm
+  - src
+  - dst
+  - year
+  - slice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: cdst2ainp
+  class: trade
+  slot: aeff
+pTradeIrCost:
+  name: pTradeIrCost
+  dimSets:
+  - trade
+  - src
+  - dst
+  - year
+  - slice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: varom
+  class: trade
+  slot: varom
+pTradeIrEff:
+  name: pTradeIrEff
+  dimSets:
+  - trade
+  - src
+  - dst
+  - year
+  - slice
+  type: numpar
+  defVal: 1.0
+  interpolation: back.inter.forth
+  colName: teff
+  class: trade
+  slot: teff
+pTradeIrMarkup:
+  name: pTradeIrMarkup
+  dimSets:
+  - trade
+  - src
+  - dst
+  - year
+  - slice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: markup
+  class: trade
+  slot: varom
+pTradeIr:
+  name: pTradeIr
+  dimSets:
+  - trade
+  - src
+  - dst
+  - year
+  - slice
+  type: bounds
+  defVal:
+  - 0.0
+  - .inf
+  interpolation:
+  - back.inter.forth
+  - back.inter.forth
+  colName: ava
+  class: trade
+  slot: trade
+pTradeStock:
+  name: pTradeStock
+  dimSets:
+  - trade
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: stock
+  class: trade
+  slot: capacity
+pTradeOlife:
+  name: pTradeOlife
+  dimSets: trade
+  type: numpar
+  defVal: 1.0
+  interpolation: back.inter.forth
+  colName: olife
+  class: trade
+  slot: olife
+pTradeInvcost:
+  name: pTradeInvcost
+  dimSets:
+  - trade
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: invcost
+  class: trade
+  slot: invcost
+pTradeEac:
+  name: pTradeEac
+  dimSets:
+  - trade
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: invcost
+  class: trade
+  slot: invcost
+pTradeCap2Act:
+  name: pTradeCap2Act
+  dimSets: trade
+  type: numpar
+  defVal: 1.0
+  interpolation: back.inter.forth
+  class: trade
+  slot: cap2act
+pTradeCap:
+  name: pTradeCap
+  dimSets:
+  - trade
+  - year
+  type: bounds
+  defVal:
+  - 0.0
+  - .inf
+  interpolation:
+  - inter.forth
+  - inter.forth
+  colName: cap
+  class: trade
+  slot: capacity
+pTradeNewCap:
+  name: pTradeNewCap
+  dimSets:
+  - trade
+  - year
+  type: bounds
+  defVal:
+  - 0.0
+  - .inf
+  interpolation:
+  - inter.forth
+  - inter.forth
+  colName: ncap
+  class: trade
+  slot: capacity
+pTradeFixom:
+  name: pTradeFixom
+  dimSets:
+  - trade
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: fixom
+  class: trade
+  slot: fixom
+pTradeRet:
+  name: pTradeRet
+  dimSets:
+  - trade
+  - year
+  type: bounds
+  defVal:
+  - 0.0
+  - .inf
+  interpolation:
+  - inter.forth
+  - inter.forth
+  colName: ret
+  class: trade
+  slot: capacity
+pTradeRetCost:
+  name: pTradeRetCost
+  dimSets:
+  - trade
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: retcost
+  class: trade
+  slot: invcost
+pTaxCostInp:
+  name: pTaxCostInp
+  dimSets:
+  - comm
+  - region
+  - year
+  - slice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: tax
+  slot: tax
+  colName: inp
+pTaxCostOut:
+  name: pTaxCostOut
+  dimSets:
+  - comm
+  - region
+  - year
+  - slice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: tax
+  slot: tax
+  colName: out
+pTaxCostBal:
+  name: pTaxCostBal
+  dimSets:
+  - comm
+  - region
+  - year
+  - slice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: tax
+  slot: tax
+  colName: bal
+pSubCostInp:
+  name: pSubCostInp
+  dimSets:
+  - comm
+  - region
+  - year
+  - slice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: subsidy
+  slot: sub
+  colName: inp
+pSubCostOut:
+  name: pSubCostOut
+  dimSets:
+  - comm
+  - region
+  - year
+  - slice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: subsidy
+  slot: sub
+  colName: out
+pSubCostBal:
+  name: pSubCostBal
+  dimSets:
+  - comm
+  - region
+  - year
+  - slice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: subsidy
+  slot: sub
+  colName: bal
+mCommReg:
+  name: mCommReg
+  type: map
+  dimSets:
+  - comm
+  - region
+mWeatherSlice:
+  name: mWeatherSlice
+  type: map
+  dimSets:
+  - weather
+  - slice
+mWeatherRegion:
+  name: mWeatherRegion
+  type: map
+  dimSets:
+  - weather
+  - region
+mSupWeatherLo:
+  name: mSupWeatherLo
+  type: map
+  dimSets:
+  - weather
+  - sup
+mSupWeatherUp:
+  name: mSupWeatherUp
+  type: map
+  dimSets:
+  - weather
+  - sup
+mTechWeatherAfLo:
+  name: mTechWeatherAfLo
+  type: map
+  dimSets:
+  - weather
+  - tech
+mTechWeatherAfUp:
+  name: mTechWeatherAfUp
+  type: map
+  dimSets:
+  - weather
+  - tech
+mTechWeatherAfsLo:
+  name: mTechWeatherAfsLo
+  type: map
+  dimSets:
+  - weather
+  - tech
+mTechWeatherAfsUp:
+  name: mTechWeatherAfsUp
+  type: map
+  dimSets:
+  - weather
+  - tech
+mTechWeatherAfcLo:
+  name: mTechWeatherAfcLo
+  type: map
+  dimSets:
+  - weather
+  - tech
+  - comm
+mTechWeatherAfcUp:
+  name: mTechWeatherAfcUp
+  type: map
+  dimSets:
+  - weather
+  - tech
+  - comm
+mStorageWeatherAfLo:
+  name: mStorageWeatherAfLo
+  type: map
+  dimSets:
+  - weather
+  - stg
+mStorageWeatherAfUp:
+  name: mStorageWeatherAfUp
+  type: map
+  dimSets:
+  - weather
+  - stg
+mStorageWeatherCinpUp:
+  name: mStorageWeatherCinpUp
+  type: map
+  dimSets:
+  - weather
+  - stg
+mStorageWeatherCinpLo:
+  name: mStorageWeatherCinpLo
+  type: map
+  dimSets:
+  - weather
+  - stg
+mStorageWeatherCoutUp:
+  name: mStorageWeatherCoutUp
+  type: map
+  dimSets:
+  - weather
+  - stg
+mStorageWeatherCoutLo:
+  name: mStorageWeatherCoutLo
+  type: map
+  dimSets:
+  - weather
+  - stg
+mSliceNext:
+  name: mSliceNext
+  type: map
+  dimSets:
+  - slice
+  - slicep
+mSliceFYearNext:
+  name: mSliceFYearNext
+  type: map
+  dimSets:
+  - slice
+  - slicep
+mSameRegion:
+  name: mSameRegion
+  type: map
+  dimSets:
+  - region
+  - regionp
+mSameSlice:
+  name: mSameSlice
+  type: map
+  dimSets:
+  - slice
+  - slicep
+mUpComm:
+  name: mUpComm
+  type: map
+  dimSets: comm
+mLoComm:
+  name: mLoComm
+  type: map
+  dimSets: comm
+mFxComm:
+  name: mFxComm
+  type: map
+  dimSets: comm
+mExpSlice:
+  name: mExpSlice
+  type: map
+  dimSets:
+  - expp
+  - slice
+mImpSlice:
+  name: mImpSlice
+  type: map
+  dimSets:
+  - imp
+  - slice
+mTechSlice:
+  name: mTechSlice
+  type: map
+  dimSets:
+  - tech
+  - slice
+mSupSlice:
+  name: mSupSlice
+  type: map
+  dimSets:
+  - sup
+  - slice
+mStorageFullYear:
+  name: mStorageFullYear
+  type: map
+  dimSets: stg
+mTradeSlice:
+  name: mTradeSlice
+  type: map
+  dimSets:
+  - trade
+  - slice
+mCommSlice:
+  name: mCommSlice
+  type: map
+  dimSets:
+  - comm
+  - slice
+  function: mCommSlice
+mCommSliceOrParent:
+  name: mCommSliceOrParent
+  type: map
+  dimSets:
+  - comm
+  - slice
+  - slicep
+mSliceParentChildE:
+  name: mSliceParentChildE
+  type: map
+  dimSets:
+  - slice
+  - slicep
+mSliceParentChild:
+  name: mSliceParentChild
+  type: map
+  dimSets:
+  - slice
+  - slicep
+mDemComm:
+  name: mDemComm
+  type: map
+  dimSets:
+  - dem
+  - comm
+  function: mDemComm
+mSupComm:
+  name: mSupComm
+  type: map
+  dimSets:
+  - sup
+  - comm
+mSupSpan:
+  name: mSupSpan
+  type: map
+  dimSets:
+  - sup
+  - region
+mvSupCost:
+  name: mvSupCost
+  type: map
+  dimSets:
+  - sup
+  - region
+  - year
+mTechInpComm:
+  name: mTechInpComm
+  type: map
+  dimSets:
+  - tech
+  - comm
+mTechInpCommSameSlice:
+  name: mTechInpCommSameSlice
+  type: map
+  dimSets:
+  - tech
+  - comm
+mTechInpCommAgg:
+  name: mTechInpCommAgg
+  type: map
+  dimSets:
+  - tech
+  - comm
+mTechInpCommAggSlice:
+  name: mTechInpCommAggSlice
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - slice
+  - slicep
+mTechOutComm:
+  name: mTechOutComm
+  type: map
+  dimSets:
+  - tech
+  - comm
+mTechOutCommSameSlice:
+  name: mTechOutCommSameSlice
+  type: map
+  dimSets:
+  - tech
+  - comm
+mTechOutCommAgg:
+  name: mTechOutCommAgg
+  type: map
+  dimSets:
+  - tech
+  - comm
+mTechOutCommAggSlice:
+  name: mTechOutCommAggSlice
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - slice
+  - slicep
+mTechOneComm:
+  name: mTechOneComm
+  type: map
+  dimSets:
+  - tech
+  - comm
+mTechAInp:
+  name: mTechAInp
+  type: map
+  dimSets:
+  - tech
+  - comm
+mTechAInpCommSameSlice:
+  name: mTechAInpCommSameSlice
+  type: map
+  dimSets:
+  - tech
+  - comm
+mTechAInpCommAgg:
+  name: mTechAInpCommAgg
+  type: map
+  dimSets:
+  - tech
+  - comm
+mTechAInpCommAggSlice:
+  name: mTechAInpCommAggSlice
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - slice
+  - slicep
+mTechAOut:
+  name: mTechAOut
+  type: map
+  dimSets:
+  - tech
+  - comm
+mTechAOutCommSameSlice:
+  name: mTechAOutCommSameSlice
+  type: map
+  dimSets:
+  - tech
+  - comm
+mTechAOutCommAgg:
+  name: mTechAOutCommAgg
+  type: map
+  dimSets:
+  - tech
+  - comm
+mTechAOutCommAggSlice:
+  name: mTechAOutCommAggSlice
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - slice
+  - slicep
+mTechInpGroup:
+  name: mTechInpGroup
+  type: map
+  dimSets:
+  - tech
+  - group
+mTechOutGroup:
+  name: mTechOutGroup
+  type: map
+  dimSets:
+  - tech
+  - group
+mTechGroupComm:
+  name: mTechGroupComm
+  type: map
+  dimSets:
+  - tech
+  - group
+  - comm
+mTechUpgrade:
+  name: mTechUpgrade
+  type: map
+  dimSets:
+  - tech
+  - techp
+mTechRetirement:
+  name: mTechRetirement
+  type: map
+  dimSets: tech
+mTechRetCost:
+  name: mTechRetCost
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+mTechNew:
+  name: mTechNew
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+mTechInv:
+  name: mTechInv
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+mTechSpan:
+  name: mTechSpan
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+meqTechRetiredNewCap:
+  name: meqTechRetiredNewCap
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+mTechFixom:
+  name: mTechFixom
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+mTechVarom:
+  name: mTechVarom
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+mTechEac:
+  name: mTechEac
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+mTechAct2AInp:
+  name: mTechAct2AInp
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - slice
+mTechCap2AInp:
+  name: mTechCap2AInp
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - slice
+mTechNCap2AInp:
+  name: mTechNCap2AInp
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - slice
+mTechCinp2AInp:
+  name: mTechCinp2AInp
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - comm
+  - region
+  - year
+  - slice
+mTechCout2AInp:
+  name: mTechCout2AInp
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - comm
+  - region
+  - year
+  - slice
+mTechAct2AOut:
+  name: mTechAct2AOut
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - slice
+mTechCap2AOut:
+  name: mTechCap2AOut
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - slice
+mTechNCap2AOut:
+  name: mTechNCap2AOut
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - slice
+mTechCinp2AOut:
+  name: mTechCinp2AOut
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - comm
+  - region
+  - year
+  - slice
+mTechCout2AOut:
+  name: mTechCout2AOut
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - comm
+  - region
+  - year
+  - slice
+mStorageComm:
+  name: mStorageComm
+  type: map
+  dimSets:
+  - stg
+  - comm
+mStorageNew:
+  name: mStorageNew
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageSpan:
+  name: mStorageSpan
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageEac:
+  name: mStorageEac
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageFixom:
+  name: mStorageFixom
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageVarom:
+  name: mStorageVarom
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageAInp:
+  name: mStorageAInp
+  type: map
+  dimSets:
+  - stg
+  - comm
+mStorageAOut:
+  name: mStorageAOut
+  type: map
+  dimSets:
+  - stg
+  - comm
+mStorageStg2AOut:
+  name: mStorageStg2AOut
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+mStorageCinp2AOut:
+  name: mStorageCinp2AOut
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+mStorageCout2AOut:
+  name: mStorageCout2AOut
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+mStorageCap2AOut:
+  name: mStorageCap2AOut
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+mStorageNCap2AOut:
+  name: mStorageNCap2AOut
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+mStorageStg2AInp:
+  name: mStorageStg2AInp
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+mStorageCinp2AInp:
+  name: mStorageCinp2AInp
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+mStorageCout2AInp:
+  name: mStorageCout2AInp
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+mStorageCap2AInp:
+  name: mStorageCap2AInp
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+mStorageNCap2AInp:
+  name: mStorageNCap2AInp
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+mTradeIrAInp:
+  name: mTradeIrAInp
+  type: map
+  dimSets:
+  - trade
+  - comm
+mTradeIrAOut:
+  name: mTradeIrAOut
+  type: map
+  dimSets:
+  - trade
+  - comm
+mExpComm:
+  name: mExpComm
+  type: map
+  dimSets:
+  - expp
+  - comm
+mImpComm:
+  name: mImpComm
+  type: map
+  dimSets:
+  - imp
+  - comm
+mTradeComm:
+  name: mTradeComm
+  type: map
+  dimSets:
+  - trade
+  - comm
+mExportRowCost:
+  name: mExportRowCost
+  type: map
+  dimSets:
+  - expp
+  - region
+  - year
+mImportRowCost:
+  name: mImportRowCost
+  type: map
+  dimSets:
+  - imp
+  - region
+  - year
+mLECRegion:
+  name: mLECRegion
+  type: map
+  dimSets: region
+mMidMilestone:
+  name: mMidMilestone
+  type: map
+  dimSets: year
+mMilestoneHasNext:
+  name: mMilestoneHasNext
+  type: map
+  dimSets: year
+mMilestoneFirst:
+  name: mMilestoneFirst
+  type: map
+  dimSets: year
+mMilestoneLast:
+  name: mMilestoneLast
+  type: map
+  dimSets: year
+mMilestoneNext:
+  name: mMilestoneNext
+  type: map
+  dimSets:
+  - year
+  - yearp
+mTechInpTot:
+  name: mTechInpTot
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - slice
+mTechOutTot:
+  name: mTechOutTot
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - slice
+mTechOutRY:
+  name: mTechOutRY
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+mEmsFuelTot:
+  name: mEmsFuelTot
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - slice
+mTechEmsFuel:
+  name: mTechEmsFuel
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - comm
+  - region
+  - year
+  - slice
+mAggregateFactor:
+  name: mAggregateFactor
+  type: map
+  dimSets:
+  - comm
+  - comm
+mDummyImport:
+  name: mDummyImport
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - slice
+mDummyExport:
+  name: mDummyExport
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - slice
+mDummyImportCost:
+  name: mDummyImportCost
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+mDummyExportCost:
+  name: mDummyExportCost
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+mTradeIr:
+  name: mTradeIr
+  type: map
+  dimSets:
+  - trade
+  - src
+  - dst
+  - year
+  - slice
+mImportIrCost:
+  name: mImportIrCost
+  type: map
+  dimSets:
+  - trade
+  - region
+  - year
+mExportIrCost:
+  name: mExportIrCost
+  type: map
+  dimSets:
+  - trade
+  - region
+  - year
+mvTradeIrAInp:
+  name: mvTradeIrAInp
+  type: map
+  dimSets:
+  - trade
+  - comm
+  - region
+  - year
+  - slice
+mvTradeIrAOut:
+  name: mvTradeIrAOut
+  type: map
+  dimSets:
+  - trade
+  - comm
+  - region
+  - year
+  - slice
+mvTradeIrAInpTot:
+  name: mvTradeIrAInpTot
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - slice
+mvTradeIrAOutTot:
+  name: mvTradeIrAOutTot
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - slice
+mTradeIrCsrc2Ainp:
+  name: mTradeIrCsrc2Ainp
+  type: map
+  dimSets:
+  - trade
+  - comm
+  - src
+  - dst
+  - year
+  - slice
+mTradeIrCdst2Ainp:
+  name: mTradeIrCdst2Ainp
+  type: map
+  dimSets:
+  - trade
+  - comm
+  - src
+  - dst
+  - year
+  - slice
+mTradeIrCsrc2Aout:
+  name: mTradeIrCsrc2Aout
+  type: map
+  dimSets:
+  - trade
+  - comm
+  - src
+  - dst
+  - year
+  - slice
+mTradeIrCdst2Aout:
+  name: mTradeIrCdst2Aout
+  type: map
+  dimSets:
+  - trade
+  - comm
+  - src
+  - dst
+  - year
+  - slice
+mImportRow:
+  name: mImportRow
+  type: map
+  dimSets:
+  - imp
+  - comm
+  - region
+  - year
+  - slice
+mExportRow:
+  name: mExportRow
+  type: map
+  dimSets:
+  - expp
+  - comm
+  - region
+  - year
+  - slice
+mImportRowUp:
+  name: mImportRowUp
+  type: map
+  dimSets:
+  - imp
+  - comm
+  - region
+  - year
+  - slice
+mExportRowUp:
+  name: mExportRowUp
+  type: map
+  dimSets:
+  - expp
+  - comm
+  - region
+  - year
+  - slice
+mImportRowCumUp:
+  name: mImportRowCumUp
+  type: map
+  dimSets:
+  - imp
+  - comm
+mExportRowCumUp:
+  name: mExportRowCumUp
+  type: map
+  dimSets:
+  - expp
+  - comm
+mExport:
+  name: mExport
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - slice
+mImport:
+  name: mImport
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - slice
+mStorageInpTot:
+  name: mStorageInpTot
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - slice
+mStorageOutTot:
+  name: mStorageOutTot
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - slice
+mTaxCost:
+  name: mTaxCost
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+mSubCost:
+  name: mSubCost
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+mAggOut:
+  name: mAggOut
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - slice
+mSupOutTot:
+  name: mSupOutTot
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - slice
+mSupAvaUp:
+  name: mSupAvaUp
+  type: map
+  dimSets:
+  - sup
+  - comm
+  - region
+  - year
+  - slice
+mSupAva:
+  name: mSupAva
+  type: map
+  dimSets:
+  - sup
+  - comm
+  - region
+  - year
+  - slice
+mSupReserveUp:
+  name: mSupReserveUp
+  type: map
+  dimSets:
+  - sup
+  - comm
+  - region
+mTechAfUp:
+  name: mTechAfUp
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+  - slice
+mTechAfcUp:
+  name: mTechAfcUp
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - slice
+mTechOlifeInf:
+  name: mTechOlifeInf
+  type: map
+  dimSets:
+  - tech
+  - region
+mStorageOlifeInf:
+  name: mStorageOlifeInf
+  type: map
+  dimSets:
+  - stg
+  - region
+mInp2Lo:
+  name: mInp2Lo
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - slice
+mOut2Lo:
+  name: mOut2Lo
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - slice
+mTechRampUp:
+  name: mTechRampUp
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+  - slice
+  - slicep
+mTechRampDown:
+  name: mTechRampDown
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+  - slice
+  - slicep
+mTechFullYear:
+  name: mTechFullYear
+  type: map
+  dimSets: tech
+mTradeSpan:
+  name: mTradeSpan
+  type: map
+  dimSets:
+  - trade
+  - year
+mTradeNew:
+  name: mTradeNew
+  type: map
+  dimSets:
+  - trade
+  - year
+mTradeOlifeInf:
+  name: mTradeOlifeInf
+  type: map
+  dimSets: trade
+mTradeCapacityVariable:
+  name: mTradeCapacityVariable
+  type: map
+  dimSets: trade
+mTradeRoutes:
+  name: mTradeRoutes
+  type: map
+  dimSets:
+  - trade
+  - src
+  - dst
+mTradeInv:
+  name: mTradeInv
+  type: map
+  dimSets:
+  - trade
+  - region
+  - year
+mTradeEac:
+  name: mTradeEac
+  type: map
+  dimSets:
+  - trade
+  - region
+  - year
+mvSupReserve:
+  name: mvSupReserve
+  type: map
+  dimSets:
+  - sup
+  - comm
+  - region
+mvTechRetiredNewCap:
+  name: mvTechRetiredNewCap
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+  - year
+mvTechRetiredStock:
+  name: mvTechRetiredStock
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+mvTechAct:
+  name: mvTechAct
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+  - slice
+mvTechInp:
+  name: mvTechInp
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - slice
+mvTechOut:
+  name: mvTechOut
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - slice
+mvTechAInp:
+  name: mvTechAInp
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - slice
+mvTechAOut:
+  name: mvTechAOut
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - slice
+mvDemInp:
+  name: mvDemInp
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - slice
+mvBalance:
+  name: mvBalance
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - slice
+mBalanceRY:
+  name: mBalanceRY
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+mvInpTot:
+  name: mvInpTot
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - slice
+mInpTotRY:
+  name: mInpTotRY
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+mvOutTot:
+  name: mvOutTot
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - slice
+mOutTotRY:
+  name: mOutTotRY
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+mvInp2Lo:
+  name: mvInp2Lo
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - slice
+  - slice
+mvOut2Lo:
+  name: mvOut2Lo
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - slice
+  - slice
+mInpSub:
+  name: mInpSub
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - slice
+mOutSub:
+  name: mOutSub
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - slice
+mvStorageAInp:
+  name: mvStorageAInp
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+mvStorageAOut:
+  name: mvStorageAOut
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+mvStorageStore:
+  name: mvStorageStore
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+meqStorageStore:
+  name: meqStorageStore
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - slicep
+  - slice
+mvTradeIr:
+  name: mvTradeIr
+  type: map
+  dimSets:
+  - trade
+  - comm
+  - src
+  - dst
+  - year
+  - slice
+mvTradeCost:
+  name: mvTradeCost
+  type: map
+  dimSets:
+  - region
+  - year
+mvTradeRowCost:
+  name: mvTradeRowCost
+  type: map
+  dimSets:
+  - region
+  - year
+mvTotalCost:
+  name: mvTotalCost
+  type: map
+  dimSets:
+  - region
+  - year
+mvTotalUserCosts:
+  name: mvTotalUserCosts
+  type: map
+  dimSets:
+  - region
+  - year
+meqTechSng2Sng:
+  name: meqTechSng2Sng
+  type: map
+  dimSets:
+  - tech
+  - region
+  - comm
+  - comm
+  - year
+  - slice
+meqTechGrp2Sng:
+  name: meqTechGrp2Sng
+  type: map
+  dimSets:
+  - tech
+  - region
+  - group
+  - comm
+  - year
+  - slice
+meqTechSng2Grp:
+  name: meqTechSng2Grp
+  type: map
+  dimSets:
+  - tech
+  - region
+  - comm
+  - group
+  - year
+  - slice
+meqTechGrp2Grp:
+  name: meqTechGrp2Grp
+  type: map
+  dimSets:
+  - tech
+  - region
+  - group
+  - group
+  - year
+  - slice
+meqTechShareInpLo:
+  name: meqTechShareInpLo
+  type: map
+  dimSets:
+  - tech
+  - region
+  - group
+  - comm
+  - year
+  - slice
+meqTechShareInpUp:
+  name: meqTechShareInpUp
+  type: map
+  dimSets:
+  - tech
+  - region
+  - group
+  - comm
+  - year
+  - slice
+meqTechShareOutLo:
+  name: meqTechShareOutLo
+  type: map
+  dimSets:
+  - tech
+  - region
+  - group
+  - comm
+  - year
+  - slice
+meqTechShareOutUp:
+  name: meqTechShareOutUp
+  type: map
+  dimSets:
+  - tech
+  - region
+  - group
+  - comm
+  - year
+  - slice
+meqTechAfLo:
+  name: meqTechAfLo
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+  - slice
+meqTechAfUp:
+  name: meqTechAfUp
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+  - slice
+meqTechAfsLo:
+  name: meqTechAfsLo
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+  - slice
+meqTechAfsUp:
+  name: meqTechAfsUp
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+  - slice
+meqTechActSng:
+  name: meqTechActSng
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - slice
+meqTechActGrp:
+  name: meqTechActGrp
+  type: map
+  dimSets:
+  - tech
+  - group
+  - region
+  - year
+  - slice
+meqTechAfcOutLo:
+  name: meqTechAfcOutLo
+  type: map
+  dimSets:
+  - tech
+  - region
+  - comm
+  - year
+  - slice
+meqTechAfcOutUp:
+  name: meqTechAfcOutUp
+  type: map
+  dimSets:
+  - tech
+  - region
+  - comm
+  - year
+  - slice
+meqTechAfcInpLo:
+  name: meqTechAfcInpLo
+  type: map
+  dimSets:
+  - tech
+  - region
+  - comm
+  - year
+  - slice
+meqTechAfcInpUp:
+  name: meqTechAfcInpUp
+  type: map
+  dimSets:
+  - tech
+  - region
+  - comm
+  - year
+  - slice
+meqSupAvaLo:
+  name: meqSupAvaLo
+  type: map
+  dimSets:
+  - sup
+  - comm
+  - region
+  - year
+  - slice
+meqSupReserveLo:
+  name: meqSupReserveLo
+  type: map
+  dimSets:
+  - sup
+  - comm
+  - region
+meqStorageAfLo:
+  name: meqStorageAfLo
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+meqStorageAfUp:
+  name: meqStorageAfUp
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+meqStorageInpUp:
+  name: meqStorageInpUp
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+meqStorageInpLo:
+  name: meqStorageInpLo
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+meqStorageOutUp:
+  name: meqStorageOutUp
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+meqStorageOutLo:
+  name: meqStorageOutLo
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - slice
+meqTradeFlowUp:
+  name: meqTradeFlowUp
+  type: map
+  dimSets:
+  - trade
+  - comm
+  - src
+  - dst
+  - year
+  - slice
+meqTradeFlowLo:
+  name: meqTradeFlowLo
+  type: map
+  dimSets:
+  - trade
+  - comm
+  - src
+  - dst
+  - year
+  - slice
+meqExportRowLo:
+  name: meqExportRowLo
+  type: map
+  dimSets:
+  - expp
+  - comm
+  - region
+  - year
+  - slice
+meqImportRowLo:
+  name: meqImportRowLo
+  type: map
+  dimSets:
+  - imp
+  - comm
+  - region
+  - year
+  - slice
+meqTradeCapFlow:
+  name: meqTradeCapFlow
+  type: map
+  dimSets:
+  - trade
+  - comm
+  - year
+  - slice
+meqBalLo:
+  name: meqBalLo
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - slice
+meqBalUp:
+  name: meqBalUp
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - slice
+meqBalFx:
+  name: meqBalFx
+  type: map
+  dimSets:
+  - comm
+  - region
+  - year
+  - slice
+meqLECActivity:
+  name: meqLECActivity
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+mTechCapLo:
+  name: mTechCapLo
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+mTechCapUp:
+  name: mTechCapUp
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+mTechNewCapLo:
+  name: mTechNewCapLo
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+mTechNewCapUp:
+  name: mTechNewCapUp
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+mTechRetLo:
+  name: mTechRetLo
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+mTechRetUp:
+  name: mTechRetUp
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+mStorageCapLo:
+  name: mStorageCapLo
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageCapUp:
+  name: mStorageCapUp
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageNewCapLo:
+  name: mStorageNewCapLo
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageNewCapUp:
+  name: mStorageNewCapUp
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageRetLo:
+  name: mStorageRetLo
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageRetUp:
+  name: mStorageRetUp
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mTradeCapLo:
+  name: mTradeCapLo
+  type: map
+  dimSets:
+  - trade
+  - year
+mTradeCapUp:
+  name: mTradeCapUp
+  type: map
+  dimSets:
+  - trade
+  - year
+mTradeNewCapLo:
+  name: mTradeNewCapLo
+  type: map
+  dimSets:
+  - trade
+  - year
+mTradeNewCapUp:
+  name: mTradeNewCapUp
+  type: map
+  dimSets:
+  - trade
+  - year
+mTradeFixom:
+  name: mTradeFixom
+  type: map
+  dimSets:
+  - trade
+  - region
+  - year
+mTradeRetLo:
+  name: mTradeRetLo
+  type: map
+  dimSets:
+  - trade
+  - year
+mTradeRetUp:
+  name: mTradeRetUp
+  type: map
+  dimSets:
+  - trade
+  - year

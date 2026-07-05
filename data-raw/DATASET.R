@@ -129,6 +129,10 @@ yaml_to_df <- function(yaml_content) {
 # classes
 .classes <- yaml_to_df("data-raw/classes.yml") |> as.data.frame()
 
+# mapping specification (recipe-driven creation of m*/meq* mapping parameters)
+# Regenerate the skeleton with: source("data-raw/make_mapping_spec.R"); make_mapping_spec()
+.mapping_spec <- yaml::read_yaml("data-raw/mapping_spec.yml")
+
 # .set_set,
 usethis::use_data(
   .dimSets,
@@ -148,6 +152,7 @@ usethis::use_data(
   .equation_set,
   .equation_description,
   .equation_variable,
+  .mapping_spec,
   .modelCode,
   internal = T, overwrite = TRUE,
   compress = "xz"

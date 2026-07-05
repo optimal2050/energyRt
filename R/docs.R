@@ -62,11 +62,11 @@ roxygen_slots <- function(df, roxy_par = "slot") {
 #'
 #' @examples
 #' slotNames("technology")
-#' get_slot_info("technology", "input") |> cat()
-#' get_slot_info("technology", "capacity") |> cat()
-#' get_slot_info("demand", "dem") |> cat()
-#' get_slot_info("commodity", "agg") |> cat()
-get_slot_info <- function(class_name = "technology",
+#' get_slot_doc("technology", "input") |> cat()
+#' get_slot_doc("technology", "capacity") |> cat()
+#' get_slot_doc("demand", "dem") |> cat()
+#' get_slot_doc("commodity", "agg") |> cat()
+get_slot_doc <- function(class_name = "technology",
                           slot_name = "ceff",
                           col_names = TRUE
                           ) {

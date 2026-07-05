@@ -25,11 +25,21 @@ save_scenario <- function(
     path = scen@path,
     # save_model = FALSE,
     # save_modInp = TRUE,
-    format = "parquet",
+    format = get_arrow_format(),
     overwrite = TRUE,
     clean_start = FALSE,
     write_log = TRUE,
     verbose = TRUE) {
+  # On-disk STORAGE format. The Arrow exchange default is "feather", but feather
+  # datasets are neither compressible nor lazily readable via write_dataset /
+  # en_open_dataset, so any Arrow request is stored as parquet (compressed with
+  # the global arrow_compression / arrow_compression_level options). "csv" stays
+  # csv. (Exchange with the solvers still uses feather; see get_arrow_format().)
+  format <- if (tolower(format) %in% c("feather", "arrow", "ipc")) {
+    "parquet"
+  } else {
+    tolower(format)
+  }
   # identify directories
   if (is.null(path)) {
     scen@path <- fp("scenarios", scen@name)
@@ -137,7 +147,14 @@ if (F) {
 # mem_to_disk
 # disk2mem
 
-data2disk <- function(obj, path = NULL, format = "parquet", verbose = FALSE) {
+data2disk <- function(
+    obj,
+    path = NULL,
+    # format = "parquet",
+    format = "csv",
+    compression = get_arrow_compression(),
+    compression_level = get_arrow_compression_level(),
+    verbose = FALSE) {
   # saves certain type of data to disk, returns TRUE if saved, FALSE if not
   if (is.null(path)) path <- getObjPath(obj)
   stopifnot(!is.null(path))
@@ -151,7 +168,15 @@ data2disk <- function(obj, path = NULL, format = "parquet", verbose = FALSE) {
     # if (verbose) cat(path, format, "\n")
     if (anyDuplicatedSets(obj)) obj <- rename_duplicated_sets(obj)
     dir.create(path, recursive = TRUE, showWarnings = FALSE)
-    arrow::write_dataset(obj, path = path, format = format)
+    # Parquet supports compression (zstd/lz4 + level); csv/feather datasets do not
+    # take a compression arg in write_dataset.
+    if (format == "parquet" && !identical(tolower(compression), "uncompressed")) {
+      arrow::write_dataset(obj, path = path, format = "parquet",
+                           compression = compression,
+                           compression_level = as.integer(compression_level))
+    } else {
+      arrow::write_dataset(obj, path = path, format = format)
+    }
     # write(format, file = fp(path, "format"), append = FALSE)
     # write(obj_class, file = fp(path, "class"), append = FALSE)
     return(invisible(TRUE))
@@ -175,7 +200,8 @@ data2disk <- function(obj, path = NULL, format = "parquet", verbose = FALSE) {
 obj2disk <- function(
     obj,
     path = NULL,
-    format = "parquet",
+    # format = "parquet",
+    format = "csv",
     save_not_S4 = FALSE,
     force_save = FALSE,
     verbose = FALSE,
@@ -192,8 +218,11 @@ obj2disk <- function(
   # if (inherits(obj, "modOut")) browser()
   # if (inherits(obj, "weather")) browser()
   if (isOnDisk(obj)) {
-    stopifnot(dir.exists(path))
-    return(obj)
+    # stopifnot(dir.exists(path))
+    # return(obj)
+    if (!dir.exists(path)) {
+      dir.create(path, recursive = TRUE, showWarnings = FALSE)
+    }
   }
   isSaved <- FALSE
   if (isS4(obj)) {
@@ -257,7 +286,7 @@ obj2disk <- function(
             } else {
               save_i <- obj@misc$onDisk[[s]][[i]]$length > 0
             }
-            if (save_i) {
+            if (isTRUE(save_i)) {
               xs <- data2disk(
                 # !!! check why not all data.frames are data.tables
                 obj = as.data.table(slot(obj, s)[[i]]),
@@ -283,7 +312,7 @@ obj2disk <- function(
         } else {
           save_i <- obj@misc$onDisk[[s]]$length > 0
         }
-        if (save_i) {
+        if (isTRUE(save_i)) {
           xs <- data2disk(
             obj = slot(obj, s),
             path = fp(path, s),
@@ -511,9 +540,13 @@ if (F) {
   getObjPath(scen@model)
 }
 
-get_lazy_data <- function(obj, slot = NULL, element = NULL,
+get_lazy_data <- function(obj,
+                          slot = NULL, element = NULL,
                           InMemory = isInMemory(obj),
-                          path = NULL) {
+                          path = NULL,
+                          collect_data = TRUE,
+                          default = NULL
+                          ) {
   # browser()
   # check if the object is "inMemory"
   if (InMemory) {
@@ -537,8 +570,15 @@ get_lazy_data <- function(obj, slot = NULL, element = NULL,
   if (file.exists(path) || dir.exists(path)) path <- normalizePath(path)
   qu <- try(en_open_dataset(path), silent = TRUE)
   if (inherits(qu, "try-error")) {
-    return(NULL)
+    ff <- list.files(path)
+    if (length(ff) == 0) return(NULL)
+    stop("Cannot open dataset: ", path, "\n",
+        "Files: ", paste(ff, collapse = ", "))
   }
+  if (collect_data) {
+    qu <- collect(qu)
+  }
+  if (is.null(qu)) {return(default)}
   return(qu)
 }
 
@@ -737,6 +777,7 @@ load_scenario <- function(
     overwrite = FALSE,
     ignore_errors = FALSE,
     verbose = TRUE) {
+  # browser()
   if (!file.exists(path) & !dir.exists(path)) {
     msg <- paste0("File or directory '", path, "' does not exist")
     if (!ignore_errors) stop(msg)
@@ -778,19 +819,31 @@ load_scenario <- function(
     return(invisible(FALSE))
   }
   if (is.null(name)) name <- get(nm, envir = .en_tmp)@name
-  if (exists(name, envir = .scen) & !overwrite) {
+  if (is.null(env)) {
+    scen <- get(nm, envir = .en_tmp)
+    return(scen)
+  }
+  if (exists(name, envir = env) & !overwrite) {
     msg <- paste0(
       "Scenario '", name,
-      "' already exists in '.scen' environment. \n",
+      "' already exists in 'env' environment. \n",
       "Use 'overwrite = TRUE' or different name"
     )
     if (!ignore_errors) stop(msg)
     if (verbose) message(msg)
     return(invisible(FALSE))
   }
-  assign(name, get(nm, envir = .en_tmp), envir = .scen)
-  assign(nm, NULL, envir = .en_tmp)
-  return(invisible(TRUE))
+  if (!exists(name, envir = env) | overwrite) {
+    assign(name, get(nm, envir = .en_tmp), envir = env)
+    assign(nm, NULL, envir = .en_tmp)
+    return(invisible(TRUE))
+  }
+  # assign(name, get(nm, envir = .en_tmp), envir = env)
+  # assign(nm, NULL, envir = .en_tmp)
+  # return(invisible(TRUE))
+  # return(get(name, envir = env))
+  # return(nm)
+  return(invisible(FALSE))
 }
 
 ## - DRAFTS -------------------------------------------------------####

@@ -7,8 +7,8 @@
 # helpers `.set_calendar_map`, `.comm_slice_df`, `.process_slice_df`,
 # `.proc_slice_for`, `merge0` from mapping_engine.R.
 #
-# Three calendar-tagged maps (mWeatherSlice, mStorageFullYear, mTechFullYear) are
-# built in later recipes (filter/constraint), not here.
+# mStorageFullYear / mTechFullYear (object `@fullYear` flag) are built here; the
+# remaining calendar-tagged map mWeatherSlice is emitted with the weather object.
 # =========================================================================== #
 
 # write only when the builder yields a non-empty frame (matches recipe_calendar).
@@ -50,6 +50,16 @@ map_mSliceParentChild <- function(scen, fmp) {
 }
 
 map_mSliceParentChildE <- function(scen, fmp) .set_cal(scen, "mSliceParentChildE", .cal_spce(scen), fmp)
+
+# Immediate parent->child (one level), from @slice_family (not the transitive
+# @slice_ancestry). Drives the up-aggregation of commodity totals between adjacent
+# levels (agg-rewrite: replaces *2Lo down-disaggregation).
+map_mSliceFamily <- function(scen, fmp) {
+  df <- dplyr::as_tibble(scen@settings@calendar@slice_family) |>
+    dplyr::transmute(slice = as.character(.data$parent),
+                     slicep = as.character(.data$child))
+  .set_cal(scen, "mSliceFamily", df, fmp)
+}
 
 # Commodity slice-or-parent aggregation map: for each commodity, maps any
 # finer-or-equal slice (`slicep`) up to the commodity's own slice level (`slice`).
@@ -114,8 +124,56 @@ map_mSameRegion <- function(scen, fmp) {
   .set_cal(scen, "mSameRegion", dplyr::tibble(region = r, regionp = r), fmp)
 }
 
+# mTechFullYear / mStorageFullYear: the (tech) / (stg) of objects flagged
+# `@fullYear` (operate over the whole year rather than per-slice). Faithful port
+# of the legacy .obj2modInp blocks (obj2modInp.R:2645 / :750).
+.full_year_map <- function(scen, cls, key, name, fmp) {
+  res <- apply_to_scenario_data(
+    scen = scen, classes = cls, as_list = TRUE,
+    func = function(x) {
+      if (!isTRUE(x@fullYear)) return(NULL)
+      o <- list(); o[[x@name]] <- stats::setNames(
+        data.frame(x@name, stringsAsFactors = FALSE), key)
+      o
+    })
+  df <- dplyr::distinct(dplyr::bind_rows(res))
+  if (is.null(df) || nrow(df) == 0) return(scen)
+  scen@modInp@parameters[[name]] <-
+    d2p(scen@modInp@parameters[[name]], df, fmp(name))
+  scen
+}
+map_mTechFullYear    <- function(scen, fmp) .full_year_map(scen, "technology", "tech", "mTechFullYear", fmp)
+map_mStorageFullYear <- function(scen, fmp) .full_year_map(scen, "storage",    "stg",  "mStorageFullYear", fmp)
+
+# mWeatherSlice: (weather, slice) over every LEAF slice (finest resolution; the
+# slices that are never a parent in mSliceParentChild), for each weather object.
+# Faithful port of the legacy weather .obj2modInp block (obj2modInp.R:166), whose
+# `approxim$slice` is the leaf set. Registered LAST in the calendar family so
+# mSliceParentChild is already built.
+map_mWeatherSlice <- function(scen, fmp) {
+  spc <- .gds(scen, "mSliceParentChild")
+  if (is.null(spc)) return(scen)
+  parents <- unique(spc$slice[spc$slice != spc$slicep])
+  leaves  <- setdiff(unique(c(spc$slice, spc$slicep)), parents)
+  if (length(leaves) == 0) return(scen)
+  res <- apply_to_scenario_data(
+    scen = scen, classes = "weather", as_list = TRUE,
+    func = function(x) {
+      o <- list(); o[[x@name]] <- data.frame(weather = x@name, slice = leaves,
+                                             stringsAsFactors = FALSE)
+      o
+    })
+  df <- dplyr::distinct(dplyr::bind_rows(res))
+  if (is.null(df) || nrow(df) == 0) return(scen)
+  scen@modInp@parameters[["mWeatherSlice"]] <-
+    d2p(scen@modInp@parameters[["mWeatherSlice"]], df, fmp("mWeatherSlice"))
+  scen
+}
+
 # -- registry for the calendar family -------------------------------------- #
 .calendar_builders <- list(
+  mTechFullYear      = map_mTechFullYear,
+  mStorageFullYear   = map_mStorageFullYear,
   mCommSlice         = map_mCommSlice,
   mTechSlice         = map_mTechSlice,
   mSupSlice          = map_mSupSlice,
@@ -124,6 +182,7 @@ map_mSameRegion <- function(scen, fmp) {
   mExpSlice          = map_mExpSlice,
   mSliceParentChild  = map_mSliceParentChild,
   mSliceParentChildE = map_mSliceParentChildE,
+  mSliceFamily       = map_mSliceFamily,
   mCommSliceOrParent = map_mCommSliceOrParent,
   mSliceNext         = map_mSliceNext,
   mSliceFYearNext    = map_mSliceFYearNext,
@@ -133,5 +192,6 @@ map_mSameRegion <- function(scen, fmp) {
   mMilestoneNext     = map_mMilestoneNext,
   mMilestoneHasNext  = map_mMilestoneHasNext,
   mSameSlice         = map_mSameSlice,
-  mSameRegion        = map_mSameRegion
+  mSameRegion        = map_mSameRegion,
+  mWeatherSlice      = map_mWeatherSlice   # last: needs mSliceParentChild above
 )

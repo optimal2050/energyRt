@@ -104,6 +104,7 @@ mImpSlice(imp, slice)              Import to slice
 mDiscountZero(region)
 mSliceParentChildE(slice, slice)   Child slice or the same
 mSliceParentChild(slice, slice)    Child slice not the same
+mSliceFamily(slice, slice)         Immediate slice parent-child (one level) [agg-rewrite]
 *
 mTradeRoutes(trade, region, region)
 mTradeSpan(trade, year)
@@ -196,6 +197,7 @@ pAggregateFactor(comm, comm)                        Aggregation factor of commod
 pPeriodLen(year)        Length of milestone-year-period
 pSliceShare(slice)      Slice share in year
 pSliceWeight(year, slice)     Slice weight
+pSliceAgg(year, slice, slice)   Intensive slice aggregation weight (parent from child) [agg-rewrite]
 ordYear(year)           ord year (used in GLPK-MathProg)
 cardYear(year)          card year (used in GLPK-MathProg)
 ;
@@ -329,20 +331,12 @@ mvTechAct(tech, region, year, slice)
 mvTechInp(tech, comm, region, year, slice)
 mvTechInpCommSameSlice(tech, comm, region, year, slice)
 mvTechOut(tech, comm, region, year, slice)
-mTechOutRY(tech, comm, region, year)
 mvTechAInp(tech, comm, region, year, slice)
 mvTechAOut(tech, comm, region, year, slice)
 mvDemInp(comm, region, year, slice)
 mvBalance(comm, region, year, slice)
-mBalanceRY(comm, region, year)
 mvInpTot(comm, region, year, slice)
-mInpTotRY(comm, region, year)
 mvOutTot(comm, region, year, slice)
-mOutTotRY(comm, region, year)
-mvInp2Lo(comm, region, year, slice, slice)
-mvOut2Lo(comm, region, year, slice, slice)
-mInpSub(comm, region, year, slice)
-mOutSub(comm, region, year, slice)
 
 mTechCapLo(tech, region, year)
 mTechCapUp(tech, region, year)
@@ -415,8 +409,6 @@ vTechAct(tech, region, year, slice)                  Activity level of technolog
 vTechInp(tech, comm, region, year, slice)            Input level
 *@ mvTechOut(tech, comm, region, year, slice)
 vTechOut(tech, comm, region, year, slice)            Commodity output from technology - tech timeframe
-*@ mTechOutRY(tech, comm, region, year)
-vTechOutRY(tech, comm, region, year)            Commodity output from technology - tech timeframe
 * Auxiliary input & output
 *@ mvTechAInp(tech, comm, region, year, slice)
 vTechAInp(tech, comm, region, year, slice)           Auxiliary commodity input
@@ -462,22 +454,17 @@ variables
 * Ballance
 *@ mvBalance(comm, region, year, slice)
 vBalance(comm, region, year, slice)                  Net commodity balance (all sources)
-*@ mBalanceRY(comm, region, year)
-vBalanceRY(comm, region, year)                     Net commodity balance by region and year (weighted)
 ;
 positive variables
 *@ mvOutTot(comm, region, year, slice)
 vOutTot(comm, region, year, slice)                   Total commodity output (all processes) (weighted)
-*@ mOutTotRY(comm, region, year)
-vOutTotRY(comm, region, year)                   Total commodity output (all processes) (weighted)
 *@ mvInpTot(comm, region, year, slice)
 vInpTot(comm, region, year, slice)                   Total commodity input (all processes) (weighted)
-*@ mInpTotRY(comm, region, year)
-vInpTotRY(comm, region, year)                   Total commodity input (all processes) (weighted)
+* [agg-rewrite] vInp2Lo/vOut2Lo retired (up-aggregation in eqInpTot/eqOutTot)
 *@ mvInp2Lo(comm, region, year, slice, slice)
-vInp2Lo(comm, region, year, slice, slice)            Desagregation of slices for input parent to (grand)child
+* vInp2Lo(comm, region, year, slice, slice)            Desagregation of slices for input parent to (grand)child
 *@ mvOut2Lo(comm, region, year, slice, slice)
-vOut2Lo(comm, region, year, slice, slice)            Desagregation of slices for output parent to (grand)child
+* vOut2Lo(comm, region, year, slice, slice)            Desagregation of slices for output parent to (grand)child
 *@ mSupOutTot(comm, region, year, slice)
 vSupOutTot(comm, region, year, slice)                Total commodity supply (weighted)
 *@ mTechInpTot(comm, region, year, slice)
@@ -662,8 +649,6 @@ mTechAfcUp(tech, comm, region, year, slice)
 mSupAvaUp(sup, comm, region, year, slice)
 mSupAva(sup, comm, region, year, slice)
 mSupReserveUp(sup, comm, region)
-mOut2Lo(comm, region, year, slice)
-mInp2Lo(comm, region, year, slice)
 ;
 
 sets
@@ -737,12 +722,13 @@ eqTechGrp2Grp(tech, region, group, groupp, year, slice)    Technology group inpu
 ;
 
 eqTechSng2Sng(tech, region, comm, commp, year, slice)$meqTechSng2Sng(tech, region, comm, commp, year, slice)..
-   vTechInp(tech, comm, region, year, slice) *
-   pTechCinp2use(tech, comm, region, year, slice)
+  vTechOut(tech, commp, region, year, slice)
    =e=
-   vTechOut(tech, commp, region, year, slice) /
-           pTechUse2cact(tech, commp, region, year, slice) /
-           pTechCact2cout(tech, commp, region, year, slice);
+   pTechCinp2use(tech, comm, region, year, slice)
+   * pTechUse2cact(tech, commp, region, year, slice)
+   * pTechCact2cout(tech, commp, region, year, slice)
+   * vTechInp(tech, comm, region, year, slice)
+;
 
 eqTechGrp2Sng(tech, region, group, commp, year, slice)$meqTechGrp2Sng(tech, region, group, commp, year, slice)..
    pTechGinp2use(tech, group, region, year, slice) *
@@ -1147,8 +1133,10 @@ eqTechRetCost(tech, region, year)$mTechRetCost(tech, region, year)..
               );
 
 * Technology Equivalent Annual Cost (EAC)
+* [eac-fix] vintaged new-capacity form active (pTechEac applies to NEW capacity only)
 eqTechEac(tech, region, year)$mTechEac(tech, region, year)..
          vTechEac(tech, region, year)
+* rewritten to include EAC for existing capacity
          =e=
          sum(yearp$(mTechNew(tech, region, yearp)
                     and
@@ -1170,6 +1158,15 @@ eqTechEac(tech, region, year)$mTechEac(tech, region, year)..
                        )
                 )
               );
+$ontext
+* [eac-fix] simplified "EAC for existing capacity" form disabled:
+eqTechEac(tech, region, year)$mTechSpan(tech, region, year)..
+         vTechEac(tech, region, year)
+* rewritten to include EAC for existing capacity
+         =e=
+         pTechEac(tech, region, year) * vTechCap(tech, region, year)
+;
+$offtext
 
 * Investment equation
 eqTechInv(tech, region, year)$mTechInv(tech, region, year)..
@@ -1564,6 +1561,7 @@ eqStorageInv(stg, region, year)$mStorageNew(stg, region, year)..
          vStorageNewCap(stg, region, year);
 
 * EAC equation
+* [eac-fix] vintaged new-capacity form active (pStorageEac applies to NEW capacity only)
 eqStorageEac(stg, region, year)$mStorageEac(stg, region, year)..
          vStorageEac(stg, region, year)
          =e=
@@ -1579,6 +1577,14 @@ eqStorageEac(stg, region, year)$mStorageEac(stg, region, year)..
 *            * pPeriodLen(yearp)
             * vStorageNewCap(stg, region, yearp)
          );
+$ontext
+* [eac-fix] simplified "EAC for existing capacity" form disabled:
+eqStorageEac(stg, region, year)$mStorageEac(stg, region, year)..
+         vStorageEac(stg, region, year)
+         =e=
+         pStorageEac(stg, region, year) * vStorageCap(stg, region, year);
+$offtext
+
 
 $ontext
 * Fixed and Variable O&M costs
@@ -1968,12 +1974,21 @@ eqTradeInv(trade, region, year)$mTradeInv(trade, region, year)..
                   pTradeInvcost(trade, region, year) * vTradeNewCap(trade, year);
 
 * EAC equation
+* [eac-fix] vintaged new-capacity form active (pTradeEac applies to NEW capacity only)
 eqTradeEac(trade, region, year)$mTradeEac(trade, region, year)..
          vTradeEac(trade, region, year)
          =e=
          sum(yearp$(mTradeNew(trade, yearp) and  ordYear(year) >= ordYear(yearp) and
             (ordYear(year) < pTradeOlife(trade) + ordYear(yearp) or mTradeOlifeInf(trade))),
                 pTradeEac(trade, region, yearp) * vTradeNewCap(trade, yearp));
+$ontext
+* [eac-fix] simplified "EAC for existing capacity" form disabled:
+eqTradeEac(trade, region, year)$mTradeEac(trade, region, year)..
+         vTradeEac(trade, region, year)
+         =e=
+         pTradeEac(trade, region, year) * vTradeCap(trade, year);
+$offtext
+
 
 * Fixed O&M costs
 eqTradeFixom(trade, region, year)$mTradeFixom(trade, region, year)..
@@ -2051,17 +2066,14 @@ eqBalUp(comm, region, year, slice)   Commodity balance <= 0 (e.g. upper limit - 
 eqBalLo(comm, region, year, slice)   Commodity balance >= 0 (e.g. lower limit - excess is allower)
 eqBalFx(comm, region, year, slice)   Commodity balance >= 0 (no excess nor deficit is allowed)
 eqBal(comm, region, year, slice)     Commodity balance
-eqBalanceRY(comm, region, year)
 eqOutTot(comm, region, year, slice)     Total commodity output
-eqOutTotRY(comm, region, year)     Total commodity output
 eqInpTot(comm, region, year, slice)     Total commodity input
-eqInpTotRY(comm, region, year)     Total commodity input
-eqInp2Lo(comm, region, year, slice)         From commodity slice to lo level
-eqOut2Lo(comm, region, year, slice)         From commodity slice to lo level
+* [agg-rewrite] eqInp2Lo/eqOut2Lo retired (up-aggregation in eqInpTot/eqOutTot)
+* eqInp2Lo(comm, region, year, slice)         From commodity slice to lo level
+* eqOut2Lo(comm, region, year, slice)         From commodity slice to lo level
 eqSupOutTot(comm, region, year, slice)      Supply total output
 eqTechInpTot(comm, region, year, slice)     Technology total input
 eqTechOutTot(comm, region, year, slice)     Technology total output
-eqTechOutRY(tech, comm, region, year)     Technology total output (year)
 eqStorageInpTot(comm, region, year, slice)  Storage total input
 eqStorageOutTot(comm, region, year, slice)  Storage total output
 ;
@@ -2083,13 +2095,7 @@ eqBal(comm, region, year, slice)$mvBalance(comm, region, year, slice)..
   -
   vInpTot(comm, region, year, slice)$mvInpTot(comm, region, year, slice);
 
-eqBalanceRY(comm, region, year)$mBalanceRY(comm, region, year)..
-  vBalanceRY(comm, region, year)
-  =e=
-  sum(slice$mvBalance(comm, region, year, slice),
-        pSliceWeight(year, slice)
-        * vBalance(comm, region, year, slice)$mvBalance(comm, region, year, slice)
-    );
+* [agg-rewrite] eqBalanceRY/vBalanceRY retired (dead reporting)
 
 eqOutTot(comm, region, year, slice)$mvOutTot(comm, region, year, slice)..
          vOutTot(comm, region, year, slice)
@@ -2102,21 +2108,18 @@ eqOutTot(comm, region, year, slice)$mvOutTot(comm, region, year, slice)..
          + vStorageOutTot(comm, region, year, slice)$mStorageOutTot(comm, region, year, slice)
          + vImportTot(comm, region, year, slice)$mImport(comm, region, year, slice)
          + vTradeIrAOutTot(comm, region, year, slice)$mvTradeIrAOutTot(comm, region, year, slice)
-         + sum(slicep$(mSliceParentChild(slicep, slice)
+* [agg-rewrite] UP-aggregation of immediately-finer children (replaces mOutSub/vOut2Lo)
+         + sum(slicep$(mSliceFamily(slice, slicep)
                and
-               mvOut2Lo(comm, region, year, slicep, slice)
+               mvOutTot(comm, region, year, slicep)
               ),
-              vOut2Lo(comm, region, year, slicep, slice)
-           )$mOutSub(comm, region, year, slice);
+              pSliceAgg(year, slice, slicep) * vOutTot(comm, region, year, slicep)
+           );
 
-eqOutTotRY(comm, region, year)$mOutTotRY(comm, region, year)..
-  vOutTotRY(comm, region, year)
-  =e=
-  sum(slice$mvOutTot(comm, region, year, slice),
-      pSliceWeight(year, slice) *
-      vOutTot(comm, region, year, slice)$mvOutTot(comm, region, year, slice)
-      );
+* [agg-rewrite] eqOutTotRY/vOutTotRY retired (dead reporting)
 
+* [agg-rewrite] eqOut2Lo removed (up-aggregation in eqOutTot; vOut2Lo retired)
+$ontext
 eqOut2Lo(comm, region, year, slice)$mOut2Lo(comm, region, year, slice)..
          sum(slicep$mvOut2Lo(comm, region, year, slice, slicep),
              vOut2Lo(comm, region, year, slice, slicep))
@@ -2128,6 +2131,7 @@ eqOut2Lo(comm, region, year, slice)$mOut2Lo(comm, region, year, slice)..
          + vStorageOutTot(comm, region, year, slice)$mStorageOutTot(comm, region, year, slice)
          + vImportTot(comm, region, year, slice)$mImport(comm, region, year, slice)
          + vTradeIrAOutTot(comm, region, year, slice)$mvTradeIrAOutTot(comm, region, year, slice);
+$offtext
 
 eqInpTot(comm, region, year, slice)$mvInpTot(comm, region, year, slice)..
         vInpTot(comm, region, year, slice)
@@ -2138,21 +2142,18 @@ eqInpTot(comm, region, year, slice)$mvInpTot(comm, region, year, slice)..
         + vStorageInpTot(comm, region, year, slice)$mStorageInpTot(comm, region, year, slice)
         + vExportTot(comm, region, year, slice)$mExport(comm, region, year, slice)
         + vTradeIrAInpTot(comm, region, year, slice)$mvTradeIrAInpTot(comm, region, year, slice)
-        + sum(slicep$(mSliceParentChild(slicep, slice)
+* [agg-rewrite] UP-aggregation of immediately-finer children (replaces mInpSub/vInp2Lo)
+        + sum(slicep$(mSliceFamily(slice, slicep)
                     and
-                    mvInp2Lo(comm, region, year, slicep, slice)
+                    mvInpTot(comm, region, year, slicep)
             ),
-            vInp2Lo(comm, region, year, slicep, slice)
-        )$mInpSub(comm, region, year, slice);
-
-eqInpTotRY(comm, region, year)$mInpTotRY(comm, region, year)..
-        vInpTotRY(comm, region, year)
-        =e=
-        sum(slice$mvInpTot(comm, region, year, slice),
-            pSliceWeight(year, slice) *
-            vInpTot(comm, region, year, slice)$mvInpTot(comm, region, year, slice)
+            pSliceAgg(year, slice, slicep) * vInpTot(comm, region, year, slicep)
         );
 
+* [agg-rewrite] eqInpTotRY/vInpTotRY retired (dead reporting)
+
+* [agg-rewrite] eqInp2Lo removed (up-aggregation in eqInpTot; vInp2Lo retired)
+$ontext
 eqInp2Lo(comm, region, year, slice)$mInp2Lo(comm, region, year, slice)..
         sum(slicep$mvInp2Lo(comm, region, year, slice, slicep),
             vInp2Lo(comm, region, year, slice, slicep)
@@ -2162,6 +2163,7 @@ eqInp2Lo(comm, region, year, slice)$mInp2Lo(comm, region, year, slice)..
         + vStorageInpTot(comm, region, year, slice)$mStorageInpTot(comm, region, year, slice)
         + vExportTot(comm, region, year, slice)$mExport(comm, region, year, slice)
         + vTradeIrAInpTot(comm, region, year, slice)$mvTradeIrAInpTot(comm, region, year, slice);
+$offtext
 
 eqSupOutTot(comm, region, year, slice)$mSupOutTot(comm, region, year, slice)..
           vSupOutTot(comm, region, year, slice)
@@ -2233,13 +2235,7 @@ eqTechOutTot(comm, region, year, slice)$mTechOutTot(comm, region, year, slice)..
             )
         );
 
-eqTechOutRY(tech, comm, region, year)$mTechOutRY(tech, comm, region, year)..
-        vTechOutRY(tech, comm, region, year)
-        =e=
-        sum(slice$mTechOutTot(comm, region, year, slice),
-            pSliceWeight(year, slice) *
-            vTechOut(tech, comm, region, year, slice)$mvTechOut(tech, comm, region, year, slice)
-        );
+* [agg-rewrite] eqTechOutRY/vTechOutRY retired (dead reporting)
 
 eqStorageInpTot(comm, region, year, slice)$mStorageInpTot(comm, region, year, slice)..
         vStorageInpTot(comm, region, year, slice)

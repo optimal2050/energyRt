@@ -582,7 +582,14 @@
     }
     stnd <- stnd[!(stnd %in% mtp@misc$not_need_interpolate)]
     # dd <- cbind(d3, dd[, c(stnd, "type", "value"), drop = FALSE])
-    dd <- cbind(d3, select(dd, all_of(c(stnd, "type", "value"))))
+    dd <- try({
+      cbind(d3, select(dd, all_of(c(stnd, "type", "value"))))
+    }, silent = TRUE)
+    if (inherits(dd, "try-error")) { #!!! Debug
+      browser()
+    }
+
+
   }
   dd <- dd[(dd$type == "lo") | (dd$type == "up"), , drop = FALSE]
   if (!is.null(remove_duplicate) && nrow(dd) != 0) {

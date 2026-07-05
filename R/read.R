@@ -9,7 +9,7 @@
 #' The function returns the scenario object with populated modOut slot
 #' from the solved model directory.
 #' @export
-#' @seealso [solve()] to run the script, solve the scenario. [write_sc()] to read
+#' @seealso [solve()] to run the script, solve the scenario. [write_sc()] to write model inputs.
 #'
 #' @rdname read
 #' @examples
@@ -91,11 +91,16 @@ read_solution <- function(obj, ...) {
     # .check_load_gdxlib()
     .check_load_gdxtools()
     # Read variables gdx
+    # browser()
     gd <- gdxtools::gdx(paste(arg$tmp.dir, "/output/output.gdx", sep = ""))
     for (i in c(vrb_list, vrb_list2)) {
       # cat(i, "\n")
-      # if (i == "vTradeIr") browser() # debug
-      vr <- gd[i]
+      # if (i == "vOutTot") browser() # debug
+      vr <- try(gd[i])
+      if (inherits(vr, "try-error")) {
+        message(paste0("Error reading ", i, " from output.gdx"))
+        next
+      }
       if (is.null(vr)) next
       if (length(grep("region", colnames(vr))) == 2) {
         colnames(vr)[grep("region", colnames(vr))] <- c("src", "dst")
@@ -128,14 +133,20 @@ read_solution <- function(obj, ...) {
       }
     }
   } else {
-    # Read variables csv
+    # Read variables from CSV or Arrow (feather/parquet) per import_format. The
+    # solver writes one file per variable to `output/`; the per-variable post-
+    # processing (column de-suffixing + factor levels) is shared across formats.
+    .imf <- tolower(scen@settings@solver$import_format)
+    .arrow_imp <- .imf %in% c("feather", "ipc", "arrow", "parquet")
+    .ext <- if (.imf == "parquet") ".parquet" else if (.arrow_imp) ".arrow" else ".csv"
     for (i in c(vrb_list, vrb_list2)) {
-      vr <- arg$readOutputFunction(
-        paste(arg$tmp.dir, "/output/", i, ".csv",
-          sep = ""
-        ),
-        stringsAsFactors = FALSE
-      )
+      vfile <- paste(arg$tmp.dir, "/output/", i, .ext, sep = "")
+      if (.arrow_imp) {
+        if (!file.exists(vfile)) next # variable with no non-zero values
+        vr <- .read_exchange_table(vfile)
+      } else {
+        vr <- arg$readOutputFunction(vfile, stringsAsFactors = FALSE)
+      }
       if (ncol(vr) == 1) {
         rr$variables[[i]] <- data.frame(value = vr[1, 1])
       } else {

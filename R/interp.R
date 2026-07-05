@@ -1,10 +1,36 @@
 # New interpolation functions for model objects
 
-interp_mod <- function(mod, name = NULL, desc = NULL,
-                       ondisk = TRUE, ..., overwrite = FALSE,
-                       fold = TRUE, drop_default = FALSE,
-                       validate = TRUE) {
+interp_mod <- function(mod, name = NULL, ...,
+                       desc = NULL, ondisk = TRUE, overwrite = FALSE,
+                       fold = TRUE, sparse = TRUE, prune = TRUE,
+                       validate = TRUE, code = NULL,
+                       verbose = getOption("energyRt.verbose", FALSE)) {
+  # `...` (after `mod`/`name`) accepts ANY energyRt objects -- settings, config,
+  # calendar, horizon, whole repositories, or individual model "bricks"
+  # (technology/commodity/...) -- and folds them into the model BEFORE the
+  # mapping pipeline runs, reproducing the legacy `interpolate_model(object,...)`
+  # interface. All controls (desc, ondisk, overwrite, fold, sparse, prune,
+  # validate, code, verbose) live AFTER `...` and must therefore be named.
+  # `code`: optional override of solver source-code blocks, so a model-script
+  # version can be supplied at interpolation time WITHOUT rebuilding sysdata
+  # (handy to A/B test template versions). A named list mapping a block name
+  # (GLPK, GAMS, JuMP, PYOMOConcrete, ...) to either a script-file path or a
+  # character vector of lines. See the override applied after `.modelCode` below.
   # mod - model
+  # `sparse` is the single storage knob: TRUE drops `value==defVal` rows (and
+  # folds); FALSE materialises defVal over each parameter's domain (and unfolds).
+  # `drop_default` is the internal strip-component of `sparse`, not user-facing.
+  # Upgrade any constraint summands serialized before the `timeframe` slot so
+  # legacy models interpolate without a "no slot of name timeframe" error.
+  mod <- .upgrade_model_summands(mod)
+
+  drop_default <- isTRUE(sparse)
+  # `fold` selects which dimensions to whole-column fold: TRUE -> region + slice
+  # (default), FALSE -> none, or a character vector of foldable dims (region,
+  # slice, year, comm, tech, stg, trade).
+  fold_dims <- if (isTRUE(fold)) c("region", "slice")
+    else if (is.null(fold) || isFALSE(fold)) character(0)
+    else intersect(as.character(fold), .foldable_dims)
   scen <- new("scenario")
 
   # scenario name
@@ -15,7 +41,8 @@ interp_mod <- function(mod, name = NULL, desc = NULL,
   scen@name <- name
 
   if (!is.null(desc)) {
-    scen@description <- desc
+    # scen@description <- desc
+    # scen@desc <- desc
   }
 
   # !!! ... process arguments, add settings, ...
@@ -56,6 +83,7 @@ interp_mod <- function(mod, name = NULL, desc = NULL,
     scen <- mark_inMemory(scen)
     mi_path <- NULL
   }
+  .interp_banner(scen, sparse, prune, fold_dims, validate, ondisk, verbose)
   # isOnDisk(scen)
   # Parameter path resolver. In-memory scenarios (`ondisk = FALSE`, `mi_path`
   # NULL) must return NULL so `d2p` keeps parameters in memory rather than
@@ -106,7 +134,16 @@ interp_mod <- function(mod, name = NULL, desc = NULL,
   # import settings from mod@config
   scen@settings <- .config_to_settings(scen@model@config, scen@settings)
 
-  # Update settings from args if supplied
+  # config object -> settings (legacy parity)
+  ii <- vapply(args, function(x) inherits(x, "config"), logical(1))
+  if (sum(ii) > 1) {
+    stop("Only one config object is allowed in the arguments")
+  } else if (sum(ii) == 1) {
+    scen@settings <- .config_to_settings(args[[which(ii)]], scen@settings)
+    args <- args[!ii]
+  }
+
+  # settings object (overrides config-derived settings)
   ii <- vapply(args, function(x) inherits(x, "settings"), logical(1))
   if (sum(ii) > 1) {
     stop("Only one settings object is allowed in the arguments")
@@ -115,37 +152,70 @@ interp_mod <- function(mod, name = NULL, desc = NULL,
     args <- args[!ii]
   }
 
-  # Update calendar from args
+  # calendar object -> settings@calendar (correct slot; the pipeline reads
+  # scen@settings@calendar@slice_share below)
   ii <- vapply(args, function(x) inherits(x, "calendar"), logical(1))
   if (sum(ii) > 1) {
     stop("Only one calendar object is allowed in the arguments")
   } else if (sum(ii) == 1) {
-    scen@calendar <- args[[which(ii)]]
+    scen@settings@calendar <- args[[which(ii)]]
     args <- args[!ii]
   }
 
-  # Update horizon from args
+  # horizon object -> settings@horizon (via setHorizon; the pipeline reads
+  # scen@settings@horizon@intervals below)
   ii <- vapply(args, function(x) inherits(x, "horizon"), logical(1))
   if (sum(ii) > 1) {
     stop("Only one horizon object is allowed in the arguments")
   } else if (sum(ii) == 1) {
-    scen@horizon <- args[[which(ii)]]
+    scen <- setHorizon(scen, args[[which(ii)]])
     args <- args[!ii]
   }
 
-  # update individual settings from args
-  # !!!
+  # whole repositories -> added to the model
+  ii <- vapply(args, function(x) inherits(x, "repository"), logical(1))
+  if (any(ii)) {
+    for (repo in args[ii]) mod <- add(mod, repo, overwrite = overwrite)
+    args <- args[!ii]
+  }
 
-
-  # Combine model objects from args into a new repository
+  # model "bricks" (technology/commodity/...) -> bundled into a repository and
+  # added to the model so the set/parameter collection below picks them up
   ii <- vapply(args, function(x) inherits(x, newRepository("")@permit), logical(1))
   if (any(ii)) {
-    # !!! use add() instead to update existing objects
-    scen_specific_repo <- newRepository(name = "scen_specific_repo") |>
+    scen_specific_repo <- newRepository(name = paste0(scen@name, "_repo")) |>
       add(args[ii], overwrite = overwrite)
-    # add log/message
+    mod <- add(mod, scen_specific_repo, overwrite = overwrite)
     args <- args[!ii]
   }
+  scen@model <- mod # keep scen@model in sync with the (possibly extended) model
+
+  # update individual settings slots from named args -- !!! ToDo (legacy parity:
+  # discount, region, discountFirstYear, optimizeRetirement, defValue,
+  # interpolation, debug). Pass a full settings/config object for now.
+
+  # warn on any unrecognized leftover `...` argument (typo / misrouted control)
+  if (length(args) > 0L) {
+    nm <- names(args)
+    if (is.null(nm)) nm <- rep("", length(args))
+    nm[!nzchar(nm)] <- "<unnamed>"
+    warning("interp_mod(): ignoring unrecognized argument(s): ",
+            paste(nm, collapse = ", "), call. = FALSE)
+  }
+
+  # guard: the mapping pipeline needs a non-empty horizon
+  if (nrow(scen@settings@horizon@intervals) == 0L) {
+    stop("The model has no horizon. Set one before interpolating, e.g. ",
+         "`mod <- setHorizon(mod, 2020:2050)`, or pass a horizon object via ",
+         "`...`: `interp_mod(mod, name, newHorizon(period = ...))`.",
+         call. = FALSE)
+  }
+
+  # guard: every region referenced by a model object must be declared. Catches
+  # typos / stray regions (e.g. an offshore "ES_off" in object data that is not
+  # a declared region) up front, instead of surfacing as an obscure
+  # "<param> ... out of domain" error deep in the solver writer.
+  .check_declared_regions(scen@model, scen@settings@region)
 
   # !!! ToDo:
   # ... subset slices and regions
@@ -305,6 +375,7 @@ interp_mod <- function(mod, name = NULL, desc = NULL,
   # process sets above (R/map_membership.R, R/map_closure.R). The closure also
   # populates the primary/secondary/comm_region sets and validates commodity
   # reachability. Formerly built inline here (archived: drafts/legacy-mapping/).
+  .interp_step(verbose, "building maps: membership + closure")
   scen <- build_mappings(scen, fmp = fmp, recipes = c("membership", "closure"))
 
   ## mWeatherRegion ####
@@ -340,6 +411,7 @@ interp_mod <- function(mod, name = NULL, desc = NULL,
   #   calendar recipe (so any overlapping calendar maps are subsequently
   #   refreshed by the recipe) and before `interpolate_parameters()` (discount
   #   factors feed value interpolation).
+  .interp_step(verbose, "settings parameters (discount, period length, slice share)")
   scen <- .interp_settings_params(scen)
 
   #============================================================================#
@@ -348,6 +420,7 @@ interp_mod <- function(mod, name = NULL, desc = NULL,
   #   independent: calendar maps derive from settings, lifespan maps from the
   #   investment/stock windows computed above. (Membership and closure maps are
   #   still built inline above; they will be migrated to the engine later.)
+  .interp_step(verbose, "building maps: calendar + lifespan")
   scen <- build_mappings(scen, fmp = fmp,
                          recipes = c("calendar", "lifespan"))
 
@@ -364,14 +437,16 @@ interp_mod <- function(mod, name = NULL, desc = NULL,
   #   of `scen@model@data`, so they are not dispatched here.
   classes <- NULL
 
+  .n_obj <- sum(vapply(scen@model@data, function(r) length(r@data), integer(1)))
+  .interp_step(verbose, paste0("ob2mi: interpolating ", .n_obj, " model objects"))
+  .prg <- if (.n_obj > 0) progressr::progressor(steps = .n_obj) else NULL
   for (i in seq(along = scen@model@data)) {
     for (j in seq(along = scen@model@data[[i]]@data)) {
       if (is.null(classes) || inherits(scen@model@data[[i]]@data[[j]], classes)) {
-        # browser()
-        # trade
-        cat(strrep("=", 75), "\n")
-        cat(scen@model@data[[i]]@data[[j]]@name, "\n" )
-        cat(strrep("=", 75), "\n")
+        # User constraints are compiled later (.interp_user_constraints), after
+        # the variable domain maps they reference (e.g. mTechNew) are built.
+        if (inherits(scen@model@data[[i]]@data[[j]], "constraint")) next
+        if (!is.null(.prg)) .prg(message = scen@model@data[[i]]@data[[j]]@name)
         scen <- ob2mi(scen, scen@model@data[[i]]@data[[j]], list())
       }
     }
@@ -385,12 +460,29 @@ interp_mod <- function(mod, name = NULL, desc = NULL,
   #============================================================================#
   # Interpolate parameters ####
   #
+  .interp_step(verbose, "interpolating parameters over milestone years")
   scen <- interpolate_parameters(scen, drop_default = drop_default)
+
+  # Restrict interpolated value parameters to the scenario's declared calendar
+  # slices (drops excess data for slices a sampled calendar does not declare;
+  # required for GAMS correctness). Legacy interpolate_model did this by default.
+  .interp_step(verbose, "calendar-filter: restricting parameters to declared slices")
+  scen <- .filter_params_by_declared_slices(scen, verbose)
+
+  #============================================================================#
+  # Equivalent annual cost (EAC) ####
+  #   Annuitise investment cost into pTechEac / pStorageEac / pTradeEac. Must run
+  #   after interpolation (reads pXInvcost / pDiscount / pXOlife) and before the
+  #   value recipe (mTradeEac reads pTradeEac's value domain). The generic ob2mi
+  #   slot loop leaves these equal to the raw invcost.
+  .interp_step(verbose, "computing equivalent annual costs (EAC)")
+  scen <- compute_eac_parameters(scen)
 
   #============================================================================#
   # Value-derived mapping parameters ####
   #   Built after interpolation because they project the (interpolated) cost /
   #   value parameters onto their lifespan windows.
+  .interp_step(verbose, "building maps: value, filter, constraint, cost")
   scen <- build_mappings(scen, fmp = fmp, recipes = "value")
 
   #============================================================================#
@@ -416,18 +508,57 @@ interp_mod <- function(mod, name = NULL, desc = NULL,
   scen <- build_mappings(scen, fmp = fmp, recipes = "cost_agg")
 
   #============================================================================#
+  # User-defined constraints ####
+  #   Compile each `constraint` object to the GAMS-string IR (+ pCns/mCns
+  #   params) now that all variable domain maps exist. See ob2mi("constraint").
+  scen <- .interp_user_constraints(scen, verbose)
+
+  #============================================================================#
+  # Prune parameters ####
+  #   Drop `value == prune$value` rows of parameters flagged `prune` in
+  #   modInp.yml (e.g. pWeather: the 0 night-slice rows). Lossless: an absent
+  #   tuple reads as the default, which equals the pruned value. The dependent
+  #   variable-column removal is multimod `trim`'s cascade, not done here. The
+  #   `prune` argument is a global on/off over the per-parameter flags.
+  if (isTRUE(prune)) {
+    .interp_step(verbose, "prune: dropping flagged default-valued rows")
+    scen <- prune_parameters(scen)
+  }
+
+  #============================================================================#
   # Fold parameters ####
   #   Collapse trimmable dimensions (region, slice) of interpolated numpar /
   #   bounds parameters to wildcard (NA) rows wherever the value does not vary
   #   across the entity's full membership of that dimension. Runs after the
   #   filter recipe so the per-object slice/region membership maps exist. The
   #   reverse operation (`unfold`) is applied at read time in `getData()`.
-  if (isTRUE(fold)) {
-    scen <- fold_scenario_parameters(scen, dims = c("region", "slice"))
+  if (length(fold_dims) > 0 && isTRUE(sparse)) {
+    # Fold value parameters (numpar/bounds) to wildcards, but MATERIALISE the maps
+    # so every variable / equation domain stays over explicit members. Folded
+    # value parameters carry their single value at the artificial set member
+    # (ANYREGION / ANYSLICE / 0 for year / ...), substituted into the model code at
+    # write time (apply_fold_artificial); the maps must never reference that member.
+    # Record the pre-fold value-parameter total so `model_size` can report the
+    # exact rows folding saved (membership re-expansion under-counts entity dims).
+    scen@misc$fold_dims <- fold_dims
+    scen@misc$fold_rows_before <- .value_param_rows(scen)
+    .interp_step(verbose, paste0("fold: folding ", paste(fold_dims, collapse = ", ")))
+    scen <- fold_scenario_parameters(scen, dims = fold_dims)
+    # Maps must ALWAYS materialise to explicit members on every foldable dim --
+    # some maps carry NA wildcards (built mid-pipeline on region-folded params)
+    # independently of which value-parameter dims are being folded now.
+    scen <- unfold_scenario_parameters(scen, dims = .foldable_dims, types = "map")
   } else {
     # Materialise any source / interpolated wildcard (NA) rows in the trimmable
     # dimensions to explicit members, so the written model carries no NAs.
-    scen <- unfold_scenario_parameters(scen, dims = c("region", "slice"))
+    scen <- unfold_scenario_parameters(scen, dims = .foldable_dims)
+    # Densify (sparse = FALSE): now that wildcards are explicit, materialise each
+    # parameter's finite non-zero defVal over its domain for backends without a
+    # native default (GAMS). Runs before the clip so over-covered rows are pruned.
+    if (!isTRUE(sparse)) {
+      .interp_step(verbose, "densify: materialising defaults over the domain")
+      scen <- densify_parameters(scen)
+    }
     # Drop value-parameter rows outside the equation-domain maps (lifespan
     # window x membership). The maps are the minimal authority on the domain, so
     # any remaining row no map indexes is dead data (and may still carry a stale
@@ -534,17 +665,48 @@ interp_mod <- function(mod, name = NULL, desc = NULL,
   # so it can be written / solved directly (parallel to the tail of
   # `interpolate()`).
   scen@settings@sourceCode <- .modelCode
+  # Optional per-block override (see `code` arg): swap in a model script from a
+  # file (or character vector) instead of the sysdata-baked `.modelCode`.
+  if (!is.null(code)) {
+    if (!is.list(code) || is.null(names(code)) || any(!nzchar(names(code))))
+      stop("`code` must be a named list mapping a model block (e.g. 'GLPK') ",
+           "to a script-file path or a character vector of lines.")
+    for (.blk in names(code)) {
+      .src <- code[[.blk]]
+      if (is.character(.src) && length(.src) == 1L && file.exists(.src))
+        .src <- readLines(.src)
+      if (!.blk %in% names(scen@settings@sourceCode))
+        warning("`code`: unknown model block '", .blk, "' (added anyway)")
+      scen@settings@sourceCode[[.blk]] <- as.character(.src)
+    }
+  }
   scen@status$interpolated <- TRUE
   scen@status$script <- FALSE
+  # Storage-state flags mirroring the build knobs (self-describing for the
+  # writers, model_size(), and save/reload). `sparse`: parameters omit
+  # value==defVal rows -- a native-default backend (MathProg/JuMP/Pyomo) reads an
+  # absent tuple as its defVal, but GAMS reads 0, so a sparse scenario must be
+  # densified before a GAMS write. `folded`: the dims actually collapsed to
+  # wildcards (folding only runs on the sparse path; empty = none). `pruned`:
+  # default-valued flagged rows were dropped. (Replaces the legacy
+  # `status$fullsets`, which was `!sparse`.)
+  scen@status$sparse <- isTRUE(sparse)
+  scen@status$folded <- if (isTRUE(sparse)) fold_dims else character(0)
+  scen@status$pruned <- isTRUE(prune)
 
   # Post-interpolation consistency checks (NA index columns, schema, duplicate
   # keys, and bidirectional map <-> parameter coverage). Reports issues without
   # aborting by default; the folded pipeline permits wildcard NAs in trimmable
   # dimensions.
   if (isTRUE(validate)) {
-    validate_scenario_parameters(scen, fold = fold, action = "warn")
+    .interp_step(verbose, "validating parameters")
+    # Permit fold wildcards (NA) only in the dimensions actually folded this run.
+    validate_scenario_parameters(
+      scen, fold = if (isTRUE(sparse)) fold_dims else character(0),
+      action = "warn")
   }
 
+  .interp_footer(scen, verbose)
   scen
 }
 
@@ -562,6 +724,22 @@ interp_mod <- function(mod, name = NULL, desc = NULL,
 # store, so `save_scenario()` / the writers would see them empty. After building,
 # the populated parameters are therefore flushed to disk through the canonical
 # `update_parameter()` path (same as every `ob2mi` method) when `isOnDisk(scen)`.
+.interp_user_constraints <- function(scen, verbose = FALSE) {
+  cns <- list()
+  for (i in seq_along(scen@model@data)) {
+    for (j in seq_along(scen@model@data[[i]]@data)) {
+      o <- scen@model@data[[i]]@data[[j]]
+      if (inherits(o, "constraint")) cns[[length(cns) + 1L]] <- o
+    }
+  }
+  if (length(cns) == 0L) return(scen)
+  .interp_step(verbose, paste0("compiling ", length(cns), " user constraint(s)"))
+  # Build the engine's set-value/calendar context once and reuse it.
+  approxim <- .constraint_approxim(scen)
+  for (o in cns) scen <- ob2mi(scen, o, list(approxim = approxim))
+  scen
+}
+
 .interp_settings_params <- function(scen) {
   ss <- scen@settings
   mid <- ss@horizon@intervals$mid
@@ -605,9 +783,12 @@ interp_mod <- function(mod, name = NULL, desc = NULL,
       if (is(y, "commodity")) y@name else NULL))))
   names(approxim$all_comm) <- NULL
 
-  # Build the calendar / horizon / discount parameters via the legacy method
-  # (writes the in-memory `@data` slots of `scen@modInp@parameters`).
-  scen@modInp <- .obj2modInp(scen@modInp, ss, approxim = approxim)
+  # Build the calendar / horizon / discount parameters via the `ob2mi`
+  # "settings" method (R/obj2modInp2.R), which writes the in-memory `@data`
+  # slots of `scen@modInp@parameters`. Ported from the legacy `.obj2modInp`
+  # settings method; the overlapping calendar maps it also builds are refreshed
+  # by the calendar recipe that runs next.
+  scen <- ob2mi(scen, ss, list(approxim = approxim))
 
   # Persist the freshly-built parameters to the on-disk store so they survive
   # `save_scenario()` / reload and are seen by the writers. No-op in memory.
@@ -1684,10 +1865,12 @@ interpolate_numpar <- function(
     # set_cols <- set_cols[!jj]
   }
 
-  # split by set_cols
-  dd <- data |>
-    group_by(across(any_of(set_cols))) |>
-    dplyr::group_split()
+  # Fast path: nothing missing => nothing to interpolate. Skips the whole
+  # group machinery, which otherwise dominates for high-resolution parameters
+  # (e.g. an 8760-slice pDemand whose source years already cover the milestones).
+  if (!anyNA(data[[value_col]])) {
+    return(as.data.table(data))
+  }
 
   approx_rule <- c(1, 1)
   if (grepl("for|fwd|frw", int_rule, ignore.case = T)) {
@@ -1702,51 +1885,42 @@ interpolate_numpar <- function(
     interp_within <- FALSE
   }
 
-  # ll <- list()
-  # for (d in dd) {
-  ll <- lapply(dd, function(d) {
-    d <- d |> arrange(year)
-    not_na <- !is.na(d[[value_col]])
-    n_na <- sum(!not_na)
+  # Per-group (set_cols) interpolation over `year`. Same logic as before, but
+  # driven by data.table's C-level grouping instead of group_split() + lapply,
+  # which allocated one tibble per group and was pathologically slow at tens of
+  # thousands of groups (e.g. 8760 slices x regions x ...).
+  .interp_grp <- function(year, val) {
+    not_na <- !is.na(val)
     nval <- sum(not_na)
-    if (nval == 0) {
-      # na values only
-      # ll[[length(ll) + 1]] <- d
-      # next
-      return(d)
+    # all-NA (nothing to drive interpolation) or no-NA (nothing missing): keep.
+    if (nval == 0L || nval == length(val)) {
+      return(val)
     }
-    if (n_na == 0) {
-      # nothing to interpolate
-      # ll[[length(ll) + 1]] <- d
-      # next
-      return(d)
+    if (interp_within && nval > 1L) {
+      return(approx(val, x = year, xout = year, rule = approx_rule)$y)
     }
-    if (interp_within && nval > 1) {
-      # all interpolation options
-      d[[value_col]] <- approx(
-          d[[value_col]],
-          x = d$year,
-          xout = d$year,
-          rule = approx_rule
-        )$y
-    } else {
-      # forward and/or backward fill only
-      nval_first <- which(d$year == min(d$year[not_na]))
-      nval_last <- which(d$year == max(d$year[not_na]))
-      if (approx_rule[1] == 2 && nval_first > 1) {
-        # backward fill
-        d[[value_col]][1:nval_first] <- d[[value_col]][nval_first]
-      }
-      if (approx_rule[2] == 2 && nval_last < nrow(d)) {
-        # forward fill
-        d[[value_col]][nval_last:nrow(d)] <- d[[value_col]][nval_last]
-      }
+    # forward and/or backward fill only
+    nval_first <- which(year == min(year[not_na]))[1]
+    nval_last <- which(year == max(year[not_na]))[1]
+    if (approx_rule[1] == 2 && nval_first > 1L) {
+      val[1:nval_first] <- val[nval_first]
     }
-    # ll[[length(ll) + 1]] <- d
-    return(d)
-  })
+    if (approx_rule[2] == 2 && nval_last < length(val)) {
+      val[nval_last:length(val)] <- val[nval_last]
+    }
+    val
+  }
 
-  ll <- rbindlist(ll, use.names = TRUE, fill = TRUE) |>
+  dt <- as.data.table(data)
+  by_cols <- intersect(set_cols, names(dt))
+  data.table::setorderv(dt, c(by_cols, "year"))
+  if (length(by_cols) > 0L) {
+    dt[, (value_col) := .interp_grp(year, get(value_col)), by = by_cols]
+  } else {
+    dt[, (value_col) := .interp_grp(year, get(value_col))]
+  }
+
+  ll <- dt |>
     arrange(across(any_of(c("region", "vintage", "year")))) |>
     as.data.table()
 
@@ -2085,6 +2259,9 @@ get_parameter_full_sets <- function(
   } else {
     scen@modInp@parameters[[pn]]@data <- new_data
   }
+  # Keep the row-count cache in sync: writers (Pyomo / JuMP / GLPK v1) truncate
+  # `@data` to `@misc$nValues`, and a stale count pads with NA rows.
+  scen@modInp@parameters[[pn]]@misc$nValues <- nrow(new_data)
   scen
 }
 
@@ -2170,6 +2347,42 @@ trim_parameters_by_maps <- function(scen, verbose = FALSE) {
   scen
 }
 
+# Filter interpolated VALUE parameters (numpar/bounds) to the scenario's DECLARED
+# calendar slices (scen@modInp@sets$slice, sourced from scen@settings@calendar).
+# A sampled calendar declares fewer slices (that is the point of sampling); any
+# interpolated row for a slice the calendar does not declare is excessive data.
+# GAMS errors on data indexed by an undeclared slice; other backends tolerate it
+# via gating maps but carry needless bulk (e.g. pWeather at full 8760h). Legacy
+# interpolate_model filtered by default; this restores it. Runs BEFORE fold/prune
+# so both the sparse (fold) and dense paths benefit. Maps are built later and are
+# already calendar-consistent, so only value parameters need this.
+.filter_params_by_declared_slices <- function(scen, verbose = FALSE) {
+  sl <- scen@modInp@sets$slice
+  if (is.null(sl) || length(sl) == 0L) return(scen)
+  sl <- as.character(sl)
+  for (pn in names(scen@modInp@parameters)) {
+    param <- scen@modInp@parameters[[pn]]
+    if (is.null(param) || !(param@type %in% c("numpar", "bounds"))) next
+    pdata <- get_data_slot(param)
+    if (is.null(pdata) || nrow(pdata) == 0L) next
+    scols <- intersect(c("slice", "slicep", "slice.1"), colnames(pdata))
+    if (length(scols) == 0L) next
+    # NA in a slice column is a wildcard ("applies to all slices", the sparse/fold
+    # representation of a slice-independent value) -> always keep it. Drop a row only
+    # when it names a CONCRETE slice the calendar does not declare.
+    keep <- Reduce(`&`, lapply(scols, function(cc) {
+      v <- as.character(pdata[[cc]]); is.na(v) | v %in% sl
+    }))
+    if (all(keep)) next
+    new_data <- as.data.frame(pdata)[keep, , drop = FALSE]
+    if (isTRUE(verbose)) {
+      message("cal-filter '", pn, "': ", nrow(pdata), " -> ", nrow(new_data), " rows")
+    }
+    scen <- .interp_write_param(scen, pn, new_data)
+  }
+  scen
+}
+
 #' Validate interpolated scenario parameters
 #'
 #' Runs a set of post-interpolation consistency checks over the numeric / bounds
@@ -2200,7 +2413,11 @@ trim_parameters_by_maps <- function(scen, verbose = FALSE) {
 validate_scenario_parameters <- function(scen, fold = TRUE,
                                           action = c("warn", "stop", "silent")) {
   action <- match.arg(action)
-  trim_dims <- c("region", "slice", "vintage")
+  # Dimensions in which a fold wildcard (NA) is legitimate. `fold` may be the
+  # legacy logical (TRUE -> the original trimmable dims) or the character vector of
+  # dims actually folded (region / slice / year / comm / tech / stg / trade).
+  trim_dims <- if (isTRUE(fold)) c("region", "slice", "vintage")
+    else if (is.character(fold)) fold else character(0)
   issues <- list()
   add <- function(parameter, check, detail) {
     issues[[length(issues) + 1L]] <<-
@@ -2231,7 +2448,7 @@ validate_scenario_parameters <- function(scen, fold = TRUE,
     base_dim <- sub("\\.[0-9]+$", "", id_cols)
 
     # NA index columns
-    na_allowed <- if (isTRUE(fold)) id_cols[base_dim %in% trim_dims] else character(0)
+    na_allowed <- id_cols[base_dim %in% trim_dims]
     for (cc in setdiff(id_cols, na_allowed)) {
       n_na <- sum(is.na(d[[cc]]))
       if (n_na > 0) {
@@ -2704,7 +2921,14 @@ get_process_timeframe <- function(scen, process = NULL,
     )
 
   # for processess with several commodities (and not assigned timeframe)
-  # select the first (lowest level) timeframe
+  # select the FINEST (highest-resolution) timeframe -- the process operates at
+  # the resolution of its finest commodity (e.g. a generator producing hourly
+  # ELC, or an electrolyzer consuming hourly ELC, must run hourly even if other
+  # commodities are annual; finer flows up-aggregate to the coarser balances).
+  # This restores the legacy rule; the new multi-level up-aggregation
+  # (mSliceFamily/pSliceAgg, eqOutTot/eqInpTot) only flows fine->coarse, so a
+  # process pinned to a coarser timeframe than its commodities cannot meet the
+  # finer balance and demand leaks to imports.
   process_comm_timeframe <- process_comm_timeframe |>
     left_join(
       named_list_to_df(scen@settings@calendar@timeframe_rank,
@@ -2726,16 +2950,25 @@ get_process_timeframe <- function(scen, process = NULL,
     ) |>
     filter(!is.na(process_timeframe)) |>
     # select(process, process_timeframe, timeframe, timeframe_rank) |>
-    unique() |>
-    group_by(process) |>
-    mutate(
-      # timeframe_min = min(timeframe_rank)
-      timeframe_max_pro = max(timeframe_rank_process),
-      timeframe_max_comm = max(timeframe_rank_comm)
-    ) |>
-    filter(timeframe_max_pro != timeframe_max_comm) |>
-    filter(timeframe_rank_process < timeframe_rank_comm) |>
-    as.data.table()
+    unique()
+
+  # Only run the per-process consistency check when at least one process carries
+  # a directly-assigned timeframe. Otherwise `check_timeframe` is empty and the
+  # grouped `max()` calls below would warn on a zero-length vector ("no
+  # non-missing arguments to max; returning -Inf").
+  if (nrow(check_timeframe) > 0) {
+    check_timeframe <- check_timeframe |>
+      group_by(process) |>
+      mutate(
+        # timeframe_min = min(timeframe_rank)
+        timeframe_max_pro = max(timeframe_rank_process),
+        timeframe_max_comm = max(timeframe_rank_comm)
+      ) |>
+      filter(timeframe_max_pro != timeframe_max_comm) |>
+      filter(timeframe_rank_process < timeframe_rank_comm) |>
+      ungroup()
+  }
+  check_timeframe <- as.data.table(check_timeframe)
 
   if (nrow(check_timeframe) > 0) {
     # add log/message
@@ -2750,7 +2983,7 @@ get_process_timeframe <- function(scen, process = NULL,
 
   process_comm_timeframe <- process_comm_timeframe |>
     group_by(process) |>
-    arrange(timeframe_rank) |>
+    arrange(dplyr::desc(timeframe_rank)) |> # finest (highest-rank) timeframe
     dplyr::slice(1) |>
     ungroup() |>
     select(process, timeframe) |>
@@ -3115,153 +3348,64 @@ get_process_region <- function(scen, process = NULL, classes = NULL,
 
   scen_regions <- scen@settings@region
 
-  # collect regions from @region slot
-  ll <- apply_to_scenario_data(
+  # Region scope of each object (uniform rule for all classes):
+  #   * `@region` is AUTHORITATIVE. Populated with region names -> the object
+  #     exists only there; empty or NA -> it exists in ALL regions.
+  #   * `region` columns in OTHER (parameter) slots only localize a value
+  #     (NA = all regions / overrides default; a name = that region only, then
+  #     interpolated). They NEVER restrict the object's scope. A parameter-slot
+  #     region that is not within a populated `@region` is an error.
+  #   * Trade has no `@region`; its scope is the structural route endpoints
+  #     (`src`/`dst`).
+  info <- apply_to_scenario_data(
     scen = scen,
     classes = classes,
-    # names = process, #!!! ToDo: add process names
     func = function(x) {
-      # ll <- list(name = x@name, value = character())
-      ll <- list()
-      ll[[x@name]] <- character()
-      if (.hasSlot(x, "region")) {
-        # ll$value <- x@region |> as.character() |> unique()
-        ll[[x@name]] <- x@region |>
-          as.character() |>
-          unique()
-      } else {
-        # warning("No region slot found for process ", x@name)
-        # ll$value <- character()
-        ll[[x@name]] <- character()
+      reg <- if (.hasSlot(x, "region")) unique(as.character(x@region)) else character()
+      reg <- reg[!is.na(reg)]            # NA in @region == all regions (no restriction)
+      struct <- character()              # route endpoints (trade): structural scope
+      param  <- character()              # region values in parameter slots
+      for (s in slotNames(x)) {
+        v <- slot(x, s)
+        if (!inherits(v, "data.frame")) next
+        for (col in c("src", "dst")) {
+          if (col %in% colnames(v)) struct <- c(struct, v[[col]])
+        }
+        if ("region" %in% colnames(v)) param <- c(param, v[["region"]])
       }
-      ll
+      o <- list()
+      o[[x@name]] <- list(
+        reg    = reg,
+        struct = unique(struct[!is.na(struct)]),
+        param  = unique(param[!is.na(param)])
+      )
+      o
     }
   )
-
-  # collect regions from data.frame slots, region, src, dst columns
-  ll_slots <- apply_to_scenario_data(
-    scen = scen,
-    classes = classes,
-    # names = process, #!!! ToDo: add process names
-    func = function(x) {
-      # browser()
-      # ll <- list(name = x@name, value = character())
-      ll <- list()
-      ll[[x@name]] <- character()
-      slots <- slotNames(x)
-
-      # 1. search regions in data.frame slots
-      rr <- sapply(slots, function(s) {
-        if (inherits(slot(x, s), "data.frame")) {
-          rr <- character()
-          # if (s == "olife") browser()
-          for (col in c("region", "src", "dst")) {
-            if (col %in% colnames(slot(x, s))) {
-              rr <- c(rr, slot(x, s)[[col]])
-            }
-          }
-          rr <- rr |>
-            unique() |>
-            sort(na.last = FALSE)
-          if (length(rr) > 0) {
-            return(rr)
-          } else {
-            return(character())
-          }
-        } else {
-          return(NULL)
-        }
-      })
-      rr <- rr[!sapply(rr, is_empty)] # remove empty slots
-
-      # if (x@name == "TRBD_ELC_R1_R2") browser()
-
-      # 2. check if there are any NA values in the slots
-      # meaning that parameters are applied to all regions
-      all_na <- sapply(rr, function(r) any(is.na(r))) |> all()
-      if (all_na) {
-        # if all slots have NA values, return empty character vector
-        ll[[x@name]] <- NA_character_
-        return(
-          ll
-          # list(name = x@name, value = NA_character_)
-        )
-      }
-
-      # 3. check if there are slots with region names and no NA values,
-      # restricting to the region set
-      no_na <- sapply(rr, function(r) {
-        !any(is.na(r))
-      })
-      rr <- rr[no_na]
-      rm(no_na)
-
-      # check if there are more than one slot with non-NA values in region columns
-      if (length(rr) > 1) {
-        unique_rr <- rr[[1]]
-        # diff_rr <- character()
-        for (i in 2:length(rr)) {
-          unique_rr <- intersect(unique_rr, rr[[i]])
-        }
-        rr <- unique_rr
-      } else if (length(rr) == 1) {
-        rr <- rr[[1]]
-      } else {
-        rr <- character()
-      }
-
-      # ll$value <- rr
-      ll[[x@name]] <- rr
-      return(ll)
-    }
-  )
-
-  # combine results from both queries
-  # names(ll_slots)[!(names(ll_slots) %in% names(ll))]
-  nms <- c(names(ll_slots), names(ll)) |>
-    unique() |>
-    sort()
 
   nn <- list()
-  for (i in nms) {
-    if (!is_empty(ll[[i]])) {
-      # if regions declared in @region slot, it will be used
-      if (any(is.na(ll[[i]]))) {
-        # NA values are not allowed in @region slot
-        stop("NA values are not allowed in @region slot. Check process ", i)
+  for (i in names(info)) {
+    reg <- info[[i]]$reg; struct <- info[[i]]$struct; param <- info[[i]]$param
+    if (length(reg) > 0) {
+      # @region populated: authoritative. Any region used in a slot must be in it.
+      bad <- setdiff(c(param, struct), reg)
+      if (length(bad) > 0) {
+        stop("Process '", i, "': region(s) '", paste(bad, collapse = "', '"),
+             "' appear in a slot but are not in its @region scope.")
       }
-      # check if all region-names are in the scenario region set
-      if (!all(ll[[i]] %in% scen_regions)) {
-        # add log/message
-        reg_diff <- ll[[i]][!(ll[[i]] %in% scen_regions)]
-        stop("Regions '", reg_diff, "' are not declared in the scenario region set.")
-      }
-
-      nn[[i]] <- ll[[i]]
+      nn[[i]] <- reg
+    } else if (length(struct) > 0) {
+      # no @region: structural route endpoints define the scope (trade).
+      nn[[i]] <- struct
     } else {
-      # use regions from data.frame slots
-
-      if (is_empty(ll_slots[[i]])) {
-        stop("No regions info found for process ", i)
-      }
-      if (any(is.na(ll_slots[[i]]))) {
-        if (any(!is.na(ll_slots[[i]]))) {
-          # should not be here, either single NA or non-NA values
-          stop("Cannot identify regions for process ", i)
-        }
-        # NA means all regions
-        nn[[i]] <- scen_regions
-        next
-      }
-
-      # Non-NA values of region names. Check if they are declared
-      if (!all(ll_slots[[i]] %in% scen_regions)) {
-        # add log/message
-        reg_diff <- ll_slots[[i]][!(ll_slots[[i]] %in% scen_regions)]
-        stop("Regions '", reg_diff, "' are not declared in the scenario region set.")
-      }
-
-      nn[[i]] <- ll_slots[[i]]
+      # no @region, no routes: the object exists in ALL regions. Parameter-slot
+      # regions only localize values; they do not restrict the scope.
+      nn[[i]] <- scen_regions
+    }
+    bad2 <- setdiff(nn[[i]], scen_regions)
+    if (length(bad2) > 0) {
+      stop("Process '", i, "': region(s) '", paste(bad2, collapse = "', '"),
+           "' are not declared in the scenario region set.")
     }
   }
 

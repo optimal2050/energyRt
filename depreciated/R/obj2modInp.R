@@ -957,8 +957,8 @@ setMethod(
         .dat2par(obj@parameters[["pStorageRet"]], pStorageRet)
     }
 
-    # browser()
-    dd0 <- .start_end_fix(approxim, stg, "stg", stock_exist)
+    # browser() # !!!!!
+    dd0 <- .process_lifespan(approxim, stg, "stg", stock_exist)
     dd0$new <- dd0$new[dd0$new$year %in% approxim$mileStoneYears &
                          dd0$new$region %in% approxim$region, , drop = FALSE]
     dd0$span <- dd0$span[
@@ -971,7 +971,7 @@ setMethod(
       .dat2par(obj@parameters[["mStorageSpan"]], dd0$span)
     obj@parameters[["mStorageEac"]] <-
       .dat2par(obj@parameters[["mStorageEac"]], dd0$eac)
-
+    pStorageEac <- NULL
     if (nrow(dd0$new) > 0 && !is.null(invcost) && nrow(invcost) > 0) {
       salv_data <- merge0(dd0$new, approxim$discount, all.x = TRUE)
       salv_data$value[is.na(salv_data$value)] <- 0
@@ -997,17 +997,33 @@ setMethod(
       salv_data$tech <- stg@name
       salv_data$value <- salv_data$eac
       pStorageEac <- salv_data[, c("stg", "region", "year", "value")]
+      # obj@parameters[["pStorageEac"]] <-
+      #   .dat2par(
+      #     obj@parameters[["pStorageEac"]],
+      #     unique(
+      #       select(pStorageEac,
+      #              any_of(c(obj@parameters[["pStorageEac"]]@dimSets, "value"))
+      #              )
+      #       # pStorageEac[, colnames(pStorageEac) %in%
+      #       #               c(obj@parameters[["pStorageEac"]]@dimSets, "value"),
+      #       #             drop = FALSE])
+      #     ))
+    }
+
+    #!!! Temporary fix for the case when eac is directly given in the slot
+    if (nrow(stg@invcost) > 0 && any(!is.na(stg@invcost$eac)) &&
+        any(stg@invcost$eac != 0)) {
+      pStorageEac <- .interp_numpar(
+        stg@invcost, "eac", obj@parameters[["pStorageEac"]],
+        approxim, "stg", stg@name)
+    }
+    if (!is.null(pStorageEac)) {
+      pStorageEac <- select(pStorageEac,
+                            all_of(c(obj@parameters[["pStorageEac"]]@dimSets,
+                                     "value")))
+
       obj@parameters[["pStorageEac"]] <-
-        .dat2par(
-          obj@parameters[["pStorageEac"]],
-          unique(
-            select(pStorageEac,
-                   any_of(c(obj@parameters[["pStorageEac"]]@dimSets, "value"))
-                   )
-            # pStorageEac[, colnames(pStorageEac) %in%
-            #               c(obj@parameters[["pStorageEac"]]@dimSets, "value"),
-            #             drop = FALSE])
-          ))
+        .dat2par(obj@parameters[["pStorageEac"]], pStorageEac)
     }
 
     if (nrow(stg@weather) > 0) {
@@ -1631,7 +1647,8 @@ setMethod(".obj2modInp",
   obj
 }
 
-# =============================================================================# # Add technology ####
+# =============================================================================#
+# Add technology ####
 # =============================================================================#
 setMethod(
   ".obj2modInp",
@@ -1787,8 +1804,8 @@ setMethod(
     )
     obj@parameters[["pTechOlife"]] <-
       .dat2par(obj@parameters[["pTechOlife"]], olife)
-    # browser() # check warning msg
-    dd0 <- .start_end_fix(approxim, tech, "tech", stock_exist)
+    # browser() # !!!!! check warning msg
+    dd0 <- .process_lifespan(approxim, tech, "tech", stock_exist)
     dd0$new <- dd0$new[dd0$new$year %in% approxim$mileStoneYears &
                          dd0$new$region %in% approxim$region, , drop = FALSE]
     dd0$span <- dd0$span[dd0$span$year %in% approxim$mileStoneYears &
@@ -1797,9 +1814,16 @@ setMethod(
       .dat2par(obj@parameters[["mTechNew"]], dd0$new)
 
     invcost <- .interp_numpar(tech@invcost, "invcost",
-                                   obj@parameters[["pTechInvcost"]], approxim,
-                                   "tech", tech@name)
-    if (!is.null(invcost)) {
+                              obj@parameters[["pTechInvcost"]], approxim,
+                              "tech", tech@name)
+
+    # !!! temporary fix (adding eac from slots) !!!
+    pTechEac <- .interp_numpar(tech@invcost, "eac",
+                               obj@parameters[["pTechEac"]],
+                               approxim, "tech", tech@name
+                               )
+
+    if (!is.null(invcost) || !is.null(pTechEac)) {
       # browser()
       minvcost <- merge0(dd0$new, invcost)
       obj@parameters[["mTechInv"]] <-
@@ -1810,6 +1834,7 @@ setMethod(
       obj@parameters[["mTechEac"]] <-
         .dat2par(obj@parameters[["mTechEac"]], dd0$eac)
     }
+
     # browser()
     retcost <- .interp_numpar(tech@invcost, "retcost",
                               obj@parameters[["pTechRetCost"]], approxim,
@@ -1830,12 +1855,15 @@ setMethod(
     obj@parameters[["mTechSpan"]] <-
       .dat2par(obj@parameters[["mTechSpan"]], dd0$span)
 
+    # Calculate/add EAC from invcost !!! needs adjustments
+    pTechEac <- NULL
     if (nrow(dd0$new) > 0 && !is.null(invcost)) {
+      # browser()
       salv_data <- merge0(dd0$new, approxim$discount, all.x = TRUE)
       salv_data$value[is.na(salv_data$value)] <- 0
       salv_data$discount <- salv_data$value
       salv_data$value <- NULL
-      olife$olife <- olife$value
+      olife$olife <- olife$value # !!! check multi-region values, add year dim
       olife$value <- NULL
       salv_data <- merge0(salv_data, olife)
       invcost$invcost <- invcost$value
@@ -1855,13 +1883,27 @@ setMethod(
       salv_data$tech <- tech@name
       salv_data$value <- salv_data$eac
       # browser()
-      pTechEac <- salv_data[, c("tech", "region", "year", "value")]
-      co <- c(obj@parameters[["pTechEac"]]@dimSets, "value")
-      obj@parameters[["pTechEac"]] <-
-        .dat2par(obj@parameters[["pTechEac"]],
-                 unique(select(pTechEac, all_of(co))))
+      # pTechEac <- salv_data[, c("tech", "region", "year", "value")]
+      pTechEac <- salv_data |> select(all_of(c("tech", "region", "year", "value")))
+      # co <- c(obj@parameters[["pTechEac"]]@dimSets, "value")
+      # obj@parameters[["pTechEac"]] <-
+        # .dat2par(obj@parameters[["pTechEac"]],
+        #          unique(select(pTechEac, all_of(co))))
         # unique(pTechEac[, c(obj@parameters[["pTechEac"]]@dimSets, "value")]))
     }
+
+    # (temporary fix) Overwrite pTechEac if eac is provided
+    if (nrow(tech@invcost) > 0 && any(!is.na(tech@invcost$eac)) &&
+        any(tech@invcost$eac != 0)) {
+      pTechEac <- .interp_numpar(
+        tech@invcost, "eac", obj@parameters[["pTechEac"]],
+        approxim, "tech", tech@name)
+    }
+    if (!is.null(pTechEac)) {
+      obj@parameters[["pTechEac"]] <-
+        .dat2par(obj@parameters[["pTechEac"]], pTechEac)
+    }
+    # browser()
     pTechAf <- .interp_bounds(tech@af, "af",
       obj@parameters[["pTechAf"]], approxim, "tech", tech@name,
       remValueUp = Inf, remValueLo = 0
@@ -2642,6 +2684,7 @@ setMethod(
   ),
   function(obj, app, approxim) {
     # trd <- .upper_case(app)
+    # browser()
     trd <- app
     if (length(trd@commodity) != 1 || is.na(trd@commodity) ||
         all(trd@commodity != approxim$all_comm)) {
@@ -2978,6 +3021,19 @@ setMethod(
                                 obj@parameters[["pTradeInvcost"]], approxim,
                                 "trade", trd@name)
       invcost <- invcost[invcost$value != 0, , drop = FALSE]
+
+
+      if (any(!is.na(trd@invcost$eac))) {
+        trade_eac <- .interp_numpar(trd@invcost, "eac",
+                                    obj@parameters[["pTradeEac"]], approxim,
+                                    "trade", trd@name)
+
+        trade_eac <- trade_eac[trade_eac$value != 0, , drop = FALSE]
+
+      } else {
+        trade_eac <- NULL
+      }
+
       # browser()
       stopifnot(nrow(trd@start) == 1)
       stopifnot(nrow(trd@end) == 1)
@@ -3055,15 +3111,15 @@ setMethod(
       # browser()
       # if (trd@olife == Inf) {
       if (!is.null(pTradeOlife) && is.infinite(pTradeOlife$value)) {
-        trade_eac <- unique(
+        trade_eac_years <- unique(
           approxim$year[min0(invest_years) <= approxim$year]
           )
-        trade_span <- unique(c(trd_stock$year, trade_eac))
+        trade_span <- unique(c(trd_stock$year, trade_eac_years))
         obj@parameters[["mTradeOlifeInf"]] <-
           .dat2par(obj@parameters[["mTradeOlifeInf"]],
                    data.table(trade = trd@name))
       } else {
-        trade_eac <- unique(c(sapply(
+        trade_eac_years <- unique(c(sapply(
           invest_years,
           function(x) {
             # approxim$year[x <= approxim$year & approxim$year <= x + trd@olife]
@@ -3072,10 +3128,10 @@ setMethod(
             ]
           }
         ), recursive = TRUE))
-        trade_span <- unique(c(trd_stock$year, trade_eac))
+        trade_span <- unique(c(trd_stock$year, trade_eac_years))
       }
       # browser()
-      trade_eac <- trade_eac[trade_eac %in% approxim$mileStoneYears]
+      trade_eac_years <- trade_eac_years[trade_eac_years %in% approxim$mileStoneYears]
       trade_span <- trade_span[trade_span %in% approxim$mileStoneYears]
       if (length(trade_span) > 0) {
         mTradeSpan <- data.table(
@@ -3090,6 +3146,7 @@ setMethod(
           .dat2par(obj@parameters[["meqTradeCapFlow"]], meqTradeCapFlow)
       }
       # mTradeInv
+      pTradeEac <- NULL
       if (!is.null(invcost)) {
         end_year <- max(approxim$year)
         obj@parameters[["pTradeInvcost"]] <-
@@ -3110,13 +3167,13 @@ setMethod(
                    )
         invcost$invcost <- invcost$value
         invcost$value <- NULL
-        if (length(trade_eac) > 0) {
+        if (length(trade_eac_years) > 0) {
           # browser()
-          # mTradeEac <- merge(unique(invcost$region), trade_eac) |>
+          # mTradeEac <- merge(unique(invcost$region), trade_eac_years) |>
             # as.data.table()
           mTradeEac <- expand_grid(
             region = unique(invcost$region),
-            year = trade_eac) |>
+            year = trade_eac_years) |>
             as.data.table()
           mTradeEac$trade <- trd@name
           # mTradeEac$region <- as.character(mTradeEac$x)
@@ -3144,18 +3201,41 @@ setMethod(
         salv_data$trade <- trd@name
         salv_data$value <- salv_data$eac
         pTradeEac <- salv_data[, c("trade", "region", "year", "value")]
-        obj@parameters[["pTradeEac"]] <-
-          .dat2par(
-            obj@parameters[["pTradeEac"]],
-            unique(
-             # pTradeEac[, colnames(pTradeEac) %in%
-             #             c(obj@parameters[["pTradeEac"]]@dimSets, "value"),
-             #           drop = FALSE]
-              select(
-                pTradeEac,
-                any_of(c(obj@parameters[["pTradeEac"]]@dimSets, "value")))
-              ))
+        # obj@parameters[["pTradeEac"]] <-
+        #   .dat2par(
+        #     obj@parameters[["pTradeEac"]],
+        #     unique(
+        #      # pTradeEac[, colnames(pTradeEac) %in%
+        #      #             c(obj@parameters[["pTradeEac"]]@dimSets, "value"),
+        #      #           drop = FALSE]
+        #       select(
+        #         pTradeEac,
+        #         any_of(c(obj@parameters[["pTradeEac"]]@dimSets, "value")))
+        #       ))
       }
+
+      # !!! Temporary fix, update pTradeEac if directly assigned in the slot
+      if (nrow(trd@invcost) > 0 && any(!is.na(trd@invcost$eac)) &&
+          any(trd@invcost$eac != 0)) {
+        pTradeEac <- .interp_numpar(
+          trd@invcost, "eac", obj@parameters[["pTradeEac"]],
+          approxim, "trade", trd@name)
+      }
+      if (!is.null(pTradeEac)) {
+        obj@parameters[["pTradeEac"]] <-
+          .dat2par(obj@parameters[["pTradeEac"]],
+                   select(
+                     pTradeEac,
+                     all_of(c(obj@parameters[["pTradeEac"]]@dimSets, "value"))
+                   ))
+
+        # browser()
+        mTradeEac <- pTradeEac |> select(-value)
+        obj@parameters[["mTradeEac"]] <-
+          .dat2par(obj@parameters[["mTradeEac"]], mTradeEac)
+
+      }
+
     }
     if (nrow(trd@fixom) > 0) {
       # browser()
@@ -3347,7 +3427,129 @@ setMethod(
 # =============================================================================#
 
 # ???
-.start_end_fix <- function(approxim, obj, als, stock_exist) {
+# .process_lifespan <- function(approxim, obj, als, stock_exist) {
+#   # browser()
+#   if (is.null(stock_exist)) stock_exist <- data.table()
+#   stock_exist <- stock_exist[stock_exist$value != 0, ]
+#   # Start / End year
+#   dd <- data.table(
+#     enable = rep(TRUE, length(approxim$region) * length(approxim$year)),
+#     obj = rep(obj@name, length(approxim$region) * length(approxim$year)),
+#     region = rep(approxim$region, length(approxim$year)),
+#     year = c(t(matrix(rep(approxim$year, length(approxim$region)),
+#                       length(approxim$year)))),
+#     stringsAsFactors = FALSE
+#   )
+#   colnames(dd)[2] <- als
+#   dstart <- data.table(
+#     region = approxim$region,
+#     year = NA_integer_,
+#     stringsAsFactors = FALSE
+#   )
+#   fl <- is.na(obj@start$region)
+#   if (sum(fl) == 1) { # obj@start$region has one NA value
+#     # dstart[, "year"] <- obj@start[fl, "start"]
+#     dstart$year <- obj@start$start[fl] # use default value
+#   }
+#   if (any(!fl)) { # obj@start$region has no NA values
+#     # browser()
+#     # dstart <- as.data.frame(dstart)
+#     # dstart[obj@start[!fl, "region"], "year"] <- obj@start[!fl, "start"]
+#     dstart <- rows_update(dstart, obj@start[fl, "start"], by = "region")
+#   }
+#   dstart <- filter(dstart, !is.na(year))
+#     # rowwise() |>
+#   dd <- dd |>
+#     mutate(
+#       enable = if_else(year < dstart$year, FALSE, TRUE)
+#     )
+#   # dstart <- as.data.frame(dstart)[!is.na(dstart$year), , drop = FALSE]
+#   # for (rr in dstart$region) {
+#   #   # browser()
+#   #   # if (!is.na(dstart[rr, "year"]) && any(dd$year < dstart[rr, "year"]))
+#   #   #   dd[dd$region == rr & dd$year < dstart[rr, "year"], "enable"] <- FALSE
+#   #   ii <- dstart$region %in% rr
+#   #   if (!is.na(dstart$year[ii]) && any(dd$year < dstart$year[ii])) {
+#   #     dd$enable[dd$region == rr & dd$year < dstart$year[ii]] <- FALSE
+#   #   }
+#   # }
+#
+#   dd_able <- dd
+#   ## end
+#   dend <- data.table(
+#     row.names = approxim$region,
+#     region = approxim$region,
+#     year = as.integer(rep(NA, length(approxim$region))),
+#     stringsAsFactors = FALSE
+#   )
+#   fl <- is.na(obj@end$region)
+#   if (any(fl)) {
+#     if (sum(fl) != 1)
+#       stop('Two or more "NA" values in "@end" slot, column "region", class "',
+#            class(obj), '" ', obj@name)
+#     dend[, "year"] <- obj@end[fl, "end"]
+#   }
+#   if (any(!fl)) {
+#     # if (obj@name == "ECCG") browser()
+#     suppressMessages({
+#       dend <- dend |> filter(!fl) |> select(-year) |>
+#         left_join(obj@end[!fl, ]) |> rename(year = end) |>
+#         rbind(filter(dend, fl))
+#     })
+#     # dend[obj@end[!fl, "region"], "year"] <- obj@end[!fl, "end"]
+#   }
+#   dend <- dend[!is.na(dend$year), , drop = FALSE]
+#   for (rr in dend$region) {
+#     ii <- dend$region %in% rr
+#     if (any(dd$year > dend$year[ii]))
+#       dd[dd$region == rr & dd$year > dend$year[ii], "enable"] <- FALSE
+#   }
+#   dd <- dd[dd$enable, -1, drop = FALSE]
+#   ## life
+#   dlife <- data.table(
+#     row.names = approxim$region, region = approxim$region,
+#     year = as.integer(rep(NA, length(approxim$region))),
+#     stringsAsFactors = FALSE
+#   )
+#   fl <- is.na(obj@olife$region)
+#   if (any(fl)) {
+#     if (sum(fl) != 1)
+#       stop('Wrong start year for "', class(obj), '" ', obj@name)
+#     dlife[, "year"] <- obj@olife[fl, "olife"] # !!! ???
+#   }
+#   if (any(!fl)) {
+#     dlife[obj@olife[!fl, "region"], "year"] <- obj@olife[!fl, "olife"]
+#   }
+#   dlife <- dlife[!is.na(dlife$year), , drop = FALSE]
+#   for (rr in dlife$region[dlife$region %in% dend$region]) {
+#     # browser()
+#     nn <- dend$region %in% rr
+#     ii <- dlife$region %in% rr
+#     if (any(dd_able$year >= dend$year[nn] + dlife$year[ii])) {
+#       ee <- dd_able$region == rr &
+#             dd_able$year >= dend$year[nn] + dlife$year[rr]
+#       dd_able$enable[ee] <- FALSE
+#     }
+#   }
+#   dd_eac <- dd_able
+#   if (nrow(stock_exist) != 0 && any(!dd_able$enable)) {
+#     for (rr in unique(stock_exist$region)) {
+#       ii <- stock_exist$region == rr
+#       ee <- dd_able$region == rr & dd_able$year %in% stock_exist$year[ii]
+#       dd_able$enable[ee] <- TRUE
+#     }
+#   }
+#   #
+#   dd_able <- dd_able[dd_able$enable, -1, drop = FALSE]
+#   dd_eac <- dd_eac[dd_eac$enable, -1, drop = FALSE]
+#   dd <- dd[dd$year %in% approxim$mileStoneYears, ]
+#   dd_eac <- dd_eac[dd_eac$year %in% approxim$mileStoneYears, ]
+#   dd_able <- dd_able[dd_able$year %in% approxim$mileStoneYears, ]
+#   list(new = dd, span = dd_able, eac = dd_eac)
+# }
+
+.process_lifespan <- function(approxim, obj, als, stock_exist) {
+  #!!! ToDo: check if @invcost$eac is considered
   # browser()
   if (is.null(stock_exist)) stock_exist <- data.table()
   stock_exist <- stock_exist[stock_exist$value != 0, ]
@@ -3362,21 +3564,28 @@ setMethod(
   )
   colnames(dd)[2] <- als
   dstart <- data.table(
-    row.names = approxim$region, region = approxim$region,
+    # row.names = approxim$region,
+    region = approxim$region,
     year = as.integer(rep(NA, length(approxim$region))),
     stringsAsFactors = FALSE
   )
   fl <- is.na(obj@start$region)
   if (any(fl)) {
     if (sum(fl) != 1) {
-      stop('Wrong start year for "', class(obj), '" ', obj@name)
+      # stop('Wrong start year for "', class(obj), '" ', obj@name)
+      stop('Two or more "NA" values in "@start" slot, column "region", class "',
+           class(obj), '" ', obj@name)
     }
     dstart[, "year"] <- obj@start[fl, "start"]
   }
   if (any(!fl)) {
-    dstart[obj@start[!fl, "region"], "year"] <- obj@start[!fl, "start"]
+    # if (obj@name == "BASN_battery_moderate_0") browser()
+    # dstart[obj@start[!fl, "region"], "year"] <- obj@start[!fl, "start"]
+    ob_x <- obj@start[!fl, ] |> rename(year = start)
+    dstart <- rows_update(dstart, ob_x, by = "region")
   }
-  dstart <- dstart[!is.na(dstart$year), , drop = FALSE]
+  # dstart <- dstart[!is.na(dstart$year), , drop = FALSE]
+  dstart <- filter(dstart, !is.na(year))
   for (rr in dstart$region) {
     # browser()
     # if (!is.na(dstart[rr, "year"]) && any(dd$year < dstart[rr, "year"]))
@@ -3396,21 +3605,26 @@ setMethod(
   )
   fl <- is.na(obj@end$region)
   if (any(fl)) {
-    if (sum(fl) != 1)
+    if (sum(fl) != 1) {
       stop('Two or more "NA" values in "@end" slot, column "region", class "',
            class(obj), '" ', obj@name)
+    }
     dend[, "year"] <- obj@end[fl, "end"]
   }
   if (any(!fl)) {
     # if (obj@name == "ECCG") browser()
-    suppressMessages({
-      dend <- dend |> filter(!fl) |> select(-year) |>
-        left_join(obj@end[!fl, ]) |> rename(year = end) |>
-        rbind(filter(dend, fl))
-    })
+    # suppressMessages({
+    # dend <- dend |> filter(!fl) |> select(-year) |>
+    #     left_join(obj@end[!fl, ], by = "region") |> rename(year = end) |>
+    #     rbind(filter(dend, fl))
+    # })
     # dend[obj@end[!fl, "region"], "year"] <- obj@end[!fl, "end"]
+    ob_x <- obj@end[!fl, ] |> rename(year = end)
+    dend <- rows_update(dend, ob_x, by = "region")
+    rm(ob_x)
   }
-  dend <- dend[!is.na(dend$year), , drop = FALSE]
+  # dend <- dend[!is.na(dend$year), , drop = FALSE]
+  dend <- filter(dend, !is.na(year))
   for (rr in dend$region) {
     ii <- dend$region %in% rr
     if (any(dd$year > dend$year[ii]))
@@ -3419,27 +3633,36 @@ setMethod(
   dd <- dd[dd$enable, -1, drop = FALSE]
   ## life
   dlife <- data.table(
-    row.names = approxim$region, region = approxim$region,
+    # row.names = approxim$region,
+    region = approxim$region,
     year = as.integer(rep(NA, length(approxim$region))),
     stringsAsFactors = FALSE
   )
   fl <- is.na(obj@olife$region)
   if (any(fl)) {
-    if (sum(fl) != 1)
-      stop('Wrong start year for "', class(obj), '" ', obj@name)
+    if (sum(fl) != 1) {
+      # stop('Wrong start year for "', class(obj), '" ', obj@name)
+      stop('Two or more "NA" values in "@olife" slot, column "region", class "',
+           class(obj), '" ', obj@name)
+    }
     dlife[, "year"] <- obj@olife[fl, "olife"] # !!! ???
   }
   if (any(!fl)) {
-    dlife[obj@olife[!fl, "region"], "year"] <- obj@olife[!fl, "olife"]
+    # dlife[obj@olife[!fl, "region"], "year"] <- obj@olife[!fl, "olife"]
+    ob_x <- obj@olife[!fl, ] |> rename(year = olife)
+    dlife <- rows_update(dlife, ob_x, by = "region")
+    rm(ob_x)
   }
-  dlife <- dlife[!is.na(dlife$year), , drop = FALSE]
+  # dlife <- dlife[!is.na(dlife$year), , drop = FALSE]
+  dlife <- filter(dlife, !is.na(year))
+  # if (obj@name == "stg_BASN_conventional_hydroelectric_1") browser()
   for (rr in dlife$region[dlife$region %in% dend$region]) {
-    # browser()
+    # if (obj@name == "stg_BASN_conventional_hydroelectric_1") browser()
     nn <- dend$region %in% rr
     ii <- dlife$region %in% rr
     if (any(dd_able$year >= dend$year[nn] + dlife$year[ii])) {
       ee <- dd_able$region == rr &
-            dd_able$year >= dend$year[nn] + dlife$year[rr]
+        dd_able$year >= dend$year[nn] + dlife$year[rr]
       dd_able$enable[ee] <- FALSE
     }
   }
@@ -3457,8 +3680,13 @@ setMethod(
   dd <- dd[dd$year %in% approxim$mileStoneYears, ]
   dd_eac <- dd_eac[dd_eac$year %in% approxim$mileStoneYears, ]
   dd_able <- dd_able[dd_able$year %in% approxim$mileStoneYears, ]
-  list(new = dd, span = dd_able, eac = dd_eac)
+  # browser()
+  # list(new = dd, span = dd_able, eac = dd_eac)
+  # redefining EAC for all years of investment
+  list(new = dd, span = dd_able, eac = dd_able)
+
 }
+
 
 # =============================================================================#
 # ???
@@ -3492,7 +3720,7 @@ merge0 <- function(x, y,
 }
 
 .force_year_class_df <- function(dtf) {
-  if (!is.data.frame(dtf) & !is.list(dtf)) browser()
+  # if (!is.data.frame(dtf) & !is.list(dtf)) browser()
   # return(dtf)
   # temporary solution to avoid merging conflicts
   year_vars <- c("year", "yearp", "start", "end", "olife")

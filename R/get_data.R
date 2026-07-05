@@ -16,8 +16,10 @@ getData <- function(...) UseMethod("getData")
 #' @return list with variables and parameters name, each includes _dim_ and _names_ character vectors.
 #'
 #' @export
-findData <- function(scen, dataType = c("parameters", "variables"),
-                     setsNames_ = NULL, valueColumn = TRUE,
+findData <- function(scen,
+                     dataType = c("parameters", "variables"),
+                     setsNames_ = NULL,
+                     valueColumn = TRUE,
                      allSets = TRUE,
                      ignore.case = FALSE,
                      # anyOfTheSets = !allSets,
@@ -172,6 +174,7 @@ getData <- function(
     process = FALSE,
     parameters = TRUE,
     variables = TRUE,
+    sets = FALSE,
     ignore.case = TRUE,
     newNames = NULL,
     newValues = NULL,
@@ -189,6 +192,7 @@ getData <- function(
     yearsAsFactors = FALSE,
     drop_duplicated_scenarios = TRUE,
     scenNameInList = as.logical(length(scen) - 1),
+    unfold = TRUE,
     verbose = FALSE) {
   # if (name == "vObjective") browser()
   # browser()
@@ -275,6 +279,7 @@ getData <- function(
       }
       lt <- findData(scen[[s]],
         dataType = datype, setsNames_ = sets_names,
+        valueColumn = !sets,
         ignore.case = ignore.case
       )
       pvNames <- names(lt)
@@ -335,6 +340,16 @@ getData <- function(
             )
             if (!is.null(dat)) {
               dat <- collect(dat)
+            }
+            # Unfold wildcard (NA) rows of folded parameters back to explicit
+            # members at read time, using the scenario's membership maps.
+            if (isTRUE(unfold) && !is.null(dat) && nrow(dat) > 0) {
+              fi <- scen[[s]]@modInp@parameters[[pv]]@misc[["fold_info"]]
+              if (!is.null(fi) && isTRUE(fi[["folded"]])) {
+                dat <- unfold_scenario_parameter(
+                  scen[[s]], scen[[s]]@modInp@parameters[[pv]]
+                )
+              }
             }
             # temporary. ToDo: rewrite filter-algo for lazy-data
             # if (!is.null(scen[[sc]]@modInp@parameters[[pv]])) {

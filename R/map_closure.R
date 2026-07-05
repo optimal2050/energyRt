@@ -9,10 +9,11 @@
 # the declared-commodity / served-demand validation. Built via
 # build_mappings(recipes = "closure") in interp_mod, after the membership maps.
 #
-# NOTE: the `browser()` in the traded-primary-commodity branch is pre-existing
-# (the feature is unfinished — "!!! finish: add regions to commodity"); it is
-# never reached by the current test models. Left as-is to keep this migration
-# behaviour-preserving; fix separately.
+# NOTE: the traded-primary-commodity branch (a primary supply/import commodity
+# that is also traded across regions) carried a pre-existing `browser()` debug
+# stop from the legacy inline block. The test models never reach it; an older
+# model with a traded primary commodity does. The `browser()` was removed so such
+# models run -- the branch already adds the shipped-to regions to `comm_region`.
 # =========================================================================== #
 
 map_mCommReg <- function(scen, fmp) {
@@ -48,9 +49,10 @@ map_mCommReg <- function(scen, fmp) {
     filter(!is.na(region))
 
   if (nrow(traded_primary_comm_region) > 0) {
-    # !!! finish: add regions to commodity
-    browser()
-
+    # A primary commodity (supply/import) that is also traded becomes available in
+    # the regions it can be shipped to. (Was a pre-existing `browser()` debug stop
+    # ported from the legacy inline block; removed so models with traded primary
+    # commodities run. !!! revisit: confirm this covers multi-hop / aux cases.)
     comm_region <- traded_primary_comm_region |>
       select(comm, region) |>
       rbind(comm_region) |>

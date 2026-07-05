@@ -1,25 +1,25 @@
 # class-config ###############################################################
 #' An S4 class to represent default model configuration.
-#' 
+#'
 #' @description
 #' Config class is used to represent the default model configuration.
-#' It is stored in the model object and is used to initialize the 
+#' It is stored in the model object and is used to initialize the
 #' scenario settings.
-#' 
+#'
 #' @name class-config
-#' 
-#' @slot name `r get_slot_info("config", "name")`
-#' @slot desc `r get_slot_info("config", "desc")`
-#' @slot region `r get_slot_info("config", "region")`
-#' @slot calendar `r get_slot_info("config", "calendar")`
-#' @slot horizon `r get_slot_info("config", "horizon")`
-#' @slot discount `r get_slot_info("config", "discount")`
-#' @slot discountFirstYear `r get_slot_info("config", "discountFirstYear")`
-#' @slot optimizeRetirement `r get_slot_info("config", "optimizeRetirement")`
-#' @slot defVal `r get_slot_info("config", "defVal")`
-#' @slot interpolation `r get_slot_info("config", "interpolation")`
-#' @slot debug `r get_slot_info("config", "debug")`
-#' @slot misc `r get_slot_info("config", "misc")`
+#'
+#' @slot name `r get_slot_doc("config", "name")`
+#' @slot desc `r get_slot_doc("config", "desc")`
+#' @slot region `r get_slot_doc("config", "region")`
+#' @slot calendar `r get_slot_doc("config", "calendar")`
+#' @slot horizon `r get_slot_doc("config", "horizon")`
+#' @slot discount `r get_slot_doc("config", "discount")`
+#' @slot discountFirstYear `r get_slot_doc("config", "discountFirstYear")`
+#' @slot optimizeRetirement `r get_slot_doc("config", "optimizeRetirement")`
+#' @slot defVal `r get_slot_doc("config", "defVal")`
+#' @slot interpolation `r get_slot_doc("config", "interpolation")`
+#' @slot debug `r get_slot_doc("config", "debug")`
+#' @slot misc `r get_slot_doc("config", "misc")`
 #'
 #' @include class-calendar.R class-horizon.R
 #' @rdname class-config
@@ -59,9 +59,9 @@ setClass("config",
     discount = data.frame(
       region = character(),
       year = integer(),
-      discount = numeric(),
-      wacc = numeric(),
-      # sdr = numeric(),
+      discount = numeric(), # deprecated
+      wacc = numeric(), # weighted average cost of capital
+      sdr = numeric(), # social discount rate
       stringsAsFactors = FALSE
     ),
     region = NULL,
@@ -119,7 +119,7 @@ setMethod("setCalendar", signature(obj = "config"), function(obj, ...) {
 ## setHorizon ###############################################################
 #' @param horizon a new horizon object to be set.
 #' @method setHorizon config
-#' 
+#'
 #' @rdname newHorizon
 #'
 #' @export
