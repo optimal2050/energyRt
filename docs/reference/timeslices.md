@@ -80,7 +80,7 @@ Vector in Date-Time format
 
 ``` r
 dtm2tsl(lubridate::now())
-#> [1] "d186_h09"
+#> [1] "d186_h16"
 dtm2tsl(lubridate::ymd("2020-12-31"))
 #> [1] NA
 dtm2tsl(lubridate::ymd("2020-12-31"), d366.as.na = FALSE)

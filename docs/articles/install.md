@@ -32,7 +32,7 @@ itself:
 
 ``` r
 
-source("https://raw.githubusercontent.com/optimal2050/energyRt/main/inst/install.R")
+source("https://raw.githubusercontent.com/optimal2050/energyRt/master/inst/install.R")
 install_energyRt()
 ```
 
