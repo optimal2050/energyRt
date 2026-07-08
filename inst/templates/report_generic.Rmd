@@ -2,10 +2,11 @@
 title: "Technology Report"
 output:
   pdf_document:
-    latex_engine: pdflatex
+    latex_engine: xelatex
     keep_tex: false
   html_document:
     self_contained: true
+    md_extensions: "-native_divs-native_spans"
     css: null
 params:
   name:               "Technology"
@@ -80,7 +81,7 @@ tex_esc <- function(x) {
 }
 esc       <- if (is_html) html_esc else tex_esc
 fmt_val   <- function(x, digits = 3L) {
-  if (is.null(x) || is.na(x)) return("—")
+  if (is.null(x) || is.na(x)) return("--")
   formatC(as.numeric(x), digits = digits, format = "g")
 }
 ```
@@ -103,9 +104,9 @@ table.kable-table td { padding: 2px 6px; border-bottom: 1px solid #e0e0e0; }
 ```
 
 ```{r header, results='asis'}
-# ──────────────────────────────────────────────────────────────────────────────
+# ------------------------------------------------------------------------------
 #  PAGE HEADER: name (left) + optional image (right)
-# ──────────────────────────────────────────────────────────────────────────────
+# ------------------------------------------------------------------------------
 has_img <- !is.null(params$image_file) && nzchar(params$image_file) &&
            file.exists(params$image_file)
 
@@ -144,9 +145,9 @@ if (is_html) {
 ```
 
 ```{r main_body, results='asis'}
-# ──────────────────────────────────────────────────────────────────────────────
+# ------------------------------------------------------------------------------
 #  KEY PARAMETERS  (cap2act, olife, start, end, units)
-# ──────────────────────────────────────────────────────────────────────────────
+# ------------------------------------------------------------------------------
 kp <- list()
 if (!is.na(params$cap2act))  kp[["cap2act"]]  <- fmt_val(params$cap2act)
 if (!is.na(params$olife))    kp[["Lifetime"]]  <- paste(params$olife,  "yr")
@@ -171,7 +172,7 @@ if (length(kp) > 0) {
   }
 }
 
-# ── INPUTS / OUTPUTS ─────────────────────────────────────────────────────────
+# -- INPUTS / OUTPUTS ---------------------------------------------------------
 render_comms_table <- function(df, title) {
   if (is.null(df) || nrow(df) == 0) return(invisible(NULL))
   preferred_cols <- c("comm", "region", "agg", "share.lo", "share.up", "share.fx",
@@ -196,7 +197,7 @@ render_comms_table <- function(df, title) {
 render_comms_table(params$input_df,  "Inputs")
 render_comms_table(params$output_df, "Outputs")
 
-# ── EFFICIENCY (ceff) ─────────────────────────────────────────────────────────
+# -- EFFICIENCY (ceff) ---------------------------------------------------------
 if (!is.null(params$ceff_df) && nrow(params$ceff_df) > 0) {
   if (is_html) {
     cat("<hr class='ert-rule-thin' />\n")
@@ -211,7 +212,7 @@ if (!is.null(params$ceff_df) && nrow(params$ceff_df) > 0) {
   }
 }
 
-# ── DRAW SCHEMATIC ────────────────────────────────────────────────────────────
+# -- DRAW SCHEMATIC ------------------------------------------------------------
 if (!is.null(params$draw_file) && file.exists(params$draw_file)) {
   draw_path <- gsub("\\\\", "/", params$draw_file)
   if (is_html) {
@@ -230,9 +231,9 @@ if (!is.null(params$draw_file) && file.exists(params$draw_file)) {
 ```
 
 ```{r costs_section, results='asis'}
-# ──────────────────────────────────────────────────────────────────────────────
+# ------------------------------------------------------------------------------
 #  COSTS  (single-value key-param table, or multi-year chart below)
-# ──────────────────────────────────────────────────────────────────────────────
+# ------------------------------------------------------------------------------
 cost_list <- list(
   invcost = params$invcost_df,
   fixom   = params$fixom_df,
@@ -350,9 +351,9 @@ if (length(cost_list2) > 0) {
 ```
 
 ```{r share_frontier_section, results='asis'}
-# ──────────────────────────────────────────────────────────────────────────────
-#  SHARE MIX CONSTRAINTS – diagonal commodity-vs-rest chart
-# ──────────────────────────────────────────────────────────────────────────────
+# ------------------------------------------------------------------------------
+#  SHARE MIX CONSTRAINTS - diagonal commodity-vs-rest chart
+# ------------------------------------------------------------------------------
 has_sfr <- !is.null(params$share_frontier_plot)
 
 if (has_sfr) {
@@ -404,9 +405,9 @@ if (has_sfr) {
 ```
 
 ```{r levcost_section, results='asis', fig.height=3.5, fig.width=6.5, fig.align='center', out.width='100%'}
-# ──────────────────────────────────────────────────────────────────────────────
-#  LEVELIZED COST  –  NPV breakdown + input frontier (side by side when both)
-# ──────────────────────────────────────────────────────────────────────────────
+# ------------------------------------------------------------------------------
+#  LEVELIZED COST  -  NPV breakdown + input frontier (side by side when both)
+# ------------------------------------------------------------------------------
 has_lc <- !is.null(params$levcost_plot)
 has_fr <- !is.null(params$frontier_plot)
 

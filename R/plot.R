@@ -1043,10 +1043,17 @@ plot_heatmap <- function(x, calendar = NULL, value = NULL, facet = NULL,
 #' @param object A `weather` object.
 #' @param type One of `"heatmap"` (default), `"line"`, `"area"`.
 #' @param calendar A `calendar` object (or format string) giving the slice
-#'   layout. Recommended: for season-based calendars the layout cannot be
-#'   inferred from slice names alone. If `NULL`, the layout is guessed and, when
-#'   that fails, slices are shown on an ordered axis.
+#'   layout. Recommended for a fully structured view. If `NULL`, the layout is
+#'   guessed; when that fails, `"<prefix>_h##"`-style slices (e.g. season+hour)
+#'   are split into a coarse label + hour, otherwise slices are shown on a single
+#'   ordered axis. In every case region and year (when present) are drawn as
+#'   facets.
 #' @param palette Viridis color option for the heatmap fill.
+#' @param datetime Logical (line/area only). If `TRUE`, place the profile on a
+#'   real datetime axis via [tsl2dtm()]; if the slice type is not yet supported
+#'   the categorical axis is kept (with a warning).
+#' @param angle Rotation (degrees) for the x-axis tick labels; overlapping labels
+#'   are dropped so dense sub-annual axes stay legible. Default `45`; `0` = flat.
 #' @param ... Reserved for future use.
 #'
 #' @return A `ggplot` object (or `NULL`, invisibly, if there is nothing to plot).
@@ -1059,7 +1066,8 @@ plot_heatmap <- function(x, calendar = NULL, value = NULL, facet = NULL,
 #' plot_weather(W, type = "line", calendar = calendars$utopia_s4h24)
 #' }
 plot_weather <- function(object, type = c("heatmap", "line", "area"),
-                         calendar = NULL, palette = "D", ...) {
+                         calendar = NULL, palette = "D",
+                         datetime = FALSE, angle = 45, ...) {
   check_package("ggplot2")
   type <- match.arg(type)
   nm   <- tryCatch(object@name, error = function(e) "")
@@ -1073,6 +1081,9 @@ plot_weather <- function(object, type = c("heatmap", "line", "area"),
   u        <- object@unit
   unit_lab <- if (length(u) == 1 && !is.na(u) && nzchar(u)) u else "capacity factor"
 
+  reg_multi <- length(unique(d$region)) > 1
+  yr_multi  <- length(unique(d$year[!is.na(d$year)])) > 1
+
   # --- Layout from the slice structure (reuse the heatmap layout engine) --------
   pr <- tryCatch(
     .heatmap_prep(data.frame(slice = unique(d$slice), .v = 1),
@@ -1081,13 +1092,33 @@ plot_weather <- function(object, type = c("heatmap", "line", "area"),
   degenerate <- !is.null(pr) && identical(pr$x, pr$y) &&
     length(unique(d$slice)) > length(unique(pr$df[[pr$x]]))
 
+  # `region_axis` = TRUE means region is used as the heatmap y-axis (the
+  # unstructured single-axis fallback), so it must NOT also become a facet.
+  region_axis <- FALSE
+  cfac <- character(0)
   if (is.null(pr) || degenerate) {
-    if (is.null(calendar))
-      message("Could not resolve the calendar layout from slice names; ",
-              "pass `calendar =` for season-based calendars. Showing slices in order.")
-    d$slice <- factor(as.character(d$slice), levels = unique(as.character(d$slice)))
-    x_col <- "slice"; y_col <- "region"; fine <- "slice"; coarse <- NULL
-    cfac  <- character(0)
+    # No calendar layout resolved. Try to split "<prefix>_h##"-style slices into
+    # a coarse label (e.g. season) + a fine part (hour): this recovers a 2-D grid
+    # so region/year stay as facets and the heatmap keeps a real y-axis. Fall
+    # back to a single ordered `slice` axis only for unstructured slice names.
+    sl  <- as.character(d$slice)
+    hr  <- sub("^.*?[_-]?([hH][0-9]+)$", "\\1", sl)   # trailing hour token
+    pre <- sub("[_-]?([hH][0-9]+)$", "", sl)          # label before the hour
+    can_split <- all(grepl("^[hH][0-9]+$", hr)) &&
+      length(unique(pre)) > 1 && all(nzchar(pre))
+    if (can_split) {
+      d$.coarse <- factor(pre, levels = unique(pre))
+      d$.fine   <- factor(hr,  levels = unique(hr))
+      x_col <- ".coarse"; y_col <- ".fine"
+      fine  <- ".fine";   coarse <- ".coarse"
+    } else {
+      if (is.null(calendar))
+        message("Could not resolve a sub-annual layout from slice names; ",
+                "pass `calendar =` for a structured view. Showing slices in order.")
+      d$slice <- factor(sl, levels = unique(sl))
+      x_col <- "slice"; fine <- "slice"; coarse <- NULL
+      y_col <- "region"; region_axis <- reg_multi
+    }
   } else {
     d      <- merge(d, pr$df[, unique(c("slice", pr$x, pr$y, pr$facet)), drop = FALSE],
                     by = "slice")
@@ -1097,29 +1128,46 @@ plot_weather <- function(object, type = c("heatmap", "line", "area"),
     cfac   <- pr$facet
   }
 
-  reg_multi <- length(unique(d$region)) > 1
-  yr_multi  <- length(unique(d$year[!is.na(d$year)])) > 1
-  facets    <- c(if (reg_multi) "region", if (yr_multi) "year", cfac)
+  # Optional real datetime axis for line/area via tsl2dtm(); keep the categorical
+  # axis (with a warning) when the slice type is not yet supported.
+  if (isTRUE(datetime) && type != "heatmap") {
+    dt <- tryCatch(tsl2dtm(as.character(d$slice)), error = function(e) NULL)
+    if (is.null(dt) || all(is.na(dt))) {
+      warning("tsl2dtm() could not convert these slices to a datetime axis; ",
+              "keeping the categorical slice axis.", call. = FALSE)
+    } else {
+      d$.dtm <- dt
+      fine <- ".dtm"; coarse <- NULL      # one continuous series per panel
+    }
+  }
+
+  facets <- c(if (reg_multi && !region_axis) "region", if (yr_multi) "year", cfac)
 
   ttl <- if (nzchar(nm)) nm else NULL
   dsc <- tryCatch(object@desc, error = function(e) "")
   sub <- if (length(dsc) == 1 && !is.na(dsc) && nzchar(dsc)) dsc else NULL
+
+  # friendly axis / legend titles (hide the internal .coarse/.fine/.dtm helpers)
+  nice <- function(v) if (is.null(v)) NULL else
+    switch(v, ".fine" = "hour", ".coarse" = "group", ".dtm" = "time", v)
 
   if (type == "heatmap") {
     p <- ggplot2::ggplot(d, ggplot2::aes(x = .data[[x_col]], y = .data[[y_col]],
                                          fill = .data[["wval"]])) +
       ggplot2::geom_tile() +
       ggplot2::scale_fill_viridis_c(option = palette, name = unit_lab) +
-      (if (is.numeric(d[[x_col]])) ggplot2::scale_x_continuous(expand = c(0, 0))
-       else ggplot2::scale_x_discrete(expand = c(0, 0))) +
       (if (is.numeric(d[[y_col]])) ggplot2::scale_y_continuous(expand = c(0, 0))
        else ggplot2::scale_y_discrete(expand = c(0, 0))) +
-      ggplot2::labs(x = x_col, y = y_col, title = ttl, subtitle = sub) +
+      ggplot2::labs(x = nice(x_col), y = nice(y_col), title = ttl, subtitle = sub) +
       ggplot2::theme_minimal() +
       ggplot2::theme(panel.grid = ggplot2::element_blank())
+    xc <- x_col
   } else {
     if (is.null(coarse)) {
-      p <- ggplot2::ggplot(d, ggplot2::aes(x = .data[[fine]], y = .data[["wval"]]))
+      # group = 1 so geom_line connects points across a discrete (factor) x;
+      # without it a factor x makes each point its own group and nothing draws.
+      p <- ggplot2::ggplot(d, ggplot2::aes(x = .data[[fine]], y = .data[["wval"]],
+                                           group = 1))
     } else {
       p <- ggplot2::ggplot(d, ggplot2::aes(x = .data[[fine]], y = .data[["wval"]],
                                            colour = .data[[coarse]],
@@ -1129,11 +1177,24 @@ plot_weather <- function(object, type = c("heatmap", "line", "area"),
     p <- p +
       (if (type == "line") ggplot2::geom_line(linewidth = 0.7, na.rm = TRUE)
        else ggplot2::geom_area(position = "identity", alpha = 0.35, na.rm = TRUE)) +
-      ggplot2::labs(x = fine, y = unit_lab, colour = coarse, fill = coarse,
+      ggplot2::labs(x = nice(fine), y = unit_lab,
+                    colour = nice(coarse), fill = nice(coarse),
                     title = ttl, subtitle = sub) +
       ggplot2::theme_bw()
     if (type == "line") p <- p + ggplot2::guides(fill = "none")
+    xc <- fine
   }
+
+  # Rotate x labels and drop overlapping ones so dense sub-annual axes stay
+  # legible (heatmap keeps zero expansion for gap-free tiles).
+  xexp   <- if (type == "heatmap") c(0, 0) else ggplot2::waiver()
+  xguide <- ggplot2::guide_axis(angle = angle, check.overlap = TRUE)
+  p <- p + if (inherits(d[[xc]], "POSIXct"))
+      ggplot2::scale_x_datetime(guide = xguide, expand = xexp)
+    else if (is.numeric(d[[xc]]))
+      ggplot2::scale_x_continuous(guide = xguide, expand = xexp)
+    else
+      ggplot2::scale_x_discrete(guide = xguide, expand = xexp)
 
   if (length(facets) > 0)
     p <- p + ggplot2::facet_wrap(facets, scales = "free_x")

@@ -1148,7 +1148,9 @@ levcost_technology_ <- function(
     in_share_up[[.grp]] <- .su
     in_share_lo[[.grp]] <- .sl
   }
-  rm(list = c(".grp", ".gc", ".su", ".sl", ".sn", ".cm", ".r"))
+  # these loop temporaries only exist when `in_groups` is non-empty; remove only
+  # the ones actually created so a group-free tech doesn't warn (see #levcost).
+  rm(list = intersect(c(".grp", ".gc", ".su", ".sl", ".sn", ".cm", ".r"), ls()))
 
   # ── 4.5. Auxiliary commodities (from @aux / @aeff) ───────────────────────────
   # Collect all auxiliary commodity names declared in @aux$acomm so that they

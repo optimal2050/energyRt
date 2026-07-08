@@ -91,6 +91,19 @@ setGeneric(
        isTRUE(tryCatch(tinytex::is_tinytex(), error = function(e) FALSE)))
 }
 
+# Prefer a Unicode-capable LaTeX engine: report content carries UTF-8 typography
+# (box-drawing banners, em-dashes for NA) that pdflatex cannot typeset. Only fall
+# back to pdflatex when no Unicode-capable engine is available.
+.report_latex_engine <- function() {
+  if (nzchar(Sys.which("xelatex")))  return("xelatex")
+  if (nzchar(Sys.which("lualatex"))) return("lualatex")
+  # tinytex ships xelatex even when it is not on the system PATH
+  if (requireNamespace("tinytex", quietly = TRUE) &&
+      isTRUE(tryCatch(tinytex::is_tinytex(), error = function(e) FALSE)))
+    return("xelatex")
+  "pdflatex"
+}
+
 # Drop pdf/tex from `format` (with a helpful warning) when LaTeX is missing.
 .report_check_formats <- function(format) {
   needs_latex <- format %in% c("pdf", "tex")
@@ -103,6 +116,30 @@ setGeneric(
     if (length(format) == 0) format <- "html"
   }
   format
+}
+
+# Run expr while shielding knitr's global state from corruption.
+# rmarkdown::render() calls knitr::knit() internally, which mutates
+# knitr's global stores (opts_chunk, opts_knit, knit_hooks, knit_patterns).
+# Those mutations persist in the calling R session after render() returns,
+# corrupting subsequent renders and — when report() is called from inside
+# a knitr chunk — breaking the outer knit session so that subsequent
+# chunks emit raw source instead of rendered output.
+# Always saving and restoring the four stores eliminates both failure modes.
+.with_knitr_guard <- function(expr) {
+  saved_chunk   <- knitr::opts_chunk$get()
+  saved_knit    <- knitr::opts_knit$get()
+  saved_hooks   <- knitr::knit_hooks$get()
+  saved_pat     <- knitr::knit_patterns$get()
+
+  on.exit({
+    knitr::opts_chunk$restore(saved_chunk)
+    knitr::opts_knit$restore(saved_knit)
+    knitr::knit_hooks$restore(saved_hooks)
+    knitr::knit_patterns$restore(saved_pat)
+  }, add = TRUE)
+
+  force(expr)
 }
 
 # Open the first rendered file in the system viewer/browser.
@@ -143,8 +180,18 @@ setMethod(
     lc_dots     <- dots[intersect(names(dots), .levcost_params)]
     render_dots <- dots[setdiff(names(dots), .levcost_params)]
 
-    # Auto-run levcost() when the caller supplied its args but not the result
-    if (is.null(levcost) && length(lc_dots) > 0) {
+    # `levcost` may be a logical convenience flag: TRUE = have report() run
+    # levcost() itself (using comm/group/... from ...), FALSE = disable it.
+    # NA marks "not specified as a flag" (i.e. NULL or a ready levcost object).
+    run_levcost <- NA
+    if (is.logical(levcost)) {
+      run_levcost <- isTRUE(levcost)
+      levcost <- NULL
+    }
+    # Auto-run levcost() when asked for it, or when its args (but not a ready
+    # result) were supplied. An explicit `levcost = FALSE` suppresses this.
+    if (is.null(levcost) &&
+        (isTRUE(run_levcost) || (is.na(run_levcost) && length(lc_dots) > 0))) {
       levcost <- tryCatch(
         do.call(energyRt::levcost, c(list(object = object), lc_dots)),
         error = function(e) {
@@ -277,8 +324,13 @@ setMethod(
       fout <- paste0(file_base, ext)
 
       out_fmt <- switch(fmt,
-        pdf  = rmarkdown::pdf_document(latex_engine = "pdflatex", keep_tex = FALSE),
-        html = rmarkdown::html_document(self_contained = TRUE),
+        pdf  = rmarkdown::pdf_document(latex_engine = .report_latex_engine(),
+                                       keep_tex = FALSE),
+        html = rmarkdown::html_document(self_contained = TRUE,
+               # pass hand-written <div>/<span> through as raw HTML: older pandoc
+               # parses them as native divs and mis-balances them, swallowing the
+               # rest of the document (chunks then leak as raw source).
+               md_extensions = "-native_divs-native_spans"),
         tex  = rmarkdown::latex_document()
       )
 
@@ -294,17 +346,20 @@ setMethod(
         fmt_params$image_file <- gsub("\\\\", "/", img)
       }
 
-      do.call(rmarkdown::render, c(
-        list(
-          input         = tmpl,
-          output_format = out_fmt,
-          output_file   = fout,
-          params        = fmt_params,
-          envir         = new.env(parent = globalenv()),
-          quiet         = TRUE
-        ),
-        render_dots
-      ))
+      .with_knitr_guard(
+        do.call(rmarkdown::render, c(
+          list(
+            input             = tmpl,
+            output_format     = out_fmt,
+            output_file       = fout,
+            params            = fmt_params,
+            envir             = new.env(parent = globalenv()),
+            intermediates_dir = tempfile("report_int_"),
+            quiet             = TRUE
+          ),
+          render_dots
+        ))
+      )
 
       message("Report written to: ", fout)
       out_files <- c(out_files, fout)
@@ -382,14 +437,20 @@ setMethod(
     ext  <- switch(fmt, pdf = ".pdf", html = ".html", tex = ".tex")
     fout <- paste0(file_base, ext)
     out_fmt <- switch(fmt,
-      pdf  = rmarkdown::pdf_document(latex_engine = "pdflatex"),
-      html = rmarkdown::html_document(self_contained = TRUE),
+      pdf  = rmarkdown::pdf_document(latex_engine = .report_latex_engine()),
+      html = rmarkdown::html_document(self_contained = TRUE,
+               # pass hand-written <div>/<span> through as raw HTML: older pandoc
+               # parses them as native divs and mis-balances them, swallowing the
+               # rest of the document (chunks then leak as raw source).
+               md_extensions = "-native_divs-native_spans"),
       tex  = rmarkdown::latex_document())
-    do.call(rmarkdown::render, c(
-      list(input = tmpl, output_format = out_fmt, output_file = fout,
-           params = params, envir = new.env(parent = globalenv()),
-           quiet = TRUE),
-      render_dots))
+    .with_knitr_guard(
+      do.call(rmarkdown::render, c(
+        list(input = tmpl, output_format = out_fmt, output_file = fout,
+             params = params, envir = new.env(parent = globalenv()),
+             intermediates_dir = tempfile("report_int_"), quiet = TRUE),
+        render_dots))
+    )
     message("Report written to: ", fout)
     out_files <- c(out_files, fout)
   }
