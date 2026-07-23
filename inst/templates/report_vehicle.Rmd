@@ -1,10 +1,11 @@
-﻿---
+---
 output:
   pdf_document:
-    latex_engine: pdflatex
+    latex_engine: xelatex
     keep_tex: false
   html_document:
     self_contained: true
+    md_extensions: "-native_divs-native_spans"
 geometry: "a4paper, top=1.5cm, bottom=1.5cm, left=1.5cm, right=1.5cm"
 header-includes:
   - \usepackage{graphicx}
@@ -137,7 +138,7 @@ cat("
 .ideea-kp-table td { padding: 2px 12px 2px 0; vertical-align: top; white-space: nowrap; }
 .ideea-kp-table td:first-child { font-family: monospace; }
 
-/* kable data tables – booktabs style (horizontal rules only, no grid) */
+/* kable data tables - booktabs style (horizontal rules only, no grid) */
 table { border-collapse: collapse; font-size: 0.85em; margin: 4px 0 8px; width: auto; }
 thead tr th {
   border-top: 1.5px solid #333;
@@ -161,7 +162,7 @@ tbody tr:nth-child(odd) { background: #f7f7f7; }
 
 ```{r header, results='asis'}
 # ============================================================
-#  HEADER  –  name + description on left, image on right
+#  HEADER  -  name + description on left, image on right
 # ============================================================
 
 if (is_html) {
@@ -207,7 +208,7 @@ if (is_html) {
 
 ```{r main_body, results='asis'}
 # ============================================================
-#  MAIN BODY  –  tables on left, draw() schematic on right
+#  MAIN BODY  -  tables on left, draw() schematic on right
 # ============================================================
 
 # ---- assemble Input/Output ------------------------------------------------
@@ -518,7 +519,7 @@ if (length(cost_list_inner) > 0) {
 
 ```{r share_frontier_section, results='asis'}
 # ============================================================
-#  SHARE MIX CONSTRAINTS  –  diagonal comm-vs-rest chart
+#  SHARE MIX CONSTRAINTS  -  diagonal comm-vs-rest chart
 #  params$share_frontier_plot is a named list of ggplot objects
 #  (class "share_frontier_plots"), one per direction x group.
 # ============================================================
@@ -579,7 +580,7 @@ if (has_sfr) {
 
 ```{r levcost_section, results='asis'}
 # ============================================================
-#  LEVELIZED COST SECTION  –  NPV breakdown + frontier (side by side)
+#  LEVELIZED COST SECTION  -  NPV breakdown + frontier (side by side)
 # ============================================================
 has_lc <- !is.null(params$levcost_plot)
 has_fr <- !is.null(params$frontier_plot)

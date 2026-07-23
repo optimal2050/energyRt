@@ -3,8 +3,9 @@ title: "`r params$title`"
 output:
   html_document:
     self_contained: true
+    md_extensions: "-native_divs-native_spans"
   pdf_document:
-    latex_engine: pdflatex
+    latex_engine: xelatex
 params:
   title:        "Model report"
   model_name:   ""
