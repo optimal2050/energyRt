@@ -149,27 +149,23 @@ The package website: <https://energyrt.org>
 
 Data structures of the key model components.
 
+- [`storage-class`](https://energyRt.org/reference/class-storage.md) :
+  An S4 class to represent storage type of technological process.
+- [`supply-class`](https://energyRt.org/reference/supply-class.md) : An
+  S4 class to represent a supply of a commodity
 - [`class-constraint`](https://energyRt.org/reference/class-constraint.md)
   [`summand-class`](https://energyRt.org/reference/class-constraint.md)
   **\[experimental\]** : An S4 class to represent a custom constraint.
-- [`storage-class`](https://energyRt.org/reference/class-storage.md) :
-  An S4 class to represent storage type of technological process.
 - [`subsidy-class`](https://energyRt.org/reference/class-subsidy.md) :
   An S4 class to represent a commodity subsidy
 - [`tax-class`](https://energyRt.org/reference/class-tax.md) : An S4
   class to represent a commodity tax
 - [`get_process_class()`](https://energyRt.org/reference/get_process_class.md)
   : Get class of processes
-- [`supply-class`](https://energyRt.org/reference/supply-class.md) : An
-  S4 class to represent a supply of a commodity
 - [`class-calendar`](https://energyRt.org/reference/class-calendar.md) :
   An S4 class to represent sub-annual time resolution structure.
 - [`class-commodity`](https://energyRt.org/reference/class-commodity.md)
   : An S4 class to represent a commodity
-- [`class-config`](https://energyRt.org/reference/class-config.md) : An
-  S4 class to represent default model configuration.
-- [`class-costs`](https://energyRt.org/reference/class-costs.md)
-  **\[experimental\]** : An S4 class to add costs to objective function
 - [`class-demand`](https://energyRt.org/reference/class-demand.md) : An
   S4 class to declare a demand in the model
 - [`class-export`](https://energyRt.org/reference/class-export.md) : An
@@ -179,15 +175,25 @@ Data structures of the key model components.
   intervals (year-steps)
 - [`class-import`](https://energyRt.org/reference/class-import.md) : An
   S4 class to represent commodity import from the rest of the world.
-- [`class-model`](https://energyRt.org/reference/class-model.md)
-  [`model`](https://energyRt.org/reference/class-model.md) : An S4 class
-  to represent model
 - [`class-modInp`](https://energyRt.org/reference/class-modInp.md) : An
   S4 class to represent model input
 - [`class-modOut`](https://energyRt.org/reference/class-modOut.md) : An
   S4 class to store results of a solved scenario
 - [`class-parameter`](https://energyRt.org/reference/class-parameter.md)
   : An S4 class to specify the model set or parameter
+- [`class-technology`](https://energyRt.org/reference/class-technology.md)
+  : An S4 class to represent technology
+- [`class-trade`](https://energyRt.org/reference/class-trade.md) : An S4
+  class to represent inter-regional trade
+- [`class-weather`](https://energyRt.org/reference/class-weather.md) :
+  S4 class to represent weather factors
+- [`class-config`](https://energyRt.org/reference/class-config.md) : An
+  S4 class to represent default model configuration.
+- [`class-costs`](https://energyRt.org/reference/class-costs.md)
+  **\[experimental\]** : An S4 class to add costs to objective function
+- [`class-model`](https://energyRt.org/reference/class-model.md)
+  [`model`](https://energyRt.org/reference/class-model.md) : An S4 class
+  to represent model
 - [`class-repository`](https://energyRt.org/reference/class-repository.md)
   : An S4 class to store the model objects.
 - [`class-scenario`](https://energyRt.org/reference/class-scenario.md)
@@ -195,12 +201,6 @@ Data structures of the key model components.
   class to represent scenario, an interpolated and/or solved model.
 - [`class-settings`](https://energyRt.org/reference/class-settings.md) :
   An S4 class to represent scenario settings
-- [`class-technology`](https://energyRt.org/reference/class-technology.md)
-  : An S4 class to represent technology
-- [`class-trade`](https://energyRt.org/reference/class-trade.md) : An S4
-  class to represent inter-regional trade
-- [`class-weather`](https://energyRt.org/reference/class-weather.md) :
-  S4 class to represent weather factors
 - [`.upgrade_summand()`](https://energyRt.org/reference/class-summand.md)
   : An S4 class to represent a summand in a constraint.
 
@@ -208,16 +208,8 @@ Data structures of the key model components.
 
 Functions to create model components.
 
-- [`newCalendar()`](https://energyRt.org/reference/newCalendar.md) :
-  Generate a new calendar object from
 - [`newCommodity()`](https://energyRt.org/reference/newCommodity.md) :
   Create new commodity object
-- [`newConstraint()`](https://energyRt.org/reference/newConstraint.md)
-  [`isConstraint()`](https://energyRt.org/reference/newConstraint.md)
-  [`newConstraintS()`](https://energyRt.org/reference/newConstraint.md)
-  : Create constraint object to add custom constraints to the model.
-- [`newCosts()`](https://energyRt.org/reference/newCosts.md) : Create
-  new costs object
 - [`newDemand()`](https://energyRt.org/reference/newDemand.md)
   [`update(`*`<demand>`*`)`](https://energyRt.org/reference/newDemand.md)
   : Create new demand object
@@ -230,26 +222,34 @@ Functions to create model components.
   : Create a new object of class 'horizon'
 - [`newImport()`](https://energyRt.org/reference/newImport.md) : Create
   new export object
-- [`newModel()`](https://energyRt.org/reference/newModel.md)
-  [`setHorizon(`*`<model>`*`)`](https://energyRt.org/reference/newModel.md)
-  [`getHorizon(`*`<model>`*`)`](https://energyRt.org/reference/newModel.md)
-  : Create new model object
 - [`newRegistry()`](https://energyRt.org/reference/newRegistry.md)
   **\[experimental\]** : Create a new registry object.
-- [`newRepository()`](https://energyRt.org/reference/newRepository.md) :
-  A constructor for the repository class
 - [`newScenario()`](https://energyRt.org/reference/newScenario.md) :
   Generate a new scenario object
-- [`newSub()`](https://energyRt.org/reference/newSubsidy.md) : Create a
-  new subsidy object
 - [`newSupply()`](https://energyRt.org/reference/newSupply.md) :
   Constructor for supply object.
-- [`newTax()`](https://energyRt.org/reference/newTax.md) : Create a new
-  tax object
 - [`newTrade()`](https://energyRt.org/reference/newTrade.md) : Create
   new trade object
 - [`newWeather()`](https://energyRt.org/reference/newWeather.md) :
   Create new weather object
+- [`newCalendar()`](https://energyRt.org/reference/newCalendar.md) :
+  Generate a new calendar object from
+- [`newConstraint()`](https://energyRt.org/reference/newConstraint.md)
+  [`isConstraint()`](https://energyRt.org/reference/newConstraint.md)
+  [`newConstraintS()`](https://energyRt.org/reference/newConstraint.md)
+  : Create constraint object to add custom constraints to the model.
+- [`newCosts()`](https://energyRt.org/reference/newCosts.md) : Create
+  new costs object
+- [`newModel()`](https://energyRt.org/reference/newModel.md)
+  [`setHorizon(`*`<model>`*`)`](https://energyRt.org/reference/newModel.md)
+  [`getHorizon(`*`<model>`*`)`](https://energyRt.org/reference/newModel.md)
+  : Create new model object
+- [`newRepository()`](https://energyRt.org/reference/newRepository.md) :
+  A constructor for the repository class
+- [`newSub()`](https://energyRt.org/reference/newSubsidy.md) : Create a
+  new subsidy object
+- [`newTax()`](https://energyRt.org/reference/newTax.md) : Create a new
+  tax object
 - [`newStorage()`](https://energyRt.org/reference/storage.md) : Create
   new storage object
 - [`newTechnology()`](https://energyRt.org/reference/technology.md)
@@ -380,6 +380,10 @@ Model configuration and scenario settings
   [`neos_get_template()`](https://energyRt.org/reference/neos.md) : NEOS
   Server client (query the remote solver service)
 
+- [`neos_build_gams_text_job()`](https://energyRt.org/reference/neos_build_gams_text_job.md)
+  : Build a NEOS GAMS job from a text-mode scenario directory (no input
+  GDX)
+
 - [`neos_build_gams_xml()`](https://energyRt.org/reference/neos_build_gams_xml.md)
   : Assemble a NEOS GAMS job document
 
@@ -387,10 +391,6 @@ Model configuration and scenario settings
   :
 
   Inline a GAMS model's `$include` files into one self-contained string
-
-- [`neos_build_gams_text_job()`](https://energyRt.org/reference/neos_build_gams_text_job.md)
-  : Build a NEOS GAMS job from a text-mode scenario directory (no input
-  GDX)
 
 - [`neos_submit_job()`](https://energyRt.org/reference/neos_job.md)
   [`neos_job_status()`](https://energyRt.org/reference/neos_job.md)
@@ -442,13 +442,13 @@ Model configuration and scenario settings
 - [`findDuplicates()`](https://energyRt.org/reference/findDuplicates.md)
   : Function to find duplicated values in interpolated scenario.
 
-- [`find_in_model()`](https://energyRt.org/reference/find_in_model.md) :
-  Find where value(s) are stored across a model's objects
-
 - [`en_replace_specials()`](https://energyRt.org/reference/en_replace_specials.md)
   [`en_has_specials()`](https://energyRt.org/reference/en_replace_specials.md)
   [`en_find_specials()`](https://energyRt.org/reference/en_replace_specials.md)
   : Find and replace special characters
+
+- [`find_in_model()`](https://energyRt.org/reference/find_in_model.md) :
+  Find where value(s) are stored across a model's objects
 
 - [`renameSets()`](https://energyRt.org/reference/renameSets.md) :
   Rename data.frame columns of list of data.frames.
@@ -457,10 +457,10 @@ Model configuration and scenario settings
   Replace specified values with new values in factor or character
   columns of a data.frame.
 
+- [`size()`](https://energyRt.org/reference/size.md) : Size of an object
+
 - [`model_size()`](https://energyRt.org/reference/model_size.md) : Size
   estimate of an interpolated scenario and the result of folding
-
-- [`size()`](https://energyRt.org/reference/size.md) : Size of an object
 
 - [`hour2HOUR()`](https://energyRt.org/reference/hour2HOUR.md) : Convert
   hours (integer) values to HOUR set 'hNN'
@@ -508,62 +508,62 @@ Model configuration and scenario settings
 - [`utopia`](https://energyRt.org/reference/utopia.md) : UTOPIA
   reference maps
 
-- [`utopia_weather`](https://energyRt.org/reference/utopia_weather.md) :
-  UTOPIA representative capacity-factor profiles
-
 - [`utopia_demand`](https://energyRt.org/reference/utopia_demand.md) :
   UTOPIA electricity load shape
 
-- [`utopia_stock`](https://energyRt.org/reference/utopia_stock.md) :
-  UTOPIA base-year capacity stock
+- [`utopia_modules`](https://energyRt.org/reference/utopia_modules.md) :
+  UTOPIA model modules
 
 - [`utopia_profiles()`](https://energyRt.org/reference/utopia_profiles.md)
   : UTOPIA input profiles (deterministic)
 
-- [`utopia_modules`](https://energyRt.org/reference/utopia_modules.md) :
-  UTOPIA model modules
+- [`utopia_stock`](https://energyRt.org/reference/utopia_stock.md) :
+  UTOPIA base-year capacity stock
+
+- [`utopia_weather`](https://energyRt.org/reference/utopia_weather.md) :
+  UTOPIA representative capacity-factor profiles
 
 ## Visualisation
 
 - [`draw()`](https://energyRt.org/reference/draw.md) : Draw a schematic
   representation of a process
-- [`plot_share_frontier()`](https://energyRt.org/reference/plot_share_frontier.md)
-  : Plot feasible share-mix diagram for technology inputs/outputs
-- [`plot(`*`<calendar>`*`)`](https://energyRt.org/reference/plot_calendar_method.md)
-  [`autoplot(`*`<calendar>`*`)`](https://energyRt.org/reference/plot_calendar_method.md)
-  : Visualize a Calendar object
 - [`autoplot(`*`<commodity>`*`)`](https://energyRt.org/reference/autoplot.commodity.md)
   : Visualize a Commodity object
-- [`plot(`*`<horizon>`*`)`](https://energyRt.org/reference/plot_horizon_method.md)
-  [`autoplot(`*`<horizon>`*`)`](https://energyRt.org/reference/plot_horizon_method.md)
-  : Visualize a Horizon object
+- [`autoplot(`*`<tax>`*`)`](https://energyRt.org/reference/autoplot.lever.md)
+  [`autoplot(`*`<sub>`*`)`](https://energyRt.org/reference/autoplot.lever.md)
+  [`autoplot(`*`<constraint>`*`)`](https://energyRt.org/reference/autoplot.lever.md)
+  : Plot a tax, subsidy or user constraint over years
 - [`autoplot(`*`<supply>`*`)`](https://energyRt.org/reference/autoplot.process.md)
   [`autoplot(`*`<import>`*`)`](https://energyRt.org/reference/autoplot.process.md)
   [`autoplot(`*`<export>`*`)`](https://energyRt.org/reference/autoplot.process.md)
   [`autoplot(`*`<technology>`*`)`](https://energyRt.org/reference/autoplot.process.md)
   [`autoplot(`*`<storage>`*`)`](https://energyRt.org/reference/autoplot.process.md)
   : Visualize a process object over years
-- [`plot_heatmap()`](https://energyRt.org/reference/plot_heatmap.md) :
-  Heatmap of timeslice-indexed values over a calendar
-- [`plot_weather()`](https://energyRt.org/reference/plot_weather.md)
-  [`autoplot(`*`<weather>`*`)`](https://energyRt.org/reference/plot_weather.md)
-  : Visualize a weather object
-- [`autoplot(`*`<tax>`*`)`](https://energyRt.org/reference/autoplot.lever.md)
-  [`autoplot(`*`<sub>`*`)`](https://energyRt.org/reference/autoplot.lever.md)
-  [`autoplot(`*`<constraint>`*`)`](https://energyRt.org/reference/autoplot.lever.md)
-  : Plot a tax, subsidy or user constraint over years
 - [`autoplot(`*`<scenario>`*`)`](https://energyRt.org/reference/autoplot.scenario.md)
   : Plot mixes from a solved scenario
+- [`plot(`*`<calendar>`*`)`](https://energyRt.org/reference/plot_calendar_method.md)
+  [`autoplot(`*`<calendar>`*`)`](https://energyRt.org/reference/plot_calendar_method.md)
+  : Visualize a Calendar object
+- [`plot_demand()`](https://energyRt.org/reference/plot_demand.md)
+  [`autoplot(`*`<demand>`*`)`](https://energyRt.org/reference/plot_demand.md)
+  : Visualize a demand object
+- [`plot_heatmap()`](https://energyRt.org/reference/plot_heatmap.md) :
+  Heatmap of timeslice-indexed values over a calendar
+- [`plot(`*`<horizon>`*`)`](https://energyRt.org/reference/plot_horizon_method.md)
+  [`autoplot(`*`<horizon>`*`)`](https://energyRt.org/reference/plot_horizon_method.md)
+  : Visualize a Horizon object
 - [`plot_process_windows()`](https://energyRt.org/reference/plot_process_windows.md)
   [`autoplot(`*`<model>`*`)`](https://energyRt.org/reference/plot_process_windows.md)
   [`autoplot(`*`<repository>`*`)`](https://energyRt.org/reference/plot_process_windows.md)
   : Plot process investment / availability windows
-- [`plot_demand()`](https://energyRt.org/reference/plot_demand.md)
-  [`autoplot(`*`<demand>`*`)`](https://energyRt.org/reference/plot_demand.md)
-  : Visualize a demand object
+- [`plot_share_frontier()`](https://energyRt.org/reference/plot_share_frontier.md)
+  : Plot feasible share-mix diagram for technology inputs/outputs
 - [`plot_trade_map()`](https://energyRt.org/reference/plot_trade_map.md)
   [`autoplot(`*`<trade>`*`)`](https://energyRt.org/reference/plot_trade_map.md)
   : Map inter-regional trade routes
+- [`plot_weather()`](https://energyRt.org/reference/plot_weather.md)
+  [`autoplot(`*`<weather>`*`)`](https://energyRt.org/reference/plot_weather.md)
+  : Visualize a weather object
 - [`set_progress_bar()`](https://energyRt.org/reference/progress.md)
   [`show_progress_bar()`](https://energyRt.org/reference/progress.md) :
   Switch on/off and select/customize progress bar
@@ -594,16 +594,26 @@ Model configuration and scenario settings
   [`setHorizon(`*`<config>`*`)`](https://energyRt.org/reference/newHorizon.md)
   [`update(`*`<config>`*`)`](https://energyRt.org/reference/newHorizon.md)
   : Create a new object of class 'horizon'
-- [`newModel()`](https://energyRt.org/reference/newModel.md)
-  [`setHorizon(`*`<model>`*`)`](https://energyRt.org/reference/newModel.md)
-  [`getHorizon(`*`<model>`*`)`](https://energyRt.org/reference/newModel.md)
-  : Create new model object
 - [`set_scenarios_path()`](https://energyRt.org/reference/options.md)
   [`get_scenarios_path()`](https://energyRt.org/reference/options.md) :
   Set or get directory for/with scenarios
 - [`set_progress_bar()`](https://energyRt.org/reference/progress.md)
   [`show_progress_bar()`](https://energyRt.org/reference/progress.md) :
   Switch on/off and select/customize progress bar
+- [`get_arrow_format()`](https://energyRt.org/reference/arrow_format.md)
+  [`set_arrow_format()`](https://energyRt.org/reference/arrow_format.md)
+  [`get_arrow_compression()`](https://energyRt.org/reference/arrow_format.md)
+  [`set_arrow_compression()`](https://energyRt.org/reference/arrow_format.md)
+  [`get_arrow_compression_level()`](https://energyRt.org/reference/arrow_format.md)
+  [`set_arrow_compression_level()`](https://energyRt.org/reference/arrow_format.md)
+  : Arrow exchange-format options
+- [`get_neos_email()`](https://energyRt.org/reference/neos_email.md)
+  [`set_neos_email()`](https://energyRt.org/reference/neos_email.md) :
+  NEOS submission email
+- [`newModel()`](https://energyRt.org/reference/newModel.md)
+  [`setHorizon(`*`<model>`*`)`](https://energyRt.org/reference/newModel.md)
+  [`getHorizon(`*`<model>`*`)`](https://energyRt.org/reference/newModel.md)
+  : Create new model object
 - [`set_gams_path()`](https://energyRt.org/reference/solver.md)
   [`get_gams_path()`](https://energyRt.org/reference/solver.md)
   [`set_gdxlib_path()`](https://energyRt.org/reference/solver.md)
@@ -615,27 +625,17 @@ Model configuration and scenario settings
   [`set_python_path()`](https://energyRt.org/reference/solver.md)
   [`get_python_path()`](https://energyRt.org/reference/solver.md) : Set
   GAMS and GDX library directory
-- [`get_arrow_format()`](https://energyRt.org/reference/arrow_format.md)
-  [`set_arrow_format()`](https://energyRt.org/reference/arrow_format.md)
-  [`get_arrow_compression()`](https://energyRt.org/reference/arrow_format.md)
-  [`set_arrow_compression()`](https://energyRt.org/reference/arrow_format.md)
-  [`get_arrow_compression_level()`](https://energyRt.org/reference/arrow_format.md)
-  [`set_arrow_compression_level()`](https://energyRt.org/reference/arrow_format.md)
-  : Arrow exchange-format options
-- [`get_neos_email()`](https://energyRt.org/reference/neos_email.md)
-  [`set_neos_email()`](https://energyRt.org/reference/neos_email.md) :
-  NEOS submission email
 - [`make_scenario_dirname()`](https://energyRt.org/reference/make_scenario_dirname.md)
   : Make a name for a scenario directory
 
 ## utils
 
+- [`en_install_deps()`](https://energyRt.org/reference/en_install_deps.md)
+  : Install the energyRt dependency library layer
 - [`en_install_julia_pkgs()`](https://energyRt.org/reference/en_install_julia_pkgs.md)
   : Install Julia packages
 - [`en_install_python_deps()`](https://energyRt.org/reference/en_install_python_deps.md)
   : Install Python/Pyomo dependencies
-- [`en_install_deps()`](https://energyRt.org/reference/en_install_deps.md)
-  : Install the energyRt dependency library layer
 - [`en_setup()`](https://energyRt.org/reference/en_setup.md) : Set up
   energyRt after installation
 - [`en_check_glpk()`](https://energyRt.org/reference/en_check.md)
@@ -651,9 +651,25 @@ Model configuration and scenario settings
   : Check R package and external-tool dependencies
 - [`collect_set_elements()`](https://energyRt.org/reference/collect_set_elements.md)
   : Search through model data for set elements
+- [`get_registry()`](https://energyRt.org/reference/get_registry.md) :
+  Returns the current registry object.
+- [`set_scenarios_path()`](https://energyRt.org/reference/options.md)
+  [`get_scenarios_path()`](https://energyRt.org/reference/options.md) :
+  Set or get directory for/with scenarios
+- [`get_arrow_format()`](https://energyRt.org/reference/arrow_format.md)
+  [`set_arrow_format()`](https://energyRt.org/reference/arrow_format.md)
+  [`get_arrow_compression()`](https://energyRt.org/reference/arrow_format.md)
+  [`set_arrow_compression()`](https://energyRt.org/reference/arrow_format.md)
+  [`get_arrow_compression_level()`](https://energyRt.org/reference/arrow_format.md)
+  [`set_arrow_compression_level()`](https://energyRt.org/reference/arrow_format.md)
+  : Arrow exchange-format options
 - [`getData()`](https://energyRt.org/reference/getData.md)
   [`get_data()`](https://energyRt.org/reference/getData.md) : Extract
   data from energyRt objects
+- [`getUnits(`*`<commodity>`*`)`](https://energyRt.org/reference/getUnits.md)
+  [`getUnits(`*`<technology>`*`)`](https://energyRt.org/reference/getUnits.md)
+  [`get_units()`](https://energyRt.org/reference/getUnits.md) : Get
+  parameter units for energyRt class objects
 - [`get_default_value()`](https://energyRt.org/reference/get_default_value.md)
   : Return default value for one, several, or all parameters
 - [`get_process_aux()`](https://energyRt.org/reference/get_process_aux.md)
@@ -674,13 +690,11 @@ Model configuration and scenario settings
   : Get operational timeframe of processes
 - [`get_region()`](https://energyRt.org/reference/get_region.md) :
   Collect the regions an object operates in
-- [`get_registry()`](https://energyRt.org/reference/get_registry.md) :
-  Returns the current registry object.
 - [`get_slot_doc()`](https://energyRt.org/reference/get_slot_doc.md) :
   Retrieve slot details in rd-format
-- [`set_scenarios_path()`](https://energyRt.org/reference/options.md)
-  [`get_scenarios_path()`](https://energyRt.org/reference/options.md) :
-  Set or get directory for/with scenarios
+- [`get_neos_email()`](https://energyRt.org/reference/neos_email.md)
+  [`set_neos_email()`](https://energyRt.org/reference/neos_email.md) :
+  NEOS submission email
 - [`set_gams_path()`](https://energyRt.org/reference/solver.md)
   [`get_gams_path()`](https://energyRt.org/reference/solver.md)
   [`set_gdxlib_path()`](https://energyRt.org/reference/solver.md)
@@ -692,20 +706,6 @@ Model configuration and scenario settings
   [`set_python_path()`](https://energyRt.org/reference/solver.md)
   [`get_python_path()`](https://energyRt.org/reference/solver.md) : Set
   GAMS and GDX library directory
-- [`get_arrow_format()`](https://energyRt.org/reference/arrow_format.md)
-  [`set_arrow_format()`](https://energyRt.org/reference/arrow_format.md)
-  [`get_arrow_compression()`](https://energyRt.org/reference/arrow_format.md)
-  [`set_arrow_compression()`](https://energyRt.org/reference/arrow_format.md)
-  [`get_arrow_compression_level()`](https://energyRt.org/reference/arrow_format.md)
-  [`set_arrow_compression_level()`](https://energyRt.org/reference/arrow_format.md)
-  : Arrow exchange-format options
-- [`get_neos_email()`](https://energyRt.org/reference/neos_email.md)
-  [`set_neos_email()`](https://energyRt.org/reference/neos_email.md) :
-  NEOS submission email
-- [`getUnits(`*`<commodity>`*`)`](https://energyRt.org/reference/getUnits.md)
-  [`getUnits(`*`<technology>`*`)`](https://energyRt.org/reference/getUnits.md)
-  [`get_units()`](https://energyRt.org/reference/getUnits.md) : Get
-  parameter units for energyRt class objects
 - [`complete_set()`](https://energyRt.org/reference/complete_set.md) :
   Complete a data frame with missing set elements
 - [`expand_na_rows()`](https://energyRt.org/reference/expand_na_rows.md)

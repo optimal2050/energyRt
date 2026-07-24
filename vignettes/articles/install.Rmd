@@ -39,7 +39,7 @@ The quickest install is one line — it sets up `pak`, reports any Linux system
 libraries to install, installs all dependencies, then energyRt itself:
 
 ```{r}
-source("https://raw.githubusercontent.com/optimal2050/energyRt/main/inst/install.R")
+source("https://raw.githubusercontent.com/optimal2050/energyRt/master/inst/install.R")
 install_energyRt()
 ```
 

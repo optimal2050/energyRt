@@ -157,7 +157,7 @@ as `name_model_calendar_horizon`:
 ``` r
 
 get_scenarios_path()
-#> [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\Rtmpqm13P1/wf"
+#> [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpMPAFa0/wf"
 make_scenario_dirname(scen)
 #> [1] "BASE_UTOPIA_utopia_s4h24_base"
 ```

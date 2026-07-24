@@ -77,9 +77,13 @@
 #'     \item{\code{region}}{Character or \code{NULL}.}
 #'     \item{\code{weather}}{A \code{weather} object, list of weather objects,
 #'       or \code{NULL}.}
-#'     \item{\code{frontier}}{Logical, default \code{FALSE}.  When \code{TRUE}
+#'     \item{\code{frontier}}{Logical, default \code{TRUE}.  When \code{TRUE}
 #'       additional solves are performed to map the production frontier for
-#'       technologies with multi-commodity grouped output and share constraints.}
+#'       technologies with multi-commodity grouped output and share constraints
+#'       (one solve per output / input corner solution).  Has no effect for
+#'       single-output or unconstrained technologies (the frontier is not
+#'       meaningful, so only the base solve runs).  Set \code{FALSE} to skip the
+#'       extra solves.}
 #'     \item{\code{solver}}{Solver spec list, default
 #'       \code{solver_options$glpk}.}
 #'     \item{\code{as_scenario}}{Logical, default \code{FALSE}.  When
@@ -985,7 +989,7 @@ levcost_technology_ <- function(
     timeframe      = c("ANNUAL", "native"),
     region         = NULL,
     weather        = NULL,
-    frontier       = FALSE,
+    frontier       = TRUE,
     backstop       = TRUE,
     solver         = solver_options$glpk,
     as_scenario    = FALSE,
@@ -1148,7 +1152,9 @@ levcost_technology_ <- function(
     in_share_up[[.grp]] <- .su
     in_share_lo[[.grp]] <- .sl
   }
-  rm(list = c(".grp", ".gc", ".su", ".sl", ".sn", ".cm", ".r"))
+  # these loop temporaries only exist when `in_groups` is non-empty; remove only
+  # the ones actually created so a group-free tech doesn't warn (see #levcost).
+  rm(list = intersect(c(".grp", ".gc", ".su", ".sl", ".sn", ".cm", ".r"), ls()))
 
   # ── 4.5. Auxiliary commodities (from @aux / @aeff) ───────────────────────────
   # Collect all auxiliary commodity names declared in @aux$acomm so that they

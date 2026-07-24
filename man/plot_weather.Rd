@@ -10,6 +10,8 @@ plot_weather(
   type = c("heatmap", "line", "area"),
   calendar = NULL,
   palette = "D",
+  datetime = FALSE,
+  angle = 45,
   ...
 )
 
@@ -21,11 +23,20 @@ plot_weather(
 \item{type}{One of \code{"heatmap"} (default), \code{"line"}, \code{"area"}.}
 
 \item{calendar}{A \code{calendar} object (or format string) giving the slice
-layout. Recommended: for season-based calendars the layout cannot be
-inferred from slice names alone. If \code{NULL}, the layout is guessed and, when
-that fails, slices are shown on an ordered axis.}
+layout. Recommended for a fully structured view. If \code{NULL}, the layout is
+guessed; when that fails, \code{"<prefix>_h##"}-style slices (e.g. season+hour)
+are split into a coarse label + hour, otherwise slices are shown on a single
+ordered axis. In every case region and year (when present) are drawn as
+facets.}
 
 \item{palette}{Viridis color option for the heatmap fill.}
+
+\item{datetime}{Logical (line/area only). If \code{TRUE}, place the profile on a
+real datetime axis via \code{\link[=tsl2dtm]{tsl2dtm()}}; if the slice type is not yet supported
+the categorical axis is kept (with a warning).}
+
+\item{angle}{Rotation (degrees) for the x-axis tick labels; overlapping labels
+are dropped so dense sub-annual axes stay legible. Default \code{45}; \code{0} = flat.}
 
 \item{...}{Reserved for future use.}
 }
