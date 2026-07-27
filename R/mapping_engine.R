@@ -69,10 +69,12 @@ mappings_by_recipe <- function(spec = load_mapping_spec()) {
 
 # `recipe_membership` + `.membership_map_def` + `.build_membership_map` (the
 # never-wired engine membership impl) ARCHIVED to drafts/legacy-mapping/membership.R.
-# The 12 core membership maps are built by R/map_membership.R (registry, reading
-# the `*_comm` sets populated in interp_mod); this no-op fallback covers the ~18
-# specialised membership-tagged maps (groups / agg / same-slice / emission-fuel /
-# weather-region) which are built later in the filter recipe.
+# The core membership maps are built by R/map_membership.R (registry): the `*_comm`
+# maps read the `*_comm` sets populated in interp_mod, and the input/output-group
+# maps (mTechInpGroup / mTechOutGroup / mTechGroupComm) derive from checkInpOut() —
+# these feed .build_tech_group_maps in the constraint recipe. This no-op fallback
+# covers the remaining specialised membership-tagged maps (agg / same-slice /
+# emission-fuel / weather-region) built later in the filter recipe.
 recipe_membership <- function(scen, names, fmp) scen
 
 # --------------------------------------------------------------------------- #
@@ -1223,13 +1225,18 @@ recipe_value <- function(scen, names, fmp) {
                             mTechGroupComm)))
   } else NULL
 
-  # Share bounds (drop the value/type columns once filtered).
+  # Share bounds (drop the value/type columns once filtered). A sparse value
+  # parameter stores an UNSET dimension as NA ("applies to all"); such an all-NA
+  # key column must be dropped before merge0, otherwise the literal NA-vs-value
+  # slice join empties the domain (the share bound would silently never bind).
   share_map <- function(type) {
     if (is.null(pTechShare) || is.null(pTechShare$type)) return(NULL)
     s <- pTechShare[pTechShare$type == type & pTechShare$value > 0, ,
                     drop = FALSE]
     if (nrow(s) == 0) return(NULL)
-    s[, setdiff(colnames(s), c("value", "type")), drop = FALSE]
+    s <- s[, setdiff(colnames(s), c("value", "type")), drop = FALSE]
+    keep <- vapply(s, function(col) !all(is.na(col)), logical(1))
+    s[, keep, drop = FALSE]
   }
   has_groups <- !is.null(mTechInpGroup) || !is.null(mTechOutGroup)
   mpTechShareLo <- if (has_groups) share_map("lo") else NULL

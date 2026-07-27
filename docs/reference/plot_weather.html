@@ -33,7 +33,7 @@ object's @unit (or &quot;capacity factor&quot; if unset)."><meta property="og:im
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.70.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.70.2.9001</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -42,6 +42,7 @@ object's @unit (or &quot;capacity factor&quot; if unset)."><meta property="og:im
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/energyRt.html">Get started</a></li>
+<li class="nav-item"><a class="nav-link" href="../articles/use-R-2026.html">Training</a></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Roadmap</a></li>
 <li class="nav-item dropdown">
@@ -95,6 +96,8 @@ object's <code>@unit</code> (or <code>"capacity factor"</code> if unset).</p>
 <span>  type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"heatmap"</span>, <span class="st">"line"</span>, <span class="st">"area"</span><span class="op">)</span>,</span>
 <span>  calendar <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  palette <span class="op">=</span> <span class="st">"D"</span>,</span>
+<span>  datetime <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  angle <span class="op">=</span> <span class="fl">45</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -116,13 +119,26 @@ object's <code>@unit</code> (or <code>"capacity factor"</code> if unset).</p>
 
 <dt id="arg-calendar">calendar<a class="anchor" aria-label="anchor" href="#arg-calendar"></a></dt>
 <dd><p>A <code>calendar</code> object (or format string) giving the slice
-layout. Recommended: for season-based calendars the layout cannot be
-inferred from slice names alone. If <code>NULL</code>, the layout is guessed and, when
-that fails, slices are shown on an ordered axis.</p></dd>
+layout. Recommended for a fully structured view. If <code>NULL</code>, the layout is
+guessed; when that fails, <code>"&lt;prefix&gt;_h##"</code>-style slices (e.g. season+hour)
+are split into a coarse label + hour, otherwise slices are shown on a single
+ordered axis. In every case region and year (when present) are drawn as
+facets.</p></dd>
 
 
 <dt id="arg-palette">palette<a class="anchor" aria-label="anchor" href="#arg-palette"></a></dt>
 <dd><p>Viridis color option for the heatmap fill.</p></dd>
+
+
+<dt id="arg-datetime">datetime<a class="anchor" aria-label="anchor" href="#arg-datetime"></a></dt>
+<dd><p>Logical (line/area only). If <code>TRUE</code>, place the profile on a
+real datetime axis via <code><a href="timeslices.html">tsl2dtm()</a></code>; if the slice type is not yet supported
+the categorical axis is kept (with a warning).</p></dd>
+
+
+<dt id="arg-angle">angle<a class="anchor" aria-label="anchor" href="#arg-angle"></a></dt>
+<dd><p>Rotation (degrees) for the x-axis tick labels; overlapping labels
+are dropped so dense sub-annual axes stay legible. Default <code>45</code>; <code>0</code> = flat.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
@@ -153,7 +169,7 @@ that fails, slices are shown on an ordered axis.</p></dd>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer></div>

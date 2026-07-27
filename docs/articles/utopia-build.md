@@ -90,16 +90,23 @@ This vignette builds a **three-region** model on the first three regions
 
 We pick a ready calendar – `utopia_s4h24`, four seasons x 24 hours (96
 slices); calendar construction is covered in the [time-resolution
-article](https://energyrt.org/articles/time-resolution.html). Region
-names are upper-case (`R1`, `R2`, `R3`), matching the region names in
-the UTOPIA maps. Deterministic capacity-factor and load profiles come
-from
+article](https://energyrt.org/articles/time-resolution.html).
+
+``` r
+
+cal  <- calendars$utopia_s4h24
+autoplot(cal)
+```
+
+Region names are upper-case (`R1`, `R2`, `R3`), matching the region
+names in the UTOPIA maps. Deterministic capacity-factor and load
+profiles come from
 \[[`utopia_profiles()`](https://energyRt.org/reference/utopia_profiles.md)\].
 
 ``` r
 
 regions <- c("R1", "R2", "R3")
-cal  <- calendars$utopia_s4h24
+
 prof <- utopia_profiles(regions, calendar = "utopia_s4h24")
 str(prof, max.level = 1)
 ```
@@ -193,6 +200,8 @@ SUP_COA <- newSupply(
     cost = 2.5
   )
 )
+draw(SUP_COA)
+
 SUP_GAS <- newSupply(
   name = "SUP_GAS",
   desc = "Natural gas supply (produced in R2)",
@@ -241,6 +250,8 @@ IMP_COA <- newImport(
     price = 3.5                           # vs 2.5 domestic in R1
   )
 )
+draw(IMP_COA)
+
 IMP_GAS <- update(IMP_COA,
   name = "IMP_GAS",
   desc = "LNG import from the rest of the world",
@@ -251,18 +262,18 @@ IMP_GAS <- update(IMP_COA,
   )
 )
 
-EXP_ELC <- newExport(
-  name = "EXP_ELC",
-  desc = "Electricity export to the rest of the world",
-  commodity = "ELC",
-  unit = "PJ",
-  exp = merge(                            # ~10 PJ/yr per region, paced by slice
-    data.frame(region = regions, price = 5.0),
-    data.frame(slice  = as.data.frame(cal@slice_share)$slice,
-               exp.up = 10 * as.data.frame(cal@slice_share)$share)
-  ),
-  reserve = 300                           # plus a cumulative cap, PJ
-)
+# EXP_ELC <- newExport(
+#   name = "EXP_ELC",
+#   desc = "Electricity export to the rest of the world",
+#   commodity = "ELC",
+#   unit = "PJ",
+#   exp = merge(                            # ~10 PJ/yr per region, paced by slice
+#     data.frame(region = regions, price = 5.0),
+#     data.frame(slice  = as.data.frame(cal@slice_share)$slice,
+#                exp.up = 10 * as.data.frame(cal@slice_share)$share)
+#   ),
+#   reserve = 300                           # plus a cumulative cap, PJ
+# )
 ```
 
 The export price sits *below* every technology’s levelized cost, so the
@@ -289,11 +300,20 @@ WSOL <- newWeather(
                          c("region", "slice", "wval")]
 )
 
-wobj <- function(res) newWeather(res, timeframe = "HOUR",
-  weather = prof$weather[prof$weather$resource == res,
-                         c("region", "slice", "wval")])
-WWIN <- wobj("WWIN")
-WHYD <- wobj("WHYD")
+# or write a function to speedup the process
+make_weather <- function(res) {
+  newWeather(
+    name = res, 
+    timeframe = "HOUR",
+    weather = 
+      prof$weather |>
+        filter(resource == res) |> 
+        select(region, slice, wval)
+  )
+}
+    
+WWIN <- make_weather("WWIN")
+WHYD <- make_weather("WHYD")
 ```
 
 [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
@@ -307,6 +327,13 @@ scales the profiles deterministically): `R1` is the sunniest region,
 ``` r
 
 autoplot(WSOL, type = "line", calendar = cal)
+autoplot(WSOL, type = "heatmap", calendar = cal)
+
+autoplot(WWIN, calendar = cal, type = "line")
+autoplot(WWIN, calendar = cal)
+
+autoplot(WHYD, calendar = cal, type = "line")
+autoplot(WHYD, calendar = cal)
 ```
 
 (UTOPIA’s profiles derive from the
@@ -400,6 +427,11 @@ ECOA <- newTechnology(
     comm = "COA",
     cinp2use = 0.40                       # 40% efficiency
   ),
+  afs = data.frame(
+    slice = "ANNUAL",
+    afs.up = 0.8,
+    afs.lo = 0.4
+  ),
   invcost = list(
     invcost = convert("EUR/kW", "MEUR/GW", 2000)
   ),
@@ -444,6 +476,11 @@ EGAS <- newTechnology(
     comm = "GAS",
     cinp2use = 0.58
   ),
+  afs = data.frame(
+    slice = "ANNUAL",
+    afs.up = 0.9,
+    afs.lo = 0.4
+  ),
   invcost = list(
     invcost = convert("EUR/kW", "MEUR/GW", 900)
   ),
@@ -459,6 +496,7 @@ EGAS <- newTechnology(
   olife = list(olife = 30),
   optimizeRetirement = TRUE
 )
+draw(EGAS)
 ```
 
 ### Nuclear power plant
@@ -486,8 +524,13 @@ ENUC <- newTechnology(
     cinp2use = 0.35
   ),
   af = data.frame(
-    af.lo = 0.7                           # must-run baseload
+    af.lo = 0.8                           # must-run baseload
   ),
+   afs = data.frame(
+    slice = "ANNUAL",
+    afs.up = 0.95,
+    afs.lo = 0.8
+  ), 
   invcost = list(
     invcost = convert("EUR/kW", "MEUR/GW", 8000)   # recent Western builds
   ),
@@ -502,6 +545,8 @@ ENUC <- newTechnology(
   start = list(start = 2025),
   olife = list(olife = 50)
 )
+draw(ENUC)
+autoplot(ENUC)
 ```
 
 ### Renewables
@@ -531,7 +576,8 @@ ESOL <- newTechnology(
   weather = list(
     weather = "WSOL",
     comm = "SOL",
-    waf.up = 1
+    waf.fx = 1 # fix production based to the (weather) capacity factors
+    # waf.up = 1 # or set upper limit (ignore curtailments)
   ),
   invcost = list(
     invcost = convert("EUR/kW", "MEUR/GW", 650)
@@ -539,7 +585,7 @@ ESOL <- newTechnology(
   fixom = list(
     fixom = 12
   ),
-  capacity = data.frame(                  # young but small fleet, out by 2040
+  capacity = data.frame(  # young but small fleet, out by 2040
     region = c("R1", "R2", "R3", "R1", "R2", "R3"),
     year   = c(2020, 2020, 2020, 2040, 2040, 2040),
     stock  = c(   1,    1,    1,    0,    0,    0)
@@ -547,6 +593,8 @@ ESOL <- newTechnology(
   start = list(start = 2015),
   olife = list(olife = 25)
 )
+draw(ESOL)
+autoplot(ESOL)
 ```
 
 Wind and hydro share solar’s structure, so instead of retyping we
@@ -562,7 +610,7 @@ EWIN <- update(ESOL,
   desc = "Onshore wind",
   input = list(comm = "WIN", unit = "PJ"),
   ceff = data.frame(comm = "WIN", cinp2use = 1),
-  weather = list(weather = "WWIN", comm = "WIN", waf.up = 1),
+  weather = list(weather = "WWIN", comm = "WIN", waf.fx = 1),
   invcost = list(invcost = convert("EUR/kW", "MEUR/GW", 1300)),
   fixom = list(fixom = 35)
 )
@@ -572,7 +620,7 @@ EHYD <- update(EWIN,
   desc = "Hydro power (only in R3, no new sites)",
   input = list(comm = "HYD", unit = "PJ"),
   ceff = data.frame(comm = "HYD", cinp2use = 1),
-  weather = list(weather = "WHYD", comm = "HYD", waf.up = 1),
+  weather = list(weather = "WHYD", comm = "HYD", waf.fx = 1),
   invcost = list(invcost = convert("EUR/kW", "MEUR/GW", 3000)),
   fixom = list(fixom = 45),
   capacity = data.frame(                  # the hydro endowment sits in R3
@@ -603,11 +651,12 @@ but emitting nothing:
 
 ``` r
 
-EBIO <- newTechnology(
-  name = "EBIO",
-  desc = "Biomass power plant (carbon-neutral)",
-  input = list(
-    comm = "BIO",
+ECOBIO <- newTechnology(
+  name = "ECOBIO",
+  desc = "Biomass cofiring power plant",
+  input = data.frame(
+    comm = c("COA", "BIO"),
+    group = "i",
     unit = "PJ",
     combustion = 1
   ),
@@ -616,8 +665,9 @@ EBIO <- newTechnology(
     unit = "PJ"
   ),
   ceff = data.frame(
-    comm = "BIO",
-    cinp2use = 0.35                       # 35% efficiency
+    comm = c("COA", "BIO"),
+    cinp2ginp = c(.4, 0.35),     # 40% and 35% efficiency
+    share.lo = c(0.2, 0.2)
   ),
   cap2act = 31.536,
   invcost = list(
@@ -630,7 +680,7 @@ EBIO <- newTechnology(
   olife = list(olife = 30),
   optimizeRetirement = TRUE
 )
-draw(EBIO)
+draw(ECOBIO)
 ```
 
 Its **levelized cost**
@@ -640,13 +690,25 @@ read in MEUR/PJ):
 
 ``` r
 
-ELCa <- newCommodity("ELCa", timeframe = "ANNUAL")
-EBIO_lc <- update(EBIO, output = list(comm = "ELCa"))
-lc <- levcost(EBIO_lc, discount = 0.05, verbose = FALSE,
-  repo = newRepository("r", BIO, CO2, ELCa),
-  fuel_costs = c(BIO = 8.0))
+lc <- levcost(ECOBIO, discount = 0.05, verbose = TRUE,
+  repo = newRepository("r", BIO, CO2, ELC),
+  fuel_costs = c(BIO = 8.0, COA = 2.5))
 lc$levcost_npv
 autoplot(lc, type = "components")
+
+report(
+  ECOA, 
+  comm = "ELC",
+  file = "tmp/ECOA_lc.html",
+  levcost = T,
+  format = "html")
+
+report(
+  ECOBIO, 
+  comm = "ELC",
+  file = "tmp/ECOBIO_lc.pdf",
+  levcost = T,
+  format = "pdf")
 ```
 
 Commodity **groups** (a fuel blend on the input side, or a product split
@@ -834,7 +896,7 @@ repo <- newRepository("utopia",
   COA, GAS, BIO, NUC, SOL, WIN, HYD, ELC, CO2,          # commodities
   SUP_COA, SUP_GAS, SUP_BIO, SUP_NUC,                   # fuel supplies
   RES_SOL, RES_WIN, RES_HYD,                            # renewable resources
-  IMP_COA, IMP_GAS, EXP_ELC,                            # rest-of-world trade
+  IMP_COA, IMP_GAS, #EXP_ELC,                            # rest-of-world trade
   WSOL, WWIN, WHYD,                                     # weather
   ECOA, EGAS, ENUC, ESOL, EWIN, EHYD, EBIO,             # technologies
   STG_ELC,                                              # storage

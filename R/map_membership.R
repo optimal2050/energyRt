@@ -56,6 +56,66 @@ map_mTechOneComm <- function(scen, fmp) {
   scen
 }
 
+# Group membership maps (mTechGroupComm / mTechInpGroup / mTechOutGroup) — the
+# missing half of the input/output-group formulation. `.build_tech_group_maps`
+# (mapping_engine.R, constraint recipe) READS these to build the group coupling and
+# share equations (meqTechGrp2Sng etc.), but no recipe populated them: the spec tags
+# them `recipe: membership`, and recipe_membership() is a no-op whose comment wrongly
+# claims they are built later in the filter recipe. Without them a grouped-input
+# technology gets NO input<->output coupling equation and produces output from zero
+# fuel. Derived here from checkInpOut(), like map_mTechOneComm reads its NA-group
+# commodities — same object-slot source, run in the same (pre-constraint) phase.
+
+# mTechGroupComm: (tech, group, comm) for each technology's GROUPED commodities —
+# those whose `group` is non-NA in checkInpOut()'s per-commodity table.
+map_mTechGroupComm <- function(scen, fmp) {
+  res <- apply_to_scenario_data(
+    scen = scen, classes = "technology", as_list = TRUE,
+    func = function(tech) {
+      ct  <- checkInpOut(tech)$comm
+      idx <- !is.na(ct$group)
+      if (!any(idx)) return(NULL)
+      out <- list()
+      out[[tech@name]] <- data.frame(tech = tech@name, group = ct$group[idx],
+                                     comm = rownames(ct)[idx],
+                                     stringsAsFactors = FALSE)
+      out
+    })
+  df <- dplyr::distinct(dplyr::bind_rows(res))
+  if (is.null(df) || nrow(df) == 0) return(scen)
+  scen@modInp@parameters[["mTechGroupComm"]] <-
+    d2p(scen@modInp@parameters[["mTechGroupComm"]], df, fmp("mTechGroupComm"))
+  scen
+}
+
+# mTechInpGroup / mTechOutGroup: (tech, group) for groups typed input / output in
+# checkInpOut()'s per-group table (gtype). A tech with no groups yields an empty
+# gtype and is skipped.
+.build_tech_group_dir <- function(scen, fmp, want_type, param_name) {
+  res <- apply_to_scenario_data(
+    scen = scen, classes = "technology", as_list = TRUE,
+    func = function(tech) {
+      gt <- checkInpOut(tech)$group
+      if (is.null(gt) || nrow(gt) == 0) return(NULL)
+      grp <- rownames(gt)[!is.na(gt$type) & gt$type == want_type]
+      if (length(grp) == 0) return(NULL)
+      out <- list()
+      out[[tech@name]] <- data.frame(tech = tech@name, group = grp,
+                                     stringsAsFactors = FALSE)
+      out
+    })
+  df <- dplyr::distinct(dplyr::bind_rows(res))
+  if (is.null(df) || nrow(df) == 0) return(scen)
+  scen@modInp@parameters[[param_name]] <-
+    d2p(scen@modInp@parameters[[param_name]], df, fmp(param_name))
+  scen
+}
+
+map_mTechInpGroup <- function(scen, fmp)
+  .build_tech_group_dir(scen, fmp, "input", "mTechInpGroup")
+map_mTechOutGroup <- function(scen, fmp)
+  .build_tech_group_dir(scen, fmp, "output", "mTechOutGroup")
+
 # Auxiliary-commodity membership maps, split by input / output direction. The
 # helper builds BOTH directions per family in one call (idempotent); registering
 # each name to it keeps the registry interface per-mapping.
@@ -97,6 +157,9 @@ map_mWeatherRegion <- function(scen, fmp) {
   mTechInpComm = map_mTechInpComm,
   mTechOutComm = map_mTechOutComm,
   mTechOneComm = map_mTechOneComm,
+  mTechGroupComm = map_mTechGroupComm,
+  mTechInpGroup  = map_mTechInpGroup,
+  mTechOutGroup  = map_mTechOutGroup,
   mTechAInp    = map_mTechAInp,
   mTechAOut    = map_mTechAOut,
   mStorageAInp = map_mStorageAInp,

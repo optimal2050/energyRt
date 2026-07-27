@@ -15,7 +15,7 @@ repository, model, or scenario object."><meta property="og:image" content="https
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.70.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.70.2.9001</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -24,6 +24,7 @@ repository, model, or scenario object."><meta property="og:image" content="https
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/energyRt.html">Get started</a></li>
+<li class="nav-item"><a class="nav-link" href="../articles/use-R-2026.html">Training</a></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Roadmap</a></li>
 <li class="nav-item dropdown">
@@ -156,9 +157,13 @@ its own; the slack cost is excluded from the LCOE.</p></dd>
 or <code>NULL</code>.</p></dd>
 
 <dt><code>frontier</code></dt>
-<dd><p>Logical, default <code>FALSE</code>.  When <code>TRUE</code>
+<dd><p>Logical, default <code>TRUE</code>.  When <code>TRUE</code>
 additional solves are performed to map the production frontier for
-technologies with multi-commodity grouped output and share constraints.</p></dd>
+technologies with multi-commodity grouped output and share constraints
+(one solve per output / input corner solution).  Has no effect for
+single-output or unconstrained technologies (the frontier is not
+meaningful, so only the base solve runs).  Set <code>FALSE</code> to skip the
+extra solves.</p></dd>
 
 <dt><code>solver</code></dt>
 <dd><p>Solver spec list, default
@@ -264,7 +269,7 @@ fuel component.</p></dd>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer></div>

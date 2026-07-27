@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.70.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.70.2.9001</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -42,6 +42,7 @@
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
 <li class="nav-item"><a class="nav-link" href="../articles/energyRt.html">Get started</a></li>
+<li class="nav-item"><a class="nav-link" href="../articles/use-R-2026.html">Training</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Roadmap</a></li>
 <li class="active nav-item dropdown">
@@ -86,7 +87,7 @@
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>UTOPIA I: building the model</h1>
             
-            <h4 data-toc-skip class="date">2026-07-05</h4>
+            <h4 data-toc-skip class="date">2026-07-27</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/optimal2050/energyRt/blob/HEAD/vignettes/utopia-build.Rmd" class="external-link"><code>vignettes/utopia-build.Rmd</code></a></small>
       <div class="d-none name"><code>utopia-build.Rmd</code></div>
@@ -222,13 +223,17 @@ layout below.</p>
 </h2>
 <p>We pick a ready calendar – <code>utopia_s4h24</code>, four seasons x
 24 hours (96 slices); calendar construction is covered in the <a href="https://energyrt.org/articles/time-resolution.html" class="external-link">time-resolution
-article</a>. Region names are upper-case (<code>R1</code>,
-<code>R2</code>, <code>R3</code>), matching the region names in the
-UTOPIA maps. Deterministic capacity-factor and load profiles come from
-[<code><a href="../reference/utopia_profiles.html">utopia_profiles()</a></code>].</p>
+article</a>.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">cal</span>  <span class="op">&lt;-</span> <span class="va">calendars</span><span class="op">$</span><span class="va">utopia_s4h24</span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">cal</span><span class="op">)</span></span></code></pre></div>
+<p>Region names are upper-case (<code>R1</code>, <code>R2</code>,
+<code>R3</code>), matching the region names in the UTOPIA maps.
+Deterministic capacity-factor and load profiles come from
+[<code><a href="../reference/utopia_profiles.html">utopia_profiles()</a></code>].</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">regions</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"R1"</span>, <span class="st">"R2"</span>, <span class="st">"R3"</span><span class="op">)</span></span>
-<span><span class="va">cal</span>  <span class="op">&lt;-</span> <span class="va">calendars</span><span class="op">$</span><span class="va">utopia_s4h24</span></span>
+<span></span>
 <span><span class="va">prof</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/utopia_profiles.html">utopia_profiles</a></span><span class="op">(</span><span class="va">regions</span>, calendar <span class="op">=</span> <span class="st">"utopia_s4h24"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">prof</span>, max.level <span class="op">=</span> <span class="fl">1</span><span class="op">)</span></span></code></pre></div>
 </div>
@@ -240,7 +245,7 @@ UTOPIA maps. Deterministic capacity-factor and load profiles come from
 <code>CO2</code> emission commodity. Fossil fuels carry an emission
 factor (<code>emis</code>); biomass is carbon-neutral. All names are
 upper-case set elements.</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">COA</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newCommodity.html">newCommodity</a></span><span class="op">(</span></span>
 <span>  name <span class="op">=</span> <span class="st">"COA"</span>,</span>
 <span>  desc <span class="op">=</span> <span class="st">"Steam coal"</span>,</span>
@@ -289,7 +294,7 @@ upper-case set elements.</p>
 <span>  timeframe <span class="op">=</span> <span class="st">"ANNUAL"</span></span>
 <span><span class="op">)</span></span></code></pre></div>
 <p>The emission intensities we just declared, compared:</p>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">COA</span>, <span class="va">GAS</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
@@ -305,7 +310,7 @@ without a domestic fuel must import it (next section) or buy electricity
 over the grid – regional diversity <em>stimulates trade</em>. The
 <code>region</code> column of <code>availability</code> is where an
 endowment lives. The first two supplies in full:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">SUP_COA</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newSupply.html">newSupply</a></span><span class="op">(</span></span>
 <span>  name <span class="op">=</span> <span class="st">"SUP_COA"</span>,</span>
 <span>  desc <span class="op">=</span> <span class="st">"Coal supply (mined in R1)"</span>,</span>
@@ -316,6 +321,8 @@ endowment lives. The first two supplies in full:</p>
 <span>    cost <span class="op">=</span> <span class="fl">2.5</span></span>
 <span>  <span class="op">)</span></span>
 <span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/draw.html">draw</a></span><span class="op">(</span><span class="va">SUP_COA</span><span class="op">)</span></span>
+<span></span>
 <span><span class="va">SUP_GAS</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newSupply.html">newSupply</a></span><span class="op">(</span></span>
 <span>  name <span class="op">=</span> <span class="st">"SUP_GAS"</span>,</span>
 <span>  desc <span class="op">=</span> <span class="st">"Natural gas supply (produced in R2)"</span>,</span>
@@ -330,7 +337,7 @@ endowment lives. The first two supplies in full:</p>
 set. When a <em>family</em> of similar objects is needed, wrapping the
 constructor in a small helper is the idiomatic advanced pattern (the
 packaged kit is built exactly this way):</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">sup</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">nm</span>, <span class="va">comm</span>, <span class="va">cost</span>, <span class="va">reg</span> <span class="op">=</span> <span class="va">regions</span><span class="op">)</span> <span class="fu"><a href="../reference/newSupply.html">newSupply</a></span><span class="op">(</span><span class="va">nm</span>, commodity <span class="op">=</span> <span class="va">comm</span>,</span>
 <span>  availability <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>region <span class="op">=</span> <span class="va">reg</span>, cost <span class="op">=</span> <span class="va">cost</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
@@ -348,7 +355,7 @@ over the domestic source. <code>IMP_*</code> objects add an external
 supply at a price; <code>EXP_*</code> objects add an external market
 that <em>buys</em> at a price (capped, so exports stay a side business,
 not the objective):</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">IMP_COA</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newImport.html">newImport</a></span><span class="op">(</span></span>
 <span>  name <span class="op">=</span> <span class="st">"IMP_COA"</span>,</span>
 <span>  desc <span class="op">=</span> <span class="st">"Coal import from the rest of the world"</span>,</span>
@@ -359,6 +366,8 @@ not the objective):</p>
 <span>    price <span class="op">=</span> <span class="fl">3.5</span>                           <span class="co"># vs 2.5 domestic in R1</span></span>
 <span>  <span class="op">)</span></span>
 <span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/draw.html">draw</a></span><span class="op">(</span><span class="va">IMP_COA</span><span class="op">)</span></span>
+<span></span>
 <span><span class="va">IMP_GAS</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://energyRt.org/reference/newDemand.html">update</a></span><span class="op">(</span><span class="va">IMP_COA</span>,</span>
 <span>  name <span class="op">=</span> <span class="st">"IMP_GAS"</span>,</span>
 <span>  desc <span class="op">=</span> <span class="st">"LNG import from the rest of the world"</span>,</span>
@@ -369,18 +378,18 @@ not the objective):</p>
 <span>  <span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">EXP_ELC</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newExport.html">newExport</a></span><span class="op">(</span></span>
-<span>  name <span class="op">=</span> <span class="st">"EXP_ELC"</span>,</span>
-<span>  desc <span class="op">=</span> <span class="st">"Electricity export to the rest of the world"</span>,</span>
-<span>  commodity <span class="op">=</span> <span class="st">"ELC"</span>,</span>
-<span>  unit <span class="op">=</span> <span class="st">"PJ"</span>,</span>
-<span>  exp <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/merge.html" class="external-link">merge</a></span><span class="op">(</span>                            <span class="co"># ~10 PJ/yr per region, paced by slice</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>region <span class="op">=</span> <span class="va">regions</span>, price <span class="op">=</span> <span class="fl">5.0</span><span class="op">)</span>,</span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>slice  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">cal</span><span class="op">@</span><span class="va">slice_share</span><span class="op">)</span><span class="op">$</span><span class="va">slice</span>,</span>
-<span>               exp.up <span class="op">=</span> <span class="fl">10</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">cal</span><span class="op">@</span><span class="va">slice_share</span><span class="op">)</span><span class="op">$</span><span class="va">share</span><span class="op">)</span></span>
-<span>  <span class="op">)</span>,</span>
-<span>  reserve <span class="op">=</span> <span class="fl">300</span>                           <span class="co"># plus a cumulative cap, PJ</span></span>
-<span><span class="op">)</span></span></code></pre></div>
+<span><span class="co"># EXP_ELC &lt;- newExport(</span></span>
+<span><span class="co">#   name = "EXP_ELC",</span></span>
+<span><span class="co">#   desc = "Electricity export to the rest of the world",</span></span>
+<span><span class="co">#   commodity = "ELC",</span></span>
+<span><span class="co">#   unit = "PJ",</span></span>
+<span><span class="co">#   exp = merge(                            # ~10 PJ/yr per region, paced by slice</span></span>
+<span><span class="co">#     data.frame(region = regions, price = 5.0),</span></span>
+<span><span class="co">#     data.frame(slice  = as.data.frame(cal@slice_share)$slice,</span></span>
+<span><span class="co">#                exp.up = 10 * as.data.frame(cal@slice_share)$share)</span></span>
+<span><span class="co">#   ),</span></span>
+<span><span class="co">#   reserve = 300                           # plus a cumulative cap, PJ</span></span>
+<span><span class="co"># )</span></span></code></pre></div>
 <p>The export price sits <em>below</em> every technology’s levelized
 cost, so the model never builds capacity just to export – it only sells
 genuine surplus. Two caps work together: <code>exp.up</code>
@@ -397,7 +406,7 @@ cheapest.</p>
 <p><code>newWeather</code> objects hold a capacity factor per region and
 slice for solar, wind and hydro – the physical limits on the renewable
 technologies below. Solar in full, the siblings via a helper:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">WSOL</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newWeather.html">newWeather</a></span><span class="op">(</span></span>
 <span>  name <span class="op">=</span> <span class="st">"WSOL"</span>,</span>
 <span>  desc <span class="op">=</span> <span class="st">"Solar capacity factor"</span>,</span>
@@ -406,11 +415,20 @@ technologies below. Solar in full, the siblings via a helper:</p>
 <span>                         <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"region"</span>, <span class="st">"slice"</span>, <span class="st">"wval"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">wobj</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">res</span><span class="op">)</span> <span class="fu"><a href="../reference/newWeather.html">newWeather</a></span><span class="op">(</span><span class="va">res</span>, timeframe <span class="op">=</span> <span class="st">"HOUR"</span>,</span>
-<span>  weather <span class="op">=</span> <span class="va">prof</span><span class="op">$</span><span class="va">weather</span><span class="op">[</span><span class="va">prof</span><span class="op">$</span><span class="va">weather</span><span class="op">$</span><span class="va">resource</span> <span class="op">==</span> <span class="va">res</span>,</span>
-<span>                         <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"region"</span>, <span class="st">"slice"</span>, <span class="st">"wval"</span><span class="op">)</span><span class="op">]</span><span class="op">)</span></span>
-<span><span class="va">WWIN</span> <span class="op">&lt;-</span> <span class="fu">wobj</span><span class="op">(</span><span class="st">"WWIN"</span><span class="op">)</span></span>
-<span><span class="va">WHYD</span> <span class="op">&lt;-</span> <span class="fu">wobj</span><span class="op">(</span><span class="st">"WHYD"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="co"># or write a function to speedup the process</span></span>
+<span><span class="va">make_weather</span> <span class="op">&lt;-</span> <span class="kw">function</span><span class="op">(</span><span class="va">res</span><span class="op">)</span> <span class="op">{</span></span>
+<span>  <span class="fu"><a href="../reference/newWeather.html">newWeather</a></span><span class="op">(</span></span>
+<span>    name <span class="op">=</span> <span class="va">res</span>, </span>
+<span>    timeframe <span class="op">=</span> <span class="st">"HOUR"</span>,</span>
+<span>    weather <span class="op">=</span> </span>
+<span>      <span class="va">prof</span><span class="op">$</span><span class="va">weather</span> <span class="op">|&gt;</span></span>
+<span>        <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">resource</span> <span class="op">==</span> <span class="va">res</span><span class="op">)</span> <span class="op">|&gt;</span> </span>
+<span>        <span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">region</span>, <span class="va">slice</span>, <span class="va">wval</span><span class="op">)</span></span>
+<span>  <span class="op">)</span></span>
+<span><span class="op">}</span></span>
+<span>    </span>
+<span><span class="va">WWIN</span> <span class="op">&lt;-</span> <span class="fu">make_weather</span><span class="op">(</span><span class="st">"WWIN"</span><span class="op">)</span></span>
+<span><span class="va">WHYD</span> <span class="op">&lt;-</span> <span class="fu">make_weather</span><span class="op">(</span><span class="st">"WHYD"</span><span class="op">)</span></span></code></pre></div>
 <p><code><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot()</a></code> shows the profile structure at a glance – the
 solar day/season shape. Custom season names (<code>WIN</code>,
 <code>SPR</code>, …) are defined by the calendar, so pass it to resolve
@@ -418,8 +436,15 @@ the slice layout. Note the <strong>regional endowments</strong>
 (<code><a href="../reference/utopia_profiles.html">utopia_profiles()</a></code> scales the profiles deterministically):
 <code>R1</code> is the sunniest region, <code>R2</code> the windiest –
 one more reason for the regions to trade:</p>
-<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">WSOL</span>, type <span class="op">=</span> <span class="st">"line"</span>, calendar <span class="op">=</span> <span class="va">cal</span><span class="op">)</span></span></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">WSOL</span>, type <span class="op">=</span> <span class="st">"line"</span>, calendar <span class="op">=</span> <span class="va">cal</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">WSOL</span>, type <span class="op">=</span> <span class="st">"heatmap"</span>, calendar <span class="op">=</span> <span class="va">cal</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">WWIN</span>, calendar <span class="op">=</span> <span class="va">cal</span>, type <span class="op">=</span> <span class="st">"line"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">WWIN</span>, calendar <span class="op">=</span> <span class="va">cal</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">WHYD</span>, calendar <span class="op">=</span> <span class="va">cal</span>, type <span class="op">=</span> <span class="st">"line"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">WHYD</span>, calendar <span class="op">=</span> <span class="va">cal</span><span class="op">)</span></span></code></pre></div>
 <p>(UTOPIA’s profiles derive from the <a href="https://ideea-model.github.io/IDEEA/" class="external-link">IDEEA</a> model of India –
 note the <em>monsoon</em> signature: summer is the solar minimum, spring
 the maximum. Weather is data, not an assumption.)</p>
@@ -429,7 +454,7 @@ the maximum. Weather is data, not an assumption.)</p>
 </h2>
 <p>Electricity demand follows the deterministic load shape, weighted by
 each slice’s share of the year and grown over the milestone years.</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">years</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2020</span>, <span class="fl">2030</span>, <span class="fl">2040</span>, <span class="fl">2050</span><span class="op">)</span></span>
 <span><span class="va">growth</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">1.2</span>, <span class="fl">1.4</span>, <span class="fl">1.6</span><span class="op">)</span></span>
 <span><span class="va">annual_demand</span> <span class="op">&lt;-</span> <span class="fl">100</span>                                   <span class="co"># base-year PJ per region</span></span>
@@ -456,9 +481,9 @@ each slice’s share of the year and grown over the milestone years.</p>
 (<code>type = "area"</code>, the default), and the within-year profiles
 by region and year (<code>type = "line"</code>) – note the morning ramp
 and the evening peak:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">DEM_ELC</span>, years <span class="op">=</span> <span class="fl">2020</span><span class="op">:</span><span class="fl">2050</span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">DEM_ELC</span>, years <span class="op">=</span> <span class="fl">2020</span><span class="op">:</span><span class="fl">2050</span><span class="op">)</span></span></code></pre></div>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">DEM_ELC</span>, type <span class="op">=</span> <span class="st">"line"</span>, years <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2020</span>, <span class="fl">2050</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
@@ -488,7 +513,7 @@ model.</li>
 <div class="section level3">
 <h3 id="coal-power-plant">Coal power plant<a class="anchor" aria-label="anchor" href="#coal-power-plant"></a>
 </h3>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ECOA</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/technology.html">newTechnology</a></span><span class="op">(</span></span>
 <span>  name <span class="op">=</span> <span class="st">"ECOA"</span>,</span>
 <span>  desc <span class="op">=</span> <span class="st">"Coal power plant"</span>,</span>
@@ -505,6 +530,11 @@ model.</li>
 <span>  ceff <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>    comm <span class="op">=</span> <span class="st">"COA"</span>,</span>
 <span>    cinp2use <span class="op">=</span> <span class="fl">0.40</span>                       <span class="co"># 40% efficiency</span></span>
+<span>  <span class="op">)</span>,</span>
+<span>  afs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>    slice <span class="op">=</span> <span class="st">"ANNUAL"</span>,</span>
+<span>    afs.up <span class="op">=</span> <span class="fl">0.8</span>,</span>
+<span>    afs.lo <span class="op">=</span> <span class="fl">0.4</span></span>
 <span>  <span class="op">)</span>,</span>
 <span>  invcost <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>    invcost <span class="op">=</span> <span class="fu">convert</span><span class="op">(</span><span class="st">"EUR/kW"</span>, <span class="st">"MEUR/GW"</span>, <span class="fl">2000</span><span class="op">)</span></span>
@@ -529,7 +559,7 @@ model.</li>
 </h3>
 <p>The gas plant has the same structure – we spell it out once more (the
 last time; further siblings will use <code><a href="https://energyRt.org/reference/newDemand.html">update()</a></code>):</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">EGAS</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/technology.html">newTechnology</a></span><span class="op">(</span></span>
 <span>  name <span class="op">=</span> <span class="st">"EGAS"</span>,</span>
 <span>  desc <span class="op">=</span> <span class="st">"Gas power plant (CCGT)"</span>,</span>
@@ -547,6 +577,11 @@ last time; further siblings will use <code><a href="https://energyRt.org/referen
 <span>    comm <span class="op">=</span> <span class="st">"GAS"</span>,</span>
 <span>    cinp2use <span class="op">=</span> <span class="fl">0.58</span></span>
 <span>  <span class="op">)</span>,</span>
+<span>  afs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>    slice <span class="op">=</span> <span class="st">"ANNUAL"</span>,</span>
+<span>    afs.up <span class="op">=</span> <span class="fl">0.9</span>,</span>
+<span>    afs.lo <span class="op">=</span> <span class="fl">0.4</span></span>
+<span>  <span class="op">)</span>,</span>
 <span>  invcost <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>    invcost <span class="op">=</span> <span class="fu">convert</span><span class="op">(</span><span class="st">"EUR/kW"</span>, <span class="st">"MEUR/GW"</span>, <span class="fl">900</span><span class="op">)</span></span>
 <span>  <span class="op">)</span>,</span>
@@ -561,7 +596,8 @@ last time; further siblings will use <code><a href="https://energyRt.org/referen
 <span>  start <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>start <span class="op">=</span> <span class="fl">2010</span><span class="op">)</span>,</span>
 <span>  olife <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>olife <span class="op">=</span> <span class="fl">30</span><span class="op">)</span>,</span>
 <span>  optimizeRetirement <span class="op">=</span> <span class="cn">TRUE</span></span>
-<span><span class="op">)</span></span></code></pre></div>
+<span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/draw.html">draw</a></span><span class="op">(</span><span class="va">EGAS</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="nuclear-power-plant">Nuclear power plant<a class="anchor" aria-label="anchor" href="#nuclear-power-plant"></a>
@@ -569,7 +605,7 @@ last time; further siblings will use <code><a href="https://energyRt.org/referen
 <p>Nuclear is a must-run baseload (<code>af.lo = 0.7</code>), with a
 long-lived existing fleet (retiring by 2060) and a build window that
 opens only in 2025 (licensing and construction lead times):</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ENUC</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/technology.html">newTechnology</a></span><span class="op">(</span></span>
 <span>  name <span class="op">=</span> <span class="st">"ENUC"</span>,</span>
 <span>  desc <span class="op">=</span> <span class="st">"Nuclear power plant"</span>,</span>
@@ -587,8 +623,13 @@ opens only in 2025 (licensing and construction lead times):</p>
 <span>    cinp2use <span class="op">=</span> <span class="fl">0.35</span></span>
 <span>  <span class="op">)</span>,</span>
 <span>  af <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
-<span>    af.lo <span class="op">=</span> <span class="fl">0.7</span>                           <span class="co"># must-run baseload</span></span>
+<span>    af.lo <span class="op">=</span> <span class="fl">0.8</span>                           <span class="co"># must-run baseload</span></span>
 <span>  <span class="op">)</span>,</span>
+<span>   afs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>    slice <span class="op">=</span> <span class="st">"ANNUAL"</span>,</span>
+<span>    afs.up <span class="op">=</span> <span class="fl">0.95</span>,</span>
+<span>    afs.lo <span class="op">=</span> <span class="fl">0.8</span></span>
+<span>  <span class="op">)</span>, </span>
 <span>  invcost <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>    invcost <span class="op">=</span> <span class="fu">convert</span><span class="op">(</span><span class="st">"EUR/kW"</span>, <span class="st">"MEUR/GW"</span>, <span class="fl">8000</span><span class="op">)</span>   <span class="co"># recent Western builds</span></span>
 <span>  <span class="op">)</span>,</span>
@@ -602,7 +643,9 @@ opens only in 2025 (licensing and construction lead times):</p>
 <span>  <span class="op">)</span>,</span>
 <span>  start <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>start <span class="op">=</span> <span class="fl">2025</span><span class="op">)</span>,</span>
 <span>  olife <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>olife <span class="op">=</span> <span class="fl">50</span><span class="op">)</span></span>
-<span><span class="op">)</span></span></code></pre></div>
+<span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/draw.html">draw</a></span><span class="op">(</span><span class="va">ENUC</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">ENUC</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="renewables">Renewables<a class="anchor" aria-label="anchor" href="#renewables"></a>
@@ -610,7 +653,7 @@ opens only in 2025 (licensing and construction lead times):</p>
 <p>VRE technologies draw a free resource and are bounded by the weather
 capacity factor (<code>waf.up = 1</code> means output can reach the
 profile, never exceed it). Solar, in full:</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ESOL</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/technology.html">newTechnology</a></span><span class="op">(</span></span>
 <span>  name <span class="op">=</span> <span class="st">"ESOL"</span>,</span>
 <span>  desc <span class="op">=</span> <span class="st">"Utility-scale solar PV"</span>,</span>
@@ -630,7 +673,8 @@ profile, never exceed it). Solar, in full:</p>
 <span>  weather <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>    weather <span class="op">=</span> <span class="st">"WSOL"</span>,</span>
 <span>    comm <span class="op">=</span> <span class="st">"SOL"</span>,</span>
-<span>    waf.up <span class="op">=</span> <span class="fl">1</span></span>
+<span>    waf.fx <span class="op">=</span> <span class="fl">1</span> <span class="co"># fix production based to the (weather) capacity factors</span></span>
+<span>    <span class="co"># waf.up = 1 # or set upper limit (ignore curtailments)</span></span>
 <span>  <span class="op">)</span>,</span>
 <span>  invcost <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>    invcost <span class="op">=</span> <span class="fu">convert</span><span class="op">(</span><span class="st">"EUR/kW"</span>, <span class="st">"MEUR/GW"</span>, <span class="fl">650</span><span class="op">)</span></span>
@@ -638,25 +682,27 @@ profile, never exceed it). Solar, in full:</p>
 <span>  fixom <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
 <span>    fixom <span class="op">=</span> <span class="fl">12</span></span>
 <span>  <span class="op">)</span>,</span>
-<span>  capacity <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>                  <span class="co"># young but small fleet, out by 2040</span></span>
+<span>  capacity <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>  <span class="co"># young but small fleet, out by 2040</span></span>
 <span>    region <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"R1"</span>, <span class="st">"R2"</span>, <span class="st">"R3"</span>, <span class="st">"R1"</span>, <span class="st">"R2"</span>, <span class="st">"R3"</span><span class="op">)</span>,</span>
 <span>    year   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2020</span>, <span class="fl">2020</span>, <span class="fl">2020</span>, <span class="fl">2040</span>, <span class="fl">2040</span>, <span class="fl">2040</span><span class="op">)</span>,</span>
 <span>    stock  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>   <span class="fl">1</span>,    <span class="fl">1</span>,    <span class="fl">1</span>,    <span class="fl">0</span>,    <span class="fl">0</span>,    <span class="fl">0</span><span class="op">)</span></span>
 <span>  <span class="op">)</span>,</span>
 <span>  start <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>start <span class="op">=</span> <span class="fl">2015</span><span class="op">)</span>,</span>
 <span>  olife <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>olife <span class="op">=</span> <span class="fl">25</span><span class="op">)</span></span>
-<span><span class="op">)</span></span></code></pre></div>
+<span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/draw.html">draw</a></span><span class="op">(</span><span class="va">ESOL</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">ESOL</span><span class="op">)</span></span></code></pre></div>
 <p>Wind and hydro share solar’s structure, so instead of retyping we
 <strong>derive</strong> them with <code><a href="https://energyRt.org/reference/newDemand.html">update()</a></code> – it takes an
 existing object and replaces only the slots you name. This is the
 package’s intended way to build families of similar processes:</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">EWIN</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://energyRt.org/reference/newDemand.html">update</a></span><span class="op">(</span><span class="va">ESOL</span>,</span>
 <span>  name <span class="op">=</span> <span class="st">"EWIN"</span>,</span>
 <span>  desc <span class="op">=</span> <span class="st">"Onshore wind"</span>,</span>
 <span>  input <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>comm <span class="op">=</span> <span class="st">"WIN"</span>, unit <span class="op">=</span> <span class="st">"PJ"</span><span class="op">)</span>,</span>
 <span>  ceff <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>comm <span class="op">=</span> <span class="st">"WIN"</span>, cinp2use <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
-<span>  weather <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>weather <span class="op">=</span> <span class="st">"WWIN"</span>, comm <span class="op">=</span> <span class="st">"WIN"</span>, waf.up <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
+<span>  weather <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>weather <span class="op">=</span> <span class="st">"WWIN"</span>, comm <span class="op">=</span> <span class="st">"WIN"</span>, waf.fx <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
 <span>  invcost <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>invcost <span class="op">=</span> <span class="fu">convert</span><span class="op">(</span><span class="st">"EUR/kW"</span>, <span class="st">"MEUR/GW"</span>, <span class="fl">1300</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>  fixom <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>fixom <span class="op">=</span> <span class="fl">35</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
@@ -666,7 +712,7 @@ package’s intended way to build families of similar processes:</p>
 <span>  desc <span class="op">=</span> <span class="st">"Hydro power (only in R3, no new sites)"</span>,</span>
 <span>  input <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>comm <span class="op">=</span> <span class="st">"HYD"</span>, unit <span class="op">=</span> <span class="st">"PJ"</span><span class="op">)</span>,</span>
 <span>  ceff <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>comm <span class="op">=</span> <span class="st">"HYD"</span>, cinp2use <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
-<span>  weather <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>weather <span class="op">=</span> <span class="st">"WHYD"</span>, comm <span class="op">=</span> <span class="st">"HYD"</span>, waf.up <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
+<span>  weather <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>weather <span class="op">=</span> <span class="st">"WHYD"</span>, comm <span class="op">=</span> <span class="st">"HYD"</span>, waf.fx <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
 <span>  invcost <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>invcost <span class="op">=</span> <span class="fu">convert</span><span class="op">(</span><span class="st">"EUR/kW"</span>, <span class="st">"MEUR/GW"</span>, <span class="fl">3000</span><span class="op">)</span><span class="op">)</span>,</span>
 <span>  fixom <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>fixom <span class="op">=</span> <span class="fl">45</span><span class="op">)</span>,</span>
 <span>  capacity <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>                  <span class="co"># the hydro endowment sits in R3</span></span>
@@ -694,12 +740,13 @@ resource <strong>only over the transmission lines</strong>.</p>
 <strong>carbon-neutral</strong> (the <code>BIO</code> commodity carries
 no emission factor), so <code>EBIO</code> is a dispatchable zero-carbon
 generator – more expensive to fuel than coal, but emitting nothing:</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">EBIO</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/technology.html">newTechnology</a></span><span class="op">(</span></span>
-<span>  name <span class="op">=</span> <span class="st">"EBIO"</span>,</span>
-<span>  desc <span class="op">=</span> <span class="st">"Biomass power plant (carbon-neutral)"</span>,</span>
-<span>  input <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    comm <span class="op">=</span> <span class="st">"BIO"</span>,</span>
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">ECOBIO</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/technology.html">newTechnology</a></span><span class="op">(</span></span>
+<span>  name <span class="op">=</span> <span class="st">"ECOBIO"</span>,</span>
+<span>  desc <span class="op">=</span> <span class="st">"Biomass cofiring power plant"</span>,</span>
+<span>  input <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>    comm <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"COA"</span>, <span class="st">"BIO"</span><span class="op">)</span>,</span>
+<span>    group <span class="op">=</span> <span class="st">"i"</span>,</span>
 <span>    unit <span class="op">=</span> <span class="st">"PJ"</span>,</span>
 <span>    combustion <span class="op">=</span> <span class="fl">1</span></span>
 <span>  <span class="op">)</span>,</span>
@@ -708,8 +755,9 @@ generator – more expensive to fuel than coal, but emitting nothing:</p>
 <span>    unit <span class="op">=</span> <span class="st">"PJ"</span></span>
 <span>  <span class="op">)</span>,</span>
 <span>  ceff <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
-<span>    comm <span class="op">=</span> <span class="st">"BIO"</span>,</span>
-<span>    cinp2use <span class="op">=</span> <span class="fl">0.35</span>                       <span class="co"># 35% efficiency</span></span>
+<span>    comm <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"COA"</span>, <span class="st">"BIO"</span><span class="op">)</span>,</span>
+<span>    cinp2ginp <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">.4</span>, <span class="fl">0.35</span><span class="op">)</span>,     <span class="co"># 40% and 35% efficiency</span></span>
+<span>    share.lo <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.2</span>, <span class="fl">0.2</span><span class="op">)</span></span>
 <span>  <span class="op">)</span>,</span>
 <span>  cap2act <span class="op">=</span> <span class="fl">31.536</span>,</span>
 <span>  invcost <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
@@ -722,18 +770,30 @@ generator – more expensive to fuel than coal, but emitting nothing:</p>
 <span>  olife <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>olife <span class="op">=</span> <span class="fl">30</span><span class="op">)</span>,</span>
 <span>  optimizeRetirement <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/draw.html">draw</a></span><span class="op">(</span><span class="va">EBIO</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/draw.html">draw</a></span><span class="op">(</span><span class="va">ECOBIO</span><span class="op">)</span></span></code></pre></div>
 <p>Its <strong>levelized cost</strong> (<code><a href="../reference/levcost.html">levcost()</a></code> builds
 and solves a tiny single-technology model; annual commodities make the
 LCOE read in MEUR/PJ):</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">ELCa</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newCommodity.html">newCommodity</a></span><span class="op">(</span><span class="st">"ELCa"</span>, timeframe <span class="op">=</span> <span class="st">"ANNUAL"</span><span class="op">)</span></span>
-<span><span class="va">EBIO_lc</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://energyRt.org/reference/newDemand.html">update</a></span><span class="op">(</span><span class="va">EBIO</span>, output <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>comm <span class="op">=</span> <span class="st">"ELCa"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="va">lc</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/levcost.html">levcost</a></span><span class="op">(</span><span class="va">EBIO_lc</span>, discount <span class="op">=</span> <span class="fl">0.05</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span>,</span>
-<span>  repo <span class="op">=</span> <span class="fu"><a href="../reference/newRepository.html">newRepository</a></span><span class="op">(</span><span class="st">"r"</span>, <span class="va">BIO</span>, <span class="va">CO2</span>, <span class="va">ELCa</span><span class="op">)</span>,</span>
-<span>  fuel_costs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>BIO <span class="op">=</span> <span class="fl">8.0</span><span class="op">)</span><span class="op">)</span></span>
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">lc</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/levcost.html">levcost</a></span><span class="op">(</span><span class="va">ECOBIO</span>, discount <span class="op">=</span> <span class="fl">0.05</span>, verbose <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  repo <span class="op">=</span> <span class="fu"><a href="../reference/newRepository.html">newRepository</a></span><span class="op">(</span><span class="st">"r"</span>, <span class="va">BIO</span>, <span class="va">CO2</span>, <span class="va">ELC</span><span class="op">)</span>,</span>
+<span>  fuel_costs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span>BIO <span class="op">=</span> <span class="fl">8.0</span>, COA <span class="op">=</span> <span class="fl">2.5</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="va">lc</span><span class="op">$</span><span class="va">levcost_npv</span></span>
-<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">lc</span>, type <span class="op">=</span> <span class="st">"components"</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">lc</span>, type <span class="op">=</span> <span class="st">"components"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="../reference/report.html">report</a></span><span class="op">(</span></span>
+<span>  <span class="va">ECOA</span>, </span>
+<span>  comm <span class="op">=</span> <span class="st">"ELC"</span>,</span>
+<span>  file <span class="op">=</span> <span class="st">"tmp/ECOA_lc.html"</span>,</span>
+<span>  levcost <span class="op">=</span> <span class="cn">T</span>,</span>
+<span>  format <span class="op">=</span> <span class="st">"html"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="../reference/report.html">report</a></span><span class="op">(</span></span>
+<span>  <span class="va">ECOBIO</span>, </span>
+<span>  comm <span class="op">=</span> <span class="st">"ELC"</span>,</span>
+<span>  file <span class="op">=</span> <span class="st">"tmp/ECOBIO_lc.pdf"</span>,</span>
+<span>  levcost <span class="op">=</span> <span class="cn">T</span>,</span>
+<span>  format <span class="op">=</span> <span class="st">"pdf"</span><span class="op">)</span></span></code></pre></div>
 <div class="callout-note">
 <p>Commodity <strong>groups</strong> (a fuel blend on the input side, or
 a product split on the output side) are covered structurally in the
@@ -748,7 +808,7 @@ input-output balance.</p>
 </h2>
 <p>A 4-hour battery (<code>STG_*</code>) shifts electricity between
 slices:</p>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">STG_ELC</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/storage.html">newStorage</a></span><span class="op">(</span></span>
 <span>  name <span class="op">=</span> <span class="st">"STG_ELC"</span>,</span>
 <span>  desc <span class="op">=</span> <span class="st">"Grid battery, 4-hour"</span>,</span>
@@ -775,7 +835,7 @@ directions), the transfer efficiency (<code>teff</code> – losses), and
 an endogenous capacity with investment cost
 (<code>capacityVariable = TRUE</code> lets the model expand the
 line):</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">TBD_ELC_R1_R2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newTrade.html">newTrade</a></span><span class="op">(</span></span>
 <span>  name <span class="op">=</span> <span class="st">"TBD_ELC_R1_R2"</span>,</span>
 <span>  desc <span class="op">=</span> <span class="st">"Bidirectional transmission line R1-R2"</span>,</span>
@@ -822,7 +882,7 @@ line):</p>
 <code><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot()</a></code> (or <code><a href="../reference/plot_trade_map.html">plot_trade_map()</a></code>) puts the
 whole network <strong>on the map</strong> — pass the layout to draw
 over. Bidirectional links render as double-headed arrows:</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_trade_map.html">plot_trade_map</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">TBD_ELC_R1_R2</span>, <span class="va">TBD_ELC_R2_R3</span><span class="op">)</span>, map <span class="op">=</span> <span class="va">utopia</span><span class="op">$</span><span class="va">map</span><span class="op">$</span><span class="va">honeycomb</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
@@ -851,7 +911,7 @@ fleets (a declining per-region ceiling on installed coal and gas
 capacity; <code>optimizeRetirement = TRUE</code> on the plants lets the
 model choose <em>which</em> units to close).</li>
 </ul>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">nreg</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">regions</span><span class="op">)</span></span>
 <span><span class="va">CO2_CAP</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newConstraint.html">newConstraint</a></span><span class="op">(</span></span>
 <span>  name <span class="op">=</span> <span class="st">"CO2_CAP"</span>,</span>
@@ -917,19 +977,19 @@ model choose <em>which</em> units to close).</li>
 <p>Collect every block into a base <strong>repository</strong>, then
 bind it to a region set, a calendar and a horizon to get a solvable
 <strong>model</strong>:</p>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">repo</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newRepository.html">newRepository</a></span><span class="op">(</span><span class="st">"utopia"</span>,</span>
 <span>  <span class="va">COA</span>, <span class="va">GAS</span>, <span class="va">BIO</span>, <span class="va">NUC</span>, <span class="va">SOL</span>, <span class="va">WIN</span>, <span class="va">HYD</span>, <span class="va">ELC</span>, <span class="va">CO2</span>,          <span class="co"># commodities</span></span>
 <span>  <span class="va">SUP_COA</span>, <span class="va">SUP_GAS</span>, <span class="va">SUP_BIO</span>, <span class="va">SUP_NUC</span>,                   <span class="co"># fuel supplies</span></span>
 <span>  <span class="va">RES_SOL</span>, <span class="va">RES_WIN</span>, <span class="va">RES_HYD</span>,                            <span class="co"># renewable resources</span></span>
-<span>  <span class="va">IMP_COA</span>, <span class="va">IMP_GAS</span>, <span class="va">EXP_ELC</span>,                            <span class="co"># rest-of-world trade</span></span>
+<span>  <span class="va">IMP_COA</span>, <span class="va">IMP_GAS</span>, <span class="co">#EXP_ELC,                            # rest-of-world trade</span></span>
 <span>  <span class="va">WSOL</span>, <span class="va">WWIN</span>, <span class="va">WHYD</span>,                                     <span class="co"># weather</span></span>
 <span>  <span class="va">ECOA</span>, <span class="va">EGAS</span>, <span class="va">ENUC</span>, <span class="va">ESOL</span>, <span class="va">EWIN</span>, <span class="va">EHYD</span>, <span class="va">EBIO</span>,             <span class="co"># technologies</span></span>
 <span>  <span class="va">STG_ELC</span>,                                              <span class="co"># storage</span></span>
 <span>  <span class="va">TBD_ELC_R1_R2</span>, <span class="va">TBD_ELC_R2_R3</span>,                         <span class="co"># interregional trade</span></span>
 <span>  <span class="va">DEM_ELC</span><span class="op">)</span>                                              <span class="co"># demand</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">repo</span><span class="op">)</span>; <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">repo</span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">hor</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newHorizon.html">newHorizon</a></span><span class="op">(</span>period <span class="op">=</span> <span class="fl">2020</span><span class="op">:</span><span class="fl">2050</span>, intervals <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">10</span>, <span class="fl">10</span>, <span class="fl">10</span><span class="op">)</span>,</span>
 <span>                  mid_is_end <span class="op">=</span> <span class="cn">TRUE</span>, name <span class="op">=</span> <span class="st">"base"</span><span class="op">)</span></span>
 <span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newModel.html">newModel</a></span><span class="op">(</span><span class="st">"UTOPIA"</span>, data <span class="op">=</span> <span class="va">repo</span>, calendar <span class="op">=</span> <span class="va">cal</span>,</span>
@@ -942,7 +1002,7 @@ bind it to a region set, a calendar and a horizon to get a solvable
 each process can be <strong>built</strong>; the translucent tails show
 how long the last vintage then operates (<code>end + olife</code>). One
 call charts the whole fleet:</p>
-<div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">mod</span>, type <span class="op">=</span> <span class="st">"windows"</span><span class="op">)</span></span></code></pre></div>
 <p>That is a complete UTOPIA model, ready for
 <code><a href="../reference/interpolate_model.html">interpolate_model()</a></code> + <code><a href="../reference/solve_model.html">solve_scenario()</a></code> – the
@@ -959,12 +1019,12 @@ supplies. By default it reports the <strong>annual</strong> levelized
 cost: a weather-driven technology’s profile is collapsed to its annual
 capacity factor, so capacity is sized to serve demand at that factor
 (textbook LCOE).</p>
-<div class="sourceCode" id="cb28"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">techs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ECOA"</span>, <span class="st">"EGAS"</span>, <span class="st">"ENUC"</span>, <span class="st">"ESOL"</span>, <span class="st">"EWIN"</span>, <span class="st">"EHYD"</span><span class="op">)</span></span>
 <span><span class="va">lcoe</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="va">techs</span>, <span class="kw">function</span><span class="op">(</span><span class="va">tn</span><span class="op">)</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/numeric.html" class="external-link">as.numeric</a></span><span class="op">(</span><span class="fu"><a href="../reference/levcost.html">levcost</a></span><span class="op">(</span><span class="va">mod</span>, name <span class="op">=</span> <span class="va">tn</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span><span class="op">$</span><span class="va">levcost_npv</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/sort.html" class="external-link">sort</a></span><span class="op">(</span><span class="va">lcoe</span><span class="op">)</span>, <span class="fl">1</span><span class="op">)</span>                       <span class="co"># MEUR/PJ  (x3.6 ~ EUR/MWh)</span></span></code></pre></div>
-<div class="sourceCode" id="cb29"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>tech <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">lcoe</span><span class="op">)</span>, lcoe <span class="op">=</span> <span class="va">lcoe</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/stats/reorder.factor.html" class="external-link">reorder</a></span><span class="op">(</span><span class="va">tech</span>, <span class="va">lcoe</span><span class="op">)</span>, <span class="va">lcoe</span>, fill <span class="op">=</span> <span class="va">tech</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_bar.html" class="external-link">geom_col</a></span><span class="op">(</span>show.legend <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/coord_flip.html" class="external-link">coord_flip</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
@@ -985,7 +1045,7 @@ scenario) see <em>UTOPIA II</em>.</p>
 rendered as a shareable HTML/PDF document – parameters, diagrams, cost
 breakdowns included. Not run here (reports open in the browser); try
 them in your session:</p>
-<div class="sourceCode" id="cb30"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># one technology: datasheet with diagram, share frontier and levelized cost</span></span>
 <span><span class="fu"><a href="../reference/report.html">report</a></span><span class="op">(</span><span class="va">EBIO</span>, discount <span class="op">=</span> <span class="fl">0.05</span>,</span>
 <span>       repo <span class="op">=</span> <span class="fu"><a href="../reference/newRepository.html">newRepository</a></span><span class="op">(</span><span class="st">"r"</span>, <span class="va">COA</span>, <span class="va">BIO</span>, <span class="va">CO2</span>, <span class="va">ELCa</span><span class="op">)</span>,</span>
@@ -1009,7 +1069,7 @@ them in your session:</p>
 3 and 7 regions) to produce the shipped [<code>utopia_modules</code>]
 dataset – a ready base repository (<code>$repo</code>), the individual
 blocks, and the levers, alongside the calendars, horizons and maps:</p>
-<div class="sourceCode" id="cb31"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">utopia_modules</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">utopia_modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">)</span>                 <span class="co"># kits by number of regions</span></span>
 <span><span class="va">um</span> <span class="op">&lt;-</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">reg3</span></span>
@@ -1029,7 +1089,7 @@ scenarios.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>
