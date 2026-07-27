@@ -1,7 +1,9 @@
-## energyRt <a href="https://energyrt.org/articles/logo.html"><img src="man/figures/logo.png" align="right" height="120" alt="energyRt hex logo" /></a>
+## energyRt <img src="man/figures/logo.png" align="right" height="120" alt="energyRt hex logo" /></a>
 
 [![Lifecycle: maturing](https://img.shields.io/badge/lifecycle-maturing-blue.svg)](https://lifecycle.r-lib.org/articles/stages.html)
 [![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
+
+> 📣 **Energy System Modeling with R** — a post-conference online series following useR! 2026 · four live sessions, Fridays 7–28 Aug 2026, 12:00 UTC. [Details & registration »](https://energyRt.org/use-R-2026)
 
 **energyRt** (*energy* system modeling *R-t*oolbox /ˈɛnərdʒi ɑrt/) is a
 macro-language for energy system modeling in R. You describe an energy system —

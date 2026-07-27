@@ -1,4 +1,9 @@
 url: https://energyRt.org
+
+# clean URL for the training page: energyRt.org/use-R-2026 -> articles/use-R-2026.html
+redirects:
+  - ["use-R-2026/index.html", "articles/use-R-2026.html"]
+
 template:
   bootstrap: 5
   light-switch: true
@@ -42,12 +47,15 @@ development:
 navbar:
   # bg: light
   structure:
-    left:  [intro, reference, roadmap, articles, news]
+    left:  [intro, course, reference, roadmap, articles, news]
     right: [search, github, lightswitch]
   components:
     news:
       text: News
       href: news/index.html
+    course:
+      text: Training
+      href: articles/use-R-2026.html
     roadmap:
       text: Roadmap
       href: articles/roadmap.html

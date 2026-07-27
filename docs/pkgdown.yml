@@ -1,20 +1,20 @@
 pandoc: 3.8.3
-pkgdown: 2.2.0
+pkgdown: 2.2.1
 pkgdown_sha: ~
 articles:
   articles/autoplot: autoplot.html
   articles/backends: backends.html
   energyRt: energyRt.html
   articles/install: install.html
-  articles/logo: logo.html
   articles/model-bricks: model-bricks.html
   articles/model: model.html
   articles/roadmap: roadmap.html
   articles/time-resolution: time-resolution.html
+  articles/use-R-2026: use-R-2026.html
   utopia-build: utopia-build.html
   utopia-use: utopia-use.html
   articles/workflow: workflow.html
-last_built: 2026-07-05T14:40Z
+last_built: 2026-07-27T20:38Z
 urls:
   reference: https://energyRt.org/reference
   article: https://energyRt.org/articles

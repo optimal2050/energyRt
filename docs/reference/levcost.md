@@ -108,9 +108,13 @@ levcost(object, comm, name, ...)
 
   `frontier`
 
-  :   Logical, default `FALSE`. When `TRUE` additional solves are
+  :   Logical, default `TRUE`. When `TRUE` additional solves are
       performed to map the production frontier for technologies with
-      multi-commodity grouped output and share constraints.
+      multi-commodity grouped output and share constraints (one solve
+      per output / input corner solution). Has no effect for
+      single-output or unconstrained technologies (the frontier is not
+      meaningful, so only the base solve runs). Set `FALSE` to skip the
+      extra solves.
 
   `solver`
 
