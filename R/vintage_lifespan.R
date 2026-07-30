@@ -131,17 +131,29 @@
 }
 
 # Translate legacy lifespan arguments in an argument list into `vintage`.
-# Returns the argument list with start/end/olife removed.
+# Returns the argument list with start/end/olife removed. Class-agnostic: used by
+# `newTechnology`/`newStorage`/`newTrade` and their `update` methods.
 .tech_lifespan_args <- function(args) {
   legacy <- c("start", "end", "olife")
   present <- intersect(legacy, names(args))
-  # drop empty legacy args so `newTechnology()`'s data.frame() defaults do not
+  # An all-infinite bound carries no information -- `newTrade()` defaults to
+  # `start = -Inf` / `end = Inf` meaning "always" -- and `as.integer(Inf)` is NA
+  # with a warning. Treat those as absent; interp already normalises Inf -> NA.
+  .all_inf <- function(x) {
+    v <- if (is.data.frame(x)) unlist(x[vapply(x, is.numeric, logical(1))]) else
+      if (is.list(x)) unlist(x) else x
+    v <- suppressWarnings(as.numeric(v))
+    length(v) > 0L && all(is.infinite(v) | is.na(v))
+  }
+  # drop empty legacy args so the constructors' data.frame() defaults do not
   # count as "supplied"
   nonempty <- present[vapply(present, function(n) {
     x <- args[[n]]
-    !(is.null(x) || (is.data.frame(x) && nrow(x) == 0L) ||
-        (is.list(x) && !is.data.frame(x) && length(x) == 0L) ||
-        (!is.list(x) && length(x) == 0L))
+    if (is.null(x)) return(FALSE)
+    if (is.data.frame(x) && nrow(x) == 0L) return(FALSE)
+    if (is.list(x) && !is.data.frame(x) && length(x) == 0L) return(FALSE)
+    if (!is.list(x) && length(x) == 0L) return(FALSE)
+    !.all_inf(x)
   }, logical(1))]
 
   has_vintage <- "vintage" %in% names(args) &&

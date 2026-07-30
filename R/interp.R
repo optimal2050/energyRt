@@ -290,12 +290,13 @@ interpolate_model <- function(mod, name = NULL, ...,
   # "<param> ... out of domain" error deep in the solver writer.
   .check_declared_regions(scen@model, scen@settings@region)
 
-  # Expand vintage/cluster technology groups into one ordinary `technology` per
-  # (vintage, cluster) cell. Must run BEFORE the sets are collected below, so
-  # `sets$tech` holds the variants. Non-destructive: only the internal build
-  # copy is expanded, the caller's model object is untouched. The link back to
-  # the base technology is kept in `sets$tech_variant` (see R/variants.R).
-  .tech_variants <- expand_tech_variants(mod, prefix = .variant_prefix(scen@settings))
+  # Expand vintage/cluster groups of every variant-capable process class into one
+  # ordinary object per (vintage, cluster) cell. Must run BEFORE the sets are
+  # collected below, so `sets$tech` / `sets$stg` hold the variants.
+  # Non-destructive: only the internal build copy is expanded, the caller's model
+  # object is untouched. The link back to each base object is kept in
+  # `sets$variant` (see R/variants.R).
+  .tech_variants <- expand_variants(mod, prefix = .variant_prefix(scen@settings))
   mod <- .tech_variants$model    # the sets below are collected from `mod`
   scen@model <- mod              # ... while get_process_*() read scen@model
   .assert_variants_expanded(mod)
@@ -407,11 +408,21 @@ interpolate_model <- function(mod, name = NULL, ...,
   .check_process_names(scen@modInp@sets)
 
   # assemble summary sets to use in interpolation
-  ## technology variant provenance: variant tech -> (base, vintage, cluster).
-  ## `modInp@sets` is a plain list, exempt from the `.dimSets` whitelist, and
-  ## already hosts derived tables of exactly this kind (process_region etc).
-  ## Reporting joins this instead of parsing the mangled variant names.
-  scen@modInp@sets$tech_variant <- .tech_variants$provenance
+  ## variant provenance: variant name -> (class, base, vintage, cluster), for
+  ## every process class. `modInp@sets` is a plain list, exempt from the
+  ## `.dimSets` whitelist, and already hosts derived tables of exactly this kind
+  ## (process_region etc). Reporting joins this instead of parsing the mangled
+  ## variant names.
+  scen@modInp@sets$variant <- .tech_variants$provenance
+  ## deprecated technology-only view, kept for one release
+  scen@modInp@sets$tech_variant <- if (is.null(.tech_variants$provenance)) NULL else {
+    tv <- .tech_variants$provenance
+    tv <- tv[tv$class == "technology", , drop = FALSE]
+    if (nrow(tv) == 0L) NULL else {
+      names(tv)[names(tv) == "name"] <- "tech"
+      tv[, c("tech", "base", "vintage", "cluster")]
+    }
+  }
 
   ## process class
   scen@modInp@sets$process_class <- get_process_class(scen)

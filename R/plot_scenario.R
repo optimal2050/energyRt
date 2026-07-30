@@ -78,12 +78,14 @@ getMix <- function(scen,
 
   # `by` is shadowed by a local further down, so keep a copy under another name
   by_dims <- by
-  # Technology variant provenance. By DEFAULT variants are rolled back up to
-  # their base technology, so existing charts do not fragment into one series
-  # per vintage/cluster; pass `by = c("vintage", "cluster")` to split them out.
-  tv <- tryCatch(as.data.frame(scen@modInp@sets$tech_variant),
+  # Variant provenance for every process class. By DEFAULT variants are rolled
+  # back up to their base object, so existing charts do not fragment into one
+  # series per vintage/cluster; pass `by = c("vintage", "cluster")` to split.
+  tv <- tryCatch(as.data.frame(scen@modInp@sets$variant),
                  error = function(e) NULL)
   if (!is.null(tv) && NROW(tv) == 0) tv <- NULL
+  # `.mix_fetch()` resolves the id column to `process`, so match on `name`
+  if (!is.null(tv)) names(tv)[names(tv) == "name"] <- "tech"
 
   pieces <- switch(type,
     generation = list(

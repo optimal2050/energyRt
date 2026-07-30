@@ -25,16 +25,57 @@
 # joins that table and never parses strings.
 # ========================================================================== #
 
-# Slots whose rows may be selected by vintage/cluster. Structural slots
-# (input/output/aux/units/group/cap2act) define the commodity topology, which
-# must be identical across variants -- otherwise it is a different technology.
-.variant_slots <- c(
-  "vintage", "capacity", "ceff", "geff", "aeff",
-  "af", "afs", "weather", "fixom", "varom", "invcost"
+# -------------------------------------------------------------------------- #
+# Per-class registry
+#
+# `slots`      slots whose rows may be selected by vintage/cluster. Everything
+#              else is structural -- it defines the process's topology and must
+#              be identical across variants, otherwise it is a different process.
+# `dims`       the variant dimensions this class supports. `trade` gets vintage
+#              only: its routes (src/dst) already provide multiplicity, so a
+#              cluster axis would be redundant.
+# `bound_var`  capacity variables a group-aggregate ("TOTAL") bound constrains.
+# `bound_dims` dimensions available to such a bound. `vTradeCap{trade, year}`
+#              carries no region index, so a trade bound can only span years.
+# -------------------------------------------------------------------------- #
+.variant_classes <- list(
+  technology = list(
+    key = "tech",
+    dims = c("vintage", "cluster"),
+    slots = c("vintage", "capacity", "ceff", "geff", "aeff",
+              "af", "afs", "weather", "fixom", "varom", "invcost"),
+    bound_var = list(cap = "vTechCap", ncap = "vTechNewCap"),
+    bound_dims = c("region", "year")
+  ),
+  storage = list(
+    key = "stg",
+    dims = c("vintage", "cluster"),
+    slots = c("vintage", "capacity", "invcost", "fixom", "varom",
+              "af", "seff", "charge", "aeff", "weather", "cap2stg"),
+    bound_var = list(cap = "vStorageCap", ncap = "vStorageNewCap"),
+    bound_dims = c("region", "year")
+  )
 )
 
-# The two variant selector columns.
+# Every variant selector column across all classes. Used for the naming prefixes
+# (a model-wide setting) as opposed to what one class actually supports.
 .variant_dims <- c("vintage", "cluster")
+
+# Registry entry for an object, or NULL when its class has no variants.
+.variant_def <- function(obj) {
+  .variant_classes[[class(obj)[1]]]
+}
+
+# The slots / dims of the class an object belongs to (empty for a non-variant
+# class, so the generic helpers degrade to no-ops).
+.variant_slots_of <- function(obj) {
+  d <- .variant_def(obj)
+  if (is.null(d)) character() else d$slots
+}
+.variant_dims_of <- function(obj) {
+  d <- .variant_def(obj)
+  if (is.null(d)) character() else d$dims
+}
 
 # -------------------------------------------------------------------------- #
 # Variant name prefixes
@@ -145,7 +186,8 @@
 # Per-slot occurrences of a selector column, used both to build the level set and
 # to spot labels that appear in some slots but not others (the typo signature).
 .variant_levels_by_slot <- function(tech, dim) {
-  out <- lapply(.variant_slots, function(s) {
+  sl <- .variant_slots_of(tech)
+  out <- lapply(sl, function(s) {
     if (!.hasSlot(tech, s)) return(NULL)
     d <- as.data.frame(slot(tech, s))
     if (nrow(d) == 0L || !dim %in% names(d)) return(NULL)
@@ -154,7 +196,7 @@
     if (length(v) == 0L) return(NULL)
     unique(v)
   })
-  names(out) <- .variant_slots
+  names(out) <- sl
   out[!vapply(out, is.null, logical(1))]
 }
 
@@ -265,14 +307,15 @@
   vin_df
 }
 
-# Validate one technology's variant declaration before expanding it.
+# Validate one process object's variant declaration before expanding it.
 .variant_validate <- function(tech) {
   nm <- tech@name
+  cls <- class(tech)[1]
   # "TOTAL" is only meaningful on the bound columns of @capacity. Elsewhere it
   # is a user error -- and it must be caught, because `.variant_levels()`
   # deliberately filters the token out, so such a row would otherwise be
   # silently ignored rather than becoming a variant.
-  for (s in setdiff(.variant_slots, "capacity")) {
+  for (s in setdiff(.variant_slots_of(tech), "capacity")) {
     if (!.hasSlot(tech, s)) next
     d <- as.data.frame(slot(tech, s))
     if (nrow(d) == 0L) next
@@ -280,7 +323,7 @@
       if (any(!is.na(d[[dm]]) & d[[dm]] == .VARIANT_TOTAL)) {
         stop('"', .VARIANT_TOTAL, '" in `', dm, '` is only supported on the ',
              'bound columns of `capacity` (', paste(.variant_bound_cols,
-             collapse = ", "), '), not in slot `', s, '`: technology "', nm, '".')
+             collapse = ", "), '), not in slot `', s, '`: ', cls, ' "', nm, '".')
       }
     }
   }
@@ -402,12 +445,17 @@
 #   both    = "TOTAL"                 -> a single constraint over everything
 # -------------------------------------------------------------------------- #
 
-# bound column stem -> variable it constrains
-.variant_bound_var <- list(cap = "vTechCap", ncap = "vTechNewCap")
+# bound column stem -> variable it constrains, per class (see `.variant_classes`)
 # bound suffix -> relation
 .variant_bound_eq <- c(lo = ">=", up = "<=", fx = "==")
 
 .variant_group_constraints <- function(tech, prov, regions, years) {
+  def <- .variant_def(tech)
+  if (is.null(def) || !.hasSlot(tech, "capacity")) return(list())
+  cls <- class(tech)[1]
+  bvar <- def$bound_var
+  bdims <- def$bound_dims
+
   cap <- as.data.frame(tech@capacity)
   dims <- intersect(.variant_dims, names(cap))
   if (nrow(cap) == 0L || length(dims) == 0L) return(list())
@@ -434,12 +482,12 @@
       if (is.na(val)) next
       stem <- sub("\\.(lo|up|fx)$", "", bc)
       sfx  <- sub("^.*\\.", "", bc)
-      if (is.null(.variant_bound_var[[stem]])) {
+      if (is.null(bvar[[stem]])) {
         stop('Group-aggregate ("', .VARIANT_TOTAL, '") bounds are supported on ',
-             'cap.* and ncap.* but not on `', bc, '` (technology "', tech@name,
-             '"): the retirement variables carry a second year index, so a ',
-             'group retirement bound must be written explicitly with ',
-             '`newConstraint()`.')
+             'cap.* and ncap.* but not on `', bc, '` (', cls, ' "', tech@name,
+             '"): the retirement variables carry a second year index (and no ',
+             'retirement equation exists for storage or trade), so a group ',
+             'retirement bound must be written explicitly with `newConstraint()`.')
       }
       grid <- if (length(per)) {
         expand.grid(lv[per], KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)
@@ -451,7 +499,7 @@
         keep <- rep(TRUE, nrow(prov))
         for (d in per)   keep <- keep & !is.na(prov[[d]]) & prov[[d]] == grid[[d]][g]
         for (d in fixed) keep <- keep & !is.na(prov[[d]]) & prov[[d]] == r[[d]]
-        variants <- prov$tech[keep]
+        variants <- prov$name[keep]
         if (length(variants) < 1L) next
 
         # The name identifies (technology, bound column, per-level cell) plus
@@ -465,8 +513,19 @@
         # restricted region/year is part of the identity, which keeps every
         # bound correct and distinct. The common case -- one bound for all
         # regions and years -- still yields exactly one constraint.
-        rg <- if (!is.na(r$region)) as.character(r$region) else NA_character_
+        rg <- if ("region" %in% names(r) && !is.na(r$region))
+          as.character(r$region) else NA_character_
         yr <- if ("year" %in% names(r) && !is.na(r$year)) as.integer(r$year) else NA_integer_
+        # A class whose capacity variable has no region index cannot carry a
+        # region-restricted group bound: `newConstraint()` auto-sums an unmatched
+        # for.each dimension, so it would silently replicate the same region-free
+        # constraint once per region (and be plain wrong for `.fx`).
+        if (!is.na(rg) && !"region" %in% bdims) {
+          stop('A group-aggregate `', bc, '` bound for ', cls, ' "', tech@name,
+               '" names region "', rg, '", but ', bvar[[stem]],
+               ' has no region index -- a ', cls,
+               ' group bound can only span years. Drop the `region` value.')
+        }
         nm <- paste0(.VARIANT_GROUP_PREFIX, .variant_token(tech@name),
                      .variant_token(bc),
                      if (length(per)) paste0(vapply(per, function(d)
@@ -475,14 +534,17 @@
                      if (!is.na(rg)) paste0("R", .variant_token(rg)) else "",
                      if (!is.na(yr)) paste0("Y", .variant_token(yr)) else "")
 
-        cells <- expand.grid(
-          region = if (!is.na(rg)) rg else regions,
-          year   = if (!is.na(yr)) yr else years,
-          KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)
+        # `for.each` carries only the dimensions the capacity variable has.
+        cell_args <- list(year = if (!is.na(yr)) yr else years)
+        if ("region" %in% bdims) {
+          cell_args <- c(list(region = if (!is.na(rg)) rg else regions), cell_args)
+        }
+        cells <- do.call(expand.grid, c(cell_args,
+          list(KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)))
 
         # Same identity twice => the same cells bounded by two different values.
         if (!is.null(acc[[nm]])) {
-          stop('Contradictory group-aggregate `', bc, '` bounds for technology "',
+          stop('Contradictory group-aggregate `', bc, '` bounds for ', cls, ' "',
                tech@name, '": ', format(acc[[nm]]$val), ' and ', format(val),
                ' both apply to ',
                if (is.na(rg)) "all regions" else paste0('region "', rg, '"'),
@@ -507,11 +569,12 @@
       # for `.fx`, so spanning every cell would pin the sum to the default
       # wherever the user gave no bound.
       for.each = a$cells,
-      term1 = list(variable = .variant_bound_var[[a$stem]],
-                   for.sum = list(tech = a$variants)),
+      term1 = list(variable = bvar[[a$stem]],
+                   for.sum = stats::setNames(list(a$variants), def$key)),
       defVal = as.numeric(a$val)
     )
-    cns@misc$.variant_tech <- tech@name
+    cns@misc$.variant_source <- tech@name
+    cns@misc$.variant_class <- cls
     out[[nm]] <- cns
   }
   out
@@ -519,10 +582,10 @@
 
 # Labels are reduced to alphanumerics for the variant name, and that reduction is
 # many-to-one: "best-1" and "best 1" both become "best1". Two labels that collapse
-# would mint the same variant name and one technology would silently replace the
-# other, so refuse up front. Must run on the RAW labels, hence per technology.
+# would mint the same variant name and one process would silently replace the
+# other, so refuse up front. Must run on the RAW labels, hence per object.
 .variant_check_tokens <- function(tech) {
-  for (dm in .variant_dims) {
+  for (dm in .variant_dims_of(tech)) {
     lv <- .variant_levels(tech, dm)
     if (length(lv) < 1L) next
     tok <- .variant_token(lv)
@@ -552,10 +615,13 @@
 # expansion
 # -------------------------------------------------------------------------- #
 
-# Expand one technology into its variants. Returns a list of `technology`
-# objects (the original, unchanged, when there is nothing to expand) plus the
+# Expand one process object into its variants. Returns a list of objects of the
+# same class (the original, unchanged, when there is nothing to expand) plus the
 # provenance rows.
-.expand_one_tech <- function(tech, prefix = .variant_prefix_default()) {
+.expand_one_process <- function(tech, prefix = .variant_prefix_default()) {
+  if (is.null(.variant_def(tech))) {
+    return(list(objects = list(tech), provenance = NULL))
+  }
   grid <- .variant_grid(tech)
   if (is.null(grid)) {
     return(list(objects = list(tech), provenance = NULL))
@@ -603,7 +669,7 @@
       rownames(v@cluster) <- NULL
     }
 
-    for (s in .variant_slots) {
+    for (s in .variant_slots_of(tech)) {
       if (!.hasSlot(tech, s)) next
       d <- .variant_slice(slot(tech, s), vin, clu)
       if (s == "vintage") d <- .variant_default_window(d, vin)
@@ -623,7 +689,8 @@
   }
 
   prov <- data.frame(
-    tech = vapply(objs, function(z) z@name, character(1)),
+    name = vapply(objs, function(z) z@name, character(1)),
+    class = class(tech)[1],
     base = tech@name,
     vintage = grid$vintage,
     cluster = grid$cluster,
@@ -632,13 +699,18 @@
   list(objects = objs, provenance = prov)
 }
 
-# Walk a model's repositories and replace every vintaged/clustered technology
-# with its variants. Non-destructive: the caller's model is not modified in
-# place, the returned one is used for the build.
+# Back-compat wrapper: `dev-scripts/*` and downstream repos call this directly.
+.expand_one_tech <- function(tech, prefix = .variant_prefix_default()) {
+  .expand_one_process(tech, prefix)
+}
+
+# Walk a model's repositories and replace every vintaged/clustered process object
+# (any class in `.variant_classes`) with its variants. Non-destructive: the
+# caller's model is not modified in place, the returned one is used for the build.
 #
 # @return list(model = <expanded model>, provenance = <data.frame|NULL>)
 # @noRd
-expand_tech_variants <- function(mod, prefix = .variant_prefix(mod)) {
+expand_variants <- function(mod, prefix = .variant_prefix(mod)) {
   prefix <- .variant_prefix_merge(prefix)
 
   regions <- as.character(mod@config@region)
@@ -646,12 +718,16 @@ expand_tech_variants <- function(mod, prefix = .variant_prefix(mod)) {
                       error = function(e) integer())
 
   # ---- 1. COLLECT ---------------------------------------------------------- #
-  # Pure traversal: expand each technology but mutate nothing yet. Inserting as
-  # we go would hide collisions, because `out[[name]] <- obj` on a named list
-  # REPLACES a same-named entry -- so two variants that mangle to one name would
-  # silently become one and the duplicate check below could never see it.
+  # Pure traversal: expand each object but mutate nothing yet. Inserting as we go
+  # would hide collisions, because `out[[name]] <- obj` on a named list REPLACES
+  # a same-named entry -- so two variants that mangle to one name would silently
+  # become one and the duplicate check below could never see it.
+  #
+  # Every class is collected into the SAME `minted`/`survivor` tables, so the
+  # cross-class checks are symmetric: a storage variant colliding with a
+  # technology (they share `sets$process`) is caught from either direction.
   expanded <- list()   # repo path -> base name -> expansion result
-  minted   <- list()   # rows: name, base, repo
+  minted   <- list()   # rows: name, class, base, repo
   survivor <- list()   # rows: name, class, repo  (everything NOT replaced)
 
   walk <- function(r, path = "") {
@@ -660,22 +736,18 @@ expand_tech_variants <- function(mod, prefix = .variant_prefix(mod)) {
       el <- r@data[[nm]]
       if (methods::is(el, "repository")) {
         walk(el, paste0(path, "/", nm))
-      } else if (methods::is(el, "technology")) {
-        res <- .expand_one_tech(el, prefix)
-        if (is.null(res$provenance)) {
-          survivor[[length(survivor) + 1L]] <<- data.frame(
-            name = el@name, class = "technology", repo = path,
-            stringsAsFactors = FALSE)
-        } else {
-          expanded[[path]][[nm]] <<- res
-          minted[[length(minted) + 1L]] <<- data.frame(
-            name = res$provenance$tech, base = el@name, repo = path,
-            stringsAsFactors = FALSE)
-        }
-      } else {
+        next
+      }
+      res <- if (is.null(.variant_def(el))) NULL else .expand_one_process(el, prefix)
+      if (is.null(res) || is.null(res$provenance)) {
         survivor[[length(survivor) + 1L]] <<- data.frame(
           name = el@name, class = class(el)[1], repo = path,
           stringsAsFactors = FALSE)
+      } else {
+        expanded[[path]][[nm]] <<- res
+        minted[[length(minted) + 1L]] <<- data.frame(
+          name = res$provenance$name, class = class(el)[1],
+          base = el@name, repo = path, stringsAsFactors = FALSE)
       }
     }
     invisible(NULL)
@@ -693,21 +765,25 @@ expand_tech_variants <- function(mod, prefix = .variant_prefix(mod)) {
     for (b in unique(minted$base)) {
       nmb <- minted$name[minted$base == b]
       if (anyDuplicated(nmb) > 0L) {
-        stop('Technology "', b, '" produces the same variant name more than ',
+        cls_b <- minted$class[minted$base == b][1]
+        stop(cls_b, ' "', b, '" produces the same variant name more than ',
              'once: ', paste(unique(nmb[duplicated(nmb)]), collapse = ", "),
              ". Rename a vintage/cluster label.")
       }
     }
-    # 2b. variants of DIFFERENT bases colliding with each other
+    # 2b. variants of DIFFERENT bases colliding with each other -- possibly from
+    #     different classes, since they all share `sets$process`
     if (anyDuplicated(minted$name) > 0L) {
       d <- unique(minted$name[duplicated(minted$name)])
-      det <- vapply(d, function(n) paste0('"', n, '" from ',
-        paste(unique(minted$base[minted$name == n]), collapse = " and ")),
-        character(1))
+      det <- vapply(d, function(n) {
+        i <- minted$name == n
+        paste0('"', n, '" from ',
+               paste(unique(paste0(minted$class[i], ' "', minted$base[i], '"')),
+                     collapse = " and "))
+      }, character(1))
       stop("Variant expansion produces the same name from more than one ",
-           "technology: ", paste(det, collapse = "; "),
-           ". Rename a base technology, rename a label, or change ",
-           "`variant_prefix`.")
+           "process: ", paste(det, collapse = "; "),
+           ". Rename a base object, rename a label, or change `variant_prefix`.")
     }
     # 2c. variants colliding with an object that is NOT being replaced. All
     #     process classes share `sets$process`, so a clash with a storage or a
@@ -715,13 +791,13 @@ expand_tech_variants <- function(mod, prefix = .variant_prefix(mod)) {
     hit <- merge(minted, survivor, by = "name")
     if (nrow(hit) > 0L) {
       det <- vapply(seq_len(nrow(hit)), function(i) {
-        sprintf('"%s" (from technology "%s") collides with an existing %s%s',
-                hit$name[i], hit$base[i], hit$class[i],
+        sprintf('"%s" (from %s "%s") collides with an existing %s%s',
+                hit$name[i], hit$class.x[i], hit$base[i], hit$class.y[i],
                 if (nzchar(hit$repo.y[i])) paste0(' in repository "',
                                                   hit$repo.y[i], '"') else "")
       }, character(1))
       stop("Variant name collision: ", paste(det, collapse = "; "),
-           ". Rename the base technology, rename the vintage/cluster label, or ",
+           ". Rename the base object, rename the vintage/cluster label, or ",
            "change `variant_prefix`.")
     }
     # 2d. validity as a set member
@@ -742,8 +818,7 @@ expand_tech_variants <- function(mod, prefix = .variant_prefix(mod)) {
       el <- r@data[[nm]]
       if (methods::is(el, "repository")) {
         out[[nm]] <- insert(el, paste0(path, "/", nm))
-      } else if (methods::is(el, "technology") &&
-                 !is.null(expanded[[path]][[nm]])) {
+      } else if (!is.null(expanded[[path]][[nm]])) {
         res <- expanded[[path]][[nm]]
         for (v in res$objects) out[[v@name]] <- v
         prov[[length(prov) + 1L]] <<- res$provenance
@@ -763,20 +838,23 @@ expand_tech_variants <- function(mod, prefix = .variant_prefix(mod)) {
   # group-aggregate bounds become ordinary user constraints on the model
   cns <- unlist(cns, recursive = FALSE, use.names = TRUE)
   if (length(cns)) {
-    # Two technologies whose names collapse under sanitisation mint the same
+    # Two objects whose names collapse under sanitisation mint the same
     # constraint name; `add(overwrite = TRUE)` below would silently drop one.
+    # They may be of different classes, since the constraint namespace is shared.
     if (anyDuplicated(names(cns)) > 0L) {
       d <- unique(names(cns)[duplicated(names(cns))])
       src <- vapply(d, function(n) {
-        techs <- vapply(cns[names(cns) == n], function(k) {
-          tt <- k@misc$.variant_tech
-          if (is.null(tt)) NA_character_ else as.character(tt)[1]
+        srcs <- vapply(cns[names(cns) == n], function(k) {
+          tt <- k@misc$.variant_source
+          cc <- k@misc$.variant_class
+          if (is.null(tt)) NA_character_ else
+            paste0(if (is.null(cc)) "" else paste0(cc, " "), '"', tt, '"')
         }, character(1))
-        paste0('"', n, '" from ', paste(unique(techs), collapse = " and "))
+        paste0('"', n, '" from ', paste(unique(srcs), collapse = " and "))
       }, character(1))
       stop("Group-aggregate bound constraints collide on name: ",
            paste(src, collapse = "; "),
-           ". The technology names reduce to the same token; rename one.")
+           ". The object names reduce to the same token; rename one.")
     }
     mod <- add(mod, cns, overwrite = TRUE)
     message("Added ", length(cns), " group-aggregate bound constraint(s): ",
@@ -785,38 +863,54 @@ expand_tech_variants <- function(mod, prefix = .variant_prefix(mod)) {
 
   prov <- if (length(prov)) bind_rows(prov) else NULL
   if (!is.null(prov)) {
-    message("Expanded ", length(unique(prov$base)), " technolog",
-            if (length(unique(prov$base)) == 1L) "y" else "ies", " into ",
-            nrow(prov), " variants (vintage/cluster).")
+    n_base <- length(unique(paste(prov$class, prov$base)))
+    message("Expanded ", n_base, " process object",
+            if (n_base == 1L) "" else "s", " into ", nrow(prov),
+            " variants (vintage/cluster).")
   }
   list(model = mod, provenance = prov)
+}
+
+# Back-compat wrapper for the technology-only name.
+# @noRd
+expand_tech_variants <- function(mod, prefix = .variant_prefix(mod)) {
+  expand_variants(mod, prefix)
 }
 
 # -------------------------------------------------------------------------- #
 # reporting
 # -------------------------------------------------------------------------- #
 
-#' Technology variants of a solved (or interpolated) scenario
+#' Process variants of a solved (or interpolated) scenario
 #'
 #' @description
 #' Lists the vintage/cluster variants a scenario was built from, i.e. the
-#' provenance table `scenario@modInp@sets$tech_variant`: which base technology
-#' each variant came from and which `(vintage, cluster)` cell it represents.
+#' provenance table `scenario@modInp@sets$variant`: which base object each
+#' variant came from, of which class, and which `(vintage, cluster)` cell it
+#' represents.
 #'
 #' Variant names are an implementation detail of the solver-facing sets; use this
 #' table (or `getData(..., variants = TRUE)`) to analyse results by vintage or
 #' cluster rather than parsing the names.
 #'
 #' @param scen a `scenario` object.
+#' @param class optional character, keep only variants of these process classes
+#'   (e.g. `"technology"`, `"storage"`).
 #'
-#' @return A data.frame with columns `tech`, `base`, `vintage`, `cluster`, or
-#'   `NULL` when the model has no variants.
+#' @return A data.frame with columns `name`, `class`, `base`, `vintage`,
+#'   `cluster`, or `NULL` when the model has no variants.
 #' @family technology process
 #' @export
-getVariants <- function(scen) {
-  tv <- tryCatch(scen@modInp@sets$tech_variant, error = function(e) NULL)
+getVariants <- function(scen, class = NULL) {
+  tv <- tryCatch(scen@modInp@sets$variant, error = function(e) NULL)
   if (is.null(tv) || NROW(tv) == 0) return(NULL)
-  as.data.frame(tv)
+  tv <- as.data.frame(tv)
+  if (!is.null(class)) {
+    tv <- tv[tv$class %in% class, , drop = FALSE]
+    if (nrow(tv) == 0L) return(NULL)
+    rownames(tv) <- NULL
+  }
+  tv
 }
 
 #' Summarise a result variable across technology variants
@@ -849,12 +943,14 @@ variantSummary <- function(scen, name, by = character(), weight = NULL, ...) {
     stop("No data for '", name, "' in scenario '", scen@name, "'.")
   }
   if (!"base" %in% names(d)) {
-    stop("Scenario '", scen@name, "' has no technology variants.")
+    stop("Scenario '", scen@name, "' has no process variants.")
   }
   d <- d |> filter(!is.na(.data$base))
   if (nrow(d) == 0) {
-    stop("Variable '", name, "' carries no variant technologies.")
+    stop("Variable '", name, "' carries no variant processes.")
   }
+  # the id column is `tech` / `stg` / `trade`, or `process` when renamed
+  idcol <- intersect(c("tech", "stg", "trade", "process"), names(d))[1]
   if (!is.null(weight)) {
     w <- getData(scen, name = weight, merge = TRUE, variants = TRUE, ...)
     keys <- intersect(names(d), names(w))
@@ -868,7 +964,7 @@ variantSummary <- function(scen, name, by = character(), weight = NULL, ...) {
   d |>
     group_by(across(all_of(grp))) |>
     summarise(
-      n     = dplyr::n_distinct(.data$tech),
+      n     = dplyr::n_distinct(.data[[idcol]]),
       total = sum(.data$value, na.rm = TRUE),
       mean  = if (all(is.na(.data$.w)) || sum(.data$.w, na.rm = TRUE) == 0) {
         mean(.data$value, na.rm = TRUE)
@@ -935,19 +1031,21 @@ variantSummary <- function(scen, name, by = character(), weight = NULL, ...) {
 
 # Guard: nothing carrying more than one distinct (vintage, cluster) cell may
 # reach `ob2mi`, because `make_data_param()` silently ignores unknown slot
-# columns -- an unexpanded technology would produce quietly wrong data rather
-# than an error.
+# columns -- an unexpanded object would produce quietly wrong data rather than
+# an error. Covers every class in `.variant_classes`.
 # @noRd
 .assert_variants_expanded <- function(mod) {
-  techs <- try(getObjects(mod, "technology"), silent = TRUE)
-  if (inherits(techs, "try-error")) return(invisible(TRUE))
-  for (t in techs) {
-    n_v <- length(.variant_levels(t, "vintage"))
-    n_c <- length(.variant_levels(t, "cluster"))
-    if (n_v > 1L || n_c > 1L) {
-      stop('Technology "', t@name, '" still carries ', n_v, " vintage(s) and ",
-           n_c, " cluster(s) at interpolation time -- variant expansion did ",
-           "not run. This would silently drop the vintage/cluster distinction.")
+  for (cls in names(.variant_classes)) {
+    objs <- try(getObjects(mod, cls), silent = TRUE)
+    if (inherits(objs, "try-error") || length(objs) == 0L) next
+    for (t in objs) {
+      n_v <- length(.variant_levels(t, "vintage"))
+      n_c <- length(.variant_levels(t, "cluster"))
+      if (n_v > 1L || n_c > 1L) {
+        stop(cls, ' "', t@name, '" still carries ', n_v, " vintage(s) and ",
+             n_c, " cluster(s) at interpolation time -- variant expansion did ",
+             "not run. This would silently drop the vintage/cluster distinction.")
+      }
     }
   }
   invisible(TRUE)

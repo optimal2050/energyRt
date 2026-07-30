@@ -555,7 +555,7 @@ getData.scenario <- function(
   # `modInp@sets$tech_variant` so results can be analysed (or rolled up) by
   # vintage and cluster without ever parsing the mangled variant names.
   if (isTRUE(variants) && length(ll) > 0) {
-    tv <- tryCatch(scen[[1]]@modInp@sets$tech_variant, error = function(e) NULL)
+    tv <- tryCatch(scen[[1]]@modInp@sets$variant, error = function(e) NULL)
     if (is.null(tv) || NROW(tv) == 0) {
       if (verbose) message("No technology variants in this scenario.")
     } else {
@@ -716,16 +716,18 @@ get_data <- getData
 .timeframe_state_vars <- c("vStorageStore")
 
 # Aggregate one data.frame to `target_rank` by summing `value` over child slices.
-# Left-join the variant provenance onto a result frame. The technology column is
-# `tech`, or `process` when `getData(process = TRUE)` has renamed it.
+# Left-join the variant provenance onto a result frame. The process id column is
+# `tech` / `stg` / `trade` depending on the class, or `process` when
+# `getData(process = TRUE)` has renamed it -- so the join key is whichever of
+# those the frame carries, not `tech` alone.
 .attach_variants <- function(x, tv) {
-  col <- intersect(c("tech", "process"), names(x))
+  col <- intersect(c("tech", "stg", "trade", "process"), names(x))
   if (length(col) == 0L) return(x)
   col <- col[1]
   if (any(c("base", "vintage", "cluster") %in% names(x))) return(x)
   tv <- tv |>
-    select(all_of(c("tech", "base", "vintage", "cluster"))) |>
-    rename("{col}" := "tech")
+    select(all_of(c("name", "class", "base", "vintage", "cluster"))) |>
+    rename("{col}" := "name")
   left_join(x, tv, by = col)
 }
 

@@ -966,7 +966,7 @@ pStorageOlife:
   interpolation: back.inter.forth
   colName: olife
   class: storage
-  slot: olife
+  slot: vintage
 pStorageStock:
   name: pStorageStock
   dimSets:
@@ -1124,6 +1124,7 @@ pStorageCap2stg:
   interpolation: back.inter.forth
   class: storage
   slot: cap2stg
+  colName: cap2stg
 pStorageCinp:
   name: pStorageCinp
   dimSets:
