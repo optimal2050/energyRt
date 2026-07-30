@@ -165,6 +165,13 @@ findData <- function(scen,
 #' @param maps if TRUE, map-type parameters (membership mappings, no `value` column) are also returned.
 #' @param na.rm if TRUE, NA values will be dropped.
 #' @param digits if integer, indicates the number of decimal places for rounding, if NULL - no actions.
+#' @param variants logical, default `TRUE`: attach the technology-variant
+#'   provenance columns `base`, `vintage` and `cluster` (from
+#'   `scenario@modInp@sets$tech_variant`) to the returned data, so results of a
+#'   vintaged / clustered technology can be grouped or rolled up by those
+#'   dimensions without parsing the variant names. Has no effect when the model
+#'   has no variants, so the returned shape is unchanged for such models. Set
+#'   `FALSE` to suppress the columns.
 #' @param drop.zeros logical, should rows containing zero values be filtered out.
 #' @param asTibble logical, if the data.frames should be converted into tibbles.
 #' @param newNames renaming sets, named character vector or list with new names as values, and old names as names - the input parameter to renameSets function. The operation is performed before merging the data (merge parameter).
@@ -217,6 +224,7 @@ getData.scenario <- function(
     drop_duplicated_scenarios = TRUE,
     scenNameInList = as.logical(length(scen) - 1),
     unfold = TRUE,
+    variants = TRUE,
     verbose = FALSE) {
   # if (name == "vObjective") browser()
   # browser()
@@ -543,6 +551,18 @@ getData.scenario <- function(
     ll <- lapply(ll, function(x) renameSets(x, newNames))
   }
 
+  # Technology variant provenance: attach `base` / `vintage` / `cluster` from
+  # `modInp@sets$tech_variant` so results can be analysed (or rolled up) by
+  # vintage and cluster without ever parsing the mangled variant names.
+  if (isTRUE(variants) && length(ll) > 0) {
+    tv <- tryCatch(scen[[1]]@modInp@sets$tech_variant, error = function(e) NULL)
+    if (is.null(tv) || NROW(tv) == 0) {
+      if (verbose) message("No technology variants in this scenario.")
+    } else {
+      ll <- lapply(ll, function(x) .attach_variants(x, as.data.frame(tv)))
+    }
+  }
+
   # Sub-annual time aggregation (slice roll-up), see `timeframe` argument.
   if (length(ll) > 0) {
     cal <- tryCatch(scen[[1]]@settings@calendar, error = function(e) NULL)
@@ -696,6 +716,19 @@ get_data <- getData
 .timeframe_state_vars <- c("vStorageStore")
 
 # Aggregate one data.frame to `target_rank` by summing `value` over child slices.
+# Left-join the variant provenance onto a result frame. The technology column is
+# `tech`, or `process` when `getData(process = TRUE)` has renamed it.
+.attach_variants <- function(x, tv) {
+  col <- intersect(c("tech", "process"), names(x))
+  if (length(col) == 0L) return(x)
+  col <- col[1]
+  if (any(c("base", "vintage", "cluster") %in% names(x))) return(x)
+  tv <- tv |>
+    select(all_of(c("tech", "base", "vintage", "cluster"))) |>
+    rename("{col}" := "tech")
+  left_join(x, tv, by = col)
+}
+
 .aggregate_timeframe_df <- function(df, calendar, target_rank) {
   if (is.na(target_rank)) {
     return(df)
@@ -711,7 +744,12 @@ get_data <- getData
   tgt <- unname(map[as.character(df$slice)])
   na <- is.na(tgt)
   tgt[na] <- as.character(df$slice)[na] # unknown slices: leave untouched
-  if (all(tgt == as.character(df$slice))) {
+  # A folded parameter stores an unset slice as NA ("all slices"). Both sides of
+  # the comparison are then NA, so `all()` returned NA and `if` errored -- guard
+  # it: an NA slice has nothing to roll up.
+  same <- tgt == as.character(df$slice)
+  same[is.na(same)] <- TRUE
+  if (all(same)) {
     return(df) # nothing to roll up
   }
   df$slice <- tgt

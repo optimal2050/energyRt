@@ -65,7 +65,7 @@ map_mStorageOlifeInf <- function(scen, fmp) {
   fin <- apply_to_scenario_data(
     scen = scen, classes = "storage", as_list = TRUE,
     func = function(x) {
-      ol <- as.data.frame(x@olife)
+      ol <- .lifespan_col(x, "olife")
       if (nrow(ol) == 0 || all(is.infinite(ol$olife))) return(NULL)
       o <- list(); o[[x@name]] <- data.frame(stg = x@name, stringsAsFactors = FALSE)
       o

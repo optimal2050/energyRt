@@ -386,7 +386,7 @@ recipe_calendar <- function(scen, names, fmp) scen
   res <- apply_to_scenario_data(
     scen = scen, classes = cls, as_list = TRUE,
     func = function(obj) {
-      ol <- as.data.frame(obj@olife)
+      ol <- .lifespan_col(obj, "olife")
       if (nrow(ol) == 0 || is.null(ol$olife)) return(NULL)
       isinf <- is.infinite(ol$olife)
       if (!any(isinf)) return(NULL)
@@ -446,7 +446,7 @@ recipe_calendar <- function(scen, names, fmp) scen
       if (!(obj@name %in% techs)) return(NULL)
       tregs <- process_region[[obj@name]]
       if (is.null(tregs)) tregs <- regions
-      ol <- as.data.frame(obj@olife)
+      ol <- .lifespan_col(obj, "olife")
       if (nrow(ol) == 0 || is.null(ol$olife)) {
         df <- data.frame(tech = obj@name, region = tregs, olife = 1,
                          stringsAsFactors = FALSE)

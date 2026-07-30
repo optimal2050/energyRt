@@ -19,6 +19,7 @@
 #' @slot defVal `r get_slot_doc("config", "defVal")`
 #' @slot interpolation `r get_slot_doc("config", "interpolation")`
 #' @slot debug `r get_slot_doc("config", "debug")`
+#' @slot variant_prefix `r get_slot_doc("config", "variant_prefix")`
 #' @slot misc `r get_slot_doc("config", "misc")`
 #'
 #' @include class-calendar.R class-horizon.R
@@ -42,6 +43,7 @@ setClass("config",
     defVal = "data.frame",
     interpolation = "data.frame",
     debug = "data.frame",
+    variant_prefix = "character",
     misc = "list"
   ),
   prototype(
@@ -71,6 +73,11 @@ setClass("config",
     # slice = new("slice"),
     discountFirstYear = FALSE,
     optimizeRetirement = FALSE,
+    # Prefixes inserted into the names of expanded technology variants, e.g.
+    # WIND + vintage 2030 + cluster "best" -> "WIND_VIN2030_CLbest". Model-wide,
+    # because these become solver set-member names. Kept in sync with
+    # `.variant_prefix_default()` (R/variants.R) by a unit test.
+    variant_prefix = c(vintage = "_VIN", cluster = "_CL"),
     defVal = data.frame(),
     interpolation = data.frame(),
     # defVal = as.data.frame(.defVal, stringsAsFactors = FALSE),
@@ -146,6 +153,11 @@ setMethod("update", "config", function(object, ..., warn_nodata = TRUE) {
   # browser()
   # !!! add no-data check for warning
   cf <- .data2slots("config", object, ..., warn_nodata = FALSE)
+  # Normalise `variant_prefix`: merge a partial override over the previous value
+  # and validate. Doing it here (rather than relying on `.data2slots`) also
+  # re-materialises the slot on a config serialised before it existed.
+  .vp <- list(...)[["variant_prefix"]]
+  cf@variant_prefix <- .variant_prefix_merge(.vp, .variant_prefix(object))
   cf@calendar <- .data2slots("calendar", cf@calendar, ...,
                              ignore_args = c("name", "desc", "misc"),
                              warn_nodata = FALSE)

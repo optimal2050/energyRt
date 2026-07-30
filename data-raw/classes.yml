@@ -297,6 +297,12 @@ class:
       type: data.frame
       description: Input-commodity-group efficiency parameters.
       columns:
+        vintage:
+          type: character
+          description: Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.
+        cluster:
+          type: character
+          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `vintage` slot.
         region:
           type: character
           description: Name of region to apply the parameter, NA for every region.
@@ -316,6 +322,12 @@ class:
       type: data.frame
       description: Main commodity and activity efficiency parameters.
       columns:
+        vintage:
+          type: character
+          description: Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.
+        cluster:
+          type: character
+          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `vintage` slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
@@ -362,6 +374,12 @@ class:
       type: data.frame
       description: Parameters linking main commodities, activities, and capacities to auxiliary commodities.
       columns:
+        vintage:
+          type: character
+          description: Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.
+        cluster:
+          type: character
+          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `vintage` slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
@@ -408,6 +426,12 @@ class:
       type: data.frame
       description: Timeslice-level availability factor parameters.
       columns:
+        vintage:
+          type: character
+          description: Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.
+        cluster:
+          type: character
+          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `vintage` slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
@@ -436,6 +460,12 @@ class:
       type: data.frame
       description: Timeframe-level availability factor constraints.
       columns:
+        vintage:
+          type: character
+          description: Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.
+        cluster:
+          type: character
+          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `vintage` slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
@@ -458,6 +488,12 @@ class:
       type: data.frame
       description: Parameters linking `weather factors` (external shocks specified by `weather` class) to the availability parameters `af`, `afs`, and `afc`.
       columns:
+        vintage:
+          type: character
+          description: Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.
+        cluster:
+          type: character
+          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `vintage` slot.
         weather:
           type: character
           description: Name of the applied weather factor, required, must match the weather factor names in a `weather` class in the model.
@@ -495,6 +531,12 @@ class:
       type: data.frame
       description: Fixed operational and maintenance cost (per unit of capacity a year).
       columns:
+        vintage:
+          type: character
+          description: Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.
+        cluster:
+          type: character
+          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `vintage` slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
@@ -508,6 +550,12 @@ class:
       type: data.frame
       description: Variable operational and maintenance cost (per unit of activity or commodity).
       columns:
+        vintage:
+          type: character
+          description: Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.
+        cluster:
+          type: character
+          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `vintage` slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
@@ -536,6 +584,12 @@ class:
       type: data.frame
       description: Total overnight investment costs of the project (per unit of capacity).
       columns:
+        vintage:
+          type: character
+          description: Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.
+        cluster:
+          type: character
+          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `vintage` slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
@@ -551,33 +605,60 @@ class:
           retcost:
             type: numeric
             description: Costs of early retirement of the technology, default is 0.
-    start:
+    cluster:
       type: data.frame
-      description: The first year the technology can be installed.
+      description: >-
+        Declaration of the technology's clusters. A cluster is a parallel
+        sub-process of the same technology -- a resource class, geography or
+        fleet type -- with its own capacity, availability and costs. This slot
+        declares WHAT the clusters are and WHERE they exist; the per-cluster
+        values live in the `cluster` column of the variant-varying slots
+        (`capacity`, `invcost`, `afs`, `weather`, ...), exactly as `group`
+        declares input groups whose data lives in `input$group`.
+        Optional: when empty, cluster labels are harvested from those columns.
+        When populated it is authoritative -- a label used in a slot but not
+        declared here raises an error instead of silently creating an extra
+        technology with default (often unbounded) parameters.
       columns:
+        cluster:
+          type: character
+          description: Cluster label. Must match the `cluster` column values used in the other slots.
+        desc:
+          type: character
+          description: Human-readable description of the cluster, used in reports.
+        region:
+          type: character
+          description: Region the cluster exists in, NA for every region. Several rows restrict a cluster to several regions.
+        order:
+          type: integer
+          description: Optional display/ranking order (e.g. best to worst resource class); controls the order variants are created and reported in.
+    vintage:
+      type: data.frame
+      description: >-
+        Investment window and operational life of the technology, one row per
+        (vintage, region, cluster). Replaces the former `start`, `end` and
+        `olife` slots. A vintage is a separately investable variant of the
+        technology that keeps the characteristics of its build year for its
+        whole life; a cluster is a parallel sub-process (resource class,
+        geography, fleet type) with its own capacity, availability and costs.
+        Each column is read independently, so a region-agnostic `start` may be
+        combined with a per-region `olife`.
+      columns:
+        vintage:
+          type: character
+          description: Vintage label, normally the build year as a string. NA for an un-vintaged technology (a single variant).
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
+        cluster:
+          type: character
+          description: Cluster label, NA for every cluster.
         start:
           type: integer
-          description: The first year the technology can be installed, NA means all years of the modeled horizon.
-    end:
-      type: data.frame
-      description: The last year the technology can be installed.
-      columns:
-        region:
-          type: character
-          description: Region name to apply the parameter, NA for every region.
+          description: The first year the technology can be installed. Defaults to the vintage year; NA means all years of the modeled horizon.
         end:
           type: integer
-          description: The last year the technology can be installed, default is Inf.
-    olife:
-      type: data.frame
-      description: Operational life of the installed technology (in years).
-      columns:
-        region:
-          type: character
-          description: Region name to apply the parameter, NA for every region.
+          description: The last year the technology can be installed. Defaults to the vintage year; default is Inf when unset.
         olife:
           type: integer
           description: Operational life of the technology if installed during optimization, in years, default is 1.
@@ -585,6 +666,12 @@ class:
       type: data.frame
       description: Capacity of the installed technology (in units of capacity).
       columns:
+        vintage:
+          type: character
+          description: Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.
+        cluster:
+          type: character
+          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `vintage` slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
@@ -1648,6 +1735,17 @@ class:
       description: >
         Artificial (dummy or sluck) variables to debug model infeasibility.
         Can be specified by commodities, regions, years, and slices.
+    variant_prefix:
+      type: character
+      description: >
+        Named character vector giving the prefixes inserted into the names of
+        expanded technology variants, keyed by variant dimension:
+        `c(vintage = "_VIN", cluster = "_CL")`. A technology `WIND` with vintage
+        2030 and cluster "best" then becomes the set member `WIND_VIN2030_CLbest`.
+        Model-wide, because these become solver set-member names; the scenario
+        settings inherit the value and must agree with it. Each prefix must be
+        non-empty, match `^[[:alnum:]_]+$`, and the two must differ. A partial
+        value such as `c(cluster = "_RC")` is merged over the defaults.
     misc:
       type: list
       description: Any additional data or information to store in the object.

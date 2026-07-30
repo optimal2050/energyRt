@@ -705,10 +705,9 @@ levcost_chain_ <- function(
     hor       <- newHorizon(period = hor_years)
   } else {
     olife_vals <- sapply(object, function(t) {
-      if (nrow(t@olife) == 0) return(NA_real_)
-      ol_col <- intersect(c("olife", "value"), names(t@olife))
-      if (length(ol_col) == 0) return(NA_real_)
-      max(t@olife[[ol_col[1]]], na.rm = TRUE)
+      ol <- .lifespan_col(t, "olife")
+      if (nrow(ol) == 0) return(NA_real_)
+      max(ol$olife, na.rm = TRUE)
     })
     olife_val <- if (any(is.finite(olife_vals))) max(olife_vals, na.rm = TRUE) else 20
     if (!is.finite(olife_val) || olife_val <= 0) {
@@ -716,10 +715,9 @@ levcost_chain_ <- function(
       if (verbose) message("No olife found; using default horizon of 20 years.")
     }
     start_vals <- sapply(object, function(t) {
-      if (nrow(t@start) == 0) return(NA_integer_)
-      st_col <- intersect(c("start", "value"), names(t@start))
-      if (length(st_col) == 0) return(NA_integer_)
-      as.integer(min(t@start[[st_col[1]]], na.rm = TRUE))
+      st <- .lifespan_col(t, "start")
+      if (nrow(st) == 0) return(NA_integer_)
+      as.integer(min(st$start, na.rm = TRUE))
     })
     by <- if (!is.null(base_year)) {
       as.integer(base_year)
@@ -1190,11 +1188,8 @@ levcost_technology_ <- function(
     hor       <- newHorizon(period = hor_years)
   } else {
     olife_val <- NULL
-    if (nrow(object@olife) > 0) {
-      ol_col <- intersect(c("olife", "value"), names(object@olife))
-      if (length(ol_col) > 0)
-        olife_val <- max(object@olife[[ol_col[1]]], na.rm = TRUE)
-    }
+    ol <- .lifespan_col(object, "olife")
+    if (nrow(ol) > 0) olife_val <- max(ol$olife, na.rm = TRUE)
     if (is.null(olife_val) || !is.finite(olife_val) || olife_val <= 0) {
       olife_val <- 20
       if (verbose) message("No olife found; using default horizon of 20 years.")

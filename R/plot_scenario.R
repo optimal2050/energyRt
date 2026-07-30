@@ -31,30 +31,39 @@
 #'   an integer `hour` column is added.
 #' @param drop_small numeric in `[0, 1)`: drop processes whose total absolute
 #'   value is below this share of the largest process (default `0`, keep all).
+#' @param by character vector, any of `"vintage"` and `"cluster"`. Technology
+#'   variants are always rolled back up to their base technology in `process`;
+#'   by default (`NULL`) they are simply summed, so charts do not fragment into
+#'   one series per variant. Naming a dimension here keeps it as an extra
+#'   grouping column (with `"(none)"` for processes that have no variants), ready
+#'   to drive a fill or facet.
 #'
 #' @return A tidy data.frame with columns `scenario`, `type`, `process`, `flow`
 #'   (`generation`, `storage-in/out`, `import/export`, `demand`, `fuel`,
 #'   `capacity`, `new_capacity`), `comm`, `region`, `year`, `value`, and -- when
-#'   `slice` is given -- `slice` (+ `hour` when parsable). Missing variables are
-#'   skipped silently (e.g. a model without storage or trade).
+#'   `slice` is given -- `slice` (+ `hour` when parsable), plus any column named
+#'   in `by`. Missing variables are skipped silently (e.g. a model without
+#'   storage or trade).
 #'
 #' @examples
 #' \dontrun{
 #' gen <- getMix(scen, "generation")                      # annual, all regions
 #' day <- getMix(scen, "generation", slice = "^SUM_")     # summer-day dispatch
 #' cmp <- getMix(list(BASE = s1, CO2CAP = s2), "capacity")
+#' cl  <- getMix(scen, "capacity", by = "cluster")        # split by cluster
 #' }
 #' @export
 getMix <- function(scen,
                    type = c("generation", "capacity", "new_capacity", "fuel"),
                    comm = "ELC", region = NULL, year = NULL, slice = NULL,
-                   drop_small = 0) {
+                   drop_small = 0, by = NULL) {
   type <- match.arg(type)
+  by <- if (is.null(by)) character() else intersect(by, c("vintage", "cluster"))
   # named list of scenarios -> row-bind
   if (is.list(scen) && !isS4(scen)) {
     out <- lapply(seq_along(scen), function(i) {
       d <- getMix(scen[[i]], type = type, comm = comm, region = region,
-                  year = year, slice = slice, drop_small = drop_small)
+                  year = year, slice = slice, drop_small = drop_small, by = by)
       if (!is.null(d) && nrow(d) > 0) {
         nm <- names(scen)[i]
         if (!is.null(nm) && nzchar(nm)) d$scenario <- nm
@@ -66,6 +75,15 @@ getMix <- function(scen,
     return(out)
   }
   stopifnot(inherits(scen, "scenario"))
+
+  # `by` is shadowed by a local further down, so keep a copy under another name
+  by_dims <- by
+  # Technology variant provenance. By DEFAULT variants are rolled back up to
+  # their base technology, so existing charts do not fragment into one series
+  # per vintage/cluster; pass `by = c("vintage", "cluster")` to split them out.
+  tv <- tryCatch(as.data.frame(scen@modInp@sets$tech_variant),
+                 error = function(e) NULL)
+  if (!is.null(tv) && NROW(tv) == 0) tv <- NULL
 
   pieces <- switch(type,
     generation = list(
@@ -107,13 +125,31 @@ getMix <- function(scen,
                       names(d))
     d$process <- if (length(pcol) > 0) as.character(d[[pcol[1]]]) else p$flow
 
+    # map variant technologies back to their base process, optionally keeping
+    # the vintage / cluster as extra grouping columns
+    if (!is.null(tv)) {
+      m <- match(d$process, tv$tech)
+      hit <- !is.na(m)
+      if (length(by_dims) > 0) {
+        for (dm in by_dims) {
+          # "(none)" rather than NA: `stats::aggregate()` drops NA groups, which
+          # would silently delete every non-variant process from the mix
+          d[[dm]] <- "(none)"
+          d[[dm]][hit] <- as.character(tv[[dm]][m[hit]])
+          d[[dm]][is.na(d[[dm]])] <- "(none)"
+        }
+      }
+      d$process[hit] <- as.character(tv$base[m[hit]])
+    }
+
     # slice selection / annual aggregation
     if (!is.null(slice) && "slice" %in% names(d)) {
       d <- d[grepl(slice, d$slice), , drop = FALSE]
       if (nrow(d) == 0) next
-      by <- intersect(c("process", "comm", "region", "year", "slice"), names(d))
+      by <- intersect(c("process", "comm", "region", "year", "slice", by_dims),
+                      names(d))
     } else {
-      by <- intersect(c("process", "comm", "region", "year"), names(d))
+      by <- intersect(c("process", "comm", "region", "year", by_dims), names(d))
     }
     agg <- stats::aggregate(d[["value"]], by = d[by], FUN = sum, na.rm = TRUE)
     names(agg)[ncol(agg)] <- "value"
@@ -167,6 +203,11 @@ getMix <- function(scen,
   out <- do.call(rbind, rows)
   out$scenario <- scen@name
   out$type     <- type
+  # pieces that carry no technology (trade, demand overlay) got NA on the
+  # variant columns during column alignment
+  for (dm in by_dims) {
+    if (dm %in% names(out)) out[[dm]][is.na(out[[dm]])] <- "(none)"
+  }
 
   # hour column for sliced output
   if (!is.null(slice) && "slice" %in% names(out)) {
@@ -219,6 +260,13 @@ getMix <- function(scen,
 #'   `"fuel"`, or `"storage"` (the storage-in/out flows only).
 #' @param comm,region,year,slice,drop_small passed to [getMix()]. For a dispatch
 #'   profile (`slice` given) with `year = NULL`, the last milestone year is used.
+#' @param by character vector passed to [getMix()], any of `"vintage"` and
+#'   `"cluster"`, to keep those technology-variant dimensions as grouping
+#'   columns. Implied automatically by `fill`/`facet`.
+#' @param fill name of the column to colour the bars by (default `"process"`);
+#'   `"vintage"` or `"cluster"` shows the composition of a variant group.
+#' @param facet name of the column to facet by. Defaults to `"region"` when the
+#'   scenario has more than one region (the historical behaviour).
 #' @param ... ignored.
 #'
 #' @return A `ggplot` object.
@@ -227,15 +275,24 @@ getMix <- function(scen,
 #' autoplot(scen)                                    # annual generation mix
 #' autoplot(scen, "generation", slice = "^SUM_")     # summer-day dispatch
 #' autoplot(scen, "capacity")
+#' autoplot(scen, "capacity", fill = "cluster")      # capacity by cluster
+#' autoplot(scen, "capacity", fill = "vintage", facet = "process")
 #' }
 #' @rdname autoplot.scenario
 #' @exportS3Method ggplot2::autoplot
 autoplot.scenario <- function(object,
     type = c("generation", "capacity", "new_capacity", "fuel", "storage"),
     comm = "ELC", region = NULL, year = NULL, slice = NULL,
-    drop_small = 0, ...) {
+    drop_small = 0, by = NULL, fill = NULL, facet = NULL, ...) {
   type <- match.arg(type)
   gtype <- if (type == "storage") "generation" else type
+  by <- if (is.null(by)) character() else intersect(by, c("vintage", "cluster"))
+  # `fill`/`facet` default to the historical behaviour: colour by process, facet
+  # by region when there is more than one
+  if (!is.null(fill))  by <- union(by, intersect(fill,  c("vintage", "cluster")))
+  if (!is.null(facet)) by <- union(by, intersect(facet, c("vintage", "cluster")))
+  fill_var  <- if (is.null(fill))  "process" else fill[1]
+  facet_var <- facet
 
   if (!is.null(slice) && is.null(year)) {
     # dispatch profile: default to the last milestone year
@@ -244,7 +301,7 @@ autoplot.scenario <- function(object,
     if (length(yrs) > 0) year <- max(yrs)
   }
   mx <- getMix(object, type = gtype, comm = comm, region = region,
-               year = year, slice = slice, drop_small = drop_small)
+               year = year, slice = slice, drop_small = drop_small, by = by)
   if (type == "storage")
     mx <- mx[grepl("^storage", mx$flow), , drop = FALSE]
   if (nrow(mx) == 0) stop("No '", type, "' data found in scenario '",
@@ -277,11 +334,16 @@ autoplot.scenario <- function(object,
   }
 
   # annual stacked bars by milestone year
-  by <- c("process", "year", if (n_reg > 1) "region")
-  agg <- stats::aggregate(bars[["value"]], by = bars[by], FUN = sum)
+  auto_facet <- is.null(facet_var) && n_reg > 1
+  if (is.null(facet_var) && auto_facet) facet_var <- "region"
+  bycols <- unique(c("process", "year", if (n_reg > 1) "region",
+                     fill_var, facet_var))
+  bycols <- intersect(bycols, names(bars))
+  agg <- stats::aggregate(bars[["value"]], by = bars[bycols], FUN = sum)
   names(agg)[ncol(agg)] <- "value"
   p <- ggplot2::ggplot(agg,
-      ggplot2::aes(factor(.data$year), .data$value, fill = .data$process)) +
+      ggplot2::aes(factor(.data$year), .data$value,
+                   fill = .data[[fill_var]])) +
     ggplot2::geom_col(alpha = 0.9) +
     ggplot2::labs(x = "year", y = "value", fill = NULL, title = ttl) +
     ggplot2::theme_bw()
@@ -293,7 +355,9 @@ autoplot.scenario <- function(object,
       ggplot2::aes(factor(.data$year), .data$value),
       inherit.aes = FALSE, shape = 95, size = 8)
   }
-  if (n_reg > 1) p <- p + ggplot2::facet_wrap(~region)
+  if (!is.null(facet_var) && facet_var %in% names(agg)) {
+    p <- p + ggplot2::facet_wrap(stats::as.formula(paste("~", facet_var)))
+  }
   p
 }
 
@@ -309,13 +373,13 @@ autoplot.scenario <- function(object,
              tryCatch(getObjects(x, "storage"),    error = function(e) list()))
   rows <- list()
   for (p in procs) {
-    gslot <- function(sl, col) {
-      d <- tryCatch(methods::slot(p, sl), error = function(e) NULL)
-      if (is.data.frame(d) && col %in% names(d) && nrow(d) > 0)
-        d[, intersect(c("region", col), names(d)), drop = FALSE] else NULL
+    # lifespan lives in `@vintage` for technology, in `@start`/`@end`/`@olife`
+    # for storage; `.lifespan_col()` returns the same `(region, value)` frame
+    gslot <- function(col) {
+      d <- .lifespan_col(p, col)
+      if (nrow(d) > 0) d else NULL
     }
-    st <- gslot("start", "start"); en <- gslot("end", "end")
-    ol <- gslot("olife", "olife")
+    st <- gslot("start"); en <- gslot("end"); ol <- gslot("olife")
     regs <- unique(c(if (!is.null(st)) as.character(st$region),
                      if (!is.null(en)) as.character(en$region),
                      if (!is.null(ol)) as.character(ol$region)))

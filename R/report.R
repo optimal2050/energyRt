@@ -499,10 +499,11 @@ setMethod(
   add("invcost", num_rng(gs("invcost"), "invcost"))
   add("fixom",   num_rng(gs("fixom"),   "fixom"))
   add("varom",   num_rng(gs("varom"),   "varom"))
-  ol <- gs("olife")
-  if (is.data.frame(ol) && nrow(ol) > 0) add("olife", ol$olife[1])
-  st <- gs("start")
-  if (is.data.frame(st) && nrow(st) > 0) add("start", st$start[1])
+  # lifespan lives in `@vintage` for technology, in the separate slots elsewhere
+  ol <- .lifespan_col(p, "olife")
+  if (nrow(ol) > 0) add("olife", ol$olife[1])
+  st <- .lifespan_col(p, "start")
+  if (nrow(st) > 0) add("start", st$start[1])
   cap <- gs("capacity")
   if (is.data.frame(cap) && "stock" %in% names(cap)) {
     v <- cap$stock[!is.na(cap$stock)]
@@ -837,9 +838,13 @@ setMethod("report_tex", "technology", function(object, ...) {
   units_act   <- .slot_val_report(object@units, "activity", "")
   units_costs <- .slot_val_report(object@units, "costs",    "")
 
-  olife_val <- if (nrow(object@olife) > 0) object@olife$olife[1] else NA_integer_
-  start_val <- if (nrow(object@start) > 0) object@start$start[1] else NA_integer_
-  end_val   <- if (nrow(object@end)   > 0) object@end$end[1]     else NA_integer_
+  .ls1 <- function(col) {
+    d <- .lifespan_col(object, col)
+    if (nrow(d) > 0) d[[col]][1] else NA_integer_
+  }
+  olife_val <- .ls1("olife")
+  start_val <- .ls1("start")
+  end_val   <- .ls1("end")
 
   cap_df <- object@capacity
   if (nrow(cap_df) > 0) {

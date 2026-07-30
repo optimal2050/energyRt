@@ -176,9 +176,13 @@ fp <- function(...) {
 #' check_name("name1")
 #' check_name("name_1")
 #' check_name("name_1!")
+#' check_name(c("a", "b")) # FALSE, not a single name
+#' check_name(1) # FALSE, not character
 check_name <- function(x) {
-  (length(x) != 1 || !is.character(x) ||
-    sub("^[[:alpha:]][[:alnum:]_]*$", "", x) == "")
+  # NB the guards used to be OR'd into the "valid" expression, so a non-scalar
+  # or non-character input was reported as VALID. They must negate it instead.
+  length(x) == 1 && is.character(x) &&
+    sub("^[[:alpha:]][[:alnum:]_]*$", "", x) == ""
 }
 
 #' Function to find duplicated values in interpolated scenario.

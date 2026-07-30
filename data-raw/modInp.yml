@@ -462,7 +462,7 @@ pTechOlife:
   defVal: 1.0
   interpolation: back.inter.forth
   class: technology
-  slot: olife
+  slot: vintage
   colName: olife
 pTechFixom:
   name: pTechFixom

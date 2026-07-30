@@ -427,19 +427,24 @@ interpolate_slot <- interpolate_slot <- function(
     year = as.integer(rep(NA, length(approxim$region))),
     stringsAsFactors = FALSE
   )
-  fl <- is.na(obj@start$region)
+  # The lifespan now lives in `@vintage` for `technology` and still in the
+  # separate slots for `storage`/`trade`; `.lifespan_col()` yields the old
+  # `(region, value)` shape for either.
+  o_start <- .lifespan_col(obj, "start")
+  o_end   <- .lifespan_col(obj, "end")
+  o_olife <- .lifespan_col(obj, "olife")
+  fl <- is.na(o_start$region)
   if (any(fl)) {
     if (sum(fl) != 1) {
       # stop('Wrong start year for "', class(obj), '" ', obj@name)
-      stop('Two or more "NA" values in "@start" slot, column "region", class "',
+      stop('Two or more "NA" values in the "start" lifespan column, class "',
            class(obj), '" ', obj@name)
     }
-    dstart[, "year"] <- obj@start[fl, "start"]
+    dstart[, "year"] <- o_start |> filter(fl) |> pull(start)
   }
   if (any(!fl)) {
     # if (obj@name == "BASN_battery_moderate_0") browser()
-    # dstart[obj@start[!fl, "region"], "year"] <- obj@start[!fl, "start"]
-    ob_x <- obj@start[!fl, ] |> rename(year = start)
+    ob_x <- o_start |> filter(!fl) |> rename(year = start)
     dstart <- rows_update(dstart, ob_x, by = "region")
   }
   # dstart <- dstart[!is.na(dstart$year), , drop = FALSE]
@@ -461,23 +466,17 @@ interpolate_slot <- interpolate_slot <- function(
     year = as.integer(rep(NA, length(approxim$region))),
     stringsAsFactors = FALSE
   )
-  fl <- is.na(obj@end$region)
+  fl <- is.na(o_end$region)
   if (any(fl)) {
     if (sum(fl) != 1) {
-      stop('Two or more "NA" values in "@end" slot, column "region", class "',
+      stop('Two or more "NA" values in the "end" lifespan column, class "',
            class(obj), '" ', obj@name)
     }
-    dend[, "year"] <- obj@end[fl, "end"]
+    dend[, "year"] <- o_end |> filter(fl) |> pull(end)
   }
   if (any(!fl)) {
     # if (obj@name == "ECCG") browser()
-    # suppressMessages({
-    # dend <- dend |> filter(!fl) |> select(-year) |>
-    #     left_join(obj@end[!fl, ], by = "region") |> rename(year = end) |>
-    #     rbind(filter(dend, fl))
-    # })
-    # dend[obj@end[!fl, "region"], "year"] <- obj@end[!fl, "end"]
-    ob_x <- obj@end[!fl, ] |> rename(year = end)
+    ob_x <- o_end |> filter(!fl) |> rename(year = end)
     dend <- rows_update(dend, ob_x, by = "region")
     rm(ob_x)
   }
@@ -496,18 +495,17 @@ interpolate_slot <- interpolate_slot <- function(
     year = as.integer(rep(NA, length(approxim$region))),
     stringsAsFactors = FALSE
   )
-  fl <- is.na(obj@olife$region)
+  fl <- is.na(o_olife$region)
   if (any(fl)) {
     if (sum(fl) != 1) {
       # stop('Wrong start year for "', class(obj), '" ', obj@name)
-      stop('Two or more "NA" values in "@olife" slot, column "region", class "',
+      stop('Two or more "NA" values in the "olife" lifespan column, class "',
            class(obj), '" ', obj@name)
     }
-    dlife[, "year"] <- obj@olife[fl, "olife"] # !!! ???
+    dlife[, "year"] <- o_olife |> filter(fl) |> pull(olife) # !!! ???
   }
   if (any(!fl)) {
-    # dlife[obj@olife[!fl, "region"], "year"] <- obj@olife[!fl, "olife"]
-    ob_x <- obj@olife[!fl, ] |> rename(year = olife)
+    ob_x <- o_olife |> filter(!fl) |> rename(year = olife)
     dlife <- rows_update(dlife, ob_x, by = "region")
     rm(ob_x)
   }

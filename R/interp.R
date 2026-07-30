@@ -244,6 +244,25 @@ interpolate_model <- function(mod, name = NULL, ...,
   }
   scen@model <- mod # keep scen@model in sync with the (possibly extended) model
 
+  # Variant naming is stored twice -- on the model config and, copied from it, on
+  # the scenario settings. Settings is a COPY, not an override point: variant
+  # names are minted from the model, so a divergence would mean the scenario
+  # carries one naming scheme while the sets were built with another. It can only
+  # arise from passing a `config`/`settings` object through `...` above, so check
+  # once both are final and before expansion consumes the value.
+  .vp_cfg <- .variant_prefix(scen@model@config)
+  .vp_set <- .variant_prefix(scen@settings)
+  if (!identical(.vp_cfg, .vp_set)) {
+    stop("`variant_prefix` disagrees between the model configuration (",
+         paste0(names(.vp_cfg), ' = "', .vp_cfg, '"', collapse = ", "),
+         ") and the scenario settings (",
+         paste0(names(.vp_set), ' = "', .vp_set, '"', collapse = ", "),
+         "). Scenario settings are a copy of the model configuration, not an ",
+         "override point for variant naming. Set it once on the model, e.g. ",
+         "`mod@config <- update(mod@config, variant_prefix = c(vintage = \"_V\"))`",
+         ", and drop the config/settings object passed to `interpolate_model()`.")
+  }
+
   # update individual settings slots from named args -- !!! ToDo (legacy parity:
   # discount, region, discountFirstYear, optimizeRetirement, defValue,
   # interpolation, debug). Pass a full settings/config object for now.
@@ -270,6 +289,16 @@ interpolate_model <- function(mod, name = NULL, ...,
   # a declared region) up front, instead of surfacing as an obscure
   # "<param> ... out of domain" error deep in the solver writer.
   .check_declared_regions(scen@model, scen@settings@region)
+
+  # Expand vintage/cluster technology groups into one ordinary `technology` per
+  # (vintage, cluster) cell. Must run BEFORE the sets are collected below, so
+  # `sets$tech` holds the variants. Non-destructive: only the internal build
+  # copy is expanded, the caller's model object is untouched. The link back to
+  # the base technology is kept in `sets$tech_variant` (see R/variants.R).
+  .tech_variants <- expand_tech_variants(mod, prefix = .variant_prefix(scen@settings))
+  mod <- .tech_variants$model    # the sets below are collected from `mod`
+  scen@model <- mod              # ... while get_process_*() read scen@model
+  .assert_variants_expanded(mod)
 
   # !!! ToDo:
   # ... subset slices and regions
@@ -375,8 +404,15 @@ interpolate_model <- function(mod, name = NULL, ...,
     scen@modInp@sets$imp,
     scen@modInp@sets$trade
   )
+  .check_process_names(scen@modInp@sets)
 
   # assemble summary sets to use in interpolation
+  ## technology variant provenance: variant tech -> (base, vintage, cluster).
+  ## `modInp@sets` is a plain list, exempt from the `.dimSets` whitelist, and
+  ## already hosts derived tables of exactly this kind (process_region etc).
+  ## Reporting joins this instead of parsing the mangled variant names.
+  scen@modInp@sets$tech_variant <- .tech_variants$provenance
+
   ## process class
   scen@modInp@sets$process_class <- get_process_class(scen)
 
@@ -3560,27 +3596,20 @@ get_process_invest_window <- function(scen, process = NULL, classes = NULL) {
         start = integer(),
         end = integer()
       )
-      if (.hasSlot(x, "start")) {
-        if ("region" %in% colnames(x@start)) {
-          d <- merge(x@start, x@end, by = "region", all = TRUE) |>
-            mutate(process = x@name, .before = 1) |>
-            as.data.table()
-        } else {
-          # browser()
-          regs <- scen@modInp@sets$process_region[[x@name]]
-          d <- merge(
-            data.table(region = regs, start = x@start$start),
-            data.table(region = regs, end = x@end$end),
-            by = "region", all = TRUE
-          ) |>
-            mutate(process = x@name, .before = 1) |>
-            as.data.table()
-        }
+      # `technology` keeps its window in `@vintage`; `storage`/`trade` still use
+      # the separate `@start`/`@end` slots. `.lifespan_col()` returns the same
+      # `(region, start)` / `(region, end)` frames either way, so the outer
+      # merge below behaves exactly as it did on the raw slots.
+      if (.hasSlot(x, "vintage") || .hasSlot(x, "start")) {
+        d <- full_join(.lifespan_col(x, "start"), .lifespan_col(x, "end"),
+                       by = "region") |>
+          mutate(process = x@name, .before = 1) |>
+          as.data.table()
 
         if (nrow(d) > 0) {
           dd <- d
         } else {
-          # Object has a `start` slot but no start/end data: it is available in
+          # Object has a lifespan slot but no start/end data: it is available in
           # all of its regions across the whole horizon. Emit an NA window so
           # the NA-region expansion below fills every region (and all years).
           dd <- data.table(
