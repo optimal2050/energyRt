@@ -20,12 +20,13 @@
 #'
 #' @name class-parameter
 #'
-#' @include class-model.R
+#' @include class-model.R class-modelData.R
 #' @family parameter
 #' @export
 #'
 setClass(
   "parameter", # @parameter
+  contains = "modelData",
   representation(
     name = "character", # @name name Name for GAMS
     desc = "character",
@@ -40,7 +41,6 @@ setClass(
     # slot = "character",
     inClass = "data.frame",
     # colName = "character", # @inClass$colName Column name in slot
-    # nValues = "numeric", # @misc$nValues Number of non-NA values in 'data' (to speed-up processing) - !!! drop in the future
     misc = "list"
   ),
   prototype(
@@ -52,17 +52,16 @@ setClass(
     data = data.frame(),
     # not_data       = FALSE,
     # colName = NULL,
-    # nValues = 0,
     inClass = data.frame(
       class = character(),
       slot = character(),
       colName = character()
     ),
-    misc = list(
-      # class = NULL,
-      # slot = NULL,
-      nValues = 0
-    )
+    # `nValues` (a cached nrow(@data)) was removed: `@data` is authoritative and
+    # `nrow()` is one call. It survived as a row-count the GAMS/Pyomo/Julia
+    # writers TRUNCATED `@data` to, so a stale count silently made those engines
+    # write less data than GLPK for the same scenario.
+    misc = list()
   ) # ,
 )
 
@@ -255,29 +254,9 @@ setMethod(
       }
       # data <- data[apply(data, 1, function(x) all(!is.na(x))), , drop = FALSE]
       data <- drop_na(data)
-      if (nrow(data) != 0) { # !!! rewrite !!!
-        if (obj@misc$nValues != -1) { # ??? add after nrow = nValues?
-          # if (obj@misc$nValues + nrow(data) > nrow(obj@data)) {
-          #   browser()
-          #   obj@data[nrow(obj@data) + 1:(nrow(data) + nrow(obj@data)), ] <- NA
-          # }
-          # nn <- obj@misc$nValues + 1:nrow(data)
-          # obj@misc$nValues <- obj@misc$nValues + nrow(data)
-          # obj@data[nn, ] <- data
-          # obj@data <- bind_rows(obj@data, data)
-          obj@data <- rbindlist(list(as.data.table(obj@data),
-                                     as.data.table(data)), use.names = TRUE)
-          obj@misc$nValues <- obj@misc$nValues + length(data)
-
-          obj@misc$nValues <- nrow(obj@data)
-        } else { # append ???
-          # nn <- nrow(obj@data) + 1:nrow(data)
-          # obj@data[nn, ] <- NA
-          # obj@data[nn, ] <- data
-          # obj@data <- bind_rows(obj@data, data)
-          obj@data <- rbindlist(list(as.data.table(obj@data),
-                                     as.data.table(data)), use.names = TRUE)
-        }
+      if (nrow(data) != 0) {
+        obj@data <- rbindlist(list(as.data.table(obj@data),
+                                   as.data.table(data)), use.names = TRUE)
       }
     }
     obj@data <- .force_year_class_df(obj@data)
@@ -314,7 +293,6 @@ setMethod(
                           use.names = FALSE)
     if (ncol(obj@data) != 1) browser()
     if (is.factor(obj@data[[1]])) browser()
-    obj@misc$nValues <- obj@misc$nValues + length(data)
     obj
   }
 )
@@ -343,45 +321,21 @@ setMethod(
                           use.names = FALSE)
     obj@data <- .force_year_class_df(obj@data)
     obj@data <- .force_value_class_df(obj@data)
-    obj@misc$nValues <- obj@misc$nValues + length(data)
     obj
   }
 )
 
 .resetParameter <- function(x) {
   x@data <- x@data[0, , drop = FALSE]
-  if (x@misc$nValues > 0) x@misc$nValues <- 0
   x
 }
 
 
-# Clear Map Table
-# setMethod('clear', signature(obj = 'parameter'),
-# .reset <- function(obj) {
-#   obj@data <- obj@data[0, , drop = FALSE]
-#   if (obj@misc$nValues != -1) obj@misc$nValues <- 0
-#   obj
-# }
-
-# Get all unique set Map Table
-# setMethod('getSet', signature(obj = 'parameter', dimSets = "character"),
-#   function(obj, dimSets) {
-#     if (length(dimSets) != 1 || all(dimSets != obj@dimSets))
-#           stop('Internal error: Wrong dimSets request')
-#     if (obj@misc$nValues != -1) unique(obj@data[seq(length.out = obj@misc$nValues), dimSets]) else
-#         unique(obj@data[, dimSets])
-# })
-
-# setMethod('.get_data_slot', signature(obj = 'parameter'), # getParameterTable
-.get_data_slot <- function(obj) {
-  if (obj@misc$nValues != -1) { # reserved for???
-    # obj@data[seq(length.out = obj@misc$nValues), , drop = FALSE]
-    ii <- seq(length.out = min(nrow(obj@data), obj@misc$nValues))
-    return(obj@data[ii, , drop = FALSE])
-  } else {
-    obj@data
-  }
-}
+# Deprecated spelling of `get_data_slot()` (obj2modInp.R), kept because ~120 call
+# sites use it. It used to read `@data` directly and truncate to the `nValues`
+# row-count cache, which meant every one of those call sites saw ZERO rows for an
+# on-disk parameter. Aliasing it to the on-disk-aware reader fixes that.
+.get_data_slot <- function(obj) get_data_slot(obj)
 
 # Remove all data by all set
 # setMethod('.drop_set_value', signature(obj = 'parameter', dimSets = "character", value = "character"),
@@ -439,12 +393,16 @@ setMethod(
 # print parameter ####
 #' @export
 #' @rdname print
-setMethod("print", "parameter", function(x, ...) {
-  if (nrow(x@data) == 0) {
-    cat('parameter "', x@name, '" is empty\n', sep = "")
+setMethod("print", "modelData", function(x, ...) {
+  # `get_data_slot()`, not `@data`: an on-disk object holds an empty `@data` and
+  # would otherwise always print as "is empty".
+  d <- get_data_slot(x)
+  cls <- class(x)[1]
+  if (is.null(d) || nrow(d) == 0) {
+    cat(cls, ' "', x@name, '" is empty\n', sep = "")
   } else {
-    cat('parameter "', x@name, '"\n', sep = "")
-    print(x@data)
+    cat(cls, ' "', x@name, '"\n', sep = "")
+    print(d)
   }
 })
 

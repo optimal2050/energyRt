@@ -2408,9 +2408,6 @@ get_parameter_full_sets <- function(
   } else {
     scen@modInp@parameters[[pn]]@data <- new_data
   }
-  # Keep the row-count cache in sync: writers (Pyomo / JuMP / GLPK v1) truncate
-  # `@data` to `@misc$nValues`, and a stale count pads with NA rows.
-  scen@modInp@parameters[[pn]]@misc$nValues <- nrow(new_data)
   scen
 }
 

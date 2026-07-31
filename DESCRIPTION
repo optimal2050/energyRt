@@ -1,7 +1,7 @@
 Package: energyRt
 Type: Package
 Title: Energy Systems Modeling Toolbox
-Version: 0.70.4.9000
+Version: 0.70.5.9000
 Date: 2026-07-31
 Authors@R: 
   c(person(given = "Oleg", 
@@ -49,6 +49,7 @@ Collate:
     'generics.R'
     'class-calendar.R'
     'class-horizon.R'
+    'class-modelData.R'
     'class-repository.R'
     'class-config.R'
     'class-model.R'
@@ -70,6 +71,7 @@ Collate:
     'class-subsidy.R'
     'class-constraint.R'
     'class-costs.R'
+    'class-variable.R'
     'class-modOut.R'
     'class-settings.R'
     'class-scenario.R'

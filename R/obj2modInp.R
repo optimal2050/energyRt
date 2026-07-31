@@ -140,8 +140,6 @@ setMethod(
       # assign data to the parameter
       obj@data <- data
     }
-    # update the number of values in the parameter
-    obj@misc$nValues <- nrow(data)
     return(obj)
   }
 )
@@ -232,7 +230,6 @@ setMethod(
 
     if (ncol(obj@data) != 1) invisible()  # browser() disabled
     if (is.factor(obj@data[[1]])) invisible()  # browser() disabled
-    obj@misc$nValues <- if (isOnDisk(obj)) nrow(data) else nrow(obj@data)
     obj
   }
 )
@@ -293,7 +290,12 @@ update_parameter <- function(scen, param, data, path = NULL) {
             "The path to the parameters is not specified in the scenario."
           )
         } else {
-          path <- fp(path, param)
+          # `<scen>/modInp` + the slot name + the parameter name. `obj2disk()`
+          # writes each parameter to `<modInp path>/parameters/<name>`, so the
+          # `parameters` segment is not optional -- without it this fallback
+          # pointed at a directory that never exists, and it fires exactly when
+          # the parameter was empty and so had no path of its own.
+          path <- fp(path, "parameters", param)
         }
       }
     }

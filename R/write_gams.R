@@ -542,9 +542,10 @@ get_gdxlib_path <- function() {
       return(c(gen_gg(name, dtt[dtt$value != 0 & dtt$value != Inf, , drop = FALSE]))) #
     }
   }
-  if (obj@misc$nValues != -1) {
-    obj@data <- obj@data[seq(length.out = obj@misc$nValues), , drop = FALSE]
-  }
+  # The whole materialised slot is written. This used to truncate to the
+  # `@misc$nValues` row-count cache, so a stale count silently made this engine
+  # write less data than GLPK, which never truncated.
+  obj@data <- get_data_slot(obj)
   if (obj@type == "set") {
     if (nrow(obj@data) == 0) {
       return(paste0("set\n", obj@name, " / 1 /;\n"))

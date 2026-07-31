@@ -16,10 +16,10 @@
 # by `summary(scenario)`, and at the end of a `verbose` `interp_mod()` run.
 # =========================================================================== #
 
-# Row count of a parameter, preferring the cached nValues (avoids reading on-disk
-# data) and falling back to the materialised slot.
+# Row count of a parameter. For an on-disk parameter the count is taken from the
+# dimensions recorded at save time, so the data itself is never read.
 .ms_rows <- function(p) {
-  nv <- p@misc$nValues
+  nv <- tryCatch(p@misc$onDisk$data$dim[1], error = function(e) NULL)
   if (!is.null(nv) && length(nv) == 1L && !is.na(nv) && nv >= 0) return(as.integer(nv))
   d <- get_data_slot(p)
   if (is.null(d)) 0L else nrow(d)
@@ -54,12 +54,26 @@ model_size <- function(scen, top_n = 15L) {
   is_val <- type %in% c("numpar", "bounds")
 
   # --- variable / constraint estimate from gating-map row counts -------------- #
-  n_var <- 0L; n_con <- 0L
+  # Variables are counted PER VARIABLE, from each one's own gating map. Counting
+  # per map instead (as this did) adds a map's rows once however many variables
+  # it gates -- and `mvStorageStore` gates three (vStorageInp, vStorageOut,
+  # vStorageStore) while `mvTechRetiredStock` gates two, so a storage-heavy
+  # model was understated by a wide margin.
+  n_var <- 0L
+  for (v in .variables) {
+    if (!nzchar(v$gate)) next
+    r <- rows[[v$gate]]
+    if (!is.null(r) && !is.na(r)) n_var <- n_var + r
+  }
+  # An unconditional variable exists over the full product of its dims; the only
+  # one is the scalar objective.
+  n_var <- n_var + sum(vapply(.variables, function(v)
+    !nzchar(v$gate) && length(v$dimSets) == 0L, logical(1)))
+
+  n_con <- 0L
   for (x in nm[type == "map"]) {
     sp <- spec[[x]]; if (is.null(sp)) next
-    r <- rows[[x]]
-    if (length(sp$gates_var) && any(nzchar(sp$gates_var))) n_var <- n_var + r
-    if (length(sp$gates_eq)  && any(nzchar(sp$gates_eq)))  n_con <- n_con + r
+    if (length(sp$gates_eq) && any(nzchar(sp$gates_eq))) n_con <- n_con + rows[[x]]
   }
 
   # --- fold result ------------------------------------------------------------ #

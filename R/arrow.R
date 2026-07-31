@@ -94,6 +94,13 @@ save_scenario <- function(
   write(format, format_file, append = FALSE)
   class_file <- fp(scen@path, "class")
   write(class(scen), class_file, append = FALSE)
+  # Directory-layout version. Bumped to 2 when `modOut@variables` became a list
+  # of `variable` objects, moving each variable's data from
+  # `variables/<v>/` down to `variables/<v>/data/`. Without the marker, new code
+  # reading an old directory finds no `data/` sub-directory, and
+  # `get_lazy_data()` returns NULL rather than erroring -- every result would
+  # silently come back empty.
+  write(as.character(.SCENARIO_LAYOUT), fp(scen@path, "layout"), append = FALSE)
   log_file <- (fp(scen@path, "logfile.csv"))
   write(paste(lubridate::now(tzone = "UTC"), "format", format, sep = ","),
     file = log_file, append = TRUE
@@ -616,16 +623,15 @@ get_lazy_dim_names <- function(obj, slot = NULL, element = NULL,
     return(ll) # no data
   }
   # browser()
-  if (inherits(obj, "parameter")) {
+  # One branch for `parameter` and `variable` alike. The `modOut` container used
+  # to be handled separately, reading `colnames()` off the list ELEMENT; once
+  # those elements became S4 objects that returned NULL, which `findData()`'s
+  # value-column filter reads as "no value column" -- silently dropping every
+  # variable from `getData()`. Passing the object itself removes the trap.
+  if (inherits(obj, "modelData")) {
     ll$dim <- obj@misc$onDisk[[slot]]$dim
-    # ll$names <- obj@dimSets
     ll$names <- slot(obj, slot) |> colnames()
-  } else if (inherits(obj, "modOut")) {
-    # browser()
-    ll$dim <- obj@misc$onDisk[[slot]][[element]]$dim
-    ll$names <- slot(obj, slot)[[element]] |> colnames()
   } else {
-    browser()
     stop("get_lazy_dim_names: not implemented for object type ", class(obj))
   }
   # ll$names <- obj@misc$onDisk[[slot]]$dimnames
@@ -659,12 +665,22 @@ if (F) {
     collect()
 }
 
+# On-disk directory layout version, written to `<scen>/layout` by
+# `save_scenario()` and checked by `load_scenario()`.
+#   1  modOut@variables stored as `variables/<v>/`      (data.frames)
+#   2  modOut@variables stored as `variables/<v>/data/` (`variable` objects)
+.SCENARIO_LAYOUT <- 2L
+
 .save_slots <- list(
   weather = c("weather"),
   demand = c("dem"),
   repository = c("data"),
   model = c("data"),
   parameter = c("data"),
+  # Without this entry `set_ondisk_slots()` finds no match for a `variable`,
+  # `@misc$onDisk` is never recorded, nothing is written, and `save_scenario()`
+  # reports success having stored no results at all.
+  variable = c("data"),
   modInp = c("parameters"),
   modOut = c("variables"),
   scenario = c("model", "modInp", "modOut")
@@ -786,6 +802,29 @@ load_scenario <- function(
   }
   finf <- file.info(path)
   if (finf$isdir) {
+    # Layout check before anything is read. An older directory stores each
+    # variable's data one level up from where this version looks for it, and
+    # that reads as "no data" rather than as an error -- so refuse it outright.
+    lay <- fp(path, "layout")
+    ver <- if (file.exists(lay)) {
+      suppressWarnings(as.integer(readLines(lay, warn = FALSE)[1]))
+    } else {
+      1L
+    }
+    if (is.na(ver) || ver != .SCENARIO_LAYOUT) {
+      msg <- paste0(
+        "Scenario directory '", path, "' uses on-disk layout ",
+        if (is.na(ver)) "?" else ver, ", this version of energyRt reads ",
+        .SCENARIO_LAYOUT, ".\n",
+        "  Layout 2 moved each variable's data from `variables/<name>/` to ",
+        "`variables/<name>/data/` when `modOut@variables` became a list of ",
+        "`variable` objects.\n",
+        "  Re-run and re-save the scenario with this version."
+      )
+      if (!ignore_errors) stop(msg)
+      if (verbose) message(msg)
+      return(invisible(FALSE))
+    }
     path <- fp(path, "scen.RData")
     if (!file.exists(path)) {
       msg <- paste0("Scenario file '", path, "' has not been found.")

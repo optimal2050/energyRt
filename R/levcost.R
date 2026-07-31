@@ -437,9 +437,11 @@ setMethod("levcost", "scenario", function(object, comm, name, ...) {
   if (is.null(name) || !nzchar(name)) {
     message("levcost(): please give the process `name = ` to price."); return(invisible(NULL))
   }
+  # `@stage`, not the number of variables: `modOut` pre-populates one empty
+  # `variable` per declared variable, so a failed solve has as many as a good one.
   if (!isTRUE(scen@status$interpolated) ||
       is.null(tryCatch(scen@modOut, error = function(e) NULL)) ||
-      length(scen@modOut@variables) == 0) {
+      !identical(scen@modOut@stage, "solved")) {
     message("levcost(): the scenario is not solved -- solve it first."); return(invisible(NULL))
   }
   out_all <- tryCatch(getData(scen, "vTechOut", tech = name, merge = TRUE),

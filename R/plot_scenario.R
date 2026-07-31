@@ -87,25 +87,29 @@ getMix <- function(scen,
   # `.mix_fetch()` resolves the id column to `process`, so match on `name`
   if (!is.null(tv)) names(tv)[names(tv) == "name"] <- "tech"
 
+  # Which series a chart is made of. The SIGN is not listed here: it is a
+  # property of the (variable, chart) pair, not of the variable, so it is
+  # derived from the variable's role by `.mix_sign()` below -- `vTechInp` is a
+  # sink in a commodity balance but is plotted positive in a fuel-use chart.
   pieces <- switch(type,
     generation = list(
-      list(var = "vTechOut",     flow = "generation",   sign = +1, comm = comm),
-      list(var = "vStorageOut",  flow = "storage-out",  sign = +1, comm = comm),
-      list(var = "vStorageInp",  flow = "storage-in",   sign = -1, comm = comm),
-      list(var = "vImportRow",   flow = "import",       sign = +1, comm = comm),
-      list(var = "vExportRow",   flow = "export",       sign = -1, comm = comm),
-      list(var = "pDemand",      flow = "demand",       sign = +1, comm = comm)
+      list(var = "vTechOut",     flow = "generation",  comm = comm),
+      list(var = "vStorageOut",  flow = "storage-out", comm = comm),
+      list(var = "vStorageInp",  flow = "storage-in",  comm = comm),
+      list(var = "vImportRow",   flow = "import",      comm = comm),
+      list(var = "vExportRow",   flow = "export",      comm = comm),
+      list(var = "pDemand",      flow = "demand",      comm = comm)
     ),
     capacity = list(
-      list(var = "vTechCap",       flow = "capacity", sign = +1, comm = NULL),
-      list(var = "vStorageCap",    flow = "capacity", sign = +1, comm = NULL)
+      list(var = "vTechCap",       flow = "capacity", comm = NULL),
+      list(var = "vStorageCap",    flow = "capacity", comm = NULL)
     ),
     new_capacity = list(
-      list(var = "vTechNewCap",    flow = "new_capacity", sign = +1, comm = NULL),
-      list(var = "vStorageNewCap", flow = "new_capacity", sign = +1, comm = NULL)
+      list(var = "vTechNewCap",    flow = "new_capacity", comm = NULL),
+      list(var = "vStorageNewCap", flow = "new_capacity", comm = NULL)
     ),
     fuel = list(
-      list(var = "vTechInp", flow = "fuel", sign = +1, comm = NULL)
+      list(var = "vTechInp", flow = "fuel", comm = NULL)
     )
   )
 
@@ -155,7 +159,7 @@ getMix <- function(scen,
     }
     agg <- stats::aggregate(d[["value"]], by = d[by], FUN = sum, na.rm = TRUE)
     names(agg)[ncol(agg)] <- "value"
-    agg$value <- p$sign * agg$value
+    agg$value <- .mix_sign(p$var, type) * agg$value
     agg$flow  <- p$flow
     if (!"comm" %in% names(agg)) agg$comm <- NA_character_
     rows[[length(rows) + 1L]] <- agg
@@ -229,6 +233,16 @@ getMix <- function(scen,
   out <- out[, c(front, setdiff(names(out), front)), drop = FALSE]
   rownames(out) <- NULL
   out
+}
+
+# Sign of a series in a chart. Only a commodity BALANCE has two directions, so
+# only there does a `sink` plot negative; a fuel-use or capacity chart plots
+# every series positive even though `vTechInp` is a sink. A parameter
+# (`pDemand`) has no role and plots positive.
+.mix_sign <- function(var, type) {
+  if (!identical(type, "generation")) return(1)
+  role <- tryCatch(.variables[[var]]$role, error = function(e) NULL)
+  if (identical(role, "sink")) -1 else 1
 }
 
 # Fetch one solved variable / parameter as a plain data.frame, or NULL.

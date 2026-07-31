@@ -216,7 +216,7 @@ get_glpk_path <- function() {
 
 # Convert one scenario parameter to GMPL (GLPK/CBC) text. The interp_mod()
 # pipeline keeps each parameter's `@data` slot authoritative, so the whole slot
-# is written (no legacy `@misc$nValues` trimming).
+# is written.
 .sm_to_glpk <- function(obj) {
   if (obj@type == "set") {
     if (nrow(obj@data) == 0) {

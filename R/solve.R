@@ -494,10 +494,6 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
     # value narrows to integer, so force the in-memory classes (character dims,
     # integer year, numeric value) to match an in-memory build exactly.
     p@data <- force_cols_classes(d)
-    # Keep `nValues` consistent so the writers do not trim the materialised rows.
-    if (!is.null(p@misc$nValues) && p@misc$nValues != -1) {
-      p@misc$nValues <- nrow(p@data)
-    }
     scen@modInp@parameters[[nm]] <- mark_inMemory(p)
   }
   scen@modInp <- mark_inMemory(scen@modInp)

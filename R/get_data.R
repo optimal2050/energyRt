@@ -87,9 +87,11 @@ findData <- function(scen,
     #   }
     # })
     for (v in names(scen@modOut@variables)) {
-      # if (v == "vObjective") browser()
-      # cat(v, " ")
-      qu <- get_lazy_dim_names(scen@modOut, slot = "variables", element = v)
+      # The `variable` object itself, exactly as the parameter branch above
+      # passes the `parameter`. Passing the modOut container instead returns
+      # `colnames()` of an S4 object -- NULL -- and the value-column filter
+      # below then drops every variable without a word.
+      qu <- get_lazy_dim_names(scen@modOut@variables[[v]], slot = "data")
       lt[[v]] <- list(
         dim = qu$dim,
         names = qu$names
@@ -299,12 +301,14 @@ getData.scenario <- function(
   parvar <- c(parameters = parameters, variables = variables)
   for (s in 1:length(scen)) { # loop over scenarios
     sc <- names(scen)[s]
-    # Data availability: an un-interpolated scenario has no modInp parameters and
-    # an unsolved one has no modOut variables. Skip gracefully instead of erroring.
+    # Data availability: an un-interpolated scenario has no modInp parameters.
+    # Solvedness is read off `@stage`, NOT off the number of variables --
+    # `modOut` now pre-populates one empty `variable` per declared variable, so
+    # a failed solve has just as many as a successful one.
     avail <- c(
       parameters = tryCatch(length(scen[[s]]@modInp@parameters) > 0,
         error = function(e) FALSE),
-      variables = tryCatch(length(scen[[s]]@modOut@variables) > 0,
+      variables = tryCatch(identical(scen[[s]]@modOut@stage, "solved"),
         error = function(e) FALSE)
     )
     if (verbose && !any(avail)) {
@@ -424,9 +428,8 @@ getData.scenario <- function(
           } else {
             # dat <- scen[[sc]]@modOut@variables[[pv]]
             # browser()
-            dat <- get_lazy_data(scen[[s]]@modOut,
-              slot = "variables",
-              element = pv
+            dat <- get_lazy_data(scen[[s]]@modOut@variables[[pv]],
+              slot = "data"
             )
             if (!is.null(dat)) {
               # temporary. ToDo: rewrite filter-algo for lazy-data
@@ -712,8 +715,16 @@ get_data <- getData
 
 # State/level variables whose slice dimension is a snapshot, not a flow: summing
 # them over slices is meaningless, so timeframe roll-up leaves them at native
-# resolution. Extend as needed.
-.timeframe_state_vars <- c("vStorageStore")
+# resolution. Read off the variable specification (`role: stock` in
+# data-raw/variables.yml) rather than being listed here, so a new state variable
+# is covered by declaring what it is.
+.is_state_var <- function(nm) {
+  spec <- tryCatch(.variables, error = function(e) NULL)
+  if (is.null(spec)) return(rep(FALSE, length(nm)))
+  vapply(nm, function(v) {
+    identical(tryCatch(spec[[v]]$role, error = function(e) NULL), "stock")
+  }, logical(1), USE.NAMES = FALSE)
+}
 
 # Aggregate one data.frame to `target_rank` by summing `value` over child slices.
 # Left-join the variant provenance onto a result frame. The process id column is
@@ -739,7 +750,7 @@ get_data <- getData
     return(df)
   }
   # never sum a stored-level / state variable across slices
-  if ("name" %in% names(df) && any(df$name %in% .timeframe_state_vars)) {
+  if ("name" %in% names(df) && any(.is_state_var(unique(df$name)))) {
     return(df)
   }
   map <- .slice_target_map(calendar, target_rank)

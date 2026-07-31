@@ -124,7 +124,12 @@ summary.scenario <- function(object, ...) {
       # browser()
       vObj <- getData(scen, "vObjective", merge = TRUE)
       cat("vObjective: ", vObj$value, "\n")
-      dum <- sum(scen@modOut@variables$vDummyCost$value)
+      # `vDummyCost` has never existed -- the variables are `vDummyImportCost`
+      # and `vDummyExportCost`. `NULL$value` is NULL and `sum(NULL)` is 0, so
+      # this line has silently never reported anything, and dummy flows (which
+      # mask infeasibility) have been invisible in every `summary()`.
+      dum <- sum(scen@modOut@variables$vDummyImportCost$value,
+                 scen@modOut@variables$vDummyExportCost$value, na.rm = TRUE)
       if (abs(dum) > 0) {
         cat("Dummy import/export costs: ", dum, "\n")
       }

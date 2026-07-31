@@ -1,0 +1,127 @@
+# =========================================================================== #
+# variables.yml -- the hand-maintained half of the variable specification.
+#
+# Structure (dims, gating map, description) comes from `gams/energyRt.gms` via
+# gams2x, and the emitted column names and positive/free declaration are parsed
+# out of `glpk/energyRt.mod`. This file carries only what neither can know.
+#
+# It must be TOTAL over `.variable_mapping`: every declared variable needs an
+# entry, and any extra key must be marked `origin: computed`. `DATASET.R` errors
+# otherwise -- an untended overlay drifts (see `data-raw/variable_mapping.yml`,
+# dumped once and now listing variables that no longer exist).
+#
+# role   what the variable IS, which is a property of the variable; a plot's
+#        SIGN is a property of the (variable, chart) pair and is derived from
+#        the role per chart, not stored here.
+#          source    adds to the regional commodity balance
+#          sink      removes from it
+#          flow      a transfer that is both (between regions)
+#          activity  process activity, not a commodity balance term
+#          balance   the net balance itself
+#          stock     a LEVEL at a point in time -- never summed over slices
+#          capacity  installed / new / retired capacity
+#          cost      monetary
+#
+# unit   a KIND, not a formula. Real units are per-object here (a technology's
+#        `cap2act`, a commodity's own unit, per-region currency), so a fixed
+#        string would be wrong for any multi-unit model. Resolved against the
+#        model by whatever formats the number.
+#          commodity / activity / capacity / currency
+#
+# origin `solver` (default) or `computed` -- built in R by `read.R`, so it is
+#        never missing solver output.
+# =========================================================================== #
+
+vAggOutTot:          {role: source,   unit: commodity}
+vBalance:            {role: balance,  unit: commodity}
+vDemInp:             {role: sink,     unit: commodity}
+vDummyExport:        {role: sink,     unit: commodity}
+vDummyExportCost:    {role: cost,     unit: currency}
+vDummyImport:        {role: source,   unit: commodity}
+vDummyImportCost:    {role: cost,     unit: currency}
+vEmsFuelTot:         {role: source,   unit: commodity}
+vExportIrCost:       {role: cost,     unit: currency}
+vExportRow:          {role: sink,     unit: commodity}
+vExportRowCost:      {role: cost,     unit: currency}
+vExportRowCum:       {role: stock,    unit: commodity}
+vExportTot:          {role: sink,     unit: commodity}
+vImportIrCost:       {role: cost,     unit: currency}
+vImportRow:          {role: source,   unit: commodity}
+vImportRowCost:      {role: cost,     unit: currency}
+vImportRowCum:       {role: stock,    unit: commodity}
+vImportTot:          {role: source,   unit: commodity}
+vInpTot:             {role: sink,     unit: commodity}
+vObjective:          {role: cost,     unit: currency}
+vOutTot:             {role: source,   unit: commodity}
+vStorageAInp:        {role: sink,     unit: commodity}
+vStorageAOut:        {role: source,   unit: commodity}
+vStorageCap:         {role: capacity, unit: capacity}
+vStorageEac:         {role: cost,     unit: currency}
+vStorageFixom:       {role: cost,     unit: currency}
+vStorageInp:         {role: sink,     unit: commodity}
+vStorageInpTot:      {role: sink,     unit: commodity}
+vStorageInv:         {role: cost,     unit: currency}
+vStorageNewCap:      {role: capacity, unit: capacity}
+vStorageOut:         {role: source,   unit: commodity}
+vStorageOutTot:      {role: source,   unit: commodity}
+# The storage LEVEL: a snapshot, not a flow. Summing it over slices is
+# meaningless, which is what `role: stock` encodes (it replaces the hard-coded
+# `.timeframe_state_vars` in get_data.R).
+vStorageStore:       {role: stock,    unit: commodity}
+vStorageVarom:       {role: cost,     unit: currency}
+vSubsCost:           {role: cost,     unit: currency}
+vSupCost:            {role: cost,     unit: currency}
+vSupOut:             {role: source,   unit: commodity}
+vSupOutTot:          {role: source,   unit: commodity}
+vSupReserve:         {role: stock,    unit: commodity}
+vTaxCost:            {role: cost,     unit: currency}
+vTechAInp:           {role: sink,     unit: commodity}
+vTechAOut:           {role: source,   unit: commodity}
+vTechAct:            {role: activity, unit: activity}
+vTechCap:            {role: capacity, unit: capacity}
+vTechEac:            {role: cost,     unit: currency}
+vTechFixom:          {role: cost,     unit: currency}
+vTechInp:            {role: sink,     unit: commodity}
+vTechInpTot:         {role: sink,     unit: commodity}
+vTechInv:            {role: cost,     unit: currency}
+vTechNewCap:         {role: capacity, unit: capacity}
+vTechOut:            {role: source,   unit: commodity}
+vTechOutTot:         {role: source,   unit: commodity}
+vTechRetCost:        {role: cost,     unit: currency}
+vTechRetiredNewCap:  {role: capacity, unit: capacity}
+vTechRetiredStock:   {role: capacity, unit: capacity}
+vTechRetiredStockCum: {role: capacity, unit: capacity}
+vTechVarom:          {role: cost,     unit: currency}
+vTotalCost:          {role: cost,     unit: currency}
+vTotalUserCosts:     {role: cost,     unit: currency}
+vTradeCap:           {role: capacity, unit: capacity}
+vTradeEac:           {role: cost,     unit: currency}
+vTradeFixom:         {role: cost,     unit: currency}
+vTradeInv:           {role: cost,     unit: currency}
+# Physical transfer between regions: a sink in `src` and a source in `dst`, so
+# neither on its own.
+vTradeIr:            {role: flow,     unit: commodity}
+vTradeIrAInp:        {role: sink,     unit: commodity}
+vTradeIrAInpTot:     {role: sink,     unit: commodity}
+vTradeIrAOut:        {role: source,   unit: commodity}
+vTradeIrAOutTot:     {role: source,   unit: commodity}
+vTradeNewCap:        {role: capacity, unit: capacity}
+
+# --------------------------------------------------------------------------- #
+# Computed in R by `read.R`, not returned by any solver. These appear in NO
+# gams2x table, so they need their own `desc` and `dimSets` here.
+# --------------------------------------------------------------------------- #
+
+vTechEmsFuel:
+  desc: Emissions from fuel combustion, by technology
+  dimSets: [tech, comm, region, year, slice]
+  role: source
+  unit: commodity
+  origin: computed
+
+vUserCosts:
+  desc: User-defined costs, by costs object
+  dimSets: [costs, region, year]
+  role: cost
+  unit: currency
+  origin: computed
