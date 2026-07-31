@@ -1134,26 +1134,6 @@ recipe_value <- function(scen, names, fmp) {
   .set_map(scen, name, df, fmp)
 }
 
-# mTradeCapacityVariable: trades whose capacity is an explicit decision
-# variable (slot `capacityVariable == TRUE`). Membership-style projection of
-# the trade name; mirrors the legacy per-trade `data.table(trade = trd@name)`.
-.build_mTradeCapacityVariable <- function(scen, fmp) {
-  name <- "mTradeCapacityVariable"
-  p <- scen@modInp@parameters[[name]]
-  if (is.null(p)) return(scen)
-  res <- apply_to_scenario_data(
-    scen = scen, classes = "trade", as_list = TRUE,
-    func = function(obj) {
-      if (!isTRUE(obj@capacityVariable)) return(NULL)
-      out <- list()
-      out[[obj@name]] <- data.frame(trade = obj@name, stringsAsFactors = FALSE)
-      out
-    }
-  )
-  if (length(res) == 0) return(scen)
-  .set_map(scen, name, dplyr::bind_rows(res), fmp)
-}
-
 # --------------------------------------------------------------------------- #
 # C3 technology commodity-grouping / share constraints.
 #
@@ -1401,9 +1381,6 @@ recipe_constraint <- function(scen, names, fmp) {
   if ("meqTradeCapFlow" %in% names) {
     scen <- .build_meqTradeCapFlow(scen, fmp)
   }
-  if ("mTradeCapacityVariable" %in% names) {
-    scen <- .build_mTradeCapacityVariable(scen, fmp)
-  }
 
   # C3 technology group / share maps (computed together from shared intermediates).
   if (length(intersect(names, .tech_group_maps)) > 0) {
@@ -1426,7 +1403,7 @@ recipe_constraint <- function(scen, names, fmp) {
   # 4. Report any remaining maps not yet implemented in the engine.
   handled <- c(
     names(.constraint_map_def), "meqStorageStore",
-    "meqTradeCapFlow", "mTradeCapacityVariable", .tech_group_maps, .ramp_maps,
+    "meqTradeCapFlow", .tech_group_maps, .ramp_maps,
     .constraint_maps_built_in_filter, .constraint_maps_built_elsewhere,
     .constraint_maps_empty_legacy, .constraint_maps_deprecated
   )

@@ -385,9 +385,11 @@ map_mExportRowUp <- function(scen, fmp)
 
 # -- inter-regional trade flow domains (mTradeIr family) ------------------- #
 # Faithful port of the recipe_filter trade block (mapping_engine.R L1295-1438).
-# mTradeIr = per-trade routes x slices x years; the year domain is the trade's
-# operation span (mTradeSpan) for capacity-variable trades, else all milestones.
-# Each trade's routes + capacityVariable flag come straight from the object
+# mTradeIr = per-trade routes x slices x years; the year domain is always the
+# trade's operation span (mTradeSpan) -- a trade must not carry flow outside the
+# window it declares. (This used to fall back to all milestones when the removed
+# `capacityVariable` slot was FALSE, which made the domain LARGER, contrary to
+# that slot's stated purpose.) Each trade's routes come straight from the object
 # (apply_to_scenario_data); every downstream map reads mTradeIr back from scen.
 
 .trade_route_info <- function(scen) {
@@ -400,8 +402,7 @@ map_mExportRowUp <- function(scen, fmp)
       o[[x@name]] <- list(
         routes = data.frame(
           trade = x@name, src = as.character(rt$src),
-          dst = as.character(rt$dst), stringsAsFactors = FALSE),
-        capvar = isTRUE(x@capacityVariable))
+          dst = as.character(rt$dst), stringsAsFactors = FALSE))
       o
     })
 }
@@ -445,10 +446,10 @@ map_mTradeIr <- function(scen, fmp) {
     sl <- trade_slice[trade_slice$trade == nm, , drop = FALSE]
     if (nrow(sl) == 0) next
     base <- as.data.frame(merge0(rt, sl))      # trade, src, dst, slice
-    if (trade_info[[nm]]$capvar && !is.null(trade_span)) {
-      yrs <- trade_span$year[trade_span$trade == nm]
+    yrs <- if (!is.null(trade_span)) {
+      trade_span$year[trade_span$trade == nm]
     } else {
-      yrs <- milestones
+      milestones
     }
     if (length(yrs) == 0) next
     ir_pieces[[nm]] <- as.data.frame(

@@ -90,6 +90,7 @@ Collate:
     'get_region.R'
     'install.R'
     'interp.R'
+    'mosox.R'
     'interp_progress.R'
     'interp_shared.R'
     'interpolation_funs.R'

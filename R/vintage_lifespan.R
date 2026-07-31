@@ -175,6 +175,24 @@
   args
 }
 
+# `trade@capacityVariable` was removed: a trade's capacity is always a decision
+# variable, as for technology and storage. In this version the slot gated nothing
+# -- `mTradeCapacityVariable` was declared in the templates but referenced by
+# none of them, and `vTradeCap`/`eqTradeCap`/`eqTradeCapFlow` were built either
+# way -- so a `FALSE` trade still paid investment and fixed O&M. Fail loudly with
+# the remedy rather than silently ignoring the argument.
+# @noRd
+.trade_removed_args <- function(args) {
+  if (!"capacityVariable" %in% names(args)) return(args)
+  stop("`capacityVariable` has been removed from the `trade` class: a trade's ",
+       "capacity is always a decision variable, as for technology and storage. ",
+       "It gated nothing in this version (the set it produced was declared but ",
+       "never referenced by any solver template). For a fixed transfer limit ",
+       "with no investment decision, leave `capacity`/`invcost` empty and set ",
+       'the limit on the flow instead, e.g. `trade = data.frame(src = "R1", ',
+       'dst = "R2", ava.up = 5)`.')
+}
+
 # -------------------------------------------------------------------------- #
 # Reading lifespans back out
 #

@@ -110,8 +110,7 @@
     "mTradeCapLo", "mTradeCapUp", "mTradeNewCapLo", "mTradeNewCapUp",
     "mTradeRetLo", "mTradeRetUp",
     "mExportRowCumUp", "mImportRowCumUp",
-    "mUpComm", "mLoComm", "mFxComm", "mLECRegion", "mTradeRoutes",
-    "mTradeCapacityVariable"
+    "mUpComm", "mLoComm", "mFxComm", "mLECRegion", "mTradeRoutes"
   ),
   cost_agg = c(
     "mvTotalCost", "mvTotalUserCosts", "mvTradeCost", "mvTradeRowCost"

@@ -8,7 +8,7 @@
 # `.build_constraint_join_map` (mapping_engine.R), driven by `.constraint_map_def`.
 #
 # This migrates the ~39 def-table maps. The bespoke maps (meqStorageStore,
-# meqTradeCapFlow, mTradeCapacityVariable), the tech-group/share and ramp maps,
+# meqTradeCapFlow), the tech-group/share and ramp maps,
 # and the cross-stage maps (built in filter / elsewhere / empty-legacy /
 # deprecated) remain on the recipe_constraint fallback. Reuses the engine's
 # `.constraint_map_def` + `.build_constraint_join_map` in place (archiving deferred
@@ -73,7 +73,6 @@ map_mSupReserveUp   <- function(scen, fmp) .cjoin(scen, "mSupReserveUp", fmp)
 # -- bespoke builders (each already a per-mapping function) ---------------- #
 map_meqStorageStore       <- function(scen, fmp) .build_meqStorageStore(scen, fmp)
 map_meqTradeCapFlow       <- function(scen, fmp) .build_meqTradeCapFlow(scen, fmp)
-map_mTradeCapacityVariable <- function(scen, fmp) .build_mTradeCapacityVariable(scen, fmp)
 
 # -- technology group / share maps ----------------------------------------- #
 # Built together from shared intermediates by .build_tech_group_maps; the wrapper
@@ -125,7 +124,6 @@ map_mLECRegion     <- function(scen, fmp) scen
   meqSupReserveLo = map_meqSupReserveLo, mSupReserveUp = map_mSupReserveUp,
   # bespoke
   meqStorageStore = map_meqStorageStore, meqTradeCapFlow = map_meqTradeCapFlow,
-  mTradeCapacityVariable = map_mTradeCapacityVariable,
   # tech-group / share
   meqTechActSng = map_meqTechActSng, meqTechActGrp = map_meqTechActGrp,
   meqTechGrp2Sng = map_meqTechGrp2Sng, meqTechSng2Grp = map_meqTechSng2Grp,

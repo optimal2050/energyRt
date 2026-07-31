@@ -1476,7 +1476,7 @@ pTradeIrEff:
   interpolation: back.inter.forth
   colName: teff
   class: trade
-  slot: teff
+  slot: trade
 pTradeIrMarkup:
   name: pTradeIrMarkup
   dimSets:
@@ -1528,7 +1528,7 @@ pTradeOlife:
   interpolation: back.inter.forth
   colName: olife
   class: trade
-  slot: olife
+  slot: vintage
 pTradeInvcost:
   name: pTradeInvcost
   dimSets:
@@ -2808,10 +2808,6 @@ mTradeNew:
   - year
 mTradeOlifeInf:
   name: mTradeOlifeInf
-  type: map
-  dimSets: trade
-mTradeCapacityVariable:
-  name: mTradeCapacityVariable
   type: map
   dimSets: trade
 mTradeRoutes:

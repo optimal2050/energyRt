@@ -54,6 +54,18 @@
               "af", "seff", "charge", "aeff", "weather", "cap2stg"),
     bound_var = list(cap = "vStorageCap", ncap = "vStorageNewCap"),
     bound_dims = c("region", "year")
+  ),
+  trade = list(
+    key = "trade",
+    # vintage only: `@routes` (src/dst) already provides multiplicity, so a
+    # cluster axis would be a redundant second one.
+    dims = "vintage",
+    slots = c("vintage", "capacity", "invcost", "fixom", "varom", "aeff",
+              "trade"),
+    bound_var = list(cap = "vTradeCap", ncap = "vTradeNewCap"),
+    # `vTradeCap{trade, year}` has no region index, so a group bound spans years
+    # only; a region on a TOTAL row errors rather than being silently replicated.
+    bound_dims = "year"
   )
 )
 

@@ -2805,18 +2805,6 @@ mTechWeatherAfUp:
   join_keys: []
   filter_by: []
   depends_on: []
-mTradeCapacityVariable:
-  name: mTradeCapacityVariable
-  dims: trade
-  gates_var: []
-  gates_eq: []
-  unreferenced: yes
-  recipe: constraint
-  source: constraint
-  predicate: .na
-  join_keys: []
-  filter_by: []
-  depends_on: []
 mTradeCapLo:
   name: mTradeCapLo
   dims:

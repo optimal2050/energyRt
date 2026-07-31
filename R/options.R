@@ -72,6 +72,15 @@ options::define_option(
   envvar_name = "glpk_path"
 )
 
+# mosox ####
+options::define_option(
+  "mosox_path",
+  desc = "Path to mosox executable.",
+  default = NULL,
+  option_name = "mosox_path",
+  envvar_name = "MOSOX_PATH"
+)
+
 # NEOS ####
 # Email is required by NEOS for job submission. `envvar_name` makes opt() fall
 # back to the NEOS_EMAIL environment variable, which the Pyomo NEOS backend also
