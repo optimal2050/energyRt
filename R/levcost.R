@@ -366,18 +366,17 @@ setMethod("levcost", "repository", function(object, comm, name, ...) {
   .levcost_container(object, name = name_arg, comm = comm_arg, ...)
 })
 
-# Extract a scalar discount rate from a model's config (wacc / sdr / legacy).
+# The scalar rate a levelised cost is annuitised at: the cost of CAPITAL, not
+# the social discount rate. Levelised cost answers "what must this unit earn per
+# year to repay its investor", which is a financing question; `sdr` prices the
+# system's cost stream to society and has no business here.
 .levcost_model_discount <- function(cfg, default = 0.05) {
   d <- tryCatch(cfg@discount, error = function(e) NULL)
   if (is.null(d) || !is.data.frame(d) || nrow(d) == 0) return(default)
-  for (col in c("sdr", "wacc", "discount")) {
-    if (col %in% names(d)) {
-      v <- suppressWarnings(as.numeric(d[[col]]))
-      v <- v[is.finite(v) & v > 0]
-      if (length(v) > 0) return(mean(v))
-    }
-  }
-  default
+  if (!"wacc" %in% names(d)) return(default)
+  v <- suppressWarnings(as.numeric(d[["wacc"]]))
+  v <- v[is.finite(v) & v > 0]
+  if (length(v) > 0) mean(v) else default
 }
 
 #' @rdname levcost

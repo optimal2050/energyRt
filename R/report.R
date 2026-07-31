@@ -543,15 +543,17 @@ setMethod(
         paste0(if (nzchar(cal@name)) cal@name else "(unnamed)",
                " (", ns, " slices)"))))
     }
+    # Both rates, each under its own name -- they do different jobs and a model
+    # may well set them differently.
     dsc <- tryCatch(cfg@discount, error = function(e) NULL)
     if (is.data.frame(dsc) && nrow(dsc) > 0) {
-      for (col in c("sdr", "wacc", "discount")) {
+      for (col in c("wacc", "sdr")) {
+        if (!col %in% names(dsc)) next
         v <- suppressWarnings(as.numeric(dsc[[col]]))
         v <- v[is.finite(v)]
         if (length(v) > 0) {
-          cfg_rows <- c(cfg_rows, list(pair("discount",
+          cfg_rows <- c(cfg_rows, list(pair(col,
             paste(unique(signif(v, 4)), collapse = ", "))))
-          break
         }
       }
     }

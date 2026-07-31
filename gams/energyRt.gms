@@ -167,8 +167,18 @@ pTechRetLo(tech, region, year)                      Lower bound on early retirem
 pTechCap2act(tech)                                  Technology capacity units to activity units conversion factor
 pTechCvarom(tech, comm, region, year, slice)        Commodity-specific variable costs (per unit of commodity input or output)
 pTechAvarom(tech, comm, region, year, slice)        Auxilary Commodity-specific variable costs (per unit of commodity input or output)
-* Discount
-pDiscount(region, year)                             Discount rate (can be region and year specific)
+* Rates
+* Declared for parity with the GLPK model, which uses pXPayback in eqXEac. The
+* GAMS equations still use pXOlife, so a model with any payback set is refused
+* by the writer until the GAMS/Pyomo/Julia equations follow.
+pWacc(region, year)                                 Weighted average cost of capital (can be region and year specific)
+pSdr(region, year)                                  Social discount rate (can be region and year specific)
+pTechWacc(tech, region, year)                       Technology-specific cost of capital
+pStorageWacc(stg, region, year)                     Storage-specific cost of capital
+pTradeWacc(trade, region, year)                     Trade-specific cost of capital
+pTechPayback(tech, region, year)                    Cost-recovery period of a technology
+pStoragePayback(stg, region, year)                  Cost-recovery period of a storage
+pTradePayback(trade, region, year)                  Cost-recovery period of a trade
 pDiscountFactor(region, year)                       Discount factor (cumulative)
 pDiscountFactorMileStone(region, year)              Discount factor (cumulative) sum for MileStone
 * Supply

@@ -89,12 +89,16 @@ setClass("trade",
       markup = numeric(),
       stringsAsFactors = FALSE
     ),
+    # `wacc` overrides the model-wide rate when annuitising this corridor;
+    # `payback` shortens the cost-recovery period below `@vintage$olife`; `eac`
+    # supplies the annuity directly, bypassing both.
     invcost = data.frame(
       vintage = character(),
       region = character(),
       year = integer(),
       invcost = numeric(),
       wacc = numeric(),
+      payback = numeric(),
       eac = numeric(),
       retcost = numeric(),
       stringsAsFactors = FALSE

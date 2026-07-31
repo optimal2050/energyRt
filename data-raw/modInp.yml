@@ -143,8 +143,12 @@ pYearFraction:
   class: settings
   slot: yearFraction
   dropIfEmpty: false
-pDiscount:
-  name: pDiscount
+# The model's two rates. `pWacc` annuitises investment into pXEac (R/eac.R);
+# `pSdr` builds pDiscountFactor. They replace the former single `pDiscount`.
+# `dropIfEmpty: false`: a rate of 0 is a legitimate value (zero-interest), not
+# an absent one, and must survive `interpolate_parameters(drop_default = TRUE)`.
+pWacc:
+  name: pWacc
   dimSets:
   - region
   - year
@@ -153,29 +157,20 @@ pDiscount:
   interpolation: back.inter.forth
   class: settings
   slot: discount
-  colName: discount
-# pWacc:
-#   name: pWacc
-#   dimSets:
-#   - region
-#   - year
-#   type: numpar
-#   defVal: 0.0
-#   interpolation: back.inter.forth
-#   class: settings
-#   slot: discount
-#   colName: wacc
-# pSdr:
-#   name: pSdr
-#   dimSets:
-#   - region
-#   - year
-#   type: numpar
-#   defVal: 0.0
-#   interpolation: back.inter.forth
-#   class: settings
-#   slot: discount
-#   colName: sdr
+  colName: wacc
+  dropIfEmpty: false
+pSdr:
+  name: pSdr
+  dimSets:
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: settings
+  slot: discount
+  colName: sdr
+  dropIfEmpty: false
 pDiscountFactor:
   name: pDiscountFactor
   dimSets:
@@ -430,6 +425,8 @@ pTechCap2act:
   class: technology
   slot: cap2act
   dropIfEmpty: false
+# Seeded from a user-supplied `@invcost$eac` (usually empty); `R/eac.R` fills the
+# remaining rows by annuitising pTechInvcost. A supplied row always wins.
 pTechEac:
   name: pTechEac
   type: numpar
@@ -441,7 +438,36 @@ pTechEac:
   interpolation: back.inter.forth
   class: technology
   slot: invcost
-  colName: invcost
+  colName: eac
+# Process-specific cost of capital; overrides the model-wide pWacc in R/eac.R.
+pTechWacc:
+  name: pTechWacc
+  type: numpar
+  dimSets:
+  - tech
+  - region
+  - year
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: technology
+  slot: invcost
+  colName: wacc
+  dropIfEmpty: false
+# Cost-recovery period. Where given it replaces olife BOTH in the annuity (R/eac.R)
+# and in the eqTechEac charging window; the technical life still governs operation.
+pTechPayback:
+  name: pTechPayback
+  type: numpar
+  dimSets:
+  - tech
+  - region
+  - year
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: technology
+  slot: invcost
+  colName: payback
+  dropIfEmpty: false
 pTechEmisComm:
   name: pTechEmisComm
   type: numpar
@@ -1003,6 +1029,7 @@ pStorageInvcost:
   colName: invcost
   class: storage
   slot: invcost
+# See pTechEac / pTechWacc / pTechPayback for what these three do.
 pStorageEac:
   name: pStorageEac
   dimSets:
@@ -1012,9 +1039,35 @@ pStorageEac:
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
-  colName: invcost
+  colName: eac
   class: storage
   slot: invcost
+pStorageWacc:
+  name: pStorageWacc
+  dimSets:
+  - stg
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: wacc
+  class: storage
+  slot: invcost
+  dropIfEmpty: false
+pStoragePayback:
+  name: pStoragePayback
+  dimSets:
+  - stg
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: payback
+  class: storage
+  slot: invcost
+  dropIfEmpty: false
 pStorageInpEff:
   name: pStorageInpEff
   dimSets:
@@ -1541,6 +1594,7 @@ pTradeInvcost:
   colName: invcost
   class: trade
   slot: invcost
+# See pTechEac / pTechWacc / pTechPayback for what these three do.
 pTradeEac:
   name: pTradeEac
   dimSets:
@@ -1550,9 +1604,35 @@ pTradeEac:
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
-  colName: invcost
+  colName: eac
   class: trade
   slot: invcost
+pTradeWacc:
+  name: pTradeWacc
+  dimSets:
+  - trade
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: wacc
+  class: trade
+  slot: invcost
+  dropIfEmpty: false
+pTradePayback:
+  name: pTradePayback
+  dimSets:
+  - trade
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: payback
+  class: trade
+  slot: invcost
+  dropIfEmpty: false
 pTradeCap2Act:
   name: pTradeCap2Act
   dimSets: trade

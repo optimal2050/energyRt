@@ -58,10 +58,13 @@ setClass("config",
       dummyExport = numeric(),
       stringsAsFactors = FALSE
     ),
+    # The model's two rates, by region and year. `wacc` annuitises investment,
+    # `sdr` discounts the objective. There is deliberately no `discount` column:
+    # `discount` is an argument only, expanded into equal wacc/sdr by
+    # `.discount_arg_to_rates()` (R/discount_rates.R) before it reaches here.
     discount = data.frame(
       region = character(),
       year = integer(),
-      discount = numeric(), # deprecated
       wacc = numeric(), # weighted average cost of capital
       sdr = numeric(), # social discount rate
       stringsAsFactors = FALSE
@@ -150,20 +153,26 @@ setMethod("getHorizon", signature(obj = "config"), function(obj) obj@horizon)
 #' @method update config
 #' @export
 setMethod("update", "config", function(object, ..., warn_nodata = TRUE) {
-  # browser()
-  # !!! add no-data check for warning
-  cf <- .data2slots("config", object, ..., warn_nodata = FALSE)
+  # `discount` is an argument, not a column: a bare number (or a `discount`
+  # column) is expanded into equal `wacc`/`sdr` here, and partial or mixed rate
+  # rows are rejected, so `.data2slots()` and everything downstream only ever
+  # see the two rates the model actually uses.
+  args <- .discount_args(list(...))
+  cf <- do.call(.data2slots,
+                c(list("config", object), args, list(warn_nodata = FALSE)))
   # Normalise `variant_prefix`: merge a partial override over the previous value
   # and validate. Doing it here (rather than relying on `.data2slots`) also
   # re-materialises the slot on a config serialised before it existed.
-  .vp <- list(...)[["variant_prefix"]]
-  cf@variant_prefix <- .variant_prefix_merge(.vp, .variant_prefix(object))
-  cf@calendar <- .data2slots("calendar", cf@calendar, ...,
-                             ignore_args = c("name", "desc", "misc"),
-                             warn_nodata = FALSE)
-  cf@horizon <-  .data2slots("horizon", cf@horizon, ...,
-                             ignore_args = c("name", "desc", "misc"),
-                             warn_nodata = FALSE)
+  cf@variant_prefix <- .variant_prefix_merge(args[["variant_prefix"]],
+                                             .variant_prefix(object))
+  cf@calendar <- do.call(.data2slots,
+                         c(list("calendar", cf@calendar), args,
+                           list(ignore_args = c("name", "desc", "misc"),
+                                warn_nodata = FALSE)))
+  cf@horizon <- do.call(.data2slots,
+                        c(list("horizon", cf@horizon), args,
+                          list(ignore_args = c("name", "desc", "misc"),
+                               warn_nodata = FALSE)))
   cf
 })
 

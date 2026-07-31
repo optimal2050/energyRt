@@ -42,6 +42,7 @@ NULL
   # costs
   "invcost.invcost"   = "{costs}/{capacity}",
   "invcost.wacc"      = "fraction",
+  "invcost.payback"   = "years",
   "invcost.eac"       = "{costs}/{capacity}",
   "invcost.retcost"   = "{costs}/{capacity}",
   "fixom.fixom"       = "{costs}/{capacity}",

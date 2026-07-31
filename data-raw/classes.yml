@@ -601,10 +601,29 @@ class:
           description: Total overnight investment costs of the project (per unit of capacity), default is 0.
         wacc:
           type: numeric
-          description: Weighted average cost of capital, (currently ignored).
-          retcost:
-            type: numeric
-            description: Costs of early retirement of the technology, default is 0.
+          description: >-
+            Weighted average cost of capital used to annuitise `invcost` for
+            this technology. Overrides the model-wide `wacc` (see the model
+            `discount` argument). The social discount rate is never used here.
+        payback:
+          type: numeric
+          description: >-
+            Cost-recovery period in years. Where given it replaces `olife` in
+            the annuity AND in the years over which the annuity is charged, so
+            the investment is repaid over `payback` years while the capacity
+            keeps operating for its full operational life. Must be positive and
+            not exceed `olife`. Unset (or 0) means recover over `olife`.
+            Implemented for the GLPK solver only.
+        eac:
+          type: numeric
+          description: >-
+            Equivalent annual cost, supplied directly instead of being computed
+            from `invcost`, `wacc` and the lifetime. Where given it wins; where
+            absent the annuity is computed. Mutually exclusive with `invcost`
+            per row.
+        retcost:
+          type: numeric
+          description: Costs of early retirement of the technology, default is 0.
     cluster:
       type: data.frame
       description: >-
@@ -1032,9 +1051,29 @@ class:
           description: Overnight investment cost for the specified region and year.
         wacc:
           type: numeric
-          description: >
-            Weighted average cost of capital. If not supplied, the discount from the
-             model or scenario is used. (currently ignored)
+          description: >-
+            Weighted average cost of capital used to annuitise `invcost` for
+            this storage. Overrides the model-wide `wacc` (see the model
+            `discount` argument). The social discount rate is never used here.
+        payback:
+          type: numeric
+          description: >-
+            Cost-recovery period in years. Where given it replaces `olife` in
+            the annuity AND in the years over which the annuity is charged, so
+            the investment is repaid over `payback` years while the capacity
+            keeps operating for its full operational life. Must be positive and
+            not exceed `olife`. Unset (or 0) means recover over `olife`.
+            Implemented for the GLPK solver only.
+        eac:
+          type: numeric
+          description: >-
+            Equivalent annual cost, supplied directly instead of being computed
+            from `invcost`, `wacc` and the lifetime. Where given it wins; where
+            absent the annuity is computed. Mutually exclusive with `invcost`
+            per row.
+        retcost:
+          type: numeric
+          description: Costs of early retirement of the storage, default is 0.
     fullYear:
       type: logical
       description: >
@@ -1256,7 +1295,7 @@ class:
           description: Trade-to-auxiliary-output-commodity coefficient (multiplier).
     invcost:
       type: data.frame
-      description: Investment cost, used when capacityVariable is TRUE.
+      description: Investment cost of the trade capacity (per unit of capacity).
       columns:
         vintage:
           type: character
@@ -1270,6 +1309,31 @@ class:
         invcost:
           type: numeric
           description: Investment cost.
+        wacc:
+          type: numeric
+          description: >-
+            Weighted average cost of capital used to annuitise `invcost` for
+            this corridor. Overrides the model-wide `wacc` (see the model
+            `discount` argument). The social discount rate is never used here.
+        payback:
+          type: numeric
+          description: >-
+            Cost-recovery period in years. Where given it replaces `olife` in
+            the annuity AND in the years over which the annuity is charged, so
+            the investment is repaid over `payback` years while the capacity
+            keeps operating for its full operational life. Must be positive and
+            not exceed `olife`. Unset (or 0) means recover over `olife`.
+            Implemented for the GLPK solver only.
+        eac:
+          type: numeric
+          description: >-
+            Equivalent annual cost, supplied directly instead of being computed
+            from `invcost`, `wacc` and the lifetime. Where given it wins; where
+            absent the annuity is computed. Mutually exclusive with `invcost`
+            per row.
+        retcost:
+          type: numeric
+          description: Costs of early retirement of the trade capacity, default is 0.
     vintage:
       type: data.frame
       description: >-
@@ -1796,7 +1860,19 @@ class:
         planning period and intervals of the model.
     discount:
       type: data.frame
-      description: Discount rates, can be assigned by region and year.
+      description: >-
+        The model's two rates, which can be assigned by region and year.
+        `wacc` annuitises investment into the equivalent annual cost; `sdr`
+        discounts the stream of system costs in the objective. They are
+        independent -- there is no fallback from one to the other.
+
+        As an ARGUMENT (`newModel(discount = )`, `update(cfg, discount = )`)
+        this slot also accepts the shorthand `discount`, a single rate that
+        plays both roles: `discount = 0.05` is equivalent to
+        `data.frame(wacc = 0.05, sdr = 0.05)`. Per row you supply either
+        `discount`, or both `wacc` and `sdr` -- a partial pair or a mix of the
+        two forms is an error. There is no `discount` column: the shorthand is
+        expanded on entry, so the stored table always has both rates.
       columns:
         region:
           type: character
@@ -1804,10 +1880,18 @@ class:
         year:
           type: integer
           description: Year to apply the parameter, NA for every year.
-        discount:
+        wacc:
           type: numeric
-          description: Discount rate. Default is 0.05. The discount rate is used
-            to calculate the present value of future costs and benefits.
+          description: >-
+            Weighted average cost of capital, used to annuitise investment costs
+            into `pTechEac` / `pStorageEac` / `pTradeEac`. A process may override
+            it with its own `@invcost$wacc`. Default is 0.
+        sdr:
+          type: numeric
+          description: >-
+            Social discount rate, used to build the cumulative discount factor
+            applied to total system costs in the objective. A property of the
+            model, never of an individual process. Default is 0.
     discountFirstYear:
       type: logical
       description: >

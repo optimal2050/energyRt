@@ -1452,7 +1452,7 @@ setMethod(
 
     clean_list <- c(
       "mSliceParentChild", "mSliceParentChildE", "mSliceNext",
-      "mSliceFYearNext", "pDiscount", "pSliceShare", "pDummyImportCost",
+      "mSliceFYearNext", "pWacc", "pSdr", "pSliceShare", "pDummyImportCost",
       "pDummyExportCost",
       "pSliceWeight",
       # "mStartMilestone", "mEndMilestone",
@@ -1493,19 +1493,27 @@ setMethod(
         .dat2par(obj@parameters[["mSliceFYearNext"]],
                  approxim$calendar@next_in_year)
     }
-    # Discount
-    # browser()
+    # The model's two rates: `wacc` annuitises investment (R/eac.R), `sdr`
+    # discounts the objective (pDiscountFactor, below). `@discount` carries both
+    # columns on every row -- `.discount_arg_to_rates()` expanded the `discount`
+    # shorthand and rejected partial rows -- so neither needs a fallback here.
+    # Interpolated over ANNUAL years, not milestones: the pDiscountFactor
+    # cumprod below compounds year by year.
     approxim_no_mileStone_Year <- approxim
     approxim_no_mileStone_Year$mileStoneYears <- NULL
-    pDiscount <- .interp_numpar(app@discount, "discount",
-                                obj@parameters[["pDiscount"]], approxim_no_mileStone_Year,
-                                all.val = TRUE
+    pSdr <- .interp_numpar(app@discount, "sdr",
+                           obj@parameters[["pSdr"]], approxim_no_mileStone_Year,
+                           all.val = TRUE
     )
-    obj@parameters[["pDiscount"]] <-
-      .dat2par(obj@parameters[["pDiscount"]],
-               filter(pDiscount, year %in% obj@parameters$year@data$year)
-               # pDiscount
-      )
+    pWacc <- .interp_numpar(app@discount, "wacc",
+                            obj@parameters[["pWacc"]], approxim_no_mileStone_Year,
+                            all.val = TRUE
+    )
+    for (.r in list(list("pSdr", pSdr), list("pWacc", pWacc))) {
+      obj@parameters[[.r[[1]]]] <-
+        .dat2par(obj@parameters[[.r[[1]]]],
+                 filter(.r[[2]], year %in% obj@parameters$year@data$year))
+    }
     approxim_comm <- approxim
     approxim_comm[["comm"]] <- approxim$all_comm
     obj@parameters[["pSliceShare"]] <- .dat2par(
@@ -1658,11 +1666,13 @@ setMethod(
                  stringsAsFactors = FALSE)
     )
     # browser()
-    pDiscount <-
-      pDiscount[sort(pDiscount$year, index.return = TRUE)$ix, , drop = FALSE]
-    pDiscountFactor <- pDiscount[0, , drop = FALSE]
-    for (l in unique(pDiscount$region)) {
-      dd <- pDiscount[pDiscount$region == l, , drop = FALSE]
+    # Cumulative discount factor for the objective -- built from the SOCIAL
+    # discount rate. The financing rate (`wacc`) never enters here; it is spent
+    # in R/eac.R annuitising investment.
+    pSdr <- pSdr[sort(pSdr$year, index.return = TRUE)$ix, , drop = FALSE]
+    pDiscountFactor <- pSdr[0, , drop = FALSE]
+    for (l in unique(pSdr$region)) {
+      dd <- pSdr[pSdr$region == l, , drop = FALSE]
       if (!app@discountFirstYear) dd$value[which.min(dd$year)] <- 0
       dd$value <- cumprod(1 / (1 + dd$value))
       pDiscountFactor <- rbind(pDiscountFactor, dd)
@@ -1795,6 +1805,21 @@ make_data_param <- function(
   } else {
     short_name <- par_meta$colName
   }
+
+  # A slot data.frame deserialised under an older class version can lack the
+  # column this parameter reads -- `@invcost$eac` and `@invcost$payback` are
+  # exactly that case for objects built before they existed. `rename()` (numpar)
+  # and `pivot_longer()` (bounds) both error on a missing column, but an absent
+  # column just means the user set nothing, so return the empty schema.
+  .wanted <- if (par_meta$type == "bounds") {
+    paste0(par_meta$colName, c(".lo", ".up", ".fx"))
+  } else {
+    short_name
+  }
+  if (!any(.wanted %in% names(slot_data))) {
+    return(.empty_param_data(scen@modInp@parameters[[par_meta$name]]))
+  }
+
   if (par_meta$type == "bounds") {
     # browser()
     bound_names <- paste0(par_meta$colName, c(".lo", ".up", ".fx"))
@@ -1846,7 +1871,9 @@ make_data_param <- function(
         scen@modInp@parameters[[par_meta$name]]@dimSets,
         short_name
         ))) |>
-      rename(value = short_name) |>
+      # `all_of()`: renaming from a character variable is a tidyselect
+      # "external vector" selection, deprecated since tidyselect 1.1.0.
+      rename(value = all_of(short_name)) |>
       filter(!is.na(value)) |>
       unique()
 

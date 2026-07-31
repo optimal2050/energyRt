@@ -209,7 +209,9 @@ read_solution <- function(obj, ...) {
   salvage_cost0 <- function(scen, par) {
     invcost <- .add_dropped_zeros(scen@modInp, paste0("p", par, "Invcost"))
     olife <- .add_dropped_zeros(scen@modInp, paste0("p", par, "Olife"))
-    discount <- .add_dropped_zeros(scen@modInp, "pDiscount")
+    # Salvage value of capital not yet recovered -- a financing calculation, so
+    # it discounts at the cost of capital, not at the social rate.
+    discount <- .add_dropped_zeros(scen@modInp, "pWacc")
     newcap <- scen@modOut@variables[[paste0("v", par, "NewCap")]]
     invcost$invcost <- invcost$value
     invcost$value <- NULL

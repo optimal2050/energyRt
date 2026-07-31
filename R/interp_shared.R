@@ -8,7 +8,7 @@
 
 # ---- from add2set.R ----
 .drop_config_param <- .drop_config_param <- function(modInp) {
-  for (i in c("pDiscount", "pDummyImportCost", "pDummyExportCost")) {
+  for (i in c("pWacc", "pSdr", "pDummyImportCost", "pDummyExportCost")) {
     modInp@parameters[[i]] <- .resetParameter(modInp@parameters[[i]])
   }
   modInp
@@ -43,7 +43,7 @@
     "pTechAct2AOut", "pTechCap2AOut", "pTechNCap2AOut", "pTechCinp2AOut",
     "pTechCout2AOut", "pTechFixom", "pTechShare",
     "pTechShare", "pTechAf", "pTechAf", "pTechAfs", "pTechAfs", "pTechAfc",
-    "pTechAfc", "pTechStock", "pTechCap2act", "pDiscount",
+    "pTechAfc", "pTechStock", "pTechCap2act", "pWacc", "pSdr",
     "pDiscountFactor", "pSupCost", "pSupAva", "pSupAva", "pSupReserve",
     "pSupReserve", "pDemand", "pEmissionFactor", "pDummyImportCost",
     "pDummyExportCost", "pTaxCostInp", "pSubCostInp", "pTaxCostOut",

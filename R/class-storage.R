@@ -164,6 +164,9 @@ setClass("storage",
       stgcost = numeric(),
       stringsAsFactors = FALSE
     ),
+    # `wacc` overrides the model-wide rate when annuitising this storage;
+    # `payback` shortens the cost-recovery period below `@vintage$olife`; `eac`
+    # supplies the annuity directly, bypassing both.
     invcost = data.frame(
       vintage = character(),
       cluster = character(),
@@ -171,6 +174,7 @@ setClass("storage",
       year = integer(),
       invcost = numeric(),
       wacc = numeric(),
+      payback = numeric(),
       eac = numeric(),
       retcost = numeric(),
       stringsAsFactors = FALSE
@@ -335,7 +339,7 @@ setMethod("initialize", "storage", function(.Object, ...) {
 #'   ),
 #'   invcost = data.frame(
 #'     region = "R1", year = 2020, invcost = 0.9,
-#'     wacc = 0.9, retcost = 0.9
+#'     wacc = 0.09, payback = 10, retcost = 0.9
 #'   ),
 #'   capacity = data.frame(
 #'     region = "R1", year = 2020, stock = 0.9,

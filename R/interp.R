@@ -954,7 +954,7 @@ interpolate_model <- function(mod, name = NULL, ...,
     built <- c(
       "year", "slice", "region", "mMidMilestone",
       "mSliceParentChild", "mSliceParentChildE", "mSliceNext",
-      "mSliceFYearNext", "pDiscount", "pSliceShare", "pSliceWeight",
+      "mSliceFYearNext", "pWacc", "pSdr", "pSliceShare", "pSliceWeight",
       "mMilestoneLast", "mMilestoneFirst", "mMilestoneNext",
       "mMilestoneHasNext", "mSameSlice", "mSameRegion", "ordYear",
       "pYearFraction", "cardYear", "pPeriodLen", "pDiscountFactor",
