@@ -94,6 +94,24 @@ nonchar_in_sets <- function(x) {
 #' size(1)
 #' size(rep(1, 1e3))
 #' size(rep(1L, 1e3))
+# Slot names an INSTANCE actually carries.
+#
+# `slotNames()` reads the CLASS DEFINITION, so on an object deserialized before
+# a slot was added it returns names that `slot()` then errors on:
+#   no slot of name "geolevel" for this object of class "commodity"
+# `@geolevel`, `@vintage`, `@cluster` and `@timeframe` are all recent, so every
+# model a user saved before them is affected -- as are this package's own
+# `data/*.rda` kits until they are rebuilt.
+#
+# Any loop that walks a USER-SUPPLIED object must therefore ask the object, not
+# the class. Loops over objects energyRt has just constructed itself are safe
+# and are left alone.
+#' @noRd
+.instance_slots <- function(obj) {
+  sn <- methods::slotNames(obj)
+  sn[vapply(sn, function(s) methods::.hasSlot(obj, s), logical(1))]
+}
+
 size <- function(x, level1 = FALSE, units = "auto", sort = TRUE,
                  decreasing = FALSE, byteTol = 0, asNumeric = FALSE) {
   # browser()
@@ -624,12 +642,13 @@ find_in_model <- function(x, pattern, fixed = TRUE, slots = NULL,
     if (!isS4(o)) next
     if (!is.null(classes) && !inherits(o, classes)) next
     o_class <- class(o)[1]
-    o_name <- if ("name" %in% methods::slotNames(o)) {
+    o_slots <- .instance_slots(o)
+    o_name <- if ("name" %in% o_slots) {
       as.character(methods::slot(o, "name"))[1]
     } else {
       NA_character_
     }
-    for (sn in methods::slotNames(o)) {
+    for (sn in o_slots) {
       if (identical(sn, "misc")) next
       if (!is.null(slots) && !(sn %in% slots)) next
       v <- methods::slot(o, sn)

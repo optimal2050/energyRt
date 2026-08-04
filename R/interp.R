@@ -1050,7 +1050,7 @@ collect_set_elements <- function(obj, set_name) {
 
   set_elements <- list()
   if (isS4(obj)) {
-    slots <- slotNames(obj)
+    slots <- .instance_slots(obj)
     ii <- slots == set_name
     if (any(ii) &&
       inherits(
@@ -1113,7 +1113,7 @@ collect_object_names <- function(
     class = character()
   ))
   if (isS4(obj)) {
-    slots <- slotNames(obj)
+    slots <- .instance_slots(obj)
     if (.hasSlot(obj, "name")) {
       obj_desc <- if (.hasSlot(obj, "desc") && length(obj@desc) == 1) {
         obj@desc
@@ -3593,7 +3593,7 @@ get_process_region <- function(scen, process = NULL, classes = NULL,
       reg <- reg[!is.na(reg)]            # NA in @region == all regions (no restriction)
       struct <- character()              # route endpoints (trade): structural scope
       param  <- character()              # region values in parameter slots
-      for (s in slotNames(x)) {
+      for (s in .instance_slots(x)) {
         v <- slot(x, s)
         if (!inherits(v, "data.frame")) next
         for (col in c("src", "dst")) {

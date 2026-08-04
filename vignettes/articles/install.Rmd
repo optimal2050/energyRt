@@ -43,6 +43,13 @@ source("https://raw.githubusercontent.com/optimal2050/energyRt/master/inst/insta
 install_energyRt()
 ```
 
+To track the development version instead, pass a branch — `install_energyRt()`
+otherwise follows the repository's default branch:
+
+```{r}
+install_energyRt(branch = "dev")
+```
+
 Then verify your setup in a fresh session with `library(energyRt); en_setup()`.
 
 Prefer to install directly? energyRt's CRAN dependencies are pulled in

@@ -130,6 +130,8 @@ reference:
   - starts_with("write")
   - starts_with("read")
   - starts_with("solve")
+  - mosox_run
+  - en_mosox_run
   - matches("mapping")
   - trim_parameters_by_maps
   - validate_scenario_parameters
@@ -148,6 +150,8 @@ reference:
   - matches("data")
   - getObject
   - getMix
+  - getVariants
+  - variantSummary
   - matches("find")
   - matches("rename")
   - matches("revalue")
@@ -175,6 +179,8 @@ reference:
   - matches("plot")
   - matches("show")
   - matches("design")
+  - ghost_options
+  - geo_map
 
 - title: Validation
   contents:

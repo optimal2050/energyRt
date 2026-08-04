@@ -18,7 +18,7 @@ drafts/
 depreciated/
 scenarios/
 ^scenarios$
-dev/
+dev-scripts/
 
 ^gams$
 ^julia$

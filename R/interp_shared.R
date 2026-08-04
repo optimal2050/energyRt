@@ -329,7 +329,9 @@ interpolate_slot <- interpolate_slot <- function(
 .filter_data_in_slots <- .filter_data_in_slots <- function(obj, lst, coln) {
   # browser()
   # filter out
-  ss <- getSlots(class(obj))
+  # by INSTANCE, not by class definition: an object saved before a slot was
+  # added still deserialises, and `slot()` on the missing name errors
+  ss <- getSlots(class(obj))[.instance_slots(obj)]
   if (any(names(ss) == coln) && ss[coln] == "character") {
     # !!! adding (potentially) missing filter for character slots like region
     if (!all(is.na(slot(obj, coln))) && length(slot(obj, coln)) > 0) {
