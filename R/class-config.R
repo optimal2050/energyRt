@@ -12,6 +12,7 @@
 #' @slot desc `r get_slot_doc("config", "desc")`
 #' @slot region `r get_slot_doc("config", "region")`
 #' @slot calendar `r get_slot_doc("config", "calendar")`
+#' @slot geoscale `r get_slot_doc("config", "geoscale")`
 #' @slot horizon `r get_slot_doc("config", "horizon")`
 #' @slot discount `r get_slot_doc("config", "discount")`
 #' @slot discountFirstYear `r get_slot_doc("config", "discountFirstYear")`
@@ -34,6 +35,11 @@ setClass("config",
     region = "character",
     # year = "numeric", # move to horizon
     calendar = "calendar",
+    # Optional `geoscales::Geoscale`. Typed "ANY" rather than "Geoscale"
+    # because `geoscales` is a Suggests dependency (it is not on CRAN, and
+    # energyRt targets CRAN), so the class does not exist when this file is
+    # sourced at build time. `setValidity("config")` below enforces the type.
+    geoscale = "ANY",
     horizon = "horizon", # change to class
     # slice = "slice", #
     # yearFraction = "data.frame",
@@ -73,6 +79,7 @@ setClass("config",
     # year = as.numeric(2005:2050),
     horizon = new("horizon"),
     calendar = newCalendar(),
+    geoscale = NULL,
     # slice = new("slice"),
     discountFirstYear = FALSE,
     optimizeRetirement = FALSE,
@@ -94,6 +101,42 @@ setClass("config",
   ),
   S3methods = FALSE
 )
+# `geoscale` is typed "ANY" (see the slot comment above), so its type contract
+# is stated here. `geoscales` need not be installed: an S7 object carries a
+# plain character class attribute, so `is_geoscale()` is a pure attribute test.
+#
+# Note this only runs when `validObject()` is called explicitly -- `config`'s
+# `initialize` method does not validate, and cannot: the prototype sets
+# `region = NULL` for a "character" slot, so a default `config` does not pass
+# validation. `setGeoscale()` therefore checks its own argument.
+setValidity("config", function(object) {
+  if (!methods::.hasSlot(object, "geoscale")) return(TRUE)
+  gs <- object@geoscale
+  if (is.null(gs) || is_geoscale(gs)) return(TRUE)
+  paste0(
+    "`config@geoscale` must be a `geoscales::Geoscale` object or NULL, not ",
+    class(gs)[1], "."
+  )
+})
+
+#' Is this a geoscales::Geoscale?
+#'
+#' Type test that does not require `geoscales` to be installed -- an S7 object
+#' carries its class attribute either way. Accepts both the installed class
+#' name and the unqualified one used when the package is sourced rather than
+#' installed.
+#'
+#' @param x Any object.
+#'
+#' @return `TRUE` or `FALSE`.
+#'
+#' @examples
+#' is_geoscale(NULL)
+#' @export
+is_geoscale <- function(x) {
+  inherits(x, c("geoscales::Geoscale", "Geoscale"))
+}
+
 setMethod("initialize", "config", function(.Object, ...) {
   # browser()
   if (!exists(".defVal") || !exists(".modInp") || !exists(".defInt")) {
@@ -121,6 +164,30 @@ setMethod("initialize", "config", function(.Object, ...) {
 setMethod("setCalendar", signature(obj = "config"), function(obj, ...) {
   obj@calendar <- newCalendar(...) ## ToDo: add check for fractional data
   obj
+})
+
+## setGeoscale / getGeoscale ##################################################
+#' @param geoscale a `geoscales::Geoscale` object, or `NULL` to clear it.
+#' @rdname setGeoscale
+#' @export
+setMethod("setGeoscale", signature(obj = "config"), function(obj, geoscale,
+                                                             ...) {
+  # Check the argument, not the whole object: `validObject()` on a `config` is
+  # not currently safe to call, because the prototype sets `region = NULL` for
+  # a "character"-typed slot and so fails validation out of the box.
+  if (!is.null(geoscale) && !is_geoscale(geoscale)) {
+    stop("`geoscale` must be a `geoscales::Geoscale` object or NULL, not ",
+         class(geoscale)[1], ".", call. = FALSE)
+  }
+  obj@geoscale <- geoscale
+  obj
+})
+
+#' @rdname setGeoscale
+#' @export
+setMethod("getGeoscale", signature(obj = "config"), function(obj, ...) {
+  if (!methods::.hasSlot(obj, "geoscale")) return(NULL)
+  obj@geoscale
 })
 
 # setGeneric("setHorizon",

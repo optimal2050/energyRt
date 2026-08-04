@@ -36,11 +36,15 @@ Other solver:
 \code{\link[=en_check_packages]{en_check_packages()}},
 \code{\link[=en_install_deps]{en_install_deps()}},
 \code{\link[=en_install_python_deps]{en_install_python_deps()}},
+\code{\link[=en_mosox_run]{en_mosox_run()}},
 \code{\link[=en_setup]{en_setup()}},
+\code{\link[=get_mosox_path]{get_mosox_path()}},
+\code{\link[=mosox_run]{mosox_run()}},
 \code{\link{neos}},
 \code{\link[=neos_build_gams_text_job]{neos_build_gams_text_job()}},
 \code{\link[=neos_build_gams_xml]{neos_build_gams_xml()}},
 \code{\link[=neos_gams_inline]{neos_gams_inline()}},
-\code{\link{neos_job}}
+\code{\link{neos_job}},
+\code{\link[=set_mosox_path]{set_mosox_path()}}
 }
 \concept{solver}

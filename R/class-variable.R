@@ -177,7 +177,7 @@ newVariable <- function(name, dimSets = character(), colNames = NULL,
 
 #' Assign solved data to a variable
 #'
-#' The variable twin of [d2p()]. Deliberately NOT `d2p` itself: that method
+#' The variable twin of `d2p()`. Deliberately NOT `d2p` itself: that method
 #' hard-stops on a column mismatch, which is exactly what a solver whose output
 #' header has drifted produces, and it carries `type`/`lo`/`up` handling that a
 #' variable has no use for. Here a mismatch is a warning -- an otherwise good

@@ -175,7 +175,7 @@
           # Bare vector shorthand for a data.frame slot that carries a column of
           # its own name: `start = 2000` instead of `start = list(start = 2000)`.
           # A vector of length > 1 fills one row per element, so
-          # `vintage = c(2030, 2040)` and `cluster = c("best", "mid")` work.
+          # `vintage = c(2030, 2040)` and `cluster = c("01", "02")` work.
           nn <- seq_along(dat)
           slot(obj, s)[nn, ] <- NA
           want <- class(slot(obj, s)[1, s])
@@ -240,6 +240,12 @@
         # `as.character()` would only strip attributes -- including NAMES, which
         # some slots rely on (e.g. config@variant_prefix is keyed by variant
         # dimension). Assign directly to preserve them.
+        slot(obj, s) <- dat
+      } else if (slots[s] == "ANY") {
+        # An "ANY" slot accepts any value by definition, so there is nothing to
+        # check here -- the class contract (where there is one) lives in the
+        # object's validity method. Used by `config@geoscale`, which cannot be
+        # typed because `geoscales` is an optional dependency.
         slot(obj, s) <- dat
       } else {
         # all other formats

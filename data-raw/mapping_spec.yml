@@ -1136,6 +1136,24 @@ mSliceFamily:
   gates_eq: []
   unreferenced: yes
   recipe: calendar
+mRegionFamily:
+  name: mRegionFamily
+  dims:
+  - region
+  - regionp
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: calendar
+mCommRegion:
+  name: mCommRegion
+  dims:
+  - comm
+  - region
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: calendar
   source: calendar
   predicate: .na
   join_keys: []

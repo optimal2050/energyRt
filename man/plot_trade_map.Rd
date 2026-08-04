@@ -10,6 +10,7 @@ plot_trade_map(
   map = NULL,
   labels = TRUE,
   route_color = "steelblue",
+  level = NULL,
   ...
 )
 
@@ -20,12 +21,16 @@ plot_trade_map(
 \code{model} or \code{scenario} (whose trade objects are all drawn).}
 
 \item{map}{An \code{sf}/data.frame with \code{region}, \code{x}, \code{y} and polygon \code{geometry}
-(e.g. \code{utopia$map$honeycomb}). Required. Region polygons need \code{sf}; without
+(e.g. \code{utopia$map$honeycomb}), or a \code{geoscales::Geoscale}. When \code{NULL}, the
+geoscale attached to \code{object} is used. Region polygons need \code{sf}; without
 it, only centroids and routes are drawn.}
 
 \item{labels}{Logical; label region centroids with their names (default \code{TRUE}).}
 
 \item{route_color}{Colour of the route arrows.}
+
+\item{level}{When \code{map} is a \code{Geoscale}, which level to draw. Defaults to the
+finest, i.e. the model's own regions.}
 
 \item{...}{Unused.}
 }
@@ -38,14 +43,27 @@ centroids, laid over a region map. Accepts a single \code{trade}, a list of them
 or a \code{repository}/\code{model}/\code{scenario} (all of whose trade objects are drawn as
 one network). Bidirectional links (both \code{src}→\code{dst} and \code{dst}→\code{src}, e.g. the
 \verb{TBD_*} lines) are collapsed to a single double-headed arrow. A \code{trade} stores
-no geometry, so the \strong{map is supplied by the caller} — an \code{sf} object with
+no geometry, so the geometry comes either from the model's geoscale (see
+\code{\link[=setGeoscale]{setGeoscale()}}) or from a \code{map} supplied by the caller — an \code{sf} object with
 \code{region}, \code{x}, \code{y} (centroid) columns and polygon \code{geometry}, such as one of
 the \code{utopia$map} layouts (\code{squares}, \code{honeycomb}, \code{island}, \code{continent}).
+}
+\details{
+When the map carries a coordinate reference system, routes, centroids and
+labels are drawn as \code{sf} layers rather than raw \code{x}/\code{y} ones. \code{geom_sf()}
+installs a \code{coord_sf()} that reprojects the polygons but would leave a
+\code{geom_segment()} untransformed, detaching every route from its regions. Maps
+with no CRS — including the reference \code{utopia$map} layouts — take the plain
+cartesian path, which is correct for them.
 }
 \examples{
 \dontrun{
 TRD <- newTrade("TRD_ELC", commodity = "ELC",
   routes = data.frame(src = c("R1", "R2", "R3"), dst = c("R2", "R7", "R7")))
 autoplot(TRD, map = utopia$map$honeycomb)
+
+# or from a geoscale, at any level
+plot_trade_map(TRD, map = utopia_geoscale())
+plot_trade_map(TRD, map = utopia_geoscale(), level = "zone")
 }
 }

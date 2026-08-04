@@ -216,6 +216,17 @@ interpolate_model <- function(mod, name = NULL, ...,
     args <- args[!ii]
   }
 
+  # geoscale object -> settings@geoscale. Presentation-only: nothing downstream
+  # of here reads it, but carrying it on the scenario is what lets maps and
+  # region-level reporting work without the caller re-supplying it.
+  ii <- vapply(args, is_geoscale, logical(1))
+  if (sum(ii) > 1) {
+    stop("Only one geoscale object is allowed in the arguments")
+  } else if (sum(ii) == 1) {
+    scen@settings@geoscale <- args[[which(ii)]]
+    args <- args[!ii]
+  }
+
   # horizon object -> settings@horizon (via setHorizon; the pipeline reads
   # scen@settings@horizon@intervals below)
   ii <- vapply(args, function(x) inherits(x, "horizon"), logical(1))
@@ -288,7 +299,20 @@ interpolate_model <- function(mod, name = NULL, ...,
   # typos / stray regions (e.g. an offshore "ES_off" in object data that is not
   # a declared region) up front, instead of surfacing as an obscure
   # "<param> ... out of domain" error deep in the solver writer.
-  .check_declared_regions(scen@model, scen@settings@region)
+  #
+  # A geoscale's coarser levels count as declared: national demand for a
+  # nationally-balanced commodity names the nation, which is a legitimate
+  # region of the model even though it is not one of `@region`'s atoms.
+  .known_regions <- as.character(scen@settings@region)
+  .h <- .geo_hierarchy(getGeoscale(scen@settings), .known_regions)
+  if (!is.null(.h)) .known_regions <- .h$region
+  .check_declared_regions(scen@model, .known_regions)
+
+  # Advisory only: a geoscale is presentation metadata, so a region it does not
+  # cover is a warning (that region simply will not appear on a map), never an
+  # error. `@region` stays authoritative.
+  .gs <- getGeoscale(scen)
+  if (!is.null(.gs)) check_geoscale_regions(.gs, scen@settings@region)
 
   # Expand vintage/cluster groups of every variant-capable process class into one
   # ordinary object per (vintage, cluster) cell. Must run BEFORE the sets are
@@ -346,6 +370,14 @@ interpolate_model <- function(mod, name = NULL, ...,
 
   # Sets from settings ####
   scen@modInp@sets$region <- as.character(scen@settings@region) # factors not allowed
+  # With a geoscale attached, `region` holds every level at once -- the states
+  # AND the zones AND the nation -- exactly as `slice` already holds the slices
+  # of every timeframe. Declared regions stay at the head in their original
+  # order; coarser levels are appended and remain inert unless some commodity
+  # names one via `@geolevel`.
+  .geo_hier <- .geo_hierarchy(getGeoscale(scen@settings),
+                              scen@modInp@sets$region)
+  if (!is.null(.geo_hier)) scen@modInp@sets$region <- .geo_hier$region
   scen@modInp@sets$year <- as.integer(scen@settings@horizon@intervals$mid)
   scen@modInp@sets$slice <- scen@settings@calendar@slice_share$slice
 
@@ -900,8 +932,11 @@ interpolate_model <- function(mod, name = NULL, ...,
     .dat2par(scen@modInp@parameters[["year"]], mid)
   scen@modInp@parameters[["slice"]] <-
     .dat2par(scen@modInp@parameters[["slice"]], ss@calendar@slice_share$slice)
+  # The set the solver file DECLARES must be the same widened set as
+  # `sets$region`, or a coarse region is written into parameter data that has no
+  # matching set member ("... out of domain" in GLPK).
   scen@modInp@parameters[["region"]] <-
-    .dat2par(scen@modInp@parameters[["region"]], ss@region)
+    .dat2par(scen@modInp@parameters[["region"]], .known_regions(scen))
   scen@modInp@parameters[["mMidMilestone"]] <-
     .dat2par(scen@modInp@parameters[["mMidMilestone"]],
              data.table(year = mid))
@@ -3003,6 +3038,35 @@ map_comm_timeframe <- function(scen, comm = NULL) {
   )
 }
 
+#' Balancing geo-level of commodities
+#'
+#' The spatial twin of [map_comm_timeframe()]. A commodity with no `@geolevel`
+#' is balanced at the finest level, which is the flat, single-level behaviour.
+#'
+#' @param scen scenario object
+#' @param comm character vector of commodity names, if not provided,
+#' all commodities retrieved from the scenario object using the
+#' `collect_set_names` function.
+#'
+#' @returns a named list mapping each commodity to its geo-level.
+#' @export
+map_comm_geolevel <- function(scen, comm = NULL) {
+  apply_to_scenario_data(
+    scen = scen,
+    classes = "commodity",
+    func = function(x) {
+      ll <- list()
+      # `@geolevel` post-dates the class, so a commodity restored from an older
+      # model may not carry the slot at all. NA means "the finest level", i.e.
+      # the flat behaviour; `[[<-` keeps the entry when the value is empty,
+      # which `[<-` would reject.
+      v <- if (.hasSlot(x, "geolevel")) as.character(x@geolevel) else character()
+      ll[[x@name]] <- if (length(v) > 0) v[1] else NA_character_
+      return(ll)
+    }
+  )
+}
+
 #' Get operational timeframe of processes
 #'
 #' @param scen scenario object
@@ -3124,13 +3188,23 @@ get_process_timeframe <- function(scen, process = NULL,
   check_timeframe <- as.data.table(check_timeframe)
 
   if (nrow(check_timeframe) > 0) {
-    # add log/message
-    warning(
-      "Inconsistent timeframes of processes: ",
-      paste(unique(check_timeframe$process), collapse = ", "),
-      "\nwith commodities: ",
-      paste(unique(check_timeframe$comm), collapse = ", "),
-      "\nReplacing process timeframe with the lowest level timeframes of its commodities."
+    # A technology (the only class with a `@timeframe` slot) may run at a
+    # different resolution from its commodities, but never a COARSER one: the
+    # aggregation only flows fine -> coarse, so a coarser process cannot meet
+    # the finer balance and its demand leaks to imports. This used to warn and
+    # silently substitute the finest timeframe, which hid the mistake; it is an
+    # error now, matching `.assert_process_geolevel()` on the spatial side.
+    stop(
+      "Process(es) declared at a timeframe COARSER than a commodity they use:\n   ",
+      paste(utils::capture.output(print(
+        unique(as.data.frame(check_timeframe)[, c("process", "process_timeframe",
+                                                  "comm", "comm_timeframe")]),
+        row.names = FALSE)), collapse = "\n   "),
+      "\nAggregation only flows fine -> coarse, so these flows could not reach ",
+      "their commodity's balance.\nRemove the `@timeframe` (it defaults to the ",
+      "finest of the process's commodities), or declare it no coarser than ",
+      "every commodity the process touches.",
+      call. = FALSE
     )
   }
 
@@ -3493,7 +3567,14 @@ get_process_region <- function(scen, process = NULL, classes = NULL,
     )
   }
 
+  # Default scope stays the DECLARED (finest) regions: an object with no
+  # `@region` exists in every real place, never at a geoscale nation or zone.
   scen_regions <- scen@settings@region
+  # ... but an EXPLICIT `@region` may name a coarser level, which is how a
+  # national demand for a nationally-balanced commodity is declared. Validation
+  # therefore runs against the whole hierarchy.
+  .h <- .geo_hierarchy(getGeoscale(scen@settings), as.character(scen_regions))
+  known_regions <- if (is.null(.h)) scen_regions else .h$region
 
   # Region scope of each object (uniform rule for all classes):
   #   * `@region` is AUTHORITATIVE. Populated with region names -> the object
@@ -3549,7 +3630,7 @@ get_process_region <- function(scen, process = NULL, classes = NULL,
       # regions only localize values; they do not restrict the scope.
       nn[[i]] <- scen_regions
     }
-    bad2 <- setdiff(nn[[i]], scen_regions)
+    bad2 <- setdiff(nn[[i]], known_regions)
     if (length(bad2) > 0) {
       stop("Process '", i, "': region(s) '", paste(bad2, collapse = "', '"),
            "' are not declared in the scenario region set.")

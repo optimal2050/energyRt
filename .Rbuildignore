@@ -45,3 +45,6 @@ dev/*
 ^LICENSE\.md$
 ^\.positai$
 ^\.claude$
+^AGENTS\.md$
+^CLAUDE\.md$
+^AUTHORS\.md$

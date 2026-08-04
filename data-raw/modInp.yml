@@ -1994,6 +1994,18 @@ mSliceFamily:
   dimSets:
   - slice
   - slicep
+mRegionFamily:
+  name: mRegionFamily
+  type: map
+  dimSets:
+  - region
+  - regionp
+mCommRegion:
+  name: mCommRegion
+  type: map
+  dimSets:
+  - comm
+  - region
 mDemComm:
   name: mDemComm
   type: map

@@ -1,3 +1,7 @@
+# energyRt 0.71
+# Energy Systems Modeling Toolbox for R
+# https://energyRt.org
+
 import datetime
 
 print("start time: " + str(datetime.datetime.now()) + "\n")

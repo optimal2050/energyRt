@@ -23,6 +23,9 @@ setGeneric("setHorizon", function(obj, ...) standardGeneric("setHorizon"))
 setGeneric("getHorizon", function(obj) standardGeneric("getHorizon"))
 setGeneric("setCalendar", function(obj, ...) standardGeneric("setCalendar"))
 setGeneric("getCalendar", function(obj) standardGeneric("getCalendar"))
+setGeneric("setGeoscale",
+           function(obj, geoscale, ...) standardGeneric("setGeoscale"))
+setGeneric("getGeoscale", function(obj, ...) standardGeneric("getGeoscale"))
 setGeneric("getUnits", function(object, ...) standardGeneric("getUnits"))
 
 

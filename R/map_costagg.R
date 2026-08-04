@@ -8,7 +8,9 @@
 # Full region x year grid (the domain of the system-cost variable).
 .cost_region_year <- function(scen) {
   tidyr::expand_grid(
-    region = scen@modInp@sets[["region"]],
+    # Declared regions only -- costs accrue where processes are, not at the
+    # coarse geoscale levels that `sets$region` also carries.
+    region = .model_regions(scen),
     year   = as.integer(scen@modInp@sets[["year"]])
   ) |> as.data.frame()
 }

@@ -37,6 +37,7 @@
     "mMilestoneFirst", "mMilestoneLast", "mMilestoneNext", "mMilestoneHasNext",
     "mMidMilestone", "mCommSlice", "mCommSliceOrParent",
     "mSliceParentChild", "mSliceParentChildE", "mSliceFamily",
+    "mRegionFamily", "mCommRegion",
     "mStorageFullYear", "mTechFullYear",
     "mTechSlice", "mSupSlice", "mExpSlice", "mImpSlice", "mTradeSlice",
     "mWeatherSlice"

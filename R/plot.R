@@ -1234,34 +1234,59 @@ autoplot.weather <- function(object, type = c("heatmap", "line", "area"),
 #' or a `repository`/`model`/`scenario` (all of whose trade objects are drawn as
 #' one network). Bidirectional links (both `src`→`dst` and `dst`→`src`, e.g. the
 #' `TBD_*` lines) are collapsed to a single double-headed arrow. A `trade` stores
-#' no geometry, so the **map is supplied by the caller** — an `sf` object with
+#' no geometry, so the geometry comes either from the model's geoscale (see
+#' [setGeoscale()]) or from a `map` supplied by the caller — an `sf` object with
 #' `region`, `x`, `y` (centroid) columns and polygon `geometry`, such as one of
 #' the `utopia$map` layouts (`squares`, `honeycomb`, `island`, `continent`).
 #'
 #' @param object A `trade`, a list of `trade` objects, or a `repository`,
 #'   `model` or `scenario` (whose trade objects are all drawn).
 #' @param map An `sf`/data.frame with `region`, `x`, `y` and polygon `geometry`
-#'   (e.g. `utopia$map$honeycomb`). Required. Region polygons need `sf`; without
+#'   (e.g. `utopia$map$honeycomb`), or a `geoscales::Geoscale`. When `NULL`, the
+#'   geoscale attached to `object` is used. Region polygons need `sf`; without
 #'   it, only centroids and routes are drawn.
 #' @param labels Logical; label region centroids with their names (default `TRUE`).
 #' @param route_color Colour of the route arrows.
+#' @param level When `map` is a `Geoscale`, which level to draw. Defaults to the
+#'   finest, i.e. the model's own regions.
 #' @param ... Unused.
 #'
 #' @return A `ggplot` object (or `NULL`, invisibly, if there is nothing to plot).
+#'
+#' @details
+#' When the map carries a coordinate reference system, routes, centroids and
+#' labels are drawn as `sf` layers rather than raw `x`/`y` ones. `geom_sf()`
+#' installs a `coord_sf()` that reprojects the polygons but would leave a
+#' `geom_segment()` untransformed, detaching every route from its regions. Maps
+#' with no CRS — including the reference `utopia$map` layouts — take the plain
+#' cartesian path, which is correct for them.
+#'
 #' @export
 #' @examples
 #' \dontrun{
 #' TRD <- newTrade("TRD_ELC", commodity = "ELC",
 #'   routes = data.frame(src = c("R1", "R2", "R3"), dst = c("R2", "R7", "R7")))
 #' autoplot(TRD, map = utopia$map$honeycomb)
+#'
+#' # or from a geoscale, at any level
+#' plot_trade_map(TRD, map = utopia_geoscale())
+#' plot_trade_map(TRD, map = utopia_geoscale(), level = "zone")
 #' }
 plot_trade_map <- function(object, map = NULL, labels = TRUE,
-                           route_color = "steelblue", ...) {
+                           route_color = "steelblue", level = NULL, ...) {
   check_package("ggplot2")
+  # A geoscale attached to the scenario/model is used when no map is given, so
+  # `autoplot(scen)` and `plot_trade_map(repo)` work without one being passed.
+  if (is.null(map)) map <- tryCatch(getGeoscale(object), error = function(e) NULL)
   if (is.null(map)) {
     stop("plot_trade_map: pass a `map` (an sf object with `region`/`x`/`y` and ",
-         "polygon geometry), e.g. `utopia$map$honeycomb`.", call. = FALSE)
+         "polygon geometry, or a `geoscales::Geoscale`), e.g. ",
+         "`utopia$map$honeycomb`.", call. = FALSE)
   }
+  # Keep the geoscale: when a coarser level is drawn, the route endpoints have
+  # to be lifted to it too, or nothing will match the map.
+  route_gs <- if (is_geoscale(map)) map else NULL
+  map <- .trade_map_normalise(map, level = level)
   ce <- as.data.frame(map)
   if (!all(c("region", "x", "y") %in% names(ce))) {
     stop("`map` must have `region`, `x` and `y` (centroid) columns.", call. = FALSE)
@@ -1281,6 +1306,10 @@ plot_trade_map <- function(object, map = NULL, labels = TRUE,
   }))
   if (is.null(routes) || nrow(routes) == 0) {
     message("No routes to plot."); return(invisible(NULL))
+  }
+  routes <- .routes_to_level(routes, route_gs, level)
+  if (nrow(routes) == 0) {
+    message("No routes cross a boundary at this level."); return(invisible(NULL))
   }
 
   # Collapse each unordered {src,dst} pair; a pair is bidirectional when both
@@ -1324,6 +1353,14 @@ plot_trade_map <- function(object, map = NULL, labels = TRUE,
   bi <- seg[seg$bidir %in% TRUE, , drop = FALSE]
   un <- seg[!(seg$bidir %in% TRUE), , drop = FALSE]
 
+  # With a real CRS, `geom_sf()` installs a `coord_sf()` that reprojects the
+  # polygons but NOT raw x/y layers, so routes drawn with `geom_segment()`
+  # would detach from their regions. Draw everything as sf in that case, and
+  # keep the plain cartesian layers when there is no CRS (the reference UTOPIA
+  # layouts have none) or no sf.
+  crs <- if (have_sf) sf::st_crs(map) else NA
+  as_sf_layers <- have_sf && !is.na(crs)
+
   p <- ggplot2::ggplot()
   if (have_sf) {
     p <- p + ggplot2::geom_sf(data = map, fill = "grey92", colour = "white",
@@ -1332,23 +1369,43 @@ plot_trade_map <- function(object, map = NULL, labels = TRUE,
     message("Package 'sf' not available: drawing centroids and routes only, ",
             "without region shapes.")
   }
-  if (nrow(un) > 0) {
-    p <- p + ggplot2::geom_segment(data = un, seg_aes, inherit.aes = FALSE,
-      colour = route_color, linewidth = 1.1, arrow = arr("last"),
-      lineend = "round", linejoin = "mitre")
-  }
-  if (nrow(bi) > 0) {
-    p <- p + ggplot2::geom_segment(data = bi, seg_aes, inherit.aes = FALSE,
-      colour = route_color, linewidth = 1.1, arrow = arr("both"),
-      lineend = "round", linejoin = "mitre")
-  }
-  p <- p + ggplot2::geom_point(data = centers,
-    ggplot2::aes(x = .data[["x"]], y = .data[["y"]]),
-    inherit.aes = FALSE, colour = "grey30", size = 1.6)
-  if (isTRUE(labels)) {
-    p <- p + ggplot2::geom_text(data = centers,
-      ggplot2::aes(x = .data[["x"]], y = .data[["y"]], label = .data[["region"]]),
-      inherit.aes = FALSE, vjust = -0.8, size = 3, colour = "grey20")
+  if (as_sf_layers) {
+    if (nrow(un) > 0) {
+      p <- p + ggplot2::geom_sf(data = .routes_as_sf(un, crs),
+        colour = route_color, linewidth = 1.1, arrow = arr("last"))
+    }
+    if (nrow(bi) > 0) {
+      p <- p + ggplot2::geom_sf(data = .routes_as_sf(bi, crs),
+        colour = route_color, linewidth = 1.1, arrow = arr("both"))
+    }
+    pts <- sf::st_as_sf(centers, coords = c("x", "y"), crs = crs,
+                        remove = FALSE)
+    p <- p + ggplot2::geom_sf(data = pts, colour = "grey30", size = 1.6)
+    if (isTRUE(labels)) {
+      p <- p + ggplot2::geom_sf_text(data = pts,
+        ggplot2::aes(label = .data[["region"]]),
+        vjust = -0.8, size = 3, colour = "grey20")
+    }
+  } else {
+    if (nrow(un) > 0) {
+      p <- p + ggplot2::geom_segment(data = un, seg_aes, inherit.aes = FALSE,
+        colour = route_color, linewidth = 1.1, arrow = arr("last"),
+        lineend = "round", linejoin = "mitre")
+    }
+    if (nrow(bi) > 0) {
+      p <- p + ggplot2::geom_segment(data = bi, seg_aes, inherit.aes = FALSE,
+        colour = route_color, linewidth = 1.1, arrow = arr("both"),
+        lineend = "round", linejoin = "mitre")
+    }
+    p <- p + ggplot2::geom_point(data = centers,
+      ggplot2::aes(x = .data[["x"]], y = .data[["y"]]),
+      inherit.aes = FALSE, colour = "grey30", size = 1.6)
+    if (isTRUE(labels)) {
+      p <- p + ggplot2::geom_text(data = centers,
+        ggplot2::aes(x = .data[["x"]], y = .data[["y"]],
+                     label = .data[["region"]]),
+        inherit.aes = FALSE, vjust = -0.8, size = 3, colour = "grey20")
+    }
   }
   p + ggplot2::labs(title = ttl, subtitle = sub) +
     ggplot2::theme_void() +
@@ -1359,6 +1416,56 @@ plot_trade_map <- function(object, map = NULL, labels = TRUE,
 #' @exportS3Method ggplot2::autoplot
 autoplot.trade <- function(object, map = NULL, ...) {
   plot_trade_map(object, map = map, ...)
+}
+
+# Normalise the `map` argument of plot_trade_map() to an sf/data.frame carrying
+# `region`, `x`, `y`. Accepts a `geoscales::Geoscale` (dissolved to `level` and
+# given centroids), or anything already in that shape.
+#' @noRd
+.trade_map_normalise <- function(map, level = NULL) {
+  if (!is_geoscale(map)) return(map)
+  check_package("geoscales")
+  check_package("sf")
+  level <- level %||% .geo_default_level(map)
+  shp <- geoscales::geo_geometry(map, level = level)
+  names(shp)[names(shp) == level] <- "region"
+  # `st_point_on_surface()` rather than `st_centroid()`: a centroid can fall
+  # outside a concave or multipart region, which would hang its routes and
+  # label in the sea.
+  xy <- sf::st_coordinates(suppressWarnings(sf::st_point_on_surface(
+    sf::st_geometry(shp))))
+  shp$x <- xy[, 1]
+  shp$y <- xy[, 2]
+  shp
+}
+
+# Lift route endpoints to a coarser level of the geoscale. Routes that end up
+# inside a single aggregate region are internal to it and are dropped -- the
+# topological counterpart of the flow netting in `.geo_net_trade()`.
+#' @noRd
+.routes_to_level <- function(routes, gs, level) {
+  if (is.null(gs) || is.null(level)) return(routes)
+  finest <- .geo_default_level(gs)
+  if (identical(level, finest)) return(routes)
+
+  map <- .geo_level_map(gs, from = finest, to = level)
+  routes$src <- unname(map[routes$src])
+  routes$dst <- unname(map[routes$dst])
+  routes <- routes[!is.na(routes$src) & !is.na(routes$dst), , drop = FALSE]
+  routes[routes$src != routes$dst, , drop = FALSE]
+}
+
+# Route endpoints -> an sf LINESTRING layer in the map's CRS, so `coord_sf()`
+# transforms routes and polygons together.
+#' @noRd
+.routes_as_sf <- function(seg, crs) {
+  geom <- lapply(seq_len(nrow(seg)), function(i) {
+    sf::st_linestring(rbind(c(seg$xsrc[i], seg$ysrc[i]),
+                            c(seg$xdst[i], seg$ydst[i])))
+  })
+  keep <- setdiff(names(seg), c("xsrc", "ysrc", "xdst", "ydst"))
+  sf::st_sf(seg[, keep, drop = FALSE],
+            geometry = sf::st_sfc(geom, crs = crs))
 }
 
 

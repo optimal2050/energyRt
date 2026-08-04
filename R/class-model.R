@@ -143,6 +143,14 @@ newModel <- function(name = "", desc = "", ...) {
     obj@config@calendar <- arg$calendar
     arg$calendar <- NULL
   }
+  ### @geoscale ####
+  if (!is.null(arg$geoscale)) {
+    if (!is_geoscale(arg$geoscale)) {
+      stop('"geoscale" argument must be a "geoscales::Geoscale" object')
+    }
+    obj@config@geoscale <- arg$geoscale
+    arg$geoscale <- NULL
+  }
   if (is_empty(arg)) return(obj)
   #
   ## unnamed args, process by class ####
@@ -164,6 +172,13 @@ newModel <- function(name = "", desc = "", ...) {
   if (any(ii)) {
     if (sum(ii) > 1) stop('Two or more "horizon" objects found.')
     obj@config@horizon <- arg[ii]
+    arg[ii] <- NULL
+  }
+  ### @geoscale obj ####
+  ii <- sapply(arg, is_geoscale)
+  if (any(ii)) {
+    if (sum(ii) > 1) stop('Two or more "geoscale" objects found.')
+    obj@config@geoscale <- arg[ii][[1]]
     arg[ii] <- NULL
   }
   if (is_empty(arg)) return(obj)

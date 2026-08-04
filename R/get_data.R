@@ -160,6 +160,7 @@ findData <- function(scen,
 #' @param ... filters for various sets (setname = c(val1, val2) or setname_ = "matching pattern"), see details.
 #' @param name character vector with names of parameters and/or variables.
 #' @param merge if TRUE, the search results will be merged in one dataframe; the named list will be returned if FALSE. When TRUE, a data.frame (empty if nothing matched) is always returned, never NULL.
+#' @param geolevel controls spatial aggregation of results that carry a `region` column, the spatial twin of `timeframe`. One of `"finest"` (default, native resolution as stored), `"coarsest"` (aggregate up to the top geoscale level), `"all"` (return every level stacked), or an explicit geoscale level name (e.g. `"zone"`, `"nation"`). Requires a geoscale on the model; without one this is inert. Inter-regional flow variables (e.g. `vTradeIr`) are returned unchanged, because summing a flow across regions double-counts it — the spatial counterpart of leaving state variables alone under `timeframe`.
 #' @param timeframe controls sub-annual time aggregation of results that carry a `slice` column. One of `"lowest"` (default, aggregate/sum flows up to the coarsest level, normally `ANNUAL`), `"highest"` (native/finest, as stored), `"all"` (return every timeframe level stacked), or an explicit calendar level name (e.g. `"SEASON"`, `"YDAY"`) to aggregate to that level. Non-slice data, and state/level variables (e.g. `vStorageStore`) for which summing over slices is meaningless, are returned unchanged.
 #' @param process if TRUE, dimensions "tech", "stg", "trade", "imp", "expp", "dem", and "sup" will be renamed with "process".
 #' @param parameters if TRUE, parameters will be included in the search and returned if found.
@@ -203,6 +204,7 @@ getData.scenario <- function(
     ...,
     merge = FALSE,
     timeframe = c("lowest", "highest", "all"),
+    geolevel = c("finest", "coarsest", "all"),
     process = FALSE,
     parameters = TRUE,
     variables = TRUE,
@@ -572,6 +574,14 @@ getData.scenario <- function(
     if (!is.null(cal)) ll <- .apply_timeframe(ll, cal, timeframe)
   }
 
+  # Spatial roll-up, see `geolevel`. Inert without a geoscale, and
+  # `geolevel = "finest"` (the default) leaves results at native resolution --
+  # so this changes nothing unless asked for.
+  if (length(ll) > 0 && !identical(tolower(as.character(geolevel)[1]), "finest")) {
+    hier <- tryCatch(.scen_geo_hierarchy(scen[[1]]), error = function(e) NULL)
+    if (!is.null(hier)) ll <- .apply_geolevel(ll, hier, geolevel)
+  }
+
   if (merge) {
     if (length(ll) == 1) {
       dat <- ll[[1]]
@@ -771,6 +781,107 @@ get_data <- getData
     dplyr::group_by(dplyr::across(dplyr::all_of(grp))) |>
     dplyr::summarise(value = sum(value), .groups = "drop")
   as.data.frame(out)
+}
+
+# ---- geolevel (region roll-up): the spatial twin of the block above --------
+#
+# Same shape as `.slice_rank_map()` / `.aggregate_timeframe_df()`, with two
+# deliberate differences:
+#
+#  * rank comes from the geoscale (1 = coarsest), not from ancestry counting;
+#  * the variable exempted from roll-up is different. Summing a STOCK over
+#    slices is meaningless (it double-counts time), so timeframe roll-up skips
+#    state variables. Summing a stock over REGIONS is perfectly meaningful
+#    (total storage in a zone), but summing an INTER-REGIONAL FLOW is not --
+#    trade between two regions of the same zone cancels rather than adds. So
+#    the spatial exemption is flow variables, read off the same catalogue.
+
+# region -> its ancestor at `target_rank`, or itself when already at or coarser.
+#' @noRd
+.region_target_map <- function(hier, target_rank) {
+  lvl <- hier$levels
+  rank <- stats::setNames(seq_along(lvl), lvl)
+  out <- character(0)
+  for (lv in names(hier$members)) {
+    if (is.na(rank[lv]) || rank[[lv]] < target_rank) {
+      # already at or coarser than the target: keep as-is
+      m <- hier$members[[lv]]
+      out <- c(out, stats::setNames(m, m))
+    }
+  }
+  target_members <- hier$members[[lvl[target_rank]]]
+  if (is.null(target_members)) return(out)
+  # walk each finer region up to its ancestor at the target level
+  fam <- hier$family # region = parent, regionp = child
+  up <- stats::setNames(as.character(fam$region), as.character(fam$regionp))
+  for (r in unlist(hier$members[rank[names(hier$members)] >= target_rank],
+                   use.names = FALSE)) {
+    cur <- r
+    for (i in seq_along(lvl)) {
+      if (cur %in% target_members) break
+      nxt <- up[[cur]]
+      if (is.null(nxt) || is.na(nxt)) { cur <- NA_character_; break }
+      cur <- nxt
+    }
+    if (!is.na(cur) && cur %in% target_members) out[r] <- cur
+  }
+  out
+}
+
+#' @noRd
+.aggregate_geolevel_df <- function(df, hier, target_rank) {
+  if (is.na(target_rank)) return(df)
+  if (!("region" %in% names(df)) || !("value" %in% names(df))) return(df)
+  # never sum an inter-regional flow across regions -- it would double-count
+  if ("name" %in% names(df) && any(.is_flow_var(unique(df$name)))) return(df)
+  map <- .region_target_map(hier, target_rank)
+  tgt <- unname(map[as.character(df$region)])
+  na <- is.na(tgt)
+  tgt[na] <- as.character(df$region)[na] # unknown regions: leave untouched
+  same <- tgt == as.character(df$region)
+  same[is.na(same)] <- TRUE
+  if (all(same)) return(df)
+  df$region <- tgt
+  grp <- setdiff(names(df), "value")
+  out <- df |>
+    dplyr::group_by(dplyr::across(dplyr::all_of(grp))) |>
+    dplyr::summarise(value = sum(value), .groups = "drop")
+  as.data.frame(out)
+}
+
+# Apply the requested `geolevel` to a list of result data.frames.
+#   "finest" -> native (unchanged); "coarsest" -> the top level;
+#   "all"    -> native + every coarser aggregate, stacked;
+#   <level>  -> aggregate to that named geoscale level.
+#' @noRd
+.apply_geolevel <- function(ll, hier, geolevel) {
+  if (length(ll) == 0 || is.null(hier)) return(ll)
+  lvl <- hier$levels
+  if (length(lvl) <= 1) return(ll)
+  gl <- as.character(geolevel)[1]
+  if (identical(tolower(gl), "finest")) return(ll)
+
+  if (identical(tolower(gl), "all")) {
+    out <- lapply(ll, function(df) {
+      if (!("region" %in% names(df)) || !("value" %in% names(df))) return(df)
+      pieces <- lapply(seq_along(lvl), function(r) {
+        .aggregate_geolevel_df(df, hier, r)
+      })
+      dplyr::distinct(dplyr::bind_rows(pieces))
+    })
+    names(out) <- names(ll)
+    return(out)
+  }
+
+  target_rank <- if (gl %in% lvl) {
+    which(lvl == gl)[1]
+  } else if (identical(tolower(gl), "coarsest")) {
+    1L
+  } else {
+    stop("Unknown 'geolevel' = '", gl, "'. Use 'coarsest', 'finest', 'all', ",
+         "or a geoscale level name: ", paste(lvl, collapse = ", "))
+  }
+  lapply(ll, function(df) .aggregate_geolevel_df(df, hier, target_rank))
 }
 
 # Apply the requested `timeframe` to a list of result data.frames.

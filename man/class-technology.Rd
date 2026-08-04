@@ -60,6 +60,8 @@ shocks (weather factors).
 
 \item{\code{geff}}{data.frame. Input-commodity-group efficiency parameters.
 \describe{
+\item{vintage}{character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
+\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{vintage} slot.}
 \item{region}{character. Name of region to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{slice}{character. Name of slice to apply the parameter, NA for every slice.}
@@ -69,6 +71,8 @@ shocks (weather factors).
 
 \item{\code{ceff}}{data.frame. Main commodity and activity efficiency parameters.
 \describe{
+\item{vintage}{character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
+\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{vintage} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{slice}{character. Name of slice to apply the parameter, NA for every slice.}
@@ -87,6 +91,8 @@ shocks (weather factors).
 
 \item{\code{aeff}}{data.frame. Parameters linking main commodities, activities, and capacities to auxiliary commodities.
 \describe{
+\item{vintage}{character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
+\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{vintage} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{slice}{character. Name of slice to apply the parameter, NA for every slice.}
@@ -105,6 +111,8 @@ shocks (weather factors).
 
 \item{\code{af}}{data.frame. Timeslice-level availability factor parameters.
 \describe{
+\item{vintage}{character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
+\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{vintage} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{slice}{character. Name of slice to apply the parameter, NA for every slice.}
@@ -117,6 +125,8 @@ shocks (weather factors).
 
 \item{\code{afs}}{data.frame. Timeframe-level availability factor constraints.
 \describe{
+\item{vintage}{character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
+\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{vintage} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{slice}{character. Name of slice to apply the parameter, required.}
@@ -127,6 +137,8 @@ shocks (weather factors).
 
 \item{\code{weather}}{data.frame. Parameters linking \verb{weather factors} (external shocks specified by \code{weather} class) to the availability parameters \code{af}, \code{afs}, and \code{afc}.
 \describe{
+\item{vintage}{character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
+\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{vintage} slot.}
 \item{weather}{character. Name of the applied weather factor, required, must match the weather factor names in a \code{weather} class in the model.}
 \item{comm}{character. Name of the commodity with specified \verb{afc.*} to be affected by the weather factor, required if \verb{afc.*} parameters are specified.}
 \item{wafc.lo}{numeric. Multiplying coefficient to the lower bound on the commodity availability parameter \code{afc.lo}, ignored if NA.}
@@ -142,6 +154,8 @@ shocks (weather factors).
 
 \item{\code{fixom}}{data.frame. Fixed operational and maintenance cost (per unit of capacity a year).
 \describe{
+\item{vintage}{character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
+\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{vintage} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{fixom}{numeric. Fixed operational and maintenance cost, default is 0.}
@@ -149,6 +163,8 @@ shocks (weather factors).
 
 \item{\code{varom}}{data.frame. Variable operational and maintenance cost (per unit of activity or commodity).
 \describe{
+\item{vintage}{character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
+\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{vintage} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{slice}{character. Name of the time-slice or (grand-)parent timeframe to apply the parameter, NA for every time-slice of the technology timeframe.}
@@ -161,32 +177,39 @@ shocks (weather factors).
 
 \item{\code{invcost}}{data.frame. Total overnight investment costs of the project (per unit of capacity).
 \describe{
+\item{vintage}{character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
+\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{vintage} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{invcost}{numeric. Total overnight investment costs of the project (per unit of capacity), default is 0.}
-\item{wacc}{numeric. Weighted average cost of capital, (currently ignored).}
+\item{wacc}{numeric. Weighted average cost of capital used to annuitise \code{invcost} for this technology. Overrides the model-wide \code{wacc} (see the model \code{discount} argument). The social discount rate is never used here.}
+\item{payback}{numeric. Cost-recovery period in years. Where given it replaces \code{olife} in the annuity AND in the years over which the annuity is charged, so the investment is repaid over \code{payback} years while the capacity keeps operating for its full operational life. Must be positive and not exceed \code{olife}. Unset (or 0) means recover over \code{olife}. Implemented for the GLPK solver only.}
+\item{eac}{numeric. Equivalent annual cost, supplied directly instead of being computed from \code{invcost}, \code{wacc} and the lifetime. Where given it wins; where absent the annuity is computed. Mutually exclusive with \code{invcost} per row.}
+\item{retcost}{numeric. Costs of early retirement of the technology, default is 0.}
 }}
 
-\item{\code{start}}{data.frame. The first year the technology can be installed.
+\item{\code{cluster}}{data.frame. Declaration of the technology's clusters. A cluster is a parallel sub-process of the same technology -- a resource class, geography or fleet type -- with its own capacity, availability and costs. This slot declares WHAT the clusters are and WHERE they exist; the per-cluster values live in the \code{cluster} column of the variant-varying slots (\code{capacity}, \code{invcost}, \code{afs}, \code{weather}, ...), exactly as \code{group} declares input groups whose data lives in \code{input$group}. Optional: when empty, cluster labels are harvested from those columns. When populated it is authoritative -- a label used in a slot but not declared here raises an error instead of silently creating an extra technology with default (often unbounded) parameters.
 \describe{
-\item{region}{character. Region name to apply the parameter, NA for every region.}
-\item{start}{integer. The first year the technology can be installed, NA means all years of the modeled horizon.}
+\item{cluster}{character. Cluster label. Must match the \code{cluster} column values used in the other slots.}
+\item{desc}{character. Human-readable description of the cluster, used in reports.}
+\item{region}{character. Region the cluster exists in, NA for every region. Several rows restrict a cluster to several regions.}
+\item{order}{integer. Optional display/ranking order (e.g. best to worst resource class); controls the order variants are created and reported in.}
 }}
 
-\item{\code{end}}{data.frame. The last year the technology can be installed.
+\item{\code{vintage}}{data.frame. Investment window and operational life of the technology, one row per (vintage, region, cluster). Replaces the former \code{start}, \code{end} and \code{olife} slots. A vintage is a separately investable variant of the technology that keeps the characteristics of its build year for its whole life; a cluster is a parallel sub-process (resource class, geography, fleet type) with its own capacity, availability and costs. Each column is read independently, so a region-agnostic \code{start} may be combined with a per-region \code{olife}.
 \describe{
+\item{vintage}{character. Vintage label, normally the build year as a string. NA for an un-vintaged technology (a single variant).}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
-\item{end}{integer. The last year the technology can be installed, default is Inf.}
-}}
-
-\item{\code{olife}}{data.frame. Operational life of the installed technology (in years).
-\describe{
-\item{region}{character. Region name to apply the parameter, NA for every region.}
+\item{cluster}{character. Cluster label, NA for every cluster.}
+\item{start}{integer. The first year the technology can be installed. Defaults to the vintage year; NA means all years of the modeled horizon.}
+\item{end}{integer. The last year the technology can be installed. Defaults to the vintage year; default is Inf when unset.}
 \item{olife}{integer. Operational life of the technology if installed during optimization, in years, default is 1.}
 }}
 
 \item{\code{capacity}}{data.frame. Capacity of the installed technology (in units of capacity).
 \describe{
+\item{vintage}{character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
+\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{vintage} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, required, values between specified years will be interpolated.}
 \item{stock}{numeric. Predefined capacity of the technology in units of capacity, default is 0. This parameter also defines the exogenous capacity retirement (age-based), or exogenous capacity additions, not optimized by the model, and not included in investment costs.

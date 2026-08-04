@@ -90,10 +90,12 @@ setMethod("initialize", "constraint", function(.Object, ...) {
 # `@timeframe` errors ("no slot of name ..."); add it (S4 slots are attributes)
 # with the prototype default. Called on every summand at constraint compile time.
 .upgrade_summand <- function(s) {
-  if (methods::is(s, "summand") &&
-      !("timeframe" %in% names(attributes(s)))) {
-    attr(s, "timeframe") <- NA_character_
-  }
+  if (!methods::is(s, "summand")) return(s)
+  a <- names(attributes(s))
+  if (!("timeframe" %in% a)) attr(s, "timeframe") <- NA_character_
+  # `geolevel` is the spatial twin and post-dates `timeframe`, so an object
+  # serialized between the two carries one and not the other.
+  if (!("geolevel" %in% a)) attr(s, "geolevel") <- NA_character_
   s
 }
 
@@ -127,6 +129,7 @@ setClass("summand",
     variable = "character",
     for.sum = "list",
     timeframe = "character",
+    geolevel = "character",
     mult = "data.frame",
     defVal = "numeric",
     misc = "list"
@@ -142,6 +145,11 @@ setClass("summand",
     # across levels. NA = no restriction (sum the variable's native slices).
     # Replaces the need for the *RY (year-resolution) aggregate variables.
     timeframe = NA_character_,
+    # `geolevel` is the spatial twin: it pins the geoscale level the variable is
+    # taken at (e.g. "zone", "nation"), restricting the variable's `region`
+    # dimension to that level's regions. NA = no restriction (sum the
+    # variable's native regions). Requires a geoscale on the model config.
+    geolevel = NA_character_,
     mult = data.frame(),
     defVal = 1,
     misc = list()
@@ -353,6 +361,7 @@ addSummand <- function(
     mult = data.frame(),
     for.sum = list(),
     timeframe = NA_character_,
+    geolevel = NA_character_,
     arg) {
   # browser()
   if (!is.null(names(arg))) {
@@ -361,6 +370,7 @@ addSummand <- function(
     if (any(names(arg) == "for.sum")) for.sum <- arg$for.sum
     if (any(names(arg) == "defVal")) defVal <- arg$defVal
     if (any(names(arg) == "timeframe")) timeframe <- arg$timeframe
+    if (any(names(arg) == "geolevel")) geolevel <- arg$geolevel
     if (any(names(arg) == "for.each")) {
       stop(
         "The 'for.each' parameter is set of the entire constraint and",
@@ -399,6 +409,11 @@ addSummand <- function(
     NA_character_
   } else {
     as.character(timeframe)[1]
+  }
+  st@geolevel <- if (is.null(geolevel) || length(geolevel) == 0) {
+    NA_character_
+  } else {
+    as.character(geolevel)[1]
   }
   # browser()
   if (all(names(.variable_set) != variable)) {
@@ -529,14 +544,96 @@ addSummand <- function(
         '" which has no slice dimension.'
       ))
     }
-    lev <- approxim$calendar@timeframes[[tf]]
+    tfs <- approxim$calendar@timeframes
+    lev <- tfs[[tf]]
     if (is.null(lev) || length(lev) == 0) {
       stop.constr(paste0(
         'unknown timeframe "', tf, '". Available: ',
-        paste(names(approxim$calendar@timeframes), collapse = ", ")
+        paste(names(tfs), collapse = ", ")
       ))
     }
-    stm@lhs[[i]]@for.sum$slice <- as.character(lev)
+    # Slices AT that level plus everything under them, so a level the variable
+    # is not indexed by aggregates rather than resolving to nothing.
+    anc <- approxim$calendar@slice_ancestry
+    desc <- unique(c(as.character(lev),
+                     if (!is.null(anc) && nrow(anc) > 0) {
+                       as.character(anc$child[as.character(anc$parent) %in% lev])
+                     }))
+    dom <- .variable_domain_values(prec, stm@lhs[[i]]@variable, "slice")
+    got <- .resolve_level_indices(dom, tf, tfs, desc)
+    if (length(got) == 0) {
+      stop.constr(paste0(
+        'timeframe = "', tf, '" does not resolve to any slice of variable "',
+        stm@lhs[[i]]@variable, '". It exists at: ',
+        paste(utils::head(sort(dom), 6), collapse = ", "),
+        '.\n  Write the sum explicitly in `for.sum` instead.'
+      ))
+    }
+    stm@lhs[[i]]@for.sum$slice <- as.character(got)
+  }
+
+  # Spatial twin of the loop above: resolve per-summand `geolevel` to an
+  # explicit `region` restriction. The variable is taken at exactly the regions
+  # of that geoscale level, so summing them yields the level aggregate without
+  # double-counting across levels.
+  for (i in seq_along(stm@lhs)) {
+    gl <- tryCatch(stm@lhs[[i]]@geolevel, error = function(e) NA_character_)
+    if (length(gl) != 1 || is.na(gl)) next
+    if (!("region" %in% .variable_set[[stm@lhs[[i]]@variable]])) {
+      stop.constr(paste0(
+        'geolevel = "', gl, '" set on variable "', stm@lhs[[i]]@variable,
+        '" which has no region dimension.'
+      ))
+    }
+    hier <- approxim$geo_hierarchy
+    if (is.null(hier)) {
+      stop.constr(paste0(
+        'geolevel = "', gl, '" requires a geoscale on the model config; ',
+        'attach one with `setGeoscale()`.'
+      ))
+    }
+    if (!gl %in% hier$levels) {
+      stop.constr(paste0(
+        'unknown geolevel "', gl, '". Available: ',
+        paste(hier$levels, collapse = ", ")
+      ))
+    }
+    # Regions AT that level plus every region beneath them, so constraining
+    # "province P" works without knowing which level the commodity balances at.
+    desc <- .geo_descendants(hier, gl)
+    dom <- .variable_domain_values(prec, stm@lhs[[i]]@variable, "region")
+    got <- .resolve_level_indices(dom, gl, hier$members, desc)
+    if (length(got) == 0) {
+      stop.constr(paste0(
+        'geolevel = "', gl, '" does not resolve to any region of variable "',
+        stm@lhs[[i]]@variable, '". It exists at: ',
+        paste(utils::head(sort(dom), 6), collapse = ", "),
+        '.\n  Write the sum explicitly in `for.sum` instead.'
+      ))
+    }
+    stm@lhs[[i]]@for.sum$region <- as.character(got)
+  }
+
+  # Coarse indices named directly in `for.sum` (not via a level) expand to the
+  # variable's own indices beneath them -- "emissions in province P" sums P's
+  # counties. Runs after the level loops so both routes end up the same shape.
+  for (i in seq_along(stm@lhs)) {
+    v <- stm@lhs[[i]]@variable
+    hier <- approxim$geo_hierarchy
+    if (!is.null(hier) && !is.null(stm@lhs[[i]]@for.sum$region)) {
+      dom <- .variable_domain_values(prec, v, "region")
+      stm@lhs[[i]]@for.sum$region <- .expand_for_sum(
+        stm@lhs[[i]]@for.sum$region, dom,
+        function(r) .geo_descendants_of(hier, r), "region", v, stop.constr)
+    }
+    anc <- approxim$calendar@slice_ancestry
+    if (!is.null(stm@lhs[[i]]@for.sum$slice) && !is.null(anc) && nrow(anc) > 0) {
+      dom <- .variable_domain_values(prec, v, "slice")
+      stm@lhs[[i]]@for.sum$slice <- .expand_for_sum(
+        stm@lhs[[i]]@for.sum$slice, dom,
+        function(s) as.character(anc$child[as.character(anc$parent) == s]),
+        "slice", v, stop.constr)
+    }
   }
 
   # lhs

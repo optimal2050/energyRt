@@ -509,7 +509,7 @@ setMethod(
 
     if (length(dem@region) != 0) {
       # filter out unused regions
-      if (any(!(dem@region %in% scen@modInp@sets$region))) {
+      if (any(!(dem@region %in% .known_regions(scen)))) {
         stop(
           'Region "', dem@region, '" used in demand "', dem@name,
           '" is not declared in the model.'
@@ -582,7 +582,7 @@ setMethod(
     # A NA region means "all regions the export operates in". The export class
     # has no explicit @region slot yet, so get_region() returns nothing and we
     # fall back to all model regions.
-    dat <- .expand_na_region(dat, c(get_region(exp), scen@modInp@sets$region))
+    dat <- .expand_na_region(dat, c(get_region(exp), .model_regions(scen)))
     scen <- update_parameter(scen, "pExportRowPrice", dat)
 
     ## pExportRowRes ####
@@ -603,7 +603,7 @@ setMethod(
     if (!is.null(dat)) {
       dat <- data.table(expp = exp@name, dat) |>
         .force_year_class_df()
-      dat <- .expand_na_region(dat, c(get_region(exp), scen@modInp@sets$region))
+      dat <- .expand_na_region(dat, c(get_region(exp), .model_regions(scen)))
       scen <- update_parameter(scen, "pExportRow", dat)
     }
 
@@ -730,7 +730,7 @@ setMethod(
     # A NA region means "all regions the import operates in". The import class
     # has no explicit @region slot yet, so get_region() returns nothing and we
     # fall back to all model regions.
-    dat <- .expand_na_region(dat, c(get_region(imp), scen@modInp@sets$region))
+    dat <- .expand_na_region(dat, c(get_region(imp), .model_regions(scen)))
     scen <- update_parameter(scen, "pImportRowPrice", dat)
 
     ## pImportRowRes ####
@@ -754,7 +754,7 @@ setMethod(
     if (!is.null(dat)) {
       dat <- data.table(imp = imp@name, dat) |>
         .force_year_class_df()
-      dat <- .expand_na_region(dat, c(get_region(imp), scen@modInp@sets$region))
+      dat <- .expand_na_region(dat, c(get_region(imp), .model_regions(scen)))
       scen <- update_parameter(scen, "pImportRow", dat)
     }
 
@@ -1413,7 +1413,11 @@ setMethod(
   growth <- if (length(mid) > 0) c(diff(mid), 1L) else integer(0)
   names(growth) <- as.character(mid)
   list(
-    region = scen@modInp@sets$region,
+    region = .model_regions(scen),
+    # Pruned region hierarchy, so a summand's `geolevel` can be resolved to the
+    # regions of that level (the spatial twin of `calendar@timeframes`).
+    # NULL when no geoscale is attached.
+    geo_hierarchy = .scen_geo_hierarchy(scen),
     year = ss@horizon@period,
     slice = scen@modInp@sets$slice,
     calendar = ss@calendar,

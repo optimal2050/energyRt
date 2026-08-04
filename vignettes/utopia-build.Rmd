@@ -732,8 +732,8 @@ STG_ELC <- newStorage(
 Trade objects open **routes** between regions for a commodity. UTOPIA's three
 regions form a line, so two **bi-directional** transmission links (`TBD_`)
 connect them. Each `newTrade` lists its routes (both directions), the transfer
-efficiency (`teff` -- losses), and an endogenous capacity with investment cost
-(`capacityVariable = TRUE` lets the model expand the line):
+efficiency (`teff` -- losses), and an endogenous capacity with investment cost,
+so the model may expand the line:
 
 ```{r trade, fig.height = 4.5}
 TBD_ELC_R1_R2 <- newTrade(
@@ -752,7 +752,6 @@ TBD_ELC_R1_R2 <- newTrade(
   capacity = data.frame(
     stock = 1                             # 1 GW existing interconnector
   ),
-  capacityVariable = TRUE,                # the model may build more
   invcost = data.frame(
     region = c("R1", "R2"),
     invcost = 350                         # MEUR/GW (per line end)

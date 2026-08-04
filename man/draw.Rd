@@ -2,6 +2,7 @@
 % Please edit documentation in R/draw.R
 \name{draw}
 \alias{draw}
+\alias{draw.technology}
 \alias{draw,technology-method}
 \alias{draw,storage-method}
 \alias{draw,supply-method}
@@ -12,6 +13,17 @@
 \title{Draw a schematic representation of a process}
 \usage{
 draw(obj, ...)
+
+draw.technology(
+  obj,
+  ...,
+  vintage = NULL,
+  cluster = NULL,
+  ghost = ghost_options(),
+  cluster_style = c("rail", "deck", "none"),
+  box_width = 0.4,
+  max_facets = 24L
+)
 
 \S4method{draw}{technology}(obj, ...)
 
@@ -29,6 +41,29 @@ draw(obj, ...)
 }
 \arguments{
 \item{...}{Additional arguments passed to the specific method.}
+
+\item{vintage}{which vintage to draw in full for a vintaged technology: a
+level name, an index, \code{NULL} (the default, the newest one), or \code{"all"} to
+lay every vintage out side by side at full detail. Other vintages are drawn
+as faded ghosts behind the selected one -- earlier to the left, later to
+the right.}
+
+\item{cluster}{which cluster to draw, in the same forms as \code{vintage}. The
+default \code{NULL} takes the FIRST declared cluster, declarations ranking
+clusters best-resource-first. Clusters are not fanned out like vintages:
+they coexist rather than succeed one another, and a technology can carry
+dozens, so the axis is drawn as an index (see \code{cluster_style}).}
+
+\item{ghost}{geometry of the ghost stack: a \code{\link[=ghost_options]{ghost_options()}} object, or a
+named list of overrides.}
+
+\item{cluster_style}{how to show the cluster axis: \code{"rail"} (the default) a
+strip of ticks with the selection filled, \code{"deck"} slivers at the box edge
+suggesting a stack of cards, or \code{"none"}.}
+
+\item{max_facets}{refuse to lay out more than this many panels for
+\code{vintage = "all"} / \code{cluster = "all"}. A full 11 x 4 grid is unreadable, and
+silently drawing it is worse than saying so.}
 
 \item{object}{The object to draw: \code{technology}, \code{storage}, \code{trade}, \code{demand}, \code{supply},
 \code{export}, or \code{import}.}
@@ -240,6 +275,10 @@ PIPELINE2 <- newTrade(
 draw(PIPELINE2, node = "R1")
 draw(PIPELINE2, node = "R2")
 draw(PIPELINE2, node = "R3")
+}
+\seealso{
+Other draw:
+\code{\link[=ghost_options]{ghost_options()}}
 }
 \concept{draw}
 \concept{draw demand}

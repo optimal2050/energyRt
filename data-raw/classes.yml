@@ -25,6 +25,17 @@ class:
       description: >
         The default time-frame this commodity operates in the model.
         The lowest timeframe in the model is used by default.
+    geolevel:
+      type: character
+      description: >
+        The geoscale level at which this commodity is balanced -- the spatial
+        counterpart of `timeframe`. The finest level in the model is used by
+        default, reproducing the flat, single-level behaviour. Naming a coarser
+        level (e.g. balancing steel nationally while electricity stays
+        state-level) asserts free, unlimited transport of the commodity within
+        that level, so it suits goods with a genuinely integrated market and
+        never a network-constrained carrier such as electricity. Requires a
+        geoscale on the model config; GLPK and GAMS only.
     unit:
       type: character
       description: The main unit of the commodity used in the model.
@@ -1568,6 +1579,21 @@ class:
     for.sum:
       type: list
       description: List of sets for which the summand will be created.
+    timeframe:
+      type: character
+      description: >
+        Pins the timeframe level the variable is taken at (e.g. "ANNUAL",
+        "SEASON"): the variable's `slice` dimension is restricted to that
+        level's slices, so summing them yields the level aggregate without
+        double-counting across levels. `NA` (default) applies no restriction
+        and sums the variable's native slices.
+    geolevel:
+      type: character
+      description: >
+        The spatial twin of `timeframe`: pins the geoscale level the variable
+        is taken at (e.g. "zone", "nation"), restricting the variable's
+        `region` dimension to that level's regions. `NA` (default) applies no
+        restriction. Requires a geoscale on the model configuration.
     mult:
       type: data.frame
       description: >
@@ -1853,6 +1879,15 @@ class:
     calendar:
       type: calendar
       description: Calendar object with the model time parameters.
+    geoscale:
+      type: ANY
+      description: >
+        Optional `geoscales::Geoscale` object describing the model's regions --
+        their nesting into coarser levels, weights, and (optionally) geometry.
+        Purely additional information about the labels in `region`, which
+        remains authoritative; the geoscale is used for plotting, reporting and
+        subsetting and never changes the optimisation model. `NULL` when unset.
+        Typed `ANY` because `geoscales` is an optional (Suggests) dependency.
     horizon:
       type: horizon
       description: >
@@ -1931,7 +1966,10 @@ class:
         Named character vector giving the prefixes inserted into the names of
         expanded technology variants, keyed by variant dimension:
         `c(vintage = "_VIN", cluster = "_CL")`. A technology `WIND` with vintage
-        2030 and cluster "best" then becomes the set member `WIND_VIN2030_CLbest`.
+        2030 and cluster "01" then becomes the set member `WIND_VIN2030_CL01`.
+        Number the clusters rather than labelling them ("01", not "best"): the
+        prefix already says what the axis is, so a label that repeats it reads
+        as `WIND_VIN2030_CLCL01`.
         Model-wide, because these become solver set-member names; the scenario
         settings inherit the value and must agree with it. Each prefix must be
         non-empty, match `^[[:alnum:]_]+$`, and the two must differ. A partial

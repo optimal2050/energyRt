@@ -21,4 +21,6 @@ check_name("1name")
 check_name("name1")
 check_name("name_1")
 check_name("name_1!")
+check_name(c("a", "b")) # FALSE, not a single name
+check_name(1) # FALSE, not character
 }

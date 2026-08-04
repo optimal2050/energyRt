@@ -28,6 +28,7 @@ newImport(
 
 \item{imp}{data.frame. Import parameters.
 \describe{
+\item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
 \item{region}{character. Region name to apply the parameter; use NA to apply to all regions.}
 \item{year}{integer. Year to apply the parameter; use NA to apply to all years.}
 \item{slice}{character. Time slice to apply the parameter; use NA to apply to all slices.}

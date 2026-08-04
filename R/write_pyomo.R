@@ -40,6 +40,7 @@ get_python_path <- function() {
 .write_model_PYOMO <- function(arg, scen) {
   # browser()
   .assert_payback_supported(scen, "Pyomo")
+  .assert_geolevel_supported(scen, "Pyomo")
   AbstractModel <- any(grep("abstract", scen@settings@solver$lang, ignore.case = TRUE))
   if (AbstractModel) {
     run_code <- scen@settings@sourceCode[["PYOMOAbstract"]]

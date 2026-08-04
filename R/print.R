@@ -68,8 +68,9 @@ print.demand <- function(x) {
 
 
 #------------------------------------------------------------------------------
-print.equation <- function(x) {
-  # print equation
+#' @exportS3Method print constraint
+print.constraint <- function(x) {
+  # print constraint
   if_print_data_frame <- function(x, sl) {
     if (nrow(slot(x, sl)) != 0) {
       cat("\n", sl, "\n")
@@ -79,7 +80,7 @@ print.equation <- function(x) {
   }
   cat("Name: ", x@name, ", eq: ", as.character(x@eq), ", defVal: ", x@defVal, "\n", sep = "")
   if (length(x@desc) != 0 && x@desc != "") cat("desc: ", x@desc, "\n")
-  g <- getClass("equation")
+  g <- getClass("constraint")
   yy <- names(g@slots)[sapply(names(g@slots), function(y) {
     g@slots[[y]] ==
       "data.frame"
@@ -92,8 +93,9 @@ print.equation <- function(x) {
 }
 
 #------------------------------------------------------------------------------
+#' @exportS3Method print summand
 print.summand <- function(x) {
-  # print equation
+  # print summand
   if_print_data_frame <- function(x, sl) {
     if (nrow(slot(x, sl)) != 0) {
       cat("\n", sl, "\n")

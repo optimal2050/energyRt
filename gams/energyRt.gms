@@ -1,3 +1,7 @@
+* energyRt 0.71
+* Energy Systems Modeling Toolbox for R
+* https://energyRt.org
+
 $include inc1.gms
 
 OPTION RESLIM=50000, PROFILE=0, SOLVEOPT=REPLACE;
@@ -105,6 +109,10 @@ mDiscountZero(region)
 mSliceParentChildE(slice, slice)   Child slice or the same
 mSliceParentChild(slice, slice)    Child slice not the same
 mSliceFamily(slice, slice)         Immediate slice parent-child (one level) [agg-rewrite]
+* [nested-regions] spatial twin of mSliceFamily. No pRegionAgg counterpart:
+* regional quantities are extensive and simply add up. Empty without a geoscale.
+mRegionFamily(region, region)      Immediate region parent-child (one level) [nested-regions]
+mCommRegion(comm, region)          Region level a commodity is balanced at [nested-regions]
 *
 mTradeRoutes(trade, region, region)
 mTradeSpan(trade, year)
@@ -2124,6 +2132,14 @@ eqOutTot(comm, region, year, slice)$mvOutTot(comm, region, year, slice)..
                mvOutTot(comm, region, year, slicep)
               ),
               pSliceAgg(year, slice, slicep) * vOutTot(comm, region, year, slicep)
+           )
+* [nested-regions] UP-aggregation of the immediately-finer region level. Plain
+* sum: regional quantities are extensive, unlike the intensive slice values above.
+         + sum(regionp$(mRegionFamily(region, regionp)
+               and
+               mvOutTot(comm, regionp, year, slice)
+              ),
+              vOutTot(comm, regionp, year, slice)
            );
 
 * [agg-rewrite] eqOutTotRY/vOutTotRY retired (dead reporting)
@@ -2158,6 +2174,14 @@ eqInpTot(comm, region, year, slice)$mvInpTot(comm, region, year, slice)..
                     mvInpTot(comm, region, year, slicep)
             ),
             pSliceAgg(year, slice, slicep) * vInpTot(comm, region, year, slicep)
+        )
+* [nested-regions] UP-aggregation of the immediately-finer region level (plain
+* sum -- extensive quantities).
+        + sum(regionp$(mRegionFamily(region, regionp)
+                    and
+                    mvInpTot(comm, regionp, year, slice)
+            ),
+            vInpTot(comm, regionp, year, slice)
         );
 
 * [agg-rewrite] eqInpTotRY/vInpTotRY retired (dead reporting)
