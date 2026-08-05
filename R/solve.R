@@ -184,7 +184,15 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
   } else if (is.list(arg$solver)) {
     scen@settings@solver <- arg$solver
   }
-  if (!identical(scen@settings@solver, arg$solver)) browser() #!!! Debug
+  # The two should be the same object by now; a mismatch means one of the
+  # branches above failed to keep them in sync. Reported only under
+  # `options(en.debug = 1)` -- this used to drop into `browser()`, which halts
+  # non-interactive and batch solves.
+  if (isDebug() && !identical(scen@settings@solver, arg$solver)) {
+    cli::cli_warn(
+      "Solver settings disagree: `scen@settings@solver` != `arg$solver`."
+    )
+  }
   if (is_empty(arg$open.folder)) arg$open.folder <- FALSE
   if (is_empty(arg$show.output.on.console)) arg$show.output.on.console <- FALSE
   # if (is.null(arg$invisible)) arg$invisible <- FALSE
@@ -348,6 +356,11 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
     if (arg$echo) cat("", round(proc.time()[3] - gams_run_time, 2), "s\n", sep = "")
     return(invisible())
   }
+
+  # Restore the working directory on EVERY exit path, not just the two handlers
+  # below -- an early `return()` used to leave the session sitting in the solver
+  # run folder.
+  on.exit(setwd(HOMEDIR), add = TRUE)
 
   tryCatch(
     {

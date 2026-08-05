@@ -452,7 +452,6 @@ autoplot.scenario <- function(object,
 #' autoplot(repo, horizon = newHorizon(2020:2050))
 #' }
 #' @keywords internal
-#' @noRd
 plot_process_windows <- function(object, region = NULL, horizon = NULL) {
   check_package("ggplot2")
   if (inherits(object, "model") && is.null(horizon)) {

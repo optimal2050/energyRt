@@ -23,16 +23,7 @@
 #' get_glpk_path()
 #' }
 set_glpk_path <- function(path = NULL) {
-  # browser()
-  if (!is.null(path) && path != "") {
-    if (!dir.exists(path)) {
-      stop(paste0('The path "', path, '" does not exist.'), call. = FALSE)
-    }
-    if (!grepl("\\/$", path)) {
-      path <- paste0(path, "/")
-    }
-  }
-  options::opt_set("glpk_path", path, env = "energyRt")
+  set_solver_path("glpk", path)
 }
 
 #' @export
@@ -40,7 +31,7 @@ set_glpk_path <- function(path = NULL) {
 #' @family solver glpk
 #' @return returns the path to the GLPK library.
 get_glpk_path <- function() {
-  options::opt("glpk_path")
+  get_solver_path("glpk")
 }
 
 # Resolve the `glpsol` executable for the built-in GLPK backend.

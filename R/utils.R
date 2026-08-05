@@ -362,6 +362,7 @@ fact2char <- function(df, asTibble = TRUE) {
 #' }
 set_progress_bar <- function(type = "bw", show = TRUE, clear = FALSE) {
   if (interactive()) progressr::handlers(global = show) # results a warning
+  options::opt_set("progress_bar", show)
   options(progressr.clear = clear)
   if (is.null(type)) return(invisible(NULL))
   if (type == "bw") {
@@ -410,34 +411,9 @@ show_progress_bar <- function(show = TRUE) {
 }
 
 
-#' Set or get directory for/with scenarios
-#'
-#' @param path character, path to the directory with scenarios,
-#' default is `NULL`
-#'
-#' @family options
-#' @return sets or gets the path to the directory with scenarios
-#' @export
-#' @rdname options
-#'
-#' @examples
-#' \dontrun{
-#' set_scenarios_path("path/to/scenarios")
-#' get_scenarios_path()
-#' }
-set_scenarios_path <- function(path = NULL) {
-  options::opt_set("scenarios_path", path)
-  # options(en_scenarios_path = path)
-}
-
-
-#' @family options
-#' @export
-#' @rdname options
-get_scenarios_path <- function() {
-  options::opt("scenarios_path")
-  # getOption("en_scenarios_path")
-}
+# `set_scenarios_path()` / `get_scenarios_path()` moved to R/options.R, beside
+# the option they read. They used to be defined here AND there; `utils.R` loads
+# later in `Collate:`, so this copy silently shadowed the other one.
 
 # merge_paths <- function(path1, path2)
 

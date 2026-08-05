@@ -4,6 +4,81 @@ editor_options:
     wrap: 72
 ---
 
+# energyRt 0.74.0.9000-dev
+
+**Settings — one registry, one prefix, one config file**
+
+Package options were spread over four unrelated mechanisms: the
+`options` registry, bare `getOption()` calls, load-time side effects,
+and an R script sourced from the home directory. They are now a single
+documented layer.
+
+*Option names are prefixed `en.`* (**breaking**). Every option is
+declared with the same naming scheme instead of one hand-written name
+per declaration, so `options(verbose = )` becomes
+`options(en.verbose = )`, `options(solver = )` becomes
+`options(en.solver = )`, and so on. The old names were un-prefixed and
+collided with base R — `verbose` in particular. The documented API is
+the `get_*()` / `set_*()` functions, which are unchanged.
+
+*Environment variables are prefixed `ENERGYRT_`* — `ENERGYRT_GAMS_PATH`,
+`ENERGYRT_JULIA_PATH`, and so on. This also fixes `glpk_path`, which was
+the only lower-case one. The old un-prefixed variables (`GAMS_PATH`,
+`JULIA_PATH`, ...) still work for one release and warn once.
+`NEOS_EMAIL` deliberately keeps its bare name: `set_neos_email()`
+exports it so the Pyomo subprocess inherits it.
+
+*New: a persisted configuration file.* `en_config_write()` saves the
+current settings to `~/.energyRt/config.yml` (or `./.energyRt.yml` for
+one project), `en_config_read()` reads it back, and energyRt applies it
+when the package loads — without overriding anything already set through
+an R option or an environment variable. Sourcing `~/.energyRt.R` still
+works but is deprecated.
+
+*New: `en_config_show()`* prints every option with its current value and
+where that value came from — option, environment variable, config file,
+or package default. This is the first thing to run when a solver is not
+being found.
+
+*New: `set_solver_path()` / `get_solver_path()`* — the generic form of
+`set_gams_path()`, `set_julia_path()` and the other four, which are now
+thin wrappers over it rather than five copies of the same body. A path
+that does not exist is still rejected at the point of the mistake.
+
+*New: `?energyRt-options`* documents all seventeen options with their
+defaults, option names and environment variables. It is generated from
+the declarations, so it cannot drift.
+
+*Verbosity is one setting, not two.* `en.verbose` is a level (`0`, `1`,
+`2`, ...; `TRUE`/`FALSE` are read as `1`/`0`), tested with
+`isVerbose(level)`. The separate `energyRt.verbose` option is deprecated
+and honoured for one release. `en.debug` gained a matching `isDebug()`
+and now actually does something: it gates internal consistency warnings
+that used to be silent — or, in one case, used to call `browser()`.
+
+*Other option changes.* `en.neos_endpoint` is now a declared option
+rather than a bare `getOption()`. `en.progress_bar` is wired to
+`set_progress_bar()` / `show_progress_bar()` instead of being declared
+and never read. The internal "GDX library already loaded" flag is no
+longer a user-visible option. `data.table::setNumericRounding(2)` moved
+from source time into `.onLoad()`.
+
+**Fixes**
+
+- `get_scenarios_path()` was defined twice, in `R/options.R` and
+  `R/utils.R`; the second silently shadowed the first. Both it and
+  `set_scenarios_path()` now live in `R/options.R`.
+- `.call_solver()` restored the working directory only from its error
+  handlers, so a non-error early return left the session inside the
+  solver run folder. It now restores on every exit path.
+- `interpolate_model(ondisk = TRUE)` referenced `mi_path` before it was
+  assigned — it was only initialised on the in-memory branch.
+- The default solver reported `lang = "glpk"` while
+  `solver_options$glpk` reported `lang = "GLPK"`, so the two compared
+  unequal; only a case-insensitive dispatch hid it.
+- Two test scripts changed the default solver without restoring it,
+  leaking into every test that ran after them.
+
 # energyRt 0.70.5.9000-dev
 
 **Renames — main data slots, the `sub` class, and the plotting vocabulary**

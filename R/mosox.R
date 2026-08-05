@@ -6,15 +6,7 @@
 #' @family solver
 #' @export
 set_mosox_path <- function(path = NULL) {
-  if (!is.null(path) && nzchar(path)) {
-    if (!dir.exists(path)) {
-      stop("The mosox path '", path, "' does not exist.", call. = FALSE)
-    }
-    if (!grepl("/$", path)) {
-      path <- paste0(path, "/")
-    }
-  }
-  options::opt_set("mosox_path", path, env = "energyRt")
+  set_solver_path("mosox", path)
   invisible(NULL)
 }
 
@@ -24,13 +16,7 @@ set_mosox_path <- function(path = NULL) {
 #' @family solver
 #' @export
 get_mosox_path <- function() {
-  res <- tryCatch(options::opt("mosox_path", env = "energyRt"),
-                  error = function(e) NULL)
-  if (is.null(res) || identical(res, "")) {
-    NULL
-  } else {
-    res
-  }
+  get_solver_path("mosox")
 }
 
 # Resolve the mosox executable, honouring the configured path first.

@@ -49,7 +49,7 @@ interpolate_model <- function(mod, name = NULL, ...,
                        desc = NULL, ondisk = FALSE, overwrite = FALSE,
                        fold = FALSE, sparse = TRUE, prune = TRUE,
                        validate = TRUE, code = NULL,
-                       verbose = getOption("energyRt.verbose", FALSE)) {
+                       verbose = isVerbose()) {
   # Accept a scenario (re-interpolate its model), matching the legacy interface.
   if (inherits(mod, "scenario")) mod <- mod@model
   # `...` (after `mod`/`name`) accepts ANY energyRt objects -- settings, config,
@@ -110,6 +110,10 @@ interpolate_model <- function(mod, name = NULL, ...,
   }
 
   # scenario directory ####
+  # Initialised before the branch: `fmp()` below reads `mi_path`, but the
+  # `ondisk` branch does not assign it until the modInp store is created much
+  # further down, so it was undefined on that path.
+  mi_path <- NULL
   if (ondisk) {
     scen <- mark_ondisk(scen)
     # (!!! model is assumed to be in memory yet -- address later)
@@ -135,7 +139,6 @@ interpolate_model <- function(mod, name = NULL, ...,
     }
   } else {
     scen <- mark_inMemory(scen)
-    mi_path <- NULL
   }
   .interp_banner(scen, sparse, prune, fold_dims, validate, ondisk, verbose)
   # isOnDisk(scen)

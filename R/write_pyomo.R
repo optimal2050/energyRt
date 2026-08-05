@@ -16,24 +16,14 @@
 #' get_python_path()
 #' }
 set_python_path <- function(path = NULL) {
-  # browser()
-  if (!is.null(path) && path != "") {
-    if (!dir.exists(path)) {
-      stop(paste0('The path "', path, '" does not exist.'), call. = FALSE)
-    }
-    if (!grepl("\\/$", path)) {
-      path <- paste0(path, "/")
-    }
-  }
-  options::opt_set("python_path", path, env = "energyRt")
-  # options(python_path = path)
+  set_solver_path("python", path)
 }
 
 #' @export
 #' @rdname solver
 #' @family solver python
 get_python_path <- function() {
-  options::opt("python_path", env = "energyRt")
+  get_solver_path("python")
 }
 
 # Functions to write PYOMO model and data files

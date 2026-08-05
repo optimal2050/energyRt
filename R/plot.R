@@ -65,11 +65,7 @@ plot_horizon <- function(object, ...) {
 #' accepts values between 0 and 1.
 #'
 #' @return A `ggplot` object.
-#' @rdname plot_horizon_method
-#' @examples
-#' NULL
-# setMethod("plot", "horizon", plot_horizon)
-
+#'
 #' @description
 #' `autoplot()` is the ggplot2-idiomatic entry point and returns the same
 #' `ggplot` object as [plot()], so the result can be further customised with
@@ -358,7 +354,6 @@ plot_calendar <- function(object, ...,
 #'   sampled/subset calendar covers.
 #'
 #' @return A `ggplot` object.
-#' @rdname plot_calendar_method
 #' @examples
 #' \dontrun{
 #' cal <- newCalendar(make_timetable(timeslices3), name = "m12h24")
@@ -670,7 +665,6 @@ autoplot.supply <- function(object, year = NULL, ...) plot_process_year(object, 
 #'
 #' @return A `ggplot` object (or `NULL`, invisibly, if there is nothing to plot).
 #' @keywords internal
-#' @noRd
 plot_demand <- function(object, style = c("area", "line"), year = NULL,
                         palette = "D", ...) {
   check_package("ggplot2")
@@ -1071,7 +1065,6 @@ plot_heatmap <- function(object, calendar = NULL, value = NULL, facet = NULL,
 #'
 #' @return A `ggplot` object (or `NULL`, invisibly, if there is nothing to plot).
 #' @keywords internal
-#' @noRd
 #' @examples
 #' \dontrun{
 #' data("calendars", package = "energyRt")

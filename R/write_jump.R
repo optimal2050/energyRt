@@ -16,17 +16,7 @@
 #' get_julia_path()
 #' }
 set_julia_path <- function(path = NULL) {
-  # browser()
-  if (!is.null(path) && path != "") {
-    if (!dir.exists(path)) {
-      stop(paste0('The path "', path, '" does not exist.'), call. = FALSE)
-    }
-    if (!grepl("\\/$", path)) {
-      path <- paste0(path, "/")
-    }
-  }
-  options::opt_set("julia_path", path, env = "energyRt")
-  # options(julia_path = path)
+  set_solver_path("julia", path)
 }
 
 #' @export
@@ -34,8 +24,7 @@ set_julia_path <- function(path = NULL) {
 #' @rdname solver
 #' @family solver julia
 get_julia_path <- function() {
-  options::opt("julia_path", env = "energyRt")
-  # getOption("julia_path")
+  get_solver_path("julia")
 }
 
 # Functions to write Julia/JuMP model and data files

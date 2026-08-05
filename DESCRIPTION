@@ -1,7 +1,7 @@
 Package: energyRt
 Type: Package
 Title: Energy Systems Modeling Toolbox
-Version: 0.74.0.9000
+Version: 0.74.1.9000
 Date: 2026-08-05
 Authors@R: 
   c(person(given = "Oleg", 
@@ -31,8 +31,8 @@ Depends: R (>= 4.3)
 Imports: methods, grid, generics, data.table, DBI, RSQLite, tibble,
         tidyr, dplyr, rlang, stringr, lubridate, purrr, arrow,
         progressr, tictoc, cli, zoo, registry, options (>= 0.2.0),
-        glue, plyr, grDevices, utils
-Suggests: pak, gdxtools (== 0.7.1), knitr, rmarkdown, sf, yaml, ggplot2, testthat
+        glue, plyr, grDevices, utils, yaml
+Suggests: pak, gdxtools (== 0.7.1), knitr, rmarkdown, sf, ggplot2, testthat
         (>= 3.0.0), devtools, openxlsx, jsonlite, readxl, httr2, xml2,
         base64enc, tinytex, patchwork, geoscales
 Additional_repositories: https://optimal2050.r-universe.dev
@@ -45,6 +45,7 @@ Encoding: UTF-8
 Collate: 
     'arrow.R'
     'docs.R'
+    'zzz.R'
     'options.R'
     'generics.R'
     'class-repository.R'
@@ -80,6 +81,7 @@ Collate:
     'map_region.R'
     'check_levels.R'
     'class-costs.R'
+    'config_file.R'
     'utils.R'
     'convert.R'
     'data2slots.R'
