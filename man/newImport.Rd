@@ -10,7 +10,7 @@ newImport(
   commodity = "",
   unit = NULL,
   reserve = Inf,
-  imp = data.frame(),
+  import = data.frame(),
   misc = list(),
   ...
 )
@@ -26,7 +26,7 @@ newImport(
 
 \item{reserve}{numeric. Total accumulated limit through the model horizon.}
 
-\item{imp}{data.frame. Import parameters.
+\item{import}{data.frame. Import parameters.
 \describe{
 \item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
 \item{region}{character. Region name to apply the parameter; use NA to apply to all regions.}
@@ -64,7 +64,7 @@ IMPOIL <- newImport(
   desc = "Oil import to the model to the RoW", # for own reference
   commodity = "OIL", # must match the commodity name in the model
   unit = "Mtoe", # for own reference
-  imp = data.frame(
+  import = data.frame(
     region = rep(c("R1", "R2"), each = 2), # import region(s)
     year = rep(c(2020, 2050)), # import years
     price = 600, # import price in MUSD/Mtoe (USD/t),

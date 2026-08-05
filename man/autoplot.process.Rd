@@ -9,21 +9,21 @@
 \alias{autoplot.storage}
 \title{Visualize a process object over years}
 \usage{
-\method{autoplot}{supply}(object, years = NULL, ...)
+\method{autoplot}{supply}(object, year = NULL, ...)
 
-\method{autoplot}{import}(object, years = NULL, ...)
+\method{autoplot}{import}(object, year = NULL, ...)
 
-\method{autoplot}{export}(object, years = NULL, ...)
+\method{autoplot}{export}(object, year = NULL, ...)
 
-\method{autoplot}{technology}(object, years = NULL, ...)
+\method{autoplot}{technology}(object, year = NULL, ...)
 
-\method{autoplot}{storage}(object, years = NULL, ...)
+\method{autoplot}{storage}(object, year = NULL, ...)
 }
 \arguments{
 \item{object}{A \code{supply}, \code{demand}, \code{import}, \code{export}, \code{technology}, or
 \code{storage} object.}
 
-\item{years}{Optional integer vector of target years to interpolate over.
+\item{year}{Optional integer vector of target years to interpolate over.
 Defaults to the range of years present in the object's data.}
 
 \item{...}{Passed to \code{\link[=getData]{getData()}} (e.g. \verb{region=}, \verb{slice=} filters).}
@@ -34,7 +34,7 @@ A \code{ggplot} object (or \code{NULL}, invisibly, if there is nothing to plot).
 \description{
 Plots each year-indexed level parameter of the object against year, using
 \code{\link[=getData]{getData()}} both for the given data (points) and its interpolation (lines):
-supply \code{ava.lo/up/fx} (+\code{cost}), demand \code{dem}, import \code{imp.lo/up/fx} (+\code{price}),
+supply \code{ava.lo/up/fx} (+\code{cost}), demand \code{demand}, import \code{imp.lo/up/fx} (+\code{price}),
 export \code{exp.lo/up/fx} (+\code{price}), and for \code{technology}/\code{storage} their
 economics and capacity — base-year \code{stock}, the filled \code{cap}/\code{ncap}/\code{ret}
 bounds, \code{invcost}, \code{fixom} and \code{varom} (efficiency coefficients are structural

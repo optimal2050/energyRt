@@ -71,7 +71,7 @@ getGeoscale(mod)
 \seealso{
 Other geoscale:
 \code{\link[=check_geoscale_regions]{check_geoscale_regions()}},
-\code{\link[=geo_map]{geo_map()}},
+\code{\link[=plot_map]{plot_map()}},
 \code{\link[=utopia_geoscale]{utopia_geoscale()}}
 }
 \concept{geoscale}

@@ -24,7 +24,7 @@ useful.
 }
 \seealso{
 Other geoscale:
-\code{\link[=geo_map]{geo_map()}},
+\code{\link[=plot_map]{plot_map()}},
 \code{\link{setGeoscale,config-method}},
 \code{\link[=utopia_geoscale]{utopia_geoscale()}}
 }

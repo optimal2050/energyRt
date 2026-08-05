@@ -1088,7 +1088,7 @@ newConstraintS <- function(
     return(newTax(name, tax = rhs, comm = comm, region = for.each$region, year = for.each$year, slice = for.each$slice))
   }
   if (type == "subs") {
-    return(newSub(name, sub = rhs, comm = comm, region = for.each$region, year = for.each$year, slice = for.each$slice))
+    return(newSubsidy(name, subsidy = rhs, comm = comm, region = for.each$region, year = for.each$year, slice = for.each$slice))
   }
   # if (any(grep('(share|growth)', type))) stop.newconstr(paste(type, 'have to do'))
   # For wich kind of variables (capacity, newcapacity, input or output)

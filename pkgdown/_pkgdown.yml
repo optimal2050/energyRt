@@ -180,7 +180,7 @@ reference:
   - matches("show")
   - matches("design")
   - ghost_options
-  - geo_map
+  - theme_energyRt
 
 - title: Validation
   contents:

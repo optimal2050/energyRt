@@ -1,7 +1,17 @@
+# `setMethod("plot", c(<class>, "ANY"), ...)` at the bottom of this file needs
+# every one of those classes to already be DEFINED when the file is sourced, or
+# R CMD INSTALL warns "no definition for class ..." at byte-compile and the
+# method is registered against an undefined class. Collate order is derived from
+# these @include tags, so each class that gains a `plot` method must be listed.
 #' @include print.R class-horizon.R class-calendar.R
+#' @include class-commodity.R class-constraint.R class-demand.R
+#' @include class-export.R class-import.R class-scenario.R
+#' @include class-storage.R class-subsidy.R class-supply.R
+#' @include class-tax.R class-technology.R class-trade.R
+#' @include class-weather.R class-model.R class-repository.R
 
 
-plot_horizon <- function(x, ...) {
+plot_horizon <- function(object, ...) {
 
   check_package("ggplot2")
 
@@ -13,7 +23,7 @@ plot_horizon <- function(x, ...) {
     hjust <- 1
   }
 
-  y <- x@intervals |>
+  y <- object@intervals |>
     dplyr::mutate(w = end - start + 1)
 
   p <- ggplot2::ggplot(y) +
@@ -33,7 +43,7 @@ plot_horizon <- function(x, ...) {
       minor_breaks = seq(min(y$start), max(y$end), by = 1),
       guide = ggplot2::guide_axis(minor.ticks = TRUE)) +
     ggplot2::scale_y_continuous(expand = c(0, 0), breaks = NULL) +
-    ggplot2::theme_bw() +
+    theme_energyRt() +
     ggplot2::theme(
       axis.text.x = ggplot2::element_text(angle = 90, vjust = .05, hjust = .5),
       # axis.minor.ticks = element_line(size = 0.5),
@@ -42,24 +52,22 @@ plot_horizon <- function(x, ...) {
       plot.subtitle = ggplot2::element_text(hjust = 0.5, size = 12, face = "italic")
     )
 
-  if (!is_empty(x@name)) {p <- p + ggplot2::labs(title = x@name)}
-  if (!is_empty(x@desc)) {p <- p + ggplot2::labs(subtitle = x@desc)}
+  if (!is_empty(object@name)) {p <- p + ggplot2::labs(title = object@name)}
+  if (!is_empty(object@desc)) {p <- p + ggplot2::labs(subtitle = object@desc)}
   p
 }
 
 #' Visualize a Horizon object
 #'
-#' @param x An object of class `horizon`
+#' @param object An object of class `horizon`
 #' @param ... Additional optional arguments:
 #' `hjust` (numeric) to adjust the horizontal position of the intervals,
 #' accepts values between 0 and 1.
 #'
 #' @return A `ggplot` object.
 #' @rdname plot_horizon_method
-#' @export
 #' @examples
 #' NULL
-setMethod("plot", c("horizon", "ANY"), plot_horizon)
 # setMethod("plot", "horizon", plot_horizon)
 
 #' @description
@@ -77,7 +85,7 @@ autoplot.horizon <- function(object, ...) {
 
 # Calendar structure plot ------------------------------------------------------
 
-plot_calendar <- function(x, ...,
+plot_calendar <- function(object, ...,
                           fill = c("order", "share", "weight"),
                           color_pattern = c("within", "global"),
                           palette = "D",
@@ -94,16 +102,16 @@ plot_calendar <- function(x, ...,
   label_by <- match.arg(label_by)
 
   # A `reference` full calendar turns this into a subset view: the layout comes
-  # from `reference` (the full year), but only the slices present in `x` are
+  # from `reference` (the full year), but only the slices present in `object` are
   # filled -- unselected slices are left empty.
   if (!is.null(reference)) {
     if (!methods::is(reference, "calendar")) {
       stop("`reference` must be a `calendar` object.", call. = FALSE)
     }
     grid_cal   <- reference
-    sub_slices <- as.character(as.data.frame(x@timetable)$slice)
+    sub_slices <- as.character(as.data.frame(object@timetable)$slice)
   } else {
-    grid_cal   <- x
+    grid_cal   <- object
     sub_slices <- NULL
   }
 
@@ -200,7 +208,7 @@ plot_calendar <- function(x, ...,
   }
 
   # Every cell of the (possibly truncated) grid is drawn; a subset view leaves
-  # the cells not present in `x` empty.
+  # the cells not present in `object` empty.
   df <- do.call(rbind, lapply(seq_len(nlev), seg_for_level))
   rownames(df) <- NULL
 
@@ -251,7 +259,7 @@ plot_calendar <- function(x, ...,
       labels = rev(frame_cols),
       expand = ggplot2::expansion(mult = c(0.02, 0.02))) +
     ggplot2::labs(x = "share of the year", y = NULL) +
-    ggplot2::theme_bw() +
+    theme_energyRt() +
     ggplot2::theme(
       panel.grid    = ggplot2::element_blank(),
       axis.ticks.y  = ggplot2::element_blank(),
@@ -293,8 +301,8 @@ plot_calendar <- function(x, ...,
     }
   }
 
-  if (!is_empty(x@name)) p <- p + ggplot2::labs(title = x@name)
-  if (!is_empty(x@desc)) p <- p + ggplot2::labs(subtitle = x@desc)
+  if (!is_empty(object@name)) p <- p + ggplot2::labs(title = object@name)
+  if (!is_empty(object@desc)) p <- p + ggplot2::labs(subtitle = object@desc)
   p
 }
 
@@ -306,7 +314,7 @@ plot_calendar <- function(x, ...,
 #' the year. `autoplot()` is the ggplot2-idiomatic entry point and returns the
 #' same `ggplot` object as [plot()].
 #'
-#' @param x,object An object of class `calendar`.
+#' @param object An object of class `calendar`.
 #' @param ... Passed to `plot_calendar()`.
 #' @param fill One of `"order"` (chronology, default), `"share"` (year-share of
 #'   the slice), or `"weight"` — the metric mapped to rectangle fill color.
@@ -351,7 +359,6 @@ plot_calendar <- function(x, ...,
 #'
 #' @return A `ggplot` object.
 #' @rdname plot_calendar_method
-#' @export
 #' @examples
 #' \dontrun{
 #' cal <- newCalendar(make_timetable(timeslices3), name = "m12h24")
@@ -365,7 +372,6 @@ plot_calendar <- function(x, ...,
 #' # Zoom into specific slices: day 100, hours 5-10
 #' autoplot(calendars$d365_h24, show_leafs = list(YDAY = "d100", HOUR = 5:10))
 #' }
-setMethod("plot", c("calendar", "ANY"), plot_calendar)
 
 #' @rdname plot_calendar_method
 #' @exportS3Method ggplot2::autoplot
@@ -392,10 +398,10 @@ autoplot.calendar <- function(object, ...,
 
 # Commodity emission-intensity plot --------------------------------------------
 
-plot_commodity <- function(x, ..., palette = "D") {
+plot_commodity <- function(object, ..., palette = "D") {
   check_package("ggplot2")
 
-  comms <- c(list(x), list(...))
+  comms <- c(list(object), list(...))
   is_comm <- vapply(comms, function(o) methods::is(o, "commodity"), logical(1))
   comms <- comms[is_comm]
   if (length(comms) == 0) stop("No 'commodity' objects to plot.")
@@ -438,7 +444,7 @@ plot_commodity <- function(x, ..., palette = "D") {
                       width = 0.8) +
     ggplot2::scale_fill_viridis_d(option = palette, end = 0.85) +
     ggplot2::labs(x = NULL, y = y_lab, fill = "emission") +
-    ggplot2::theme_bw() +
+    theme_energyRt() +
     ggplot2::theme(
       axis.text.x   = ggplot2::element_text(angle = 30, hjust = 1),
       plot.title    = ggplot2::element_text(hjust = 0.5, size = 16, face = "bold"),
@@ -491,7 +497,7 @@ autoplot.commodity <- function(object, ...) {
 # Value-vs-year plot for supply / demand / import / export ----------------------
 # `getData()` is called twice: once for the raw given data (drawn as points),
 # once with `interpolate = TRUE` for the interpolated series (drawn as lines).
-# Level parameters (e.g. supply `ava.lo/up/fx`, demand `dem`) are shown over the
+# Level parameters (e.g. supply `ava.lo/up/fx`, demand `demand`) are shown over the
 # range of given years; a constant parameter (single or unset year) gets a flat
 # dashed reference line showing the interpolation direction.
 
@@ -500,14 +506,14 @@ autoplot.commodity <- function(object, ...) {
 # cap/ncap/ret bounds, invcost, fixom, varom) -- efficiency coefficients are
 # structural and belong to draw(), so they are omitted here.
 .process_year_slot <- list(
-  supply = "availability", demand = "dem", import = "imp", export = "exp",
+  supply = "supply", demand = "demand", import = "import", export = "export",
   technology = c("capacity", "invcost", "fixom", "varom"),
   storage    = c("capacity", "invcost", "fixom", "varom")
 )
 
 # Reshape one slot data.frame to long (id..., param, value). Value columns are
 # the numeric columns except `year` -- this keeps a value that happens to share a
-# set-dimension's name (e.g. demand `dem`), which getData(merge = TRUE) drops.
+# set-dimension's name (e.g. demand `demand`), which getData(merge = TRUE) drops.
 .obj_long <- function(d) {
   d <- as.data.frame(d)
   if (is.null(d) || nrow(d) == 0) return(NULL)
@@ -524,11 +530,11 @@ autoplot.commodity <- function(object, ...) {
 
 # getData() (merge = FALSE) + reshape, for raw (interpolate = FALSE) or the
 # interpolated series (interpolate = TRUE).
-.obj_long_get <- function(obj, nm_arg, interpolate, years, ...) {
+.obj_long_get <- function(object, nm_arg, interpolate, year, ...) {
   slots <- if (is.null(nm_arg)) list(NULL) else as.list(nm_arg)  # one or many slots
   out <- dplyr::bind_rows(lapply(slots, function(s) {
-    ll <- tryCatch(getData(obj, name = s, merge = FALSE,
-                           interpolate = interpolate, years = years, ...),
+    ll <- tryCatch(getData(object, name = s, merge = FALSE,
+                           interpolate = interpolate, year = year, ...),
                    error = function(e) NULL)
     if (is.null(ll) || length(ll) == 0) return(NULL)
     dplyr::bind_rows(lapply(ll, .obj_long))
@@ -536,31 +542,31 @@ autoplot.commodity <- function(object, ...) {
   if (is.null(out) || nrow(out) == 0) NULL else as.data.frame(out)
 }
 
-plot_process_year <- function(obj, years = NULL, ...) {
+plot_process_year <- function(object, year = NULL, ...) {
   check_package("ggplot2")
-  cls      <- class(obj)[1]
-  obj_name <- tryCatch(obj@name, error = function(e) "")
+  cls      <- class(object)[1]
+  obj_name <- tryCatch(object@name, error = function(e) "")
   yslot    <- .process_year_slot[[cls]]
   nm_arg   <- if (is.null(yslot)) NULL else yslot
   base_of  <- function(p) sub("\\.(lo|up|fx)$", "", p)
 
   # getData() call #1: raw given data -> points.
-  raw <- .obj_long_get(obj, nm_arg, FALSE, NULL, ...)
+  raw <- .obj_long_get(object, nm_arg, FALSE, NULL, ...)
   if (is.null(raw) || nrow(raw) == 0 || !("year" %in% names(raw))) {
     message("No year-indexed data to plot for '", obj_name, "'.")
     return(invisible(NULL))
   }
   raw <- raw[!is.na(raw$value), , drop = FALSE]
 
-  # Target years: explicit `years`, else the observed range of given years.
-  years_target <- years
-  if (is.null(years_target)) {
+  # Target years: explicit `year`, else the observed range of given years.
+  year_target <- year
+  if (is.null(year_target)) {
     obsy <- sort(unique(stats::na.omit(as.integer(raw$year))))
-    if (length(obsy) >= 2) years_target <- seq(min(obsy), max(obsy)) else
-      if (length(obsy) == 1) years_target <- obsy
+    if (length(obsy) >= 2) year_target <- seq(min(obsy), max(obsy)) else
+      if (length(obsy) == 1) year_target <- obsy
   }
   # getData() call #2: interpolated series -> lines.
-  itp <- .obj_long_get(obj, nm_arg, TRUE, years_target, ...)
+  itp <- .obj_long_get(object, nm_arg, TRUE, year_target, ...)
   if (!is.null(itp) && nrow(itp) > 0) {
     itp <- dplyr::distinct(itp[!is.na(itp$value) & !is.na(itp$year), , drop = FALSE])
   }
@@ -601,7 +607,7 @@ plot_process_year <- function(obj, years = NULL, ...) {
                   y = NULL, colour = NULL,
                   title = if (nzchar(obj_name)) obj_name else NULL,
                   subtitle = "points: given data · lines: interpolated") +
-    ggplot2::theme_bw() +
+    theme_energyRt() +
     ggplot2::theme(plot.title = ggplot2::element_text(face = "bold"))
   if (no_years) {
     # No year axis to speak of: a single "NA" tick, constant value across it.
@@ -616,7 +622,7 @@ plot_process_year <- function(obj, years = NULL, ...) {
 #' @description
 #' Plots each year-indexed level parameter of the object against year, using
 #' [getData()] both for the given data (points) and its interpolation (lines):
-#' supply `ava.lo/up/fx` (+`cost`), demand `dem`, import `imp.lo/up/fx` (+`price`),
+#' supply `ava.lo/up/fx` (+`cost`), demand `demand`, import `imp.lo/up/fx` (+`price`),
 #' export `exp.lo/up/fx` (+`price`), and for `technology`/`storage` their
 #' economics and capacity — base-year `stock`, the filled `cap`/`ncap`/`ret`
 #' bounds, `invcost`, `fixom` and `varom` (efficiency coefficients are structural
@@ -627,7 +633,7 @@ plot_process_year <- function(obj, years = NULL, ...) {
 #'
 #' @param object A `supply`, `demand`, `import`, `export`, `technology`, or
 #'   `storage` object.
-#' @param years Optional integer vector of target years to interpolate over.
+#' @param year Optional integer vector of target years to interpolate over.
 #'   Defaults to the range of years present in the object's data.
 #' @param ... Passed to [getData()] (e.g. `region=`, `slice=` filters).
 #'
@@ -635,7 +641,7 @@ plot_process_year <- function(obj, years = NULL, ...) {
 #' @name autoplot.process
 #' @rdname autoplot.process
 #' @exportS3Method ggplot2::autoplot
-autoplot.supply <- function(object, years = NULL, ...) plot_process_year(object, years = years, ...)
+autoplot.supply <- function(object, year = NULL, ...) plot_process_year(object, year = year, ...)
 
 # Demand gets its own plot: a slice-resolved demand has too many series for the
 # generic per-parameter chart (one line per slice).
@@ -645,75 +651,79 @@ autoplot.supply <- function(object, years = NULL, ...) plot_process_year(object,
 #' @description
 #' Two views of a `demand` object:
 #' \describe{
-#'   \item{`type = "area"` (default)}{**aggregated** demand -- slice values are
+#'   \item{`style = "area"` (default)}{**aggregated** demand -- slice values are
 #'     summed to annual totals and drawn as an area over the years (stacked by
 #'     region), with the given data years marked as points.}
-#'   \item{`type = "line"`}{**profiles** -- the within-year demand shape by
+#'   \item{`style = "line"`}{**profiles** -- the within-year demand shape by
 #'     region and year. Slices with an hour tag (`"..._h07"`) are drawn against
 #'     the hour of day (faceted season x region when a season prefix is
 #'     present); other calendars fall back to the slice sequence.}
 #' }
 #'
 #' @param object A `demand` object.
-#' @param type `"area"` (annual totals) or `"line"` (slice profiles).
-#' @param years Optional integer vector of years. For `"area"` these are the
+#' @param style `"area"` (annual totals) or `"line"` (slice profiles).
+#' @param year Optional integer vector of years. For `"area"` these are the
 #'   interpolation targets (default: range of the given years); for `"line"`
 #'   they filter which given years are shown.
+#' @param palette viridis palette option, as in [ggplot2::scale_fill_viridis_d()].
 #' @param ... Passed to [getData()] (e.g. `region =` filter).
 #'
 #' @return A `ggplot` object (or `NULL`, invisibly, if there is nothing to plot).
-#' @export
-plot_demand <- function(object, type = c("area", "line"), years = NULL, ...) {
+#' @keywords internal
+#' @noRd
+plot_demand <- function(object, style = c("area", "line"), year = NULL,
+                        palette = "D", ...) {
   check_package("ggplot2")
-  type <- match.arg(type)
+  style <- match.arg(style)
   obj_name <- tryCatch(object@name, error = function(e) "")
-  raw <- as.data.frame(object@dem)
-  raw <- raw[!is.na(raw$dem), , drop = FALSE]
+  raw <- as.data.frame(object@demand)
+  raw <- raw[!is.na(raw$demand), , drop = FALSE]
   if (nrow(raw) == 0) {
     message("No demand data to plot for '", obj_name, "'.")
     return(invisible(NULL))
   }
   if (!"region" %in% names(raw)) raw$region <- "(all)"
 
-  if (type == "area") {
+  if (style == "area") {
     # annual totals: interpolate per slice over the target years, sum slices
-    years_target <- years
-    if (is.null(years_target)) {
+    year_target <- year
+    if (is.null(year_target)) {
       obsy <- sort(unique(stats::na.omit(as.integer(raw$year))))
-      years_target <- if (length(obsy) >= 2) seq(min(obsy), max(obsy)) else obsy
+      year_target <- if (length(obsy) >= 2) seq(min(obsy), max(obsy)) else obsy
     }
-    itp <- .obj_long_get(object, "dem", TRUE, years_target, ...)
+    itp <- .obj_long_get(object, "demand", TRUE, year_target, ...)
     tot <- if (!is.null(itp) && nrow(itp) > 0) {
       if (!"region" %in% names(itp)) itp$region <- "(all)"
       stats::aggregate(value ~ region + year, itp, sum)
     } else {
-      stats::aggregate(dem ~ region + year, raw, sum) |>
+      stats::aggregate(demand ~ region + year, raw, sum) |>
         stats::setNames(c("region", "year", "value"))
     }
-    pts <- stats::aggregate(dem ~ region + year, raw, sum)
+    pts <- stats::aggregate(demand ~ region + year, raw, sum)
     p <- ggplot2::ggplot(tot,
         ggplot2::aes(.data$year, .data$value, fill = .data$region)) +
       ggplot2::geom_area(alpha = 0.75) +
       ggplot2::geom_point(data = pts,
-        ggplot2::aes(.data$year, .data$dem), inherit.aes = FALSE,
+        ggplot2::aes(.data$year, .data$demand), inherit.aes = FALSE,
         size = 2, na.rm = TRUE) +
+      ggplot2::scale_fill_viridis_d(option = palette, end = 0.9) +
       ggplot2::labs(x = "year", y = "demand (annual total)", fill = NULL,
                     title = if (nzchar(obj_name)) obj_name else NULL,
                     subtitle = "areas: interpolated totals by region · points: given data (per region)") +
-      ggplot2::theme_bw() +
+      theme_energyRt() +
       ggplot2::theme(plot.title = ggplot2::element_text(face = "bold"))
     return(p)
   }
 
-  # type = "line": within-year profiles by region and year
+  # style = "line": within-year profiles by region and year
   if (!"slice" %in% names(raw) || all(is.na(raw$slice))) {
     message("No slice-level demand in '", obj_name,
-            "'; use type = \"area\" for annual data.")
+            "'; use style = \"area\" for annual data.")
     return(invisible(NULL))
   }
   d <- raw[!is.na(raw$slice), , drop = FALSE]
-  if (!is.null(years) && "year" %in% names(d)) {
-    d <- d[d$year %in% years, , drop = FALSE]
+  if (!is.null(year) && "year" %in% names(d)) {
+    d <- d[d$year %in% year, , drop = FALSE]
   }
   d$year <- factor(d$year)
   hour <- suppressWarnings(as.integer(sub(".*_h(\\d+)$", "\\1", d$slice)))
@@ -721,51 +731,54 @@ plot_demand <- function(object, type = c("area", "line"), years = NULL, ...) {
     d$hour   <- hour
     d$season <- sub("_.*$", "", d$slice)
     p <- ggplot2::ggplot(d,
-        ggplot2::aes(.data$hour, .data$dem, colour = .data$year,
+        ggplot2::aes(.data$hour, .data$demand, colour = .data$year,
                      group = .data$year)) +
       ggplot2::geom_line(na.rm = TRUE) +
       ggplot2::facet_grid(season ~ region) +
+      ggplot2::scale_colour_viridis_c(option = palette, end = 0.9) +
       ggplot2::labs(x = "hour", y = "demand per slice", colour = "year",
                     title = if (nzchar(obj_name)) obj_name else NULL) +
-      ggplot2::theme_bw() +
+      theme_energyRt() +
       ggplot2::theme(plot.title = ggplot2::element_text(face = "bold"))
     return(p)
   }
   # no hour tag: slice sequence on x
   d$slice <- factor(d$slice, levels = unique(d$slice))
   ggplot2::ggplot(d,
-      ggplot2::aes(.data$slice, .data$dem, colour = .data$year,
+      ggplot2::aes(.data$slice, .data$demand, colour = .data$year,
                    group = .data$year)) +
     ggplot2::geom_line(na.rm = TRUE) +
     ggplot2::facet_wrap(~region) +
+    ggplot2::scale_colour_viridis_c(option = palette, end = 0.9) +
     ggplot2::labs(x = "slice", y = "demand per slice", colour = "year",
                   title = if (nzchar(obj_name)) obj_name else NULL) +
-    ggplot2::theme_bw() +
+    theme_energyRt() +
     ggplot2::theme(plot.title = ggplot2::element_text(face = "bold"),
                    axis.text.x = ggplot2::element_text(angle = 90, vjust = 0.5))
 }
 
 #' @rdname plot_demand
 #' @exportS3Method ggplot2::autoplot
-autoplot.demand <- function(object, type = c("area", "line"), years = NULL, ...) {
-  plot_demand(object, type = type, years = years, ...)
+autoplot.demand <- function(object, style = c("area", "line"), year = NULL,
+                            palette = "D", ...) {
+  plot_demand(object, style = style, year = year, palette = palette, ...)
 }
 
 #' @rdname autoplot.process
 #' @exportS3Method ggplot2::autoplot
-autoplot.import <- function(object, years = NULL, ...) plot_process_year(object, years = years, ...)
+autoplot.import <- function(object, year = NULL, ...) plot_process_year(object, year = year, ...)
 
 #' @rdname autoplot.process
 #' @exportS3Method ggplot2::autoplot
-autoplot.export <- function(object, years = NULL, ...) plot_process_year(object, years = years, ...)
+autoplot.export <- function(object, year = NULL, ...) plot_process_year(object, year = year, ...)
 
 #' @rdname autoplot.process
 #' @exportS3Method ggplot2::autoplot
-autoplot.technology <- function(object, years = NULL, ...) plot_process_year(object, years = years, ...)
+autoplot.technology <- function(object, year = NULL, ...) plot_process_year(object, year = year, ...)
 
 #' @rdname autoplot.process
 #' @exportS3Method ggplot2::autoplot
-autoplot.storage <- function(object, years = NULL, ...) plot_process_year(object, years = years, ...)
+autoplot.storage <- function(object, year = NULL, ...) plot_process_year(object, year = year, ...)
 
 
 # Tax / subsidy / user-constraint plots ----------------------------------------
@@ -776,17 +789,17 @@ autoplot.storage <- function(object, years = NULL, ...) plot_process_year(object
 
 .lever_spec <- list(
   tax        = list(slot = "tax", val = "bal", ylab = "tax"),
-  sub        = list(slot = "sub", val = "bal", ylab = "subsidy"),
+  subsidy    = list(slot = "subsidy", val = "bal", ylab = "subsidy"),
   constraint = list(slot = "rhs", val = "rhs", ylab = "rhs")
 )
 
-plot_lever_year <- function(obj, years = NULL, ...) {
+plot_lever_year <- function(object, year = NULL, ...) {
   check_package("ggplot2")
-  cls  <- class(obj)[1]
+  cls  <- class(object)[1]
   spec <- .lever_spec[[cls]]
   if (is.null(spec)) stop("plot_lever_year: unsupported class '", cls, "'.", call. = FALSE)
-  nm <- tryCatch(obj@name, error = function(e) "")
-  d  <- tryCatch(as.data.frame(methods::slot(obj, spec$slot)), error = function(e) NULL)
+  nm <- tryCatch(object@name, error = function(e) "")
+  d  <- tryCatch(as.data.frame(methods::slot(object, spec$slot)), error = function(e) NULL)
   if (is.null(d) || nrow(d) == 0 || !all(c("year", spec$val) %in% names(d))) {
     message("No year-indexed data to plot for '", nm, "'.")
     return(invisible(NULL))
@@ -804,7 +817,7 @@ plot_lever_year <- function(obj, years = NULL, ...) {
 
   # linear interpolation between the given control years (what the model uses)
   mkline <- function(s) {
-    xs <- if (!is.null(years)) sort(unique(as.integer(years)))
+    xs <- if (!is.null(year)) sort(unique(as.integer(year)))
           else seq(min(s$year), max(s$year))
     if (length(unique(s$year)) < 2) data.frame(year = xs, .val = s$.val[1])
     else data.frame(year = xs, .val = stats::approx(s$year, s$.val, xout = xs, rule = 2)$y)
@@ -815,10 +828,10 @@ plot_lever_year <- function(obj, years = NULL, ...) {
 
   if (cls == "constraint") {
     sub_txt <- c("<=" = "upper bound (≤)", ">=" = "lower bound (≥)",
-                 "==" = "fixed (=)")[as.character(obj@eq)]
+                 "==" = "fixed (=)")[as.character(object@eq)]
     if (is.na(sub_txt)) sub_txt <- NULL
   } else {
-    cc <- tryCatch(obj@comm, error = function(e) character())
+    cc <- tryCatch(object@comm, error = function(e) character())
     sub_txt <- if (length(cc) && nzchar(cc[1])) paste0("on ", paste(cc, collapse = ", ")) else NULL
   }
 
@@ -832,7 +845,7 @@ plot_lever_year <- function(obj, years = NULL, ...) {
     ggplot2::geom_point(data = d, aes_xy, size = 2, na.rm = TRUE) +
     ggplot2::labs(x = "year", y = spec$ylab, colour = grp,
                   title = if (nzchar(nm)) nm else NULL, subtitle = sub_txt) +
-    ggplot2::theme_bw() +
+    theme_energyRt() +
     ggplot2::theme(plot.title = ggplot2::element_text(face = "bold"))
 }
 
@@ -845,7 +858,7 @@ plot_lever_year <- function(obj, years = NULL, ...) {
 #' interpolation used between them. These are policy *levers*, not processes.
 #'
 #' @param object A `tax`, `sub` or `constraint` object.
-#' @param years Optional integer vector of years to draw the interpolated line
+#' @param year Optional integer vector of years to draw the interpolated line
 #'   over (defaults to the range of the given years).
 #' @param ... Unused.
 #'
@@ -854,15 +867,15 @@ plot_lever_year <- function(obj, years = NULL, ...) {
 #' @name autoplot.lever
 #' @rdname autoplot.lever
 #' @exportS3Method ggplot2::autoplot
-autoplot.tax <- function(object, years = NULL, ...) plot_lever_year(object, years = years, ...)
+autoplot.tax <- function(object, year = NULL, ...) plot_lever_year(object, year = year, ...)
 
 #' @rdname autoplot.lever
 #' @exportS3Method ggplot2::autoplot
-autoplot.sub <- function(object, years = NULL, ...) plot_lever_year(object, years = years, ...)
+autoplot.subsidy <- function(object, year = NULL, ...) plot_lever_year(object, year = year, ...)
 
 #' @rdname autoplot.lever
 #' @exportS3Method ggplot2::autoplot
-autoplot.constraint <- function(object, years = NULL, ...) plot_lever_year(object, years = years, ...)
+autoplot.constraint <- function(object, year = NULL, ...) plot_lever_year(object, year = year, ...)
 
 
 # Calendar heatmap --------------------------------------------------------------
@@ -968,7 +981,7 @@ autoplot.constraint <- function(object, years = NULL, ...) plot_lever_year(objec
 #' calendar, `x = day-of-year`, `y = hour-of-day`. Useful for load curves,
 #' renewable profiles, prices, and other sub-annual series.
 #'
-#' @param x A `data.frame` with a `slice` column and a numeric value column, a
+#' @param object A `data.frame` with a `slice` column and a numeric value column, a
 #'   named numeric vector (names are slices), or a `calendar` object (then the
 #'   slice `share` — or `value` column — is shown).
 #' @param calendar A `calendar` object giving the layout (matched to `x` by
@@ -992,10 +1005,10 @@ autoplot.constraint <- function(object, years = NULL, ...) plot_lever_year(objec
 #' plot_heatmap(prof, calendar = cal, value = "load")
 #' plot_heatmap(prof, calendar = cal, value = "load", facet = "month")
 #' }
-plot_heatmap <- function(x, calendar = NULL, value = NULL, facet = NULL,
+plot_heatmap <- function(object, calendar = NULL, value = NULL, facet = NULL,
                          palette = "D", name = NULL) {
   check_package("ggplot2")
-  pr <- .heatmap_prep(x, calendar, value, facet)
+  pr <- .heatmap_prep(object, calendar, value, facet)
   df <- pr$df[!is.na(pr$df$.val), , drop = FALSE]
   if (is.null(name)) name <- pr$value_name
 
@@ -1041,7 +1054,7 @@ plot_heatmap <- function(x, calendar = NULL, value = NULL, facet = NULL,
 #' object's `@unit` (or `"capacity factor"` if unset).
 #'
 #' @param object A `weather` object.
-#' @param type One of `"heatmap"` (default), `"line"`, `"area"`.
+#' @param style One of `"heatmap"` (default), `"line"`, `"area"`.
 #' @param calendar A `calendar` object (or format string) giving the slice
 #'   layout. Recommended for a fully structured view. If `NULL`, the layout is
 #'   guessed; when that fails, `"<prefix>_h##"`-style slices (e.g. season+hour)
@@ -1057,19 +1070,20 @@ plot_heatmap <- function(x, calendar = NULL, value = NULL, facet = NULL,
 #' @param ... Reserved for future use.
 #'
 #' @return A `ggplot` object (or `NULL`, invisibly, if there is nothing to plot).
-#' @export
+#' @keywords internal
+#' @noRd
 #' @examples
 #' \dontrun{
 #' data("calendars", package = "energyRt")
 #' W <- getObject(utopia_modules$electricity$reg3$repo, name = "WSOL", drop = TRUE)
-#' plot_weather(W, calendar = calendars$utopia_s4h24)                 # heatmap
-#' plot_weather(W, type = "line", calendar = calendars$utopia_s4h24)
+#' autoplot(W, calendar = calendars$utopia_s4h24)                     # heatmap
+#' autoplot(W, style = "line", calendar = calendars$utopia_s4h24)
 #' }
-plot_weather <- function(object, type = c("heatmap", "line", "area"),
+plot_weather <- function(object, style = c("heatmap", "line", "area"),
                          calendar = NULL, palette = "D",
                          datetime = FALSE, angle = 45, ...) {
   check_package("ggplot2")
-  type <- match.arg(type)
+  style <- match.arg(style)
   nm   <- tryCatch(object@name, error = function(e) "")
   d    <- as.data.frame(object@weather)
   if (is.null(d) || nrow(d) == 0 || !("wval" %in% names(d))) {
@@ -1130,7 +1144,7 @@ plot_weather <- function(object, type = c("heatmap", "line", "area"),
 
   # Optional real datetime axis for line/area via tsl2dtm(); keep the categorical
   # axis (with a warning) when the slice type is not yet supported.
-  if (isTRUE(datetime) && type != "heatmap") {
+  if (isTRUE(datetime) && style != "heatmap") {
     dt <- tryCatch(tsl2dtm(as.character(d$slice)), error = function(e) NULL)
     if (is.null(dt) || all(is.na(dt))) {
       warning("tsl2dtm() could not convert these slices to a datetime axis; ",
@@ -1151,7 +1165,7 @@ plot_weather <- function(object, type = c("heatmap", "line", "area"),
   nice <- function(v) if (is.null(v)) NULL else
     switch(v, ".fine" = "hour", ".coarse" = "group", ".dtm" = "time", v)
 
-  if (type == "heatmap") {
+  if (style == "heatmap") {
     p <- ggplot2::ggplot(d, ggplot2::aes(x = .data[[x_col]], y = .data[[y_col]],
                                          fill = .data[["wval"]])) +
       ggplot2::geom_tile() +
@@ -1175,19 +1189,19 @@ plot_weather <- function(object, type = c("heatmap", "line", "area"),
                                            group = .data[[coarse]]))
     }
     p <- p +
-      (if (type == "line") ggplot2::geom_line(linewidth = 0.7, na.rm = TRUE)
+      (if (style == "line") ggplot2::geom_line(linewidth = 0.7, na.rm = TRUE)
        else ggplot2::geom_area(position = "identity", alpha = 0.35, na.rm = TRUE)) +
       ggplot2::labs(x = nice(fine), y = unit_lab,
                     colour = nice(coarse), fill = nice(coarse),
                     title = ttl, subtitle = sub) +
-      ggplot2::theme_bw()
-    if (type == "line") p <- p + ggplot2::guides(fill = "none")
+      theme_energyRt()
+    if (style == "line") p <- p + ggplot2::guides(fill = "none")
     xc <- fine
   }
 
   # Rotate x labels and drop overlapping ones so dense sub-annual axes stay
   # legible (heatmap keeps zero expansion for gap-free tiles).
-  xexp   <- if (type == "heatmap") c(0, 0) else ggplot2::waiver()
+  xexp   <- if (style == "heatmap") c(0, 0) else ggplot2::waiver()
   xguide <- ggplot2::guide_axis(angle = angle, check.overlap = TRUE)
   p <- p + if (inherits(d[[xc]], "POSIXct"))
       ggplot2::scale_x_datetime(guide = xguide, expand = xexp)
@@ -1203,9 +1217,9 @@ plot_weather <- function(object, type = c("heatmap", "line", "area"),
 
 #' @rdname plot_weather
 #' @exportS3Method ggplot2::autoplot
-autoplot.weather <- function(object, type = c("heatmap", "line", "area"),
+autoplot.weather <- function(object, style = c("heatmap", "line", "area"),
                              calendar = NULL, ...) {
-  plot_weather(object, type = type, calendar = calendar, ...)
+  plot_weather(object, style = style, calendar = calendar, ...)
 }
 
 
@@ -1494,3 +1508,104 @@ energy_palettes <- list(
     "Renewables" = "#33A02C"
   )
 )
+
+# -- plot() -------------------------------------------------------------------
+# `plot()` delegates to `autoplot()` for every class that has one, so whichever
+# verb a user reaches for works and `autoplot()` stays the single implementation.
+#
+# The value is RETURNED, not printed: an S4 generic auto-prints a visible result
+# at top level, so printing here as well would draw the figure twice. This also
+# preserves `p <- plot(x)`.
+#
+# The schematic-diagram role that `plot()` conventionally plays for base
+# graphics is filled by `draw()`, which needs no ggplot2 -- so the classical
+# plot/autoplot split survives here under the name `draw`.
+#
+# `autoplot` is ggplot2's generic and is NOT imported -- energyRt only
+# registers S3 methods on it -- so it must be called qualified. ggplot2 is in
+# Suggests, hence the guard: without it this fails with R's bare
+# "could not find function" instead of energyRt's message.
+
+#' @rdname draw
+#' @name plot
+#' @exportMethod plot
+NULL
+
+setMethod("plot", c("calendar", "ANY"), function(x, y, ...) {
+  check_package("ggplot2"); ggplot2::autoplot(x, ...)
+})
+setMethod("plot", c("commodity", "ANY"), function(x, y, ...) {
+  check_package("ggplot2"); ggplot2::autoplot(x, ...)
+})
+setMethod("plot", c("constraint", "ANY"), function(x, y, ...) {
+  check_package("ggplot2"); ggplot2::autoplot(x, ...)
+})
+setMethod("plot", c("demand", "ANY"), function(x, y, ...) {
+  check_package("ggplot2"); ggplot2::autoplot(x, ...)
+})
+setMethod("plot", c("export", "ANY"), function(x, y, ...) {
+  check_package("ggplot2"); ggplot2::autoplot(x, ...)
+})
+setMethod("plot", c("horizon", "ANY"), function(x, y, ...) {
+  check_package("ggplot2"); ggplot2::autoplot(x, ...)
+})
+setMethod("plot", c("import", "ANY"), function(x, y, ...) {
+  check_package("ggplot2"); ggplot2::autoplot(x, ...)
+})
+setMethod("plot", c("model", "ANY"), function(x, y, ...) {
+  check_package("ggplot2"); ggplot2::autoplot(x, ...)
+})
+setMethod("plot", c("repository", "ANY"), function(x, y, ...) {
+  check_package("ggplot2"); ggplot2::autoplot(x, ...)
+})
+setMethod("plot", c("scenario", "ANY"), function(x, y, ...) {
+  check_package("ggplot2"); ggplot2::autoplot(x, ...)
+})
+setMethod("plot", c("storage", "ANY"), function(x, y, ...) {
+  check_package("ggplot2"); ggplot2::autoplot(x, ...)
+})
+setMethod("plot", c("subsidy", "ANY"), function(x, y, ...) {
+  check_package("ggplot2"); ggplot2::autoplot(x, ...)
+})
+setMethod("plot", c("supply", "ANY"), function(x, y, ...) {
+  check_package("ggplot2"); ggplot2::autoplot(x, ...)
+})
+setMethod("plot", c("tax", "ANY"), function(x, y, ...) {
+  check_package("ggplot2"); ggplot2::autoplot(x, ...)
+})
+setMethod("plot", c("technology", "ANY"), function(x, y, ...) {
+  check_package("ggplot2"); ggplot2::autoplot(x, ...)
+})
+setMethod("plot", c("trade", "ANY"), function(x, y, ...) {
+  check_package("ggplot2"); ggplot2::autoplot(x, ...)
+})
+setMethod("plot", c("weather", "ANY"), function(x, y, ...) {
+  check_package("ggplot2"); ggplot2::autoplot(x, ...)
+})
+
+# -- shared theme -------------------------------------------------------------
+
+#' energyRt's default ggplot theme
+#'
+#' A thin wrapper around [theme_energyRt()] giving every energyRt figure one
+#' base size and look. Package plots call it instead of `theme_bw()` directly,
+#' so restyling them is a one-line change here rather than an edit to every
+#' plotting function.
+#'
+#' @param base_size base font size in points.
+#' @param ... passed on to [theme_energyRt()].
+#'
+#' @return A ggplot2 theme object.
+#' @family draw
+#' @export
+#' @examples
+#' \dontrun{
+#' ggplot2::ggplot(mtcars, ggplot2::aes(wt, mpg)) +
+#'   ggplot2::geom_point() + theme_energyRt()
+#' }
+theme_energyRt <- function(base_size = 11, ...) {
+  check_package("ggplot2")
+  # NB `ggplot2::theme_bw()`, not `theme_energyRt()` -- this is the one place in
+  # the package that must call ggplot2 directly, or it recurses into itself.
+  ggplot2::theme_bw(base_size = base_size, ...)
+}

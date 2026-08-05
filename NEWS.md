@@ -6,6 +6,123 @@ editor_options:
 
 # energyRt 0.70.5.9000-dev
 
+**Renames — main data slots, the `sub` class, and the plotting vocabulary**
+
+All of the below are **breaking**. Nothing in this group changes the
+generated solver models: every GAMS/GLPK file written before and after
+the renames is byte-identical, because the modInp set and parameter
+names were deliberately left alone.
+
+*Main data slot of class `X` is now named `X`.* The four
+commodity/flow classes carried an abbreviation instead of the class
+name, so an object printed as `SUP_COA@availability` rather than the
+predictable `@supply`:
+
+| class | slot | constructor argument |
+|---------------|------------------------|--------------------------|
+| `demand` | `@dem` → `@demand` | `dem =` → `demand =` |
+| `supply` | `@availability` → `@supply` | `availability =` → `supply =` |
+| `import` | `@imp` → `@import` | `imp =` → `import =` |
+| `export` | `@exp` → `@export` | `exp =` → `export =` |
+
+-   `demand`'s value **column** is renamed too (`dem` → `demand`), since
+    it shares the slot's name. The other three keep their short column
+    prefixes (`ava.lo/up/fx`, `imp.*`, `exp.*`), and `price`/`cost` are
+    unchanged — they encode a real distinction (market price for
+    import/export vs. internal extraction cost for supply).
+
+-   The break is **not symmetric**, which is worth knowing before you
+    rely on it. `dem =`, `imp =` and `exp =` still work silently: each is
+    a unique prefix of its new name and sits before `...`, so R
+    partial-matches it and the data lands in the right slot.
+    `availability =` is not a prefix of `supply` and fails loudly with
+    `Unidentified slot(s): "availability"`. A `dem` **column** inside the
+    data frame does fail, with `Unknown column "dem" in the slot
+    "demand"`.
+
+*The `sub` class is now `subsidy`.* It was the only class whose name was
+an abbreviation, it collided with `base::sub()`, and its own parameter
+metadata already called it `subsidy`:
+
+-   S4 class `sub` → **`subsidy`**; its main data slot `@sub` →
+    `@subsidy` (columns `inp`/`out`/`bal` unchanged).
+-   `newSubsidy()` is the constructor; `newSub()` remains as an alias, and
+    `sub =` still partial-matches `subsidy =`.
+-   The modInp set dimension `"sub"` and the parameter names
+    `pSubCostInp` / `pSubCostOut` / `pSubCostBal` are **unchanged**.
+
+*One vocabulary across the plotting layer.*
+
+-   `geo_map()` → **`plot_map()`**. `geo_*` is `geoscales`' prefix;
+    energyRt's map entry points are now `plot_map()` and
+    `plot_trade_map()`.
+-   The first argument of every `plot_*()` function and of the `draw()`
+    generic is now **`object`** (was a mix of `object`, `x`, `obj` and
+    `scen`). `plot()` keeps `x, y` — base R fixes those.
+-   **`years` → `year`**, matching `getData()`, `getMix()` and the `year`
+    set.
+-   **`type` now always means the quantity** shown
+    (`getMix()`, `plot_map()`: generation/capacity/new_capacity/fuel).
+    The chart *shape* is now **`style`**: `autoplot(dem, style = "area")`,
+    `autoplot(wthr, style = "heatmap")`.
+-   `plot_demand()`, `plot_weather()` and `plot_process_windows()` are no
+    longer exported — all three are reachable through `autoplot()`, and
+    two public names for one chart is what this pass removed. Still
+    exported are the plotters no generic reaches: `plot_heatmap()`
+    (accepts a data frame or a named vector), `plot_map()`,
+    `plot_trade_map()` and `plot_share_frontier()`.
+
+*What replaces the un-exported functions.* `plot()` now delegates to
+`autoplot()` for every class that has one — 17 S4 classes plus `levcost`
+and `levcost_list` — so whichever verb you reach for works and
+`autoplot()` stays the single implementation. `draw()` keeps the
+schematic-diagram role and still needs no ggplot2. New
+`theme_energyRt()` is the one place the package's ggplot look is set.
+
+-   `autoplot()`, `autoplot(model)` and `autoplot(repository)` now fail
+    with energyRt's own message when ggplot2 (a **Suggests**) is absent,
+    instead of R's bare `there is no package called 'ggplot2'`.
+
+**`levcost()` prices vintages and clusters separately**
+
+-   `levcost()` on a technology declaring `@vintage` or `@cluster` was
+    **silently wrong**. Its mini-model prices one process against a unit
+    demand, but `interpolate_model()` expands a vintaged technology into
+    one process per cell, so the cells competed for that single unit and
+    the extraction summed across them. No error — just one number where
+    there should have been one per vintage.
+
+-   Each cell is now priced in **its own region** (`IND_VIN2030`), so the
+    variants cannot serve each other's demand, and results are extracted
+    by filtering to that region. Region is the only axis that works:
+    `vTotalCost` has no `tech` dimension but is on a region × year grid,
+    so per-cell cost can only be attributed regionally.
+
+-   Such a technology now returns a **`levcost_variants`** object — a
+    named list of ordinary `levcost` results, one per variant, which
+    `autoplot()` compares directly. `levcost_by_variant(x, what =)`
+    stacks the per-variant tables with `vintage`/`cluster` keys. A
+    technology with no vintages or clusters is **unaffected** and still
+    returns a single `levcost` object.
+
+-   New `run = c("single", "sequential")` argument. `"single"` (default)
+    prices every variant in one model; if that does not solve it retries
+    with the dummy-import slack and then falls back to one model per
+    variant, so one bad cell cannot take the rest down. `"sequential"`
+    goes straight to per-variant models. `max_failures` (default 10)
+    bounds the fallback.
+
+-   `$frontier` is `NULL` on the per-variant path: the frontier corners
+    are a per-commodity sweep, orthogonal to variants, and are not
+    fanned out per cell.
+
+**Fixes**
+
+-   `size()` regained its `@export`: a helper inserted between its
+    roxygen block and the function had silently taken over the block, so
+    the next `document()` would have dropped `size` from `NAMESPACE` and
+    exported `.instance_slots` instead.
+
 **Mixed-resolution commodities (`commodity@geolevel`)**
 
 -   A commodity can now be **balanced at a coarser geoscale level than

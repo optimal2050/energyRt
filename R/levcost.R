@@ -86,6 +86,17 @@
 #'       extra solves.}
 #'     \item{\code{solver}}{Solver spec list, default
 #'       \code{solver_options$glpk}.}
+#'     \item{\code{run}}{\code{"single"} (default) or \code{"sequential"} --
+#'       only meaningful for a technology declaring vintages or clusters.
+#'       \code{"single"} prices every variant in one model (each in its own
+#'       region, so they cannot compete); if that model does not solve it is
+#'       retried with the dummy-import slack enabled and then, failing that,
+#'       falls back to one model per variant. \code{"sequential"} goes straight
+#'       to one model per variant, so a single non-converging variant cannot
+#'       take the rest down.}
+#'     \item{\code{max_failures}}{Integer, default \code{10}. Abort the
+#'       sequential fallback after this many consecutive failed variant solves,
+#'       to bound the time spent on a technology whose variants all fail.}
 #'     \item{\code{as_scenario}}{Logical, default \code{FALSE}.  When
 #'       \code{TRUE} the full solved \code{scenario} is returned with LCOE
 #'       tables attached to \code{scenario@@misc}.}
@@ -112,6 +123,20 @@
 #'   For a list of technology objects: a named list of class
 #'   \code{"levcost_list"}.
 #'
+#'   For a technology declaring \strong{vintages} and/or \strong{clusters}: a
+#'   named list of class \code{"levcost_variants"} (which inherits
+#'   \code{"levcost_list"}), holding one full \code{"levcost"} result per
+#'   variant, keyed by variant name (\code{"PWR_VIN2030"}). Each variant is
+#'   priced in its own region so the variants cannot serve each other's demand;
+#'   without that isolation they compete for one unit of demand and the result
+#'   silently sums across them. The stacked tables are reachable with
+#'   [levcost_by_variant()], and \code{autoplot()} compares the variants.
+#'   \code{$frontier} is \code{NULL} on this path -- the frontier corners are a
+#'   per-commodity sweep, orthogonal to variants, and are not fanned out.
+#'   A technology with no vintages or clusters is unaffected and still returns a
+#'   single \code{"levcost"} object.
+#'
+#' @seealso [levcost_by_variant()]
 #' @export
 #'
 #' @include solve.R
@@ -308,7 +333,7 @@ setMethod("levcost", "technology", function(object, comm, name, ...) {
   for (im in imps) {
     cm <- tryCatch(as.character(im@commodity)[1], error = function(e) NA_character_)
     if (is.na(cm) || cm %in% names(fuel_costs)) next
-    pr <- tryCatch(suppressWarnings(as.numeric(im@imp$price)), error = function(e) NULL)
+    pr <- tryCatch(suppressWarnings(as.numeric(im@import$price)), error = function(e) NULL)
     pr <- pr[is.finite(pr)]
     if (length(pr) > 0) fuel_costs[cm] <- mean(pr)
   }
@@ -420,7 +445,7 @@ setMethod("levcost", "scenario", function(object, comm, name, ...) {
   price <- list()
   for (s in sups) {
     cm <- as.character(s@commodity)
-    av <- tryCatch(as.data.frame(s@availability), error = function(e) NULL)
+    av <- tryCatch(as.data.frame(s@supply), error = function(e) NULL)
     if (!is.null(av) && "cost" %in% names(av) && nrow(av) > 0)
       price[[cm]] <- mean(suppressWarnings(as.numeric(av$cost)), na.rm = TRUE)
   }
@@ -781,9 +806,9 @@ levcost_chain_ <- function(
       sup <- repo_supplies[[cm]]
       if (isS4(sup)) {
         if (.hasSlot(sup, "region") && length(sup@region) > 0) sup@region <- region
-        if (.hasSlot(sup, "availability") && nrow(sup@availability) > 0 &&
-            "region" %in% names(sup@availability))
-          sup@availability$region <- region
+        if (.hasSlot(sup, "supply") && nrow(sup@supply) > 0 &&
+            "region" %in% names(sup@supply))
+          sup@supply$region <- region
       }
       supply_objects[[cm]] <- sup
     } else {
@@ -794,7 +819,7 @@ levcost_chain_ <- function(
         name         = paste0("SUP_", cm),
         commodity    = cm,
         region       = region,
-        availability = data.frame(region = region, year = as.integer(base_year),
+        supply = data.frame(region = region, year = as.integer(base_year),
                                   cost = fc_val, stringsAsFactors = FALSE)
       )
       if (verbose) message("Created supply for '", cm, "' (cost = ", fc_val, ").")
@@ -817,8 +842,8 @@ levcost_chain_ <- function(
         commodity = cm,
         unit      = out_unit,
         region    = region,
-        dem       = data.frame(region = region, year = as.integer(base_year),
-                               dem = 1, stringsAsFactors = FALSE)
+        demand       = data.frame(region = region, year = as.integer(base_year),
+                               demand = 1, stringsAsFactors = FALSE)
       )
       if (verbose) message("Created unit demand for '", cm, "'.")
     } else {
@@ -827,7 +852,7 @@ levcost_chain_ <- function(
         name         = paste0("SUP_", cm),
         commodity    = cm,
         region       = region,
-        availability = data.frame(region = region, year = as.integer(base_year),
+        supply = data.frame(region = region, year = as.integer(base_year),
                                   cost = 0, stringsAsFactors = FALSE)
       )
       if (verbose) message("Created supply sink for by-product '", cm, "'.")
@@ -972,6 +997,242 @@ levcost_chain_ <- function(
   result
 }
 
+# ── Variant (vintage / cluster) support ────────────────────────────────────────
+# A technology declaring vintages or clusters expands at interpolation time into
+# one process per cell. The LCOE mini-model prices ONE process against a unit
+# demand, so left alone the variants all compete for that single unit and the
+# extraction sums across them -- a plausible-looking number that is simply wrong.
+#
+# Isolation is by REGION: each cell gets its own artificial region (`IND_VIN2030`)
+# holding its own copy of the technology and its own unit of demand. Regions do
+# not exchange commodities without an explicit trade object, so the cells cannot
+# cross inside one solve. Region is also the only usable axis: `vTotalCost` has no
+# `tech` dimension but is on a region x year grid (see `map_mvTotalCost()`), so a
+# per-cell system cost can only be attributed regionally.
+
+# Collapse one expanded cell to a genuinely un-vintaged process.
+#
+# `.tech_variants()` returns per-cell objects that still carry a one-row
+# `@vintage`; left as-is `expand_variants()` inside `interpolate_model()` would
+# expand them a second time and suffix the names twice.
+#' @noRd
+.levcost_devintage <- function(obj, region) {
+  vt   <- as.data.frame(obj@vintage)
+  cell <- if (nrow(vt) > 0) vt[1, , drop = FALSE] else NULL
+
+  nv <- data.frame(vintage = NA_character_, region = NA_character_,
+                   cluster = NA_character_, start = NA_integer_,
+                   end = NA_integer_, olife = NA_integer_,
+                   stringsAsFactors = FALSE)
+  # Keep the cell's investment window and operational life; `.variant_default_window()`
+  # has already defaulted start/end to the vintage year by this point.
+  if (!is.null(cell)) {
+    for (cc in intersect(.vintage_val_cols, names(cell))) {
+      v <- cell[[cc]][1]
+      nv[[cc]] <- if (is.na(v) || !is.finite(v)) v else as.integer(v)
+    }
+  }
+  obj@vintage <- nv
+  if (methods::.hasSlot(obj, "cluster"))
+    obj@cluster <- obj@cluster[0, , drop = FALSE]
+
+  # Rows are already sliced to this cell, so the selectors carry no information;
+  # blanking them is what stops a second expansion.
+  for (sl in methods::slotNames(obj)) {
+    if (sl %in% c("vintage", "cluster")) next
+    d <- methods::slot(obj, sl)
+    if (!is.data.frame(d) || nrow(d) == 0) next
+    hit <- intersect(.variant_dims, names(d))
+    if (length(hit) == 0) next
+    for (cc in hit) d[[cc]] <- NA_character_
+    methods::slot(obj, sl) <- d
+  }
+
+  obj@region <- region
+  obj
+}
+
+# One artificial region per cell, built with the same namer (and the same
+# configurable `_VIN`/`_CL` prefixes) that names the processes themselves.
+#' @noRd
+.levcost_variant_regions <- function(region, prov,
+                                     prefix = .variant_prefix_default()) {
+  regs <- vapply(seq_len(nrow(prov)), function(i)
+    .variant_name(region, prov$vintage[i], prov$cluster[i], prefix), character(1))
+
+  bad <- regs[!vapply(regs, check_name, logical(1))]
+  if (length(bad) > 0)
+    stop("Cannot build a valid region name for variant(s): ",
+         paste(unique(bad), collapse = ", "),
+         ". Region names must match '^[[:alpha:]][[:alnum:]_]*$'.", call. = FALSE)
+  if (anyDuplicated(regs) > 0)
+    stop("Variant region names collide: ",
+         paste(unique(regs[duplicated(regs)]), collapse = ", "), ".", call. = FALSE)
+  if (region %in% regs)
+    stop("Variant region name collides with the base region '", region, "'.",
+         call. = FALSE)
+  regs
+}
+
+# Replicate region-keyed rows across every region of the mini-model.
+#
+# The single-region path simply overwrote `region` with the one resolved value.
+# With a region per variant the rows must exist in each, otherwise only the first
+# cell sees the supply and the rest are unservable.
+#' @noRd
+.levcost_spread_region <- function(df, regions) {
+  if (is.null(df) || nrow(df) == 0 || length(regions) == 0) return(df)
+  if (!"region" %in% names(df)) return(df)
+  if (length(regions) == 1L) {
+    df$region <- regions
+    return(df)
+  }
+  base <- df[rep(seq_len(nrow(df)), times = length(regions)), , drop = FALSE]
+  base$region <- rep(regions, each = nrow(df))
+  rownames(base) <- NULL
+  base
+}
+
+# Unit labels of a technology; shared by the plain and per-variant return paths.
+#' @noRd
+.levcost_tech_units <- function(object, out_comms) {
+  pick <- function(col) {
+    if (nrow(object@units) > 0 && col %in% names(object@units)) {
+      v <- object@units[[col]][1]
+      if (!is.na(v) && nzchar(v)) return(v)
+    }
+    ""
+  }
+  output_units <- setNames(
+    vapply(out_comms, function(cm) {
+      if (nrow(object@output) > 0 && "unit" %in% names(object@output)) {
+        r <- object@output$unit[object@output$comm == cm]
+        if (length(r) > 0 && !is.na(r[1]) && nzchar(r[1])) return(r[1])
+      }
+      ""
+    }, character(1)), out_comms)
+  list(costs = pick("costs"), activity = pick("activity"), output = output_units)
+}
+
+# One cell's extraction turned into an ordinary `levcost` object, so every
+# existing accessor and plot works per variant unchanged. Frontier fields are
+# NULL: the frontier corners are a per-commodity sweep, orthogonal to variants,
+# and are not fanned out per cell.
+#' @noRd
+.levcost_variant_result <- function(res, name, object, out_comms, discount,
+                                    base_year, scen) {
+  result <- list(
+    levcost            = res$levcost,
+    levcost_npv        = setNames(res$levcost_npv, name),
+    cost_breakdown     = res$cost_breakdown,
+    cost_breakdown_npv = res$cost_breakdown_npv,
+    levcost_per_act    = res$levcost_per_act,
+    cost_yearly        = res$cost_yearly,
+    frontier           = NULL,
+    levcost_by_comm    = NULL,
+    levcost_by_act     = NULL,
+    levcost_by_act_cbd = NULL,
+    input_frontier     = tech_share_frontier(object),
+    discount           = discount,
+    base_year          = as.integer(base_year),
+    units              = .levcost_tech_units(object, out_comms),
+    scenario           = scen
+  )
+  class(result) <- c("levcost", "list")
+  result
+}
+
+# Bundle the per-variant results. Elements are variants ONLY -- the stacked
+# tables ride as attributes, because `autoplot.levcost_list()` iterates
+# `names(x)` and would otherwise treat a table as another variant.
+#' @noRd
+.levcost_variants_object <- function(per_variant, prov, base_tech) {
+  nms <- names(per_variant)
+  key <- data.frame(
+    tech    = base_tech,
+    variant = nms,
+    vintage = prov$vintage[match(nms, prov$name)],
+    cluster = prov$cluster[match(nms, prov$name)],
+    stringsAsFactors = FALSE
+  )
+
+  stack <- function(field) {
+    parts <- Filter(Negate(is.null), lapply(nms, function(nm) {
+      d <- per_variant[[nm]][[field]]
+      if (is.null(d) || nrow(d) == 0) return(NULL)
+      k <- key[key$variant == nm, , drop = FALSE]
+      # `tech` in the per-variant table is the variant name; the key supplies
+      # both the base technology and the variant, so drop the duplicate.
+      d <- d[, setdiff(names(d), "tech"), drop = FALSE]
+      cbind(k[rep(1L, nrow(d)), , drop = FALSE], d, row.names = NULL)
+    }))
+    if (length(parts) == 0) return(NULL)
+    out <- do.call(rbind, parts)
+    rownames(out) <- NULL
+    out
+  }
+
+  npv_tbl <- do.call(rbind, lapply(nms, function(nm) {
+    k <- key[key$variant == nm, , drop = FALSE]
+    k$levcost_npv <- unname(per_variant[[nm]]$levcost_npv)
+    k
+  }))
+  rownames(npv_tbl) <- NULL
+
+  structure(
+    per_variant,
+    base_tech             = base_tech,
+    variants              = key,
+    by_variant            = stack("levcost"),
+    by_variant_npv        = npv_tbl,
+    by_variant_components = stack("cost_breakdown"),
+    class                 = c("levcost_variants", "levcost_list", "list")
+  )
+}
+
+#' Per-variant levelized cost tables
+#'
+#' Stack the per-variant tables of a [levcost()] result computed for a vintaged
+#' or clustered technology, keyed by variant.
+#'
+#' @param x A `levcost_variants` object, as returned by [levcost()] for a
+#'   technology declaring vintages and/or clusters.
+#' @param what Which table to stack: `"levcost"` (levelized cost by year),
+#'   `"npv"` (one row per variant), or `"components"` (cost breakdown by year).
+#'
+#' @return A data.frame with `tech`, `variant`, `vintage` and `cluster` key
+#'   columns prepended to the requested table.
+#' @export
+levcost_by_variant <- function(x, what = c("levcost", "npv", "components")) {
+  what <- match.arg(what)
+  if (!inherits(x, "levcost_variants"))
+    stop("`x` must be a `levcost_variants` object (a levcost() result for a ",
+         "technology with vintages or clusters).", call. = FALSE)
+  key <- attr(x, "variants")
+  tbl <- switch(what,
+    levcost    = attr(x, "by_variant"),
+    npv        = attr(x, "by_variant_npv"),
+    components = attr(x, "by_variant_components"))
+  if (is.null(tbl)) return(NULL)
+  tbl
+}
+
+#' @export
+print.levcost_variants <- function(x, ...) {
+  npv <- attr(x, "by_variant_npv")
+  cat("Levelized cost by variant\n")
+  cat("Technology: ", attr(x, "base_tech") %||% "", "\n", sep = "")
+  cat("Variants:   ", length(x), "\n", sep = "")
+  if (!is.null(npv)) {
+    show <- npv[, intersect(c("variant", "vintage", "cluster", "levcost_npv"),
+                            names(npv)), drop = FALSE]
+    print(show, row.names = FALSE)
+  }
+  cat("\nUse levcost_by_variant(x) for the stacked tables, ",
+      "autoplot(x) to compare.\n", sep = "")
+  invisible(x)
+}
+
 # ── levcost_technology_ ─────────────────────────────────────────────────────────
 # Private implementation called by setMethod("levcost", "technology", ...).
 
@@ -991,10 +1252,13 @@ levcost_technology_ <- function(
     frontier       = TRUE,
     backstop       = TRUE,
     solver         = solver_options$glpk,
+    run            = c("single", "sequential"),
+    max_failures   = 10L,
     as_scenario    = FALSE,
     verbose        = TRUE,
     ...
 ) {
+  run <- match.arg(run)
 
   # ── 0. Handle list of technologies → chain LCOE ────────────────────────────
   if (is.list(object) && !inherits(object, "technology")) {
@@ -1062,6 +1326,40 @@ levcost_technology_ <- function(
   # the resolved region so it does not reference undeclared regions.
   if (length(.levcost_tech_regions(object)) > 1)
     object <- .levcost_subset_tech_region(object, region)
+
+  # ── 2b. Expand vintage / cluster variants ──────────────────────────────────
+  # `.tech_variants()` is NULL for a plain technology, in which case everything
+  # below is exactly the historical single-process path.
+  vinfo <- .tech_variants(object)
+  has_variants <- !is.null(vinfo)
+
+  if (has_variants) {
+    vprov  <- vinfo$prov
+    reg_v  <- .levcost_variant_regions(region, vprov, .variant_prefix_default())
+    # One devintaged copy per cell, each pinned to its own artificial region.
+    tech_objects <- Map(.levcost_devintage, vinfo$objects, reg_v)
+    names(tech_objects) <- vapply(tech_objects, function(o) o@name, character(1))
+    # Structural attributes (@input/@output/@aux/@units) are variant-invariant,
+    # but @ceff is not: derive shares, commodities and units from the FIRST cell
+    # so a per-vintage efficiency does not double-count rows below.
+    object_struct <- tech_objects[[1]]
+    reg_all <- reg_v
+    if (verbose)
+      message("Technology '", tech_name, "' has ", length(tech_objects),
+              " variants; pricing each in its own region (",
+              paste(utils::head(reg_v, 3), collapse = ", "),
+              if (length(reg_v) > 3) ", …" else "", ").")
+  } else {
+    vprov         <- NULL
+    reg_v         <- region
+    tech_objects  <- list(object)
+    object_struct <- object
+    reg_all       <- region
+  }
+  # Everything downstream derives structure from `object`; for a vintaged
+  # technology that is the first cell (see above). The full set of processes
+  # goes into the model via `tech_objects`.
+  object <- object_struct
 
   # ── 3. Resolve output group / commodities ───────────────────────────────────
   out_df       <- object@output
@@ -1311,11 +1609,11 @@ levcost_technology_ <- function(
       sup <- repo_supplies[[cm]]
       if (isS4(sup)) {
         if (.hasSlot(sup, "region") && length(sup@region) > 0)
-          sup@region <- region
-        if (.hasSlot(sup, "availability") &&
-            nrow(sup@availability) > 0 &&
-            "region" %in% names(sup@availability))
-          sup@availability$region <- region
+          sup@region <- reg_all
+        if (.hasSlot(sup, "supply") &&
+            nrow(sup@supply) > 0 &&
+            "region" %in% names(sup@supply))
+          sup@supply <- .levcost_spread_region(sup@supply, reg_all)
       }
       supply_objects[[cm]] <- sup
     } else {
@@ -1325,9 +1623,9 @@ levcost_technology_ <- function(
       supply_objects[[cm]] <- newSupply(
         name         = paste0("SUP_", cm),
         commodity    = cm,
-        region       = region,
-        availability = data.frame(
-          region = region, year = as.integer(base_year),
+        region       = reg_all,
+        supply = data.frame(
+          region = reg_all, year = as.integer(base_year),
           cost   = fc_val, stringsAsFactors = FALSE
         )
       )
@@ -1344,20 +1642,20 @@ levcost_technology_ <- function(
       sup <- repo_supplies[[.cm]]
       if (isS4(sup)) {
         if (.hasSlot(sup, "region") && length(sup@region) > 0)
-          sup@region <- region
-        if (.hasSlot(sup, "availability") &&
-            nrow(sup@availability) > 0 &&
-            "region" %in% names(sup@availability))
-          sup@availability$region <- region
+          sup@region <- reg_all
+        if (.hasSlot(sup, "supply") &&
+            nrow(sup@supply) > 0 &&
+            "region" %in% names(sup@supply))
+          sup@supply <- .levcost_spread_region(sup@supply, reg_all)
       }
       supply_objects[[.cm]] <- sup
     } else {
       supply_objects[[.cm]] <- newSupply(
         name         = paste0("SUP_", .cm),
         commodity    = .cm,
-        region       = region,
-        availability = data.frame(
-          region = region, year = as.integer(base_year),
+        region       = reg_all,
+        supply = data.frame(
+          region = reg_all, year = as.integer(base_year),
           cost   = 0, stringsAsFactors = FALSE
         )
       )
@@ -1383,37 +1681,53 @@ levcost_technology_ <- function(
   }
 
   # ── 10. Inner helpers ────────────────────────────────────────────────────────
-  make_demands_ <- function(dvals) {
+  make_demands_ <- function(dvals, regions = reg_all) {
     lapply(setNames(names(dvals), names(dvals)), function(cm) {
       dv       <- max(dvals[[cm]], 1e-9)
       unit_val <- ""
       out_row  <- object@output[object@output$comm == cm, , drop = FALSE]
       if (nrow(out_row) > 0 && "unit" %in% names(out_row)) unit_val <- out_row$unit[1]
+      # One unit of demand PER REGION: with a variant per region, each cell then
+      # faces its own unit and they cannot compete for a shared one.
       newDemand(
         name      = paste0("DEM_", cm),
         commodity = cm,
         unit      = if (!is.na(unit_val)) unit_val else "",
-        region    = region,
-        dem       = data.frame(region = region, year = as.integer(base_year),
-                               dem = dv, stringsAsFactors = FALSE)
+        region    = regions,
+        demand       = data.frame(region = regions, year = as.integer(base_year),
+                               demand = dv, stringsAsFactors = FALSE)
       )
     })
   }
 
-  build_and_solve_ <- function(demand_objs, suffix = "") {
+  # `techs`/`regions` default to every variant (the combined run); the sequential
+  # fallback passes one cell at a time. Supplies are re-regioned to match, or the
+  # model would reference regions it does not declare.
+  build_and_solve_ <- function(demand_objs, suffix = "", techs = tech_objects,
+                               regions = reg_all, debug_df = backstop_debug) {
+    sups <- supply_objects
+    if (!identical(regions, reg_all))
+      sups <- lapply(sups, function(s) {
+        if (!isS4(s)) return(s)
+        if (.hasSlot(s, "region") && length(s@region) > 0) s@region <- regions
+        if (.hasSlot(s, "supply") && nrow(s@supply) > 0 &&
+            "region" %in% names(s@supply))
+          s@supply <- .levcost_spread_region(s@supply, regions)
+        s
+      })
     mdl <- newModel(
       name     = paste0("levcost_", tech_name, suffix),
       desc     = paste0("Mini model for levelized cost of '", tech_name, "'"),
       data     = newRepository("repo_lc",
-                   c(unname(commodity_objects), list(object),
-                     unname(supply_objects), unname(demand_objs),
+                   c(unname(commodity_objects), unname(techs),
+                     unname(sups), unname(demand_objs),
                      weather_objects)),
-      region   = region,
+      region   = regions,
       discount = discount,
       calendar = calendar,
       horizon  = hor
     )
-    if (!is.null(backstop_debug)) mdl@config@debug <- backstop_debug
+    if (!is.null(debug_df)) mdl@config@debug <- debug_df
     sn   <- paste0("lc_", tech_name, suffix)
     # New mapping pipeline (see levcost_chain_): interpolate in memory, unfolded,
     # then write + run + read via solve_scen() in one call.
@@ -1425,12 +1739,25 @@ levcost_technology_ <- function(
   comm_label <- paste(out_comms, collapse = "+")
   group_val  <- if (!is.null(group)) group else NA_character_
 
-  levcost_extract_ <- function(sc, dem_vals, primary_comm = NULL) {
+  # `reg_filter` / `tech_label` restrict the extraction to ONE variant. Filtering
+  # to a single region is what keeps every aggregation below a single-region
+  # problem, so none of it needed to learn about vintages.
+  levcost_extract_ <- function(sc, dem_vals, primary_comm = NULL,
+                               reg_filter = NULL, tech_label = tech_name,
+                               region_label = region) {
     sfget <- function(v) tryCatch({
       d <- getData(sc, name = v, merge = TRUE, drop.zeros = FALSE)
       if (is.null(d) || nrow(d) == 0) return(NULL)
-      as.data.frame(d)
+      d <- as.data.frame(d)
+      if (!is.null(reg_filter) && "region" %in% names(d)) {
+        d <- d[!is.na(d$region) & d$region %in% reg_filter, , drop = FALSE]
+        if (nrow(d) == 0) return(NULL)
+        # Report against the real region, never the artificial variant label.
+        d$region <- region_label
+      }
+      d
     }, error = function(e) NULL)
+    tech_name <- tech_label   # shadows the outer name in the tables built below
 
     agg_yr <- function(df) {
       if (is.null(df) || nrow(df) == 0 || !"year" %in% names(df)) return(NULL)
@@ -1705,6 +2032,85 @@ levcost_technology_ <- function(
   base_lcoe_dvals  <- base_model_dvals[out_comms]
   demand_objects   <- make_demands_(base_model_dvals)
   if (verbose) for (cm in all_out_comms) message("Created unit demand for '", cm, "'.")
+
+  # ── 12a. Per-variant path ──────────────────────────────────────────────────
+  # All cells ride in ONE model (each in its own region), then each is extracted
+  # by filtering to its region. `run = "sequential"` -- or a combined run that
+  # will not solve -- falls back to one model per cell, so a single bad cell
+  # cannot take the rest down.
+  if (has_variants) {
+    okay <- function(s) !is.null(s) && isTRUE(s@status$optimal)
+
+    scen_all <- NULL
+    if (run == "single") {
+      scen_all <- tryCatch(build_and_solve_(demand_objects),
+                           error = function(e) {
+                             if (verbose) message("Combined run errored: ",
+                                                  conditionMessage(e)); NULL })
+      if (!okay(scen_all) && is.null(backstop_debug) && length(all_out_comms) > 0) {
+        # Retry once with the dummy-import slack enabled, which is the usual cure
+        # for a cell that cannot serve every slice on its own.
+        if (verbose) message("Combined run did not solve; retrying with dummy import.")
+        retry_debug <- data.frame(
+          comm = all_out_comms, region = NA_character_, year = NA_integer_,
+          slice = NA_character_, dummyImport = BACKSTOP_PRICE, dummyExport = Inf,
+          stringsAsFactors = FALSE)
+        scen_all <- tryCatch(
+          build_and_solve_(demand_objects, suffix = "_bs", debug_df = retry_debug),
+          error = function(e) NULL)
+      }
+    }
+
+    var_scens <- NULL
+    if (!okay(scen_all)) {
+      if (run == "single" && verbose)
+        message("Falling back to one model per variant.")
+      var_scens <- vector("list", length(tech_objects))
+      names(var_scens) <- names(tech_objects)
+      consecutive <- 0L
+      for (i in seq_along(tech_objects)) {
+        if (consecutive >= max_failures) {
+          warning("Stopped after ", max_failures, " consecutive failed variant ",
+                  "solves; skipped: ",
+                  paste(names(tech_objects)[i:length(tech_objects)], collapse = ", "),
+                  call. = FALSE)
+          break
+        }
+        s <- tryCatch(
+          build_and_solve_(
+            make_demands_(base_model_dvals, regions = reg_v[i]),
+            suffix = paste0("_v", i),
+            techs  = tech_objects[i], regions = reg_v[i]),
+          error = function(e) NULL)
+        if (okay(s)) { var_scens[[i]] <- s; consecutive <- 0L }
+        else consecutive <- consecutive + 1L
+      }
+    }
+
+    per_variant <- list()
+    for (i in seq_along(tech_objects)) {
+      sc_i <- if (!is.null(var_scens)) var_scens[[i]] else scen_all
+      if (!okay(sc_i)) {
+        warning("Variant '", names(tech_objects)[i], "' did not solve; omitted.",
+                call. = FALSE)
+        next
+      }
+      res_i <- levcost_extract_(sc_i, base_lcoe_dvals,
+                                reg_filter   = reg_v[i],
+                                tech_label   = names(tech_objects)[i],
+                                region_label = region)
+      per_variant[[names(tech_objects)[i]]] <- .levcost_variant_result(
+        res_i, name = names(tech_objects)[i], object = tech_objects[[i]],
+        out_comms = out_comms, discount = discount,
+        base_year = base_year, scen = sc_i)
+    }
+    if (length(per_variant) == 0)
+      stop("No variant of '", tech_name, "' produced a levelized cost.",
+           call. = FALSE)
+
+    return(.levcost_variants_object(per_variant, vprov, tech_name))
+  }
+
   scen <- build_and_solve_(demand_objects)
   if (!isTRUE(scen@status$optimal))
     warning("Mini model for '", tech_name, "' did not solve to optimality. ",
@@ -1894,21 +2300,7 @@ levcost_technology_ <- function(
   input_frontier <- tech_share_frontier(object)
 
   # ── 13.9. Technology units ────────────────────────────────────────────────────
-  costs_unit    <- if (nrow(object@units) > 0 && "costs"    %in% names(object@units)) {
-    v <- object@units$costs[1]; if (!is.na(v) && nzchar(v)) v else ""
-  } else ""
-  activity_unit <- if (nrow(object@units) > 0 && "activity" %in% names(object@units)) {
-    v <- object@units$activity[1]; if (!is.na(v) && nzchar(v)) v else ""
-  } else ""
-  output_units  <- setNames(
-    vapply(out_comms, function(cm) {
-      if (nrow(object@output) > 0 && "unit" %in% names(object@output)) {
-        r <- object@output$unit[object@output$comm == cm]
-        if (length(r) > 0 && !is.na(r[1]) && nzchar(r[1])) return(r[1])
-      }
-      ""
-    }, character(1)), out_comms)
-  tech_units <- list(costs = costs_unit, activity = activity_unit, output = output_units)
+  tech_units <- .levcost_tech_units(object, out_comms)
 
   # ── 14. Return ────────────────────────────────────────────────────────────────
   if (as_scenario) {
@@ -1956,19 +2348,18 @@ levcost_technology_ <- function(
 #' data.frame.  Returns a named list of class \code{"share_frontier_plots"} of
 #' \code{ggplot2} objects, one per (direction × group).
 #'
-#' @param df     data.frame from \code{tech_share_frontier()}.
+#' @param object data.frame from \code{tech_share_frontier()}.
 #' @param title  Optional character string prepended to each plot title.
-#' @param base_size Integer. Base font size passed to \code{theme_bw()}.
+#' @param base_size Integer. Base font size passed to \code{theme_energyRt()}.
 #' @return A list of class \code{"share_frontier_plots"}, or \code{NULL}.
 #' @export
-plot_share_frontier <- function(df, title = NULL, base_size = 11L) {
-  if (is.null(df) || nrow(df) == 0) return(NULL)
-  if (!requireNamespace("ggplot2", quietly = TRUE))
-    stop("Package 'ggplot2' is required for plot_share_frontier().")
+plot_share_frontier <- function(object, title = NULL, base_size = 11L) {
+  if (is.null(object) || nrow(object) == 0) return(NULL)
+  check_package("ggplot2")
 
-  if (!"share_lo_eff" %in% names(df)) df$share_lo_eff <- df$share_lo
-  if (!"share_hi_eff" %in% names(df)) df$share_hi_eff <- df$share_hi
-  if (!"n_in_group"  %in% names(df)) df$n_in_group    <- NA_integer_
+  if (!"share_lo_eff" %in% names(object)) object$share_lo_eff <- object$share_lo
+  if (!"share_hi_eff" %in% names(object)) object$share_hi_eff <- object$share_hi
+  if (!"n_in_group"  %in% names(object)) object$n_in_group    <- NA_integer_
 
   dir_cols <- c(input = "#E84B35", output = "#4E79A7")
 
@@ -2011,7 +2402,7 @@ plot_share_frontier <- function(df, title = NULL, base_size = 11L) {
       ggplot2::scale_y_continuous(
         name = y_name, breaks = c(0, 0.25, 0.5, 0.75, 1),
         labels = function(x) paste0(round(x * 100), "%")),
-      ggplot2::theme_bw(base_size = base_size),
+      theme_energyRt(base_size = base_size),
       ggplot2::theme(
         panel.grid.minor = ggplot2::element_blank(),
         strip.text       = ggplot2::element_text(size = 7),
@@ -2024,7 +2415,7 @@ plot_share_frontier <- function(df, title = NULL, base_size = 11L) {
 
   all_plots <- list()
   for (dir in c("input", "output")) {
-    sub_dir <- df[df$direction == dir, , drop = FALSE]
+    sub_dir <- object[object$direction == dir, , drop = FALSE]
     if (nrow(sub_dir) == 0L) next
     col <- dir_cols[[dir]]
     for (grp in unique(sub_dir$group)) {
@@ -2117,8 +2508,7 @@ autoplot.levcost <- function(object,
                              cost_unit = NULL,
                              cost_unit_comm = NULL,
                              ...) {
-  if (!requireNamespace("ggplot2", quietly = TRUE))
-    stop("Package 'ggplot2' is required for autoplot.")
+  check_package("ggplot2")
   type  <- match.arg(type)
   npv   <- as.numeric(object$levcost_npv)
   title <- paste0("Levelized Cost: ", names(object$levcost_npv))
@@ -2197,7 +2587,7 @@ autoplot.levcost <- function(object,
         x        = paste0("Production share of ", c1_lbl),
         y        = paste0("Production share of ", c2_lbl),
         colour   = "Operating extreme"
-      ) + ggplot2::theme_bw()
+      ) + theme_energyRt()
     return(p)
   }
 
@@ -2224,7 +2614,7 @@ autoplot.levcost <- function(object,
                         label = paste0("NPV LCOE = ", round(npv, 3)),
                         hjust = 1.05, vjust = -0.4, size = 3, colour = "red") +
       ggplot2::labs(title = title, x = "Year", y = y_lbl_act) +
-      ggplot2::theme_bw() +
+      theme_energyRt() +
       ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1))
     return(p)
   }
@@ -2297,7 +2687,7 @@ autoplot.levcost <- function(object,
                                    labels = .levcost_comp_labels[levels(plot_df$component)]) +
         ggplot2::labs(title = paste0("NPV LCOE breakdown: ", names(object$levcost_npv)),
                       x = "Metric", y = y_lbl_both, fill = "Component") +
-        ggplot2::theme_bw() +
+        theme_energyRt() +
         ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 30, hjust = 1))
       return(p)
     }
@@ -2316,7 +2706,7 @@ autoplot.levcost <- function(object,
                                  labels = .levcost_comp_labels[levels(cbd_npv$component)]) +
       ggplot2::labs(title = paste0("NPV LCOE: ", names(object$levcost_npv)),
                     x = NULL, y = y_lbl_act, fill = "Component") +
-      ggplot2::theme_bw()
+      theme_energyRt()
     return(p)
   }
 
@@ -2344,7 +2734,7 @@ autoplot.levcost <- function(object,
     ggplot2::scale_fill_brewer(palette = "Set2",
                                labels = .levcost_comp_labels[levels(cbd$component)]) +
     ggplot2::labs(title = title, x = "Year", y = y_lbl_act, fill = "Component") +
-    ggplot2::theme_bw() +
+    theme_energyRt() +
     ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 45, hjust = 1))
   p
 }
@@ -2355,8 +2745,7 @@ autoplot.levcost_list <- function(object,
                                            "frontier", "input_frontier"),
                                   year = NULL, cost_unit = NULL,
                                   cost_unit_comm = NULL, ...) {
-  if (!requireNamespace("ggplot2", quietly = TRUE))
-    stop("Package 'ggplot2' is required for autoplot.")
+  check_package("ggplot2")
   type <- match.arg(type)
 
   # Collect NPV + component breakdowns across technologies
@@ -2384,6 +2773,25 @@ autoplot.levcost_list <- function(object,
                                labels = .levcost_comp_labels[levels(plot_df$component)]) +
     ggplot2::labs(title = "NPV LCOE comparison", x = "Technology",
                   y = "Levelized Cost", fill = "Component") +
-    ggplot2::theme_bw() +
+    theme_energyRt() +
     ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 30, hjust = 1))
+}
+
+# -- plot() for the levcost S3 classes ----------------------------------------
+# The S4 classes get `plot()` via `setMethod()` in R/plot.R; `levcost` and
+# `levcost_list` are S3, so they need S3 methods to reach the same contract:
+# whichever verb a user types works, and `autoplot()` stays the single
+# implementation. The value is returned rather than printed, matching the S4
+# methods -- R auto-prints a visible result at top level.
+
+#' @exportS3Method base::plot
+plot.levcost <- function(x, y, ...) {
+  check_package("ggplot2")
+  ggplot2::autoplot(x, ...)
+}
+
+#' @exportS3Method base::plot
+plot.levcost_list <- function(x, y, ...) {
+  check_package("ggplot2")
+  ggplot2::autoplot(x, ...)
 }

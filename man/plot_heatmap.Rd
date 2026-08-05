@@ -5,7 +5,7 @@
 \title{Heatmap of timeslice-indexed values over a calendar}
 \usage{
 plot_heatmap(
-  x,
+  object,
   calendar = NULL,
   value = NULL,
   facet = NULL,
@@ -14,7 +14,7 @@ plot_heatmap(
 )
 }
 \arguments{
-\item{x}{A \code{data.frame} with a \code{slice} column and a numeric value column, a
+\item{object}{A \code{data.frame} with a \code{slice} column and a numeric value column, a
 named numeric vector (names are slices), or a \code{calendar} object (then the
 slice \code{share} — or \code{value} column — is shown).}
 

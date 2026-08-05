@@ -10,7 +10,7 @@ newDemand(
   desc = character(),
   commodity = character(),
   unit = character(),
-  dem = data.frame(),
+  demand = data.frame(),
   region = character(),
   misc = list(),
   ...
@@ -27,15 +27,15 @@ newDemand(
 
 \item{unit}{character. Optional unit of the commodity.}
 
-\item{dem}{data.frame. Specification of the demand.
+\item{demand}{data.frame. Specification of the demand.
 \describe{
 \item{region}{character. Name of region for the demand value. NA for every region.}
 \item{year}{integer. Year of the demand. NA for every year.}
 \item{slice}{character. Name of the slice for the demand value. NA for every slice.}
-\item{dem}{numeric. Value of the demand.}
+\item{demand}{numeric. Value of the demand.}
 }}
 
-\item{region}{character. Optional name of region to narrow the specification of the demand in the case of used NAs. Error will be returned if specified regions in \verb{@dem} are not mensioned in the \verb{@region} slot (if the slot is not empty).}
+\item{region}{character. Optional name of region to narrow the specification of the demand in the case of used NAs. Error will be returned if specified regions in \verb{@demand} are not mensioned in the \verb{@region} slot (if the slot is not empty).}
 
 \item{misc}{list. Optional list of additional information.}
 
@@ -55,11 +55,11 @@ DSTEEL <- newDemand(
  desc = "Steel demand",
  commodity = "STEEL",
  unit = "Mt",
- dem = data.frame(
+ demand = data.frame(
     region = "UTOPIA", # NA for every region
     year = c(2020, 2030, 2050),
     slice = "ANNUAL",
-    dem = c(100, 200, 300)
+    demand = c(100, 200, 300)
  ),
  region = "UTOPIA", # optional, to narrow the specification of the demand
  )

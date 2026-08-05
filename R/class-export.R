@@ -11,7 +11,7 @@
 #' @slot commodity `r get_slot_doc("export", "commodity")`
 #' @slot unit `r get_slot_doc("export", "unit")`
 #' @slot reserve `r get_slot_doc("export", "reserve")`
-#' @slot exp `r get_slot_doc("export", "exp")`
+#' @slot export `r get_slot_doc("export", "export")`
 #' @slot misc `r get_slot_doc("export", "misc")`
 #'
 #' @include class-import.R
@@ -29,7 +29,7 @@ setClass("export",
     # !!! add @region
     # !!! make reserve a data.frame with region, year, upper, lower, fixed
     reserve = "numeric",
-    exp = "data.frame",
+    export = "data.frame",
     # timeframe = "character", # depreciated (equal to commodity@timeframe)
     misc = "list"
   ),
@@ -39,7 +39,7 @@ setClass("export",
     commodity = "",
     unit = "",
     reserve = Inf,
-    exp = data.frame(
+    export = data.frame(
       region = character(),
       year = integer(),
       slice = character(),
@@ -89,7 +89,7 @@ setMethod("initialize", "export", function(.Object, ...) {
 #' @param commodity `r get_slot_doc("export", "commodity")`
 #' @param unit `r get_slot_doc("export", "unit")`
 #' @param reserve `r get_slot_doc("export", "reserve")`
-#' @param exp `r get_slot_doc("export", "exp")`
+#' @param export `r get_slot_doc("export", "export")`
 #' @param misc `r get_slot_doc("export", "misc")`
 #'
 #' @return export object with given specifications.
@@ -103,7 +103,7 @@ setMethod("initialize", "export", function(.Object, ...) {
 #'   desc = "Oil export from the model to RoW", # for own reference
 #'   commodity = "OIL", # must match the commodity name in the model
 #'   unit = "Mtoe", # for own reference
-#'   exp = data.frame(
+#'   export = data.frame(
 #'     region = rep(c("R1", "R2"), each = 2), # export region(s)
 #'     year = rep(c(2020, 2050)), # export years
 #'     price = 500, # export price in MUSD/Mtoe (USD/t),
@@ -118,7 +118,7 @@ newExport <- function(
     commodity = "",
     unit = NULL,
     reserve = Inf,
-    exp = data.frame(),
+    export = data.frame(),
     misc = list(),
     ...
     ) {
@@ -128,7 +128,7 @@ newExport <- function(
     commodity = commodity,
     unit = unit,
     reserve = reserve,
-    exp = exp,
+    export = export,
     misc = misc,
     ...
     )

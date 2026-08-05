@@ -1,8 +1,8 @@
 Package: energyRt
 Type: Package
 Title: Energy Systems Modeling Toolbox
-Version: 0.73.0.9000
-Date: 2026-08-04
+Version: 0.74.0.9000
+Date: 2026-08-05
 Authors@R: 
   c(person(given = "Oleg", 
           family = "Lugovoy", 
@@ -44,29 +44,15 @@ LazyData: true
 Encoding: UTF-8
 Collate: 
     'arrow.R'
-    'defaults.R'
     'docs.R'
     'options.R'
     'generics.R'
-    'class-calendar.R'
-    'class-horizon.R'
-    'class-modelData.R'
     'class-repository.R'
+    'class-horizon.R'
+    'defaults.R'
+    'class-calendar.R'
     'class-config.R'
     'class-model.R'
-    'class-parameter.R'
-    'class-modInp.R'
-    'print.R'
-    'plot.R'
-    'check.R'
-    'map_calendar.R'
-    'class-settings.R'
-    'class-variable.R'
-    'class-modOut.R'
-    'class-scenario.R'
-    'geoscale.R'
-    'map_region.R'
-    'check_levels.R'
     'class-commodity.R'
     'class-demand.R'
     'class-supply.R'
@@ -78,7 +64,21 @@ Collate:
     'class-weather.R'
     'class-tax.R'
     'class-subsidy.R'
+    'class-settings.R'
+    'class-modelData.R'
+    'class-variable.R'
+    'class-parameter.R'
+    'class-modInp.R'
+    'class-modOut.R'
+    'class-scenario.R'
     'class-constraint.R'
+    'print.R'
+    'plot.R'
+    'check.R'
+    'map_calendar.R'
+    'geoscale.R'
+    'map_region.R'
+    'check_levels.R'
     'class-costs.R'
     'utils.R'
     'convert.R'

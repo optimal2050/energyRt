@@ -31,7 +31,7 @@ with storage-in and exports negative), \code{"capacity"} (\code{vTechCap} +
 flows are only meaningful for a region subset and are skipped when
 \code{region = NULL} (they cancel out in an all-region sum).}
 
-\item{year}{integer vector or \code{NULL} (all milestone years).}
+\item{year}{integer vector or \code{NULL} (all milestone year).}
 
 \item{slice}{\code{NULL} for annual sums, or a regular expression selecting a
 slice sample (e.g. \code{"^SUM_"} for the summer day on the \code{utopia_s4h24}

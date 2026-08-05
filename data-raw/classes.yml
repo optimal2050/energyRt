@@ -137,7 +137,7 @@ class:
           description: >
             Fixed value of the total available resource.
             This parameter overrides `res.lo` and `res.up`.
-    availability:
+    supply:
       type: data.frame
       description: Availability of the resource in physical units.
       columns:
@@ -198,7 +198,7 @@ class:
     unit:
       type: character
       description: Optional unit of the commodity.
-    dem:
+    demand:
       type: data.frame
       description: Specification of the demand.
       columns:
@@ -211,14 +211,14 @@ class:
         slice:
           type: character
           description: Name of the slice for the demand value. NA for every slice.
-        dem:
+        demand:
           type: numeric
           description: Value of the demand.
     region:
       type: character
       description: >
         Optional name of region to narrow the specification of the demand in the case of used NAs.
-        Error will be returned if specified regions in `@dem` are not mensioned in the `@region` slot
+        Error will be returned if specified regions in `@demand` are not mensioned in the `@region` slot
         (if the slot is not empty).
     misc:
       type: list
@@ -1413,7 +1413,7 @@ class:
     reserve:
       type: numeric
       description: Total accumulated limit through the model horizon.
-    imp:
+    import:
       type: data.frame
       description: Import parameters.
       columns:
@@ -1458,7 +1458,7 @@ class:
     reserve:
       type: numeric
       description: Total accumulated limit through the model horizon.
-    exp:
+    export:
       type: data.frame
       description: Export parameters.
       columns:
@@ -1674,8 +1674,8 @@ class:
     misc:
       type: list
       description: Additional information.
-## sub ######################################################################
-  sub:
+## subsidy ######################################################################
+  subsidy:
     name:
       type: character
       description: Name of the subsidy object, used in sets.
@@ -1691,7 +1691,7 @@ class:
     defVal:
       type: numeric
       description: Default value of the subsidy.
-    sub:
+    subsidy:
       type: data.frame
       description: Subsidy values.
       columns:

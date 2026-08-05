@@ -3,20 +3,20 @@
 \name{autoplot.lever}
 \alias{autoplot.lever}
 \alias{autoplot.tax}
-\alias{autoplot.sub}
+\alias{autoplot.subsidy}
 \alias{autoplot.constraint}
 \title{Plot a tax, subsidy or user constraint over years}
 \usage{
-\method{autoplot}{tax}(object, years = NULL, ...)
+\method{autoplot}{tax}(object, year = NULL, ...)
 
-\method{autoplot}{sub}(object, years = NULL, ...)
+\method{autoplot}{subsidy}(object, year = NULL, ...)
 
-\method{autoplot}{constraint}(object, years = NULL, ...)
+\method{autoplot}{constraint}(object, year = NULL, ...)
 }
 \arguments{
 \item{object}{A \code{tax}, \code{sub} or \code{constraint} object.}
 
-\item{years}{Optional integer vector of years to draw the interpolated line
+\item{year}{Optional integer vector of years to draw the interpolated line
 over (defaults to the range of the given years).}
 
 \item{...}{Unused.}

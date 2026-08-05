@@ -69,7 +69,7 @@ build_utopia <- function(regions = paste0("R", 1:3),
 
   # ---- supply (fuels SUP_*, free renewable resources RES_*; EUR/GJ = MEUR/PJ) ----
   sup <- function(nm, comm, cost, reg = regions) newSupply(nm, commodity = comm,
-    availability = data.frame(region = reg, cost = cost))
+    supply = data.frame(region = reg, cost = cost))
   supplies <- list()
   if (length(coal_regs) > 0) supplies$SUP_COA <- sup("SUP_COA", "COA", 2.5, coal_regs)
   if (length(gas_regs)  > 0) supplies$SUP_GAS <- sup("SUP_GAS", "GAS", 6.0, gas_regs)
@@ -84,17 +84,25 @@ build_utopia <- function(regions = paste0("R", 1:3),
   # ---- rest-of-world trade: fuel imports at a premium, capped ELC exports ----
   IMP_COA <- newImport("IMP_COA", desc = "Coal import from the rest of the world",
     commodity = "COA", unit = "PJ",
-    imp = data.frame(region = regions, price = 3.5))
+    import = data.frame(region = regions, price = 3.5))
   IMP_GAS <- newImport("IMP_GAS", desc = "LNG import from the rest of the world",
     commodity = "GAS", unit = "PJ",
-    imp = data.frame(region = regions, price = 9.0))
+    import = data.frame(region = regions, price = 9.0))
   # export price below new-build LCOE (never build-to-export); exp.up paced by
   # slice-shares (~10 PJ/yr/region -- a bare exp.up would be read PER SLICE and
   # the model would front-load the whole reserve into the base year)
+  #
+  # Restricted to the slices ELC is BALANCED at. `@slice_share` carries every
+  # level (ANNUAL = 1, each season = 0.25, each hour = 1/96), so an unfiltered
+  # `10 * share` also wrote an ANNUAL 10 and four seasonal 2.5 bounds. Those
+  # read as a nested cap and are not one: only `mExportRowUp` slices are read,
+  # and it holds the HOUR level alone, so the 20 coarse rows per region were
+  # written and silently ignored.
   sl <- as.data.frame(cal@slice_share)
+  sl <- sl[sl$slice %in% as.character(cal@timeframes[["HOUR"]]), , drop = FALSE]
   EXP_ELC <- newExport("EXP_ELC", desc = "Electricity export to the rest of the world",
     commodity = "ELC", unit = "PJ", reserve = 300,
-    exp = merge(data.frame(region = regions, price = 5.0),
+    export = merge(data.frame(region = regions, price = 5.0),
                 data.frame(slice = sl$slice, exp.up = 10 * sl$share)))
 
   # ---- weather ----
@@ -109,10 +117,10 @@ build_utopia <- function(regions = paste0("R", 1:3),
     do.call(rbind, lapply(regions, function(r) {
       dr <- d0[d0$region == r, ]
       data.frame(region = r, year = years[i], slice = dr$slice,
-                 dem = annual_demand * demand_growth[i] * dr$w / sum(dr$w))
+                 demand = annual_demand * demand_growth[i] * dr$w / sum(dr$w))
     }))
   }))
-  DEM_ELC <- newDemand("DEM_ELC", commodity = "ELC", dem = dem_rows)
+  DEM_ELC <- newDemand("DEM_ELC", commodity = "ELC", demand = dem_rows)
 
   # ---- technologies (names are UPPER-CASE set elements; no prefix required) ----
   # Existing stock is a DECLINING path (base year -> 0 at `ret_year`): the fleet
@@ -182,7 +190,9 @@ build_utopia <- function(regions = paste0("R", 1:3),
         routes = data.frame(src = c(r1, r2), dst = c(r2, r1)),
         trade  = data.frame(src = c(r1, r2), dst = c(r2, r1), teff = 0.97),
         capacity = data.frame(stock = 1),
-        capacityVariable = TRUE,
+        # `capacityVariable = TRUE` used to be passed here; the slot was removed
+        # because a trade's capacity is ALWAYS a decision variable now, so TRUE
+        # is simply the behaviour
         invcost = data.frame(region = c(r1, r2), invcost = 350),
         olife = list(olife = 50))
     }

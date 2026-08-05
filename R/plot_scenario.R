@@ -24,7 +24,7 @@
 #' @param region character vector or `NULL` (all regions). Inter-regional trade
 #'   flows are only meaningful for a region subset and are skipped when
 #'   `region = NULL` (they cancel out in an all-region sum).
-#' @param year integer vector or `NULL` (all milestone years).
+#' @param year integer vector or `NULL` (all milestone year).
 #' @param slice `NULL` for annual sums, or a regular expression selecting a
 #'   slice sample (e.g. `"^SUM_"` for the summer day on the `utopia_s4h24`
 #'   calendar). When the matched slices carry an hour tag (`"_h00"..."_h23"`),
@@ -300,6 +300,10 @@ autoplot.scenario <- function(object,
     type = c("generation", "capacity", "new_capacity", "fuel", "storage"),
     comm = "ELC", region = NULL, year = NULL, slice = NULL,
     drop_small = 0, by = NULL, fill = NULL, facet = NULL, ...) {
+  # ggplot2 is in Suggests. Without this the failure is R's bare "there is no
+  # package called 'ggplot2'" from the first `ggplot2::` call, and R CMD check
+  # flags a Suggests package used unconditionally. `R/plot.R` guards this way.
+  check_package("ggplot2")
   type <- match.arg(type)
   gtype <- if (type == "storage") "generation" else type
   by <- if (is.null(by)) character() else intersect(by, c("vintage", "cluster"))
@@ -340,7 +344,7 @@ autoplot.scenario <- function(object,
       ggplot2::labs(x = "hour", y = "value", fill = NULL,
                     title = ttl, subtitle = paste0("slices: ", slice,
                                                    "  year: ", year)) +
-      ggplot2::theme_bw()
+      theme_energyRt()
     if (nrow(dem) > 0 && "hour" %in% names(dem)) {
       dl <- stats::aggregate(value ~ hour, dem[c("hour", "value")], sum)
       p <- p + ggplot2::geom_line(data = dl,
@@ -362,7 +366,7 @@ autoplot.scenario <- function(object,
                    fill = .data[[fill_var]])) +
     ggplot2::geom_col(alpha = 0.9) +
     ggplot2::labs(x = "year", y = "value", fill = NULL, title = ttl) +
-    ggplot2::theme_bw()
+    theme_energyRt()
   if (nrow(dem) > 0 && gtype == "generation") {
     dby <- c("year", if (n_reg > 1) "region")
     dl <- stats::aggregate(dem[["value"]], by = dem[dby], FUN = sum)
@@ -436,7 +440,7 @@ autoplot.scenario <- function(object,
 #' `autoplot(model, type = "windows")` and
 #' `autoplot(repository, type = "windows")` dispatch here.
 #'
-#' @param x a `model` or `repository` object.
+#' @param object a `model` or `repository` object.
 #' @param region character vector to filter regions, or `NULL` (all).
 #' @param horizon a `horizon` object used for defaults; taken from the model's
 #'   config automatically (optional for a repository).
@@ -445,14 +449,16 @@ autoplot.scenario <- function(object,
 #' @examples
 #' \dontrun{
 #' autoplot(mod, type = "windows")
-#' plot_process_windows(repo, horizon = newHorizon(2020:2050))
+#' autoplot(repo, horizon = newHorizon(2020:2050))
 #' }
-#' @export
-plot_process_windows <- function(x, region = NULL, horizon = NULL) {
-  if (inherits(x, "model") && is.null(horizon)) {
-    horizon <- tryCatch(x@config@horizon, error = function(e) NULL)
+#' @keywords internal
+#' @noRd
+plot_process_windows <- function(object, region = NULL, horizon = NULL) {
+  check_package("ggplot2")
+  if (inherits(object, "model") && is.null(horizon)) {
+    horizon <- tryCatch(object@config@horizon, error = function(e) NULL)
   }
-  w <- .proc_windows(x, horizon = horizon)
+  w <- .proc_windows(object, horizon = horizon)
   if (is.null(w) || nrow(w) == 0)
     stop("No technologies/storages with availability data found.")
   if (!is.null(region))
@@ -476,7 +482,7 @@ plot_process_windows <- function(x, region = NULL, horizon = NULL) {
     ggplot2::labs(x = "year", y = NULL,
                   title = "Process availability windows",
                   subtitle = "solid: new capacity can be built · translucent: last vintage operates") +
-    ggplot2::theme_bw()
+    theme_energyRt()
   if (vary) p <- p + ggplot2::facet_wrap(~region)
   p
 }

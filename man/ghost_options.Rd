@@ -47,6 +47,7 @@ ghost_options(drift = 0.25, stamp = FALSE)
 }
 \seealso{
 Other draw:
-\code{\link[=draw]{draw()}}
+\code{\link[=plot]{plot()}},
+\code{\link[=theme_energyRt]{theme_energyRt()}}
 }
 \concept{draw}

@@ -73,6 +73,24 @@ nonchar_in_sets <- function(x) {
 # nonchar_in_sets(scen_BASE_int@modInp@set)
 # scen_BASE_int@modInp@set$year |> class()
 
+# Slot names an INSTANCE actually carries.
+#
+# `slotNames()` reads the CLASS DEFINITION, so on an object deserialized before
+# a slot was added it returns names that `slot()` then errors on:
+#   no slot of name "geolevel" for this object of class "commodity"
+# `@geolevel`, `@vintage`, `@cluster` and `@timeframe` are all recent, so every
+# model a user saved before them is affected -- as are this package's own
+# `data/*.rda` kits until they are rebuilt.
+#
+# Any loop that walks a USER-SUPPLIED object must therefore ask the object, not
+# the class. Loops over objects energyRt has just constructed itself are safe
+# and are left alone.
+#' @noRd
+.instance_slots <- function(obj) {
+  sn <- methods::slotNames(obj)
+  sn[vapply(sn, function(s) methods::.hasSlot(obj, s), logical(1))]
+}
+
 
 #' Size of an object
 #'
@@ -94,24 +112,6 @@ nonchar_in_sets <- function(x) {
 #' size(1)
 #' size(rep(1, 1e3))
 #' size(rep(1L, 1e3))
-# Slot names an INSTANCE actually carries.
-#
-# `slotNames()` reads the CLASS DEFINITION, so on an object deserialized before
-# a slot was added it returns names that `slot()` then errors on:
-#   no slot of name "geolevel" for this object of class "commodity"
-# `@geolevel`, `@vintage`, `@cluster` and `@timeframe` are all recent, so every
-# model a user saved before them is affected -- as are this package's own
-# `data/*.rda` kits until they are rebuilt.
-#
-# Any loop that walks a USER-SUPPLIED object must therefore ask the object, not
-# the class. Loops over objects energyRt has just constructed itself are safe
-# and are left alone.
-#' @noRd
-.instance_slots <- function(obj) {
-  sn <- methods::slotNames(obj)
-  sn[vapply(sn, function(s) methods::.hasSlot(obj, s), logical(1))]
-}
-
 size <- function(x, level1 = FALSE, units = "auto", sort = TRUE,
                  decreasing = FALSE, byteTol = 0, asNumeric = FALSE) {
   # browser()

@@ -69,6 +69,17 @@ meaningful, so only the base solve runs).  Set \code{FALSE} to skip the
 extra solves.}
 \item{\code{solver}}{Solver spec list, default
 \code{solver_options$glpk}.}
+\item{\code{run}}{\code{"single"} (default) or \code{"sequential"} --
+only meaningful for a technology declaring vintages or clusters.
+\code{"single"} prices every variant in one model (each in its own
+region, so they cannot compete); if that model does not solve it is
+retried with the dummy-import slack enabled and then, failing that,
+falls back to one model per variant. \code{"sequential"} goes straight
+to one model per variant, so a single non-converging variant cannot
+take the rest down.}
+\item{\code{max_failures}}{Integer, default \code{10}. Abort the
+sequential fallback after this many consecutive failed variant solves,
+to bound the time spent on a technology whose variants all fail.}
 \item{\code{as_scenario}}{Logical, default \code{FALSE}.  When
 \code{TRUE} the full solved \code{scenario} is returned with LCOE
 tables attached to \code{scenario@misc}.}
@@ -94,6 +105,19 @@ activity, capacity, per-commodity outputs and inputs.}
 }
 For a list of technology objects: a named list of class
 \code{"levcost_list"}.
+
+For a technology declaring \strong{vintages} and/or \strong{clusters}: a
+named list of class \code{"levcost_variants"} (which inherits
+\code{"levcost_list"}), holding one full \code{"levcost"} result per
+variant, keyed by variant name (\code{"PWR_VIN2030"}). Each variant is
+priced in its own region so the variants cannot serve each other's demand;
+without that isolation they compete for one unit of demand and the result
+silently sums across them. The stacked tables are reachable with
+\code{\link[=levcost_by_variant]{levcost_by_variant()}}, and \code{autoplot()} compares the variants.
+\code{$frontier} is \code{NULL} on this path -- the frontier corners are a
+per-commodity sweep, orthogonal to variants, and are not fanned out.
+A technology with no vintages or clusters is unaffected and still returns a
+single \code{"levcost"} object.
 }
 \description{
 Computes the levelized cost of energy (LCOE) for a \code{technology},
@@ -132,4 +156,7 @@ autoplot(lc, type = "npv")
 lc_list <- levcost(list(tech1, tech2), discount = 0.07)
 autoplot(lc_list, type = "npv")
 }
+}
+\seealso{
+\code{\link[=levcost_by_variant]{levcost_by_variant()}}
 }

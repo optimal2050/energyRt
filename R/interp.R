@@ -1092,6 +1092,12 @@ collect_set_elements <- function(obj, set_name) {
     unique() |>
     sort()
 
+  # An empty search collapses to NULL (`unlist(list())` is NULL, and `unique()`
+  # and `sort()` keep it that way), which downstream `d2p()` cannot dispatch on.
+  # Return the empty vector instead, matching `collect_object_names()$name`, so
+  # a model that declares no technology (hence no `group`) still interpolates.
+  if (is.null(set_elements)) set_elements <- character(0)
+
   return(set_elements)
 }
 
@@ -3103,9 +3109,15 @@ get_process_timeframe <- function(scen, process = NULL,
   )
   # ll
   # collect all commodities for each process w/o timeframe
-  ii <- sapply(ll, function(x) {
-    is_empty(x) || is.na(x) || x == ""
-  })
+  # `sapply` on an empty list returns `list()`, and `ll[list()]` is an error, so
+  # short-circuit: a model with no technology/storage/process has nothing here.
+  ii <- if (length(ll) == 0L) {
+    logical(0)
+  } else {
+    sapply(ll, function(x) {
+      is_empty(x) || is.na(x) || x == ""
+    })
+  }
   mm <- ll[ii]
   ll <- ll[!ii]
   rm(ii)
@@ -3715,6 +3727,20 @@ get_process_invest_window <- function(scen, process = NULL, classes = NULL) {
     as_list = FALSE
   )
 
+  # `apply_to_scenario_data()` yields an empty, column-less result when the model
+  # holds none of the classes above -- e.g. a demand served only by an import.
+  # `mutate()` would then resolve `start` to `stats::start()` and fail inside
+  # `is.infinite()`, so substitute a correctly typed empty table.
+  if (is.null(ll_start_end) || NROW(ll_start_end) == 0L ||
+      !all(c("process", "region", "start", "end") %in% names(ll_start_end))) {
+    ll_start_end <- data.table(
+      process = character(),
+      region = character(),
+      start = integer(),
+      end = integer()
+    )
+  }
+
   # fix for infinite values (transitioning from Inf to NA in slots to use integers)
   ll_start_end <- ll_start_end |>
     mutate(
@@ -3789,8 +3815,26 @@ get_process_invest_years <- function(scen, process = NULL, classes = NULL) {
   ) |>
   rbindlist(use.names = TRUE, fill = TRUE)
 
+  # Every element is NULL when no capacity-bearing process exists, and
+  # `rbindlist()` then returns a table with no columns at all. Callers join and
+  # arrange on `process`/`year`, so hand back the correctly typed empty table.
+  process_invest_year <- .empty_process_years(process_invest_year)
+
   return(process_invest_year)
 
+}
+
+# Normalise a (possibly column-less) process-years table -- see the callers above.
+.empty_process_years <- function(x) {
+  if (is.null(x) || NROW(x) == 0L ||
+      !all(c("process", "region", "year") %in% names(x))) {
+    return(data.table(
+      process = character(),
+      region = character(),
+      year = integer()
+    ))
+  }
+  x
 }
 
 get_process_stock_window <- function(scen, process = NULL, classes = NULL) {
@@ -3834,6 +3878,19 @@ get_process_stock_window <- function(scen, process = NULL, classes = NULL) {
     },
     as_list = FALSE
   )
+
+  # No technology/storage/trade in the model (e.g. a demand met by an import):
+  # `apply_to_scenario_data()` returns an empty, column-less result and the
+  # region expansion below would fail on a missing `region` column.
+  if (is.null(ll) || NROW(ll) == 0L ||
+      !all(c("process", "region", "start", "end") %in% names(ll))) {
+    ll <- data.table(
+      process = character(),
+      region = character(),
+      start = integer(),
+      end = integer()
+    )
+  }
 
   # expand regions for NA values, keeping start and end years
   ll_na <- ll |>
@@ -3899,6 +3956,8 @@ get_process_stock_years <- function(scen, process = NULL, classes = NULL) {
   ) |>
     rbindlist(use.names = TRUE, fill = TRUE)
 
+  process_stock_year <- .empty_process_years(process_stock_year)
+
   return(process_stock_year)
 
 }
@@ -3927,10 +3986,25 @@ get_process_years <- function(scen, process = NULL, classes = NULL) {
     }
 
     # ### process availability over years by region
-    scen@modInp@sets$process_years <- rbind(
+    process_years <- rbind(
       scen@modInp@sets$process_invest_year,
       scen@modInp@sets$process_stock_year
-    ) |>
+    )
+
+    # Both tables are empty when the model carries no technology/storage/trade
+    # (a demand met by an import, say). `rbindlist()` then yields a table with
+    # no columns at all, and `arrange(process, year)` would resolve `year` to
+    # `stats::year`. Substitute the correctly typed empty table.
+    if (is.null(process_years) || NROW(process_years) == 0L ||
+        !all(c("process", "region", "year") %in% names(process_years))) {
+      process_years <- data.table(
+        process = character(),
+        region = character(),
+        year = integer()
+      )
+    }
+
+    scen@modInp@sets$process_years <- process_years |>
       unique() |>
       arrange(process, year) |>
       as.data.table()

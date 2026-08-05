@@ -7,7 +7,7 @@
 #' @slot desc `r get_slot_doc("demand", "desc")`
 #' @slot commodity `r get_slot_doc("demand", "commodity")`
 #' @slot unit `r get_slot_doc("demand", "unit")`
-#' @slot dem `r get_slot_doc("demand", "dem")`
+#' @slot demand `r get_slot_doc("demand", "demand")`
 #' @slot region `r get_slot_doc("demand", "region")`
 #' @slot misc `r get_slot_doc("demand", "misc")`
 #'
@@ -21,7 +21,7 @@ setClass("demand",
     desc = "character",
     commodity = "character",
     unit = "character",
-    dem = "data.frame",
+    demand = "data.frame",
     region = "character",
     misc = "list"
   ),
@@ -30,11 +30,11 @@ setClass("demand",
     desc = "",
     unit = "",
     region = character(),
-    dem = data.frame(
+    demand = data.frame(
       region = character(),
       year = integer(),
       slice = character(),
-      dem = numeric(),
+      demand = numeric(),
       stringsAsFactors = FALSE
     ),
     misc = list()
@@ -52,7 +52,7 @@ setMethod("initialize", "demand", function(.Object, ...) {
 #' @param desc `r get_slot_doc("demand", "desc")`
 #' @param commodity `r get_slot_doc("demand", "commodity")`
 #' @param unit `r get_slot_doc("demand", "unit")`
-#' @param dem `r get_slot_doc("demand", "dem")`
+#' @param demand `r get_slot_doc("demand", "demand")`
 #' @param region `r get_slot_doc("demand", "region")`
 #' @param misc `r get_slot_doc("demand", "misc")`
 #'
@@ -67,11 +67,11 @@ setMethod("initialize", "demand", function(.Object, ...) {
 #'  desc = "Steel demand",
 #'  commodity = "STEEL",
 #'  unit = "Mt",
-#'  dem = data.frame(
+#'  demand = data.frame(
 #'     region = "UTOPIA", # NA for every region
 #'     year = c(2020, 2030, 2050),
 #'     slice = "ANNUAL",
-#'     dem = c(100, 200, 300)
+#'     demand = c(100, 200, 300)
 #'  ),
 #'  region = "UTOPIA", # optional, to narrow the specification of the demand
 #'  )
@@ -83,7 +83,7 @@ newDemand <- function(
     desc = character(),
     commodity = character(),
     unit = character(),
-    dem = data.frame(),
+    demand = data.frame(),
     region = character(),
     misc = list(),
     ...)
@@ -92,7 +92,7 @@ newDemand <- function(
     desc = desc,
     commodity = commodity,
     unit = unit,
-    dem = dem,
+    demand = demand,
     region = region,
     misc = misc,
     ...

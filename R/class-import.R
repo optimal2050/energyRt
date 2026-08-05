@@ -13,7 +13,7 @@
 #' @slot commodity `r get_slot_doc("import", "commodity")`
 #' @slot unit `r get_slot_doc("import", "unit")`
 #' @slot reserve `r get_slot_doc("import", "reserve")`
-#' @slot imp `r get_slot_doc("import", "imp")`
+#' @slot import `r get_slot_doc("import", "import")`
 #' @slot misc `r get_slot_doc("import", "misc")`
 #'
 #' @include class-trade.R
@@ -31,7 +31,7 @@ setClass("import",
     reserve = "numeric",
     # !!! add region to export
     # !!! make reserve a data.frame with region, year, upper, lower, fixed
-    imp = "data.frame",
+    import = "data.frame",
     # timeframe = "character", # set to commodity@timeframe
     misc = "list"
   ),
@@ -41,7 +41,7 @@ setClass("import",
     commodity = "",
     unit = "",
     reserve = Inf,
-    imp = data.frame(
+    import = data.frame(
       region = character(),
       year = integer(),
       slice = character(),
@@ -85,7 +85,7 @@ setMethod("initialize", "import", function(.Object, ...) {
 #' @param commodity `r get_slot_doc("import", "commodity")`
 #' @param unit `r get_slot_doc("import", "unit")`
 #' @param reserve `r get_slot_doc("import", "reserve")`
-#' @param imp `r get_slot_doc("import", "imp")`
+#' @param import `r get_slot_doc("import", "import")`
 #' @param misc `r get_slot_doc("import", "misc")`
 #'
 #' @return import object with given specifications.
@@ -97,7 +97,7 @@ setMethod("initialize", "import", function(.Object, ...) {
 #'   desc = "Oil import to the model to the RoW", # for own reference
 #'   commodity = "OIL", # must match the commodity name in the model
 #'   unit = "Mtoe", # for own reference
-#'   imp = data.frame(
+#'   import = data.frame(
 #'     region = rep(c("R1", "R2"), each = 2), # import region(s)
 #'     year = rep(c(2020, 2050)), # import years
 #'     price = 600, # import price in MUSD/Mtoe (USD/t),
@@ -113,7 +113,7 @@ newImport <- function(
     commodity = "",
     unit = NULL,
     reserve = Inf,
-    imp = data.frame(),
+    import = data.frame(),
     misc = list(),
     ...
     ) {
@@ -123,7 +123,7 @@ newImport <- function(
     commodity = commodity,
     unit = unit,
     reserve = reserve,
-    imp = imp,
+    import = import,
     misc = misc,
     ...
   )

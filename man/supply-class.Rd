@@ -44,7 +44,7 @@ An S4 class to represent a supply of a commodity
 }
 }}
 
-\item{\code{availability}}{data.frame. Availability of the resource in physical units.
+\item{\code{supply}}{data.frame. Availability of the resource in physical units.
 \describe{
 \item{region}{character. Region name to apply the parameter. Use NA to apply to all regions.
 }

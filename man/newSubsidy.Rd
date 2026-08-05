@@ -11,7 +11,7 @@ newSub(
   comm = "",
   region = character(),
   defVal = 0,
-  sub = data.frame(),
+  subsidy = data.frame(),
   misc = list(),
   ...
 )
@@ -27,7 +27,7 @@ newSub(
 
 \item{defVal}{numeric. Default value of the subsidy.}
 
-\item{sub}{data.frame. Subsidy values.
+\item{subsidy}{data.frame. Subsidy values.
 \describe{
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
@@ -40,20 +40,20 @@ newSub(
 \item{misc}{list. Any additional information or data to store in the subsidy object.}
 }
 \value{
-An object of class \code{sub}
+An object of class \code{subsidy}
 }
 \description{
 Subsidies are used to represent the financial support provided to
 production, consumption, or balance of a commodity.
 }
 \examples{
-SUB_BIO <- newSub(
+SUB_BIO <- newSubsidy(
  name = "SUB_BIO", # used in sets
  desc = "Biofuel consumption subsidy", # for own reference
  comm = "BIO", # must match the commodity name in the model
  region = "R1", # region where the subsidy is applied
  defVal = 0, # default value
- sub = data.frame(
+ subsidy = data.frame(
     # region = "R1",
     year = 2025:2030,
     inp = 0.9 # subsidy rate

@@ -14,7 +14,7 @@
 #' @return displays a schematic representation of the process, returns `NULL`.
 #'
 #' @export
-setGeneric("draw", function(obj, ...) standardGeneric("draw"))
+setGeneric("draw", function(object, ...) standardGeneric("draw"))
 
 ## Constants ####
 keys <- c(
@@ -70,9 +70,9 @@ utils::globalVariables(
 # One technology, one figure. This is the original `draw.technology()` body,
 # unchanged except that it now forwards `...` (and therefore `newpage`) to
 # `draw_process()`. `draw.technology()` below wraps it to handle vintages.
-.draw_technology_one <- function(obj, ..., .ghost = FALSE) {
+.draw_technology_one <- function(object, ..., .ghost = FALSE) {
   # browser()
-  com_inp <- obj@input |>
+  com_inp <- object@input |>
     mutate(io = "cinp", .before = 1) |>
     rowwise() |>
     mutate(
@@ -84,7 +84,7 @@ utils::globalVariables(
       )
     ) |>
     # add technology parameters
-    left_join(obj@ceff, by = "comm") |>
+    left_join(object@ceff, by = "comm") |>
     pivot_longer(
       cols = matches("2"), # non-grouped-comm-params have "2" in their names
       names_to = "parameter",
@@ -95,7 +95,7 @@ utils::globalVariables(
     filter(!is.na(value) | (all(is.na(value)) & row_number() == 1)) |>
     ungroup()
 
-  com_out <- obj@output |>
+  com_out <- object@output |>
     mutate(io = "cout", .before = 1) |>
     rowwise() |>
     mutate(
@@ -107,7 +107,7 @@ utils::globalVariables(
       )
     ) |>
     # add technology parameters
-    left_join(obj@ceff, by = "comm") |>
+    left_join(object@ceff, by = "comm") |>
     pivot_longer(
       cols = matches("2"), # non-grouped-comm-params have "2" in their names
       names_to = "parameter",
@@ -123,7 +123,7 @@ utils::globalVariables(
 
   # # add technology parameters
   # com_par <- com_tbl |>
-  #   full_join(obj@ceff, by = "comm") |>
+  #   full_join(object@ceff, by = "comm") |>
   #   pivot_longer(
   #     cols = matches("2"), # non-grouped-comm-params have "2" in their names
   #     names_to = "parameter",
@@ -231,8 +231,8 @@ utils::globalVariables(
   ccom_par
 
   # auxiliary inputs ####
-  aux_tbl <- obj@aux |>
-    full_join(obj@aeff, by = "acomm")
+  aux_tbl <- object@aux |>
+    full_join(object@aeff, by = "acomm")
 
   ainp <- aux_tbl |>
     select(
@@ -307,7 +307,7 @@ utils::globalVariables(
   aux
 
   # weather factors
-  wea <- obj@weather |>
+  wea <- object@weather |>
     rowwise() |>
     mutate(
       lab_wafc = if_else(
@@ -386,7 +386,7 @@ utils::globalVariables(
     )
   wea
 
-  geff <- obj@geff |>
+  geff <- object@geff |>
     pivot_longer(
       cols = ginp2use,
       names_to = "parameter",
@@ -515,7 +515,7 @@ utils::globalVariables(
   # )
 
   # cap2act ####
-  cap2act_label <- paste0("cap2act: ", obj@cap2act)
+  cap2act_label <- paste0("cap2act: ", object@cap2act)
 
   stopifnot(length(unique(arrow_labels_tb$ioname)) == nrow(arrow_labels_tb))
   arrow_labels <- arrow_labels_tb$lab_txt
@@ -539,8 +539,8 @@ utils::globalVariables(
   gh <- isTRUE(.ghost)
   try(
     draw_process(
-      process_name = if (gh) "" else obj@name,
-      process_desc = if (gh) "" else obj@desc,
+      process_name = if (gh) "" else object@name,
+      process_desc = if (gh) "" else object@desc,
       grouped_com_inputs = grouped_com_inputs,
       single_com_inputs = single_com_inputs,
       aux_inputs = aux_inputs,
@@ -584,14 +584,14 @@ utils::globalVariables(
 # Every expanded cell of one process, with each axis' levels in declared order.
 # Returns NULL when there is nothing to show (no variants, or a single cell).
 #' @noRd
-.tech_variants <- function(obj) {
+.tech_variants <- function(object) {
   lev <- function(dim) {
-    tryCatch(as.character(.variant_levels(obj, dim)), error = function(e) character())
+    tryCatch(as.character(.variant_levels(object, dim)), error = function(e) character())
   }
   vins <- lev("vintage")
   clus <- lev("cluster")
   if (length(vins) < 2L && length(clus) < 2L) return(NULL)
-  ex <- tryCatch(.expand_one_process(obj), error = function(e) NULL)
+  ex <- tryCatch(.expand_one_process(object), error = function(e) NULL)
   if (is.null(ex) || is.null(ex$provenance) || length(ex$objects) < 2L) {
     return(NULL)
   }
@@ -742,15 +742,15 @@ ghost_options <- function(alpha = 0.45, alpha_min = 0.12, scale = 0.72,
 #' @param max_facets refuse to lay out more than this many panels for
 #'   `vintage = "all"` / `cluster = "all"`. A full 11 x 4 grid is unreadable, and
 #'   silently drawing it is worse than saying so.
-draw.technology <- function(obj, ..., vintage = NULL, cluster = NULL,
+draw.technology <- function(object, ..., vintage = NULL, cluster = NULL,
                             ghost = ghost_options(),
                             cluster_style = c("rail", "deck", "none"),
                             box_width = 0.4, max_facets = 24L) {
   gh <- .as_ghost_options(ghost)
   cluster_style <- match.arg(cluster_style)
 
-  v <- .tech_variants(obj)
-  if (is.null(v)) return(.draw_technology_one(obj, ...))
+  v <- .tech_variants(object)
+  if (is.null(v)) return(.draw_technology_one(object, ...))
 
   is_all <- function(x) is.character(x) && identical(as.character(x)[1], "all")
   if (is_all(vintage) || is_all(cluster)) {
@@ -1105,12 +1105,12 @@ draw.technology <- function(obj, ..., vintage = NULL, cluster = NULL,
 #'   )
 #' )
 #' draw(TECH01)
-setMethod("draw", "technology", function(obj, ...) {
-  draw.technology(obj, ...)
+setMethod("draw", "technology", function(object, ...) {
+  draw.technology(object, ...)
 })
 
 ## draw.storage ####
-draw.storage <- function(obj, ...) {
+draw.storage <- function(object, ...) {
   keys <- c(
     "region", "year", "slice", "comm", "acomm",
     # "value",
@@ -1119,10 +1119,10 @@ draw.storage <- function(obj, ...) {
   )
   # browser()
   comm <- data.frame(
-    comm = obj@commodity
-    # unit = obj@unit
+    comm = object@commodity
+    # unit = object@unit
   ) |>
-    cross_join(obj@seff) |>
+    cross_join(object@seff) |>
     pivot_longer(
       cols = matches("eff"),
       names_to = "parameter",
@@ -1143,7 +1143,7 @@ draw.storage <- function(obj, ...) {
       # io = "cinp",
       # lab_txt = make_label(
       #   comm,
-      #   in_brackets = obj@unit,
+      #   in_brackets = object@unit,
       #   two_lines = FALSE
       # )
       lab_txt = comm
@@ -1166,12 +1166,12 @@ draw.storage <- function(obj, ...) {
 
   stg_par <- comm |>
     filter(grepl("stg", parameter)) |>
-    mutate(cap2stg = obj@cap2stg, iotype = "stg") |>
+    mutate(cap2stg = object@cap2stg, iotype = "stg") |>
     rename(ioname = comm)
 
   # aux
-  aux <- obj@aux |>
-    full_join(obj@aeff, by = "acomm") |>
+  aux <- object@aux |>
+    full_join(object@aeff, by = "acomm") |>
     pivot_longer(
       cols = matches("2"), # non-grouped-comm-params have "2" in their names
       names_to = "parameter",
@@ -1203,8 +1203,8 @@ draw.storage <- function(obj, ...) {
   aux_outputs <- aux |> filter(iotype == "aout")
 
 
-  if (nrow(obj@weather) > 0) {
-    wea <- obj@weather |>
+  if (nrow(object@weather) > 0) {
+    wea <- object@weather |>
       rowwise() |>
       mutate(
         lab_waf = if_else(
@@ -1245,7 +1245,7 @@ draw.storage <- function(obj, ...) {
         lab_txt = if_else(
           is.na(NA),
           weather,
-          make_label(weather, in_brackets = obj@commodity, two_lines = FALSE)
+          make_label(weather, in_brackets = object@commodity, two_lines = FALSE)
         ),
         lab_par = if_else(
           all(is.na(c(lab_waf, lab_wcinp))),
@@ -1271,7 +1271,7 @@ draw.storage <- function(obj, ...) {
   # center labels
   center_labels <- c(
     stg_par$lab_par,
-    paste0("cap2stg: ", obj@cap2stg)
+    paste0("cap2stg: ", object@cap2stg)
   ) |>
     paste(collapse = "\n")
 
@@ -1280,8 +1280,8 @@ draw.storage <- function(obj, ...) {
   names(arrow_labels) <- c(com_txt$comm, aux$acomm, wea$ioname)
 
   draw_process(
-    process_name = obj@name,
-    process_desc = obj@desc,
+    process_name = object@name,
+    process_desc = object@desc,
     single_com_inputs = com_inp,
     single_com_outputs = com_out,
     aux_inputs = aux_inputs,
@@ -1359,23 +1359,23 @@ setMethod("draw", "storage", draw.storage)
 
 
 ## draw.supply ####
-draw.supply <- function(obj, ...) {
+draw.supply <- function(object, ...) {
   # keys <- c("region", "year", "slice", "comm", "acomm",
   #           # "value",
   #           "lab_par", "lab_txt",
   #           "tech", "group", "weather", "unit", "io", "parameter")
   # browser()
-  if (nrow(obj@availability) == 0) {
+  if (nrow(object@supply) == 0) {
     sup_par <- data.frame(
       lab_par = "",
       lab_txt = "",
       iotype = "cout",
-      ioname = obj@commodity,
+      ioname = object@commodity,
       group = NA_character_,
       parameter = "sup"
     )
   } else {
-    sup_par <- obj@availability |>
+    sup_par <- object@supply |>
       pivot_longer(
         cols = matches("ava|cost"),
         names_to = "parameter",
@@ -1394,18 +1394,18 @@ draw.supply <- function(obj, ...) {
       ) |>
       # mutate(
       #   iotype = "cout",
-      #   ioname = obj@commodity,
+      #   ioname = object@commodity,
       #   group = NA_character_,
       #   lab_txt = make_label(
-      #     obj@commodity,
-      #     in_brackets = obj@unit,
+      #     object@commodity,
+      #     in_brackets = object@unit,
       #     return_name_if_empty = TRUE,
       #     two_lines = FALSE
       #   )
       # ) |>
       mutate(
         iotype = "cout",
-        ioname = obj@commodity,
+        ioname = object@commodity,
         group = NA_character_
       ) |>
       group_by(ioname, iotype, group) |>
@@ -1416,7 +1416,7 @@ draw.supply <- function(obj, ...) {
       mutate(
         lab_txt = make_label(
           ioname,
-          in_brackets = obj@unit,
+          in_brackets = object@unit,
           return_name_if_empty = TRUE,
           two_lines = FALSE
         ),
@@ -1425,16 +1425,16 @@ draw.supply <- function(obj, ...) {
   }
 
   arrow_labels <- make_label(
-    obj@commodity,
-    in_brackets = obj@unit,
+    object@commodity,
+    in_brackets = object@unit,
     return_name_if_empty = TRUE,
     two_lines = FALSE
   )
-  names(arrow_labels) <- obj@commodity
+  names(arrow_labels) <- object@commodity
 
   # reserve
-  if (nrow(obj@reserve) > 0) {
-    res_par <- obj@reserve |>
+  if (nrow(object@reserve) > 0) {
+    res_par <- object@reserve |>
       pivot_longer(
         cols = matches("res"),
         names_to = "parameter",
@@ -1453,18 +1453,18 @@ draw.supply <- function(obj, ...) {
       ) |>
       mutate(
         iotype = "cinp",
-        ioname = obj@commodity,
+        ioname = object@commodity,
         group = NA_character_,
         lab_txt = make_label(
-          obj@commodity,
-          in_brackets = obj@unit,
+          object@commodity,
+          in_brackets = object@unit,
           return_name_if_empty = TRUE,
           two_lines = FALSE
         )
       ) |>
       mutate(
         iotype = "cout",
-        ioname = obj@commodity,
+        ioname = object@commodity,
         group = NA_character_
       ) |>
       group_by(ioname, iotype, group) |>
@@ -1475,7 +1475,7 @@ draw.supply <- function(obj, ...) {
       mutate(
         lab_txt = make_label(
           ioname,
-          in_brackets = obj@unit,
+          in_brackets = object@unit,
           return_name_if_empty = TRUE,
           two_lines = FALSE
         ),
@@ -1490,8 +1490,8 @@ draw.supply <- function(obj, ...) {
   }
 
   draw_process(
-    process_name = obj@name,
-    process_desc = obj@desc,
+    process_name = object@name,
+    process_desc = object@desc,
     single_com_outputs = sup_par,
     center_label = res_par$lab_par,
     arrow_labels = arrow_labels,
@@ -1519,7 +1519,7 @@ draw.supply <- function(obj, ...) {
 #'     region = c("R1", "R2", "R3"),
 #'     res.up = c(2e5, 1e4, 3e6) # total reserves/deposits
 #'   ),
-#'   availability = data.frame(
+#'   supply = data.frame(
 #'     region = c("R1", "R2", "R3"),
 #'     year = NA_integer_,
 #'     slice = "ANNUAL",
@@ -1532,11 +1532,11 @@ draw.supply <- function(obj, ...) {
 setMethod("draw", "supply", draw.supply)
 
 ## draw.demand ####
-draw.demand <- function(obj, ...) {
+draw.demand <- function(object, ...) {
   # browser()
-  dem_par <- obj@dem |>
+  dem_par <- object@demand |>
     pivot_longer(
-      cols = matches("dem"),
+      cols = matches("demand"),
       names_to = "parameter",
       values_to = "value"
     ) |>
@@ -1553,11 +1553,11 @@ draw.demand <- function(obj, ...) {
     ) |>
     mutate(
       iotype = "cinp",
-      ioname = obj@commodity,
+      ioname = object@commodity,
       group = NA_character_,
       lab_txt = make_label(
-        obj@commodity,
-        in_brackets = obj@unit,
+        object@commodity,
+        in_brackets = object@unit,
         return_name_if_empty = TRUE,
         two_lines = FALSE
       )
@@ -1570,25 +1570,25 @@ draw.demand <- function(obj, ...) {
     mutate(
       lab_txt = make_label(
         ioname,
-        in_brackets = obj@unit,
+        in_brackets = object@unit,
         return_name_if_empty = TRUE,
         two_lines = FALSE
       ),
-      parameter = "dem"
+      parameter = "demand"
     )
   dem_par
 
   arrow_labels <- make_label(
-    obj@commodity,
-    in_brackets = obj@unit,
+    object@commodity,
+    in_brackets = object@unit,
     return_name_if_empty = TRUE,
     two_lines = FALSE
   )
-  names(arrow_labels) <- obj@commodity
+  names(arrow_labels) <- object@commodity
 
   draw_process(
-    process_name = obj@name,
-    process_desc = obj@desc,
+    process_name = object@name,
+    process_desc = object@desc,
     single_com_inputs = dem_par,
     arrow_labels = arrow_labels,
     show_inputs = TRUE,
@@ -1621,19 +1621,19 @@ draw.demand <- function(obj, ...) {
 #' draw(DSTEEL)
 #' @exportMethod draw
 setMethod(
-  "draw", signature(obj = "demand"),
-  function(obj, ...) draw.demand(obj, ...)
+  "draw", signature(object = "demand"),
+  function(object, ...) draw.demand(object, ...)
 )
 
 ## draw.export ####
-draw.export <- function(obj, ...) {
+draw.export <- function(object, ...) {
   # browser()
 
   # key columns
 
   # export parameters
   exp_par <-
-    obj@exp |>
+    object@export |>
     pivot_longer(
       cols = matches("exp|price"),
       names_to = "parameter",
@@ -1666,7 +1666,7 @@ draw.export <- function(obj, ...) {
     # select(-lab_regions, -lab_years) |>
     mutate(
       iotype = "cinp",
-      ioname = obj@commodity,
+      ioname = object@commodity,
       group = NA_character_,
     ) |>
     group_by(ioname, iotype, group) |>
@@ -1676,11 +1676,11 @@ draw.export <- function(obj, ...) {
       #     all(is.na(region)),
       #     NA_character_,
       #     paste0(
-      #       # "{R(", length(unique(obj@exp$region)), "):",
+      #       # "{R(", length(unique(object@export$region)), "):",
       #       "Regions: {",
       #       shorten_string(
-      #         paste0(sort(unique(obj@exp$region)), collapse = ","),
-      #         n = 15, add_number = length(unique(obj@exp$region))),
+      #         paste0(sort(unique(object@export$region)), collapse = ","),
+      #         n = 15, add_number = length(unique(object@export$region))),
       #       "}")
       #   ),
       #   lab_years = if_else(
@@ -1689,7 +1689,7 @@ draw.export <- function(obj, ...) {
       #     paste0(
       #       "Years: [",
       #       shorten_string(
-      #         paste0(range(obj@exp$year, na.rm = TRUE), collapse = ","),
+      #         paste0(range(object@export$year, na.rm = TRUE), collapse = ","),
       #         15),
       #       "]")
       #   ),
@@ -1698,7 +1698,7 @@ draw.export <- function(obj, ...) {
     mutate(
       lab_txt = make_label(
         ioname,
-        in_brackets = obj@unit,
+        in_brackets = object@unit,
         return_name_if_empty = TRUE,
         two_lines = FALSE
       ),
@@ -1709,15 +1709,15 @@ draw.export <- function(obj, ...) {
 
   # arrow_label ####
   arrow_labels <- make_label(
-    obj@commodity,
-    in_brackets = obj@unit,
+    object@commodity,
+    in_brackets = object@unit,
     two_lines = FALSE
   )
-  names(arrow_labels) <- obj@commodity
+  names(arrow_labels) <- object@commodity
 
   draw_process(
-    process_name = obj@name,
-    process_desc = obj@desc,
+    process_name = object@name,
+    process_desc = object@desc,
     single_com_inputs = exp_par,
     arrow_labels = arrow_labels,
     show_inputs = TRUE,
@@ -1755,12 +1755,12 @@ draw.export <- function(obj, ...) {
 setMethod("draw", "export", draw.export)
 
 ## draw.import ####
-draw.import <- function(obj, ...) {
+draw.import <- function(object, ...) {
   # key columns
   # browser()
   # import parameters
   imp_par <-
-    obj@imp |>
+    object@import |>
     pivot_longer(
       cols = matches("imp|price"),
       names_to = "parameter",
@@ -1793,7 +1793,7 @@ draw.import <- function(obj, ...) {
     # select(-lab_regions, -lab_years) |>
     mutate(
       iotype = "cout",
-      ioname = obj@commodity,
+      ioname = object@commodity,
       group = NA_character_,
     ) |>
     group_by(ioname, iotype, group) |>
@@ -1803,11 +1803,11 @@ draw.import <- function(obj, ...) {
       #     all(is.na(region)),
       #     NA_character_,
       #     paste0(
-      #       # "{R(", length(unique(obj@imp$region)), "):",
+      #       # "{R(", length(unique(object@import$region)), "):",
       #       "Regions: {",
       #       shorten_string(
-      #         paste0(sort(unique(obj@imp$region)), collapse = ","),
-      #         n = 15, add_number = length(unique(obj@imp$region))),
+      #         paste0(sort(unique(object@import$region)), collapse = ","),
+      #         n = 15, add_number = length(unique(object@import$region))),
       #       "}")
       #   ),
       #   lab_years = if_else(
@@ -1816,7 +1816,7 @@ draw.import <- function(obj, ...) {
       #     paste0(
       #       "Years: [",
       #       shorten_string(
-      #         paste0(range(obj@imp$year, na.rm = TRUE), collapse = ","),
+      #         paste0(range(object@import$year, na.rm = TRUE), collapse = ","),
       #         15),
       #       "]")
       #   ),
@@ -1825,7 +1825,7 @@ draw.import <- function(obj, ...) {
     mutate(
       lab_txt = make_label(
         ioname,
-        in_brackets = obj@unit,
+        in_brackets = object@unit,
         return_name_if_empty = TRUE,
         two_lines = FALSE
       ),
@@ -1836,16 +1836,16 @@ draw.import <- function(obj, ...) {
 
   # arrow_label ####
   arrow_labels <- make_label(
-    obj@commodity,
-    in_brackets = obj@unit,
+    object@commodity,
+    in_brackets = object@unit,
     return_name_if_empty = TRUE,
     two_lines = FALSE
   )
-  names(arrow_labels) <- obj@commodity
+  names(arrow_labels) <- object@commodity
 
   draw_process(
-    process_name = obj@name,
-    process_desc = obj@desc,
+    process_name = object@name,
+    process_desc = object@desc,
     single_com_outputs = imp_par,
     arrow_labels = arrow_labels,
     show_inputs = FALSE,
@@ -1883,7 +1883,7 @@ draw.import <- function(obj, ...) {
 setMethod("draw", "import", draw.import)
 
 ## draw.trade ####
-draw.trade <- function(obj, ...) {
+draw.trade <- function(object, ...) {
   arg <- list(...)
   # browser()
   if (!is.null(arg$region)) {
@@ -1891,12 +1891,12 @@ draw.trade <- function(obj, ...) {
   } else if (!is.null(arg$node)) {
     node <- arg$node
   } else {
-    node <- unique(obj@routes$src)[1]
+    node <- unique(object@routes$src)[1]
   }
 
-  inp_par <- obj@routes |>
+  inp_par <- object@routes |>
     filter(dst == node) |>
-    left_join(obj@trade, by = c("src", "dst")) |>
+    left_join(object@trade, by = c("src", "dst")) |>
     pivot_longer(
       cols = matches("ava|eff"),
       names_to = "parameter",
@@ -1921,10 +1921,10 @@ draw.trade <- function(obj, ...) {
     ) |>
     rowwise() |>
     mutate(
-      comm = obj@commodity,
+      comm = object@commodity,
       iotype = "cinp",
       ioname = make_label(
-        obj@commodity,
+        object@commodity,
         in_brackets = src,
         two_lines = F
       ),
@@ -1933,9 +1933,9 @@ draw.trade <- function(obj, ...) {
     )
   inp_par
 
-  out_par <- obj@routes |>
+  out_par <- object@routes |>
     filter(src == node) |>
-    left_join(obj@trade, by = c("src", "dst")) |>
+    left_join(object@trade, by = c("src", "dst")) |>
     pivot_longer(
       cols = matches("ava|eff"),
       names_to = "parameter",
@@ -1960,10 +1960,10 @@ draw.trade <- function(obj, ...) {
     ) |>
     rowwise() |>
     mutate(
-      comm = obj@commodity,
+      comm = object@commodity,
       iotype = "cout",
       ioname = make_label(
-        obj@commodity,
+        object@commodity,
         in_brackets = dst,
         two_lines = FALSE
       ),
@@ -1974,8 +1974,8 @@ draw.trade <- function(obj, ...) {
 
   # aux
   aux_inp <-
-    obj@aux |>
-    full_join(obj@aeff, by = "acomm") |>
+    object@aux |>
+    full_join(object@aeff, by = "acomm") |>
     filter(dst == node) |>
     pivot_longer(
       cols = matches("2"), # non-grouped-comm-params have "2" in their names
@@ -2010,8 +2010,8 @@ draw.trade <- function(obj, ...) {
   aux_inp$lab_par
 
   aux_out <-
-    obj@aux |>
-    full_join(obj@aeff, by = "acomm") |>
+    object@aux |>
+    full_join(object@aeff, by = "acomm") |>
     filter(src == node) |>
     pivot_longer(
       cols = matches("2"), # non-grouped-comm-params have "2" in their names
@@ -2051,12 +2051,12 @@ draw.trade <- function(obj, ...) {
 
   cap2act_label <- make_label(
     "cap2act:",
-    in_brackets = obj@cap2act,
+    in_brackets = object@cap2act,
     two_lines = FALSE,
     bracket_type = "square"
   )
 
-  all_nodes <- unique(obj@routes$src, obj@routes$dst)
+  all_nodes <- unique(object@routes$src, object@routes$dst)
 
   center_label <- paste0(
     cap2act_label,
@@ -2087,8 +2087,8 @@ draw.trade <- function(obj, ...) {
 
 
   draw_process(
-    process_name = paste0(obj@name, ", node: ", node),
-    process_desc = obj@desc,
+    process_name = paste0(object@name, ", node: ", node),
+    process_desc = object@desc,
     single_com_inputs = inp_par,
     single_com_outputs = out_par,
     aux_inputs = aux_inp,
@@ -2229,15 +2229,15 @@ make_label <- function(
 
 #' Drafted function to convert an S4 object to a data frame
 #'
-#' @param obj An S4 object
+#' @param object An S4 object
 #' @param sets A character vector with the names of the sets,
 #' colnames to create in the resulting data frame.
 #' Default is c("region", "year", "slice", "comm", "acomm")
 #' @param verbose A logical value if to print messages
 #' @noRd
-en_obj2df <- function(obj, sets = NULL, verbose = FALSE) {
+en_obj2df <- function(object, sets = NULL, verbose = FALSE) {
   # browser()
-  if (!isS4(obj)) {
+  if (!isS4(object)) {
     stop("Object must be an S4 class")
   }
 
@@ -2245,28 +2245,28 @@ en_obj2df <- function(obj, sets = NULL, verbose = FALSE) {
     sets <- c("region", "year", "slice", "comm", "acomm")
   }
 
-  # obj <- tech
-  slots <- slotNames(obj)
+  # object <- tech
+  slots <- slotNames(object)
 
   ll <- list()
   for (s in slots) {
     if (verbose) cat("Processing slot: ", s, "\n")
 
-    if (inherits(slot(obj, s), "data.frame")) {
-      ll[[s]] <- slot(obj, s) |>
+    if (inherits(slot(object, s), "data.frame")) {
+      ll[[s]] <- slot(object, s) |>
         pivot_by_type(sets = sets, slot_name = s)
-    } else if (inherits(slot(obj, s), c("character", "numeric", "logical"))) {
+    } else if (inherits(slot(object, s), c("character", "numeric", "logical"))) {
       ll[[s]] <- data.frame(
-        parameter = if (is_empty(slot(obj, s))) NA else slot(obj, s)
+        parameter = if (is_empty(slot(object, s))) NA else slot(object, s)
       ) |>
         pivot_by_type(sets = sets, slot_name = s)
-    } else if (inherits(slot(obj, s), "list")) {
-      if (length(slot(obj, s)) > 0) {
+    } else if (inherits(slot(object, s), "list")) {
+      if (length(slot(object, s)) > 0) {
         message("Skipping list slot: ", s)
       }
       # ll2 <-
     } else {
-      message("Skipping slot: ", s, " of class: ", class(slot(obj, s)))
+      message("Skipping slot: ", s, " of class: ", class(slot(object, s)))
     }
   }
   ll |>
@@ -2277,8 +2277,8 @@ en_obj2df <- function(obj, sets = NULL, verbose = FALSE) {
     ) |>
     # filter(slot != "name") |>
     mutate(
-      class = class(obj),
-      name = obj@name,
+      class = class(object),
+      name = object@name,
       .before = 1
     )
   # !!! ToDO: add status column (T/F coercion success)

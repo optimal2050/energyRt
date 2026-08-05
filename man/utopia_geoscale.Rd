@@ -44,7 +44,7 @@ mod <- newModel("UTOPIA", region = c("R1", "R2", "R3"), geoscale = gs3)
 \seealso{
 Other geoscale:
 \code{\link[=check_geoscale_regions]{check_geoscale_regions()}},
-\code{\link[=geo_map]{geo_map()}},
+\code{\link[=plot_map]{plot_map()}},
 \code{\link{setGeoscale,config-method}}
 }
 \concept{geoscale}

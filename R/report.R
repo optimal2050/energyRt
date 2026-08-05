@@ -266,7 +266,7 @@ setMethod(
         warning("Package 'ggplot2' is required for levcost plots; they will be omitted.")
       } else {
         lc_obj <- if (inherits(levcost, "levcost_list")) levcost[[1]] else levcost
-        compact_theme <- ggplot2::theme_bw(base_size = 10L) +
+        compact_theme <- theme_energyRt(base_size = 10L) +
           ggplot2::theme(
             legend.position  = "bottom",
             legend.key.size  = ggplot2::unit(0.3, "cm"),
@@ -584,8 +584,8 @@ setMethod(
   })) else NULL
 
   sup_df <- if (length(sups) > 0) do.call(rbind, lapply(sups, function(x) {
-    cost <- if (nrow(x@availability) > 0 && "cost" %in% names(x@availability)) {
-      v <- x@availability$cost[!is.na(x@availability$cost)]
+    cost <- if (nrow(x@supply) > 0 && "cost" %in% names(x@supply)) {
+      v <- x@supply$cost[!is.na(x@supply$cost)]
       if (length(v) > 0) paste(unique(signif(range(v), 4)), collapse = " - ") else ""
     } else ""
     data.frame(name = x@name, commodity = paste(x@commodity, collapse = ", "),
@@ -593,8 +593,8 @@ setMethod(
   })) else NULL
 
   dem_df <- if (length(dems) > 0) do.call(rbind, lapply(dems, function(x) {
-    tot <- if (nrow(x@dem) > 0 && "dem" %in% names(x@dem)) {
-      v <- x@dem$dem[!is.na(x@dem$dem)]
+    tot <- if (nrow(x@demand) > 0 && "demand" %in% names(x@demand)) {
+      v <- x@demand$demand[!is.na(x@demand$demand)]
       if (length(v) > 0) signif(sum(v), 4) else NA
     } else NA
     data.frame(name = x@name, commodity = paste(x@commodity, collapse = ", "),

@@ -375,9 +375,16 @@ interpolate_slot <- interpolate_slot <- function(
   if (!is.data.frame(dtf) & !is.list(dtf)) invisible()  # browser() disabled
   # return(dtf)
   # temporary solution to avoid merging conflicts
-  if (!is.null(dtf[["value"]]) && !inherits(dtf[["value"]], "numeric")) {
+  # `inherits(x, "numeric")` is FALSE for an integer vector, so a solution whose
+  # `value` column reads back as integer (a whole-numbered result, e.g. an
+  # import of exactly 1500) used to trip the guard below -- note the coercion
+  # that was stranded after `stop()`. Coerce integers, and keep stopping on a
+  # genuinely non-numeric column.
+  if (!is.null(dtf[["value"]]) && !is.numeric(dtf[["value"]])) {
     print(as_tibble(dtf))
     stop("Non-numeric 'value' column")
+  }
+  if (!is.null(dtf[["value"]]) && !is.double(dtf[["value"]])) {
     dtf[["value"]] <- as.numeric(dtf[["value"]])
   }
   as.data.table(dtf)

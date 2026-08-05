@@ -151,7 +151,7 @@ NULL
 #' Requires a geoscale with geometry attached (see [setGeoscale()] and
 #' `geoscales::geo_attach_geometry()`), plus `sf` and `ggplot2`.
 #'
-#' @param scen a solved `scenario`.
+#' @param object a solved `scenario`.
 #' @param type what to map, passed to [getMix()]: `"generation"`, `"capacity"`,
 #'   `"new_capacity"` or `"fuel"`.
 #' @param level level of the geoscale to draw. Defaults to the finest, i.e. the
@@ -168,13 +168,13 @@ NULL
 #' @examples
 #' \dontrun{
 #' scen <- solve(interpolate(mod, "BASE"))
-#' geo_map(scen, "capacity")
-#' geo_map(scen, "capacity", level = "zone")
+#' plot_map(scen, "capacity")
+#' plot_map(scen, "capacity", level = "zone")
 #' }
 #'
 #' @family geoscale
 #' @export
-geo_map <- function(scen,
+plot_map <- function(object,
                     type = c("generation", "capacity", "new_capacity", "fuel"),
                     level = NULL, comm = "ELC", year = NULL,
                     process = NULL, geoscale = NULL,
@@ -182,12 +182,12 @@ geo_map <- function(scen,
   type <- match.arg(type)
   check_package("ggplot2")
   check_package("sf")
-  gs <- .resolve_geoscale(scen, geoscale)
+  gs <- .resolve_geoscale(object, geoscale)
 
   finest <- .geo_default_level(gs)
   level <- level %||% finest
 
-  d <- getMix(scen, type = type, comm = comm, year = year)
+  d <- getMix(object, type = type, comm = comm, year = year)
   if (is.null(d) || nrow(d) == 0L) {
     stop("No results for type '", type, "'.", call. = FALSE)
   }

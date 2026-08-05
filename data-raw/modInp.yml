@@ -1761,7 +1761,7 @@ pSubCostInp:
   defVal: 0.0
   interpolation: back.inter.forth
   class: subsidy
-  slot: sub
+  slot: subsidy
   colName: inp
 pSubCostOut:
   name: pSubCostOut
@@ -1774,7 +1774,7 @@ pSubCostOut:
   defVal: 0.0
   interpolation: back.inter.forth
   class: subsidy
-  slot: sub
+  slot: subsidy
   colName: out
 pSubCostBal:
   name: pSubCostBal
@@ -1787,7 +1787,7 @@ pSubCostBal:
   defVal: 0.0
   interpolation: back.inter.forth
   class: subsidy
-  slot: sub
+  slot: subsidy
   colName: bal
 mCommReg:
   name: mCommReg

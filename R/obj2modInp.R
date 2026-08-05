@@ -500,10 +500,10 @@ setMethod(
     dat <- data.table(
       dem = dem@name,
       comm = dem@commodity,
-      region = dem@dem$region,
-      year = dem@dem$year,
-      slice = dem@dem$slice,
-      value = as.numeric(dem@dem$dem)
+      region = dem@demand$region,
+      year = dem@demand$year,
+      slice = dem@demand$slice,
+      value = as.numeric(dem@demand$demand)
     ) |>
       force_cols_classes()
 
@@ -573,10 +573,10 @@ setMethod(
     dat <- data.table(
       expp = exp@name,
       # comm = exp@commodity,
-      region = exp@exp$region,
-      year = exp@exp$year,
-      slice = exp@exp$slice,
-      value = as.numeric(exp@exp$price)
+      region = exp@export$region,
+      year = exp@export$year,
+      slice = exp@export$slice,
+      value = as.numeric(exp@export$price)
     ) |>
       force_cols_classes()
     # A NA region means "all regions the export operates in". The export class
@@ -597,9 +597,9 @@ setMethod(
 
     ## pExportRow ####
     # scen@modInp@parameters$pExportRow@data
-    # pExportRow <- .interp_bounds(exp@exp, "exp", obj@parameters[["pExportRow"]], approxim, "expp", exp@name)
+    # pExportRow <- .interp_bounds(exp@export, "exp", obj@parameters[["pExportRow"]], approxim, "expp", exp@name)
     # obj@parameters[["pExportRow"]] <- .dat2par(obj@parameters[["pExportRow"]], pExportRow)
-    dat <- .pack_bounds_long(exp@exp, "exp", c("region", "year", "slice"))
+    dat <- .pack_bounds_long(exp@export, "exp", c("region", "year", "slice"))
     if (!is.null(dat)) {
       dat <- data.table(expp = exp@name, dat) |>
         .force_year_class_df()
@@ -712,7 +712,7 @@ setMethod(
     # obj@parameters[["mImpComm"]] <- .dat2par(obj@parameters[["mImpComm"]], mImpComm)
 
     # pImportRowPrice <- .interp_numpar(
-    #   imp@imp, "price",
+    #   imp@import, "price",
     #   obj@parameters[["pImportRowPrice"]], approxim, "imp", imp@name
     # )
     # obj@parameters[["pImportRowPrice"]] <- .dat2par(obj@parameters[["pImportRowPrice"]], pImportRowPrice)
@@ -721,10 +721,10 @@ setMethod(
     # scen@modInp@parameters$pImportRowPrice@data
     dat <- data.table(
       imp = imp@name,
-      region = imp@imp$region,
-      year = imp@imp$year,
-      slice = imp@imp$slice,
-      value = as.numeric(imp@imp$price)
+      region = imp@import$region,
+      year = imp@import$year,
+      slice = imp@import$slice,
+      value = as.numeric(imp@import$price)
     ) |>
       .force_year_class_df()
     # A NA region means "all regions the import operates in". The import class
@@ -746,11 +746,11 @@ setMethod(
     ## pImportRow ####
     # scen@modInp@parameters$pImportRow@data
     # pImportRow <- .interp_bounds(
-    #   imp@imp, "imp",
+    #   imp@import, "imp",
     #   obj@parameters[["pImportRow"]], approxim, "imp", imp@name
     # )
     # obj@parameters[["pImportRow"]] <- .dat2par(obj@parameters[["pImportRow"]], pImportRow)
-    dat <- .pack_bounds_long(imp@imp, "imp", c("region", "year", "slice"))
+    dat <- .pack_bounds_long(imp@import, "imp", c("region", "year", "slice"))
     if (!is.null(dat)) {
       dat <- data.table(imp = imp@name, dat) |>
         .force_year_class_df()
@@ -903,7 +903,7 @@ setMethod(
     ## pSupCost ####
     # scen@modInp@parameters$pSupCost@data
     # pSupCost <- .interp_numpar(
-    #   sup@availability, "cost",
+    #   sup@supply, "cost",
     #   obj@parameters[["pSupCost"]],
     #   approxim, c("sup", "comm"),
     #   c(sup@name, sup@commodity)
@@ -916,10 +916,10 @@ setMethod(
     dat <- data.table(
       sup = sup@name,
       comm = sup@commodity,
-      region = sup@availability$region,
-      year = sup@availability$year,
-      slice = sup@availability$slice,
-      value = as.numeric(sup@availability$cost)
+      region = sup@supply$region,
+      year = sup@supply$year,
+      slice = sup@supply$slice,
+      value = as.numeric(sup@supply$cost)
     ) |>
       force_cols_classes()
     # rows with unset cost (NA) carry only availability bounds (e.g. free
@@ -946,12 +946,12 @@ setMethod(
     ## pSupAva ####
     # scen@modInp@parameters$pSupAva@data
     # pSupAva <- .interp_bounds(
-    #   sup@availability, "ava",
+    #   sup@supply, "ava",
     #   obj@parameters[["pSupAva"]], approxim, c("sup", "comm"),
     #   c(sup@name, sup@commodity)
     # )
     # obj@parameters[["pSupAva"]] <- .dat2par(obj@parameters[["pSupAva"]], pSupAva)
-    dat <- .pack_bounds_long(sup@availability, "ava", c("region", "year", "slice"))
+    dat <- .pack_bounds_long(sup@supply, "ava", c("region", "year", "slice"))
     if (!is.null(dat)) {
       dat <- data.table(sup = sup@name, comm = sup@commodity, dat) |>
         force_cols_classes()
@@ -1333,12 +1333,10 @@ setMethod(
 # =============================================================================#
 setMethod(
   "ob2mi",
-  signature(scen = "scenario", obj = "sub", extra_params = "list"),
+  signature(scen = "scenario", obj = "subsidy", extra_params = "list"),
   function(scen, obj, extra_params = list()) {
     for (s in slotNames(obj)) {
       if (s %in% c("name", "timeframe", "commodity", "region")) {next}
-      # The S4 class is "sub" but its modInp parameters are registered under
-      # the "subsidy" class; look them up by the modInp class name.
       slot_info <- get_slot_meta("subsidy", s)
       if (is_empty(slot_info)) {next}
       slot_data <- get_lazy_data(obj, s)

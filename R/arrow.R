@@ -673,7 +673,7 @@ if (F) {
 
 .save_slots <- list(
   weather = c("weather"),
-  demand = c("dem"),
+  demand = c("demand"),
   repository = c("data"),
   model = c("data"),
   parameter = c("data"),

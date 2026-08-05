@@ -33,7 +33,7 @@ define the price of the imported commodity.
 
 \item{\code{reserve}}{numeric. Total accumulated limit through the model horizon.}
 
-\item{\code{imp}}{data.frame. Import parameters.
+\item{\code{import}}{data.frame. Import parameters.
 \describe{
 \item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
 \item{region}{character. Region name to apply the parameter; use NA to apply to all regions.}
