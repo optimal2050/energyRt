@@ -161,8 +161,6 @@ set mTradeIrCsrc2Ainp dimen 6;
 set mTradeIrCdst2Ainp dimen 6;
 set mTradeIrCsrc2Aout dimen 6;
 set mTradeIrCdst2Aout dimen 6;
-set mvTradeCost dimen 2;
-set mvTradeRowCost dimen 2;
 set mExportRowCost dimen 3;
 set mImportRowCost dimen 3;
 set mImportIrCost dimen 3;
@@ -266,7 +264,6 @@ set meqTradeCapFlow dimen 4;
 set meqBalLo dimen 4;
 set meqBalUp dimen 4;
 set meqBalFx dimen 4;
-set meqLECActivity dimen 3;
 set mTechAct2AInp dimen 5;
 set mTechCap2AInp dimen 5;
 set mTechNCap2AInp dimen 5;
@@ -277,7 +274,6 @@ set mTechCap2AOut dimen 5;
 set mTechNCap2AOut dimen 5;
 set mTechCinp2AOut dimen 6;
 set mTechCout2AOut dimen 6;
-set mLECRegion dimen 1;
 
 
 
@@ -442,7 +438,6 @@ param pStorageWeatherCinpUp{weather, stg};
 param pStorageWeatherCinpLo{weather, stg};
 param pStorageWeatherCoutUp{weather, stg};
 param pStorageWeatherCoutLo{weather, stg};
-param pLECLoACT{region};
 param ORD{year};
 
 
@@ -794,7 +789,6 @@ s.t.  eqCost{(r, y) in mvTotalCost}: vTotalCost[r,y]  =  +sum{s1 in sup:((s1,r,y
 
 s.t.  eqObjective: vObjective  =  sum{r in region,y in year:((r,y) in mvTotalCost)}(vTotalCost[r,y]*pPeriodLen[y]*pDiscountFactor[r,y]);
 
-s.t.  eqLECActivity{(t, r, y) in meqLECActivity}: sum{s in slice:((t,s) in mTechSlice)}(vTechAct[t,r,y,s])  >=  pLECLoACT[r];
 
 printf  '"solver",,"%s"\n', time2str(gmtime(), "%Y-%m-%d %M:%H:S %TZ") >> "output/log.csv";
 minimize vObjective2 : vObjective;

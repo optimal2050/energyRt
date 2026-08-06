@@ -197,6 +197,10 @@ reference:
   contents:
   - starts_with("set")
   - matches("make_scenario_dirname")
+  - energyRt-options
+  - starts_with("en_config")
+  - isVerbose
+  - isDebug
 
 - title: utils
   contents:

@@ -12,7 +12,9 @@ A named list:
 \item{calendars}{the UTOPIA calendars (\code{utopia_annual}/\code{utopia_seasons}/
 \code{utopia_s4h24}/\code{utopia_m12h24}).}
 \item{horizons}{planning horizons (\code{base} = 2020/2030/2040/2050).}
-\item{electricity}{per region layout (\code{reg1}, \code{reg3}, \code{reg7}), each a "kit":
+\item{electricity}{per region layout (\code{R1}, \code{R3}, \code{R7}, \code{R11} -- an
+n-region layout is keyed \verb{R<n>}, matching the \code{R1}..\code{R11} region names
+used by the maps), each a "kit":
 \code{repo} (the base repository), the individual blocks (\code{repo_comm},
 \code{repo_supply}, \code{DEM_ELC}, \code{WSOL}/\code{WWIN}/\code{WHYD}, the technologies,
 \code{STG_BTR}), and the scenario levers \code{CO2_CAP}, \code{CT_CO2}, \code{RES_SHARE},
@@ -32,7 +34,7 @@ scenarios (see the \code{utopia-use} vignette). Built by
 }
 \examples{
 \dontrun{
-um <- utopia_modules$electricity$reg3
+um <- utopia_modules$electricity$R3
 mod <- newModel("UTOPIA", data = um$repo,
                 calendar = utopia_modules$calendars$utopia_s4h24,
                 region = um$regions, horizon = utopia_modules$horizons$base,

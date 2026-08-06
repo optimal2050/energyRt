@@ -57,7 +57,6 @@ findData <- function(scen,
       # if (dim(x@data)[1] > 0 || !dropEmpty) {
       # browser()
       # cat(x@name, " ")
-      # if (x@name == "meqLECActivity") browser()
       qu <- get_lazy_dim_names(x, slot = "data")
       # qu <- get_lazy_data(x, slot = "data")
       # if (nrow(qu) > 0 || !dropEmpty) {

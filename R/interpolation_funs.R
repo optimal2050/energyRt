@@ -453,7 +453,6 @@
                        # year_range = dtf_year_range,
                        approxim = approxim, all = all.val
   )
-  # if (parameter == "meqLECActivity") browser()
   dtf <- as.data.table(dtf)
   if (is.null(dd)) {
     return(NULL)
@@ -472,7 +471,6 @@
     dd[[i]] <- as.character(dd[[i]])
   }
   if (has_year_col) dd[["year"]] <- as.integer(dd[["year"]])
-  # if (parameter == "meqLECActivity") browser()
   if (is.null(add_set_name)) {
     # dd <- dd[, c(mtp@dimSets, "value"), drop = FALSE]
     dd <- dd |> select(all_of(c(mtp@dimSets, "value")))

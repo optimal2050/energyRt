@@ -21,6 +21,3 @@ A \code{ggplot} object.
 \code{ggplot} object as \code{\link[=plot]{plot()}}, so the result can be further customised with
 \code{+ ...} layers.
 }
-\examples{
-NULL
-}

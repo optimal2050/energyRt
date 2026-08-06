@@ -28,7 +28,25 @@ set_arrow_compression_level(level = 15L)
 
 \item{level}{integer compression level (ZSTD: 1-22).}
 }
+\value{
+the option value (getters) or the previous value, invisibly (setters).
+}
 \description{
 Getters / setters for the Arrow format used to exchange data with the
 JuMP / Pyomo solvers (and the default on-disk storage codec).
 }
+\examples{
+get_arrow_format()
+}
+\seealso{
+Other options:
+\code{\link[=en_config_path]{en_config_path()}},
+\code{\link[=en_config_show]{en_config_show()}},
+\code{\link[=get_default_solver]{get_default_solver()}},
+\code{\link[=isVerbose]{isVerbose()}},
+\code{\link[=set_default_registry]{set_default_registry()}},
+\code{\link[=set_option]{set_option()}},
+\code{\link[=set_scenarios_path]{set_scenarios_path()}},
+\code{\link[=set_solver_path]{set_solver_path()}}
+}
+\concept{options}

@@ -43,26 +43,37 @@ utils::globalVariables(
 )
 
 # Arrow label: centred HORIZONTALLY on the arrow, sitting just ABOVE the line,
-# over a semi-transparent white pad.
+# over a semi-transparent white pad. The pad separates the label from ghost
+# boxes and from neighbouring arrows on a technology with many flows.
 #
-# `y` is the label's centre, so callers offset it above the arrow themselves
-# (they know the font metrics in npc). The pad still earns its place even though
-# the text clears the line -- it separates the label from ghost boxes and from
-# neighbouring arrows on a technology with many flows.
+# `y_line` is the ARROW's own y; this function works out where the text has to
+# sit so the PAD's bottom edge clears the line by `gap`. Callers used to pass
+# the text centre and guess the offset as `font_in_npc(10) * 0.34` -- but
+# `font_in_npc()` returns a device-independent constant while `grobHeight()` is
+# device-dependent, so the pad cleared a 7x4.2in figure by ~0.1mm and overlapped
+# the line outright on a taller one. Measuring the pad here instead makes the
+# clearance real on any device.
 #' @noRd
-.draw_arrow_label <- function(label, x0, x1, y, fontsize = 10,
-                              pad_alpha = 0.75, col = "black") {
+.draw_arrow_label <- function(label, x0, x1, y_line, fontsize = 10,
+                              pad_alpha = 0.75, col = "black",
+                              gap = grid::unit(0.8, "mm"), lwd = 2) {
   if (length(label) == 0L || is.na(label) || !nzchar(label)) return(invisible(NULL))
   cx <- (x0 + x1) / 2
-  tg <- grid::textGrob(label, x = cx, y = y, just = c("centre", "centre"),
-                       gp = grid::gpar(fontsize = fontsize, col = col))
+  tg0 <- grid::textGrob(label, gp = grid::gpar(fontsize = fontsize, col = col))
+  pad_h <- grid::grobHeight(tg0) + grid::unit(1.0, "mm")
+  # half the arrow's own stroke, so `gap` is measured from the line's EDGE
+  half_lwd <- grid::unit(lwd / 96 / 2, "inches")
+
+  y <- grid::unit(y_line, "npc") + half_lwd + gap + 0.5 * pad_h
   grid::grid.rect(
-    x = cx, y = y,
-    width  = grid::grobWidth(tg)  + grid::unit(1.6, "mm"),
-    height = grid::grobHeight(tg) + grid::unit(1.0, "mm"),
+    x = grid::unit(cx, "npc"), y = y,
+    width  = grid::grobWidth(tg0) + grid::unit(1.6, "mm"),
+    height = pad_h,
     gp = grid::gpar(fill = grDevices::rgb(1, 1, 1, pad_alpha), col = NA)
   )
-  grid::grid.draw(tg)
+  grid::grid.text(label, x = grid::unit(cx, "npc"), y = y,
+                  just = c("centre", "centre"),
+                  gp = grid::gpar(fontsize = fontsize, col = col))
   invisible(NULL)
 }
 
@@ -1164,9 +1175,12 @@ draw.storage <- function(object, ...) {
     mutate(iotype = "cout") |>
     rename(ioname = comm)
 
+  # `cap2stg` is deliberately NOT carried here: `@cap2stg` is a data.frame, so
+  # `mutate(cap2stg = object@cap2stg)` only works while it has exactly one row,
+  # and nothing downstream reads the column -- only `stg_par$lab_par` is used.
   stg_par <- comm |>
     filter(grepl("stg", parameter)) |>
-    mutate(cap2stg = object@cap2stg, iotype = "stg") |>
+    mutate(iotype = "stg") |>
     rename(ioname = comm)
 
   # aux
@@ -1269,11 +1283,20 @@ draw.storage <- function(object, ...) {
   wea
 
   # center labels
-  center_labels <- c(
-    stg_par$lab_par,
-    paste0("cap2stg: ", object@cap2stg)
-  ) |>
-    paste(collapse = "\n")
+  #
+  # `@cap2stg` is a DATA FRAME (vintage, cluster, region, year, cap2stg) --
+  # not a scalar like technology's `@cap2act`. `paste0()` over it vectorises
+  # across COLUMNS, which printed one "cap2stg: NA" per key column and then
+  # the real value. Take the value column, drop NAs, de-duplicate.
+  cap2stg_vals <- unique(object@cap2stg[["cap2stg"]])
+  cap2stg_vals <- cap2stg_vals[!is.na(cap2stg_vals)]
+  cap2stg_label <- if (length(cap2stg_vals) == 0L) NULL else
+    paste0("cap2stg: ", paste(cap2stg_vals, collapse = ", "))
+
+  center_labels <- c(stg_par$lab_par, cap2stg_label)
+  # drop empties, or an unset `lab_par` leaves a blank leading line
+  center_labels <- center_labels[!is.na(center_labels) & nzchar(center_labels)]
+  center_labels <- paste(center_labels, collapse = "\n")
 
   # arrow_label ####
   arrow_labels <- c(com_txt$lab_txt, aux$lab_txt, wea$lab_txt)
@@ -1490,6 +1513,7 @@ draw.supply <- function(object, ...) {
   }
 
   draw_process(
+    ...,
     process_name = object@name,
     process_desc = object@desc,
     single_com_outputs = sup_par,
@@ -1587,6 +1611,7 @@ draw.demand <- function(object, ...) {
   names(arrow_labels) <- object@commodity
 
   draw_process(
+    ...,
     process_name = object@name,
     process_desc = object@desc,
     single_com_inputs = dem_par,
@@ -1716,6 +1741,7 @@ draw.export <- function(object, ...) {
   names(arrow_labels) <- object@commodity
 
   draw_process(
+    ...,
     process_name = object@name,
     process_desc = object@desc,
     single_com_inputs = exp_par,
@@ -1844,6 +1870,7 @@ draw.import <- function(object, ...) {
   names(arrow_labels) <- object@commodity
 
   draw_process(
+    ...,
     process_name = object@name,
     process_desc = object@desc,
     single_com_outputs = imp_par,
@@ -2472,12 +2499,23 @@ draw_process <- function(
     # keep it small, because `inp`/`out` sit only 0.02 npc in from the vertical
     # edges and a larger radius starts cutting into them.
     box_round = 0,
+    # Which vertical edge of the box carries no border. "auto" (the default)
+    # drops the border on a side that has NO ARROWS, derived from
+    # `show_inputs`/`show_outputs`: a supply or import is open on the left, a
+    # demand or export on the right, and a technology/storage/trade -- which
+    # flows both ways -- stays fully closed. The open edge makes the box read as
+    # a flow entering or leaving the system rather than a sealed container.
+    # "none" always draws the closed rectangle.
+    # NB an open edge implies a straight outline, so `box_round` is ignored
+    # while one is open (a corner radius only makes sense on a closed shape).
+    box_open = c("auto", "none"),
     # `newpage = FALSE` draws into whatever viewport is already current instead
     # of clearing the device. That is what lets several processes be composed on
     # one figure -- the faded "ghost" vintages behind a selected one, and the
     # `vintage = "all"` facet layout. It also suppresses the background rect,
     # which would otherwise paint over anything already drawn.
     newpage = TRUE) {
+  box_open <- match.arg(box_open)
   result <- tryCatch(
     {
       # browser()
@@ -2513,6 +2551,11 @@ draw_process <- function(
       # is what previously made this function impossible to compose.
       on.exit(grid::popViewport(1))
 
+      # NB this IGNORES `fontsize` and returns the constant `font_spacing`. It
+      # is a layout nudge, not a font metric -- do not use it to clear something
+      # whose size grid measures for real (a grob height in npc changes with the
+      # device; this does not). That mismatch is what made arrow-label pads
+      # touch their arrows; see `.draw_arrow_label()`.
       font_in_npc <- function(fontsize) {
         # vp_height_in <- grid::convertUnit(unit(1, "npc"), "in", valueOnly = TRUE)
         # fontsize / 72 / vp_height_in * 2
@@ -2523,25 +2566,52 @@ draw_process <- function(
         max(process_name_fontsize, process_desc_fontsize)
       )
 
+      # Which vertical edge is open: the side with no arrows on it.
+      open_side <- if (identical(box_open, "none")) "none" else {
+        if (!isTRUE(show_inputs) && isTRUE(show_outputs)) "left"
+        else if (isTRUE(show_inputs) && !isTRUE(show_outputs)) "right"
+        else "none"
+      }
+
       # Process box. Rounding keeps the same bounding box, so nothing inside
       # moves -- but `inp` sits only 0.02 npc in from the left edge (and `out`
       # mirrors it), so a radius much past that starts eating those labels.
-      if (box_round > 0) {
-        grid::grid.roundrect(
-          x = 0.5, y = 0.5,
-          width = box_width,
-          height = box_height,
-          r = grid::unit(box_round, "npc"),
-          gp = gpar(fill = box_fill, col = box_border, lty = "solid",
-                    lwd = box_lwd)
-        )
+      if (identical(open_side, "none")) {
+        # Closed box: ONE grob, exactly as before. Kept on its own path so the
+        # common case is byte-for-byte unchanged.
+        if (box_round > 0) {
+          grid::grid.roundrect(
+            x = 0.5, y = 0.5,
+            width = box_width,
+            height = box_height,
+            r = grid::unit(box_round, "npc"),
+            gp = gpar(fill = box_fill, col = box_border, lty = "solid",
+                      lwd = box_lwd)
+          )
+        } else {
+          grid::grid.rect(
+            x = 0.5, y = 0.5,
+            width = box_width,
+            height = box_height,
+            gp = gpar(fill = box_fill, col = box_border, lty = "solid",
+                      lwd = box_lwd)
+          )
+        }
       } else {
+        # Open edge: fill with no border, then stroke the three closed edges.
+        # Top and bottom span the full width, so only the vertical edge is
+        # missing and the box keeps its exact footprint.
+        l <- 0.5 - box_width / 2; r <- 0.5 + box_width / 2
+        b <- 0.5 - box_height / 2; t <- 0.5 + box_height / 2
         grid::grid.rect(
-          x = 0.5, y = 0.5,
-          width = box_width,
-          height = box_height,
-          gp = gpar(fill = box_fill, col = box_border, lty = "solid",
-                    lwd = box_lwd)
+          x = 0.5, y = 0.5, width = box_width, height = box_height,
+          gp = gpar(fill = box_fill, col = NA)
+        )
+        keep_x <- if (identical(open_side, "left")) r else l
+        grid::grid.segments(
+          x0 = c(l, l, keep_x), y0 = c(t, b, b),
+          x1 = c(r, r, keep_x), y1 = c(t, b, t),
+          gp = gpar(col = box_border, lty = "solid", lwd = box_lwd)
         )
       }
 
@@ -2659,7 +2729,7 @@ draw_process <- function(
             .draw_arrow_label(
               arrow_labels[inputs$ioname[i]],
               x0 = 0.5 - 0.5 * box_width - arrow_length, x1 = x_pos,
-              y = y_pos + font_in_npc(10) * 0.34
+              y_line = y_pos
             )
 
             # combustion point
@@ -2891,7 +2961,7 @@ draw_process <- function(
             .draw_arrow_label(
               arrow_labels[out_pars$ioname[i]],
               x0 = x_pos, x1 = 0.5 + 0.5 * box_width + arrow_length,
-              y = y_pos + font_in_npc(10) * 0.34
+              y_line = y_pos
             )
 
             # Add label near the dot, inside the box

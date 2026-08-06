@@ -1,7 +1,7 @@
 ## data-raw/utopia_modules.R
 ## Build the packaged `utopia_modules` -- a kit of energyRt building blocks and
 ## scenario levers for the UTOPIA teaching model, mirroring the structure of
-## IDEEA::ideea_modules. Region layouts (reg1/reg3/reg7) are assembled on the
+## IDEEA::ideea_modules. Region layouts (R1/R3/R7/R11) are assembled on the
 ## base `utopia_s4h24` calendar by the local `build_utopia()` below (the same
 ## explicit steps the "UTOPIA I: building the model" vignette walks through).
 ##
@@ -174,7 +174,7 @@ build_utopia <- function(regions = paste0("R", 1:3),
     olife = 30L, start = 2025L, optimizeRetirement = TRUE)
 
   # ---- storage (STG_*, 4-hour battery, ~200 EUR/kWh energy) ----
-  STG_BTR <- newStorage("STG_ELC", commodity = "ELC", olife = 20L,
+  STG_ELC <- newStorage("STG_ELC", commodity = "ELC", olife = 20L,
     invcost = list(invcost = convert("EUR/kWh", "MEUR/PJ", 200)),
     cap2stg = 4, seff = data.frame(inpeff = 0.95, outeff = 0.95))
 
@@ -204,7 +204,7 @@ build_utopia <- function(regions = paste0("R", 1:3),
     repo_supply,
     IMP_COA, IMP_GAS, EXP_ELC,
     WSOL, WWIN, WHYD,
-    ECOA, EGAS, ENUC, ESOL, EWIN, EHYD, EBIO, STG_BTR)
+    ECOA, EGAS, ENUC, ESOL, EWIN, EHYD, EBIO, STG_ELC)
   for (trd in trades) repo <- add(repo, trd)
   repo <- add(repo, DEM_ELC)
 
@@ -251,7 +251,7 @@ build_utopia <- function(regions = paste0("R", 1:3),
        DEM_ELC = DEM_ELC,
        WSOL = WSOL, WWIN = WWIN, WHYD = WHYD,
        ECOA = ECOA, EGAS = EGAS, ENUC = ENUC, ESOL = ESOL, EWIN = EWIN,
-       EHYD = EHYD, EBIO = EBIO, STG_BTR = STG_BTR,
+       EHYD = EHYD, EBIO = EBIO, STG_ELC = STG_ELC,
        CO2_CAP = CO2_CAP, CT_CO2 = CT_CO2, RES_SHARE = RES_SHARE,
        NO_NEW_NUC = NO_NEW_NUC, EARLY_RET = EARLY_RET)
 }
@@ -271,10 +271,13 @@ utopia_modules <- list(
   calendars = calendars[c("utopia_annual", "utopia_seasons",
                           "utopia_s4h24", "utopia_m12h24")],
   horizons  = list(base = base_horizon),
+  # Keyed `R<n>` for an n-region layout, matching the `R1`..`R11` region names
+  # the maps use. `R11` covers the full map; the smaller ones are its prefixes.
   electricity = list(
-    reg1 = build_utopia("R1",                calendar = "utopia_s4h24"),
-    reg3 = build_utopia(paste0("R", 1:3),    calendar = "utopia_s4h24"),
-    reg7 = build_utopia(paste0("R", 1:7),    calendar = "utopia_s4h24")
+    R1  = build_utopia("R1",                 calendar = "utopia_s4h24"),
+    R3  = build_utopia(paste0("R", 1:3),     calendar = "utopia_s4h24"),
+    R7  = build_utopia(paste0("R", 1:7),     calendar = "utopia_s4h24"),
+    R11 = build_utopia(paste0("R", 1:11),    calendar = "utopia_s4h24")
   )
 )
 

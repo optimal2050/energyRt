@@ -1974,14 +1974,6 @@ model.eqObjective = Constraint(
         if (r, y) in model.mvTotalCost
     )
 )
-# eqLECActivity(tech, region, year)$meqLECActivity(tech, region, year)
-model.eqLECActivity = Constraint(
-    model.meqLECActivity,
-    rule=lambda model, t, r, y: sum(
-        model.vTechAct[t, r, y, s] for s in model.slice if (t, s) in model.mTechSlice
-    )
-    >= model.pLECLoACT[r],
-)
 model.fornontriv = Var(domain=pyo.NonNegativeReals)
 model.eqnontriv = Constraint(rule=lambda model: model.fornontriv == 0)
 exec(open("inc_constraints.py").read())

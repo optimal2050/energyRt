@@ -3145,25 +3145,6 @@ if verbose:
         " s)",
         sep="",
     )
-# eqLECActivity(tech, region, year)$meqLECActivity(tech, region, year)
-if verbose:
-    print("eqLECActivity ", end="")
-sys.stdout.flush()
-model.eqLECActivity = Constraint(
-    meqLECActivity,
-    rule=lambda model, t, r, y: sum(
-        model.vTechAct[t, r, y, s] for s in slice if (t, s) in mTechSlice
-    )
-    >= pLECLoACT.get((r)),
-)
-if verbose:
-    print(
-        datetime.datetime.now().strftime("%H:%M:%S"),
-        " (",
-        round(time.time() - seconds, 2),
-        " s)",
-        sep="",
-    )
 model.obj = Objective(rule=lambda model: model.vObjective, sense=minimize)
 exec(open("inc3.py").read())
 model.fornontriv = Var(domain=pyo.NonNegativeReals)

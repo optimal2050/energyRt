@@ -876,14 +876,6 @@ recipe_value <- function(scen, names, fmp) {
   "mTechAfUp", "mTechAfcUp"
 )
 
-# TODO(deprecate LEC): the "linked extreme capacity" (LEC) feature is being
-# removed. Until the equation and its variables are deleted, emit these index
-# maps as empty so the constraint never materialises. No mapping logic is
-# derived for them on purpose. See data-raw/mapping_spec.yml (deprecated: yes).
-.constraint_maps_deprecated <- c(
-  "meqLECActivity", "mLECRegion"
-)
-
 # --------------------------------------------------------------------------- #
 # Generic "domain x filtered-source" constraint-map registry.
 #
@@ -1392,20 +1384,12 @@ recipe_constraint <- function(scen, names, fmp) {
     scen <- .build_ramp_maps(scen, names, fmp)
   }
 
-  # 3. Deprecated LEC maps: intentionally left empty (see TODO above).
-  deprecated <- intersect(names, .constraint_maps_deprecated)
-  if (length(deprecated) > 0) {
-    message("recipe 'constraint': ", length(deprecated),
-            " deprecated LEC map(s) emitted empty: ",
-            paste(deprecated, collapse = ", "))
-  }
-
-  # 4. Report any remaining maps not yet implemented in the engine.
+  # 3. Report any remaining maps not yet implemented in the engine.
   handled <- c(
     names(.constraint_map_def), "meqStorageStore",
     "meqTradeCapFlow", .tech_group_maps, .ramp_maps,
     .constraint_maps_built_in_filter, .constraint_maps_built_elsewhere,
-    .constraint_maps_empty_legacy, .constraint_maps_deprecated
+    .constraint_maps_empty_legacy
   )
   pending <- setdiff(names, handled)
   if (length(pending) > 0) {

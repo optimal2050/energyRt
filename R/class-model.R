@@ -21,7 +21,6 @@ setClass("model",
     desc = "character", # Details
     data = "list",
     config = "config",
-    # LECdata = "list",
     # optimizeRetirement = "logical",
     misc = "list"
   ),
@@ -30,7 +29,6 @@ setClass("model",
     desc = "", # Details
     data = list(),
     config = new("config"),
-    # LECdata = list(),
     # optimizeRetirement = FALSE,
     misc = list()
   ),

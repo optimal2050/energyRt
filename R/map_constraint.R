@@ -94,12 +94,11 @@ map_mTechRampUp   <- function(scen, fmp) .build_ramp_maps(scen, "mTechRampUp", f
 map_mTechRampDown <- function(scen, fmp) .build_ramp_maps(scen, "mTechRampDown", fmp)
 
 # -- intentionally-empty maps ---------------------------------------------- #
-# empty-legacy: declared as solver index sets but never populated by the legacy
-# pipeline; deprecated: the LEC feature being removed. Both emit empty (faithful).
+# Declared as solver index sets but never populated by the legacy pipeline.
+# NB these are NOT dead: `af.up` still binds, through `meqTechAfUp` + `pTechAf`.
+# They are redundant domain maps, so they stay empty (faithful to legacy).
 map_mTechAfUp      <- function(scen, fmp) scen
 map_mTechAfcUp     <- function(scen, fmp) scen
-map_meqLECActivity <- function(scen, fmp) scen
-map_mLECRegion     <- function(scen, fmp) scen
 
 # -- registry for the constraint family (def-table maps) ------------------- #
 .constraint_builders <- list(
@@ -132,7 +131,6 @@ map_mLECRegion     <- function(scen, fmp) scen
   meqTechShareOutLo = map_meqTechShareOutLo, meqTechShareOutUp = map_meqTechShareOutUp,
   # ramp
   mTechRampUp = map_mTechRampUp, mTechRampDown = map_mTechRampDown,
-  # intentionally empty (empty-legacy + deprecated LEC)
-  mTechAfUp = map_mTechAfUp, mTechAfcUp = map_mTechAfcUp,
-  meqLECActivity = map_meqLECActivity, mLECRegion = map_mLECRegion
+  # intentionally empty (empty-legacy)
+  mTechAfUp = map_mTechAfUp, mTechAfcUp = map_mTechAfcUp
 )

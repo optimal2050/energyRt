@@ -390,8 +390,9 @@ mTradeIrCsrc2Ainp(trade, comm, region, region, year, slice)
 mTradeIrCdst2Ainp(trade, comm, region, region, year, slice)
 mTradeIrCsrc2Aout(trade, comm, region, region, year, slice)
 mTradeIrCdst2Aout(trade, comm, region, region, year, slice)
-mvTradeCost(region, year)
-mvTradeRowCost(region, year)
+* retired: trade costs are vTradeEac + vTradeFixom + eqImport/ExportIrCost
+*mvTradeCost(region, year)
+*mvTradeRowCost(region, year)
 mExportRowCost(expp, region, year)
 mImportRowCost(imp, region, year)
 *mvTradeIrCost(region, year)
@@ -706,7 +707,6 @@ meqTradeCapFlow(trade, comm, year, slice)
 meqBalLo(comm, region, year, slice)
 meqBalUp(comm, region, year, slice)
 meqBalFx(comm, region, year, slice)
-meqLECActivity(tech, region, year)
 mTechAct2AInp(tech, comm, region, year, slice)
 mTechCap2AInp(tech, comm, region, year, slice)
 mTechNCap2AInp(tech, comm, region, year, slice)
@@ -2416,24 +2416,6 @@ eqObjective..
          sum((region, year)$mvTotalCost(region, year),
 *           pDiscountFactorMileStone(region, year) *
             vTotalCost(region, year) * pPeriodLen(year) * pDiscountFactor(region, year));
-
-set
-mLECRegion(region)
-;
-
-parameter
-pLECLoACT(region)  levelized costs interim parameter
-;
-
-**************************************
-** LEC equation
-**************************************
-Equation
-eqLECActivity(tech, region, year)  levelized costs (auxiliary equation)
-;
-
-eqLECActivity(tech, region, year)$meqLECActivity(tech, region, year)..
-         sum(slice$mTechSlice(tech, slice), vTechAct(tech, region, year, slice)) =g= pLECLoACT(region);
 
 $include inc_constraints.gms
 

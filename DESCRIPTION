@@ -1,7 +1,7 @@
 Package: energyRt
 Type: Package
 Title: Energy Systems Modeling Toolbox
-Version: 0.74.1.9000
+Version: 0.75.0.9000
 Date: 2026-08-05
 Authors@R: 
   c(person(given = "Oleg", 
@@ -31,7 +31,7 @@ Depends: R (>= 4.3)
 Imports: methods, grid, generics, data.table, DBI, RSQLite, tibble,
         tidyr, dplyr, rlang, stringr, lubridate, purrr, arrow,
         progressr, tictoc, cli, zoo, registry, options (>= 0.2.0),
-        glue, plyr, grDevices, utils, yaml
+        glue, plyr, grDevices, utils, tools, yaml
 Suggests: pak, gdxtools (== 0.7.1), knitr, rmarkdown, sf, ggplot2, testthat
         (>= 3.0.0), devtools, openxlsx, jsonlite, readxl, httr2, xml2,
         base64enc, tinytex, patchwork, geoscales

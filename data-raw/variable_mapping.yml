@@ -95,9 +95,6 @@ vImportRowAccumulated: vImportRowAccumulated( imp , comm ) $ mImpComm( imp , com
   )
 vImportRow: vImportRow( imp , comm , region , year , slice ) $ mImportRow( imp , comm
   , region , year , slice )
-vTradeCost: vTradeCost( region , year ) $ mvTradeCost( region , year )
-vTradeRowCost: vTradeRowCost( region , year ) $ mvTradeRowCost( region , year )
-vTradeIrCost: vTradeIrCost( region , year ) $ mvTradeIrCost( region , year )
 vTradeCap: vTradeCap( trade , year ) $ mTradeSpan( trade , year )
 vTradeInv: vTradeInv( trade , region , year ) $ mTradeEac( trade , region , year )
 vTradeEac: vTradeEac( trade , region , year ) $ mTradeEac( trade , region , year )

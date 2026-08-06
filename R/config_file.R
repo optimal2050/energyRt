@@ -10,12 +10,23 @@
 #   1. R option              options(en.gams_path = "...")
 #   2. environment variable  ENERGYRT_GAMS_PATH
 #   3. project config        ./.energyRt.yml
-#   4. global config         ~/.energyRt/config.yml
-#   5. package default       see ?energyRt-options
+#   4. user config           tools::R_user_dir("energyRt", "config")/config.yml
+#   5. legacy user config    ~/.energyRt/config.yml   (read-only, see below)
+#   6. package default       see ?energyRt-options
 #
-# Levels 1-2 and 5 are handled by the `options` package itself. Levels 3-4 are
+# Levels 1-2 and 6 are handled by the `options` package itself. Levels 3-5 are
 # applied by `.en_apply_config()` from `.onLoad()`, which only fills options the
 # user has not already set at levels 1-2 -- so the ordering above holds.
+#
+# Level 4 is `tools::R_user_dir()` because CRAN policy forbids a package from
+# writing in the user's home filespace: "Packages should not write in the user's
+# home filespace ... apart from the R session's temporary directory", with an
+# explicit carve-out for the R >= 4.0 user directories. energyRt depends on
+# R >= 4.3, so the carve-out always applies.
+#
+# Level 5 is where energyRt used to write. Reading is not restricted by the
+# policy, so old setups keep working untouched; nothing is ever written there
+# again, and `en_config_write()` moves it aside once the new file exists.
 
 #' @include zzz.R
 NULL
@@ -24,17 +35,24 @@ NULL
 #'
 #' @description
 #' Solver paths and other options can be persisted to a YAML file so they are
-#' restored in every session: `~/.energyRt/config.yml` for the user, or
-#' `./.energyRt.yml` for a single project. energyRt applies them when the
-#' package loads, without overriding anything the user has already set through
-#' an R option or an environment variable.
+#' restored in every session: the user-wide file under
+#' [tools::R_user_dir()]`("energyRt", "config")`, or `./.energyRt.yml` for a
+#' single project. energyRt applies them when the package loads, without
+#' overriding anything the user has already set through an R option or an
+#' environment variable.
 #'
 #' Use [en_config_show()] to see which options are in effect and where each
 #' value came from.
 #'
-#' @param global logical. `TRUE` for the user-wide config
-#'   (`~/.energyRt/config.yml`), `FALSE` for the project-local one
-#'   (`./.energyRt.yml`).
+#' @section Location:
+#' Up to energyRt 0.74 the user-wide file was `~/.energyRt/config.yml`. CRAN
+#' policy does not allow a package to write in the user's home filespace, so it
+#' now lives in the standard R user configuration directory instead. The old
+#' file is still *read* (nothing breaks), and [en_config_write()] moves it aside
+#' once the new one exists.
+#'
+#' @param global logical. `TRUE` for the user-wide config, `FALSE` for the
+#'   project-local one (`./.energyRt.yml`).
 #'
 #' @return character, the path. The file need not exist.
 #'
@@ -45,10 +63,23 @@ NULL
 #' en_config_path()
 en_config_path <- function(global = TRUE) {
   if (global) {
-    file.path(path.expand("~"), ".energyRt", "config.yml")
+    file.path(tools::R_user_dir("energyRt", which = "config"), "config.yml")
   } else {
     file.path(getwd(), ".energyRt.yml")
   }
+}
+
+# Pre-0.74 locations in the user's home directory. Read for backwards
+# compatibility -- the CRAN restriction is on writing, not reading -- and moved
+# aside by `en_config_write()`. `~/.energyRt.R` is an R script sourced from
+# `.onAttach()`; because that runs *after* `.onLoad()` has applied the config
+# files, it silently overrides them while it exists.
+.en_config_legacy_config <- function() {
+  file.path(path.expand("~"), ".energyRt", "config.yml")
+}
+
+.en_config_legacy_script <- function() {
+  path.expand("~/.energyRt.R")
 }
 
 # Read one YAML file into a named list, or an empty list if it is missing,
@@ -73,11 +104,11 @@ en_config_path <- function(global = TRUE) {
 
 #' @description
 #' `en_config_read()` reads the project config (`./.energyRt.yml`) merged over
-#' the global one (`~/.energyRt/config.yml`). It reports what is *on disk*; use
-#' [en_config_show()] for what is actually in effect.
+#' the user-wide one. It reports what is *on disk*; use [en_config_show()] for
+#' what is actually in effect.
 #'
 #' @param global logical or `NULL`. `NULL` (default) merges both files, `TRUE`
-#'   reads only the global one, `FALSE` only the project one.
+#'   reads only the user-wide one, `FALSE` only the project one.
 #'
 #' @return a named list of option values, possibly empty.
 #'
@@ -85,15 +116,23 @@ en_config_path <- function(global = TRUE) {
 #' @rdname en_config
 #' @export
 en_config_read <- function(global = NULL) {
+  # The legacy home-directory file sits underneath the current one, so a value
+  # present in both is taken from the current file.
+  read_global <- function() {
+    utils::modifyList(
+      .en_config_read_file(.en_config_legacy_config()),
+      .en_config_read_file(en_config_path(global = TRUE))
+    )
+  }
   if (isTRUE(global)) {
-    return(.en_config_read_file(en_config_path(global = TRUE)))
+    return(read_global())
   }
   if (isFALSE(global)) {
     return(.en_config_read_file(en_config_path(global = FALSE)))
   }
-  cfg <- .en_config_read_file(en_config_path(global = TRUE))
-  prj <- .en_config_read_file(en_config_path(global = FALSE))
-  utils::modifyList(cfg, prj)
+  utils::modifyList(read_global(), .en_config_read_file(
+    en_config_path(global = FALSE)
+  ))
 }
 
 #' @description
@@ -106,8 +145,12 @@ en_config_read <- function(global = NULL) {
 #' @param config named list of option values, using names *without* the `en.`
 #'   prefix (e.g. `list(gams_path = "C:/GAMS/48")`). `NULL` (default) collects
 #'   the currently non-default options.
-#' @param global logical. `TRUE` writes `~/.energyRt/config.yml`, `FALSE` writes
-#'   `./.energyRt.yml`.
+#' @param global logical. `TRUE` writes the user-wide config (see
+#'   [en_config_path()]), `FALSE` writes `./.energyRt.yml`.
+#' @param backup logical. When writing the user-wide config, move any pre-0.74
+#'   files in the home directory (`~/.energyRt/config.yml` and the deprecated
+#'   `~/.energyRt.R`) aside to `*.bak`. They would otherwise keep overriding the
+#'   new config. Set `FALSE` to leave them in place.
 #'
 #' @return the written config, invisibly.
 #'
@@ -119,7 +162,7 @@ en_config_read <- function(global = NULL) {
 #' set_solver_path("gams", "C:/GAMS/win64/48.1")
 #' en_config_write()
 #' }
-en_config_write <- function(config = NULL, global = TRUE) {
+en_config_write <- function(config = NULL, global = TRUE, backup = TRUE) {
   if (!requireNamespace("yaml", quietly = TRUE)) {
     stop("Writing the energyRt config file requires the 'yaml' package.",
          call. = FALSE)
@@ -145,7 +188,32 @@ en_config_write <- function(config = NULL, global = TRUE) {
   }
   yaml::write_yaml(config, path)
   cli::cli_alert_success("Wrote {length(config)} option{?s} to {.path {path}}.")
+  # Only once the new file is safely on disk.
+  if (isTRUE(global) && isTRUE(backup)) .en_backup_legacy()
   invisible(config)
+}
+
+# Move the pre-0.74 home-directory files aside. Renamed rather than deleted, so
+# the user can recover them; `.bak` is numbered if one is already there.
+.en_backup_legacy <- function() {
+  for (p in c(.en_config_legacy_config(), .en_config_legacy_script())) {
+    if (!file.exists(p)) next
+    bak <- paste0(p, ".bak")
+    i <- 1L
+    while (file.exists(bak)) {
+      i <- i + 1L
+      bak <- paste0(p, ".bak", i)
+    }
+    if (isTRUE(file.rename(p, bak))) {
+      cli::cli_alert_info("Moved legacy {.path {p}} to {.path {bak}}.")
+    } else {
+      cli::cli_warn(c(
+        "Could not move legacy {.path {p}}.",
+        i = "It will keep overriding the new config until it is removed."
+      ))
+    }
+  }
+  invisible(NULL)
 }
 
 # Names of every option in the registry.
@@ -180,8 +248,14 @@ en_config_write <- function(config = NULL, global = TRUE) {
 .en_apply_config <- function() {
   applied <- list()
   known <- .en_option_names()
-  for (global in c(FALSE, TRUE)) {
-    path <- en_config_path(global = global)
+  # Highest priority first; the legacy home file is last, so it only supplies
+  # options the current files do not.
+  paths <- c(
+    en_config_path(global = FALSE),
+    en_config_path(global = TRUE),
+    .en_config_legacy_config()
+  )
+  for (path in paths) {
     cfg <- .en_config_read_file(path)
     if (!length(cfg)) next
     for (nm in intersect(names(cfg), known)) {
@@ -283,7 +357,7 @@ en_config_show <- function() {
   }
   cli::cli_text("")
   cli::cli_alert_info(
-    "Priority: R option > env var > {.path ./.energyRt.yml} > {.path ~/.energyRt/config.yml} > default"
+    "Priority: R option > env var > {.path ./.energyRt.yml} > {.path {en_config_path(global = TRUE)}} > default"
   )
   invisible(res)
 }

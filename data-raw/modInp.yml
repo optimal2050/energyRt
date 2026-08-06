@@ -71,13 +71,6 @@ cardYear:
   type: numpar
   defVal: 0.0
   interpolation: inter.forth
-pLECLoACT:
-  name: pLECLoACT
-  dimSets: region
-  type: numpar
-  defVal: 0.0
-  interpolation: back.inter.forth
-  class: ~
 pSliceShare:
   name: pSliceShare
   dimSets: slice
@@ -2507,10 +2500,6 @@ mImportRowCost:
   - imp
   - region
   - year
-mLECRegion:
-  name: mLECRegion
-  type: map
-  dimSets: region
 mMidMilestone:
   name: mMidMilestone
   type: map
@@ -3068,18 +3057,6 @@ mvTradeIr:
   - dst
   - year
   - slice
-mvTradeCost:
-  name: mvTradeCost
-  type: map
-  dimSets:
-  - region
-  - year
-mvTradeRowCost:
-  name: mvTradeRowCost
-  type: map
-  dimSets:
-  - region
-  - year
 mvTotalCost:
   name: mvTotalCost
   type: map
@@ -3398,13 +3375,6 @@ meqBalFx:
   - region
   - year
   - slice
-meqLECActivity:
-  name: meqLECActivity
-  type: map
-  dimSets:
-  - tech
-  - region
-  - year
 mTechCapLo:
   name: mTechCapLo
   type: map

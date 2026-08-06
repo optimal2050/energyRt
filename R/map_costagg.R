@@ -54,15 +54,8 @@ map_mvTotalUserCosts <- function(scen, fmp) {
   scen
 }
 
-# Empty-legacy maps: feature not implemented in the current pipeline; the maps
-# exist in modInp.yml but are intentionally never populated (faithful to legacy).
-map_mvTradeCost    <- function(scen, fmp) scen
-map_mvTradeRowCost <- function(scen, fmp) scen
-
 # -- registry for the cost_agg family -------------------------------------- #
 .cost_agg_builders <- list(
   mvTotalCost      = map_mvTotalCost,
-  mvTotalUserCosts = map_mvTotalUserCosts,
-  mvTradeCost      = map_mvTradeCost,
-  mvTradeRowCost   = map_mvTradeRowCost
+  mvTotalUserCosts = map_mvTotalUserCosts
 )
