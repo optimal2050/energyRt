@@ -6,40 +6,85 @@ processes-type classes.
 ## Usage
 
 ``` r
-draw(obj, ...)
+draw(object, ...)
+
+draw.technology(
+  object,
+  ...,
+  vintage = NULL,
+  cluster = NULL,
+  ghost = ghost_options(),
+  cluster_style = c("rail", "deck", "none"),
+  box_width = 0.4,
+  max_facets = 24L
+)
 
 # S4 method for class 'technology'
-draw(obj, ...)
+draw(object, ...)
 
 # S4 method for class 'storage'
-draw(obj, ...)
+draw(object, ...)
 
 # S4 method for class 'supply'
-draw(obj, ...)
+draw(object, ...)
 
 # S4 method for class 'demand'
-draw(obj, ...)
+draw(object, ...)
 
 # S4 method for class 'export'
-draw(obj, ...)
+draw(object, ...)
 
 # S4 method for class 'import'
-draw(obj, ...)
+draw(object, ...)
 
 # S4 method for class 'trade'
-draw(obj, ...)
+draw(object, ...)
 ```
 
 ## Arguments
-
-- ...:
-
-  Additional arguments passed to the specific method.
 
 - object:
 
   The object to draw: `technology`, `storage`, `trade`, `demand`,
   `supply`, `export`, or `import`.
+
+- ...:
+
+  Additional arguments passed to the specific method.
+
+- vintage:
+
+  which vintage to draw in full for a vintaged technology: a level name,
+  an index, `NULL` (the default, the newest one), or `"all"` to lay
+  every vintage out side by side at full detail. Other vintages are
+  drawn as faded ghosts behind the selected one – earlier to the left,
+  later to the right.
+
+- cluster:
+
+  which cluster to draw, in the same forms as `vintage`. The default
+  `NULL` takes the FIRST declared cluster, declarations ranking clusters
+  best-resource-first. Clusters are not fanned out like vintages: they
+  coexist rather than succeed one another, and a technology can carry
+  dozens, so the axis is drawn as an index (see `cluster_style`).
+
+- ghost:
+
+  geometry of the ghost stack: a
+  [`ghost_options()`](https://energyRt.org/reference/ghost_options.md)
+  object, or a named list of overrides.
+
+- cluster_style:
+
+  how to show the cluster axis: `"rail"` (the default) a strip of ticks
+  with the selection filled, `"deck"` slivers at the box edge suggesting
+  a stack of cards, or `"none"`.
+
+- max_facets:
+
+  refuse to lay out more than this many panels for `vintage = "all"` /
+  `cluster = "all"`. A full 11 x 4 grid is unreadable, and silently
+  drawing it is worse than saying so.
 
 - region:
 
@@ -53,6 +98,12 @@ displays a schematic representation of the process, returns `NULL`.
 A figure with a schematic representation of the export process.
 
 A figure with a schematic representation of the import process.
+
+## See also
+
+Other draw:
+[`ghost_options()`](https://energyRt.org/reference/ghost_options.md),
+[`theme_energyRt()`](https://energyRt.org/reference/theme_energyRt.md)
 
 ## Examples
 
@@ -168,7 +219,7 @@ SUP_COA <- newSupply(
     region = c("R1", "R2", "R3"),
     res.up = c(2e5, 1e4, 3e6) # total reserves/deposits
   ),
-  availability = data.frame(
+  supply = data.frame(
     region = c("R1", "R2", "R3"),
     year = NA_integer_,
     slice = "ANNUAL",
@@ -192,8 +243,9 @@ DSTEEL <- newDemand(
   ),
   region = "UTOPIA", # optional, to narrow the specification of the demand
 )
+#> Error in .data2slots("demand", name, desc = desc, commodity = commodity,     unit = unit, demand = demand, region = region, misc = misc,     ...): Unknown column "dem "in the slot: " demand"
 draw(DSTEEL)
-
+#> Error in h(simpleError(msg, call)): error in evaluating the argument 'object' in selecting a method for function 'draw': object 'DSTEEL' not found
 EXPOIL <- newExport(
   name = "EXPOIL", # used in sets
   desc = "Oil export from the model to RoW", # for own reference
@@ -251,8 +303,6 @@ PIPELINE2 <- newTrade(
   ),
   olife = list(olife = 60)
 )
-#> Warning: NAs introduced by coercion to integer range
-#> Warning: NAs introduced by coercion to integer range
 draw(PIPELINE2, node = "R1")
 
 draw(PIPELINE2, node = "R2")

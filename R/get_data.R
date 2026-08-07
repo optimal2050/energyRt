@@ -57,7 +57,6 @@ findData <- function(scen,
       # if (dim(x@data)[1] > 0 || !dropEmpty) {
       # browser()
       # cat(x@name, " ")
-      # if (x@name == "meqLECActivity") browser()
       qu <- get_lazy_dim_names(x, slot = "data")
       # qu <- get_lazy_data(x, slot = "data")
       # if (nrow(qu) > 0 || !dropEmpty) {
@@ -87,9 +86,11 @@ findData <- function(scen,
     #   }
     # })
     for (v in names(scen@modOut@variables)) {
-      # if (v == "vObjective") browser()
-      # cat(v, " ")
-      qu <- get_lazy_dim_names(scen@modOut, slot = "variables", element = v)
+      # The `variable` object itself, exactly as the parameter branch above
+      # passes the `parameter`. Passing the modOut container instead returns
+      # `colnames()` of an S4 object -- NULL -- and the value-column filter
+      # below then drops every variable without a word.
+      qu <- get_lazy_dim_names(scen@modOut@variables[[v]], slot = "data")
       lt[[v]] <- list(
         dim = qu$dim,
         names = qu$names
@@ -158,6 +159,7 @@ findData <- function(scen,
 #' @param ... filters for various sets (setname = c(val1, val2) or setname_ = "matching pattern"), see details.
 #' @param name character vector with names of parameters and/or variables.
 #' @param merge if TRUE, the search results will be merged in one dataframe; the named list will be returned if FALSE. When TRUE, a data.frame (empty if nothing matched) is always returned, never NULL.
+#' @param geolevel controls spatial aggregation of results that carry a `region` column, the spatial twin of `timeframe`. One of `"finest"` (default, native resolution as stored), `"coarsest"` (aggregate up to the top geoscale level), `"all"` (return every level stacked), or an explicit geoscale level name (e.g. `"zone"`, `"nation"`). Requires a geoscale on the model; without one this is inert. Inter-regional flow variables (e.g. `vTradeIr`) are returned unchanged, because summing a flow across regions double-counts it — the spatial counterpart of leaving state variables alone under `timeframe`.
 #' @param timeframe controls sub-annual time aggregation of results that carry a `slice` column. One of `"lowest"` (default, aggregate/sum flows up to the coarsest level, normally `ANNUAL`), `"highest"` (native/finest, as stored), `"all"` (return every timeframe level stacked), or an explicit calendar level name (e.g. `"SEASON"`, `"YDAY"`) to aggregate to that level. Non-slice data, and state/level variables (e.g. `vStorageStore`) for which summing over slices is meaningless, are returned unchanged.
 #' @param process if TRUE, dimensions "tech", "stg", "trade", "imp", "expp", "dem", and "sup" will be renamed with "process".
 #' @param parameters if TRUE, parameters will be included in the search and returned if found.
@@ -165,6 +167,13 @@ findData <- function(scen,
 #' @param maps if TRUE, map-type parameters (membership mappings, no `value` column) are also returned.
 #' @param na.rm if TRUE, NA values will be dropped.
 #' @param digits if integer, indicates the number of decimal places for rounding, if NULL - no actions.
+#' @param variants logical, default `TRUE`: attach the technology-variant
+#'   provenance columns `base`, `vintage` and `cluster` (from
+#'   `scenario@modInp@sets$tech_variant`) to the returned data, so results of a
+#'   vintaged / clustered technology can be grouped or rolled up by those
+#'   dimensions without parsing the variant names. Has no effect when the model
+#'   has no variants, so the returned shape is unchanged for such models. Set
+#'   `FALSE` to suppress the columns.
 #' @param drop.zeros logical, should rows containing zero values be filtered out.
 #' @param asTibble logical, if the data.frames should be converted into tibbles.
 #' @param newNames renaming sets, named character vector or list with new names as values, and old names as names - the input parameter to renameSets function. The operation is performed before merging the data (merge parameter).
@@ -194,6 +203,7 @@ getData.scenario <- function(
     ...,
     merge = FALSE,
     timeframe = c("lowest", "highest", "all"),
+    geolevel = c("finest", "coarsest", "all"),
     process = FALSE,
     parameters = TRUE,
     variables = TRUE,
@@ -217,6 +227,7 @@ getData.scenario <- function(
     drop_duplicated_scenarios = TRUE,
     scenNameInList = as.logical(length(scen) - 1),
     unfold = TRUE,
+    variants = TRUE,
     verbose = FALSE) {
   # if (name == "vObjective") browser()
   # browser()
@@ -291,12 +302,14 @@ getData.scenario <- function(
   parvar <- c(parameters = parameters, variables = variables)
   for (s in 1:length(scen)) { # loop over scenarios
     sc <- names(scen)[s]
-    # Data availability: an un-interpolated scenario has no modInp parameters and
-    # an unsolved one has no modOut variables. Skip gracefully instead of erroring.
+    # Data availability: an un-interpolated scenario has no modInp parameters.
+    # Solvedness is read off `@stage`, NOT off the number of variables --
+    # `modOut` now pre-populates one empty `variable` per declared variable, so
+    # a failed solve has just as many as a successful one.
     avail <- c(
       parameters = tryCatch(length(scen[[s]]@modInp@parameters) > 0,
         error = function(e) FALSE),
-      variables = tryCatch(length(scen[[s]]@modOut@variables) > 0,
+      variables = tryCatch(identical(scen[[s]]@modOut@stage, "solved"),
         error = function(e) FALSE)
     )
     if (verbose && !any(avail)) {
@@ -416,9 +429,8 @@ getData.scenario <- function(
           } else {
             # dat <- scen[[sc]]@modOut@variables[[pv]]
             # browser()
-            dat <- get_lazy_data(scen[[s]]@modOut,
-              slot = "variables",
-              element = pv
+            dat <- get_lazy_data(scen[[s]]@modOut@variables[[pv]],
+              slot = "data"
             )
             if (!is.null(dat)) {
               # temporary. ToDo: rewrite filter-algo for lazy-data
@@ -543,10 +555,30 @@ getData.scenario <- function(
     ll <- lapply(ll, function(x) renameSets(x, newNames))
   }
 
+  # Technology variant provenance: attach `base` / `vintage` / `cluster` from
+  # `modInp@sets$tech_variant` so results can be analysed (or rolled up) by
+  # vintage and cluster without ever parsing the mangled variant names.
+  if (isTRUE(variants) && length(ll) > 0) {
+    tv <- tryCatch(scen[[1]]@modInp@sets$variant, error = function(e) NULL)
+    if (is.null(tv) || NROW(tv) == 0) {
+      if (verbose) message("No technology variants in this scenario.")
+    } else {
+      ll <- lapply(ll, function(x) .attach_variants(x, as.data.frame(tv)))
+    }
+  }
+
   # Sub-annual time aggregation (slice roll-up), see `timeframe` argument.
   if (length(ll) > 0) {
     cal <- tryCatch(scen[[1]]@settings@calendar, error = function(e) NULL)
     if (!is.null(cal)) ll <- .apply_timeframe(ll, cal, timeframe)
+  }
+
+  # Spatial roll-up, see `geolevel`. Inert without a geoscale, and
+  # `geolevel = "finest"` (the default) leaves results at native resolution --
+  # so this changes nothing unless asked for.
+  if (length(ll) > 0 && !identical(tolower(as.character(geolevel)[1]), "finest")) {
+    hier <- tryCatch(.scen_geo_hierarchy(scen[[1]]), error = function(e) NULL)
+    if (!is.null(hier)) ll <- .apply_geolevel(ll, hier, geolevel)
   }
 
   if (merge) {
@@ -692,10 +724,33 @@ get_data <- getData
 
 # State/level variables whose slice dimension is a snapshot, not a flow: summing
 # them over slices is meaningless, so timeframe roll-up leaves them at native
-# resolution. Extend as needed.
-.timeframe_state_vars <- c("vStorageStore")
+# resolution. Read off the variable specification (`role: stock` in
+# data-raw/variables.yml) rather than being listed here, so a new state variable
+# is covered by declaring what it is.
+.is_state_var <- function(nm) {
+  spec <- tryCatch(.variables, error = function(e) NULL)
+  if (is.null(spec)) return(rep(FALSE, length(nm)))
+  vapply(nm, function(v) {
+    identical(tryCatch(spec[[v]]$role, error = function(e) NULL), "stock")
+  }, logical(1), USE.NAMES = FALSE)
+}
 
 # Aggregate one data.frame to `target_rank` by summing `value` over child slices.
+# Left-join the variant provenance onto a result frame. The process id column is
+# `tech` / `stg` / `trade` depending on the class, or `process` when
+# `getData(process = TRUE)` has renamed it -- so the join key is whichever of
+# those the frame carries, not `tech` alone.
+.attach_variants <- function(x, tv) {
+  col <- intersect(c("tech", "stg", "trade", "process"), names(x))
+  if (length(col) == 0L) return(x)
+  col <- col[1]
+  if (any(c("base", "vintage", "cluster") %in% names(x))) return(x)
+  tv <- tv |>
+    select(all_of(c("name", "class", "base", "vintage", "cluster"))) |>
+    rename("{col}" := "name")
+  left_join(x, tv, by = col)
+}
+
 .aggregate_timeframe_df <- function(df, calendar, target_rank) {
   if (is.na(target_rank)) {
     return(df)
@@ -704,14 +759,19 @@ get_data <- getData
     return(df)
   }
   # never sum a stored-level / state variable across slices
-  if ("name" %in% names(df) && any(df$name %in% .timeframe_state_vars)) {
+  if ("name" %in% names(df) && any(.is_state_var(unique(df$name)))) {
     return(df)
   }
   map <- .slice_target_map(calendar, target_rank)
   tgt <- unname(map[as.character(df$slice)])
   na <- is.na(tgt)
   tgt[na] <- as.character(df$slice)[na] # unknown slices: leave untouched
-  if (all(tgt == as.character(df$slice))) {
+  # A folded parameter stores an unset slice as NA ("all slices"). Both sides of
+  # the comparison are then NA, so `all()` returned NA and `if` errored -- guard
+  # it: an NA slice has nothing to roll up.
+  same <- tgt == as.character(df$slice)
+  same[is.na(same)] <- TRUE
+  if (all(same)) {
     return(df) # nothing to roll up
   }
   df$slice <- tgt
@@ -720,6 +780,107 @@ get_data <- getData
     dplyr::group_by(dplyr::across(dplyr::all_of(grp))) |>
     dplyr::summarise(value = sum(value), .groups = "drop")
   as.data.frame(out)
+}
+
+# ---- geolevel (region roll-up): the spatial twin of the block above --------
+#
+# Same shape as `.slice_rank_map()` / `.aggregate_timeframe_df()`, with two
+# deliberate differences:
+#
+#  * rank comes from the geoscale (1 = coarsest), not from ancestry counting;
+#  * the variable exempted from roll-up is different. Summing a STOCK over
+#    slices is meaningless (it double-counts time), so timeframe roll-up skips
+#    state variables. Summing a stock over REGIONS is perfectly meaningful
+#    (total storage in a zone), but summing an INTER-REGIONAL FLOW is not --
+#    trade between two regions of the same zone cancels rather than adds. So
+#    the spatial exemption is flow variables, read off the same catalogue.
+
+# region -> its ancestor at `target_rank`, or itself when already at or coarser.
+#' @noRd
+.region_target_map <- function(hier, target_rank) {
+  lvl <- hier$levels
+  rank <- stats::setNames(seq_along(lvl), lvl)
+  out <- character(0)
+  for (lv in names(hier$members)) {
+    if (is.na(rank[lv]) || rank[[lv]] < target_rank) {
+      # already at or coarser than the target: keep as-is
+      m <- hier$members[[lv]]
+      out <- c(out, stats::setNames(m, m))
+    }
+  }
+  target_members <- hier$members[[lvl[target_rank]]]
+  if (is.null(target_members)) return(out)
+  # walk each finer region up to its ancestor at the target level
+  fam <- hier$family # region = parent, regionp = child
+  up <- stats::setNames(as.character(fam$region), as.character(fam$regionp))
+  for (r in unlist(hier$members[rank[names(hier$members)] >= target_rank],
+                   use.names = FALSE)) {
+    cur <- r
+    for (i in seq_along(lvl)) {
+      if (cur %in% target_members) break
+      nxt <- up[[cur]]
+      if (is.null(nxt) || is.na(nxt)) { cur <- NA_character_; break }
+      cur <- nxt
+    }
+    if (!is.na(cur) && cur %in% target_members) out[r] <- cur
+  }
+  out
+}
+
+#' @noRd
+.aggregate_geolevel_df <- function(df, hier, target_rank) {
+  if (is.na(target_rank)) return(df)
+  if (!("region" %in% names(df)) || !("value" %in% names(df))) return(df)
+  # never sum an inter-regional flow across regions -- it would double-count
+  if ("name" %in% names(df) && any(.is_flow_var(unique(df$name)))) return(df)
+  map <- .region_target_map(hier, target_rank)
+  tgt <- unname(map[as.character(df$region)])
+  na <- is.na(tgt)
+  tgt[na] <- as.character(df$region)[na] # unknown regions: leave untouched
+  same <- tgt == as.character(df$region)
+  same[is.na(same)] <- TRUE
+  if (all(same)) return(df)
+  df$region <- tgt
+  grp <- setdiff(names(df), "value")
+  out <- df |>
+    dplyr::group_by(dplyr::across(dplyr::all_of(grp))) |>
+    dplyr::summarise(value = sum(value), .groups = "drop")
+  as.data.frame(out)
+}
+
+# Apply the requested `geolevel` to a list of result data.frames.
+#   "finest" -> native (unchanged); "coarsest" -> the top level;
+#   "all"    -> native + every coarser aggregate, stacked;
+#   <level>  -> aggregate to that named geoscale level.
+#' @noRd
+.apply_geolevel <- function(ll, hier, geolevel) {
+  if (length(ll) == 0 || is.null(hier)) return(ll)
+  lvl <- hier$levels
+  if (length(lvl) <= 1) return(ll)
+  gl <- as.character(geolevel)[1]
+  if (identical(tolower(gl), "finest")) return(ll)
+
+  if (identical(tolower(gl), "all")) {
+    out <- lapply(ll, function(df) {
+      if (!("region" %in% names(df)) || !("value" %in% names(df))) return(df)
+      pieces <- lapply(seq_along(lvl), function(r) {
+        .aggregate_geolevel_df(df, hier, r)
+      })
+      dplyr::distinct(dplyr::bind_rows(pieces))
+    })
+    names(out) <- names(ll)
+    return(out)
+  }
+
+  target_rank <- if (gl %in% lvl) {
+    which(lvl == gl)[1]
+  } else if (identical(tolower(gl), "coarsest")) {
+    1L
+  } else {
+    stop("Unknown 'geolevel' = '", gl, "'. Use 'coarsest', 'finest', 'all', ",
+         "or a geoscale level name: ", paste(lvl, collapse = ", "))
+  }
+  lapply(ll, function(df) .aggregate_geolevel_df(df, hier, target_rank))
 }
 
 # Apply the requested `timeframe` to a list of result data.frames.

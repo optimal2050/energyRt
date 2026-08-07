@@ -11,7 +11,8 @@ getMix(
   region = NULL,
   year = NULL,
   slice = NULL,
-  drop_small = 0
+  drop_small = 0,
+  by = NULL
 )
 }
 \arguments{
@@ -30,7 +31,7 @@ with storage-in and exports negative), \code{"capacity"} (\code{vTechCap} +
 flows are only meaningful for a region subset and are skipped when
 \code{region = NULL} (they cancel out in an all-region sum).}
 
-\item{year}{integer vector or \code{NULL} (all milestone years).}
+\item{year}{integer vector or \code{NULL} (all milestone year).}
 
 \item{slice}{\code{NULL} for annual sums, or a regular expression selecting a
 slice sample (e.g. \code{"^SUM_"} for the summer day on the \code{utopia_s4h24}
@@ -39,13 +40,21 @@ an integer \code{hour} column is added.}
 
 \item{drop_small}{numeric in \verb{[0, 1)}: drop processes whose total absolute
 value is below this share of the largest process (default \code{0}, keep all).}
+
+\item{by}{character vector, any of \code{"vintage"} and \code{"cluster"}. Technology
+variants are always rolled back up to their base technology in \code{process};
+by default (\code{NULL}) they are simply summed, so charts do not fragment into
+one series per variant. Naming a dimension here keeps it as an extra
+grouping column (with \code{"(none)"} for processes that have no variants), ready
+to drive a fill or facet.}
 }
 \value{
 A tidy data.frame with columns \code{scenario}, \code{type}, \code{process}, \code{flow}
 (\code{generation}, \verb{storage-in/out}, \code{import/export}, \code{demand}, \code{fuel},
 \code{capacity}, \code{new_capacity}), \code{comm}, \code{region}, \code{year}, \code{value}, and -- when
-\code{slice} is given -- \code{slice} (+ \code{hour} when parsable). Missing variables are
-skipped silently (e.g. a model without storage or trade).
+\code{slice} is given -- \code{slice} (+ \code{hour} when parsable), plus any column named
+in \code{by}. Missing variables are skipped silently (e.g. a model without
+storage or trade).
 }
 \description{
 Collects the building blocks of a "mix" chart from a solved scenario into one
@@ -59,5 +68,6 @@ and rest-of-world trade, and demand. The same extractor feeds
 gen <- getMix(scen, "generation")                      # annual, all regions
 day <- getMix(scen, "generation", slice = "^SUM_")     # summer-day dispatch
 cmp <- getMix(list(BASE = s1, CO2CAP = s2), "capacity")
+cl  <- getMix(scen, "capacity", by = "cluster")        # split by cluster
 }
 }

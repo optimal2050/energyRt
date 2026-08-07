@@ -7,7 +7,7 @@
 \usage{
 plot_weather(
   object,
-  type = c("heatmap", "line", "area"),
+  style = c("heatmap", "line", "area"),
   calendar = NULL,
   palette = "D",
   datetime = FALSE,
@@ -15,12 +15,12 @@ plot_weather(
   ...
 )
 
-\method{autoplot}{weather}(object, type = c("heatmap", "line", "area"), calendar = NULL, ...)
+\method{autoplot}{weather}(object, style = c("heatmap", "line", "area"), calendar = NULL, ...)
 }
 \arguments{
 \item{object}{A \code{weather} object.}
 
-\item{type}{One of \code{"heatmap"} (default), \code{"line"}, \code{"area"}.}
+\item{style}{One of \code{"heatmap"} (default), \code{"line"}, \code{"area"}.}
 
 \item{calendar}{A \code{calendar} object (or format string) giving the slice
 layout. Recommended for a fully structured view. If \code{NULL}, the layout is
@@ -60,8 +60,9 @@ object's \verb{@unit} (or \code{"capacity factor"} if unset).
 \examples{
 \dontrun{
 data("calendars", package = "energyRt")
-W <- getObject(utopia_modules$electricity$reg3$repo, name = "WSOL", drop = TRUE)
-plot_weather(W, calendar = calendars$utopia_s4h24)                 # heatmap
-plot_weather(W, type = "line", calendar = calendars$utopia_s4h24)
+W <- getObject(utopia_modules$electricity$R3$repo, name = "WSOL", drop = TRUE)
+autoplot(W, calendar = calendars$utopia_s4h24)                     # heatmap
+autoplot(W, style = "line", calendar = calendars$utopia_s4h24)
 }
 }
+\keyword{internal}

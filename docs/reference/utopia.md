@@ -27,7 +27,7 @@ the `utopia` vignette,
 
 ``` r
 names(utopia)
-#> [1] "map"
+#> [1] "map" "geo"
 names(utopia$map)
 #> [1] "squares"   "honeycomb" "island"    "continent"
 ```

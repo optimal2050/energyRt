@@ -36,27 +36,28 @@ the storage cycle will be a calendar day).
 
 \item{\code{region}}{character. Region where the storage technology exists or can be installed.}
 
-\item{\code{start}}{data.frame. Start year when the storage is available for installation.
+\item{\code{cluster}}{data.frame. Declaration of the storage clusters -- parallel sub-processes of the same storage with their own capacity, availability and costs. The motivating cases are site-constrained storage (pumped-hydro head classes, CAES caverns) and duration classes via a per-cluster \code{cap2stg}. Optional: when empty, cluster labels are harvested from the other slots; when populated it is authoritative and an undeclared label raises an error.
 \describe{
-\item{region}{character. Regions where the storage is available for investment.}
-\item{start}{integer. The first year when the storage is available for investment.}
+\item{cluster}{character. Cluster label. Must match the \code{cluster} column values used in the other slots.}
+\item{desc}{character. Human-readable description of the cluster, used in reports.}
+\item{region}{character. Region the cluster exists in, NA for every region.}
+\item{order}{integer. Optional display/ranking order; controls the order variants are created and reported in.}
 }}
 
-\item{\code{end}}{data.frame. Last year when the storage is available for investment.
+\item{\code{vintage}}{data.frame. Investment window and operational life of the storage, one row per (vintage, region, cluster). Replaces the former \code{start}, \code{end} and \code{olife} slots. A vintage is a separately investable variant that keeps the characteristics of its build year for its whole life -- for storage typically a falling capex and a rising round-trip efficiency. Each column is read independently, so a region-agnostic \code{start} may be combined with a per-region \code{olife}.
 \describe{
+\item{vintage}{character. Vintage label, normally the build year as a string. NA for an un-vintaged storage.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
-\item{end}{integer. The last year when the storage is available for investment.}
-}}
-
-\item{\code{olife}}{data.frame. Operational life of the storage technology, applicable to the new investment only, the operational life (retirement) of preexiting capacity is described in the \code{stock} slot.
-
-\describe{
-\item{region}{character. Region name to apply the parameter, NA for every region.}
-\item{olife}{integer. Operational life of the storage technology in years.}
+\item{cluster}{character. Cluster label, NA for every cluster.}
+\item{start}{integer. The first year the storage can be installed. Defaults to the vintage year.}
+\item{end}{integer. The last year the storage can be installed. Defaults to the vintage year.}
+\item{olife}{integer. Operational life of the storage in years, applicable to new investment only.}
 }}
 
 \item{\code{capacity}}{data.frame. Capacity parameters of the storage technology.
 \describe{
+\item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
+\item{cluster}{character. Cluster label selecting the variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{cap}{numeric. Capacity of the storage technology.}
@@ -75,6 +76,8 @@ the storage cycle will be a calendar day).
 
 \item{\code{charge}}{data.frame. Pre-charged level at the beginning of the operational cycle.
 \describe{
+\item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
+\item{cluster}{character. Cluster label selecting the variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{slice}{character. Time slice for which the charged level will be specified.}
@@ -83,6 +86,8 @@ the storage cycle will be a calendar day).
 
 \item{\code{seff}}{data.frame. Storage efficiency parameters.
 \describe{
+\item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
+\item{cluster}{character. Cluster label selecting the variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{slice}{character. Time slice to apply the parameter, NA for every slice.}
@@ -93,6 +98,8 @@ the storage cycle will be a calendar day).
 
 \item{\code{af}}{data.frame. Availability factor parameters.
 \describe{
+\item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
+\item{cluster}{character. Cluster label selecting the variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{slice}{character. Time slice to apply the parameter, NA for every slice.}
@@ -111,6 +118,8 @@ the storage cycle will be a calendar day).
 
 \item{\code{aeff}}{data.frame. Auxiliary commodities efficiency parameters.
 \describe{
+\item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
+\item{cluster}{character. Cluster label selecting the variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
 \item{acomm}{character. Name of the auxiliary commodity (used in sets).}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
@@ -130,6 +139,8 @@ the storage cycle will be a calendar day).
 
 \item{\code{fixom}}{data.frame. Fixed operation and maintenance cost.
 \describe{
+\item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
+\item{cluster}{character. Cluster label selecting the variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{fixom}{numeric. Fixed operation and maintenance cost for the specified sets.}
@@ -137,6 +148,8 @@ the storage cycle will be a calendar day).
 
 \item{\code{varom}}{data.frame. Variable operation and maintenance cost.
 \describe{
+\item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
+\item{cluster}{character. Cluster label selecting the variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{slice}{character. Time slice to apply the parameter, NA for every slice.}
@@ -147,20 +160,32 @@ the storage cycle will be a calendar day).
 
 \item{\code{invcost}}{data.frame. Investment cost.
 \describe{
+\item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
+\item{cluster}{character. Cluster label selecting the variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{invcost}{numeric. Overnight investment cost for the specified region and year.}
-\item{wacc}{numeric. Weighted average cost of capital. If not supplied, the discount from the
-model or scenario is used. (currently ignored)
-}
+\item{wacc}{numeric. Weighted average cost of capital used to annuitise \code{invcost} for this storage. Overrides the model-wide \code{wacc} (see the model \code{discount} argument). The social discount rate is never used here.}
+\item{payback}{numeric. Cost-recovery period in years. Where given it replaces \code{olife} in the annuity AND in the years over which the annuity is charged, so the investment is repaid over \code{payback} years while the capacity keeps operating for its full operational life. Must be positive and not exceed \code{olife}. Unset (or 0) means recover over \code{olife}. Implemented for the GLPK solver only.}
+\item{eac}{numeric. Equivalent annual cost, supplied directly instead of being computed from \code{invcost}, \code{wacc} and the lifetime. Where given it wins; where absent the annuity is computed. Mutually exclusive with \code{invcost} per row.}
+\item{retcost}{numeric. Costs of early retirement of the storage, default is 0.}
 }}
 
 \item{\code{fullYear}}{logical. If TRUE (default), the storage technology operates between parent timeframes through the year. The last time-slice in the timeframe is used as a preciding time-slice for the first time-slice in the the same group of time-slices within the parent timeframe. if FALSE, the storage charge and discchare cycle is limited to the parent timeframe. The last time-slice in the timeframe is used as a preciding time-slice for the first time-slice in the the same group of time-slices within the parent timeframe.}
 
-\item{\code{cap2stg}}{numeric. Charging and discharging capacity to the storing capacity inverse ratio. Can be used to define the storage duration.}
+\item{\code{cap2stg}}{data.frame. Charging and discharging capacity to the storing capacity inverse ratio, i.e. the storage duration. A data.frame rather than a scalar so it can differ by cluster -- 1h / 4h / 8h duration classes of the same storage. A bare scalar (\code{cap2stg = 4}) is still accepted.
+\describe{
+\item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage.}
+\item{cluster}{character. Cluster label selecting the variant this row applies to, NA for every cluster.}
+\item{region}{character. Region name to apply the parameter, NA for every region.}
+\item{year}{integer. Year to apply the parameter, NA for every year.}
+\item{cap2stg}{numeric. Capacity-to-storage ratio (storage duration).}
+}}
 
 \item{\code{weather}}{data.frame. Weather factors multipliers.
 \describe{
+\item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
+\item{cluster}{character. Cluster label selecting the variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
 \item{weather}{character. Name of the weather factor to apply.}
 \item{waf.lo}{numeric. Coefficient that links the weather factor with the lower bound of the availability factor.}
 \item{waf.up}{numeric. Coefficient that links the weather factor with the upper bound of the availability factor.}

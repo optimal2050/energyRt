@@ -20,7 +20,7 @@ with the object's `@unit` (or `"capacity factor"` if unset).
 ``` r
 plot_weather(
   object,
-  type = c("heatmap", "line", "area"),
+  style = c("heatmap", "line", "area"),
   calendar = NULL,
   palette = "D",
   datetime = FALSE,
@@ -29,7 +29,7 @@ plot_weather(
 )
 
 # S3 method for class 'weather'
-autoplot(object, type = c("heatmap", "line", "area"), calendar = NULL, ...)
+autoplot(object, style = c("heatmap", "line", "area"), calendar = NULL, ...)
 ```
 
 ## Arguments
@@ -38,7 +38,7 @@ autoplot(object, type = c("heatmap", "line", "area"), calendar = NULL, ...)
 
   A `weather` object.
 
-- type:
+- style:
 
   One of `"heatmap"` (default), `"line"`, `"area"`.
 
@@ -82,8 +82,8 @@ A `ggplot` object (or `NULL`, invisibly, if there is nothing to plot).
 ``` r
 if (FALSE) { # \dontrun{
 data("calendars", package = "energyRt")
-W <- getObject(utopia_modules$electricity$reg3$repo, name = "WSOL", drop = TRUE)
-plot_weather(W, calendar = calendars$utopia_s4h24)                 # heatmap
-plot_weather(W, type = "line", calendar = calendars$utopia_s4h24)
+W <- getObject(utopia_modules$electricity$R3$repo, name = "WSOL", drop = TRUE)
+autoplot(W, calendar = calendars$utopia_s4h24)                     # heatmap
+autoplot(W, style = "line", calendar = calendars$utopia_s4h24)
 } # }
 ```

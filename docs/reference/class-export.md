@@ -41,7 +41,7 @@ over the model horizon.
 
   numeric. Total accumulated limit through the model horizon.
 
-- `exp`:
+- `export`:
 
   data.frame. Export parameters.
 

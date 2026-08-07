@@ -140,8 +140,6 @@ setMethod(
       # assign data to the parameter
       obj@data <- data
     }
-    # update the number of values in the parameter
-    obj@misc$nValues <- nrow(data)
     return(obj)
   }
 )
@@ -232,7 +230,6 @@ setMethod(
 
     if (ncol(obj@data) != 1) invisible()  # browser() disabled
     if (is.factor(obj@data[[1]])) invisible()  # browser() disabled
-    obj@misc$nValues <- if (isOnDisk(obj)) nrow(data) else nrow(obj@data)
     obj
   }
 )
@@ -293,7 +290,12 @@ update_parameter <- function(scen, param, data, path = NULL) {
             "The path to the parameters is not specified in the scenario."
           )
         } else {
-          path <- fp(path, param)
+          # `<scen>/modInp` + the slot name + the parameter name. `obj2disk()`
+          # writes each parameter to `<modInp path>/parameters/<name>`, so the
+          # `parameters` segment is not optional -- without it this fallback
+          # pointed at a directory that never exists, and it fires exactly when
+          # the parameter was empty and so had no path of its own.
+          path <- fp(path, "parameters", param)
         }
       }
     }
@@ -498,16 +500,16 @@ setMethod(
     dat <- data.table(
       dem = dem@name,
       comm = dem@commodity,
-      region = dem@dem$region,
-      year = dem@dem$year,
-      slice = dem@dem$slice,
-      value = as.numeric(dem@dem$dem)
+      region = dem@demand$region,
+      year = dem@demand$year,
+      slice = dem@demand$slice,
+      value = as.numeric(dem@demand$demand)
     ) |>
       force_cols_classes()
 
     if (length(dem@region) != 0) {
       # filter out unused regions
-      if (any(!(dem@region %in% scen@modInp@sets$region))) {
+      if (any(!(dem@region %in% .known_regions(scen)))) {
         stop(
           'Region "', dem@region, '" used in demand "', dem@name,
           '" is not declared in the model.'
@@ -571,16 +573,16 @@ setMethod(
     dat <- data.table(
       expp = exp@name,
       # comm = exp@commodity,
-      region = exp@exp$region,
-      year = exp@exp$year,
-      slice = exp@exp$slice,
-      value = as.numeric(exp@exp$price)
+      region = exp@export$region,
+      year = exp@export$year,
+      slice = exp@export$slice,
+      value = as.numeric(exp@export$price)
     ) |>
       force_cols_classes()
     # A NA region means "all regions the export operates in". The export class
     # has no explicit @region slot yet, so get_region() returns nothing and we
     # fall back to all model regions.
-    dat <- .expand_na_region(dat, c(get_region(exp), scen@modInp@sets$region))
+    dat <- .expand_na_region(dat, c(get_region(exp), .model_regions(scen)))
     scen <- update_parameter(scen, "pExportRowPrice", dat)
 
     ## pExportRowRes ####
@@ -595,13 +597,13 @@ setMethod(
 
     ## pExportRow ####
     # scen@modInp@parameters$pExportRow@data
-    # pExportRow <- .interp_bounds(exp@exp, "exp", obj@parameters[["pExportRow"]], approxim, "expp", exp@name)
+    # pExportRow <- .interp_bounds(exp@export, "exp", obj@parameters[["pExportRow"]], approxim, "expp", exp@name)
     # obj@parameters[["pExportRow"]] <- .dat2par(obj@parameters[["pExportRow"]], pExportRow)
-    dat <- .pack_bounds_long(exp@exp, "exp", c("region", "year", "slice"))
+    dat <- .pack_bounds_long(exp@export, "exp", c("region", "year", "slice"))
     if (!is.null(dat)) {
       dat <- data.table(expp = exp@name, dat) |>
         .force_year_class_df()
-      dat <- .expand_na_region(dat, c(get_region(exp), scen@modInp@sets$region))
+      dat <- .expand_na_region(dat, c(get_region(exp), .model_regions(scen)))
       scen <- update_parameter(scen, "pExportRow", dat)
     }
 
@@ -710,7 +712,7 @@ setMethod(
     # obj@parameters[["mImpComm"]] <- .dat2par(obj@parameters[["mImpComm"]], mImpComm)
 
     # pImportRowPrice <- .interp_numpar(
-    #   imp@imp, "price",
+    #   imp@import, "price",
     #   obj@parameters[["pImportRowPrice"]], approxim, "imp", imp@name
     # )
     # obj@parameters[["pImportRowPrice"]] <- .dat2par(obj@parameters[["pImportRowPrice"]], pImportRowPrice)
@@ -719,16 +721,16 @@ setMethod(
     # scen@modInp@parameters$pImportRowPrice@data
     dat <- data.table(
       imp = imp@name,
-      region = imp@imp$region,
-      year = imp@imp$year,
-      slice = imp@imp$slice,
-      value = as.numeric(imp@imp$price)
+      region = imp@import$region,
+      year = imp@import$year,
+      slice = imp@import$slice,
+      value = as.numeric(imp@import$price)
     ) |>
       .force_year_class_df()
     # A NA region means "all regions the import operates in". The import class
     # has no explicit @region slot yet, so get_region() returns nothing and we
     # fall back to all model regions.
-    dat <- .expand_na_region(dat, c(get_region(imp), scen@modInp@sets$region))
+    dat <- .expand_na_region(dat, c(get_region(imp), .model_regions(scen)))
     scen <- update_parameter(scen, "pImportRowPrice", dat)
 
     ## pImportRowRes ####
@@ -744,15 +746,15 @@ setMethod(
     ## pImportRow ####
     # scen@modInp@parameters$pImportRow@data
     # pImportRow <- .interp_bounds(
-    #   imp@imp, "imp",
+    #   imp@import, "imp",
     #   obj@parameters[["pImportRow"]], approxim, "imp", imp@name
     # )
     # obj@parameters[["pImportRow"]] <- .dat2par(obj@parameters[["pImportRow"]], pImportRow)
-    dat <- .pack_bounds_long(imp@imp, "imp", c("region", "year", "slice"))
+    dat <- .pack_bounds_long(imp@import, "imp", c("region", "year", "slice"))
     if (!is.null(dat)) {
       dat <- data.table(imp = imp@name, dat) |>
         .force_year_class_df()
-      dat <- .expand_na_region(dat, c(get_region(imp), scen@modInp@sets$region))
+      dat <- .expand_na_region(dat, c(get_region(imp), .model_regions(scen)))
       scen <- update_parameter(scen, "pImportRow", dat)
     }
 
@@ -901,7 +903,7 @@ setMethod(
     ## pSupCost ####
     # scen@modInp@parameters$pSupCost@data
     # pSupCost <- .interp_numpar(
-    #   sup@availability, "cost",
+    #   sup@supply, "cost",
     #   obj@parameters[["pSupCost"]],
     #   approxim, c("sup", "comm"),
     #   c(sup@name, sup@commodity)
@@ -914,10 +916,10 @@ setMethod(
     dat <- data.table(
       sup = sup@name,
       comm = sup@commodity,
-      region = sup@availability$region,
-      year = sup@availability$year,
-      slice = sup@availability$slice,
-      value = as.numeric(sup@availability$cost)
+      region = sup@supply$region,
+      year = sup@supply$year,
+      slice = sup@supply$slice,
+      value = as.numeric(sup@supply$cost)
     ) |>
       force_cols_classes()
     # rows with unset cost (NA) carry only availability bounds (e.g. free
@@ -944,12 +946,12 @@ setMethod(
     ## pSupAva ####
     # scen@modInp@parameters$pSupAva@data
     # pSupAva <- .interp_bounds(
-    #   sup@availability, "ava",
+    #   sup@supply, "ava",
     #   obj@parameters[["pSupAva"]], approxim, c("sup", "comm"),
     #   c(sup@name, sup@commodity)
     # )
     # obj@parameters[["pSupAva"]] <- .dat2par(obj@parameters[["pSupAva"]], pSupAva)
-    dat <- .pack_bounds_long(sup@availability, "ava", c("region", "year", "slice"))
+    dat <- .pack_bounds_long(sup@supply, "ava", c("region", "year", "slice"))
     if (!is.null(dat)) {
       dat <- data.table(sup = sup@name, comm = sup@commodity, dat) |>
         force_cols_classes()
@@ -1331,12 +1333,10 @@ setMethod(
 # =============================================================================#
 setMethod(
   "ob2mi",
-  signature(scen = "scenario", obj = "sub", extra_params = "list"),
+  signature(scen = "scenario", obj = "subsidy", extra_params = "list"),
   function(scen, obj, extra_params = list()) {
     for (s in slotNames(obj)) {
       if (s %in% c("name", "timeframe", "commodity", "region")) {next}
-      # The S4 class is "sub" but its modInp parameters are registered under
-      # the "subsidy" class; look them up by the modInp class name.
       slot_info <- get_slot_meta("subsidy", s)
       if (is_empty(slot_info)) {next}
       slot_data <- get_lazy_data(obj, s)
@@ -1411,7 +1411,11 @@ setMethod(
   growth <- if (length(mid) > 0) c(diff(mid), 1L) else integer(0)
   names(growth) <- as.character(mid)
   list(
-    region = scen@modInp@sets$region,
+    region = .model_regions(scen),
+    # Pruned region hierarchy, so a summand's `geolevel` can be resolved to the
+    # regions of that level (the spatial twin of `calendar@timeframes`).
+    # NULL when no geoscale is attached.
+    geo_hierarchy = .scen_geo_hierarchy(scen),
     year = ss@horizon@period,
     slice = scen@modInp@sets$slice,
     calendar = ss@calendar,
@@ -1452,7 +1456,7 @@ setMethod(
 
     clean_list <- c(
       "mSliceParentChild", "mSliceParentChildE", "mSliceNext",
-      "mSliceFYearNext", "pDiscount", "pSliceShare", "pDummyImportCost",
+      "mSliceFYearNext", "pWacc", "pSdr", "pSliceShare", "pDummyImportCost",
       "pDummyExportCost",
       "pSliceWeight",
       # "mStartMilestone", "mEndMilestone",
@@ -1493,19 +1497,27 @@ setMethod(
         .dat2par(obj@parameters[["mSliceFYearNext"]],
                  approxim$calendar@next_in_year)
     }
-    # Discount
-    # browser()
+    # The model's two rates: `wacc` annuitises investment (R/eac.R), `sdr`
+    # discounts the objective (pDiscountFactor, below). `@discount` carries both
+    # columns on every row -- `.discount_arg_to_rates()` expanded the `discount`
+    # shorthand and rejected partial rows -- so neither needs a fallback here.
+    # Interpolated over ANNUAL years, not milestones: the pDiscountFactor
+    # cumprod below compounds year by year.
     approxim_no_mileStone_Year <- approxim
     approxim_no_mileStone_Year$mileStoneYears <- NULL
-    pDiscount <- .interp_numpar(app@discount, "discount",
-                                obj@parameters[["pDiscount"]], approxim_no_mileStone_Year,
-                                all.val = TRUE
+    pSdr <- .interp_numpar(app@discount, "sdr",
+                           obj@parameters[["pSdr"]], approxim_no_mileStone_Year,
+                           all.val = TRUE
     )
-    obj@parameters[["pDiscount"]] <-
-      .dat2par(obj@parameters[["pDiscount"]],
-               filter(pDiscount, year %in% obj@parameters$year@data$year)
-               # pDiscount
-      )
+    pWacc <- .interp_numpar(app@discount, "wacc",
+                            obj@parameters[["pWacc"]], approxim_no_mileStone_Year,
+                            all.val = TRUE
+    )
+    for (.r in list(list("pSdr", pSdr), list("pWacc", pWacc))) {
+      obj@parameters[[.r[[1]]]] <-
+        .dat2par(obj@parameters[[.r[[1]]]],
+                 filter(.r[[2]], year %in% obj@parameters$year@data$year))
+    }
     approxim_comm <- approxim
     approxim_comm[["comm"]] <- approxim$all_comm
     obj@parameters[["pSliceShare"]] <- .dat2par(
@@ -1658,11 +1670,13 @@ setMethod(
                  stringsAsFactors = FALSE)
     )
     # browser()
-    pDiscount <-
-      pDiscount[sort(pDiscount$year, index.return = TRUE)$ix, , drop = FALSE]
-    pDiscountFactor <- pDiscount[0, , drop = FALSE]
-    for (l in unique(pDiscount$region)) {
-      dd <- pDiscount[pDiscount$region == l, , drop = FALSE]
+    # Cumulative discount factor for the objective -- built from the SOCIAL
+    # discount rate. The financing rate (`wacc`) never enters here; it is spent
+    # in R/eac.R annuitising investment.
+    pSdr <- pSdr[sort(pSdr$year, index.return = TRUE)$ix, , drop = FALSE]
+    pDiscountFactor <- pSdr[0, , drop = FALSE]
+    for (l in unique(pSdr$region)) {
+      dd <- pSdr[pSdr$region == l, , drop = FALSE]
       if (!app@discountFirstYear) dd$value[which.min(dd$year)] <- 0
       dd$value <- cumprod(1 / (1 + dd$value))
       pDiscountFactor <- rbind(pDiscountFactor, dd)
@@ -1795,6 +1809,21 @@ make_data_param <- function(
   } else {
     short_name <- par_meta$colName
   }
+
+  # A slot data.frame deserialised under an older class version can lack the
+  # column this parameter reads -- `@invcost$eac` and `@invcost$payback` are
+  # exactly that case for objects built before they existed. `rename()` (numpar)
+  # and `pivot_longer()` (bounds) both error on a missing column, but an absent
+  # column just means the user set nothing, so return the empty schema.
+  .wanted <- if (par_meta$type == "bounds") {
+    paste0(par_meta$colName, c(".lo", ".up", ".fx"))
+  } else {
+    short_name
+  }
+  if (!any(.wanted %in% names(slot_data))) {
+    return(.empty_param_data(scen@modInp@parameters[[par_meta$name]]))
+  }
+
   if (par_meta$type == "bounds") {
     # browser()
     bound_names <- paste0(par_meta$colName, c(".lo", ".up", ".fx"))
@@ -1846,7 +1875,9 @@ make_data_param <- function(
         scen@modInp@parameters[[par_meta$name]]@dimSets,
         short_name
         ))) |>
-      rename(value = short_name) |>
+      # `all_of()`: renaming from a character variable is a tidyselect
+      # "external vector" selection, deprecated since tidyselect 1.1.0.
+      rename(value = all_of(short_name)) |>
       filter(!is.na(value)) |>
       unique()
 

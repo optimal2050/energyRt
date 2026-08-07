@@ -12,6 +12,9 @@
   year = NULL,
   slice = NULL,
   drop_small = 0,
+  by = NULL,
+  fill = NULL,
+  facet = NULL,
   ...
 )
 }
@@ -23,6 +26,16 @@
 
 \item{comm, region, year, slice, drop_small}{passed to \code{\link[=getMix]{getMix()}}. For a dispatch
 profile (\code{slice} given) with \code{year = NULL}, the last milestone year is used.}
+
+\item{by}{character vector passed to \code{\link[=getMix]{getMix()}}, any of \code{"vintage"} and
+\code{"cluster"}, to keep those technology-variant dimensions as grouping
+columns. Implied automatically by \code{fill}/\code{facet}.}
+
+\item{fill}{name of the column to colour the bars by (default \code{"process"});
+\code{"vintage"} or \code{"cluster"} shows the composition of a variant group.}
+
+\item{facet}{name of the column to facet by. Defaults to \code{"region"} when the
+scenario has more than one region (the historical behaviour).}
 
 \item{...}{ignored.}
 }
@@ -40,5 +53,7 @@ and exports plot below zero; demand is overlaid as a line.
 autoplot(scen)                                    # annual generation mix
 autoplot(scen, "generation", slice = "^SUM_")     # summer-day dispatch
 autoplot(scen, "capacity")
+autoplot(scen, "capacity", fill = "cluster")      # capacity by cluster
+autoplot(scen, "capacity", fill = "vintage", facet = "process")
 }
 }

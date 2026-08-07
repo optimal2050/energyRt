@@ -186,12 +186,11 @@ newCosts <- function(
     return(any(is.na(x)) || (name != "slice" && all(approxim[[name]] %in% x)))
   }
   sets <- .variable_set[[stm@variable]]
-  if (anyDuplicated(.variable_set[[stm@variable]])) {
-    dsets <- sets[duplicated(sets)]
-    for (dst in dsets) {
+  if (anyDuplicated(sets)) {
+    for (dst in sets[duplicated(sets)]) {
       approxim[[paste0(dst, 2)]] <- approxim[[dst]]
     }
-    sets[duplicated(sets)] <- paste0(sets[duplicated(sets)], 2)
+    sets <- .dedup2(sets) # the shared spelling of the "2"-suffix convention
   }
   # Generate mult
   if (nrow(stm@mult) != 0) {

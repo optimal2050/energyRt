@@ -10,9 +10,8 @@
 #' @slot commodity `r get_slot_doc("storage", "commodity")`
 #' @slot aux `r get_slot_doc("storage", "aux")`
 #' @slot region `r get_slot_doc("storage", "region")`
-#' @slot start `r get_slot_doc("storage", "start")`
-#' @slot end `r get_slot_doc("storage", "end")`
-#' @slot olife `r get_slot_doc("storage", "olife")`
+#' @slot cluster `r get_slot_doc("storage", "cluster")`
+#' @slot vintage `r get_slot_doc("storage", "vintage")`
 #' @slot capacity `r get_slot_doc("storage", "capacity")`
 #' @slot charge `r get_slot_doc("storage", "charge")`
 #' @slot seff `r get_slot_doc("storage", "seff")`
@@ -40,9 +39,8 @@ setClass("storage",
     commodity = "character", # !!! ToDo: add units
     aux = "data.frame", #
     region = "character",
-    start = "data.frame",
-    end = "data.frame",
-    olife = "data.frame", #
+    cluster = "data.frame",
+    vintage = "data.frame",
     # stock = "data.frame", #
     capacity = "data.frame", #
     charge = "data.frame", #
@@ -53,7 +51,7 @@ setClass("storage",
     varom = "data.frame", #
     invcost = "data.frame",
     fullYear = "logical",
-    cap2stg = "numeric", # cap2stg cinp
+    cap2stg = "data.frame", # energy-to-power ratio; varies by cluster (duration)
     weather = "data.frame", # weather condisions multiplier
     optimizeRetirement = "logical",
     misc = "list" #
@@ -62,23 +60,32 @@ setClass("storage",
     name = "",
     desc = "",
     commodity = "",
-    start = data.frame(
+    # Cluster declaration -- see the `technology` class for the full rationale.
+    # For storage the motivating case is site-constrained capacity: pumped-hydro
+    # head classes, CAES caverns, or duration classes via per-cluster `cap2stg`.
+    cluster = data.frame(
+      cluster = character(),
+      desc = character(),
       region = character(),
+      order = integer(),
+      stringsAsFactors = FALSE
+    ),
+    # Lifespan / vintage table, replacing the former `start`/`end`/`olife` slots
+    # (which is what the old `# year = integer(), # add year to distinguish
+    # vintages` note here was reaching for). One row per (vintage, region,
+    # cluster); `start`/`end` default to the vintage year.
+    vintage = data.frame(
+      vintage = character(),
+      region = character(),
+      cluster = character(),
       start = integer(),
-      stringsAsFactors = FALSE
-    ),
-    end = data.frame(
-      region = character(),
       end = integer(),
-      stringsAsFactors = FALSE
-    ),
-    olife = data.frame(
-      region = character(),
-      # year = integer(), # add year to distinguish vintages
       olife = integer(),
       stringsAsFactors = FALSE
     ),
     charge = data.frame(
+      vintage = character(),
+      cluster = character(),
       region = character(),
       year = integer(),
       slice = character(),
@@ -86,6 +93,8 @@ setClass("storage",
       stringsAsFactors = FALSE
     ),
     seff = data.frame(
+      vintage = character(),
+      cluster = character(),
       region = character(),
       year = integer(),
       slice = character(),
@@ -100,6 +109,8 @@ setClass("storage",
       stringsAsFactors = FALSE
     ),
     aeff = data.frame(
+      vintage = character(),
+      cluster = character(),
       acomm = character(),
       region = character(),
       year = integer(),
@@ -118,6 +129,8 @@ setClass("storage",
       stringsAsFactors = FALSE
     ),
     af = data.frame(
+      vintage = character(),
+      cluster = character(),
       region = character(),
       year = integer(),
       slice = character(),
@@ -133,12 +146,16 @@ setClass("storage",
       stringsAsFactors = FALSE
     ),
     fixom = data.frame(
+      vintage = character(),
+      cluster = character(),
       region = character(),
       year = integer(),
       fixom = numeric(),
       stringsAsFactors = FALSE
     ),
     varom = data.frame(
+      vintage = character(),
+      cluster = character(),
       region = character(),
       year = integer(),
       slice = character(),
@@ -147,11 +164,17 @@ setClass("storage",
       stgcost = numeric(),
       stringsAsFactors = FALSE
     ),
+    # `wacc` overrides the model-wide rate when annuitising this storage;
+    # `payback` shortens the cost-recovery period below `@vintage$olife`; `eac`
+    # supplies the annuity directly, bypassing both.
     invcost = data.frame(
+      vintage = character(),
+      cluster = character(),
       region = character(),
       year = integer(),
       invcost = numeric(),
       wacc = numeric(),
+      payback = numeric(),
       eac = numeric(),
       retcost = numeric(),
       stringsAsFactors = FALSE
@@ -163,6 +186,8 @@ setClass("storage",
     #   stringsAsFactors = FALSE
     # ),
     capacity = data.frame(
+      vintage = character(),
+      cluster = character(),
       region = character(),
       year = integer(),
       stock = numeric(),
@@ -177,10 +202,23 @@ setClass("storage",
       ret.fx = numeric(),
       stringsAsFactors = FALSE
     ),
-    cap2stg = 1,
+    # Energy-to-power ratio. A data.frame (not a scalar) so it can differ by
+    # cluster: 1h / 4h / 8h duration classes of the same battery. The scalar
+    # shorthand `cap2stg = 4` still works via `.data2slots()`, because the slot
+    # carries a column of its own name.
+    cap2stg = data.frame(
+      vintage = character(),
+      cluster = character(),
+      region = character(),
+      year = integer(),
+      cap2stg = numeric(),
+      stringsAsFactors = FALSE
+    ),
     fullYear = TRUE,
     region = character(),
     weather = data.frame(
+      vintage = character(),
+      cluster = character(),
       weather = character(),
       waf.lo = numeric(),
       waf.up = numeric(),
@@ -224,9 +262,11 @@ setMethod("initialize", "storage", function(.Object, ...) {
 #' @param commodity `r get_slot_doc("storage", "commodity")`
 #' @param aux `r get_slot_doc("storage", "aux")`
 #' @param region `r get_slot_doc("storage", "region")`
-#' @param start `r get_slot_doc("storage", "start")`
-#' @param end `r get_slot_doc("storage", "end")`
-#' @param olife `r get_slot_doc("storage", "olife")`
+#' @param cluster `r get_slot_doc("storage", "cluster")`
+#' @param vintage `r get_slot_doc("storage", "vintage")`
+#' @param start deprecated, use the `start` column of `vintage`.
+#' @param end deprecated, use the `end` column of `vintage`.
+#' @param olife deprecated, use the `olife` column of `vintage`.
 #' @param charge `r get_slot_doc("storage", "charge")`
 #' @param seff `r get_slot_doc("storage", "seff")`
 #' @param aeff `r get_slot_doc("storage", "aeff")`
@@ -299,7 +339,7 @@ setMethod("initialize", "storage", function(.Object, ...) {
 #'   ),
 #'   invcost = data.frame(
 #'     region = "R1", year = 2020, invcost = 0.9,
-#'     wacc = 0.9, retcost = 0.9
+#'     wacc = 0.09, payback = 10, retcost = 0.9
 #'   ),
 #'   capacity = data.frame(
 #'     region = "R1", year = 2020, stock = 0.9,
@@ -337,6 +377,8 @@ newStorage <- function(
     varom = data.frame(),
     invcost = data.frame(),
     capacity = data.frame(),
+    cluster = data.frame(),
+    vintage = data.frame(),
     cap2stg = 1,
     fullYear = TRUE,
     weather = data.frame(),
@@ -344,13 +386,13 @@ newStorage <- function(
     misc = list(),
     ...
     ) {
-  .data2slots(
-    "storage",
-    name,
+  args <- list(
     desc = desc,
     commodity = commodity,
     aux = aux,
     region = region,
+    cluster = cluster,
+    vintage = vintage,
     start = start,
     end = end,
     olife = olife,
@@ -368,6 +410,9 @@ newStorage <- function(
     optimizeRetirement = optimizeRetirement,
     misc = misc,
     ...)
+  # fold the deprecated `start`/`end`/`olife` arguments into `vintage`
+  args <- .tech_lifespan_args(args)
+  do.call(.data2slots, c(list("storage", name), args))
 }
 
 
@@ -381,6 +426,8 @@ newStorage <- function(
 #' @export
 setMethod("update", signature(object = "storage"),
           function(object, ...) {
-  # update.storage <- function(obj, ...) {
-  .data2slots("storage", object, ...)
+  # fold the deprecated `start`/`end`/`olife` arguments into `vintage` before
+  # they reach `.data2slots()`, which no longer knows those slot names
+  args <- .tech_lifespan_args(list(...))
+  do.call(.data2slots, c(list("storage", object), args))
 })

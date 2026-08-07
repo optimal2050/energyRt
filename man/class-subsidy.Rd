@@ -21,7 +21,7 @@ production, consumption, or balance of a commodity.
 
 \item{\code{defVal}}{numeric. Default value of the subsidy.}
 
-\item{\code{sub}}{data.frame. Subsidy values.
+\item{\code{subsidy}}{data.frame. Subsidy values.
 \describe{
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}

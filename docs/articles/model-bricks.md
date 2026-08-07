@@ -90,7 +90,7 @@ A source of a commodity, with an availability bound and a cost (see the
 SUP_COA <- newSupply(
   name = "SUP_COA", desc = "Coal supply", commodity = "COA", unit = "PJ",
   reserve = data.frame(region = "R1", res.up = 2e5),
-  availability = data.frame(region = "R1", year = NA_integer_, slice = "ANNUAL",
+  supply = data.frame(region = "R1", year = NA_integer_, slice = "ANNUAL",
                             ava.up = 1e3, cost = 10))
 draw(SUP_COA)
 ```
@@ -105,8 +105,8 @@ A commodity sink; `dem` is the demanded quantity over years/slices.
 
 DEM_ELC <- newDemand(
   name = "DEM_ELC", desc = "Electricity demand", commodity = "ELC", unit = "GWh",
-  dem = data.frame(region = "R1", year = c(2020, 2050), slice = "ANNUAL",
-                   dem = c(100, 300)))
+  demand = data.frame(region = "R1", year = c(2020, 2050), slice = "ANNUAL",
+                   demand = c(100, 300)))
 draw(DEM_ELC)
 ```
 
@@ -121,7 +121,7 @@ Trade with the “rest of the world” at a `price`, bounded by `imp.*` /
 
 IMP_GAS <- newImport(
   name = "IMP_GAS", desc = "Gas import", commodity = "GAS", unit = "PJ",
-  imp = data.frame(region = "R1", year = c(2020, 2050), price = 6, imp.up = 500))
+  import = data.frame(region = "R1", year = c(2020, 2050), price = 6, imp.up = 500))
 draw(IMP_GAS)
 ```
 
@@ -132,7 +132,7 @@ draw(IMP_GAS)
 
 EXP_OIL <- newExport(
   name = "EXP_OIL", desc = "Oil export", commodity = "OIL", unit = "Mt",
-  exp = data.frame(region = "R1", year = c(2020, 2050), price = 500, exp.up = 100))
+  export = data.frame(region = "R1", year = c(2020, 2050), price = 500, exp.up = 100))
 draw(EXP_OIL)
 ```
 

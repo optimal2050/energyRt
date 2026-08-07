@@ -31,4 +31,8 @@ check_name("name_1")
 #> [1] TRUE
 check_name("name_1!")
 #> [1] FALSE
+check_name(c("a", "b")) # FALSE, not a single name
+#> [1] FALSE
+check_name(1) # FALSE, not character
+#> [1] FALSE
 ```

@@ -15,7 +15,7 @@ production, consumption, or balance of a commodity."><meta property="og:image" c
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.70.2.9001</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.75.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -73,7 +73,7 @@ production, consumption, or balance of a commodity.</p>
 <span>  comm <span class="op">=</span> <span class="st">""</span>,</span>
 <span>  region <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  defVal <span class="op">=</span> <span class="fl">0</span>,</span>
-<span>  sub <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  subsidy <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  misc <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -103,7 +103,7 @@ production, consumption, or balance of a commodity.</p>
 <dd><p>numeric. Default value of the subsidy.</p></dd>
 
 
-<dt id="arg-sub">sub<a class="anchor" aria-label="anchor" href="#arg-sub"></a></dt>
+<dt id="arg-subsidy">subsidy<a class="anchor" aria-label="anchor" href="#arg-subsidy"></a></dt>
 <dd><p>data.frame. Subsidy values.</p><dl><dt>region</dt>
 <dd><p>character. Region name to apply the parameter, NA for every region.</p></dd>
 
@@ -132,7 +132,7 @@ production, consumption, or balance of a commodity.</p>
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>An object of class <code>sub</code></p>
+    <p>An object of class <code>subsidy</code></p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -148,13 +148,13 @@ production, consumption, or balance of a commodity.</p>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">SUB_BIO</span> <span class="op">&lt;-</span> <span class="fu">newSub</span><span class="op">(</span></span></span>
+    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">SUB_BIO</span> <span class="op">&lt;-</span> <span class="fu">newSubsidy</span><span class="op">(</span></span></span>
 <span class="r-in"><span> name <span class="op">=</span> <span class="st">"SUB_BIO"</span>, <span class="co"># used in sets</span></span></span>
 <span class="r-in"><span> desc <span class="op">=</span> <span class="st">"Biofuel consumption subsidy"</span>, <span class="co"># for own reference</span></span></span>
 <span class="r-in"><span> comm <span class="op">=</span> <span class="st">"BIO"</span>, <span class="co"># must match the commodity name in the model</span></span></span>
 <span class="r-in"><span> region <span class="op">=</span> <span class="st">"R1"</span>, <span class="co"># region where the subsidy is applied</span></span></span>
 <span class="r-in"><span> defVal <span class="op">=</span> <span class="fl">0</span>, <span class="co"># default value</span></span></span>
-<span class="r-in"><span> sub <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span> subsidy <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>    <span class="co"># region = "R1",</span></span></span>
 <span class="r-in"><span>    year <span class="op">=</span> <span class="fl">2025</span><span class="op">:</span><span class="fl">2030</span>,</span></span>
 <span class="r-in"><span>    inp <span class="op">=</span> <span class="fl">0.9</span> <span class="co"># subsidy rate</span></span></span>

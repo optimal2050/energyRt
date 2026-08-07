@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.70.2.9001</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.75.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -107,9 +107,9 @@ article tours that layer.</p>
 <p>We use the packaged single-region UTOPIA kit as a running example,
 and keep all scenario files under a temporary folder.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/options.html">set_scenarios_path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"wf"</span><span class="op">)</span><span class="op">)</span>   <span class="co"># where scenarios are written</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/scenarios_path.html">set_scenarios_path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"wf"</span><span class="op">)</span><span class="op">)</span>   <span class="co"># where scenarios are written</span></span>
 <span></span>
-<span><span class="va">um</span>  <span class="op">&lt;-</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">reg1</span></span>
+<span><span class="va">um</span>  <span class="op">&lt;-</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">R1</span></span>
 <span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newModel.html">newModel</a></span><span class="op">(</span><span class="st">"UTOPIA"</span>, data <span class="op">=</span> <span class="va">um</span><span class="op">$</span><span class="va">repo</span>,</span>
 <span>                calendar <span class="op">=</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">utopia_s4h24</span>,</span>
 <span>                region   <span class="op">=</span> <span class="va">um</span><span class="op">$</span><span class="va">regions</span>,</span>
@@ -136,8 +136,8 @@ object itself.</p>
 <span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu"><a href="../reference/getObject.html">getObject</a></span><span class="op">(</span><span class="va">repo</span>, class <span class="op">=</span> <span class="st">"supply"</span>, region <span class="op">=</span> <span class="st">"R1"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "SUP_COA" "SUP_BIO" "SUP_NUC" "RES_SOL" "RES_WIN"</span></span>
 <span><span class="fu"><a href="../reference/getObject.html">getObject</a></span><span class="op">(</span><span class="va">repo</span>, name <span class="op">=</span> <span class="st">"ECOA"</span>, drop <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">@</span><span class="va">invcost</span> <span class="co"># the ECOA object itself</span></span>
-<span><span class="co">#&gt;   region year invcost wacc eac retcost</span></span>
-<span><span class="co">#&gt; 1   &lt;NA&gt;   NA    2000   NA  NA      NA</span></span></code></pre></div>
+<span><span class="co">#&gt;   vintage cluster region year invcost wacc payback eac retcost</span></span>
+<span><span class="co">#&gt; 1    &lt;NA&gt;    &lt;NA&gt;   &lt;NA&gt;   NA    2000   NA      NA  NA      NA</span></span></code></pre></div>
 <p>Region matching reads <code>@region</code> slots and the
 <code>region</code>/<code>src</code>/<code>dst</code> columns of any
 data.frame slot, so it works for every class; region-agnostic objects
@@ -177,23 +177,24 @@ and discover which parameters carry a given set with
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu"><a href="../reference/findData.html">findData</a></span><span class="op">(</span><span class="va">scen</span>, setsNames_ <span class="op">=</span> <span class="st">"tech"</span><span class="op">)</span><span class="op">)</span>           <span class="co"># parameters indexed by 'tech'</span></span>
 <span><span class="co">#&gt;  [1] "pTechWeatherAf"       "pTechWeatherAfs"      "pTechWeatherAfc"     </span></span>
-<span><span class="co">#&gt;  [4] "pTechCap2act"         "pTechEac"             "pTechEmisComm"       </span></span>
-<span><span class="co">#&gt;  [7] "pTechOlife"           "pTechFixom"           "pTechInvcost"        </span></span>
-<span><span class="co">#&gt; [10] "pTechStock"           "pTechVarom"           "pTechAf"             </span></span>
-<span><span class="co">#&gt; [13] "pTechRampUp"          "pTechRampDown"        "pTechAfs"            </span></span>
-<span><span class="co">#&gt; [16] "pTechGinp2use"        "pTechCinp2ginp"       "pTechUse2cact"       </span></span>
-<span><span class="co">#&gt; [19] "pTechAct2AInp"        "pTechCap2AInp"        "pTechAct2AOut"       </span></span>
-<span><span class="co">#&gt; [22] "pTechCap2AOut"        "pTechNCap2AInp"       "pTechNCap2AOut"      </span></span>
-<span><span class="co">#&gt; [25] "pTechCinp2AInp"       "pTechCout2AInp"       "pTechCinp2AOut"      </span></span>
-<span><span class="co">#&gt; [28] "pTechCout2AOut"       "pTechCact2cout"       "pTechCinp2use"       </span></span>
-<span><span class="co">#&gt; [31] "pTechCvarom"          "pTechAvarom"          "pTechShare"          </span></span>
-<span><span class="co">#&gt; [34] "pTechAfc"             "pTechCap"             "pTechNewCap"         </span></span>
-<span><span class="co">#&gt; [37] "pTechRet"             "pTechRetCost"         "vTechInv"            </span></span>
-<span><span class="co">#&gt; [40] "vTechEac"             "vTechRetCost"         "vTechFixom"          </span></span>
-<span><span class="co">#&gt; [43] "vTechVarom"           "vTechNewCap"          "vTechRetiredStockCum"</span></span>
-<span><span class="co">#&gt; [46] "vTechRetiredStock"    "vTechRetiredNewCap"   "vTechCap"            </span></span>
-<span><span class="co">#&gt; [49] "vTechAct"             "vTechInp"             "vTechOut"            </span></span>
-<span><span class="co">#&gt; [52] "vTechAInp"            "vTechAOut"            "vTechEmsFuel"</span></span></code></pre></div>
+<span><span class="co">#&gt;  [4] "pTechCap2act"         "pTechEac"             "pTechWacc"           </span></span>
+<span><span class="co">#&gt;  [7] "pTechPayback"         "pTechEmisComm"        "pTechOlife"          </span></span>
+<span><span class="co">#&gt; [10] "pTechFixom"           "pTechInvcost"         "pTechStock"          </span></span>
+<span><span class="co">#&gt; [13] "pTechVarom"           "pTechAf"              "pTechRampUp"         </span></span>
+<span><span class="co">#&gt; [16] "pTechRampDown"        "pTechAfs"             "pTechGinp2use"       </span></span>
+<span><span class="co">#&gt; [19] "pTechCinp2ginp"       "pTechUse2cact"        "pTechAct2AInp"       </span></span>
+<span><span class="co">#&gt; [22] "pTechCap2AInp"        "pTechAct2AOut"        "pTechCap2AOut"       </span></span>
+<span><span class="co">#&gt; [25] "pTechNCap2AInp"       "pTechNCap2AOut"       "pTechCinp2AInp"      </span></span>
+<span><span class="co">#&gt; [28] "pTechCout2AInp"       "pTechCinp2AOut"       "pTechCout2AOut"      </span></span>
+<span><span class="co">#&gt; [31] "pTechCact2cout"       "pTechCinp2use"        "pTechCvarom"         </span></span>
+<span><span class="co">#&gt; [34] "pTechAvarom"          "pTechShare"           "pTechAfc"            </span></span>
+<span><span class="co">#&gt; [37] "pTechCap"             "pTechNewCap"          "pTechRet"            </span></span>
+<span><span class="co">#&gt; [40] "pTechRetCost"         "vTechAInp"            "vTechAOut"           </span></span>
+<span><span class="co">#&gt; [43] "vTechAct"             "vTechCap"             "vTechEac"            </span></span>
+<span><span class="co">#&gt; [46] "vTechFixom"           "vTechInp"             "vTechInv"            </span></span>
+<span><span class="co">#&gt; [49] "vTechNewCap"          "vTechOut"             "vTechRetCost"        </span></span>
+<span><span class="co">#&gt; [52] "vTechRetiredNewCap"   "vTechRetiredStock"    "vTechRetiredStockCum"</span></span>
+<span><span class="co">#&gt; [55] "vTechVarom"           "vTechEmsFuel"</span></span></code></pre></div>
 <p><code>find_in_model(mod, "ECOA")</code> text-searches every object
 slot for a value — handy for locating where a name is used.</p>
 </div>
@@ -222,14 +223,14 @@ into its parameter store.)</p>
 <h2 id="scenario-folders-and-structure">Scenario folders and structure<a class="anchor" aria-label="anchor" href="#scenario-folders-and-structure"></a>
 </h2>
 <p>The scenarios directory is an option — read it with
-<code><a href="../reference/options.html">get_scenarios_path()</a></code>, set it with
-<code><a href="../reference/options.html">set_scenarios_path()</a></code> (default <code>"scenarios/"</code>).
+<code><a href="../reference/scenarios_path.html">get_scenarios_path()</a></code>, set it with
+<code><a href="../reference/scenarios_path.html">set_scenarios_path()</a></code> (default <code>"scenarios/"</code>).
 Each scenario gets its own folder, named by
 <code><a href="../reference/make_scenario_dirname.html">make_scenario_dirname()</a></code> as
 <code>name_model_calendar_horizon</code>:</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/options.html">get_scenarios_path</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpSaIlBT/wf"</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/scenarios_path.html">get_scenarios_path</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\Rtmpaq9fYk/wf"</span></span>
 <span><span class="fu"><a href="../reference/make_scenario_dirname.html">make_scenario_dirname</a></span><span class="op">(</span><span class="va">scen</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "BASE_UTOPIA_utopia_s4h24_base"</span></span></code></pre></div>
 <p>Saving a scenario writes an <strong>Arrow-backed</strong> folder that
@@ -274,8 +275,8 @@ memory.</p>
 <blockquote>
 <p>A name-based scenario <strong>registry</strong>
 (<code><a href="../reference/register.html">register()</a></code>, <code>getScenario()</code>,
-<code><a href="../reference/get_registry.html">get_registry()</a></code>) is under development; for now, organize
-runs with <code><a href="../reference/options.html">set_scenarios_path()</a></code> and round-trip them with
+<code><a href="../reference/default_registry.html">get_registry()</a></code>) is under development; for now, organize
+runs with <code><a href="../reference/scenarios_path.html">set_scenarios_path()</a></code> and round-trip them with
 <code><a href="../reference/save_scenario.html">save_scenario()</a></code> / <code><a href="../reference/load_scenario.html">load_scenario()</a></code>.</p>
 </blockquote>
 </div>
@@ -311,17 +312,17 @@ in-memory footprint:</p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/model_size.html">model_size</a></span><span class="op">(</span><span class="va">scen</span><span class="op">)</span></span>
 <span><span class="co">#&gt; model_size: BASE</span></span>
-<span><span class="co">#&gt;   parameters : 122 value, 236 maps, 13 sets</span></span>
-<span><span class="co">#&gt;   param rows : 5,938</span></span>
-<span><span class="co">#&gt;   estimate   : ~15,338 variables, ~16,832 constraints (from gating maps)</span></span>
+<span><span class="co">#&gt;   parameters : 128 value, 233 maps, 13 sets</span></span>
+<span><span class="co">#&gt;   param rows : 5,902</span></span>
+<span><span class="co">#&gt;   estimate   : ~16,111 variables, ~16,832 constraints (from gating maps)</span></span>
 <span><span class="co">#&gt;   top parameters by rows:</span></span>
 <span><span class="co">#&gt;     pTechCinp2use      1,536</span></span>
 <span><span class="co">#&gt;     pWeather           1,004</span></span>
 <span><span class="co">#&gt;     pSliceWeight       404</span></span>
-<span><span class="co">#&gt;     pExportRowPrice    404</span></span>
-<span><span class="co">#&gt;     pExportRow         404</span></span>
 <span><span class="co">#&gt;     pSliceAgg          400</span></span>
 <span><span class="co">#&gt;     pDemand            384</span></span>
+<span><span class="co">#&gt;     pExportRowPrice    384</span></span>
+<span><span class="co">#&gt;     pExportRow         384</span></span>
 <span><span class="co">#&gt;     pTechAf            384</span></span>
 <span><span class="co">#&gt;     pStorageInpEff     384</span></span>
 <span><span class="co">#&gt;     pStorageOutEff     384</span></span>
@@ -331,7 +332,7 @@ in-memory footprint:</p>
 <span><span class="co">#&gt;     pTechInvcost       20</span></span>
 <span><span class="co">#&gt;     pTechStock         14</span></span>
 <span><span class="fu"><a href="../reference/size.html">size</a></span><span class="op">(</span><span class="va">scen</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "6 Mb"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "6.2 Mb"</span></span></code></pre></div>
 <p>For a systematic check that a build is correct <em>and</em>
 efficient, <code>compare_interp_settings(mod)</code> and
 <code>compare_solve_settings(mod, solvers = ...)</code> interpolate (and

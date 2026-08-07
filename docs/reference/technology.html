@@ -21,7 +21,7 @@ documentation."><meta property="og:image" content="https://energyRt.org/logo.png
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.70.2.9001</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.75.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -95,6 +95,8 @@ documentation.</p>
 <span>  invcost <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  fixom <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  varom <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  cluster <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  vintage <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  olife <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  region <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">character</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  start <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="op">)</span>,</span>
@@ -200,7 +202,13 @@ documentation.</p>
 
 
 <dt id="arg-geff">geff<a class="anchor" aria-label="anchor" href="#arg-geff"></a></dt>
-<dd><p>data.frame. Input-commodity-group efficiency parameters.</p><dl><dt>region</dt>
+<dd><p>data.frame. Input-commodity-group efficiency parameters.</p><dl><dt>vintage</dt>
+<dd><p>character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
+
+<dt>cluster</dt>
+<dd><p>character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the <code>vintage</code> slot.</p></dd>
+
+<dt>region</dt>
 <dd><p>character. Name of region to apply the parameter, NA for every region.</p></dd>
 
 <dt>year</dt>
@@ -220,7 +228,13 @@ documentation.</p>
 
 
 <dt id="arg-ceff">ceff<a class="anchor" aria-label="anchor" href="#arg-ceff"></a></dt>
-<dd><p>data.frame. Main commodity and activity efficiency parameters.</p><dl><dt>region</dt>
+<dd><p>data.frame. Main commodity and activity efficiency parameters.</p><dl><dt>vintage</dt>
+<dd><p>character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
+
+<dt>cluster</dt>
+<dd><p>character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the <code>vintage</code> slot.</p></dd>
+
+<dt>region</dt>
 <dd><p>character. Region name to apply the parameter, NA for every region.</p></dd>
 
 <dt>year</dt>
@@ -267,7 +281,13 @@ documentation.</p>
 
 
 <dt id="arg-aeff">aeff<a class="anchor" aria-label="anchor" href="#arg-aeff"></a></dt>
-<dd><p>data.frame. Parameters linking main commodities, activities, and capacities to auxiliary commodities.</p><dl><dt>region</dt>
+<dd><p>data.frame. Parameters linking main commodities, activities, and capacities to auxiliary commodities.</p><dl><dt>vintage</dt>
+<dd><p>character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
+
+<dt>cluster</dt>
+<dd><p>character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the <code>vintage</code> slot.</p></dd>
+
+<dt>region</dt>
 <dd><p>character. Region name to apply the parameter, NA for every region.</p></dd>
 
 <dt>year</dt>
@@ -314,7 +334,13 @@ documentation.</p>
 
 
 <dt id="arg-af">af<a class="anchor" aria-label="anchor" href="#arg-af"></a></dt>
-<dd><p>data.frame. Timeslice-level availability factor parameters.</p><dl><dt>region</dt>
+<dd><p>data.frame. Timeslice-level availability factor parameters.</p><dl><dt>vintage</dt>
+<dd><p>character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
+
+<dt>cluster</dt>
+<dd><p>character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the <code>vintage</code> slot.</p></dd>
+
+<dt>region</dt>
 <dd><p>character. Region name to apply the parameter, NA for every region.</p></dd>
 
 <dt>year</dt>
@@ -343,7 +369,13 @@ documentation.</p>
 
 
 <dt id="arg-afs">afs<a class="anchor" aria-label="anchor" href="#arg-afs"></a></dt>
-<dd><p>data.frame. Timeframe-level availability factor constraints.</p><dl><dt>region</dt>
+<dd><p>data.frame. Timeframe-level availability factor constraints.</p><dl><dt>vintage</dt>
+<dd><p>character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
+
+<dt>cluster</dt>
+<dd><p>character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the <code>vintage</code> slot.</p></dd>
+
+<dt>region</dt>
 <dd><p>character. Region name to apply the parameter, NA for every region.</p></dd>
 
 <dt>year</dt>
@@ -366,7 +398,13 @@ documentation.</p>
 
 
 <dt id="arg-weather">weather<a class="anchor" aria-label="anchor" href="#arg-weather"></a></dt>
-<dd><p>data.frame. Parameters linking <code>weather factors</code> (external shocks specified by <code>weather</code> class) to the availability parameters <code>af</code>, <code>afs</code>, and <code>afc</code>.</p><dl><dt>weather</dt>
+<dd><p>data.frame. Parameters linking <code>weather factors</code> (external shocks specified by <code>weather</code> class) to the availability parameters <code>af</code>, <code>afs</code>, and <code>afc</code>.</p><dl><dt>vintage</dt>
+<dd><p>character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
+
+<dt>cluster</dt>
+<dd><p>character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the <code>vintage</code> slot.</p></dd>
+
+<dt>weather</dt>
 <dd><p>character. Name of the applied weather factor, required, must match the weather factor names in a <code>weather</code> class in the model.</p></dd>
 
 <dt>comm</dt>
@@ -404,7 +442,13 @@ documentation.</p>
 
 
 <dt id="arg-capacity">capacity<a class="anchor" aria-label="anchor" href="#arg-capacity"></a></dt>
-<dd><p>data.frame. Capacity of the installed technology (in units of capacity).</p><dl><dt>region</dt>
+<dd><p>data.frame. Capacity of the installed technology (in units of capacity).</p><dl><dt>vintage</dt>
+<dd><p>character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
+
+<dt>cluster</dt>
+<dd><p>character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the <code>vintage</code> slot.</p></dd>
+
+<dt>region</dt>
 <dd><p>character. Region name to apply the parameter, NA for every region.</p></dd>
 
 <dt>year</dt>
@@ -445,7 +489,13 @@ documentation.</p>
 
 
 <dt id="arg-invcost">invcost<a class="anchor" aria-label="anchor" href="#arg-invcost"></a></dt>
-<dd><p>data.frame. Total overnight investment costs of the project (per unit of capacity).</p><dl><dt>region</dt>
+<dd><p>data.frame. Total overnight investment costs of the project (per unit of capacity).</p><dl><dt>vintage</dt>
+<dd><p>character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
+
+<dt>cluster</dt>
+<dd><p>character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the <code>vintage</code> slot.</p></dd>
+
+<dt>region</dt>
 <dd><p>character. Region name to apply the parameter, NA for every region.</p></dd>
 
 <dt>year</dt>
@@ -455,14 +505,29 @@ documentation.</p>
 <dd><p>numeric. Total overnight investment costs of the project (per unit of capacity), default is 0.</p></dd>
 
 <dt>wacc</dt>
-<dd><p>numeric. Weighted average cost of capital, (currently ignored).</p></dd>
+<dd><p>numeric. Weighted average cost of capital used to annuitise <code>invcost</code> for this technology. Overrides the model-wide <code>wacc</code> (see the model <code>discount</code> argument). The social discount rate is never used here.</p></dd>
+
+<dt>payback</dt>
+<dd><p>numeric. Cost-recovery period in years. Where given it replaces <code>olife</code> in the annuity AND in the years over which the annuity is charged, so the investment is repaid over <code>payback</code> years while the capacity keeps operating for its full operational life. Must be positive and not exceed <code>olife</code>. Unset (or 0) means recover over <code>olife</code>. Implemented for the GLPK solver only.</p></dd>
+
+<dt>eac</dt>
+<dd><p>numeric. Equivalent annual cost, supplied directly instead of being computed from <code>invcost</code>, <code>wacc</code> and the lifetime. Where given it wins; where absent the annuity is computed. Mutually exclusive with <code>invcost</code> per row.</p></dd>
+
+<dt>retcost</dt>
+<dd><p>numeric. Costs of early retirement of the technology, default is 0.</p></dd>
 
 
 </dl></dd>
 
 
 <dt id="arg-fixom">fixom<a class="anchor" aria-label="anchor" href="#arg-fixom"></a></dt>
-<dd><p>data.frame. Fixed operational and maintenance cost (per unit of capacity a year).</p><dl><dt>region</dt>
+<dd><p>data.frame. Fixed operational and maintenance cost (per unit of capacity a year).</p><dl><dt>vintage</dt>
+<dd><p>character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
+
+<dt>cluster</dt>
+<dd><p>character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the <code>vintage</code> slot.</p></dd>
+
+<dt>region</dt>
 <dd><p>character. Region name to apply the parameter, NA for every region.</p></dd>
 
 <dt>year</dt>
@@ -476,7 +541,13 @@ documentation.</p>
 
 
 <dt id="arg-varom">varom<a class="anchor" aria-label="anchor" href="#arg-varom"></a></dt>
-<dd><p>data.frame. Variable operational and maintenance cost (per unit of activity or commodity).</p><dl><dt>region</dt>
+<dd><p>data.frame. Variable operational and maintenance cost (per unit of activity or commodity).</p><dl><dt>vintage</dt>
+<dd><p>character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
+
+<dt>cluster</dt>
+<dd><p>character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the <code>vintage</code> slot.</p></dd>
+
+<dt>region</dt>
 <dd><p>character. Region name to apply the parameter, NA for every region.</p></dd>
 
 <dt>year</dt>
@@ -504,9 +575,38 @@ documentation.</p>
 </dl></dd>
 
 
-<dt id="arg-olife">olife<a class="anchor" aria-label="anchor" href="#arg-olife"></a></dt>
-<dd><p>data.frame. Operational life of the installed technology (in years).</p><dl><dt>region</dt>
+<dt id="arg-cluster">cluster<a class="anchor" aria-label="anchor" href="#arg-cluster"></a></dt>
+<dd><p>data.frame. Declaration of the technology's clusters. A cluster is a parallel sub-process of the same technology – a resource class, geography or fleet type – with its own capacity, availability and costs. This slot declares WHAT the clusters are and WHERE they exist; the per-cluster values live in the <code>cluster</code> column of the variant-varying slots (<code>capacity</code>, <code>invcost</code>, <code>afs</code>, <code>weather</code>, ...), exactly as <code>group</code> declares input groups whose data lives in <code>input$group</code>. Optional: when empty, cluster labels are harvested from those columns. When populated it is authoritative – a label used in a slot but not declared here raises an error instead of silently creating an extra technology with default (often unbounded) parameters.</p><dl><dt>cluster</dt>
+<dd><p>character. Cluster label. Must match the <code>cluster</code> column values used in the other slots.</p></dd>
+
+<dt>desc</dt>
+<dd><p>character. Human-readable description of the cluster, used in reports.</p></dd>
+
+<dt>region</dt>
+<dd><p>character. Region the cluster exists in, NA for every region. Several rows restrict a cluster to several regions.</p></dd>
+
+<dt>order</dt>
+<dd><p>integer. Optional display/ranking order (e.g. best to worst resource class); controls the order variants are created and reported in.</p></dd>
+
+
+</dl></dd>
+
+
+<dt id="arg-vintage">vintage<a class="anchor" aria-label="anchor" href="#arg-vintage"></a></dt>
+<dd><p>data.frame. Investment window and operational life of the technology, one row per (vintage, region, cluster). Replaces the former <code>start</code>, <code>end</code> and <code>olife</code> slots. A vintage is a separately investable variant of the technology that keeps the characteristics of its build year for its whole life; a cluster is a parallel sub-process (resource class, geography, fleet type) with its own capacity, availability and costs. Each column is read independently, so a region-agnostic <code>start</code> may be combined with a per-region <code>olife</code>.</p><dl><dt>vintage</dt>
+<dd><p>character. Vintage label, normally the build year as a string. NA for an un-vintaged technology (a single variant).</p></dd>
+
+<dt>region</dt>
 <dd><p>character. Region name to apply the parameter, NA for every region.</p></dd>
+
+<dt>cluster</dt>
+<dd><p>character. Cluster label, NA for every cluster.</p></dd>
+
+<dt>start</dt>
+<dd><p>integer. The first year the technology can be installed. Defaults to the vintage year; NA means all years of the modeled horizon.</p></dd>
+
+<dt>end</dt>
+<dd><p>integer. The last year the technology can be installed. Defaults to the vintage year; default is Inf when unset.</p></dd>
 
 <dt>olife</dt>
 <dd><p>integer. Operational life of the technology if installed during optimization, in years, default is 1.</p></dd>
@@ -515,30 +615,20 @@ documentation.</p>
 </dl></dd>
 
 
+<dt id="arg-olife">olife<a class="anchor" aria-label="anchor" href="#arg-olife"></a></dt>
+<dd><p>deprecated, use the <code>olife</code> column of <code>vintage</code>.</p></dd>
+
+
 <dt id="arg-region">region<a class="anchor" aria-label="anchor" href="#arg-region"></a></dt>
 <dd><p>character. Vector of regions where the technology exists or can be installed. Optional. If not specified, the technology is applied to all regions. If specified, must include all regions used in other slots.</p></dd>
 
 
 <dt id="arg-start">start<a class="anchor" aria-label="anchor" href="#arg-start"></a></dt>
-<dd><p>data.frame. The first year the technology can be installed.</p><dl><dt>region</dt>
-<dd><p>character. Region name to apply the parameter, NA for every region.</p></dd>
-
-<dt>start</dt>
-<dd><p>integer. The first year the technology can be installed, NA means all years of the modeled horizon.</p></dd>
-
-
-</dl></dd>
+<dd><p>deprecated, use the <code>start</code> column of <code>vintage</code>.</p></dd>
 
 
 <dt id="arg-end">end<a class="anchor" aria-label="anchor" href="#arg-end"></a></dt>
-<dd><p>data.frame. The last year the technology can be installed.</p><dl><dt>region</dt>
-<dd><p>character. Region name to apply the parameter, NA for every region.</p></dd>
-
-<dt>end</dt>
-<dd><p>integer. The last year the technology can be installed, default is Inf.</p></dd>
-
-
-</dl></dd>
+<dd><p>deprecated, use the <code>end</code> column of <code>vintage</code>.</p></dd>
 
 
 <dt id="arg-timeframe">timeframe<a class="anchor" aria-label="anchor" href="#arg-timeframe"></a></dt>
@@ -572,7 +662,9 @@ documentation.</p>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p>Other technology process:
+<code><a href="getVariants.html">getVariants()</a></code>,
 <code><a href="read_technology_xlsx.html">read_technology_xlsx()</a></code>,
+<code><a href="variantSummary.html">variantSummary()</a></code>,
 <code><a href="write_technology_xlsx.html">write_technology_xlsx()</a></code></p></div>
     </div>
 
@@ -628,14 +720,10 @@ documentation.</p>
 <span class="r-in"><span>    year <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2020</span>, <span class="fl">2030</span>, <span class="fl">2040</span><span class="op">)</span>, <span class="co"># to differentiate by years</span></span></span>
 <span class="r-in"><span>    invcost <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1000</span>, <span class="fl">900</span>, <span class="fl">800</span><span class="op">)</span> <span class="co"># $1000, $900, $800 per MW</span></span></span>
 <span class="r-in"><span>  <span class="op">)</span>,</span></span>
-<span class="r-in"><span>  start <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span> <span class="co"># start year</span></span></span>
-<span class="r-in"><span>    start <span class="op">=</span> <span class="fl">2020</span> <span class="co"># can be installed from 2020</span></span></span>
-<span class="r-in"><span>  <span class="op">)</span>,</span></span>
-<span class="r-in"><span>  end <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span> <span class="co"># end year</span></span></span>
-<span class="r-in"><span>    end <span class="op">=</span> <span class="fl">2040</span> <span class="co"># can be installed until 2040</span></span></span>
-<span class="r-in"><span>  <span class="op">)</span>,</span></span>
-<span class="r-in"><span>  olife <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span> <span class="co"># operational life</span></span></span>
-<span class="r-in"><span>    olife <span class="op">=</span> <span class="fl">30</span> <span class="co"># years</span></span></span>
+<span class="r-in"><span>  vintage <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span> <span class="co"># investment window and operational life</span></span></span>
+<span class="r-in"><span>    start <span class="op">=</span> <span class="fl">2020</span>, <span class="co"># can be installed from 2020</span></span></span>
+<span class="r-in"><span>    end <span class="op">=</span> <span class="fl">2040</span>, <span class="co"># can be installed until 2040</span></span></span>
+<span class="r-in"><span>    olife <span class="op">=</span> <span class="fl">30</span> <span class="co"># operational life, years</span></span></span>
 <span class="r-in"><span>  <span class="op">)</span>,</span></span>
 <span class="r-in"><span>  capacity <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span> <span class="co"># existing capacity</span></span></span>
 <span class="r-in"><span>    year <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2020</span>, <span class="fl">2030</span>, <span class="fl">2040</span><span class="op">)</span>, <span class="co"># to differentiate by years</span></span></span>

@@ -37,5 +37,7 @@ objects, or a `repository` (when `as_repository = TRUE`).
 [`write_technology_xlsx()`](https://energyRt.org/reference/write_technology_xlsx.md)
 
 Other technology process:
+[`getVariants()`](https://energyRt.org/reference/getVariants.md),
 [`newTechnology()`](https://energyRt.org/reference/technology.md),
+[`variantSummary()`](https://energyRt.org/reference/variantSummary.md),
 [`write_technology_xlsx()`](https://energyRt.org/reference/write_technology_xlsx.md)

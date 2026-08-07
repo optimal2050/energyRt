@@ -16,29 +16,21 @@
 #' get_python_path()
 #' }
 set_python_path <- function(path = NULL) {
-  # browser()
-  if (!is.null(path) && path != "") {
-    if (!dir.exists(path)) {
-      stop(paste0('The path "', path, '" does not exist.'), call. = FALSE)
-    }
-    if (!grepl("\\/$", path)) {
-      path <- paste0(path, "/")
-    }
-  }
-  options::opt_set("python_path", path, env = "energyRt")
-  # options(python_path = path)
+  set_solver_path("python", path)
 }
 
 #' @export
 #' @rdname solver
 #' @family solver python
 get_python_path <- function() {
-  options::opt("python_path", env = "energyRt")
+  get_solver_path("python")
 }
 
 # Functions to write PYOMO model and data files
 .write_model_PYOMO <- function(arg, scen) {
   # browser()
+  .assert_payback_supported(scen, "Pyomo")
+  .assert_geolevel_supported(scen, "Pyomo")
   AbstractModel <- any(grep("abstract", scen@settings@solver$lang, ignore.case = TRUE))
   if (AbstractModel) {
     run_code <- scen@settings@sourceCode[["PYOMOAbstract"]]
@@ -392,9 +384,10 @@ get_python_path <- function() {
       return(kk)
     }
   }
-  if (obj@misc$nValues != -1) {
-    obj@data <- obj@data[seq(length.out = obj@misc$nValues), , drop = FALSE]
-  }
+  # The whole materialised slot is written. This used to truncate to the
+  # `@misc$nValues` row-count cache, so a stale count silently made this engine
+  # write less data than GLPK, which never truncated.
+  obj@data <- get_data_slot(obj)
   if (obj@type == "set") {
     tmp <- ""
     if (nrow(obj@data) > 0) {
@@ -467,9 +460,10 @@ get_python_path <- function() {
       return(kk)
     }
   }
-  if (obj@misc$nValues != -1) {
-    obj@data <- obj@data[seq(length.out = obj@misc$nValues), , drop = FALSE]
-  }
+  # The whole materialised slot is written. This used to truncate to the
+  # `@misc$nValues` row-count cache, so a stale count silently made this engine
+  # write less data than GLPK, which never truncated.
+  obj@data <- get_data_slot(obj)
   if (obj@type == "set") {
     tmp <- ""
     if (nrow(obj@data) > 0) {
@@ -532,9 +526,10 @@ get_python_path <- function() {
       return(kk)
     }
   }
-  if (obj@misc$nValues != -1) {
-    obj@data <- obj@data[seq(length.out = obj@misc$nValues), , drop = FALSE]
-  }
+  # The whole materialised slot is written. This used to truncate to the
+  # `@misc$nValues` row-count cache, so a stale count silently made this engine
+  # write less data than GLPK, which never truncated.
+  obj@data <- get_data_slot(obj)
   if (obj@type == "set") {
     tmp <- ""
     if (nrow(obj@data) > 0) {

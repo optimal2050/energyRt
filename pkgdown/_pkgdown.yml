@@ -130,6 +130,8 @@ reference:
   - starts_with("write")
   - starts_with("read")
   - starts_with("solve")
+  - mosox_run
+  - en_mosox_run
   - matches("mapping")
   - trim_parameters_by_maps
   - validate_scenario_parameters
@@ -148,6 +150,8 @@ reference:
   - matches("data")
   - getObject
   - getMix
+  - getVariants
+  - variantSummary
   - matches("find")
   - matches("rename")
   - matches("revalue")
@@ -175,6 +179,8 @@ reference:
   - matches("plot")
   - matches("show")
   - matches("design")
+  - ghost_options
+  - theme_energyRt
 
 - title: Validation
   contents:
@@ -191,6 +197,10 @@ reference:
   contents:
   - starts_with("set")
   - matches("make_scenario_dirname")
+  - energyRt-options
+  - starts_with("en_config")
+  - isVerbose
+  - isDebug
 
 - title: utils
   contents:

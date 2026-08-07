@@ -14,7 +14,7 @@
 #' @return displays a schematic representation of the process, returns `NULL`.
 #'
 #' @export
-setGeneric("draw", function(obj, ...) standardGeneric("draw"))
+setGeneric("draw", function(object, ...) standardGeneric("draw"))
 
 ## Constants ####
 keys <- c(
@@ -42,10 +42,48 @@ utils::globalVariables(
   )
 )
 
+# Arrow label: centred HORIZONTALLY on the arrow, sitting just ABOVE the line,
+# over a semi-transparent white pad. The pad separates the label from ghost
+# boxes and from neighbouring arrows on a technology with many flows.
+#
+# `y_line` is the ARROW's own y; this function works out where the text has to
+# sit so the PAD's bottom edge clears the line by `gap`. Callers used to pass
+# the text centre and guess the offset as `font_in_npc(10) * 0.34` -- but
+# `font_in_npc()` returns a device-independent constant while `grobHeight()` is
+# device-dependent, so the pad cleared a 7x4.2in figure by ~0.1mm and overlapped
+# the line outright on a taller one. Measuring the pad here instead makes the
+# clearance real on any device.
+#' @noRd
+.draw_arrow_label <- function(label, x0, x1, y_line, fontsize = 10,
+                              pad_alpha = 0.75, col = "black",
+                              gap = grid::unit(0.8, "mm"), lwd = 2) {
+  if (length(label) == 0L || is.na(label) || !nzchar(label)) return(invisible(NULL))
+  cx <- (x0 + x1) / 2
+  tg0 <- grid::textGrob(label, gp = grid::gpar(fontsize = fontsize, col = col))
+  pad_h <- grid::grobHeight(tg0) + grid::unit(1.0, "mm")
+  # half the arrow's own stroke, so `gap` is measured from the line's EDGE
+  half_lwd <- grid::unit(lwd / 96 / 2, "inches")
+
+  y <- grid::unit(y_line, "npc") + half_lwd + gap + 0.5 * pad_h
+  grid::grid.rect(
+    x = grid::unit(cx, "npc"), y = y,
+    width  = grid::grobWidth(tg0) + grid::unit(1.6, "mm"),
+    height = pad_h,
+    gp = grid::gpar(fill = grDevices::rgb(1, 1, 1, pad_alpha), col = NA)
+  )
+  grid::grid.text(label, x = grid::unit(cx, "npc"), y = y,
+                  just = c("centre", "centre"),
+                  gp = grid::gpar(fontsize = fontsize, col = col))
+  invisible(NULL)
+}
+
 ## draw.technology ####
-draw.technology <- function(obj, ...) {
+# One technology, one figure. This is the original `draw.technology()` body,
+# unchanged except that it now forwards `...` (and therefore `newpage`) to
+# `draw_process()`. `draw.technology()` below wraps it to handle vintages.
+.draw_technology_one <- function(object, ..., .ghost = FALSE) {
   # browser()
-  com_inp <- obj@input |>
+  com_inp <- object@input |>
     mutate(io = "cinp", .before = 1) |>
     rowwise() |>
     mutate(
@@ -57,7 +95,7 @@ draw.technology <- function(obj, ...) {
       )
     ) |>
     # add technology parameters
-    left_join(obj@ceff, by = "comm") |>
+    left_join(object@ceff, by = "comm") |>
     pivot_longer(
       cols = matches("2"), # non-grouped-comm-params have "2" in their names
       names_to = "parameter",
@@ -68,7 +106,7 @@ draw.technology <- function(obj, ...) {
     filter(!is.na(value) | (all(is.na(value)) & row_number() == 1)) |>
     ungroup()
 
-  com_out <- obj@output |>
+  com_out <- object@output |>
     mutate(io = "cout", .before = 1) |>
     rowwise() |>
     mutate(
@@ -80,7 +118,7 @@ draw.technology <- function(obj, ...) {
       )
     ) |>
     # add technology parameters
-    left_join(obj@ceff, by = "comm") |>
+    left_join(object@ceff, by = "comm") |>
     pivot_longer(
       cols = matches("2"), # non-grouped-comm-params have "2" in their names
       names_to = "parameter",
@@ -96,7 +134,7 @@ draw.technology <- function(obj, ...) {
 
   # # add technology parameters
   # com_par <- com_tbl |>
-  #   full_join(obj@ceff, by = "comm") |>
+  #   full_join(object@ceff, by = "comm") |>
   #   pivot_longer(
   #     cols = matches("2"), # non-grouped-comm-params have "2" in their names
   #     names_to = "parameter",
@@ -204,8 +242,8 @@ draw.technology <- function(obj, ...) {
   ccom_par
 
   # auxiliary inputs ####
-  aux_tbl <- obj@aux |>
-    full_join(obj@aeff, by = "acomm")
+  aux_tbl <- object@aux |>
+    full_join(object@aeff, by = "acomm")
 
   ainp <- aux_tbl |>
     select(
@@ -280,7 +318,7 @@ draw.technology <- function(obj, ...) {
   aux
 
   # weather factors
-  wea <- obj@weather |>
+  wea <- object@weather |>
     rowwise() |>
     mutate(
       lab_wafc = if_else(
@@ -359,7 +397,7 @@ draw.technology <- function(obj, ...) {
     )
   wea
 
-  geff <- obj@geff |>
+  geff <- object@geff |>
     pivot_longer(
       cols = ginp2use,
       names_to = "parameter",
@@ -488,17 +526,32 @@ draw.technology <- function(obj, ...) {
   # )
 
   # cap2act ####
-  cap2act_label <- paste0("cap2act: ", obj@cap2act)
+  cap2act_label <- paste0("cap2act: ", object@cap2act)
 
   stopifnot(length(unique(arrow_labels_tb$ioname)) == nrow(arrow_labels_tb))
   arrow_labels <- arrow_labels_tb$lab_txt
   names(arrow_labels) <- arrow_labels_tb$ioname
   stopifnot(length(arrow_labels) == nrow(arrow_labels_tb))
 
+  # A ghost is a shape, not a caption. Fading alone leaves every title and
+  # commodity label legible, so three vintages stack three overlapping titles on
+  # top of each other and the figure becomes unreadable. Keep the box and the
+  # arrows -- they carry the "how many, and where does the selected one sit"
+  # signal -- and drop the text.
+  if (isTRUE(.ghost)) {
+    arrow_labels <- NULL
+    cap2act_label <- NULL
+  }
+
+  # Ghost arrows extend well beyond the box on both sides, so with several
+  # vintages they cross each other and the selected figure's own arrows -- the
+  # one thing the reader is meant to follow. Ghosts keep their box (which is
+  # what carries "how many, and where in the sequence") and drop the flows.
+  gh <- isTRUE(.ghost)
   try(
     draw_process(
-      process_name = obj@name,
-      process_desc = obj@desc,
+      process_name = if (gh) "" else object@name,
+      process_desc = if (gh) "" else object@desc,
       grouped_com_inputs = grouped_com_inputs,
       single_com_inputs = single_com_inputs,
       aux_inputs = aux_inputs,
@@ -509,10 +562,501 @@ draw.technology <- function(obj, ...) {
       aux_outputs = aux_outputs,
       arrow_labels = arrow_labels,
       center_label = cap2act_label,
-      show_iuao_labels = TRUE
+      show_iuao_labels = !gh,
+      show_inputs = !gh, show_outputs = !gh,
+      show_use_bar = !gh, show_act_bar = !gh,
+      ...
     )
   )
-} # end of draw.technology
+} # end of .draw_technology_one
+
+# -- variants: vintages and clusters ----------------------------------------- #
+# A vintaged technology is N technologies after expansion, so the figure shows
+# ONE of them in full and the rest as faded, slightly smaller "ghosts" behind:
+# earlier vintages drift left, later ones right. A glance then tells you how
+# many vintages exist and whether the one in front is the first, in the middle,
+# or the last.
+#
+# Ghosts need no change to the drawing code. `R/draw.R` never sets `alpha`, so
+# pushing a viewport with `gpar(alpha = ...)` fades every grob inside it,
+# including the hardcoded colours.
+#
+# CLUSTERS ARE NOT DRAWN THE SAME WAY, and deliberately so. Vintages are the
+# same plant at different build years -- mutually exclusive selves, which is
+# exactly what a fan of past/future ghosts says. Clusters are parallel
+# sub-processes that coexist in the same year and compete with each other.
+# Fanning them too would say the wrong thing, and would also swamp the figure:
+# the real IDEEA wind technology is 11 clusters x 4 vintages = 44 cells, and its
+# 11 cluster boxes are visually IDENTICAL (they differ only in which land
+# commodity and which weather series they name). So the cluster axis is drawn as
+# an index -- a tick rail, or a deck edge -- not as more boxes. See
+# `.draw_cluster_axis()`.
+
+# Every expanded cell of one process, with each axis' levels in declared order.
+# Returns NULL when there is nothing to show (no variants, or a single cell).
+#' @noRd
+.tech_variants <- function(object) {
+  lev <- function(dim) {
+    tryCatch(as.character(.variant_levels(object, dim)), error = function(e) character())
+  }
+  vins <- lev("vintage")
+  clus <- lev("cluster")
+  if (length(vins) < 2L && length(clus) < 2L) return(NULL)
+  ex <- tryCatch(.expand_one_process(object), error = function(e) NULL)
+  if (is.null(ex) || is.null(ex$provenance) || length(ex$objects) < 2L) {
+    return(NULL)
+  }
+  prov <- ex$provenance
+  prov$vintage <- as.character(prov$vintage)
+  prov$cluster <- as.character(prov$cluster)
+  # Order cells by (vintage, cluster) as DECLARED -- `.variant_levels()` already
+  # returns the intended order (sorted years; the declared `order` column for
+  # clusters), so ranking by `match()` rather than re-sorting keeps a
+  # best-to-worst cluster ranking from being shuffled back to alphabetical.
+  ord <- order(match(prov$vintage, vins), match(prov$cluster, clus))
+  list(objects = ex$objects[ord], prov = prov[ord, , drop = FALSE],
+       vintages = if (length(vins)) vins else NULL,
+       clusters = if (length(clus)) clus else NULL)
+}
+
+# Which level of ONE axis is selected: NULL = `default`, else a level name or a
+# 1-based index into `levels`.
+#' @noRd
+.resolve_axis_pick <- function(sel, levels, dim = "vintage",
+                               default = length(levels)) {
+  if (is.null(sel)) return(default)
+  if (is.numeric(sel)) {
+    i <- as.integer(sel)[1]
+    if (is.na(i) || i < 1L || i > length(levels)) {
+      stop("`", dim, "` index ", i, " is out of range; the technology has ",
+           length(levels), " ", dim, "s.", call. = FALSE)
+    }
+    return(i)
+  }
+  i <- match(as.character(sel)[1], levels)
+  if (is.na(i)) {
+    stop("Unknown ", dim, " '", as.character(sel)[1], "'. Available: ",
+         paste(levels, collapse = ", "), ".", call. = FALSE)
+  }
+  i
+}
+
+# Kept for the single-axis callers (and their tests): a vintage with no
+# selection means the LAST one, i.e. the newest.
+#' @noRd
+.resolve_vintage_pick <- function(vintage, levels) {
+  .resolve_axis_pick(vintage, levels, "vintage", default = length(levels))
+}
+
+# Resolve a (vintage, cluster) CELL. The axes are resolved independently and
+# then intersected, which is the whole point: selecting a vintage used to mean
+# "the first row of the cross product carrying that vintage", leaving every
+# other cluster of that vintage unreachable by name.
+#
+# Defaults differ by axis and both are deliberate: the newest vintage (the one
+# a modeller is usually building now) and the FIRST cluster in declared order
+# (declarations rank clusters best-resource-first).
+#' @noRd
+.resolve_cell <- function(v, vintage = NULL, cluster = NULL) {
+  vi <- if (is.null(v$vintages)) NA_character_ else
+    v$vintages[.resolve_axis_pick(vintage, v$vintages, "vintage",
+                                  default = length(v$vintages))]
+  ci <- if (is.null(v$clusters)) NA_character_ else
+    v$clusters[.resolve_axis_pick(cluster, v$clusters, "cluster", default = 1L)]
+  hit <- (is.na(vi) | v$prov$vintage %in% vi) &
+    (is.na(ci) | v$prov$cluster %in% ci)
+  i <- which(hit)
+  if (length(i) == 0L) {
+    # Not reachable through the public arguments -- the grid is a full cross
+    # product -- but a wrong answer here would be silent, so refuse instead.
+    stop("No variant of '", v$prov$base[1], "' has vintage '", vi,
+         "' and cluster '", ci, "'.", call. = FALSE)
+  }
+  list(index = i[1], vintage = vi, cluster = ci)
+}
+
+#' Geometry of the faded "ghost" vintages behind a drawn technology
+#'
+#' Collects the ghost-stack settings of [draw()] into one object, so the
+#' drawing methods keep a short signature. Pass either this constructor or a
+#' plain named list: `draw(x, ghost = list(drift = 0.2))` is merged onto the
+#' defaults. Unknown names are an error in both forms -- misspelling a flat
+#' argument used to be swallowed silently by `...` and forwarded downstream.
+#'
+#' @param alpha opacity of the nearest ghost; further ones fade towards
+#'   `alpha_min`.
+#' @param alpha_min opacity of the furthest ghost.
+#' @param scale,drift,rise geometry of the ghost stack, all describing the
+#'   FURTHEST ghost rather than a per-step increment: its size relative to the
+#'   selected figure, and how far it is offset horizontally and vertically (in
+#'   npc). Intermediate ghosts interpolate. Defining the total extent this way
+#'   keeps a technology with thirty annual vintages inside the viewport -- a
+#'   per-step offset would put it off-canvas. `rise` defaults to 0: with ghost
+#'   arrows suppressed there is nothing for a vertical offset to clear, so the
+#'   stack reads better as a flat fan.
+#' @param stamp label each ghost with its vintage. The first, last and selected
+#'   vintages are always stamped; intermediate ones only when the spacing
+#'   leaves room, so a dense stack does not turn into overlapping text.
+#'
+#' @return a list of class `ghost_options`.
+#' @family draw
+#' @export
+#' @examples
+#' ghost_options(drift = 0.25, stamp = FALSE)
+ghost_options <- function(alpha = 0.45, alpha_min = 0.12, scale = 0.72,
+                          drift = 0.17, rise = 0, stamp = TRUE) {
+  structure(
+    list(alpha = alpha, alpha_min = alpha_min, scale = scale,
+         drift = drift, rise = rise, stamp = stamp),
+    class = "ghost_options"
+  )
+}
+
+# Accept a `ghost_options()` object or a plain list of overrides.
+#' @noRd
+.as_ghost_options <- function(x) {
+  if (inherits(x, "ghost_options")) return(x)
+  if (is.null(x)) return(ghost_options())
+  if (!is.list(x)) {
+    stop("`ghost` must be a `ghost_options()` object or a named list.",
+         call. = FALSE)
+  }
+  d <- ghost_options()
+  if (length(x) == 0L) return(d)
+  if (is.null(names(x)) || any(!nzchar(names(x)))) {
+    stop("`ghost` must be NAMED: e.g. ghost = list(drift = 0.2).", call. = FALSE)
+  }
+  bad <- setdiff(names(x), names(d))
+  if (length(bad)) {
+    stop("Unknown ghost option(s): ", paste(bad, collapse = ", "),
+         ". Valid: ", paste(names(d), collapse = ", "), ".", call. = FALSE)
+  }
+  structure(utils::modifyList(unclass(d), x), class = "ghost_options")
+}
+
+#' @rdname draw
+#' @param vintage which vintage to draw in full for a vintaged technology: a
+#'   level name, an index, `NULL` (the default, the newest one), or `"all"` to
+#'   lay every vintage out side by side at full detail. Other vintages are drawn
+#'   as faded ghosts behind the selected one -- earlier to the left, later to
+#'   the right.
+#' @param cluster which cluster to draw, in the same forms as `vintage`. The
+#'   default `NULL` takes the FIRST declared cluster, declarations ranking
+#'   clusters best-resource-first. Clusters are not fanned out like vintages:
+#'   they coexist rather than succeed one another, and a technology can carry
+#'   dozens, so the axis is drawn as an index (see `cluster_style`).
+#' @param cluster_style how to show the cluster axis: `"rail"` (the default) a
+#'   strip of ticks with the selection filled, `"deck"` slivers at the box edge
+#'   suggesting a stack of cards, or `"none"`.
+#' @param ghost geometry of the ghost stack: a [ghost_options()] object, or a
+#'   named list of overrides.
+#' @param max_facets refuse to lay out more than this many panels for
+#'   `vintage = "all"` / `cluster = "all"`. A full 11 x 4 grid is unreadable, and
+#'   silently drawing it is worse than saying so.
+draw.technology <- function(object, ..., vintage = NULL, cluster = NULL,
+                            ghost = ghost_options(),
+                            cluster_style = c("rail", "deck", "none"),
+                            box_width = 0.4, max_facets = 24L) {
+  gh <- .as_ghost_options(ghost)
+  cluster_style <- match.arg(cluster_style)
+
+  v <- .tech_variants(object)
+  if (is.null(v)) return(.draw_technology_one(object, ...))
+
+  is_all <- function(x) is.character(x) && identical(as.character(x)[1], "all")
+  if (is_all(vintage) || is_all(cluster)) {
+    return(.draw_technology_facet(v, ..., facet_vintage = is_all(vintage),
+                                  facet_cluster = is_all(cluster),
+                                  vintage = if (is_all(vintage)) NULL else vintage,
+                                  cluster = if (is_all(cluster)) NULL else cluster,
+                                  max_facets = max_facets))
+  }
+
+  cell <- .resolve_cell(v, vintage, cluster)
+
+  # The ghost fan is the VINTAGE MARGINAL through the selected cell: the cells
+  # sharing its cluster. Fanning the whole cross product instead is what made a
+  # 4 x 11 technology draw 44 boxes and stamp "VIN2020" eleven times over.
+  keep <- if (is.na(cell$cluster)) seq_len(nrow(v$prov)) else
+    which(v$prov$cluster == cell$cluster)
+  objs <- v$objects[keep]
+  levels <- v$prov$vintage[keep]
+  pick <- match(cell$index, keep)
+  n <- length(objs)
+
+  # Fraction of the way from the selected figure to the furthest ghost. Every
+  # geometric property is interpolated on this, so the stack always spans
+  # exactly `drift` / `rise` however many vintages there are.
+  far <- max(abs(seq_len(n) - pick))
+  frac <- function(k) if (far == 0) 0 else k / far
+
+  geom <- function(i) {
+    k <- abs(i - pick)
+    f <- frac(k)
+    s <- sign(i - pick)
+    list(
+      k = k,
+      # earlier vintages sit down-left, later ones up-right
+      x = 0.5 + s * gh$drift * f,
+      y = 0.5 + s * gh$rise * f,
+      size = 1 - (1 - gh$scale) * f,
+      alpha = gh$alpha - (gh$alpha - gh$alpha_min) * f
+    )
+  }
+
+  grid::grid.newpage()
+  # Back to front: the furthest ghosts first, the selected variant last, so the
+  # painter's algorithm leaves the selection on top and fully opaque.
+  for (i in order(-abs(seq_len(n) - pick))) {
+    g <- geom(i)
+    if (g$k == 0L) next
+    grid::pushViewport(grid::viewport(
+      x = grid::unit(g$x, "npc"), y = grid::unit(g$y, "npc"),
+      width = grid::unit(g$size, "npc"), height = grid::unit(g$size, "npc"),
+      gp = grid::gpar(alpha = g$alpha)
+    ))
+    .draw_technology_one(objs[[i]], ..., box_width = box_width,
+                         newpage = FALSE, .ghost = TRUE)
+    grid::popViewport()
+  }
+  # The deck goes between the ghosts and the selection: it belongs to the
+  # selected box, so it must sit above the fan but below the box it edges.
+  if (identical(cluster_style, "deck") && !is.na(cell$cluster)) {
+    .draw_cluster_deck(v$clusters, match(cell$cluster, v$clusters),
+                       box_width = box_width)
+  }
+  .draw_technology_one(objs[[pick]], ..., box_width = box_width,
+                       newpage = FALSE)
+
+  stamp_y <- NULL
+  if (isTRUE(gh$stamp) && n > 1L) {
+    stamp_y <- .draw_vintage_stamps(levels, pick, vapply(seq_len(n), function(i) {
+      g <- geom(i); c(g$x, g$y, g$size, sign(i - pick))
+    }, numeric(4)), box_width = box_width)$y
+  }
+  if (!is.na(cell$cluster)) {
+    .draw_cluster_axis(v$clusters, match(cell$cluster, v$clusters),
+                       style = cluster_style, below = stamp_y,
+                       box_width = box_width)
+  }
+  invisible(TRUE)
+}
+
+# Vintage labels along the stack. The first, last and selected are always
+# stamped; intermediate ones only when the gap between successive stamps is
+# wide enough for the text, so thirty annual vintages show three labels rather
+# than thirty overlapping ones.
+# A vintage's label, in the same form the solver set member takes: the variant
+# prefix followed by the level, so a figure and a set listing read alike. The
+# level already carrying the prefix (someone naming a vintage "VIN2020") is left
+# alone rather than doubled.
+#' @noRd
+.vintage_stamp_label <- function(level, prefix = NULL) {
+  p <- sub("^_", "", (prefix %||% .variant_prefix_default())[["vintage"]])
+  l <- as.character(level)
+  ifelse(startsWith(toupper(l), toupper(p)), toupper(l), paste0(p, l))
+}
+
+#' @noRd
+.draw_vintage_stamps <- function(levels, pick, xyzs, min_gap = 0.075,
+                                 box_width = 0.4, prefix = NULL) {
+  n <- length(levels)
+  x <- xyzs[1, ]; y <- xyzs[2, ]; size <- xyzs[3, ]; side <- xyzs[4, ]
+
+  # The SELECTED vintage's label sits within its box's x-interval (anchored at
+  # the left edge, reading rightwards like a title). Ghost labels hang OUTWARDS
+  # past the edge they peek from -- past to the left, future to the right.
+  #
+  # Ghosts deliberately do not line up with any particular box: with many
+  # vintages their edges are a fraction of a millimetre apart, so precise
+  # pointing is impossible and not the point. The labels only need to say "the
+  # sequence runs from here to here, and the selection sits in it".
+  half <- 0.5 * box_width * size
+  bottom <- y - 0.5 * (box_width * 1.5) * size
+  at <- ifelse(side < 0, x - half, x + half)
+  at[pick] <- x[pick] - half[pick]
+  hjust <- ifelse(side > 0, "left", "right")   # ghosts read outwards
+  hjust[pick] <- "left"                         # the selection reads inwards
+  lab_y <- bottom - 0.028
+
+  # Thin on the box CENTRES, not on the anchor corners. Anchors are
+  # left-of-box for past vintages and right-of-box for future ones, so a corner
+  # metric makes the two neighbours either side of the selection look far apart
+  # when their boxes almost coincide -- which let VIN2036 sit next to VIN2035
+  # saying nothing.
+  must <- unique(c(1L, pick, n))
+  keep <- must
+  if (n > 2L) {
+    placed <- x[must]
+    for (i in setdiff(seq_len(n), must)) {
+      if (min(abs(x[i] - placed)) >= min_gap) {
+        keep <- c(keep, i)
+        placed <- c(placed, x[i])
+      }
+    }
+  }
+  txt <- .vintage_stamp_label(levels, prefix)
+  for (i in sort(unique(keep))) {
+    sel <- identical(i, pick)
+    grid::grid.text(
+      txt[i],
+      x = grid::unit(at[i], "npc"), y = grid::unit(lab_y[i], "npc"),
+      just = c(hjust[i], "top"),
+      gp = grid::gpar(fontsize = if (sel) 9 else 8,
+                      fontface = if (sel) "bold" else "plain",
+                      col = if (sel) "grey15" else "grey45")
+    )
+  }
+  # `y` is the lowest text baseline actually used, so the cluster axis can be
+  # anchored below the stamps instead of guessing a clearance.
+  invisible(list(keep = sort(unique(keep)), y = min(lab_y[keep])))
+}
+
+# -- the cluster axis -------------------------------------------------------- #
+# A cluster's label, in the same form the solver set member takes -- the mirror
+# of `.vintage_stamp_label()`, doubling guard included, so a level someone wrote
+# as "CL03" is not stamped "CLCL03".
+#' @noRd
+.cluster_stamp_label <- function(level, prefix = NULL) {
+  p <- sub("^_", "", (prefix %||% .variant_prefix_default())[["cluster"]])
+  l <- as.character(level)
+  ifelse(startsWith(toupper(l), toupper(p)), toupper(l), paste0(p, l))
+}
+
+# The default: one tick per cluster in a centred band, the selection filled and
+# taller, with a caption naming it and giving its position. The ticks carry no
+# text of their own, so 50 clusters simply pack tighter instead of turning into
+# overlapping labels -- which is the whole reason clusters are not fanned out
+# like vintages.
+#' @noRd
+.draw_cluster_rail <- function(levels, pick, y, width = 0.34, prefix = NULL) {
+  n <- length(levels)
+  if (n < 2L) return(invisible(NULL))
+  # Ticks are spaced across the band, but capped so a 2-cluster rail does not
+  # become two marks half a page apart.
+  span <- min(width, 0.03 * n)
+  x <- if (n == 1L) 0.5 else seq(0.5 - span / 2, 0.5 + span / 2, length.out = n)
+  tw <- min(grid::unit(2.2, "mm"), grid::unit(span / max(n - 1L, 1L) * 0.6, "npc"))
+  for (i in seq_len(n)) {
+    sel <- i == pick
+    grid::grid.rect(
+      x = grid::unit(x[i], "npc"), y = grid::unit(y, "npc"),
+      width = tw,
+      height = grid::unit(if (sel) 3.4 else 2.0, "mm"),
+      gp = grid::gpar(fill = if (sel) "grey15" else "grey78", col = NA)
+    )
+  }
+  grid::grid.text(
+    paste0(.cluster_stamp_label(levels[pick], prefix), "  (", pick, " of ", n, ")"),
+    x = grid::unit(0.5, "npc"), y = grid::unit(y - 0.035, "npc"),
+    just = c("centre", "top"),
+    gp = grid::gpar(fontsize = 8, col = "grey45")
+  )
+  invisible(NULL)
+}
+
+# The alternative: slivers peeking from the box's LOWER-RIGHT CORNER, like the
+# edge of a deck of cards seen at an angle.
+#
+# Two constraints shape this. Whole offset rectangles are out: the vintage fan
+# already occupies the space to the right, and a full ghost box there would sit
+# on top of it. Full-HEIGHT slivers are out too: commodity arrows leave the
+# box's right edge at whatever height their flow sits, and a full-height sliver
+# is guaranteed to be crossed by one. Restricting them to the lower part of the
+# edge clears the arrows in the common case, at the cost of a smaller hint.
+#
+# The residual overlap with a right-hand ghost is inherent to putting anything
+# to the right of the box, and is the reason `"rail"` is the default.
+#' @noRd
+.draw_cluster_deck <- function(levels, pick, box_width = 0.4, max_slivers = 4L,
+                               frac = 0.34) {
+  n <- length(levels)
+  if (n < 2L) return(invisible(NULL))
+  k <- min(n - 1L, max_slivers)
+  h <- box_width * 1.5
+  bottom <- 0.5 - h / 2
+  for (i in seq_len(k)) {
+    off <- 0.008 * i
+    grid::grid.rect(
+      x = grid::unit(0.5 + box_width / 2 + off, "npc"),
+      y = grid::unit(bottom - off, "npc"),
+      width = grid::unit(0.006, "npc"), height = grid::unit(h * frac, "npc"),
+      just = c("left", "bottom"),
+      gp = grid::gpar(fill = "grey80", col = "grey60", lwd = 0.5)
+    )
+  }
+  invisible(NULL)
+}
+
+# Draw the cluster axis in the requested style, below the vintage stamps.
+#' @noRd
+.draw_cluster_axis <- function(levels, pick, style = "rail", below = NULL,
+                               box_width = 0.4, prefix = NULL) {
+  if (identical(style, "none") || length(levels) < 2L) return(invisible(NULL))
+  if (identical(style, "deck")) {
+    # the slivers themselves are drawn earlier (under the box); only the
+    # caption belongs down here
+    y <- .cluster_axis_y(below)
+    grid::grid.text(
+      paste0(.cluster_stamp_label(levels[pick], prefix),
+             "  (", pick, " of ", length(levels), ")"),
+      x = grid::unit(0.5, "npc"), y = grid::unit(y, "npc"),
+      just = c("centre", "top"),
+      gp = grid::gpar(fontsize = 8, col = "grey45")
+    )
+    return(invisible(NULL))
+  }
+  .draw_cluster_rail(levels, pick, y = .cluster_axis_y(below), prefix = prefix)
+}
+
+# Where the cluster axis sits: clear of the vintage stamps when there are any,
+# else clear of the box. Floored so a wide `box_width` cannot push it off-page.
+#' @noRd
+.cluster_axis_y <- function(below = NULL, gap = 0.045, floor = 0.04) {
+  y <- if (is.null(below) || !is.finite(below)) 0.14 else below - gap
+  max(y, floor)
+}
+
+# `vintage = "all"` / `cluster = "all"`: every selected variant at full detail,
+# vintages across the columns and clusters down the rows. An axis that was not
+# given "all" is pinned to its selected level, so `cluster = "all"` alone gives
+# one row per cluster of a single vintage rather than the whole cross product.
+#' @noRd
+.draw_technology_facet <- function(v, ..., facet_vintage = FALSE,
+                                   facet_cluster = FALSE,
+                                   vintage = NULL, cluster = NULL,
+                                   max_facets = 24L) {
+  cols <- if (facet_vintage || is.null(v$vintages)) v$vintages else
+    v$vintages[.resolve_axis_pick(vintage, v$vintages, "vintage",
+                                  default = length(v$vintages))]
+  rows <- if (facet_cluster || is.null(v$clusters)) v$clusters else
+    v$clusters[.resolve_axis_pick(cluster, v$clusters, "cluster", default = 1L)]
+  nc <- max(length(cols), 1L)
+  nr <- max(length(rows), 1L)
+
+  if (nr * nc > max_facets) {
+    stop(nr * nc, " panels (", nr, " cluster(s) x ", nc, " vintage(s)) exceeds ",
+         "`max_facets` = ", max_facets, ". Fix one axis to a single level, or ",
+         "raise `max_facets` if you really want them all.", call. = FALSE)
+  }
+
+  grid::grid.newpage()
+  grid::pushViewport(grid::viewport(
+    layout = grid::grid.layout(nrow = nr, ncol = nc)))
+  on.exit(grid::popViewport(1), add = TRUE)
+  for (r in seq_len(nr)) {
+    for (cc in seq_len(nc)) {
+      hit <- (is.null(cols) | v$prov$vintage %in% cols[cc]) &
+        (is.null(rows) | v$prov$cluster %in% rows[r])
+      i <- which(hit)
+      if (length(i) == 0L) next
+      grid::pushViewport(grid::viewport(layout.pos.row = r, layout.pos.col = cc))
+      .draw_technology_one(v$objects[[i[1]]], ..., newpage = FALSE)
+      grid::popViewport()
+    }
+  }
+  invisible(TRUE)
+}
 #' Draw a schematic representation of a technology
 #'
 #' @export
@@ -572,12 +1116,12 @@ draw.technology <- function(obj, ...) {
 #'   )
 #' )
 #' draw(TECH01)
-setMethod("draw", "technology", function(obj, ...) {
-  draw.technology(obj, ...)
+setMethod("draw", "technology", function(object, ...) {
+  draw.technology(object, ...)
 })
 
 ## draw.storage ####
-draw.storage <- function(obj, ...) {
+draw.storage <- function(object, ...) {
   keys <- c(
     "region", "year", "slice", "comm", "acomm",
     # "value",
@@ -586,10 +1130,10 @@ draw.storage <- function(obj, ...) {
   )
   # browser()
   comm <- data.frame(
-    comm = obj@commodity
-    # unit = obj@unit
+    comm = object@commodity
+    # unit = object@unit
   ) |>
-    cross_join(obj@seff) |>
+    cross_join(object@seff) |>
     pivot_longer(
       cols = matches("eff"),
       names_to = "parameter",
@@ -610,7 +1154,7 @@ draw.storage <- function(obj, ...) {
       # io = "cinp",
       # lab_txt = make_label(
       #   comm,
-      #   in_brackets = obj@unit,
+      #   in_brackets = object@unit,
       #   two_lines = FALSE
       # )
       lab_txt = comm
@@ -631,14 +1175,17 @@ draw.storage <- function(obj, ...) {
     mutate(iotype = "cout") |>
     rename(ioname = comm)
 
+  # `cap2stg` is deliberately NOT carried here: `@cap2stg` is a data.frame, so
+  # `mutate(cap2stg = object@cap2stg)` only works while it has exactly one row,
+  # and nothing downstream reads the column -- only `stg_par$lab_par` is used.
   stg_par <- comm |>
     filter(grepl("stg", parameter)) |>
-    mutate(cap2stg = obj@cap2stg, iotype = "stg") |>
+    mutate(iotype = "stg") |>
     rename(ioname = comm)
 
   # aux
-  aux <- obj@aux |>
-    full_join(obj@aeff, by = "acomm") |>
+  aux <- object@aux |>
+    full_join(object@aeff, by = "acomm") |>
     pivot_longer(
       cols = matches("2"), # non-grouped-comm-params have "2" in their names
       names_to = "parameter",
@@ -670,8 +1217,8 @@ draw.storage <- function(obj, ...) {
   aux_outputs <- aux |> filter(iotype == "aout")
 
 
-  if (nrow(obj@weather) > 0) {
-    wea <- obj@weather |>
+  if (nrow(object@weather) > 0) {
+    wea <- object@weather |>
       rowwise() |>
       mutate(
         lab_waf = if_else(
@@ -712,7 +1259,7 @@ draw.storage <- function(obj, ...) {
         lab_txt = if_else(
           is.na(NA),
           weather,
-          make_label(weather, in_brackets = obj@commodity, two_lines = FALSE)
+          make_label(weather, in_brackets = object@commodity, two_lines = FALSE)
         ),
         lab_par = if_else(
           all(is.na(c(lab_waf, lab_wcinp))),
@@ -736,19 +1283,28 @@ draw.storage <- function(obj, ...) {
   wea
 
   # center labels
-  center_labels <- c(
-    stg_par$lab_par,
-    paste0("cap2stg: ", obj@cap2stg)
-  ) |>
-    paste(collapse = "\n")
+  #
+  # `@cap2stg` is a DATA FRAME (vintage, cluster, region, year, cap2stg) --
+  # not a scalar like technology's `@cap2act`. `paste0()` over it vectorises
+  # across COLUMNS, which printed one "cap2stg: NA" per key column and then
+  # the real value. Take the value column, drop NAs, de-duplicate.
+  cap2stg_vals <- unique(object@cap2stg[["cap2stg"]])
+  cap2stg_vals <- cap2stg_vals[!is.na(cap2stg_vals)]
+  cap2stg_label <- if (length(cap2stg_vals) == 0L) NULL else
+    paste0("cap2stg: ", paste(cap2stg_vals, collapse = ", "))
+
+  center_labels <- c(stg_par$lab_par, cap2stg_label)
+  # drop empties, or an unset `lab_par` leaves a blank leading line
+  center_labels <- center_labels[!is.na(center_labels) & nzchar(center_labels)]
+  center_labels <- paste(center_labels, collapse = "\n")
 
   # arrow_label ####
   arrow_labels <- c(com_txt$lab_txt, aux$lab_txt, wea$lab_txt)
   names(arrow_labels) <- c(com_txt$comm, aux$acomm, wea$ioname)
 
   draw_process(
-    process_name = obj@name,
-    process_desc = obj@desc,
+    process_name = object@name,
+    process_desc = object@desc,
     single_com_inputs = com_inp,
     single_com_outputs = com_out,
     aux_inputs = aux_inputs,
@@ -826,23 +1382,23 @@ setMethod("draw", "storage", draw.storage)
 
 
 ## draw.supply ####
-draw.supply <- function(obj, ...) {
+draw.supply <- function(object, ...) {
   # keys <- c("region", "year", "slice", "comm", "acomm",
   #           # "value",
   #           "lab_par", "lab_txt",
   #           "tech", "group", "weather", "unit", "io", "parameter")
   # browser()
-  if (nrow(obj@availability) == 0) {
+  if (nrow(object@supply) == 0) {
     sup_par <- data.frame(
       lab_par = "",
       lab_txt = "",
       iotype = "cout",
-      ioname = obj@commodity,
+      ioname = object@commodity,
       group = NA_character_,
       parameter = "sup"
     )
   } else {
-    sup_par <- obj@availability |>
+    sup_par <- object@supply |>
       pivot_longer(
         cols = matches("ava|cost"),
         names_to = "parameter",
@@ -861,18 +1417,18 @@ draw.supply <- function(obj, ...) {
       ) |>
       # mutate(
       #   iotype = "cout",
-      #   ioname = obj@commodity,
+      #   ioname = object@commodity,
       #   group = NA_character_,
       #   lab_txt = make_label(
-      #     obj@commodity,
-      #     in_brackets = obj@unit,
+      #     object@commodity,
+      #     in_brackets = object@unit,
       #     return_name_if_empty = TRUE,
       #     two_lines = FALSE
       #   )
       # ) |>
       mutate(
         iotype = "cout",
-        ioname = obj@commodity,
+        ioname = object@commodity,
         group = NA_character_
       ) |>
       group_by(ioname, iotype, group) |>
@@ -883,7 +1439,7 @@ draw.supply <- function(obj, ...) {
       mutate(
         lab_txt = make_label(
           ioname,
-          in_brackets = obj@unit,
+          in_brackets = object@unit,
           return_name_if_empty = TRUE,
           two_lines = FALSE
         ),
@@ -892,16 +1448,16 @@ draw.supply <- function(obj, ...) {
   }
 
   arrow_labels <- make_label(
-    obj@commodity,
-    in_brackets = obj@unit,
+    object@commodity,
+    in_brackets = object@unit,
     return_name_if_empty = TRUE,
     two_lines = FALSE
   )
-  names(arrow_labels) <- obj@commodity
+  names(arrow_labels) <- object@commodity
 
   # reserve
-  if (nrow(obj@reserve) > 0) {
-    res_par <- obj@reserve |>
+  if (nrow(object@reserve) > 0) {
+    res_par <- object@reserve |>
       pivot_longer(
         cols = matches("res"),
         names_to = "parameter",
@@ -920,18 +1476,18 @@ draw.supply <- function(obj, ...) {
       ) |>
       mutate(
         iotype = "cinp",
-        ioname = obj@commodity,
+        ioname = object@commodity,
         group = NA_character_,
         lab_txt = make_label(
-          obj@commodity,
-          in_brackets = obj@unit,
+          object@commodity,
+          in_brackets = object@unit,
           return_name_if_empty = TRUE,
           two_lines = FALSE
         )
       ) |>
       mutate(
         iotype = "cout",
-        ioname = obj@commodity,
+        ioname = object@commodity,
         group = NA_character_
       ) |>
       group_by(ioname, iotype, group) |>
@@ -942,7 +1498,7 @@ draw.supply <- function(obj, ...) {
       mutate(
         lab_txt = make_label(
           ioname,
-          in_brackets = obj@unit,
+          in_brackets = object@unit,
           return_name_if_empty = TRUE,
           two_lines = FALSE
         ),
@@ -957,8 +1513,9 @@ draw.supply <- function(obj, ...) {
   }
 
   draw_process(
-    process_name = obj@name,
-    process_desc = obj@desc,
+    ...,
+    process_name = object@name,
+    process_desc = object@desc,
     single_com_outputs = sup_par,
     center_label = res_par$lab_par,
     arrow_labels = arrow_labels,
@@ -986,7 +1543,7 @@ draw.supply <- function(obj, ...) {
 #'     region = c("R1", "R2", "R3"),
 #'     res.up = c(2e5, 1e4, 3e6) # total reserves/deposits
 #'   ),
-#'   availability = data.frame(
+#'   supply = data.frame(
 #'     region = c("R1", "R2", "R3"),
 #'     year = NA_integer_,
 #'     slice = "ANNUAL",
@@ -999,11 +1556,11 @@ draw.supply <- function(obj, ...) {
 setMethod("draw", "supply", draw.supply)
 
 ## draw.demand ####
-draw.demand <- function(obj, ...) {
+draw.demand <- function(object, ...) {
   # browser()
-  dem_par <- obj@dem |>
+  dem_par <- object@demand |>
     pivot_longer(
-      cols = matches("dem"),
+      cols = matches("demand"),
       names_to = "parameter",
       values_to = "value"
     ) |>
@@ -1020,11 +1577,11 @@ draw.demand <- function(obj, ...) {
     ) |>
     mutate(
       iotype = "cinp",
-      ioname = obj@commodity,
+      ioname = object@commodity,
       group = NA_character_,
       lab_txt = make_label(
-        obj@commodity,
-        in_brackets = obj@unit,
+        object@commodity,
+        in_brackets = object@unit,
         return_name_if_empty = TRUE,
         two_lines = FALSE
       )
@@ -1037,25 +1594,26 @@ draw.demand <- function(obj, ...) {
     mutate(
       lab_txt = make_label(
         ioname,
-        in_brackets = obj@unit,
+        in_brackets = object@unit,
         return_name_if_empty = TRUE,
         two_lines = FALSE
       ),
-      parameter = "dem"
+      parameter = "demand"
     )
   dem_par
 
   arrow_labels <- make_label(
-    obj@commodity,
-    in_brackets = obj@unit,
+    object@commodity,
+    in_brackets = object@unit,
     return_name_if_empty = TRUE,
     two_lines = FALSE
   )
-  names(arrow_labels) <- obj@commodity
+  names(arrow_labels) <- object@commodity
 
   draw_process(
-    process_name = obj@name,
-    process_desc = obj@desc,
+    ...,
+    process_name = object@name,
+    process_desc = object@desc,
     single_com_inputs = dem_par,
     arrow_labels = arrow_labels,
     show_inputs = TRUE,
@@ -1088,19 +1646,19 @@ draw.demand <- function(obj, ...) {
 #' draw(DSTEEL)
 #' @exportMethod draw
 setMethod(
-  "draw", signature(obj = "demand"),
-  function(obj, ...) draw.demand(obj, ...)
+  "draw", signature(object = "demand"),
+  function(object, ...) draw.demand(object, ...)
 )
 
 ## draw.export ####
-draw.export <- function(obj, ...) {
+draw.export <- function(object, ...) {
   # browser()
 
   # key columns
 
   # export parameters
   exp_par <-
-    obj@exp |>
+    object@export |>
     pivot_longer(
       cols = matches("exp|price"),
       names_to = "parameter",
@@ -1133,7 +1691,7 @@ draw.export <- function(obj, ...) {
     # select(-lab_regions, -lab_years) |>
     mutate(
       iotype = "cinp",
-      ioname = obj@commodity,
+      ioname = object@commodity,
       group = NA_character_,
     ) |>
     group_by(ioname, iotype, group) |>
@@ -1143,11 +1701,11 @@ draw.export <- function(obj, ...) {
       #     all(is.na(region)),
       #     NA_character_,
       #     paste0(
-      #       # "{R(", length(unique(obj@exp$region)), "):",
+      #       # "{R(", length(unique(object@export$region)), "):",
       #       "Regions: {",
       #       shorten_string(
-      #         paste0(sort(unique(obj@exp$region)), collapse = ","),
-      #         n = 15, add_number = length(unique(obj@exp$region))),
+      #         paste0(sort(unique(object@export$region)), collapse = ","),
+      #         n = 15, add_number = length(unique(object@export$region))),
       #       "}")
       #   ),
       #   lab_years = if_else(
@@ -1156,7 +1714,7 @@ draw.export <- function(obj, ...) {
       #     paste0(
       #       "Years: [",
       #       shorten_string(
-      #         paste0(range(obj@exp$year, na.rm = TRUE), collapse = ","),
+      #         paste0(range(object@export$year, na.rm = TRUE), collapse = ","),
       #         15),
       #       "]")
       #   ),
@@ -1165,7 +1723,7 @@ draw.export <- function(obj, ...) {
     mutate(
       lab_txt = make_label(
         ioname,
-        in_brackets = obj@unit,
+        in_brackets = object@unit,
         return_name_if_empty = TRUE,
         two_lines = FALSE
       ),
@@ -1176,15 +1734,16 @@ draw.export <- function(obj, ...) {
 
   # arrow_label ####
   arrow_labels <- make_label(
-    obj@commodity,
-    in_brackets = obj@unit,
+    object@commodity,
+    in_brackets = object@unit,
     two_lines = FALSE
   )
-  names(arrow_labels) <- obj@commodity
+  names(arrow_labels) <- object@commodity
 
   draw_process(
-    process_name = obj@name,
-    process_desc = obj@desc,
+    ...,
+    process_name = object@name,
+    process_desc = object@desc,
     single_com_inputs = exp_par,
     arrow_labels = arrow_labels,
     show_inputs = TRUE,
@@ -1222,12 +1781,12 @@ draw.export <- function(obj, ...) {
 setMethod("draw", "export", draw.export)
 
 ## draw.import ####
-draw.import <- function(obj, ...) {
+draw.import <- function(object, ...) {
   # key columns
   # browser()
   # import parameters
   imp_par <-
-    obj@imp |>
+    object@import |>
     pivot_longer(
       cols = matches("imp|price"),
       names_to = "parameter",
@@ -1260,7 +1819,7 @@ draw.import <- function(obj, ...) {
     # select(-lab_regions, -lab_years) |>
     mutate(
       iotype = "cout",
-      ioname = obj@commodity,
+      ioname = object@commodity,
       group = NA_character_,
     ) |>
     group_by(ioname, iotype, group) |>
@@ -1270,11 +1829,11 @@ draw.import <- function(obj, ...) {
       #     all(is.na(region)),
       #     NA_character_,
       #     paste0(
-      #       # "{R(", length(unique(obj@imp$region)), "):",
+      #       # "{R(", length(unique(object@import$region)), "):",
       #       "Regions: {",
       #       shorten_string(
-      #         paste0(sort(unique(obj@imp$region)), collapse = ","),
-      #         n = 15, add_number = length(unique(obj@imp$region))),
+      #         paste0(sort(unique(object@import$region)), collapse = ","),
+      #         n = 15, add_number = length(unique(object@import$region))),
       #       "}")
       #   ),
       #   lab_years = if_else(
@@ -1283,7 +1842,7 @@ draw.import <- function(obj, ...) {
       #     paste0(
       #       "Years: [",
       #       shorten_string(
-      #         paste0(range(obj@imp$year, na.rm = TRUE), collapse = ","),
+      #         paste0(range(object@import$year, na.rm = TRUE), collapse = ","),
       #         15),
       #       "]")
       #   ),
@@ -1292,7 +1851,7 @@ draw.import <- function(obj, ...) {
     mutate(
       lab_txt = make_label(
         ioname,
-        in_brackets = obj@unit,
+        in_brackets = object@unit,
         return_name_if_empty = TRUE,
         two_lines = FALSE
       ),
@@ -1303,16 +1862,17 @@ draw.import <- function(obj, ...) {
 
   # arrow_label ####
   arrow_labels <- make_label(
-    obj@commodity,
-    in_brackets = obj@unit,
+    object@commodity,
+    in_brackets = object@unit,
     return_name_if_empty = TRUE,
     two_lines = FALSE
   )
-  names(arrow_labels) <- obj@commodity
+  names(arrow_labels) <- object@commodity
 
   draw_process(
-    process_name = obj@name,
-    process_desc = obj@desc,
+    ...,
+    process_name = object@name,
+    process_desc = object@desc,
     single_com_outputs = imp_par,
     arrow_labels = arrow_labels,
     show_inputs = FALSE,
@@ -1350,7 +1910,7 @@ draw.import <- function(obj, ...) {
 setMethod("draw", "import", draw.import)
 
 ## draw.trade ####
-draw.trade <- function(obj, ...) {
+draw.trade <- function(object, ...) {
   arg <- list(...)
   # browser()
   if (!is.null(arg$region)) {
@@ -1358,12 +1918,12 @@ draw.trade <- function(obj, ...) {
   } else if (!is.null(arg$node)) {
     node <- arg$node
   } else {
-    node <- unique(obj@routes$src)[1]
+    node <- unique(object@routes$src)[1]
   }
 
-  inp_par <- obj@routes |>
+  inp_par <- object@routes |>
     filter(dst == node) |>
-    left_join(obj@trade, by = c("src", "dst")) |>
+    left_join(object@trade, by = c("src", "dst")) |>
     pivot_longer(
       cols = matches("ava|eff"),
       names_to = "parameter",
@@ -1388,10 +1948,10 @@ draw.trade <- function(obj, ...) {
     ) |>
     rowwise() |>
     mutate(
-      comm = obj@commodity,
+      comm = object@commodity,
       iotype = "cinp",
       ioname = make_label(
-        obj@commodity,
+        object@commodity,
         in_brackets = src,
         two_lines = F
       ),
@@ -1400,9 +1960,9 @@ draw.trade <- function(obj, ...) {
     )
   inp_par
 
-  out_par <- obj@routes |>
+  out_par <- object@routes |>
     filter(src == node) |>
-    left_join(obj@trade, by = c("src", "dst")) |>
+    left_join(object@trade, by = c("src", "dst")) |>
     pivot_longer(
       cols = matches("ava|eff"),
       names_to = "parameter",
@@ -1427,10 +1987,10 @@ draw.trade <- function(obj, ...) {
     ) |>
     rowwise() |>
     mutate(
-      comm = obj@commodity,
+      comm = object@commodity,
       iotype = "cout",
       ioname = make_label(
-        obj@commodity,
+        object@commodity,
         in_brackets = dst,
         two_lines = FALSE
       ),
@@ -1441,8 +2001,8 @@ draw.trade <- function(obj, ...) {
 
   # aux
   aux_inp <-
-    obj@aux |>
-    full_join(obj@aeff, by = "acomm") |>
+    object@aux |>
+    full_join(object@aeff, by = "acomm") |>
     filter(dst == node) |>
     pivot_longer(
       cols = matches("2"), # non-grouped-comm-params have "2" in their names
@@ -1477,8 +2037,8 @@ draw.trade <- function(obj, ...) {
   aux_inp$lab_par
 
   aux_out <-
-    obj@aux |>
-    full_join(obj@aeff, by = "acomm") |>
+    object@aux |>
+    full_join(object@aeff, by = "acomm") |>
     filter(src == node) |>
     pivot_longer(
       cols = matches("2"), # non-grouped-comm-params have "2" in their names
@@ -1518,12 +2078,12 @@ draw.trade <- function(obj, ...) {
 
   cap2act_label <- make_label(
     "cap2act:",
-    in_brackets = obj@cap2act,
+    in_brackets = object@cap2act,
     two_lines = FALSE,
     bracket_type = "square"
   )
 
-  all_nodes <- unique(obj@routes$src, obj@routes$dst)
+  all_nodes <- unique(object@routes$src, object@routes$dst)
 
   center_label <- paste0(
     cap2act_label,
@@ -1554,8 +2114,8 @@ draw.trade <- function(obj, ...) {
 
 
   draw_process(
-    process_name = paste0(obj@name, ", node: ", node),
-    process_desc = obj@desc,
+    process_name = paste0(object@name, ", node: ", node),
+    process_desc = object@desc,
     single_com_inputs = inp_par,
     single_com_outputs = out_par,
     aux_inputs = aux_inp,
@@ -1696,15 +2256,15 @@ make_label <- function(
 
 #' Drafted function to convert an S4 object to a data frame
 #'
-#' @param obj An S4 object
+#' @param object An S4 object
 #' @param sets A character vector with the names of the sets,
 #' colnames to create in the resulting data frame.
 #' Default is c("region", "year", "slice", "comm", "acomm")
 #' @param verbose A logical value if to print messages
 #' @noRd
-en_obj2df <- function(obj, sets = NULL, verbose = FALSE) {
+en_obj2df <- function(object, sets = NULL, verbose = FALSE) {
   # browser()
-  if (!isS4(obj)) {
+  if (!isS4(object)) {
     stop("Object must be an S4 class")
   }
 
@@ -1712,28 +2272,28 @@ en_obj2df <- function(obj, sets = NULL, verbose = FALSE) {
     sets <- c("region", "year", "slice", "comm", "acomm")
   }
 
-  # obj <- tech
-  slots <- slotNames(obj)
+  # object <- tech
+  slots <- slotNames(object)
 
   ll <- list()
   for (s in slots) {
     if (verbose) cat("Processing slot: ", s, "\n")
 
-    if (inherits(slot(obj, s), "data.frame")) {
-      ll[[s]] <- slot(obj, s) |>
+    if (inherits(slot(object, s), "data.frame")) {
+      ll[[s]] <- slot(object, s) |>
         pivot_by_type(sets = sets, slot_name = s)
-    } else if (inherits(slot(obj, s), c("character", "numeric", "logical"))) {
+    } else if (inherits(slot(object, s), c("character", "numeric", "logical"))) {
       ll[[s]] <- data.frame(
-        parameter = if (is_empty(slot(obj, s))) NA else slot(obj, s)
+        parameter = if (is_empty(slot(object, s))) NA else slot(object, s)
       ) |>
         pivot_by_type(sets = sets, slot_name = s)
-    } else if (inherits(slot(obj, s), "list")) {
-      if (length(slot(obj, s)) > 0) {
+    } else if (inherits(slot(object, s), "list")) {
+      if (length(slot(object, s)) > 0) {
         message("Skipping list slot: ", s)
       }
       # ll2 <-
     } else {
-      message("Skipping slot: ", s, " of class: ", class(slot(obj, s)))
+      message("Skipping slot: ", s, " of class: ", class(slot(object, s)))
     }
   }
   ll |>
@@ -1744,8 +2304,8 @@ en_obj2df <- function(obj, sets = NULL, verbose = FALSE) {
     ) |>
     # filter(slot != "name") |>
     mutate(
-      class = class(obj),
-      name = obj@name,
+      class = class(object),
+      name = object@name,
       .before = 1
     )
   # !!! ToDO: add status column (T/F coercion success)
@@ -1933,7 +2493,29 @@ draw_process <- function(
     fig_background = "white",
     arrow_comm_color = "red3",
     arrow_aux_color = "royalblue4",
-    arrow_weather_color = "forestgreen") {
+    arrow_weather_color = "forestgreen",
+    # Corner radius of the process box, in npc. 0 (the default) draws the plain
+    # rectangle. Rounding preserves the bounding box, so no label inside moves;
+    # keep it small, because `inp`/`out` sit only 0.02 npc in from the vertical
+    # edges and a larger radius starts cutting into them.
+    box_round = 0,
+    # Which vertical edge of the box carries no border. "auto" (the default)
+    # drops the border on a side that has NO ARROWS, derived from
+    # `show_inputs`/`show_outputs`: a supply or import is open on the left, a
+    # demand or export on the right, and a technology/storage/trade -- which
+    # flows both ways -- stays fully closed. The open edge makes the box read as
+    # a flow entering or leaving the system rather than a sealed container.
+    # "none" always draws the closed rectangle.
+    # NB an open edge implies a straight outline, so `box_round` is ignored
+    # while one is open (a corner radius only makes sense on a closed shape).
+    box_open = c("auto", "none"),
+    # `newpage = FALSE` draws into whatever viewport is already current instead
+    # of clearing the device. That is what lets several processes be composed on
+    # one figure -- the faded "ghost" vintages behind a selected one, and the
+    # `vintage = "all"` facet layout. It also suppresses the background rect,
+    # which would otherwise paint over anything already drawn.
+    newpage = TRUE) {
+  box_open <- match.arg(box_open)
   result <- tryCatch(
     {
       # browser()
@@ -1947,13 +2529,15 @@ draw_process <- function(
       }
 
       # try(dev.off())
-      grid::grid.newpage()
-      if (!is.null(fig_background) && !is.na(fig_background)) {
-        grid::grid.rect(
-          x = 0.5, y = 0.5,
-          width = 1, height = 1,
-          gp = grid::gpar(fill = fig_background, col = NA)
-        )
+      if (isTRUE(newpage)) {
+        grid::grid.newpage()
+        if (!is.null(fig_background) && !is.na(fig_background)) {
+          grid::grid.rect(
+            x = 0.5, y = 0.5,
+            width = 1, height = 1,
+            gp = grid::gpar(fill = fig_background, col = NA)
+          )
+        }
       }
       # Set a viewport
       vp <- grid::viewport(
@@ -1962,8 +2546,16 @@ draw_process <- function(
         just = "center"
       )
       grid::pushViewport(vp)
-      on.exit(grid::popViewport(0))
+      # Pop exactly the one viewport pushed above, not `popViewport(0)` -- that
+      # unwinds the WHOLE stack, including any viewport the caller pushed, which
+      # is what previously made this function impossible to compose.
+      on.exit(grid::popViewport(1))
 
+      # NB this IGNORES `fontsize` and returns the constant `font_spacing`. It
+      # is a layout nudge, not a font metric -- do not use it to clear something
+      # whose size grid measures for real (a grob height in npc changes with the
+      # device; this does not). That mismatch is what made arrow-label pads
+      # touch their arrows; see `.draw_arrow_label()`.
       font_in_npc <- function(fontsize) {
         # vp_height_in <- grid::convertUnit(unit(1, "npc"), "in", valueOnly = TRUE)
         # fontsize / 72 / vp_height_in * 2
@@ -1974,13 +2566,54 @@ draw_process <- function(
         max(process_name_fontsize, process_desc_fontsize)
       )
 
-      # Process box
-      grid::grid.rect(
-        x = 0.5, y = 0.5,
-        width = box_width,
-        height = box_height,
-        gp = gpar(fill = box_fill, col = box_border, lty = "solid", lwd = box_lwd)
-      )
+      # Which vertical edge is open: the side with no arrows on it.
+      open_side <- if (identical(box_open, "none")) "none" else {
+        if (!isTRUE(show_inputs) && isTRUE(show_outputs)) "left"
+        else if (isTRUE(show_inputs) && !isTRUE(show_outputs)) "right"
+        else "none"
+      }
+
+      # Process box. Rounding keeps the same bounding box, so nothing inside
+      # moves -- but `inp` sits only 0.02 npc in from the left edge (and `out`
+      # mirrors it), so a radius much past that starts eating those labels.
+      if (identical(open_side, "none")) {
+        # Closed box: ONE grob, exactly as before. Kept on its own path so the
+        # common case is byte-for-byte unchanged.
+        if (box_round > 0) {
+          grid::grid.roundrect(
+            x = 0.5, y = 0.5,
+            width = box_width,
+            height = box_height,
+            r = grid::unit(box_round, "npc"),
+            gp = gpar(fill = box_fill, col = box_border, lty = "solid",
+                      lwd = box_lwd)
+          )
+        } else {
+          grid::grid.rect(
+            x = 0.5, y = 0.5,
+            width = box_width,
+            height = box_height,
+            gp = gpar(fill = box_fill, col = box_border, lty = "solid",
+                      lwd = box_lwd)
+          )
+        }
+      } else {
+        # Open edge: fill with no border, then stroke the three closed edges.
+        # Top and bottom span the full width, so only the vertical edge is
+        # missing and the box keeps its exact footprint.
+        l <- 0.5 - box_width / 2; r <- 0.5 + box_width / 2
+        b <- 0.5 - box_height / 2; t <- 0.5 + box_height / 2
+        grid::grid.rect(
+          x = 0.5, y = 0.5, width = box_width, height = box_height,
+          gp = gpar(fill = box_fill, col = NA)
+        )
+        keep_x <- if (identical(open_side, "left")) r else l
+        grid::grid.segments(
+          x0 = c(l, l, keep_x), y0 = c(t, b, b),
+          x1 = c(r, r, keep_x), y1 = c(t, b, t),
+          gp = gpar(col = box_border, lty = "solid", lwd = box_lwd)
+        )
+      }
 
       # Process description subtitle
       # browser()
@@ -2092,13 +2725,11 @@ draw_process <- function(
               gp = gpar(col = inputs$arrow_color[i], lwd = 2)
             )
 
-            # Add label over the arrow
-            grid::grid.text(
+            # Centred along the arrow, sitting just above the line
+            .draw_arrow_label(
               arrow_labels[inputs$ioname[i]],
-              x = 0.5 - box_width * 0.5 - .03,
-              y = y_pos + font_in_npc(10) / 2,
-              gp = gpar(fontsize = 10), # , col = "grey"
-              just = "right"
+              x0 = 0.5 - 0.5 * box_width - arrow_length, x1 = x_pos,
+              y_line = y_pos
             )
 
             # combustion point
@@ -2326,13 +2957,11 @@ draw_process <- function(
               gp = gpar(col = out_pars$arrow_color[i], lwd = 2)
             )
 
-            # Add label over the arrow
-            grid::grid.text(
+            # Centred along the arrow, sitting just above the line
+            .draw_arrow_label(
               arrow_labels[out_pars$ioname[i]],
-              x = 0.5 + box_width * 0.5 + .02,
-              y = y_pos + font_in_npc(10) / 2,
-              gp = gpar(fontsize = 10), # , col = "grey"
-              just = "left"
+              x0 = x_pos, x1 = 0.5 + 0.5 * box_width + arrow_length,
+              y_line = y_pos
             )
 
             # Add label near the dot, inside the box
@@ -2474,7 +3103,8 @@ draw_process <- function(
     },
     error = function(e) {
       message("Error in draw_process: ", e)
-      try(grid::popViewport(0), silent = TRUE)
+      # `on.exit()` above already pops the viewport this function pushed; do not
+      # unwind the caller's stack as well.
       return(invisible(FALSE))
     }
   )

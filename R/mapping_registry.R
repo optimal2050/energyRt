@@ -21,6 +21,7 @@
 # call-time (not source-time) so package source/collate order is irrelevant.
 .mapping_builder_lists <- c(
   ".membership_builders", ".closure_builders", ".calendar_builders",
+  ".region_builders",
   ".lifespan_builders", ".value_builders", ".filter_builders",
   ".constraint_builders", ".cost_agg_builders"
 )

@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.70.2.9001</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.75.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -182,17 +182,21 @@ solver-specific tuning:</p>
 <p>Use a preset in one of two ways:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># 1. Set it as the session default, then solve normally</span></span>
-<span><span class="fu">set_default_solver</span><span class="op">(</span><span class="va">solver_options</span><span class="op">$</span><span class="va">julia_highs</span><span class="op">)</span></span>
-<span><span class="fu">get_default_solver</span><span class="op">(</span><span class="op">)</span>                       <span class="co"># inspect the current default</span></span>
+<span><span class="fu"><a href="../reference/default_solver.html">set_default_solver</a></span><span class="op">(</span><span class="va">solver_options</span><span class="op">$</span><span class="va">julia_highs</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/default_solver.html">get_default_solver</a></span><span class="op">(</span><span class="op">)</span>                       <span class="co"># inspect the current default</span></span>
 <span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_mod.html">solve_mod</a></span><span class="op">(</span><span class="va">model</span><span class="op">)</span>                   <span class="co"># uses the default</span></span>
 <span></span>
 <span><span class="co"># 2. Pass it explicitly to a single solve</span></span>
 <span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_mod.html">solve_mod</a></span><span class="op">(</span><span class="va">model</span>,  solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">glpk</span><span class="op">)</span></span>
 <span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_mod.html">solve_scen</a></span><span class="op">(</span><span class="va">scen</span>,  solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">gams_gdx_cplex</span><span class="op">)</span></span></code></pre></div>
+<p><code><a href="../reference/default_solver.html">set_default_solver()</a></code> lasts for the session. To make a
+default stick across sessions, save it with
+<code><a href="../reference/en_config.html">en_config_write()</a></code>; <code><a href="../reference/en_config_show.html">en_config_show()</a></code> reports
+the current default together with the solver paths it depends on.</p>
 <p><code><a href="../reference/solve_mod.html">solve_mod()</a></code> interpolates a <code>model</code> and solves
 it; <code><a href="../reference/solve_mod.html">solve_scen()</a></code> solves an already-interpolated scenario.
 With <code>solver = NULL</code> the scenario’s own settings or
-<code>get_default_solver()</code> are used.</p>
+<code><a href="../reference/default_solver.html">get_default_solver()</a></code> are used.</p>
 </div>
 <div class="section level2">
 <h2 id="the-backends-in-detail">The backends in detail<a class="anchor" aria-label="anchor" href="#the-backends-in-detail"></a>
@@ -254,7 +258,10 @@ families are provided — via Pyomo (<code>neos_pyomo_*</code>) and via
 GAMS (<code>neos_gams_*</code>, sent as inlined text so no local GAMS
 install is needed).</p>
 <p>NEOS requires an email address, set once via the
-<code>NEOS_EMAIL</code> environment variable or the helper:</p>
+<code>NEOS_EMAIL</code> environment variable or the helper (this is the
+one energyRt setting whose environment variable is <em>not</em> prefixed
+<code>ENERGYRT_</code>, because the Pyomo subprocess reads
+<code>NEOS_EMAIL</code> directly):</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/neos_email.html">set_neos_email</a></span><span class="op">(</span><span class="st">"you@example.org"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/solve_mod.html">solve_mod</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">neos_gams_cplex</span><span class="op">)</span></span>
@@ -552,7 +559,10 @@ and library layer.</li>
 and structures into a model.</li>
 <li>
 <code><a href="../reference/solve_mod.html">?solve_mod</a></code>, <code><a href="../reference/solve_mod.html">?solve_scen</a></code>,
-<code>?set_default_solver</code>, <code><a href="../reference/neos_email.html">?set_neos_email</a></code>.</li>
+<code><a href="../reference/default_solver.html">?set_default_solver</a></code>, <code><a href="../reference/neos_email.html">?set_neos_email</a></code>.</li>
+<li>
+<code>?energyRt-options</code> for every setting,
+<code><a href="../reference/en_config_show.html">?en_config_show</a></code> for what is in effect.</li>
 </ul>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

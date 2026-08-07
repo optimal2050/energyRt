@@ -1,3 +1,7 @@
+# energyRt 0.71
+# Energy Systems Modeling Toolbox for R
+# https://energyRt.org
+
 verbose = True
 import datetime, sys
 
@@ -3132,25 +3136,6 @@ model.eqObjective = Constraint(
         for y in year
         if (r, y) in mvTotalCost
     )
-)
-if verbose:
-    print(
-        datetime.datetime.now().strftime("%H:%M:%S"),
-        " (",
-        round(time.time() - seconds, 2),
-        " s)",
-        sep="",
-    )
-# eqLECActivity(tech, region, year)$meqLECActivity(tech, region, year)
-if verbose:
-    print("eqLECActivity ", end="")
-sys.stdout.flush()
-model.eqLECActivity = Constraint(
-    meqLECActivity,
-    rule=lambda model, t, r, y: sum(
-        model.vTechAct[t, r, y, s] for s in slice if (t, s) in mTechSlice
-    )
-    >= pLECLoACT.get((r)),
 )
 if verbose:
     print(

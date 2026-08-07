@@ -68,6 +68,35 @@ advice.
   unit tests. Contributions with test cases included are easier to
   accept.
 
+## AI-assisted contributions
+
+AI-assisted contributions are welcome. We ask three things:
+
+- **Disclose it.** Say in the pull request description that AI
+  assistance was used, and roughly for what (drafting, refactoring,
+  tests, documentation). Commit trailers such as `Co-authored-by:` or
+  `Assisted-by:` are fine as provenance metadata.
+
+- **You are responsible for it.** As the submitter you take the same
+  responsibility for AI-assisted code as for any code you did not write
+  from scratch: that you have the right to contribute it, that it is
+  compatible with the package licence (AGPL-3), and that it is correct.
+  Please review generated code rather than pasting it, and make sure the
+  test suite passes.
+
+- **Read [`AGENTS.md`](https://energyRt.org/AGENTS.md) first.** It lists
+  the project conventions and the traps that fail *silently* in this
+  codebase — constructors that return empty objects, templates that need
+  a `sysdata` rebuild, S3 methods that never register. Generated code
+  that ignores these tends to look right and behave wrong. Pointing your
+  tool at that file up front saves a review cycle.
+
+Note that AI tools are not listed as package authors. Authorship implies
+accountability for the work, so credit for a contribution goes to the
+person who submitted and vouched for it. See
+[`AUTHORS.md`](https://energyRt.org/AUTHORS.md) for how authorship and
+contribution are recorded.
+
 ## Code of Conduct
 
 Please note that the energyRt project is released with a [Contributor

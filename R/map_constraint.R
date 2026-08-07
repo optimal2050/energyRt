@@ -8,7 +8,7 @@
 # `.build_constraint_join_map` (mapping_engine.R), driven by `.constraint_map_def`.
 #
 # This migrates the ~39 def-table maps. The bespoke maps (meqStorageStore,
-# meqTradeCapFlow, mTradeCapacityVariable), the tech-group/share and ramp maps,
+# meqTradeCapFlow), the tech-group/share and ramp maps,
 # and the cross-stage maps (built in filter / elsewhere / empty-legacy /
 # deprecated) remain on the recipe_constraint fallback. Reuses the engine's
 # `.constraint_map_def` + `.build_constraint_join_map` in place (archiving deferred
@@ -73,7 +73,6 @@ map_mSupReserveUp   <- function(scen, fmp) .cjoin(scen, "mSupReserveUp", fmp)
 # -- bespoke builders (each already a per-mapping function) ---------------- #
 map_meqStorageStore       <- function(scen, fmp) .build_meqStorageStore(scen, fmp)
 map_meqTradeCapFlow       <- function(scen, fmp) .build_meqTradeCapFlow(scen, fmp)
-map_mTradeCapacityVariable <- function(scen, fmp) .build_mTradeCapacityVariable(scen, fmp)
 
 # -- technology group / share maps ----------------------------------------- #
 # Built together from shared intermediates by .build_tech_group_maps; the wrapper
@@ -95,12 +94,11 @@ map_mTechRampUp   <- function(scen, fmp) .build_ramp_maps(scen, "mTechRampUp", f
 map_mTechRampDown <- function(scen, fmp) .build_ramp_maps(scen, "mTechRampDown", fmp)
 
 # -- intentionally-empty maps ---------------------------------------------- #
-# empty-legacy: declared as solver index sets but never populated by the legacy
-# pipeline; deprecated: the LEC feature being removed. Both emit empty (faithful).
+# Declared as solver index sets but never populated by the legacy pipeline.
+# NB these are NOT dead: `af.up` still binds, through `meqTechAfUp` + `pTechAf`.
+# They are redundant domain maps, so they stay empty (faithful to legacy).
 map_mTechAfUp      <- function(scen, fmp) scen
 map_mTechAfcUp     <- function(scen, fmp) scen
-map_meqLECActivity <- function(scen, fmp) scen
-map_mLECRegion     <- function(scen, fmp) scen
 
 # -- registry for the constraint family (def-table maps) ------------------- #
 .constraint_builders <- list(
@@ -125,7 +123,6 @@ map_mLECRegion     <- function(scen, fmp) scen
   meqSupReserveLo = map_meqSupReserveLo, mSupReserveUp = map_mSupReserveUp,
   # bespoke
   meqStorageStore = map_meqStorageStore, meqTradeCapFlow = map_meqTradeCapFlow,
-  mTradeCapacityVariable = map_mTradeCapacityVariable,
   # tech-group / share
   meqTechActSng = map_meqTechActSng, meqTechActGrp = map_meqTechActGrp,
   meqTechGrp2Sng = map_meqTechGrp2Sng, meqTechSng2Grp = map_meqTechSng2Grp,
@@ -134,7 +131,6 @@ map_mLECRegion     <- function(scen, fmp) scen
   meqTechShareOutLo = map_meqTechShareOutLo, meqTechShareOutUp = map_meqTechShareOutUp,
   # ramp
   mTechRampUp = map_mTechRampUp, mTechRampDown = map_mTechRampDown,
-  # intentionally empty (empty-legacy + deprecated LEC)
-  mTechAfUp = map_mTechAfUp, mTechAfcUp = map_mTechAfcUp,
-  meqLECActivity = map_meqLECActivity, mLECRegion = map_mLECRegion
+  # intentionally empty (empty-legacy)
+  mTechAfUp = map_mTechAfUp, mTechAfcUp = map_mTechAfcUp
 )

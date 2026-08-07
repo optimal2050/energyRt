@@ -97,7 +97,7 @@ setMethod("design", "technology", function(x, file = NULL, var = NULL, ...) {
     "input", "output", "aux", "units", "group",
     "geff", "ceff", "aeff", "af", "afs", "weather",
     "fixom", "varom", "invcost",
-    "start", "end", "olife", "capacity"
+    "vintage", "capacity"
   )
 
   args <- character()

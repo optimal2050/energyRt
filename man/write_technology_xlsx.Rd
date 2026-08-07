@@ -58,7 +58,9 @@ leading \code{meta} block. The workbook can be read back with
 \code{\link[=read_technology_xlsx]{read_technology_xlsx()}}
 
 Other technology process:
+\code{\link[=getVariants]{getVariants()}},
 \code{\link[=newTechnology]{newTechnology()}},
-\code{\link[=read_technology_xlsx]{read_technology_xlsx()}}
+\code{\link[=read_technology_xlsx]{read_technology_xlsx()}},
+\code{\link[=variantSummary]{variantSummary()}}
 }
 \concept{technology process}

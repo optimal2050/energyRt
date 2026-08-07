@@ -102,9 +102,10 @@ read_solution <- function(obj, ...) {
         next
       }
       if (is.null(vr)) next
-      if (length(grep("region", colnames(vr))) == 2) {
-        colnames(vr)[grep("region", colnames(vr))] <- c("src", "dst")
-      }
+      # The two-`region` -> `src`/`dst` rename used to be special-cased here and
+      # nowhere else, so the GDX and CSV branches disagreed on the column names
+      # of every duplicate-dimension variable. `d2v()` now renames positionally
+      # onto the variable's declared `@colNames`, for both branches alike.
       if (ncol(vr) == 1) {
         rr$variables[[i]] <- data.frame(value = vr[1, 1])
       } else {
@@ -201,16 +202,32 @@ read_solution <- function(obj, ...) {
   }
 
   scen@modOut@sets <- rr$set_vec
-  scen@modOut@variables <- rr$variables
-  if (!is.null(scen@misc$data.before)) {
-    scen <- .paste_base_result2new(scen)
+  # `@variables` arrives pre-populated with one empty, typed `variable` per
+  # declared variable (see `modOut`'s initialize); fill in what the solver
+  # returned. Variables it skipped -- those with no non-zero values -- keep
+  # their empty skeleton, so their column names are still known.
+  for (i in names(rr$variables)) {
+    v <- scen@modOut@variables[[i]]
+    if (is.null(v)) {
+      # `variable_list2.csv` can name variables the specification does not know.
+      # Accept them rather than dropping the solve, but say so.
+      warning("Solver returned an undeclared variable '", i,
+              "'; add it to data-raw/variables.yml. Stored untyped.")
+      v <- newVariable(
+        i, dimSets = intersect(setdiff(colnames(rr$variables[[i]]), "value"),
+                               .dimSets),
+        origin = "solver", declared = FALSE)
+    }
+    scen@modOut@variables[[i]] <- d2v(v, rr$variables[[i]])
   }
   ## Salvage cost calculation
   salvage_cost0 <- function(scen, par) {
     invcost <- .add_dropped_zeros(scen@modInp, paste0("p", par, "Invcost"))
     olife <- .add_dropped_zeros(scen@modInp, paste0("p", par, "Olife"))
-    discount <- .add_dropped_zeros(scen@modInp, "pDiscount")
-    newcap <- scen@modOut@variables[[paste0("v", par, "NewCap")]]
+    # Salvage value of capital not yet recovered -- a financing calculation, so
+    # it discounts at the cost of capital, not at the social rate.
+    discount <- .add_dropped_zeros(scen@modInp, "pWacc")
+    newcap <- get_variable(scen, paste0("v", par, "NewCap"))
     invcost$invcost <- invcost$value
     invcost$value <- NULL
     olife$olife <- olife$value
@@ -260,31 +277,12 @@ read_solution <- function(obj, ...) {
     # scen@modOut@variables$vTechSalv <- salvage_cost0(scen, "Tech")
     # scen@modOut@variables$vStorageSalv <- salvage_cost0(scen, "Storage")
     # scen@modOut@variables$vTradeSalv <- salvage_cost0(scen, "Trade")
-    pDummyImportCost <- .get_data_slot(scen@modInp@parameters$pDummyImportCost)
-    # browser()
-    vDummyImportCost <- merge0(pDummyImportCost,
-      scen@modOut@variables$vDummyImport,
-      by = c("comm", "region", "year", "slice")[
-        c("comm", "region", "year", "slice") %in%
-          colnames(pDummyImportCost)
-      ]
-    )
-    vDummyImportCost$value <- vDummyImportCost$value.x * vDummyImportCost$value.y
-    vDummyImportCost$value.x <- NULL
-    vDummyImportCost$value.y <- NULL
-    scen@modOut@variables$vDummyImportCost <- vDummyImportCost
-    pDummyExportCost <- .get_data_slot(scen@modInp@parameters$pDummyExportCost)
-    vDummyExportCost <- merge0(
-      pDummyExportCost,
-      scen@modOut@variables$vDummyExport,
-      by = c("comm", "region", "year", "slice")[
-        c("comm", "region", "year", "slice") %in% colnames(pDummyExportCost)
-      ]
-    )
-    vDummyExportCost$value <- vDummyExportCost$value.x * vDummyExportCost$value.y
-    vDummyExportCost$value.x <- NULL
-    vDummyExportCost$value.y <- NULL
-    scen@modOut@variables$vDummyExportCost <- vDummyExportCost
+    # `vDummyImportCost` / `vDummyExportCost` are SOLVER variables: the model
+    # declares them and `eqDummyImportCost` computes them weighted over slices
+    # (glpk/energyRt.mod), and `read_solution` has already stored those values.
+    # An R recomputation used to overwrite them here with an unweighted,
+    # slice-resolved version whose shape did not even match the declaration --
+    # removed. The solver's own value is correct and is what the objective used.
     tmp <- .get_data_slot(scen@modInp@parameters$pEmissionFactor)
     tmp$comm2 <- tmp$commp
     tmp$commp <- tmp$comm
@@ -293,7 +291,7 @@ read_solution <- function(obj, ...) {
     pTechEmisComm <- .get_data_slot(scen@modInp@parameters$pTechEmisComm)
     vTechEmsFuel <-
       merge0(
-        merge0(pTechEmisComm, scen@modOut@variables$vTechInp,
+        merge0(pTechEmisComm, get_variable(scen, "vTechInp"),
           by = c("tech", "comm")
         ),
         tmp,
@@ -307,13 +305,12 @@ read_solution <- function(obj, ...) {
       )
       vTechEmsFuel$value <- vTechEmsFuel$x
       vTechEmsFuel$x <- NULL
-    } else {
-      vTechEmsFuel <- data.frame(
-        tech = character(), comm = character(), region = character(),
-        year = integer(), value = numeric(), stringsAsFactors = FALSE
-      )
+      scen@modOut@variables$vTechEmsFuel <-
+        d2v(scen@modOut@variables$vTechEmsFuel, vTechEmsFuel)
     }
-    scen@modOut@variables$vTechEmsFuel <- vTechEmsFuel
+    # else: the empty branch used to build a 4-column frame (no `slice`) against
+    # this variable's 5-column declaration. The pre-populated typed skeleton is
+    # already empty and correctly shaped, so there is nothing to do.
 
     # Estimate Costs
     if (length(getNames(scen, "costs")) != 0) {
@@ -323,11 +320,13 @@ read_solution <- function(obj, ...) {
         value = numeric(), stringsAsFactors = FALSE
       )
       for (tmp in cst) {
-        in_dat <- scen@modOut@variables[[tmp@variable]]
+        in_dat <- get_variable(scen, tmp@variable)
         if (anyDuplicated(.variable_set[[tmp@variable]])) {
-          sets <- .variable_set[[tmp@variable]]
-          sets[duplicated(sets)] <- paste0(sets[duplicated(sets)], 2)
-          colnames(in_dat) <- c(sets, "value")
+          # The `mCosts<name>` map this is merged against was built with the
+          # "2"-suffix convention, so keep using it here rather than the
+          # variable's own `@colNames` (src/dst), or the merge becomes a cross
+          # join. `.dedup2()` is the shared spelling of that convention.
+          colnames(in_dat) <- c(.dedup2(.variable_set[[tmp@variable]]), "value")
         }
         if (nrow(in_dat) != 0 &&
           !is.null(scen@modInp@parameters[[paste0("mCosts", tmp@name)]])) {
@@ -366,7 +365,8 @@ read_solution <- function(obj, ...) {
           )
         }
       }
-      scen@modOut@variables$vUserCosts <- costs_tot
+      scen@modOut@variables$vUserCosts <-
+        d2v(scen@modOut@variables$vUserCosts, costs_tot)
     }
   }
   if (arg$echo) {
@@ -385,27 +385,9 @@ setMethod("read", "scenario", read_solution)
 # read.scenario <- function(scen, ...) read_solution(scen, ...)
 # .S3method("read", "scenario", read_solution)
 
-.paste_base_result2new <- function(scen) {
-  # Have to recalculate vObjective (need recalculate salvage before and so on, draft in Github/Misc/package/temp/interpolate_after_for_rest.R)
-  for (i in names(scen@misc$data.before)) {
-    scen@modOut@variables[[i]] <- rbind(scen@modOut@variables[[i]], scen@misc$data.before[[i]])
-  }
-  # Correct RowTradeCum #!!! ToDO: ??? check
-  if (nrow(scen@modOut@variables$vExportRowCum) > 0) {
-    scen@modOut@variables$vExportRowCum <- aggregate(
-      scen@modOut@variables$vExportRowCum[, "value", drop = FALSE],
-      scen@modOut@variables$vExportRowCum[, c("expp", "comm"),
-        drop = FALSE
-      ], sum
-    )
-  }
-  if (nrow(scen@modOut@variables$vImportRowCum) > 0) {
-    scen@modOut@variables$vImportRowCum <- aggregate(
-      scen@modOut@variables$vImportRowCum[, "value", drop = FALSE],
-      scen@modOut@variables$vImportRowCum[, c("imp", "comm"), drop = FALSE], sum
-    )
-  }
-  scen
-}
+# `.paste_base_result2new()` (myopic / rolling-horizon result stitching) moved to
+# `drafts/paste_base_result2new.R`: it reads `scen@misc$data.before`, which is
+# assigned nowhere in the package, so its call site never fired. See the file for
+# what reviving it would take.
 
 #

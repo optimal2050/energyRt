@@ -42,16 +42,17 @@ NULL
   # costs
   "invcost.invcost"   = "{costs}/{capacity}",
   "invcost.wacc"      = "fraction",
+  "invcost.payback"   = "years",
   "invcost.eac"       = "{costs}/{capacity}",
   "invcost.retcost"   = "{costs}/{capacity}",
   "fixom.fixom"       = "{costs}/{capacity}",
   "varom.varom"       = "{costs}/{activity}",
   "varom.cvarom"      = "{costs}/{comm}",
   "varom.avarom"      = "{costs}/{acomm}",
-  # life & schedule
-  "olife.olife"       = "years",
-  "start.start"       = "year",
-  "end.end"           = "year",
+  # life & schedule (merged into the `vintage` slot)
+  "vintage.olife"     = "years",
+  "vintage.start"     = "year",
+  "vintage.end"       = "year",
   # capacity bounds
   "capacity.cap.lo"   = "{capacity}",
   "capacity.cap.up"   = "{capacity}",
@@ -259,8 +260,8 @@ setMethod("getUnits", "technology", function(object, slots = NULL, ...) {
 
   # slots that have a data.frame with value columns (non-dimension columns)
   df_slots <- c("ceff", "geff", "aeff", "af", "afs",
-                "fixom", "varom", "invcost", "olife",
-                "start", "end", "capacity", "weather")
+                "fixom", "varom", "invcost", "vintage",
+                "capacity", "weather")
   scalar_slots <- "cap2act"
   all_slots <- c(scalar_slots, df_slots)
   use_slots <- if (is.null(slots)) all_slots else intersect(slots, all_slots)
@@ -283,7 +284,7 @@ setMethod("getUnits", "technology", function(object, slots = NULL, ...) {
   # ── data.frame slots ─────────────────────────────────────────────────────────
   # Dimension columns to skip (not parameters, just indexing)
   dim_cols <- c("region", "year", "slice", "comm", "acomm", "group",
-                "type", "comm2")
+                "type", "comm2", "vintage", "cluster")
 
   for (sn in intersect(df_slots, use_slots)) {
     df <- slot(object, sn)

@@ -3,10 +3,9 @@
 `energyRt` ships
 [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
 methods (and, where natural, matching
-[`plot()`](https://rdrr.io/r/graphics/plot.default.html) methods) for
-most of its building-block classes. They turn an object into a `ggplot`,
-so the result can be themed and extended with `+` layers like any other
-ggplot.
+[`plot()`](https://energyRt.org/reference/draw.md) methods) for most of
+its building-block classes. They turn an object into a `ggplot`, so the
+result can be themed and extended with `+` layers like any other ggplot.
 
 | Class | What the plot shows |
 |----|----|
@@ -38,10 +37,9 @@ names(calendars)
 ```
 
 [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
-(or the equivalent
-[`plot()`](https://rdrr.io/r/graphics/plot.default.html)) draws each
-timeframe as a row of rectangles sized by each slice’s share of the
-year:
+(or the equivalent [`plot()`](https://energyRt.org/reference/draw.md))
+draws each timeframe as a row of rectangles sized by each slice’s share
+of the year:
 
 ``` r
 
@@ -207,12 +205,13 @@ The `name` argument carries the value’s unit onto the colour bar.
 
 ``` r
 
-repo <- utopia_modules$electricity$reg3$repo
+repo <- utopia_modules$electricity$R3$repo
 wcal <- calendars$utopia_s4h24
 
 DEM <- getObject(repo, name = "DEM_ELC", drop = TRUE)
-dem <- subset(as.data.frame(DEM@dem), region == "R1" & year == 2050)
-plot_heatmap(dem[, c("slice", "dem")], calendar = wcal, value = "dem", name = "PJ")
+dem <- subset(as.data.frame(DEM@demand), region == "R1" & year == 2050)
+plot_heatmap(dem[, c("slice", "demand")], calendar = wcal, value = "demand",
+             name = "PJ")
 ```
 
 ![](autoplot_files/figure-html/hm-demand-1.png)
@@ -282,7 +281,7 @@ keep separate y-scales.
 
 SUP_COA <- newSupply(
   name = "SUP_COA", commodity = "COA", unit = "PJ", region = "R1",
-  availability = data.frame(
+  supply = data.frame(
     region = "R1", slice = "ANNUAL",
     year   = c(2020, 2040, 2020, 2020),
     ava.up = c(100,  200,  NA,   NA),
@@ -290,8 +289,6 @@ SUP_COA <- newSupply(
     cost   = c(NA,   NA,   NA,   30)))
 autoplot(SUP_COA)
 ```
-
-![](autoplot_files/figure-html/sup-1.png)
 
 A single given value (or none) is drawn as a flat dashed line showing
 the interpolation direction. Pass `years` to interpolate over a specific
@@ -302,16 +299,14 @@ horizon:
 autoplot(SUP_COA, years = 2020:2050)
 ```
 
-![](autoplot_files/figure-html/sup-years-1.png)
-
 Demand, import and export follow the same pattern:
 
 ``` r
 
 DEM_ELC <- newDemand(
   name = "DEM_ELC", commodity = "ELC", unit = "GWh",
-  dem = data.frame(region = "R1", slice = "ANNUAL",
-                   year = c(2020, 2030, 2050), dem = c(100, 150, 300)))
+  demand = data.frame(region = "R1", slice = "ANNUAL",
+                   year = c(2020, 2030, 2050), demand = c(100, 150, 300)))
 autoplot(DEM_ELC)
 ```
 
@@ -321,12 +316,10 @@ autoplot(DEM_ELC)
 
 IMP_GAS <- newImport(
   name = "IMP_GAS", commodity = "GAS",
-  imp = data.frame(region = "R1", slice = "ANNUAL",
+  import = data.frame(region = "R1", slice = "ANNUAL",
                    year = c(2020, 2050), imp.up = c(50, 80), price = c(5, 9)))
 autoplot(IMP_GAS)
 ```
-
-![](autoplot_files/figure-html/imp-1.png)
 
 ## Weather
 
@@ -342,7 +335,7 @@ y-axis for line/area.
 
 ``` r
 
-WSOL <- getObject(utopia_modules$electricity$reg3$repo, name = "WSOL", drop = TRUE)
+WSOL <- getObject(utopia_modules$electricity$R3$repo, name = "WSOL", drop = TRUE)
 wcal <- calendars$utopia_s4h24
 
 autoplot(WSOL, calendar = wcal)                    # heatmap (default), faceted by region
@@ -371,8 +364,8 @@ autoplot(WSOL, type = "area", calendar = wcal)     # or filled areas
 
 - Every method returns a `ggplot`, so `+ theme_*()`, `+ labs()`,
   `+ scale_*()` etc. all work.
-- [`plot()`](https://rdrr.io/r/graphics/plot.default.html) is available
-  for `calendar` and `horizon` and produces the same figure as
+- [`plot()`](https://energyRt.org/reference/draw.md) is available for
+  `calendar` and `horizon` and produces the same figure as
   [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html).
 - [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
   also works on the result of

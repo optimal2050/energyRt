@@ -43,6 +43,13 @@ source("https://raw.githubusercontent.com/optimal2050/energyRt/master/inst/insta
 install_energyRt()
 ```
 
+To track the development version instead, pass a branch — `install_energyRt()`
+otherwise follows the repository's default branch:
+
+```{r}
+install_energyRt(branch = "dev")
+```
+
 Then verify your setup in a fresh session with `library(energyRt); en_setup()`.
 
 Prefer to install directly? energyRt's CRAN dependencies are pulled in
@@ -207,8 +214,8 @@ conda install -y -n energyRt -c conda-forge pyomo pandas pyarrow coincbc
 
 ## 5. Point energyRt at the installations
 
-If a runtime is not on your `PATH`, set its path (persisted in energyRt
-options). For Python/Pyomo, point at the conda environment created above:
+If a runtime is not on your `PATH`, set its path. For Python/Pyomo, point at
+the conda environment created above:
 
 ```{r}
 set_julia_path("~/.juliaup/bin/")             # same on all platforms
@@ -216,6 +223,34 @@ set_python_path("~/.conda/envs/energyRt")     # or the env you created
 set_glpk_path("C:/rtools45/x86_64-w64-mingw32.static.posix/bin")  # Windows (Rtools 4.5); unneeded on macOS/Ubuntu
 set_gams_path("C:/GAMS/<version>/")           # see step 3 for macOS/Ubuntu paths
 ```
+
+These are equivalent to `set_solver_path("julia", ...)`, `set_solver_path("gams", ...)`
+and so on — use whichever reads better.
+
+### Make it stick
+
+The calls above last for the current session. Save them once and every later
+session starts configured:
+
+```{r}
+en_config_write()        # -> ~/.energyRt/config.yml
+```
+
+`en_config_write()` with no arguments writes every option that differs from the
+package default. Use `en_config_write(global = FALSE)` to write `.energyRt.yml`
+in the current project instead, when one project needs a different GAMS version
+from the rest.
+
+To see what is actually in effect — and, when a solver is not found, where the
+wrong value came from:
+
+```{r}
+en_config_show()
+```
+
+Each option reports its source: an R option (`options(en.gams_path = )`), an
+environment variable (`ENERGYRT_GAMS_PATH`), a config file, or the package
+default — checked in that order. `?energyRt-options` lists them all.
 
 ## 6. Verify end-to-end
 

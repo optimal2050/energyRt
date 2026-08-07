@@ -20,13 +20,17 @@ scenario settings.
 
 \item{\code{calendar}}{calendar. Calendar object with the model time parameters.}
 
+\item{\code{geoscale}}{ANY. Optional \code{geoscales::Geoscale} object describing the model's regions -- their nesting into coarser levels, weights, and (optionally) geometry. Purely additional information about the labels in \code{region}, which remains authoritative; the geoscale is used for plotting, reporting and subsetting and never changes the optimisation model. \code{NULL} when unset. Typed \code{ANY} because \code{geoscales} is an optional (Suggests) dependency.}
+
 \item{\code{horizon}}{horizon. Horizon object with the model time parameters. The horizon defines the planning period and intervals of the model.}
 
-\item{\code{discount}}{data.frame. Discount rates, can be assigned by region and year.
+\item{\code{discount}}{data.frame. The model's two rates, which can be assigned by region and year. \code{wacc} annuitises investment into the equivalent annual cost; \code{sdr} discounts the stream of system costs in the objective. They are independent -- there is no fallback from one to the other.
+As an ARGUMENT (\code{newModel(discount = )}, \code{update(cfg, discount = )}) this slot also accepts the shorthand \code{discount}, a single rate that plays both roles: \code{discount = 0.05} is equivalent to \code{data.frame(wacc = 0.05, sdr = 0.05)}. Per row you supply either \code{discount}, or both \code{wacc} and \code{sdr} -- a partial pair or a mix of the two forms is an error. There is no \code{discount} column: the shorthand is expanded on entry, so the stored table always has both rates.
 \describe{
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
-\item{discount}{numeric. Discount rate. Default is 0.05. The discount rate is used to calculate the present value of future costs and benefits.}
+\item{wacc}{numeric. Weighted average cost of capital, used to annuitise investment costs into \code{pTechEac} / \code{pStorageEac} / \code{pTradeEac}. A process may override it with its own \verb{@invcost$wacc}. Default is 0.}
+\item{sdr}{numeric. Social discount rate, used to build the cumulative discount factor applied to total system costs in the objective. A property of the model, never of an individual process. Default is 0.}
 }}
 
 \item{\code{discountFirstYear}}{logical. If TRUE, the discounting starts from the beginning of the year. If FALSE, the discounting starts from the end of the first year, i.e., the first year is not discounted.}
@@ -38,6 +42,8 @@ scenario settings.
 \item{\code{interpolation}}{data.frame. Default interpolation rules for every parameter in the model. The data frame with the default interpolation rules is stored in \code{energyRt::.defInt} object and can be overwritten by the user and supplied to the model as a parameter.}
 
 \item{\code{debug}}{data.frame. Artificial (dummy or sluck) variables to debug model infeasibility. Can be specified by commodities, regions, years, and slices.}
+
+\item{\code{variant_prefix}}{character. Named character vector giving the prefixes inserted into the names of expanded technology variants, keyed by variant dimension: \code{c(vintage = "_VIN", cluster = "_CL")}. A technology \code{WIND} with vintage 2030 and cluster "01" then becomes the set member \code{WIND_VIN2030_CL01}. Number the clusters rather than labelling them ("01", not "best"): the prefix already says what the axis is, so a label that repeats it reads as \code{WIND_VIN2030_CLCL01}. Model-wide, because these become solver set-member names; the scenario settings inherit the value and must agree with it. Each prefix must be non-empty, match \verb{^[[:alnum:]_]+$}, and the two must differ. A partial value such as \code{c(cluster = "_RC")} is merged over the defaults.}
 
 \item{\code{misc}}{list. Any additional data or information to store in the object.}
 }}

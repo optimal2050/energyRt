@@ -16,17 +16,7 @@
 #' get_julia_path()
 #' }
 set_julia_path <- function(path = NULL) {
-  # browser()
-  if (!is.null(path) && path != "") {
-    if (!dir.exists(path)) {
-      stop(paste0('The path "', path, '" does not exist.'), call. = FALSE)
-    }
-    if (!grepl("\\/$", path)) {
-      path <- paste0(path, "/")
-    }
-  }
-  options::opt_set("julia_path", path, env = "energyRt")
-  # options(julia_path = path)
+  set_solver_path("julia", path)
 }
 
 #' @export
@@ -34,12 +24,13 @@ set_julia_path <- function(path = NULL) {
 #' @rdname solver
 #' @family solver julia
 get_julia_path <- function() {
-  options::opt("julia_path", env = "energyRt")
-  # getOption("julia_path")
+  get_solver_path("julia")
 }
 
 # Functions to write Julia/JuMP model and data files
 .write_model_JuMP <- function(arg, scen) {
+  .assert_payback_supported(scen, "JuMP/Julia")
+  .assert_geolevel_supported(scen, "JuMP/Julia")
   run_code <- scen@settings@sourceCode[["JuMP"]]
   run_codeout <- scen@settings@sourceCode[["JuMPOutput"]]
   # # resolving `prod` issue in JuMP/Julia. temporary solution
@@ -339,9 +330,10 @@ get_julia_path <- function() {
       return(c(rtt, kk))
     }
   }
-  if (obj@misc$nValues != -1) {
-    obj@data <- obj@data[seq(length.out = obj@misc$nValues), , drop = FALSE]
-  }
+  # The whole materialised slot is written. This used to truncate to the
+  # `@misc$nValues` row-count cache, so a stale count silently made this engine
+  # write less data than GLPK, which never truncated.
+  obj@data <- get_data_slot(obj)
   if (obj@type == "set") {
     tmp <- ""
     if (nrow(obj@data) > 0) {
@@ -426,9 +418,10 @@ get_julia_path <- function() {
       ))
     }
   }
-  if (obj@misc$nValues != -1) {
-    obj@data <- obj@data[seq(length.out = obj@misc$nValues), , drop = FALSE]
-  }
+  # The whole materialised slot is written. This used to truncate to the
+  # `@misc$nValues` row-count cache, so a stale count silently made this engine
+  # write less data than GLPK, which never truncated.
+  obj@data <- get_data_slot(obj)
   if (obj@type == "map" || obj@type == "set") {
     ret <- paste0("# ", obj@name)
     if (ncol(obj@data) > 1) ret <-

@@ -5,7 +5,7 @@ A named list of ready-to-use
 common milestone-year structures. Pass any element to
 [`newModel()`](https://energyRt.org/reference/newModel.md) /
 `setHorizon()`, or visualize it with
-[`plot()`](https://rdrr.io/r/graphics/plot.default.html) / `autoplot()`.
+[`plot()`](https://energyRt.org/reference/draw.md) / `autoplot()`.
 
 ## Usage
 

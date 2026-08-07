@@ -1,3 +1,7 @@
+# energyRt 0.71
+# Energy Systems Modeling Toolbox for R
+# https://energyRt.org
+
 print(
     "Julia v",
     VERSION,
@@ -4066,25 +4070,6 @@ print("eqObjective...")
                 pDiscountFactorDef
             end
         ) for r in region for y in year if (r, y) in mvTotalCost
-    )
-);
-print(
-    " ",
-    Dates.format(now(), "HH:MM:SS"),
-    "
-",
-)
-# eqLECActivity(tech, region, year)$meqLECActivity(tech, region, year)
-print("eqLECActivity(tech, region, year)...")
-@constraint(
-    model,
-    [(t, r, y) in meqLECActivity],
-    sum(vTechAct[(t, r, y, s)] for s in slice if (t, s) in mTechSlice) >= (
-        if haskey(pLECLoACT, (r))
-            pLECLoACT[(r)]
-        else
-            pLECLoACTDef
-        end
     )
 );
 print(

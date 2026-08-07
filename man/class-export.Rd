@@ -37,7 +37,7 @@ model horizon.
 
 \item{\code{reserve}}{numeric. Total accumulated limit through the model horizon.}
 
-\item{\code{exp}}{data.frame. Export parameters.
+\item{\code{export}}{data.frame. Export parameters.
 \describe{
 \item{region}{character. Region name to apply the parameter; use NA to apply to all regions.}
 \item{year}{integer. Year to apply the parameter; use NA to apply to all years.}

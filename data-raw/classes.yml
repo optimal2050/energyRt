@@ -25,6 +25,17 @@ class:
       description: >
         The default time-frame this commodity operates in the model.
         The lowest timeframe in the model is used by default.
+    geolevel:
+      type: character
+      description: >
+        The geoscale level at which this commodity is balanced -- the spatial
+        counterpart of `timeframe`. The finest level in the model is used by
+        default, reproducing the flat, single-level behaviour. Naming a coarser
+        level (e.g. balancing steel nationally while electricity stays
+        state-level) asserts free, unlimited transport of the commodity within
+        that level, so it suits goods with a genuinely integrated market and
+        never a network-constrained carrier such as electricity. Requires a
+        geoscale on the model config; GLPK and GAMS only.
     unit:
       type: character
       description: The main unit of the commodity used in the model.
@@ -126,7 +137,7 @@ class:
           description: >
             Fixed value of the total available resource.
             This parameter overrides `res.lo` and `res.up`.
-    availability:
+    supply:
       type: data.frame
       description: Availability of the resource in physical units.
       columns:
@@ -187,7 +198,7 @@ class:
     unit:
       type: character
       description: Optional unit of the commodity.
-    dem:
+    demand:
       type: data.frame
       description: Specification of the demand.
       columns:
@@ -200,14 +211,14 @@ class:
         slice:
           type: character
           description: Name of the slice for the demand value. NA for every slice.
-        dem:
+        demand:
           type: numeric
           description: Value of the demand.
     region:
       type: character
       description: >
         Optional name of region to narrow the specification of the demand in the case of used NAs.
-        Error will be returned if specified regions in `@dem` are not mensioned in the `@region` slot
+        Error will be returned if specified regions in `@demand` are not mensioned in the `@region` slot
         (if the slot is not empty).
     misc:
       type: list
@@ -297,6 +308,12 @@ class:
       type: data.frame
       description: Input-commodity-group efficiency parameters.
       columns:
+        vintage:
+          type: character
+          description: Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.
+        cluster:
+          type: character
+          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `vintage` slot.
         region:
           type: character
           description: Name of region to apply the parameter, NA for every region.
@@ -316,6 +333,12 @@ class:
       type: data.frame
       description: Main commodity and activity efficiency parameters.
       columns:
+        vintage:
+          type: character
+          description: Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.
+        cluster:
+          type: character
+          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `vintage` slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
@@ -362,6 +385,12 @@ class:
       type: data.frame
       description: Parameters linking main commodities, activities, and capacities to auxiliary commodities.
       columns:
+        vintage:
+          type: character
+          description: Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.
+        cluster:
+          type: character
+          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `vintage` slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
@@ -408,6 +437,12 @@ class:
       type: data.frame
       description: Timeslice-level availability factor parameters.
       columns:
+        vintage:
+          type: character
+          description: Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.
+        cluster:
+          type: character
+          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `vintage` slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
@@ -436,6 +471,12 @@ class:
       type: data.frame
       description: Timeframe-level availability factor constraints.
       columns:
+        vintage:
+          type: character
+          description: Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.
+        cluster:
+          type: character
+          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `vintage` slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
@@ -458,6 +499,12 @@ class:
       type: data.frame
       description: Parameters linking `weather factors` (external shocks specified by `weather` class) to the availability parameters `af`, `afs`, and `afc`.
       columns:
+        vintage:
+          type: character
+          description: Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.
+        cluster:
+          type: character
+          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `vintage` slot.
         weather:
           type: character
           description: Name of the applied weather factor, required, must match the weather factor names in a `weather` class in the model.
@@ -495,6 +542,12 @@ class:
       type: data.frame
       description: Fixed operational and maintenance cost (per unit of capacity a year).
       columns:
+        vintage:
+          type: character
+          description: Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.
+        cluster:
+          type: character
+          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `vintage` slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
@@ -508,6 +561,12 @@ class:
       type: data.frame
       description: Variable operational and maintenance cost (per unit of activity or commodity).
       columns:
+        vintage:
+          type: character
+          description: Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.
+        cluster:
+          type: character
+          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `vintage` slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
@@ -536,6 +595,12 @@ class:
       type: data.frame
       description: Total overnight investment costs of the project (per unit of capacity).
       columns:
+        vintage:
+          type: character
+          description: Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.
+        cluster:
+          type: character
+          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `vintage` slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
@@ -547,37 +612,83 @@ class:
           description: Total overnight investment costs of the project (per unit of capacity), default is 0.
         wacc:
           type: numeric
-          description: Weighted average cost of capital, (currently ignored).
-          retcost:
-            type: numeric
-            description: Costs of early retirement of the technology, default is 0.
-    start:
+          description: >-
+            Weighted average cost of capital used to annuitise `invcost` for
+            this technology. Overrides the model-wide `wacc` (see the model
+            `discount` argument). The social discount rate is never used here.
+        payback:
+          type: numeric
+          description: >-
+            Cost-recovery period in years. Where given it replaces `olife` in
+            the annuity AND in the years over which the annuity is charged, so
+            the investment is repaid over `payback` years while the capacity
+            keeps operating for its full operational life. Must be positive and
+            not exceed `olife`. Unset (or 0) means recover over `olife`.
+            Implemented for the GLPK solver only.
+        eac:
+          type: numeric
+          description: >-
+            Equivalent annual cost, supplied directly instead of being computed
+            from `invcost`, `wacc` and the lifetime. Where given it wins; where
+            absent the annuity is computed. Mutually exclusive with `invcost`
+            per row.
+        retcost:
+          type: numeric
+          description: Costs of early retirement of the technology, default is 0.
+    cluster:
       type: data.frame
-      description: The first year the technology can be installed.
+      description: >-
+        Declaration of the technology's clusters. A cluster is a parallel
+        sub-process of the same technology -- a resource class, geography or
+        fleet type -- with its own capacity, availability and costs. This slot
+        declares WHAT the clusters are and WHERE they exist; the per-cluster
+        values live in the `cluster` column of the variant-varying slots
+        (`capacity`, `invcost`, `afs`, `weather`, ...), exactly as `group`
+        declares input groups whose data lives in `input$group`.
+        Optional: when empty, cluster labels are harvested from those columns.
+        When populated it is authoritative -- a label used in a slot but not
+        declared here raises an error instead of silently creating an extra
+        technology with default (often unbounded) parameters.
       columns:
+        cluster:
+          type: character
+          description: Cluster label. Must match the `cluster` column values used in the other slots.
+        desc:
+          type: character
+          description: Human-readable description of the cluster, used in reports.
+        region:
+          type: character
+          description: Region the cluster exists in, NA for every region. Several rows restrict a cluster to several regions.
+        order:
+          type: integer
+          description: Optional display/ranking order (e.g. best to worst resource class); controls the order variants are created and reported in.
+    vintage:
+      type: data.frame
+      description: >-
+        Investment window and operational life of the technology, one row per
+        (vintage, region, cluster). Replaces the former `start`, `end` and
+        `olife` slots. A vintage is a separately investable variant of the
+        technology that keeps the characteristics of its build year for its
+        whole life; a cluster is a parallel sub-process (resource class,
+        geography, fleet type) with its own capacity, availability and costs.
+        Each column is read independently, so a region-agnostic `start` may be
+        combined with a per-region `olife`.
+      columns:
+        vintage:
+          type: character
+          description: Vintage label, normally the build year as a string. NA for an un-vintaged technology (a single variant).
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
+        cluster:
+          type: character
+          description: Cluster label, NA for every cluster.
         start:
           type: integer
-          description: The first year the technology can be installed, NA means all years of the modeled horizon.
-    end:
-      type: data.frame
-      description: The last year the technology can be installed.
-      columns:
-        region:
-          type: character
-          description: Region name to apply the parameter, NA for every region.
+          description: The first year the technology can be installed. Defaults to the vintage year; NA means all years of the modeled horizon.
         end:
           type: integer
-          description: The last year the technology can be installed, default is Inf.
-    olife:
-      type: data.frame
-      description: Operational life of the installed technology (in years).
-      columns:
-        region:
-          type: character
-          description: Region name to apply the parameter, NA for every region.
+          description: The last year the technology can be installed. Defaults to the vintage year; default is Inf when unset.
         olife:
           type: integer
           description: Operational life of the technology if installed during optimization, in years, default is 1.
@@ -585,6 +696,12 @@ class:
       type: data.frame
       description: Capacity of the installed technology (in units of capacity).
       columns:
+        vintage:
+          type: character
+          description: Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.
+        cluster:
+          type: character
+          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `vintage` slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
@@ -661,26 +778,57 @@ class:
     commodity:
       type: character
       description: Name of the stored commodity.
-    start:
+    cluster:
       type: data.frame
-      description: Start year when the storage is available for installation.
+      description: >-
+        Declaration of the storage clusters -- parallel sub-processes of the same
+        storage with their own capacity, availability and costs. The motivating
+        cases are site-constrained storage (pumped-hydro head classes, CAES
+        caverns) and duration classes via a per-cluster `cap2stg`. Optional: when
+        empty, cluster labels are harvested from the other slots; when populated
+        it is authoritative and an undeclared label raises an error.
       columns:
+        cluster:
+          type: character
+          description: Cluster label. Must match the `cluster` column values used in the other slots.
+        desc:
+          type: character
+          description: Human-readable description of the cluster, used in reports.
         region:
           type: character
-          description: Regions where the storage is available for investment.
-        start:
+          description: Region the cluster exists in, NA for every region.
+        order:
           type: integer
-          description: The first year when the storage is available for investment.
-    end:
+          description: Optional display/ranking order; controls the order variants are created and reported in.
+    vintage:
       type: data.frame
-      description: Last year when the storage is available for investment.
+      description: >-
+        Investment window and operational life of the storage, one row per
+        (vintage, region, cluster). Replaces the former `start`, `end` and
+        `olife` slots. A vintage is a separately investable variant that keeps
+        the characteristics of its build year for its whole life -- for storage
+        typically a falling capex and a rising round-trip efficiency.
+        Each column is read independently, so a region-agnostic `start` may be
+        combined with a per-region `olife`.
       columns:
+        vintage:
+          type: character
+          description: Vintage label, normally the build year as a string. NA for an un-vintaged storage.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
+        cluster:
+          type: character
+          description: Cluster label, NA for every cluster.
+        start:
+          type: integer
+          description: The first year the storage can be installed. Defaults to the vintage year.
         end:
           type: integer
-          description: The last year when the storage is available for investment.
+          description: The last year the storage can be installed. Defaults to the vintage year.
+        olife:
+          type: integer
+          description: Operational life of the storage in years, applicable to new investment only.
     aux:
       type: data.frame
       description: Auxiliary commodities.
@@ -691,22 +839,16 @@ class:
         unit:
           type: character
           description: Unit of the auxiliary commodity.
-    olife:
-      type: data.frame
-      description: >
-        Operational life of the storage technology, applicable to the new investment only,
-        the operational life (retirement) of preexiting capacity is described in the `stock` slot.
-      columns:
-        region:
-          type: character
-          description: Region name to apply the parameter, NA for every region.
-        olife:
-          type: integer
-          description: Operational life of the storage technology in years.
     charge:
       type: data.frame
       description: Pre-charged level at the beginning of the operational cycle.
       columns:
+        vintage:
+          type: character
+          description: Vintage label selecting the variant this row applies to, NA for every vintage. See the `vintage` slot.
+        cluster:
+          type: character
+          description: Cluster label selecting the variant this row applies to, NA for every cluster. See the `cluster` slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
@@ -723,6 +865,12 @@ class:
       type: data.frame
       description: Storage efficiency parameters.
       columns:
+        vintage:
+          type: character
+          description: Vintage label selecting the variant this row applies to, NA for every vintage. See the `vintage` slot.
+        cluster:
+          type: character
+          description: Cluster label selecting the variant this row applies to, NA for every cluster. See the `cluster` slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
@@ -745,6 +893,12 @@ class:
       type: data.frame
       description: Availability factor parameters.
       columns:
+        vintage:
+          type: character
+          description: Vintage label selecting the variant this row applies to, NA for every vintage. See the `vintage` slot.
+        cluster:
+          type: character
+          description: Cluster label selecting the variant this row applies to, NA for every cluster. See the `cluster` slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
@@ -789,6 +943,12 @@ class:
       type: data.frame
       description: Auxiliary commodities efficiency parameters.
       columns:
+        vintage:
+          type: character
+          description: Vintage label selecting the variant this row applies to, NA for every vintage. See the `vintage` slot.
+        cluster:
+          type: character
+          description: Cluster label selecting the variant this row applies to, NA for every cluster. See the `cluster` slot.
         acomm:
           type: character
           description: Name of the auxiliary commodity (used in sets).
@@ -838,6 +998,12 @@ class:
       type: data.frame
       description: Fixed operation and maintenance cost.
       columns:
+        vintage:
+          type: character
+          description: Vintage label selecting the variant this row applies to, NA for every vintage. See the `vintage` slot.
+        cluster:
+          type: character
+          description: Cluster label selecting the variant this row applies to, NA for every cluster. See the `cluster` slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
@@ -851,6 +1017,12 @@ class:
       type: data.frame
       description: Variable operation and maintenance cost.
       columns:
+        vintage:
+          type: character
+          description: Vintage label selecting the variant this row applies to, NA for every vintage. See the `vintage` slot.
+        cluster:
+          type: character
+          description: Cluster label selecting the variant this row applies to, NA for every cluster. See the `cluster` slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
@@ -873,6 +1045,12 @@ class:
       type: data.frame
       description: Investment cost.
       columns:
+        vintage:
+          type: character
+          description: Vintage label selecting the variant this row applies to, NA for every vintage. See the `vintage` slot.
+        cluster:
+          type: character
+          description: Cluster label selecting the variant this row applies to, NA for every cluster. See the `cluster` slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
@@ -884,9 +1062,29 @@ class:
           description: Overnight investment cost for the specified region and year.
         wacc:
           type: numeric
-          description: >
-            Weighted average cost of capital. If not supplied, the discount from the
-             model or scenario is used. (currently ignored)
+          description: >-
+            Weighted average cost of capital used to annuitise `invcost` for
+            this storage. Overrides the model-wide `wacc` (see the model
+            `discount` argument). The social discount rate is never used here.
+        payback:
+          type: numeric
+          description: >-
+            Cost-recovery period in years. Where given it replaces `olife` in
+            the annuity AND in the years over which the annuity is charged, so
+            the investment is repaid over `payback` years while the capacity
+            keeps operating for its full operational life. Must be positive and
+            not exceed `olife`. Unset (or 0) means recover over `olife`.
+            Implemented for the GLPK solver only.
+        eac:
+          type: numeric
+          description: >-
+            Equivalent annual cost, supplied directly instead of being computed
+            from `invcost`, `wacc` and the lifetime. Where given it wins; where
+            absent the annuity is computed. Mutually exclusive with `invcost`
+            per row.
+        retcost:
+          type: numeric
+          description: Costs of early retirement of the storage, default is 0.
     fullYear:
       type: logical
       description: >
@@ -900,14 +1098,38 @@ class:
       type: character
       description: Region where the storage technology exists or can be installed.
     cap2stg:
-      type: numeric
-      description: >
-        Charging and discharging capacity to the storing capacity inverse ratio.
-        Can be used to define the storage duration.
+      type: data.frame
+      description: >-
+        Charging and discharging capacity to the storing capacity inverse ratio,
+        i.e. the storage duration. A data.frame rather than a scalar so it can
+        differ by cluster -- 1h / 4h / 8h duration classes of the same storage.
+        A bare scalar (`cap2stg = 4`) is still accepted.
+      columns:
+        vintage:
+          type: character
+          description: Vintage label selecting the variant this row applies to, NA for every vintage.
+        cluster:
+          type: character
+          description: Cluster label selecting the variant this row applies to, NA for every cluster.
+        region:
+          type: character
+          description: Region name to apply the parameter, NA for every region.
+        year:
+          type: integer
+          description: Year to apply the parameter, NA for every year.
+        cap2stg:
+          type: numeric
+          description: Capacity-to-storage ratio (storage duration).
     weather:
       type: data.frame
       description: Weather factors multipliers.
       columns:
+        vintage:
+          type: character
+          description: Vintage label selecting the variant this row applies to, NA for every vintage. See the `vintage` slot.
+        cluster:
+          type: character
+          description: Cluster label selecting the variant this row applies to, NA for every cluster. See the `cluster` slot.
         weather:
           type: character
           description: Name of the weather factor to apply.
@@ -958,6 +1180,12 @@ class:
       type: data.frame
       description: Capacity parameters of the storage technology.
       columns:
+        vintage:
+          type: character
+          description: Vintage label selecting the variant this row applies to, NA for every vintage. See the `vintage` slot.
+        cluster:
+          type: character
+          description: Cluster label selecting the variant this row applies to, NA for every cluster. See the `cluster` slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
@@ -1026,6 +1254,9 @@ class:
       type: data.frame
       description: Technical parameters of trade.
       columns:
+        vintage:
+          type: character
+          description: Vintage label selecting the variant this row applies to, NA for every vintage. See the `vintage` slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
@@ -1052,6 +1283,9 @@ class:
       type: data.frame
       description: Auxiliary commodity efficiency parameters.
       columns:
+        vintage:
+          type: character
+          description: Vintage label selecting the variant this row applies to, NA for every vintage. See the `vintage` slot.
         acomm:
           type: character
           description: Name of the auxiliary commodity (used in sets).
@@ -1072,8 +1306,11 @@ class:
           description: Trade-to-auxiliary-output-commodity coefficient (multiplier).
     invcost:
       type: data.frame
-      description: Investment cost, used when capacityVariable is TRUE.
+      description: Investment cost of the trade capacity (per unit of capacity).
       columns:
+        vintage:
+          type: character
+          description: Vintage label selecting the variant this row applies to, NA for every vintage. See the `vintage` slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
@@ -1083,34 +1320,62 @@ class:
         invcost:
           type: numeric
           description: Investment cost.
-    olife:
-      type: numeric
-      description: Operational life of the trade object.
-    start:
+        wacc:
+          type: numeric
+          description: >-
+            Weighted average cost of capital used to annuitise `invcost` for
+            this corridor. Overrides the model-wide `wacc` (see the model
+            `discount` argument). The social discount rate is never used here.
+        payback:
+          type: numeric
+          description: >-
+            Cost-recovery period in years. Where given it replaces `olife` in
+            the annuity AND in the years over which the annuity is charged, so
+            the investment is repaid over `payback` years while the capacity
+            keeps operating for its full operational life. Must be positive and
+            not exceed `olife`. Unset (or 0) means recover over `olife`.
+            Implemented for the GLPK solver only.
+        eac:
+          type: numeric
+          description: >-
+            Equivalent annual cost, supplied directly instead of being computed
+            from `invcost`, `wacc` and the lifetime. Where given it wins; where
+            absent the annuity is computed. Mutually exclusive with `invcost`
+            per row.
+        retcost:
+          type: numeric
+          description: Costs of early retirement of the trade capacity, default is 0.
+    vintage:
       type: data.frame
-      description: Start year when the trade-type of process is available for investment.
+      description: >-
+        Investment window and operational life of the trade object, one row per
+        vintage. Replaces the former `start`, `end` and `olife` slots. A vintage
+        is a separately investable variant that keeps the characteristics of its
+        build year for its whole life, so several vintages of one corridor mean
+        several capacities on the same `(src, dst)` route, with their flows
+        summed in the commodity balance. `region` and `cluster` are present for a
+        uniform shape across process classes but are unused for trade: its scope
+        comes from the route endpoints, and `routes` already provides the
+        multiplicity a cluster dimension would add.
       columns:
+        vintage:
+          type: character
+          description: Vintage label, normally the build year as a string. NA for an un-vintaged trade.
         region:
           type: character
-          description: Regions where the trade-type of process is available for investment.
+          description: Unused for trade (no `region` slot); present for consistency with the other classes.
+        cluster:
+          type: character
+          description: Unused for trade (no cluster dimension); present for consistency with the other classes.
         start:
           type: integer
-          description: The first year when the trade-type of process is available for investment.
-    end:
-      type: data.frame
-      description: End year when the trade-type of process is available for investment.
-      columns:
-        region:
-          type: character
-          description: Region name to apply the parameter, NA for every region.
+          description: The first year the trade object is available for investment. Defaults to the vintage year.
         end:
           type: integer
-          description: The last year when the trade-type of process is available for investment.
-    capacityVariable:
-      type: logical
-      description: >
-        If TRUE, the capacity variable of the trade object is optimized.
-        If FALSE, the capacity is defined by availability parameters (`ava.*`) in the trade-flow units.
+          description: The last year the trade object is available for investment. Defaults to the vintage year.
+        olife:
+          type: integer
+          description: Operational life of the trade object in years.
     cap2act:
       type: numeric
       description: Capacity to activity ratio.
@@ -1148,10 +1413,13 @@ class:
     reserve:
       type: numeric
       description: Total accumulated limit through the model horizon.
-    imp:
+    import:
       type: data.frame
       description: Import parameters.
       columns:
+        vintage:
+          type: character
+          description: Vintage label selecting the variant this row applies to, NA for every vintage. See the `vintage` slot.
         region:
           type: character
           description: Region name to apply the parameter; use NA to apply to all regions.
@@ -1190,7 +1458,7 @@ class:
     reserve:
       type: numeric
       description: Total accumulated limit through the model horizon.
-    exp:
+    export:
       type: data.frame
       description: Export parameters.
       columns:
@@ -1311,6 +1579,21 @@ class:
     for.sum:
       type: list
       description: List of sets for which the summand will be created.
+    timeframe:
+      type: character
+      description: >
+        Pins the timeframe level the variable is taken at (e.g. "ANNUAL",
+        "SEASON"): the variable's `slice` dimension is restricted to that
+        level's slices, so summing them yields the level aggregate without
+        double-counting across levels. `NA` (default) applies no restriction
+        and sums the variable's native slices.
+    geolevel:
+      type: character
+      description: >
+        The spatial twin of `timeframe`: pins the geoscale level the variable
+        is taken at (e.g. "zone", "nation"), restricting the variable's
+        `region` dimension to that level's regions. `NA` (default) applies no
+        restriction. Requires a geoscale on the model configuration.
     mult:
       type: data.frame
       description: >
@@ -1391,8 +1674,8 @@ class:
     misc:
       type: list
       description: Additional information.
-## sub ######################################################################
-  sub:
+## subsidy ######################################################################
+  subsidy:
     name:
       type: character
       description: Name of the subsidy object, used in sets.
@@ -1408,7 +1691,7 @@ class:
     defVal:
       type: numeric
       description: Default value of the subsidy.
-    sub:
+    subsidy:
       type: data.frame
       description: Subsidy values.
       columns:
@@ -1596,6 +1879,15 @@ class:
     calendar:
       type: calendar
       description: Calendar object with the model time parameters.
+    geoscale:
+      type: ANY
+      description: >
+        Optional `geoscales::Geoscale` object describing the model's regions --
+        their nesting into coarser levels, weights, and (optionally) geometry.
+        Purely additional information about the labels in `region`, which
+        remains authoritative; the geoscale is used for plotting, reporting and
+        subsetting and never changes the optimisation model. `NULL` when unset.
+        Typed `ANY` because `geoscales` is an optional (Suggests) dependency.
     horizon:
       type: horizon
       description: >
@@ -1603,7 +1895,19 @@ class:
         planning period and intervals of the model.
     discount:
       type: data.frame
-      description: Discount rates, can be assigned by region and year.
+      description: >-
+        The model's two rates, which can be assigned by region and year.
+        `wacc` annuitises investment into the equivalent annual cost; `sdr`
+        discounts the stream of system costs in the objective. They are
+        independent -- there is no fallback from one to the other.
+
+        As an ARGUMENT (`newModel(discount = )`, `update(cfg, discount = )`)
+        this slot also accepts the shorthand `discount`, a single rate that
+        plays both roles: `discount = 0.05` is equivalent to
+        `data.frame(wacc = 0.05, sdr = 0.05)`. Per row you supply either
+        `discount`, or both `wacc` and `sdr` -- a partial pair or a mix of the
+        two forms is an error. There is no `discount` column: the shorthand is
+        expanded on entry, so the stored table always has both rates.
       columns:
         region:
           type: character
@@ -1611,10 +1915,18 @@ class:
         year:
           type: integer
           description: Year to apply the parameter, NA for every year.
-        discount:
+        wacc:
           type: numeric
-          description: Discount rate. Default is 0.05. The discount rate is used
-            to calculate the present value of future costs and benefits.
+          description: >-
+            Weighted average cost of capital, used to annuitise investment costs
+            into `pTechEac` / `pStorageEac` / `pTradeEac`. A process may override
+            it with its own `@invcost$wacc`. Default is 0.
+        sdr:
+          type: numeric
+          description: >-
+            Social discount rate, used to build the cumulative discount factor
+            applied to total system costs in the objective. A property of the
+            model, never of an individual process. Default is 0.
     discountFirstYear:
       type: logical
       description: >
@@ -1648,6 +1960,20 @@ class:
       description: >
         Artificial (dummy or sluck) variables to debug model infeasibility.
         Can be specified by commodities, regions, years, and slices.
+    variant_prefix:
+      type: character
+      description: >
+        Named character vector giving the prefixes inserted into the names of
+        expanded technology variants, keyed by variant dimension:
+        `c(vintage = "_VIN", cluster = "_CL")`. A technology `WIND` with vintage
+        2030 and cluster "01" then becomes the set member `WIND_VIN2030_CL01`.
+        Number the clusters rather than labelling them ("01", not "best"): the
+        prefix already says what the axis is, so a label that repeats it reads
+        as `WIND_VIN2030_CLCL01`.
+        Model-wide, because these become solver set-member names; the scenario
+        settings inherit the value and must agree with it. Each prefix must be
+        non-empty, match `^[[:alnum:]_]+$`, and the two must differ. A partial
+        value such as `c(cluster = "_RC")` is merged over the defaults.
     misc:
       type: list
       description: Any additional data or information to store in the object.

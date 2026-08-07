@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.70.2.9001</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.75.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -107,42 +107,54 @@ the storage cycle will be a calendar day).</p>
 <dd><p>character. Region where the storage technology exists or can be installed.</p></dd>
 
 
-<dt><code>start</code></dt>
-<dd><p>data.frame. Start year when the storage is available for installation.</p><dl><dt>region</dt>
-<dd><p>character. Regions where the storage is available for investment.</p></dd>
+<dt><code>cluster</code></dt>
+<dd><p>data.frame. Declaration of the storage clusters – parallel sub-processes of the same storage with their own capacity, availability and costs. The motivating cases are site-constrained storage (pumped-hydro head classes, CAES caverns) and duration classes via a per-cluster <code>cap2stg</code>. Optional: when empty, cluster labels are harvested from the other slots; when populated it is authoritative and an undeclared label raises an error.</p><dl><dt>cluster</dt>
+<dd><p>character. Cluster label. Must match the <code>cluster</code> column values used in the other slots.</p></dd>
+
+<dt>desc</dt>
+<dd><p>character. Human-readable description of the cluster, used in reports.</p></dd>
+
+<dt>region</dt>
+<dd><p>character. Region the cluster exists in, NA for every region.</p></dd>
+
+<dt>order</dt>
+<dd><p>integer. Optional display/ranking order; controls the order variants are created and reported in.</p></dd>
+
+
+</dl></dd>
+
+
+<dt><code>vintage</code></dt>
+<dd><p>data.frame. Investment window and operational life of the storage, one row per (vintage, region, cluster). Replaces the former <code>start</code>, <code>end</code> and <code>olife</code> slots. A vintage is a separately investable variant that keeps the characteristics of its build year for its whole life – for storage typically a falling capex and a rising round-trip efficiency. Each column is read independently, so a region-agnostic <code>start</code> may be combined with a per-region <code>olife</code>.</p><dl><dt>vintage</dt>
+<dd><p>character. Vintage label, normally the build year as a string. NA for an un-vintaged storage.</p></dd>
+
+<dt>region</dt>
+<dd><p>character. Region name to apply the parameter, NA for every region.</p></dd>
+
+<dt>cluster</dt>
+<dd><p>character. Cluster label, NA for every cluster.</p></dd>
 
 <dt>start</dt>
-<dd><p>integer. The first year when the storage is available for investment.</p></dd>
-
-
-</dl></dd>
-
-
-<dt><code>end</code></dt>
-<dd><p>data.frame. Last year when the storage is available for investment.</p><dl><dt>region</dt>
-<dd><p>character. Region name to apply the parameter, NA for every region.</p></dd>
+<dd><p>integer. The first year the storage can be installed. Defaults to the vintage year.</p></dd>
 
 <dt>end</dt>
-<dd><p>integer. The last year when the storage is available for investment.</p></dd>
-
-
-</dl></dd>
-
-
-<dt><code>olife</code></dt>
-<dd><p>data.frame. Operational life of the storage technology, applicable to the new investment only, the operational life (retirement) of preexiting capacity is described in the <code>stock</code> slot.</p>
-<dl><dt>region</dt>
-<dd><p>character. Region name to apply the parameter, NA for every region.</p></dd>
+<dd><p>integer. The last year the storage can be installed. Defaults to the vintage year.</p></dd>
 
 <dt>olife</dt>
-<dd><p>integer. Operational life of the storage technology in years.</p></dd>
+<dd><p>integer. Operational life of the storage in years, applicable to new investment only.</p></dd>
 
 
 </dl></dd>
 
 
 <dt><code>capacity</code></dt>
-<dd><p>data.frame. Capacity parameters of the storage technology.</p><dl><dt>region</dt>
+<dd><p>data.frame. Capacity parameters of the storage technology.</p><dl><dt>vintage</dt>
+<dd><p>character. Vintage label selecting the variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
+
+<dt>cluster</dt>
+<dd><p>character. Cluster label selecting the variant this row applies to, NA for every cluster. See the <code>cluster</code> slot.</p></dd>
+
+<dt>region</dt>
 <dd><p>character. Region name to apply the parameter, NA for every region.</p></dd>
 
 <dt>year</dt>
@@ -183,7 +195,13 @@ the storage cycle will be a calendar day).</p>
 
 
 <dt><code>charge</code></dt>
-<dd><p>data.frame. Pre-charged level at the beginning of the operational cycle.</p><dl><dt>region</dt>
+<dd><p>data.frame. Pre-charged level at the beginning of the operational cycle.</p><dl><dt>vintage</dt>
+<dd><p>character. Vintage label selecting the variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
+
+<dt>cluster</dt>
+<dd><p>character. Cluster label selecting the variant this row applies to, NA for every cluster. See the <code>cluster</code> slot.</p></dd>
+
+<dt>region</dt>
 <dd><p>character. Region name to apply the parameter, NA for every region.</p></dd>
 
 <dt>year</dt>
@@ -200,7 +218,13 @@ the storage cycle will be a calendar day).</p>
 
 
 <dt><code>seff</code></dt>
-<dd><p>data.frame. Storage efficiency parameters.</p><dl><dt>region</dt>
+<dd><p>data.frame. Storage efficiency parameters.</p><dl><dt>vintage</dt>
+<dd><p>character. Vintage label selecting the variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
+
+<dt>cluster</dt>
+<dd><p>character. Cluster label selecting the variant this row applies to, NA for every cluster. See the <code>cluster</code> slot.</p></dd>
+
+<dt>region</dt>
 <dd><p>character. Region name to apply the parameter, NA for every region.</p></dd>
 
 <dt>year</dt>
@@ -223,7 +247,13 @@ the storage cycle will be a calendar day).</p>
 
 
 <dt><code>af</code></dt>
-<dd><p>data.frame. Availability factor parameters.</p><dl><dt>region</dt>
+<dd><p>data.frame. Availability factor parameters.</p><dl><dt>vintage</dt>
+<dd><p>character. Vintage label selecting the variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
+
+<dt>cluster</dt>
+<dd><p>character. Cluster label selecting the variant this row applies to, NA for every cluster. See the <code>cluster</code> slot.</p></dd>
+
+<dt>region</dt>
 <dd><p>character. Region name to apply the parameter, NA for every region.</p></dd>
 
 <dt>year</dt>
@@ -264,7 +294,13 @@ the storage cycle will be a calendar day).</p>
 
 
 <dt><code>aeff</code></dt>
-<dd><p>data.frame. Auxiliary commodities efficiency parameters.</p><dl><dt>acomm</dt>
+<dd><p>data.frame. Auxiliary commodities efficiency parameters.</p><dl><dt>vintage</dt>
+<dd><p>character. Vintage label selecting the variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
+
+<dt>cluster</dt>
+<dd><p>character. Cluster label selecting the variant this row applies to, NA for every cluster. See the <code>cluster</code> slot.</p></dd>
+
+<dt>acomm</dt>
 <dd><p>character. Name of the auxiliary commodity (used in sets).</p></dd>
 
 <dt>region</dt>
@@ -314,7 +350,13 @@ the storage cycle will be a calendar day).</p>
 
 
 <dt><code>fixom</code></dt>
-<dd><p>data.frame. Fixed operation and maintenance cost.</p><dl><dt>region</dt>
+<dd><p>data.frame. Fixed operation and maintenance cost.</p><dl><dt>vintage</dt>
+<dd><p>character. Vintage label selecting the variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
+
+<dt>cluster</dt>
+<dd><p>character. Cluster label selecting the variant this row applies to, NA for every cluster. See the <code>cluster</code> slot.</p></dd>
+
+<dt>region</dt>
 <dd><p>character. Region name to apply the parameter, NA for every region.</p></dd>
 
 <dt>year</dt>
@@ -328,7 +370,13 @@ the storage cycle will be a calendar day).</p>
 
 
 <dt><code>varom</code></dt>
-<dd><p>data.frame. Variable operation and maintenance cost.</p><dl><dt>region</dt>
+<dd><p>data.frame. Variable operation and maintenance cost.</p><dl><dt>vintage</dt>
+<dd><p>character. Vintage label selecting the variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
+
+<dt>cluster</dt>
+<dd><p>character. Cluster label selecting the variant this row applies to, NA for every cluster. See the <code>cluster</code> slot.</p></dd>
+
+<dt>region</dt>
 <dd><p>character. Region name to apply the parameter, NA for every region.</p></dd>
 
 <dt>year</dt>
@@ -351,7 +399,13 @@ the storage cycle will be a calendar day).</p>
 
 
 <dt><code>invcost</code></dt>
-<dd><p>data.frame. Investment cost.</p><dl><dt>region</dt>
+<dd><p>data.frame. Investment cost.</p><dl><dt>vintage</dt>
+<dd><p>character. Vintage label selecting the variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
+
+<dt>cluster</dt>
+<dd><p>character. Cluster label selecting the variant this row applies to, NA for every cluster. See the <code>cluster</code> slot.</p></dd>
+
+<dt>region</dt>
 <dd><p>character. Region name to apply the parameter, NA for every region.</p></dd>
 
 <dt>year</dt>
@@ -361,8 +415,16 @@ the storage cycle will be a calendar day).</p>
 <dd><p>numeric. Overnight investment cost for the specified region and year.</p></dd>
 
 <dt>wacc</dt>
-<dd><p>numeric. Weighted average cost of capital. If not supplied, the discount from the
-model or scenario is used. (currently ignored)</p></dd>
+<dd><p>numeric. Weighted average cost of capital used to annuitise <code>invcost</code> for this storage. Overrides the model-wide <code>wacc</code> (see the model <code>discount</code> argument). The social discount rate is never used here.</p></dd>
+
+<dt>payback</dt>
+<dd><p>numeric. Cost-recovery period in years. Where given it replaces <code>olife</code> in the annuity AND in the years over which the annuity is charged, so the investment is repaid over <code>payback</code> years while the capacity keeps operating for its full operational life. Must be positive and not exceed <code>olife</code>. Unset (or 0) means recover over <code>olife</code>. Implemented for the GLPK solver only.</p></dd>
+
+<dt>eac</dt>
+<dd><p>numeric. Equivalent annual cost, supplied directly instead of being computed from <code>invcost</code>, <code>wacc</code> and the lifetime. Where given it wins; where absent the annuity is computed. Mutually exclusive with <code>invcost</code> per row.</p></dd>
+
+<dt>retcost</dt>
+<dd><p>numeric. Costs of early retirement of the storage, default is 0.</p></dd>
 
 
 </dl></dd>
@@ -373,11 +435,33 @@ model or scenario is used. (currently ignored)</p></dd>
 
 
 <dt><code>cap2stg</code></dt>
-<dd><p>numeric. Charging and discharging capacity to the storing capacity inverse ratio. Can be used to define the storage duration.</p></dd>
+<dd><p>data.frame. Charging and discharging capacity to the storing capacity inverse ratio, i.e. the storage duration. A data.frame rather than a scalar so it can differ by cluster – 1h / 4h / 8h duration classes of the same storage. A bare scalar (<code>cap2stg = 4</code>) is still accepted.</p><dl><dt>vintage</dt>
+<dd><p>character. Vintage label selecting the variant this row applies to, NA for every vintage.</p></dd>
+
+<dt>cluster</dt>
+<dd><p>character. Cluster label selecting the variant this row applies to, NA for every cluster.</p></dd>
+
+<dt>region</dt>
+<dd><p>character. Region name to apply the parameter, NA for every region.</p></dd>
+
+<dt>year</dt>
+<dd><p>integer. Year to apply the parameter, NA for every year.</p></dd>
+
+<dt>cap2stg</dt>
+<dd><p>numeric. Capacity-to-storage ratio (storage duration).</p></dd>
+
+
+</dl></dd>
 
 
 <dt><code>weather</code></dt>
-<dd><p>data.frame. Weather factors multipliers.</p><dl><dt>weather</dt>
+<dd><p>data.frame. Weather factors multipliers.</p><dl><dt>vintage</dt>
+<dd><p>character. Vintage label selecting the variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
+
+<dt>cluster</dt>
+<dd><p>character. Cluster label selecting the variant this row applies to, NA for every cluster. See the <code>cluster</code> slot.</p></dd>
+
+<dt>weather</dt>
 <dd><p>character. Name of the weather factor to apply.</p></dd>
 
 <dt>waf.lo</dt>

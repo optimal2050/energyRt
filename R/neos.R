@@ -19,7 +19,7 @@
 # =============================================================================#
 
 .neos_endpoint <- function() {
-  getOption("energyRt.neos_endpoint", "https://neos-server.org:3333")
+  options::opt("neos_endpoint")
 }
 
 #' NEOS submission email
@@ -56,7 +56,7 @@ set_neos_email <- function(email = NULL) {
   } else {
     Sys.unsetenv("NEOS_EMAIL")
   }
-  options::opt_set("neos_email", email, env = "energyRt")
+  options::opt_set("neos_email", email)
   invisible(email)
 }
 

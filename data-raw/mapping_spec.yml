@@ -253,20 +253,6 @@ meqImportRowLo:
   join_keys: []
   filter_by: []
   depends_on: []
-meqLECActivity:
-  name: meqLECActivity
-  dims:
-  - tech
-  - region
-  - year
-  gates_var: []
-  gates_eq: eqLECActivity
-  recipe: constraint
-  source: constraint
-  predicate: .na
-  join_keys: []
-  filter_by: []
-  depends_on: []
 meqStorageAfLo:
   name: meqStorageAfLo
   dims:
@@ -1013,18 +999,6 @@ mImpSlice:
   join_keys: []
   filter_by: []
   depends_on: []
-mLECRegion:
-  name: mLECRegion
-  dims: region
-  gates_var: []
-  gates_eq: []
-  unreferenced: yes
-  recipe: constraint
-  source: constraint
-  predicate: .na
-  join_keys: []
-  filter_by: []
-  depends_on: []
 mLoComm:
   name: mLoComm
   dims: comm
@@ -1132,6 +1106,24 @@ mSliceFamily:
   dims:
   - slice
   - slicep
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: calendar
+mRegionFamily:
+  name: mRegionFamily
+  dims:
+  - region
+  - regionp
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: calendar
+mCommRegion:
+  name: mCommRegion
+  dims:
+  - comm
+  - region
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -2805,18 +2797,6 @@ mTechWeatherAfUp:
   join_keys: []
   filter_by: []
   depends_on: []
-mTradeCapacityVariable:
-  name: mTradeCapacityVariable
-  dims: trade
-  gates_var: []
-  gates_eq: []
-  unreferenced: yes
-  recipe: constraint
-  source: constraint
-  predicate: .na
-  join_keys: []
-  filter_by: []
-  depends_on: []
 mTradeCapLo:
   name: mTradeCapLo
   dims:
@@ -3447,20 +3427,6 @@ mvTotalUserCosts:
   join_keys: []
   filter_by: []
   depends_on: []
-mvTradeCost:
-  name: mvTradeCost
-  dims:
-  - region
-  - year
-  gates_var: []
-  gates_eq: []
-  unreferenced: yes
-  recipe: cost_agg
-  source: derived
-  predicate: .na
-  join_keys: []
-  filter_by: []
-  depends_on: []
 mvTradeIr:
   name: mvTradeIr
   dims:
@@ -3544,20 +3510,6 @@ mvTradeIrAOutTot:
   join_keys: []
   filter_by:
   - mCommReg
-  depends_on: []
-mvTradeRowCost:
-  name: mvTradeRowCost
-  dims:
-  - region
-  - year
-  gates_var: []
-  gates_eq: []
-  unreferenced: yes
-  recipe: cost_agg
-  source: derived
-  predicate: .na
-  join_keys: []
-  filter_by: []
   depends_on: []
 mWeatherRegion:
   name: mWeatherRegion

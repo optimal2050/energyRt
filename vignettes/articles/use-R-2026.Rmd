@@ -28,8 +28,10 @@ improve it together, and welcome new collaborators.
 follow-up. Sessions 1 and 3 introduce new material with live demonstrations;
 Sessions 2 and 4 are follow-up sessions where we review your exercises,
 troubleshoot code, and answer questions. Between meetings you work through short
-exercises at your own pace. Materials and exercises for each session are shared
-shortly beforehand, so the sessions build on one another.
+exercises at your own pace. Materials and exercises are published on the
+[course site](https://optimal2050.github.io/useR2026_ensys/) as the series
+progresses, so the sessions build on one another and you can catch up on
+anything you miss.
 
 ## Schedule
 
@@ -91,13 +93,55 @@ but prior experience with energyRt is not required.
 
 ## Preparation
 
-You are welcome to join simply to watch and follow along—no setup required. The
-hands-on exercises are done on your own time between the sessions; to take part,
-you will need R (version 4.3 or newer), energyRt, and at least one supported
-solver (RStudio recommended). Installation instructions are shared together with
-the course materials before each session—or see the
-[installation guide](https://optimal2050.github.io/useR2026_ensys/installation.html)
-to prepare in advance.
+**Nothing is required for the first session**—no installation and no setup.
+Session 1 is a live demonstration; you can simply join and watch.
+
+The hands-on exercises are done on your own time between the sessions. To take
+part in those, you will need R (version 4.3 or newer), energyRt, and at least
+one supported solver (RStudio recommended)—and you are equally welcome to
+follow the whole series without installing anything.
+
+Everything is published as you go, so you can work at your own pace:
+
+- [**R: setup and resources**](https://optimal2050.github.io/useR2026_ensys/r-resources.html)
+  — where to get R, RStudio, and Quarto; short introductions to the language;
+  the packages worth installing first (`dplyr`, `ggplot2`, `sf`); and the
+  cheatsheets to keep to hand.
+- [**Installing energyRt**](https://optimal2050.github.io/useR2026_ensys/installation.html)
+  — the package itself plus at least one solver backend.
+- [**Your first energy model**](https://optimal2050.github.io/useR2026_ensys/01-first-model.html)
+  — the first exercise: start from the smallest model that can exist and grow it
+  one object at a time until it burns coal and emits CO~2~.
+- [**Building blocks of an energyRt model**](https://optimal2050.github.io/useR2026_ensys/slides/builders.html)
+  — a reference deck on the `new*()` constructors and the system around them,
+  used in the sessions and written to be browsable afterwards.
+
+New to R? The first of those pages is the place to start, and the sessions
+assume no prior experience with energyRt.
+
+All of it lives in the
+[**course materials**](https://optimal2050.github.io/useR2026_ensys/) site
+([source on GitHub](https://github.com/optimal2050/useR2026_ensys)).
+
+## Questions and discussion
+
+Questions between sessions are welcome, and best asked in the open where the
+answer helps everyone:
+
+> **Ask here:** [the course Q&A thread on
+> Mastodon](https://mstdn.science/@optimal2050/117049007107822486)
+
+Reply with anything—an install that will not cooperate, a modeling question, a
+result you cannot explain, or something you have built and want to show.
+Beginner questions are explicitly welcome.
+
+If you do not have a Mastodon account, registering takes about a minute:
+[**mastodon.social**](https://mastodon.social/) is the largest general server
+and a fine default. Mastodon is decentralized, so an account on any server can
+reply to the thread. Once you are in, search for the full handle
+`@optimal2050@mstdn.science` and follow
+[**@optimal2050**](https://mstdn.science/@optimal2050) for course updates; tag
+your own posts with **#optimal2050**.
 
 ## Registration
 

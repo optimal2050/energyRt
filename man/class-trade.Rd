@@ -34,6 +34,7 @@ Create separate trade objects to optimize different parts of the trade network
 
 \item{\code{trade}}{data.frame. Technical parameters of trade.
 \describe{
+\item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{slice}{character. Time slice to apply the parameter, NA for every slice.}
@@ -48,6 +49,7 @@ Create separate trade objects to optimize different parts of the trade network
 
 \item{\code{aeff}}{data.frame. Auxiliary commodity efficiency parameters.
 \describe{
+\item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
 \item{acomm}{character. Name of the auxiliary commodity (used in sets).}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
@@ -56,34 +58,33 @@ Create separate trade objects to optimize different parts of the trade network
 \item{trade2aout}{numeric. Trade-to-auxiliary-output-commodity coefficient (multiplier).}
 }}
 
-\item{\code{invcost}}{data.frame. Investment cost, used when capacityVariable is TRUE.
+\item{\code{invcost}}{data.frame. Investment cost of the trade capacity (per unit of capacity).
 \describe{
+\item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{invcost}{numeric. Investment cost.}
+\item{wacc}{numeric. Weighted average cost of capital used to annuitise \code{invcost} for this corridor. Overrides the model-wide \code{wacc} (see the model \code{discount} argument). The social discount rate is never used here.}
+\item{payback}{numeric. Cost-recovery period in years. Where given it replaces \code{olife} in the annuity AND in the years over which the annuity is charged, so the investment is repaid over \code{payback} years while the capacity keeps operating for its full operational life. Must be positive and not exceed \code{olife}. Unset (or 0) means recover over \code{olife}. Implemented for the GLPK solver only.}
+\item{eac}{numeric. Equivalent annual cost, supplied directly instead of being computed from \code{invcost}, \code{wacc} and the lifetime. Where given it wins; where absent the annuity is computed. Mutually exclusive with \code{invcost} per row.}
+\item{retcost}{numeric. Costs of early retirement of the trade capacity, default is 0.}
 }}
 
 \item{\code{fixom}}{data.frame. (not implemented!) Fixed operation and maintenance costs.}
 
 \item{\code{varom}}{data.frame. (not implemented!) Variable operation and maintenance costs.}
 
-\item{\code{olife}}{numeric. Operational life of the trade object.}
-
-\item{\code{start}}{data.frame. Start year when the trade-type of process is available for investment.
-\describe{
-\item{region}{character. Regions where the trade-type of process is available for investment.}
-\item{start}{integer. The first year when the trade-type of process is available for investment.}
-}}
-
-\item{\code{end}}{data.frame. End year when the trade-type of process is available for investment.
-\describe{
-\item{region}{character. Region name to apply the parameter, NA for every region.}
-\item{end}{integer. The last year when the trade-type of process is available for investment.}
-}}
-
 \item{\code{capacity}}{data.frame. (not implemented!) Capacity parameters of the trade object.}
 
-\item{\code{capacityVariable}}{logical. If TRUE, the capacity variable of the trade object is optimized. If FALSE, the capacity is defined by availability parameters (\verb{ava.*}) in the trade-flow units.}
+\item{\code{vintage}}{data.frame. Investment window and operational life of the trade object, one row per vintage. Replaces the former \code{start}, \code{end} and \code{olife} slots. A vintage is a separately investable variant that keeps the characteristics of its build year for its whole life, so several vintages of one corridor mean several capacities on the same \verb{(src, dst)} route, with their flows summed in the commodity balance. \code{region} and \code{cluster} are present for a uniform shape across process classes but are unused for trade: its scope comes from the route endpoints, and \code{routes} already provides the multiplicity a cluster dimension would add.
+\describe{
+\item{vintage}{character. Vintage label, normally the build year as a string. NA for an un-vintaged trade.}
+\item{region}{character. Unused for trade (no \code{region} slot); present for consistency with the other classes.}
+\item{cluster}{character. Unused for trade (no cluster dimension); present for consistency with the other classes.}
+\item{start}{integer. The first year the trade object is available for investment. Defaults to the vintage year.}
+\item{end}{integer. The last year the trade object is available for investment. Defaults to the vintage year.}
+\item{olife}{integer. Operational life of the trade object in years.}
+}}
 
 \item{\code{cap2act}}{numeric. Capacity to activity ratio.}
 

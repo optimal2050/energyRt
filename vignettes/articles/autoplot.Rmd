@@ -165,12 +165,13 @@ calendar (`utopia_s4h24`): pull the object with `getObject()`, take one region
 bar.
 
 ```{r hm-demand, fig.height = 2.6}
-repo <- utopia_modules$electricity$reg3$repo
+repo <- utopia_modules$electricity$R3$repo
 wcal <- calendars$utopia_s4h24
 
 DEM <- getObject(repo, name = "DEM_ELC", drop = TRUE)
-dem <- subset(as.data.frame(DEM@dem), region == "R1" & year == 2050)
-plot_heatmap(dem[, c("slice", "dem")], calendar = wcal, value = "dem", name = "PJ")
+dem <- subset(as.data.frame(DEM@demand), region == "R1" & year == 2050)
+plot_heatmap(dem[, c("slice", "demand")], calendar = wcal, value = "demand",
+             name = "PJ")
 ```
 
 ```{r hm-weather, fig.height = 2.6}
@@ -217,7 +218,7 @@ separate y-scales.
 ```{r sup, fig.height = 3}
 SUP_COA <- newSupply(
   name = "SUP_COA", commodity = "COA", unit = "PJ", region = "R1",
-  availability = data.frame(
+  supply = data.frame(
     region = "R1", slice = "ANNUAL",
     year   = c(2020, 2040, 2020, 2020),
     ava.up = c(100,  200,  NA,   NA),
@@ -238,15 +239,15 @@ Demand, import and export follow the same pattern:
 ```{r dem, fig.height = 2.6}
 DEM_ELC <- newDemand(
   name = "DEM_ELC", commodity = "ELC", unit = "GWh",
-  dem = data.frame(region = "R1", slice = "ANNUAL",
-                   year = c(2020, 2030, 2050), dem = c(100, 150, 300)))
+  demand = data.frame(region = "R1", slice = "ANNUAL",
+                   year = c(2020, 2030, 2050), demand = c(100, 150, 300)))
 autoplot(DEM_ELC)
 ```
 
 ```{r imp, fig.height = 3}
 IMP_GAS <- newImport(
   name = "IMP_GAS", commodity = "GAS",
-  imp = data.frame(region = "R1", slice = "ANNUAL",
+  import = data.frame(region = "R1", slice = "ANNUAL",
                    year = c(2020, 2050), imp.up = c(50, 80), price = c(5, 9)))
 autoplot(IMP_GAS)
 ```
@@ -262,7 +263,7 @@ when unset) labels the value axis — the fill legend for the heatmap, the y-axi
 for line/area.
 
 ```{r wea, fig.height = 3}
-WSOL <- getObject(utopia_modules$electricity$reg3$repo, name = "WSOL", drop = TRUE)
+WSOL <- getObject(utopia_modules$electricity$R3$repo, name = "WSOL", drop = TRUE)
 wcal <- calendars$utopia_s4h24
 
 autoplot(WSOL, calendar = wcal)                    # heatmap (default), faceted by region

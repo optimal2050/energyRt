@@ -23,7 +23,7 @@ UTOPIA I: building the model vignette."><meta property="og:image" content="https
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.70.2.9001</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.75.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -98,7 +98,9 @@ scenarios (see the <code>utopia-use</code> vignette). Built by
 <dd><p>planning horizons (<code>base</code> = 2020/2030/2040/2050).</p></dd>
 
 <dt>electricity</dt>
-<dd><p>per region layout (<code>reg1</code>, <code>reg3</code>, <code>reg7</code>), each a "kit":
+<dd><p>per region layout (<code>R1</code>, <code>R3</code>, <code>R7</code>, <code>R11</code> – an
+n-region layout is keyed <code>R&lt;n&gt;</code>, matching the <code>R1</code>..<code>R11</code> region names
+used by the maps), each a "kit":
 <code>repo</code> (the base repository), the individual blocks (<code>repo_comm</code>,
 <code>repo_supply</code>, <code>DEM_ELC</code>, <code>WSOL</code>/<code>WWIN</code>/<code>WHYD</code>, the technologies,
 <code>STG_BTR</code>), and the scenario levers <code>CO2_CAP</code>, <code>CT_CO2</code>, <code>RES_SHARE</code>,
@@ -114,7 +116,7 @@ scenarios (see the <code>utopia-use</code> vignette). Built by
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
-<span class="r-in"><span><span class="va">um</span> <span class="op">&lt;-</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">reg3</span></span></span>
+<span class="r-in"><span><span class="va">um</span> <span class="op">&lt;-</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">R3</span></span></span>
 <span class="r-in"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="newModel.html">newModel</a></span><span class="op">(</span><span class="st">"UTOPIA"</span>, data <span class="op">=</span> <span class="va">um</span><span class="op">$</span><span class="va">repo</span>,</span></span>
 <span class="r-in"><span>                calendar <span class="op">=</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">utopia_s4h24</span>,</span></span>
 <span class="r-in"><span>                region <span class="op">=</span> <span class="va">um</span><span class="op">$</span><span class="va">regions</span>, horizon <span class="op">=</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">base</span>,</span></span>

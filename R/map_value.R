@@ -103,7 +103,9 @@ map_mSupWeatherLo         <- function(scen, fmp) .value_weather(scen, "mSupWeath
 # mSupSpan: (sup, region) operational span of each supply object (its own regions,
 # defaulting to all model regions when unspecified).
 map_mSupSpan <- function(scen, fmp) {
-  regions <- scen@modInp@sets[["region"]]
+  # Declared regions only: a supply sits at the finest level, never at a
+  # geoscale nation or zone.
+  regions <- .model_regions(scen)
   res <- apply_to_scenario_data(
     scen = scen, classes = "supply", as_list = TRUE,
     func = function(obj) {

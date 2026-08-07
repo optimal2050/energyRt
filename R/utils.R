@@ -73,6 +73,24 @@ nonchar_in_sets <- function(x) {
 # nonchar_in_sets(scen_BASE_int@modInp@set)
 # scen_BASE_int@modInp@set$year |> class()
 
+# Slot names an INSTANCE actually carries.
+#
+# `slotNames()` reads the CLASS DEFINITION, so on an object deserialized before
+# a slot was added it returns names that `slot()` then errors on:
+#   no slot of name "geolevel" for this object of class "commodity"
+# `@geolevel`, `@vintage`, `@cluster` and `@timeframe` are all recent, so every
+# model a user saved before them is affected -- as are this package's own
+# `data/*.rda` kits until they are rebuilt.
+#
+# Any loop that walks a USER-SUPPLIED object must therefore ask the object, not
+# the class. Loops over objects energyRt has just constructed itself are safe
+# and are left alone.
+#' @noRd
+.instance_slots <- function(obj) {
+  sn <- methods::slotNames(obj)
+  sn[vapply(sn, function(s) methods::.hasSlot(obj, s), logical(1))]
+}
+
 
 #' Size of an object
 #'
@@ -176,9 +194,13 @@ fp <- function(...) {
 #' check_name("name1")
 #' check_name("name_1")
 #' check_name("name_1!")
+#' check_name(c("a", "b")) # FALSE, not a single name
+#' check_name(1) # FALSE, not character
 check_name <- function(x) {
-  (length(x) != 1 || !is.character(x) ||
-    sub("^[[:alpha:]][[:alnum:]_]*$", "", x) == "")
+  # NB the guards used to be OR'd into the "valid" expression, so a non-scalar
+  # or non-character input was reported as VALID. They must negate it instead.
+  length(x) == 1 && is.character(x) &&
+    sub("^[[:alpha:]][[:alnum:]_]*$", "", x) == ""
 }
 
 #' Function to find duplicated values in interpolated scenario.
@@ -340,6 +362,7 @@ fact2char <- function(df, asTibble = TRUE) {
 #' }
 set_progress_bar <- function(type = "bw", show = TRUE, clear = FALSE) {
   if (interactive()) progressr::handlers(global = show) # results a warning
+  options::opt_set("progress_bar", show)
   options(progressr.clear = clear)
   if (is.null(type)) return(invisible(NULL))
   if (type == "bw") {
@@ -388,34 +411,9 @@ show_progress_bar <- function(show = TRUE) {
 }
 
 
-#' Set or get directory for/with scenarios
-#'
-#' @param path character, path to the directory with scenarios,
-#' default is `NULL`
-#'
-#' @family options
-#' @return sets or gets the path to the directory with scenarios
-#' @export
-#' @rdname options
-#'
-#' @examples
-#' \dontrun{
-#' set_scenarios_path("path/to/scenarios")
-#' get_scenarios_path()
-#' }
-set_scenarios_path <- function(path = NULL) {
-  options::opt_set("scenarios_path", path)
-  # options(en_scenarios_path = path)
-}
-
-
-#' @family options
-#' @export
-#' @rdname options
-get_scenarios_path <- function() {
-  options::opt("scenarios_path")
-  # getOption("en_scenarios_path")
-}
+# `set_scenarios_path()` / `get_scenarios_path()` moved to R/options.R, beside
+# the option they read. They used to be defined here AND there; `utils.R` loads
+# later in `Collate:`, so this copy silently shadowed the other one.
 
 # merge_paths <- function(path1, path2)
 
@@ -620,12 +618,13 @@ find_in_model <- function(x, pattern, fixed = TRUE, slots = NULL,
     if (!isS4(o)) next
     if (!is.null(classes) && !inherits(o, classes)) next
     o_class <- class(o)[1]
-    o_name <- if ("name" %in% methods::slotNames(o)) {
+    o_slots <- .instance_slots(o)
+    o_name <- if ("name" %in% o_slots) {
       as.character(methods::slot(o, "name"))[1]
     } else {
       NA_character_
     }
-    for (sn in methods::slotNames(o)) {
+    for (sn in o_slots) {
       if (identical(sn, "misc")) next
       if (!is.null(slots) && !(sn %in% slots)) next
       v <- methods::slot(o, sn)

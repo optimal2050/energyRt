@@ -17,8 +17,8 @@ newTrade(
   olife = data.frame(),
   start = data.frame(start = -Inf, stringsAsFactors = FALSE),
   end = data.frame(end = Inf, stringsAsFactors = FALSE),
+  vintage = data.frame(),
   capacity = data.frame(),
-  capacityVariable = TRUE,
   aux = data.frame(),
   aeff = data.frame(),
   cap2act = 1,
@@ -59,6 +59,11 @@ newTrade(
 
   data.frame. Technical parameters of trade.
 
+  vintage
+
+  :   character. Vintage label selecting the variant this row applies
+      to, NA for every vintage. See the `vintage` slot.
+
   region
 
   :   character. Region name to apply the parameter, NA for every
@@ -87,7 +92,13 @@ newTrade(
 
 - invcost:
 
-  data.frame. Investment cost, used when capacityVariable is TRUE.
+  data.frame. Investment cost of the trade capacity (per unit of
+  capacity).
+
+  vintage
+
+  :   character. Vintage label selecting the variant this row applies
+      to, NA for every vintage. See the `vintage` slot.
 
   region
 
@@ -102,50 +113,92 @@ newTrade(
 
   :   numeric. Investment cost.
 
+  wacc
+
+  :   numeric. Weighted average cost of capital used to annuitise
+      `invcost` for this corridor. Overrides the model-wide `wacc` (see
+      the model `discount` argument). The social discount rate is never
+      used here.
+
+  payback
+
+  :   numeric. Cost-recovery period in years. Where given it replaces
+      `olife` in the annuity AND in the years over which the annuity is
+      charged, so the investment is repaid over `payback` years while
+      the capacity keeps operating for its full operational life. Must
+      be positive and not exceed `olife`. Unset (or 0) means recover
+      over `olife`. Implemented for the GLPK solver only.
+
+  eac
+
+  :   numeric. Equivalent annual cost, supplied directly instead of
+      being computed from `invcost`, `wacc` and the lifetime. Where
+      given it wins; where absent the annuity is computed. Mutually
+      exclusive with `invcost` per row.
+
+  retcost
+
+  :   numeric. Costs of early retirement of the trade capacity, default
+      is 0.
+
 - olife:
 
-  numeric. Operational life of the trade object.
+  deprecated, use the `olife` column of `vintage`.
 
 - start:
 
-  data.frame. Start year when the trade-type of process is available for
-  investment.
-
-  region
-
-  :   character. Regions where the trade-type of process is available
-      for investment.
-
-  start
-
-  :   integer. The first year when the trade-type of process is
-      available for investment.
+  deprecated, use the `start` column of `vintage`.
 
 - end:
 
-  data.frame. End year when the trade-type of process is available for
-  investment.
+  deprecated, use the `end` column of `vintage`.
+
+- vintage:
+
+  data.frame. Investment window and operational life of the trade
+  object, one row per vintage. Replaces the former `start`, `end` and
+  `olife` slots. A vintage is a separately investable variant that keeps
+  the characteristics of its build year for its whole life, so several
+  vintages of one corridor mean several capacities on the same
+  `(src, dst)` route, with their flows summed in the commodity balance.
+  `region` and `cluster` are present for a uniform shape across process
+  classes but are unused for trade: its scope comes from the route
+  endpoints, and `routes` already provides the multiplicity a cluster
+  dimension would add.
+
+  vintage
+
+  :   character. Vintage label, normally the build year as a string. NA
+      for an un-vintaged trade.
 
   region
 
-  :   character. Region name to apply the parameter, NA for every
-      region.
+  :   character. Unused for trade (no `region` slot); present for
+      consistency with the other classes.
+
+  cluster
+
+  :   character. Unused for trade (no cluster dimension); present for
+      consistency with the other classes.
+
+  start
+
+  :   integer. The first year the trade object is available for
+      investment. Defaults to the vintage year.
 
   end
 
-  :   integer. The last year when the trade-type of process is available
-      for investment.
+  :   integer. The last year the trade object is available for
+      investment. Defaults to the vintage year.
+
+  olife
+
+  :   integer. Operational life of the trade object in years.
 
 - capacity:
 
   data.frame. (not implemented!) Capacity parameters of the trade
   object.
-
-- capacityVariable:
-
-  logical. If TRUE, the capacity variable of the trade object is
-  optimized. If FALSE, the capacity is defined by availability
-  parameters (`ava.*`) in the trade-flow units.
 
 - aux:
 
@@ -162,6 +215,11 @@ newTrade(
 - aeff:
 
   data.frame. Auxiliary commodity efficiency parameters.
+
+  vintage
+
+  :   character. Vintage label selecting the variant this row applies
+      to, NA for every vintage. See the `vintage` slot.
 
   acomm
 
@@ -237,8 +295,6 @@ PIPELINE1 <- newTrade(
   ),
   olife = list(olife = 60)
 )
-#> Warning: NAs introduced by coercion to integer range
-#> Warning: NAs introduced by coercion to integer range
 draw(PIPELINE1)
 
 
@@ -269,8 +325,6 @@ PIPELINE2 <- newTrade(
   ),
   olife = list(olife = 60)
 )
-#> Warning: NAs introduced by coercion to integer range
-#> Warning: NAs introduced by coercion to integer range
 draw(PIPELINE2, node = "R1")
 
 draw(PIPELINE2, node = "R2")

@@ -1,3 +1,7 @@
+# energyRt 0.71
+# Energy Systems Modeling Toolbox for R
+# https://energyRt.org
+
 printf "parameter,value,time\n" > "output/log.csv";
 printf  '"model language",glpk,"%s"\n', time2str(gmtime(), "%Y-%m-%d %M:%H:S %TZ") >> "output/log.csv";
 printf  '"model definition",,"%s"\n', time2str(gmtime(), "%Y-%m-%d %M:%H:S %TZ") >> "output/log.csv";
@@ -77,6 +81,17 @@ set mSliceParentChild dimen 2;
 # [agg-rewrite] immediate parent->child (parent, child); drives the UP-aggregation
 # of commodity totals between adjacent slice levels (replaces *2Lo disaggregation).
 set mSliceFamily dimen 2;
+# [nested-regions] spatial twin of mSliceFamily: immediate parent->child region
+# pair (parent, child), one level only. Drives the UP-aggregation of commodity
+# totals between adjacent geo-levels. Empty unless a geoscale is attached.
+# No pRegionAgg counterpart: regional quantities are extensive, so this is a
+# plain sum, whereas slice values are intensive rates and need pSliceAgg.
+set mRegionFamily dimen 2;
+# [nested-regions] the region level a commodity is BALANCED at (its @geolevel).
+# Restricts mvBalance only -- totals stay available at finer levels so the
+# family term above can sum them. Also guards region sums that would otherwise
+# double-count a coarse commodity (see eqTaxCost/eqSubsCost).
+set mCommRegion dimen 2;
 set mTradeSpan dimen 2;
 set mTradeNew dimen 2;
 set mTradeOlifeInf dimen 1;
@@ -146,8 +161,6 @@ set mTradeIrCsrc2Ainp dimen 6;
 set mTradeIrCdst2Ainp dimen 6;
 set mTradeIrCsrc2Aout dimen 6;
 set mTradeIrCdst2Aout dimen 6;
-set mvTradeCost dimen 2;
-set mvTradeRowCost dimen 2;
 set mExportRowCost dimen 3;
 set mImportRowCost dimen 3;
 set mImportIrCost dimen 3;
@@ -251,7 +264,6 @@ set meqTradeCapFlow dimen 4;
 set meqBalLo dimen 4;
 set meqBalUp dimen 4;
 set meqBalFx dimen 4;
-set meqLECActivity dimen 3;
 set mTechAct2AInp dimen 5;
 set mTechCap2AInp dimen 5;
 set mTechNCap2AInp dimen 5;
@@ -262,7 +274,6 @@ set mTechCap2AOut dimen 5;
 set mTechNCap2AOut dimen 5;
 set mTechCinp2AOut dimen 6;
 set mTechCout2AOut dimen 6;
-set mLECRegion dimen 1;
 
 
 
@@ -310,7 +321,14 @@ param pTechRetLo{tech, region, year};
 param pTechCap2act{tech};
 param pTechCvarom{tech, comm, region, year, slice};
 param pTechAvarom{tech, comm, region, year, slice};
-param pDiscount{region, year};
+param pWacc{region, year};
+param pSdr{region, year};
+param pTechWacc{tech, region, year};
+param pStorageWacc{stg, region, year};
+param pTradeWacc{trade, region, year};
+param pTechPayback{tech, region, year};
+param pStoragePayback{stg, region, year};
+param pTradePayback{trade, region, year};
 param pDiscountFactor{region, year};
 param pDiscountFactorMileStone{region, year};
 param pSupCost{sup, comm, region, year, slice};
@@ -420,7 +438,6 @@ param pStorageWeatherCinpUp{weather, stg};
 param pStorageWeatherCinpLo{weather, stg};
 param pStorageWeatherCoutUp{weather, stg};
 param pStorageWeatherCoutLo{weather, stg};
-param pLECLoACT{region};
 param ORD{year};
 
 
@@ -579,7 +596,12 @@ s.t.  eqTechRetCost{(t, r, y) in mTechRetCost}: vTechRetCost[t,r,y]  =  pTechRet
 # "pEac*total-capacity" rewrite (which charged annuity on pre-existing stock too)
 # back to the legacy vintaged form: sum over still-alive new-capacity vintages.
 # OLD: s.t.  eqTechEac{(t, r, y) in mTechSpan}: vTechEac[t,r,y]  =  pTechEac[t,r,y]*vTechCap[t,r,y];
-s.t.  eqTechEac{(t, r, y) in mTechEac}: vTechEac[t,r,y]  =  sum{yp in year:(((t,r,yp) in mTechNew and ordYear[y] >= ordYear[yp] and (ordYear[y]<pTechOlife[t,r]+ordYear[yp] or (t,r) in mTechOlifeInf)))}(pTechEac[t,r,yp]*(vTechNewCap[t,r,yp]-sum{ye in year:(((t,r,yp,ye) in mvTechRetiredNewCap and ordYear[y] >= ordYear[ye]))}(vTechRetiredNewCap[t,r,yp,ye])));
+# [payback] The annuity is charged over the COST-RECOVERY period: pTechPayback
+# where the user set one, otherwise the operational life as before. Written as a
+# boolean disjunction rather than if-then-else, which in MathProg is a numeric
+# expression and cannot stand where a logical one is expected. eqTechCap keeps
+# pTechOlife -- the technical life still governs when capacity operates.
+s.t.  eqTechEac{(t, r, y) in mTechEac}: vTechEac[t,r,y]  =  sum{yp in year:(((t,r,yp) in mTechNew and ordYear[y] >= ordYear[yp] and ((pTechPayback[t,r,yp] > 0 and ordYear[y]<pTechPayback[t,r,yp]+ordYear[yp]) or (pTechPayback[t,r,yp] <= 0 and (ordYear[y]<pTechOlife[t,r]+ordYear[yp] or (t,r) in mTechOlifeInf)))))}(pTechEac[t,r,yp]*(vTechNewCap[t,r,yp]-sum{ye in year:(((t,r,yp,ye) in mvTechRetiredNewCap and ordYear[y] >= ordYear[ye]))}(vTechRetiredNewCap[t,r,yp,ye])));
 
 s.t.  eqTechInv{(t, r, y) in mTechInv}: vTechInv[t,r,y]  =  pTechInvcost[t,r,y]*vTechNewCap[t,r,y];
 
@@ -639,7 +661,8 @@ s.t.  eqStorageInv{(st1, r, y) in mStorageNew}: vStorageInv[st1,r,y]  =  pStorag
 
 # [eac-fix] reverted to legacy vintaged new-capacity form (see eqTechEac).
 # OLD: s.t.  eqStorageEac{(st1, r, y) in mStorageEac}: vStorageEac[st1,r,y]  =  pStorageEac[st1,r,y]*vStorageCap[st1,r,y];
-s.t.  eqStorageEac{(st1, r, y) in mStorageEac}: vStorageEac[st1,r,y]  =  sum{yp in year:(((st1,r,yp) in mStorageNew and ordYear[y] >= ordYear[yp] and ((st1,r) in mStorageOlifeInf or ordYear[y]<pStorageOlife[st1,r]+ordYear[yp]) and pStorageInvcost[st1,r,yp] <> 0))}(pStorageEac[st1,r,yp]*vStorageNewCap[st1,r,yp]);
+# [payback] see eqTechEac.
+s.t.  eqStorageEac{(st1, r, y) in mStorageEac}: vStorageEac[st1,r,y]  =  sum{yp in year:(((st1,r,yp) in mStorageNew and ordYear[y] >= ordYear[yp] and ((pStoragePayback[st1,r,yp] > 0 and ordYear[y]<pStoragePayback[st1,r,yp]+ordYear[yp]) or (pStoragePayback[st1,r,yp] <= 0 and ((st1,r) in mStorageOlifeInf or ordYear[y]<pStorageOlife[st1,r]+ordYear[yp]))) and pStorageInvcost[st1,r,yp] <> 0))}(pStorageEac[st1,r,yp]*vStorageNewCap[st1,r,yp]);
 
 s.t.  eqStorageFixom{(st1, r, y) in mStorageFixom}: vStorageFixom[st1,r,y]  =  pStorageFixom[st1,r,y]*vStorageCap[st1,r,y];
 
@@ -693,7 +716,9 @@ s.t.  eqTradeInv{(t1, r, y) in mTradeInv}: vTradeInv[t1,r,y]  =  pTradeInvcost[t
 
 # [eac-fix] reverted to legacy vintaged new-capacity form (see eqTechEac).
 # OLD: s.t.  eqTradeEac{(t1, r, y) in mTradeEac}: vTradeEac[t1,r,y]  =  pTradeEac[t1,r,y]*vTradeCap[t1,y];
-s.t.  eqTradeEac{(t1, r, y) in mTradeEac}: vTradeEac[t1,r,y]  =  sum{yp in year:(((t1,yp) in mTradeNew and ordYear[y] >= ordYear[yp] and (ordYear[y]<pTradeOlife[t1]+ordYear[yp] or t1 in mTradeOlifeInf)))}(pTradeEac[t1,r,yp]*vTradeNewCap[t1,yp]);
+# [payback] see eqTechEac. pTradePayback is region-indexed while vTradeNewCap is
+# not, so each region amortises its own share of one corridor on its own schedule.
+s.t.  eqTradeEac{(t1, r, y) in mTradeEac}: vTradeEac[t1,r,y]  =  sum{yp in year:(((t1,yp) in mTradeNew and ordYear[y] >= ordYear[yp] and ((pTradePayback[t1,r,yp] > 0 and ordYear[y]<pTradePayback[t1,r,yp]+ordYear[yp]) or (pTradePayback[t1,r,yp] <= 0 and (ordYear[y]<pTradeOlife[t1]+ordYear[yp] or t1 in mTradeOlifeInf)))))}(pTradeEac[t1,r,yp]*vTradeNewCap[t1,yp]);
 
 s.t.  eqTradeFixom{(t1, r, y) in mTradeFixom}: vTradeFixom[t1,r,y]  =  pTradeFixom[t1,r,y]*vTradeCap[t1,y];
 
@@ -720,7 +745,7 @@ s.t.  eqBal{(c, r, y, s) in mvBalance}: vBalance[c,r,y,s]  =  sum{FORIF: (c,r,y,
 # The final term replaces the old mOutSub/vOut2Lo down-disaggregation collector.
 # OLD:
 # s.t.  eqOutTot{(c, r, y, s) in mvOutTot}: vOutTot[c,r,y,s]  =  sum{FORIF: (c,r,y,s) in mDummyImport} (vDummyImport[c,r,y,s])+sum{FORIF: (c,r,y,s) in mSupOutTot} (vSupOutTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mEmsFuelTot} (vEmsFuelTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mAggOut} (vAggOutTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mTechOutTot} (vTechOutTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mStorageOutTot} (vStorageOutTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mImport} (vImportTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mvTradeIrAOutTot} (vTradeIrAOutTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mOutSub} (sum{sp in slice:(((sp,s) in mSliceParentChild and (c,r,y,sp,s) in mvOut2Lo))}(vOut2Lo[c,r,y,sp,s]));
-s.t.  eqOutTot{(c, r, y, s) in mvOutTot}: vOutTot[c,r,y,s]  =  sum{FORIF: (c,r,y,s) in mDummyImport} (vDummyImport[c,r,y,s])+sum{FORIF: (c,r,y,s) in mSupOutTot} (vSupOutTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mEmsFuelTot} (vEmsFuelTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mAggOut} (vAggOutTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mTechOutTot} (vTechOutTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mStorageOutTot} (vStorageOutTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mImport} (vImportTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mvTradeIrAOutTot} (vTradeIrAOutTot[c,r,y,s])+sum{sp in slice:((s,sp) in mSliceFamily and (c,r,y,sp) in mvOutTot)}(pSliceAgg[y,s,sp]*vOutTot[c,r,y,sp]);
+s.t.  eqOutTot{(c, r, y, s) in mvOutTot}: vOutTot[c,r,y,s]  =  sum{FORIF: (c,r,y,s) in mDummyImport} (vDummyImport[c,r,y,s])+sum{FORIF: (c,r,y,s) in mSupOutTot} (vSupOutTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mEmsFuelTot} (vEmsFuelTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mAggOut} (vAggOutTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mTechOutTot} (vTechOutTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mStorageOutTot} (vStorageOutTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mImport} (vImportTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mvTradeIrAOutTot} (vTradeIrAOutTot[c,r,y,s])+sum{sp in slice:((s,sp) in mSliceFamily and (c,r,y,sp) in mvOutTot)}(pSliceAgg[y,s,sp]*vOutTot[c,r,y,sp])+sum{rp in region:((r,rp) in mRegionFamily and (c,rp,y,s) in mvOutTot)}(vOutTot[c,rp,y,s]);
 
 # [agg-rewrite] eqOutTotRY/vOutTotRY retired (dead reporting)
 
@@ -732,7 +757,7 @@ s.t.  eqOutTot{(c, r, y, s) in mvOutTot}: vOutTot[c,r,y,s]  =  sum{FORIF: (c,r,y
 # immediately-finer children's totals. Final term replaces old mInpSub/vInp2Lo collector.
 # OLD:
 # s.t.  eqInpTot{(c, r, y, s) in mvInpTot}: vInpTot[c,r,y,s]  =  sum{FORIF: (c,r,y,s) in mvDemInp} (vDemInp[c,r,y,s])+sum{FORIF: (c,r,y,s) in mDummyExport} (vDummyExport[c,r,y,s])+sum{FORIF: (c,r,y,s) in mTechInpTot} (vTechInpTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mStorageInpTot} (vStorageInpTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mExport} (vExportTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mvTradeIrAInpTot} (vTradeIrAInpTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mInpSub} (sum{sp in slice:(((sp,s) in mSliceParentChild and (c,r,y,sp,s) in mvInp2Lo))}(vInp2Lo[c,r,y,sp,s]));
-s.t.  eqInpTot{(c, r, y, s) in mvInpTot}: vInpTot[c,r,y,s]  =  sum{FORIF: (c,r,y,s) in mvDemInp} (vDemInp[c,r,y,s])+sum{FORIF: (c,r,y,s) in mDummyExport} (vDummyExport[c,r,y,s])+sum{FORIF: (c,r,y,s) in mTechInpTot} (vTechInpTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mStorageInpTot} (vStorageInpTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mExport} (vExportTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mvTradeIrAInpTot} (vTradeIrAInpTot[c,r,y,s])+sum{sp in slice:((s,sp) in mSliceFamily and (c,r,y,sp) in mvInpTot)}(pSliceAgg[y,s,sp]*vInpTot[c,r,y,sp]);
+s.t.  eqInpTot{(c, r, y, s) in mvInpTot}: vInpTot[c,r,y,s]  =  sum{FORIF: (c,r,y,s) in mvDemInp} (vDemInp[c,r,y,s])+sum{FORIF: (c,r,y,s) in mDummyExport} (vDummyExport[c,r,y,s])+sum{FORIF: (c,r,y,s) in mTechInpTot} (vTechInpTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mStorageInpTot} (vStorageInpTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mExport} (vExportTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mvTradeIrAInpTot} (vTradeIrAInpTot[c,r,y,s])+sum{sp in slice:((s,sp) in mSliceFamily and (c,r,y,sp) in mvInpTot)}(pSliceAgg[y,s,sp]*vInpTot[c,r,y,sp])+sum{rp in region:((r,rp) in mRegionFamily and (c,rp,y,s) in mvInpTot)}(vInpTot[c,rp,y,s]);
 
 # [agg-rewrite] eqInpTotRY/vInpTotRY retired (dead reporting)
 
@@ -764,7 +789,6 @@ s.t.  eqCost{(r, y) in mvTotalCost}: vTotalCost[r,y]  =  +sum{s1 in sup:((s1,r,y
 
 s.t.  eqObjective: vObjective  =  sum{r in region,y in year:((r,y) in mvTotalCost)}(vTotalCost[r,y]*pPeriodLen[y]*pDiscountFactor[r,y]);
 
-s.t.  eqLECActivity{(t, r, y) in meqLECActivity}: sum{s in slice:((t,s) in mTechSlice)}(vTechAct[t,r,y,s])  >=  pLECLoACT[r];
 
 printf  '"solver",,"%s"\n', time2str(gmtime(), "%Y-%m-%d %M:%H:S %TZ") >> "output/log.csv";
 minimize vObjective2 : vObjective;

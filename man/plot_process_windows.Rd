@@ -6,21 +6,19 @@
 \alias{autoplot.repository}
 \title{Plot process investment / availability windows}
 \usage{
-plot_process_windows(x, region = NULL, horizon = NULL)
+plot_process_windows(object, region = NULL, horizon = NULL)
 
 \method{autoplot}{model}(object, type = c("windows"), ...)
 
 \method{autoplot}{repository}(object, type = c("windows"), ...)
 }
 \arguments{
-\item{x}{a \code{model} or \code{repository} object.}
+\item{object}{a \code{model} / \code{repository} object (autoplot methods).}
 
 \item{region}{character vector to filter regions, or \code{NULL} (all).}
 
 \item{horizon}{a \code{horizon} object used for defaults; taken from the model's
 config automatically (optional for a repository).}
-
-\item{object}{a \code{model} / \code{repository} object (autoplot methods).}
 
 \item{type}{only \code{"windows"} currently.}
 
@@ -41,6 +39,7 @@ tail, \code{end + olife}). Faceted by region when the windows differ regionally.
 \examples{
 \dontrun{
 autoplot(mod, type = "windows")
-plot_process_windows(repo, horizon = newHorizon(2020:2050))
+autoplot(repo, horizon = newHorizon(2020:2050))
 }
 }
+\keyword{internal}

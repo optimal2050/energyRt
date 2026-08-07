@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.70.2.9001</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.75.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -220,7 +220,7 @@ system:</p>
 <span><span class="va">ELC</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newCommodity.html">newCommodity</a></span><span class="op">(</span><span class="st">"ELC"</span>, timeframe <span class="op">=</span> <span class="st">"ANNUAL"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">SUP_GAS</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newSupply.html">newSupply</a></span><span class="op">(</span><span class="st">"SUP_GAS"</span>, commodity <span class="op">=</span> <span class="st">"GAS"</span>,</span>
-<span>                     availability <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>cost <span class="op">=</span> <span class="fl">6.0</span><span class="op">)</span><span class="op">)</span>   <span class="co"># fuel price, MEUR/PJ</span></span>
+<span>                     supply <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>cost <span class="op">=</span> <span class="fl">6.0</span><span class="op">)</span><span class="op">)</span>   <span class="co"># fuel price, MEUR/PJ</span></span>
 <span></span>
 <span><span class="va">EGAS</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/technology.html">newTechnology</a></span><span class="op">(</span><span class="st">"EGAS"</span>,</span>
 <span>  input   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>comm <span class="op">=</span> <span class="st">"GAS"</span><span class="op">)</span>, output <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>comm <span class="op">=</span> <span class="st">"ELC"</span><span class="op">)</span>,</span>
@@ -229,7 +229,7 @@ system:</p>
 <span>  fixom   <span class="op">=</span> <span class="fl">25</span>, cap2act <span class="op">=</span> <span class="fl">31.536</span>, olife <span class="op">=</span> <span class="fl">25L</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">DEM_ELC</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newDemand.html">newDemand</a></span><span class="op">(</span><span class="st">"DEM_ELC"</span>, commodity <span class="op">=</span> <span class="st">"ELC"</span>,</span>
-<span>                     dem <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>dem <span class="op">=</span> <span class="fl">50</span><span class="op">)</span><span class="op">)</span>               <span class="co"># 50 PJ a year</span></span>
+<span>                     demand <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>demand <span class="op">=</span> <span class="fl">50</span><span class="op">)</span><span class="op">)</span>               <span class="co"># 50 PJ a year</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/draw.html">draw</a></span><span class="op">(</span><span class="va">EGAS</span><span class="op">)</span></span></code></pre></div>
 <p><img src="energyRt_files/figure-html/hello-build-1.png"><!-- --></p>

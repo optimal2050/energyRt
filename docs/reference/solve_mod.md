@@ -40,7 +40,9 @@ solve_scen(
 - solver:
 
   a character or list with solver settings. When `NULL`, the scenario's
-  own solver settings or `get_default_solver()` are used.
+  own solver settings or
+  [`get_default_solver()`](https://energyRt.org/reference/default_solver.md)
+  are used.
 
 - ondisk, fold:
 

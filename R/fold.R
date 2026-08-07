@@ -359,9 +359,6 @@
   } else {
     param@data <- as.data.frame(new_data)
   }
-  # Sync the row-count cache; writers truncate `@data` to `@misc$nValues` and a
-  # stale (larger) count pads with NA rows (e.g. Pyomo `tmp[('NA','NA')] = NA`).
-  param@misc$nValues <- nrow(new_data)
   param
 }
 
@@ -578,8 +575,6 @@ unfold_scenario_parameters <- function(scen, dims = c("region", "slice"),
     expanded <- unfold_parameter(p, ms)
     if (is.null(expanded) || nrow(expanded) == 0) next
     p2 <- .fold_write_back(p, expanded)
-    if (!is.list(p2@misc)) p2@misc <- list()
-    p2@misc$nValues <- nrow(expanded)
     scen@modInp@parameters[[pn]] <- p2
     if (verbose) {
       message(sprintf("  unfold %-20s %d -> %d rows [%s]", pn, before,
@@ -639,8 +634,6 @@ unfold_trade_routes <- function(scen, verbose = FALSE) {
     out <- dplyr::bind_rows(explicit, expanded)
     before <- nrow(data)
     p2 <- .fold_write_back(p, out)
-    if (!is.list(p2@misc)) p2@misc <- list()
-    p2@misc$nValues <- nrow(out)
     scen@modInp@parameters[[pn]] <- p2
     if (verbose) {
       message(sprintf("  unfold_routes %-20s %d -> %d rows", pn, before,

@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.70.2.9001</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.75.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -87,7 +87,7 @@
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>UTOPIA II: running scenarios</h1>
             
-            <h4 data-toc-skip class="date">2026-07-27</h4>
+            <h4 data-toc-skip class="date">2026-08-07</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/optimal2050/energyRt/blob/HEAD/vignettes/utopia-use.Rmd" class="external-link"><code>vignettes/utopia-use.Rmd</code></a></small>
       <div class="d-none name"><code>utopia-use.Rmd</code></div>
@@ -107,8 +107,8 @@ energy-system model and run scenarios with <strong>GLPK</strong>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span>
 <span><span class="va">have_sf</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/ns-load.html" class="external-link">requireNamespace</a></span><span class="op">(</span><span class="st">"sf"</span>, quietly <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>   <span class="co"># region maps need the sf package</span></span>
-<span><span class="fu"><a href="../reference/options.html">set_scenarios_path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"utopia"</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu">set_default_solver</span><span class="op">(</span><span class="va">solver_options</span><span class="op">$</span><span class="va">glpk</span><span class="op">)</span>             <span class="co"># set once, used by every solve</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/scenarios_path.html">set_scenarios_path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"utopia"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/default_solver.html">set_default_solver</a></span><span class="op">(</span><span class="va">solver_options</span><span class="op">$</span><span class="va">glpk</span><span class="op">)</span>             <span class="co"># set once, used by every solve</span></span></code></pre></div>
 <p>Two calls run every scenario in this vignette:
 <code><a href="../reference/interpolate_model.html">interpolate_model()</a></code> expands the model over regions, years
 and slices; <code><a href="../reference/solve_model.html">solve_scenario()</a></code> writes the solver files, runs
@@ -127,7 +127,7 @@ calendar, build the blocks yourself following <em>UTOPIA I: building the
 model</em>.)</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">utopia_modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">)</span>          <span class="co"># available layouts</span></span>
-<span><span class="va">um</span>  <span class="op">&lt;-</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">reg3</span>     <span class="co"># the 3-region base case</span></span>
+<span><span class="va">um</span>  <span class="op">&lt;-</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">R3</span>     <span class="co"># the 3-region base case</span></span>
 <span><span class="va">cal</span> <span class="op">&lt;-</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">utopia_s4h24</span></span>
 <span><span class="va">hor</span> <span class="op">&lt;-</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">base</span>        <span class="co"># milestones 2020/2030/2040/2050</span></span></code></pre></div>
 </div>
@@ -248,7 +248,7 @@ pandoc):</p>
 <code>reg1</code> or the 7-region <code>reg7</code> (heavier). Just swap
 the kit:</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">um7</span> <span class="op">&lt;-</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">reg7</span></span>
+<code class="sourceCode R"><span><span class="va">um7</span> <span class="op">&lt;-</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">R7</span></span>
 <span><span class="va">mod7</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newModel.html">newModel</a></span><span class="op">(</span><span class="st">"UTOPIA7"</span>, data <span class="op">=</span> <span class="va">um7</span><span class="op">$</span><span class="va">repo</span>, calendar <span class="op">=</span> <span class="va">cal</span>,</span>
 <span>                 region <span class="op">=</span> <span class="va">um7</span><span class="op">$</span><span class="va">regions</span>, horizon <span class="op">=</span> <span class="va">hor</span>, discount <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span>
 <span><span class="va">scen7</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod7</span>, <span class="st">"BASE7"</span><span class="op">)</span> <span class="op">|&gt;</span></span>

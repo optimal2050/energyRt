@@ -21,7 +21,7 @@ An S4 class to declare a demand in the model
 
   character. Optional unit of the commodity.
 
-- `dem`:
+- `demand`:
 
   data.frame. Specification of the demand.
 
@@ -39,7 +39,7 @@ An S4 class to declare a demand in the model
   :   character. Name of the slice for the demand value. NA for every
       slice.
 
-  dem
+  demand
 
   :   numeric. Value of the demand.
 
@@ -47,8 +47,8 @@ An S4 class to declare a demand in the model
 
   character. Optional name of region to narrow the specification of the
   demand in the case of used NAs. Error will be returned if specified
-  regions in `@dem` are not mensioned in the `@region` slot (if the slot
-  is not empty).
+  regions in `@demand` are not mensioned in the `@region` slot (if the
+  slot is not empty).
 
 - `misc`:
 

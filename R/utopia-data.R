@@ -75,7 +75,9 @@
 #'   \item{calendars}{the UTOPIA calendars (`utopia_annual`/`utopia_seasons`/
 #'     `utopia_s4h24`/`utopia_m12h24`).}
 #'   \item{horizons}{planning horizons (`base` = 2020/2030/2040/2050).}
-#'   \item{electricity}{per region layout (`reg1`, `reg3`, `reg7`), each a "kit":
+#'   \item{electricity}{per region layout (`R1`, `R3`, `R7`, `R11` -- an
+#'     n-region layout is keyed `R<n>`, matching the `R1`..`R11` region names
+#'     used by the maps), each a "kit":
 #'     `repo` (the base repository), the individual blocks (`repo_comm`,
 #'     `repo_supply`, `DEM_ELC`, `WSOL`/`WWIN`/`WHYD`, the technologies,
 #'     `STG_BTR`), and the scenario levers `CO2_CAP`, `CT_CO2`, `RES_SHARE`,
@@ -84,7 +86,7 @@
 #' @seealso [calendars], [horizons], [utopia_profiles()], the UTOPIA vignettes
 #' @examples
 #' \dontrun{
-#' um <- utopia_modules$electricity$reg3
+#' um <- utopia_modules$electricity$R3
 #' mod <- newModel("UTOPIA", data = um$repo,
 #'                 calendar = utopia_modules$calendars$utopia_s4h24,
 #'                 region = um$regions, horizon = utopia_modules$horizons$base,

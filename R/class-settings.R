@@ -59,6 +59,11 @@ setMethod("initialize", "settings", function(.Object, ...) {
   imp_slots <- slotNames("config")
   imp_slots <- imp_slots[!(imp_slots %in% c(".S3Class"))]
   for (s in imp_slots) {
+    # A model serialised before a slot was added to `config` does not carry it,
+    # and `slot(cfg, s)` would raise "no slot of name" -- on the main
+    # interpolation path, breaking every saved model. Skip it instead and leave
+    # `stt`'s own (prototype default) value in place.
+    if (!methods::.hasSlot(cfg, s)) next
     slot(stt, s) <- slot(cfg, s)
   }
   return(stt)

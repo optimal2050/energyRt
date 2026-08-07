@@ -23,7 +23,7 @@ get_region <- function(obj) {
   }
   keys <- c("region", "src", "dst")
   out <- character(0)
-  for (sn in methods::slotNames(obj)) {
+  for (sn in .instance_slots(obj)) {
     if (identical(sn, "misc")) next
     v <- methods::slot(obj, sn)
     if (is.data.frame(v)) {

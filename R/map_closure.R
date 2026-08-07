@@ -137,23 +137,39 @@ map_mCommReg <- function(scen, fmp) {
     unique()
 
   ## check if demand commodities are available in regions
+  # [nested-regions] judge reachability at the level the commodity is BALANCED
+  # at. Steel made in R1 and demanded nationally is served, because the national
+  # balance pools the regions; comparing per fine region would report a spurious
+  # infeasibility. A no-op for commodities at the finest level.
   comm_region_dem_check <-
     comm_region |>
-    filter(comm %in% unique(demand_comm_region$comm))
+    filter(comm %in% unique(demand_comm_region$comm)) |>
+    .lift_to_comm_level(scen)
 
   comm_region_dem_check <- anti_join(
-    demand_comm_region,
+    .lift_to_comm_level(demand_comm_region, scen),
     comm_region_dem_check,
     by = c("comm", "region")
   ) |>
     unique()
 
+  # Advisory, not a guard: `comm_region_dem_check` is never read again and the
+  # `rbind()` below adds these demand pairs regardless, so the mapping is the
+  # same either way. Warn and let the solver return the verdict -- an
+  # unservable demand is a normal modelling state worth inspecting, not a
+  # reason to refuse to build. `options(en.model_checks_stop = TRUE)` restores
+  # the previous fail-fast behaviour.
   if (nrow(comm_region_dem_check) > 0) {
-    stop(
+    msg <- paste0(
       "There is no supply, production, interregional trade, or import for demand-commodities in regions:\n   ",
       paste(capture.output(print(comm_region_dem_check)), collapse = "\n   "),
-      "\nThe model will be infeasible.\n"
+      "\nThe model will be infeasible unless these commodities are supplied.\n"
     )
+    if (isTRUE(getOption("en.model_checks_stop", FALSE))) {
+      stop(msg, call. = FALSE)
+    } else {
+      warning(msg, call. = FALSE)
+    }
   }
 
   comm_region <- rbind(comm_region, demand_comm_region) |>
@@ -185,6 +201,16 @@ map_mCommReg <- function(scen, fmp) {
   scen@modInp@parameters$mCommReg <-
     d2p(scen@modInp@parameters$mCommReg, comm_region, fmp("mCommReg"))
   scen@modInp@sets$comm_region <- split(comm_region$region, comm_region$comm)
+
+  # [nested-regions] the process/commodity level rule. Checked here because this
+  # is the first point where process_region and process inputs/outputs are all
+  # populated.
+  .assert_process_geolevel(scen)
+
+  # Declared slices/regions must match the commodity's own level for every
+  # class that has no aggregation path (see check_levels.R). Same reason for
+  # checking here: it needs the collected process/commodity relations.
+  .check_process_levels(scen)
 
   scen
 }

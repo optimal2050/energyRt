@@ -1083,9 +1083,6 @@ write.sc <- write_sc
   )[, c("comm", "region", "year", "slice")]
   mInp2Lo <- mInp2Lo[!(paste0(mInp2Lo$comm, "#", mInp2Lo$slice) %in% paste0(mCommSlice$comm, "#", mCommSlice$slice)), ]
   prec@parameters[["mInp2Lo"]] <- .dat2par(prec@parameters[["mInp2Lo"]], mInp2Lo)
-  .interpolation_message("mvTradeCost", rest, interpolation_count, interpolation_start_time, len_name)
-  rest <- rest + 1
-
   # browser()
   ##
   dregionyear <- merge0(region, year)
@@ -1192,16 +1189,6 @@ write.sc <- write_sc
     prec@parameters[["mOutSub"]] <-
       .dat2par(prec@parameters[["mOutSub"]], mOutSub)
   }
-  .interpolation_message("meqLECActivity", rest, interpolation_count,
-                         interpolation_start_time, len_name)
-  rest <- rest + 1
-
-  prec@parameters[["meqLECActivity"]] <- .dat2par(
-    prec@parameters[["meqLECActivity"]],
-    merge0(.get_data_slot(prec@parameters[["mTechSpan"]]),
-           .get_data_slot(prec@parameters[["mLECRegion"]]))
-  )
-
   .interpolation_message("mvTotalUserCosts", rest, interpolation_count,
                          interpolation_start_time, len_name)
   rest <- rest + 1

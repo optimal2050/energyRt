@@ -49,7 +49,7 @@ interpolate_model <- function(mod, name = NULL, ...,
                        desc = NULL, ondisk = FALSE, overwrite = FALSE,
                        fold = FALSE, sparse = TRUE, prune = TRUE,
                        validate = TRUE, code = NULL,
-                       verbose = getOption("energyRt.verbose", FALSE)) {
+                       verbose = isVerbose()) {
   # Accept a scenario (re-interpolate its model), matching the legacy interface.
   if (inherits(mod, "scenario")) mod <- mod@model
   # `...` (after `mod`/`name`) accepts ANY energyRt objects -- settings, config,
@@ -110,6 +110,10 @@ interpolate_model <- function(mod, name = NULL, ...,
   }
 
   # scenario directory ####
+  # Initialised before the branch: `fmp()` below reads `mi_path`, but the
+  # `ondisk` branch does not assign it until the modInp store is created much
+  # further down, so it was undefined on that path.
+  mi_path <- NULL
   if (ondisk) {
     scen <- mark_ondisk(scen)
     # (!!! model is assumed to be in memory yet -- address later)
@@ -135,7 +139,6 @@ interpolate_model <- function(mod, name = NULL, ...,
     }
   } else {
     scen <- mark_inMemory(scen)
-    mi_path <- NULL
   }
   .interp_banner(scen, sparse, prune, fold_dims, validate, ondisk, verbose)
   # isOnDisk(scen)
@@ -216,6 +219,17 @@ interpolate_model <- function(mod, name = NULL, ...,
     args <- args[!ii]
   }
 
+  # geoscale object -> settings@geoscale. Presentation-only: nothing downstream
+  # of here reads it, but carrying it on the scenario is what lets maps and
+  # region-level reporting work without the caller re-supplying it.
+  ii <- vapply(args, is_geoscale, logical(1))
+  if (sum(ii) > 1) {
+    stop("Only one geoscale object is allowed in the arguments")
+  } else if (sum(ii) == 1) {
+    scen@settings@geoscale <- args[[which(ii)]]
+    args <- args[!ii]
+  }
+
   # horizon object -> settings@horizon (via setHorizon; the pipeline reads
   # scen@settings@horizon@intervals below)
   ii <- vapply(args, function(x) inherits(x, "horizon"), logical(1))
@@ -244,6 +258,25 @@ interpolate_model <- function(mod, name = NULL, ...,
   }
   scen@model <- mod # keep scen@model in sync with the (possibly extended) model
 
+  # Variant naming is stored twice -- on the model config and, copied from it, on
+  # the scenario settings. Settings is a COPY, not an override point: variant
+  # names are minted from the model, so a divergence would mean the scenario
+  # carries one naming scheme while the sets were built with another. It can only
+  # arise from passing a `config`/`settings` object through `...` above, so check
+  # once both are final and before expansion consumes the value.
+  .vp_cfg <- .variant_prefix(scen@model@config)
+  .vp_set <- .variant_prefix(scen@settings)
+  if (!identical(.vp_cfg, .vp_set)) {
+    stop("`variant_prefix` disagrees between the model configuration (",
+         paste0(names(.vp_cfg), ' = "', .vp_cfg, '"', collapse = ", "),
+         ") and the scenario settings (",
+         paste0(names(.vp_set), ' = "', .vp_set, '"', collapse = ", "),
+         "). Scenario settings are a copy of the model configuration, not an ",
+         "override point for variant naming. Set it once on the model, e.g. ",
+         "`mod@config <- update(mod@config, variant_prefix = c(vintage = \"_V\"))`",
+         ", and drop the config/settings object passed to `interpolate_model()`.")
+  }
+
   # update individual settings slots from named args -- !!! ToDo (legacy parity:
   # discount, region, discountFirstYear, optimizeRetirement, defValue,
   # interpolation, debug). Pass a full settings/config object for now.
@@ -269,7 +302,31 @@ interpolate_model <- function(mod, name = NULL, ...,
   # typos / stray regions (e.g. an offshore "ES_off" in object data that is not
   # a declared region) up front, instead of surfacing as an obscure
   # "<param> ... out of domain" error deep in the solver writer.
-  .check_declared_regions(scen@model, scen@settings@region)
+  #
+  # A geoscale's coarser levels count as declared: national demand for a
+  # nationally-balanced commodity names the nation, which is a legitimate
+  # region of the model even though it is not one of `@region`'s atoms.
+  .known_regions <- as.character(scen@settings@region)
+  .h <- .geo_hierarchy(getGeoscale(scen@settings), .known_regions)
+  if (!is.null(.h)) .known_regions <- .h$region
+  .check_declared_regions(scen@model, .known_regions)
+
+  # Advisory only: a geoscale is presentation metadata, so a region it does not
+  # cover is a warning (that region simply will not appear on a map), never an
+  # error. `@region` stays authoritative.
+  .gs <- getGeoscale(scen)
+  if (!is.null(.gs)) check_geoscale_regions(.gs, scen@settings@region)
+
+  # Expand vintage/cluster groups of every variant-capable process class into one
+  # ordinary object per (vintage, cluster) cell. Must run BEFORE the sets are
+  # collected below, so `sets$tech` / `sets$stg` hold the variants.
+  # Non-destructive: only the internal build copy is expanded, the caller's model
+  # object is untouched. The link back to each base object is kept in
+  # `sets$variant` (see R/variants.R).
+  .tech_variants <- expand_variants(mod, prefix = .variant_prefix(scen@settings))
+  mod <- .tech_variants$model    # the sets below are collected from `mod`
+  scen@model <- mod              # ... while get_process_*() read scen@model
+  .assert_variants_expanded(mod)
 
   # !!! ToDo:
   # ... subset slices and regions
@@ -316,6 +373,14 @@ interpolate_model <- function(mod, name = NULL, ...,
 
   # Sets from settings ####
   scen@modInp@sets$region <- as.character(scen@settings@region) # factors not allowed
+  # With a geoscale attached, `region` holds every level at once -- the states
+  # AND the zones AND the nation -- exactly as `slice` already holds the slices
+  # of every timeframe. Declared regions stay at the head in their original
+  # order; coarser levels are appended and remain inert unless some commodity
+  # names one via `@geolevel`.
+  .geo_hier <- .geo_hierarchy(getGeoscale(scen@settings),
+                              scen@modInp@sets$region)
+  if (!is.null(.geo_hier)) scen@modInp@sets$region <- .geo_hier$region
   scen@modInp@sets$year <- as.integer(scen@settings@horizon@intervals$mid)
   scen@modInp@sets$slice <- scen@settings@calendar@slice_share$slice
 
@@ -375,8 +440,25 @@ interpolate_model <- function(mod, name = NULL, ...,
     scen@modInp@sets$imp,
     scen@modInp@sets$trade
   )
+  .check_process_names(scen@modInp@sets)
 
   # assemble summary sets to use in interpolation
+  ## variant provenance: variant name -> (class, base, vintage, cluster), for
+  ## every process class. `modInp@sets` is a plain list, exempt from the
+  ## `.dimSets` whitelist, and already hosts derived tables of exactly this kind
+  ## (process_region etc). Reporting joins this instead of parsing the mangled
+  ## variant names.
+  scen@modInp@sets$variant <- .tech_variants$provenance
+  ## deprecated technology-only view, kept for one release
+  scen@modInp@sets$tech_variant <- if (is.null(.tech_variants$provenance)) NULL else {
+    tv <- .tech_variants$provenance
+    tv <- tv[tv$class == "technology", , drop = FALSE]
+    if (nrow(tv) == 0L) NULL else {
+      names(tv)[names(tv) == "name"] <- "tech"
+      tv[, c("tech", "base", "vintage", "cluster")]
+    }
+  }
+
   ## process class
   scen@modInp@sets$process_class <- get_process_class(scen)
 
@@ -853,8 +935,11 @@ interpolate_model <- function(mod, name = NULL, ...,
     .dat2par(scen@modInp@parameters[["year"]], mid)
   scen@modInp@parameters[["slice"]] <-
     .dat2par(scen@modInp@parameters[["slice"]], ss@calendar@slice_share$slice)
+  # The set the solver file DECLARES must be the same widened set as
+  # `sets$region`, or a coarse region is written into parameter data that has no
+  # matching set member ("... out of domain" in GLPK).
   scen@modInp@parameters[["region"]] <-
-    .dat2par(scen@modInp@parameters[["region"]], ss@region)
+    .dat2par(scen@modInp@parameters[["region"]], .known_regions(scen))
   scen@modInp@parameters[["mMidMilestone"]] <-
     .dat2par(scen@modInp@parameters[["mMidMilestone"]],
              data.table(year = mid))
@@ -907,7 +992,7 @@ interpolate_model <- function(mod, name = NULL, ...,
     built <- c(
       "year", "slice", "region", "mMidMilestone",
       "mSliceParentChild", "mSliceParentChildE", "mSliceNext",
-      "mSliceFYearNext", "pDiscount", "pSliceShare", "pSliceWeight",
+      "mSliceFYearNext", "pWacc", "pSdr", "pSliceShare", "pSliceWeight",
       "mMilestoneLast", "mMilestoneFirst", "mMilestoneNext",
       "mMilestoneHasNext", "mSameSlice", "mSameRegion", "ordYear",
       "pYearFraction", "cardYear", "pPeriodLen", "pDiscountFactor",
@@ -968,7 +1053,7 @@ collect_set_elements <- function(obj, set_name) {
 
   set_elements <- list()
   if (isS4(obj)) {
-    slots <- slotNames(obj)
+    slots <- .instance_slots(obj)
     ii <- slots == set_name
     if (any(ii) &&
       inherits(
@@ -1010,6 +1095,12 @@ collect_set_elements <- function(obj, set_name) {
     unique() |>
     sort()
 
+  # An empty search collapses to NULL (`unlist(list())` is NULL, and `unique()`
+  # and `sort()` keep it that way), which downstream `d2p()` cannot dispatch on.
+  # Return the empty vector instead, matching `collect_object_names()$name`, so
+  # a model that declares no technology (hence no `group`) still interpolates.
+  if (is.null(set_elements)) set_elements <- character(0)
+
   return(set_elements)
 }
 
@@ -1031,7 +1122,7 @@ collect_object_names <- function(
     class = character()
   ))
   if (isS4(obj)) {
-    slots <- slotNames(obj)
+    slots <- .instance_slots(obj)
     if (.hasSlot(obj, "name")) {
       obj_desc <- if (.hasSlot(obj, "desc") && length(obj@desc) == 1) {
         obj@desc
@@ -2361,9 +2452,6 @@ get_parameter_full_sets <- function(
   } else {
     scen@modInp@parameters[[pn]]@data <- new_data
   }
-  # Keep the row-count cache in sync: writers (Pyomo / JuMP / GLPK v1) truncate
-  # `@data` to `@misc$nValues`, and a stale count pads with NA rows.
-  scen@modInp@parameters[[pn]]@misc$nValues <- nrow(new_data)
   scen
 }
 
@@ -2959,6 +3047,35 @@ map_comm_timeframe <- function(scen, comm = NULL) {
   )
 }
 
+#' Balancing geo-level of commodities
+#'
+#' The spatial twin of [map_comm_timeframe()]. A commodity with no `@geolevel`
+#' is balanced at the finest level, which is the flat, single-level behaviour.
+#'
+#' @param scen scenario object
+#' @param comm character vector of commodity names, if not provided,
+#' all commodities retrieved from the scenario object using the
+#' `collect_set_names` function.
+#'
+#' @returns a named list mapping each commodity to its geo-level.
+#' @export
+map_comm_geolevel <- function(scen, comm = NULL) {
+  apply_to_scenario_data(
+    scen = scen,
+    classes = "commodity",
+    func = function(x) {
+      ll <- list()
+      # `@geolevel` post-dates the class, so a commodity restored from an older
+      # model may not carry the slot at all. NA means "the finest level", i.e.
+      # the flat behaviour; `[[<-` keeps the entry when the value is empty,
+      # which `[<-` would reject.
+      v <- if (.hasSlot(x, "geolevel")) as.character(x@geolevel) else character()
+      ll[[x@name]] <- if (length(v) > 0) v[1] else NA_character_
+      return(ll)
+    }
+  )
+}
+
 #' Get operational timeframe of processes
 #'
 #' @param scen scenario object
@@ -2995,9 +3112,15 @@ get_process_timeframe <- function(scen, process = NULL,
   )
   # ll
   # collect all commodities for each process w/o timeframe
-  ii <- sapply(ll, function(x) {
-    is_empty(x) || is.na(x) || x == ""
-  })
+  # `sapply` on an empty list returns `list()`, and `ll[list()]` is an error, so
+  # short-circuit: a model with no technology/storage/process has nothing here.
+  ii <- if (length(ll) == 0L) {
+    logical(0)
+  } else {
+    sapply(ll, function(x) {
+      is_empty(x) || is.na(x) || x == ""
+    })
+  }
   mm <- ll[ii]
   ll <- ll[!ii]
   rm(ii)
@@ -3080,13 +3203,23 @@ get_process_timeframe <- function(scen, process = NULL,
   check_timeframe <- as.data.table(check_timeframe)
 
   if (nrow(check_timeframe) > 0) {
-    # add log/message
-    warning(
-      "Inconsistent timeframes of processes: ",
-      paste(unique(check_timeframe$process), collapse = ", "),
-      "\nwith commodities: ",
-      paste(unique(check_timeframe$comm), collapse = ", "),
-      "\nReplacing process timeframe with the lowest level timeframes of its commodities."
+    # A technology (the only class with a `@timeframe` slot) may run at a
+    # different resolution from its commodities, but never a COARSER one: the
+    # aggregation only flows fine -> coarse, so a coarser process cannot meet
+    # the finer balance and its demand leaks to imports. This used to warn and
+    # silently substitute the finest timeframe, which hid the mistake; it is an
+    # error now, matching `.assert_process_geolevel()` on the spatial side.
+    stop(
+      "Process(es) declared at a timeframe COARSER than a commodity they use:\n   ",
+      paste(utils::capture.output(print(
+        unique(as.data.frame(check_timeframe)[, c("process", "process_timeframe",
+                                                  "comm", "comm_timeframe")]),
+        row.names = FALSE)), collapse = "\n   "),
+      "\nAggregation only flows fine -> coarse, so these flows could not reach ",
+      "their commodity's balance.\nRemove the `@timeframe` (it defaults to the ",
+      "finest of the process's commodities), or declare it no coarser than ",
+      "every commodity the process touches.",
+      call. = FALSE
     )
   }
 
@@ -3449,7 +3582,14 @@ get_process_region <- function(scen, process = NULL, classes = NULL,
     )
   }
 
+  # Default scope stays the DECLARED (finest) regions: an object with no
+  # `@region` exists in every real place, never at a geoscale nation or zone.
   scen_regions <- scen@settings@region
+  # ... but an EXPLICIT `@region` may name a coarser level, which is how a
+  # national demand for a nationally-balanced commodity is declared. Validation
+  # therefore runs against the whole hierarchy.
+  .h <- .geo_hierarchy(getGeoscale(scen@settings), as.character(scen_regions))
+  known_regions <- if (is.null(.h)) scen_regions else .h$region
 
   # Region scope of each object (uniform rule for all classes):
   #   * `@region` is AUTHORITATIVE. Populated with region names -> the object
@@ -3468,7 +3608,7 @@ get_process_region <- function(scen, process = NULL, classes = NULL,
       reg <- reg[!is.na(reg)]            # NA in @region == all regions (no restriction)
       struct <- character()              # route endpoints (trade): structural scope
       param  <- character()              # region values in parameter slots
-      for (s in slotNames(x)) {
+      for (s in .instance_slots(x)) {
         v <- slot(x, s)
         if (!inherits(v, "data.frame")) next
         for (col in c("src", "dst")) {
@@ -3505,7 +3645,7 @@ get_process_region <- function(scen, process = NULL, classes = NULL,
       # regions only localize values; they do not restrict the scope.
       nn[[i]] <- scen_regions
     }
-    bad2 <- setdiff(nn[[i]], scen_regions)
+    bad2 <- setdiff(nn[[i]], known_regions)
     if (length(bad2) > 0) {
       stop("Process '", i, "': region(s) '", paste(bad2, collapse = "', '"),
            "' are not declared in the scenario region set.")
@@ -3560,27 +3700,20 @@ get_process_invest_window <- function(scen, process = NULL, classes = NULL) {
         start = integer(),
         end = integer()
       )
-      if (.hasSlot(x, "start")) {
-        if ("region" %in% colnames(x@start)) {
-          d <- merge(x@start, x@end, by = "region", all = TRUE) |>
-            mutate(process = x@name, .before = 1) |>
-            as.data.table()
-        } else {
-          # browser()
-          regs <- scen@modInp@sets$process_region[[x@name]]
-          d <- merge(
-            data.table(region = regs, start = x@start$start),
-            data.table(region = regs, end = x@end$end),
-            by = "region", all = TRUE
-          ) |>
-            mutate(process = x@name, .before = 1) |>
-            as.data.table()
-        }
+      # `technology` keeps its window in `@vintage`; `storage`/`trade` still use
+      # the separate `@start`/`@end` slots. `.lifespan_col()` returns the same
+      # `(region, start)` / `(region, end)` frames either way, so the outer
+      # merge below behaves exactly as it did on the raw slots.
+      if (.hasSlot(x, "vintage") || .hasSlot(x, "start")) {
+        d <- full_join(.lifespan_col(x, "start"), .lifespan_col(x, "end"),
+                       by = "region") |>
+          mutate(process = x@name, .before = 1) |>
+          as.data.table()
 
         if (nrow(d) > 0) {
           dd <- d
         } else {
-          # Object has a `start` slot but no start/end data: it is available in
+          # Object has a lifespan slot but no start/end data: it is available in
           # all of its regions across the whole horizon. Emit an NA window so
           # the NA-region expansion below fills every region (and all years).
           dd <- data.table(
@@ -3596,6 +3729,20 @@ get_process_invest_window <- function(scen, process = NULL, classes = NULL) {
     },
     as_list = FALSE
   )
+
+  # `apply_to_scenario_data()` yields an empty, column-less result when the model
+  # holds none of the classes above -- e.g. a demand served only by an import.
+  # `mutate()` would then resolve `start` to `stats::start()` and fail inside
+  # `is.infinite()`, so substitute a correctly typed empty table.
+  if (is.null(ll_start_end) || NROW(ll_start_end) == 0L ||
+      !all(c("process", "region", "start", "end") %in% names(ll_start_end))) {
+    ll_start_end <- data.table(
+      process = character(),
+      region = character(),
+      start = integer(),
+      end = integer()
+    )
+  }
 
   # fix for infinite values (transitioning from Inf to NA in slots to use integers)
   ll_start_end <- ll_start_end |>
@@ -3671,8 +3818,26 @@ get_process_invest_years <- function(scen, process = NULL, classes = NULL) {
   ) |>
   rbindlist(use.names = TRUE, fill = TRUE)
 
+  # Every element is NULL when no capacity-bearing process exists, and
+  # `rbindlist()` then returns a table with no columns at all. Callers join and
+  # arrange on `process`/`year`, so hand back the correctly typed empty table.
+  process_invest_year <- .empty_process_years(process_invest_year)
+
   return(process_invest_year)
 
+}
+
+# Normalise a (possibly column-less) process-years table -- see the callers above.
+.empty_process_years <- function(x) {
+  if (is.null(x) || NROW(x) == 0L ||
+      !all(c("process", "region", "year") %in% names(x))) {
+    return(data.table(
+      process = character(),
+      region = character(),
+      year = integer()
+    ))
+  }
+  x
 }
 
 get_process_stock_window <- function(scen, process = NULL, classes = NULL) {
@@ -3716,6 +3881,19 @@ get_process_stock_window <- function(scen, process = NULL, classes = NULL) {
     },
     as_list = FALSE
   )
+
+  # No technology/storage/trade in the model (e.g. a demand met by an import):
+  # `apply_to_scenario_data()` returns an empty, column-less result and the
+  # region expansion below would fail on a missing `region` column.
+  if (is.null(ll) || NROW(ll) == 0L ||
+      !all(c("process", "region", "start", "end") %in% names(ll))) {
+    ll <- data.table(
+      process = character(),
+      region = character(),
+      start = integer(),
+      end = integer()
+    )
+  }
 
   # expand regions for NA values, keeping start and end years
   ll_na <- ll |>
@@ -3781,6 +3959,8 @@ get_process_stock_years <- function(scen, process = NULL, classes = NULL) {
   ) |>
     rbindlist(use.names = TRUE, fill = TRUE)
 
+  process_stock_year <- .empty_process_years(process_stock_year)
+
   return(process_stock_year)
 
 }
@@ -3809,10 +3989,25 @@ get_process_years <- function(scen, process = NULL, classes = NULL) {
     }
 
     # ### process availability over years by region
-    scen@modInp@sets$process_years <- rbind(
+    process_years <- rbind(
       scen@modInp@sets$process_invest_year,
       scen@modInp@sets$process_stock_year
-    ) |>
+    )
+
+    # Both tables are empty when the model carries no technology/storage/trade
+    # (a demand met by an import, say). `rbindlist()` then yields a table with
+    # no columns at all, and `arrange(process, year)` would resolve `year` to
+    # `stats::year`. Substitute the correctly typed empty table.
+    if (is.null(process_years) || NROW(process_years) == 0L ||
+        !all(c("process", "region", "year") %in% names(process_years))) {
+      process_years <- data.table(
+        process = character(),
+        region = character(),
+        year = integer()
+      )
+    }
+
+    scen@modInp@sets$process_years <- process_years |>
       unique() |>
       arrange(process, year) |>
       as.data.table()

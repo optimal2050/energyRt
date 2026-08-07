@@ -16,11 +16,8 @@
 #' @slot invcost `r get_slot_doc("trade", "invcost")`
 #' @slot fixom `r get_slot_doc("trade", "fixom")`
 #' @slot varom `r get_slot_doc("trade", "varom")`
-#' @slot olife `r get_slot_doc("trade", "olife")`
-#' @slot start `r get_slot_doc("trade", "start")`
-#' @slot end `r get_slot_doc("trade", "end")`
 #' @slot capacity `r get_slot_doc("trade", "capacity")`
-#' @slot capacityVariable `r get_slot_doc("trade", "capacityVariable")`
+#' @slot vintage `r get_slot_doc("trade", "vintage")`
 #' @slot cap2act `r get_slot_doc("trade", "cap2act")`
 #' @slot optimizeRetirement `r get_slot_doc("trade", "optimizeRetirement")`
 #' @slot misc `r get_slot_doc("trade", "misc")`
@@ -43,12 +40,9 @@ setClass("trade",
     invcost = "data.frame",
     fixom = "data.frame", # !!!ToDo: add fixom
     varom = "data.frame", # !!!ToDO: add varom
-    olife = "data.frame",
-    start = "data.frame",
-    end = "data.frame",
+    vintage = "data.frame",
     # stock = "data.frame", # !!!ToDo: deprecate (move to @capacity)
     capacity = "data.frame", # !!!ToDo: not implemented yet
-    capacityVariable = "logical",
     cap2act = "numeric", #
     optimizeRetirement = "logical", # !!!ToDo: add early retirement
     misc = "list"
@@ -65,6 +59,7 @@ setClass("trade",
       stringsAsFactors = FALSE
     ),
     trade = data.frame(
+      vintage = character(),
       src = character(),
       dst = character(),
       year = integer(),
@@ -78,12 +73,14 @@ setClass("trade",
       stringsAsFactors = FALSE
     ),
     fixom = data.frame(
+      vintage = character(),
       region = character(),
       year = integer(),
       fixom = numeric(),
       stringsAsFactors = FALSE
     ),
     varom = data.frame(
+      vintage = character(),
       src = character(),
       dst = character(),
       year = integer(),
@@ -92,34 +89,38 @@ setClass("trade",
       markup = numeric(),
       stringsAsFactors = FALSE
     ),
+    # `wacc` overrides the model-wide rate when annuitising this corridor;
+    # `payback` shortens the cost-recovery period below `@vintage$olife`; `eac`
+    # supplies the annuity directly, bypassing both.
     invcost = data.frame(
+      vintage = character(),
       region = character(),
       year = integer(),
       invcost = numeric(),
       wacc = numeric(),
+      payback = numeric(),
       eac = numeric(),
       retcost = numeric(),
       stringsAsFactors = FALSE
     ),
-    # olife = Inf, # !!!ToDo: change to data.frame for consistency
-    # start = -Inf, # !!!ToDo: change to data.frame for consistency
-    # end = Inf, # !!!ToDo: change to data.frame for consistency
-    olife = data.frame(
-      year = integer(),
+    # Lifespan / vintage table, replacing the former `start`/`end`/`olife` slots
+    # (whose ToDo notes asked for exactly this consistency with the other
+    # processes). One row per vintage; `start`/`end` default to the vintage year.
+    # `region` and `cluster` are carried for a uniform shape across classes but
+    # are unused here: trade has no `@region` slot -- its scope comes from the
+    # route endpoints -- and no cluster dimension, since `@routes` already
+    # provides multiplicity.
+    vintage = data.frame(
+      vintage = character(),
+      region = character(),
+      cluster = character(),
+      start = integer(),
+      end = integer(),
       olife = integer(),
       stringsAsFactors = FALSE
     ),
-    start = data.frame(
-      start = integer(),
-      # start = -Inf, # temporary, ToDO: similar to other processes
-      stringsAsFactors = FALSE
-    ),
-    end = data.frame(
-      end = integer(),
-      # end = Inf,  # temporary, ToDO: similar to other processes
-      stringsAsFactors = FALSE
-    ),
     capacity = data.frame(
+      vintage = character(),
       # region = character(),
       year = integer(),
       stock = numeric(),
@@ -134,7 +135,6 @@ setClass("trade",
       ret.fx = numeric(),
       stringsAsFactors = FALSE
     ),
-    capacityVariable = TRUE,
     aux = data.frame(
       acomm = character(),
       unit = character(),
@@ -142,6 +142,7 @@ setClass("trade",
     ),
     # Auxiliary commodity parameters
     aeff = data.frame(
+      vintage = character(),
       acomm = character(),
       src = character(),
       dst = character(),
@@ -187,11 +188,11 @@ setMethod("initialize", "trade", function(.Object, ...) {
 #' @param fixom `r get_slot_doc("trade", "fixom")`
 #' @param varom `r get_slot_doc("trade", "varom")`
 #' @param invcost `r get_slot_doc("trade", "invcost")`
-#' @param olife `r get_slot_doc("trade", "olife")`
-#' @param start `r get_slot_doc("trade", "start")`
-#' @param end `r get_slot_doc("trade", "end")`
+#' @param vintage `r get_slot_doc("trade", "vintage")`
+#' @param olife deprecated, use the `olife` column of `vintage`.
+#' @param start deprecated, use the `start` column of `vintage`.
+#' @param end deprecated, use the `end` column of `vintage`.
 #' @param capacity `r get_slot_doc("trade", "capacity")`
-#' @param capacityVariable `r get_slot_doc("trade", "capacityVariable")`
 #' @param aux `r get_slot_doc("trade", "aux")`
 #' @param aeff `r get_slot_doc("trade", "aeff")`
 #' @param cap2act `r get_slot_doc("trade", "cap2act")`
@@ -260,20 +261,12 @@ newTrade <- function(
     varom = data.frame(),
     invcost = data.frame(),
     olife = data.frame(),
-    start = data.frame(
-      # start = integer(),
-      start = -Inf, # temporary, ToDO: similar to other processes
-      stringsAsFactors = FALSE
-    ),
-    end = data.frame(
-      # end = integer(),
-      end = Inf,  # temporary, ToDO: similar to other processes
-      stringsAsFactors = FALSE
-    ),
-    # start = data.frame(),
-    # end = data.frame(),
+    # `-Inf` / `Inf` mean "no restriction"; `.tech_lifespan_args()` treats an
+    # all-infinite bound as absent, so these produce no `vintage` row.
+    start = data.frame(start = -Inf, stringsAsFactors = FALSE),
+    end = data.frame(end = Inf, stringsAsFactors = FALSE),
+    vintage = data.frame(),
     capacity = data.frame(),
-    capacityVariable = TRUE,
     aux = data.frame(),
     aeff = data.frame(),
     cap2act = 1,
@@ -281,9 +274,7 @@ newTrade <- function(
     misc = list(),
     ...
 ) {
-  .data2slots(
-    "trade",
-    name,
+  args <- list(
     desc = desc,
     commodity = commodity,
     routes = routes,
@@ -291,11 +282,11 @@ newTrade <- function(
     fixom = fixom,
     varom = varom,
     invcost = invcost,
+    vintage = vintage,
     olife = olife,
     start = start,
     end = end,
     capacity = capacity,
-    capacityVariable = capacityVariable,
     aux = aux,
     aeff = aeff,
     cap2act = cap2act,
@@ -303,6 +294,9 @@ newTrade <- function(
     misc = misc,
     ...
   )
+  args <- .trade_removed_args(args)
+  args <- .tech_lifespan_args(args)
+  do.call(.data2slots, c(list("trade", name), args))
 }
 
 
@@ -340,5 +334,7 @@ newTrade <- function(
 #' @method trade update
 #' @export
 setMethod("update", signature(object = "trade"), function(object, ...) {
-  .data2slots("trade", object, ...)
+  args <- .trade_removed_args(list(...))
+  args <- .tech_lifespan_args(args)
+  do.call(.data2slots, c(list("trade", object), args))
 })

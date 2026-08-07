@@ -71,13 +71,6 @@ cardYear:
   type: numpar
   defVal: 0.0
   interpolation: inter.forth
-pLECLoACT:
-  name: pLECLoACT
-  dimSets: region
-  type: numpar
-  defVal: 0.0
-  interpolation: back.inter.forth
-  class: ~
 pSliceShare:
   name: pSliceShare
   dimSets: slice
@@ -143,8 +136,12 @@ pYearFraction:
   class: settings
   slot: yearFraction
   dropIfEmpty: false
-pDiscount:
-  name: pDiscount
+# The model's two rates. `pWacc` annuitises investment into pXEac (R/eac.R);
+# `pSdr` builds pDiscountFactor. They replace the former single `pDiscount`.
+# `dropIfEmpty: false`: a rate of 0 is a legitimate value (zero-interest), not
+# an absent one, and must survive `interpolate_parameters(drop_default = TRUE)`.
+pWacc:
+  name: pWacc
   dimSets:
   - region
   - year
@@ -153,29 +150,20 @@ pDiscount:
   interpolation: back.inter.forth
   class: settings
   slot: discount
-  colName: discount
-# pWacc:
-#   name: pWacc
-#   dimSets:
-#   - region
-#   - year
-#   type: numpar
-#   defVal: 0.0
-#   interpolation: back.inter.forth
-#   class: settings
-#   slot: discount
-#   colName: wacc
-# pSdr:
-#   name: pSdr
-#   dimSets:
-#   - region
-#   - year
-#   type: numpar
-#   defVal: 0.0
-#   interpolation: back.inter.forth
-#   class: settings
-#   slot: discount
-#   colName: sdr
+  colName: wacc
+  dropIfEmpty: false
+pSdr:
+  name: pSdr
+  dimSets:
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: settings
+  slot: discount
+  colName: sdr
+  dropIfEmpty: false
 pDiscountFactor:
   name: pDiscountFactor
   dimSets:
@@ -430,6 +418,8 @@ pTechCap2act:
   class: technology
   slot: cap2act
   dropIfEmpty: false
+# Seeded from a user-supplied `@invcost$eac` (usually empty); `R/eac.R` fills the
+# remaining rows by annuitising pTechInvcost. A supplied row always wins.
 pTechEac:
   name: pTechEac
   type: numpar
@@ -441,7 +431,36 @@ pTechEac:
   interpolation: back.inter.forth
   class: technology
   slot: invcost
-  colName: invcost
+  colName: eac
+# Process-specific cost of capital; overrides the model-wide pWacc in R/eac.R.
+pTechWacc:
+  name: pTechWacc
+  type: numpar
+  dimSets:
+  - tech
+  - region
+  - year
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: technology
+  slot: invcost
+  colName: wacc
+  dropIfEmpty: false
+# Cost-recovery period. Where given it replaces olife BOTH in the annuity (R/eac.R)
+# and in the eqTechEac charging window; the technical life still governs operation.
+pTechPayback:
+  name: pTechPayback
+  type: numpar
+  dimSets:
+  - tech
+  - region
+  - year
+  defVal: 0.0
+  interpolation: back.inter.forth
+  class: technology
+  slot: invcost
+  colName: payback
+  dropIfEmpty: false
 pTechEmisComm:
   name: pTechEmisComm
   type: numpar
@@ -462,7 +481,7 @@ pTechOlife:
   defVal: 1.0
   interpolation: back.inter.forth
   class: technology
-  slot: olife
+  slot: vintage
   colName: olife
 pTechFixom:
   name: pTechFixom
@@ -966,7 +985,7 @@ pStorageOlife:
   interpolation: back.inter.forth
   colName: olife
   class: storage
-  slot: olife
+  slot: vintage
 pStorageStock:
   name: pStorageStock
   dimSets:
@@ -1003,6 +1022,7 @@ pStorageInvcost:
   colName: invcost
   class: storage
   slot: invcost
+# See pTechEac / pTechWacc / pTechPayback for what these three do.
 pStorageEac:
   name: pStorageEac
   dimSets:
@@ -1012,9 +1032,35 @@ pStorageEac:
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
-  colName: invcost
+  colName: eac
   class: storage
   slot: invcost
+pStorageWacc:
+  name: pStorageWacc
+  dimSets:
+  - stg
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: wacc
+  class: storage
+  slot: invcost
+  dropIfEmpty: false
+pStoragePayback:
+  name: pStoragePayback
+  dimSets:
+  - stg
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: payback
+  class: storage
+  slot: invcost
+  dropIfEmpty: false
 pStorageInpEff:
   name: pStorageInpEff
   dimSets:
@@ -1124,6 +1170,7 @@ pStorageCap2stg:
   interpolation: back.inter.forth
   class: storage
   slot: cap2stg
+  colName: cap2stg
 pStorageCinp:
   name: pStorageCinp
   dimSets:
@@ -1475,7 +1522,7 @@ pTradeIrEff:
   interpolation: back.inter.forth
   colName: teff
   class: trade
-  slot: teff
+  slot: trade
 pTradeIrMarkup:
   name: pTradeIrMarkup
   dimSets:
@@ -1527,7 +1574,7 @@ pTradeOlife:
   interpolation: back.inter.forth
   colName: olife
   class: trade
-  slot: olife
+  slot: vintage
 pTradeInvcost:
   name: pTradeInvcost
   dimSets:
@@ -1540,6 +1587,7 @@ pTradeInvcost:
   colName: invcost
   class: trade
   slot: invcost
+# See pTechEac / pTechWacc / pTechPayback for what these three do.
 pTradeEac:
   name: pTradeEac
   dimSets:
@@ -1549,9 +1597,35 @@ pTradeEac:
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
-  colName: invcost
+  colName: eac
   class: trade
   slot: invcost
+pTradeWacc:
+  name: pTradeWacc
+  dimSets:
+  - trade
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: wacc
+  class: trade
+  slot: invcost
+  dropIfEmpty: false
+pTradePayback:
+  name: pTradePayback
+  dimSets:
+  - trade
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: payback
+  class: trade
+  slot: invcost
+  dropIfEmpty: false
 pTradeCap2Act:
   name: pTradeCap2Act
   dimSets: trade
@@ -1680,7 +1754,7 @@ pSubCostInp:
   defVal: 0.0
   interpolation: back.inter.forth
   class: subsidy
-  slot: sub
+  slot: subsidy
   colName: inp
 pSubCostOut:
   name: pSubCostOut
@@ -1693,7 +1767,7 @@ pSubCostOut:
   defVal: 0.0
   interpolation: back.inter.forth
   class: subsidy
-  slot: sub
+  slot: subsidy
   colName: out
 pSubCostBal:
   name: pSubCostBal
@@ -1706,7 +1780,7 @@ pSubCostBal:
   defVal: 0.0
   interpolation: back.inter.forth
   class: subsidy
-  slot: sub
+  slot: subsidy
   colName: bal
 mCommReg:
   name: mCommReg
@@ -1913,6 +1987,18 @@ mSliceFamily:
   dimSets:
   - slice
   - slicep
+mRegionFamily:
+  name: mRegionFamily
+  type: map
+  dimSets:
+  - region
+  - regionp
+mCommRegion:
+  name: mCommRegion
+  type: map
+  dimSets:
+  - comm
+  - region
 mDemComm:
   name: mDemComm
   type: map
@@ -2414,10 +2500,6 @@ mImportRowCost:
   - imp
   - region
   - year
-mLECRegion:
-  name: mLECRegion
-  type: map
-  dimSets: region
 mMidMilestone:
   name: mMidMilestone
   type: map
@@ -2809,10 +2891,6 @@ mTradeOlifeInf:
   name: mTradeOlifeInf
   type: map
   dimSets: trade
-mTradeCapacityVariable:
-  name: mTradeCapacityVariable
-  type: map
-  dimSets: trade
 mTradeRoutes:
   name: mTradeRoutes
   type: map
@@ -2979,18 +3057,6 @@ mvTradeIr:
   - dst
   - year
   - slice
-mvTradeCost:
-  name: mvTradeCost
-  type: map
-  dimSets:
-  - region
-  - year
-mvTradeRowCost:
-  name: mvTradeRowCost
-  type: map
-  dimSets:
-  - region
-  - year
 mvTotalCost:
   name: mvTotalCost
   type: map
@@ -3309,13 +3375,6 @@ meqBalFx:
   - region
   - year
   - slice
-meqLECActivity:
-  name: meqLECActivity
-  type: map
-  dimSets:
-  - tech
-  - region
-  - year
 mTechCapLo:
   name: mTechCapLo
   type: map

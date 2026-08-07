@@ -12,7 +12,7 @@ newDemand(
   desc = character(),
   commodity = character(),
   unit = character(),
-  dem = data.frame(),
+  demand = data.frame(),
   region = character(),
   misc = list(),
   ...
@@ -41,7 +41,7 @@ update(object, ...)
 
   character. Optional unit of the commodity.
 
-- dem:
+- demand:
 
   data.frame. Specification of the demand.
 
@@ -59,7 +59,7 @@ update(object, ...)
   :   character. Name of the slice for the demand value. NA for every
       slice.
 
-  dem
+  demand
 
   :   numeric. Value of the demand.
 
@@ -67,8 +67,8 @@ update(object, ...)
 
   character. Optional name of region to narrow the specification of the
   demand in the case of used NAs. Error will be returned if specified
-  regions in `@dem` are not mensioned in the `@region` slot (if the slot
-  is not empty).
+  regions in `@demand` are not mensioned in the `@region` slot (if the
+  slot is not empty).
 
 - misc:
 
@@ -90,11 +90,11 @@ DSTEEL <- newDemand(
  desc = "Steel demand",
  commodity = "STEEL",
  unit = "Mt",
- dem = data.frame(
+ demand = data.frame(
     region = "UTOPIA", # NA for every region
     year = c(2020, 2030, 2050),
     slice = "ANNUAL",
-    dem = c(100, 200, 300)
+    demand = c(100, 200, 300)
  ),
  region = "UTOPIA", # optional, to narrow the specification of the demand
  )

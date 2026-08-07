@@ -38,9 +38,14 @@ over the model horizon.
 
   numeric. Total accumulated limit through the model horizon.
 
-- `imp`:
+- `import`:
 
   data.frame. Import parameters.
+
+  vintage
+
+  :   character. Vintage label selecting the variant this row applies
+      to, NA for every vintage. See the `vintage` slot.
 
   region
 

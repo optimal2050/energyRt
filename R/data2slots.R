@@ -58,12 +58,17 @@
     # if (any(sapply(arg, is.null))) stop('There is NULL argument')
     arg <- arg[!sapply(arg, is.null)]
     if (any(!(names(arg) %in% names(slots)))) {
-      # check consistency of the data in `...` with the object slots
+      # check consistency of the data in `...` with the object slots.
+      # `warn_nodata = FALSE` is used by callers that deliberately pass a mixed
+      # bag of arguments (see `update` for "config"/"horizon") and expect the
+      # unknown ones to be ignored. Otherwise this is a user error: returning
+      # early here would hand back an object with NONE of the supplied data
+      # applied, which is far harder to notice than a failure.
+      unknown <- names(arg)[!(names(arg) %in% names(slots))]
       if (warn_nodata) {
-        warning('Unidentified slots: "',
-                paste(names(arg)[!(names(arg) %in% names(slots))],
-                      collapse = '", "'),
-                '", in class = ', class_name, ", object x = ", x)
+        stop('Unidentified slot(s): "', paste(unknown, collapse = '", "'),
+             '" for class "', class_name, '". Valid slots: ',
+             paste(names(slots), collapse = ", "))
       }
       return(obj)
     }
@@ -166,16 +171,24 @@
               slot(obj, s)[[i]][nn] <- dat[[i]]
             }
           }
-        } else if (any(colnames(slot(obj, s)) == s) && length(dat) == 1) {
-          # scalar-data to add to a data.frame
-          # for cases like "start = 2000" instead of "start = list(start = 2000)"
-          slot(obj, s)[1, ] <- NA
-          if (all(class(dat) %in% class(slot(obj, s)[1, s]))) {
-            slot(obj, s)[1, s] <- dat
+        } else if (any(colnames(slot(obj, s)) == s) && length(dat) >= 1) {
+          # Bare vector shorthand for a data.frame slot that carries a column of
+          # its own name: `start = 2000` instead of `start = list(start = 2000)`.
+          # A vector of length > 1 fills one row per element, so
+          # `vintage = c(2030, 2040)` and `cluster = c("01", "02")` work.
+          nn <- seq_along(dat)
+          slot(obj, s)[nn, ] <- NA
+          want <- class(slot(obj, s)[1, s])
+          if (all(class(dat) %in% want)) {
+            slot(obj, s)[[s]][nn] <- dat
+          } else if ("character" %in% want && is.numeric(dat)) {
+            # label columns (e.g. `vintage`) are character, but years are
+            # naturally written as numbers
+            slot(obj, s)[[s]][nn] <- as.character(dat)
           } else {
             stop(
               "Unmatched data class (", class(dat), ") in ", x, "@", s,
-              ". Expecting class ", class(slot(obj, s)[1, s])
+              ". Expecting class ", want
             )
           }
         } else {
@@ -223,7 +236,17 @@
             x, "@", s
           )
         }
-        slot(obj, s) <- as.character(dat)
+        # `dat` is already character here (the branch above stops otherwise), so
+        # `as.character()` would only strip attributes -- including NAMES, which
+        # some slots rely on (e.g. config@variant_prefix is keyed by variant
+        # dimension). Assign directly to preserve them.
+        slot(obj, s) <- dat
+      } else if (slots[s] == "ANY") {
+        # An "ANY" slot accepts any value by definition, so there is nothing to
+        # check here -- the class contract (where there is one) lives in the
+        # object's validity method. Used by `config@geoscale`, which cannot be
+        # typed because `geoscales` is an optional dependency.
+        slot(obj, s) <- dat
       } else {
         # all other formats
         if (all(class(dat) %in% class(slot(obj, s)))) {

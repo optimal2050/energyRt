@@ -13,7 +13,7 @@
 #' @slot solutionLogs `r get_slot_doc("modOut", "solutionLogs")`
 #' @slot misc `r get_slot_doc("modOut", "misc")`
 #'
-#' @include class-modInp.R
+#' @include class-modInp.R class-variable.R
 #' @rdname class-modOut
 #' @export
 setClass("modOut",
@@ -41,5 +41,13 @@ setClass("modOut",
 )
 
 setMethod("initialize", "modOut", function(.Object, ...) {
+  # Pre-populate `@variables` with one empty, correctly-typed `variable` per
+  # declared variable, mirroring how `modInp`'s initialize builds `@parameters`
+  # from `data-raw/modInp.yml`. `read_solution()` then fills them.
+  #
+  # A variable the solver skips (no non-zero values) keeps its empty skeleton,
+  # so `getData()` still knows its column names -- which it could not when
+  # `@variables` was a list that simply lacked the entry.
+  .Object@variables <- .variables_from_spec()
   .Object
 })

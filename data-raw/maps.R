@@ -268,8 +268,7 @@
   eqTaxCost = "Commodity taxes (weighted)",
   eqSubsCost = "Commodity subsidy (weighted)",
   eqCost = "Total costs (weighted)",
-  eqObjective = "Objective equation NPV of total costs",
-  eqLECActivity = "levelized costs (auxiliary equation)");
+  eqObjective = "Objective equation NPV of total costs");
 #########################
 # equation set
 #########################
@@ -385,8 +384,7 @@
   eqTaxCost = c("comm", "region", "year"),
   eqSubsCost = c("comm", "region", "year"),
   eqCost = c("region", "year"),
-  eqObjective = NULL,
-  eqLECActivity = c("tech", "region", "year"));
+  eqObjective = NULL);
 #########################
 # parameter description
 #########################
@@ -434,7 +432,14 @@
   pTechCap2act = "Technology capacity units to activity units conversion factor",
   pTechCvarom = "Commodity-specific variable costs (per unit of commodity input or output)",
   pTechAvarom = "Auxilary Commodity-specific variable costs (per unit of commodity input or output)",
-  pDiscount = "Discount rate (can be region and year specific)",
+  pWacc = "Weighted average cost of capital, used to annuitise investment (can be region and year specific)",
+  pSdr = "Social discount rate, used to discount the objective (can be region and year specific)",
+  pTechWacc = "Technology-specific cost of capital (overrides pWacc)",
+  pStorageWacc = "Storage-specific cost of capital (overrides pWacc)",
+  pTradeWacc = "Trade-specific cost of capital (overrides pWacc)",
+  pTechPayback = "Cost-recovery period of a technology (overrides pTechOlife in the EAC charge)",
+  pStoragePayback = "Cost-recovery period of a storage (overrides pStorageOlife in the EAC charge)",
+  pTradePayback = "Cost-recovery period of a trade (overrides pTradeOlife in the EAC charge)",
   pDiscountFactor = "Discount factor (cumulative)",
   pDiscountFactorMileStone = "Discount factor (cumulative) sum for MileStone",
   pSupCost = "Costs of supply (price per unit)",
@@ -541,8 +546,7 @@
   pStorageWeatherCinpUp = "weather factor for storage commodity input upper value (cinp.up)",
   pStorageWeatherCinpLo = "weather factor for storage commodity input lower value (cinp.lo)",
   pStorageWeatherCoutUp = "weather factor for storage commodity output upper value (cout.up)",
-  pStorageWeatherCoutLo = "weather factor for storage commodity output lower value (cout.lo)",
-  pLECLoACT = "levelized costs interim parameter");
+  pStorageWeatherCoutLo = "weather factor for storage commodity output lower value (cout.lo)");
 #########################
 # parameter set
 #########################
@@ -590,7 +594,14 @@
   pTechCap2act = c("tech"),
   pTechCvarom = c("tech", "comm", "region", "year", "slice"),
   pTechAvarom = c("tech", "comm", "region", "year", "slice"),
-  pDiscount = c("region", "year"),
+  pWacc = c("region", "year"),
+  pSdr = c("region", "year"),
+  pTechWacc = c("tech", "region", "year"),
+  pStorageWacc = c("stg", "region", "year"),
+  pTradeWacc = c("trade", "region", "year"),
+  pTechPayback = c("tech", "region", "year"),
+  pStoragePayback = c("stg", "region", "year"),
+  pTradePayback = c("trade", "region", "year"),
   pDiscountFactor = c("region", "year"),
   pDiscountFactorMileStone = c("region", "year"),
   pSupCost = c("sup", "comm", "region", "year", "slice"),
@@ -697,8 +708,7 @@
   pStorageWeatherCinpUp = c("weather", "stg"),
   pStorageWeatherCinpLo = c("weather", "stg"),
   pStorageWeatherCoutUp = c("weather", "stg"),
-  pStorageWeatherCoutLo = c("weather", "stg"),
-  pLECLoACT = c("region"));
+  pStorageWeatherCoutLo = c("weather", "stg"));
 #########################
 # equation map
 #########################
@@ -813,8 +823,7 @@
   eqTaxCost = "mTaxCost(comm, region, year)",
   eqSubsCost = "mSubCost(comm, region, year)",
   eqCost = "mvTotalCost(region, year)",
-  eqObjective = "",
-  eqLECActivity = "meqLECActivity(tech, region, year)"
+  eqObjective = ""
 );
 #########################
 # set description
@@ -890,6 +899,8 @@
   mSliceParentChildE = "Child slice or the same",
   mSliceParentChild = "Child slice not the same",
   mSliceFamily = "Immediate slice parent-child (one level)",
+  mRegionFamily = "Immediate region parent-child (one level)",
+  mCommRegion = "Region level a commodity is balanced at",
   mTradeSpan = "",
   mTradeNew = "",
   mTradeOlifeInf = "",
@@ -959,8 +970,6 @@
   mTradeIrCdst2Ainp = "",
   mTradeIrCsrc2Aout = "",
   mTradeIrCdst2Aout = "",
-  mvTradeCost = "",
-  mvTradeRowCost = "",
   mExportRowCost = "",
   mImportRowCost = "",
   mImportIrCost = "",
@@ -1064,7 +1073,6 @@
   meqBalLo = "",
   meqBalUp = "",
   meqBalFx = "",
-  meqLECActivity = "",
   mTechAct2AInp = "",
   mTechCap2AInp = "",
   mTechNCap2AInp = "",
@@ -1074,8 +1082,7 @@
   mTechCap2AOut = "",
   mTechNCap2AOut = "",
   mTechCinp2AOut = "",
-  mTechCout2AOut = "",
-  mLECRegion = "");
+  mTechCout2AOut = "");
 #########################
 # set set
 #########################
@@ -1150,6 +1157,8 @@
   mSliceParentChildE = c("slice", "slice"),
   mSliceParentChild = c("slice", "slice"),
   mSliceFamily = c("slice", "slice"),
+  mRegionFamily = c("region", "region"),
+  mCommRegion = c("comm", "region"),
   mTradeSpan = c("trade", "year"),
   mTradeNew = c("trade", "year"),
   mTradeOlifeInf = c("trade"),
@@ -1219,8 +1228,6 @@
   mTradeIrCdst2Ainp = c("trade", "comm", "region", "region", "year", "slice"),
   mTradeIrCsrc2Aout = c("trade", "comm", "region", "region", "year", "slice"),
   mTradeIrCdst2Aout = c("trade", "comm", "region", "region", "year", "slice"),
-  mvTradeCost = c("region", "year"),
-  mvTradeRowCost = c("region", "year"),
   mExportRowCost = c("expp", "region", "year"),
   mImportRowCost = c("imp", "region", "year"),
   mImportIrCost = c("trade", "region", "year"),
@@ -1324,7 +1331,6 @@
   meqBalLo = c("comm", "region", "year", "slice"),
   meqBalUp = c("comm", "region", "year", "slice"),
   meqBalFx = c("comm", "region", "year", "slice"),
-  meqLECActivity = c("tech", "region", "year"),
   mTechAct2AInp = c("tech", "comm", "region", "year", "slice"),
   mTechCap2AInp = c("tech", "comm", "region", "year", "slice"),
   mTechNCap2AInp = c("tech", "comm", "region", "year", "slice"),
@@ -1334,8 +1340,7 @@
   mTechCap2AOut = c("tech", "comm", "region", "year", "slice"),
   mTechNCap2AOut = c("tech", "comm", "region", "year", "slice"),
   mTechCinp2AOut = c("tech", "comm", "comm", "region", "year", "slice"),
-  mTechCout2AOut = c("tech", "comm", "comm", "region", "year", "slice"),
-  mLECRegion = c("region"));
+  mTechCout2AOut = c("tech", "comm", "comm", "region", "year", "slice"));
 #########################
 # equation_variable 
 #########################

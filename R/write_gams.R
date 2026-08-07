@@ -14,17 +14,7 @@
 #' # set_gams_path("C:/GAMS/win64/32.2/")
 #'
 set_gams_path <- function(path = NULL) {
-  # browser()
-  if (!is.null(path) && path != "") {
-    if (!dir.exists(path)) {
-      stop(paste0('The path "', path, '" does not exist.'), call. = FALSE)
-    }
-    if (!grepl("\\/$", path)) {
-      path <- paste0(path, "/")
-    }
-  }
-  options::opt_set("gams_path", path, env = "energyRt")
-  # options(gams_path = path)
+  set_solver_path("gams", path)
 }
 
 #' @rdname solver
@@ -35,8 +25,7 @@ set_gams_path <- function(path = NULL) {
 #' @examples
 #' # get_gams_path()
 get_gams_path <- function() {
-  options::opt("gams_path", env = "energyRt")
-  # options::opt("gams_path")
+  get_solver_path("gams")
 }
 
 #' @return
@@ -49,15 +38,7 @@ get_gams_path <- function() {
 #' @examples
 #' # set_gdxlib("C:/GAMS/35")
 set_gdxlib_path <- function(path = NULL) {
-  if (!is.null(path) && path != "") {
-    if (!dir.exists(path)) {
-      stop(paste0('The path "', path, '" does not exist.'), call. = FALSE)
-    }
-    if (!grepl("\\/$", path)) {
-      path <- paste0(path, "/")
-    }
-  }
-  options::opt_set("gdxlib_path", path, env = "energyRt")
+  set_solver_path("gdxlib", path)
 }
 
 #' @rdname solver
@@ -68,8 +49,27 @@ set_gdxlib_path <- function(path = NULL) {
 #' @examples
 #' # get_gdxlib()
 get_gdxlib_path <- function() {
-  options::opt("gdxlib_path", env = "energyRt")
-  # options::opt("gdxlib_path")
+  get_solver_path("gdxlib")
+}
+
+# Load the GDX shared library, once per session.
+#
+# The "already loaded" latch is package-private state (`.en_state`), not a user
+# setting -- it used to live in a base R option (`en_gdxlib_loaded`), where it
+# showed up in `options()` alongside real configuration.
+.load_gdxlib <- function() {
+  if (isTRUE(.en_state$gdxlib_loaded)) {
+    return(invisible(TRUE))
+  }
+  lb <- get_gdxlib_path()
+  if (is.null(lb)) {
+    lb <- get_gams_path()
+  }
+  if (!gdxtools::igdx(lb)) {
+    stop('Cannot load "gdx" library. Check "?set_gdxlib_path" to setup.')
+  }
+  .en_state$gdxlib_loaded <- TRUE
+  invisible(TRUE)
 }
 
 .check_load_gdxlib <- function() {
@@ -87,19 +87,7 @@ get_gdxlib_path <- function() {
          'To install: pak::pkg_install("lolow/gdxtools")'
          )
   }
-  en_gdxlib_loaded <- getOption("en_gdxlib_loaded")
-  if (is.null(en_gdxlib_loaded) || as.logical(en_gdxlib_loaded) == FALSE) {
-    lb <- options::opt("gdxlib_path")
-    if (is.null(lb)) {
-      lb <- options::opt("gams_path")
-    }
-    ix <- gdxtools::igdx(lb)
-    if (!ix) {
-      stop('Cannot load "gdx" library. Check "?set_gdxlib_path" to setup.')
-    } else {
-      options(en_gdxlib_loaded = TRUE)
-    }
-  }
+  .load_gdxlib()
 }
 
 .check_load_gdxtools <- function() {
@@ -111,19 +99,7 @@ get_gdxlib_path <- function() {
   }
   xt <- requireNamespace("gdxtools", quietly = TRUE)
   # xt <- require("gdxtools", quietly = TRUE)
-  en_gdxlib_loaded <- getOption("en_gdxlib_loaded")
-  if (is.null(en_gdxlib_loaded) || as.logical(en_gdxlib_loaded) == FALSE) {
-    lb <- options::opt("gdxlib_path")
-    if (is.null(lb)) {
-      lb <- options::opt("gams_path")
-    }
-    ix <- gdxtools::igdx(lb)
-    if (!ix) {
-      stop('Cannot load "gdx" library. Check "?set_gdxlib_path" to setup.')
-    } else {
-      options(en_gdxlib_loaded = TRUE)
-    }
-  }
+  .load_gdxlib()
 }
 
 
@@ -131,6 +107,7 @@ get_gdxlib_path <- function() {
 .write_model_GAMS <- function(arg, scen, trim = FALSE) {
   # if (trim) scen <- fold(scen)
   # browser()
+  .assert_payback_supported(scen, "GAMS")
   .write_inc_solver(scen, arg, "option lp = cplex;", ".gms", "cplex")
   if (is.null(scen@status$sparse)) stop("scen@status$sparse not found")
   # GAMS needs a DENSE scenario: it has no native parameter default (an absent
@@ -541,9 +518,10 @@ get_gdxlib_path <- function() {
       return(c(gen_gg(name, dtt[dtt$value != 0 & dtt$value != Inf, , drop = FALSE]))) #
     }
   }
-  if (obj@misc$nValues != -1) {
-    obj@data <- obj@data[seq(length.out = obj@misc$nValues), , drop = FALSE]
-  }
+  # The whole materialised slot is written. This used to truncate to the
+  # `@misc$nValues` row-count cache, so a stale count silently made this engine
+  # write less data than GLPK, which never truncated.
+  obj@data <- get_data_slot(obj)
   if (obj@type == "set") {
     if (nrow(obj@data) == 0) {
       return(paste0("set\n", obj@name, " / 1 /;\n"))

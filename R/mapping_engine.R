@@ -386,7 +386,7 @@ recipe_calendar <- function(scen, names, fmp) scen
   res <- apply_to_scenario_data(
     scen = scen, classes = cls, as_list = TRUE,
     func = function(obj) {
-      ol <- as.data.frame(obj@olife)
+      ol <- .lifespan_col(obj, "olife")
       if (nrow(ol) == 0 || is.null(ol$olife)) return(NULL)
       isinf <- is.infinite(ol$olife)
       if (!any(isinf)) return(NULL)
@@ -446,7 +446,7 @@ recipe_calendar <- function(scen, names, fmp) scen
       if (!(obj@name %in% techs)) return(NULL)
       tregs <- process_region[[obj@name]]
       if (is.null(tregs)) tregs <- regions
-      ol <- as.data.frame(obj@olife)
+      ol <- .lifespan_col(obj, "olife")
       if (nrow(ol) == 0 || is.null(ol$olife)) {
         df <- data.frame(tech = obj@name, region = tregs, olife = 1,
                          stringsAsFactors = FALSE)
@@ -876,14 +876,6 @@ recipe_value <- function(scen, names, fmp) {
   "mTechAfUp", "mTechAfcUp"
 )
 
-# TODO(deprecate LEC): the "linked extreme capacity" (LEC) feature is being
-# removed. Until the equation and its variables are deleted, emit these index
-# maps as empty so the constraint never materialises. No mapping logic is
-# derived for them on purpose. See data-raw/mapping_spec.yml (deprecated: yes).
-.constraint_maps_deprecated <- c(
-  "meqLECActivity", "mLECRegion"
-)
-
 # --------------------------------------------------------------------------- #
 # Generic "domain x filtered-source" constraint-map registry.
 #
@@ -1134,26 +1126,6 @@ recipe_value <- function(scen, names, fmp) {
   .set_map(scen, name, df, fmp)
 }
 
-# mTradeCapacityVariable: trades whose capacity is an explicit decision
-# variable (slot `capacityVariable == TRUE`). Membership-style projection of
-# the trade name; mirrors the legacy per-trade `data.table(trade = trd@name)`.
-.build_mTradeCapacityVariable <- function(scen, fmp) {
-  name <- "mTradeCapacityVariable"
-  p <- scen@modInp@parameters[[name]]
-  if (is.null(p)) return(scen)
-  res <- apply_to_scenario_data(
-    scen = scen, classes = "trade", as_list = TRUE,
-    func = function(obj) {
-      if (!isTRUE(obj@capacityVariable)) return(NULL)
-      out <- list()
-      out[[obj@name]] <- data.frame(trade = obj@name, stringsAsFactors = FALSE)
-      out
-    }
-  )
-  if (length(res) == 0) return(scen)
-  .set_map(scen, name, dplyr::bind_rows(res), fmp)
-}
-
 # --------------------------------------------------------------------------- #
 # C3 technology commodity-grouping / share constraints.
 #
@@ -1401,9 +1373,6 @@ recipe_constraint <- function(scen, names, fmp) {
   if ("meqTradeCapFlow" %in% names) {
     scen <- .build_meqTradeCapFlow(scen, fmp)
   }
-  if ("mTradeCapacityVariable" %in% names) {
-    scen <- .build_mTradeCapacityVariable(scen, fmp)
-  }
 
   # C3 technology group / share maps (computed together from shared intermediates).
   if (length(intersect(names, .tech_group_maps)) > 0) {
@@ -1415,20 +1384,12 @@ recipe_constraint <- function(scen, names, fmp) {
     scen <- .build_ramp_maps(scen, names, fmp)
   }
 
-  # 3. Deprecated LEC maps: intentionally left empty (see TODO above).
-  deprecated <- intersect(names, .constraint_maps_deprecated)
-  if (length(deprecated) > 0) {
-    message("recipe 'constraint': ", length(deprecated),
-            " deprecated LEC map(s) emitted empty: ",
-            paste(deprecated, collapse = ", "))
-  }
-
-  # 4. Report any remaining maps not yet implemented in the engine.
+  # 3. Report any remaining maps not yet implemented in the engine.
   handled <- c(
     names(.constraint_map_def), "meqStorageStore",
-    "meqTradeCapFlow", "mTradeCapacityVariable", .tech_group_maps, .ramp_maps,
+    "meqTradeCapFlow", .tech_group_maps, .ramp_maps,
     .constraint_maps_built_in_filter, .constraint_maps_built_elsewhere,
-    .constraint_maps_empty_legacy, .constraint_maps_deprecated
+    .constraint_maps_empty_legacy
   )
   pending <- setdiff(names, handled)
   if (length(pending) > 0) {

@@ -76,7 +76,7 @@ library(sf)
 op <- par(mfrow = c(2, 2), mar = c(0.5, 0.5, 2, 0.5))
 for (nm in names(utopia$map)) {
   m <- utopia$map[[nm]]
-  plot(st_geometry(m), col = hcl.colors(nrow(m), "Set 3"), border = "white", main = nm)
+  plot(st_geometry(m), col = sf.colors(nrow(m), categorical = T), main = nm)
   text(m$x, m$y, m$region, cex = 0.75)
 }
 par(op)
@@ -195,7 +195,7 @@ SUP_COA <- newSupply(
   desc = "Coal supply (mined in R1)",
   commodity = "COA",
   unit = "PJ",
-  availability = data.frame(
+  supply = data.frame(
     region = "R1",                        # coal exists only in R1
     cost = 2.5
   )
@@ -207,7 +207,7 @@ SUP_GAS <- newSupply(
   desc = "Natural gas supply (produced in R2)",
   commodity = "GAS",
   unit = "PJ",
-  availability = data.frame(
+  supply = data.frame(
     region = "R2",                        # gas exists only in R2
     cost = 6.0
   )
@@ -222,7 +222,7 @@ built exactly this way):
 ``` r
 
 sup <- function(nm, comm, cost, reg = regions) newSupply(nm, commodity = comm,
-  availability = data.frame(region = reg, cost = cost))
+  supply = data.frame(region = reg, cost = cost))
 
 SUP_BIO <- sup("SUP_BIO", "BIO", 8.0)              # biomass: everywhere
 SUP_NUC <- sup("SUP_NUC", "NUC", 0.9)              # nuclear fuel: world market
@@ -245,7 +245,7 @@ IMP_COA <- newImport(
   desc = "Coal import from the rest of the world",
   commodity = "COA",
   unit = "PJ",
-  imp = data.frame(
+  import = data.frame(
     region = regions,                     # available to every region
     price = 3.5                           # vs 2.5 domestic in R1
   )
@@ -256,7 +256,7 @@ IMP_GAS <- update(IMP_COA,
   name = "IMP_GAS",
   desc = "LNG import from the rest of the world",
   commodity = "GAS",
-  imp = data.frame(
+  import = data.frame(
     region = regions,
     price = 9.0                           # vs 6.0 domestic in R2
   )
@@ -267,7 +267,7 @@ IMP_GAS <- update(IMP_COA,
 #   desc = "Electricity export to the rest of the world",
 #   commodity = "ELC",
 #   unit = "PJ",
-#   exp = merge(                            # ~10 PJ/yr per region, paced by slice
+#   export = merge(                            # ~10 PJ/yr per region, paced by slice
 #     data.frame(region = regions, price = 5.0),
 #     data.frame(slice  = as.data.frame(cal@slice_share)$slice,
 #                exp.up = 10 * as.data.frame(cal@slice_share)$share)
@@ -326,13 +326,13 @@ scales the profiles deterministically): `R1` is the sunniest region,
 
 ``` r
 
-autoplot(WSOL, type = "line", calendar = cal)
-autoplot(WSOL, type = "heatmap", calendar = cal)
+autoplot(WSOL, style = "line", calendar = cal)
+autoplot(WSOL, style = "heatmap", calendar = cal)
 
-autoplot(WWIN, calendar = cal, type = "line")
+autoplot(WWIN, calendar = cal, style = "line")
 autoplot(WWIN, calendar = cal)
 
-autoplot(WHYD, calendar = cal, type = "line")
+autoplot(WHYD, calendar = cal, style = "line")
 autoplot(WHYD, calendar = cal)
 ```
 
@@ -359,7 +359,7 @@ dem_rows <- do.call(rbind, lapply(seq_along(years), function(i) {
   do.call(rbind, lapply(regions, function(r) {
     dr <- d0[d0$region == r, ]
     data.frame(region = r, year = years[i], slice = dr$slice,
-               dem = annual_demand * growth[i] * dr$w / sum(dr$w))
+               demand = annual_demand * growth[i] * dr$w / sum(dr$w))
   }))
 }))
 
@@ -368,7 +368,7 @@ DEM_ELC <- newDemand(
   desc = "Final electricity demand",
   commodity = "ELC",
   unit = "PJ",
-  dem = dem_rows
+  demand = dem_rows
 )
 ```
 
@@ -383,7 +383,8 @@ autoplot(DEM_ELC, years = 2020:2050)
 
 ``` r
 
-autoplot(DEM_ELC, type = "line", years = c(2020, 2050))
+autoplot(DEM_ELC, style = "line", years = c(2020, 2050))
+autoplot(DEM_ELC, style = "heatmap", years = c(2020, 2050))
 ```
 
 ## Technologies
@@ -651,9 +652,9 @@ but emitting nothing:
 
 ``` r
 
-ECOBIO <- newTechnology(
-  name = "ECOBIO",
-  desc = "Biomass cofiring power plant",
+EBIO <- newTechnology(
+  name = "EBIO",
+  desc = "Coal power plant with biomass cofiring",
   input = data.frame(
     comm = c("COA", "BIO"),
     group = "i",
@@ -680,7 +681,7 @@ ECOBIO <- newTechnology(
   olife = list(olife = 30),
   optimizeRetirement = TRUE
 )
-draw(ECOBIO)
+draw(EBIO)
 ```
 
 Its **levelized cost**
@@ -690,7 +691,7 @@ read in MEUR/PJ):
 
 ``` r
 
-lc <- levcost(ECOBIO, discount = 0.05, verbose = TRUE,
+lc <- levcost(EBIO, discount = 0.05, verbose = TRUE,
   repo = newRepository("r", BIO, CO2, ELC),
   fuel_costs = c(BIO = 8.0, COA = 2.5))
 lc$levcost_npv
@@ -704,9 +705,9 @@ report(
   format = "html")
 
 report(
-  ECOBIO, 
+  EBIO, 
   comm = "ELC",
-  file = "tmp/ECOBIO_lc.pdf",
+  file = "tmp/EBIO_lc.pdf",
   levcost = T,
   format = "pdf")
 ```
@@ -736,6 +737,7 @@ STG_ELC <- newStorage(
   ),
   olife = list(olife = 20)
 )
+draw(STG_ELC)
 ```
 
 ## Interregional trade
@@ -744,8 +746,8 @@ Trade objects open **routes** between regions for a commodity. UTOPIA’s
 three regions form a line, so two **bi-directional** transmission links
 (`TBD_`) connect them. Each `newTrade` lists its routes (both
 directions), the transfer efficiency (`teff` – losses), and an
-endogenous capacity with investment cost (`capacityVariable = TRUE` lets
-the model expand the line):
+endogenous capacity with investment cost, so the model may expand the
+line:
 
 ``` r
 
@@ -765,7 +767,6 @@ TBD_ELC_R1_R2 <- newTrade(
   capacity = data.frame(
     stock = 1                             # 1 GW existing interconnector
   ),
-  capacityVariable = TRUE,                # the model may build more
   invcost = data.frame(
     region = c("R1", "R2"),
     invcost = 350                         # MEUR/GW (per line end)
@@ -975,7 +976,7 @@ them in your session:
 
 # one technology: datasheet with diagram, share frontier and levelized cost
 report(EBIO, discount = 0.05,
-       repo = newRepository("r", COA, BIO, CO2, ELCa),
+       repo = newRepository("r", COA, BIO, CO2, ELC),
        fuel_costs = c(COA = 2.5, BIO = 8.0))
 
 # a single process, priced inside the assembled model
@@ -1000,7 +1001,7 @@ maps:
 
 names(utopia_modules)
 names(utopia_modules$electricity)                 # kits by number of regions
-um <- utopia_modules$electricity$reg3
+um <- utopia_modules$electricity$R3
 identical(names(repo), names(um$repo))            # same blocks we just built
 ```
 

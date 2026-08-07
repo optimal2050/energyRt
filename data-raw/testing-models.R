@@ -104,7 +104,7 @@ tm_GHG <- newCommodity(
 tm_SUP_COA <- newSupply(
   name = "SUP_COA",
   commodity = "COA",
-  availability = data.frame(region = "R1", cost = 1)
+  supply = data.frame(region = "R1", cost = 1)
 )
 
 # Coal supply variant with a finite availability upper bound (feature:
@@ -113,7 +113,7 @@ tm_SUP_COA <- newSupply(
 tm_SUP_COA_cap <- newSupply(
   name = "SUP_COA",
   commodity = "COA",
-  availability = data.frame(region = "R1", cost = 1, ava.up = 500)
+  supply = data.frame(region = "R1", cost = 1, ava.up = 500)
 )
 
 # Coal supply variant with weather-dependent availability (feature: weather
@@ -121,7 +121,7 @@ tm_SUP_COA_cap <- newSupply(
 tm_SUP_COA_weather <- newSupply(
   name = "SUP_COA",
   commodity = "COA",
-  availability = data.frame(region = "R1", cost = 1),
+  supply = data.frame(region = "R1", cost = 1),
   weather = data.frame(weather = "WWIN", wava.up = 1)  # -> mSupWeatherUp
 )
 
@@ -194,10 +194,10 @@ tm_EWIN_weather <- newTechnology(
 tm_DEM_ELC <- newDemand(
   name = "DEM_ELC",
   commodity = "ELC",
-  dem = data.frame(
+  demand = data.frame(
     region = c("R1", "R1", "R2", "R2"),
     slice  = c("WIN", "SUM", "WIN", "SUM"),
-    dem    = c(10, 8, 6, 5)
+    demand    = c(10, 8, 6, 5)
   )
 )
 
@@ -303,7 +303,7 @@ tm_IMP_COA <- newImport(
   name = "IMP_COA",
   desc = "Coal import from RoW (R2)",
   commodity = "COA",
-  imp = data.frame(region = "R2", price = 2, imp.up = 100)
+  import = data.frame(region = "R2", price = 2, imp.up = 100)
 )
 
 # Electricity export from R1 (feature: export maps mExport / mExportRow).
@@ -311,7 +311,7 @@ tm_EXP_ELC <- newExport(
   name = "EXP_ELC",
   desc = "Electricity export to RoW (R1)",
   commodity = "ELC",
-  exp = data.frame(region = "R1", price = 3, exp.up = 50)
+  export = data.frame(region = "R1", price = 3, exp.up = 50)
 )
 
 # --- Tax / Subsidy --------------------------------------------------------- #
@@ -325,7 +325,7 @@ tm_TAX_CO2 <- newTax(
 )
 
 # Subsidy on electricity output (feature: mSubCost).
-tm_SUB_ELC <- newSub(
+tm_SUB_ELC <- newSubsidy(
   name = "SUB_ELC",
   desc = "Electricity output subsidy (R1)",
   comm = "ELC",

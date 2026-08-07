@@ -5,23 +5,16 @@
     "\nhttps://github.com/optimal2050/energyRt/issues"
     )
 
-  # options
-  # options(en.debug = FALSE)
-  # options(en.verbose = TRUE)
-  # options(en.progress_bar = TRUE)
-  options(progressr.clear = FALSE)
-  # options(en.scenarios_path = "scenarios/")
-
-  # progressr::handlers("cli")
-  # progressr::handlers("pbcol")
-  # progressr::handlers("progress")
-  # progressr::handlers(global = TRUE)
-
-  # load global settings if exist
+  # Deprecated: settings used to be an R script sourced from the home
+  # directory. `~/.energyRt/config.yml` replaces it -- it is data rather than
+  # code, so it can be inspected (`en_config_show()`) and written
+  # (`en_config_write()`) instead of only executed. Honoured for one release.
   if (file.exists("~/.energyRt.R")) {
-    try({
-      source("~/.energyRt.R")
-    })
+    packageStartupMessage(
+      'Sourcing "~/.energyRt.R" (deprecated).\n',
+      "Migrate with: energyRt::en_config_write()"
+    )
+    try(source("~/.energyRt.R"))
   }
 
   # environments

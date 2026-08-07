@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.70.2.9001</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.75.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -83,7 +83,7 @@
 <dd><p>character. Optional unit of the commodity.</p></dd>
 
 
-<dt><code>dem</code></dt>
+<dt><code>demand</code></dt>
 <dd><p>data.frame. Specification of the demand.</p><dl><dt>region</dt>
 <dd><p>character. Name of region for the demand value. NA for every region.</p></dd>
 
@@ -93,7 +93,7 @@
 <dt>slice</dt>
 <dd><p>character. Name of the slice for the demand value. NA for every slice.</p></dd>
 
-<dt>dem</dt>
+<dt>demand</dt>
 <dd><p>numeric. Value of the demand.</p></dd>
 
 
@@ -101,7 +101,7 @@
 
 
 <dt><code>region</code></dt>
-<dd><p>character. Optional name of region to narrow the specification of the demand in the case of used NAs. Error will be returned if specified regions in <code>@dem</code> are not mensioned in the <code>@region</code> slot (if the slot is not empty).</p></dd>
+<dd><p>character. Optional name of region to narrow the specification of the demand in the case of used NAs. Error will be returned if specified regions in <code>@demand</code> are not mensioned in the <code>@region</code> slot (if the slot is not empty).</p></dd>
 
 
 <dt><code>misc</code></dt>

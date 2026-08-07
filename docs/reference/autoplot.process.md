@@ -3,7 +3,7 @@
 Plots each year-indexed level parameter of the object against year,
 using [`getData()`](https://energyRt.org/reference/getData.md) both for
 the given data (points) and its interpolation (lines): supply
-`ava.lo/up/fx` (+`cost`), demand `dem`, import `imp.lo/up/fx`
+`ava.lo/up/fx` (+`cost`), demand `demand`, import `imp.lo/up/fx`
 (+`price`), export `exp.lo/up/fx` (+`price`), and for
 `technology`/`storage` their economics and capacity — base-year `stock`,
 the filled `cap`/`ncap`/`ret` bounds, `invcost`, `fixom` and `varom`
@@ -18,19 +18,19 @@ direction.
 
 ``` r
 # S3 method for class 'supply'
-autoplot(object, years = NULL, ...)
+autoplot(object, year = NULL, ...)
 
 # S3 method for class 'import'
-autoplot(object, years = NULL, ...)
+autoplot(object, year = NULL, ...)
 
 # S3 method for class 'export'
-autoplot(object, years = NULL, ...)
+autoplot(object, year = NULL, ...)
 
 # S3 method for class 'technology'
-autoplot(object, years = NULL, ...)
+autoplot(object, year = NULL, ...)
 
 # S3 method for class 'storage'
-autoplot(object, years = NULL, ...)
+autoplot(object, year = NULL, ...)
 ```
 
 ## Arguments
@@ -40,7 +40,7 @@ autoplot(object, years = NULL, ...)
   A `supply`, `demand`, `import`, `export`, `technology`, or `storage`
   object.
 
-- years:
+- year:
 
   Optional integer vector of target years to interpolate over. Defaults
   to the range of years present in the object's data.

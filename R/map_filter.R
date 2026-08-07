@@ -125,8 +125,17 @@ map_mvDemInp <- function(scen, fmp) {
   if (is.null(dc) || is.null(comm_slice) ||
       length(regions) == 0 || length(milestones) == 0) return(scen)
   di <- merge0(dc, comm_slice)
-  di <- merge0(as.data.frame(di),
-               data.frame(region = regions, stringsAsFactors = FALSE))
+  # [nested-regions] the demand cells sit at the commodity's OWN region level,
+  # which mCommRegion already encodes (finest for a normal commodity, the
+  # declared level for a coarse one). Falls back to the flat cross-join when
+  # there is no geoscale, which is the unchanged behaviour.
+  comm_region <- .gds(scen, "mCommRegion")
+  di <- if (is.null(comm_region)) {
+    merge0(as.data.frame(di),
+           data.frame(region = regions, stringsAsFactors = FALSE))
+  } else {
+    merge0(as.data.frame(di), comm_region)
+  }
   di <- merge0(as.data.frame(di), data.frame(year = milestones))
   .set_map(scen, "mvDemInp", di, fmp)
 }
@@ -385,9 +394,11 @@ map_mExportRowUp <- function(scen, fmp)
 
 # -- inter-regional trade flow domains (mTradeIr family) ------------------- #
 # Faithful port of the recipe_filter trade block (mapping_engine.R L1295-1438).
-# mTradeIr = per-trade routes x slices x years; the year domain is the trade's
-# operation span (mTradeSpan) for capacity-variable trades, else all milestones.
-# Each trade's routes + capacityVariable flag come straight from the object
+# mTradeIr = per-trade routes x slices x years; the year domain is always the
+# trade's operation span (mTradeSpan) -- a trade must not carry flow outside the
+# window it declares. (This used to fall back to all milestones when the removed
+# `capacityVariable` slot was FALSE, which made the domain LARGER, contrary to
+# that slot's stated purpose.) Each trade's routes come straight from the object
 # (apply_to_scenario_data); every downstream map reads mTradeIr back from scen.
 
 .trade_route_info <- function(scen) {
@@ -400,8 +411,7 @@ map_mExportRowUp <- function(scen, fmp)
       o[[x@name]] <- list(
         routes = data.frame(
           trade = x@name, src = as.character(rt$src),
-          dst = as.character(rt$dst), stringsAsFactors = FALSE),
-        capvar = isTRUE(x@capacityVariable))
+          dst = as.character(rt$dst), stringsAsFactors = FALSE))
       o
     })
 }
@@ -445,10 +455,10 @@ map_mTradeIr <- function(scen, fmp) {
     sl <- trade_slice[trade_slice$trade == nm, , drop = FALSE]
     if (nrow(sl) == 0) next
     base <- as.data.frame(merge0(rt, sl))      # trade, src, dst, slice
-    if (trade_info[[nm]]$capvar && !is.null(trade_span)) {
-      yrs <- trade_span$year[trade_span$trade == nm]
+    yrs <- if (!is.null(trade_span)) {
+      trade_span$year[trade_span$trade == nm]
     } else {
-      yrs <- milestones
+      milestones
     }
     if (length(yrs) == 0) next
     ir_pieces[[nm]] <- as.data.frame(
@@ -660,6 +670,10 @@ map_mvInpTot <- function(scen, fmp) {
     .gds(scen, "mStorageInpTot"), .gds(scen, "mExport"),
     .gds(scen, "mvTradeIrAInpTot")),                    # [agg-rewrite] mInpSub dropped
     .gds(scen, "mCommSlice"))
+  # [nested-regions] totals also exist at every level up to the commodity's own
+  # `@geolevel`, so eqInpTot has a cell to aggregate the finer ones into. A
+  # no-op unless some commodity names a coarser level.
+  inptot <- .extend_comm_region(inptot, .comm_region_chain(scen))
   .set_map(scen, "mvInpTot", inptot, fmp)
 }
 map_mvOutTot <- function(scen, fmp) {
@@ -668,6 +682,7 @@ map_mvOutTot <- function(scen, fmp) {
     .gds(scen, "mAggOut"), .gds(scen, "mTechOutTot"), .gds(scen, "mStorageOutTot"),
     .gds(scen, "mImport"), .gds(scen, "mvTradeIrAOutTot")),  # [agg-rewrite] mOutSub dropped
     .gds(scen, "mCommSlice"))
+  outtot <- .extend_comm_region(outtot, .comm_region_chain(scen))
   .set_map(scen, "mvOutTot", outtot, fmp)
 }
 .drop_slice_distinct <- function(scen, src, name, fmp) {
@@ -676,9 +691,15 @@ map_mvOutTot <- function(scen, fmp) {
   .set_map(scen, name,
            dplyr::distinct(dplyr::select(d, -dplyr::any_of("slice"))), fmp)
 }
+# [nested-regions] the balance is enforced at the commodity's OWN region level
+# only -- this is what makes steel national while electricity stays per-state.
+# The restriction lands here and nowhere else: mvOutTot/mvInpTot keep their
+# finer cells so eqOutTot/eqInpTot can still aggregate them upward.
 map_mvBalance <- function(scen, fmp)
   .set_map(scen, "mvBalance",
-           .bind_ry(.gds(scen, "mvInpTot"), .gds(scen, "mvOutTot")), fmp)
+           .restrict_comm_region(
+             .bind_ry(.gds(scen, "mvInpTot"), .gds(scen, "mvOutTot")),
+             .gds(scen, "mCommRegion")), fmp)
 # [agg-rewrite] map_mInpTotRY/mOutTotRY/mBalanceRY removed (*RY retired)
 
 # -- registry for the filter family (dependency order) --------------------- #

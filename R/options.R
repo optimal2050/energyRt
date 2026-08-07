@@ -1,183 +1,506 @@
-#' @include docs.R
-# @eval options::as_roxygen_docs()
+#' @include zzz.R docs.R
+#
+# `options::as_roxygen_docs()` hardcodes `@name options` / `@rdname options`,
+# which would give energyRt a help topic aliased `options` -- colliding with
+# `?options` from base R. Rewrite those two tags to `energyRt-options`; the rest
+# of the generated page (one entry per registered option, with its default,
+# `en.` option name and `ENERGYRT_` environment variable) is used as-is.
+#' @eval sub("^@(name|rdname) options$", "@\\1 energyRt-options", options::as_roxygen_docs())
+NULL
 
-# set default rounding in data.table for 'unique' and 'duplicated' functions
-data.table::setNumericRounding(2)
+# Naming scheme ###############################################################
+# Set once here, BEFORE any `define_option()` call, rather than repeating
+# `option_name=` / `envvar_name=` on every declaration. `option_spec()` resolves
+# both names at definition time from these functions, so ordering matters --
+# `options.R` is loaded early in `Collate:` and nothing before it declares an
+# option.
+#
+#   R option  ->  en.<name>            e.g. options(en.gams_path = "C:/GAMS/48")
+#   env var   ->  ENERGYRT_<NAME>      e.g. ENERGYRT_GAMS_PATH
+#
+# `en.` matches the package's `en_*` function family and follows R's convention
+# of dot-separated package option names. The env-var prefix is spelled out in
+# full because environment variables are global to the OS, where `EN_` would be
+# far too collision-prone.
+options::set_option_name_fn(function(package, option) paste0("en.", option))
 
-# solver ####
-#' @export
-options::define_option(
-  "solver",
-  desc = "Default solver to use in solving models.",
-  default = list(
-    name = "glpk",
-    lang = "glpk"
-  ),
-  option_name = "solver"
-  # envvar_name = "SOLVER"
-)
+options::set_envvar_name_fn(function(package, option) {
+  paste0("ENERGYRT_", toupper(gsub("[^A-Za-z0-9]", "_", option)))
+})
 
-#' @export
-get_default_solver <- function() {
-  options::opt("solver")
-}
+# Toolchain paths #############################################################
+# Locations of the external programs the solver backends shell out to. All
+# default to `NULL`, meaning "not configured" -- each backend then falls back to
+# its own discovery (see `.find_glpsol()`, `.find_mosox()`) or to the session
+# `PATH`. Set them with `set_solver_path()` or the per-backend wrappers.
 
-#' @export
-set_default_solver <- function(solver) {
-  options::opt_set("solver", solver)
-}
-
-# GAMS ####
 options::define_option(
   "gams_path",
-  desc = "Path to GAMS executable.",
-  default = NULL,
-  option_name = "gams_path",
-  envvar_name = "GAMS_PATH"
+  desc = paste(
+    "Path to the GAMS installation directory. Prefixed to the `gams` command",
+    "when solving with a GAMS backend. If unset, `gams` is resolved on the",
+    "session PATH."
+  ),
+  default = NULL
 )
 
-# gdxlib ####
 options::define_option(
   "gdxlib_path",
-  desc = "Path to GDX library.",
-  default = NULL,
-  option_name = "gdxlib_path",
-  envvar_name = "GDXLIB_PATH"
+  desc = paste(
+    "Path to the GAMS Data Exchange (GDX) library, used to read and write",
+    "`*.gdx` files. If unset, `gams_path` is used instead."
+  ),
+  default = NULL
 )
 
-# Python ####
 options::define_option(
   "python_path",
-  desc = "Path to Python executable.",
-  default = NULL,
-  option_name = "python_path",
-  envvar_name = "PYTHON_PATH"
+  desc = paste(
+    "Path to the Python installation or environment used by the Pyomo backend.",
+    "Prefixed to the `python` command. If unset, `python` is resolved on the",
+    "session PATH."
+  ),
+  default = NULL
 )
 
-# Julia ####
 options::define_option(
   "julia_path",
-  desc = "Path to Julia executable.",
-  default = NULL,
-  option_name = "julia_path",
-  envvar_name = "JULIA_PATH"
+  desc = paste(
+    "Path to the Julia installation used by the JuMP backend. Prefixed to the",
+    "`julia` command. If unset, `julia` is resolved on the session PATH."
+  ),
+  default = NULL
 )
 
-# # GLPK ####
 options::define_option(
   "glpk_path",
-  desc = "Path to GLPK executable.",
-  default = NULL,
-  option_name = "glpk_path",
-  envvar_name = "glpk_path"
+  desc = paste(
+    "Path to a standalone GLPK installation containing the `glpsol`",
+    "executable. If unset, `glpsol` is auto-detected on the session PATH --",
+    "which on Windows finds the copy bundled with Rtools."
+  ),
+  default = NULL
 )
 
-# NEOS ####
-# Email is required by NEOS for job submission. `envvar_name` makes opt() fall
-# back to the NEOS_EMAIL environment variable, which the Pyomo NEOS backend also
-# reads from inside the python subprocess (see set_neos_email()).
+options::define_option(
+  "mosox_path",
+  desc = "Path to the directory containing the `mosox` executable.",
+  default = NULL
+)
+
+# NEOS ########################################################################
+# `neos_email` is the one option that keeps an explicit `envvar_name`: NEOS
+# requires an email for job submission, `set_neos_email()` exports it with
+# `Sys.setenv()`, and the Pyomo NEOS shim reads `NEOS_EMAIL` from inside the
+# python subprocess (see `data-raw/solver_options.R`). Renaming it to
+# `ENERGYRT_NEOS_EMAIL` would break that hand-off.
 options::define_option(
   "neos_email",
-  desc = "Email address for NEOS Server job submission (required by NEOS).",
+  desc = paste(
+    "Email address for NEOS Server job submission (required by NEOS). Read",
+    "from the `NEOS_EMAIL` environment variable if the option is unset."
+  ),
   default = NULL,
-  option_name = "neos_email",
   envvar_name = "NEOS_EMAIL"
 )
 
-
-# verbose ####
 options::define_option(
-  "verbose",
-  desc = "Verbosity level.",
-  default = 0,
-  option_name = "verbose"
-  # envvar_name = "VERBOSE"
+  "neos_endpoint",
+  desc = "XML-RPC endpoint of the NEOS Server.",
+  default = "https://neos-server.org:3333"
 )
 
-# debug ####
+# Defaults ####################################################################
+
 options::define_option(
-  "debug",
-  desc = "Debug level.",
-  default = 0,
-  option_name = "debug"
-  # envvar_name = "DEBUG"
+  "solver",
+  desc = paste(
+    "Default solver specification, used when a scenario carries none. A named",
+    "list, normally one of the `solver_options` presets."
+  ),
+  default = list(
+    name = "glpk",
+    lang = "GLPK"
+  )
 )
 
-# progress_bar ####
-options::define_option(
-  "progress_bar",
-  desc = "Progress bar.",
-  default = TRUE,
-  option_name = "progress_bar"
-  # envvar_name = "PROGRESS_BAR"
-)
-
-# scenarios_path ####
 options::define_option(
   "scenarios_path",
-  desc = "Path to scenarios directory.",
-  default = "scenarios/",
-  option_name = "scenarios_path"
+  desc = paste(
+    "Root directory for scenario folders. Scenario paths and solver working",
+    "directories are built underneath it."
+  ),
+  default = "scenarios/"
 )
 
-#' @export
-get_scenarios_path <- function() {
-  options::opt("scenarios_path")
-}
+options::define_option(
+  "default_registry",
+  desc = paste(
+    "Where the registry of repositories, models and scenarios lives: a list",
+    "with the object `name` and the environment `env` holding it."
+  ),
+  default = list(
+    name = "registry",
+    env = ".scen"
+  )
+)
 
-#' @export
-isVerbose <- function(level = 1) {
-  options::opt("verbose", env = "energyRt") >= level
-}
+# Storage / exchange format ###################################################
+# Format used to exchange model data / solution with the JuMP / Pyomo solvers
+# (written into the solver run-folder), and the default on-disk storage codec.
 
+options::define_option(
+  "arrow_format",
+  desc = paste(
+    "Default Arrow exchange format for the JuMP/Pyomo solvers:",
+    "'feather' (IPC), 'parquet', or 'csv'."
+  ),
+  default = "feather"
+)
+
+options::define_option(
+  "arrow_compression",
+  desc = "Arrow compression codec: 'zstd', 'lz4', or 'uncompressed'.",
+  default = "zstd"
+)
+
+options::define_option(
+  "arrow_compression_level",
+  desc = "Arrow compression level (codec-dependent; ZSTD supports 1-22).",
+  default = 15L
+)
+
+# Reporting ###################################################################
+
+options::define_option(
+  "verbose",
+  desc = paste(
+    "Verbosity level: `0` silent, `1` progress messages, `2` and above for",
+    "increasingly detailed reporting. `TRUE`/`FALSE` are accepted and read as",
+    "`1`/`0`. Test with `isVerbose(level)`."
+  ),
+  default = 0
+)
+
+options::define_option(
+  "debug",
+  desc = paste(
+    "Debug level, in the same 0/1/2 form as `verbose`. Enables internal",
+    "consistency warnings that are silent in normal use. Test with",
+    "`isDebug(level)`."
+  ),
+  default = 0
+)
+
+options::define_option(
+  "progress_bar",
+  desc = paste(
+    "Whether long-running operations display a progress bar. Set through",
+    "`show_progress_bar()` / `set_progress_bar()`."
+  ),
+  default = TRUE
+)
+
+# Generic accessors ###########################################################
+
+#' Get or set an energyRt option
+#'
+#' @description
+#' Generic accessors for any option in the energyRt registry. See
+#' `?energyRt-options` for the full list, or [en_config_show()] to print every
+#' option together with the source its current value came from.
+#'
+#' Each option can be set three ways, in decreasing priority: the R option
+#' (`options(en.<name> = )`), the environment variable
+#' (`ENERGYRT_<NAME>`), or the configuration file (see [en_config_write()]).
+#'
+#' @param name character, the option name *without* the `en.` prefix,
+#'   e.g. `"gams_path"`.
+#' @param value the new value.
+#' @param default value returned if the option is not defined.
+#'
+#' @return `get_option()` the option value; `set_option()` the previous value,
+#'   invisibly.
+#'
+#' @family options
+#' @rdname en_option
 #' @export
+#' @examples
+#' get_option("arrow_format")
 set_option <- function(name, value) {
   options::opt_set(name, value, env = "energyRt")
 }
 
+#' @family options
+#' @rdname en_option
 #' @export
 get_option <- function(name, default = NULL) {
   options::opt(name, default = default, env = "energyRt")
 }
 
-# default_registry ####
-options::define_option(
-  "default_registry",
-  desc = "Default registry to use for repositories, models, scenarios.",
-  default = list(
-    name = "registry",
-    env = ".scen"
-  ),
-  option_name = "default_registry"
-  # envvar_name = "DEFAULT_REGISTRY"
+# Toolchain path accessors ####################################################
+
+# option name for each backend, keyed by the short backend name used in the
+# public `set_solver_path()` / `get_solver_path()` API.
+.solver_path_options <- c(
+  gams   = "gams_path",
+  gdxlib = "gdxlib_path",
+  glpk   = "glpk_path",
+  python = "python_path",
+  julia  = "julia_path",
+  mosox  = "mosox_path"
 )
 
+# Environment variables these options used before the `ENERGYRT_` prefix was
+# introduced. Honoured as a deprecated fallback so existing setups keep working;
+# drop after one release.
+.solver_path_legacy_envvars <- c(
+  gams   = "GAMS_PATH",
+  gdxlib = "GDXLIB_PATH",
+  glpk   = "glpk_path",
+  python = "PYTHON_PATH",
+  julia  = "JULIA_PATH",
+  mosox  = "MOSOX_PATH"
+)
+
+# Shared body of every path setter: reject a non-existent directory at the point
+# of the mistake rather than at solve time, and guarantee a trailing "/" so the
+# value can be pasted straight onto an executable name.
+.normalize_solver_path <- function(path) {
+  if (is.null(path) || !nzchar(path)) {
+    return(path)
+  }
+  if (!dir.exists(path)) {
+    stop(paste0('The path "', path, '" does not exist.'), call. = FALSE)
+  }
+  if (!grepl("/$", path)) {
+    path <- paste0(path, "/")
+  }
+  path
+}
+
+#' Set or get the path to a solver toolchain
+#'
+#' @description
+#' `set_solver_path()` and `get_solver_path()` are the generic form of the
+#' per-backend accessors ([set_gams_path()], [set_julia_path()], ...), which are
+#' thin wrappers around them.
+#'
+#' Setting a path is optional. When it is unset, each backend falls back to its
+#' own discovery: `glpk` and `mosox` search the session `PATH` and well-known
+#' install locations (on Windows `glpsol` is found in Rtools, which bundles
+#' GLPK), while `gams`, `python` and `julia` simply invoke the bare command and
+#' let the OS resolve it on `PATH`. Set a path only to override that, for
+#' instance to pick between several installed GAMS versions.
+#'
+#' @param backend character, one of `"gams"`, `"gdxlib"`, `"glpk"`,
+#'   `"python"`, `"julia"`, `"mosox"`.
+#' @param path character, path to the directory containing the executable or
+#'   library, or `NULL` to clear it. The directory must exist.
+#'
+#' @return `get_solver_path()` the configured path with a trailing `/`, or
+#'   `NULL` if unset; `set_solver_path()` the path, invisibly.
+#'
+#' @family options
+#' @family solver
+#' @rdname solver_path
 #' @export
-set_default_registry <- function(
-    obj_name = "registry",
-    env_name = ".scen"
-  ) {
-    registry = list(name = obj_name, env = env_name)
+#' @examples
+#' \dontrun{
+#' set_solver_path("gams", "C:/GAMS/win64/48.1")
+#' get_solver_path("gams")
+#' }
+set_solver_path <- function(backend, path = NULL) {
+  backend <- match.arg(backend, names(.solver_path_options))
+  options::opt_set(.solver_path_options[[backend]],
+                   .normalize_solver_path(path))
+  invisible(path)
+}
+
+#' @family options
+#' @family solver
+#' @rdname solver_path
+#' @export
+get_solver_path <- function(backend) {
+  backend <- match.arg(backend, names(.solver_path_options))
+  name <- .solver_path_options[[backend]]
+  res <- tryCatch(options::opt(name), error = function(e) NULL)
+
+  # Deprecated: the un-prefixed environment variables used before ENERGYRT_*.
+  if ((is.null(res) || !nzchar(res)) &&
+      identical(.en_opt_source(name), "default")) {
+    legacy <- Sys.getenv(.solver_path_legacy_envvars[[backend]], unset = "")
+    if (nzchar(legacy)) {
+      .en_deprecate_once(
+        paste0("envvar_", backend),
+        paste0("Environment variable `", .solver_path_legacy_envvars[[backend]],
+               "` is deprecated. Use `",
+               toupper(paste0("ENERGYRT_", .solver_path_options[[backend]])),
+               "` instead.")
+      )
+      res <- legacy
+    }
+  }
+
+  if (is.null(res) || !nzchar(res)) NULL else res
+}
+
+# Reporting accessors #########################################################
+
+# Coerce whatever the user put in `en.verbose` / `en.debug` into a level.
+.as_report_level <- function(x) {
+  if (is.null(x) || length(x) != 1L || is.na(x)) {
+    return(0)
+  }
+  if (is.logical(x)) {
+    return(as.numeric(x))
+  }
+  suppressWarnings(res <- as.numeric(x))
+  if (is.na(res)) 0 else res
+}
+
+#' Verbosity and debug level
+#'
+#' @description
+#' Test the current reporting level. `isVerbose()` gates user-facing progress
+#' messages, `isDebug()` gates internal consistency warnings that are silent in
+#' normal use. Set the levels with `options(en.verbose = )` /
+#' `options(en.debug = )`, or `set_option("verbose", )`.
+#'
+#' Both accept a level (`0`, `1`, `2`, ...) or a logical, which is read as
+#' `1`/`0`.
+#'
+#' @param level numeric, the level to test against.
+#'
+#' @return `TRUE` if the configured level is at or above `level`.
+#'
+#' @family options
+#' @rdname isVerbose
+#' @export
+#' @examples
+#' isVerbose()
+#' isDebug(2)
+isVerbose <- function(level = 1) {
+  # Deprecated: `energyRt.verbose` predates the registry and is documented in
+  # ?interpolate_model, so honour it while the user has not set `en.verbose`.
+  if (identical(.en_opt_source("verbose"), "default")) {
+    legacy <- getOption("energyRt.verbose", NULL)
+    if (!is.null(legacy)) {
+      .en_deprecate_once(
+        "energyRt.verbose",
+        'Option "energyRt.verbose" is deprecated. Use options(en.verbose = 1).'
+      )
+      return(.as_report_level(legacy) >= level)
+    }
+  }
+  .as_report_level(options::opt("verbose", env = "energyRt")) >= level
+}
+
+#' @family options
+#' @rdname isVerbose
+#' @export
+isDebug <- function(level = 1) {
+  .as_report_level(options::opt("debug", env = "energyRt")) >= level
+}
+
+# Default solver ##############################################################
+
+#' Default solver
+#'
+#' @description
+#' Get or set the solver specification used when a scenario does not carry one
+#' of its own. Normally one of the `solver_options` presets.
+#'
+#' @param solver a named list describing the solver, e.g. `solver_options$glpk`.
+#'
+#' @return `get_default_solver()` the solver list; `set_default_solver()` the
+#'   previous value, invisibly.
+#'
+#' @family options
+#' @family solver
+#' @rdname default_solver
+#' @export
+#' @examples
+#' get_default_solver()
+get_default_solver <- function() {
+  options::opt("solver")
+}
+
+#' @family options
+#' @family solver
+#' @rdname default_solver
+#' @export
+set_default_solver <- function(solver) {
+  options::opt_set("solver", solver)
+}
+
+# Scenarios directory #########################################################
+
+#' Set or get the directory with scenarios
+#'
+#' @param path character, path to the directory holding scenario folders.
+#'
+#' @return `get_scenarios_path()` the path; `set_scenarios_path()` the previous
+#'   value, invisibly.
+#'
+#' @family options
+#' @rdname scenarios_path
+#' @export
+#' @examples
+#' get_scenarios_path()
+set_scenarios_path <- function(path = NULL) {
+  options::opt_set("scenarios_path", path)
+}
+
+#' @family options
+#' @rdname scenarios_path
+#' @export
+get_scenarios_path <- function() {
+  options::opt("scenarios_path")
+}
+
+# Registry ####################################################################
+
+#' Default registry
+#'
+#' @description
+#' The registry holds repositories, models and scenarios. `set_default_registry()`
+#' records which object, in which environment, energyRt should use;
+#' `which_registry()` reports it, and `get_registry()` returns the object itself,
+#' creating it if it does not exist yet.
+#'
+#' @param obj_name character, name of the registry object.
+#' @param env_name character, name of the environment holding it.
+#'
+#' @return `which_registry()` a list with `name` and `env`; `get_registry()` the
+#'   registry object; `set_default_registry()` the previous value, invisibly.
+#'
+#' @family options
+#' @rdname default_registry
+#' @export
+set_default_registry <- function(obj_name = "registry",
+                                 env_name = ".scen") {
+  registry <- list(name = obj_name, env = env_name)
   options::opt_set("default_registry", registry)
 }
+
+#' @family options
+#' @rdname default_registry
+#' @export
 use_registry <- set_default_registry
-set_registry <- set_default_registry
 
-# set_default_registry.registry <- function(registry) {
-#   obj_name <- deparse(substitute(registry))
-#   set_default_registry(obj_name, registry)
-# }
-
+#' @family options
+#' @rdname default_registry
 #' @export
 which_registry <- function() {
   options::opt("default_registry")
 }
-# which_registry <- get_default_registry
-
 
 #' Returns the current registry object.
 #'
 #' @return The current registry object.
+#' @family options
+#' @rdname default_registry
 #' @export
 get_registry <- function() {
   r <- which_registry()
@@ -185,46 +508,31 @@ get_registry <- function() {
     rg <- get(r$name, envir = get(r$env))
   } else {
     rg <- newRegistry(name = r$name, registry_env = r$env)
-    # return(NULL)
   }
   rg
-  # get(r$name, envir = get(r$env))
 }
 
-# Arrow exchange format ####
-# Format used to exchange model data / solution with the JuMP / Pyomo solvers
-# (written into the solver run-folder), and the default on-disk storage codec.
-options::define_option(
-  "arrow_format",
-  desc = paste("Default Arrow exchange format for the JuMP/Pyomo solvers:",
-               "'feather' (IPC), 'parquet', or 'csv'."),
-  default = "feather",
-  option_name = "arrow_format"
-)
-options::define_option(
-  "arrow_compression",
-  desc = "Arrow compression codec: 'zstd', 'lz4', or 'uncompressed'.",
-  default = "zstd",
-  option_name = "arrow_compression"
-)
-options::define_option(
-  "arrow_compression_level",
-  desc = "Arrow compression level (codec-dependent; ZSTD supports 1-22).",
-  default = 15L,
-  option_name = "arrow_compression_level"
-)
+# Arrow exchange format #######################################################
 
 #' Arrow exchange-format options
 #'
 #' Getters / setters for the Arrow format used to exchange data with the
 #' JuMP / Pyomo solvers (and the default on-disk storage codec).
+#'
 #' @param format one of `"feather"`, `"parquet"`, `"csv"`.
 #' @param codec compression codec, e.g. `"zstd"`, `"lz4"`, `"uncompressed"`.
 #' @param level integer compression level (ZSTD: 1-22).
+#'
+#' @return the option value (getters) or the previous value, invisibly (setters).
+#'
+#' @family options
 #' @rdname arrow_format
 #' @export
+#' @examples
+#' get_arrow_format()
 get_arrow_format <- function() options::opt("arrow_format")
 
+#' @family options
 #' @rdname arrow_format
 #' @export
 set_arrow_format <- function(format = c("feather", "parquet", "csv")) {
@@ -232,10 +540,12 @@ set_arrow_format <- function(format = c("feather", "parquet", "csv")) {
   options::opt_set("arrow_format", format)
 }
 
+#' @family options
 #' @rdname arrow_format
 #' @export
 get_arrow_compression <- function() options::opt("arrow_compression")
 
+#' @family options
 #' @rdname arrow_format
 #' @export
 set_arrow_compression <- function(codec = c("zstd", "lz4", "uncompressed")) {
@@ -243,21 +553,14 @@ set_arrow_compression <- function(codec = c("zstd", "lz4", "uncompressed")) {
   options::opt_set("arrow_compression", codec)
 }
 
+#' @family options
 #' @rdname arrow_format
 #' @export
 get_arrow_compression_level <- function() options::opt("arrow_compression_level")
 
+#' @family options
 #' @rdname arrow_format
 #' @export
 set_arrow_compression_level <- function(level = 15L) {
   options::opt_set("arrow_compression_level", as.integer(level))
 }
-
-# save global settings
-# sys_dir <- "~/.energyRt"
-# dir.create(sys_dir)
-# dir.exists(sys_dir)
-# write_lines(c(
-#   'energyRt::set_gams_path("...")',
-#   'energyRt::set_gdxlib_path("...")'
-# ), file = fp(sys_dir, "settings.R"))

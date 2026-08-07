@@ -23,6 +23,7 @@ drafts/
 *.lst
 *.~gm
 *.lxi
-inst/doc
 \.DS_Store
+dev/
+dev-scripts/
 .positai

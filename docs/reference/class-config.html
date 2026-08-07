@@ -17,7 +17,7 @@ scenario settings."><meta property="og:image" content="https://energyRt.org/logo
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.70.2.9001</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.75.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -89,19 +89,27 @@ scenario settings.</p>
 <dd><p>calendar. Calendar object with the model time parameters.</p></dd>
 
 
+<dt><code>geoscale</code></dt>
+<dd><p>ANY. Optional <code><a href="https://optimal2050.github.io/geoscales/r/reference/Geoscale.html" class="external-link">geoscales::Geoscale</a></code> object describing the model's regions – their nesting into coarser levels, weights, and (optionally) geometry. Purely additional information about the labels in <code>region</code>, which remains authoritative; the geoscale is used for plotting, reporting and subsetting and never changes the optimisation model. <code>NULL</code> when unset. Typed <code>ANY</code> because <code>geoscales</code> is an optional (Suggests) dependency.</p></dd>
+
+
 <dt><code>horizon</code></dt>
 <dd><p>horizon. Horizon object with the model time parameters. The horizon defines the planning period and intervals of the model.</p></dd>
 
 
 <dt><code>discount</code></dt>
-<dd><p>data.frame. Discount rates, can be assigned by region and year.</p><dl><dt>region</dt>
+<dd><p>data.frame. The model's two rates, which can be assigned by region and year. <code>wacc</code> annuitises investment into the equivalent annual cost; <code>sdr</code> discounts the stream of system costs in the objective. They are independent – there is no fallback from one to the other.
+As an ARGUMENT (<code>newModel(discount = )</code>, <code>update(cfg, discount = )</code>) this slot also accepts the shorthand <code>discount</code>, a single rate that plays both roles: <code>discount = 0.05</code> is equivalent to <code>data.frame(wacc = 0.05, sdr = 0.05)</code>. Per row you supply either <code>discount</code>, or both <code>wacc</code> and <code>sdr</code> – a partial pair or a mix of the two forms is an error. There is no <code>discount</code> column: the shorthand is expanded on entry, so the stored table always has both rates.</p><dl><dt>region</dt>
 <dd><p>character. Region name to apply the parameter, NA for every region.</p></dd>
 
 <dt>year</dt>
 <dd><p>integer. Year to apply the parameter, NA for every year.</p></dd>
 
-<dt>discount</dt>
-<dd><p>numeric. Discount rate. Default is 0.05. The discount rate is used to calculate the present value of future costs and benefits.</p></dd>
+<dt>wacc</dt>
+<dd><p>numeric. Weighted average cost of capital, used to annuitise investment costs into <code>pTechEac</code> / <code>pStorageEac</code> / <code>pTradeEac</code>. A process may override it with its own <code>@invcost$wacc</code>. Default is 0.</p></dd>
+
+<dt>sdr</dt>
+<dd><p>numeric. Social discount rate, used to build the cumulative discount factor applied to total system costs in the objective. A property of the model, never of an individual process. Default is 0.</p></dd>
 
 
 </dl></dd>
@@ -125,6 +133,10 @@ scenario settings.</p>
 
 <dt><code>debug</code></dt>
 <dd><p>data.frame. Artificial (dummy or sluck) variables to debug model infeasibility. Can be specified by commodities, regions, years, and slices.</p></dd>
+
+
+<dt><code>variant_prefix</code></dt>
+<dd><p>character. Named character vector giving the prefixes inserted into the names of expanded technology variants, keyed by variant dimension: <code>c(vintage = "_VIN", cluster = "_CL")</code>. A technology <code>WIND</code> with vintage 2030 and cluster "01" then becomes the set member <code>WIND_VIN2030_CL01</code>. Number the clusters rather than labelling them ("01", not "best"): the prefix already says what the axis is, so a label that repeats it reads as <code>WIND_VIN2030_CLCL01</code>. Model-wide, because these become solver set-member names; the scenario settings inherit the value and must agree with it. Each prefix must be non-empty, match <code>^[[:alnum:]_]+$</code>, and the two must differ. A partial value such as <code>c(cluster = "_RC")</code> is merged over the defaults.</p></dd>
 
 
 <dt><code>misc</code></dt>

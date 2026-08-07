@@ -1,3 +1,7 @@
+* energyRt 0.71
+* Energy Systems Modeling Toolbox for R
+* https://energyRt.org
+
 $include inc1.gms
 
 OPTION RESLIM=50000, PROFILE=0, SOLVEOPT=REPLACE;
@@ -105,6 +109,10 @@ mDiscountZero(region)
 mSliceParentChildE(slice, slice)   Child slice or the same
 mSliceParentChild(slice, slice)    Child slice not the same
 mSliceFamily(slice, slice)         Immediate slice parent-child (one level) [agg-rewrite]
+* [nested-regions] spatial twin of mSliceFamily. No pRegionAgg counterpart:
+* regional quantities are extensive and simply add up. Empty without a geoscale.
+mRegionFamily(region, region)      Immediate region parent-child (one level) [nested-regions]
+mCommRegion(comm, region)          Region level a commodity is balanced at [nested-regions]
 *
 mTradeRoutes(trade, region, region)
 mTradeSpan(trade, year)
@@ -167,8 +175,18 @@ pTechRetLo(tech, region, year)                      Lower bound on early retirem
 pTechCap2act(tech)                                  Technology capacity units to activity units conversion factor
 pTechCvarom(tech, comm, region, year, slice)        Commodity-specific variable costs (per unit of commodity input or output)
 pTechAvarom(tech, comm, region, year, slice)        Auxilary Commodity-specific variable costs (per unit of commodity input or output)
-* Discount
-pDiscount(region, year)                             Discount rate (can be region and year specific)
+* Rates
+* Declared for parity with the GLPK model, which uses pXPayback in eqXEac. The
+* GAMS equations still use pXOlife, so a model with any payback set is refused
+* by the writer until the GAMS/Pyomo/Julia equations follow.
+pWacc(region, year)                                 Weighted average cost of capital (can be region and year specific)
+pSdr(region, year)                                  Social discount rate (can be region and year specific)
+pTechWacc(tech, region, year)                       Technology-specific cost of capital
+pStorageWacc(stg, region, year)                     Storage-specific cost of capital
+pTradeWacc(trade, region, year)                     Trade-specific cost of capital
+pTechPayback(tech, region, year)                    Cost-recovery period of a technology
+pStoragePayback(stg, region, year)                  Cost-recovery period of a storage
+pTradePayback(trade, region, year)                  Cost-recovery period of a trade
 pDiscountFactor(region, year)                       Discount factor (cumulative)
 pDiscountFactorMileStone(region, year)              Discount factor (cumulative) sum for MileStone
 * Supply
@@ -372,8 +390,9 @@ mTradeIrCsrc2Ainp(trade, comm, region, region, year, slice)
 mTradeIrCdst2Ainp(trade, comm, region, region, year, slice)
 mTradeIrCsrc2Aout(trade, comm, region, region, year, slice)
 mTradeIrCdst2Aout(trade, comm, region, region, year, slice)
-mvTradeCost(region, year)
-mvTradeRowCost(region, year)
+* retired: trade costs are vTradeEac + vTradeFixom + eqImport/ExportIrCost
+*mvTradeCost(region, year)
+*mvTradeRowCost(region, year)
 mExportRowCost(expp, region, year)
 mImportRowCost(imp, region, year)
 *mvTradeIrCost(region, year)
@@ -688,7 +707,6 @@ meqTradeCapFlow(trade, comm, year, slice)
 meqBalLo(comm, region, year, slice)
 meqBalUp(comm, region, year, slice)
 meqBalFx(comm, region, year, slice)
-meqLECActivity(tech, region, year)
 mTechAct2AInp(tech, comm, region, year, slice)
 mTechCap2AInp(tech, comm, region, year, slice)
 mTechNCap2AInp(tech, comm, region, year, slice)
@@ -2114,6 +2132,14 @@ eqOutTot(comm, region, year, slice)$mvOutTot(comm, region, year, slice)..
                mvOutTot(comm, region, year, slicep)
               ),
               pSliceAgg(year, slice, slicep) * vOutTot(comm, region, year, slicep)
+           )
+* [nested-regions] UP-aggregation of the immediately-finer region level. Plain
+* sum: regional quantities are extensive, unlike the intensive slice values above.
+         + sum(regionp$(mRegionFamily(region, regionp)
+               and
+               mvOutTot(comm, regionp, year, slice)
+              ),
+              vOutTot(comm, regionp, year, slice)
            );
 
 * [agg-rewrite] eqOutTotRY/vOutTotRY retired (dead reporting)
@@ -2148,6 +2174,14 @@ eqInpTot(comm, region, year, slice)$mvInpTot(comm, region, year, slice)..
                     mvInpTot(comm, region, year, slicep)
             ),
             pSliceAgg(year, slice, slicep) * vInpTot(comm, region, year, slicep)
+        )
+* [nested-regions] UP-aggregation of the immediately-finer region level (plain
+* sum -- extensive quantities).
+        + sum(regionp$(mRegionFamily(region, regionp)
+                    and
+                    mvInpTot(comm, regionp, year, slice)
+            ),
+            vInpTot(comm, regionp, year, slice)
         );
 
 * [agg-rewrite] eqInpTotRY/vInpTotRY retired (dead reporting)
@@ -2382,24 +2416,6 @@ eqObjective..
          sum((region, year)$mvTotalCost(region, year),
 *           pDiscountFactorMileStone(region, year) *
             vTotalCost(region, year) * pPeriodLen(year) * pDiscountFactor(region, year));
-
-set
-mLECRegion(region)
-;
-
-parameter
-pLECLoACT(region)  levelized costs interim parameter
-;
-
-**************************************
-** LEC equation
-**************************************
-Equation
-eqLECActivity(tech, region, year)  levelized costs (auxiliary equation)
-;
-
-eqLECActivity(tech, region, year)$meqLECActivity(tech, region, year)..
-         sum(slice$mTechSlice(tech, slice), vTechAct(tech, region, year, slice)) =g= pLECLoACT(region);
 
 $include inc_constraints.gms
 

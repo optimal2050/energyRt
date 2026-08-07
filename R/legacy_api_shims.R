@@ -34,7 +34,7 @@ interp_mod <- function(mod, name = NULL, ...,
                        desc = NULL, ondisk = TRUE, overwrite = FALSE,
                        fold = TRUE, sparse = TRUE, prune = TRUE,
                        validate = TRUE, code = NULL,
-                       verbose = getOption("energyRt.verbose", FALSE)) {
+                       verbose = isVerbose()) {
   .Deprecated("interpolate_model")
   interpolate_model(mod, name = name, ..., desc = desc, ondisk = ondisk,
                     overwrite = overwrite, fold = fold, sparse = sparse,

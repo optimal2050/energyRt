@@ -5,18 +5,20 @@
 \alias{autoplot.demand}
 \title{Visualize a demand object}
 \usage{
-plot_demand(object, type = c("area", "line"), years = NULL, ...)
+plot_demand(object, style = c("area", "line"), year = NULL, palette = "D", ...)
 
-\method{autoplot}{demand}(object, type = c("area", "line"), years = NULL, ...)
+\method{autoplot}{demand}(object, style = c("area", "line"), year = NULL, palette = "D", ...)
 }
 \arguments{
 \item{object}{A \code{demand} object.}
 
-\item{type}{\code{"area"} (annual totals) or \code{"line"} (slice profiles).}
+\item{style}{\code{"area"} (annual totals) or \code{"line"} (slice profiles).}
 
-\item{years}{Optional integer vector of years. For \code{"area"} these are the
+\item{year}{Optional integer vector of years. For \code{"area"} these are the
 interpolation targets (default: range of the given years); for \code{"line"}
 they filter which given years are shown.}
+
+\item{palette}{viridis palette option, as in \code{\link[ggplot2:scale_fill_viridis_d]{ggplot2::scale_fill_viridis_d()}}.}
 
 \item{...}{Passed to \code{\link[=getData]{getData()}} (e.g. \verb{region =} filter).}
 }
@@ -26,12 +28,13 @@ A \code{ggplot} object (or \code{NULL}, invisibly, if there is nothing to plot).
 \description{
 Two views of a \code{demand} object:
 \describe{
-\item{\code{type = "area"} (default)}{\strong{aggregated} demand -- slice values are
+\item{\code{style = "area"} (default)}{\strong{aggregated} demand -- slice values are
 summed to annual totals and drawn as an area over the years (stacked by
 region), with the given data years marked as points.}
-\item{\code{type = "line"}}{\strong{profiles} -- the within-year demand shape by
+\item{\code{style = "line"}}{\strong{profiles} -- the within-year demand shape by
 region and year. Slices with an hour tag (\code{"..._h07"}) are drawn against
 the hour of day (faceted season x region when a season prefix is
 present); other calendars fall back to the slice sequence.}
 }
 }
+\keyword{internal}

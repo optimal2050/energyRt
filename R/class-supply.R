@@ -6,7 +6,7 @@
 #' @slot unit `r get_slot_doc("supply", "unit")`
 #' @slot weather `r get_slot_doc("supply", "weather")`
 #' @slot reserve `r get_slot_doc("supply", "reserve")`
-#' @slot availability `r get_slot_doc("supply", "availability")`
+#' @slot supply `r get_slot_doc("supply", "supply")`
 #' @slot region `r get_slot_doc("supply", "region")`
 #' @slot misc `r get_slot_doc("supply", "misc")`
 #'
@@ -22,7 +22,7 @@ setClass("supply",
     unit = "character",
     weather = "data.frame",
     reserve = "data.frame",
-    availability = "data.frame",
+    supply = "data.frame",
     region = "character",
     misc = "list"
   ),
@@ -45,7 +45,7 @@ setClass("supply",
       res.fx = numeric(),
       stringsAsFactors = FALSE
     ),
-    availability = data.frame(
+    supply = data.frame(
       region = character(),
       year = integer(),
       slice = character(),
@@ -82,7 +82,7 @@ setMethod("initialize", "supply", function(.Object, ...) {
 #' @param unit `r get_slot_doc("supply", "unit")`
 #' @param weather `r get_slot_doc("supply", "weather")`
 #' @param reserve `r get_slot_doc("supply", "reserve")`
-#' @param availability `r get_slot_doc("supply", "availability")`
+#' @param supply `r get_slot_doc("supply", "supply")`
 #' @param region `r get_slot_doc("supply", "region")`
 #' @param misc `r get_slot_doc("supply", "misc")`
 #'
@@ -103,7 +103,7 @@ setMethod("initialize", "supply", function(.Object, ...) {
 #'       region = c("R1", "R2", "R3"),
 #'       res.up = c(2e5, 1e4, 3e6) # total reserves/deposits
 #'    ),
-#'    availability = data.frame(
+#'    supply = data.frame(
 #'       region = c("R1", "R2", "R3"),
 #'       year = NA_integer_,
 #'       slice = "ANNUAL",
@@ -121,7 +121,7 @@ newSupply <- function(
   unit = character(),
   weather = data.frame(),
   reserve = data.frame(),
-  availability = data.frame(),
+  supply = data.frame(),
   region = character(),
   misc = list(),
   ...
@@ -134,7 +134,7 @@ newSupply <- function(
     unit = unit,
     weather = weather,
     reserve = reserve,
-    availability = availability,
+    supply = supply,
     region = region,
     misc = misc,
     ...

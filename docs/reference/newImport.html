@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.70.2.9001</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.75.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -70,7 +70,7 @@
 <span>  commodity <span class="op">=</span> <span class="st">""</span>,</span>
 <span>  unit <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  reserve <span class="op">=</span> <span class="cn">Inf</span>,</span>
-<span>  imp <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  import <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  misc <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -100,8 +100,11 @@
 <dd><p>numeric. Total accumulated limit through the model horizon.</p></dd>
 
 
-<dt id="arg-imp">imp<a class="anchor" aria-label="anchor" href="#arg-imp"></a></dt>
-<dd><p>data.frame. Import parameters.</p><dl><dt>region</dt>
+<dt id="arg-import">import<a class="anchor" aria-label="anchor" href="#arg-import"></a></dt>
+<dd><p>data.frame. Import parameters.</p><dl><dt>vintage</dt>
+<dd><p>character. Vintage label selecting the variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
+
+<dt>region</dt>
 <dd><p>character. Region name to apply the parameter; use NA to apply to all regions.</p></dd>
 
 <dt>year</dt>
@@ -152,7 +155,7 @@ define the price of the imported commodity.
 <span class="r-in"><span>  desc <span class="op">=</span> <span class="st">"Oil import to the model to the RoW"</span>, <span class="co"># for own reference</span></span></span>
 <span class="r-in"><span>  commodity <span class="op">=</span> <span class="st">"OIL"</span>, <span class="co"># must match the commodity name in the model</span></span></span>
 <span class="r-in"><span>  unit <span class="op">=</span> <span class="st">"Mtoe"</span>, <span class="co"># for own reference</span></span></span>
-<span class="r-in"><span>  imp <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  import <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>    region <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"R1"</span>, <span class="st">"R2"</span><span class="op">)</span>, each <span class="op">=</span> <span class="fl">2</span><span class="op">)</span>, <span class="co"># import region(s)</span></span></span>
 <span class="r-in"><span>    year <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/rep.html" class="external-link">rep</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2020</span>, <span class="fl">2050</span><span class="op">)</span><span class="op">)</span>, <span class="co"># import years</span></span></span>
 <span class="r-in"><span>    price <span class="op">=</span> <span class="fl">600</span>, <span class="co"># import price in MUSD/Mtoe (USD/t),</span></span></span>

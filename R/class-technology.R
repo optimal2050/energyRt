@@ -29,9 +29,8 @@
 #' @slot fixom `r get_slot_doc("technology", "fixom")`
 #' @slot varom `r get_slot_doc("technology", "varom")`
 #' @slot invcost `r get_slot_doc("technology", "invcost")`
-#' @slot start `r get_slot_doc("technology", "start")`
-#' @slot end `r get_slot_doc("technology", "end")`
-#' @slot olife `r get_slot_doc("technology", "olife")`
+#' @slot cluster `r get_slot_doc("technology", "cluster")`
+#' @slot vintage `r get_slot_doc("technology", "vintage")`
 #' @slot capacity `r get_slot_doc("technology", "capacity")`
 #' @slot optimizeRetirement `r get_slot_doc("technology", "optimizeRetirement")`
 #' @slot fullYear `r get_slot_doc("technology", "fullYear")`
@@ -66,9 +65,8 @@ setClass("technology",
     varom = "data.frame",
     invcost = "data.frame",
     # Market
-    start = "data.frame",
-    end = "data.frame",
-    olife = "data.frame",
+    cluster = "data.frame",
+    vintage = "data.frame",
     capacity = "data.frame",
     optimizeRetirement = "logical",
     # upgrade.technology = "character",
@@ -114,6 +112,8 @@ setClass("technology",
     cap2act = 1,
     # group efficiency
     geff = data.frame(
+      vintage = character(),
+      cluster = character(),
       region = character(),
       year = integer(),
       slice = character(),
@@ -123,6 +123,8 @@ setClass("technology",
     ),
     # commodity efficiency
     ceff = data.frame(
+      vintage = character(),
+      cluster = character(),
       region = character(),
       year = integer(),
       slice = character(),
@@ -141,6 +143,8 @@ setClass("technology",
     ),
     # Auxilary parameter
     aeff = data.frame(
+      vintage = character(),
+      cluster = character(),
       acomm = character(),
       comm = character(),
       region = character(),
@@ -166,6 +170,8 @@ setClass("technology",
       stringsAsFactors = FALSE
     ),
     af = data.frame(
+      vintage = character(),
+      cluster = character(),
       region = character(),
       year = integer(),
       slice = character(),
@@ -177,6 +183,8 @@ setClass("technology",
       stringsAsFactors = FALSE
     ),
     afs = data.frame(
+      vintage = character(),
+      cluster = character(),
       region = character(),
       year = integer(),
       slice = character(),
@@ -186,6 +194,8 @@ setClass("technology",
       stringsAsFactors = FALSE
     ),
     weather = data.frame(
+      vintage = character(),
+      cluster = character(),
       weather = character(),
       comm = character(),
       wafc.lo = numeric(),
@@ -200,12 +210,16 @@ setClass("technology",
       stringsAsFactors = FALSE
     ),
     fixom = data.frame(
+      vintage = character(),
+      cluster = character(),
       region = character(),
       year = integer(),
       fixom = numeric(),
       stringsAsFactors = FALSE
     ),
     varom = data.frame(
+      vintage = character(),
+      cluster = character(),
       region = character(),
       year = integer(),
       slice = character(),
@@ -216,31 +230,61 @@ setClass("technology",
       avarom = numeric(),
       stringsAsFactors = FALSE
     ),
+    # `wacc` overrides the model-wide rate when annuitising this technology;
+    # `payback` shortens the cost-recovery period below `@vintage$olife`; `eac`
+    # supplies the annuity directly, bypassing both.
     invcost = data.frame(
+      vintage = character(),
+      cluster = character(),
       region = character(),
       year = integer(),
       invcost = numeric(),
       wacc = numeric(),
+      payback = numeric(),
       eac = numeric(),
       retcost = numeric(),
       stringsAsFactors = FALSE
     ),
-    start = data.frame(
+    # Cluster declaration. A cluster is a parallel sub-process of the same
+    # technology -- a resource class, geography or fleet type -- with its own
+    # capacity, availability and costs. This slot declares WHAT the clusters are
+    # and WHERE they exist; the per-cluster data lives in the `cluster` column of
+    # the variant-varying slots (@capacity, @invcost, @afs, @weather, ...), the
+    # same way @group declares input groups whose data lives in @input$group.
+    #
+    # Optional. When empty, cluster labels are harvested from those columns
+    # (backward compatible). When populated it is AUTHORITATIVE: a label used in
+    # a slot but not declared here is an error rather than a silent extra
+    # variant, and `region` restricts where the cluster exists (NA = everywhere).
+    cluster = data.frame(
+      cluster = character(),
+      desc = character(),
       region = character(),
+      order = integer(),
+      stringsAsFactors = FALSE
+    ),
+    # Lifespan / vintage table. Replaces the former `start`, `end` and `olife`
+    # slots: one row per (vintage, region, cluster) giving that variant's
+    # investment window and operational life.
+    #   vintage = NA -> un-vintaged technology (a single variant)
+    #   region  = NA -> all regions
+    #   cluster = NA -> all clusters
+    # `start`/`end` default to the vintage year when omitted, so
+    # `vintage = c("2020", "2030")` alone defines two properly windowed
+    # vintages. The selector columns are character so that the reserved
+    # "TOTAL" token (group-aggregate bounds) can be used in either.
+    vintage = data.frame(
+      vintage = character(),
+      region = character(),
+      cluster = character(),
       start = integer(),
-      stringsAsFactors = FALSE
-    ),
-    end = data.frame(
-      region = character(),
       end = integer(),
-      stringsAsFactors = FALSE
-    ),
-    olife = data.frame(
-      region = character(),
       olife = integer(),
       stringsAsFactors = FALSE
     ),
     capacity = data.frame(
+      vintage = character(),
+      cluster = character(),
       region = character(),
       year = integer(),
       stock = numeric(),
@@ -297,10 +341,12 @@ setMethod("initialize", "technology", function(.Object, ...) {
 #' @param invcost `r get_slot_doc("technology", "invcost")`
 #' @param fixom `r get_slot_doc("technology", "fixom")`
 #' @param varom `r get_slot_doc("technology", "varom")`
-#' @param olife `r get_slot_doc("technology", "olife")`
+#' @param cluster `r get_slot_doc("technology", "cluster")`
+#' @param vintage `r get_slot_doc("technology", "vintage")`
+#' @param olife deprecated, use the `olife` column of `vintage`.
 #' @param region `r get_slot_doc("technology", "region")`
-#' @param start `r get_slot_doc("technology", "start")`
-#' @param end `r get_slot_doc("technology", "end")`
+#' @param start deprecated, use the `start` column of `vintage`.
+#' @param end deprecated, use the `end` column of `vintage`.
 #' @param timeframe `r get_slot_doc("technology", "timeframe")`
 #' @param fullYear `r get_slot_doc("technology", "fullYear")`
 #' @param optimizeRetirement `r get_slot_doc("technology", "optimizeRetirement")`
@@ -363,14 +409,10 @@ setMethod("initialize", "technology", function(.Object, ...) {
 #'     year = c(2020, 2030, 2040), # to differentiate by years
 #'     invcost = c(1000, 900, 800) # $1000, $900, $800 per MW
 #'   ),
-#'   start = data.frame( # start year
-#'     start = 2020 # can be installed from 2020
-#'   ),
-#'   end = data.frame( # end year
-#'     end = 2040 # can be installed until 2040
-#'   ),
-#'   olife = data.frame( # operational life
-#'     olife = 30 # years
+#'   vintage = data.frame( # investment window and operational life
+#'     start = 2020, # can be installed from 2020
+#'     end = 2040, # can be installed until 2040
+#'     olife = 30 # operational life, years
 #'   ),
 #'   capacity = data.frame( # existing capacity
 #'     year = c(2020, 2030, 2040), # to differentiate by years
@@ -402,6 +444,8 @@ newTechnology <- function(
     invcost = data.frame(),
     fixom = data.frame(),
     varom = data.frame(),
+    cluster = data.frame(),
+    vintage = data.frame(),
     olife = data.frame(),
     region = character(),
     start = data.frame(),
@@ -412,7 +456,7 @@ newTechnology <- function(
     # upgrade.technology = character(),
     misc = list(),
     ...) {
-  .data2slots("technology", name,
+  args <- list(
     desc = desc,
     input = input,
     output = output,
@@ -430,6 +474,8 @@ newTechnology <- function(
     invcost = invcost,
     fixom = fixom,
     varom = varom,
+    cluster = cluster,
+    vintage = vintage,
     olife = olife,
     region = region,
     start = start,
@@ -441,6 +487,9 @@ newTechnology <- function(
     misc = misc,
     ...
   )
+  # fold the deprecated `start`/`end`/`olife` arguments into `vintage`
+  args <- .tech_lifespan_args(args)
+  do.call(.data2slots, c(list("technology", name), args))
 }
 
 # methods ###################################################################
@@ -454,7 +503,10 @@ newTechnology <- function(
 #' @method update technology
 #' @export
 setMethod("update", "technology", function(object, ...) {
-  .data2slots("technology", object, ...)
+  # fold the deprecated `start`/`end`/`olife` arguments into `vintage` before
+  # they reach `.data2slots()`, which no longer knows those slot names
+  args <- .tech_lifespan_args(list(...))
+  do.call(.data2slots, c(list("technology", object), args))
 })
 
 # internal functions ########################################################

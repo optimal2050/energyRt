@@ -27,7 +27,9 @@ mini-table's columns back to the types declared by the class.
 \code{\link[=write_technology_xlsx]{write_technology_xlsx()}}
 
 Other technology process:
+\code{\link[=getVariants]{getVariants()}},
 \code{\link[=newTechnology]{newTechnology()}},
+\code{\link[=variantSummary]{variantSummary()}},
 \code{\link[=write_technology_xlsx]{write_technology_xlsx()}}
 }
 \concept{technology process}

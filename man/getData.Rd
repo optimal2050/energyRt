@@ -27,6 +27,7 @@ getData(scen, ...)
   ...,
   merge = FALSE,
   timeframe = c("lowest", "highest", "all"),
+  geolevel = c("finest", "coarsest", "all"),
   process = FALSE,
   parameters = TRUE,
   variables = TRUE,
@@ -49,6 +50,7 @@ getData(scen, ...)
   drop_duplicated_scenarios = TRUE,
   scenNameInList = as.logical(length(scen) - 1),
   unfold = TRUE,
+  variants = TRUE,
   verbose = FALSE
 )
 
@@ -58,6 +60,7 @@ getData(scen, ...)
   ...,
   merge = FALSE,
   timeframe = c("lowest", "highest", "all"),
+  geolevel = c("finest", "coarsest", "all"),
   process = FALSE,
   parameters = TRUE,
   variables = TRUE,
@@ -80,6 +83,7 @@ getData(scen, ...)
   drop_duplicated_scenarios = TRUE,
   scenNameInList = as.logical(length(scen) - 1),
   unfold = TRUE,
+  variants = TRUE,
   verbose = FALSE
 )
 
@@ -241,6 +245,8 @@ get_data(scen, ...)
 
 \item{timeframe}{controls sub-annual time aggregation of results that carry a \code{slice} column. One of \code{"lowest"} (default, aggregate/sum flows up to the coarsest level, normally \code{ANNUAL}), \code{"highest"} (native/finest, as stored), \code{"all"} (return every timeframe level stacked), or an explicit calendar level name (e.g. \code{"SEASON"}, \code{"YDAY"}) to aggregate to that level. Non-slice data, and state/level variables (e.g. \code{vStorageStore}) for which summing over slices is meaningless, are returned unchanged.}
 
+\item{geolevel}{controls spatial aggregation of results that carry a \code{region} column, the spatial twin of \code{timeframe}. One of \code{"finest"} (default, native resolution as stored), \code{"coarsest"} (aggregate up to the top geoscale level), \code{"all"} (return every level stacked), or an explicit geoscale level name (e.g. \code{"zone"}, \code{"nation"}). Requires a geoscale on the model; without one this is inert. Inter-regional flow variables (e.g. \code{vTradeIr}) are returned unchanged, because summing a flow across regions double-counts it — the spatial counterpart of leaving state variables alone under \code{timeframe}.}
+
 \item{process}{if TRUE, dimensions "tech", "stg", "trade", "imp", "expp", "dem", and "sup" will be renamed with "process".}
 
 \item{parameters}{if TRUE, parameters will be included in the search and returned if found.}
@@ -268,6 +274,14 @@ get_data(scen, ...)
 \item{yearsAsFactors}{logical, should \code{year} be converted to factors? Set 'year' is integer by default.}
 
 \item{scenNameInList}{logical, should the name of the scenarios be used if not provided in the list with several scenarios?}
+
+\item{variants}{logical, default \code{TRUE}: attach the technology-variant
+provenance columns \code{base}, \code{vintage} and \code{cluster} (from
+\code{scenario@modInp@sets$tech_variant}) to the returned data, so results of a
+vintaged / clustered technology can be grouped or rolled up by those
+dimensions without parsing the variant names. Has no effect when the model
+has no variants, so the returned shape is unchanged for such models. Set
+\code{FALSE} to suppress the columns.}
 
 \item{verbose}{logical, print progress and diagnostic messages.}
 

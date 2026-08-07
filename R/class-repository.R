@@ -43,7 +43,7 @@ setMethod("initialize", "repository", function(.Object, ...) {
     "commodity", "demand", "supply",
     "technology", "storage",
     "trade", "export", "import", "weather",
-    "tax", "sub", "constraint", "costs"
+    "tax", "subsidy", "constraint", "costs"
   )
   .Object
 })
@@ -285,7 +285,7 @@ setMethod("add", signature("repository"), function(obj, ..., overwrite = FALSE) 
 #       # "region", "commodity", "stock", "reserve",
 #       "commodity", "demand", "supply", "technology", "storage",
 #       "trade", "export", "import", "weather",
-#       "tax", "sub", "constraint", "costs"
+#       "tax", "subsidy", "constraint", "costs"
 #     ))) {
 #       stop("Error type to repository ", class(app))
 #     }

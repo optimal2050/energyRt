@@ -266,7 +266,7 @@ setMethod(
         warning("Package 'ggplot2' is required for levcost plots; they will be omitted.")
       } else {
         lc_obj <- if (inherits(levcost, "levcost_list")) levcost[[1]] else levcost
-        compact_theme <- ggplot2::theme_bw(base_size = 10L) +
+        compact_theme <- theme_energyRt(base_size = 10L) +
           ggplot2::theme(
             legend.position  = "bottom",
             legend.key.size  = ggplot2::unit(0.3, "cm"),
@@ -499,10 +499,11 @@ setMethod(
   add("invcost", num_rng(gs("invcost"), "invcost"))
   add("fixom",   num_rng(gs("fixom"),   "fixom"))
   add("varom",   num_rng(gs("varom"),   "varom"))
-  ol <- gs("olife")
-  if (is.data.frame(ol) && nrow(ol) > 0) add("olife", ol$olife[1])
-  st <- gs("start")
-  if (is.data.frame(st) && nrow(st) > 0) add("start", st$start[1])
+  # lifespan lives in `@vintage` for technology, in the separate slots elsewhere
+  ol <- .lifespan_col(p, "olife")
+  if (nrow(ol) > 0) add("olife", ol$olife[1])
+  st <- .lifespan_col(p, "start")
+  if (nrow(st) > 0) add("start", st$start[1])
   cap <- gs("capacity")
   if (is.data.frame(cap) && "stock" %in% names(cap)) {
     v <- cap$stock[!is.na(cap$stock)]
@@ -542,15 +543,17 @@ setMethod(
         paste0(if (nzchar(cal@name)) cal@name else "(unnamed)",
                " (", ns, " slices)"))))
     }
+    # Both rates, each under its own name -- they do different jobs and a model
+    # may well set them differently.
     dsc <- tryCatch(cfg@discount, error = function(e) NULL)
     if (is.data.frame(dsc) && nrow(dsc) > 0) {
-      for (col in c("sdr", "wacc", "discount")) {
+      for (col in c("wacc", "sdr")) {
+        if (!col %in% names(dsc)) next
         v <- suppressWarnings(as.numeric(dsc[[col]]))
         v <- v[is.finite(v)]
         if (length(v) > 0) {
-          cfg_rows <- c(cfg_rows, list(pair("discount",
+          cfg_rows <- c(cfg_rows, list(pair(col,
             paste(unique(signif(v, 4)), collapse = ", "))))
-          break
         }
       }
     }
@@ -581,8 +584,8 @@ setMethod(
   })) else NULL
 
   sup_df <- if (length(sups) > 0) do.call(rbind, lapply(sups, function(x) {
-    cost <- if (nrow(x@availability) > 0 && "cost" %in% names(x@availability)) {
-      v <- x@availability$cost[!is.na(x@availability$cost)]
+    cost <- if (nrow(x@supply) > 0 && "cost" %in% names(x@supply)) {
+      v <- x@supply$cost[!is.na(x@supply$cost)]
       if (length(v) > 0) paste(unique(signif(range(v), 4)), collapse = " - ") else ""
     } else ""
     data.frame(name = x@name, commodity = paste(x@commodity, collapse = ", "),
@@ -590,8 +593,8 @@ setMethod(
   })) else NULL
 
   dem_df <- if (length(dems) > 0) do.call(rbind, lapply(dems, function(x) {
-    tot <- if (nrow(x@dem) > 0 && "dem" %in% names(x@dem)) {
-      v <- x@dem$dem[!is.na(x@dem$dem)]
+    tot <- if (nrow(x@demand) > 0 && "demand" %in% names(x@demand)) {
+      v <- x@demand$demand[!is.na(x@demand$demand)]
       if (length(v) > 0) signif(sum(v), 4) else NA
     } else NA
     data.frame(name = x@name, commodity = paste(x@commodity, collapse = ", "),
@@ -837,9 +840,13 @@ setMethod("report_tex", "technology", function(object, ...) {
   units_act   <- .slot_val_report(object@units, "activity", "")
   units_costs <- .slot_val_report(object@units, "costs",    "")
 
-  olife_val <- if (nrow(object@olife) > 0) object@olife$olife[1] else NA_integer_
-  start_val <- if (nrow(object@start) > 0) object@start$start[1] else NA_integer_
-  end_val   <- if (nrow(object@end)   > 0) object@end$end[1]     else NA_integer_
+  .ls1 <- function(col) {
+    d <- .lifespan_col(object, col)
+    if (nrow(d) > 0) d[[col]][1] else NA_integer_
+  }
+  olife_val <- .ls1("olife")
+  start_val <- .ls1("start")
+  end_val   <- .ls1("end")
 
   cap_df <- object@capacity
   if (nrow(cap_df) > 0) {

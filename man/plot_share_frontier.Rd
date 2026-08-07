@@ -4,14 +4,14 @@
 \alias{plot_share_frontier}
 \title{Plot feasible share-mix diagram for technology inputs/outputs}
 \usage{
-plot_share_frontier(df, title = NULL, base_size = 11L)
+plot_share_frontier(object, title = NULL, base_size = 11L)
 }
 \arguments{
-\item{df}{data.frame from \code{tech_share_frontier()}.}
+\item{object}{data.frame from \code{tech_share_frontier()}.}
 
 \item{title}{Optional character string prepended to each plot title.}
 
-\item{base_size}{Integer. Base font size passed to \code{theme_bw()}.}
+\item{base_size}{Integer. Base font size passed to \code{theme_energyRt()}.}
 }
 \value{
 A list of class \code{"share_frontier_plots"}, or \code{NULL}.
