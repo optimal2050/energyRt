@@ -54,11 +54,20 @@ scen <- solve_mod(model,  solver = solver_options$glpk)
 scen <- solve_scen(scen,  solver = solver_options$gams_gdx_cplex)
 ```
 
+[`set_default_solver()`](https://energyRt.org/reference/default_solver.md)
+lasts for the session. To make a default stick across sessions, save it
+with [`en_config_write()`](https://energyRt.org/reference/en_config.md);
+[`en_config_show()`](https://energyRt.org/reference/en_config_show.md)
+reports the current default together with the solver paths it depends
+on.
+
 [`solve_mod()`](https://energyRt.org/reference/solve_mod.md)
 interpolates a `model` and solves it;
 [`solve_scen()`](https://energyRt.org/reference/solve_mod.md) solves an
 already-interpolated scenario. With `solver = NULL` the scenario’s own
-settings or `get_default_solver()` are used.
+settings or
+[`get_default_solver()`](https://energyRt.org/reference/default_solver.md)
+are used.
 
 ## The backends in detail
 
@@ -123,7 +132,9 @@ and via GAMS (`neos_gams_*`, sent as inlined text so no local GAMS
 install is needed).
 
 NEOS requires an email address, set once via the `NEOS_EMAIL`
-environment variable or the helper:
+environment variable or the helper (this is the one energyRt setting
+whose environment variable is *not* prefixed `ENERGYRT_`, because the
+Pyomo subprocess reads `NEOS_EMAIL` directly):
 
 ``` r
 
@@ -203,5 +214,8 @@ solve_mod(model, solver = my_solver)
   into a model.
 - [`?solve_mod`](https://energyRt.org/reference/solve_mod.md),
   [`?solve_scen`](https://energyRt.org/reference/solve_mod.md),
-  `?set_default_solver`,
+  [`?set_default_solver`](https://energyRt.org/reference/default_solver.md),
   [`?set_neos_email`](https://energyRt.org/reference/neos_email.md).
+- `?energyRt-options` for every setting,
+  [`?en_config_show`](https://energyRt.org/reference/en_config_show.md)
+  for what is in effect.

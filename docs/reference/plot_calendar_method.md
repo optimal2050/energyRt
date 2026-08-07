@@ -4,27 +4,11 @@ Draws the calendar's time-structure as stacked rows (one per timeframe,
 `ANNUAL` on top), where each rectangle is a time-slice sized by its
 share of the year. `autoplot()` is the ggplot2-idiomatic entry point and
 returns the same `ggplot` object as
-[`plot()`](https://rdrr.io/r/graphics/plot.default.html).
+[`plot()`](https://energyRt.org/reference/draw.md).
 
 ## Usage
 
 ``` r
-# S4 method for class 'calendar'
-plot(
-  x,
-  ...,
-  fill = c("order", "share", "weight"),
-  color_pattern = c("within", "global"),
-  palette = "D",
-  labels = TRUE,
-  label_by = c("name", "slice", "none"),
-  label_color = "auto",
-  max_labels = 60L,
-  border = NA,
-  show_leafs = NULL,
-  reference = NULL
-)
-
 # S3 method for class 'calendar'
 autoplot(
   object,
@@ -44,7 +28,7 @@ autoplot(
 
 ## Arguments
 
-- x, object:
+- object:
 
   An object of class `calendar`.
 

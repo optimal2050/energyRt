@@ -120,6 +120,23 @@ levcost(object, comm, name, ...)
 
   :   Solver spec list, default `solver_options$glpk`.
 
+  `run`
+
+  :   `"single"` (default) or `"sequential"` – only meaningful for a
+      technology declaring vintages or clusters. `"single"` prices every
+      variant in one model (each in its own region, so they cannot
+      compete); if that model does not solve it is retried with the
+      dummy-import slack enabled and then, failing that, falls back to
+      one model per variant. `"sequential"` goes straight to one model
+      per variant, so a single non-converging variant cannot take the
+      rest down.
+
+  `max_failures`
+
+  :   Integer, default `10`. Abort the sequential fallback after this
+      many consecutive failed variant solves, to bound the time spent on
+      a technology whose variants all fail.
+
   `as_scenario`
 
   :   Logical, default `FALSE`. When `TRUE` the full solved `scenario`
@@ -171,6 +188,19 @@ For `technology` input: a list of class `"levcost"` with fields:
 For a list of technology objects: a named list of class
 `"levcost_list"`.
 
+For a technology declaring **vintages** and/or **clusters**: a named
+list of class `"levcost_variants"` (which inherits `"levcost_list"`),
+holding one full `"levcost"` result per variant, keyed by variant name
+(`"PWR_VIN2030"`). Each variant is priced in its own region so the
+variants cannot serve each other's demand; without that isolation they
+compete for one unit of demand and the result silently sums across them.
+The stacked tables are reachable with
+[`levcost_by_variant()`](https://energyRt.org/reference/levcost_by_variant.md),
+and `autoplot()` compares the variants. `$frontier` is `NULL` on this
+path – the frontier corners are a per-commodity sweep, orthogonal to
+variants, and are not fanned out. A technology with no vintages or
+clusters is unaffected and still returns a single `"levcost"` object.
+
 ## Details
 
 - `technology`:
@@ -197,6 +227,10 @@ For a list of technology objects: a named list of class
   discounted output. Fuel is attributed from `vTechInp`; a technology
   with a *grouped* input (whose per-commodity consumption is not a
   solution variable) therefore reports no fuel component.
+
+## See also
+
+[`levcost_by_variant()`](https://energyRt.org/reference/levcost_by_variant.md)
 
 ## Examples
 

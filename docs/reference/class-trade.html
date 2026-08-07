@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.70.2.9001</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.75.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -102,7 +102,10 @@ Create separate trade objects to optimize different parts of the trade network
 
 
 <dt><code>trade</code></dt>
-<dd><p>data.frame. Technical parameters of trade.</p><dl><dt>region</dt>
+<dd><p>data.frame. Technical parameters of trade.</p><dl><dt>vintage</dt>
+<dd><p>character. Vintage label selecting the variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
+
+<dt>region</dt>
 <dd><p>character. Region name to apply the parameter, NA for every region.</p></dd>
 
 <dt>year</dt>
@@ -130,7 +133,10 @@ Create separate trade objects to optimize different parts of the trade network
 
 
 <dt><code>aeff</code></dt>
-<dd><p>data.frame. Auxiliary commodity efficiency parameters.</p><dl><dt>acomm</dt>
+<dd><p>data.frame. Auxiliary commodity efficiency parameters.</p><dl><dt>vintage</dt>
+<dd><p>character. Vintage label selecting the variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
+
+<dt>acomm</dt>
 <dd><p>character. Name of the auxiliary commodity (used in sets).</p></dd>
 
 <dt>region</dt>
@@ -153,7 +159,10 @@ Create separate trade objects to optimize different parts of the trade network
 
 
 <dt><code>invcost</code></dt>
-<dd><p>data.frame. Investment cost, used when capacityVariable is TRUE.</p><dl><dt>region</dt>
+<dd><p>data.frame. Investment cost of the trade capacity (per unit of capacity).</p><dl><dt>vintage</dt>
+<dd><p>character. Vintage label selecting the variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
+
+<dt>region</dt>
 <dd><p>character. Region name to apply the parameter, NA for every region.</p></dd>
 
 <dt>year</dt>
@@ -161,6 +170,18 @@ Create separate trade objects to optimize different parts of the trade network
 
 <dt>invcost</dt>
 <dd><p>numeric. Investment cost.</p></dd>
+
+<dt>wacc</dt>
+<dd><p>numeric. Weighted average cost of capital used to annuitise <code>invcost</code> for this corridor. Overrides the model-wide <code>wacc</code> (see the model <code>discount</code> argument). The social discount rate is never used here.</p></dd>
+
+<dt>payback</dt>
+<dd><p>numeric. Cost-recovery period in years. Where given it replaces <code>olife</code> in the annuity AND in the years over which the annuity is charged, so the investment is repaid over <code>payback</code> years while the capacity keeps operating for its full operational life. Must be positive and not exceed <code>olife</code>. Unset (or 0) means recover over <code>olife</code>. Implemented for the GLPK solver only.</p></dd>
+
+<dt>eac</dt>
+<dd><p>numeric. Equivalent annual cost, supplied directly instead of being computed from <code>invcost</code>, <code>wacc</code> and the lifetime. Where given it wins; where absent the annuity is computed. Mutually exclusive with <code>invcost</code> per row.</p></dd>
+
+<dt>retcost</dt>
+<dd><p>numeric. Costs of early retirement of the trade capacity, default is 0.</p></dd>
 
 
 </dl></dd>
@@ -174,38 +195,31 @@ Create separate trade objects to optimize different parts of the trade network
 <dd><p>data.frame. (not implemented!) Variable operation and maintenance costs.</p></dd>
 
 
-<dt><code>olife</code></dt>
-<dd><p>numeric. Operational life of the trade object.</p></dd>
-
-
-<dt><code>start</code></dt>
-<dd><p>data.frame. Start year when the trade-type of process is available for investment.</p><dl><dt>region</dt>
-<dd><p>character. Regions where the trade-type of process is available for investment.</p></dd>
-
-<dt>start</dt>
-<dd><p>integer. The first year when the trade-type of process is available for investment.</p></dd>
-
-
-</dl></dd>
-
-
-<dt><code>end</code></dt>
-<dd><p>data.frame. End year when the trade-type of process is available for investment.</p><dl><dt>region</dt>
-<dd><p>character. Region name to apply the parameter, NA for every region.</p></dd>
-
-<dt>end</dt>
-<dd><p>integer. The last year when the trade-type of process is available for investment.</p></dd>
-
-
-</dl></dd>
-
-
 <dt><code>capacity</code></dt>
 <dd><p>data.frame. (not implemented!) Capacity parameters of the trade object.</p></dd>
 
 
-<dt><code>capacityVariable</code></dt>
-<dd><p>logical. If TRUE, the capacity variable of the trade object is optimized. If FALSE, the capacity is defined by availability parameters (<code>ava.*</code>) in the trade-flow units.</p></dd>
+<dt><code>vintage</code></dt>
+<dd><p>data.frame. Investment window and operational life of the trade object, one row per vintage. Replaces the former <code>start</code>, <code>end</code> and <code>olife</code> slots. A vintage is a separately investable variant that keeps the characteristics of its build year for its whole life, so several vintages of one corridor mean several capacities on the same <code>(src, dst)</code> route, with their flows summed in the commodity balance. <code>region</code> and <code>cluster</code> are present for a uniform shape across process classes but are unused for trade: its scope comes from the route endpoints, and <code>routes</code> already provides the multiplicity a cluster dimension would add.</p><dl><dt>vintage</dt>
+<dd><p>character. Vintage label, normally the build year as a string. NA for an un-vintaged trade.</p></dd>
+
+<dt>region</dt>
+<dd><p>character. Unused for trade (no <code>region</code> slot); present for consistency with the other classes.</p></dd>
+
+<dt>cluster</dt>
+<dd><p>character. Unused for trade (no cluster dimension); present for consistency with the other classes.</p></dd>
+
+<dt>start</dt>
+<dd><p>integer. The first year the trade object is available for investment. Defaults to the vintage year.</p></dd>
+
+<dt>end</dt>
+<dd><p>integer. The last year the trade object is available for investment. Defaults to the vintage year.</p></dd>
+
+<dt>olife</dt>
+<dd><p>integer. Operational life of the trade object in years.</p></dd>
+
+
+</dl></dd>
 
 
 <dt><code>cap2act</code></dt>

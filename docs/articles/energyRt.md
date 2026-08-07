@@ -70,7 +70,7 @@ GAS <- newCommodity("GAS", timeframe = "ANNUAL")
 ELC <- newCommodity("ELC", timeframe = "ANNUAL")
 
 SUP_GAS <- newSupply("SUP_GAS", commodity = "GAS",
-                     availability = data.frame(cost = 6.0))   # fuel price, MEUR/PJ
+                     supply = data.frame(cost = 6.0))   # fuel price, MEUR/PJ
 
 EGAS <- newTechnology("EGAS",
   input   = list(comm = "GAS"), output = list(comm = "ELC"),
@@ -79,7 +79,7 @@ EGAS <- newTechnology("EGAS",
   fixom   = 25, cap2act = 31.536, olife = 25L)
 
 DEM_ELC <- newDemand("DEM_ELC", commodity = "ELC",
-                     dem = data.frame(dem = 50))               # 50 PJ a year
+                     demand = data.frame(demand = 50))               # 50 PJ a year
 
 draw(EGAS)
 ```

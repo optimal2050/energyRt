@@ -32,3 +32,26 @@ set_arrow_compression_level(level = 15L)
 - level:
 
   integer compression level (ZSTD: 1-22).
+
+## Value
+
+the option value (getters) or the previous value, invisibly (setters).
+
+## See also
+
+Other options:
+[`en_config_path()`](https://energyRt.org/reference/en_config.md),
+[`en_config_show()`](https://energyRt.org/reference/en_config_show.md),
+[`get_default_solver()`](https://energyRt.org/reference/default_solver.md),
+[`isVerbose()`](https://energyRt.org/reference/isVerbose.md),
+[`set_default_registry()`](https://energyRt.org/reference/default_registry.md),
+[`set_option()`](https://energyRt.org/reference/en_option.md),
+[`set_scenarios_path()`](https://energyRt.org/reference/scenarios_path.md),
+[`set_solver_path()`](https://energyRt.org/reference/solver_path.md)
+
+## Examples
+
+``` r
+get_arrow_format()
+#> [1] "feather"
+```

@@ -73,7 +73,7 @@ supply object with given specifications.
   :   numeric. Fixed value of the total available resource. This
       parameter overrides `res.lo` and `res.up`.
 
-- `availability`:
+- `supply`:
 
   data.frame. Availability of the resource in physical units.
 

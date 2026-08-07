@@ -11,7 +11,7 @@ series.
 
 ``` r
 plot_heatmap(
-  x,
+  object,
   calendar = NULL,
   value = NULL,
   facet = NULL,
@@ -22,7 +22,7 @@ plot_heatmap(
 
 ## Arguments
 
-- x:
+- object:
 
   A `data.frame` with a `slice` column and a numeric value column, a
   named numeric vector (names are slices), or a `calendar` object (then

@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.70.2.9001</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.75.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -156,12 +156,17 @@ dependencies, then energyRt itself:</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/source.html" class="external-link">source</a></span><span class="op">(</span><span class="st">"https://raw.githubusercontent.com/optimal2050/energyRt/master/inst/install.R"</span><span class="op">)</span></span>
 <span><span class="fu">install_energyRt</span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p>To track the development version instead, pass a branch —
+<code>install_energyRt()</code> otherwise follows the repository’s
+default branch:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">install_energyRt</span><span class="op">(</span>branch <span class="op">=</span> <span class="st">"dev"</span><span class="op">)</span></span></code></pre></div>
 <p>Then verify your setup in a fresh session with
 <code><a href="https://energyRt.org">library(energyRt); en_setup()</a></code>.</p>
 <p>Prefer to install directly? energyRt’s CRAN dependencies are pulled
 in automatically by <code>pak</code> (no local sibling packages are
 required):</p>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"pak"</span><span class="op">)</span></span>
 <span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pkg_install.html" class="external-link">pkg_install</a></span><span class="op">(</span><span class="st">"optimal2050/energyRt"</span><span class="op">)</span></span>
 <span></span>
@@ -177,7 +182,7 @@ backend.</p>
 one CRAN import (often one that needs a system library) failed and
 aborted the rest. Install the imports one by one so the failure is
 isolated and reported:</p>
-<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="st">"pak"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># energyRt's direct CRAN imports (base packages are omitted):</span></span>
@@ -214,14 +219,14 @@ isolated and reported:</p>
 <p>On Linux, a package that fails to compile is missing a system
 library. Ask <code>pak</code> which apt packages are required, install
 them, then re-run the loop:</p>
-<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pkg_sysreqs.html" class="external-link">pkg_sysreqs</a></span><span class="op">(</span><span class="st">"optimal2050/energyRt"</span><span class="op">)</span>   <span class="co"># lists the apt packages</span></span>
 <span><span class="co"># e.g. sudo apt install libcurl4-openssl-dev libssl-dev libxml2-dev</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="check-what-you-already-have">2. Check what you already have<a class="anchor" aria-label="anchor" href="#check-what-you-already-have"></a>
 </h2>
-<div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://energyRt.org">energyRt</a></span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/en_check.html">en_check_dependencies</a></span><span class="op">(</span><span class="op">)</span>   <span class="co"># solver backends: GLPK / Julia / Python / GAMS / GDX</span></span>
 <span><span class="fu"><a href="../reference/en_check_packages.html">en_check_packages</a></span><span class="op">(</span><span class="op">)</span>       <span class="co"># R packages, optional extras, LaTeX engine, MuseScore</span></span></code></pre></div>
@@ -315,13 +320,13 @@ point energyRt at the GAMS system directory:
 </h2>
 <p>Once the runtimes are present, install the packages each backend
 needs in one call:</p>
-<div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/en_install_deps.html">en_install_deps</a></span><span class="op">(</span><span class="op">)</span>   <span class="co"># detects runtimes, then installs Julia + Python + R libs</span></span></code></pre></div>
 <p><code><a href="../reference/en_install_deps.html">en_install_deps()</a></code> runs a dependency check, installs only
 the safe library layer for the runtimes it finds (skipping — with a
 warning — any runtime that is missing), and re-checks at the end. You
 can also install per backend:</p>
-<div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/en_install_julia_pkgs.html">en_install_julia_pkgs</a></span><span class="op">(</span><span class="op">)</span>      <span class="co"># JuMP, HiGHS, Cbc, Clp, ... into the Julia env</span></span>
 <span><span class="fu"><a href="../reference/en_install_python_deps.html">en_install_python_deps</a></span><span class="op">(</span><span class="op">)</span>     <span class="co"># conda env "energyRt" with pyomo + cbc (or pip)</span></span>
 <span><span class="fu"><a href="../reference/en_install_python_deps.html">en_install_python_deps</a></span><span class="op">(</span>use_conda <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>  <span class="co"># pip into the configured python</span></span></code></pre></div>
@@ -331,40 +336,64 @@ can also install per backend:</p>
 <p>If a helper fails, run the same steps by hand.</p>
 <p>R layer — the GAMS GDX bridge (not on CRAN) plus optional I/O
 helpers:</p>
-<div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pkg_install.html" class="external-link">pkg_install</a></span><span class="op">(</span><span class="st">"lolow/gdxtools"</span><span class="op">)</span>   <span class="co"># or remotes::install_github("lolow/gdxtools")</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"jsonlite"</span>, <span class="st">"readxl"</span>, <span class="st">"openxlsx"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p>Julia layer — from the Julia REPL (or
 <code>julia -e "..."</code>):</p>
-<div class="sourceCode" id="cb9"><pre class="sourceCode julia"><code class="sourceCode julia"><span id="cb9-1"><a href="#cb9-1" tabindex="-1"></a><span class="im">using</span> <span class="bu">Pkg</span></span>
-<span id="cb9-2"><a href="#cb9-2" tabindex="-1"></a><span class="bu">Pkg</span>.<span class="fu">add</span>([<span class="st">"JuMP"</span>, <span class="st">"HiGHS"</span>, <span class="st">"Cbc"</span>, <span class="st">"Clp"</span>, <span class="st">"RData"</span>, <span class="st">"RCall"</span>,</span>
-<span id="cb9-3"><a href="#cb9-3" tabindex="-1"></a>         <span class="st">"CodecBzip2"</span>, <span class="st">"Gadfly"</span>, <span class="st">"DataFrames"</span>, <span class="st">"CSV"</span>, <span class="st">"SQLite"</span>, <span class="st">"Dates"</span>])</span></code></pre></div>
+<div class="sourceCode" id="cb10"><pre class="sourceCode julia"><code class="sourceCode julia"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="im">using</span> <span class="bu">Pkg</span></span>
+<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="bu">Pkg</span>.<span class="fu">add</span>([<span class="st">"JuMP"</span>, <span class="st">"HiGHS"</span>, <span class="st">"Cbc"</span>, <span class="st">"Clp"</span>, <span class="st">"RData"</span>, <span class="st">"RCall"</span>,</span>
+<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a>         <span class="st">"CodecBzip2"</span>, <span class="st">"Gadfly"</span>, <span class="st">"DataFrames"</span>, <span class="st">"CSV"</span>, <span class="st">"SQLite"</span>, <span class="st">"Dates"</span>])</span></code></pre></div>
 <p>Python/Pyomo layer — conda (recommended) or pip:</p>
-<div class="sourceCode" id="cb10"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="ex">conda</span> create <span class="at">-y</span> <span class="at">-n</span> energyRt python</span>
-<span id="cb10-2"><a href="#cb10-2" tabindex="-1"></a><span class="ex">conda</span> install <span class="at">-y</span> <span class="at">-n</span> energyRt <span class="at">-c</span> conda-forge pyomo pandas pyarrow coincbc</span>
-<span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a><span class="co"># pip fallback (no CBC binary): python -m pip install --upgrade pyomo pandas pyarrow</span></span></code></pre></div>
+<div class="sourceCode" id="cb11"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="ex">conda</span> create <span class="at">-y</span> <span class="at">-n</span> energyRt python</span>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a><span class="ex">conda</span> install <span class="at">-y</span> <span class="at">-n</span> energyRt <span class="at">-c</span> conda-forge pyomo pandas pyarrow coincbc</span>
+<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a><span class="co"># pip fallback (no CBC binary): python -m pip install --upgrade pyomo pandas pyarrow</span></span></code></pre></div>
 </div>
 </div>
 <div class="section level2">
 <h2 id="point-energyrt-at-the-installations">5. Point energyRt at the installations<a class="anchor" aria-label="anchor" href="#point-energyrt-at-the-installations"></a>
 </h2>
-<p>If a runtime is not on your <code>PATH</code>, set its path
-(persisted in energyRt options). For Python/Pyomo, point at the conda
-environment created above:</p>
-<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<p>If a runtime is not on your <code>PATH</code>, set its path. For
+Python/Pyomo, point at the conda environment created above:</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/solver.html">set_julia_path</a></span><span class="op">(</span><span class="st">"~/.juliaup/bin/"</span><span class="op">)</span>             <span class="co"># same on all platforms</span></span>
 <span><span class="fu"><a href="../reference/solver.html">set_python_path</a></span><span class="op">(</span><span class="st">"~/.conda/envs/energyRt"</span><span class="op">)</span>     <span class="co"># or the env you created</span></span>
 <span><span class="fu"><a href="../reference/solver.html">set_glpk_path</a></span><span class="op">(</span><span class="st">"C:/rtools45/x86_64-w64-mingw32.static.posix/bin"</span><span class="op">)</span>  <span class="co"># Windows (Rtools 4.5); unneeded on macOS/Ubuntu</span></span>
 <span><span class="fu"><a href="../reference/solver.html">set_gams_path</a></span><span class="op">(</span><span class="st">"C:/GAMS/&lt;version&gt;/"</span><span class="op">)</span>           <span class="co"># see step 3 for macOS/Ubuntu paths</span></span></code></pre></div>
+<p>These are equivalent to <code>set_solver_path("julia", ...)</code>,
+<code>set_solver_path("gams", ...)</code> and so on — use whichever
+reads better.</p>
+<div class="section level3">
+<h3 id="make-it-stick">Make it stick<a class="anchor" aria-label="anchor" href="#make-it-stick"></a>
+</h3>
+<p>The calls above last for the current session. Save them once and
+every later session starts configured:</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/en_config.html">en_config_write</a></span><span class="op">(</span><span class="op">)</span>        <span class="co"># -&gt; ~/.energyRt/config.yml</span></span></code></pre></div>
+<p><code><a href="../reference/en_config.html">en_config_write()</a></code> with no arguments writes every option
+that differs from the package default. Use
+<code>en_config_write(global = FALSE)</code> to write
+<code>.energyRt.yml</code> in the current project instead, when one
+project needs a different GAMS version from the rest.</p>
+<p>To see what is actually in effect — and, when a solver is not found,
+where the wrong value came from:</p>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/en_config_show.html">en_config_show</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p>Each option reports its source: an R option
+(<code>options(en.gams_path = )</code>), an environment variable
+(<code>ENERGYRT_GAMS_PATH</code>), a config file, or the package default
+— checked in that order. <code>?energyRt-options</code> lists them
+all.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="verify-end-to-end">6. Verify end-to-end<a class="anchor" aria-label="anchor" href="#verify-end-to-end"></a>
 </h2>
 <p>Re-check (everything you installed should now be green), choose a
 default solver, and solve a tiny model:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/en_check.html">en_check_dependencies</a></span><span class="op">(</span>solver_pkgs <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>   <span class="co"># also verifies JuMP/HiGHS in Julia</span></span>
-<span><span class="fu">set_default_solver</span><span class="op">(</span><span class="va">solver_options</span><span class="op">$</span><span class="va">julia_highs_barrier</span><span class="op">)</span>  <span class="co"># or solver_options$glpk</span></span>
+<span><span class="fu"><a href="../reference/default_solver.html">set_default_solver</a></span><span class="op">(</span><span class="va">solver_options</span><span class="op">$</span><span class="va">julia_highs_barrier</span><span class="op">)</span>  <span class="co"># or solver_options$glpk</span></span>
 <span></span>
 <span><span class="co"># a minimal model solve confirms the full toolchain works</span></span>
 <span><span class="co"># (see the "Model bricks" article for assembling a model)</span></span></code></pre></div>
@@ -377,7 +406,7 @@ correct.</p>
 </h2>
 <p>Everything below is optional — energyRt solves models without any of
 it.</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># plotting (all autoplot()/draw() charts) + levcost side-by-side panels</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ggplot2"</span>, <span class="st">"patchwork"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>

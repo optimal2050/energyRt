@@ -12,7 +12,7 @@ the windows differ regionally.
 ## Usage
 
 ``` r
-plot_process_windows(x, region = NULL, horizon = NULL)
+plot_process_windows(object, region = NULL, horizon = NULL)
 
 # S3 method for class 'model'
 autoplot(object, type = c("windows"), ...)
@@ -23,9 +23,9 @@ autoplot(object, type = c("windows"), ...)
 
 ## Arguments
 
-- x:
+- object:
 
-  a `model` or `repository` object.
+  a `model` / `repository` object (autoplot methods).
 
 - region:
 
@@ -35,10 +35,6 @@ autoplot(object, type = c("windows"), ...)
 
   a `horizon` object used for defaults; taken from the model's config
   automatically (optional for a repository).
-
-- object:
-
-  a `model` / `repository` object (autoplot methods).
 
 - type:
 
@@ -57,6 +53,6 @@ A `ggplot` object.
 ``` r
 if (FALSE) { # \dontrun{
 autoplot(mod, type = "windows")
-plot_process_windows(repo, horizon = newHorizon(2020:2050))
+autoplot(repo, horizon = newHorizon(2020:2050))
 } # }
 ```

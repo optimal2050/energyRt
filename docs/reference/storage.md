@@ -23,6 +23,8 @@ newStorage(
   varom = data.frame(),
   invcost = data.frame(),
   capacity = data.frame(),
+  cluster = data.frame(),
+  vintage = data.frame(),
   cap2stg = 1,
   fullYear = TRUE,
   weather = data.frame(),
@@ -65,50 +67,30 @@ newStorage(
 
 - start:
 
-  data.frame. Start year when the storage is available for installation.
-
-  region
-
-  :   character. Regions where the storage is available for investment.
-
-  start
-
-  :   integer. The first year when the storage is available for
-      investment.
+  deprecated, use the `start` column of `vintage`.
 
 - end:
 
-  data.frame. Last year when the storage is available for investment.
-
-  region
-
-  :   character. Region name to apply the parameter, NA for every
-      region.
-
-  end
-
-  :   integer. The last year when the storage is available for
-      investment.
+  deprecated, use the `end` column of `vintage`.
 
 - olife:
 
-  data.frame. Operational life of the storage technology, applicable to
-  the new investment only, the operational life (retirement) of
-  preexiting capacity is described in the `stock` slot.
-
-  region
-
-  :   character. Region name to apply the parameter, NA for every
-      region.
-
-  olife
-
-  :   integer. Operational life of the storage technology in years.
+  deprecated, use the `olife` column of `vintage`.
 
 - charge:
 
   data.frame. Pre-charged level at the beginning of the operational
   cycle.
+
+  vintage
+
+  :   character. Vintage label selecting the variant this row applies
+      to, NA for every vintage. See the `vintage` slot.
+
+  cluster
+
+  :   character. Cluster label selecting the variant this row applies
+      to, NA for every cluster. See the `cluster` slot.
 
   region
 
@@ -131,6 +113,16 @@ newStorage(
 - seff:
 
   data.frame. Storage efficiency parameters.
+
+  vintage
+
+  :   character. Vintage label selecting the variant this row applies
+      to, NA for every vintage. See the `vintage` slot.
+
+  cluster
+
+  :   character. Cluster label selecting the variant this row applies
+      to, NA for every cluster. See the `cluster` slot.
 
   region
 
@@ -160,6 +152,16 @@ newStorage(
 - aeff:
 
   data.frame. Auxiliary commodities efficiency parameters.
+
+  vintage
+
+  :   character. Vintage label selecting the variant this row applies
+      to, NA for every vintage. See the `vintage` slot.
+
+  cluster
+
+  :   character. Cluster label selecting the variant this row applies
+      to, NA for every cluster. See the `cluster` slot.
 
   acomm
 
@@ -236,6 +238,16 @@ newStorage(
 
   data.frame. Availability factor parameters.
 
+  vintage
+
+  :   character. Vintage label selecting the variant this row applies
+      to, NA for every vintage. See the `vintage` slot.
+
+  cluster
+
+  :   character. Cluster label selecting the variant this row applies
+      to, NA for every cluster. See the `cluster` slot.
+
   region
 
   :   character. Region name to apply the parameter, NA for every
@@ -292,6 +304,16 @@ newStorage(
 
   data.frame. Fixed operation and maintenance cost.
 
+  vintage
+
+  :   character. Vintage label selecting the variant this row applies
+      to, NA for every vintage. See the `vintage` slot.
+
+  cluster
+
+  :   character. Cluster label selecting the variant this row applies
+      to, NA for every cluster. See the `cluster` slot.
+
   region
 
   :   character. Region name to apply the parameter, NA for every
@@ -309,6 +331,16 @@ newStorage(
 - varom:
 
   data.frame. Variable operation and maintenance cost.
+
+  vintage
+
+  :   character. Vintage label selecting the variant this row applies
+      to, NA for every vintage. See the `vintage` slot.
+
+  cluster
+
+  :   character. Cluster label selecting the variant this row applies
+      to, NA for every cluster. See the `cluster` slot.
 
   region
 
@@ -339,6 +371,16 @@ newStorage(
 
   data.frame. Investment cost.
 
+  vintage
+
+  :   character. Vintage label selecting the variant this row applies
+      to, NA for every vintage. See the `vintage` slot.
+
+  cluster
+
+  :   character. Cluster label selecting the variant this row applies
+      to, NA for every cluster. See the `cluster` slot.
+
   region
 
   :   character. Region name to apply the parameter, NA for every
@@ -355,12 +397,44 @@ newStorage(
 
   wacc
 
-  :   numeric. Weighted average cost of capital. If not supplied, the
-      discount from the model or scenario is used. (currently ignored)
+  :   numeric. Weighted average cost of capital used to annuitise
+      `invcost` for this storage. Overrides the model-wide `wacc` (see
+      the model `discount` argument). The social discount rate is never
+      used here.
+
+  payback
+
+  :   numeric. Cost-recovery period in years. Where given it replaces
+      `olife` in the annuity AND in the years over which the annuity is
+      charged, so the investment is repaid over `payback` years while
+      the capacity keeps operating for its full operational life. Must
+      be positive and not exceed `olife`. Unset (or 0) means recover
+      over `olife`. Implemented for the GLPK solver only.
+
+  eac
+
+  :   numeric. Equivalent annual cost, supplied directly instead of
+      being computed from `invcost`, `wacc` and the lifetime. Where
+      given it wins; where absent the annuity is computed. Mutually
+      exclusive with `invcost` per row.
+
+  retcost
+
+  :   numeric. Costs of early retirement of the storage, default is 0.
 
 - capacity:
 
   data.frame. Capacity parameters of the storage technology.
+
+  vintage
+
+  :   character. Vintage label selecting the variant this row applies
+      to, NA for every vintage. See the `vintage` slot.
+
+  cluster
+
+  :   character. Cluster label selecting the variant this row applies
+      to, NA for every cluster. See the `cluster` slot.
 
   region
 
@@ -414,10 +488,103 @@ newStorage(
   :   numeric. Fixed value of the storage capacity retirement. This
       parameter overrides `ret.lo` and `ret.up`.
 
+- cluster:
+
+  data.frame. Declaration of the storage clusters – parallel
+  sub-processes of the same storage with their own capacity,
+  availability and costs. The motivating cases are site-constrained
+  storage (pumped-hydro head classes, CAES caverns) and duration classes
+  via a per-cluster `cap2stg`. Optional: when empty, cluster labels are
+  harvested from the other slots; when populated it is authoritative and
+  an undeclared label raises an error.
+
+  cluster
+
+  :   character. Cluster label. Must match the `cluster` column values
+      used in the other slots.
+
+  desc
+
+  :   character. Human-readable description of the cluster, used in
+      reports.
+
+  region
+
+  :   character. Region the cluster exists in, NA for every region.
+
+  order
+
+  :   integer. Optional display/ranking order; controls the order
+      variants are created and reported in.
+
+- vintage:
+
+  data.frame. Investment window and operational life of the storage, one
+  row per (vintage, region, cluster). Replaces the former `start`, `end`
+  and `olife` slots. A vintage is a separately investable variant that
+  keeps the characteristics of its build year for its whole life – for
+  storage typically a falling capex and a rising round-trip efficiency.
+  Each column is read independently, so a region-agnostic `start` may be
+  combined with a per-region `olife`.
+
+  vintage
+
+  :   character. Vintage label, normally the build year as a string. NA
+      for an un-vintaged storage.
+
+  region
+
+  :   character. Region name to apply the parameter, NA for every
+      region.
+
+  cluster
+
+  :   character. Cluster label, NA for every cluster.
+
+  start
+
+  :   integer. The first year the storage can be installed. Defaults to
+      the vintage year.
+
+  end
+
+  :   integer. The last year the storage can be installed. Defaults to
+      the vintage year.
+
+  olife
+
+  :   integer. Operational life of the storage in years, applicable to
+      new investment only.
+
 - cap2stg:
 
-  numeric. Charging and discharging capacity to the storing capacity
-  inverse ratio. Can be used to define the storage duration.
+  data.frame. Charging and discharging capacity to the storing capacity
+  inverse ratio, i.e. the storage duration. A data.frame rather than a
+  scalar so it can differ by cluster – 1h / 4h / 8h duration classes of
+  the same storage. A bare scalar (`cap2stg = 4`) is still accepted.
+
+  vintage
+
+  :   character. Vintage label selecting the variant this row applies
+      to, NA for every vintage.
+
+  cluster
+
+  :   character. Cluster label selecting the variant this row applies
+      to, NA for every cluster.
+
+  region
+
+  :   character. Region name to apply the parameter, NA for every
+      region.
+
+  year
+
+  :   integer. Year to apply the parameter, NA for every year.
+
+  cap2stg
+
+  :   numeric. Capacity-to-storage ratio (storage duration).
 
 - fullYear:
 
@@ -433,6 +600,16 @@ newStorage(
 - weather:
 
   data.frame. Weather factors multipliers.
+
+  vintage
+
+  :   character. Vintage label selecting the variant this row applies
+      to, NA for every vintage. See the `vintage` slot.
+
+  cluster
+
+  :   character. Cluster label selecting the variant this row applies
+      to, NA for every cluster. See the `cluster` slot.
 
   weather
 
@@ -570,7 +747,7 @@ STG1 <- newStorage(
   ),
   invcost = data.frame(
     region = "R1", year = 2020, invcost = 0.9,
-    wacc = 0.9, retcost = 0.9
+    wacc = 0.09, payback = 10, retcost = 0.9
   ),
   capacity = data.frame(
     region = "R1", year = 2020, stock = 0.9,

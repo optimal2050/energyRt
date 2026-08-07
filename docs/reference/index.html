@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.70.2.9001</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.75.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -233,6 +233,13 @@
 
         </dt>
         <dd>An S4 class to represent inter-regional trade</dd>
+
+        <dt>
+
+          <code><a href="class-variable.html">class-variable</a></code>
+
+        </dt>
+        <dd>An S4 class to specify a model variable</dd>
 
         <dt>
 
@@ -492,10 +499,17 @@
 
         <dt>
 
-          <code><a href="plot_calendar_method.html">plot(<i>&lt;calendar&gt;</i>)</a></code> <code><a href="plot_calendar_method.html">autoplot(<i>&lt;calendar&gt;</i>)</a></code>
+          <code><a href="plot_calendar_method.html">autoplot(<i>&lt;calendar&gt;</i>)</a></code>
 
         </dt>
         <dd>Visualize a Calendar object</dd>
+
+        <dt>
+
+          <code><a href="setGeoscale.html">setGeoscale(<i>&lt;config&gt;</i>)</a></code> <code><a href="setGeoscale.html">getGeoscale(<i>&lt;config&gt;</i>)</a></code> <code><a href="setGeoscale.html">setGeoscale(<i>&lt;model&gt;</i>)</a></code> <code><a href="setGeoscale.html">getGeoscale(<i>&lt;model&gt;</i>)</a></code> <code><a href="setGeoscale.html">setGeoscale(<i>&lt;scenario&gt;</i>)</a></code> <code><a href="setGeoscale.html">getGeoscale(<i>&lt;scenario&gt;</i>)</a></code> <code><a href="setGeoscale.html">getCalendar(<i>&lt;config&gt;</i>)</a></code> <code><a href="setGeoscale.html">getCalendar(<i>&lt;model&gt;</i>)</a></code> <code><a href="setGeoscale.html">getCalendar(<i>&lt;scenario&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Attach or read a model's geoscale</dd>
 
         <dt>
 
@@ -513,7 +527,7 @@
 
         <dt>
 
-          <code><a href="plot_horizon_method.html">plot(<i>&lt;horizon&gt;</i>)</a></code> <code><a href="plot_horizon_method.html">autoplot(<i>&lt;horizon&gt;</i>)</a></code>
+          <code><a href="plot_horizon_method.html">autoplot(<i>&lt;horizon&gt;</i>)</a></code>
 
         </dt>
         <dd>Visualize a Horizon object</dd>
@@ -610,6 +624,20 @@
 
         </dt>
         <dd>Solve a model or scenario (legacy names; new pipeline)</dd>
+
+        <dt>
+
+          <code><a href="mosox_run.html">mosox_run()</a></code>
+
+        </dt>
+        <dd>Run mosox on a GMPL model or data file</dd>
+
+        <dt>
+
+          <code><a href="en_mosox_run.html">en_mosox_run()</a></code>
+
+        </dt>
+        <dd>Run mosox on a GMPL model or data file</dd>
 
         <dt>
 
@@ -780,6 +808,20 @@
 
         <dt>
 
+          <code><a href="getVariants.html">getVariants()</a></code>
+
+        </dt>
+        <dd>Process variants of a solved (or interpolated) scenario</dd>
+
+        <dt>
+
+          <code><a href="variantSummary.html">variantSummary()</a></code>
+
+        </dt>
+        <dd>Summarise a result variable across technology variants</dd>
+
+        <dt>
+
           <code><a href="en_replace_specials.html">en_replace_specials()</a></code> <code><a href="en_replace_specials.html">en_has_specials()</a></code> <code><a href="en_replace_specials.html">en_find_specials()</a></code>
 
         </dt>
@@ -899,10 +941,10 @@
 
         <dt>
 
-          <code><a href="get_registry.html">get_registry()</a></code>
+          <code><a href="default_registry.html">set_default_registry()</a></code> <code><a href="default_registry.html">use_registry()</a></code> <code><a href="default_registry.html">which_registry()</a></code> <code><a href="default_registry.html">get_registry()</a></code>
 
         </dt>
-        <dd>Returns the current registry object.</dd>
+        <dd>Default registry</dd>
 
         <dt>
 
@@ -931,6 +973,13 @@
 
         </dt>
         <dd>UTOPIA electricity load shape</dd>
+
+        <dt>
+
+          <code><a href="utopia_geoscale.html">utopia_geoscale()</a></code>
+
+        </dt>
+        <dd>A geoscale for the UTOPIA reference model</dd>
 
         <dt>
 
@@ -971,7 +1020,7 @@
 
       <dl><dt>
 
-          <code><a href="draw.html">draw()</a></code>
+          <code><a href="draw.html">draw()</a></code> <code><a href="draw.html">draw.technology()</a></code>
 
         </dt>
         <dd>Draw a schematic representation of a process</dd>
@@ -985,7 +1034,7 @@
 
         <dt>
 
-          <code><a href="autoplot.lever.html">autoplot(<i>&lt;tax&gt;</i>)</a></code> <code><a href="autoplot.lever.html">autoplot(<i>&lt;sub&gt;</i>)</a></code> <code><a href="autoplot.lever.html">autoplot(<i>&lt;constraint&gt;</i>)</a></code>
+          <code><a href="autoplot.lever.html">autoplot(<i>&lt;tax&gt;</i>)</a></code> <code><a href="autoplot.lever.html">autoplot(<i>&lt;subsidy&gt;</i>)</a></code> <code><a href="autoplot.lever.html">autoplot(<i>&lt;constraint&gt;</i>)</a></code>
 
         </dt>
         <dd>Plot a tax, subsidy or user constraint over years</dd>
@@ -1006,17 +1055,10 @@
 
         <dt>
 
-          <code><a href="plot_calendar_method.html">plot(<i>&lt;calendar&gt;</i>)</a></code> <code><a href="plot_calendar_method.html">autoplot(<i>&lt;calendar&gt;</i>)</a></code>
+          <code><a href="plot_calendar_method.html">autoplot(<i>&lt;calendar&gt;</i>)</a></code>
 
         </dt>
         <dd>Visualize a Calendar object</dd>
-
-        <dt>
-
-          <code><a href="plot_demand.html">plot_demand()</a></code> <code><a href="plot_demand.html">autoplot(<i>&lt;demand&gt;</i>)</a></code>
-
-        </dt>
-        <dd>Visualize a demand object</dd>
 
         <dt>
 
@@ -1027,17 +1069,17 @@
 
         <dt>
 
-          <code><a href="plot_horizon_method.html">plot(<i>&lt;horizon&gt;</i>)</a></code> <code><a href="plot_horizon_method.html">autoplot(<i>&lt;horizon&gt;</i>)</a></code>
+          <code><a href="plot_horizon_method.html">autoplot(<i>&lt;horizon&gt;</i>)</a></code>
 
         </dt>
         <dd>Visualize a Horizon object</dd>
 
         <dt>
 
-          <code><a href="plot_process_windows.html">plot_process_windows()</a></code> <code><a href="plot_process_windows.html">autoplot(<i>&lt;model&gt;</i>)</a></code> <code><a href="plot_process_windows.html">autoplot(<i>&lt;repository&gt;</i>)</a></code>
+          <code><a href="plot_map.html">plot_map()</a></code>
 
         </dt>
-        <dd>Plot process investment / availability windows</dd>
+        <dd>Map model results by region</dd>
 
         <dt>
 
@@ -1055,10 +1097,10 @@
 
         <dt>
 
-          <code><a href="plot_weather.html">plot_weather()</a></code> <code><a href="plot_weather.html">autoplot(<i>&lt;weather&gt;</i>)</a></code>
+          <code><a href="en_config_show.html">en_config_show()</a></code>
 
         </dt>
-        <dd>Visualize a weather object</dd>
+        <dd>Show the effective energyRt configuration</dd>
 
         <dt>
 
@@ -1073,6 +1115,20 @@
 
         </dt>
         <dd>Generate an R script that recreates an energyRt object</dd>
+
+        <dt>
+
+          <code><a href="ghost_options.html">ghost_options()</a></code>
+
+        </dt>
+        <dd>Geometry of the faded "ghost" vintages behind a drawn technology</dd>
+
+        <dt>
+
+          <code><a href="theme_energyRt.html">theme_energyRt()</a></code>
+
+        </dt>
+        <dd>energyRt's default ggplot theme</dd>
       </dl></div><div class="section level2">
       <h2 id="validation">Validation<a class="anchor" aria-label="anchor" href="#validation"></a></h2>
 
@@ -1085,6 +1141,13 @@
 
       <dl><dt>
 
+          <code><a href="check_geoscale_regions.html">check_geoscale_regions()</a></code>
+
+        </dt>
+        <dd>Check a geoscale against the model's declared regions</dd>
+
+        <dt>
+
           <code><a href="check_name.html">check_name()</a></code>
 
         </dt>
@@ -1096,6 +1159,13 @@
 
         </dt>
         <dd>Levelized cost of commodity production</dd>
+
+        <dt>
+
+          <code><a href="levcost_by_variant.html">levcost_by_variant()</a></code>
+
+        </dt>
+        <dd>Per-variant levelized cost tables</dd>
 
         <dt>
 
@@ -1145,6 +1215,27 @@
 
         <dt>
 
+          <code><a href="default_registry.html">set_default_registry()</a></code> <code><a href="default_registry.html">use_registry()</a></code> <code><a href="default_registry.html">which_registry()</a></code> <code><a href="default_registry.html">get_registry()</a></code>
+
+        </dt>
+        <dd>Default registry</dd>
+
+        <dt>
+
+          <code><a href="default_solver.html">get_default_solver()</a></code> <code><a href="default_solver.html">set_default_solver()</a></code>
+
+        </dt>
+        <dd>Default solver</dd>
+
+        <dt>
+
+          <code><a href="en_option.html">set_option()</a></code> <code><a href="en_option.html">get_option()</a></code>
+
+        </dt>
+        <dd>Get or set an energyRt option</dd>
+
+        <dt>
+
           <code><a href="neos_email.html">get_neos_email()</a></code> <code><a href="neos_email.html">set_neos_email()</a></code>
 
         </dt>
@@ -1166,17 +1257,31 @@
 
         <dt>
 
-          <code><a href="options.html">set_scenarios_path()</a></code> <code><a href="options.html">get_scenarios_path()</a></code>
-
-        </dt>
-        <dd>Set or get directory for/with scenarios</dd>
-
-        <dt>
-
           <code><a href="progress.html">set_progress_bar()</a></code> <code><a href="progress.html">show_progress_bar()</a></code>
 
         </dt>
         <dd>Switch on/off and select/customize progress bar</dd>
+
+        <dt>
+
+          <code><a href="scenarios_path.html">set_scenarios_path()</a></code> <code><a href="scenarios_path.html">get_scenarios_path()</a></code>
+
+        </dt>
+        <dd>Set or get the directory with scenarios</dd>
+
+        <dt>
+
+          <code><a href="setGeoscale.html">setGeoscale(<i>&lt;config&gt;</i>)</a></code> <code><a href="setGeoscale.html">getGeoscale(<i>&lt;config&gt;</i>)</a></code> <code><a href="setGeoscale.html">setGeoscale(<i>&lt;model&gt;</i>)</a></code> <code><a href="setGeoscale.html">getGeoscale(<i>&lt;model&gt;</i>)</a></code> <code><a href="setGeoscale.html">setGeoscale(<i>&lt;scenario&gt;</i>)</a></code> <code><a href="setGeoscale.html">getGeoscale(<i>&lt;scenario&gt;</i>)</a></code> <code><a href="setGeoscale.html">getCalendar(<i>&lt;config&gt;</i>)</a></code> <code><a href="setGeoscale.html">getCalendar(<i>&lt;model&gt;</i>)</a></code> <code><a href="setGeoscale.html">getCalendar(<i>&lt;scenario&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Attach or read a model's geoscale</dd>
+
+        <dt>
+
+          <code><a href="set_mosox_path.html">set_mosox_path()</a></code>
+
+        </dt>
+        <dd>Set the path to the mosox executable</dd>
 
         <dt>
 
@@ -1187,10 +1292,45 @@
 
         <dt>
 
+          <code><a href="solver_path.html">set_solver_path()</a></code> <code><a href="solver_path.html">get_solver_path()</a></code>
+
+        </dt>
+        <dd>Set or get the path to a solver toolchain</dd>
+
+        <dt>
+
           <code><a href="make_scenario_dirname.html">make_scenario_dirname()</a></code>
 
         </dt>
         <dd>Make a name for a scenario directory</dd>
+
+        <dt>
+
+          <code><a href="energyRt-options.html">energyRt-options</a></code>
+
+        </dt>
+        <dd>energyRt Options</dd>
+
+        <dt>
+
+          <code><a href="en_config.html">en_config_path()</a></code> <code><a href="en_config.html">en_config_read()</a></code> <code><a href="en_config.html">en_config_write()</a></code>
+
+        </dt>
+        <dd>The energyRt configuration file</dd>
+
+        <dt>
+
+          <code><a href="en_config_show.html">en_config_show()</a></code>
+
+        </dt>
+        <dd>Show the effective energyRt configuration</dd>
+
+        <dt>
+
+          <code><a href="isVerbose.html">isVerbose()</a></code> <code><a href="isVerbose.html">isDebug()</a></code>
+
+        </dt>
+        <dd>Verbosity and debug level</dd>
       </dl></div><div class="section level2">
       <h2 id="utils">utils<a class="anchor" aria-label="anchor" href="#utils"></a></h2>
 
@@ -1259,6 +1399,27 @@
 
         <dt>
 
+          <code><a href="default_registry.html">set_default_registry()</a></code> <code><a href="default_registry.html">use_registry()</a></code> <code><a href="default_registry.html">which_registry()</a></code> <code><a href="default_registry.html">get_registry()</a></code>
+
+        </dt>
+        <dd>Default registry</dd>
+
+        <dt>
+
+          <code><a href="default_solver.html">get_default_solver()</a></code> <code><a href="default_solver.html">set_default_solver()</a></code>
+
+        </dt>
+        <dd>Default solver</dd>
+
+        <dt>
+
+          <code><a href="en_option.html">set_option()</a></code> <code><a href="en_option.html">get_option()</a></code>
+
+        </dt>
+        <dd>Get or set an energyRt option</dd>
+
+        <dt>
+
           <code><a href="getData.html">getData()</a></code> <code><a href="getData.html">get_data()</a></code>
 
         </dt>
@@ -1277,6 +1438,13 @@
 
         </dt>
         <dd>Return default value for one, several, or all parameters</dd>
+
+        <dt>
+
+          <code><a href="get_mosox_path.html">get_mosox_path()</a></code>
+
+        </dt>
+        <dd>Get the configured mosox executable path</dd>
 
         <dt>
 
@@ -1343,17 +1511,17 @@
 
         <dt>
 
-          <code><a href="get_registry.html">get_registry()</a></code>
-
-        </dt>
-        <dd>Returns the current registry object.</dd>
-
-        <dt>
-
           <code><a href="get_slot_doc.html">get_slot_doc()</a></code>
 
         </dt>
         <dd>Retrieve slot details in rd-format</dd>
+
+        <dt>
+
+          <code><a href="get_variable.html">get_variable()</a></code>
+
+        </dt>
+        <dd>Get one solved variable from a scenario</dd>
 
         <dt>
 
@@ -1364,10 +1532,10 @@
 
         <dt>
 
-          <code><a href="options.html">set_scenarios_path()</a></code> <code><a href="options.html">get_scenarios_path()</a></code>
+          <code><a href="scenarios_path.html">set_scenarios_path()</a></code> <code><a href="scenarios_path.html">get_scenarios_path()</a></code>
 
         </dt>
-        <dd>Set or get directory for/with scenarios</dd>
+        <dd>Set or get the directory with scenarios</dd>
 
         <dt>
 
@@ -1375,6 +1543,13 @@
 
         </dt>
         <dd>Set GAMS and GDX library directory</dd>
+
+        <dt>
+
+          <code><a href="solver_path.html">set_solver_path()</a></code> <code><a href="solver_path.html">get_solver_path()</a></code>
+
+        </dt>
+        <dd>Set or get the path to a solver toolchain</dd>
 
         <dt>
 
@@ -1403,6 +1578,20 @@
 
         </dt>
         <dd>Check if an element of a set is "ANY*" or NA</dd>
+
+        <dt>
+
+          <code><a href="is_geoscale.html">is_geoscale()</a></code>
+
+        </dt>
+        <dd>Is this a geoscales::Geoscale?</dd>
+
+        <dt>
+
+          <code><a href="map_comm_geolevel.html">map_comm_geolevel()</a></code>
+
+        </dt>
+        <dd>Balancing geo-level of commodities</dd>
 
         <dt>
 

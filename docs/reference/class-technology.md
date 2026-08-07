@@ -121,6 +121,16 @@ costs, and exogenous shocks (weather factors).
 
   data.frame. Input-commodity-group efficiency parameters.
 
+  vintage
+
+  :   character. Vintage label selecting the technology variant this row
+      applies to, NA for every vintage. See the `vintage` slot.
+
+  cluster
+
+  :   character. Cluster label selecting the technology variant this row
+      applies to, NA for every cluster. See the `vintage` slot.
+
   region
 
   :   character. Name of region to apply the parameter, NA for every
@@ -147,6 +157,16 @@ costs, and exogenous shocks (weather factors).
 - `ceff`:
 
   data.frame. Main commodity and activity efficiency parameters.
+
+  vintage
+
+  :   character. Vintage label selecting the technology variant this row
+      applies to, NA for every vintage. See the `vintage` slot.
+
+  cluster
+
+  :   character. Cluster label selecting the technology variant this row
+      applies to, NA for every cluster. See the `vintage` slot.
 
   region
 
@@ -218,6 +238,16 @@ costs, and exogenous shocks (weather factors).
 
   data.frame. Parameters linking main commodities, activities, and
   capacities to auxiliary commodities.
+
+  vintage
+
+  :   character. Vintage label selecting the technology variant this row
+      applies to, NA for every vintage. See the `vintage` slot.
+
+  cluster
+
+  :   character. Cluster label selecting the technology variant this row
+      applies to, NA for every cluster. See the `vintage` slot.
 
   region
 
@@ -292,6 +322,16 @@ costs, and exogenous shocks (weather factors).
 
   data.frame. Timeslice-level availability factor parameters.
 
+  vintage
+
+  :   character. Vintage label selecting the technology variant this row
+      applies to, NA for every vintage. See the `vintage` slot.
+
+  cluster
+
+  :   character. Cluster label selecting the technology variant this row
+      applies to, NA for every cluster. See the `vintage` slot.
+
   region
 
   :   character. Region name to apply the parameter, NA for every
@@ -333,6 +373,16 @@ costs, and exogenous shocks (weather factors).
 
   data.frame. Timeframe-level availability factor constraints.
 
+  vintage
+
+  :   character. Vintage label selecting the technology variant this row
+      applies to, NA for every vintage. See the `vintage` slot.
+
+  cluster
+
+  :   character. Cluster label selecting the technology variant this row
+      applies to, NA for every cluster. See the `vintage` slot.
+
   region
 
   :   character. Region name to apply the parameter, NA for every
@@ -366,6 +416,16 @@ costs, and exogenous shocks (weather factors).
   data.frame. Parameters linking `weather factors` (external shocks
   specified by `weather` class) to the availability parameters `af`,
   `afs`, and `afc`.
+
+  vintage
+
+  :   character. Vintage label selecting the technology variant this row
+      applies to, NA for every vintage. See the `vintage` slot.
+
+  cluster
+
+  :   character. Cluster label selecting the technology variant this row
+      applies to, NA for every cluster. See the `vintage` slot.
 
   weather
 
@@ -431,6 +491,16 @@ costs, and exogenous shocks (weather factors).
   data.frame. Fixed operational and maintenance cost (per unit of
   capacity a year).
 
+  vintage
+
+  :   character. Vintage label selecting the technology variant this row
+      applies to, NA for every vintage. See the `vintage` slot.
+
+  cluster
+
+  :   character. Cluster label selecting the technology variant this row
+      applies to, NA for every cluster. See the `vintage` slot.
+
   region
 
   :   character. Region name to apply the parameter, NA for every
@@ -448,6 +518,16 @@ costs, and exogenous shocks (weather factors).
 
   data.frame. Variable operational and maintenance cost (per unit of
   activity or commodity).
+
+  vintage
+
+  :   character. Vintage label selecting the technology variant this row
+      applies to, NA for every vintage. See the `vintage` slot.
+
+  cluster
+
+  :   character. Cluster label selecting the technology variant this row
+      applies to, NA for every cluster. See the `vintage` slot.
 
   region
 
@@ -494,6 +574,16 @@ costs, and exogenous shocks (weather factors).
   data.frame. Total overnight investment costs of the project (per unit
   of capacity).
 
+  vintage
+
+  :   character. Vintage label selecting the technology variant this row
+      applies to, NA for every vintage. See the `vintage` slot.
+
+  cluster
+
+  :   character. Cluster label selecting the technology variant this row
+      applies to, NA for every cluster. See the `vintage` slot.
+
   region
 
   :   character. Region name to apply the parameter, NA for every
@@ -510,44 +600,102 @@ costs, and exogenous shocks (weather factors).
 
   wacc
 
-  :   numeric. Weighted average cost of capital, (currently ignored).
+  :   numeric. Weighted average cost of capital used to annuitise
+      `invcost` for this technology. Overrides the model-wide `wacc`
+      (see the model `discount` argument). The social discount rate is
+      never used here.
 
-- `start`:
+  payback
 
-  data.frame. The first year the technology can be installed.
+  :   numeric. Cost-recovery period in years. Where given it replaces
+      `olife` in the annuity AND in the years over which the annuity is
+      charged, so the investment is repaid over `payback` years while
+      the capacity keeps operating for its full operational life. Must
+      be positive and not exceed `olife`. Unset (or 0) means recover
+      over `olife`. Implemented for the GLPK solver only.
+
+  eac
+
+  :   numeric. Equivalent annual cost, supplied directly instead of
+      being computed from `invcost`, `wacc` and the lifetime. Where
+      given it wins; where absent the annuity is computed. Mutually
+      exclusive with `invcost` per row.
+
+  retcost
+
+  :   numeric. Costs of early retirement of the technology, default is
+      0.
+
+- `cluster`:
+
+  data.frame. Declaration of the technology's clusters. A cluster is a
+  parallel sub-process of the same technology – a resource class,
+  geography or fleet type – with its own capacity, availability and
+  costs. This slot declares WHAT the clusters are and WHERE they exist;
+  the per-cluster values live in the `cluster` column of the
+  variant-varying slots (`capacity`, `invcost`, `afs`, `weather`, ...),
+  exactly as `group` declares input groups whose data lives in
+  `input$group`. Optional: when empty, cluster labels are harvested from
+  those columns. When populated it is authoritative – a label used in a
+  slot but not declared here raises an error instead of silently
+  creating an extra technology with default (often unbounded)
+  parameters.
+
+  cluster
+
+  :   character. Cluster label. Must match the `cluster` column values
+      used in the other slots.
+
+  desc
+
+  :   character. Human-readable description of the cluster, used in
+      reports.
+
+  region
+
+  :   character. Region the cluster exists in, NA for every region.
+      Several rows restrict a cluster to several regions.
+
+  order
+
+  :   integer. Optional display/ranking order (e.g. best to worst
+      resource class); controls the order variants are created and
+      reported in.
+
+- `vintage`:
+
+  data.frame. Investment window and operational life of the technology,
+  one row per (vintage, region, cluster). Replaces the former `start`,
+  `end` and `olife` slots. A vintage is a separately investable variant
+  of the technology that keeps the characteristics of its build year for
+  its whole life; a cluster is a parallel sub-process (resource class,
+  geography, fleet type) with its own capacity, availability and costs.
+  Each column is read independently, so a region-agnostic `start` may be
+  combined with a per-region `olife`.
+
+  vintage
+
+  :   character. Vintage label, normally the build year as a string. NA
+      for an un-vintaged technology (a single variant).
 
   region
 
   :   character. Region name to apply the parameter, NA for every
       region.
+
+  cluster
+
+  :   character. Cluster label, NA for every cluster.
 
   start
 
-  :   integer. The first year the technology can be installed, NA means
-      all years of the modeled horizon.
-
-- `end`:
-
-  data.frame. The last year the technology can be installed.
-
-  region
-
-  :   character. Region name to apply the parameter, NA for every
-      region.
+  :   integer. The first year the technology can be installed. Defaults
+      to the vintage year; NA means all years of the modeled horizon.
 
   end
 
-  :   integer. The last year the technology can be installed, default is
-      Inf.
-
-- `olife`:
-
-  data.frame. Operational life of the installed technology (in years).
-
-  region
-
-  :   character. Region name to apply the parameter, NA for every
-      region.
+  :   integer. The last year the technology can be installed. Defaults
+      to the vintage year; default is Inf when unset.
 
   olife
 
@@ -558,6 +706,16 @@ costs, and exogenous shocks (weather factors).
 
   data.frame. Capacity of the installed technology (in units of
   capacity).
+
+  vintage
+
+  :   character. Vintage label selecting the technology variant this row
+      applies to, NA for every vintage. See the `vintage` slot.
+
+  cluster
+
+  :   character. Cluster label selecting the technology variant this row
+      applies to, NA for every cluster. See the `vintage` slot.
 
   region
 

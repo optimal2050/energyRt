@@ -12,7 +12,7 @@ newSub(
   comm = "",
   region = character(),
   defVal = 0,
-  sub = data.frame(),
+  subsidy = data.frame(),
   misc = list(),
   ...
 )
@@ -40,7 +40,7 @@ newSub(
 
   numeric. Default value of the subsidy.
 
-- sub:
+- subsidy:
 
   data.frame. Subsidy values.
 
@@ -79,7 +79,7 @@ newSub(
 
 ## Value
 
-An object of class `sub`
+An object of class `subsidy`
 
 ## See also
 
@@ -95,13 +95,13 @@ Other class constraint policy:
 ## Examples
 
 ``` r
-SUB_BIO <- newSub(
+SUB_BIO <- newSubsidy(
  name = "SUB_BIO", # used in sets
  desc = "Biofuel consumption subsidy", # for own reference
  comm = "BIO", # must match the commodity name in the model
  region = "R1", # region where the subsidy is applied
  defVal = 0, # default value
- sub = data.frame(
+ subsidy = data.frame(
     # region = "R1",
     year = 2025:2030,
     inp = 0.9 # subsidy rate

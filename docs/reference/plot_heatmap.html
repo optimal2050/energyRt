@@ -21,7 +21,7 @@ renewable profiles, prices, and other sub-annual series."><meta property="og:ima
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.70.2.9001</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.75.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -77,7 +77,7 @@ renewable profiles, prices, and other sub-annual series.</p>
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">plot_heatmap</span><span class="op">(</span></span>
-<span>  <span class="va">x</span>,</span>
+<span>  <span class="va">object</span>,</span>
 <span>  calendar <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  value <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  facet <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -90,7 +90,7 @@ renewable profiles, prices, and other sub-annual series.</p>
     <h2 id="arguments">Arguments<a class="anchor" aria-label="anchor" href="#arguments"></a></h2>
 
 
-<dl><dt id="arg-x">x<a class="anchor" aria-label="anchor" href="#arg-x"></a></dt>
+<dl><dt id="arg-object">object<a class="anchor" aria-label="anchor" href="#arg-object"></a></dt>
 <dd><p>A <code>data.frame</code> with a <code>slice</code> column and a numeric value column, a
 named numeric vector (names are slices), or a <code>calendar</code> object (then the
 slice <code>share</code> — or <code>value</code> column — is shown).</p></dd>

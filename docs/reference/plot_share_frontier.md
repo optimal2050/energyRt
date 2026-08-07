@@ -8,12 +8,12 @@ data.frame. Returns a named list of class `"share_frontier_plots"` of
 ## Usage
 
 ``` r
-plot_share_frontier(df, title = NULL, base_size = 11L)
+plot_share_frontier(object, title = NULL, base_size = 11L)
 ```
 
 ## Arguments
 
-- df:
+- object:
 
   data.frame from
   [`tech_share_frontier()`](https://energyRt.org/reference/tech_share_frontier.md).
@@ -24,7 +24,8 @@ plot_share_frontier(df, title = NULL, base_size = 11L)
 
 - base_size:
 
-  Integer. Base font size passed to `theme_bw()`.
+  Integer. Base font size passed to
+  [`theme_energyRt()`](https://energyRt.org/reference/theme_energyRt.md).
 
 ## Value
 

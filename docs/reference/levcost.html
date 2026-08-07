@@ -15,7 +15,7 @@ repository, model, or scenario object."><meta property="og:image" content="https
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.70.2.9001</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.75.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -169,6 +169,21 @@ extra solves.</p></dd>
 <dd><p>Solver spec list, default
 <code>solver_options$glpk</code>.</p></dd>
 
+<dt><code>run</code></dt>
+<dd><p><code>"single"</code> (default) or <code>"sequential"</code> –
+only meaningful for a technology declaring vintages or clusters.
+<code>"single"</code> prices every variant in one model (each in its own
+region, so they cannot compete); if that model does not solve it is
+retried with the dummy-import slack enabled and then, failing that,
+falls back to one model per variant. <code>"sequential"</code> goes straight
+to one model per variant, so a single non-converging variant cannot
+take the rest down.</p></dd>
+
+<dt><code>max_failures</code></dt>
+<dd><p>Integer, default <code>10</code>. Abort the
+sequential fallback after this many consecutive failed variant solves,
+to bound the time spent on a technology whose variants all fail.</p></dd>
+
 <dt><code>as_scenario</code></dt>
 <dd><p>Logical, default <code>FALSE</code>.  When
 <code>TRUE</code> the full solved <code>scenario</code> is returned with LCOE
@@ -215,6 +230,18 @@ activity, capacity, per-commodity outputs and inputs.</p></dd>
 
 </dl><p>For a list of technology objects: a named list of class
 <code>"levcost_list"</code>.</p>
+<p>For a technology declaring <strong>vintages</strong> and/or <strong>clusters</strong>: a
+named list of class <code>"levcost_variants"</code> (which inherits
+<code>"levcost_list"</code>), holding one full <code>"levcost"</code> result per
+variant, keyed by variant name (<code>"PWR_VIN2030"</code>). Each variant is
+priced in its own region so the variants cannot serve each other's demand;
+without that isolation they compete for one unit of demand and the result
+silently sums across them. The stacked tables are reachable with
+<code><a href="levcost_by_variant.html">levcost_by_variant()</a></code>, and <code>autoplot()</code> compares the variants.
+<code>$frontier</code> is <code>NULL</code> on this path – the frontier corners are a
+per-commodity sweep, orthogonal to variants, and are not fanned out.
+A technology with no vintages or clusters is unaffected and still returns a
+single <code>"levcost"</code> object.</p>
     </div>
     <div class="section level2">
     <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
@@ -244,6 +271,10 @@ fuel component.</p></dd>
 
 
 </dl></div>
+    <div class="section level2">
+    <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
+    <div class="dont-index"><p><code><a href="levcost_by_variant.html">levcost_by_variant()</a></code></p></div>
+    </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>

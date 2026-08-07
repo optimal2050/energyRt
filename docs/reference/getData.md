@@ -33,6 +33,7 @@ getData(
   ...,
   merge = FALSE,
   timeframe = c("lowest", "highest", "all"),
+  geolevel = c("finest", "coarsest", "all"),
   process = FALSE,
   parameters = TRUE,
   variables = TRUE,
@@ -55,6 +56,7 @@ getData(
   drop_duplicated_scenarios = TRUE,
   scenNameInList = as.logical(length(scen) - 1),
   unfold = TRUE,
+  variants = TRUE,
   verbose = FALSE
 )
 
@@ -65,6 +67,7 @@ getData(
   ...,
   merge = FALSE,
   timeframe = c("lowest", "highest", "all"),
+  geolevel = c("finest", "coarsest", "all"),
   process = FALSE,
   parameters = TRUE,
   variables = TRUE,
@@ -87,6 +90,7 @@ getData(
   drop_duplicated_scenarios = TRUE,
   scenNameInList = as.logical(length(scen) - 1),
   unfold = TRUE,
+  variants = TRUE,
   verbose = FALSE
 )
 
@@ -282,6 +286,18 @@ getData(
   `vStorageStore`) for which summing over slices is meaningless, are
   returned unchanged.
 
+- geolevel:
+
+  controls spatial aggregation of results that carry a `region` column,
+  the spatial twin of `timeframe`. One of `"finest"` (default, native
+  resolution as stored), `"coarsest"` (aggregate up to the top geoscale
+  level), `"all"` (return every level stacked), or an explicit geoscale
+  level name (e.g. `"zone"`, `"nation"`). Requires a geoscale on the
+  model; without one this is inert. Inter-regional flow variables (e.g.
+  `vTradeIr`) are returned unchanged, because summing a flow across
+  regions double-counts it — the spatial counterpart of leaving state
+  variables alone under `timeframe`.
+
 - process:
 
   if TRUE, dimensions "tech", "stg", "trade", "imp", "expp", "dem", and
@@ -350,6 +366,16 @@ getData(
 
   logical, should the name of the scenarios be used if not provided in
   the list with several scenarios?
+
+- variants:
+
+  logical, default `TRUE`: attach the technology-variant provenance
+  columns `base`, `vintage` and `cluster` (from
+  `scenario@modInp@sets$tech_variant`) to the returned data, so results
+  of a vintaged / clustered technology can be grouped or rolled up by
+  those dimensions without parsing the variant names. Has no effect when
+  the model has no variants, so the returned shape is unchanged for such
+  models. Set `FALSE` to suppress the columns.
 
 - verbose:
 

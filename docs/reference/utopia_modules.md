@@ -37,10 +37,12 @@ A named list:
 
 - electricity:
 
-  per region layout (`reg1`, `reg3`, `reg7`), each a "kit": `repo` (the
-  base repository), the individual blocks (`repo_comm`, `repo_supply`,
-  `DEM_ELC`, `WSOL`/`WWIN`/`WHYD`, the technologies, `STG_BTR`), and the
-  scenario levers `CO2_CAP`, `CT_CO2`, `RES_SHARE`, `NO_NEW_NUC`.
+  per region layout (`R1`, `R3`, `R7`, `R11` – an n-region layout is
+  keyed `R<n>`, matching the `R1`..`R11` region names used by the maps),
+  each a "kit": `repo` (the base repository), the individual blocks
+  (`repo_comm`, `repo_supply`, `DEM_ELC`, `WSOL`/`WWIN`/`WHYD`, the
+  technologies, `STG_BTR`), and the scenario levers `CO2_CAP`, `CT_CO2`,
+  `RES_SHARE`, `NO_NEW_NUC`.
 
 ## See also
 
@@ -53,7 +55,7 @@ the UTOPIA vignettes
 
 ``` r
 if (FALSE) { # \dontrun{
-um <- utopia_modules$electricity$reg3
+um <- utopia_modules$electricity$R3
 mod <- newModel("UTOPIA", data = um$repo,
                 calendar = utopia_modules$calendars$utopia_s4h24,
                 region = um$regions, horizon = utopia_modules$horizons$base,

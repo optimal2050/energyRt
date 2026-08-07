@@ -70,7 +70,7 @@ design(ECOAL)
 #>     comm = "COAL",
 #>     cinp2use = 0.1
 #>   ),
-#>   olife = data.frame(
+#>   vintage = data.frame(
 #>     olife = 30L
 #>   ),
 #>   cap2act = 8760,

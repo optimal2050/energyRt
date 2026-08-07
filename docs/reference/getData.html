@@ -47,7 +47,7 @@ observed year range) with each parameter's default interpolation rule."><meta pr
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.70.2.9001</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.75.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -121,6 +121,7 @@ observed year range) with each parameter's default interpolation rule.</p>
 <span>  <span class="va">...</span>,</span>
 <span>  merge <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  timeframe <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"lowest"</span>, <span class="st">"highest"</span>, <span class="st">"all"</span><span class="op">)</span>,</span>
+<span>  geolevel <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"finest"</span>, <span class="st">"coarsest"</span>, <span class="st">"all"</span><span class="op">)</span>,</span>
 <span>  process <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  parameters <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  variables <span class="op">=</span> <span class="cn">TRUE</span>,</span>
@@ -143,6 +144,7 @@ observed year range) with each parameter's default interpolation rule.</p>
 <span>  drop_duplicated_scenarios <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  scenNameInList <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/logical.html" class="external-link">as.logical</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">scen</span><span class="op">)</span> <span class="op">-</span> <span class="fl">1</span><span class="op">)</span>,</span>
 <span>  unfold <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  variants <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  verbose <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -153,6 +155,7 @@ observed year range) with each parameter's default interpolation rule.</p>
 <span>  <span class="va">...</span>,</span>
 <span>  merge <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  timeframe <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"lowest"</span>, <span class="st">"highest"</span>, <span class="st">"all"</span><span class="op">)</span>,</span>
+<span>  geolevel <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"finest"</span>, <span class="st">"coarsest"</span>, <span class="st">"all"</span><span class="op">)</span>,</span>
 <span>  process <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  parameters <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  variables <span class="op">=</span> <span class="cn">TRUE</span>,</span>
@@ -175,6 +178,7 @@ observed year range) with each parameter's default interpolation rule.</p>
 <span>  drop_duplicated_scenarios <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  scenNameInList <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/logical.html" class="external-link">as.logical</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">scen</span><span class="op">)</span> <span class="op">-</span> <span class="fl">1</span><span class="op">)</span>,</span>
 <span>  unfold <span class="op">=</span> <span class="cn">TRUE</span>,</span>
+<span>  variants <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  verbose <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -362,6 +366,10 @@ observed year range) with each parameter's default interpolation rule.</p>
 <dd><p>controls sub-annual time aggregation of results that carry a <code>slice</code> column. One of <code>"lowest"</code> (default, aggregate/sum flows up to the coarsest level, normally <code>ANNUAL</code>), <code>"highest"</code> (native/finest, as stored), <code>"all"</code> (return every timeframe level stacked), or an explicit calendar level name (e.g. <code>"SEASON"</code>, <code>"YDAY"</code>) to aggregate to that level. Non-slice data, and state/level variables (e.g. <code>vStorageStore</code>) for which summing over slices is meaningless, are returned unchanged.</p></dd>
 
 
+<dt id="arg-geolevel">geolevel<a class="anchor" aria-label="anchor" href="#arg-geolevel"></a></dt>
+<dd><p>controls spatial aggregation of results that carry a <code>region</code> column, the spatial twin of <code>timeframe</code>. One of <code>"finest"</code> (default, native resolution as stored), <code>"coarsest"</code> (aggregate up to the top geoscale level), <code>"all"</code> (return every level stacked), or an explicit geoscale level name (e.g. <code>"zone"</code>, <code>"nation"</code>). Requires a geoscale on the model; without one this is inert. Inter-regional flow variables (e.g. <code>vTradeIr</code>) are returned unchanged, because summing a flow across regions double-counts it — the spatial counterpart of leaving state variables alone under <code>timeframe</code>.</p></dd>
+
+
 <dt id="arg-process">process<a class="anchor" aria-label="anchor" href="#arg-process"></a></dt>
 <dd><p>if TRUE, dimensions "tech", "stg", "trade", "imp", "expp", "dem", and "sup" will be renamed with "process".</p></dd>
 
@@ -416,6 +424,16 @@ observed year range) with each parameter's default interpolation rule.</p>
 
 <dt id="arg-scennameinlist">scenNameInList<a class="anchor" aria-label="anchor" href="#arg-scennameinlist"></a></dt>
 <dd><p>logical, should the name of the scenarios be used if not provided in the list with several scenarios?</p></dd>
+
+
+<dt id="arg-variants">variants<a class="anchor" aria-label="anchor" href="#arg-variants"></a></dt>
+<dd><p>logical, default <code>TRUE</code>: attach the technology-variant
+provenance columns <code>base</code>, <code>vintage</code> and <code>cluster</code> (from
+<code>scenario@modInp@sets$tech_variant</code>) to the returned data, so results of a
+vintaged / clustered technology can be grouped or rolled up by those
+dimensions without parsing the variant names. Has no effect when the model
+has no variants, so the returned shape is unchanged for such models. Set
+<code>FALSE</code> to suppress the columns.</p></dd>
 
 
 <dt id="arg-verbose">verbose<a class="anchor" aria-label="anchor" href="#arg-verbose"></a></dt>

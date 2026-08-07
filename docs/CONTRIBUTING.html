@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.70.2.9001</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.75.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -81,6 +81,14 @@
 <li><p>We use <a href="https://cran.r-project.org/package=roxygen2" class="external-link">roxygen2</a>, with <a href="https://cran.r-project.org/web/packages/roxygen2/vignettes/rd-formatting.html" class="external-link">Markdown syntax</a>, for documentation.</p></li>
 <li><p>We use <a href="https://cran.r-project.org/package=testthat" class="external-link">testthat</a> for unit tests. Contributions with test cases included are easier to accept.</p></li>
 </ul></div>
+</div>
+<div class="section level2">
+<h2 id="ai-assisted-contributions">AI-assisted contributions<a class="anchor" aria-label="anchor" href="#ai-assisted-contributions"></a></h2>
+<p>AI-assisted contributions are welcome. We ask three things:</p>
+<ul><li><p><strong>Disclose it.</strong> Say in the pull request description that AI assistance was used, and roughly for what (drafting, refactoring, tests, documentation). Commit trailers such as <code>Co-authored-by:</code> or <code>Assisted-by:</code> are fine as provenance metadata.</p></li>
+<li><p><strong>You are responsible for it.</strong> As the submitter you take the same responsibility for AI-assisted code as for any code you did not write from scratch: that you have the right to contribute it, that it is compatible with the package licence (AGPL-3), and that it is correct. Please review generated code rather than pasting it, and make sure the test suite passes.</p></li>
+<li><p><strong>Read <a href="../AGENTS.html"><code>AGENTS.md</code></a> first.</strong> It lists the project conventions and the traps that fail <em>silently</em> in this codebase — constructors that return empty objects, templates that need a <code>sysdata</code> rebuild, S3 methods that never register. Generated code that ignores these tends to look right and behave wrong. Pointing your tool at that file up front saves a review cycle.</p></li>
+</ul><p>Note that AI tools are not listed as package authors. Authorship implies accountability for the work, so credit for a contribution goes to the person who submitted and vouched for it. See <a href="../AUTHORS.html"><code>AUTHORS.md</code></a> for how authorship and contribution are recorded.</p>
 </div>
 <div class="section level2">
 <h2 id="code-of-conduct">Code of Conduct<a class="anchor" aria-label="anchor" href="#code-of-conduct"></a></h2>

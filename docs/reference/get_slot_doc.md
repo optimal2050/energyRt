@@ -36,10 +36,10 @@ slotNames("technology")
 #>  [7] "group"              "cap2act"            "geff"              
 #> [10] "ceff"               "aeff"               "af"                
 #> [13] "afs"                "weather"            "fixom"             
-#> [16] "varom"              "invcost"            "start"             
-#> [19] "end"                "olife"              "capacity"          
-#> [22] "optimizeRetirement" "fullYear"           "timeframe"         
-#> [25] "region"             "misc"              
+#> [16] "varom"              "invcost"            "cluster"           
+#> [19] "vintage"            "capacity"           "optimizeRetirement"
+#> [22] "fullYear"           "timeframe"          "region"            
+#> [25] "misc"              
 get_slot_doc("technology", "input") |> cat()
 #> data.frame. Main commodities input. Main commodities are linked to the process capacity and activity. Their parameters are defined in the `ceff` slot.
 #>   \describe{
@@ -52,6 +52,8 @@ get_slot_doc("technology", "input") |> cat()
 get_slot_doc("technology", "capacity") |> cat()
 #> data.frame. Capacity of the installed technology (in units of capacity).
 #>   \describe{
+#>     \item{vintage}{character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.}
+#>     \item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `vintage` slot.}
 #>     \item{region}{character. Region name to apply the parameter, NA for every region.}
 #>     \item{year}{integer. Year to apply the parameter, required, values between specified years will be interpolated.}
 #>     \item{stock}{numeric. Predefined capacity of the technology in units of capacity, default is 0. This parameter also defines the exogenous capacity retirement (age-based), or exogenous capacity additions, not optimized by the model, and not included in investment costs.
@@ -67,13 +69,7 @@ get_slot_doc("technology", "capacity") |> cat()
 #>     \item{ret.fx}{numeric. Fixed capacity retirement (age-based), ignored if NA. This parameter overrides `ret.lo` and `ret.up`.}
 #>  }
 get_slot_doc("demand", "dem") |> cat()
-#> data.frame. Specification of the demand.
-#>   \describe{
-#>     \item{region}{character. Name of region for the demand value. NA for every region.}
-#>     \item{year}{integer. Year of the demand. NA for every year.}
-#>     \item{slice}{character. Name of the slice for the demand value. NA for every slice.}
-#>     \item{dem}{numeric. Value of the demand.}
-#>  }
+#> Error in get_slot_doc("demand", "dem"): No slot found for slot: dem
 get_slot_doc("commodity", "agg") |> cat()
 #> data.frame. Used to define an aggregation of several commodities into the `name` commodity.
 #> 

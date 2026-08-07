@@ -4,14 +4,16 @@ centroids, laid over a region map. Accepts a single trade, a list of them,
 or a repository/model/scenario (all of whose trade objects are drawn as
 one network). Bidirectional links (both src→dst and dst→src, e.g. the
 TBD_* lines) are collapsed to a single double-headed arrow. A trade stores
-no geometry, so the map is supplied by the caller — an sf object with
+no geometry, so the geometry comes either from the model's geoscale (see
+setGeoscale()) or from a map supplied by the caller — an sf object with
 region, x, y (centroid) columns and polygon geometry, such as one of
 the utopia$map layouts (squares, honeycomb, island, continent)."><meta property="og:description" content="Draws inter-regional trade routes (src → dst) as arrows between region
 centroids, laid over a region map. Accepts a single trade, a list of them,
 or a repository/model/scenario (all of whose trade objects are drawn as
 one network). Bidirectional links (both src→dst and dst→src, e.g. the
 TBD_* lines) are collapsed to a single double-headed arrow. A trade stores
-no geometry, so the map is supplied by the caller — an sf object with
+no geometry, so the geometry comes either from the model's geoscale (see
+setGeoscale()) or from a map supplied by the caller — an sf object with
 region, x, y (centroid) columns and polygon geometry, such as one of
 the utopia$map layouts (squares, honeycomb, island, continent)."><meta property="og:image" content="https://energyRt.org/logo.png"><!-- Google tag (gtag.js) --><script async src="https://www.googletagmanager.com/gtag/js?id=G-CYBYJ238Q5"></script><script>
   window.dataLayer = window.dataLayer || [];
@@ -27,7 +29,7 @@ the utopia$map layouts (squares, honeycomb, island, continent)."><meta property=
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.70.2.9001</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.75.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -78,7 +80,8 @@ centroids, laid over a region map. Accepts a single <code>trade</code>, a list o
 or a <code>repository</code>/<code>model</code>/<code>scenario</code> (all of whose trade objects are drawn as
 one network). Bidirectional links (both <code>src</code>→<code>dst</code> and <code>dst</code>→<code>src</code>, e.g. the
 <code>TBD_*</code> lines) are collapsed to a single double-headed arrow. A <code>trade</code> stores
-no geometry, so the <strong>map is supplied by the caller</strong> — an <code>sf</code> object with
+no geometry, so the geometry comes either from the model's geoscale (see
+<code><a href="setGeoscale.html">setGeoscale()</a></code>) or from a <code>map</code> supplied by the caller — an <code>sf</code> object with
 <code>region</code>, <code>x</code>, <code>y</code> (centroid) columns and polygon <code>geometry</code>, such as one of
 the <code>utopia$map</code> layouts (<code>squares</code>, <code>honeycomb</code>, <code>island</code>, <code>continent</code>).</p>
     </div>
@@ -90,6 +93,7 @@ the <code>utopia$map</code> layouts (<code>squares</code>, <code>honeycomb</code
 <span>  map <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  labels <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  route_color <span class="op">=</span> <span class="st">"steelblue"</span>,</span>
+<span>  level <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -108,7 +112,8 @@ the <code>utopia$map</code> layouts (<code>squares</code>, <code>honeycomb</code
 
 <dt id="arg-map">map<a class="anchor" aria-label="anchor" href="#arg-map"></a></dt>
 <dd><p>An <code>sf</code>/data.frame with <code>region</code>, <code>x</code>, <code>y</code> and polygon <code>geometry</code>
-(e.g. <code>utopia$map$honeycomb</code>). Required. Region polygons need <code>sf</code>; without
+(e.g. <code>utopia$map$honeycomb</code>), or a <code><a href="https://optimal2050.github.io/geoscales/r/reference/Geoscale.html" class="external-link">geoscales::Geoscale</a></code>. When <code>NULL</code>, the
+geoscale attached to <code>object</code> is used. Region polygons need <code>sf</code>; without
 it, only centroids and routes are drawn.</p></dd>
 
 
@@ -120,6 +125,11 @@ it, only centroids and routes are drawn.</p></dd>
 <dd><p>Colour of the route arrows.</p></dd>
 
 
+<dt id="arg-level">level<a class="anchor" aria-label="anchor" href="#arg-level"></a></dt>
+<dd><p>When <code>map</code> is a <code>Geoscale</code>, which level to draw. Defaults to the
+finest, i.e. the model's own regions.</p></dd>
+
+
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
 <dd><p>Unused.</p></dd>
 
@@ -128,6 +138,15 @@ it, only centroids and routes are drawn.</p></dd>
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>A <code>ggplot</code> object (or <code>NULL</code>, invisibly, if there is nothing to plot).</p>
     </div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>When the map carries a coordinate reference system, routes, centroids and
+labels are drawn as <code>sf</code> layers rather than raw <code>x</code>/<code>y</code> ones. <code>geom_sf()</code>
+installs a <code>coord_sf()</code> that reprojects the polygons but would leave a
+<code>geom_segment()</code> untransformed, detaching every route from its regions. Maps
+with no CRS — including the reference <code>utopia$map</code> layouts — take the plain
+cartesian path, which is correct for them.</p>
+    </div>
 
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
@@ -135,6 +154,10 @@ it, only centroids and routes are drawn.</p></dd>
 <span class="r-in"><span><span class="va">TRD</span> <span class="op">&lt;-</span> <span class="fu"><a href="newTrade.html">newTrade</a></span><span class="op">(</span><span class="st">"TRD_ELC"</span>, commodity <span class="op">=</span> <span class="st">"ELC"</span>,</span></span>
 <span class="r-in"><span>  routes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>src <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"R1"</span>, <span class="st">"R2"</span>, <span class="st">"R3"</span><span class="op">)</span>, dst <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"R2"</span>, <span class="st">"R7"</span>, <span class="st">"R7"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">autoplot</span><span class="op">(</span><span class="va">TRD</span>, map <span class="op">=</span> <span class="va">utopia</span><span class="op">$</span><span class="va">map</span><span class="op">$</span><span class="va">honeycomb</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># or from a geoscale, at any level</span></span></span>
+<span class="r-in"><span><span class="fu">plot_trade_map</span><span class="op">(</span><span class="va">TRD</span>, map <span class="op">=</span> <span class="fu"><a href="utopia_geoscale.html">utopia_geoscale</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">plot_trade_map</span><span class="op">(</span><span class="va">TRD</span>, map <span class="op">=</span> <span class="fu"><a href="utopia_geoscale.html">utopia_geoscale</a></span><span class="op">(</span><span class="op">)</span>, level <span class="op">=</span> <span class="st">"zone"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

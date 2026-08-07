@@ -205,6 +205,8 @@ Data structures of the key model components.
   : An S4 class to represent technology
 - [`class-trade`](https://energyRt.org/reference/class-trade.md) : An S4
   class to represent inter-regional trade
+- [`class-variable`](https://energyRt.org/reference/class-variable.md) :
+  An S4 class to specify a model variable
 - [`class-weather`](https://energyRt.org/reference/class-weather.md) :
   S4 class to represent weather factors
 
@@ -298,9 +300,18 @@ Model configuration and scenario settings
   An S4 class to represent sub-annual time resolution structure.
 - [`newCalendar()`](https://energyRt.org/reference/newCalendar.md) :
   Generate a new calendar object from
-- [`plot(`*`<calendar>`*`)`](https://energyRt.org/reference/plot_calendar_method.md)
-  [`autoplot(`*`<calendar>`*`)`](https://energyRt.org/reference/plot_calendar_method.md)
+- [`autoplot(`*`<calendar>`*`)`](https://energyRt.org/reference/plot_calendar_method.md)
   : Visualize a Calendar object
+- [`setGeoscale(`*`<config>`*`)`](https://energyRt.org/reference/setGeoscale.md)
+  [`getGeoscale(`*`<config>`*`)`](https://energyRt.org/reference/setGeoscale.md)
+  [`setGeoscale(`*`<model>`*`)`](https://energyRt.org/reference/setGeoscale.md)
+  [`getGeoscale(`*`<model>`*`)`](https://energyRt.org/reference/setGeoscale.md)
+  [`setGeoscale(`*`<scenario>`*`)`](https://energyRt.org/reference/setGeoscale.md)
+  [`getGeoscale(`*`<scenario>`*`)`](https://energyRt.org/reference/setGeoscale.md)
+  [`getCalendar(`*`<config>`*`)`](https://energyRt.org/reference/setGeoscale.md)
+  [`getCalendar(`*`<model>`*`)`](https://energyRt.org/reference/setGeoscale.md)
+  [`getCalendar(`*`<scenario>`*`)`](https://energyRt.org/reference/setGeoscale.md)
+  : Attach or read a model's geoscale
 - [`class-horizon`](https://energyRt.org/reference/class-horizon.md) :
   An S4 class to represent model/scenario planning horizon with
   intervals (year-steps)
@@ -309,8 +320,7 @@ Model configuration and scenario settings
   [`setHorizon(`*`<config>`*`)`](https://energyRt.org/reference/newHorizon.md)
   [`update(`*`<config>`*`)`](https://energyRt.org/reference/newHorizon.md)
   : Create a new object of class 'horizon'
-- [`plot(`*`<horizon>`*`)`](https://energyRt.org/reference/plot_horizon_method.md)
-  [`autoplot(`*`<horizon>`*`)`](https://energyRt.org/reference/plot_horizon_method.md)
+- [`autoplot(`*`<horizon>`*`)`](https://energyRt.org/reference/plot_horizon_method.md)
   : Visualize a Horizon object
 - [`calendars`](https://energyRt.org/reference/calendars.md) : Example
   calendars
@@ -358,6 +368,12 @@ Model configuration and scenario settings
 - [`solve_model()`](https://energyRt.org/reference/solve_model.md)
   [`solve_scenario()`](https://energyRt.org/reference/solve_model.md) :
   Solve a model or scenario (legacy names; new pipeline)
+
+- [`mosox_run()`](https://energyRt.org/reference/mosox_run.md) : Run
+  mosox on a GMPL model or data file
+
+- [`en_mosox_run()`](https://energyRt.org/reference/en_mosox_run.md) :
+  Run mosox on a GMPL model or data file
 
 - [`build_mappings()`](https://energyRt.org/reference/build_mappings.md)
   : Build mapping parameters for a scenario, in recipe (dependency)
@@ -439,6 +455,12 @@ Model configuration and scenario settings
 - [`getMix()`](https://energyRt.org/reference/getMix.md) : Extract a
   tidy mix (generation, capacity, fuel) from a solved scenario
 
+- [`getVariants()`](https://energyRt.org/reference/getVariants.md) :
+  Process variants of a solved (or interpolated) scenario
+
+- [`variantSummary()`](https://energyRt.org/reference/variantSummary.md)
+  : Summarise a result variable across technology variants
+
 - [`en_replace_specials()`](https://energyRt.org/reference/en_replace_specials.md)
   [`en_has_specials()`](https://energyRt.org/reference/en_replace_specials.md)
   [`en_find_specials()`](https://energyRt.org/reference/en_replace_specials.md)
@@ -499,8 +521,11 @@ Model configuration and scenario settings
 - [`register()`](https://energyRt.org/reference/register.md)
   **\[experimental\]** : Register an object in the registry.
 
-- [`get_registry()`](https://energyRt.org/reference/get_registry.md) :
-  Returns the current registry object.
+- [`set_default_registry()`](https://energyRt.org/reference/default_registry.md)
+  [`use_registry()`](https://energyRt.org/reference/default_registry.md)
+  [`which_registry()`](https://energyRt.org/reference/default_registry.md)
+  [`get_registry()`](https://energyRt.org/reference/default_registry.md)
+  : Default registry
 
 - [`save_scenario()`](https://energyRt.org/reference/save_scenario.md) :
 
@@ -514,6 +539,9 @@ Model configuration and scenario settings
 
 - [`utopia_demand`](https://energyRt.org/reference/utopia_demand.md) :
   UTOPIA electricity load shape
+
+- [`utopia_geoscale()`](https://energyRt.org/reference/utopia_geoscale.md)
+  : A geoscale for the UTOPIA reference model
 
 - [`utopia_modules`](https://energyRt.org/reference/utopia_modules.md) :
   UTOPIA model modules
@@ -529,12 +557,13 @@ Model configuration and scenario settings
 
 ## Visualisation
 
-- [`draw()`](https://energyRt.org/reference/draw.md) : Draw a schematic
-  representation of a process
+- [`draw()`](https://energyRt.org/reference/draw.md)
+  [`draw.technology()`](https://energyRt.org/reference/draw.md) : Draw a
+  schematic representation of a process
 - [`autoplot(`*`<commodity>`*`)`](https://energyRt.org/reference/autoplot.commodity.md)
   : Visualize a Commodity object
 - [`autoplot(`*`<tax>`*`)`](https://energyRt.org/reference/autoplot.lever.md)
-  [`autoplot(`*`<sub>`*`)`](https://energyRt.org/reference/autoplot.lever.md)
+  [`autoplot(`*`<subsidy>`*`)`](https://energyRt.org/reference/autoplot.lever.md)
   [`autoplot(`*`<constraint>`*`)`](https://energyRt.org/reference/autoplot.lever.md)
   : Plot a tax, subsidy or user constraint over years
 - [`autoplot(`*`<supply>`*`)`](https://energyRt.org/reference/autoplot.process.md)
@@ -545,41 +574,41 @@ Model configuration and scenario settings
   : Visualize a process object over years
 - [`autoplot(`*`<scenario>`*`)`](https://energyRt.org/reference/autoplot.scenario.md)
   : Plot mixes from a solved scenario
-- [`plot(`*`<calendar>`*`)`](https://energyRt.org/reference/plot_calendar_method.md)
-  [`autoplot(`*`<calendar>`*`)`](https://energyRt.org/reference/plot_calendar_method.md)
+- [`autoplot(`*`<calendar>`*`)`](https://energyRt.org/reference/plot_calendar_method.md)
   : Visualize a Calendar object
-- [`plot_demand()`](https://energyRt.org/reference/plot_demand.md)
-  [`autoplot(`*`<demand>`*`)`](https://energyRt.org/reference/plot_demand.md)
-  : Visualize a demand object
 - [`plot_heatmap()`](https://energyRt.org/reference/plot_heatmap.md) :
   Heatmap of timeslice-indexed values over a calendar
-- [`plot(`*`<horizon>`*`)`](https://energyRt.org/reference/plot_horizon_method.md)
-  [`autoplot(`*`<horizon>`*`)`](https://energyRt.org/reference/plot_horizon_method.md)
+- [`autoplot(`*`<horizon>`*`)`](https://energyRt.org/reference/plot_horizon_method.md)
   : Visualize a Horizon object
-- [`plot_process_windows()`](https://energyRt.org/reference/plot_process_windows.md)
-  [`autoplot(`*`<model>`*`)`](https://energyRt.org/reference/plot_process_windows.md)
-  [`autoplot(`*`<repository>`*`)`](https://energyRt.org/reference/plot_process_windows.md)
-  : Plot process investment / availability windows
+- [`plot_map()`](https://energyRt.org/reference/plot_map.md) : Map model
+  results by region
 - [`plot_share_frontier()`](https://energyRt.org/reference/plot_share_frontier.md)
   : Plot feasible share-mix diagram for technology inputs/outputs
 - [`plot_trade_map()`](https://energyRt.org/reference/plot_trade_map.md)
   [`autoplot(`*`<trade>`*`)`](https://energyRt.org/reference/plot_trade_map.md)
   : Map inter-regional trade routes
-- [`plot_weather()`](https://energyRt.org/reference/plot_weather.md)
-  [`autoplot(`*`<weather>`*`)`](https://energyRt.org/reference/plot_weather.md)
-  : Visualize a weather object
+- [`en_config_show()`](https://energyRt.org/reference/en_config_show.md)
+  : Show the effective energyRt configuration
 - [`set_progress_bar()`](https://energyRt.org/reference/progress.md)
   [`show_progress_bar()`](https://energyRt.org/reference/progress.md) :
   Switch on/off and select/customize progress bar
 - [`design()`](https://energyRt.org/reference/design.md) : Generate an R
   script that recreates an energyRt object
+- [`ghost_options()`](https://energyRt.org/reference/ghost_options.md) :
+  Geometry of the faded "ghost" vintages behind a drawn technology
+- [`theme_energyRt()`](https://energyRt.org/reference/theme_energyRt.md)
+  : energyRt's default ggplot theme
 
 ## Validation
 
+- [`check_geoscale_regions()`](https://energyRt.org/reference/check_geoscale_regions.md)
+  : Check a geoscale against the model's declared regions
 - [`check_name()`](https://energyRt.org/reference/check_name.md) : Check
   validity of object's names used in sets
 - [`levcost()`](https://energyRt.org/reference/levcost.md) : Levelized
   cost of commodity production
+- [`levcost_by_variant()`](https://energyRt.org/reference/levcost_by_variant.md)
+  : Per-variant levelized cost tables
 - [`tech_share_frontier()`](https://energyRt.org/reference/tech_share_frontier.md)
   : Extract feasible share ranges for grouped inputs/outputs
 
@@ -600,6 +629,17 @@ Model configuration and scenario settings
   [`get_arrow_compression_level()`](https://energyRt.org/reference/arrow_format.md)
   [`set_arrow_compression_level()`](https://energyRt.org/reference/arrow_format.md)
   : Arrow exchange-format options
+- [`set_default_registry()`](https://energyRt.org/reference/default_registry.md)
+  [`use_registry()`](https://energyRt.org/reference/default_registry.md)
+  [`which_registry()`](https://energyRt.org/reference/default_registry.md)
+  [`get_registry()`](https://energyRt.org/reference/default_registry.md)
+  : Default registry
+- [`get_default_solver()`](https://energyRt.org/reference/default_solver.md)
+  [`set_default_solver()`](https://energyRt.org/reference/default_solver.md)
+  : Default solver
+- [`set_option()`](https://energyRt.org/reference/en_option.md)
+  [`get_option()`](https://energyRt.org/reference/en_option.md) : Get or
+  set an energyRt option
 - [`get_neos_email()`](https://energyRt.org/reference/neos_email.md)
   [`set_neos_email()`](https://energyRt.org/reference/neos_email.md) :
   NEOS submission email
@@ -612,12 +652,24 @@ Model configuration and scenario settings
   [`setHorizon(`*`<model>`*`)`](https://energyRt.org/reference/newModel.md)
   [`getHorizon(`*`<model>`*`)`](https://energyRt.org/reference/newModel.md)
   : Create new model object
-- [`set_scenarios_path()`](https://energyRt.org/reference/options.md)
-  [`get_scenarios_path()`](https://energyRt.org/reference/options.md) :
-  Set or get directory for/with scenarios
 - [`set_progress_bar()`](https://energyRt.org/reference/progress.md)
   [`show_progress_bar()`](https://energyRt.org/reference/progress.md) :
   Switch on/off and select/customize progress bar
+- [`set_scenarios_path()`](https://energyRt.org/reference/scenarios_path.md)
+  [`get_scenarios_path()`](https://energyRt.org/reference/scenarios_path.md)
+  : Set or get the directory with scenarios
+- [`setGeoscale(`*`<config>`*`)`](https://energyRt.org/reference/setGeoscale.md)
+  [`getGeoscale(`*`<config>`*`)`](https://energyRt.org/reference/setGeoscale.md)
+  [`setGeoscale(`*`<model>`*`)`](https://energyRt.org/reference/setGeoscale.md)
+  [`getGeoscale(`*`<model>`*`)`](https://energyRt.org/reference/setGeoscale.md)
+  [`setGeoscale(`*`<scenario>`*`)`](https://energyRt.org/reference/setGeoscale.md)
+  [`getGeoscale(`*`<scenario>`*`)`](https://energyRt.org/reference/setGeoscale.md)
+  [`getCalendar(`*`<config>`*`)`](https://energyRt.org/reference/setGeoscale.md)
+  [`getCalendar(`*`<model>`*`)`](https://energyRt.org/reference/setGeoscale.md)
+  [`getCalendar(`*`<scenario>`*`)`](https://energyRt.org/reference/setGeoscale.md)
+  : Attach or read a model's geoscale
+- [`set_mosox_path()`](https://energyRt.org/reference/set_mosox_path.md)
+  : Set the path to the mosox executable
 - [`set_gams_path()`](https://energyRt.org/reference/solver.md)
   [`get_gams_path()`](https://energyRt.org/reference/solver.md)
   [`set_gdxlib_path()`](https://energyRt.org/reference/solver.md)
@@ -629,8 +681,22 @@ Model configuration and scenario settings
   [`set_python_path()`](https://energyRt.org/reference/solver.md)
   [`get_python_path()`](https://energyRt.org/reference/solver.md) : Set
   GAMS and GDX library directory
+- [`set_solver_path()`](https://energyRt.org/reference/solver_path.md)
+  [`get_solver_path()`](https://energyRt.org/reference/solver_path.md) :
+  Set or get the path to a solver toolchain
 - [`make_scenario_dirname()`](https://energyRt.org/reference/make_scenario_dirname.md)
   : Make a name for a scenario directory
+- [`energyRt-options`](https://energyRt.org/reference/energyRt-options.md)
+  : energyRt Options
+- [`en_config_path()`](https://energyRt.org/reference/en_config.md)
+  [`en_config_read()`](https://energyRt.org/reference/en_config.md)
+  [`en_config_write()`](https://energyRt.org/reference/en_config.md) :
+  The energyRt configuration file
+- [`en_config_show()`](https://energyRt.org/reference/en_config_show.md)
+  : Show the effective energyRt configuration
+- [`isVerbose()`](https://energyRt.org/reference/isVerbose.md)
+  [`isDebug()`](https://energyRt.org/reference/isVerbose.md) : Verbosity
+  and debug level
 
 ## utils
 
@@ -662,6 +728,17 @@ Model configuration and scenario settings
   [`get_arrow_compression_level()`](https://energyRt.org/reference/arrow_format.md)
   [`set_arrow_compression_level()`](https://energyRt.org/reference/arrow_format.md)
   : Arrow exchange-format options
+- [`set_default_registry()`](https://energyRt.org/reference/default_registry.md)
+  [`use_registry()`](https://energyRt.org/reference/default_registry.md)
+  [`which_registry()`](https://energyRt.org/reference/default_registry.md)
+  [`get_registry()`](https://energyRt.org/reference/default_registry.md)
+  : Default registry
+- [`get_default_solver()`](https://energyRt.org/reference/default_solver.md)
+  [`set_default_solver()`](https://energyRt.org/reference/default_solver.md)
+  : Default solver
+- [`set_option()`](https://energyRt.org/reference/en_option.md)
+  [`get_option()`](https://energyRt.org/reference/en_option.md) : Get or
+  set an energyRt option
 - [`getData()`](https://energyRt.org/reference/getData.md)
   [`get_data()`](https://energyRt.org/reference/getData.md) : Extract
   data from energyRt objects
@@ -671,6 +748,8 @@ Model configuration and scenario settings
   parameter units for energyRt class objects
 - [`get_default_value()`](https://energyRt.org/reference/get_default_value.md)
   : Return default value for one, several, or all parameters
+- [`get_mosox_path()`](https://energyRt.org/reference/get_mosox_path.md)
+  : Get the configured mosox executable path
 - [`get_process_aux()`](https://energyRt.org/reference/get_process_aux.md)
   : Get auxiliary commodities for each process
 - [`get_process_class()`](https://energyRt.org/reference/get_process_class.md)
@@ -689,16 +768,16 @@ Model configuration and scenario settings
   : Get operational timeframe of processes
 - [`get_region()`](https://energyRt.org/reference/get_region.md) :
   Collect the regions an object operates in
-- [`get_registry()`](https://energyRt.org/reference/get_registry.md) :
-  Returns the current registry object.
 - [`get_slot_doc()`](https://energyRt.org/reference/get_slot_doc.md) :
   Retrieve slot details in rd-format
+- [`get_variable()`](https://energyRt.org/reference/get_variable.md) :
+  Get one solved variable from a scenario
 - [`get_neos_email()`](https://energyRt.org/reference/neos_email.md)
   [`set_neos_email()`](https://energyRt.org/reference/neos_email.md) :
   NEOS submission email
-- [`set_scenarios_path()`](https://energyRt.org/reference/options.md)
-  [`get_scenarios_path()`](https://energyRt.org/reference/options.md) :
-  Set or get directory for/with scenarios
+- [`set_scenarios_path()`](https://energyRt.org/reference/scenarios_path.md)
+  [`get_scenarios_path()`](https://energyRt.org/reference/scenarios_path.md)
+  : Set or get the directory with scenarios
 - [`set_gams_path()`](https://energyRt.org/reference/solver.md)
   [`get_gams_path()`](https://energyRt.org/reference/solver.md)
   [`set_gdxlib_path()`](https://energyRt.org/reference/solver.md)
@@ -710,6 +789,9 @@ Model configuration and scenario settings
   [`set_python_path()`](https://energyRt.org/reference/solver.md)
   [`get_python_path()`](https://energyRt.org/reference/solver.md) : Set
   GAMS and GDX library directory
+- [`set_solver_path()`](https://energyRt.org/reference/solver_path.md)
+  [`get_solver_path()`](https://energyRt.org/reference/solver_path.md) :
+  Set or get the path to a solver toolchain
 - [`complete_set()`](https://energyRt.org/reference/complete_set.md) :
   Complete a data frame with missing set elements
 - [`expand_na_rows()`](https://energyRt.org/reference/expand_na_rows.md)
@@ -721,6 +803,10 @@ Model configuration and scenario settings
   : Countdown timer to use in R scripts
 - [`is_any()`](https://energyRt.org/reference/is_any.md) : Check if an
   element of a set is "ANY\*" or NA
+- [`is_geoscale()`](https://energyRt.org/reference/is_geoscale.md) : Is
+  this a geoscales::Geoscale?
+- [`map_comm_geolevel()`](https://energyRt.org/reference/map_comm_geolevel.md)
+  : Balancing geo-level of commodities
 - [`map_comm_timeframe()`](https://energyRt.org/reference/map_comm_timeframe.md)
   : Operational timeframe of a commodities
 - [`named_list_to_df()`](https://energyRt.org/reference/named_list_to_df.md)

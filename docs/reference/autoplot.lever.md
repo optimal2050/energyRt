@@ -10,13 +10,13 @@ draws that control path: the **points** are the given years and the
 
 ``` r
 # S3 method for class 'tax'
-autoplot(object, years = NULL, ...)
+autoplot(object, year = NULL, ...)
 
-# S3 method for class 'sub'
-autoplot(object, years = NULL, ...)
+# S3 method for class 'subsidy'
+autoplot(object, year = NULL, ...)
 
 # S3 method for class 'constraint'
-autoplot(object, years = NULL, ...)
+autoplot(object, year = NULL, ...)
 ```
 
 ## Arguments
@@ -25,7 +25,7 @@ autoplot(object, years = NULL, ...)
 
   A `tax`, `sub` or `constraint` object.
 
-- years:
+- year:
 
   Optional integer vector of years to draw the interpolated line over
   (defaults to the range of the given years).

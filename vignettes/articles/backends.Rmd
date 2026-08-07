@@ -59,6 +59,10 @@ scen <- solve_mod(model,  solver = solver_options$glpk)
 scen <- solve_scen(scen,  solver = solver_options$gams_gdx_cplex)
 ```
 
+`set_default_solver()` lasts for the session. To make a default stick across
+sessions, save it with `en_config_write()`; `en_config_show()` reports the
+current default together with the solver paths it depends on.
+
 `solve_mod()` interpolates a `model` and solves it; `solve_scen()` solves an
 already-interpolated scenario. With `solver = NULL` the scenario's own settings
 or `get_default_solver()` are used.
@@ -120,7 +124,9 @@ are provided — via Pyomo (`neos_pyomo_*`) and via GAMS (`neos_gams_*`, sent as
 inlined text so no local GAMS install is needed).
 
 NEOS requires an email address, set once via the `NEOS_EMAIL` environment
-variable or the helper:
+variable or the helper (this is the one energyRt setting whose environment
+variable is *not* prefixed `ENERGYRT_`, because the Pyomo subprocess reads
+`NEOS_EMAIL` directly):
 
 ```{r}
 set_neos_email("you@example.org")
@@ -178,3 +184,4 @@ solve_mod(model, solver = my_solver)
 * **Installation and Settings** — installing the runtimes and library layer.
 * **Model bricks** — assembling commodities, processes and structures into a model.
 * `?solve_mod`, `?solve_scen`, `?set_default_solver`, `?set_neos_email`.
+* `?energyRt-options` for every setting, `?en_config_show` for what is in effect.

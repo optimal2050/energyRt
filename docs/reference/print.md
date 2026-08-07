@@ -5,7 +5,7 @@ Print methods for the energyRt classes
 ## Usage
 
 ``` r
-# S4 method for class 'parameter'
+# S4 method for class 'modelData'
 print(x, ...)
 
 print(x, ...)

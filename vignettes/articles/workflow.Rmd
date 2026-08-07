@@ -30,7 +30,7 @@ scenario files under a temporary folder.
 ```{r model}
 set_scenarios_path(file.path(tempdir(), "wf"))   # where scenarios are written
 
-um  <- utopia_modules$electricity$reg1
+um  <- utopia_modules$electricity$R1
 mod <- newModel("UTOPIA", data = um$repo,
                 calendar = utopia_modules$calendars$utopia_s4h24,
                 region   = um$regions,

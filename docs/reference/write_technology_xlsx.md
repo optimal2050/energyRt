@@ -76,5 +76,7 @@ write_technology_xlsx(
 [`read_technology_xlsx()`](https://energyRt.org/reference/read_technology_xlsx.md)
 
 Other technology process:
+[`getVariants()`](https://energyRt.org/reference/getVariants.md),
 [`newTechnology()`](https://energyRt.org/reference/technology.md),
-[`read_technology_xlsx()`](https://energyRt.org/reference/read_technology_xlsx.md)
+[`read_technology_xlsx()`](https://energyRt.org/reference/read_technology_xlsx.md),
+[`variantSummary()`](https://energyRt.org/reference/variantSummary.md)

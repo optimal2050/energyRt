@@ -11,7 +11,7 @@ newExport(
   commodity = "",
   unit = NULL,
   reserve = Inf,
-  exp = data.frame(),
+  export = data.frame(),
   misc = list(),
   ...
 )
@@ -39,7 +39,7 @@ newExport(
 
   numeric. Total accumulated limit through the model horizon.
 
-- exp:
+- export:
 
   data.frame. Export parameters.
 
@@ -104,7 +104,7 @@ EXPOIL <- newExport(
   desc = "Oil export from the model to RoW", # for own reference
   commodity = "OIL", # must match the commodity name in the model
   unit = "Mtoe", # for own reference
-  exp = data.frame(
+  export = data.frame(
     region = rep(c("R1", "R2"), each = 2), # export region(s)
     year = rep(c(2020, 2050)), # export years
     price = 500, # export price in MUSD/Mtoe (USD/t),

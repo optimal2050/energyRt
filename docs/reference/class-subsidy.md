@@ -25,7 +25,7 @@ production, consumption, or balance of a commodity.
 
   numeric. Default value of the subsidy.
 
-- `sub`:
+- `subsidy`:
 
   data.frame. Subsidy values.
 

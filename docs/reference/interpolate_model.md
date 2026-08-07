@@ -26,7 +26,7 @@ interpolate_model(
   prune = TRUE,
   validate = TRUE,
   code = NULL,
-  verbose = getOption("energyRt.verbose", FALSE)
+  verbose = isVerbose()
 )
 ```
 

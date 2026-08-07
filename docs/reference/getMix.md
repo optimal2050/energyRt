@@ -16,7 +16,8 @@ getMix(
   region = NULL,
   year = NULL,
   slice = NULL,
-  drop_small = 0
+  drop_small = 0,
+  by = NULL
 )
 ```
 
@@ -48,7 +49,7 @@ getMix(
 
 - year:
 
-  integer vector or `NULL` (all milestone years).
+  integer vector or `NULL` (all milestone year).
 
 - slice:
 
@@ -62,13 +63,23 @@ getMix(
   numeric in `[0, 1)`: drop processes whose total absolute value is
   below this share of the largest process (default `0`, keep all).
 
+- by:
+
+  character vector, any of `"vintage"` and `"cluster"`. Technology
+  variants are always rolled back up to their base technology in
+  `process`; by default (`NULL`) they are simply summed, so charts do
+  not fragment into one series per variant. Naming a dimension here
+  keeps it as an extra grouping column (with `"(none)"` for processes
+  that have no variants), ready to drive a fill or facet.
+
 ## Value
 
 A tidy data.frame with columns `scenario`, `type`, `process`, `flow`
 (`generation`, `storage-in/out`, `import/export`, `demand`, `fuel`,
 `capacity`, `new_capacity`), `comm`, `region`, `year`, `value`, and –
-when `slice` is given – `slice` (+ `hour` when parsable). Missing
-variables are skipped silently (e.g. a model without storage or trade).
+when `slice` is given – `slice` (+ `hour` when parsable), plus any
+column named in `by`. Missing variables are skipped silently (e.g. a
+model without storage or trade).
 
 ## Examples
 
@@ -77,5 +88,6 @@ if (FALSE) { # \dontrun{
 gen <- getMix(scen, "generation")                      # annual, all regions
 day <- getMix(scen, "generation", slice = "^SUM_")     # summer-day dispatch
 cmp <- getMix(list(BASE = s1, CO2CAP = s2), "capacity")
+cl  <- getMix(scen, "capacity", by = "cluster")        # split by cluster
 } # }
 ```

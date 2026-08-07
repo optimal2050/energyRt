@@ -20,7 +20,7 @@ keep all scenario files under a temporary folder.
 
 set_scenarios_path(file.path(tempdir(), "wf"))   # where scenarios are written
 
-um  <- utopia_modules$electricity$reg1
+um  <- utopia_modules$electricity$R1
 mod <- newModel("UTOPIA", data = um$repo,
                 calendar = utopia_modules$calendars$utopia_s4h24,
                 region   = um$regions,
@@ -52,8 +52,8 @@ names(getObject(repo, class = "technology"))        # all technologies
 names(getObject(repo, class = "supply", region = "R1"))
 #> [1] "SUP_COA" "SUP_BIO" "SUP_NUC" "RES_SOL" "RES_WIN"
 getObject(repo, name = "ECOA", drop = TRUE)@invcost # the ECOA object itself
-#>   region year invcost wacc eac retcost
-#> 1   <NA>   NA    2000   NA  NA      NA
+#>   vintage cluster region year invcost wacc payback eac retcost
+#> 1    <NA>    <NA>   <NA>   NA    2000   NA      NA  NA      NA
 ```
 
 Region matching reads `@region` slots and the `region`/`src`/`dst`
@@ -98,23 +98,24 @@ discover which parameters carry a given set with
 
 names(findData(scen, setsNames_ = "tech"))           # parameters indexed by 'tech'
 #>  [1] "pTechWeatherAf"       "pTechWeatherAfs"      "pTechWeatherAfc"     
-#>  [4] "pTechCap2act"         "pTechEac"             "pTechEmisComm"       
-#>  [7] "pTechOlife"           "pTechFixom"           "pTechInvcost"        
-#> [10] "pTechStock"           "pTechVarom"           "pTechAf"             
-#> [13] "pTechRampUp"          "pTechRampDown"        "pTechAfs"            
-#> [16] "pTechGinp2use"        "pTechCinp2ginp"       "pTechUse2cact"       
-#> [19] "pTechAct2AInp"        "pTechCap2AInp"        "pTechAct2AOut"       
-#> [22] "pTechCap2AOut"        "pTechNCap2AInp"       "pTechNCap2AOut"      
-#> [25] "pTechCinp2AInp"       "pTechCout2AInp"       "pTechCinp2AOut"      
-#> [28] "pTechCout2AOut"       "pTechCact2cout"       "pTechCinp2use"       
-#> [31] "pTechCvarom"          "pTechAvarom"          "pTechShare"          
-#> [34] "pTechAfc"             "pTechCap"             "pTechNewCap"         
-#> [37] "pTechRet"             "pTechRetCost"         "vTechInv"            
-#> [40] "vTechEac"             "vTechRetCost"         "vTechFixom"          
-#> [43] "vTechVarom"           "vTechNewCap"          "vTechRetiredStockCum"
-#> [46] "vTechRetiredStock"    "vTechRetiredNewCap"   "vTechCap"            
-#> [49] "vTechAct"             "vTechInp"             "vTechOut"            
-#> [52] "vTechAInp"            "vTechAOut"            "vTechEmsFuel"
+#>  [4] "pTechCap2act"         "pTechEac"             "pTechWacc"           
+#>  [7] "pTechPayback"         "pTechEmisComm"        "pTechOlife"          
+#> [10] "pTechFixom"           "pTechInvcost"         "pTechStock"          
+#> [13] "pTechVarom"           "pTechAf"              "pTechRampUp"         
+#> [16] "pTechRampDown"        "pTechAfs"             "pTechGinp2use"       
+#> [19] "pTechCinp2ginp"       "pTechUse2cact"        "pTechAct2AInp"       
+#> [22] "pTechCap2AInp"        "pTechAct2AOut"        "pTechCap2AOut"       
+#> [25] "pTechNCap2AInp"       "pTechNCap2AOut"       "pTechCinp2AInp"      
+#> [28] "pTechCout2AInp"       "pTechCinp2AOut"       "pTechCout2AOut"      
+#> [31] "pTechCact2cout"       "pTechCinp2use"        "pTechCvarom"         
+#> [34] "pTechAvarom"          "pTechShare"           "pTechAfc"            
+#> [37] "pTechCap"             "pTechNewCap"          "pTechRet"            
+#> [40] "pTechRetCost"         "vTechAInp"            "vTechAOut"           
+#> [43] "vTechAct"             "vTechCap"             "vTechEac"            
+#> [46] "vTechFixom"           "vTechInp"             "vTechInv"            
+#> [49] "vTechNewCap"          "vTechOut"             "vTechRetCost"        
+#> [52] "vTechRetiredNewCap"   "vTechRetiredStock"    "vTechRetiredStockCum"
+#> [55] "vTechVarom"           "vTechEmsFuel"
 ```
 
 `find_in_model(mod, "ECOA")` text-searches every object slot for a value
@@ -147,9 +148,9 @@ parameter store.)
 ## Scenario folders and structure
 
 The scenarios directory is an option — read it with
-[`get_scenarios_path()`](https://energyRt.org/reference/options.md), set
-it with
-[`set_scenarios_path()`](https://energyRt.org/reference/options.md)
+[`get_scenarios_path()`](https://energyRt.org/reference/scenarios_path.md),
+set it with
+[`set_scenarios_path()`](https://energyRt.org/reference/scenarios_path.md)
 (default `"scenarios/"`). Each scenario gets its own folder, named by
 [`make_scenario_dirname()`](https://energyRt.org/reference/make_scenario_dirname.md)
 as `name_model_calendar_horizon`:
@@ -157,7 +158,7 @@ as `name_model_calendar_horizon`:
 ``` r
 
 get_scenarios_path()
-#> [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpSaIlBT/wf"
+#> [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\Rtmpaq9fYk/wf"
 make_scenario_dirname(scen)
 #> [1] "BASE_UTOPIA_utopia_s4h24_base"
 ```
@@ -219,9 +220,9 @@ isInMemory(ld)
 > A name-based scenario **registry**
 > ([`register()`](https://energyRt.org/reference/register.md),
 > `getScenario()`,
-> [`get_registry()`](https://energyRt.org/reference/get_registry.md)) is
-> under development; for now, organize runs with
-> [`set_scenarios_path()`](https://energyRt.org/reference/options.md)
+> [`get_registry()`](https://energyRt.org/reference/default_registry.md))
+> is under development; for now, organize runs with
+> [`set_scenarios_path()`](https://energyRt.org/reference/scenarios_path.md)
 > and round-trip them with
 > [`save_scenario()`](https://energyRt.org/reference/save_scenario.md) /
 > [`load_scenario()`](https://energyRt.org/reference/load_scenario.md).
@@ -271,17 +272,17 @@ in-memory footprint:
 
 model_size(scen)
 #> model_size: BASE
-#>   parameters : 122 value, 236 maps, 13 sets
-#>   param rows : 5,938
-#>   estimate   : ~15,338 variables, ~16,832 constraints (from gating maps)
+#>   parameters : 128 value, 233 maps, 13 sets
+#>   param rows : 5,902
+#>   estimate   : ~16,111 variables, ~16,832 constraints (from gating maps)
 #>   top parameters by rows:
 #>     pTechCinp2use      1,536
 #>     pWeather           1,004
 #>     pSliceWeight       404
-#>     pExportRowPrice    404
-#>     pExportRow         404
 #>     pSliceAgg          400
 #>     pDemand            384
+#>     pExportRowPrice    384
+#>     pExportRow         384
 #>     pTechAf            384
 #>     pStorageInpEff     384
 #>     pStorageOutEff     384
@@ -291,7 +292,7 @@ model_size(scen)
 #>     pTechInvcost       20
 #>     pTechStock         14
 size(scen)
-#> [1] "6 Mb"
+#> [1] "6.2 Mb"
 ```
 
 For a systematic check that a build is correct *and* efficient,

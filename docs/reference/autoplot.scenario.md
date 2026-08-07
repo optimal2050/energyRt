@@ -18,6 +18,9 @@ autoplot(
   year = NULL,
   slice = NULL,
   drop_small = 0,
+  by = NULL,
+  fill = NULL,
+  facet = NULL,
   ...
 )
 ```
@@ -39,6 +42,24 @@ autoplot(
   a dispatch profile (`slice` given) with `year = NULL`, the last
   milestone year is used.
 
+- by:
+
+  character vector passed to
+  [`getMix()`](https://energyRt.org/reference/getMix.md), any of
+  `"vintage"` and `"cluster"`, to keep those technology-variant
+  dimensions as grouping columns. Implied automatically by
+  `fill`/`facet`.
+
+- fill:
+
+  name of the column to colour the bars by (default `"process"`);
+  `"vintage"` or `"cluster"` shows the composition of a variant group.
+
+- facet:
+
+  name of the column to facet by. Defaults to `"region"` when the
+  scenario has more than one region (the historical behaviour).
+
 - ...:
 
   ignored.
@@ -54,5 +75,7 @@ if (FALSE) { # \dontrun{
 autoplot(scen)                                    # annual generation mix
 autoplot(scen, "generation", slice = "^SUM_")     # summer-day dispatch
 autoplot(scen, "capacity")
+autoplot(scen, "capacity", fill = "cluster")      # capacity by cluster
+autoplot(scen, "capacity", fill = "vintage", facet = "process")
 } # }
 ```
