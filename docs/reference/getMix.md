@@ -15,7 +15,7 @@ getMix(
   comm = "ELC",
   region = NULL,
   year = NULL,
-  slice = NULL,
+  timeslice = NULL,
   drop_small = 0,
   by = NULL
 )
@@ -51,11 +51,11 @@ getMix(
 
   integer vector or `NULL` (all milestone year).
 
-- slice:
+- timeslice:
 
-  `NULL` for annual sums, or a regular expression selecting a slice
+  `NULL` for annual sums, or a regular expression selecting a timeslice
   sample (e.g. `"^SUM_"` for the summer day on the `utopia_s4h24`
-  calendar). When the matched slices carry an hour tag
+  calendar). When the matched timeslices carry an hour tag
   (`"_h00"..."_h23"`), an integer `hour` column is added.
 
 - drop_small:
@@ -77,8 +77,8 @@ getMix(
 A tidy data.frame with columns `scenario`, `type`, `process`, `flow`
 (`generation`, `storage-in/out`, `import/export`, `demand`, `fuel`,
 `capacity`, `new_capacity`), `comm`, `region`, `year`, `value`, and –
-when `slice` is given – `slice` (+ `hour` when parsable), plus any
-column named in `by`. Missing variables are skipped silently (e.g. a
+when `timeslice` is given – `timeslice` (+ `hour` when parsable), plus
+any column named in `by`. Missing variables are skipped silently (e.g. a
 model without storage or trade).
 
 ## Examples
@@ -86,7 +86,7 @@ model without storage or trade).
 ``` r
 if (FALSE) { # \dontrun{
 gen <- getMix(scen, "generation")                      # annual, all regions
-day <- getMix(scen, "generation", slice = "^SUM_")     # summer-day dispatch
+day <- getMix(scen, "generation", timeslice = "^SUM_")     # summer-day dispatch
 cmp <- getMix(list(BASE = s1, CO2CAP = s2), "capacity")
 cl  <- getMix(scen, "capacity", by = "cluster")        # split by cluster
 } # }

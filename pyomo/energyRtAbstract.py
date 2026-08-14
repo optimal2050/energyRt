@@ -120,12 +120,12 @@ model.vInpTotRY = Var(
 model.vInp2Lo = Var(
     model.mvInp2Lo,
     domain=pyo.NonNegativeReals,
-    doc="Desagregation of slices for input parent to (grand)child",
+    doc="Desagregation of timeslices for input parent to (grand)child",
 )
 model.vOut2Lo = Var(
     model.mvOut2Lo,
     domain=pyo.NonNegativeReals,
-    doc="Desagregation of slices for output parent to (grand)child",
+    doc="Desagregation of timeslices for output parent to (grand)child",
 )
 model.vSupOutTot = Var(
     model.mSupOutTot,
@@ -248,7 +248,7 @@ model.vTotalUserCosts = Var(
     domain=pyo.NonNegativeReals,
     doc="Total additional costs (set by user)",
 )
-# eqTechSng2Sng(tech, region, comm, commp, year, slice)$meqTechSng2Sng(tech, region, comm, commp, year, slice)
+# eqTechSng2Sng(tech, region, comm, commp, year, timeslice)$meqTechSng2Sng(tech, region, comm, commp, year, timeslice)
 model.eqTechSng2Sng = Constraint(
     model.meqTechSng2Sng,
     rule=lambda model, t, r, c, cp, y, s: model.vTechInp[t, c, r, y, s]
@@ -256,7 +256,7 @@ model.eqTechSng2Sng = Constraint(
     == (model.vTechOut[t, cp, r, y, s])
     / (model.pTechUse2cact[t, cp, r, y, s] * model.pTechCact2cout[t, cp, r, y, s]),
 )
-# eqTechGrp2Sng(tech, region, group, commp, year, slice)$meqTechGrp2Sng(tech, region, group, commp, year, slice)
+# eqTechGrp2Sng(tech, region, group, commp, year, timeslice)$meqTechGrp2Sng(tech, region, group, commp, year, timeslice)
 model.eqTechGrp2Sng = Constraint(
     model.meqTechGrp2Sng,
     rule=lambda model, t, r, g, cp, y, s: model.pTechGinp2use[t, g, r, y, s]
@@ -272,7 +272,7 @@ model.eqTechGrp2Sng = Constraint(
     == (model.vTechOut[t, cp, r, y, s])
     / (model.pTechUse2cact[t, cp, r, y, s] * model.pTechCact2cout[t, cp, r, y, s]),
 )
-# eqTechSng2Grp(tech, region, comm, groupp, year, slice)$meqTechSng2Grp(tech, region, comm, groupp, year, slice)
+# eqTechSng2Grp(tech, region, comm, groupp, year, timeslice)$meqTechSng2Grp(tech, region, comm, groupp, year, timeslice)
 model.eqTechSng2Grp = Constraint(
     model.meqTechSng2Grp,
     rule=lambda model, t, r, c, gp, y, s: model.vTechInp[t, c, r, y, s]
@@ -293,7 +293,7 @@ model.eqTechSng2Grp = Constraint(
         if (t, gp, cp) in model.mTechGroupComm
     ),
 )
-# eqTechGrp2Grp(tech, region, group, groupp, year, slice)$meqTechGrp2Grp(tech, region, group, groupp, year, slice)
+# eqTechGrp2Grp(tech, region, group, groupp, year, timeslice)$meqTechGrp2Grp(tech, region, group, groupp, year, timeslice)
 model.eqTechGrp2Grp = Constraint(
     model.meqTechGrp2Grp,
     rule=lambda model, t, r, g, gp, y, s: model.pTechGinp2use[t, g, r, y, s]
@@ -322,7 +322,7 @@ model.eqTechGrp2Grp = Constraint(
         if (t, gp, cp) in model.mTechGroupComm
     ),
 )
-# eqTechShareInpLo(tech, region, group, comm, year, slice)$meqTechShareInpLo(tech, region, group, comm, year, slice)
+# eqTechShareInpLo(tech, region, group, comm, year, timeslice)$meqTechShareInpLo(tech, region, group, comm, year, timeslice)
 model.eqTechShareInpLo = Constraint(
     model.meqTechShareInpLo,
     rule=lambda model, t, r, g, c, y, s: model.vTechInp[t, c, r, y, s]
@@ -333,7 +333,7 @@ model.eqTechShareInpLo = Constraint(
         if (t, g, cp) in model.mTechGroupComm
     ),
 )
-# eqTechShareInpUp(tech, region, group, comm, year, slice)$meqTechShareInpUp(tech, region, group, comm, year, slice)
+# eqTechShareInpUp(tech, region, group, comm, year, timeslice)$meqTechShareInpUp(tech, region, group, comm, year, timeslice)
 model.eqTechShareInpUp = Constraint(
     model.meqTechShareInpUp,
     rule=lambda model, t, r, g, c, y, s: model.vTechInp[t, c, r, y, s]
@@ -344,7 +344,7 @@ model.eqTechShareInpUp = Constraint(
         if (t, g, cp) in model.mTechGroupComm
     ),
 )
-# eqTechShareOutLo(tech, region, group, comm, year, slice)$meqTechShareOutLo(tech, region, group, comm, year, slice)
+# eqTechShareOutLo(tech, region, group, comm, year, timeslice)$meqTechShareOutLo(tech, region, group, comm, year, timeslice)
 model.eqTechShareOutLo = Constraint(
     model.meqTechShareOutLo,
     rule=lambda model, t, r, g, c, y, s: model.vTechOut[t, c, r, y, s]
@@ -355,7 +355,7 @@ model.eqTechShareOutLo = Constraint(
         if (t, g, cp) in model.mTechGroupComm
     ),
 )
-# eqTechShareOutUp(tech, region, group, comm, year, slice)$meqTechShareOutUp(tech, region, group, comm, year, slice)
+# eqTechShareOutUp(tech, region, group, comm, year, timeslice)$meqTechShareOutUp(tech, region, group, comm, year, timeslice)
 model.eqTechShareOutUp = Constraint(
     model.meqTechShareOutUp,
     rule=lambda model, t, r, g, c, y, s: model.vTechOut[t, c, r, y, s]
@@ -366,7 +366,7 @@ model.eqTechShareOutUp = Constraint(
         if (t, g, cp) in model.mTechGroupComm
     ),
 )
-# eqTechAInp(tech, comm, region, year, slice)$mvTechAInp(tech, comm, region, year, slice)
+# eqTechAInp(tech, comm, region, year, timeslice)$mvTechAInp(tech, comm, region, year, timeslice)
 model.eqTechAInp = Constraint(
     model.mvTechAInp,
     rule=lambda model, t, c, r, y, s: model.vTechAInp[t, c, r, y, s]
@@ -399,7 +399,7 @@ model.eqTechAInp = Constraint(
         if (t, c, cp, r, y, s) in model.mTechCout2AInp
     ),
 )
-# eqTechAOut(tech, comm, region, year, slice)$mvTechAOut(tech, comm, region, year, slice)
+# eqTechAOut(tech, comm, region, year, timeslice)$mvTechAOut(tech, comm, region, year, timeslice)
 model.eqTechAOut = Constraint(
     model.mvTechAOut,
     rule=lambda model, t, c, r, y, s: model.vTechAOut[t, c, r, y, s]
@@ -432,13 +432,13 @@ model.eqTechAOut = Constraint(
         if (t, c, cp, r, y, s) in model.mTechCout2AOut
     ),
 )
-# eqTechAfLo(tech, region, year, slice)$meqTechAfLo(tech, region, year, slice)
+# eqTechAfLo(tech, region, year, timeslice)$meqTechAfLo(tech, region, year, timeslice)
 model.eqTechAfLo = Constraint(
     model.meqTechAfLo,
     rule=lambda model, t, r, y, s: model.pTechAfLo[t, r, y, s]
     * model.pTechCap2act[t]
     * model.vTechCap[t, r, y]
-    * model.pSliceShare[s]
+    * model.pTimesliceShare[s]
     * prod(
         model.pTechWeatherAfLo[wth1, t] * model.pWeather[wth1, r, y, s]
         for wth1 in model.weather
@@ -446,27 +446,27 @@ model.eqTechAfLo = Constraint(
     )
     <= model.vTechAct[t, r, y, s],
 )
-# eqTechAfUp(tech, region, year, slice)$meqTechAfUp(tech, region, year, slice)
+# eqTechAfUp(tech, region, year, timeslice)$meqTechAfUp(tech, region, year, timeslice)
 model.eqTechAfUp = Constraint(
     model.meqTechAfUp,
     rule=lambda model, t, r, y, s: model.vTechAct[t, r, y, s]
     <= model.pTechAfUp[t, r, y, s]
     * model.pTechCap2act[t]
     * model.vTechCap[t, r, y]
-    * model.pSliceShare[s]
+    * model.pTimesliceShare[s]
     * prod(
         model.pTechWeatherAfUp[wth1, t] * model.pWeather[wth1, r, y, s]
         for wth1 in model.weather
         if (wth1, t) in model.mTechWeatherAfUp
     ),
 )
-# eqTechAfsLo(tech, region, year, slice)$meqTechAfsLo(tech, region, year, slice)
+# eqTechAfsLo(tech, region, year, timeslice)$meqTechAfsLo(tech, region, year, timeslice)
 model.eqTechAfsLo = Constraint(
     model.meqTechAfsLo,
     rule=lambda model, t, r, y, s: model.pTechAfsLo[t, r, y, s]
     * model.pTechCap2act[t]
     * model.vTechCap[t, r, y]
-    * model.pSliceShare[s]
+    * model.pTimesliceShare[s]
     * prod(
         model.pTechWeatherAfsLo[wth1, t] * model.pWeather[wth1, r, y, s]
         for wth1 in model.weather
@@ -474,63 +474,63 @@ model.eqTechAfsLo = Constraint(
     )
     <= sum(
         (model.vTechAct[t, r, y, sp] if (t, r, y, sp) in model.mvTechAct else 0)
-        for sp in model.slice
-        if (s, sp) in model.mSliceParentChildE
+        for sp in model.timeslice
+        if (s, sp) in model.mTimesliceParentChildE
     ),
 )
-# eqTechAfsUp(tech, region, year, slice)$meqTechAfsUp(tech, region, year, slice)
+# eqTechAfsUp(tech, region, year, timeslice)$meqTechAfsUp(tech, region, year, timeslice)
 model.eqTechAfsUp = Constraint(
     model.meqTechAfsUp,
     rule=lambda model, t, r, y, s: sum(
         (model.vTechAct[t, r, y, sp] if (t, r, y, sp) in model.mvTechAct else 0)
-        for sp in model.slice
-        if (s, sp) in model.mSliceParentChildE
+        for sp in model.timeslice
+        if (s, sp) in model.mTimesliceParentChildE
     )
     <= model.pTechAfsUp[t, r, y, s]
     * model.pTechCap2act[t]
     * model.vTechCap[t, r, y]
-    * model.pSliceShare[s]
+    * model.pTimesliceShare[s]
     * prod(
         model.pTechWeatherAfsUp[wth1, t] * model.pWeather[wth1, r, y, s]
         for wth1 in model.weather
         if (wth1, t) in model.mTechWeatherAfsUp
     ),
 )
-# eqTechRampUp(tech, region, year, slice, slicep)$mTechRampUp(tech, region, year, slice, slicep)
+# eqTechRampUp(tech, region, year, timeslice, timeslicep)$mTechRampUp(tech, region, year, timeslice, timeslicep)
 model.eqTechRampUp = Constraint(
     model.mTechRampUp,
     rule=lambda model, t, r, y, s, sp: (model.vTechAct[t, r, y, s])
-    / (model.pSliceShare[s])
-    - (model.vTechAct[t, r, y, sp]) / (model.pSliceShare[sp])
+    / (model.pTimesliceShare[s])
+    - (model.vTechAct[t, r, y, sp]) / (model.pTimesliceShare[sp])
     <= (
-        model.pSliceShare[s]
+        model.pTimesliceShare[s]
         * model.pTechCap2act[t]
         * model.pTechCap2act[t]
         * model.vTechCap[t, r, y]
     )
     / (model.pTechRampUp[t, r, y, s]),
 )
-# eqTechRampDown(tech, region, year, slice, slicep)$mTechRampDown(tech, region, year, slice, slicep)
+# eqTechRampDown(tech, region, year, timeslice, timeslicep)$mTechRampDown(tech, region, year, timeslice, timeslicep)
 model.eqTechRampDown = Constraint(
     model.mTechRampDown,
     rule=lambda model, t, r, y, s, sp: (model.vTechAct[t, r, y, sp])
-    / (model.pSliceShare[sp])
-    - (model.vTechAct[t, r, y, s]) / (model.pSliceShare[s])
+    / (model.pTimesliceShare[sp])
+    - (model.vTechAct[t, r, y, s]) / (model.pTimesliceShare[s])
     <= (
-        model.pSliceShare[s]
+        model.pTimesliceShare[s]
         * model.pTechCap2act[t]
         * model.pTechCap2act[t]
         * model.vTechCap[t, r, y]
     )
     / (model.pTechRampDown[t, r, y, s]),
 )
-# eqTechActSng(tech, comm, region, year, slice)$meqTechActSng(tech, comm, region, year, slice)
+# eqTechActSng(tech, comm, region, year, timeslice)$meqTechActSng(tech, comm, region, year, timeslice)
 model.eqTechActSng = Constraint(
     model.meqTechActSng,
     rule=lambda model, t, c, r, y, s: model.vTechAct[t, r, y, s]
     == (model.vTechOut[t, c, r, y, s]) / (model.pTechCact2cout[t, c, r, y, s]),
 )
-# eqTechActGrp(tech, group, region, year, slice)$meqTechActGrp(tech, group, region, year, slice)
+# eqTechActGrp(tech, group, region, year, timeslice)$meqTechActGrp(tech, group, region, year, timeslice)
 model.eqTechActGrp = Constraint(
     model.meqTechActGrp,
     rule=lambda model, t, g, r, y, s: model.vTechAct[t, r, y, s]
@@ -544,14 +544,14 @@ model.eqTechActGrp = Constraint(
         if (t, g, c) in model.mTechGroupComm
     ),
 )
-# eqTechAfcOutLo(tech, region, comm, year, slice)$meqTechAfcOutLo(tech, region, comm, year, slice)
+# eqTechAfcOutLo(tech, region, comm, year, timeslice)$meqTechAfcOutLo(tech, region, comm, year, timeslice)
 model.eqTechAfcOutLo = Constraint(
     model.meqTechAfcOutLo,
     rule=lambda model, t, r, c, y, s: model.pTechCact2cout[t, c, r, y, s]
     * model.pTechAfcLo[t, c, r, y, s]
     * model.pTechCap2act[t]
     * model.vTechCap[t, r, y]
-    * model.pSliceShare[s]
+    * model.pTimesliceShare[s]
     * prod(
         model.pTechWeatherAfcLo[wth1, t, c] * model.pWeather[wth1, r, y, s]
         for wth1 in model.weather
@@ -559,7 +559,7 @@ model.eqTechAfcOutLo = Constraint(
     )
     <= model.vTechOut[t, c, r, y, s],
 )
-# eqTechAfcOutUp(tech, region, comm, year, slice)$meqTechAfcOutUp(tech, region, comm, year, slice)
+# eqTechAfcOutUp(tech, region, comm, year, timeslice)$meqTechAfcOutUp(tech, region, comm, year, timeslice)
 model.eqTechAfcOutUp = Constraint(
     model.meqTechAfcOutUp,
     rule=lambda model, t, r, c, y, s: model.vTechOut[t, c, r, y, s]
@@ -573,13 +573,13 @@ model.eqTechAfcOutUp = Constraint(
         if (wth1, t, c) in model.mTechWeatherAfcUp
     ),
 )
-# eqTechAfcInpLo(tech, region, comm, year, slice)$meqTechAfcInpLo(tech, region, comm, year, slice)
+# eqTechAfcInpLo(tech, region, comm, year, timeslice)$meqTechAfcInpLo(tech, region, comm, year, timeslice)
 model.eqTechAfcInpLo = Constraint(
     model.meqTechAfcInpLo,
     rule=lambda model, t, r, c, y, s: model.pTechAfcLo[t, c, r, y, s]
     * model.pTechCap2act[t]
     * model.vTechCap[t, r, y]
-    * model.pSliceShare[s]
+    * model.pTimesliceShare[s]
     * prod(
         model.pTechWeatherAfcLo[wth1, t, c] * model.pWeather[wth1, r, y, s]
         for wth1 in model.weather
@@ -587,14 +587,14 @@ model.eqTechAfcInpLo = Constraint(
     )
     <= model.vTechInp[t, c, r, y, s],
 )
-# eqTechAfcInpUp(tech, region, comm, year, slice)$meqTechAfcInpUp(tech, region, comm, year, slice)
+# eqTechAfcInpUp(tech, region, comm, year, timeslice)$meqTechAfcInpUp(tech, region, comm, year, timeslice)
 model.eqTechAfcInpUp = Constraint(
     model.meqTechAfcInpUp,
     rule=lambda model, t, r, c, y, s: model.vTechInp[t, c, r, y, s]
     <= model.pTechAfcUp[t, c, r, y, s]
     * model.pTechCap2act[t]
     * model.vTechCap[t, r, y]
-    * model.pSliceShare[s]
+    * model.pTimesliceShare[s]
     * prod(
         model.pTechWeatherAfcUp[wth1, t, c] * model.pWeather[wth1, r, y, s]
         for wth1 in model.weather
@@ -751,41 +751,41 @@ model.eqTechVarom = Constraint(
     rule=lambda model, t, r, y: model.vTechVarom[t, r, y]
     == sum(
         model.pTechVarom[t, r, y, s]
-        * model.pSliceWeight[y, s]
+        * model.pTimesliceWeight[y, s]
         * model.vTechAct[t, r, y, s]
         + sum(
             model.pTechCvarom[t, c, r, y, s]
-            * model.pSliceWeight[y, s]
+            * model.pTimesliceWeight[y, s]
             * model.vTechInp[t, c, r, y, s]
             for c in model.comm
             if (t, c) in model.mTechInpComm
         )
         + sum(
             model.pTechCvarom[t, c, r, y, s]
-            * model.pSliceWeight[y, s]
+            * model.pTimesliceWeight[y, s]
             * model.vTechOut[t, c, r, y, s]
             for c in model.comm
             if (t, c) in model.mTechOutComm
         )
         + sum(
             model.pTechAvarom[t, c, r, y, s]
-            * model.pSliceWeight[y, s]
+            * model.pTimesliceWeight[y, s]
             * model.vTechAOut[t, c, r, y, s]
             for c in model.comm
             if (t, c, r, y, s) in model.mvTechAOut
         )
         + sum(
             model.pTechAvarom[t, c, r, y, s]
-            * model.pSliceWeight[y, s]
+            * model.pTimesliceWeight[y, s]
             * model.vTechAInp[t, c, r, y, s]
             for c in model.comm
             if (t, c, r, y, s) in model.mvTechAInp
         )
-        for s in model.slice
-        if (t, s) in model.mTechSlice
+        for s in model.timeslice
+        if (t, s) in model.mTechTimeslice
     ),
 )
-# eqSupAvaUp(sup, comm, region, year, slice)$mSupAvaUp(sup, comm, region, year, slice)
+# eqSupAvaUp(sup, comm, region, year, timeslice)$mSupAvaUp(sup, comm, region, year, timeslice)
 model.eqSupAvaUp = Constraint(
     model.mSupAvaUp,
     rule=lambda model, s1, c, r, y, s: model.vSupOut[s1, c, r, y, s]
@@ -796,7 +796,7 @@ model.eqSupAvaUp = Constraint(
         if (wth1, s1) in model.mSupWeatherUp
     ),
 )
-# eqSupAvaLo(sup, comm, region, year, slice)$meqSupAvaLo(sup, comm, region, year, slice)
+# eqSupAvaLo(sup, comm, region, year, timeslice)$meqSupAvaLo(sup, comm, region, year, timeslice)
 model.eqSupAvaLo = Constraint(
     model.meqSupAvaLo,
     rule=lambda model, s1, c, r, y, s: model.vSupOut[s1, c, r, y, s]
@@ -812,9 +812,9 @@ model.eqSupReserve = Constraint(
     model.mvSupReserve,
     rule=lambda model, s1, c, r: model.vSupReserve[s1, c, r]
     == sum(
-        model.pPeriodLen[y] * model.pSliceWeight[y, s] * model.vSupOut[s1, c, r, y, s]
+        model.pPeriodLen[y] * model.pTimesliceWeight[y, s] * model.vSupOut[s1, c, r, y, s]
         for y in model.year
-        for s in model.slice
+        for s in model.timeslice
         if (s1, c, r, y, s) in model.mSupAva
     ),
 )
@@ -836,20 +836,20 @@ model.eqSupCost = Constraint(
     rule=lambda model, s1, r, y: model.vSupCost[s1, r, y]
     == sum(
         model.pSupCost[s1, c, r, y, s]
-        * model.pSliceWeight[y, s]
+        * model.pTimesliceWeight[y, s]
         * model.vSupOut[s1, c, r, y, s]
         for c in model.comm
-        for s in model.slice
+        for s in model.timeslice
         if (s1, c, r, y, s) in model.mSupAva
     ),
 )
-# eqDemInp(comm, region, year, slice)$mvDemInp(comm, region, year, slice)
+# eqDemInp(comm, region, year, timeslice)$mvDemInp(comm, region, year, timeslice)
 model.eqDemInp = Constraint(
     model.mvDemInp,
     rule=lambda model, c, r, y, s: model.vDemInp[c, r, y, s]
     == sum(model.pDemand[d, c, r, y, s] for d in model.dem if (d, c) in model.mDemComm),
 )
-# eqAggOutTot(comm, region, year, slice)$mAggOut(comm, region, year, slice)
+# eqAggOutTot(comm, region, year, timeslice)$mAggOut(comm, region, year, timeslice)
 model.eqAggOutTot = Constraint(
     model.mAggOut,
     rule=lambda model, c, r, y, s: model.vAggOutTot[c, r, y, s]
@@ -857,18 +857,18 @@ model.eqAggOutTot = Constraint(
         model.pAggregateFactor[c, cp]
         * sum(
             (model.vOutTot[cp, r, y, sp] if (cp, r, y, sp) in model.mvOutTot else 0)
-            for sp in model.slice
+            for sp in model.timeslice
             if (
                 (c, r, y, sp) in model.mvOutTot
-                and (s, sp) in model.mSliceParentChildE
-                and (cp, sp) in model.mCommSlice
+                and (s, sp) in model.mTimesliceParentChildE
+                and (cp, sp) in model.mCommTimeslice
             )
         )
         for cp in model.comm
         if (c, cp) in model.mAggregateFactor
     ),
 )
-# eqEmsFuelTot(comm, region, year, slice)$mEmsFuelTot(comm, region, year, slice)
+# eqEmsFuelTot(comm, region, year, timeslice)$mEmsFuelTot(comm, region, year, timeslice)
 model.eqEmsFuelTot = Constraint(
     model.mEmsFuelTot,
     rule=lambda model, c, r, y, s: model.vEmsFuelTot[c, r, y, s]
@@ -882,8 +882,8 @@ model.eqEmsFuelTot = Constraint(
                     if (t, c, cp, r, y, sp) in model.mTechEmsFuel
                     else 0
                 )
-                for sp in model.slice
-                if (c, s, sp) in model.mCommSliceOrParent
+                for sp in model.timeslice
+                if (c, s, sp) in model.mCommTimesliceOrParent
             )
             for t in model.tech
             if (t, cp) in model.mTechInpComm
@@ -892,7 +892,7 @@ model.eqEmsFuelTot = Constraint(
         if (model.pEmissionFactor[c, cp] > 0)
     ),
 )
-# eqStorageAInp(stg, comm, region, year, slice)$mvStorageAInp(stg, comm, region, year, slice)
+# eqStorageAInp(stg, comm, region, year, timeslice)$mvStorageAInp(stg, comm, region, year, timeslice)
 model.eqStorageAInp = Constraint(
     model.mvStorageAInp,
     rule=lambda model, st1, c, r, y, s: model.vStorageAInp[st1, c, r, y, s]
@@ -935,7 +935,7 @@ model.eqStorageAInp = Constraint(
         if (st1, cp) in model.mStorageComm
     ),
 )
-# eqStorageAOut(stg, comm, region, year, slice)$mvStorageAOut(stg, comm, region, year, slice)
+# eqStorageAOut(stg, comm, region, year, timeslice)$mvStorageAOut(stg, comm, region, year, timeslice)
 model.eqStorageAOut = Constraint(
     model.mvStorageAOut,
     rule=lambda model, st1, c, r, y, s: model.vStorageAOut[st1, c, r, y, s]
@@ -978,7 +978,7 @@ model.eqStorageAOut = Constraint(
         if (st1, cp) in model.mStorageComm
     ),
 )
-# eqStorageStore(stg, comm, region, year, slicep, slice)$meqStorageStore(stg, comm, region, year, slicep, slice)
+# eqStorageStore(stg, comm, region, year, timeslicep, timeslice)$meqStorageStore(stg, comm, region, year, timeslicep, timeslice)
 model.eqStorageStore = Constraint(
     model.meqStorageStore,
     rule=lambda model, st1, c, r, y, sp, s: model.vStorageStore[st1, c, r, y, s]
@@ -989,11 +989,11 @@ model.eqStorageStore = Constraint(
         else 0
     )
     + model.pStorageInpEff[st1, c, r, y, sp] * model.vStorageInp[st1, c, r, y, sp]
-    + ((model.pStorageStgEff[st1, c, r, y, s]) ** (model.pSliceShare[s]))
+    + ((model.pStorageStgEff[st1, c, r, y, s]) ** (model.pTimesliceShare[s]))
     * model.vStorageStore[st1, c, r, y, sp]
     - (model.vStorageOut[st1, c, r, y, sp]) / (model.pStorageOutEff[st1, c, r, y, sp]),
 )
-# eqStorageAfLo(stg, comm, region, year, slice)$meqStorageAfLo(stg, comm, region, year, slice)
+# eqStorageAfLo(stg, comm, region, year, timeslice)$meqStorageAfLo(stg, comm, region, year, timeslice)
 model.eqStorageAfLo = Constraint(
     model.meqStorageAfLo,
     rule=lambda model, st1, c, r, y, s: model.vStorageStore[st1, c, r, y, s]
@@ -1006,7 +1006,7 @@ model.eqStorageAfLo = Constraint(
         if (wth1, st1) in model.mStorageWeatherAfLo
     ),
 )
-# eqStorageAfUp(stg, comm, region, year, slice)$meqStorageAfUp(stg, comm, region, year, slice)
+# eqStorageAfUp(stg, comm, region, year, timeslice)$meqStorageAfUp(stg, comm, region, year, timeslice)
 model.eqStorageAfUp = Constraint(
     model.meqStorageAfUp,
     rule=lambda model, st1, c, r, y, s: model.vStorageStore[st1, c, r, y, s]
@@ -1019,14 +1019,14 @@ model.eqStorageAfUp = Constraint(
         if (wth1, st1) in model.mStorageWeatherAfUp
     ),
 )
-# eqStorageClear(stg, comm, region, year, slice)$mvStorageStore(stg, comm, region, year, slice)
+# eqStorageClear(stg, comm, region, year, timeslice)$mvStorageStore(stg, comm, region, year, timeslice)
 model.eqStorageClear = Constraint(
     model.mvStorageStore,
     rule=lambda model, st1, c, r, y, s: (model.vStorageOut[st1, c, r, y, s])
     / (model.pStorageOutEff[st1, c, r, y, s])
     <= model.vStorageStore[st1, c, r, y, s],
 )
-# eqStorageInpUp(stg, comm, region, year, slice)$meqStorageInpUp(stg, comm, region, year, slice)
+# eqStorageInpUp(stg, comm, region, year, timeslice)$meqStorageInpUp(stg, comm, region, year, timeslice)
 model.eqStorageInpUp = Constraint(
     model.meqStorageInpUp,
     rule=lambda model, st1, c, r, y, s: model.vStorageInp[st1, c, r, y, s]
@@ -1038,7 +1038,7 @@ model.eqStorageInpUp = Constraint(
         if (wth1, st1) in model.mStorageWeatherCinpUp
     ),
 )
-# eqStorageInpLo(stg, comm, region, year, slice)$meqStorageInpLo(stg, comm, region, year, slice)
+# eqStorageInpLo(stg, comm, region, year, timeslice)$meqStorageInpLo(stg, comm, region, year, timeslice)
 model.eqStorageInpLo = Constraint(
     model.meqStorageInpLo,
     rule=lambda model, st1, c, r, y, s: model.vStorageInp[st1, c, r, y, s]
@@ -1050,7 +1050,7 @@ model.eqStorageInpLo = Constraint(
         if (wth1, st1) in model.mStorageWeatherCinpLo
     ),
 )
-# eqStorageOutUp(stg, comm, region, year, slice)$meqStorageOutUp(stg, comm, region, year, slice)
+# eqStorageOutUp(stg, comm, region, year, timeslice)$meqStorageOutUp(stg, comm, region, year, timeslice)
 model.eqStorageOutUp = Constraint(
     model.meqStorageOutUp,
     rule=lambda model, st1, c, r, y, s: model.vStorageOut[st1, c, r, y, s]
@@ -1062,7 +1062,7 @@ model.eqStorageOutUp = Constraint(
         if (wth1, st1) in model.mStorageWeatherCoutUp
     ),
 )
-# eqStorageOutLo(stg, comm, region, year, slice)$meqStorageOutLo(stg, comm, region, year, slice)
+# eqStorageOutLo(stg, comm, region, year, timeslice)$meqStorageOutLo(stg, comm, region, year, timeslice)
 model.eqStorageOutLo = Constraint(
     model.meqStorageOutLo,
     rule=lambda model, st1, c, r, y, s: model.vStorageOut[st1, c, r, y, s]
@@ -1141,22 +1141,22 @@ model.eqStorageVarom = Constraint(
     == sum(
         sum(
             model.pStorageCostInp[st1, r, y, s]
-            * model.pSliceWeight[y, s]
+            * model.pTimesliceWeight[y, s]
             * model.vStorageInp[st1, c, r, y, s]
             + model.pStorageCostOut[st1, r, y, s]
-            * model.pSliceWeight[y, s]
+            * model.pTimesliceWeight[y, s]
             * model.vStorageOut[st1, c, r, y, s]
             + model.pStorageCostStore[st1, r, y, s]
-            * model.pSliceWeight[y, s]
+            * model.pTimesliceWeight[y, s]
             * model.vStorageStore[st1, c, r, y, s]
-            for s in model.slice
-            if (c, s) in model.mCommSlice
+            for s in model.timeslice
+            if (c, s) in model.mCommTimeslice
         )
         for c in model.comm
         if (st1, c) in model.mStorageComm
     ),
 )
-# eqImportTot(comm, dst, year, slice)$mImport(comm, dst, year, slice)
+# eqImportTot(comm, dst, year, timeslice)$mImport(comm, dst, year, timeslice)
 model.eqImportTot = Constraint(
     model.mImport,
     rule=lambda model, c, dst, y, s: model.vImportTot[c, dst, y, s]
@@ -1186,7 +1186,7 @@ model.eqImportTot = Constraint(
         if (i, c) in model.mImpComm
     ),
 )
-# eqExportTot(comm, src, year, slice)$mExport(comm, src, year, slice)
+# eqExportTot(comm, src, year, timeslice)$mExport(comm, src, year, timeslice)
 model.eqExportTot = Constraint(
     model.mExport,
     rule=lambda model, c, src, y, s: model.vExportTot[c, src, y, s]
@@ -1213,13 +1213,13 @@ model.eqExportTot = Constraint(
         if (e, c) in model.mExpComm
     ),
 )
-# eqTradeFlowUp(trade, comm, src, dst, year, slice)$meqTradeFlowUp(trade, comm, src, dst, year, slice)
+# eqTradeFlowUp(trade, comm, src, dst, year, timeslice)$meqTradeFlowUp(trade, comm, src, dst, year, timeslice)
 model.eqTradeFlowUp = Constraint(
     model.meqTradeFlowUp,
     rule=lambda model, t1, c, src, dst, y, s: model.vTradeIr[t1, c, src, dst, y, s]
     <= model.pTradeIrUp[t1, src, dst, y, s],
 )
-# eqTradeFlowLo(trade, comm, src, dst, year, slice)$meqTradeFlowLo(trade, comm, src, dst, year, slice)
+# eqTradeFlowLo(trade, comm, src, dst, year, timeslice)$meqTradeFlowLo(trade, comm, src, dst, year, timeslice)
 model.eqTradeFlowLo = Constraint(
     model.meqTradeFlowLo,
     rule=lambda model, t1, c, src, dst, y, s: model.vTradeIr[t1, c, src, dst, y, s]
@@ -1239,13 +1239,13 @@ model.eqImportIrCost = Constraint(
                             + model.pTradeIrMarkup[t1, src, r, y, s]
                         )
                         * model.vTradeIr[t1, c, src, r, y, s]
-                        * model.pSliceWeight[y, s]
+                        * model.pTimesliceWeight[y, s]
                     )
                     if (t1, c, src, r, y, s) in model.mvTradeIr
                     else 0
                 )
-                for s in model.slice
-                if (t1, s) in model.mTradeSlice
+                for s in model.timeslice
+                if (t1, s) in model.mTradeTimeslice
             )
             for c in model.comm
             if (t1, c) in model.mTradeComm
@@ -1268,13 +1268,13 @@ model.eqExportIrCost = Constraint(
                             + model.pTradeIrMarkup[t1, r, dst, y, s]
                         )
                         * model.vTradeIr[t1, c, r, dst, y, s]
-                        * model.pSliceWeight[y, s]
+                        * model.pTimesliceWeight[y, s]
                     )
                     if (t1, c, r, dst, y, s) in model.mvTradeIr
                     else 0
                 )
-                for s in model.slice
-                if (t1, s) in model.mTradeSlice
+                for s in model.timeslice
+                if (t1, s) in model.mTradeTimeslice
             )
             for c in model.comm
             if (t1, c) in model.mTradeComm
@@ -1283,13 +1283,13 @@ model.eqExportIrCost = Constraint(
         if (t1, r, dst) in model.mTradeRoutes
     ),
 )
-# eqExportRowUp(expp, comm, region, year, slice)$mExportRowUp(expp, comm, region, year, slice)
+# eqExportRowUp(expp, comm, region, year, timeslice)$mExportRowUp(expp, comm, region, year, timeslice)
 model.eqExportRowUp = Constraint(
     model.mExportRowUp,
     rule=lambda model, e, c, r, y, s: model.vExportRow[e, c, r, y, s]
     <= model.pExportRowUp[e, r, y, s],
 )
-# eqExportRowLo(expp, comm, region, year, slice)$meqExportRowLo(expp, comm, region, year, slice)
+# eqExportRowLo(expp, comm, region, year, timeslice)$meqExportRowLo(expp, comm, region, year, timeslice)
 model.eqExportRowLo = Constraint(
     model.meqExportRowLo,
     rule=lambda model, e, c, r, y, s: model.vExportRow[e, c, r, y, s]
@@ -1300,10 +1300,10 @@ model.eqExportRowCum = Constraint(
     model.mExpComm,
     rule=lambda model, e, c: model.vExportRowCum[e, c]
     == sum(
-        model.pPeriodLen[y] * model.pSliceWeight[y, s] * model.vExportRow[e, c, r, y, s]
+        model.pPeriodLen[y] * model.pTimesliceWeight[y, s] * model.vExportRow[e, c, r, y, s]
         for r in model.region
         for y in model.year
-        for s in model.slice
+        for s in model.timeslice
         if (e, c, r, y, s) in model.mExportRow
     ),
 )
@@ -1318,20 +1318,20 @@ model.eqExportRowCost = Constraint(
     rule=lambda model, e, r, y: model.vExportRowCost[e, r, y]
     == -sum(
         model.pExportRowPrice[e, r, y, s]
-        * model.pSliceWeight[y, s]
+        * model.pTimesliceWeight[y, s]
         * model.vExportRow[e, c, r, y, s]
         for c in model.comm
-        for s in model.slice
+        for s in model.timeslice
         if (e, c, r, y, s) in model.mExportRow
     ),
 )
-# eqImportRowUp(imp, comm, region, year, slice)$mImportRowUp(imp, comm, region, year, slice)
+# eqImportRowUp(imp, comm, region, year, timeslice)$mImportRowUp(imp, comm, region, year, timeslice)
 model.eqImportRowUp = Constraint(
     model.mImportRowUp,
     rule=lambda model, i, c, r, y, s: model.vImportRow[i, c, r, y, s]
     <= model.pImportRowUp[i, r, y, s],
 )
-# eqImportRowLo(imp, comm, region, year, slice)$meqImportRowLo(imp, comm, region, year, slice)
+# eqImportRowLo(imp, comm, region, year, timeslice)$meqImportRowLo(imp, comm, region, year, timeslice)
 model.eqImportRowLo = Constraint(
     model.meqImportRowLo,
     rule=lambda model, i, c, r, y, s: model.vImportRow[i, c, r, y, s]
@@ -1342,10 +1342,10 @@ model.eqImportRowCum = Constraint(
     model.mImpComm,
     rule=lambda model, i, c: model.vImportRowCum[i, c]
     == sum(
-        model.pPeriodLen[y] * model.pSliceWeight[y, s] * model.vImportRow[i, c, r, y, s]
+        model.pPeriodLen[y] * model.pTimesliceWeight[y, s] * model.vImportRow[i, c, r, y, s]
         for r in model.region
         for y in model.year
-        for s in model.slice
+        for s in model.timeslice
         if (i, c, r, y, s) in model.mImportRow
     ),
 )
@@ -1360,17 +1360,17 @@ model.eqImportRowCost = Constraint(
     rule=lambda model, i, r, y: model.vImportRowCost[i, r, y]
     == sum(
         model.pImportRowPrice[i, r, y, s]
-        * model.pSliceWeight[y, s]
+        * model.pTimesliceWeight[y, s]
         * model.vImportRow[i, c, r, y, s]
         for c in model.comm
-        for s in model.slice
+        for s in model.timeslice
         if (i, c, r, y, s) in model.mImportRow
     ),
 )
-# eqTradeCapFlow(trade, comm, year, slice)$meqTradeCapFlow(trade, comm, year, slice)
+# eqTradeCapFlow(trade, comm, year, timeslice)$meqTradeCapFlow(trade, comm, year, timeslice)
 model.eqTradeCapFlow = Constraint(
     model.meqTradeCapFlow,
-    rule=lambda model, t1, c, y, s: model.pSliceShare[s]
+    rule=lambda model, t1, c, y, s: model.pTimesliceShare[s]
     * model.pTradeCap2Act[t1]
     * model.vTradeCap[t1, y]
     >= sum(
@@ -1438,7 +1438,7 @@ model.eqTradeFixom = Constraint(
     rule=lambda model, t1, r, y: model.vTradeFixom[t1, r, y]
     == model.pTradeFixom[t1, r, y] * model.vTradeCap[t1, y],
 )
-# eqTradeIrAInp(trade, comm, region, year, slice)$mvTradeIrAInp(trade, comm, region, year, slice)
+# eqTradeIrAInp(trade, comm, region, year, timeslice)$mvTradeIrAInp(trade, comm, region, year, timeslice)
 model.eqTradeIrAInp = Constraint(
     model.mvTradeIrAInp,
     rule=lambda model, t1, c, r, y, s: model.vTradeIrAInp[t1, c, r, y, s]
@@ -1463,7 +1463,7 @@ model.eqTradeIrAInp = Constraint(
         if (t1, c, src, r, y, s) in model.mTradeIrCdst2Ainp
     ),
 )
-# eqTradeIrAOut(trade, comm, region, year, slice)$mvTradeIrAOut(trade, comm, region, year, slice)
+# eqTradeIrAOut(trade, comm, region, year, timeslice)$mvTradeIrAOut(trade, comm, region, year, timeslice)
 model.eqTradeIrAOut = Constraint(
     model.mvTradeIrAOut,
     rule=lambda model, t1, c, r, y, s: model.vTradeIrAOut[t1, c, r, y, s]
@@ -1488,47 +1488,47 @@ model.eqTradeIrAOut = Constraint(
         if (t1, c, src, r, y, s) in model.mTradeIrCdst2Aout
     ),
 )
-# eqTradeIrAInpTot(comm, region, year, slice)$mvTradeIrAInpTot(comm, region, year, slice)
+# eqTradeIrAInpTot(comm, region, year, timeslice)$mvTradeIrAInpTot(comm, region, year, timeslice)
 model.eqTradeIrAInpTot = Constraint(
     model.mvTradeIrAInpTot,
     rule=lambda model, c, r, y, s: model.vTradeIrAInpTot[c, r, y, s]
     == sum(
         model.vTradeIrAInp[t1, c, r, y, sp]
         for t1 in model.trade
-        for sp in model.slice
+        for sp in model.timeslice
         if (
-            (c, s, sp) in model.mCommSliceOrParent
+            (c, s, sp) in model.mCommTimesliceOrParent
             and (t1, c, r, y, sp) in model.mvTradeIrAInp
         )
     ),
 )
-# eqTradeIrAOutTot(comm, region, year, slice)$mvTradeIrAOutTot(comm, region, year, slice)
+# eqTradeIrAOutTot(comm, region, year, timeslice)$mvTradeIrAOutTot(comm, region, year, timeslice)
 model.eqTradeIrAOutTot = Constraint(
     model.mvTradeIrAOutTot,
     rule=lambda model, c, r, y, s: model.vTradeIrAOutTot[c, r, y, s]
     == sum(
         model.vTradeIrAOut[t1, c, r, y, sp]
         for t1 in model.trade
-        for sp in model.slice
+        for sp in model.timeslice
         if (
-            (c, s, sp) in model.mCommSliceOrParent
+            (c, s, sp) in model.mCommTimesliceOrParent
             and (t1, c, r, y, sp) in model.mvTradeIrAOut
         )
     ),
 )
-# eqBalLo(comm, region, year, slice)$meqBalLo(comm, region, year, slice)
+# eqBalLo(comm, region, year, timeslice)$meqBalLo(comm, region, year, timeslice)
 model.eqBalLo = Constraint(
     model.meqBalLo, rule=lambda model, c, r, y, s: model.vBalance[c, r, y, s] >= 0
 )
-# eqBalUp(comm, region, year, slice)$meqBalUp(comm, region, year, slice)
+# eqBalUp(comm, region, year, timeslice)$meqBalUp(comm, region, year, timeslice)
 model.eqBalUp = Constraint(
     model.meqBalUp, rule=lambda model, c, r, y, s: model.vBalance[c, r, y, s] <= 0
 )
-# eqBalFx(comm, region, year, slice)$meqBalFx(comm, region, year, slice)
+# eqBalFx(comm, region, year, timeslice)$meqBalFx(comm, region, year, timeslice)
 model.eqBalFx = Constraint(
     model.meqBalFx, rule=lambda model, c, r, y, s: model.vBalance[c, r, y, s] == 0
 )
-# eqBal(comm, region, year, slice)$mvBalance(comm, region, year, slice)
+# eqBal(comm, region, year, timeslice)$mvBalance(comm, region, year, timeslice)
 model.eqBal = Constraint(
     model.mvBalance,
     rule=lambda model, c, r, y, s: model.vBalance[c, r, y, s]
@@ -1540,13 +1540,13 @@ model.eqBalanceRY = Constraint(
     model.mBalanceRY,
     rule=lambda model, c, r, y: model.vBalanceRY[c, r, y]
     == sum(
-        model.pSliceWeight[y, s]
+        model.pTimesliceWeight[y, s]
         * (model.vBalance[c, r, y, s] if (c, r, y, s) in model.mvBalance else 0)
-        for s in model.slice
+        for s in model.timeslice
         if (c, r, y, s) in model.mvBalance
     ),
 )
-# eqOutTot(comm, region, year, slice)$mvOutTot(comm, region, year, slice)
+# eqOutTot(comm, region, year, timeslice)$mvOutTot(comm, region, year, timeslice)
 model.eqOutTot = Constraint(
     model.mvOutTot,
     rule=lambda model, c, r, y, s: model.vOutTot[c, r, y, s]
@@ -1565,9 +1565,9 @@ model.eqOutTot = Constraint(
     + (
         sum(
             model.vOut2Lo[c, r, y, sp, s]
-            for sp in model.slice
+            for sp in model.timeslice
             if (
-                (sp, s) in model.mSliceParentChild
+                (sp, s) in model.mTimesliceParentChild
                 and (c, r, y, sp, s) in model.mvOut2Lo
             )
         )
@@ -1580,18 +1580,18 @@ model.eqOutTotRY = Constraint(
     model.mOutTotRY,
     rule=lambda model, c, r, y: model.vOutTotRY[c, r, y]
     == sum(
-        model.pSliceWeight[y, s]
+        model.pTimesliceWeight[y, s]
         * (model.vOutTot[c, r, y, s] if (c, r, y, s) in model.mvOutTot else 0)
-        for s in model.slice
+        for s in model.timeslice
         if (c, r, y, s) in model.mvOutTot
     ),
 )
-# eqOut2Lo(comm, region, year, slice)$mOut2Lo(comm, region, year, slice)
+# eqOut2Lo(comm, region, year, timeslice)$mOut2Lo(comm, region, year, timeslice)
 model.eqOut2Lo = Constraint(
     model.mOut2Lo,
     rule=lambda model, c, r, y, s: sum(
         model.vOut2Lo[c, r, y, s, sp]
-        for sp in model.slice
+        for sp in model.timeslice
         if (c, r, y, s, sp) in model.mvOut2Lo
     )
     == (model.vSupOutTot[c, r, y, s] if (c, r, y, s) in model.mSupOutTot else 0)
@@ -1606,7 +1606,7 @@ model.eqOut2Lo = Constraint(
         else 0
     ),
 )
-# eqInpTot(comm, region, year, slice)$mvInpTot(comm, region, year, slice)
+# eqInpTot(comm, region, year, timeslice)$mvInpTot(comm, region, year, timeslice)
 model.eqInpTot = Constraint(
     model.mvInpTot,
     rule=lambda model, c, r, y, s: model.vInpTot[c, r, y, s]
@@ -1623,9 +1623,9 @@ model.eqInpTot = Constraint(
     + (
         sum(
             model.vInp2Lo[c, r, y, sp, s]
-            for sp in model.slice
+            for sp in model.timeslice
             if (
-                (sp, s) in model.mSliceParentChild
+                (sp, s) in model.mTimesliceParentChild
                 and (c, r, y, sp, s) in model.mvInp2Lo
             )
         )
@@ -1638,18 +1638,18 @@ model.eqInpTotRY = Constraint(
     model.mInpTotRY,
     rule=lambda model, c, r, y: model.vInpTotRY[c, r, y]
     == sum(
-        model.pSliceWeight[y, s]
+        model.pTimesliceWeight[y, s]
         * (model.vInpTot[c, r, y, s] if (c, r, y, s) in model.mvInpTot else 0)
-        for s in model.slice
+        for s in model.timeslice
         if (c, r, y, s) in model.mvInpTot
     ),
 )
-# eqInp2Lo(comm, region, year, slice)$mInp2Lo(comm, region, year, slice)
+# eqInp2Lo(comm, region, year, timeslice)$mInp2Lo(comm, region, year, timeslice)
 model.eqInp2Lo = Constraint(
     model.mInp2Lo,
     rule=lambda model, c, r, y, s: sum(
         model.vInp2Lo[c, r, y, s, sp]
-        for sp in model.slice
+        for sp in model.timeslice
         if (c, r, y, s, sp) in model.mvInp2Lo
     )
     == (model.vTechInpTot[c, r, y, s] if (c, r, y, s) in model.mTechInpTot else 0)
@@ -1661,7 +1661,7 @@ model.eqInp2Lo = Constraint(
         else 0
     ),
 )
-# eqSupOutTot(comm, region, year, slice)$mSupOutTot(comm, region, year, slice)
+# eqSupOutTot(comm, region, year, timeslice)$mSupOutTot(comm, region, year, timeslice)
 model.eqSupOutTot = Constraint(
     model.mSupOutTot,
     rule=lambda model, c, r, y, s: model.vSupOutTot[c, r, y, s]
@@ -1669,14 +1669,14 @@ model.eqSupOutTot = Constraint(
         model.vSupOut[s1, c, r, y, s] for s1 in model.sup if (s1, c) in model.mSupComm
     ),
 )
-# eqTechInpTot(comm, region, year, slice)$mTechInpTot(comm, region, year, slice)
+# eqTechInpTot(comm, region, year, timeslice)$mTechInpTot(comm, region, year, timeslice)
 model.eqTechInpTot = Constraint(
     model.mTechInpTot,
     rule=lambda model, c, r, y, s: model.vTechInpTot[c, r, y, s]
     == sum(
         (model.vTechInp[t, c, r, y, s] if (t, c, r, y, s) in model.mvTechInp else 0)
         for t in model.tech
-        if (t, c) in model.mTechInpCommSameSlice
+        if (t, c) in model.mTechInpCommSameTimeslice
     )
     + sum(
         sum(
@@ -1685,8 +1685,8 @@ model.eqTechInpTot = Constraint(
                 if (t, c, r, y, sp) in model.mvTechInp
                 else 0
             )
-            for sp in model.slice
-            if (t, c, sp, s) in model.mTechInpCommAggSlice
+            for sp in model.timeslice
+            if (t, c, sp, s) in model.mTechInpCommAggTimeslice
         )
         for t in model.tech
         if (t, c) in model.mTechInpCommAgg
@@ -1694,7 +1694,7 @@ model.eqTechInpTot = Constraint(
     + sum(
         (model.vTechAInp[t, c, r, y, s] if (t, c, r, y, s) in model.mvTechAInp else 0)
         for t in model.tech
-        if (t, c) in model.mTechAInpCommSameSlice
+        if (t, c) in model.mTechAInpCommSameTimeslice
     )
     + sum(
         sum(
@@ -1703,21 +1703,21 @@ model.eqTechInpTot = Constraint(
                 if (t, c, r, y, sp) in model.mvTechAInp
                 else 0
             )
-            for sp in model.slice
-            if (t, c, sp, s) in model.mTechAInpCommAggSlice
+            for sp in model.timeslice
+            if (t, c, sp, s) in model.mTechAInpCommAggTimeslice
         )
         for t in model.tech
         if (t, c) in model.mTechAInpCommAgg
     ),
 )
-# eqTechOutTot(comm, region, year, slice)$mTechOutTot(comm, region, year, slice)
+# eqTechOutTot(comm, region, year, timeslice)$mTechOutTot(comm, region, year, timeslice)
 model.eqTechOutTot = Constraint(
     model.mTechOutTot,
     rule=lambda model, c, r, y, s: model.vTechOutTot[c, r, y, s]
     == sum(
         (model.vTechOut[t, c, r, y, s] if (t, c, r, y, s) in model.mvTechOut else 0)
         for t in model.tech
-        if (t, c) in model.mTechOutCommSameSlice
+        if (t, c) in model.mTechOutCommSameTimeslice
     )
     + sum(
         sum(
@@ -1726,8 +1726,8 @@ model.eqTechOutTot = Constraint(
                 if (t, c, r, y, sp) in model.mvTechOut
                 else 0
             )
-            for sp in model.slice
-            if (t, c, sp, s) in model.mTechOutCommAggSlice
+            for sp in model.timeslice
+            if (t, c, sp, s) in model.mTechOutCommAggTimeslice
         )
         for t in model.tech
         if (t, c) in model.mTechOutCommAgg
@@ -1735,7 +1735,7 @@ model.eqTechOutTot = Constraint(
     + sum(
         (model.vTechAOut[t, c, r, y, s] if (t, c, r, y, s) in model.mvTechAOut else 0)
         for t in model.tech
-        if (t, c) in model.mTechAOutCommSameSlice
+        if (t, c) in model.mTechAOutCommSameTimeslice
     )
     + sum(
         sum(
@@ -1744,8 +1744,8 @@ model.eqTechOutTot = Constraint(
                 if (t, c, r, y, sp) in model.mvTechAOut
                 else 0
             )
-            for sp in model.slice
-            if (t, c, sp, s) in model.mTechAOutCommAggSlice
+            for sp in model.timeslice
+            if (t, c, sp, s) in model.mTechAOutCommAggTimeslice
         )
         for t in model.tech
         if (t, c) in model.mTechAOutCommAgg
@@ -1756,13 +1756,13 @@ model.eqTechOutRY = Constraint(
     model.mTechOutRY,
     rule=lambda model, t, c, r, y: model.vTechOutRY[t, c, r, y]
     == sum(
-        model.pSliceWeight[y, s]
+        model.pTimesliceWeight[y, s]
         * (model.vTechOut[t, c, r, y, s] if (t, c, r, y, s) in model.mvTechOut else 0)
-        for s in model.slice
+        for s in model.timeslice
         if (c, r, y, s) in model.mTechOutTot
     ),
 )
-# eqStorageInpTot(comm, region, year, slice)$mStorageInpTot(comm, region, year, slice)
+# eqStorageInpTot(comm, region, year, timeslice)$mStorageInpTot(comm, region, year, timeslice)
 model.eqStorageInpTot = Constraint(
     model.mStorageInpTot,
     rule=lambda model, c, r, y, s: model.vStorageInpTot[c, r, y, s]
@@ -1777,7 +1777,7 @@ model.eqStorageInpTot = Constraint(
         if (st1, c, r, y, s) in model.mvStorageAInp
     ),
 )
-# eqStorageOutTot(comm, region, year, slice)$mStorageOutTot(comm, region, year, slice)
+# eqStorageOutTot(comm, region, year, timeslice)$mStorageOutTot(comm, region, year, timeslice)
 model.eqStorageOutTot = Constraint(
     model.mStorageOutTot,
     rule=lambda model, c, r, y, s: model.vStorageOutTot[c, r, y, s]
@@ -1797,10 +1797,10 @@ model.eqDummyImportCost = Constraint(
     model.mDummyImportCost,
     rule=lambda model, c, r, y: model.vDummyImportCost[c, r, y]
     == sum(
-        model.pSliceWeight[y, s]
+        model.pTimesliceWeight[y, s]
         * model.pDummyImportCost[c, r, y, s]
         * (model.vDummyImport[c, r, y, s] if (c, r, y, s) in model.mDummyImport else 0)
-        for s in model.slice
+        for s in model.timeslice
         if (c, r, y, s) in model.mDummyImport
     ),
 )
@@ -1809,10 +1809,10 @@ model.eqDummyExportCost = Constraint(
     model.mDummyExportCost,
     rule=lambda model, c, r, y: model.vDummyExportCost[c, r, y]
     == sum(
-        model.pSliceWeight[y, s]
+        model.pTimesliceWeight[y, s]
         * model.pDummyExportCost[c, r, y, s]
         * (model.vDummyExport[c, r, y, s] if (c, r, y, s) in model.mDummyExport else 0)
-        for s in model.slice
+        for s in model.timeslice
         if (c, r, y, s) in model.mDummyExport
     ),
 )
@@ -1822,24 +1822,24 @@ model.eqTaxCost = Constraint(
     rule=lambda model, c, r, y: model.vTaxCost[c, r, y]
     == sum(
         model.pTaxCostOut[c, r, y, s]
-        * model.pSliceWeight[y, s]
+        * model.pTimesliceWeight[y, s]
         * model.vOutTot[c, r, y, s]
-        for s in model.slice
-        if ((c, r, y, s) in model.mvOutTot and (c, s) in model.mCommSlice)
+        for s in model.timeslice
+        if ((c, r, y, s) in model.mvOutTot and (c, s) in model.mCommTimeslice)
     )
     + sum(
         model.pTaxCostInp[c, r, y, s]
-        * model.pSliceWeight[y, s]
+        * model.pTimesliceWeight[y, s]
         * model.vInpTot[c, r, y, s]
-        for s in model.slice
-        if ((c, r, y, s) in model.mvInpTot and (c, s) in model.mCommSlice)
+        for s in model.timeslice
+        if ((c, r, y, s) in model.mvInpTot and (c, s) in model.mCommTimeslice)
     )
     + sum(
         model.pTaxCostBal[c, r, y, s]
-        * model.pSliceWeight[y, s]
+        * model.pTimesliceWeight[y, s]
         * model.vBalance[c, r, y, s]
-        for s in model.slice
-        if ((c, r, y, s) in model.mvBalance and (c, s) in model.mCommSlice)
+        for s in model.timeslice
+        if ((c, r, y, s) in model.mvBalance and (c, s) in model.mCommTimeslice)
     ),
 )
 # eqSubsCost(comm, region, year)$mSubCost(comm, region, year)
@@ -1848,24 +1848,24 @@ model.eqSubsCost = Constraint(
     rule=lambda model, c, r, y: model.vSubsCost[c, r, y]
     == -sum(
         model.pSubCostOut[c, r, y, s]
-        * model.pSliceWeight[y, s]
+        * model.pTimesliceWeight[y, s]
         * model.vOutTot[c, r, y, s]
-        for s in model.slice
-        if ((c, r, y, s) in model.mvOutTot and (c, s) in model.mCommSlice)
+        for s in model.timeslice
+        if ((c, r, y, s) in model.mvOutTot and (c, s) in model.mCommTimeslice)
     )
     - sum(
         model.pSubCostInp[c, r, y, s]
-        * model.pSliceWeight[y, s]
+        * model.pTimesliceWeight[y, s]
         * model.vInpTot[c, r, y, s]
-        for s in model.slice
-        if ((c, r, y, s) in model.mvInpTot and (c, s) in model.mCommSlice)
+        for s in model.timeslice
+        if ((c, r, y, s) in model.mvInpTot and (c, s) in model.mCommTimeslice)
     )
     - sum(
         model.pSubCostBal[c, r, y, s]
-        * model.pSliceWeight[y, s]
+        * model.pTimesliceWeight[y, s]
         * model.vBalance[c, r, y, s]
-        for s in model.slice
-        if ((c, r, y, s) in model.mvBalance and (c, s) in model.mCommSlice)
+        for s in model.timeslice
+        if ((c, r, y, s) in model.mvBalance and (c, s) in model.mCommTimeslice)
     ),
 )
 # eqCost(region, year)$mvTotalCost(region, year)

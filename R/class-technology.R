@@ -116,7 +116,7 @@ setClass("technology",
       cluster = character(),
       region = character(),
       year = integer(),
-      slice = character(),
+      timeslice = character(),
       group = character(),
       ginp2use = numeric(),
       stringsAsFactors = FALSE
@@ -127,7 +127,7 @@ setClass("technology",
       cluster = character(),
       region = character(),
       year = integer(),
-      slice = character(),
+      timeslice = character(),
       comm = character(),
       cinp2use = numeric(),
       use2cact = numeric(),
@@ -149,7 +149,7 @@ setClass("technology",
       comm = character(),
       region = character(),
       year = integer(),
-      slice = character(),
+      timeslice = character(),
       cinp2ainp = numeric(),
       cinp2aout = numeric(),
       cout2ainp = numeric(),
@@ -174,7 +174,7 @@ setClass("technology",
       cluster = character(),
       region = character(),
       year = integer(),
-      slice = character(),
+      timeslice = character(),
       af.lo = numeric(),
       af.up = numeric(),
       af.fx = numeric(),
@@ -187,7 +187,7 @@ setClass("technology",
       cluster = character(),
       region = character(),
       year = integer(),
-      slice = character(),
+      timeslice = character(),
       afs.lo = numeric(),
       afs.up = numeric(),
       afs.fx = numeric(),
@@ -222,7 +222,7 @@ setClass("technology",
       cluster = character(),
       region = character(),
       year = integer(),
-      slice = character(),
+      timeslice = character(),
       comm = character(),
       acomm = character(),
       varom = numeric(),
@@ -269,10 +269,11 @@ setClass("technology",
     #   vintage = NA -> un-vintaged technology (a single variant)
     #   region  = NA -> all regions
     #   cluster = NA -> all clusters
-    # `start`/`end` default to the vintage year when omitted, so
-    # `vintage = c("2020", "2030")` alone defines two properly windowed
-    # vintages. The selector columns are character so that the reserved
-    # "TOTAL" token (group-aggregate bounds) can be used in either.
+    # `start`/`end` are the user-defined investment window and may overlap
+    # across vintages: NA `start` = all years up to `end`, NA `end` = all
+    # years from `start` on, both NA = the full model horizon. The
+    # selector columns are character so that the reserved "TOTAL" token
+    # (group-aggregate bounds) can be used in either.
     vintage = data.frame(
       vintage = character(),
       region = character(),
@@ -389,11 +390,11 @@ setMethod("initialize", "technology", function(.Object, ...) {
 #'     acomm = c("NOx", "SO2", "Hg"),
 #'     act2aout = c(0.1, 0.2, 0.3) # emission factors, linked to activity
 #'   ),
-#'   af = data.frame( # availability (capacity) factor by time slices
+#'   af = data.frame( # availability (capacity) factor by time timeslices
 #'     af.up = 0.95 # maximum 95% per hour
 #'   ),
 #'   afs = data.frame( # availability factor by timeframes
-#'     slice = "ANNUAL", # annual availability factor
+#'     timeslice = "ANNUAL", # annual availability factor
 #'     afs.lo = 0.40, # at least 40% per year
 #'     afs.up = 0.85 # maximum 85% per year
 #'   ),

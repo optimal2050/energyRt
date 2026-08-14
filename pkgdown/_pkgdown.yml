@@ -114,6 +114,15 @@ reference:
   - matches("update")
   - starts_with("add")
 
+- title: Technology specs
+  desc:  Portable technology specifications (YAML/JSON containers) and vintage tools.
+  contents:
+  - tech_from_spec
+  - tech_to_spec
+  - tech_spec_code
+  - tech_spec_issues
+  - combine_vintages
+
 - title: Configuration and Settings
   desc:  Model configuration and scenario settings
   contents:

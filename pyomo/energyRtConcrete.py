@@ -279,7 +279,7 @@ print(
     + str(round(time.time() - seconds, 2))
     + " s)"
 )
-# eqTechSng2Sng(tech, region, comm, commp, year, slice)$meqTechSng2Sng(tech, region, comm, commp, year, slice)
+# eqTechSng2Sng(tech, region, comm, commp, year, timeslice)$meqTechSng2Sng(tech, region, comm, commp, year, timeslice)
 if verbose:
     print("eqTechSng2Sng ", end="")
 sys.stdout.flush()
@@ -298,7 +298,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqTechGrp2Sng(tech, region, group, commp, year, slice)$meqTechGrp2Sng(tech, region, group, commp, year, slice)
+# eqTechGrp2Sng(tech, region, group, commp, year, timeslice)$meqTechGrp2Sng(tech, region, group, commp, year, timeslice)
 if verbose:
     print("eqTechGrp2Sng ", end="")
 sys.stdout.flush()
@@ -325,7 +325,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqTechSng2Grp(tech, region, comm, groupp, year, slice)$meqTechSng2Grp(tech, region, comm, groupp, year, slice)
+# eqTechSng2Grp(tech, region, comm, groupp, year, timeslice)$meqTechSng2Grp(tech, region, comm, groupp, year, timeslice)
 if verbose:
     print("eqTechSng2Grp ", end="")
 sys.stdout.flush()
@@ -357,7 +357,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqTechGrp2Grp(tech, region, group, groupp, year, slice)$meqTechGrp2Grp(tech, region, group, groupp, year, slice)
+# eqTechGrp2Grp(tech, region, group, groupp, year, timeslice)$meqTechGrp2Grp(tech, region, group, groupp, year, timeslice)
 if verbose:
     print("eqTechGrp2Grp ", end="")
 sys.stdout.flush()
@@ -397,7 +397,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqTechShareInpLo(tech, region, group, comm, year, slice)$meqTechShareInpLo(tech, region, group, comm, year, slice)
+# eqTechShareInpLo(tech, region, group, comm, year, timeslice)$meqTechShareInpLo(tech, region, group, comm, year, timeslice)
 if verbose:
     print("eqTechShareInpLo ", end="")
 sys.stdout.flush()
@@ -419,7 +419,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqTechShareInpUp(tech, region, group, comm, year, slice)$meqTechShareInpUp(tech, region, group, comm, year, slice)
+# eqTechShareInpUp(tech, region, group, comm, year, timeslice)$meqTechShareInpUp(tech, region, group, comm, year, timeslice)
 if verbose:
     print("eqTechShareInpUp ", end="")
 sys.stdout.flush()
@@ -441,7 +441,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqTechShareOutLo(tech, region, group, comm, year, slice)$meqTechShareOutLo(tech, region, group, comm, year, slice)
+# eqTechShareOutLo(tech, region, group, comm, year, timeslice)$meqTechShareOutLo(tech, region, group, comm, year, timeslice)
 if verbose:
     print("eqTechShareOutLo ", end="")
 sys.stdout.flush()
@@ -463,7 +463,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqTechShareOutUp(tech, region, group, comm, year, slice)$meqTechShareOutUp(tech, region, group, comm, year, slice)
+# eqTechShareOutUp(tech, region, group, comm, year, timeslice)$meqTechShareOutUp(tech, region, group, comm, year, timeslice)
 if verbose:
     print("eqTechShareOutUp ", end="")
 sys.stdout.flush()
@@ -485,7 +485,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqTechAInp(tech, comm, region, year, slice)$mvTechAInp(tech, comm, region, year, slice)
+# eqTechAInp(tech, comm, region, year, timeslice)$mvTechAInp(tech, comm, region, year, timeslice)
 if verbose:
     print("eqTechAInp ", end="")
 sys.stdout.flush()
@@ -529,7 +529,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqTechAOut(tech, comm, region, year, slice)$mvTechAOut(tech, comm, region, year, slice)
+# eqTechAOut(tech, comm, region, year, timeslice)$mvTechAOut(tech, comm, region, year, timeslice)
 if verbose:
     print("eqTechAOut ", end="")
 sys.stdout.flush()
@@ -573,7 +573,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqTechAfLo(tech, region, year, slice)$meqTechAfLo(tech, region, year, slice)
+# eqTechAfLo(tech, region, year, timeslice)$meqTechAfLo(tech, region, year, timeslice)
 if verbose:
     print("eqTechAfLo ", end="")
 sys.stdout.flush()
@@ -582,7 +582,7 @@ model.eqTechAfLo = Constraint(
     rule=lambda model, t, r, y, s: pTechAfLo.get((t, r, y, s))
     * pTechCap2act.get((t))
     * model.vTechCap[t, r, y]
-    * pSliceShare.get((s))
+    * pTimesliceShare.get((s))
     * prod(
         pTechWeatherAfLo.get((wth1, t)) * pWeather.get((wth1, r, y, s))
         for wth1 in weather
@@ -598,7 +598,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqTechAfUp(tech, region, year, slice)$meqTechAfUp(tech, region, year, slice)
+# eqTechAfUp(tech, region, year, timeslice)$meqTechAfUp(tech, region, year, timeslice)
 if verbose:
     print("eqTechAfUp ", end="")
 sys.stdout.flush()
@@ -608,7 +608,7 @@ model.eqTechAfUp = Constraint(
     <= pTechAfUp.get((t, r, y, s))
     * pTechCap2act.get((t))
     * model.vTechCap[t, r, y]
-    * pSliceShare.get((s))
+    * pTimesliceShare.get((s))
     * prod(
         pTechWeatherAfUp.get((wth1, t)) * pWeather.get((wth1, r, y, s))
         for wth1 in weather
@@ -623,7 +623,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqTechAfsLo(tech, region, year, slice)$meqTechAfsLo(tech, region, year, slice)
+# eqTechAfsLo(tech, region, year, timeslice)$meqTechAfsLo(tech, region, year, timeslice)
 if verbose:
     print("eqTechAfsLo ", end="")
 sys.stdout.flush()
@@ -632,7 +632,7 @@ model.eqTechAfsLo = Constraint(
     rule=lambda model, t, r, y, s: pTechAfsLo.get((t, r, y, s))
     * pTechCap2act.get((t))
     * model.vTechCap[t, r, y]
-    * pSliceShare.get((s))
+    * pTimesliceShare.get((s))
     * prod(
         pTechWeatherAfsLo.get((wth1, t)) * pWeather.get((wth1, r, y, s))
         for wth1 in weather
@@ -640,8 +640,8 @@ model.eqTechAfsLo = Constraint(
     )
     <= sum(
         (model.vTechAct[t, r, y, sp] if (t, r, y, sp) in mvTechAct else 0)
-        for sp in slice
-        if (s, sp) in mSliceParentChildE
+        for sp in timeslice
+        if (s, sp) in mTimesliceParentChildE
     ),
 )
 if verbose:
@@ -652,7 +652,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqTechAfsUp(tech, region, year, slice)$meqTechAfsUp(tech, region, year, slice)
+# eqTechAfsUp(tech, region, year, timeslice)$meqTechAfsUp(tech, region, year, timeslice)
 if verbose:
     print("eqTechAfsUp ", end="")
 sys.stdout.flush()
@@ -660,13 +660,13 @@ model.eqTechAfsUp = Constraint(
     meqTechAfsUp,
     rule=lambda model, t, r, y, s: sum(
         (model.vTechAct[t, r, y, sp] if (t, r, y, sp) in mvTechAct else 0)
-        for sp in slice
-        if (s, sp) in mSliceParentChildE
+        for sp in timeslice
+        if (s, sp) in mTimesliceParentChildE
     )
     <= pTechAfsUp.get((t, r, y, s))
     * pTechCap2act.get((t))
     * model.vTechCap[t, r, y]
-    * pSliceShare.get((s))
+    * pTimesliceShare.get((s))
     * prod(
         pTechWeatherAfsUp.get((wth1, t)) * pWeather.get((wth1, r, y, s))
         for wth1 in weather
@@ -681,17 +681,17 @@ if verbose:
         " s)",
         sep="",
     )
-# eqTechRampUp(tech, region, year, slice, slicep)$mTechRampUp(tech, region, year, slice, slicep)
+# eqTechRampUp(tech, region, year, timeslice, timeslicep)$mTechRampUp(tech, region, year, timeslice, timeslicep)
 if verbose:
     print("eqTechRampUp ", end="")
 sys.stdout.flush()
 model.eqTechRampUp = Constraint(
     mTechRampUp,
     rule=lambda model, t, r, y, s, sp: (model.vTechAct[t, r, y, s])
-    / (pSliceShare.get((s)))
-    - (model.vTechAct[t, r, y, sp]) / (pSliceShare.get((sp)))
+    / (pTimesliceShare.get((s)))
+    - (model.vTechAct[t, r, y, sp]) / (pTimesliceShare.get((sp)))
     <= (
-        pSliceShare.get((s))
+        pTimesliceShare.get((s))
         * pTechCap2act.get((t))
         * pTechCap2act.get((t))
         * model.vTechCap[t, r, y]
@@ -706,17 +706,17 @@ if verbose:
         " s)",
         sep="",
     )
-# eqTechRampDown(tech, region, year, slice, slicep)$mTechRampDown(tech, region, year, slice, slicep)
+# eqTechRampDown(tech, region, year, timeslice, timeslicep)$mTechRampDown(tech, region, year, timeslice, timeslicep)
 if verbose:
     print("eqTechRampDown ", end="")
 sys.stdout.flush()
 model.eqTechRampDown = Constraint(
     mTechRampDown,
     rule=lambda model, t, r, y, s, sp: (model.vTechAct[t, r, y, sp])
-    / (pSliceShare.get((sp)))
-    - (model.vTechAct[t, r, y, s]) / (pSliceShare.get((s)))
+    / (pTimesliceShare.get((sp)))
+    - (model.vTechAct[t, r, y, s]) / (pTimesliceShare.get((s)))
     <= (
-        pSliceShare.get((s))
+        pTimesliceShare.get((s))
         * pTechCap2act.get((t))
         * pTechCap2act.get((t))
         * model.vTechCap[t, r, y]
@@ -731,7 +731,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqTechActSng(tech, comm, region, year, slice)$meqTechActSng(tech, comm, region, year, slice)
+# eqTechActSng(tech, comm, region, year, timeslice)$meqTechActSng(tech, comm, region, year, timeslice)
 if verbose:
     print("eqTechActSng ", end="")
 sys.stdout.flush()
@@ -748,7 +748,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqTechActGrp(tech, group, region, year, slice)$meqTechActGrp(tech, group, region, year, slice)
+# eqTechActGrp(tech, group, region, year, timeslice)$meqTechActGrp(tech, group, region, year, timeslice)
 if verbose:
     print("eqTechActGrp ", end="")
 sys.stdout.flush()
@@ -773,7 +773,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqTechAfcOutLo(tech, region, comm, year, slice)$meqTechAfcOutLo(tech, region, comm, year, slice)
+# eqTechAfcOutLo(tech, region, comm, year, timeslice)$meqTechAfcOutLo(tech, region, comm, year, timeslice)
 if verbose:
     print("eqTechAfcOutLo ", end="")
 sys.stdout.flush()
@@ -783,7 +783,7 @@ model.eqTechAfcOutLo = Constraint(
     * pTechAfcLo.get((t, c, r, y, s))
     * pTechCap2act.get((t))
     * model.vTechCap[t, r, y]
-    * pSliceShare.get((s))
+    * pTimesliceShare.get((s))
     * prod(
         pTechWeatherAfcLo.get((wth1, t, c)) * pWeather.get((wth1, r, y, s))
         for wth1 in weather
@@ -799,7 +799,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqTechAfcOutUp(tech, region, comm, year, slice)$meqTechAfcOutUp(tech, region, comm, year, slice)
+# eqTechAfcOutUp(tech, region, comm, year, timeslice)$meqTechAfcOutUp(tech, region, comm, year, timeslice)
 if verbose:
     print("eqTechAfcOutUp ", end="")
 sys.stdout.flush()
@@ -824,7 +824,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqTechAfcInpLo(tech, region, comm, year, slice)$meqTechAfcInpLo(tech, region, comm, year, slice)
+# eqTechAfcInpLo(tech, region, comm, year, timeslice)$meqTechAfcInpLo(tech, region, comm, year, timeslice)
 if verbose:
     print("eqTechAfcInpLo ", end="")
 sys.stdout.flush()
@@ -833,7 +833,7 @@ model.eqTechAfcInpLo = Constraint(
     rule=lambda model, t, r, c, y, s: pTechAfcLo.get((t, c, r, y, s))
     * pTechCap2act.get((t))
     * model.vTechCap[t, r, y]
-    * pSliceShare.get((s))
+    * pTimesliceShare.get((s))
     * prod(
         pTechWeatherAfcLo.get((wth1, t, c)) * pWeather.get((wth1, r, y, s))
         for wth1 in weather
@@ -849,7 +849,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqTechAfcInpUp(tech, region, comm, year, slice)$meqTechAfcInpUp(tech, region, comm, year, slice)
+# eqTechAfcInpUp(tech, region, comm, year, timeslice)$meqTechAfcInpUp(tech, region, comm, year, timeslice)
 if verbose:
     print("eqTechAfcInpUp ", end="")
 sys.stdout.flush()
@@ -859,7 +859,7 @@ model.eqTechAfcInpUp = Constraint(
     <= pTechAfcUp.get((t, c, r, y, s))
     * pTechCap2act.get((t))
     * model.vTechCap[t, r, y]
-    * pSliceShare.get((s))
+    * pTimesliceShare.get((s))
     * prod(
         pTechWeatherAfcUp.get((wth1, t, c)) * pWeather.get((wth1, r, y, s))
         for wth1 in weather
@@ -1199,38 +1199,38 @@ model.eqTechVarom = Constraint(
     rule=lambda model, t, r, y: model.vTechVarom[t, r, y]
     == sum(
         pTechVarom.get((t, r, y, s))
-        * pSliceWeight.get((y, s))
+        * pTimesliceWeight.get((y, s))
         * model.vTechAct[t, r, y, s]
         + sum(
             pTechCvarom.get((t, c, r, y, s))
-            * pSliceWeight.get((y, s))
+            * pTimesliceWeight.get((y, s))
             * model.vTechInp[t, c, r, y, s]
             for c in comm
             if (t, c) in mTechInpComm
         )
         + sum(
             pTechCvarom.get((t, c, r, y, s))
-            * pSliceWeight.get((y, s))
+            * pTimesliceWeight.get((y, s))
             * model.vTechOut[t, c, r, y, s]
             for c in comm
             if (t, c) in mTechOutComm
         )
         + sum(
             pTechAvarom.get((t, c, r, y, s))
-            * pSliceWeight.get((y, s))
+            * pTimesliceWeight.get((y, s))
             * model.vTechAOut[t, c, r, y, s]
             for c in comm
             if (t, c, r, y, s) in mvTechAOut
         )
         + sum(
             pTechAvarom.get((t, c, r, y, s))
-            * pSliceWeight.get((y, s))
+            * pTimesliceWeight.get((y, s))
             * model.vTechAInp[t, c, r, y, s]
             for c in comm
             if (t, c, r, y, s) in mvTechAInp
         )
-        for s in slice
-        if (t, s) in mTechSlice
+        for s in timeslice
+        if (t, s) in mTechTimeslice
     ),
 )
 if verbose:
@@ -1241,7 +1241,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqSupAvaUp(sup, comm, region, year, slice)$mSupAvaUp(sup, comm, region, year, slice)
+# eqSupAvaUp(sup, comm, region, year, timeslice)$mSupAvaUp(sup, comm, region, year, timeslice)
 if verbose:
     print("eqSupAvaUp ", end="")
 sys.stdout.flush()
@@ -1263,7 +1263,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqSupAvaLo(sup, comm, region, year, slice)$meqSupAvaLo(sup, comm, region, year, slice)
+# eqSupAvaLo(sup, comm, region, year, timeslice)$meqSupAvaLo(sup, comm, region, year, timeslice)
 if verbose:
     print("eqSupAvaLo ", end="")
 sys.stdout.flush()
@@ -1293,9 +1293,9 @@ model.eqSupReserve = Constraint(
     mvSupReserve,
     rule=lambda model, s1, c, r: model.vSupReserve[s1, c, r]
     == sum(
-        pPeriodLen.get((y)) * pSliceWeight.get((y, s)) * model.vSupOut[s1, c, r, y, s]
+        pPeriodLen.get((y)) * pTimesliceWeight.get((y, s)) * model.vSupOut[s1, c, r, y, s]
         for y in year
-        for s in slice
+        for s in timeslice
         if (s1, c, r, y, s) in mSupAva
     ),
 )
@@ -1350,10 +1350,10 @@ model.eqSupCost = Constraint(
     rule=lambda model, s1, r, y: model.vSupCost[s1, r, y]
     == sum(
         pSupCost.get((s1, c, r, y, s))
-        * pSliceWeight.get((y, s))
+        * pTimesliceWeight.get((y, s))
         * model.vSupOut[s1, c, r, y, s]
         for c in comm
-        for s in slice
+        for s in timeslice
         if (s1, c, r, y, s) in mSupAva
     ),
 )
@@ -1365,7 +1365,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqDemInp(comm, region, year, slice)$mvDemInp(comm, region, year, slice)
+# eqDemInp(comm, region, year, timeslice)$mvDemInp(comm, region, year, timeslice)
 if verbose:
     print("eqDemInp ", end="")
 sys.stdout.flush()
@@ -1382,7 +1382,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqAggOutTot(comm, region, year, slice)$mAggOut(comm, region, year, slice)
+# eqAggOutTot(comm, region, year, timeslice)$mAggOut(comm, region, year, timeslice)
 if verbose:
     print("eqAggOutTot ", end="")
 sys.stdout.flush()
@@ -1393,11 +1393,11 @@ model.eqAggOutTot = Constraint(
         pAggregateFactor.get((c, cp))
         * sum(
             (model.vOutTot[cp, r, y, sp] if (cp, r, y, sp) in mvOutTot else 0)
-            for sp in slice
+            for sp in timeslice
             if (
                 (c, r, y, sp) in mvOutTot
-                and (s, sp) in mSliceParentChildE
-                and (cp, sp) in mCommSlice
+                and (s, sp) in mTimesliceParentChildE
+                and (cp, sp) in mCommTimeslice
             )
         )
         for cp in comm
@@ -1412,7 +1412,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqEmsFuelTot(comm, region, year, slice)$mEmsFuelTot(comm, region, year, slice)
+# eqEmsFuelTot(comm, region, year, timeslice)$mEmsFuelTot(comm, region, year, timeslice)
 if verbose:
     print("eqEmsFuelTot ", end="")
 sys.stdout.flush()
@@ -1429,8 +1429,8 @@ model.eqEmsFuelTot = Constraint(
                     if (t, c, cp, r, y, sp) in mTechEmsFuel
                     else 0
                 )
-                for sp in slice
-                if (c, s, sp) in mCommSliceOrParent
+                for sp in timeslice
+                if (c, s, sp) in mCommTimesliceOrParent
             )
             for t in tech
             if (t, cp) in mTechInpComm
@@ -1447,7 +1447,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqStorageAInp(stg, comm, region, year, slice)$mvStorageAInp(stg, comm, region, year, slice)
+# eqStorageAInp(stg, comm, region, year, timeslice)$mvStorageAInp(stg, comm, region, year, timeslice)
 if verbose:
     print("eqStorageAInp ", end="")
 sys.stdout.flush()
@@ -1501,7 +1501,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqStorageAOut(stg, comm, region, year, slice)$mvStorageAOut(stg, comm, region, year, slice)
+# eqStorageAOut(stg, comm, region, year, timeslice)$mvStorageAOut(stg, comm, region, year, timeslice)
 if verbose:
     print("eqStorageAOut ", end="")
 sys.stdout.flush()
@@ -1555,7 +1555,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqStorageStore(stg, comm, region, year, slicep, slice)$meqStorageStore(stg, comm, region, year, slicep, slice)
+# eqStorageStore(stg, comm, region, year, timeslicep, timeslice)$meqStorageStore(stg, comm, region, year, timeslicep, timeslice)
 if verbose:
     print("eqStorageStore ", end="")
 sys.stdout.flush()
@@ -1569,7 +1569,7 @@ model.eqStorageStore = Constraint(
         else 0
     )
     + pStorageInpEff.get((st1, c, r, y, sp)) * model.vStorageInp[st1, c, r, y, sp]
-    + ((pStorageStgEff.get((st1, c, r, y, s))) ** (pSliceShare.get((s))))
+    + ((pStorageStgEff.get((st1, c, r, y, s))) ** (pTimesliceShare.get((s))))
     * model.vStorageStore[st1, c, r, y, sp]
     - (model.vStorageOut[st1, c, r, y, sp]) / (pStorageOutEff.get((st1, c, r, y, sp))),
 )
@@ -1581,7 +1581,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqStorageAfLo(stg, comm, region, year, slice)$meqStorageAfLo(stg, comm, region, year, slice)
+# eqStorageAfLo(stg, comm, region, year, timeslice)$meqStorageAfLo(stg, comm, region, year, timeslice)
 if verbose:
     print("eqStorageAfLo ", end="")
 sys.stdout.flush()
@@ -1605,7 +1605,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqStorageAfUp(stg, comm, region, year, slice)$meqStorageAfUp(stg, comm, region, year, slice)
+# eqStorageAfUp(stg, comm, region, year, timeslice)$meqStorageAfUp(stg, comm, region, year, timeslice)
 if verbose:
     print("eqStorageAfUp ", end="")
 sys.stdout.flush()
@@ -1629,7 +1629,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqStorageClear(stg, comm, region, year, slice)$mvStorageStore(stg, comm, region, year, slice)
+# eqStorageClear(stg, comm, region, year, timeslice)$mvStorageStore(stg, comm, region, year, timeslice)
 if verbose:
     print("eqStorageClear ", end="")
 sys.stdout.flush()
@@ -1647,7 +1647,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqStorageInpUp(stg, comm, region, year, slice)$meqStorageInpUp(stg, comm, region, year, slice)
+# eqStorageInpUp(stg, comm, region, year, timeslice)$meqStorageInpUp(stg, comm, region, year, timeslice)
 if verbose:
     print("eqStorageInpUp ", end="")
 sys.stdout.flush()
@@ -1670,7 +1670,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqStorageInpLo(stg, comm, region, year, slice)$meqStorageInpLo(stg, comm, region, year, slice)
+# eqStorageInpLo(stg, comm, region, year, timeslice)$meqStorageInpLo(stg, comm, region, year, timeslice)
 if verbose:
     print("eqStorageInpLo ", end="")
 sys.stdout.flush()
@@ -1693,7 +1693,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqStorageOutUp(stg, comm, region, year, slice)$meqStorageOutUp(stg, comm, region, year, slice)
+# eqStorageOutUp(stg, comm, region, year, timeslice)$meqStorageOutUp(stg, comm, region, year, timeslice)
 if verbose:
     print("eqStorageOutUp ", end="")
 sys.stdout.flush()
@@ -1716,7 +1716,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqStorageOutLo(stg, comm, region, year, slice)$meqStorageOutLo(stg, comm, region, year, slice)
+# eqStorageOutLo(stg, comm, region, year, timeslice)$meqStorageOutLo(stg, comm, region, year, timeslice)
 if verbose:
     print("eqStorageOutLo ", end="")
 sys.stdout.flush()
@@ -1910,16 +1910,16 @@ model.eqStorageVarom = Constraint(
     == sum(
         sum(
             pStorageCostInp.get((st1, r, y, s))
-            * pSliceWeight.get((y, s))
+            * pTimesliceWeight.get((y, s))
             * model.vStorageInp[st1, c, r, y, s]
             + pStorageCostOut.get((st1, r, y, s))
-            * pSliceWeight.get((y, s))
+            * pTimesliceWeight.get((y, s))
             * model.vStorageOut[st1, c, r, y, s]
             + pStorageCostStore.get((st1, r, y, s))
-            * pSliceWeight.get((y, s))
+            * pTimesliceWeight.get((y, s))
             * model.vStorageStore[st1, c, r, y, s]
-            for s in slice
-            if (c, s) in mCommSlice
+            for s in timeslice
+            if (c, s) in mCommTimeslice
         )
         for c in comm
         if (st1, c) in mStorageComm
@@ -1933,7 +1933,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqImportTot(comm, dst, year, slice)$mImport(comm, dst, year, slice)
+# eqImportTot(comm, dst, year, timeslice)$mImport(comm, dst, year, timeslice)
 if verbose:
     print("eqImportTot ", end="")
 sys.stdout.flush()
@@ -1970,7 +1970,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqExportTot(comm, src, year, slice)$mExport(comm, src, year, slice)
+# eqExportTot(comm, src, year, timeslice)$mExport(comm, src, year, timeslice)
 if verbose:
     print("eqExportTot ", end="")
 sys.stdout.flush()
@@ -2004,7 +2004,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqTradeFlowUp(trade, comm, src, dst, year, slice)$meqTradeFlowUp(trade, comm, src, dst, year, slice)
+# eqTradeFlowUp(trade, comm, src, dst, year, timeslice)$meqTradeFlowUp(trade, comm, src, dst, year, timeslice)
 if verbose:
     print("eqTradeFlowUp ", end="")
 sys.stdout.flush()
@@ -2021,7 +2021,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqTradeFlowLo(trade, comm, src, dst, year, slice)$meqTradeFlowLo(trade, comm, src, dst, year, slice)
+# eqTradeFlowLo(trade, comm, src, dst, year, timeslice)$meqTradeFlowLo(trade, comm, src, dst, year, timeslice)
 if verbose:
     print("eqTradeFlowLo ", end="")
 sys.stdout.flush()
@@ -2055,13 +2055,13 @@ model.eqImportIrCost = Constraint(
                             + pTradeIrMarkup.get((t1, src, r, y, s))
                         )
                         * model.vTradeIr[t1, c, src, r, y, s]
-                        * pSliceWeight.get((y, s))
+                        * pTimesliceWeight.get((y, s))
                     )
                     if (t1, c, src, r, y, s) in mvTradeIr
                     else 0
                 )
-                for s in slice
-                if (t1, s) in mTradeSlice
+                for s in timeslice
+                if (t1, s) in mTradeTimeslice
             )
             for c in comm
             if (t1, c) in mTradeComm
@@ -2095,13 +2095,13 @@ model.eqExportIrCost = Constraint(
                             + pTradeIrMarkup.get((t1, r, dst, y, s))
                         )
                         * model.vTradeIr[t1, c, r, dst, y, s]
-                        * pSliceWeight.get((y, s))
+                        * pTimesliceWeight.get((y, s))
                     )
                     if (t1, c, r, dst, y, s) in mvTradeIr
                     else 0
                 )
-                for s in slice
-                if (t1, s) in mTradeSlice
+                for s in timeslice
+                if (t1, s) in mTradeTimeslice
             )
             for c in comm
             if (t1, c) in mTradeComm
@@ -2118,7 +2118,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqExportRowUp(expp, comm, region, year, slice)$mExportRowUp(expp, comm, region, year, slice)
+# eqExportRowUp(expp, comm, region, year, timeslice)$mExportRowUp(expp, comm, region, year, timeslice)
 if verbose:
     print("eqExportRowUp ", end="")
 sys.stdout.flush()
@@ -2135,7 +2135,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqExportRowLo(expp, comm, region, year, slice)$meqExportRowLo(expp, comm, region, year, slice)
+# eqExportRowLo(expp, comm, region, year, timeslice)$meqExportRowLo(expp, comm, region, year, timeslice)
 if verbose:
     print("eqExportRowLo ", end="")
 sys.stdout.flush()
@@ -2160,10 +2160,10 @@ model.eqExportRowCum = Constraint(
     mExpComm,
     rule=lambda model, e, c: model.vExportRowCum[e, c]
     == sum(
-        pPeriodLen.get((y)) * pSliceWeight.get((y, s)) * model.vExportRow[e, c, r, y, s]
+        pPeriodLen.get((y)) * pTimesliceWeight.get((y, s)) * model.vExportRow[e, c, r, y, s]
         for r in region
         for y in year
-        for s in slice
+        for s in timeslice
         if (e, c, r, y, s) in mExportRow
     ),
 )
@@ -2200,10 +2200,10 @@ model.eqExportRowCost = Constraint(
     rule=lambda model, e, r, y: model.vExportRowCost[e, r, y]
     == -sum(
         pExportRowPrice.get((e, r, y, s))
-        * pSliceWeight.get((y, s))
+        * pTimesliceWeight.get((y, s))
         * model.vExportRow[e, c, r, y, s]
         for c in comm
-        for s in slice
+        for s in timeslice
         if (e, c, r, y, s) in mExportRow
     ),
 )
@@ -2215,7 +2215,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqImportRowUp(imp, comm, region, year, slice)$mImportRowUp(imp, comm, region, year, slice)
+# eqImportRowUp(imp, comm, region, year, timeslice)$mImportRowUp(imp, comm, region, year, timeslice)
 if verbose:
     print("eqImportRowUp ", end="")
 sys.stdout.flush()
@@ -2232,7 +2232,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqImportRowLo(imp, comm, region, year, slice)$meqImportRowLo(imp, comm, region, year, slice)
+# eqImportRowLo(imp, comm, region, year, timeslice)$meqImportRowLo(imp, comm, region, year, timeslice)
 if verbose:
     print("eqImportRowLo ", end="")
 sys.stdout.flush()
@@ -2257,10 +2257,10 @@ model.eqImportRowCum = Constraint(
     mImpComm,
     rule=lambda model, i, c: model.vImportRowCum[i, c]
     == sum(
-        pPeriodLen.get((y)) * pSliceWeight.get((y, s)) * model.vImportRow[i, c, r, y, s]
+        pPeriodLen.get((y)) * pTimesliceWeight.get((y, s)) * model.vImportRow[i, c, r, y, s]
         for r in region
         for y in year
-        for s in slice
+        for s in timeslice
         if (i, c, r, y, s) in mImportRow
     ),
 )
@@ -2297,10 +2297,10 @@ model.eqImportRowCost = Constraint(
     rule=lambda model, i, r, y: model.vImportRowCost[i, r, y]
     == sum(
         pImportRowPrice.get((i, r, y, s))
-        * pSliceWeight.get((y, s))
+        * pTimesliceWeight.get((y, s))
         * model.vImportRow[i, c, r, y, s]
         for c in comm
-        for s in slice
+        for s in timeslice
         if (i, c, r, y, s) in mImportRow
     ),
 )
@@ -2312,13 +2312,13 @@ if verbose:
         " s)",
         sep="",
     )
-# eqTradeCapFlow(trade, comm, year, slice)$meqTradeCapFlow(trade, comm, year, slice)
+# eqTradeCapFlow(trade, comm, year, timeslice)$meqTradeCapFlow(trade, comm, year, timeslice)
 if verbose:
     print("eqTradeCapFlow ", end="")
 sys.stdout.flush()
 model.eqTradeCapFlow = Constraint(
     meqTradeCapFlow,
-    rule=lambda model, t1, c, y, s: pSliceShare.get((s))
+    rule=lambda model, t1, c, y, s: pTimesliceShare.get((s))
     * pTradeCap2Act.get((t1))
     * model.vTradeCap[t1, y]
     >= sum(
@@ -2495,7 +2495,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqTradeIrAInp(trade, comm, region, year, slice)$mvTradeIrAInp(trade, comm, region, year, slice)
+# eqTradeIrAInp(trade, comm, region, year, timeslice)$mvTradeIrAInp(trade, comm, region, year, timeslice)
 if verbose:
     print("eqTradeIrAInp ", end="")
 sys.stdout.flush()
@@ -2531,7 +2531,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqTradeIrAOut(trade, comm, region, year, slice)$mvTradeIrAOut(trade, comm, region, year, slice)
+# eqTradeIrAOut(trade, comm, region, year, timeslice)$mvTradeIrAOut(trade, comm, region, year, timeslice)
 if verbose:
     print("eqTradeIrAOut ", end="")
 sys.stdout.flush()
@@ -2567,7 +2567,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqTradeIrAInpTot(comm, region, year, slice)$mvTradeIrAInpTot(comm, region, year, slice)
+# eqTradeIrAInpTot(comm, region, year, timeslice)$mvTradeIrAInpTot(comm, region, year, timeslice)
 if verbose:
     print("eqTradeIrAInpTot ", end="")
 sys.stdout.flush()
@@ -2577,8 +2577,8 @@ model.eqTradeIrAInpTot = Constraint(
     == sum(
         model.vTradeIrAInp[t1, c, r, y, sp]
         for t1 in trade
-        for sp in slice
-        if ((c, s, sp) in mCommSliceOrParent and (t1, c, r, y, sp) in mvTradeIrAInp)
+        for sp in timeslice
+        if ((c, s, sp) in mCommTimesliceOrParent and (t1, c, r, y, sp) in mvTradeIrAInp)
     ),
 )
 if verbose:
@@ -2589,7 +2589,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqTradeIrAOutTot(comm, region, year, slice)$mvTradeIrAOutTot(comm, region, year, slice)
+# eqTradeIrAOutTot(comm, region, year, timeslice)$mvTradeIrAOutTot(comm, region, year, timeslice)
 if verbose:
     print("eqTradeIrAOutTot ", end="")
 sys.stdout.flush()
@@ -2599,8 +2599,8 @@ model.eqTradeIrAOutTot = Constraint(
     == sum(
         model.vTradeIrAOut[t1, c, r, y, sp]
         for t1 in trade
-        for sp in slice
-        if ((c, s, sp) in mCommSliceOrParent and (t1, c, r, y, sp) in mvTradeIrAOut)
+        for sp in timeslice
+        if ((c, s, sp) in mCommTimesliceOrParent and (t1, c, r, y, sp) in mvTradeIrAOut)
     ),
 )
 if verbose:
@@ -2611,7 +2611,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqBalLo(comm, region, year, slice)$meqBalLo(comm, region, year, slice)
+# eqBalLo(comm, region, year, timeslice)$meqBalLo(comm, region, year, timeslice)
 if verbose:
     print("eqBalLo ", end="")
 sys.stdout.flush()
@@ -2626,7 +2626,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqBalUp(comm, region, year, slice)$meqBalUp(comm, region, year, slice)
+# eqBalUp(comm, region, year, timeslice)$meqBalUp(comm, region, year, timeslice)
 if verbose:
     print("eqBalUp ", end="")
 sys.stdout.flush()
@@ -2641,7 +2641,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqBalFx(comm, region, year, slice)$meqBalFx(comm, region, year, slice)
+# eqBalFx(comm, region, year, timeslice)$meqBalFx(comm, region, year, timeslice)
 if verbose:
     print("eqBalFx ", end="")
 sys.stdout.flush()
@@ -2656,7 +2656,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqBal(comm, region, year, slice)$mvBalance(comm, region, year, slice)
+# eqBal(comm, region, year, timeslice)$mvBalance(comm, region, year, timeslice)
 if verbose:
     print("eqBal ", end="")
 sys.stdout.flush()
@@ -2675,7 +2675,7 @@ if verbose:
         sep="",
     )
 # [agg-rewrite] eqBalanceRY/vBalanceRY retired (dead reporting)
-# eqOutTot(comm, region, year, slice)$mvOutTot(comm, region, year, slice)
+# eqOutTot(comm, region, year, timeslice)$mvOutTot(comm, region, year, timeslice)
 if verbose:
     print("eqOutTot ", end="")
 sys.stdout.flush()
@@ -2692,9 +2692,9 @@ model.eqOutTot = Constraint(
     + (model.vTradeIrAOutTot[c, r, y, s] if (c, r, y, s) in mvTradeIrAOutTot else 0)
     # [agg-rewrite] up-aggregation of immediately-finer children (replaces vOut2Lo)
     + sum(
-        pSliceAgg.get((y, s, sp), 0) * model.vOutTot[c, r, y, sp]
-        for sp in slice
-        if ((s, sp) in mSliceFamily and (c, r, y, sp) in mvOutTot)
+        pTimesliceAgg.get((y, s, sp), 0) * model.vOutTot[c, r, y, sp]
+        for sp in timeslice
+        if ((s, sp) in mTimesliceFamily and (c, r, y, sp) in mvOutTot)
     ),
 )
 if verbose:
@@ -2708,7 +2708,7 @@ if verbose:
 # [agg-rewrite] eqOutTotRY/vOutTotRY retired (dead reporting)
 # [agg-rewrite] eqOut2Lo removed: replaced by up-aggregation in eqOutTot
 # (vOut2Lo retired). Mirrors GLPK.
-# eqInpTot(comm, region, year, slice)$mvInpTot(comm, region, year, slice)
+# eqInpTot(comm, region, year, timeslice)$mvInpTot(comm, region, year, timeslice)
 if verbose:
     print("eqInpTot ", end="")
 sys.stdout.flush()
@@ -2723,9 +2723,9 @@ model.eqInpTot = Constraint(
     + (model.vTradeIrAInpTot[c, r, y, s] if (c, r, y, s) in mvTradeIrAInpTot else 0)
     # [agg-rewrite] up-aggregation of immediately-finer children (replaces vInp2Lo)
     + sum(
-        pSliceAgg.get((y, s, sp), 0) * model.vInpTot[c, r, y, sp]
-        for sp in slice
-        if ((s, sp) in mSliceFamily and (c, r, y, sp) in mvInpTot)
+        pTimesliceAgg.get((y, s, sp), 0) * model.vInpTot[c, r, y, sp]
+        for sp in timeslice
+        if ((s, sp) in mTimesliceFamily and (c, r, y, sp) in mvInpTot)
     ),
 )
 if verbose:
@@ -2739,7 +2739,7 @@ if verbose:
 # [agg-rewrite] eqInpTotRY/vInpTotRY retired (dead reporting)
 # [agg-rewrite] eqInp2Lo removed: replaced by up-aggregation in eqInpTot
 # (vInp2Lo retired). Mirrors GLPK.
-# eqSupOutTot(comm, region, year, slice)$mSupOutTot(comm, region, year, slice)
+# eqSupOutTot(comm, region, year, timeslice)$mSupOutTot(comm, region, year, timeslice)
 if verbose:
     print("eqSupOutTot ", end="")
 sys.stdout.flush()
@@ -2756,7 +2756,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqTechInpTot(comm, region, year, slice)$mTechInpTot(comm, region, year, slice)
+# eqTechInpTot(comm, region, year, timeslice)$mTechInpTot(comm, region, year, timeslice)
 if verbose:
     print("eqTechInpTot ", end="")
 sys.stdout.flush()
@@ -2766,13 +2766,13 @@ model.eqTechInpTot = Constraint(
     == sum(
         (model.vTechInp[t, c, r, y, s] if (t, c, r, y, s) in mvTechInp else 0)
         for t in tech
-        if (t, c) in mTechInpCommSameSlice
+        if (t, c) in mTechInpCommSameTimeslice
     )
     + sum(
         sum(
             (model.vTechInp[t, c, r, y, sp] if (t, c, r, y, sp) in mvTechInp else 0)
-            for sp in slice
-            if (t, c, sp, s) in mTechInpCommAggSlice
+            for sp in timeslice
+            if (t, c, sp, s) in mTechInpCommAggTimeslice
         )
         for t in tech
         if (t, c) in mTechInpCommAgg
@@ -2780,13 +2780,13 @@ model.eqTechInpTot = Constraint(
     + sum(
         (model.vTechAInp[t, c, r, y, s] if (t, c, r, y, s) in mvTechAInp else 0)
         for t in tech
-        if (t, c) in mTechAInpCommSameSlice
+        if (t, c) in mTechAInpCommSameTimeslice
     )
     + sum(
         sum(
             (model.vTechAInp[t, c, r, y, sp] if (t, c, r, y, sp) in mvTechAInp else 0)
-            for sp in slice
-            if (t, c, sp, s) in mTechAInpCommAggSlice
+            for sp in timeslice
+            if (t, c, sp, s) in mTechAInpCommAggTimeslice
         )
         for t in tech
         if (t, c) in mTechAInpCommAgg
@@ -2800,7 +2800,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqTechOutTot(comm, region, year, slice)$mTechOutTot(comm, region, year, slice)
+# eqTechOutTot(comm, region, year, timeslice)$mTechOutTot(comm, region, year, timeslice)
 if verbose:
     print("eqTechOutTot ", end="")
 sys.stdout.flush()
@@ -2810,13 +2810,13 @@ model.eqTechOutTot = Constraint(
     == sum(
         (model.vTechOut[t, c, r, y, s] if (t, c, r, y, s) in mvTechOut else 0)
         for t in tech
-        if (t, c) in mTechOutCommSameSlice
+        if (t, c) in mTechOutCommSameTimeslice
     )
     + sum(
         sum(
             (model.vTechOut[t, c, r, y, sp] if (t, c, r, y, sp) in mvTechOut else 0)
-            for sp in slice
-            if (t, c, sp, s) in mTechOutCommAggSlice
+            for sp in timeslice
+            if (t, c, sp, s) in mTechOutCommAggTimeslice
         )
         for t in tech
         if (t, c) in mTechOutCommAgg
@@ -2824,13 +2824,13 @@ model.eqTechOutTot = Constraint(
     + sum(
         (model.vTechAOut[t, c, r, y, s] if (t, c, r, y, s) in mvTechAOut else 0)
         for t in tech
-        if (t, c) in mTechAOutCommSameSlice
+        if (t, c) in mTechAOutCommSameTimeslice
     )
     + sum(
         sum(
             (model.vTechAOut[t, c, r, y, sp] if (t, c, r, y, sp) in mvTechAOut else 0)
-            for sp in slice
-            if (t, c, sp, s) in mTechAOutCommAggSlice
+            for sp in timeslice
+            if (t, c, sp, s) in mTechAOutCommAggTimeslice
         )
         for t in tech
         if (t, c) in mTechAOutCommAgg
@@ -2845,7 +2845,7 @@ if verbose:
         sep="",
     )
 # [agg-rewrite] eqTechOutRY/vTechOutRY retired (dead reporting)
-# eqStorageInpTot(comm, region, year, slice)$mStorageInpTot(comm, region, year, slice)
+# eqStorageInpTot(comm, region, year, timeslice)$mStorageInpTot(comm, region, year, timeslice)
 if verbose:
     print("eqStorageInpTot ", end="")
 sys.stdout.flush()
@@ -2871,7 +2871,7 @@ if verbose:
         " s)",
         sep="",
     )
-# eqStorageOutTot(comm, region, year, slice)$mStorageOutTot(comm, region, year, slice)
+# eqStorageOutTot(comm, region, year, timeslice)$mStorageOutTot(comm, region, year, timeslice)
 if verbose:
     print("eqStorageOutTot ", end="")
 sys.stdout.flush()
@@ -2905,10 +2905,10 @@ model.eqDummyImportCost = Constraint(
     mDummyImportCost,
     rule=lambda model, c, r, y: model.vDummyImportCost[c, r, y]
     == sum(
-        pSliceWeight.get((y, s))
+        pTimesliceWeight.get((y, s))
         * pDummyImportCost.get((c, r, y, s))
         * (model.vDummyImport[c, r, y, s] if (c, r, y, s) in mDummyImport else 0)
-        for s in slice
+        for s in timeslice
         if (c, r, y, s) in mDummyImport
     ),
 )
@@ -2928,10 +2928,10 @@ model.eqDummyExportCost = Constraint(
     mDummyExportCost,
     rule=lambda model, c, r, y: model.vDummyExportCost[c, r, y]
     == sum(
-        pSliceWeight.get((y, s))
+        pTimesliceWeight.get((y, s))
         * pDummyExportCost.get((c, r, y, s))
         * (model.vDummyExport[c, r, y, s] if (c, r, y, s) in mDummyExport else 0)
-        for s in slice
+        for s in timeslice
         if (c, r, y, s) in mDummyExport
     ),
 )
@@ -2952,24 +2952,24 @@ model.eqTaxCost = Constraint(
     rule=lambda model, c, r, y: model.vTaxCost[c, r, y]
     == sum(
         pTaxCostOut.get((c, r, y, s))
-        * pSliceWeight.get((y, s))
+        * pTimesliceWeight.get((y, s))
         * model.vOutTot[c, r, y, s]
-        for s in slice
-        if ((c, r, y, s) in mvOutTot and (c, s) in mCommSlice)
+        for s in timeslice
+        if ((c, r, y, s) in mvOutTot and (c, s) in mCommTimeslice)
     )
     + sum(
         pTaxCostInp.get((c, r, y, s))
-        * pSliceWeight.get((y, s))
+        * pTimesliceWeight.get((y, s))
         * model.vInpTot[c, r, y, s]
-        for s in slice
-        if ((c, r, y, s) in mvInpTot and (c, s) in mCommSlice)
+        for s in timeslice
+        if ((c, r, y, s) in mvInpTot and (c, s) in mCommTimeslice)
     )
     + sum(
         pTaxCostBal.get((c, r, y, s))
-        * pSliceWeight.get((y, s))
+        * pTimesliceWeight.get((y, s))
         * model.vBalance[c, r, y, s]
-        for s in slice
-        if ((c, r, y, s) in mvBalance and (c, s) in mCommSlice)
+        for s in timeslice
+        if ((c, r, y, s) in mvBalance and (c, s) in mCommTimeslice)
     ),
 )
 if verbose:
@@ -2989,24 +2989,24 @@ model.eqSubsCost = Constraint(
     rule=lambda model, c, r, y: model.vSubsCost[c, r, y]
     == -sum(
         pSubCostOut.get((c, r, y, s))
-        * pSliceWeight.get((y, s))
+        * pTimesliceWeight.get((y, s))
         * model.vOutTot[c, r, y, s]
-        for s in slice
-        if ((c, r, y, s) in mvOutTot and (c, s) in mCommSlice)
+        for s in timeslice
+        if ((c, r, y, s) in mvOutTot and (c, s) in mCommTimeslice)
     )
     - sum(
         pSubCostInp.get((c, r, y, s))
-        * pSliceWeight.get((y, s))
+        * pTimesliceWeight.get((y, s))
         * model.vInpTot[c, r, y, s]
-        for s in slice
-        if ((c, r, y, s) in mvInpTot and (c, s) in mCommSlice)
+        for s in timeslice
+        if ((c, r, y, s) in mvInpTot and (c, s) in mCommTimeslice)
     )
     - sum(
         pSubCostBal.get((c, r, y, s))
-        * pSliceWeight.get((y, s))
+        * pTimesliceWeight.get((y, s))
         * model.vBalance[c, r, y, s]
-        for s in slice
-        if ((c, r, y, s) in mvBalance and (c, s) in mCommSlice)
+        for s in timeslice
+        if ((c, r, y, s) in mvBalance and (c, s) in mCommTimeslice)
     ),
 )
 if verbose:

@@ -7,7 +7,7 @@
 \format{
 A data.frame with columns \code{calendar}
 (\code{utopia_m12h24}/\code{utopia_seasons}), \code{resource} (\code{WSOL}/\code{WWIN}/\code{WHYD}),
-\code{slice} (e.g. \code{m06_h12} or \code{SUM_DAY}) and \code{wval} (capacity factor, 0-1).
+\code{timeslice} (e.g. \code{m06_h12} or \code{SUM_DAY}) and \code{wval} (capacity factor, 0-1).
 Attribute \code{source}.
 }
 \usage{
@@ -15,7 +15,7 @@ utopia_weather
 }
 \description{
 Deterministic solar / wind / hydro capacity factors for the UTOPIA model,
-provided for both teaching calendars (\code{utopia_m12h24}, 288 slices, the
+provided for both teaching calendars (\code{utopia_m12h24}, 288 timeslices, the
 default; and \code{utopia_seasons}, 12). Region-agnostic; expand to regions with
 \code{\link[=utopia_profiles]{utopia_profiles()}}. Built by \code{data-raw/utopia_data.R} from IDEEA reanalysis
 profiles (with a curated fallback when IDEEA is absent); see \code{attr(.,"source")}.

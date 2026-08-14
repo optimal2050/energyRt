@@ -7,7 +7,7 @@ get_data_slot <- function(obj) {
   if (isOnDisk(obj)) {
     data <- get_lazy_data(obj, "data")
     # The csv/parquet round-trip loses column types: an all-NA column (e.g. a
-    # folded `region`/`slice`, or a map built on a region-wildcard parameter)
+    # folded `region`/`timeslice`, or a map built on a region-wildcard parameter)
     # comes back as `logical`, which then breaks type-sensitive joins in the
     # fold / unfold passes. Restore the canonical classes on every on-disk read.
     if (!is.null(data) && nrow(data) > 0) data <- force_cols_classes(data)
@@ -375,7 +375,7 @@ setMethod(
   "ob2mi",
   signature(scen = "scenario", obj = "commodity", extra_params = "list"),
   function(scen, obj, extra_params = list()) {
-    # .checkSliceLevel(obj, extra_params)
+    # .checkTimesliceLevel(obj, extra_params)
     # .check_timeframe(obj, scen)
     # browser()
 
@@ -414,18 +414,18 @@ setMethod(
     }
     scen <- update_parameter(scen, param, data.table(comm = obj@name))
 
-    ## mCommSlice ####
+    ## mCommTimeslice ####
     comm_timeframe <- obj@timeframe
     if (is_empty(comm_timeframe)) {
       comm_timeframe <- scen@settings@calendar@default_timeframe
     }
-    com_slice <- scen@settings@calendar@timeframes[[comm_timeframe]]
+    com_timeslice <- scen@settings@calendar@timeframes[[comm_timeframe]]
     dat <- data.table(
       comm = obj@name,
-      slice = com_slice
+      timeslice = com_timeslice
     ) |>
       force_cols_classes()
-    scen <- update_parameter(scen, "mCommSlice", dat)
+    scen <- update_parameter(scen, "mCommTimeslice", dat)
 
     # browser()
     ## pDummyImportCost ####
@@ -494,7 +494,7 @@ setMethod(
 
     # dem <- .filter_data_in_slots(dem, approxim$region, "region")
     # approxim <- .fix_approximation_list(approxim, comm = dem@commodity)
-    # dem <- .disaggregateSliceLevel(dem, approxim)
+    # dem <- .disaggregateTimesliceLevel(dem, approxim)
 
     ## pDemand ####
     dat <- data.table(
@@ -502,7 +502,7 @@ setMethod(
       comm = dem@commodity,
       region = dem@demand$region,
       year = dem@demand$year,
-      slice = dem@demand$slice,
+      timeslice = dem@demand$timeslice,
       value = as.numeric(dem@demand$demand)
     ) |>
       force_cols_classes()
@@ -534,7 +534,7 @@ setMethod(
   "ob2mi",
   signature(scen = "scenario", obj = "export", extra_params = "list"),
   function(scen, obj, extra_params = list()) {
-    # .checkSliceLevel(app, approxim)
+    # .checkTimesliceLevel(app, approxim)
     # browser()
     exp <- obj
     exp@name <- toString(exp@name)
@@ -561,9 +561,9 @@ setMethod(
     #                                     lev = character(0)
     #                                     # lev = exp@timeframe
     # )
-    # exp <- .disaggregateSliceLevel(exp, approxim)
-    # mExpSlice <- data.table(expp = rep(exp@name, length(approxim$slice)), slice = approxim$slice)
-    # obj@parameters[["mExpSlice"]] <- .dat2par(obj@parameters[["mExpSlice"]], mExpSlice)
+    # exp <- .disaggregateTimesliceLevel(exp, approxim)
+    # mExpTimeslice <- data.table(expp = rep(exp@name, length(approxim$timeslice)), timeslice = approxim$timeslice)
+    # obj@parameters[["mExpTimeslice"]] <- .dat2par(obj@parameters[["mExpTimeslice"]], mExpTimeslice)
     # mExpComm <- data.table(expp = exp@name, comm = exp@commodity)
     # obj@parameters[["mExpComm"]] <- .dat2par(obj@parameters[["mExpComm"]], mExpComm)
 
@@ -575,7 +575,7 @@ setMethod(
       # comm = exp@commodity,
       region = exp@export$region,
       year = exp@export$year,
-      slice = exp@export$slice,
+      timeslice = exp@export$timeslice,
       value = as.numeric(exp@export$price)
     ) |>
       force_cols_classes()
@@ -599,7 +599,7 @@ setMethod(
     # scen@modInp@parameters$pExportRow@data
     # pExportRow <- .interp_bounds(exp@export, "exp", obj@parameters[["pExportRow"]], approxim, "expp", exp@name)
     # obj@parameters[["pExportRow"]] <- .dat2par(obj@parameters[["pExportRow"]], pExportRow)
-    dat <- .pack_bounds_long(exp@export, "exp", c("region", "year", "slice"))
+    dat <- .pack_bounds_long(exp@export, "exp", c("region", "year", "timeslice"))
     if (!is.null(dat)) {
       dat <- data.table(expp = exp@name, dat) |>
         .force_year_class_df()
@@ -608,7 +608,7 @@ setMethod(
     }
 
 
-    # mExportRow <- merge0(merge0(mExpSlice, list(region = approxim$region)), list(year = approxim$mileStoneYears))
+    # mExportRow <- merge0(merge0(mExpTimeslice, list(region = approxim$region)), list(year = approxim$mileStoneYears))
     # if (!is.null(pExportRow) && nrow(pExportRow) != 0) {
     #   pExportRow2 <- pExportRow |>
     #     filter(type == "up" & value == 0) |>
@@ -671,7 +671,7 @@ setMethod(
   "ob2mi",
   signature(scen = "scenario", obj = "import", extra_params = "list"),
   function(scen, obj, extra_params = list()) {
-    # .checkSliceLevel(app, approxim)
+    # .checkTimesliceLevel(app, approxim)
     # imp <- .upper_case(app)
     imp <- obj
     imp@name <- toString(imp@name)
@@ -702,12 +702,12 @@ setMethod(
     #                                     lev = character(0)
     #                                     # lev = imp@timeframe
     # )
-    # imp <- .disaggregateSliceLevel(imp, approxim)
-    # mImpSlice <- data.table(
-    #   imp = rep(imp@name, length(approxim$slice)),
-    #   slice = approxim$slice)
-    # obj@parameters[["mImpSlice"]] <-
-    #   .dat2par(obj@parameters[["mImpSlice"]], mImpSlice)
+    # imp <- .disaggregateTimesliceLevel(imp, approxim)
+    # mImpTimeslice <- data.table(
+    #   imp = rep(imp@name, length(approxim$timeslice)),
+    #   timeslice = approxim$timeslice)
+    # obj@parameters[["mImpTimeslice"]] <-
+    #   .dat2par(obj@parameters[["mImpTimeslice"]], mImpTimeslice)
     # mImpComm <- data.table(imp = imp@name, comm = imp@commodity)
     # obj@parameters[["mImpComm"]] <- .dat2par(obj@parameters[["mImpComm"]], mImpComm)
 
@@ -723,7 +723,7 @@ setMethod(
       imp = imp@name,
       region = imp@import$region,
       year = imp@import$year,
-      slice = imp@import$slice,
+      timeslice = imp@import$timeslice,
       value = as.numeric(imp@import$price)
     ) |>
       .force_year_class_df()
@@ -750,7 +750,7 @@ setMethod(
     #   obj@parameters[["pImportRow"]], approxim, "imp", imp@name
     # )
     # obj@parameters[["pImportRow"]] <- .dat2par(obj@parameters[["pImportRow"]], pImportRow)
-    dat <- .pack_bounds_long(imp@import, "imp", c("region", "year", "slice"))
+    dat <- .pack_bounds_long(imp@import, "imp", c("region", "year", "timeslice"))
     if (!is.null(dat)) {
       dat <- data.table(imp = imp@name, dat) |>
         .force_year_class_df()
@@ -758,7 +758,7 @@ setMethod(
       scen <- update_parameter(scen, "pImportRow", dat)
     }
 
-    # mImportRow <- merge0(merge0(mImpSlice, list(region = approxim$region)), list(year = approxim$mileStoneYears))
+    # mImportRow <- merge0(merge0(mImpTimeslice, list(region = approxim$region)), list(year = approxim$mileStoneYears))
     # if (!is.null(pImportRow) && nrow(pImportRow) != 0) {
     #   pImportRow2 <- pImportRow |>
     #     filter(type == "up" & value == 0) |>
@@ -846,7 +846,7 @@ setMethod(
     # approxim <- .fix_approximation_list(approxim, comm = sup@commodity,
     # lev = sup@timeframe) # dropped
     # approxim <- .fix_approximation_list(approxim, comm = sup@commodity)
-    # sup <- .disaggregateSliceLevel(sup, approxim)
+    # sup <- .disaggregateTimesliceLevel(sup, approxim)
     # if (length(sup@region) != 0) {
     #   approxim$region <- approxim$region[approxim$region %in% sup@region]
     #   ss <- getSlots("supply")
@@ -888,12 +888,12 @@ setMethod(
     #   )
     # }
     # sup <- .filter_data_in_slots(sup, approxim$region, "region")
-    # mSupSlice <- data.table(
-    #   sup = rep(sup@name, length(approxim$slice)),
-    #   slice = approxim$slice
+    # mSupTimeslice <- data.table(
+    #   sup = rep(sup@name, length(approxim$timeslice)),
+    #   timeslice = approxim$timeslice
     # )
-    # obj@parameters[["mSupSlice"]] <-
-    #   .dat2par(obj@parameters[["mSupSlice"]], mSupSlice)
+    # obj@parameters[["mSupTimeslice"]] <-
+    #   .dat2par(obj@parameters[["mSupTimeslice"]], mSupTimeslice)
     # browser()
     # mSupComm <- data.table(sup = sup@name, comm = sup@commodity)
     # obj@parameters[["mSupComm"]] <-
@@ -918,7 +918,7 @@ setMethod(
       comm = sup@commodity,
       region = sup@supply$region,
       year = sup@supply$year,
-      slice = sup@supply$slice,
+      timeslice = sup@supply$timeslice,
       value = as.numeric(sup@supply$cost)
     ) |>
       force_cols_classes()
@@ -951,7 +951,7 @@ setMethod(
     #   c(sup@name, sup@commodity)
     # )
     # obj@parameters[["pSupAva"]] <- .dat2par(obj@parameters[["pSupAva"]], pSupAva)
-    dat <- .pack_bounds_long(sup@supply, "ava", c("region", "year", "slice"))
+    dat <- .pack_bounds_long(sup@supply, "ava", c("region", "year", "timeslice"))
     if (!is.null(dat)) {
       dat <- data.table(sup = sup@name, comm = sup@commodity, dat) |>
         force_cols_classes()
@@ -971,10 +971,10 @@ setMethod(
     #     select(-any_of("value"))
     #   # browser()
     # }
-    # # mSupAva <- merge0(merge0(mSupSpan, list(comm = sup@commodity, year = approxim$mileStoneYears)), mSupSlice)
+    # # mSupAva <- merge0(merge0(mSupSpan, list(comm = sup@commodity, year = approxim$mileStoneYears)), mSupTimeslice)
     # mSupAva <- mSupSpan |>
     #   merge0(list(comm = sup@commodity, year = approxim$mileStoneYears)) |>
-    #   merge0(mSupSlice)
+    #   merge0(mSupTimeslice)
 
     # if (!is.null(zero_ava_up) && nrow(zero_ava_up) != 0) {
     #   if (all(colnames(mSupAva) %in% colnames(zero_ava_up))) {
@@ -1155,15 +1155,15 @@ setMethod(
   # browser()
   wth <- obj
   wth@name <- toString(wth@name)
-  # if (length(wth@timeframe) == 0 && length(approxim$calendar@slices_in_frame) > 1) {
-  #   stop("Slot weather@timeframe is empty, it should have information about slice level")
+  # if (length(wth@timeframe) == 0 && length(approxim$calendar@timeslices_in_frame) > 1) {
+  #   stop("Slot weather@timeframe is empty, it should have information about timeslice level")
   # }
   if (length(wth@timeframe) == 0) {
     stop("Weather object must have a timeframe.")
   }
   #
   # if (length(wth@timeframe) == 0) {
-  #   wth@timeframe <- names(approxim$calendar@slices_in_frame)[1]
+  #   wth@timeframe <- names(approxim$calendar@timeslices_in_frame)[1]
   # }
   # approxim <- .fix_approximation_list(approxim, lev = wth@timeframe)
   # # region fix
@@ -1173,7 +1173,7 @@ setMethod(
   # wth@region <- approxim$region
   # browser()
   # wth <- .filter_data_in_slots(wth, approxim$region, "region")
-  # wth <- .disaggregateSliceLevel(wth, approxim)
+  # wth <- .disaggregateTimesliceLevel(wth, approxim)
 
   ## pWeather ####
   # scen@modInp@parameters$pWeather@data
@@ -1181,7 +1181,7 @@ setMethod(
     weather = wth@name,
     region = wth@weather$region,
     year = wth@weather$year,
-    slice = wth@weather$slice,
+    timeslice = wth@weather$timeslice,
     value = as.numeric(wth@weather$wval)
   ) |>
     force_cols_classes()
@@ -1192,9 +1192,9 @@ setMethod(
   #   wth@weather, "wval",
   #   obj@parameters[["pWeather"]], approxim, "weather", wth@name
   # ))
-  # obj@parameters[["mWeatherSlice"]] <- .dat2par(
-  #   obj@parameters[["mWeatherSlice"]],
-  #   data.table(weather = rep(wth@name, length(approxim$slice)), slice = approxim$slice)
+  # obj@parameters[["mWeatherTimeslice"]] <- .dat2par(
+  #   obj@parameters[["mWeatherTimeslice"]],
+  #   data.table(weather = rep(wth@name, length(approxim$timeslice)), timeslice = approxim$timeslice)
   # )
   # obj@parameters[["mWeatherRegion"]] <- .dat2par(
   #   obj@parameters[["mWeatherRegion"]],
@@ -1216,10 +1216,18 @@ setMethod(
       if (is_empty(slot_info)) {next}
       slot_data <- get_lazy_data(obj, s)
       for (p in slot_info) {
+        # @vintage rows are keyed by (vintage, cluster), which are not
+        # dimSets of any lifespan parameter: resolve to one row per key
+        # first, so dropping the keys cannot fabricate duplicate
+        # (tech, region) rows -- conflicting keys error instead
+        pdat <- if (identical(s, "vintage")) {
+          .lifespan_resolve_df(as.data.frame(slot_data), p$colName,
+                               obj@name)
+        } else slot_data
         dat <- make_data_param(
           scen = scen,
           obj_name = obj@name,
-          slot_data = slot_data,
+          slot_data = pdat,
           par_meta = p,
           class_col = "tech"
           # par_name = p$name,
@@ -1250,10 +1258,14 @@ setMethod(
         if ("comm" %in% p$dimSets && is.null(slot_data$comm)) {
           slot_data <- slot_data |> mutate(comm = obj@commodity, .before = 1)
         }
+        pdat <- if (identical(s, "vintage")) {
+          .lifespan_resolve_df(as.data.frame(slot_data), p$colName,
+                               obj@name)
+        } else slot_data
         dat <- make_data_param(
           scen = scen,
           obj_name = obj@name,
-          slot_data = slot_data,
+          slot_data = pdat,
           par_meta = p,
           class_col = "stg"
         )
@@ -1277,10 +1289,23 @@ setMethod(
       if (is_empty(slot_info)) {next}
       slot_data <- get_lazy_data(obj, s)
       for (p in slot_info) {
+        pdat <- if (identical(s, "vintage")) {
+          rs <- .lifespan_resolve_df(as.data.frame(slot_data), p$colName,
+                                     obj@name)
+          # pTradeOlife has no region dimension: a per-region lifespan on
+          # a trade would silently collapse -- refuse it instead
+          if (!"region" %in% p$dimSets && any(!is.na(rs$region))) {
+            stop("trade '", obj@name, "' declares a per-region `",
+                 p$colName, "` in `@vintage`, but `", p$name,
+                 "` carries no region dimension; drop the region key",
+                 call. = FALSE)
+          }
+          rs
+        } else slot_data
         dat <- make_data_param(
           scen = scen,
           obj_name = obj@name,
-          slot_data = slot_data,
+          slot_data = pdat,
           par_meta = p,
           class_col = "trade"
         )
@@ -1379,7 +1404,7 @@ setMethod(
 # `approxim` (the engine's set-value/calendar context) is taken from
 # `extra_params$approxim` when supplied, else rebuilt here from `scen` -- same
 # shape the settings builder uses. (Retiring `approxim` + the engine's legacy
-# slice-ancestry/*RY slice handling in favour of mSliceFamily/pSliceAgg + a
+# timeslice-ancestry/*RY timeslice handling in favour of mTimesliceFamily/pTimesliceAgg + a
 # per-summand `timeframe` is deferred.)
 setMethod(
   "ob2mi",
@@ -1417,7 +1442,7 @@ setMethod(
     # NULL when no geoscale is attached.
     geo_hierarchy = .scen_geo_hierarchy(scen),
     year = ss@horizon@period,
-    slice = scen@modInp@sets$slice,
+    timeslice = scen@modInp@sets$timeslice,
     calendar = ss@calendar,
     solver = NULL,
     mileStoneYears = mid,
@@ -1455,13 +1480,13 @@ setMethod(
     obj      <- scen@modInp
 
     clean_list <- c(
-      "mSliceParentChild", "mSliceParentChildE", "mSliceNext",
-      "mSliceFYearNext", "pWacc", "pSdr", "pSliceShare", "pDummyImportCost",
+      "mTimesliceParentChild", "mTimesliceParentChildE", "mTimesliceNext",
+      "mTimesliceFYearNext", "pWacc", "pSdr", "pTimesliceShare", "pDummyImportCost",
       "pDummyExportCost",
-      "pSliceWeight",
+      "pTimesliceWeight",
       # "mStartMilestone", "mEndMilestone",
       "mMilestoneLast", "mMilestoneFirst", "mMilestoneNext",
-      "mMilestoneHasNext", "mSameSlice", "mSameRegion", "ordYear",
+      "mMilestoneHasNext", "mSameTimeslice", "mSameRegion", "ordYear",
       "pYearFraction",
       "cardYear", "pPeriodLen", "pDiscountFactor" #, "mDiscountZero"
     )
@@ -1470,31 +1495,31 @@ setMethod(
     }
     obj <- .drop_config_param(obj)
     app <- .filter_data_in_slots(app, approxim$region, "region")
-    obj@parameters[["mSliceParentChild"]] <- .dat2par(
-      obj@parameters[["mSliceParentChild"]],
+    obj@parameters[["mTimesliceParentChild"]] <- .dat2par(
+      obj@parameters[["mTimesliceParentChild"]],
       data.table(
-        slice = as.character(approxim$calendar@slice_ancestry$parent),
-        slicep = as.character(approxim$calendar@slice_ancestry$child),
+        timeslice = as.character(approxim$calendar@timeslice_ancestry$parent),
+        timeslicep = as.character(approxim$calendar@timeslice_ancestry$child),
         stringsAsFactors = FALSE
       )
     )
-    obj@parameters[["mSliceParentChildE"]] <- .dat2par(
-      obj@parameters[["mSliceParentChildE"]],
+    obj@parameters[["mTimesliceParentChildE"]] <- .dat2par(
+      obj@parameters[["mTimesliceParentChildE"]],
       data.table(
-        slice = as.character(c(app@calendar@slice_share$slice,
-                               approxim$calendar@slice_ancestry$parent)),
-        slicep = as.character(c(app@calendar@slice_share$slice,
-                                approxim$calendar@slice_ancestry$child)),
+        timeslice = as.character(c(app@calendar@timeslice_share$timeslice,
+                               approxim$calendar@timeslice_ancestry$parent)),
+        timeslicep = as.character(c(app@calendar@timeslice_share$timeslice,
+                                approxim$calendar@timeslice_ancestry$child)),
         stringsAsFactors = FALSE
       )
     )
     # browser()
     if (length(approxim$calendar@next_in_timeframe) != 0) {
-      obj@parameters[["mSliceNext"]] <-
-        .dat2par(obj@parameters[["mSliceNext"]],
+      obj@parameters[["mTimesliceNext"]] <-
+        .dat2par(obj@parameters[["mTimesliceNext"]],
                  approxim$calendar@next_in_timeframe)
-      obj@parameters[["mSliceFYearNext"]] <-
-        .dat2par(obj@parameters[["mSliceFYearNext"]],
+      obj@parameters[["mTimesliceFYearNext"]] <-
+        .dat2par(obj@parameters[["mTimesliceFYearNext"]],
                  approxim$calendar@next_in_year)
     }
     # The model's two rates: `wacc` annuitises investment (R/eac.R), `sdr`
@@ -1520,103 +1545,103 @@ setMethod(
     }
     approxim_comm <- approxim
     approxim_comm[["comm"]] <- approxim$all_comm
-    obj@parameters[["pSliceShare"]] <- .dat2par(
-      obj@parameters[["pSliceShare"]],
+    obj@parameters[["pTimesliceShare"]] <- .dat2par(
+      obj@parameters[["pTimesliceShare"]],
       data.table(
-        slice = approxim$calendar@slice_share$slice,
-        value = approxim$calendar@slice_share$share
+        timeslice = approxim$calendar@timeslice_share$timeslice,
+        value = approxim$calendar@timeslice_share$share
       )
     )
-    approxim_comm$slice <- approxim$calendar@slice_share$slice
+    approxim_comm$timeslice <- approxim$calendar@timeslice_share$timeslice
 
     # browser()
     data.table::setNumericRounding(2) # ignore small differences in 'unique' function
-    # add pSliceWeight from calendar@misc$pSliceWeight o @slice_share$weight
-    if (!is_null(approxim$calendar@misc$pSliceWeight)) {
+    # add pTimesliceWeight from calendar@misc$pTimesliceWeight o @timeslice_share$weight
+    if (!is_null(approxim$calendar@misc$pTimesliceWeight)) {
 
-      pSliceWeight_tmp <- data.table(
-        year = approxim$calendar@misc$pSliceWeight$year,
-        slice = approxim$calendar@misc$pSliceWeight$slice,
-        value = approxim$calendar@misc$pSliceWeight$weight
+      pTimesliceWeight_tmp <- data.table(
+        year = approxim$calendar@misc$pTimesliceWeight$year,
+        timeslice = approxim$calendar@misc$pTimesliceWeight$timeslice,
+        value = approxim$calendar@misc$pTimesliceWeight$weight
       )
-      if (is_null(pSliceWeight_tmp[["value"]])) {
-        if (is_null(pSliceWeight_tmp[["weight"]])) {
-          stop("No slice weight in calendar@misc$pSliceWeight$value or @slice_share$weight")
+      if (is_null(pTimesliceWeight_tmp[["value"]])) {
+        if (is_null(pTimesliceWeight_tmp[["weight"]])) {
+          stop("No timeslice weight in calendar@misc$pTimesliceWeight$value or @timeslice_share$weight")
         }
-        pSliceWeight_tmp <- rename(pSliceWeight_tmp, value = weight)
+        pTimesliceWeight_tmp <- rename(pTimesliceWeight_tmp, value = weight)
       }
     } else {
-      pSliceWeight_tmp <- lapply(approxim$year, function(x) {
+      pTimesliceWeight_tmp <- lapply(approxim$year, function(x) {
         data.table(
           year = x,
-          slice = approxim$calendar@slice_share$slice,
-          value = approxim$calendar@slice_share$weight
+          timeslice = approxim$calendar@timeslice_share$timeslice,
+          value = approxim$calendar@timeslice_share$weight
         )
       }) |> rbindlist()
     }
 
-    # calculate slice weights for "parent" timeframes
-    # requirements: weights are given for the lowest level time-slices
-    # approxim$calendar@slice_share |>
+    # calculate timeslice weights for "parent" timeframes
+    # requirements: weights are given for the lowest level time-timeslices
+    # approxim$calendar@timeslice_share |>
     #   select(-weight) |>
-    #   left_join(, by = "slice")
+    #   left_join(, by = "timeslice")
 
-    a <- pSliceWeight_tmp |>
-      left_join(approxim$calendar@slice_ancestry, by = c("slice" = "child")) |>
-      left_join(select(approxim$calendar@slice_share, -weight),
-                by = c("parent" = "slice")) |>
+    a <- pTimesliceWeight_tmp |>
+      left_join(approxim$calendar@timeslice_ancestry, by = c("timeslice" = "child")) |>
+      left_join(select(approxim$calendar@timeslice_share, -weight),
+                by = c("parent" = "timeslice")) |>
       rename(weight = value) |>
       filter(!is.na(parent))
 
     b <-
       approxim$calendar@timetable |>
-      select(1:slice) |>
-      pivot_longer(cols = -slice, names_to = "timeframe",
+      select(1:timeslice) |>
+      pivot_longer(cols = -timeslice, names_to = "timeframe",
                    values_to = "parent") |>
       as.data.table() |>
-      select(timeframe, parent, slice) |>
-      arrange(timeframe, parent, slice)
+      select(timeframe, parent, timeslice) |>
+      arrange(timeframe, parent, timeslice)
 
-    ab <- left_join(a, b, by = c("slice", "parent")) |>
+    ab <- left_join(a, b, by = c("timeslice", "parent")) |>
       group_by(year, parent) |>
       summarise(value = weighted.mean(weight, w = share)) |>
-      rename(slice = parent) |>
+      rename(timeslice = parent) |>
       as.data.table()
 
-    pSliceWeight_tmp <- rbind(pSliceWeight_tmp, ab) |>
+    pTimesliceWeight_tmp <- rbind(pTimesliceWeight_tmp, ab) |>
       filter(year %in% approxim$mileStoneYears) |>
       unique()
-    # pSliceWeight_tmp$value <- pSliceWeight_tmp$value /
+    # pTimesliceWeight_tmp$value <- pTimesliceWeight_tmp$value /
     #   (24 * 7 * 52 / 24 / 365)
 
-    obj@parameters[["pSliceWeight"]] <- .dat2par(
-      obj@parameters[["pSliceWeight"]],
+    obj@parameters[["pTimesliceWeight"]] <- .dat2par(
+      obj@parameters[["pTimesliceWeight"]],
       # data.table(
-      #   slice = approxim$calendar@slice_share$slice,
-      #   value = approxim$calendar@slice_share$weight
+      #   timeslice = approxim$calendar@timeslice_share$timeslice,
+      #   value = approxim$calendar@timeslice_share$weight
       # )
-      pSliceWeight_tmp
+      pTimesliceWeight_tmp
     )
-    # agg-rewrite: intensive slice-aggregation weight pSliceAgg[year, parent, child]
-    # = pSliceWeight[year, child] / pSliceWeight[year, parent], over IMMEDIATE
-    # parent-child pairs (@slice_family). Used to up-aggregate commodity totals
+    # agg-rewrite: intensive timeslice-aggregation weight pTimesliceAgg[year, parent, child]
+    # = pTimesliceWeight[year, child] / pTimesliceWeight[year, parent], over IMMEDIATE
+    # parent-child pairs (@timeslice_family). Used to up-aggregate commodity totals
     # between adjacent levels (eqOutTot/eqInpTot), replacing *2Lo disaggregation.
-    pSliceAgg_tmp <- dplyr::as_tibble(approxim$calendar@slice_family) |>
-      dplyr::transmute(slice = as.character(parent),
-                       slicep = as.character(child)) |>
-      dplyr::left_join(dplyr::rename(pSliceWeight_tmp,
-                                     slicep = slice, w_child = value),
-                       by = "slicep") |>
-      dplyr::left_join(dplyr::rename(pSliceWeight_tmp, w_parent = value),
-                       by = c("year", "slice")) |>
+    pTimesliceAgg_tmp <- dplyr::as_tibble(approxim$calendar@timeslice_family) |>
+      dplyr::transmute(timeslice = as.character(parent),
+                       timeslicep = as.character(child)) |>
+      dplyr::left_join(dplyr::rename(pTimesliceWeight_tmp,
+                                     timeslicep = timeslice, w_child = value),
+                       by = "timeslicep") |>
+      dplyr::left_join(dplyr::rename(pTimesliceWeight_tmp, w_parent = value),
+                       by = c("year", "timeslice")) |>
       dplyr::filter(!is.na(w_child) & !is.na(w_parent) & w_parent != 0) |>
-      dplyr::transmute(year, slice, slicep, value = w_child / w_parent) |>
+      dplyr::transmute(year, timeslice, timeslicep, value = w_child / w_parent) |>
       as.data.table()
-    obj@parameters[["pSliceAgg"]] <- .dat2par(
-      obj@parameters[["pSliceAgg"]], pSliceAgg_tmp)
-    rm(pSliceAgg_tmp)
+    obj@parameters[["pTimesliceAgg"]] <- .dat2par(
+      obj@parameters[["pTimesliceAgg"]], pTimesliceAgg_tmp)
+    rm(pTimesliceAgg_tmp)
     # browser()
-    rm(a, b, ab, pSliceWeight_tmp)
+    rm(a, b, ab, pTimesliceWeight_tmp)
 
     if (nrow(app@horizon@intervals) == 0) { # ???
       invisible()  # browser() disabled
@@ -1643,10 +1668,10 @@ setMethod(
       data.table(year = app@horizon@intervals$mid[-nrow(app@horizon@intervals)])
     )
 
-    obj@parameters[["mSameSlice"]] <- .dat2par(
-      obj@parameters[["mSameSlice"]],
-      data.table(slice = app@calendar@slice_share$slice,
-                 slicep = app@calendar@slice_share$slice)
+    obj@parameters[["mSameTimeslice"]] <- .dat2par(
+      obj@parameters[["mSameTimeslice"]],
+      data.table(timeslice = app@calendar@timeslice_share$timeslice,
+                 timeslicep = app@calendar@timeslice_share$timeslice)
     )
     obj@parameters[["mSameRegion"]] <- .dat2par(
       obj@parameters[["mSameRegion"]],
@@ -1715,7 +1740,7 @@ force_cols_classes <- function(dtf) {
   # browser()
   string_vars <- c(
     "comm", "commp",
-    "slice", "slicep",
+    "timeslice", "timeslicep",
     "region", "regionp",
     "exp", "expp",
     "stg", "stgp",
@@ -1840,7 +1865,7 @@ make_data_param <- function(
     }
 
     # dimension columns absent from the slot data (e.g. objects saved under an
-    # older class version without a `slice` column) are unset -> NA wildcard
+    # older class version without a `timeslice` column) are unset -> NA wildcard
     for (m in setdiff(scen@modInp@parameters[[par_meta$name]]@dimSets,
                       names(dat))) {
       dat[[m]] <- rep(NA, nrow(dat))
@@ -1886,7 +1911,7 @@ make_data_param <- function(
     }
 
     # dimension columns absent from the slot data (e.g. objects saved under an
-    # older class version without a `slice` column) are unset -> NA wildcard
+    # older class version without a `timeslice` column) are unset -> NA wildcard
     for (m in setdiff(scen@modInp@parameters[[par_meta$name]]@dimSets,
                       names(dat))) {
       dat[[m]] <- rep(NA, nrow(dat))
@@ -1988,10 +2013,10 @@ if (FALSE) {
   get_slot_meta(class = "technology",
                 # slot = "tech",
                 type = "numpar",
-                dimSets = c("region", "year", "slice")
+                dimSets = c("region", "year", "timeslice")
                 )
   get_slot_meta(class = "tech", slot = "tech", type = "numpar",
-                dimSets = c("region", "year", "slice"), return_names = "slot")
+                dimSets = c("region", "year", "timeslice"), return_names = "slot")
   ll <- get_slot_meta(colName = "wval", return_names = "defVal", flat = TRUE)
   ll <- get_slot_meta(colName = "waf", return_names = "defVal")
   ll <- get_slot_meta(colName = "waf")

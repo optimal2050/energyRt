@@ -1,14 +1,15 @@
 # Generate a new calendar object from
 
-Calendars are defined by the structure of timeframes and time-slices
+Calendars are defined by the structure of timeframes and time-timeslices
 with shares of time in a year. The structure is represented by a
 `timetable` data.frame with levels of timeframes in the named columns,
-and names of individual time-slices in every timeframe. The number of
-rows in `timetable` is equal to the total number of time-slices on the
-lowest level. Every timeframe is a set of timeslices ("slices") - a
-named fragment of time with a year-share. Timeframes have nested
-structure. Currently, every "parent"-timeframe must have the same number
-of elements as the "child"-timeframe. (This may change in the future.)
+and names of individual time-timeslices in every timeframe. The number
+of rows in `timetable` is equal to the total number of time-timeslices
+on the lowest level. Every timeframe is a set of timeslices
+("timeslices") - a named fragment of time with a year-share. Timeframes
+have nested structure. Currently, every "parent"-timeframe must have the
+same number of elements as the "child"-timeframe. (This may change in
+the future.)
 
 - ANNUAL:
 
@@ -26,11 +27,11 @@ of elements as the "child"-timeframe. (This may change in the future.)
 
   character, (optional) further subannual levels of timeframes
 
-- slice:
+- timeslice:
 
-  character, name of the time-slices used in sets to refer to the lowest
+  character, name of the timeslices used in sets to refer to the lowest
   level of timeframes. If not specified, will be auto-created with the
-  formula: `{SLICE2}_{SLICE3}...`
+  formula: `{TIMESLICE2}_{TIMESLICE3}...`
 
 ## Usage
 
@@ -41,7 +42,7 @@ newCalendar(
   timetable = NULL,
   year_fraction = 1,
   default_timeframe = NULL,
-  misc = list(pSliceWeight = NULL),
+  misc = list(pTimesliceWeight = NULL),
   ...
 )
 ```
@@ -51,8 +52,8 @@ newCalendar(
 - name:
 
   character. Name of the calendar object. Use to distingush between
-  different structures and subsets of time-slices. The name is used to
-  propose default folder names for the model/scenario scripts to
+  different structures and subsets of time-timeslices. The name is used
+  to propose default folder names for the model/scenario scripts to
   separate solutions of the same scenario with different calendar
   objects.
 
@@ -63,16 +64,17 @@ newCalendar(
 - timetable:
 
   data.frame. Data frame with levels of timeframes in the named columns,
-  and number of rows equal to the total number of time-slices on the
-  lowest level. Every timeframe is a set of time-slices ("slices") - a
-  named fragment of time with a year-share. Timeframes have nested
-  structure where every slice serves as a parent for the lower level of
-  time-slices (children). The first column is the name of the
-  time-slice, the rest of the columns are the names of the timeframes.
-  The values are the share of the year covered by the time-slice. The
-  sum of the shares in every timeframe should be equal to 1. `weight` is
-  an optional column with the weight of the time-slice in the year, used
-  for sumpled/subset selection of the time-slices.
+  and number of rows equal to the total number of time-timeslices on the
+  lowest level. Every timeframe is a set of time-timeslices
+  ("timeslices") - a named fragment of time with a year-share.
+  Timeframes have nested structure where every timeslice serves as a
+  parent for the lower level of time-timeslices (children). The first
+  column is the name of the time-timeslice, the rest of the columns are
+  the names of the timeframes. The values are the share of the year
+  covered by the time-timeslice. The sum of the shares in every
+  timeframe should be equal to 1. `weight` is an optional column with
+  the weight of the time-timeslice in the year, used for sumpled/subset
+  selection of the time-timeslices.
 
 - year_fraction:
 
@@ -83,8 +85,8 @@ newCalendar(
 
 - default_timeframe:
 
-  character. The name of the default level of the time-slices used in
-  the model. If not specified, the lowest level of the timeframes is
+  character. The name of the default level of the time-timeslices used
+  in the model. If not specified, the lowest level of the timeframes is
   used as the default timeframe.
 
 - misc:
@@ -119,14 +121,14 @@ newCalendar()
 #> [1] 1
 #> 
 #> Slot "timetable":
-#>    ANNUAL  slice share weight
-#>    <char> <char> <num>  <num>
-#> 1: ANNUAL ANNUAL     1      1
+#>    ANNUAL timeslice share weight
+#>    <char>    <char> <num>  <num>
+#> 1: ANNUAL    ANNUAL     1      1
 #> 
-#> Slot "slice_share":
-#>     slice share weight
-#>    <char> <num>  <num>
-#> 1: ANNUAL     1      1
+#> Slot "timeslice_share":
+#>    timeslice share weight
+#>       <char> <num>  <num>
+#> 1:    ANNUAL     1      1
 #> 
 #> Slot "default_timeframe":
 #> [1] "ANNUAL"
@@ -135,24 +137,24 @@ newCalendar()
 #> ANNUAL 
 #>      1 
 #> 
-#> Slot "slices_in_frame":
+#> Slot "timeslices_in_frame":
 #> ANNUAL 
 #>      1 
 #> 
-#> Slot "slice_family":
+#> Slot "timeslice_family":
 #> Empty data.table (0 rows and 2 cols): parent,child
 #> 
-#> Slot "slice_ancestry":
+#> Slot "timeslice_ancestry":
 #> Empty data.table (0 rows and 2 cols): parent,child
 #> 
 #> Slot "next_in_timeframe":
-#> Empty data.table (0 rows and 2 cols): slice,slicep
+#> Empty data.table (0 rows and 2 cols): timeslice,timeslicep
 #> 
 #> Slot "next_in_year":
-#> Empty data.table (0 rows and 2 cols): slice,slicep
+#> Empty data.table (0 rows and 2 cols): timeslice,timeslicep
 #> 
 #> Slot "misc":
-#> $pSliceWeight
+#> $pTimesliceWeight
 #> NULL
 #> 
 #> 

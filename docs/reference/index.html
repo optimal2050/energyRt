@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.75.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.80.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -395,7 +395,7 @@
           <code><a href="calendar.html">make_timetable()</a></code>
 
         </dt>
-        <dd>Create timetable of time-slices from given structure as a list</dd>
+        <dd>Create timetable of time-timeslices from given structure as a list</dd>
 
         <dt>
 
@@ -445,6 +445,50 @@
 
         </dt>
         <dd>Convert units</dd>
+      </dl></div><div class="section level2">
+      <h2 id="technology-specs">Technology specs<a class="anchor" aria-label="anchor" href="#technology-specs"></a></h2>
+
+      <div class="section-desc"><p>Portable technology specifications (YAML/JSON containers) and vintage tools.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="tech_from_spec.html">tech_from_spec()</a></code>
+
+        </dt>
+        <dd>Build a technology object from a techspec</dd>
+
+        <dt>
+
+          <code><a href="tech_to_spec.html">tech_to_spec()</a></code>
+
+        </dt>
+        <dd>Export a technology object as a techspec list</dd>
+
+        <dt>
+
+          <code><a href="tech_spec_code.html">tech_spec_code()</a></code>
+
+        </dt>
+        <dd>The newTechnology() call equivalent to a techspec, as text</dd>
+
+        <dt>
+
+          <code><a href="tech_spec_issues.html">tech_spec_issues()</a></code>
+
+        </dt>
+        <dd>Validate a techspec and report issues</dd>
+
+        <dt>
+
+          <code><a href="combine_vintages.html">combine_vintages()</a></code>
+
+        </dt>
+        <dd>Combine per-vintage technology objects into one vintaged technology</dd>
       </dl></div><div class="section level2">
       <h2 id="configuration-and-settings">Configuration and Settings<a class="anchor" aria-label="anchor" href="#configuration-and-settings"></a></h2>
 
@@ -613,6 +657,13 @@
 
         <dt>
 
+          <code><a href="read_techspec.html">read_techspec()</a></code>
+
+        </dt>
+        <dd>Read and validate a techspec</dd>
+
+        <dt>
+
           <code><a href="solve_mod.html">solve_mod()</a></code> <code><a href="solve_mod.html">solve_scen()</a></code>
 
         </dt>
@@ -733,6 +784,13 @@
 
         </dt>
         <dd>Generate a summary report for an energyRt object</dd>
+
+        <dt>
+
+          <code><a href="report_docx.html">report_docx()</a></code>
+
+        </dt>
+        <dd>Generate a Word report for an energyRt object</dd>
 
         <dt>
 
@@ -895,21 +953,21 @@
           <code><a href="timeslices.html">tsl_formats</a></code> <code><a href="timeslices.html">tsl_sets</a></code> <code><a href="timeslices.html">dtm2tsl()</a></code> <code><a href="timeslices.html">tsl2dtm()</a></code>
 
         </dt>
-        <dd>Common formats of time-slices.</dd>
+        <dd>Common formats of time-timeslices.</dd>
 
         <dt>
 
           <code><a href="tsl2dtm.html">tsl2year()</a></code> <code><a href="tsl2dtm.html">tsl2yday()</a></code> <code><a href="tsl2dtm.html">tsl2hour()</a></code> <code><a href="tsl2dtm.html">tsl2month()</a></code>
 
         </dt>
-        <dd>Mapping function between time-slices and day of the year</dd>
+        <dd>Mapping function between time-timeslices and day of the year</dd>
 
         <dt>
 
           <code><a href="tsl_guess_format.html">tsl_guess_format()</a></code>
 
         </dt>
-        <dd>Guess format of time-slices</dd>
+        <dd>Guess format of time-timeslices</dd>
 
         <dt>
 
@@ -1115,6 +1173,13 @@
 
         </dt>
         <dd>Generate an R script that recreates an energyRt object</dd>
+
+        <dt>
+
+          <code><a href="process_designer.html">process_designer()</a></code> <code><a href="process_designer.html">tech_designer()</a></code>
+
+        </dt>
+        <dd>Launch the process designer</dd>
 
         <dt>
 

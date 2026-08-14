@@ -80,6 +80,7 @@
 <url><loc>https://energyRt.org/reference/class-weather.html</loc></url>
 <url><loc>https://energyRt.org/reference/class.html</loc></url>
 <url><loc>https://energyRt.org/reference/collect_set_elements.html</loc></url>
+<url><loc>https://energyRt.org/reference/combine_vintages.html</loc></url>
 <url><loc>https://energyRt.org/reference/commodity.html</loc></url>
 <url><loc>https://energyRt.org/reference/compare_interp_settings.html</loc></url>
 <url><loc>https://energyRt.org/reference/compare_solve_settings.html</loc></url>
@@ -245,14 +246,17 @@
 <url><loc>https://energyRt.org/reference/plot_trade_map.html</loc></url>
 <url><loc>https://energyRt.org/reference/plot_weather.html</loc></url>
 <url><loc>https://energyRt.org/reference/print.html</loc></url>
+<url><loc>https://energyRt.org/reference/process_designer.html</loc></url>
 <url><loc>https://energyRt.org/reference/progress.html</loc></url>
 <url><loc>https://energyRt.org/reference/read.html</loc></url>
 <url><loc>https://energyRt.org/reference/read_technology_xlsx.html</loc></url>
+<url><loc>https://energyRt.org/reference/read_techspec.html</loc></url>
 <url><loc>https://energyRt.org/reference/recipe_closure.html</loc></url>
 <url><loc>https://energyRt.org/reference/recipe_constraint.html</loc></url>
 <url><loc>https://energyRt.org/reference/register.html</loc></url>
 <url><loc>https://energyRt.org/reference/renameSets.html</loc></url>
 <url><loc>https://energyRt.org/reference/report.html</loc></url>
+<url><loc>https://energyRt.org/reference/report_docx.html</loc></url>
 <url><loc>https://energyRt.org/reference/report_html.html</loc></url>
 <url><loc>https://energyRt.org/reference/report_pdf.html</loc></url>
 <url><loc>https://energyRt.org/reference/report_tex.html</loc></url>
@@ -288,7 +292,11 @@
 <url><loc>https://energyRt.org/reference/technology,.html</loc></url>
 <url><loc>https://energyRt.org/reference/technology-class.html</loc></url>
 <url><loc>https://energyRt.org/reference/technology.html</loc></url>
+<url><loc>https://energyRt.org/reference/tech_from_spec.html</loc></url>
 <url><loc>https://energyRt.org/reference/tech_share_frontier.html</loc></url>
+<url><loc>https://energyRt.org/reference/tech_spec_code.html</loc></url>
+<url><loc>https://energyRt.org/reference/tech_spec_issues.html</loc></url>
+<url><loc>https://energyRt.org/reference/tech_to_spec.html</loc></url>
 <url><loc>https://energyRt.org/reference/the.html</loc></url>
 <url><loc>https://energyRt.org/reference/theme_energyRt.html</loc></url>
 <url><loc>https://energyRt.org/reference/timeslices.html</loc></url>

@@ -73,11 +73,11 @@ otherwise); every frame carries a `scenario` and a `name` column.
 getData(scen, "vObjective", merge = TRUE)$value      # total system cost, MEUR
 
 gen <- getData(scen, "vTechOut", comm = "ELC", merge = TRUE)
-head(gen[, c("scenario", "tech", "region", "year", "slice", "value")], 4)
+head(gen[, c("scenario", "tech", "region", "year", "timeslice", "value")], 4)
 ```
 
 The `...` accept set filters, exact (`comm = "ELC"`) or regex (`comm_ = "^EL"`).
-`timeframe = c("lowest","highest","all")` controls how slice-indexed values are
+`timeframe = c("lowest","highest","all")` controls how timeslice-indexed values are
 returned. Rename dimensions or recode values on the way out with `newNames =` /
 `newValues =` (or afterwards with `renameSets()` / `revalueSets()`), and discover
 which parameters carry a given set with `findData()`:

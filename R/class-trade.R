@@ -63,7 +63,7 @@ setClass("trade",
       src = character(),
       dst = character(),
       year = integer(),
-      slice = character(),
+      timeslice = character(),
       ava.up = numeric(),
       ava.fx = numeric(),
       ava.lo = numeric(),
@@ -84,7 +84,7 @@ setClass("trade",
       src = character(),
       dst = character(),
       year = integer(),
-      slice = character(),
+      timeslice = character(),
       varom = numeric(),
       markup = numeric(),
       stringsAsFactors = FALSE
@@ -105,7 +105,8 @@ setClass("trade",
     ),
     # Lifespan / vintage table, replacing the former `start`/`end`/`olife` slots
     # (whose ToDo notes asked for exactly this consistency with the other
-    # processes). One row per vintage; `start`/`end` default to the vintage year.
+    # processes). One row per vintage; `start`/`end` = user-defined window
+    # (NA side = unbounded).
     # `region` and `cluster` are carried for a uniform shape across classes but
     # are unused here: trade has no `@region` slot -- its scope comes from the
     # route endpoints -- and no cluster dimension, since `@routes` already
@@ -147,7 +148,7 @@ setClass("trade",
       src = character(),
       dst = character(),
       year = integer(),
-      slice = character(),
+      timeslice = character(),
       csrc2aout = numeric(),
       csrc2ainp = numeric(),
       cdst2aout = numeric(),

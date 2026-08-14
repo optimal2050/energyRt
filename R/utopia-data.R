@@ -18,14 +18,14 @@
 #' UTOPIA representative capacity-factor profiles
 #'
 #' Deterministic solar / wind / hydro capacity factors for the UTOPIA model,
-#' provided for both teaching calendars (`utopia_m12h24`, 288 slices, the
+#' provided for both teaching calendars (`utopia_m12h24`, 288 timeslices, the
 #' default; and `utopia_seasons`, 12). Region-agnostic; expand to regions with
 #' [utopia_profiles()]. Built by `data-raw/utopia_data.R` from IDEEA reanalysis
 #' profiles (with a curated fallback when IDEEA is absent); see `attr(.,"source")`.
 #'
 #' @format A data.frame with columns `calendar`
 #'   (`utopia_m12h24`/`utopia_seasons`), `resource` (`WSOL`/`WWIN`/`WHYD`),
-#'   `slice` (e.g. `m06_h12` or `SUM_DAY`) and `wval` (capacity factor, 0-1).
+#'   `timeslice` (e.g. `m06_h12` or `SUM_DAY`) and `wval` (capacity factor, 0-1).
 #'   Attribute `source`.
 #' @seealso [utopia_profiles()], [utopia_demand], [utopia_stock], [calendars]
 #' @examples
@@ -35,13 +35,13 @@
 
 #' UTOPIA electricity load shape
 #'
-#' A deterministic relative electricity-load shape by slice, for both teaching
+#' A deterministic relative electricity-load shape by timeslice, for both teaching
 #' calendars (replaces the vignette's former random load curve).
 #' [utopia_profiles()] / the vignette scale it by a region's annual demand and
-#' the slice shares to get energy per slice.
+#' the timeslice shares to get energy per timeslice.
 #'
 #' @format A data.frame with columns `calendar`
-#'   (`utopia_m12h24`/`utopia_seasons`), `slice` and `load` (relative, mean ~1).
+#'   (`utopia_m12h24`/`utopia_seasons`), `timeslice` and `load` (relative, mean ~1).
 #' @seealso [utopia_profiles()], [utopia_weather], [utopia_stock]
 #' @examples
 #' utopia_demand

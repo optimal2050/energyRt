@@ -54,7 +54,9 @@ levcost(object, comm, name, ...)
   `fuel_costs`
 
   :   Named numeric vector `[commodity -> cost]` for input commodities
-      not found in `repo`.
+      not found in `repo`. Auxiliary commodities consumed by the process
+      (aux inputs) can be priced the same way; unnamed ones are supplied
+      at zero cost.
 
   `autocomplete`
 
@@ -83,8 +85,8 @@ levcost(object, comm, name, ...)
   `timeframe`
 
   :   `"ANNUAL"` (default) or `"native"`. `"ANNUAL"` prices the
-      technology on a single annual time-slice: any weather profile is
-      collapsed to an annual capacity factor (applied as the
+      technology on a single annual time-timeslice: any weather profile
+      is collapsed to an annual capacity factor (applied as the
       technology's annual availability), so capacity is sized to serve
       unit annual demand at that factor (textbook LCOE). `"native"`
       keeps the supplied (sub-annual) calendar and normalises by total
@@ -95,8 +97,8 @@ levcost(object, comm, name, ...)
 
   :   Logical, default `TRUE`. Enables a very expensive dummy-import
       slack on the output commodity balance so the mini-model always
-      solves even when the technology cannot serve a slice on its own;
-      the slack cost is excluded from the LCOE.
+      solves even when the technology cannot serve a timeslice on its
+      own; the slack cost is excluded from the LCOE.
 
   `region`
 
@@ -119,6 +121,25 @@ levcost(object, comm, name, ...)
   `solver`
 
   :   Solver spec list, default `solver_options$glpk`.
+
+  `method`
+
+  :   `"auto"` (default), `"analytic"`, or `"solve"`. The unit-demand
+      annual mini-model has a closed-form optimum for most technologies;
+      `"auto"` computes it analytically (no solver needed) whenever the
+      technology qualifies and falls back to the solver otherwise, with
+      a message naming the reason. `"analytic"` refuses non-qualifying
+      technologies instead of falling back; `"solve"` always builds and
+      solves the mini-model. The analytic result carries the same fields
+      (plus `$method = "analytic"` and `$frontier_vertices`, which
+      reports EVERY corner of the input/output share polytopes with its
+      per-activity NPV cost breakdown and an `optimal` flag);
+      `$scenario` is `NULL` on this path. Not analytically representable
+      (solver required): technology chains, `timeframe = "native"`,
+      `afc.*` bounds, availability lower bounds, `optimizeRetirement`,
+      year-varying `invcost`, reserve- or availability-constrained
+      supplies, and group substitution combined with year-varying prices
+      or efficiencies.
 
   `run`
 

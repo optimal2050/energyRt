@@ -1,6 +1,6 @@
 # `unfold_parameter` must reverse a fold for FULL-SET-fallback parameters --
-# settings / weather params folded over the COMPLETE region/slice/year set, with
-# no per-entity membership (`pDiscountFactor`, `pDiscount`, `pSliceWeight`,
+# settings / weather params folded over the COMPLETE region/timeslice/year set, with
+# no per-entity membership (`pDiscountFactor`, `pDiscount`, `pTimesliceWeight`,
 # `pWeather`, ...). Two bugs lived here, both surfaced by the GAMS write path
 # (which unfolds + densifies a sparse/folded scenario):
 #   (1) a full-set membership carries only the `dim` column, so the join on
@@ -24,10 +24,10 @@ test_that("fold -> unfold + densify recovers the dense build for full-set params
   mod <- tm_weather()   # multi-year + repeated weather -> pWeather folds year
 
   dn <- suppressWarnings(suppressMessages(
-    interp_mod(mod, name = "fu_dn", ondisk = FALSE, sparse = FALSE, fold = FALSE)))
+    interpolate_model(mod, name = "fu_dn", ondisk = FALSE, sparse = FALSE, fold = FALSE)))
   fo <- suppressWarnings(suppressMessages(
-    interp_mod(mod, name = "fu_fo", ondisk = FALSE, sparse = TRUE,
-               fold = c("region", "slice", "year"))))
+    interpolate_model(mod, name = "fu_fo", ondisk = FALSE, sparse = TRUE,
+               fold = c("region", "timeslice", "year"))))
 
   # The GAMS-write transform: unfold value params, densify defaults, trim.
   tr <- unfold_scenario_parameters(fo, dims = energyRt:::.foldable_dims,
@@ -42,7 +42,7 @@ test_that("fold -> unfold + densify recovers the dense build for full-set params
     rownames(d) <- NULL
     d
   }
-  for (p in c("pDiscountFactor", "pDiscount", "pSliceWeight", "pWeather")) {
+  for (p in c("pDiscountFactor", "pWacc", "pSdr", "pTimesliceWeight", "pWeather")) {
     expect_true(isTRUE(all.equal(sorted(dn, p), sorted(tr, p),
                                  check.attributes = FALSE)),
                 info = paste("full-set param round-trip:", p))

@@ -98,7 +98,7 @@ for s1, r, y in mvSupCost:
 f.close()
 flist.write("vEmsFuelTot\n")
 f = open("output/vEmsFuelTot.csv", "w")
-f.write("comm,region,year,slice,value\n")
+f.write("comm,region,year,timeslice,value\n")
 for c, r, y, s in mEmsFuelTot:
     if model.vEmsFuelTot[(c, r, y, s)].value != 0:
         f.write(
@@ -116,7 +116,7 @@ for c, r, y, s in mEmsFuelTot:
 f.close()
 flist.write("vBalance\n")
 f = open("output/vBalance.csv", "w")
-f.write("comm,region,year,slice,value\n")
+f.write("comm,region,year,timeslice,value\n")
 for c, r, y, s in mvBalance:
     if model.vBalance[(c, r, y, s)].value != 0:
         f.write(
@@ -180,7 +180,7 @@ for c, r, y in mSubCost:
 f.close()
 flist.write("vAggOutTot\n")
 f = open("output/vAggOutTot.csv", "w")
-f.write("comm,region,year,slice,value\n")
+f.write("comm,region,year,timeslice,value\n")
 for c, r, y, s in mAggOut:
     if model.vAggOutTot[(c, r, y, s)].value != 0:
         f.write(
@@ -440,7 +440,7 @@ for t, r, y in mTechSpan:
 f.close()
 flist.write("vTechAct\n")
 f = open("output/vTechAct.csv", "w")
-f.write("tech,region,year,slice,value\n")
+f.write("tech,region,year,timeslice,value\n")
 for t, r, y, s in mvTechAct:
     if model.vTechAct[(t, r, y, s)].value != 0:
         f.write(
@@ -458,7 +458,7 @@ for t, r, y, s in mvTechAct:
 f.close()
 flist.write("vTechInp\n")
 f = open("output/vTechInp.csv", "w")
-f.write("tech,comm,region,year,slice,value\n")
+f.write("tech,comm,region,year,timeslice,value\n")
 for t, c, r, y, s in mvTechInp:
     if model.vTechInp[(t, c, r, y, s)].value != 0:
         f.write(
@@ -478,7 +478,7 @@ for t, c, r, y, s in mvTechInp:
 f.close()
 flist.write("vTechOut\n")
 f = open("output/vTechOut.csv", "w")
-f.write("tech,comm,region,year,slice,value\n")
+f.write("tech,comm,region,year,timeslice,value\n")
 for t, c, r, y, s in mvTechOut:
     if model.vTechOut[(t, c, r, y, s)].value != 0:
         f.write(
@@ -499,7 +499,7 @@ f.close()
 # [agg-rewrite] vTechOutRY output retired
 flist.write("vTechAInp\n")
 f = open("output/vTechAInp.csv", "w")
-f.write("tech,comm,region,year,slice,value\n")
+f.write("tech,comm,region,year,timeslice,value\n")
 for t, c, r, y, s in mvTechAInp:
     if model.vTechAInp[(t, c, r, y, s)].value != 0:
         f.write(
@@ -519,7 +519,7 @@ for t, c, r, y, s in mvTechAInp:
 f.close()
 flist.write("vTechAOut\n")
 f = open("output/vTechAOut.csv", "w")
-f.write("tech,comm,region,year,slice,value\n")
+f.write("tech,comm,region,year,timeslice,value\n")
 for t, c, r, y, s in mvTechAOut:
     if model.vTechAOut[(t, c, r, y, s)].value != 0:
         f.write(
@@ -539,7 +539,7 @@ for t, c, r, y, s in mvTechAOut:
 f.close()
 flist.write("vSupOut\n")
 f = open("output/vSupOut.csv", "w")
-f.write("sup,comm,region,year,slice,value\n")
+f.write("sup,comm,region,year,timeslice,value\n")
 for s1, c, r, y, s in mSupAva:
     if model.vSupOut[(s1, c, r, y, s)].value != 0:
         f.write(
@@ -575,7 +575,7 @@ for s1, c, r in mvSupReserve:
 f.close()
 flist.write("vDemInp\n")
 f = open("output/vDemInp.csv", "w")
-f.write("comm,region,year,slice,value\n")
+f.write("comm,region,year,timeslice,value\n")
 for c, r, y, s in mvDemInp:
     if model.vDemInp[(c, r, y, s)].value != 0:
         f.write(
@@ -593,7 +593,7 @@ for c, r, y, s in mvDemInp:
 f.close()
 flist.write("vOutTot\n")
 f = open("output/vOutTot.csv", "w")
-f.write("comm,region,year,slice,value\n")
+f.write("comm,region,year,timeslice,value\n")
 for c, r, y, s in mvOutTot:
     if model.vOutTot[(c, r, y, s)].value != 0:
         f.write(
@@ -612,7 +612,7 @@ f.close()
 # [agg-rewrite] vOutTotRY output retired
 flist.write("vInpTot\n")
 f = open("output/vInpTot.csv", "w")
-f.write("comm,region,year,slice,value\n")
+f.write("comm,region,year,timeslice,value\n")
 for c, r, y, s in mvInpTot:
     if model.vInpTot[(c, r, y, s)].value != 0:
         f.write(
@@ -632,7 +632,7 @@ f.close()
 # [agg-rewrite] vInp2Lo/vOut2Lo output extraction removed (variables retired)
 flist.write("vSupOutTot\n")
 f = open("output/vSupOutTot.csv", "w")
-f.write("comm,region,year,slice,value\n")
+f.write("comm,region,year,timeslice,value\n")
 for c, r, y, s in mSupOutTot:
     if model.vSupOutTot[(c, r, y, s)].value != 0:
         f.write(
@@ -650,7 +650,7 @@ for c, r, y, s in mSupOutTot:
 f.close()
 flist.write("vTechInpTot\n")
 f = open("output/vTechInpTot.csv", "w")
-f.write("comm,region,year,slice,value\n")
+f.write("comm,region,year,timeslice,value\n")
 for c, r, y, s in mTechInpTot:
     if model.vTechInpTot[(c, r, y, s)].value != 0:
         f.write(
@@ -668,7 +668,7 @@ for c, r, y, s in mTechInpTot:
 f.close()
 flist.write("vTechOutTot\n")
 f = open("output/vTechOutTot.csv", "w")
-f.write("comm,region,year,slice,value\n")
+f.write("comm,region,year,timeslice,value\n")
 for c, r, y, s in mTechOutTot:
     if model.vTechOutTot[(c, r, y, s)].value != 0:
         f.write(
@@ -686,7 +686,7 @@ for c, r, y, s in mTechOutTot:
 f.close()
 flist.write("vStorageInpTot\n")
 f = open("output/vStorageInpTot.csv", "w")
-f.write("comm,region,year,slice,value\n")
+f.write("comm,region,year,timeslice,value\n")
 for c, r, y, s in mStorageInpTot:
     if model.vStorageInpTot[(c, r, y, s)].value != 0:
         f.write(
@@ -704,7 +704,7 @@ for c, r, y, s in mStorageInpTot:
 f.close()
 flist.write("vStorageOutTot\n")
 f = open("output/vStorageOutTot.csv", "w")
-f.write("comm,region,year,slice,value\n")
+f.write("comm,region,year,timeslice,value\n")
 for c, r, y, s in mStorageOutTot:
     if model.vStorageOutTot[(c, r, y, s)].value != 0:
         f.write(
@@ -722,7 +722,7 @@ for c, r, y, s in mStorageOutTot:
 f.close()
 flist.write("vStorageAInp\n")
 f = open("output/vStorageAInp.csv", "w")
-f.write("stg,comm,region,year,slice,value\n")
+f.write("stg,comm,region,year,timeslice,value\n")
 for st1, c, r, y, s in mvStorageAInp:
     if model.vStorageAInp[(st1, c, r, y, s)].value != 0:
         f.write(
@@ -742,7 +742,7 @@ for st1, c, r, y, s in mvStorageAInp:
 f.close()
 flist.write("vStorageAOut\n")
 f = open("output/vStorageAOut.csv", "w")
-f.write("stg,comm,region,year,slice,value\n")
+f.write("stg,comm,region,year,timeslice,value\n")
 for st1, c, r, y, s in mvStorageAOut:
     if model.vStorageAOut[(st1, c, r, y, s)].value != 0:
         f.write(
@@ -762,7 +762,7 @@ for st1, c, r, y, s in mvStorageAOut:
 f.close()
 flist.write("vDummyImport\n")
 f = open("output/vDummyImport.csv", "w")
-f.write("comm,region,year,slice,value\n")
+f.write("comm,region,year,timeslice,value\n")
 for c, r, y, s in mDummyImport:
     if model.vDummyImport[(c, r, y, s)].value != 0:
         f.write(
@@ -780,7 +780,7 @@ for c, r, y, s in mDummyImport:
 f.close()
 flist.write("vDummyExport\n")
 f = open("output/vDummyExport.csv", "w")
-f.write("comm,region,year,slice,value\n")
+f.write("comm,region,year,timeslice,value\n")
 for c, r, y, s in mDummyExport:
     if model.vDummyExport[(c, r, y, s)].value != 0:
         f.write(
@@ -798,7 +798,7 @@ for c, r, y, s in mDummyExport:
 f.close()
 flist.write("vStorageInp\n")
 f = open("output/vStorageInp.csv", "w")
-f.write("stg,comm,region,year,slice,value\n")
+f.write("stg,comm,region,year,timeslice,value\n")
 for st1, c, r, y, s in mvStorageStore:
     if model.vStorageInp[(st1, c, r, y, s)].value != 0:
         f.write(
@@ -818,7 +818,7 @@ for st1, c, r, y, s in mvStorageStore:
 f.close()
 flist.write("vStorageOut\n")
 f = open("output/vStorageOut.csv", "w")
-f.write("stg,comm,region,year,slice,value\n")
+f.write("stg,comm,region,year,timeslice,value\n")
 for st1, c, r, y, s in mvStorageStore:
     if model.vStorageOut[(st1, c, r, y, s)].value != 0:
         f.write(
@@ -838,7 +838,7 @@ for st1, c, r, y, s in mvStorageStore:
 f.close()
 flist.write("vStorageStore\n")
 f = open("output/vStorageStore.csv", "w")
-f.write("stg,comm,region,year,slice,value\n")
+f.write("stg,comm,region,year,timeslice,value\n")
 for st1, c, r, y, s in mvStorageStore:
     if model.vStorageStore[(st1, c, r, y, s)].value != 0:
         f.write(
@@ -922,7 +922,7 @@ for st1, r, y in mStorageNew:
 f.close()
 flist.write("vImportTot\n")
 f = open("output/vImportTot.csv", "w")
-f.write("comm,region,year,slice,value\n")
+f.write("comm,region,year,timeslice,value\n")
 for c, r, y, s in mImport:
     if model.vImportTot[(c, r, y, s)].value != 0:
         f.write(
@@ -940,7 +940,7 @@ for c, r, y, s in mImport:
 f.close()
 flist.write("vExportTot\n")
 f = open("output/vExportTot.csv", "w")
-f.write("comm,region,year,slice,value\n")
+f.write("comm,region,year,timeslice,value\n")
 for c, r, y, s in mExport:
     if model.vExportTot[(c, r, y, s)].value != 0:
         f.write(
@@ -958,7 +958,7 @@ for c, r, y, s in mExport:
 f.close()
 flist.write("vTradeIr\n")
 f = open("output/vTradeIr.csv", "w")
-f.write("trade,comm,region,regionp,year,slice,value\n")
+f.write("trade,comm,region,regionp,year,timeslice,value\n")
 for t1, c, r, rp, y, s in mvTradeIr:
     if model.vTradeIr[(t1, c, r, rp, y, s)].value != 0:
         f.write(
@@ -980,7 +980,7 @@ for t1, c, r, rp, y, s in mvTradeIr:
 f.close()
 flist.write("vTradeIrAInp\n")
 f = open("output/vTradeIrAInp.csv", "w")
-f.write("trade,comm,region,year,slice,value\n")
+f.write("trade,comm,region,year,timeslice,value\n")
 for t1, c, r, y, s in mvTradeIrAInp:
     if model.vTradeIrAInp[(t1, c, r, y, s)].value != 0:
         f.write(
@@ -1000,7 +1000,7 @@ for t1, c, r, y, s in mvTradeIrAInp:
 f.close()
 flist.write("vTradeIrAInpTot\n")
 f = open("output/vTradeIrAInpTot.csv", "w")
-f.write("comm,region,year,slice,value\n")
+f.write("comm,region,year,timeslice,value\n")
 for c, r, y, s in mvTradeIrAInpTot:
     if model.vTradeIrAInpTot[(c, r, y, s)].value != 0:
         f.write(
@@ -1018,7 +1018,7 @@ for c, r, y, s in mvTradeIrAInpTot:
 f.close()
 flist.write("vTradeIrAOut\n")
 f = open("output/vTradeIrAOut.csv", "w")
-f.write("trade,comm,region,year,slice,value\n")
+f.write("trade,comm,region,year,timeslice,value\n")
 for t1, c, r, y, s in mvTradeIrAOut:
     if model.vTradeIrAOut[(t1, c, r, y, s)].value != 0:
         f.write(
@@ -1038,7 +1038,7 @@ for t1, c, r, y, s in mvTradeIrAOut:
 f.close()
 flist.write("vTradeIrAOutTot\n")
 f = open("output/vTradeIrAOutTot.csv", "w")
-f.write("comm,region,year,slice,value\n")
+f.write("comm,region,year,timeslice,value\n")
 for c, r, y, s in mvTradeIrAOutTot:
     if model.vTradeIrAOutTot[(c, r, y, s)].value != 0:
         f.write(
@@ -1065,7 +1065,7 @@ for e, c in mExpComm:
 f.close()
 flist.write("vExportRow\n")
 f = open("output/vExportRow.csv", "w")
-f.write("expp,comm,region,year,slice,value\n")
+f.write("expp,comm,region,year,timeslice,value\n")
 for e, c, r, y, s in mExportRow:
     if model.vExportRow[(e, c, r, y, s)].value != 0:
         f.write(
@@ -1094,7 +1094,7 @@ for i, c in mImpComm:
 f.close()
 flist.write("vImportRow\n")
 f = open("output/vImportRow.csv", "w")
-f.write("imp,comm,region,year,slice,value\n")
+f.write("imp,comm,region,year,timeslice,value\n")
 for i, c, r, y, s in mImportRow:
     if model.vImportRow[(i, c, r, y, s)].value != 0:
         f.write(
@@ -1168,8 +1168,8 @@ for i in region:
     f.write("region," + str(i) + "\n")
 for i in year:
     f.write("year," + str(i) + "\n")
-for i in slice:
-    f.write("slice," + str(i) + "\n")
+for i in timeslice:
+    f.write("timeslice," + str(i) + "\n")
 for i in sup:
     f.write("sup," + str(i) + "\n")
 for i in dem:

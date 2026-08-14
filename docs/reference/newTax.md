@@ -54,9 +54,10 @@ newTax(
 
   :   integer. Year to apply the parameter, NA for every year.
 
-  slice
+  timeslice
 
-  :   character. Time slice to apply the parameter, NA for every slice.
+  :   character. Time timeslice to apply the parameter, NA for every
+      timeslice.
 
   inp
 

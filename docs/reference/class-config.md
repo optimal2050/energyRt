@@ -111,7 +111,7 @@ settings.
 
   data.frame. Artificial (dummy or sluck) variables to debug model
   infeasibility. Can be specified by commodities, regions, years, and
-  slices.
+  timeslices.
 
 - `variant_prefix`:
 

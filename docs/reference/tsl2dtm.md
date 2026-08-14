@@ -1,10 +1,10 @@
-# Mapping function between time-slices and day of the year
+# Mapping function between time-timeslices and day of the year
 
-Mapping function between time-slices and day of the year
+Mapping function between time-timeslices and day of the year
 
-Mapping function between time-slices and hour
+Mapping function between time-timeslices and hour
 
-Mapping function between time-slices and month
+Mapping function between time-timeslices and month
 
 ## Usage
 
@@ -22,7 +22,7 @@ tsl2month(tsl, format = tsl_guess_format(tsl), return.null = TRUE)
 
 - tsl:
 
-  character vector with time slices
+  character vector with time timeslices
 
 - return.null:
 
@@ -31,7 +31,7 @@ tsl2month(tsl, format = tsl_guess_format(tsl), return.null = TRUE)
 
 - format:
 
-  character, the time slices format
+  character, the time timeslices format
 
 ## Value
 
@@ -45,13 +45,13 @@ Integer vector of months, the same length as the input vector
 
 ## Functions
 
-- `tsl2year()`: Extract year from time-slices
+- `tsl2year()`: Extract year from time-timeslices
 
-- `tsl2yday()`: Extract the day of the year from time-slices
+- `tsl2yday()`: Extract the day of the year from time-timeslices
 
-- `tsl2hour()`: Extract hour from time-slices
+- `tsl2hour()`: Extract hour from time-timeslices
 
-- `tsl2month()`: Extract month from time-slices
+- `tsl2month()`: Extract month from time-timeslices
 
 ## Examples
 

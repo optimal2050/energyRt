@@ -18,7 +18,7 @@ setGeneric("draw", function(object, ...) standardGeneric("draw"))
 
 ## Constants ####
 keys <- c(
-  "region", "year", "slice", "comm", "acomm",
+  "region", "year", "timeslice", "comm", "acomm",
   # "value",
   "lab_par", "lab_txt",
   "tech", "group", "weather", "unit", "io", "parameter"
@@ -35,7 +35,7 @@ utils::globalVariables(
     "ainp", "aout", "wacinp.fx", "wacinp.lo", "wacinp.up",
     "wacout.fx", "wacout.lo", "wacout.up", "wacact.fx", "wacact.lo",
     "wcinp.fx", "wcinp.lo", "wcinp.up", "wcout.fx", "wcout.lo", "wcout.up",
-    "src", "dst", "region", "year", "slice",
+    "src", "dst", "region", "year", "timeslice",
     "cap2act", "cap2stg", "cap2use",
     "io", "na.omit", "share.lo", "share.up", "share.fx",
     "val_lbl", "where", "ginp2use", "desc", "x", "y"
@@ -53,14 +53,34 @@ utils::globalVariables(
 # device-dependent, so the pad cleared a 7x4.2in figure by ~0.1mm and overlapped
 # the line outright on a taller one. Measuring the pad here instead makes the
 # clearance real on any device.
+# `side` clamps long labels away from the process box: a label is centred
+# on the arrow while it fits, but once wider than the arrow span it is
+# shifted OUTWARD (left for input arrows, right for output arrows) so its
+# inner edge never crosses the box edge at `x1`/`x0`. Overflow at the
+# canvas edge is the accepted degradation.
 #' @noRd
 .draw_arrow_label <- function(label, x0, x1, y_line, fontsize = 10,
                               pad_alpha = 0.75, col = "black",
-                              gap = grid::unit(0.8, "mm"), lwd = 2) {
+                              gap = grid::unit(0.8, "mm"), lwd = 2,
+                              side = c("centre", "input", "output")) {
+  side <- match.arg(side)
   if (length(label) == 0L || is.na(label) || !nzchar(label)) return(invisible(NULL))
   cx <- (x0 + x1) / 2
   tg0 <- grid::textGrob(label, gp = grid::gpar(fontsize = fontsize, col = col))
   pad_h <- grid::grobHeight(tg0) + grid::unit(1.0, "mm")
+  # clamp: keep the label's inner edge clear of the box side of the arrow
+  w_npc <- grid::convertWidth(grid::grobWidth(tg0) + grid::unit(1.6, "mm"),
+                              "npc", valueOnly = TRUE)
+  margin <- 0.005
+  if (side == "input") {
+    # box edge is at x1 (arrow points right into the box)
+    inner <- cx + w_npc / 2
+    if (inner > x1 - margin) cx <- x1 - margin - w_npc / 2
+  } else if (side == "output") {
+    # box edge is at x0 (arrow leaves the box to the right)
+    inner <- cx - w_npc / 2
+    if (inner < x0 + margin) cx <- x0 + margin + w_npc / 2
+  }
   # half the arrow's own stroke, so `gap` is measured from the line's EDGE
   half_lwd <- grid::unit(lwd / 96 / 2, "inches")
 
@@ -217,7 +237,7 @@ utils::globalVariables(
         )
       ) |>
       select(-val_lbl, -share_lbl) |>
-      select(-any_of(c("region", "year", "slice")))
+      select(-any_of(c("region", "year", "timeslice")))
     # as.data.table()
     gcom_par$lab_par
     gcom_par
@@ -228,7 +248,7 @@ utils::globalVariables(
     filter(is.na(group)) |>
     group_by(across(
       any_of(keys)
-      # any_of(c("io", "comm", "region", "year", "slice", "parameter"))
+      # any_of(c("io", "comm", "region", "year", "timeslice", "parameter"))
     )) |>
     summarise(
       lab_par = make_label(
@@ -238,7 +258,7 @@ utils::globalVariables(
       ),
       .groups = "drop"
     ) |>
-    select(-any_of(c("region", "year", "slice")))
+    select(-any_of(c("region", "year", "timeslice")))
   ccom_par
 
   # auxiliary inputs ####
@@ -247,7 +267,7 @@ utils::globalVariables(
 
   ainp <- aux_tbl |>
     select(
-      # any_of(c("acomm", "comm", "region", "year", "slice", "unit")),
+      # any_of(c("acomm", "comm", "region", "year", "timeslice", "unit")),
       any_of(c(keys)),
       matches("ainp")
     ) |>
@@ -264,7 +284,7 @@ utils::globalVariables(
   # aux outputs ####
   aout <- aux_tbl |>
     select(
-      # any_of(c("acomm", "comm", "region", "year", "slice", "unit")),
+      # any_of(c("acomm", "comm", "region", "year", "timeslice", "unit")),
       any_of(c(keys)),
       matches("aout")
     ) |>
@@ -284,7 +304,7 @@ utils::globalVariables(
   if (nrow(aux) > 0) {
     aux <- aux |>
       pivot_longer(
-        # cols = -any_of(c("io", "acomm", "comm", "region", "year", "slice", "unit")),
+        # cols = -any_of(c("io", "acomm", "comm", "region", "year", "timeslice", "unit")),
         cols = -any_of(c(keys)),
         names_to = "parameter",
         values_to = "value"
@@ -1123,7 +1143,7 @@ setMethod("draw", "technology", function(object, ...) {
 ## draw.storage ####
 draw.storage <- function(object, ...) {
   keys <- c(
-    "region", "year", "slice", "comm", "acomm",
+    "region", "year", "timeslice", "comm", "acomm",
     # "value",
     "lab_par", "lab_txt",
     "tech", "group", "weather", "unit", "io", "parameter"
@@ -1383,7 +1403,7 @@ setMethod("draw", "storage", draw.storage)
 
 ## draw.supply ####
 draw.supply <- function(object, ...) {
-  # keys <- c("region", "year", "slice", "comm", "acomm",
+  # keys <- c("region", "year", "timeslice", "comm", "acomm",
   #           # "value",
   #           "lab_par", "lab_txt",
   #           "tech", "group", "weather", "unit", "io", "parameter")
@@ -1546,7 +1566,7 @@ draw.supply <- function(object, ...) {
 #'   supply = data.frame(
 #'     region = c("R1", "R2", "R3"),
 #'     year = NA_integer_,
-#'     slice = "ANNUAL",
+#'     timeslice = "ANNUAL",
 #'     ava.up = c(1e3, 1e2, 2e2), # annual availability
 #'     cost = c(10, 20, 30) # cost of the resource (currency per unit)
 #'   ),
@@ -1638,7 +1658,7 @@ draw.demand <- function(object, ...) {
 #'   dem = data.frame(
 #'     region = "UTOPIA", # NA for every region
 #'     year = c(2020, 2030, 2050),
-#'     slice = "ANNUAL",
+#'     timeslice = "ANNUAL",
 #'     dem = c(100, 200, 300)
 #'   ),
 #'   region = "UTOPIA", # optional, to narrow the specification of the demand
@@ -2259,7 +2279,7 @@ make_label <- function(
 #' @param object An S4 object
 #' @param sets A character vector with the names of the sets,
 #' colnames to create in the resulting data frame.
-#' Default is c("region", "year", "slice", "comm", "acomm")
+#' Default is c("region", "year", "timeslice", "comm", "acomm")
 #' @param verbose A logical value if to print messages
 #' @noRd
 en_obj2df <- function(object, sets = NULL, verbose = FALSE) {
@@ -2269,7 +2289,7 @@ en_obj2df <- function(object, sets = NULL, verbose = FALSE) {
   }
 
   if (is.null(sets)) {
-    sets <- c("region", "year", "slice", "comm", "acomm")
+    sets <- c("region", "year", "timeslice", "comm", "acomm")
   }
 
   # object <- tech
@@ -2320,7 +2340,7 @@ if (F) {
 #'
 #' @param x data frame to pivot
 #' @param sets character vector with the names of the sets, keys to keep.
-#' Default is c("region", "year", "slice", "comm", "acomm")
+#' Default is c("region", "year", "timeslice", "comm", "acomm")
 #' @param slot_name character string with the name of the slot,
 #' where the data frame comes from to add to the resulting data frame.
 #' @noRd
@@ -2328,7 +2348,7 @@ if (F) {
 pivot_by_type <- function(x, sets = NULL, slot_name = NULL) {
   # browser()
   if (is.null(sets)) {
-    sets <- c("region", "year", "slice", "comm", "acomm")
+    sets <- c("region", "year", "timeslice", "comm", "acomm")
   }
 
   df <- data.frame()
@@ -2682,6 +2702,17 @@ draw_process <- function(
             )
           ) |>
           arrange(order, desc(group), desc(ioname))
+
+        # One arrow per commodity: a commodity carrying several inp-side
+        # parameters (e.g. cinp2use + cinp2ginp) must not draw twice; its
+        # parameter labels stack into one multi-line in-box label.
+        inputs <- inputs |>
+          group_by(ioname) |>
+          mutate(lab_par = paste(unique(lab_par[!is.na(lab_par)]),
+                                 collapse = "\n")) |>
+          slice_head(n = 1) |>
+          ungroup() |>
+          arrange(order, desc(group), desc(ioname))
         # inputs
 
         if (is.null(inputs[["label_hjust"]])) inputs$label_hjust <- 0
@@ -2729,7 +2760,7 @@ draw_process <- function(
             .draw_arrow_label(
               arrow_labels[inputs$ioname[i]],
               x0 = 0.5 - 0.5 * box_width - arrow_length, x1 = x_pos,
-              y_line = y_pos
+              y_line = y_pos, side = "input"
             )
 
             # combustion point
@@ -2910,10 +2941,21 @@ draw_process <- function(
             (is.na(group) & grepl("cinp2use|use2cact|imp|sup|trade", parameter)))
         n_outputs <- length(out_coms)
 
-        # browser()
+        # One arrow per commodity: a commodity carrying several out-side
+        # parameters (e.g. use2cact + cact2cout) must not draw twice; its
+        # parameter labels stack into one multi-line in-box label. Keep
+        # out_coms order so arrows stay inside the act bracket.
+        out_pars <- out_pars |>
+          group_by(ioname) |>
+          mutate(lab_par = paste(unique(lab_par[!is.na(lab_par)]),
+                                 collapse = "\n")) |>
+          slice_head(n = 1) |>
+          ungroup()
+        out_pars <- out_pars[match(out_coms, out_pars$ioname), , drop = FALSE]
+        out_pars <- out_pars[!is.na(out_pars$ioname), , drop = FALSE]
 
         if (length(n_outputs) > 0) {
-          stopifnot(n_outputs == length(unique(out_pars$ioname)))
+          stopifnot(nrow(out_pars) == n_outputs)
 
           if (show_iuao_labels) {
             # Add 'out' label
@@ -2935,7 +2977,7 @@ draw_process <- function(
             )
           }
 
-          for (i in 1:nrow(out_pars)) {
+          for (i in seq_len(n_outputs)) {
             ii <- which(outputs$ioname == out_coms[i]) # can be several parameters
 
             # x and y position of the output on the process box
@@ -2961,7 +3003,7 @@ draw_process <- function(
             .draw_arrow_label(
               arrow_labels[out_pars$ioname[i]],
               x0 = x_pos, x1 = 0.5 + 0.5 * box_width + arrow_length,
-              y_line = y_pos
+              y_line = y_pos, side = "output"
             )
 
             # Add label near the dot, inside the box

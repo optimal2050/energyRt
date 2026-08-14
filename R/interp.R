@@ -24,9 +24,9 @@
 #' @param overwrite logical; overwrite an existing on-disk scenario of the same
 #'   name.
 #' @param fold logical or character; whole-column "fold" of trimmable dimensions
-#'   to NA wildcards to shrink the data. `TRUE` folds `region` + `slice`; `FALSE`
+#'   to NA wildcards to shrink the data. `TRUE` folds `region` + `timeslice`; `FALSE`
 #'   (default) folds nothing; a character vector selects dims among
-#'   `region`, `slice`, `year`, `comm`, `tech`, `stg`, `trade`. A folded scenario
+#'   `region`, `timeslice`, `year`, `comm`, `tech`, `stg`, `trade`. A folded scenario
 #'   is expanded to solver-ready form at solve time.
 #' @param sparse logical; the storage knob. `TRUE` drops `value == defVal` rows
 #'   (and folds); `FALSE` materialises the default over each parameter's full
@@ -72,18 +72,19 @@ interpolate_model <- function(mod, name = NULL, ...,
   mod <- .upgrade_model_summands(mod)
 
   drop_default <- isTRUE(sparse)
-  # `fold` selects which dimensions to whole-column fold: TRUE -> region + slice
+  # `fold` selects which dimensions to whole-column fold: TRUE -> region + timeslice
   # (default), FALSE -> none, or a character vector of foldable dims (region,
-  # slice, year, comm, tech, stg, trade).
-  fold_dims <- if (isTRUE(fold)) c("region", "slice")
+  # timeslice, year, comm, tech, stg, trade).
+  fold_dims <- if (isTRUE(fold)) c("region", "timeslice")
     else if (is.null(fold) || isFALSE(fold)) character(0)
     else intersect(as.character(fold), .foldable_dims)
   scen <- new("scenario")
 
-  # scenario name
+  # scenario name -- deriving one from the model is normal on the
+  # `solve_model(mod)` convenience path, so this is a message, not a warning
   if (is.null(name)) {
     name <- paste0("scen_", mod@name)
-    warning("Scenario name is not provided. Using default: ", name)
+    if (verbose) message("Scenario name not provided; using default: ", name)
   }
   scen@name <- name
 
@@ -210,7 +211,7 @@ interpolate_model <- function(mod, name = NULL, ...,
   }
 
   # calendar object -> settings@calendar (correct slot; the pipeline reads
-  # scen@settings@calendar@slice_share below)
+  # scen@settings@calendar@timeslice_share below)
   ii <- vapply(args, function(x) inherits(x, "calendar"), logical(1))
   if (sum(ii) > 1) {
     stop("Only one calendar object is allowed in the arguments")
@@ -286,7 +287,7 @@ interpolate_model <- function(mod, name = NULL, ...,
     nm <- names(args)
     if (is.null(nm)) nm <- rep("", length(args))
     nm[!nzchar(nm)] <- "<unnamed>"
-    warning("interp_mod(): ignoring unrecognized argument(s): ",
+    warning("interpolate_model(): ignoring unrecognized argument(s): ",
             paste(nm, collapse = ", "), call. = FALSE)
   }
 
@@ -294,7 +295,7 @@ interpolate_model <- function(mod, name = NULL, ...,
   if (nrow(scen@settings@horizon@intervals) == 0L) {
     stop("The model has no horizon. Set one before interpolating, e.g. ",
          "`mod <- setHorizon(mod, 2020:2050)`, or pass a horizon object via ",
-         "`...`: `interp_mod(mod, name, newHorizon(period = ...))`.",
+         "`...`: `interpolate_model(mod, name, newHorizon(period = ...))`.",
          call. = FALSE)
   }
 
@@ -329,7 +330,7 @@ interpolate_model <- function(mod, name = NULL, ...,
   .assert_variants_expanded(mod)
 
   # !!! ToDo:
-  # ... subset slices and regions
+  # ... subset timeslices and regions
   # ...
 
   # process model inputs
@@ -361,7 +362,7 @@ interpolate_model <- function(mod, name = NULL, ...,
   # names(mi@parameters)
   # names(mi@set) # !!! rename to "sets"
 
-  sets_from_settings <- c("region", "year", "slice") # from settings
+  sets_from_settings <- c("region", "year", "timeslice") # from settings
 
   sets_from_model <- c(
     "comm", "sup", "dem", "tech",
@@ -374,7 +375,7 @@ interpolate_model <- function(mod, name = NULL, ...,
   # Sets from settings ####
   scen@modInp@sets$region <- as.character(scen@settings@region) # factors not allowed
   # With a geoscale attached, `region` holds every level at once -- the states
-  # AND the zones AND the nation -- exactly as `slice` already holds the slices
+  # AND the zones AND the nation -- exactly as `timeslice` already holds the timeslices
   # of every timeframe. Declared regions stay at the head in their original
   # order; coarser levels are appended and remain inert unless some commodity
   # names one via `@geolevel`.
@@ -382,7 +383,7 @@ interpolate_model <- function(mod, name = NULL, ...,
                               scen@modInp@sets$region)
   if (!is.null(.geo_hier)) scen@modInp@sets$region <- .geo_hier$region
   scen@modInp@sets$year <- as.integer(scen@settings@horizon@intervals$mid)
-  scen@modInp@sets$slice <- scen@settings@calendar@slice_share$slice
+  scen@modInp@sets$timeslice <- scen@settings@calendar@timeslice_share$timeslice
 
   # Sets from names of declared model-objects ####
   # INFO: if a set element is not declared as individual object, error will be thrown
@@ -467,7 +468,7 @@ interpolate_model <- function(mod, name = NULL, ...,
                                     col_names = c("process", "class")) |>
     arrange(class, process) |> as.data.table()
 
-  # !!! ToDo: adjust for subsets of regions and slices
+  # !!! ToDo: adjust for subsets of regions and timeslices
   scen@modInp@sets[["comm_timeframe"]] <- map_comm_timeframe(scen)
   scen@modInp@sets[["process_timeframe"]] <-
     get_process_timeframe(scen, comm_timeframe = scen@modInp@sets$comm_timeframe)
@@ -541,13 +542,13 @@ interpolate_model <- function(mod, name = NULL, ...,
 
   #============================================================================#
   # Settings-derived parameters ####
-  #   Set members (year / region / slice) and the calendar / horizon / discount
-  #   numerics (pPeriodLen, pDiscount, pDiscountFactor, pSliceShare,
-  #   pSliceWeight, pYearFraction, ordYear, cardYear, ...). Built before the
+  #   Set members (year / region / timeslice) and the calendar / horizon / discount
+  #   numerics (pPeriodLen, pDiscount, pDiscountFactor, pTimesliceShare,
+  #   pTimesliceWeight, pYearFraction, ordYear, cardYear, ...). Built before the
   #   calendar recipe (so any overlapping calendar maps are subsequently
   #   refreshed by the recipe) and before `interpolate_parameters()` (discount
   #   factors feed value interpolation).
-  .interp_step(verbose, "settings parameters (discount, period length, slice share)")
+  .interp_step(verbose, "settings parameters (discount, period length, timeslice share)")
   scen <- .interp_settings_params(scen)
 
   #============================================================================#
@@ -562,7 +563,7 @@ interpolate_model <- function(mod, name = NULL, ...,
 
   # Log/message meta-data of the scenario ####
   # !!! ToDo: log/message
-  # number of regions, commodities, processes, years, slices
+  # number of regions, commodities, processes, years, timeslices
 
   #============================================================================#
   # Parameters from model objects ####
@@ -603,10 +604,10 @@ interpolate_model <- function(mod, name = NULL, ...,
   scen <- interpolate_parameters(scen, drop_default = drop_default)
 
   # Restrict interpolated value parameters to the scenario's declared calendar
-  # slices (drops excess data for slices a sampled calendar does not declare;
+  # timeslices (drops excess data for timeslices a sampled calendar does not declare;
   # required for GAMS correctness). Legacy interpolate_model did this by default.
-  .interp_step(verbose, "calendar-filter: restricting parameters to declared slices")
-  scen <- .filter_params_by_declared_slices(scen, verbose)
+  .interp_step(verbose, "calendar-filter: restricting parameters to declared timeslices")
+  scen <- .filter_params_by_declared_timeslices(scen, verbose)
 
   #============================================================================#
   # Equivalent annual cost (EAC) ####
@@ -627,7 +628,7 @@ interpolate_model <- function(mod, name = NULL, ...,
   #============================================================================#
   # Filter / activity-domain mapping parameters ####
   #   Built after value maps because they join the operation windows, the
-  #   membership commodity maps, the per-object slice maps and the commodity-
+  #   membership commodity maps, the per-object timeslice maps and the commodity-
   #   region closure (and reuse mSupSpan from the value recipe).
   scen <- build_mappings(scen, fmp = fmp, recipes = "filter")
 
@@ -655,7 +656,7 @@ interpolate_model <- function(mod, name = NULL, ...,
   #============================================================================#
   # Prune parameters ####
   #   Drop `value == prune$value` rows of parameters flagged `prune` in
-  #   modInp.yml (e.g. pWeather: the 0 night-slice rows). Lossless: an absent
+  #   modInp.yml (e.g. pWeather: the 0 night-timeslice rows). Lossless: an absent
   #   tuple reads as the default, which equals the pruned value. The dependent
   #   variable-column removal is multimod `trim`'s cascade, not done here. The
   #   `prune` argument is a global on/off over the per-parameter flags.
@@ -666,16 +667,16 @@ interpolate_model <- function(mod, name = NULL, ...,
 
   #============================================================================#
   # Fold parameters ####
-  #   Collapse trimmable dimensions (region, slice) of interpolated numpar /
+  #   Collapse trimmable dimensions (region, timeslice) of interpolated numpar /
   #   bounds parameters to wildcard (NA) rows wherever the value does not vary
   #   across the entity's full membership of that dimension. Runs after the
-  #   filter recipe so the per-object slice/region membership maps exist. The
+  #   filter recipe so the per-object timeslice/region membership maps exist. The
   #   reverse operation (`unfold`) is applied at read time in `getData()`.
   if (length(fold_dims) > 0 && isTRUE(sparse)) {
     # Fold value parameters (numpar/bounds) to wildcards, but MATERIALISE the maps
     # so every variable / equation domain stays over explicit members. Folded
     # value parameters carry their single value at the artificial set member
-    # (ANYREGION / ANYSLICE / 0 for year / ...), substituted into the model code at
+    # (ANYREGION / ANYTIMESLICE / 0 for year / ...), substituted into the model code at
     # write time (apply_fold_artificial); the maps must never reference that member.
     # Record the pre-fold value-parameter total so `model_size` can report the
     # exact rows folding saved (membership re-expansion under-counts entity dims).
@@ -718,7 +719,7 @@ interpolate_model <- function(mod, name = NULL, ...,
 
   ## mvDemInp ####
 
-  ## mExpSlice ####
+  ## mExpTimeslice ####
 
   ## mExportRow ####
 
@@ -730,7 +731,7 @@ interpolate_model <- function(mod, name = NULL, ...,
 
   ## mExportRowCumLo ####
 
-  ## mImpSlice ####
+  ## mImpTimeslice ####
 
   ## mImportRow ####
 
@@ -744,7 +745,7 @@ interpolate_model <- function(mod, name = NULL, ...,
 
   ## mSupSpan ####
 
-  ## mSupSlice ####
+  ## mSupTimeslice ####
 
   ## mSupAva ####
 
@@ -758,12 +759,12 @@ interpolate_model <- function(mod, name = NULL, ...,
 
   ## mvSupCost ####
 
-  ## mWeatherSlice ####
+  ## mWeatherTimeslice ####
 
   ## mWeatherRegion ####
 
 
-  ## mTechSlice ####
+  ## mTechTimeslice ####
 
 
 
@@ -781,7 +782,7 @@ interpolate_model <- function(mod, name = NULL, ...,
   # extra_params <- list()
   # extra_params$comm_timeframe <- .get_commodity_timeframe(scen)
 
-  # commodity_slice_map_obj <- .get_map_commodity_slice_map_obj(scen@model)
+  # commodity_timeslice_map_obj <- .get_map_commodity_timeslice_map_obj(scen@model)
 
   # Finalise the total user-cost equation. Accumulated per-cost contributions
   # (if any) are wrapped into the `eqTotalUserCosts` definition; with no user
@@ -864,8 +865,8 @@ interpolate_model <- function(mod, name = NULL, ...,
 # discount numerics) on the new-pipeline scenario. These are computed directly
 # from `scen@settings` (not interpolated from model objects) and were previously
 # missing from the new pipeline, leaving `pPeriodLen`, `pDiscount`,
-# `pDiscountFactor`, `pSliceShare`, `pSliceWeight`, `pYearFraction`, `ordYear`,
-# `cardYear` and the `year` / `region` / `slice` set parameters empty. Reuses the
+# `pDiscountFactor`, `pTimesliceShare`, `pTimesliceWeight`, `pYearFraction`, `ordYear`,
+# `cardYear` and the `year` / `region` / `timeslice` set parameters empty. Reuses the
 # proven legacy settings builder `.obj2modInp(modInp, settings, approxim)`; the
 # `approxim` list mirrors the one assembled in `interpolate()`.
 #
@@ -891,9 +892,9 @@ interpolate_model <- function(mod, name = NULL, ...,
 }
 
 # Populate pDummyImportCost / pDummyExportCost from the config `@debug` table.
-# `dbg` columns: comm, region, year, slice, dummyImport, dummyExport. Rows with a
-# finite cost enable the slack; NA in comm / region / year / slice is a wildcard
-# expanded to all commodities / regions / milestone years / slices.
+# `dbg` columns: comm, region, year, timeslice, dummyImport, dummyExport. Rows with a
+# finite cost enable the slack; NA in comm / region / year / timeslice is a wildcard
+# expanded to all commodities / regions / milestone years / timeslices.
 .interp_dummy_slack <- function(scen, ss, mid) {
   dbg <- ss@debug
   if (!is.data.frame(dbg) || nrow(dbg) == 0) return(scen)
@@ -901,7 +902,7 @@ interpolate_model <- function(mod, name = NULL, ...,
     unlist(lapply(x@data, function(y) if (is(y, "commodity")) y@name else NULL)))))
   all_region <- ss@region
   all_year   <- as.integer(mid)
-  all_slice  <- ss@calendar@slice_share$slice
+  all_timeslice  <- ss@calendar@timeslice_share$timeslice
   for (spec in list(c(col = "dummyImport", par = "pDummyImportCost"),
                     c(col = "dummyExport", par = "pDummyExportCost"))) {
     col <- spec[["col"]]; par <- spec[["par"]]
@@ -913,13 +914,13 @@ interpolate_model <- function(mod, name = NULL, ...,
       cc <- if (is.na(r$comm))   all_comm   else as.character(r$comm)
       rr <- if (is.na(r$region)) all_region else as.character(r$region)
       yy <- if (is.na(r$year))   all_year   else as.integer(r$year)
-      sl <- if (is.na(r$slice))  all_slice  else as.character(r$slice)
-      e  <- expand.grid(comm = cc, region = rr, year = yy, slice = sl,
+      sl <- if (is.na(r$timeslice))  all_timeslice  else as.character(r$timeslice)
+      e  <- expand.grid(comm = cc, region = rr, year = yy, timeslice = sl,
                         stringsAsFactors = FALSE)
       e$value <- as.numeric(r[[col]]); e
     }))
     if (is.null(exp) || nrow(exp) == 0) next
-    exp <- exp[!duplicated(exp[c("comm", "region", "year", "slice")]), , drop = FALSE]
+    exp <- exp[!duplicated(exp[c("comm", "region", "year", "timeslice")]), , drop = FALSE]
     scen@modInp@parameters[[par]] <-
       .dat2par(scen@modInp@parameters[[par]], as.data.table(exp))
   }
@@ -930,11 +931,11 @@ interpolate_model <- function(mod, name = NULL, ...,
   ss <- scen@settings
   mid <- ss@horizon@intervals$mid
 
-  # Set parameters (legacy interpolate.R: year / slice / region).
+  # Set parameters (legacy interpolate.R: year / timeslice / region).
   scen@modInp@parameters[["year"]] <-
     .dat2par(scen@modInp@parameters[["year"]], mid)
-  scen@modInp@parameters[["slice"]] <-
-    .dat2par(scen@modInp@parameters[["slice"]], ss@calendar@slice_share$slice)
+  scen@modInp@parameters[["timeslice"]] <-
+    .dat2par(scen@modInp@parameters[["timeslice"]], ss@calendar@timeslice_share$timeslice)
   # The set the solver file DECLARES must be the same widened set as
   # `sets$region`, or a coarse region is written into parameter data that has no
   # matching set member ("... out of domain" in GLPK).
@@ -964,7 +965,7 @@ interpolate_model <- function(mod, name = NULL, ...,
   ) |> as.data.table()
   approxim$rys <- merge0(
     approxim$ry,
-    data.table(slice = approxim$calendar@slice_share$slice,
+    data.table(timeslice = approxim$calendar@timeslice_share$timeslice,
                stringsAsFactors = FALSE)
   ) |> as.data.table()
   approxim$all_comm <- unlist(lapply(scen@model@data, function(x)
@@ -983,18 +984,18 @@ interpolate_model <- function(mod, name = NULL, ...,
   # a slack term in the corresponding commodity balance (the model may import /
   # export the commodity at that penalty), guaranteeing feasibility. The default
   # cost is Inf (no slack). NA in a dimension is a wildcard, expanded here to all
-  # commodities / regions / milestone years / slices (no interpolation needed).
+  # commodities / regions / milestone years / timeslices (no interpolation needed).
   scen <- .interp_dummy_slack(scen, ss, mid)
 
   # Persist the freshly-built parameters to the on-disk store so they survive
   # `save_scenario()` / reload and are seen by the writers. No-op in memory.
   if (isOnDisk(scen)) {
     built <- c(
-      "year", "slice", "region", "mMidMilestone",
-      "mSliceParentChild", "mSliceParentChildE", "mSliceNext",
-      "mSliceFYearNext", "pWacc", "pSdr", "pSliceShare", "pSliceWeight",
+      "year", "timeslice", "region", "mMidMilestone",
+      "mTimesliceParentChild", "mTimesliceParentChildE", "mTimesliceNext",
+      "mTimesliceFYearNext", "pWacc", "pSdr", "pTimesliceShare", "pTimesliceWeight",
       "mMilestoneLast", "mMilestoneFirst", "mMilestoneNext",
-      "mMilestoneHasNext", "mSameSlice", "mSameRegion", "ordYear",
+      "mMilestoneHasNext", "mSameTimeslice", "mSameRegion", "ordYear",
       "pYearFraction", "cardYear", "pPeriodLen", "pDiscountFactor",
       "pDummyImportCost", "pDummyExportCost"
     )
@@ -1177,7 +1178,7 @@ if (F) {
   class(utopia)
   yr <- collect_set_elements(utopia, "year")
   rg <- collect_set_elements(utopia, "region")
-  sl <- collect_set_elements(utopia, "slice")
+  sl <- collect_set_elements(utopia, "timeslice")
   nm <- collect_set_elements(utopia, "name")
   wr <- collect_set_elements(utopia, "weather")
 
@@ -1276,7 +1277,7 @@ apply_to_parameters <- function(
 .interp_slot <- function(
     x,
     keys = c(
-      "region", "slice", "comm", "acomm", "tech", "process",
+      "region", "timeslice", "comm", "acomm", "tech", "process",
       "vintage",
       "weather", "stg", "sub", "dst", "src"
     ),
@@ -1315,8 +1316,8 @@ apply_to_parameters <- function(
                          par_dims = NULL
                          ) {
   if (is.null(all_sets)) {
-    # all_sets <- c("region", "year", "slice")
-    all_sets <- c("region", "year", "slice", "comm", "tech", "process",
+    # all_sets <- c("region", "year", "timeslice")
+    all_sets <- c("region", "year", "timeslice", "comm", "tech", "process",
                   "vintage", "weather", "stg", "sub", "dst", "src",
                   "acomm", "sup", "dem", "expp", "imp", "trade")
   }
@@ -1355,7 +1356,7 @@ apply_to_parameters <- function(
       select(col_ord) |>
       rbind(x_na) |>
       unique() |>
-      arrange(across(any_of(c("region", "year", "slice")))) |>
+      arrange(across(any_of(c("region", "year", "timeslice")))) |>
       as.data.table()
   }
 
@@ -1365,7 +1366,7 @@ apply_to_parameters <- function(
       group_by(across(any_of(group_cols))) |>
       complete(year = full_set) |>
       ungroup() |>
-      arrange(across(any_of(c("region", "year", "slice")))) |>
+      arrange(across(any_of(c("region", "year", "timeslice")))) |>
       as.data.table()
   }
 
@@ -2062,7 +2063,7 @@ interpolate_numpar <- function(
 
   # Fast path: nothing missing => nothing to interpolate. Skips the whole
   # group machinery, which otherwise dominates for high-resolution parameters
-  # (e.g. an 8760-slice pDemand whose source years already cover the milestones).
+  # (e.g. an 8760-timeslice pDemand whose source years already cover the milestones).
   if (!anyNA(data[[value_col]])) {
     return(as.data.table(data))
   }
@@ -2083,7 +2084,7 @@ interpolate_numpar <- function(
   # Per-group (set_cols) interpolation over `year`. Same logic as before, but
   # driven by data.table's C-level grouping instead of group_split() + lapply,
   # which allocated one tibble per group and was pathologically slow at tens of
-  # thousands of groups (e.g. 8760 slices x regions x ...).
+  # thousands of groups (e.g. 8760 timeslices x regions x ...).
   .interp_grp <- function(year, val) {
     not_na <- !is.na(val)
     nval <- sum(not_na)
@@ -2265,7 +2266,7 @@ if (F) {
   dt <- data.table(
     region = NA_character_,
     year = c(2015, 2020, 2025, 2030, 2050),
-    slice = NA_character_,
+    timeslice = NA_character_,
     af.lo = c(.75, NA, NA, .25, NA),
     af.up = c(.8, NA, .2, NA, .8),
     af.fx = c(NA, .5, NA, NA, NA)
@@ -2276,7 +2277,7 @@ if (F) {
   interpolate_bounds(
     data = dt,
     value_col = "af",
-    set_cols = c("region", "year", "slice"),
+    set_cols = c("region", "year", "timeslice"),
     int_rule = "mid"
     # def_val = 0.5
   )
@@ -2285,7 +2286,7 @@ if (F) {
   dt <- data.table(
     region = NA_character_,
     year = c(2015, 2020, 2025, 2030, 2050),
-    slice = NA_character_,
+    timeslice = NA_character_,
     af.lo = c(.75, NA, NA, .25, NA),
     af.up = c(.8, NA, .2, NA, .8),
     af.fx = c(NA, .5, NA, NA, .8)
@@ -2294,14 +2295,14 @@ if (F) {
   interpolate_bounds(
     data = dt,
     value_col = "af",
-    set_cols = c("region", "year", "slice"),
+    set_cols = c("region", "year", "timeslice"),
     int_rule = "mid"
   )
 
   dt <- data.table(
     region = NA_character_,
     year = c(2015, 2020, 2025, 2030, 2050),
-    slice = NA_character_,
+    timeslice = NA_character_,
     af.lo = c(.75, NA, NA, .25, .85),
     af.up = c(.8, NA, .2, NA, .8),
     af.fx = c(NA, .5, NA, NA, NA)
@@ -2311,7 +2312,7 @@ if (F) {
   interpolate_bounds(
     data = dt,
     value_col = "af",
-    set_cols = c("region", "year", "slice"),
+    set_cols = c("region", "year", "timeslice"),
     int_rule = "mid"
   )
 
@@ -2538,16 +2539,16 @@ trim_parameters_by_maps <- function(scen, verbose = FALSE) {
 }
 
 # Filter interpolated VALUE parameters (numpar/bounds) to the scenario's DECLARED
-# calendar slices (scen@modInp@sets$slice, sourced from scen@settings@calendar).
-# A sampled calendar declares fewer slices (that is the point of sampling); any
-# interpolated row for a slice the calendar does not declare is excessive data.
-# GAMS errors on data indexed by an undeclared slice; other backends tolerate it
+# calendar timeslices (scen@modInp@sets$timeslice, sourced from scen@settings@calendar).
+# A sampled calendar declares fewer timeslices (that is the point of sampling); any
+# interpolated row for a timeslice the calendar does not declare is excessive data.
+# GAMS errors on data indexed by an undeclared timeslice; other backends tolerate it
 # via gating maps but carry needless bulk (e.g. pWeather at full 8760h). Legacy
 # interpolate_model filtered by default; this restores it. Runs BEFORE fold/prune
 # so both the sparse (fold) and dense paths benefit. Maps are built later and are
 # already calendar-consistent, so only value parameters need this.
-.filter_params_by_declared_slices <- function(scen, verbose = FALSE) {
-  sl <- scen@modInp@sets$slice
+.filter_params_by_declared_timeslices <- function(scen, verbose = FALSE) {
+  sl <- scen@modInp@sets$timeslice
   if (is.null(sl) || length(sl) == 0L) return(scen)
   sl <- as.character(sl)
   for (pn in names(scen@modInp@parameters)) {
@@ -2555,11 +2556,11 @@ trim_parameters_by_maps <- function(scen, verbose = FALSE) {
     if (is.null(param) || !(param@type %in% c("numpar", "bounds"))) next
     pdata <- get_data_slot(param)
     if (is.null(pdata) || nrow(pdata) == 0L) next
-    scols <- intersect(c("slice", "slicep", "slice.1"), colnames(pdata))
+    scols <- intersect(c("timeslice", "timeslicep", "timeslice.1"), colnames(pdata))
     if (length(scols) == 0L) next
-    # NA in a slice column is a wildcard ("applies to all slices", the sparse/fold
-    # representation of a slice-independent value) -> always keep it. Drop a row only
-    # when it names a CONCRETE slice the calendar does not declare.
+    # NA in a timeslice column is a wildcard ("applies to all timeslices", the sparse/fold
+    # representation of a timeslice-independent value) -> always keep it. Drop a row only
+    # when it names a CONCRETE timeslice the calendar does not declare.
     keep <- Reduce(`&`, lapply(scols, function(cc) {
       v <- as.character(pdata[[cc]]); is.na(v) | v %in% sl
     }))
@@ -2580,7 +2581,7 @@ trim_parameters_by_maps <- function(scen, verbose = FALSE) {
 #' \itemize{
 #'   \item \strong{NA index columns}: no NA in a parameter's `dimSets` id
 #'     columns. When `fold = TRUE`, NA is permitted only in the trimmable
-#'     dimensions (region / slice / vintage, which fold encodes as wildcards);
+#'     dimensions (region / timeslice / vintage, which fold encodes as wildcards);
 #'     when `fold = FALSE`, no NA is permitted in any id column.
 #'   \item \strong{Schema}: data columns match the declared `dimSets`
 #'     (plus `value`, and `type` for bounds).
@@ -2605,8 +2606,8 @@ validate_scenario_parameters <- function(scen, fold = TRUE,
   action <- match.arg(action)
   # Dimensions in which a fold wildcard (NA) is legitimate. `fold` may be the
   # legacy logical (TRUE -> the original trimmable dims) or the character vector of
-  # dims actually folded (region / slice / year / comm / tech / stg / trade).
-  trim_dims <- if (isTRUE(fold)) c("region", "slice", "vintage")
+  # dims actually folded (region / timeslice / year / comm / tech / stg / trade).
+  trim_dims <- if (isTRUE(fold)) c("region", "timeslice", "vintage")
     else if (is.character(fold)) fold else character(0)
   issues <- list()
   add <- function(parameter, check, detail) {
@@ -2636,7 +2637,7 @@ validate_scenario_parameters <- function(scen, fold = TRUE,
     # Id columns are the actual data columns minus the `value` column. Using the
     # data column names (rather than `intersect(dimSets, ...)`) preserves
     # repeated dimensions, which data frames disambiguate with a `.N` suffix
-    # (e.g. a (slice, slice) map becomes columns `slice`, `slice.1`); collapsing
+    # (e.g. a (timeslice, timeslice) map becomes columns `timeslice`, `timeslice.1`); collapsing
     # them would mis-key duplicate and NA checks. For bounds parameters the
     # bound `type` (lo / up / fx) is kept as an id column so that a `lo` and an
     # `up` row on the same dimensions are NOT counted as a duplicate key; `type`
@@ -2938,7 +2939,7 @@ interpolate_parameters <- function(scen, drop_default = FALSE) {
 "ANY"
 "ANYREGION"
 "ANYYEAR"
-"ANYSLICE"
+"ANYTIMESLICE"
 "ANYVINTAGE"
 
 # Expand sets for parameter
@@ -2957,7 +2958,7 @@ interpolate_parameters <- function(scen, drop_default = FALSE) {
 #                         param,
 #                         process_name,
 #                         full_sets,
-#                         filter_sets = c("region", "year", "slice"),
+#                         filter_sets = c("region", "year", "timeslice"),
 #                         ...) {
 #   browser() # !!! ToDo: finish
 #   if (F) {
@@ -2970,7 +2971,7 @@ interpolate_parameters <- function(scen, drop_default = FALSE) {
 #     # filter_sets:
 #     # region: create from ECOA@region,
 #     # year: create from lifespan of ECOA
-#     # slice: create from ECOA@timeframe
+#     # timeslice: create from ECOA@timeframe
 #   }
 #
 #   stopifnot(is.character(param))
@@ -3158,7 +3159,7 @@ get_process_timeframe <- function(scen, process = NULL,
   # ELC, or an electrolyzer consuming hourly ELC, must run hourly even if other
   # commodities are annual; finer flows up-aggregate to the coarser balances).
   # This restores the legacy rule; the new multi-level up-aggregation
-  # (mSliceFamily/pSliceAgg, eqOutTot/eqInpTot) only flows fine->coarse, so a
+  # (mTimesliceFamily/pTimesliceAgg, eqOutTot/eqInpTot) only flows fine->coarse, so a
   # process pinned to a coarser timeframe than its commodities cannot meet the
   # finer balance and demand leaks to imports.
   process_comm_timeframe <- process_comm_timeframe |>
@@ -3686,94 +3687,75 @@ get_process_invest_window <- function(scen, process = NULL, classes = NULL) {
     )
   }
 
-  # collect all lifespans for each process
-  ll_start_end <- apply_to_scenario_data(
-    scen = scen,
-    classes = classes,
-    func = function(x) {
-      ll <- list()
-      # cat("Process: ", x@name, "\n")
-      # browser()
-      dd <- data.table(
-        process = x@name,
-        region = character(),
-        start = integer(),
-        end = integer()
-      )
-      # `technology` keeps its window in `@vintage`; `storage`/`trade` still use
-      # the separate `@start`/`@end` slots. `.lifespan_col()` returns the same
-      # `(region, start)` / `(region, end)` frames either way, so the outer
-      # merge below behaves exactly as it did on the raw slots.
-      if (.hasSlot(x, "vintage") || .hasSlot(x, "start")) {
-        d <- full_join(.lifespan_col(x, "start"), .lifespan_col(x, "end"),
-                       by = "region") |>
-          mutate(process = x@name, .before = 1) |>
-          as.data.table()
-
-        if (nrow(d) > 0) {
-          dd <- d
-        } else {
-          # Object has a lifespan slot but no start/end data: it is available in
-          # all of its regions across the whole horizon. Emit an NA window so
-          # the NA-region expansion below fills every region (and all years).
-          dd <- data.table(
-            process = x@name,
-            region = NA_character_,
-            start = NA_integer_,
-            end = NA_integer_
-          )
+  # `start` and `end` are separate parameters, each with its own region
+  # granularity and its own NA-region broadcast (the universal rule:
+  # region-specific rows override the broadcast). Collecting them one
+  # column at a time through `.lifespan_resolve()` keeps the keying
+  # honest -- post-expansion each process is a single (vintage, cluster)
+  # cell, asserted in `.assert_variants_expanded()`.
+  collect_col <- function(col) {
+    rows <- apply_to_scenario_data(
+      scen = scen,
+      classes = classes,
+      func = function(x) {
+        ll <- list()
+        dd <- data.table(process = character(), region = character(),
+                         value = numeric())
+        if (.hasSlot(x, "vintage") || .hasSlot(x, col)) {
+          d <- .lifespan_resolve(x, col)
+          dd <- data.table(process = x@name,
+                           region = as.character(d$region),
+                           value = suppressWarnings(as.numeric(d[[col]])))
+          if (nrow(dd) == 0L) {
+            # slot present but no data: available in all regions across
+            # the whole horizon -- emit an NA broadcast row
+            dd <- data.table(process = x@name, region = NA_character_,
+                             value = NA_real_)
+          }
         }
-      }
-      ll[[x@name]] <- dd
-      ll
-    },
-    as_list = FALSE
-  )
-
-  # `apply_to_scenario_data()` yields an empty, column-less result when the model
-  # holds none of the classes above -- e.g. a demand served only by an import.
-  # `mutate()` would then resolve `start` to `stats::start()` and fail inside
-  # `is.infinite()`, so substitute a correctly typed empty table.
-  if (is.null(ll_start_end) || NROW(ll_start_end) == 0L ||
-      !all(c("process", "region", "start", "end") %in% names(ll_start_end))) {
-    ll_start_end <- data.table(
-      process = character(),
-      region = character(),
-      start = integer(),
-      end = integer()
+        ll[[x@name]] <- dd
+        ll
+      },
+      as_list = FALSE
     )
+    # empty/column-less result when the model holds none of the classes
+    if (is.null(rows) || NROW(rows) == 0L ||
+        !all(c("process", "region", "value") %in% names(rows))) {
+      rows <- data.table(process = character(), region = character(),
+                         value = numeric())
+    }
+    # Inf -> NA (unbounded side), then integer typing
+    rows |>
+      mutate(value = if_else(is.infinite(value), NA_real_, value),
+             value = as.integer(value)) |>
+      unique() |>
+      as.data.table()
   }
 
-  # fix for infinite values (transitioning from Inf to NA in slots to use integers)
-  ll_start_end <- ll_start_end |>
-    mutate(
-      start = if_else(is.infinite(start), NA, start),
-      end = if_else(is.infinite(end), NA, end),
-      start = as.integer(start),
-      end = as.integer(end)
-    ) |>
-    unique() |>
-    arrange(process, region)
+  reg_map <- named_list_to_df(scen@modInp@sets$process_region,
+                              col_names = c("process", "region"))
+  expand_na <- function(d) {
+    # broadcast NA-region rows fill ONLY the regions without a specific
+    # row: specific overrides broadcast, never a union of both
+    spec <- d |> filter(!is.na(region))
+    na_rows <- d |>
+      filter(is.na(region)) |>
+      select(-region) |>
+      unique() |>
+      left_join(reg_map, by = "process") |>
+      anti_join(spec, by = c("process", "region"))
+    bind_rows(spec, na_rows) |>
+      unique() |>
+      arrange(process, region)
+  }
 
-  # expand regions for NA values, keeping start and end years
-  ll_na <- ll_start_end |>
-    filter(is.na(region)) |>
-    select(-region) |>
-    unique() |>
-    left_join(
-      named_list_to_df(scen@modInp@sets$process_region,
-        col_names = c("process", "region")
-      ),
-      by = "process"
-    )
+  ll_s <- expand_na(collect_col("start")) |> rename(start = value)
+  ll_e <- expand_na(collect_col("end")) |> rename(end = value)
 
-  ll_start_end <- ll_start_end |>
-    filter(!is.na(region)) |>
-    rbind(ll_na) |>
-    unique() |>
-    arrange(process, region)
-
-  return(ll_start_end)
+  full_join(ll_s, ll_e, by = c("process", "region")) |>
+    mutate(start = as.integer(start), end = as.integer(end)) |>
+    arrange(process, region) |>
+    as.data.table()
 }
 
 get_process_invest_years <- function(scen, process = NULL, classes = NULL) {

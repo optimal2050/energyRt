@@ -17,7 +17,7 @@ utopia_profiles(
 \item{regions}{character vector of region names.}
 
 \item{calendar}{target resolution: \code{"utopia_s4h24"} (4 seasons x 24 hours, 96
-slices, the default base case), \code{"utopia_m12h24"} (12 months x 24 hours,
+timeslices, the default base case), \code{"utopia_m12h24"} (12 months x 24 hours,
 288) or \code{"utopia_seasons"} (4 seasons x 3 dayparts, 12).}
 
 \item{source}{\code{"saved"} (packaged data, default) or \code{"ideea"} (re-aggregate
@@ -36,8 +36,8 @@ identical profiles to every region.}
 }
 \value{
 a list of tidy data.frames, each replicated across \code{regions}:
-\code{weather} (\code{resource}, \code{region}, \code{slice}, \code{wval}), \code{demand} (\code{region},
-\code{slice}, \code{load} -- a relative load shape) and \code{stock} (\code{region}, \code{tech},
+\code{weather} (\code{resource}, \code{region}, \code{timeslice}, \code{wval}), \code{demand} (\code{region},
+\code{timeslice}, \code{load} -- a relative load shape) and \code{stock} (\code{region}, \code{tech},
 \code{gw} -- base-year capacity).
 }
 \description{

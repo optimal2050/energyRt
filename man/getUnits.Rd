@@ -9,7 +9,7 @@
 \usage{
 \S4method{getUnits}{commodity}(object, slots = NULL, ...)
 
-\S4method{getUnits}{technology}(object, slots = NULL, ...)
+\S4method{getUnits}{technology}(object, slots = NULL, complete = FALSE, ...)
 
 get_units(object, ...)
 }
@@ -20,6 +20,12 @@ get_units(object, ...)
 returns all populated slots.}
 
 \item{...}{Reserved for future use.}
+
+\item{complete}{(technology only) If \code{TRUE}, parameters with a known unit
+formula are reported even when they carry no data yet; commodity-linked
+units are then resolved from the declared ports when unambiguous and
+left as placeholder tokens otherwise. Default \code{FALSE} (populated
+parameters only).}
 }
 \value{
 A data.frame with columns \code{slot}, \code{parameter}, \code{comm}, \code{description},

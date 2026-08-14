@@ -30,9 +30,9 @@ utopia_profiles(
 
 - calendar:
 
-  target resolution: `"utopia_s4h24"` (4 seasons x 24 hours, 96 slices,
-  the default base case), `"utopia_m12h24"` (12 months x 24 hours, 288)
-  or `"utopia_seasons"` (4 seasons x 3 dayparts, 12).
+  target resolution: `"utopia_s4h24"` (4 seasons x 24 hours, 96
+  timeslices, the default base case), `"utopia_m12h24"` (12 months x 24
+  hours, 288) or `"utopia_seasons"` (4 seasons x 3 dayparts, 12).
 
 - source:
 
@@ -60,9 +60,9 @@ utopia_profiles(
 ## Value
 
 a list of tidy data.frames, each replicated across `regions`: `weather`
-(`resource`, `region`, `slice`, `wval`), `demand` (`region`, `slice`,
-`load` – a relative load shape) and `stock` (`region`, `tech`, `gw` –
-base-year capacity).
+(`resource`, `region`, `timeslice`, `wval`), `demand` (`region`,
+`timeslice`, `load` – a relative load shape) and `stock` (`region`,
+`tech`, `gw` – base-year capacity).
 
 ## See also
 

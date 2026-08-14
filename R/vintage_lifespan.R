@@ -13,13 +13,14 @@
 # Note there is deliberately NO upgrade path for objects serialised before the
 # merge -- a saved model carrying the old slots must be rebuilt from source.
 #
-# Representation note: the merged table is a COLUMN-WISE union, not a row-wise
-# join. Each of start/end/olife keeps its own region granularity and an NA in a
-# column simply means "not specified by this row". This is the same idiom the
-# `@ceff` slot already uses (one table, many value columns, each feeding its own
-# parameter, NA rows dropped per parameter), and it is what makes the merge
-# behaviour-preserving: a global `start` alongside a per-region `olife` does not
-# force the global value to be materialised per region.
+# Representation note: start/end/olife are ordinary keyed slot columns --
+# collected by (vintage, region, cluster) like any other slot, with the
+# universal broadcast rule (an NA key applies to all members; a specific
+# row overrides the broadcast) [user ruling 2026-08-13]. An NA in a VALUE
+# column simply means "not specified by this row", so a global `start`
+# row can sit beside per-region `olife` rows without materialising the
+# global value per region. Reads go through `.lifespan_col()` (keys kept)
+# and `.lifespan_resolve()` (one row per key, conflicts are errors).
 #
 # Everything here is written with dplyr verbs (package convention) so the same
 # code paths work over data.frame, data.table (via dtplyr) and arrow.
@@ -209,21 +210,24 @@
   .pad_vintage_cols(v)
 }
 
+.lifespan_keys <- c("vintage", "region", "cluster")
+
 .empty_lifespan_col <- function(col) {
-  out <- data.frame(region = character(), stringsAsFactors = FALSE)
+  out <- data.frame(vintage = character(), region = character(),
+                    cluster = character(), stringsAsFactors = FALSE)
   out[[col]] <- integer()
   out
 }
 
-# One lifespan column in the shape the removed slot used to have: a frame with
-# `region` plus the value column, NA values dropped. Drop-in replacement for
-# `obj@start` / `obj@end` / `obj@olife`.
+# One lifespan column WITH its selector keys: a frame with `vintage`,
+# `region`, `cluster` plus the value column, NA values dropped.
+# `start`/`end`/`olife` are collected by (vintage, region, cluster) like
+# any other slot column (user ruling 2026-08-13) -- the keys travel with
+# the value instead of being silently discarded.
 #
-# `technology` reads the column out of `@vintage`; `storage`/`trade` still read
-# their own slot. The legacy branch reads the raw slot with NO grouping or
-# coalescing: `trade@olife` is keyed on `year` (not `region`) and may carry
-# several rows, so collapsing them could drop a distinct value or an `Inf` that
-# `.lifespan_olife_inf()` needs to see.
+# `technology`/`storage`/`trade` read the column out of `@vintage`; the
+# legacy branch reads a raw slot (dead for these classes) with NO
+# grouping or coalescing.
 .lifespan_col <- function(obj, col) {
   src <- if (.hasSlot(obj, "vintage")) {
     as.data.frame(obj@vintage)
@@ -233,8 +237,69 @@
     return(.empty_lifespan_col(col))
   }
   if (nrow(src) == 0L || !col %in% names(src)) return(.empty_lifespan_col(col))
-  if (!"region" %in% names(src)) src$region <- NA_character_
+  for (k in .lifespan_keys) {
+    if (!k %in% names(src)) src[[k]] <- NA_character_
+  }
   src |>
     filter(!is.na(.data[[col]])) |>
-    select(all_of(c("region", col)))
+    select(all_of(c(.lifespan_keys, col)))
+}
+
+# Resolved lifespan column: at most ONE row per (vintage, region, cluster)
+# key. Exact-duplicate keys carrying the SAME value are deduplicated;
+# carrying DIFFERENT values they are a hard error naming the process --
+# never silently averaged or first-row-picked (techspec policy applied to
+# slots). Broadcast rows (NA in a key) legitimately coexist with specific
+# rows: the standard interpolation rule applies downstream -- a specific
+# row overrides the broadcast for its key, the broadcast fills the rest.
+.lifespan_resolve <- function(obj, col) {
+  nm <- tryCatch(obj@name, error = function(e) "?")
+  .lifespan_resolve_df(.lifespan_col(obj, col), col, nm)
+}
+
+# Frame-level core of the resolver, for callers that already hold the
+# `@vintage` table (e.g. the ob2mi parameter path). `src` may be the raw
+# slot (keys added, NA values dropped) or an already-keyed column frame.
+.lifespan_resolve_df <- function(src, col, name = "?") {
+  d <- src
+  if (!all(.lifespan_keys %in% names(d))) {
+    for (k in setdiff(.lifespan_keys, names(d))) d[[k]] <- NA_character_
+  }
+  if (!col %in% names(d)) return(.empty_lifespan_col(col))
+  d <- d[!is.na(d[[col]]), c(.lifespan_keys, col), drop = FALSE]
+  if (nrow(d) <= 1L) {
+    rownames(d) <- NULL
+    return(d)
+  }
+  key <- do.call(paste, c(lapply(d[.lifespan_keys], as.character),
+                          sep = "\r"))
+  conflicting <- vapply(split(d[[col]], key),
+                        function(v) length(unique(v)) > 1L, logical(1))
+  if (any(conflicting)) {
+    stop("conflicting `", col, "` values in `@vintage` of '", name,
+         "' for the same (vintage, region, cluster) key; declare one ",
+         "value per key", call. = FALSE)
+  }
+  out <- d[!duplicated(key), , drop = FALSE]
+  rownames(out) <- NULL
+  out
+}
+
+# Fill-missing broadcast: per-region resolved values over a given region
+# set. Region-specific rows win; the region-NA broadcast row supplies the
+# regions without one. Assumes vintage/cluster are constant (the
+# post-expansion cell shape); multiple broadcast rows are a conflict
+# caught by .lifespan_resolve().
+.lifespan_by_region <- function(obj, col, regions) {
+  d <- .lifespan_resolve(obj, col)
+  specific <- d[!is.na(d$region), , drop = FALSE]
+  broadcast <- d[is.na(d$region), , drop = FALSE]
+  out <- data.frame(region = regions, stringsAsFactors = FALSE)
+  # typed NA of the value column when no broadcast row exists
+  out[[col]] <- if (nrow(broadcast) > 0L) broadcast[[col]][1] else
+    d[[col]][NA_integer_]
+  m <- match(out$region, specific$region)
+  hit <- !is.na(m)
+  out[[col]][hit] <- specific[[col]][m[hit]]
+  out
 }

@@ -31,7 +31,7 @@ newDemand(
 \describe{
 \item{region}{character. Name of region for the demand value. NA for every region.}
 \item{year}{integer. Year of the demand. NA for every year.}
-\item{slice}{character. Name of the slice for the demand value. NA for every slice.}
+\item{timeslice}{character. Name of the timeslice for the demand value. NA for every timeslice.}
 \item{demand}{numeric. Value of the demand.}
 }}
 
@@ -58,7 +58,7 @@ DSTEEL <- newDemand(
  demand = data.frame(
     region = "UTOPIA", # NA for every region
     year = c(2020, 2030, 2050),
-    slice = "ANNUAL",
+    timeslice = "ANNUAL",
     demand = c(100, 200, 300)
  ),
  region = "UTOPIA", # optional, to narrow the specification of the demand

@@ -23,7 +23,7 @@ shocks (weather factors)."><meta property="og:image" content="https://energyRt.o
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.75.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.80.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -180,8 +180,8 @@ shocks (weather factors).</p>
 <dt>year</dt>
 <dd><p>integer. Year to apply the parameter, NA for every year.</p></dd>
 
-<dt>slice</dt>
-<dd><p>character. Name of slice to apply the parameter, NA for every slice.</p></dd>
+<dt>timeslice</dt>
+<dd><p>character. Name of timeslice to apply the parameter, NA for every timeslice.</p></dd>
 
 <dt>group</dt>
 <dd><p>character. Name of group to apply the parameter. Required, must match the group names in the input and output slots.</p></dd>
@@ -206,8 +206,8 @@ shocks (weather factors).</p>
 <dt>year</dt>
 <dd><p>integer. Year to apply the parameter, NA for every year.</p></dd>
 
-<dt>slice</dt>
-<dd><p>character. Name of slice to apply the parameter, NA for every slice.</p></dd>
+<dt>timeslice</dt>
+<dd><p>character. Name of timeslice to apply the parameter, NA for every timeslice.</p></dd>
 
 <dt>comm</dt>
 <dd><p>character. Name of commodity to apply the parameter, different parameters require specification either input or output commodity.</p></dd>
@@ -259,8 +259,8 @@ shocks (weather factors).</p>
 <dt>year</dt>
 <dd><p>integer. Year to apply the parameter, NA for every year.</p></dd>
 
-<dt>slice</dt>
-<dd><p>character. Name of slice to apply the parameter, NA for every slice.</p></dd>
+<dt>timeslice</dt>
+<dd><p>character. Name of timeslice to apply the parameter, NA for every timeslice.</p></dd>
 
 <dt>acomm</dt>
 <dd><p>character. Name of auxilary commodity to apply the parameter.</p></dd>
@@ -312,8 +312,8 @@ shocks (weather factors).</p>
 <dt>year</dt>
 <dd><p>integer. Year to apply the parameter, NA for every year.</p></dd>
 
-<dt>slice</dt>
-<dd><p>character. Name of slice to apply the parameter, NA for every slice.</p></dd>
+<dt>timeslice</dt>
+<dd><p>character. Name of timeslice to apply the parameter, NA for every timeslice.</p></dd>
 
 <dt>af.lo</dt>
 <dd><p>numeric. Lower bound on the availability factor, default is 0.</p></dd>
@@ -347,8 +347,8 @@ shocks (weather factors).</p>
 <dt>year</dt>
 <dd><p>integer. Year to apply the parameter, NA for every year.</p></dd>
 
-<dt>slice</dt>
-<dd><p>character. Name of slice to apply the parameter, required.</p></dd>
+<dt>timeslice</dt>
+<dd><p>character. Name of timeslice to apply the parameter, required.</p></dd>
 
 <dt>afs.lo</dt>
 <dd><p>numeric. Lower bound on the availability factor for the timeframe, default is 0.</p></dd>
@@ -440,8 +440,8 @@ shocks (weather factors).</p>
 <dt>year</dt>
 <dd><p>integer. Year to apply the parameter, NA for every year.</p></dd>
 
-<dt>slice</dt>
-<dd><p>character. Name of the time-slice or (grand-)parent timeframe to apply the parameter, NA for every time-slice of the technology timeframe.</p></dd>
+<dt>timeslice</dt>
+<dd><p>character. Name of the time-timeslice or (grand-)parent timeframe to apply the parameter, NA for every time-timeslice of the technology timeframe.</p></dd>
 
 <dt>varom</dt>
 <dd><p>numeric. Variable operational and maintenance cost per unit of activity, default is 0.</p></dd>
@@ -512,7 +512,7 @@ shocks (weather factors).</p>
 
 
 <dt><code>vintage</code></dt>
-<dd><p>data.frame. Investment window and operational life of the technology, one row per (vintage, region, cluster). Replaces the former <code>start</code>, <code>end</code> and <code>olife</code> slots. A vintage is a separately investable variant of the technology that keeps the characteristics of its build year for its whole life; a cluster is a parallel sub-process (resource class, geography, fleet type) with its own capacity, availability and costs. Each column is read independently, so a region-agnostic <code>start</code> may be combined with a per-region <code>olife</code>.</p><dl><dt>vintage</dt>
+<dd><p>data.frame. Investment window and operational life of the technology, one row per (vintage, region, cluster). Replaces the former <code>start</code>, <code>end</code> and <code>olife</code> slots. A vintage is a separately investable variant of the technology that keeps the characteristics of its build year for its whole life; a cluster is a parallel sub-process (resource class, geography, fleet type) with its own capacity, availability and costs.</p><dl><dt>vintage</dt>
 <dd><p>character. Vintage label, normally the build year as a string. NA for an un-vintaged technology (a single variant).</p></dd>
 
 <dt>region</dt>
@@ -522,10 +522,10 @@ shocks (weather factors).</p>
 <dd><p>character. Cluster label, NA for every cluster.</p></dd>
 
 <dt>start</dt>
-<dd><p>integer. The first year the technology can be installed. Defaults to the vintage year; NA means all years of the modeled horizon.</p></dd>
+<dd><p>integer. The first year the technology can be installed. NA means unbounded (all horizon years up to <code>end</code>); windows are user-defined and may overlap across vintages.</p></dd>
 
 <dt>end</dt>
-<dd><p>integer. The last year the technology can be installed. Defaults to the vintage year; default is Inf when unset.</p></dd>
+<dd><p>integer. The last year the technology can be installed. NA means unbounded (all horizon years from <code>start</code> on).</p></dd>
 
 <dt>olife</dt>
 <dd><p>integer. Operational life of the technology if installed during optimization, in years, default is 1.</p></dd>

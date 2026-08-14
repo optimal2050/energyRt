@@ -178,10 +178,10 @@ update(object, ...)
 
   :   integer. Year to apply the parameter, NA for every year.
 
-  slice
+  timeslice
 
-  :   character. Name of slice to apply the parameter, NA for every
-      slice.
+  :   character. Name of timeslice to apply the parameter, NA for every
+      timeslice.
 
   group
 
@@ -215,10 +215,10 @@ update(object, ...)
 
   :   integer. Year to apply the parameter, NA for every year.
 
-  slice
+  timeslice
 
-  :   character. Name of slice to apply the parameter, NA for every
-      slice.
+  :   character. Name of timeslice to apply the parameter, NA for every
+      timeslice.
 
   comm
 
@@ -296,10 +296,10 @@ update(object, ...)
 
   :   integer. Year to apply the parameter, NA for every year.
 
-  slice
+  timeslice
 
-  :   character. Name of slice to apply the parameter, NA for every
-      slice.
+  :   character. Name of timeslice to apply the parameter, NA for every
+      timeslice.
 
   acomm
 
@@ -379,10 +379,10 @@ update(object, ...)
 
   :   integer. Year to apply the parameter, NA for every year.
 
-  slice
+  timeslice
 
-  :   character. Name of slice to apply the parameter, NA for every
-      slice.
+  :   character. Name of timeslice to apply the parameter, NA for every
+      timeslice.
 
   af.lo
 
@@ -430,9 +430,9 @@ update(object, ...)
 
   :   integer. Year to apply the parameter, NA for every year.
 
-  slice
+  timeslice
 
-  :   character. Name of slice to apply the parameter, required.
+  :   character. Name of timeslice to apply the parameter, required.
 
   afs.lo
 
@@ -711,11 +711,11 @@ update(object, ...)
 
   :   integer. Year to apply the parameter, NA for every year.
 
-  slice
+  timeslice
 
-  :   character. Name of the time-slice or (grand-)parent timeframe to
-      apply the parameter, NA for every time-slice of the technology
-      timeframe.
+  :   character. Name of the time-timeslice or (grand-)parent timeframe
+      to apply the parameter, NA for every time-timeslice of the
+      technology timeframe.
 
   varom
 
@@ -786,8 +786,6 @@ update(object, ...)
   of the technology that keeps the characteristics of its build year for
   its whole life; a cluster is a parallel sub-process (resource class,
   geography, fleet type) with its own capacity, availability and costs.
-  Each column is read independently, so a region-agnostic `start` may be
-  combined with a per-region `olife`.
 
   vintage
 
@@ -805,13 +803,14 @@ update(object, ...)
 
   start
 
-  :   integer. The first year the technology can be installed. Defaults
-      to the vintage year; NA means all years of the modeled horizon.
+  :   integer. The first year the technology can be installed. NA means
+      unbounded (all horizon years up to `end`); windows are
+      user-defined and may overlap across vintages.
 
   end
 
-  :   integer. The last year the technology can be installed. Defaults
-      to the vintage year; default is Inf when unset.
+  :   integer. The last year the technology can be installed. NA means
+      unbounded (all horizon years from `start` on).
 
   olife
 
@@ -913,11 +912,11 @@ ECOAL <- newTechnology(
     acomm = c("NOx", "SO2", "Hg"),
     act2aout = c(0.1, 0.2, 0.3) # emission factors, linked to activity
   ),
-  af = data.frame( # availability (capacity) factor by time slices
+  af = data.frame( # availability (capacity) factor by time timeslices
     af.up = 0.95 # maximum 95% per hour
   ),
   afs = data.frame( # availability factor by timeframes
-    slice = "ANNUAL", # annual availability factor
+    timeslice = "ANNUAL", # annual availability factor
     afs.lo = 0.40, # at least 40% per year
     afs.up = 0.85 # maximum 85% per year
   ),

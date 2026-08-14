@@ -1,6 +1,6 @@
-# Create timetable of time-slices from given structure as a list
+# Create timetable of time-timeslices from given structure as a list
 
-Create timetable of time-slices from given structure as a list
+Create timetable of time-timeslices from given structure as a list
 
 ## Usage
 
@@ -17,7 +17,7 @@ make_timetable(
 - struct:
 
   named list of timeframes with sets of timeslices and optional shares
-  of every slice or frame in the nest
+  of every timeslice or frame in the nest
 
 - warn:
 
@@ -33,26 +33,26 @@ an data.frame with the specified structure.
 
 ``` r
 make_timetable()
-#>    ANNUAL  slice share weight
-#>    <char> <char> <num>  <num>
-#> 1: ANNUAL ANNUAL     1      1
+#>    ANNUAL timeslice share weight
+#>    <char>    <char> <num>  <num>
+#> 1: ANNUAL    ANNUAL     1      1
 make_timetable(list("SEASON" = c("WINTER", "SUMMER")))
-#>    ANNUAL SEASON  slice share weight
-#>    <char> <char> <char> <num>  <num>
-#> 1: ANNUAL SUMMER SUMMER   0.5      1
-#> 2: ANNUAL WINTER WINTER   0.5      1
+#>    ANNUAL SEASON timeslice share weight
+#>    <char> <char>    <char> <num>  <num>
+#> 1: ANNUAL SUMMER    SUMMER   0.5      1
+#> 2: ANNUAL WINTER    WINTER   0.5      1
 make_timetable(list("SEASON" = c("WINTER" = .6, "SUMMER" = .4)))
-#>    ANNUAL SEASON  slice share weight
-#>    <char> <char> <char> <num>  <num>
-#> 1: ANNUAL SUMMER SUMMER   0.4      1
-#> 2: ANNUAL WINTER WINTER   0.6      1
+#>    ANNUAL SEASON timeslice share weight
+#>    <char> <char>    <char> <num>  <num>
+#> 1: ANNUAL SUMMER    SUMMER   0.4      1
+#> 2: ANNUAL WINTER    WINTER   0.6      1
 make_timetable(list(
   "SEASON" = list(
     "WINTER" = list(.3, DAY = c("MORNING", "EVENING")),
     "SUMMER" = list(.7, DAY = c("MORNING", "EVENING"))
   )
 ))
-#>    ANNUAL SEASON     DAY          slice share weight
+#>    ANNUAL SEASON     DAY      timeslice share weight
 #>    <char> <char>  <char>         <char> <num>  <num>
 #> 1: ANNUAL SUMMER EVENING SUMMER_EVENING  0.35      1
 #> 2: ANNUAL SUMMER MORNING SUMMER_MORNING  0.35      1
@@ -63,7 +63,7 @@ make_timetable(list(
   "SEASON" = list("WINTER" = .3, "SUMMER" = .7),
   "DAY" = c("MORNING", "EVENING")
 ))
-#>    ANNUAL SEASON     DAY          slice share weight
+#>    ANNUAL SEASON     DAY      timeslice share weight
 #>    <char> <char>  <char>         <char> <num>  <num>
 #> 1: ANNUAL SUMMER EVENING SUMMER_EVENING  0.35      1
 #> 2: ANNUAL SUMMER MORNING SUMMER_MORNING  0.35      1

@@ -10,7 +10,7 @@
   comm = "ELC",
   region = NULL,
   year = NULL,
-  slice = NULL,
+  timeslice = NULL,
   drop_small = 0,
   by = NULL,
   fill = NULL,
@@ -24,8 +24,8 @@
 \item{type}{\code{"generation"} (default), \code{"capacity"}, \code{"new_capacity"},
 \code{"fuel"}, or \code{"storage"} (the storage-in/out flows only).}
 
-\item{comm, region, year, slice, drop_small}{passed to \code{\link[=getMix]{getMix()}}. For a dispatch
-profile (\code{slice} given) with \code{year = NULL}, the last milestone year is used.}
+\item{comm, region, year, timeslice, drop_small}{passed to \code{\link[=getMix]{getMix()}}. For a dispatch
+profile (\code{timeslice} given) with \code{year = NULL}, the last milestone year is used.}
 
 \item{by}{character vector passed to \code{\link[=getMix]{getMix()}}, any of \code{"vintage"} and
 \code{"cluster"}, to keep those technology-variant dimensions as grouping
@@ -44,14 +44,14 @@ A \code{ggplot} object.
 }
 \description{
 \code{autoplot()} on a solved \code{scenario} draws the mixes extracted by \code{\link[=getMix]{getMix()}}:
-annual stacked bars by milestone year, or -- when \code{slice} selects a sample
+annual stacked bars by milestone year, or -- when \code{timeslice} selects a sample
 (e.g. one representative day) -- an hourly dispatch profile. Storage charging
 and exports plot below zero; demand is overlaid as a line.
 }
 \examples{
 \dontrun{
 autoplot(scen)                                    # annual generation mix
-autoplot(scen, "generation", slice = "^SUM_")     # summer-day dispatch
+autoplot(scen, "generation", timeslice = "^SUM_")     # summer-day dispatch
 autoplot(scen, "capacity")
 autoplot(scen, "capacity", fill = "cluster")      # capacity by cluster
 autoplot(scen, "capacity", fill = "vintage", facet = "process")

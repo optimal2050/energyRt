@@ -32,7 +32,7 @@ and can be added or replaced for different scenarios.
 \describe{
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
-\item{slice}{character. Time slice to apply the parameter, NA for every slice.}
+\item{timeslice}{character. Time timeslice to apply the parameter, NA for every timeslice.}
 \item{wval}{numeric. Weather factor value.}
 }}
 

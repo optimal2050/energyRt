@@ -21,7 +21,7 @@ autoplot(scenario, ...), the scenario report, and any custom analysis
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.75.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.80.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -82,7 +82,7 @@ and rest-of-world trade, and demand. The same extractor feeds
 <span>  comm <span class="op">=</span> <span class="st">"ELC"</span>,</span>
 <span>  region <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  year <span class="op">=</span> <span class="cn">NULL</span>,</span>
-<span>  slice <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  timeslice <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  drop_small <span class="op">=</span> <span class="fl">0</span>,</span>
 <span>  by <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -119,10 +119,10 @@ flows are only meaningful for a region subset and are skipped when
 <dd><p>integer vector or <code>NULL</code> (all milestone year).</p></dd>
 
 
-<dt id="arg-slice">slice<a class="anchor" aria-label="anchor" href="#arg-slice"></a></dt>
+<dt id="arg-timeslice">timeslice<a class="anchor" aria-label="anchor" href="#arg-timeslice"></a></dt>
 <dd><p><code>NULL</code> for annual sums, or a regular expression selecting a
-slice sample (e.g. <code>"^SUM_"</code> for the summer day on the <code>utopia_s4h24</code>
-calendar). When the matched slices carry an hour tag (<code>"_h00"..."_h23"</code>),
+timeslice sample (e.g. <code>"^SUM_"</code> for the summer day on the <code>utopia_s4h24</code>
+calendar). When the matched timeslices carry an hour tag (<code>"_h00"..."_h23"</code>),
 an integer <code>hour</code> column is added.</p></dd>
 
 
@@ -145,7 +145,7 @@ to drive a fill or facet.</p></dd>
     <p>A tidy data.frame with columns <code>scenario</code>, <code>type</code>, <code>process</code>, <code>flow</code>
 (<code>generation</code>, <code>storage-in/out</code>, <code>import/export</code>, <code>demand</code>, <code>fuel</code>,
 <code>capacity</code>, <code>new_capacity</code>), <code>comm</code>, <code>region</code>, <code>year</code>, <code>value</code>, and – when
-<code>slice</code> is given – <code>slice</code> (+ <code>hour</code> when parsable), plus any column named
+<code>timeslice</code> is given – <code>timeslice</code> (+ <code>hour</code> when parsable), plus any column named
 in <code>by</code>. Missing variables are skipped silently (e.g. a model without
 storage or trade).</p>
     </div>
@@ -154,7 +154,7 @@ storage or trade).</p>
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
 <span class="r-in"><span><span class="va">gen</span> <span class="op">&lt;-</span> <span class="fu">getMix</span><span class="op">(</span><span class="va">scen</span>, <span class="st">"generation"</span><span class="op">)</span>                      <span class="co"># annual, all regions</span></span></span>
-<span class="r-in"><span><span class="va">day</span> <span class="op">&lt;-</span> <span class="fu">getMix</span><span class="op">(</span><span class="va">scen</span>, <span class="st">"generation"</span>, slice <span class="op">=</span> <span class="st">"^SUM_"</span><span class="op">)</span>     <span class="co"># summer-day dispatch</span></span></span>
+<span class="r-in"><span><span class="va">day</span> <span class="op">&lt;-</span> <span class="fu">getMix</span><span class="op">(</span><span class="va">scen</span>, <span class="st">"generation"</span>, timeslice <span class="op">=</span> <span class="st">"^SUM_"</span><span class="op">)</span>     <span class="co"># summer-day dispatch</span></span></span>
 <span class="r-in"><span><span class="va">cmp</span> <span class="op">&lt;-</span> <span class="fu">getMix</span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>BASE <span class="op">=</span> <span class="va">s1</span>, CO2CAP <span class="op">=</span> <span class="va">s2</span><span class="op">)</span>, <span class="st">"capacity"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">cl</span>  <span class="op">&lt;-</span> <span class="fu">getMix</span><span class="op">(</span><span class="va">scen</span>, <span class="st">"capacity"</span>, by <span class="op">=</span> <span class="st">"cluster"</span><span class="op">)</span>        <span class="co"># split by cluster</span></span></span>
 <span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>

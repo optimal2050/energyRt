@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.75.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.80.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -152,8 +152,8 @@ area)</td>
 <span><span class="co">#&gt; [5] "utopia_s4h24"                   "utopia_m12h24"                 </span></span>
 <span><span class="co">#&gt; [7] "d365_h24"                       "d365_h24_subset_1day_per_month"</span></span></code></pre></div>
 <p><code><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot()</a></code> (or the equivalent <code><a href="../reference/draw.html">plot()</a></code>) draws
-each timeframe as a row of rectangles sized by each slice’s share of the
-year:</p>
+each timeframe as a row of rectangles sized by each timeslice’s share of
+the year:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">calendars</span><span class="op">$</span><span class="va">season_dn</span><span class="op">)</span></span></code></pre></div>
 <p><img src="autoplot_files/figure-html/cal-basic-1.png" class="r-plt" alt="" width="770"></p>
@@ -162,8 +162,8 @@ year:</p>
 </h3>
 <p>For <code>fill = "order"</code> (the default) the
 <code>color_pattern</code> controls the gradient. <code>"within"</code>
-(default) colours each level over <strong>its own</strong> slices — so
-an hourly row shows a full <code>h00</code>→<code>h23</code> cycle
+(default) colours each level over <strong>its own</strong> timeslices —
+so an hourly row shows a full <code>h00</code>→<code>h23</code> cycle
 repeating every day, while <code>"global"</code> colours by absolute
 chronology across the whole year.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
@@ -172,7 +172,7 @@ chronology across the whole year.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">calendars</span><span class="op">$</span><span class="va">d365_h24</span>, color_pattern <span class="op">=</span> <span class="st">"global"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="autoplot_files/figure-html/cal-color-2.png" class="r-plt" alt="" width="770"></p>
-<p>Other fill metrics are the slice <code>"share"</code> and
+<p>Other fill metrics are the timeslice <code>"share"</code> and
 <code>"weight"</code>:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">calendars</span><span class="op">$</span><span class="va">season_dn</span>, fill <span class="op">=</span> <span class="st">"share"</span><span class="op">)</span></span></code></pre></div>
@@ -183,8 +183,8 @@ chronology across the whole year.</p>
 </h3>
 <p>Each cell can be labelled by its individual level name
 (<code>"name"</code>, the default,
-e.g. <code>h00</code>…<code>h23</code>) or by the full slice path
-(<code>"slice"</code>, e.g. <code>d001_h00</code>). Label text
+e.g. <code>h00</code>…<code>h23</code>) or by the full timeslice path
+(<code>"timeslice"</code>, e.g. <code>d001_h00</code>). Label text
 auto-contrasts with the fill; override it with
 <code>label_color</code>.</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
@@ -197,17 +197,17 @@ auto-contrasts with the fill; override it with
 <div class="section level3">
 <h3 id="zooming-with-show_leafs">Zooming with <code>show_leafs</code><a class="anchor" aria-label="anchor" href="#zooming-with-show_leafs"></a>
 </h3>
-<p><code>show_leafs</code> selects which slices to draw. Pass a named
-list to filter per timeframe level (character = slice names, numeric =
-positions among that level’s slices), or an unnamed vector to filter the
-finest level directly.</p>
+<p><code>show_leafs</code> selects which timeslices to draw. Pass a
+named list to filter per timeframe level (character = timeslice names,
+numeric = positions among that level’s timeslices), or an unnamed vector
+to filter the finest level directly.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># day 100, hours 5-10</span></span>
 <span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">calendars</span><span class="op">$</span><span class="va">d365_h24</span>, show_leafs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>YDAY <span class="op">=</span> <span class="st">"d100"</span>, HOUR <span class="op">=</span> <span class="fl">5</span><span class="op">:</span><span class="fl">10</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
 <p><img src="autoplot_files/figure-html/cal-zoom-1.png" class="r-plt" alt="" width="770"></p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span></span>
-<span><span class="co"># the first 48 leaf slices (first two days)</span></span>
+<span><span class="co"># the first 48 leaf timeslices (first two days)</span></span>
 <span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">calendars</span><span class="op">$</span><span class="va">d365_h24</span>, show_leafs <span class="op">=</span> <span class="fl">1</span><span class="op">:</span><span class="fl">48</span><span class="op">)</span></span></code></pre></div>
 <p><img src="autoplot_files/figure-html/cal-zoom-2.png" class="r-plt" alt="" width="770"></p>
 </div>
@@ -215,8 +215,8 @@ finest level directly.</p>
 <h3 id="subset-view">Subset view<a class="anchor" aria-label="anchor" href="#subset-view"></a>
 </h3>
 <p>A reduced calendar can be shown against a full reference calendar:
-pass the full one as <code>reference</code>. The slices present in the
-subset are filled; the rest are left empty.</p>
+pass the full one as <code>reference</code>. The timeslices present in
+the subset are filled; the rest are left empty.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">calendars</span><span class="op">$</span><span class="va">d365_h24_subset_1day_per_month</span>,</span>
 <span>         reference <span class="op">=</span> <span class="va">calendars</span><span class="op">$</span><span class="va">d365_h24</span><span class="op">)</span></span></code></pre></div>
@@ -239,13 +239,13 @@ customizing it:</p>
 <div class="section level2">
 <h2 id="heatmaps">Heatmaps<a class="anchor" aria-label="anchor" href="#heatmaps"></a>
 </h2>
-<p><code><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot()</a></code> lays every slice out in one row per
+<p><code><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot()</a></code> lays every timeslice out in one row per
 timeframe. When a value is indexed by a <em>two-dimensional</em>
 calendar — day-of-year × hour, month × hour — a <strong>heatmap</strong>
 reads more naturally: <code><a href="../reference/plot_heatmap.html">plot_heatmap()</a></code> puts the finest
 timeframe on <code>y</code>, the next on <code>x</code>, and any coarser
 levels into facets. The layout is taken from the calendar (pass it as
-<code>calendar =</code>), or guessed from the slice names with
+<code>calendar =</code>), or guessed from the timeslice names with
 <code><a href="../reference/tsl_guess_format.html">tsl_guess_format()</a></code>.</p>
 <p>Here is a synthetic hourly load profile on the <code>d365_h24</code>
 calendar (a daily cycle plus a seasonal swing). The diurnal band and the
@@ -254,9 +254,9 @@ winter/summer contrast are immediately visible:</p>
 <code class="sourceCode R"><span><span class="va">cal</span>  <span class="op">&lt;-</span> <span class="va">calendars</span><span class="op">$</span><span class="va">d365_h24</span></span>
 <span><span class="va">tt</span>   <span class="op">&lt;-</span> <span class="va">cal</span><span class="op">@</span><span class="va">timetable</span></span>
 <span><span class="va">prof</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
-<span>  slice <span class="op">=</span> <span class="va">tt</span><span class="op">$</span><span class="va">slice</span>,</span>
-<span>  load  <span class="op">=</span> <span class="fl">50</span> <span class="op">+</span> <span class="fl">30</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Trig.html" class="external-link">sin</a></span><span class="op">(</span><span class="fl">2</span> <span class="op">*</span> <span class="va">pi</span> <span class="op">*</span> <span class="op">(</span><span class="fu"><a href="../reference/tsl2dtm.html">tsl2hour</a></span><span class="op">(</span><span class="va">tt</span><span class="op">$</span><span class="va">slice</span><span class="op">)</span> <span class="op">-</span> <span class="fl">6</span><span class="op">)</span> <span class="op">/</span> <span class="fl">24</span><span class="op">)</span> <span class="op">+</span></span>
-<span>                <span class="fl">15</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Trig.html" class="external-link">cos</a></span><span class="op">(</span><span class="fl">2</span> <span class="op">*</span> <span class="va">pi</span> <span class="op">*</span>  <span class="fu"><a href="../reference/tsl2dtm.html">tsl2yday</a></span><span class="op">(</span><span class="va">tt</span><span class="op">$</span><span class="va">slice</span><span class="op">)</span>      <span class="op">/</span> <span class="fl">365</span><span class="op">)</span><span class="op">)</span></span>
+<span>  timeslice <span class="op">=</span> <span class="va">tt</span><span class="op">$</span><span class="va">timeslice</span>,</span>
+<span>  load  <span class="op">=</span> <span class="fl">50</span> <span class="op">+</span> <span class="fl">30</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Trig.html" class="external-link">sin</a></span><span class="op">(</span><span class="fl">2</span> <span class="op">*</span> <span class="va">pi</span> <span class="op">*</span> <span class="op">(</span><span class="fu"><a href="../reference/tsl2dtm.html">tsl2hour</a></span><span class="op">(</span><span class="va">tt</span><span class="op">$</span><span class="va">timeslice</span><span class="op">)</span> <span class="op">-</span> <span class="fl">6</span><span class="op">)</span> <span class="op">/</span> <span class="fl">24</span><span class="op">)</span> <span class="op">+</span></span>
+<span>                <span class="fl">15</span> <span class="op">*</span> <span class="fu"><a href="https://rdrr.io/r/base/Trig.html" class="external-link">cos</a></span><span class="op">(</span><span class="fl">2</span> <span class="op">*</span> <span class="va">pi</span> <span class="op">*</span>  <span class="fu"><a href="../reference/tsl2dtm.html">tsl2yday</a></span><span class="op">(</span><span class="va">tt</span><span class="op">$</span><span class="va">timeslice</span><span class="op">)</span>      <span class="op">/</span> <span class="fl">365</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/plot_heatmap.html">plot_heatmap</a></span><span class="op">(</span><span class="va">prof</span>, calendar <span class="op">=</span> <span class="va">cal</span>, value <span class="op">=</span> <span class="st">"load"</span><span class="op">)</span>   <span class="co"># x = YDAY, y = HOUR</span></span></code></pre></div>
 <p><img src="autoplot_files/figure-html/hm-day-1.png" class="r-plt" alt="" width="770"></p>
@@ -270,12 +270,12 @@ labels the colour bar, exactly as for <code><a href="https://ggplot2.tidyverse.o
 <div class="section level3">
 <h3 id="from-model-objects">From model objects<a class="anchor" aria-label="anchor" href="#from-model-objects"></a>
 </h3>
-<p>Any slice-indexed model data lays out the same way. Here
+<p>Any timeslice-indexed model data lays out the same way. Here
 <strong>electricity demand</strong> and a <strong>solar capacity
 factor</strong> from the packaged UTOPIA kit, on its season × hour
 calendar (<code>utopia_s4h24</code>): pull the object with
 <code><a href="../reference/getObject.html">getObject()</a></code>, take one region (and, for demand, one year),
-and pass the <code>slice</code> + value columns to
+and pass the <code>timeslice</code> + value columns to
 <code><a href="../reference/plot_heatmap.html">plot_heatmap()</a></code>. The <code>name</code> argument carries the
 value’s unit onto the colour bar.</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
@@ -284,13 +284,13 @@ value’s unit onto the colour bar.</p>
 <span></span>
 <span><span class="va">DEM</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/getObject.html">getObject</a></span><span class="op">(</span><span class="va">repo</span>, name <span class="op">=</span> <span class="st">"DEM_ELC"</span>, drop <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="va">dem</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/subset.html" class="external-link">subset</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">DEM</span><span class="op">@</span><span class="va">demand</span><span class="op">)</span>, <span class="va">region</span> <span class="op">==</span> <span class="st">"R1"</span> <span class="op">&amp;</span> <span class="va">year</span> <span class="op">==</span> <span class="fl">2050</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/plot_heatmap.html">plot_heatmap</a></span><span class="op">(</span><span class="va">dem</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"slice"</span>, <span class="st">"demand"</span><span class="op">)</span><span class="op">]</span>, calendar <span class="op">=</span> <span class="va">wcal</span>, value <span class="op">=</span> <span class="st">"demand"</span>,</span>
+<span><span class="fu"><a href="../reference/plot_heatmap.html">plot_heatmap</a></span><span class="op">(</span><span class="va">dem</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"timeslice"</span>, <span class="st">"demand"</span><span class="op">)</span><span class="op">]</span>, calendar <span class="op">=</span> <span class="va">wcal</span>, value <span class="op">=</span> <span class="st">"demand"</span>,</span>
 <span>             name <span class="op">=</span> <span class="st">"PJ"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="autoplot_files/figure-html/hm-demand-1.png" class="r-plt" alt="" width="770"></p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">WSOL</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/getObject.html">getObject</a></span><span class="op">(</span><span class="va">repo</span>, name <span class="op">=</span> <span class="st">"WSOL"</span>, drop <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="va">wsol</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/subset.html" class="external-link">subset</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">WSOL</span><span class="op">@</span><span class="va">weather</span><span class="op">)</span>, <span class="va">region</span> <span class="op">==</span> <span class="st">"R1"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/plot_heatmap.html">plot_heatmap</a></span><span class="op">(</span><span class="va">wsol</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"slice"</span>, <span class="st">"wval"</span><span class="op">)</span><span class="op">]</span>, calendar <span class="op">=</span> <span class="va">wcal</span>, value <span class="op">=</span> <span class="st">"wval"</span>,</span>
+<span><span class="fu"><a href="../reference/plot_heatmap.html">plot_heatmap</a></span><span class="op">(</span><span class="va">wsol</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"timeslice"</span>, <span class="st">"wval"</span><span class="op">)</span><span class="op">]</span>, calendar <span class="op">=</span> <span class="va">wcal</span>, value <span class="op">=</span> <span class="st">"wval"</span>,</span>
 <span>             name <span class="op">=</span> <span class="st">"capacity factor"</span><span class="op">)</span></span></code></pre></div>
 <p><img src="autoplot_files/figure-html/hm-weather-1.png" class="r-plt" alt="" width="770"></p>
 <p>The weather heatmap is exactly what <code><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot()</a></code> draws for
@@ -338,46 +338,55 @@ so bounds and prices/costs keep separate y-scales.</p>
 <code class="sourceCode R"><span><span class="va">SUP_COA</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newSupply.html">newSupply</a></span><span class="op">(</span></span>
 <span>  name <span class="op">=</span> <span class="st">"SUP_COA"</span>, commodity <span class="op">=</span> <span class="st">"COA"</span>, unit <span class="op">=</span> <span class="st">"PJ"</span>, region <span class="op">=</span> <span class="st">"R1"</span>,</span>
 <span>  supply <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
-<span>    region <span class="op">=</span> <span class="st">"R1"</span>, slice <span class="op">=</span> <span class="st">"ANNUAL"</span>,</span>
+<span>    region <span class="op">=</span> <span class="st">"R1"</span>, timeslice <span class="op">=</span> <span class="st">"ANNUAL"</span>,</span>
 <span>    year   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2020</span>, <span class="fl">2040</span>, <span class="fl">2020</span>, <span class="fl">2020</span><span class="op">)</span>,</span>
 <span>    ava.up <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">100</span>,  <span class="fl">200</span>,  <span class="cn">NA</span>,   <span class="cn">NA</span><span class="op">)</span>,</span>
 <span>    ava.lo <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="cn">NA</span>,   <span class="cn">NA</span>,   <span class="fl">10</span>,   <span class="cn">NA</span><span class="op">)</span>,</span>
 <span>    cost   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="cn">NA</span>,   <span class="cn">NA</span>,   <span class="cn">NA</span>,   <span class="fl">30</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">SUP_COA</span><span class="op">)</span></span></code></pre></div>
+<p><img src="autoplot_files/figure-html/sup-1.png" class="r-plt" alt="" width="770"></p>
 <p>A single given value (or none) is drawn as a flat dashed line showing
-the interpolation direction. Pass <code>years</code> to interpolate over
-a specific horizon:</p>
+the interpolation direction. Pass <code>year</code> to interpolate over
+a specific horizon (constant extrapolation beyond the given years),
+<code>interpolate = FALSE</code> to show only the given data, and
+<code>show_defaults = TRUE</code> to also draw the model’s default
+values for parameters the object leaves unset:</p>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">SUP_COA</span>, years <span class="op">=</span> <span class="fl">2020</span><span class="op">:</span><span class="fl">2050</span><span class="op">)</span></span></code></pre></div>
-<p>Demand, import and export follow the same pattern:</p>
+<code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">SUP_COA</span>, year <span class="op">=</span> <span class="fl">2020</span><span class="op">:</span><span class="fl">2050</span><span class="op">)</span></span></code></pre></div>
+<p><img src="autoplot_files/figure-html/sup-years-1.png" class="r-plt" alt="" width="770"></p>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">SUP_COA</span>, show_defaults <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></code></pre></div>
+<p><img src="autoplot_files/figure-html/sup-years-2.png" class="r-plt" alt="" width="770"></p>
+<p>Demand, import and export follow the same pattern:</p>
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">DEM_ELC</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newDemand.html">newDemand</a></span><span class="op">(</span></span>
 <span>  name <span class="op">=</span> <span class="st">"DEM_ELC"</span>, commodity <span class="op">=</span> <span class="st">"ELC"</span>, unit <span class="op">=</span> <span class="st">"GWh"</span>,</span>
-<span>  demand <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>region <span class="op">=</span> <span class="st">"R1"</span>, slice <span class="op">=</span> <span class="st">"ANNUAL"</span>,</span>
+<span>  demand <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>region <span class="op">=</span> <span class="st">"R1"</span>, timeslice <span class="op">=</span> <span class="st">"ANNUAL"</span>,</span>
 <span>                   year <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2020</span>, <span class="fl">2030</span>, <span class="fl">2050</span><span class="op">)</span>, demand <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">100</span>, <span class="fl">150</span>, <span class="fl">300</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">DEM_ELC</span><span class="op">)</span></span></code></pre></div>
 <p><img src="autoplot_files/figure-html/dem-1.png" class="r-plt" alt="" width="770"></p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">IMP_GAS</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newImport.html">newImport</a></span><span class="op">(</span></span>
 <span>  name <span class="op">=</span> <span class="st">"IMP_GAS"</span>, commodity <span class="op">=</span> <span class="st">"GAS"</span>,</span>
-<span>  import <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>region <span class="op">=</span> <span class="st">"R1"</span>, slice <span class="op">=</span> <span class="st">"ANNUAL"</span>,</span>
+<span>  import <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>region <span class="op">=</span> <span class="st">"R1"</span>, timeslice <span class="op">=</span> <span class="st">"ANNUAL"</span>,</span>
 <span>                   year <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2020</span>, <span class="fl">2050</span><span class="op">)</span>, imp.up <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">50</span>, <span class="fl">80</span><span class="op">)</span>, price <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">5</span>, <span class="fl">9</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">IMP_GAS</span><span class="op">)</span></span></code></pre></div>
+<p><img src="autoplot_files/figure-html/imp-1.png" class="r-plt" alt="" width="770"></p>
 </div>
 <div class="section level2">
 <h2 id="weather">Weather<a class="anchor" aria-label="anchor" href="#weather"></a>
 </h2>
 <p><code>weather</code> objects hold a sub-annual factor — a capacity /
-availability factor — per region and slice. <code><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot()</a></code>
+availability factor — per region and timeslice. <code><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot()</a></code>
 offers three views via <code>type =</code>: a calendar
 <strong>heatmap</strong> (the default), and diurnal
-<strong>line</strong> / <strong>area</strong> charts. Because the slice
-layout (here season × hour) can’t be inferred from the slice names
-alone, pass the model’s <code>calendar</code>; the value’s unit
-(<code>@unit</code>, or <code>"capacity factor"</code> when unset)
-labels the value axis — the fill legend for the heatmap, the y-axis for
-line/area.</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<strong>line</strong> / <strong>area</strong> charts. Because the
+timeslice layout (here season × hour) can’t be inferred from the
+timeslice names alone, pass the model’s <code>calendar</code>; the
+value’s unit (<code>@unit</code>, or <code>"capacity factor"</code> when
+unset) labels the value axis — the fill legend for the heatmap, the
+y-axis for line/area.</p>
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">WSOL</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/getObject.html">getObject</a></span><span class="op">(</span><span class="va">utopia_modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">R3</span><span class="op">$</span><span class="va">repo</span>, name <span class="op">=</span> <span class="st">"WSOL"</span>, drop <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="va">wcal</span> <span class="op">&lt;-</span> <span class="va">calendars</span><span class="op">$</span><span class="va">utopia_s4h24</span></span>
 <span></span>
@@ -385,10 +394,10 @@ line/area.</p>
 <p><img src="autoplot_files/figure-html/wea-1.png" class="r-plt" alt="" width="770"></p>
 <p>The <strong>line</strong> view reads the diurnal shape directly — one
 line per season, the capacity factor on the y-axis:</p>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">WSOL</span>, type <span class="op">=</span> <span class="st">"line"</span>, calendar <span class="op">=</span> <span class="va">wcal</span><span class="op">)</span></span></code></pre></div>
 <p><img src="autoplot_files/figure-html/wea-line-1.png" class="r-plt" alt="" width="770"></p>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">WSOL</span>, type <span class="op">=</span> <span class="st">"area"</span>, calendar <span class="op">=</span> <span class="va">wcal</span><span class="op">)</span>     <span class="co"># or filled areas</span></span></code></pre></div>
 <p><img src="autoplot_files/figure-html/wea-line-2.png" class="r-plt" alt="" width="770"></p>
 </div>

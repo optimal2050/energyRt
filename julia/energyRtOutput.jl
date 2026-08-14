@@ -72,7 +72,7 @@ close(fvSupCost);
 
 fvEmsFuelTot = open("output/vEmsFuelTot.csv", "w");
 
-println(fvEmsFuelTot, "comm,region,year,slice,value");
+println(fvEmsFuelTot, "comm,region,year,timeslice,value");
 
 for (c, r, y, s) in mEmsFuelTot
     if JuMP.value(vEmsFuelTot[(c, r, y, s)]) != 0
@@ -95,7 +95,7 @@ close(fvEmsFuelTot);
 
 fvBalance = open("output/vBalance.csv", "w");
 
-println(fvBalance, "comm,region,year,slice,value");
+println(fvBalance, "comm,region,year,timeslice,value");
 
 for (c, r, y, s) in mvBalance
     if JuMP.value(vBalance[(c, r, y, s)]) != 0
@@ -161,7 +161,7 @@ close(fvSubsCost);
 
 fvAggOutTot = open("output/vAggOutTot.csv", "w");
 
-println(fvAggOutTot, "comm,region,year,slice,value");
+println(fvAggOutTot, "comm,region,year,timeslice,value");
 
 for (c, r, y, s) in mAggOut
     if JuMP.value(vAggOutTot[(c, r, y, s)]) != 0
@@ -449,7 +449,7 @@ end;
 close(fvTechCap);
 
 fvTechAct = open("output/vTechAct.csv", "w");
-println(fvTechAct, "tech,region,year,slice,value");
+println(fvTechAct, "tech,region,year,timeslice,value");
 for (t, r, y, s) in mvTechAct
     if JuMP.value(vTechAct[(t, r, y, s)]) != 0
         println(
@@ -469,7 +469,7 @@ end;
 close(fvTechAct);
 
 fvTechInp = open("output/vTechInp.csv", "w");
-println(fvTechInp, "tech,comm,region,year,slice,value");
+println(fvTechInp, "tech,comm,region,year,timeslice,value");
 for (t, c, r, y, s) in mvTechInp
     if JuMP.value(vTechInp[(t, c, r, y, s)]) != 0
         println(
@@ -491,7 +491,7 @@ end;
 close(fvTechInp);
 
 fvTechOut = open("output/vTechOut.csv", "w");
-println(fvTechOut, "tech,comm,region,year,slice,value");
+println(fvTechOut, "tech,comm,region,year,timeslice,value");
 for (t, c, r, y, s) in mvTechOut
     if JuMP.value(vTechOut[(t, c, r, y, s)]) != 0
         println(
@@ -514,7 +514,7 @@ close(fvTechOut);
 
 # [agg-rewrite] vTechOutRY output retired
 fvTechAInp = open("output/vTechAInp.csv", "w");
-println(fvTechAInp, "tech,comm,region,year,slice,value");
+println(fvTechAInp, "tech,comm,region,year,timeslice,value");
 for (t, c, r, y, s) in mvTechAInp
     if JuMP.value(vTechAInp[(t, c, r, y, s)]) != 0
         println(
@@ -536,7 +536,7 @@ end;
 close(fvTechAInp);
 
 fvTechAOut = open("output/vTechAOut.csv", "w");
-println(fvTechAOut, "tech,comm,region,year,slice,value");
+println(fvTechAOut, "tech,comm,region,year,timeslice,value");
 for (t, c, r, y, s) in mvTechAOut
     if JuMP.value(vTechAOut[(t, c, r, y, s)]) != 0
         println(
@@ -558,7 +558,7 @@ end;
 close(fvTechAOut);
 
 fvSupOut = open("output/vSupOut.csv", "w");
-println(fvSupOut, "sup,comm,region,year,slice,value");
+println(fvSupOut, "sup,comm,region,year,timeslice,value");
 for (s1, c, r, y, s) in mSupAva
     if JuMP.value(vSupOut[(s1, c, r, y, s)]) != 0
         println(
@@ -589,7 +589,7 @@ end;
 close(fvSupReserve);
 
 fvDemInp = open("output/vDemInp.csv", "w");
-println(fvDemInp, "comm,region,year,slice,value");
+println(fvDemInp, "comm,region,year,timeslice,value");
 for (c, r, y, s) in mvDemInp
     if JuMP.value(vDemInp[(c, r, y, s)]) != 0
         println(fvDemInp, c, ",", r, ",", y, ",", s, ",", JuMP.value(vDemInp[(c, r, y, s)]))
@@ -598,7 +598,7 @@ end;
 close(fvDemInp);
 
 fvOutTot = open("output/vOutTot.csv", "w");
-println(fvOutTot, "comm,region,year,slice,value");
+println(fvOutTot, "comm,region,year,timeslice,value");
 for (c, r, y, s) in mvOutTot
     if JuMP.value(vOutTot[(c, r, y, s)]) != 0
         println(fvOutTot, c, ",", r, ",", y, ",", s, ",", JuMP.value(vOutTot[(c, r, y, s)]))
@@ -608,7 +608,7 @@ close(fvOutTot);
 
 # [agg-rewrite] vOutTotRY output retired
 fvInpTot = open("output/vInpTot.csv", "w");
-println(fvInpTot, "comm,region,year,slice,value");
+println(fvInpTot, "comm,region,year,timeslice,value");
 for (c, r, y, s) in mvInpTot
     if JuMP.value(vInpTot[(c, r, y, s)]) != 0
         println(fvInpTot, c, ",", r, ",", y, ",", s, ",", JuMP.value(vInpTot[(c, r, y, s)]))
@@ -619,7 +619,7 @@ close(fvInpTot);
 # [agg-rewrite] vInpTotRY output retired
 # [agg-rewrite] vInp2Lo/vOut2Lo output extraction removed (variables retired)
 fvSupOutTot = open("output/vSupOutTot.csv", "w");
-println(fvSupOutTot, "comm,region,year,slice,value");
+println(fvSupOutTot, "comm,region,year,timeslice,value");
 for (c, r, y, s) in mSupOutTot
     if JuMP.value(vSupOutTot[(c, r, y, s)]) != 0
         println(
@@ -639,7 +639,7 @@ end;
 close(fvSupOutTot);
 
 fvTechInpTot = open("output/vTechInpTot.csv", "w");
-println(fvTechInpTot, "comm,region,year,slice,value");
+println(fvTechInpTot, "comm,region,year,timeslice,value");
 for (c, r, y, s) in mTechInpTot
     if JuMP.value(vTechInpTot[(c, r, y, s)]) != 0
         println(
@@ -659,7 +659,7 @@ end;
 close(fvTechInpTot);
 
 fvTechOutTot = open("output/vTechOutTot.csv", "w");
-println(fvTechOutTot, "comm,region,year,slice,value");
+println(fvTechOutTot, "comm,region,year,timeslice,value");
 for (c, r, y, s) in mTechOutTot
     if JuMP.value(vTechOutTot[(c, r, y, s)]) != 0
         println(
@@ -679,7 +679,7 @@ end;
 close(fvTechOutTot);
 
 fvStorageInpTot = open("output/vStorageInpTot.csv", "w");
-println(fvStorageInpTot, "comm,region,year,slice,value");
+println(fvStorageInpTot, "comm,region,year,timeslice,value");
 for (c, r, y, s) in mStorageInpTot
     if JuMP.value(vStorageInpTot[(c, r, y, s)]) != 0
         println(
@@ -699,7 +699,7 @@ end;
 close(fvStorageInpTot);
 
 fvStorageOutTot = open("output/vStorageOutTot.csv", "w");
-println(fvStorageOutTot, "comm,region,year,slice,value");
+println(fvStorageOutTot, "comm,region,year,timeslice,value");
 for (c, r, y, s) in mStorageOutTot
     if JuMP.value(vStorageOutTot[(c, r, y, s)]) != 0
         println(
@@ -719,7 +719,7 @@ end;
 close(fvStorageOutTot);
 
 fvStorageAInp = open("output/vStorageAInp.csv", "w");
-println(fvStorageAInp, "stg,comm,region,year,slice,value");
+println(fvStorageAInp, "stg,comm,region,year,timeslice,value");
 for (st1, c, r, y, s) in mvStorageAInp
     if JuMP.value(vStorageAInp[(st1, c, r, y, s)]) != 0
         println(
@@ -741,7 +741,7 @@ end;
 close(fvStorageAInp);
 
 fvStorageAOut = open("output/vStorageAOut.csv", "w");
-println(fvStorageAOut, "stg,comm,region,year,slice,value");
+println(fvStorageAOut, "stg,comm,region,year,timeslice,value");
 for (st1, c, r, y, s) in mvStorageAOut
     if JuMP.value(vStorageAOut[(st1, c, r, y, s)]) != 0
         println(
@@ -763,7 +763,7 @@ end;
 close(fvStorageAOut);
 
 fvDummyImport = open("output/vDummyImport.csv", "w");
-println(fvDummyImport, "comm,region,year,slice,value");
+println(fvDummyImport, "comm,region,year,timeslice,value");
 for (c, r, y, s) in mDummyImport
     if JuMP.value(vDummyImport[(c, r, y, s)]) != 0
         println(
@@ -783,7 +783,7 @@ end;
 close(fvDummyImport);
 
 fvDummyExport = open("output/vDummyExport.csv", "w");
-println(fvDummyExport, "comm,region,year,slice,value");
+println(fvDummyExport, "comm,region,year,timeslice,value");
 for (c, r, y, s) in mDummyExport
     if JuMP.value(vDummyExport[(c, r, y, s)]) != 0
         println(
@@ -803,7 +803,7 @@ end;
 close(fvDummyExport);
 
 fvStorageInp = open("output/vStorageInp.csv", "w");
-println(fvStorageInp, "stg,comm,region,year,slice,value");
+println(fvStorageInp, "stg,comm,region,year,timeslice,value");
 for (st1, c, r, y, s) in mvStorageStore
     if JuMP.value(vStorageInp[(st1, c, r, y, s)]) != 0
         println(
@@ -825,7 +825,7 @@ end;
 close(fvStorageInp);
 
 fvStorageOut = open("output/vStorageOut.csv", "w");
-println(fvStorageOut, "stg,comm,region,year,slice,value");
+println(fvStorageOut, "stg,comm,region,year,timeslice,value");
 for (st1, c, r, y, s) in mvStorageStore
     if JuMP.value(vStorageOut[(st1, c, r, y, s)]) != 0
         println(
@@ -847,7 +847,7 @@ end;
 close(fvStorageOut);
 
 fvStorageStore = open("output/vStorageStore.csv", "w");
-println(fvStorageStore, "stg,comm,region,year,slice,value");
+println(fvStorageStore, "stg,comm,region,year,timeslice,value");
 for (st1, c, r, y, s) in mvStorageStore
     if JuMP.value(vStorageStore[(st1, c, r, y, s)]) != 0
         println(
@@ -941,7 +941,7 @@ end;
 close(fvStorageNewCap);
 
 fvImportTot = open("output/vImportTot.csv", "w");
-println(fvImportTot, "comm,region,year,slice,value");
+println(fvImportTot, "comm,region,year,timeslice,value");
 for (c, r, y, s) in mImport
     if JuMP.value(vImportTot[(c, r, y, s)]) != 0
         println(
@@ -961,7 +961,7 @@ end;
 close(fvImportTot);
 
 fvExportTot = open("output/vExportTot.csv", "w");
-println(fvExportTot, "comm,region,year,slice,value");
+println(fvExportTot, "comm,region,year,timeslice,value");
 for (c, r, y, s) in mExport
     if JuMP.value(vExportTot[(c, r, y, s)]) != 0
         println(
@@ -981,7 +981,7 @@ end;
 close(fvExportTot);
 
 fvTradeIr = open("output/vTradeIr.csv", "w");
-println(fvTradeIr, "trade,comm,region,regionp,year,slice,value");
+println(fvTradeIr, "trade,comm,region,regionp,year,timeslice,value");
 for (t1, c, r, rp, y, s) in mvTradeIr
     if JuMP.value(vTradeIr[(t1, c, r, rp, y, s)]) != 0
         println(
@@ -1005,7 +1005,7 @@ end;
 close(fvTradeIr);
 
 fvTradeIrAInp = open("output/vTradeIrAInp.csv", "w");
-println(fvTradeIrAInp, "trade,comm,region,year,slice,value");
+println(fvTradeIrAInp, "trade,comm,region,year,timeslice,value");
 for (t1, c, r, y, s) in mvTradeIrAInp
     if JuMP.value(vTradeIrAInp[(t1, c, r, y, s)]) != 0
         println(
@@ -1027,7 +1027,7 @@ end;
 close(fvTradeIrAInp);
 
 fvTradeIrAInpTot = open("output/vTradeIrAInpTot.csv", "w");
-println(fvTradeIrAInpTot, "comm,region,year,slice,value");
+println(fvTradeIrAInpTot, "comm,region,year,timeslice,value");
 for (c, r, y, s) in mvTradeIrAInpTot
     if JuMP.value(vTradeIrAInpTot[(c, r, y, s)]) != 0
         println(
@@ -1047,7 +1047,7 @@ end;
 close(fvTradeIrAInpTot);
 
 fvTradeIrAOut = open("output/vTradeIrAOut.csv", "w");
-println(fvTradeIrAOut, "trade,comm,region,year,slice,value");
+println(fvTradeIrAOut, "trade,comm,region,year,timeslice,value");
 for (t1, c, r, y, s) in mvTradeIrAOut
     if JuMP.value(vTradeIrAOut[(t1, c, r, y, s)]) != 0
         println(
@@ -1069,7 +1069,7 @@ end;
 close(fvTradeIrAOut);
 
 fvTradeIrAOutTot = open("output/vTradeIrAOutTot.csv", "w");
-println(fvTradeIrAOutTot, "comm,region,year,slice,value");
+println(fvTradeIrAOutTot, "comm,region,year,timeslice,value");
 for (c, r, y, s) in mvTradeIrAOutTot
     if JuMP.value(vTradeIrAOutTot[(c, r, y, s)]) != 0
         println(
@@ -1098,7 +1098,7 @@ end;
 close(fvExportRowCum);
 
 fvExportRow = open("output/vExportRow.csv", "w");
-println(fvExportRow, "expp,comm,region,year,slice,value");
+println(fvExportRow, "expp,comm,region,year,timeslice,value");
 for (e, c, r, y, s) in mExportRow
     if JuMP.value(vExportRow[(e, c, r, y, s)]) != 0
         println(
@@ -1129,7 +1129,7 @@ end;
 close(fvImportRowCum);
 
 fvImportRow = open("output/vImportRow.csv", "w");
-println(fvImportRow, "imp,comm,region,year,slice,value");
+println(fvImportRow, "imp,comm,region,year,timeslice,value");
 for (i, c, r, y, s) in mImportRow
     if JuMP.value(vImportRow[(i, c, r, y, s)]) != 0
         println(
@@ -1270,8 +1270,8 @@ end
 for rr in year
     println(raw_data, "year,", rr)
 end
-for rr in slice
-    println(raw_data, "slice,", rr)
+for rr in timeslice
+    println(raw_data, "timeslice,", rr)
 end
 for rr in sup
     println(raw_data, "sup,", rr)

@@ -19,7 +19,7 @@ template for newCalendar()."><meta property="og:image" content="https://energyRt
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.75.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.80.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -79,27 +79,27 @@ template for <code><a href="newCalendar.html">newCalendar()</a></code>.</p>
     <div class="section level2">
     <h2 id="format">Format<a class="anchor" aria-label="anchor" href="#format"></a></h2>
     <p>A named list of <code>calendar</code> objects, including:</p><dl><dt>season_dn</dt>
-<dd><p>Four seasons x day/night (8 slices).</p></dd>
+<dd><p>Four seasons x day/night (8 timeslices).</p></dd>
 
 <dt>d365</dt>
 <dd><p>Daily resolution, 365 days.</p></dd>
 
 <dt>utopia_annual</dt>
-<dd><p>UTOPIA: annual resolution (1 slice).</p></dd>
+<dd><p>UTOPIA: annual resolution (1 timeslice).</p></dd>
 
 <dt>utopia_seasons</dt>
 <dd><p>UTOPIA: 4 seasons x 3 dayparts (DAY/NIGHT/PEAK) with
-representative shares (12 slices) – the default UTOPIA resolution.</p></dd>
+representative shares (12 timeslices) – the default UTOPIA resolution.</p></dd>
 
 <dt>utopia_m12h24</dt>
-<dd><p>UTOPIA: 12 months x 24 hours (288 slices).</p></dd>
+<dd><p>UTOPIA: 12 months x 24 hours (288 timeslices).</p></dd>
 
 <dt>d365_h24</dt>
-<dd><p>Full hourly year: 365 days x 24 hours (8760 slices).</p></dd>
+<dd><p>Full hourly year: 365 days x 24 hours (8760 timeslices).</p></dd>
 
 <dt>d365_h24_subset_1day_per_month</dt>
 <dd><p>Representative subset: one day per
-month at hourly resolution (288 slices, <code>year_fraction</code> ~ 12/365).</p></dd>
+month at hourly resolution (288 timeslices, <code>year_fraction</code> ~ 12/365).</p></dd>
 
 
 </dl><p>The <code>utopia_*</code> calendars are built from energyRt's own constructors; the

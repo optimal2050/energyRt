@@ -5,7 +5,7 @@
 \alias{tsl2yday}
 \alias{tsl2hour}
 \alias{tsl2month}
-\title{Mapping function between time-slices and day of the year}
+\title{Mapping function between time-timeslices and day of the year}
 \usage{
 tsl2year(tsl, return.null = TRUE)
 
@@ -16,11 +16,11 @@ tsl2hour(tsl, return.null = TRUE, pattern = "h[0-9]++")
 tsl2month(tsl, format = tsl_guess_format(tsl), return.null = TRUE)
 }
 \arguments{
-\item{tsl}{character vector with time slices}
+\item{tsl}{character vector with time timeslices}
 
 \item{return.null}{logical, valid for the cased then all values are NA, then NULL will be returned if return.null = TRUE,}
 
-\item{format}{character, the time slices format}
+\item{format}{character, the time timeslices format}
 }
 \value{
 Integer vector of years, the same length as the input vector
@@ -32,21 +32,21 @@ Integer vector of hours, the same length as the input vector
 Integer vector of months, the same length as the input vector
 }
 \description{
-Mapping function between time-slices and day of the year
+Mapping function between time-timeslices and day of the year
 
-Mapping function between time-slices and hour
+Mapping function between time-timeslices and hour
 
-Mapping function between time-slices and month
+Mapping function between time-timeslices and month
 }
 \section{Functions}{
 \itemize{
-\item \code{tsl2year()}: Extract year from time-slices
+\item \code{tsl2year()}: Extract year from time-timeslices
 
-\item \code{tsl2yday()}: Extract the day of the year from time-slices
+\item \code{tsl2yday()}: Extract the day of the year from time-timeslices
 
-\item \code{tsl2hour()}: Extract hour from time-slices
+\item \code{tsl2hour()}: Extract hour from time-timeslices
 
-\item \code{tsl2month()}: Extract month from time-slices
+\item \code{tsl2month()}: Extract month from time-timeslices
 
 }}
 \examples{

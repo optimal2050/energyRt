@@ -13,6 +13,11 @@
 #' @param object A `commodity` or `technology` S4 object.
 #' @param slots  Character vector of slot names to include. `NULL` (default)
 #'   returns all populated slots.
+#' @param complete (technology only) If `TRUE`, parameters with a known unit
+#'   formula are reported even when they carry no data yet; commodity-linked
+#'   units are then resolved from the declared ports when unambiguous and
+#'   left as placeholder tokens otherwise. Default `FALSE` (populated
+#'   parameters only).
 #' @param ...    Reserved for future use.
 #'
 #' @return A data.frame with columns `slot`, `parameter`, `comm`, `description`,
@@ -254,9 +259,34 @@ setMethod("getUnits", "commodity", function(object, slots = NULL, ...) {
 # ── technology method ─────────────────────────────────────────────────────────
 #' @rdname getUnits
 #' @export
-setMethod("getUnits", "technology", function(object, slots = NULL, ...) {
+setMethod("getUnits", "technology", function(object, slots = NULL,
+                                             complete = FALSE, ...) {
   base       <- .resolve_base_units(object)
   comm_units <- .resolve_comm_units(object)
+
+  # Unambiguous per-token port units: used to resolve leftover {comm} /
+  # {acomm} / {group} tokens when the row itself does not pin a commodity
+  # (all-commodities rows, or `complete` placeholders). Ambiguous -> NA,
+  # the token stays visible.
+  uniq_or_na <- function(x) {
+    x <- unique(x[!is.na(x) & nzchar(x)])
+    if (length(x) == 1) x else NA_character_
+  }
+  tok_unit <- list(
+    comm  = uniq_or_na(c(
+      if ("unit" %in% names(object@input)) object@input$unit,
+      if ("unit" %in% names(object@output)) object@output$unit)),
+    acomm = uniq_or_na(if ("unit" %in% names(object@aux)) object@aux$unit),
+    group = uniq_or_na(if ("unit" %in% names(object@group))
+      object@group$unit))
+  fill_tokens <- function(u) {
+    for (tok in names(tok_unit)) {
+      if (!is.na(tok_unit[[tok]])) {
+        u <- gsub(paste0("\\{", tok, "\\}"), tok_unit[[tok]], u)
+      }
+    }
+    u
+  }
 
   # slots that have a data.frame with value columns (non-dimension columns)
   df_slots <- c("ceff", "geff", "aeff", "af", "afs",
@@ -283,12 +313,13 @@ setMethod("getUnits", "technology", function(object, slots = NULL, ...) {
 
   # ── data.frame slots ─────────────────────────────────────────────────────────
   # Dimension columns to skip (not parameters, just indexing)
-  dim_cols <- c("region", "year", "slice", "comm", "acomm", "group",
+  dim_cols <- c("region", "year", "timeslice", "comm", "acomm", "group",
                 "type", "comm2", "vintage", "cluster")
 
   for (sn in intersect(df_slots, use_slots)) {
     df <- slot(object, sn)
-    if (!is.data.frame(df) || nrow(df) == 0) next
+    if (!is.data.frame(df)) next
+    if (nrow(df) == 0 && !complete) next
 
     val_cols <- setdiff(names(df), dim_cols)
     if (length(val_cols) == 0) next
@@ -298,49 +329,58 @@ setMethod("getUnits", "technology", function(object, slots = NULL, ...) {
       formula <- .tech_unit_formulas[[key]]
       if (is.null(formula)) next  # unknown column, skip
 
-      # comm-specific: expand one row per unique comm/acomm/group present
       has_comm  <- "comm"  %in% names(df)
       has_acomm <- "acomm" %in% names(df)
       has_group <- "group" %in% names(df)
 
+      idx <- if (nrow(df) > 0) which(!is.na(df[[vc]])) else integer()
+
+      if (length(idx) == 0) {
+        # entirely-NA / empty parameter: only reported with `complete`,
+        # with commodity tokens resolved via the unambiguous port units
+        if (!complete) next
+        u <- fill_tokens(.substitute_units(formula, base, comm_units))
+        rows[[length(rows) + 1]] <- data.frame(
+          slot        = sn,
+          parameter   = vc,
+          comm        = NA_character_,
+          description = .get_param_desc("technology", sn, vc),
+          unit        = u,
+          stringsAsFactors = FALSE
+        )
+        next
+      }
+
       if (any(has_comm, has_acomm, has_group)) {
-        # build unique combinations that have non-NA values
-        val_col_data <- df[[vc]]
-        idx <- which(!is.na(val_col_data))
-        if (length(idx) == 0) next  # skip columns that are entirely NA
-
+        # one row per unique comm/acomm/group combination carrying values,
+        # substituting all commodity dimensions of the row jointly (an
+        # aeff row resolves BOTH {comm} and {acomm} from its own cells)
         sub_df <- df[idx, , drop = FALSE]
-        comm_vals  <- if (has_comm)  unique(sub_df$comm)  else NA_character_
-        acomm_vals <- if (has_acomm) unique(sub_df$acomm) else NA_character_
-        group_vals <- if (has_group) unique(sub_df$group) else NA_character_
-
-        # cross: for ceff we want comm × vc; for aeff we want acomm × vc
-        iter_vals <- if (has_acomm) acomm_vals
-                     else if (has_group) group_vals
-                     else comm_vals
-        iter_type <- if (has_acomm) "acomm"
-                     else if (has_group) "group"
-                     else "comm"
-
-        for (iv in iter_vals) {
+        combo_cols <- c(if (has_comm) "comm", if (has_acomm) "acomm",
+                        if (has_group) "group")
+        combos <- unique(sub_df[, combo_cols, drop = FALSE])
+        for (k in seq_len(nrow(combos))) {
+          cmb <- combos[k, , drop = FALSE]
           u <- .substitute_units(
             formula, base, comm_units,
-            comm  = if (iter_type == "comm")  iv else NA,
-            acomm = if (iter_type == "acomm") iv else NA,
-            group = if (iter_type == "group") iv else NA
+            comm  = if (has_comm)  as.character(cmb$comm)  else NA,
+            acomm = if (has_acomm) as.character(cmb$acomm) else NA,
+            group = if (has_group) as.character(cmb$group) else NA
           )
+          u <- fill_tokens(u)
+          lab <- unlist(cmb, use.names = FALSE)
+          lab <- paste(lab[!is.na(lab)], collapse = "/")
           rows[[length(rows) + 1]] <- data.frame(
             slot        = sn,
             parameter   = vc,
-            comm        = iv,
+            comm        = if (nzchar(lab)) lab else NA_character_,
             description = .get_param_desc("technology", sn, vc),
             unit        = u,
             stringsAsFactors = FALSE
           )
         }
       } else {
-        if (all(is.na(df[[vc]]))) next  # skip entirely-NA scalar columns
-        u <- .substitute_units(formula, base, comm_units)
+        u <- fill_tokens(.substitute_units(formula, base, comm_units))
         rows[[length(rows) + 1]] <- data.frame(
           slot        = sn,
           parameter   = vc,

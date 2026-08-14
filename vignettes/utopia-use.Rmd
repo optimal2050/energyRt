@@ -39,7 +39,7 @@ set_default_solver(solver_options$glpk)             # set once, used by every so
 ```
 
 Two calls run every scenario in this vignette: `interpolate_model()` expands
-the model over regions, years and slices; `solve_scenario()` writes the solver
+the model over regions, years and timeslices; `solve_scenario()` writes the solver
 files, runs the default solver (set once above) and reads the solution.
 `echo = FALSE` keeps the solver log out of the page — drop it to watch GLPK
 work.
@@ -89,10 +89,10 @@ The dispatch over a representative summer day -- generation stacked by
 technology, storage charging below zero, demand as the line
 (`autoplot(scenario)` reads the solution via `getMix()`; note that `getData()`
 aggregates sub-annual values to ANNUAL by default -- pass
-`timeframe = "highest"` for slice-level data):
+`timeframe = "highest"` for timeslice-level data):
 
 ```{r storage}
-autoplot(scen_BASE, "generation", slice = "^SUM_")
+autoplot(scen_BASE, "generation", timeslice = "^SUM_")
 ```
 
 # Scenarios: layering the levers

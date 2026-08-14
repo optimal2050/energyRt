@@ -10,7 +10,7 @@
 
 test_that(".write/.read_exchange_table round-trips type-safely (feather + parquet)", {
   df <- data.frame(tech = rep(c("A", "B"), 50), region = "R1",
-                   year = rep(2020:2024L, 20), slice = NA_character_,
+                   year = rep(2020:2024L, 20), timeslice = NA_character_,
                    value = runif(100), stringsAsFactors = FALSE)
   d <- file.path(tempdir(), "axrt"); dir.create(d, showWarnings = FALSE)
   for (fmt in c("feather", "parquet")) {
@@ -19,7 +19,7 @@ test_that(".write/.read_exchange_table round-trips type-safely (feather + parque
     back <- .read_exchange_table(p)
     expect_equal(back, df, ignore_attr = TRUE)
     expect_true(is.integer(back$year))           # integer year preserved
-    expect_true(is.character(back$slice))         # all-NA char survives (CSV loses it)
+    expect_true(is.character(back$timeslice))         # all-NA char survives (CSV loses it)
   }
 })
 

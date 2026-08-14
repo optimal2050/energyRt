@@ -2,15 +2,15 @@
 # Calendar SAMPLING validation.
 #
 # A sampled (reduced) calendar must reproduce the FULL model's objective exactly,
-# because the slice weights annualise the sample (a subset calendar has
-# year_fraction < 1; the top slice carries weight = 1/year_fraction, and the
+# because the timeslice weights annualise the sample (a subset calendar has
+# year_fraction < 1; the top timeslice carries weight = 1/year_fraction, and the
 # agg-rewrite aggregates fine->coarse via the scale-invariant ratio
-# pSliceAgg = pSliceWeight[child]/pSliceWeight[parent], so the uniform expansion
+# pTimesliceAgg = pTimesliceWeight[child]/pTimesliceWeight[parent], so the uniform expansion
 # is self-consistent). This is the ground-truth check that cross-backend
 # agreement CANNOT provide - all backends implement the same math, so they agree
 # even if the weight scaling were wrong.
 #
-# Method: grouped-IDENTICAL slices. All fine slices (or all days) carry identical
+# Method: grouped-IDENTICAL timeslices. All fine timeslices (or all days) carry identical
 # data, so solving at full resolution vs a subset of m<K representatives
 # (year_fraction = m/K) must give the same objective.
 #
@@ -37,20 +37,20 @@ test_that("flat grouped-identical sampling reproduces the full objective", {
 
   K  <- 12
   sl <- sprintf("s%02d", 1:K)
-  tt <- make_timetable(struct = list(ANNUAL = "ANNUAL", SLICE = sl))
+  tt <- make_timetable(struct = list(ANNUAL = "ANNUAL", TIMESLICE = sl))
 
   mk <- function(cal) newModel("smpltest",
     repo = newRepository("r",
       newCommodity("COA", timeframe = "ANNUAL"),
-      newCommodity("ELC", timeframe = "SLICE"),
+      newCommodity("ELC", timeframe = "TIMESLICE"),
       newSupply("SUP_COA", commodity = "COA",
-                availability = data.frame(region = "R1", cost = 5)),
+                supply = data.frame(region = "R1", cost = 5)),
       newTechnology("ECOA", input = list(comm = "COA"), output = list(comm = "ELC"),
                     af = data.frame(af.up = 0.5),
                     invcost = data.frame(region = "R1", invcost = 1000),
                     olife = list(olife = 30), cap2act = 1),
       newDemand("DEM_ELC", commodity = "ELC",
-                dem = data.frame(region = "R1", slice = sl, dem = 10))),
+                demand = data.frame(region = "R1", timeslice = sl, demand = 10))),
     calendar = cal, region = "R1", horizon = newHorizon(2020), discount = 0.05)
 
   scen_full <- suppressMessages(interpolate_model(mk(newCalendar(timetable = tt, name = "full")),
@@ -59,7 +59,7 @@ test_that("flat grouped-identical sampling reproduces the full objective", {
   expect_false(is.na(of))
 
   for (m in c(2, 3, 4, 6)) {                 # single-element non-ANNUAL levels rejected
-    tt1   <- tt[tt$SLICE %in% sl[seq_len(m)], ]
+    tt1   <- tt[tt$TIMESLICE %in% sl[seq_len(m)], ]
     cal_s <- newCalendar(timetable = tt1, name = paste0("s", m),
                          year_fraction = sum(tt1$share))
     scen  <- suppressMessages(interpolate_model(mk(cal_s), paste0("flat_s", m),
@@ -78,24 +78,24 @@ test_that("typical-day sampling (intra-day shape + storage) reproduces full obje
 
   G <- 6; H <- 6
   day  <- paste0("d", 1:G)
-  hour <- sprintf("h%02d", 0:(H - 1))        # ZERO-PADDED -> correct mSliceNext order
+  hour <- sprintf("h%02d", 0:(H - 1))        # ZERO-PADDED -> correct mTimesliceNext order
   shape <- c(2, 2, 4, 8, 6, 3)[1:H]          # peaky hourly demand shape
   tt <- make_timetable(struct = list(ANNUAL = "ANNUAL", DAY = day, HOUR = hour))
   dem_df <- do.call(rbind, lapply(day, function(d)
-    data.frame(region = "R1", slice = paste0(d, "_", hour), dem = shape)))
+    data.frame(region = "R1", timeslice = paste0(d, "_", hour), demand = shape)))
 
   mk <- function(cal) newModel("typday",
     repo = newRepository("r",
       newCommodity("COA", timeframe = "ANNUAL"),
       newCommodity("ELC", timeframe = "HOUR"),
       newSupply("SUP_COA", commodity = "COA",
-                availability = data.frame(region = "R1", cost = 5)),
+                supply = data.frame(region = "R1", cost = 5)),
       newTechnology("ECOA", input = list(comm = "COA"), output = list(comm = "ELC"),
                     invcost = data.frame(region = "R1", invcost = 800),
                     olife = list(olife = 30), cap2act = 1),
       newStorage("STG_ELC", commodity = "ELC",
                  invcost = list(invcost = 20), olife = list(olife = 15)),
-      newDemand("DEM_ELC", commodity = "ELC", dem = dem_df)),
+      newDemand("DEM_ELC", commodity = "ELC", demand = dem_df)),
     calendar = cal, region = "R1", horizon = newHorizon(2020), discount = 0.05)
 
   scen_full <- suppressMessages(interpolate_model(mk(newCalendar(timetable = tt, name = "full")),

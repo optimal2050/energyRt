@@ -1,6 +1,6 @@
-# Guess format of time-slices
+# Guess format of time-timeslices
 
-Guess format of time-slices
+Guess format of time-timeslices
 
 ## Usage
 
@@ -12,11 +12,11 @@ tsl_guess_format(tsl)
 
 - tsl:
 
-  character vector of time-slice names.
+  character vector of time-timeslice names.
 
 ## Value
 
-Character vector with the guessed format of the time-slices
+Character vector with the guessed format of the time-timeslices
 
 ## Examples
 

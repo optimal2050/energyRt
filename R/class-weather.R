@@ -42,7 +42,7 @@ setClass("weather",
     weather = data.frame(
       region = character(), #
       year = integer(),
-      slice = character(),
+      timeslice = character(),
       wval = numeric(),
       stringsAsFactors = FALSE
     ),
@@ -95,8 +95,8 @@ setMethod("initialize", "weather", function(.Object, ...) {
 #'   weather = data.frame(
 #'     region = "R1",
 #'     year = 2015, # 
-#'     slice = ttbl$slice,
-#'     wval = runif(length(ttbl$slice), 0., 1) # use your data
+#'     timeslice = ttbl$timeslice,
+#'     wval = runif(length(ttbl$timeslice), 0., 1) # use your data
 #'   )
 #' )
 #' }

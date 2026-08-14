@@ -9,12 +9,12 @@ Storage can be used in combination with other processes, such as
 technologies, supply, or demand to represent complex technological
 chains, demand or supply technologies with time-shift. Operation of
 storage includes accumulation, storing, and release of the stored
-commodity. The storing cycle operates on the ordered time-slices of the
-commodity timeframe. The cycle is looped either on an annual basis (last
-time-slice of a year follows the first time slice of the same year) or
-within the parent time-frame (for example, when commodity time-frame is
-"HOUR" and the parent time-frame is "DAY" then the storage cycle will be
-a calendar day).
+commodity. The storing cycle operates on the ordered time-timeslices of
+the commodity timeframe. The cycle is looped either on an annual basis
+(last time-timeslice of a year follows the first time timeslice of the
+same year) or within the parent time-frame (for example, when commodity
+time-frame is "HOUR" and the parent time-frame is "DAY" then the storage
+cycle will be a calendar day).
 
 ## Slots
 
@@ -83,8 +83,6 @@ a calendar day).
   and `olife` slots. A vintage is a separately investable variant that
   keeps the characteristics of its build year for its whole life – for
   storage typically a falling capex and a rising round-trip efficiency.
-  Each column is read independently, so a region-agnostic `start` may be
-  combined with a per-region `olife`.
 
   vintage
 
@@ -102,13 +100,13 @@ a calendar day).
 
   start
 
-  :   integer. The first year the storage can be installed. Defaults to
-      the vintage year.
+  :   integer. The first year the storage can be installed. NA means
+      unbounded (up to `end`).
 
   end
 
-  :   integer. The last year the storage can be installed. Defaults to
-      the vintage year.
+  :   integer. The last year the storage can be installed. NA means
+      unbounded (from `start` on).
 
   olife
 
@@ -205,14 +203,14 @@ a calendar day).
 
   :   integer. Year to apply the parameter, NA for every year.
 
-  slice
+  timeslice
 
-  :   character. Time slice for which the charged level will be
+  :   character. Time timeslice for which the charged level will be
       specified.
 
   charge
 
-  :   numeric. Pre-charged or targeted level at the specified slice.
+  :   numeric. Pre-charged or targeted level at the specified timeslice.
 
 - `seff`:
 
@@ -237,9 +235,10 @@ a calendar day).
 
   :   integer. Year to apply the parameter, NA for every year.
 
-  slice
+  timeslice
 
-  :   character. Time slice to apply the parameter, NA for every slice.
+  :   character. Time timeslice to apply the parameter, NA for every
+      timeslice.
 
   stgeff
 
@@ -276,9 +275,10 @@ a calendar day).
 
   :   integer. Year to apply the parameter, NA for every year.
 
-  slice
+  timeslice
 
-  :   character. Time slice to apply the parameter, NA for every slice.
+  :   character. Time timeslice to apply the parameter, NA for every
+      timeslice.
 
   af.lo
 
@@ -346,9 +346,10 @@ a calendar day).
 
   :   integer. Year to apply the parameter, NA for every year.
 
-  slice
+  timeslice
 
-  :   character. Time slice to apply the parameter, NA for every slice.
+  :   character. Time timeslice to apply the parameter, NA for every
+      timeslice.
 
   stg2ainp
 
@@ -455,9 +456,10 @@ a calendar day).
 
   :   integer. Year to apply the parameter, NA for every year.
 
-  slice
+  timeslice
 
-  :   character. Time slice to apply the parameter, NA for every slice.
+  :   character. Time timeslice to apply the parameter, NA for every
+      timeslice.
 
   inpcost
 
@@ -529,13 +531,14 @@ a calendar day).
 - `fullYear`:
 
   logical. If TRUE (default), the storage technology operates between
-  parent timeframes through the year. The last time-slice in the
-  timeframe is used as a preciding time-slice for the first time-slice
-  in the the same group of time-slices within the parent timeframe. if
-  FALSE, the storage charge and discchare cycle is limited to the parent
-  timeframe. The last time-slice in the timeframe is used as a preciding
-  time-slice for the first time-slice in the the same group of
-  time-slices within the parent timeframe.
+  parent timeframes through the year. The last time-timeslice in the
+  timeframe is used as a preciding time-timeslice for the first
+  time-timeslice in the the same group of time-timeslices within the
+  parent timeframe. if FALSE, the storage charge and discchare cycle is
+  limited to the parent timeframe. The last time-timeslice in the
+  timeframe is used as a preciding time-timeslice for the first
+  time-timeslice in the the same group of time-timeslices within the
+  parent timeframe.
 
 - `cap2stg`:
 

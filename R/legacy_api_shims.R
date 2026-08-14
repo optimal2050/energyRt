@@ -35,7 +35,9 @@ interp_mod <- function(mod, name = NULL, ...,
                        fold = TRUE, sparse = TRUE, prune = TRUE,
                        validate = TRUE, code = NULL,
                        verbose = isVerbose()) {
-  .Deprecated("interpolate_model")
+  # `old = ` explicitly: the default derives it from the CALL, and under
+  # do.call() that deparses the whole function body into the warning
+  .Deprecated("interpolate_model", old = "interp_mod")
   interpolate_model(mod, name = name, ..., desc = desc, ondisk = ondisk,
                     overwrite = overwrite, fold = fold, sparse = sparse,
                     prune = prune, validate = validate, code = code,

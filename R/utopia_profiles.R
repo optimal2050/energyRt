@@ -5,15 +5,15 @@
 # capacity factors can also be re-sourced at run time from IDEEA.
 #
 # Three target resolutions are supported, matching the saved calendars:
-#   "utopia_s4h24"  -- 4 seasons x 24 hours (96 slices, the DEFAULT base case;
+#   "utopia_s4h24"  -- 4 seasons x 24 hours (96 timeslices, the DEFAULT base case;
 #                      full diurnal detail so storage cycles), "WIN_h00".
-#   "utopia_m12h24" -- 12 months x 24 hours (288 slices, higher resolution),
-#                      slices like "m01_h00".
-#   "utopia_seasons" -- 4 seasons x 3 dayparts (12 slices), slices like "WIN_DAY".
+#   "utopia_m12h24" -- 12 months x 24 hours (288 timeslices, higher resolution),
+#                      timeslices like "m01_h00".
+#   "utopia_seasons" -- 4 seasons x 3 dayparts (12 timeslices), timeslices like "WIN_DAY".
 
 .utopia_calendars <- c("utopia_s4h24", "utopia_m12h24", "utopia_seasons")
 
-# ---- internal: map an IDEEA d365_h24 slice ("d001_h00") to a target slice -----
+# ---- internal: map an IDEEA d365_h24 timeslice ("d001_h00") to a target timeslice -----
 .utopia_season_of_month <- function(m) {
   c("WIN", "WIN", "SPR", "SPR", "SPR", "SUM",
     "SUM", "SUM", "AUT", "AUT", "AUT", "WIN")[m]
@@ -22,8 +22,8 @@
 .utopia_daypart_of_hour <- function(h) {
   ifelse(h >= 7 & h <= 17, "DAY", ifelse(h >= 18 & h <= 20, "PK", "NGT"))
 }
-# Vectorised (yday, hour) -> target slice name for a given calendar.
-.utopia_slice_key <- function(yday, hour, calendar) {
+# Vectorised (yday, hour) -> target timeslice name for a given calendar.
+.utopia_timeslice_key <- function(yday, hour, calendar) {
   month <- as.integer(format(as.Date(yday - 1, origin = "2019-01-01"), "%m"))
   if (calendar == "utopia_s4h24") {
     sprintf("%s_h%02d", .utopia_season_of_month(month), hour)
@@ -36,16 +36,18 @@
   }
 }
 
-# Aggregate an IDEEA d365_h24 weather frame (region, year, slice, wval) to a
-# target calendar's slices by averaging the capacity factor.
+# Aggregate an IDEEA d365_h24 weather frame (region, year, timeslice, wval) to a
+# target calendar's timeslices by averaging the capacity factor.
 .utopia_aggregate_cf <- function(w, calendar) {
   w <- as.data.frame(w)
-  sl <- as.character(w$slice)                # "d001_h00"
+  # IDEEA (external) data may still carry the pre-v0.80 `slice` column
+  names(w) <- .rename_slice_compat(names(w), "IDEEA weather data")
+  sl <- as.character(w$timeslice)                # "d001_h00"
   yday <- as.integer(substr(sl, 2, 4))
   hour <- as.integer(substr(sl, 7, 8))       # after the "h"
-  key  <- .utopia_slice_key(yday, hour, calendar)
-  agg  <- stats::aggregate(w$wval, by = list(slice = key), FUN = mean, na.rm = TRUE)
-  data.frame(slice = agg$slice, wval = agg$x, stringsAsFactors = FALSE)
+  key  <- .utopia_timeslice_key(yday, hour, calendar)
+  agg  <- stats::aggregate(w$wval, by = list(timeslice = key), FUN = mean, na.rm = TRUE)
+  data.frame(timeslice = agg$timeslice, wval = agg$x, stringsAsFactors = FALSE)
 }
 
 # Pull a representative CF frame for a resource from an IDEEA reg5 element
@@ -78,7 +80,7 @@
       .utopia_get_ideea_cf(reg5[[resources[[res]]]], cluster), calendar)
     data.frame(resource = res, cf, stringsAsFactors = FALSE)
   })
-  do.call(rbind, out)[, c("resource", "slice", "wval")]
+  do.call(rbind, out)[, c("resource", "timeslice", "wval")]
 }
 
 #' UTOPIA input profiles (deterministic)
@@ -92,7 +94,7 @@
 #'
 #' @param regions character vector of region names.
 #' @param calendar target resolution: `"utopia_s4h24"` (4 seasons x 24 hours, 96
-#'   slices, the default base case), `"utopia_m12h24"` (12 months x 24 hours,
+#'   timeslices, the default base case), `"utopia_m12h24"` (12 months x 24 hours,
 #'   288) or `"utopia_seasons"` (4 seasons x 3 dayparts, 12).
 #' @param source `"saved"` (packaged data, default) or `"ideea"` (re-aggregate
 #'   from `IDEEA::ideea_modules` if installed).
@@ -107,8 +109,8 @@
 #'   identical profiles to every region.
 #'
 #' @return a list of tidy data.frames, each replicated across `regions`:
-#'   `weather` (`resource`, `region`, `slice`, `wval`), `demand` (`region`,
-#'   `slice`, `load` -- a relative load shape) and `stock` (`region`, `tech`,
+#'   `weather` (`resource`, `region`, `timeslice`, `wval`), `demand` (`region`,
+#'   `timeslice`, `load` -- a relative load shape) and `stock` (`region`, `tech`,
 #'   `gw` -- base-year capacity).
 #' @seealso [utopia_weather], [utopia_demand], [utopia_stock], [calendars]
 #' @export
@@ -128,10 +130,10 @@ utopia_profiles <- function(regions,
     .utopia_weather_from_ideea(calendar, resources, cluster)
   } else {
     w <- as.data.frame(utopia_weather)
-    w[w$calendar == calendar, c("resource", "slice", "wval")]
+    w[w$calendar == calendar, c("resource", "timeslice", "wval")]
   }
   d <- as.data.frame(utopia_demand)
-  dx <- d[d$calendar == calendar, c("slice", "load")]
+  dx <- d[d$calendar == calendar, c("timeslice", "load")]
   sx <- as.data.frame(utopia_stock)
 
   # replicate each region-agnostic profile across the requested regions
@@ -140,7 +142,7 @@ utopia_profiles <- function(regions,
       cbind(region = r, df, stringsAsFactors = FALSE, row.names = NULL)
     }))
   }
-  weather <- rep_reg(wx)[, c("resource", "region", "slice", "wval")]
+  weather <- rep_reg(wx)[, c("resource", "region", "timeslice", "wval")]
 
   # deterministic regional endowments: sunnier south, windier coast (UTOPIA map
   # regions R1-R11; unknown region names keep factor 1)
@@ -163,7 +165,7 @@ utopia_profiles <- function(regions,
 
   list(
     weather = weather,
-    demand  = rep_reg(dx)[, c("region", "slice", "load")],
+    demand  = rep_reg(dx)[, c("region", "timeslice", "load")],
     stock   = rep_reg(sx)[, c("region", "tech", "gw")]
   )
 }

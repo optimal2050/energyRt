@@ -6,16 +6,16 @@
 \title{UTOPIA electricity load shape}
 \format{
 A data.frame with columns \code{calendar}
-(\code{utopia_m12h24}/\code{utopia_seasons}), \code{slice} and \code{load} (relative, mean ~1).
+(\code{utopia_m12h24}/\code{utopia_seasons}), \code{timeslice} and \code{load} (relative, mean ~1).
 }
 \usage{
 utopia_demand
 }
 \description{
-A deterministic relative electricity-load shape by slice, for both teaching
+A deterministic relative electricity-load shape by timeslice, for both teaching
 calendars (replaces the vignette's former random load curve).
 \code{\link[=utopia_profiles]{utopia_profiles()}} / the vignette scale it by a region's annual demand and
-the slice shares to get energy per slice.
+the timeslice shares to get energy per timeslice.
 }
 \examples{
 utopia_demand

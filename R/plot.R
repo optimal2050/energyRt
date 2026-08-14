@@ -86,7 +86,7 @@ plot_calendar <- function(object, ...,
                           color_pattern = c("within", "global"),
                           palette = "D",
                           labels = TRUE,
-                          label_by = c("name", "slice", "none"),
+                          label_by = c("name", "timeslice", "none"),
                           label_color = "auto",
                           max_labels = 60L,
                           border = NA,
@@ -98,34 +98,34 @@ plot_calendar <- function(object, ...,
   label_by <- match.arg(label_by)
 
   # A `reference` full calendar turns this into a subset view: the layout comes
-  # from `reference` (the full year), but only the slices present in `object` are
-  # filled -- unselected slices are left empty.
+  # from `reference` (the full year), but only the timeslices present in `object` are
+  # filled -- unselected timeslices are left empty.
   if (!is.null(reference)) {
     if (!methods::is(reference, "calendar")) {
       stop("`reference` must be a `calendar` object.", call. = FALSE)
     }
     grid_cal   <- reference
-    sub_slices <- as.character(as.data.frame(object@timetable)$slice)
+    sub_timeslices <- as.character(as.data.frame(object@timetable)$timeslice)
   } else {
     grid_cal   <- object
-    sub_slices <- NULL
+    sub_timeslices <- NULL
   }
 
   tt_full <- as.data.frame(grid_cal@timetable)
-  frame_cols <- setdiff(names(tt_full), c("slice", "share", "weight"))
+  frame_cols <- setdiff(names(tt_full), c("timeslice", "share", "weight"))
   if (length(frame_cols) == 0 || nrow(tt_full) == 0) {
     stop("The calendar has no timeframes/timeslices to plot.")
   }
   if (is.null(tt_full$weight)) tt_full$weight <- 1 / sum(tt_full$share)
   nlev <- length(frame_cols)
 
-  # Selection is judged over each slice's FULL extent in the reference, not just
+  # Selection is judged over each timeslice's FULL extent in the reference, not just
   # the shown window: for every level, the set of prefix paths that contain at
   # least one selected leaf. So ANNUAL stays selected whenever the subset is
   # non-empty, while a YDAY is selected only if that whole day is in the subset.
-  sel_full <- if (is.null(sub_slices)) rep(TRUE, nrow(tt_full)) else tt_full$slice %in% sub_slices
-  if (!is.null(sub_slices) && !any(sel_full)) {
-    warning("None of the subset's slices match the reference calendar; ",
+  sel_full <- if (is.null(sub_timeslices)) rep(TRUE, nrow(tt_full)) else tt_full$timeslice %in% sub_timeslices
+  if (!is.null(sub_timeslices) && !any(sel_full)) {
+    warning("None of the subset's timeslices match the reference calendar; ",
             "nothing will be highlighted.", call. = FALSE)
   }
   selected_prefix <- lapply(seq_len(nlev), function(i) {
@@ -133,16 +133,16 @@ plot_calendar <- function(object, ...,
     unique(keyf[sel_full])
   })
 
-  # Per-level unique slices (used for within-level coloring and for numeric
+  # Per-level unique timeslices (used for within-level coloring and for numeric
   # `show_leafs` positions).
   uniq_lev <- lapply(seq_len(nlev), function(i) unique(as.character(tt_full[[frame_cols[i]]])))
   klev     <- vapply(uniq_lev, length, integer(1))
 
-  # `show_leafs` selects which slices are drawn. A named list filters each named
-  # timeframe level (character = slice names at that level; numeric = 1-based
-  # positions among that level's slices). An unnamed vector filters the finest
-  # (leaf) level (character = leaf slice names; numeric = leaf indices). Kept
-  # slices are packed left-to-right and the x-axis spans their total year-share.
+  # `show_leafs` selects which timeslices are drawn. A named list filters each named
+  # timeframe level (character = timeslice names at that level; numeric = 1-based
+  # positions among that level's timeslices). An unnamed vector filters the finest
+  # (leaf) level (character = leaf timeslice names; numeric = leaf indices). Kept
+  # timeslices are packed left-to-right and the x-axis spans their total year-share.
   keep <- rep(TRUE, nrow(tt_full))
   if (!is.null(show_leafs)) {
     if (is.list(show_leafs)) {
@@ -160,9 +160,9 @@ plot_calendar <- function(object, ...,
       idx  <- as.integer(show_leafs); idx <- idx[idx >= 1 & idx <= nrow(tt_full)]
       keep <- logical(nrow(tt_full)); keep[idx] <- TRUE
     } else {
-      keep <- as.character(tt_full$slice) %in% as.character(show_leafs)
+      keep <- as.character(tt_full$timeslice) %in% as.character(show_leafs)
     }
-    if (!any(keep)) stop("`show_leafs` selected no slices.", call. = FALSE)
+    if (!any(keep)) stop("`show_leafs` selected no timeslices.", call. = FALSE)
   }
 
   tt       <- tt_full[keep, , drop = FALSE]
@@ -170,11 +170,11 @@ plot_calendar <- function(object, ...,
   n_full   <- nrow(tt_full)
   n  <- nrow(tt)
   w  <- tt$share
-  x1 <- cumsum(w)          # cumulative year-share -> x position of leaf slices
+  x1 <- cumsum(w)          # cumulative year-share -> x position of leaf timeslices
   x0 <- x1 - w
 
-  # Aggregate leaf slices into contiguous segments for a given timeframe level.
-  # Grouping on the prefix of level columns keeps repeated child slices (e.g.
+  # Aggregate leaf timeslices into contiguous segments for a given timeframe level.
+  # Grouping on the prefix of level columns keeps repeated child timeslices (e.g.
   # DAY under both WINTER and SUMMER) as distinct segments.
   seg_for_level <- function(i) {
     cols <- frame_cols[seq_len(i)]
@@ -186,9 +186,9 @@ plot_calendar <- function(object, ...,
     data.frame(
       timeframe = frame_cols[i],
       level     = i,
-      # individual level name (e.g. HOUR -> h00); `slice` is the full path (d001_h00)
+      # individual level name (e.g. HOUR -> h00); `timeslice` is the full path (d001_h00)
       name      = nm_i,
-      slice     = vapply(idx, function(ii) as.character(tt$slice[ii[1]]), character(1)),
+      timeslice     = vapply(idx, function(ii) as.character(tt$timeslice[ii[1]]), character(1)),
       xmin      = vapply(idx, function(ii) x0[ii[1]], numeric(1)),
       xmax      = vapply(idx, function(ii) x1[ii[length(ii)]], numeric(1)),
       # true chronology index (global) and within-level position (h04 -> 5);
@@ -197,7 +197,7 @@ plot_calendar <- function(object, ...,
       within    = match(nm_i, uniq_lev[[i]]),
       share     = vapply(idx, function(ii) sum(w[ii]), numeric(1)),
       weight    = vapply(idx, function(ii) mean(tt$weight[ii]), numeric(1)),
-      # selected over the slice's full extent (via its prefix path)
+      # selected over the timeslice's full extent (via its prefix path)
       selected  = vapply(idx, function(ii) key[ii[1]] %in% selected_prefix[[i]], logical(1)),
       stringsAsFactors = FALSE
     )
@@ -221,15 +221,15 @@ plot_calendar <- function(object, ...,
   } else {
     df$fill <- df[[fill]]
   }
-  # Subset view: leave unselected slices empty (rendered via the scale's na.value).
-  if (!is.null(sub_slices)) df$fill[!df$selected] <- NA
+  # Subset view: leave unselected timeslices empty (rendered via the scale's na.value).
+  if (!is.null(sub_timeslices)) df$fill[!df$selected] <- NA
 
   fill_name <- if (within_mode) "timeslice" else
     c(order = "chronology", share = "year share", weight = "weight")[[fill]]
-  empty_col <- "grey90"  # color of unselected/empty slices in a subset view
+  empty_col <- "grey90"  # color of unselected/empty timeslices in a subset view
 
   if (within_mode) {
-    # relative position within each level: 0 = first slice, 1 = last
+    # relative position within each level: 0 = first timeslice, 1 = last
     fill_scale <- ggplot2::scale_fill_viridis_c(
       option = palette, name = fill_name, na.value = empty_col,
       limits = c(0, 1), breaks = c(0, 1), labels = c("first", "last"))
@@ -264,7 +264,7 @@ plot_calendar <- function(object, ...,
     )
 
   # Labels centered on each rectangle: individual level name (`"name"`, the
-  # default, e.g. HOUR -> h00) or the full slice path (`"slice"`, d001_h00).
+  # default, e.g. HOUR -> h00) or the full timeslice path (`"timeslice"`, d001_h00).
   # Over-crowded levels (more than `max_labels` cells) are skipped.
   if (isTRUE(labels) && label_by != "none") {
     counts      <- table(df$level)
@@ -306,16 +306,16 @@ plot_calendar <- function(object, ...,
 #'
 #' @description
 #' Draws the calendar's time-structure as stacked rows (one per timeframe,
-#' `ANNUAL` on top), where each rectangle is a time-slice sized by its share of
+#' `ANNUAL` on top), where each rectangle is a time-timeslice sized by its share of
 #' the year. `autoplot()` is the ggplot2-idiomatic entry point and returns the
 #' same `ggplot` object as [plot()].
 #'
 #' @param object An object of class `calendar`.
 #' @param ... Passed to `plot_calendar()`.
 #' @param fill One of `"order"` (chronology, default), `"share"` (year-share of
-#'   the slice), or `"weight"` — the metric mapped to rectangle fill color.
+#'   the timeslice), or `"weight"` — the metric mapped to rectangle fill color.
 #' @param color_pattern For `fill = "order"`, how the color gradient is applied:
-#'   `"within"` (default) colors each level over its own slices — a full
+#'   `"within"` (default) colors each level over its own timeslices — a full
 #'   `h00`→`h23` gradient recycled every day, `d001`→`d365` over the year — so
 #'   each row shows its cyclical structure; `"global"` colors by absolute
 #'   chronology (leaf order `1…n`, e.g. `0…8760`). Ignored for `"share"`/`"weight"`.
@@ -324,33 +324,33 @@ plot_calendar <- function(object, ...,
 #' @param labels Logical; draw labels inside the rectangles (master on/off).
 #' @param label_by What to label each rectangle with: `"name"` (default) the
 #'   individual level name (e.g. `HOUR` cells become `h00`…`h23`, `YDAY` cells
-#'   `d001`…`d365`), `"slice"` the full slice path (e.g. `d001_h00`), or
+#'   `d001`…`d365`), `"timeslice"` the full timeslice path (e.g. `d001_h00`), or
 #'   `"none"`.
 #' @param label_color Text color for the labels. `"auto"` (default) contrasts
 #'   each label with its cell — white on the darker part of the gradient, dark
 #'   on the lighter part — so labels stay readable on dark fills. Pass any single
 #'   color (e.g. `"black"`, `"white"`) to use it for all labels.
-#' @param max_labels Integer; timeframes with more slices than this are left
+#' @param max_labels Integer; timeframes with more timeslices than this are left
 #'   unlabeled to avoid clutter.
 #' @param border Rectangle outline color. `NA` (default) draws no outline, so a
-#'   high-resolution row (e.g. 8760 hourly slices) reads as a smooth gradient
-#'   instead of a solid block of borders. Pass e.g. `"grey30"` to outline slices
+#'   high-resolution row (e.g. 8760 hourly timeslices) reads as a smooth gradient
+#'   instead of a solid block of borders. Pass e.g. `"grey30"` to outline timeslices
 #'   on coarse calendars.
-#' @param show_leafs Select which slices to draw (`NULL`, default, shows all).
+#' @param show_leafs Select which timeslices to draw (`NULL`, default, shows all).
 #'   Two forms:
-#'   * an unnamed vector filtering the finest (leaf) level — leaf slice names
+#'   * an unnamed vector filtering the finest (leaf) level — leaf timeslice names
 #'     (e.g. `"d001_h05"`) or integer leaf indices (e.g. `1:100` for the first
 #'     100 leaves);
 #'   * a named list filtering per timeframe level, combined with AND, e.g.
 #'     `list(YDAY = "d100", HOUR = 5:10)` — for each level a character vector of
-#'     that level's slice names or integer positions among its slices
-#'     (`HOUR = 5:10` selects the 5th–10th hours). The kept slices are packed
+#'     that level's timeslice names or integer positions among its timeslices
+#'     (`HOUR = 5:10` selects the 5th–10th hours). The kept timeslices are packed
 #'     left-to-right and the x-axis spans their total year-share. Colors stay
 #'     stable (e.g. `h05` keeps its color whether or not other hours are shown).
 #' @param reference Optional full `calendar`. When supplied, `x` is treated as a
 #'   *subset* of `reference`: the plot lays out `reference`'s full structure but
-#'   fills only the slices present in `x` (matched by slice name), leaving the
-#'   unselected slices empty. Use it to see which part of a full calendar a
+#'   fills only the timeslices present in `x` (matched by timeslice name), leaving the
+#'   unselected timeslices empty. Use it to see which part of a full calendar a
 #'   sampled/subset calendar covers.
 #'
 #' @return A `ggplot` object.
@@ -360,11 +360,11 @@ plot_calendar <- function(object, ...,
 #' plot(cal)
 #' autoplot(cal, fill = "share")
 #'
-#' # Subset view: show which slices a reduced calendar covers within the full one
+#' # Subset view: show which timeslices a reduced calendar covers within the full one
 #' autoplot(calendars$d365_h24_subset_1day_per_month,
 #'          reference = calendars$d365_h24)
 #'
-#' # Zoom into specific slices: day 100, hours 5-10
+#' # Zoom into specific timeslices: day 100, hours 5-10
 #' autoplot(calendars$d365_h24, show_leafs = list(YDAY = "d100", HOUR = 5:10))
 #' }
 
@@ -375,7 +375,7 @@ autoplot.calendar <- function(object, ...,
                               color_pattern = c("within", "global"),
                               palette = "D",
                               labels = TRUE,
-                              label_by = c("name", "slice", "none"),
+                              label_by = c("name", "timeslice", "none"),
                               label_color = "auto",
                               max_labels = 60L,
                               border = NA,
@@ -524,12 +524,16 @@ autoplot.commodity <- function(object, ...) {
 }
 
 # getData() (merge = FALSE) + reshape, for raw (interpolate = FALSE) or the
-# interpolated series (interpolate = TRUE).
-.obj_long_get <- function(object, nm_arg, interpolate, year, ...) {
+# interpolated series (interpolate = TRUE). `years` is the interpolation GRID
+# (getData's `years=`), never a row filter -- passing it as `year=` made
+# getData filter rows against the grid (and against NULL, dropping
+# everything), which is why every process autoplot said "No year-indexed
+# data".
+.obj_long_get <- function(object, nm_arg, interpolate, years, ...) {
   slots <- if (is.null(nm_arg)) list(NULL) else as.list(nm_arg)  # one or many slots
   out <- dplyr::bind_rows(lapply(slots, function(s) {
     ll <- tryCatch(getData(object, name = s, merge = FALSE,
-                           interpolate = interpolate, year = year, ...),
+                           interpolate = interpolate, years = years, ...),
                    error = function(e) NULL)
     if (is.null(ll) || length(ll) == 0) return(NULL)
     dplyr::bind_rows(lapply(ll, .obj_long))
@@ -537,7 +541,8 @@ autoplot.commodity <- function(object, ...) {
   if (is.null(out) || nrow(out) == 0) NULL else as.data.frame(out)
 }
 
-plot_process_year <- function(object, year = NULL, ...) {
+plot_process_year <- function(object, year = NULL, interpolate = TRUE,
+                              show_defaults = FALSE, ...) {
   check_package("ggplot2")
   cls      <- class(object)[1]
   obj_name <- tryCatch(object@name, error = function(e) "")
@@ -561,13 +566,39 @@ plot_process_year <- function(object, year = NULL, ...) {
       if (length(obsy) == 1) year_target <- obsy
   }
   # getData() call #2: interpolated series -> lines.
-  itp <- .obj_long_get(object, nm_arg, TRUE, year_target, ...)
-  if (!is.null(itp) && nrow(itp) > 0) {
-    itp <- dplyr::distinct(itp[!is.na(itp$value) & !is.na(itp$year), , drop = FALSE])
+  itp <- NULL
+  if (isTRUE(interpolate)) {
+    itp <- .obj_long_get(object, nm_arg, TRUE, year_target, ...)
+    if (!is.null(itp) && nrow(itp) > 0) {
+      itp <- dplyr::distinct(itp[!is.na(itp$value) & !is.na(itp$year), , drop = FALSE])
+    }
   }
 
-  # Series = param (split by region/slice when present) for correct grouping.
-  grp_cols <- intersect(c("param", "region", "slice"), names(raw))
+  # Default values of mapped-but-unset parameters of the plotted slot(s)
+  # (dotted lines); non-finite defaults (Inf bounds) are noted, not drawn.
+  def_df   <- NULL
+  def_skip <- character(0)
+  if (isTRUE(show_defaults)) {
+    for (s in (if (is.null(nm_arg)) character(0) else nm_arg)) {
+      pm <- .slot_param_cols(cls, s)
+      for (cn in names(pm)) {
+        if (cn %in% unique(raw$param)) next
+        dv <- suppressWarnings(as.numeric(pm[[cn]]$defVal[1]))
+        if (is.na(dv)) next                       # no default declared (fx)
+        if (!is.finite(dv)) {
+          def_skip <- c(def_skip, paste0(cn, " = ", dv))
+          next
+        }
+        def_df <- rbind(def_df, data.frame(
+          param = paste0(cn, " (default)"), base = base_of(cn), value = dv,
+          stringsAsFactors = FALSE))
+      }
+    }
+    if (!is.null(def_df)) def_df <- unique(def_df)
+  }
+
+  # Series = param (split by region/timeslice when present) for correct grouping.
+  grp_cols <- intersect(c("param", "region", "timeslice"), names(raw))
   mkg <- function(d) if (nrow(d) == 0) character(0) else
     do.call(paste, c(lapply(grp_cols, function(k) as.character(d[[k]])), sep = " | "))
   raw$base <- base_of(raw$param); raw$series <- mkg(raw)
@@ -584,6 +615,13 @@ plot_process_year <- function(object, year = NULL, ...) {
   xmid     <- if (no_years) 0 else stats::median(range(allyr, na.rm = TRUE))
   raw_pt <- raw; raw_pt$year[is.na(raw_pt$year)] <- xmid
 
+  sub_parts <- c("points: given data",
+                 if (isTRUE(interpolate)) "lines: interpolated",
+                 if (!is.null(def_df)) "dotted: defaults")
+  cap_txt <- if (length(def_skip) > 0)
+    paste("defaults not shown:", paste(unique(def_skip), collapse = ", ")) else
+    NULL
+
   p <- ggplot2::ggplot()
   if (!is.null(itp) && nrow(itp) > 0) {
     p <- p + ggplot2::geom_line(
@@ -594,6 +632,11 @@ plot_process_year <- function(object, year = NULL, ...) {
       data = cst, ggplot2::aes(yintercept = value, colour = param),
       linetype = "dashed", linewidth = 0.4)
   }
+  if (!is.null(def_df)) {
+    p <- p + ggplot2::geom_hline(
+      data = def_df, ggplot2::aes(yintercept = value, colour = param),
+      linetype = "dotted", linewidth = 0.4)
+  }
   p <- p +
     ggplot2::geom_point(
       data = raw_pt, ggplot2::aes(year, value, colour = param), size = 2, na.rm = TRUE) +
@@ -601,7 +644,8 @@ plot_process_year <- function(object, year = NULL, ...) {
     ggplot2::labs(x = if (no_years) "year (not set)" else "year",
                   y = NULL, colour = NULL,
                   title = if (nzchar(obj_name)) obj_name else NULL,
-                  subtitle = "points: given data · lines: interpolated") +
+                  subtitle = paste(sub_parts, collapse = " · "),
+                  caption = cap_txt) +
     theme_energyRt() +
     ggplot2::theme(plot.title = ggplot2::element_text(face = "bold"))
   if (no_years) {
@@ -629,44 +673,61 @@ plot_process_year <- function(object, year = NULL, ...) {
 #' @param object A `supply`, `demand`, `import`, `export`, `technology`, or
 #'   `storage` object.
 #' @param year Optional integer vector of target years to interpolate over.
-#'   Defaults to the range of years present in the object's data.
-#' @param ... Passed to [getData()] (e.g. `region=`, `slice=` filters).
+#'   Defaults to the range of years present in the object's data; a wider
+#'   vector (e.g. `2020:2050`) extends the lines beyond the given years
+#'   (constant extrapolation, as the model interpolates).
+#' @param interpolate Logical, default `TRUE`: draw the interpolated series
+#'   (lines) alongside the given data (points), using each parameter's own
+#'   interpolation rule via [getData()]. `FALSE` shows the given data only.
+#' @param show_defaults Logical, default `FALSE`. When `TRUE`, parameters of
+#'   the plotted slot(s) that are mapped to the model but NOT set in the
+#'   object are drawn as dotted lines at their default values (e.g. a supply
+#'   without `ava.lo` shows its default of 0). Non-finite defaults (e.g.
+#'   `ava.up = Inf`) are listed in the caption instead of drawn.
+#' @param ... Passed to [getData()] (e.g. `region=`, `timeslice=` filters).
 #'
 #' @return A `ggplot` object (or `NULL`, invisibly, if there is nothing to plot).
 #' @name autoplot.process
 #' @rdname autoplot.process
 #' @exportS3Method ggplot2::autoplot
-autoplot.supply <- function(object, year = NULL, ...) plot_process_year(object, year = year, ...)
+autoplot.supply <- function(object, year = NULL, interpolate = TRUE,
+                            show_defaults = FALSE, ...) {
+  plot_process_year(object, year = year, interpolate = interpolate,
+                    show_defaults = show_defaults, ...)
+}
 
-# Demand gets its own plot: a slice-resolved demand has too many series for the
-# generic per-parameter chart (one line per slice).
+# Demand gets its own plot: a timeslice-resolved demand has too many series for the
+# generic per-parameter chart (one line per timeslice).
 
 #' Visualize a demand object
 #'
 #' @description
 #' Two views of a `demand` object:
 #' \describe{
-#'   \item{`style = "area"` (default)}{**aggregated** demand -- slice values are
+#'   \item{`style = "area"` (default)}{**aggregated** demand -- timeslice values are
 #'     summed to annual totals and drawn as an area over the years (stacked by
 #'     region), with the given data years marked as points.}
 #'   \item{`style = "line"`}{**profiles** -- the within-year demand shape by
-#'     region and year. Slices with an hour tag (`"..._h07"`) are drawn against
+#'     region and year. Timeslices with an hour tag (`"..._h07"`) are drawn against
 #'     the hour of day (faceted season x region when a season prefix is
-#'     present); other calendars fall back to the slice sequence.}
+#'     present); other calendars fall back to the timeslice sequence.}
 #' }
 #'
 #' @param object A `demand` object.
-#' @param style `"area"` (annual totals) or `"line"` (slice profiles).
+#' @param style `"area"` (annual totals) or `"line"` (timeslice profiles).
 #' @param year Optional integer vector of years. For `"area"` these are the
 #'   interpolation targets (default: range of the given years); for `"line"`
 #'   they filter which given years are shown.
+#' @param interpolate Logical, default `TRUE`: for `"area"`, interpolate the
+#'   annual totals over the target years; `FALSE` aggregates only the given
+#'   data years.
 #' @param palette viridis palette option, as in [ggplot2::scale_fill_viridis_d()].
 #' @param ... Passed to [getData()] (e.g. `region =` filter).
 #'
 #' @return A `ggplot` object (or `NULL`, invisibly, if there is nothing to plot).
 #' @keywords internal
 plot_demand <- function(object, style = c("area", "line"), year = NULL,
-                        palette = "D", ...) {
+                        interpolate = TRUE, palette = "D", ...) {
   check_package("ggplot2")
   style <- match.arg(style)
   obj_name <- tryCatch(object@name, error = function(e) "")
@@ -677,17 +738,20 @@ plot_demand <- function(object, style = c("area", "line"), year = NULL,
     return(invisible(NULL))
   }
   if (!"region" %in% names(raw)) raw$region <- "(all)"
+  raw$region[is.na(raw$region)] <- "(all)"   # aggregate() drops NA groups
 
   if (style == "area") {
-    # annual totals: interpolate per slice over the target years, sum slices
+    # annual totals: interpolate per timeslice over the target years, sum timeslices
     year_target <- year
     if (is.null(year_target)) {
       obsy <- sort(unique(stats::na.omit(as.integer(raw$year))))
       year_target <- if (length(obsy) >= 2) seq(min(obsy), max(obsy)) else obsy
     }
-    itp <- .obj_long_get(object, "demand", TRUE, year_target, ...)
+    itp <- if (isTRUE(interpolate))
+      .obj_long_get(object, "demand", TRUE, year_target, ...) else NULL
     tot <- if (!is.null(itp) && nrow(itp) > 0) {
       if (!"region" %in% names(itp)) itp$region <- "(all)"
+      itp$region[is.na(itp$region)] <- "(all)"
       stats::aggregate(value ~ region + year, itp, sum)
     } else {
       stats::aggregate(demand ~ region + year, raw, sum) |>
@@ -710,41 +774,41 @@ plot_demand <- function(object, style = c("area", "line"), year = NULL,
   }
 
   # style = "line": within-year profiles by region and year
-  if (!"slice" %in% names(raw) || all(is.na(raw$slice))) {
-    message("No slice-level demand in '", obj_name,
+  if (!"timeslice" %in% names(raw) || all(is.na(raw$timeslice))) {
+    message("No timeslice-level demand in '", obj_name,
             "'; use style = \"area\" for annual data.")
     return(invisible(NULL))
   }
-  d <- raw[!is.na(raw$slice), , drop = FALSE]
+  d <- raw[!is.na(raw$timeslice), , drop = FALSE]
   if (!is.null(year) && "year" %in% names(d)) {
     d <- d[d$year %in% year, , drop = FALSE]
   }
   d$year <- factor(d$year)
-  hour <- suppressWarnings(as.integer(sub(".*_h(\\d+)$", "\\1", d$slice)))
+  hour <- suppressWarnings(as.integer(sub(".*_h(\\d+)$", "\\1", d$timeslice)))
   if (any(is.finite(hour))) {
     d$hour   <- hour
-    d$season <- sub("_.*$", "", d$slice)
+    d$season <- sub("_.*$", "", d$timeslice)
     p <- ggplot2::ggplot(d,
         ggplot2::aes(.data$hour, .data$demand, colour = .data$year,
                      group = .data$year)) +
       ggplot2::geom_line(na.rm = TRUE) +
       ggplot2::facet_grid(season ~ region) +
       ggplot2::scale_colour_viridis_c(option = palette, end = 0.9) +
-      ggplot2::labs(x = "hour", y = "demand per slice", colour = "year",
+      ggplot2::labs(x = "hour", y = "demand per timeslice", colour = "year",
                     title = if (nzchar(obj_name)) obj_name else NULL) +
       theme_energyRt() +
       ggplot2::theme(plot.title = ggplot2::element_text(face = "bold"))
     return(p)
   }
-  # no hour tag: slice sequence on x
-  d$slice <- factor(d$slice, levels = unique(d$slice))
+  # no hour tag: timeslice sequence on x
+  d$timeslice <- factor(d$timeslice, levels = unique(d$timeslice))
   ggplot2::ggplot(d,
-      ggplot2::aes(.data$slice, .data$demand, colour = .data$year,
+      ggplot2::aes(.data$timeslice, .data$demand, colour = .data$year,
                    group = .data$year)) +
     ggplot2::geom_line(na.rm = TRUE) +
     ggplot2::facet_wrap(~region) +
     ggplot2::scale_colour_viridis_c(option = palette, end = 0.9) +
-    ggplot2::labs(x = "slice", y = "demand per slice", colour = "year",
+    ggplot2::labs(x = "timeslice", y = "demand per timeslice", colour = "year",
                   title = if (nzchar(obj_name)) obj_name else NULL) +
     theme_energyRt() +
     ggplot2::theme(plot.title = ggplot2::element_text(face = "bold"),
@@ -754,25 +818,42 @@ plot_demand <- function(object, style = c("area", "line"), year = NULL,
 #' @rdname plot_demand
 #' @exportS3Method ggplot2::autoplot
 autoplot.demand <- function(object, style = c("area", "line"), year = NULL,
-                            palette = "D", ...) {
-  plot_demand(object, style = style, year = year, palette = palette, ...)
+                            interpolate = TRUE, palette = "D", ...) {
+  plot_demand(object, style = style, year = year, interpolate = interpolate,
+              palette = palette, ...)
 }
 
 #' @rdname autoplot.process
 #' @exportS3Method ggplot2::autoplot
-autoplot.import <- function(object, year = NULL, ...) plot_process_year(object, year = year, ...)
+autoplot.import <- function(object, year = NULL, interpolate = TRUE,
+                            show_defaults = FALSE, ...) {
+  plot_process_year(object, year = year, interpolate = interpolate,
+                    show_defaults = show_defaults, ...)
+}
 
 #' @rdname autoplot.process
 #' @exportS3Method ggplot2::autoplot
-autoplot.export <- function(object, year = NULL, ...) plot_process_year(object, year = year, ...)
+autoplot.export <- function(object, year = NULL, interpolate = TRUE,
+                            show_defaults = FALSE, ...) {
+  plot_process_year(object, year = year, interpolate = interpolate,
+                    show_defaults = show_defaults, ...)
+}
 
 #' @rdname autoplot.process
 #' @exportS3Method ggplot2::autoplot
-autoplot.technology <- function(object, year = NULL, ...) plot_process_year(object, year = year, ...)
+autoplot.technology <- function(object, year = NULL, interpolate = TRUE,
+                                show_defaults = FALSE, ...) {
+  plot_process_year(object, year = year, interpolate = interpolate,
+                    show_defaults = show_defaults, ...)
+}
 
 #' @rdname autoplot.process
 #' @exportS3Method ggplot2::autoplot
-autoplot.storage <- function(object, year = NULL, ...) plot_process_year(object, year = year, ...)
+autoplot.storage <- function(object, year = NULL, interpolate = TRUE,
+                             show_defaults = FALSE, ...) {
+  plot_process_year(object, year = year, interpolate = interpolate,
+                    show_defaults = show_defaults, ...)
+}
 
 
 # Tax / subsidy / user-constraint plots ----------------------------------------
@@ -787,7 +868,7 @@ autoplot.storage <- function(object, year = NULL, ...) plot_process_year(object,
   constraint = list(slot = "rhs", val = "rhs", ylab = "rhs")
 )
 
-plot_lever_year <- function(object, year = NULL, ...) {
+plot_lever_year <- function(object, year = NULL, interpolate = TRUE, ...) {
   check_package("ggplot2")
   cls  <- class(object)[1]
   spec <- .lever_spec[[cls]]
@@ -816,7 +897,7 @@ plot_lever_year <- function(object, year = NULL, ...) {
     if (length(unique(s$year)) < 2) data.frame(year = xs, .val = s$.val[1])
     else data.frame(year = xs, .val = stats::approx(s$year, s$.val, xout = xs, rule = 2)$y)
   }
-  line_df <- if (is.null(grp)) mkline(d) else
+  line_df <- if (!isTRUE(interpolate)) NULL else if (is.null(grp)) mkline(d) else
     do.call(rbind, lapply(split(d, d$region),
                           function(s) { L <- mkline(s); L$region <- s$region[1]; L }))
 
@@ -834,8 +915,9 @@ plot_lever_year <- function(object, year = NULL, ...) {
     else
       ggplot2::aes(x = .data[["year"]], y = .data[[".val"]], colour = .data[[grp]])
 
-  ggplot2::ggplot() +
-    ggplot2::geom_line(data = line_df, aes_xy, na.rm = TRUE) +
+  p <- ggplot2::ggplot()
+  if (!is.null(line_df)) p <- p + ggplot2::geom_line(data = line_df, aes_xy, na.rm = TRUE)
+  p +
     ggplot2::geom_point(data = d, aes_xy, size = 2, na.rm = TRUE) +
     ggplot2::labs(x = "year", y = spec$ylab, colour = grp,
                   title = if (nzchar(nm)) nm else NULL, subtitle = sub_txt) +
@@ -854,6 +936,8 @@ plot_lever_year <- function(object, year = NULL, ...) {
 #' @param object A `tax`, `sub` or `constraint` object.
 #' @param year Optional integer vector of years to draw the interpolated line
 #'   over (defaults to the range of the given years).
+#' @param interpolate Logical, default `TRUE`: draw the linearly interpolated
+#'   control path between the given years. `FALSE` shows the points only.
 #' @param ... Unused.
 #'
 #' @return A `ggplot` object (or `NULL`, invisibly, when there is nothing
@@ -861,46 +945,52 @@ plot_lever_year <- function(object, year = NULL, ...) {
 #' @name autoplot.lever
 #' @rdname autoplot.lever
 #' @exportS3Method ggplot2::autoplot
-autoplot.tax <- function(object, year = NULL, ...) plot_lever_year(object, year = year, ...)
+autoplot.tax <- function(object, year = NULL, interpolate = TRUE, ...) {
+  plot_lever_year(object, year = year, interpolate = interpolate, ...)
+}
 
 #' @rdname autoplot.lever
 #' @exportS3Method ggplot2::autoplot
-autoplot.subsidy <- function(object, year = NULL, ...) plot_lever_year(object, year = year, ...)
+autoplot.subsidy <- function(object, year = NULL, interpolate = TRUE, ...) {
+  plot_lever_year(object, year = year, interpolate = interpolate, ...)
+}
 
 #' @rdname autoplot.lever
 #' @exportS3Method ggplot2::autoplot
-autoplot.constraint <- function(object, year = NULL, ...) plot_lever_year(object, year = year, ...)
+autoplot.constraint <- function(object, year = NULL, interpolate = TRUE, ...) {
+  plot_lever_year(object, year = year, interpolate = interpolate, ...)
+}
 
 
 # Calendar heatmap --------------------------------------------------------------
 # Lay timeslice-indexed values on a 2-D grid whose axes follow the calendar: the
 # finest timeframe -> y, the next -> x, any coarser level(s) -> facets. The layout
 # is read from a `calendar` object's timetable (works for any calendar) or, when
-# only slice names of a numeric format are available (d365_h24, m12_h24, ...), by
+# only timeslice names of a numeric format are available (d365_h24, m12_h24, ...), by
 # decomposing them with tsl2yday()/tsl2hour()/tsl2month()/tsl2year().
 
 .days_before_month <- c(0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334)
 
 .heatmap_prep <- function(x, calendar, value, facet) {
-  # --- 1. Normalise input to a data.frame with `slice` + `.val` -----------------
+  # --- 1. Normalise input to a data.frame with `timeslice` + `.val` -----------------
   if (methods::is(x, "calendar")) {
     tt  <- as.data.frame(x@timetable)
     val <- if (!is.null(value) && value %in% names(tt)) tt[[value]] else tt$share
-    df  <- data.frame(slice = as.character(tt$slice), .val = as.numeric(val),
+    df  <- data.frame(timeslice = as.character(tt$timeslice), .val = as.numeric(val),
                       stringsAsFactors = FALSE)
     if (is.null(calendar)) calendar <- x
   } else if (is.numeric(x) && !is.null(names(x))) {
-    df <- data.frame(slice = names(x), .val = as.numeric(x), stringsAsFactors = FALSE)
+    df <- data.frame(timeslice = names(x), .val = as.numeric(x), stringsAsFactors = FALSE)
   } else if (is.data.frame(x)) {
     d <- as.data.frame(x)
-    if (!("slice" %in% names(d))) stop("`x` needs a `slice` column.", call. = FALSE)
+    if (!("timeslice" %in% names(d))) stop("`x` needs a `timeslice` column.", call. = FALSE)
     vcol <- value
     if (is.null(vcol)) {
       num  <- setdiff(names(d)[vapply(d, is.numeric, logical(1))], "year")
       if (length(num) == 0) stop("No numeric value column found in `x`.", call. = FALSE)
       vcol <- num[1]
     }
-    df <- data.frame(slice = as.character(d$slice), .val = d[[vcol]],
+    df <- data.frame(timeslice = as.character(d$timeslice), .val = d[[vcol]],
                      stringsAsFactors = FALSE)
     if (is.null(value)) value <- vcol
   } else {
@@ -911,23 +1001,23 @@ autoplot.constraint <- function(object, year = NULL, ...) plot_lever_year(object
   # --- 2. Level columns (coarse -> fine) ---------------------------------------
   if (methods::is(calendar, "calendar")) {
     tt  <- as.data.frame(calendar@timetable)
-    lev <- setdiff(names(tt), c("slice", "share", "weight", "ANNUAL"))
-    tt  <- tt[!duplicated(tt$slice), c("slice", lev), drop = FALSE]
-    df  <- merge(df, tt, by = "slice", all.x = TRUE)
+    lev <- setdiff(names(tt), c("timeslice", "share", "weight", "ANNUAL"))
+    tt  <- tt[!duplicated(tt$timeslice), c("timeslice", lev), drop = FALSE]
+    df  <- merge(df, tt, by = "timeslice", all.x = TRUE)
     levels_ord <- lev                              # timetable columns are coarse->fine
   } else {
-    fmt <- if (is.character(calendar)) calendar else tsl_guess_format(df$slice)
+    fmt <- if (is.character(calendar)) calendar else tsl_guess_format(df$timeslice)
     if (is.null(fmt)) {
       stop("Could not determine the calendar layout. Pass a `calendar` object, ",
            "or a format string such as \"d365_h24\".", call. = FALSE)
     }
-    if (grepl("y", fmt)) df$year  <- tsl2year(df$slice, return.null = FALSE)
-    if (grepl("m", fmt)) df$month <- tsl2month(df$slice, format = fmt)
-    if (grepl("d", fmt)) df$yday  <- tsl2yday(df$slice)
-    if (grepl("h", fmt)) df$hour  <- tsl2hour(df$slice)
+    if (grepl("y", fmt)) df$year  <- tsl2year(df$timeslice, return.null = FALSE)
+    if (grepl("m", fmt)) df$month <- tsl2month(df$timeslice, format = fmt)
+    if (grepl("d", fmt)) df$yday  <- tsl2yday(df$timeslice)
+    if (grepl("h", fmt)) df$hour  <- tsl2hour(df$timeslice)
     # Facet by month over a day-of-year format -> split yday into month + mday.
     if (identical(facet, "month") && !("month" %in% names(df)) && "yday" %in% names(df)) {
-      df$month <- tsl2month(df$slice, format = fmt)
+      df$month <- tsl2month(df$timeslice, format = fmt)
     }
     if ("yday" %in% names(df) && "month" %in% names(df) &&
         (identical(facet, "month") || !("hour" %in% names(df)))) {
@@ -975,12 +1065,12 @@ autoplot.constraint <- function(object, year = NULL, ...) plot_lever_year(object
 #' calendar, `x = day-of-year`, `y = hour-of-day`. Useful for load curves,
 #' renewable profiles, prices, and other sub-annual series.
 #'
-#' @param object A `data.frame` with a `slice` column and a numeric value column, a
-#'   named numeric vector (names are slices), or a `calendar` object (then the
-#'   slice `share` — or `value` column — is shown).
+#' @param object A `data.frame` with a `timeslice` column and a numeric value column, a
+#'   named numeric vector (names are timeslices), or a `calendar` object (then the
+#'   timeslice `share` — or `value` column — is shown).
 #' @param calendar A `calendar` object giving the layout (matched to `x` by
-#'   slice), or a format string (e.g. `"d365_h24"`). If `NULL`, the format is
-#'   guessed from the slice names with [tsl_guess_format()].
+#'   timeslice), or a format string (e.g. `"d365_h24"`). If `NULL`, the format is
+#'   guessed from the timeslice names with [tsl_guess_format()].
 #' @param value Name of the value column in `x` (defaults to the single numeric
 #'   column, or `share` for a calendar).
 #' @param facet Optional timeframe level(s) to facet by. `"month"` over a
@@ -994,7 +1084,7 @@ autoplot.constraint <- function(object, year = NULL, ...) plot_lever_year(object
 #' \dontrun{
 #' data("calendars", package = "energyRt")
 #' cal <- calendars$d365_h24
-#' prof <- data.frame(slice = cal@timetable$slice,
+#' prof <- data.frame(timeslice = cal@timetable$timeslice,
 #'                    load  = runif(nrow(cal@timetable)))
 #' plot_heatmap(prof, calendar = cal, value = "load")
 #' plot_heatmap(prof, calendar = cal, value = "load", facet = "month")
@@ -1027,11 +1117,11 @@ plot_heatmap <- function(object, calendar = NULL, value = NULL, facet = NULL,
 
 # Weather plots -----------------------------------------------------------------
 # A weather object holds a sub-annual factor `wval` (typically a capacity /
-# availability factor) per region and slice. Three views are offered, all with
+# availability factor) per region and timeslice. Three views are offered, all with
 # the value's unit on the value axis: a calendar heatmap (default), and diurnal
-# line / area charts. The slice layout (e.g. season x hour) depends on the
+# line / area charts. The timeslice layout (e.g. season x hour) depends on the
 # model's calendar, so pass `calendar =` for the best axes; without it the layout
-# is guessed from the slice names and falls back to an ordered slice axis.
+# is guessed from the timeslice names and falls back to an ordered timeslice axis.
 
 #' Visualize a weather object
 #'
@@ -1049,15 +1139,15 @@ plot_heatmap <- function(object, calendar = NULL, value = NULL, facet = NULL,
 #'
 #' @param object A `weather` object.
 #' @param style One of `"heatmap"` (default), `"line"`, `"area"`.
-#' @param calendar A `calendar` object (or format string) giving the slice
+#' @param calendar A `calendar` object (or format string) giving the timeslice
 #'   layout. Recommended for a fully structured view. If `NULL`, the layout is
-#'   guessed; when that fails, `"<prefix>_h##"`-style slices (e.g. season+hour)
-#'   are split into a coarse label + hour, otherwise slices are shown on a single
+#'   guessed; when that fails, `"<prefix>_h##"`-style timeslices (e.g. season+hour)
+#'   are split into a coarse label + hour, otherwise timeslices are shown on a single
 #'   ordered axis. In every case region and year (when present) are drawn as
 #'   facets.
 #' @param palette Viridis color option for the heatmap fill.
 #' @param datetime Logical (line/area only). If `TRUE`, place the profile on a
-#'   real datetime axis via [tsl2dtm()]; if the slice type is not yet supported
+#'   real datetime axis via [tsl2dtm()]; if the timeslice type is not yet supported
 #'   the categorical axis is kept (with a warning).
 #' @param angle Rotation (degrees) for the x-axis tick labels; overlapping labels
 #'   are dropped so dense sub-annual axes stay legible. Default `45`; `0` = flat.
@@ -1091,24 +1181,24 @@ plot_weather <- function(object, style = c("heatmap", "line", "area"),
   reg_multi <- length(unique(d$region)) > 1
   yr_multi  <- length(unique(d$year[!is.na(d$year)])) > 1
 
-  # --- Layout from the slice structure (reuse the heatmap layout engine) --------
+  # --- Layout from the timeslice structure (reuse the heatmap layout engine) --------
   pr <- tryCatch(
-    .heatmap_prep(data.frame(slice = unique(d$slice), .v = 1),
+    .heatmap_prep(data.frame(timeslice = unique(d$timeslice), .v = 1),
                   calendar = calendar, value = ".v", facet = NULL),
     error = function(e) NULL)
   degenerate <- !is.null(pr) && identical(pr$x, pr$y) &&
-    length(unique(d$slice)) > length(unique(pr$df[[pr$x]]))
+    length(unique(d$timeslice)) > length(unique(pr$df[[pr$x]]))
 
   # `region_axis` = TRUE means region is used as the heatmap y-axis (the
   # unstructured single-axis fallback), so it must NOT also become a facet.
   region_axis <- FALSE
   cfac <- character(0)
   if (is.null(pr) || degenerate) {
-    # No calendar layout resolved. Try to split "<prefix>_h##"-style slices into
+    # No calendar layout resolved. Try to split "<prefix>_h##"-style timeslices into
     # a coarse label (e.g. season) + a fine part (hour): this recovers a 2-D grid
     # so region/year stay as facets and the heatmap keeps a real y-axis. Fall
-    # back to a single ordered `slice` axis only for unstructured slice names.
-    sl  <- as.character(d$slice)
+    # back to a single ordered `timeslice` axis only for unstructured timeslice names.
+    sl  <- as.character(d$timeslice)
     hr  <- sub("^.*?[_-]?([hH][0-9]+)$", "\\1", sl)   # trailing hour token
     pre <- sub("[_-]?([hH][0-9]+)$", "", sl)          # label before the hour
     can_split <- all(grepl("^[hH][0-9]+$", hr)) &&
@@ -1120,15 +1210,15 @@ plot_weather <- function(object, style = c("heatmap", "line", "area"),
       fine  <- ".fine";   coarse <- ".coarse"
     } else {
       if (is.null(calendar))
-        message("Could not resolve a sub-annual layout from slice names; ",
-                "pass `calendar =` for a structured view. Showing slices in order.")
-      d$slice <- factor(sl, levels = unique(sl))
-      x_col <- "slice"; fine <- "slice"; coarse <- NULL
+        message("Could not resolve a sub-annual layout from timeslice names; ",
+                "pass `calendar =` for a structured view. Showing timeslices in order.")
+      d$timeslice <- factor(sl, levels = unique(sl))
+      x_col <- "timeslice"; fine <- "timeslice"; coarse <- NULL
       y_col <- "region"; region_axis <- reg_multi
     }
   } else {
-    d      <- merge(d, pr$df[, unique(c("slice", pr$x, pr$y, pr$facet)), drop = FALSE],
-                    by = "slice")
+    d      <- merge(d, pr$df[, unique(c("timeslice", pr$x, pr$y, pr$facet)), drop = FALSE],
+                    by = "timeslice")
     x_col  <- pr$x; y_col <- pr$y
     fine   <- pr$y
     coarse <- if (!identical(pr$x, pr$y)) pr$x else NULL
@@ -1136,12 +1226,12 @@ plot_weather <- function(object, style = c("heatmap", "line", "area"),
   }
 
   # Optional real datetime axis for line/area via tsl2dtm(); keep the categorical
-  # axis (with a warning) when the slice type is not yet supported.
+  # axis (with a warning) when the timeslice type is not yet supported.
   if (isTRUE(datetime) && style != "heatmap") {
-    dt <- tryCatch(tsl2dtm(as.character(d$slice)), error = function(e) NULL)
+    dt <- tryCatch(tsl2dtm(as.character(d$timeslice)), error = function(e) NULL)
     if (is.null(dt) || all(is.na(dt))) {
-      warning("tsl2dtm() could not convert these slices to a datetime axis; ",
-              "keeping the categorical slice axis.", call. = FALSE)
+      warning("tsl2dtm() could not convert these timeslices to a datetime axis; ",
+              "keeping the categorical timeslice axis.", call. = FALSE)
     } else {
       d$.dtm <- dt
       fine <- ".dtm"; coarse <- NULL      # one continuous series per panel

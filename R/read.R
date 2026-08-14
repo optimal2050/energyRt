@@ -81,7 +81,7 @@ read_solution <- function(obj, ...) {
   ss$yearp <- ss$year
   ss$acomm <- ss$comm
   ss$commp <- ss$comm
-  ss$slicep <- ss$slice
+  ss$timeslicep <- ss$timeslice
   rr$set_vec <- ss
   if (is.null(scen@settings@solver$import_format)) {
     scen@settings@solver$import_format <- "csv" # !!! workaround
@@ -278,10 +278,10 @@ read_solution <- function(obj, ...) {
     # scen@modOut@variables$vStorageSalv <- salvage_cost0(scen, "Storage")
     # scen@modOut@variables$vTradeSalv <- salvage_cost0(scen, "Trade")
     # `vDummyImportCost` / `vDummyExportCost` are SOLVER variables: the model
-    # declares them and `eqDummyImportCost` computes them weighted over slices
+    # declares them and `eqDummyImportCost` computes them weighted over timeslices
     # (glpk/energyRt.mod), and `read_solution` has already stored those values.
     # An R recomputation used to overwrite them here with an unweighted,
-    # slice-resolved version whose shape did not even match the declaration --
+    # timeslice-resolved version whose shape did not even match the declaration --
     # removed. The solver's own value is correct and is what the objective used.
     tmp <- .get_data_slot(scen@modInp@parameters$pEmissionFactor)
     tmp$comm2 <- tmp$commp
@@ -301,14 +301,14 @@ read_solution <- function(obj, ...) {
     if (nrow(vTechEmsFuel) > 0) {
       vTechEmsFuel <- aggregate(
         vTechEmsFuel$value.x * vTechEmsFuel$value.y * vTechEmsFuel$value,
-        vTechEmsFuel[, c("tech", "comm", "region", "year", "slice")], sum
+        vTechEmsFuel[, c("tech", "comm", "region", "year", "timeslice")], sum
       )
       vTechEmsFuel$value <- vTechEmsFuel$x
       vTechEmsFuel$x <- NULL
       scen@modOut@variables$vTechEmsFuel <-
         d2v(scen@modOut@variables$vTechEmsFuel, vTechEmsFuel)
     }
-    # else: the empty branch used to build a 4-column frame (no `slice`) against
+    # else: the empty branch used to build a 4-column frame (no `timeslice`) against
     # this variable's 5-column declaration. The pre-populated typed skeleton is
     # already empty and correctly shaped, so there is nothing to do.
 

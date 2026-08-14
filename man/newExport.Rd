@@ -30,7 +30,7 @@ newExport(
 \describe{
 \item{region}{character. Region name to apply the parameter; use NA to apply to all regions.}
 \item{year}{integer. Year to apply the parameter; use NA to apply to all years.}
-\item{slice}{character. Time slice to apply the parameter; use NA to apply to all slices.}
+\item{timeslice}{character. Time timeslice to apply the parameter; use NA to apply to all timeslices.}
 \item{exp.lo}{numeric. Export lower bound.}
 \item{exp.up}{numeric. Export upper bound.}
 \item{exp.fx}{numeric. Fixed export volume, ignored if NA. This parameter overrides \code{exp.lo} and \code{exp.up}.}

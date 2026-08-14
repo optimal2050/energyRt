@@ -44,7 +44,7 @@ newTrade(
 \item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
-\item{slice}{character. Time slice to apply the parameter, NA for every slice.}
+\item{timeslice}{character. Time timeslice to apply the parameter, NA for every timeslice.}
 \item{trade}{numeric. Trade volume.}
 }}
 
@@ -75,8 +75,8 @@ newTrade(
 \item{vintage}{character. Vintage label, normally the build year as a string. NA for an un-vintaged trade.}
 \item{region}{character. Unused for trade (no \code{region} slot); present for consistency with the other classes.}
 \item{cluster}{character. Unused for trade (no cluster dimension); present for consistency with the other classes.}
-\item{start}{integer. The first year the trade object is available for investment. Defaults to the vintage year.}
-\item{end}{integer. The last year the trade object is available for investment. Defaults to the vintage year.}
+\item{start}{integer. The first year the trade object is available for investment. NA means unbounded (up to \code{end}).}
+\item{end}{integer. The last year the trade object is available for investment. NA means unbounded (from \code{start} on).}
 \item{olife}{integer. Operational life of the trade object in years.}
 }}
 
@@ -94,7 +94,7 @@ newTrade(
 \item{acomm}{character. Name of the auxiliary commodity (used in sets).}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
-\item{slice}{character. Time slice to apply the parameter, NA for every slice.}
+\item{timeslice}{character. Time timeslice to apply the parameter, NA for every timeslice.}
 \item{trade2ainp}{numeric. Trade-to-auxiliary-input-commodity coefficient (multiplier).}
 \item{trade2aout}{numeric. Trade-to-auxiliary-output-commodity coefficient (multiplier).}
 }}

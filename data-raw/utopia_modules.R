@@ -89,34 +89,34 @@ build_utopia <- function(regions = paste0("R", 1:3),
     commodity = "GAS", unit = "PJ",
     import = data.frame(region = regions, price = 9.0))
   # export price below new-build LCOE (never build-to-export); exp.up paced by
-  # slice-shares (~10 PJ/yr/region -- a bare exp.up would be read PER SLICE and
+  # timeslice-shares (~10 PJ/yr/region -- a bare exp.up would be read PER TIMESLICE and
   # the model would front-load the whole reserve into the base year)
   #
-  # Restricted to the slices ELC is BALANCED at. `@slice_share` carries every
+  # Restricted to the timeslices ELC is BALANCED at. `@timeslice_share` carries every
   # level (ANNUAL = 1, each season = 0.25, each hour = 1/96), so an unfiltered
   # `10 * share` also wrote an ANNUAL 10 and four seasonal 2.5 bounds. Those
-  # read as a nested cap and are not one: only `mExportRowUp` slices are read,
+  # read as a nested cap and are not one: only `mExportRowUp` timeslices are read,
   # and it holds the HOUR level alone, so the 20 coarse rows per region were
   # written and silently ignored.
-  sl <- as.data.frame(cal@slice_share)
-  sl <- sl[sl$slice %in% as.character(cal@timeframes[["HOUR"]]), , drop = FALSE]
+  sl <- as.data.frame(cal@timeslice_share)
+  sl <- sl[sl$timeslice %in% as.character(cal@timeframes[["HOUR"]]), , drop = FALSE]
   EXP_ELC <- newExport("EXP_ELC", desc = "Electricity export to the rest of the world",
     commodity = "ELC", unit = "PJ", reserve = 300,
     export = merge(data.frame(region = regions, price = 5.0),
-                data.frame(slice = sl$slice, exp.up = 10 * sl$share)))
+                data.frame(timeslice = sl$timeslice, exp.up = 10 * sl$share)))
 
   # ---- weather ----
   wobj <- function(res) newWeather(res, timeframe = "HOUR",
-    weather = prof$weather[prof$weather$resource == res, c("region", "slice", "wval")])
+    weather = prof$weather[prof$weather$resource == res, c("region", "timeslice", "wval")])
   WSOL <- wobj("WSOL"); WWIN <- wobj("WWIN"); WHYD <- wobj("WHYD")
 
   # ---- demand ----
-  share <- as.data.frame(cal@slice_share)[, c("slice", "share")]
-  d0 <- merge(prof$demand, share, by = "slice"); d0$w <- d0$load * d0$share
+  share <- as.data.frame(cal@timeslice_share)[, c("timeslice", "share")]
+  d0 <- merge(prof$demand, share, by = "timeslice"); d0$w <- d0$load * d0$share
   dem_rows <- do.call(rbind, lapply(seq_along(years), function(i) {
     do.call(rbind, lapply(regions, function(r) {
       dr <- d0[d0$region == r, ]
-      data.frame(region = r, year = years[i], slice = dr$slice,
+      data.frame(region = r, year = years[i], timeslice = dr$timeslice,
                  demand = annual_demand * demand_growth[i] * dr$w / sum(dr$w))
     }))
   }))

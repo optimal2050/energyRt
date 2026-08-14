@@ -503,7 +503,7 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
     d <- get_data_slot(p) # reads from the on-disk parameter store
     if (is.null(d)) d <- p@data
     # Normalise column classes after the parquet/csv round-trip: an all-NA folded
-    # column (region/slice) comes back as `vctrs_unspecified` and a whole-number
+    # column (region/timeslice) comes back as `vctrs_unspecified` and a whole-number
     # value narrows to integer, so force the in-memory classes (character dims,
     # integer year, numeric value) to match an in-memory build exactly.
     p@data <- force_cols_classes(d)
@@ -558,7 +558,7 @@ solve_mod <- function(obj, name = NULL, solver = NULL,
   sarg <- dots[is_solve]
 
   scen <- do.call(
-    interp_mod,
+    interpolate_model,
     c(list(mod = obj, name = name, ondisk = ondisk, fold = fold), iarg)
   )
 
@@ -570,11 +570,11 @@ solve_mod <- function(obj, name = NULL, solver = NULL,
 solve_scen <- function(obj, name = obj@name, solver = NULL, tmp.dir = NULL,
                        tmp.del = FALSE, force = FALSE, ...) {
   if (!inherits(obj, "scenario")) {
-    stop("`solve_scen()` expects a scenario built by `interp_mod()`. ",
+    stop("`solve_scen()` expects a scenario built by `interpolate_model()`. ",
          "Use `solve_mod()` for a model object.")
   }
   if (!isTRUE(obj@status$interpolated)) {
-    stop("Scenario is not interpolated. Build it with `interp_mod()` ",
+    stop("Scenario is not interpolated. Build it with `interpolate_model()` ",
          "or call `solve_mod()` on the model.")
   }
   if (isTRUE(obj@status$optimal) && !isTRUE(force)) {

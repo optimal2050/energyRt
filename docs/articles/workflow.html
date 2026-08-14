@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.75.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.80.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -158,22 +158,22 @@ otherwise); every frame carries a <code>scenario</code> and a
 <span><span class="co">#&gt; [1] 13007.08</span></span>
 <span></span>
 <span><span class="va">gen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen</span>, <span class="st">"vTechOut"</span>, comm <span class="op">=</span> <span class="st">"ELC"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">gen</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"scenario"</span>, <span class="st">"tech"</span>, <span class="st">"region"</span>, <span class="st">"year"</span>, <span class="st">"slice"</span>, <span class="st">"value"</span><span class="op">)</span><span class="op">]</span>, <span class="fl">4</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">gen</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"scenario"</span>, <span class="st">"tech"</span>, <span class="st">"region"</span>, <span class="st">"year"</span>, <span class="st">"timeslice"</span>, <span class="st">"value"</span><span class="op">)</span><span class="op">]</span>, <span class="fl">4</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 4 × 6</span></span></span>
-<span><span class="co">#&gt;   scenario tech  region  year slice  value</span></span>
-<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> BASE     ECOA  R1      <span style="text-decoration: underline;">2</span>020 ANNUAL 21.7 </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> BASE     ECOA  R1      <span style="text-decoration: underline;">2</span>030 ANNUAL 34.7 </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> BASE     ECOA  R1      <span style="text-decoration: underline;">2</span>040 ANNUAL 25.5 </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> BASE     EGAS  R1      <span style="text-decoration: underline;">2</span>040 ANNUAL  2.82</span></span></code></pre></div>
+<span><span class="co">#&gt;   scenario tech  region  year timeslice value</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> BASE     ECOA  R1      <span style="text-decoration: underline;">2</span>020 ANNUAL    21.7 </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> BASE     ECOA  R1      <span style="text-decoration: underline;">2</span>030 ANNUAL    34.7 </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> BASE     ECOA  R1      <span style="text-decoration: underline;">2</span>040 ANNUAL    25.5 </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> BASE     EGAS  R1      <span style="text-decoration: underline;">2</span>040 ANNUAL     2.82</span></span></code></pre></div>
 <p>The <code>...</code> accept set filters, exact
 (<code>comm = "ELC"</code>) or regex (<code>comm_ = "^EL"</code>).
 <code>timeframe = c("lowest","highest","all")</code> controls how
-slice-indexed values are returned. Rename dimensions or recode values on
-the way out with <code>newNames =</code> / <code>newValues =</code> (or
-afterwards with <code><a href="../reference/renameSets.html">renameSets()</a></code> / <code><a href="../reference/revalueSets.html">revalueSets()</a></code>),
-and discover which parameters carry a given set with
-<code><a href="../reference/findData.html">findData()</a></code>:</p>
+timeslice-indexed values are returned. Rename dimensions or recode
+values on the way out with <code>newNames =</code> /
+<code>newValues =</code> (or afterwards with <code><a href="../reference/renameSets.html">renameSets()</a></code> /
+<code><a href="../reference/revalueSets.html">revalueSets()</a></code>), and discover which parameters carry a given
+set with <code><a href="../reference/findData.html">findData()</a></code>:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu"><a href="../reference/findData.html">findData</a></span><span class="op">(</span><span class="va">scen</span>, setsNames_ <span class="op">=</span> <span class="st">"tech"</span><span class="op">)</span><span class="op">)</span>           <span class="co"># parameters indexed by 'tech'</span></span>
 <span><span class="co">#&gt;  [1] "pTechWeatherAf"       "pTechWeatherAfs"      "pTechWeatherAfc"     </span></span>
@@ -230,7 +230,7 @@ Each scenario gets its own folder, named by
 <code>name_model_calendar_horizon</code>:</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/scenarios_path.html">get_scenarios_path</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\Rtmpaq9fYk/wf"</span></span>
+<span><span class="co">#&gt; [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpghSoO7/wf"</span></span>
 <span><span class="fu"><a href="../reference/make_scenario_dirname.html">make_scenario_dirname</a></span><span class="op">(</span><span class="va">scen</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "BASE_UTOPIA_utopia_s4h24_base"</span></span></code></pre></div>
 <p>Saving a scenario writes an <strong>Arrow-backed</strong> folder that
@@ -318,15 +318,15 @@ in-memory footprint:</p>
 <span><span class="co">#&gt;   top parameters by rows:</span></span>
 <span><span class="co">#&gt;     pTechCinp2use      1,536</span></span>
 <span><span class="co">#&gt;     pWeather           1,004</span></span>
-<span><span class="co">#&gt;     pSliceWeight       404</span></span>
-<span><span class="co">#&gt;     pSliceAgg          400</span></span>
+<span><span class="co">#&gt;     pTimesliceWeight   404</span></span>
+<span><span class="co">#&gt;     pTimesliceAgg      400</span></span>
 <span><span class="co">#&gt;     pDemand            384</span></span>
 <span><span class="co">#&gt;     pExportRowPrice    384</span></span>
 <span><span class="co">#&gt;     pExportRow         384</span></span>
 <span><span class="co">#&gt;     pTechAf            384</span></span>
 <span><span class="co">#&gt;     pStorageInpEff     384</span></span>
 <span><span class="co">#&gt;     pStorageOutEff     384</span></span>
-<span><span class="co">#&gt;     pSliceShare        101</span></span>
+<span><span class="co">#&gt;     pTimesliceShare    101</span></span>
 <span><span class="co">#&gt;     pTechFixom         23</span></span>
 <span><span class="co">#&gt;     pTechEac           20</span></span>
 <span><span class="co">#&gt;     pTechInvcost       20</span></span>

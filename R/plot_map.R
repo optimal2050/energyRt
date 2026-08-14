@@ -60,7 +60,7 @@ NULL
 #' Note the roles in the variable catalogue are all extensive, so unlike the
 #' temporal roll-up there is no "do not sum this" list. In particular
 #' `role: stock` is a *temporal* exclusion only -- a storage level must not be
-#' summed over slices, but summing it across regions is perfectly meaningful.
+#' summed over timeslices, but summing it across regions is perfectly meaningful.
 #'
 #' @param df data.frame of results.
 #' @param gs a `geoscales::Geoscale`.

@@ -1,8 +1,8 @@
-# Common formats of time-slices.
+# Common formats of time-timeslices.
 
-This set of functions converts date-time objects to model's time-slices
-in a given format, and vice versa, maps time-slices to date-time, and
-extracts year, month, day of the year, hour.
+This set of functions converts date-time objects to model's
+time-timeslices in a given format, and vice versa, maps time-timeslices
+to date-time, and extracts year, month, day of the year, hour.
 
 ## Usage
 
@@ -28,11 +28,12 @@ A character vector with formats:
 
 - d365:
 
-  daily time-slices, 365 a year (leap year's 366th day is disregarded)
+  daily time-timeslices, 365 a year (leap year's 366th day is
+  disregarded)
 
 - d365_h24:
 
-  time slices with year-day numbers and hours, 8760 in total
+  time timeslices with year-day numbers and hours, 8760 in total
 
 - ...:
 
@@ -48,7 +49,7 @@ An object of class `list` of length 1.
 
 - format:
 
-  character, format of the slices
+  character, format of the timeslices
 
 - d366.as.na:
 
@@ -56,7 +57,7 @@ An object of class `list` of length 1.
 
 - tsl:
 
-  character vector with time-slices
+  character vector with time-timeslices
 
 - tmz:
 
@@ -64,15 +65,15 @@ An object of class `list` of length 1.
 
 - year:
 
-  year, used when time-slices don't store year
+  year, used when time-timeslices don't store year
 
 - mday:
 
-  day of month, for time slices without the information
+  day of month, for time timeslices without the information
 
 ## Value
 
-Character vector with time-slices names
+Character vector with time-timeslices names
 
 Vector in Date-Time format
 
@@ -80,13 +81,13 @@ Vector in Date-Time format
 
 ``` r
 dtm2tsl(lubridate::now())
-#> [1] "d219_h07"
+#> [1] "d225_h21"
 dtm2tsl(lubridate::ymd("2020-12-31"))
 #> [1] NA
 dtm2tsl(lubridate::ymd("2020-12-31"), d366.as.na = FALSE)
 #> [1] "d366_h00"
 dtm2tsl(lubridate::now(tzone = "UTC"), format = "d365")
-#> [1] "d219"
+#> [1] "d226"
 dtm2tsl(lubridate::ymd("2020-12-31"), format = "d365")
 #> [1] NA
 dtm2tsl(lubridate::ymd("2020-12-31"), format = "d365", d366.as.na = FALSE)

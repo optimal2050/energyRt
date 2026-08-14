@@ -7,17 +7,20 @@
 \alias{autoplot.constraint}
 \title{Plot a tax, subsidy or user constraint over years}
 \usage{
-\method{autoplot}{tax}(object, year = NULL, ...)
+\method{autoplot}{tax}(object, year = NULL, interpolate = TRUE, ...)
 
-\method{autoplot}{subsidy}(object, year = NULL, ...)
+\method{autoplot}{subsidy}(object, year = NULL, interpolate = TRUE, ...)
 
-\method{autoplot}{constraint}(object, year = NULL, ...)
+\method{autoplot}{constraint}(object, year = NULL, interpolate = TRUE, ...)
 }
 \arguments{
 \item{object}{A \code{tax}, \code{sub} or \code{constraint} object.}
 
 \item{year}{Optional integer vector of years to draw the interpolated line
 over (defaults to the range of the given years).}
+
+\item{interpolate}{Logical, default \code{TRUE}: draw the linearly interpolated
+control path between the given years. \code{FALSE} shows the points only.}
 
 \item{...}{Unused.}
 }

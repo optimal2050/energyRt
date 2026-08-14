@@ -33,7 +33,7 @@ object's @unit (or &quot;capacity factor&quot; if unset)."><meta property="og:im
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.75.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.80.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -118,10 +118,10 @@ object's <code>@unit</code> (or <code>"capacity factor"</code> if unset).</p>
 
 
 <dt id="arg-calendar">calendar<a class="anchor" aria-label="anchor" href="#arg-calendar"></a></dt>
-<dd><p>A <code>calendar</code> object (or format string) giving the slice
+<dd><p>A <code>calendar</code> object (or format string) giving the timeslice
 layout. Recommended for a fully structured view. If <code>NULL</code>, the layout is
-guessed; when that fails, <code>"&lt;prefix&gt;_h##"</code>-style slices (e.g. season+hour)
-are split into a coarse label + hour, otherwise slices are shown on a single
+guessed; when that fails, <code>"&lt;prefix&gt;_h##"</code>-style timeslices (e.g. season+hour)
+are split into a coarse label + hour, otherwise timeslices are shown on a single
 ordered axis. In every case region and year (when present) are drawn as
 facets.</p></dd>
 
@@ -132,7 +132,7 @@ facets.</p></dd>
 
 <dt id="arg-datetime">datetime<a class="anchor" aria-label="anchor" href="#arg-datetime"></a></dt>
 <dd><p>Logical (line/area only). If <code>TRUE</code>, place the profile on a
-real datetime axis via <code><a href="timeslices.html">tsl2dtm()</a></code>; if the slice type is not yet supported
+real datetime axis via <code><a href="timeslices.html">tsl2dtm()</a></code>; if the timeslice type is not yet supported
 the categorical axis is kept (with a warning).</p></dd>
 
 

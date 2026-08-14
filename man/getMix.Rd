@@ -10,7 +10,7 @@ getMix(
   comm = "ELC",
   region = NULL,
   year = NULL,
-  slice = NULL,
+  timeslice = NULL,
   drop_small = 0,
   by = NULL
 )
@@ -33,9 +33,9 @@ flows are only meaningful for a region subset and are skipped when
 
 \item{year}{integer vector or \code{NULL} (all milestone year).}
 
-\item{slice}{\code{NULL} for annual sums, or a regular expression selecting a
-slice sample (e.g. \code{"^SUM_"} for the summer day on the \code{utopia_s4h24}
-calendar). When the matched slices carry an hour tag (\verb{"_h00"..."_h23"}),
+\item{timeslice}{\code{NULL} for annual sums, or a regular expression selecting a
+timeslice sample (e.g. \code{"^SUM_"} for the summer day on the \code{utopia_s4h24}
+calendar). When the matched timeslices carry an hour tag (\verb{"_h00"..."_h23"}),
 an integer \code{hour} column is added.}
 
 \item{drop_small}{numeric in \verb{[0, 1)}: drop processes whose total absolute
@@ -52,7 +52,7 @@ to drive a fill or facet.}
 A tidy data.frame with columns \code{scenario}, \code{type}, \code{process}, \code{flow}
 (\code{generation}, \verb{storage-in/out}, \code{import/export}, \code{demand}, \code{fuel},
 \code{capacity}, \code{new_capacity}), \code{comm}, \code{region}, \code{year}, \code{value}, and -- when
-\code{slice} is given -- \code{slice} (+ \code{hour} when parsable), plus any column named
+\code{timeslice} is given -- \code{timeslice} (+ \code{hour} when parsable), plus any column named
 in \code{by}. Missing variables are skipped silently (e.g. a model without
 storage or trade).
 }
@@ -66,7 +66,7 @@ and rest-of-world trade, and demand. The same extractor feeds
 \examples{
 \dontrun{
 gen <- getMix(scen, "generation")                      # annual, all regions
-day <- getMix(scen, "generation", slice = "^SUM_")     # summer-day dispatch
+day <- getMix(scen, "generation", timeslice = "^SUM_")     # summer-day dispatch
 cmp <- getMix(list(BASE = s1, CO2CAP = s2), "capacity")
 cl  <- getMix(scen, "capacity", by = "cluster")        # split by cluster
 }

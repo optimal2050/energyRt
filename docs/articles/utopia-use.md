@@ -19,7 +19,7 @@ set_default_solver(solver_options$glpk)             # set once, used by every so
 
 Two calls run every scenario in this vignette:
 [`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md)
-expands the model over regions, years and slices;
+expands the model over regions, years and timeslices;
 [`solve_scenario()`](https://energyRt.org/reference/solve_model.md)
 writes the solver files, runs the default solver (set once above) and
 reads the solution. `echo = FALSE` keeps the solver log out of the page
@@ -79,11 +79,11 @@ technology, storage charging below zero, demand as the line
 [`getMix()`](https://energyRt.org/reference/getMix.md); note that
 [`getData()`](https://energyRt.org/reference/getData.md) aggregates
 sub-annual values to ANNUAL by default – pass `timeframe = "highest"`
-for slice-level data):
+for timeslice-level data):
 
 ``` r
 
-autoplot(scen_BASE, "generation", slice = "^SUM_")
+autoplot(scen_BASE, "generation", timeslice = "^SUM_")
 ```
 
 ## Scenarios: layering the levers

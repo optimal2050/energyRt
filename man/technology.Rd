@@ -89,7 +89,7 @@ newTechnology(
 \item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{vintage} slot.}
 \item{region}{character. Name of region to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
-\item{slice}{character. Name of slice to apply the parameter, NA for every slice.}
+\item{timeslice}{character. Name of timeslice to apply the parameter, NA for every timeslice.}
 \item{group}{character. Name of group to apply the parameter. Required, must match the group names in the input and output slots.}
 \item{ginp2use}{numeric. Group-input-to-use coefficient, default is 1.}
 }}
@@ -100,7 +100,7 @@ newTechnology(
 \item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{vintage} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
-\item{slice}{character. Name of slice to apply the parameter, NA for every slice.}
+\item{timeslice}{character. Name of timeslice to apply the parameter, NA for every timeslice.}
 \item{comm}{character. Name of commodity to apply the parameter, different parameters require specification either input or output commodity.}
 \item{cinp2use}{numeric. Commodity-input-to-use coefficient, default is 1.}
 \item{use2cact}{numeric. Use-to-commodity-activity coefficient, default is 1.}
@@ -120,7 +120,7 @@ newTechnology(
 \item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{vintage} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
-\item{slice}{character. Name of slice to apply the parameter, NA for every slice.}
+\item{timeslice}{character. Name of timeslice to apply the parameter, NA for every timeslice.}
 \item{acomm}{character. Name of auxilary commodity to apply the parameter.}
 \item{cinp2ainp}{numeric. Main-commodity-input-to-auxilary-commodity-input coefficient, ignored if NA.}
 \item{cinp2aout}{numeric. Main-commodity-input-to-auxilary-commodity-output coefficient, ignored if NA.}
@@ -140,7 +140,7 @@ newTechnology(
 \item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{vintage} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
-\item{slice}{character. Name of slice to apply the parameter, NA for every slice.}
+\item{timeslice}{character. Name of timeslice to apply the parameter, NA for every timeslice.}
 \item{af.lo}{numeric. Lower bound on the availability factor, default is 0.}
 \item{af.up}{numeric. Upper bound on the availability factor, default is 1.}
 \item{af.fx}{numeric. Fixed availability factor, ignored if NA. This parameter overrides \code{af.lo} and \code{af.up}.}
@@ -154,7 +154,7 @@ newTechnology(
 \item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{vintage} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
-\item{slice}{character. Name of slice to apply the parameter, required.}
+\item{timeslice}{character. Name of timeslice to apply the parameter, required.}
 \item{afs.lo}{numeric. Lower bound on the availability factor for the timeframe, default is 0.}
 \item{afs.up}{numeric. Upper bound on the availability factor for the timeframe, default is 1.}
 \item{afs.fx}{numeric. Fixed availability factor for the timeframe, ignored if NA. This parameter overrides \code{afs.lo} and \code{afs.up}.}
@@ -224,7 +224,7 @@ newTechnology(
 \item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{vintage} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
-\item{slice}{character. Name of the time-slice or (grand-)parent timeframe to apply the parameter, NA for every time-slice of the technology timeframe.}
+\item{timeslice}{character. Name of the time-timeslice or (grand-)parent timeframe to apply the parameter, NA for every time-timeslice of the technology timeframe.}
 \item{varom}{numeric. Variable operational and maintenance cost per unit of activity, default is 0.}
 \item{comm}{character. Name of the commodity for which the parameter will be applied, required for \code{cvarom} parameter.}
 \item{cvarom}{numeric. Variable operational and maintenance cost per unit of commodity, default is 0.}
@@ -240,13 +240,13 @@ newTechnology(
 \item{order}{integer. Optional display/ranking order (e.g. best to worst resource class); controls the order variants are created and reported in.}
 }}
 
-\item{vintage}{data.frame. Investment window and operational life of the technology, one row per (vintage, region, cluster). Replaces the former \code{start}, \code{end} and \code{olife} slots. A vintage is a separately investable variant of the technology that keeps the characteristics of its build year for its whole life; a cluster is a parallel sub-process (resource class, geography, fleet type) with its own capacity, availability and costs. Each column is read independently, so a region-agnostic \code{start} may be combined with a per-region \code{olife}.
+\item{vintage}{data.frame. Investment window and operational life of the technology, one row per (vintage, region, cluster). Replaces the former \code{start}, \code{end} and \code{olife} slots. A vintage is a separately investable variant of the technology that keeps the characteristics of its build year for its whole life; a cluster is a parallel sub-process (resource class, geography, fleet type) with its own capacity, availability and costs.
 \describe{
 \item{vintage}{character. Vintage label, normally the build year as a string. NA for an un-vintaged technology (a single variant).}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{cluster}{character. Cluster label, NA for every cluster.}
-\item{start}{integer. The first year the technology can be installed. Defaults to the vintage year; NA means all years of the modeled horizon.}
-\item{end}{integer. The last year the technology can be installed. Defaults to the vintage year; default is Inf when unset.}
+\item{start}{integer. The first year the technology can be installed. NA means unbounded (all horizon years up to \code{end}); windows are user-defined and may overlap across vintages.}
+\item{end}{integer. The last year the technology can be installed. NA means unbounded (all horizon years from \code{start} on).}
 \item{olife}{integer. Operational life of the technology if installed during optimization, in years, default is 1.}
 }}
 
@@ -311,11 +311,11 @@ ECOAL <- newTechnology(
     acomm = c("NOx", "SO2", "Hg"),
     act2aout = c(0.1, 0.2, 0.3) # emission factors, linked to activity
   ),
-  af = data.frame( # availability (capacity) factor by time slices
+  af = data.frame( # availability (capacity) factor by time timeslices
     af.up = 0.95 # maximum 95\% per hour
   ),
   afs = data.frame( # availability factor by timeframes
-    slice = "ANNUAL", # annual availability factor
+    timeslice = "ANNUAL", # annual availability factor
     afs.lo = 0.40, # at least 40\% per year
     afs.up = 0.85 # maximum 85\% per year
   ),

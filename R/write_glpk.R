@@ -325,7 +325,7 @@ get_glpk_path <- function() {
   rs
 }
 
-# .set_al <- c("acomm", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "slice", "group", "comm", "cns", "stgp", "tradep", "exppp", "impp", "techp", "demp", "supp", "weatherp", "regionp", "yearp", "slicep", "groupp", "commp", "cnsp", "stge", "tradee", "exppe", "impe", "teche", "deme", "supe", "weathere", "regione", "yeare", "slicee", "groupe", "comme", "cnse", "stgn", "traden", "exppn", "impn", "techn", "demn", "supn", "weathern", "regionn", "yearn", "slicen", "groupn", "commn", "cnsn", "src", "dst")
+# .set_al <- c("acomm", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "stgp", "tradep", "exppp", "impp", "techp", "demp", "supp", "weatherp", "regionp", "yearp", "timeslicep", "groupp", "commp", "cnsp", "stge", "tradee", "exppe", "impe", "teche", "deme", "supe", "weathere", "regione", "yeare", "timeslicee", "groupe", "comme", "cnse", "stgn", "traden", "exppn", "impn", "techn", "demn", "supn", "weathern", "regionn", "yearn", "timeslicen", "groupn", "commn", "cnsn", "src", "dst")
 # .alias_set <- c("ca", "st1", "t1", "e", "i", "t", "d", "s1", "wth1", "r", "y", "s", "g", "c", "cn1", "st1p", "t1p", "ep", "ip", "tp", "dp", "s1p", "wth1p", "rp", "yp", "sp", "gp", "cp", "cn1p", "st1e", "t1e", "ee", "ie", "te", "de", "s1e", "wth1e", "re", "ye", "se", "ge", "ce", "cn1e", "st1n", "t1n", "en", "in", "tn", "dn", "s1n", "wth1n", "rn", "yn", "sn", "gn", "cn", "cn1n", "src", "dst")
 # names(.alias_set) <- .set_al
 # .aliasName <- function(x) {
@@ -386,10 +386,10 @@ get_glpk_path <- function() {
     tend <- NULL
   }
   rs <- paste0(rs[!not_use], collapse = ", ")
-  # Rest slice without mapping
-  slice <- gsub(" ", "", strsplit(set_num, ",")[[1]])
-  # slice2 <- .aliasName(slice)
-  rest_slice <- slice[!(.aliasName(slice) %in% c(cnd_slice, recursive = TRUE))]
+  # Rest timeslice without mapping
+  timeslice <- gsub(" ", "", strsplit(set_num, ",")[[1]])
+  # timeslice2 <- .aliasName(timeslice)
+  rest_slice <- timeslice[!(.aliasName(timeslice) %in% c(cnd_slice, recursive = TRUE))]
   if (length(rest_slice) > 0) {
     if (rs == "") rs <- NULL
     rs <- paste0(c(rs, paste0(.aliasName(rest_slice), " in ", rest_slice)), collapse = ", ")
@@ -421,9 +421,9 @@ get_glpk_path <- function() {
 }
 
 
-# "s.t. eqCnsMINGASgrow2{y in (mMidMilestone inter mMilestoneHasNext)}: sum{y in mMidMilestone, (c, s) in mCommSlice, r in region : c in (mCnsMINGASgrow2_1 inter mCnsMINGASgrow2_1)}(-1 * vOutTot[c, r, y, s]+ sum{(y, yp) in mMilestoneNext, (c, s) in mCommSlice, r in region : c in (mCnsMINGASgrow2_1 inter mCnsMINGASgrow2_1) and yp in mMidMilestone}(pCnsMultMINGASgrow2_2[y]* vOutTot[c, r, yp, s]>=0;"
+# "s.t. eqCnsMINGASgrow2{y in (mMidMilestone inter mMilestoneHasNext)}: sum{y in mMidMilestone, (c, s) in mCommTimeslice, r in region : c in (mCnsMINGASgrow2_1 inter mCnsMINGASgrow2_1)}(-1 * vOutTot[c, r, y, s]+ sum{(y, yp) in mMilestoneNext, (c, s) in mCommTimeslice, r in region : c in (mCnsMINGASgrow2_1 inter mCnsMINGASgrow2_1) and yp in mMidMilestone}(pCnsMultMINGASgrow2_2[y]* vOutTot[c, r, yp, s]>=0;"
 
-# tmp = '((comm, region, slice)$(mCnsMINGASgrow2_1(comm) and mMidMilestone(year) and mCommSlice(comm, slice) and mCnsMINGASgrow2_1(comm)), -1 * vOutTot(comm, region, year, slice))'
+# tmp = '((comm, region, timeslice)$(mCnsMINGASgrow2_1(comm) and mMidMilestone(year) and mCommTimeslice(comm, timeslice) and mCnsMINGASgrow2_1(comm)), -1 * vOutTot(comm, region, year, timeslice))'
 .handle.sum.glpk <- function(tmp) {
   hh <- .get.bracket.glpk(tmp)
   a1 <- sub("^[(]", "", sub("[)]$", "", hh$beg))

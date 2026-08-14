@@ -73,7 +73,7 @@ setClass("storage",
     # Lifespan / vintage table, replacing the former `start`/`end`/`olife` slots
     # (which is what the old `# year = integer(), # add year to distinguish
     # vintages` note here was reaching for). One row per (vintage, region,
-    # cluster); `start`/`end` default to the vintage year.
+    # cluster); `start`/`end` = user-defined window (NA side = unbounded).
     vintage = data.frame(
       vintage = character(),
       region = character(),
@@ -88,7 +88,7 @@ setClass("storage",
       cluster = character(),
       region = character(),
       year = integer(),
-      slice = character(),
+      timeslice = character(),
       charge = numeric(),
       stringsAsFactors = FALSE
     ),
@@ -97,7 +97,7 @@ setClass("storage",
       cluster = character(),
       region = character(),
       year = integer(),
-      slice = character(),
+      timeslice = character(),
       stgeff = numeric(),
       inpeff = numeric(),
       outeff = numeric(),
@@ -114,7 +114,7 @@ setClass("storage",
       acomm = character(),
       region = character(),
       year = integer(),
-      slice = character(),
+      timeslice = character(),
       stg2ainp = numeric(),
       cinp2ainp = numeric(),
       cout2ainp = numeric(),
@@ -133,7 +133,7 @@ setClass("storage",
       cluster = character(),
       region = character(),
       year = integer(),
-      slice = character(),
+      timeslice = character(),
       af.lo = numeric(),
       af.up = numeric(),
       af.fx = numeric(),
@@ -158,7 +158,7 @@ setClass("storage",
       cluster = character(),
       region = character(),
       year = integer(),
-      slice = character(),
+      timeslice = character(),
       inpcost = numeric(),
       outcost = numeric(),
       stgcost = numeric(),
@@ -251,9 +251,9 @@ setMethod("initialize", "storage", function(.Object, ...) {
 #' demand or supply technologies with time-shift.
 #' Operation of storage includes accumulation, storing, and release
 #' of the stored commodity. The storing cycle operates on the ordered
-#' time-slices of the commodity timeframe. The cycle is looped either
-#' on an annual basis (last time-slice of a year follows the first time
-#' slice of the same year) or within the parent time-frame (for example,
+#' time-timeslices of the commodity timeframe. The cycle is looped either
+#' on an annual basis (last time-timeslice of a year follows the first time
+#' timeslice of the same year) or within the parent time-frame (for example,
 #' when commodity time-frame is "HOUR" and the parent time-frame is "DAY" then
 #' the storage cycle will be a calendar day).
 #'
@@ -298,13 +298,13 @@ setMethod("initialize", "storage", function(.Object, ...) {
 #'   charge = data.frame(
 #'     # region = "R1",
 #'     year = 2020,
-#'     # slice = "HOUR",
+#'     # timeslice = "HOUR",
 #'     charge = 0.1
 #'   ),
 #'   seff = data.frame(
 #'     # region = "R1",
 #'     # year = 2020,
-#'     # slice = "HOUR",
+#'     # timeslice = "HOUR",
 #'     stgeff = 0.999,
 #'     inpeff = 0.9,
 #'     outeff = 0.9
@@ -313,7 +313,7 @@ setMethod("initialize", "storage", function(.Object, ...) {
 #'     acomm = "electricity",
 #'     region = "R1",
 #'     year = 2020,
-#'     # slice = "HOUR",
+#'     # timeslice = "HOUR",
 #'     stg2ainp = 0.9,
 #'     cinp2ainp = 0.1,
 #'     cout2ainp = 0.2,
@@ -327,14 +327,14 @@ setMethod("initialize", "storage", function(.Object, ...) {
 #'     ncap2stg = 0.9
 #'   ),
 #'   af = data.frame(
-#'     region = "R1", year = 2020, slice = "HOUR",
+#'     region = "R1", year = 2020, timeslice = "HOUR",
 #'     af.lo = 0.9, af.up = 0.9, af.fx = 0.9, cinp.up = 0.9,
 #'     cinp.fx = 0.9, cinp.lo = 0.9, cout.up = 0.9,
 #'     cout.fx = 0.9, cout.lo = 0.9
 #'   ),
 #'   fixom = data.frame(region = "R1", year = 2020, fixom = 0.9),
 #'   varom = data.frame(
-#'     region = "R1", year = 2020, slice = "HOUR",
+#'     region = "R1", year = 2020, timeslice = "HOUR",
 #'     inpcost = 0.9, outcost = 0.9, stgcost = 0.9
 #'   ),
 #'   invcost = data.frame(

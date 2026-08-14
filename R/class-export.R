@@ -42,7 +42,7 @@ setClass("export",
     export = data.frame(
       region = character(),
       year = integer(),
-      slice = character(),
+      timeslice = character(),
       exp.lo = numeric(),
       exp.up = numeric(),
       exp.fx = numeric(),

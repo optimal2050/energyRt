@@ -25,9 +25,9 @@
 #'   flows are only meaningful for a region subset and are skipped when
 #'   `region = NULL` (they cancel out in an all-region sum).
 #' @param year integer vector or `NULL` (all milestone year).
-#' @param slice `NULL` for annual sums, or a regular expression selecting a
-#'   slice sample (e.g. `"^SUM_"` for the summer day on the `utopia_s4h24`
-#'   calendar). When the matched slices carry an hour tag (`"_h00"..."_h23"`),
+#' @param timeslice `NULL` for annual sums, or a regular expression selecting a
+#'   timeslice sample (e.g. `"^SUM_"` for the summer day on the `utopia_s4h24`
+#'   calendar). When the matched timeslices carry an hour tag (`"_h00"..."_h23"`),
 #'   an integer `hour` column is added.
 #' @param drop_small numeric in `[0, 1)`: drop processes whose total absolute
 #'   value is below this share of the largest process (default `0`, keep all).
@@ -41,21 +41,21 @@
 #' @return A tidy data.frame with columns `scenario`, `type`, `process`, `flow`
 #'   (`generation`, `storage-in/out`, `import/export`, `demand`, `fuel`,
 #'   `capacity`, `new_capacity`), `comm`, `region`, `year`, `value`, and -- when
-#'   `slice` is given -- `slice` (+ `hour` when parsable), plus any column named
+#'   `timeslice` is given -- `timeslice` (+ `hour` when parsable), plus any column named
 #'   in `by`. Missing variables are skipped silently (e.g. a model without
 #'   storage or trade).
 #'
 #' @examples
 #' \dontrun{
 #' gen <- getMix(scen, "generation")                      # annual, all regions
-#' day <- getMix(scen, "generation", slice = "^SUM_")     # summer-day dispatch
+#' day <- getMix(scen, "generation", timeslice = "^SUM_")     # summer-day dispatch
 #' cmp <- getMix(list(BASE = s1, CO2CAP = s2), "capacity")
 #' cl  <- getMix(scen, "capacity", by = "cluster")        # split by cluster
 #' }
 #' @export
 getMix <- function(scen,
                    type = c("generation", "capacity", "new_capacity", "fuel"),
-                   comm = "ELC", region = NULL, year = NULL, slice = NULL,
+                   comm = "ELC", region = NULL, year = NULL, timeslice = NULL,
                    drop_small = 0, by = NULL) {
   type <- match.arg(type)
   by <- if (is.null(by)) character() else intersect(by, c("vintage", "cluster"))
@@ -63,7 +63,7 @@ getMix <- function(scen,
   if (is.list(scen) && !isS4(scen)) {
     out <- lapply(seq_along(scen), function(i) {
       d <- getMix(scen[[i]], type = type, comm = comm, region = region,
-                  year = year, slice = slice, drop_small = drop_small, by = by)
+                  year = year, timeslice = timeslice, drop_small = drop_small, by = by)
       if (!is.null(d) && nrow(d) > 0) {
         nm <- names(scen)[i]
         if (!is.null(nm) && nzchar(nm)) d$scenario <- nm
@@ -115,7 +115,7 @@ getMix <- function(scen,
 
   rows <- list()
   for (p in pieces) {
-    d <- .mix_fetch(scen, p$var, native = !is.null(slice))
+    d <- .mix_fetch(scen, p$var, native = !is.null(timeslice))
     if (is.null(d) || nrow(d) == 0) next
     # commodity filter (balanced commodity of the mix)
     if (!is.null(p$comm) && "comm" %in% names(d))
@@ -148,11 +148,11 @@ getMix <- function(scen,
       d$process[hit] <- as.character(tv$base[m[hit]])
     }
 
-    # slice selection / annual aggregation
-    if (!is.null(slice) && "slice" %in% names(d)) {
-      d <- d[grepl(slice, d$slice), , drop = FALSE]
+    # timeslice selection / annual aggregation
+    if (!is.null(timeslice) && "timeslice" %in% names(d)) {
+      d <- d[grepl(timeslice, d$timeslice), , drop = FALSE]
       if (nrow(d) == 0) next
-      by <- intersect(c("process", "comm", "region", "year", "slice", by_dims),
+      by <- intersect(c("process", "comm", "region", "year", "timeslice", by_dims),
                       names(d))
     } else {
       by <- intersect(c("process", "comm", "region", "year", by_dims), names(d))
@@ -167,11 +167,11 @@ getMix <- function(scen,
 
   # inter-regional trade: only when a region subset is requested
   if (type == "generation" && !is.null(region)) {
-    tr <- .mix_fetch(scen, "vTradeIr", native = !is.null(slice))
+    tr <- .mix_fetch(scen, "vTradeIr", native = !is.null(timeslice))
     if (!is.null(tr) && nrow(tr) > 0 && all(c("src", "dst") %in% names(tr))) {
       if (!is.null(year)) tr <- tr[tr$year %in% year, , drop = FALSE]
-      if (!is.null(slice) && "slice" %in% names(tr))
-        tr <- tr[grepl(slice, tr$slice), , drop = FALSE]
+      if (!is.null(timeslice) && "timeslice" %in% names(tr))
+        tr <- tr[grepl(timeslice, tr$timeslice), , drop = FALSE]
       if ("comm" %in% names(tr)) tr <- tr[tr$comm %in% comm, , drop = FALSE]
       imp <- tr[tr$dst %in% region, , drop = FALSE]
       exp <- tr[tr$src %in% region, , drop = FALSE]
@@ -182,7 +182,7 @@ getMix <- function(scen,
         d$region  <- d[[side$reg]]
         d$process <- if ("trade" %in% names(d)) as.character(d$trade) else side$flow
         by  <- intersect(c("process", "comm", "region", "year",
-                           if (!is.null(slice)) "slice"), names(d))
+                           if (!is.null(timeslice)) "timeslice"), names(d))
         agg <- stats::aggregate(d[["value"]], by = d[by], FUN = sum, na.rm = TRUE)
         names(agg)[ncol(agg)] <- "value"
         agg$value <- side$sign * agg$value
@@ -215,9 +215,9 @@ getMix <- function(scen,
     if (dm %in% names(out)) out[[dm]][is.na(out[[dm]])] <- "(none)"
   }
 
-  # hour column for sliced output
-  if (!is.null(slice) && "slice" %in% names(out)) {
-    hr <- suppressWarnings(as.integer(sub(".*_h(\\d+)$", "\\1", out$slice)))
+  # hour column for timesliced output
+  if (!is.null(timeslice) && "timeslice" %in% names(out)) {
+    hr <- suppressWarnings(as.integer(sub(".*_h(\\d+)$", "\\1", out$timeslice)))
     if (any(is.finite(hr))) out$hour <- hr
   }
 
@@ -229,7 +229,7 @@ getMix <- function(scen,
   }
 
   front <- intersect(c("scenario", "type", "process", "flow", "comm", "region",
-                       "year", "slice", "hour", "value"), names(out))
+                       "year", "timeslice", "hour", "value"), names(out))
   out <- out[, c(front, setdiff(names(out), front)), drop = FALSE]
   rownames(out) <- NULL
   out
@@ -246,7 +246,7 @@ getMix <- function(scen,
 }
 
 # Fetch one solved variable / parameter as a plain data.frame, or NULL.
-# `native = TRUE` requests the finest (native) timeframe so slice-level values
+# `native = TRUE` requests the finest (native) timeframe so timeslice-level values
 # survive (getData's default aggregates to ANNUAL).
 .mix_fetch <- function(scen, vname, native = FALSE) {
   d <- tryCatch(
@@ -267,15 +267,15 @@ getMix <- function(scen,
 #'
 #' @description
 #' `autoplot()` on a solved `scenario` draws the mixes extracted by [getMix()]:
-#' annual stacked bars by milestone year, or -- when `slice` selects a sample
+#' annual stacked bars by milestone year, or -- when `timeslice` selects a sample
 #' (e.g. one representative day) -- an hourly dispatch profile. Storage charging
 #' and exports plot below zero; demand is overlaid as a line.
 #'
 #' @param object a solved `scenario` object.
 #' @param type `"generation"` (default), `"capacity"`, `"new_capacity"`,
 #'   `"fuel"`, or `"storage"` (the storage-in/out flows only).
-#' @param comm,region,year,slice,drop_small passed to [getMix()]. For a dispatch
-#'   profile (`slice` given) with `year = NULL`, the last milestone year is used.
+#' @param comm,region,year,timeslice,drop_small passed to [getMix()]. For a dispatch
+#'   profile (`timeslice` given) with `year = NULL`, the last milestone year is used.
 #' @param by character vector passed to [getMix()], any of `"vintage"` and
 #'   `"cluster"`, to keep those technology-variant dimensions as grouping
 #'   columns. Implied automatically by `fill`/`facet`.
@@ -289,7 +289,7 @@ getMix <- function(scen,
 #' @examples
 #' \dontrun{
 #' autoplot(scen)                                    # annual generation mix
-#' autoplot(scen, "generation", slice = "^SUM_")     # summer-day dispatch
+#' autoplot(scen, "generation", timeslice = "^SUM_")     # summer-day dispatch
 #' autoplot(scen, "capacity")
 #' autoplot(scen, "capacity", fill = "cluster")      # capacity by cluster
 #' autoplot(scen, "capacity", fill = "vintage", facet = "process")
@@ -298,7 +298,7 @@ getMix <- function(scen,
 #' @exportS3Method ggplot2::autoplot
 autoplot.scenario <- function(object,
     type = c("generation", "capacity", "new_capacity", "fuel", "storage"),
-    comm = "ELC", region = NULL, year = NULL, slice = NULL,
+    comm = "ELC", region = NULL, year = NULL, timeslice = NULL,
     drop_small = 0, by = NULL, fill = NULL, facet = NULL, ...) {
   # ggplot2 is in Suggests. Without this the failure is R's bare "there is no
   # package called 'ggplot2'" from the first `ggplot2::` call, and R CMD check
@@ -314,14 +314,14 @@ autoplot.scenario <- function(object,
   fill_var  <- if (is.null(fill))  "process" else fill[1]
   facet_var <- facet
 
-  if (!is.null(slice) && is.null(year)) {
+  if (!is.null(timeslice) && is.null(year)) {
     # dispatch profile: default to the last milestone year
     yrs <- tryCatch(sort(unique(.mix_fetch(object, "vTechOut")$year)),
                     error = function(e) NULL)
     if (length(yrs) > 0) year <- max(yrs)
   }
   mx <- getMix(object, type = gtype, comm = comm, region = region,
-               year = year, slice = slice, drop_small = drop_small, by = by)
+               year = year, timeslice = timeslice, drop_small = drop_small, by = by)
   if (type == "storage")
     mx <- mx[grepl("^storage", mx$flow), , drop = FALSE]
   if (nrow(mx) == 0) stop("No '", type, "' data found in scenario '",
@@ -335,14 +335,14 @@ autoplot.scenario <- function(object,
                  " -- ", object@name)
   n_reg <- length(unique(bars$region))
 
-  if (!is.null(slice) && "hour" %in% names(bars)) {
-    # hourly dispatch over the slice sample
+  if (!is.null(timeslice) && "hour" %in% names(bars)) {
+    # hourly dispatch over the timeslice sample
     agg <- stats::aggregate(value ~ process + hour,
                             rbind(bars[c("process", "hour", "value")]), sum)
     p <- ggplot2::ggplot(agg, ggplot2::aes(hour, value, fill = process)) +
       ggplot2::geom_col(width = 1, alpha = 0.9) +
       ggplot2::labs(x = "hour", y = "value", fill = NULL,
-                    title = ttl, subtitle = paste0("slices: ", slice,
+                    title = ttl, subtitle = paste0("timeslices: ", timeslice,
                                                    "  year: ", year)) +
       theme_energyRt()
     if (nrow(dem) > 0 && "hour" %in% names(dem)) {
@@ -393,10 +393,10 @@ autoplot.scenario <- function(object,
              tryCatch(getObjects(x, "storage"),    error = function(e) list()))
   rows <- list()
   for (p in procs) {
-    # lifespan lives in `@vintage` for technology, in `@start`/`@end`/`@olife`
-    # for storage; `.lifespan_col()` returns the same `(region, value)` frame
+    # lifespan lives in `@vintage`; `.lifespan_resolve()` returns keyed,
+    # conflict-checked rows (one per vintage/region/cluster key)
     gslot <- function(col) {
-      d <- .lifespan_col(p, col)
+      d <- .lifespan_resolve(p, col)
       if (nrow(d) > 0) d else NULL
     }
     st <- gslot("start"); en <- gslot("end"); ol <- gslot("olife")

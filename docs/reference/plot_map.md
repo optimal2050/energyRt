@@ -71,7 +71,7 @@ A `ggplot` object.
 
 Requires a geoscale with geometry attached (see
 [`setGeoscale()`](https://energyRt.org/reference/setGeoscale.md) and
-[`geoscales::geo_attach_geometry()`](https://optimal2050.github.io/geoscales/r/reference/geo_attach_geometry.html)),
+[`geoscales::geo_attach_geometry()`](https://optimal2050.github.io/geoscales/r/reference/geoscales-deprecated.html)),
 plus `sf` and `ggplot2`.
 
 ## See also

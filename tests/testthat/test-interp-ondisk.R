@@ -1,4 +1,4 @@
-# interp_mod(ondisk = TRUE) is the default storage mode but was historically only
+# interpolate_model(ondisk = TRUE) is the default storage mode but was historically only
 # exercised in-memory. This test proves an on-disk build is equivalent to an
 # in-memory one: identical parameter data (after the parquet/csv round-trip is
 # class-normalised) and, where a GLPK binary is available, an identical objective.
@@ -16,15 +16,15 @@ test_that("on-disk interpolation equals in-memory (data + solve)", {
   mod <- tm_weather()
 
   mem <- suppressWarnings(suppressMessages(
-    interp_mod(mod, name = "ondisk_mem", ondisk = FALSE,
-               fold = c("region", "slice", "year", "comm", "tech", "stg", "trade"),
+    interpolate_model(mod, name = "ondisk_mem", ondisk = FALSE,
+               fold = c("region", "timeslice", "year", "comm", "tech", "stg", "trade"),
                sparse = TRUE)))
 
   store <- file.path(tempdir(), "ondisk_store")
   unlink(store, recursive = TRUE)
   disk <- suppressWarnings(suppressMessages(
-    interp_mod(mod, name = "ondisk_disk", ondisk = TRUE, path = store,
-               fold = c("region", "slice", "year", "comm", "tech", "stg", "trade"),
+    interpolate_model(mod, name = "ondisk_disk", ondisk = TRUE, path = store,
+               fold = c("region", "timeslice", "year", "comm", "tech", "stg", "trade"),
                sparse = TRUE, overwrite = TRUE)))
   on.exit(unlink(store, recursive = TRUE), add = TRUE)
 

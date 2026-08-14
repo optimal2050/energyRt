@@ -6,12 +6,12 @@
 \alias{tsl_sets}
 \alias{dtm2tsl}
 \alias{tsl2dtm}
-\title{Common formats of time-slices.}
+\title{Common formats of time-timeslices.}
 \format{
 A character vector with formats:
 \describe{
-\item{d365}{daily time-slices, 365 a year (leap year's 366th day is disregarded)}
-\item{d365_h24}{time slices with year-day numbers and hours, 8760 in total}
+\item{d365}{daily time-timeslices, 365 a year (leap year's 366th day is disregarded)}
+\item{d365_h24}{time timeslices with year-day numbers and hours, 8760 in total}
 \item{...}{etc.}
 }
 
@@ -35,27 +35,27 @@ tsl2dtm(
 \arguments{
 \item{dtm}{vector of timepoints in Date format}
 
-\item{format}{character, format of the slices}
+\item{format}{character, format of the timeslices}
 
 \item{d366.as.na}{logical, if}
 
-\item{tsl}{character vector with time-slices}
+\item{tsl}{character vector with time-timeslices}
 
 \item{tmz}{time-zone}
 
-\item{year}{year, used when time-slices don't store year}
+\item{year}{year, used when time-timeslices don't store year}
 
-\item{mday}{day of month, for time slices without the information}
+\item{mday}{day of month, for time timeslices without the information}
 }
 \value{
-Character vector with time-slices names
+Character vector with time-timeslices names
 
 Vector in Date-Time format
 }
 \description{
 This set of functions converts date-time objects to model's
-time-slices in a given format, and vice versa, maps
-time-slices to date-time, and extracts year, month,
+time-timeslices in a given format, and vice versa, maps
+time-timeslices to date-time, and extracts year, month,
 day of the year, hour.
 }
 \examples{

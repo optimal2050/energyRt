@@ -15,7 +15,7 @@ repository, model, or scenario object."><meta property="og:image" content="https
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.75.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.80.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -111,7 +111,9 @@ For <code>technology</code> objects the most useful are:</p><dl><dt><code>group<
 
 <dt><code>fuel_costs</code></dt>
 <dd><p>Named numeric vector <code>[commodity -&gt; cost]</code>
-for input commodities not found in <code>repo</code>.</p></dd>
+for input commodities not found in <code>repo</code>. Auxiliary
+commodities consumed by the process (aux inputs) can be priced the
+same way; unnamed ones are supplied at zero cost.</p></dd>
 
 <dt><code>autocomplete</code></dt>
 <dd><p>Logical, default <code>FALSE</code>
@@ -135,7 +137,7 @@ commodities without a supply in the container are auto-supplied
 
 <dt><code>timeframe</code></dt>
 <dd><p><code>"ANNUAL"</code> (default) or <code>"native"</code>.
-<code>"ANNUAL"</code> prices the technology on a single annual time-slice: any
+<code>"ANNUAL"</code> prices the technology on a single annual time-timeslice: any
 weather profile is collapsed to an annual capacity factor (applied as the
 technology's annual availability), so capacity is sized to serve unit
 annual demand at that factor (textbook LCOE). <code>"native"</code> keeps the
@@ -146,7 +148,7 @@ transmission, where sub-annual dispatch matters.</p></dd>
 <dt><code>backstop</code></dt>
 <dd><p>Logical, default <code>TRUE</code>. Enables a very
 expensive dummy-import slack on the output commodity balance so the
-mini-model always solves even when the technology cannot serve a slice on
+mini-model always solves even when the technology cannot serve a timeslice on
 its own; the slack cost is excluded from the LCOE.</p></dd>
 
 <dt><code>region</code></dt>
@@ -168,6 +170,25 @@ extra solves.</p></dd>
 <dt><code>solver</code></dt>
 <dd><p>Solver spec list, default
 <code>solver_options$glpk</code>.</p></dd>
+
+<dt><code>method</code></dt>
+<dd><p><code>"auto"</code> (default), <code>"analytic"</code>, or
+<code>"solve"</code>. The unit-demand annual mini-model has a closed-form
+optimum for most technologies; <code>"auto"</code> computes it analytically
+(no solver needed) whenever the technology qualifies and falls back
+to the solver otherwise, with a message naming the reason.
+<code>"analytic"</code> refuses non-qualifying technologies instead of
+falling back; <code>"solve"</code> always builds and solves the mini-model.
+The analytic result carries the same fields (plus
+<code>$method = "analytic"</code> and <code>$frontier_vertices</code>, which
+reports EVERY corner of the input/output share polytopes with its
+per-activity NPV cost breakdown and an <code>optimal</code> flag);
+<code>$scenario</code> is <code>NULL</code> on this path. Not analytically
+representable (solver required): technology chains,
+<code>timeframe = "native"</code>, <code>afc.*</code> bounds, availability lower
+bounds, <code>optimizeRetirement</code>, year-varying <code>invcost</code>,
+reserve- or availability-constrained supplies, and group
+substitution combined with year-varying prices or efficiencies.</p></dd>
 
 <dt><code>run</code></dt>
 <dd><p><code>"single"</code> (default) or <code>"sequential"</code> –

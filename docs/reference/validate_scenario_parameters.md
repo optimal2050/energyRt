@@ -5,7 +5,7 @@ bounds / map parameters of a scenario and reports any issues. Checks:
 
 - **NA index columns**: no NA in a parameter's `dimSets` id columns.
   When `fold = TRUE`, NA is permitted only in the trimmable dimensions
-  (region / slice / vintage, which fold encodes as wildcards); when
+  (region / timeslice / vintage, which fold encodes as wildcards); when
   `fold = FALSE`, no NA is permitted in any id column.
 
 - **Schema**: data columns match the declared `dimSets` (plus `value`,

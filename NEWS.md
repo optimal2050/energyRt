@@ -4,7 +4,178 @@ editor_options:
     wrap: 72
 ---
 
+# energyRt 0.80 (development) — the time dimension is now `timeslice`
+
+## Object autoplots actually plot: points + interpolation, defaults on demand
+
+-   Fixed the defect that made `autoplot()` on supply / import / export /
+    technology / storage objects report **"No year-indexed data to plot"**
+    for virtually every object: the plot passed `year = NULL` into
+    `getData()`'s `...`, where a NULL selector matched *nothing* and
+    dropped every row. NULL/empty filters are now ignored (a fix to
+    `getData()` for objects generally), and the plots' `year` argument is
+    routed as the interpolation grid (`getData(years = )`), so
+    `autoplot(x, year = 2020:2050)` extends the lines beyond the given
+    years.
+-   The intended display — **points for given data, lines for the
+    interpolated series** — now actually renders; new argument
+    `interpolate = TRUE` (set `FALSE` for given data only). Also on the
+    tax/subsidy/constraint and demand plots.
+-   New `show_defaults = FALSE` argument (process classes): when `TRUE`,
+    parameters mapped to the model but not set in the object are drawn as
+    dotted lines at their **default values** (e.g. `ava.lo = 0`);
+    non-finite defaults (`ava.up = Inf`) are listed in the caption.
+-   Fixed the silently-empty parameter registry behind
+    `getData(interpolate = TRUE)`: it read `.modInp@parameters`, but the
+    baked-in `.modInp` is the plain YAML list — every lookup fell back to
+    generic interpolation. The registry is now built from the list (with
+    bounds params expanded to `.lo/.up/.fx` columns and stale YAML slot
+    names aliased: supply/import/export `availability`, demand `dem`), so
+    object interpolation uses each parameter's own rule and default.
+    Interpolation expands only *given* columns — defaults never materialise
+    uninvited.
+-   Also fixed: `getData(object, interpolate = TRUE)` crashed on any empty
+    data-frame slot; demand plots dropped region-NA rows on aggregation.
+-   New test suite `test-autoplot-objects.R`; the autoplot vignette's
+    `years =` example corrected to `year =` (it was silently ignored).
+
+## Technology reports: vintages, consistent layout, working PDF and docx
+
+`report()` and the tech templates were overhauled around the vehicle
+datasheet layout:
+
+-   **Per-vintage levelized costs.** A `levcost_variants` result is no
+    longer silently reduced to its first variant: the generic report
+    gains a "Levelized Cost by Vintage" section (component-stacked
+    comparison chart + per-vintage NPV table), a **Vintages** table, and
+    per-vintage cost tables (a per-vintage `invcost` used to display
+    only its first row). The detail figures (components, frontier) show
+    ONE instance — newest vintage, first cluster, same convention as the
+    designer — re-priced with the same arguments (analytic, instant) and
+    labeled in the section header. Key-parameter scalars
+    (`olife`/`start`/`end`) go blank when several vintages make them
+    ambiguous.
+-   **`report_generic.Rmd` rebuilt** on the vehicle two-column layout
+    with ONE sizing system: fractions of the text width shared by HTML
+    and LaTeX (no more px/`\textwidth`/inch mix), every ggplot
+    rasterised at 150 dpi through one helper, LCOE labels in
+    `cost/activity` units.
+-   **docx works**: a Word-safe branch (markdown headings, pipe tables,
+    embedded figures) replaces the raw-TeX output pandoc used to
+    discard.
+-   **Empty columns are dropped everywhere** (`.report_drop_empty_cols`
+    in `report()` + template-side pruning); NA cells render as a dash
+    (`na.string=` was never a real `kable` argument).
+-   PDF soundness fixes shared with the vehicle/summary templates:
+    correct LaTeX escaping (the old `fixed = TRUE` patterns never
+    matched `$ ^ { }`; brace escaping now ordered around backslash),
+    forward-slashed image paths in HTML output, single (not double)
+    kable escaping, the vehicle share-panel px/pt bug, aligned HTML/LaTeX
+    column fractions, and the input/output `rbind` column mismatch.
+-   `report()` now passes only the params a template declares, so
+    older or user-supplied custom templates keep rendering as `report()`
+    grows new params; the container levcost whitelist was synced with
+    the technology one (`repo`, `method`, `full_output`).
+-   New test suite `test-report.R` (31 assertions; pandoc/LaTeX-gated).
+
+## `levcost()` computes analytically — no solver required
+
+The unit-demand annual mini-model that `levcost()` builds has a
+closed-form optimum for most technologies, and `levcost()` now computes
+it directly. New argument `method = c("auto", "analytic", "solve")`:
+
+-   `"auto"` (the new default) prices the technology **analytically —
+    no GLPK or any other solver needed** — whenever it qualifies, and
+    falls back to the solver otherwise with a message naming the
+    reason. `"analytic"` refuses non-qualifying technologies instead of
+    falling back; `"solve"` forces the previous behaviour.
+-   The analytic engine (`R/levcost_analytic.R`) mirrors the model
+    equations one for one — activity/output/input chains (`cact2cout`,
+    `use2cact`, `cinp2use`, `ginp2use`, `cinp2ginp`), annual
+    availability (`af`/`afs`, weather collapsed to a CF), the greedy
+    build–retire–rebuild capacity schedule, EAC annuities
+    (`wacc`/`payback`/`olife`), fixom/varom/cvarom/avarom, auxiliary
+    flows, and supply pricing — and reproduces the solver's numbers to
+    the GLPK output precision (parity-tested in
+    `test-levcost-analytic.R`).
+-   **Group shares report every corner solution.** The optimum over a
+    share polytope is a vertex; the analytic result evaluates *all*
+    vertices of the input and output share polytopes and returns them in
+    `$frontier_vertices` (share vector, per-activity NPV cost breakdown,
+    `optimal` flag), with the cost-minimal corner as the headline
+    levcost. The classic `$frontier` / `$levcost_by_*` corner tables are
+    produced as before.
+-   A vintaged/clustered technology is priced per cell directly — no
+    artificial-region isolation, no per-cell LP — which makes
+    many-variant technologies essentially instant.
+-   The analytic result has the same fields (plus `$method =
+    "analytic"`); `$scenario` is `NULL`. Not representable
+    analytically (solver still used): technology chains, `timeframe =
+    "native"`, `afc.*` bounds, availability lower bounds,
+    `optimizeRetirement`, year-varying `invcost`, constrained supplies,
+    and group substitution combined with year-varying prices.
+-   The process designer and `report(levcost = TRUE)` use
+    `method = "auto"`, so the levcost tab and report sections work on
+    machines with no solver installed.
+-   Fixed in passing: on the solve path the annual capacity factor
+    collapsed from `@weather` never reached the solver (the mini-model
+    was built from the pre-collapse objects), so weather-driven
+    technologies were priced at full availability. Both paths now apply
+    the CF.
+
+## techspec containers: YAML and JSON
+
+The techspec format (`read_techspec()`, `tech_from_spec()`,
+`tech_to_spec()`, the process designer) now reads and writes **JSON**
+(`.json`) as an alternative container for the same validated structure —
+`tech_to_spec(tech, file = "x.json")` writes it, `read_techspec()` and
+the designer's spec upload/gallery accept it, and the designer gained a
+"Save JSON" button. Full numeric precision is preserved.
+(A fuller NEWS section for the process designer itself is pending.)
+
+Stack-wide rename `slice` -> `timeslice` (paired with the `timescales`
+package; matches the TIMES/OSeMOSYS vocabulary and reads unambiguously
+next to the spatial `region` dimension):
+
+-   The set/index family in all four model backends (GAMS,
+    GLPK/MathProg, Pyomo, JuMP): `slice`/`slicep`/`slicepp`/`slice2` ->
+    `timeslice`/`timeslicep`/..., every `mSlice*`/`pSlice*` symbol ->
+    `mTimeslice*`/`pTimeslice*` (e.g. `mTimesliceParentChild`,
+    `pTimesliceShare`), and the `ANYSLICE` wildcard -> `ANYTIMESLICE`.
+    Equation-level short aliases (`s`, `sp`, ...) are unchanged.
+-   Solution output CSVs now carry a `timeslice` column.
+-   S4 `calendar` slots: `slice_share`/`slice_family`/`slice_ancestry`/
+    `slices_in_frame` -> `timeslice_*`/`timeslices_in_frame`.
+-   Input-data columns are `timeslice`; a **compatibility shim** accepts
+    the pre-rename `slice` name in user data (`new*` constructors and
+    `update()`, `newCalendar()` timetables, `newConstraint()`
+    `for.each`/`for.sum`, `fold_/unfold_scenario_parameters()` dims) --
+    renamed with a once-per-session warning. External datasets (IDEEA)
+    keep working through the shim.
+-   Bundled data (`calendars`, `utopia_*`, `model_structure`) and
+    `sysdata` regenerated with the new vocabulary.
+-   multimod's matching update is a recorded follow-up; until then it
+    pairs with pre-v0.80 generated models.
+
 # energyRt 0.74.0.9000-dev
+
+**The user config moved out of the home directory**
+
+`en_config_write()` now writes to `tools::R_user_dir("energyRt", "config")`
+rather than `~/.energyRt/config.yml`. CRAN policy does not permit a package to
+write in the user's home filespace, and the R >= 4.0 user directories are the
+sanctioned alternative. The old location is still read, so existing setups keep
+working; when you next call `en_config_write()` the legacy files
+(`~/.energyRt/config.yml` and the deprecated `~/.energyRt.R`) are renamed to
+`*.bak`, since the latter is sourced at attach and would otherwise keep
+overriding the new config. Pass `backup = FALSE` to leave them alone.
+
+**An unservable demand no longer aborts interpolation**
+
+`interpolate_model()` warns instead of stopping when a demand commodity has no
+supply, production, trade or import, so an incomplete model can be inspected and
+handed to the solver. Restore the previous behaviour with
+`options(en.model_checks_stop = TRUE)`.
 
 **Settings — one registry, one prefix, one config file**
 
@@ -62,6 +233,35 @@ rather than a bare `getOption()`. `en.progress_bar` is wired to
 and never read. The internal "GDX library already loaded" flag is no
 longer a user-visible option. `data.table::setNumericRounding(2)` moved
 from source time into `.onLoad()`.
+
+**Dead model code removed — LEC and the trade-cost aggregators**
+
+An audit of all 237 mapping parameters (`dev/audit-dead-maps.R`, measuring
+"populated in any of six models" against "referenced by any live solver
+template") found four that nothing could ever fill. They are gone, along
+with the equations they gated:
+
+- **LEC** (`eqLECActivity`, `meqLECActivity`, `mLECRegion`, `pLECLoACT`).
+  The `model@LECdata` slot had already been commented out, so there was no
+  way to supply data; the map builders were identity no-ops and the
+  constraint iterated an empty set in all four backends. Removed from
+  GLPK, GAMS, Julia and both Pyomo templates.
+- **`mvTradeCost` / `mvTradeRowCost`**, which gated `eqCostTrade` and
+  `eqCostRowTrade` — equations already inside a `$ontext` block in the
+  GAMS template. Trade costs reach the objective through `vTradeEac`,
+  `vTradeFixom`, `vImportIrCost` and `vExportIrCost` instead. (There is no
+  `vTradeVarom`: the activity-side cost arrives via
+  `eqImport/ExportIrCost` from `pTradeIrCost` + markup.) These follow
+  `mvTradeIrCost`, retired the same way earlier.
+
+Every written `.dat` loses five now-meaningless lines
+(`set mvTradeCost := ;` and friends). **Objectives are unchanged** — the
+removed equations were vacuous, verified by solving single- and
+multi-region UTOPIA before and after and comparing to the last decimal.
+
+Not removed, despite looking similar: `mTechAfUp` / `mTechAfcUp` are also
+forced empty, but `af.up` still binds through `meqTechAfUp` + `pTechAf`.
+They are redundant domain maps, not the binding mechanism.
 
 **Fixes**
 

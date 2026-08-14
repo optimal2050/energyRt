@@ -48,7 +48,7 @@ setClass("supply",
     supply = data.frame(
       region = character(),
       year = integer(),
-      slice = character(),
+      timeslice = character(),
       ava.lo = numeric(),
       ava.up = numeric(),
       ava.fx = numeric(),
@@ -106,7 +106,7 @@ setMethod("initialize", "supply", function(.Object, ...) {
 #'    supply = data.frame(
 #'       region = c("R1", "R2", "R3"),
 #'       year = NA_integer_,
-#'       slice = "ANNUAL",
+#'       timeslice = "ANNUAL",
 #'       ava.up = c(1e3, 1e2, 2e2), # annual availability
 #'       cost = c(10, 20, 30) # cost of the resource (currency per unit)
 #'    ),

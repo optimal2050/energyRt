@@ -1,0 +1,61 @@
+# techspec v1 — battery-electric light-duty vehicle, vintaged
+# Demonstrates per-vintage parameters and explicit investment windows:
+# each vintage is investable in its own window; the last one is open-ended.
+# invcost deliberately covers only a subset of vintages so the validator's
+# coverage report fires (values are NOT auto-filled — fix the data instead).
+techspec: 1
+class: technology
+name: LDV_BEV
+desc: Battery-electric light-duty vehicle (passenger)
+
+units:
+  capacity: MVeh        # million vehicles
+  activity: BVkm        # billion vehicle-km
+  costs: MUSD
+
+inputs:
+  - comm: ELCPJ
+    unit: PJ
+outputs:
+  - comm: PLDV
+    unit: BVkm
+
+efficiency:
+  - comm: ELCPJ
+    cinp2use: 1
+  - comm: PLDV
+    use2cact: 1666       # Mkm per PJ (~ 6 km/kWh)
+    cact2cout: 1
+
+cap2act: 12              # thousand km per vehicle-year
+
+vintages:
+  - vintage: 2020
+    olife: 15
+  - vintage: 2030
+    start: 2030
+    end: 2034
+    olife: 15
+  - vintage: 2035
+    start: 2035
+    end: 2039
+    olife: 15
+  - vintage: 2040
+    start: 2040
+    olife: 15
+
+invcost:
+  - vintage: 2020
+    invcost: 13.2
+  - vintage: 2030
+    invcost: 12.0
+  # 2035 and 2040 intentionally missing -> coverage warning
+
+capacity:
+  - vintage: 2020
+    year: 2025
+    stock: 0.8
+
+notes: >
+  Mirrors the IDEEA transport pattern: explicit windows per vintage, base
+  vintage carrying the pre-existing fleet, no auto-invented values.
