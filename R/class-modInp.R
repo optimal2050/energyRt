@@ -109,8 +109,8 @@ setMethod("initialize", "modInp", function(.Object) {
       return(NULL)
     }
     if (drop.unused.values) {
-      if (i == "slice" && any(colnames(sets) == "comm")) {
-        tmp <- merge(.get_data_slot(modInp@parameters$mCommSlice), tmp)
+      if (i == "timeslice" && any(colnames(sets) == "comm")) {
+        tmp <- merge(.get_data_slot(modInp@parameters$mCommTimeslice), tmp)
       }
       if (i == "comm" && any(colnames(sets) == "sup")) {
         tmp <- merge(.get_data_slot(modInp@parameters$mSupComm), tmp)
@@ -143,8 +143,8 @@ setMethod("initialize", "modInp", function(.Object) {
           .get_data_slot(modInp@parameters$mTechOutComm)
         ), tmp)
       }
-      if (i == "slice" && any(colnames(sets) == "tech")) {
-        tmp <- merge0(.get_data_slot(modInp@parameters$mTechSlice), tmp)
+      if (i == "timeslice" && any(colnames(sets) == "tech")) {
+        tmp <- merge0(.get_data_slot(modInp@parameters$mTechTimeslice), tmp)
       }
       if (i == "src") {
         aa <- .get_data_slot(modInp@parameters$mTradeSrc)

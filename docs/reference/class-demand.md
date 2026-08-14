@@ -34,10 +34,10 @@ An S4 class to declare a demand in the model
 
   :   integer. Year of the demand. NA for every year.
 
-  slice
+  timeslice
 
-  :   character. Name of the slice for the demand value. NA for every
-      slice.
+  :   character. Name of the timeslice for the demand value. NA for
+      every timeslice.
 
   demand
 

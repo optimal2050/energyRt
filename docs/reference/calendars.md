@@ -21,7 +21,7 @@ A named list of `calendar` objects, including:
 
 - season_dn:
 
-  Four seasons x day/night (8 slices).
+  Four seasons x day/night (8 timeslices).
 
 - d365:
 
@@ -29,25 +29,25 @@ A named list of `calendar` objects, including:
 
 - utopia_annual:
 
-  UTOPIA: annual resolution (1 slice).
+  UTOPIA: annual resolution (1 timeslice).
 
 - utopia_seasons:
 
   UTOPIA: 4 seasons x 3 dayparts (DAY/NIGHT/PEAK) with representative
-  shares (12 slices) – the default UTOPIA resolution.
+  shares (12 timeslices) – the default UTOPIA resolution.
 
 - utopia_m12h24:
 
-  UTOPIA: 12 months x 24 hours (288 slices).
+  UTOPIA: 12 months x 24 hours (288 timeslices).
 
 - d365_h24:
 
-  Full hourly year: 365 days x 24 hours (8760 slices).
+  Full hourly year: 365 days x 24 hours (8760 timeslices).
 
 - d365_h24_subset_1day_per_month:
 
   Representative subset: one day per month at hourly resolution (288
-  slices, `year_fraction` ~ 12/365).
+  timeslices, `year_fraction` ~ 12/365).
 
 The `utopia_*` calendars are built from energyRt's own constructors; the
 hourly `d365_h24*` calendars are imported from the IDEEA package. See

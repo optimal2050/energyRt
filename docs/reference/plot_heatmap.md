@@ -24,15 +24,15 @@ plot_heatmap(
 
 - object:
 
-  A `data.frame` with a `slice` column and a numeric value column, a
-  named numeric vector (names are slices), or a `calendar` object (then
-  the slice `share` — or `value` column — is shown).
+  A `data.frame` with a `timeslice` column and a numeric value column, a
+  named numeric vector (names are timeslices), or a `calendar` object
+  (then the timeslice `share` — or `value` column — is shown).
 
 - calendar:
 
-  A `calendar` object giving the layout (matched to `x` by slice), or a
-  format string (e.g. `"d365_h24"`). If `NULL`, the format is guessed
-  from the slice names with
+  A `calendar` object giving the layout (matched to `x` by timeslice),
+  or a format string (e.g. `"d365_h24"`). If `NULL`, the format is
+  guessed from the timeslice names with
   [`tsl_guess_format()`](https://energyRt.org/reference/tsl_guess_format.md).
 
 - value:
@@ -63,7 +63,7 @@ A `ggplot` object.
 if (FALSE) { # \dontrun{
 data("calendars", package = "energyRt")
 cal <- calendars$d365_h24
-prof <- data.frame(slice = cal@timetable$slice,
+prof <- data.frame(timeslice = cal@timetable$timeslice,
                    load  = runif(nrow(cal@timetable)))
 plot_heatmap(prof, calendar = cal, value = "load")
 plot_heatmap(prof, calendar = cal, value = "load", facet = "month")

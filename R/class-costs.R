@@ -179,11 +179,11 @@ newCosts <- function(
     stop(paste0('Cost "', stm@name, '" error: ', x))
   }
   get.all.child <- function(x) {
-    unique(c(x, c(approxim$calendar@slice_ancestry[
-      approxim$calendar@slice_ancestry$parent %in% x, "child"])))
+    unique(c(x, c(approxim$calendar@timeslice_ancestry[
+      approxim$calendar@timeslice_ancestry$parent %in% x, "child"])))
   }
   have.all.set <- function(x, name) {
-    return(any(is.na(x)) || (name != "slice" && all(approxim[[name]] %in% x)))
+    return(any(is.na(x)) || (name != "timeslice" && all(approxim[[name]] %in% x)))
   }
   sets <- .variable_set[[stm@variable]]
   if (anyDuplicated(sets)) {
@@ -198,11 +198,11 @@ newCosts <- function(
     approxim2 <- approxim[
       unique(c(colnames(stm@mult)[colnames(stm@mult) %in% names(approxim)],
                "fullsets", "solver", "year"))]
-    if (!is.null(approxim2$slice)) approxim2$slice <- approxim2$calendar@slice_share$slice
-    if (!is.null(approxim2$slice2)) {
-      # approxim2$slice2 <- approxim2$slice@all__slice2 #???
+    if (!is.null(approxim2$timeslice)) approxim2$timeslice <- approxim2$calendar@timeslice_share$timeslice
+    if (!is.null(approxim2$timeslice2)) {
+      # approxim2$timeslice2 <- approxim2$timeslice@all__timeslice2 #???
       browser()
-      approxim2$slice2 <- approxim2$calendar@slice_share$slice #???
+      approxim2$timeslice2 <- approxim2$calendar@timeslice_share$timeslice #???
     }
     if (nrow(stm@subset) != 0) {
       same <- colnames(stm@subset)[colnames(stm@subset) %in% colnames(stm@mult)]
@@ -235,7 +235,7 @@ newCosts <- function(
     fl <- apply(!is.na(stm@subset), 1, all)
     subset <- stm@subset[fl, , drop = FALSE]
     approxim2 <- approxim[colnames(stm@subset)]
-    if (!is.null(approxim2$slice)) approxim2$slice <- approxim2$calendar@slice_share$slice
+    if (!is.null(approxim2$timeslice)) approxim2$timeslice <- approxim2$calendar@timeslice_share$timeslice
     if (any(!fl)) {
       subset_na <- stm@subset[!fl, , drop = FALSE]
       for (i in seq_len(ncol(subset_na))[apply(is.na(subset_na), 2, any)]) {

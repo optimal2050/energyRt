@@ -36,7 +36,7 @@
 # =========================================================================== #
 
 # --------------------------------------------------------------------------- #
-# Shared calendar: ANNUAL split into 4 seasonal slices.
+# Shared calendar: ANNUAL split into 4 seasonal timeslices.
 # --------------------------------------------------------------------------- #
 .tm_calendar <- function() {
   tt <- make_timetable(
@@ -196,7 +196,7 @@ tm_DEM_ELC <- newDemand(
   commodity = "ELC",
   demand = data.frame(
     region = c("R1", "R1", "R2", "R2"),
-    slice  = c("WIN", "SUM", "WIN", "SUM"),
+    timeslice  = c("WIN", "SUM", "WIN", "SUM"),
     demand    = c(10, 8, 6, 5)
   )
 )
@@ -343,7 +343,7 @@ tm_WWIN <- newWeather(
   weather = data.frame(
     region = rep(.tm_regions, each = 4),
     year   = 2020L,
-    slice  = rep(c("WIN", "SPR", "SUM", "AUT"), times = 2),
+    timeslice  = rep(c("WIN", "SPR", "SUM", "AUT"), times = 2),
     wval   = c(0.5, 0.3, 0.2, 0.4, 0.5, 0.3, 0.2, 0.4)
   )
 )

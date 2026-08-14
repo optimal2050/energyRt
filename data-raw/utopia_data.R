@@ -1,9 +1,9 @@
 ## data-raw/utopia_data.R
 ## Deterministic, sourced input data for the UTOPIA vignette (replaces the old
 ## random generators: fLoadCurve / rwind / rclouds / runif). Builds, for BOTH
-## teaching calendars (utopia_m12h24 = default, 288 slices; utopia_seasons = 12):
-##   utopia_weather - representative solar/wind/hydro capacity factors by slice
-##   utopia_demand  - a deterministic electricity load shape by slice
+## teaching calendars (utopia_m12h24 = default, 288 timeslices; utopia_seasons = 12):
+##   utopia_weather - representative solar/wind/hydro capacity factors by timeslice
+##   utopia_demand  - a deterministic electricity load shape by timeslice
 ##   utopia_stock   - deterministic base-year capacity per technology (calendar-agnostic)
 ## Region-agnostic; utopia_profiles() (R/utopia_profiles.R) expands them to a
 ## model's regions and can re-source the weather CFs from IDEEA / merra2ools.
@@ -26,12 +26,12 @@ CALS <- c("utopia_s4h24", "utopia_m12h24", "utopia_seasons")
   grid$WSOL <- pmin(1, bell * sol_s[grid$month])
   grid$WWIN <- pmin(1, (0.25 + 0.10 * (grid$hour < 7 | grid$hour > 20)) * wnd_s[grid$month])
   grid$WHYD <- pmin(1, hyd_s[grid$month])
-  key <- energyRt:::.utopia_slice_key(
+  key <- energyRt:::.utopia_timeslice_key(
     yday = as.integer(format(as.Date(paste0("2019-", grid$month, "-15")), "%j")),
     hour = grid$hour, calendar = calendar)
   out <- lapply(c("WSOL", "WWIN", "WHYD"), function(res) {
-    a <- stats::aggregate(grid[[res]], by = list(slice = key), FUN = mean)
-    data.frame(resource = res, slice = a$slice, wval = a$x, stringsAsFactors = FALSE)
+    a <- stats::aggregate(grid[[res]], by = list(timeslice = key), FUN = mean)
+    data.frame(resource = res, timeslice = a$timeslice, wval = a$x, stringsAsFactors = FALSE)
   })
   do.call(rbind, out)
 }
@@ -61,12 +61,12 @@ message("utopia_weather source: ", attr(utopia_weather, "source"),
   if (calendar == "utopia_s4h24") {
     g <- expand.grid(season = c("WIN", "SPR", "SUM", "AUT"), hour = 0:23,
                      stringsAsFactors = FALSE)
-    data.frame(slice = sprintf("%s_h%02d", g$season, g$hour),
+    data.frame(timeslice = sprintf("%s_h%02d", g$season, g$hour),
                load = .season_factor[g$season] * .diurnal24[g$hour + 1],
                stringsAsFactors = FALSE)
   } else if (calendar == "utopia_m12h24") {
     g <- expand.grid(month = 1:12, hour = 0:23)
-    data.frame(slice = sprintf("m%02d_h%02d", g$month, g$hour),
+    data.frame(timeslice = sprintf("m%02d_h%02d", g$month, g$hour),
                load = .monthly12[g$month] * .diurnal24[g$hour + 1],
                stringsAsFactors = FALSE)
   } else { # utopia_seasons
@@ -74,7 +74,7 @@ message("utopia_weather source: ", attr(utopia_weather, "source"),
                       daypart = c("DAY", "NGT", "PK"), stringsAsFactors = FALSE)
     dp <- c(DAY = 1.0, NGT = 0.6, PK = 1.35)
     se <- c(WIN = 1.2, SPR = 0.9, SUM = 1.1, AUT = 0.9)
-    data.frame(slice = paste(sl$season, sl$daypart, sep = "_"),
+    data.frame(timeslice = paste(sl$season, sl$daypart, sep = "_"),
                load = dp[sl$daypart] * se[sl$season], stringsAsFactors = FALSE)
   }
 }

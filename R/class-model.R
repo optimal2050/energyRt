@@ -224,14 +224,14 @@ newModel <- function(name = "", desc = "", ...) {
 #   config_slots <- config_slots[config_slots %in% names(args)]
 #   mdl@config <- .data2slots(
 #     "config", "", ignore_classes = "repository",
-#     ignore_args = c("slice", names(args)[!(names(args) %in% config_slots)]),
+#     ignore_args = c("timeslice", names(args)[!(names(args) %in% config_slots)]),
 #     ...)
 #   # ignore_args = c(names(args)[!(names(args) %in% config_slots)], mlst_vec), ...)
 #
-#   if (any(names(args) == "slice")) {
-#     mdl@config <- setTimeSlices(mdl@config, slice = args$slice)
+#   if (any(names(args) == "timeslice")) {
+#     mdl@config <- setTimeSlices(mdl@config, timeslice = args$timeslice)
 #   } else {
-#     mdl@config <- setTimeSlices(mdl@config, slice = "ANNUAL")
+#     mdl@config <- setTimeSlices(mdl@config, timeslice = "ANNUAL")
 #   }
 #
 #   #    args <- list(...)

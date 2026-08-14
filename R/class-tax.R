@@ -25,7 +25,7 @@ setClass("tax",
     tax = "data.frame", #
     misc = "list"
   ),
-  # !!! add slot "tax" = data.frame(comm, year, slice, tax)
+  # !!! add slot "tax" = data.frame(comm, year, timeslice, tax)
   # !!! add slot @variable = factor("output", "balance")
   prototype(
     name = "", # Short name
@@ -36,7 +36,7 @@ setClass("tax",
     tax = data.frame(
       region = character(),
       year = integer(),
-      slice = character(),
+      timeslice = character(),
       inp = numeric(),
       out = numeric(),
       bal = numeric(),

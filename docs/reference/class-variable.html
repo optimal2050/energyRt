@@ -35,7 +35,7 @@ getData()."><meta property="og:image" content="https://energyRt.org/logo.png"><!
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.75.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.80.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -111,7 +111,7 @@ the emitted column names and the positive/free declaration are parsed out of
 <dt><code>dimSets</code></dt>
 <dd><p>character, the variable's dimensions <strong>as the model declares
 them</strong>, duplicates preserved (<code>vTradeIr</code> is
-<code>trade, comm, region, region, year, slice</code>). Byte-identical to
+<code>trade, comm, region, region, year, timeslice</code>). Byte-identical to
 <code>.variable_set</code>, which <code><a href="newCosts.html">newCosts()</a></code> and <code><a href="newConstraint.html">newConstraint()</a></code> consume
 positionally against the GAMS declaration.</p></dd>
 
@@ -131,7 +131,7 @@ writers disambiguate it – <code>src</code>/<code>dst</code> for <code>vTradeIr
 <dt><code>role</code></dt>
 <dd><p>character, what the variable is: <code>source</code>, <code>sink</code>, <code>flow</code>,
 <code>activity</code>, <code>balance</code>, <code>stock</code>, <code>capacity</code> or <code>cost</code>. A <code>stock</code> is a level
-at a point in time and is never summed over slices.</p></dd>
+at a point in time and is never summed over timeslices.</p></dd>
 
 
 <dt><code>unit</code></dt>

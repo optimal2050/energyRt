@@ -44,7 +44,7 @@ setClass("import",
     import = data.frame(
       region = character(),
       year = integer(),
-      slice = character(),
+      timeslice = character(),
       imp.lo = numeric(),
       imp.up = numeric(),
       imp.fx = numeric(),

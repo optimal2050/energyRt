@@ -1,21 +1,21 @@
 # =========================================================================== #
 # map_region.R  —  region-hierarchy mapping builders
 #
-# The spatial twin of the slice maps in map_calendar.R. Both are built in the
+# The spatial twin of the timeslice maps in map_calendar.R. Both are built in the
 # `calendar` recipe tier (see `mapping_spec.yml`), which runs before `filter`,
 # so `mvBalance` can be restricted with `mCommRegion` once it exists.
 #
 #   mRegionFamily(region, regionp)  immediate parent -> child, one level only.
-#                                   Mirrors mSliceFamily. Drives the
+#                                   Mirrors mTimesliceFamily. Drives the
 #                                   up-aggregation term in eqOutTot/eqInpTot.
 #   mCommRegion(comm, region)       the regions each commodity is BALANCED at,
 #                                   i.e. the members of its `@geolevel`.
-#                                   Mirrors mCommSlice.
+#                                   Mirrors mCommTimeslice.
 #
 # Both are empty without a geoscale, which is what keeps a flat model bit-for-bit
 # unchanged. `.set_cal()` skips empty frames, so nothing is emitted at all.
 #
-# Unlike the slice side there is no `pRegionAgg`: slice values are intensive
+# Unlike the timeslice side there is no `pRegionAgg`: timeslice values are intensive
 # rates and need renormalising by duration, whereas regional quantities are
 # extensive and simply add up.
 # =========================================================================== #
@@ -175,7 +175,7 @@ NULL
 }
 
 # Pin a domain to each commodity's own region level. The spatial twin of
-# `.restrict_comm_slice()`; applied to mvBalance ONLY, never to the totals.
+# `.restrict_comm_timeslice()`; applied to mvBalance ONLY, never to the totals.
 #' @noRd
 .restrict_comm_region <- function(df, comm_region) {
   if (is.null(df) || nrow(df) == 0 || is.null(comm_region)) return(df)
@@ -186,7 +186,7 @@ NULL
 
 # Immediate parent->child region pairs (one level), from the geoscale's own
 # adjacent-level family table. Transitive ancestry is deliberately NOT used:
-# accumulation walks the levels one step at a time, exactly as mSliceFamily does.
+# accumulation walks the levels one step at a time, exactly as mTimesliceFamily does.
 map_mRegionFamily <- function(scen, fmp) {
   h <- .scen_geo_hierarchy(scen)
   if (is.null(h)) return(scen)

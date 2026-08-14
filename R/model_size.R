@@ -186,7 +186,7 @@ print.model_size <- function(x, ...) {
 #' compare_interp_settings(mod,
 #'   settings = list(
 #'     none    = list(fold = FALSE, sparse = FALSE, prune = FALSE),
-#'     all     = list(fold = c("region","slice","year","comm","tech","stg","trade"),
+#'     all     = list(fold = c("region","timeslice","year","comm","tech","stg","trade"),
 #'                    sparse = TRUE, prune = TRUE)),
 #'   horizon = newHorizon(period = 2024))
 #' }
@@ -202,7 +202,7 @@ compare_interp_settings <- function(mod, settings = NULL, ...,
       sparse_prune      = list(fold = FALSE, sparse = TRUE,  prune = TRUE),
       fold_sparse_prune = list(fold = TRUE,  sparse = TRUE,  prune = TRUE),
       foldall_sparse_prune = list(
-        fold = c("region", "slice", "year", "comm", "tech", "stg", "trade"),
+        fold = c("region", "timeslice", "year", "comm", "tech", "stg", "trade"),
         sparse = TRUE, prune = TRUE)
     )
   }
@@ -220,7 +220,7 @@ compare_interp_settings <- function(mod, settings = NULL, ...,
     if (isTRUE(verbose)) message("interp [", nm, "] ...")
     t0  <- Sys.time()
     scen <- tryCatch(
-      do.call(interp_mod, c(
+      do.call(interpolate_model, c(
         list(mod, name = paste0(name, "_", nm), ondisk = FALSE,
              overwrite = TRUE, verbose = verbose),
         arg, dots

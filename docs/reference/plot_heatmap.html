@@ -21,7 +21,7 @@ renewable profiles, prices, and other sub-annual series."><meta property="og:ima
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.75.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.80.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -91,15 +91,15 @@ renewable profiles, prices, and other sub-annual series.</p>
 
 
 <dl><dt id="arg-object">object<a class="anchor" aria-label="anchor" href="#arg-object"></a></dt>
-<dd><p>A <code>data.frame</code> with a <code>slice</code> column and a numeric value column, a
-named numeric vector (names are slices), or a <code>calendar</code> object (then the
-slice <code>share</code> — or <code>value</code> column — is shown).</p></dd>
+<dd><p>A <code>data.frame</code> with a <code>timeslice</code> column and a numeric value column, a
+named numeric vector (names are timeslices), or a <code>calendar</code> object (then the
+timeslice <code>share</code> — or <code>value</code> column — is shown).</p></dd>
 
 
 <dt id="arg-calendar">calendar<a class="anchor" aria-label="anchor" href="#arg-calendar"></a></dt>
 <dd><p>A <code>calendar</code> object giving the layout (matched to <code>x</code> by
-slice), or a format string (e.g. <code>"d365_h24"</code>). If <code>NULL</code>, the format is
-guessed from the slice names with <code><a href="tsl_guess_format.html">tsl_guess_format()</a></code>.</p></dd>
+timeslice), or a format string (e.g. <code>"d365_h24"</code>). If <code>NULL</code>, the format is
+guessed from the timeslice names with <code><a href="tsl_guess_format.html">tsl_guess_format()</a></code>.</p></dd>
 
 
 <dt id="arg-value">value<a class="anchor" aria-label="anchor" href="#arg-value"></a></dt>
@@ -130,7 +130,7 @@ day-of-year format splits the year into monthly panels (x = day-of-month).</p></
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
 <span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"calendars"</span>, package <span class="op">=</span> <span class="st">"energyRt"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">cal</span> <span class="op">&lt;-</span> <span class="va">calendars</span><span class="op">$</span><span class="va">d365_h24</span></span></span>
-<span class="r-in"><span><span class="va">prof</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>slice <span class="op">=</span> <span class="va">cal</span><span class="op">@</span><span class="va">timetable</span><span class="op">$</span><span class="va">slice</span>,</span></span>
+<span class="r-in"><span><span class="va">prof</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>timeslice <span class="op">=</span> <span class="va">cal</span><span class="op">@</span><span class="va">timetable</span><span class="op">$</span><span class="va">timeslice</span>,</span></span>
 <span class="r-in"><span>                   load  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/stats/Uniform.html" class="external-link">runif</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/nrow.html" class="external-link">nrow</a></span><span class="op">(</span><span class="va">cal</span><span class="op">@</span><span class="va">timetable</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">plot_heatmap</span><span class="op">(</span><span class="va">prof</span>, calendar <span class="op">=</span> <span class="va">cal</span>, value <span class="op">=</span> <span class="st">"load"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">plot_heatmap</span><span class="op">(</span><span class="va">prof</span>, calendar <span class="op">=</span> <span class="va">cal</span>, value <span class="op">=</span> <span class="st">"load"</span>, facet <span class="op">=</span> <span class="st">"month"</span><span class="op">)</span></span></span>

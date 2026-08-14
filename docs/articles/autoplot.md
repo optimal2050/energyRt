@@ -38,8 +38,8 @@ names(calendars)
 
 [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
 (or the equivalent [`plot()`](https://energyRt.org/reference/draw.md))
-draws each timeframe as a row of rectangles sized by each slice’s share
-of the year:
+draws each timeframe as a row of rectangles sized by each timeslice’s
+share of the year:
 
 ``` r
 
@@ -52,9 +52,9 @@ autoplot(calendars$season_dn)
 
 For `fill = "order"` (the default) the `color_pattern` controls the
 gradient. `"within"` (default) colours each level over **its own**
-slices — so an hourly row shows a full `h00`→`h23` cycle repeating every
-day, while `"global"` colours by absolute chronology across the whole
-year.
+timeslices — so an hourly row shows a full `h00`→`h23` cycle repeating
+every day, while `"global"` colours by absolute chronology across the
+whole year.
 
 ``` r
 
@@ -70,7 +70,7 @@ autoplot(calendars$d365_h24, color_pattern = "global")
 
 ![](autoplot_files/figure-html/cal-color-2.png)
 
-Other fill metrics are the slice `"share"` and `"weight"`:
+Other fill metrics are the timeslice `"share"` and `"weight"`:
 
 ``` r
 
@@ -82,7 +82,7 @@ autoplot(calendars$season_dn, fill = "share")
 ### Labels
 
 Each cell can be labelled by its individual level name (`"name"`, the
-default, e.g. `h00`…`h23`) or by the full slice path (`"slice"`,
+default, e.g. `h00`…`h23`) or by the full timeslice path (`"timeslice"`,
 e.g. `d001_h00`). Label text auto-contrasts with the fill; override it
 with `label_color`.
 
@@ -98,10 +98,10 @@ autoplot(calendars$d365_h24,
 
 ### Zooming with `show_leafs`
 
-`show_leafs` selects which slices to draw. Pass a named list to filter
-per timeframe level (character = slice names, numeric = positions among
-that level’s slices), or an unnamed vector to filter the finest level
-directly.
+`show_leafs` selects which timeslices to draw. Pass a named list to
+filter per timeframe level (character = timeslice names, numeric =
+positions among that level’s timeslices), or an unnamed vector to filter
+the finest level directly.
 
 ``` r
 
@@ -114,7 +114,7 @@ autoplot(calendars$d365_h24, show_leafs = list(YDAY = "d100", HOUR = 5:10))
 ``` r
 
 
-# the first 48 leaf slices (first two days)
+# the first 48 leaf timeslices (first two days)
 autoplot(calendars$d365_h24, show_leafs = 1:48)
 ```
 
@@ -123,7 +123,7 @@ autoplot(calendars$d365_h24, show_leafs = 1:48)
 ### Subset view
 
 A reduced calendar can be shown against a full reference calendar: pass
-the full one as `reference`. The slices present in the subset are
+the full one as `reference`. The timeslices present in the subset are
 filled; the rest are left empty.
 
 ``` r
@@ -152,13 +152,13 @@ autoplot(calendars$season_dn, palette = "magma", border = "grey40") +
 ## Heatmaps
 
 [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
-lays every slice out in one row per timeframe. When a value is indexed
-by a *two-dimensional* calendar — day-of-year × hour, month × hour — a
-**heatmap** reads more naturally:
+lays every timeslice out in one row per timeframe. When a value is
+indexed by a *two-dimensional* calendar — day-of-year × hour, month ×
+hour — a **heatmap** reads more naturally:
 [`plot_heatmap()`](https://energyRt.org/reference/plot_heatmap.md) puts
 the finest timeframe on `y`, the next on `x`, and any coarser levels
 into facets. The layout is taken from the calendar (pass it as
-`calendar =`), or guessed from the slice names with
+`calendar =`), or guessed from the timeslice names with
 [`tsl_guess_format()`](https://energyRt.org/reference/tsl_guess_format.md).
 
 Here is a synthetic hourly load profile on the `d365_h24` calendar (a
@@ -170,9 +170,9 @@ winter/summer contrast are immediately visible:
 cal  <- calendars$d365_h24
 tt   <- cal@timetable
 prof <- data.frame(
-  slice = tt$slice,
-  load  = 50 + 30 * sin(2 * pi * (tsl2hour(tt$slice) - 6) / 24) +
-                15 * cos(2 * pi *  tsl2yday(tt$slice)      / 365))
+  timeslice = tt$timeslice,
+  load  = 50 + 30 * sin(2 * pi * (tsl2hour(tt$timeslice) - 6) / 24) +
+                15 * cos(2 * pi *  tsl2yday(tt$timeslice)      / 365))
 
 plot_heatmap(prof, calendar = cal, value = "load")   # x = YDAY, y = HOUR
 ```
@@ -195,13 +195,15 @@ exactly as for
 
 ### From model objects
 
-Any slice-indexed model data lays out the same way. Here **electricity
-demand** and a **solar capacity factor** from the packaged UTOPIA kit,
-on its season × hour calendar (`utopia_s4h24`): pull the object with
+Any timeslice-indexed model data lays out the same way. Here
+**electricity demand** and a **solar capacity factor** from the packaged
+UTOPIA kit, on its season × hour calendar (`utopia_s4h24`): pull the
+object with
 [`getObject()`](https://energyRt.org/reference/getObject.md), take one
-region (and, for demand, one year), and pass the `slice` + value columns
-to [`plot_heatmap()`](https://energyRt.org/reference/plot_heatmap.md).
-The `name` argument carries the value’s unit onto the colour bar.
+region (and, for demand, one year), and pass the `timeslice` + value
+columns to
+[`plot_heatmap()`](https://energyRt.org/reference/plot_heatmap.md). The
+`name` argument carries the value’s unit onto the colour bar.
 
 ``` r
 
@@ -210,7 +212,7 @@ wcal <- calendars$utopia_s4h24
 
 DEM <- getObject(repo, name = "DEM_ELC", drop = TRUE)
 dem <- subset(as.data.frame(DEM@demand), region == "R1" & year == 2050)
-plot_heatmap(dem[, c("slice", "demand")], calendar = wcal, value = "demand",
+plot_heatmap(dem[, c("timeslice", "demand")], calendar = wcal, value = "demand",
              name = "PJ")
 ```
 
@@ -220,7 +222,7 @@ plot_heatmap(dem[, c("slice", "demand")], calendar = wcal, value = "demand",
 
 WSOL <- getObject(repo, name = "WSOL", drop = TRUE)
 wsol <- subset(as.data.frame(WSOL@weather), region == "R1")
-plot_heatmap(wsol[, c("slice", "wval")], calendar = wcal, value = "wval",
+plot_heatmap(wsol[, c("timeslice", "wval")], calendar = wcal, value = "wval",
              name = "capacity factor")
 ```
 
@@ -282,7 +284,7 @@ keep separate y-scales.
 SUP_COA <- newSupply(
   name = "SUP_COA", commodity = "COA", unit = "PJ", region = "R1",
   supply = data.frame(
-    region = "R1", slice = "ANNUAL",
+    region = "R1", timeslice = "ANNUAL",
     year   = c(2020, 2040, 2020, 2020),
     ava.up = c(100,  200,  NA,   NA),
     ava.lo = c(NA,   NA,   10,   NA),
@@ -290,14 +292,28 @@ SUP_COA <- newSupply(
 autoplot(SUP_COA)
 ```
 
+![](autoplot_files/figure-html/sup-1.png)
+
 A single given value (or none) is drawn as a flat dashed line showing
-the interpolation direction. Pass `years` to interpolate over a specific
-horizon:
+the interpolation direction. Pass `year` to interpolate over a specific
+horizon (constant extrapolation beyond the given years),
+`interpolate = FALSE` to show only the given data, and
+`show_defaults = TRUE` to also draw the model’s default values for
+parameters the object leaves unset:
 
 ``` r
 
-autoplot(SUP_COA, years = 2020:2050)
+autoplot(SUP_COA, year = 2020:2050)
 ```
+
+![](autoplot_files/figure-html/sup-years-1.png)
+
+``` r
+
+autoplot(SUP_COA, show_defaults = TRUE)
+```
+
+![](autoplot_files/figure-html/sup-years-2.png)
 
 Demand, import and export follow the same pattern:
 
@@ -305,7 +321,7 @@ Demand, import and export follow the same pattern:
 
 DEM_ELC <- newDemand(
   name = "DEM_ELC", commodity = "ELC", unit = "GWh",
-  demand = data.frame(region = "R1", slice = "ANNUAL",
+  demand = data.frame(region = "R1", timeslice = "ANNUAL",
                    year = c(2020, 2030, 2050), demand = c(100, 150, 300)))
 autoplot(DEM_ELC)
 ```
@@ -316,22 +332,24 @@ autoplot(DEM_ELC)
 
 IMP_GAS <- newImport(
   name = "IMP_GAS", commodity = "GAS",
-  import = data.frame(region = "R1", slice = "ANNUAL",
+  import = data.frame(region = "R1", timeslice = "ANNUAL",
                    year = c(2020, 2050), imp.up = c(50, 80), price = c(5, 9)))
 autoplot(IMP_GAS)
 ```
 
+![](autoplot_files/figure-html/imp-1.png)
+
 ## Weather
 
 `weather` objects hold a sub-annual factor — a capacity / availability
-factor — per region and slice.
+factor — per region and timeslice.
 [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
 offers three views via `type =`: a calendar **heatmap** (the default),
-and diurnal **line** / **area** charts. Because the slice layout (here
-season × hour) can’t be inferred from the slice names alone, pass the
-model’s `calendar`; the value’s unit (`@unit`, or `"capacity factor"`
-when unset) labels the value axis — the fill legend for the heatmap, the
-y-axis for line/area.
+and diurnal **line** / **area** charts. Because the timeslice layout
+(here season × hour) can’t be inferred from the timeslice names alone,
+pass the model’s `calendar`; the value’s unit (`@unit`, or
+`"capacity factor"` when unset) labels the value axis — the fill legend
+for the heatmap, the y-axis for line/area.
 
 ``` r
 

@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.75.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.80.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -87,7 +87,7 @@
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>UTOPIA I: building the model</h1>
             
-            <h4 data-toc-skip class="date">2026-08-07</h4>
+            <h4 data-toc-skip class="date">2026-08-13</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/optimal2050/energyRt/blob/HEAD/vignettes/utopia-build.Rmd" class="external-link"><code>vignettes/utopia-build.Rmd</code></a></small>
       <div class="d-none name"><code>utopia-build.Rmd</code></div>
@@ -136,7 +136,7 @@ merge names) on another.</p>
 <ul>
 <li><p><strong>Set elements are UPPER-CASE.</strong> Every name that
 appears as a set element – regions, commodities, technologies, groups,
-slices you define – is written in capitals (<code>R1</code>,
+timeslices you define – is written in capitals (<code>R1</code>,
 <code>COA</code>, <code>ECOA</code>, <code>FUEL</code>). This is the
 rule that guarantees identical behaviour across backends.</p></li>
 <li>
@@ -222,7 +222,7 @@ layout below.</p>
 <h2 id="time-resolution-and-inputs">Time resolution and inputs<a class="anchor" aria-label="anchor" href="#time-resolution-and-inputs"></a>
 </h2>
 <p>We pick a ready calendar – <code>utopia_s4h24</code>, four seasons x
-24 hours (96 slices); calendar construction is covered in the <a href="https://energyrt.org/articles/time-resolution.html" class="external-link">time-resolution
+24 hours (96 timeslices); calendar construction is covered in the <a href="https://energyrt.org/articles/time-resolution.html" class="external-link">time-resolution
 article</a>.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cal</span>  <span class="op">&lt;-</span> <span class="va">calendars</span><span class="op">$</span><span class="va">utopia_s4h24</span></span>
@@ -383,10 +383,10 @@ not the objective):</p>
 <span><span class="co">#   desc = "Electricity export to the rest of the world",</span></span>
 <span><span class="co">#   commodity = "ELC",</span></span>
 <span><span class="co">#   unit = "PJ",</span></span>
-<span><span class="co">#   export = merge(                            # ~10 PJ/yr per region, paced by slice</span></span>
+<span><span class="co">#   export = merge(                            # ~10 PJ/yr per region, paced by timeslice</span></span>
 <span><span class="co">#     data.frame(region = regions, price = 5.0),</span></span>
-<span><span class="co">#     data.frame(slice  = as.data.frame(cal@slice_share)$slice,</span></span>
-<span><span class="co">#                exp.up = 10 * as.data.frame(cal@slice_share)$share)</span></span>
+<span><span class="co">#     data.frame(timeslice  = as.data.frame(cal@timeslice_share)$timeslice,</span></span>
+<span><span class="co">#                exp.up = 10 * as.data.frame(cal@timeslice_share)$share)</span></span>
 <span><span class="co">#   ),</span></span>
 <span><span class="co">#   reserve = 300                           # plus a cumulative cap, PJ</span></span>
 <span><span class="co"># )</span></span></code></pre></div>
@@ -394,9 +394,9 @@ not the objective):</p>
 cost, so the model never builds capacity just to export – it only sells
 genuine surplus. Two caps work together: <code>exp.up</code>
 <strong>paces</strong> exports (the annual 10 PJ is spread over the
-slices via their year-shares – a bare <code>exp.up = 10</code> would be
-read as 10 <em>per slice</em>), and <code>reserve</code> bounds the
-horizon total. Without the pacing, the model front-loads the whole
+timeslices via their year-shares – a bare <code>exp.up = 10</code> would
+be read as 10 <em>per timeslice</em>), and <code>reserve</code> bounds
+the horizon total. Without the pacing, the model front-loads the whole
 reserve into the base year, where the sunk fleet makes surplus
 cheapest.</p>
 </div>
@@ -404,15 +404,16 @@ cheapest.</p>
 <h2 id="weather">Weather<a class="anchor" aria-label="anchor" href="#weather"></a>
 </h2>
 <p><code>newWeather</code> objects hold a capacity factor per region and
-slice for solar, wind and hydro – the physical limits on the renewable
-technologies below. Solar in full, the siblings via a helper:</p>
+timeslice for solar, wind and hydro – the physical limits on the
+renewable technologies below. Solar in full, the siblings via a
+helper:</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">WSOL</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newWeather.html">newWeather</a></span><span class="op">(</span></span>
 <span>  name <span class="op">=</span> <span class="st">"WSOL"</span>,</span>
 <span>  desc <span class="op">=</span> <span class="st">"Solar capacity factor"</span>,</span>
 <span>  timeframe <span class="op">=</span> <span class="st">"HOUR"</span>,</span>
 <span>  weather <span class="op">=</span> <span class="va">prof</span><span class="op">$</span><span class="va">weather</span><span class="op">[</span><span class="va">prof</span><span class="op">$</span><span class="va">weather</span><span class="op">$</span><span class="va">resource</span> <span class="op">==</span> <span class="st">"WSOL"</span>,</span>
-<span>                         <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"region"</span>, <span class="st">"slice"</span>, <span class="st">"wval"</span><span class="op">)</span><span class="op">]</span></span>
+<span>                         <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"region"</span>, <span class="st">"timeslice"</span>, <span class="st">"wval"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># or write a function to speedup the process</span></span>
@@ -423,7 +424,7 @@ technologies below. Solar in full, the siblings via a helper:</p>
 <span>    weather <span class="op">=</span> </span>
 <span>      <span class="va">prof</span><span class="op">$</span><span class="va">weather</span> <span class="op">|&gt;</span></span>
 <span>        <span class="fu"><a href="https://dplyr.tidyverse.org/reference/filter.html" class="external-link">filter</a></span><span class="op">(</span><span class="va">resource</span> <span class="op">==</span> <span class="va">res</span><span class="op">)</span> <span class="op">|&gt;</span> </span>
-<span>        <span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">region</span>, <span class="va">slice</span>, <span class="va">wval</span><span class="op">)</span></span>
+<span>        <span class="fu"><a href="https://dplyr.tidyverse.org/reference/select.html" class="external-link">select</a></span><span class="op">(</span><span class="va">region</span>, <span class="va">timeslice</span>, <span class="va">wval</span><span class="op">)</span></span>
 <span>  <span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span>    </span>
@@ -432,7 +433,7 @@ technologies below. Solar in full, the siblings via a helper:</p>
 <p><code><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot()</a></code> shows the profile structure at a glance – the
 solar day/season shape. Custom season names (<code>WIN</code>,
 <code>SPR</code>, …) are defined by the calendar, so pass it to resolve
-the slice layout. Note the <strong>regional endowments</strong>
+the timeslice layout. Note the <strong>regional endowments</strong>
 (<code><a href="../reference/utopia_profiles.html">utopia_profiles()</a></code> scales the profiles deterministically):
 <code>R1</code> is the sunniest region, <code>R2</code> the windiest –
 one more reason for the regions to trade:</p>
@@ -453,19 +454,20 @@ the maximum. Weather is data, not an assumption.)</p>
 <h2 id="demand">Demand<a class="anchor" aria-label="anchor" href="#demand"></a>
 </h2>
 <p>Electricity demand follows the deterministic load shape, weighted by
-each slice’s share of the year and grown over the milestone years.</p>
+each timeslice’s share of the year and grown over the milestone
+years.</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">years</span>  <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2020</span>, <span class="fl">2030</span>, <span class="fl">2040</span>, <span class="fl">2050</span><span class="op">)</span></span>
 <span><span class="va">growth</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">1.2</span>, <span class="fl">1.4</span>, <span class="fl">1.6</span><span class="op">)</span></span>
 <span><span class="va">annual_demand</span> <span class="op">&lt;-</span> <span class="fl">100</span>                                   <span class="co"># base-year PJ per region</span></span>
 <span></span>
-<span><span class="va">share</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">cal</span><span class="op">@</span><span class="va">slice_share</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"slice"</span>, <span class="st">"share"</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="va">d0</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/merge.html" class="external-link">merge</a></span><span class="op">(</span><span class="va">prof</span><span class="op">$</span><span class="va">demand</span>, <span class="va">share</span>, by <span class="op">=</span> <span class="st">"slice"</span><span class="op">)</span></span>
+<span><span class="va">share</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">cal</span><span class="op">@</span><span class="va">timeslice_share</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"timeslice"</span>, <span class="st">"share"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="va">d0</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/merge.html" class="external-link">merge</a></span><span class="op">(</span><span class="va">prof</span><span class="op">$</span><span class="va">demand</span>, <span class="va">share</span>, by <span class="op">=</span> <span class="st">"timeslice"</span><span class="op">)</span></span>
 <span><span class="va">d0</span><span class="op">$</span><span class="va">w</span> <span class="op">&lt;-</span> <span class="va">d0</span><span class="op">$</span><span class="va">load</span> <span class="op">*</span> <span class="va">d0</span><span class="op">$</span><span class="va">share</span></span>
 <span><span class="va">dem_rows</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/seq.html" class="external-link">seq_along</a></span><span class="op">(</span><span class="va">years</span><span class="op">)</span>, <span class="kw">function</span><span class="op">(</span><span class="va">i</span><span class="op">)</span> <span class="op">{</span></span>
 <span>  <span class="fu"><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call</a></span><span class="op">(</span><span class="va">rbind</span>, <span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">regions</span>, <span class="kw">function</span><span class="op">(</span><span class="va">r</span><span class="op">)</span> <span class="op">{</span></span>
 <span>    <span class="va">dr</span> <span class="op">&lt;-</span> <span class="va">d0</span><span class="op">[</span><span class="va">d0</span><span class="op">$</span><span class="va">region</span> <span class="op">==</span> <span class="va">r</span>, <span class="op">]</span></span>
-<span>    <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>region <span class="op">=</span> <span class="va">r</span>, year <span class="op">=</span> <span class="va">years</span><span class="op">[</span><span class="va">i</span><span class="op">]</span>, slice <span class="op">=</span> <span class="va">dr</span><span class="op">$</span><span class="va">slice</span>,</span>
+<span>    <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>region <span class="op">=</span> <span class="va">r</span>, year <span class="op">=</span> <span class="va">years</span><span class="op">[</span><span class="va">i</span><span class="op">]</span>, timeslice <span class="op">=</span> <span class="va">dr</span><span class="op">$</span><span class="va">timeslice</span>,</span>
 <span>               demand <span class="op">=</span> <span class="va">annual_demand</span> <span class="op">*</span> <span class="va">growth</span><span class="op">[</span><span class="va">i</span><span class="op">]</span> <span class="op">*</span> <span class="va">dr</span><span class="op">$</span><span class="va">w</span> <span class="op">/</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">dr</span><span class="op">$</span><span class="va">w</span><span class="op">)</span><span class="op">)</span></span>
 <span>  <span class="op">}</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="op">}</span><span class="op">)</span><span class="op">)</span></span>
@@ -484,8 +486,8 @@ and the evening peak:</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">DEM_ELC</span>, years <span class="op">=</span> <span class="fl">2020</span><span class="op">:</span><span class="fl">2050</span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">DEM_ELC</span>, style <span class="op">=</span> <span class="st">"line"</span>, years <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2020</span>, <span class="fl">2050</span><span class="op">)</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">DEM_ELC</span>, style <span class="op">=</span> <span class="st">"heatmap"</span>, years <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2020</span>, <span class="fl">2050</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="co"># autoplot(DEM_ELC, style = "line", years = c(2020, 2050))</span></span>
+<span><span class="co"># autoplot(DEM_ELC, style = "heatmap", years = c(2020, 2050))</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="technologies">Technologies<a class="anchor" aria-label="anchor" href="#technologies"></a>
@@ -533,7 +535,7 @@ model.</li>
 <span>    cinp2use <span class="op">=</span> <span class="fl">0.40</span>                       <span class="co"># 40% efficiency</span></span>
 <span>  <span class="op">)</span>,</span>
 <span>  afs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
-<span>    slice <span class="op">=</span> <span class="st">"ANNUAL"</span>,</span>
+<span>    timeslice <span class="op">=</span> <span class="st">"ANNUAL"</span>,</span>
 <span>    afs.up <span class="op">=</span> <span class="fl">0.8</span>,</span>
 <span>    afs.lo <span class="op">=</span> <span class="fl">0.4</span></span>
 <span>  <span class="op">)</span>,</span>
@@ -579,7 +581,7 @@ last time; further siblings will use <code><a href="https://energyRt.org/referen
 <span>    cinp2use <span class="op">=</span> <span class="fl">0.58</span></span>
 <span>  <span class="op">)</span>,</span>
 <span>  afs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
-<span>    slice <span class="op">=</span> <span class="st">"ANNUAL"</span>,</span>
+<span>    timeslice <span class="op">=</span> <span class="st">"ANNUAL"</span>,</span>
 <span>    afs.up <span class="op">=</span> <span class="fl">0.9</span>,</span>
 <span>    afs.lo <span class="op">=</span> <span class="fl">0.4</span></span>
 <span>  <span class="op">)</span>,</span>
@@ -627,7 +629,7 @@ opens only in 2025 (licensing and construction lead times):</p>
 <span>    af.lo <span class="op">=</span> <span class="fl">0.8</span>                           <span class="co"># must-run baseload</span></span>
 <span>  <span class="op">)</span>,</span>
 <span>   afs <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
-<span>    slice <span class="op">=</span> <span class="st">"ANNUAL"</span>,</span>
+<span>    timeslice <span class="op">=</span> <span class="st">"ANNUAL"</span>,</span>
 <span>    afs.up <span class="op">=</span> <span class="fl">0.95</span>,</span>
 <span>    afs.lo <span class="op">=</span> <span class="fl">0.8</span></span>
 <span>  <span class="op">)</span>, </span>
@@ -758,7 +760,7 @@ generator – more expensive to fuel than coal, but emitting nothing:</p>
 <span>  ceff <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>    comm <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"COA"</span>, <span class="st">"BIO"</span><span class="op">)</span>,</span>
 <span>    cinp2ginp <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">.4</span>, <span class="fl">0.35</span><span class="op">)</span>,     <span class="co"># 40% and 35% efficiency</span></span>
-<span>    share.lo <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.2</span>, <span class="fl">0.2</span><span class="op">)</span></span>
+<span>    share.lo <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">0.2</span><span class="op">)</span></span>
 <span>  <span class="op">)</span>,</span>
 <span>  cap2act <span class="op">=</span> <span class="fl">31.536</span>,</span>
 <span>  invcost <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
@@ -808,7 +810,7 @@ input-output balance.</p>
 <h2 id="storage">Storage<a class="anchor" aria-label="anchor" href="#storage"></a>
 </h2>
 <p>A 4-hour battery (<code>STG_*</code>) shifts electricity between
-slices:</p>
+timeslices:</p>
 <div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">STG_ELC</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/storage.html">newStorage</a></span><span class="op">(</span></span>
 <span>  name <span class="op">=</span> <span class="st">"STG_ELC"</span>,</span>
@@ -988,7 +990,8 @@ bind it to a region set, a calendar and a horizon to get a solvable
 <span>  <span class="va">STG_ELC</span>,                                              <span class="co"># storage</span></span>
 <span>  <span class="va">TBD_ELC_R1_R2</span>, <span class="va">TBD_ELC_R2_R3</span>,                         <span class="co"># interregional trade</span></span>
 <span>  <span class="va">DEM_ELC</span><span class="op">)</span>                                              <span class="co"># demand</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">repo</span><span class="op">)</span>; <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">repo</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/base/length.html" class="external-link">length</a></span><span class="op">(</span><span class="va">repo</span><span class="op">)</span>; <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">repo</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/summary.html">summary</a></span><span class="op">(</span><span class="va">repo</span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb27"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">hor</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newHorizon.html">newHorizon</a></span><span class="op">(</span>period <span class="op">=</span> <span class="fl">2020</span><span class="op">:</span><span class="fl">2050</span>, intervals <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">10</span>, <span class="fl">10</span>, <span class="fl">10</span><span class="op">)</span>,</span>
 <span>                  mid_is_end <span class="op">=</span> <span class="cn">TRUE</span>, name <span class="op">=</span> <span class="st">"base"</span><span class="op">)</span></span>

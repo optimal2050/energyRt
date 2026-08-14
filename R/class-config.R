@@ -41,7 +41,7 @@ setClass("config",
     # sourced at build time. `setValidity("config")` below enforces the type.
     geoscale = "ANY",
     horizon = "horizon", # change to class
-    # slice = "slice", #
+    # timeslice = "timeslice", #
     # yearFraction = "data.frame",
     discount = "data.frame",
     discountFirstYear = "logical",
@@ -59,7 +59,7 @@ setClass("config",
       comm = character(),
       region = character(),
       year = integer(),
-      slice = character(),
+      timeslice = character(),
       dummyImport = numeric(),
       dummyExport = numeric(),
       stringsAsFactors = FALSE
@@ -80,7 +80,7 @@ setClass("config",
     horizon = new("horizon"),
     calendar = newCalendar(),
     geoscale = NULL,
-    # slice = new("slice"),
+    # timeslice = new("timeslice"),
     discountFirstYear = FALSE,
     optimizeRetirement = FALSE,
     # Prefixes inserted into the names of expanded technology variants, e.g.
@@ -153,7 +153,7 @@ setMethod("initialize", "config", function(.Object, ...) {
 
 # @export
 # setMethod("setTimeSlices", signature(obj = "config"), function(obj, ...) {
-#   obj@slice <- .setTimeSlices(...)
+#   obj@timeslice <- .setTimeSlices(...)
 #   obj
 # })
 

@@ -75,19 +75,19 @@ getData(scen, "vObjective", merge = TRUE)$value      # total system cost, MEUR
 #> [1] 13007.08
 
 gen <- getData(scen, "vTechOut", comm = "ELC", merge = TRUE)
-head(gen[, c("scenario", "tech", "region", "year", "slice", "value")], 4)
+head(gen[, c("scenario", "tech", "region", "year", "timeslice", "value")], 4)
 #> # A tibble: 4 × 6
-#>   scenario tech  region  year slice  value
-#>   <chr>    <chr> <chr>  <int> <chr>  <dbl>
-#> 1 BASE     ECOA  R1      2020 ANNUAL 21.7 
-#> 2 BASE     ECOA  R1      2030 ANNUAL 34.7 
-#> 3 BASE     ECOA  R1      2040 ANNUAL 25.5 
-#> 4 BASE     EGAS  R1      2040 ANNUAL  2.82
+#>   scenario tech  region  year timeslice value
+#>   <chr>    <chr> <chr>  <int> <chr>     <dbl>
+#> 1 BASE     ECOA  R1      2020 ANNUAL    21.7 
+#> 2 BASE     ECOA  R1      2030 ANNUAL    34.7 
+#> 3 BASE     ECOA  R1      2040 ANNUAL    25.5 
+#> 4 BASE     EGAS  R1      2040 ANNUAL     2.82
 ```
 
 The `...` accept set filters, exact (`comm = "ELC"`) or regex
 (`comm_ = "^EL"`). `timeframe = c("lowest","highest","all")` controls
-how slice-indexed values are returned. Rename dimensions or recode
+how timeslice-indexed values are returned. Rename dimensions or recode
 values on the way out with `newNames =` / `newValues =` (or afterwards
 with [`renameSets()`](https://energyRt.org/reference/renameSets.md) /
 [`revalueSets()`](https://energyRt.org/reference/revalueSets.md)), and
@@ -158,7 +158,7 @@ as `name_model_calendar_horizon`:
 ``` r
 
 get_scenarios_path()
-#> [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\Rtmpaq9fYk/wf"
+#> [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpghSoO7/wf"
 make_scenario_dirname(scen)
 #> [1] "BASE_UTOPIA_utopia_s4h24_base"
 ```
@@ -278,15 +278,15 @@ model_size(scen)
 #>   top parameters by rows:
 #>     pTechCinp2use      1,536
 #>     pWeather           1,004
-#>     pSliceWeight       404
-#>     pSliceAgg          400
+#>     pTimesliceWeight   404
+#>     pTimesliceAgg      400
 #>     pDemand            384
 #>     pExportRowPrice    384
 #>     pExportRow         384
 #>     pTechAf            384
 #>     pStorageInpEff     384
 #>     pStorageOutEff     384
-#>     pSliceShare        101
+#>     pTimesliceShare    101
 #>     pTechFixom         23
 #>     pTechEac           20
 #>     pTechInvcost       20

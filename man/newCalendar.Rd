@@ -10,20 +10,20 @@ newCalendar(
   timetable = NULL,
   year_fraction = 1,
   default_timeframe = NULL,
-  misc = list(pSliceWeight = NULL),
+  misc = list(pTimesliceWeight = NULL),
   ...
 )
 }
 \arguments{
-\item{name}{character. Name of the calendar object. Use to distingush between different structures and subsets of time-slices. The name is used to propose default folder names for the model/scenario scripts to separate solutions of the same scenario with different calendar objects.}
+\item{name}{character. Name of the calendar object. Use to distingush between different structures and subsets of time-timeslices. The name is used to propose default folder names for the model/scenario scripts to separate solutions of the same scenario with different calendar objects.}
 
 \item{desc}{character. Description of the calendar object, for own references.}
 
-\item{timetable}{data.frame. Data frame with levels of timeframes in the named columns, and number of rows equal to the total number of time-slices on the lowest level. Every timeframe is a set of time-slices ("slices") - a named fragment of time with a year-share. Timeframes have nested structure where every slice serves as a parent for the lower level of time-slices (children). The first column is the name of the time-slice, the rest of the columns are the names of the timeframes. The values are the share of the year covered by the time-slice. The sum of the shares in every timeframe should be equal to 1. \code{weight} is an optional column with the weight of the time-slice in the year, used for sumpled/subset selection of the time-slices.}
+\item{timetable}{data.frame. Data frame with levels of timeframes in the named columns, and number of rows equal to the total number of time-timeslices on the lowest level. Every timeframe is a set of time-timeslices ("timeslices") - a named fragment of time with a year-share. Timeframes have nested structure where every timeslice serves as a parent for the lower level of time-timeslices (children). The first column is the name of the time-timeslice, the rest of the columns are the names of the timeframes. The values are the share of the year covered by the time-timeslice. The sum of the shares in every timeframe should be equal to 1. \code{weight} is an optional column with the weight of the time-timeslice in the year, used for sumpled/subset selection of the time-timeslices.}
 
 \item{year_fraction}{numeric. The fraction of a year covered by the calendar, e.g. 1 for annual calendar (default), 0.5 for semi-annual, 0.25 for quarterly, etc. Currently must be specified manually for subset calendars to validate the sum of the shares.}
 
-\item{default_timeframe}{character. The name of the default level of the time-slices used in the model. If not specified, the lowest level of the timeframes is used as the default timeframe.}
+\item{default_timeframe}{character. The name of the default level of the time-timeslices used in the model. If not specified, the lowest level of the timeframes is used as the default timeframe.}
 
 \item{misc}{list. Any additional data or information to store in the object.}
 
@@ -33,13 +33,13 @@ newCalendar(
 an object of class \code{calendar} with the specified structure.
 }
 \description{
-Calendars are defined by the structure of timeframes and time-slices
+Calendars are defined by the structure of timeframes and time-timeslices
 with shares of time in a year. The structure is represented by a
 \code{timetable} data.frame with levels of timeframes in the named columns,
-and names of individual time-slices in every timeframe.
+and names of individual time-timeslices in every timeframe.
 The number of rows in \code{timetable} is equal to the total number
-of time-slices on the lowest level.
-Every timeframe is a set of timeslices ("slices") - a named fragment
+of time-timeslices on the lowest level.
+Every timeframe is a set of timeslices ("timeslices") - a named fragment
 of time with a year-share. Timeframes have nested structure.
 Currently, every "parent"-timeframe must have the same number of
 elements as the "child"-timeframe. (This may change in the future.)
@@ -48,7 +48,7 @@ elements as the "child"-timeframe. (This may change in the future.)
 \item{TIMEFRAME2}{character, (optional) first subannual level of timeframes}
 \item{TIMEFRAME3}{character, (optional) second subannual level of timeframes}
 \item{...}{character, (optional) further subannual levels of timeframes}
-\item{slice}{character, name of the time-slices used in sets to refer to the lowest level of timeframes. If not specified, will be auto-created with the formula: \verb{\{SLICE2\}_\{SLICE3\}...}}
+\item{timeslice}{character, name of the timeslices used in sets to refer to the lowest level of timeframes. If not specified, will be auto-created with the formula: \verb{\{TIMESLICE2\}_\{TIMESLICE3\}...}}
 }
 }
 \examples{

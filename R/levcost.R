@@ -51,7 +51,9 @@
 #'     \item{\code{repo}}{A \code{repository} or list of energyRt objects
 #'       (supplies, commodities, weather) to supplement the mini-model.}
 #'     \item{\code{fuel_costs}}{Named numeric vector \code{[commodity -> cost]}
-#'       for input commodities not found in \code{repo}.}
+#'       for input commodities not found in \code{repo}. Auxiliary
+#'       commodities consumed by the process (aux inputs) can be priced the
+#'       same way; unnamed ones are supplied at zero cost.}
 #'     \item{\code{autocomplete}}{Logical, default \code{FALSE}
 #'       (\code{repository}/\code{model} methods). When \code{TRUE}, input
 #'       commodities without a supply in the container are auto-supplied
@@ -63,7 +65,7 @@
 #'       \code{NULL} (derives from \code{@olife}).}
 #'     \item{\code{calendar}}{A \code{calendar} object or \code{NULL}.}
 #'     \item{\code{timeframe}}{\code{"ANNUAL"} (default) or \code{"native"}.
-#'       \code{"ANNUAL"} prices the technology on a single annual time-slice: any
+#'       \code{"ANNUAL"} prices the technology on a single annual time-timeslice: any
 #'       weather profile is collapsed to an annual capacity factor (applied as the
 #'       technology's annual availability), so capacity is sized to serve unit
 #'       annual demand at that factor (textbook LCOE). \code{"native"} keeps the
@@ -72,7 +74,7 @@
 #'       transmission, where sub-annual dispatch matters.}
 #'     \item{\code{backstop}}{Logical, default \code{TRUE}. Enables a very
 #'       expensive dummy-import slack on the output commodity balance so the
-#'       mini-model always solves even when the technology cannot serve a slice on
+#'       mini-model always solves even when the technology cannot serve a timeslice on
 #'       its own; the slack cost is excluded from the LCOE.}
 #'     \item{\code{region}}{Character or \code{NULL}.}
 #'     \item{\code{weather}}{A \code{weather} object, list of weather objects,
@@ -86,6 +88,23 @@
 #'       extra solves.}
 #'     \item{\code{solver}}{Solver spec list, default
 #'       \code{solver_options$glpk}.}
+#'     \item{\code{method}}{\code{"auto"} (default), \code{"analytic"}, or
+#'       \code{"solve"}. The unit-demand annual mini-model has a closed-form
+#'       optimum for most technologies; \code{"auto"} computes it analytically
+#'       (no solver needed) whenever the technology qualifies and falls back
+#'       to the solver otherwise, with a message naming the reason.
+#'       \code{"analytic"} refuses non-qualifying technologies instead of
+#'       falling back; \code{"solve"} always builds and solves the mini-model.
+#'       The analytic result carries the same fields (plus
+#'       \code{$method = "analytic"} and \code{$frontier_vertices}, which
+#'       reports EVERY corner of the input/output share polytopes with its
+#'       per-activity NPV cost breakdown and an \code{optimal} flag);
+#'       \code{$scenario} is \code{NULL} on this path. Not analytically
+#'       representable (solver required): technology chains,
+#'       \code{timeframe = "native"}, \code{afc.*} bounds, availability lower
+#'       bounds, \code{optimizeRetirement}, year-varying \code{invcost},
+#'       reserve- or availability-constrained supplies, and group
+#'       substitution combined with year-varying prices or efficiencies.}
 #'     \item{\code{run}}{\code{"single"} (default) or \code{"sequential"} --
 #'       only meaningful for a technology declaring vintages or clusters.
 #'       \code{"single"} prices every variant in one model (each in its own
@@ -212,16 +231,16 @@ setMethod("levcost", "technology", function(object, comm, name, ...) {
 }
 
 # Annual (share-weighted) capacity factor of a weather object, by region & year.
-# `slice_share` (from the native calendar) supplies the per-slice weights; when
+# `timeslice_share` (from the native calendar) supplies the per-timeslice weights; when
 # absent a plain mean is used. Returns a data.frame(region, year, cf).
-.levcost_weather_annual_cf <- function(wobj, slice_share) {
+.levcost_weather_annual_cf <- function(wobj, timeslice_share) {
   wd <- tryCatch(wobj@weather, error = function(e) NULL)
   if (is.null(wd) || nrow(wd) == 0 || !"wval" %in% names(wd))
     return(data.frame(region = character(), year = integer(), cf = numeric()))
   wcol <- NULL
-  if (!is.null(slice_share) && "slice" %in% names(slice_share)) {
-    wcol <- if ("share" %in% names(slice_share)) "share"
-            else if ("weight" %in% names(slice_share)) "weight" else NULL
+  if (!is.null(timeslice_share) && "timeslice" %in% names(timeslice_share)) {
+    wcol <- if ("share" %in% names(timeslice_share)) "share"
+            else if ("weight" %in% names(timeslice_share)) "weight" else NULL
   }
   # NA-safe grouping key over region x year (weather year is often NA = all
   # years; `split()` on a factor would silently drop NA groups).
@@ -235,7 +254,7 @@ setMethod("levcost", "technology", function(object, comm, name, ...) {
     }))
   }
   if (!is.null(wcol)) {
-    m <- merge(wd, as.data.frame(slice_share)[, c("slice", wcol)], by = "slice")
+    m <- merge(wd, as.data.frame(timeslice_share)[, c("timeslice", wcol)], by = "timeslice")
     if (nrow(m) > 0) return(agg_by(m, wcol))
   }
   agg_by(wd, NULL)
@@ -245,7 +264,7 @@ setMethod("levcost", "technology", function(object, comm, name, ...) {
 # Each @weather row (weather name + waf.lo/up/fx coefficient) is turned into the
 # matching af.lo/up/fx = coefficient x annual-CF row on @af; the @weather slot is
 # then cleared so the mini-model needs no weather object or sub-annual calendar.
-.levcost_weatherize_annual <- function(tech, weather_objects, slice_share,
+.levcost_weatherize_annual <- function(tech, weather_objects, timeslice_share,
                                        verbose = TRUE) {
   wdf <- tech@weather
   if (nrow(wdf) == 0) return(tech)
@@ -263,7 +282,7 @@ setMethod("levcost", "technology", function(object, comm, name, ...) {
                            "' for annual CF of '", tech@name, "'; skipping.")
       next
     }
-    cf <- .levcost_weather_annual_cf(wobj, slice_share)
+    cf <- .levcost_weather_annual_cf(wobj, timeslice_share)
     if (nrow(cf) == 0) next
     bound <- NULL
     for (b in c("fx", "up", "lo")) {
@@ -275,14 +294,14 @@ setMethod("levcost", "technology", function(object, comm, name, ...) {
     if (is.null(bound)) { bound <- "up"; coef <- 1 }
     r <- af_proto[rep(1L, nrow(cf)), , drop = FALSE]
     if (nrow(r) == 0) {                       # empty @af: build a fresh frame
-      r <- data.frame(region = cf$region, year = cf$year, slice = NA_character_,
+      r <- data.frame(region = cf$region, year = cf$year, timeslice = NA_character_,
                       af.lo = NA_real_, af.up = NA_real_, af.fx = NA_real_,
                       rampup = NA_real_, rampdown = NA_real_,
                       stringsAsFactors = FALSE)
       af_cols <- names(r)
     } else {
       r$region <- cf$region; r$year <- cf$year
-      if ("slice" %in% af_cols) r$slice <- NA_character_
+      if ("timeslice" %in% af_cols) r$timeslice <- NA_character_
     }
     afc <- paste0("af.", bound)
     if (afc %in% af_cols) r[[afc]] <- coef * cf$cf
@@ -314,6 +333,72 @@ setMethod("levcost", "technology", function(object, comm, name, ...) {
 # input commodity has no supply, returns NULL with a message unless
 # `autocomplete = TRUE` (which lets the mini-model add a zero-cost /
 # `fuel_costs` supply).
+
+# The price `fuel_costs` gives a commodity, else `default`. `fuel_costs` may
+# be a named vector or list; `[[` on a named VECTOR errors for a missing
+# name (unlike a list), so lookup must go through names().
+#' @noRd
+.fuel_cost_or <- function(fuel_costs, cm, default = 0) {
+  if (is.null(fuel_costs) || !cm %in% names(fuel_costs)) return(default)
+  v <- suppressWarnings(as.numeric(fuel_costs[[cm]]))
+  if (length(v) == 1 && is.finite(v)) v else default
+}
+
+# One un-vintaged instance of a technology: the selected cell (default the
+# newest vintage / first cluster -- draw()'s defaults), with the cell's
+# investment window and life kept. Used for single-instance analyses
+# (cost frontiers, per-activity costs) where the variant fan is not needed.
+# Returns the object unchanged when it has no variants.
+#' @noRd
+.levcost_instance <- function(object, vintage = NULL, cluster = NULL) {
+  v <- .tech_variants(object)
+  if (is.null(v)) return(object)
+  cell <- .resolve_cell(v, vintage, cluster)
+  .levcost_devintage(v$objects[[cell$index]], object@region)
+}
+
+# Auto-horizon for levcost mini-models. Starts at `base_year` (else the
+# earliest declared vintage/window year, else the current year) and runs
+# long enough for the LAST vintage to live out its olife -- a horizon that
+# ends before a late vintage's investment window made that vintage price
+# to zero via the backstop instead of erroring.
+#' @noRd
+.levcost_auto_horizon <- function(techs, base_year = NULL, verbose = TRUE) {
+  if (!is.list(techs)) techs <- list(techs)
+  olife_vals <- vapply(techs, function(t) {
+    ol <- .lifespan_col(t, "olife")
+    if (nrow(ol) == 0) NA_real_ else max(ol$olife, na.rm = TRUE)
+  }, numeric(1))
+  olife_val <- if (any(is.finite(olife_vals)))
+    max(olife_vals, na.rm = TRUE) else NA_real_
+  if (!is.finite(olife_val) || olife_val <= 0) {
+    olife_val <- 20
+    if (verbose) message("No olife found; using default horizon of 20 years.")
+  }
+  vin_years <- unlist(lapply(techs, function(t) {
+    vt <- tryCatch(as.data.frame(t@vintage), error = function(e) NULL)
+    if (!is.data.frame(vt) || nrow(vt) == 0) return(integer())
+    unlist(lapply(intersect(c("vintage", "start", "end"), names(vt)),
+                  function(cc) suppressWarnings(as.integer(vt[[cc]]))))
+  }))
+  vin_years <- vin_years[is.finite(vin_years)]
+  by <- if (!is.null(base_year)) {
+    as.integer(base_year)
+  } else if (length(vin_years) > 0) {
+    min(vin_years)
+  } else {
+    as.integer(format(Sys.Date(), "%Y"))
+  }
+  end_y <- max(by, if (length(vin_years) > 0) max(vin_years) else by) +
+    as.integer(olife_val) - 1L
+  hor_years <- seq(by, end_y)
+  if (verbose)
+    message("Auto-created horizon: ", min(hor_years), "–",
+            max(hor_years), " (", length(hor_years),
+            " years) from technology olife",
+            if (length(vin_years) > 0) " and vintage windows" else "", ".")
+  newHorizon(period = hor_years)
+}
 .levcost_container <- function(container, name, comm = NULL, autocomplete = FALSE,
                                fuel_costs = NULL, verbose = TRUE, ...) {
   if (is.null(name) || !nzchar(name)) {
@@ -730,33 +815,8 @@ levcost_chain_ <- function(
     hor_years <- sort(as.integer(horizon))
     hor       <- newHorizon(period = hor_years)
   } else {
-    olife_vals <- sapply(object, function(t) {
-      ol <- .lifespan_col(t, "olife")
-      if (nrow(ol) == 0) return(NA_real_)
-      max(ol$olife, na.rm = TRUE)
-    })
-    olife_val <- if (any(is.finite(olife_vals))) max(olife_vals, na.rm = TRUE) else 20
-    if (!is.finite(olife_val) || olife_val <= 0) {
-      olife_val <- 20
-      if (verbose) message("No olife found; using default horizon of 20 years.")
-    }
-    start_vals <- sapply(object, function(t) {
-      st <- .lifespan_col(t, "start")
-      if (nrow(st) == 0) return(NA_integer_)
-      as.integer(min(st$start, na.rm = TRUE))
-    })
-    by <- if (!is.null(base_year)) {
-      as.integer(base_year)
-    } else if (any(is.finite(start_vals))) {
-      min(start_vals, na.rm = TRUE)
-    } else {
-      as.integer(format(Sys.Date(), "%Y"))
-    }
-    hor_years <- seq(by, by + as.integer(olife_val) - 1L)
-    hor       <- newHorizon(period = hor_years)
-    if (verbose)
-      message("Auto-created horizon: ", min(hor_years), "\u2013", max(hor_years),
-              " (", length(hor_years), " years) from maximum technology olife.")
+    hor       <- .levcost_auto_horizon(object, base_year, verbose)
+    hor_years <- sort(hor@period)
   }
   if (is.null(base_year)) base_year <- min(hor_years)
 
@@ -812,9 +872,7 @@ levcost_chain_ <- function(
       }
       supply_objects[[cm]] <- sup
     } else {
-      fc_val <- if (!is.null(fuel_costs) && !is.null(fuel_costs[[cm]]) &&
-                    is.finite(as.numeric(fuel_costs[[cm]])))
-        as.numeric(fuel_costs[[cm]]) else 0
+      fc_val <- .fuel_cost_or(fuel_costs, cm)
       supply_objects[[cm]] <- newSupply(
         name         = paste0("SUP_", cm),
         commodity    = cm,
@@ -1017,26 +1075,32 @@ levcost_chain_ <- function(
 # expand them a second time and suffix the names twice.
 #' @noRd
 .levcost_devintage <- function(obj, region) {
-  vt   <- as.data.frame(obj@vintage)
-  cell <- if (nrow(vt) > 0) vt[1, , drop = FALSE] else NULL
-
+  # Collapse the cell's rows to ONE region-blanked row, column by column:
+  # a broadcast olife row and a window row legitimately coexist after
+  # expansion, and the old `vt[1, ]` lost whichever was not first. Each
+  # column is resolved independently (`.lifespan_resolve()` errors on
+  # conflicting keys), preferring the broadcast (region-NA) value -- the
+  # mini-model pins an artificial region, so region-specific labels
+  # cannot survive here anyway.
   nv <- data.frame(vintage = NA_character_, region = NA_character_,
                    cluster = NA_character_, start = NA_integer_,
                    end = NA_integer_, olife = NA_integer_,
                    stringsAsFactors = FALSE)
-  # Keep the cell's investment window and operational life; `.variant_default_window()`
-  # has already defaulted start/end to the vintage year by this point.
-  if (!is.null(cell)) {
-    for (cc in intersect(.vintage_val_cols, names(cell))) {
-      v <- cell[[cc]][1]
-      nv[[cc]] <- if (is.na(v) || !is.finite(v)) v else as.integer(v)
+  for (cc in .vintage_val_cols) {
+    d <- .lifespan_resolve(obj, cc)
+    if (nrow(d) == 0L) next
+    v <- if (any(is.na(d$region))) {
+      d[[cc]][is.na(d$region)][1]
+    } else {
+      d[[cc]][1]
     }
+    nv[[cc]] <- if (is.na(v) || !is.finite(v)) v else as.integer(v)
   }
   obj@vintage <- nv
   if (methods::.hasSlot(obj, "cluster"))
     obj@cluster <- obj@cluster[0, , drop = FALSE]
 
-  # Rows are already sliced to this cell, so the selectors carry no information;
+  # Rows are already timesliced to this cell, so the selectors carry no information;
   # blanking them is what stops a second expansion.
   for (sl in methods::slotNames(obj)) {
     if (sl %in% c("vintage", "cluster")) next
@@ -1252,19 +1316,26 @@ levcost_technology_ <- function(
     frontier       = TRUE,
     backstop       = TRUE,
     solver         = solver_options$glpk,
+    method         = c("auto", "analytic", "solve"),
     run            = c("single", "sequential"),
     max_failures   = 10L,
     as_scenario    = FALSE,
     verbose        = TRUE,
     ...
 ) {
-  run <- match.arg(run)
+  run    <- match.arg(run)
+  method <- match.arg(method)
 
   # ── 0. Handle list of technologies → chain LCOE ────────────────────────────
   if (is.list(object) && !inherits(object, "technology")) {
     if (length(object) == 0) stop("`object` is an empty list.")
     if (!all(sapply(object, inherits, "technology")))
       stop("All elements of `object` must be energyRt 'technology' objects.")
+    if (method == "analytic")
+      stop("levcost(method = \"analytic\") does not support a technology ",
+           "chain; the intermediate flows need the solver.", call. = FALSE)
+    if (method == "auto" && verbose)
+      message("levcost(): a technology chain is priced with the solver.")
 
     return(levcost_chain_(
       object,
@@ -1287,11 +1358,11 @@ levcost_technology_ <- function(
     stop("`object` must be an energyRt 'technology' object or a list thereof.")
   tech_name <- if (nzchar(object@name)) object@name else "TECH"
   timeframe  <- match.arg(timeframe)
-  # native slice shares of the supplied calendar, used to weight weather into an
+  # native timeslice shares of the supplied calendar, used to weight weather into an
   # annual capacity factor when `timeframe = "ANNUAL"` (captured before the
   # calendar is overridden to annual below).
-  native_slice_share <- if (!is.null(calendar) && .hasSlot(calendar, "slice_share"))
-    calendar@slice_share else NULL
+  native_timeslice_share <- if (!is.null(calendar) && .hasSlot(calendar, "timeslice_share"))
+    calendar@timeslice_share else NULL
 
   # ── 1b. Strip capacity constraints (distort unit-demand mini-model) ─────────
   if (nrow(object@capacity) > 0) {
@@ -1486,20 +1557,11 @@ levcost_technology_ <- function(
     hor_years <- sort(as.integer(horizon))
     hor       <- newHorizon(period = hor_years)
   } else {
-    olife_val <- NULL
-    ol <- .lifespan_col(object, "olife")
-    if (nrow(ol) > 0) olife_val <- max(ol$olife, na.rm = TRUE)
-    if (is.null(olife_val) || !is.finite(olife_val) || olife_val <= 0) {
-      olife_val <- 20
-      if (verbose) message("No olife found; using default horizon of 20 years.")
-    }
-    by        <- if (!is.null(base_year)) as.integer(base_year) else
-      as.integer(format(Sys.Date(), "%Y"))
-    hor_years <- seq(by, by + as.integer(olife_val) - 1L)
-    hor       <- newHorizon(period = hor_years)
-    if (verbose)
-      message("Auto-created horizon: ", min(hor_years), "\u2013", max(hor_years),
-              " (", length(hor_years), " years) from technology olife.")
+    # ALL cells, not `object`: for a vintaged technology `object` is the
+    # first cell by now, and a horizon sized to it alone ends before the
+    # later vintages' windows -- which priced them to zero via the backstop
+    hor       <- .levcost_auto_horizon(tech_objects, base_year, verbose)
+    hor_years <- sort(hor@period)
   }
   if (is.null(base_year)) base_year <- min(hor_years)
 
@@ -1555,7 +1617,7 @@ levcost_technology_ <- function(
   # prices the technology on an ANNUAL timeframe: any weather profile is
   # collapsed to an annual capacity factor (share-weighted mean, applied as the
   # technology's annual availability), the weather objects are dropped, and a
-  # single-slice annual calendar is used. This sizes capacity to serve unit
+  # single-timeslice annual calendar is used. This sizes capacity to serve unit
   # annual demand at the technology's capacity factor (textbook LCOE) and avoids
   # the sub-annual must-run overbuild artefact. `timeframe = "native"` keeps the
   # supplied (sub-annual) calendar and normalises by total generation — useful
@@ -1565,10 +1627,25 @@ levcost_technology_ <- function(
       wobjs <- lapply(weather_objects, .levcost_subset_weather_region,
                       region = region)
       object <- .levcost_weatherize_annual(object, wobjs,
-                                           native_slice_share, verbose = verbose)
+                                           native_timeslice_share, verbose = verbose)
+      # The model is built from `tech_objects`, not `object` -- weatherize
+      # each cell too, or the annual CF silently never reaches the solver
+      # (capacity then sizes to af = 1). A variant cell is pinned to its
+      # artificial region, so CF rows written for the real region are
+      # relabelled to the cell's own.
+      tech_objects <- lapply(tech_objects, function(t) {
+        if (nrow(t@weather) == 0) return(t)
+        t2 <- .levcost_weatherize_annual(t, wobjs, native_timeslice_share,
+                                         verbose = FALSE)
+        if (has_variants && nrow(t2@af) > 0 && "region" %in% names(t2@af)) {
+          hit <- !is.na(t2@af$region) & t2@af$region == region
+          t2@af$region[hit] <- t2@region[1]
+        }
+        t2
+      })
     }
     weather_objects <- list()
-    calendar <- newCalendar()          # annual, single ANNUAL slice
+    calendar <- newCalendar()          # annual, single ANNUAL timeslice
   }
 
   # ── 8. Auto-create commodity objects ─────────────────────────────────────────
@@ -1582,8 +1659,8 @@ levcost_technology_ <- function(
       if (isS4(cm_obj) && .hasSlot(cm_obj, "emis") && nrow(cm_obj@emis) > 0)
         cm_obj@emis <- cm_obj@emis[0L, , drop = FALSE]
       # On the annual timeframe every commodity must resolve to the single ANNUAL
-      # slice; a repo commodity carrying a sub-annual timeframe would mismatch the
-      # calendar (mCommSlice).
+      # timeslice; a repo commodity carrying a sub-annual timeframe would mismatch the
+      # calendar (mCommTimeslice).
       if (identical(timeframe, "ANNUAL") && .hasSlot(cm_obj, "timeframe"))
         cm_obj@timeframe <- "ANNUAL"
       commodity_objects[[cm]] <- cm_obj
@@ -1617,9 +1694,7 @@ levcost_technology_ <- function(
       }
       supply_objects[[cm]] <- sup
     } else {
-      fc_val <- if (!is.null(fuel_costs) && !is.null(fuel_costs[[cm]]) &&
-                    is.finite(as.numeric(fuel_costs[[cm]])))
-        as.numeric(fuel_costs[[cm]]) else 0
+      fc_val <- .fuel_cost_or(fuel_costs, cm)
       supply_objects[[cm]] <- newSupply(
         name         = paste0("SUP_", cm),
         commodity    = cm,
@@ -1650,22 +1725,75 @@ levcost_technology_ <- function(
       }
       supply_objects[[.cm]] <- sup
     } else {
+      # priced like fuels when `fuel_costs` names the aux commodity
+      # (e.g. a charging-infrastructure cost per GWh); zero otherwise
+      fc_val <- .fuel_cost_or(fuel_costs, .cm)
       supply_objects[[.cm]] <- newSupply(
         name         = paste0("SUP_", .cm),
         commodity    = .cm,
         region       = reg_all,
         supply = data.frame(
           region = reg_all, year = as.integer(base_year),
-          cost   = 0, stringsAsFactors = FALSE
+          cost   = fc_val, stringsAsFactors = FALSE
         )
       )
-      if (verbose) message("Created zero-cost aux supply for '", .cm, "'.")
+      if (verbose) message("Created aux supply for '", .cm, "' (cost = ",
+                           fc_val, ").")
     }
+  }
+
+  # ── 9.7. Analytic (no-solve) path ──────────────────────────────────────────
+  # The mini-model built below is a unit-demand annual LP with a closed-form
+  # optimum; R/levcost_analytic.R mirrors it equation by equation. Anything it
+  # cannot represent is refused (never approximated): `method = "auto"` then
+  # falls back to the solver, `method = "analytic"` errors.
+  if (method != "solve") {
+    to_named <- tech_objects
+    if (is.null(names(to_named)))
+      names(to_named) <- vapply(to_named, function(o) o@name, character(1))
+    ctx <- list(
+      tech_name = tech_name, object = object, tech_objects = to_named,
+      has_variants = has_variants, vprov = vprov, region = region,
+      out_comms = out_comms, all_out_comms = all_out_comms, group = group,
+      has_grouped_output = has_grouped_output,
+      share_up = share_up, share_lo = share_lo,
+      in_comms = in_comms, in_groups = in_groups,
+      in_group_comms = in_group_comms,
+      in_share_up = in_share_up, in_share_lo = in_share_lo,
+      aux_comms = aux_comms, aux_inp_comms = aux_inp_comms,
+      hor_years = hor_years, base_year = base_year, discount = discount,
+      timeframe = timeframe, as_scenario = as_scenario,
+      do_frontier = do_frontier, frontier = frontier,
+      supply_objects = supply_objects,
+      comm_label = paste(out_comms, collapse = "+"),
+      verbose = verbose, prices = NULL)
+    blk <- character(0)
+    res <- tryCatch({
+      prices <- list()
+      for (cm in names(supply_objects))
+        prices[[cm]] <- .la_supply_price(supply_objects[[cm]], hor_years, cm)
+      ctx$prices <- prices
+      blk <- .levcost_analytic_blockers(ctx)
+      if (length(blk) == 0) .levcost_analytic_run(ctx) else NULL
+    }, levcost_analytic_unsupported = function(e) {
+      blk <<- unique(c(blk, conditionMessage(e)))
+      NULL
+    })
+    if (!is.null(res)) {
+      if (verbose) message("Levelized cost computed analytically (no solver).")
+      return(res)
+    }
+    if (method == "analytic")
+      stop("levcost(method = \"analytic\") cannot price '", tech_name, "': ",
+           paste(blk, collapse = "; "), call. = FALSE)
+    if (verbose)
+      message("levcost(): analytic path unavailable (",
+              paste(blk, collapse = "; "), "); using the solver.")
   }
 
   # ── 9.9. Backstop slack (dummy import) ─────────────────────────────────────
   # A unit-demand mini-model can be infeasible when the technology cannot serve
-  # every slice on its own (e.g. solar at night on a sub-annual calendar). Enable
+  # every timeslice on its own (e.g. solar at night on a sub-annual calendar). Enable
   # the model's built-in dummy-import slack (via config `@debug`) at a very high
   # cost for each output commodity, so the balance always closes; the technology
   # is still dispatched to its physical limit (the slack is far dearer than any
@@ -1676,7 +1804,7 @@ levcost_technology_ <- function(
   if (isTRUE(backstop) && length(all_out_comms) > 0) {
     backstop_debug <- data.frame(
       comm = all_out_comms, region = NA_character_, year = NA_integer_,
-      slice = NA_character_, dummyImport = BACKSTOP_PRICE, dummyExport = Inf,
+      timeslice = NA_character_, dummyImport = BACKSTOP_PRICE, dummyExport = Inf,
       stringsAsFactors = FALSE)
   }
 
@@ -1781,7 +1909,7 @@ levcost_technology_ <- function(
     }
 
     # Own system cost = total minus the backstop dummy-import cost. The slack only
-    # covers slices the technology physically cannot serve; its (deliberately
+    # covers timeslices the technology physically cannot serve; its (deliberately
     # huge) cost is not the technology's and must not enter the LCOE.
     tc_df  <- agg_yr(as.data.frame(tc))            # year, value
     imp_yr <- agg_yr(sfget("vDummyImportCost"))
@@ -1875,7 +2003,7 @@ levcost_technology_ <- function(
     param_var_cost_ <- function(pname, vname) {
       p <- sfget(pname); v <- sfget(vname)
       if (is.null(p) || is.null(v) || nrow(p) == 0 || nrow(v) == 0) return(NULL)
-      jc <- intersect(c("year", "region", "tech", "slice"), intersect(names(p), names(v)))
+      jc <- intersect(c("year", "region", "tech", "timeslice"), intersect(names(p), names(v)))
       m  <- merge(p[, c(jc, "value"), drop = FALSE],
                   v[, c(jc, "value"), drop = FALSE],
                   by = jc, suffixes = c("_p", "_v"))
@@ -2049,11 +2177,11 @@ levcost_technology_ <- function(
                                                   conditionMessage(e)); NULL })
       if (!okay(scen_all) && is.null(backstop_debug) && length(all_out_comms) > 0) {
         # Retry once with the dummy-import slack enabled, which is the usual cure
-        # for a cell that cannot serve every slice on its own.
+        # for a cell that cannot serve every timeslice on its own.
         if (verbose) message("Combined run did not solve; retrying with dummy import.")
         retry_debug <- data.frame(
           comm = all_out_comms, region = NA_character_, year = NA_integer_,
-          slice = NA_character_, dummyImport = BACKSTOP_PRICE, dummyExport = Inf,
+          timeslice = NA_character_, dummyImport = BACKSTOP_PRICE, dummyExport = Inf,
           stringsAsFactors = FALSE)
         scen_all <- tryCatch(
           build_and_solve_(demand_objects, suffix = "_bs", debug_df = retry_debug),
@@ -2535,7 +2663,8 @@ autoplot.levcost <- function(object,
     au <- if (!is.null(object$units$activity) && nzchar(object$units$activity)) object$units$activity else ""
     costs_lbl  <- if (nzchar(cu) && nzchar(au)) paste0(cu, " / ", au)
                   else if (nzchar(cu)) cu else ""
-    y_lbl_act  <- if (nzchar(costs_lbl)) paste0("LCOE [", costs_lbl, "]") else "Levelized Cost"
+    # the output is not necessarily energy -- no hardwired "LCOE"
+    y_lbl_act  <- if (nzchar(costs_lbl)) paste0("Levelized cost [", costs_lbl, "]") else "Levelized cost"
     y_lbl_both <- y_lbl_act
   }
 
@@ -2568,9 +2697,9 @@ autoplot.levcost <- function(object,
         all_vals <- c(base_val, inp_rows$npv_act[is.finite(inp_rows$npv_act)])
         lo <- min(all_vals, na.rm = TRUE); hi <- max(all_vals, na.rm = TRUE)
         if (abs(hi - lo) > 1e-6) paste0("LCOE = ", round(lo, 3), "\u2013", round(hi, 3))
-        else                     paste0("LCOE = ", round(base_val, 3))
+        else                     paste0("levcost = ", round(base_val, 3))
       } else {
-        paste0("LCOE = ", round(base_val, 3))
+        paste0("levcost = ", round(base_val, 3))
       }
     })
     p <- ggplot2::ggplot(df_yr, ggplot2::aes(x = prod_comm1, y = prod_comm2, colour = label)) +
@@ -2748,16 +2877,21 @@ autoplot.levcost_list <- function(object,
   check_package("ggplot2")
   type <- match.arg(type)
 
-  # Collect NPV + component breakdowns across technologies
+  # Collect NPV + component breakdowns across technologies. Breakdown frames
+  # carry extra columns (tech/group/comm) while the no-breakdown fallback has
+  # three, so reduce every piece to the plotted columns before binding --
+  # mixing shapes is exactly what a vintage with an empty solution produces.
   npv_rows <- lapply(names(object), function(nm) {
     lc  <- object[[nm]]
     cbd <- lc$cost_breakdown_npv
-    if (is.null(cbd) || nrow(cbd) == 0) {
+    if (is.null(cbd) || nrow(cbd) == 0 ||
+        !all(c("component", "value") %in% names(cbd))) {
       data.frame(tech = nm, component = "total",
                  value = as.numeric(lc$levcost_npv),
                  stringsAsFactors = FALSE)
     } else {
-      cbd$tech <- nm; cbd
+      cbd$tech <- nm
+      cbd[, c("tech", "component", "value"), drop = FALSE]
     }
   })
   plot_df <- do.call(rbind, Filter(Negate(is.null), npv_rows))

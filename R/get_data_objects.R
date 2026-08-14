@@ -20,35 +20,83 @@
 
 # Known set (index) dimensions -- everything else numeric is a "value" column.
 .known_set_dims <- c(
-  "region", "regionp", "year", "yearp", "slice", "slicep", "comm", "commp",
+  "region", "regionp", "year", "yearp", "timeslice", "timeslicep", "comm", "commp",
   "acomm", "group", "tech", "techp", "stg", "sup", "dem", "trade", "expp",
   "imp", "impp", "weather", "src", "dst", "process"
 )
 
-# Reverse map (memoised): "class\rslot\rcolName" -> list(rule, defVal, param),
-# read from the baked-in .modInp parameter template (each parameter records its
-# origin object class/slot/column and its interpolation rule + default value).
+# Reverse map (memoised): "class\rslot\rcolName" -> list(rule, defVal, param).
+# Built from the baked-in `.modInp` registry, which is the PLAIN YAML LIST from
+# data-raw/modInp.yml (not a modInp S4 object -- reading `@parameters` here
+# used to error into the tryCatch and leave the map empty, so every object
+# interpolation silently fell back to "back.inter.forth"/NA). Each parameter
+# entry carries `class`, `slot`, `colName`, `interpolation` and `defVal`;
+# bounds parameters carry per-bound vectors and expand to the
+# `<colName>.lo/.up/.fx` slot columns (the `.pack_bounds_long()` naming).
 .param_interp_map_cache <- new.env(parent = emptyenv())
+
+# A few YAML slot/column names predate class refactors and no longer match the
+# S4 slots they map; aliased here rather than edited in modInp.yml (the yml
+# names feed the interpolation engine's own lookups).
+.param_slot_alias <- list(
+  supply = c(availability = "supply"),
+  import = c(availability = "import"),
+  export = c(availability = "export"),
+  demand = c(dem = "demand")
+)
+
 .param_interp_map <- function() {
   if (!is.null(.param_interp_map_cache$map)) {
     return(.param_interp_map_cache$map)
   }
-  mp <- list()
-  params <- tryCatch(.modInp@parameters, error = function(e) NULL)
-  if (!is.null(params)) {
-    for (p in params) {
-      ic <- tryCatch(p@inClass, error = function(e) NULL)
-      if (is.null(ic) || nrow(ic) == 0) next
-      for (i in seq_len(nrow(ic))) {
-        key <- paste(ic$class[i], ic$slot[i], ic$colName[i], sep = "\r")
-        mp[[key]] <- list(
-          rule = p@interpolation, defVal = p@defVal, param = p@name
-        )
+  mp <- new.env(parent = emptyenv())
+  add <- function(cls, slt, col, rule, dv, param) {
+    assign(paste(cls, slt, col, sep = "\r"),
+           list(rule = rule, defVal = dv, param = param), envir = mp)
+  }
+  entries <- tryCatch(.modInp, error = function(e) NULL)
+  if (is.list(entries)) {
+    for (p in entries) {
+      if (!is.list(p)) next
+      cls <- p$class
+      slt <- p$slot
+      cn <- p$colName
+      if (is.null(cls) || is.null(slt) || is.null(cn)) next
+      al <- .param_slot_alias[[cls]]
+      if (!is.null(al) && slt %in% names(al)) slt <- unname(al[[slt]])
+      if (identical(cls, "demand") && identical(cn, "dem")) cn <- "demand"
+      rule <- p$interpolation
+      dv <- suppressWarnings(as.numeric(unlist(p$defVal)))
+      if (identical(p$type, "bounds") || length(dv) >= 2) {
+        r1 <- if (length(rule) >= 1) rule[[1]] else "back.inter.forth"
+        r2 <- if (length(rule) >= 2) rule[[2]] else r1
+        add(cls, slt, paste0(cn, ".lo"), r1, dv[1], p$name)
+        add(cls, slt, paste0(cn, ".up"), r2,
+            if (length(dv) >= 2) dv[2] else NA_real_, p$name)
+        add(cls, slt, paste0(cn, ".fx"), r1, NA_real_, p$name)
+      } else {
+        add(cls, slt, cn, if (is.list(rule)) rule[[1]] else rule,
+            if (length(dv) >= 1) dv[1] else NA_real_, p$name)
       }
     }
   }
-  .param_interp_map_cache$map <- mp
-  mp
+  out <- as.list(mp)
+  .param_interp_map_cache$map <- out
+  out
+}
+
+# All mapped value columns of one (class, slot): named list col -> entry.
+# Used by autoplot(show_defaults = TRUE) to know which parameters CAN exist
+# in a slot and what their defaults are.
+.slot_param_cols <- function(cls, slot_name) {
+  mp <- .param_interp_map()
+  if (length(mp) == 0) return(list())
+  keys <- strsplit(names(mp), "\r", fixed = TRUE)
+  hit <- vapply(keys, function(k)
+    length(k) == 3 && k[1] == cls && k[2] == slot_name, logical(1))
+  out <- mp[hit]
+  names(out) <- vapply(keys[hit], `[[`, "", 3L)
+  out
 }
 
 # Apply the default (per-parameter) interpolation rule to every year-bearing
@@ -60,6 +108,10 @@
   }
   val_cols <- names(d)[vapply(d, is.numeric, logical(1))]
   val_cols <- setdiff(val_cols, .known_set_dims) # drops year + set dims
+  # only interpolate GIVEN data -- an all-NA column would otherwise be
+  # materialised at its registry default (that is show_defaults' job)
+  val_cols <- val_cols[vapply(val_cols, function(vc) any(!is.na(d[[vc]])),
+                              logical(1))]
   if (length(val_cols) == 0) {
     return(d)
   }
@@ -104,8 +156,15 @@
 }
 
 # Filter a slot data.frame by `...` selectors: `col = values` (exact) and
-# `col_ = pattern` (regex). Unknown columns are ignored.
+# `col_ = pattern` (regex). Unknown columns are ignored. A NULL / empty
+# selector means "no filter" -- it must never match nothing (a `year = NULL`
+# passed through `...` used to drop EVERY row, which made all the object
+# autoplots report "No year-indexed data").
 .filter_object_df <- function(d, flt, ignore.case = TRUE) {
+  if (length(flt) > 0) {
+    flt <- flt[!vapply(flt, function(x) is.null(x) || length(x) == 0,
+                       logical(1))]
+  }
   if (length(flt) == 0 || nrow(d) == 0) {
     return(d)
   }
@@ -166,8 +225,9 @@
     d <- tryCatch(as.data.frame(methods::slot(obj, s)), error = function(e) NULL)
     if (is.null(d)) next
     if (nrow(d) == 0 && !interpolate) next
-    if (!is.na(obj_name) && nzchar(obj_name) && !(dim_nm %in% names(d))) {
-      d[[dim_nm]] <- obj_name
+    if (nrow(d) > 0 && !is.na(obj_name) && nzchar(obj_name) &&
+        !(dim_nm %in% names(d))) {
+      d[[dim_nm]] <- obj_name    # 0-row assignment would error (length 1 vs 0)
     }
     if (isTRUE(interpolate)) d <- .interp_object_slot(cls, s, d, years, dim_nm)
     d <- .filter_object_df(d, flt, ignore.case)

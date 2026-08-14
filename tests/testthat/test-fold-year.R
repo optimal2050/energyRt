@@ -32,7 +32,7 @@ test_that("year-fold is solution-invariant across GLPK / JuMP / Pyomo", {
 
   # Sanity: multi-year horizon + pWeather constant across years (so year folds).
   base <- suppressWarnings(suppressMessages(
-    interp_mod(mod, name = "fy_base", ondisk = FALSE, fold = FALSE)))
+    interpolate_model(mod, name = "fy_base", ondisk = FALSE, fold = FALSE)))
   yrs <- sort(unique(as.data.frame(get_data_slot(base@modInp@parameters$year))$year))
   expect_gt(length(yrs), 1)
 
@@ -47,7 +47,7 @@ test_that("year-fold is solution-invariant across GLPK / JuMP / Pyomo", {
       error = function(e) NULL)
     obj(s)
   }
-  FOLD <- c("region", "slice", "year")
+  FOLD <- c("region", "timeslice", "year")
 
   # --- GLPK anchor (required) ------------------------------------------------ #
   skip_if(is.null(get_glpk_path()) || !nzchar(get_glpk_path()),
@@ -83,8 +83,8 @@ test_that("JuMP year wildcard: clean `year` set + bare integer 0 in lookups", {
   mod <- tm_weather()
 
   sc <- suppressWarnings(suppressMessages(
-    interp_mod(mod, name = "fy_struct", ondisk = FALSE,
-               fold = c("region", "slice", "year"))))
+    interpolate_model(mod, name = "fy_struct", ondisk = FALSE,
+               fold = c("region", "timeslice", "year"))))
   sc <- energyRt:::.finalize_interp(sc)
   sc2 <- apply_fold_artificial(sc, backends = "JuMP")
 

@@ -3,7 +3,7 @@
 / map parameters of a scenario and reports any issues. Checks:
 NA index columns: no NA in a parameter's dimSets id
 columns. When fold = TRUE, NA is permitted only in the trimmable
-dimensions (region / slice / vintage, which fold encodes as wildcards);
+dimensions (region / timeslice / vintage, which fold encodes as wildcards);
 when fold = FALSE, no NA is permitted in any id column.
 Schema: data columns match the declared dimSets
 (plus value, and type for bounds).
@@ -19,7 +19,7 @@ trimming this must hold exactly.
 / map parameters of a scenario and reports any issues. Checks:
 NA index columns: no NA in a parameter's dimSets id
 columns. When fold = TRUE, NA is permitted only in the trimmable
-dimensions (region / slice / vintage, which fold encodes as wildcards);
+dimensions (region / timeslice / vintage, which fold encodes as wildcards);
 when fold = FALSE, no NA is permitted in any id column.
 Schema: data columns match the declared dimSets
 (plus value, and type for bounds).
@@ -45,7 +45,7 @@ trimming this must hold exactly.
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.75.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.80.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -94,7 +94,7 @@ trimming this must hold exactly.
     <p>Runs a set of post-interpolation consistency checks over the numeric / bounds
 / map parameters of a scenario and reports any issues. Checks:</p><ul><li><p><strong>NA index columns</strong>: no NA in a parameter's <code>dimSets</code> id
 columns. When <code>fold = TRUE</code>, NA is permitted only in the trimmable
-dimensions (region / slice / vintage, which fold encodes as wildcards);
+dimensions (region / timeslice / vintage, which fold encodes as wildcards);
 when <code>fold = FALSE</code>, no NA is permitted in any id column.</p></li>
 <li><p><strong>Schema</strong>: data columns match the declared <code>dimSets</code>
 (plus <code>value</code>, and <code>type</code> for bounds).</p></li>

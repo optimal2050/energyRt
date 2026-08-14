@@ -10,7 +10,7 @@
 # These replace the inline membership block formerly in interp.R (archived to
 # drafts/legacy-mapping/membership.R). The aux maps reuse the live
 # `.build_aux_membership` helper (interp.R). The other ~18 membership-tagged maps
-# (mTech*CommAgg / *SameSlice / *Group / mTechEmsFuel / mWeatherRegion / ...) are
+# (mTech*CommAgg / *SameTimeslice / *Group / mTechEmsFuel / mWeatherRegion / ...) are
 # built later in the filter recipe, not here.
 # =========================================================================== #
 

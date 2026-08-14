@@ -18,7 +18,7 @@
 #          flow      a transfer that is both (between regions)
 #          activity  process activity, not a commodity balance term
 #          balance   the net balance itself
-#          stock     a LEVEL at a point in time -- never summed over slices
+#          stock     a LEVEL at a point in time -- never summed over timeslices
 #          capacity  installed / new / retired capacity
 #          cost      monetary
 #
@@ -64,7 +64,7 @@ vStorageInv:         {role: cost,     unit: currency}
 vStorageNewCap:      {role: capacity, unit: capacity}
 vStorageOut:         {role: source,   unit: commodity}
 vStorageOutTot:      {role: source,   unit: commodity}
-# The storage LEVEL: a snapshot, not a flow. Summing it over slices is
+# The storage LEVEL: a snapshot, not a flow. Summing it over timeslices is
 # meaningless, which is what `role: stock` encodes (it replaces the hard-coded
 # `.timeframe_state_vars` in get_data.R).
 vStorageStore:       {role: stock,    unit: commodity}
@@ -114,7 +114,7 @@ vTradeNewCap:        {role: capacity, unit: capacity}
 
 vTechEmsFuel:
   desc: Emissions from fuel combustion, by technology
-  dimSets: [tech, comm, region, year, slice]
+  dimSets: [tech, comm, region, year, timeslice]
   role: source
   unit: commodity
   origin: computed

@@ -8,17 +8,19 @@ output:
     self_contained: true
     md_extensions: "-native_divs-native_spans"
     css: null
+  word_document: default
 params:
   name:               "Technology"
   desc:               ""
-  cap2act:            NA
+  cap2act:            !r NA_real_
   units_cap:          ""
   units_act:          ""
   units_costs:        ""
-  olife:              NA
-  stock:              NA
-  start:              NA
-  end:                NA
+  olife:              !r NA_integer_
+  stock:              !r NA_real_
+  start:              !r NA_integer_
+  end:                !r NA_integer_
+  vintage_df:         NULL
   cap_df:             NULL
   input_df:           NULL
   output_df:          NULL
@@ -32,31 +34,43 @@ params:
   frontier_plot:      NULL
   share_frontier_plot: NULL
   levcost_npv:        NULL
+  levcost_variants_plot: NULL
+  levcost_by_vintage_df: NULL
+  levcost_instance_label: NULL
 header-includes:
   - \usepackage{geometry}
   - \geometry{a4paper, top=15mm, bottom=15mm, left=15mm, right=15mm}
   - \usepackage{graphicx}
   - \usepackage{booktabs}
-  - \usepackage{array}
   - \usepackage{xcolor}
-  - \usepackage{colortbl}
-  - \usepackage{float}
-  - \usepackage{tabularx}
   - \pagenumbering{gobble}
   - \definecolor{ert_blue}{RGB}{31, 73, 125}
-  - \definecolor{ert_lightgray}{RGB}{242, 242, 242}
   - \definecolor{ert_gray}{RGB}{128, 128, 128}
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
-                      fig.pos = "H")
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
 library(ggplot2)
 
-is_html <- knitr::is_html_output()
-is_pdf  <- knitr::is_latex_output()
+# Three output modes. Word must be told apart from LaTeX explicitly:
+# knitr::is_latex_output() is FALSE for docx, but so is is_html_output(),
+# and raw TeX in the "else" branch is silently discarded by the docx writer.
+is_html  <- knitr::is_html_output()
+is_word  <- identical(knitr::pandoc_to(), "docx")
+is_latex <- !is_html && !is_word
 
-# Safe HTML / TeX escaping helpers
+options(knitr.kable.NA = if (is_latex) "--" else "\u2014")
+
+# ── one sizing system (fractions of the text width, everywhere) ───────────────
+.HDR_IMG  <- 0.33   # header image column
+.SIDE     <- 0.45   # schematic column in the two-column body
+.MAIN     <- 0.52   # table column in the two-column body
+.LC_MAIN  <- 0.55   # levcost components plot
+.LC_SIDE  <- 0.43   # frontier plot next to it
+.PANEL    <- 0.30   # one share-mix panel
+.DPI      <- 150    # every rasterised ggplot
+
+# Safe HTML / TeX escaping
 html_esc <- function(x) {
   if (is.null(x) || !nzchar(x)) return("")
   x <- gsub("&", "&amp;",  x, fixed = TRUE)
@@ -67,22 +81,105 @@ html_esc <- function(x) {
 }
 tex_esc <- function(x) {
   if (is.null(x) || !nzchar(x)) return("")
-  x <- gsub("\\", "\\textbackslash{}", x, fixed = TRUE)
+  x <- gsub("\\", "\a", x, fixed = TRUE)   # placeholder: braces come later
+  x <- gsub("{",  "\\{",  x, fixed = TRUE)
+  x <- gsub("}",  "\\}",  x, fixed = TRUE)
   x <- gsub("&",  "\\&",  x, fixed = TRUE)
   x <- gsub("%",  "\\%",  x, fixed = TRUE)
   x <- gsub("$",  "\\$",  x, fixed = TRUE)
   x <- gsub("#",  "\\#",  x, fixed = TRUE)
   x <- gsub("_",  "\\_",  x, fixed = TRUE)
-  x <- gsub("{",  "\\{",  x, fixed = TRUE)
-  x <- gsub("}",  "\\}",  x, fixed = TRUE)
   x <- gsub("~",  "\\textasciitilde{}", x, fixed = TRUE)
   x <- gsub("^",  "\\textasciicircum{}", x, fixed = TRUE)
+  x <- gsub("\a", "\\textbackslash{}", x, fixed = TRUE)
   x
 }
-esc       <- if (is_html) html_esc else tex_esc
-fmt_val   <- function(x, digits = 3L) {
-  if (is.null(x) || is.na(x)) return("--")
-  formatC(as.numeric(x), digits = digits, format = "g")
+esc <- if (is_latex) tex_esc else html_esc
+
+# Fixed-notation value formatting -- never scientific (no "1.2e+03")
+fmt_val <- function(x, digits = 4L) {
+  if (is.null(x) || all(is.na(x))) return("--")
+  formatC(as.numeric(x)[1], digits = digits, format = "fg")
+}
+
+# ── shared emitters ───────────────────────────────────────────────────────────
+# Image at a fraction of the line width; the ONLY way images enter the page.
+emit_img <- function(path, frac = 1) {
+  if (is.null(path) || !file.exists(path)) return(invisible(NULL))
+  p <- gsub("\\\\", "/", path)
+  if (is_html) {
+    cat("<img src='", p, "' style='width:", round(frac * 100), "%;height:auto' />\n",
+        sep = "")
+  } else if (is_word) {
+    cat("![](", p, "){width=", round(frac * 100), "%}\n\n", sep = "")
+  } else {
+    cat("\\includegraphics[width=", frac,
+        "\\linewidth,keepaspectratio]{", p, "}\n", sep = "")
+  }
+}
+
+# Rasterise a ggplot at .DPI and return the png path (uniform pipeline for
+# all three formats; avoids knitr fig options, which docx partly rejects)
+plot_png <- function(p, w_in, h_in) {
+  tmp <- tempfile(fileext = ".png")
+  grDevices::png(tmp, width = round(w_in * .DPI), height = round(h_in * .DPI),
+                 res = .DPI, bg = "white")
+  print(p)
+  grDevices::dev.off()
+  tmp
+}
+
+# Section divider + bold title (+ gray note); Word gets a markdown heading
+sec <- function(title, note = NULL) {
+  if (is_html) {
+    cat("\n<hr class='ert-rule-thin' />\n")
+    cat("<p><strong>", html_esc(title), "</strong>", sep = "")
+    if (!is.null(note) && nzchar(note))
+      cat(" <span class='ert-gray'><small>", html_esc(note), "</small></span>",
+          sep = "")
+    cat("</p>\n")
+  } else if (is_word) {
+    cat("\n## ", title, if (!is.null(note) && nzchar(note))
+      paste0(" (", note, ")") else "", "\n\n", sep = "")
+  } else {
+    cat("\n\\vspace{8pt}\n")
+    cat("\\textcolor{ert_blue}{\\rule{\\linewidth}{0.6pt}}\\par\\vspace{2pt}\n")
+    cat("\\textbf{\\small ", tex_esc(title), "}", sep = "")
+    if (!is.null(note) && nzchar(note))
+      cat(" \\textcolor{ert_gray}{\\small ", tex_esc(note), "}", sep = "")
+    cat("\\par\\vspace{2pt}\n")
+  }
+}
+
+# One table pipeline: prune empty columns/rows, round numerics, kable per
+# format. kable does the escaping (single-escaped, never double).
+tbl <- function(df, caption = NULL, digits = 4L) {
+  if (is.null(df) || nrow(df) == 0) return(invisible(NULL))
+  keep <- vapply(df, function(x) {
+    if (is.character(x)) any(!is.na(x) & nzchar(x)) else any(!is.na(x))
+  }, logical(1))
+  df <- df[, keep, drop = FALSE]
+  if (ncol(df) == 0) return(invisible(NULL))
+  for (i in seq_along(df)) {
+    if (is.numeric(df[[i]])) df[[i]] <- signif(df[[i]], digits)
+  }
+  if (!is.null(caption) && nzchar(caption)) {
+    if (is_html) cat("<p><strong>", html_esc(caption), "</strong></p>\n", sep = "")
+    else if (is_word) cat("**", caption, "**\n\n", sep = "")
+    else cat("{\\small\\bfseries ", tex_esc(caption), "}\\par\\vspace{1pt}\n",
+             sep = "")
+  }
+  k <- if (is_html) {
+    knitr::kable(df, format = "html", row.names = FALSE,
+                 table.attr = "class='kable-table'")
+  } else if (is_word) {
+    knitr::kable(df, format = "pipe", row.names = FALSE)
+  } else {
+    knitr::kable(df, format = "latex", booktabs = TRUE, linesep = "",
+                 row.names = FALSE)
+  }
+  cat(k, sep = "\n")
+  cat("\n")
 }
 ```
 
@@ -90,80 +187,123 @@ fmt_val   <- function(x, digits = 3L) {
 if (is_html) {
   cat("<style>
 body       { font-family: Arial, sans-serif; font-size: 13px; margin: 20px; }
-h1         { font-size: 18px; color: #1f497d; margin-bottom: 4px; }
+h1, h2     { color: #1f497d; }
 .ert-gray  { color: #808080; }
-.ert-rule  { border-top: 2px solid #1f497d; margin: 8px 0 4px 0; }
-.ert-rule-thin { border-top: 1px solid #c0c0c0; margin: 6px 0 4px 0; }
+.ert-rule      { border: none; border-top: 2px solid #1f497d; margin: 8px 0 4px; }
+.ert-rule-thin { border: none; border-top: 1px solid #1f497d; margin: 6px 0 4px; }
+.ert-two-col   { display: flex; gap: 20px; align-items: flex-start; }
+.ert-col-main  { flex: 0 0 52%; min-width: 0; }
+.ert-col-side  { flex: 0 0 45%; min-width: 0; }
 .ert-kp-table  { border-collapse: collapse; font-size: 12px; }
 .ert-kp-table td { padding: 2px 12px 2px 0; vertical-align: top; }
-table.kable-table { width: 100%; border-collapse: collapse; font-size: 11px; }
-table.kable-table th { background: #1f497d; color: white; padding: 3px 6px; }
-table.kable-table td { padding: 2px 6px; border-bottom: 1px solid #e0e0e0; }
+.ert-kp-table td:first-child { font-family: monospace; }
+table.kable-table { border-collapse: collapse; font-size: 11px; margin: 4px 0 8px; }
+table.kable-table th { border-top: 1.5px solid #333; border-bottom: 1px solid #888;
+                       padding: 3px 12px 3px 4px; text-align: left; }
+table.kable-table td { border: none; padding: 2px 12px 2px 4px; }
+table.kable-table tbody tr:last-child td { border-bottom: 1.5px solid #333; }
+table.kable-table tbody tr:nth-child(odd) { background: #f7f7f7; }
 </style>\n")
 }
 ```
 
 ```{r header, results='asis'}
 # ------------------------------------------------------------------------------
-#  PAGE HEADER: name (left) + optional image (right)
+#  PAGE HEADER: name + description (left), optional image (right)
 # ------------------------------------------------------------------------------
 has_img <- !is.null(params$image_file) && nzchar(params$image_file) &&
            file.exists(params$image_file)
 
 if (is_html) {
-  cat("<div style='display:flex;align-items:flex-start;justify-content:space-between;gap:12px'>\n")
-  cat("<div>\n")
-  cat("<h1>", html_esc(params$name), "</h1>\n", sep = "")
+  cat("<div class='ert-two-col'>\n<div style='flex:1;min-width:0'>\n")
+  cat("<h1 style='margin:0 0 4px'>", html_esc(params$name), "</h1>\n", sep = "")
   if (nzchar(params$desc))
-    cat("<p class='ert-gray' style='margin:2px 0 8px 0;font-size:11px'>",
+    cat("<p class='ert-gray' style='margin:2px 0 8px 0'>",
         html_esc(params$desc), "</p>\n", sep = "")
   cat("</div>\n")
-  if (has_img)
-    cat("<img src='", params$image_file, "' style='max-height:70px;max-width:120px' />\n",
-        sep = "")
-  cat("</div>\n")
-  cat("<hr class='ert-rule' />\n")
-} else {
-  # LaTeX: minipage layout
-  img_width <- if (has_img) "0.22\\textwidth" else "0pt"
-  txt_width <- if (has_img) "0.75\\textwidth" else "\\textwidth"
-  cat("\\begin{minipage}[t]{", txt_width, "}\n", sep = "")
-  cat("\\textcolor{ert_blue}{\\Large\\bfseries ", tex_esc(params$name), "}\\par\n", sep = "")
-  if (nzchar(params$desc))
-    cat("\\textcolor{ert_gray}{\\small ", tex_esc(params$desc), "}\\par\n", sep = "")
-  cat("\\end{minipage}\n")
   if (has_img) {
-    img_path <- gsub("\\\\", "/", params$image_file)
-    cat("\\begin{minipage}[t]{0.22\\textwidth}\n")
-    cat("\\raggedleft\n")
-    cat("\\includegraphics[width=\\linewidth,height=18mm,keepaspectratio]{", img_path, "}\n",
+    cat("<div style='flex:0 0 ", round(.HDR_IMG * 100), "%;min-width:0'>\n",
         sep = "")
+    emit_img(params$image_file, 1)
+    cat("</div>\n")
+  }
+  cat("</div>\n<hr class='ert-rule' />\n")
+} else if (is_word) {
+  cat("# ", params$name, "\n\n", sep = "")
+  if (nzchar(params$desc)) cat("*", params$desc, "*\n\n", sep = "")
+  if (has_img) emit_img(params$image_file, .HDR_IMG + 0.1)
+} else {
+  txt_w <- if (has_img) 1 - .HDR_IMG - 0.03 else 1
+  cat("\\begin{minipage}[t]{", txt_w, "\\textwidth}\n", sep = "")
+  cat("{\\Large\\bfseries\\color{ert_blue} ", tex_esc(params$name), "}\\par\n",
+      sep = "")
+  if (nzchar(params$desc))
+    cat("{\\small\\color{ert_gray} ", tex_esc(params$desc), "}\\par\n", sep = "")
+  cat("\\end{minipage}")
+  if (has_img) {
+    cat("\\hfill\n\\begin{minipage}[t]{", .HDR_IMG, "\\textwidth}\n", sep = "")
+    cat("\\vspace{0pt}\\raggedleft\n")
+    emit_img(params$image_file, 1)
     cat("\\end{minipage}\n")
   }
+  cat("\n\\vspace{4pt}\n")
   cat("\\textcolor{ert_blue}{\\rule{\\textwidth}{1.5pt}}\\par\\vspace{4pt}\n")
 }
 ```
 
 ```{r main_body, results='asis'}
 # ------------------------------------------------------------------------------
-#  KEY PARAMETERS  (cap2act, olife, start, end, units)
+#  MAIN BODY: tables (left column) | draw() schematic (right column)
+#  Word: linear flow. Long tables (capacity, costs) go BELOW the two-column
+#  block full-width, so they can break across pages.
 # ------------------------------------------------------------------------------
-kp <- list()
-if (!is.na(params$cap2act))  kp[["cap2act"]]  <- fmt_val(params$cap2act)
-if (!is.na(params$olife))    kp[["Lifetime"]]  <- paste(params$olife,  "yr")
-if (!is.na(params$start))    kp[["Start"]]     <- as.character(params$start)
-if (!is.na(params$end))      kp[["End"]]       <- as.character(params$end)
-if (nzchar(params$units_cap))  kp[["Units (capacity)"]] <- params$units_cap
-if (nzchar(params$units_act))  kp[["Units (activity)"]] <- params$units_act
+has_draw <- !is.null(params$draw_file) && file.exists(params$draw_file)
 
-if (length(kp) > 0) {
+# combined Inputs / Outputs
+io_df <- NULL
+add_io <- function(df, dir) {
+  if (is.null(df) || nrow(df) == 0) return(NULL)
+  tmp <- df
+  tmp$dir <- dir
+  tmp[, intersect(c("dir", "comm", "unit", "group"), names(tmp)), drop = FALSE]
+}
+io_parts <- Filter(Negate(is.null),
+                   list(add_io(params$input_df, "Input"),
+                        add_io(params$output_df, "Output")))
+if (length(io_parts) > 0) {
+  all_cols <- unique(unlist(lapply(io_parts, names)))
+  io_parts <- lapply(io_parts, function(d) {
+    for (cc in setdiff(all_cols, names(d))) d[[cc]] <- NA
+    d[, all_cols, drop = FALSE]
+  })
+  io_df <- do.call(rbind, io_parts)
+}
+
+key_params_table <- function() {
+  kp <- list()
+  if (!is.na(params$cap2act)) kp[["cap2act"]] <- fmt_val(params$cap2act)
+  if (!is.na(params$olife))   kp[["olife"]]   <- paste(params$olife, "yr")
+  if (!is.na(params$start))   kp[["start"]]   <- as.character(params$start)
+  if (!is.na(params$end))     kp[["end"]]     <- as.character(params$end)
+  if (!is.na(params$stock))   kp[["stock"]]   <-
+    paste(fmt_val(params$stock), params$units_cap)
+  if (nzchar(params$units_cap))   kp[["cap unit"]]  <- params$units_cap
+  if (nzchar(params$units_act))   kp[["act unit"]]  <- params$units_act
+  if (nzchar(params$units_costs)) kp[["cost unit"]] <- params$units_costs
+  if (length(kp) == 0) return(invisible(NULL))
   if (is_html) {
+    cat("<p><strong>Key Parameters</strong></p>\n")
     cat("<table class='ert-kp-table'><tbody>\n")
     for (k in names(kp))
-      cat("  <tr><td>", html_esc(k), "</td><td><strong>", html_esc(as.character(kp[[k]])),
-          "</strong></td></tr>\n", sep = "")
+      cat("  <tr><td>", html_esc(k), "</td><td><strong>",
+          html_esc(as.character(kp[[k]])), "</strong></td></tr>\n", sep = "")
     cat("</tbody></table>\n")
+  } else if (is_word) {
+    cat("**Key Parameters**\n\n")
+    tbl(data.frame(parameter = names(kp),
+                   value = unlist(kp, use.names = FALSE)))
   } else {
+    cat("{\\small\\bfseries Key Parameters}\\par\\vspace{1pt}\n")
     cat("\\begin{tabular}{@{}ll@{}}\n")
     for (k in names(kp))
       cat("  \\small\\texttt{", tex_esc(k), "} & {\\bfseries\\small ",
@@ -172,285 +312,287 @@ if (length(kp) > 0) {
   }
 }
 
-# -- INPUTS / OUTPUTS ---------------------------------------------------------
-render_comms_table <- function(df, title) {
-  if (is.null(df) || nrow(df) == 0) return(invisible(NULL))
-  preferred_cols <- c("comm", "region", "agg", "share.lo", "share.up", "share.fx",
-                      "act.lo", "act.up", "act.fx")
-  keep <- intersect(preferred_cols, names(df))
-  show <- df[, keep, drop = FALSE]
-  show <- show[, colSums(!is.na(show)) > 0, drop = FALSE]
+left_tables <- function() {
+  key_params_table()
+  tbl(params$vintage_df, caption = "Vintages")
+  tbl(io_df,             caption = "Inputs / Outputs")
+  tbl(params$ceff_df,    caption = "Efficiency (ceff)")
+}
 
-  if (is_html) {
-    cat("<hr class='ert-rule-thin' />\n")
-    cat("<p><strong>", html_esc(title), "</strong></p>\n", sep = "")
-    cat(knitr::kable(show, format = "html",
-                     table.attr = "class='kable-table'", row.names = FALSE), "\n")
-  } else {
-    cat("\\textcolor{ert_blue}{\\rule{\\textwidth}{0.6pt}}\\par\\vspace{2pt}\n")
-    cat("\\textbf{\\small ", tex_esc(title), "}\\par\\vspace{2pt}\n", sep = "")
-    cat(knitr::kable(show, format = "latex", booktabs = TRUE,
-                     linesep = "", row.names = FALSE), "\n")
+if (is_html) {
+  cat("<div class='ert-two-col'>\n<div class='ert-col-main'>\n")
+  left_tables()
+  cat("</div>\n")
+  if (has_draw) {
+    cat("<div class='ert-col-side'>\n<p><strong>Schematic</strong></p>\n")
+    emit_img(params$draw_file, 1)
+    cat("</div>\n")
+  }
+  cat("</div>\n")
+} else if (is_word) {
+  left_tables()
+  if (has_draw) {
+    cat("\n## Schematic\n\n")
+    emit_img(params$draw_file, 0.8)
+  }
+} else {
+  left_w <- if (has_draw) .MAIN else 1
+  cat("\\begin{minipage}[t]{", left_w, "\\textwidth}\n\\vspace{0pt}\n", sep = "")
+  left_tables()
+  cat("\\end{minipage}\n")
+  if (has_draw) {
+    cat("\\hfill\n\\begin{minipage}[t]{", .SIDE, "\\textwidth}\n", sep = "")
+    cat("\\vspace{0pt}\n{\\small\\bfseries Schematic}\\par\\vspace{2pt}\n")
+    emit_img(params$draw_file, 1)
+    cat("\\end{minipage}\n\\par\n")
   }
 }
 
-render_comms_table(params$input_df,  "Inputs")
-render_comms_table(params$output_df, "Outputs")
-
-# -- EFFICIENCY (ceff) ---------------------------------------------------------
-if (!is.null(params$ceff_df) && nrow(params$ceff_df) > 0) {
-  if (is_html) {
-    cat("<hr class='ert-rule-thin' />\n")
-    cat("<p><strong>Efficiency (ceff)</strong></p>\n")
-    cat(knitr::kable(params$ceff_df, format = "html",
-                     table.attr = "class='kable-table'", row.names = FALSE), "\n")
-  } else {
-    cat("\\textcolor{ert_blue}{\\rule{\\textwidth}{0.6pt}}\\par\\vspace{2pt}\n")
-    cat("\\textbf{\\small Efficiency (ceff)}\\par\\vspace{2pt}\n")
-    cat(knitr::kable(params$ceff_df, format = "latex", booktabs = TRUE,
-                     linesep = "", row.names = FALSE), "\n")
-  }
-}
-
-# -- DRAW SCHEMATIC ------------------------------------------------------------
-if (!is.null(params$draw_file) && file.exists(params$draw_file)) {
-  draw_path <- gsub("\\\\", "/", params$draw_file)
-  if (is_html) {
-    cat("<hr class='ert-rule-thin' />\n")
-    cat("<img src='", draw_path,
-        "' style='display:block;max-width:100%;height:auto;margin:4px 0' />\n",
-        sep = "")
-  } else {
-    cat("\\textcolor{ert_blue}{\\rule{\\textwidth}{0.6pt}}\n")
-    cat("\\vspace{4pt}\n")
-    cat("\\includegraphics[width=\\textwidth,height=40mm,keepaspectratio]{",
-        draw_path, "}\n", sep = "")
-    cat("\\vspace{2pt}\n")
-  }
+# capacity bounds flow full-width below (may be long)
+if (!is.null(params$cap_df) && nrow(params$cap_df) > 0) {
+  sec("Capacity bounds", params$units_cap)
+  tbl(params$cap_df)
 }
 ```
 
 ```{r costs_section, results='asis'}
 # ------------------------------------------------------------------------------
-#  COSTS  (single-value key-param table, or multi-year chart below)
+#  COSTS -- one tidy table (per vintage / region / year when keyed);
+#  a year chart replaces the table when costs vary over years
 # ------------------------------------------------------------------------------
-cost_list <- list(
-  invcost = params$invcost_df,
-  fixom   = params$fixom_df,
-  varom   = params$varom_df
-)
-cost_list <- Filter(Negate(is.null), cost_list)
+cost_labels <- c(invcost = "Investment cost", fixom = "Fixed O&M",
+                 varom = "Variable O&M")
+cost_list <- Filter(Negate(is.null),
+                    list(invcost = params$invcost_df,
+                         fixom   = params$fixom_df,
+                         varom   = params$varom_df))
 
+tidy_costs <- NULL
 if (length(cost_list) > 0) {
-  if (is_html) {
-    cat("\n<hr class='ert-rule-thin' />\n")
-    cat("<p><strong>Costs</strong>")
-    if (nzchar(params$units_costs))
-      cat(" <span class='ert-gray'><small>[", html_esc(params$units_costs), "]</small></span>", sep = "")
-    cat("</p>\n")
-  } else {
-    cat("\n\\vspace{8pt}\n")
-    cat("\\textcolor{ert_blue}{\\rule{\\textwidth}{0.6pt}}\n")
-    cat("\\vspace{4pt}\n")
-    cat("\\textbf{\\small Costs}")
-    if (nzchar(params$units_costs))
-      cat(" \\textcolor{ert_gray}{\\small [", tex_esc(params$units_costs), "]}", sep = "")
-    cat("\\par\n")
-  }
-
   tidy_costs <- do.call(rbind, lapply(names(cost_list), function(ct) {
     df <- cost_list[[ct]]
     cost_col <- if (ct %in% names(df)) ct else {
-      cands <- setdiff(names(df), c("region", "year"))
+      cands <- setdiff(names(df), c("vintage", "cluster", "region", "year"))
       if (length(cands) > 0) cands[1] else return(NULL)
     }
-    year_col <- if ("year" %in% names(df)) df$year else rep(NA_integer_, nrow(df))
-    data.frame(cost_type = ct, year = year_col, value = df[[cost_col]],
-               stringsAsFactors = FALSE)
+    out <- data.frame(cost = rep(unname(cost_labels[ct]), nrow(df)),
+                      stringsAsFactors = FALSE)
+    for (cc in c("vintage", "cluster", "region", "year"))
+      out[[cc]] <- if (cc %in% names(df)) df[[cc]] else rep(NA, nrow(df))
+    out$value <- df[[cost_col]]
+    out
   }))
   tidy_costs <- tidy_costs[!is.na(tidy_costs$value), , drop = FALSE]
+}
 
-  multi_year <- !all(is.na(tidy_costs$year)) &&
-                length(unique(tidy_costs$year[!is.na(tidy_costs$year)])) > 1
+if (!is.null(tidy_costs) && nrow(tidy_costs) > 0) {
+  multi_year <- length(unique(tidy_costs$year[!is.na(tidy_costs$year)])) > 1
+
+  sec("Costs", if (nzchar(params$units_costs))
+    paste0("[", params$units_costs, "]") else NULL)
 
   if (!multi_year) {
-    parts <- tapply(tidy_costs$value, tidy_costs$cost_type, function(v) fmt_val(v[1]))
-    cost_labels <- c(invcost = "Investment cost", fixom = "Fixed O&M",
-                     varom = "Variable O&M")
-    if (is_html) {
-      cat("<table class='ert-kp-table'><tbody>\n")
-      for (nm in names(parts)) {
-        lbl <- if (nm %in% names(cost_labels)) cost_labels[[nm]] else html_esc(nm)
-        cat("  <tr><td>", lbl, "</td><td><strong>", parts[[nm]], "</strong></td></tr>\n", sep = "")
+    show <- tidy_costs[, c("cost", "vintage", "cluster", "region", "value"),
+                       drop = FALSE]
+    tbl(show)
+  } else {
+    # Lines only where they mean something: a line through one point per
+    # vintage would fake a cross-vintage time series. Each vintage's segment
+    # spans the years where the cost APPLIES -- invcost over the vintage's
+    # investment window (start..end), O&M over its potential lifespan
+    # (start .. end + olife - 1) -- with back.inter.forth interpolation
+    # (linear inside, constant beyond), matching the model.
+    vd  <- params$vintage_df
+    fin <- function(x) x[is.finite(x)]
+    x_cap <- suppressWarnings(max(fin(c(
+      tidy_costs$year,
+      if (!is.null(vd)) c(as.numeric(vd$start), as.numeric(vd$end))))))
+    segs <- list()
+    for (ct in unique(tidy_costs$cost)) {
+      sub_ct <- tidy_costs[tidy_costs$cost == ct, , drop = FALSE]
+      for (v in unique(sub_ct$vintage)) {
+        r <- if (is.na(v)) sub_ct[is.na(sub_ct$vintage), , drop = FALSE] else
+          sub_ct[!is.na(sub_ct$vintage) & sub_ct$vintage == v, , drop = FALSE]
+        if (nrow(r) == 0) next
+        vr <- if (!is.null(vd) && !is.na(v) && "vintage" %in% names(vd))
+          vd[!is.na(vd$vintage) & vd$vintage == v, , drop = FALSE] else NULL
+        vs <- function(col) {
+          if (!is.null(vr) && nrow(vr) > 0 && col %in% names(vr) &&
+              is.finite(suppressWarnings(as.numeric(vr[[col]][1]))))
+            as.numeric(vr[[col]][1]) else NA_real_
+        }
+        s0 <- vs("start")
+        if (!is.finite(s0)) s0 <- suppressWarnings(min(fin(r$year)))
+        if (!is.finite(s0)) s0 <- suppressWarnings(min(fin(tidy_costs$year)))
+        e0 <- vs("end")
+        if (!is.finite(e0)) e0 <- x_cap
+        ol <- vs("olife")
+        xe <- if (ct == "Investment cost") e0 else
+          if (is.finite(ol)) e0 + ol - 1 else e0
+        if (!is.finite(xe) || xe < s0) xe <- max(s0, e0, na.rm = TRUE)
+        xs <- seq(s0, xe)
+        ry <- fin(unique(r$year))
+        yy <- if (length(ry) < 2) rep(r$value[1], length(xs)) else
+          stats::approx(r$year, r$value, xout = xs, rule = 2)$y
+        segs[[length(segs) + 1L]] <- data.frame(
+          cost = ct, vintage = if (is.na(v)) "all" else as.character(v),
+          year = xs, value = yy, stringsAsFactors = FALSE)
       }
-      cat("</tbody></table>\n")
-    } else {
-      cost_labels_tex <- c(invcost = "Investment cost", fixom = "Fixed O\\&M",
-                           varom = "Variable O\\&M")
-      cat("\\begin{tabular}{@{}ll@{}}\n")
-      for (nm in names(parts)) {
-        lbl <- if (nm %in% names(cost_labels_tex)) cost_labels_tex[[nm]] else tex_esc(nm)
-        cat("  \\texttt{", lbl, "} & {\\bfseries ", parts[[nm]], "} \\\\\n", sep = "")
-      }
-      cat("\\end{tabular}\n")
     }
-  }
-}
-```
-
-```{r costs_chart, fig.height=2.2, fig.width=6.5, fig.align='center', out.width='100%'}
-cost_list2 <- list(
-  invcost = params$invcost_df,
-  fixom   = params$fixom_df,
-  varom   = params$varom_df
-)
-cost_list2 <- Filter(Negate(is.null), cost_list2)
-
-if (length(cost_list2) > 0) {
-  tidy2 <- do.call(rbind, lapply(names(cost_list2), function(ct) {
-    df <- cost_list2[[ct]]
-    cost_col <- if (ct %in% names(df)) ct else {
-      cands <- setdiff(names(df), c("region", "year"))
-      if (length(cands) > 0) cands[1] else return(NULL)
-    }
-    year_col <- if ("year" %in% names(df)) df$year else rep(NA_integer_, nrow(df))
-    data.frame(cost_type = ct, year = year_col, value = df[[cost_col]],
-               stringsAsFactors = FALSE)
-  }))
-  tidy2 <- tidy2[!is.na(tidy2$value), , drop = FALSE]
-
-  multi_year2 <- !all(is.na(tidy2$year)) &&
-                 length(unique(tidy2$year[!is.na(tidy2$year)])) > 1
-
-  if (multi_year2) {
-    cost_labels2 <- c(invcost = "Investment cost", fixom = "Fixed O&M",
-                      varom = "Variable O&M")
-    tidy2$label <- ifelse(tidy2$cost_type %in% names(cost_labels2),
-                          cost_labels2[tidy2$cost_type], tidy2$cost_type)
+    sd <- do.call(rbind, segs)
+    pts <- tidy_costs[!is.na(tidy_costs$year), , drop = FALSE]
+    pts$vintage <- ifelse(is.na(pts$vintage), "all", as.character(pts$vintage))
     y_lab <- if (nzchar(params$units_costs)) params$units_costs else "Cost"
-    p <- ggplot2::ggplot(tidy2, ggplot2::aes(x = year, y = value,
-                                              colour = label, group = label)) +
+    p <- ggplot2::ggplot(sd, ggplot2::aes(x = year, y = value,
+                                          colour = vintage, group = vintage)) +
       ggplot2::geom_line(linewidth = 0.8) +
-      ggplot2::geom_point(size = 1.5) +
-      ggplot2::scale_colour_manual(
-        values = c("Investment cost" = "#1f497d",
-                   "Fixed O&M"       = "#4BACC6",
-                   "Variable O&M"    = "#F79646"),
-        name = NULL) +
-      ggplot2::labs(x = "Year", y = y_lab) +
+      ggplot2::geom_point(data = pts, size = 1.5) +
+      ggplot2::labs(x = "Year", y = y_lab, colour = "vintage") +
       ggplot2::theme_minimal(base_size = 9) +
-      ggplot2::theme(
-        legend.position  = "bottom",
-        panel.grid.minor = ggplot2::element_blank(),
-        plot.margin      = ggplot2::margin(2, 2, 2, 2)
-      ) +
-      ggplot2::facet_wrap(~ label, scales = "free_y", nrow = 1)
-    print(p)
+      ggplot2::theme(legend.position = "bottom",
+                     panel.grid.minor = ggplot2::element_blank(),
+                     plot.margin = ggplot2::margin(2, 2, 2, 2)) +
+      ggplot2::facet_wrap(~ cost, scales = "free_y", nrow = 1)
+    emit_img(plot_png(p, 6.5, 2.4), 1)
   }
 }
 ```
 
 ```{r share_frontier_section, results='asis'}
 # ------------------------------------------------------------------------------
-#  SHARE MIX CONSTRAINTS - diagonal commodity-vs-rest chart
+#  SHARE MIX CONSTRAINTS -- grid of geometric share panels
 # ------------------------------------------------------------------------------
-has_sfr <- !is.null(params$share_frontier_plot)
-
-if (has_sfr) {
-  if (is_html) {
-    cat("\n<hr class='ert-rule-thin' />\n")
-    cat("<p><strong>Share Mix Constraints</strong></p>\n")
-  } else {
-    cat("\n\\vspace{8pt}\n")
-    cat("\\textcolor{ert_blue}{\\rule{\\textwidth}{0.6pt}}\n")
-    cat("\\vspace{4pt}\n")
-    cat("\\textbf{\\small Share Mix Constraints}\\par\\vspace{2pt}\n")
-  }
-
-  sfr_list  <- params$share_frontier_plot
-  n_per_row <- attr(sfr_list, "n_per_row")
-  if (is.null(n_per_row)) n_per_row <- min(length(sfr_list), 4L)
-  n_panels  <- length(sfr_list)
-  n_rows    <- ceiling(n_panels / n_per_row)
-  panel_px  <- if (is_html) 320L else 280L
-  res_dpi   <- if (is_html)  96L else 150L
-
-  if (is_html) {
-    css_px <- round(panel_px / res_dpi * 72)
-    cat("<div style='display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start'>\n")
-    for (p_i in sfr_list) {
-      tmp_i <- tempfile(fileext = ".png")
-      grDevices::png(tmp_i, width = panel_px, height = panel_px, res = res_dpi, bg = "white")
-      print(p_i)
-      grDevices::dev.off()
-      cat("<img src='", tmp_i, "' style='width:", css_px, "px;height:auto' />\n", sep = "")
-    }
-    cat("</div>\n")
-  } else {
-    panel_in <- round(panel_px / res_dpi, 2)
-    for (i in seq_along(sfr_list)) {
-      tmp_i <- tempfile(fileext = ".png")
-      grDevices::png(tmp_i, width = panel_px, height = panel_px, res = res_dpi, bg = "white")
-      print(sfr_list[[i]])
-      grDevices::dev.off()
-      tmp_i <- gsub("\\\\", "/", tmp_i)
-      cat("\\begin{minipage}[t]{", panel_in, "in}\n", sep = "")
-      cat("\\vspace{0pt}\n")
-      cat("\\includegraphics[width=\\linewidth,keepaspectratio]{", tmp_i, "}\n", sep = "")
+sfr_list <- params$share_frontier_plot
+if (!is.null(sfr_list) && length(sfr_list) > 0) {
+  sec("Share Mix Constraints")
+  panel_in <- .PANEL * 6.5           # fraction of a 6.5 in text width
+  if (is_html) cat("<div style='display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start'>\n")
+  for (i in seq_along(sfr_list)) {
+    pf <- plot_png(sfr_list[[i]], panel_in, panel_in)
+    if (is_latex) {
+      cat("\\begin{minipage}[t]{", .PANEL, "\\textwidth}\n\\vspace{0pt}\n",
+          sep = "")
+      emit_img(pf, 1)
       cat("\\end{minipage}\n")
-      if (i %% n_per_row == 0L && i < length(sfr_list)) cat("\\\\[2pt]\n")
+    } else {
+      emit_img(pf, if (is_word) .PANEL + 0.1 else .PANEL)
     }
+  }
+  if (is_html) cat("</div>\n")
+}
+```
+
+```{r levcost_section, results='asis'}
+# ------------------------------------------------------------------------------
+#  LEVELIZED COST -- components / frontier side by side. Rendered ONLY for a
+#  technology WITHOUT vintages: with vintages the by-vintage section already
+#  shows every instance, and a second single-instance figure just repeats one
+#  of its bars.
+# ------------------------------------------------------------------------------
+has_lc <- !is.null(params$levcost_plot)
+has_fr <- !is.null(params$frontier_plot)
+has_vint <- !is.null(params$levcost_variants_plot) ||
+  (!is.null(params$levcost_by_vintage_df) &&
+     nrow(params$levcost_by_vintage_df) > 0)
+
+# Cost per unit of output. When the cost unit ALREADY carries a denominator
+# (a user-supplied cost_unit like "EUR/MWh"), pass it through -- appending
+# the activity unit again produced "EUR/MWh/GWh".
+lcoe_unit <- if (grepl("/", params$units_costs, fixed = TRUE) ||
+                 !nzchar(params$units_act) || !nzchar(params$units_costs)) {
+  params$units_costs
+} else {
+  paste0(params$units_costs, "/", params$units_act)
+}
+
+# "Levelized cost per unit of <output commodity>" -- the output is not
+# necessarily energy, so no hardwired "LCOE"
+out_comm_lbl <- if (!is.null(params$output_df) && "comm" %in% names(params$output_df))
+  paste(unique(params$output_df$comm), collapse = " + ") else ""
+lc_title <- if (nzchar(out_comm_lbl))
+  paste0("Levelized Cost per unit of ", out_comm_lbl) else "Levelized Cost"
+
+if (!has_vint && (has_lc || has_fr)) {
+  npv_note <- NULL
+  if (!is.null(params$levcost_npv) && is.finite(params$levcost_npv)) {
+    npv_note <- paste0("NPV: ", fmt_val(params$levcost_npv),
+                       if (nzchar(lcoe_unit)) paste0(" ", lcoe_unit) else "")
+  }
+  sec(lc_title, npv_note)
+
+  if (has_lc && has_fr) {
+    f_main <- plot_png(params$levcost_plot,  .LC_MAIN * 6.5, 3.2)
+    f_side <- plot_png(params$frontier_plot, .LC_SIDE * 6.5, 3.2)
+    if (is_html) {
+      cat("<div class='ert-two-col'>\n<div style='flex:0 0 ",
+          round(.LC_MAIN * 100), "%;min-width:0'>\n", sep = "")
+      emit_img(f_main, 1)
+      cat("</div>\n<div style='flex:0 0 ", round(.LC_SIDE * 100),
+          "%;min-width:0'>\n", sep = "")
+      emit_img(f_side, 1)
+      cat("</div>\n</div>\n")
+    } else if (is_word) {
+      emit_img(f_main, 0.9)
+      emit_img(f_side, 0.7)
+    } else {
+      cat("\\begin{minipage}[t]{", .LC_MAIN, "\\textwidth}\n\\vspace{0pt}\n",
+          sep = "")
+      emit_img(f_main, 1)
+      cat("\\end{minipage}\\hfill\n")
+      cat("\\begin{minipage}[t]{", .LC_SIDE, "\\textwidth}\n\\vspace{0pt}\n",
+          sep = "")
+      emit_img(f_side, 1)
+      cat("\\end{minipage}\n\\par\n")
+    }
+  } else {
+    # a lone plot gets more room -- narrow rasters crop bottom legends
+    only <- if (has_lc) params$levcost_plot else params$frontier_plot
+    emit_img(plot_png(only, 0.72 * 6.5, 3.0), 0.72)
   }
 }
 ```
 
-```{r levcost_section, results='asis', fig.height=3.5, fig.width=6.5, fig.align='center', out.width='100%'}
+```{r levcost_by_vintage, results='asis'}
 # ------------------------------------------------------------------------------
-#  LEVELIZED COST  -  NPV breakdown + input frontier (side by side when both)
+#  LEVELIZED COST BY VINTAGE -- comparison chart + per-vintage NPV table.
+#  For a vintaged technology this is THE levelized-cost section (the
+#  single-instance figure above is suppressed); the instance frontier plot,
+#  when available, rides along here.
 # ------------------------------------------------------------------------------
-has_lc <- !is.null(params$levcost_plot)
-has_fr <- !is.null(params$frontier_plot)
+lv_df <- params$levcost_by_vintage_df
+if (has_vint) {
+  sec(paste0(lc_title, ", by vintage"),
+      if (nzchar(lcoe_unit)) paste0("[", lcoe_unit, "]") else NULL)
 
-if (has_lc || has_fr) {
-
-  # -- section header -------------------------------------------------------
-  npv_str <- if (!is.null(params$levcost_npv) && is.finite(params$levcost_npv))
-    formatC(as.numeric(params$levcost_npv), digits = 4, format = "g") else NULL
-
-  if (is_html) {
-    cat("\n<hr class='ert-rule-thin' />\n")
-    cat("<p><strong>Levelized Cost of Energy (LCOE)</strong>")
-    if (!is.null(npv_str)) {
-      lbl <- if (nzchar(params$units_costs)) paste0(npv_str, " ", params$units_costs) else npv_str
-      cat(" <span class='ert-gray'><small>NPV: ", html_esc(lbl), "</small></span>", sep = "")
-    }
-    cat("</p>\n")
-  } else {
-    cat("\n\\vspace{8pt}\n")
-    cat("\\textcolor{ert_blue}{\\rule{\\textwidth}{0.6pt}}\n")
-    cat("\\vspace{4pt}\n")
-    cat("\\textbf{\\small Levelized Cost of Energy (LCOE)}")
-    if (!is.null(npv_str)) {
-      lbl <- if (nzchar(params$units_costs)) paste0(npv_str, " ", params$units_costs) else npv_str
-      cat(" \\textcolor{ert_gray}{\\small NPV: ", tex_esc(lbl), "}", sep = "")
-    }
-    cat("\\par\\vspace{4pt}\n")
+  if (!is.null(params$levcost_variants_plot)) {
+    n_var <- if (!is.null(lv_df)) nrow(lv_df) else 4L
+    # wide enough that the bottom component legend never crops
+    w_in <- min(6.5, max(4.8, 2.2 + 1.0 * n_var))
+    emit_img(plot_png(params$levcost_variants_plot, w_in, 2.8),
+             w_in / 6.5)
   }
 
-  # -- render charts inline -------------------------------------------------
-  # Determine how many plots we have and set widths accordingly
-  plots_available <- Filter(Negate(is.null), list(params$levcost_plot, params$frontier_plot))
-  n_plots <- length(plots_available)
-
-  if (n_plots == 1L) {
-    print(plots_available[[1]])
-  } else if (n_plots == 2L) {
-    if (!requireNamespace("gridExtra", quietly = TRUE)) {
-      # Fall back: print sequentially
-      for (pp in plots_available) print(pp)
-    } else {
-      gridExtra::grid.arrange(grobs = plots_available, nrow = 1)
+  if (!is.null(lv_df) && nrow(lv_df) > 0) {
+    show <- lv_df
+    if ("levcost_npv" %in% names(show)) {
+      names(show)[names(show) == "levcost_npv"] <- "levcost (NPV)"
     }
+    show <- show[, setdiff(names(show), "tech"), drop = FALSE]
+    tbl(show)
+  }
+
+  if (has_fr) {
+    if (!is.null(params$levcost_instance_label) &&
+        nzchar(params$levcost_instance_label)) {
+      note <- paste0("Production frontier (instance: ",
+                     params$levcost_instance_label, ")")
+      if (is_html) cat("<p class='ert-gray'><small>", html_esc(note),
+                       "</small></p>\n", sep = "")
+      else if (is_word) cat("*", note, "*\n\n", sep = "")
+      else cat("{\\small\\color{ert_gray} ", tex_esc(note),
+               "}\\par\\vspace{2pt}\n", sep = "")
+    }
+    emit_img(plot_png(params$frontier_plot, .LC_SIDE * 6.5, 3.0), .LC_SIDE)
   }
 }
 ```

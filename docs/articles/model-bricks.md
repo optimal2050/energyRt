@@ -90,7 +90,7 @@ A source of a commodity, with an availability bound and a cost (see the
 SUP_COA <- newSupply(
   name = "SUP_COA", desc = "Coal supply", commodity = "COA", unit = "PJ",
   reserve = data.frame(region = "R1", res.up = 2e5),
-  supply = data.frame(region = "R1", year = NA_integer_, slice = "ANNUAL",
+  supply = data.frame(region = "R1", year = NA_integer_, timeslice = "ANNUAL",
                             ava.up = 1e3, cost = 10))
 draw(SUP_COA)
 ```
@@ -99,13 +99,13 @@ draw(SUP_COA)
 
 ### demand
 
-A commodity sink; `dem` is the demanded quantity over years/slices.
+A commodity sink; `dem` is the demanded quantity over years/timeslices.
 
 ``` r
 
 DEM_ELC <- newDemand(
   name = "DEM_ELC", desc = "Electricity demand", commodity = "ELC", unit = "GWh",
-  demand = data.frame(region = "R1", year = c(2020, 2050), slice = "ANNUAL",
+  demand = data.frame(region = "R1", year = c(2020, 2050), timeslice = "ANNUAL",
                    demand = c(100, 300)))
 draw(DEM_ELC)
 ```

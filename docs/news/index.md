@@ -1,5 +1,169 @@
 # Changelog
 
+## energyRt 0.80 (development) — the time dimension is now `timeslice`
+
+### Object autoplots actually plot: points + interpolation, defaults on demand
+
+- Fixed the defect that made
+  [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+  on supply / import / export / technology / storage objects report
+  **“No year-indexed data to plot”** for virtually every object: the
+  plot passed `year = NULL` into
+  [`getData()`](https://energyRt.org/reference/getData.md)‘s `...`,
+  where a NULL selector matched *nothing* and dropped every row.
+  NULL/empty filters are now ignored (a fix to
+  [`getData()`](https://energyRt.org/reference/getData.md) for objects
+  generally), and the plots’ `year` argument is routed as the
+  interpolation grid (`getData(years = )`), so
+  `autoplot(x, year = 2020:2050)` extends the lines beyond the given
+  years.
+- The intended display — **points for given data, lines for the
+  interpolated series** — now actually renders; new argument
+  `interpolate = TRUE` (set `FALSE` for given data only). Also on the
+  tax/subsidy/constraint and demand plots.
+- New `show_defaults = FALSE` argument (process classes): when `TRUE`,
+  parameters mapped to the model but not set in the object are drawn as
+  dotted lines at their **default values** (e.g. `ava.lo = 0`);
+  non-finite defaults (`ava.up = Inf`) are listed in the caption.
+- Fixed the silently-empty parameter registry behind
+  `getData(interpolate = TRUE)`: it read `.modInp@parameters`, but the
+  baked-in `.modInp` is the plain YAML list — every lookup fell back to
+  generic interpolation. The registry is now built from the list (with
+  bounds params expanded to `.lo/.up/.fx` columns and stale YAML slot
+  names aliased: supply/import/export `availability`, demand `dem`), so
+  object interpolation uses each parameter’s own rule and default.
+  Interpolation expands only *given* columns — defaults never
+  materialise uninvited.
+- Also fixed: `getData(object, interpolate = TRUE)` crashed on any empty
+  data-frame slot; demand plots dropped region-NA rows on aggregation.
+- New test suite `test-autoplot-objects.R`; the autoplot vignette’s
+  `years =` example corrected to `year =` (it was silently ignored).
+
+### Technology reports: vintages, consistent layout, working PDF and docx
+
+[`report()`](https://energyRt.org/reference/report.md) and the tech
+templates were overhauled around the vehicle datasheet layout:
+
+- **Per-vintage levelized costs.** A `levcost_variants` result is no
+  longer silently reduced to its first variant: the generic report gains
+  a “Levelized Cost by Vintage” section (component-stacked comparison
+  chart + per-vintage NPV table), a **Vintages** table, and per-vintage
+  cost tables (a per-vintage `invcost` used to display only its first
+  row). The detail figures (components, frontier) show ONE instance —
+  newest vintage, first cluster, same convention as the designer —
+  re-priced with the same arguments (analytic, instant) and labeled in
+  the section header. Key-parameter scalars (`olife`/`start`/`end`) go
+  blank when several vintages make them ambiguous.
+- **`report_generic.Rmd` rebuilt** on the vehicle two-column layout with
+  ONE sizing system: fractions of the text width shared by HTML and
+  LaTeX (no more px/`\textwidth`/inch mix), every ggplot rasterised at
+  150 dpi through one helper, LCOE labels in `cost/activity` units.
+- **docx works**: a Word-safe branch (markdown headings, pipe tables,
+  embedded figures) replaces the raw-TeX output pandoc used to discard.
+- **Empty columns are dropped everywhere** (`.report_drop_empty_cols` in
+  [`report()`](https://energyRt.org/reference/report.md) + template-side
+  pruning); NA cells render as a dash (`na.string=` was never a real
+  `kable` argument).
+- PDF soundness fixes shared with the vehicle/summary templates: correct
+  LaTeX escaping (the old `fixed = TRUE` patterns never matched
+  `$ ^ { }`; brace escaping now ordered around backslash),
+  forward-slashed image paths in HTML output, single (not double) kable
+  escaping, the vehicle share-panel px/pt bug, aligned HTML/LaTeX column
+  fractions, and the input/output `rbind` column mismatch.
+- [`report()`](https://energyRt.org/reference/report.md) now passes only
+  the params a template declares, so older or user-supplied custom
+  templates keep rendering as
+  [`report()`](https://energyRt.org/reference/report.md) grows new
+  params; the container levcost whitelist was synced with the technology
+  one (`repo`, `method`, `full_output`).
+- New test suite `test-report.R` (31 assertions; pandoc/LaTeX-gated).
+
+### `levcost()` computes analytically — no solver required
+
+The unit-demand annual mini-model that
+[`levcost()`](https://energyRt.org/reference/levcost.md) builds has a
+closed-form optimum for most technologies, and
+[`levcost()`](https://energyRt.org/reference/levcost.md) now computes it
+directly. New argument `method = c("auto", "analytic", "solve")`:
+
+- `"auto"` (the new default) prices the technology **analytically — no
+  GLPK or any other solver needed** — whenever it qualifies, and falls
+  back to the solver otherwise with a message naming the reason.
+  `"analytic"` refuses non-qualifying technologies instead of falling
+  back; `"solve"` forces the previous behaviour.
+- The analytic engine (`R/levcost_analytic.R`) mirrors the model
+  equations one for one — activity/output/input chains (`cact2cout`,
+  `use2cact`, `cinp2use`, `ginp2use`, `cinp2ginp`), annual availability
+  (`af`/`afs`, weather collapsed to a CF), the greedy
+  build–retire–rebuild capacity schedule, EAC annuities
+  (`wacc`/`payback`/`olife`), fixom/varom/cvarom/avarom, auxiliary
+  flows, and supply pricing — and reproduces the solver’s numbers to the
+  GLPK output precision (parity-tested in `test-levcost-analytic.R`).
+- **Group shares report every corner solution.** The optimum over a
+  share polytope is a vertex; the analytic result evaluates *all*
+  vertices of the input and output share polytopes and returns them in
+  `$frontier_vertices` (share vector, per-activity NPV cost breakdown,
+  `optimal` flag), with the cost-minimal corner as the headline levcost.
+  The classic `$frontier` / `$levcost_by_*` corner tables are produced
+  as before.
+- A vintaged/clustered technology is priced per cell directly — no
+  artificial-region isolation, no per-cell LP — which makes many-variant
+  technologies essentially instant.
+- The analytic result has the same fields (plus `$method = "analytic"`);
+  `$scenario` is `NULL`. Not representable analytically (solver still
+  used): technology chains, `timeframe = "native"`, `afc.*` bounds,
+  availability lower bounds, `optimizeRetirement`, year-varying
+  `invcost`, constrained supplies, and group substitution combined with
+  year-varying prices.
+- The process designer and `report(levcost = TRUE)` use
+  `method = "auto"`, so the levcost tab and report sections work on
+  machines with no solver installed.
+- Fixed in passing: on the solve path the annual capacity factor
+  collapsed from `@weather` never reached the solver (the mini-model was
+  built from the pre-collapse objects), so weather-driven technologies
+  were priced at full availability. Both paths now apply the CF.
+
+### techspec containers: YAML and JSON
+
+The techspec format
+([`read_techspec()`](https://energyRt.org/reference/read_techspec.md),
+[`tech_from_spec()`](https://energyRt.org/reference/tech_from_spec.md),
+[`tech_to_spec()`](https://energyRt.org/reference/tech_to_spec.md), the
+process designer) now reads and writes **JSON** (`.json`) as an
+alternative container for the same validated structure —
+`tech_to_spec(tech, file = "x.json")` writes it,
+[`read_techspec()`](https://energyRt.org/reference/read_techspec.md) and
+the designer’s spec upload/gallery accept it, and the designer gained a
+“Save JSON” button. Full numeric precision is preserved. (A fuller NEWS
+section for the process designer itself is pending.)
+
+Stack-wide rename `slice` -\> `timeslice` (paired with the `timescales`
+package; matches the TIMES/OSeMOSYS vocabulary and reads unambiguously
+next to the spatial `region` dimension):
+
+- The set/index family in all four model backends (GAMS, GLPK/MathProg,
+  Pyomo, JuMP): `slice`/`slicep`/`slicepp`/`slice2` -\>
+  `timeslice`/`timeslicep`/…, every `mSlice*`/`pSlice*` symbol -\>
+  `mTimeslice*`/`pTimeslice*` (e.g. `mTimesliceParentChild`,
+  `pTimesliceShare`), and the `ANYSLICE` wildcard -\> `ANYTIMESLICE`.
+  Equation-level short aliases (`s`, `sp`, …) are unchanged.
+- Solution output CSVs now carry a `timeslice` column.
+- S4 `calendar` slots: `slice_share`/`slice_family`/`slice_ancestry`/
+  `slices_in_frame` -\> `timeslice_*`/`timeslices_in_frame`.
+- Input-data columns are `timeslice`; a **compatibility shim** accepts
+  the pre-rename `slice` name in user data (`new*` constructors and
+  [`update()`](https://energyRt.org/reference/newDemand.html),
+  [`newCalendar()`](https://energyRt.org/reference/newCalendar.md)
+  timetables,
+  [`newConstraint()`](https://energyRt.org/reference/newConstraint.md)
+  `for.each`/`for.sum`, `fold_/unfold_scenario_parameters()` dims) –
+  renamed with a once-per-session warning. External datasets (IDEEA)
+  keep working through the shim.
+- Bundled data (`calendars`, `utopia_*`, `model_structure`) and
+  `sysdata` regenerated with the new vocabulary.
+- multimod’s matching update is a recorded follow-up; until then it
+  pairs with pre-v0.80 generated models.
+
 ## energyRt 0.74.0.9000-dev
 
 **The user config moved out of the home directory**
@@ -392,7 +556,7 @@ vintages and clusters separately**
   projected.
 
 - Aggregation across regions is delegated to
-  [`geoscales::geo_recast()`](https://optimal2050.github.io/geoscales/r/reference/geo_recast.html),
+  [`geoscales::geo_recast()`](https://optimal2050.github.io/geoscales/r/reference/geoscales-deprecated.html),
   with the rules read off the **variable catalogue** rather than
   hardcoded — the same approach `.is_state_var()` takes for the temporal
   roll-up. `vTradeIr` is identified by its declared `role: flow` and is

@@ -16,41 +16,41 @@
 #   defVal: 0.0
 #   interpolation: back.inter.forth
 #   colName:
-# mTechRampSliceNext:
-#   name: mTechRampSliceNext
+# mTechRampTimesliceNext:
+#   name: mTechRampTimesliceNext
 #   dimSets:
 #   - tech
 #   - region
 #   - year
-#   - slice
-#   - slicep
+#   - timeslice
+#   - timeslicep
 #   type: map
 #   # defVal: 0.0
 #   # interpolation: back.inter.forth
 #   # colName:
-# mTechCommSliceSliceP:
-#   name: mTechCommSliceSliceP
+# mTechCommTimesliceTimesliceP:
+#   name: mTechCommTimesliceTimesliceP
 #   dimSets:
 #   - tech
 #   - comm
-#   - slice
-#   - slicep
+#   - timeslice
+#   - timeslicep
 #   type: map
-# mTechCommOutSliceSliceP:
-#   name: mTechCommOutSliceSliceP
+# mTechCommOutTimesliceTimesliceP:
+#   name: mTechCommOutTimesliceTimesliceP
 #   dimSets:
 #   - tech
 #   - comm
-#   - slice
-#   - slicep
+#   - timeslice
+#   - timeslicep
 #   type: map
-# mTechCommAOutSliceSliceP:
-#   name: mTechCommAOutSliceSliceP
+# mTechCommAOutTimesliceTimesliceP:
+#   name: mTechCommAOutTimesliceTimesliceP
 #   dimSets:
 #   - tech
 #   - comm
-#   - slice
-#   - slicep
+#   - timeslice
+#   - timeslicep
 #   type: map
 region:
   name: region
@@ -66,9 +66,9 @@ year:
   defVal: 0.0
   interpolation: back.inter.forth
   colName: ''
-slice:
-  name: slice
-  dimSets: slice
+timeslice:
+  name: timeslice
+  dimSets: timeslice
   type: set
   defVal: 0.0
   interpolation: back.inter.forth
@@ -158,18 +158,18 @@ pWeather:
   - weather
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
   colName: wval
   class: weather
   slot: weather
-mWeatherSlice:
-  name: mWeatherSlice
+mWeatherTimeslice:
+  name: mWeatherTimeslice
   dimSets:
   - weather
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -417,19 +417,19 @@ pStorageWeatherCout:
   class: storage
   slot: weather
   colName: wcout
-mSliceNext:
-  name: mSliceNext
+mTimesliceNext:
+  name: mTimesliceNext
   dimSets:
-  - slice
-  - slicep
+  - timeslice
+  - timeslicep
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
-mSliceFYearNext:
-  name: mSliceFYearNext
+mTimesliceFYearNext:
+  name: mTimesliceFYearNext
   dimSets:
-  - slice
-  - slicep
+  - timeslice
+  - timeslicep
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -442,11 +442,11 @@ mSameRegion:
   defVal: 0.0
   interpolation: back.inter.forth
   colName: ''
-mSameSlice:
-  name: mSameSlice
+mSameTimeslice:
+  name: mSameTimeslice
   dimSets:
-  - slice
-  - slicep
+  - timeslice
+  - timeslicep
   type: map
   # defVal: 0.0
   # interpolation: back.inter.forth
@@ -493,41 +493,41 @@ mFxComm:
   defVal: 0.0
   interpolation: back.inter.forth
   colName: ''
-mExpSlice:
-  name: mExpSlice
+mExpTimeslice:
+  name: mExpTimeslice
   dimSets:
   - expp
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
   colName: ''
   class: export
-mImpSlice:
-  name: mImpSlice
+mImpTimeslice:
+  name: mImpTimeslice
   dimSets:
   - imp
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
   colName: ''
   class: import
-mTechSlice:
-  name: mTechSlice
+mTechTimeslice:
+  name: mTechTimeslice
   dimSets:
   - tech
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
   colName: ''
   class: technology
-mSupSlice:
-  name: mSupSlice
+mSupTimeslice:
+  name: mSupTimeslice
   dimSets:
   - sup
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -541,96 +541,96 @@ mStorageFullYear:
   interpolation: back.inter.forth
   # colName: ''
   # class: storage
-mTradeSlice:
-  name: mTradeSlice
+mTradeTimeslice:
+  name: mTradeTimeslice
   dimSets:
   - trade
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
   # colName: ''
   # class: trade
-mCommSlice:
-  name: mCommSlice
+mCommTimeslice:
+  name: mCommTimeslice
   dimSets:
   - comm
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
   # colName: ''
   # class: commodity
-mCommSliceOrParent:
-  name: mCommSliceOrParent
+mCommTimesliceOrParent:
+  name: mCommTimesliceOrParent
   dimSets:
   - comm
-  - slice
-  - slicep
+  - timeslice
+  - timeslicep
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
   # colName: ''
   # class: commodity
 # !!! Attempt to separate commodities with multi and one time frame !!!
-# mCommSliceOrParent0:
-#   name: mCommSliceOrParent0
+# mCommTimesliceOrParent0:
+#   name: mCommTimesliceOrParent0
 #   dimSets:
 #   - comm
-#   # - slice
-#   # - slicep
+#   # - timeslice
+#   # - timeslicep
 #   type: map
 #   defVal: 0.0
 #   interpolation: back.inter.forth
 #   colName: ''
 #   class: commodity
-# mCommSliceOrParent1:
-#   name: mCommSliceOrParent1
+# mCommTimesliceOrParent1:
+#   name: mCommTimesliceOrParent1
 #   dimSets:
 #   - comm
-#   - slice
-#   - slicep
+#   - timeslice
+#   - timeslicep
 #   type: map
 #   defVal: 0.0
 #   interpolation: back.inter.forth
 #   colName: ''
 #   class: commodity
-mSliceParentChildE:
-  name: mSliceParentChildE
+mTimesliceParentChildE:
+  name: mTimesliceParentChildE
   dimSets:
-  - slice
-  - slicep
+  - timeslice
+  - timeslicep
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
   colName: ''
-mSliceParentChild:
-  name: mSliceParentChild
+mTimesliceParentChild:
+  name: mTimesliceParentChild
   dimSets:
-  - slice
-  - slicep
+  - timeslice
+  - timeslicep
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
-pSliceShare:
-  name: pSliceShare
-  dimSets: slice
+pTimesliceShare:
+  name: pTimesliceShare
+  dimSets: timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
   class: calendar
-  slot: slice_share
+  slot: timeslice_share
   colName: share
-pSliceWeight:
-  name: pSliceWeight
+pTimesliceWeight:
+  name: pTimesliceWeight
   dimSets:
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 1.0
   interpolation: back.inter.forth
   class: calendar
-  slot: slice_share
+  slot: timeslice_share
   colName: weight
 pEmissionFactor:
   name: pEmissionFactor
@@ -670,7 +670,7 @@ pDemand:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
@@ -683,7 +683,7 @@ pDummyImportCost:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: .inf
   interpolation: back.inter.forth
@@ -696,7 +696,7 @@ pDummyExportCost:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: .inf
   interpolation: back.inter.forth
@@ -709,7 +709,7 @@ pTaxCostInp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
@@ -726,7 +726,7 @@ pSubCostInp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
@@ -739,7 +739,7 @@ pTaxCostOut:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
@@ -752,7 +752,7 @@ pSubCostOut:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
@@ -765,7 +765,7 @@ pTaxCostBal:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
@@ -778,7 +778,7 @@ pSubCostBal:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
@@ -819,7 +819,7 @@ pSupCost:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
@@ -851,7 +851,7 @@ pSupAva:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: bounds
   defVal:
   - 0.0
@@ -875,8 +875,8 @@ mTechInpComm:
   colName: ''
   class: technology
 # technology and commodity have the same timeframe
-mTechInpCommSameSlice:
-  name: mTechInpCommSameSlice
+mTechInpCommSameTimeslice:
+  name: mTechInpCommSameTimeslice
   dimSets:
   - tech
   - comm
@@ -896,13 +896,13 @@ mTechInpCommAgg:
   interpolation: back.inter.forth
   colName: ''
   class: technology
-mTechInpCommAggSlice:
-  name: mTechInpCommAggSlice
+mTechInpCommAggTimeslice:
+  name: mTechInpCommAggTimeslice
   dimSets:
   - tech
   - comm
-  - slice  # comm-timeframe (parent-slice)
-  - slicep # tech-timeframe (child-slice)
+  - timeslice  # comm-timeframe (parent-timeslice)
+  - timeslicep # tech-timeframe (child-timeslice)
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -918,8 +918,8 @@ mTechOutComm:
   interpolation: back.inter.forth
   colName: ''
   class: technology
-mTechOutCommSameSlice:
-  name: mTechOutCommSameSlice
+mTechOutCommSameTimeslice:
+  name: mTechOutCommSameTimeslice
   dimSets:
   - tech
   - comm
@@ -938,13 +938,13 @@ mTechOutCommAgg:
   interpolation: back.inter.forth
   colName: ''
   class: technology
-mTechOutCommAggSlice:
-  name: mTechOutCommAggSlice
+mTechOutCommAggTimeslice:
+  name: mTechOutCommAggTimeslice
   dimSets:
   - tech
   - comm
-  - slice  # comm-timeframe (parent-slice)
-  - slicep # tech-timeframe (child-slice)
+  - timeslice  # comm-timeframe (parent-timeslice)
+  - timeslicep # tech-timeframe (child-timeslice)
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -970,8 +970,8 @@ mTechAInp:
   interpolation: back.inter.forth
   colName: ''
   class: technology
-mTechAInpCommSameSlice:
-  name: mTechAInpCommSameSlice
+mTechAInpCommSameTimeslice:
+  name: mTechAInpCommSameTimeslice
   dimSets:
   - tech
   - comm
@@ -990,13 +990,13 @@ mTechAInpCommAgg:
   interpolation: back.inter.forth
   colName: ''
   class: technology
-mTechAInpCommAggSlice:
-  name: mTechAInpCommAggSlice
+mTechAInpCommAggTimeslice:
+  name: mTechAInpCommAggTimeslice
   dimSets:
   - tech
   - comm
-  - slice  # comm-timeframe (parent-slice)
-  - slicep # tech-timeframe (child-slice)
+  - timeslice  # comm-timeframe (parent-timeslice)
+  - timeslicep # tech-timeframe (child-timeslice)
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -1012,8 +1012,8 @@ mTechAOut:
   interpolation: back.inter.forth
   colName: ''
   class: technology
-mTechAOutCommSameSlice:
-  name: mTechAOutCommSameSlice
+mTechAOutCommSameTimeslice:
+  name: mTechAOutCommSameTimeslice
   dimSets:
   - tech
   - comm
@@ -1032,13 +1032,13 @@ mTechAOutCommAgg:
   interpolation: back.inter.forth
   colName: ''
   class: technology
-mTechAOutCommAggSlice:
-  name: mTechAOutCommAggSlice
+mTechAOutCommAggTimeslice:
+  name: mTechAOutCommAggTimeslice
   dimSets:
   - tech
   - comm
-  - slice  # comm-timeframe (parent-slice)
-  - slicep # tech-timeframe (child-slice)
+  - timeslice  # comm-timeframe (parent-timeslice)
+  - timeslicep # tech-timeframe (child-timeslice)
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -1191,7 +1191,7 @@ mTechAct2AInp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -1204,7 +1204,7 @@ mTechCap2AInp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -1217,7 +1217,7 @@ mTechNCap2AInp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -1231,7 +1231,7 @@ mTechCinp2AInp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -1245,7 +1245,7 @@ mTechCout2AInp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -1258,7 +1258,7 @@ mTechAct2AOut:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -1271,7 +1271,7 @@ mTechCap2AOut:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -1284,7 +1284,7 @@ mTechNCap2AOut:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -1298,7 +1298,7 @@ mTechCinp2AOut:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -1312,7 +1312,7 @@ mTechCout2AOut:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -1404,7 +1404,7 @@ pTechVarom:
   - tech
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
@@ -1417,7 +1417,7 @@ pTechAf:
   - tech
   - region
   - year
-  - slice
+  - timeslice
   type: bounds
   defVal:
   - 0.0
@@ -1436,7 +1436,7 @@ pTechRampUp:
   - tech
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: .inf
   interpolation: back.inter.forth
@@ -1449,7 +1449,7 @@ pTechRampDown:
   - tech
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: .inf
   interpolation: back.inter.forth
@@ -1462,7 +1462,7 @@ pTechAfs:
   - tech
   - region
   - year
-  - slice
+  - timeslice
   type: bounds
   defVal:
   - 0.0
@@ -1482,7 +1482,7 @@ pTechGinp2use:
   - group
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 1.0
   interpolation: back.inter.forth
@@ -1496,7 +1496,7 @@ pTechCinp2ginp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 1.0
   interpolation: back.inter.forth
@@ -1510,7 +1510,7 @@ pTechUse2cact:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 1.0
   interpolation: back.inter.forth
@@ -1524,7 +1524,7 @@ pTechAct2AInp:
   - acomm
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
@@ -1538,7 +1538,7 @@ pTechCap2AInp:
   - acomm
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
@@ -1552,7 +1552,7 @@ pTechAct2AOut:
   - acomm
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
@@ -1566,7 +1566,7 @@ pTechCap2AOut:
   - acomm
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
@@ -1580,7 +1580,7 @@ pTechNCap2AInp:
   - acomm
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
@@ -1594,7 +1594,7 @@ pTechNCap2AOut:
   - acomm
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
@@ -1609,7 +1609,7 @@ pTechCinp2AInp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
@@ -1624,7 +1624,7 @@ pTechCout2AInp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
@@ -1639,7 +1639,7 @@ pTechCinp2AOut:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
@@ -1654,7 +1654,7 @@ pTechCout2AOut:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
@@ -1668,7 +1668,7 @@ pTechCact2cout:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 1.0
   interpolation: back.inter.forth
@@ -1682,7 +1682,7 @@ pTechCinp2use:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 1.0
   interpolation: back.inter.forth
@@ -1696,7 +1696,7 @@ pTechCvarom:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
@@ -1710,7 +1710,7 @@ pTechAvarom:
   - acomm
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
@@ -1724,7 +1724,7 @@ pTechShare:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: bounds
   defVal:
   - 0.0
@@ -1744,7 +1744,7 @@ pTechAfc:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: bounds
   defVal:
   - 0.0
@@ -1832,7 +1832,7 @@ pStorageInpEff:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 1.0
   interpolation: back.inter.forth
@@ -1846,7 +1846,7 @@ pStorageOutEff:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 1.0
   interpolation: back.inter.forth
@@ -1860,7 +1860,7 @@ pStorageStgEff:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 1.0
   interpolation: back.inter.forth
@@ -1873,7 +1873,7 @@ pStorageCostStore:
   - stg
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
@@ -1886,7 +1886,7 @@ pStorageCostInp:
   - stg
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
@@ -1899,7 +1899,7 @@ pStorageCostOut:
   - stg
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
@@ -1912,7 +1912,7 @@ pStorageAf:
   - stg
   - region
   - year
-  - slice
+  - timeslice
   type: bounds
   defVal:
   - 0.0
@@ -1940,7 +1940,7 @@ pStorageCinp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: bounds
   defVal:
   - 0.0
@@ -1961,7 +1961,7 @@ pStorageCout:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: bounds
   defVal:
   - 0.0
@@ -2062,7 +2062,7 @@ pStorageStg2AInp:
   - acomm
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
@@ -2076,7 +2076,7 @@ pStorageStg2AOut:
   - acomm
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
@@ -2090,7 +2090,7 @@ pStorageCinp2AInp:
   - acomm
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
@@ -2104,7 +2104,7 @@ pStorageCinp2AOut:
   - acomm
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
@@ -2118,7 +2118,7 @@ pStorageCout2AInp:
   - acomm
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
@@ -2132,7 +2132,7 @@ pStorageCout2AOut:
   - acomm
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
@@ -2146,7 +2146,7 @@ pStorageCap2AInp:
   - acomm
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
@@ -2160,7 +2160,7 @@ pStorageCap2AOut:
   - acomm
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
@@ -2174,7 +2174,7 @@ pStorageNCap2AInp:
   - acomm
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
@@ -2188,7 +2188,7 @@ pStorageNCap2AOut:
   - acomm
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
@@ -2202,7 +2202,7 @@ pStorageNCap2Stg:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: ''
@@ -2216,7 +2216,7 @@ pStorageCharge:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: ''
@@ -2230,7 +2230,7 @@ mStorageStg2AOut:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -2243,7 +2243,7 @@ mStorageCinp2AOut:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -2256,7 +2256,7 @@ mStorageCout2AOut:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -2269,7 +2269,7 @@ mStorageCap2AOut:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -2282,7 +2282,7 @@ mStorageNCap2AOut:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -2295,7 +2295,7 @@ mStorageStg2AInp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -2308,7 +2308,7 @@ mStorageCinp2AInp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -2321,7 +2321,7 @@ mStorageCout2AInp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -2334,7 +2334,7 @@ mStorageCap2AInp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -2347,7 +2347,7 @@ mStorageNCap2AInp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -2411,7 +2411,7 @@ pTradeIrCsrc2Aout:
   - src
   - dst
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
@@ -2426,7 +2426,7 @@ pTradeIrCsrc2Ainp:
   - src
   - dst
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
@@ -2441,7 +2441,7 @@ pTradeIrCdst2Aout:
   - src
   - dst
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
@@ -2456,7 +2456,7 @@ pTradeIrCdst2Ainp:
   - src
   - dst
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
@@ -2470,7 +2470,7 @@ pTradeIrCost:
   - src
   - dst
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
@@ -2484,7 +2484,7 @@ pTradeIrEff:
   - src
   - dst
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 1.0
   interpolation: back.inter.forth
@@ -2498,7 +2498,7 @@ pTradeIrMarkup:
   - src
   - dst
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
@@ -2511,7 +2511,7 @@ pExportRowPrice:
   - expp
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
@@ -2524,7 +2524,7 @@ pImportRowPrice:
   - imp
   - region
   - year
-  - slice
+  - timeslice
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
@@ -2538,7 +2538,7 @@ pTradeIr:
   - src
   - dst
   - year
-  - slice
+  - timeslice
   type: bounds
   defVal:
   - 0.0
@@ -2557,7 +2557,7 @@ pExportRow:
   - expp
   - region
   - year
-  - slice
+  - timeslice
   type: bounds
   defVal:
   - 0.0
@@ -2586,7 +2586,7 @@ pImportRow:
   - imp
   - region
   - year
-  - slice
+  - timeslice
   type: bounds
   defVal:
   - 0.0
@@ -2769,7 +2769,7 @@ mTechInpTot:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -2780,7 +2780,7 @@ mTechOutTot:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -2802,7 +2802,7 @@ mEmsFuelTot:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -2815,7 +2815,7 @@ mTechEmsFuel:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -2835,7 +2835,7 @@ mDummyImport:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -2846,7 +2846,7 @@ mDummyExport:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -2872,7 +2872,7 @@ mTradeIr:
   - src
   - dst
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -2904,7 +2904,7 @@ mvTradeIrAInp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -2916,7 +2916,7 @@ mvTradeIrAOut:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -2927,7 +2927,7 @@ mvTradeIrAInpTot:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -2938,7 +2938,7 @@ mvTradeIrAOutTot:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -2951,7 +2951,7 @@ mTradeIrCsrc2Ainp:
   - src
   - dst
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -2964,7 +2964,7 @@ mTradeIrCdst2Ainp:
   - src
   - dst
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -2977,7 +2977,7 @@ mTradeIrCsrc2Aout:
   - src
   - dst
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -2990,7 +2990,7 @@ mTradeIrCdst2Aout:
   - src
   - dst
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3002,7 +3002,7 @@ mImportRow:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3014,7 +3014,7 @@ mExportRow:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3026,7 +3026,7 @@ mImportRowUp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3038,7 +3038,7 @@ mExportRowUp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3067,7 +3067,7 @@ mExport:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3078,7 +3078,7 @@ mImport:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3089,7 +3089,7 @@ mStorageInpTot:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3100,7 +3100,7 @@ mStorageOutTot:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3131,7 +3131,7 @@ mAggOut:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3142,7 +3142,7 @@ mSupOutTot:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3154,7 +3154,7 @@ mSupAvaUp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3166,7 +3166,7 @@ mSupAva:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3187,7 +3187,7 @@ mTechAfUp:
   - tech
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3199,7 +3199,7 @@ mTechAfcUp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3228,7 +3228,7 @@ mInp2Lo:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3239,7 +3239,7 @@ mOut2Lo:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3250,8 +3250,8 @@ mTechRampUp:
   - tech
   - region
   - year
-  - slice
-  - slicep
+  - timeslice
+  - timeslicep
   type: map
 #  defVal: 0.0
 #  interpolation: back.inter.forth
@@ -3262,8 +3262,8 @@ mTechRampDown:
   - tech
   - region
   - year
-  - slice
-  - slicep
+  - timeslice
+  - timeslicep
   type: map
 #  defVal: 0.0
 #  interpolation: back.inter.forth
@@ -3435,7 +3435,7 @@ mvTechAct:
   - tech
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3447,32 +3447,32 @@ mvTechInp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
   colName: ''
 #####
-# mvTechInpCommSameSlice:
-#   name: mvTechInpCommSameSlice
+# mvTechInpCommSameTimeslice:
+#   name: mvTechInpCommSameTimeslice
 #   dimSets:
 #   - tech
 #   - comm
 #   - region
 #   - year
-#   - slice
+#   - timeslice
 #   type: map
 #   defVal: 0.0
 #   interpolation: back.inter.forth
 #   colName: ''
-# mvTechInpCommAggSlice:
-#   name: mvTechInpCommAggSlice
+# mvTechInpCommAggTimeslice:
+#   name: mvTechInpCommAggTimeslice
 #   dimSets:
 #   - tech
 #   - comm
 #   - region
 #   - year
-#   - slice
+#   - timeslice
 #   type: map
 #   defVal: 0.0
 #   interpolation: back.inter.forth
@@ -3484,7 +3484,7 @@ mvTechOut:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
 #  defVal: 0.0
 #  interpolation: back.inter.forth
@@ -3496,7 +3496,7 @@ mvTechOut:
 #   - comm
 #   - region
 #   - year
-#   - slice
+#   - timeslice
 #   type: map
 #   # defVal: 0.0
 #   # interpolation: back.inter.forth
@@ -3508,7 +3508,7 @@ mvTechAInp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3520,7 +3520,7 @@ mvTechAOut:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   # defVal: 0.0
   # interpolation: back.inter.forth
@@ -3532,7 +3532,7 @@ mvTechAOut:
 #   - comm
 #   - region
 #   - year
-#   - slice
+#   - timeslice
 #   type: map
 mvDemInp:
   name: mvDemInp
@@ -3540,7 +3540,7 @@ mvDemInp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3551,7 +3551,7 @@ mvBalance:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
 mBalanceRY:
   name: mBalanceRY
@@ -3566,7 +3566,7 @@ mvInpTot:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3584,7 +3584,7 @@ mvOutTot:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
 mOutTotRY:
   name: mOutTotRY
@@ -3599,8 +3599,8 @@ mvInp2Lo:
   - comm
   - region
   - year
-  - slice
-  - slice
+  - timeslice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3611,8 +3611,8 @@ mvOut2Lo:
   - comm
   - region
   - year
-  - slice
-  - slice
+  - timeslice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3623,7 +3623,7 @@ mInpSub:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3634,7 +3634,7 @@ mOutSub:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3646,7 +3646,7 @@ mvStorageAInp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3658,7 +3658,7 @@ mvStorageAOut:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3670,7 +3670,7 @@ mvStorageStore:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3682,8 +3682,8 @@ meqStorageStore:
   - comm
   - region
   - year
-  - slicep # preceeding
-  - slice
+  - timeslicep # preceeding
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3695,7 +3695,7 @@ meqStorageStore:
 #   - comm
 #   - region
 #   - year
-#   - slice
+#   - timeslice
 #   type: map
 #   defVal: 0.0
 #   interpolation: back.inter.forth
@@ -3707,7 +3707,7 @@ meqStorageStore:
 #   - comm
 #   - region
 #   - year
-#   - slice
+#   - timeslice
 #   type: map
 #   defVal: 0.0
 #   interpolation: back.inter.forth
@@ -3720,7 +3720,7 @@ mvTradeIr:
   - src
   - dst
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3798,7 +3798,7 @@ meqTechSng2Sng:
   - comm
   - comm
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3811,7 +3811,7 @@ meqTechGrp2Sng:
   - group
   - comm
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3824,7 +3824,7 @@ meqTechSng2Grp:
   - comm
   - group
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3837,7 +3837,7 @@ meqTechGrp2Grp:
   - group
   - group
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3850,7 +3850,7 @@ meqTechShareInpLo:
   - group
   - comm
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3863,7 +3863,7 @@ meqTechShareInpUp:
   - group
   - comm
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3876,7 +3876,7 @@ meqTechShareOutLo:
   - group
   - comm
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3889,7 +3889,7 @@ meqTechShareOutUp:
   - group
   - comm
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3900,7 +3900,7 @@ meqTechAfLo:
   - tech
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3911,7 +3911,7 @@ meqTechAfUp:
   - tech
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3922,7 +3922,7 @@ meqTechAfsLo:
   - tech
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3933,7 +3933,7 @@ meqTechAfsUp:
   - tech
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3945,7 +3945,7 @@ meqTechActSng:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3957,7 +3957,7 @@ meqTechActGrp:
   - group
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3969,7 +3969,7 @@ meqTechAfcOutLo:
   - region
   - comm
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3981,7 +3981,7 @@ meqTechAfcOutUp:
   - region
   - comm
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -3993,7 +3993,7 @@ meqTechAfcInpLo:
   - region
   - comm
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -4005,7 +4005,7 @@ meqTechAfcInpUp:
   - region
   - comm
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -4017,7 +4017,7 @@ meqSupAvaLo:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -4039,7 +4039,7 @@ meqStorageAfLo:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -4051,7 +4051,7 @@ meqStorageAfUp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -4063,7 +4063,7 @@ meqStorageInpUp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -4075,7 +4075,7 @@ meqStorageInpLo:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -4087,7 +4087,7 @@ meqStorageOutUp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -4099,7 +4099,7 @@ meqStorageOutLo:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -4112,7 +4112,7 @@ meqTradeFlowUp:
   - src
   - dst
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -4125,7 +4125,7 @@ meqTradeFlowLo:
   - src
   - dst
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -4137,7 +4137,7 @@ meqExportRowLo:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -4149,7 +4149,7 @@ meqImportRowLo:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -4160,7 +4160,7 @@ meqTradeCapFlow:
   - trade
   - comm
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -4171,7 +4171,7 @@ meqBalLo:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -4182,7 +4182,7 @@ meqBalUp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -4193,7 +4193,7 @@ meqBalFx:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   type: map
   defVal: 0.0
   interpolation: back.inter.forth
@@ -4550,7 +4550,7 @@ pTradeRetCost:
 #   - region
 #   - region
 #   - year
-#   - slice
+#   - timeslice
 #   type: numpar
 #   defVal: 0.0
 #   interpolation: back.inter.forth

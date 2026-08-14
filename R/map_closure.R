@@ -207,7 +207,7 @@ map_mCommReg <- function(scen, fmp) {
   # populated.
   .assert_process_geolevel(scen)
 
-  # Declared slices/regions must match the commodity's own level for every
+  # Declared timeslices/regions must match the commodity's own level for every
   # class that has no aggregation path (see check_levels.R). Same reason for
   # checking here: it needs the collected process/commodity relations.
   .check_process_levels(scen)

@@ -15,7 +15,7 @@ processes-type classes."><meta property="og:image" content="https://energyRt.org
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.75.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.80.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -283,7 +283,7 @@ Default is the first node in the trade object.</p></dd>
 <span class="r-in"><span>  supply <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>    region <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"R1"</span>, <span class="st">"R2"</span>, <span class="st">"R3"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>    year <span class="op">=</span> <span class="cn">NA_integer_</span>,</span></span>
-<span class="r-in"><span>    slice <span class="op">=</span> <span class="st">"ANNUAL"</span>,</span></span>
+<span class="r-in"><span>    timeslice <span class="op">=</span> <span class="st">"ANNUAL"</span>,</span></span>
 <span class="r-in"><span>    ava.up <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1e3</span>, <span class="fl">1e2</span>, <span class="fl">2e2</span><span class="op">)</span>, <span class="co"># annual availability</span></span></span>
 <span class="r-in"><span>    cost <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">10</span>, <span class="fl">20</span>, <span class="fl">30</span><span class="op">)</span> <span class="co"># cost of the resource (currency per unit)</span></span></span>
 <span class="r-in"><span>  <span class="op">)</span>,</span></span>
@@ -299,7 +299,7 @@ Default is the first node in the trade object.</p></dd>
 <span class="r-in"><span>  dem <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>    region <span class="op">=</span> <span class="st">"UTOPIA"</span>, <span class="co"># NA for every region</span></span></span>
 <span class="r-in"><span>    year <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2020</span>, <span class="fl">2030</span>, <span class="fl">2050</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>    slice <span class="op">=</span> <span class="st">"ANNUAL"</span>,</span></span>
+<span class="r-in"><span>    timeslice <span class="op">=</span> <span class="st">"ANNUAL"</span>,</span></span>
 <span class="r-in"><span>    dem <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">100</span>, <span class="fl">200</span>, <span class="fl">300</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="op">)</span>,</span></span>
 <span class="r-in"><span>  region <span class="op">=</span> <span class="st">"UTOPIA"</span>, <span class="co"># optional, to narrow the specification of the demand</span></span></span>

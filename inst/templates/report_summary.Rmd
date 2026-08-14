@@ -1,0 +1,152 @@
+---
+title: "Technology Summary"
+output:
+  pdf_document:
+    latex_engine: xelatex
+    keep_tex: false
+  html_document:
+    self_contained: true
+    md_extensions: "-native_divs-native_spans"
+    css: null
+params:
+  name:               "Technology"
+  desc:               ""
+  cap2act:            !r NA_real_
+  units_cap:          ""
+  units_act:          ""
+  units_costs:        ""
+  olife:              !r NA_integer_
+  stock:              !r NA_real_
+  start:              !r NA_integer_
+  end:                !r NA_integer_
+  cap_df:             NULL
+  input_df:           NULL
+  output_df:          NULL
+  ceff_df:            NULL
+  invcost_df:         NULL
+  fixom_df:           NULL
+  varom_df:           NULL
+  image_file:         NULL
+  draw_file:          NULL
+  levcost_plot:       NULL
+  frontier_plot:      NULL
+  share_frontier_plot: NULL
+  levcost_npv:        NULL
+header-includes:
+  - \usepackage{geometry}
+  - \geometry{a4paper, top=15mm, bottom=15mm, left=15mm, right=15mm}
+  - \usepackage{graphicx}
+  - \usepackage{booktabs}
+  - \usepackage{float}
+  - \pagenumbering{gobble}
+  - \definecolor{ert_blue}{RGB}{31, 73, 125}
+---
+
+```{r setup, include=FALSE}
+# One-page process summary: header, schematic, key facts, levelized cost.
+# Same params interface as report_generic.Rmd (built by
+# .tech_report_params_generic() in R/report.R); self-contained -- no
+# energyRt calls at knit time.
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
+                      fig.pos = "H")
+library(knitr)
+
+is_html <- knitr::is_html_output()
+`%||%` <- function(a, b) if (is.null(a)) b else a
+
+html_esc <- function(x) {
+  if (is.null(x) || !nzchar(x)) return("")
+  x <- gsub("&", "&amp;",  x, fixed = TRUE)
+  x <- gsub("<", "&lt;",   x, fixed = TRUE)
+  x <- gsub(">", "&gt;",   x, fixed = TRUE)
+  x
+}
+fmt_val <- function(x, digits = 4L) {
+  if (is.null(x) || length(x) == 0 || is.na(x)) return("--")
+  formatC(as.numeric(x), digits = digits, format = "g")
+}
+comm_list <- function(df) {
+  if (is.null(df) || !is.data.frame(df) || nrow(df) == 0 ||
+      !"comm" %in% names(df)) {
+    return("")
+  }
+  paste(unique(as.character(df$comm)), collapse = ", ")
+}
+```
+
+```{r html_css, results='asis'}
+if (is_html) {
+  cat("<style>
+body { font-family: Arial, sans-serif; font-size: 13px; margin: 20px; }
+h1   { font-size: 18px; color: #1f497d; margin-bottom: 4px; }
+.ert-gray { color: #808080; }
+table.kable-table { border-collapse: collapse; font-size: 12px; }
+table.kable-table th { background: #1f497d; color: white;
+  padding: 3px 8px; }
+table.kable-table td { padding: 2px 8px;
+  border-bottom: 1px solid #e0e0e0; }
+</style>\n")
+}
+```
+
+```{r header, results='asis'}
+if (is_html) {
+  cat("<h1>", html_esc(params$name), "</h1>\n", sep = "")
+  if (nzchar(params$desc)) {
+    cat("<p class='ert-gray'>", html_esc(params$desc), "</p>\n", sep = "")
+  }
+} else {
+  cat("# ", params$name, "\n\n", sep = "")
+  if (nzchar(params$desc)) cat("*", params$desc, "*\n\n", sep = "")
+}
+```
+
+```{r image, results='asis'}
+if (!is.null(params$image_file) && nzchar(params$image_file %||% "") &&
+    file.exists(params$image_file)) {
+  cat("![](", gsub("\\\\", "/", params$image_file), "){height=140px}\n\n",
+      sep = "")
+}
+```
+
+```{r schematic, results='asis'}
+if (!is.null(params$draw_file) && file.exists(params$draw_file)) {
+  cat("![](", gsub("\\\\", "/", params$draw_file), ")\n\n", sep = "")
+}
+```
+
+## Key facts
+
+```{r facts}
+facts <- list(
+  c("inputs",        comm_list(params$input_df)),
+  c("outputs",       comm_list(params$output_df)),
+  c("capacity unit", params$units_cap %||% ""),
+  c("activity unit", params$units_act %||% ""),
+  c("cost unit",     params$units_costs %||% ""),
+  c("cap2act",       fmt_val(params$cap2act)),
+  c("olife (years)", fmt_val(params$olife)),
+  c("first vintage", fmt_val(params$start)),
+  c("last vintage",  fmt_val(params$end)),
+  c("stock (total)", fmt_val(params$stock))
+)
+df <- do.call(rbind, lapply(facts, function(z) {
+  data.frame(item = z[1], value = z[2], stringsAsFactors = FALSE)
+}))
+df <- df[!is.na(df$value) & nzchar(df$value) & df$value != "--", ,
+         drop = FALSE]
+knitr::kable(df, row.names = FALSE, col.names = c("", ""),
+             table.attr = "class='kable-table'",
+             format = if (is_html) "html" else "pipe")
+```
+
+```{r levcost, results='asis'}
+if (!is.null(params$levcost_npv) && is.finite(params$levcost_npv)) {
+  u <- params$units_costs %||% ""
+  ua <- params$units_act %||% ""
+  cat("\n\n## Levelized cost\n\nNPV LCOE: **",
+      fmt_val(params$levcost_npv), "**",
+      if (nzchar(u) && nzchar(ua)) paste0(" ", u, "/", ua) else "",
+      "\n\n", sep = "")
+}
+```

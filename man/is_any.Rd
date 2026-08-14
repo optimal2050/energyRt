@@ -20,5 +20,5 @@ logical vector, TRUE if an element of the set is "ANY*"
 Check if an element of a set is "ANY*" or NA
 }
 \examples{
-is_any(c("ANY", "ANYREGION", "ANYSLICE", "ANYYEAR", "A", "B"))
+is_any(c("ANY", "ANYREGION", "ANYTIMESLICE", "ANYYEAR", "A", "B"))
 }

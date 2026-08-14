@@ -36,7 +36,7 @@ report(
   template = NULL,
   image_file = NULL,
   file = NULL,
-  format = c("html", "pdf", "tex"),
+  format = c("html", "pdf", "tex", "docx"),
   levcost = NULL,
   cost_unit = NULL,
   open = interactive(),
@@ -49,7 +49,7 @@ report(
   template = NULL,
   image_file = NULL,
   file = NULL,
-  format = c("html", "pdf", "tex"),
+  format = c("html", "pdf", "tex", "docx"),
   levcost = NULL,
   cost_unit = NULL,
   open = interactive(),
@@ -62,7 +62,7 @@ report(
   template = NULL,
   image_file = NULL,
   file = NULL,
-  format = c("html", "pdf", "tex"),
+  format = c("html", "pdf", "tex", "docx"),
   levcost = NULL,
   cost_unit = NULL,
   open = interactive(),
@@ -75,7 +75,7 @@ report(
   template = NULL,
   image_file = NULL,
   file = NULL,
-  format = c("html", "pdf", "tex"),
+  format = c("html", "pdf", "tex", "docx"),
   levcost = NULL,
   cost_unit = NULL,
   open = interactive(),
@@ -88,7 +88,7 @@ report(
   template = NULL,
   image_file = NULL,
   file = NULL,
-  format = c("html", "pdf", "tex"),
+  format = c("html", "pdf", "tex", "docx"),
   levcost = NULL,
   cost_unit = NULL,
   open = interactive(),
@@ -123,10 +123,11 @@ report(
 
 - format:
 
-  Character. Output format: `"html"` (default), `"pdf"`, or `"tex"`
-  (standalone LaTeX source). Multiple values are accepted; one file is
-  produced per format. `"pdf"`/`"tex"` require a LaTeX installation
-  (e.g.
+  Character. Output format: `"html"` (default), `"pdf"`, `"tex"`
+  (standalone LaTeX source), or `"docx"` (Word; the templates' LaTeX
+  styling degrades to Word's own styles). Multiple values are accepted;
+  one file is produced per format. `"pdf"`/`"tex"` require a LaTeX
+  installation (e.g.
   [`tinytex::install_tinytex()`](https://rdrr.io/pkg/tinytex/man/install_tinytex.html))
   and are skipped with a warning when none is found.
 

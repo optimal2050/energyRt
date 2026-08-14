@@ -1,13 +1,13 @@
 # timeslices.R ##############################################################################################################
 
-#' Common formats of time-slices.
+#' Common formats of time-timeslices.
 #' @name tsl_formats
 #' @rdname timeslices
 #'
 #' @format A character vector with formats:
 #' \describe{
-#'   \item{d365}{daily time-slices, 365 a year (leap year's 366th day is disregarded)}
-#'   \item{d365_h24}{time slices with year-day numbers and hours, 8760 in total}
+#'   \item{d365}{daily time-timeslices, 365 a year (leap year's 366th day is disregarded)}
+#'   \item{d365_h24}{time timeslices with year-day numbers and hours, 8760 in total}
 #'   \item{...}{etc.}
 #' }
 "tsl_formats"
@@ -41,15 +41,15 @@
 #'
 #' @format A named list of `calendar` objects, including:
 #' \describe{
-#'   \item{season_dn}{Four seasons x day/night (8 slices).}
+#'   \item{season_dn}{Four seasons x day/night (8 timeslices).}
 #'   \item{d365}{Daily resolution, 365 days.}
-#'   \item{utopia_annual}{UTOPIA: annual resolution (1 slice).}
+#'   \item{utopia_annual}{UTOPIA: annual resolution (1 timeslice).}
 #'   \item{utopia_seasons}{UTOPIA: 4 seasons x 3 dayparts (DAY/NIGHT/PEAK) with
-#'     representative shares (12 slices) -- the default UTOPIA resolution.}
-#'   \item{utopia_m12h24}{UTOPIA: 12 months x 24 hours (288 slices).}
-#'   \item{d365_h24}{Full hourly year: 365 days x 24 hours (8760 slices).}
+#'     representative shares (12 timeslices) -- the default UTOPIA resolution.}
+#'   \item{utopia_m12h24}{UTOPIA: 12 months x 24 hours (288 timeslices).}
+#'   \item{d365_h24}{Full hourly year: 365 days x 24 hours (8760 timeslices).}
 #'   \item{d365_h24_subset_1day_per_month}{Representative subset: one day per
-#'     month at hourly resolution (288 slices, `year_fraction` ~ 12/365).}
+#'     month at hourly resolution (288 timeslices, `year_fraction` ~ 12/365).}
 #' }
 #' The `utopia_*` calendars are built from energyRt's own constructors; the
 #' hourly `d365_h24*` calendars are imported from the IDEEA package. See
@@ -100,17 +100,17 @@
 # save(tsl, file = "data/tsl_sets.RData")
 
 
-#' @title Convert date-time objects to time-slice
+#' @title Convert date-time objects to time-timeslice
 #' @name dtm2tsl
 #'
 #' @param dtm vector of timepoints in Date format
-#' @param format character, format of the slices
+#' @param format character, format of the timeslices
 #' @param d366.as.na logical, if
 #'
 #' @rdname timeslices
 #'
 #' @return
-#' Character vector with time-slices names
+#' Character vector with time-timeslices names
 #' @export
 #'
 #' @examples
@@ -154,20 +154,20 @@ if (F) {
 
 }
 
-#' Mapping function between time-slices and date-time
+#' Mapping function between time-timeslices and date-time
 #'
 #' This set of functions converts date-time objects to model's
-#' time-slices in a given format, and vice versa, maps
-#' time-slices to date-time, and extracts year, month,
+#' time-timeslices in a given format, and vice versa, maps
+#' time-timeslices to date-time, and extracts year, month,
 #' day of the year, hour.
 #'
 #' @name tsl2dtm
 #'
-#' @param tsl character vector with time-slices
-#' @param format character, format of the slices
+#' @param tsl character vector with time-timeslices
+#' @param format character, format of the timeslices
 #' @param tmz time-zone
-#' @param year year, used when time-slices don't store year
-#' @param mday day of month, for time slices without the information
+#' @param year year, used when time-timeslices don't store year
+#' @param mday day of month, for time timeslices without the information
 #'
 #' @rdname timeslices
 #'
@@ -234,7 +234,7 @@ tsl2dtm <- function(tsl, format = tsl_guess_format(tsl), tmz = "UTC",
 
 # @name tsl2year
 # @rdname timeslices
-#' @describeIn tsl2dtm Extract year from time-slices
+#' @describeIn tsl2dtm Extract year from time-timeslices
 #'
 #' @param return.null logical, valid for the cased then all values are NA, then NULL will be returned if return.null = TRUE,
 #'
@@ -262,8 +262,8 @@ tsl2year <- function(tsl, return.null = TRUE) {
 }
 
 # @name tsl2yday
-#' Mapping function between time-slices and day of the year
-#' @describeIn tsl2dtm Extract the day of the year from time-slices
+#' Mapping function between time-timeslices and day of the year
+#' @describeIn tsl2dtm Extract the day of the year from time-timeslices
 #'
 #' @param return.null logical, valid for the cased then all values are NA, then NULL will be returned if return.null = TRUE,
 #'
@@ -286,8 +286,8 @@ tsl2yday <- function(tsl, return.null = TRUE) {
   return(d)
 }
 
-#' Mapping function between time-slices and hour
-#' @describeIn tsl2dtm Extract hour from time-slices
+#' Mapping function between time-timeslices and hour
+#' @describeIn tsl2dtm Extract hour from time-timeslices
 #'
 #' @param return.null logical, valid for the cased then all values are NA, then NULL will be returned if return.null = TRUE,
 #'
@@ -311,12 +311,12 @@ tsl2hour <- function(tsl, return.null = TRUE, pattern = "h[0-9]++") {
   return(h)
 }
 
-#' Mapping function between time-slices and month
-#' @describeIn tsl2dtm Extract month from time-slices
+#' Mapping function between time-timeslices and month
+#' @describeIn tsl2dtm Extract month from time-timeslices
 #'
 #' @param return.null logical, valid for the cased then all values are NA, then NULL will be returned if return.null = TRUE,
-#' @param tsl character vector with time slices
-#' @param format character, the time slices format
+#' @param tsl character vector with time timeslices
+#' @param format character, the time timeslices format
 #'
 #' @return
 #' Integer vector of months, the same length as the input vector
@@ -351,13 +351,13 @@ tsl2month <- function(tsl, format = tsl_guess_format(tsl), return.null = TRUE) {
   return(m)
 }
 
-#' Guess format of time-slices
+#' Guess format of time-timeslices
 #' @name tsl_guess_format
 #'
-#' @param tsl character vector of time-slice names.
+#' @param tsl character vector of time-timeslice names.
 #'
 #' @return
-#' Character vector with the guessed format of the time-slices
+#' Character vector with the guessed format of the time-timeslices
 #' @export
 #'
 #' @examples

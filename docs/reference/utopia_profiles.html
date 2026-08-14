@@ -23,7 +23,7 @@ dataset."><meta property="og:image" content="https://energyRt.org/logo.png"><!--
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.75.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.80.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -99,7 +99,7 @@ dataset.</p>
 
 <dt id="arg-calendar">calendar<a class="anchor" aria-label="anchor" href="#arg-calendar"></a></dt>
 <dd><p>target resolution: <code>"utopia_s4h24"</code> (4 seasons x 24 hours, 96
-slices, the default base case), <code>"utopia_m12h24"</code> (12 months x 24 hours,
+timeslices, the default base case), <code>"utopia_m12h24"</code> (12 months x 24 hours,
 288) or <code>"utopia_seasons"</code> (4 seasons x 3 dayparts, 12).</p></dd>
 
 
@@ -128,8 +128,8 @@ identical profiles to every region.</p></dd>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>a list of tidy data.frames, each replicated across <code>regions</code>:
-<code>weather</code> (<code>resource</code>, <code>region</code>, <code>slice</code>, <code>wval</code>), <code>demand</code> (<code>region</code>,
-<code>slice</code>, <code>load</code> – a relative load shape) and <code>stock</code> (<code>region</code>, <code>tech</code>,
+<code>weather</code> (<code>resource</code>, <code>region</code>, <code>timeslice</code>, <code>wval</code>), <code>demand</code> (<code>region</code>,
+<code>timeslice</code>, <code>load</code> – a relative load shape) and <code>stock</code> (<code>region</code>, <code>tech</code>,
 <code>gw</code> – base-year capacity).</p>
     </div>
     <div class="section level2">

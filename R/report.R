@@ -47,10 +47,12 @@
 #'   \code{report_<name>} in the current working directory, with the extension
 #'   appropriate for \code{format}.
 #' @param format Character.  Output format: \code{"html"} (default),
-#'   \code{"pdf"}, or \code{"tex"} (standalone LaTeX source).  Multiple values
-#'   are accepted; one file is produced per format.  \code{"pdf"}/\code{"tex"}
-#'   require a LaTeX installation (e.g. \code{tinytex::install_tinytex()}) and
-#'   are skipped with a warning when none is found.
+#'   \code{"pdf"}, \code{"tex"} (standalone LaTeX source), or \code{"docx"}
+#'   (Word; the templates' LaTeX styling degrades to Word's own styles).
+#'   Multiple values are accepted; one file is produced per format.
+#'   \code{"pdf"}/\code{"tex"} require a LaTeX installation (e.g.
+#'   \code{tinytex::install_tinytex()}) and are skipped with a warning when
+#'   none is found.
 #' @param open Logical.  Open the rendered report in the system browser/viewer
 #'   when done.  Defaults to \code{interactive()} (opens in an interactive
 #'   session, stays quiet in scripts and knits).
@@ -78,7 +80,7 @@
 setGeneric(
   "report",
   function(object, template = NULL, image_file = NULL, file = NULL,
-           format = c("html", "pdf", "tex"),
+           format = c("html", "pdf", "tex", "docx"),
            levcost = NULL, cost_unit = NULL, open = interactive(), ...) {
     standardGeneric("report")
   }
@@ -160,12 +162,12 @@ setMethod(
   "report",
   "technology",
   function(object, template = NULL, image_file = NULL, file = NULL,
-           format = c("html", "pdf", "tex"),
+           format = c("html", "pdf", "tex", "docx"),
            levcost = NULL, cost_unit = NULL, open = interactive(), ...) {
 
     # default = html only (pdf/tex need LaTeX); explicit requests are honoured
     format <- if (missing(format)) "html" else
-      match.arg(format, c("html", "pdf", "tex"), several.ok = TRUE)
+      match.arg(format, c("html", "pdf", "tex", "docx"), several.ok = TRUE)
     format <- .report_check_formats(format)
 
     # -- resolve template --------------------------------------------------
@@ -175,7 +177,8 @@ setMethod(
     .levcost_params <- c("comm", "group", "repo", "fuel_costs",
                          "discount", "base_year",
                          "horizon", "calendar", "region", "weather",
-                         "frontier", "solver", "full_output", "verbose")
+                         "frontier", "solver", "method", "full_output",
+                         "verbose")
     dots        <- list(...)
     lc_dots     <- dots[intersect(names(dots), .levcost_params)]
     render_dots <- dots[setdiff(names(dots), .levcost_params)]
@@ -209,6 +212,14 @@ setMethod(
     } else {
       tmpl <- .find_report_template(tmpl_name)
     }
+
+    # -- sort remaining ... into template params vs render args ------------
+    # Anything the template declares as a param is passed as one; anything
+    # rmarkdown::render() accepts is forwarded; the rest is dropped with a
+    # warning (old scripts may carry arguments from retired templates).
+    sorted      <- .report_sort_dots(render_dots, tmpl)
+    param_dots  <- sorted$params
+    render_dots <- sorted$render
 
     # -- output file base (extension stripped) ------------------------------
     # default: report_<NAME> in the working directory (findable, deterministic)
@@ -258,14 +269,48 @@ setMethod(
       })
     }
 
+    # -- levcost: resolve the display instance and vintage tables ----------
+    # A `levcost_variants` result is NOT reduced to its first variant any
+    # more: the per-vintage NPVs go to the report as a table + comparison
+    # chart, while the detail figures (components, frontier) come from ONE
+    # instance -- draw()'s default cell (newest vintage / first cluster) --
+    # re-priced with the same arguments (analytic under method = "auto",
+    # so essentially free) and labeled as that instance.
+    levcost_by_vintage_df  <- NULL
+    levcost_instance_label <- NULL
+    lc_obj <- levcost
+    if (inherits(levcost, "levcost_variants")) {
+      levcost_by_vintage_df <- tryCatch(
+        .report_drop_empty_cols(levcost_by_variant(levcost, "npv")),
+        error = function(e) NULL)
+      inst <- tryCatch(.levcost_instance(object), error = function(e) NULL)
+      lc_inst <- NULL
+      if (!is.null(inst)) {
+        ld <- lc_dots
+        ld$frontier <- TRUE
+        ld$verbose  <- FALSE
+        lc_inst <- tryCatch(
+          suppressMessages(suppressWarnings(
+            do.call(energyRt::levcost, c(list(object = inst), ld)))),
+          error = function(e) NULL)
+        if (!inherits(lc_inst, "levcost")) lc_inst <- NULL
+      }
+      lc_obj <- if (!is.null(lc_inst)) lc_inst else
+        .report_pick_instance(levcost)
+      levcost_instance_label <- if (!is.null(inst)) inst@name else
+        names(lc_obj$levcost_npv)[1]
+    } else if (inherits(levcost, "levcost_list")) {
+      lc_obj <- levcost[[1]]
+    }
+
     # -- levcost plots (compact, for inline figure) ------------------------
     levcost_plot  <- NULL
     frontier_plot <- NULL
+    levcost_variants_plot <- NULL
     if (!is.null(levcost)) {
       if (!requireNamespace("ggplot2", quietly = TRUE)) {
         warning("Package 'ggplot2' is required for levcost plots; they will be omitted.")
       } else {
-        lc_obj <- if (inherits(levcost, "levcost_list")) levcost[[1]] else levcost
         compact_theme <- theme_energyRt(base_size = 10L) +
           ggplot2::theme(
             legend.position  = "bottom",
@@ -279,7 +324,11 @@ setMethod(
           )
         levcost_plot <- tryCatch({
           p <- ggplot2::autoplot(lc_obj, type = "npv", cost_unit = cost_unit)
-          if (!is.null(p)) p + compact_theme else NULL
+          # the section header already names the instance -- an in-plot
+          # title just repeats it and steals figure height
+          if (!is.null(p)) p + compact_theme +
+            ggplot2::labs(title = NULL, subtitle = NULL, caption = NULL)
+          else NULL
         }, error = function(e) {
           warning("levcost plot (type='npv') failed: ", conditionMessage(e))
           NULL
@@ -293,20 +342,34 @@ setMethod(
             NULL
           })
         }
+        if (inherits(levcost, "levcost_variants")) {
+          levcost_variants_plot <- tryCatch({
+            p <- ggplot2::autoplot(levcost, type = "npv", cost_unit = cost_unit)
+            if (!is.null(p)) p + compact_theme +
+              ggplot2::labs(title = NULL, subtitle = NULL, caption = NULL,
+                            x = NULL)
+            else NULL
+          }, error = function(e) {
+            warning("levcost by-vintage plot failed: ", conditionMessage(e))
+            NULL
+          })
+        }
       }
     }
 
     # -- build params list passed to rmarkdown::render ---------------------
     params <- .tech_report_params_generic(object, image_file_abs, draw_file)
-    params$levcost_plot        <- levcost_plot
-    params$frontier_plot       <- frontier_plot
-    params$share_frontier_plot <- share_frontier_plot
+    params$levcost_plot           <- levcost_plot
+    params$frontier_plot          <- frontier_plot
+    params$share_frontier_plot    <- share_frontier_plot
+    params$levcost_variants_plot  <- levcost_variants_plot
+    params$levcost_by_vintage_df  <- levcost_by_vintage_df
+    params$levcost_instance_label <- levcost_instance_label
     params$units_costs         <- if (!is.null(cost_unit) && nzchar(cost_unit)) cost_unit else
       .slot_val_report(object@units, "costs", "")
     params$levcost_npv         <- NULL
-    if (!is.null(levcost)) {
-      lc_src <- if (inherits(levcost, "levcost_list")) levcost[[1]] else levcost
-      npv    <- lc_src$levcost_npv
+    if (!is.null(lc_obj)) {
+      npv <- lc_obj$levcost_npv
       if (!is.null(npv)) params$levcost_npv <- as.numeric(npv)[1]
     }
 
@@ -320,7 +383,8 @@ setMethod(
     # -- render each format ------------------------------------------------
     out_files <- character(0)
     for (fmt in format) {
-      ext  <- switch(fmt, pdf = ".pdf", html = ".html", tex = ".tex")
+      ext  <- switch(fmt, pdf = ".pdf", html = ".html", tex = ".tex",
+                     docx = ".docx")
       fout <- paste0(file_base, ext)
 
       out_fmt <- switch(fmt,
@@ -331,10 +395,22 @@ setMethod(
                # parses them as native divs and mis-balances them, swallowing the
                # rest of the document (chunks then leak as raw source).
                md_extensions = "-native_divs-native_spans"),
-        tex  = rmarkdown::latex_document()
+        tex  = rmarkdown::latex_document(),
+        # LaTeX header-includes are ignored by pandoc's docx writer, so the
+        # templates degrade gracefully to Word's own styles
+        docx = rmarkdown::word_document()
       )
 
       fmt_params <- params
+      if (length(param_dots) > 0) fmt_params[names(param_dots)] <- param_dots
+      # only pass params the template declares -- rmarkdown hard-errors on
+      # undeclared ones, which would break older / user-supplied templates
+      # whenever report() grows a new param
+      tmpl_params <- tryCatch(
+        names(rmarkdown::yaml_front_matter(tmpl)$params),
+        error = function(e) NULL)
+      if (!is.null(tmpl_params))
+        fmt_params <- fmt_params[names(fmt_params) %in% tmpl_params]
       if (!is.null(image_file_abs) && fmt %in% c("pdf", "tex")) {
         img <- image_file_abs
         if (grepl(" ", img)) {
@@ -374,9 +450,22 @@ setMethod(
 # Report a technology from a container: reuse the technology datasheet, injecting
 # the levelized cost computed for that container / solved scenario. Give the
 # technology via `name = ` (in `...`).
-.report_lc_params <- c("comm", "group", "autocomplete", "fuel_costs", "discount",
-                       "base_year", "horizon", "calendar", "region", "weather",
-                       "frontier", "solver", "verbose")
+.report_lc_params <- c("comm", "group", "repo", "autocomplete", "fuel_costs",
+                       "discount", "base_year", "horizon", "calendar",
+                       "region", "weather", "frontier", "solver", "method",
+                       "full_output", "verbose")
+
+# The display instance of a ready-made `levcost_variants` result: newest
+# vintage, first cluster (draw()'s default cell), via the variants key --
+# never by parsing names.
+#' @noRd
+.report_pick_instance <- function(lcv) {
+  key <- attr(lcv, "variants")
+  if (is.null(key) || nrow(key) == 0) return(lcv[[1]])
+  vin <- suppressWarnings(as.integer(key$vintage))
+  pick <- if (any(is.finite(vin))) which(vin == max(vin, na.rm = TRUE))[1] else 1L
+  lcv[[key$variant[pick]]]
+}
 
 .report_container <- function(container, tech_source, object_for_levcost,
                               template, image_file, file, format, levcost,
@@ -419,12 +508,15 @@ setMethod(
 .report_render <- function(tmpl_name, params, file, format, render_dots, stub,
                            open = interactive()) {
   format <- .report_check_formats(
-    match.arg(format, c("html", "pdf", "tex"), several.ok = TRUE))
+    match.arg(format, c("html", "pdf", "tex", "docx"), several.ok = TRUE))
   tmpl <- if (!is.null(tmpl_name) && file.exists(tmpl_name)) {
     normalizePath(tmpl_name, mustWork = TRUE)
   } else {
     .find_report_template(tmpl_name)
   }
+  sorted <- .report_sort_dots(render_dots, tmpl)
+  if (length(sorted$params) > 0) params[names(sorted$params)] <- sorted$params
+  render_dots <- sorted$render
   # default: report_<name> in the working directory (findable, deterministic)
   file_base <- if (is.null(file)) {
     file.path(getwd(), paste0("report_", gsub("[^A-Za-z0-9_]", "_", stub)))
@@ -434,7 +526,8 @@ setMethod(
   file_base <- normalizePath(file_base, mustWork = FALSE)
   out_files <- character(0)
   for (fmt in format) {
-    ext  <- switch(fmt, pdf = ".pdf", html = ".html", tex = ".tex")
+    ext  <- switch(fmt, pdf = ".pdf", html = ".html", tex = ".tex",
+                   docx = ".docx")
     fout <- paste0(file_base, ext)
     out_fmt <- switch(fmt,
       pdf  = rmarkdown::pdf_document(latex_engine = .report_latex_engine()),
@@ -443,7 +536,8 @@ setMethod(
                # parses them as native divs and mis-balances them, swallowing the
                # rest of the document (chunks then leak as raw source).
                md_extensions = "-native_divs-native_spans"),
-      tex  = rmarkdown::latex_document())
+      tex  = rmarkdown::latex_document(),
+      docx = rmarkdown::word_document())
     .with_knitr_guard(
       do.call(rmarkdown::render, c(
         list(input = tmpl, output_format = out_fmt, output_file = fout,
@@ -500,9 +594,9 @@ setMethod(
   add("fixom",   num_rng(gs("fixom"),   "fixom"))
   add("varom",   num_rng(gs("varom"),   "varom"))
   # lifespan lives in `@vintage` for technology, in the separate slots elsewhere
-  ol <- .lifespan_col(p, "olife")
+  ol <- .lifespan_resolve(p, "olife")
   if (nrow(ol) > 0) add("olife", ol$olife[1])
-  st <- .lifespan_col(p, "start")
+  st <- .lifespan_resolve(p, "start")
   if (nrow(st) > 0) add("start", st$start[1])
   cap <- gs("capacity")
   if (is.data.frame(cap) && "stock" %in% names(cap)) {
@@ -538,10 +632,10 @@ setMethod(
                   paste(horizon@intervals$mid, collapse = ", "))))
     }
     if (!is.null(cal)) {
-      ns <- tryCatch(nrow(cal@slice_share), error = function(e) NA)
+      ns <- tryCatch(nrow(cal@timeslice_share), error = function(e) NA)
       cfg_rows <- c(cfg_rows, list(pair("calendar",
         paste0(if (nzchar(cal@name)) cal@name else "(unnamed)",
-               " (", ns, " slices)"))))
+               " (", ns, " timeslices)"))))
     }
     # Both rates, each under its own name -- they do different jobs and a model
     # may well set them differently.
@@ -666,12 +760,12 @@ setMethod(
   newcap_plot <- ap("new_capacity")
   # dispatch profile over a sub-annual sample when the calendar has one
   gen_day_plot <- NULL
-  sl <- tryCatch(unique(.mix_fetch(scen, "vTechOut", native = TRUE)$slice),
+  sl <- tryCatch(unique(.mix_fetch(scen, "vTechOut", native = TRUE)$timeslice),
                  error = function(e) NULL)
   sl <- setdiff(sl, "ANNUAL")
   if (length(sl) > 1) {
     pref <- sub("_.*$", "", sl[1])
-    gen_day_plot <- ap("generation", slice = paste0("^", pref, "_"))
+    gen_day_plot <- ap("generation", timeslice = paste0("^", pref, "_"))
   }
 
   emis <- gd("vEmsFuelTot")
@@ -705,7 +799,7 @@ setMethod(
 #' @export
 setMethod("report", "repository",
   function(object, template = NULL, image_file = NULL, file = NULL,
-           format = c("html", "pdf", "tex"), levcost = NULL, cost_unit = NULL,
+           format = c("html", "pdf", "tex", "docx"), levcost = NULL, cost_unit = NULL,
            open = interactive(), ...) {
     if (missing(format)) format <- "html"
     dots <- list(...); name <- dots[["name"]]; dots[["name"]] <- NULL
@@ -720,7 +814,7 @@ setMethod("report", "repository",
 #' @export
 setMethod("report", "model",
   function(object, template = NULL, image_file = NULL, file = NULL,
-           format = c("html", "pdf", "tex"), levcost = NULL, cost_unit = NULL,
+           format = c("html", "pdf", "tex", "docx"), levcost = NULL, cost_unit = NULL,
            open = interactive(), ...) {
     if (missing(format)) format <- "html"
     dots <- list(...); name <- dots[["name"]]; dots[["name"]] <- NULL
@@ -735,7 +829,7 @@ setMethod("report", "model",
 #' @export
 setMethod("report", "scenario",
   function(object, template = NULL, image_file = NULL, file = NULL,
-           format = c("html", "pdf", "tex"), levcost = NULL, cost_unit = NULL,
+           format = c("html", "pdf", "tex", "docx"), levcost = NULL, cost_unit = NULL,
            open = interactive(), ...) {
     if (missing(format)) format <- "html"
     dots <- list(...); name <- dots[["name"]]; dots[["name"]] <- NULL
@@ -795,6 +889,44 @@ setMethod("report_tex", "technology", function(object, ...) {
   report(object, ..., format = "tex")
 })
 
+#' Generate a Word report for an energyRt object
+#'
+#' Thin wrapper around \code{\link{report}} that fixes \code{format = "docx"}.
+#'
+#' @inheritParams report
+#' @return Path to the generated \code{.docx} file (invisibly).
+#' @export
+setGeneric("report_docx", function(object, ...) standardGeneric("report_docx"))
+
+#' @rdname report_docx
+#' @export
+setMethod("report_docx", "technology", function(object, ...) {
+  report(object, ..., format = "docx")
+})
+
+# Split leftover ... into template params vs rmarkdown::render() args;
+# anything else is dropped with a warning rather than crashing deep inside
+# render() ("unused arguments") — old scripts may carry arguments from
+# retired templates (e.g. img_height / n_columns).
+#' @noRd
+.report_sort_dots <- function(dots, tmpl) {
+  if (length(dots) == 0) return(list(params = list(), render = list()))
+  tmpl_params <- tryCatch(
+    names(rmarkdown::yaml_front_matter(tmpl)$params),
+    error = function(e) character())
+  is_param  <- names(dots) %in% tmpl_params
+  is_render <- !is_param &
+    names(dots) %in% names(formals(rmarkdown::render))
+  bad <- names(dots)[!is_param & !is_render]
+  if (length(bad) > 0) {
+    warning("report(): ignoring unknown argument(s): ",
+            paste(bad, collapse = ", "),
+            " (not template params or rmarkdown::render() arguments)",
+            call. = FALSE)
+  }
+  list(params = dots[is_param], render = dots[is_render])
+}
+
 # ── template finder ────────────────────────────────────────────────────────────
 
 #' Locate a report Rmd template by name
@@ -821,9 +953,16 @@ setMethod("report_tex", "technology", function(object, ...) {
     if (!is.null(p2) && file.exists(p2)) return(p2)
   }
 
+  # list what actually ships rather than a hardcoded (stale) set
+  tdir <- suppressWarnings(tryCatch(
+    system.file("templates", package = "energyRt"), error = function(e) ""))
+  if (!nzchar(tdir) || !dir.exists(tdir)) tdir <- "inst/templates"
+  avail <- sub("^report_(.*)[.]Rmd$", "\\1",
+               list.files(tdir, pattern = "^report_.*[.]Rmd$"))
   stop("Report template '", fname, "' not found.\n",
        "Expected location: inst/templates/", fname, "\n",
-       "Available built-in templates: \"generic\"")
+       "Available built-in templates: ",
+       paste0('"', avail, '"', collapse = ", "))
 }
 
 # ── params extractor ───────────────────────────────────────────────────────────
@@ -840,13 +979,30 @@ setMethod("report_tex", "technology", function(object, ...) {
   units_act   <- .slot_val_report(object@units, "activity", "")
   units_costs <- .slot_val_report(object@units, "costs",    "")
 
+  # Key-parameter scalars are only honest when the value is unambiguous; a
+  # vintaged technology carries per-vintage windows/lives, which belong in
+  # the vintages TABLE, not in a scalar that silently shows the first row.
   .ls1 <- function(col) {
-    d <- .lifespan_col(object, col)
-    if (nrow(d) > 0) d[[col]][1] else NA_integer_
+    d <- .lifespan_resolve(object, col)
+    v <- unique(d[[col]])           # NA kept: an open window IS a value
+    if (length(v) == 1 && !is.na(v)) v else NA_integer_
   }
   olife_val <- .ls1("olife")
   start_val <- .ls1("start")
   end_val   <- .ls1("end")
+
+  vintage_df <- .report_drop_empty_cols(as.data.frame(object@vintage))
+
+  # with several vintages the resolver only sees the non-NA rows, so a lone
+  # closed window would masquerade as THE window -- the vintages table owns
+  # this detail, the scalars stay blank
+  multi_vin <- !is.null(vintage_df) && "vintage" %in% names(vintage_df) &&
+    length(unique(vintage_df$vintage[!is.na(vintage_df$vintage)])) > 1
+  if (multi_vin) {
+    olife_val <- NA_integer_
+    start_val <- NA_integer_
+    end_val   <- NA_integer_
+  }
 
   cap_df <- object@capacity
   if (nrow(cap_df) > 0) {
@@ -854,23 +1010,20 @@ setMethod("report_tex", "technology", function(object, ...) {
     keep <- rowSums(!is.na(cap_df[, value_cols, drop = FALSE])) > 0
     cap_df <- cap_df[keep, , drop = FALSE]
   }
-  stock_val <- if (nrow(cap_df) > 0 && "stock" %in% names(cap_df)) {
+  cap_df <- .report_drop_empty_cols(cap_df)
+  stock_val <- if (!is.null(cap_df) && "stock" %in% names(cap_df)) {
     v <- cap_df$stock[!is.na(cap_df$stock)]; if (length(v) > 0) v[1] else NA_real_
   } else NA_real_
 
-  input_df  <- if (nrow(object@input)  > 0) object@input  else NULL
-  output_df <- if (nrow(object@output) > 0) object@output else NULL
+  input_df  <- .report_drop_empty_cols(object@input)
+  output_df <- .report_drop_empty_cols(object@output)
 
   ceff_df <- if (nrow(object@ceff) > 0) {
-    preferred_cols <- c("comm", "cinp2use", "use2cact", "cact2cout",
-                        "cinp2ginp", "share.lo", "share.up", "share.fx")
+    preferred_cols <- c("comm", "vintage", "cluster", "cinp2use", "use2cact",
+                        "cact2cout", "cinp2ginp", "share.lo", "share.up",
+                        "share.fx")
     cc  <- intersect(preferred_cols, names(object@ceff))
-    df  <- object@ceff[, cc, drop = FALSE]
-    df  <- df[, colSums(!is.na(df)) > 0, drop = FALSE]
-    val_cols <- setdiff(names(df), "comm")
-    if (length(val_cols) > 0)
-      df <- df[rowSums(!is.na(df[, val_cols, drop = FALSE])) > 0, , drop = FALSE]
-    if (nrow(df) > 0) df else NULL
+    .report_drop_empty_cols(object@ceff[, cc, drop = FALSE])
   } else NULL
 
   invcost_df <- .clean_cost_df_report(object@invcost, "invcost")
@@ -888,7 +1041,8 @@ setMethod("report_tex", "technology", function(object, ...) {
     stock       = stock_val,
     start       = start_val,
     end         = end_val,
-    cap_df      = if (nrow(cap_df) > 0) cap_df else NULL,
+    vintage_df  = vintage_df,
+    cap_df      = cap_df,
     input_df    = input_df,
     output_df   = output_df,
     ceff_df     = ceff_df,
@@ -910,14 +1064,31 @@ setMethod("report_tex", "technology", function(object, ...) {
   default
 }
 
-#' Keep only relevant columns from a cost data.frame, dropping all-NA rows
+#' Drop all-NA / all-empty-string columns, then all-NA rows; NULL when nothing
+#' remains. The one pruning rule every report table goes through, so no
+#' template ever prints a column of NA.
+#' @noRd
+.report_drop_empty_cols <- function(df) {
+  if (is.null(df) || !is.data.frame(df) || nrow(df) == 0) return(NULL)
+  keep <- vapply(df, function(x) {
+    if (is.character(x)) any(!is.na(x) & nzchar(x)) else any(!is.na(x))
+  }, logical(1))
+  df <- df[, keep, drop = FALSE]
+  if (ncol(df) == 0) return(NULL)
+  df <- df[rowSums(!is.na(df)) > 0, , drop = FALSE]
+  if (nrow(df) == 0) NULL else df
+}
+
+#' Keep only relevant columns from a cost data.frame, dropping all-NA rows.
+#' `vintage`/`cluster` are KEPT: collapsing them silently replaced a
+#' per-vintage invcost table with its first row.
 #' @noRd
 .clean_cost_df_report <- function(df, cost_col) {
   if (is.null(df) || !is.data.frame(df) || nrow(df) == 0) return(NULL)
-  keep_cols <- intersect(c("region", "year", cost_col), names(df))
+  keep_cols <- intersect(c("vintage", "cluster", "region", "year", cost_col),
+                         names(df))
   df <- df[, keep_cols, drop = FALSE]
-  val_cols <- setdiff(keep_cols, "region")
-  if (length(val_cols) == 0) return(NULL)
-  df <- df[rowSums(!is.na(df[, val_cols, drop = FALSE])) > 0, , drop = FALSE]
-  if (nrow(df) == 0) NULL else df
+  if (!cost_col %in% names(df)) return(NULL)
+  df <- df[!is.na(df[[cost_col]]), , drop = FALSE]
+  .report_drop_empty_cols(df)
 }

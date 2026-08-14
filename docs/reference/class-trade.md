@@ -58,9 +58,10 @@ parts of the trade network (aka transmission lines).
 
   :   integer. Year to apply the parameter, NA for every year.
 
-  slice
+  timeslice
 
-  :   character. Time slice to apply the parameter, NA for every slice.
+  :   character. Time timeslice to apply the parameter, NA for every
+      timeslice.
 
   trade
 
@@ -100,9 +101,10 @@ parts of the trade network (aka transmission lines).
 
   :   integer. Year to apply the parameter, NA for every year.
 
-  slice
+  timeslice
 
-  :   character. Time slice to apply the parameter, NA for every slice.
+  :   character. Time timeslice to apply the parameter, NA for every
+      timeslice.
 
   trade2ainp
 
@@ -210,12 +212,12 @@ parts of the trade network (aka transmission lines).
   start
 
   :   integer. The first year the trade object is available for
-      investment. Defaults to the vintage year.
+      investment. NA means unbounded (up to `end`).
 
   end
 
   :   integer. The last year the trade object is available for
-      investment. Defaults to the vintage year.
+      investment. NA means unbounded (from `start` on).
 
   olife
 

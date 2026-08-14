@@ -1,0 +1,52 @@
+# techspec v1 — classic coal condensing power plant
+# A minimal, complete process: one fuel in, electricity out, CO2 as an
+# auxiliary output, availability bound, costs, lifetime.
+techspec: 1
+class: technology
+name: ECOA
+desc: Coal condensing power plant
+
+units:
+  capacity: GW
+  activity: PJ
+  costs: MUSD
+
+inputs:
+  - comm: COA
+    unit: PJ
+outputs:
+  - comm: ELC
+    unit: PJ
+aux:
+  - acomm: CO2
+    unit: kt
+
+# 1 PJ of coal -> 0.35 PJ of electricity
+efficiency:
+  - comm: COA
+    cinp2use: 1
+  - comm: ELC
+    use2cact: 0.35
+    cact2cout: 1
+
+aux_efficiency:
+  - acomm: CO2
+    comm: COA
+    cinp2aout: 96      # kt CO2 per PJ coal
+
+cap2act: 31.536        # GW -> PJ per year at full load
+
+availability:
+  - af.up: 0.9         # applies to ALL vintages/regions/years/timeslices
+
+invcost:
+  - invcost: 1500      # MUSD/GW, ALL vintages
+fixom:
+  - fixom: 30
+
+# Simple lifetime — no vintage table: the plant is investable across the
+# whole horizon (use a `vintages:` section for build-year cohorts)
+olife: 40
+
+notes: >
+  Teaching example. Numbers are illustrative, not calibrated.

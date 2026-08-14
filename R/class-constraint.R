@@ -139,10 +139,10 @@ setClass("summand",
     desc = NULL,
     variable = NULL,
     for.sum = list(),
-    # `timeframe` pins the slice level the variable is taken at (e.g. "ANNUAL",
-    # "SEASON"): the variable's `slice` dimension is restricted to that level's
-    # slices, so summing them yields the level aggregate without double-counting
-    # across levels. NA = no restriction (sum the variable's native slices).
+    # `timeframe` pins the timeslice level the variable is taken at (e.g. "ANNUAL",
+    # "SEASON"): the variable's `timeslice` dimension is restricted to that level's
+    # timeslices, so summing them yields the level aggregate without double-counting
+    # across levels. NA = no restriction (sum the variable's native timeslices).
     # Replaces the need for the *RY (year-resolution) aggregate variables.
     timeframe = NA_character_,
     # `geolevel` is the spatial twin: it pins the geoscale level the variable is
@@ -299,6 +299,7 @@ newConstraint <- function(
   obj@desc <- desc
   obj@interpolation <- interpolation
   if (!is.null(for.each)) {
+    names(for.each) <- .rename_slice_compat(names(for.each), "for.each")
     if (!is.data.frame(for.each) && is.list(for.each)) {
       tmp <- data.frame(stringsAsFactors = FALSE)
       fl_null <- sapply(for.each, is.null)
@@ -468,10 +469,10 @@ addSummand <- function(
   stop.constr <- function(x) {
     stop(paste0('Constraint "', stm@name, '" error: ', x))
   }
-  # (The legacy `get.all.child` slice-ancestry helper was removed: variable
-  # domains now carry every slice level, so slice restrictions -- including
+  # (The legacy `get.all.child` timeslice-ancestry helper was removed: variable
+  # domains now carry every timeslice level, so timeslice restrictions -- including
   # those derived from a summand `timeframe` -- are taken literally. See the
-  # for.sum slice handling below and the `timeframe` resolution loop.)
+  # for.sum timeslice handling below and the `timeframe` resolution loop.)
   # all.set contain all set for for.each & lhs
   # Estimate is need sum for for.each
   # set.map need special mapping or consist all set
@@ -527,21 +528,21 @@ addSummand <- function(
     for.each.set <- NULL
   }
 
-  # Resolve per-summand `timeframe` to an explicit `slice` restriction. The
-  # variable is taken at exactly the slices of that timeframe level
+  # Resolve per-summand `timeframe` to an explicit `timeslice` restriction. The
+  # variable is taken at exactly the timeslices of that timeframe level
   # (calendar@timeframes), so summing them yields the level aggregate without
   # double-counting across levels -- replacing the *RY year-resolution
-  # variables. Applied here, before the slice handling below picks it up as a
+  # variables. Applied here, before the timeslice handling below picks it up as a
   # for.sum restriction.
   for (i in seq_along(stm@lhs)) {
     # Defensive: summand objects serialized before the `timeframe` slot existed
     # lack it; treat those as no timeframe (NA).
     tf <- tryCatch(stm@lhs[[i]]@timeframe, error = function(e) NA_character_)
     if (length(tf) != 1 || is.na(tf)) next
-    if (!("slice" %in% .variable_set[[stm@lhs[[i]]@variable]])) {
+    if (!("timeslice" %in% .variable_set[[stm@lhs[[i]]@variable]])) {
       stop.constr(paste0(
         'timeframe = "', tf, '" set on variable "', stm@lhs[[i]]@variable,
-        '" which has no slice dimension.'
+        '" which has no timeslice dimension.'
       ))
     }
     tfs <- approxim$calendar@timeframes
@@ -552,24 +553,24 @@ addSummand <- function(
         paste(names(tfs), collapse = ", ")
       ))
     }
-    # Slices AT that level plus everything under them, so a level the variable
+    # Timeslices AT that level plus everything under them, so a level the variable
     # is not indexed by aggregates rather than resolving to nothing.
-    anc <- approxim$calendar@slice_ancestry
+    anc <- approxim$calendar@timeslice_ancestry
     desc <- unique(c(as.character(lev),
                      if (!is.null(anc) && nrow(anc) > 0) {
                        as.character(anc$child[as.character(anc$parent) %in% lev])
                      }))
-    dom <- .variable_domain_values(prec, stm@lhs[[i]]@variable, "slice")
+    dom <- .variable_domain_values(prec, stm@lhs[[i]]@variable, "timeslice")
     got <- .resolve_level_indices(dom, tf, tfs, desc)
     if (length(got) == 0) {
       stop.constr(paste0(
-        'timeframe = "', tf, '" does not resolve to any slice of variable "',
+        'timeframe = "', tf, '" does not resolve to any timeslice of variable "',
         stm@lhs[[i]]@variable, '". It exists at: ',
         paste(utils::head(sort(dom), 6), collapse = ", "),
         '.\n  Write the sum explicitly in `for.sum` instead.'
       ))
     }
-    stm@lhs[[i]]@for.sum$slice <- as.character(got)
+    stm@lhs[[i]]@for.sum$timeslice <- as.character(got)
   }
 
   # Spatial twin of the loop above: resolve per-summand `geolevel` to an
@@ -626,13 +627,13 @@ addSummand <- function(
         stm@lhs[[i]]@for.sum$region, dom,
         function(r) .geo_descendants_of(hier, r), "region", v, stop.constr)
     }
-    anc <- approxim$calendar@slice_ancestry
-    if (!is.null(stm@lhs[[i]]@for.sum$slice) && !is.null(anc) && nrow(anc) > 0) {
-      dom <- .variable_domain_values(prec, v, "slice")
-      stm@lhs[[i]]@for.sum$slice <- .expand_for_sum(
-        stm@lhs[[i]]@for.sum$slice, dom,
+    anc <- approxim$calendar@timeslice_ancestry
+    if (!is.null(stm@lhs[[i]]@for.sum$timeslice) && !is.null(anc) && nrow(anc) > 0) {
+      dom <- .variable_domain_values(prec, v, "timeslice")
+      stm@lhs[[i]]@for.sum$timeslice <- .expand_for_sum(
+        stm@lhs[[i]]@for.sum$timeslice, dom,
         function(s) as.character(anc$child[as.character(anc$parent) == s]),
-        "slice", v, stop.constr)
+        "timeslice", v, stop.constr)
     }
   }
 
@@ -664,9 +665,9 @@ addSummand <- function(
       !sapply(is.na(stm@lhs[[i]]@for.sum), all)]
     # Fill add.map for for.lhs
     for (j in st) {
-      # Restrict to the EXACT for.sum values (incl. slice). The legacy
-      # slice-ancestry expansion (get.all.child) is retired: variable domains
-      # now carry every slice level, so a slice restriction -- e.g. one derived
+      # Restrict to the EXACT for.sum values (incl. timeslice). The legacy
+      # timeslice-ancestry expansion (get.all.child) is retired: variable domains
+      # now carry every timeslice level, so a timeslice restriction -- e.g. one derived
       # from a summand `timeframe` -- must be taken literally to avoid
       # double-counting across levels.
       if (!is.null(stm@lhs[[i]]@for.sum[[j]]) &&
@@ -818,8 +819,8 @@ addSummand <- function(
           "solver", "year", "calendar"
         )
       )]
-    if (any(names(approxim2) == "slice")) {
-      approxim2$slice <- approxim2$calendar@slice_share$slice
+    if (any(names(approxim2) == "timeslice")) {
+      approxim2$timeslice <- approxim2$calendar@timeslice_share$timeslice
     }
     fl <- (all.set$for.each & !is.na(all.set$new.map) &
       all.set$set %in% colnames(stm@rhs))
@@ -913,8 +914,8 @@ addSummand <- function(
       approxim2 <- approxim[unique(c(colnames(stm@lhs[[i]]@mult)[
         colnames(stm@lhs[[i]]@mult) %in% names(approxim)
       ], "solver", "year"))]
-      if (any(names(approxim2) == "slice")) {
-        approxim2$slice <- approxim2$calendar@slice_share$slice
+      if (any(names(approxim2) == "timeslice")) {
+        approxim2$timeslice <- approxim2$calendar@timeslice_share$timeslice
       }
       need.set <- lhs.set2[lhs.set2$set %in% colnames(stm@lhs[[i]]@mult), "set"]
       need.set2 <- lhs.set2[!is.na(lhs.set2$new.map) &
@@ -950,8 +951,8 @@ addSummand <- function(
             for (j in nslc) {
               approxim2[[j]] <- approxim[[j]]
             }
-            if (any(nslc == "slice")) {
-              approxim2$slice <- approxim$calendar@slice_share$slice
+            if (any(nslc == "timeslice")) {
+              approxim2$timeslice <- approxim$calendar@timeslice_share$timeslice
             }
           }
         }
@@ -1085,10 +1086,10 @@ newConstraintS <- function(
   }
 
   if (type == "tax") {
-    return(newTax(name, tax = rhs, comm = comm, region = for.each$region, year = for.each$year, slice = for.each$slice))
+    return(newTax(name, tax = rhs, comm = comm, region = for.each$region, year = for.each$year, timeslice = for.each$timeslice))
   }
   if (type == "subs") {
-    return(newSubsidy(name, subsidy = rhs, comm = comm, region = for.each$region, year = for.each$year, slice = for.each$slice))
+    return(newSubsidy(name, subsidy = rhs, comm = comm, region = for.each$region, year = for.each$year, timeslice = for.each$timeslice))
   }
   # if (any(grep('(share|growth)', type))) stop.newconstr(paste(type, 'have to do'))
   # For wich kind of variables (capacity, newcapacity, input or output)

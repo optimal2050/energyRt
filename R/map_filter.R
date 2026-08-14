@@ -3,7 +3,7 @@
 #
 # One `map_<Name>(scen, fmp) -> scen` per filter map. A filter map is the index
 # domain of a flow/activity variable: the product of an operation window x a
-# membership map x a slice map (x years), restricted to feasible (comm, region)
+# membership map x a timeslice map (x years), restricted to feasible (comm, region)
 # pairs via the commodity-region closure mCommReg (.filt_cr). Each map reads its
 # dependency maps from the scenario with .gds; the registry builds them in
 # dependency order (the `.filter_builders` list order — build_mappings iterates in
@@ -11,7 +11,7 @@
 #
 # The family is FULLY migrated: core flow domains, derived totals / aggregations,
 # aux-conversion, import/export-row, inter-regional trade (mTradeIr), the coarse-
-# slice substitution chain (*2Lo) and the commodity balance domains all build
+# timeslice substitution chain (*2Lo) and the commodity balance domains all build
 # here in `.filter_builders` order. A handful of constraint-recipe maps
 # (meqSupAvaLo, meq{Import,Export}RowLo, m{Import,Export}RowCumUp) and value-recipe
 # maps (mInpSub/mOutSub, the *Cost maps) plus mTradeRoutes share a derivation with
@@ -20,18 +20,18 @@
 # (archived to drafts/legacy-mapping/filter.R).
 # =========================================================================== #
 
-# per-object slice map (leaf slices of each object's finest timeframe).
-.filter_slice <- function(scen, cls, key) {
-  .proc_slice_for(.process_slice_df(scen), get_process_class(scen), cls, key)
+# per-object timeslice map (leaf timeslices of each object's finest timeframe).
+.filter_timeslice <- function(scen, cls, key) {
+  .proc_timeslice_for(.process_timeslice_df(scen), get_process_class(scen), cls, key)
 }
 
 # -- technology core ------------------------------------------------------- #
-# mvTechAct: operation window x slice (no commodity, so no mCommReg filter).
+# mvTechAct: operation window x timeslice (no commodity, so no mCommReg filter).
 map_mvTechAct <- function(scen, fmp) {
   tech_span  <- .gds(scen, "mTechSpan")
-  tech_slice <- .filter_slice(scen, "technology", "tech")
-  if (is.null(tech_span) || is.null(tech_slice)) return(scen)
-  .set_map(scen, "mvTechAct", as.data.frame(merge0(tech_span, tech_slice)), fmp)
+  tech_timeslice <- .filter_timeslice(scen, "technology", "tech")
+  if (is.null(tech_span) || is.null(tech_timeslice)) return(scen)
+  .set_map(scen, "mvTechAct", as.data.frame(merge0(tech_span, tech_timeslice)), fmp)
 }
 
 map_mvTechInp <- function(scen, fmp) {
@@ -61,30 +61,30 @@ map_mvTechAOut <- function(scen, fmp) {
 }
 
 # -- supply core ----------------------------------------------------------- #
-# mSupAva: supply span x comm x slice x milestone years, mCommReg-restricted.
+# mSupAva: supply span x comm x timeslice x milestone years, mCommReg-restricted.
 map_mSupAva <- function(scen, fmp) {
   sup_span  <- .gds(scen, "mSupSpan")
   sup_comm  <- .gds(scen, "mSupComm")
-  sup_slice <- .filter_slice(scen, "supply", "sup")
+  sup_timeslice <- .filter_timeslice(scen, "supply", "sup")
   milestones <- as.integer(scen@settings@horizon@intervals$mid)
-  if (is.null(sup_span) || is.null(sup_comm) || is.null(sup_slice) ||
+  if (is.null(sup_span) || is.null(sup_comm) || is.null(sup_timeslice) ||
       length(milestones) == 0) return(scen)
   ava <- merge0(sup_span, sup_comm)
-  ava <- merge0(ava, sup_slice)
+  ava <- merge0(ava, sup_timeslice)
   ava <- merge0(as.data.frame(ava), data.frame(year = milestones))
   .set_map(scen, "mSupAva", .filt_cr(scen, as.data.frame(ava)), fmp)
 }
 
 # -- storage core ---------------------------------------------------------- #
-# Unfiltered storage store intermediate (stg span x comm x slice). The aux maps
+# Unfiltered storage store intermediate (stg span x comm x timeslice). The aux maps
 # below derive their base from THIS (unfiltered) frame, not the comm-filtered
 # persisted mvStorageStore, so it is recomputed here.
 .filter_storage_store <- function(scen) {
   stg_span  <- .gds(scen, "mStorageSpan")
   stg_comm  <- .gds(scen, "mStorageComm")
-  stg_slice <- .filter_slice(scen, "storage", "stg")
-  if (is.null(stg_span) || is.null(stg_comm) || is.null(stg_slice)) return(NULL)
-  as.data.frame(merge0(as.data.frame(merge0(stg_span, stg_comm)), stg_slice))
+  stg_timeslice <- .filter_timeslice(scen, "storage", "stg")
+  if (is.null(stg_span) || is.null(stg_comm) || is.null(stg_timeslice)) return(NULL)
+  as.data.frame(merge0(as.data.frame(merge0(stg_span, stg_comm)), stg_timeslice))
 }
 
 map_mvStorageStore <- function(scen, fmp) {
@@ -113,18 +113,18 @@ map_mvStorageAOut <- function(scen, fmp) {
 
 # =========================================================================== #
 # DERIVED maps (totals / aggregations) — read core/membership/calendar maps from
-# the scenario and collapse to each commodity's native slice via
-# mCommSliceOrParent (.reduce_total_map), in dependency order.
+# the scenario and collapse to each commodity's native timeslice via
+# mCommTimesliceOrParent (.reduce_total_map), in dependency order.
 # =========================================================================== #
 
-# mvDemInp: each demand commodity over its own slices x region x milestones.
+# mvDemInp: each demand commodity over its own timeslices x region x milestones.
 map_mvDemInp <- function(scen, fmp) {
-  dc <- .gds(scen, "mDemComm"); comm_slice <- .gds(scen, "mCommSlice")
+  dc <- .gds(scen, "mDemComm"); comm_timeslice <- .gds(scen, "mCommTimeslice")
   regions <- as.character(scen@settings@region)
   milestones <- as.integer(scen@settings@horizon@intervals$mid)
-  if (is.null(dc) || is.null(comm_slice) ||
+  if (is.null(dc) || is.null(comm_timeslice) ||
       length(regions) == 0 || length(milestones) == 0) return(scen)
-  di <- merge0(dc, comm_slice)
+  di <- merge0(dc, comm_timeslice)
   # [nested-regions] the demand cells sit at the commodity's OWN region level,
   # which mCommRegion already encodes (finest for a normal commodity, the
   # declared level for a coarse one). Falls back to the flat cross-join when
@@ -141,47 +141,47 @@ map_mvDemInp <- function(scen, fmp) {
 }
 
 # Per-process input/output total = union of the (a)main + aux flow domains with
-# the process key dropped, reduced to the commodity's native slice, mCommReg-cut.
+# the process key dropped, reduced to the commodity's native timeslice, mCommReg-cut.
 .filter_proc_tot <- function(scen, name, main, aux, key, fmp) {
   m <- .gds(scen, main); a <- .gds(scen, aux)
   if (is.null(m) && is.null(a)) return(scen)
   pieces <- lapply(Filter(Negate(is.null), list(m, a)),
                    function(x) dplyr::select(x, -dplyr::any_of(key)))
   tot <- .reduce_total_map(.reduce_sect(dplyr::bind_rows(pieces)),
-                           .gds(scen, "mCommSliceOrParent"))
+                           .gds(scen, "mCommTimesliceOrParent"))
   .set_map(scen, name, .filt_cr(scen, tot), fmp)
 }
-# Commodity-slice classification of a flow domain: join the flow's (key, comm,
-# slice) to mCommSliceOrParent (slicep = the flow's child slice, slice = the
-# commodity's native/parent slice) and split by whether the flow runs at the
-# commodity's native slice (`SameSlice`) or a finer one needing aggregation
-# (`AggSlice` keeps slice/slicep, `Agg` drops them). These membership-tagged maps
+# Commodity-timeslice classification of a flow domain: join the flow's (key, comm,
+# timeslice) to mCommTimesliceOrParent (timeslicep = the flow's child timeslice, timeslice = the
+# commodity's native/parent timeslice) and split by whether the flow runs at the
+# commodity's native timeslice (`SameTimeslice`) or a finer one needing aggregation
+# (`AggTimeslice` keeps timeslice/timeslicep, `Agg` drops them). These membership-tagged maps
 # depend on the filter flow domains, so they are emitted here (in the filter
 # recipe) as side-effects of the totals builders; recipe_membership skips them.
 # Faithful port of the legacy write.R block (L361-494).
-.comm_slice_class_maps <- function(scen, flow, base, fmp) {
-  mv <- .gds(scen, flow); csop <- .gds(scen, "mCommSliceOrParent")
+.comm_timeslice_class_maps <- function(scen, flow, base, fmp) {
+  mv <- .gds(scen, flow); csop <- .gds(scen, "mCommTimesliceOrParent")
   if (is.null(mv) || is.null(csop)) return(scen)
   ags <- dplyr::distinct(dplyr::select(mv, -dplyr::any_of(c("region", "year"))))
   ags <- as.data.frame(dplyr::left_join(ags, csop,
-            by = c("comm", "slice" = "slicep"), suffix = c("", "p")))
-  ags <- ags[!is.na(ags$slicep), , drop = FALSE]
-  same <- ags[ags$slicep == ags$slice, , drop = FALSE]   # flow at commodity's native slice
-  aggs <- ags[ags$slicep != ags$slice, , drop = FALSE]   # flow finer than native -> aggregate
-  scen <- .set_map(scen, paste0(base, "SameSlice"), same, fmp)  # dims: key, comm
-  scen <- .set_map(scen, paste0(base, "AggSlice"),  aggs, fmp)  # dims: key, comm, slice, slicep
+            by = c("comm", "timeslice" = "timeslicep"), suffix = c("", "p")))
+  ags <- ags[!is.na(ags$timeslicep), , drop = FALSE]
+  same <- ags[ags$timeslicep == ags$timeslice, , drop = FALSE]   # flow at commodity's native timeslice
+  aggs <- ags[ags$timeslicep != ags$timeslice, , drop = FALSE]   # flow finer than native -> aggregate
+  scen <- .set_map(scen, paste0(base, "SameTimeslice"), same, fmp)  # dims: key, comm
+  scen <- .set_map(scen, paste0(base, "AggTimeslice"),  aggs, fmp)  # dims: key, comm, timeslice, timeslicep
   .set_map(scen, paste0(base, "Agg"), aggs, fmp)               # dims: key, comm
 }
 
 map_mTechInpTot <- function(scen, fmp) {
   scen <- .filter_proc_tot(scen, "mTechInpTot", "mvTechInp", "mvTechAInp", "tech", fmp)
-  scen <- .comm_slice_class_maps(scen, "mvTechInp",  "mTechInpComm",  fmp)
-  .comm_slice_class_maps(scen, "mvTechAInp", "mTechAInpComm", fmp)
+  scen <- .comm_timeslice_class_maps(scen, "mvTechInp",  "mTechInpComm",  fmp)
+  .comm_timeslice_class_maps(scen, "mvTechAInp", "mTechAInpComm", fmp)
 }
 map_mTechOutTot <- function(scen, fmp) {
   scen <- .filter_proc_tot(scen, "mTechOutTot", "mvTechOut", "mvTechAOut", "tech", fmp)
-  scen <- .comm_slice_class_maps(scen, "mvTechOut",  "mTechOutComm",  fmp)
-  .comm_slice_class_maps(scen, "mvTechAOut", "mTechAOutComm", fmp)
+  scen <- .comm_timeslice_class_maps(scen, "mvTechOut",  "mTechOutComm",  fmp)
+  .comm_timeslice_class_maps(scen, "mvTechAOut", "mTechAOutComm", fmp)
 }
 
 # mSupOutTot: supply availability domain with the leading `sup` column dropped.
@@ -256,14 +256,14 @@ map_mStorageNCap2AInp <- function(scen, fmp) .filter_aux_conv(scen, "mStorageNCa
 map_mStorageNCap2AOut <- function(scen, fmp) .filter_aux_conv(scen, "mStorageNCap2AOut", fmp)
 
 # -- dummy import / export slack domains ----------------------------------- #
-# (comm, region, year, slice) tuples with a finite dummy-slack cost (default Inf
+# (comm, region, year, timeslice) tuples with a finite dummy-slack cost (default Inf
 # -> empty), mCommReg-restricted.
 .filter_dummy <- function(scen, param, name, fmp) {
   d <- .gds(scen, param)
   if (is.null(d)) return(scen)
   d <- d[!is.na(d$value) & is.finite(d$value), , drop = FALSE]
   if (nrow(d) == 0) return(scen)
-  d <- d[, intersect(c("comm", "region", "year", "slice"), colnames(d)),
+  d <- d[, intersect(c("comm", "region", "year", "timeslice"), colnames(d)),
          drop = FALSE]
   .set_map(scen, name, .filt_cr(scen, .reduce_dup(d)), fmp)
 }
@@ -305,14 +305,14 @@ map_mEmsFuelTot <- function(scen, fmp) {
     }
   }
   ems  <- merge0(effac, ti, by = "commp")
-  keep <- intersect(c("tech", "comm", "commp", "region", "year", "slice"),
+  keep <- intersect(c("tech", "comm", "commp", "region", "year", "timeslice"),
                     colnames(ems))
   ems <- .filt_cr(scen, as.data.frame(ems)[, keep, drop = FALSE])
   if (is.null(ems) || nrow(ems) == 0) return(scen)
   scen <- .set_map(scen, "mTechEmsFuel",
                    dplyr::rename(dplyr::distinct(ems), comm.1 = "commp"), fmp)
-  tot <- .reduce_total_map(.reduce_sect(ems, c("comm", "region", "year", "slice")),
-                           .gds(scen, "mCommSliceOrParent"))
+  tot <- .reduce_total_map(.reduce_sect(ems, c("comm", "region", "year", "timeslice")),
+                           .gds(scen, "mCommTimesliceOrParent"))
   .set_map(scen, "mEmsFuelTot", tot, fmp)
 }
 
@@ -345,8 +345,8 @@ map_mSupAvaUp <- function(scen, fmp) {
 # -- import / export row flow domains -------------------------------------- #
 # .io_row_maps returns {row, up, lo, cumup}; map_m*Row persists row + the lo/cumup
 # constraint siblings (meq*RowLo, m*RowCumUp) as side-effects, map_m*RowUp the up.
-.filter_row_bundle <- function(scen, key, slice_m, comm_m, prow, pres) {
-  .io_row_maps(key, .gds(scen, slice_m), .gds(scen, comm_m),
+.filter_row_bundle <- function(scen, key, timeslice_m, comm_m, prow, pres) {
+  .io_row_maps(key, .gds(scen, timeslice_m), .gds(scen, comm_m),
                .gds(scen, prow), .gds(scen, pres),
                as.character(scen@settings@region),
                as.integer(scen@settings@horizon@intervals$mid))
@@ -368,7 +368,7 @@ map_mSupAvaUp <- function(scen, fmp) {
 # siblings (meq*RowLo, m*RowCumUp) and value-recipe cost (m*RowCost). The lo/cumup
 # maps share .io_row_maps; cumup is NOT mCommReg-filtered (legacy parity).
 map_mImportRow <- function(scen, fmp) {
-  b <- .filter_row_bundle(scen, "imp", "mImpSlice", "mImpComm",
+  b <- .filter_row_bundle(scen, "imp", "mImpTimeslice", "mImpComm",
                           "pImportRow", "pImportRowRes")
   scen <- .set_map(scen, "mImportRow", .filt_cr(scen, b$row), fmp)
   scen <- .set_map(scen, "meqImportRowLo", .filt_cr(scen, b$lo), fmp)
@@ -377,10 +377,10 @@ map_mImportRow <- function(scen, fmp) {
 }
 map_mImportRowUp <- function(scen, fmp)
   .set_map(scen, "mImportRowUp",
-           .filt_cr(scen, .filter_row_bundle(scen, "imp", "mImpSlice", "mImpComm",
+           .filt_cr(scen, .filter_row_bundle(scen, "imp", "mImpTimeslice", "mImpComm",
                                              "pImportRow", "pImportRowRes")$up), fmp)
 map_mExportRow <- function(scen, fmp) {
-  b <- .filter_row_bundle(scen, "expp", "mExpSlice", "mExpComm",
+  b <- .filter_row_bundle(scen, "expp", "mExpTimeslice", "mExpComm",
                           "pExportRow", "pExportRowRes")
   scen <- .set_map(scen, "mExportRow", .filt_cr(scen, b$row), fmp)
   scen <- .set_map(scen, "meqExportRowLo", .filt_cr(scen, b$lo), fmp)
@@ -389,12 +389,12 @@ map_mExportRow <- function(scen, fmp) {
 }
 map_mExportRowUp <- function(scen, fmp)
   .set_map(scen, "mExportRowUp",
-           .filt_cr(scen, .filter_row_bundle(scen, "expp", "mExpSlice", "mExpComm",
+           .filt_cr(scen, .filter_row_bundle(scen, "expp", "mExpTimeslice", "mExpComm",
                                              "pExportRow", "pExportRowRes")$up), fmp)
 
 # -- inter-regional trade flow domains (mTradeIr family) ------------------- #
 # Faithful port of the recipe_filter trade block (mapping_engine.R L1295-1438).
-# mTradeIr = per-trade routes x slices x years; the year domain is always the
+# mTradeIr = per-trade routes x timeslices x years; the year domain is always the
 # trade's operation span (mTradeSpan) -- a trade must not carry flow outside the
 # window it declares. (This used to fall back to all milestones when the removed
 # `capacityVariable` slot was FALSE, which made the domain LARGER, contrary to
@@ -445,16 +445,16 @@ map_mTradeIr <- function(scen, fmp) {
   routes_all <- do.call(rbind, lapply(trade_info, `[[`, "routes"))
   rownames(routes_all) <- NULL
   scen <- .set_map(scen, "mTradeRoutes", .reduce_dup(routes_all), fmp)
-  trade_slice <- .gds(scen, "mTradeSlice")
+  trade_timeslice <- .gds(scen, "mTradeTimeslice")
   trade_span  <- .gds(scen, "mTradeSpan")
   milestones  <- as.integer(scen@settings@horizon@intervals$mid)
-  if (is.null(trade_slice)) return(scen)
+  if (is.null(trade_timeslice)) return(scen)
   ir_pieces <- list()
   for (nm in names(trade_info)) {
     rt <- trade_info[[nm]]$routes
-    sl <- trade_slice[trade_slice$trade == nm, , drop = FALSE]
+    sl <- trade_timeslice[trade_timeslice$trade == nm, , drop = FALSE]
     if (nrow(sl) == 0) next
-    base <- as.data.frame(merge0(rt, sl))      # trade, src, dst, slice
+    base <- as.data.frame(merge0(rt, sl))      # trade, src, dst, timeslice
     yrs <- if (!is.null(trade_span)) {
       trade_span$year[trade_span$trade == nm]
     } else {
@@ -466,7 +466,7 @@ map_mTradeIr <- function(scen, fmp) {
   }
   if (length(ir_pieces) == 0) return(scen)
   mTradeIr <- .reduce_dup(do.call(rbind, ir_pieces))
-  mTradeIr <- mTradeIr[, c("trade", "src", "dst", "year", "slice"),
+  mTradeIr <- mTradeIr[, c("trade", "src", "dst", "year", "timeslice"),
                        drop = FALSE]
   scen <- .set_map(scen, "mTradeIr", mTradeIr, fmp)
   # value-recipe cost siblings (read mTradeIr back from scen)
@@ -480,7 +480,7 @@ map_mvTradeIr <- function(scen, fmp) {
   mTradeIr <- .gds(scen, "mTradeIr"); trade_comm <- .gds(scen, "mTradeComm")
   if (is.null(mTradeIr) || is.null(trade_comm)) return(scen)
   mv <- as.data.frame(merge0(mTradeIr, trade_comm))
-  mv <- mv[, c("trade", "comm", "src", "dst", "year", "slice"), drop = FALSE]
+  mv <- mv[, c("trade", "comm", "src", "dst", "year", "timeslice"), drop = FALSE]
   .set_map(scen, "mvTradeIr", mv, fmp)
 }
 
@@ -529,7 +529,7 @@ map_mTradeIrCdst2Aout <- function(scen, fmp)
 # region projection of a per-route coefficient map (src/dst -> region).
 .trade_proj_region <- function(m, dim_col) {
   if (is.null(m) || nrow(m) == 0) return(NULL)
-  a <- .reduce_dup(m[, c("trade", "comm", dim_col, "year", "slice"),
+  a <- .reduce_dup(m[, c("trade", "comm", dim_col, "year", "timeslice"),
                      drop = FALSE])
   names(a)[names(a) == dim_col] <- "region"
   a
@@ -547,14 +547,14 @@ map_mvTradeIrAOut <- function(scen, fmp) {
   .set_map(scen, "mvTradeIrAOut", mv, fmp)
 }
 
-# inter-regional trade aux totals: reduce to the commodity's native slice.
+# inter-regional trade aux totals: reduce to the commodity's native timeslice.
 .trade_aux_tot <- function(scen, src, name, fmp) {
   mv <- .gds(scen, src)
   if (is.null(mv)) return(scen)
   .set_map(scen, name,
            .reduce_total_map(.reduce_sect(mv, c("comm", "region", "year",
-                                                "slice")),
-                             .gds(scen, "mCommSliceOrParent")), fmp)
+                                                "timeslice")),
+                             .gds(scen, "mCommTimesliceOrParent")), fmp)
 }
 map_mvTradeIrAInpTot <- function(scen, fmp)
   .trade_aux_tot(scen, "mvTradeIrAInp", "mvTradeIrAInpTot", fmp)
@@ -575,40 +575,40 @@ map_mAggregateFactor <- function(scen, fmp) {
 }
 
 # mAggOut: aggregate-output total = aggregate commodities x region x year x all
-# slices, reduced to each commodity's native slice.
+# timeslices, reduced to each commodity's native timeslice.
 map_mAggOut <- function(scen, fmp) {
-  agg <- .gds(scen, "pAggregateFactor"); comm_slice <- .gds(scen, "mCommSlice")
+  agg <- .gds(scen, "pAggregateFactor"); comm_timeslice <- .gds(scen, "mCommTimeslice")
   regions    <- as.character(scen@settings@region)
   milestones <- as.integer(scen@settings@horizon@intervals$mid)
-  if (is.null(agg) || is.null(comm_slice) ||
+  if (is.null(agg) || is.null(comm_timeslice) ||
       length(regions) == 0 || length(milestones) == 0) return(scen)
-  slices <- unique(comm_slice$slice)
+  timeslices <- unique(comm_timeslice$timeslice)
   a <- .reduce_sect(agg, "comm")
   a <- merge0(a, data.frame(region = regions, stringsAsFactors = FALSE))
   a <- merge0(as.data.frame(a), data.frame(year = milestones))
   a <- merge0(as.data.frame(a),
-              data.frame(slice = as.character(slices), stringsAsFactors = FALSE))
+              data.frame(timeslice = as.character(timeslices), stringsAsFactors = FALSE))
   .set_map(scen, "mAggOut",
-           .reduce_total_map(.reduce_dup(a), .gds(scen, "mCommSliceOrParent")),
+           .reduce_total_map(.reduce_dup(a), .gds(scen, "mCommTimesliceOrParent")),
            fmp)
 }
 
 # -- import / export to Rest-of-World flow domains ------------------------- #
-# mExport / mImport: the (comm, region, year, slice) domains for the row exchange
+# mExport / mImport: the (comm, region, year, timeslice) domains for the row exchange
 # (m*Row) unioned with the inter-regional trade flows (mTradeIr x mTradeComm),
-# each remapped to the commodity's own slice via mCommSliceOrParent. Export keeps
+# each remapped to the commodity's own timeslice via mCommTimesliceOrParent. Export keeps
 # the source region (src), import keeps the destination (dst).
 .io_rowir_union <- function(scen, row_nm, region_col, drop_col) {
-  csop <- .gds(scen, "mCommSliceOrParent")
-  ry_cols <- c("comm", "region", "year", "slice")
+  csop <- .gds(scen, "mCommTimesliceOrParent")
+  ry_cols <- c("comm", "region", "year", "timeslice")
   csop2 <- csop
-  if (!is.null(csop2)) names(csop2)[names(csop2) == "slicep"] <- "slice.1"
+  if (!is.null(csop2)) names(csop2)[names(csop2) == "timeslicep"] <- "timeslice.1"
   io_row <- function() {
     d <- .gds(scen, row_nm)
     if (is.null(d) || is.null(csop2)) return(NULL)
     x <- .reduce_sect(as.data.frame(d)[, ry_cols, drop = FALSE], ry_cols)
-    names(x)[names(x) == "slice"] <- "slice.1"
-    out <- as.data.frame(merge0(x, csop2))    # by comm, slice.1 -> native slice
+    names(x)[names(x) == "timeslice"] <- "timeslice.1"
+    out <- as.data.frame(merge0(x, csop2))    # by comm, timeslice.1 -> native timeslice
     if (nrow(out) == 0) return(NULL)
     .reduce_dup(out[, ry_cols, drop = FALSE])
   }
@@ -618,10 +618,10 @@ map_mAggOut <- function(scen, fmp) {
       return(NULL)
     }
     trd <- as.data.frame(merge0(mTradeComm_d, mTradeIr_d))
-    names(trd)[names(trd) == "slice"] <- "slice.1"
+    names(trd)[names(trd) == "timeslice"] <- "timeslice.1"
     trd[[drop_col]] <- NULL
     names(trd)[names(trd) == region_col] <- "region"
-    out <- as.data.frame(merge0(trd, csop2))  # by comm, slice.1 -> native slice
+    out <- as.data.frame(merge0(trd, csop2))  # by comm, timeslice.1 -> native timeslice
     if (nrow(out) == 0) return(NULL)
     .reduce_dup(out[, ry_cols, drop = FALSE])
   }
@@ -635,23 +635,23 @@ map_mImport <- function(scen, fmp)
            .io_rowir_union(scen, "mImportRow", "dst", "src"), fmp)
 
 # -- coarser-than-native flow substitution chain (*2Lo) -------------------- #
-# A flow total tagged at a slice coarser than its commodity's native resolution
+# A flow total tagged at a timeslice coarser than its commodity's native resolution
 # (e.g. an ANNUAL output of a seasonal commodity) must be redistributed to the
-# native slices via a substitution variable. mInp2Lo/mOut2Lo = the coarse rows;
-# mvInp2Lo/mvOut2Lo = those rows expanded to (coarse slice, native slice.1);
-# mInpSub/mOutSub (value-recipe siblings) = the native-slice substitution domain.
-.ry_cols <- c("comm", "region", "year", "slice")
+# native timeslices via a substitution variable. mInp2Lo/mOut2Lo = the coarse rows;
+# mvInp2Lo/mvOut2Lo = those rows expanded to (coarse timeslice, native timeslice.1);
+# mInpSub/mOutSub (value-recipe siblings) = the native-timeslice substitution domain.
+.ry_cols <- c("comm", "region", "year", "timeslice")
 
 # [agg-rewrite] *2Lo substitution chain removed (mInp2Lo/mOut2Lo/mvInp2Lo/
 # mvOut2Lo + mInpSub/mOutSub builders & helpers). These maps were always 0 rows
 # in well-formed models (processes are at-or-finer than their commodities), so
 # the down-disaggregation they fed is dead code; up-aggregation in eqOutTot/
-# eqInpTot (mSliceFamily/pSliceAgg) supersedes it across all engines.
+# eqInpTot (mTimesliceFamily/pTimesliceAgg) supersedes it across all engines.
 
 # -- commodity balance domains -------------------------------------------- #
 # mvInpTot / mvOutTot: union of all input- / output-side flow totals, restricted
-# to each commodity's own slice level via mCommSlice. mvBalance = their union;
-# the *RY maps are the year-resolution projections (slice dropped).
+# to each commodity's own timeslice level via mCommTimeslice. mvBalance = their union;
+# the *RY maps are the year-resolution projections (timeslice dropped).
 .bind_ry <- function(...) {
   fr <- Filter(function(x) !is.null(x) && nrow(as.data.frame(x)) > 0, list(...))
   if (length(fr) == 0) return(NULL)
@@ -660,16 +660,16 @@ map_mImport <- function(scen, fmp)
   })
   .reduce_dup(dplyr::bind_rows(fr))
 }
-.restrict_comm_slice <- function(df, comm_slice) {
-  if (is.null(df) || nrow(df) == 0 || is.null(comm_slice)) return(df)
-  dplyr::distinct(as.data.frame(merge0(df, comm_slice)))
+.restrict_comm_timeslice <- function(df, comm_timeslice) {
+  if (is.null(df) || nrow(df) == 0 || is.null(comm_timeslice)) return(df)
+  dplyr::distinct(as.data.frame(merge0(df, comm_timeslice)))
 }
 map_mvInpTot <- function(scen, fmp) {
-  inptot <- .restrict_comm_slice(.bind_ry(
+  inptot <- .restrict_comm_timeslice(.bind_ry(
     .gds(scen, "mvDemInp"), .gds(scen, "mDummyExport"), .gds(scen, "mTechInpTot"),
     .gds(scen, "mStorageInpTot"), .gds(scen, "mExport"),
     .gds(scen, "mvTradeIrAInpTot")),                    # [agg-rewrite] mInpSub dropped
-    .gds(scen, "mCommSlice"))
+    .gds(scen, "mCommTimeslice"))
   # [nested-regions] totals also exist at every level up to the commodity's own
   # `@geolevel`, so eqInpTot has a cell to aggregate the finer ones into. A
   # no-op unless some commodity names a coarser level.
@@ -677,19 +677,19 @@ map_mvInpTot <- function(scen, fmp) {
   .set_map(scen, "mvInpTot", inptot, fmp)
 }
 map_mvOutTot <- function(scen, fmp) {
-  outtot <- .restrict_comm_slice(.bind_ry(
+  outtot <- .restrict_comm_timeslice(.bind_ry(
     .gds(scen, "mDummyImport"), .gds(scen, "mSupOutTot"), .gds(scen, "mEmsFuelTot"),
     .gds(scen, "mAggOut"), .gds(scen, "mTechOutTot"), .gds(scen, "mStorageOutTot"),
     .gds(scen, "mImport"), .gds(scen, "mvTradeIrAOutTot")),  # [agg-rewrite] mOutSub dropped
-    .gds(scen, "mCommSlice"))
+    .gds(scen, "mCommTimeslice"))
   outtot <- .extend_comm_region(outtot, .comm_region_chain(scen))
   .set_map(scen, "mvOutTot", outtot, fmp)
 }
-.drop_slice_distinct <- function(scen, src, name, fmp) {
+.drop_timeslice_distinct <- function(scen, src, name, fmp) {
   d <- .gds(scen, src)
   if (is.null(d)) return(scen)
   .set_map(scen, name,
-           dplyr::distinct(dplyr::select(d, -dplyr::any_of("slice"))), fmp)
+           dplyr::distinct(dplyr::select(d, -dplyr::any_of("timeslice"))), fmp)
 }
 # [nested-regions] the balance is enforced at the commodity's OWN region level
 # only -- this is what makes steel national while electricity stays per-state.

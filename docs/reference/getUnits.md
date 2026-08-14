@@ -17,7 +17,7 @@ set.
 getUnits(object, slots = NULL, ...)
 
 # S4 method for class 'technology'
-getUnits(object, slots = NULL, ...)
+getUnits(object, slots = NULL, complete = FALSE, ...)
 
 get_units(object, ...)
 ```
@@ -36,6 +36,14 @@ get_units(object, ...)
 - ...:
 
   Reserved for future use.
+
+- complete:
+
+  (technology only) If `TRUE`, parameters with a known unit formula are
+  reported even when they carry no data yet; commodity-linked units are
+  then resolved from the declared ports when unambiguous and left as
+  placeholder tokens otherwise. Default `FALSE` (populated parameters
+  only).
 
 ## Value
 

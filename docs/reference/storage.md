@@ -101,14 +101,14 @@ newStorage(
 
   :   integer. Year to apply the parameter, NA for every year.
 
-  slice
+  timeslice
 
-  :   character. Time slice for which the charged level will be
+  :   character. Time timeslice for which the charged level will be
       specified.
 
   charge
 
-  :   numeric. Pre-charged or targeted level at the specified slice.
+  :   numeric. Pre-charged or targeted level at the specified timeslice.
 
 - seff:
 
@@ -133,9 +133,10 @@ newStorage(
 
   :   integer. Year to apply the parameter, NA for every year.
 
-  slice
+  timeslice
 
-  :   character. Time slice to apply the parameter, NA for every slice.
+  :   character. Time timeslice to apply the parameter, NA for every
+      timeslice.
 
   stgeff
 
@@ -176,9 +177,10 @@ newStorage(
 
   :   integer. Year to apply the parameter, NA for every year.
 
-  slice
+  timeslice
 
-  :   character. Time slice to apply the parameter, NA for every slice.
+  :   character. Time timeslice to apply the parameter, NA for every
+      timeslice.
 
   stg2ainp
 
@@ -257,9 +259,10 @@ newStorage(
 
   :   integer. Year to apply the parameter, NA for every year.
 
-  slice
+  timeslice
 
-  :   character. Time slice to apply the parameter, NA for every slice.
+  :   character. Time timeslice to apply the parameter, NA for every
+      timeslice.
 
   af.lo
 
@@ -351,9 +354,10 @@ newStorage(
 
   :   integer. Year to apply the parameter, NA for every year.
 
-  slice
+  timeslice
 
-  :   character. Time slice to apply the parameter, NA for every slice.
+  :   character. Time timeslice to apply the parameter, NA for every
+      timeslice.
 
   inpcost
 
@@ -524,8 +528,6 @@ newStorage(
   and `olife` slots. A vintage is a separately investable variant that
   keeps the characteristics of its build year for its whole life – for
   storage typically a falling capex and a rising round-trip efficiency.
-  Each column is read independently, so a region-agnostic `start` may be
-  combined with a per-region `olife`.
 
   vintage
 
@@ -543,13 +545,13 @@ newStorage(
 
   start
 
-  :   integer. The first year the storage can be installed. Defaults to
-      the vintage year.
+  :   integer. The first year the storage can be installed. NA means
+      unbounded (up to `end`).
 
   end
 
-  :   integer. The last year the storage can be installed. Defaults to
-      the vintage year.
+  :   integer. The last year the storage can be installed. NA means
+      unbounded (from `start` on).
 
   olife
 
@@ -589,13 +591,14 @@ newStorage(
 - fullYear:
 
   logical. If TRUE (default), the storage technology operates between
-  parent timeframes through the year. The last time-slice in the
-  timeframe is used as a preciding time-slice for the first time-slice
-  in the the same group of time-slices within the parent timeframe. if
-  FALSE, the storage charge and discchare cycle is limited to the parent
-  timeframe. The last time-slice in the timeframe is used as a preciding
-  time-slice for the first time-slice in the the same group of
-  time-slices within the parent timeframe.
+  parent timeframes through the year. The last time-timeslice in the
+  timeframe is used as a preciding time-timeslice for the first
+  time-timeslice in the the same group of time-timeslices within the
+  parent timeframe. if FALSE, the storage charge and discchare cycle is
+  limited to the parent timeframe. The last time-timeslice in the
+  timeframe is used as a preciding time-timeslice for the first
+  time-timeslice in the the same group of time-timeslices within the
+  parent timeframe.
 
 - weather:
 
@@ -685,12 +688,12 @@ Storage can be used in combination with other processes, such as
 technologies, supply, or demand to represent complex technological
 chains, demand or supply technologies with time-shift. Operation of
 storage includes accumulation, storing, and release of the stored
-commodity. The storing cycle operates on the ordered time-slices of the
-commodity timeframe. The cycle is looped either on an annual basis (last
-time-slice of a year follows the first time slice of the same year) or
-within the parent time-frame (for example, when commodity time-frame is
-"HOUR" and the parent time-frame is "DAY" then the storage cycle will be
-a calendar day).
+commodity. The storing cycle operates on the ordered time-timeslices of
+the commodity timeframe. The cycle is looped either on an annual basis
+(last time-timeslice of a year follows the first time timeslice of the
+same year) or within the parent time-frame (for example, when commodity
+time-frame is "HOUR" and the parent time-frame is "DAY" then the storage
+cycle will be a calendar day).
 
 ## Examples
 
@@ -706,13 +709,13 @@ STG1 <- newStorage(
   charge = data.frame(
     # region = "R1",
     year = 2020,
-    # slice = "HOUR",
+    # timeslice = "HOUR",
     charge = 0.1
   ),
   seff = data.frame(
     # region = "R1",
     # year = 2020,
-    # slice = "HOUR",
+    # timeslice = "HOUR",
     stgeff = 0.999,
     inpeff = 0.9,
     outeff = 0.9
@@ -721,7 +724,7 @@ STG1 <- newStorage(
     acomm = "electricity",
     region = "R1",
     year = 2020,
-    # slice = "HOUR",
+    # timeslice = "HOUR",
     stg2ainp = 0.9,
     cinp2ainp = 0.1,
     cout2ainp = 0.2,
@@ -735,14 +738,14 @@ STG1 <- newStorage(
     ncap2stg = 0.9
   ),
   af = data.frame(
-    region = "R1", year = 2020, slice = "HOUR",
+    region = "R1", year = 2020, timeslice = "HOUR",
     af.lo = 0.9, af.up = 0.9, af.fx = 0.9, cinp.up = 0.9,
     cinp.fx = 0.9, cinp.lo = 0.9, cout.up = 0.9,
     cout.fx = 0.9, cout.lo = 0.9
   ),
   fixom = data.frame(region = "R1", year = 2020, fixom = 0.9),
   varom = data.frame(
-    region = "R1", year = 2020, slice = "HOUR",
+    region = "R1", year = 2020, timeslice = "HOUR",
     inpcost = 0.9, outcost = 0.9, stgcost = 0.9
   ),
   invcost = data.frame(

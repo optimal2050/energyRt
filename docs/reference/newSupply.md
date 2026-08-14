@@ -101,10 +101,10 @@ newSupply(
   :   integer. Year to apply the parameter. Use NA to apply to all
       years.
 
-  slice
+  timeslice
 
-  :   character. Time slice to apply the parameter. Use NA to apply to
-      all slices.
+  :   character. Time timeslice to apply the parameter. Use NA to apply
+      to all timeslices.
 
   ava.lo
 
@@ -160,7 +160,7 @@ SUP_COA <- newSupply(
    supply = data.frame(
       region = c("R1", "R2", "R3"),
       year = NA_integer_,
-      slice = "ANNUAL",
+      timeslice = "ANNUAL",
       ava.up = c(1e3, 1e2, 2e2), # annual availability
       cost = c(10, 20, 30) # cost of the resource (currency per unit)
    ),

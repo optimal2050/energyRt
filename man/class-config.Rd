@@ -41,7 +41,7 @@ As an ARGUMENT (\code{newModel(discount = )}, \code{update(cfg, discount = )}) t
 
 \item{\code{interpolation}}{data.frame. Default interpolation rules for every parameter in the model. The data frame with the default interpolation rules is stored in \code{energyRt::.defInt} object and can be overwritten by the user and supplied to the model as a parameter.}
 
-\item{\code{debug}}{data.frame. Artificial (dummy or sluck) variables to debug model infeasibility. Can be specified by commodities, regions, years, and slices.}
+\item{\code{debug}}{data.frame. Artificial (dummy or sluck) variables to debug model infeasibility. Can be specified by commodities, regions, years, and timeslices.}
 
 \item{\code{variant_prefix}}{character. Named character vector giving the prefixes inserted into the names of expanded technology variants, keyed by variant dimension: \code{c(vintage = "_VIN", cluster = "_CL")}. A technology \code{WIND} with vintage 2030 and cluster "01" then becomes the set member \code{WIND_VIN2030_CL01}. Number the clusters rather than labelling them ("01", not "best"): the prefix already says what the axis is, so a label that repeats it reads as \code{WIND_VIN2030_CLCL01}. Model-wide, because these become solver set-member names; the scenario settings inherit the value and must agree with it. Each prefix must be non-empty, match \verb{^[[:alnum:]_]+$}, and the two must differ. A partial value such as \code{c(cluster = "_RC")} is merged over the defaults.}
 

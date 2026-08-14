@@ -6,7 +6,7 @@
 #
 #  * demand / supply / import / export / trade / storage -- must MATCH. These
 #    have no aggregation path of their own: their flows enter `mvInpTot` /
-#    `mvOutTot` directly, so a slice or region outside the commodity's level
+#    `mvOutTot` directly, so a timeslice or region outside the commodity's level
 #    produces a cell nothing reads. The parameter is written, the equation is
 #    generated at the commodity's level, the lookup misses, and the term
 #    silently evaluates to ZERO. The model stays feasible and is wrong.
@@ -14,30 +14,30 @@
 #  * technology -- may DIFFER, but never be coarser than a commodity it
 #    touches. `get_process_timeframe()` pins a process to the FINEST of its
 #    commodities and the aggregation only flows fine -> coarse
-#    (`mTechOutCommAgg`/`AggSlice` in time, `mRegionFamily` in space), so a
+#    (`mTechOutCommAgg`/`AggTimeslice` in time, `mRegionFamily` in space), so a
 #    process pinned coarser cannot meet the finer balance.
 #
 # Note only `technology` even has a `@timeframe` slot; for every other class the
-# level is implied by the slices and regions appearing in its DECLARED DATA
-# (`dem$slice`, `availability$region`, ...). That is why this check reads the
+# level is implied by the timeslices and regions appearing in its DECLARED DATA
+# (`dem$timeslice`, `availability$region`, ...). That is why this check reads the
 # objects rather than the derived parameters -- it reports the mistake where it
 # was written, not where it later vanishes.
 #
-# NA / empty slices and regions are wildcards ("all of them") and always pass.
+# NA / empty timeslices and regions are wildcards ("all of them") and always pass.
 
 #' @include geoscale.R map_region.R
 NULL
 
-# Slices appearing in an object's data.frame slots.
+# Timeslices appearing in an object's data.frame slots.
 #' @noRd
-.declared_slices <- function(obj) {
+.declared_timeslices <- function(obj) {
   out <- character()
   for (sn in .instance_slots(obj)) {
     if (identical(sn, "misc")) next
     v <- methods::slot(obj, sn)
-    if (is.data.frame(v) && "slice" %in% colnames(v)) {
-      out <- c(out, as.character(v[["slice"]]))
-    } else if (is.atomic(v) && identical(sn, "slice")) {
+    if (is.data.frame(v) && "timeslice" %in% colnames(v)) {
+      out <- c(out, as.character(v[["timeslice"]]))
+    } else if (is.atomic(v) && identical(sn, "timeslice")) {
       out <- c(out, as.character(v))
     }
   }
@@ -47,7 +47,7 @@ NULL
 # The calendar the DECLARATIONS were written against.
 #
 # A sampled calendar supplied at interpolation (`scenario@settings@calendar`)
-# legitimately contains only some of the model's slices -- `subset_slices()`
+# legitimately contains only some of the model's timeslices -- `subset_timeslices()`
 # reweights the data onto them. Validating declarations against the sampled
 # calendar would flag every sampled model, so the model's own calendar is the
 # reference: the question is whether the author declared consistently with the
@@ -72,11 +72,11 @@ NULL
   stats::setNames(lapply(comms, function(cm) {
     tf <- ctf[[cm]]
     if (length(tf) == 0 || is.na(tf) || !nzchar(tf)) tf <- cal@default_timeframe
-    slices <- if (!is.null(tf) && tf %in% names(cal@timeframes)) {
+    timeslices <- if (!is.null(tf) && tf %in% names(cal@timeframes)) {
       as.character(cal@timeframes[[tf]])
     } else NULL
     regions <- if (is.null(hier)) NULL else .geo_level_regions(hier, cgl[[cm]])
-    list(timeframe = tf, slices = slices, regions = regions)
+    list(timeframe = tf, timeslices = timeslices, regions = regions)
   }), comms)
 }
 
@@ -87,7 +87,7 @@ NULL
 
 #' Check declared resolutions against their commodities
 #'
-#' Errors when a process declares slices or regions outside the level its
+#' Errors when a process declares timeslices or regions outside the level its
 #' commodity is balanced at. See the file header for the per-class rules.
 #'
 #' @param scen a `scenario` mid-interpolation.
@@ -100,10 +100,10 @@ NULL
   pclass <- get_process_class(scen)
   preg <- get_process_region(scen)
 
-  # Every slice / region the model knows, across ALL levels. Anything outside
+  # Every timeslice / region the model knows, across ALL levels. Anything outside
   # these is not a level error (see the loop below).
   cal <- .declaration_calendar(scen)
-  known_slices <- unique(unlist(cal@timeframes, use.names = FALSE))
+  known_timeslices <- unique(unlist(cal@timeframes, use.names = FALSE))
   hier <- .scen_geo_hierarchy(scen)
   known_regions <- if (is.null(hier)) .model_regions(scen) else hier$region
 
@@ -123,22 +123,22 @@ NULL
     cms <- intersect(pcomm[[nm]], names(lv))
     if (length(cms) == 0) next
 
-    slices <- .declared_slices(objs[[nm]])
+    timeslices <- .declared_timeslices(objs[[nm]])
     regions <- as.character(preg[[nm]])
 
     for (cm in cms) {
-      # Only slices/regions the calendar or geoscale actually KNOWS are judged.
+      # Only timeslices/regions the calendar or geoscale actually KNOWS are judged.
       # A declaration naming something absent entirely is not a level error --
       # that is how sampling works: a model may be built on a sampled calendar
-      # while its data still carries the full slice set, and `subset_slices()`
+      # while its data still carries the full timeslice set, and `subset_timeslices()`
       # reweights onto what remains. The genuine defect is a name that EXISTS
       # but sits at a different level than the commodity's, because that cell
       # is written and then never read.
-      allowed_s <- lv[[cm]]$slices
-      if (!is.null(allowed_s) && length(slices) > 0) {
-        off <- setdiff(intersect(slices, known_slices), allowed_s)
+      allowed_s <- lv[[cm]]$timeslices
+      if (!is.null(allowed_s) && length(timeslices) > 0) {
+        off <- setdiff(intersect(timeslices, known_timeslices), allowed_s)
         if (length(off) > 0) {
-          add(nm, cls, cm, "slice", off, allowed_s)
+          add(nm, cls, cm, "timeslice", off, allowed_s)
         }
       }
       allowed_r <- lv[[cm]]$regions
@@ -183,8 +183,8 @@ NULL
 # defining equation would make the constraint trivially satisfiable.
 
 # Every region at `level` plus every region beneath it, walking the adjacent
-# family table down. The spatial counterpart of a slice's descendants in
-# `calendar@slice_ancestry`.
+# family table down. The spatial counterpart of a timeslice's descendants in
+# `calendar@timeslice_ancestry`.
 # Every region beneath ONE region (not a whole level), walking the family down.
 #' @noRd
 .geo_descendants_of <- function(hier, region) {
@@ -292,7 +292,7 @@ NULL
 }
 
 # The model objects themselves, keyed by name -- needed because the declared
-# slices live in the object's slots, not in any collected table.
+# timeslices live in the object's slots, not in any collected table.
 #' @noRd
 .level_check_objects <- function(scen) {
   out <- list()

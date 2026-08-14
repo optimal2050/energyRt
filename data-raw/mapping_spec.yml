@@ -8,7 +8,7 @@ mAggOut:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: vAggOutTot
   gates_eq: eqAggOutTot
   recipe: filter
@@ -57,11 +57,11 @@ mCommReg:
   - mExpComm
   - mTechAInp
   - mTechAOut
-mCommSlice:
-  name: mCommSlice
+mCommTimeslice:
+  name: mCommTimeslice
   dims:
   - comm
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -71,12 +71,12 @@ mCommSlice:
   join_keys: []
   filter_by: []
   depends_on: []
-mCommSliceOrParent:
-  name: mCommSliceOrParent
+mCommTimesliceOrParent:
+  name: mCommTimesliceOrParent
   dims:
   - comm
-  - slice
-  - slicep
+  - timeslice
+  - timeslicep
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -106,7 +106,7 @@ mDummyExport:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: vDummyExport
   gates_eq: []
   recipe: filter
@@ -136,7 +136,7 @@ mDummyImport:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: vDummyImport
   gates_eq: []
   recipe: filter
@@ -166,7 +166,7 @@ mEmsFuelTot:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: vEmsFuelTot
   gates_eq: eqEmsFuelTot
   recipe: filter
@@ -182,7 +182,7 @@ meqBalFx:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: eqBalFx
   recipe: constraint
@@ -197,7 +197,7 @@ meqBalLo:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: eqBalLo
   recipe: constraint
@@ -212,7 +212,7 @@ meqBalUp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: eqBalUp
   recipe: constraint
@@ -228,7 +228,7 @@ meqExportRowLo:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: eqExportRowLo
   recipe: constraint
@@ -244,7 +244,7 @@ meqImportRowLo:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: eqImportRowLo
   recipe: constraint
@@ -260,7 +260,7 @@ meqStorageAfLo:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: eqStorageAfLo
   recipe: constraint
@@ -276,7 +276,7 @@ meqStorageAfUp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: eqStorageAfUp
   recipe: constraint
@@ -292,7 +292,7 @@ meqStorageInpLo:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: eqStorageInpLo
   recipe: constraint
@@ -308,7 +308,7 @@ meqStorageInpUp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: eqStorageInpUp
   recipe: constraint
@@ -324,7 +324,7 @@ meqStorageOutLo:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: eqStorageOutLo
   recipe: constraint
@@ -340,7 +340,7 @@ meqStorageOutUp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: eqStorageOutUp
   recipe: constraint
@@ -356,8 +356,8 @@ meqStorageStore:
   - comm
   - region
   - year
-  - slicep
-  - slice
+  - timeslicep
+  - timeslice
   gates_var: []
   gates_eq: eqStorageStore
   recipe: constraint
@@ -373,7 +373,7 @@ meqSupAvaLo:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: eqSupAvaLo
   recipe: constraint
@@ -403,7 +403,7 @@ meqTechActGrp:
   - group
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: eqTechActGrp
   recipe: constraint
@@ -419,7 +419,7 @@ meqTechActSng:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: eqTechActSng
   recipe: constraint
@@ -435,7 +435,7 @@ meqTechAfcInpLo:
   - region
   - comm
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: eqTechAfcInpLo
   recipe: constraint
@@ -451,7 +451,7 @@ meqTechAfcInpUp:
   - region
   - comm
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: eqTechAfcInpUp
   recipe: constraint
@@ -467,7 +467,7 @@ meqTechAfcOutLo:
   - region
   - comm
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: eqTechAfcOutLo
   recipe: constraint
@@ -483,7 +483,7 @@ meqTechAfcOutUp:
   - region
   - comm
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: eqTechAfcOutUp
   recipe: constraint
@@ -498,7 +498,7 @@ meqTechAfLo:
   - tech
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: eqTechAfLo
   recipe: constraint
@@ -513,7 +513,7 @@ meqTechAfsLo:
   - tech
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: eqTechAfsLo
   recipe: constraint
@@ -528,7 +528,7 @@ meqTechAfsUp:
   - tech
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: eqTechAfsUp
   recipe: constraint
@@ -543,7 +543,7 @@ meqTechAfUp:
   - tech
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: eqTechAfUp
   recipe: constraint
@@ -560,7 +560,7 @@ meqTechGrp2Grp:
   - group
   - groupp
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: eqTechGrp2Grp
   recipe: constraint
@@ -577,7 +577,7 @@ meqTechGrp2Sng:
   - group
   - commp
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: eqTechGrp2Sng
   recipe: constraint
@@ -608,7 +608,7 @@ meqTechShareInpLo:
   - group
   - comm
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: eqTechShareInpLo
   recipe: constraint
@@ -625,7 +625,7 @@ meqTechShareInpUp:
   - group
   - comm
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: eqTechShareInpUp
   recipe: constraint
@@ -642,7 +642,7 @@ meqTechShareOutLo:
   - group
   - comm
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: eqTechShareOutLo
   recipe: constraint
@@ -659,7 +659,7 @@ meqTechShareOutUp:
   - group
   - comm
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: eqTechShareOutUp
   recipe: constraint
@@ -676,7 +676,7 @@ meqTechSng2Grp:
   - comm
   - groupp
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: eqTechSng2Grp
   recipe: constraint
@@ -693,7 +693,7 @@ meqTechSng2Sng:
   - comm
   - commp
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: eqTechSng2Sng
   recipe: constraint
@@ -708,7 +708,7 @@ meqTradeCapFlow:
   - trade
   - comm
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: eqTradeCapFlow
   recipe: constraint
@@ -725,7 +725,7 @@ meqTradeFlowLo:
   - src
   - dst
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: eqTradeFlowLo
   recipe: constraint
@@ -742,7 +742,7 @@ meqTradeFlowUp:
   - src
   - dst
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: eqTradeFlowUp
   recipe: constraint
@@ -770,7 +770,7 @@ mExport:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: vExportTot
   gates_eq: eqExportTot
   recipe: filter
@@ -801,7 +801,7 @@ mExportRow:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: vExportRow
   gates_eq: []
   recipe: filter
@@ -845,7 +845,7 @@ mExportRowUp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: eqExportRowUp
   recipe: filter
@@ -855,11 +855,11 @@ mExportRowUp:
   filter_by:
   - mCommReg
   depends_on: []
-mExpSlice:
-  name: mExpSlice
+mExpTimeslice:
+  name: mExpTimeslice
   dims:
   - expp
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -900,7 +900,7 @@ mImport:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: vImportTot
   gates_eq: eqImportTot
   recipe: filter
@@ -931,7 +931,7 @@ mImportRow:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: vImportRow
   gates_eq: []
   recipe: filter
@@ -975,7 +975,7 @@ mImportRowUp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: eqImportRowUp
   recipe: filter
@@ -985,11 +985,11 @@ mImportRowUp:
   filter_by:
   - mCommReg
   depends_on: []
-mImpSlice:
-  name: mImpSlice
+mImpTimeslice:
+  name: mImpTimeslice
   dims:
   - imp
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -1087,11 +1087,11 @@ mSameRegion:
   join_keys: []
   filter_by: []
   depends_on: []
-mSameSlice:
-  name: mSameSlice
+mSameTimeslice:
+  name: mSameTimeslice
   dims:
-  - slice
-  - slicep
+  - timeslice
+  - timeslicep
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -1101,11 +1101,11 @@ mSameSlice:
   join_keys: []
   filter_by: []
   depends_on: []
-mSliceFamily:
-  name: mSliceFamily
+mTimesliceFamily:
+  name: mTimesliceFamily
   dims:
-  - slice
-  - slicep
+  - timeslice
+  - timeslicep
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -1133,11 +1133,11 @@ mCommRegion:
   join_keys: []
   filter_by: []
   depends_on: []
-mSliceFYearNext:
-  name: mSliceFYearNext
+mTimesliceFYearNext:
+  name: mTimesliceFYearNext
   dims:
-  - slice
-  - slicep
+  - timeslice
+  - timeslicep
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -1147,11 +1147,11 @@ mSliceFYearNext:
   join_keys: []
   filter_by: []
   depends_on: []
-mSliceNext:
-  name: mSliceNext
+mTimesliceNext:
+  name: mTimesliceNext
   dims:
-  - slice
-  - slicep
+  - timeslice
+  - timeslicep
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -1161,11 +1161,11 @@ mSliceNext:
   join_keys: []
   filter_by: []
   depends_on: []
-mSliceParentChild:
-  name: mSliceParentChild
+mTimesliceParentChild:
+  name: mTimesliceParentChild
   dims:
-  - slice
-  - slicep
+  - timeslice
+  - timeslicep
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -1175,11 +1175,11 @@ mSliceParentChild:
   join_keys: []
   filter_by: []
   depends_on: []
-mSliceParentChildE:
-  name: mSliceParentChildE
+mTimesliceParentChildE:
+  name: mTimesliceParentChildE
   dims:
-  - slice
-  - slicep
+  - timeslice
+  - timeslicep
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -1224,7 +1224,7 @@ mStorageCap2AInp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -1242,7 +1242,7 @@ mStorageCap2AOut:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -1288,7 +1288,7 @@ mStorageCinp2AInp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -1306,7 +1306,7 @@ mStorageCinp2AOut:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -1338,7 +1338,7 @@ mStorageCout2AInp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -1356,7 +1356,7 @@ mStorageCout2AOut:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -1413,7 +1413,7 @@ mStorageInpTot:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: vStorageInpTot
   gates_eq: eqStorageInpTot
   recipe: filter
@@ -1430,7 +1430,7 @@ mStorageNCap2AInp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -1448,7 +1448,7 @@ mStorageNCap2AOut:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -1523,7 +1523,7 @@ mStorageOutTot:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: vStorageOutTot
   gates_eq: eqStorageOutTot
   recipe: filter
@@ -1584,7 +1584,7 @@ mStorageStg2AInp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -1602,7 +1602,7 @@ mStorageStg2AOut:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -1732,7 +1732,7 @@ mSupAva:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: vSupOut
   gates_eq: []
   recipe: filter
@@ -1749,7 +1749,7 @@ mSupAvaUp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: eqSupAvaUp
   recipe: filter
@@ -1779,7 +1779,7 @@ mSupOutTot:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: vSupOutTot
   gates_eq: eqSupOutTot
   recipe: filter
@@ -1803,11 +1803,11 @@ mSupReserveUp:
   join_keys: []
   filter_by: []
   depends_on: []
-mSupSlice:
-  name: mSupSlice
+mSupTimeslice:
+  name: mSupTimeslice
   dims:
   - sup
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -1880,7 +1880,7 @@ mTechAct2AInp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -1898,7 +1898,7 @@ mTechAct2AOut:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -1916,7 +1916,7 @@ mTechAfcUp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -1932,7 +1932,7 @@ mTechAfUp:
   - tech
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -1970,13 +1970,13 @@ mTechAInpCommAgg:
   join_keys: []
   filter_by: []
   depends_on: []
-mTechAInpCommAggSlice:
-  name: mTechAInpCommAggSlice
+mTechAInpCommAggTimeslice:
+  name: mTechAInpCommAggTimeslice
   dims:
   - tech
   - comm
-  - slice
-  - slicep
+  - timeslice
+  - timeslicep
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -1986,8 +1986,8 @@ mTechAInpCommAggSlice:
   join_keys: []
   filter_by: []
   depends_on: []
-mTechAInpCommSameSlice:
-  name: mTechAInpCommSameSlice
+mTechAInpCommSameTimeslice:
+  name: mTechAInpCommSameTimeslice
   dims:
   - tech
   - comm
@@ -2028,13 +2028,13 @@ mTechAOutCommAgg:
   join_keys: []
   filter_by: []
   depends_on: []
-mTechAOutCommAggSlice:
-  name: mTechAOutCommAggSlice
+mTechAOutCommAggTimeslice:
+  name: mTechAOutCommAggTimeslice
   dims:
   - tech
   - comm
-  - slice
-  - slicep
+  - timeslice
+  - timeslicep
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -2044,8 +2044,8 @@ mTechAOutCommAggSlice:
   join_keys: []
   filter_by: []
   depends_on: []
-mTechAOutCommSameSlice:
-  name: mTechAOutCommSameSlice
+mTechAOutCommSameTimeslice:
+  name: mTechAOutCommSameTimeslice
   dims:
   - tech
   - comm
@@ -2065,7 +2065,7 @@ mTechCap2AInp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -2083,7 +2083,7 @@ mTechCap2AOut:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -2130,7 +2130,7 @@ mTechCinp2AInp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -2149,7 +2149,7 @@ mTechCinp2AOut:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -2168,7 +2168,7 @@ mTechCout2AInp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -2187,7 +2187,7 @@ mTechCout2AOut:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -2220,7 +2220,7 @@ mTechEmsFuel:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -2299,13 +2299,13 @@ mTechInpCommAgg:
   join_keys: []
   filter_by: []
   depends_on: []
-mTechInpCommAggSlice:
-  name: mTechInpCommAggSlice
+mTechInpCommAggTimeslice:
+  name: mTechInpCommAggTimeslice
   dims:
   - tech
   - comm
-  - slice
-  - slicep
+  - timeslice
+  - timeslicep
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -2315,8 +2315,8 @@ mTechInpCommAggSlice:
   join_keys: []
   filter_by: []
   depends_on: []
-mTechInpCommSameSlice:
-  name: mTechInpCommSameSlice
+mTechInpCommSameTimeslice:
+  name: mTechInpCommSameTimeslice
   dims:
   - tech
   - comm
@@ -2349,7 +2349,7 @@ mTechInpTot:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: vTechInpTot
   gates_eq: eqTechInpTot
   recipe: filter
@@ -2380,7 +2380,7 @@ mTechNCap2AInp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -2398,7 +2398,7 @@ mTechNCap2AOut:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -2507,13 +2507,13 @@ mTechOutCommAgg:
   join_keys: []
   filter_by: []
   depends_on: []
-mTechOutCommAggSlice:
-  name: mTechOutCommAggSlice
+mTechOutCommAggTimeslice:
+  name: mTechOutCommAggTimeslice
   dims:
   - tech
   - comm
-  - slice
-  - slicep
+  - timeslice
+  - timeslicep
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -2523,8 +2523,8 @@ mTechOutCommAggSlice:
   join_keys: []
   filter_by: []
   depends_on: []
-mTechOutCommSameSlice:
-  name: mTechOutCommSameSlice
+mTechOutCommSameTimeslice:
+  name: mTechOutCommSameTimeslice
   dims:
   - tech
   - comm
@@ -2557,7 +2557,7 @@ mTechOutTot:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: vTechOutTot
   gates_eq: eqTechOutTot
   recipe: filter
@@ -2573,8 +2573,8 @@ mTechRampDown:
   - tech
   - region
   - year
-  - slice
-  - slicep
+  - timeslice
+  - timeslicep
   gates_var: []
   gates_eq: eqTechRampDown
   recipe: constraint
@@ -2589,8 +2589,8 @@ mTechRampUp:
   - tech
   - region
   - year
-  - slice
-  - slicep
+  - timeslice
+  - timeslicep
   gates_var: []
   gates_eq: eqTechRampUp
   recipe: constraint
@@ -2653,11 +2653,11 @@ mTechRetUp:
   join_keys: []
   filter_by: []
   depends_on: []
-mTechSlice:
-  name: mTechSlice
+mTechTimeslice:
+  name: mTechTimeslice
   dims:
   - tech
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -2888,7 +2888,7 @@ mTradeIr:
   - src
   - dst
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -2937,7 +2937,7 @@ mTradeIrCdst2Ainp:
   - src
   - dst
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -2956,7 +2956,7 @@ mTradeIrCdst2Aout:
   - src
   - dst
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -2975,7 +2975,7 @@ mTradeIrCsrc2Ainp:
   - src
   - dst
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -2994,7 +2994,7 @@ mTradeIrCsrc2Aout:
   - src
   - dst
   - year
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -3099,11 +3099,11 @@ mTradeRoutes:
   join_keys: []
   filter_by: []
   depends_on: []
-mTradeSlice:
-  name: mTradeSlice
+mTradeTimeslice:
+  name: mTradeTimeslice
   dims:
   - trade
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: []
   unreferenced: yes
@@ -3144,7 +3144,7 @@ mvBalance:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: vBalance
   gates_eq: eqBal
   recipe: filter
@@ -3160,7 +3160,7 @@ mvDemInp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: vDemInp
   gates_eq: eqDemInp
   recipe: filter
@@ -3176,7 +3176,7 @@ mvInpTot:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: vInpTot
   gates_eq: eqInpTot
   recipe: filter
@@ -3192,7 +3192,7 @@ mvOutTot:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: vOutTot
   gates_eq: eqOutTot
   recipe: filter
@@ -3209,7 +3209,7 @@ mvStorageAInp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: vStorageAInp
   gates_eq: eqStorageAInp
   recipe: filter
@@ -3226,7 +3226,7 @@ mvStorageAOut:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: vStorageAOut
   gates_eq: eqStorageAOut
   recipe: filter
@@ -3243,7 +3243,7 @@ mvStorageStore:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var:
   - vStorageInp
   - vStorageOut
@@ -3290,7 +3290,7 @@ mvTechAct:
   - tech
   - region
   - year
-  - slice
+  - timeslice
   gates_var: vTechAct
   gates_eq: []
   recipe: filter
@@ -3307,7 +3307,7 @@ mvTechAInp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: vTechAInp
   gates_eq: eqTechAInp
   recipe: filter
@@ -3324,7 +3324,7 @@ mvTechAOut:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: vTechAOut
   gates_eq: eqTechAOut
   recipe: filter
@@ -3341,7 +3341,7 @@ mvTechInp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: vTechInp
   gates_eq: []
   recipe: filter
@@ -3358,7 +3358,7 @@ mvTechOut:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: vTechOut
   gates_eq: []
   recipe: filter
@@ -3435,7 +3435,7 @@ mvTradeIr:
   - region
   - region
   - year
-  - slice
+  - timeslice
   gates_var: vTradeIr
   gates_eq: []
   recipe: filter
@@ -3452,7 +3452,7 @@ mvTradeIrAInp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: vTradeIrAInp
   gates_eq: eqTradeIrAInp
   recipe: filter
@@ -3468,7 +3468,7 @@ mvTradeIrAInpTot:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: vTradeIrAInpTot
   gates_eq: eqTradeIrAInpTot
   recipe: filter
@@ -3485,7 +3485,7 @@ mvTradeIrAOut:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: vTradeIrAOut
   gates_eq: eqTradeIrAOut
   recipe: filter
@@ -3501,7 +3501,7 @@ mvTradeIrAOutTot:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   gates_var: vTradeIrAOutTot
   gates_eq: eqTradeIrAOutTot
   recipe: filter
@@ -3525,11 +3525,11 @@ mWeatherRegion:
   join_keys: []
   filter_by: []
   depends_on: []
-mWeatherSlice:
-  name: mWeatherSlice
+mWeatherTimeslice:
+  name: mWeatherTimeslice
   dims:
   - weather
-  - slice
+  - timeslice
   gates_var: []
   gates_eq: []
   unreferenced: yes

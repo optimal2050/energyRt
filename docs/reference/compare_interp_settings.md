@@ -100,7 +100,7 @@ cmp                       # prints the comparison table
 compare_interp_settings(mod,
   settings = list(
     none    = list(fold = FALSE, sparse = FALSE, prune = FALSE),
-    all     = list(fold = c("region","slice","year","comm","tech","stg","trade"),
+    all     = list(fold = c("region","timeslice","year","comm","tech","stg","trade"),
                    sparse = TRUE, prune = TRUE)),
   horizon = newHorizon(period = 2024))
 } # }

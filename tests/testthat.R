@@ -8,7 +8,7 @@
 
 # library(testthat)
 # library(energyRt)
-# try(source("~/.energyRt/settings.R"))
+# Solver paths are read from ~/.energyRt/config.yml at load; see ?en_config_show
 
 # tst <- devtools::test()
 # tst |> class()

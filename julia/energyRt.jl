@@ -94,8 +94,8 @@ model = Model();
 @variable(model, vTradeInv[mTradeEac] >= 0);
 @variable(model, vTradeNewCap[mTradeNew] >= 0);
 @variable(model, vTotalUserCosts[mvTotalUserCosts] >= 0);
-# eqTechSng2Sng(tech, region, comm, commp, year, slice)$meqTechSng2Sng(tech, region, comm, commp, year, slice)
-print("eqTechSng2Sng(tech, region, comm, commp, year, slice)...")
+# eqTechSng2Sng(tech, region, comm, commp, year, timeslice)$meqTechSng2Sng(tech, region, comm, commp, year, timeslice)
+print("eqTechSng2Sng(tech, region, comm, commp, year, timeslice)...")
 @constraint(
     model,
     [(t, r, c, cp, y, s) in meqTechSng2Sng],
@@ -128,8 +128,8 @@ print(
     "
 ",
 )
-# eqTechGrp2Sng(tech, region, group, commp, year, slice)$meqTechGrp2Sng(tech, region, group, commp, year, slice)
-print("eqTechGrp2Sng(tech, region, group, commp, year, slice)...")
+# eqTechGrp2Sng(tech, region, group, commp, year, timeslice)$meqTechGrp2Sng(tech, region, group, commp, year, timeslice)
+print("eqTechGrp2Sng(tech, region, group, commp, year, timeslice)...")
 @constraint(
     model,
     [(t, r, g, cp, y, s) in meqTechGrp2Sng],
@@ -178,8 +178,8 @@ print(
     "
 ",
 )
-# eqTechSng2Grp(tech, region, comm, groupp, year, slice)$meqTechSng2Grp(tech, region, comm, groupp, year, slice)
-print("eqTechSng2Grp(tech, region, comm, groupp, year, slice)...")
+# eqTechSng2Grp(tech, region, comm, groupp, year, timeslice)$meqTechSng2Grp(tech, region, comm, groupp, year, timeslice)
+print("eqTechSng2Grp(tech, region, comm, groupp, year, timeslice)...")
 @constraint(
     model,
     [(t, r, c, gp, y, s) in meqTechSng2Grp],
@@ -221,8 +221,8 @@ print(
     "
 ",
 )
-# eqTechGrp2Grp(tech, region, group, groupp, year, slice)$meqTechGrp2Grp(tech, region, group, groupp, year, slice)
-print("eqTechGrp2Grp(tech, region, group, groupp, year, slice)...")
+# eqTechGrp2Grp(tech, region, group, groupp, year, timeslice)$meqTechGrp2Grp(tech, region, group, groupp, year, timeslice)
+print("eqTechGrp2Grp(tech, region, group, groupp, year, timeslice)...")
 @constraint(
     model,
     [(t, r, g, gp, y, s) in meqTechGrp2Grp],
@@ -280,8 +280,8 @@ print(
     "
 ",
 )
-# eqTechShareInpLo(tech, region, group, comm, year, slice)$meqTechShareInpLo(tech, region, group, comm, year, slice)
-print("eqTechShareInpLo(tech, region, group, comm, year, slice)...")
+# eqTechShareInpLo(tech, region, group, comm, year, timeslice)$meqTechShareInpLo(tech, region, group, comm, year, timeslice)
+print("eqTechShareInpLo(tech, region, group, comm, year, timeslice)...")
 @constraint(
     model,
     [(t, r, g, c, y, s) in meqTechShareInpLo],
@@ -308,8 +308,8 @@ print(
     "
 ",
 )
-# eqTechShareInpUp(tech, region, group, comm, year, slice)$meqTechShareInpUp(tech, region, group, comm, year, slice)
-print("eqTechShareInpUp(tech, region, group, comm, year, slice)...")
+# eqTechShareInpUp(tech, region, group, comm, year, timeslice)$meqTechShareInpUp(tech, region, group, comm, year, timeslice)
+print("eqTechShareInpUp(tech, region, group, comm, year, timeslice)...")
 @constraint(
     model,
     [(t, r, g, c, y, s) in meqTechShareInpUp],
@@ -336,8 +336,8 @@ print(
     "
 ",
 )
-# eqTechShareOutLo(tech, region, group, comm, year, slice)$meqTechShareOutLo(tech, region, group, comm, year, slice)
-print("eqTechShareOutLo(tech, region, group, comm, year, slice)...")
+# eqTechShareOutLo(tech, region, group, comm, year, timeslice)$meqTechShareOutLo(tech, region, group, comm, year, timeslice)
+print("eqTechShareOutLo(tech, region, group, comm, year, timeslice)...")
 @constraint(
     model,
     [(t, r, g, c, y, s) in meqTechShareOutLo],
@@ -364,8 +364,8 @@ print(
     "
 ",
 )
-# eqTechShareOutUp(tech, region, group, comm, year, slice)$meqTechShareOutUp(tech, region, group, comm, year, slice)
-print("eqTechShareOutUp(tech, region, group, comm, year, slice)...")
+# eqTechShareOutUp(tech, region, group, comm, year, timeslice)$meqTechShareOutUp(tech, region, group, comm, year, timeslice)
+print("eqTechShareOutUp(tech, region, group, comm, year, timeslice)...")
 @constraint(
     model,
     [(t, r, g, c, y, s) in meqTechShareOutUp],
@@ -392,8 +392,8 @@ print(
     "
 ",
 )
-# eqTechAInp(tech, comm, region, year, slice)$mvTechAInp(tech, comm, region, year, slice)
-print("eqTechAInp(tech, comm, region, year, slice)...")
+# eqTechAInp(tech, comm, region, year, timeslice)$mvTechAInp(tech, comm, region, year, timeslice)
+print("eqTechAInp(tech, comm, region, year, timeslice)...")
 @constraint(
     model,
     [(t, c, r, y, s) in mvTechAInp],
@@ -472,8 +472,8 @@ print(
     "
 ",
 )
-# eqTechAOut(tech, comm, region, year, slice)$mvTechAOut(tech, comm, region, year, slice)
-print("eqTechAOut(tech, comm, region, year, slice)...")
+# eqTechAOut(tech, comm, region, year, timeslice)$mvTechAOut(tech, comm, region, year, timeslice)
+print("eqTechAOut(tech, comm, region, year, timeslice)...")
 @constraint(
     model,
     [(t, c, r, y, s) in mvTechAOut],
@@ -552,8 +552,8 @@ print(
     "
 ",
 )
-# eqTechAfLo(tech, region, year, slice)$meqTechAfLo(tech, region, year, slice)
-print("eqTechAfLo(tech, region, year, slice)...")
+# eqTechAfLo(tech, region, year, timeslice)$meqTechAfLo(tech, region, year, timeslice)
+print("eqTechAfLo(tech, region, year, timeslice)...")
 @constraint(
     model,
     [(t, r, y, s) in meqTechAfLo],
@@ -573,10 +573,10 @@ print("eqTechAfLo(tech, region, year, slice)...")
     ) *
     vTechCap[(t, r, y)] *
     (
-        if haskey(pSliceShare, (s))
-            pSliceShare[(s)]
+        if haskey(pTimesliceShare, (s))
+            pTimesliceShare[(s)]
         else
-            pSliceShareDef
+            pTimesliceShareDef
         end
     ) *
     prod(
@@ -601,8 +601,8 @@ print(
     "
 ",
 )
-# eqTechAfUp(tech, region, year, slice)$meqTechAfUp(tech, region, year, slice)
-print("eqTechAfUp(tech, region, year, slice)...")
+# eqTechAfUp(tech, region, year, timeslice)$meqTechAfUp(tech, region, year, timeslice)
+print("eqTechAfUp(tech, region, year, timeslice)...")
 @constraint(
     model,
     [(t, r, y, s) in meqTechAfUp],
@@ -623,10 +623,10 @@ print("eqTechAfUp(tech, region, year, slice)...")
     ) *
     vTechCap[(t, r, y)] *
     (
-        if haskey(pSliceShare, (s))
-            pSliceShare[(s)]
+        if haskey(pTimesliceShare, (s))
+            pTimesliceShare[(s)]
         else
-            pSliceShareDef
+            pTimesliceShareDef
         end
     ) *
     prod(
@@ -651,8 +651,8 @@ print(
     "
 ",
 )
-# eqTechAfsLo(tech, region, year, slice)$meqTechAfsLo(tech, region, year, slice)
-print("eqTechAfsLo(tech, region, year, slice)...")
+# eqTechAfsLo(tech, region, year, timeslice)$meqTechAfsLo(tech, region, year, timeslice)
+print("eqTechAfsLo(tech, region, year, timeslice)...")
 @constraint(
     model,
     [(t, r, y, s) in meqTechAfsLo],
@@ -672,10 +672,10 @@ print("eqTechAfsLo(tech, region, year, slice)...")
     ) *
     vTechCap[(t, r, y)] *
     (
-        if haskey(pSliceShare, (s))
-            pSliceShare[(s)]
+        if haskey(pTimesliceShare, (s))
+            pTimesliceShare[(s)]
         else
-            pSliceShareDef
+            pTimesliceShareDef
         end
     ) *
     prod(
@@ -699,7 +699,7 @@ print("eqTechAfsLo(tech, region, year, slice)...")
             else
                 0
             end
-        ) for sp in slice if (s, sp) in mSliceParentChildE
+        ) for sp in timeslice if (s, sp) in mTimesliceParentChildE
     )
 );
 print(
@@ -708,8 +708,8 @@ print(
     "
 ",
 )
-# eqTechAfsUp(tech, region, year, slice)$meqTechAfsUp(tech, region, year, slice)
-print("eqTechAfsUp(tech, region, year, slice)...")
+# eqTechAfsUp(tech, region, year, timeslice)$meqTechAfsUp(tech, region, year, timeslice)
+print("eqTechAfsUp(tech, region, year, timeslice)...")
 @constraint(
     model,
     [(t, r, y, s) in meqTechAfsUp],
@@ -720,7 +720,7 @@ print("eqTechAfsUp(tech, region, year, slice)...")
             else
                 0
             end
-        ) for sp in slice if (s, sp) in mSliceParentChildE
+        ) for sp in timeslice if (s, sp) in mTimesliceParentChildE
     ) <=
     (
         if haskey(pTechAfsUp, (t, r, y, s))
@@ -738,10 +738,10 @@ print("eqTechAfsUp(tech, region, year, slice)...")
     ) *
     vTechCap[(t, r, y)] *
     (
-        if haskey(pSliceShare, (s))
-            pSliceShare[(s)]
+        if haskey(pTimesliceShare, (s))
+            pTimesliceShare[(s)]
         else
-            pSliceShareDef
+            pTimesliceShareDef
         end
     ) *
     prod(
@@ -766,30 +766,30 @@ print(
     "
 ",
 )
-# eqTechRampUp(tech, region, year, slice, slicep)$mTechRampUp(tech, region, year, slice, slicep)
-print("eqTechRampUp(tech, region, year, slice, slicep)...")
+# eqTechRampUp(tech, region, year, timeslice, timeslicep)$mTechRampUp(tech, region, year, timeslice, timeslicep)
+print("eqTechRampUp(tech, region, year, timeslice, timeslicep)...")
 @constraint(
     model,
     [(t, r, y, s, sp) in mTechRampUp],
     (vTechAct[(t, r, y, s)]) / ((
-        if haskey(pSliceShare, (s))
-            pSliceShare[(s)]
+        if haskey(pTimesliceShare, (s))
+            pTimesliceShare[(s)]
         else
-            pSliceShareDef
+            pTimesliceShareDef
         end
     )) - (vTechAct[(t, r, y, sp)]) / ((
-        if haskey(pSliceShare, (sp))
-            pSliceShare[(sp)]
+        if haskey(pTimesliceShare, (sp))
+            pTimesliceShare[(sp)]
         else
-            pSliceShareDef
+            pTimesliceShareDef
         end
     )) <=
     (
         (
-            if haskey(pSliceShare, (s))
-                pSliceShare[(s)]
+            if haskey(pTimesliceShare, (s))
+                pTimesliceShare[(s)]
             else
-                pSliceShareDef
+                pTimesliceShareDef
             end
         ) *
         (
@@ -821,30 +821,30 @@ print(
     "
 ",
 )
-# eqTechRampDown(tech, region, year, slice, slicep)$mTechRampDown(tech, region, year, slice, slicep)
-print("eqTechRampDown(tech, region, year, slice, slicep)...")
+# eqTechRampDown(tech, region, year, timeslice, timeslicep)$mTechRampDown(tech, region, year, timeslice, timeslicep)
+print("eqTechRampDown(tech, region, year, timeslice, timeslicep)...")
 @constraint(
     model,
     [(t, r, y, s, sp) in mTechRampDown],
     (vTechAct[(t, r, y, sp)]) / ((
-        if haskey(pSliceShare, (sp))
-            pSliceShare[(sp)]
+        if haskey(pTimesliceShare, (sp))
+            pTimesliceShare[(sp)]
         else
-            pSliceShareDef
+            pTimesliceShareDef
         end
     )) - (vTechAct[(t, r, y, s)]) / ((
-        if haskey(pSliceShare, (s))
-            pSliceShare[(s)]
+        if haskey(pTimesliceShare, (s))
+            pTimesliceShare[(s)]
         else
-            pSliceShareDef
+            pTimesliceShareDef
         end
     )) <=
     (
         (
-            if haskey(pSliceShare, (s))
-                pSliceShare[(s)]
+            if haskey(pTimesliceShare, (s))
+                pTimesliceShare[(s)]
             else
-                pSliceShareDef
+                pTimesliceShareDef
             end
         ) *
         (
@@ -876,8 +876,8 @@ print(
     "
 ",
 )
-# eqTechActSng(tech, comm, region, year, slice)$meqTechActSng(tech, comm, region, year, slice)
-print("eqTechActSng(tech, comm, region, year, slice)...")
+# eqTechActSng(tech, comm, region, year, timeslice)$meqTechActSng(tech, comm, region, year, timeslice)
+print("eqTechActSng(tech, comm, region, year, timeslice)...")
 @constraint(
     model,
     [(t, c, r, y, s) in meqTechActSng],
@@ -896,8 +896,8 @@ print(
     "
 ",
 )
-# eqTechActGrp(tech, group, region, year, slice)$meqTechActGrp(tech, group, region, year, slice)
-print("eqTechActGrp(tech, group, region, year, slice)...")
+# eqTechActGrp(tech, group, region, year, timeslice)$meqTechActGrp(tech, group, region, year, timeslice)
+print("eqTechActGrp(tech, group, region, year, timeslice)...")
 @constraint(
     model,
     [(t, g, r, y, s) in meqTechActGrp],
@@ -925,8 +925,8 @@ print(
     "
 ",
 )
-# eqTechAfcOutLo(tech, region, comm, year, slice)$meqTechAfcOutLo(tech, region, comm, year, slice)
-print("eqTechAfcOutLo(tech, region, comm, year, slice)...")
+# eqTechAfcOutLo(tech, region, comm, year, timeslice)$meqTechAfcOutLo(tech, region, comm, year, timeslice)
+print("eqTechAfcOutLo(tech, region, comm, year, timeslice)...")
 @constraint(
     model,
     [(t, r, c, y, s) in meqTechAfcOutLo],
@@ -953,10 +953,10 @@ print("eqTechAfcOutLo(tech, region, comm, year, slice)...")
     ) *
     vTechCap[(t, r, y)] *
     (
-        if haskey(pSliceShare, (s))
-            pSliceShare[(s)]
+        if haskey(pTimesliceShare, (s))
+            pTimesliceShare[(s)]
         else
-            pSliceShareDef
+            pTimesliceShareDef
         end
     ) *
     prod(
@@ -981,8 +981,8 @@ print(
     "
 ",
 )
-# eqTechAfcOutUp(tech, region, comm, year, slice)$meqTechAfcOutUp(tech, region, comm, year, slice)
-print("eqTechAfcOutUp(tech, region, comm, year, slice)...")
+# eqTechAfcOutUp(tech, region, comm, year, timeslice)$meqTechAfcOutUp(tech, region, comm, year, timeslice)
+print("eqTechAfcOutUp(tech, region, comm, year, timeslice)...")
 @constraint(
     model,
     [(t, r, c, y, s) in meqTechAfcOutUp],
@@ -1031,8 +1031,8 @@ print(
     "
 ",
 )
-# eqTechAfcInpLo(tech, region, comm, year, slice)$meqTechAfcInpLo(tech, region, comm, year, slice)
-print("eqTechAfcInpLo(tech, region, comm, year, slice)...")
+# eqTechAfcInpLo(tech, region, comm, year, timeslice)$meqTechAfcInpLo(tech, region, comm, year, timeslice)
+print("eqTechAfcInpLo(tech, region, comm, year, timeslice)...")
 @constraint(
     model,
     [(t, r, c, y, s) in meqTechAfcInpLo],
@@ -1052,10 +1052,10 @@ print("eqTechAfcInpLo(tech, region, comm, year, slice)...")
     ) *
     vTechCap[(t, r, y)] *
     (
-        if haskey(pSliceShare, (s))
-            pSliceShare[(s)]
+        if haskey(pTimesliceShare, (s))
+            pTimesliceShare[(s)]
         else
-            pSliceShareDef
+            pTimesliceShareDef
         end
     ) *
     prod(
@@ -1080,8 +1080,8 @@ print(
     "
 ",
 )
-# eqTechAfcInpUp(tech, region, comm, year, slice)$meqTechAfcInpUp(tech, region, comm, year, slice)
-print("eqTechAfcInpUp(tech, region, comm, year, slice)...")
+# eqTechAfcInpUp(tech, region, comm, year, timeslice)$meqTechAfcInpUp(tech, region, comm, year, timeslice)
+print("eqTechAfcInpUp(tech, region, comm, year, timeslice)...")
 @constraint(
     model,
     [(t, r, c, y, s) in meqTechAfcInpUp],
@@ -1102,10 +1102,10 @@ print("eqTechAfcInpUp(tech, region, comm, year, slice)...")
     ) *
     vTechCap[(t, r, y)] *
     (
-        if haskey(pSliceShare, (s))
-            pSliceShare[(s)]
+        if haskey(pTimesliceShare, (s))
+            pTimesliceShare[(s)]
         else
-            pSliceShareDef
+            pTimesliceShareDef
         end
     ) *
     prod(
@@ -1540,10 +1540,10 @@ print("eqTechVarom(tech, region, year)...")
             end
         ) *
         (
-            if haskey(pSliceWeight, (y, s))
-                pSliceWeight[(y, s)]
+            if haskey(pTimesliceWeight, (y, s))
+                pTimesliceWeight[(y, s)]
             else
-                pSliceWeightDef
+                pTimesliceWeightDef
             end
         ) *
         vTechAct[(t, r, y, s)] +
@@ -1556,10 +1556,10 @@ print("eqTechVarom(tech, region, year)...")
                 end
             ) *
             (
-                if haskey(pSliceWeight, (y, s))
-                    pSliceWeight[(y, s)]
+                if haskey(pTimesliceWeight, (y, s))
+                    pTimesliceWeight[(y, s)]
                 else
-                    pSliceWeightDef
+                    pTimesliceWeightDef
                 end
             ) *
             vTechInp[(t, c, r, y, s)] for c in comm if (t, c) in mTechInpComm
@@ -1573,10 +1573,10 @@ print("eqTechVarom(tech, region, year)...")
                 end
             ) *
             (
-                if haskey(pSliceWeight, (y, s))
-                    pSliceWeight[(y, s)]
+                if haskey(pTimesliceWeight, (y, s))
+                    pTimesliceWeight[(y, s)]
                 else
-                    pSliceWeightDef
+                    pTimesliceWeightDef
                 end
             ) *
             vTechOut[(t, c, r, y, s)] for c in comm if (t, c) in mTechOutComm
@@ -1590,10 +1590,10 @@ print("eqTechVarom(tech, region, year)...")
                 end
             ) *
             (
-                if haskey(pSliceWeight, (y, s))
-                    pSliceWeight[(y, s)]
+                if haskey(pTimesliceWeight, (y, s))
+                    pTimesliceWeight[(y, s)]
                 else
-                    pSliceWeightDef
+                    pTimesliceWeightDef
                 end
             ) *
             vTechAOut[(t, c, r, y, s)] for c in comm if (t, c, r, y, s) in mvTechAOut
@@ -1607,14 +1607,14 @@ print("eqTechVarom(tech, region, year)...")
                 end
             ) *
             (
-                if haskey(pSliceWeight, (y, s))
-                    pSliceWeight[(y, s)]
+                if haskey(pTimesliceWeight, (y, s))
+                    pTimesliceWeight[(y, s)]
                 else
-                    pSliceWeightDef
+                    pTimesliceWeightDef
                 end
             ) *
             vTechAInp[(t, c, r, y, s)] for c in comm if (t, c, r, y, s) in mvTechAInp
-        ) for s in slice if (t, s) in mTechSlice
+        ) for s in timeslice if (t, s) in mTechTimeslice
     )
 );
 print(
@@ -1623,8 +1623,8 @@ print(
     "
 ",
 )
-# eqSupAvaUp(sup, comm, region, year, slice)$mSupAvaUp(sup, comm, region, year, slice)
-print("eqSupAvaUp(sup, comm, region, year, slice)...")
+# eqSupAvaUp(sup, comm, region, year, timeslice)$mSupAvaUp(sup, comm, region, year, timeslice)
+print("eqSupAvaUp(sup, comm, region, year, timeslice)...")
 @constraint(
     model,
     [(s1, c, r, y, s) in mSupAvaUp],
@@ -1657,8 +1657,8 @@ print(
     "
 ",
 )
-# eqSupAvaLo(sup, comm, region, year, slice)$meqSupAvaLo(sup, comm, region, year, slice)
-print("eqSupAvaLo(sup, comm, region, year, slice)...")
+# eqSupAvaLo(sup, comm, region, year, timeslice)$meqSupAvaLo(sup, comm, region, year, timeslice)
+print("eqSupAvaLo(sup, comm, region, year, timeslice)...")
 @constraint(
     model,
     [(s1, c, r, y, s) in meqSupAvaLo],
@@ -1705,14 +1705,14 @@ print("eqSupReserve(sup, comm, region)...")
             end
         ) *
         (
-            if haskey(pSliceWeight, (y, s))
-                pSliceWeight[(y, s)]
+            if haskey(pTimesliceWeight, (y, s))
+                pTimesliceWeight[(y, s)]
             else
-                pSliceWeightDef
+                pTimesliceWeightDef
             end
         ) *
         vSupOut[(s1, c, r, y, s)] for y in year for
-        s in slice if (s1, c, r, y, s) in mSupAva
+        s in timeslice if (s1, c, r, y, s) in mSupAva
     )
 );
 print(
@@ -1773,14 +1773,14 @@ print("eqSupCost(sup, region, year)...")
             end
         ) *
         (
-            if haskey(pSliceWeight, (y, s))
-                pSliceWeight[(y, s)]
+            if haskey(pTimesliceWeight, (y, s))
+                pTimesliceWeight[(y, s)]
             else
-                pSliceWeightDef
+                pTimesliceWeightDef
             end
         ) *
         vSupOut[(s1, c, r, y, s)] for c in comm for
-        s in slice if (s1, c, r, y, s) in mSupAva
+        s in timeslice if (s1, c, r, y, s) in mSupAva
     )
 );
 print(
@@ -1789,8 +1789,8 @@ print(
     "
 ",
 )
-# eqDemInp(comm, region, year, slice)$mvDemInp(comm, region, year, slice)
-print("eqDemInp(comm, region, year, slice)...")
+# eqDemInp(comm, region, year, timeslice)$mvDemInp(comm, region, year, timeslice)
+print("eqDemInp(comm, region, year, timeslice)...")
 @constraint(
     model,
     [(c, r, y, s) in mvDemInp],
@@ -1808,8 +1808,8 @@ print(
     "
 ",
 )
-# eqAggOutTot(comm, region, year, slice)$mAggOut(comm, region, year, slice)
-print("eqAggOutTot(comm, region, year, slice)...")
+# eqAggOutTot(comm, region, year, timeslice)$mAggOut(comm, region, year, timeslice)
+print("eqAggOutTot(comm, region, year, timeslice)...")
 @constraint(
     model,
     [(c, r, y, s) in mAggOut],
@@ -1827,10 +1827,10 @@ print("eqAggOutTot(comm, region, year, slice)...")
                 else
                     0
                 end
-            ) for sp in slice if (
+            ) for sp in timeslice if (
                 (c, r, y, sp) in mvOutTot &&
-                (s, sp) in mSliceParentChildE &&
-                (cp, sp) in mCommSlice
+                (s, sp) in mTimesliceParentChildE &&
+                (cp, sp) in mCommTimeslice
             )
         ) for cp in comm if (c, cp) in mAggregateFactor
     )
@@ -1841,8 +1841,8 @@ print(
     "
 ",
 )
-# eqEmsFuelTot(comm, region, year, slice)$mEmsFuelTot(comm, region, year, slice)
-print("eqEmsFuelTot(comm, region, year, slice)...")
+# eqEmsFuelTot(comm, region, year, timeslice)$mEmsFuelTot(comm, region, year, timeslice)
+print("eqEmsFuelTot(comm, region, year, timeslice)...")
 @constraint(
     model,
     [(c, r, y, s) in mEmsFuelTot],
@@ -1867,7 +1867,7 @@ print("eqEmsFuelTot(comm, region, year, slice)...")
                     else
                         0
                     end
-                ) for sp in slice if (c, s, sp) in mCommSliceOrParent
+                ) for sp in timeslice if (c, s, sp) in mCommTimesliceOrParent
             ) for t in tech if (t, cp) in mTechInpComm
         ) for cp in comm if ((
             if haskey(pEmissionFactor, (c, cp))
@@ -1884,8 +1884,8 @@ print(
     "
 ",
 )
-# eqStorageAInp(stg, comm, region, year, slice)$mvStorageAInp(stg, comm, region, year, slice)
-print("eqStorageAInp(stg, comm, region, year, slice)...")
+# eqStorageAInp(stg, comm, region, year, timeslice)$mvStorageAInp(stg, comm, region, year, timeslice)
+print("eqStorageAInp(stg, comm, region, year, timeslice)...")
 @constraint(
     model,
     [(st1, c, r, y, s) in mvStorageAInp],
@@ -1973,8 +1973,8 @@ print(
     "
 ",
 )
-# eqStorageAOut(stg, comm, region, year, slice)$mvStorageAOut(stg, comm, region, year, slice)
-print("eqStorageAOut(stg, comm, region, year, slice)...")
+# eqStorageAOut(stg, comm, region, year, timeslice)$mvStorageAOut(stg, comm, region, year, timeslice)
+print("eqStorageAOut(stg, comm, region, year, timeslice)...")
 @constraint(
     model,
     [(st1, c, r, y, s) in mvStorageAOut],
@@ -2062,8 +2062,8 @@ print(
     "
 ",
 )
-# eqStorageStore(stg, comm, region, year, slicep, slice)$meqStorageStore(stg, comm, region, year, slicep, slice)
-print("eqStorageStore(stg, comm, region, year, slicep, slice)...")
+# eqStorageStore(stg, comm, region, year, timeslicep, timeslice)$meqStorageStore(stg, comm, region, year, timeslicep, timeslice)
+print("eqStorageStore(stg, comm, region, year, timeslicep, timeslice)...")
 @constraint(
     model,
     [(st1, c, r, y, sp, s) in meqStorageStore],
@@ -2105,10 +2105,10 @@ print("eqStorageStore(stg, comm, region, year, slicep, slice)...")
                 pStorageStgEffDef
             end
         ))^((
-            if haskey(pSliceShare, (s))
-                pSliceShare[(s)]
+            if haskey(pTimesliceShare, (s))
+                pTimesliceShare[(s)]
             else
-                pSliceShareDef
+                pTimesliceShareDef
             end
         ))
     ) * vStorageStore[(st1, c, r, y, sp)] -
@@ -2126,8 +2126,8 @@ print(
     "
 ",
 )
-# eqStorageAfLo(stg, comm, region, year, slice)$meqStorageAfLo(stg, comm, region, year, slice)
-print("eqStorageAfLo(stg, comm, region, year, slice)...")
+# eqStorageAfLo(stg, comm, region, year, timeslice)$meqStorageAfLo(stg, comm, region, year, timeslice)
+print("eqStorageAfLo(stg, comm, region, year, timeslice)...")
 @constraint(
     model,
     [(st1, c, r, y, s) in meqStorageAfLo],
@@ -2169,8 +2169,8 @@ print(
     "
 ",
 )
-# eqStorageAfUp(stg, comm, region, year, slice)$meqStorageAfUp(stg, comm, region, year, slice)
-print("eqStorageAfUp(stg, comm, region, year, slice)...")
+# eqStorageAfUp(stg, comm, region, year, timeslice)$meqStorageAfUp(stg, comm, region, year, timeslice)
+print("eqStorageAfUp(stg, comm, region, year, timeslice)...")
 @constraint(
     model,
     [(st1, c, r, y, s) in meqStorageAfUp],
@@ -2212,8 +2212,8 @@ print(
     "
 ",
 )
-# eqStorageClear(stg, comm, region, year, slice)$mvStorageStore(stg, comm, region, year, slice)
-print("eqStorageClear(stg, comm, region, year, slice)...")
+# eqStorageClear(stg, comm, region, year, timeslice)$mvStorageStore(stg, comm, region, year, timeslice)
+print("eqStorageClear(stg, comm, region, year, timeslice)...")
 @constraint(
     model,
     [(st1, c, r, y, s) in mvStorageStore],
@@ -2231,8 +2231,8 @@ print(
     "
 ",
 )
-# eqStorageInpUp(stg, comm, region, year, slice)$meqStorageInpUp(stg, comm, region, year, slice)
-print("eqStorageInpUp(stg, comm, region, year, slice)...")
+# eqStorageInpUp(stg, comm, region, year, timeslice)$meqStorageInpUp(stg, comm, region, year, timeslice)
+print("eqStorageInpUp(stg, comm, region, year, timeslice)...")
 @constraint(
     model,
     [(st1, c, r, y, s) in meqStorageInpUp],
@@ -2267,8 +2267,8 @@ print(
     "
 ",
 )
-# eqStorageInpLo(stg, comm, region, year, slice)$meqStorageInpLo(stg, comm, region, year, slice)
-print("eqStorageInpLo(stg, comm, region, year, slice)...")
+# eqStorageInpLo(stg, comm, region, year, timeslice)$meqStorageInpLo(stg, comm, region, year, timeslice)
+print("eqStorageInpLo(stg, comm, region, year, timeslice)...")
 @constraint(
     model,
     [(st1, c, r, y, s) in meqStorageInpLo],
@@ -2303,8 +2303,8 @@ print(
     "
 ",
 )
-# eqStorageOutUp(stg, comm, region, year, slice)$meqStorageOutUp(stg, comm, region, year, slice)
-print("eqStorageOutUp(stg, comm, region, year, slice)...")
+# eqStorageOutUp(stg, comm, region, year, timeslice)$meqStorageOutUp(stg, comm, region, year, timeslice)
+print("eqStorageOutUp(stg, comm, region, year, timeslice)...")
 @constraint(
     model,
     [(st1, c, r, y, s) in meqStorageOutUp],
@@ -2339,8 +2339,8 @@ print(
     "
 ",
 )
-# eqStorageOutLo(stg, comm, region, year, slice)$meqStorageOutLo(stg, comm, region, year, slice)
-print("eqStorageOutLo(stg, comm, region, year, slice)...")
+# eqStorageOutLo(stg, comm, region, year, timeslice)$meqStorageOutLo(stg, comm, region, year, timeslice)
+print("eqStorageOutLo(stg, comm, region, year, timeslice)...")
 @constraint(
     model,
     [(st1, c, r, y, s) in meqStorageOutLo],
@@ -2604,10 +2604,10 @@ print("eqStorageVarom(stg, region, year)...")
                 end
             ) *
             (
-                if haskey(pSliceWeight, (y, s))
-                    pSliceWeight[(y, s)]
+                if haskey(pTimesliceWeight, (y, s))
+                    pTimesliceWeight[(y, s)]
                 else
-                    pSliceWeightDef
+                    pTimesliceWeightDef
                 end
             ) *
             vStorageInp[(st1, c, r, y, s)] +
@@ -2619,10 +2619,10 @@ print("eqStorageVarom(stg, region, year)...")
                 end
             ) *
             (
-                if haskey(pSliceWeight, (y, s))
-                    pSliceWeight[(y, s)]
+                if haskey(pTimesliceWeight, (y, s))
+                    pTimesliceWeight[(y, s)]
                 else
-                    pSliceWeightDef
+                    pTimesliceWeightDef
                 end
             ) *
             vStorageOut[(st1, c, r, y, s)] +
@@ -2634,13 +2634,13 @@ print("eqStorageVarom(stg, region, year)...")
                 end
             ) *
             (
-                if haskey(pSliceWeight, (y, s))
-                    pSliceWeight[(y, s)]
+                if haskey(pTimesliceWeight, (y, s))
+                    pTimesliceWeight[(y, s)]
                 else
-                    pSliceWeightDef
+                    pTimesliceWeightDef
                 end
             ) *
-            vStorageStore[(st1, c, r, y, s)] for s in slice if (c, s) in mCommSlice
+            vStorageStore[(st1, c, r, y, s)] for s in timeslice if (c, s) in mCommTimeslice
         ) for c in comm if (st1, c) in mStorageComm
     )
 );
@@ -2650,8 +2650,8 @@ print(
     "
 ",
 )
-# eqImportTot(comm, dst, year, slice)$mImport(comm, dst, year, slice)
-print("eqImportTot(comm, dst, year, slice)...")
+# eqImportTot(comm, dst, year, timeslice)$mImport(comm, dst, year, timeslice)
+print("eqImportTot(comm, dst, year, timeslice)...")
 @constraint(
     model,
     [(c, dst, y, s) in mImport],
@@ -2688,8 +2688,8 @@ print(
     "
 ",
 )
-# eqExportTot(comm, src, year, slice)$mExport(comm, src, year, slice)
-print("eqExportTot(comm, src, year, slice)...")
+# eqExportTot(comm, src, year, timeslice)$mExport(comm, src, year, timeslice)
+print("eqExportTot(comm, src, year, timeslice)...")
 @constraint(
     model,
     [(c, src, y, s) in mExport],
@@ -2718,8 +2718,8 @@ print(
     "
 ",
 )
-# eqTradeFlowUp(trade, comm, src, dst, year, slice)$meqTradeFlowUp(trade, comm, src, dst, year, slice)
-print("eqTradeFlowUp(trade, comm, src, dst, year, slice)...")
+# eqTradeFlowUp(trade, comm, src, dst, year, timeslice)$meqTradeFlowUp(trade, comm, src, dst, year, timeslice)
+print("eqTradeFlowUp(trade, comm, src, dst, year, timeslice)...")
 @constraint(
     model,
     [(t1, c, src, dst, y, s) in meqTradeFlowUp],
@@ -2737,8 +2737,8 @@ print(
     "
 ",
 )
-# eqTradeFlowLo(trade, comm, src, dst, year, slice)$meqTradeFlowLo(trade, comm, src, dst, year, slice)
-print("eqTradeFlowLo(trade, comm, src, dst, year, slice)...")
+# eqTradeFlowLo(trade, comm, src, dst, year, timeslice)$meqTradeFlowLo(trade, comm, src, dst, year, timeslice)
+print("eqTradeFlowLo(trade, comm, src, dst, year, timeslice)...")
 @constraint(
     model,
     [(t1, c, src, dst, y, s) in meqTradeFlowLo],
@@ -2784,17 +2784,17 @@ print("eqImportIrCost(trade, region, year)...")
                             ) *
                             vTradeIr[(t1, c, src, r, y, s)] *
                             (
-                                if haskey(pSliceWeight, (y, s))
-                                    pSliceWeight[(y, s)]
+                                if haskey(pTimesliceWeight, (y, s))
+                                    pTimesliceWeight[(y, s)]
                                 else
-                                    pSliceWeightDef
+                                    pTimesliceWeightDef
                                 end
                             )
                         )
                     else
                         0
                     end
-                ) for s in slice if (t1, s) in mTradeSlice
+                ) for s in timeslice if (t1, s) in mTradeTimeslice
             ) for c in comm if (t1, c) in mTradeComm
         ) for src in region if (t1, src, r) in mTradeRoutes
     )
@@ -2834,17 +2834,17 @@ print("eqExportIrCost(trade, region, year)...")
                             ) *
                             vTradeIr[(t1, c, r, dst, y, s)] *
                             (
-                                if haskey(pSliceWeight, (y, s))
-                                    pSliceWeight[(y, s)]
+                                if haskey(pTimesliceWeight, (y, s))
+                                    pTimesliceWeight[(y, s)]
                                 else
-                                    pSliceWeightDef
+                                    pTimesliceWeightDef
                                 end
                             )
                         )
                     else
                         0
                     end
-                ) for s in slice if (t1, s) in mTradeSlice
+                ) for s in timeslice if (t1, s) in mTradeTimeslice
             ) for c in comm if (t1, c) in mTradeComm
         ) for dst in region if (t1, r, dst) in mTradeRoutes
     )
@@ -2855,8 +2855,8 @@ print(
     "
 ",
 )
-# eqExportRowUp(expp, comm, region, year, slice)$mExportRowUp(expp, comm, region, year, slice)
-print("eqExportRowUp(expp, comm, region, year, slice)...")
+# eqExportRowUp(expp, comm, region, year, timeslice)$mExportRowUp(expp, comm, region, year, timeslice)
+print("eqExportRowUp(expp, comm, region, year, timeslice)...")
 @constraint(
     model,
     [(e, c, r, y, s) in mExportRowUp],
@@ -2874,8 +2874,8 @@ print(
     "
 ",
 )
-# eqExportRowLo(expp, comm, region, year, slice)$meqExportRowLo(expp, comm, region, year, slice)
-print("eqExportRowLo(expp, comm, region, year, slice)...")
+# eqExportRowLo(expp, comm, region, year, timeslice)$meqExportRowLo(expp, comm, region, year, timeslice)
+print("eqExportRowLo(expp, comm, region, year, timeslice)...")
 @constraint(
     model,
     [(e, c, r, y, s) in meqExportRowLo],
@@ -2907,14 +2907,14 @@ print("eqExportRowCum(expp, comm)...")
             end
         ) *
         (
-            if haskey(pSliceWeight, (y, s))
-                pSliceWeight[(y, s)]
+            if haskey(pTimesliceWeight, (y, s))
+                pTimesliceWeight[(y, s)]
             else
-                pSliceWeightDef
+                pTimesliceWeightDef
             end
         ) *
         vExportRow[(e, c, r, y, s)] for r in region for y in year for
-        s in slice if (e, c, r, y, s) in mExportRow
+        s in timeslice if (e, c, r, y, s) in mExportRow
     )
 );
 print(
@@ -2957,14 +2957,14 @@ print("eqExportRowCost(expp, region, year)...")
             end
         ) *
         (
-            if haskey(pSliceWeight, (y, s))
-                pSliceWeight[(y, s)]
+            if haskey(pTimesliceWeight, (y, s))
+                pTimesliceWeight[(y, s)]
             else
-                pSliceWeightDef
+                pTimesliceWeightDef
             end
         ) *
         vExportRow[(e, c, r, y, s)] for c in comm for
-        s in slice if (e, c, r, y, s) in mExportRow
+        s in timeslice if (e, c, r, y, s) in mExportRow
     )
 );
 print(
@@ -2973,8 +2973,8 @@ print(
     "
 ",
 )
-# eqImportRowUp(imp, comm, region, year, slice)$mImportRowUp(imp, comm, region, year, slice)
-print("eqImportRowUp(imp, comm, region, year, slice)...")
+# eqImportRowUp(imp, comm, region, year, timeslice)$mImportRowUp(imp, comm, region, year, timeslice)
+print("eqImportRowUp(imp, comm, region, year, timeslice)...")
 @constraint(
     model,
     [(i, c, r, y, s) in mImportRowUp],
@@ -2992,8 +2992,8 @@ print(
     "
 ",
 )
-# eqImportRowLo(imp, comm, region, year, slice)$meqImportRowLo(imp, comm, region, year, slice)
-print("eqImportRowLo(imp, comm, region, year, slice)...")
+# eqImportRowLo(imp, comm, region, year, timeslice)$meqImportRowLo(imp, comm, region, year, timeslice)
+print("eqImportRowLo(imp, comm, region, year, timeslice)...")
 @constraint(
     model,
     [(i, c, r, y, s) in meqImportRowLo],
@@ -3025,14 +3025,14 @@ print("eqImportRowCum(imp, comm)...")
             end
         ) *
         (
-            if haskey(pSliceWeight, (y, s))
-                pSliceWeight[(y, s)]
+            if haskey(pTimesliceWeight, (y, s))
+                pTimesliceWeight[(y, s)]
             else
-                pSliceWeightDef
+                pTimesliceWeightDef
             end
         ) *
         vImportRow[(i, c, r, y, s)] for r in region for y in year for
-        s in slice if (i, c, r, y, s) in mImportRow
+        s in timeslice if (i, c, r, y, s) in mImportRow
     )
 );
 print(
@@ -3074,14 +3074,14 @@ print("eqImportRowCost(imp, region, year)...")
             end
         ) *
         (
-            if haskey(pSliceWeight, (y, s))
-                pSliceWeight[(y, s)]
+            if haskey(pTimesliceWeight, (y, s))
+                pTimesliceWeight[(y, s)]
             else
-                pSliceWeightDef
+                pTimesliceWeightDef
             end
         ) *
         vImportRow[(i, c, r, y, s)] for c in comm for
-        s in slice if (i, c, r, y, s) in mImportRow
+        s in timeslice if (i, c, r, y, s) in mImportRow
     )
 );
 print(
@@ -3090,16 +3090,16 @@ print(
     "
 ",
 )
-# eqTradeCapFlow(trade, comm, year, slice)$meqTradeCapFlow(trade, comm, year, slice)
-print("eqTradeCapFlow(trade, comm, year, slice)...")
+# eqTradeCapFlow(trade, comm, year, timeslice)$meqTradeCapFlow(trade, comm, year, timeslice)
+print("eqTradeCapFlow(trade, comm, year, timeslice)...")
 @constraint(
     model,
     [(t1, c, y, s) in meqTradeCapFlow],
     (
-        if haskey(pSliceShare, (s))
-            pSliceShare[(s)]
+        if haskey(pTimesliceShare, (s))
+            pTimesliceShare[(s)]
         else
-            pSliceShareDef
+            pTimesliceShareDef
         end
     ) *
     (
@@ -3323,8 +3323,8 @@ print(
     "
 ",
 )
-# eqTradeIrAInp(trade, comm, region, year, slice)$mvTradeIrAInp(trade, comm, region, year, slice)
-print("eqTradeIrAInp(trade, comm, region, year, slice)...")
+# eqTradeIrAInp(trade, comm, region, year, timeslice)$mvTradeIrAInp(trade, comm, region, year, timeslice)
+print("eqTradeIrAInp(trade, comm, region, year, timeslice)...")
 @constraint(
     model,
     [(t1, c, r, y, s) in mvTradeIrAInp],
@@ -3355,8 +3355,8 @@ print(
     "
 ",
 )
-# eqTradeIrAOut(trade, comm, region, year, slice)$mvTradeIrAOut(trade, comm, region, year, slice)
-print("eqTradeIrAOut(trade, comm, region, year, slice)...")
+# eqTradeIrAOut(trade, comm, region, year, timeslice)$mvTradeIrAOut(trade, comm, region, year, timeslice)
+print("eqTradeIrAOut(trade, comm, region, year, timeslice)...")
 @constraint(
     model,
     [(t1, c, r, y, s) in mvTradeIrAOut],
@@ -3387,14 +3387,14 @@ print(
     "
 ",
 )
-# eqTradeIrAInpTot(comm, region, year, slice)$mvTradeIrAInpTot(comm, region, year, slice)
-print("eqTradeIrAInpTot(comm, region, year, slice)...")
+# eqTradeIrAInpTot(comm, region, year, timeslice)$mvTradeIrAInpTot(comm, region, year, timeslice)
+print("eqTradeIrAInpTot(comm, region, year, timeslice)...")
 @constraint(
     model,
     [(c, r, y, s) in mvTradeIrAInpTot],
     vTradeIrAInpTot[(c, r, y, s)] == sum(
-        vTradeIrAInp[(t1, c, r, y, sp)] for t1 in trade for sp in slice if
-        ((c, s, sp) in mCommSliceOrParent && (t1, c, r, y, sp) in mvTradeIrAInp)
+        vTradeIrAInp[(t1, c, r, y, sp)] for t1 in trade for sp in timeslice if
+        ((c, s, sp) in mCommTimesliceOrParent && (t1, c, r, y, sp) in mvTradeIrAInp)
     )
 );
 print(
@@ -3403,14 +3403,14 @@ print(
     "
 ",
 )
-# eqTradeIrAOutTot(comm, region, year, slice)$mvTradeIrAOutTot(comm, region, year, slice)
-print("eqTradeIrAOutTot(comm, region, year, slice)...")
+# eqTradeIrAOutTot(comm, region, year, timeslice)$mvTradeIrAOutTot(comm, region, year, timeslice)
+print("eqTradeIrAOutTot(comm, region, year, timeslice)...")
 @constraint(
     model,
     [(c, r, y, s) in mvTradeIrAOutTot],
     vTradeIrAOutTot[(c, r, y, s)] == sum(
-        vTradeIrAOut[(t1, c, r, y, sp)] for t1 in trade for sp in slice if
-        ((c, s, sp) in mCommSliceOrParent && (t1, c, r, y, sp) in mvTradeIrAOut)
+        vTradeIrAOut[(t1, c, r, y, sp)] for t1 in trade for sp in timeslice if
+        ((c, s, sp) in mCommTimesliceOrParent && (t1, c, r, y, sp) in mvTradeIrAOut)
     )
 );
 print(
@@ -3419,8 +3419,8 @@ print(
     "
 ",
 )
-# eqBalLo(comm, region, year, slice)$meqBalLo(comm, region, year, slice)
-print("eqBalLo(comm, region, year, slice)...")
+# eqBalLo(comm, region, year, timeslice)$meqBalLo(comm, region, year, timeslice)
+print("eqBalLo(comm, region, year, timeslice)...")
 @constraint(model, [(c, r, y, s) in meqBalLo], vBalance[(c, r, y, s)] >= 0);
 print(
     " ",
@@ -3428,8 +3428,8 @@ print(
     "
 ",
 )
-# eqBalUp(comm, region, year, slice)$meqBalUp(comm, region, year, slice)
-print("eqBalUp(comm, region, year, slice)...")
+# eqBalUp(comm, region, year, timeslice)$meqBalUp(comm, region, year, timeslice)
+print("eqBalUp(comm, region, year, timeslice)...")
 @constraint(model, [(c, r, y, s) in meqBalUp], vBalance[(c, r, y, s)] <= 0);
 print(
     " ",
@@ -3437,8 +3437,8 @@ print(
     "
 ",
 )
-# eqBalFx(comm, region, year, slice)$meqBalFx(comm, region, year, slice)
-print("eqBalFx(comm, region, year, slice)...")
+# eqBalFx(comm, region, year, timeslice)$meqBalFx(comm, region, year, timeslice)
+print("eqBalFx(comm, region, year, timeslice)...")
 @constraint(model, [(c, r, y, s) in meqBalFx], vBalance[(c, r, y, s)] == 0);
 print(
     " ",
@@ -3446,8 +3446,8 @@ print(
     "
 ",
 )
-# eqBal(comm, region, year, slice)$mvBalance(comm, region, year, slice)
-print("eqBal(comm, region, year, slice)...")
+# eqBal(comm, region, year, timeslice)$mvBalance(comm, region, year, timeslice)
+print("eqBal(comm, region, year, timeslice)...")
 @constraint(
     model,
     [(c, r, y, s) in mvBalance],
@@ -3472,9 +3472,9 @@ print(
     "
 ",
 )
-# [agg-rewrite] eqBalanceRY/vBalanceRY retired (dead reporting: weighted slice-sum, unused)
-# eqOutTot(comm, region, year, slice)$mvOutTot(comm, region, year, slice)
-print("eqOutTot(comm, region, year, slice)...")
+# [agg-rewrite] eqBalanceRY/vBalanceRY retired (dead reporting: weighted timeslice-sum, unused)
+# eqOutTot(comm, region, year, timeslice)$mvOutTot(comm, region, year, timeslice)
+print("eqOutTot(comm, region, year, timeslice)...")
 @constraint(
     model,
     [(c, r, y, s) in mvOutTot],
@@ -3536,16 +3536,16 @@ print("eqOutTot(comm, region, year, slice)...")
         end
     ) +
     # [agg-rewrite] UP-aggregation of the immediately-finer children's totals
-    # (pSliceAgg renormalizes intensive values); replaces old mOutSub/vOut2Lo.
+    # (pTimesliceAgg renormalizes intensive values); replaces old mOutSub/vOut2Lo.
     sum(
         (
-            if haskey(pSliceAgg, (y, s, sp))
-                pSliceAgg[(y, s, sp)]
+            if haskey(pTimesliceAgg, (y, s, sp))
+                pTimesliceAgg[(y, s, sp)]
             else
-                pSliceAggDef
+                pTimesliceAggDef
             end
         ) * vOutTot[(c, r, y, sp)]
-        for sp in slice if ((s, sp) in mSliceFamily && (c, r, y, sp) in mvOutTot);
+        for sp in timeslice if ((s, sp) in mTimesliceFamily && (c, r, y, sp) in mvOutTot);
         init = 0
     )
 );
@@ -3558,8 +3558,8 @@ print(
 # [agg-rewrite] eqOutTotRY/vOutTotRY retired (dead reporting)
 # [agg-rewrite] eqOut2Lo removed: down-disaggregation of coarse output is
 # replaced by up-aggregation in eqOutTot (vOut2Lo retired). Mirrors GLPK.
-# eqInpTot(comm, region, year, slice)$mvInpTot(comm, region, year, slice)
-print("eqInpTot(comm, region, year, slice)...")
+# eqInpTot(comm, region, year, timeslice)$mvInpTot(comm, region, year, timeslice)
+print("eqInpTot(comm, region, year, timeslice)...")
 @constraint(
     model,
     [(c, r, y, s) in mvInpTot],
@@ -3610,13 +3610,13 @@ print("eqInpTot(comm, region, year, slice)...")
     # replaces old mInpSub/vInp2Lo down-disaggregation collector.
     sum(
         (
-            if haskey(pSliceAgg, (y, s, sp))
-                pSliceAgg[(y, s, sp)]
+            if haskey(pTimesliceAgg, (y, s, sp))
+                pTimesliceAgg[(y, s, sp)]
             else
-                pSliceAggDef
+                pTimesliceAggDef
             end
         ) * vInpTot[(c, r, y, sp)]
-        for sp in slice if ((s, sp) in mSliceFamily && (c, r, y, sp) in mvInpTot);
+        for sp in timeslice if ((s, sp) in mTimesliceFamily && (c, r, y, sp) in mvInpTot);
         init = 0
     )
 );
@@ -3629,8 +3629,8 @@ print(
 # [agg-rewrite] eqInpTotRY/vInpTotRY retired (dead reporting)
 # [agg-rewrite] eqInp2Lo removed: down-disaggregation of coarse input is
 # replaced by up-aggregation in eqInpTot (vInp2Lo retired). Mirrors GLPK.
-# eqSupOutTot(comm, region, year, slice)$mSupOutTot(comm, region, year, slice)
-print("eqSupOutTot(comm, region, year, slice)...")
+# eqSupOutTot(comm, region, year, timeslice)$mSupOutTot(comm, region, year, timeslice)
+print("eqSupOutTot(comm, region, year, timeslice)...")
 @constraint(
     model,
     [(c, r, y, s) in mSupOutTot],
@@ -3643,8 +3643,8 @@ print(
     "
 ",
 )
-# eqTechInpTot(comm, region, year, slice)$mTechInpTot(comm, region, year, slice)
-print("eqTechInpTot(comm, region, year, slice)...")
+# eqTechInpTot(comm, region, year, timeslice)$mTechInpTot(comm, region, year, timeslice)
+print("eqTechInpTot(comm, region, year, timeslice)...")
 @constraint(
     model,
     [(c, r, y, s) in mTechInpTot],
@@ -3656,7 +3656,7 @@ print("eqTechInpTot(comm, region, year, slice)...")
             else
                 0
             end
-        ) for t in tech if (t, c) in mTechInpCommSameSlice
+        ) for t in tech if (t, c) in mTechInpCommSameTimeslice
     ) +
     sum(
         sum(
@@ -3666,7 +3666,7 @@ print("eqTechInpTot(comm, region, year, slice)...")
                 else
                     0
                 end
-            ) for sp in slice if (t, c, sp, s) in mTechInpCommAggSlice
+            ) for sp in timeslice if (t, c, sp, s) in mTechInpCommAggTimeslice
         ) for t in tech if (t, c) in mTechInpCommAgg
     ) +
     sum(
@@ -3676,7 +3676,7 @@ print("eqTechInpTot(comm, region, year, slice)...")
             else
                 0
             end
-        ) for t in tech if (t, c) in mTechAInpCommSameSlice
+        ) for t in tech if (t, c) in mTechAInpCommSameTimeslice
     ) +
     sum(
         sum(
@@ -3686,7 +3686,7 @@ print("eqTechInpTot(comm, region, year, slice)...")
                 else
                     0
                 end
-            ) for sp in slice if (t, c, sp, s) in mTechAInpCommAggSlice
+            ) for sp in timeslice if (t, c, sp, s) in mTechAInpCommAggTimeslice
         ) for t in tech if (t, c) in mTechAInpCommAgg
     )
 );
@@ -3696,8 +3696,8 @@ print(
     "
 ",
 )
-# eqTechOutTot(comm, region, year, slice)$mTechOutTot(comm, region, year, slice)
-print("eqTechOutTot(comm, region, year, slice)...")
+# eqTechOutTot(comm, region, year, timeslice)$mTechOutTot(comm, region, year, timeslice)
+print("eqTechOutTot(comm, region, year, timeslice)...")
 @constraint(
     model,
     [(c, r, y, s) in mTechOutTot],
@@ -3709,7 +3709,7 @@ print("eqTechOutTot(comm, region, year, slice)...")
             else
                 0
             end
-        ) for t in tech if (t, c) in mTechOutCommSameSlice
+        ) for t in tech if (t, c) in mTechOutCommSameTimeslice
     ) +
     sum(
         sum(
@@ -3719,7 +3719,7 @@ print("eqTechOutTot(comm, region, year, slice)...")
                 else
                     0
                 end
-            ) for sp in slice if (t, c, sp, s) in mTechOutCommAggSlice
+            ) for sp in timeslice if (t, c, sp, s) in mTechOutCommAggTimeslice
         ) for t in tech if (t, c) in mTechOutCommAgg
     ) +
     sum(
@@ -3729,7 +3729,7 @@ print("eqTechOutTot(comm, region, year, slice)...")
             else
                 0
             end
-        ) for t in tech if (t, c) in mTechAOutCommSameSlice
+        ) for t in tech if (t, c) in mTechAOutCommSameTimeslice
     ) +
     sum(
         sum(
@@ -3739,7 +3739,7 @@ print("eqTechOutTot(comm, region, year, slice)...")
                 else
                     0
                 end
-            ) for sp in slice if (t, c, sp, s) in mTechAOutCommAggSlice
+            ) for sp in timeslice if (t, c, sp, s) in mTechAOutCommAggTimeslice
         ) for t in tech if (t, c) in mTechAOutCommAgg
     )
 );
@@ -3750,8 +3750,8 @@ print(
 ",
 )
 # [agg-rewrite] eqTechOutRY/vTechOutRY retired (dead reporting)
-# eqStorageInpTot(comm, region, year, slice)$mStorageInpTot(comm, region, year, slice)
-print("eqStorageInpTot(comm, region, year, slice)...")
+# eqStorageInpTot(comm, region, year, timeslice)$mStorageInpTot(comm, region, year, timeslice)
+print("eqStorageInpTot(comm, region, year, timeslice)...")
 @constraint(
     model,
     [(c, r, y, s) in mStorageInpTot],
@@ -3768,8 +3768,8 @@ print(
     "
 ",
 )
-# eqStorageOutTot(comm, region, year, slice)$mStorageOutTot(comm, region, year, slice)
-print("eqStorageOutTot(comm, region, year, slice)...")
+# eqStorageOutTot(comm, region, year, timeslice)$mStorageOutTot(comm, region, year, timeslice)
+print("eqStorageOutTot(comm, region, year, timeslice)...")
 @constraint(
     model,
     [(c, r, y, s) in mStorageOutTot],
@@ -3793,10 +3793,10 @@ print("eqDummyImportCost(comm, region, year)...")
     [(c, r, y) in mDummyImportCost],
     vDummyImportCost[(c, r, y)] == sum(
         (
-            if haskey(pSliceWeight, (y, s))
-                pSliceWeight[(y, s)]
+            if haskey(pTimesliceWeight, (y, s))
+                pTimesliceWeight[(y, s)]
             else
-                pSliceWeightDef
+                pTimesliceWeightDef
             end
         ) *
         (
@@ -3812,7 +3812,7 @@ print("eqDummyImportCost(comm, region, year)...")
             else
                 0
             end
-        ) for s in slice if (c, r, y, s) in mDummyImport
+        ) for s in timeslice if (c, r, y, s) in mDummyImport
     )
 );
 print(
@@ -3828,10 +3828,10 @@ print("eqDummyExportCost(comm, region, year)...")
     [(c, r, y) in mDummyExportCost],
     vDummyExportCost[(c, r, y)] == sum(
         (
-            if haskey(pSliceWeight, (y, s))
-                pSliceWeight[(y, s)]
+            if haskey(pTimesliceWeight, (y, s))
+                pTimesliceWeight[(y, s)]
             else
-                pSliceWeightDef
+                pTimesliceWeightDef
             end
         ) *
         (
@@ -3847,7 +3847,7 @@ print("eqDummyExportCost(comm, region, year)...")
             else
                 0
             end
-        ) for s in slice if (c, r, y, s) in mDummyExport
+        ) for s in timeslice if (c, r, y, s) in mDummyExport
     )
 );
 print(
@@ -3871,14 +3871,14 @@ print("eqTaxCost(comm, region, year)...")
             end
         ) *
         (
-            if haskey(pSliceWeight, (y, s))
-                pSliceWeight[(y, s)]
+            if haskey(pTimesliceWeight, (y, s))
+                pTimesliceWeight[(y, s)]
             else
-                pSliceWeightDef
+                pTimesliceWeightDef
             end
         ) *
         vOutTot[(c, r, y, s)] for
-        s in slice if ((c, r, y, s) in mvOutTot && (c, s) in mCommSlice)
+        s in timeslice if ((c, r, y, s) in mvOutTot && (c, s) in mCommTimeslice)
     ) +
     sum(
         (
@@ -3889,14 +3889,14 @@ print("eqTaxCost(comm, region, year)...")
             end
         ) *
         (
-            if haskey(pSliceWeight, (y, s))
-                pSliceWeight[(y, s)]
+            if haskey(pTimesliceWeight, (y, s))
+                pTimesliceWeight[(y, s)]
             else
-                pSliceWeightDef
+                pTimesliceWeightDef
             end
         ) *
         vInpTot[(c, r, y, s)] for
-        s in slice if ((c, r, y, s) in mvInpTot && (c, s) in mCommSlice)
+        s in timeslice if ((c, r, y, s) in mvInpTot && (c, s) in mCommTimeslice)
     ) +
     sum(
         (
@@ -3907,14 +3907,14 @@ print("eqTaxCost(comm, region, year)...")
             end
         ) *
         (
-            if haskey(pSliceWeight, (y, s))
-                pSliceWeight[(y, s)]
+            if haskey(pTimesliceWeight, (y, s))
+                pTimesliceWeight[(y, s)]
             else
-                pSliceWeightDef
+                pTimesliceWeightDef
             end
         ) *
         vBalance[(c, r, y, s)] for
-        s in slice if ((c, r, y, s) in mvBalance && (c, s) in mCommSlice)
+        s in timeslice if ((c, r, y, s) in mvBalance && (c, s) in mCommTimeslice)
     )
 );
 print(
@@ -3938,14 +3938,14 @@ print("eqSubsCost(comm, region, year)...")
             end
         ) *
         (
-            if haskey(pSliceWeight, (y, s))
-                pSliceWeight[(y, s)]
+            if haskey(pTimesliceWeight, (y, s))
+                pTimesliceWeight[(y, s)]
             else
-                pSliceWeightDef
+                pTimesliceWeightDef
             end
         ) *
         vOutTot[(c, r, y, s)] for
-        s in slice if ((c, r, y, s) in mvOutTot && (c, s) in mCommSlice)
+        s in timeslice if ((c, r, y, s) in mvOutTot && (c, s) in mCommTimeslice)
     ) - sum(
         (
             if haskey(pSubCostInp, (c, r, y, s))
@@ -3955,14 +3955,14 @@ print("eqSubsCost(comm, region, year)...")
             end
         ) *
         (
-            if haskey(pSliceWeight, (y, s))
-                pSliceWeight[(y, s)]
+            if haskey(pTimesliceWeight, (y, s))
+                pTimesliceWeight[(y, s)]
             else
-                pSliceWeightDef
+                pTimesliceWeightDef
             end
         ) *
         vInpTot[(c, r, y, s)] for
-        s in slice if ((c, r, y, s) in mvInpTot && (c, s) in mCommSlice)
+        s in timeslice if ((c, r, y, s) in mvInpTot && (c, s) in mCommTimeslice)
     ) - sum(
         (
             if haskey(pSubCostBal, (c, r, y, s))
@@ -3972,14 +3972,14 @@ print("eqSubsCost(comm, region, year)...")
             end
         ) *
         (
-            if haskey(pSliceWeight, (y, s))
-                pSliceWeight[(y, s)]
+            if haskey(pTimesliceWeight, (y, s))
+                pTimesliceWeight[(y, s)]
             else
-                pSliceWeightDef
+                pTimesliceWeightDef
             end
         ) *
         vBalance[(c, r, y, s)] for
-        s in slice if ((c, r, y, s) in mvBalance && (c, s) in mCommSlice)
+        s in timeslice if ((c, r, y, s) in mvBalance && (c, s) in mCommTimeslice)
     )
 );
 print(

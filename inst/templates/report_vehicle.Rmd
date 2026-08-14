@@ -57,20 +57,24 @@ library(knitr)
 
 is_html <- knitr::is_html_output()
 
-# ---- LaTeX escaping (keep safe for pdflatex) ----
+# ---- LaTeX escaping ----
+# NB: with `fixed = TRUE` the pattern is LITERAL -- the old backslash-prefixed
+# patterns ("\\$", "\\^", "\\{", "\\}") searched for two-character strings and
+# never matched, so a bare $/^/{/} in a name or unit killed the LaTeX run.
 tex_esc <- function(x) {
   if (is.null(x) || all(is.na(x))) return(x)
   x <- as.character(x)
-  x <- gsub("\\\\", "\\\\textbackslash{}", x, fixed = TRUE)
+  x <- gsub("\\", "\a", x, fixed = TRUE)   # placeholder: braces come later
+  x <- gsub("{",  "\\{",  x, fixed = TRUE)
+  x <- gsub("}",  "\\}",  x, fixed = TRUE)
   x <- gsub("&",  "\\&",  x, fixed = TRUE)
   x <- gsub("%",  "\\%",  x, fixed = TRUE)
-  x <- gsub("\\$", "\\$", x, fixed = TRUE)
+  x <- gsub("$",  "\\$",  x, fixed = TRUE)
   x <- gsub("#",  "\\#",  x, fixed = TRUE)
   x <- gsub("_",  "\\_",  x, fixed = TRUE)
-  x <- gsub("\\^", "\\^{}", x, fixed = TRUE)
   x <- gsub("~",  "\\textasciitilde{}", x, fixed = TRUE)
-  x <- gsub("\\{", "\\{", x, fixed = TRUE)
-  x <- gsub("\\}", "\\}", x, fixed = TRUE)
+  x <- gsub("^",  "\\textasciicircum{}", x, fixed = TRUE)
+  x <- gsub("\a", "\\textbackslash{}", x, fixed = TRUE)
   x
 }
 
@@ -93,29 +97,39 @@ fmt_val <- function(x, digits = 2) {
   as.character(x)
 }
 
+# NA cells render as a dash; `na.string=` is NOT a kable argument (it was
+# silently swallowed by `...`), the real lever is this option.
+options(knitr.kable.NA = if (is_html) "\u2014" else "--")
+
 # ---- kable helper: format-aware ----
 kable_block <- function(df, caption = NULL, digits = 3) {
   if (is.null(df) || nrow(df) == 0) return(invisible(NULL))
+  # drop all-NA / all-empty columns, then all-NA rows
+  keep <- vapply(df, function(x) {
+    if (is.character(x)) any(!is.na(x) & nzchar(x)) else any(!is.na(x))
+  }, logical(1))
+  df <- df[, keep, drop = FALSE]
+  if (ncol(df) == 0) return(invisible(NULL))
+  df <- df[rowSums(!is.na(df)) > 0, , drop = FALSE]
+  if (nrow(df) == 0) return(invisible(NULL))
+  num_cols <- which(sapply(df, is.numeric))
+  for (j in num_cols) df[[j]] <- round(df[[j]], digits)
+  # cells are escaped HERE, so kable must not escape a second time
   if (is_html) {
     chr_cols <- which(sapply(df, is.character))
     for (j in chr_cols) df[[j]] <- html_esc(df[[j]])
-    num_cols <- which(sapply(df, is.numeric))
-    for (j in num_cols) df[[j]] <- round(df[[j]], digits)
     if (!is.null(caption)) {
       cat("<p><strong>", html_esc(caption), "</strong></p>\n", sep = "")
     }
-    cat(knitr::kable(df, format = "html", digits = digits,
-                     na.string = "---"), "\n")
+    cat(knitr::kable(df, format = "html", digits = digits, escape = FALSE), "\n")
   } else {
     chr_cols <- which(sapply(df, is.character))
     for (j in chr_cols) df[[j]] <- tex_esc(df[[j]])
-    num_cols <- which(sapply(df, is.numeric))
-    for (j in num_cols) df[[j]] <- round(df[[j]], digits)
     if (!is.null(caption)) {
       cat("\\par\\smallskip\n{\\small\\bfseries ", tex_esc(caption), "}\\\\\n", sep = "")
     }
     cat(knitr::kable(df, format = "latex", booktabs = TRUE,
-                     linesep = "", na.string = "---",
+                     linesep = "", escape = FALSE,
                      table.envir = NULL), "\n")
     cat("\\smallskip\n")
   }
@@ -131,7 +145,7 @@ cat("
 .ideea-rule-thin { border: none; border-top: 0.6px solid #1f497d; margin: 6px 0 4px; }
 .ideea-two-col { display: flex; gap: 20px; align-items: flex-start; }
 .ideea-col-main { flex: 1; min-width: 0; }
-.ideea-col-side { flex: 0 0 44%; min-width: 0; }
+.ideea-col-side { flex: 0 0 45%; min-width: 0; }
 
 /* Key-parameters inline table */
 .ideea-kp-table { border-collapse: collapse; font-size: 0.85em; }
@@ -175,7 +189,7 @@ if (is_html) {
   cat("</div>\n")
   if (!is.null(params$image_file)) {
     cat("<div class=\"ideea-col-side\" style=\"flex:0 0 26%\">\n")
-    cat("<img src=\"", params$image_file, "\" style=\"max-width:100%;height:auto\" />\n", sep = "")
+    cat("<img src=\"", gsub("\\\\", "/", params$image_file), "\" style=\"max-width:100%;height:auto\" />\n", sep = "")
     cat("</div>\n")
   }
   cat("</div>\n")
@@ -212,14 +226,27 @@ if (is_html) {
 # ============================================================
 
 # ---- assemble Input/Output ------------------------------------------------
-io_df <- NULL
+# pad to a common column set before rbind: a per-frame intersect() errored
+# whenever inputs carried a column (e.g. `group`) the outputs lacked
+io_parts <- list()
 if (!is.null(params$input_df) && nrow(params$input_df) > 0) {
   tmp <- params$input_df; tmp$dir <- "Input"
-  io_df <- rbind(io_df, tmp[, intersect(c("dir","comm","unit","group"), names(tmp)), drop=FALSE])
+  io_parts[[length(io_parts) + 1L]] <-
+    tmp[, intersect(c("dir","comm","unit","group"), names(tmp)), drop=FALSE]
 }
 if (!is.null(params$output_df) && nrow(params$output_df) > 0) {
   tmp <- params$output_df; tmp$dir <- "Output"
-  io_df <- rbind(io_df, tmp[, intersect(c("dir","comm","unit","group"), names(tmp)), drop=FALSE])
+  io_parts[[length(io_parts) + 1L]] <-
+    tmp[, intersect(c("dir","comm","unit","group"), names(tmp)), drop=FALSE]
+}
+io_df <- NULL
+if (length(io_parts) > 0) {
+  all_cols <- unique(unlist(lapply(io_parts, names)))
+  io_parts <- lapply(io_parts, function(d) {
+    for (cc in setdiff(all_cols, names(d))) d[[cc]] <- NA
+    d[, all_cols, drop = FALSE]
+  })
+  io_df <- do.call(rbind, io_parts)
 }
 
 has_draw <- !is.null(params$draw_file) && file.exists(params$draw_file)
@@ -296,7 +323,7 @@ if (is_html) {
   if (has_draw) {
     cat("<div class=\"ideea-col-side\">\n")
     cat("<p><strong>Schematic</strong></p>\n")
-    cat("<img src=\"", params$draw_file, "\" style=\"max-width:100%;height:auto\" />\n", sep = "")
+    cat("<img src=\"", gsub("\\\\", "/", params$draw_file), "\" style=\"max-width:100%;height:auto\" />\n", sep = "")
     cat("</div>\n")
   }
   cat("</div>\n")  # close ideea-two-col
@@ -421,38 +448,51 @@ if (length(cost_list) > 0) {
     cat("\\par\n")
   }
 
-  # Build tidy long data frame
+  # Build tidy long data frame (vintage kept: costs may differ per vintage)
   tidy_costs <- do.call(rbind, lapply(names(cost_list), function(cost_type) {
     df <- cost_list[[cost_type]]
     cost_col <- cost_type
     if (!cost_col %in% names(df)) {
-      candidates <- setdiff(names(df), c("region", "year"))
+      candidates <- setdiff(names(df), c("vintage", "cluster", "region", "year"))
       if (length(candidates) > 0) cost_col <- candidates[1] else return(NULL)
     }
-    year_col <- if ("year" %in% names(df)) df$year else rep(NA_integer_, nrow(df))
-    data.frame(cost_type = cost_type, year = year_col, value = df[[cost_col]],
+    data.frame(cost_type = rep(cost_type, nrow(df)),
+               vintage = if ("vintage" %in% names(df)) df$vintage else
+                 rep(NA_character_, nrow(df)),
+               year = if ("year" %in% names(df)) df$year else
+                 rep(NA_integer_, nrow(df)),
+               value = df[[cost_col]],
                stringsAsFactors = FALSE)
   }))
   tidy_costs <- tidy_costs[!is.na(tidy_costs$value), , drop = FALSE]
 
   multi_year <- !all(is.na(tidy_costs$year)) &&
                 length(unique(tidy_costs$year[!is.na(tidy_costs$year)])) > 1
+  by_vintage <- length(unique(tidy_costs$vintage[!is.na(tidy_costs$vintage)])) > 1
 
-  if (!multi_year) {
+  cost_labels <- c(invcost = "Investment cost", fixom = "Fixed O&M",
+                   varom = "Variable O&M")
+  if (!multi_year && by_vintage) {
+    # per-vintage costs: the old label/value pairs took the FIRST row and
+    # silently hid the other vintages
+    show <- tidy_costs[, c("cost_type", "vintage", "value"), drop = FALSE]
+    show$cost_type <- ifelse(show$cost_type %in% names(cost_labels),
+                             cost_labels[show$cost_type], show$cost_type)
+    names(show) <- c("cost", "vintage", "value")
+    kable_block(show)
+  } else if (!multi_year) {
     parts <- tapply(tidy_costs$value, tidy_costs$cost_type, function(v) fmt_val(v[1]))
     if (is_html) {
-      cost_labels <- c(invcost = "Investment cost", fixom = "Fixed O&M", varom = "Variable O&M")
       cat("<table class=\"ideea-kp-table\"><tbody>\n")
       for (nm in names(parts)) {
-        lbl <- if (nm %in% names(cost_labels)) cost_labels[[nm]] else html_esc(nm)
+        lbl <- if (nm %in% names(cost_labels)) html_esc(cost_labels[[nm]]) else html_esc(nm)
         cat("  <tr><td>", lbl, "</td><td><strong>", parts[[nm]], "</strong></td></tr>\n", sep = "")
       }
       cat("</tbody></table>\n")
     } else {
-      cost_labels <- c(invcost = "Investment cost", fixom = "Fixed O\\&M", varom = "Variable O\\&M")
       cat("\\begin{tabular}{@{}ll@{}}\n")
       for (nm in names(parts)) {
-        lbl <- if (nm %in% names(cost_labels)) cost_labels[[nm]] else tex_esc(nm)
+        lbl <- if (nm %in% names(cost_labels)) tex_esc(cost_labels[[nm]]) else tex_esc(nm)
         cat("  \\texttt{", lbl, "} & {\\bfseries ", parts[[nm]], "} \\\\\n", sep = "")
       }
       cat("\\end{tabular}\n")
@@ -549,14 +589,14 @@ if (has_sfr) {
   sfr_h    <- n_rows    * panel_px
 
   if (is_html) {
-    css_panel_px <- round(panel_px / res_dpi * 72)
+    css_panel_px <- panel_px   # css px == device px here (no 72/96 pt juggling)
     cat("<div style='display:flex;flex-wrap:wrap;gap:6px;align-items:flex-start'>\n")
     for (p_i in sfr_list) {
       tmp_i <- tempfile(fileext = ".png")
       grDevices::png(tmp_i, width = panel_px, height = panel_px, res = res_dpi, bg = "white")
       print(p_i)
       grDevices::dev.off()
-      cat("<img src='", tmp_i, "' style='width:", css_panel_px, "px;height:auto' />\n", sep = "")
+      cat("<img src='", gsub("\\\\", "/", tmp_i), "' style='width:", css_panel_px, "px;height:auto' />\n", sep = "")
     }
     cat("</div>\n")
   } else {
@@ -656,7 +696,7 @@ if (has_lc || has_fr) {
       print(p_lc)
       grDevices::dev.off()
       cat("<div style=\"flex:0 0 ", lc_w, "; min-width:0\">\n", sep = "")
-      cat("<img src='", tmp_lc, "' style='max-width:100%;height:auto' />\n", sep = "")
+      cat("<img src='", gsub("\\\\", "/", tmp_lc), "' style='max-width:100%;height:auto' />\n", sep = "")
       cat("</div>\n")
     }
     if (has_fr) {
@@ -667,7 +707,7 @@ if (has_lc || has_fr) {
       print(p_fr)
       grDevices::dev.off()
       cat("<div style=\"flex:0 0 ", fr_w, "; min-width:0\">\n", sep = "")
-      cat("<img src='", tmp_fr, "' style='max-width:100%;height:auto' />\n", sep = "")
+      cat("<img src='", gsub("\\\\", "/", tmp_fr), "' style='max-width:100%;height:auto' />\n", sep = "")
       cat("</div>\n")
     }
     cat("</div>\n")

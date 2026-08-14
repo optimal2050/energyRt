@@ -212,23 +212,23 @@ write.sc <- write_sc
   .interpolation_message("mMidMilestone", rest, interpolation_count,
                          interpolation_start_time, len_name)
 
-  # mSliceParentChildE ####
+  # mTimesliceParentChildE ####
   rest <- rest + 1
   year <- .get_data_slot(prec@parameters$mMidMilestone)
-  .interpolation_message("mSliceParentChildE", rest, interpolation_count,
+  .interpolation_message("mTimesliceParentChildE", rest, interpolation_count,
                          interpolation_start_time, len_name)
   rest <- rest + 1
   # Total parameter reductions
-  # mCommSlice ####
-  mSliceParentChildE <- .get_data_slot(prec@parameters$mSliceParentChildE)
-  .interpolation_message("mCommSlice", rest, interpolation_count,
+  # mCommTimeslice ####
+  mTimesliceParentChildE <- .get_data_slot(prec@parameters$mTimesliceParentChildE)
+  .interpolation_message("mCommTimeslice", rest, interpolation_count,
                          interpolation_start_time, len_name)
   rest <- rest + 1
-  mCommSlice <- .get_data_slot(prec@parameters$mCommSlice)
-  uu <- mSliceParentChildE
-  colnames(uu) <- c("slicep", "slice")
-  map_for_comm <- merge0(mCommSlice, uu)[, c("comm", "slicep")]
-  colnames(map_for_comm) <- c("comm", "slice")
+  mCommTimeslice <- .get_data_slot(prec@parameters$mCommTimeslice)
+  uu <- mTimesliceParentChildE
+  colnames(uu) <- c("timeslicep", "timeslice")
+  map_for_comm <- merge0(mCommTimeslice, uu)[, c("comm", "timeslicep")]
+  colnames(map_for_comm) <- c("comm", "timeslice")
   map_for_comm <- map_for_comm[!duplicated(map_for_comm), ]
 
   # # mCommReg ####
@@ -247,66 +247,66 @@ write.sc <- write_sc
   # prec@parameters[["mCommReg"]] <-
   #   .dat2par(prec@parameters[["mCommReg"]], comreg)
 
-  .interpolation_message("mCommSliceOrParent", rest, interpolation_count,
+  .interpolation_message("mCommTimesliceOrParent", rest, interpolation_count,
                          interpolation_start_time, len_name)
   rest <- rest + 1
-  # mCommSliceOrParent ####
+  # mCommTimesliceOrParent ####
   # browser()
   l1 <- merge0(.get_data_slot(prec@parameters$comm),
-               .get_data_slot(prec@parameters$slice))
-  # l2 <- merge0(mCommSlice, mSliceParentChildE)[, c("comm", "slice", "slicep")]
-  l2 <- merge0(mCommSlice, mSliceParentChildE) |>
-    select(all_of(c("comm", "slice", "slicep")))
-  # l3 <- l2[!duplicated(l2[, c("comm", "slicep")]), c("comm", "slicep")]
-  l3 <- l2 |> select(all_of(c("comm", "slicep"))) |> unique() |>
-    rename(slice = slicep)
-  # colnames(l3)[2] <- "slice"
+               .get_data_slot(prec@parameters$timeslice))
+  # l2 <- merge0(mCommTimeslice, mTimesliceParentChildE)[, c("comm", "timeslice", "timeslicep")]
+  l2 <- merge0(mCommTimeslice, mTimesliceParentChildE) |>
+    select(all_of(c("comm", "timeslice", "timeslicep")))
+  # l3 <- l2[!duplicated(l2[, c("comm", "timeslicep")]), c("comm", "timeslicep")]
+  l3 <- l2 |> select(all_of(c("comm", "timeslicep"))) |> unique() |>
+    rename(timeslice = timeslicep)
+  # colnames(l3)[2] <- "timeslice"
   l3 <- rbind(l1, l3)
   l3 <- l3[!duplicated(l3) & !duplicated(l3, fromLast = TRUE), ]
-  l3$slicep <- l3$slice
-  mCommSliceOrParent <- rbind(l2, l3)
-  prec@parameters[["mCommSliceOrParent"]] <-
-    .dat2par(prec@parameters[["mCommSliceOrParent"]], mCommSliceOrParent)
+  l3$timeslicep <- l3$timeslice
+  mCommTimesliceOrParent <- rbind(l2, l3)
+  prec@parameters[["mCommTimesliceOrParent"]] <-
+    .dat2par(prec@parameters[["mCommTimesliceOrParent"]], mCommTimesliceOrParent)
   # browser()
   # !!! Attempt to separate commodities with multi and one time frame !!!
-  # prec@parameters[["mCommSliceOrParent1"]] <-
-  #   .dat2par(prec@parameters[["mCommSliceOrParent1"]],
-  #            filter(mCommSliceOrParent, slice != slicep)
+  # prec@parameters[["mCommTimesliceOrParent1"]] <-
+  #   .dat2par(prec@parameters[["mCommTimesliceOrParent1"]],
+  #            filter(mCommTimesliceOrParent, timeslice != timeslicep)
   #            )
-  # cm <- unique(mCommSliceOrParent$comm)
-  # cm1 <- unique(prec@parameters[["mCommSliceOrParent1"]]@data$comm)
+  # cm <- unique(mCommTimesliceOrParent$comm)
+  # cm1 <- unique(prec@parameters[["mCommTimesliceOrParent1"]]@data$comm)
   # ii <- cm %in% cm1
-  # mCommSliceOrParent0 <- cm[!ii]
-  # prec@parameters[["mCommSliceOrParent0"]] <-
-  #   .dat2par(prec@parameters[["mCommSliceOrParent0"]],
-  #            data.table(comm = mCommSliceOrParent0))
+  # mCommTimesliceOrParent0 <- cm[!ii]
+  # prec@parameters[["mCommTimesliceOrParent0"]] <-
+  #   .dat2par(prec@parameters[["mCommTimesliceOrParent0"]],
+  #            data.table(comm = mCommTimesliceOrParent0))
   #  Example of use in GAMS equations:
-  # eqEmsFuelTot(comm, region, year, slice)$mEmsFuelTot(comm, region, year, slice)..
-  # vEmsFuelTot(comm, region, year, slice)
+  # eqEmsFuelTot(comm, region, year, timeslice)$mEmsFuelTot(comm, region, year, timeslice)..
+  # vEmsFuelTot(comm, region, year, timeslice)
   # =e=
   #   sum(commp$(pEmissionFactor(comm, commp) > 0),
   #       pEmissionFactor(comm, commp)
   #       * sum(tech$mTechInpComm(tech, commp),
   #             pTechEmisComm(tech, commp)
-  #             * (sum(slicep$mCommSliceOrParent1(comm, slice, slicep),
-  #                    vTechInp(tech, commp, region, year, slicep)$mTechEmsFuel(tech, comm, commp, region, year, slicep))
+  #             * (sum(timeslicep$mCommTimesliceOrParent1(comm, timeslice, timeslicep),
+  #                    vTechInp(tech, commp, region, year, timeslicep)$mTechEmsFuel(tech, comm, commp, region, year, timeslicep))
   #                +
-  #                  vTechInp(tech, commp, region, year, slice)$(
-  #                    mTechEmsFuel(tech, comm, commp, region, year, slice)
+  #                  vTechInp(tech, commp, region, year, timeslice)$(
+  #                    mTechEmsFuel(tech, comm, commp, region, year, timeslice)
   #                    and
-  #                    mCommSliceOrParent0(commp)
+  #                    mCommTimesliceOrParent0(commp)
   #                  )
   #             )
   #       )
-  #   ) * pSliceWeight(slice);
+  #   ) * pTimesliceWeight(timeslice);
 
   # browser()
   # mvTechOutS ####
-  # finish: mTechCommSliceSliceP
+  # finish: mTechCommTimesliceTimesliceP
   # mvTechOutS <- prec@parameters[["mvTechOut"]]@data |>
-  #   rename(slicep = slice) |>
-  #   left_join(prec@parameters[["mCommSliceOrParent"]]@data,
-  #             by = c("comm", "slicep")) |>
+  #   rename(timeslicep = timeslice) |>
+  #   left_join(prec@parameters[["mCommTimesliceOrParent"]]@data,
+  #             by = c("comm", "timeslicep")) |>
   #   select(all_of(prec@parameters[["mvTechOutS"]]@dimSets)) |>
   #   unique()
   # prec@parameters[["mvTechOutS"]] <-
@@ -314,130 +314,130 @@ write.sc <- write_sc
   #
   # mvTechAOutS ####
   # mvTechAOutS <- prec@parameters[["mvTechAOut"]]@data |>
-  #   rename(slicep = slice) |>
-  #   left_join(prec@parameters[["mCommSliceOrParent"]]@data,
-  #             by = c("comm", "slicep")) |>
+  #   rename(timeslicep = timeslice) |>
+  #   left_join(prec@parameters[["mCommTimesliceOrParent"]]@data,
+  #             by = c("comm", "timeslicep")) |>
   #   select(all_of(prec@parameters[["mvTechAOutS"]]@dimSets)) |>
   #   unique()
   # prec@parameters[["mvTechAOutS"]] <-
   #   .dat2par(prec@parameters[["mvTechAOutS"]], mvTechAOutS)
   #
-  # # mTechCommSliceSliceP ####
-  # ! mTechCommSliceSliceP, mTechCommOutSliceSliceP, mTechCommAOutSliceSliceP
+  # # mTechCommTimesliceTimesliceP ####
+  # ! mTechCommTimesliceTimesliceP, mTechCommOutTimesliceTimesliceP, mTechCommAOutTimesliceTimesliceP
   # ! have been dropped due to large size in models with many commodities
   # new map for eqTechOutTot
-  # mTechCommSliceSliceP <- prec@parameters[["mTechSlice"]]@data |>
-  #   rename(slicep = slice) |>
-  #   left_join(mCommSliceOrParent, by = c("slicep")) |>
-  #   select(all_of(prec@parameters[["mTechCommSliceSliceP"]]@dimSets)) |>
+  # mTechCommTimesliceTimesliceP <- prec@parameters[["mTechTimeslice"]]@data |>
+  #   rename(timeslicep = timeslice) |>
+  #   left_join(mCommTimesliceOrParent, by = c("timeslicep")) |>
+  #   select(all_of(prec@parameters[["mTechCommTimesliceTimesliceP"]]@dimSets)) |>
   #   unique()
-  # prec@parameters[["mTechCommSliceSliceP"]] <-
-  #   .dat2par(prec@parameters[["mTechCommSliceSliceP"]], mTechCommSliceSliceP)
+  # prec@parameters[["mTechCommTimesliceTimesliceP"]] <-
+  #   .dat2par(prec@parameters[["mTechCommTimesliceTimesliceP"]], mTechCommTimesliceTimesliceP)
   # # browser()
   #
-  # mTechCommOutSliceSliceP <- prec@parameters[["mvTechOut"]]@data |>
+  # mTechCommOutTimesliceTimesliceP <- prec@parameters[["mvTechOut"]]@data |>
   #   # bind_rows(prec@parameters[["mvTechAOut"]]@data) |>
-  #   rename(slicep = slice) |>
+  #   rename(timeslicep = timeslice) |>
   #   select(-region, -year) |> unique() |>
-  #   left_join(mCommSliceOrParent, by = c("comm", "slicep")) |>
-  #   select(all_of(prec@parameters[["mTechCommOutSliceSliceP"]]@dimSets)) |>
+  #   left_join(mCommTimesliceOrParent, by = c("comm", "timeslicep")) |>
+  #   select(all_of(prec@parameters[["mTechCommOutTimesliceTimesliceP"]]@dimSets)) |>
   #   unique()
-  # prec@parameters[["mTechCommOutSliceSliceP"]] <-
-  #   .dat2par(prec@parameters[["mTechCommOutSliceSliceP"]],
-  #            mTechCommOutSliceSliceP)
+  # prec@parameters[["mTechCommOutTimesliceTimesliceP"]] <-
+  #   .dat2par(prec@parameters[["mTechCommOutTimesliceTimesliceP"]],
+  #            mTechCommOutTimesliceTimesliceP)
   #
-  # mTechCommAOutSliceSliceP <- prec@parameters[["mvTechAOut"]]@data |>
+  # mTechCommAOutTimesliceTimesliceP <- prec@parameters[["mvTechAOut"]]@data |>
   #   # bind_rows(prec@parameters[["mvTechAOut"]]@data) |>
-  #   rename(slicep = slice) |>
+  #   rename(timeslicep = timeslice) |>
   #   select(-region, -year) |> unique() |>
-  #   left_join(mCommSliceOrParent, by = c("comm", "slicep")) |>
-  #   select(all_of(prec@parameters[["mTechCommAOutSliceSliceP"]]@dimSets)) |>
+  #   left_join(mCommTimesliceOrParent, by = c("comm", "timeslicep")) |>
+  #   select(all_of(prec@parameters[["mTechCommAOutTimesliceTimesliceP"]]@dimSets)) |>
   #   unique()
-  # prec@parameters[["mTechCommAOutSliceSliceP"]] <-
-  #   .dat2par(prec@parameters[["mTechCommAOutSliceSliceP"]],
-  #            mTechCommAOutSliceSliceP)
+  # prec@parameters[["mTechCommAOutTimesliceTimesliceP"]] <-
+  #   .dat2par(prec@parameters[["mTechCommAOutTimesliceTimesliceP"]],
+  #            mTechCommAOutTimesliceTimesliceP)
 
   # browser()
-  # mTechInpCommAggSlice ####
-  mTechInpCommAggSlice <- prec@parameters$mvTechInp@data |>
+  # mTechInpCommAggTimeslice ####
+  mTechInpCommAggTimeslice <- prec@parameters$mvTechInp@data |>
     select(-(any_of(c("region", "year")))) |> unique() |>
-    left_join(prec@parameters$mCommSliceOrParent@data,
-              by = c("comm", slice = "slicep"), suffix = c("", "p"))
+    left_join(prec@parameters$mCommTimesliceOrParent@data,
+              by = c("comm", timeslice = "timeslicep"), suffix = c("", "p"))
 
-  # mTechInpCommSameSlice ###
-  mTechInpCommSameSlice <- mTechInpCommAggSlice |>
-    filter(slicep == slice) |>
-    select(-any_of(c("slicep", "slice"))) |>
+  # mTechInpCommSameTimeslice ###
+  mTechInpCommSameTimeslice <- mTechInpCommAggTimeslice |>
+    filter(timeslicep == timeslice) |>
+    select(-any_of(c("timeslicep", "timeslice"))) |>
     unique()
-  prec@parameters[["mTechInpCommSameSlice"]] <-
-    .dat2par(prec@parameters[["mTechInpCommSameSlice"]], mTechInpCommSameSlice)
+  prec@parameters[["mTechInpCommSameTimeslice"]] <-
+    .dat2par(prec@parameters[["mTechInpCommSameTimeslice"]], mTechInpCommSameTimeslice)
   #
-  # mvTechInpCommSameSlice <- prec@parameters[["mvTechInp"]]@data |>
-  #   semi_join(mTechInpCommSameSlice,
+  # mvTechInpCommSameTimeslice <- prec@parameters[["mvTechInp"]]@data |>
+  #   semi_join(mTechInpCommSameTimeslice,
   #             by = c("tech", "comm"))
-  # prec@parameters[["mvTechInpCommSameSlice"]] <-
-  #   .dat2par(prec@parameters[["mvTechInpCommSameSlice"]],
-  #            mvTechInpCommSameSlice)
-  # rm(mTechInpCommSameSlice, mvTechInpCommSameSlice)
+  # prec@parameters[["mvTechInpCommSameTimeslice"]] <-
+  #   .dat2par(prec@parameters[["mvTechInpCommSameTimeslice"]],
+  #            mvTechInpCommSameTimeslice)
+  # rm(mTechInpCommSameTimeslice, mvTechInpCommSameTimeslice)
 
-  mTechInpCommAggSlice <- mTechInpCommAggSlice |>
-    filter(slicep != slice) |>
+  mTechInpCommAggTimeslice <- mTechInpCommAggTimeslice |>
+    filter(timeslicep != timeslice) |>
     unique()
-  prec@parameters[["mTechInpCommAggSlice"]] <-
-    .dat2par(prec@parameters[["mTechInpCommAggSlice"]], mTechInpCommAggSlice)
-  mTechInpCommAgg <- mTechInpCommAggSlice |>
-    select(-any_of(c("slicep", "slice"))) |>
+  prec@parameters[["mTechInpCommAggTimeslice"]] <-
+    .dat2par(prec@parameters[["mTechInpCommAggTimeslice"]], mTechInpCommAggTimeslice)
+  mTechInpCommAgg <- mTechInpCommAggTimeslice |>
+    select(-any_of(c("timeslicep", "timeslice"))) |>
     unique()
   prec@parameters[["mTechInpCommAgg"]] <-
     .dat2par(prec@parameters[["mTechInpCommAgg"]], mTechInpCommAgg)
-  rm(mTechInpCommAggSlice, mTechInpCommAgg)
+  rm(mTechInpCommAggTimeslice, mTechInpCommAgg)
 
-  # mvTechInpCommAggSlice <- prec@parameters[["mvTechInp"]]@data |>
-  #   semi_join(mTechInpCommAggSlice,
+  # mvTechInpCommAggTimeslice <- prec@parameters[["mvTechInp"]]@data |>
+  #   semi_join(mTechInpCommAggTimeslice,
   #             by = c("tech", "comm")) |>
   #   unique()
-  # prec@parameters[["mvTechInpCommAggSlice"]] <-
-  #   .dat2par(prec@parameters[["mvTechInpCommAggSlice"]], mvTechInpCommAggSlice)
-  # rm(mTechInpCommAggSlice, mvTechInpCommAggSlice)
+  # prec@parameters[["mvTechInpCommAggTimeslice"]] <-
+  #   .dat2par(prec@parameters[["mvTechInpCommAggTimeslice"]], mvTechInpCommAggTimeslice)
+  # rm(mTechInpCommAggTimeslice, mvTechInpCommAggTimeslice)
 
-  # mTechAInpCommAggSlice ####
-  mTechAInpCommAggSlice <- prec@parameters$mvTechAInp@data |>
+  # mTechAInpCommAggTimeslice ####
+  mTechAInpCommAggTimeslice <- prec@parameters$mvTechAInp@data |>
     select(-(any_of(c("region", "year")))) |> unique() |>
-    left_join(prec@parameters$mCommSliceOrParent@data,
-              by = c("comm", slice = "slicep"), suffix = c("", "p")) |>
+    left_join(prec@parameters$mCommTimesliceOrParent@data,
+              by = c("comm", timeslice = "timeslicep"), suffix = c("", "p")) |>
     unique()
 
-  # mTechAInpCommSameSlice ###
-  mTechAInpCommSameSlice <- mTechAInpCommAggSlice |>
-    filter(slicep == slice) |>
-    select(-any_of(c("slicep", "slice"))) |>
+  # mTechAInpCommSameTimeslice ###
+  mTechAInpCommSameTimeslice <- mTechAInpCommAggTimeslice |>
+    filter(timeslicep == timeslice) |>
+    select(-any_of(c("timeslicep", "timeslice"))) |>
     unique()
-  prec@parameters[["mTechAInpCommSameSlice"]] <-
-    .dat2par(prec@parameters[["mTechAInpCommSameSlice"]],
-             mTechAInpCommSameSlice)
-  rm(mTechAInpCommSameSlice)
+  prec@parameters[["mTechAInpCommSameTimeslice"]] <-
+    .dat2par(prec@parameters[["mTechAInpCommSameTimeslice"]],
+             mTechAInpCommSameTimeslice)
+  rm(mTechAInpCommSameTimeslice)
 
-  mTechAInpCommAggSlice <- mTechAInpCommAggSlice |>
-    filter(slicep != slice) |>
+  mTechAInpCommAggTimeslice <- mTechAInpCommAggTimeslice |>
+    filter(timeslicep != timeslice) |>
     unique()
-  prec@parameters[["mTechAInpCommAggSlice"]] <-
-    .dat2par(prec@parameters[["mTechAInpCommAggSlice"]], mTechAInpCommAggSlice)
-  mTechAInpCommAgg <- mTechAInpCommAggSlice |>
-    select(-any_of(c("slicep", "slice"))) |>
+  prec@parameters[["mTechAInpCommAggTimeslice"]] <-
+    .dat2par(prec@parameters[["mTechAInpCommAggTimeslice"]], mTechAInpCommAggTimeslice)
+  mTechAInpCommAgg <- mTechAInpCommAggTimeslice |>
+    select(-any_of(c("timeslicep", "timeslice"))) |>
     unique()
   prec@parameters[["mTechAInpCommAgg"]] <-
     .dat2par(prec@parameters[["mTechAInpCommAgg"]], mTechAInpCommAgg)
-  rm(mTechAInpCommAggSlice, mTechAInpCommAgg)
+  rm(mTechAInpCommAggTimeslice, mTechAInpCommAgg)
 
   # mTechInpTot ####
   .interpolation_message("mTechInpTot", rest, interpolation_count,
                          interpolation_start_time, len_name)
   rest <- rest + 1
   reduce_total_map <- function(yy) {
-    yy$slicep <- yy$slice
-    yy$slice <- NULL
-    reduce.duplicate(merge0(yy, mCommSliceOrParent,
-                            by = c("comm", "slicep"))[, -2])
+    yy$timeslicep <- yy$timeslice
+    yy$timeslice <- NULL
+    reduce.duplicate(merge0(yy, mCommTimesliceOrParent,
+                            by = c("comm", "timeslicep"))[, -2])
   }
   # browser()
   mTechInpTot <- rbind(
@@ -473,65 +473,65 @@ write.sc <- write_sc
       #   )
       # )
   # browser()
-  # mTechOutCommAggSlice ####
-  mTechOutCommAggSlice <- prec@parameters$mvTechOut@data |>
+  # mTechOutCommAggTimeslice ####
+  mTechOutCommAggTimeslice <- prec@parameters$mvTechOut@data |>
     select(-(any_of(c("region", "year")))) |> unique() |>
-    left_join(prec@parameters$mCommSliceOrParent@data,
-              by = c("comm", slice = "slicep"), suffix = c("", "p"))
+    left_join(prec@parameters$mCommTimesliceOrParent@data,
+              by = c("comm", timeslice = "timeslicep"), suffix = c("", "p"))
 
-  # mTechOutCommSameSlice ###
-  mTechOutCommSameSlice <- mTechOutCommAggSlice |>
-    filter(slicep == slice) |>
-    select(-any_of(c("slicep", "slice"))) |>
+  # mTechOutCommSameTimeslice ###
+  mTechOutCommSameTimeslice <- mTechOutCommAggTimeslice |>
+    filter(timeslicep == timeslice) |>
+    select(-any_of(c("timeslicep", "timeslice"))) |>
     unique()
-  prec@parameters[["mTechOutCommSameSlice"]] <-
-    .dat2par(prec@parameters[["mTechOutCommSameSlice"]], mTechOutCommSameSlice)
-  rm(mTechOutCommSameSlice)
+  prec@parameters[["mTechOutCommSameTimeslice"]] <-
+    .dat2par(prec@parameters[["mTechOutCommSameTimeslice"]], mTechOutCommSameTimeslice)
+  rm(mTechOutCommSameTimeslice)
 
-  mTechOutCommAggSlice <- mTechOutCommAggSlice |>
-    filter(slicep != slice) |>
+  mTechOutCommAggTimeslice <- mTechOutCommAggTimeslice |>
+    filter(timeslicep != timeslice) |>
     unique()
-  prec@parameters[["mTechOutCommAggSlice"]] <-
-    .dat2par(prec@parameters[["mTechOutCommAggSlice"]], mTechOutCommAggSlice)
+  prec@parameters[["mTechOutCommAggTimeslice"]] <-
+    .dat2par(prec@parameters[["mTechOutCommAggTimeslice"]], mTechOutCommAggTimeslice)
 
-  mTechOutCommAgg <- mTechOutCommAggSlice |>
-    select(-any_of(c("slicep", "slice"))) |>
+  mTechOutCommAgg <- mTechOutCommAggTimeslice |>
+    select(-any_of(c("timeslicep", "timeslice"))) |>
     unique()
   prec@parameters[["mTechOutCommAgg"]] <-
     .dat2par(prec@parameters[["mTechOutCommAgg"]], mTechOutCommAgg)
-  rm(mTechOutCommAggSlice, mTechOutCommAgg)
+  rm(mTechOutCommAggTimeslice, mTechOutCommAgg)
 
-  # mTechAOutCommAggSlice ####
-  mTechAOutCommAggSlice <- prec@parameters$mvTechAOut@data |>
+  # mTechAOutCommAggTimeslice ####
+  mTechAOutCommAggTimeslice <- prec@parameters$mvTechAOut@data |>
     select(-(any_of(c("region", "year")))) |> unique() |>
-    left_join(prec@parameters$mCommSliceOrParent@data,
-              by = c("comm", slice = "slicep"), suffix = c("", "p"))
+    left_join(prec@parameters$mCommTimesliceOrParent@data,
+              by = c("comm", timeslice = "timeslicep"), suffix = c("", "p"))
 
-  # mTechAOutCommSameSlice ####
-  mTechAOutCommSameSlice <- mTechAOutCommAggSlice |>
-    filter(slicep == slice) |>
-    select(-any_of(c("slicep", "slice"))) |>
+  # mTechAOutCommSameTimeslice ####
+  mTechAOutCommSameTimeslice <- mTechAOutCommAggTimeslice |>
+    filter(timeslicep == timeslice) |>
+    select(-any_of(c("timeslicep", "timeslice"))) |>
     unique()
-  prec@parameters[["mTechAOutCommSameSlice"]] <-
-    .dat2par(prec@parameters[["mTechAOutCommSameSlice"]], mTechAOutCommSameSlice)
-  rm(mTechAOutCommSameSlice)
+  prec@parameters[["mTechAOutCommSameTimeslice"]] <-
+    .dat2par(prec@parameters[["mTechAOutCommSameTimeslice"]], mTechAOutCommSameTimeslice)
+  rm(mTechAOutCommSameTimeslice)
 
-  mTechAOutCommAggSlice <- mTechAOutCommAggSlice |>
-    filter(slicep != slice) |>
+  mTechAOutCommAggTimeslice <- mTechAOutCommAggTimeslice |>
+    filter(timeslicep != timeslice) |>
     unique()
-  prec@parameters[["mTechAOutCommAggSlice"]] <-
-    .dat2par(prec@parameters[["mTechAOutCommAggSlice"]],
-             mTechAOutCommAggSlice)
+  prec@parameters[["mTechAOutCommAggTimeslice"]] <-
+    .dat2par(prec@parameters[["mTechAOutCommAggTimeslice"]],
+             mTechAOutCommAggTimeslice)
 
-  mTechAOutCommAgg <- mTechAOutCommAggSlice |>
-    select(-any_of(c("slicep", "slice"))) |>
+  mTechAOutCommAgg <- mTechAOutCommAggTimeslice |>
+    select(-any_of(c("timeslicep", "timeslice"))) |>
     unique()
   # browser()
   prec@parameters[["mTechAOutCommAgg"]] <-
     .dat2par(prec@parameters[["mTechAOutCommAgg"]],
              mTechAOutCommAgg)
   rm(mTechAOutCommAgg)
-  rm(mTechAOutCommAggSlice)
+  rm(mTechAOutCommAggTimeslice)
 
   # mSupOutTot ####
   .interpolation_message("mSupOutTot", rest, interpolation_count,
@@ -560,7 +560,7 @@ write.sc <- write_sc
   tmp1 <- tmp1[!duplicated(tmp1), , drop = FALSE]
   tmp <- merge0(
     tmp1, tmp, by = "commp"
-    )[, c("tech", "comm", "commp", "region", "year", "slice")]
+    )[, c("tech", "comm", "commp", "region", "year", "timeslice")]
   # tmp <- tmp[!duplicated(tmp), , drop = FALSE]
   tmp <- tmp |>
     inner_join(prec@parameters[["mCommReg"]]@data, by = c("comm", "region")) |>
@@ -583,7 +583,7 @@ write.sc <- write_sc
       reduce_total_map(
         reduce.sect(
           .get_data_slot(prec@parameters[["mTechEmsFuel"]]),
-          c("comm", "region", "year", "slice")
+          c("comm", "region", "year", "timeslice")
           )
         )
       )
@@ -807,7 +807,7 @@ write.sc <- write_sc
     x <- .get_data_slot(prec@parameters[[y]])
     if (!is.null(prec@parameters[[y]]@misc$not_need_interpolate)) {
       nn <- rev(prec@parameters[[y]]@misc$not_need_interpolate)
-      nn[nn == "slice"] <- "mCommSlice"
+      nn[nn == "timeslice"] <- "mCommTimeslice"
       nn[nn == "year"] <- "mMidMilestone"
       for (i in nn) {
         x <- merge0(.get_data_slot(prec@parameters[[i]]), x)
@@ -855,7 +855,7 @@ write.sc <- write_sc
     reduce_total_map(
       reduce.sect(
         .get_data_slot(prec@parameters$mvTradeIrAInp),
-        c("comm", "region", "year", "slice"))
+        c("comm", "region", "year", "timeslice"))
       )
     )
   .interpolation_message("mvTradeIrAOutTot", rest, interpolation_count,
@@ -866,7 +866,7 @@ write.sc <- write_sc
     reduce_total_map(
       reduce.sect(
         .get_data_slot(prec@parameters$mvTradeIrAOut),
-        c("comm", "region", "year", "slice"))
+        c("comm", "region", "year", "timeslice"))
       )
     )
   .interpolation_message("mTradeComm", rest, interpolation_count,
@@ -874,32 +874,32 @@ write.sc <- write_sc
   rest <- rest + 1
 
   ### Export
-  mCommSliceOrParent2 <- mCommSliceOrParent
-  colnames(mCommSliceOrParent2)[3] <- "slice.1"
-  mExportIrSubSliceTrd <- merge0(
+  mCommTimesliceOrParent2 <- mCommTimesliceOrParent
+  colnames(mCommTimesliceOrParent2)[3] <- "timeslice.1"
+  mExportIrSubTimesliceTrd <- merge0(
     .get_data_slot(prec@parameters$mTradeComm),
     .get_data_slot(prec@parameters[["mTradeIr"]])
     )
-  colnames(mExportIrSubSliceTrd)[6] <- "slice.1"
-  mExportIrSubSliceTrd$dst <- NULL
-  mExportIrSubSliceTrd <- merge0(mExportIrSubSliceTrd, mCommSliceOrParent2)
-  colnames(mExportIrSubSliceTrd)[4] <- "region"
-  mExportIrSubSliceTrd <- mExportIrSubSliceTrd[!duplicated(mExportIrSubSliceTrd), ]
-  mExportIrSubSlice <- mExportIrSubSliceTrd[, -3]
-  mExportIrSubSlice <- mExportIrSubSlice[!duplicated(mExportIrSubSlice), ]
-  mExportIrSub <- mExportIrSubSlice[, -2]
+  colnames(mExportIrSubTimesliceTrd)[6] <- "timeslice.1"
+  mExportIrSubTimesliceTrd$dst <- NULL
+  mExportIrSubTimesliceTrd <- merge0(mExportIrSubTimesliceTrd, mCommTimesliceOrParent2)
+  colnames(mExportIrSubTimesliceTrd)[4] <- "region"
+  mExportIrSubTimesliceTrd <- mExportIrSubTimesliceTrd[!duplicated(mExportIrSubTimesliceTrd), ]
+  mExportIrSubTimeslice <- mExportIrSubTimesliceTrd[, -3]
+  mExportIrSubTimeslice <- mExportIrSubTimeslice[!duplicated(mExportIrSubTimeslice), ]
+  mExportIrSub <- mExportIrSubTimeslice[, -2]
   mExportIrSub <- mExportIrSub[!duplicated(mExportIrSub), ]
   mExportRowSubTmp <-
     reduce.sect(
       .get_data_slot(
         prec@parameters[["mExportRow"]]
-        )[, c("comm", "region", "year", "slice")],
-      c("comm", "region", "year", "slice")
+        )[, c("comm", "region", "year", "timeslice")],
+      c("comm", "region", "year", "timeslice")
       )
-  colnames(mExportRowSubTmp)[4] <- "slice.1"
-  mExportRowSubSlice <- merge0(mExportRowSubTmp, mCommSliceOrParent2)
-  # mExportRowSub <- mExportRowSubSlice[, colnames(mExportRowSubSlice) != "slice.1"]
-  mExportRowSub <- mExportRowSubSlice |> select(-any_of("slice.1"))
+  colnames(mExportRowSubTmp)[4] <- "timeslice.1"
+  mExportRowSubTimeslice <- merge0(mExportRowSubTmp, mCommTimesliceOrParent2)
+  # mExportRowSub <- mExportRowSubTimeslice[, colnames(mExportRowSubTimeslice) != "timeslice.1"]
+  mExportRowSub <- mExportRowSubTimeslice |> select(-any_of("timeslice.1"))
   mExportRowSub <- mExportRowSub[!duplicated(mExportRowSub), ]
   .interpolation_message("mExport", rest, interpolation_count,
                          interpolation_start_time, len_name)
@@ -909,27 +909,27 @@ write.sc <- write_sc
   prec@parameters[["mExport"]] <- .dat2par(prec@parameters[["mExport"]], mExport)
 
   ### Import
-  mImportIrSubSliceTrd <- merge0(.get_data_slot(prec@parameters$mTradeComm),
+  mImportIrSubTimesliceTrd <- merge0(.get_data_slot(prec@parameters$mTradeComm),
                                  .get_data_slot(prec@parameters[["mTradeIr"]]))
-  colnames(mImportIrSubSliceTrd)[6] <- "slice.1"
-  mImportIrSubSliceTrd$src <- NULL
-  mImportIrSubSliceTrd <- merge0(mImportIrSubSliceTrd, mCommSliceOrParent2)
-  colnames(mImportIrSubSliceTrd)[4] <- "region"
-  mImportIrSubSliceTrd <- mImportIrSubSliceTrd[!duplicated(mImportIrSubSliceTrd), ]
-  mImportIrSubSlice <- mImportIrSubSliceTrd[, -3]
-  mImportIrSubSlice <- mImportIrSubSlice[!duplicated(mImportIrSubSlice), ]
-  mImportIrSub <- mImportIrSubSlice[, -2]
+  colnames(mImportIrSubTimesliceTrd)[6] <- "timeslice.1"
+  mImportIrSubTimesliceTrd$src <- NULL
+  mImportIrSubTimesliceTrd <- merge0(mImportIrSubTimesliceTrd, mCommTimesliceOrParent2)
+  colnames(mImportIrSubTimesliceTrd)[4] <- "region"
+  mImportIrSubTimesliceTrd <- mImportIrSubTimesliceTrd[!duplicated(mImportIrSubTimesliceTrd), ]
+  mImportIrSubTimeslice <- mImportIrSubTimesliceTrd[, -3]
+  mImportIrSubTimeslice <- mImportIrSubTimeslice[!duplicated(mImportIrSubTimeslice), ]
+  mImportIrSub <- mImportIrSubTimeslice[, -2]
   mImportIrSub <- mImportIrSub[!duplicated(mImportIrSub), ]
   mImportRowSubTmp <- reduce.sect(
     .get_data_slot(
       prec@parameters[["mImportRow"]]
-      )[, c("comm", "region", "year", "slice")],
-    c("comm", "region", "year", "slice")
+      )[, c("comm", "region", "year", "timeslice")],
+    c("comm", "region", "year", "timeslice")
   )
-  colnames(mImportRowSubTmp)[4] <- "slice.1"
-  mImportRowSubSlice <- merge0(mImportRowSubTmp, mCommSliceOrParent2)
-  # mImportRowSub <- mImportRowSubSlice[, colnames(mImportRowSubSlice) != "slice.1"]
-  mImportRowSub <- mImportRowSubSlice |> select(-any_of("slice.1"))
+  colnames(mImportRowSubTmp)[4] <- "timeslice.1"
+  mImportRowSubTimeslice <- merge0(mImportRowSubTmp, mCommTimesliceOrParent2)
+  # mImportRowSub <- mImportRowSubTimeslice[, colnames(mImportRowSubTimeslice) != "timeslice.1"]
+  mImportRowSub <- mImportRowSubTimeslice |> select(-any_of("timeslice.1"))
   mImportRowSub <- mImportRowSub[!duplicated(mImportRowSub), ]
   .interpolation_message("mImport", rest, interpolation_count,
                          interpolation_start_time, len_name)
@@ -971,7 +971,7 @@ write.sc <- write_sc
                          interpolation_start_time, len_name)
   rest <- rest + 1
 
-  # mTaxCost(comm, region, year)  sum(slice$pTaxCost(comm, region, year, slice), 1)
+  # mTaxCost(comm, region, year)  sum(timeslice$pTaxCost(comm, region, year, timeslice), 1)
   prec@parameters[["mTaxCost"]] <- .dat2par(
     prec@parameters[["mTaxCost"]],
     reduce.sect.merge.unique(list(
@@ -980,7 +980,7 @@ write.sc <- write_sc
       .get_data_slot(prec@parameters$pTaxCostBal)
     ), c("comm", "region", "year"))
   )
-  # mSubCost(comm, region, year)  sum(slice$pSubCost(comm, region, year, slice), 1)
+  # mSubCost(comm, region, year)  sum(timeslice$pSubCost(comm, region, year, timeslice), 1)
   .interpolation_message("mSubCost", rest, interpolation_count,
                          interpolation_start_time, len_name)
   rest <- rest + 1
@@ -1012,7 +1012,7 @@ write.sc <- write_sc
                   ),
                 year
                 ),
-              .get_data_slot(prec@parameters$slice)
+              .get_data_slot(prec@parameters$timeslice)
               )
             )
           )
@@ -1022,13 +1022,13 @@ write.sc <- write_sc
                          interpolation_start_time, len_name)
   rest <- rest + 1
 
-  a1 <- mCommSlice
-  colnames(a1)[2] <- "slicep"
-  a2 <- .get_data_slot(prec@parameters$mSliceParentChild)
-  for2Lo <- merge0(a1, a2, by = "slicep")
-  for2Lo$slicep <- NULL
+  a1 <- mCommTimeslice
+  colnames(a1)[2] <- "timeslicep"
+  a2 <- .get_data_slot(prec@parameters$mTimesliceParentChild)
+  for2Lo <- merge0(a1, a2, by = "timeslicep")
+  for2Lo$timeslicep <- NULL
   for2Lo <- reduce.duplicate(for2Lo)
-  # cll <- c("comm", "region", "year", "slice")
+  # cll <- c("comm", "region", "year", "timeslice")
   # browser()
   mOut2Lo <-
     merge0(
@@ -1037,33 +1037,33 @@ write.sc <- write_sc
           merge0(
             .get_data_slot(prec@parameters$mSupOutTot),
             .get_data_slot(prec@parameters$year)
-          )[, c("comm", "region", "year", "slice")],
+          )[, c("comm", "region", "year", "timeslice")],
           .get_data_slot(
             prec@parameters$mEmsFuelTot
-          )[, c("comm", "region", "year", "slice")],
+          )[, c("comm", "region", "year", "timeslice")],
           .get_data_slot(
             prec@parameters$mAggOut
-          )[, c("comm", "region", "year", "slice")],
+          )[, c("comm", "region", "year", "timeslice")],
           .get_data_slot(
             prec@parameters$mTechOutTot
-          )[, c("comm", "region", "year", "slice")],
+          )[, c("comm", "region", "year", "timeslice")],
           .get_data_slot(
             prec@parameters$mStorageOutTot
-          )[, c("comm", "region", "year", "slice")],
+          )[, c("comm", "region", "year", "timeslice")],
           .get_data_slot(
             prec@parameters$mImport
-          )[, c("comm", "region", "year", "slice")],
+          )[, c("comm", "region", "year", "timeslice")],
           .get_data_slot(
             prec@parameters$mvTradeIrAOutTot
-          )[, c("comm", "region", "year", "slice")]
+          )[, c("comm", "region", "year", "timeslice")]
         )
       ),
       for2Lo,
-      by = c("comm", "slice")
-    )[, c("comm", "region", "year", "slice")]
+      by = c("comm", "timeslice")
+    )[, c("comm", "region", "year", "timeslice")]
   mOut2Lo <- mOut2Lo[!(
-    paste0(mOut2Lo$comm, "#", mOut2Lo$slice) %in%
-      paste0(mCommSlice$comm, "#", mCommSlice$slice)
+    paste0(mOut2Lo$comm, "#", mOut2Lo$timeslice) %in%
+      paste0(mCommTimeslice$comm, "#", mCommTimeslice$timeslice)
     ), ]
   prec@parameters[["mOut2Lo"]] <-
     .dat2par(prec@parameters[["mOut2Lo"]], mOut2Lo)
@@ -1073,15 +1073,15 @@ write.sc <- write_sc
   rest <- rest + 1
   mInp2Lo <- merge0(
     reduce.duplicate(rbind(
-      .get_data_slot(prec@parameters$mTechInpTot)[, c("comm", "region", "year", "slice")],
-      .get_data_slot(prec@parameters$mStorageInpTot)[, c("comm", "region", "year", "slice")],
-      .get_data_slot(prec@parameters$mExport)[, c("comm", "region", "year", "slice")],
-      .get_data_slot(prec@parameters$mvTradeIrAInpTot)[, c("comm", "region", "year", "slice")]
+      .get_data_slot(prec@parameters$mTechInpTot)[, c("comm", "region", "year", "timeslice")],
+      .get_data_slot(prec@parameters$mStorageInpTot)[, c("comm", "region", "year", "timeslice")],
+      .get_data_slot(prec@parameters$mExport)[, c("comm", "region", "year", "timeslice")],
+      .get_data_slot(prec@parameters$mvTradeIrAInpTot)[, c("comm", "region", "year", "timeslice")]
     )),
     for2Lo,
-    by = c("comm", "slice")
-  )[, c("comm", "region", "year", "slice")]
-  mInp2Lo <- mInp2Lo[!(paste0(mInp2Lo$comm, "#", mInp2Lo$slice) %in% paste0(mCommSlice$comm, "#", mCommSlice$slice)), ]
+    by = c("comm", "timeslice")
+  )[, c("comm", "region", "year", "timeslice")]
+  mInp2Lo <- mInp2Lo[!(paste0(mInp2Lo$comm, "#", mInp2Lo$timeslice) %in% paste0(mCommTimeslice$comm, "#", mCommTimeslice$timeslice)), ]
   prec@parameters[["mInp2Lo"]] <- .dat2par(prec@parameters[["mInp2Lo"]], mInp2Lo)
   # browser()
   ##
@@ -1148,19 +1148,19 @@ write.sc <- write_sc
   prec@parameters[["mvTotalCost"]] <- .dat2par(prec@parameters[["mvTotalCost"]], dregionyear)
   .interpolation_message("mvInp2Lo", rest, interpolation_count, interpolation_start_time, len_name)
   rest <- rest + 1
-  mCommSlice2 <- .get_data_slot(prec@parameters[["mCommSlice"]])
-  colnames(mCommSlice2)[2] <- "slicep"
-  mvInp2Lo <- merge0(.get_data_slot(prec@parameters[["mInp2Lo"]]), .get_data_slot(prec@parameters[["mSliceParentChild"]]))[, c("comm", "region", "year", "slice", "slicep")]
-  mvInp2Lo <- merge0(mvInp2Lo, mCommSlice2)
-  colnames(mvInp2Lo)[colnames(mvInp2Lo) == "slicep"] <- "slice.1"
-  mvInp2Lo <- mvInp2Lo[, c("comm", "region", "year", "slice", "slice.1")]
+  mCommTimeslice2 <- .get_data_slot(prec@parameters[["mCommTimeslice"]])
+  colnames(mCommTimeslice2)[2] <- "timeslicep"
+  mvInp2Lo <- merge0(.get_data_slot(prec@parameters[["mInp2Lo"]]), .get_data_slot(prec@parameters[["mTimesliceParentChild"]]))[, c("comm", "region", "year", "timeslice", "timeslicep")]
+  mvInp2Lo <- merge0(mvInp2Lo, mCommTimeslice2)
+  colnames(mvInp2Lo)[colnames(mvInp2Lo) == "timeslicep"] <- "timeslice.1"
+  mvInp2Lo <- mvInp2Lo[, c("comm", "region", "year", "timeslice", "timeslice.1")]
   prec@parameters[["mvInp2Lo"]] <- .dat2par(prec@parameters[["mvInp2Lo"]], mvInp2Lo)
 
   .interpolation_message("mInpSub", rest, interpolation_count, interpolation_start_time, len_name)
   rest <- rest + 1
   if (!is.null(mvInp2Lo)) {
     mInpSub <- mvInp2Lo[!duplicated(mvInp2Lo[, -4]), -4]
-    colnames(mInpSub)[4] <- "slice"
+    colnames(mInpSub)[4] <- "timeslice"
     prec@parameters[["mInpSub"]] <- .dat2par(prec@parameters[["mInpSub"]], mInpSub)
   }
 
@@ -1170,12 +1170,12 @@ write.sc <- write_sc
   mvOut2Lo <- merge0(
     .get_data_slot(prec@parameters[["mOut2Lo"]]),
     .get_data_slot(
-      prec@parameters[["mSliceParentChild"]]))[
-        , c("comm", "region", "year", "slice", "slicep")
+      prec@parameters[["mTimesliceParentChild"]]))[
+        , c("comm", "region", "year", "timeslice", "timeslicep")
         ]
-  mvOut2Lo <- merge0(mvOut2Lo, mCommSlice2)
-  colnames(mvOut2Lo)[colnames(mvOut2Lo) == "slicep"] <- "slice.1"
-  mvOut2Lo <- mvOut2Lo[, c("comm", "region", "year", "slice", "slice.1")]
+  mvOut2Lo <- merge0(mvOut2Lo, mCommTimeslice2)
+  colnames(mvOut2Lo)[colnames(mvOut2Lo) == "timeslicep"] <- "timeslice.1"
+  mvOut2Lo <- mvOut2Lo[, c("comm", "region", "year", "timeslice", "timeslice.1")]
 
   prec@parameters[["mvOut2Lo"]] <-
     .dat2par(prec@parameters[["mvOut2Lo"]], mvOut2Lo)
@@ -1185,7 +1185,7 @@ write.sc <- write_sc
   rest <- rest + 1
   if (!is.null(mvOut2Lo)) {
     mOutSub <- mvOut2Lo[!duplicated(mvOut2Lo[, -4]), -4]
-    colnames(mOutSub)[4] <- "slice"
+    colnames(mOutSub)[4] <- "timeslice"
     prec@parameters[["mOutSub"]] <-
       .dat2par(prec@parameters[["mOutSub"]], mOutSub)
   }
@@ -1265,7 +1265,7 @@ write.sc <- write_sc
     .get_data_slot(prec@parameters$mInpSub)
   )
   mvInpTot <- mvInpTot[!duplicated(mvInpTot), ]
-  mvInpTot <- merge0(mvInpTot, mCommSlice) |> unique()
+  mvInpTot <- merge0(mvInpTot, mCommTimeslice) |> unique()
   # if (T) { # check
   #   # mvInpTot <-
   #   dim_mvInpTot <- mvInpTot |>
@@ -1273,7 +1273,7 @@ write.sc <- write_sc
   #     unique() |> dim()
   #   if (!all(dim_mvInpTot == dim(mvInpTot))) {
   #    if (F) browser() # Debug
-  #     x <- merge0(dregionyear, mCommSlice) |>
+  #     x <- merge0(dregionyear, mCommTimeslice) |>
   #       inner_join(prec@parameters$mCommReg@data, by = c("comm", "region")) |>
   #       unique()
   #     browser()
@@ -1290,7 +1290,7 @@ write.sc <- write_sc
   # rm(mvInpTot)
 
   # mInpTotRY
-  mInpTotRY <- mvInpTot |> select(-slice) |> unique()
+  mInpTotRY <- mvInpTot |> select(-timeslice) |> unique()
   prec@parameters[["mInpTotRY"]] <-
     .dat2par(prec@parameters[["mInpTotRY"]], mInpTotRY)
 
@@ -1310,7 +1310,7 @@ write.sc <- write_sc
     .get_data_slot(prec@parameters$mOutSub)
   )
   mvOutTot <- mvOutTot[!duplicated(mvOutTot), ]
-  mvOutTot <- merge0(mvOutTot, mCommSlice) |> unique()
+  mvOutTot <- merge0(mvOutTot, mCommTimeslice) |> unique()
   # if (T) { # check
   #   # moved below with an adjustment for 'mAggregateFactor'
   #   dim_mvOutTot <- mvOutTot |>
@@ -1331,12 +1331,12 @@ write.sc <- write_sc
     unique()
   # mvBalance <- mvBalance[!duplicated(mvBalance), ]
   if (T) { # check
-    dim_mvBalance <- merge0(dregionyear, mCommSlice) |>
+    dim_mvBalance <- merge0(dregionyear, mCommTimeslice) |>
       inner_join(prec@parameters$mCommReg@data, by = c("comm", "region")) |>
       unique() |> dim()
     if (!all(dim_mvBalance == dim(mvBalance))) {
       # browser() # !!! Debug
-      x <- merge0(dregionyear, mCommSlice) |>
+      x <- merge0(dregionyear, mCommTimeslice) |>
         inner_join(prec@parameters$mCommReg@data, by = c("comm", "region")) |>
         unique()
       y <- anti_join(x, mvBalance)
@@ -1346,7 +1346,7 @@ write.sc <- write_sc
   prec@parameters[["mvBalance"]] <-
     .dat2par(prec@parameters[["mvBalance"]], mvBalance)
 
-  mBalanceRY <- mvBalance |> select(-slice) |> unique()
+  mBalanceRY <- mvBalance |> select(-timeslice) |> unique()
   prec@parameters[["mBalanceRY"]] <-
     .dat2par(prec@parameters[["mBalanceRY"]], mBalanceRY)
 
@@ -1362,7 +1362,7 @@ write.sc <- write_sc
       unique() |> dim()
     if (!all(dim_mvInpTot == dim(mvInpTot))) {
       if (F) browser() # Debug
-      x <- merge0(dregionyear, mCommSlice) |>
+      x <- merge0(dregionyear, mCommTimeslice) |>
         inner_join(prec@parameters$mCommReg@data, by = c("comm", "region")) |>
         unique()
       suppressMessages({
@@ -1414,7 +1414,7 @@ write.sc <- write_sc
   # mvOutTot |>
   #   filter(comm %in% prec@parameters[["mAggregateFactor"]]@data$comm.1) |>
   #   arrange(comm, year) |>
-  #   left_join(prec@parameters[["mCommSlice"]]@data, by = c("comm", "slice")) |>
+  #   left_join(prec@parameters[["mCommTimeslice"]]@data, by = c("comm", "timeslice")) |>
   # if (T) { # check
   #   # mvOutTot <-
   #   dim_mvOutTot <- mvOutTot |>
@@ -1424,7 +1424,7 @@ write.sc <- write_sc
   #     filter(mvOutTot, !(comm %in% prec@parameters$mAggregateFactor@data$comm))
   #     ))) browser() # Debug
   # }
-  mOutTotRY <- mvOutTot |> select(-slice) |> unique()
+  mOutTotRY <- mvOutTot |> select(-timeslice) |> unique()
   prec@parameters[["mOutTotRY"]] <-
     .dat2par(prec@parameters[["mOutTotRY"]], mOutTotRY)
   rm(mvOutTot)
@@ -1435,7 +1435,7 @@ write.sc <- write_sc
 
 
 # Sets, parameters, + to use in write_* and interpolation functions ####
-.set_al <- c("acomm", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "slice", "group", "comm", "cns", "stgp", "tradep", "exppp", "impp", "techp", "demp", "supp", "weatherp", "regionp", "yearp", "slicep", "groupp", "commp", "cnsp", "stge", "tradee", "exppe", "impe", "teche", "deme", "supe", "weathere", "regione", "yeare", "slicee", "groupe", "comme", "cnse", "stgn", "traden", "exppn", "impn", "techn", "demn", "supn", "weathern", "regionn", "yearn", "slicen", "groupn", "commn", "cnsn", "src", "dst")
+.set_al <- c("acomm", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "stgp", "tradep", "exppp", "impp", "techp", "demp", "supp", "weatherp", "regionp", "yearp", "timeslicep", "groupp", "commp", "cnsp", "stge", "tradee", "exppe", "impe", "teche", "deme", "supe", "weathere", "regione", "yeare", "timeslicee", "groupe", "comme", "cnse", "stgn", "traden", "exppn", "impn", "techn", "demn", "supn", "weathern", "regionn", "yearn", "timeslicen", "groupn", "commn", "cnsn", "src", "dst")
 .alias_set <- c("ca", "st1", "t1", "e", "i", "t", "d", "s1", "wth1", "r", "y", "s", "g", "c", "cn1", "st1p", "t1p", "ep", "ip", "tp", "dp", "s1p", "wth1p", "rp", "yp", "sp", "gp", "cp", "cn1p", "st1e", "t1e", "ee", "ie", "te", "de", "s1e", "wth1e", "re", "ye", "se", "ge", "ce", "cn1e", "st1n", "t1n", "en", "in", "tn", "dn", "s1n", "wth1n", "rn", "yn", "sn", "gn", "cn", "cn1n", "src", "dst")
 names(.alias_set) <- .set_al
 
@@ -1449,7 +1449,7 @@ names(.alias_set) <- .set_al
 }
 
 
-.fremset <- c("comm", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "slice", "group", "comm", "cns", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "slice", "group", "comm", "cns", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "slice", "group", "comm", "cns", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "slice", "group", "comm", "cns", "region", "region")
+.fremset <- c("comm", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "region", "region")
 names(.fremset) <- .set_al
 
 .removeEndSet <- function(x) {

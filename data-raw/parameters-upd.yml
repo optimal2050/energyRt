@@ -119,7 +119,7 @@ pTechVarom:
   - tech
   - region
   - year
-  - slice
+  - timeslice
   defVal: 0.0
   interpolation: back.inter.forth
   class: technology
@@ -131,7 +131,7 @@ pTechAf:
   - tech
   - region
   - year
-  - slice
+  - timeslice
   defVal:
   - 0.0
   - 1.0
@@ -147,7 +147,7 @@ pTechRampUp:
   - tech
   - region
   - year
-  - slice
+  - timeslice
   defVal: .inf
   interpolation: back.inter.forth
   class: technology
@@ -159,7 +159,7 @@ pTechRampDown:
   - tech
   - region
   - year
-  - slice
+  - timeslice
   defVal: .inf
   interpolation: back.inter.forth
   class: technology
@@ -171,7 +171,7 @@ pTechAfs:
   - tech
   - region
   - year
-  - slice
+  - timeslice
   defVal:
   - 0.0
   - .inf
@@ -188,7 +188,7 @@ pTechGinp2use:
   - group
   - region
   - year
-  - slice
+  - timeslice
   defVal: 1.0
   interpolation: back.inter.forth
   class: technology
@@ -201,7 +201,7 @@ pTechCinp2ginp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   defVal: 1.0
   interpolation: back.inter.forth
   class: technology
@@ -214,7 +214,7 @@ pTechUse2cact:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   defVal: 1.0
   interpolation: back.inter.forth
   class: technology
@@ -227,7 +227,7 @@ pTechAct2AInp:
   - acomm
   - region
   - year
-  - slice
+  - timeslice
   defVal: 0.0
   interpolation: back.inter.forth
   class: technology
@@ -240,7 +240,7 @@ pTechCap2AInp:
   - acomm
   - region
   - year
-  - slice
+  - timeslice
   defVal: 0.0
   interpolation: back.inter.forth
   class: technology
@@ -253,7 +253,7 @@ pTechAct2AOut:
   - acomm
   - region
   - year
-  - slice
+  - timeslice
   defVal: 0.0
   interpolation: back.inter.forth
   class: technology
@@ -266,7 +266,7 @@ pTechCap2AOut:
   - acomm
   - region
   - year
-  - slice
+  - timeslice
   defVal: 0.0
   interpolation: back.inter.forth
   class: technology
@@ -279,7 +279,7 @@ pTechNCap2AInp:
   - acomm
   - region
   - year
-  - slice
+  - timeslice
   defVal: 0.0
   interpolation: back.inter.forth
   class: technology
@@ -292,7 +292,7 @@ pTechNCap2AOut:
   - acomm
   - region
   - year
-  - slice
+  - timeslice
   defVal: 0.0
   interpolation: back.inter.forth
   class: technology
@@ -306,7 +306,7 @@ pTechCinp2AInp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   defVal: 0.0
   interpolation: back.inter.forth
   class: technology
@@ -320,7 +320,7 @@ pTechCout2AInp:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   defVal: 0.0
   interpolation: back.inter.forth
   class: technology
@@ -334,7 +334,7 @@ pTechCinp2AOut:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   defVal: 0.0
   interpolation: back.inter.forth
   class: technology
@@ -348,7 +348,7 @@ pTechCout2AOut:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   defVal: 0.0
   interpolation: back.inter.forth
   class: technology
@@ -361,7 +361,7 @@ pTechCact2cout:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   defVal: 1.0
   interpolation: back.inter.forth
   class: technology
@@ -374,7 +374,7 @@ pTechCinp2use:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   defVal: 1.0
   interpolation: back.inter.forth
   class: technology
@@ -387,7 +387,7 @@ pTechCvarom:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   defVal: 0.0
   interpolation: back.inter.forth
   class: technology
@@ -400,7 +400,7 @@ pTechAvarom:
   - acomm
   - region
   - year
-  - slice
+  - timeslice
   defVal: 0.0
   interpolation: back.inter.forth
   class: technology
@@ -413,7 +413,7 @@ pTechShare:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   defVal:
   - 0.0
   - 1.0
@@ -430,7 +430,7 @@ pTechAfc:
   - comm
   - region
   - year
-  - slice
+  - timeslice
   defVal:
   - 0.0
   - .inf

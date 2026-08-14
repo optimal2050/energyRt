@@ -29,7 +29,7 @@ The class and its methods are not intended for direct use; read values with
 
 \item{\code{dimSets}}{character, the variable's dimensions \strong{as the model declares
 them}, duplicates preserved (\code{vTradeIr} is
-\verb{trade, comm, region, region, year, slice}). Byte-identical to
+\verb{trade, comm, region, region, year, timeslice}). Byte-identical to
 \code{.variable_set}, which \code{newCosts()} and \code{newConstraint()} consume
 positionally against the GAMS declaration.}
 
@@ -43,7 +43,7 @@ writers disambiguate it -- \code{src}/\code{dst} for \code{vTradeIr}, \code{year
 
 \item{\code{role}}{character, what the variable is: \code{source}, \code{sink}, \code{flow},
 \code{activity}, \code{balance}, \code{stock}, \code{capacity} or \code{cost}. A \code{stock} is a level
-at a point in time and is never summed over slices.}
+at a point in time and is never summed over timeslices.}
 
 \item{\code{unit}}{character, the KIND of quantity (\code{commodity}, \code{activity},
 \code{capacity}, \code{currency}), not a unit string -- real units are per-object

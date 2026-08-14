@@ -50,7 +50,7 @@ An S4 class to represent a supply of a commodity
 }
 \item{year}{integer. Year to apply the parameter. Use NA to apply to all years.
 }
-\item{slice}{character. Time slice to apply the parameter. Use NA to apply to all slices.
+\item{timeslice}{character. Time timeslice to apply the parameter. Use NA to apply to all timeslices.
 }
 \item{ava.lo}{numeric. Lower bound of the availability factor.}
 \item{ava.up}{numeric. Upper bound of the availability factor.}

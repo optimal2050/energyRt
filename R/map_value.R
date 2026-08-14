@@ -133,7 +133,7 @@ map_mTechRetirement <- function(scen, fmp) {
 }
 
 # mTaxCost / mSubCost: (comm, region, year) domains where a tax / subsidy applies,
-# aggregated over slice from the three cost components (inp/out/bal). NA region in
+# aggregated over timeslice from the three cost components (inp/out/bal). NA region in
 # the source means "all regions" and is expanded to every model region.
 .policy_cost_map <- function(scen, name, sources, fmp) {
   p <- scen@modInp@parameters[[name]]
