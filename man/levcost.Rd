@@ -34,7 +34,9 @@ For \code{technology} objects the most useful are:
 \item{\code{repo}}{A \code{repository} or list of energyRt objects
 (supplies, commodities, weather) to supplement the mini-model.}
 \item{\code{fuel_costs}}{Named numeric vector \code{[commodity -> cost]}
-for input commodities not found in \code{repo}.}
+for input commodities not found in \code{repo}. Auxiliary
+commodities consumed by the process (aux inputs) can be priced the
+same way; unnamed ones are supplied at zero cost.}
 \item{\code{autocomplete}}{Logical, default \code{FALSE}
 (\code{repository}/\code{model} methods). When \code{TRUE}, input
 commodities without a supply in the container are auto-supplied
@@ -46,7 +48,7 @@ commodities without a supply in the container are auto-supplied
 \code{NULL} (derives from \code{@olife}).}
 \item{\code{calendar}}{A \code{calendar} object or \code{NULL}.}
 \item{\code{timeframe}}{\code{"ANNUAL"} (default) or \code{"native"}.
-\code{"ANNUAL"} prices the technology on a single annual time-slice: any
+\code{"ANNUAL"} prices the technology on a single annual time-timeslice: any
 weather profile is collapsed to an annual capacity factor (applied as the
 technology's annual availability), so capacity is sized to serve unit
 annual demand at that factor (textbook LCOE). \code{"native"} keeps the
@@ -55,7 +57,7 @@ useful when the technology is analysed together with storage or
 transmission, where sub-annual dispatch matters.}
 \item{\code{backstop}}{Logical, default \code{TRUE}. Enables a very
 expensive dummy-import slack on the output commodity balance so the
-mini-model always solves even when the technology cannot serve a slice on
+mini-model always solves even when the technology cannot serve a timeslice on
 its own; the slack cost is excluded from the LCOE.}
 \item{\code{region}}{Character or \code{NULL}.}
 \item{\code{weather}}{A \code{weather} object, list of weather objects,
@@ -69,6 +71,23 @@ meaningful, so only the base solve runs).  Set \code{FALSE} to skip the
 extra solves.}
 \item{\code{solver}}{Solver spec list, default
 \code{solver_options$glpk}.}
+\item{\code{method}}{\code{"auto"} (default), \code{"analytic"}, or
+\code{"solve"}. The unit-demand annual mini-model has a closed-form
+optimum for most technologies; \code{"auto"} computes it analytically
+(no solver needed) whenever the technology qualifies and falls back
+to the solver otherwise, with a message naming the reason.
+\code{"analytic"} refuses non-qualifying technologies instead of
+falling back; \code{"solve"} always builds and solves the mini-model.
+The analytic result carries the same fields (plus
+\code{$method = "analytic"} and \code{$frontier_vertices}, which
+reports EVERY corner of the input/output share polytopes with its
+per-activity NPV cost breakdown and an \code{optimal} flag);
+\code{$scenario} is \code{NULL} on this path. Not analytically
+representable (solver required): technology chains,
+\code{timeframe = "native"}, \code{afc.*} bounds, availability lower
+bounds, \code{optimizeRetirement}, year-varying \code{invcost},
+reserve- or availability-constrained supplies, and group
+substitution combined with year-varying prices or efficiencies.}
 \item{\code{run}}{\code{"single"} (default) or \code{"sequential"} --
 only meaningful for a technology declaring vintages or clusters.
 \code{"single"} prices every variant in one model (each in its own

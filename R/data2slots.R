@@ -1,3 +1,28 @@
+# slice -> timeslice compatibility (v0.80 rename) -----------------------------
+# Accept the pre-rename `slice` column/element name in user-supplied data and
+# rename it, warning once per session. Kept package-wide so every entry point
+# (.data2slots, newCalendar timetables, constraint for.each lists, fold dims)
+# shares the single warning.
+.slice_compat_env <- new.env(parent = emptyenv())
+
+#' @noRd
+.rename_slice_compat <- function(nms, where) {
+  i <- !is.na(nms) & nms == "slice"
+  if (any(i)) {
+    if (!isTRUE(.slice_compat_env$warned)) {
+      warning(
+        "`slice` was renamed to `timeslice` in energyRt v0.80; the supplied ",
+        "`slice` name (", where, ") is accepted and renamed. ",
+        "Please update your data. This warning is shown once per session.",
+        call. = FALSE
+      )
+      .slice_compat_env$warned <- TRUE
+    }
+    nms[i] <- "timeslice"
+  }
+  nms
+}
+
 #' An internal function to add data to slots of a new S4-class object or update a given one.
 #'
 #' @description
@@ -82,6 +107,10 @@
         # slots in data.frame format
         if (is.data.frame(dat)) {
           # data in the same (data.frame) format
+          if ("timeslice" %in% colnames(slot(obj, s))) {
+            colnames(dat) <- .rename_slice_compat(colnames(dat),
+                                                  paste0(x, "@", s))
+          }
           if (any(!(colnames(dat) %in% colnames(slot(obj, s))))) {
             # !!! ToDo: take columns from "new()" or from the class
             # Check column names
@@ -156,6 +185,10 @@
             stop("Duplicated names/parameters in the list ", x, "@", s)
           }
           # Check for unknown columns
+          if ("timeslice" %in% colnames(slot(obj, s))) {
+            names(dat) <- .rename_slice_compat(names(dat),
+                                               paste0(x, "@", s))
+          }
           ii <- names(dat) %in% colnames(slot(obj, s))
           if (any(!ii)) {
             stop(

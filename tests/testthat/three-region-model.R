@@ -9,7 +9,7 @@ reg_names <- paste0("R", 1:2)
 reg_names
 nreg <- length(reg_names)
 
-# time slices, timetable, calendar
+# time timeslices, timetable, calendar
 # timetable_m12_h24 <- energyRt::make_timetable(
 #   list(
 #     ANNUAL = "ANNUAL",
@@ -53,7 +53,7 @@ EMIS <- newCommodity("EMIS", timeframe = "HOUR")
 SUP_INP <- newSupply(
   name = "SUP_INP",
   commodity = "INP",
-  availability = data.frame(
+  supply = data.frame(
     region = reg_names,
     # cost = c(1, 2, 3)
     cost = 1
@@ -66,12 +66,12 @@ draw(SUP_INP)
 DEM_OUT <- newDemand(
   name = "DEM_OUT",
   commodity = "OUT",
-  dem = mutate(
+  demand = mutate(
     expand_grid(
     region = reg_names,
-    slice = mod_calendar@timeframes$HOUR
+    timeslice = mod_calendar@timeframes$HOUR
   ),
-  dem = 1
+  demand = 1
   )
 )
 draw(DEM_OUT)
@@ -101,11 +101,11 @@ draw(TECH2)
 # Weather factors
 wea_tbl <- expand_grid(
   region = reg_names,
-  slice = mod_calendar@timeframes$HOUR
+  timeslice = mod_calendar@timeframes$HOUR
 ) |>
   mutate(
     wval = if_else(
-      as.integer(str_extract(slice, "[0-9]+")) ==
+      as.integer(str_extract(timeslice, "[0-9]+")) ==
         as.integer(str_extract(region, "[0-9]+")),
       1, 0)
     # wea = rep(
@@ -178,6 +178,9 @@ mod <- newModel(
 getHorizon(mod)
 
 # Solve
+# Saved and restored at the end of the file so the default solver does not leak
+# into the rest of the session.
+.saved_default_solver <- get_default_solver()
 set_default_solver(solver_options$gams_gdx_cplex)
 scen_by_1 <- solve(mod, tmp.del = FALSE)
 
@@ -235,4 +238,6 @@ getData(sns, "vTradeCap", merge = TRUE)
 getData(sns, "vTradeIr", merge = TRUE) |>
   pivot_wider(names_from = scenario) |>
   as.data.table()
+
+set_default_solver(.saved_default_solver)
 

@@ -27,7 +27,7 @@ test_that("a user constraint compiles to IR and translates to all backends", {
   mod <- add(mod, cns)
 
   scen <- suppressWarnings(suppressMessages(
-    interp_mod(mod, name = "uc", ondisk = FALSE)
+    interpolate_model(mod, name = "uc", ondisk = FALSE)
   ))
 
   # IR present and well-formed
@@ -73,7 +73,7 @@ test_that("a constraint with only `defVal` (no rhs data.frame) uses it as a cons
   mod <- add(mod, cns)
 
   scen <- suppressWarnings(suppressMessages(
-    interp_mod(mod, name = "dv", ondisk = FALSE)
+    interpolate_model(mod, name = "dv", ondisk = FALSE)
   ))
   eq <- scen@modInp@gams.equation[["MAXINV2"]]$equation
   expect_match(eq, "=l= 500", fixed = TRUE) # defVal becomes the literal RHS
@@ -81,7 +81,7 @@ test_that("a constraint with only `defVal` (no rhs data.frame) uses it as a cons
   expect_false("pCnsRhsMAXINV2" %in% names(scen@modInp@parameters))
 })
 
-test_that("a summand `timeframe` restricts the variable to that slice level (retires *RY)", {
+test_that("a summand `timeframe` restricts the variable to that timeslice level (retires *RY)", {
   skip_if_no_fixtures()
   env <- .mapping_fixture_env()
 
@@ -95,20 +95,20 @@ test_that("a summand `timeframe` restricts the variable to that slice level (ret
       defVal = 1e6
     )
     mod <- add(mod, cns)
-    suppressWarnings(suppressMessages(interp_mod(mod, name = "tf", ondisk = FALSE)))
+    suppressWarnings(suppressMessages(interpolate_model(mod, name = "tf", ondisk = FALSE)))
   }
-  slice_map_values <- function(scen) {
+  timeslice_map_values <- function(scen) {
     m <- grep("^mCnsTFLIM_", names(scen@modInp@parameters), value = TRUE)
     expect_length(m, 1)
     sort(unique(unlist(get_data_slot(scen@modInp@parameters[[m]]))))
   }
   seasons <- sort(env$tm_core()@config@calendar@timeframes$SEASON)
 
-  # ANNUAL -> the variable is taken only at the single ANNUAL slice
-  expect_identical(slice_map_values(build("ANNUAL")), "ANNUAL")
+  # ANNUAL -> the variable is taken only at the single ANNUAL timeslice
+  expect_identical(timeslice_map_values(build("ANNUAL")), "ANNUAL")
 
-  # SEASON -> only the season slices (no ANNUAL => no cross-level double count)
-  vs <- slice_map_values(build("SEASON"))
+  # SEASON -> only the season timeslices (no ANNUAL => no cross-level double count)
+  vs <- timeslice_map_values(build("SEASON"))
   expect_false("ANNUAL" %in% vs)
   expect_identical(vs, seasons)
 
@@ -121,7 +121,7 @@ test_that("a summand `timeframe` restricts the variable to that slice level (ret
   )
   modx <- add(modx, cx)
   expect_error(
-    suppressWarnings(suppressMessages(interp_mod(modx, name = "b", ondisk = FALSE))),
+    suppressWarnings(suppressMessages(interpolate_model(modx, name = "b", ondisk = FALSE))),
     "unknown timeframe"
   )
 })

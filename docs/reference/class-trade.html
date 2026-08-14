@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.75.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.80.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -111,8 +111,8 @@ Create separate trade objects to optimize different parts of the trade network
 <dt>year</dt>
 <dd><p>integer. Year to apply the parameter, NA for every year.</p></dd>
 
-<dt>slice</dt>
-<dd><p>character. Time slice to apply the parameter, NA for every slice.</p></dd>
+<dt>timeslice</dt>
+<dd><p>character. Time timeslice to apply the parameter, NA for every timeslice.</p></dd>
 
 <dt>trade</dt>
 <dd><p>numeric. Trade volume.</p></dd>
@@ -145,8 +145,8 @@ Create separate trade objects to optimize different parts of the trade network
 <dt>year</dt>
 <dd><p>integer. Year to apply the parameter, NA for every year.</p></dd>
 
-<dt>slice</dt>
-<dd><p>character. Time slice to apply the parameter, NA for every slice.</p></dd>
+<dt>timeslice</dt>
+<dd><p>character. Time timeslice to apply the parameter, NA for every timeslice.</p></dd>
 
 <dt>trade2ainp</dt>
 <dd><p>numeric. Trade-to-auxiliary-input-commodity coefficient (multiplier).</p></dd>
@@ -210,10 +210,10 @@ Create separate trade objects to optimize different parts of the trade network
 <dd><p>character. Unused for trade (no cluster dimension); present for consistency with the other classes.</p></dd>
 
 <dt>start</dt>
-<dd><p>integer. The first year the trade object is available for investment. Defaults to the vintage year.</p></dd>
+<dd><p>integer. The first year the trade object is available for investment. NA means unbounded (up to <code>end</code>).</p></dd>
 
 <dt>end</dt>
-<dd><p>integer. The last year the trade object is available for investment. Defaults to the vintage year.</p></dd>
+<dd><p>integer. The last year the trade object is available for investment. NA means unbounded (from <code>start</code> on).</p></dd>
 
 <dt>olife</dt>
 <dd><p>integer. Operational life of the trade object in years.</p></dd>

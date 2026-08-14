@@ -38,7 +38,7 @@ case to distinguish names would solve on one backend and break (or
 silently merge names) on another.
 
 - **Set elements are UPPER-CASE.** Every name that appears as a set
-  element – regions, commodities, technologies, groups, slices you
+  element – regions, commodities, technologies, groups, timeslices you
   define – is written in capitals (`R1`, `COA`, `ECOA`, `FUEL`). This is
   the rule that guarantees identical behaviour across backends.
 
@@ -89,7 +89,7 @@ This vignette builds a **three-region** model on the first three regions
 ## Time resolution and inputs
 
 We pick a ready calendar – `utopia_s4h24`, four seasons x 24 hours (96
-slices); calendar construction is covered in the [time-resolution
+timeslices); calendar construction is covered in the [time-resolution
 article](https://energyrt.org/articles/time-resolution.html).
 
 ``` r
@@ -267,10 +267,10 @@ IMP_GAS <- update(IMP_COA,
 #   desc = "Electricity export to the rest of the world",
 #   commodity = "ELC",
 #   unit = "PJ",
-#   export = merge(                            # ~10 PJ/yr per region, paced by slice
+#   export = merge(                            # ~10 PJ/yr per region, paced by timeslice
 #     data.frame(region = regions, price = 5.0),
-#     data.frame(slice  = as.data.frame(cal@slice_share)$slice,
-#                exp.up = 10 * as.data.frame(cal@slice_share)$share)
+#     data.frame(timeslice  = as.data.frame(cal@timeslice_share)$timeslice,
+#                exp.up = 10 * as.data.frame(cal@timeslice_share)$share)
 #   ),
 #   reserve = 300                           # plus a cumulative cap, PJ
 # )
@@ -279,14 +279,14 @@ IMP_GAS <- update(IMP_COA,
 The export price sits *below* every technology’s levelized cost, so the
 model never builds capacity just to export – it only sells genuine
 surplus. Two caps work together: `exp.up` **paces** exports (the annual
-10 PJ is spread over the slices via their year-shares – a bare
-`exp.up = 10` would be read as 10 *per slice*), and `reserve` bounds the
-horizon total. Without the pacing, the model front-loads the whole
+10 PJ is spread over the timeslices via their year-shares – a bare
+`exp.up = 10` would be read as 10 *per timeslice*), and `reserve` bounds
+the horizon total. Without the pacing, the model front-loads the whole
 reserve into the base year, where the sunk fleet makes surplus cheapest.
 
 ## Weather
 
-`newWeather` objects hold a capacity factor per region and slice for
+`newWeather` objects hold a capacity factor per region and timeslice for
 solar, wind and hydro – the physical limits on the renewable
 technologies below. Solar in full, the siblings via a helper:
 
@@ -297,7 +297,7 @@ WSOL <- newWeather(
   desc = "Solar capacity factor",
   timeframe = "HOUR",
   weather = prof$weather[prof$weather$resource == "WSOL",
-                         c("region", "slice", "wval")]
+                         c("region", "timeslice", "wval")]
 )
 
 # or write a function to speedup the process
@@ -308,7 +308,7 @@ make_weather <- function(res) {
     weather = 
       prof$weather |>
         filter(resource == res) |> 
-        select(region, slice, wval)
+        select(region, timeslice, wval)
   )
 }
     
@@ -319,7 +319,8 @@ WHYD <- make_weather("WHYD")
 [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
 shows the profile structure at a glance – the solar day/season shape.
 Custom season names (`WIN`, `SPR`, …) are defined by the calendar, so
-pass it to resolve the slice layout. Note the **regional endowments**
+pass it to resolve the timeslice layout. Note the **regional
+endowments**
 ([`utopia_profiles()`](https://energyRt.org/reference/utopia_profiles.md)
 scales the profiles deterministically): `R1` is the sunniest region,
 `R2` the windiest – one more reason for the regions to trade:
@@ -344,7 +345,7 @@ Weather is data, not an assumption.)
 ## Demand
 
 Electricity demand follows the deterministic load shape, weighted by
-each slice’s share of the year and grown over the milestone years.
+each timeslice’s share of the year and grown over the milestone years.
 
 ``` r
 
@@ -352,13 +353,13 @@ years  <- c(2020, 2030, 2040, 2050)
 growth <- c(1, 1.2, 1.4, 1.6)
 annual_demand <- 100                                   # base-year PJ per region
 
-share <- as.data.frame(cal@slice_share)[, c("slice", "share")]
-d0 <- merge(prof$demand, share, by = "slice")
+share <- as.data.frame(cal@timeslice_share)[, c("timeslice", "share")]
+d0 <- merge(prof$demand, share, by = "timeslice")
 d0$w <- d0$load * d0$share
 dem_rows <- do.call(rbind, lapply(seq_along(years), function(i) {
   do.call(rbind, lapply(regions, function(r) {
     dr <- d0[d0$region == r, ]
-    data.frame(region = r, year = years[i], slice = dr$slice,
+    data.frame(region = r, year = years[i], timeslice = dr$timeslice,
                demand = annual_demand * growth[i] * dr$w / sum(dr$w))
   }))
 }))
@@ -383,8 +384,8 @@ autoplot(DEM_ELC, years = 2020:2050)
 
 ``` r
 
-autoplot(DEM_ELC, style = "line", years = c(2020, 2050))
-autoplot(DEM_ELC, style = "heatmap", years = c(2020, 2050))
+# autoplot(DEM_ELC, style = "line", years = c(2020, 2050))
+# autoplot(DEM_ELC, style = "heatmap", years = c(2020, 2050))
 ```
 
 ## Technologies
@@ -429,7 +430,7 @@ ECOA <- newTechnology(
     cinp2use = 0.40                       # 40% efficiency
   ),
   afs = data.frame(
-    slice = "ANNUAL",
+    timeslice = "ANNUAL",
     afs.up = 0.8,
     afs.lo = 0.4
   ),
@@ -478,7 +479,7 @@ EGAS <- newTechnology(
     cinp2use = 0.58
   ),
   afs = data.frame(
-    slice = "ANNUAL",
+    timeslice = "ANNUAL",
     afs.up = 0.9,
     afs.lo = 0.4
   ),
@@ -528,7 +529,7 @@ ENUC <- newTechnology(
     af.lo = 0.8                           # must-run baseload
   ),
    afs = data.frame(
-    slice = "ANNUAL",
+    timeslice = "ANNUAL",
     afs.up = 0.95,
     afs.lo = 0.8
   ), 
@@ -668,7 +669,7 @@ EBIO <- newTechnology(
   ceff = data.frame(
     comm = c("COA", "BIO"),
     cinp2ginp = c(.4, 0.35),     # 40% and 35% efficiency
-    share.lo = c(0.2, 0.2)
+    share.lo = c(1, 0.2)
   ),
   cap2act = 31.536,
   invcost = list(
@@ -719,7 +720,7 @@ to how grouped technologies enforce their input-output balance.
 
 ## Storage
 
-A 4-hour battery (`STG_*`) shifts electricity between slices:
+A 4-hour battery (`STG_*`) shifts electricity between timeslices:
 
 ``` r
 
@@ -904,6 +905,7 @@ repo <- newRepository("utopia",
   TBD_ELC_R1_R2, TBD_ELC_R2_R3,                         # interregional trade
   DEM_ELC)                                              # demand
 length(repo); names(repo)
+summary(repo)
 ```
 
 ``` r

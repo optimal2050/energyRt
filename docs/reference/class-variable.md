@@ -33,7 +33,7 @@ with [`getData()`](https://energyRt.org/reference/getData.md).
 
   character, the variable's dimensions **as the model declares them**,
   duplicates preserved (`vTradeIr` is
-  `trade, comm, region, region, year, slice`). Byte-identical to
+  `trade, comm, region, region, year, timeslice`). Byte-identical to
   `.variable_set`, which
   [`newCosts()`](https://energyRt.org/reference/newCosts.md) and
   [`newConstraint()`](https://energyRt.org/reference/newConstraint.md)
@@ -55,7 +55,7 @@ with [`getData()`](https://energyRt.org/reference/getData.md).
 
   character, what the variable is: `source`, `sink`, `flow`, `activity`,
   `balance`, `stock`, `capacity` or `cost`. A `stock` is a level at a
-  point in time and is never summed over slices.
+  point in time and is never summed over timeslices.
 
 - `unit`:
 

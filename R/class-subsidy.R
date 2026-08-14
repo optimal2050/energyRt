@@ -40,7 +40,7 @@ setClass("subsidy",
     subsidy = data.frame(
       region = character(),
       year = integer(),
-      slice = character(),
+      timeslice = character(),
       inp = numeric(),
       out = numeric(),
       bal = numeric(),

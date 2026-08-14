@@ -315,7 +315,7 @@ findDuplicates <- function(x) {
         } else if (is(x, "costs")) {
           tmp <- check_by_slots(x, c('for.sum', 'for.each', 'mult'))
           return(tmp)
-        } else if (inherits(x, c('slice', 'commodity'))) {
+        } else if (inherits(x, c('timeslice', 'commodity'))) {
         } else if (is(x, 'config')) {
           return(check_by_slots(x, c('debug', 'discount')))
         } else warning(paste0('Unknown class "', class(x), '"'))
@@ -522,7 +522,7 @@ fEAC <- function(invcost, discount, olife) {
 #' @export
 #'
 #' @examples
-#' is_any(c("ANY", "ANYREGION", "ANYSLICE", "ANYYEAR", "A", "B"))
+#' is_any(c("ANY", "ANYREGION", "ANYTIMESLICE", "ANYYEAR", "A", "B"))
 is_any <- function(x, na = TRUE, any_mask = "^ANY_?[A-Z]*$") {
   # x - vector
   # na - logical, if TRUE, NA values are included

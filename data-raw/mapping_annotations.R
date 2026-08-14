@@ -24,23 +24,23 @@
     "mDemComm", "mSupComm", "mExpComm", "mImpComm", "mTradeComm", "mStorageComm",
     "mTechInpComm", "mTechOutComm", "mTechAInp", "mTechAOut", "mTechOneComm",
     "mTechGroupComm", "mTechInpGroup", "mTechOutGroup",
-    "mTechInpCommSameSlice", "mTechOutCommSameSlice",
-    "mTechAInpCommSameSlice", "mTechAOutCommSameSlice",
+    "mTechInpCommSameTimeslice", "mTechOutCommSameTimeslice",
+    "mTechAInpCommSameTimeslice", "mTechAOutCommSameTimeslice",
     "mTechInpCommAgg", "mTechOutCommAgg", "mTechAInpCommAgg", "mTechAOutCommAgg",
-    "mTechInpCommAggSlice", "mTechOutCommAggSlice",
-    "mTechAInpCommAggSlice", "mTechAOutCommAggSlice",
+    "mTechInpCommAggTimeslice", "mTechOutCommAggTimeslice",
+    "mTechAInpCommAggTimeslice", "mTechAOutCommAggTimeslice",
     "mTechEmsFuel",
     "mStorageAInp", "mStorageAOut", "mWeatherRegion"
   ),
   calendar = c(
-    "mSliceNext", "mSliceFYearNext", "mSameRegion", "mSameSlice",
+    "mTimesliceNext", "mTimesliceFYearNext", "mSameRegion", "mSameTimeslice",
     "mMilestoneFirst", "mMilestoneLast", "mMilestoneNext", "mMilestoneHasNext",
-    "mMidMilestone", "mCommSlice", "mCommSliceOrParent",
-    "mSliceParentChild", "mSliceParentChildE", "mSliceFamily",
+    "mMidMilestone", "mCommTimeslice", "mCommTimesliceOrParent",
+    "mTimesliceParentChild", "mTimesliceParentChildE", "mTimesliceFamily",
     "mRegionFamily", "mCommRegion",
     "mStorageFullYear", "mTechFullYear",
-    "mTechSlice", "mSupSlice", "mExpSlice", "mImpSlice", "mTradeSlice",
-    "mWeatherSlice"
+    "mTechTimeslice", "mSupTimeslice", "mExpTimeslice", "mImpTimeslice", "mTradeTimeslice",
+    "mWeatherTimeslice"
   ),
   closure = c(
     "mCommReg"

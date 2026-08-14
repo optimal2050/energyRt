@@ -2,7 +2,7 @@
 
 `autoplot()` on a solved `scenario` draws the mixes extracted by
 [`getMix()`](https://energyRt.org/reference/getMix.md): annual stacked
-bars by milestone year, or – when `slice` selects a sample (e.g. one
+bars by milestone year, or – when `timeslice` selects a sample (e.g. one
 representative day) – an hourly dispatch profile. Storage charging and
 exports plot below zero; demand is overlaid as a line.
 
@@ -16,7 +16,7 @@ autoplot(
   comm = "ELC",
   region = NULL,
   year = NULL,
-  slice = NULL,
+  timeslice = NULL,
   drop_small = 0,
   by = NULL,
   fill = NULL,
@@ -36,10 +36,10 @@ autoplot(
   `"generation"` (default), `"capacity"`, `"new_capacity"`, `"fuel"`, or
   `"storage"` (the storage-in/out flows only).
 
-- comm, region, year, slice, drop_small:
+- comm, region, year, timeslice, drop_small:
 
   passed to [`getMix()`](https://energyRt.org/reference/getMix.md). For
-  a dispatch profile (`slice` given) with `year = NULL`, the last
+  a dispatch profile (`timeslice` given) with `year = NULL`, the last
   milestone year is used.
 
 - by:
@@ -73,7 +73,7 @@ A `ggplot` object.
 ``` r
 if (FALSE) { # \dontrun{
 autoplot(scen)                                    # annual generation mix
-autoplot(scen, "generation", slice = "^SUM_")     # summer-day dispatch
+autoplot(scen, "generation", timeslice = "^SUM_")     # summer-day dispatch
 autoplot(scen, "capacity")
 autoplot(scen, "capacity", fill = "cluster")      # capacity by cluster
 autoplot(scen, "capacity", fill = "vintage", facet = "process")

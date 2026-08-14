@@ -87,10 +87,10 @@ supply object with given specifications.
   :   integer. Year to apply the parameter. Use NA to apply to all
       years.
 
-  slice
+  timeslice
 
-  :   character. Time slice to apply the parameter. Use NA to apply to
-      all slices.
+  :   character. Time timeslice to apply the parameter. Use NA to apply
+      to all timeslices.
 
   ava.lo
 

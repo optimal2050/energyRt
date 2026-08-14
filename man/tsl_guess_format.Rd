@@ -2,18 +2,18 @@
 % Please edit documentation in R/timeslices.R
 \name{tsl_guess_format}
 \alias{tsl_guess_format}
-\title{Guess format of time-slices}
+\title{Guess format of time-timeslices}
 \usage{
 tsl_guess_format(tsl)
 }
 \arguments{
-\item{tsl}{character vector of time-slice names.}
+\item{tsl}{character vector of time-timeslice names.}
 }
 \value{
-Character vector with the guessed format of the time-slices
+Character vector with the guessed format of the time-timeslices
 }
 \description{
-Guess format of time-slices
+Guess format of time-timeslices
 }
 \examples{
 tsl <- c("y2007_d365_h15", NA, "d151_h22", "d001", "m10_h12")

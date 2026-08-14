@@ -1,15 +1,15 @@
 # An S4 class to represent sub-annual time resolution structure.
 
 Sub-annual time resolution is represented by nested, named time-frames
-and time-slices.
+and time-timeslices.
 
 ## Slots
 
 - `name`:
 
   character. Name of the calendar object. Use to distingush between
-  different structures and subsets of time-slices. The name is used to
-  propose default folder names for the model/scenario scripts to
+  different structures and subsets of time-timeslices. The name is used
+  to propose default folder names for the model/scenario scripts to
   separate solutions of the same scenario with different calendar
   objects.
 
@@ -22,10 +22,10 @@ and time-slices.
   list. Named list of nested sub-annual levels with vectors of
   individual elements. The top level of the list is the highest level of
   the calendar, e.g., "ANNUAL". The lowest level is the smallest
-  time-slice, e.g., "MONTH". "ANNUAL" is the default (hardwired) top
+  time-timeslice, e.g., "MONTH". "ANNUAL" is the default (hardwired) top
   level of the calendar. All other levels are optional, and create
-  nested sub-annual levels of time-slices. The minimum number of
-  time-slices in a timeframe is two (except for the top level).
+  nested sub-annual levels of time-timeslices. The minimum number of
+  time-timeslices in a timeframe is two (except for the top level).
 
 - `year_fraction`:
 
@@ -37,28 +37,29 @@ and time-slices.
 - `timetable`:
 
   data.frame. Data frame with levels of timeframes in the named columns,
-  and number of rows equal to the total number of time-slices on the
-  lowest level. Every timeframe is a set of time-slices ("slices") - a
-  named fragment of time with a year-share. Timeframes have nested
-  structure where every slice serves as a parent for the lower level of
-  time-slices (children). The first column is the name of the
-  time-slice, the rest of the columns are the names of the timeframes.
-  The values are the share of the year covered by the time-slice. The
-  sum of the shares in every timeframe should be equal to 1. `weight` is
-  an optional column with the weight of the time-slice in the year, used
-  for sumpled/subset selection of the time-slices.
+  and number of rows equal to the total number of time-timeslices on the
+  lowest level. Every timeframe is a set of time-timeslices
+  ("timeslices") - a named fragment of time with a year-share.
+  Timeframes have nested structure where every timeslice serves as a
+  parent for the lower level of time-timeslices (children). The first
+  column is the name of the time-timeslice, the rest of the columns are
+  the names of the timeframes. The values are the share of the year
+  covered by the time-timeslice. The sum of the shares in every
+  timeframe should be equal to 1. `weight` is an optional column with
+  the weight of the time-timeslice in the year, used for sumpled/subset
+  selection of the time-timeslices.
 
-- `slice_share`:
+- `timeslice_share`:
 
   data.frame. Auto-calculated from the `timetable` two column data.frame
-  with slices from all levels with their individual share in a year. The
-  first column is the name of the time-slice, the second column is the
-  share of the year covered by the time-slice.
+  with timeslices from all levels with their individual share in a year.
+  The first column is the name of the time-timeslice, the second column
+  is the share of the year covered by the time-timeslice.
 
 - `default_timeframe`:
 
-  character. The name of the default level of the time-slices used in
-  the model. If not specified, the lowest level of the timeframes is
+  character. The name of the default level of the time-timeslices used
+  in the model. If not specified, the lowest level of the timeframes is
   used as the default timeframe.
 
 - `timeframe_rank`:
@@ -67,40 +68,40 @@ and time-slices.
   named character vector with ranks of the timeframes. The rank is used
   to determine the order of the timeframes in the calendar.
 
-- `slices_in_frame`:
+- `timeslices_in_frame`:
 
-  integer. Auto-calculated from the `timetable` Number of time-slices in
-  every timeframe.
+  integer. Auto-calculated from the `timetable` Number of
+  time-timeslices in every timeframe.
 
-- `slice_family`:
-
-  data.frame. Auto-calculated from the `timetable` data.frame mapping
-  "parent" to "child" slices in two nearest timeframes in the nested
-  hierarchy. The first column is the name of the parent time-slice, the
-  second column is the name of the child time-slice.
-
-- `slice_ancestry`:
+- `timeslice_family`:
 
   data.frame. Auto-calculated from the `timetable` data.frame mapping
-  "child", "grandchild", etc. slices to the "parent" and "grandparent"
-  time-slices in the full hierarchy. The first column is the name of the
-  (grand-) child time-slice, the second column is the name of the
-  (grand-) parent time-slice.
+  "parent" to "child" timeslices in two nearest timeframes in the nested
+  hierarchy. The first column is the name of the parent time-timeslice,
+  the second column is the name of the child time-timeslice.
+
+- `timeslice_ancestry`:
+
+  data.frame. Auto-calculated from the `timetable` data.frame mapping
+  "child", "grandchild", etc. timeslices to the "parent" and
+  "grandparent" time-timeslices in the full hierarchy. The first column
+  is the name of the (grand-) child time-timeslice, the second column is
+  the name of the (grand-) parent time-timeslice.
 
 - `next_in_timeframe`:
 
   data.frame. Auto-calculated from the `timetable` data.frame mapping
-  chronological sequence between time-slices in the same timeframe. The
-  first column is the name of the time-slice, the second column is the
-  name of the next time-slice in the same timeframe.
+  chronological sequence between time-timeslices in the same timeframe.
+  The first column is the name of the time-timeslice, the second column
+  is the name of the next time-timeslice in the same timeframe.
 
 - `next_in_year`:
 
   data.frame. Auto-calculated from the `timetable` data.frame mapping
-  chronological sequence between time-slices in the same timeframe
+  chronological sequence between time-timeslices in the same timeframe
   through the whole year. The first column is the name of the
-  time-slice, the second column is the name of the next time-slice in
-  the same timeframe.
+  time-timeslice, the second column is the name of the next
+  time-timeslice in the same timeframe.
 
 - `misc`:
 

@@ -29,7 +29,7 @@ Runs a set of post-interpolation consistency checks over the numeric / bounds
 \itemize{
 \item \strong{NA index columns}: no NA in a parameter's \code{dimSets} id
 columns. When \code{fold = TRUE}, NA is permitted only in the trimmable
-dimensions (region / slice / vintage, which fold encodes as wildcards);
+dimensions (region / timeslice / vintage, which fold encodes as wildcards);
 when \code{fold = FALSE}, no NA is permitted in any id column.
 \item \strong{Schema}: data columns match the declared \code{dimSets}
 (plus \code{value}, and \code{type} for bounds).

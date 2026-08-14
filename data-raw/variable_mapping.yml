@@ -5,64 +5,64 @@ vTechRetiredStock: vTechRetiredStock( tech , region , year ) $ mvTechRetiredStoc
 vTechRetiredNewCap: vTechRetiredNewCap( tech , region , year , year ) $ mvTechRetiredNewCap(
   tech , region , year , year )
 vTechCap: vTechCap( tech , region , year ) $ mTechSpan( tech , region , year )
-vTechAct: vTechAct( tech , region , year , slice ) $ mvTechAct( tech , region , year
-  , slice )
-vTechInp: vTechInp( tech , comm , region , year , slice ) $ mvTechInp( tech , comm
-  , region , year , slice )
-vTechOut: vTechOut( tech , comm , region , year , slice ) $ mvTechOut( tech , comm
-  , region , year , slice )
-vTechAInp: vTechAInp( tech , comm , region , year , slice ) $ mvTechAInp( tech , comm
-  , region , year , slice )
-vTechAOut: vTechAOut( tech , comm , region , year , slice ) $ mvTechAOut( tech , comm
-  , region , year , slice )
+vTechAct: vTechAct( tech , region , year , timeslice ) $ mvTechAct( tech , region , year
+  , timeslice )
+vTechInp: vTechInp( tech , comm , region , year , timeslice ) $ mvTechInp( tech , comm
+  , region , year , timeslice )
+vTechOut: vTechOut( tech , comm , region , year , timeslice ) $ mvTechOut( tech , comm
+  , region , year , timeslice )
+vTechAInp: vTechAInp( tech , comm , region , year , timeslice ) $ mvTechAInp( tech , comm
+  , region , year , timeslice )
+vTechAOut: vTechAOut( tech , comm , region , year , timeslice ) $ mvTechAOut( tech , comm
+  , region , year , timeslice )
 vTechInv: vTechInv( tech , region , year ) $ mTechInv( tech , region , year )
 vTechEac: vTechEac( tech , region , year ) $ mTechEac( tech , region , year )
 vTechOMCost: vTechOMCost( tech , region , year ) $ mTechOMCost( tech , region , year
   )
-vSupOut: vSupOut( sup , comm , region , year , slice ) $ mSupAva( sup , comm , region
-  , year , slice )
+vSupOut: vSupOut( sup , comm , region , year , timeslice ) $ mSupAva( sup , comm , region
+  , year , timeslice )
 vSupReserve: vSupReserve( sup , comm , region ) $ mvSupReserve( sup , comm , region
   )
 vSupCost: vSupCost( sup , region , year ) $ mvSupCost( sup , region , year )
-vDemInp: vDemInp( comm , region , year , slice ) $ mvDemInp( comm , region , year
-  , slice )
-vEmsFuelTot: vEmsFuelTot( comm , region , year , slice ) $ mEmsFuelTot( comm , region
-  , year , slice )
-vBalance: vBalance( comm , region , year , slice ) $ mvBalance( comm , region , year
-  , slice )
-vOutTot: vOutTot( comm , region , year , slice ) $ mvOutTot( comm , region , year
-  , slice )
-vInpTot: vInpTot( comm , region , year , slice ) $ mvInpTot( comm , region , year
-  , slice )
-vSupOutTot: vSupOutTot( comm , region , year , slice ) $ mSupOutTot( comm , region
-  , year , slice )
-vTechInpTot: vTechInpTot( comm , region , year , slice ) $ mTechInpTot( comm , region
-  , year , slice )
-vTechOutTot: vTechOutTot( comm , region , year , slice ) $ mTechOutTot( comm , region
-  , year , slice )
-vStorageInpTot: vStorageInpTot( comm , region , year , slice ) $ mStorageInpTot( comm
-  , region , year , slice )
-vStorageOutTot: vStorageOutTot( comm , region , year , slice ) $ mStorageOutTot( comm
-  , region , year , slice )
-vStorageAInp: vStorageAInp( stg , comm , region , year , slice ) $ mvStorageAInp(
-  stg , comm , region , year , slice )
-vStorageAOut: vStorageAOut( stg , comm , region , year , slice ) $ mvStorageAOut(
-  stg , comm , region , year , slice )
+vDemInp: vDemInp( comm , region , year , timeslice ) $ mvDemInp( comm , region , year
+  , timeslice )
+vEmsFuelTot: vEmsFuelTot( comm , region , year , timeslice ) $ mEmsFuelTot( comm , region
+  , year , timeslice )
+vBalance: vBalance( comm , region , year , timeslice ) $ mvBalance( comm , region , year
+  , timeslice )
+vOutTot: vOutTot( comm , region , year , timeslice ) $ mvOutTot( comm , region , year
+  , timeslice )
+vInpTot: vInpTot( comm , region , year , timeslice ) $ mvInpTot( comm , region , year
+  , timeslice )
+vSupOutTot: vSupOutTot( comm , region , year , timeslice ) $ mSupOutTot( comm , region
+  , year , timeslice )
+vTechInpTot: vTechInpTot( comm , region , year , timeslice ) $ mTechInpTot( comm , region
+  , year , timeslice )
+vTechOutTot: vTechOutTot( comm , region , year , timeslice ) $ mTechOutTot( comm , region
+  , year , timeslice )
+vStorageInpTot: vStorageInpTot( comm , region , year , timeslice ) $ mStorageInpTot( comm
+  , region , year , timeslice )
+vStorageOutTot: vStorageOutTot( comm , region , year , timeslice ) $ mStorageOutTot( comm
+  , region , year , timeslice )
+vStorageAInp: vStorageAInp( stg , comm , region , year , timeslice ) $ mvStorageAInp(
+  stg , comm , region , year , timeslice )
+vStorageAOut: vStorageAOut( stg , comm , region , year , timeslice ) $ mvStorageAOut(
+  stg , comm , region , year , timeslice )
 vTotalCost: vTotalCost( region , year ) $ mvTotalCost( region , year )
-vDummyImport: vDummyImport( comm , region , year , slice ) $ mDummyImport( comm ,
-  region , year , slice )
-vDummyExport: vDummyExport( comm , region , year , slice ) $ mDummyExport( comm ,
-  region , year , slice )
+vDummyImport: vDummyImport( comm , region , year , timeslice ) $ mDummyImport( comm ,
+  region , year , timeslice )
+vDummyExport: vDummyExport( comm , region , year , timeslice ) $ mDummyExport( comm ,
+  region , year , timeslice )
 vTaxCost: vTaxCost( comm , region , year ) $ mTaxCost( comm , region , year )
 vSubsCost: vSubsCost( comm , region , year ) $ mSubCost( comm , region , year )
-vAggOut: vAggOut( comm , region , year , slice ) $ mAggOut( comm , region , year ,
-  slice )
-vStorageInp: vStorageInp( stg , comm , region , year , slice ) $ mvStorageStore( stg
-  , comm , region , year , slice )
-vStorageOut: vStorageOut( stg , comm , region , year , slice ) $ mvStorageStore( stg
-  , comm , region , year , slice )
-vStorageStore: vStorageStore( stg , comm , region , year , slice ) $ mvStorageStore(
-  stg , comm , region , year , slice )
+vAggOut: vAggOut( comm , region , year , timeslice ) $ mAggOut( comm , region , year ,
+  timeslice )
+vStorageInp: vStorageInp( stg , comm , region , year , timeslice ) $ mvStorageStore( stg
+  , comm , region , year , timeslice )
+vStorageOut: vStorageOut( stg , comm , region , year , timeslice ) $ mvStorageStore( stg
+  , comm , region , year , timeslice )
+vStorageStore: vStorageStore( stg , comm , region , year , timeslice ) $ mvStorageStore(
+  stg , comm , region , year , timeslice )
 vStorageInv: vStorageInv( stg , region , year ) $ mStorageNew( stg , region , year
   )
 vStorageEac: vStorageEac( stg , region , year ) $ mStorageEac( stg , region , year
@@ -73,28 +73,28 @@ vStorageNewCap: vStorageNewCap( stg , region , year ) $ mStorageNew( stg , regio
   , year )
 vStorageOMCost: vStorageOMCost( stg , region , year ) $ mStorageOMCost( stg , region
   , year )
-vImport: vImport( comm , region , year , slice ) $ mImport( comm , region , year ,
-  slice )
-vExport: vExport( comm , region , year , slice ) $ mExport( comm , region , year ,
-  slice )
-vTradeIr: vTradeIr( trade , comm , region , region , year , slice ) $ mvTradeIr( trade
-  , comm , region , region , year , slice )
-vTradeIrAInp: vTradeIrAInp( trade , comm , region , year , slice ) $ mvTradeIrAInp(
-  trade , comm , region , year , slice )
-vTradeIrAInpTot: vTradeIrAInpTot( comm , region , year , slice ) $ mvTradeIrAInpTot(
-  comm , region , year , slice )
-vTradeIrAOut: vTradeIrAOut( trade , comm , region , year , slice ) $ mvTradeIrAOut(
-  trade , comm , region , year , slice )
-vTradeIrAOutTot: vTradeIrAOutTot( comm , region , year , slice ) $ mvTradeIrAOutTot(
-  comm , region , year , slice )
+vImport: vImport( comm , region , year , timeslice ) $ mImport( comm , region , year ,
+  timeslice )
+vExport: vExport( comm , region , year , timeslice ) $ mExport( comm , region , year ,
+  timeslice )
+vTradeIr: vTradeIr( trade , comm , region , region , year , timeslice ) $ mvTradeIr( trade
+  , comm , region , region , year , timeslice )
+vTradeIrAInp: vTradeIrAInp( trade , comm , region , year , timeslice ) $ mvTradeIrAInp(
+  trade , comm , region , year , timeslice )
+vTradeIrAInpTot: vTradeIrAInpTot( comm , region , year , timeslice ) $ mvTradeIrAInpTot(
+  comm , region , year , timeslice )
+vTradeIrAOut: vTradeIrAOut( trade , comm , region , year , timeslice ) $ mvTradeIrAOut(
+  trade , comm , region , year , timeslice )
+vTradeIrAOutTot: vTradeIrAOutTot( comm , region , year , timeslice ) $ mvTradeIrAOutTot(
+  comm , region , year , timeslice )
 vExportRowAccumulated: vExportRowAccumulated( expp , comm ) $ mExpComm( expp , comm
   )
-vExportRow: vExportRow( expp , comm , region , year , slice ) $ mExportRow( expp ,
-  comm , region , year , slice )
+vExportRow: vExportRow( expp , comm , region , year , timeslice ) $ mExportRow( expp ,
+  comm , region , year , timeslice )
 vImportRowAccumulated: vImportRowAccumulated( imp , comm ) $ mImpComm( imp , comm
   )
-vImportRow: vImportRow( imp , comm , region , year , slice ) $ mImportRow( imp , comm
-  , region , year , slice )
+vImportRow: vImportRow( imp , comm , region , year , timeslice ) $ mImportRow( imp , comm
+  , region , year , timeslice )
 vTradeCap: vTradeCap( trade , year ) $ mTradeSpan( trade , year )
 vTradeInv: vTradeInv( trade , region , year ) $ mTradeEac( trade , region , year )
 vTradeEac: vTradeEac( trade , region , year ) $ mTradeEac( trade , region , year )

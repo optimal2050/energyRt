@@ -16,7 +16,7 @@ OUT <- newCommodity("OUT", timeframe = "HOUR")
 SUP_INP <- newSupply(
   name = "SUP_INP",
   commodity = "INP",
-  availability = data.frame(
+  supply = data.frame(
     cost = 1
   )
 )
@@ -35,14 +35,14 @@ TECH <- newTechnology(
 DEM <- newDemand(
   name = "DEM",
   commodity = "OUT",
-  dem = data.frame(
+  demand = data.frame(
     # region = "REG",
     # year = 2010:2050,
-    slice = h10$HOUR,
-    dem = rep(c(0, 10), 5)
+    timeslice = h10$HOUR,
+    demand = rep(c(0, 10), 5)
   )
 )
-DEM@dem
+DEM@demand
 
 STG <- newStorage(
   name = "STG1H",
@@ -64,6 +64,10 @@ mod_unit <- newModel(
   discount = 0
 )
 
+# testthat sources this file into the running session, so changing the default
+# solver here leaks into every test that runs after it. Restored at the end of
+# the file (cf. the save/restore in test-mosox.R).
+.saved_default_solver <- get_default_solver()
 set_default_solver(solver_options$gams_gdx_cplex)
 # scen_stg <- solve(mod_unit, name = "scen_stg", STG)
 scen_stg <- solve_model(mod_unit, name = "scen_stg", STG)
@@ -83,7 +87,9 @@ getData(scen_stg2h, "vObjective")
 getData(scen_stg2h, name_ = "NewCap", merge = TRUE, process = TRUE)
 
 # but the level of stored energy is the same in both cases
-getData(list(scen_stg, scen_stg2h), "vStorageStore", merge = TRUE, 
+getData(list(scen_stg, scen_stg2h), "vStorageStore", merge = TRUE,
         process = TRUE) |>
   select(-1) |>
   pivot_wider(names_from = "process")
+
+set_default_solver(.saved_default_solver)

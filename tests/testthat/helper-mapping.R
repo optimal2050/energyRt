@@ -52,7 +52,7 @@ interp_tier <- function(tier) {
   env <- .mapping_fixture_env()
   suppressMessages(suppressWarnings({
     mod <- env[[tier]]()
-    interp_mod(mod, name = "t", ondisk = FALSE)
+    interpolate_model(mod, name = "t", ondisk = FALSE)
   }))
 }
 

@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.75.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.80.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -148,11 +148,11 @@
 <dt>year</dt>
 <dd><p>integer. Year to apply the parameter, NA for every year.</p></dd>
 
-<dt>slice</dt>
-<dd><p>character. Time slice for which the charged level will be specified.</p></dd>
+<dt>timeslice</dt>
+<dd><p>character. Time timeslice for which the charged level will be specified.</p></dd>
 
 <dt>charge</dt>
-<dd><p>numeric. Pre-charged or targeted level at the specified slice.</p></dd>
+<dd><p>numeric. Pre-charged or targeted level at the specified timeslice.</p></dd>
 
 
 </dl></dd>
@@ -171,8 +171,8 @@
 <dt>year</dt>
 <dd><p>integer. Year to apply the parameter, NA for every year.</p></dd>
 
-<dt>slice</dt>
-<dd><p>character. Time slice to apply the parameter, NA for every slice.</p></dd>
+<dt>timeslice</dt>
+<dd><p>character. Time timeslice to apply the parameter, NA for every timeslice.</p></dd>
 
 <dt>stgeff</dt>
 <dd><p>numeric. Storage decay annual rate.</p></dd>
@@ -203,8 +203,8 @@
 <dt>year</dt>
 <dd><p>integer. Year to apply the parameter, NA for every year.</p></dd>
 
-<dt>slice</dt>
-<dd><p>character. Time slice to apply the parameter, NA for every slice.</p></dd>
+<dt>timeslice</dt>
+<dd><p>character. Time timeslice to apply the parameter, NA for every timeslice.</p></dd>
 
 <dt>stg2ainp</dt>
 <dd><p>numeric. Storaage-level-to-auxiliary-input-commodity coefficient (multiplier).</p></dd>
@@ -256,8 +256,8 @@
 <dt>year</dt>
 <dd><p>integer. Year to apply the parameter, NA for every year.</p></dd>
 
-<dt>slice</dt>
-<dd><p>character. Time slice to apply the parameter, NA for every slice.</p></dd>
+<dt>timeslice</dt>
+<dd><p>character. Time timeslice to apply the parameter, NA for every timeslice.</p></dd>
 
 <dt>af.lo</dt>
 <dd><p>numeric. Lower bound of the availability factor.</p></dd>
@@ -323,8 +323,8 @@
 <dt>year</dt>
 <dd><p>integer. Year to apply the parameter, NA for every year.</p></dd>
 
-<dt>slice</dt>
-<dd><p>character. Time slice to apply the parameter, NA for every slice.</p></dd>
+<dt>timeslice</dt>
+<dd><p>character. Time timeslice to apply the parameter, NA for every timeslice.</p></dd>
 
 <dt>inpcost</dt>
 <dd><p>numeric. Costs associated with the input commodity.</p></dd>
@@ -436,7 +436,7 @@
 
 
 <dt id="arg-vintage">vintage<a class="anchor" aria-label="anchor" href="#arg-vintage"></a></dt>
-<dd><p>data.frame. Investment window and operational life of the storage, one row per (vintage, region, cluster). Replaces the former <code>start</code>, <code>end</code> and <code>olife</code> slots. A vintage is a separately investable variant that keeps the characteristics of its build year for its whole life – for storage typically a falling capex and a rising round-trip efficiency. Each column is read independently, so a region-agnostic <code>start</code> may be combined with a per-region <code>olife</code>.</p><dl><dt>vintage</dt>
+<dd><p>data.frame. Investment window and operational life of the storage, one row per (vintage, region, cluster). Replaces the former <code>start</code>, <code>end</code> and <code>olife</code> slots. A vintage is a separately investable variant that keeps the characteristics of its build year for its whole life – for storage typically a falling capex and a rising round-trip efficiency.</p><dl><dt>vintage</dt>
 <dd><p>character. Vintage label, normally the build year as a string. NA for an un-vintaged storage.</p></dd>
 
 <dt>region</dt>
@@ -446,10 +446,10 @@
 <dd><p>character. Cluster label, NA for every cluster.</p></dd>
 
 <dt>start</dt>
-<dd><p>integer. The first year the storage can be installed. Defaults to the vintage year.</p></dd>
+<dd><p>integer. The first year the storage can be installed. NA means unbounded (up to <code>end</code>).</p></dd>
 
 <dt>end</dt>
-<dd><p>integer. The last year the storage can be installed. Defaults to the vintage year.</p></dd>
+<dd><p>integer. The last year the storage can be installed. NA means unbounded (from <code>start</code> on).</p></dd>
 
 <dt>olife</dt>
 <dd><p>integer. Operational life of the storage in years, applicable to new investment only.</p></dd>
@@ -479,7 +479,7 @@
 
 
 <dt id="arg-fullyear">fullYear<a class="anchor" aria-label="anchor" href="#arg-fullyear"></a></dt>
-<dd><p>logical. If TRUE (default), the storage technology operates between parent timeframes through the year. The last time-slice in the timeframe is used as a preciding time-slice for the first time-slice in the the same group of time-slices within the parent timeframe. if FALSE, the storage charge and discchare cycle is limited to the parent timeframe. The last time-slice in the timeframe is used as a preciding time-slice for the first time-slice in the the same group of time-slices within the parent timeframe.</p></dd>
+<dd><p>logical. If TRUE (default), the storage technology operates between parent timeframes through the year. The last time-timeslice in the timeframe is used as a preciding time-timeslice for the first time-timeslice in the the same group of time-timeslices within the parent timeframe. if FALSE, the storage charge and discchare cycle is limited to the parent timeframe. The last time-timeslice in the timeframe is used as a preciding time-timeslice for the first time-timeslice in the the same group of time-timeslices within the parent timeframe.</p></dd>
 
 
 <dt id="arg-weather">weather<a class="anchor" aria-label="anchor" href="#arg-weather"></a></dt>
@@ -542,9 +542,9 @@ technologies, supply, or demand to represent complex technological chains,
 demand or supply technologies with time-shift.
 Operation of storage includes accumulation, storing, and release
 of the stored commodity. The storing cycle operates on the ordered
-time-slices of the commodity timeframe. The cycle is looped either
-on an annual basis (last time-slice of a year follows the first time
-slice of the same year) or within the parent time-frame (for example,
+time-timeslices of the commodity timeframe. The cycle is looped either
+on an annual basis (last time-timeslice of a year follows the first time
+timeslice of the same year) or within the parent time-frame (for example,
 when commodity time-frame is "HOUR" and the parent time-frame is "DAY" then
 the storage cycle will be a calendar day).</p>
     </div>
@@ -562,13 +562,13 @@ the storage cycle will be a calendar day).</p>
 <span class="r-in"><span>  charge <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>    <span class="co"># region = "R1",</span></span></span>
 <span class="r-in"><span>    year <span class="op">=</span> <span class="fl">2020</span>,</span></span>
-<span class="r-in"><span>    <span class="co"># slice = "HOUR",</span></span></span>
+<span class="r-in"><span>    <span class="co"># timeslice = "HOUR",</span></span></span>
 <span class="r-in"><span>    charge <span class="op">=</span> <span class="fl">0.1</span></span></span>
 <span class="r-in"><span>  <span class="op">)</span>,</span></span>
 <span class="r-in"><span>  seff <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>    <span class="co"># region = "R1",</span></span></span>
 <span class="r-in"><span>    <span class="co"># year = 2020,</span></span></span>
-<span class="r-in"><span>    <span class="co"># slice = "HOUR",</span></span></span>
+<span class="r-in"><span>    <span class="co"># timeslice = "HOUR",</span></span></span>
 <span class="r-in"><span>    stgeff <span class="op">=</span> <span class="fl">0.999</span>,</span></span>
 <span class="r-in"><span>    inpeff <span class="op">=</span> <span class="fl">0.9</span>,</span></span>
 <span class="r-in"><span>    outeff <span class="op">=</span> <span class="fl">0.9</span></span></span>
@@ -577,7 +577,7 @@ the storage cycle will be a calendar day).</p>
 <span class="r-in"><span>    acomm <span class="op">=</span> <span class="st">"electricity"</span>,</span></span>
 <span class="r-in"><span>    region <span class="op">=</span> <span class="st">"R1"</span>,</span></span>
 <span class="r-in"><span>    year <span class="op">=</span> <span class="fl">2020</span>,</span></span>
-<span class="r-in"><span>    <span class="co"># slice = "HOUR",</span></span></span>
+<span class="r-in"><span>    <span class="co"># timeslice = "HOUR",</span></span></span>
 <span class="r-in"><span>    stg2ainp <span class="op">=</span> <span class="fl">0.9</span>,</span></span>
 <span class="r-in"><span>    cinp2ainp <span class="op">=</span> <span class="fl">0.1</span>,</span></span>
 <span class="r-in"><span>    cout2ainp <span class="op">=</span> <span class="fl">0.2</span>,</span></span>
@@ -591,14 +591,14 @@ the storage cycle will be a calendar day).</p>
 <span class="r-in"><span>    ncap2stg <span class="op">=</span> <span class="fl">0.9</span></span></span>
 <span class="r-in"><span>  <span class="op">)</span>,</span></span>
 <span class="r-in"><span>  af <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>    region <span class="op">=</span> <span class="st">"R1"</span>, year <span class="op">=</span> <span class="fl">2020</span>, slice <span class="op">=</span> <span class="st">"HOUR"</span>,</span></span>
+<span class="r-in"><span>    region <span class="op">=</span> <span class="st">"R1"</span>, year <span class="op">=</span> <span class="fl">2020</span>, timeslice <span class="op">=</span> <span class="st">"HOUR"</span>,</span></span>
 <span class="r-in"><span>    af.lo <span class="op">=</span> <span class="fl">0.9</span>, af.up <span class="op">=</span> <span class="fl">0.9</span>, af.fx <span class="op">=</span> <span class="fl">0.9</span>, cinp.up <span class="op">=</span> <span class="fl">0.9</span>,</span></span>
 <span class="r-in"><span>    cinp.fx <span class="op">=</span> <span class="fl">0.9</span>, cinp.lo <span class="op">=</span> <span class="fl">0.9</span>, cout.up <span class="op">=</span> <span class="fl">0.9</span>,</span></span>
 <span class="r-in"><span>    cout.fx <span class="op">=</span> <span class="fl">0.9</span>, cout.lo <span class="op">=</span> <span class="fl">0.9</span></span></span>
 <span class="r-in"><span>  <span class="op">)</span>,</span></span>
 <span class="r-in"><span>  fixom <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>region <span class="op">=</span> <span class="st">"R1"</span>, year <span class="op">=</span> <span class="fl">2020</span>, fixom <span class="op">=</span> <span class="fl">0.9</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  varom <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>    region <span class="op">=</span> <span class="st">"R1"</span>, year <span class="op">=</span> <span class="fl">2020</span>, slice <span class="op">=</span> <span class="st">"HOUR"</span>,</span></span>
+<span class="r-in"><span>    region <span class="op">=</span> <span class="st">"R1"</span>, year <span class="op">=</span> <span class="fl">2020</span>, timeslice <span class="op">=</span> <span class="st">"HOUR"</span>,</span></span>
 <span class="r-in"><span>    inpcost <span class="op">=</span> <span class="fl">0.9</span>, outcost <span class="op">=</span> <span class="fl">0.9</span>, stgcost <span class="op">=</span> <span class="fl">0.9</span></span></span>
 <span class="r-in"><span>  <span class="op">)</span>,</span></span>
 <span class="r-in"><span>  invcost <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>

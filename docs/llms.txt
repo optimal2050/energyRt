@@ -262,7 +262,7 @@ Functions to create model components.
   [`update(`*`<technology>`*`)`](https://energyRt.org/reference/technology.md)
   : Create a new "technology" object.
 - [`make_timetable()`](https://energyRt.org/reference/calendar.md) :
-  Create timetable of time-slices from given structure as a list
+  Create timetable of time-timeslices from given structure as a list
 - [`make_scenario_dirname()`](https://energyRt.org/reference/make_scenario_dirname.md)
   : Make a name for a scenario directory
 - [`update(`*`<export>`*`)`](https://energyRt.org/reference/newTechnology.md)
@@ -283,6 +283,22 @@ Functions to create model components.
   [`convert(`*`<numeric>`*`)`](https://energyRt.org/reference/convert.md)
   [`add_to_convert(`*`<character>`*`,`*`<character>`*`,`*`<numeric>`*`)`](https://energyRt.org/reference/convert.md)
   : Convert units
+
+## Technology specs
+
+Portable technology specifications (YAML/JSON containers) and vintage
+tools.
+
+- [`tech_from_spec()`](https://energyRt.org/reference/tech_from_spec.md)
+  : Build a technology object from a techspec
+- [`tech_to_spec()`](https://energyRt.org/reference/tech_to_spec.md) :
+  Export a technology object as a techspec list
+- [`tech_spec_code()`](https://energyRt.org/reference/tech_spec_code.md)
+  : The newTechnology() call equivalent to a techspec, as text
+- [`tech_spec_issues()`](https://energyRt.org/reference/tech_spec_issues.md)
+  : Validate a techspec and report issues
+- [`combine_vintages()`](https://energyRt.org/reference/combine_vintages.md)
+  : Combine per-vintage technology objects into one vintaged technology
 
 ## Configuration and Settings
 
@@ -361,6 +377,9 @@ Model configuration and scenario settings
 
   Read `technology` object(s) from an Excel workbook
 
+- [`read_techspec()`](https://energyRt.org/reference/read_techspec.md) :
+  Read and validate a techspec
+
 - [`solve_mod()`](https://energyRt.org/reference/solve_mod.md)
   [`solve_scen()`](https://energyRt.org/reference/solve_mod.md) : Solve
   a model or an interpolated scenario built with the new pipeline
@@ -424,6 +443,8 @@ Model configuration and scenario settings
 
 - [`report()`](https://energyRt.org/reference/report.md) : Generate a
   summary report for an energyRt object
+- [`report_docx()`](https://energyRt.org/reference/report_docx.md) :
+  Generate a Word report for an energyRt object
 - [`report_html()`](https://energyRt.org/reference/report_html.md) :
   Generate an HTML report for an energyRt object
 - [`report_pdf()`](https://energyRt.org/reference/report_pdf.md) :
@@ -498,16 +519,16 @@ Model configuration and scenario settings
   [`tsl_sets`](https://energyRt.org/reference/timeslices.md)
   [`dtm2tsl()`](https://energyRt.org/reference/timeslices.md)
   [`tsl2dtm()`](https://energyRt.org/reference/timeslices.md) : Common
-  formats of time-slices.
+  formats of time-timeslices.
 
 - [`tsl2year()`](https://energyRt.org/reference/tsl2dtm.md)
   [`tsl2yday()`](https://energyRt.org/reference/tsl2dtm.md)
   [`tsl2hour()`](https://energyRt.org/reference/tsl2dtm.md)
   [`tsl2month()`](https://energyRt.org/reference/tsl2dtm.md) : Mapping
-  function between time-slices and day of the year
+  function between time-timeslices and day of the year
 
 - [`tsl_guess_format()`](https://energyRt.org/reference/tsl_guess_format.md)
-  : Guess format of time-slices
+  : Guess format of time-timeslices
 
 - [`drop_na_cols()`](https://energyRt.org/reference/drop_na_cols.md) :
   Drop columns in a data.frame with all NA values
@@ -594,6 +615,9 @@ Model configuration and scenario settings
   Switch on/off and select/customize progress bar
 - [`design()`](https://energyRt.org/reference/design.md) : Generate an R
   script that recreates an energyRt object
+- [`process_designer()`](https://energyRt.org/reference/process_designer.md)
+  [`tech_designer()`](https://energyRt.org/reference/process_designer.md)
+  : Launch the process designer
 - [`ghost_options()`](https://energyRt.org/reference/ghost_options.md) :
   Geometry of the faded "ghost" vintages behind a drawn technology
 - [`theme_energyRt()`](https://energyRt.org/reference/theme_energyRt.md)
@@ -827,7 +851,7 @@ Model configuration and scenario settings
 - [Development Status and
   Roadmap](https://energyRt.org/articles/roadmap.md):
 - [Time resolution: calendars and
-  slices](https://energyRt.org/articles/time-resolution.md):
+  timeslices](https://energyRt.org/articles/time-resolution.md):
 - [Energy System Modeling with
   R](https://energyRt.org/articles/use-R-2026.md):
 - [UTOPIA I: building the

@@ -36,7 +36,7 @@
 .check_scen_par <- .check_scen_par <- function(scen) {
   # Check for non negative parameters, all except 'pAggregateFactor', 'pTechCvarom', 'pTechAvarom', 'pTechVarom', 'pTechInvcost'
   non_negative <- unique(c(
-    "pSliceShare", "pSliceWeight", "pTechOlife", "pTechCinp2ginp",
+    "pTimesliceShare", "pTimesliceWeight", "pTechOlife", "pTechCinp2ginp",
     "pTechGinp2use", "pTechCinp2use", "pTechUse2cact", "pTechCact2cout",
     "pTechEmisComm", "pTechAct2AInp", "pTechCap2AInp", "pTechNCap2AInp",
     "pTechCinp2AInp", "pTechCout2AInp",
@@ -153,7 +153,7 @@
     #   tech_wrong <- tmp_cmd[tmp_cmd$value.x > tmp_cmd$value.y, , drop = FALSE]
     #   assign("tech_wrong", tech_wrong, globalenv())
     #   stop(paste0(
-    #     'Error in share data (tuple (tech, comm, region, year, slice) lo",
+    #     'Error in share data (tuple (tech, comm, region, year, timeslice) lo",
     #     " share > up), see `tech_wrong`"',
     #     paste0(unique(tech_wrong$tech), collapse = '", "'), '"'
     #   ))
@@ -162,7 +162,7 @@
   scen
 }
 
-.get_map_commodity_slice_map <- .get_map_commodity_slice_map <- function(scen) {
+.get_map_commodity_timeslice_map <- .get_map_commodity_timeslice_map <- function(scen) {
   .apply_to_code_ret_list(
     scen = scen,
     clss = "commodity",
@@ -172,7 +172,7 @@
   )
 }
 
-.get_map_commodity_slice_map_obj <- .get_map_commodity_slice_map_obj <- function(obj) {
+.get_map_commodity_timeslice_map_obj <- .get_map_commodity_timeslice_map_obj <- function(obj) {
   xx <- list()
   for (i in seq(along = obj@data)) {
     for (j in seq(along = obj@data[[i]]@data)) { #
@@ -185,7 +185,7 @@
           obj@data[[i]]@data[[j]]@timeframe <-
             approxim$calendar@default_timeframe
         }
-        commodity_slice_map[[obj@data[[i]]@data[[j]]@name]] <-
+        commodity_timeslice_map[[obj@data[[i]]@data[[j]]@name]] <-
           obj@data[[i]]@data[[j]]@timeframe
       }
     }
@@ -211,7 +211,7 @@
 
 interpolate_slot <- interpolate_slot <- function(
     x,
-    keys = c("region", "slice", "comm", "acomm", "tech", "process",
+    keys = c("region", "timeslice", "comm", "acomm", "tech", "process",
              "weather", "stg", "sub", "dst", "src"),
     year_seq = NULL,
     val = "value"
@@ -255,8 +255,8 @@ interpolate_slot <- interpolate_slot <- function(
     mname <- sub("^p", "m", pname)
     rampup <- tech@af[!is.na(tech@af[[name]]), ]
     approxim2 <- approxim
-    if (all(!is.na(rampup$slice))) {
-      approxim2$slice <- approxim2$slice[approxim2$slice %in% unique(rampup$slice)]
+    if (all(!is.na(rampup$timeslice))) {
+      approxim2$timeslice <- approxim2$timeslice[approxim2$timeslice %in% unique(rampup$timeslice)]
     }
     pTechRampUp <- .interp_numpar(
       rampup, name,
@@ -268,28 +268,28 @@ interpolate_slot <- interpolate_slot <- function(
       mTechRampUp <- merge0(mTechRampUp, mact)
     }
     # browser()
-    # adding slicep (next) to the mapping
+    # adding timeslicep (next) to the mapping
     # ramp_data <- c(tech@af$rampdown, tech@af$rampup)
     # if (!is_empty(ramp_data) && any(!is.na(ramp_data))) {
 
     if (tech@fullYear) {
-      SliceNext <- obj@parameters[["mSliceFYearNext"]]@data
+      TimesliceNext <- obj@parameters[["mTimesliceFYearNext"]]@data
     } else {
-      SliceNext <- obj@parameters[["mSliceNext"]]@data
+      TimesliceNext <- obj@parameters[["mTimesliceNext"]]@data
     }
-    mTechRampUp <- left_join(mTechRampUp, SliceNext, by = "slice") |>
+    mTechRampUp <- left_join(mTechRampUp, TimesliceNext, by = "timeslice") |>
       select(all_of(obj@parameters[[mname]]@dimSets))
 
     # tech_name <- tech@name
-      # mTechRampSliceNext <- mTechRampSliceNext |>
+      # mTechRampTimesliceNext <- mTechRampTimesliceNext |>
       #   mutate(tech = tech_name, .before = 1) |>
       #   merge0(mvTechAct) |>
-        # select(all_of(obj@parameters[["mTechRampSliceNext"]]@dimSets))
-      # obj@parameters[["mTechRampSliceNext"]] <-
-      #   .dat2par(obj@parameters[["mTechRampSliceNext"]], mTechRampSliceNext)
+        # select(all_of(obj@parameters[["mTechRampTimesliceNext"]]@dimSets))
+      # obj@parameters[["mTechRampTimesliceNext"]] <-
+      #   .dat2par(obj@parameters[["mTechRampTimesliceNext"]], mTechRampTimesliceNext)
     # }
     # !!! Temporary fix: drop values beyond technology lifespan
-    # synchronizing with activity slices
+    # synchronizing with activity timeslices
     # if (!is.null(pTechRampUp$region)) {
     #   pTechRampUp <- dplyr::filter(pTechRampUp, region %in% unique(mact$region))
     #   mTechRampUp <- dplyr::filter(mTechRampUp, region %in% unique(mact$region))
@@ -298,9 +298,9 @@ interpolate_slot <- interpolate_slot <- function(
     #   pTechRampUp <- dplyr::filter(pTechRampUp, year %in% unique(mact$year))
     #   mTechRampUp <- dplyr::filter(mTechRampUp, year %in% unique(mact$year))
     # }
-    # if (!is.null(pTechRampUp$slice)) {
-    #   pTechRampUp <- dplyr::filter(pTechRampUp, slice %in% unique(mact$slice))
-    #   mTechRampUp <- dplyr::filter(mTechRampUp, slice %in% unique(mact$slice))
+    # if (!is.null(pTechRampUp$timeslice)) {
+    #   pTechRampUp <- dplyr::filter(pTechRampUp, timeslice %in% unique(mact$timeslice))
+    #   mTechRampUp <- dplyr::filter(mTechRampUp, timeslice %in% unique(mact$timeslice))
     # }
     # !!! end
     #
@@ -308,19 +308,19 @@ interpolate_slot <- interpolate_slot <- function(
     obj@parameters[[mname]] <- .dat2par(obj@parameters[[mname]], mTechRampUp)
     #
     # browser()
-    # adding mapping for `slicep`
-    # "mTechRampSliceNext" # tech, region, year, slice, slicep
+    # adding mapping for `timeslicep`
+    # "mTechRampTimesliceNext" # tech, region, year, timeslice, timeslicep
     # if (tech@fullYear) {
-    #   x <- obj@parameters[["mSliceFYearNext"]]@data
+    #   x <- obj@parameters[["mTimesliceFYearNext"]]@data
     # } else {
-    #   x <- obj@parameters[["mSliceNext"]]@data
+    #   x <- obj@parameters[["mTimesliceNext"]]@data
     # }
     # tech_name <- tech@name
     # x <- mutate(x, tech = tech_name, .before = 1) |>
     #   merge0(mact)
     # obj@parameters[["mTechFullYear"]]@data
-    # obj@parameters[["mSliceFYearNext"]]@data
-    # obj@parameters[["mSliceNext"]]
+    # obj@parameters[["mTimesliceFYearNext"]]@data
+    # obj@parameters[["mTimesliceNext"]]
     # obj@parameters[["mvTechAct"]]@data
   }
   obj
@@ -358,16 +358,16 @@ interpolate_slot <- interpolate_slot <- function(
     if (length(comm) == 0) {
       stop("Internal error: 66a37cde-24e2-4ac5-ab24-b79e0f603bf7")
     }
-    lev <- approxim$commodity_slice_map[[comm]]
+    lev <- approxim$commodity_timeslice_map[[comm]]
   }
   # ??? better name for approxim$parent_child ???
-  approxim$parent_child <- approxim$calendar@slice_ancestry
-  approxim$slice <- approxim$calendar@timeframes[[lev]]
+  approxim$parent_child <- approxim$calendar@timeslice_ancestry
+  approxim$timeslice <- approxim$calendar@timeframes[[lev]]
   # approxim$parent_child <-
-  #   approxim$parent_child[approxim$parent_child$child %in% approxim$slice, ,
+  #   approxim$parent_child[approxim$parent_child$child %in% approxim$timeslice, ,
   #                         drop = FALSE]
   approxim$parent_child <- approxim$parent_child |>
-    filter(child %in% approxim$slice)
+    filter(child %in% approxim$timeslice)
   approxim
 }
 
@@ -413,143 +413,6 @@ interpolate_slot <- interpolate_slot <- function(
   if (is.null(p)) p <- pp[[pname]]@data[0, ]
   assign(pname, p, envir = parent.frame())
   # p
-}
-
-.process_lifespan <- .process_lifespan <- function(approxim, obj, als, stock_exist) {
-  #!!! ToDo: check if @invcost$eac is considered
-  # browser()
-  if (is.null(stock_exist)) stock_exist <- data.table()
-  stock_exist <- stock_exist[stock_exist$value != 0, ]
-  # Start / End year
-  dd <- data.table(
-    enable = rep(TRUE, length(approxim$region) * length(approxim$year)),
-    obj = rep(obj@name, length(approxim$region) * length(approxim$year)),
-    region = rep(approxim$region, length(approxim$year)),
-    year = c(t(matrix(rep(approxim$year, length(approxim$region)),
-                      length(approxim$year)))),
-    stringsAsFactors = FALSE
-  )
-  colnames(dd)[2] <- als
-  dstart <- data.table(
-    # row.names = approxim$region,
-    region = approxim$region,
-    year = as.integer(rep(NA, length(approxim$region))),
-    stringsAsFactors = FALSE
-  )
-  # The lifespan now lives in `@vintage` for `technology` and still in the
-  # separate slots for `storage`/`trade`; `.lifespan_col()` yields the old
-  # `(region, value)` shape for either.
-  o_start <- .lifespan_col(obj, "start")
-  o_end   <- .lifespan_col(obj, "end")
-  o_olife <- .lifespan_col(obj, "olife")
-  fl <- is.na(o_start$region)
-  if (any(fl)) {
-    if (sum(fl) != 1) {
-      # stop('Wrong start year for "', class(obj), '" ', obj@name)
-      stop('Two or more "NA" values in the "start" lifespan column, class "',
-           class(obj), '" ', obj@name)
-    }
-    dstart[, "year"] <- o_start |> filter(fl) |> pull(start)
-  }
-  if (any(!fl)) {
-    # if (obj@name == "BASN_battery_moderate_0") browser()
-    ob_x <- o_start |> filter(!fl) |> rename(year = start)
-    dstart <- rows_update(dstart, ob_x, by = "region")
-  }
-  # dstart <- dstart[!is.na(dstart$year), , drop = FALSE]
-  dstart <- filter(dstart, !is.na(year))
-  for (rr in dstart$region) {
-    # browser()
-    # if (!is.na(dstart[rr, "year"]) && any(dd$year < dstart[rr, "year"]))
-    #   dd[dd$region == rr & dd$year < dstart[rr, "year"], "enable"] <- FALSE
-    ii <- dstart$region %in% rr
-    if (!is.na(dstart$year[ii]) && any(dd$year < dstart$year[ii])) {
-      dd$enable[dd$region == rr & dd$year < dstart$year[ii]] <- FALSE
-    }
-  }
-  dd_able <- dd
-  ## end
-  dend <- data.table(
-    row.names = approxim$region,
-    region = approxim$region,
-    year = as.integer(rep(NA, length(approxim$region))),
-    stringsAsFactors = FALSE
-  )
-  fl <- is.na(o_end$region)
-  if (any(fl)) {
-    if (sum(fl) != 1) {
-      stop('Two or more "NA" values in the "end" lifespan column, class "',
-           class(obj), '" ', obj@name)
-    }
-    dend[, "year"] <- o_end |> filter(fl) |> pull(end)
-  }
-  if (any(!fl)) {
-    # if (obj@name == "ECCG") browser()
-    ob_x <- o_end |> filter(!fl) |> rename(year = end)
-    dend <- rows_update(dend, ob_x, by = "region")
-    rm(ob_x)
-  }
-  # dend <- dend[!is.na(dend$year), , drop = FALSE]
-  dend <- filter(dend, !is.na(year))
-  for (rr in dend$region) {
-    ii <- dend$region %in% rr
-    if (any(dd$year > dend$year[ii]))
-      dd[dd$region == rr & dd$year > dend$year[ii], "enable"] <- FALSE
-  }
-  dd <- dd[dd$enable, -1, drop = FALSE]
-  ## life
-  dlife <- data.table(
-    # row.names = approxim$region,
-    region = approxim$region,
-    year = as.integer(rep(NA, length(approxim$region))),
-    stringsAsFactors = FALSE
-  )
-  fl <- is.na(o_olife$region)
-  if (any(fl)) {
-    if (sum(fl) != 1) {
-      # stop('Wrong start year for "', class(obj), '" ', obj@name)
-      stop('Two or more "NA" values in the "olife" lifespan column, class "',
-           class(obj), '" ', obj@name)
-    }
-    dlife[, "year"] <- o_olife |> filter(fl) |> pull(olife) # !!! ???
-  }
-  if (any(!fl)) {
-    ob_x <- o_olife |> filter(!fl) |> rename(year = olife)
-    dlife <- rows_update(dlife, ob_x, by = "region")
-    rm(ob_x)
-  }
-  # dlife <- dlife[!is.na(dlife$year), , drop = FALSE]
-  dlife <- filter(dlife, !is.na(year))
-  # if (obj@name == "stg_BASN_conventional_hydroelectric_1") browser()
-  for (rr in dlife$region[dlife$region %in% dend$region]) {
-    # if (obj@name == "stg_BASN_conventional_hydroelectric_1") browser()
-    nn <- dend$region %in% rr
-    ii <- dlife$region %in% rr
-    if (any(dd_able$year >= dend$year[nn] + dlife$year[ii])) {
-      ee <- dd_able$region == rr &
-        dd_able$year >= dend$year[nn] + dlife$year[rr]
-      dd_able$enable[ee] <- FALSE
-    }
-  }
-  dd_eac <- dd_able
-  if (nrow(stock_exist) != 0 && any(!dd_able$enable)) {
-    for (rr in unique(stock_exist$region)) {
-      ii <- stock_exist$region == rr
-      ee <- dd_able$region == rr & dd_able$year %in% stock_exist$year[ii]
-      dd_able$enable[ee] <- TRUE
-    }
-  }
-  #
-  dd_able <- dd_able[dd_able$enable, -1, drop = FALSE]
-  dd_eac <- dd_eac[dd_eac$enable, -1, drop = FALSE]
-  dd <- dd[dd$year %in% approxim$mileStoneYears, ]
-  dd_eac <- dd_eac[dd_eac$year %in% approxim$mileStoneYears, ]
-  dd_able <- dd_able[dd_able$year %in% approxim$mileStoneYears, ]
-  # browser()
-  # list(new = dd, span = dd_able, eac = dd_eac)
-  # redefining EAC for all years of investment
-  list(new = dd, span = dd_able, eac = dd_able)
-
 }
 
 .toWeatherImply <- .toWeatherImply <- function(dtf, val, add_set, add_val, sets = NULL) {

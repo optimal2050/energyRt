@@ -168,7 +168,7 @@ setMethod("show", "scenario", function(object) summary(object))
 
 # @export
 # setMethod("setTimeSlices", signature(obj = "scenario"), function(obj, ...) {
-#   obj@model@settings@slice <- .setTimeSlices(...)
+#   obj@model@settings@timeslice <- .setTimeSlices(...)
 #   obj
 # })
 

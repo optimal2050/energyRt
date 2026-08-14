@@ -277,7 +277,7 @@
 # Rows of one slot belonging to a given cell. NA in a selector column broadcasts
 # to every variant; "TOTAL" rows are group aggregates and are dropped here (they
 # become constraints instead). The selector columns are then pinned to the cell.
-.variant_slice <- function(d, vintage, cluster) {
+.variant_timeslice <- function(d, vintage, cluster) {
   d <- as.data.frame(d)
   if (nrow(d) == 0L) return(d)
   keep <- rep(TRUE, nrow(d))
@@ -304,18 +304,14 @@
   d
 }
 
-# `start`/`end` default to the vintage year, so `vintage = c("2020","2030")`
-# alone yields two properly windowed variants.
+# Investment-window semantics (user ruling 2026-08-13): `start`/`end` are
+# USER-DEFINED and may overlap across vintages. An NA `start` means "all
+# years up to `end`", an NA `end` means "all years from `start` on", and
+# both NA means the full model horizon — exactly the pre-merge `@start`/
+# `@end` semantics, now uniform for vintaged and plain technologies.
+# (The earlier behaviour — defaulting empty fields to the vintage year —
+# is retired; declare `start = end = <year>` for a point window.)
 .variant_default_window <- function(vin_df, vintage) {
-  if (nrow(vin_df) == 0L || is.na(vintage)) return(vin_df)
-  y <- suppressWarnings(as.integer(vintage))
-  if (is.na(y)) return(vin_df)
-  if ("start" %in% names(vin_df)) {
-    vin_df$start[is.na(vin_df$start)] <- y
-  }
-  if ("end" %in% names(vin_df)) {
-    vin_df$end[is.na(vin_df$end)] <- y
-  }
   vin_df
 }
 
@@ -683,7 +679,7 @@
 
     for (s in .variant_slots_of(tech)) {
       if (!.hasSlot(tech, s)) next
-      d <- .variant_slice(slot(tech, s), vin, clu)
+      d <- .variant_timeslice(slot(tech, s), vin, clu)
       if (s == "vintage") d <- .variant_default_window(d, vin)
       if (s == "capacity" && "stock" %in% names(d) && !is.na(vin)) {
         # stock without a vintage belongs to the earliest vintage only
@@ -1057,6 +1053,12 @@ variantSummary <- function(scen, name, by = character(), weight = NULL, ...) {
         stop(cls, ' "', t@name, '" still carries ', n_v, " vintage(s) and ",
              n_c, " cluster(s) at interpolation time -- variant expansion did ",
              "not run. This would silently drop the vintage/cluster distinction.")
+      }
+      # the lifespan columns must resolve to one value per
+      # (vintage, region, cluster) key before parameters are packed;
+      # `.lifespan_resolve()` errors on conflicting duplicate keys
+      if (.hasSlot(t, "vintage")) {
+        for (cc in .vintage_val_cols) .lifespan_resolve(t, cc)
       }
     }
   }

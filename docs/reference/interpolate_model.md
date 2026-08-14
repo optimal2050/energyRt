@@ -70,10 +70,10 @@ interpolate_model(
 - fold:
 
   logical or character; whole-column "fold" of trimmable dimensions to
-  NA wildcards to shrink the data. `TRUE` folds `region` + `slice`;
+  NA wildcards to shrink the data. `TRUE` folds `region` + `timeslice`;
   `FALSE` (default) folds nothing; a character vector selects dims among
-  `region`, `slice`, `year`, `comm`, `tech`, `stg`, `trade`. A folded
-  scenario is expanded to solver-ready form at solve time.
+  `region`, `timeslice`, `year`, `comm`, `tech`, `stg`, `trade`. A
+  folded scenario is expanded to solver-ready form at solve time.
 
 - sparse:
 

@@ -31,7 +31,7 @@ newSub(
 \describe{
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
-\item{slice}{character. Time slice to apply the parameter, NA for every slice.}
+\item{timeslice}{character. Time timeslice to apply the parameter, NA for every timeslice.}
 \item{inp}{numeric. Input subsidy, e.g., per unit of commodity consumed by all processes.}
 \item{out}{numeric. Output subsidy, e.g., per unit of commodity produced by all processes.}
 \item{bal}{numeric. Balance subsidy, e.g., per unit of commodity balance (production - consumption).}

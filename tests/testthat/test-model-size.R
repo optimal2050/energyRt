@@ -12,8 +12,8 @@ test_that("model_size reports rows, estimates and fold saving", {
   mod <- tm_weather()
 
   folded <- suppressWarnings(suppressMessages(
-    interp_mod(mod, name = "ms_fold", ondisk = FALSE,
-               fold = c("region", "slice", "year"), sparse = TRUE)))
+    interpolate_model(mod, name = "ms_fold", ondisk = FALSE,
+               fold = c("region", "timeslice", "year"), sparse = TRUE)))
   ms <- model_size(folded)
 
   expect_s3_class(ms, "model_size")
@@ -30,7 +30,7 @@ test_that("model_size reports rows, estimates and fold saving", {
 
   # an unfolded build reports no fold step
   unfolded <- suppressWarnings(suppressMessages(
-    interp_mod(mod, name = "ms_unfold", ondisk = FALSE, fold = FALSE)))
+    interpolate_model(mod, name = "ms_unfold", ondisk = FALSE, fold = FALSE)))
   expect_true(is.na(model_size(unfolded)$before_fold))
 
   expect_output(print(ms), "model_size")

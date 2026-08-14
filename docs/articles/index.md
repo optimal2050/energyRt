@@ -13,7 +13,7 @@
 - [Development Status and
   Roadmap](https://energyRt.org/articles/roadmap.md):
 - [Time resolution: calendars and
-  slices](https://energyRt.org/articles/time-resolution.md):
+  timeslices](https://energyRt.org/articles/time-resolution.md):
 - [Energy System Modeling with
   R](https://energyRt.org/articles/use-R-2026.md):
 - [UTOPIA I: building the

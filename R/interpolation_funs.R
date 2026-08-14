@@ -24,14 +24,14 @@
   # browser()
   if (arg$approxim$fullsets && defVal != 0 && is.finite(defVal)) arg$all <- TRUE
 
-  # Get slice
+  # Get timeslice
   prior <- c(
     "stg", "trade", "tech", "sup", "group", "acomm", "comm", "commp", "region",
-    "regionp", "src", "dst", "slice", "year"
+    "regionp", "src", "dst", "timeslice", "year"
   )
   true_prior <- c(
     "stg", "trade", "tech", "sup", "group", "acomm", "comm", "commp", "region",
-    "regionp", "src", "dst", "year", "slice"
+    "regionp", "src", "dst", "year", "timeslice"
   )
   rule <- arg$rule
   approxim <- arg$approxim
@@ -262,7 +262,7 @@
       }
       dd[[parameter]] <- c(mx)
     }
-    if (any(colnames(dtf)[-ncol(dtf)] == "slice")) {
+    if (any(colnames(dtf)[-ncol(dtf)] == "timeslice")) {
       # dd <- dd[, c(true_prior, parameter), drop = FALSE]
       dd <- dd |> select(all_of(c(true_prior, parameter)))
     }

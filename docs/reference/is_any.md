@@ -29,6 +29,6 @@ logical vector, TRUE if an element of the set is "ANY\*"
 ## Examples
 
 ``` r
-is_any(c("ANY", "ANYREGION", "ANYSLICE", "ANYYEAR", "A", "B"))
+is_any(c("ANY", "ANYREGION", "ANYTIMESLICE", "ANYYEAR", "A", "B"))
 #> [1]  TRUE  TRUE  TRUE  TRUE FALSE FALSE
 ```

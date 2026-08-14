@@ -33,7 +33,7 @@ setClass("demand",
     demand = data.frame(
       region = character(),
       year = integer(),
-      slice = character(),
+      timeslice = character(),
       demand = numeric(),
       stringsAsFactors = FALSE
     ),
@@ -70,7 +70,7 @@ setMethod("initialize", "demand", function(.Object, ...) {
 #'  demand = data.frame(
 #'     region = "UTOPIA", # NA for every region
 #'     year = c(2020, 2030, 2050),
-#'     slice = "ANNUAL",
+#'     timeslice = "ANNUAL",
 #'     demand = c(100, 200, 300)
 #'  ),
 #'  region = "UTOPIA", # optional, to narrow the specification of the demand

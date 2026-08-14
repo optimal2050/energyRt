@@ -58,9 +58,10 @@ newWeather(
 
   :   integer. Year to apply the parameter, NA for every year.
 
-  slice
+  timeslice
 
-  :   character. Time slice to apply the parameter, NA for every slice.
+  :   character. Time timeslice to apply the parameter, NA for every
+      timeslice.
 
   wval
 
@@ -92,8 +93,8 @@ WSOL <- newWeather(
   weather = data.frame(
     region = "R1",
     year = 2015, # 
-    slice = ttbl$slice,
-    wval = runif(length(ttbl$slice), 0., 1) # use your data
+    timeslice = ttbl$timeslice,
+    wval = runif(length(ttbl$timeslice), 0., 1) # use your data
   )
 )
 } # }

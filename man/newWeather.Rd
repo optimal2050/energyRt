@@ -33,7 +33,7 @@ newWeather(
 \describe{
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
-\item{slice}{character. Time slice to apply the parameter, NA for every slice.}
+\item{timeslice}{character. Time timeslice to apply the parameter, NA for every timeslice.}
 \item{wval}{numeric. Weather factor value.}
 }}
 }
@@ -64,8 +64,8 @@ WSOL <- newWeather(
   weather = data.frame(
     region = "R1",
     year = 2015, # 
-    slice = ttbl$slice,
-    wval = runif(length(ttbl$slice), 0., 1) # use your data
+    timeslice = ttbl$timeslice,
+    wval = runif(length(ttbl$timeslice), 0., 1) # use your data
   )
 )
 }

@@ -20,7 +20,7 @@
 #' @slot desc character, one-line description.
 #' @slot dimSets character, the variable's dimensions **as the model declares
 #'   them**, duplicates preserved (`vTradeIr` is
-#'   `trade, comm, region, region, year, slice`). Byte-identical to
+#'   `trade, comm, region, region, year, timeslice`). Byte-identical to
 #'   `.variable_set`, which `newCosts()` and `newConstraint()` consume
 #'   positionally against the GAMS declaration.
 #' @slot colNames character, the column names the variable is actually written
@@ -31,7 +31,7 @@
 #'   (the `$`-condition), or `""` when it is unconditional.
 #' @slot role character, what the variable is: `source`, `sink`, `flow`,
 #'   `activity`, `balance`, `stock`, `capacity` or `cost`. A `stock` is a level
-#'   at a point in time and is never summed over slices.
+#'   at a point in time and is never summed over timeslices.
 #' @slot unit character, the KIND of quantity (`commodity`, `activity`,
 #'   `capacity`, `currency`), not a unit string -- real units are per-object
 #'   here and are resolved against the model.

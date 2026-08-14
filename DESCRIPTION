@@ -1,8 +1,8 @@
 Package: energyRt
 Type: Package
 Title: Energy Systems Modeling Toolbox
-Version: 0.75.0.9000
-Date: 2026-08-05
+Version: 0.80.3.9000
+Date: 2026-08-13
 Authors@R: 
   c(person(given = "Oleg", 
           family = "Lugovoy", 
@@ -32,7 +32,7 @@ Imports: methods, grid, generics, data.table, DBI, RSQLite, tibble,
         tidyr, dplyr, rlang, stringr, lubridate, purrr, arrow,
         progressr, tictoc, cli, zoo, registry, options (>= 0.2.0),
         glue, plyr, grDevices, utils, tools, yaml
-Suggests: pak, gdxtools (== 0.7.1), knitr, rmarkdown, sf, ggplot2, testthat
+Suggests: shiny, DT, pak, gdxtools (== 0.7.1), knitr, rmarkdown, sf, ggplot2, testthat
         (>= 3.0.0), devtools, openxlsx, jsonlite, readxl, httr2, xml2,
         base64enc, tinytex, patchwork, geoscales
 Additional_repositories: https://optimal2050.r-universe.dev
@@ -81,6 +81,7 @@ Collate:
     'map_region.R'
     'check_levels.R'
     'class-costs.R'
+    'combine_vintages.R'
     'config_file.R'
     'utils.R'
     'convert.R'
@@ -106,6 +107,7 @@ Collate:
     'legacy_api_shims.R'
     'solve.R'
     'levcost.R'
+    'levcost_analytic.R'
     'map_closure.R'
     'map_constraint.R'
     'map_costagg.R'
@@ -122,11 +124,13 @@ Collate:
     'obj2modInp.R'
     'plot_scenario.R'
     'plot_map.R'
+    'process_designer.R'
     'prune.R'
     'read.R'
     'registry.R'
     'report.R'
     'start_msg.R'
+    'techspec.R'
     'timeslices.R'
     'units.R'
     'utopia-data.R'
@@ -142,11 +146,5 @@ Collate:
     'xlsx-technology.R'
 Config/testthat/edition: 3
 Config/testthat/parallel: false
-Roxygen: list(markdown = TRUE)
-NeedsCompilation: no
-Packaged: 2024-11-02 10:33:16 UTC; olmba
-Author: Oleg Lugovoy [aut, cre] (<https://orcid.org/0000-0001-5546-9875>),
-  Vladimir Potashnikov [aut],
-  Tarun Sharma [ctb] (<https://orcid.org/0000-0003-3636-2858>)
-Maintainer: Oleg Lugovoy <olugovoy@optimalsolution.dev>
 Config/roxygen2/version: 8.0.0
+Roxygen: list(markdown = TRUE)

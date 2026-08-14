@@ -48,7 +48,7 @@ Models are assembled from a small set of object types:
 | technology | [`newTechnology()`](https://energyRt.org/reference/technology.md) | a conversion process — the richest object |
 | supply | [`newSupply()`](https://energyRt.org/reference/newSupply.md) | a source: fuel at a price, or a free resource |
 | demand | [`newDemand()`](https://energyRt.org/reference/newDemand.md) | a sink: final consumption to be met |
-| storage | [`newStorage()`](https://energyRt.org/reference/storage.md) | shifts a commodity across time slices |
+| storage | [`newStorage()`](https://energyRt.org/reference/storage.md) | shifts a commodity across time timeslices |
 | weather | [`newWeather()`](https://energyRt.org/reference/newWeather.md) | capacity factors and other exogenous profiles |
 | repository | [`newRepository()`](https://energyRt.org/reference/newRepository.md) | a bag of bricks — the parts library |
 | model | [`newModel()`](https://energyRt.org/reference/newModel.md) | repository + regions + calendar + horizon |

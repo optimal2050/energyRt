@@ -73,7 +73,7 @@ mappings_by_recipe <- function(spec = load_mapping_spec()) {
 # maps read the `*_comm` sets populated in interp_mod, and the input/output-group
 # maps (mTechInpGroup / mTechOutGroup / mTechGroupComm) derive from checkInpOut() —
 # these feed .build_tech_group_maps in the constraint recipe. This no-op fallback
-# covers the remaining specialised membership-tagged maps (agg / same-slice /
+# covers the remaining specialised membership-tagged maps (agg / same-timeslice /
 # emission-fuel / weather-region) built later in the filter recipe.
 recipe_membership <- function(scen, names, fmp) scen
 
@@ -286,11 +286,11 @@ recipe_closure <- function(scen, names, fmp) {
 # --------------------------------------------------------------------------- #
 
 # Global calendar maps derived purely from `scen@settings` (calendar + horizon +
-# region), plus the per-object / per-commodity slice maps (mCommSlice,
-# mTechSlice, mSupSlice, mTradeSlice, mImpSlice, mExpSlice) which assign to each
-# object the leaf slices of its own (finest) timeframe level, and the
-# commodity slice-or-parent aggregation map (mCommSliceOrParent). The remaining
-# slice maps (mWeatherSlice, mStorageFullYear, mTechFullYear) depend on
+# region), plus the per-object / per-commodity timeslice maps (mCommTimeslice,
+# mTechTimeslice, mSupTimeslice, mTradeTimeslice, mImpTimeslice, mExpTimeslice) which assign to each
+# object the leaf timeslices of its own (finest) timeframe level, and the
+# commodity timeslice-or-parent aggregation map (mCommTimesliceOrParent). The remaining
+# timeslice maps (mWeatherTimeslice, mStorageFullYear, mTechFullYear) depend on
 # interpolation data and are deferred.
 .set_calendar_map <- function(scen, name, df, fmp) {
   scen@modInp@parameters[[name]] <-
@@ -298,24 +298,24 @@ recipe_closure <- function(scen, names, fmp) {
   scen
 }
 
-# Slices of each commodity = the leaf slices of the commodity's own timeframe
+# Timeslices of each commodity = the leaf timeslices of the commodity's own timeframe
 # level (`cal@timeframes[[timeframe]]`).
-.comm_slice_df <- function(scen) {
+.comm_timeslice_df <- function(scen) {
   cal    <- scen@settings@calendar
-  frames <- cal@timeframes            # named list: timeframe -> slices
+  frames <- cal@timeframes            # named list: timeframe -> timeslices
   ctf    <- map_comm_timeframe(scen)  # named list: comm -> timeframe
   rows <- lapply(names(ctf), function(cm) {
     tf <- ctf[[cm]]
     if (length(tf) == 0 || is.na(tf) || tf == "") tf <- cal@default_timeframe
     sl <- frames[[tf]]
     if (length(sl) == 0) sl <- tf
-    data.frame(comm = cm, slice = as.character(sl), stringsAsFactors = FALSE)
+    data.frame(comm = cm, timeslice = as.character(sl), stringsAsFactors = FALSE)
   })
   dplyr::bind_rows(rows)
 }
 
-# Slices of each process = the leaf slices of its operating (finest) timeframe.
-.process_slice_df <- function(scen) {
+# Timeslices of each process = the leaf timeslices of its operating (finest) timeframe.
+.process_timeslice_df <- function(scen) {
   cal    <- scen@settings@calendar
   frames <- cal@timeframes
   ptf    <- get_process_timeframe(scen)  # named list: process -> timeframe
@@ -324,20 +324,20 @@ recipe_closure <- function(scen, names, fmp) {
     if (length(tf) == 0 || is.na(tf) || tf == "") tf <- cal@default_timeframe
     sl <- frames[[tf]]
     if (length(sl) == 0) sl <- tf
-    data.frame(process = p, slice = as.character(sl), stringsAsFactors = FALSE)
+    data.frame(process = p, timeslice = as.character(sl), stringsAsFactors = FALSE)
   })
   dplyr::bind_rows(rows)
 }
 
-# Project the process->slice table onto a single object class, renaming the
+# Project the process->timeslice table onto a single object class, renaming the
 # `process` column to the map's key (e.g. `tech`, `sup`).
-.proc_slice_for <- function(proc_slice, pclass, cls, key) {
-  if (is.null(proc_slice) || is.null(pclass) || nrow(proc_slice) == 0) {
+.proc_timeslice_for <- function(proc_timeslice, pclass, cls, key) {
+  if (is.null(proc_timeslice) || is.null(pclass) || nrow(proc_timeslice) == 0) {
     return(NULL)
   }
   procs <- names(pclass)[vapply(pclass,
     function(x) identical(as.character(x)[1], cls), logical(1))]
-  df <- proc_slice[proc_slice$process %in% procs, , drop = FALSE]
+  df <- proc_timeslice[proc_timeslice$process %in% procs, , drop = FALSE]
   if (nrow(df) == 0) return(NULL)
   names(df)[names(df) == "process"] <- key
   df
@@ -345,8 +345,8 @@ recipe_closure <- function(scen, names, fmp) {
 
 # `recipe_calendar` superseded by R/map_calendar.R (registry) and ARCHIVED to
 # drafts/legacy-mapping/calendar.R. Retained as a no-op fallback for the three
-# calendar-tagged maps (mWeatherSlice, mStorageFullYear, mTechFullYear) that are
-# built in later recipes; the calendar slice helpers above remain live.
+# calendar-tagged maps (mWeatherTimeslice, mStorageFullYear, mTechFullYear) that are
+# built in later recipes; the calendar timeslice helpers above remain live.
 recipe_calendar <- function(scen, names, fmp) scen
 
 # --------------------------------------------------------------------------- #
@@ -386,18 +386,15 @@ recipe_calendar <- function(scen, names, fmp) scen
   res <- apply_to_scenario_data(
     scen = scen, classes = cls, as_list = TRUE,
     func = function(obj) {
-      ol <- .lifespan_col(obj, "olife")
+      ol <- .lifespan_resolve(obj, "olife")
       if (nrow(ol) == 0 || is.null(ol$olife)) return(NULL)
-      isinf <- is.infinite(ol$olife)
-      if (!any(isinf)) return(NULL)
+      if (!any(is.infinite(ol$olife))) return(NULL)
       if (region) {
-        if ("region" %in% names(ol)) {
-          regs <- ol$region[isinf]
-          if (anyNA(regs)) regs <- unique(c(regs[!is.na(regs)], regions))
-          regs <- regs[regs %in% regions]
-        } else {
-          regs <- regions
-        }
+        # per-region resolution: a region-specific finite olife keeps its
+        # region OUT of the infinite set even when a broadcast Inf row
+        # exists (specific overrides broadcast)
+        by_r <- .lifespan_by_region(obj, "olife", regions)
+        regs <- by_r$region[!is.na(by_r$olife) & is.infinite(by_r$olife)]
         if (length(regs) == 0) return(NULL)
         df <- data.frame(process = obj@name, region = regs,
                          stringsAsFactors = FALSE)
@@ -446,30 +443,18 @@ recipe_calendar <- function(scen, names, fmp) scen
       if (!(obj@name %in% techs)) return(NULL)
       tregs <- process_region[[obj@name]]
       if (is.null(tregs)) tregs <- regions
-      ol <- .lifespan_col(obj, "olife")
+      ol <- .lifespan_resolve(obj, "olife")
       if (nrow(ol) == 0 || is.null(ol$olife)) {
         df <- data.frame(tech = obj@name, region = tregs, olife = 1,
                          stringsAsFactors = FALSE)
-      } else if (!("region" %in% names(ol))) {
-        df <- data.frame(tech = obj@name, region = tregs, olife = ol$olife[1],
-                         stringsAsFactors = FALSE)
       } else {
-        reg_rows <- ol[!is.na(ol$region), , drop = FALSE]
-        na_rows  <- ol[is.na(ol$region), , drop = FALSE]
-        parts <- list()
-        if (nrow(reg_rows) > 0) {
-          parts$r <- data.frame(tech = obj@name, region = reg_rows$region,
-                                olife = reg_rows$olife, stringsAsFactors = FALSE)
-        }
-        if (nrow(na_rows) > 0) {
-          miss <- setdiff(tregs, reg_rows$region)
-          if (length(miss) > 0) {
-            parts$n <- data.frame(tech = obj@name, region = miss,
-                                  olife = na_rows$olife[1],
-                                  stringsAsFactors = FALSE)
-          }
-        }
-        df <- dplyr::bind_rows(parts)
+        # per-region resolution: specific rows win, the broadcast row
+        # fills the remaining regions; regions covered by neither get no
+        # row (as before)
+        br <- .lifespan_by_region(obj, "olife", tregs)
+        br <- br[!is.na(br$olife), , drop = FALSE]
+        df <- data.frame(tech = obj@name, region = br$region,
+                         olife = br$olife, stringsAsFactors = FALSE)
       }
       df <- df[df$region %in% tregs, , drop = FALSE]
       if (nrow(df) == 0) return(NULL)
@@ -589,29 +574,29 @@ recipe_calendar <- function(scen, names, fmp) scen
   unique(gg)
 }
 
-# Aggregate a fine-slice flow map up to each commodity's native slice level via
-# the commodity slice-or-parent map (legacy `reduce_total_map`). `yy` must carry
-# a `comm` and a `slice` column; the incoming `slice` is treated as the fine
-# (`slicep`) resolution and replaced by the commodity's own `slice`.
-.reduce_total_map <- function(yy, comm_slice_or_parent) {
+# Aggregate a fine-timeslice flow map up to each commodity's native timeslice level via
+# the commodity timeslice-or-parent map (legacy `reduce_total_map`). `yy` must carry
+# a `comm` and a `timeslice` column; the incoming `timeslice` is treated as the fine
+# (`timeslicep`) resolution and replaced by the commodity's own `timeslice`.
+.reduce_total_map <- function(yy, comm_timeslice_or_parent) {
   if (is.null(yy)) return(yy)
   yy <- as.data.frame(yy)
   if (nrow(yy) == 0) return(yy)
-  if (is.null(comm_slice_or_parent) ||
-      nrow(as.data.frame(comm_slice_or_parent)) == 0) {
+  if (is.null(comm_timeslice_or_parent) ||
+      nrow(as.data.frame(comm_timeslice_or_parent)) == 0) {
     return(yy[0, , drop = FALSE])
   }
-  yy$slicep <- yy$slice
-  yy$slice <- NULL
-  out <- merge0(yy, as.data.frame(comm_slice_or_parent),
-                by = c("comm", "slicep"))
-  out$slicep <- NULL
+  yy$timeslicep <- yy$timeslice
+  yy$timeslice <- NULL
+  out <- merge0(yy, as.data.frame(comm_timeslice_or_parent),
+                by = c("comm", "timeslicep"))
+  out$timeslicep <- NULL
   .reduce_dup(out)
 }
 
 # Build a derived inter-regional trade aux flow map (mTradeIrCsrc2Ainp and
 # siblings) from an interpolated aux-coefficient parameter. `pdat` is the folded
-# parameter data (dims trade, acomm, src, dst, year, slice + value); `mTradeIr`
+# parameter data (dims trade, acomm, src, dst, year, timeslice + value); `mTradeIr`
 # is the trade flow domain. Faithful port of obj2modInp.R L3270-3388: keep the
 # nonzero rows, drop the placeholder (all-NA / unspecified) index columns, rename
 # acomm -> comm, then materialise the missing dimensions through `mTradeIr`.
@@ -621,7 +606,7 @@ recipe_calendar <- function(scen, names, fmp) scen
   if (!"value" %in% names(pdat)) return(NULL)
   pdat <- pdat[!is.na(pdat$value) & pdat$value != 0, , drop = FALSE]
   if (nrow(pdat) == 0) return(NULL)
-  keep <- intersect(c("trade", "acomm", "src", "dst", "year", "slice"),
+  keep <- intersect(c("trade", "acomm", "src", "dst", "year", "timeslice"),
                     names(pdat))
   pdat <- pdat[, keep, drop = FALSE]
   # drop placeholder dimension columns (folded wildcards: all-NA or unspecified)
@@ -634,31 +619,31 @@ recipe_calendar <- function(scen, names, fmp) scen
   }
   pdat <- .reduce_dup(pdat)
   out <- as.data.frame(merge0(pdat, as.data.frame(mTradeIr)))
-  out <- out[, c("trade", "comm", "src", "dst", "year", "slice"),
+  out <- out[, c("trade", "comm", "src", "dst", "year", "timeslice"),
              drop = FALSE]
   .reduce_dup(out)
 }
 
 # Build the import / export "row" domain maps for one trade direction from the
-# interpolated bounds parameter `prow` (long: key, region, year, slice, type,
-# value), the slice-membership map `slice_map` (key, slice), the commodity
+# interpolated bounds parameter `prow` (long: key, region, year, timeslice, type,
+# value), the timeslice-membership map `timeslice_map` (key, timeslice), the commodity
 # membership map `comm_map` (key, comm) and the cumulative-reserve numpar `pres`
 # (key, value). `key` is "imp" (import) or "expp" (export). Returns a named list
 # with the four map data.frames (`row`, `up`, `lo`, `cumup`); any element may be
 # NULL. Faithful port of the legacy import / export `.obj2modInp` methods, with
 # the legacy `mImportRowCumUp` bug (using export's key / commodity) corrected.
-.io_row_maps <- function(key, slice_map, comm_map, prow, pres,
+.io_row_maps <- function(key, timeslice_map, comm_map, prow, pres,
                          regions, milestones) {
-  if (is.null(slice_map) || is.null(comm_map) ||
+  if (is.null(timeslice_map) || is.null(comm_map) ||
       length(regions) == 0 || length(milestones) == 0) {
     return(list())
   }
-  slice_map <- as.data.frame(slice_map)
+  timeslice_map <- as.data.frame(timeslice_map)
   comm_map  <- as.data.frame(comm_map)
-  out_cols  <- c(key, "comm", "region", "year", "slice")
+  out_cols  <- c(key, "comm", "region", "year", "timeslice")
 
-  # full domain: (key, slice) x region x milestone, tagged with comm
-  base <- merge0(slice_map,
+  # full domain: (key, timeslice) x region x milestone, tagged with comm
+  base <- merge0(timeslice_map,
                  data.frame(region = regions, stringsAsFactors = FALSE))
   base <- merge0(as.data.frame(base),
                  data.frame(year = as.integer(milestones)))
@@ -716,7 +701,7 @@ recipe_calendar <- function(scen, names, fmp) scen
 # mStorageStg2AOut, mTechCinp2AInp) from an interpolated conversion-factor
 # parameter `pdat` and the relevant flow domain `flow_dom`. `pdat` carries the
 # object key (tech / stg), the auxiliary commodity `acomm`, optionally the
-# driving flow commodity `comm`, the (folded) region / year / slice and a
+# driving flow commodity `comm`, the (folded) region / year / timeslice and a
 # `value`. Rows with NA / zero conversion factor carry no domain. The auxiliary
 # commodity becomes the map's `comm`; for the technology cinp/cout maps the
 # original flow commodity is retained as a second `comm.1` dimension. Faithful
@@ -739,7 +724,7 @@ recipe_calendar <- function(scen, names, fmp) scen
   pdat <- pdat[, !drop, drop = FALSE]
   if (second_comm) {
     # `comm` here is the driving flow commodity: join the flow domain on it to
-    # materialise region / year / slice, THEN relabel acomm -> comm and the
+    # materialise region / year / timeslice, THEN relabel acomm -> comm and the
     # original flow commodity -> comm.1.
     out <- as.data.frame(merge0(.reduce_dup(pdat), as.data.frame(flow_dom)))
     if (nrow(out) == 0) return(NULL)
@@ -987,7 +972,7 @@ recipe_value <- function(scen, names, fmp) {
                         types = "up"),
 
   # C7 trade inter-regional flow bounds: restrict the trade-flow domain to the
-  # routes / slices that carry a lower / upper flow bound. The flow parameter
+  # routes / timeslices that carry a lower / upper flow bound. The flow parameter
   # carries no `comm`; it is supplied by the `mvTradeIr` domain via merge0.
   meqTradeFlowLo = list(domain = "mvTradeIr", source = "pTradeIr",
                         types = "lo", drop = "lo"),
@@ -1076,16 +1061,16 @@ recipe_value <- function(scen, names, fmp) {
   .set_map(scen, name, df, fmp)
 }
 
-# meqStorageStore: storage-balance index. Each storing slice is paired with the
-# next slice (the inter-temporal storage link). Mirrors the legacy join in
-# obj2modInp.R: mvStorageStore.slice == mSliceNext.slicep, taking mSliceNext's
-# own slice as the "next" slice (renamed `slicep`).
+# meqStorageStore: storage-balance index. Each storing timeslice is paired with the
+# next timeslice (the inter-temporal storage link). Mirrors the legacy join in
+# obj2modInp.R: mvStorageStore.timeslice == mTimesliceNext.timeslicep, taking mTimesliceNext's
+# own timeslice as the "next" timeslice (renamed `timeslicep`).
 .build_meqStorageStore <- function(scen, fmp) {
   name <- "meqStorageStore"
   p <- scen@modInp@parameters[[name]]
   if (is.null(p)) return(scen)
   store_par <- scen@modInp@parameters[["mvStorageStore"]]
-  next_par <- scen@modInp@parameters[["mSliceNext"]]
+  next_par <- scen@modInp@parameters[["mTimesliceNext"]]
   if (is.null(store_par) || is.null(next_par)) return(scen)
   store <- get_data_slot(store_par)
   snext <- get_data_slot(next_par)
@@ -1094,26 +1079,26 @@ recipe_value <- function(scen, names, fmp) {
   store <- as.data.frame(store)
   snext <- as.data.frame(snext)
   df <- store |>
-    dplyr::left_join(snext, by = c(slice = "slicep"), suffix = c(".x", ".y")) |>
-    dplyr::rename(slicep = "slice.y") |>
+    dplyr::left_join(snext, by = c(timeslice = "timeslicep"), suffix = c(".x", ".y")) |>
+    dplyr::rename(timeslicep = "timeslice.y") |>
     dplyr::select(dplyr::any_of(p@dimSets)) |>
     dplyr::distinct()
   .set_map(scen, name, df, fmp)
 }
 
-# meqTradeCapFlow: links the trade capacity span to each traded slice and
-# commodity. Mirrors the legacy composition merge0(mTradeSpan, mTradeSlice)
+# meqTradeCapFlow: links the trade capacity span to each traded timeslice and
+# commodity. Mirrors the legacy composition merge0(mTradeSpan, mTradeTimeslice)
 # with the commodity supplied by mTradeComm (legacy set comm = trd@commodity).
 .build_meqTradeCapFlow <- function(scen, fmp) {
   name <- "meqTradeCapFlow"
   p <- scen@modInp@parameters[[name]]
   if (is.null(p)) return(scen)
   span_par <- scen@modInp@parameters[["mTradeSpan"]]
-  slice_par <- scen@modInp@parameters[["mTradeSlice"]]
+  timeslice_par <- scen@modInp@parameters[["mTradeTimeslice"]]
   comm_par <- scen@modInp@parameters[["mTradeComm"]]
-  if (is.null(span_par) || is.null(slice_par) || is.null(comm_par)) return(scen)
+  if (is.null(span_par) || is.null(timeslice_par) || is.null(comm_par)) return(scen)
   span <- get_data_slot(span_par)
-  slc <- get_data_slot(slice_par)
+  slc <- get_data_slot(timeslice_par)
   cmm <- get_data_slot(comm_par)
   if (is.null(span) || nrow(span) == 0) return(scen)
   if (is.null(slc) || nrow(slc) == 0) return(scen)
@@ -1200,7 +1185,7 @@ recipe_value <- function(scen, names, fmp) {
   # Share bounds (drop the value/type columns once filtered). A sparse value
   # parameter stores an UNSET dimension as NA ("applies to all"); such an all-NA
   # key column must be dropped before merge0, otherwise the literal NA-vs-value
-  # slice join empties the domain (the share bound would silently never bind).
+  # timeslice join empties the domain (the share bound would silently never bind).
   share_map <- function(type) {
     if (is.null(pTechShare) || is.null(pTechShare$type)) return(NULL)
     s <- pTechShare[pTechShare$type == type & pTechShare$value > 0, ,
@@ -1239,7 +1224,7 @@ recipe_value <- function(scen, names, fmp) {
     scen <- set_if(scen, "meqTechSng2Sng",
                    as.data.frame(merge0(
                      techSingInp, techSingOut,
-                     by = c("tech", "region", "year", "slice"),
+                     by = c("tech", "region", "year", "timeslice"),
                      suffixes = c("", ".1"))))
   }
   if (!is.null(mTechInpGroup) && !is.null(mTechOutGroup) &&
@@ -1281,11 +1266,11 @@ recipe_value <- function(scen, names, fmp) {
 # --------------------------------------------------------------------------- #
 # Ramping constraints (C-ramp).
 #
-# `mTechRampUp` / `mTechRampDown` index the inter-slice ramping limits. Each map
-# is the ramp parameter domain (tech/region/year/slice), restricted to the
-# activity domain, with the "next" slice (`slicep`) appended. The next-slice map
+# `mTechRampUp` / `mTechRampDown` index the inter-timeslice ramping limits. Each map
+# is the ramp parameter domain (tech/region/year/timeslice), restricted to the
+# activity domain, with the "next" timeslice (`timeslicep`) appended. The next-timeslice map
 # depends on whether a technology operates on the full-year cycle
-# (`mSliceFYearNext`) or the regular slice cycle (`mSliceNext`); `fullYear` is a
+# (`mTimesliceFYearNext`) or the regular timeslice cycle (`mTimesliceNext`); `fullYear` is a
 # per-technology flag, so techs are split accordingly (mirrors the per-tech
 # legacy `.add_ramp0`).
 # --------------------------------------------------------------------------- #
@@ -1315,8 +1300,8 @@ recipe_value <- function(scen, names, fmp) {
   fy_techs <- if (is.null(fy)) character(0) else fy$tech[fy$fullYear]
 
   mvTechAct   <- gdf("mvTechAct")
-  sliceNextFY <- gdf("mSliceFYearNext")
-  sliceNext   <- gdf("mSliceNext")
+  timesliceNextFY <- gdf("mTimesliceFYearNext")
+  timesliceNext   <- gdf("mTimesliceNext")
 
   build_one <- function(scen, src_name, map_name) {
     if (!(map_name %in% names)) return(scen)
@@ -1325,19 +1310,19 @@ recipe_value <- function(scen, names, fmp) {
     if (is.null(src)) return(.set_map(scen, map_name, NULL, fmp))
     m <- src[, setdiff(colnames(src), "value"), drop = FALSE]
     # Restrict to the activity domain when the source carries fewer dimensions
-    # than the target map (i.e. before `slicep` is appended).
+    # than the target map (i.e. before `timeslicep` is appended).
     if (!is.null(mvTechAct) && ncol(m) != length(p@dimSets)) {
       m <- as.data.frame(merge0(m, mvTechAct))
     }
     if (nrow(m) == 0) return(.set_map(scen, map_name, NULL, fmp))
     join_next <- function(df, nextmap) {
       if (is.null(nextmap) || nrow(df) == 0) return(NULL)
-      dplyr::left_join(df, nextmap, by = "slice")
+      dplyr::left_join(df, nextmap, by = "timeslice")
     }
     fy_part <- if (length(fy_techs) > 0) {
-      join_next(m[m$tech %in% fy_techs, , drop = FALSE], sliceNextFY)
+      join_next(m[m$tech %in% fy_techs, , drop = FALSE], timesliceNextFY)
     } else NULL
-    no_part <- join_next(m[!(m$tech %in% fy_techs), , drop = FALSE], sliceNext)
+    no_part <- join_next(m[!(m$tech %in% fy_techs), , drop = FALSE], timesliceNext)
     res <- dplyr::bind_rows(fy_part, no_part)
     if (is.null(res) || nrow(res) == 0) {
       return(.set_map(scen, map_name, NULL, fmp))
@@ -1379,7 +1364,7 @@ recipe_constraint <- function(scen, names, fmp) {
     scen <- .build_tech_group_maps(scen, names, fmp)
   }
 
-  # Ramping maps (per-technology next-slice attachment).
+  # Ramping maps (per-technology next-timeslice attachment).
   if (length(intersect(names, .ramp_maps)) > 0) {
     scen <- .build_ramp_maps(scen, names, fmp)
   }

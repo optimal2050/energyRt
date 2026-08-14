@@ -47,7 +47,7 @@ observed year range) with each parameter's default interpolation rule."><meta pr
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.75.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.80.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -363,7 +363,7 @@ observed year range) with each parameter's default interpolation rule.</p>
 
 
 <dt id="arg-timeframe">timeframe<a class="anchor" aria-label="anchor" href="#arg-timeframe"></a></dt>
-<dd><p>controls sub-annual time aggregation of results that carry a <code>slice</code> column. One of <code>"lowest"</code> (default, aggregate/sum flows up to the coarsest level, normally <code>ANNUAL</code>), <code>"highest"</code> (native/finest, as stored), <code>"all"</code> (return every timeframe level stacked), or an explicit calendar level name (e.g. <code>"SEASON"</code>, <code>"YDAY"</code>) to aggregate to that level. Non-slice data, and state/level variables (e.g. <code>vStorageStore</code>) for which summing over slices is meaningless, are returned unchanged.</p></dd>
+<dd><p>controls sub-annual time aggregation of results that carry a <code>timeslice</code> column. One of <code>"lowest"</code> (default, aggregate/sum flows up to the coarsest level, normally <code>ANNUAL</code>), <code>"highest"</code> (native/finest, as stored), <code>"all"</code> (return every timeframe level stacked), or an explicit calendar level name (e.g. <code>"SEASON"</code>, <code>"YDAY"</code>) to aggregate to that level. Non-timeslice data, and state/level variables (e.g. <code>vStorageStore</code>) for which summing over timeslices is meaningless, are returned unchanged.</p></dd>
 
 
 <dt id="arg-geolevel">geolevel<a class="anchor" aria-label="anchor" href="#arg-geolevel"></a></dt>

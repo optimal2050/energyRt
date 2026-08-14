@@ -178,9 +178,9 @@ print.scenario <- function(x) {
   #      cat('Year:\n')
   #      print(x@year)
   #    }
-  #    if (!is.null(x@slice)) {
-  #      cat('Slice:\n')
-  #      print(x@slice)
+  #    if (!is.null(x@timeslice)) {
+  #      cat('Timeslice:\n')
+  #      print(x@timeslice)
   #    }
   #    if (!is.null(x@repository)) {
   #      cat('Repository:\n')

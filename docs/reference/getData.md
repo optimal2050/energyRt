@@ -277,13 +277,13 @@ getData(
 
 - timeframe:
 
-  controls sub-annual time aggregation of results that carry a `slice`
-  column. One of `"lowest"` (default, aggregate/sum flows up to the
-  coarsest level, normally `ANNUAL`), `"highest"` (native/finest, as
-  stored), `"all"` (return every timeframe level stacked), or an
+  controls sub-annual time aggregation of results that carry a
+  `timeslice` column. One of `"lowest"` (default, aggregate/sum flows up
+  to the coarsest level, normally `ANNUAL`), `"highest"` (native/finest,
+  as stored), `"all"` (return every timeframe level stacked), or an
   explicit calendar level name (e.g. `"SEASON"`, `"YDAY"`) to aggregate
-  to that level. Non-slice data, and state/level variables (e.g.
-  `vStorageStore`) for which summing over slices is meaningless, are
+  to that level. Non-timeslice data, and state/level variables (e.g.
+  `vStorageStore`) for which summing over timeslices is meaningless, are
   returned unchanged.
 
 - geolevel:

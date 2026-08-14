@@ -7,15 +7,15 @@
 \format{
 A named list of \code{calendar} objects, including:
 \describe{
-\item{season_dn}{Four seasons x day/night (8 slices).}
+\item{season_dn}{Four seasons x day/night (8 timeslices).}
 \item{d365}{Daily resolution, 365 days.}
-\item{utopia_annual}{UTOPIA: annual resolution (1 slice).}
+\item{utopia_annual}{UTOPIA: annual resolution (1 timeslice).}
 \item{utopia_seasons}{UTOPIA: 4 seasons x 3 dayparts (DAY/NIGHT/PEAK) with
-representative shares (12 slices) -- the default UTOPIA resolution.}
-\item{utopia_m12h24}{UTOPIA: 12 months x 24 hours (288 slices).}
-\item{d365_h24}{Full hourly year: 365 days x 24 hours (8760 slices).}
+representative shares (12 timeslices) -- the default UTOPIA resolution.}
+\item{utopia_m12h24}{UTOPIA: 12 months x 24 hours (288 timeslices).}
+\item{d365_h24}{Full hourly year: 365 days x 24 hours (8760 timeslices).}
 \item{d365_h24_subset_1day_per_month}{Representative subset: one day per
-month at hourly resolution (288 slices, \code{year_fraction} ~ 12/365).}
+month at hourly resolution (288 timeslices, \code{year_fraction} ~ 12/365).}
 }
 The \verb{utopia_*} calendars are built from energyRt's own constructors; the
 hourly \verb{d365_h24*} calendars are imported from the IDEEA package. See

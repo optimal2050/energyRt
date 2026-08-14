@@ -31,7 +31,7 @@ interpolation direction."><meta property="og:image" content="https://energyRt.or
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.75.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.80.3.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -92,19 +92,19 @@ interpolation direction.</p>
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="co"># S3 method for class 'supply'</span></span>
-<span><span class="fu">autoplot</span><span class="op">(</span><span class="va">object</span>, year <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">...</span><span class="op">)</span></span>
+<span><span class="fu">autoplot</span><span class="op">(</span><span class="va">object</span>, year <span class="op">=</span> <span class="cn">NULL</span>, interpolate <span class="op">=</span> <span class="cn">TRUE</span>, show_defaults <span class="op">=</span> <span class="cn">FALSE</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'import'</span></span>
-<span><span class="fu">autoplot</span><span class="op">(</span><span class="va">object</span>, year <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">...</span><span class="op">)</span></span>
+<span><span class="fu">autoplot</span><span class="op">(</span><span class="va">object</span>, year <span class="op">=</span> <span class="cn">NULL</span>, interpolate <span class="op">=</span> <span class="cn">TRUE</span>, show_defaults <span class="op">=</span> <span class="cn">FALSE</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'export'</span></span>
-<span><span class="fu">autoplot</span><span class="op">(</span><span class="va">object</span>, year <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">...</span><span class="op">)</span></span>
+<span><span class="fu">autoplot</span><span class="op">(</span><span class="va">object</span>, year <span class="op">=</span> <span class="cn">NULL</span>, interpolate <span class="op">=</span> <span class="cn">TRUE</span>, show_defaults <span class="op">=</span> <span class="cn">FALSE</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'technology'</span></span>
-<span><span class="fu">autoplot</span><span class="op">(</span><span class="va">object</span>, year <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">...</span><span class="op">)</span></span>
+<span><span class="fu">autoplot</span><span class="op">(</span><span class="va">object</span>, year <span class="op">=</span> <span class="cn">NULL</span>, interpolate <span class="op">=</span> <span class="cn">TRUE</span>, show_defaults <span class="op">=</span> <span class="cn">FALSE</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S3 method for class 'storage'</span></span>
-<span><span class="fu">autoplot</span><span class="op">(</span><span class="va">object</span>, year <span class="op">=</span> <span class="cn">NULL</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu">autoplot</span><span class="op">(</span><span class="va">object</span>, year <span class="op">=</span> <span class="cn">NULL</span>, interpolate <span class="op">=</span> <span class="cn">TRUE</span>, show_defaults <span class="op">=</span> <span class="cn">FALSE</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -118,11 +118,27 @@ interpolation direction.</p>
 
 <dt id="arg-year">year<a class="anchor" aria-label="anchor" href="#arg-year"></a></dt>
 <dd><p>Optional integer vector of target years to interpolate over.
-Defaults to the range of years present in the object's data.</p></dd>
+Defaults to the range of years present in the object's data; a wider
+vector (e.g. <code>2020:2050</code>) extends the lines beyond the given years
+(constant extrapolation, as the model interpolates).</p></dd>
+
+
+<dt id="arg-interpolate">interpolate<a class="anchor" aria-label="anchor" href="#arg-interpolate"></a></dt>
+<dd><p>Logical, default <code>TRUE</code>: draw the interpolated series
+(lines) alongside the given data (points), using each parameter's own
+interpolation rule via <code><a href="getData.html">getData()</a></code>. <code>FALSE</code> shows the given data only.</p></dd>
+
+
+<dt id="arg-show-defaults">show_defaults<a class="anchor" aria-label="anchor" href="#arg-show-defaults"></a></dt>
+<dd><p>Logical, default <code>FALSE</code>. When <code>TRUE</code>, parameters of
+the plotted slot(s) that are mapped to the model but NOT set in the
+object are drawn as dotted lines at their default values (e.g. a supply
+without <code>ava.lo</code> shows its default of 0). Non-finite defaults (e.g.
+<code>ava.up = Inf</code>) are listed in the caption instead of drawn.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Passed to <code><a href="getData.html">getData()</a></code> (e.g. <code>region=</code>, <code>slice=</code> filters).</p></dd>
+<dd><p>Passed to <code><a href="getData.html">getData()</a></code> (e.g. <code>region=</code>, <code>timeslice=</code> filters).</p></dd>
 
 </dl></div>
     <div class="section level2">

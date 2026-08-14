@@ -53,7 +53,7 @@ styler::style_file("R/defaults.R")
   "horizon", # test
   "tech", "techp", "dem", "sup", "weather", "acomm", "comm", "commp",
   "group", "region", "regionp", "src", "dst",
-  "year", "yearp", "slice", "slicep", "stg", "expp", "imp", "trade",
+  "year", "yearp", "timeslice", "timeslicep", "stg", "expp", "imp", "trade",
   "costs" # user-cost object names; the `vUserCosts` dimension
 )
 
@@ -129,7 +129,7 @@ usethis::use_data(model_structure, internal = FALSE, overwrite = TRUE)
 # itself or a known alias of it.
 local({
   .alias <- list(year = "yearp", region = c("src", "dst", "regionp"),
-                 comm = c("commp", "acomm"), slice = "slicep", tech = "techp")
+                 comm = c("commp", "acomm"), timeslice = "timeslicep", tech = "techp")
   miss <- setdiff(names(.variable_mapping), names(.variable_colnames))
   if (length(miss)) {
     stop("No output header found in the GLPK template for: ",

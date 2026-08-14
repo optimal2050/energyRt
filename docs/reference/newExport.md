@@ -53,10 +53,10 @@ newExport(
   :   integer. Year to apply the parameter; use NA to apply to all
       years.
 
-  slice
+  timeslice
 
-  :   character. Time slice to apply the parameter; use NA to apply to
-      all slices.
+  :   character. Time timeslice to apply the parameter; use NA to apply
+      to all timeslices.
 
   exp.lo
 

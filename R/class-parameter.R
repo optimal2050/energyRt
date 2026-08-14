@@ -84,7 +84,7 @@ setMethod("initialize", signature = "parameter",
     # expected_sets <- c(
     #   "tech", "techp", "dem", "sup", "weather", "acomm", "comm", "commp",
     #   "group", "region", "regionp", "src", "dst",
-    #   "year", "yearp", "slice", "slicep", "stg", "expp", "imp", "trade"
+    #   "year", "yearp", "timeslice", "timeslicep", "stg", "expp", "imp", "trade"
     # )
     if (!is.character(name) || length(name) != 1 || !check_name(name)) {
       stop(paste('Wrong name: "', name, '"', sep = ""))
@@ -132,8 +132,8 @@ setMethod("initialize", signature = "parameter",
     #   acomm = character(), comm = character(), commp = character(),
     #   group = character(), region = character(), regionp = character(),
     #   src = character(), dst = character(),
-    #   year = integer(), yearp = numeric(), slicep = character(),
-    #   slice = character(), stg = character(),
+    #   year = integer(), yearp = numeric(), timeslicep = character(),
+    #   timeslice = character(), stg = character(),
     #   expp = character(), imp = character(), trade = character(),
     #   type = factor(levels = c("lo", "up")),
     #   value = numeric(), stringsAsFactors = FALSE

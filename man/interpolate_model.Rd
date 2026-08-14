@@ -42,9 +42,9 @@ models (data is materialised back to memory at solve time).}
 name.}
 
 \item{fold}{logical or character; whole-column "fold" of trimmable dimensions
-to NA wildcards to shrink the data. \code{TRUE} folds \code{region} + \code{slice}; \code{FALSE}
+to NA wildcards to shrink the data. \code{TRUE} folds \code{region} + \code{timeslice}; \code{FALSE}
 (default) folds nothing; a character vector selects dims among
-\code{region}, \code{slice}, \code{year}, \code{comm}, \code{tech}, \code{stg}, \code{trade}. A folded scenario
+\code{region}, \code{timeslice}, \code{year}, \code{comm}, \code{tech}, \code{stg}, \code{trade}. A folded scenario
 is expanded to solver-ready form at solve time.}
 
 \item{sparse}{logical; the storage knob. \code{TRUE} drops \code{value == defVal} rows

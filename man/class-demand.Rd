@@ -22,7 +22,7 @@ An S4 class to declare a demand in the model
 \describe{
 \item{region}{character. Name of region for the demand value. NA for every region.}
 \item{year}{integer. Year of the demand. NA for every year.}
-\item{slice}{character. Name of the slice for the demand value. NA for every slice.}
+\item{timeslice}{character. Name of the timeslice for the demand value. NA for every timeslice.}
 \item{demand}{numeric. Value of the demand.}
 }}
 

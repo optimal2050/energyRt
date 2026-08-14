@@ -13,9 +13,9 @@ technologies, supply, or demand to represent complex technological chains,
 demand or supply technologies with time-shift.
 Operation of storage includes accumulation, storing, and release
 of the stored commodity. The storing cycle operates on the ordered
-time-slices of the commodity timeframe. The cycle is looped either
-on an annual basis (last time-slice of a year follows the first time
-slice of the same year) or within the parent time-frame (for example,
+time-timeslices of the commodity timeframe. The cycle is looped either
+on an annual basis (last time-timeslice of a year follows the first time
+timeslice of the same year) or within the parent time-frame (for example,
 when commodity time-frame is "HOUR" and the parent time-frame is "DAY" then
 the storage cycle will be a calendar day).
 }
@@ -44,13 +44,13 @@ the storage cycle will be a calendar day).
 \item{order}{integer. Optional display/ranking order; controls the order variants are created and reported in.}
 }}
 
-\item{\code{vintage}}{data.frame. Investment window and operational life of the storage, one row per (vintage, region, cluster). Replaces the former \code{start}, \code{end} and \code{olife} slots. A vintage is a separately investable variant that keeps the characteristics of its build year for its whole life -- for storage typically a falling capex and a rising round-trip efficiency. Each column is read independently, so a region-agnostic \code{start} may be combined with a per-region \code{olife}.
+\item{\code{vintage}}{data.frame. Investment window and operational life of the storage, one row per (vintage, region, cluster). Replaces the former \code{start}, \code{end} and \code{olife} slots. A vintage is a separately investable variant that keeps the characteristics of its build year for its whole life -- for storage typically a falling capex and a rising round-trip efficiency.
 \describe{
 \item{vintage}{character. Vintage label, normally the build year as a string. NA for an un-vintaged storage.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{cluster}{character. Cluster label, NA for every cluster.}
-\item{start}{integer. The first year the storage can be installed. Defaults to the vintage year.}
-\item{end}{integer. The last year the storage can be installed. Defaults to the vintage year.}
+\item{start}{integer. The first year the storage can be installed. NA means unbounded (up to \code{end}).}
+\item{end}{integer. The last year the storage can be installed. NA means unbounded (from \code{start} on).}
 \item{olife}{integer. Operational life of the storage in years, applicable to new investment only.}
 }}
 
@@ -80,8 +80,8 @@ the storage cycle will be a calendar day).
 \item{cluster}{character. Cluster label selecting the variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
-\item{slice}{character. Time slice for which the charged level will be specified.}
-\item{charge}{numeric. Pre-charged or targeted level at the specified slice.}
+\item{timeslice}{character. Time timeslice for which the charged level will be specified.}
+\item{charge}{numeric. Pre-charged or targeted level at the specified timeslice.}
 }}
 
 \item{\code{seff}}{data.frame. Storage efficiency parameters.
@@ -90,7 +90,7 @@ the storage cycle will be a calendar day).
 \item{cluster}{character. Cluster label selecting the variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
-\item{slice}{character. Time slice to apply the parameter, NA for every slice.}
+\item{timeslice}{character. Time timeslice to apply the parameter, NA for every timeslice.}
 \item{stgeff}{numeric. Storage decay annual rate.}
 \item{inpeff}{numeric. Input efficiency rate.}
 \item{outeff}{numeric. Output efficiency rate.}
@@ -102,7 +102,7 @@ the storage cycle will be a calendar day).
 \item{cluster}{character. Cluster label selecting the variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
-\item{slice}{character. Time slice to apply the parameter, NA for every slice.}
+\item{timeslice}{character. Time timeslice to apply the parameter, NA for every timeslice.}
 \item{af.lo}{numeric. Lower bound of the availability factor.}
 \item{af.up}{numeric. Upper bound of the availability factor.}
 \item{af.fx}{numeric. Fixed value of the availability factor. This parameter overrides \code{af.lo} and \code{af.up}.}
@@ -123,7 +123,7 @@ the storage cycle will be a calendar day).
 \item{acomm}{character. Name of the auxiliary commodity (used in sets).}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
-\item{slice}{character. Time slice to apply the parameter, NA for every slice.}
+\item{timeslice}{character. Time timeslice to apply the parameter, NA for every timeslice.}
 \item{stg2ainp}{numeric. Storaage-level-to-auxiliary-input-commodity coefficient (multiplier).}
 \item{cinp2ainp}{numeric. Input-commodity-to-auxiliary-input-commodity coefficient (multiplier).}
 \item{cout2ainp}{numeric. Output-commodity-to-auxiliary-input-commodity coefficient (multiplier).}
@@ -152,7 +152,7 @@ the storage cycle will be a calendar day).
 \item{cluster}{character. Cluster label selecting the variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
-\item{slice}{character. Time slice to apply the parameter, NA for every slice.}
+\item{timeslice}{character. Time timeslice to apply the parameter, NA for every timeslice.}
 \item{inpcost}{numeric. Costs associated with the input commodity.}
 \item{outcost}{numeric. Costs associated with the output commodity.}
 \item{stgcost}{numeric. Costs associated with the storage level.}
@@ -171,7 +171,7 @@ the storage cycle will be a calendar day).
 \item{retcost}{numeric. Costs of early retirement of the storage, default is 0.}
 }}
 
-\item{\code{fullYear}}{logical. If TRUE (default), the storage technology operates between parent timeframes through the year. The last time-slice in the timeframe is used as a preciding time-slice for the first time-slice in the the same group of time-slices within the parent timeframe. if FALSE, the storage charge and discchare cycle is limited to the parent timeframe. The last time-slice in the timeframe is used as a preciding time-slice for the first time-slice in the the same group of time-slices within the parent timeframe.}
+\item{\code{fullYear}}{logical. If TRUE (default), the storage technology operates between parent timeframes through the year. The last time-timeslice in the timeframe is used as a preciding time-timeslice for the first time-timeslice in the the same group of time-timeslices within the parent timeframe. if FALSE, the storage charge and discchare cycle is limited to the parent timeframe. The last time-timeslice in the timeframe is used as a preciding time-timeslice for the first time-timeslice in the the same group of time-timeslices within the parent timeframe.}
 
 \item{\code{cap2stg}}{data.frame. Charging and discharging capacity to the storing capacity inverse ratio, i.e. the storage duration. A data.frame rather than a scalar so it can differ by cluster -- 1h / 4h / 8h duration classes of the same storage. A bare scalar (\code{cap2stg = 4}) is still accepted.
 \describe{

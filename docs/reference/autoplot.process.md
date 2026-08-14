@@ -18,19 +18,19 @@ direction.
 
 ``` r
 # S3 method for class 'supply'
-autoplot(object, year = NULL, ...)
+autoplot(object, year = NULL, interpolate = TRUE, show_defaults = FALSE, ...)
 
 # S3 method for class 'import'
-autoplot(object, year = NULL, ...)
+autoplot(object, year = NULL, interpolate = TRUE, show_defaults = FALSE, ...)
 
 # S3 method for class 'export'
-autoplot(object, year = NULL, ...)
+autoplot(object, year = NULL, interpolate = TRUE, show_defaults = FALSE, ...)
 
 # S3 method for class 'technology'
-autoplot(object, year = NULL, ...)
+autoplot(object, year = NULL, interpolate = TRUE, show_defaults = FALSE, ...)
 
 # S3 method for class 'storage'
-autoplot(object, year = NULL, ...)
+autoplot(object, year = NULL, interpolate = TRUE, show_defaults = FALSE, ...)
 ```
 
 ## Arguments
@@ -43,12 +43,30 @@ autoplot(object, year = NULL, ...)
 - year:
 
   Optional integer vector of target years to interpolate over. Defaults
-  to the range of years present in the object's data.
+  to the range of years present in the object's data; a wider vector
+  (e.g. `2020:2050`) extends the lines beyond the given years (constant
+  extrapolation, as the model interpolates).
+
+- interpolate:
+
+  Logical, default `TRUE`: draw the interpolated series (lines)
+  alongside the given data (points), using each parameter's own
+  interpolation rule via
+  [`getData()`](https://energyRt.org/reference/getData.md). `FALSE`
+  shows the given data only.
+
+- show_defaults:
+
+  Logical, default `FALSE`. When `TRUE`, parameters of the plotted
+  slot(s) that are mapped to the model but NOT set in the object are
+  drawn as dotted lines at their default values (e.g. a supply without
+  `ava.lo` shows its default of 0). Non-finite defaults (e.g.
+  `ava.up = Inf`) are listed in the caption instead of drawn.
 
 - ...:
 
   Passed to [`getData()`](https://energyRt.org/reference/getData.md)
-  (e.g. `region=`, `slice=` filters).
+  (e.g. `region=`, `timeslice=` filters).
 
 ## Value
 

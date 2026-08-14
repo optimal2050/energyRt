@@ -31,7 +31,7 @@ newImport(
 \item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
 \item{region}{character. Region name to apply the parameter; use NA to apply to all regions.}
 \item{year}{integer. Year to apply the parameter; use NA to apply to all years.}
-\item{slice}{character. Time slice to apply the parameter; use NA to apply to all slices.}
+\item{timeslice}{character. Time timeslice to apply the parameter; use NA to apply to all timeslices.}
 \item{imp.lo}{numeric. Lower bound on the import volume.}
 \item{imp.up}{numeric. Upper bound on the import volume.}
 \item{imp.fx}{numeric. Fixed import volume, ignored if NA. This parameter overrides \code{imp.lo} and \code{imp.up}.}

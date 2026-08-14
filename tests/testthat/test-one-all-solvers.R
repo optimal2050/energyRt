@@ -2,8 +2,10 @@
 # Config/testthat/parallel: true
 # usethis::edit_r_environ()
 # TESTTHAT_CPUS=4
-# file.edit("~/.energyRt/settings.R")
-source("~/.energyRt/settings.R")
+# Solver paths come from the energyRt config file (`~/.energyRt/config.yml`),
+# applied automatically at load. Inspect with `en_config_show()`; write with
+# `en_config_write()`. This used to `source("~/.energyRt/settings.R")`, a path
+# the package itself never read.
 get_python_path()
 
 h10 <- make_timetable(
@@ -20,10 +22,10 @@ OUT <- newCommodity("OUT", timeframe = "HOUR")
 SUP_INP <- newSupply(
   name = "SUP_INP",
   commodity = "INP",
-  availability = data.frame(
+  supply = data.frame(
     # region = NA,
     # year = NA,
-    # slice = NA,
+    # timeslice = NA,
     cost = 1
   )
 )
@@ -42,11 +44,11 @@ TECH <- newTechnology(
 DEM <- newDemand(
   name = "DEM",
   commodity = "OUT",
-  dem = data.frame(
+  demand = data.frame(
     # region = NA,
     # year = NA,
-    # slice = NA,
-    dem = 1
+    # timeslice = NA,
+    demand = 1
   )
 )
 

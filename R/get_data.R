@@ -160,7 +160,7 @@ findData <- function(scen,
 #' @param name character vector with names of parameters and/or variables.
 #' @param merge if TRUE, the search results will be merged in one dataframe; the named list will be returned if FALSE. When TRUE, a data.frame (empty if nothing matched) is always returned, never NULL.
 #' @param geolevel controls spatial aggregation of results that carry a `region` column, the spatial twin of `timeframe`. One of `"finest"` (default, native resolution as stored), `"coarsest"` (aggregate up to the top geoscale level), `"all"` (return every level stacked), or an explicit geoscale level name (e.g. `"zone"`, `"nation"`). Requires a geoscale on the model; without one this is inert. Inter-regional flow variables (e.g. `vTradeIr`) are returned unchanged, because summing a flow across regions double-counts it — the spatial counterpart of leaving state variables alone under `timeframe`.
-#' @param timeframe controls sub-annual time aggregation of results that carry a `slice` column. One of `"lowest"` (default, aggregate/sum flows up to the coarsest level, normally `ANNUAL`), `"highest"` (native/finest, as stored), `"all"` (return every timeframe level stacked), or an explicit calendar level name (e.g. `"SEASON"`, `"YDAY"`) to aggregate to that level. Non-slice data, and state/level variables (e.g. `vStorageStore`) for which summing over slices is meaningless, are returned unchanged.
+#' @param timeframe controls sub-annual time aggregation of results that carry a `timeslice` column. One of `"lowest"` (default, aggregate/sum flows up to the coarsest level, normally `ANNUAL`), `"highest"` (native/finest, as stored), `"all"` (return every timeframe level stacked), or an explicit calendar level name (e.g. `"SEASON"`, `"YDAY"`) to aggregate to that level. Non-timeslice data, and state/level variables (e.g. `vStorageStore`) for which summing over timeslices is meaningless, are returned unchanged.
 #' @param process if TRUE, dimensions "tech", "stg", "trade", "imp", "expp", "dem", and "sup" will be renamed with "process".
 #' @param parameters if TRUE, parameters will be included in the search and returned if found.
 #' @param variables if TRUE, variables will be included in the search and returned if found.
@@ -567,7 +567,7 @@ getData.scenario <- function(
     }
   }
 
-  # Sub-annual time aggregation (slice roll-up), see `timeframe` argument.
+  # Sub-annual time aggregation (timeslice roll-up), see `timeframe` argument.
   if (length(ll) > 0) {
     cal <- tryCatch(scen[[1]]@settings@calendar, error = function(e) NULL)
     if (!is.null(cal)) ll <- .apply_timeframe(ll, cal, timeframe)
@@ -685,7 +685,7 @@ getData.default <- function(scen, ...) {
 #' @export
 get_data <- getData
 
-# ---- getData helpers: empty result + timeframe (slice) aggregation ----------
+# ---- getData helpers: empty result + timeframe (timeslice) aggregation ----------
 
 # Uniform "nothing found" return: an (empty) data.frame when merge = TRUE,
 # an empty list otherwise. Keeps `merge = TRUE` from ever returning NULL.
@@ -696,23 +696,23 @@ get_data <- getData
   if (isTRUE(asTibble)) tibble::tibble() else data.frame()
 }
 
-# Canonical slice -> integer rank (1 = ANNUAL / coarsest; larger = finer),
-# derived from the number of ancestors each slice has in the calendar.
-.slice_rank_map <- function(calendar) {
-  slices <- calendar@slice_share$slice
-  anc <- calendar@slice_ancestry # columns: parent (ancestor), child
-  if (is.null(anc) || nrow(anc) == 0 || length(slices) == 0) {
-    return(stats::setNames(rep(1L, length(slices)), slices))
+# Canonical timeslice -> integer rank (1 = ANNUAL / coarsest; larger = finer),
+# derived from the number of ancestors each timeslice has in the calendar.
+.timeslice_rank_map <- function(calendar) {
+  timeslices <- calendar@timeslice_share$timeslice
+  anc <- calendar@timeslice_ancestry # columns: parent (ancestor), child
+  if (is.null(anc) || nrow(anc) == 0 || length(timeslices) == 0) {
+    return(stats::setNames(rep(1L, length(timeslices)), timeslices))
   }
-  nanc <- table(factor(anc$child, levels = slices))
-  stats::setNames(as.integer(nanc) + 1L, slices)
+  nanc <- table(factor(anc$child, levels = timeslices))
+  stats::setNames(as.integer(nanc) + 1L, timeslices)
 }
 
-# Map every canonical slice to its representative at `target_rank`:
-#   finer slices -> their ancestor at target_rank; at-or-coarser -> themselves.
-.slice_target_map <- function(calendar, target_rank) {
-  rk <- .slice_rank_map(calendar)
-  anc <- calendar@slice_ancestry
+# Map every canonical timeslice to its representative at `target_rank`:
+#   finer timeslices -> their ancestor at target_rank; at-or-coarser -> themselves.
+.timeslice_target_map <- function(calendar, target_rank) {
+  rk <- .timeslice_rank_map(calendar)
+  anc <- calendar@timeslice_ancestry
   out <- character(0)
   if (!is.null(anc) && nrow(anc) > 0) {
     keep <- rk[anc$parent] == target_rank # ancestors sitting exactly at target
@@ -722,8 +722,8 @@ get_data <- getData
   c(out, stats::setNames(self, self))
 }
 
-# State/level variables whose slice dimension is a snapshot, not a flow: summing
-# them over slices is meaningless, so timeframe roll-up leaves them at native
+# State/level variables whose timeslice dimension is a snapshot, not a flow: summing
+# them over timeslices is meaningless, so timeframe roll-up leaves them at native
 # resolution. Read off the variable specification (`role: stock` in
 # data-raw/variables.yml) rather than being listed here, so a new state variable
 # is covered by declaring what it is.
@@ -735,7 +735,7 @@ get_data <- getData
   }, logical(1), USE.NAMES = FALSE)
 }
 
-# Aggregate one data.frame to `target_rank` by summing `value` over child slices.
+# Aggregate one data.frame to `target_rank` by summing `value` over child timeslices.
 # Left-join the variant provenance onto a result frame. The process id column is
 # `tech` / `stg` / `trade` depending on the class, or `process` when
 # `getData(process = TRUE)` has renamed it -- so the join key is whichever of
@@ -755,26 +755,26 @@ get_data <- getData
   if (is.na(target_rank)) {
     return(df)
   }
-  if (!("slice" %in% names(df)) || !("value" %in% names(df))) {
+  if (!("timeslice" %in% names(df)) || !("value" %in% names(df))) {
     return(df)
   }
-  # never sum a stored-level / state variable across slices
+  # never sum a stored-level / state variable across timeslices
   if ("name" %in% names(df) && any(.is_state_var(unique(df$name)))) {
     return(df)
   }
-  map <- .slice_target_map(calendar, target_rank)
-  tgt <- unname(map[as.character(df$slice)])
+  map <- .timeslice_target_map(calendar, target_rank)
+  tgt <- unname(map[as.character(df$timeslice)])
   na <- is.na(tgt)
-  tgt[na] <- as.character(df$slice)[na] # unknown slices: leave untouched
-  # A folded parameter stores an unset slice as NA ("all slices"). Both sides of
+  tgt[na] <- as.character(df$timeslice)[na] # unknown timeslices: leave untouched
+  # A folded parameter stores an unset timeslice as NA ("all timeslices"). Both sides of
   # the comparison are then NA, so `all()` returned NA and `if` errored -- guard
-  # it: an NA slice has nothing to roll up.
-  same <- tgt == as.character(df$slice)
+  # it: an NA timeslice has nothing to roll up.
+  same <- tgt == as.character(df$timeslice)
   same[is.na(same)] <- TRUE
   if (all(same)) {
     return(df) # nothing to roll up
   }
-  df$slice <- tgt
+  df$timeslice <- tgt
   grp <- setdiff(names(df), "value")
   out <- df |>
     dplyr::group_by(dplyr::across(dplyr::all_of(grp))) |>
@@ -784,12 +784,12 @@ get_data <- getData
 
 # ---- geolevel (region roll-up): the spatial twin of the block above --------
 #
-# Same shape as `.slice_rank_map()` / `.aggregate_timeframe_df()`, with two
+# Same shape as `.timeslice_rank_map()` / `.aggregate_timeframe_df()`, with two
 # deliberate differences:
 #
 #  * rank comes from the geoscale (1 = coarsest), not from ancestry counting;
 #  * the variable exempted from roll-up is different. Summing a STOCK over
-#    slices is meaningless (it double-counts time), so timeframe roll-up skips
+#    timeslices is meaningless (it double-counts time), so timeframe roll-up skips
 #    state variables. Summing a stock over REGIONS is perfectly meaningful
 #    (total storage in a zone), but summing an INTER-REGIONAL FLOW is not --
 #    trade between two regions of the same zone cancels rather than adds. So
@@ -903,7 +903,7 @@ get_data <- getData
   if (identical(tolower(tf), "all")) {
     ranks <- sort(unique(as.integer(rank)), decreasing = TRUE)
     out <- lapply(ll, function(df) {
-      if (!("slice" %in% names(df)) || !("value" %in% names(df))) {
+      if (!("timeslice" %in% names(df)) || !("value" %in% names(df))) {
         return(df)
       }
       pieces <- lapply(ranks, function(r) .aggregate_timeframe_df(df, calendar, r))

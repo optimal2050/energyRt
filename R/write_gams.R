@@ -465,8 +465,8 @@ get_gdxlib_path <- function() {
         add_cond2 <- "(mTechInpComm(tech, comm) or mTechOutComm(tech, comm) or mTechAInp(tech, comm) or mTechAOut(tech, comm))"
         if (any(obj@dimSets == "group")) add_cond2 <- paste("not(mTechOneComm(tech, comm)) and  ", add_cond2, sep = "")
       }
-      if (any(obj@dimSets == "tech") && any(obj@dimSets == "slice")) {
-        add_cond2 <- add_cnd("mTechSlice(tech, slice)", add_cond2)
+      if (any(obj@dimSets == "tech") && any(obj@dimSets == "timeslice")) {
+        add_cond2 <- add_cnd("mTechTimeslice(tech, timeslice)", add_cond2)
       }
       if (any(obj@dimSets == "tech") && any(obj@dimSets == "acomm")) {
         add_cond2 <- add_cnd("(mTechAInp(tech, acomm) or mTechAOut(tech, acomm))", add_cond2)
@@ -475,13 +475,13 @@ get_gdxlib_path <- function() {
         add_cond2 <- add_cnd("mMidMilestone(year)", add_cond2)
       }
       if (name == "pTradeIrEff") {
-        add_cond2 <- "(sum(comm$(mTradeComm(trade, comm) and mvTradeIr(trade, comm, src, dst, year, slice)), 1))"
+        add_cond2 <- "(sum(comm$(mTradeComm(trade, comm) and mvTradeIr(trade, comm, src, dst, year, timeslice)), 1))"
       }
       if (name == "pTechGinp2use") {
-        add_cond2 <- "(sum(commp$meqTechGrp2Sng(tech, region, group, commp, year, slice), 1) + (sum(groupp$meqTechGrp2Grp(tech, region, group, groupp, year, slice), 1) <> 0))"
+        add_cond2 <- "(sum(commp$meqTechGrp2Sng(tech, region, group, commp, year, timeslice), 1) + (sum(groupp$meqTechGrp2Grp(tech, region, group, groupp, year, timeslice), 1) <> 0))"
       }
       if (name == "pTechAfUp") {
-        add_cond2 <- "meqTechAfUp(tech, region, year, slice)"
+        add_cond2 <- "meqTechAfUp(tech, region, year, timeslice)"
       }
 
       if (add_cond2 != "") add_cond2 <- paste("(", add_cond2, ")", sep = "")

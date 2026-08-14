@@ -14,13 +14,13 @@ plot_heatmap(
 )
 }
 \arguments{
-\item{object}{A \code{data.frame} with a \code{slice} column and a numeric value column, a
-named numeric vector (names are slices), or a \code{calendar} object (then the
-slice \code{share} — or \code{value} column — is shown).}
+\item{object}{A \code{data.frame} with a \code{timeslice} column and a numeric value column, a
+named numeric vector (names are timeslices), or a \code{calendar} object (then the
+timeslice \code{share} — or \code{value} column — is shown).}
 
 \item{calendar}{A \code{calendar} object giving the layout (matched to \code{x} by
-slice), or a format string (e.g. \code{"d365_h24"}). If \code{NULL}, the format is
-guessed from the slice names with \code{\link[=tsl_guess_format]{tsl_guess_format()}}.}
+timeslice), or a format string (e.g. \code{"d365_h24"}). If \code{NULL}, the format is
+guessed from the timeslice names with \code{\link[=tsl_guess_format]{tsl_guess_format()}}.}
 
 \item{value}{Name of the value column in \code{x} (defaults to the single numeric
 column, or \code{share} for a calendar).}
@@ -46,7 +46,7 @@ renewable profiles, prices, and other sub-annual series.
 \dontrun{
 data("calendars", package = "energyRt")
 cal <- calendars$d365_h24
-prof <- data.frame(slice = cal@timetable$slice,
+prof <- data.frame(timeslice = cal@timetable$timeslice,
                    load  = runif(nrow(cal@timetable)))
 plot_heatmap(prof, calendar = cal, value = "load")
 plot_heatmap(prof, calendar = cal, value = "load", facet = "month")

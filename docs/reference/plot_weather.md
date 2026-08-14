@@ -44,12 +44,12 @@ autoplot(object, style = c("heatmap", "line", "area"), calendar = NULL, ...)
 
 - calendar:
 
-  A `calendar` object (or format string) giving the slice layout.
+  A `calendar` object (or format string) giving the timeslice layout.
   Recommended for a fully structured view. If `NULL`, the layout is
-  guessed; when that fails, `"<prefix>_h##"`-style slices (e.g.
-  season+hour) are split into a coarse label + hour, otherwise slices
-  are shown on a single ordered axis. In every case region and year
-  (when present) are drawn as facets.
+  guessed; when that fails, `"<prefix>_h##"`-style timeslices (e.g.
+  season+hour) are split into a coarse label + hour, otherwise
+  timeslices are shown on a single ordered axis. In every case region
+  and year (when present) are drawn as facets.
 
 - palette:
 
@@ -60,8 +60,8 @@ autoplot(object, style = c("heatmap", "line", "area"), calendar = NULL, ...)
   Logical (line/area only). If `TRUE`, place the profile on a real
   datetime axis via
   [`tsl2dtm()`](https://energyRt.org/reference/timeslices.md); if the
-  slice type is not yet supported the categorical axis is kept (with a
-  warning).
+  timeslice type is not yet supported the categorical axis is kept (with
+  a warning).
 
 - angle:
 

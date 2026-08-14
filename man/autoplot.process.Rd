@@ -9,24 +9,36 @@
 \alias{autoplot.storage}
 \title{Visualize a process object over years}
 \usage{
-\method{autoplot}{supply}(object, year = NULL, ...)
+\method{autoplot}{supply}(object, year = NULL, interpolate = TRUE, show_defaults = FALSE, ...)
 
-\method{autoplot}{import}(object, year = NULL, ...)
+\method{autoplot}{import}(object, year = NULL, interpolate = TRUE, show_defaults = FALSE, ...)
 
-\method{autoplot}{export}(object, year = NULL, ...)
+\method{autoplot}{export}(object, year = NULL, interpolate = TRUE, show_defaults = FALSE, ...)
 
-\method{autoplot}{technology}(object, year = NULL, ...)
+\method{autoplot}{technology}(object, year = NULL, interpolate = TRUE, show_defaults = FALSE, ...)
 
-\method{autoplot}{storage}(object, year = NULL, ...)
+\method{autoplot}{storage}(object, year = NULL, interpolate = TRUE, show_defaults = FALSE, ...)
 }
 \arguments{
 \item{object}{A \code{supply}, \code{demand}, \code{import}, \code{export}, \code{technology}, or
 \code{storage} object.}
 
 \item{year}{Optional integer vector of target years to interpolate over.
-Defaults to the range of years present in the object's data.}
+Defaults to the range of years present in the object's data; a wider
+vector (e.g. \code{2020:2050}) extends the lines beyond the given years
+(constant extrapolation, as the model interpolates).}
 
-\item{...}{Passed to \code{\link[=getData]{getData()}} (e.g. \verb{region=}, \verb{slice=} filters).}
+\item{interpolate}{Logical, default \code{TRUE}: draw the interpolated series
+(lines) alongside the given data (points), using each parameter's own
+interpolation rule via \code{\link[=getData]{getData()}}. \code{FALSE} shows the given data only.}
+
+\item{show_defaults}{Logical, default \code{FALSE}. When \code{TRUE}, parameters of
+the plotted slot(s) that are mapped to the model but NOT set in the
+object are drawn as dotted lines at their default values (e.g. a supply
+without \code{ava.lo} shows its default of 0). Non-finite defaults (e.g.
+\code{ava.up = Inf}) are listed in the caption instead of drawn.}
+
+\item{...}{Passed to \code{\link[=getData]{getData()}} (e.g. \verb{region=}, \verb{timeslice=} filters).}
 }
 \value{
 A \code{ggplot} object (or \code{NULL}, invisibly, if there is nothing to plot).

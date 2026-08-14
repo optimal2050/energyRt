@@ -151,11 +151,11 @@ class:
           description: >
             Year to apply the parameter.
             Use NA to apply to all years.
-        slice:
+        timeslice:
           type: character
           description: >
-            Time slice to apply the parameter.
-            Use NA to apply to all slices.
+            Time timeslice to apply the parameter.
+            Use NA to apply to all timeslices.
         ava.lo:
           type: numeric
           description: Lower bound of the availability factor.
@@ -208,9 +208,9 @@ class:
         year:
           type: integer
           description: Year of the demand. NA for every year.
-        slice:
+        timeslice:
           type: character
-          description: Name of the slice for the demand value. NA for every slice.
+          description: Name of the timeslice for the demand value. NA for every timeslice.
         demand:
           type: numeric
           description: Value of the demand.
@@ -320,9 +320,9 @@ class:
         year:
           type: integer
           description: Year to apply the parameter, NA for every year.
-        slice:
+        timeslice:
           type: character
-          description: Name of slice to apply the parameter, NA for every slice.
+          description: Name of timeslice to apply the parameter, NA for every timeslice.
         group:
           type: character
           description: Name of group to apply the parameter. Required, must match the group names in the input and output slots.
@@ -345,9 +345,9 @@ class:
         year:
           type: integer
           description: Year to apply the parameter, NA for every year.
-        slice:
+        timeslice:
           type: character
-          description: Name of slice to apply the parameter, NA for every slice.
+          description: Name of timeslice to apply the parameter, NA for every timeslice.
         comm:
           type: character
           description: Name of commodity to apply the parameter, different parameters require specification either input or output commodity.
@@ -397,9 +397,9 @@ class:
         year:
           type: integer
           description: Year to apply the parameter, NA for every year.
-        slice:
+        timeslice:
           type: character
-          description: Name of slice to apply the parameter, NA for every slice.
+          description: Name of timeslice to apply the parameter, NA for every timeslice.
         acomm:
           type: character
           description: Name of auxilary commodity to apply the parameter.
@@ -449,9 +449,9 @@ class:
         year:
           type: integer
           description: Year to apply the parameter, NA for every year.
-        slice:
+        timeslice:
           type: character
-          description: Name of slice to apply the parameter, NA for every slice.
+          description: Name of timeslice to apply the parameter, NA for every timeslice.
         af.lo:
           type: numeric
           description: Lower bound on the availability factor, default is 0.
@@ -483,9 +483,9 @@ class:
         year:
           type: integer
           description: Year to apply the parameter, NA for every year.
-        slice:
+        timeslice:
           type: character
-          description: Name of slice to apply the parameter, required.
+          description: Name of timeslice to apply the parameter, required.
         afs.lo:
           type: numeric
           description: Lower bound on the availability factor for the timeframe, default is 0.
@@ -573,9 +573,9 @@ class:
         year:
           type: integer
           description: Year to apply the parameter, NA for every year.
-        slice:
+        timeslice:
           type: character
-          description: Name of the time-slice or (grand-)parent timeframe to apply the parameter, NA for every time-slice of the technology timeframe.
+          description: Name of the time-timeslice or (grand-)parent timeframe to apply the parameter, NA for every time-timeslice of the technology timeframe.
         varom:
           type: numeric
           description: Variable operational and maintenance cost per unit of activity, default is 0.
@@ -671,8 +671,6 @@ class:
         technology that keeps the characteristics of its build year for its
         whole life; a cluster is a parallel sub-process (resource class,
         geography, fleet type) with its own capacity, availability and costs.
-        Each column is read independently, so a region-agnostic `start` may be
-        combined with a per-region `olife`.
       columns:
         vintage:
           type: character
@@ -685,10 +683,10 @@ class:
           description: Cluster label, NA for every cluster.
         start:
           type: integer
-          description: The first year the technology can be installed. Defaults to the vintage year; NA means all years of the modeled horizon.
+          description: The first year the technology can be installed. NA means unbounded (all horizon years up to `end`); windows are user-defined and may overlap across vintages.
         end:
           type: integer
-          description: The last year the technology can be installed. Defaults to the vintage year; default is Inf when unset.
+          description: The last year the technology can be installed. NA means unbounded (all horizon years from `start` on).
         olife:
           type: integer
           description: Operational life of the technology if installed during optimization, in years, default is 1.
@@ -808,8 +806,6 @@ class:
         `olife` slots. A vintage is a separately investable variant that keeps
         the characteristics of its build year for its whole life -- for storage
         typically a falling capex and a rising round-trip efficiency.
-        Each column is read independently, so a region-agnostic `start` may be
-        combined with a per-region `olife`.
       columns:
         vintage:
           type: character
@@ -822,10 +818,10 @@ class:
           description: Cluster label, NA for every cluster.
         start:
           type: integer
-          description: The first year the storage can be installed. Defaults to the vintage year.
+          description: The first year the storage can be installed. NA means unbounded (up to `end`).
         end:
           type: integer
-          description: The last year the storage can be installed. Defaults to the vintage year.
+          description: The last year the storage can be installed. NA means unbounded (from `start` on).
         olife:
           type: integer
           description: Operational life of the storage in years, applicable to new investment only.
@@ -855,12 +851,12 @@ class:
         year:
           type: integer
           description: Year to apply the parameter, NA for every year.
-        slice:
+        timeslice:
           type: character
-          description: Time slice for which the charged level will be specified.
+          description: Time timeslice for which the charged level will be specified.
         charge:
           type: numeric
-          description: Pre-charged or targeted level at the specified slice.
+          description: Pre-charged or targeted level at the specified timeslice.
     seff:
       type: data.frame
       description: Storage efficiency parameters.
@@ -877,9 +873,9 @@ class:
         year:
           type: integer
           description: Year to apply the parameter, NA for every year.
-        slice:
+        timeslice:
           type: character
-          description: Time slice to apply the parameter, NA for every slice.
+          description: Time timeslice to apply the parameter, NA for every timeslice.
         stgeff:
           type: numeric
           description: Storage decay annual rate.
@@ -905,9 +901,9 @@ class:
         year:
           type: integer
           description: Year to apply the parameter, NA for every year.
-        slice:
+        timeslice:
           type: character
-          description: Time slice to apply the parameter, NA for every slice.
+          description: Time timeslice to apply the parameter, NA for every timeslice.
         af.lo:
           type: numeric
           description: Lower bound of the availability factor.
@@ -958,9 +954,9 @@ class:
         year:
           type: integer
           description: Year to apply the parameter, NA for every year.
-        slice:
+        timeslice:
           type: character
-          description: Time slice to apply the parameter, NA for every slice.
+          description: Time timeslice to apply the parameter, NA for every timeslice.
         stg2ainp:
           type: numeric
           description: Storaage-level-to-auxiliary-input-commodity coefficient (multiplier).
@@ -1029,9 +1025,9 @@ class:
         year:
           type: integer
           description: Year to apply the parameter, NA for every year.
-        slice:
+        timeslice:
           type: character
-          description: Time slice to apply the parameter, NA for every slice.
+          description: Time timeslice to apply the parameter, NA for every timeslice.
         inpcost:
           type: numeric
           description: Costs associated with the input commodity.
@@ -1089,11 +1085,11 @@ class:
       type: logical
       description: >
         If TRUE (default), the storage technology operates between parent timeframes through the year.
-        The last time-slice in the timeframe is used as a preciding time-slice for the first
-        time-slice in the the same group of time-slices within the parent timeframe.
+        The last time-timeslice in the timeframe is used as a preciding time-timeslice for the first
+        time-timeslice in the the same group of time-timeslices within the parent timeframe.
         if FALSE, the storage charge and discchare cycle is limited to the parent timeframe.
-        The last time-slice in the timeframe is used as a preciding time-slice for the first
-        time-slice in the the same group of time-slices within the parent timeframe.
+        The last time-timeslice in the timeframe is used as a preciding time-timeslice for the first
+        time-timeslice in the the same group of time-timeslices within the parent timeframe.
     region:
       type: character
       description: Region where the storage technology exists or can be installed.
@@ -1263,9 +1259,9 @@ class:
         year:
           type: integer
           description: Year to apply the parameter, NA for every year.
-        slice:
+        timeslice:
           type: character
-          description: Time slice to apply the parameter, NA for every slice.
+          description: Time timeslice to apply the parameter, NA for every timeslice.
         trade:
           type: numeric
           description: Trade volume.
@@ -1295,9 +1291,9 @@ class:
         year:
           type: integer
           description: Year to apply the parameter, NA for every year.
-        slice:
+        timeslice:
           type: character
-          description: Time slice to apply the parameter, NA for every slice.
+          description: Time timeslice to apply the parameter, NA for every timeslice.
         trade2ainp:
           type: numeric
           description: Trade-to-auxiliary-input-commodity coefficient (multiplier).
@@ -1369,10 +1365,10 @@ class:
           description: Unused for trade (no cluster dimension); present for consistency with the other classes.
         start:
           type: integer
-          description: The first year the trade object is available for investment. Defaults to the vintage year.
+          description: The first year the trade object is available for investment. NA means unbounded (up to `end`).
         end:
           type: integer
-          description: The last year the trade object is available for investment. Defaults to the vintage year.
+          description: The last year the trade object is available for investment. NA means unbounded (from `start` on).
         olife:
           type: integer
           description: Operational life of the trade object in years.
@@ -1426,9 +1422,9 @@ class:
         year:
           type: integer
           description: Year to apply the parameter; use NA to apply to all years.
-        slice:
+        timeslice:
           type: character
-          description: Time slice to apply the parameter; use NA to apply to all slices.
+          description: Time timeslice to apply the parameter; use NA to apply to all timeslices.
         imp.lo:
           type: numeric
           description: Lower bound on the import volume.
@@ -1468,9 +1464,9 @@ class:
         year:
           type: integer
           description: Year to apply the parameter; use NA to apply to all years.
-        slice:
+        timeslice:
           type: character
-          description: Time slice to apply the parameter; use NA to apply to all slices.
+          description: Time timeslice to apply the parameter; use NA to apply to all timeslices.
         exp.lo:
           type: numeric
           description: Export lower bound.
@@ -1513,9 +1509,9 @@ class:
         year:
           type: integer
           description: Year to apply the parameter, NA for every year.
-        slice:
+        timeslice:
           type: character
-          description: Time slice to apply the parameter, NA for every slice.
+          description: Time timeslice to apply the parameter, NA for every timeslice.
         wval:
           type: numeric
           description: Weather factor value.
@@ -1583,10 +1579,10 @@ class:
       type: character
       description: >
         Pins the timeframe level the variable is taken at (e.g. "ANNUAL",
-        "SEASON"): the variable's `slice` dimension is restricted to that
-        level's slices, so summing them yields the level aggregate without
+        "SEASON"): the variable's `timeslice` dimension is restricted to that
+        level's timeslices, so summing them yields the level aggregate without
         double-counting across levels. `NA` (default) applies no restriction
-        and sums the variable's native slices.
+        and sums the variable's native timeslices.
     geolevel:
       type: character
       description: >
@@ -1659,9 +1655,9 @@ class:
         year:
           type: integer
           description: Year to apply the parameter, NA for every year.
-        slice:
+        timeslice:
           type: character
-          description: Time slice to apply the parameter, NA for every slice.
+          description: Time timeslice to apply the parameter, NA for every timeslice.
         inp:
           type: numeric
           description: Input tax, e.g., per unit of commodity consumed by all processes.
@@ -1701,9 +1697,9 @@ class:
         year:
           type: integer
           description: Year to apply the parameter, NA for every year.
-        slice:
+        timeslice:
           type: character
-          description: Time slice to apply the parameter, NA for every slice.
+          description: Time timeslice to apply the parameter, NA for every timeslice.
         inp:
           type: numeric
           description: Input subsidy, e.g., per unit of commodity consumed by all processes.
@@ -1745,7 +1741,7 @@ class:
       type: character
       description: >
         Name of the calendar object. Use to distingush between different structures
-        and subsets of time-slices. The name is used to propose default folder names
+        and subsets of time-timeslices. The name is used to propose default folder names
         for the model/scenario scripts to separate solutions of the same scenario with
         different calendar objects.
     desc:
@@ -1756,40 +1752,40 @@ class:
       description: >
         Named list of nested sub-annual levels with vectors of individual elements.
         The top level of the list is the highest level of the calendar, e.g., "ANNUAL".
-        The lowest level is the smallest time-slice, e.g., "MONTH".
+        The lowest level is the smallest time-timeslice, e.g., "MONTH".
         "ANNUAL" is the default (hardwired) top level of the calendar. All other levels
-        are optional, and create nested sub-annual levels of time-slices.
-        The minimum number of time-slices in a timeframe is two (except for the top level).
+        are optional, and create nested sub-annual levels of time-timeslices.
+        The minimum number of time-timeslices in a timeframe is two (except for the top level).
     timetable:
       type: data.frame
       description: >
         Data frame with levels of timeframes in the named columns, and number of rows
-        equal to the total number of time-slices on the lowest level. Every timeframe
-        is a set of time-slices ("slices") - a named fragment of time with a year-share.
-        Timeframes have nested structure where every slice serves as a parent for the
-        lower level of time-slices (children).
-        The first column is the name of the time-slice, the rest of the columns are the
+        equal to the total number of time-timeslices on the lowest level. Every timeframe
+        is a set of time-timeslices ("timeslices") - a named fragment of time with a year-share.
+        Timeframes have nested structure where every timeslice serves as a parent for the
+        lower level of time-timeslices (children).
+        The first column is the name of the time-timeslice, the rest of the columns are the
         names of the timeframes. The values are the share of the year covered by the
-        time-slice. The sum of the shares in every timeframe should be equal to 1.
-        `weight` is an optional column with the weight of the time-slice in the year,
-        used for sumpled/subset selection of the time-slices.
+        time-timeslice. The sum of the shares in every timeframe should be equal to 1.
+        `weight` is an optional column with the weight of the time-timeslice in the year,
+        used for sumpled/subset selection of the time-timeslices.
     year_fraction:
       type: numeric
       description: >
         The fraction of a year covered by the calendar, e.g. 1 for annual calendar
         (default), 0.5 for semi-annual, 0.25 for quarterly, etc. Currently must be
         specified manually for subset calendars to validate the sum of the shares.
-    slice_share:
+    timeslice_share:
       type: data.frame
       description: >
         Auto-calculated from the `timetable`
-        two column data.frame with slices from all levels with their individual share
-        in a year. The first column is the name of the time-slice, the second column
-        is the share of the year covered by the time-slice.
+        two column data.frame with timeslices from all levels with their individual share
+        in a year. The first column is the name of the time-timeslice, the second column
+        is the share of the year covered by the time-timeslice.
     default_timeframe:
       type: character
       description: >
-        The name of the default level of the time-slices used in the model. If not
+        The name of the default level of the time-timeslices used in the model. If not
         specified, the lowest level of the timeframes is used as the default timeframe.
     timeframe_rank:
       type: character
@@ -1797,40 +1793,40 @@ class:
         Auto-calculated from the `timetable` and `timeframes` slots
         named character vector with ranks of the timeframes. The rank is used to
         determine the order of the timeframes in the calendar.
-    slices_in_frame:
+    timeslices_in_frame:
       type: integer
       description: >
         Auto-calculated from the `timetable`
-        Number of time-slices in every timeframe.
-    slice_family:
+        Number of time-timeslices in every timeframe.
+    timeslice_family:
       type: data.frame
       description: >
         Auto-calculated from the `timetable`
-        data.frame mapping "parent" to "child" slices in two nearest timeframes in the
-        nested hierarchy. The first column is the name of the parent time-slice, the
-        second column is the name of the child time-slice.
-    slice_ancestry:
+        data.frame mapping "parent" to "child" timeslices in two nearest timeframes in the
+        nested hierarchy. The first column is the name of the parent time-timeslice, the
+        second column is the name of the child time-timeslice.
+    timeslice_ancestry:
       type: data.frame
       description: >
         Auto-calculated from the `timetable`
-        data.frame mapping "child", "grandchild", etc. slices to the "parent" and 
-        "grandparent" time-slices in the full hierarchy. The first column is the name
-        of the (grand-) child time-slice, the second column is the name of the (grand-)
-        parent time-slice.
+        data.frame mapping "child", "grandchild", etc. timeslices to the "parent" and 
+        "grandparent" time-timeslices in the full hierarchy. The first column is the name
+        of the (grand-) child time-timeslice, the second column is the name of the (grand-)
+        parent time-timeslice.
     next_in_timeframe:
       type: data.frame
       description: >
         Auto-calculated from the `timetable`
-        data.frame mapping chronological sequence between time-slices in the same
-        timeframe. The first column is the name of the time-slice, the second column
-        is the name of the next time-slice in the same timeframe.
+        data.frame mapping chronological sequence between time-timeslices in the same
+        timeframe. The first column is the name of the time-timeslice, the second column
+        is the name of the next time-timeslice in the same timeframe.
     next_in_year:
       type: data.frame
       description: >
         Auto-calculated from the `timetable`
-        data.frame mapping chronological sequence between time-slices in the same
-        timeframe through the whole year. The first column is the name of the time-slice,
-        the second column is the name of the next time-slice in the same timeframe.
+        data.frame mapping chronological sequence between time-timeslices in the same
+        timeframe through the whole year. The first column is the name of the time-timeslice,
+        the second column is the name of the next time-timeslice in the same timeframe.
     misc:
       type: list
       description: >
@@ -1959,7 +1955,7 @@ class:
       type: data.frame
       description: >
         Artificial (dummy or sluck) variables to debug model infeasibility.
-        Can be specified by commodities, regions, years, and slices.
+        Can be specified by commodities, regions, years, and timeslices.
     variant_prefix:
       type: character
       description: >

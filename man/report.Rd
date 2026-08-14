@@ -13,7 +13,7 @@ report(
   template = NULL,
   image_file = NULL,
   file = NULL,
-  format = c("html", "pdf", "tex"),
+  format = c("html", "pdf", "tex", "docx"),
   levcost = NULL,
   cost_unit = NULL,
   open = interactive(),
@@ -25,7 +25,7 @@ report(
   template = NULL,
   image_file = NULL,
   file = NULL,
-  format = c("html", "pdf", "tex"),
+  format = c("html", "pdf", "tex", "docx"),
   levcost = NULL,
   cost_unit = NULL,
   open = interactive(),
@@ -37,7 +37,7 @@ report(
   template = NULL,
   image_file = NULL,
   file = NULL,
-  format = c("html", "pdf", "tex"),
+  format = c("html", "pdf", "tex", "docx"),
   levcost = NULL,
   cost_unit = NULL,
   open = interactive(),
@@ -49,7 +49,7 @@ report(
   template = NULL,
   image_file = NULL,
   file = NULL,
-  format = c("html", "pdf", "tex"),
+  format = c("html", "pdf", "tex", "docx"),
   levcost = NULL,
   cost_unit = NULL,
   open = interactive(),
@@ -61,7 +61,7 @@ report(
   template = NULL,
   image_file = NULL,
   file = NULL,
-  format = c("html", "pdf", "tex"),
+  format = c("html", "pdf", "tex", "docx"),
   levcost = NULL,
   cost_unit = NULL,
   open = interactive(),
@@ -85,10 +85,12 @@ the upper-right corner of the page.  \code{NULL} skips the image.}
 appropriate for \code{format}.}
 
 \item{format}{Character.  Output format: \code{"html"} (default),
-\code{"pdf"}, or \code{"tex"} (standalone LaTeX source).  Multiple values
-are accepted; one file is produced per format.  \code{"pdf"}/\code{"tex"}
-require a LaTeX installation (e.g. \code{tinytex::install_tinytex()}) and
-are skipped with a warning when none is found.}
+\code{"pdf"}, \code{"tex"} (standalone LaTeX source), or \code{"docx"}
+(Word; the templates' LaTeX styling degrades to Word's own styles).
+Multiple values are accepted; one file is produced per format.
+\code{"pdf"}/\code{"tex"} require a LaTeX installation (e.g.
+\code{tinytex::install_tinytex()}) and are skipped with a warning when
+none is found.}
 
 \item{levcost}{A \code{levcost} (or \code{levcost_list}) object returned by
 \code{\link{levcost}}, or \code{NULL} (default).  When \code{NULL} and any

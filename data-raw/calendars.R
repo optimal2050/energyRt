@@ -60,7 +60,7 @@ calendars[["season_dn"]] <- newCalendar(
     DAY    = c("DAY", "NIGHT")
   )),
   name = "season_dn",
-  desc = "Four seasons, day/night (8 slices)"
+  desc = "Four seasons, day/night (8 timeslices)"
 )
 
 calendars[["d365"]] <- newCalendar(
@@ -73,16 +73,16 @@ calendars[["d365"]] <- newCalendar(
 # Used by the UTOPIA vignette (previously built inline). Their construction is
 # demonstrated in the "time-resolution" article.
 
-# Annual (single slice) — the coarsest resolution.
+# Annual (single timeslice) — the coarsest resolution.
 calendars[["utopia_annual"]] <- newCalendar(
   make_timetable(list(ANNUAL = "ANNUAL")),
   name = "utopia_annual",
-  desc = "UTOPIA: annual resolution (1 slice)"
+  desc = "UTOPIA: annual resolution (1 timeslice)"
 )
 
 # Four seasons x three dayparts (DAY/NIGHT/PEAK), with representative shares
 # (peak hours are short; night is longer in winter, day longer in summer).
-# 12 slices — the default UTOPIA resolution (tractable on GLPK).
+# 12 timeslices — the default UTOPIA resolution (tractable on GLPK).
 calendars[["utopia_seasons"]] <- newCalendar(
   make_timetable(list(
     SEASON = list(
@@ -93,10 +93,10 @@ calendars[["utopia_seasons"]] <- newCalendar(
     )
   )),
   name = "utopia_seasons",
-  desc = "UTOPIA: 4 seasons x 3 dayparts (DAY/NIGHT/PEAK), 12 slices"
+  desc = "UTOPIA: 4 seasons x 3 dayparts (DAY/NIGHT/PEAK), 12 timeslices"
 )
 
-# Four seasons x 24 hours (equal shares), 96 slices — the DEFAULT UTOPIA base
+# Four seasons x 24 hours (equal shares), 96 timeslices — the DEFAULT UTOPIA base
 # case: full diurnal detail (24 h, so storage cycles) at a tractable size.
 calendars[["utopia_s4h24"]] <- newCalendar(
   make_timetable(list(
@@ -104,10 +104,10 @@ calendars[["utopia_s4h24"]] <- newCalendar(
     HOUR   = paste0("h", formatC(0:23, width = 2, flag = "0"))
   )),
   name = "utopia_s4h24",
-  desc = "UTOPIA: 4 seasons x 24 hours, 96 slices (default base case)"
+  desc = "UTOPIA: 4 seasons x 24 hours, 96 timeslices (default base case)"
 )
 
-# Twelve months x 24 hours (equal shares), 288 slices — the higher-resolution
+# Twelve months x 24 hours (equal shares), 288 timeslices — the higher-resolution
 # UTOPIA option for the load curve / renewable-profile detail.
 calendars[["utopia_m12h24"]] <- newCalendar(
   make_timetable(list(
@@ -115,7 +115,7 @@ calendars[["utopia_m12h24"]] <- newCalendar(
     HOUR  = paste0("h", formatC(0:23, width = 2, flag = "0"))
   )),
   name = "utopia_m12h24",
-  desc = "UTOPIA: 12 months x 24 hours, 288 slices"
+  desc = "UTOPIA: 12 months x 24 hours, 288 timeslices"
 )
 
 # ── 2. Import detailed calendars & horizons from IDEEA (optional) ─────────────

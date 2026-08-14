@@ -3,7 +3,7 @@
 #
 # Reversible "fold / unfold" of modInp parameters along trimmable dimensions.
 #
-# A trimmable dimension (default: region, slice, vintage) is "folded" to a
+# A trimmable dimension (default: region, timeslice, vintage) is "folded" to a
 # single wildcard (NA) row whenever, for a given entity, the parameter value
 # does not vary across the *full* membership of that dimension. The reverse
 # operation ("unfold") materialises the wildcard rows back to explicit members
@@ -19,13 +19,13 @@
 # =============================================================================#
 
 # Default trimmable dimensions, in stable folding order.
-.fold_trim_dims <- c("region", "slice", "vintage")
+.fold_trim_dims <- c("region", "timeslice", "vintage")
 
-# All dimensions that MAY be folded (whole-column), in stable order. region/slice
+# All dimensions that MAY be folded (whole-column), in stable order. region/timeslice
 # are the original trimmable dims; year/comm/tech/stg/trade are opt-in via the
 # `fold` argument. The artificial-member layer (fold_artificial.R `.fold_any`)
 # must define a wildcard for each.
-.foldable_dims <- c("region", "slice", "year", "comm", "tech", "stg", "trade")
+.foldable_dims <- c("region", "timeslice", "year", "comm", "tech", "stg", "trade")
 
 # Identity / axis dimensions that must NEVER be folded.
 .fold_protected_dims <- c(
@@ -49,10 +49,10 @@
 }
 
 # -----------------------------------------------------------------------------#
-# .slice_allowed: per-entity slice membership for the given identity key.
-# Returns a data.frame(<key>, slice) or NULL when unavailable.
+# .timeslice_allowed: per-entity timeslice membership for the given identity key.
+# Returns a data.frame(<key>, timeslice) or NULL when unavailable.
 # -----------------------------------------------------------------------------#
-.slice_allowed <- function(scen, key) {
+.timeslice_allowed <- function(scen, key) {
   pick <- function(df, cols) {
     if (is.null(df)) {
       return(NULL)
@@ -63,25 +63,25 @@
     dplyr::distinct(df[, cols, drop = FALSE])
   }
   switch(key,
-    tech  = pick(.read_map(scen, "mTechSlice"), c("tech", "slice")),
-    sup   = pick(.read_map(scen, "mSupSlice"), c("sup", "slice")),
-    trade = pick(.read_map(scen, "mTradeSlice"), c("trade", "slice")),
-    imp   = pick(.read_map(scen, "mImpSlice"), c("imp", "slice")),
-    expp  = pick(.read_map(scen, "mExpSlice"), c("expp", "slice")),
-    comm  = pick(.read_map(scen, "mCommSlice"), c("comm", "slice")),
+    tech  = pick(.read_map(scen, "mTechTimeslice"), c("tech", "timeslice")),
+    sup   = pick(.read_map(scen, "mSupTimeslice"), c("sup", "timeslice")),
+    trade = pick(.read_map(scen, "mTradeTimeslice"), c("trade", "timeslice")),
+    imp   = pick(.read_map(scen, "mImpTimeslice"), c("imp", "timeslice")),
+    expp  = pick(.read_map(scen, "mExpTimeslice"), c("expp", "timeslice")),
+    comm  = pick(.read_map(scen, "mCommTimeslice"), c("comm", "timeslice")),
     stg   = {
       sc <- .read_map(scen, "mStorageComm")
-      cs <- .read_map(scen, "mCommSlice")
+      cs <- .read_map(scen, "mCommTimeslice")
       if (is.null(sc) || is.null(cs)) {
         NULL
       } else if (!all(c("stg", "comm") %in% names(sc)) ||
-                 !all(c("comm", "slice") %in% names(cs))) {
+                 !all(c("comm", "timeslice") %in% names(cs))) {
         NULL
       } else {
         dplyr::distinct(dplyr::inner_join(
-          sc[, c("stg", "comm")], cs[, c("comm", "slice")],
+          sc[, c("stg", "comm")], cs[, c("comm", "timeslice")],
           by = "comm"
-        )[, c("stg", "slice")])
+        )[, c("stg", "timeslice")])
       }
     },
     NULL
@@ -162,12 +162,12 @@
   ms <- list()
   cols <- names(data)
 
-  if ("slice" %in% dims && "slice" %in% cols) {
+  if ("timeslice" %in% dims && "timeslice" %in% cols) {
     for (k in c("tech", "sup", "stg", "trade", "imp", "expp", "comm")) {
       if (!k %in% cols) next
-      a <- .slice_allowed(scen, k)
+      a <- .timeslice_allowed(scen, k)
       if (!is.null(a)) {
-        ms$slice <- a
+        ms$timeslice <- a
         break
       }
     }
@@ -205,11 +205,11 @@
     }
   }
 
-  # Full-set fallback for region / slice / year when no per-entity membership was
+  # Full-set fallback for region / timeslice / year when no per-entity membership was
   # found (e.g. weather parameters, which apply to every region/year). Folding a
   # column that covers the COMPLETE set uniformly can never over-claim, so it is
   # safe: e.g. `pWeather`, identical across all years, folds year -> the wildcard.
-  for (dd in intersect(dims, c("region", "slice", "year"))) {
+  for (dd in intersect(dims, c("region", "timeslice", "year"))) {
     if (dd %in% cols && is.null(ms[[dd]])) {
       a <- .entity_allowed(scen, dd)
       if (!is.null(a)) ms[[dd]] <- a
@@ -311,7 +311,7 @@
   # Whole-column fold only: the dimension folds for this parameter ONLY when its
   # ENTIRE column collapses to the wildcard (every explicit group folds). A mixed
   # NA / explicit column cannot be represented by the single artificial set member
-  # (`ANYREGION` / `ANYSLICE`) the writers substitute, so if any explicit group is
+  # (`ANYREGION` / `ANYTIMESLICE`) the writers substitute, so if any explicit group is
   # left un-folded, fold nothing for this dimension.
   explicit_groups <- dplyr::distinct(d[!is_wild, group_cols, drop = FALSE])
   if (nrow(fold_groups) < nrow(explicit_groups)) {
@@ -366,7 +366,7 @@
 # fold_parameter: fold trimmable dimensions of a single parameter to wildcards.
 #
 # `member_sets` is a named list mapping a trimmable dim to a data.frame holding
-# the allowed members per entity (e.g. list(slice = mTechSlice)). Dims without
+# the allowed members per entity (e.g. list(timeslice = mTechTimeslice)). Dims without
 # a member set are left untouched (safe no-op).
 # -----------------------------------------------------------------------------#
 fold_parameter <- function(param, member_sets = list(),
@@ -463,7 +463,7 @@ unfold_parameter <- function(param, member_sets = list(), value_col = "value") {
     wild_nodim <- wild[, setdiff(names(wild), dim), drop = FALSE]
     if (length(shared) == 0) {
       # Full-set membership: `allowed` carries only the `dim` column (the
-      # region/slice/year fallback for settings / weather parameters, which apply
+      # region/timeslice/year fallback for settings / weather parameters, which apply
       # to EVERY member regardless of the other dims). Cross-join each wild row
       # with every member -- a join on shared keys would expand nothing and leave
       # the wildcard in place. Cross-join via a transient key for portability.
@@ -500,8 +500,9 @@ unfold_parameter <- function(param, member_sets = list(), value_col = "value") {
 # fold_scenario_parameters: fold all numpar/bounds parameters of a scenario.
 # Used during interpolation (interp_mod). Returns the updated scenario.
 # -----------------------------------------------------------------------------#
-fold_scenario_parameters <- function(scen, dims = c("region", "slice"),
+fold_scenario_parameters <- function(scen, dims = c("region", "timeslice"),
                                      tol = 1e-10, verbose = FALSE) {
+  dims <- .rename_slice_compat(dims, "dims")
   pnames <- names(scen@modInp@parameters)
   for (pn in pnames) {
     p <- scen@modInp@parameters[[pn]]
@@ -532,7 +533,7 @@ fold_scenario_parameters <- function(scen, dims = c("region", "slice"),
 # membership maps for one parameter and returns its expanded data.frame.
 # -----------------------------------------------------------------------------#
 unfold_scenario_parameter <- function(scen, param,
-                                      dims = c("region", "slice", "vintage")) {
+                                      dims = c("region", "timeslice", "vintage")) {
   data <- get_data_slot(param)
   if (is.null(data) || nrow(data) == 0) {
     return(as.data.frame(data))
@@ -551,9 +552,10 @@ unfold_scenario_parameter <- function(scen, param,
 # used by `interp_mod(fold = FALSE)` so the written model carries no NA
 # wildcards in the trimmable dimensions. Returns the updated scenario.
 # -----------------------------------------------------------------------------#
-unfold_scenario_parameters <- function(scen, dims = c("region", "slice"),
+unfold_scenario_parameters <- function(scen, dims = c("region", "timeslice"),
                                        types = c("numpar", "bounds", "map"),
                                        verbose = FALSE) {
+  dims <- .rename_slice_compat(dims, "dims")
   pnames <- names(scen@modInp@parameters)
   for (pn in pnames) {
     p <- scen@modInp@parameters[[pn]]
@@ -589,7 +591,7 @@ unfold_scenario_parameters <- function(scen, dims = c("region", "slice"),
 # (`src`, `dst`) of trade parameters back to the explicit route pairs of each
 # trade object.
 #
-# Unlike `region` / `slice`, the route endpoints are not foldable dimensions:
+# Unlike `region` / `timeslice`, the route endpoints are not foldable dimensions:
 # a parameter row with `src = NA` / `dst = NA` is a wildcard meaning "applies to
 # every route of this trade". Such a row is expanded to one row per (src, dst)
 # pair of the trade (from `mTradeRoutes`, keyed on `trade`). Rows that already

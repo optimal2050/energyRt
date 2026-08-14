@@ -1,10 +1,10 @@
 # =========================================================================== #
 # fold_artificial.R  —  make a folded scenario solver-ready.
 #
-# interp_mod(fold = TRUE) collapses a parameter's region / slice column to NA when
+# interp_mod(fold = TRUE) collapses a parameter's region / timeslice column to NA when
 # the value is invariant across that dimension over its WHOLE domain (whole-column
 # fold). NA is not a set member, so no solver accepts it. This pass replaces the
-# NA wildcard with an artificial set member (ANYREGION / ANYSLICE) and rewrites the
+# NA wildcard with an artificial set member (ANYREGION / ANYTIMESLICE) and rewrites the
 # model code so every folded-parameter lookup indexes that member:
 #   pX[t,c,r,y,s]  ->  pX[t,c,'ANYREGION',y,s]      (region folded)
 # The member is added to the SET only (never to a membership map). Every variable,
@@ -32,7 +32,7 @@
 # string dims use a quoted ANY* token.
 .fold_any <- list(
   region = list(member = "ANYREGION", quote = TRUE),
-  slice  = list(member = "ANYSLICE",  quote = TRUE),
+  timeslice  = list(member = "ANYTIMESLICE",  quote = TRUE),
   year   = list(member = 0L,          quote = FALSE),
   comm   = list(member = "ANYCOMM",   quote = TRUE),
   tech   = list(member = "ANYTECH",   quote = TRUE),
@@ -107,7 +107,7 @@
 # (so the integer `year` wildcard is the string "0"); GLPK keeps `year` numeric
 # (unquoted) and single-quotes string members. JuMP keys the `year` slot of its
 # parameter Dicts numerically (the `as.character(year)` coercion in write_jump.R
-# is disabled) while keying string dims (region/slice) as strings -- so the year
+# is disabled) while keying string dims (region/timeslice) as strings -- so the year
 # wildcard must be the bare integer `0` for JuMP (a quoted "0" never matches the
 # stored integer key, silently returning the default), but string wildcards stay
 # double-quoted. `quote == FALSE` marks the numeric (`year`) wildcard.
