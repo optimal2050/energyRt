@@ -6,6 +6,59 @@ editor_options:
 
 # energyRt 0.80 (development) — the time dimension is now `timeslice`
 
+## Commodities carry physical properties
+
+-   New slot **`commodity@property`**: a tidy table of physical
+    properties — heating values, density, molar mass, composition — with
+    columns `property`, `value`, `min`, `max`, `sd`, `dist`, `unit` and
+    `comment`. It is reference data: `ob2mi()` never writes it to
+    `modInp` and no solver template sees it.
+-   Its purpose is to record the physics that links different measures of
+    the same commodity. A property whose unit is a ratio of two
+    dimensions is a conversion factor between them — `lhv = 25.8 GJ/t`
+    relates Energy and Mass, `density = 0.85 t/m3` relates Mass and
+    Volume. Today those numbers have to be worked out by hand and baked
+    into a `ceff` coefficient, with the heating value surviving only as a
+    comment. A forthcoming release teaches `convert()` to traverse them.
+-   `value` is always the deterministic point estimate; `min`, `max`,
+    `sd` and `dist` describe uncertainty around it for sensitivity
+    analysis and are optional — a table supplying only
+    `property`/`value`/`unit` is the normal case.
+-   **`@property` describes the commodity itself.** Anything whose
+    numerator is a *different* commodity — a CO₂ emission factor, say —
+    belongs in `@emis`, which the model actually reads; a property name
+    that looks like an emission factor now warns and points there. The
+    two remain related: `frac_C` × 44.009/12.011 ÷ `lhv` reproduces the
+    per-energy emission factor, which makes `@emis` checkable rather than
+    duplicated.
+-   New `commodity_properties()` lists the recognised property names and
+    the dimension pair each relates; `commodity_property()` reads a
+    single value, unit or range out of an object. Unrecognised names are
+    kept with a warning, so properties the package has not anticipated
+    can still be recorded.
+-   Property tables are validated on construction — unknown names,
+    negative or non-finite values, missing units, duplicate keys,
+    composition fractions summing above 1, unknown distributions, values
+    outside `[min, max]`, and distributions missing their parameters all
+    warn. Validation never blocks model building.
+
+## Images and icons on commodities, and `report()` picks them up
+
+-   `newCommodity()` gains `image =` and `icon =` arguments, stored as
+    `misc$image` / `misc$icon` following the convention `technology`
+    already uses for techspec files. New `object_image()` resolves either
+    and reports whether it is a URL, an existing file or missing.
+-   **`report()` now defaults `image_file` from the object's own
+    `misc$image`** when that names an existing local file. Previously
+    only the process designer wired the two together, so `report(tech)`
+    on a technology that *had* an image showed none.
+-   `print()` on a commodity now works. It was dead code: `@export`
+    alone does not register an S3 method on an S4 generic, so dispatch
+    fell through to the default and dumped raw slots. It now shows
+    `@unit`, the image and the data-frame slots, hiding all-empty
+    columns.
+-   `getUnits()` on a commodity reports the `property` rows.
+
 ## Object autoplots actually plot: points + interpolation, defaults on demand
 
 -   Fixed the defect that made `autoplot()` on supply / import / export /
@@ -392,6 +445,14 @@ schematic-diagram role and still needs no ggplot2. New
     fanned out per cell.
 
 **Fixes**
+
+-   `tech_from_spec()` read `@input$combustion` back as character, so any
+    technology that sets it wrote a perfectly valid techspec that then
+    failed to load with *"Unexpected data format (character) ... expecting
+    numeric"*. `combustion` is a numeric share, not a dimension label, and
+    had been listed among the character columns in `.techspec_rows_df()`.
+    Round-tripping such a technology through `tech_to_spec()` /
+    `tech_from_spec()` now works.
 
 -   `size()` regained its `@export`: a helper inserted between its
     roxygen block and the function had silently taken over the block, so

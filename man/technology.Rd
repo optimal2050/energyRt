@@ -264,7 +264,7 @@ newTechnology(
 
 \item{optimizeRetirement}{logical. Incidates if the retirement of the technology should be optimized. Also requires the same parameter in the \code{model} or \code{scenario} class to be set to TRUE to be effective.}
 
-\item{misc}{list. List of additional parameters that are not used in the model but can be used for reference or user-defined functions. For example, links to the source of the technology data, or other metadata.}
+\item{misc}{list. List of additional parameters that are not used in the model but can be used for reference or user-defined functions. For example, links to the source of the technology data, or other metadata. Two names are conventional: \code{misc$image}, a path or URL to an illustration used in reports (the \code{image} scalar of a techspec YAML file lands here), and \code{misc$icon}, a path or URL to a small icon.}
 
 \item{...}{slot-names with data to update (see \code{newTechnology})}
 

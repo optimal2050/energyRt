@@ -233,7 +233,7 @@ shocks (weather factors).
 
 \item{\code{region}}{character. Vector of regions where the technology exists or can be installed. Optional. If not specified, the technology is applied to all regions. If specified, must include all regions used in other slots.}
 
-\item{\code{misc}}{list. List of additional parameters that are not used in the model but can be used for reference or user-defined functions. For example, links to the source of the technology data, or other metadata.}
+\item{\code{misc}}{list. List of additional parameters that are not used in the model but can be used for reference or user-defined functions. For example, links to the source of the technology data, or other metadata. Two names are conventional: \code{misc$image}, a path or URL to an illustration used in reports (the \code{image} scalar of a techspec YAML file lands here), and \code{misc$icon}, a path or URL to a small icon.}
 }}
 
 \concept{technology process class}

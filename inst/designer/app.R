@@ -1364,14 +1364,28 @@ server <- function(input, output, session) {
     }
     c(grab(s$inputs, "comm"), grab(s$aux, "acomm"))
   }
+  # price unit for a priced commodity: <costs>/<commodity unit>, e.g. "MEUR/GWh"
+  lc_comm_unit <- function(cm) {
+    s <- spec()
+    unit_of <- function(rows, key) {
+      for (r in rows %||% list()) if ((r[[key]] %||% "") == cm) return(r$unit %||% "")
+      ""
+    }
+    cu <- unit_of(s$inputs, "comm")
+    if (!nzchar(cu)) cu <- unit_of(s$aux, "acomm")
+    costs <- s$units$costs %||% ""
+    if (nzchar(costs) && nzchar(cu)) paste0(costs, "/", cu) else ""
+  }
   output$lc_fuel_ui <- renderUI({
     comms <- lc_comms()
     if (length(comms) == 0) return(p(class = "text-muted",
                                      "no priced commodities"))
     lcv <- spec()$levcost   # stored assumptions pre-fill the fields
     do.call(fluidRow, lapply(comms, function(cm) {
+      u   <- lc_comm_unit(cm)
+      lbl <- if (nzchar(u)) paste0(cm, " cost (", u, ")") else paste0(cm, " cost")
       column(max(2, floor(12 / max(1, length(comms)))),
-             numericInput(paste0("lc_fuel_", cm), paste0(cm, " cost"),
+             numericInput(paste0("lc_fuel_", cm), lbl,
                           as.numeric(lcv$costs[[cm]] %||% 0), step = 0.5))
     }))
   })

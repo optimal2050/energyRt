@@ -13,7 +13,10 @@ newCommodity(
   unit = character(),
   agg = data.frame(),
   emis = data.frame(),
-  misc = list()
+  property = data.frame(),
+  misc = list(),
+  image = NULL,
+  icon = NULL
 )
 }
 \arguments{
@@ -47,7 +50,32 @@ newCommodity(
 }
 }}
 
-\item{misc}{list. List of additional parameters that are not used in the model but can be used for reference or user-defined functions. For example, links to the source of the commodity data, or other metadata.}
+\item{property}{data.frame. Physical properties of the commodity -- heating values, density, molar mass, composition. Reference data: it is never written to the model input, but it gives \code{convert()} the physics needed to move between measures of the same commodity (energy, mass, volume, amount). A property whose unit is a ratio of two dimensions, such as \code{lhv} in "GJ/t", acts as a conversion edge between them. Only properties of the commodity itself belong here -- anything whose numerator is a \emph{different} commodity, such as a CO2 emission factor, belongs in \code{emis}. See \code{commodity_properties()} for the recognised names.
+
+\describe{
+\item{property}{character. Name of the property, e.g. "lhv", "hhv", "density", "molar_mass", or "frac_C" for an element mass fraction. Unrecognised names are kept with a warning.
+}
+\item{value}{numeric. The value of the property, in \code{unit}. Always the deterministic point estimate -- the mean, mode or best guess; \code{min}, \code{max} and \code{sd} describe uncertainty around it and are never read by \code{convert()}.
+}
+\item{min}{numeric. Lower bound of the value, for sensitivity analysis. Optional.}
+\item{max}{numeric. Upper bound of the value, for sensitivity analysis. Optional.}
+\item{sd}{numeric. Standard deviation of the value, for sensitivity analysis. Optional.
+}
+\item{dist}{character. Distribution of the value for sensitivity analysis, one of "point", "uniform", "triangular", "pert", "normal", or "lognormal". Optional; "point" or NA means the value is treated as certain. "uniform" reads \code{min} and \code{max}; "triangular" and "pert" read \code{min}, \code{value} (the mode) and \code{max}; "normal" and "lognormal" read \code{value} and \code{sd}.
+}
+\item{unit}{character. Unit of the property, e.g. "GJ/t", "t/m3", "g/mol", "kg/kg". Applies to \code{value}, \code{min}, \code{max} and \code{sd} alike.
+}
+\item{comment}{character. Optional note on the source of the value or the conditions it refers to, such as "bulk, as stockpiled" or "gas, 0 C, 1 atm".
+}
+}}
+
+\item{misc}{list. List of additional parameters that are not used in the model but can be used for reference or user-defined functions. For example, links to the source of the commodity data, or other metadata. Two names are conventional: \code{misc$image}, a path or URL to an illustration used in reports, and \code{misc$icon}, a path or URL to a small icon. Both can be set with the \code{image} and \code{icon} arguments of \code{newCommodity}.}
+
+\item{image}{character, optional path or URL to an illustration of the
+commodity, used in reports. Stored in \code{misc$image}.}
+
+\item{icon}{character, optional path or URL to a small icon for the
+commodity. Stored in \code{misc$icon}.}
 }
 \value{
 commodity object
@@ -56,6 +84,24 @@ commodity object
 Create new commodity object
 }
 \examples{
-newCommodity(name = "ELC", desc = "Electricity")
+newCommodity(name = "ELC", desc = "Electricity", unit = "GWh")
+
+# physical properties give `convert()` the physics to move between measures
+newCommodity(
+  name = "COA", desc = "Steam coal", unit = "PJ",
+  property = data.frame(
+    property = c("lhv", "density"),
+    value = c(25.8, 0.85),
+    unit = c("GJ/t", "t/m3"),
+    comment = c("IEA average, other bituminous", "bulk, as stockpiled")
+  ),
+  emis = data.frame(comm = "CO2", unit = "Mt", emis = 0.0946)
+)
+}
+\seealso{
+Other commodity:
+\code{\link[=commodity_properties]{commodity_properties()}},
+\code{\link[=commodity_property]{commodity_property()}},
+\code{\link[=object_image]{object_image()}}
 }
 \concept{commodity}
