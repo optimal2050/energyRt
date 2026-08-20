@@ -1,0 +1,384 @@
+---
+title: "Storage"
+editor_options:
+  chunk_output_type: console
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE, comment = "#>",
+  eval = requireNamespace("ggplot2", quietly = TRUE),
+  message = FALSE, warning = FALSE,
+  fig.width = 7, fig.height = 4.2, fig.retina = TRUE
+)
+```
+
+```{r setup}
+library(energyRt)
+library(ggplot2)
+```
+
+# What a storage is
+
+Every other process in energyRt turns a flow into another flow *now*. A
+`storage` is the only one that moves energy **between timeslices**: it holds a
+level, and the level carries across the calendar.
+
+That gives it three separate physical things, which for a long time energyRt
+squeezed into one:
+
+| | what it is | unit | slot |
+|---|---|---|---|
+| **charger** | how fast it can fill | power | `@input` |
+| **reservoir** | how much it can hold | **energy** | `@storage` |
+| **discharger** | how fast it can empty | power | `@output` |
+
+A battery is an inverter plus a stack of cells. A pumped-hydro plant is a pump,
+a reservoir and a turbine. An electric car is a charge point, a battery and a
+motor. In each case the three are sized — and priced — separately, and the
+interesting modelling questions are about the *ratios* between them.
+
+```{r}
+BAT <- newStorage(
+  "BAT",
+  commodity = "ELC",
+  output    = list(invcost = 12144),   # EUR/MW  -- the inverter
+  storage   = list(invcost = 8081),    # EUR/MWh -- the cells
+  duration  = 6,                       # a 6-hour battery
+  vintage   = data.frame(olife = 15L)
+)
+draw(BAT)
+```
+
+`commodity = "ELC"` is shorthand: it fills all three roles at once. There is no
+`@commodity` slot — the argument is folded into `@input`, `@storage` and
+`@output` when the object is built, so a storage never carries two answers to
+"what does it consume".
+
+# The three commodities need not be the same
+
+This is the part that changes what you can model. `@storage$comm` is what the
+store *holds*; `@input$comm` and `@output$comm` are what it *exchanges*. When
+all three coincide you have a battery. When they do not:
+
+```{r}
+H2 <- newStorage(
+  "H2STORE",
+  commodity = "H2",                                   # what it HOLDS
+  input     = list(comm = "ELC", invcost = 226174),   # electrolyser
+  output    = list(comm = "ELC"),                     # fuel cell
+  storage   = list(invcost = 112),                    # the cavern
+  seff      = data.frame(inpeff = 0.70, outeff = 0.50),
+  vintage   = data.frame(olife = 25L)
+)
+```
+
+`@seff$inpeff` and `$outeff` are **cross-commodity conversion factors** here —
+input→stored and stored→output — the same role `cinp2use` plays for a
+technology. When the three commodities coincide they are the round-trip
+efficiencies they have always been, and nothing changes.
+
+Before this, the same system needed an electrolyser, a store, a fuel cell, and
+an artificial `H2` commodity whose only job was to join them. On a two-day test
+model the fused object reproduces the decomposition's objective **exactly**
+(193.142857 on GLPK, Julia/HiGHS, Pyomo and GAMS alike) in 149 variables and 151
+constraints instead of 251 and 257.
+
+The saving is structural rather than clever: the artificial commodity's balance
+rows disappear along with the two technologies.
+
+::: {.callout-note}
+An electric car is the case where this really bites. `ELC` is shared with the
+grid, so a composed model needs an artificial on-board commodity to stop the
+motor drawing from the mains while driving. Disjoint availability profiles do
+not save you — the profile sits on the *technology*, not on the commodity.
+:::
+
+# `@fullYear`: where the cycle closes
+
+The single most consequential flag on a storage, and the easiest to get wrong.
+
+- `fullYear = TRUE` (the default) — one cycle over the whole **year**. Energy
+  put in during April can come out in October.
+- `fullYear = FALSE` — one cycle **per parent timeframe**. On a day/hour
+  calendar every day is an independent loop and nothing crosses midnight.
+
+```{r}
+cal <- newCalendar(
+  timetable = make_timetable(struct = list(
+    ANNUAL = "ANNUAL", DAY = c("d1", "d2"), HOUR = paste0("h", 1:4))),
+  name = "two_days")
+
+# cheap generation exists only on day 1; all demand falls on day 2, so storage
+# is the ONLY cheap way to serve it -- and only if energy may cross midnight
+mk <- function(full_year) {
+  newModel(
+    name = paste0("fy_", full_year), region = "R1",
+    horizon = newHorizon(2020), discount = 0, calendar = cal,
+    repo = newRepository("repo",
+      newCommodity("COA", timeframe = "ANNUAL"),
+      newCommodity("ELC", timeframe = "HOUR"),
+      newSupply("SUP", commodity = "COA", supply = data.frame(cost = 1)),
+      newTechnology("ECHEAP", input = list(comm = "COA"), output = list(comm = "ELC"),
+        invcost = data.frame(invcost = 10),
+        af = data.frame(timeslice = paste0("d2_h", 1:4), af.up = 0),
+        vintage = data.frame(olife = 30L), cap2act = 1),
+      newTechnology("EEXP", input = list(comm = "COA"), output = list(comm = "ELC"),
+        invcost = data.frame(invcost = 5000),
+        vintage = data.frame(olife = 30L), cap2act = 1),
+      newStorage("STG", commodity = "ELC", invcost = list(invcost = 1),
+                 vintage = data.frame(olife = 30L), fullYear = full_year),
+      newDemand("DEM", commodity = "ELC",
+                demand = data.frame(timeslice = paste0("d2_h", 1:4), demand = 10))))
+}
+
+obj <- vapply(c(TRUE, FALSE), function(fy) {
+  s <- suppressMessages(solve_model(mk(fy), name = paste0("fy_", fy)))
+  getData(s, "vObjective", merge = TRUE)$value[1]
+}, numeric(1))
+data.frame(fullYear = c(TRUE, FALSE), objective = obj)
+```
+
+With the cycle closed inside each day the store cannot help at all and the
+model falls back on the expensive plant. The flag is not a detail.
+
+::: {.callout-warning}
+`@fullYear` was **inert** before energyRt v0.80 — every storage cycled within
+its parent timeframe whatever the flag said, which made multi-day and seasonal
+storage silently unrepresentable. It surfaced when a converted PyPSA-Eur battery
+came out 2.1x oversized and idle 6,624 hours of 8,760.
+:::
+
+# `@startLevel`: an endowment, once per cycle
+
+`@startLevel` says how much is in the store at the *start of a cycle*. It has no
+`timeslice` column on purpose: the slice is derived from where the cycle closes,
+not chosen. It is an **annual** quantity, so a store cycling daily receives its
+share, not the whole thing 365 times over.
+
+# Sizing the parts
+
+`@duration` and `@inp2out` are the two ratios that tie the three parts together.
+Both are **bounds**, on `(storage, region, year)`:
+
+```
+duration = reservoir / discharger   [hours]
+inp2out  = charger   / discharger   [dimensionless]
+```
+
+`duration = 6` fixes the ratio — a 6-hour battery. A range lets the model
+choose:
+
+```{r}
+newStorage("FLEX", commodity = "ELC",
+           output   = list(invcost = 12),
+           storage  = list(invcost = 8),
+           duration = data.frame(duration.lo = 2, duration.up = 8),
+           vintage  = data.frame(olife = 15L))@duration
+```
+
+A one-sided range opens the other side: `duration.up = 8` means "up to 8 hours"
+and does **not** quietly inherit a lower bound of 1.
+
+An optimised ratio only means something when the reservoir is *priced* — with
+energy free the model simply takes the longest duration allowed. Given a cost on
+both sides, and both sides binding, it lands strictly inside the range.
+
+## Structure follows data
+
+A part carrying only a commodity name gets **no capacity variable at all**.
+Naming a commodity is metadata, not data; only a stock, a bound or a price
+materialises `vStorageInpCap` / `vStorageStgCap`. Everywhere else the ratio is
+inlined onto `vStorageOutCap`, which is exactly the older, smaller model.
+
+That is why adding all of this moved nothing: a storage written the old way
+keeps one capacity variable and its previous LP, to the row.
+
+| variable | side | unit |
+|---|---|---|
+| `vStorageInpCap` | charger | power |
+| `vStorageStgCap` | reservoir | **energy** |
+| `vStorageOutCap` | discharger | power |
+
+::: {.callout-note}
+`vStorageCap` no longer exists. It meant *power*, and `vStorageStgCap` means
+*energy* — one syllable apart. Rather than leave a name whose meaning had to be
+guessed, it was renamed `vStorageOutCap`, so the old name resolves to nothing
+instead of returning the wrong quantity. Use `getData(scen, "vStorageOutCap")`.
+:::
+
+## Rates and energy: `cap2act`
+
+A charger is a **rate** — 7 kW is 7 kW whether you model the year in hours or in
+four-hour blocks. A reservoir is an **amount** — 60 kWh is 60 kWh either way.
+energyRt keeps flows as quantities *within* a timeslice, so the rate has to be
+converted at the bound:
+
+```
+vStorageInp[.,s] <= cinp.up * cap2act * vStorageInpCap * pTimesliceShare[s]
+```
+
+`cap2act` is capacity → annual flow, exactly as on a `technology`. It defaults to
+**8760**, the hours in a year, which makes a capacity read as *commodity per
+hour* on any calendar:
+
+| calendar | share per slice | `8760 × share` |
+|---|---:|---:|
+| 8760 × 1 h | 1/8760 | 1 |
+| 2190 × 4 h | 4/8760 | 4 |
+| 365 × 1 d | 1/365 | 24 |
+| 1 × annual | 1 | 8760 |
+
+Write `cap.fx = 7` and you get 7 per hour in every row of that table. If your
+commodity is TWh against GW capacity rather than GWh, use `8.76`.
+
+::: {.callout-important}
+## A calendar is a YEAR, so say which part of it you mean
+`cap2act` only reads as "per hour" if a timeslice really is an hour, and that is
+a property of the **calendar**, not of the storage. Declare 24 timeslices as a
+whole year and each is 365 hours long, so `cap.fx = 7` quietly means 0.019 per
+hour.
+
+The fix is not to adjust `cap2act` — that just renames the confusion. It is to
+say the calendar covers one day *out of* the year:
+
+```{r}
+#| eval: false
+YF  <- 1 / 365
+cal <- newCalendar(
+  timetable = make_timetable(struct = list(ANNUAL = "ANNUAL", HOUR = hrs),
+                             year_fraction = YF),
+  year_fraction = YF, name = "one_day")
+```
+
+Each slice then has `share = 1/8760` — a real hour — and the timeslice `weight`
+comes out as 365, so costs annualise as "this day, repeated all year". The
+bundled representative-day calendars work the same way, which is why their leaf
+share is 1/8760 rather than 1/288.
+:::
+
+::: {.callout-warning}
+Before this, the bound carried no share factor, so a capacity meant "commodity
+per **timeslice**". The same `cap.fx = 7` allowed 7 per hour on a 24 × 1-hour
+calendar and 1.75 per hour on a 6 × 4-hour one — refine the resolution and every
+store silently became weaker. `vStorageStgCap` is deliberately **not** scaled:
+energy is energy.
+:::
+
+This is also what makes `duration` honest. With the discharger a per-hour rate
+and the reservoir an amount, `duration = vStorageStgCap / vStorageOutCap` is an
+hour count — so `duration = 6` on a 10 MW discharger gives exactly 60 MWh.
+
+### PyPSA does the same thing from the other end
+
+PyPSA's state-of-charge equation is
+
+```
+soc[t] = (1-standing_loss)^eh · soc[t-1] + eff_store·eh·p_store − eh·p_dispatch/eff_dispatch
+```
+
+where `eh` is elapsed hours. Its `p_*` variables are **rates**, so no limit
+constraint is scaled at all — neither `p ≤ p_nom` nor `soc ≤ e_nom`. energyRt
+puts the conversion on the bound instead of in the variable; the physics is
+identical. Note energyRt already agreed on the decay term, which has always been
+`(pStorageStgEff)^(pTimesliceShare)` — the same compounding by elapsed time.
+
+### What aggregation still costs you
+
+Making the rating resolution-independent does **not** make a coarse calendar
+adequate. Discharge in a slice is bounded by three things:
+
+```
+(1) out <= cout.up · cap2act · outCap · share[s]
+(2) out / outeff <= level[s]
+(3) level[s] <= af.up · stgCap
+```
+
+For a 6 h / 10 MW battery (60 MWh), only (1) changes with resolution:
+
+| calendar | flow bound (1) | energy bound (2)+(3) | binds |
+|---|---:|---:|---|
+| hourly | 10 MWh | 60 MWh | flow |
+| daily | 240 MWh | 60 MWh | **energy** |
+| day/night | 43,800 MWh | 60 MWh | **energy** |
+
+So on coarse slices the power rating goes slack and the store is governed by its
+energy capacity alone. Hence:
+
+> The power rating binds only when the timeslice is **shorter than the storage's
+> discharge duration**.
+
+Worse, the *cycle count* collapses. `N` timeslices allow at most `⌊N/2⌋` cycles,
+so on a day/night calendar a 6-hour battery can perform exactly **one** cycle a
+year — 60 MWh moved, against roughly 21,900 MWh for a store that really cycles
+daily. On a single annual timeslice there is no dynamic at all: the cyclic
+balance pairs the slice with itself and collapses to `inpeff·inp = out/outeff`.
+
+A store whose cycle is shorter than one timeslice is therefore **understated, not
+approximated**. Representing ~365 daily cycles needs on the order of 730
+timeslices — sub-6-hourly resolution. That is a property of temporal aggregation,
+not something the units fix can recover.
+
+# Reading the result: `storage_duration()`
+
+A level series tells you how full the store is. It does not tell you the thing
+that decides what technology you need: how much of that energy is cycling within
+a few hours, and how much is sitting there for weeks.
+
+`storage_duration()` splits the level into duration bands by nested **floors**.
+For a window of `w` hours, the floor is the energy that never leaves the store
+across some `w`-hour stretch — energy committed for at least that long. Floors
+are nested, so successive differences partition the level with no overlap and no
+remainder: **the bands sum back to `vStorageLevel` exactly.**
+
+```{r}
+#| eval: false
+d <- storage_duration(scen)                 # 12h / 1d / 1w / 30d by default
+ggplot(d, aes(datetime, value, fill = duration)) +
+  geom_area() +
+  scale_fill_viridis_d(direction = -1, name = "Duration") +
+  labs(x = NULL, y = "Storage level") +
+  theme_bw()
+```
+
+Change the bands with `width` (in hours) and name them with `labels`. A store
+that cycles within its parent timeframe cannot hold energy longer than that
+cycle, so its long bands come out near zero — a property of the model, not a
+failure of the split.
+
+::: {.callout-note}
+Despite its name in the original IDEEA script, this is not a moving average. An
+average would blur the bands into each other and would not sum back to the
+level.
+:::
+
+# Mapping from PyPSA
+
+PyPSA has two storage representations, and they map onto different parts:
+
+| PyPSA | energyRt |
+|---|---|
+| `StorageUnit` (`p_nom`, `max_hours`) | one storage; `p_nom` -> `@output`, `max_hours` -> `duration.fx` |
+| `Store` (`e_nom`) | `@storage` capacity — `vStorageStgCap` |
+| `Link` into the store (`p_nom`) | `@input` capacity — `vStorageInpCap` |
+| `Link` out of the store (`p_nom`) | `@output` capacity — `vStorageOutCap` |
+| `cyclic_state_of_charge` | `@fullYear` |
+| `efficiency_store` / `_dispatch` | `@seff$inpeff` / `$outeff` |
+
+A `Store` plus two `Link`s is one energyRt storage with all three parts
+present — which is why `Store.e_nom` and `Link.p_nom` being independent in PyPSA
+needed the parts to be independent here too.
+
+::: {.callout-warning}
+A PyPSA `Link` is rated on its **`bus0` (input)** side, while an energyRt
+capacity is rated on activity, i.e. output. Converting one to the other means
+scaling by the efficiency: `capacity = p_nom * eff`, `invcost = capital_cost /
+eff`. Getting this wrong is worth about 1.4% on a Belgium-sized system.
+:::
+
+# See also
+
+- [Time resolution](time-resolution.html) — calendars, timeslices, and what
+  `@fullYear` is relative to.
+- [Model bricks](model-bricks.html) — how `storage` sits beside `technology`,
+  `supply` and `demand`.

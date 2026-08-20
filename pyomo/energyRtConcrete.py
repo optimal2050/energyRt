@@ -210,10 +210,26 @@ model.vStorageInv = Var(
 model.vStorageEac = Var(
     mStorageEac, domain=pyo.NonNegativeReals, doc="Storage EAC investments"
 )
-model.vStorageCap = Var(
+model.vStorageOutCap = Var(
     mStorageSpan, domain=pyo.NonNegativeReals, doc="Storage capacity"
 )
-model.vStorageNewCap = Var(
+model.vStorageStgCap = Var(
+    mStorageStgCap, domain=pyo.NonNegativeReals,
+    doc="Storage energy (storing) capacity"
+)
+model.vStorageInpCap = Var(
+    mStorageInpCap, domain=pyo.NonNegativeReals,
+    doc="Storage charging (input) capacity"
+)
+model.vStorageInpNewCap = Var(
+    mStorageInpNew, domain=pyo.NonNegativeReals,
+    doc="Storage new charging (input) capacity"
+)
+model.vStorageStgNewCap = Var(
+    mStorageStgNew, domain=pyo.NonNegativeReals,
+    doc="Storage new energy (storing) capacity"
+)
+model.vStorageOutNewCap = Var(
     mStorageNew, domain=pyo.NonNegativeReals, doc="Storage new capacity"
 )
 model.vImportTot = Var(
@@ -1510,12 +1526,12 @@ model.eqStorageAInp = Constraint(
         if (st1, cp) in mStorageOutComm
     )
     + (
-            (pStorageCap2AInp.get((st1, c, r, y, s)) * model.vStorageCap[st1, r, y])
+            (pStorageCap2AInp.get((st1, c, r, y, s)) * model.vStorageOutCap[st1, r, y])
             if (st1, c, r, y, s) in mStorageCap2AInp
             else 0
         )
     + (
-            (pStorageNCap2AInp.get((st1, c, r, y, s)) * model.vStorageNewCap[st1, r, y])
+            (pStorageNCap2AInp.get((st1, c, r, y, s)) * model.vStorageOutNewCap[st1, r, y])
             if (st1, c, r, y, s) in mStorageNCap2AInp
             else 0
         ),
@@ -1577,12 +1593,12 @@ model.eqStorageAOut = Constraint(
         if (st1, cp) in mStorageOutComm
     )
     + (
-            (pStorageCap2AOut.get((st1, c, r, y, s)) * model.vStorageCap[st1, r, y])
+            (pStorageCap2AOut.get((st1, c, r, y, s)) * model.vStorageOutCap[st1, r, y])
             if (st1, c, r, y, s) in mStorageCap2AOut
             else 0
         )
     + (
-            (pStorageNCap2AOut.get((st1, c, r, y, s)) * model.vStorageNewCap[st1, r, y])
+            (pStorageNCap2AOut.get((st1, c, r, y, s)) * model.vStorageOutNewCap[st1, r, y])
             if (st1, c, r, y, s) in mStorageNCap2AOut
             else 0
         ),
@@ -1604,7 +1620,7 @@ model.eqStorageLevel = Constraint(
     rule=lambda model, st1, c, r, y, sp, s: model.vStorageLevel[st1, c, r, y, s]
     == pStorageStartLevel.get((st1, c, r, y, s))
     + (
-        (pStorageNCap2Stg.get((st1, c, r, y, s)) * model.vStorageNewCap[st1, r, y])
+        (pStorageNCap2Stg.get((st1, c, r, y, s)) * model.vStorageOutNewCap[st1, r, y])
         if (st1, r, y) in mStorageNew
         else 0
     )
@@ -1642,8 +1658,13 @@ model.eqStorageAfLo = Constraint(
     meqStorageAfLo,
     rule=lambda model, st1, c, r, y, s: model.vStorageLevel[st1, c, r, y, s]
     >= pStorageAfLo.get((st1, r, y, s))
-    * pStorageDuration.get((st1))
-    * model.vStorageCap[st1, r, y]
+    # [2c] the storing side is its own variable where it carries data;
+    # elsewhere the duration ratio is inlined onto the output capacity.
+    * (
+        model.vStorageStgCap[st1, r, y]
+        if (st1, r, y) in mStorageStgCap
+        else pStorageDurationLo.get((st1, r, y)) * model.vStorageOutCap[st1, r, y]
+    )
     * prod(
         pStorageWeatherAfLo.get((wth1, st1)) * pWeather.get((wth1, r, y, s))
         for wth1 in weather
@@ -1666,8 +1687,13 @@ model.eqStorageAfUp = Constraint(
     meqStorageAfUp,
     rule=lambda model, st1, c, r, y, s: model.vStorageLevel[st1, c, r, y, s]
     <= pStorageAfUp.get((st1, r, y, s))
-    * pStorageDuration.get((st1))
-    * model.vStorageCap[st1, r, y]
+    # [2c] the storing side is its own variable where it carries data;
+    # elsewhere the duration ratio is inlined onto the output capacity.
+    * (
+        model.vStorageStgCap[st1, r, y]
+        if (st1, r, y) in mStorageStgCap
+        else pStorageDurationUp.get((st1, r, y)) * model.vStorageOutCap[st1, r, y]
+    )
     * prod(
         pStorageWeatherAfUp.get((wth1, st1)) * pWeather.get((wth1, r, y, s))
         for wth1 in weather
@@ -1711,7 +1737,16 @@ sys.stdout.flush()
 model.eqStorageInpUp = Constraint(
     meqStorageInpUp,
     rule=lambda model, st1, c, r, y, s: model.vStorageInp[st1, c, r, y, s]
-    <= model.vStorageCap[st1, r, y]
+    <= (
+        # [2c] the charging side is its own variable where it carries data;
+        # elsewhere inp2out is inlined onto the output capacity.
+        model.vStorageInpCap[st1, r, y]
+        if (st1, r, y) in mStorageInpCap
+        else pStorageInp2outUp.get((st1, r, y)) * model.vStorageOutCap[st1, r, y]
+    )
+    # [rate] capacity is per HOUR, not per timeslice
+    * pStorageInpCap2act.get((st1))
+    * pTimesliceShare.get((s))
     * pStorageCinpUp.get((st1, c, r, y, s))
     * prod(
         pStorageWeatherCinpUp.get((wth1, st1)) * pWeather.get((wth1, r, y, s))
@@ -1734,7 +1769,16 @@ sys.stdout.flush()
 model.eqStorageInpLo = Constraint(
     meqStorageInpLo,
     rule=lambda model, st1, c, r, y, s: model.vStorageInp[st1, c, r, y, s]
-    >= model.vStorageCap[st1, r, y]
+    >= (
+        # [2c] the charging side is its own variable where it carries data;
+        # elsewhere inp2out is inlined onto the output capacity.
+        model.vStorageInpCap[st1, r, y]
+        if (st1, r, y) in mStorageInpCap
+        else pStorageInp2outLo.get((st1, r, y)) * model.vStorageOutCap[st1, r, y]
+    )
+    # [rate] capacity is per HOUR, not per timeslice
+    * pStorageInpCap2act.get((st1))
+    * pTimesliceShare.get((s))
     * pStorageCinpLo.get((st1, c, r, y, s))
     * prod(
         pStorageWeatherCinpLo.get((wth1, st1)) * pWeather.get((wth1, r, y, s))
@@ -1757,7 +1801,9 @@ sys.stdout.flush()
 model.eqStorageOutUp = Constraint(
     meqStorageOutUp,
     rule=lambda model, st1, c, r, y, s: model.vStorageOut[st1, c, r, y, s]
-    <= model.vStorageCap[st1, r, y]
+    <= model.vStorageOutCap[st1, r, y]
+    * pStorageOutCap2act.get((st1))
+    * pTimesliceShare.get((s))
     * pStorageCoutUp.get((st1, c, r, y, s))
     * prod(
         pStorageWeatherCoutUp.get((wth1, st1)) * pWeather.get((wth1, r, y, s))
@@ -1780,7 +1826,9 @@ sys.stdout.flush()
 model.eqStorageOutLo = Constraint(
     meqStorageOutLo,
     rule=lambda model, st1, c, r, y, s: model.vStorageOut[st1, c, r, y, s]
-    >= model.vStorageCap[st1, r, y]
+    >= model.vStorageOutCap[st1, r, y]
+    * pStorageOutCap2act.get((st1))
+    * pTimesliceShare.get((s))
     * pStorageCoutLo.get((st1, c, r, y, s))
     * prod(
         pStorageWeatherCoutLo.get((wth1, st1)) * pWeather.get((wth1, r, y, s))
@@ -1802,10 +1850,10 @@ if verbose:
 sys.stdout.flush()
 model.eqStorageCap = Constraint(
     mStorageSpan,
-    rule=lambda model, st1, r, y: model.vStorageCap[st1, r, y]
+    rule=lambda model, st1, r, y: model.vStorageOutCap[st1, r, y]
     == pStorageStock.get((st1, r, y))
     + sum(
-        pPeriodLen.get((yp)) * model.vStorageNewCap[st1, r, yp]
+        pPeriodLen.get((yp)) * model.vStorageOutNewCap[st1, r, yp]
         for yp in year
         if (
             ordYear.get((y)) >= ordYear.get((yp))
@@ -1829,9 +1877,104 @@ if verbose:
 if verbose:
     print("eqStorageCapLo ", end="")
 sys.stdout.flush()
+# eqStorageInpCap -- the CHARGING side, rated independently of the discharger.
+model.eqStorageInpCap = Constraint(
+    mStorageInpCap,
+    rule=lambda model, st1, r, y: model.vStorageInpCap[st1, r, y]
+    == pStorageInpStock.get((st1, r, y))
+    + sum(
+        pPeriodLen.get((yp)) * model.vStorageInpNewCap[st1, r, yp]
+        for yp in year
+        if (st1, r, yp) in mStorageInpNew
+        and ordYear.get((y)) >= ordYear.get((yp))
+        and (
+            (st1, r) in mStorageOlifeInf
+            or ordYear.get((y)) < pStorageOlife.get((st1, r)) + ordYear.get((yp))
+        )
+    ),
+)
+model.eqStorageInpCapLo = Constraint(
+    mStorageInpCapLo,
+    rule=lambda model, st1, r, y: model.vStorageInpCap[st1, r, y]
+    >= pStorageInpCapLo.get((st1, r, y)),
+)
+model.eqStorageInpCapUp = Constraint(
+    mStorageInpCapUp,
+    rule=lambda model, st1, r, y: model.vStorageInpCap[st1, r, y]
+    <= pStorageInpCapUp.get((st1, r, y)),
+)
+model.eqStorageInpNewCapLo = Constraint(
+    mStorageInpNewCapLo,
+    rule=lambda model, st1, r, y: model.vStorageInpNewCap[st1, r, y]
+    >= pStorageInpNewCapLo.get((st1, r, y)) * pPeriodLen.get((y)),
+)
+model.eqStorageInpNewCapUp = Constraint(
+    mStorageInpNewCapUp,
+    rule=lambda model, st1, r, y: model.vStorageInpNewCap[st1, r, y]
+    <= pStorageInpNewCapUp.get((st1, r, y)) * pPeriodLen.get((y)),
+)
+# The inp2out LINK: charging capacity per unit of discharging capacity.
+model.eqStorageInp2outLo = Constraint(
+    mStorageInp2outLo,
+    rule=lambda model, st1, r, y: model.vStorageInpCap[st1, r, y]
+    >= pStorageInp2outLo.get((st1, r, y)) * model.vStorageOutCap[st1, r, y],
+)
+model.eqStorageInp2outUp = Constraint(
+    mStorageInp2outUp,
+    rule=lambda model, st1, r, y: model.vStorageInpCap[st1, r, y]
+    <= pStorageInp2outUp.get((st1, r, y)) * model.vStorageOutCap[st1, r, y],
+)
+# eqStorageStgCap -- the STORING side's own capacity, in ENERGY. Exists only
+# where the storing part carries data; elsewhere the af bounds inline duration.
+model.eqStorageStgCap = Constraint(
+    mStorageStgCap,
+    rule=lambda model, st1, r, y: model.vStorageStgCap[st1, r, y]
+    == pStorageStgStock.get((st1, r, y))
+    + sum(
+        pPeriodLen.get((yp)) * model.vStorageStgNewCap[st1, r, yp]
+        for yp in year
+        if (st1, r, yp) in mStorageStgNew
+        and ordYear.get((y)) >= ordYear.get((yp))
+        and (
+            (st1, r) in mStorageOlifeInf
+            or ordYear.get((y)) < pStorageOlife.get((st1, r)) + ordYear.get((yp))
+        )
+    ),
+)
+model.eqStorageStgCapLo = Constraint(
+    mStorageStgCapLo,
+    rule=lambda model, st1, r, y: model.vStorageStgCap[st1, r, y]
+    >= pStorageStgCapLo.get((st1, r, y)),
+)
+model.eqStorageStgCapUp = Constraint(
+    mStorageStgCapUp,
+    rule=lambda model, st1, r, y: model.vStorageStgCap[st1, r, y]
+    <= pStorageStgCapUp.get((st1, r, y)),
+)
+model.eqStorageStgNewCapLo = Constraint(
+    mStorageStgNewCapLo,
+    rule=lambda model, st1, r, y: model.vStorageStgNewCap[st1, r, y]
+    >= pStorageStgNewCapLo.get((st1, r, y)) * pPeriodLen.get((y)),
+)
+model.eqStorageStgNewCapUp = Constraint(
+    mStorageStgNewCapUp,
+    rule=lambda model, st1, r, y: model.vStorageStgNewCap[st1, r, y]
+    <= pStorageStgNewCapUp.get((st1, r, y)) * pPeriodLen.get((y)),
+)
+# The duration LINK, in hours. `.fx` collapses these two onto each other.
+model.eqStorageDurationLo = Constraint(
+    mStorageDurationLo,
+    rule=lambda model, st1, r, y: model.vStorageStgCap[st1, r, y]
+    >= pStorageDurationLo.get((st1, r, y)) * model.vStorageOutCap[st1, r, y],
+)
+model.eqStorageDurationUp = Constraint(
+    mStorageDurationUp,
+    rule=lambda model, st1, r, y: model.vStorageStgCap[st1, r, y]
+    <= pStorageDurationUp.get((st1, r, y)) * model.vStorageOutCap[st1, r, y],
+)
 model.eqStorageCapLo = Constraint(
     mStorageCapLo,
-    rule=lambda model, st1, r, y: model.vStorageCap[st1, r, y]
+    rule=lambda model, st1, r, y: model.vStorageOutCap[st1, r, y]
     >= pStorageCapLo.get((st1, r, y)),
 )
 if verbose:
@@ -1848,7 +1991,7 @@ if verbose:
 sys.stdout.flush()
 model.eqStorageCapUp = Constraint(
     mStorageCapUp,
-    rule=lambda model, st1, r, y: model.vStorageCap[st1, r, y]
+    rule=lambda model, st1, r, y: model.vStorageOutCap[st1, r, y]
     <= pStorageCapUp.get((st1, r, y)),
 )
 if verbose:
@@ -1865,7 +2008,7 @@ if verbose:
 sys.stdout.flush()
 model.eqStorageNewCapLo = Constraint(
     mStorageNewCapLo,
-    rule=lambda model, st1, r, y: model.vStorageNewCap[st1, r, y]
+    rule=lambda model, st1, r, y: model.vStorageOutNewCap[st1, r, y]
     >= pStorageNewCapLo.get((st1, r, y)) * pPeriodLen.get((y)),
 )
 if verbose:
@@ -1882,7 +2025,7 @@ if verbose:
 sys.stdout.flush()
 model.eqStorageNewCapUp = Constraint(
     mStorageNewCapUp,
-    rule=lambda model, st1, r, y: model.vStorageNewCap[st1, r, y]
+    rule=lambda model, st1, r, y: model.vStorageOutNewCap[st1, r, y]
     <= pStorageNewCapUp.get((st1, r, y)) * pPeriodLen.get((y)),
 )
 if verbose:
@@ -1900,7 +2043,18 @@ sys.stdout.flush()
 model.eqStorageInv = Constraint(
     mStorageNew,
     rule=lambda model, st1, r, y: model.vStorageInv[st1, r, y]
-    == pStorageInvcost.get((st1, r, y)) * model.vStorageNewCap[st1, r, y],
+    == pStorageInvcost.get((st1, r, y)) * model.vStorageOutNewCap[st1, r, y]
+    # [2c] the storing side's capital cost is per unit of ENERGY.
+    + (
+        pStorageStgInvcost.get((st1, r, y)) * model.vStorageStgNewCap[st1, r, y]
+        if (st1, r, y) in mStorageStgNew
+        else 0
+    )
+    + (
+        pStorageInpInvcost.get((st1, r, y)) * model.vStorageInpNewCap[st1, r, y]
+        if (st1, r, y) in mStorageInpNew
+        else 0
+    ),
 )
 if verbose:
     print(
@@ -1919,7 +2073,22 @@ model.eqStorageEac = Constraint(
     mStorageEac,
     rule=lambda model, st1, r, y: model.vStorageEac[st1, r, y]
     == sum(
-        pStorageEac.get((st1, r, yp)) * model.vStorageNewCap[st1, r, yp]
+        (
+            pStorageEac.get((st1, r, yp)) * model.vStorageOutNewCap[st1, r, yp]
+            # [2c] the storing side annuitises separately, same lifetime.
+            + (
+                pStorageStgEac.get((st1, r, yp))
+                * model.vStorageStgNewCap[st1, r, yp]
+                if (st1, r, yp) in mStorageStgNew
+                else 0
+            )
+            + (
+                pStorageInpEac.get((st1, r, yp))
+                * model.vStorageInpNewCap[st1, r, yp]
+                if (st1, r, yp) in mStorageInpNew
+                else 0
+            )
+        )
         for yp in year
         if (
             (st1, r, yp) in mStorageNew
@@ -1965,7 +2134,17 @@ sys.stdout.flush()
 model.eqStorageFixom = Constraint(
     mStorageFixom,
     rule=lambda model, st1, r, y: model.vStorageFixom[st1, r, y]
-    == pStorageFixom.get((st1, r, y)) * model.vStorageCap[st1, r, y],
+    == pStorageFixom.get((st1, r, y)) * model.vStorageOutCap[st1, r, y]
+    + (
+        pStorageStgFixom.get((st1, r, y)) * model.vStorageStgCap[st1, r, y]
+        if (st1, r, y) in mStorageStgFixom
+        else 0
+    )
+    + (
+        pStorageInpFixom.get((st1, r, y)) * model.vStorageInpCap[st1, r, y]
+        if (st1, r, y) in mStorageInpFixom
+        else 0
+    ),
 )
 if verbose:
     print(

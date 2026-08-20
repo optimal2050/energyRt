@@ -233,6 +233,26 @@ pStorageOutEff(stg, comm, region, year, timeslice)      Storage output efficienc
 pStorageStgEff(stg, comm, region, year, timeslice)      Storage time-efficiency (annual)
 pStorageStock(stg, region, year)                    Storage capacity stock
 pStorageCapUp(stg, region, year)                    Upper bound on storage capacity
+pStorageInpCap2act(stg)                             Storage charging capacity to annual flow
+pStorageOutCap2act(stg)                             Storage discharging capacity to annual flow
+pStorageInpStock(stg, region, year)                 Storage exogenous charging capacity
+pStorageInpInvcost(stg, region, year)               Storage investment cost per unit of charging capacity
+pStorageInpFixom(stg, region, year)                 Storage fixed OM cost per unit of charging capacity
+pStorageInpEac(stg, region, year)                   Storage annualised charging-capacity investment cost
+pStorageInpCapLo(stg, region, year)                 Lower bound on storage charging capacity
+pStorageInpCapUp(stg, region, year)                 Upper bound on storage charging capacity
+pStorageInpNewCapLo(stg, region, year)              Lower bound on new storage charging capacity
+pStorageInpNewCapUp(stg, region, year)              Upper bound on new storage charging capacity
+pStorageInp2outLo(stg, region, year)                Lower bound on the charge-to-discharge ratio
+pStorageInp2outUp(stg, region, year)                Upper bound on the charge-to-discharge ratio
+pStorageStgStock(stg, region, year)                 Storage exogenous energy capacity
+pStorageStgInvcost(stg, region, year)               Storage investment cost per unit of energy capacity
+pStorageStgFixom(stg, region, year)                 Storage fixed OM cost per unit of energy capacity
+pStorageStgEac(stg, region, year)                   Storage annualised energy-capacity investment cost
+pStorageStgCapLo(stg, region, year)                 Lower bound on storage energy capacity
+pStorageStgCapUp(stg, region, year)                 Upper bound on storage energy capacity
+pStorageStgNewCapLo(stg, region, year)              Lower bound on new storage energy capacity
+pStorageStgNewCapUp(stg, region, year)              Upper bound on new storage energy capacity
 pStorageCapLo(stg, region, year)                    Lower bound on storage capacity
 pStorageNewCapUp(stg, region, year)                 Upper bound on new storage capacity
 pStorageNewCapLo(stg, region, year)                 Lower bound on new storage capacity
@@ -246,7 +266,8 @@ pStorageFixom(stg, region, year)                    Storage fixed O&M costs
 pStorageInvcost(stg, region, year)                  Storage investment costs
 pStorageEac(stg, region, year)                      Storage equivalent annual costs
 pStorageRetCost(stg, region, year)                  Storage early retirement costs
-pStorageDuration(stg)                                Storage (dis)charging capacity to accumulating capacity (to be renamed to duration)
+pStorageDurationLo(stg, region, year)               Storage energy-to-power ratio, hours, lower bound
+pStorageDurationUp(stg, region, year)               Storage energy-to-power ratio, hours, upper bound
 pStorageAfLo(stg, region, year, timeslice)              Storage availability factor lower bound (minimum charging level)
 pStorageAfUp(stg, region, year, timeslice)              Storage availability factor upper bound (maximum charging level)
 *pStorageAfsLo(tech, region, year, timeslice)           add parameter and eq?
@@ -387,6 +408,28 @@ mStorageCout2AInp(stg, comm, region, year, timeslice)
 mStorageCap2AInp(stg, comm, region, year, timeslice)
 mStorageNCap2AInp(stg, comm, region, year, timeslice)
 
+mStorageInpCap(stg, region, year)
+mStorageNoInpCap(stg, region, year)
+mStorageInpNew(stg, region, year)
+mStorageInpCapLo(stg, region, year)
+mStorageInpCapUp(stg, region, year)
+mStorageInpNewCapLo(stg, region, year)
+mStorageInpNewCapUp(stg, region, year)
+mStorageInpFixom(stg, region, year)
+mStorageInpEac(stg, region, year)
+mStorageInp2outLo(stg, region, year)
+mStorageInp2outUp(stg, region, year)
+mStorageStgCap(stg, region, year)
+mStorageNoStgCap(stg, region, year)
+mStorageStgNew(stg, region, year)
+mStorageStgCapLo(stg, region, year)
+mStorageStgCapUp(stg, region, year)
+mStorageStgNewCapLo(stg, region, year)
+mStorageStgNewCapUp(stg, region, year)
+mStorageStgFixom(stg, region, year)
+mStorageStgEac(stg, region, year)
+mStorageDurationLo(stg, region, year)
+mStorageDurationUp(stg, region, year)
 mStorageCapLo(stg, region, year)
 mStorageCapUp(stg, region, year)
 mStorageNewCapLo(stg, region, year)
@@ -548,9 +591,13 @@ vStorageInv(stg, region, year)                       Storage investments
 *@ mStorageEac(stg, region, year)
 vStorageEac(stg, region, year)                       Storage EAC investments
 *@ mStorageSpan(stg, region, year)
-vStorageCap(stg, region, year)                       Storage capacity
+vStorageOutCap(stg, region, year)                       Storage capacity
+vStorageStgCap(stg, region, year)                       Storage energy (storing) capacity
+vStorageInpCap(stg, region, year)                       Storage charging (input) capacity
+vStorageInpNewCap(stg, region, year)                    Storage new charging (input) capacity
+vStorageStgNewCap(stg, region, year)                    Storage new energy (storing) capacity
 *@ mStorageNew(stg, region, year)
-vStorageNewCap(stg, region, year)                    Storage new capacity
+vStorageOutNewCap(stg, region, year)                    Storage new capacity
 ;
 variable
 * mStorageOMCost(stg, region, year)
@@ -1446,10 +1493,10 @@ eqStorageAInp(stg, comm, region, year, timeslice)$mvStorageAInp(stg, comm, regio
           * vStorageOut(stg, commp, region, year, timeslice)
         )$mStorageCout2AInp(stg, comm, region, year, timeslice))
       + (pStorageCap2AInp(stg, comm, region, year, timeslice)
-           * vStorageCap(stg, region, year)
+           * vStorageOutCap(stg, region, year)
         )$mStorageCap2AInp(stg, comm, region, year, timeslice)
       + (pStorageNCap2AInp(stg, comm, region, year, timeslice)
-           * vStorageNewCap(stg, region, year)
+           * vStorageOutNewCap(stg, region, year)
         )$mStorageNCap2AInp(stg, comm, region, year, timeslice)
     ;
 
@@ -1476,11 +1523,11 @@ eqStorageAOut(stg, comm, region, year, timeslice)$mvStorageAOut(stg, comm, regio
       )$mStorageCout2AOut(stg, comm, region, year, timeslice))
       +
       (pStorageCap2AOut(stg, comm, region, year, timeslice)
-       * vStorageCap(stg, region, year)
+       * vStorageOutCap(stg, region, year)
       )$mStorageCap2AOut(stg, comm, region, year, timeslice)
       +
       (pStorageNCap2AOut(stg, comm, region, year, timeslice)
-       * vStorageNewCap(stg, region, year)
+       * vStorageOutNewCap(stg, region, year)
       )$mStorageNCap2AOut(stg, comm, region, year, timeslice)
 ;
 
@@ -1490,7 +1537,7 @@ eqStorageLevel(stg, comm, region, year, timeslicep, timeslice)$meqStorageLevel(s
   =e=
   pStorageStartLevel(stg, comm, region, year, timeslice)
   + (pStorageNCap2Stg(stg, comm, region, year, timeslice)
-     * vStorageNewCap(stg, region, year)
+     * vStorageOutNewCap(stg, region, year)
     )$mStorageNew(stg, region, year)
   +
 *  sum(timeslicep$(mCommTimeslice(comm, timeslicep) and mTimesliceNext(timeslicep, timeslice)),
@@ -1514,7 +1561,10 @@ eqStorageAfLo(stg, comm, region, year, timeslice)$meqStorageAfLo(stg, comm, regi
     vStorageLevel(stg, comm, region, year, timeslice)
     =g=
     pStorageAfLo(stg, region, year, timeslice) *
-      pStorageDuration(stg) * vStorageCap(stg, region, year)
+      (vStorageStgCap(stg, region, year)$mStorageStgCap(stg, region, year)
+       + (pStorageDurationLo(stg, region, year)
+          * vStorageOutCap(stg, region, year)
+         )$mStorageNoStgCap(stg, region, year))
       * prod(weather$mStorageWeatherAfLo(weather, stg),
              pStorageWeatherAfLo(weather, stg)
              * pWeather(weather, region, year, timeslice));
@@ -1523,7 +1573,10 @@ eqStorageAfUp(stg, comm, region, year, timeslice)$meqStorageAfUp(stg, comm, regi
     vStorageLevel(stg, comm, region, year, timeslice)
     =l=
     pStorageAfUp(stg, region, year, timeslice) *
-      pStorageDuration(stg) * vStorageCap(stg, region, year)
+      (vStorageStgCap(stg, region, year)$mStorageStgCap(stg, region, year)
+       + (pStorageDurationUp(stg, region, year)
+          * vStorageOutCap(stg, region, year)
+         )$mStorageNoStgCap(stg, region, year))
       * prod(weather$mStorageWeatherAfUp(weather, stg),
              pStorageWeatherAfUp(weather, stg)
              * pWeather(weather, region, year, timeslice));
@@ -1543,7 +1596,13 @@ eqStorageOutLevel(stg, comm, region, year, timeslice)$mvStorageLevel(stg, comm, 
 eqStorageInpUp(stg, comm, region, year, timeslice)$meqStorageInpUp(stg, comm, region, year, timeslice)..
   vStorageInp(stg, comm, region, year, timeslice) =l=
 *    pStorageDuration(stg) *
-    vStorageCap(stg, region, year) * pStorageCinpUp(stg, comm, region, year, timeslice)
+    (vStorageInpCap(stg, region, year)$mStorageInpCap(stg, region, year)
+     + (pStorageInp2outUp(stg, region, year)
+        * vStorageOutCap(stg, region, year)
+       )$mStorageNoInpCap(stg, region, year))
+*   [rate] capacity is per HOUR, not per timeslice -- see pStorageInpCap2act
+    * pStorageInpCap2act(stg) * pTimesliceShare(timeslice)
+    * pStorageCinpUp(stg, comm, region, year, timeslice)
 *         * pTimesliceShare(timeslice) *
     * prod(weather$mStorageWeatherCinpUp(weather, stg),
            pStorageWeatherCinpUp(weather, stg)
@@ -1552,7 +1611,13 @@ eqStorageInpUp(stg, comm, region, year, timeslice)$meqStorageInpUp(stg, comm, re
 eqStorageInpLo(stg, comm, region, year, timeslice)$meqStorageInpLo(stg, comm, region, year, timeslice)..
   vStorageInp(stg, comm, region, year, timeslice) =g=
 *    pStorageDuration(stg) *
-    vStorageCap(stg, region, year) * pStorageCinpLo(stg, comm, region, year, timeslice)
+    (vStorageInpCap(stg, region, year)$mStorageInpCap(stg, region, year)
+     + (pStorageInp2outLo(stg, region, year)
+        * vStorageOutCap(stg, region, year)
+       )$mStorageNoInpCap(stg, region, year))
+*   [rate] capacity is per HOUR, not per timeslice -- see pStorageInpCap2act
+    * pStorageInpCap2act(stg) * pTimesliceShare(timeslice)
+    * pStorageCinpLo(stg, comm, region, year, timeslice)
 *    * pTimesliceShare(timeslice)
     * prod(weather$mStorageWeatherCinpLo(weather, stg),
            pStorageWeatherCinpLo(weather, stg)
@@ -1562,8 +1627,9 @@ eqStorageInpLo(stg, comm, region, year, timeslice)$meqStorageInpLo(stg, comm, re
 eqStorageOutUp(stg, comm, region, year, timeslice)$meqStorageOutUp(stg, comm, region, year, timeslice)..
   vStorageOut(stg, comm, region, year, timeslice) =l=
 *    pStorageDuration(stg) *
-    vStorageCap(stg, region, year) * pStorageCoutUp(stg, comm, region, year, timeslice)
-*    * pTimesliceShare(timeslice)
+    vStorageOutCap(stg, region, year)
+    * pStorageOutCap2act(stg) * pTimesliceShare(timeslice)
+    * pStorageCoutUp(stg, comm, region, year, timeslice)
     * prod(weather$mStorageWeatherCoutUp(weather, stg),
            pStorageWeatherCoutUp(weather, stg)
            * pWeather(weather, region, year, timeslice));
@@ -1571,8 +1637,9 @@ eqStorageOutUp(stg, comm, region, year, timeslice)$meqStorageOutUp(stg, comm, re
 eqStorageOutLo(stg, comm, region, year, timeslice)$meqStorageOutLo(stg, comm, region, year, timeslice)..
   vStorageOut(stg, comm, region, year, timeslice)  =g=
 *    pStorageDuration(stg) *
-    vStorageCap(stg, region, year) * pStorageCoutLo(stg, comm, region, year, timeslice)
-*    * pTimesliceShare(timeslice)
+    vStorageOutCap(stg, region, year)
+    * pStorageOutCap2act(stg) * pTimesliceShare(timeslice)
+    * pStorageCoutLo(stg, comm, region, year, timeslice)
     * prod(weather$mStorageWeatherCoutLo(weather, stg),
            pStorageWeatherCoutLo(weather, stg)
            * pWeather(weather, region, year, timeslice));
@@ -1583,6 +1650,20 @@ eqStorageOutLo(stg, comm, region, year, timeslice)$meqStorageOutLo(stg, comm, re
 Equation
 * Capacity equations
 eqStorageCap(stg, region, year)       Storage capacity
+eqStorageInpCap(stg, region, year)      Storage charging capacity accounting
+eqStorageInpCapLo(stg, region, year)    Storage charging capacity lower bound
+eqStorageInpCapUp(stg, region, year)    Storage charging capacity upper bound
+eqStorageInpNewCapLo(stg, region, year) Storage new charging capacity lower bound
+eqStorageInpNewCapUp(stg, region, year) Storage new charging capacity upper bound
+eqStorageInp2outLo(stg, region, year)   Storage charge-to-discharge ratio lower bound
+eqStorageInp2outUp(stg, region, year)   Storage charge-to-discharge ratio upper bound
+eqStorageStgCap(stg, region, year)      Storage energy capacity accounting
+eqStorageStgCapLo(stg, region, year)    Storage energy capacity lower bound
+eqStorageStgCapUp(stg, region, year)    Storage energy capacity upper bound
+eqStorageStgNewCapLo(stg, region, year) Storage new energy capacity lower bound
+eqStorageStgNewCapUp(stg, region, year) Storage new energy capacity upper bound
+eqStorageDurationLo(stg, region, year)  Storage energy-to-power ratio lower bound
+eqStorageDurationUp(stg, region, year)  Storage energy-to-power ratio upper bound
 eqStorageCapLo(stg, region, year)     Storage capacity lower bound
 eqStorageCapUp(stg, region, year)     Storage capacity upper bound
 eqStorageNewCapLo(stg, region, year)  Storage new capacity lower bound
@@ -1599,7 +1680,7 @@ eqStorageVarom(stg, region, year)    Storage variable costs
 
 * Capacity equation
 eqStorageCap(stg, region, year)$mStorageSpan(stg, region, year)..
-         vStorageCap(stg, region, year)
+         vStorageOutCap(stg, region, year)
          =e=
          pStorageStock(stg, region, year) +
          sum(yearp$(ordYear(year) >= ordYear(yearp)
@@ -1612,27 +1693,98 @@ eqStorageCap(stg, region, year)$mStorageSpan(stg, region, year)..
                      mStorageNew(stg, region, yearp)
                  ),
                  pPeriodLen(yearp) *
-                 vStorageNewCap(stg, region, yearp)
+                 vStorageOutNewCap(stg, region, yearp)
          );
 
+* [2c] The CHARGING side has its own capacity, in power, rated independently
+* of the discharger. Where the charging part carries no data this block emits
+* nothing and the input bounds inline inp2out * output capacity instead.
+eqStorageInpCap(stg, region, year)$mStorageInpCap(stg, region, year)..
+  vStorageInpCap(stg, region, year)
+  =e=
+  pStorageInpStock(stg, region, year)
+  + sum(yearp$(ord(year) >= ord(yearp)
+        and (mStorageOlifeInf(stg, region)
+             or ord(year) < pStorageOlife(stg, region) + ord(yearp))
+        and mStorageInpNew(stg, region, yearp)),
+      pPeriodLen(yearp) * vStorageInpNewCap(stg, region, yearp));
+
+eqStorageInpCapLo(stg, region, year)$mStorageInpCapLo(stg, region, year)..
+  vStorageInpCap(stg, region, year) =g= pStorageInpCapLo(stg, region, year);
+
+eqStorageInpCapUp(stg, region, year)$mStorageInpCapUp(stg, region, year)..
+  vStorageInpCap(stg, region, year) =l= pStorageInpCapUp(stg, region, year);
+
+eqStorageInpNewCapLo(stg, region, year)$mStorageInpNewCapLo(stg, region, year)..
+  vStorageInpNewCap(stg, region, year) =g= pStorageInpNewCapLo(stg, region, year) * pPeriodLen(year);
+
+eqStorageInpNewCapUp(stg, region, year)$mStorageInpNewCapUp(stg, region, year)..
+  vStorageInpNewCap(stg, region, year) =l= pStorageInpNewCapUp(stg, region, year) * pPeriodLen(year);
+
+* The inp2out LINK: charging capacity per unit of discharging capacity.
+eqStorageInp2outLo(stg, region, year)$mStorageInp2outLo(stg, region, year)..
+  vStorageInpCap(stg, region, year) =g= pStorageInp2outLo(stg, region, year) * vStorageOutCap(stg, region, year);
+
+eqStorageInp2outUp(stg, region, year)$mStorageInp2outUp(stg, region, year)..
+  vStorageInpCap(stg, region, year) =l= pStorageInp2outUp(stg, region, year) * vStorageOutCap(stg, region, year);
+
+* [2c] The STORING side's own capacity, in ENERGY. Emitted only where the
+* storing part carries data; elsewhere the af bounds inline duration * power.
+eqStorageStgCap(stg, region, year)$mStorageStgCap(stg, region, year)..
+  vStorageStgCap(stg, region, year)
+  =e=
+  pStorageStgStock(stg, region, year)
+  + sum(yearp$(ord(year) >= ord(yearp)
+        and (mStorageOlifeInf(stg, region)
+             or ord(year) < pStorageOlife(stg, region) + ord(yearp))
+        and mStorageStgNew(stg, region, yearp)),
+      pPeriodLen(yearp) * vStorageStgNewCap(stg, region, yearp));
+
+eqStorageStgCapLo(stg, region, year)$mStorageStgCapLo(stg, region, year)..
+  vStorageStgCap(stg, region, year) =g= pStorageStgCapLo(stg, region, year);
+
+eqStorageStgCapUp(stg, region, year)$mStorageStgCapUp(stg, region, year)..
+  vStorageStgCap(stg, region, year) =l= pStorageStgCapUp(stg, region, year);
+
+eqStorageStgNewCapLo(stg, region, year)$mStorageStgNewCapLo(stg, region, year)..
+  vStorageStgNewCap(stg, region, year) =g= pStorageStgNewCapLo(stg, region, year) * pPeriodLen(year);
+
+eqStorageStgNewCapUp(stg, region, year)$mStorageStgNewCapUp(stg, region, year)..
+  vStorageStgNewCap(stg, region, year) =l= pStorageStgNewCapUp(stg, region, year) * pPeriodLen(year);
+
+* The duration LINK, in hours. `.fx` collapses these two onto each other.
+eqStorageDurationLo(stg, region, year)$mStorageDurationLo(stg, region, year)..
+  vStorageStgCap(stg, region, year) =g= pStorageDurationLo(stg, region, year) * vStorageOutCap(stg, region, year);
+
+eqStorageDurationUp(stg, region, year)$mStorageDurationUp(stg, region, year)..
+  vStorageStgCap(stg, region, year) =l= pStorageDurationUp(stg, region, year) * vStorageOutCap(stg, region, year);
+
 eqStorageCapLo(stg, region, year)$mStorageCapLo(stg, region, year)..
-         vStorageCap(stg, region, year) =g= pStorageCapLo(stg, region, year);
+         vStorageOutCap(stg, region, year) =g= pStorageCapLo(stg, region, year);
 
 eqStorageCapUp(stg, region, year)$mStorageCapUp(stg, region, year)..
-          vStorageCap(stg, region, year) =l= pStorageCapUp(stg, region, year);
+          vStorageOutCap(stg, region, year) =l= pStorageCapUp(stg, region, year);
 
 eqStorageNewCapLo(stg, region, year)$mStorageNewCapLo(stg, region, year)..
-          vStorageNewCap(stg, region, year) =g= pStorageNewCapLo(stg, region, year) * pPeriodLen(year);
+          vStorageOutNewCap(stg, region, year) =g= pStorageNewCapLo(stg, region, year) * pPeriodLen(year);
 
 eqStorageNewCapUp(stg, region, year)$mStorageNewCapUp(stg, region, year)..
-          vStorageNewCap(stg, region, year) =l= pStorageNewCapUp(stg, region, year) * pPeriodLen(year);
+          vStorageOutNewCap(stg, region, year) =l= pStorageNewCapUp(stg, region, year) * pPeriodLen(year);
 
 * Investment equation
 eqStorageInv(stg, region, year)$mStorageNew(stg, region, year)..
          vStorageInv(stg, region, year)
          =e=
          pStorageInvcost(stg, region, year) *
-         vStorageNewCap(stg, region, year);
+         vStorageOutNewCap(stg, region, year)
+*        [2c] the storing side's capital cost is per unit of ENERGY and rides on
+*        the same investment variable; absent data, the term does not exist.
+         + (pStorageStgInvcost(stg, region, year)
+            * vStorageStgNewCap(stg, region, year)
+           )$mStorageStgNew(stg, region, year)
+         + (pStorageInpInvcost(stg, region, year)
+            * vStorageInpNewCap(stg, region, year)
+           )$mStorageInpNew(stg, region, year);
 
 * EAC equation
 * [eac-fix] vintaged new-capacity form active (pStorageEac applies to NEW capacity only)
@@ -1661,16 +1813,22 @@ eqStorageEac(stg, region, year)$mStorageEac(stg, region, year)..
 *                  of being dropped from the sum.
                     ),
 *                  pYearFraction(year) *
-            pStorageEac(stg, region, yearp)
+            (pStorageEac(stg, region, yearp)
 *            * pPeriodLen(yearp)
-            * vStorageNewCap(stg, region, yearp)
+             * vStorageOutNewCap(stg, region, yearp)
+             + (pStorageStgEac(stg, region, yearp)
+                * vStorageStgNewCap(stg, region, yearp)
+               )$mStorageStgNew(stg, region, yearp)
+             + (pStorageInpEac(stg, region, yearp)
+                * vStorageInpNewCap(stg, region, yearp)
+               )$mStorageInpNew(stg, region, yearp))
          );
 $ontext
 * [eac-fix] simplified "EAC for existing capacity" form disabled:
 eqStorageEac(stg, region, year)$mStorageEac(stg, region, year)..
          vStorageEac(stg, region, year)
          =e=
-         pStorageEac(stg, region, year) * vStorageCap(stg, region, year);
+         pStorageEac(stg, region, year) * vStorageOutCap(stg, region, year);
 $offtext
 
 
@@ -1680,7 +1838,7 @@ eqStorageCost(stg, region, year)$mStorageOMCost(stg, region, year)..
          vStorageOMCost(stg, region, year)
          =e=
 *         pYearFraction(year) *
-         pStorageFixom(stg, region, year) * vStorageCap(stg, region, year)
+         pStorageFixom(stg, region, year) * vStorageOutCap(stg, region, year)
          +
          sum(comm$mStorageInpComm(stg, comm),
              sum(timeslice$mCommTimeslice(comm, timeslice),
@@ -1705,7 +1863,13 @@ $offtext
 eqStorageFixom(stg, region, year)$mStorageFixom(stg, region, year)..
          vStorageFixom(stg, region, year)
          =e=
-         pStorageFixom(stg, region, year) * vStorageCap(stg, region, year);
+         pStorageFixom(stg, region, year) * vStorageOutCap(stg, region, year)
+         + (pStorageStgFixom(stg, region, year)
+            * vStorageStgCap(stg, region, year)
+           )$mStorageStgFixom(stg, region, year)
+         + (pStorageInpFixom(stg, region, year)
+            * vStorageInpCap(stg, region, year)
+           )$mStorageInpFixom(stg, region, year);
 
 * Storage variable costs
 eqStorageVarom(stg, region, year)$mStorageVarom(stg, region, year)..

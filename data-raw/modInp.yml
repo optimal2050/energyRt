@@ -1162,16 +1162,260 @@ pStorageAf:
   colName: af
   class: storage
   slot: af
-# NOTE dimSets is `stg` ONLY, so the region/year columns the slot advertises are
-# silently dropped by make_data_param(). Widening to (stg, region, year) and
-# promoting to `bounds` (.lo/.up/.fx) belongs to the duration/inp2out work --
-# both change behaviour, and this rename must stay a no-op.
-pStorageDuration:
-  name: pStorageDuration
+# duration = storing capacity / output capacity, in HOURS.
+#
+# Was `numpar` on `stg` alone: one number per storage for all regions and all
+# years, and not a bound -- so a 6-hour battery could not become an 8-hour one
+# in a later year, and the ratio could never be chosen by the model. Now a
+# `bounds` parameter on (stg, region, year): `.fx` ties the two capacities,
+# `.lo`/`.up` open the ratio.
+#
+# defVal [1, 1] is the legacy tie: a storage that says nothing about duration
+# keeps energy = 1 h x power, exactly as before. `newStorage()` opens the other
+# side when the user gives a one-sided range, so this default never leaks into
+# a deliberate `duration.up = 8`.
+# --- the STORING part's own capacity and economics -------------------------- #
+# Measured in ENERGY (e.g. MWh), unlike every other pStorage* capacity, which is
+# power. These exist so a battery's energy can be sized and priced separately
+# from its inverter; before this, `@duration` welded the two at a fixed ratio and
+# the EUR/MWh component had to be hand-multiplied into the EUR/MW number.
+#
+# Their presence is also the STRUCTURE-FOLLOWS-DATA gate: `mStorageStgCap` is the
+# set of points where any of them carries a value, and only there does
+# `vStorageStgCap` exist. A storage that says nothing about its storing side
+# keeps exactly one capacity variable and the previous LP.
+pStorageStgStock:
+  name: pStorageStgStock
+  dimSets:
+  - stg
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: stock
+  class: storage
+  slot: storage
+pStorageStgInvcost:
+  name: pStorageStgInvcost
+  dimSets:
+  - stg
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: invcost
+  class: storage
+  slot: storage
+pStorageStgFixom:
+  name: pStorageStgFixom
+  dimSets:
+  - stg
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: fixom
+  class: storage
+  slot: storage
+# Annuitised from pStorageStgInvcost by compute_eac_parameters(); the storing and
+# output parts share the storage's @vintage (olife/wacc/payback), so only the
+# capital cost differs between them.
+pStorageStgEac:
+  name: pStorageStgEac
+  dimSets:
+  - stg
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: eac
+  class: storage
+  slot: storage
+pStorageStgCap:
+  name: pStorageStgCap
+  dimSets:
+  - stg
+  - region
+  - year
+  type: bounds
+  defVal:
+  - 0.0
+  - .inf
+  interpolation:
+  - inter.forth
+  - inter.forth
+  colName: cap
+  class: storage
+  slot: storage
+pStorageStgNewCap:
+  name: pStorageStgNewCap
+  dimSets:
+  - stg
+  - region
+  - year
+  type: bounds
+  defVal:
+  - 0.0
+  - .inf
+  interpolation:
+  - inter.forth
+  - inter.forth
+  colName: ncap
+  class: storage
+  slot: storage
+# --- the CHARGING part's own capacity and economics -------------------------- #
+# Power, like the output side, but rated independently: an EV drawing 7 kW from
+# the grid while delivering 100 kW to its motor has nowhere else to put the
+# charger. Presence is the structure-follows-data gate for `vStorageInpCap`.
+pStorageInpStock:
+  name: pStorageInpStock
+  dimSets:
+  - stg
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: stock
+  class: storage
+  slot: input
+pStorageInpInvcost:
+  name: pStorageInpInvcost
+  dimSets:
+  - stg
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: invcost
+  class: storage
+  slot: input
+pStorageInpFixom:
+  name: pStorageInpFixom
+  dimSets:
+  - stg
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: fixom
+  class: storage
+  slot: input
+pStorageInpEac:
+  name: pStorageInpEac
+  dimSets:
+  - stg
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: eac
+  class: storage
+  slot: input
+pStorageInpCap:
+  name: pStorageInpCap
+  dimSets:
+  - stg
+  - region
+  - year
+  type: bounds
+  defVal:
+  - 0.0
+  - .inf
+  interpolation:
+  - inter.forth
+  - inter.forth
+  colName: cap
+  class: storage
+  slot: input
+pStorageInpNewCap:
+  name: pStorageInpNewCap
+  dimSets:
+  - stg
+  - region
+  - year
+  type: bounds
+  defVal:
+  - 0.0
+  - .inf
+  interpolation:
+  - inter.forth
+  - inter.forth
+  colName: ncap
+  class: storage
+  slot: input
+# inp2out = input capacity / output capacity, dimensionless. Same shape as
+# pStorageDuration; [1, 1] keeps a storage that says nothing symmetric, which is
+# what a single bidirectional inverter has always been.
+pStorageInp2out:
+  name: pStorageInp2out
+  dimSets:
+  - stg
+  - region
+  - year
+  type: bounds
+  defVal:
+  - 1.0
+  - 1.0
+  interpolation:
+  - inter.forth
+  - inter.forth
+  colName: inp2out
+  class: storage
+  slot: inp2out
+# --- capacity -> annual flow, so a capacity is a RATE ------------------------ #
+# The flow bounds read `cinp.up * cap2act * cap * pTimesliceShare[s]`, mirroring
+# eqTechAfUp. Without the share factor `cap` meant "commodity per TIMESLICE": the
+# same storage allowed 7 per hour on a 24 x 1-hour calendar and 1.75 per hour on
+# a 6 x 4-hour one, so refining the resolution silently shrank every store.
+#
+# defVal 8760 = hours in a year, which makes `cap` "commodity per hour" on ANY
+# calendar. On d365_h24 (and on representative-day subsets, whose leaf share is
+# still 1/8760) the factor is exactly 1, so those models do not move at all.
+# Assumes commodity unit = capacity unit x hour, i.e. GW with GWh; GW with TWh
+# wants 8.76. Unlike pTechCap2act (defVal 1) because a storage has an intrinsic
+# clock -- the level -- that a technology's activity does not.
+#
+# The STORING side deliberately has no cap2act: energy is energy at any
+# resolution, exactly as PyPSA leaves `soc <= e_nom` unscaled by elapsed hours.
+pStorageInpCap2act:
+  name: pStorageInpCap2act
   dimSets: stg
   type: numpar
-  defVal: 1.0
+  defVal: 8760.0
   interpolation: back.inter.forth
+  colName: cap2act
+  class: storage
+  slot: input
+pStorageOutCap2act:
+  name: pStorageOutCap2act
+  dimSets: stg
+  type: numpar
+  defVal: 8760.0
+  interpolation: back.inter.forth
+  colName: cap2act
+  class: storage
+  slot: output
+pStorageDuration:
+  name: pStorageDuration
+  dimSets:
+  - stg
+  - region
+  - year
+  type: bounds
+  defVal:
+  - 1.0
+  - 1.0
+  interpolation:
+  - inter.forth
+  - inter.forth
   class: storage
   slot: duration
   colName: duration
@@ -2357,6 +2601,160 @@ mStorageSpan:
   - year
 mStorageEac:
   name: mStorageEac
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageStgCap:
+  name: mStorageStgCap
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageNoStgCap:
+  name: mStorageNoStgCap
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageStgNew:
+  name: mStorageStgNew
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageStgCapLo:
+  name: mStorageStgCapLo
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageStgCapUp:
+  name: mStorageStgCapUp
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageStgNewCapLo:
+  name: mStorageStgNewCapLo
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageStgNewCapUp:
+  name: mStorageStgNewCapUp
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageStgFixom:
+  name: mStorageStgFixom
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageStgEac:
+  name: mStorageStgEac
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageDurationLo:
+  name: mStorageDurationLo
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageDurationUp:
+  name: mStorageDurationUp
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageInpCap:
+  name: mStorageInpCap
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageNoInpCap:
+  name: mStorageNoInpCap
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageInpNew:
+  name: mStorageInpNew
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageInpCapLo:
+  name: mStorageInpCapLo
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageInpCapUp:
+  name: mStorageInpCapUp
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageInpNewCapLo:
+  name: mStorageInpNewCapLo
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageInpNewCapUp:
+  name: mStorageInpNewCapUp
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageInpFixom:
+  name: mStorageInpFixom
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageInpEac:
+  name: mStorageInpEac
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageInp2outLo:
+  name: mStorageInp2outLo
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageInp2outUp:
+  name: mStorageInp2outUp
   type: map
   dimSets:
   - stg

@@ -845,6 +845,17 @@ class:
         comm:
           type: character
           description: Commodity consumed to fill the store.
+        cap2act:
+          type: numeric
+          description: >
+            Capacity to ANNUAL flow, exactly as `technology@cap2act`. The flow
+            bound is `cinp.up * cap2act * cap * pTimesliceShare`, so `cap` is a
+            RATE and means the same physical thing on any calendar. Defaults to
+            8760 (hours in a year), which makes `cap` read as commodity per
+            HOUR; an hourly full-year model is unchanged because
+            8760 * (1/8760) = 1. Assumes commodity unit = capacity unit x hour
+            (GW with GWh); GW with TWh wants 8.76. The STORING side has no
+            cap2act -- energy is energy at any resolution.
     output:
       type: data.frame
       description: >
@@ -854,6 +865,17 @@ class:
         comm:
           type: character
           description: Commodity produced when the store discharges.
+        cap2act:
+          type: numeric
+          description: >
+            Capacity to ANNUAL flow, exactly as `technology@cap2act`. The flow
+            bound is `cinp.up * cap2act * cap * pTimesliceShare`, so `cap` is a
+            RATE and means the same physical thing on any calendar. Defaults to
+            8760 (hours in a year), which makes `cap` read as commodity per
+            HOUR; an hourly full-year model is unchanged because
+            8760 * (1/8760) = 1. Assumes commodity unit = capacity unit x hour
+            (GW with GWh); GW with TWh wants 8.76. The STORING side has no
+            cap2act -- energy is energy at any resolution.
     storage:
       type: data.frame
       description: >
@@ -864,10 +886,61 @@ class:
         There is no `commodity` slot -- `newStorage(commodity = )` is a shorthand
         folded into these three at construction, so an object never carries two
         answers to what it consumes.
+        Beyond `comm`, this slot carries the storing side's OWN capacity and
+        economics, measured in ENERGY (e.g. MWh) rather than power. Supplying any
+        of them materialises `vStorageStgCap`, so the store's energy can be sized,
+        bounded and priced independently of its inverter; supplying none of them
+        (a bare `comm`) leaves the storage with a single power capacity and the
+        pre-v0.84 model, with `@duration` inlined into the availability bounds.
       columns:
         comm:
           type: character
           description: Commodity held in the store.
+        vintage:
+          type: character
+          description: Vintage label selecting the variant this row applies to, NA for all.
+        cluster:
+          type: character
+          description: Cluster label selecting the variant this row applies to, NA for all.
+        region:
+          type: character
+          description: Region the row applies to, NA for all.
+        year:
+          type: integer
+          description: Year the row applies to, NA for all.
+        stock:
+          type: numeric
+          description: >
+            Pre-existing energy capacity, in commodity units. The energy analogue
+            of `capacity$stock`, which is power.
+        cap.lo:
+          type: numeric
+          description: Lower bound on total energy capacity.
+        cap.up:
+          type: numeric
+          description: Upper bound on total energy capacity.
+        cap.fx:
+          type: numeric
+          description: Fixed total energy capacity.
+        ncap.lo:
+          type: numeric
+          description: Lower bound on new energy capacity added in the period.
+        ncap.up:
+          type: numeric
+          description: Upper bound on new energy capacity added in the period.
+        ncap.fx:
+          type: numeric
+          description: Fixed new energy capacity added in the period.
+        invcost:
+          type: numeric
+          description: >
+            Overnight investment cost per unit of ENERGY capacity (currency/MWh),
+            annuitised on the storage's own `@vintage` -- one lifetime and one
+            wacc for the object, two capital costs on different bases. This is
+            what previously had to be hand-multiplied into the per-MW `@invcost`.
+        fixom:
+          type: numeric
+          description: Fixed O&M cost per unit of energy capacity per year.
     cluster:
       type: data.frame
       description: >-
@@ -1212,9 +1285,14 @@ class:
         capacity to (dis)charging capacity. `duration = 6` on an hourly calendar
         is a 6-hour store. Renamed from `cap2stg` in v0.80, which is still
         accepted with a warning.
-        NOTE the parameter is currently indexed by storage only, so the `region`
-        and `year` columns below are silently dropped; and it is a fixed
-        coefficient, not a bound. Both are addressed by the storage-parts work.
+        It is a BOUND on (storage, region, year): `duration.fx` ties energy to
+        power, `duration.lo`/`duration.up` let the model choose the ratio -- which
+        only bites when the storing side is priced, via `@storage$invcost`.
+        The bare `duration` column is the scalar shorthand and is normalised to
+        `duration.fx` at construction. A ONE-SIDED range opens the other side (an
+        `up` alone does not inherit the default `lo` of 1). Saying nothing leaves
+        the slot empty and the parameter default of [1, 1] ties energy to power at
+        one hour, which is the pre-v0.84 behaviour.
       columns:
         vintage:
           type: character
@@ -1231,6 +1309,56 @@ class:
         duration:
           type: numeric
           description: Capacity-to-storage ratio (storage duration).
+        duration.lo:
+          type: numeric
+          description: Lower bound on the energy-to-power ratio, in hours.
+        duration.up:
+          type: numeric
+          description: Upper bound on the energy-to-power ratio, in hours.
+        duration.fx:
+          type: numeric
+          description: >
+            Fixed energy-to-power ratio, in hours. The scalar shorthand
+            `duration = 6` normalises to this.
+    inp2out:
+      type: data.frame
+      description: >
+        The charge-to-discharge capacity ratio, dimensionless: how big the
+        charger is relative to the discharger. Same bound semantics as
+        `duration` -- `inp2out.fx` ties the two (one bidirectional inverter),
+        `inp2out.lo`/`.up` let the model size them apart, and the bare `inp2out`
+        column is the scalar shorthand, normalised to `.fx` at construction. A
+        one-sided range opens the other side. Saying nothing leaves the slot
+        empty and the parameter default of [1, 1] keeps the two sides symmetric,
+        which is what a storage without a separate charger has always been.
+        It bites only when the charging side is priced or bounded via `@input`;
+        otherwise there is no charging capacity variable to constrain.
+      columns:
+        vintage:
+          type: character
+          description: Vintage label selecting the variant this row applies to, NA for all.
+        cluster:
+          type: character
+          description: Cluster label selecting the variant this row applies to, NA for all.
+        region:
+          type: character
+          description: Region the row applies to, NA for all.
+        year:
+          type: integer
+          description: Year the row applies to, NA for all.
+        inp2out:
+          type: numeric
+          description: Scalar shorthand, normalised to `inp2out.fx`.
+        inp2out.lo:
+          type: numeric
+          description: Lower bound on the charge-to-discharge capacity ratio.
+        inp2out.up:
+          type: numeric
+          description: Upper bound on the charge-to-discharge capacity ratio.
+        inp2out.fx:
+          type: numeric
+          description: Fixed charge-to-discharge capacity ratio.
+
     weather:
       type: data.frame
       description: Weather factors multipliers.

@@ -17,7 +17,7 @@
 #'   (results are row-bound with the list names in the `scenario` column).
 #' @param type character: `"generation"` (default -- output of `comm` by process,
 #'   with storage-in and exports negative), `"capacity"` (`vTechCap` +
-#'   `vStorageCap`), `"new_capacity"` (`vTechNewCap` + `vStorageNewCap`), or
+#'   `vStorageOutCap`), `"new_capacity"` (`vTechNewCap` + `vStorageOutNewCap`), or
 #'   `"fuel"` (technology fuel consumption `vTechInp` by input commodity).
 #' @param comm character, the balanced commodity for `"generation"`
 #'   (default `"ELC"`). Ignored for the other types.
@@ -102,11 +102,11 @@ getMix <- function(scen,
     ),
     capacity = list(
       list(var = "vTechCap",       flow = "capacity", comm = NULL),
-      list(var = "vStorageCap",    flow = "capacity", comm = NULL)
+      list(var = "vStorageOutCap",    flow = "capacity", comm = NULL)
     ),
     new_capacity = list(
       list(var = "vTechNewCap",    flow = "new_capacity", comm = NULL),
-      list(var = "vStorageNewCap", flow = "new_capacity", comm = NULL)
+      list(var = "vStorageOutNewCap", flow = "new_capacity", comm = NULL)
     ),
     fuel = list(
       list(var = "vTechInp", flow = "fuel", comm = NULL)

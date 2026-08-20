@@ -74,6 +74,8 @@ navbar:
         href: articles/units.html
       - text: Time resolution
         href: articles/time-resolution.html
+      - text: Storage
+        href: articles/storage.html
       - text: "UTOPIA I: building the model"
         href: articles/utopia-build.html
       - text: "UTOPIA II: running scenarios"

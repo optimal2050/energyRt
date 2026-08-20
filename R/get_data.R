@@ -934,7 +934,7 @@ if (F) { # test
   (dem <- getData(scen, name = "pDemand", year = 2015, merge = TRUE))
   (vTechOut <- getData(scen, name = "vTechOut", comm = "ELC", merge = TRUE, year = 2015))
   # Storage capacity
-  getData(scen, name = "vStorageCap", merge = TRUE)
+  getData(scen, name = "vStorageOutCap", merge = TRUE)
 }
 
 .crs2int <- function(x) {

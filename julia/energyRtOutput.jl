@@ -904,10 +904,82 @@ for (st1, r, y) in mStorageEac
 end;
 close(fvStorageEac);
 
-fvStorageCap = open("output/vStorageCap.csv", "w");
+fvStorageInpCap = open("output/vStorageInpCap.csv", "w");
+println(fvStorageInpCap, "stg,region,year,value");
+for (st1, r, y) in mStorageInpCap
+    if JuMP.value(vStorageInpCap[(st1, r, y)]) != 0
+        println(
+            fvStorageInpCap,
+            st1,
+            ",",
+            r,
+            ",",
+            y,
+            ",",
+            JuMP.value(vStorageInpCap[(st1, r, y)]),
+        )
+    end
+end;
+close(fvStorageInpCap);
+
+fvStorageInpNewCap = open("output/vStorageInpNewCap.csv", "w");
+println(fvStorageInpNewCap, "stg,region,year,value");
+for (st1, r, y) in mStorageInpNew
+    if JuMP.value(vStorageInpNewCap[(st1, r, y)]) != 0
+        println(
+            fvStorageInpNewCap,
+            st1,
+            ",",
+            r,
+            ",",
+            y,
+            ",",
+            JuMP.value(vStorageInpNewCap[(st1, r, y)]),
+        )
+    end
+end;
+close(fvStorageInpNewCap);
+
+fvStorageStgCap = open("output/vStorageStgCap.csv", "w");
+println(fvStorageStgCap, "stg,region,year,value");
+for (st1, r, y) in mStorageStgCap
+    if JuMP.value(vStorageStgCap[(st1, r, y)]) != 0
+        println(
+            fvStorageStgCap,
+            st1,
+            ",",
+            r,
+            ",",
+            y,
+            ",",
+            JuMP.value(vStorageStgCap[(st1, r, y)]),
+        )
+    end
+end;
+close(fvStorageStgCap);
+
+fvStorageStgNewCap = open("output/vStorageStgNewCap.csv", "w");
+println(fvStorageStgNewCap, "stg,region,year,value");
+for (st1, r, y) in mStorageStgNew
+    if JuMP.value(vStorageStgNewCap[(st1, r, y)]) != 0
+        println(
+            fvStorageStgNewCap,
+            st1,
+            ",",
+            r,
+            ",",
+            y,
+            ",",
+            JuMP.value(vStorageStgNewCap[(st1, r, y)]),
+        )
+    end
+end;
+close(fvStorageStgNewCap);
+
+fvStorageCap = open("output/vStorageOutCap.csv", "w");
 println(fvStorageCap, "stg,region,year,value");
 for (st1, r, y) in mStorageSpan
-    if JuMP.value(vStorageCap[(st1, r, y)]) != 0
+    if JuMP.value(vStorageOutCap[(st1, r, y)]) != 0
         println(
             fvStorageCap,
             st1,
@@ -916,16 +988,16 @@ for (st1, r, y) in mStorageSpan
             ",",
             y,
             ",",
-            JuMP.value(vStorageCap[(st1, r, y)]),
+            JuMP.value(vStorageOutCap[(st1, r, y)]),
         )
     end
 end;
 close(fvStorageCap);
 
-fvStorageNewCap = open("output/vStorageNewCap.csv", "w");
+fvStorageNewCap = open("output/vStorageOutNewCap.csv", "w");
 println(fvStorageNewCap, "stg,region,year,value");
 for (st1, r, y) in mStorageNew
-    if JuMP.value(vStorageNewCap[(st1, r, y)]) != 0
+    if JuMP.value(vStorageOutNewCap[(st1, r, y)]) != 0
         println(
             fvStorageNewCap,
             st1,
@@ -934,7 +1006,7 @@ for (st1, r, y) in mStorageNew
             ",",
             y,
             ",",
-            JuMP.value(vStorageNewCap[(st1, r, y)]),
+            JuMP.value(vStorageOutNewCap[(st1, r, y)]),
         )
     end
 end;
@@ -1240,8 +1312,12 @@ println(vrb_list, "vStorageOut");
 println(vrb_list, "vStorageLevel");
 println(vrb_list, "vStorageInv");
 println(vrb_list, "vStorageEac");
-println(vrb_list, "vStorageCap");
-println(vrb_list, "vStorageNewCap");
+println(vrb_list, "vStorageOutCap");
+println(vrb_list, "vStorageStgCap");
+println(vrb_list, "vStorageStgNewCap");
+println(vrb_list, "vStorageInpCap");
+println(vrb_list, "vStorageInpNewCap");
+println(vrb_list, "vStorageOutNewCap");
 println(vrb_list, "vImportTot");
 println(vrb_list, "vExportTot");
 println(vrb_list, "vTradeIr");

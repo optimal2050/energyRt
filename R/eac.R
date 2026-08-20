@@ -247,6 +247,16 @@ compute_eac_parameters <- function(scen) {
   scen <- .eac_one(scen, "stg", "pStorageInvcost", "pStorageOlife",
                    "mStorageNew", "pStorageEac", "pStorageWacc",
                    "pStoragePayback")
+  # The STORING part's capital cost is per unit of ENERGY and annuitises
+  # separately, but on the same @vintage -- one storage, one lifetime and one
+  # wacc, two capital costs on different bases. Per-part lifetimes would need
+  # their own olife/wacc columns and are deliberately not in this change.
+  scen <- .eac_one(scen, "stg", "pStorageStgInvcost", "pStorageOlife",
+                   "mStorageStgNew", "pStorageStgEac", "pStorageWacc",
+                   "pStoragePayback")
+  scen <- .eac_one(scen, "stg", "pStorageInpInvcost", "pStorageOlife",
+                   "mStorageInpNew", "pStorageInpEac", "pStorageWacc",
+                   "pStoragePayback")
   scen <- .eac_one(scen, "trade", "pTradeInvcost", "pTradeOlife", "mTradeNew",
                    "pTradeEac", "pTradeWacc", "pTradePayback")
   .check_payback_grid(scen)

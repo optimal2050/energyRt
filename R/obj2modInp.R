@@ -1287,16 +1287,27 @@ setMethod(
       slot_data <- get_lazy_data(obj, s)
       for (p in slot_info) {
         # mod@data$utopia_repository@data$STGELC@seff
-        if ("comm" %in% p$dimSets && is.null(slot_data$comm)) {
+        #
+        # Per-parameter COPY. Assigning back into `slot_data` made the first
+        # parameter's commodity stick for every later one bound to the same
+        # slot: `@seff` feeds pStorageInpEff, pStorageOutEff and pStorageStgEff,
+        # so whichever was processed first stamped `comm` and the other two
+        # silently inherited it. Harmless while all three roles held the same
+        # commodity -- and wrong the moment they differ, which is the whole
+        # point of the roles: an EV storing kWh and selling km had its km-per-kWh
+        # `outeff` filed under electricity, where nothing reads it, so the motor
+        # ran at the default efficiency of 1.
+        pdat0 <- slot_data
+        if ("comm" %in% p$dimSets && is.null(pdat0$comm)) {
           .cm <- .role_comm(p$name)
           if (length(.cm)) {
-            slot_data <- slot_data |> mutate(comm = .cm, .before = 1)
+            pdat0 <- pdat0 |> mutate(comm = .cm, .before = 1)
           }
         }
         pdat <- if (identical(s, "vintage")) {
-          .lifespan_resolve_df(as.data.frame(slot_data), p$colName,
+          .lifespan_resolve_df(as.data.frame(pdat0), p$colName,
                                obj@name)
-        } else slot_data
+        } else pdat0
         dat <- make_data_param(
           scen = scen,
           obj_name = obj@name,

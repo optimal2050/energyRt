@@ -183,10 +183,26 @@ model.vStorageInv = Var(
 model.vStorageEac = Var(
     model.mStorageEac, domain=pyo.NonNegativeReals, doc="Storage EAC investments"
 )
-model.vStorageCap = Var(
+model.vStorageOutCap = Var(
     model.mStorageSpan, domain=pyo.NonNegativeReals, doc="Storage capacity"
 )
-model.vStorageNewCap = Var(
+model.vStorageStgCap = Var(
+    model.mStorageStgCap, domain=pyo.NonNegativeReals,
+    doc="Storage energy (storing) capacity"
+)
+model.vStorageInpCap = Var(
+    model.mStorageInpCap, domain=pyo.NonNegativeReals,
+    doc="Storage charging (input) capacity"
+)
+model.vStorageInpNewCap = Var(
+    model.mStorageInpNew, domain=pyo.NonNegativeReals,
+    doc="Storage new charging (input) capacity"
+)
+model.vStorageStgNewCap = Var(
+    model.mStorageStgNew, domain=pyo.NonNegativeReals,
+    doc="Storage new energy (storing) capacity"
+)
+model.vStorageOutNewCap = Var(
     model.mStorageNew, domain=pyo.NonNegativeReals, doc="Storage new capacity"
 )
 model.vImportTot = Var(
@@ -938,12 +954,12 @@ model.eqStorageAInp = Constraint(
         if (st1, cp) in model.mStorageOutComm
     )
     + (
-            (model.pStorageCap2AInp[st1, c, r, y, s] * model.vStorageCap[st1, r, y])
+            (model.pStorageCap2AInp[st1, c, r, y, s] * model.vStorageOutCap[st1, r, y])
             if (st1, c, r, y, s) in model.mStorageCap2AInp
             else 0
         )
     + (
-            (model.pStorageNCap2AInp[st1, c, r, y, s] * model.vStorageNewCap[st1, r, y])
+            (model.pStorageNCap2AInp[st1, c, r, y, s] * model.vStorageOutNewCap[st1, r, y])
             if (st1, c, r, y, s) in model.mStorageNCap2AInp
             else 0
         ),
@@ -994,12 +1010,12 @@ model.eqStorageAOut = Constraint(
         if (st1, cp) in model.mStorageOutComm
     )
     + (
-            (model.pStorageCap2AOut[st1, c, r, y, s] * model.vStorageCap[st1, r, y])
+            (model.pStorageCap2AOut[st1, c, r, y, s] * model.vStorageOutCap[st1, r, y])
             if (st1, c, r, y, s) in model.mStorageCap2AOut
             else 0
         )
     + (
-            (model.pStorageNCap2AOut[st1, c, r, y, s] * model.vStorageNewCap[st1, r, y])
+            (model.pStorageNCap2AOut[st1, c, r, y, s] * model.vStorageOutNewCap[st1, r, y])
             if (st1, c, r, y, s) in model.mStorageNCap2AOut
             else 0
         ),
@@ -1010,7 +1026,7 @@ model.eqStorageLevel = Constraint(
     rule=lambda model, st1, c, r, y, sp, s: model.vStorageLevel[st1, c, r, y, s]
     == model.pStorageStartLevel[st1, c, r, y, s]
     + (
-        (model.pStorageNCap2Stg[st1, c, r, y, s] * model.vStorageNewCap[st1, r, y])
+        (model.pStorageNCap2Stg[st1, c, r, y, s] * model.vStorageOutNewCap[st1, r, y])
         if (st1, r, y) in model.mStorageNew
         else 0
     )
@@ -1037,8 +1053,11 @@ model.eqStorageAfLo = Constraint(
     model.meqStorageAfLo,
     rule=lambda model, st1, c, r, y, s: model.vStorageLevel[st1, c, r, y, s]
     >= model.pStorageAfLo[st1, r, y, s]
-    * model.pStorageDuration[st1]
-    * model.vStorageCap[st1, r, y]
+    * (
+        model.vStorageStgCap[st1, r, y]
+        if (st1, r, y) in model.mStorageStgCap
+        else model.pStorageDurationLo[st1, r, y] * model.vStorageOutCap[st1, r, y]
+    )
     * prod(
         model.pStorageWeatherAfLo[wth1, st1] * model.pWeather[wth1, r, y, s]
         for wth1 in model.weather
@@ -1050,8 +1069,11 @@ model.eqStorageAfUp = Constraint(
     model.meqStorageAfUp,
     rule=lambda model, st1, c, r, y, s: model.vStorageLevel[st1, c, r, y, s]
     <= model.pStorageAfUp[st1, r, y, s]
-    * model.pStorageDuration[st1]
-    * model.vStorageCap[st1, r, y]
+    * (
+        model.vStorageStgCap[st1, r, y]
+        if (st1, r, y) in model.mStorageStgCap
+        else model.pStorageDurationUp[st1, r, y] * model.vStorageOutCap[st1, r, y]
+    )
     * prod(
         model.pStorageWeatherAfUp[wth1, st1] * model.pWeather[wth1, r, y, s]
         for wth1 in model.weather
@@ -1073,7 +1095,13 @@ model.eqStorageOutLevel = Constraint(
 model.eqStorageInpUp = Constraint(
     model.meqStorageInpUp,
     rule=lambda model, st1, c, r, y, s: model.vStorageInp[st1, c, r, y, s]
-    <= model.vStorageCap[st1, r, y]
+    <= (
+        model.vStorageInpCap[st1, r, y]
+        if (st1, r, y) in model.mStorageInpCap
+        else model.pStorageInp2outUp[st1, r, y] * model.vStorageOutCap[st1, r, y]
+    )
+    * model.pStorageInpCap2act[st1]
+    * model.pTimesliceShare[s]
     * model.pStorageCinpUp[st1, c, r, y, s]
     * prod(
         model.pStorageWeatherCinpUp[wth1, st1] * model.pWeather[wth1, r, y, s]
@@ -1085,7 +1113,13 @@ model.eqStorageInpUp = Constraint(
 model.eqStorageInpLo = Constraint(
     model.meqStorageInpLo,
     rule=lambda model, st1, c, r, y, s: model.vStorageInp[st1, c, r, y, s]
-    >= model.vStorageCap[st1, r, y]
+    >= (
+        model.vStorageInpCap[st1, r, y]
+        if (st1, r, y) in model.mStorageInpCap
+        else model.pStorageInp2outLo[st1, r, y] * model.vStorageOutCap[st1, r, y]
+    )
+    * model.pStorageInpCap2act[st1]
+    * model.pTimesliceShare[s]
     * model.pStorageCinpLo[st1, c, r, y, s]
     * prod(
         model.pStorageWeatherCinpLo[wth1, st1] * model.pWeather[wth1, r, y, s]
@@ -1097,7 +1131,9 @@ model.eqStorageInpLo = Constraint(
 model.eqStorageOutUp = Constraint(
     model.meqStorageOutUp,
     rule=lambda model, st1, c, r, y, s: model.vStorageOut[st1, c, r, y, s]
-    <= model.vStorageCap[st1, r, y]
+    <= model.vStorageOutCap[st1, r, y]
+    * model.pStorageOutCap2act[st1]
+    * model.pTimesliceShare[s]
     * model.pStorageCoutUp[st1, c, r, y, s]
     * prod(
         model.pStorageWeatherCoutUp[wth1, st1] * model.pWeather[wth1, r, y, s]
@@ -1109,7 +1145,9 @@ model.eqStorageOutUp = Constraint(
 model.eqStorageOutLo = Constraint(
     model.meqStorageOutLo,
     rule=lambda model, st1, c, r, y, s: model.vStorageOut[st1, c, r, y, s]
-    >= model.vStorageCap[st1, r, y]
+    >= model.vStorageOutCap[st1, r, y]
+    * model.pStorageOutCap2act[st1]
+    * model.pTimesliceShare[s]
     * model.pStorageCoutLo[st1, c, r, y, s]
     * prod(
         model.pStorageWeatherCoutLo[wth1, st1] * model.pWeather[wth1, r, y, s]
@@ -1120,10 +1158,10 @@ model.eqStorageOutLo = Constraint(
 # eqStorageCap(stg, region, year)$mStorageSpan(stg, region, year)
 model.eqStorageCap = Constraint(
     model.mStorageSpan,
-    rule=lambda model, st1, r, y: model.vStorageCap[st1, r, y]
+    rule=lambda model, st1, r, y: model.vStorageOutCap[st1, r, y]
     == model.pStorageStock[st1, r, y]
     + sum(
-        model.pPeriodLen[yp] * model.vStorageNewCap[st1, r, yp]
+        model.pPeriodLen[yp] * model.vStorageOutNewCap[st1, r, yp]
         for yp in model.year
         if (
             model.ordYear[y] >= model.ordYear[yp]
@@ -1136,46 +1174,166 @@ model.eqStorageCap = Constraint(
     ),
 )
 # eqStorageCapLo(stg, region, year)$mStorageCapLo(stg, region, year)
+model.eqStorageInpCap = Constraint(
+    model.mStorageInpCap,
+    rule=lambda model, st1, r, y: model.vStorageInpCap[st1, r, y]
+    == model.pStorageInpStock[st1, r, y]
+    + sum(
+        model.pPeriodLen[yp] * model.vStorageInpNewCap[st1, r, yp]
+        for yp in model.year
+        if (st1, r, yp) in model.mStorageInpNew
+        and model.ordYear[y] >= model.ordYear[yp]
+        and (
+            (st1, r) in model.mStorageOlifeInf
+            or model.ordYear[y] < model.pStorageOlife[st1, r] + model.ordYear[yp]
+        )
+    ),
+)
+model.eqStorageInpCapLo = Constraint(
+    model.mStorageInpCapLo,
+    rule=lambda model, st1, r, y: model.vStorageInpCap[st1, r, y]
+    >= model.pStorageInpCapLo[st1, r, y],
+)
+model.eqStorageInpCapUp = Constraint(
+    model.mStorageInpCapUp,
+    rule=lambda model, st1, r, y: model.vStorageInpCap[st1, r, y]
+    <= model.pStorageInpCapUp[st1, r, y],
+)
+model.eqStorageInpNewCapLo = Constraint(
+    model.mStorageInpNewCapLo,
+    rule=lambda model, st1, r, y: model.vStorageInpNewCap[st1, r, y]
+    >= model.pStorageInpNewCapLo[st1, r, y] * model.pPeriodLen[y],
+)
+model.eqStorageInpNewCapUp = Constraint(
+    model.mStorageInpNewCapUp,
+    rule=lambda model, st1, r, y: model.vStorageInpNewCap[st1, r, y]
+    <= model.pStorageInpNewCapUp[st1, r, y] * model.pPeriodLen[y],
+)
+model.eqStorageInp2outLo = Constraint(
+    model.mStorageInp2outLo,
+    rule=lambda model, st1, r, y: model.vStorageInpCap[st1, r, y]
+    >= model.pStorageInp2outLo[st1, r, y] * model.vStorageOutCap[st1, r, y],
+)
+model.eqStorageInp2outUp = Constraint(
+    model.mStorageInp2outUp,
+    rule=lambda model, st1, r, y: model.vStorageInpCap[st1, r, y]
+    <= model.pStorageInp2outUp[st1, r, y] * model.vStorageOutCap[st1, r, y],
+)
+model.eqStorageStgCap = Constraint(
+    model.mStorageStgCap,
+    rule=lambda model, st1, r, y: model.vStorageStgCap[st1, r, y]
+    == model.pStorageStgStock[st1, r, y]
+    + sum(
+        model.pPeriodLen[yp] * model.vStorageStgNewCap[st1, r, yp]
+        for yp in model.year
+        if (st1, r, yp) in model.mStorageStgNew
+        and model.ordYear[y] >= model.ordYear[yp]
+        and (
+            (st1, r) in model.mStorageOlifeInf
+            or model.ordYear[y] < model.pStorageOlife[st1, r] + model.ordYear[yp]
+        )
+    ),
+)
+model.eqStorageStgCapLo = Constraint(
+    model.mStorageStgCapLo,
+    rule=lambda model, st1, r, y: model.vStorageStgCap[st1, r, y]
+    >= model.pStorageStgCapLo[st1, r, y],
+)
+model.eqStorageStgCapUp = Constraint(
+    model.mStorageStgCapUp,
+    rule=lambda model, st1, r, y: model.vStorageStgCap[st1, r, y]
+    <= model.pStorageStgCapUp[st1, r, y],
+)
+model.eqStorageStgNewCapLo = Constraint(
+    model.mStorageStgNewCapLo,
+    rule=lambda model, st1, r, y: model.vStorageStgNewCap[st1, r, y]
+    >= model.pStorageStgNewCapLo[st1, r, y] * model.pPeriodLen[y],
+)
+model.eqStorageStgNewCapUp = Constraint(
+    model.mStorageStgNewCapUp,
+    rule=lambda model, st1, r, y: model.vStorageStgNewCap[st1, r, y]
+    <= model.pStorageStgNewCapUp[st1, r, y] * model.pPeriodLen[y],
+)
+model.eqStorageDurationLo = Constraint(
+    model.mStorageDurationLo,
+    rule=lambda model, st1, r, y: model.vStorageStgCap[st1, r, y]
+    >= model.pStorageDurationLo[st1, r, y] * model.vStorageOutCap[st1, r, y],
+)
+model.eqStorageDurationUp = Constraint(
+    model.mStorageDurationUp,
+    rule=lambda model, st1, r, y: model.vStorageStgCap[st1, r, y]
+    <= model.pStorageDurationUp[st1, r, y] * model.vStorageOutCap[st1, r, y],
+)
 model.eqStorageCapLo = Constraint(
     model.mStorageCapLo,
-    rule=lambda model, st1, r, y: model.vStorageCap[st1, r, y]
+    rule=lambda model, st1, r, y: model.vStorageOutCap[st1, r, y]
     >= model.pStorageCapLo[st1, r, y],
 )
 # eqStorageCapUp(stg, region, year)$mStorageCapUp(stg, region, year)
 model.eqStorageCapUp = Constraint(
     model.mStorageCapUp,
-    rule=lambda model, st1, r, y: model.vStorageCap[st1, r, y]
+    rule=lambda model, st1, r, y: model.vStorageOutCap[st1, r, y]
     <= model.pStorageCapUp[st1, r, y],
 )
 # eqStorageNewCapLo(stg, region, year)$mStorageNewCapLo(stg, region, year)
 model.eqStorageNewCapLo = Constraint(
     model.mStorageNewCapLo,
-    rule=lambda model, st1, r, y: model.vStorageNewCap[st1, r, y]
+    rule=lambda model, st1, r, y: model.vStorageOutNewCap[st1, r, y]
     >= model.pStorageNewCapLo[st1, r, y] * model.pPeriodLen[y],
 )
 # eqStorageNewCapUp(stg, region, year)$mStorageNewCapUp(stg, region, year)
 model.eqStorageNewCapUp = Constraint(
     model.mStorageNewCapUp,
-    rule=lambda model, st1, r, y: model.vStorageNewCap[st1, r, y]
+    rule=lambda model, st1, r, y: model.vStorageOutNewCap[st1, r, y]
     <= model.pStorageNewCapUp[st1, r, y] * model.pPeriodLen[y],
 )
 # eqStorageInv(stg, region, year)$mStorageNew(stg, region, year)
 model.eqStorageInv = Constraint(
     model.mStorageNew,
     rule=lambda model, st1, r, y: model.vStorageInv[st1, r, y]
-    == model.pStorageInvcost[st1, r, y] * model.vStorageNewCap[st1, r, y],
+    == model.pStorageInvcost[st1, r, y] * model.vStorageOutNewCap[st1, r, y]
+    + (
+        model.pStorageStgInvcost[st1, r, y] * model.vStorageStgNewCap[st1, r, y]
+        if (st1, r, y) in model.mStorageStgNew
+        else 0
+    )
+    + (
+        model.pStorageInpInvcost[st1, r, y] * model.vStorageInpNewCap[st1, r, y]
+        if (st1, r, y) in model.mStorageInpNew
+        else 0
+    ),
 )
 # eqStorageEac(stg, region, year)$mStorageEac(stg, region, year)
 model.eqStorageEac = Constraint(
     model.mStorageEac,
     rule=lambda model, st1, r, y: model.vStorageEac[st1, r, y]
-    == model.pStorageEac[st1, r, y] * model.vStorageCap[st1, r, y],
+    == model.pStorageEac[st1, r, y] * model.vStorageOutCap[st1, r, y]
+    + (
+        model.pStorageStgEac[st1, r, y] * model.vStorageStgCap[st1, r, y]
+        if (st1, r, y) in model.mStorageStgCap
+        else 0
+    )
+    + (
+        model.pStorageInpEac[st1, r, y] * model.vStorageInpCap[st1, r, y]
+        if (st1, r, y) in model.mStorageInpCap
+        else 0
+    ),
 )
 # eqStorageFixom(stg, region, year)$mStorageFixom(stg, region, year)
 model.eqStorageFixom = Constraint(
     model.mStorageFixom,
     rule=lambda model, st1, r, y: model.vStorageFixom[st1, r, y]
-    == model.pStorageFixom[st1, r, y] * model.vStorageCap[st1, r, y],
+    == model.pStorageFixom[st1, r, y] * model.vStorageOutCap[st1, r, y]
+    + (
+        model.pStorageStgFixom[st1, r, y] * model.vStorageStgCap[st1, r, y]
+        if (st1, r, y) in model.mStorageStgFixom
+        else 0
+    )
+    + (
+        model.pStorageInpFixom[st1, r, y] * model.vStorageInpCap[st1, r, y]
+        if (st1, r, y) in model.mStorageInpFixom
+        else 0
+    ),
 )
 # eqStorageVarom(stg, region, year)$mStorageVarom(stg, region, year)
 model.eqStorageVarom = Constraint(

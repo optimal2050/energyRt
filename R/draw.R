@@ -1329,7 +1329,22 @@ draw.storage <- function(object, ...) {
   # not a scalar like technology's `@cap2act`. `paste0()` over it vectorises
   # across COLUMNS, which printed one "duration: NA" per key column and then
   # the real value. Take the value column, drop NAs, de-duplicate.
-  duration_vals <- unique(object@duration[["duration"]])
+  # `duration` is a BOUND now, so the number lives in .fx (or the .lo/.up
+  # pair); the bare column is only the shorthand the constructor normalises
+  # away. Reading it alone printed nothing at all once that landed.
+  .dur_col <- function(k) {
+    v <- object@duration[[k]]
+    if (is.null(v)) numeric(0) else v[!is.na(v)]
+  }
+  duration_vals <- unique(c(.dur_col("duration.fx"), .dur_col("duration")))
+  if (length(duration_vals) == 0L) {
+    lo <- unique(.dur_col("duration.lo")); up <- unique(.dur_col("duration.up"))
+    if (length(lo) || length(up)) {
+      duration_vals <- paste0(
+        if (length(lo)) paste(lo, collapse = "/") else "0", "-",
+        if (length(up)) paste(up, collapse = "/") else "Inf")
+    }
+  }
   duration_vals <- duration_vals[!is.na(duration_vals)]
   duration_label <- if (length(duration_vals) == 0L) NULL else
     paste0("duration: ", paste(duration_vals, collapse = ", "))

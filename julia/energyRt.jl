@@ -77,8 +77,12 @@ model = Model();
 @variable(model, vStorageLevel[mvStorageLevel] >= 0);
 @variable(model, vStorageInv[mStorageNew] >= 0);
 @variable(model, vStorageEac[mStorageEac] >= 0);
-@variable(model, vStorageCap[mStorageSpan] >= 0);
-@variable(model, vStorageNewCap[mStorageNew] >= 0);
+@variable(model, vStorageOutCap[mStorageSpan] >= 0);
+@variable(model, vStorageStgCap[mStorageStgCap] >= 0);
+@variable(model, vStorageInpCap[mStorageInpCap] >= 0);
+@variable(model, vStorageInpNewCap[mStorageInpNew] >= 0);
+@variable(model, vStorageStgNewCap[mStorageStgNew] >= 0);
+@variable(model, vStorageOutNewCap[mStorageNew] >= 0);
 @variable(model, vImportTot[mImport] >= 0);
 @variable(model, vExportTot[mExport] >= 0);
 @variable(model, vTradeIr[mvTradeIr] >= 0);
@@ -1982,7 +1986,7 @@ print("eqStorageAInp(stg, comm, region, year, timeslice)...")
                         else
                             pStorageCap2AInpDef
                         end
-                    ) * vStorageCap[(st1, r, y)]
+                    ) * vStorageOutCap[(st1, r, y)]
                 )
             else
                 0
@@ -1997,7 +2001,7 @@ print("eqStorageAInp(stg, comm, region, year, timeslice)...")
                         else
                             pStorageNCap2AInpDef
                         end
-                    ) * vStorageNewCap[(st1, r, y)]
+                    ) * vStorageOutNewCap[(st1, r, y)]
                 )
             else
                 0
@@ -2083,7 +2087,7 @@ print("eqStorageAOut(stg, comm, region, year, timeslice)...")
                         else
                             pStorageCap2AOutDef
                         end
-                    ) * vStorageCap[(st1, r, y)]
+                    ) * vStorageOutCap[(st1, r, y)]
                 )
             else
                 0
@@ -2098,7 +2102,7 @@ print("eqStorageAOut(stg, comm, region, year, timeslice)...")
                         else
                             pStorageNCap2AOutDef
                         end
-                    ) * vStorageNewCap[(st1, r, y)]
+                    ) * vStorageOutNewCap[(st1, r, y)]
                 )
             else
                 0
@@ -2133,7 +2137,7 @@ print("eqStorageLevel(stg, comm, region, year, timeslicep, timeslice)...")
                     else
                         pStorageNCap2StgDef
                     end
-                ) * vStorageNewCap[(st1, r, y)]
+                ) * vStorageOutNewCap[(st1, r, y)]
             )
         else
             0
@@ -2196,13 +2200,20 @@ print("eqStorageAfLo(stg, comm, region, year, timeslice)...")
         end
     ) *
     (
-        if haskey(pStorageDuration, (st1))
-            pStorageDuration[(st1)]
+        # [2c] the storing side is its own variable where it carries data;
+        # elsewhere the duration ratio is inlined onto the output capacity.
+        if (st1, r, y) in mStorageStgCap
+            vStorageStgCap[(st1, r, y)]
         else
-            pStorageDurationDef
+            (
+                if haskey(pStorageDurationLo, (st1, r, y))
+                    pStorageDurationLo[(st1, r, y)]
+                else
+                    pStorageDurationLoDef
+                end
+            ) * vStorageOutCap[(st1, r, y)]
         end
     ) *
-    vStorageCap[(st1, r, y)] *
     prod(
         (
             if haskey(pStorageWeatherAfLo, (wth1, st1))
@@ -2239,13 +2250,20 @@ print("eqStorageAfUp(stg, comm, region, year, timeslice)...")
         end
     ) *
     (
-        if haskey(pStorageDuration, (st1))
-            pStorageDuration[(st1)]
+        # [2c] the storing side is its own variable where it carries data;
+        # elsewhere the duration ratio is inlined onto the output capacity.
+        if (st1, r, y) in mStorageStgCap
+            vStorageStgCap[(st1, r, y)]
         else
-            pStorageDurationDef
+            (
+                if haskey(pStorageDurationUp, (st1, r, y))
+                    pStorageDurationUp[(st1, r, y)]
+                else
+                    pStorageDurationUpDef
+                end
+            ) * vStorageOutCap[(st1, r, y)]
         end
     ) *
-    vStorageCap[(st1, r, y)] *
     prod(
         (
             if haskey(pStorageWeatherAfUp, (wth1, st1))
@@ -2296,7 +2314,36 @@ print("eqStorageInpUp(stg, comm, region, year, timeslice)...")
     model,
     [(st1, c, r, y, s) in meqStorageInpUp],
     vStorageInp[(st1, c, r, y, s)] <=
-    vStorageCap[(st1, r, y)] *
+    (
+        # [2c] the charging side is its own variable where it carries data;
+        # elsewhere inp2out is inlined onto the output capacity.
+        if (st1, r, y) in mStorageInpCap
+            vStorageInpCap[(st1, r, y)]
+        else
+            (
+        if haskey(pStorageInp2outUp, (st1, r, y))
+            pStorageInp2outUp[(st1, r, y)]
+        else
+            pStorageInp2outUpDef
+        end
+    ) * vStorageOutCap[(st1, r, y)]
+        end
+    ) *
+    # [rate] capacity is per HOUR, not per timeslice
+    (
+        if haskey(pStorageInpCap2act, (st1))
+            pStorageInpCap2act[(st1)]
+        else
+            pStorageInpCap2actDef
+        end
+    ) *
+    (
+        if haskey(pTimesliceShare, (s))
+            pTimesliceShare[(s)]
+        else
+            pTimesliceShareDef
+        end
+    ) *
     (
         if haskey(pStorageCinpUp, (st1, c, r, y, s))
             pStorageCinpUp[(st1, c, r, y, s)]
@@ -2332,7 +2379,36 @@ print("eqStorageInpLo(stg, comm, region, year, timeslice)...")
     model,
     [(st1, c, r, y, s) in meqStorageInpLo],
     vStorageInp[(st1, c, r, y, s)] >=
-    vStorageCap[(st1, r, y)] *
+    (
+        # [2c] the charging side is its own variable where it carries data;
+        # elsewhere inp2out is inlined onto the output capacity.
+        if (st1, r, y) in mStorageInpCap
+            vStorageInpCap[(st1, r, y)]
+        else
+            (
+        if haskey(pStorageInp2outLo, (st1, r, y))
+            pStorageInp2outLo[(st1, r, y)]
+        else
+            pStorageInp2outLoDef
+        end
+    ) * vStorageOutCap[(st1, r, y)]
+        end
+    ) *
+    # [rate] capacity is per HOUR, not per timeslice
+    (
+        if haskey(pStorageInpCap2act, (st1))
+            pStorageInpCap2act[(st1)]
+        else
+            pStorageInpCap2actDef
+        end
+    ) *
+    (
+        if haskey(pTimesliceShare, (s))
+            pTimesliceShare[(s)]
+        else
+            pTimesliceShareDef
+        end
+    ) *
     (
         if haskey(pStorageCinpLo, (st1, c, r, y, s))
             pStorageCinpLo[(st1, c, r, y, s)]
@@ -2368,7 +2444,21 @@ print("eqStorageOutUp(stg, comm, region, year, timeslice)...")
     model,
     [(st1, c, r, y, s) in meqStorageOutUp],
     vStorageOut[(st1, c, r, y, s)] <=
-    vStorageCap[(st1, r, y)] *
+    vStorageOutCap[(st1, r, y)] *
+    (
+        if haskey(pStorageOutCap2act, (st1))
+            pStorageOutCap2act[(st1)]
+        else
+            pStorageOutCap2actDef
+        end
+    ) *
+    (
+        if haskey(pTimesliceShare, (s))
+            pTimesliceShare[(s)]
+        else
+            pTimesliceShareDef
+        end
+    ) *
     (
         if haskey(pStorageCoutUp, (st1, c, r, y, s))
             pStorageCoutUp[(st1, c, r, y, s)]
@@ -2404,7 +2494,21 @@ print("eqStorageOutLo(stg, comm, region, year, timeslice)...")
     model,
     [(st1, c, r, y, s) in meqStorageOutLo],
     vStorageOut[(st1, c, r, y, s)] >=
-    vStorageCap[(st1, r, y)] *
+    vStorageOutCap[(st1, r, y)] *
+    (
+        if haskey(pStorageOutCap2act, (st1))
+            pStorageOutCap2act[(st1)]
+        else
+            pStorageOutCap2actDef
+        end
+    ) *
+    (
+        if haskey(pTimesliceShare, (s))
+            pTimesliceShare[(s)]
+        else
+            pTimesliceShareDef
+        end
+    ) *
     (
         if haskey(pStorageCoutLo, (st1, c, r, y, s))
             pStorageCoutLo[(st1, c, r, y, s)]
@@ -2439,7 +2543,7 @@ print("eqStorageCap(stg, region, year)...")
 @constraint(
     model,
     [(st1, r, y) in mStorageSpan],
-    vStorageCap[(st1, r, y)] ==
+    vStorageOutCap[(st1, r, y)] ==
     (
         if haskey(pStorageStock, (st1, r, y))
             pStorageStock[(st1, r, y)]
@@ -2453,7 +2557,7 @@ print("eqStorageCap(stg, region, year)...")
             else
                 pPeriodLenDef
             end
-        ) * vStorageNewCap[(st1, r, yp)] for yp in year if (
+        ) * vStorageOutNewCap[(st1, r, yp)] for yp in year if (
             ordYear[(y)] >= ordYear[(yp)] &&
             (
                 (st1, r) in mStorageOlifeInf ||
@@ -2475,12 +2579,218 @@ print(
     "
 ",
 )
+# eqStorageInpCap(stg, region, year)$mStorageInpCap(stg, region, year)
+# [2c] the CHARGING side, rated independently of the discharger.
+print("eqStorageInpCap(stg, region, year)...")
+@constraint(
+    model,
+    [(st1, r, y) in mStorageInpCap],
+    vStorageInpCap[(st1, r, y)] ==
+    (
+        if haskey(pStorageInpStock, (st1, r, y))
+            pStorageInpStock[(st1, r, y)]
+        else
+            pStorageInpStockDef
+        end
+    ) +
+    sum(
+        (
+        if haskey(pPeriodLen, (yp))
+            pPeriodLen[(yp)]
+        else
+            pPeriodLenDef
+        end
+    ) * vStorageInpNewCap[(st1, r, yp)] for yp in year if
+        (st1, r, yp) in mStorageInpNew && ordYear[(y)] >= ordYear[(yp)] && (
+            (st1, r) in mStorageOlifeInf ||
+            ordYear[(y)] < (
+        if haskey(pStorageOlife, (st1, r))
+            pStorageOlife[(st1, r)]
+        else
+            pStorageOlifeDef
+        end
+    ) + ordYear[(yp)]
+        );
+        init = 0
+    )
+);
+print("eqStorageInpCapLo(stg, region, year)...")
+@constraint(model, [(st1, r, y) in mStorageInpCapLo],
+    vStorageInpCap[(st1, r, y)] >= (
+        if haskey(pStorageInpCapLo, (st1, r, y))
+            pStorageInpCapLo[(st1, r, y)]
+        else
+            pStorageInpCapLoDef
+        end
+    ));
+print("eqStorageInpCapUp(stg, region, year)...")
+@constraint(model, [(st1, r, y) in mStorageInpCapUp],
+    vStorageInpCap[(st1, r, y)] <= (
+        if haskey(pStorageInpCapUp, (st1, r, y))
+            pStorageInpCapUp[(st1, r, y)]
+        else
+            pStorageInpCapUpDef
+        end
+    ));
+print("eqStorageInpNewCapLo(stg, region, year)...")
+@constraint(model, [(st1, r, y) in mStorageInpNewCapLo],
+    vStorageInpNewCap[(st1, r, y)] >= (
+        if haskey(pStorageInpNewCapLo, (st1, r, y))
+            pStorageInpNewCapLo[(st1, r, y)]
+        else
+            pStorageInpNewCapLoDef
+        end
+    ) * (
+        if haskey(pPeriodLen, (y))
+            pPeriodLen[(y)]
+        else
+            pPeriodLenDef
+        end
+    ));
+print("eqStorageInpNewCapUp(stg, region, year)...")
+@constraint(model, [(st1, r, y) in mStorageInpNewCapUp],
+    vStorageInpNewCap[(st1, r, y)] <= (
+        if haskey(pStorageInpNewCapUp, (st1, r, y))
+            pStorageInpNewCapUp[(st1, r, y)]
+        else
+            pStorageInpNewCapUpDef
+        end
+    ) * (
+        if haskey(pPeriodLen, (y))
+            pPeriodLen[(y)]
+        else
+            pPeriodLenDef
+        end
+    ));
+# The inp2out LINK: charging capacity per unit of discharging capacity.
+print("eqStorageInp2outLo(stg, region, year)...")
+@constraint(model, [(st1, r, y) in mStorageInp2outLo],
+    vStorageInpCap[(st1, r, y)] >= (
+        if haskey(pStorageInp2outLo, (st1, r, y))
+            pStorageInp2outLo[(st1, r, y)]
+        else
+            pStorageInp2outLoDef
+        end
+    ) * vStorageOutCap[(st1, r, y)]);
+print("eqStorageInp2outUp(stg, region, year)...")
+@constraint(model, [(st1, r, y) in mStorageInp2outUp],
+    vStorageInpCap[(st1, r, y)] <= (
+        if haskey(pStorageInp2outUp, (st1, r, y))
+            pStorageInp2outUp[(st1, r, y)]
+        else
+            pStorageInp2outUpDef
+        end
+    ) * vStorageOutCap[(st1, r, y)]);
+# eqStorageStgCap(stg, region, year)$mStorageStgCap(stg, region, year)
+# [2c] the STORING side's own capacity, in ENERGY. Exists only where the storing
+# part carries data; elsewhere the af bounds inline duration * output capacity.
+print("eqStorageStgCap(stg, region, year)...")
+@constraint(
+    model,
+    [(st1, r, y) in mStorageStgCap],
+    vStorageStgCap[(st1, r, y)] ==
+    (
+        if haskey(pStorageStgStock, (st1, r, y))
+            pStorageStgStock[(st1, r, y)]
+        else
+            pStorageStgStockDef
+        end
+    ) +
+    sum(
+        (
+            if haskey(pPeriodLen, (yp))
+                pPeriodLen[(yp)]
+            else
+                pPeriodLenDef
+            end
+        ) * vStorageStgNewCap[(st1, r, yp)] for yp in year if
+        (st1, r, yp) in mStorageStgNew && ordYear[(y)] >= ordYear[(yp)] && (
+            (st1, r) in mStorageOlifeInf ||
+            ordYear[(y)] < (
+                if haskey(pStorageOlife, (st1, r))
+                    pStorageOlife[(st1, r)]
+                else
+                    pStorageOlifeDef
+                end
+            ) + ordYear[(yp)]
+        );
+        init = 0
+    )
+);
+# eqStorageStgCapLo / Up
+print("eqStorageStgCapLo(stg, region, year)...")
+@constraint(model, [(st1, r, y) in mStorageStgCapLo],
+    vStorageStgCap[(st1, r, y)] >= (
+        if haskey(pStorageStgCapLo, (st1, r, y))
+            pStorageStgCapLo[(st1, r, y)]
+        else
+            pStorageStgCapLoDef
+        end
+    ));
+print("eqStorageStgCapUp(stg, region, year)...")
+@constraint(model, [(st1, r, y) in mStorageStgCapUp],
+    vStorageStgCap[(st1, r, y)] <= (
+        if haskey(pStorageStgCapUp, (st1, r, y))
+            pStorageStgCapUp[(st1, r, y)]
+        else
+            pStorageStgCapUpDef
+        end
+    ));
+print("eqStorageStgNewCapLo(stg, region, year)...")
+@constraint(model, [(st1, r, y) in mStorageStgNewCapLo],
+    vStorageStgNewCap[(st1, r, y)] >= (
+        if haskey(pStorageStgNewCapLo, (st1, r, y))
+            pStorageStgNewCapLo[(st1, r, y)]
+        else
+            pStorageStgNewCapLoDef
+        end
+    ) * (
+        if haskey(pPeriodLen, (y))
+            pPeriodLen[(y)]
+        else
+            pPeriodLenDef
+        end
+    ));
+print("eqStorageStgNewCapUp(stg, region, year)...")
+@constraint(model, [(st1, r, y) in mStorageStgNewCapUp],
+    vStorageStgNewCap[(st1, r, y)] <= (
+        if haskey(pStorageStgNewCapUp, (st1, r, y))
+            pStorageStgNewCapUp[(st1, r, y)]
+        else
+            pStorageStgNewCapUpDef
+        end
+    ) * (
+        if haskey(pPeriodLen, (y))
+            pPeriodLen[(y)]
+        else
+            pPeriodLenDef
+        end
+    ));
+# The duration LINK, in hours. `.fx` collapses these two onto each other.
+print("eqStorageDurationLo(stg, region, year)...")
+@constraint(model, [(st1, r, y) in mStorageDurationLo],
+    vStorageStgCap[(st1, r, y)] >= (
+        if haskey(pStorageDurationLo, (st1, r, y))
+            pStorageDurationLo[(st1, r, y)]
+        else
+            pStorageDurationLoDef
+        end
+    ) * vStorageOutCap[(st1, r, y)]);
+print("eqStorageDurationUp(stg, region, year)...")
+@constraint(model, [(st1, r, y) in mStorageDurationUp],
+    vStorageStgCap[(st1, r, y)] <= (
+        if haskey(pStorageDurationUp, (st1, r, y))
+            pStorageDurationUp[(st1, r, y)]
+        else
+            pStorageDurationUpDef
+        end
+    ) * vStorageOutCap[(st1, r, y)]);
 # eqStorageCapLo(stg, region, year)$mStorageCapLo(stg, region, year)
 print("eqStorageCapLo(stg, region, year)...")
 @constraint(
     model,
     [(st1, r, y) in mStorageCapLo],
-    vStorageCap[(st1, r, y)] >= (
+    vStorageOutCap[(st1, r, y)] >= (
         if haskey(pStorageCapLo, (st1, r, y))
             pStorageCapLo[(st1, r, y)]
         else
@@ -2499,7 +2809,7 @@ print("eqStorageCapUp(stg, region, year)...")
 @constraint(
     model,
     [(st1, r, y) in mStorageCapUp],
-    vStorageCap[(st1, r, y)] <= (
+    vStorageOutCap[(st1, r, y)] <= (
         if haskey(pStorageCapUp, (st1, r, y))
             pStorageCapUp[(st1, r, y)]
         else
@@ -2518,7 +2828,7 @@ print("eqStorageNewCapLo(stg, region, year)...")
 @constraint(
     model,
     [(st1, r, y) in mStorageNewCapLo],
-    vStorageNewCap[(st1, r, y)] >=
+    vStorageOutNewCap[(st1, r, y)] >=
     (
         if haskey(pStorageNewCapLo, (st1, r, y))
             pStorageNewCapLo[(st1, r, y)]
@@ -2544,7 +2854,7 @@ print("eqStorageNewCapUp(stg, region, year)...")
 @constraint(
     model,
     [(st1, r, y) in mStorageNewCapUp],
-    vStorageNewCap[(st1, r, y)] <=
+    vStorageOutNewCap[(st1, r, y)] <=
     (
         if haskey(pStorageNewCapUp, (st1, r, y))
             pStorageNewCapUp[(st1, r, y)]
@@ -2577,7 +2887,35 @@ print("eqStorageInv(stg, region, year)...")
         else
             pStorageInvcostDef
         end
-    ) * vStorageNewCap[(st1, r, y)]
+    ) * vStorageOutNewCap[(st1, r, y)] +
+    # [2c] the storing side's capital cost is per unit of ENERGY; absent data
+    # the (st1, r, y) tuple is not in mStorageStgNew and the term is zero.
+    (
+        if (st1, r, y) in mStorageStgNew
+            (
+        if haskey(pStorageStgInvcost, (st1, r, y))
+            pStorageStgInvcost[(st1, r, y)]
+        else
+            pStorageStgInvcostDef
+        end
+    ) * vStorageStgNewCap[(st1, r, y)]
+        else
+            0
+        end
+    ) +
+    (
+        if (st1, r, y) in mStorageInpNew
+            (
+        if haskey(pStorageInpInvcost, (st1, r, y))
+            pStorageInpInvcost[(st1, r, y)]
+        else
+            pStorageInpInvcostDef
+        end
+    ) * vStorageInpNewCap[(st1, r, y)]
+        else
+            0
+        end
+    )
 );
 print(
     " ",
@@ -2598,7 +2936,34 @@ print("eqStorageEac(stg, region, year)...")
             else
                 pStorageEacDef
             end
-        ) * vStorageNewCap[(st1, r, yp)] for yp in year if (
+        ) * vStorageOutNewCap[(st1, r, yp)] +
+        # [2c] the storing side annuitises separately, on the same lifetime.
+        (
+            if (st1, r, yp) in mStorageStgNew
+                (
+                    if haskey(pStorageStgEac, (st1, r, yp))
+                        pStorageStgEac[(st1, r, yp)]
+                    else
+                        pStorageStgEacDef
+                    end
+                ) * vStorageStgNewCap[(st1, r, yp)]
+            else
+                0
+            end
+        ) +
+        (
+            if (st1, r, yp) in mStorageInpNew
+                (
+                    if haskey(pStorageInpEac, (st1, r, yp))
+                        pStorageInpEac[(st1, r, yp)]
+                    else
+                        pStorageInpEacDef
+                    end
+                ) * vStorageInpNewCap[(st1, r, yp)]
+            else
+                0
+            end
+        ) for yp in year if (
             (st1, r, yp) in mStorageNew &&
             ordYear[(y)] >= ordYear[(yp)] &&
             # [payback] see eqTechEac.
@@ -2661,7 +3026,33 @@ print("eqStorageFixom(stg, region, year)...")
         else
             pStorageFixomDef
         end
-    ) * vStorageCap[(st1, r, y)]
+    ) * vStorageOutCap[(st1, r, y)] +
+    (
+        if (st1, r, y) in mStorageStgFixom
+            (
+        if haskey(pStorageStgFixom, (st1, r, y))
+            pStorageStgFixom[(st1, r, y)]
+        else
+            pStorageStgFixomDef
+        end
+    ) * vStorageStgCap[(st1, r, y)]
+        else
+            0
+        end
+    ) +
+    (
+        if (st1, r, y) in mStorageInpFixom
+            (
+        if haskey(pStorageInpFixom, (st1, r, y))
+            pStorageInpFixom[(st1, r, y)]
+        else
+            pStorageInpFixomDef
+        end
+    ) * vStorageInpCap[(st1, r, y)]
+        else
+            0
+        end
+    )
 );
 print(
     " ",
