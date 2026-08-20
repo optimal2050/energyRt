@@ -29,10 +29,13 @@ get_python_path <- function() {
 # Functions to write PYOMO model and data files
 .write_model_PYOMO <- function(arg, scen) {
   # browser()
-  .assert_payback_supported(scen, "Pyomo")
   .assert_geolevel_supported(scen, "Pyomo")
   AbstractModel <- any(grep("abstract", scen@settings@solver$lang, ignore.case = TRUE))
   if (AbstractModel) {
+    # Concrete implements `payback`; Abstract does not -- its eqXEac is still the
+    # pre-vintaging `pXEac * vXCap` form, so a payback window has nothing to
+    # narrow. Guard the Abstract branch only.
+    .assert_payback_supported(scen, "Pyomo-Abstract")
     run_code <- scen@settings@sourceCode[["PYOMOAbstract"]]
     run_codeout <- scen@settings@sourceCode[["PYOMOAbstractOutput"]]
 

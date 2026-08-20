@@ -1141,9 +1141,23 @@ model.eqTechEac = Constraint(
         if (
             (t, r, yp) in mTechNew
             and ordYear.get((y)) >= ordYear.get((yp))
+            # [payback] the annuity is charged over the COST-RECOVERY period:
+            # pTechPayback where set (> 0), otherwise the operational life.
+            # eqTechCap deliberately keeps pTechOlife -- the technical life still
+            # governs when capacity OPERATES. Ported from GLPK 2026-08-19.
             and (
-                ordYear.get((y)) < pTechOlife.get((t, r)) + ordYear.get((yp))
-                or (t, r) in mTechOlifeInf
+                (
+                    pTechPayback.get((t, r, yp)) > 0
+                    and ordYear.get((y))
+                    < pTechPayback.get((t, r, yp)) + ordYear.get((yp))
+                )
+                or (
+                    pTechPayback.get((t, r, yp)) <= 0
+                    and (
+                        ordYear.get((y)) < pTechOlife.get((t, r)) + ordYear.get((yp))
+                        or (t, r) in mTechOlifeInf
+                    )
+                )
             )
         )
     ),
@@ -1867,9 +1881,21 @@ model.eqStorageEac = Constraint(
         if (
             (st1, r, yp) in mStorageNew
             and ordYear.get((y)) >= ordYear.get((yp))
+            # [payback] see eqTechEac.
             and (
-                (st1, r) in mStorageOlifeInf
-                or ordYear.get((y)) < pStorageOlife.get((st1, r)) + ordYear.get((yp))
+                (
+                    pStoragePayback.get((st1, r, yp)) > 0
+                    and ordYear.get((y))
+                    < pStoragePayback.get((st1, r, yp)) + ordYear.get((yp))
+                )
+                or (
+                    pStoragePayback.get((st1, r, yp)) <= 0
+                    and (
+                        (st1, r) in mStorageOlifeInf
+                        or ordYear.get((y))
+                        < pStorageOlife.get((st1, r)) + ordYear.get((yp))
+                    )
+                )
             )
             # [eac-fix] the `pStorageInvcost <> 0` guard was REMOVED from the summation
             # condition below. It dropped the annuity entirely when a user supplied
@@ -2469,9 +2495,20 @@ model.eqTradeEac = Constraint(
         if (
             (t1, yp) in mTradeNew
             and ordYear.get((y)) >= ordYear.get((yp))
+            # [payback] see eqTechEac.
             and (
-                ordYear.get((y)) < pTradeOlife.get((t1)) + ordYear.get((yp))
-                or t1 in mTradeOlifeInf
+                (
+                    pTradePayback.get((t1, r, yp)) > 0
+                    and ordYear.get((y))
+                    < pTradePayback.get((t1, r, yp)) + ordYear.get((yp))
+                )
+                or (
+                    pTradePayback.get((t1, r, yp)) <= 0
+                    and (
+                        ordYear.get((y)) < pTradeOlife.get((t1)) + ordYear.get((yp))
+                        or t1 in mTradeOlifeInf
+                    )
+                )
             )
         )
     ),

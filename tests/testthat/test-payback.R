@@ -90,15 +90,43 @@ test_that("a payback off the milestone grid is reported, not silently rounded", 
     "does not land on a milestone boundary")
 })
 
-test_that("payback is refused by the engines that do not implement it", {
+test_that("payback is refused only by the engine that does not implement it", {
   skip_if_no_solver()
   sc <- rt_interp(rt_model(invcost = data.frame(invcost = 1000, payback = 10),
                            name = "p8", discount = 0.05), "p8")
   guard <- getFromNamespace(".assert_payback_supported", "energyRt")
-  expect_error(guard(sc, "GAMS"), "GLPK only")
+  # Pyomo-Abstract is still on the pre-vintaging `pXEac * vXCap` form, where a
+  # cost-recovery window has nothing to narrow, so it alone refuses.
+  expect_error(guard(sc, "Pyomo-Abstract"), "not implemented for Pyomo-Abstract")
   # ... and accepted where there is none set.
   ok <- rt_interp(rt_model(name = "p9", discount = 0.05), "p9")
-  expect_null(guard(ok, "GAMS"))
+  expect_null(guard(ok, "Pyomo-Abstract"))
+})
+
+test_that("payback is present in every backend template that claims to support it", {
+  # A cheap structural guard: the eqXEac of each supported backend must
+  # reference pXPayback. Catches a template edit that drops the disjunction, and
+  # a `sysdata` that was not rebuilt after one. No solver needed.
+  code <- getFromNamespace(".modelCode", "energyRt")
+  strip <- function(x, cmt) x[!grepl(cmt, x)]
+  cases <- list(
+    list(nm = "GLPK",          cmt = "^[[:space:]]*#"),
+    list(nm = "GAMS",          cmt = "^[*]"),
+    list(nm = "JuMP",          cmt = "^[[:space:]]*#"),
+    list(nm = "PYOMOConcrete", cmt = "^[[:space:]]*#")
+  )
+  for (cs in cases) {
+    src <- code[[cs$nm]]
+    expect_true(!is.null(src), info = paste(cs$nm, "template missing"))
+    body <- strip(src, cs$cmt)
+    for (par in c("pTechPayback", "pStoragePayback", "pTradePayback")) {
+      expect_true(any(grepl(par, body, fixed = TRUE)),
+                  info = paste(cs$nm, "does not use", par))
+    }
+  }
+  # Abstract must NOT pretend to: it is on the pre-vintaging form.
+  abody <- strip(code[["PYOMOAbstract"]], "^[[:space:]]*#")
+  expect_false(any(grepl("pTechPayback", abody, fixed = TRUE)))
 })
 
 test_that("payback reaches storage and trade, and their equations compile", {

@@ -212,10 +212,16 @@
   invisible(NULL)
 }
 
-# `pXPayback` narrows the eqXEac charging window, and only the GLPK model has
-# been taught that. The other engines still key the window on pXOlife, so they
-# would quietly annuitise over the payback period but keep charging for the full
-# operational life -- over-recovering the investment. Refuse instead.
+# `pXPayback` narrows the eqXEac charging window. GLPK, GAMS, JuMP/Julia and
+# Pyomo-Concrete all implement it (ported from GLPK 2026-08-19).
+#
+# Pyomo-ABSTRACT does not, and cannot without a bigger change: its eqXEac is
+# still the pre-vintaging `pXEac * vXCap` form, which charges the annuity on
+# TOTAL capacity -- pre-existing stock included -- rather than summing over
+# still-alive vintages. Adding a payback window to that would be meaningless.
+# An engine left on the olife window would quietly annuitise over the payback
+# period while charging for the full operational life, over-recovering the
+# investment, so it is refused instead.
 .assert_payback_supported <- function(scen, engine) {
   used <- character()
   for (pn in c("pTechPayback", "pStoragePayback", "pTradePayback")) {
@@ -227,9 +233,11 @@
     }
   }
   if (length(used) == 0) return(invisible(NULL))
-  stop("`payback` is implemented for GLPK only, but the model is being written ",
-       "for ", engine, " (set in ", paste(used, collapse = ", "), ").\n",
-       "  Solve with `solver_options$glpk`, or drop `@invcost$payback` and use ",
+  stop("`payback` is not implemented for ", engine, " (set in ",
+       paste(used, collapse = ", "), ").\n",
+       "  It is available on GLPK, GAMS, JuMP/Julia and Pyomo-Concrete. ",
+       "Pyomo-Abstract still uses the pre-vintaging `pXEac * vXCap` form.\n",
+       "  Use one of those engines, or drop `@invcost$payback` and use ",
        "`@vintage$olife` for the cost-recovery period.")
 }
 

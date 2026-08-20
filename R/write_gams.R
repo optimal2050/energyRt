@@ -107,7 +107,6 @@ get_gdxlib_path <- function() {
 .write_model_GAMS <- function(arg, scen, trim = FALSE) {
   # if (trim) scen <- fold(scen)
   # browser()
-  .assert_payback_supported(scen, "GAMS")
   .write_inc_solver(scen, arg, "option lp = cplex;", ".gms", "cplex")
   if (is.null(scen@status$sparse)) stop("scen@status$sparse not found")
   # GAMS needs a DENSE scenario: it has no native parameter default (an absent

@@ -176,9 +176,9 @@ pTechCap2act(tech)                                  Technology capacity units to
 pTechCvarom(tech, comm, region, year, timeslice)        Commodity-specific variable costs (per unit of commodity input or output)
 pTechAvarom(tech, comm, region, year, timeslice)        Auxilary Commodity-specific variable costs (per unit of commodity input or output)
 * Rates
-* Declared for parity with the GLPK model, which uses pXPayback in eqXEac. The
-* GAMS equations still use pXOlife, so a model with any payback set is refused
-* by the writer until the GAMS/Pyomo/Julia equations follow.
+* pXPayback narrows the annuity to a cost-recovery period shorter than the
+* operational life; pXOlife still governs when capacity operates. Used in
+* eqTechEac / eqStorageEac / eqTradeEac below (ported from GLPK 2026-08-19).
 pWacc(region, year)                                 Weighted average cost of capital (can be region and year specific)
 pSdr(region, year)                                  Social discount rate (can be region and year specific)
 pTechWacc(tech, region, year)                       Technology-specific cost of capital
@@ -1160,9 +1160,23 @@ eqTechEac(tech, region, year)$mTechEac(tech, region, year)..
                     and
                     ordYear(year) >= ordYear(yearp)
                     and
-                    (ordYear(year) < pTechOlife(tech, region) + ordYear(yearp)
+*                  [payback] the annuity is charged over the COST-RECOVERY period:
+*                  pTechPayback where the user set one, otherwise the operational
+*                  life as before. Ported from the GLPK model 2026-08-19; the
+*                  parameters were already declared here "for parity" (see above).
+                    (
+                     (pTechPayback(tech, region, yearp) > 0
+                      and
+                      ordYear(year) < pTechPayback(tech, region, yearp) + ordYear(yearp)
+                      )
                      or
-                     mTechOlifeInf(tech, region)
+                     (pTechPayback(tech, region, yearp) <= 0
+                      and
+                      (ordYear(year) < pTechOlife(tech, region) + ordYear(yearp)
+                       or
+                       mTechOlifeInf(tech, region)
+                       )
+                      )
                      )
                     ),
               pTechEac(tech, region, yearp)
@@ -1585,8 +1599,16 @@ eqStorageEac(stg, region, year)$mStorageEac(stg, region, year)..
          =e=
          sum(yearp$(mStorageNew(stg, region, yearp)
                     and ordYear(year) >= ordYear(yearp)
-                    and (mStorageOlifeInf(stg, region)
-                         or ordYear(year) < pStorageOlife(stg, region) + ordYear(yearp)
+*                  [payback] see eqTechEac.
+                    and (
+                         (pStoragePayback(stg, region, yearp) > 0
+                          and ordYear(year) < pStoragePayback(stg, region, yearp) + ordYear(yearp))
+                         or
+                         (pStoragePayback(stg, region, yearp) <= 0
+                          and (mStorageOlifeInf(stg, region)
+                               or ordYear(year) < pStorageOlife(stg, region) + ordYear(yearp)
+                               )
+                          )
                          )
 *                  [eac-fix] the `pStorageInvcost <> 0` guard was REMOVED from the summation
 *                  condition below. It dropped the annuity entirely when a user supplied
@@ -2003,7 +2025,13 @@ eqTradeEac(trade, region, year)$mTradeEac(trade, region, year)..
          vTradeEac(trade, region, year)
          =e=
          sum(yearp$(mTradeNew(trade, yearp) and  ordYear(year) >= ordYear(yearp) and
-            (ordYear(year) < pTradeOlife(trade) + ordYear(yearp) or mTradeOlifeInf(trade))),
+*           [payback] see eqTechEac.
+            ((pTradePayback(trade, region, yearp) > 0
+              and ordYear(year) < pTradePayback(trade, region, yearp) + ordYear(yearp))
+             or
+             (pTradePayback(trade, region, yearp) <= 0
+              and (ordYear(year) < pTradeOlife(trade) + ordYear(yearp)
+                   or mTradeOlifeInf(trade))))),
                 pTradeEac(trade, region, yearp) * vTradeNewCap(trade, yearp));
 $ontext
 * [eac-fix] simplified "EAC for existing capacity" form disabled:

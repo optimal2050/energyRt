@@ -1468,14 +1468,39 @@ print("eqTechEac(tech, region, year)...")
         ) for yp in year if (
             (t, r, yp) in mTechNew &&
             ordYear[(y)] >= ordYear[(yp)] &&
+            # [payback] the annuity is charged over the COST-RECOVERY period:
+            # pTechPayback where set (> 0), otherwise the operational life.
+            # eqTechCap deliberately keeps pTechOlife -- the technical life still
+            # governs when capacity OPERATES. Ported from GLPK 2026-08-19.
             (
-                ordYear[(y)] < (
-                    if haskey(pTechOlife, (t, r))
-                        pTechOlife[(t, r)]
+                ((
+                    if haskey(pTechPayback, (t, r, yp))
+                        pTechPayback[(t, r, yp)]
                     else
-                        pTechOlifeDef
+                        pTechPaybackDef
                     end
-                ) + ordYear[(yp)] || (t, r) in mTechOlifeInf
+                ) > 0 && ordYear[(y)] < (
+                    if haskey(pTechPayback, (t, r, yp))
+                        pTechPayback[(t, r, yp)]
+                    else
+                        pTechPaybackDef
+                    end
+                ) + ordYear[(yp)]) ||
+                ((
+                    if haskey(pTechPayback, (t, r, yp))
+                        pTechPayback[(t, r, yp)]
+                    else
+                        pTechPaybackDef
+                    end
+                ) <= 0 && (
+                    ordYear[(y)] < (
+                        if haskey(pTechOlife, (t, r))
+                            pTechOlife[(t, r)]
+                        else
+                            pTechOlifeDef
+                        end
+                    ) + ordYear[(yp)] || (t, r) in mTechOlifeInf
+                ))
             )
         );
         init = 0
@@ -2542,15 +2567,37 @@ print("eqStorageEac(stg, region, year)...")
         ) * vStorageNewCap[(st1, r, yp)] for yp in year if (
             (st1, r, yp) in mStorageNew &&
             ordYear[(y)] >= ordYear[(yp)] &&
+            # [payback] see eqTechEac.
             (
-                (st1, r) in mStorageOlifeInf ||
-                ordYear[(y)] < (
-                    if haskey(pStorageOlife, (st1, r))
-                        pStorageOlife[(st1, r)]
+                ((
+                    if haskey(pStoragePayback, (st1, r, yp))
+                        pStoragePayback[(st1, r, yp)]
                     else
-                        pStorageOlifeDef
+                        pStoragePaybackDef
                     end
-                ) + ordYear[(yp)]
+                ) > 0 && ordYear[(y)] < (
+                    if haskey(pStoragePayback, (st1, r, yp))
+                        pStoragePayback[(st1, r, yp)]
+                    else
+                        pStoragePaybackDef
+                    end
+                ) + ordYear[(yp)]) ||
+                ((
+                    if haskey(pStoragePayback, (st1, r, yp))
+                        pStoragePayback[(st1, r, yp)]
+                    else
+                        pStoragePaybackDef
+                    end
+                ) <= 0 && (
+                    (st1, r) in mStorageOlifeInf ||
+                    ordYear[(y)] < (
+                        if haskey(pStorageOlife, (st1, r))
+                            pStorageOlife[(st1, r)]
+                        else
+                            pStorageOlifeDef
+                        end
+                    ) + ordYear[(yp)]
+                ))
             )
             # [eac-fix] the `pStorageInvcost != 0` guard was REMOVED from the condition
             # below. It dropped the annuity entirely when a user supplied `@invcost$eac`
@@ -3283,14 +3330,36 @@ print("eqTradeEac(trade, region, year)...")
         ) * vTradeNewCap[(t1, yp)] for yp in year if (
             (t1, yp) in mTradeNew &&
             ordYear[(y)] >= ordYear[(yp)] &&
+            # [payback] see eqTechEac.
             (
-                ordYear[(y)] < (
-                    if haskey(pTradeOlife, (t1))
-                        pTradeOlife[(t1)]
+                ((
+                    if haskey(pTradePayback, (t1, r, yp))
+                        pTradePayback[(t1, r, yp)]
                     else
-                        pTradeOlifeDef
+                        pTradePaybackDef
                     end
-                ) + ordYear[(yp)] || t1 in mTradeOlifeInf
+                ) > 0 && ordYear[(y)] < (
+                    if haskey(pTradePayback, (t1, r, yp))
+                        pTradePayback[(t1, r, yp)]
+                    else
+                        pTradePaybackDef
+                    end
+                ) + ordYear[(yp)]) ||
+                ((
+                    if haskey(pTradePayback, (t1, r, yp))
+                        pTradePayback[(t1, r, yp)]
+                    else
+                        pTradePaybackDef
+                    end
+                ) <= 0 && (
+                    ordYear[(y)] < (
+                        if haskey(pTradeOlife, (t1))
+                            pTradeOlife[(t1)]
+                        else
+                            pTradeOlifeDef
+                        end
+                    ) + ordYear[(yp)] || t1 in mTradeOlifeInf
+                ))
             )
         );
         init = 0
