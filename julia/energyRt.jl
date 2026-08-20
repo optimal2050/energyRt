@@ -72,8 +72,8 @@ model = Model();
 @variable(model, vStorageAOut[mvStorageAOut] >= 0);
 @variable(model, vDummyImport[mDummyImport] >= 0);
 @variable(model, vDummyExport[mDummyExport] >= 0);
-@variable(model, vStorageInp[mvStorageLevel] >= 0);
-@variable(model, vStorageOut[mvStorageLevel] >= 0);
+@variable(model, vStorageInp[mvStorageInp] >= 0);
+@variable(model, vStorageOut[mvStorageOut] >= 0);
 @variable(model, vStorageLevel[mvStorageLevel] >= 0);
 @variable(model, vStorageInv[mStorageNew] >= 0);
 @variable(model, vStorageEac[mStorageEac] >= 0);
@@ -1914,7 +1914,12 @@ print("eqStorageAInp(stg, comm, region, year, timeslice)...")
 @constraint(
     model,
     [(st1, c, r, y, s) in mvStorageAInp],
-    vStorageAInp[(st1, c, r, y, s)] == sum(
+    vStorageAInp[(st1, c, r, y, s)] ==
+# [multi-commodity] each referenced flow follows its OWN role's commodity set, and
+# the two capacity terms leave the commodity sum -- inside it they were multiplied
+# by 1 for a single-commodity storage but would be counted once per commodity now
+# that the roles can differ.
+    sum(
         (
             if (st1, c, r, y, s) in mStorageStg2AInp
                 (
@@ -1929,7 +1934,10 @@ print("eqStorageAInp(stg, comm, region, year, timeslice)...")
             else
                 0
             end
-        ) +
+        ) for cp in comm if (st1, cp) in mStorageStgComm;
+        init = 0
+    ) +
+    sum(
         (
             if (st1, c, r, y, s) in mStorageCinp2AInp
                 (
@@ -1944,7 +1952,10 @@ print("eqStorageAInp(stg, comm, region, year, timeslice)...")
             else
                 0
             end
-        ) +
+        ) for cp in comm if (st1, cp) in mStorageInpComm;
+        init = 0
+    ) +
+    sum(
         (
             if (st1, c, r, y, s) in mStorageCout2AInp
                 (
@@ -1959,7 +1970,9 @@ print("eqStorageAInp(stg, comm, region, year, timeslice)...")
             else
                 0
             end
-        ) +
+        ) for cp in comm if (st1, cp) in mStorageOutComm;
+        init = 0
+    ) +
         (
             if (st1, c, r, y, s) in mStorageCap2AInp
                 (
@@ -1989,8 +2002,7 @@ print("eqStorageAInp(stg, comm, region, year, timeslice)...")
             else
                 0
             end
-        ) for cp in comm if (st1, cp) in mStorageComm
-    )
+        )
 );
 print(
     " ",
@@ -2003,7 +2015,12 @@ print("eqStorageAOut(stg, comm, region, year, timeslice)...")
 @constraint(
     model,
     [(st1, c, r, y, s) in mvStorageAOut],
-    vStorageAOut[(st1, c, r, y, s)] == sum(
+    vStorageAOut[(st1, c, r, y, s)] ==
+# [multi-commodity] each referenced flow follows its OWN role's commodity set, and
+# the two capacity terms leave the commodity sum -- inside it they were multiplied
+# by 1 for a single-commodity storage but would be counted once per commodity now
+# that the roles can differ.
+    sum(
         (
             if (st1, c, r, y, s) in mStorageStg2AOut
                 (
@@ -2018,7 +2035,10 @@ print("eqStorageAOut(stg, comm, region, year, timeslice)...")
             else
                 0
             end
-        ) +
+        ) for cp in comm if (st1, cp) in mStorageStgComm;
+        init = 0
+    ) +
+    sum(
         (
             if (st1, c, r, y, s) in mStorageCinp2AOut
                 (
@@ -2033,7 +2053,10 @@ print("eqStorageAOut(stg, comm, region, year, timeslice)...")
             else
                 0
             end
-        ) +
+        ) for cp in comm if (st1, cp) in mStorageInpComm;
+        init = 0
+    ) +
+    sum(
         (
             if (st1, c, r, y, s) in mStorageCout2AOut
                 (
@@ -2048,7 +2071,9 @@ print("eqStorageAOut(stg, comm, region, year, timeslice)...")
             else
                 0
             end
-        ) +
+        ) for cp in comm if (st1, cp) in mStorageOutComm;
+        init = 0
+    ) +
         (
             if (st1, c, r, y, s) in mStorageCap2AOut
                 (
@@ -2078,8 +2103,7 @@ print("eqStorageAOut(stg, comm, region, year, timeslice)...")
             else
                 0
             end
-        ) for cp in comm if (st1, cp) in mStorageComm
-    )
+        )
 );
 print(
     " ",
@@ -2115,13 +2139,17 @@ print("eqStorageLevel(stg, comm, region, year, timeslicep, timeslice)...")
             0
         end
     ) +
-    (
-        if haskey(pStorageInpEff, (st1, c, r, y, sp))
-            pStorageInpEff[(st1, c, r, y, sp)]
-        else
-            pStorageInpEffDef
-        end
-    ) * vStorageInp[(st1, c, r, y, sp)] +
+    sum(
+        (
+            if haskey(pStorageInpEff, (st1, ci, r, y, sp))
+                pStorageInpEff[(st1, ci, r, y, sp)]
+            else
+                pStorageInpEffDef
+            end
+        ) * vStorageInp[(st1, ci, r, y, sp)] for
+        ci in comm if (st1, ci, r, y, sp) in mvStorageInp;
+        init = 0
+    ) +
     (
         ((
             if haskey(pStorageStgEff, (st1, c, r, y, s))
@@ -2137,13 +2165,16 @@ print("eqStorageLevel(stg, comm, region, year, timeslicep, timeslice)...")
             end
         ))
     ) * vStorageLevel[(st1, c, r, y, sp)] -
-    (vStorageOut[(st1, c, r, y, sp)]) / ((
-        if haskey(pStorageOutEff, (st1, c, r, y, sp))
-            pStorageOutEff[(st1, c, r, y, sp)]
-        else
-            pStorageOutEffDef
-        end
-    ))
+    sum(
+        (vStorageOut[(st1, co, r, y, sp)]) / ((
+            if haskey(pStorageOutEff, (st1, co, r, y, sp))
+                pStorageOutEff[(st1, co, r, y, sp)]
+            else
+                pStorageOutEffDef
+            end
+        )) for co in comm if (st1, co, r, y, sp) in mvStorageOut;
+        init = 0
+    )
 );
 print(
     " ",
@@ -2242,13 +2273,16 @@ print("eqStorageOutLevel(stg, comm, region, year, timeslice)...")
 @constraint(
     model,
     [(st1, c, r, y, s) in mvStorageLevel],
-    (vStorageOut[(st1, c, r, y, s)]) / ((
-        if haskey(pStorageOutEff, (st1, c, r, y, s))
-            pStorageOutEff[(st1, c, r, y, s)]
-        else
-            pStorageOutEffDef
-        end
-    )) <= vStorageLevel[(st1, c, r, y, s)]
+    sum(
+        (vStorageOut[(st1, co, r, y, s)]) / ((
+            if haskey(pStorageOutEff, (st1, co, r, y, s))
+                pStorageOutEff[(st1, co, r, y, s)]
+            else
+                pStorageOutEffDef
+            end
+        )) for co in comm if (st1, co, r, y, s) in mvStorageOut;
+        init = 0
+    ) <= vStorageLevel[(st1, c, r, y, s)]
 );
 print(
     " ",
@@ -2640,7 +2674,11 @@ print("eqStorageVarom(stg, region, year)...")
 @constraint(
     model,
     [(st1, r, y) in mStorageVarom],
-    vStorageVarom[(st1, r, y)] == sum(
+    vStorageVarom[(st1, r, y)] ==
+# [multi-commodity] one sum per role: the charge cost runs over the input
+# commodities, the discharge cost over the outputs, the holding cost over the
+# stored one. A single-commodity storage has all three sets equal.
+    sum(
         sum(
             (
                 if haskey(pStorageCostInp, (st1, r, y, s))
@@ -2656,7 +2694,13 @@ print("eqStorageVarom(stg, region, year)...")
                     pTimesliceWeightDef
                 end
             ) *
-            vStorageInp[(st1, c, r, y, s)] +
+            vStorageInp[(st1, c, r, y, s)] for s in timeslice if (c, s) in mCommTimeslice;
+            init = 0
+        ) for c in comm if (st1, c) in mStorageInpComm;
+        init = 0
+    ) +
+    sum(
+        sum(
             (
                 if haskey(pStorageCostOut, (st1, r, y, s))
                     pStorageCostOut[(st1, r, y, s)]
@@ -2671,7 +2715,13 @@ print("eqStorageVarom(stg, region, year)...")
                     pTimesliceWeightDef
                 end
             ) *
-            vStorageOut[(st1, c, r, y, s)] +
+            vStorageOut[(st1, c, r, y, s)] for s in timeslice if (c, s) in mCommTimeslice;
+            init = 0
+        ) for c in comm if (st1, c) in mStorageOutComm;
+        init = 0
+    ) +
+    sum(
+        sum(
             (
                 if haskey(pStorageCostStore, (st1, r, y, s))
                     pStorageCostStore[(st1, r, y, s)]
@@ -2686,8 +2736,10 @@ print("eqStorageVarom(stg, region, year)...")
                     pTimesliceWeightDef
                 end
             ) *
-            vStorageLevel[(st1, c, r, y, s)] for s in timeslice if (c, s) in mCommTimeslice
-        ) for c in comm if (st1, c) in mStorageComm
+            vStorageLevel[(st1, c, r, y, s)] for s in timeslice if (c, s) in mCommTimeslice;
+            init = 0
+        ) for c in comm if (st1, c) in mStorageStgComm;
+        init = 0
     )
 );
 print(
@@ -3825,7 +3877,7 @@ print("eqStorageInpTot(comm, region, year, timeslice)...")
     [(c, r, y, s) in mStorageInpTot],
     vStorageInpTot[(c, r, y, s)] ==
     sum(
-        vStorageInp[(st1, c, r, y, s)] for st1 in stg if (st1, c, r, y, s) in mvStorageLevel
+        vStorageInp[(st1, c, r, y, s)] for st1 in stg if (st1, c, r, y, s) in mvStorageInp
     ) + sum(
         vStorageAInp[(st1, c, r, y, s)] for st1 in stg if (st1, c, r, y, s) in mvStorageAInp
     )
@@ -3843,7 +3895,7 @@ print("eqStorageOutTot(comm, region, year, timeslice)...")
     [(c, r, y, s) in mStorageOutTot],
     vStorageOutTot[(c, r, y, s)] ==
     sum(
-        vStorageOut[(st1, c, r, y, s)] for st1 in stg if (st1, c, r, y, s) in mvStorageLevel
+        vStorageOut[(st1, c, r, y, s)] for st1 in stg if (st1, c, r, y, s) in mvStorageOut
     ) + sum(
         vStorageAOut[(st1, c, r, y, s)] for st1 in stg if (st1, c, r, y, s) in mvStorageAOut
     )

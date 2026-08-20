@@ -37,8 +37,13 @@
   # fuel-combustion emissions. Materialise 1.0 over mTechInpComm (explicit 0s,
   # e.g. non-combusting feedstock, are preserved by .densify_one).
   pTechEmisComm  = "mTechInpComm",
-  pStorageInpEff = "mvStorageLevel",
-  pStorageOutEff = "mvStorageLevel",
+  # Each efficiency is read on the domain of the flow it scales, NOT the level's.
+  # `inpeff`/`outeff` are indexed by the INPUT / OUTPUT commodity (they are
+  # cross-commodity conversion factors once the roles differ), so densifying them
+  # over `mvStorageLevel` would materialise them against the STORED commodity and
+  # leave the real flow tuples absent -- reading as 0 and killing the flow.
+  pStorageInpEff = "mvStorageInp",
+  pStorageOutEff = "mvStorageOut",
   pStorageStgEff = "mvStorageLevel",
   # weather coefficients: domain is the (empty-when-unused) weather link map, so a
   # model that does not use a given weather bound densifies to nothing.

@@ -804,7 +804,7 @@ close(fvDummyExport);
 
 fvStorageInp = open("output/vStorageInp.csv", "w");
 println(fvStorageInp, "stg,comm,region,year,timeslice,value");
-for (st1, c, r, y, s) in mvStorageLevel
+for (st1, c, r, y, s) in mvStorageInp
     if JuMP.value(vStorageInp[(st1, c, r, y, s)]) != 0
         println(
             fvStorageInp,
@@ -826,7 +826,7 @@ close(fvStorageInp);
 
 fvStorageOut = open("output/vStorageOut.csv", "w");
 println(fvStorageOut, "stg,comm,region,year,timeslice,value");
-for (st1, c, r, y, s) in mvStorageLevel
+for (st1, c, r, y, s) in mvStorageOut
     if JuMP.value(vStorageOut[(st1, c, r, y, s)]) != 0
         println(
             fvStorageOut,

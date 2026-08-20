@@ -7,12 +7,14 @@
 #' @md
 #' @slot name `r get_slot_doc("storage", "name")`
 #' @slot desc `r get_slot_doc("storage", "desc")`
-#' @slot commodity `r get_slot_doc("storage", "commodity")`
 #' @slot aux `r get_slot_doc("storage", "aux")`
 #' @slot region `r get_slot_doc("storage", "region")`
 #' @slot cluster `r get_slot_doc("storage", "cluster")`
 #' @slot vintage `r get_slot_doc("storage", "vintage")`
 #' @slot capacity `r get_slot_doc("storage", "capacity")`
+#' @slot input `r get_slot_doc("storage", "input")`
+#' @slot output `r get_slot_doc("storage", "output")`
+#' @slot storage `r get_slot_doc("storage", "storage")`
 #' @slot startLevel `r get_slot_doc("storage", "startLevel")`
 #' @slot seff `r get_slot_doc("storage", "seff")`
 #' @slot af `r get_slot_doc("storage", "af")`
@@ -36,7 +38,9 @@ setClass("storage",
   representation(
     name = "character",
     desc = "character",
-    commodity = "character", # !!! ToDo: add units
+    input = "data.frame",    # what fills the store   (the "charger" side)
+    output = "data.frame",   # what it releases       (the "discharger" side)
+    storage = "data.frame",  # what it HOLDS -- the level's commodity
     aux = "data.frame", #
     region = "character",
     cluster = "data.frame",
@@ -59,7 +63,6 @@ setClass("storage",
   prototype(
     name = "",
     desc = "",
-    commodity = "",
     # Cluster declaration -- see the `technology` class for the full rationale.
     # For storage the motivating case is site-constrained capacity: pumped-hydro
     # head classes, CAES caverns, or duration classes via per-cluster `duration`.
@@ -88,6 +91,18 @@ setClass("storage",
     # from the calendar and `@fullYear`, which is what removes the wildcard trap
     # the old per-timeslice `@charge` had. Which cycle depends on `@fullYear`:
     # once a year when TRUE, once per parent timeframe when FALSE.
+    # The three commodity ROLES -- the ONLY place a storage's commodities live.
+    # There is no `@commodity` slot: `newStorage(commodity = )` is still accepted
+    # and fills whichever roles were not named, at construction, so the object
+    # never carries two answers to "what does this consume". Same treatment
+    # `@start`/`@end`/`@olife` got when they merged into `@vintage`.
+    # `comm` only for now: capacity and cost columns arrive with the variables
+    # that read them, so the class never advertises a column no equation
+    # consumes (cf. storage retirement -- collected, mapped and declared with no
+    # equation in any backend).
+    input = data.frame(comm = character(), stringsAsFactors = FALSE),
+    output = data.frame(comm = character(), stringsAsFactors = FALSE),
+    storage = data.frame(comm = character(), stringsAsFactors = FALSE),
     startLevel = data.frame(
       vintage = character(),
       cluster = character(),
@@ -279,6 +294,25 @@ setMethod("initialize", "storage", function(.Object, ...) {
     if (is.list(x)) return(length(x) > 0L)
     length(x) > 0L
   }
+  # `commodity` is an ARGUMENT, not a slot. Fill whichever roles were not named;
+  # an explicitly named role always wins. Doing this at construction (rather
+  # than leaving `@commodity` as a fallback) is what stops an object carrying
+  # two answers to "what does this consume" -- and what makes `update()`
+  # unambiguous.
+  if (!is.null(args$commodity)) {
+    cm <- as.character(args$commodity)
+    cm <- cm[!is.na(cm) & nzchar(cm)]
+    if (length(cm)) {
+      for (role in c("input", "output", "storage")) {
+        if (!.given(args[[role]]) ||
+            !("comm" %in% names(args[[role]]))) {
+          args[[role]] <- data.frame(comm = cm, stringsAsFactors = FALSE)
+        }
+      }
+    }
+    args$commodity <- NULL
+  }
+
   # `charge`/`inflow` -> `startLevel` (v0.80). The value column is renamed and any
   # `timeslice` column is dropped with a warning: the slice is now derived, so a
   # user-supplied one would be silently ignored otherwise.
@@ -356,7 +390,12 @@ setMethod("initialize", "storage", function(.Object, ...) {
 #'
 #' @param name `r get_slot_doc("storage", "name")`
 #' @param desc `r get_slot_doc("storage", "desc")`
-#' @param commodity `r get_slot_doc("storage", "commodity")`
+#' @param commodity convenience shorthand: the commodity used for whichever of
+#'   `input`, `output` and `storage` do not name their own. A battery is
+#'   `commodity = "ELC"` and nothing else; a hydrogen store is
+#'   `commodity = "H2"` with `input`/`output` naming `"ELC"`. There is no
+#'   `@commodity` slot -- this is folded into the three roles at construction,
+#'   so the object never carries two answers.
 #' @param aux `r get_slot_doc("storage", "aux")`
 #' @param region `r get_slot_doc("storage", "region")`
 #' @param cluster `r get_slot_doc("storage", "cluster")`
@@ -364,6 +403,9 @@ setMethod("initialize", "storage", function(.Object, ...) {
 #' @param start deprecated, use the `start` column of `vintage`.
 #' @param end deprecated, use the `end` column of `vintage`.
 #' @param olife deprecated, use the `olife` column of `vintage`.
+#' @param input `r get_slot_doc("storage", "input")`
+#' @param output `r get_slot_doc("storage", "output")`
+#' @param storage `r get_slot_doc("storage", "storage")`
 #' @param startLevel `r get_slot_doc("storage", "startLevel")`
 #' @param seff `r get_slot_doc("storage", "seff")`
 #' @param aeff `r get_slot_doc("storage", "aeff")`
@@ -465,6 +507,9 @@ newStorage <- function(
     start = data.frame(),
     end = data.frame(),
     olife = data.frame(),
+    input = data.frame(),
+    output = data.frame(),
+    storage = data.frame(),
     startLevel = data.frame(),
     seff = data.frame(),
     aeff = data.frame(),
@@ -492,6 +537,9 @@ newStorage <- function(
     start = start,
     end = end,
     olife = olife,
+    input = input,
+    output = output,
+    storage = storage,
     startLevel = startLevel,
     seff = seff,
     aeff = aeff,

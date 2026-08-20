@@ -84,6 +84,12 @@ mFxComm(comm)  Commodity balance type TOTAL SUPPLY == TOTAL DEMAND
 * Storage
 mStorageFullYear(stg)              Mapping of storage with joint timeslice
 mStorageComm(stg, comm)            Mapping of storage technology and respective commodity
+* The three storage commodity ROLES -- what fills the store, what it releases,
+* and what it HOLDS. All default from @commodity, so for a storage written the
+* old way the three are identical to mStorageComm above.
+mStorageInpComm(stg, comm)         Storage input commodity (the charging side)
+mStorageOutComm(stg, comm)         Storage output commodity (the discharging side)
+mStorageStgComm(stg, comm)         Storage stored commodity (the level)
 mStorageAInp(stg, comm)            Aux-commodity input to storage
 mStorageAOut(stg, comm)            Aux-commodity output from storage
 mStorageNew(stg, region, year)     Storage available for investment
@@ -366,6 +372,9 @@ mTechRetUp(tech, region, year)
 mvStorageAInp(stg, comm, region, year, timeslice)
 mvStorageAOut(stg, comm, region, year, timeslice)
 mvStorageLevel(stg, comm, region, year, timeslice)
+* Flow domains follow their OWN commodity, the level follows what is stored.
+mvStorageInp(stg, comm, region, year, timeslice)   Storage input flow domain
+mvStorageOut(stg, comm, region, year, timeslice)   Storage output flow domain
 meqStorageLevel(stg, comm, region, year, timeslicep, timeslice)
 mStorageStg2AOut(stg, comm, region, year, timeslice)
 mStorageCinp2AOut(stg, comm, region, year, timeslice)
@@ -1420,39 +1429,51 @@ eqStorageOutLo(stg, comm, region, year, timeslice)  Storage output lower constra
 
 eqStorageAInp(stg, comm, region, year, timeslice)$mvStorageAInp(stg, comm, region, year, timeslice)..
   vStorageAInp(stg, comm, region, year, timeslice) =e=
-    sum(commp$mStorageComm(stg, commp),
+* [multi-commodity] each referenced flow follows its OWN role's commodity set,
+* and the two capacity terms sit OUTSIDE the commodity sum -- inside it they were
+* multiplied by 1 for a single-commodity storage but would be counted once per
+* commodity now that the roles can differ.
+    sum(commp$mStorageStgComm(stg, commp),
         (pStorageStg2AInp(stg, comm, region, year, timeslice)
         * vStorageLevel(stg, commp, region, year, timeslice)
-        )$mStorageStg2AInp(stg, comm, region, year, timeslice)
-      + (pStorageCinp2AInp(stg, comm, region, year, timeslice)
+        )$mStorageStg2AInp(stg, comm, region, year, timeslice))
+      + sum(commp$mStorageInpComm(stg, commp),
+        (pStorageCinp2AInp(stg, comm, region, year, timeslice)
           * vStorageInp(stg, commp, region, year, timeslice)
-        )$mStorageCinp2AInp(stg, comm, region, year, timeslice)
-      + (pStorageCout2AInp(stg, comm, region, year, timeslice)
+        )$mStorageCinp2AInp(stg, comm, region, year, timeslice))
+      + sum(commp$mStorageOutComm(stg, commp),
+        (pStorageCout2AInp(stg, comm, region, year, timeslice)
           * vStorageOut(stg, commp, region, year, timeslice)
-        )$mStorageCout2AInp(stg, comm, region, year, timeslice)
+        )$mStorageCout2AInp(stg, comm, region, year, timeslice))
       + (pStorageCap2AInp(stg, comm, region, year, timeslice)
            * vStorageCap(stg, region, year)
         )$mStorageCap2AInp(stg, comm, region, year, timeslice)
       + (pStorageNCap2AInp(stg, comm, region, year, timeslice)
            * vStorageNewCap(stg, region, year)
         )$mStorageNCap2AInp(stg, comm, region, year, timeslice)
-    );
+    ;
 
 eqStorageAOut(stg, comm, region, year, timeslice)$mvStorageAOut(stg, comm, region, year, timeslice)..
   vStorageAOut(stg, comm, region, year, timeslice)
   =e=
-  sum(commp$mStorageComm(stg, commp),
+* [multi-commodity] each referenced flow follows its OWN role's commodity set,
+* and the two capacity terms sit OUTSIDE the commodity sum -- inside it they were
+* multiplied by 1 for a single-commodity storage but would be counted once per
+* commodity now that the roles can differ.
+  sum(commp$mStorageStgComm(stg, commp),
       (pStorageStg2AOut(stg, comm, region, year, timeslice)
        * vStorageLevel(stg, commp, region, year, timeslice)
-      )$mStorageStg2AOut(stg, comm, region, year, timeslice)
+      )$mStorageStg2AOut(stg, comm, region, year, timeslice))
       +
+      sum(commp$mStorageInpComm(stg, commp),
       (pStorageCinp2AOut(stg, comm, region, year, timeslice)
        * vStorageInp(stg, commp, region, year, timeslice)
-      )$mStorageCinp2AOut(stg, comm, region, year, timeslice)
+      )$mStorageCinp2AOut(stg, comm, region, year, timeslice))
       +
+      sum(commp$mStorageOutComm(stg, commp),
       (pStorageCout2AOut(stg, comm, region, year, timeslice)
        * vStorageOut(stg, commp, region, year, timeslice)
-      )$mStorageCout2AOut(stg, comm, region, year, timeslice)
+      )$mStorageCout2AOut(stg, comm, region, year, timeslice))
       +
       (pStorageCap2AOut(stg, comm, region, year, timeslice)
        * vStorageCap(stg, region, year)
@@ -1461,7 +1482,7 @@ eqStorageAOut(stg, comm, region, year, timeslice)$mvStorageAOut(stg, comm, regio
       (pStorageNCap2AOut(stg, comm, region, year, timeslice)
        * vStorageNewCap(stg, region, year)
       )$mStorageNCap2AOut(stg, comm, region, year, timeslice)
-);
+;
 
 * timeslicep == timeslice[-1]
 eqStorageLevel(stg, comm, region, year, timeslicep, timeslice)$meqStorageLevel(stg, comm, region, year, timeslicep, timeslice)..
@@ -1473,12 +1494,19 @@ eqStorageLevel(stg, comm, region, year, timeslicep, timeslice)$meqStorageLevel(s
     )$mStorageNew(stg, region, year)
   +
 *  sum(timeslicep$(mCommTimeslice(comm, timeslicep) and mTimesliceNext(timeslicep, timeslice)),
-  pStorageInpEff(stg, comm, region, year, timeslicep)
-    * vStorageInp(stg, comm, region, year, timeslicep)
+* [multi-commodity] the level is kept in `comm`, but what fills and empties it
+* need not be the same thing (ELC in, H2 held, ELC out). Each side sums over its
+* OWN role's commodities, and inpeff/outeff become cross-commodity conversion
+* factors. With one commodity all three sets coincide, each sum has a single term
+* and this is the previous equation exactly.
+  sum(commp$mvStorageInp(stg, commp, region, year, timeslicep),
+      pStorageInpEff(stg, commp, region, year, timeslicep)
+      * vStorageInp(stg, commp, region, year, timeslicep))
   + (pStorageStgEff(stg, comm, region, year, timeslice) ** pTimesliceShare(timeslice))
     * vStorageLevel(stg, comm, region, year, timeslicep)
-  - vStorageOut(stg, comm, region, year, timeslicep)
-    / pStorageOutEff(stg, comm, region, year, timeslicep)
+  - sum(commp$mvStorageOut(stg, commp, region, year, timeslicep),
+        vStorageOut(stg, commp, region, year, timeslicep)
+        / pStorageOutEff(stg, commp, region, year, timeslicep))
 *        )
 ;
 
@@ -1504,7 +1532,9 @@ eqStorageAfUp(stg, comm, region, year, timeslice)$meqStorageAfUp(stg, comm, regi
 * non-negativity, which would also permit discharging energy charged in the SAME
 * timeslice (pass-through) and would carry the decay factor; this does neither.
 eqStorageOutLevel(stg, comm, region, year, timeslice)$mvStorageLevel(stg, comm, region, year, timeslice)..
-  vStorageOut(stg, comm, region, year, timeslice) / pStorageOutEff(stg, comm, region, year, timeslice)
+  sum(commp$mvStorageOut(stg, commp, region, year, timeslice),
+      vStorageOut(stg, commp, region, year, timeslice)
+      / pStorageOutEff(stg, commp, region, year, timeslice))
 *   * pStorageDuration(stg)
    =l=
    vStorageLevel(stg, comm, region, year, timeslice);
@@ -1652,15 +1682,19 @@ eqStorageCost(stg, region, year)$mStorageOMCost(stg, region, year)..
 *         pYearFraction(year) *
          pStorageFixom(stg, region, year) * vStorageCap(stg, region, year)
          +
-         sum(comm$mStorageComm(stg, comm),
+         sum(comm$mStorageInpComm(stg, comm),
              sum(timeslice$mCommTimeslice(comm, timeslice),
                  pStorageCostInp(stg, region, year, timeslice)
                     * pTimesliceWeight(year, timeslice)
-                    * vStorageInp(stg, comm, region, year, timeslice)
-                 + pStorageCostOut(stg, region, year, timeslice)
+                    * vStorageInp(stg, comm, region, year, timeslice)))
+          + sum(comm$mStorageOutComm(stg, comm),
+             sum(timeslice$mCommTimeslice(comm, timeslice),
+                 pStorageCostOut(stg, region, year, timeslice)
                     * pTimesliceWeight(year, timeslice)
-                    * vStorageOut(stg, comm, region, year, timeslice)
-                 + pStorageCostStore(stg, region, year, timeslice)
+                    * vStorageOut(stg, comm, region, year, timeslice)))
+          + sum(comm$mStorageStgComm(stg, comm),
+             sum(timeslice$mCommTimeslice(comm, timeslice),
+                 pStorageCostStore(stg, region, year, timeslice)
                     * pTimesliceWeight(year, timeslice)
                     * vStorageLevel(stg, comm, region, year, timeslice)
              )
@@ -1677,15 +1711,19 @@ eqStorageFixom(stg, region, year)$mStorageFixom(stg, region, year)..
 eqStorageVarom(stg, region, year)$mStorageVarom(stg, region, year)..
           vStorageVarom(stg, region, year)
           =e=
-          sum(comm$mStorageComm(stg, comm),
+          sum(comm$mStorageInpComm(stg, comm),
              sum(timeslice$mCommTimeslice(comm, timeslice),
                  pStorageCostInp(stg, region, year, timeslice)
                     * pTimesliceWeight(year, timeslice)
-                    * vStorageInp(stg, comm, region, year, timeslice)
-                 + pStorageCostOut(stg, region, year, timeslice)
+                    * vStorageInp(stg, comm, region, year, timeslice)))
+          + sum(comm$mStorageOutComm(stg, comm),
+             sum(timeslice$mCommTimeslice(comm, timeslice),
+                 pStorageCostOut(stg, region, year, timeslice)
                     * pTimesliceWeight(year, timeslice)
-                    * vStorageOut(stg, comm, region, year, timeslice)
-                 + pStorageCostStore(stg, region, year, timeslice)
+                    * vStorageOut(stg, comm, region, year, timeslice)))
+          + sum(comm$mStorageStgComm(stg, comm),
+             sum(timeslice$mCommTimeslice(comm, timeslice),
+                 pStorageCostStore(stg, region, year, timeslice)
                     * pTimesliceWeight(year, timeslice)
                     * vStorageLevel(stg, comm, region, year, timeslice)
              )
@@ -2321,7 +2359,7 @@ eqStorageInpTot(comm, region, year, timeslice)$mStorageInpTot(comm, region, year
         vStorageInpTot(comm, region, year, timeslice)
         =e=
 *        pTimesliceWeight(year, timeslice) *
-        sum(stg$mvStorageLevel(stg, comm, region, year, timeslice),
+        sum(stg$mvStorageInp(stg, comm, region, year, timeslice),
             vStorageInp(stg, comm, region, year, timeslice)
         )
 *        + pTimesliceWeight(year, timeslice) *
@@ -2333,7 +2371,7 @@ eqStorageOutTot(comm, region, year, timeslice)$mStorageOutTot(comm, region, year
         vStorageOutTot(comm, region, year, timeslice)
         =e=
 *        pTimesliceWeight(year, timeslice) *
-        sum(stg$mvStorageLevel(stg, comm, region, year, timeslice),
+        sum(stg$mvStorageOut(stg, comm, region, year, timeslice),
             vStorageOut(stg, comm, region, year, timeslice)
         )
 *        + pTimesliceWeight(year, timeslice) *

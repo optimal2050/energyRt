@@ -489,7 +489,15 @@ interpolate_model <- function(mod, name = NULL, ...,
   scen@modInp@sets[["demand_comm"]] <- get_process_inputs(scen, classes = "demand")
   scen@modInp@sets[["export_comm"]] <- get_process_inputs(scen, classes = "export")
   scen@modInp@sets[["trade_comm"]] <- get_process_inputs(scen, classes = "trade")
-  scen@modInp@sets$storage_comm <- get_process_inputs(scen, classes = "storage")
+  # Three commodity ROLES for a storage. Each falls back to `@commodity` when the
+  # corresponding part names none, so a storage written the old way resolves all
+  # three to the same commodity and the model is unchanged.
+  scen@modInp@sets$storage_inp_comm <- get_process_inputs(scen, classes = "storage")
+  scen@modInp@sets$storage_out_comm <- get_process_outputs(scen, classes = "storage")
+  scen@modInp@sets$storage_stg_comm <- get_process_stored(scen, classes = "storage")
+  # kept as the STORED role: it is what indexed vStorageLevel before the split
+  scen@modInp@sets$storage_comm <- scen@modInp@sets$storage_stg_comm
+
   scen@modInp@sets$tech_input_comm <- get_process_inputs(scen, classes = "technology")
   scen@modInp@sets$tech_output_comm <- get_process_outputs(scen, classes = "technology")
 
@@ -3312,8 +3320,15 @@ get_process_inputs <- function(scen, process = NULL, classes = NULL) {
       # ll <- list(name = x@name, value = character())
       ll <- list()
       ll[[x@name]] <- character()
-      if (.hasSlot(x, "input")) {
-        # browser()
+      # Dispatch on CONTENT, not on slot existence. `storage` now HAS an
+      # `@input` slot, and its empty prototype carries a `comm` column with zero
+      # rows -- so testing `.hasSlot()`, or even the column, takes this branch
+      # and reports ZERO commodities, silently emptying the `*_comm` sets, the
+      # membership maps, the process-timeframe resolution and check_levels().
+      # Rows are what decides. Same shape as `.resolve_comm_units()`
+      # (units.R:137), which guards on the columns it is about to read.
+      if (.hasSlot(x, "input") && "comm" %in% names(x@input) &&
+          NROW(x@input) > 0L) {
         ll[[x@name]] <- x@input$comm |>
           as.character() |>
           unique()
@@ -3358,8 +3373,9 @@ get_process_outputs <- function(scen, process = NULL, classes = NULL) {
       # ll <- list(name = x@name, value = character())
       ll <- list()
       ll[[x@name]] <- character()
-      if (.hasSlot(x, "output")) {
-        # ll$value <- x@output$comm |> as.character() |> unique()
+      # Content, not slot existence -- see get_process_inputs().
+      if (.hasSlot(x, "output") && "comm" %in% names(x@output) &&
+          NROW(x@output) > 0L) {
         ll[[x@name]] <- x@output$comm |>
           as.character() |>
           unique()
@@ -3486,6 +3502,44 @@ get_process_aux <- function(scen, process = NULL, classes = NULL) {
   ll
 }
 
+
+#' Stored commodities of each process
+#'
+#' The commodity a process HOLDS, as distinct from what it consumes or produces.
+#' Only `storage` has one. It is `@storage$comm` where given, otherwise
+#' `@commodity` -- so a storage that names no roles keeps today's behaviour.
+#'
+#' Needed because a storage may hold something that is neither its input nor its
+#' output (hydrogen: ELC in, H2 stored, ELC out). Without this the stored
+#' commodity never reaches `get_process_comm()`, and the storage's timeframe
+#' would be derived from its ELC flows alone -- putting the level at the wrong
+#' resolution.
+#'
+#' @param scen scenario object
+#' @param process optional character vector to restrict to
+#' @param classes classes to search; defaults to `"storage"`
+#' @returns a named list mapping each process to its stored commodity
+#' @export
+get_process_stored <- function(scen, process = NULL, classes = NULL) {
+  if (is.null(classes)) classes <- "storage"
+  ll <- apply_to_scenario_data(
+    scen = scen, classes = classes,
+    func = function(x) {
+      out <- list()
+      out[[x@name]] <- character()
+      if (.hasSlot(x, "storage") && "comm" %in% names(x@storage) &&
+          NROW(x@storage) > 0) {
+        out[[x@name]] <- unique(as.character(x@storage$comm))
+      } else if (.hasSlot(x, "commodity")) {
+        out[[x@name]] <- unique(as.character(x@commodity))
+      }
+      out
+    })
+  ll <- lapply(ll, function(v) v[!is.na(v) & nzchar(v)])
+  if (!is.null(process)) ll <- ll[names(ll) %in% process]
+  ll
+}
+
 #' Commodities associated with a processes
 #'
 #' @param scen scenario object
@@ -3504,12 +3558,22 @@ get_process_comm <- function(scen, process = NULL, classes = NULL,
   ll_inp <- get_process_inputs(scen, process = process, classes = classes)
   ll_out <- get_process_outputs(scen, process = process, classes = classes)
   ll_aux <- get_process_aux(scen, process = process, classes = classes)
+  # ... and what a storage HOLDS, which may be neither (H2: ELC in, H2 stored,
+  # ELC out). Without it the stored commodity never reaches the process
+  # timeframe resolution and the level lands at the wrong one.
+  stg_cls <- if (is.null(classes)) "storage" else intersect(classes, "storage")
+  ll_stg <- if (length(stg_cls)) {
+    get_process_stored(scen, process = process, classes = stg_cls)
+  } else {
+    list()   # caller asked for other classes only -- do not inject storages
+  }
 
   # combine all lists
   dd <- rbindlist(list(
     named_list_to_df(ll_inp, col_names = c("name", "value")),
     named_list_to_df(ll_out, col_names = c("name", "value")),
-    named_list_to_df(ll_aux, col_names = c("name", "value"))
+    named_list_to_df(ll_aux, col_names = c("name", "value")),
+    named_list_to_df(ll_stg, col_names = c("name", "value"))
   )) |>
     unique() |>
     arrange(name) |>

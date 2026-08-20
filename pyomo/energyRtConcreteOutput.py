@@ -799,7 +799,7 @@ f.close()
 flist.write("vStorageInp\n")
 f = open("output/vStorageInp.csv", "w")
 f.write("stg,comm,region,year,timeslice,value\n")
-for st1, c, r, y, s in mvStorageLevel:
+for st1, c, r, y, s in mvStorageInp:
     if model.vStorageInp[(st1, c, r, y, s)].value != 0:
         f.write(
             str(st1)
@@ -819,7 +819,7 @@ f.close()
 flist.write("vStorageOut\n")
 f = open("output/vStorageOut.csv", "w")
 f.write("stg,comm,region,year,timeslice,value\n")
-for st1, c, r, y, s in mvStorageLevel:
+for st1, c, r, y, s in mvStorageOut:
     if model.vStorageOut[(st1, c, r, y, s)].value != 0:
         f.write(
             str(st1)

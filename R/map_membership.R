@@ -28,6 +28,11 @@ map_mDemComm     <- function(scen, fmp) .membership_map(scen, "mDemComm",     sc
 map_mExpComm     <- function(scen, fmp) .membership_map(scen, "mExpComm",     scen@modInp@sets[["export_comm"]],      "expp",  fmp)
 map_mTradeComm   <- function(scen, fmp) .membership_map(scen, "mTradeComm",   scen@modInp@sets[["trade_comm"]],       "trade", fmp)
 map_mStorageComm <- function(scen, fmp) .membership_map(scen, "mStorageComm", scen@modInp@sets[["storage_comm"]],     "stg",   fmp)
+# The three storage commodity roles. All default from `@commodity`, so for a
+# storage written the old way these three are identical to mStorageComm.
+map_mStorageInpComm <- function(scen, fmp) .membership_map(scen, "mStorageInpComm", scen@modInp@sets[["storage_inp_comm"]], "stg", fmp)
+map_mStorageOutComm <- function(scen, fmp) .membership_map(scen, "mStorageOutComm", scen@modInp@sets[["storage_out_comm"]], "stg", fmp)
+map_mStorageStgComm <- function(scen, fmp) .membership_map(scen, "mStorageStgComm", scen@modInp@sets[["storage_stg_comm"]], "stg", fmp)
 map_mTechInpComm <- function(scen, fmp) .membership_map(scen, "mTechInpComm", scen@modInp@sets[["tech_input_comm"]],  "tech",  fmp)
 map_mTechOutComm <- function(scen, fmp) .membership_map(scen, "mTechOutComm", scen@modInp@sets[["tech_output_comm"]], "tech",  fmp)
 
@@ -154,6 +159,9 @@ map_mWeatherRegion <- function(scen, fmp) {
   mExpComm     = map_mExpComm,
   mTradeComm   = map_mTradeComm,
   mStorageComm = map_mStorageComm,
+  mStorageInpComm = map_mStorageInpComm,
+  mStorageOutComm = map_mStorageOutComm,
+  mStorageStgComm = map_mStorageStgComm,
   mTechInpComm = map_mTechInpComm,
   mTechOutComm = map_mTechOutComm,
   mTechOneComm = map_mTechOneComm,

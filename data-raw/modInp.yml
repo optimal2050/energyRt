@@ -2323,6 +2323,24 @@ mStorageComm:
   dimSets:
   - stg
   - comm
+mStorageInpComm:
+  name: mStorageInpComm
+  type: map
+  dimSets:
+  - stg
+  - comm
+mStorageOutComm:
+  name: mStorageOutComm
+  type: map
+  dimSets:
+  - stg
+  - comm
+mStorageStgComm:
+  name: mStorageStgComm
+  type: map
+  dimSets:
+  - stg
+  - comm
 mStorageNew:
   name: mStorageNew
   type: map
@@ -3034,6 +3052,24 @@ mvStorageAOut:
   - timeslice
 mvStorageLevel:
   name: mvStorageLevel
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mvStorageInp:
+  name: mvStorageInp
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mvStorageOut:
+  name: mvStorageOut
   type: map
   dimSets:
   - stg

@@ -86,6 +86,36 @@ map_mCommReg <- function(scen, fmp) {
     rbind(comm_region) |>
     unique()
 
+  ### Stored commodities ####
+  # A storage's STORED commodity is produced by the storage itself, out of its
+  # own inputs, so it is available wherever the storage operates. Nothing else
+  # states this: `secondary_comm_region` reads process_outputs, and a store that
+  # holds something other than what it exchanges (ELC in, H2 held, ELC out) has
+  # the stored commodity in NEITHER its inputs nor its outputs. Without this the
+  # commodity never reaches `comm_region`, `.filt_cr()` empties `mvStorageLevel`,
+  # and the storage silently loses its level variable -- it is built, solved and
+  # reported, and simply never stores anything.
+  #
+  # A no-op for a single-commodity storage, whose stored commodity is already its
+  # input and output. `storage_stg_comm` defaults from `newStorage(commodity=)`,
+  # so legacy objects land in exactly the same place.
+  stored_comm_region <- named_list_to_df(
+    scen@modInp@sets$storage_stg_comm, col_names = c("process", "comm")
+  ) |>
+    left_join(
+      named_list_to_df(scen@modInp@sets$process_region,
+        col_names = c("process", "region")
+      ),
+      by = "process", relationship = "many-to-many"
+    ) |>
+    select(comm, region) |>
+    filter(!is.na(comm), !is.na(region)) |>
+    unique()
+
+  comm_region <- stored_comm_region |>
+    rbind(comm_region) |>
+    unique()
+
   ### Auxiliary commodities ####
   aux_comm_region <- scen@modInp@sets$process_aux |>
     named_list_to_df(col_names = c("process", "aux")) |>

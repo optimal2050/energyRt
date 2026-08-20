@@ -1330,6 +1330,45 @@ mStorageComm:
   predicate: .na
   join_keys: []
   filter_by: []
+mStorageInpComm:
+  name: mStorageInpComm
+  dims:
+  - stg
+  - comm
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+mStorageOutComm:
+  name: mStorageOutComm
+  dims:
+  - stg
+  - comm
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+mStorageStgComm:
+  name: mStorageStgComm
+  dims:
+  - stg
+  - comm
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
   depends_on: []
 mStorageCout2AInp:
   name: mStorageCout2AInp
@@ -3245,10 +3284,42 @@ mvStorageLevel:
   - year
   - timeslice
   gates_var:
-  - vStorageInp
-  - vStorageOut
   - vStorageLevel
   gates_eq: eqStorageOutLevel
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+mvStorageInp:
+  name: mvStorageInp
+  dims:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+  gates_var:
+  - vStorageInp
+  gates_eq: []
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+mvStorageOut:
+  name: mvStorageOut
+  dims:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+  gates_var:
+  - vStorageOut
+  gates_eq: []
   recipe: filter
   source: derived
   predicate: .na

@@ -169,10 +169,10 @@ model.vDummyExport = Var(
     model.mDummyExport, domain=pyo.NonNegativeReals, doc="Dummy export (for debugging)"
 )
 model.vStorageInp = Var(
-    model.mvStorageLevel, domain=pyo.NonNegativeReals, doc="Storage input"
+    model.mvStorageInp, domain=pyo.NonNegativeReals, doc="Storage input"
 )
 model.vStorageOut = Var(
-    model.mvStorageLevel, domain=pyo.NonNegativeReals, doc="Storage output"
+    model.mvStorageOut, domain=pyo.NonNegativeReals, doc="Storage output"
 )
 model.vStorageLevel = Var(
     model.mvStorageLevel, domain=pyo.NonNegativeReals, doc="Storage level"
@@ -896,7 +896,12 @@ model.eqEmsFuelTot = Constraint(
 model.eqStorageAInp = Constraint(
     model.mvStorageAInp,
     rule=lambda model, st1, c, r, y, s: model.vStorageAInp[st1, c, r, y, s]
-    == sum(
+    ==
+    # [multi-commodity] each referenced flow follows its OWN role's commodity set,
+    # and the two capacity terms leave the commodity sum -- inside it they were
+    # multiplied by 1 for a single-commodity storage but would be counted once per
+    # commodity now that the roles can differ.
+    sum(
         (
             (
                 model.pStorageStg2AInp[st1, c, r, y, s]
@@ -905,7 +910,11 @@ model.eqStorageAInp = Constraint(
             if (st1, c, r, y, s) in model.mStorageStg2AInp
             else 0
         )
-        + (
+        for cp in model.comm
+        if (st1, cp) in model.mStorageStgComm
+    )
+    + sum(
+        (
             (
                 model.pStorageCinp2AInp[st1, c, r, y, s]
                 * model.vStorageInp[st1, cp, r, y, s]
@@ -913,7 +922,11 @@ model.eqStorageAInp = Constraint(
             if (st1, c, r, y, s) in model.mStorageCinp2AInp
             else 0
         )
-        + (
+        for cp in model.comm
+        if (st1, cp) in model.mStorageInpComm
+    )
+    + sum(
+        (
             (
                 model.pStorageCout2AInp[st1, c, r, y, s]
                 * model.vStorageOut[st1, cp, r, y, s]
@@ -921,25 +934,30 @@ model.eqStorageAInp = Constraint(
             if (st1, c, r, y, s) in model.mStorageCout2AInp
             else 0
         )
-        + (
+        for cp in model.comm
+        if (st1, cp) in model.mStorageOutComm
+    )
+    + (
             (model.pStorageCap2AInp[st1, c, r, y, s] * model.vStorageCap[st1, r, y])
             if (st1, c, r, y, s) in model.mStorageCap2AInp
             else 0
         )
-        + (
+    + (
             (model.pStorageNCap2AInp[st1, c, r, y, s] * model.vStorageNewCap[st1, r, y])
             if (st1, c, r, y, s) in model.mStorageNCap2AInp
             else 0
-        )
-        for cp in model.comm
-        if (st1, cp) in model.mStorageComm
-    ),
+        ),
 )
 # eqStorageAOut(stg, comm, region, year, timeslice)$mvStorageAOut(stg, comm, region, year, timeslice)
 model.eqStorageAOut = Constraint(
     model.mvStorageAOut,
     rule=lambda model, st1, c, r, y, s: model.vStorageAOut[st1, c, r, y, s]
-    == sum(
+    ==
+    # [multi-commodity] each referenced flow follows its OWN role's commodity set,
+    # and the two capacity terms leave the commodity sum -- inside it they were
+    # multiplied by 1 for a single-commodity storage but would be counted once per
+    # commodity now that the roles can differ.
+    sum(
         (
             (
                 model.pStorageStg2AOut[st1, c, r, y, s]
@@ -948,7 +966,11 @@ model.eqStorageAOut = Constraint(
             if (st1, c, r, y, s) in model.mStorageStg2AOut
             else 0
         )
-        + (
+        for cp in model.comm
+        if (st1, cp) in model.mStorageStgComm
+    )
+    + sum(
+        (
             (
                 model.pStorageCinp2AOut[st1, c, r, y, s]
                 * model.vStorageInp[st1, cp, r, y, s]
@@ -956,7 +978,11 @@ model.eqStorageAOut = Constraint(
             if (st1, c, r, y, s) in model.mStorageCinp2AOut
             else 0
         )
-        + (
+        for cp in model.comm
+        if (st1, cp) in model.mStorageInpComm
+    )
+    + sum(
+        (
             (
                 model.pStorageCout2AOut[st1, c, r, y, s]
                 * model.vStorageOut[st1, cp, r, y, s]
@@ -964,19 +990,19 @@ model.eqStorageAOut = Constraint(
             if (st1, c, r, y, s) in model.mStorageCout2AOut
             else 0
         )
-        + (
+        for cp in model.comm
+        if (st1, cp) in model.mStorageOutComm
+    )
+    + (
             (model.pStorageCap2AOut[st1, c, r, y, s] * model.vStorageCap[st1, r, y])
             if (st1, c, r, y, s) in model.mStorageCap2AOut
             else 0
         )
-        + (
+    + (
             (model.pStorageNCap2AOut[st1, c, r, y, s] * model.vStorageNewCap[st1, r, y])
             if (st1, c, r, y, s) in model.mStorageNCap2AOut
             else 0
-        )
-        for cp in model.comm
-        if (st1, cp) in model.mStorageComm
-    ),
+        ),
 )
 # eqStorageLevel(stg, comm, region, year, timeslicep, timeslice)$meqStorageLevel(stg, comm, region, year, timeslicep, timeslice)
 model.eqStorageLevel = Constraint(
@@ -988,10 +1014,23 @@ model.eqStorageLevel = Constraint(
         if (st1, r, y) in model.mStorageNew
         else 0
     )
-    + model.pStorageInpEff[st1, c, r, y, sp] * model.vStorageInp[st1, c, r, y, sp]
+    # [multi-commodity] the level is kept in `c`, but what fills and empties it need
+    # not be the same thing (ELC in, H2 held, ELC out), so each side sums over its
+    # OWN role's commodities. With one commodity all three sets coincide, each sum
+    # has a single term and this is the previous equation exactly.
+    + sum(
+        model.pStorageInpEff[st1, ci, r, y, sp] * model.vStorageInp[st1, ci, r, y, sp]
+        for ci in model.comm
+        if (st1, ci, r, y, sp) in model.mvStorageInp
+    )
     + ((model.pStorageStgEff[st1, c, r, y, s]) ** (model.pTimesliceShare[s]))
     * model.vStorageLevel[st1, c, r, y, sp]
-    - (model.vStorageOut[st1, c, r, y, sp]) / (model.pStorageOutEff[st1, c, r, y, sp]),
+    - sum(
+        (model.vStorageOut[st1, co, r, y, sp])
+        / (model.pStorageOutEff[st1, co, r, y, sp])
+        for co in model.comm
+        if (st1, co, r, y, sp) in model.mvStorageOut
+    ),
 )
 # eqStorageAfLo(stg, comm, region, year, timeslice)$meqStorageAfLo(stg, comm, region, year, timeslice)
 model.eqStorageAfLo = Constraint(
@@ -1022,8 +1061,12 @@ model.eqStorageAfUp = Constraint(
 # eqStorageOutLevel(stg, comm, region, year, timeslice)$mvStorageLevel(stg, comm, region, year, timeslice)
 model.eqStorageOutLevel = Constraint(
     model.mvStorageLevel,
-    rule=lambda model, st1, c, r, y, s: (model.vStorageOut[st1, c, r, y, s])
-    / (model.pStorageOutEff[st1, c, r, y, s])
+    rule=lambda model, st1, c, r, y, s: sum(
+        (model.vStorageOut[st1, co, r, y, s])
+        / (model.pStorageOutEff[st1, co, r, y, s])
+        for co in model.comm
+        if (st1, co, r, y, s) in model.mvStorageOut
+    )
     <= model.vStorageLevel[st1, c, r, y, s],
 )
 # eqStorageInpUp(stg, comm, region, year, timeslice)$meqStorageInpUp(stg, comm, region, year, timeslice)
@@ -1138,22 +1181,43 @@ model.eqStorageFixom = Constraint(
 model.eqStorageVarom = Constraint(
     model.mStorageVarom,
     rule=lambda model, st1, r, y: model.vStorageVarom[st1, r, y]
-    == sum(
+    # [multi-commodity] one sum per role: charge cost over the input commodities,
+    # discharge cost over the outputs, holding cost over the stored one.
+    ==
+    sum(
         sum(
             model.pStorageCostInp[st1, r, y, s]
             * model.pTimesliceWeight[y, s]
             * model.vStorageInp[st1, c, r, y, s]
-            + model.pStorageCostOut[st1, r, y, s]
+            for s in model.timeslice
+            if (c, s) in model.mCommTimeslice
+        )
+        for c in model.comm
+        if (st1, c) in model.mStorageInpComm
+    )
+    +
+    sum(
+        sum(
+            model.pStorageCostOut[st1, r, y, s]
             * model.pTimesliceWeight[y, s]
             * model.vStorageOut[st1, c, r, y, s]
-            + model.pStorageCostStore[st1, r, y, s]
+            for s in model.timeslice
+            if (c, s) in model.mCommTimeslice
+        )
+        for c in model.comm
+        if (st1, c) in model.mStorageOutComm
+    )
+    +
+    sum(
+        sum(
+            model.pStorageCostStore[st1, r, y, s]
             * model.pTimesliceWeight[y, s]
             * model.vStorageLevel[st1, c, r, y, s]
             for s in model.timeslice
             if (c, s) in model.mCommTimeslice
         )
         for c in model.comm
-        if (st1, c) in model.mStorageComm
+        if (st1, c) in model.mStorageStgComm
     ),
 )
 # eqImportTot(comm, dst, year, timeslice)$mImport(comm, dst, year, timeslice)
@@ -1769,7 +1833,7 @@ model.eqStorageInpTot = Constraint(
     == sum(
         model.vStorageInp[st1, c, r, y, s]
         for st1 in model.stg
-        if (st1, c, r, y, s) in model.mvStorageLevel
+        if (st1, c, r, y, s) in model.mvStorageInp
     )
     + sum(
         model.vStorageAInp[st1, c, r, y, s]
@@ -1784,7 +1848,7 @@ model.eqStorageOutTot = Constraint(
     == sum(
         model.vStorageOut[st1, c, r, y, s]
         for st1 in model.stg
-        if (st1, c, r, y, s) in model.mvStorageLevel
+        if (st1, c, r, y, s) in model.mvStorageOut
     )
     + sum(
         model.vStorageAOut[st1, c, r, y, s]

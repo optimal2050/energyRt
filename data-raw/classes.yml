@@ -836,9 +836,38 @@ class:
     desc:
       type: character
       description: Description of the storage.
-    commodity:
-      type: character
-      description: Name of the stored commodity.
+    input:
+      type: data.frame
+      description: >
+        The commodity that FILLS the store -- the "charger" side. One column,
+        `comm`. Left empty it takes whatever `newStorage(commodity = )` supplied.
+      columns:
+        comm:
+          type: character
+          description: Commodity consumed to fill the store.
+    output:
+      type: data.frame
+      description: >
+        The commodity the store RELEASES -- the "discharger" side. One column,
+        `comm`. Left empty it takes whatever `newStorage(commodity = )` supplied.
+      columns:
+        comm:
+          type: character
+          description: Commodity produced when the store discharges.
+    storage:
+      type: data.frame
+      description: >
+        The commodity the store HOLDS -- what `vStorageLevel` is measured in. One
+        column, `comm`. Left empty it takes whatever `newStorage(commodity = )`
+        supplied. It may differ from BOTH flows: a hydrogen store consumes and
+        produces electricity while holding hydrogen.
+        There is no `commodity` slot -- `newStorage(commodity = )` is a shorthand
+        folded into these three at construction, so an object never carries two
+        answers to what it consumes.
+      columns:
+        comm:
+          type: character
+          description: Commodity held in the store.
     cluster:
       type: data.frame
       description: >-

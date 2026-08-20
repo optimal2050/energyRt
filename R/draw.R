@@ -1142,6 +1142,27 @@ setMethod("draw", "technology", function(object, ...) {
 
 ## draw.storage ####
 draw.storage <- function(object, ...) {
+  # A storage has three commodity ROLES rather than one `@commodity`: what fills
+  # it, what it holds, and what it releases. For a battery all three are the same
+  # and the figure is unchanged; for a hydrogen store or a reservoir they differ,
+  # and each arrow now carries the commodity that actually flows along it.
+  .role <- function(r, fallback = TRUE) {
+    v <- tryCatch(as.character(methods::slot(object, r)$comm),
+                  error = function(e) character())
+    v <- unique(v[!is.na(v) & nzchar(v)])
+    if (length(v) || !fallback) return(v)
+    for (alt in c("storage", "input", "output")) {
+      v <- tryCatch(as.character(methods::slot(object, alt)$comm),
+                    error = function(e) character())
+      v <- unique(v[!is.na(v) & nzchar(v)])
+      if (length(v)) return(v)
+    }
+    character()
+  }
+  comm_inp <- .role("input")
+  comm_out <- .role("output")
+  comm_stg <- .role("storage")
+  comm_all <- unique(c(comm_inp, comm_stg, comm_out))
   keys <- c(
     "region", "year", "timeslice", "comm", "acomm",
     # "value",
@@ -1150,7 +1171,7 @@ draw.storage <- function(object, ...) {
   )
   # browser()
   comm <- data.frame(
-    comm = object@commodity
+    comm = comm_all
     # unit = object@unit
   ) |>
     cross_join(object@seff) |>
@@ -1279,7 +1300,7 @@ draw.storage <- function(object, ...) {
         lab_txt = if_else(
           is.na(NA),
           weather,
-          make_label(weather, in_brackets = object@commodity, two_lines = FALSE)
+          make_label(weather, in_brackets = comm_stg, two_lines = FALSE)
         ),
         lab_par = if_else(
           all(is.na(c(lab_waf, lab_wcinp))),

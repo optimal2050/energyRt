@@ -196,10 +196,10 @@ model.vDummyExport = Var(
     mDummyExport, domain=pyo.NonNegativeReals, doc="Dummy export (for debugging)"
 )
 model.vStorageInp = Var(
-    mvStorageLevel, domain=pyo.NonNegativeReals, doc="Storage input"
+    mvStorageInp, domain=pyo.NonNegativeReals, doc="Storage input"
 )
 model.vStorageOut = Var(
-    mvStorageLevel, domain=pyo.NonNegativeReals, doc="Storage output"
+    mvStorageOut, domain=pyo.NonNegativeReals, doc="Storage output"
 )
 model.vStorageLevel = Var(
     mvStorageLevel, domain=pyo.NonNegativeReals, doc="Storage level"
@@ -1468,7 +1468,12 @@ sys.stdout.flush()
 model.eqStorageAInp = Constraint(
     mvStorageAInp,
     rule=lambda model, st1, c, r, y, s: model.vStorageAInp[st1, c, r, y, s]
-    == sum(
+    ==
+    # [multi-commodity] each referenced flow follows its OWN role's commodity set,
+    # and the two capacity terms leave the commodity sum -- inside it they were
+    # multiplied by 1 for a single-commodity storage but would be counted once per
+    # commodity now that the roles can differ.
+    sum(
         (
             (
                 pStorageStg2AInp.get((st1, c, r, y, s))
@@ -1477,7 +1482,11 @@ model.eqStorageAInp = Constraint(
             if (st1, c, r, y, s) in mStorageStg2AInp
             else 0
         )
-        + (
+        for cp in comm
+        if (st1, cp) in mStorageStgComm
+    )
+    + sum(
+        (
             (
                 pStorageCinp2AInp.get((st1, c, r, y, s))
                 * model.vStorageInp[st1, cp, r, y, s]
@@ -1485,7 +1494,11 @@ model.eqStorageAInp = Constraint(
             if (st1, c, r, y, s) in mStorageCinp2AInp
             else 0
         )
-        + (
+        for cp in comm
+        if (st1, cp) in mStorageInpComm
+    )
+    + sum(
+        (
             (
                 pStorageCout2AInp.get((st1, c, r, y, s))
                 * model.vStorageOut[st1, cp, r, y, s]
@@ -1493,19 +1506,19 @@ model.eqStorageAInp = Constraint(
             if (st1, c, r, y, s) in mStorageCout2AInp
             else 0
         )
-        + (
+        for cp in comm
+        if (st1, cp) in mStorageOutComm
+    )
+    + (
             (pStorageCap2AInp.get((st1, c, r, y, s)) * model.vStorageCap[st1, r, y])
             if (st1, c, r, y, s) in mStorageCap2AInp
             else 0
         )
-        + (
+    + (
             (pStorageNCap2AInp.get((st1, c, r, y, s)) * model.vStorageNewCap[st1, r, y])
             if (st1, c, r, y, s) in mStorageNCap2AInp
             else 0
-        )
-        for cp in comm
-        if (st1, cp) in mStorageComm
-    ),
+        ),
 )
 if verbose:
     print(
@@ -1522,7 +1535,12 @@ sys.stdout.flush()
 model.eqStorageAOut = Constraint(
     mvStorageAOut,
     rule=lambda model, st1, c, r, y, s: model.vStorageAOut[st1, c, r, y, s]
-    == sum(
+    ==
+    # [multi-commodity] each referenced flow follows its OWN role's commodity set,
+    # and the two capacity terms leave the commodity sum -- inside it they were
+    # multiplied by 1 for a single-commodity storage but would be counted once per
+    # commodity now that the roles can differ.
+    sum(
         (
             (
                 pStorageStg2AOut.get((st1, c, r, y, s))
@@ -1531,7 +1549,11 @@ model.eqStorageAOut = Constraint(
             if (st1, c, r, y, s) in mStorageStg2AOut
             else 0
         )
-        + (
+        for cp in comm
+        if (st1, cp) in mStorageStgComm
+    )
+    + sum(
+        (
             (
                 pStorageCinp2AOut.get((st1, c, r, y, s))
                 * model.vStorageInp[st1, cp, r, y, s]
@@ -1539,7 +1561,11 @@ model.eqStorageAOut = Constraint(
             if (st1, c, r, y, s) in mStorageCinp2AOut
             else 0
         )
-        + (
+        for cp in comm
+        if (st1, cp) in mStorageInpComm
+    )
+    + sum(
+        (
             (
                 pStorageCout2AOut.get((st1, c, r, y, s))
                 * model.vStorageOut[st1, cp, r, y, s]
@@ -1547,19 +1573,19 @@ model.eqStorageAOut = Constraint(
             if (st1, c, r, y, s) in mStorageCout2AOut
             else 0
         )
-        + (
+        for cp in comm
+        if (st1, cp) in mStorageOutComm
+    )
+    + (
             (pStorageCap2AOut.get((st1, c, r, y, s)) * model.vStorageCap[st1, r, y])
             if (st1, c, r, y, s) in mStorageCap2AOut
             else 0
         )
-        + (
+    + (
             (pStorageNCap2AOut.get((st1, c, r, y, s)) * model.vStorageNewCap[st1, r, y])
             if (st1, c, r, y, s) in mStorageNCap2AOut
             else 0
-        )
-        for cp in comm
-        if (st1, cp) in mStorageComm
-    ),
+        ),
 )
 if verbose:
     print(
@@ -1582,10 +1608,23 @@ model.eqStorageLevel = Constraint(
         if (st1, r, y) in mStorageNew
         else 0
     )
-    + pStorageInpEff.get((st1, c, r, y, sp)) * model.vStorageInp[st1, c, r, y, sp]
+    # [multi-commodity] the level is kept in `c`, but what fills and empties it need
+    # not be the same thing (ELC in, H2 held, ELC out), so each side sums over its
+    # OWN role's commodities. With one commodity all three sets coincide, each sum
+    # has a single term and this is the previous equation exactly.
+    + sum(
+        pStorageInpEff.get((st1, ci, r, y, sp)) * model.vStorageInp[st1, ci, r, y, sp]
+        for ci in comm
+        if (st1, ci, r, y, sp) in mvStorageInp
+    )
     + ((pStorageStgEff.get((st1, c, r, y, s))) ** (pTimesliceShare.get((s))))
     * model.vStorageLevel[st1, c, r, y, sp]
-    - (model.vStorageOut[st1, c, r, y, sp]) / (pStorageOutEff.get((st1, c, r, y, sp))),
+    - sum(
+        (model.vStorageOut[st1, co, r, y, sp])
+        / (pStorageOutEff.get((st1, co, r, y, sp)))
+        for co in comm
+        if (st1, co, r, y, sp) in mvStorageOut
+    ),
 )
 if verbose:
     print(
@@ -1649,8 +1688,12 @@ if verbose:
 sys.stdout.flush()
 model.eqStorageOutLevel = Constraint(
     mvStorageLevel,
-    rule=lambda model, st1, c, r, y, s: (model.vStorageOut[st1, c, r, y, s])
-    / (pStorageOutEff.get((st1, c, r, y, s)))
+    rule=lambda model, st1, c, r, y, s: sum(
+        (model.vStorageOut[st1, co, r, y, s])
+        / (pStorageOutEff.get((st1, co, r, y, s)))
+        for co in comm
+        if (st1, co, r, y, s) in mvStorageOut
+    )
     <= model.vStorageLevel[st1, c, r, y, s],
 )
 if verbose:
@@ -1939,22 +1982,43 @@ sys.stdout.flush()
 model.eqStorageVarom = Constraint(
     mStorageVarom,
     rule=lambda model, st1, r, y: model.vStorageVarom[st1, r, y]
-    == sum(
+    # [multi-commodity] one sum per role: charge cost over the input commodities,
+    # discharge cost over the outputs, holding cost over the stored one.
+    ==
+    sum(
         sum(
             pStorageCostInp.get((st1, r, y, s))
             * pTimesliceWeight.get((y, s))
             * model.vStorageInp[st1, c, r, y, s]
-            + pStorageCostOut.get((st1, r, y, s))
+            for s in timeslice
+            if (c, s) in mCommTimeslice
+        )
+        for c in comm
+        if (st1, c) in mStorageInpComm
+    )
+    +
+    sum(
+        sum(
+            pStorageCostOut.get((st1, r, y, s))
             * pTimesliceWeight.get((y, s))
             * model.vStorageOut[st1, c, r, y, s]
-            + pStorageCostStore.get((st1, r, y, s))
+            for s in timeslice
+            if (c, s) in mCommTimeslice
+        )
+        for c in comm
+        if (st1, c) in mStorageOutComm
+    )
+    +
+    sum(
+        sum(
+            pStorageCostStore.get((st1, r, y, s))
             * pTimesliceWeight.get((y, s))
             * model.vStorageLevel[st1, c, r, y, s]
             for s in timeslice
             if (c, s) in mCommTimeslice
         )
         for c in comm
-        if (st1, c) in mStorageComm
+        if (st1, c) in mStorageStgComm
     ),
 )
 if verbose:
@@ -2898,7 +2962,7 @@ model.eqStorageInpTot = Constraint(
     == sum(
         model.vStorageInp[st1, c, r, y, s]
         for st1 in stg
-        if (st1, c, r, y, s) in mvStorageLevel
+        if (st1, c, r, y, s) in mvStorageInp
     )
     + sum(
         model.vStorageAInp[st1, c, r, y, s]
@@ -2924,7 +2988,7 @@ model.eqStorageOutTot = Constraint(
     == sum(
         model.vStorageOut[st1, c, r, y, s]
         for st1 in stg
-        if (st1, c, r, y, s) in mvStorageLevel
+        if (st1, c, r, y, s) in mvStorageOut
     )
     + sum(
         model.vStorageAOut[st1, c, r, y, s]

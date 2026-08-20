@@ -472,3 +472,275 @@ test_that("KNOWN-WRONG: `model = NULL` errors opaquely", {
                "missing value where TRUE/FALSE needed")
                # FIXME: "`model` must be a non-empty path."
 })
+
+
+# ============================================================================ #
+# D. the mosox MathProg template
+#
+# `glpk/energyRt.mod` does not compile under mosox. `data-raw/build-mosox-template.R`
+# derives `glpk/energyRt-mosox.mod` from it with a handful of mechanical rewrites,
+# each fixing one construct mosox 0.6.2 cannot parse. These tests pin the
+# generator's output, prove a real model compiles with it, and record the
+# matrix-level defect that still makes the result unusable.
+#
+# Source-tree only: glpk/ and data-raw/ are .Rbuildignore'd.
+# ============================================================================ #
+
+mx_root <- function() {
+  for (cand in c(".", "..", "../..", "../../..")) {
+    if (file.exists(file.path(cand, "glpk", "energyRt.mod"))) return(cand)
+  }
+  NULL
+}
+
+skip_if_no_sources <- function() {
+  root <- mx_root()
+  testthat::skip_if(is.null(root), "template sources not available")
+  invisible(root)
+}
+
+# The unit model of test-one-all-solvers.R, written out for GLPK. Built once per
+# test file -- interpolation is the slow part.
+mx_cache <- new.env(parent = emptyenv())
+mx_unit_files <- function() {
+  if (!is.null(mx_cache$dir)) return(mx_cache$dir)
+  dir <- tempfile("mosox-unit-")
+  dir.create(dir, recursive = TRUE)
+  cal <- newCalendar(timetable = make_timetable(
+    struct = list(ANNUAL = "ANNUAL", HOUR = paste0("h", 0:9))), name = "h10")
+  mod <- newModel(
+    name = "UNIT", region = "REG", calendar = cal,
+    horizon = newHorizon(2010:2050), discount = 0,
+    repo = newRepository(
+      "repo",
+      newCommodity("INP", timeframe = "HOUR"),
+      newCommodity("OUT", timeframe = "HOUR"),
+      newSupply("SUP_INP", commodity = "INP", supply = data.frame(cost = 1)),
+      newTechnology("TECH", input = list(comm = "INP"),
+                    output = list(comm = "OUT"),
+                    invcost = list(invcost = 100), olife = list(olife = 10)),
+      newDemand("DEM", commodity = "OUT", demand = data.frame(demand = 1))))
+  scen <- suppressMessages(suppressWarnings(
+    interpolate_model(mod, name = "unit")))
+  suppressMessages(suppressWarnings(
+    write_sc(scen, tmp.dir = dir, solver = solver_options$glpk, echo = FALSE)))
+
+  # mosox rejects the trailing comma `.sm_to_glpk()` puts after the LAST tuple of
+  # a map ("expected set_val_data"); glpsol accepts either. Done here rather than
+  # in the package because mosox is not a registered backend yet -- when it
+  # becomes one this belongs in a `.sm_to_mosox()` beside `.sm_to_glpk()`.
+  dat <- paste(readLines(file.path(dir, "energyRt.dat")), collapse = "\n")
+  writeLines(gsub(",\\s*\\n;", "\n;", dat), file.path(dir, "mosox.dat"))
+  mx_cache$dir <- dir
+  dir
+}
+
+test_that("the committed mosox template matches its generator", {
+  root <- skip_if_no_sources()
+  gen <- file.path(root, "data-raw", "build-mosox-template.R")
+  skip_if(!file.exists(gen), "generator not available")
+
+  env <- new.env(parent = globalenv())
+  sys.source(gen, envir = env)
+  fresh <- suppressMessages(env$build_mosox_template(
+    src = file.path(root, "glpk", "energyRt.mod"), write = FALSE))
+  committed <- readLines(file.path(root, "glpk", "energyRt-mosox.mod"),
+                         warn = FALSE)
+  # A GLPK-template edit that was not regenerated fails here, exactly as a
+  # template edit without a sysdata rebuild fails in test-eac-parity.R.
+  expect_identical(as.character(committed), as.character(fresh),
+                   info = "stale -- re-run data-raw/build-mosox-template.R")
+})
+
+test_that("the mosox template drops every construct mosox 0.6.2 rejects", {
+  root <- skip_if_no_sources()
+  glpk <- readLines(file.path(root, "glpk", "energyRt.mod"), warn = FALSE)
+  mx <- readLines(file.path(root, "glpk", "energyRt-mosox.mod"), warn = FALSE)
+
+  # The GLPK template is untouched and keeps the real product.
+  expect_gt(length(grep("prod{", glpk, fixed = TRUE)), 0)
+
+  expect_false(any(grepl("prod{", mx, fixed = TRUE)))          # 1. no `prod`
+  expect_false(any(grepl("sum{FORIF:", mx, fixed = TRUE)))     # 2. implicit dummy
+  expect_false(any(grepl("\\bt1 in mTradeOlifeInf\\b", mx)))   # 3. scalar membership
+  expect_false(any(grepl("=\\s+\\+", mx)))                     # 4. unary plus
+  expect_false(any(grepl("p[A-Za-z0-9]*\\[[^]]*\\]-(sum\\{|v[A-Z])", mx)))  # 5.
+  # 6. the post-solve printf block is gone, but the three markers
+  # `.write_model_GLPK_CBC()` slices on survive.
+  expect_false(any(grepl("output/vTechCap.csv", mx, fixed = TRUE)))
+  expect_length(grep("22b584bd-a17a-4fa0-9cd9-f603ab684e47", mx), 1L)
+  expect_length(grep("^minimize", mx), 1L)
+  expect_gte(length(grep("^end;", mx)), 1L)
+
+  # The weather product became the empty-safe one-element equivalent.
+  expect_gte(length(grep("(1 + sum{wth1 in weather", mx, fixed = TRUE)), 14L)
+})
+
+test_that("a real energyRt model compiles under mosox with this template", {
+  skip_if_no_mosox()
+  root <- skip_if_no_sources()
+  dir <- mx_unit_files()
+
+  res <- suppressWarnings(en_mosox_run(
+    model = file.path(root, "glpk", "energyRt-mosox.mod"),
+    data = file.path(dir, "mosox.dat"),
+    output = file.path(dir, "unit.mps"),
+    command = "compile", check = FALSE))
+  expect_true(res$success)
+  expect_true(file.exists(file.path(dir, "unit.mps")))
+  # 6357 rows, the same count glpsol reports for this model.
+  expect_true(any(grepl("Matrix: 6357 rows", res$stdout)))
+})
+
+test_that("KNOWN-WRONG: mosox ignores `(tuple) in Set` filters", {
+  # THE blocker. mosox 0.6.2 honours numeric conditions in an indexing
+  # expression but silently drops set-membership ones, so it emits a
+  # well-formed matrix over the UNFILTERED domain. energyRt gates almost every
+  # sum with exactly this construct, so the generated LP is wrong wherever a
+  # gating map is not the full cross-product.
+  #
+  # Minimal case: M = {(a,p)}, so only z[a,p] belongs in c1.
+  skip_if_no_mosox()
+  dir <- withr::local_tempdir()
+  mod <- mx_write(dir, "f.mod", c(
+    "set I;", "set J;", "set M dimen 2;",
+    "var x{I} >= 0;",
+    "var z{I,J} >= 0;",
+    "minimize obj: sum{i in I} x[i];",
+    "s.t. c1{i in I}: x[i] + sum{j in J: (i,j) in M}(z[i,j]) >= 3;",
+    "end;"))
+  dat <- mx_write(dir, "f.dat", c("set I := a b;", "set J := p q;",
+                                  "set M := a p", ";", "end;"))
+  out <- file.path(dir, "f.mps")
+  en_mosox_run(model = mod, data = dat, output = out, command = "compile")
+  cols <- grep("^ z\\[", readLines(out), value = TRUE)
+  cols <- sort(unique(sub("^ (z\\[[^]]*\\]).*", "\\1", cols)))
+
+  expect_identical(cols, c("z[a,p]", "z[a,q]", "z[b,p]", "z[b,q]"))
+                                            # FIXME: "z[a,p]" alone
+
+  # A numeric filter in the same position IS honoured, which is what makes the
+  # membership case silent rather than obviously broken.
+  mod2 <- mx_write(dir, "g.mod", c(
+    "set I;", "param k{I};",
+    "var x{I} >= 0;", "var z{I} >= 0;",
+    "minimize obj: sum{i in I} x[i];",
+    "s.t. c1{i in I}: x[i] + sum{j in I: k[j] > 1}(z[j]) >= 3;",
+    "end;"))
+  dat2 <- mx_write(dir, "g.dat", c("set I := a b;", "param k := a 1 b 2;",
+                                   "end;"))
+  out2 <- file.path(dir, "g.mps")
+  en_mosox_run(model = mod2, data = dat2, output = out2, command = "compile")
+  cols2 <- sort(unique(sub("^ (z\\[[^]]*\\]).*", "\\1",
+                          grep("^ z\\[", readLines(out2), value = TRUE))))
+  expect_identical(cols2, "z[b]")   # z[a] correctly absent: k[a] = 1
+})
+
+test_that("KNOWN-WRONG: the compiled energyRt matrix is wrong", {
+  # The consequence of the filter bug on a real model: the row count is right
+  # (constraint domains iterate a map, which mosox does handle), but the
+  # unfiltered sums pull in terms that do not belong, and the LP collapses.
+  skip_if_no_mosox()
+  root <- skip_if_no_sources()
+  dir <- mx_unit_files()
+
+  res <- suppressWarnings(en_mosox_run(
+    model = file.path(root, "glpk", "energyRt-mosox.mod"),
+    data = file.path(dir, "mosox.dat"),
+    output = file.path(dir, "unit.txt"),
+    command = "solve", check = FALSE))
+  expect_true(res$success)
+  obj <- as.numeric(readLines(file.path(dir, "unit.txt"))[2])
+  expect_equal(obj, 0)               # FIXME: 4510, the GLPK objective
+
+  # Same rows as glpsol, but far more columns and nonzeros -- the signature of
+  # dropped filters. glpsol: 6357 rows, 5987 columns, 13401 nonzeros.
+  expect_true(any(grepl("Matrix: 6357 rows, 19681 cols, 106520 nonzero",
+                        res$stdout)))
+                                     # FIXME: 6357 rows, 5987 cols, 13401 nonzero
+})
+
+
+# ============================================================================ #
+# E. the mosox template means the same thing as the GLPK one
+#
+# The rewrites in group D are only safe if they preserve the model. mosox cannot
+# prove that -- it drops set-membership filters (see the KNOWN-WRONG above), so
+# every objective it reports is wrong for reasons unrelated to the rewrites.
+#
+# glpsol can. The rewritten forms are all valid MathProg, so glpsol runs the
+# mosox template happily and its objective must equal the GLPK template's. This
+# is what actually guards the rewrites, and it needs no mosox at all.
+# ============================================================================ #
+
+skip_if_no_glpsol <- function() {
+  testthat::skip_on_cran()
+  cfg <- tryCatch(get_glpk_path(), error = function(e) NULL)
+  if (!nzchar(Sys.which("glpsol")) && (is.null(cfg) || !nzchar(cfg))) {
+    testthat::skip("glpsol not available")
+  }
+  invisible(getFromNamespace(".find_glpsol", "energyRt")())
+}
+
+# Objective glpsol reports for `mod` + `dat`, or NA if it did not solve.
+# Run from `wd`: both templates keep the pre-solve `printf > "output/log.csv"`,
+# which glpsol resolves against the working directory, and `write_sc()` puts the
+# `output/` folder next to the data file.
+mx_glpsol_obj <- function(exe, mod, dat, wd) {
+  mod <- normalizePath(mod, winslash = "/", mustWork = TRUE)
+  dat <- normalizePath(dat, winslash = "/", mustWork = TRUE)
+  log <- withr::with_dir(wd, suppressWarnings(
+    system2(exe, c("-m", shQuote(mod), "-d", shQuote(dat)),
+            stdout = TRUE, stderr = TRUE)))
+  if (!any(grepl("OPTIMAL", log))) {
+    stop("glpsol did not solve ", basename(mod), ":\n",
+         paste(utils::tail(log, 5), collapse = "\n"))
+  }
+  last <- grep("obj =", log, value = TRUE)
+  as.numeric(sub(".*obj =\\s*([0-9.eE+-]+).*", "\\1", last[length(last)]))
+}
+
+test_that("mosox and GLPK templates agree on a model without weather", {
+  exe <- skip_if_no_glpsol()
+  root <- skip_if_no_sources()
+  dir <- mx_unit_files()
+
+  # `energyRt.dat` (with its trailing commas) is used for BOTH -- glpsol accepts
+  # them, so the only difference under test is the model file.
+  dat <- file.path(dir, "energyRt.dat")
+  ref <- mx_glpsol_obj(exe, file.path(dir, "energyRt.mod"), dat, dir)
+  mx <- mx_glpsol_obj(exe, file.path(root, "glpk", "energyRt-mosox.mod"), dat, dir)
+
+  expect_equal(ref, 4510)          # the pin from test-one-all-solvers.R
+  expect_equal(mx, ref)
+})
+
+test_that("mosox and GLPK templates agree on a weather model", {
+  # `tm_weather()` is the fixture that exercises every weather map at once --
+  # supply Up, tech Af/Afs/Afc, storage Af/Cinp/Cout -- so it is the test that
+  # actually covers the `prod{}` -> `1 + sum{}(. - 1)` rewrite. Dropping a
+  # weather factor would roughly double af.up and halve capacity, so the
+  # objective is a sharp check.
+  exe <- skip_if_no_glpsol()
+  root <- skip_if_no_sources()
+  src <- file.path(root, "data-raw", "testing-models.R")
+  skip_if(!file.exists(src), "data-raw/testing-models.R not available")
+
+  env <- new.env(parent = globalenv())
+  suppressMessages(suppressWarnings(sys.source(src, envir = env)))
+  skip_if(!is.function(env$tm_weather), "tm_weather() not available")
+
+  dir <- withr::local_tempdir()
+  scen <- suppressMessages(suppressWarnings(
+    interpolate_model(env$tm_weather(), name = "wth")))
+  suppressMessages(suppressWarnings(
+    write_sc(scen, tmp.dir = dir, solver = solver_options$glpk, echo = FALSE)))
+
+  dat <- file.path(dir, "energyRt.dat")
+  ref <- mx_glpsol_obj(exe, file.path(dir, "energyRt.mod"), dat, dir)
+  mx <- mx_glpsol_obj(exe, file.path(root, "glpk", "energyRt-mosox.mod"), dat, dir)
+
+  # The pin from test-model-regression.R, to catch a fixture change too.
+  expect_equal(ref, 135773.813654, tolerance = 1e-6)
+  expect_equal(mx, ref, tolerance = 1e-9)
+})
