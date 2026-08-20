@@ -70,6 +70,8 @@ navbar:
         # href: articles/help.html
       - text: Model bricks
         href: articles/model-bricks.html
+      - text: Units
+        href: articles/units.html
       - text: Time resolution
         href: articles/time-resolution.html
       - text: "UTOPIA I: building the model"
@@ -156,6 +158,8 @@ reference:
 - title: Data manimulation
   contents:
   - matches("convert")
+  - commodity_properties
+  - commodity_property
   - matches("data")
   - getObject
   - getMix
@@ -188,6 +192,7 @@ reference:
   - matches("plot")
   - matches("show")
   - matches("design")
+  - object_image
   - ghost_options
   - theme_energyRt
 

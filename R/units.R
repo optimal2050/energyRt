@@ -432,7 +432,11 @@ setMethod("getUnits", "technology", function(object, slots = NULL,
 }
 
 # ── print method ─────────────────────────────────────────────────────────────
-#' @export
+# `print` is an S4 generic here (R/print.R), so a plain @export registers the
+# function but NOT the method, and dispatch falls through to the data.frame
+# default -- printing the wide `description` column this method exists to drop.
+# See the same trap for print.commodity in AGENTS.md.
+#' @exportS3Method print energyRtUnits
 print.energyRtUnits <- function(x, ...) {
   nm  <- attr(x, "object_name")
   cls <- attr(x, "object_class")

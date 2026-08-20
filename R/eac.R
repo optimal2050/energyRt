@@ -140,6 +140,30 @@
   out <- unique(df[, c(dims, "eac"), drop = FALSE])
   names(out)[names(out) == "eac"] <- "value"
 
+  # Keep a supplied `eac` for processes that have NO invcost.
+  #
+  # `df` was filtered to invcost-bearing rows above, so `out` covers only those
+  # processes. Writing it back wholesale ERASED every process whose capital cost
+  # came from `@invcost$eac` alone -- the charge simply left the objective, with
+  # no warning, and the capacity became free. The early return at the top of this
+  # function is what hid it: when NO process in the class has an invcost we never
+  # reach here, so it only bit MIXED models (some annuitised, some overnight),
+  # which is the ordinary case for a converted model.
+  #
+  # Matched on the process key alone, not the full dims: at this stage the seed
+  # is region-FOLDED while `out` is region-explicit (same reason the `ueac` join
+  # above goes through .eac_merge), so a full-key anti-join would match nothing
+  # and duplicate every row. Within a process that supplies both, the `ueac`
+  # coalesce above already gives the supplied value precedence row by row.
+  seed <- as.data.frame(get_data_slot(P[[eac_par]]))
+  if (!is.null(seed) && nrow(seed) > 0 && key %in% names(seed)) {
+    keep <- seed[!seed[[key]] %in% unique(df[[key]]), , drop = FALSE]
+    if (nrow(keep) > 0) {
+      for (cl in setdiff(names(out), names(keep))) keep[[cl]] <- NA
+      out <- rbind(out, keep[, names(out), drop = FALSE])
+    }
+  }
+
   scen@modInp@parameters[[eac_par]] <- .fold_write_back(P[[eac_par]], out)
   scen
 }

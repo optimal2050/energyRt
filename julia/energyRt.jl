@@ -2551,14 +2551,13 @@ print("eqStorageEac(stg, region, year)...")
                         pStorageOlifeDef
                     end
                 ) + ordYear[(yp)]
-            ) &&
-            (
-                if haskey(pStorageInvcost, (st1, r, yp))
-                    pStorageInvcost[(st1, r, yp)]
-                else
-                    0
-                end
-            ) != 0
+            )
+            # [eac-fix] the `pStorageInvcost != 0` guard was REMOVED from the condition
+            # below. It dropped the annuity entirely when a user supplied `@invcost$eac`
+            # without `invcost` (pre-annuitised capex, e.g. a PyPSA import), so the storage
+            # was built for FREE -- silently, with an OPTIMAL solve. eqTechEac / eqTradeEac
+            # never carried it. pStorageEac defaults to 0, so a vintage with no capital cost
+            # now contributes a zero-coefficient term instead of being dropped from the sum.
         );
         init = 0
     )

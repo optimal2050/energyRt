@@ -246,16 +246,17 @@ getMix <- function(scen,
 }
 
 # Fetch one solved variable / parameter as a plain data.frame, or NULL.
-# `native = TRUE` requests the finest (native) timeframe so timeslice-level values
-# survive (getData's default aggregates to ANNUAL).
+# `native = TRUE` keeps timeslice-level values; `FALSE` rolls them up to ANNUAL,
+# which is what the year-axis plots want.
+#
+# BOTH branches now pass `timeframe` explicitly. Neither may inherit the default:
+# it was "lowest" up to v0.80 and is "highest" from v0.80 on, so an inherited
+# value would silently flip these plots from annual totals to whichever timeslice
+# happened to sort first.
 .mix_fetch <- function(scen, vname, native = FALSE) {
   d <- tryCatch(
-    if (native) {
-      getData(scen, name = vname, merge = TRUE, drop.zeros = FALSE,
-              timeframe = "highest")
-    } else {
-      getData(scen, name = vname, merge = TRUE, drop.zeros = FALSE)
-    },
+    getData(scen, name = vname, merge = TRUE, drop.zeros = FALSE,
+            timeframe = if (native) "highest" else "lowest"),
     error = function(e) NULL)
   if (is.null(d) || nrow(d) == 0) return(NULL)
   as.data.frame(d)

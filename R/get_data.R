@@ -160,7 +160,9 @@ findData <- function(scen,
 #' @param name character vector with names of parameters and/or variables.
 #' @param merge if TRUE, the search results will be merged in one dataframe; the named list will be returned if FALSE. When TRUE, a data.frame (empty if nothing matched) is always returned, never NULL.
 #' @param geolevel controls spatial aggregation of results that carry a `region` column, the spatial twin of `timeframe`. One of `"finest"` (default, native resolution as stored), `"coarsest"` (aggregate up to the top geoscale level), `"all"` (return every level stacked), or an explicit geoscale level name (e.g. `"zone"`, `"nation"`). Requires a geoscale on the model; without one this is inert. Inter-regional flow variables (e.g. `vTradeIr`) are returned unchanged, because summing a flow across regions double-counts it — the spatial counterpart of leaving state variables alone under `timeframe`.
-#' @param timeframe controls sub-annual time aggregation of results that carry a `timeslice` column. One of `"lowest"` (default, aggregate/sum flows up to the coarsest level, normally `ANNUAL`), `"highest"` (native/finest, as stored), `"all"` (return every timeframe level stacked), or an explicit calendar level name (e.g. `"SEASON"`, `"YDAY"`) to aggregate to that level. Non-timeslice data, and state/level variables (e.g. `vStorageStore`) for which summing over timeslices is meaningless, are returned unchanged.
+#' @param timeframe controls sub-annual time aggregation of results that carry a `timeslice` column. One of `"highest"` (default, native/finest resolution, as stored), `"lowest"` (aggregate/sum flows up to the coarsest level, normally `ANNUAL`), `"all"` (return every timeframe level stacked), or an explicit calendar level name (e.g. `"SEASON"`, `"YDAY"`) to aggregate to that level. Non-timeslice data, and state/level variables (e.g. `vStorageStore`) for which summing over timeslices is meaningless, are returned unchanged.
+#'
+#'   The default was `"lowest"` up to v0.80 and is now `"highest"`, matching the spatial twin `geolevel`, whose default `"finest"` has always meant "as stored". Returning data at native resolution unless asked otherwise is the safer default: the old one silently summed an 8760-slice hourly series into a single annual number, which reads as a plausible value rather than as an error, and is indistinguishable from a genuine annual result. Aggregation is easy to ask for and hard to notice when it is not wanted. Code that relied on annual totals must now pass `timeframe = "lowest"` explicitly.
 #' @param process if TRUE, dimensions "tech", "stg", "trade", "imp", "expp", "dem", and "sup" will be renamed with "process".
 #' @param parameters if TRUE, parameters will be included in the search and returned if found.
 #' @param variables if TRUE, variables will be included in the search and returned if found.
@@ -202,7 +204,7 @@ getData.scenario <- function(
     name = NULL,
     ...,
     merge = FALSE,
-    timeframe = c("lowest", "highest", "all"),
+    timeframe = c("highest", "lowest", "all"),
     geolevel = c("finest", "coarsest", "all"),
     process = FALSE,
     parameters = TRUE,

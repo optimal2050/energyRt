@@ -802,7 +802,12 @@ class:
     fullYear:
       type: logical
       description: >
-        Incidates if the technology is operating on a full-year basis. Used in storages. currently ignored for technologies.
+        Indicates if the technology operates on a full-year basis, i.e. where its timeslice cycle
+        closes. Currently it affects RAMPING only (`ramp` slot): with TRUE (default) the preceding
+        timeslice of the first timeslice of a group is the last timeslice of the previous group;
+        with FALSE each parent timeframe is an independent loop. A technology without ramping
+        constraints is unaffected. See the `storage` class, where the same flag governs the
+        state-of-charge balance.
     timeframe:
       type: character
       description: >
@@ -1142,12 +1147,15 @@ class:
     fullYear:
       type: logical
       description: >
-        If TRUE (default), the storage technology operates between parent timeframes through the year.
-        The last time-timeslice in the timeframe is used as a preciding time-timeslice for the first
-        time-timeslice in the the same group of time-timeslices within the parent timeframe.
-        if FALSE, the storage charge and discchare cycle is limited to the parent timeframe.
-        The last time-timeslice in the timeframe is used as a preciding time-timeslice for the first
-        time-timeslice in the the same group of time-timeslices within the parent timeframe.
+        Controls where the charge/discharge cycle closes.
+        If TRUE (default), the storage operates across parent timeframes through the whole year:
+        the preceding time-timeslice of the first time-timeslice of a group is the last
+        time-timeslice of the PREVIOUS group, and only the last time-timeslice of the year wraps
+        round to the first. A battery on an hourly calendar nested under days can therefore carry
+        energy from one day into the next, and seasonal storage is representable.
+        If FALSE, the cycle is closed within each parent timeframe: the preceding time-timeslice of
+        the first time-timeslice of a group is the LAST time-timeslice of the SAME group, so every
+        group is an independent loop with no energy carried between them.
     region:
       type: character
       description: Region where the storage technology exists or can be installed.

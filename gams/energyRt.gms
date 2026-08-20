@@ -1588,7 +1588,13 @@ eqStorageEac(stg, region, year)$mStorageEac(stg, region, year)..
                     and (mStorageOlifeInf(stg, region)
                          or ordYear(year) < pStorageOlife(stg, region) + ordYear(yearp)
                          )
-                    and pStorageInvcost(stg, region, yearp) <> 0
+*                  [eac-fix] the `pStorageInvcost <> 0` guard was REMOVED from the summation
+*                  condition below. It dropped the annuity entirely when a user supplied
+*                  `@invcost$eac` without `invcost` (pre-annuitised capex, e.g. a PyPSA import),
+*                  so the storage was built for FREE -- silently, with an OPTIMAL solve.
+*                  eqTechEac / eqTradeEac never carried it. pStorageEac defaults to 0, so a
+*                  vintage with no capital cost now contributes a zero-coefficient term instead
+*                  of being dropped from the sum.
                     ),
 *                  pYearFraction(year) *
             pStorageEac(stg, region, yearp)

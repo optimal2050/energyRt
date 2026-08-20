@@ -9,8 +9,12 @@
 
 skip_if_no_solver <- function() {
   testthat::skip_on_cran()
-  if (!nzchar(Sys.which("glpsol"))) {
-    testthat::skip("glpsol not available")
+  # energyRt finds glpsol either on PATH or via ~/.energyRt/config.yml, so
+  # checking PATH alone skips on machines where the solver IS configured.
+  # Sturdier form promoted from test-subset_slices.R:34-36.
+  cfg <- tryCatch(get_glpk_path(), error = function(e) NULL)
+  if (!nzchar(Sys.which("glpsol")) && (is.null(cfg) || !nzchar(cfg))) {
+    testthat::skip("glpsol not available (PATH or ~/.energyRt/config.yml)")
   }
 }
 
@@ -46,6 +50,32 @@ vt_model <- function(..., name = "vt", regions = c("R1", "R2"),
       ...
     )
   )
+}
+
+# Storage and trade variants of `vt_model`. Both were file-scoped in
+# test-storage-variants.R / test-trade-variants.R; testthat sources helper-*.R
+# before test files but does NOT cross-load between test files, so any new test
+# needing them had to redefine them. Moved here verbatim.
+#
+# Both add an EWIN backstop so the model has a producer besides the object under
+# test -- the commodity-closure check rejects a model whose only producer is
+# output-only, and an expensive backstop makes objective comparisons meaningful.
+vt_stg_model <- function(stg, name = "st") {
+  vt_model(
+    newTechnology("EWIN", output = list(comm = "ELC"),
+                  invcost = data.frame(invcost = 150),
+                  afs = data.frame(timeslice = "ANNUAL", afs.up = 0.4),
+                  vintage = data.frame(olife = 25L), cap2act = 1),
+    stg, name = name)
+}
+
+vt_trade_model <- function(trd, name = "tr") {
+  vt_model(
+    newTechnology("EWIN", output = list(comm = "ELC"),
+                  invcost = data.frame(invcost = 150),
+                  afs = data.frame(timeslice = "ANNUAL", afs.up = 0.4),
+                  vintage = data.frame(olife = 25L), cap2act = 1),
+    trd, name = name)
 }
 
 vt_interp <- function(mod, name = "vt") {

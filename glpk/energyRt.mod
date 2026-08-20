@@ -662,7 +662,14 @@ s.t.  eqStorageInv{(st1, r, y) in mStorageNew}: vStorageInv[st1,r,y]  =  pStorag
 # [eac-fix] reverted to legacy vintaged new-capacity form (see eqTechEac).
 # OLD: s.t.  eqStorageEac{(st1, r, y) in mStorageEac}: vStorageEac[st1,r,y]  =  pStorageEac[st1,r,y]*vStorageCap[st1,r,y];
 # [payback] see eqTechEac.
-s.t.  eqStorageEac{(st1, r, y) in mStorageEac}: vStorageEac[st1,r,y]  =  sum{yp in year:(((st1,r,yp) in mStorageNew and ordYear[y] >= ordYear[yp] and ((pStoragePayback[st1,r,yp] > 0 and ordYear[y]<pStoragePayback[st1,r,yp]+ordYear[yp]) or (pStoragePayback[st1,r,yp] <= 0 and ((st1,r) in mStorageOlifeInf or ordYear[y]<pStorageOlife[st1,r]+ordYear[yp]))) and pStorageInvcost[st1,r,yp] <> 0))}(pStorageEac[st1,r,yp]*vStorageNewCap[st1,r,yp]);
+# [eac-fix] the `pStorageInvcost <> 0` guard was REMOVED from the summation
+# condition below. It dropped the annuity entirely when a user supplied
+# `@invcost$eac` without `invcost` (pre-annuitised capex, e.g. a PyPSA import),
+# so the storage was built for FREE -- silently, with an OPTIMAL solve.
+# eqTechEac / eqTradeEac never carried it. pStorageEac defaults to 0, so a
+# vintage with no capital cost now contributes a zero-coefficient term instead
+# of being dropped from the sum.
+s.t.  eqStorageEac{(st1, r, y) in mStorageEac}: vStorageEac[st1,r,y]  =  sum{yp in year:(((st1,r,yp) in mStorageNew and ordYear[y] >= ordYear[yp] and ((pStoragePayback[st1,r,yp] > 0 and ordYear[y]<pStoragePayback[st1,r,yp]+ordYear[yp]) or (pStoragePayback[st1,r,yp] <= 0 and ((st1,r) in mStorageOlifeInf or ordYear[y]<pStorageOlife[st1,r]+ordYear[yp])))))}(pStorageEac[st1,r,yp]*vStorageNewCap[st1,r,yp]);
 
 s.t.  eqStorageFixom{(st1, r, y) in mStorageFixom}: vStorageFixom[st1,r,y]  =  pStorageFixom[st1,r,y]*vStorageCap[st1,r,y];
 

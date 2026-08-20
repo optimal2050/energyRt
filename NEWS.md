@@ -6,6 +6,29 @@ editor_options:
 
 # energyRt 0.80 (development) — the time dimension is now `timeslice`
 
+## New article: Units
+
+-   New pkgdown article **Units** (`vignettes/articles/units.Rmd`),
+    covering where each unit is declared (`commodity@unit`, a process's
+    `@units`, and the model target), how `convert()` moves between
+    dimensions, how `commodity@property` lets a conversion cross them,
+    and why money needs a year attached. Sections describing work still
+    in progress are feature-gated, so they appear as the features land.
+-   `print()` on a `getUnits()` result now works. It was dead code:
+    `@export` alone does not register an S3 method on an S4 generic, so
+    dispatch fell through to the data.frame default and printed the wide
+    `description` column that this method exists to drop. Same defect as
+    `print.commodity`; `getUnits(EGAS)` now prints a compact
+    slot/parameter/comm/unit table.
+-   **Model bricks** corrected: `cap2act = 8.76` was documented as
+    giving "8.76 GWh per GW per year (8760 h)" — wrong by a factor of
+    1000, and contradicted by the `CHP` chunk in the same article, which
+    correctly uses `8760`. The text now states the unit basis explicitly
+    (`8760` with activity in GWh, `31.536` with activity in PJ). The
+    "mixed units live in the coefficients" note no longer says a
+    conversion *must* ride on a chain coefficient, and cross-links to
+    the new article.
+
 ## Commodities carry physical properties
 
 -   New slot **`commodity@property`**: a tidy table of physical
@@ -209,6 +232,75 @@ next to the spatial `region` dimension):
     `sysdata` regenerated with the new vocabulary.
 -   multimod's matching update is a recorded follow-up; until then it
     pairs with pre-v0.80 generated models.
+
+## Breaking: `getData(timeframe =)` now defaults to `"highest"`, not `"lowest"`
+
+-   **`getData()` returned sub-annual results aggregated to `ANNUAL` by
+    default.** An 8760-slice hourly series came back as a single number,
+    summed over every timeslice. The result looks like a perfectly
+    ordinary annual figure, so the mistake is invisible: nothing errors,
+    nothing warns, and the value is indistinguishable from a genuine
+    annual total until it is compared against something external.
+-   The default is now **`"highest"`** — native resolution, exactly as
+    stored. This matches the spatial twin `geolevel`, whose default
+    `"finest"` has always meant "as stored". Aggregation is easy to ask
+    for and hard to notice when it was not wanted, so the safer default
+    is the one that does nothing.
+-   **Migration:** code that relied on annual totals must pass
+    `timeframe = "lowest"` explicitly. Within the package, every
+    internal caller that wanted annual sums has been pinned:
+    `levcost()` (seven call sites) and `.mix_fetch()` in
+    `R/plot_scenario.R`. `.mix_fetch()` now passes `timeframe` on both
+    branches rather than letting the `native = FALSE` branch inherit it.
+
+## Bug fix: `storage@fullYear` had no effect — every storage cycled within its parent timeframe
+
+-   **`storage@fullYear` was silently ignored.**
+    `.build_meqStorageStore()` joined `mTimesliceNext` unconditionally
+    when pairing each storing timeslice with its predecessor, so the
+    state-of-charge cycle always closed inside the parent timeframe. The
+    slot defaults to `TRUE`, so **every** storage got the `FALSE`
+    behaviour, whether or not the user asked for it. `mStorageFullYear`
+    was built and declared in all four backends but referenced by no
+    equation; the archived GAMS template
+    (`gams/.archive/energyRt - 202308.gms`) did honour it, so this was a
+    regression introduced when the balance map moved into the mapping
+    engine.
+-   **What it meant.** On a calendar of hours nested under days, a
+    battery could not carry energy from one day into the next: each day
+    was an independent loop. Multi-day and seasonal storage — a
+    168-hour hydrogen store, a pumped-hydro reservoir spanning
+    seasons — were not representable at all, and a battery was sized on
+    within-day peak power rather than on arbitrage across the year.
+-   **Now** the successor map is chosen per storage:
+    `mTimesliceFYearNext` for `fullYear = TRUE`, `mTimesliceNext` for
+    `FALSE` — the same treatment technology ramping already received in
+    `.build_ramp_maps()`. Fixed entirely in the mapping engine; no
+    template, `sysdata` or `.dat` format change.
+-   **Results change** for any model with a calendar **three or more
+    levels deep** (e.g. `ANNUAL/DAY/HOUR`) that contains a storage. A
+    two-level calendar (`ANNUAL/SEASON`) is unaffected, because there
+    the parent-timeframe wrap and the year wrap are the same thing —
+    which is also why the bundled regression models
+    (`data-raw/testing-models.R`, `ANNUAL/SEASON`) did not catch it and
+    why their goldens are unmoved. If your model has a deeper calendar,
+    expect storage to be used more and total cost to fall; set
+    `fullYear = FALSE` explicitly to keep the old behaviour.
+-   If the calendar supplies no year-wide successor map, storages
+    requesting `fullYear = TRUE` now fall back to the parent-timeframe
+    cycle **with a warning** rather than dropping out of the balance
+    entirely. A storage missing from `meqStorageStore` has no balance
+    equation at all, which leaves its level unconstrained by history —
+    free energy, reported `OPTIMAL`.
+-   Slot documentation for `storage@fullYear` rewritten: the `TRUE` and
+    `FALSE` branches were described with the same sentence.
+    `technology@fullYear`, documented as "currently ignored for
+    technologies", in fact governs ramping — corrected.
+-   New `tests/testthat/test-storage-fullyear.R` pins the balance map
+    itself on a two-day/four-hour calendar (solver-free) and then the
+    behaviour: with the cheap plant available only on day 1 and demand
+    only on day 2, storage bridges the boundary when `fullYear = TRUE`
+    and cannot when it is `FALSE`.
 
 # energyRt 0.74.0.9000-dev
 

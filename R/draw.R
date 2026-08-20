@@ -1655,11 +1655,11 @@ draw.demand <- function(object, ...) {
 #'   desc = "Steel demand",
 #'   commodity = "STEEL",
 #'   unit = "Mt",
-#'   dem = data.frame(
+#'   demand = data.frame(
 #'     region = "UTOPIA", # NA for every region
 #'     year = c(2020, 2030, 2050),
 #'     timeslice = "ANNUAL",
-#'     dem = c(100, 200, 300)
+#'     demand = c(100, 200, 300)
 #'   ),
 #'   region = "UTOPIA", # optional, to narrow the specification of the demand
 #' )

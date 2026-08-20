@@ -64,7 +64,7 @@ roxygen_slots <- function(df, roxy_par = "slot") {
 #' slotNames("technology")
 #' get_slot_doc("technology", "input") |> cat()
 #' get_slot_doc("technology", "capacity") |> cat()
-#' get_slot_doc("demand", "dem") |> cat()
+#' get_slot_doc("demand", "demand") |> cat()
 #' get_slot_doc("commodity", "agg") |> cat()
 get_slot_doc <- function(class_name = "technology",
                           slot_name = "ceff",

@@ -11,14 +11,7 @@
 # `FALSE` trade still paid investment and fixed O&M. Its only live effect made
 # the flow domain LARGER, contrary to its stated purpose.
 
-vt_trade_model <- function(trd, name = "tr") {
-  vt_model(
-    newTechnology("EWIN", output = list(comm = "ELC"),
-                  invcost = data.frame(invcost = 150),
-                  afs = data.frame(timeslice = "ANNUAL", afs.up = 0.4),
-                  vintage = data.frame(olife = 25L), cap2act = 1),
-    trd, name = name)
-}
+# `vt_trade_model()` now lives in helper-variants.R so other test files can use it.
 
 test_that("trade keeps its lifespan in @vintage and lost capacityVariable", {
   sn <- slotNames("trade")

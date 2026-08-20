@@ -103,6 +103,22 @@ value_on_window <- function(scen, name, source, window = NULL, gate = NULL, fmp)
     keep <- vapply(src, function(col) !all(is.na(col)), logical(1))
     src  <- src[, keep, drop = FALSE]
     df <- merge0(as.data.frame(win), src)
+
+    # ... but only if the window HAS that dimension. When neither side carries it
+    # -- a region-folded source against a window with no region column -- `df` is
+    # left short of a map dimension and .set_map() then produces an EMPTY map,
+    # silently. mTradeEac hits exactly this: pTradeEac is region-folded whenever
+    # the user supplies `@invcost$eac` without `invcost` (nothing rewrites it
+    # region-explicitly), and mTradeNew is (trade, year), so the annuity domain
+    # came out empty and the trade capital cost vanished from the objective.
+    # Expand any such dimension over its set members, as .policy_cost_map()
+    # already does for a NA region (R/map_value.R:151-158).
+    for (d in setdiff(dims, names(df))) {
+      members <- scen@modInp@sets[[d]]
+      if (length(members) == 0) next
+      df <- merge0(df, stats::setNames(
+        data.frame(members, stringsAsFactors = FALSE), d))
+    }
   } else {
     df <- src
   }

@@ -1871,7 +1871,13 @@ model.eqStorageEac = Constraint(
                 (st1, r) in mStorageOlifeInf
                 or ordYear.get((y)) < pStorageOlife.get((st1, r)) + ordYear.get((yp))
             )
-            and pStorageInvcost.get((st1, r, yp)) != 0
+            # [eac-fix] the `pStorageInvcost <> 0` guard was REMOVED from the summation
+            # condition below. It dropped the annuity entirely when a user supplied
+            # `@invcost$eac` without `invcost` (pre-annuitised capex, e.g. a PyPSA import),
+            # so the storage was built for FREE -- silently, with an OPTIMAL solve.
+            # eqTechEac / eqTradeEac never carried it. pStorageEac defaults to 0, so a
+            # vintage with no capital cost now contributes a zero-coefficient term instead
+            # of being dropped from the sum.
         )
     ),
 )
