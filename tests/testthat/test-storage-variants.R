@@ -3,7 +3,7 @@
 # Storage has the strongest vintage case in the model -- battery capex is its
 # dominant time-varying cost. Its cluster case is site-constrained capacity
 # (pumped-hydro head classes, CAES caverns) plus duration classes expressed as a
-# per-cluster `cap2stg`.
+# per-cluster `duration`.
 
 # `vt_stg_model()` now lives in helper-variants.R so other test files can use it.
 
@@ -26,18 +26,18 @@ test_that("legacy start/end/olife arguments still work on storage", {
   expect_equal(nrow(update(s, olife = list(olife = 12))@vintage), 1L)
 })
 
-test_that("cap2stg accepts a scalar and varies by cluster", {
-  s1 <- newStorage("BATT", commodity = "ELC", cap2stg = 4)
-  expect_equal(nrow(s1@cap2stg), 1L)
-  expect_equal(s1@cap2stg$cap2stg, 4)
+test_that("duration accepts a scalar and varies by cluster", {
+  s1 <- newStorage("BATT", commodity = "ELC", duration = 4)
+  expect_equal(nrow(s1@duration), 1L)
+  expect_equal(s1@duration$duration, 4)
 
   s2 <- newStorage("BATT", commodity = "ELC",
                    cluster = c("h1", "h4"),
-                   cap2stg = data.frame(cluster = c("h1", "h4"),
-                                        cap2stg = c(1, 4)))
+                   duration = data.frame(cluster = c("h1", "h4"),
+                                        duration = c(1, 4)))
   r <- vt_expand_one(s2)
   expect_equal(length(r$objects), 2L)
-  vals <- vapply(r$objects, function(o) o@cap2stg$cap2stg, numeric(1))
+  vals <- vapply(r$objects, function(o) o@duration$duration, numeric(1))
   expect_setequal(vals, c(1, 4))
 })
 
@@ -50,7 +50,7 @@ test_that("storage vintages expand with per-vintage capex and windows", {
                          start = c(2020L, 2030L), end = c(2020L, 2030L),
                          olife = c(15L, 15L)),
     invcost = data.frame(vintage = c("2020", "2030"), invcost = c(300, 180)),
-    cap2stg = 4)
+    duration = 4)
 
   sc <- vt_interp(vt_stg_model(BATT, "sv"), "sv")
   prov <- getVariants(sc, class = "storage")
@@ -75,7 +75,7 @@ test_that("storage clusters expand with per-cluster potential", {
     cluster = data.frame(cluster = c("siteA", "siteB"), order = 1:2),
     invcost = data.frame(cluster = c("siteA", "siteB"), invcost = c(900, 1400)),
     capacity = data.frame(cluster = c("siteA", "siteB"), cap.up = c(2, 6)),
-    vintage = data.frame(olife = 40L), cap2stg = 8)
+    vintage = data.frame(olife = 40L), duration = 8)
 
   sc <- vt_interp(vt_stg_model(PHS, "sc"), "sc")
   prov <- getVariants(sc, class = "storage")
@@ -102,7 +102,7 @@ test_that("storage group bounds cap the sum across clusters", {
     cluster = c("siteA", "siteB"),
     invcost = data.frame(cluster = c("siteA", "siteB"), invcost = c(20, 25)),
     capacity = data.frame(cluster = "TOTAL", cap.up = 3),
-    vintage = data.frame(olife = 40L), cap2stg = 4)
+    vintage = data.frame(olife = 40L), duration = 4)
   sc <- vt_interp(vt_stg_model(PHS, "sg"), "sg")
   expect_length(sc@modInp@gams.equation, 1L)
 
@@ -128,7 +128,7 @@ test_that("storage results carry provenance keyed on `stg`", {
     "BATT", commodity = "ELC",
     cluster = c("h1", "h4"),
     invcost = data.frame(cluster = c("h1", "h4"), invcost = c(20, 30)),
-    cap2stg = data.frame(cluster = c("h1", "h4"), cap2stg = c(1, 4)),
+    duration = data.frame(cluster = c("h1", "h4"), duration = c(1, 4)),
     vintage = data.frame(olife = 15L))
   sc <- vt_interp(vt_stg_model(BATT, "sp"), "sp")
 

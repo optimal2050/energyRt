@@ -130,6 +130,7 @@ Collate:
     'read.R'
     'registry.R'
     'report.R'
+    'start_level.R'
     'start_msg.R'
     'techspec.R'
     'timeslices.R'

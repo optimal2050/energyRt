@@ -55,7 +55,7 @@
     "pStorageWeatherCout", "pStorageWeatherCout", "pStorageInpEff",
     "pStorageOutEff", "pStorageStgEff", "pStorageStock", "pStorageOlife",
     "pStorageCostStore", "pStorageCostInp",
-    "pStorageCostOut", "pStorageFixom", "pStorageInvcost", "pStorageCap2stg",
+    "pStorageCostOut", "pStorageFixom", "pStorageInvcost", "pStorageDuration",
     "pStorageAf", "pStorageAf", "pStorageCinp", "pStorageCinp", "pStorageCout",
     "pStorageCout", "pStorageStg2AInp", "pStorageStg2AOut", "pStorageCinp2AInp",
     "pStorageCinp2AOut", "pStorageCout2AInp", "pStorageCout2AOut",

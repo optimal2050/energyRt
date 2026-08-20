@@ -1162,15 +1162,19 @@ pStorageAf:
   colName: af
   class: storage
   slot: af
-pStorageCap2stg:
-  name: pStorageCap2stg
+# NOTE dimSets is `stg` ONLY, so the region/year columns the slot advertises are
+# silently dropped by make_data_param(). Widening to (stg, region, year) and
+# promoting to `bounds` (.lo/.up/.fx) belongs to the duration/inp2out work --
+# both change behaviour, and this rename must stay a no-op.
+pStorageDuration:
+  name: pStorageDuration
   dimSets: stg
   type: numpar
   defVal: 1.0
   interpolation: back.inter.forth
   class: storage
-  slot: cap2stg
-  colName: cap2stg
+  slot: duration
+  colName: duration
 pStorageCinp:
   name: pStorageCinp
   dimSets:
@@ -1361,8 +1365,8 @@ pStorageNCap2Stg:
   colName: ncap2stg
   class: storage
   slot: aeff
-pStorageCharge:
-  name: pStorageCharge
+pStorageStartLevel:
+  name: pStorageStartLevel
   dimSets:
   - stg
   - comm
@@ -1372,9 +1376,9 @@ pStorageCharge:
   type: numpar
   defVal: 0.0
   interpolation: ''
-  colName: charge
+  colName: startLevel
   class: storage
-  slot: charge
+  slot: startLevel
 pStorageCap:
   name: pStorageCap
   dimSets:
@@ -3028,8 +3032,8 @@ mvStorageAOut:
   - region
   - year
   - timeslice
-mvStorageStore:
-  name: mvStorageStore
+mvStorageLevel:
+  name: mvStorageLevel
   type: map
   dimSets:
   - stg
@@ -3037,8 +3041,8 @@ mvStorageStore:
   - region
   - year
   - timeslice
-meqStorageStore:
-  name: meqStorageStore
+meqStorageLevel:
+  name: meqStorageLevel
   type: map
   dimSets:
   - stg

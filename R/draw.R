@@ -36,7 +36,7 @@ utils::globalVariables(
     "wacout.fx", "wacout.lo", "wacout.up", "wacact.fx", "wacact.lo",
     "wcinp.fx", "wcinp.lo", "wcinp.up", "wcout.fx", "wcout.lo", "wcout.up",
     "src", "dst", "region", "year", "timeslice",
-    "cap2act", "cap2stg", "cap2use",
+    "cap2act", "duration", "cap2use",
     "io", "na.omit", "share.lo", "share.up", "share.fx",
     "val_lbl", "where", "ginp2use", "desc", "x", "y"
   )
@@ -1195,8 +1195,8 @@ draw.storage <- function(object, ...) {
     mutate(iotype = "cout") |>
     rename(ioname = comm)
 
-  # `cap2stg` is deliberately NOT carried here: `@cap2stg` is a data.frame, so
-  # `mutate(cap2stg = object@cap2stg)` only works while it has exactly one row,
+  # `duration` is deliberately NOT carried here: `@duration` is a data.frame, so
+  # `mutate(duration = object@duration)` only works while it has exactly one row,
   # and nothing downstream reads the column -- only `stg_par$lab_par` is used.
   stg_par <- comm |>
     filter(grepl("stg", parameter)) |>
@@ -1304,16 +1304,16 @@ draw.storage <- function(object, ...) {
 
   # center labels
   #
-  # `@cap2stg` is a DATA FRAME (vintage, cluster, region, year, cap2stg) --
+  # `@duration` is a DATA FRAME (vintage, cluster, region, year, duration) --
   # not a scalar like technology's `@cap2act`. `paste0()` over it vectorises
-  # across COLUMNS, which printed one "cap2stg: NA" per key column and then
+  # across COLUMNS, which printed one "duration: NA" per key column and then
   # the real value. Take the value column, drop NAs, de-duplicate.
-  cap2stg_vals <- unique(object@cap2stg[["cap2stg"]])
-  cap2stg_vals <- cap2stg_vals[!is.na(cap2stg_vals)]
-  cap2stg_label <- if (length(cap2stg_vals) == 0L) NULL else
-    paste0("cap2stg: ", paste(cap2stg_vals, collapse = ", "))
+  duration_vals <- unique(object@duration[["duration"]])
+  duration_vals <- duration_vals[!is.na(duration_vals)]
+  duration_label <- if (length(duration_vals) == 0L) NULL else
+    paste0("duration: ", paste(duration_vals, collapse = ", "))
 
-  center_labels <- c(stg_par$lab_par, cap2stg_label)
+  center_labels <- c(stg_par$lab_par, duration_label)
   # drop empties, or an unset `lab_par` leaves a blank leading line
   center_labels <- center_labels[!is.na(center_labels) & nzchar(center_labels)]
   center_labels <- paste(center_labels, collapse = "\n")
@@ -1382,7 +1382,7 @@ draw.storage <- function(object, ...) {
 #'     # year = 2020,
 #'     fixom = 0.9 # fixed operation and maintenance cost
 #'   ),
-#'   cap2stg = 4, # four-hours of storage
+#'   duration = 4, # four-hours of storage
 #'   invcost = data.frame(
 #'     region = c("R1", NA), # region R1 and all other regions
 #'     invcost = c(1e3, 1.1e3) # investment cost in MUSD/GWh of 4-hour storage

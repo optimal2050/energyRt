@@ -47,9 +47,9 @@
   vAggOutTot = "vAggOutTot( comm , region , year , timeslice ) $ mAggOut( comm , region , year , timeslice )",
   vDummyImportCost = "vDummyImportCost( comm , region , year ) $ mDummyImportCost( comm , region , year )",
   vDummyExportCost = "vDummyExportCost( comm , region , year ) $ mDummyExportCost( comm , region , year )",
-  vStorageInp = "vStorageInp( stg , comm , region , year , timeslice ) $ mvStorageStore( stg , comm , region , year , timeslice )",
-  vStorageOut = "vStorageOut( stg , comm , region , year , timeslice ) $ mvStorageStore( stg , comm , region , year , timeslice )",
-  vStorageStore = "vStorageStore( stg , comm , region , year , timeslice ) $ mvStorageStore( stg , comm , region , year , timeslice )",
+  vStorageInp = "vStorageInp( stg , comm , region , year , timeslice ) $ mvStorageLevel( stg , comm , region , year , timeslice )",
+  vStorageOut = "vStorageOut( stg , comm , region , year , timeslice ) $ mvStorageLevel( stg , comm , region , year , timeslice )",
+  vStorageLevel = "vStorageLevel( stg , comm , region , year , timeslice ) $ mvStorageLevel( stg , comm , region , year , timeslice )",
   vStorageInv = "vStorageInv( stg , region , year ) $ mStorageNew( stg , region , year )",
   vStorageEac = "vStorageEac( stg , region , year ) $ mStorageEac( stg , region , year )",
   vStorageCap = "vStorageCap( stg , region , year ) $ mStorageSpan( stg , region , year )",
@@ -133,7 +133,7 @@
   vDummyExport = "Dummy export (for debugging)",
   vStorageInp = "Storage input",
   vStorageOut = "Storage output",
-  vStorageStore = "Storage level",
+  vStorageLevel = "Storage level",
   vStorageInv = "Storage investments",
   vStorageEac = "Storage EAC investments",
   vStorageCap = "Storage capacity",
@@ -203,10 +203,10 @@
   eqDemInp = "Demand equation",
   eqAggOutTot = "Aggregating-commodity output (weighted)",
   eqEmsFuelTot = "Total emissions from commodity consumption (weighted)",
-  eqStorageStore = "Storage level",
+  eqStorageLevel = "Storage level",
   eqStorageAfLo = "Storage availability factor lower",
   eqStorageAfUp = "Storage availability factor upper",
-  eqStorageClear = "Storage output vs level",
+  eqStorageOutLevel = "Storage output vs level",
   eqStorageAInp = "Storage aux-commodity input",
   eqStorageAOut = "Storage aux-commodity output",
   eqStorageInpUp = "Storage input upper constraint",
@@ -319,10 +319,10 @@
   eqDemInp = c("comm", "region", "year", "timeslice"),
   eqAggOutTot = c("comm", "region", "year", "timeslice"),
   eqEmsFuelTot = c("comm", "region", "year", "timeslice"),
-  eqStorageStore = c("stg", "comm", "region", "year", "timeslicep", "timeslice"),
+  eqStorageLevel = c("stg", "comm", "region", "year", "timeslicep", "timeslice"),
   eqStorageAfLo = c("stg", "comm", "region", "year", "timeslice"),
   eqStorageAfUp = c("stg", "comm", "region", "year", "timeslice"),
-  eqStorageClear = c("stg", "comm", "region", "year", "timeslice"),
+  eqStorageOutLevel = c("stg", "comm", "region", "year", "timeslice"),
   eqStorageAInp = c("stg", "comm", "region", "year", "timeslice"),
   eqStorageAOut = c("stg", "comm", "region", "year", "timeslice"),
   eqStorageInpUp = c("stg", "comm", "region", "year", "timeslice"),
@@ -482,7 +482,7 @@
   pStorageInvcost = "Storage investment costs",
   pStorageEac = "Storage equivalent annual costs",
   pStorageRetCost = "Storage early retirement costs",
-  pStorageCap2stg = "Storage (dis)charging capacity to accumulating capacity (to be renamed to duration)",
+  pStorageDuration = "Storage (dis)charging capacity to accumulating capacity (to be renamed to duration)",
   pStorageAfLo = "Storage availability factor lower bound (minimum charging level)",
   pStorageAfUp = "Storage availability factor upper bound (maximum charging level)",
   pStorageCinpUp = "Storage input upper bound",
@@ -490,7 +490,7 @@
   pStorageCoutUp = "Storage output upper bound",
   pStorageCoutLo = "Storage output lower bound",
   pStorageNCap2Stg = "Initial storage charge level for new investment",
-  pStorageCharge = "Initial storage charge level for stock",
+  pStorageStartLevel = "Initial storage charge level for stock",
   pStorageStg2AInp = "Storage level to auxilary input",
   pStorageStg2AOut = "Storage level output",
   pStorageCinp2AInp = "Storage input to auxilary input",
@@ -644,7 +644,7 @@
   pStorageInvcost = c("stg", "region", "year"),
   pStorageEac = c("stg", "region", "year"),
   pStorageRetCost = c("stg", "region", "year"),
-  pStorageCap2stg = c("stg"),
+  pStorageDuration = c("stg"),
   pStorageAfLo = c("stg", "region", "year", "timeslice"),
   pStorageAfUp = c("stg", "region", "year", "timeslice"),
   pStorageCinpUp = c("stg", "comm", "region", "year", "timeslice"),
@@ -652,7 +652,7 @@
   pStorageCoutUp = c("stg", "comm", "region", "year", "timeslice"),
   pStorageCoutLo = c("stg", "comm", "region", "year", "timeslice"),
   pStorageNCap2Stg = c("stg", "comm", "region", "year", "timeslice"),
-  pStorageCharge = c("stg", "comm", "region", "year", "timeslice"),
+  pStorageStartLevel = c("stg", "comm", "region", "year", "timeslice"),
   pStorageStg2AInp = c("stg", "comm", "region", "year", "timeslice"),
   pStorageStg2AOut = c("stg", "comm", "region", "year", "timeslice"),
   pStorageCinp2AInp = c("stg", "comm", "region", "year", "timeslice"),
@@ -759,10 +759,10 @@
   eqDemInp = "mvDemInp(comm, region, year, timeslice)",
   eqAggOutTot = "mAggOut(comm, region, year, timeslice)",
   eqEmsFuelTot = "mEmsFuelTot(comm, region, year, timeslice)",
-  eqStorageStore = "meqStorageStore(stg, comm, region, year, timeslicep, timeslice)",
+  eqStorageLevel = "meqStorageLevel(stg, comm, region, year, timeslicep, timeslice)",
   eqStorageAfLo = "meqStorageAfLo(stg, comm, region, year, timeslice)",
   eqStorageAfUp = "meqStorageAfUp(stg, comm, region, year, timeslice)",
-  eqStorageClear = "mvStorageStore(stg, comm, region, year, timeslice)",
+  eqStorageOutLevel = "mvStorageLevel(stg, comm, region, year, timeslice)",
   eqStorageAInp = "mvStorageAInp(stg, comm, region, year, timeslice)",
   eqStorageAOut = "mvStorageAOut(stg, comm, region, year, timeslice)",
   eqStorageInpUp = "meqStorageInpUp(stg, comm, region, year, timeslice)",
@@ -947,8 +947,8 @@
   mTechRetUp = "",
   mvStorageAInp = "",
   mvStorageAOut = "",
-  mvStorageStore = "",
-  meqStorageStore = "",
+  mvStorageLevel = "",
+  meqStorageLevel = "",
   mStorageStg2AOut = "",
   mStorageCinp2AOut = "",
   mStorageCout2AOut = "",
@@ -1205,8 +1205,8 @@
   mTechRetUp = c("tech", "region", "year"),
   mvStorageAInp = c("stg", "comm", "region", "year", "timeslice"),
   mvStorageAOut = c("stg", "comm", "region", "year", "timeslice"),
-  mvStorageStore = c("stg", "comm", "region", "year", "timeslice"),
-  meqStorageStore = c("stg", "comm", "region", "year", "timeslicep", "timeslice"),
+  mvStorageLevel = c("stg", "comm", "region", "year", "timeslice"),
+  meqStorageLevel = c("stg", "comm", "region", "year", "timeslicep", "timeslice"),
   mStorageStg2AOut = c("stg", "comm", "region", "year", "timeslice"),
   mStorageCinp2AOut = c("stg", "comm", "region", "year", "timeslice"),
   mStorageCout2AOut = c("stg", "comm", "region", "year", "timeslice"),
@@ -1439,28 +1439,28 @@
 .equation_variable[91, ] <- c("eqAggOutTot", "vOutTot")
 .equation_variable[92, ] <- c("eqEmsFuelTot", "vEmsFuelTot")
 .equation_variable[93, ] <- c("eqEmsFuelTot", "vTechInp")
-.equation_variable[94, ] <- c("eqStorageStore", "vStorageAInp")
-.equation_variable[95, ] <- c("eqStorageStore", "vStorageInp")
-.equation_variable[96, ] <- c("eqStorageStore", "vStorageOut")
-.equation_variable[97, ] <- c("eqStorageStore", "vStorageStore")
-.equation_variable[98, ] <- c("eqStorageStore", "vStorageCap")
-.equation_variable[99, ] <- c("eqStorageStore", "vStorageNewCap")
+.equation_variable[94, ] <- c("eqStorageLevel", "vStorageAInp")
+.equation_variable[95, ] <- c("eqStorageLevel", "vStorageInp")
+.equation_variable[96, ] <- c("eqStorageLevel", "vStorageOut")
+.equation_variable[97, ] <- c("eqStorageLevel", "vStorageLevel")
+.equation_variable[98, ] <- c("eqStorageLevel", "vStorageCap")
+.equation_variable[99, ] <- c("eqStorageLevel", "vStorageNewCap")
 .equation_variable[100, ] <- c("eqStorageAfLo", "vStorageAOut")
 .equation_variable[101, ] <- c("eqStorageAfLo", "vStorageInp")
 .equation_variable[102, ] <- c("eqStorageAfLo", "vStorageOut")
-.equation_variable[103, ] <- c("eqStorageAfLo", "vStorageStore")
+.equation_variable[103, ] <- c("eqStorageAfLo", "vStorageLevel")
 .equation_variable[104, ] <- c("eqStorageAfLo", "vStorageCap")
 .equation_variable[105, ] <- c("eqStorageAfLo", "vStorageNewCap")
 .equation_variable[106, ] <- c("eqStorageAfUp", "vStorageInp")
 .equation_variable[107, ] <- c("eqStorageAfUp", "vStorageOut")
-.equation_variable[108, ] <- c("eqStorageAfUp", "vStorageStore")
+.equation_variable[108, ] <- c("eqStorageAfUp", "vStorageLevel")
 .equation_variable[109, ] <- c("eqStorageAfUp", "vStorageNewCap")
-.equation_variable[110, ] <- c("eqStorageClear", "vStorageStore")
-.equation_variable[111, ] <- c("eqStorageClear", "vStorageCap")
-.equation_variable[112, ] <- c("eqStorageAInp", "vStorageStore")
+.equation_variable[110, ] <- c("eqStorageOutLevel", "vStorageLevel")
+.equation_variable[111, ] <- c("eqStorageOutLevel", "vStorageCap")
+.equation_variable[112, ] <- c("eqStorageAInp", "vStorageLevel")
 .equation_variable[113, ] <- c("eqStorageAInp", "vStorageCap")
 .equation_variable[114, ] <- c("eqStorageAOut", "vStorageOut")
-.equation_variable[115, ] <- c("eqStorageAOut", "vStorageStore")
+.equation_variable[115, ] <- c("eqStorageAOut", "vStorageLevel")
 .equation_variable[116, ] <- c("eqStorageInpUp", "vStorageInp")
 .equation_variable[117, ] <- c("eqStorageInpUp", "vStorageCap")
 .equation_variable[118, ] <- c("eqStorageInpLo", "vStorageInp")
@@ -1484,7 +1484,7 @@
 .equation_variable[136, ] <- c("eqStorageVarom", "vStorageVarom")
 .equation_variable[137, ] <- c("eqStorageVarom", "vStorageInp")
 .equation_variable[138, ] <- c("eqStorageVarom", "vStorageOut")
-.equation_variable[139, ] <- c("eqStorageVarom", "vStorageStore")
+.equation_variable[139, ] <- c("eqStorageVarom", "vStorageLevel")
 .equation_variable[140, ] <- c("eqImportTot", "vImportTot")
 .equation_variable[141, ] <- c("eqImportTot", "vTradeIr")
 .equation_variable[142, ] <- c("eqImportTot", "vImportRow")

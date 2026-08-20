@@ -56,8 +56,8 @@ model_size <- function(scen, top_n = 15L) {
   # --- variable / constraint estimate from gating-map row counts -------------- #
   # Variables are counted PER VARIABLE, from each one's own gating map. Counting
   # per map instead (as this did) adds a map's rows once however many variables
-  # it gates -- and `mvStorageStore` gates three (vStorageInp, vStorageOut,
-  # vStorageStore) while `mvTechRetiredStock` gates two, so a storage-heavy
+  # it gates -- and `mvStorageLevel` gates three (vStorageInp, vStorageOut,
+  # vStorageLevel) while `mvTechRetiredStock` gates two, so a storage-heavy
   # model was understated by a wide margin.
   n_var <- 0L
   for (v in .variables) {

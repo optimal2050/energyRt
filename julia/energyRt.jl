@@ -72,9 +72,9 @@ model = Model();
 @variable(model, vStorageAOut[mvStorageAOut] >= 0);
 @variable(model, vDummyImport[mDummyImport] >= 0);
 @variable(model, vDummyExport[mDummyExport] >= 0);
-@variable(model, vStorageInp[mvStorageStore] >= 0);
-@variable(model, vStorageOut[mvStorageStore] >= 0);
-@variable(model, vStorageStore[mvStorageStore] >= 0);
+@variable(model, vStorageInp[mvStorageLevel] >= 0);
+@variable(model, vStorageOut[mvStorageLevel] >= 0);
+@variable(model, vStorageLevel[mvStorageLevel] >= 0);
 @variable(model, vStorageInv[mStorageNew] >= 0);
 @variable(model, vStorageEac[mStorageEac] >= 0);
 @variable(model, vStorageCap[mStorageSpan] >= 0);
@@ -1924,7 +1924,7 @@ print("eqStorageAInp(stg, comm, region, year, timeslice)...")
                         else
                             pStorageStg2AInpDef
                         end
-                    ) * vStorageStore[(st1, cp, r, y, s)]
+                    ) * vStorageLevel[(st1, cp, r, y, s)]
                 )
             else
                 0
@@ -2013,7 +2013,7 @@ print("eqStorageAOut(stg, comm, region, year, timeslice)...")
                         else
                             pStorageStg2AOutDef
                         end
-                    ) * vStorageStore[(st1, cp, r, y, s)]
+                    ) * vStorageLevel[(st1, cp, r, y, s)]
                 )
             else
                 0
@@ -2087,17 +2087,17 @@ print(
     "
 ",
 )
-# eqStorageStore(stg, comm, region, year, timeslicep, timeslice)$meqStorageStore(stg, comm, region, year, timeslicep, timeslice)
-print("eqStorageStore(stg, comm, region, year, timeslicep, timeslice)...")
+# eqStorageLevel(stg, comm, region, year, timeslicep, timeslice)$meqStorageLevel(stg, comm, region, year, timeslicep, timeslice)
+print("eqStorageLevel(stg, comm, region, year, timeslicep, timeslice)...")
 @constraint(
     model,
-    [(st1, c, r, y, sp, s) in meqStorageStore],
-    vStorageStore[(st1, c, r, y, s)] ==
+    [(st1, c, r, y, sp, s) in meqStorageLevel],
+    vStorageLevel[(st1, c, r, y, s)] ==
     (
-        if haskey(pStorageCharge, (st1, c, r, y, s))
-            pStorageCharge[(st1, c, r, y, s)]
+        if haskey(pStorageStartLevel, (st1, c, r, y, s))
+            pStorageStartLevel[(st1, c, r, y, s)]
         else
-            pStorageChargeDef
+            pStorageStartLevelDef
         end
     ) +
     (
@@ -2136,7 +2136,7 @@ print("eqStorageStore(stg, comm, region, year, timeslicep, timeslice)...")
                 pTimesliceShareDef
             end
         ))
-    ) * vStorageStore[(st1, c, r, y, sp)] -
+    ) * vStorageLevel[(st1, c, r, y, sp)] -
     (vStorageOut[(st1, c, r, y, sp)]) / ((
         if haskey(pStorageOutEff, (st1, c, r, y, sp))
             pStorageOutEff[(st1, c, r, y, sp)]
@@ -2156,7 +2156,7 @@ print("eqStorageAfLo(stg, comm, region, year, timeslice)...")
 @constraint(
     model,
     [(st1, c, r, y, s) in meqStorageAfLo],
-    vStorageStore[(st1, c, r, y, s)] >=
+    vStorageLevel[(st1, c, r, y, s)] >=
     (
         if haskey(pStorageAfLo, (st1, r, y, s))
             pStorageAfLo[(st1, r, y, s)]
@@ -2165,10 +2165,10 @@ print("eqStorageAfLo(stg, comm, region, year, timeslice)...")
         end
     ) *
     (
-        if haskey(pStorageCap2stg, (st1))
-            pStorageCap2stg[(st1)]
+        if haskey(pStorageDuration, (st1))
+            pStorageDuration[(st1)]
         else
-            pStorageCap2stgDef
+            pStorageDurationDef
         end
     ) *
     vStorageCap[(st1, r, y)] *
@@ -2199,7 +2199,7 @@ print("eqStorageAfUp(stg, comm, region, year, timeslice)...")
 @constraint(
     model,
     [(st1, c, r, y, s) in meqStorageAfUp],
-    vStorageStore[(st1, c, r, y, s)] <=
+    vStorageLevel[(st1, c, r, y, s)] <=
     (
         if haskey(pStorageAfUp, (st1, r, y, s))
             pStorageAfUp[(st1, r, y, s)]
@@ -2208,10 +2208,10 @@ print("eqStorageAfUp(stg, comm, region, year, timeslice)...")
         end
     ) *
     (
-        if haskey(pStorageCap2stg, (st1))
-            pStorageCap2stg[(st1)]
+        if haskey(pStorageDuration, (st1))
+            pStorageDuration[(st1)]
         else
-            pStorageCap2stgDef
+            pStorageDurationDef
         end
     ) *
     vStorageCap[(st1, r, y)] *
@@ -2237,18 +2237,18 @@ print(
     "
 ",
 )
-# eqStorageClear(stg, comm, region, year, timeslice)$mvStorageStore(stg, comm, region, year, timeslice)
-print("eqStorageClear(stg, comm, region, year, timeslice)...")
+# eqStorageOutLevel(stg, comm, region, year, timeslice)$mvStorageLevel(stg, comm, region, year, timeslice)
+print("eqStorageOutLevel(stg, comm, region, year, timeslice)...")
 @constraint(
     model,
-    [(st1, c, r, y, s) in mvStorageStore],
+    [(st1, c, r, y, s) in mvStorageLevel],
     (vStorageOut[(st1, c, r, y, s)]) / ((
         if haskey(pStorageOutEff, (st1, c, r, y, s))
             pStorageOutEff[(st1, c, r, y, s)]
         else
             pStorageOutEffDef
         end
-    )) <= vStorageStore[(st1, c, r, y, s)]
+    )) <= vStorageLevel[(st1, c, r, y, s)]
 );
 print(
     " ",
@@ -2686,7 +2686,7 @@ print("eqStorageVarom(stg, region, year)...")
                     pTimesliceWeightDef
                 end
             ) *
-            vStorageStore[(st1, c, r, y, s)] for s in timeslice if (c, s) in mCommTimeslice
+            vStorageLevel[(st1, c, r, y, s)] for s in timeslice if (c, s) in mCommTimeslice
         ) for c in comm if (st1, c) in mStorageComm
     )
 );
@@ -3825,7 +3825,7 @@ print("eqStorageInpTot(comm, region, year, timeslice)...")
     [(c, r, y, s) in mStorageInpTot],
     vStorageInpTot[(c, r, y, s)] ==
     sum(
-        vStorageInp[(st1, c, r, y, s)] for st1 in stg if (st1, c, r, y, s) in mvStorageStore
+        vStorageInp[(st1, c, r, y, s)] for st1 in stg if (st1, c, r, y, s) in mvStorageLevel
     ) + sum(
         vStorageAInp[(st1, c, r, y, s)] for st1 in stg if (st1, c, r, y, s) in mvStorageAInp
     )
@@ -3843,7 +3843,7 @@ print("eqStorageOutTot(comm, region, year, timeslice)...")
     [(c, r, y, s) in mStorageOutTot],
     vStorageOutTot[(c, r, y, s)] ==
     sum(
-        vStorageOut[(st1, c, r, y, s)] for st1 in stg if (st1, c, r, y, s) in mvStorageStore
+        vStorageOut[(st1, c, r, y, s)] for st1 in stg if (st1, c, r, y, s) in mvStorageLevel
     ) + sum(
         vStorageAOut[(st1, c, r, y, s)] for st1 in stg if (st1, c, r, y, s) in mvStorageAOut
     )

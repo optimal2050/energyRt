@@ -54,7 +54,7 @@ eac_pair <- function(class = c("technology", "storage", "trade"),
         capacity = data.frame(cap.fx = cap)),
       storage = newStorage(
         "SEAC", commodity = "ELC",
-        invcost = cost_df, vintage = vin, cap2stg = 4,
+        invcost = cost_df, vintage = vin, duration = 4,
         capacity = data.frame(cap.fx = cap)),
       trade = newTrade(
         "TEAC", commodity = "ELC",

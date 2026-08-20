@@ -13,7 +13,7 @@
 #' @slot cluster `r get_slot_doc("storage", "cluster")`
 #' @slot vintage `r get_slot_doc("storage", "vintage")`
 #' @slot capacity `r get_slot_doc("storage", "capacity")`
-#' @slot charge `r get_slot_doc("storage", "charge")`
+#' @slot startLevel `r get_slot_doc("storage", "startLevel")`
 #' @slot seff `r get_slot_doc("storage", "seff")`
 #' @slot af `r get_slot_doc("storage", "af")`
 #' @slot aeff `r get_slot_doc("storage", "aeff")`
@@ -21,7 +21,7 @@
 #' @slot varom `r get_slot_doc("storage", "varom")`
 #' @slot invcost `r get_slot_doc("storage", "invcost")`
 #' @slot fullYear `r get_slot_doc("storage", "fullYear")`
-#' @slot cap2stg `r get_slot_doc("storage", "cap2stg")`
+#' @slot duration `r get_slot_doc("storage", "duration")`
 #' @slot weather `r get_slot_doc("storage", "weather")`
 #' @slot optimizeRetirement `r get_slot_doc("storage", "optimizeRetirement")`
 #' @slot misc `r get_slot_doc("storage", "misc")`
@@ -43,7 +43,7 @@ setClass("storage",
     vintage = "data.frame",
     # stock = "data.frame", #
     capacity = "data.frame", #
-    charge = "data.frame", #
+    startLevel = "data.frame", #
     seff = "data.frame", #
     af = "data.frame", # Availability of the resource with prices
     aeff = "data.frame", #  Commodity efficiency
@@ -51,7 +51,7 @@ setClass("storage",
     varom = "data.frame", #
     invcost = "data.frame",
     fullYear = "logical",
-    cap2stg = "data.frame", # energy-to-power ratio; varies by cluster (duration)
+    duration = "data.frame", # energy-to-power ratio; varies by cluster (duration)
     weather = "data.frame", # weather condisions multiplier
     optimizeRetirement = "logical",
     misc = "list" #
@@ -62,7 +62,7 @@ setClass("storage",
     commodity = "",
     # Cluster declaration -- see the `technology` class for the full rationale.
     # For storage the motivating case is site-constrained capacity: pumped-hydro
-    # head classes, CAES caverns, or duration classes via per-cluster `cap2stg`.
+    # head classes, CAES caverns, or duration classes via per-cluster `duration`.
     cluster = data.frame(
       cluster = character(),
       desc = character(),
@@ -83,13 +83,17 @@ setClass("storage",
       olife = integer(),
       stringsAsFactors = FALSE
     ),
-    charge = data.frame(
+    # Energy added to the level ONCE PER CYCLE, at the first timeslice of the
+    # cycle. There is deliberately NO `timeslice` column: the slice is derived
+    # from the calendar and `@fullYear`, which is what removes the wildcard trap
+    # the old per-timeslice `@charge` had. Which cycle depends on `@fullYear`:
+    # once a year when TRUE, once per parent timeframe when FALSE.
+    startLevel = data.frame(
       vintage = character(),
       cluster = character(),
       region = character(),
       year = integer(),
-      timeslice = character(),
-      charge = numeric(),
+      startLevel = numeric(),
       stringsAsFactors = FALSE
     ),
     seff = data.frame(
@@ -204,14 +208,14 @@ setClass("storage",
     ),
     # Energy-to-power ratio. A data.frame (not a scalar) so it can differ by
     # cluster: 1h / 4h / 8h duration classes of the same battery. The scalar
-    # shorthand `cap2stg = 4` still works via `.data2slots()`, because the slot
+    # shorthand `duration = 4` still works via `.data2slots()`, because the slot
     # carries a column of its own name.
-    cap2stg = data.frame(
+    duration = data.frame(
       vintage = character(),
       cluster = character(),
       region = character(),
       year = integer(),
-      cap2stg = numeric(),
+      duration = numeric(),
       stringsAsFactors = FALSE
     ),
     fullYear = TRUE,
@@ -241,6 +245,99 @@ setMethod("initialize", "storage", function(.Object, ...) {
   .Object
 })
 
+# `@charge` -> `@startLevel` (v0.80) ------------------------------------------
+#
+# Renamed twice, and the second rename changed the semantics deliberately.
+#
+# `@charge` was documented as "pre-charged level at the beginning of the
+# operational cycle" but was implemented as an additive term in the level
+# balance at EVERY timeslice the user gave a row for. Since the balance is
+# cyclic there is no "beginning", so a row with no `timeslice` was broadcast to
+# every slice by the usual NA wildcard -- 8760 unpriced injections on an hourly
+# calendar where one was meant. That was the form the shipped example used.
+#
+# `@startLevel` keeps the additive behaviour but takes the slice out of the
+# user's hands: it is added ONCE PER CYCLE at the first timeslice of the cycle,
+# derived from the calendar and `@fullYear`. Dropping the `timeslice` column is
+# what removes the wildcard trap -- there is no longer anything to leave unset.
+#
+# It is free to the model, by design and unavoidably: a store that ends a cycle
+# below where it started has consumed an endowment nobody paid for. PyPSA has
+# the same property (`state_of_charge_initial`). Being additive, the level at
+# the first slice is `startLevel + carried-over`, i.e. >= startLevel, not equal
+# to it; the model may end the cycle empty and make it exact.
+#
+# Hydro inflow does NOT belong here -- use a `supply` (weather-driven, with
+# `ava.up` so spilling is free) feeding the storage.
+.storage_deprecated_args <- function(args, name = "") {
+  # `newStorage()` defaults both formals to `data.frame()`, so "supplied" has to
+  # mean "carries rows" -- `!is.null()` alone is TRUE for every call. Same
+  # reasoning as the `nonempty` filter in `.tech_lifespan_args()`.
+  .given <- function(x) {
+    if (is.null(x)) return(FALSE)
+    if (is.data.frame(x)) return(nrow(x) > 0L)
+    if (is.list(x)) return(length(x) > 0L)
+    length(x) > 0L
+  }
+  # `charge`/`inflow` -> `startLevel` (v0.80). The value column is renamed and any
+  # `timeslice` column is dropped with a warning: the slice is now derived, so a
+  # user-supplied one would be silently ignored otherwise.
+  for (old_nm in c("charge", "inflow")) {
+    if (!.given(args[[old_nm]])) { args[[old_nm]] <- NULL; next }
+    if (.given(args$startLevel)) {
+      stop("Supply either `startLevel` or the deprecated `", old_nm,
+           "`, not both. `", old_nm, "` was renamed to `startLevel`.")
+    }
+    .en_deprecate_once(
+      paste0("storage@", old_nm),
+      paste0("`storage@", old_nm, "` was renamed to `@startLevel` in energyRt ",
+             "v0.80 and is now added ONCE PER CYCLE at the first timeslice, not ",
+             "at every timeslice given. For a weather-driven inflow profile use ",
+             "a `supply` feeding the storage. This warning is shown once per ",
+             "session.")
+    )
+    x <- args[[old_nm]]
+    if (is.data.frame(x) || is.list(x)) {
+      if (old_nm %in% names(x)) names(x)[names(x) == old_nm] <- "startLevel"
+      if ("timeslice" %in% names(x)) {
+        warning("storage", if (nzchar(name)) paste0(" '", name, "'") else "",
+                ": the `timeslice` column of `@", old_nm, "` is ignored -- ",
+                "`@startLevel` is applied at the first timeslice of each cycle.",
+                call. = FALSE)
+        x[["timeslice"]] <- NULL
+      }
+    }
+    args$startLevel <- x
+    args[[old_nm]] <- NULL
+  }
+
+  # `cap2stg` -> `duration` (v0.80). Same number, clearer name: it is the ratio of
+  # storing capacity to (dis)charging capacity, i.e. how long the store runs at
+  # its rated output. `maps.R` had already flagged the rename ("to be renamed to
+  # duration"). The column keeps the slot's own name so the `duration = 6` scalar
+  # shorthand keeps working through `.data2slots()`.
+  if (.given(args$cap2stg)) {
+    if (.given(args$duration)) {
+      stop("Supply either `duration` or the deprecated `cap2stg`, not both. ",
+           "`cap2stg` was renamed to `duration` in energyRt v0.80.")
+    }
+    .en_deprecate_once(
+      "storage@cap2stg",
+      paste0("`storage@cap2stg` was renamed to `@duration` in energyRt v0.80; the ",
+             "supplied `cap2stg` is accepted and renamed. Please update your data. ",
+             "This warning is shown once per session.")
+    )
+    x <- args$cap2stg
+    if ((is.data.frame(x) || is.list(x)) && "cap2stg" %in% names(x)) {
+      names(x)[names(x) == "cap2stg"] <- "duration"
+    }
+    args$duration <- x
+  }
+  args$cap2stg <- NULL
+
+  args
+}
+
 #' Create new storage object
 #'
 #' @description Storage type of technological processes with accumulating capacity of a commodity.
@@ -267,7 +364,7 @@ setMethod("initialize", "storage", function(.Object, ...) {
 #' @param start deprecated, use the `start` column of `vintage`.
 #' @param end deprecated, use the `end` column of `vintage`.
 #' @param olife deprecated, use the `olife` column of `vintage`.
-#' @param charge `r get_slot_doc("storage", "charge")`
+#' @param startLevel `r get_slot_doc("storage", "startLevel")`
 #' @param seff `r get_slot_doc("storage", "seff")`
 #' @param aeff `r get_slot_doc("storage", "aeff")`
 #' @param af `r get_slot_doc("storage", "af")`
@@ -275,7 +372,7 @@ setMethod("initialize", "storage", function(.Object, ...) {
 #' @param varom `r get_slot_doc("storage", "varom")`
 #' @param invcost `r get_slot_doc("storage", "invcost")`
 #' @param capacity `r get_slot_doc("storage", "capacity")`
-#' @param cap2stg `r get_slot_doc("storage", "cap2stg")`
+#' @param duration `r get_slot_doc("storage", "duration")`
 #' @param fullYear `r get_slot_doc("storage", "fullYear")`
 #' @param weather `r get_slot_doc("storage", "weather")`
 #' @param optimizeRetirement `r get_slot_doc("storage", "optimizeRetirement")`
@@ -295,11 +392,10 @@ setMethod("initialize", "storage", function(.Object, ...) {
 #'   start = data.frame(region = "R1", start = 0),
 #'   end = data.frame(region = "R1", end = 1),
 #'   olife = data.frame(region = "R1", olife = 20),
-#'   charge = data.frame(
+#'   startLevel = data.frame(
 #'     # region = "R1",
 #'     year = 2020,
-#'     # timeslice = "HOUR",
-#'     charge = 0.1
+#'     startLevel = 0.1
 #'   ),
 #'   seff = data.frame(
 #'     # region = "R1",
@@ -347,7 +443,7 @@ setMethod("initialize", "storage", function(.Object, ...) {
 #'     ncap.up = 0.9, ncap.fx = 0.9, ret.lo = 0.9, ret.up = 0.9,
 #'     ret.fx = 0.9
 #'   ),
-#'   cap2stg = 1,
+#'   duration = 1,
 #'   fullYear = TRUE,
 #'   weather = data.frame(
 #'     weather = "sunny",
@@ -369,7 +465,7 @@ newStorage <- function(
     start = data.frame(),
     end = data.frame(),
     olife = data.frame(),
-    charge = data.frame(),
+    startLevel = data.frame(),
     seff = data.frame(),
     aeff = data.frame(),
     af = data.frame(),
@@ -379,7 +475,7 @@ newStorage <- function(
     capacity = data.frame(),
     cluster = data.frame(),
     vintage = data.frame(),
-    cap2stg = 1,
+    duration = 1,
     fullYear = TRUE,
     weather = data.frame(),
     optimizeRetirement = FALSE,
@@ -396,7 +492,7 @@ newStorage <- function(
     start = start,
     end = end,
     olife = olife,
-    charge = charge,
+    startLevel = startLevel,
     seff = seff,
     aeff = aeff,
     af = af,
@@ -404,7 +500,7 @@ newStorage <- function(
     varom = varom,
     invcost = invcost,
     capacity = capacity,
-    cap2stg = cap2stg,
+    duration = duration,
     fullYear = fullYear,
     weather = weather,
     optimizeRetirement = optimizeRetirement,
@@ -412,6 +508,8 @@ newStorage <- function(
     ...)
   # fold the deprecated `start`/`end`/`olife` arguments into `vintage`
   args <- .tech_lifespan_args(args)
+  # fold the deprecated `charge` into `inflow`, and warn on a wildcard injection
+  args <- .storage_deprecated_args(args, name)
   do.call(.data2slots, c(list("storage", name), args))
 }
 
@@ -429,5 +527,6 @@ setMethod("update", signature(object = "storage"),
   # fold the deprecated `start`/`end`/`olife` arguments into `vintage` before
   # they reach `.data2slots()`, which no longer knows those slot names
   args <- .tech_lifespan_args(list(...))
+  args <- .storage_deprecated_args(args, tryCatch(object@name, error = function(e) ""))
   do.call(.data2slots, c(list("storage", object), args))
 })

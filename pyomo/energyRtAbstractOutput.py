@@ -54,7 +54,7 @@ head_val = {
     "vDummyExport": "comm,region,year,timeslice,value",
     "vStorageInp": "stg,comm,region,year,timeslice,value",
     "vStorageOut": "stg,comm,region,year,timeslice,value",
-    "vStorageStore": "stg,comm,region,year,timeslice,value",
+    "vStorageLevel": "stg,comm,region,year,timeslice,value",
     "vStorageInv": "stg,region,year,value",
     "vStorageEac": "stg,region,year,value",
     "vStorageCap": "stg,region,year,value",

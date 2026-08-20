@@ -78,7 +78,7 @@ map_mSupAva <- function(scen, fmp) {
 # -- storage core ---------------------------------------------------------- #
 # Unfiltered storage store intermediate (stg span x comm x timeslice). The aux maps
 # below derive their base from THIS (unfiltered) frame, not the comm-filtered
-# persisted mvStorageStore, so it is recomputed here.
+# persisted mvStorageLevel, so it is recomputed here.
 .filter_storage_store <- function(scen) {
   stg_span  <- .gds(scen, "mStorageSpan")
   stg_comm  <- .gds(scen, "mStorageComm")
@@ -87,10 +87,10 @@ map_mSupAva <- function(scen, fmp) {
   as.data.frame(merge0(as.data.frame(merge0(stg_span, stg_comm)), stg_timeslice))
 }
 
-map_mvStorageStore <- function(scen, fmp) {
+map_mvStorageLevel <- function(scen, fmp) {
   store <- .filter_storage_store(scen)
   if (is.null(store)) return(scen)
-  .set_map(scen, "mvStorageStore", .filt_cr(scen, store), fmp)
+  .set_map(scen, "mvStorageLevel", .filt_cr(scen, store), fmp)
 }
 
 map_mvStorageAInp <- function(scen, fmp) {
@@ -192,9 +192,9 @@ map_mSupOutTot <- function(scen, fmp) {
 }
 
 # mStorageInpTot / mStorageOutTot: legacy uses the SAME frame for both =
-# reduce_sect(rbind(mvStorageAInp[,-1], mvStorageStore[,-1])).
+# reduce_sect(rbind(mvStorageAInp[,-1], mvStorageLevel[,-1])).
 .filter_storage_tot <- function(scen, name, fmp) {
-  ai <- .gds(scen, "mvStorageAInp"); st <- .gds(scen, "mvStorageStore")
+  ai <- .gds(scen, "mvStorageAInp"); st <- .gds(scen, "mvStorageLevel")
   if (is.null(ai) && is.null(st)) return(scen)
   pieces <- lapply(Filter(Negate(is.null), list(ai, st)),
                    function(x) x[, -1, drop = FALSE])
@@ -716,7 +716,7 @@ map_mvBalance <- function(scen, fmp)
   mvTechAInp     = map_mvTechAInp,
   mvTechAOut     = map_mvTechAOut,
   mSupAva        = map_mSupAva,
-  mvStorageStore = map_mvStorageStore,
+  mvStorageLevel = map_mvStorageLevel,
   mvStorageAInp  = map_mvStorageAInp,
   mvStorageAOut  = map_mvStorageAOut,
   # derived totals

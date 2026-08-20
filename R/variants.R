@@ -51,7 +51,7 @@
     key = "stg",
     dims = c("vintage", "cluster"),
     slots = c("vintage", "capacity", "invcost", "fixom", "varom",
-              "af", "seff", "charge", "aeff", "weather", "cap2stg"),
+              "af", "seff", "charge", "aeff", "weather", "duration"),
     bound_var = list(cap = "vStorageCap", ncap = "vStorageNewCap"),
     bound_dims = c("region", "year")
   ),

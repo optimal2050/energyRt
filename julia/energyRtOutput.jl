@@ -804,7 +804,7 @@ close(fvDummyExport);
 
 fvStorageInp = open("output/vStorageInp.csv", "w");
 println(fvStorageInp, "stg,comm,region,year,timeslice,value");
-for (st1, c, r, y, s) in mvStorageStore
+for (st1, c, r, y, s) in mvStorageLevel
     if JuMP.value(vStorageInp[(st1, c, r, y, s)]) != 0
         println(
             fvStorageInp,
@@ -826,7 +826,7 @@ close(fvStorageInp);
 
 fvStorageOut = open("output/vStorageOut.csv", "w");
 println(fvStorageOut, "stg,comm,region,year,timeslice,value");
-for (st1, c, r, y, s) in mvStorageStore
+for (st1, c, r, y, s) in mvStorageLevel
     if JuMP.value(vStorageOut[(st1, c, r, y, s)]) != 0
         println(
             fvStorageOut,
@@ -846,12 +846,12 @@ for (st1, c, r, y, s) in mvStorageStore
 end;
 close(fvStorageOut);
 
-fvStorageStore = open("output/vStorageStore.csv", "w");
-println(fvStorageStore, "stg,comm,region,year,timeslice,value");
-for (st1, c, r, y, s) in mvStorageStore
-    if JuMP.value(vStorageStore[(st1, c, r, y, s)]) != 0
+fvStorageLevel = open("output/vStorageLevel.csv", "w");
+println(fvStorageLevel, "stg,comm,region,year,timeslice,value");
+for (st1, c, r, y, s) in mvStorageLevel
+    if JuMP.value(vStorageLevel[(st1, c, r, y, s)]) != 0
         println(
-            fvStorageStore,
+            fvStorageLevel,
             st1,
             ",",
             c,
@@ -862,11 +862,11 @@ for (st1, c, r, y, s) in mvStorageStore
             ",",
             s,
             ",",
-            JuMP.value(vStorageStore[(st1, c, r, y, s)]),
+            JuMP.value(vStorageLevel[(st1, c, r, y, s)]),
         )
     end
 end;
-close(fvStorageStore);
+close(fvStorageLevel);
 
 fvStorageInv = open("output/vStorageInv.csv", "w");
 println(fvStorageInv, "stg,region,year,value");
@@ -1237,7 +1237,7 @@ println(vrb_list, "vDummyImport");
 println(vrb_list, "vDummyExport");
 println(vrb_list, "vStorageInp");
 println(vrb_list, "vStorageOut");
-println(vrb_list, "vStorageStore");
+println(vrb_list, "vStorageLevel");
 println(vrb_list, "vStorageInv");
 println(vrb_list, "vStorageEac");
 println(vrb_list, "vStorageCap");

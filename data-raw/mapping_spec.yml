@@ -349,8 +349,8 @@ meqStorageOutUp:
   join_keys: []
   filter_by: []
   depends_on: []
-meqStorageStore:
-  name: meqStorageStore
+meqStorageLevel:
+  name: meqStorageLevel
   dims:
   - stg
   - comm
@@ -359,7 +359,7 @@ meqStorageStore:
   - timeslicep
   - timeslice
   gates_var: []
-  gates_eq: eqStorageStore
+  gates_eq: eqStorageLevel
   recipe: constraint
   source: constraint
   predicate: .na
@@ -3236,8 +3236,8 @@ mvStorageAOut:
   filter_by:
   - mCommReg
   depends_on: []
-mvStorageStore:
-  name: mvStorageStore
+mvStorageLevel:
+  name: mvStorageLevel
   dims:
   - stg
   - comm
@@ -3247,8 +3247,8 @@ mvStorageStore:
   gates_var:
   - vStorageInp
   - vStorageOut
-  - vStorageStore
-  gates_eq: eqStorageClear
+  - vStorageLevel
+  gates_eq: eqStorageOutLevel
   recipe: filter
   source: derived
   predicate: .na

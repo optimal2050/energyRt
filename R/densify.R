@@ -31,15 +31,15 @@
   pTechCinp2use  = "mvTechInp",
   pTechUse2cact  = "mvTechOut",        # use->activity domain is the OUTPUT comm
   pTechCact2cout = "mvTechOut",
-  pStorageAf     = "mvStorageStore",
+  pStorageAf     = "mvStorageLevel",
   # combustion factor (defVal 1) is read only on the tech input-commodity set;
   # GAMS has no native default, so absent tuples read as 0 and zero out all
   # fuel-combustion emissions. Materialise 1.0 over mTechInpComm (explicit 0s,
   # e.g. non-combusting feedstock, are preserved by .densify_one).
   pTechEmisComm  = "mTechInpComm",
-  pStorageInpEff = "mvStorageStore",
-  pStorageOutEff = "mvStorageStore",
-  pStorageStgEff = "mvStorageStore",
+  pStorageInpEff = "mvStorageLevel",
+  pStorageOutEff = "mvStorageLevel",
+  pStorageStgEff = "mvStorageLevel",
   # weather coefficients: domain is the (empty-when-unused) weather link map, so a
   # model that does not use a given weather bound densifies to nothing.
   pTechWeatherAf      = "mTechWeatherAfUp",

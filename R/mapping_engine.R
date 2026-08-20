@@ -927,19 +927,19 @@ recipe_value <- function(scen, names, fmp) {
   mTechRetUp    = list(domain = "mTechSpan", source = "pTechRet", types = "up",
                        gate = "optimizeRetirement"),
 
-  # C5 storage activity bounds (the storage balance map meqStorageStore is
-  # bespoke -- see `.build_meqStorageStore`).
-  meqStorageAfLo  = list(domain = "mvStorageStore", source = "pStorageAf",
+  # C5 storage activity bounds (the storage balance map meqStorageLevel is
+  # bespoke -- see `.build_meqStorageLevel`).
+  meqStorageAfLo  = list(domain = "mvStorageLevel", source = "pStorageAf",
                          types = "lo", drop = "lo"),
-  meqStorageAfUp  = list(domain = "mvStorageStore", source = "pStorageAf",
+  meqStorageAfUp  = list(domain = "mvStorageLevel", source = "pStorageAf",
                          types = "up", drop = "up", structural = TRUE),
-  meqStorageInpLo = list(domain = "mvStorageStore", source = "pStorageCinp",
+  meqStorageInpLo = list(domain = "mvStorageLevel", source = "pStorageCinp",
                          types = "lo", drop = "lo"),
-  meqStorageInpUp = list(domain = "mvStorageStore", source = "pStorageCinp",
+  meqStorageInpUp = list(domain = "mvStorageLevel", source = "pStorageCinp",
                          types = "up", drop = "up"),
-  meqStorageOutLo = list(domain = "mvStorageStore", source = "pStorageCout",
+  meqStorageOutLo = list(domain = "mvStorageLevel", source = "pStorageCout",
                          types = "lo", drop = "lo"),
-  meqStorageOutUp = list(domain = "mvStorageStore", source = "pStorageCout",
+  meqStorageOutUp = list(domain = "mvStorageLevel", source = "pStorageCout",
                          types = "up", drop = "up"),
 
   # C6 storage capacity / retirement bounds.
@@ -1061,9 +1061,9 @@ recipe_value <- function(scen, names, fmp) {
   .set_map(scen, name, df, fmp)
 }
 
-# meqStorageStore: storage-balance index. Each storing timeslice is paired with its
+# meqStorageLevel: storage-balance index. Each storing timeslice is paired with its
 # PRECEDING timeslice (the inter-temporal storage link). Mirrors the legacy join in
-# obj2modInp.R: mvStorageStore.timeslice == mTimesliceNext.timeslicep, taking mTimesliceNext's
+# obj2modInp.R: mvStorageLevel.timeslice == mTimesliceNext.timeslicep, taking mTimesliceNext's
 # own timeslice as the preceding timeslice (renamed `timeslicep`).
 #
 # POLARITY WARNING. `timeslicep` means the NEXT timeslice in mTimesliceNext /
@@ -1090,11 +1090,11 @@ recipe_value <- function(scen, names, fmp) {
 # in all four backends but referenced by nothing. The archived GAMS template did honour it
 # (gams/.archive/energyRt - 202308.gms:1120-1121). The successor relation lives entirely in
 # this map, so restoring it needs no template change.
-.build_meqStorageStore <- function(scen, fmp) {
-  name <- "meqStorageStore"
+.build_meqStorageLevel <- function(scen, fmp) {
+  name <- "meqStorageLevel"
   p <- scen@modInp@parameters[[name]]
   if (is.null(p)) return(scen)
-  store_par <- scen@modInp@parameters[["mvStorageStore"]]
+  store_par <- scen@modInp@parameters[["mvStorageLevel"]]
   if (is.null(store_par)) return(scen)
   store <- get_data_slot(store_par)
   if (is.null(store) || nrow(store) == 0) return(scen)
@@ -1427,8 +1427,8 @@ recipe_constraint <- function(scen, names, fmp) {
   }
 
   # 2. Bespoke maps.
-  if ("meqStorageStore" %in% names) {
-    scen <- .build_meqStorageStore(scen, fmp)
+  if ("meqStorageLevel" %in% names) {
+    scen <- .build_meqStorageLevel(scen, fmp)
   }
   if ("meqTradeCapFlow" %in% names) {
     scen <- .build_meqTradeCapFlow(scen, fmp)
@@ -1446,7 +1446,7 @@ recipe_constraint <- function(scen, names, fmp) {
 
   # 3. Report any remaining maps not yet implemented in the engine.
   handled <- c(
-    names(.constraint_map_def), "meqStorageStore",
+    names(.constraint_map_def), "meqStorageLevel",
     "meqTradeCapFlow", .tech_group_maps, .ramp_maps,
     .constraint_maps_built_in_filter, .constraint_maps_built_elsewhere,
     .constraint_maps_empty_legacy

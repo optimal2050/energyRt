@@ -799,7 +799,7 @@ f.close()
 flist.write("vStorageInp\n")
 f = open("output/vStorageInp.csv", "w")
 f.write("stg,comm,region,year,timeslice,value\n")
-for st1, c, r, y, s in mvStorageStore:
+for st1, c, r, y, s in mvStorageLevel:
     if model.vStorageInp[(st1, c, r, y, s)].value != 0:
         f.write(
             str(st1)
@@ -819,7 +819,7 @@ f.close()
 flist.write("vStorageOut\n")
 f = open("output/vStorageOut.csv", "w")
 f.write("stg,comm,region,year,timeslice,value\n")
-for st1, c, r, y, s in mvStorageStore:
+for st1, c, r, y, s in mvStorageLevel:
     if model.vStorageOut[(st1, c, r, y, s)].value != 0:
         f.write(
             str(st1)
@@ -836,11 +836,11 @@ for st1, c, r, y, s in mvStorageStore:
             + "\n"
         )
 f.close()
-flist.write("vStorageStore\n")
-f = open("output/vStorageStore.csv", "w")
+flist.write("vStorageLevel\n")
+f = open("output/vStorageLevel.csv", "w")
 f.write("stg,comm,region,year,timeslice,value\n")
-for st1, c, r, y, s in mvStorageStore:
-    if model.vStorageStore[(st1, c, r, y, s)].value != 0:
+for st1, c, r, y, s in mvStorageLevel:
+    if model.vStorageLevel[(st1, c, r, y, s)].value != 0:
         f.write(
             str(st1)
             + ","
@@ -852,7 +852,7 @@ for st1, c, r, y, s in mvStorageStore:
             + ","
             + str(s)
             + ","
-            + str(model.vStorageStore[(st1, c, r, y, s)].value)
+            + str(model.vStorageLevel[(st1, c, r, y, s)].value)
             + "\n"
         )
 f.close()

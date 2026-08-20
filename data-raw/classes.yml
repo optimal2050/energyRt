@@ -845,7 +845,7 @@ class:
         Declaration of the storage clusters -- parallel sub-processes of the same
         storage with their own capacity, availability and costs. The motivating
         cases are site-constrained storage (pumped-hydro head classes, CAES
-        caverns) and duration classes via a per-cluster `cap2stg`. Optional: when
+        caverns) and duration classes via a per-cluster `duration`. Optional: when
         empty, cluster labels are harvested from the other slots; when populated
         it is authoritative and an undeclared label raises an error.
       columns:
@@ -898,9 +898,29 @@ class:
         unit:
           type: character
           description: Unit of the auxiliary commodity.
-    charge:
+    startLevel:
       type: data.frame
-      description: Pre-charged level at the beginning of the operational cycle.
+      description: >
+        Energy added to the storage level ONCE PER CYCLE, at the first timeslice
+        of the cycle. There is deliberately no `timeslice` column: the slice is
+        derived from the calendar and `fullYear`, so it cannot be left unset and
+        broadcast to every timeslice the way the old `charge` slot could.
+        Which cycle depends on `fullYear`: once a year when TRUE, once per parent
+        timeframe when FALSE.
+        The value is ANNUAL. When the cycle is shorter than a year each cycle
+        receives its own SHARE of it -- 365 daily cycles get 1/365 each -- so the
+        annual endowment is the same however the cycle closes. A calendar covering
+        part of a year endows that fraction, consistently.
+        It is FREE to the model, by design and unavoidably -- a store that ends a
+        cycle below where it started has consumed an endowment nobody paid for.
+        PyPSA's `state_of_charge_initial` has the same property.
+        Being additive, the level at the first timeslice is `startLevel` PLUS
+        whatever carried over from the previous cycle, i.e. at least `startLevel`
+        rather than exactly it; the model may end the cycle empty to make it exact.
+        Renamed from `charge` (via `inflow`) in v0.80; both are still accepted
+        with a warning, and any `timeslice` column they carried is dropped.
+        NOTE hydro inflow does NOT belong here -- use a weather-driven `supply`
+        (with `ava.up`, so spilling is free) feeding the storage.
       columns:
         vintage:
           type: character
@@ -914,12 +934,9 @@ class:
         year:
           type: integer
           description: Year to apply the parameter, NA for every year.
-        timeslice:
-          type: character
-          description: Time timeslice for which the charged level will be specified.
-        charge:
+        startLevel:
           type: numeric
-          description: Pre-charged or targeted level at the specified timeslice.
+          description: Energy added to the level at the first timeslice of each cycle.
     seff:
       type: data.frame
       description: Storage efficiency parameters.
@@ -1159,13 +1176,16 @@ class:
     region:
       type: character
       description: Region where the storage technology exists or can be installed.
-    cap2stg:
+    duration:
       type: data.frame
-      description: >-
-        Charging and discharging capacity to the storing capacity inverse ratio,
-        i.e. the storage duration. A data.frame rather than a scalar so it can
-        differ by cluster -- 1h / 4h / 8h duration classes of the same storage.
-        A bare scalar (`cap2stg = 4`) is still accepted.
+      description: >
+        How long the store can run at its rated output: the ratio of storing
+        capacity to (dis)charging capacity. `duration = 6` on an hourly calendar
+        is a 6-hour store. Renamed from `cap2stg` in v0.80, which is still
+        accepted with a warning.
+        NOTE the parameter is currently indexed by storage only, so the `region`
+        and `year` columns below are silently dropped; and it is a fixed
+        coefficient, not a bound. Both are addressed by the storage-parts work.
       columns:
         vintage:
           type: character
@@ -1179,7 +1199,7 @@ class:
         year:
           type: integer
           description: Year to apply the parameter, NA for every year.
-        cap2stg:
+        duration:
           type: numeric
           description: Capacity-to-storage ratio (storage duration).
     weather:

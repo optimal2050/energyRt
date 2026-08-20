@@ -67,7 +67,7 @@ vStorageOutTot:      {role: source,   unit: commodity}
 # The storage LEVEL: a snapshot, not a flow. Summing it over timeslices is
 # meaningless, which is what `role: stock` encodes (it replaces the hard-coded
 # `.timeframe_state_vars` in get_data.R).
-vStorageStore:       {role: stock,    unit: commodity}
+vStorageLevel:       {role: stock,    unit: commodity}
 vStorageVarom:       {role: cost,     unit: currency}
 vSubsCost:           {role: cost,     unit: currency}
 vSupCost:            {role: cost,     unit: currency}

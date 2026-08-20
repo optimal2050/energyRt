@@ -169,13 +169,13 @@ model.vDummyExport = Var(
     model.mDummyExport, domain=pyo.NonNegativeReals, doc="Dummy export (for debugging)"
 )
 model.vStorageInp = Var(
-    model.mvStorageStore, domain=pyo.NonNegativeReals, doc="Storage input"
+    model.mvStorageLevel, domain=pyo.NonNegativeReals, doc="Storage input"
 )
 model.vStorageOut = Var(
-    model.mvStorageStore, domain=pyo.NonNegativeReals, doc="Storage output"
+    model.mvStorageLevel, domain=pyo.NonNegativeReals, doc="Storage output"
 )
-model.vStorageStore = Var(
-    model.mvStorageStore, domain=pyo.NonNegativeReals, doc="Storage level"
+model.vStorageLevel = Var(
+    model.mvStorageLevel, domain=pyo.NonNegativeReals, doc="Storage level"
 )
 model.vStorageInv = Var(
     model.mStorageNew, domain=pyo.NonNegativeReals, doc="Storage investments"
@@ -900,7 +900,7 @@ model.eqStorageAInp = Constraint(
         (
             (
                 model.pStorageStg2AInp[st1, c, r, y, s]
-                * model.vStorageStore[st1, cp, r, y, s]
+                * model.vStorageLevel[st1, cp, r, y, s]
             )
             if (st1, c, r, y, s) in model.mStorageStg2AInp
             else 0
@@ -943,7 +943,7 @@ model.eqStorageAOut = Constraint(
         (
             (
                 model.pStorageStg2AOut[st1, c, r, y, s]
-                * model.vStorageStore[st1, cp, r, y, s]
+                * model.vStorageLevel[st1, cp, r, y, s]
             )
             if (st1, c, r, y, s) in model.mStorageStg2AOut
             else 0
@@ -978,11 +978,11 @@ model.eqStorageAOut = Constraint(
         if (st1, cp) in model.mStorageComm
     ),
 )
-# eqStorageStore(stg, comm, region, year, timeslicep, timeslice)$meqStorageStore(stg, comm, region, year, timeslicep, timeslice)
-model.eqStorageStore = Constraint(
-    model.meqStorageStore,
-    rule=lambda model, st1, c, r, y, sp, s: model.vStorageStore[st1, c, r, y, s]
-    == model.pStorageCharge[st1, c, r, y, s]
+# eqStorageLevel(stg, comm, region, year, timeslicep, timeslice)$meqStorageLevel(stg, comm, region, year, timeslicep, timeslice)
+model.eqStorageLevel = Constraint(
+    model.meqStorageLevel,
+    rule=lambda model, st1, c, r, y, sp, s: model.vStorageLevel[st1, c, r, y, s]
+    == model.pStorageStartLevel[st1, c, r, y, s]
     + (
         (model.pStorageNCap2Stg[st1, c, r, y, s] * model.vStorageNewCap[st1, r, y])
         if (st1, r, y) in model.mStorageNew
@@ -990,15 +990,15 @@ model.eqStorageStore = Constraint(
     )
     + model.pStorageInpEff[st1, c, r, y, sp] * model.vStorageInp[st1, c, r, y, sp]
     + ((model.pStorageStgEff[st1, c, r, y, s]) ** (model.pTimesliceShare[s]))
-    * model.vStorageStore[st1, c, r, y, sp]
+    * model.vStorageLevel[st1, c, r, y, sp]
     - (model.vStorageOut[st1, c, r, y, sp]) / (model.pStorageOutEff[st1, c, r, y, sp]),
 )
 # eqStorageAfLo(stg, comm, region, year, timeslice)$meqStorageAfLo(stg, comm, region, year, timeslice)
 model.eqStorageAfLo = Constraint(
     model.meqStorageAfLo,
-    rule=lambda model, st1, c, r, y, s: model.vStorageStore[st1, c, r, y, s]
+    rule=lambda model, st1, c, r, y, s: model.vStorageLevel[st1, c, r, y, s]
     >= model.pStorageAfLo[st1, r, y, s]
-    * model.pStorageCap2stg[st1]
+    * model.pStorageDuration[st1]
     * model.vStorageCap[st1, r, y]
     * prod(
         model.pStorageWeatherAfLo[wth1, st1] * model.pWeather[wth1, r, y, s]
@@ -1009,9 +1009,9 @@ model.eqStorageAfLo = Constraint(
 # eqStorageAfUp(stg, comm, region, year, timeslice)$meqStorageAfUp(stg, comm, region, year, timeslice)
 model.eqStorageAfUp = Constraint(
     model.meqStorageAfUp,
-    rule=lambda model, st1, c, r, y, s: model.vStorageStore[st1, c, r, y, s]
+    rule=lambda model, st1, c, r, y, s: model.vStorageLevel[st1, c, r, y, s]
     <= model.pStorageAfUp[st1, r, y, s]
-    * model.pStorageCap2stg[st1]
+    * model.pStorageDuration[st1]
     * model.vStorageCap[st1, r, y]
     * prod(
         model.pStorageWeatherAfUp[wth1, st1] * model.pWeather[wth1, r, y, s]
@@ -1019,12 +1019,12 @@ model.eqStorageAfUp = Constraint(
         if (wth1, st1) in model.mStorageWeatherAfUp
     ),
 )
-# eqStorageClear(stg, comm, region, year, timeslice)$mvStorageStore(stg, comm, region, year, timeslice)
-model.eqStorageClear = Constraint(
-    model.mvStorageStore,
+# eqStorageOutLevel(stg, comm, region, year, timeslice)$mvStorageLevel(stg, comm, region, year, timeslice)
+model.eqStorageOutLevel = Constraint(
+    model.mvStorageLevel,
     rule=lambda model, st1, c, r, y, s: (model.vStorageOut[st1, c, r, y, s])
     / (model.pStorageOutEff[st1, c, r, y, s])
-    <= model.vStorageStore[st1, c, r, y, s],
+    <= model.vStorageLevel[st1, c, r, y, s],
 )
 # eqStorageInpUp(stg, comm, region, year, timeslice)$meqStorageInpUp(stg, comm, region, year, timeslice)
 model.eqStorageInpUp = Constraint(
@@ -1148,7 +1148,7 @@ model.eqStorageVarom = Constraint(
             * model.vStorageOut[st1, c, r, y, s]
             + model.pStorageCostStore[st1, r, y, s]
             * model.pTimesliceWeight[y, s]
-            * model.vStorageStore[st1, c, r, y, s]
+            * model.vStorageLevel[st1, c, r, y, s]
             for s in model.timeslice
             if (c, s) in model.mCommTimeslice
         )
@@ -1769,7 +1769,7 @@ model.eqStorageInpTot = Constraint(
     == sum(
         model.vStorageInp[st1, c, r, y, s]
         for st1 in model.stg
-        if (st1, c, r, y, s) in model.mvStorageStore
+        if (st1, c, r, y, s) in model.mvStorageLevel
     )
     + sum(
         model.vStorageAInp[st1, c, r, y, s]
@@ -1784,7 +1784,7 @@ model.eqStorageOutTot = Constraint(
     == sum(
         model.vStorageOut[st1, c, r, y, s]
         for st1 in model.stg
-        if (st1, c, r, y, s) in model.mvStorageStore
+        if (st1, c, r, y, s) in model.mvStorageLevel
     )
     + sum(
         model.vStorageAOut[st1, c, r, y, s]

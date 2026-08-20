@@ -633,6 +633,18 @@ interpolate_model <- function(mod, name = NULL, ...,
   scen <- build_mappings(scen, fmp = fmp, recipes = "filter")
 
   #============================================================================#
+  # storage@startLevel ####
+  #   `@startLevel` has no timeslice column, so ob2mi leaves `timeslice = NA` --
+  #   a wildcard that would inject at EVERY slice. Replace it with one explicit
+  #   row per cycle (first slice), honouring @fullYear and scaled by the cycle's
+  #   share of the year.
+  #   MUST run after the FILTER recipe: it needs `mvStorageLevel` to know which
+  #   timeslices each storage actually operates on. The successor maps carry a
+  #   cycle at every timeframe, so without that restriction the endowment lands
+  #   once per LEVEL (a DAY row and an HOUR row) instead of once per storage.
+  scen <- place_start_level(scen)
+
+  #============================================================================#
   # Constraint / equation-domain mapping parameters ####
   #   Built after the filter recipe because they restrict the activity / flow
   #   domains to the equations that reference them. Several constraint maps that

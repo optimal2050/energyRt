@@ -1,7 +1,7 @@
 # =========================================================================== #
 # storage@fullYear -- where the state-of-charge cycle closes.
 #
-# `meqStorageStore` pairs each storing timeslice with its PRECEDING one, and
+# `meqStorageLevel` pairs each storing timeslice with its PRECEDING one, and
 # which predecessor that is depends on @fullYear:
 #
 #   TRUE  (default)  the cycle spans the whole year. On a calendar of days over
@@ -11,7 +11,7 @@
 #                    predecessor of `d1_h1` is `d1_h4`, so every day is an
 #                    independent loop and no energy crosses a day boundary.
 #
-# The flag was silently ignored for years: `.build_meqStorageStore()` joined
+# The flag was silently ignored for years: `.build_meqStorageLevel()` joined
 # `mTimesliceNext` unconditionally, so every storage behaved as `FALSE`
 # regardless -- which made multi-day and seasonal storage unrepresentable and,
 # because the default is TRUE, did so without any user asking for it. It
@@ -77,7 +77,7 @@ fy_interp <- function(fullYear) {
 # (timeslicep, timeslice) pairs of the storage balance, as "prev>curr" strings.
 fy_pairs <- function(scen) {
   gds <- getFromNamespace("get_data_slot", "energyRt")
-  d <- as.data.frame(gds(scen@modInp@parameters[["meqStorageStore"]]))
+  d <- as.data.frame(gds(scen@modInp@parameters[["meqStorageLevel"]]))
   paste(d$timeslicep, d$timeslice, sep = ">")
 }
 

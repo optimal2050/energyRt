@@ -137,7 +137,7 @@ test_that("payback reaches storage and trade, and their equations compile", {
   BATT <- newStorage(
     "BATT", commodity = "ELC",
     invcost = data.frame(invcost = 300, payback = 5),
-    vintage = data.frame(olife = 15L), cap2stg = 4)
+    vintage = data.frame(olife = 15L), duration = 4)
   TBD <- newTrade(
     "TBD_ELC", commodity = "ELC",
     routes = data.frame(src = c("R1", "R2"), dst = c("R2", "R1")),
@@ -157,6 +157,6 @@ test_that("payback reaches storage and trade, and their equations compile", {
   expect_error(vt_interp(vt_model(
     newStorage("BATT2", commodity = "ELC",
                invcost = data.frame(invcost = 300, payback = 40),
-               vintage = data.frame(olife = 15L), cap2stg = 4),
+               vintage = data.frame(olife = 15L), duration = 4),
     name = "pbs2"), "pbs2"), "cannot exceed `olife`")
 })

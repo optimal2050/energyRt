@@ -76,7 +76,7 @@ getData(scen_stg, "vObjective")
 getData(scen_stg, name_ = "NewCap", merge = TRUE, process = TRUE)
 
 STG2H <- update(STG, 
-                cap2stg = 2, # MW * cap2stg = MWh
+                duration = 2, # MW * duration = MWh
                 name = "STG2H",
                 invcost = list(invcost = 20),
                 desc = "Storage with 2 hours capacity")
