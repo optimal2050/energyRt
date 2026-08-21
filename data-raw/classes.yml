@@ -839,12 +839,21 @@ class:
     input:
       type: data.frame
       description: >
-        The commodity that FILLS the store -- the "charger" side. One column,
-        `comm`. Left empty it takes whatever `newStorage(commodity = )` supplied.
+        The commodity that FILLS the store -- the "charger" side. Named by
+        `comm`, with an optional `unit`. Left empty it takes whatever `newStorage(commodity = )` supplied.
       columns:
         comm:
           type: character
           description: Commodity consumed to fill the store.
+        unit:
+          type: character
+          description: >
+            Unit of `comm` on this side, exactly as on `technology@input`/
+            `@output`. Descriptive only: it is carried for reporting and
+            `convert()` and never reaches the solver. It is the unit of the
+            COMMODITY (e.g. MWh), not of the capacity -- capacity units follow
+            from `cap2act`, and the storing side has no `cap2act` because a
+            reservoir is an amount rather than a rate.
         cap2act:
           type: numeric
           description: >
@@ -859,12 +868,21 @@ class:
     output:
       type: data.frame
       description: >
-        The commodity the store RELEASES -- the "discharger" side. One column,
-        `comm`. Left empty it takes whatever `newStorage(commodity = )` supplied.
+        The commodity the store RELEASES -- the "discharger" side. Named by
+        `comm`, with an optional `unit`. Left empty it takes whatever `newStorage(commodity = )` supplied.
       columns:
         comm:
           type: character
           description: Commodity produced when the store discharges.
+        unit:
+          type: character
+          description: >
+            Unit of `comm` on this side, exactly as on `technology@input`/
+            `@output`. Descriptive only: it is carried for reporting and
+            `convert()` and never reaches the solver. It is the unit of the
+            COMMODITY (e.g. MWh), not of the capacity -- capacity units follow
+            from `cap2act`, and the storing side has no `cap2act` because a
+            reservoir is an amount rather than a rate.
         cap2act:
           type: numeric
           description: >
@@ -879,8 +897,8 @@ class:
     storage:
       type: data.frame
       description: >
-        The commodity the store HOLDS -- what `vStorageLevel` is measured in. One
-        column, `comm`. Left empty it takes whatever `newStorage(commodity = )`
+        The commodity the store HOLDS -- what `vStorageLevel` is measured in. Named
+        by `comm`, with an optional `unit`. Left empty it takes whatever `newStorage(commodity = )`
         supplied. It may differ from BOTH flows: a hydrogen store consumes and
         produces electricity while holding hydrogen.
         There is no `commodity` slot -- `newStorage(commodity = )` is a shorthand
@@ -896,6 +914,15 @@ class:
         comm:
           type: character
           description: Commodity held in the store.
+        unit:
+          type: character
+          description: >
+            Unit of `comm` on this side, exactly as on `technology@input`/
+            `@output`. Descriptive only: it is carried for reporting and
+            `convert()` and never reaches the solver. It is the unit of the
+            COMMODITY (e.g. MWh), not of the capacity -- capacity units follow
+            from `cap2act`, and the storing side has no `cap2act` because a
+            reservoir is an amount rather than a rate.
         vintage:
           type: character
           description: Vintage label selecting the variant this row applies to, NA for all.

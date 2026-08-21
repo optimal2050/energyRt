@@ -1149,6 +1149,11 @@ plot_heatmap <- function(object, calendar = NULL, value = NULL, facet = NULL,
 #' @param datetime Logical (line/area only). If `TRUE`, place the profile on a
 #'   real datetime axis via [tsl2dtm()]; if the timeslice type is not yet supported
 #'   the categorical axis is kept (with a warning).
+#' @param region Which regions to draw. `NULL` (default) draws them all. A
+#'   character vector names them; a single number takes that many, in the order
+#'   they appear. Useful on converted continental models, where a weather factor
+#'   can carry dozens of regions and faceting on all of them leaves the panels
+#'   unreadable.
 #' @param angle Rotation (degrees) for the x-axis tick labels; overlapping labels
 #'   are dropped so dense sub-annual axes stay legible. Default `45`; `0` = flat.
 #' @param ... Reserved for future use.
@@ -1164,7 +1169,7 @@ plot_heatmap <- function(object, calendar = NULL, value = NULL, facet = NULL,
 #' }
 plot_weather <- function(object, style = c("heatmap", "line", "area"),
                          calendar = NULL, palette = "D",
-                         datetime = FALSE, angle = 45, ...) {
+                         datetime = FALSE, angle = 45, region = NULL, ...) {
   check_package("ggplot2")
   style <- match.arg(style)
   nm   <- tryCatch(object@name, error = function(e) "")
@@ -1174,6 +1179,27 @@ plot_weather <- function(object, style = c("heatmap", "line", "area"),
     return(invisible(NULL))
   }
   d <- d[!is.na(d$wval), , drop = FALSE]
+
+  # A weather factor converted from a continental model carries every region --
+  # 41 of them for PyPSA-Eur -- and faceting on all of them leaves panels too
+  # small to read. `region` selects a subset; `region = 1` (or any number) takes
+  # that many, in the order they appear.
+  if (!is.null(region) && "region" %in% names(d)) {
+    have <- unique(d$region)
+    keep <- if (is.numeric(region)) utils::head(have, max(1L, as.integer(region[1])))
+            else as.character(region)
+    miss <- setdiff(keep, have)
+    if (length(miss)) {
+      warning("plot_weather: region(s) not in '", nm, "': ",
+              paste(miss, collapse = ", "), call. = FALSE)
+    }
+    keep <- intersect(keep, have)
+    if (!length(keep)) {
+      message("No weather data left after the `region` filter for '", nm, "'.")
+      return(invisible(NULL))
+    }
+    d <- d[d$region %in% keep, , drop = FALSE]
+  }
 
   u        <- object@unit
   unit_lab <- if (length(u) == 1 && !is.na(u) && nzchar(u)) u else "capacity factor"
@@ -1301,8 +1327,8 @@ plot_weather <- function(object, style = c("heatmap", "line", "area"),
 #' @rdname plot_weather
 #' @exportS3Method ggplot2::autoplot
 autoplot.weather <- function(object, style = c("heatmap", "line", "area"),
-                             calendar = NULL, ...) {
-  plot_weather(object, style = style, calendar = calendar, ...)
+                             calendar = NULL, region = NULL, ...) {
+  plot_weather(object, style = style, calendar = calendar, region = region, ...)
 }
 
 

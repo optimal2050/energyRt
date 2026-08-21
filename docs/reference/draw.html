@@ -15,7 +15,7 @@ processes-type classes."><meta property="og:image" content="https://energyRt.org
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.80.3.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.85.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -32,7 +32,9 @@ processes-type classes."><meta property="og:image" content="https://energyRt.org
   <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials"><li><a class="dropdown-item" href="../articles/install.html">Installation</a></li>
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
+    <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
@@ -255,7 +257,7 @@ Default is the first node in the trade object.</p></dd>
 <span class="r-in"><span>    <span class="co"># year = 2020,</span></span></span>
 <span class="r-in"><span>    fixom <span class="op">=</span> <span class="fl">0.9</span> <span class="co"># fixed operation and maintenance cost</span></span></span>
 <span class="r-in"><span>  <span class="op">)</span>,</span></span>
-<span class="r-in"><span>  cap2stg <span class="op">=</span> <span class="fl">4</span>, <span class="co"># four-hours of storage</span></span></span>
+<span class="r-in"><span>  duration <span class="op">=</span> <span class="fl">4</span>, <span class="co"># four-hours of storage</span></span></span>
 <span class="r-in"><span>  invcost <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>    region <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"R1"</span>, <span class="cn">NA</span><span class="op">)</span>, <span class="co"># region R1 and all other regions</span></span></span>
 <span class="r-in"><span>    invcost <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1e3</span>, <span class="fl">1.1e3</span><span class="op">)</span> <span class="co"># investment cost in MUSD/GWh of 4-hour storage</span></span></span>
@@ -296,17 +298,16 @@ Default is the first node in the trade object.</p></dd>
 <span class="r-in"><span>  desc <span class="op">=</span> <span class="st">"Steel demand"</span>,</span></span>
 <span class="r-in"><span>  commodity <span class="op">=</span> <span class="st">"STEEL"</span>,</span></span>
 <span class="r-in"><span>  unit <span class="op">=</span> <span class="st">"Mt"</span>,</span></span>
-<span class="r-in"><span>  dem <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
+<span class="r-in"><span>  demand <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>    region <span class="op">=</span> <span class="st">"UTOPIA"</span>, <span class="co"># NA for every region</span></span></span>
 <span class="r-in"><span>    year <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2020</span>, <span class="fl">2030</span>, <span class="fl">2050</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>    timeslice <span class="op">=</span> <span class="st">"ANNUAL"</span>,</span></span>
-<span class="r-in"><span>    dem <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">100</span>, <span class="fl">200</span>, <span class="fl">300</span><span class="op">)</span></span></span>
+<span class="r-in"><span>    demand <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">100</span>, <span class="fl">200</span>, <span class="fl">300</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="op">)</span>,</span></span>
 <span class="r-in"><span>  region <span class="op">=</span> <span class="st">"UTOPIA"</span>, <span class="co"># optional, to narrow the specification of the demand</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in .data2slots("demand", name, desc = desc, commodity = commodity,     unit = unit, demand = demand, region = region, misc = misc,     ...):</span> Unknown column "dem "in the slot: " demand"</span>
 <span class="r-in"><span><span class="fu">draw</span><span class="op">(</span><span class="va">DSTEEL</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in h(simpleError(msg, call)):</span> error in evaluating the argument 'object' in selecting a method for function 'draw': object 'DSTEEL' not found</span>
+<span class="r-plt img"><img src="draw-4.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span><span class="va">EXPOIL</span> <span class="op">&lt;-</span> <span class="fu"><a href="newExport.html">newExport</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>  name <span class="op">=</span> <span class="st">"EXPOIL"</span>, <span class="co"># used in sets</span></span></span>
 <span class="r-in"><span>  desc <span class="op">=</span> <span class="st">"Oil export from the model to RoW"</span>, <span class="co"># for own reference</span></span></span>
@@ -321,7 +322,7 @@ Default is the first node in the trade object.</p></dd>
 <span class="r-in"><span>  <span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">draw</span><span class="op">(</span><span class="va">EXPOIL</span><span class="op">)</span></span></span>
-<span class="r-plt img"><img src="draw-4.png" alt="" width="700" height="433"></span>
+<span class="r-plt img"><img src="draw-5.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span><span class="va">IMPOIL</span> <span class="op">&lt;-</span> <span class="fu"><a href="newImport.html">newImport</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>  name <span class="op">=</span> <span class="st">"IMPOIL"</span>, <span class="co"># used in sets</span></span></span>
 <span class="r-in"><span>  desc <span class="op">=</span> <span class="st">"Oil import to the model to RoW"</span>, <span class="co"># for own reference</span></span></span>
@@ -336,7 +337,7 @@ Default is the first node in the trade object.</p></dd>
 <span class="r-in"><span>  <span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">draw</span><span class="op">(</span><span class="va">IMPOIL</span><span class="op">)</span></span></span>
-<span class="r-plt img"><img src="draw-5.png" alt="" width="700" height="433"></span>
+<span class="r-plt img"><img src="draw-6.png" alt="" width="700" height="433"></span>
 <span class="r-in"><span><span class="va">PIPELINE2</span> <span class="op">&lt;-</span> <span class="fu"><a href="newTrade.html">newTrade</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>  name <span class="op">=</span> <span class="st">"PIPELINE2"</span>,</span></span>
 <span class="r-in"><span>  desc <span class="op">=</span> <span class="st">"Some transport pipeline"</span>,</span></span>
@@ -365,11 +366,11 @@ Default is the first node in the trade object.</p></dd>
 <span class="r-in"><span>  olife <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>olife <span class="op">=</span> <span class="fl">60</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">draw</span><span class="op">(</span><span class="va">PIPELINE2</span>, node <span class="op">=</span> <span class="st">"R1"</span><span class="op">)</span></span></span>
-<span class="r-plt img"><img src="draw-6.png" alt="" width="700" height="433"></span>
-<span class="r-in"><span><span class="fu">draw</span><span class="op">(</span><span class="va">PIPELINE2</span>, node <span class="op">=</span> <span class="st">"R2"</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="draw-7.png" alt="" width="700" height="433"></span>
-<span class="r-in"><span><span class="fu">draw</span><span class="op">(</span><span class="va">PIPELINE2</span>, node <span class="op">=</span> <span class="st">"R3"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">draw</span><span class="op">(</span><span class="va">PIPELINE2</span>, node <span class="op">=</span> <span class="st">"R2"</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="draw-8.png" alt="" width="700" height="433"></span>
+<span class="r-in"><span><span class="fu">draw</span><span class="op">(</span><span class="va">PIPELINE2</span>, node <span class="op">=</span> <span class="st">"R3"</span><span class="op">)</span></span></span>
+<span class="r-plt img"><img src="draw-9.png" alt="" width="700" height="433"></span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

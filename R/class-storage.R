@@ -110,6 +110,10 @@ setClass("storage",
     # capacity variable and the model is unchanged.
     input = data.frame(
       comm = character(),
+      # Unit of `comm` on this side, as on `technology@input`/`@output`. Purely
+      # descriptive -- carried for reporting and `convert()`, never interpolated.
+      # The COMMODITY's unit, not the capacity's: capacity follows `cap2act`.
+      unit = character(),
       vintage = character(),
       cluster = character(),
       region = character(),
@@ -139,6 +143,10 @@ setClass("storage",
     # an error rather than a silent winner.
     output = data.frame(
       comm = character(),
+      # Unit of `comm` on this side, as on `technology@input`/`@output`. Purely
+      # descriptive -- carried for reporting and `convert()`, never interpolated.
+      # The COMMODITY's unit, not the capacity's: capacity follows `cap2act`.
+      unit = character(),
       vintage = character(),
       cluster = character(),
       region = character(),
@@ -171,6 +179,10 @@ setClass("storage",
     # the old way byte-identical -- see `.storage_part_has_data()`.
     storage = data.frame(
       comm = character(),
+      # Unit of `comm` on this side, as on `technology@input`/`@output`. Purely
+      # descriptive -- carried for reporting and `convert()`, never interpolated.
+      # The COMMODITY's unit, not the capacity's: capacity follows `cap2act`.
+      unit = character(),
       vintage = character(),
       cluster = character(),
       region = character(),

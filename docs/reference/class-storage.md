@@ -26,10 +26,6 @@ cycle will be a calendar day).
 
   character. Description of the storage.
 
-- `commodity`:
-
-  character. Name of the stored commodity.
-
 - `aux`:
 
   data.frame. Auxiliary commodities.
@@ -53,7 +49,7 @@ cycle will be a calendar day).
   sub-processes of the same storage with their own capacity,
   availability and costs. The motivating cases are site-constrained
   storage (pumped-hydro head classes, CAES caverns) and duration classes
-  via a per-cluster `cap2stg`. Optional: when empty, cluster labels are
+  via a per-cluster `duration`. Optional: when empty, cluster labels are
   harvested from the other slots; when populated it is authoritative and
   an undeclared label raises an error.
 
@@ -179,10 +175,177 @@ cycle will be a calendar day).
   :   numeric. Fixed value of the storage capacity retirement. This
       parameter overrides `ret.lo` and `ret.up`.
 
-- `charge`:
+- `input`:
 
-  data.frame. Pre-charged level at the beginning of the operational
-  cycle.
+  data.frame. The commodity that FILLS the store – the "charger" side.
+  Named by `comm`, with an optional `unit`. Left empty it takes whatever
+  `newStorage(commodity = )` supplied.
+
+  comm
+
+  :   character. Commodity consumed to fill the store.
+
+  unit
+
+  :   character. Unit of `comm` on this side, exactly as on
+      `technology@input`/ `@output`. Descriptive only: it is carried for
+      reporting and `convert()` and never reaches the solver. It is the
+      unit of the COMMODITY (e.g. MWh), not of the capacity – capacity
+      units follow from `cap2act`, and the storing side has no `cap2act`
+      because a reservoir is an amount rather than a rate.
+
+  cap2act
+
+  :   numeric. Capacity to ANNUAL flow, exactly as `technology@cap2act`.
+      The flow bound is `cinp.up * cap2act * cap * pTimesliceShare`, so
+      `cap` is a RATE and means the same physical thing on any calendar.
+      Defaults to 8760 (hours in a year), which makes `cap` read as
+      commodity per HOUR; an hourly full-year model is unchanged because
+      8760 \* (1/8760) = 1. Assumes commodity unit = capacity unit x
+      hour (GW with GWh); GW with TWh wants 8.76. The STORING side has
+      no cap2act – energy is energy at any resolution.
+
+- `output`:
+
+  data.frame. The commodity the store RELEASES – the "discharger" side.
+  Named by `comm`, with an optional `unit`. Left empty it takes whatever
+  `newStorage(commodity = )` supplied.
+
+  comm
+
+  :   character. Commodity produced when the store discharges.
+
+  unit
+
+  :   character. Unit of `comm` on this side, exactly as on
+      `technology@input`/ `@output`. Descriptive only: it is carried for
+      reporting and `convert()` and never reaches the solver. It is the
+      unit of the COMMODITY (e.g. MWh), not of the capacity – capacity
+      units follow from `cap2act`, and the storing side has no `cap2act`
+      because a reservoir is an amount rather than a rate.
+
+  cap2act
+
+  :   numeric. Capacity to ANNUAL flow, exactly as `technology@cap2act`.
+      The flow bound is `cinp.up * cap2act * cap * pTimesliceShare`, so
+      `cap` is a RATE and means the same physical thing on any calendar.
+      Defaults to 8760 (hours in a year), which makes `cap` read as
+      commodity per HOUR; an hourly full-year model is unchanged because
+      8760 \* (1/8760) = 1. Assumes commodity unit = capacity unit x
+      hour (GW with GWh); GW with TWh wants 8.76. The STORING side has
+      no cap2act – energy is energy at any resolution.
+
+- `storage`:
+
+  data.frame. The commodity the store HOLDS – what `vStorageLevel` is
+  measured in. Named by `comm`, with an optional `unit`. Left empty it
+  takes whatever `newStorage(commodity = )` supplied. It may differ from
+  BOTH flows: a hydrogen store consumes and produces electricity while
+  holding hydrogen. There is no `commodity` slot –
+  `newStorage(commodity = )` is a shorthand folded into these three at
+  construction, so an object never carries two answers to what it
+  consumes. Beyond `comm`, this slot carries the storing side's OWN
+  capacity and economics, measured in ENERGY (e.g. MWh) rather than
+  power. Supplying any of them materialises `vStorageStgCap`, so the
+  store's energy can be sized, bounded and priced independently of its
+  inverter; supplying none of them (a bare `comm`) leaves the storage
+  with a single power capacity and the pre-v0.84 model, with `@duration`
+  inlined into the availability bounds.
+
+  comm
+
+  :   character. Commodity held in the store.
+
+  unit
+
+  :   character. Unit of `comm` on this side, exactly as on
+      `technology@input`/ `@output`. Descriptive only: it is carried for
+      reporting and `convert()` and never reaches the solver. It is the
+      unit of the COMMODITY (e.g. MWh), not of the capacity – capacity
+      units follow from `cap2act`, and the storing side has no `cap2act`
+      because a reservoir is an amount rather than a rate.
+
+  vintage
+
+  :   character. Vintage label selecting the variant this row applies
+      to, NA for all.
+
+  cluster
+
+  :   character. Cluster label selecting the variant this row applies
+      to, NA for all.
+
+  region
+
+  :   character. Region the row applies to, NA for all.
+
+  year
+
+  :   integer. Year the row applies to, NA for all.
+
+  stock
+
+  :   numeric. Pre-existing energy capacity, in commodity units. The
+      energy analogue of `capacity$stock`, which is power.
+
+  cap.lo
+
+  :   numeric. Lower bound on total energy capacity.
+
+  cap.up
+
+  :   numeric. Upper bound on total energy capacity.
+
+  cap.fx
+
+  :   numeric. Fixed total energy capacity.
+
+  ncap.lo
+
+  :   numeric. Lower bound on new energy capacity added in the period.
+
+  ncap.up
+
+  :   numeric. Upper bound on new energy capacity added in the period.
+
+  ncap.fx
+
+  :   numeric. Fixed new energy capacity added in the period.
+
+  invcost
+
+  :   numeric. Overnight investment cost per unit of ENERGY capacity
+      (currency/MWh), annuitised on the storage's own `@vintage` – one
+      lifetime and one wacc for the object, two capital costs on
+      different bases. This is what previously had to be hand-multiplied
+      into the per-MW `@invcost`.
+
+  fixom
+
+  :   numeric. Fixed O&M cost per unit of energy capacity per year.
+
+- `startLevel`:
+
+  data.frame. Energy added to the storage level ONCE PER CYCLE, at the
+  first timeslice of the cycle. There is deliberately no `timeslice`
+  column: the slice is derived from the calendar and `fullYear`, so it
+  cannot be left unset and broadcast to every timeslice the way the old
+  `charge` slot could. Which cycle depends on `fullYear`: once a year
+  when TRUE, once per parent timeframe when FALSE. The value is ANNUAL.
+  When the cycle is shorter than a year each cycle receives its own
+  SHARE of it – 365 daily cycles get 1/365 each – so the annual
+  endowment is the same however the cycle closes. A calendar covering
+  part of a year endows that fraction, consistently. It is FREE to the
+  model, by design and unavoidably – a store that ends a cycle below
+  where it started has consumed an endowment nobody paid for. PyPSA's
+  `state_of_charge_initial` has the same property. Being additive, the
+  level at the first timeslice is `startLevel` PLUS whatever carried
+  over from the previous cycle, i.e. at least `startLevel` rather than
+  exactly it; the model may end the cycle empty to make it exact.
+  Renamed from `charge` (via `inflow`) in v0.80; both are still accepted
+  with a warning, and any `timeslice` column they carried is dropped.
+  NOTE hydro inflow does NOT belong here – use a weather-driven `supply`
+  (with `ava.up`, so spilling is free) feeding the storage.
 
   vintage
 
@@ -203,14 +366,10 @@ cycle will be a calendar day).
 
   :   integer. Year to apply the parameter, NA for every year.
 
-  timeslice
+  startLevel
 
-  :   character. Time timeslice for which the charged level will be
-      specified.
-
-  charge
-
-  :   numeric. Pre-charged or targeted level at the specified timeslice.
+  :   numeric. Energy added to the level at the first timeslice of each
+      cycle.
 
 - `seff`:
 
@@ -530,22 +689,32 @@ cycle will be a calendar day).
 
 - `fullYear`:
 
-  logical. If TRUE (default), the storage technology operates between
-  parent timeframes through the year. The last time-timeslice in the
-  timeframe is used as a preciding time-timeslice for the first
-  time-timeslice in the the same group of time-timeslices within the
-  parent timeframe. if FALSE, the storage charge and discchare cycle is
-  limited to the parent timeframe. The last time-timeslice in the
-  timeframe is used as a preciding time-timeslice for the first
-  time-timeslice in the the same group of time-timeslices within the
-  parent timeframe.
+  logical. Controls where the charge/discharge cycle closes. If TRUE
+  (default), the storage operates across parent timeframes through the
+  whole year: the preceding time-timeslice of the first time-timeslice
+  of a group is the last time-timeslice of the PREVIOUS group, and only
+  the last time-timeslice of the year wraps round to the first. A
+  battery on an hourly calendar nested under days can therefore carry
+  energy from one day into the next, and seasonal storage is
+  representable. If FALSE, the cycle is closed within each parent
+  timeframe: the preceding time-timeslice of the first time-timeslice of
+  a group is the LAST time-timeslice of the SAME group, so every group
+  is an independent loop with no energy carried between them.
 
-- `cap2stg`:
+- `duration`:
 
-  data.frame. Charging and discharging capacity to the storing capacity
-  inverse ratio, i.e. the storage duration. A data.frame rather than a
-  scalar so it can differ by cluster – 1h / 4h / 8h duration classes of
-  the same storage. A bare scalar (`cap2stg = 4`) is still accepted.
+  data.frame. How long the store can run at its rated output: the ratio
+  of storing capacity to (dis)charging capacity. `duration = 6` on an
+  hourly calendar is a 6-hour store. Renamed from `cap2stg` in v0.80,
+  which is still accepted with a warning. It is a BOUND on (storage,
+  region, year): `duration.fx` ties energy to power,
+  `duration.lo`/`duration.up` let the model choose the ratio – which
+  only bites when the storing side is priced, via `@storage$invcost`.
+  The bare `duration` column is the scalar shorthand and is normalised
+  to `duration.fx` at construction. A ONE-SIDED range opens the other
+  side (an `up` alone does not inherit the default `lo` of 1). Saying
+  nothing leaves the slot empty and the parameter default of 1, 1 ties
+  energy to power at one hour, which is the pre-v0.84 behaviour.
 
   vintage
 
@@ -566,9 +735,70 @@ cycle will be a calendar day).
 
   :   integer. Year to apply the parameter, NA for every year.
 
-  cap2stg
+  duration
 
   :   numeric. Capacity-to-storage ratio (storage duration).
+
+  duration.lo
+
+  :   numeric. Lower bound on the energy-to-power ratio, in hours.
+
+  duration.up
+
+  :   numeric. Upper bound on the energy-to-power ratio, in hours.
+
+  duration.fx
+
+  :   numeric. Fixed energy-to-power ratio, in hours. The scalar
+      shorthand `duration = 6` normalises to this.
+
+- `inp2out`:
+
+  data.frame. The charge-to-discharge capacity ratio, dimensionless: how
+  big the charger is relative to the discharger. Same bound semantics as
+  `duration` – `inp2out.fx` ties the two (one bidirectional inverter),
+  `inp2out.lo`/`.up` let the model size them apart, and the bare
+  `inp2out` column is the scalar shorthand, normalised to `.fx` at
+  construction. A one-sided range opens the other side. Saying nothing
+  leaves the slot empty and the parameter default of 1, 1 keeps the two
+  sides symmetric, which is what a storage without a separate charger
+  has always been. It bites only when the charging side is priced or
+  bounded via `@input`; otherwise there is no charging capacity variable
+  to constrain.
+
+  vintage
+
+  :   character. Vintage label selecting the variant this row applies
+      to, NA for all.
+
+  cluster
+
+  :   character. Cluster label selecting the variant this row applies
+      to, NA for all.
+
+  region
+
+  :   character. Region the row applies to, NA for all.
+
+  year
+
+  :   integer. Year the row applies to, NA for all.
+
+  inp2out
+
+  :   numeric. Scalar shorthand, normalised to `inp2out.fx`.
+
+  inp2out.lo
+
+  :   numeric. Lower bound on the charge-to-discharge capacity ratio.
+
+  inp2out.up
+
+  :   numeric. Upper bound on the charge-to-discharge capacity ratio.
+
+  inp2out.fx
+
+  :   numeric. Fixed charge-to-discharge capacity ratio.
 
 - `weather`:
 

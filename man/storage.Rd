@@ -13,7 +13,10 @@ newStorage(
   start = data.frame(),
   end = data.frame(),
   olife = data.frame(),
-  charge = data.frame(),
+  input = data.frame(),
+  output = data.frame(),
+  storage = data.frame(),
+  startLevel = data.frame(),
   seff = data.frame(),
   aeff = data.frame(),
   af = data.frame(),
@@ -23,7 +26,8 @@ newStorage(
   capacity = data.frame(),
   cluster = data.frame(),
   vintage = data.frame(),
-  cap2stg = 1,
+  duration = NULL,
+  inp2out = NULL,
   fullYear = TRUE,
   weather = data.frame(),
   optimizeRetirement = FALSE,
@@ -36,7 +40,12 @@ newStorage(
 
 \item{desc}{character. Description of the storage.}
 
-\item{commodity}{character. Name of the stored commodity.}
+\item{commodity}{convenience shorthand: the commodity used for whichever of
+\code{input}, \code{output} and \code{storage} do not name their own. A battery is
+\code{commodity = "ELC"} and nothing else; a hydrogen store is
+\code{commodity = "H2"} with \code{input}/\code{output} naming \code{"ELC"}. There is no
+\verb{@commodity} slot -- this is folded into the three roles at construction,
+so the object never carries two answers.}
 
 \item{aux}{data.frame. Auxiliary commodities.
 \describe{
@@ -52,14 +61,57 @@ newStorage(
 
 \item{olife}{deprecated, use the \code{olife} column of \code{vintage}.}
 
-\item{charge}{data.frame. Pre-charged level at the beginning of the operational cycle.
+\item{input}{data.frame. The commodity that FILLS the store -- the "charger" side. Named by \code{comm}, with an optional \code{unit}. Left empty it takes whatever \code{newStorage(commodity = )} supplied.
+
+\describe{
+\item{comm}{character. Commodity consumed to fill the store.}
+\item{unit}{character. Unit of \code{comm} on this side, exactly as on \code{technology@input}/ \verb{@output}. Descriptive only: it is carried for reporting and \code{convert()} and never reaches the solver. It is the unit of the COMMODITY (e.g. MWh), not of the capacity -- capacity units follow from \code{cap2act}, and the storing side has no \code{cap2act} because a reservoir is an amount rather than a rate.
+}
+\item{cap2act}{numeric. Capacity to ANNUAL flow, exactly as \code{technology@cap2act}. The flow bound is \code{cinp.up * cap2act * cap * pTimesliceShare}, so \code{cap} is a RATE and means the same physical thing on any calendar. Defaults to 8760 (hours in a year), which makes \code{cap} read as commodity per HOUR; an hourly full-year model is unchanged because 8760 * (1/8760) = 1. Assumes commodity unit = capacity unit x hour (GW with GWh); GW with TWh wants 8.76. The STORING side has no cap2act -- energy is energy at any resolution.
+}
+}}
+
+\item{output}{data.frame. The commodity the store RELEASES -- the "discharger" side. Named by \code{comm}, with an optional \code{unit}. Left empty it takes whatever \code{newStorage(commodity = )} supplied.
+
+\describe{
+\item{comm}{character. Commodity produced when the store discharges.}
+\item{unit}{character. Unit of \code{comm} on this side, exactly as on \code{technology@input}/ \verb{@output}. Descriptive only: it is carried for reporting and \code{convert()} and never reaches the solver. It is the unit of the COMMODITY (e.g. MWh), not of the capacity -- capacity units follow from \code{cap2act}, and the storing side has no \code{cap2act} because a reservoir is an amount rather than a rate.
+}
+\item{cap2act}{numeric. Capacity to ANNUAL flow, exactly as \code{technology@cap2act}. The flow bound is \code{cinp.up * cap2act * cap * pTimesliceShare}, so \code{cap} is a RATE and means the same physical thing on any calendar. Defaults to 8760 (hours in a year), which makes \code{cap} read as commodity per HOUR; an hourly full-year model is unchanged because 8760 * (1/8760) = 1. Assumes commodity unit = capacity unit x hour (GW with GWh); GW with TWh wants 8.76. The STORING side has no cap2act -- energy is energy at any resolution.
+}
+}}
+
+\item{storage}{data.frame. The commodity the store HOLDS -- what \code{vStorageLevel} is measured in. Named by \code{comm}, with an optional \code{unit}. Left empty it takes whatever \code{newStorage(commodity = )} supplied. It may differ from BOTH flows: a hydrogen store consumes and produces electricity while holding hydrogen. There is no \code{commodity} slot -- \code{newStorage(commodity = )} is a shorthand folded into these three at construction, so an object never carries two answers to what it consumes. Beyond \code{comm}, this slot carries the storing side's OWN capacity and economics, measured in ENERGY (e.g. MWh) rather than power. Supplying any of them materialises \code{vStorageStgCap}, so the store's energy can be sized, bounded and priced independently of its inverter; supplying none of them (a bare \code{comm}) leaves the storage with a single power capacity and the pre-v0.84 model, with \verb{@duration} inlined into the availability bounds.
+
+\describe{
+\item{comm}{character. Commodity held in the store.}
+\item{unit}{character. Unit of \code{comm} on this side, exactly as on \code{technology@input}/ \verb{@output}. Descriptive only: it is carried for reporting and \code{convert()} and never reaches the solver. It is the unit of the COMMODITY (e.g. MWh), not of the capacity -- capacity units follow from \code{cap2act}, and the storing side has no \code{cap2act} because a reservoir is an amount rather than a rate.
+}
+\item{vintage}{character. Vintage label selecting the variant this row applies to, NA for all.}
+\item{cluster}{character. Cluster label selecting the variant this row applies to, NA for all.}
+\item{region}{character. Region the row applies to, NA for all.}
+\item{year}{integer. Year the row applies to, NA for all.}
+\item{stock}{numeric. Pre-existing energy capacity, in commodity units. The energy analogue of \code{capacity$stock}, which is power.
+}
+\item{cap.lo}{numeric. Lower bound on total energy capacity.}
+\item{cap.up}{numeric. Upper bound on total energy capacity.}
+\item{cap.fx}{numeric. Fixed total energy capacity.}
+\item{ncap.lo}{numeric. Lower bound on new energy capacity added in the period.}
+\item{ncap.up}{numeric. Upper bound on new energy capacity added in the period.}
+\item{ncap.fx}{numeric. Fixed new energy capacity added in the period.}
+\item{invcost}{numeric. Overnight investment cost per unit of ENERGY capacity (currency/MWh), annuitised on the storage's own \verb{@vintage} -- one lifetime and one wacc for the object, two capital costs on different bases. This is what previously had to be hand-multiplied into the per-MW \verb{@invcost}.
+}
+\item{fixom}{numeric. Fixed O&M cost per unit of energy capacity per year.}
+}}
+
+\item{startLevel}{data.frame. Energy added to the storage level ONCE PER CYCLE, at the first timeslice of the cycle. There is deliberately no \code{timeslice} column: the slice is derived from the calendar and \code{fullYear}, so it cannot be left unset and broadcast to every timeslice the way the old \code{charge} slot could. Which cycle depends on \code{fullYear}: once a year when TRUE, once per parent timeframe when FALSE. The value is ANNUAL. When the cycle is shorter than a year each cycle receives its own SHARE of it -- 365 daily cycles get 1/365 each -- so the annual endowment is the same however the cycle closes. A calendar covering part of a year endows that fraction, consistently. It is FREE to the model, by design and unavoidably -- a store that ends a cycle below where it started has consumed an endowment nobody paid for. PyPSA's \code{state_of_charge_initial} has the same property. Being additive, the level at the first timeslice is \code{startLevel} PLUS whatever carried over from the previous cycle, i.e. at least \code{startLevel} rather than exactly it; the model may end the cycle empty to make it exact. Renamed from \code{charge} (via \code{inflow}) in v0.80; both are still accepted with a warning, and any \code{timeslice} column they carried is dropped. NOTE hydro inflow does NOT belong here -- use a weather-driven \code{supply} (with \code{ava.up}, so spilling is free) feeding the storage.
+
 \describe{
 \item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
 \item{cluster}{character. Cluster label selecting the variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
-\item{timeslice}{character. Time timeslice for which the charged level will be specified.}
-\item{charge}{numeric. Pre-charged or targeted level at the specified timeslice.}
+\item{startLevel}{numeric. Energy added to the level at the first timeslice of each cycle.}
 }}
 
 \item{seff}{data.frame. Storage efficiency parameters.
@@ -169,7 +221,7 @@ newStorage(
 }
 }}
 
-\item{cluster}{data.frame. Declaration of the storage clusters -- parallel sub-processes of the same storage with their own capacity, availability and costs. The motivating cases are site-constrained storage (pumped-hydro head classes, CAES caverns) and duration classes via a per-cluster \code{cap2stg}. Optional: when empty, cluster labels are harvested from the other slots; when populated it is authoritative and an undeclared label raises an error.
+\item{cluster}{data.frame. Declaration of the storage clusters -- parallel sub-processes of the same storage with their own capacity, availability and costs. The motivating cases are site-constrained storage (pumped-hydro head classes, CAES caverns) and duration classes via a per-cluster \code{duration}. Optional: when empty, cluster labels are harvested from the other slots; when populated it is authoritative and an undeclared label raises an error.
 \describe{
 \item{cluster}{character. Cluster label. Must match the \code{cluster} column values used in the other slots.}
 \item{desc}{character. Human-readable description of the cluster, used in reports.}
@@ -187,16 +239,34 @@ newStorage(
 \item{olife}{integer. Operational life of the storage in years, applicable to new investment only.}
 }}
 
-\item{cap2stg}{data.frame. Charging and discharging capacity to the storing capacity inverse ratio, i.e. the storage duration. A data.frame rather than a scalar so it can differ by cluster -- 1h / 4h / 8h duration classes of the same storage. A bare scalar (\code{cap2stg = 4}) is still accepted.
+\item{duration}{data.frame. How long the store can run at its rated output: the ratio of storing capacity to (dis)charging capacity. \code{duration = 6} on an hourly calendar is a 6-hour store. Renamed from \code{cap2stg} in v0.80, which is still accepted with a warning. It is a BOUND on (storage, region, year): \code{duration.fx} ties energy to power, \code{duration.lo}/\code{duration.up} let the model choose the ratio -- which only bites when the storing side is priced, via \verb{@storage$invcost}. The bare \code{duration} column is the scalar shorthand and is normalised to \code{duration.fx} at construction. A ONE-SIDED range opens the other side (an \code{up} alone does not inherit the default \code{lo} of 1). Saying nothing leaves the slot empty and the parameter default of \link{1, 1} ties energy to power at one hour, which is the pre-v0.84 behaviour.
+
 \describe{
 \item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage.}
 \item{cluster}{character. Cluster label selecting the variant this row applies to, NA for every cluster.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
-\item{cap2stg}{numeric. Capacity-to-storage ratio (storage duration).}
+\item{duration}{numeric. Capacity-to-storage ratio (storage duration).}
+\item{duration.lo}{numeric. Lower bound on the energy-to-power ratio, in hours.}
+\item{duration.up}{numeric. Upper bound on the energy-to-power ratio, in hours.}
+\item{duration.fx}{numeric. Fixed energy-to-power ratio, in hours. The scalar shorthand \code{duration = 6} normalises to this.
+}
 }}
 
-\item{fullYear}{logical. If TRUE (default), the storage technology operates between parent timeframes through the year. The last time-timeslice in the timeframe is used as a preciding time-timeslice for the first time-timeslice in the the same group of time-timeslices within the parent timeframe. if FALSE, the storage charge and discchare cycle is limited to the parent timeframe. The last time-timeslice in the timeframe is used as a preciding time-timeslice for the first time-timeslice in the the same group of time-timeslices within the parent timeframe.}
+\item{inp2out}{data.frame. The charge-to-discharge capacity ratio, dimensionless: how big the charger is relative to the discharger. Same bound semantics as \code{duration} -- \code{inp2out.fx} ties the two (one bidirectional inverter), \code{inp2out.lo}/\code{.up} let the model size them apart, and the bare \code{inp2out} column is the scalar shorthand, normalised to \code{.fx} at construction. A one-sided range opens the other side. Saying nothing leaves the slot empty and the parameter default of \link{1, 1} keeps the two sides symmetric, which is what a storage without a separate charger has always been. It bites only when the charging side is priced or bounded via \verb{@input}; otherwise there is no charging capacity variable to constrain.
+
+\describe{
+\item{vintage}{character. Vintage label selecting the variant this row applies to, NA for all.}
+\item{cluster}{character. Cluster label selecting the variant this row applies to, NA for all.}
+\item{region}{character. Region the row applies to, NA for all.}
+\item{year}{integer. Year the row applies to, NA for all.}
+\item{inp2out}{numeric. Scalar shorthand, normalised to \code{inp2out.fx}.}
+\item{inp2out.lo}{numeric. Lower bound on the charge-to-discharge capacity ratio.}
+\item{inp2out.up}{numeric. Upper bound on the charge-to-discharge capacity ratio.}
+\item{inp2out.fx}{numeric. Fixed charge-to-discharge capacity ratio.}
+}}
+
+\item{fullYear}{logical. Controls where the charge/discharge cycle closes. If TRUE (default), the storage operates across parent timeframes through the whole year: the preceding time-timeslice of the first time-timeslice of a group is the last time-timeslice of the PREVIOUS group, and only the last time-timeslice of the year wraps round to the first. A battery on an hourly calendar nested under days can therefore carry energy from one day into the next, and seasonal storage is representable. If FALSE, the cycle is closed within each parent timeframe: the preceding time-timeslice of the first time-timeslice of a group is the LAST time-timeslice of the SAME group, so every group is an independent loop with no energy carried between them.}
 
 \item{weather}{data.frame. Weather factors multipliers.
 \describe{
@@ -252,11 +322,10 @@ STG1 <- newStorage(
   start = data.frame(region = "R1", start = 0),
   end = data.frame(region = "R1", end = 1),
   olife = data.frame(region = "R1", olife = 20),
-  charge = data.frame(
+  startLevel = data.frame(
     # region = "R1",
     year = 2020,
-    # timeslice = "HOUR",
-    charge = 0.1
+    startLevel = 0.1
   ),
   seff = data.frame(
     # region = "R1",
@@ -304,7 +373,7 @@ STG1 <- newStorage(
     ncap.up = 0.9, ncap.fx = 0.9, ret.lo = 0.9, ret.up = 0.9,
     ret.fx = 0.9
   ),
-  cap2stg = 1,
+  duration = 1,
   fullYear = TRUE,
   weather = data.frame(
     weather = "sunny",

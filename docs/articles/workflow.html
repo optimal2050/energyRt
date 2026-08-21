@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.80.3.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.85.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -51,7 +51,9 @@
 <li><a class="dropdown-item" href="../articles/install.html">Installation</a></li>
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
+    <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
@@ -155,17 +157,17 @@ otherwise); every frame carries a <code>scenario</code> and a
 <code>name</code> column.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen</span>, <span class="st">"vObjective"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">$</span><span class="va">value</span>      <span class="co"># total system cost, MEUR</span></span>
-<span><span class="co">#&gt; [1] 13007.08</span></span>
+<span><span class="co">#&gt; [1] 13043.69</span></span>
 <span></span>
 <span><span class="va">gen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen</span>, <span class="st">"vTechOut"</span>, comm <span class="op">=</span> <span class="st">"ELC"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">gen</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"scenario"</span>, <span class="st">"tech"</span>, <span class="st">"region"</span>, <span class="st">"year"</span>, <span class="st">"timeslice"</span>, <span class="st">"value"</span><span class="op">)</span><span class="op">]</span>, <span class="fl">4</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 4 × 6</span></span></span>
-<span><span class="co">#&gt;   scenario tech  region  year timeslice value</span></span>
-<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>     <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> BASE     ECOA  R1      <span style="text-decoration: underline;">2</span>020 ANNUAL    21.7 </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> BASE     ECOA  R1      <span style="text-decoration: underline;">2</span>030 ANNUAL    34.7 </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> BASE     ECOA  R1      <span style="text-decoration: underline;">2</span>040 ANNUAL    25.5 </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> BASE     EGAS  R1      <span style="text-decoration: underline;">2</span>040 ANNUAL     2.82</span></span></code></pre></div>
+<span><span class="co">#&gt;   scenario tech  region  year timeslice  value</span></span>
+<span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> BASE     ECOA  R1      <span style="text-decoration: underline;">2</span>020 AUT_h06   0.039<span style="text-decoration: underline;">2</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> BASE     ECOA  R1      <span style="text-decoration: underline;">2</span>020 AUT_h07   0.149 </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> BASE     ECOA  R1      <span style="text-decoration: underline;">2</span>020 AUT_h08   0.183 </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> BASE     ECOA  R1      <span style="text-decoration: underline;">2</span>020 AUT_h09   0.144</span></span></code></pre></div>
 <p>The <code>...</code> accept set filters, exact
 (<code>comm = "ELC"</code>) or regex (<code>comm_ = "^EL"</code>).
 <code>timeframe = c("lowest","highest","all")</code> controls how
@@ -230,7 +232,7 @@ Each scenario gets its own folder, named by
 <code>name_model_calendar_horizon</code>:</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/scenarios_path.html">get_scenarios_path</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpghSoO7/wf"</span></span>
+<span><span class="co">#&gt; [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpQlR31f/wf"</span></span>
 <span><span class="fu"><a href="../reference/make_scenario_dirname.html">make_scenario_dirname</a></span><span class="op">(</span><span class="va">scen</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "BASE_UTOPIA_utopia_s4h24_base"</span></span></code></pre></div>
 <p>Saving a scenario writes an <strong>Arrow-backed</strong> folder that
@@ -266,7 +268,7 @@ memory.</p>
 <span><span class="fu"><a href="../reference/isInMemory.html">isInMemory</a></span><span class="op">(</span><span class="va">saved</span><span class="op">)</span>                                    <span class="co"># FALSE -- data is on disk</span></span>
 <span><span class="co">#&gt; [1] FALSE</span></span>
 <span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">ld</span>, <span class="st">"vObjective"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">$</span><span class="va">value</span>        <span class="co"># lazy read, no full load</span></span>
-<span><span class="co">#&gt; [1] 13007.08</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] 13043.69</span></span></code></pre></div>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ld</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/obj2mem.html">obj2mem</a></span><span class="op">(</span><span class="va">ld</span><span class="op">)</span>                                    <span class="co"># rehydrate fully into RAM</span></span></code></pre></div>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
@@ -304,7 +306,7 @@ comparison a one-liner:</p>
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>BASE <span class="op">=</span> <span class="va">scen</span>, CO2CAP <span class="op">=</span> <span class="va">scen_cap</span><span class="op">)</span>,</span>
 <span>       <span class="kw">function</span><span class="op">(</span><span class="va">s</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">s</span>, <span class="st">"vObjective"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">$</span><span class="va">value</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   BASE CO2CAP </span></span>
-<span><span class="co">#&gt;  13007  13427</span></span></code></pre></div>
+<span><span class="co">#&gt;  13044  13482</span></span></code></pre></div>
 <p>To reason about <strong>model size</strong> rather than results,
 <code><a href="../reference/model_size.html">model_size()</a></code> estimates the parameter/variable/constraint
 counts of an interpolated scenario, and <code><a href="../reference/size.html">size()</a></code> reports its
@@ -312,8 +314,8 @@ in-memory footprint:</p>
 <div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/model_size.html">model_size</a></span><span class="op">(</span><span class="va">scen</span><span class="op">)</span></span>
 <span><span class="co">#&gt; model_size: BASE</span></span>
-<span><span class="co">#&gt;   parameters : 128 value, 233 maps, 13 sets</span></span>
-<span><span class="co">#&gt;   param rows : 5,902</span></span>
+<span><span class="co">#&gt;   parameters : 143 value, 260 maps, 13 sets</span></span>
+<span><span class="co">#&gt;   param rows : 5,901</span></span>
 <span><span class="co">#&gt;   estimate   : ~16,111 variables, ~16,832 constraints (from gating maps)</span></span>
 <span><span class="co">#&gt;   top parameters by rows:</span></span>
 <span><span class="co">#&gt;     pTechCinp2use      1,536</span></span>
@@ -332,7 +334,7 @@ in-memory footprint:</p>
 <span><span class="co">#&gt;     pTechInvcost       20</span></span>
 <span><span class="co">#&gt;     pTechStock         14</span></span>
 <span><span class="fu"><a href="../reference/size.html">size</a></span><span class="op">(</span><span class="va">scen</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "6.2 Mb"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "6.6 Mb"</span></span></code></pre></div>
 <p>For a systematic check that a build is correct <em>and</em>
 efficient, <code>compare_interp_settings(mod)</code> and
 <code>compare_solve_settings(mod, solvers = ...)</code> interpolate (and

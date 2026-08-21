@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.80.3.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.85.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -51,7 +51,9 @@
 <li><a class="dropdown-item" href="../articles/install.html">Installation</a></li>
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
+    <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
@@ -116,12 +118,11 @@ This course shares the ideas behind an ongoing project as much as it
 teaches finished software—expect a few rough edges, and bring your
 questions and critique. We are keen to discuss the approach, improve it
 together, and welcome new collaborators.</p>
-<p><strong>How the course works.</strong> The four meetings alternate
-between teaching and follow-up. Sessions 1 and 3 introduce new material
-with live demonstrations; Sessions 2 and 4 are follow-up sessions where
-we review your exercises, troubleshoot code, and answer questions.
-Between meetings you work through short exercises at your own pace.
-Materials and exercises are published on the <a href="https://optimal2050.github.io/useR2026_ensys/" class="external-link">course site</a> as
+<p><strong>How the course works.</strong> Each meeting introduces new
+material and picks up the previous one: every session opens with a recap
+and questions on the exercises, then moves on. Between meetings you work
+through short exercises at your own pace. Materials and exercises are
+published on the <a href="https://optimal2050.github.io/useR2026_ensys/" class="external-link">course site</a> as
 the series progresses, so the sessions build on one another and you can
 catch up on anything you miss.</p>
 <div class="section level2">
@@ -134,7 +135,8 @@ Berlin 14:00 · New Delhi 17:30 · Beijing 20:00) and last approximately
 <h3 id="s1">Session 1 — LEGO-lization of energy modeling and energyRt
 basics<a class="anchor" aria-label="anchor" href="#s1"></a>
 </h3>
-<p><em>Friday, 7 August 2026</em></p>
+<p><em>Friday, 7 August 2026</em> · <a href="https://us06web.zoom.us/rec/share/sKPqSPKtVPXhTXupOBZ4CsISokRYb01N9x_DF3dL8KRjtt23eH9of2sRasLdiDA.OnIX2kVsrzbb2wb5?iet=vRKl8XZuzYw3FGESIdKoaDjyPBtODeaG0R5HiHeICNQ.AG.lUqrHJlmYtf2Fz3OtFMbs2gMQMNK0eSGfxOX25oN8mwLIj3FENbuy88uzdQiQLF40l0hzSPnu1Kh8U0DNPzK3UAaOD23EkBna6O_XFuAKKlocXHRGAFmx6Hpsw.Wa8sCqj9sj9qKRF_sx072Q.9oPe6snyTSrhG024" class="external-link"><strong>recording</strong></a>
+(1:08:05, passcode <code>!%$Grvu7</code>)</p>
 <ul>
 <li>A brief overview of energy-system models and their place in the
 broader energy-economy-environment modeling landscape</li>
@@ -148,27 +150,26 @@ solving a tiny model live and exploring the results</li>
 </ul>
 </div>
 <div class="section level3">
-<h3 id="s2">Session 2 — Exercise follow-up<a class="anchor" aria-label="anchor" href="#s2"></a>
+<h3 id="s2">Session 2 — Time and space resolution<a class="anchor" aria-label="anchor" href="#s2"></a>
 </h3>
-<p><em>Friday, 14 August 2026</em></p>
+<p><em>Friday, 14 August 2026</em> · <a href="https://us06web.zoom.us/rec/share/kO6vVCHx9TAGscAR41BlNuPpnZjTJT3R61x82gW9ALwPRL6TYE4TL_Hkez6ZsKTt.p3PIyROEXlegQhKM?iet=lXahCo9SBe0DqESii6Cq01tpJ43zHDaJnVXYbNApLOY.AG.8q99wdCTe4-3_eap_CqyCbw9FO2J8pHjvd7zRsvgRSCgZx9rMIW38chWulIhj41BB-fODfolvjPCfGSRAUYzTiR2GYliPxIgZhJa7dKDocCxQANPlrBmkSZDZQ.k1DBOTn5yVaakrA_3o3_0w.PPkInRr3Pm-NZXbt" class="external-link"><strong>recording</strong></a>
+(1:06:07, passcode <code>M!1gDV=A</code>)</p>
 <ul>
-<li>Review and discussion of the exercises from Session 1</li>
-<li>Building an example model “brick by brick”</li>
-<li>Comparison of solutions and modeling approaches</li>
-<li>Policy-scenario examples, such as emissions constraints and
-renewable-energy targets</li>
-<li>Questions arising from participants’ practical work</li>
+<li>Q&amp;A follow-up and recap of Session 1</li>
+<li>Model time- and geo-scales</li>
+<li>The process designer (GUI)</li>
+<li>Overview of the new exercises</li>
+<li>Live Q&amp;A</li>
 </ul>
 </div>
 <div class="section level3">
-<h3 id="s3">Session 3 — Advanced energyRt applications<a class="anchor" aria-label="anchor" href="#s3"></a>
+<h3 id="s3">Session 3 — Advanced applications<a class="anchor" aria-label="anchor" href="#s3"></a>
 </h3>
 <p><em>Friday, 21 August 2026</em></p>
 <ul>
-<li>Advanced energy-system modeling examples</li>
-<li>Reproducing a large-scale, real-world open-source energy-system
-model in energyRt (the specific model will be announced before the
-session)</li>
+<li>Modeling (energy) storage</li>
+<li>Solving large models: a version of <strong>PyPSA-Eur</strong> in
+energyRt</li>
 <li>Model structure, data organization, and scenario design</li>
 <li>Practical considerations for larger, multi-region applications</li>
 <li>Using alternative mathematical-programming backends (GLPK,
@@ -176,18 +177,77 @@ HiGHS/Julia, Pyomo, GAMS, and license-free remote solving via NEOS)</li>
 </ul>
 </div>
 <div class="section level3">
-<h3 id="s4">Session 4 — Questions and troubleshooting<a class="anchor" aria-label="anchor" href="#s4"></a>
+<h3 id="s4">Session 4 — Questions, troubleshooting, and more models<a class="anchor" aria-label="anchor" href="#s4"></a>
 </h3>
 <p><em>Friday, 28 August 2026</em></p>
 <ul>
+<li>Model and scenario management, and reporting</li>
+<li>Further model examples (USA, and to be confirmed)</li>
 <li>Open questions about energyRt and the course materials</li>
 <li>Troubleshooting participants’ models and code</li>
-<li>Discussion of modeling challenges and possible solutions</li>
 <li>Guidance on extending the examples to participants’ own
 applications</li>
 <li>Suggested next steps and further resources</li>
 </ul>
 </div>
+</div>
+<div class="section level2">
+<h2 id="recordings-and-slides">Recordings and slides<a class="anchor" aria-label="anchor" href="#recordings-and-slides"></a>
+</h2>
+<p>Sessions are recorded and the decks are shared, so the series can be
+followed after the fact or caught up on.</p>
+<table class="table">
+<colgroup>
+<col width="25%">
+<col width="25%">
+<col width="25%">
+<col width="25%">
+</colgroup>
+<thead><tr class="header">
+<th>session</th>
+<th>date</th>
+<th>recording</th>
+<th>slides</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td>1 — energyRt basics</td>
+<td>7 Aug 2026</td>
+<td>
+<a href="#s1">watch</a> · 1:08:05</td>
+<td><a href="https://drive.proton.me/urls/94PXN24A7G#i6Zv4UNMypvd" class="external-link">all
+sessions</a></td>
+</tr>
+<tr class="even">
+<td>2 — Time and space resolution</td>
+<td>14 Aug 2026</td>
+<td>
+<a href="#s2">watch</a> · 1:06:07</td>
+<td><a href="https://drive.proton.me/urls/94PXN24A7G#i6Zv4UNMypvd" class="external-link">all
+sessions</a></td>
+</tr>
+<tr class="odd">
+<td>3 — Advanced applications</td>
+<td>21 Aug 2026</td>
+<td>—</td>
+<td><a href="https://drive.proton.me/urls/94PXN24A7G#i6Zv4UNMypvd" class="external-link">all
+sessions</a></td>
+</tr>
+<tr class="even">
+<td>4 — Questions and more models</td>
+<td>28 Aug 2026</td>
+<td>—</td>
+<td><a href="https://drive.proton.me/urls/94PXN24A7G#i6Zv4UNMypvd" class="external-link">all
+sessions</a></td>
+</tr>
+</tbody>
+</table>
+<p>Recording links and their passcodes are given with each session in
+the <a href="#schedule">schedule</a> above. <strong><a href="https://drive.proton.me/urls/94PXN24A7G#i6Zv4UNMypvd" class="external-link">Slides for
+all sessions</a></strong> are in one shared folder.</p>
+<p>Written materials — exercises, reference decks and setup guides — are
+published on the <a href="https://optimal2050.github.io/useR2026_ensys/" class="external-link">course site</a> as
+the series progresses.</p>
 </div>
 <div class="section level2">
 <h2 id="who-it-is-for">Who it is for<a class="anchor" aria-label="anchor" href="#who-it-is-for"></a>

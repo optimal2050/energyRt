@@ -32,9 +32,9 @@ getMix(
 
   character: `"generation"` (default – output of `comm` by process, with
   storage-in and exports negative), `"capacity"` (`vTechCap` +
-  `vStorageCap`), `"new_capacity"` (`vTechNewCap` + `vStorageNewCap`),
-  or `"fuel"` (technology fuel consumption `vTechInp` by input
-  commodity).
+  `vStorageOutCap`), `"new_capacity"` (`vTechNewCap` +
+  `vStorageOutNewCap`), or `"fuel"` (technology fuel consumption
+  `vTechInp` by input commodity).
 
 - comm:
 

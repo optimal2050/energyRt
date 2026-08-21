@@ -303,6 +303,16 @@ Model configuration and scenario settings
 - [`report_tex()`](https://energyRt.org/reference/report_tex.md) :
   Generate a LaTeX report for an energyRt object
 
+## Example datasets
+
+Data bundled with the package for the examples and articles. `calendars`
+and `horizons` are listed under Configuration above.
+
+- [`vre_cf`](https://energyRt.org/reference/vre_cf.md) : Hourly wind and
+  solar capacity factors, one site, one year
+- [`vre_storage_duration`](https://energyRt.org/reference/vre_storage_duration.md)
+  : Duration bands of a full-year battery, precomputed
+
 ## Data manimulation
 
 - [`convert(`*`<character>`*`)`](https://energyRt.org/reference/convert.md)
@@ -313,6 +323,12 @@ Model configuration and scenario settings
 - [`convert_data`](https://energyRt.org/reference/convert_data.md) :
 
   Basic units conversion database for `convert` methods
+
+- [`commodity_properties()`](https://energyRt.org/reference/commodity_properties.md)
+  : Recognised commodity properties
+
+- [`commodity_property()`](https://energyRt.org/reference/commodity_property.md)
+  : Physical property of a commodity
 
 - [`apply_to_scenario_data()`](https://energyRt.org/reference/apply_to_scenario_data.md)
   : Apply function to scenario data
@@ -329,6 +345,9 @@ Model configuration and scenario settings
 
 - [`getVariants()`](https://energyRt.org/reference/getVariants.md) :
   Process variants of a solved (or interpolated) scenario
+
+- [`storage_duration()`](https://energyRt.org/reference/storage_duration.md)
+  : Split a storage level into duration bands
 
 - [`variantSummary()`](https://energyRt.org/reference/variantSummary.md)
   : Summarise a result variable across technology variants
@@ -469,6 +488,8 @@ Model configuration and scenario settings
 - [`process_designer()`](https://energyRt.org/reference/process_designer.md)
   [`tech_designer()`](https://energyRt.org/reference/process_designer.md)
   : Launch the process designer
+- [`object_image()`](https://energyRt.org/reference/object_image.md) :
+  Image or icon attached to a model object
 - [`ghost_options()`](https://energyRt.org/reference/ghost_options.md) :
   Geometry of the faded "ghost" vintages behind a drawn technology
 - [`theme_energyRt()`](https://energyRt.org/reference/theme_energyRt.md)
@@ -639,6 +660,8 @@ Model configuration and scenario settings
   : Get output commodities for each process
 - [`get_process_region()`](https://energyRt.org/reference/get_process_region.md)
   : Get regions for each process
+- [`get_process_stored()`](https://energyRt.org/reference/get_process_stored.md)
+  : Stored commodities of each process
 - [`get_process_timeframe()`](https://energyRt.org/reference/get_process_timeframe.md)
   : Get operational timeframe of processes
 - [`get_region()`](https://energyRt.org/reference/get_region.md) :

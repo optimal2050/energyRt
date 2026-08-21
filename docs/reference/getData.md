@@ -32,7 +32,7 @@ getData(
   name = NULL,
   ...,
   merge = FALSE,
-  timeframe = c("lowest", "highest", "all"),
+  timeframe = c("highest", "lowest", "all"),
   geolevel = c("finest", "coarsest", "all"),
   process = FALSE,
   parameters = TRUE,
@@ -66,7 +66,7 @@ getData(
   name = NULL,
   ...,
   merge = FALSE,
-  timeframe = c("lowest", "highest", "all"),
+  timeframe = c("highest", "lowest", "all"),
   geolevel = c("finest", "coarsest", "all"),
   process = FALSE,
   parameters = TRUE,
@@ -278,13 +278,23 @@ getData(
 - timeframe:
 
   controls sub-annual time aggregation of results that carry a
-  `timeslice` column. One of `"lowest"` (default, aggregate/sum flows up
-  to the coarsest level, normally `ANNUAL`), `"highest"` (native/finest,
-  as stored), `"all"` (return every timeframe level stacked), or an
-  explicit calendar level name (e.g. `"SEASON"`, `"YDAY"`) to aggregate
-  to that level. Non-timeslice data, and state/level variables (e.g.
-  `vStorageStore`) for which summing over timeslices is meaningless, are
-  returned unchanged.
+  `timeslice` column. One of `"highest"` (default, native/finest
+  resolution, as stored), `"lowest"` (aggregate/sum flows up to the
+  coarsest level, normally `ANNUAL`), `"all"` (return every timeframe
+  level stacked), or an explicit calendar level name (e.g. `"SEASON"`,
+  `"YDAY"`) to aggregate to that level. Non-timeslice data, and
+  state/level variables (e.g. `vStorageLevel`) for which summing over
+  timeslices is meaningless, are returned unchanged.
+
+  The default was `"lowest"` up to v0.80 and is now `"highest"`,
+  matching the spatial twin `geolevel`, whose default `"finest"` has
+  always meant "as stored". Returning data at native resolution unless
+  asked otherwise is the safer default: the old one silently summed an
+  8760-slice hourly series into a single annual number, which reads as a
+  plausible value rather than as an error, and is indistinguishable from
+  a genuine annual result. Aggregation is easy to ask for and hard to
+  notice when it is not wanted. Code that relied on annual totals must
+  now pass `timeframe = "lowest"` explicitly.
 
 - geolevel:
 

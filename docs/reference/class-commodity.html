@@ -21,7 +21,7 @@ The creation of a commodity object is done with the newCommodity function."><met
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.80.3.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.85.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -38,7 +38,9 @@ The creation of a commodity object is done with the newCommodity function."><met
   <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials"><li><a class="dropdown-item" href="../articles/install.html">Installation</a></li>
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
+    <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
@@ -133,8 +135,38 @@ The creation of a commodity object is done with the <code>newCommodity</code> fu
 </dl></dd>
 
 
+<dt><code>property</code></dt>
+<dd><p>data.frame. Physical properties of the commodity – heating values, density, molar mass, composition. Reference data: it is never written to the model input, but it gives <code>convert()</code> the physics needed to move between measures of the same commodity (energy, mass, volume, amount). A property whose unit is a ratio of two dimensions, such as <code>lhv</code> in "GJ/t", acts as a conversion edge between them. Only properties of the commodity itself belong here – anything whose numerator is a <em>different</em> commodity, such as a CO2 emission factor, belongs in <code>emis</code>. See <code><a href="commodity_properties.html">commodity_properties()</a></code> for the recognised names.</p>
+<dl><dt>property</dt>
+<dd><p>character. Name of the property, e.g. "lhv", "hhv", "density", "molar_mass", or "frac_C" for an element mass fraction. Unrecognised names are kept with a warning.</p></dd>
+
+<dt>value</dt>
+<dd><p>numeric. The value of the property, in <code>unit</code>. Always the deterministic point estimate – the mean, mode or best guess; <code>min</code>, <code>max</code> and <code>sd</code> describe uncertainty around it and are never read by <code>convert()</code>.</p></dd>
+
+<dt>min</dt>
+<dd><p>numeric. Lower bound of the value, for sensitivity analysis. Optional.</p></dd>
+
+<dt>max</dt>
+<dd><p>numeric. Upper bound of the value, for sensitivity analysis. Optional.</p></dd>
+
+<dt>sd</dt>
+<dd><p>numeric. Standard deviation of the value, for sensitivity analysis. Optional.</p></dd>
+
+<dt>dist</dt>
+<dd><p>character. Distribution of the value for sensitivity analysis, one of "point", "uniform", "triangular", "pert", "normal", or "lognormal". Optional; "point" or NA means the value is treated as certain. "uniform" reads <code>min</code> and <code>max</code>; "triangular" and "pert" read <code>min</code>, <code>value</code> (the mode) and <code>max</code>; "normal" and "lognormal" read <code>value</code> and <code>sd</code>.</p></dd>
+
+<dt>unit</dt>
+<dd><p>character. Unit of the property, e.g. "GJ/t", "t/m3", "g/mol", "kg/kg". Applies to <code>value</code>, <code>min</code>, <code>max</code> and <code>sd</code> alike.</p></dd>
+
+<dt>comment</dt>
+<dd><p>character. Optional note on the source of the value or the conditions it refers to, such as "bulk, as stockpiled" or "gas, 0 C, 1 atm".</p></dd>
+
+
+</dl></dd>
+
+
 <dt><code>misc</code></dt>
-<dd><p>list. List of additional parameters that are not used in the model but can be used for reference or user-defined functions. For example, links to the source of the commodity data, or other metadata.</p></dd>
+<dd><p>list. List of additional parameters that are not used in the model but can be used for reference or user-defined functions. For example, links to the source of the commodity data, or other metadata. Two names are conventional: <code>misc$image</code>, a path or URL to an illustration used in reports, and <code>misc$icon</code>, a path or URL to a small icon. Both can be set with the <code>image</code> and <code>icon</code> arguments of <code>newCommodity</code>.</p></dd>
 
 
 </dl></div>

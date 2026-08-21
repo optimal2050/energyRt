@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.80.3.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.85.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -30,7 +30,9 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials"><li><a class="dropdown-item" href="../articles/install.html">Installation</a></li>
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
+    <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
@@ -88,10 +90,6 @@ the storage cycle will be a calendar day).</p>
 <dd><p>character. Description of the storage.</p></dd>
 
 
-<dt><code>commodity</code></dt>
-<dd><p>character. Name of the stored commodity.</p></dd>
-
-
 <dt><code>aux</code></dt>
 <dd><p>data.frame. Auxiliary commodities.</p><dl><dt>acomm</dt>
 <dd><p>character. Name of the auxiliary commodity (used in sets).</p></dd>
@@ -108,7 +106,7 @@ the storage cycle will be a calendar day).</p>
 
 
 <dt><code>cluster</code></dt>
-<dd><p>data.frame. Declaration of the storage clusters – parallel sub-processes of the same storage with their own capacity, availability and costs. The motivating cases are site-constrained storage (pumped-hydro head classes, CAES caverns) and duration classes via a per-cluster <code>cap2stg</code>. Optional: when empty, cluster labels are harvested from the other slots; when populated it is authoritative and an undeclared label raises an error.</p><dl><dt>cluster</dt>
+<dd><p>data.frame. Declaration of the storage clusters – parallel sub-processes of the same storage with their own capacity, availability and costs. The motivating cases are site-constrained storage (pumped-hydro head classes, CAES caverns) and duration classes via a per-cluster <code>duration</code>. Optional: when empty, cluster labels are harvested from the other slots; when populated it is authoritative and an undeclared label raises an error.</p><dl><dt>cluster</dt>
 <dd><p>character. Cluster label. Must match the <code>cluster</code> column values used in the other slots.</p></dd>
 
 <dt>desc</dt>
@@ -194,8 +192,90 @@ the storage cycle will be a calendar day).</p>
 </dl></dd>
 
 
-<dt><code>charge</code></dt>
-<dd><p>data.frame. Pre-charged level at the beginning of the operational cycle.</p><dl><dt>vintage</dt>
+<dt><code>input</code></dt>
+<dd><p>data.frame. The commodity that FILLS the store – the "charger" side. Named by <code>comm</code>, with an optional <code>unit</code>. Left empty it takes whatever <code>newStorage(commodity = )</code> supplied.</p>
+<dl><dt>comm</dt>
+<dd><p>character. Commodity consumed to fill the store.</p></dd>
+
+<dt>unit</dt>
+<dd><p>character. Unit of <code>comm</code> on this side, exactly as on <code>technology@input</code>/ <code>@output</code>. Descriptive only: it is carried for reporting and <code>convert()</code> and never reaches the solver. It is the unit of the COMMODITY (e.g. MWh), not of the capacity – capacity units follow from <code>cap2act</code>, and the storing side has no <code>cap2act</code> because a reservoir is an amount rather than a rate.</p></dd>
+
+<dt>cap2act</dt>
+<dd><p>numeric. Capacity to ANNUAL flow, exactly as <code>technology@cap2act</code>. The flow bound is <code>cinp.up * cap2act * cap * pTimesliceShare</code>, so <code>cap</code> is a RATE and means the same physical thing on any calendar. Defaults to 8760 (hours in a year), which makes <code>cap</code> read as commodity per HOUR; an hourly full-year model is unchanged because 8760 * (1/8760) = 1. Assumes commodity unit = capacity unit x hour (GW with GWh); GW with TWh wants 8.76. The STORING side has no cap2act – energy is energy at any resolution.</p></dd>
+
+
+</dl></dd>
+
+
+<dt><code>output</code></dt>
+<dd><p>data.frame. The commodity the store RELEASES – the "discharger" side. Named by <code>comm</code>, with an optional <code>unit</code>. Left empty it takes whatever <code>newStorage(commodity = )</code> supplied.</p>
+<dl><dt>comm</dt>
+<dd><p>character. Commodity produced when the store discharges.</p></dd>
+
+<dt>unit</dt>
+<dd><p>character. Unit of <code>comm</code> on this side, exactly as on <code>technology@input</code>/ <code>@output</code>. Descriptive only: it is carried for reporting and <code>convert()</code> and never reaches the solver. It is the unit of the COMMODITY (e.g. MWh), not of the capacity – capacity units follow from <code>cap2act</code>, and the storing side has no <code>cap2act</code> because a reservoir is an amount rather than a rate.</p></dd>
+
+<dt>cap2act</dt>
+<dd><p>numeric. Capacity to ANNUAL flow, exactly as <code>technology@cap2act</code>. The flow bound is <code>cinp.up * cap2act * cap * pTimesliceShare</code>, so <code>cap</code> is a RATE and means the same physical thing on any calendar. Defaults to 8760 (hours in a year), which makes <code>cap</code> read as commodity per HOUR; an hourly full-year model is unchanged because 8760 * (1/8760) = 1. Assumes commodity unit = capacity unit x hour (GW with GWh); GW with TWh wants 8.76. The STORING side has no cap2act – energy is energy at any resolution.</p></dd>
+
+
+</dl></dd>
+
+
+<dt><code>storage</code></dt>
+<dd><p>data.frame. The commodity the store HOLDS – what <code>vStorageLevel</code> is measured in. Named by <code>comm</code>, with an optional <code>unit</code>. Left empty it takes whatever <code>newStorage(commodity = )</code> supplied. It may differ from BOTH flows: a hydrogen store consumes and produces electricity while holding hydrogen. There is no <code>commodity</code> slot – <code>newStorage(commodity = )</code> is a shorthand folded into these three at construction, so an object never carries two answers to what it consumes. Beyond <code>comm</code>, this slot carries the storing side's OWN capacity and economics, measured in ENERGY (e.g. MWh) rather than power. Supplying any of them materialises <code>vStorageStgCap</code>, so the store's energy can be sized, bounded and priced independently of its inverter; supplying none of them (a bare <code>comm</code>) leaves the storage with a single power capacity and the pre-v0.84 model, with <code>@duration</code> inlined into the availability bounds.</p>
+<dl><dt>comm</dt>
+<dd><p>character. Commodity held in the store.</p></dd>
+
+<dt>unit</dt>
+<dd><p>character. Unit of <code>comm</code> on this side, exactly as on <code>technology@input</code>/ <code>@output</code>. Descriptive only: it is carried for reporting and <code>convert()</code> and never reaches the solver. It is the unit of the COMMODITY (e.g. MWh), not of the capacity – capacity units follow from <code>cap2act</code>, and the storing side has no <code>cap2act</code> because a reservoir is an amount rather than a rate.</p></dd>
+
+<dt>vintage</dt>
+<dd><p>character. Vintage label selecting the variant this row applies to, NA for all.</p></dd>
+
+<dt>cluster</dt>
+<dd><p>character. Cluster label selecting the variant this row applies to, NA for all.</p></dd>
+
+<dt>region</dt>
+<dd><p>character. Region the row applies to, NA for all.</p></dd>
+
+<dt>year</dt>
+<dd><p>integer. Year the row applies to, NA for all.</p></dd>
+
+<dt>stock</dt>
+<dd><p>numeric. Pre-existing energy capacity, in commodity units. The energy analogue of <code>capacity$stock</code>, which is power.</p></dd>
+
+<dt>cap.lo</dt>
+<dd><p>numeric. Lower bound on total energy capacity.</p></dd>
+
+<dt>cap.up</dt>
+<dd><p>numeric. Upper bound on total energy capacity.</p></dd>
+
+<dt>cap.fx</dt>
+<dd><p>numeric. Fixed total energy capacity.</p></dd>
+
+<dt>ncap.lo</dt>
+<dd><p>numeric. Lower bound on new energy capacity added in the period.</p></dd>
+
+<dt>ncap.up</dt>
+<dd><p>numeric. Upper bound on new energy capacity added in the period.</p></dd>
+
+<dt>ncap.fx</dt>
+<dd><p>numeric. Fixed new energy capacity added in the period.</p></dd>
+
+<dt>invcost</dt>
+<dd><p>numeric. Overnight investment cost per unit of ENERGY capacity (currency/MWh), annuitised on the storage's own <code>@vintage</code> – one lifetime and one wacc for the object, two capital costs on different bases. This is what previously had to be hand-multiplied into the per-MW <code>@invcost</code>.</p></dd>
+
+<dt>fixom</dt>
+<dd><p>numeric. Fixed O&amp;M cost per unit of energy capacity per year.</p></dd>
+
+
+</dl></dd>
+
+
+<dt><code>startLevel</code></dt>
+<dd><p>data.frame. Energy added to the storage level ONCE PER CYCLE, at the first timeslice of the cycle. There is deliberately no <code>timeslice</code> column: the slice is derived from the calendar and <code>fullYear</code>, so it cannot be left unset and broadcast to every timeslice the way the old <code>charge</code> slot could. Which cycle depends on <code>fullYear</code>: once a year when TRUE, once per parent timeframe when FALSE. The value is ANNUAL. When the cycle is shorter than a year each cycle receives its own SHARE of it – 365 daily cycles get 1/365 each – so the annual endowment is the same however the cycle closes. A calendar covering part of a year endows that fraction, consistently. It is FREE to the model, by design and unavoidably – a store that ends a cycle below where it started has consumed an endowment nobody paid for. PyPSA's <code>state_of_charge_initial</code> has the same property. Being additive, the level at the first timeslice is <code>startLevel</code> PLUS whatever carried over from the previous cycle, i.e. at least <code>startLevel</code> rather than exactly it; the model may end the cycle empty to make it exact. Renamed from <code>charge</code> (via <code>inflow</code>) in v0.80; both are still accepted with a warning, and any <code>timeslice</code> column they carried is dropped. NOTE hydro inflow does NOT belong here – use a weather-driven <code>supply</code> (with <code>ava.up</code>, so spilling is free) feeding the storage.</p>
+<dl><dt>vintage</dt>
 <dd><p>character. Vintage label selecting the variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
 
 <dt>cluster</dt>
@@ -207,11 +287,8 @@ the storage cycle will be a calendar day).</p>
 <dt>year</dt>
 <dd><p>integer. Year to apply the parameter, NA for every year.</p></dd>
 
-<dt>timeslice</dt>
-<dd><p>character. Time timeslice for which the charged level will be specified.</p></dd>
-
-<dt>charge</dt>
-<dd><p>numeric. Pre-charged or targeted level at the specified timeslice.</p></dd>
+<dt>startLevel</dt>
+<dd><p>numeric. Energy added to the level at the first timeslice of each cycle.</p></dd>
 
 
 </dl></dd>
@@ -431,11 +508,12 @@ the storage cycle will be a calendar day).</p>
 
 
 <dt><code>fullYear</code></dt>
-<dd><p>logical. If TRUE (default), the storage technology operates between parent timeframes through the year. The last time-timeslice in the timeframe is used as a preciding time-timeslice for the first time-timeslice in the the same group of time-timeslices within the parent timeframe. if FALSE, the storage charge and discchare cycle is limited to the parent timeframe. The last time-timeslice in the timeframe is used as a preciding time-timeslice for the first time-timeslice in the the same group of time-timeslices within the parent timeframe.</p></dd>
+<dd><p>logical. Controls where the charge/discharge cycle closes. If TRUE (default), the storage operates across parent timeframes through the whole year: the preceding time-timeslice of the first time-timeslice of a group is the last time-timeslice of the PREVIOUS group, and only the last time-timeslice of the year wraps round to the first. A battery on an hourly calendar nested under days can therefore carry energy from one day into the next, and seasonal storage is representable. If FALSE, the cycle is closed within each parent timeframe: the preceding time-timeslice of the first time-timeslice of a group is the LAST time-timeslice of the SAME group, so every group is an independent loop with no energy carried between them.</p></dd>
 
 
-<dt><code>cap2stg</code></dt>
-<dd><p>data.frame. Charging and discharging capacity to the storing capacity inverse ratio, i.e. the storage duration. A data.frame rather than a scalar so it can differ by cluster – 1h / 4h / 8h duration classes of the same storage. A bare scalar (<code>cap2stg = 4</code>) is still accepted.</p><dl><dt>vintage</dt>
+<dt><code>duration</code></dt>
+<dd><p>data.frame. How long the store can run at its rated output: the ratio of storing capacity to (dis)charging capacity. <code>duration = 6</code> on an hourly calendar is a 6-hour store. Renamed from <code>cap2stg</code> in v0.80, which is still accepted with a warning. It is a BOUND on (storage, region, year): <code>duration.fx</code> ties energy to power, <code>duration.lo</code>/<code>duration.up</code> let the model choose the ratio – which only bites when the storing side is priced, via <code>@storage$invcost</code>. The bare <code>duration</code> column is the scalar shorthand and is normalised to <code>duration.fx</code> at construction. A ONE-SIDED range opens the other side (an <code>up</code> alone does not inherit the default <code>lo</code> of 1). Saying nothing leaves the slot empty and the parameter default of 1, 1 ties energy to power at one hour, which is the pre-v0.84 behaviour.</p>
+<dl><dt>vintage</dt>
 <dd><p>character. Vintage label selecting the variant this row applies to, NA for every vintage.</p></dd>
 
 <dt>cluster</dt>
@@ -447,8 +525,47 @@ the storage cycle will be a calendar day).</p>
 <dt>year</dt>
 <dd><p>integer. Year to apply the parameter, NA for every year.</p></dd>
 
-<dt>cap2stg</dt>
+<dt>duration</dt>
 <dd><p>numeric. Capacity-to-storage ratio (storage duration).</p></dd>
+
+<dt>duration.lo</dt>
+<dd><p>numeric. Lower bound on the energy-to-power ratio, in hours.</p></dd>
+
+<dt>duration.up</dt>
+<dd><p>numeric. Upper bound on the energy-to-power ratio, in hours.</p></dd>
+
+<dt>duration.fx</dt>
+<dd><p>numeric. Fixed energy-to-power ratio, in hours. The scalar shorthand <code>duration = 6</code> normalises to this.</p></dd>
+
+
+</dl></dd>
+
+
+<dt><code>inp2out</code></dt>
+<dd><p>data.frame. The charge-to-discharge capacity ratio, dimensionless: how big the charger is relative to the discharger. Same bound semantics as <code>duration</code> – <code>inp2out.fx</code> ties the two (one bidirectional inverter), <code>inp2out.lo</code>/<code>.up</code> let the model size them apart, and the bare <code>inp2out</code> column is the scalar shorthand, normalised to <code>.fx</code> at construction. A one-sided range opens the other side. Saying nothing leaves the slot empty and the parameter default of 1, 1 keeps the two sides symmetric, which is what a storage without a separate charger has always been. It bites only when the charging side is priced or bounded via <code>@input</code>; otherwise there is no charging capacity variable to constrain.</p>
+<dl><dt>vintage</dt>
+<dd><p>character. Vintage label selecting the variant this row applies to, NA for all.</p></dd>
+
+<dt>cluster</dt>
+<dd><p>character. Cluster label selecting the variant this row applies to, NA for all.</p></dd>
+
+<dt>region</dt>
+<dd><p>character. Region the row applies to, NA for all.</p></dd>
+
+<dt>year</dt>
+<dd><p>integer. Year the row applies to, NA for all.</p></dd>
+
+<dt>inp2out</dt>
+<dd><p>numeric. Scalar shorthand, normalised to <code>inp2out.fx</code>.</p></dd>
+
+<dt>inp2out.lo</dt>
+<dd><p>numeric. Lower bound on the charge-to-discharge capacity ratio.</p></dd>
+
+<dt>inp2out.up</dt>
+<dd><p>numeric. Upper bound on the charge-to-discharge capacity ratio.</p></dd>
+
+<dt>inp2out.fx</dt>
+<dd><p>numeric. Fixed charge-to-discharge capacity ratio.</p></dd>
 
 
 </dl></dd>

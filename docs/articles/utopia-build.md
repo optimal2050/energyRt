@@ -731,7 +731,7 @@ STG_ELC <- newStorage(
   invcost = list(
     invcost = convert("EUR/kWh", "MEUR/PJ", 200)
   ),
-  cap2stg = 4,                            # 4 hours of storage per GW
+  duration = 4,                            # 4 hours of storage per GW
   seff = data.frame(
     inpeff = 0.95,
     outeff = 0.95                         # ~90% round trip

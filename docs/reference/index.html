@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.80.3.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.85.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -30,7 +30,9 @@
   <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials"><li><a class="dropdown-item" href="../articles/install.html">Installation</a></li>
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
+    <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
@@ -813,6 +815,29 @@
         </dt>
         <dd>Generate a LaTeX report for an energyRt object</dd>
       </dl></div><div class="section level2">
+      <h2 id="example-datasets">Example datasets<a class="anchor" aria-label="anchor" href="#example-datasets"></a></h2>
+
+      <div class="section-desc"><p>Data bundled with the package for the examples and articles. <code>calendars</code> and <code>horizons</code> are listed under Configuration above.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="vre_cf.html">vre_cf</a></code>
+
+        </dt>
+        <dd>Hourly wind and solar capacity factors, one site, one year</dd>
+
+        <dt>
+
+          <code><a href="vre_storage_duration.html">vre_storage_duration</a></code>
+
+        </dt>
+        <dd>Duration bands of a full-year battery, precomputed</dd>
+      </dl></div><div class="section level2">
       <h2 id="data-manimulation">Data manimulation<a class="anchor" aria-label="anchor" href="#data-manimulation"></a></h2>
 
 
@@ -835,6 +860,20 @@
 
         </dt>
         <dd>Basic units conversion database for <code>convert</code> methods</dd>
+
+        <dt>
+
+          <code><a href="commodity_properties.html">commodity_properties()</a></code>
+
+        </dt>
+        <dd>Recognised commodity properties</dd>
+
+        <dt>
+
+          <code><a href="commodity_property.html">commodity_property()</a></code>
+
+        </dt>
+        <dd>Physical property of a commodity</dd>
 
         <dt>
 
@@ -870,6 +909,13 @@
 
         </dt>
         <dd>Process variants of a solved (or interpolated) scenario</dd>
+
+        <dt>
+
+          <code><a href="storage_duration.html">storage_duration()</a></code>
+
+        </dt>
+        <dd>Split a storage level into duration bands</dd>
 
         <dt>
 
@@ -1180,6 +1226,13 @@
 
         </dt>
         <dd>Launch the process designer</dd>
+
+        <dt>
+
+          <code><a href="object_image.html">object_image()</a></code>
+
+        </dt>
+        <dd>Image or icon attached to a model object</dd>
 
         <dt>
 
@@ -1559,6 +1612,13 @@
 
         </dt>
         <dd>Get regions for each process</dd>
+
+        <dt>
+
+          <code><a href="get_process_stored.html">get_process_stored()</a></code>
+
+        </dt>
+        <dd>Stored commodities of each process</dd>
 
         <dt>
 

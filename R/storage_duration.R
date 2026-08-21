@@ -176,8 +176,14 @@ storage_duration <- function(scen,
   keys <- intersect(keys, names(lev))
   out <- lapply(split(lev, lev[keys], drop = TRUE), function(g) {
     if (!NROW(g)) return(NULL)
-    g$datetime <- tsl2dtm(g$timeslice, format = fmt, year = g$year, tmz = tmz)
-    if (is.null(g$datetime) || all(is.na(g$datetime))) return(NULL)
+    # `mday` matters for month-based calendars (`m12_h24`): without it
+    # `tsl2dtm()` returns NULL, every group below was dropped, and the function
+    # returned zero rows with no message -- an empty chart and nothing to say
+    # why. The 1st is arbitrary but monotonic, which is all the ordering needs.
+    dtm <- tsl2dtm(g$timeslice, format = fmt, year = g$year, tmz = tmz,
+                   mday = 1L)
+    if (is.null(dtm) || all(is.na(dtm))) return(NULL)
+    g$datetime <- dtm
     g <- g[order(g$datetime), , drop = FALSE]
     x <- g$value
     x[is.na(x)] <- 0
@@ -221,7 +227,15 @@ storage_duration <- function(scen,
     res
   })
   out <- do.call(rbind, out[!vapply(out, is.null, logical(1))])
-  if (is.null(out) || !NROW(out)) return(empty)
+  if (is.null(out) || !NROW(out)) {
+    # `lev` had rows, so the level exists and it is the DATING that failed.
+    # Returning `empty` here is how this looked like "storage_duration() gives
+    # an empty figure" with nothing to go on; say what could not be done.
+    stop("`storage_duration()` could not place the storage level in time. ",
+         "The timeslice format read as \"", paste(fmt, collapse = ", "),
+         "\", which carries no date. A dated calendar (day/hour, e.g. ",
+         "`calendars$d365_h24`, or month/hour) is required.", call. = FALSE)
+  }
   out$duration <- factor(out$duration, levels = labels, ordered = TRUE)
   rownames(out) <- NULL
   out
