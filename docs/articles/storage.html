@@ -477,16 +477,16 @@ each gets its own repository and model:</p>
 <span></span>
 <span><span class="va">scen_year</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">mod_year</span>, name <span class="op">=</span> <span class="st">"fy_year"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Solver directory:  scenarios/fy-year_d365-h24-subset-1day-per-month/script/glpk </span></span>
-<span><span class="co">#&gt; Writing files: 0.33s</span></span>
+<span><span class="co">#&gt; Writing files: 0.3s</span></span>
 <span><span class="co">#&gt; Starting  GLPK </span></span>
-<span><span class="co">#&gt; 0.17s</span></span>
-<span><span class="co">#&gt; Reading solution: 0.08s</span></span>
+<span><span class="co">#&gt; 0.15s</span></span>
+<span><span class="co">#&gt; Reading solution: 0.1s</span></span>
 <span><span class="va">scen_day</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">mod_day</span>, name <span class="op">=</span> <span class="st">"fy_day"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Solver directory:  scenarios/fy-day_d365-h24-subset-1day-per-month/script/glpk </span></span>
 <span><span class="co">#&gt; Writing files: 0.3s</span></span>
 <span><span class="co">#&gt; Starting  GLPK </span></span>
-<span><span class="co">#&gt; 0.14s</span></span>
-<span><span class="co">#&gt; Reading solution: 0.06s</span></span>
+<span><span class="co">#&gt; 0.12s</span></span>
+<span><span class="co">#&gt; Reading solution: 0.08s</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen_year</span>, <span class="st">"vObjective"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">$</span><span class="va">value</span></span>
 <span><span class="co">#&gt; [1] 9962.545</span></span>
@@ -1235,9 +1235,9 @@ in the evening.</p>
 <span></span>
 <span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">sol_mod</span>, name <span class="op">=</span> <span class="st">"solar_battery"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Solver directory:  scenarios/solar-battery_d365-h24-subset-1day-per-month/script/glpk </span></span>
-<span><span class="co">#&gt; Writing files: 0.23s</span></span>
+<span><span class="co">#&gt; Writing files: 0.2s</span></span>
 <span><span class="co">#&gt; Starting  GLPK </span></span>
-<span><span class="co">#&gt; 0.28s</span></span>
+<span><span class="co">#&gt; 0.25s</span></span>
 <span><span class="co">#&gt; Reading solution: 0.08s</span></span></code></pre></div>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/storage_duration.html">storage_duration</a></span><span class="op">(</span><span class="va">scen</span><span class="op">)</span>                 <span class="co"># 12h / 1d / 1w / 30d by default</span></span>
