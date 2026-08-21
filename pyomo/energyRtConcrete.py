@@ -126,6 +126,50 @@ model.vTechRetiredStock = Var(
 model.vTechRetiredNewCap = Var(
     mvTechRetiredNewCap, domain=pyo.NonNegativeReals, doc="Early retired new capacity"
 )
+model.vTechPhaseOut = Var(
+    mvTechPhaseOut, domain=pyo.NonNegativeReals, doc="Capacity reaching end of life"
+)
+model.vStoragePhaseOut = Var(
+    mvStoragePhaseOut, domain=pyo.NonNegativeReals, doc="Storage capacity reaching end of life"
+)
+model.vStorageOutRetiredStockCum = Var(
+    mvStorageRetiredStock, domain=pyo.NonNegativeReals, doc="Early retired storage discharging stock cumulative"
+)
+model.vStorageOutRetiredStock = Var(
+    mvStorageRetiredStock, domain=pyo.NonNegativeReals, doc="Early retired storage discharging stock"
+)
+model.vStorageOutRetiredNewCap = Var(
+    mvStorageRetiredNewCap, domain=pyo.NonNegativeReals, doc="Early retired new storage discharging capacity"
+)
+model.vStorageInpRetiredStockCum = Var(
+    mvStorageRetiredStock, domain=pyo.NonNegativeReals, doc="Early retired storage charging stock cumulative"
+)
+model.vStorageInpRetiredStock = Var(
+    mvStorageRetiredStock, domain=pyo.NonNegativeReals, doc="Early retired storage charging stock"
+)
+model.vStorageInpRetiredNewCap = Var(
+    mvStorageRetiredNewCap, domain=pyo.NonNegativeReals, doc="Early retired new storage charging capacity"
+)
+model.vStorageStgRetiredStockCum = Var(
+    mvStorageRetiredStock, domain=pyo.NonNegativeReals, doc="Early retired storage energy stock cumulative"
+)
+model.vStorageStgRetiredStock = Var(
+    mvStorageRetiredStock, domain=pyo.NonNegativeReals, doc="Early retired storage energy stock"
+)
+model.vStorageStgRetiredNewCap = Var(
+    mvStorageRetiredNewCap, domain=pyo.NonNegativeReals, doc="Early retired new storage energy capacity"
+)
+model.vStorageRetCost = Var(mStorageRetCost, doc="Storage early retirement costs")
+model.vTradeRetiredStockCum = Var(
+    mvTradeRetiredStock, domain=pyo.NonNegativeReals, doc="Early retired trade stock cumulative"
+)
+model.vTradeRetiredStock = Var(
+    mvTradeRetiredStock, domain=pyo.NonNegativeReals, doc="Early retired trade stock"
+)
+model.vTradeRetiredNewCap = Var(
+    mvTradeRetiredNewCap, domain=pyo.NonNegativeReals, doc="Early retired new trade capacity"
+)
+model.vTradeRetCost = Var(mTradeRetCost, doc="Trade early retirement costs")
 model.vTechCap = Var(
     mTechSpan, domain=pyo.NonNegativeReals, doc="Total capacity of the technology"
 )
@@ -526,6 +570,16 @@ model.eqTechAInp = Constraint(
         if (t, c, r, y, s) in mTechNCap2AInp
         else 0
     )
+    + (
+        ((model.vTechPhaseOut[t, r, y] if (t, r, y) in mvTechPhaseOut else 0) * pTechPho2AInp.get((t, c, r, y, s)))
+        if (t, c, r, y, s) in mTechPho2AInp
+        else 0
+    )
+    + (
+        (((model.vTechRetiredStock[t, r, y] if (t, r, y) in mvTechRetiredStock else 0) + sum(model.vTechRetiredNewCap[t, r, yp, y] for yp in year if (t, r, yp, y) in mvTechRetiredNewCap)) * pTechRet2AInp.get((t, c, r, y, s)))
+        if (t, c, r, y, s) in mTechRet2AInp
+        else 0
+    )
     + sum(
         pTechCinp2AInp.get((t, c, cp, r, y, s)) * model.vTechInp[t, cp, r, y, s]
         for cp in comm
@@ -568,6 +622,16 @@ model.eqTechAOut = Constraint(
     + (
         (model.vTechNewCap[t, r, y] * pTechNCap2AOut.get((t, c, r, y, s)))
         if (t, c, r, y, s) in mTechNCap2AOut
+        else 0
+    )
+    + (
+        ((model.vTechPhaseOut[t, r, y] if (t, r, y) in mvTechPhaseOut else 0) * pTechPho2AOut.get((t, c, r, y, s)))
+        if (t, c, r, y, s) in mTechPho2AOut
+        else 0
+    )
+    + (
+        (((model.vTechRetiredStock[t, r, y] if (t, r, y) in mvTechRetiredStock else 0) + sum(model.vTechRetiredNewCap[t, r, yp, y] for yp in year if (t, r, yp, y) in mvTechRetiredNewCap)) * pTechRet2AOut.get((t, c, r, y, s)))
+        if (t, c, r, y, s) in mTechRet2AOut
         else 0
     )
     + sum(
@@ -900,16 +964,13 @@ model.eqTechCap = Constraint(
     == pTechStock.get((t, r, y))
     - (model.vTechRetiredStockCum[t, r, y] if (t, r, y) in mvTechRetiredStock else 0)
     + sum(
-        pPeriodLen.get((yp))
-        * (
-            model.vTechNewCap[t, r, yp]
-            - sum(
-                model.vTechRetiredNewCap[t, r, yp, ye]
-                for ye in year
-                if (
-                    (t, r, yp, ye) in mvTechRetiredNewCap
-                    and ordYear.get((y)) >= ordYear.get((ye))
-                )
+        pPeriodLen.get((yp)) * model.vTechNewCap[t, r, yp]
+        - sum(
+            model.vTechRetiredNewCap[t, r, yp, ye] * pPeriodLen.get((ye))
+            for ye in year
+            if (
+                (t, r, yp, ye) in mvTechRetiredNewCap
+                and ordYear.get((y)) >= ordYear.get((ye))
             )
         )
         for yp in year
@@ -1065,9 +1126,9 @@ model.eqTechRetUp = Constraint(
         model.vTechRetiredStock[t, r, y] if (t, r, y) in mvTechRetiredStock else 0
     )
     + sum(
-        model.vTechRetiredNewCap[t, r, y, yp]
+        model.vTechRetiredNewCap[t, r, yp, y]
         for yp in year
-        if (t, r, y, yp) in mvTechRetiredNewCap
+        if (t, r, yp, y) in mvTechRetiredNewCap
     )
     <= pTechRetUp.get((t, r, y)) * pPeriodLen.get((y)),
 )
@@ -1089,9 +1150,9 @@ model.eqTechRetLo = Constraint(
         model.vTechRetiredStock[t, r, y] if (t, r, y) in mvTechRetiredStock else 0
     )
     + sum(
-        model.vTechRetiredNewCap[t, r, y, yp]
+        model.vTechRetiredNewCap[t, r, yp, y]
         for yp in year
-        if (t, r, y, yp) in mvTechRetiredNewCap
+        if (t, r, yp, y) in mvTechRetiredNewCap
     )
     >= pTechRetLo.get((t, r, y)) * pPeriodLen.get((y)),
 )
@@ -1103,6 +1164,371 @@ if verbose:
         " s)",
         sep="",
     )
+# eqStorageOutRetiredNewCap(stg, region, year)$meqStorageRetiredNewCap
+model.eqStorageOutRetiredNewCap = Constraint(
+    meqStorageRetiredNewCap,
+    rule=lambda model, st1, r, y: (
+        sum(
+            model.vStorageOutRetiredNewCap[st1, r, y, yp] * pPeriodLen.get((yp))
+            for yp in year
+            if (st1, r, y, yp) in mvStorageRetiredNewCap
+        )
+        <= model.vStorageOutNewCap[st1, r, y] * pPeriodLen.get((y))
+        if (st1, r, y) in mStorageNew
+        else pyo.Constraint.Skip
+    ),
+)
+# eqStorageOutRetiredStockCum(stg, region, year)$mvStorageRetiredStock
+model.eqStorageOutRetiredStockCum = Constraint(
+    mvStorageRetiredStock,
+    rule=lambda model, st1, r, y: model.vStorageOutRetiredStockCum[st1, r, y]
+    <= pStorageOutStock.get((st1, r, y)),
+)
+# eqStorageOutRetiredStock(stg, region, year)$mvStorageRetiredStock
+model.eqStorageOutRetiredStock = Constraint(
+    mvStorageRetiredStock,
+    rule=lambda model, st1, r, y: model.vStorageOutRetiredStock[st1, r, y]
+    * pPeriodLen.get((y))
+    == model.vStorageOutRetiredStockCum[st1, r, y]
+    - sum(
+        model.vStorageOutRetiredStockCum[st1, r, yp]
+        for yp in year
+        if ((yp, y) in mMilestoneNext and (st1, r, yp) in mvStorageRetiredStock)
+    ),
+)
+# eqStorageOutRetUp(stg, region, year)$mStorageOutRetUp
+model.eqStorageOutRetUp = Constraint(
+    mStorageOutRetUp,
+    rule=lambda model, st1, r, y: (
+        model.vStorageOutRetiredStock[st1, r, y]
+        if (st1, r, y) in mvStorageRetiredStock
+        else 0
+    )
+    + sum(
+        model.vStorageOutRetiredNewCap[st1, r, yp, y]
+        for yp in year
+        if (st1, r, yp, y) in mvStorageRetiredNewCap
+    )
+    <= pStorageOutRetUp.get((st1, r, y)) * pPeriodLen.get((y)),
+)
+# eqStorageOutRetLo(stg, region, year)$mStorageOutRetLo
+model.eqStorageOutRetLo = Constraint(
+    mStorageOutRetLo,
+    rule=lambda model, st1, r, y: (
+        model.vStorageOutRetiredStock[st1, r, y]
+        if (st1, r, y) in mvStorageRetiredStock
+        else 0
+    )
+    + sum(
+        model.vStorageOutRetiredNewCap[st1, r, yp, y]
+        for yp in year
+        if (st1, r, yp, y) in mvStorageRetiredNewCap
+    )
+    >= pStorageOutRetLo.get((st1, r, y)) * pPeriodLen.get((y)),
+)
+# eqStorageInpRetiredNewCap(stg, region, year)$meqStorageRetiredNewCap
+model.eqStorageInpRetiredNewCap = Constraint(
+    meqStorageRetiredNewCap,
+    rule=lambda model, st1, r, y: (
+        sum(
+            model.vStorageInpRetiredNewCap[st1, r, y, yp] * pPeriodLen.get((yp))
+            for yp in year
+            if (st1, r, y, yp) in mvStorageRetiredNewCap
+        )
+        <= model.vStorageInpNewCap[st1, r, y] * pPeriodLen.get((y))
+        if (st1, r, y) in mStorageInpNew
+        else pyo.Constraint.Skip
+    ),
+)
+# eqStorageInpRetiredStockCum(stg, region, year)$mvStorageRetiredStock
+model.eqStorageInpRetiredStockCum = Constraint(
+    mvStorageRetiredStock,
+    rule=lambda model, st1, r, y: model.vStorageInpRetiredStockCum[st1, r, y]
+    <= pStorageInpStock.get((st1, r, y)),
+)
+# eqStorageInpRetiredStock(stg, region, year)$mvStorageRetiredStock
+model.eqStorageInpRetiredStock = Constraint(
+    mvStorageRetiredStock,
+    rule=lambda model, st1, r, y: model.vStorageInpRetiredStock[st1, r, y]
+    * pPeriodLen.get((y))
+    == model.vStorageInpRetiredStockCum[st1, r, y]
+    - sum(
+        model.vStorageInpRetiredStockCum[st1, r, yp]
+        for yp in year
+        if ((yp, y) in mMilestoneNext and (st1, r, yp) in mvStorageRetiredStock)
+    ),
+)
+# eqStorageInpRetUp(stg, region, year)$mStorageInpRetUp
+model.eqStorageInpRetUp = Constraint(
+    mStorageInpRetUp,
+    rule=lambda model, st1, r, y: (
+        model.vStorageInpRetiredStock[st1, r, y]
+        if (st1, r, y) in mvStorageRetiredStock
+        else 0
+    )
+    + sum(
+        model.vStorageInpRetiredNewCap[st1, r, yp, y]
+        for yp in year
+        if (st1, r, yp, y) in mvStorageRetiredNewCap
+    )
+    <= pStorageInpRetUp.get((st1, r, y)) * pPeriodLen.get((y)),
+)
+# eqStorageInpRetLo(stg, region, year)$mStorageInpRetLo
+model.eqStorageInpRetLo = Constraint(
+    mStorageInpRetLo,
+    rule=lambda model, st1, r, y: (
+        model.vStorageInpRetiredStock[st1, r, y]
+        if (st1, r, y) in mvStorageRetiredStock
+        else 0
+    )
+    + sum(
+        model.vStorageInpRetiredNewCap[st1, r, yp, y]
+        for yp in year
+        if (st1, r, yp, y) in mvStorageRetiredNewCap
+    )
+    >= pStorageInpRetLo.get((st1, r, y)) * pPeriodLen.get((y)),
+)
+# eqStorageStgRetiredNewCap(stg, region, year)$meqStorageRetiredNewCap
+model.eqStorageStgRetiredNewCap = Constraint(
+    meqStorageRetiredNewCap,
+    rule=lambda model, st1, r, y: (
+        sum(
+            model.vStorageStgRetiredNewCap[st1, r, y, yp] * pPeriodLen.get((yp))
+            for yp in year
+            if (st1, r, y, yp) in mvStorageRetiredNewCap
+        )
+        <= model.vStorageStgNewCap[st1, r, y] * pPeriodLen.get((y))
+        if (st1, r, y) in mStorageStgNew
+        else pyo.Constraint.Skip
+    ),
+)
+# eqStorageStgRetiredStockCum(stg, region, year)$mvStorageRetiredStock
+model.eqStorageStgRetiredStockCum = Constraint(
+    mvStorageRetiredStock,
+    rule=lambda model, st1, r, y: model.vStorageStgRetiredStockCum[st1, r, y]
+    <= pStorageStgStock.get((st1, r, y)),
+)
+# eqStorageStgRetiredStock(stg, region, year)$mvStorageRetiredStock
+model.eqStorageStgRetiredStock = Constraint(
+    mvStorageRetiredStock,
+    rule=lambda model, st1, r, y: model.vStorageStgRetiredStock[st1, r, y]
+    * pPeriodLen.get((y))
+    == model.vStorageStgRetiredStockCum[st1, r, y]
+    - sum(
+        model.vStorageStgRetiredStockCum[st1, r, yp]
+        for yp in year
+        if ((yp, y) in mMilestoneNext and (st1, r, yp) in mvStorageRetiredStock)
+    ),
+)
+# eqStorageStgRetUp(stg, region, year)$mStorageStgRetUp
+model.eqStorageStgRetUp = Constraint(
+    mStorageStgRetUp,
+    rule=lambda model, st1, r, y: (
+        model.vStorageStgRetiredStock[st1, r, y]
+        if (st1, r, y) in mvStorageRetiredStock
+        else 0
+    )
+    + sum(
+        model.vStorageStgRetiredNewCap[st1, r, yp, y]
+        for yp in year
+        if (st1, r, yp, y) in mvStorageRetiredNewCap
+    )
+    <= pStorageStgRetUp.get((st1, r, y)) * pPeriodLen.get((y)),
+)
+# eqStorageStgRetLo(stg, region, year)$mStorageStgRetLo
+model.eqStorageStgRetLo = Constraint(
+    mStorageStgRetLo,
+    rule=lambda model, st1, r, y: (
+        model.vStorageStgRetiredStock[st1, r, y]
+        if (st1, r, y) in mvStorageRetiredStock
+        else 0
+    )
+    + sum(
+        model.vStorageStgRetiredNewCap[st1, r, yp, y]
+        for yp in year
+        if (st1, r, yp, y) in mvStorageRetiredNewCap
+    )
+    >= pStorageStgRetLo.get((st1, r, y)) * pPeriodLen.get((y)),
+)
+# eqStorageRetCost(stg, region, year)$mStorageRetCost
+model.eqStorageRetCost = Constraint(
+    mStorageRetCost,
+    rule=lambda model, st1, r, y: model.vStorageRetCost[st1, r, y]
+    == pStorageOutRetCost.get((st1, r, y))
+    * (
+        (
+            model.vStorageOutRetiredStock[st1, r, y]
+            if (st1, r, y) in mvStorageRetiredStock
+            else 0
+        )
+        + sum(
+            model.vStorageOutRetiredNewCap[st1, r, yp, y]
+            for yp in year
+            if (st1, r, yp, y) in mvStorageRetiredNewCap
+        )
+    )
+    + pStorageInpRetCost.get((st1, r, y))
+    * (
+        (
+            model.vStorageInpRetiredStock[st1, r, y]
+            if (st1, r, y) in mvStorageRetiredStock
+            else 0
+        )
+        + sum(
+            model.vStorageInpRetiredNewCap[st1, r, yp, y]
+            for yp in year
+            if (st1, r, yp, y) in mvStorageRetiredNewCap
+        )
+    )
+    + pStorageStgRetCost.get((st1, r, y))
+    * (
+        (
+            model.vStorageStgRetiredStock[st1, r, y]
+            if (st1, r, y) in mvStorageRetiredStock
+            else 0
+        )
+        + sum(
+            model.vStorageStgRetiredNewCap[st1, r, yp, y]
+            for yp in year
+            if (st1, r, yp, y) in mvStorageRetiredNewCap
+        )
+    ),
+)
+# eqTradeRetiredNewCap(trade, year)$meqTradeRetiredNewCap
+model.eqTradeRetiredNewCap = Constraint(
+    meqTradeRetiredNewCap,
+    rule=lambda model, t1, y: (
+        sum(
+            model.vTradeRetiredNewCap[t1, y, yp] * pPeriodLen.get((yp))
+            for yp in year
+            if (t1, y, yp) in mvTradeRetiredNewCap
+        )
+        <= model.vTradeNewCap[t1, y] * pPeriodLen.get((y))
+        if (t1, y) in mTradeNew
+        else pyo.Constraint.Skip
+    ),
+)
+# eqTradeRetiredStockCum(trade, year)$mvTradeRetiredStock
+model.eqTradeRetiredStockCum = Constraint(
+    mvTradeRetiredStock,
+    rule=lambda model, t1, y: model.vTradeRetiredStockCum[t1, y]
+    <= pTradeStock.get((t1, y)),
+)
+# eqTradeRetiredStock(trade, year)$mvTradeRetiredStock
+model.eqTradeRetiredStock = Constraint(
+    mvTradeRetiredStock,
+    rule=lambda model, t1, y: model.vTradeRetiredStock[t1, y] * pPeriodLen.get((y))
+    == model.vTradeRetiredStockCum[t1, y]
+    - sum(
+        model.vTradeRetiredStockCum[t1, yp]
+        for yp in year
+        if ((yp, y) in mMilestoneNext and (t1, yp) in mvTradeRetiredStock)
+    ),
+)
+# eqTradeRetUp(trade, year)$mTradeRetUp
+model.eqTradeRetUp = Constraint(
+    mTradeRetUp,
+    rule=lambda model, t1, y: (
+        model.vTradeRetiredStock[t1, y] if (t1, y) in mvTradeRetiredStock else 0
+    )
+    + sum(
+        model.vTradeRetiredNewCap[t1, yp, y]
+        for yp in year
+        if (t1, yp, y) in mvTradeRetiredNewCap
+    )
+    <= pTradeRetUp.get((t1, y)) * pPeriodLen.get((y)),
+)
+# eqTradeRetLo(trade, year)$mTradeRetLo
+model.eqTradeRetLo = Constraint(
+    mTradeRetLo,
+    rule=lambda model, t1, y: (
+        model.vTradeRetiredStock[t1, y] if (t1, y) in mvTradeRetiredStock else 0
+    )
+    + sum(
+        model.vTradeRetiredNewCap[t1, yp, y]
+        for yp in year
+        if (t1, yp, y) in mvTradeRetiredNewCap
+    )
+    >= pTradeRetLo.get((t1, y)) * pPeriodLen.get((y)),
+)
+# eqTradeRetCost(trade, region, year)$mTradeRetCost
+model.eqTradeRetCost = Constraint(
+    mTradeRetCost,
+    rule=lambda model, t1, r, y: model.vTradeRetCost[t1, r, y]
+    == pTradeRetCost.get((t1, r, y))
+    * (
+        (model.vTradeRetiredStock[t1, y] if (t1, y) in mvTradeRetiredStock else 0)
+        + sum(
+            model.vTradeRetiredNewCap[t1, yp, y]
+            for yp in year
+            if (t1, yp, y) in mvTradeRetiredNewCap
+        )
+    ),
+)
+# eqTechPhaseOut -- end-of-life departure, read off the capacity balance.
+# `max(0, dStock)` covers exogenous stock APPEARING mid-horizon: an inflow, not
+# a phase-out. Without it the residual goes negative and the model is infeasible.
+model.eqTechPhaseOut = Constraint(
+    mvTechPhaseOut,
+    rule=lambda model, t, r, y: model.vTechPhaseOut[t, r, y] * pPeriodLen.get((y))
+    == sum(
+        model.vTechCap[t, r, yp]
+        for yp in year
+        if ((yp, y) in mMilestoneNext and (t, r, yp) in mTechSpan)
+    )
+    - model.vTechCap[t, r, y]
+    + model.vTechNewCap[t, r, y] * pPeriodLen.get((y))
+    - (
+        (model.vTechRetiredStock[t, r, y] if (t, r, y) in mvTechRetiredStock else 0)
+        + sum(
+            model.vTechRetiredNewCap[t, r, yp, y]
+            for yp in year
+            if (t, r, yp, y) in mvTechRetiredNewCap
+        )
+    )
+    * pPeriodLen.get((y))
+    + max(
+        0,
+        pTechStock.get((t, r, y))
+        - sum(
+            pTechStock.get((t, r, yp))
+            for yp in year
+            if ((yp, y) in mMilestoneNext and (t, r, yp) in mTechSpan)
+        ),
+    ),
+)
+# eqStoragePhaseOut -- end-of-life departure, read off the capacity balance.
+# `max(0, dStock)` covers exogenous stock APPEARING mid-horizon: an inflow, not
+# a phase-out. Without it the residual goes negative and the model is infeasible.
+model.eqStoragePhaseOut = Constraint(
+    mvStoragePhaseOut,
+    rule=lambda model, st1, r, y: model.vStoragePhaseOut[st1, r, y] * pPeriodLen.get((y))
+    == sum(
+        model.vStorageOutCap[st1, r, yp]
+        for yp in year
+        if ((yp, y) in mMilestoneNext and (st1, r, yp) in mStorageSpan)
+    )
+    - model.vStorageOutCap[st1, r, y]
+    + model.vStorageOutNewCap[st1, r, y] * pPeriodLen.get((y))
+    - (
+        (model.vStorageOutRetiredStock[st1, r, y] if (st1, r, y) in mvStorageRetiredStock else 0)
+        + sum(
+            model.vStorageOutRetiredNewCap[st1, r, yp, y]
+            for yp in year
+            if (st1, r, yp, y) in mvStorageRetiredNewCap
+        )
+    )
+    * pPeriodLen.get((y))
+    + max(
+        0,
+        pStorageOutStock.get((st1, r, y))
+        - sum(
+            pStorageOutStock.get((st1, r, yp))
+            for yp in year
+            if ((yp, y) in mMilestoneNext and (st1, r, yp) in mStorageSpan)
+        ),
+    ),
+)
 # eqTechRetCost(tech, region, year)$mTechRetCost(tech, region, year)
 if verbose:
     print("eqTechRetCost ", end="")
@@ -1534,6 +1960,16 @@ model.eqStorageAInp = Constraint(
             (pStorageNCap2AInp.get((st1, c, r, y, s)) * model.vStorageOutNewCap[st1, r, y])
             if (st1, c, r, y, s) in mStorageNCap2AInp
             else 0
+        )
+    + (
+            (pStoragePho2AInp.get((st1, c, r, y, s)) * (model.vStoragePhaseOut[st1, r, y] if (st1, r, y) in mvStoragePhaseOut else 0))
+            if (st1, c, r, y, s) in mStoragePho2AInp
+            else 0
+        )
+    + (
+            (pStorageRet2AInp.get((st1, c, r, y, s)) * ((model.vStorageOutRetiredStock[st1, r, y] if (st1, r, y) in mvStorageRetiredStock else 0) + sum(model.vStorageOutRetiredNewCap[st1, r, yp, y] for yp in year if (st1, r, yp, y) in mvStorageRetiredNewCap)))
+            if (st1, c, r, y, s) in mStorageRet2AInp
+            else 0
         ),
 )
 if verbose:
@@ -1600,6 +2036,16 @@ model.eqStorageAOut = Constraint(
     + (
             (pStorageNCap2AOut.get((st1, c, r, y, s)) * model.vStorageOutNewCap[st1, r, y])
             if (st1, c, r, y, s) in mStorageNCap2AOut
+            else 0
+        )
+    + (
+            (pStoragePho2AOut.get((st1, c, r, y, s)) * (model.vStoragePhaseOut[st1, r, y] if (st1, r, y) in mvStoragePhaseOut else 0))
+            if (st1, c, r, y, s) in mStoragePho2AOut
+            else 0
+        )
+    + (
+            (pStorageRet2AOut.get((st1, c, r, y, s)) * ((model.vStorageOutRetiredStock[st1, r, y] if (st1, r, y) in mvStorageRetiredStock else 0) + sum(model.vStorageOutRetiredNewCap[st1, r, yp, y] for yp in year if (st1, r, yp, y) in mvStorageRetiredNewCap)))
+            if (st1, c, r, y, s) in mStorageRet2AOut
             else 0
         ),
 )
@@ -1844,16 +2290,29 @@ if verbose:
         " s)",
         sep="",
     )
-# eqStorageCap(stg, region, year)$mStorageSpan(stg, region, year)
+# eqStorageOutCap(stg, region, year)$mStorageSpan(stg, region, year)
 if verbose:
-    print("eqStorageCap ", end="")
+    print("eqStorageOutCap ", end="")
 sys.stdout.flush()
-model.eqStorageCap = Constraint(
+model.eqStorageOutCap = Constraint(
     mStorageSpan,
     rule=lambda model, st1, r, y: model.vStorageOutCap[st1, r, y]
     == pStorageOutStock.get((st1, r, y))
+    - (
+        model.vStorageOutRetiredStockCum[st1, r, y]
+        if (st1, r, y) in mvStorageRetiredStock
+        else 0
+    )
     + sum(
         pPeriodLen.get((yp)) * model.vStorageOutNewCap[st1, r, yp]
+        - sum(
+            model.vStorageOutRetiredNewCap[st1, r, yp, ye] * pPeriodLen.get((ye))
+            for ye in year
+            if (
+                (st1, r, yp, ye) in mvStorageRetiredNewCap
+                and ordYear.get((y)) >= ordYear.get((ye))
+            )
+        )
         for yp in year
         if (
             ordYear.get((y)) >= ordYear.get((yp))
@@ -1873,17 +2332,30 @@ if verbose:
         " s)",
         sep="",
     )
-# eqStorageCapLo(stg, region, year)$mStorageCapLo(stg, region, year)
+# eqStorageOutCapLo(stg, region, year)$mStorageOutCapLo(stg, region, year)
 if verbose:
-    print("eqStorageCapLo ", end="")
+    print("eqStorageOutCapLo ", end="")
 sys.stdout.flush()
 # eqStorageInpCap -- the CHARGING side, rated independently of the discharger.
 model.eqStorageInpCap = Constraint(
     mStorageInpCap,
     rule=lambda model, st1, r, y: model.vStorageInpCap[st1, r, y]
     == pStorageInpStock.get((st1, r, y))
+    - (
+        model.vStorageInpRetiredStockCum[st1, r, y]
+        if (st1, r, y) in mvStorageRetiredStock
+        else 0
+    )
     + sum(
         pPeriodLen.get((yp)) * model.vStorageInpNewCap[st1, r, yp]
+        - sum(
+            model.vStorageInpRetiredNewCap[st1, r, yp, ye] * pPeriodLen.get((ye))
+            for ye in year
+            if (
+                (st1, r, yp, ye) in mvStorageRetiredNewCap
+                and ordYear.get((y)) >= ordYear.get((ye))
+            )
+        )
         for yp in year
         if (st1, r, yp) in mStorageInpNew
         and ordYear.get((y)) >= ordYear.get((yp))
@@ -1930,8 +2402,21 @@ model.eqStorageStgCap = Constraint(
     mStorageStgCap,
     rule=lambda model, st1, r, y: model.vStorageStgCap[st1, r, y]
     == pStorageStgStock.get((st1, r, y))
+    - (
+        model.vStorageStgRetiredStockCum[st1, r, y]
+        if (st1, r, y) in mvStorageRetiredStock
+        else 0
+    )
     + sum(
         pPeriodLen.get((yp)) * model.vStorageStgNewCap[st1, r, yp]
+        - sum(
+            model.vStorageStgRetiredNewCap[st1, r, yp, ye] * pPeriodLen.get((ye))
+            for ye in year
+            if (
+                (st1, r, yp, ye) in mvStorageRetiredNewCap
+                and ordYear.get((y)) >= ordYear.get((ye))
+            )
+        )
         for yp in year
         if (st1, r, yp) in mStorageStgNew
         and ordYear.get((y)) >= ordYear.get((yp))
@@ -1972,8 +2457,8 @@ model.eqStorageDurationUp = Constraint(
     rule=lambda model, st1, r, y: model.vStorageStgCap[st1, r, y]
     <= pStorageDurationUp.get((st1, r, y)) * model.vStorageOutCap[st1, r, y],
 )
-model.eqStorageCapLo = Constraint(
-    mStorageCapLo,
+model.eqStorageOutCapLo = Constraint(
+    mStorageOutCapLo,
     rule=lambda model, st1, r, y: model.vStorageOutCap[st1, r, y]
     >= pStorageOutCapLo.get((st1, r, y)),
 )
@@ -1985,12 +2470,12 @@ if verbose:
         " s)",
         sep="",
     )
-# eqStorageCapUp(stg, region, year)$mStorageCapUp(stg, region, year)
+# eqStorageOutCapUp(stg, region, year)$mStorageOutCapUp(stg, region, year)
 if verbose:
-    print("eqStorageCapUp ", end="")
+    print("eqStorageOutCapUp ", end="")
 sys.stdout.flush()
-model.eqStorageCapUp = Constraint(
-    mStorageCapUp,
+model.eqStorageOutCapUp = Constraint(
+    mStorageOutCapUp,
     rule=lambda model, st1, r, y: model.vStorageOutCap[st1, r, y]
     <= pStorageOutCapUp.get((st1, r, y)),
 )
@@ -2002,12 +2487,12 @@ if verbose:
         " s)",
         sep="",
     )
-# eqStorageNewCapLo(stg, region, year)$mStorageNewCapLo(stg, region, year)
+# eqStorageOutNewCapLo(stg, region, year)$mStorageOutNewCapLo(stg, region, year)
 if verbose:
-    print("eqStorageNewCapLo ", end="")
+    print("eqStorageOutNewCapLo ", end="")
 sys.stdout.flush()
-model.eqStorageNewCapLo = Constraint(
-    mStorageNewCapLo,
+model.eqStorageOutNewCapLo = Constraint(
+    mStorageOutNewCapLo,
     rule=lambda model, st1, r, y: model.vStorageOutNewCap[st1, r, y]
     >= pStorageOutNewCapLo.get((st1, r, y)) * pPeriodLen.get((y)),
 )
@@ -2019,12 +2504,12 @@ if verbose:
         " s)",
         sep="",
     )
-# eqStorageNewCapUp(stg, region, year)$mStorageNewCapUp(stg, region, year)
+# eqStorageOutNewCapUp(stg, region, year)$mStorageOutNewCapUp(stg, region, year)
 if verbose:
-    print("eqStorageNewCapUp ", end="")
+    print("eqStorageOutNewCapUp ", end="")
 sys.stdout.flush()
-model.eqStorageNewCapUp = Constraint(
-    mStorageNewCapUp,
+model.eqStorageOutNewCapUp = Constraint(
+    mStorageOutNewCapUp,
     rule=lambda model, st1, r, y: model.vStorageOutNewCap[st1, r, y]
     <= pStorageOutNewCapUp.get((st1, r, y)) * pPeriodLen.get((y)),
 )
@@ -2619,8 +3104,21 @@ model.eqTradeCap = Constraint(
     mTradeSpan,
     rule=lambda model, t1, y: model.vTradeCap[t1, y]
     == pTradeStock.get((t1, y))
+    - (
+        model.vTradeRetiredStockCum[t1, y]
+        if (t1, y) in mvTradeRetiredStock
+        else 0
+    )
     + sum(
         pPeriodLen.get((yp)) * model.vTradeNewCap[t1, yp]
+        - sum(
+            model.vTradeRetiredNewCap[t1, yp, ye] * pPeriodLen.get((ye))
+            for ye in year
+            if (
+                (t1, yp, ye) in mvTradeRetiredNewCap
+                and ordYear.get((y)) >= ordYear.get((ye))
+            )
+        )
         for yp in year
         if (
             (t1, yp) in mTradeNew
@@ -3324,6 +3822,16 @@ model.eqCost = Constraint(
         (model.vTechRetCost[t, r, y] if (t, r, y) in mTechRetCost else 0)
         for t in tech
         if (t, r, y) in mTechRetCost
+    )
+    + sum(
+        (model.vStorageRetCost[st1, r, y] if (st1, r, y) in mStorageRetCost else 0)
+        for st1 in stg
+        if (st1, r, y) in mStorageRetCost
+    )
+    + sum(
+        (model.vTradeRetCost[t1, r, y] if (t1, r, y) in mTradeRetCost else 0)
+        for t1 in trade
+        if (t1, r, y) in mTradeRetCost
     )
     + sum(
         (model.vTechFixom[t, r, y] if (t, r, y) in mTechFixom else 0)

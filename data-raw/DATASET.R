@@ -9,8 +9,6 @@ source("data-raw/maps.R")
   JuMPOutput = readLines("julia/energyRtOutput.jl"),
   PYOMOConcrete = readLines("pyomo/energyRtConcrete.py"),
   PYOMOConcreteOutput = readLines("pyomo/energyRtConcreteOutput.py"),
-  PYOMOAbstract = readLines("pyomo/energyRtAbstract.py"),
-  PYOMOAbstractOutput = readLines("pyomo/energyRtAbstractOutput.py"),
   GLPK = readLines("glpk/energyRt.mod"),
   GAMS_output = readLines("gams/output.gms"),
   checkGAMS = readLines("gams/check.gms"),

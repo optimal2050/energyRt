@@ -380,7 +380,7 @@ recipe_calendar <- function(scen, names, fmp) scen
 
 # (obj, region) / (obj) tuples whose operational life is INFINITE. The model
 # equations treat a vintage as never retiring by age when the object is in the
-# `*OlifeInf` set (eqTechCap / eqStorageCap / eqTradeCap:
+# `*OlifeInf` set (eqTechCap / eqStorageOutCap / eqTradeCap:
 # "ordYear[y] < olife + ordYear[yp] OR (t,r) in mOlifeInf").
 .lifespan_olife_inf <- function(scen, cls, key, region, regions) {
   res <- apply_to_scenario_data(
@@ -419,41 +419,41 @@ recipe_calendar <- function(scen, names, fmp) scen
 #   mvTechRetiredNewCap  [tech, region, year, year]  = (invest, operation) pairs
 #     kept when invest < operation < invest + olife (legacy obj2modInp.R logic).
 
-# Names of retirement technologies (own slot TRUE).
-.retirement_techs <- function(scen) {
+# Names of objects opting into retirement (own `@optimizeRetirement` TRUE).
+.retirement_objects <- function(scen, cls) {
   res <- apply_to_scenario_data(
-    scen = scen, classes = "technology", as_list = TRUE,
+    scen = scen, classes = cls, as_list = TRUE,
     func = function(obj) {
+      if (!.hasSlot(obj, "optimizeRetirement")) return(NULL)
       if (!isTRUE(obj@optimizeRetirement)) return(NULL)
-      out <- list(); out[[obj@name]] <- data.frame(tech = obj@name,
-                                                    stringsAsFactors = FALSE)
+      out <- list()
+      out[[obj@name]] <- data.frame(process = obj@name, stringsAsFactors = FALSE)
       out
     }
   )
   if (length(res) == 0) return(character(0))
-  unique(dplyr::bind_rows(res)$tech)
+  unique(dplyr::bind_rows(res)$process)
 }
 
-# Operational life per (tech, region) from the raw `@olife` slot. NA region is
-# expanded to the technology's regions; missing data uses the default olife = 1.
-.tech_olife <- function(scen, techs, regions, process_region) {
+# Operational life per (object, region) from the raw `@olife` slot. NA region is
+# expanded to the object's regions; missing data uses the default olife = 1.
+# `trade` has no region of its own, so it inherits the model's regions and the
+# column is dropped later by `.set_lifespan_map()`.
+.class_olife <- function(scen, cls, objs, regions, process_region) {
   res <- apply_to_scenario_data(
-    scen = scen, classes = "technology", as_list = TRUE,
+    scen = scen, classes = cls, as_list = TRUE,
     func = function(obj) {
-      if (!(obj@name %in% techs)) return(NULL)
+      if (!(obj@name %in% objs)) return(NULL)
       tregs <- process_region[[obj@name]]
       if (is.null(tregs)) tregs <- regions
       ol <- .lifespan_resolve(obj, "olife")
       if (nrow(ol) == 0 || is.null(ol$olife)) {
-        df <- data.frame(tech = obj@name, region = tregs, olife = 1,
+        df <- data.frame(process = obj@name, region = tregs, olife = 1,
                          stringsAsFactors = FALSE)
       } else {
-        # per-region resolution: specific rows win, the broadcast row
-        # fills the remaining regions; regions covered by neither get no
-        # row (as before)
         br <- .lifespan_by_region(obj, "olife", tregs)
         br <- br[!is.na(br$olife), , drop = FALSE]
-        df <- data.frame(tech = obj@name, region = br$region,
+        df <- data.frame(process = obj@name, region = br$region,
                          olife = br$olife, stringsAsFactors = FALSE)
       }
       df <- df[df$region %in% tregs, , drop = FALSE]
@@ -465,63 +465,67 @@ recipe_calendar <- function(scen, names, fmp) scen
   dplyr::bind_rows(res) |> dplyr::distinct()
 }
 
-# Write the [tech, region, year, year] retirement map. This map has a duplicate
-# `year` dimension, so its data columns are (tech, region, year, year.1) and we
+# Write the [key, (region,) year, year] retirement map. This map has a duplicate
+# `year` dimension, so its data columns are (key, region, year, year.1) and we
 # must align on `colnames(@data)` rather than the de-duplicated `@dimSets`.
-.set_lifespan_retired_newcap <- function(scen, pairs, fmp) {
-  name <- "mvTechRetiredNewCap"
+.set_lifespan_retired_newcap <- function(scen, name, pairs, key, fmp) {
+  if (is.null(name) || is.na(name)) return(scen)
   if (is.null(pairs) || nrow(pairs) == 0) return(scen)
   p <- scen@modInp@parameters[[name]]
   if (is.null(p)) return(scen)
   df <- pairs |>
-    dplyr::rename(tech = "process") |>
+    dplyr::rename(!!key := "process") |>
     dplyr::select(dplyr::all_of(colnames(p@data))) |>
     dplyr::distinct()
   scen@modInp@parameters[[name]] <- d2p(p, as.data.frame(df), fmp(name))
   scen
 }
 
-# Build the three technology retirement maps. `new_df` / `span_df` are the
-# (process, region, year) invest / span windows for the technology family.
-.lifespan_retirement_tech <- function(scen, names, fmp, new_df, span_df, regions) {
-  ret_names <- c("meqTechRetiredNewCap", "mvTechRetiredStock",
-                 "mvTechRetiredNewCap")
+# Build the three retirement maps for ONE object family. `new_df` / `span_df`
+# are that family's (process, region, year) invest / span windows.
+#
+# `storage` gets ONE set of maps for all three parts: `@vintage`/`olife` is
+# storage-wide, not per-part, so the charger, reservoir and discharger share the
+# same investment and operation windows and index the same maps.
+.lifespan_retirement <- function(scen, names, fmp, new_df, span_df, regions,
+                                 cls = "technology") {
+  f <- .lifespan_family_def[[cls]]
+  ret_names <- c(f$ret_eqnew, f$ret_stock, f$ret_pairs)
+  ret_names <- ret_names[!is.na(ret_names)]
   if (!any(ret_names %in% names)) return(scen)
   # Global gate: retirement maps are only effective when enabled model-wide.
   if (!isTRUE(scen@settings@optimizeRetirement)) return(scen)
 
-  techs <- .retirement_techs(scen)
-  if (length(techs) == 0) return(scen)
+  objs <- .retirement_objects(scen, cls)
+  if (length(objs) == 0) return(scen)
 
-  new_r  <- new_df  |> dplyr::filter(.data$process %in% techs)
-  span_r <- span_df |> dplyr::filter(.data$process %in% techs)
+  new_r  <- new_df  |> dplyr::filter(.data$process %in% objs)
+  span_r <- span_df |> dplyr::filter(.data$process %in% objs)
 
-  # meqTechRetiredNewCap [tech, region, year] = investment window.
-  if ("meqTechRetiredNewCap" %in% names) {
-    scen <- .set_lifespan_map(scen, "meqTechRetiredNewCap", new_r, "tech", fmp)
+  # <ret_eqnew> [key, (region,) year] = investment window.
+  if (!is.na(f$ret_eqnew) && f$ret_eqnew %in% names) {
+    scen <- .set_lifespan_map(scen, f$ret_eqnew, new_r, f$key, fmp)
   }
 
-  # mvTechRetiredStock [tech, region, year] = pre-existing-stock operation years.
-  if ("mvTechRetiredStock" %in% names) {
+  # <ret_stock> [key, (region,) year] = pre-existing-stock operation years.
+  if (!is.na(f$ret_stock) && f$ret_stock %in% names) {
     stock_y <- get_process_stock_years(scen) |>
       dplyr::as_tibble() |>
-      dplyr::filter(.data$process %in% techs)
-    scen <- .set_lifespan_map(scen, "mvTechRetiredStock", stock_y, "tech", fmp)
+      dplyr::filter(.data$process %in% objs)
+    scen <- .set_lifespan_map(scen, f$ret_stock, stock_y, f$key, fmp)
   }
 
-  # mvTechRetiredNewCap [tech, region, year(invest), year.1(operation)].
-  if ("mvTechRetiredNewCap" %in% names && nrow(new_r) > 0) {
-    olife <- .tech_olife(scen, techs, regions, scen@modInp@sets[["process_region"]])
+  # <ret_pairs> [key, (region,) year(invest), year.1(operation)].
+  if (!is.na(f$ret_pairs) && f$ret_pairs %in% names && nrow(new_r) > 0) {
+    olife <- .class_olife(scen, cls, objs, regions,
+                          scen@modInp@sets[["process_region"]])
     pairs <- new_r |>
       dplyr::select(dplyr::all_of(c("process", "region", "year"))) |>
       dplyr::inner_join(
         span_r |> dplyr::select("process", "region", year.1 = "year"),
         by = c("process", "region"), relationship = "many-to-many"
       ) |>
-      dplyr::left_join(
-        olife |> dplyr::rename(process = "tech"),
-        by = c("process", "region")
-      ) |>
+      dplyr::left_join(olife, by = c("process", "region")) |>
       dplyr::mutate(olife = dplyr::coalesce(.data$olife, 1)) |>
       dplyr::filter(.data$year < .data$year.1,
                     .data$year + .data$olife > .data$year.1) |>
@@ -529,9 +533,14 @@ recipe_calendar <- function(scen, names, fmp) scen
                     year.1 = as.integer(.data$year.1)) |>
       dplyr::select(dplyr::all_of(c("process", "region", "year", "year.1"))) |>
       dplyr::distinct()
-    scen <- .set_lifespan_retired_newcap(scen, pairs, fmp)
+    scen <- .set_lifespan_retired_newcap(scen, f$ret_pairs, pairs, f$key, fmp)
   }
   scen
+}
+
+# Back-compatible alias: the technology-only entry point the older callers use.
+.lifespan_retirement_tech <- function(scen, names, fmp, new_df, span_df, regions) {
+  .lifespan_retirement(scen, names, fmp, new_df, span_df, regions, "technology")
 }
 
 # NOTE: `recipe_lifespan` superseded by R/map_lifespan.R and ARCHIVED to
@@ -945,13 +954,13 @@ recipe_value <- function(scen, names, fmp) {
                          types = "up", drop = "up"),
 
   # C6 storage capacity / retirement bounds.
-  mStorageCapLo    = list(domain = "mStorageSpan", source = "pStorageOutCap",
+  mStorageOutCapLo    = list(domain = "mStorageSpan", source = "pStorageOutCap",
                           types = "lo"),
-  mStorageCapUp    = list(domain = "mStorageSpan", source = "pStorageOutCap",
+  mStorageOutCapUp    = list(domain = "mStorageSpan", source = "pStorageOutCap",
                           types = "up"),
-  mStorageNewCapLo = list(domain = "mStorageNew",  source = "pStorageOutNewCap",
+  mStorageOutNewCapLo = list(domain = "mStorageNew",  source = "pStorageOutNewCap",
                           types = "lo"),
-  mStorageNewCapUp = list(domain = "mStorageNew",  source = "pStorageOutNewCap",
+  mStorageOutNewCapUp = list(domain = "mStorageNew",  source = "pStorageOutNewCap",
                           types = "up"),
   # Storing-side bounds live on mStorageStgCap, not mStorageSpan: without data
   # there is no vStorageStgCap to bound.
@@ -982,9 +991,19 @@ recipe_value <- function(scen, names, fmp) {
                              types = "lo"),
   mStorageDurationUp  = list(domain = "mStorageStgCap", source = "pStorageDuration",
                              types = "up"),
-  mStorageRetLo    = list(domain = "mStorageSpan", source = "pStorageOutRet",
+  mStorageOutRetLo    = list(domain = "mStorageSpan", source = "pStorageOutRet",
                           types = "lo"),
-  mStorageRetUp    = list(domain = "mStorageSpan", source = "pStorageOutRet",
+  mStorageOutRetUp    = list(domain = "mStorageSpan", source = "pStorageOutRet",
+                          types = "up"),
+  # The charging and storing parts retire on their own bounds; the windows are
+  # storage-wide (olife is), so all three share `mStorageSpan` as the domain.
+  mStorageInpRetLo    = list(domain = "mStorageSpan", source = "pStorageInpRet",
+                          types = "lo"),
+  mStorageInpRetUp    = list(domain = "mStorageSpan", source = "pStorageInpRet",
+                          types = "up"),
+  mStorageStgRetLo    = list(domain = "mStorageSpan", source = "pStorageStgRet",
+                          types = "lo"),
+  mStorageStgRetUp    = list(domain = "mStorageSpan", source = "pStorageStgRet",
                           types = "up"),
 
   # C7 trade capacity / retirement bounds (trade flow & cap-flow maps are

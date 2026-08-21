@@ -272,7 +272,15 @@ map_mStorageOutTot <- function(scen, fmp)
   mStorageCap2AInp  = list("pStorageCap2AInp",  "mvStorageAInp",  FALSE),
   mStorageCap2AOut  = list("pStorageCap2AOut",  "mvStorageAOut",  FALSE),
   mStorageNCap2AInp = list("pStorageNCap2AInp", "mvStorageAInp",  FALSE),
-  mStorageNCap2AOut = list("pStorageNCap2AOut", "mvStorageAOut",  FALSE)
+  mStorageNCap2AOut = list("pStorageNCap2AOut", "mvStorageAOut",  FALSE),
+  mTechPho2AInp    = list("pTechPho2AInp",    "mvTechAct",      FALSE),
+  mTechRet2AInp    = list("pTechRet2AInp",    "mvTechAct",      FALSE),
+  mTechPho2AOut    = list("pTechPho2AOut",    "mvTechAct",      FALSE),
+  mTechRet2AOut    = list("pTechRet2AOut",    "mvTechAct",      FALSE),
+  mStoragePho2AInp = list("pStoragePho2AInp", "mvStorageAInp",  FALSE),
+  mStorageRet2AInp = list("pStorageRet2AInp", "mvStorageAInp",  FALSE),
+  mStoragePho2AOut = list("pStoragePho2AOut", "mvStorageAOut",  FALSE),
+  mStorageRet2AOut = list("pStorageRet2AOut", "mvStorageAOut",  FALSE)
 )
 .filter_aux_conv <- function(scen, name, fmp) {
   sp <- .aux_conv_spec[[name]]
@@ -298,6 +306,14 @@ map_mStorageCout2AOut <- function(scen, fmp) .filter_aux_conv(scen, "mStorageCou
 map_mStorageCap2AInp  <- function(scen, fmp) .filter_aux_conv(scen, "mStorageCap2AInp", fmp)
 map_mStorageCap2AOut  <- function(scen, fmp) .filter_aux_conv(scen, "mStorageCap2AOut", fmp)
 map_mStorageNCap2AInp <- function(scen, fmp) .filter_aux_conv(scen, "mStorageNCap2AInp", fmp)
+map_mTechPho2AInp         <- function(scen, fmp) .filter_aux_conv(scen, "mTechPho2AInp", fmp)
+map_mTechPho2AOut         <- function(scen, fmp) .filter_aux_conv(scen, "mTechPho2AOut", fmp)
+map_mTechRet2AInp         <- function(scen, fmp) .filter_aux_conv(scen, "mTechRet2AInp", fmp)
+map_mTechRet2AOut         <- function(scen, fmp) .filter_aux_conv(scen, "mTechRet2AOut", fmp)
+map_mStoragePho2AInp      <- function(scen, fmp) .filter_aux_conv(scen, "mStoragePho2AInp", fmp)
+map_mStoragePho2AOut      <- function(scen, fmp) .filter_aux_conv(scen, "mStoragePho2AOut", fmp)
+map_mStorageRet2AInp      <- function(scen, fmp) .filter_aux_conv(scen, "mStorageRet2AInp", fmp)
+map_mStorageRet2AOut      <- function(scen, fmp) .filter_aux_conv(scen, "mStorageRet2AOut", fmp)
 map_mStorageNCap2AOut <- function(scen, fmp) .filter_aux_conv(scen, "mStorageNCap2AOut", fmp)
 
 # -- dummy import / export slack domains ----------------------------------- #
@@ -777,6 +793,14 @@ map_mvBalance <- function(scen, fmp)
   mTechAct2AInp     = map_mTechAct2AInp,
   mTechAct2AOut     = map_mTechAct2AOut,
   mTechCap2AInp     = map_mTechCap2AInp,
+  mTechPho2AInp     = map_mTechPho2AInp,
+  mTechPho2AOut     = map_mTechPho2AOut,
+  mTechRet2AInp     = map_mTechRet2AInp,
+  mTechRet2AOut     = map_mTechRet2AOut,
+  mStoragePho2AInp  = map_mStoragePho2AInp,
+  mStoragePho2AOut  = map_mStoragePho2AOut,
+  mStorageRet2AInp  = map_mStorageRet2AInp,
+  mStorageRet2AOut  = map_mStorageRet2AOut,
   mTechCap2AOut     = map_mTechCap2AOut,
   mTechNCap2AInp    = map_mTechNCap2AInp,
   mTechNCap2AOut    = map_mTechNCap2AOut,

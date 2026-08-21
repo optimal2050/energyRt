@@ -718,6 +718,120 @@ pTechNCap2AOut:
   class: technology
   slot: aeff
   colName: cap2aout
+# End-of-life aux coefficients. `Pho` = reached end of life, `Ret` = retired
+# early; both multiply the per-year FLOW so the charge lands once.
+pTechPho2AInp:
+  name: pTechPho2AInp
+  type: numpar
+  dimSets:
+  - tech
+  - acomm
+  - region
+  - year
+  - timeslice
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: pho2ainp
+  class: technology
+  slot: aeff
+pTechPho2AOut:
+  name: pTechPho2AOut
+  type: numpar
+  dimSets:
+  - tech
+  - acomm
+  - region
+  - year
+  - timeslice
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: pho2aout
+  class: technology
+  slot: aeff
+pTechRet2AInp:
+  name: pTechRet2AInp
+  type: numpar
+  dimSets:
+  - tech
+  - acomm
+  - region
+  - year
+  - timeslice
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: ret2ainp
+  class: technology
+  slot: aeff
+pTechRet2AOut:
+  name: pTechRet2AOut
+  type: numpar
+  dimSets:
+  - tech
+  - acomm
+  - region
+  - year
+  - timeslice
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: ret2aout
+  class: technology
+  slot: aeff
+pStoragePho2AInp:
+  name: pStoragePho2AInp
+  type: numpar
+  dimSets:
+  - stg
+  - acomm
+  - region
+  - year
+  - timeslice
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: pho2ainp
+  class: storage
+  slot: aeff
+pStoragePho2AOut:
+  name: pStoragePho2AOut
+  type: numpar
+  dimSets:
+  - stg
+  - acomm
+  - region
+  - year
+  - timeslice
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: pho2aout
+  class: storage
+  slot: aeff
+pStorageRet2AInp:
+  name: pStorageRet2AInp
+  type: numpar
+  dimSets:
+  - stg
+  - acomm
+  - region
+  - year
+  - timeslice
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: ret2ainp
+  class: storage
+  slot: aeff
+pStorageRet2AOut:
+  name: pStorageRet2AOut
+  type: numpar
+  dimSets:
+  - stg
+  - acomm
+  - region
+  - year
+  - timeslice
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: ret2aout
+  class: storage
+  slot: aeff
 pTechCinp2AInp:
   name: pTechCinp2AInp
   type: numpar
@@ -2645,6 +2759,79 @@ mTechNCap2AOut:
   - region
   - year
   - timeslice
+# End-of-life aux conversion domains.
+mTechPho2AInp:
+  name: mTechPho2AInp
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - timeslice
+mTechPho2AOut:
+  name: mTechPho2AOut
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - timeslice
+mTechRet2AInp:
+  name: mTechRet2AInp
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - timeslice
+mTechRet2AOut:
+  name: mTechRet2AOut
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - region
+  - year
+  - timeslice
+mStoragePho2AInp:
+  name: mStoragePho2AInp
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mStoragePho2AOut:
+  name: mStoragePho2AOut
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mStorageRet2AInp:
+  name: mStorageRet2AInp
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mStorageRet2AOut:
+  name: mStorageRet2AOut
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
 mTechCinp2AOut:
   name: mTechCinp2AOut
   type: map
@@ -3458,6 +3645,85 @@ mvTechRetiredStock:
   - tech
   - region
   - year
+# Phase-out domain: span years that HAVE a predecessor span year. The first
+# year of a process's span is excluded -- phase-out is a transition between
+# milestones, so nothing has aged out yet at the start. Declaring the
+# variable over this map (rather than the whole span) also stops a phase-out
+# CREDIT from being unbounded at the first year, where no equation binds it.
+mvTechPhaseOut:
+  name: mvTechPhaseOut
+  type: map
+  dimSets:
+  - tech
+  - region
+  - year
+mvStoragePhaseOut:
+  name: mvStoragePhaseOut
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+# Retirement maps for trade -- mirror of the technology trio. Trade capacity
+# carries no region (`vTradeCap{trade, year}`), so these drop it too; the COST
+# map keeps region, as `mTradeInv`/`mTradeEac`/`mTradeFixom` do.
+meqTradeRetiredNewCap:
+  name: meqTradeRetiredNewCap
+  type: map
+  dimSets:
+  - trade
+  - year
+mvTradeRetiredStock:
+  name: mvTradeRetiredStock
+  type: map
+  dimSets:
+  - trade
+  - year
+mvTradeRetiredNewCap:
+  name: mvTradeRetiredNewCap
+  type: map
+  dimSets:
+  - trade
+  - year
+  - year
+mTradeRetCost:
+  name: mTradeRetCost
+  type: map
+  dimSets:
+  - trade
+  - region
+  - year
+# Retirement maps for storage. `@vintage`/`olife` is storage-wide, not
+# per-part, so ONE set of windows serves the out/inp/stg parts.
+meqStorageRetiredNewCap:
+  name: meqStorageRetiredNewCap
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mvStorageRetiredStock:
+  name: mvStorageRetiredStock
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mvStorageRetiredNewCap:
+  name: mvStorageRetiredNewCap
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+  - year
+mStorageRetCost:
+  name: mStorageRetCost
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
 mvTechAct:
   name: mvTechAct
   type: map
@@ -3959,43 +4225,73 @@ mTechRetUp:
   - tech
   - region
   - year
-mStorageCapLo:
-  name: mStorageCapLo
+mStorageOutCapLo:
+  name: mStorageOutCapLo
   type: map
   dimSets:
   - stg
   - region
   - year
-mStorageCapUp:
-  name: mStorageCapUp
+mStorageOutCapUp:
+  name: mStorageOutCapUp
   type: map
   dimSets:
   - stg
   - region
   - year
-mStorageNewCapLo:
-  name: mStorageNewCapLo
+mStorageOutNewCapLo:
+  name: mStorageOutNewCapLo
   type: map
   dimSets:
   - stg
   - region
   - year
-mStorageNewCapUp:
-  name: mStorageNewCapUp
+mStorageOutNewCapUp:
+  name: mStorageOutNewCapUp
   type: map
   dimSets:
   - stg
   - region
   - year
-mStorageRetLo:
-  name: mStorageRetLo
+mStorageOutRetLo:
+  name: mStorageOutRetLo
   type: map
   dimSets:
   - stg
   - region
   - year
-mStorageRetUp:
-  name: mStorageRetUp
+mStorageOutRetUp:
+  name: mStorageOutRetUp
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+# Retirement bound gates for the charging and storing parts; the
+# discharging pair (mStorageOutRet*) already existed.
+mStorageInpRetLo:
+  name: mStorageInpRetLo
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageInpRetUp:
+  name: mStorageInpRetUp
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageStgRetLo:
+  name: mStorageStgRetLo
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageStgRetUp:
+  name: mStorageStgRetUp
   type: map
   dimSets:
   - stg

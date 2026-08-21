@@ -160,6 +160,26 @@ setClass("technology",
       cap2aout = numeric(),
       ncap2ainp = numeric(),
       ncap2aout = numeric(),
+      # --- end of life -------------------------------------------------
+      # `pho2a*` fires when capacity reaches the END OF ITS LIFE, `ret2a*` when
+      # it is retired EARLY. They are separate because the recovery differs:
+      # a plant scrapped early is largely intact, a worn-out one is not.
+      #
+      # Both multiply the per-year retirement/phase-out FLOW, so the charge
+      # lands ONCE -- in the milestone where the capacity disappears -- exactly
+      # as `ncap2ainp` lands once at construction. Multiplying a standing
+      # quantity instead would recur every year.
+      #
+      # TIMESLICE WARNING, inherited deliberately from `ncap2ainp`: the term
+      # carries NO `pTimesliceShare`, and `vTechAInp`/`vTechAOut` enter a
+      # PER-TIMESLICE balance. A coefficient given with `timeslice = NA`
+      # therefore applies in every slice and the annual total comes out
+      # multiplied by the slice count -- 8760x on an hourly calendar. Give a
+      # per-slice value, or name one slice.
+      pho2ainp = numeric(),
+      pho2aout = numeric(),
+      ret2ainp = numeric(),
+      ret2aout = numeric(),
       # storage part
       stg2ainp = numeric(),
       sinp2ainp = numeric(),

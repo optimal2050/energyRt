@@ -18,13 +18,25 @@
 .lifespan_family_def <- list(
   technology = list(key = "tech",  region = TRUE,
                     new = "mTechNew",    span = "mTechSpan",
-                    eac = "mTechEac",    inf  = "mTechOlifeInf"),
+                    eac = "mTechEac",    inf  = "mTechOlifeInf",
+                    ret_eqnew = "meqTechRetiredNewCap",
+                    ret_stock = "mvTechRetiredStock",
+                    ret_pairs = "mvTechRetiredNewCap",
+                    phaseout = "mvTechPhaseOut"),
   storage    = list(key = "stg",   region = TRUE,
                     new = "mStorageNew", span = "mStorageSpan",
-                    eac = "mStorageEac", inf  = "mStorageOlifeInf"),
+                    eac = "mStorageEac", inf  = "mStorageOlifeInf",
+                    # One set for all three parts: olife is storage-wide.
+                    ret_eqnew = "meqStorageRetiredNewCap",
+                    ret_stock = "mvStorageRetiredStock",
+                    ret_pairs = "mvStorageRetiredNewCap",
+                    phaseout = "mvStoragePhaseOut"),
   trade      = list(key = "trade", region = FALSE,
                     new = "mTradeNew",   span = "mTradeSpan",
-                    eac = NA_character_, inf  = "mTradeOlifeInf")
+                    eac = NA_character_, inf  = "mTradeOlifeInf",
+                    ret_eqnew = "meqTradeRetiredNewCap",
+                    ret_stock = "mvTradeRetiredStock",
+                    ret_pairs = "mvTradeRetiredNewCap")
 )
 
 # process -> class tibble (column needed to route windows to a family).
@@ -57,7 +69,7 @@
 # mStorageOlifeInf: (stg, region) for storages with a FINITE olife, over their
 # operating regions (mStorageSpan). NOTE: storage uses the OPPOSITE convention to
 # technology (which lists INFINITE-olife). It is redundant with the
-# `ordYear < pStorageOlife + ordYear[yp]` clause in eqStorageCap, so it is
+# `ordYear < pStorageOlife + ordYear[yp]` clause in eqStorageOutCap, so it is
 # behaviour-neutral; ported for v0.51 parity. Faithful port of obj2modInp.R:1055.
 map_mStorageOlifeInf <- function(scen, fmp) {
   span <- .gds(scen, "mStorageSpan")
@@ -79,19 +91,20 @@ map_mStorageOlifeInf <- function(scen, fmp) {
 
 # One technology capacity-retirement map (delegates to the shared builder, which
 # self-gates on settings@optimizeRetirement and builds only the requested name).
-.lifespan_retire_one <- function(scen, name, fmp) {
+.lifespan_retire_one <- function(scen, name, fmp, cls = "technology") {
   clsm <- .lifespan_cls_map(scen)
-  tech_win <- function(accessor) {
+  win <- function(accessor) {
     accessor(scen) |>
       dplyr::as_tibble() |>
       dplyr::left_join(clsm, by = "process") |>
-      dplyr::filter(.data$class == "technology") |>
+      dplyr::filter(.data$class == cls) |>
       dplyr::select(-"class")
   }
-  .lifespan_retirement_tech(scen, name, fmp,
-                            tech_win(get_process_invest_years),
-                            tech_win(get_process_years),
-                            as.character(scen@settings@region))
+  .lifespan_retirement(scen, name, fmp,
+                       win(get_process_invest_years),
+                       win(get_process_years),
+                       as.character(scen@settings@region),
+                       cls)
 }
 
 # -- per-mapping entry points ---------------------------------------------- #
@@ -109,6 +122,37 @@ map_mTradeOlifeInf   <- function(scen, fmp) .lifespan_inf_map(scen,    "mTradeOl
 map_meqTechRetiredNewCap <- function(scen, fmp) .lifespan_retire_one(scen, "meqTechRetiredNewCap", fmp)
 map_mvTechRetiredStock   <- function(scen, fmp) .lifespan_retire_one(scen, "mvTechRetiredStock",   fmp)
 map_mvTechRetiredNewCap  <- function(scen, fmp) .lifespan_retire_one(scen, "mvTechRetiredNewCap",  fmp)
+map_meqStorageRetiredNewCap <- function(scen, fmp) .lifespan_retire_one(scen, "meqStorageRetiredNewCap", fmp, "storage")
+map_mvStorageRetiredStock   <- function(scen, fmp) .lifespan_retire_one(scen, "mvStorageRetiredStock",   fmp, "storage")
+map_mvStorageRetiredNewCap  <- function(scen, fmp) .lifespan_retire_one(scen, "mvStorageRetiredNewCap",  fmp, "storage")
+map_meqTradeRetiredNewCap   <- function(scen, fmp) .lifespan_retire_one(scen, "meqTradeRetiredNewCap",   fmp, "trade")
+map_mvTradeRetiredStock     <- function(scen, fmp) .lifespan_retire_one(scen, "mvTradeRetiredStock",     fmp, "trade")
+map_mvTradeRetiredNewCap    <- function(scen, fmp) .lifespan_retire_one(scen, "mvTradeRetiredNewCap",    fmp, "trade")
+
+# Phase-out domain: a process's span years MINUS the earliest one. Phase-out is
+# a transition between milestones, so the first year of a span has nothing
+# behind it to have aged out. `eqXPhaseOut` reads `vXCap` at the previous
+# milestone, which does not exist there either.
+.lifespan_phaseout_one <- function(scen, name, fmp, cls) {
+  f <- .lifespan_family_def[[cls]]
+  if (is.null(f$phaseout) || is.na(f$phaseout) || !identical(name, f$phaseout))
+    return(scen)
+  clsm <- .lifespan_cls_map(scen)
+  win <- get_process_years(scen) |>
+    dplyr::as_tibble() |>
+    dplyr::left_join(clsm, by = "process") |>
+    dplyr::filter(.data$class == cls) |>
+    dplyr::select(-"class")
+  if (!NROW(win)) return(scen)
+  win <- win |>
+    dplyr::group_by(dplyr::across(dplyr::any_of(c("process", "region")))) |>
+    dplyr::filter(.data$year > min(.data$year)) |>
+    dplyr::ungroup()
+  .set_lifespan_map(scen, name, win, f$key, fmp)
+}
+
+map_mvTechPhaseOut    <- function(scen, fmp) .lifespan_phaseout_one(scen, "mvTechPhaseOut",    fmp, "technology")
+map_mvStoragePhaseOut <- function(scen, fmp) .lifespan_phaseout_one(scen, "mvStoragePhaseOut", fmp, "storage")
 
 # -- registry for the lifespan family -------------------------------------- #
 .lifespan_builders <- list(
@@ -125,5 +169,13 @@ map_mvTechRetiredNewCap  <- function(scen, fmp) .lifespan_retire_one(scen, "mvTe
   mTradeOlifeInf   = map_mTradeOlifeInf,
   meqTechRetiredNewCap = map_meqTechRetiredNewCap,
   mvTechRetiredStock   = map_mvTechRetiredStock,
-  mvTechRetiredNewCap  = map_mvTechRetiredNewCap
+  mvTechRetiredNewCap  = map_mvTechRetiredNewCap,
+  meqStorageRetiredNewCap = map_meqStorageRetiredNewCap,
+  mvStorageRetiredStock   = map_mvStorageRetiredStock,
+  mvStorageRetiredNewCap  = map_mvStorageRetiredNewCap,
+  meqTradeRetiredNewCap   = map_meqTradeRetiredNewCap,
+  mvTradeRetiredStock     = map_mvTradeRetiredStock,
+  mvTradeRetiredNewCap    = map_mvTradeRetiredNewCap,
+  mvTechPhaseOut          = map_mvTechPhaseOut,
+  mvStoragePhaseOut       = map_mvStoragePhaseOut
 )

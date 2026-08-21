@@ -666,20 +666,20 @@ write.sc <- write_sc
       inner_join(prec@parameters[["mStorageSpan"]]@data) |>
       # select(-value) |>
       unique()
-    mStorageCapLo <- filter(mStorageCap, type == "lo") |>
+    mStorageOutCapLo <- filter(mStorageCap, type == "lo") |>
       select(-type, -value)
-    if (!is.null(mStorageCapLo) && nrow(mStorageCapLo) > 0) {
-      prec@parameters[["mStorageCapLo"]] <-
-        .dat2par(prec@parameters[["mStorageCapLo"]], mStorageCapLo)
+    if (!is.null(mStorageOutCapLo) && nrow(mStorageOutCapLo) > 0) {
+      prec@parameters[["mStorageOutCapLo"]] <-
+        .dat2par(prec@parameters[["mStorageOutCapLo"]], mStorageOutCapLo)
     }
-    rm(mStorageCapLo)
-    mStorageCapUp <- filter(mStorageCap, type == "up") |>
+    rm(mStorageOutCapLo)
+    mStorageOutCapUp <- filter(mStorageCap, type == "up") |>
       select(-type, -value)
-    if (!is.null(mStorageCapUp) && nrow(mStorageCapUp) > 0) {
-      prec@parameters[["mStorageCapUp"]] <-
-        .dat2par(prec@parameters[["mStorageCapUp"]], mStorageCapUp)
+    if (!is.null(mStorageOutCapUp) && nrow(mStorageOutCapUp) > 0) {
+      prec@parameters[["mStorageOutCapUp"]] <-
+        .dat2par(prec@parameters[["mStorageOutCapUp"]], mStorageOutCapUp)
     }
-    rm(mStorageCapUp)
+    rm(mStorageOutCapUp)
   }
 
   if (nrow(prec@parameters[["pStorageOutNewCap"]]@data) > 0) {
@@ -689,20 +689,20 @@ write.sc <- write_sc
         # select(-value) |>
         unique()
     })
-    mStorageNewCapLo <- filter(mStorageNewCap, type == "lo") |>
+    mStorageOutNewCapLo <- filter(mStorageNewCap, type == "lo") |>
       select(-type, -value)
-    if (!is.null(mStorageNewCapLo) && nrow(mStorageNewCapLo) > 0) {
-      prec@parameters[["mStorageNewCapLo"]] <-
-        .dat2par(prec@parameters[["mStorageNewCapLo"]], mStorageNewCapLo)
+    if (!is.null(mStorageOutNewCapLo) && nrow(mStorageOutNewCapLo) > 0) {
+      prec@parameters[["mStorageOutNewCapLo"]] <-
+        .dat2par(prec@parameters[["mStorageOutNewCapLo"]], mStorageOutNewCapLo)
     }
-    rm(mStorageNewCapLo)
-    mStorageNewCapUp <- filter(mStorageNewCap, type == "up") |>
+    rm(mStorageOutNewCapLo)
+    mStorageOutNewCapUp <- filter(mStorageNewCap, type == "up") |>
       select(-type, -value)
-    if (!is.null(mStorageNewCapUp) && nrow(mStorageNewCapUp) > 0) {
-      prec@parameters[["mStorageNewCapUp"]] <-
-        .dat2par(prec@parameters[["mStorageNewCapUp"]], mStorageNewCapUp)
+    if (!is.null(mStorageOutNewCapUp) && nrow(mStorageOutNewCapUp) > 0) {
+      prec@parameters[["mStorageOutNewCapUp"]] <-
+        .dat2par(prec@parameters[["mStorageOutNewCapUp"]], mStorageOutNewCapUp)
     }
-    rm(mStorageNewCapUp)
+    rm(mStorageOutNewCapUp)
   }
 
   if(nrow(prec@parameters[["pStorageOutRet"]]@data) > 0) {
@@ -712,20 +712,20 @@ write.sc <- write_sc
         # select(-value) |>
         unique()
     })
-    mStorageRetLo <- filter(mStorageRet, type == "lo") |>
+    mStorageOutRetLo <- filter(mStorageRet, type == "lo") |>
       select(-type, -value)
-    if (!is.null(mStorageRetLo) && nrow(mStorageRetLo) > 0) {
-      prec@parameters[["mStorageRetLo"]] <-
-        .dat2par(prec@parameters[["mStorageRetLo"]], mStorageRetLo)
+    if (!is.null(mStorageOutRetLo) && nrow(mStorageOutRetLo) > 0) {
+      prec@parameters[["mStorageOutRetLo"]] <-
+        .dat2par(prec@parameters[["mStorageOutRetLo"]], mStorageOutRetLo)
     }
-    rm(mStorageRetLo)
-    mStorageRetUp <- filter(mStorageRet, type == "up") |>
+    rm(mStorageOutRetLo)
+    mStorageOutRetUp <- filter(mStorageRet, type == "up") |>
       select(-type, -value)
-    if (!is.null(mStorageRetUp) && nrow(mStorageRetUp) > 0) {
-      prec@parameters[["mStorageRetUp"]] <-
-        .dat2par(prec@parameters[["mStorageRetUp"]], mStorageRetUp)
+    if (!is.null(mStorageOutRetUp) && nrow(mStorageOutRetUp) > 0) {
+      prec@parameters[["mStorageOutRetUp"]] <-
+        .dat2par(prec@parameters[["mStorageOutRetUp"]], mStorageOutRetUp)
     }
-    rm(mStorageRetUp)
+    rm(mStorageOutRetUp)
   }
   # browser()
   # mTradeCap ####

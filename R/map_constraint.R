@@ -50,10 +50,10 @@ map_meqStorageInpUp <- function(scen, fmp) .cjoin(scen, "meqStorageInpUp", fmp)
 map_meqStorageOutLo <- function(scen, fmp) .cjoin(scen, "meqStorageOutLo", fmp)
 map_meqStorageOutUp <- function(scen, fmp) .cjoin(scen, "meqStorageOutUp", fmp)
 # C6 storage capacity / retirement
-map_mStorageCapLo    <- function(scen, fmp) .cjoin(scen, "mStorageCapLo", fmp)
-map_mStorageCapUp    <- function(scen, fmp) .cjoin(scen, "mStorageCapUp", fmp)
-map_mStorageNewCapLo <- function(scen, fmp) .cjoin(scen, "mStorageNewCapLo", fmp)
-map_mStorageNewCapUp <- function(scen, fmp) .cjoin(scen, "mStorageNewCapUp", fmp)
+map_mStorageCapLo    <- function(scen, fmp) .cjoin(scen, "mStorageOutCapLo", fmp)
+map_mStorageCapUp    <- function(scen, fmp) .cjoin(scen, "mStorageOutCapUp", fmp)
+map_mStorageNewCapLo <- function(scen, fmp) .cjoin(scen, "mStorageOutNewCapLo", fmp)
+map_mStorageNewCapUp <- function(scen, fmp) .cjoin(scen, "mStorageOutNewCapUp", fmp)
 map_mStorageInpCapLo <- function(scen, fmp) .cjoin(scen, "mStorageInpCapLo", fmp)
 map_mStorageInpCapUp <- function(scen, fmp) .cjoin(scen, "mStorageInpCapUp", fmp)
 map_mStorageInpNewCapLo <- function(scen, fmp) .cjoin(scen, "mStorageInpNewCapLo", fmp)
@@ -66,8 +66,12 @@ map_mStorageStgNewCapLo <- function(scen, fmp) .cjoin(scen, "mStorageStgNewCapLo
 map_mStorageStgNewCapUp <- function(scen, fmp) .cjoin(scen, "mStorageStgNewCapUp", fmp)
 map_mStorageDurationLo  <- function(scen, fmp) .cjoin(scen, "mStorageDurationLo", fmp)
 map_mStorageDurationUp  <- function(scen, fmp) .cjoin(scen, "mStorageDurationUp", fmp)
-map_mStorageRetLo    <- function(scen, fmp) .cjoin(scen, "mStorageRetLo", fmp)
-map_mStorageRetUp    <- function(scen, fmp) .cjoin(scen, "mStorageRetUp", fmp)
+map_mStorageRetLo    <- function(scen, fmp) .cjoin(scen, "mStorageOutRetLo", fmp)
+map_mStorageRetUp    <- function(scen, fmp) .cjoin(scen, "mStorageOutRetUp", fmp)
+map_mStorageInpRetLo <- function(scen, fmp) .cjoin(scen, "mStorageInpRetLo", fmp)
+map_mStorageInpRetUp <- function(scen, fmp) .cjoin(scen, "mStorageInpRetUp", fmp)
+map_mStorageStgRetLo <- function(scen, fmp) .cjoin(scen, "mStorageStgRetLo", fmp)
+map_mStorageStgRetUp <- function(scen, fmp) .cjoin(scen, "mStorageStgRetUp", fmp)
 # C7 trade capacity / retirement
 map_mTradeCapLo    <- function(scen, fmp) .cjoin(scen, "mTradeCapLo", fmp)
 map_mTradeCapUp    <- function(scen, fmp) .cjoin(scen, "mTradeCapUp", fmp)
@@ -125,8 +129,8 @@ map_mTechAfcUp     <- function(scen, fmp) scen
   meqStorageAfLo = map_meqStorageAfLo, meqStorageAfUp = map_meqStorageAfUp,
   meqStorageInpLo = map_meqStorageInpLo, meqStorageInpUp = map_meqStorageInpUp,
   meqStorageOutLo = map_meqStorageOutLo, meqStorageOutUp = map_meqStorageOutUp,
-  mStorageCapLo = map_mStorageCapLo, mStorageCapUp = map_mStorageCapUp,
-  mStorageNewCapLo = map_mStorageNewCapLo, mStorageNewCapUp = map_mStorageNewCapUp,
+  mStorageOutCapLo = map_mStorageCapLo, mStorageOutCapUp = map_mStorageCapUp,
+  mStorageOutNewCapLo = map_mStorageNewCapLo, mStorageOutNewCapUp = map_mStorageNewCapUp,
   mStorageInpCapLo = map_mStorageInpCapLo, mStorageInpCapUp = map_mStorageInpCapUp,
   mStorageInpNewCapLo = map_mStorageInpNewCapLo,
   mStorageInpNewCapUp = map_mStorageInpNewCapUp,
@@ -137,7 +141,9 @@ map_mTechAfcUp     <- function(scen, fmp) scen
   mStorageStgNewCapUp = map_mStorageStgNewCapUp,
   mStorageDurationLo = map_mStorageDurationLo,
   mStorageDurationUp = map_mStorageDurationUp,
-  mStorageRetLo = map_mStorageRetLo, mStorageRetUp = map_mStorageRetUp,
+  mStorageOutRetLo = map_mStorageRetLo, mStorageOutRetUp = map_mStorageRetUp,
+  mStorageInpRetLo = map_mStorageInpRetLo, mStorageInpRetUp = map_mStorageInpRetUp,
+  mStorageStgRetLo = map_mStorageStgRetLo, mStorageStgRetUp = map_mStorageStgRetUp,
   mTradeCapLo = map_mTradeCapLo, mTradeCapUp = map_mTradeCapUp,
   mTradeNewCapLo = map_mTradeNewCapLo, mTradeNewCapUp = map_mTradeNewCapUp,
   mTradeRetLo = map_mTradeRetLo, mTradeRetUp = map_mTradeRetUp,

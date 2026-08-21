@@ -3955,7 +3955,14 @@ get_process_stock_window <- function(scen, process = NULL, classes = NULL) {
       # cat("Process: ", x@name, "\n")
       # browser()
       if (!.hasSlot(x, "capacity")) return(NULL)
-      dd <- .capacity_stock(x@capacity) |>
+      cap <- .capacity_stock(x@capacity)
+      # `trade` capacity is region-free (`vTradeCap{trade, year}`), so its rows
+      # carry no `region`. Without one the guard below drops the WHOLE table --
+      # in a trade-only model that silently emptied the stock window. An
+      # explicit NA routes it through the existing "expand NA to the process's
+      # regions" path instead.
+      if (!("region" %in% names(cap))) cap$region <- rep(NA_character_, NROW(cap))
+      dd <- cap |>
         select(any_of("region"), year, stock) |>
         filter(!is.na(stock)) |>
         unique() |>

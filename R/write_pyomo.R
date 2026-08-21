@@ -32,53 +32,23 @@ get_python_path <- function() {
   .assert_geolevel_supported(scen, "Pyomo")
   AbstractModel <- any(grep("abstract", scen@settings@solver$lang, ignore.case = TRUE))
   if (AbstractModel) {
-    # Concrete implements `payback`; Abstract does not -- its eqXEac is still the
-    # pre-vintaging `pXEac * vXCap` form, so a payback window has nothing to
-    # narrow. Guard the Abstract branch only.
-    .assert_payback_supported(scen, "Pyomo-Abstract")
-    run_code <- scen@settings@sourceCode[["PYOMOAbstract"]]
-    run_codeout <- scen@settings@sourceCode[["PYOMOAbstractOutput"]]
-
-    # For downsize
-    fdownsize <- names(scen@modInp@parameters)[
-      sapply(scen@modInp@parameters, function(x) length(x@misc$rem_col) != 0)
-    ]
-    for (nn in fdownsize) {
-      rmm <- scen@modInp@parameters[[nn]]@misc$rem_col
-      if (scen@modInp@parameters[[nn]]@type == "bounds") {
-        uuu <- paste0(nn, c("Lo", "Up"))
-      } else {
-        uuu <- nn
-      }
-      for (yy in uuu) {
-        templ <- paste0("(^|[^[:alnum:]])", yy, "[[]")
-        if (any(grep("^pCns", nn))) {
-          for (www in seq_along(scen@modInp@gams.equation)) {
-            mmm <- grep(templ, scen@modInp@gams.equation[[www]]$equation)
-            if (any(mmm)) {
-              scen@modInp@gams.equation[[www]]$equation[mmm] <-
-                sapply(
-                  strsplit(scen@modInp@gams.equation[[www]]$equation[mmm], yy),
-                  .rem_col_sq, yy, rmm
-                )
-            }
-          }
-        } else if (any(grep("^pCosts", nn))) {
-          mmm <- grep(templ, scen@modInp@costs.equation)
-          if (any(mmm)) {
-            scen@modInp@costs.equation[mmm] <-
-              sapply(strsplit(scen@modInp@costs.equation[mmm], yy),
-                     .rem_col_sq, yy, rmm)
-          }
-        } else {
-          mmm <- grep(templ, run_code)
-          if (any(mmm)) {
-            run_code[mmm] <-
-              sapply(strsplit(run_code[mmm], yy), .rem_col_sq, yy, rmm)
-          }
-        }
-      }
-    }
+    # RETIRED. The Abstract template fell behind on three separate refactors --
+    # the agg-rewrite (it still declared `mBalanceRY`, removed everywhere else),
+    # the eac-fix (flat `pXEac * vXCap` instead of the vintaged form), and
+    # vintaging/payback, which `R/eac.R` records as impossible "without a bigger
+    # change". No shipped solver option selected it, so nothing exercised it and
+    # it rotted silently. Kept for reference in drafts/energyRtAbstract.py.
+    #
+    # If an AbstractModel is ever wanted, GENERATE it from the Concrete template
+    # the way mosox is generated from GLPK -- do not hand-maintain a sixth copy.
+    stop("The Pyomo-Abstract back-end has been retired: it was several ",
+         "refactors behind and unreachable (no solver option selected it).
+",
+         "  Use a Concrete Pyomo option instead, e.g. ",
+         "`solver_options$pyomo_glpk` or `$pyomo_cbc`.
+",
+         "  The template is kept for reference in drafts/energyRtAbstract.py.",
+         call. = FALSE)
   } else {
     run_code <- scen@settings@sourceCode[["PYOMOConcrete"]]
     run_codeout <- scen@settings@sourceCode[["PYOMOConcreteOutput"]]

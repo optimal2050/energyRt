@@ -484,10 +484,57 @@ class:
           description: Technology-capacity-to-auxilary-commodity-output coefficient, ignored if NA.
         ncap2ainp:
           type: numeric
-          description: Technology-new-capacity-to-auxilary-commodity-input-coefficient, ignored if NA.
+          description: >
+            Aux commodity consumed per unit of NEW capacity -- a one-time charge at
+            construction (materials, embodied energy), ignored if NA.
+            NO `pTimesliceShare` is applied and the aux balance is PER TIMESLICE,
+            so a value given with `timeslice = NA` applies in EVERY slice and the
+            annual total comes out multiplied by the slice count -- 8760x on an
+            hourly calendar. Give a per-slice value, or name a single slice.
         ncap2aout:
           type: numeric
           description: Technology-new-capacity-to-auxilary-commodity-output coefficient, ignored if NA.
+        pho2ainp:
+          type: numeric
+          description: >
+            Aux commodity CONSUMED when capacity reaches the END OF ITS LIFE
+            (demolition energy, labour). Multiplies the per-year phase-out FLOW,
+            so the charge lands ONCE -- in the milestone where the capacity
+            disappears -- not every year it stood.
+            NO `pTimesliceShare` is applied and the aux balance is PER TIMESLICE,
+            so a value given with `timeslice = NA` applies in EVERY slice and the
+            annual total comes out multiplied by the slice count -- 8760x on an
+            hourly calendar. Give a per-slice value, or name a single slice.
+        pho2aout:
+          type: numeric
+          description: >
+            Aux commodity RELEASED when capacity reaches the END OF ITS LIFE
+            (demolition waste, recovered material). Fires even when
+            `optimizeRetirement` is FALSE, which is the usual case.
+            NO `pTimesliceShare` is applied and the aux balance is PER TIMESLICE,
+            so a value given with `timeslice = NA` applies in EVERY slice and the
+            annual total comes out multiplied by the slice count -- 8760x on an
+            hourly calendar. Give a per-slice value, or name a single slice.
+        ret2ainp:
+          type: numeric
+          description: >
+            Aux commodity CONSUMED when capacity is retired EARLY. Separate from
+            `pho2ainp` because the two differ physically: scrapping an intact
+            plant is not the same job as demolishing a worn-out one.
+            NO `pTimesliceShare` is applied and the aux balance is PER TIMESLICE,
+            so a value given with `timeslice = NA` applies in EVERY slice and the
+            annual total comes out multiplied by the slice count -- 8760x on an
+            hourly calendar. Give a per-slice value, or name a single slice.
+        ret2aout:
+          type: numeric
+          description: >
+            Aux commodity RELEASED when capacity is retired EARLY (scrap). Usually
+            LARGER than `pho2aout`: a plant retired before its time is still
+            largely intact, so more material is recoverable.
+            NO `pTimesliceShare` is applied and the aux balance is PER TIMESLICE,
+            so a value given with `timeslice = NA` applies in EVERY slice and the
+            annual total comes out multiplied by the slice count -- 8760x on an
+            hourly calendar. Give a per-slice value, or name a single slice.
     af:
       type: data.frame
       description: Timeslice-level availability factor parameters.
@@ -1145,6 +1192,47 @@ class:
         ncap2aout:
           type: numeric
           description: New-capacity-to-auxiliary-output-commodity coefficient (multiplier).
+        pho2ainp:
+          type: numeric
+          description: >
+            Aux commodity CONSUMED when capacity reaches the END OF ITS LIFE
+            (demolition energy, labour). Multiplies the per-year phase-out FLOW,
+            so the charge lands ONCE -- in the milestone where the capacity
+            disappears -- not every year it stood.
+            NO `pTimesliceShare` is applied and the aux balance is PER TIMESLICE,
+            so a value given with `timeslice = NA` applies in EVERY slice and the
+            annual total comes out multiplied by the slice count -- 8760x on an
+            hourly calendar. Give a per-slice value, or name a single slice.
+        pho2aout:
+          type: numeric
+          description: >
+            Aux commodity RELEASED when capacity reaches the END OF ITS LIFE
+            (demolition waste, recovered material). Fires even when
+            `optimizeRetirement` is FALSE, which is the usual case.
+            NO `pTimesliceShare` is applied and the aux balance is PER TIMESLICE,
+            so a value given with `timeslice = NA` applies in EVERY slice and the
+            annual total comes out multiplied by the slice count -- 8760x on an
+            hourly calendar. Give a per-slice value, or name a single slice.
+        ret2ainp:
+          type: numeric
+          description: >
+            Aux commodity CONSUMED when capacity is retired EARLY. Separate from
+            `pho2ainp` because the two differ physically: scrapping an intact
+            plant is not the same job as demolishing a worn-out one.
+            NO `pTimesliceShare` is applied and the aux balance is PER TIMESLICE,
+            so a value given with `timeslice = NA` applies in EVERY slice and the
+            annual total comes out multiplied by the slice count -- 8760x on an
+            hourly calendar. Give a per-slice value, or name a single slice.
+        ret2aout:
+          type: numeric
+          description: >
+            Aux commodity RELEASED when capacity is retired EARLY (scrap). Usually
+            LARGER than `pho2aout`: a plant retired before its time is still
+            largely intact, so more material is recoverable.
+            NO `pTimesliceShare` is applied and the aux balance is PER TIMESLICE,
+            so a value given with `timeslice = NA` applies in EVERY slice and the
+            annual total comes out multiplied by the slice count -- 8760x on an
+            hourly calendar. Give a per-slice value, or name a single slice.
         ncap2stg:
           type: numeric
           description: New-capacity-to-storage-level coefficient (multiplier).

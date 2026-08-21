@@ -28,6 +28,14 @@
   mTechVarom    = list(source = "pTechVarom",   window = "mTechSpan"),
   mTechRetCost  = list(source = "pTechRetCost", window = NULL,
                        gate = "optimizeRetirement"),
+  # One retirement-cost domain per storage, spanning the three parts -- the
+  # cost equation sums them into a single `vStorageRetCost`, as eqStorageEac
+  # does for the annuity.
+  mStorageRetCost = list(source = c("pStorageOutRetCost", "pStorageInpRetCost",
+                                    "pStorageStgRetCost"),
+                         window = NULL, gate = "optimizeRetirement"),
+  mTradeRetCost   = list(source = "pTradeRetCost", window = NULL,
+                         gate = "optimizeRetirement"),
   # storage
   mStorageFixom = list(source = "pStorageOutFixom", window = "mStorageSpan"),
   mStorageVarom = list(source = c("pStorageCostInp", "pStorageCostOut",
@@ -106,6 +114,8 @@ map_mTechInv      <- function(scen, fmp) .value_std(scen, "mTechInv", fmp)
 map_mTechFixom    <- function(scen, fmp) .value_std(scen, "mTechFixom", fmp)
 map_mTechVarom    <- function(scen, fmp) .value_std(scen, "mTechVarom", fmp)
 map_mTechRetCost  <- function(scen, fmp) .value_std(scen, "mTechRetCost", fmp)
+map_mStorageRetCost <- function(scen, fmp) .value_std(scen, "mStorageRetCost", fmp)
+map_mTradeRetCost   <- function(scen, fmp) .value_std(scen, "mTradeRetCost", fmp)
 map_mStorageFixom <- function(scen, fmp) .value_std(scen, "mStorageFixom", fmp)
 map_mStorageStgCap   <- function(scen, fmp) .value_std(scen, "mStorageStgCap", fmp)
 map_mStorageInpCap   <- function(scen, fmp) .value_std(scen, "mStorageInpCap", fmp)
@@ -186,7 +196,7 @@ map_mSupSpan <- function(scen, fmp) {
 # mTechRetirement: technologies with retirement optimisation enabled.
 map_mTechRetirement <- function(scen, fmp) {
   if (!isTRUE(scen@settings@optimizeRetirement)) return(scen)
-  techs <- .retirement_techs(scen)
+  techs <- .retirement_objects(scen, "technology")
   if (length(techs) == 0) return(scen)
   .set_map(scen, "mTechRetirement",
            data.frame(tech = techs, stringsAsFactors = FALSE), fmp)
@@ -229,6 +239,8 @@ map_mSubCost <- function(scen, fmp)
   mTechFixom    = map_mTechFixom,
   mTechVarom    = map_mTechVarom,
   mTechRetCost  = map_mTechRetCost,
+  mStorageRetCost = map_mStorageRetCost,
+  mTradeRetCost = map_mTradeRetCost,
   mStorageFixom = map_mStorageFixom,
   mStorageStgCap = map_mStorageStgCap,
   mStorageInpCap = map_mStorageInpCap,
