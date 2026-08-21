@@ -54,6 +54,18 @@ map_mStorageCapLo    <- function(scen, fmp) .cjoin(scen, "mStorageCapLo", fmp)
 map_mStorageCapUp    <- function(scen, fmp) .cjoin(scen, "mStorageCapUp", fmp)
 map_mStorageNewCapLo <- function(scen, fmp) .cjoin(scen, "mStorageNewCapLo", fmp)
 map_mStorageNewCapUp <- function(scen, fmp) .cjoin(scen, "mStorageNewCapUp", fmp)
+map_mStorageInpCapLo <- function(scen, fmp) .cjoin(scen, "mStorageInpCapLo", fmp)
+map_mStorageInpCapUp <- function(scen, fmp) .cjoin(scen, "mStorageInpCapUp", fmp)
+map_mStorageInpNewCapLo <- function(scen, fmp) .cjoin(scen, "mStorageInpNewCapLo", fmp)
+map_mStorageInpNewCapUp <- function(scen, fmp) .cjoin(scen, "mStorageInpNewCapUp", fmp)
+map_mStorageInp2outLo <- function(scen, fmp) .cjoin(scen, "mStorageInp2outLo", fmp)
+map_mStorageInp2outUp <- function(scen, fmp) .cjoin(scen, "mStorageInp2outUp", fmp)
+map_mStorageStgCapLo    <- function(scen, fmp) .cjoin(scen, "mStorageStgCapLo", fmp)
+map_mStorageStgCapUp    <- function(scen, fmp) .cjoin(scen, "mStorageStgCapUp", fmp)
+map_mStorageStgNewCapLo <- function(scen, fmp) .cjoin(scen, "mStorageStgNewCapLo", fmp)
+map_mStorageStgNewCapUp <- function(scen, fmp) .cjoin(scen, "mStorageStgNewCapUp", fmp)
+map_mStorageDurationLo  <- function(scen, fmp) .cjoin(scen, "mStorageDurationLo", fmp)
+map_mStorageDurationUp  <- function(scen, fmp) .cjoin(scen, "mStorageDurationUp", fmp)
 map_mStorageRetLo    <- function(scen, fmp) .cjoin(scen, "mStorageRetLo", fmp)
 map_mStorageRetUp    <- function(scen, fmp) .cjoin(scen, "mStorageRetUp", fmp)
 # C7 trade capacity / retirement
@@ -115,6 +127,16 @@ map_mTechAfcUp     <- function(scen, fmp) scen
   meqStorageOutLo = map_meqStorageOutLo, meqStorageOutUp = map_meqStorageOutUp,
   mStorageCapLo = map_mStorageCapLo, mStorageCapUp = map_mStorageCapUp,
   mStorageNewCapLo = map_mStorageNewCapLo, mStorageNewCapUp = map_mStorageNewCapUp,
+  mStorageInpCapLo = map_mStorageInpCapLo, mStorageInpCapUp = map_mStorageInpCapUp,
+  mStorageInpNewCapLo = map_mStorageInpNewCapLo,
+  mStorageInpNewCapUp = map_mStorageInpNewCapUp,
+  mStorageInp2outLo = map_mStorageInp2outLo,
+  mStorageInp2outUp = map_mStorageInp2outUp,
+  mStorageStgCapLo = map_mStorageStgCapLo, mStorageStgCapUp = map_mStorageStgCapUp,
+  mStorageStgNewCapLo = map_mStorageStgNewCapLo,
+  mStorageStgNewCapUp = map_mStorageStgNewCapUp,
+  mStorageDurationLo = map_mStorageDurationLo,
+  mStorageDurationUp = map_mStorageDurationUp,
   mStorageRetLo = map_mStorageRetLo, mStorageRetUp = map_mStorageRetUp,
   mTradeCapLo = map_mTradeCapLo, mTradeCapUp = map_mTradeCapUp,
   mTradeNewCapLo = map_mTradeNewCapLo, mTradeNewCapUp = map_mTradeNewCapUp,

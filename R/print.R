@@ -23,12 +23,17 @@ setMethod("print", "modInp", function(x, ...) {
 })
 
 # Print commodity ####
-print.commodity <- function(x) {
+#' @exportS3Method print commodity
+print.commodity <- function(x, ...) {
   # print commodity
   if_print_data_frame <- function(x, sl) {
-    if (nrow(slot(x, sl)) != 0) {
+    df <- slot(x, sl)
+    if (nrow(df) != 0) {
       cat("\n", sl, "\n")
-      print(slot(x, sl))
+      # all-NA columns are noise: the property table is deliberately sparse
+      # (uncertainty is optional), so drop what carries nothing.
+      keep <- vapply(df, \(z) !all(is.na(z)), logical(1))
+      print(df[, keep, drop = FALSE])
       cat("\n")
     }
   }
@@ -36,7 +41,12 @@ print.commodity <- function(x) {
   # if (x@type != '') cat('type: ', x@type, '\n')
   if (length(x@desc) != 0 && x@desc != "") cat("desc: ", x@desc, "\n")
   # if (x@origin != '') cat('Region of origin: ',x@origin, '\n')
+  if (length(x@unit) != 0 && nzchar(x@unit[1])) cat("unit: ", x@unit, "\n")
   if (!is.null(x@misc$color)) cat("color: ", x@misc$color, "\n")
+  img <- object_image(x)
+  if (!identical(img$status, "none")) {
+    cat("image: ", img$path, " (", img$status, ")\n", sep = "")
+  }
 
   g <- getClass("commodity")
   yy <- names(g@slots)[sapply(names(g@slots), function(y) {
@@ -44,6 +54,7 @@ print.commodity <- function(x) {
       "data.frame"
   })]
   for (i in yy) if_print_data_frame(x, i)
+  invisible(x)
 }
 
 print.demand <- function(x) {

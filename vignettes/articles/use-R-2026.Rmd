@@ -24,11 +24,10 @@ ongoing project as much as it teaches finished software—expect a few rough edg
 and bring your questions and critique. We are keen to discuss the approach,
 improve it together, and welcome new collaborators.
 
-**How the course works.** The four meetings alternate between teaching and
-follow-up. Sessions 1 and 3 introduce new material with live demonstrations;
-Sessions 2 and 4 are follow-up sessions where we review your exercises,
-troubleshoot code, and answer questions. Between meetings you work through short
-exercises at your own pace. Materials and exercises are published on the
+**How the course works.** Each meeting introduces new material and picks up the
+previous one: every session opens with a recap and questions on the exercises,
+then moves on. Between meetings you work through short exercises at your own
+pace. Materials and exercises are published on the
 [course site](https://optimal2050.github.io/useR2026_ensys/) as the series
 progresses, so the sessions build on one another and you can catch up on
 anything you miss.
@@ -40,7 +39,7 @@ All sessions run at **12:00 UTC** (New York 08:00 · Berlin 14:00 · New Delhi
 
 ### Session 1 — LEGO-lization of energy modeling and energyRt basics {#s1}
 
-*Friday, 7 August 2026*
+*Friday, 7 August 2026* · [**recording**](https://us06web.zoom.us/rec/share/sKPqSPKtVPXhTXupOBZ4CsISokRYb01N9x_DF3dL8KRjtt23eH9of2sRasLdiDA.OnIX2kVsrzbb2wb5?iet=vRKl8XZuzYw3FGESIdKoaDjyPBtODeaG0R5HiHeICNQ.AG.lUqrHJlmYtf2Fz3OtFMbs2gMQMNK0eSGfxOX25oN8mwLIj3FENbuy88uzdQiQLF40l0hzSPnu1Kh8U0DNPzK3UAaOD23EkBna6O_XFuAKKlocXHRGAFmx6Hpsw.Wa8sCqj9sj9qKRF_sx072Q.9oPe6snyTSrhG024) (1:08:05, passcode `!%$Grvu7`)
 
 - A brief overview of energy-system models and their place in the broader
   energy-economy-environment modeling landscape
@@ -52,38 +51,57 @@ All sessions run at **12:00 UTC** (New York 08:00 · Berlin 14:00 · New Delhi
 - Setting up and solving a simple energy-system model in R
 - Introduction to the hands-on exercises
 
-### Session 2 — Exercise follow-up {#s2}
+### Session 2 — Time and space resolution {#s2}
 
-*Friday, 14 August 2026*
+*Friday, 14 August 2026* · [**recording**](https://us06web.zoom.us/rec/share/kO6vVCHx9TAGscAR41BlNuPpnZjTJT3R61x82gW9ALwPRL6TYE4TL_Hkez6ZsKTt.p3PIyROEXlegQhKM?iet=lXahCo9SBe0DqESii6Cq01tpJ43zHDaJnVXYbNApLOY.AG.8q99wdCTe4-3_eap_CqyCbw9FO2J8pHjvd7zRsvgRSCgZx9rMIW38chWulIhj41BB-fODfolvjPCfGSRAUYzTiR2GYliPxIgZhJa7dKDocCxQANPlrBmkSZDZQ.k1DBOTn5yVaakrA_3o3_0w.PPkInRr3Pm-NZXbt) (1:06:07, passcode `M!1gDV=A`)
 
-- Review and discussion of the exercises from Session 1
-- Building an example model "brick by brick"
-- Comparison of solutions and modeling approaches
-- Policy-scenario examples, such as emissions constraints and renewable-energy
-  targets
-- Questions arising from participants' practical work
+- Q&A follow-up and recap of Session 1
+- Model time- and geo-scales
+- The process designer (GUI)
+- Overview of the new exercises
+- Live Q&A
 
-### Session 3 — Advanced energyRt applications {#s3}
+### Session 3 — Advanced applications {#s3}
 
 *Friday, 21 August 2026*
 
-- Advanced energy-system modeling examples
-- Reproducing a large-scale, real-world open-source energy-system model in
-  energyRt (the specific model will be announced before the session)
+- Modeling (energy) storage
+- Solving large models: a version of **PyPSA-Eur** in energyRt
 - Model structure, data organization, and scenario design
 - Practical considerations for larger, multi-region applications
 - Using alternative mathematical-programming backends (GLPK, HiGHS/Julia, Pyomo,
   GAMS, and license-free remote solving via NEOS)
 
-### Session 4 — Questions and troubleshooting {#s4}
+### Session 4 — Questions, troubleshooting, and more models {#s4}
 
 *Friday, 28 August 2026*
 
+- Model and scenario management, and reporting
+- Further model examples (USA, and to be confirmed)
 - Open questions about energyRt and the course materials
 - Troubleshooting participants' models and code
-- Discussion of modeling challenges and possible solutions
 - Guidance on extending the examples to participants' own applications
 - Suggested next steps and further resources
+
+## Recordings and slides
+
+Sessions are recorded and the decks are shared, so the series can be followed
+after the fact or caught up on.
+
+| session | date | recording | slides |
+|---|---|---|---|
+| 1 — energyRt basics | 7 Aug 2026 | [watch](#s1) · 1:08:05 | [all sessions](https://drive.proton.me/urls/94PXN24A7G#i6Zv4UNMypvd) |
+| 2 — Time and space resolution | 14 Aug 2026 | [watch](#s2) · 1:06:07 | [all sessions](https://drive.proton.me/urls/94PXN24A7G#i6Zv4UNMypvd) |
+| 3 — Advanced applications | 21 Aug 2026 | — | [all sessions](https://drive.proton.me/urls/94PXN24A7G#i6Zv4UNMypvd) |
+| 4 — Questions and more models | 28 Aug 2026 | — | [all sessions](https://drive.proton.me/urls/94PXN24A7G#i6Zv4UNMypvd) |
+
+Recording links and their passcodes are given with each session in the
+[schedule](#schedule) above. **[Slides for all sessions](https://drive.proton.me/urls/94PXN24A7G#i6Zv4UNMypvd)** are in one
+shared folder.
+
+Written materials — exercises, reference decks and setup guides — are published
+on the [course site](https://optimal2050.github.io/useR2026_ensys/) as the series
+progresses.
 
 ## Who it is for
 

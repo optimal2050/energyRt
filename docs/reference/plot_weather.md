@@ -25,11 +25,18 @@ plot_weather(
   palette = "D",
   datetime = FALSE,
   angle = 45,
+  region = NULL,
   ...
 )
 
 # S3 method for class 'weather'
-autoplot(object, style = c("heatmap", "line", "area"), calendar = NULL, ...)
+autoplot(
+  object,
+  style = c("heatmap", "line", "area"),
+  calendar = NULL,
+  region = NULL,
+  ...
+)
 ```
 
 ## Arguments
@@ -68,6 +75,14 @@ autoplot(object, style = c("heatmap", "line", "area"), calendar = NULL, ...)
   Rotation (degrees) for the x-axis tick labels; overlapping labels are
   dropped so dense sub-annual axes stay legible. Default `45`; `0` =
   flat.
+
+- region:
+
+  Which regions to draw. `NULL` (default) draws them all. A character
+  vector names them; a single number takes that many, in the order they
+  appear. Useful on converted continental models, where a weather factor
+  can carry dozens of regions and faceting on all of them leaves the
+  panels unreadable.
 
 - ...:
 

@@ -1248,6 +1248,38 @@ setMethod(
   "ob2mi",
   signature(scen = "scenario", obj = "storage", extra_params = "list"),
   function(scen, obj, extra_params = list()) {
+    # Which commodity a `comm`-dimensioned parameter belongs to. A storage now
+    # has THREE roles (input / stored / output) instead of one `@commodity`, so
+    # this has to pick the right one rather than inject one scalar. Keyed off the
+    # parameter name, which already says which side it is about:
+    #   pStorageInpEff, pStorageCostInp, pStorageCinp*, pStorageWeatherCinp*
+    #   pStorageOutEff, pStorageCostOut, pStorageCout*, pStorageWeatherCout*
+    #   everything else (StgEff, CostStore, StartLevel, NCap2Stg) -> the LEVEL
+    # For a storage written with a bare `commodity =` all three roles hold the
+    # same commodity, so this reproduces the old behaviour exactly.
+    .role_comm <- function(pname) {
+      pick <- if (grepl("inp", pname, ignore.case = TRUE)) {
+        "input"
+      } else if (grepl("out", pname, ignore.case = TRUE)) {
+        "output"
+      } else {
+        "storage"
+      }
+      .get <- function(role) {
+        cm <- tryCatch(as.character(methods::slot(obj, role)$comm),
+                       error = function(e) character())
+        unique(cm[!is.na(cm) & nzchar(cm)])
+      }
+      cm <- .get(pick)
+      if (length(cm)) return(cm)
+      # a role naming nothing falls back to one that does, so a partially
+      # specified storage still resolves instead of erroring
+      for (alt in c("storage", "input", "output")) {
+        cm <- .get(alt)
+        if (length(cm)) return(cm)
+      }
+      character()
+    }
     for (s in slotNames(obj)) {
       if (s %in% c("name", "timeframe", "commodity", "region")) {next}
       slot_info <- get_slot_meta(class(obj), s)
@@ -1255,13 +1287,27 @@ setMethod(
       slot_data <- get_lazy_data(obj, s)
       for (p in slot_info) {
         # mod@data$utopia_repository@data$STGELC@seff
-        if ("comm" %in% p$dimSets && is.null(slot_data$comm)) {
-          slot_data <- slot_data |> mutate(comm = obj@commodity, .before = 1)
+        #
+        # Per-parameter COPY. Assigning back into `slot_data` made the first
+        # parameter's commodity stick for every later one bound to the same
+        # slot: `@seff` feeds pStorageInpEff, pStorageOutEff and pStorageStgEff,
+        # so whichever was processed first stamped `comm` and the other two
+        # silently inherited it. Harmless while all three roles held the same
+        # commodity -- and wrong the moment they differ, which is the whole
+        # point of the roles: an EV storing kWh and selling km had its km-per-kWh
+        # `outeff` filed under electricity, where nothing reads it, so the motor
+        # ran at the default efficiency of 1.
+        pdat0 <- slot_data
+        if ("comm" %in% p$dimSets && is.null(pdat0$comm)) {
+          .cm <- .role_comm(p$name)
+          if (length(.cm)) {
+            pdat0 <- pdat0 |> mutate(comm = .cm, .before = 1)
+          }
         }
         pdat <- if (identical(s, "vintage")) {
-          .lifespan_resolve_df(as.data.frame(slot_data), p$colName,
+          .lifespan_resolve_df(as.data.frame(pdat0), p$colName,
                                obj@name)
-        } else slot_data
+        } else pdat0
         dat <- make_data_param(
           scen = scen,
           obj_name = obj@name,

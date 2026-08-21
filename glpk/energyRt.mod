@@ -57,6 +57,12 @@ set mLoComm dimen 1;
 set mFxComm dimen 1;
 set mStorageFullYear dimen 1;
 set mStorageComm dimen 2;
+# The three storage commodity ROLES: what fills the store, what it releases,
+# and what it HOLDS. All default from @commodity, so for a storage written the
+# old way the three are identical to mStorageComm above.
+set mStorageInpComm dimen 2;
+set mStorageOutComm dimen 2;
+set mStorageStgComm dimen 2;
 set mStorageAInp dimen 2;
 set mStorageAOut dimen 2;
 set mStorageNew dimen 3;
@@ -138,8 +144,11 @@ set mTechRetLo dimen 3;
 set mTechRetUp dimen 3;
 set mvStorageAInp dimen 5;
 set mvStorageAOut dimen 5;
-set mvStorageStore dimen 5;
-set meqStorageStore dimen 6;
+set mvStorageLevel dimen 5;
+# Flow domains follow their OWN commodity, the level follows what is stored.
+set mvStorageInp dimen 5;
+set mvStorageOut dimen 5;
+set meqStorageLevel dimen 6;
 set mStorageStg2AOut dimen 5;
 set mStorageCinp2AOut dimen 5;
 set mStorageCout2AOut dimen 5;
@@ -150,6 +159,28 @@ set mStorageCinp2AInp dimen 5;
 set mStorageCout2AInp dimen 5;
 set mStorageCap2AInp dimen 5;
 set mStorageNCap2AInp dimen 5;
+set mStorageInpCap dimen 3;
+set mStorageNoInpCap dimen 3;
+set mStorageInpNew dimen 3;
+set mStorageInpCapLo dimen 3;
+set mStorageInpCapUp dimen 3;
+set mStorageInpNewCapLo dimen 3;
+set mStorageInpNewCapUp dimen 3;
+set mStorageInpFixom dimen 3;
+set mStorageInpEac dimen 3;
+set mStorageInp2outLo dimen 3;
+set mStorageInp2outUp dimen 3;
+set mStorageStgCap dimen 3;
+set mStorageNoStgCap dimen 3;
+set mStorageStgNew dimen 3;
+set mStorageStgCapLo dimen 3;
+set mStorageStgCapUp dimen 3;
+set mStorageStgNewCapLo dimen 3;
+set mStorageStgNewCapUp dimen 3;
+set mStorageStgFixom dimen 3;
+set mStorageStgEac dimen 3;
+set mStorageDurationLo dimen 3;
+set mStorageDurationUp dimen 3;
 set mStorageCapLo dimen 3;
 set mStorageCapUp dimen 3;
 set mStorageNewCapLo dimen 3;
@@ -373,7 +404,28 @@ param pStorageFixom{stg, region, year};
 param pStorageInvcost{stg, region, year};
 param pStorageEac{stg, region, year};
 param pStorageRetCost{stg, region, year};
-param pStorageCap2stg{stg};
+param pStorageInpCap2act{stg};
+param pStorageOutCap2act{stg};
+param pStorageInpStock{stg, region, year};
+param pStorageInpInvcost{stg, region, year};
+param pStorageInpFixom{stg, region, year};
+param pStorageInpEac{stg, region, year};
+param pStorageInpCapLo{stg, region, year};
+param pStorageInpCapUp{stg, region, year};
+param pStorageInpNewCapLo{stg, region, year};
+param pStorageInpNewCapUp{stg, region, year};
+param pStorageInp2outLo{stg, region, year};
+param pStorageInp2outUp{stg, region, year};
+param pStorageStgStock{stg, region, year};
+param pStorageStgInvcost{stg, region, year};
+param pStorageStgFixom{stg, region, year};
+param pStorageStgEac{stg, region, year};
+param pStorageStgCapLo{stg, region, year};
+param pStorageStgCapUp{stg, region, year};
+param pStorageStgNewCapLo{stg, region, year};
+param pStorageStgNewCapUp{stg, region, year};
+param pStorageDurationLo{stg, region, year};
+param pStorageDurationUp{stg, region, year};
 param pStorageAfLo{stg, region, year, timeslice};
 param pStorageAfUp{stg, region, year, timeslice};
 param pStorageCinpUp{stg, comm, region, year, timeslice};
@@ -381,7 +433,7 @@ param pStorageCinpLo{stg, comm, region, year, timeslice};
 param pStorageCoutUp{stg, comm, region, year, timeslice};
 param pStorageCoutLo{stg, comm, region, year, timeslice};
 param pStorageNCap2Stg{stg, comm, region, year, timeslice};
-param pStorageCharge{stg, comm, region, year, timeslice};
+param pStorageStartLevel{stg, comm, region, year, timeslice};
 param pStorageStg2AInp{stg, comm, region, year, timeslice};
 param pStorageStg2AOut{stg, comm, region, year, timeslice};
 param pStorageCinp2AInp{stg, comm, region, year, timeslice};
@@ -500,11 +552,15 @@ var vDummyImport{comm, region, year, timeslice} >= 0;
 var vDummyExport{comm, region, year, timeslice} >= 0;
 var vStorageInp{stg, comm, region, year, timeslice} >= 0;
 var vStorageOut{stg, comm, region, year, timeslice} >= 0;
-var vStorageStore{stg, comm, region, year, timeslice} >= 0;
+var vStorageLevel{stg, comm, region, year, timeslice} >= 0;
 var vStorageInv{stg, region, year} >= 0;
 var vStorageEac{stg, region, year} >= 0;
-var vStorageCap{stg, region, year} >= 0;
-var vStorageNewCap{stg, region, year} >= 0;
+var vStorageOutCap{stg, region, year} >= 0;
+var vStorageStgCap{stg, region, year} >= 0;
+var vStorageInpCap{stg, region, year} >= 0;
+var vStorageInpNewCap{stg, region, year} >= 0;
+var vStorageStgNewCap{stg, region, year} >= 0;
+var vStorageOutNewCap{stg, region, year} >= 0;
 var vImportTot{comm, region, year, timeslice} >= 0;
 var vExportTot{comm, region, year, timeslice} >= 0;
 var vTradeIr{trade, comm, region, region, year, timeslice} >= 0;
@@ -627,46 +683,99 @@ s.t.  eqAggOutTot{(c, r, y, s) in mAggOut}: vAggOutTot[c,r,y,s]  =  sum{cp in co
 
 s.t.  eqEmsFuelTot{(c, r, y, s) in mEmsFuelTot}: vEmsFuelTot[c,r,y,s]  =  sum{cp in comm:((pEmissionFactor[c,cp]>0))}(pEmissionFactor[c,cp]*sum{t in tech:((t,cp) in mTechInpComm)}(pTechEmisComm[t,cp]*sum{sp in timeslice:((c,s,sp) in mCommTimesliceOrParent)}(sum{FORIF: (t,c,cp,r,y,sp) in mTechEmsFuel} (vTechInp[t,cp,r,y,sp]))));
 
-s.t.  eqStorageAInp{(st1, c, r, y, s) in mvStorageAInp}: vStorageAInp[st1,c,r,y,s]  =  sum{cp in comm:((st1,cp) in mStorageComm)}(sum{FORIF: (st1,c,r,y,s) in mStorageStg2AInp} ((pStorageStg2AInp[st1,c,r,y,s]*vStorageStore[st1,cp,r,y,s]))+sum{FORIF: (st1,c,r,y,s) in mStorageCinp2AInp} ((pStorageCinp2AInp[st1,c,r,y,s]*vStorageInp[st1,cp,r,y,s]))+sum{FORIF: (st1,c,r,y,s) in mStorageCout2AInp} ((pStorageCout2AInp[st1,c,r,y,s]*vStorageOut[st1,cp,r,y,s]))+sum{FORIF: (st1,c,r,y,s) in mStorageCap2AInp} ((pStorageCap2AInp[st1,c,r,y,s]*vStorageCap[st1,r,y]))+sum{FORIF: (st1,c,r,y,s) in mStorageNCap2AInp} ((pStorageNCap2AInp[st1,c,r,y,s]*vStorageNewCap[st1,r,y])));
+s.t.  eqStorageAInp{(st1, c, r, y, s) in mvStorageAInp}: vStorageAInp[st1,c,r,y,s]  =  sum{cp in comm:((st1,cp) in mStorageStgComm)}(sum{FORIF: (st1,c,r,y,s) in mStorageStg2AInp} ((pStorageStg2AInp[st1,c,r,y,s]*vStorageLevel[st1,cp,r,y,s])))+sum{cp in comm:((st1,cp) in mStorageInpComm)}(sum{FORIF: (st1,c,r,y,s) in mStorageCinp2AInp} ((pStorageCinp2AInp[st1,c,r,y,s]*vStorageInp[st1,cp,r,y,s])))+sum{cp in comm:((st1,cp) in mStorageOutComm)}(sum{FORIF: (st1,c,r,y,s) in mStorageCout2AInp} ((pStorageCout2AInp[st1,c,r,y,s]*vStorageOut[st1,cp,r,y,s])))+sum{FORIF: (st1,c,r,y,s) in mStorageCap2AInp} ((pStorageCap2AInp[st1,c,r,y,s]*vStorageOutCap[st1,r,y]))+sum{FORIF: (st1,c,r,y,s) in mStorageNCap2AInp} ((pStorageNCap2AInp[st1,c,r,y,s]*vStorageOutNewCap[st1,r,y]));
 
-s.t.  eqStorageAOut{(st1, c, r, y, s) in mvStorageAOut}: vStorageAOut[st1,c,r,y,s]  =  sum{cp in comm:((st1,cp) in mStorageComm)}(sum{FORIF: (st1,c,r,y,s) in mStorageStg2AOut} ((pStorageStg2AOut[st1,c,r,y,s]*vStorageStore[st1,cp,r,y,s]))+sum{FORIF: (st1,c,r,y,s) in mStorageCinp2AOut} ((pStorageCinp2AOut[st1,c,r,y,s]*vStorageInp[st1,cp,r,y,s]))+sum{FORIF: (st1,c,r,y,s) in mStorageCout2AOut} ((pStorageCout2AOut[st1,c,r,y,s]*vStorageOut[st1,cp,r,y,s]))+sum{FORIF: (st1,c,r,y,s) in mStorageCap2AOut} ((pStorageCap2AOut[st1,c,r,y,s]*vStorageCap[st1,r,y]))+sum{FORIF: (st1,c,r,y,s) in mStorageNCap2AOut} ((pStorageNCap2AOut[st1,c,r,y,s]*vStorageNewCap[st1,r,y])));
+s.t.  eqStorageAOut{(st1, c, r, y, s) in mvStorageAOut}: vStorageAOut[st1,c,r,y,s]  =  sum{cp in comm:((st1,cp) in mStorageStgComm)}(sum{FORIF: (st1,c,r,y,s) in mStorageStg2AOut} ((pStorageStg2AOut[st1,c,r,y,s]*vStorageLevel[st1,cp,r,y,s])))+sum{cp in comm:((st1,cp) in mStorageInpComm)}(sum{FORIF: (st1,c,r,y,s) in mStorageCinp2AOut} ((pStorageCinp2AOut[st1,c,r,y,s]*vStorageInp[st1,cp,r,y,s])))+sum{cp in comm:((st1,cp) in mStorageOutComm)}(sum{FORIF: (st1,c,r,y,s) in mStorageCout2AOut} ((pStorageCout2AOut[st1,c,r,y,s]*vStorageOut[st1,cp,r,y,s])))+sum{FORIF: (st1,c,r,y,s) in mStorageCap2AOut} ((pStorageCap2AOut[st1,c,r,y,s]*vStorageOutCap[st1,r,y]))+sum{FORIF: (st1,c,r,y,s) in mStorageNCap2AOut} ((pStorageNCap2AOut[st1,c,r,y,s]*vStorageOutNewCap[st1,r,y]));
 
-s.t.  eqStorageStore{(st1, c, r, y, sp, s) in meqStorageStore}: vStorageStore[st1,c,r,y,s]  =  pStorageCharge[st1,c,r,y,s]+sum{FORIF: (st1,r,y) in mStorageNew} ((pStorageNCap2Stg[st1,c,r,y,s]*vStorageNewCap[st1,r,y]))+pStorageInpEff[st1,c,r,y,sp]*vStorageInp[st1,c,r,y,sp]+((pStorageStgEff[st1,c,r,y,s])^(pTimesliceShare[s]))*vStorageStore[st1,c,r,y,sp]-(vStorageOut[st1,c,r,y,sp]) / (pStorageOutEff[st1,c,r,y,sp]);
+s.t.  eqStorageLevel{(st1, c, r, y, sp, s) in meqStorageLevel}: vStorageLevel[st1,c,r,y,s]  =  pStorageStartLevel[st1,c,r,y,s]+sum{FORIF: (st1,r,y) in mStorageNew} ((pStorageNCap2Stg[st1,c,r,y,s]*vStorageOutNewCap[st1,r,y]))+sum{ci in comm:((st1,ci,r,y,sp) in mvStorageInp)}(pStorageInpEff[st1,ci,r,y,sp]*vStorageInp[st1,ci,r,y,sp])+((pStorageStgEff[st1,c,r,y,s])^(pTimesliceShare[s]))*vStorageLevel[st1,c,r,y,sp]-sum{co in comm:((st1,co,r,y,sp) in mvStorageOut)}((vStorageOut[st1,co,r,y,sp]) / (pStorageOutEff[st1,co,r,y,sp]));
 
-s.t.  eqStorageAfLo{(st1, c, r, y, s) in meqStorageAfLo}: vStorageStore[st1,c,r,y,s]  >=  pStorageAfLo[st1,r,y,s]*pStorageCap2stg[st1]*vStorageCap[st1,r,y]*prod{wth1 in weather:((wth1,st1) in mStorageWeatherAfLo)}(pStorageWeatherAfLo[wth1,st1]*pWeather[wth1,r,y,s]);
+# [duration] now a BOUND on (stg, region, year): AfLo takes the LOWER ratio,
+# AfUp the UPPER. defVal [1,1] keeps a storage that says nothing tied at 1 h.
+s.t.  eqStorageAfLo{(st1, c, r, y, s) in meqStorageAfLo}: vStorageLevel[st1,c,r,y,s]  >=  pStorageAfLo[st1,r,y,s]*(sum{FORIF: (st1,r,y) in mStorageStgCap} (vStorageStgCap[st1,r,y])+sum{FORIF: (st1,r,y) in mStorageNoStgCap} (pStorageDurationLo[st1,r,y]*vStorageOutCap[st1,r,y]))*prod{wth1 in weather:((wth1,st1) in mStorageWeatherAfLo)}(pStorageWeatherAfLo[wth1,st1]*pWeather[wth1,r,y,s]);
 
-s.t.  eqStorageAfUp{(st1, c, r, y, s) in meqStorageAfUp}: vStorageStore[st1,c,r,y,s] <=  pStorageAfUp[st1,r,y,s]*pStorageCap2stg[st1]*vStorageCap[st1,r,y]*prod{wth1 in weather:((wth1,st1) in mStorageWeatherAfUp)}(pStorageWeatherAfUp[wth1,st1]*pWeather[wth1,r,y,s]);
+s.t.  eqStorageAfUp{(st1, c, r, y, s) in meqStorageAfUp}: vStorageLevel[st1,c,r,y,s] <=  pStorageAfUp[st1,r,y,s]*(sum{FORIF: (st1,r,y) in mStorageStgCap} (vStorageStgCap[st1,r,y])+sum{FORIF: (st1,r,y) in mStorageNoStgCap} (pStorageDurationUp[st1,r,y]*vStorageOutCap[st1,r,y]))*prod{wth1 in weather:((wth1,st1) in mStorageWeatherAfUp)}(pStorageWeatherAfUp[wth1,st1]*pWeather[wth1,r,y,s]);
 
-s.t.  eqStorageClear{(st1, c, r, y, s) in mvStorageStore}: (vStorageOut[st1,c,r,y,s]) / (pStorageOutEff[st1,c,r,y,s]) <=  vStorageStore[st1,c,r,y,s];
+# [rename] eqStorageClear -> eqStorageOutLevel. Draw only from what was ALREADY
+# stored: stricter than the level's non-negativity, which would also permit
+# discharging energy charged in the SAME timeslice. No Lo/Up suffix -- that marks
+# a paired bound, and this one has no partner (cf. eqTradeCapFlow).
+s.t.  eqStorageOutLevel{(st1, c, r, y, s) in mvStorageLevel}: sum{co in comm:((st1,co,r,y,s) in mvStorageOut)}((vStorageOut[st1,co,r,y,s]) / (pStorageOutEff[st1,co,r,y,s])) <=  vStorageLevel[st1,c,r,y,s];
 
-s.t.  eqStorageInpUp{(st1, c, r, y, s) in meqStorageInpUp}: vStorageInp[st1,c,r,y,s] <=  vStorageCap[st1,r,y]*pStorageCinpUp[st1,c,r,y,s]*prod{wth1 in weather:((wth1,st1) in mStorageWeatherCinpUp)}(pStorageWeatherCinpUp[wth1,st1]*pWeather[wth1,r,y,s]);
+s.t.  eqStorageInpUp{(st1, c, r, y, s) in meqStorageInpUp}: vStorageInp[st1,c,r,y,s] <=  (sum{FORIF: (st1,r,y) in mStorageInpCap} (vStorageInpCap[st1,r,y])+sum{FORIF: (st1,r,y) in mStorageNoInpCap} (pStorageInp2outUp[st1,r,y]*vStorageOutCap[st1,r,y]))*pStorageInpCap2act[st1]*pTimesliceShare[s]*pStorageCinpUp[st1,c,r,y,s]*prod{wth1 in weather:((wth1,st1) in mStorageWeatherCinpUp)}(pStorageWeatherCinpUp[wth1,st1]*pWeather[wth1,r,y,s]);
 
-s.t.  eqStorageInpLo{(st1, c, r, y, s) in meqStorageInpLo}: vStorageInp[st1,c,r,y,s]  >=  vStorageCap[st1,r,y]*pStorageCinpLo[st1,c,r,y,s]*prod{wth1 in weather:((wth1,st1) in mStorageWeatherCinpLo)}(pStorageWeatherCinpLo[wth1,st1]*pWeather[wth1,r,y,s]);
+s.t.  eqStorageInpLo{(st1, c, r, y, s) in meqStorageInpLo}: vStorageInp[st1,c,r,y,s]  >=  (sum{FORIF: (st1,r,y) in mStorageInpCap} (vStorageInpCap[st1,r,y])+sum{FORIF: (st1,r,y) in mStorageNoInpCap} (pStorageInp2outLo[st1,r,y]*vStorageOutCap[st1,r,y]))*pStorageInpCap2act[st1]*pTimesliceShare[s]*pStorageCinpLo[st1,c,r,y,s]*prod{wth1 in weather:((wth1,st1) in mStorageWeatherCinpLo)}(pStorageWeatherCinpLo[wth1,st1]*pWeather[wth1,r,y,s]);
 
-s.t.  eqStorageOutUp{(st1, c, r, y, s) in meqStorageOutUp}: vStorageOut[st1,c,r,y,s] <=  vStorageCap[st1,r,y]*pStorageCoutUp[st1,c,r,y,s]*prod{wth1 in weather:((wth1,st1) in mStorageWeatherCoutUp)}(pStorageWeatherCoutUp[wth1,st1]*pWeather[wth1,r,y,s]);
+s.t.  eqStorageOutUp{(st1, c, r, y, s) in meqStorageOutUp}: vStorageOut[st1,c,r,y,s] <=  vStorageOutCap[st1,r,y]*pStorageOutCap2act[st1]*pTimesliceShare[s]*pStorageCoutUp[st1,c,r,y,s]*prod{wth1 in weather:((wth1,st1) in mStorageWeatherCoutUp)}(pStorageWeatherCoutUp[wth1,st1]*pWeather[wth1,r,y,s]);
 
-s.t.  eqStorageOutLo{(st1, c, r, y, s) in meqStorageOutLo}: vStorageOut[st1,c,r,y,s]  >=  vStorageCap[st1,r,y]*pStorageCoutLo[st1,c,r,y,s]*prod{wth1 in weather:((wth1,st1) in mStorageWeatherCoutLo)}(pStorageWeatherCoutLo[wth1,st1]*pWeather[wth1,r,y,s]);
+s.t.  eqStorageOutLo{(st1, c, r, y, s) in meqStorageOutLo}: vStorageOut[st1,c,r,y,s]  >=  vStorageOutCap[st1,r,y]*pStorageOutCap2act[st1]*pTimesliceShare[s]*pStorageCoutLo[st1,c,r,y,s]*prod{wth1 in weather:((wth1,st1) in mStorageWeatherCoutLo)}(pStorageWeatherCoutLo[wth1,st1]*pWeather[wth1,r,y,s]);
 
-s.t.  eqStorageCap{(st1, r, y) in mStorageSpan}: vStorageCap[st1,r,y]  =  pStorageStock[st1,r,y]+sum{yp in year:((ordYear[y] >= ordYear[yp] and ((st1,r) in mStorageOlifeInf or ordYear[y]<pStorageOlife[st1,r]+ordYear[yp]) and (st1,r,yp) in mStorageNew))}(pPeriodLen[yp]*vStorageNewCap[st1,r,yp]);
+s.t.  eqStorageCap{(st1, r, y) in mStorageSpan}: vStorageOutCap[st1,r,y]  =  pStorageStock[st1,r,y]+sum{yp in year:((ordYear[y] >= ordYear[yp] and ((st1,r) in mStorageOlifeInf or ordYear[y]<pStorageOlife[st1,r]+ordYear[yp]) and (st1,r,yp) in mStorageNew))}(pPeriodLen[yp]*vStorageOutNewCap[st1,r,yp]);
 
-s.t.  eqStorageCapLo{(st1, r, y) in mStorageCapLo}: vStorageCap[st1,r,y]  >=  pStorageCapLo[st1,r,y];
+# [2c] The STORING side's own capacity, in ENERGY. It exists only where the
+# storing part carries data (mStorageStgCap); everywhere else the af bounds above
+# use `duration * vStorageOutCap` and this block emits nothing -- which is what
+# keeps a storage written the old way at its previous row and column count.
+# [2c] The CHARGING side's own capacity, in power, rated independently of the
+# discharger. Exists only where the charging part carries data; elsewhere the
+# input bounds inline `inp2out * vStorageOutCap`, which at the default of 1 is
+# the previous model.
+s.t.  eqStorageInpCap{(st1, r, y) in mStorageInpCap}: vStorageInpCap[st1,r,y]  =  pStorageInpStock[st1,r,y]+sum{yp in year:((ordYear[y] >= ordYear[yp] and ((st1,r) in mStorageOlifeInf or ordYear[y]<pStorageOlife[st1,r]+ordYear[yp]) and (st1,r,yp) in mStorageInpNew))}(pPeriodLen[yp]*vStorageInpNewCap[st1,r,yp]);
 
-s.t.  eqStorageCapUp{(st1, r, y) in mStorageCapUp}: vStorageCap[st1,r,y] <=  pStorageCapUp[st1,r,y];
+s.t.  eqStorageInpCapLo{(st1, r, y) in mStorageInpCapLo}: vStorageInpCap[st1,r,y]  >=  pStorageInpCapLo[st1,r,y];
 
-s.t.  eqStorageNewCapLo{(st1, r, y) in mStorageNewCapLo}: vStorageNewCap[st1,r,y]  >=  pStorageNewCapLo[st1,r,y]*pPeriodLen[y];
+s.t.  eqStorageInpCapUp{(st1, r, y) in mStorageInpCapUp}: vStorageInpCap[st1,r,y] <=  pStorageInpCapUp[st1,r,y];
 
-s.t.  eqStorageNewCapUp{(st1, r, y) in mStorageNewCapUp}: vStorageNewCap[st1,r,y] <=  pStorageNewCapUp[st1,r,y]*pPeriodLen[y];
+s.t.  eqStorageInpNewCapLo{(st1, r, y) in mStorageInpNewCapLo}: vStorageInpNewCap[st1,r,y]  >=  pStorageInpNewCapLo[st1,r,y]*pPeriodLen[y];
 
-s.t.  eqStorageInv{(st1, r, y) in mStorageNew}: vStorageInv[st1,r,y]  =  pStorageInvcost[st1,r,y]*vStorageNewCap[st1,r,y];
+s.t.  eqStorageInpNewCapUp{(st1, r, y) in mStorageInpNewCapUp}: vStorageInpNewCap[st1,r,y] <=  pStorageInpNewCapUp[st1,r,y]*pPeriodLen[y];
+
+# The inp2out LINK: charging capacity per unit of discharging capacity.
+s.t.  eqStorageInp2outLo{(st1, r, y) in mStorageInp2outLo}: vStorageInpCap[st1,r,y]  >=  pStorageInp2outLo[st1,r,y]*vStorageOutCap[st1,r,y];
+
+s.t.  eqStorageInp2outUp{(st1, r, y) in mStorageInp2outUp}: vStorageInpCap[st1,r,y] <=  pStorageInp2outUp[st1,r,y]*vStorageOutCap[st1,r,y];
+
+s.t.  eqStorageStgCap{(st1, r, y) in mStorageStgCap}: vStorageStgCap[st1,r,y]  =  pStorageStgStock[st1,r,y]+sum{yp in year:((ordYear[y] >= ordYear[yp] and ((st1,r) in mStorageOlifeInf or ordYear[y]<pStorageOlife[st1,r]+ordYear[yp]) and (st1,r,yp) in mStorageStgNew))}(pPeriodLen[yp]*vStorageStgNewCap[st1,r,yp]);
+
+s.t.  eqStorageStgCapLo{(st1, r, y) in mStorageStgCapLo}: vStorageStgCap[st1,r,y]  >=  pStorageStgCapLo[st1,r,y];
+
+s.t.  eqStorageStgCapUp{(st1, r, y) in mStorageStgCapUp}: vStorageStgCap[st1,r,y] <=  pStorageStgCapUp[st1,r,y];
+
+s.t.  eqStorageStgNewCapLo{(st1, r, y) in mStorageStgNewCapLo}: vStorageStgNewCap[st1,r,y]  >=  pStorageStgNewCapLo[st1,r,y]*pPeriodLen[y];
+
+s.t.  eqStorageStgNewCapUp{(st1, r, y) in mStorageStgNewCapUp}: vStorageStgNewCap[st1,r,y] <=  pStorageStgNewCapUp[st1,r,y]*pPeriodLen[y];
+
+# The duration LINK, in hours: energy capacity per unit of output (power)
+# capacity. `.fx` collapses these two rows onto each other and pins the ratio;
+# `.lo`/`.up` let the model choose it. Emitted only where vStorageStgCap exists.
+s.t.  eqStorageDurationLo{(st1, r, y) in mStorageDurationLo}: vStorageStgCap[st1,r,y]  >=  pStorageDurationLo[st1,r,y]*vStorageOutCap[st1,r,y];
+
+s.t.  eqStorageDurationUp{(st1, r, y) in mStorageDurationUp}: vStorageStgCap[st1,r,y] <=  pStorageDurationUp[st1,r,y]*vStorageOutCap[st1,r,y];
+
+s.t.  eqStorageCapLo{(st1, r, y) in mStorageCapLo}: vStorageOutCap[st1,r,y]  >=  pStorageCapLo[st1,r,y];
+
+s.t.  eqStorageCapUp{(st1, r, y) in mStorageCapUp}: vStorageOutCap[st1,r,y] <=  pStorageCapUp[st1,r,y];
+
+s.t.  eqStorageNewCapLo{(st1, r, y) in mStorageNewCapLo}: vStorageOutNewCap[st1,r,y]  >=  pStorageNewCapLo[st1,r,y]*pPeriodLen[y];
+
+s.t.  eqStorageNewCapUp{(st1, r, y) in mStorageNewCapUp}: vStorageOutNewCap[st1,r,y] <=  pStorageNewCapUp[st1,r,y]*pPeriodLen[y];
+
+s.t.  eqStorageInv{(st1, r, y) in mStorageNew}: vStorageInv[st1,r,y]  =  pStorageInvcost[st1,r,y]*vStorageOutNewCap[st1,r,y]+sum{FORIF: (st1,r,y) in mStorageStgNew} (pStorageStgInvcost[st1,r,y]*vStorageStgNewCap[st1,r,y])+sum{FORIF: (st1,r,y) in mStorageInpNew} (pStorageInpInvcost[st1,r,y]*vStorageInpNewCap[st1,r,y]);
 
 # [eac-fix] reverted to legacy vintaged new-capacity form (see eqTechEac).
-# OLD: s.t.  eqStorageEac{(st1, r, y) in mStorageEac}: vStorageEac[st1,r,y]  =  pStorageEac[st1,r,y]*vStorageCap[st1,r,y];
+# OLD: s.t.  eqStorageEac{(st1, r, y) in mStorageEac}: vStorageEac[st1,r,y]  =  pStorageEac[st1,r,y]*vStorageOutCap[st1,r,y];
 # [payback] see eqTechEac.
-s.t.  eqStorageEac{(st1, r, y) in mStorageEac}: vStorageEac[st1,r,y]  =  sum{yp in year:(((st1,r,yp) in mStorageNew and ordYear[y] >= ordYear[yp] and ((pStoragePayback[st1,r,yp] > 0 and ordYear[y]<pStoragePayback[st1,r,yp]+ordYear[yp]) or (pStoragePayback[st1,r,yp] <= 0 and ((st1,r) in mStorageOlifeInf or ordYear[y]<pStorageOlife[st1,r]+ordYear[yp]))) and pStorageInvcost[st1,r,yp] <> 0))}(pStorageEac[st1,r,yp]*vStorageNewCap[st1,r,yp]);
+# [eac-fix] the `pStorageInvcost <> 0` guard was REMOVED from the summation
+# condition below. It dropped the annuity entirely when a user supplied
+# `@invcost$eac` without `invcost` (pre-annuitised capex, e.g. a PyPSA import),
+# so the storage was built for FREE -- silently, with an OPTIMAL solve.
+# eqTechEac / eqTradeEac never carried it. pStorageEac defaults to 0, so a
+# vintage with no capital cost now contributes a zero-coefficient term instead
+# of being dropped from the sum.
+s.t.  eqStorageEac{(st1, r, y) in mStorageEac}: vStorageEac[st1,r,y]  =  sum{yp in year:(((st1,r,yp) in mStorageNew and ordYear[y] >= ordYear[yp] and ((pStoragePayback[st1,r,yp] > 0 and ordYear[y]<pStoragePayback[st1,r,yp]+ordYear[yp]) or (pStoragePayback[st1,r,yp] <= 0 and ((st1,r) in mStorageOlifeInf or ordYear[y]<pStorageOlife[st1,r]+ordYear[yp])))))}(pStorageEac[st1,r,yp]*vStorageOutNewCap[st1,r,yp]+sum{FORIF: (st1,r,yp) in mStorageStgNew} (pStorageStgEac[st1,r,yp]*vStorageStgNewCap[st1,r,yp])+sum{FORIF: (st1,r,yp) in mStorageInpNew} (pStorageInpEac[st1,r,yp]*vStorageInpNewCap[st1,r,yp]));
 
-s.t.  eqStorageFixom{(st1, r, y) in mStorageFixom}: vStorageFixom[st1,r,y]  =  pStorageFixom[st1,r,y]*vStorageCap[st1,r,y];
+s.t.  eqStorageFixom{(st1, r, y) in mStorageFixom}: vStorageFixom[st1,r,y]  =  pStorageFixom[st1,r,y]*vStorageOutCap[st1,r,y]+sum{FORIF: (st1,r,y) in mStorageStgFixom} (pStorageStgFixom[st1,r,y]*vStorageStgCap[st1,r,y])+sum{FORIF: (st1,r,y) in mStorageInpFixom} (pStorageInpFixom[st1,r,y]*vStorageInpCap[st1,r,y]);
 
-s.t.  eqStorageVarom{(st1, r, y) in mStorageVarom}: vStorageVarom[st1,r,y]  =  sum{c in comm:((st1,c) in mStorageComm)}(sum{s in timeslice:((c,s) in mCommTimeslice)}(pStorageCostInp[st1,r,y,s]*pTimesliceWeight[y,s]*vStorageInp[st1,c,r,y,s]+pStorageCostOut[st1,r,y,s]*pTimesliceWeight[y,s]*vStorageOut[st1,c,r,y,s]+pStorageCostStore[st1,r,y,s]*pTimesliceWeight[y,s]*vStorageStore[st1,c,r,y,s]));
+s.t.  eqStorageVarom{(st1, r, y) in mStorageVarom}: vStorageVarom[st1,r,y]  =  sum{c in comm:((st1,c) in mStorageInpComm)}(sum{s in timeslice:((c,s) in mCommTimeslice)}(pStorageCostInp[st1,r,y,s]*pTimesliceWeight[y,s]*vStorageInp[st1,c,r,y,s]))+sum{c in comm:((st1,c) in mStorageOutComm)}(sum{s in timeslice:((c,s) in mCommTimeslice)}(pStorageCostOut[st1,r,y,s]*pTimesliceWeight[y,s]*vStorageOut[st1,c,r,y,s]))+sum{c in comm:((st1,c) in mStorageStgComm)}(sum{s in timeslice:((c,s) in mCommTimeslice)}(pStorageCostStore[st1,r,y,s]*pTimesliceWeight[y,s]*vStorageLevel[st1,c,r,y,s]));
 
 s.t.  eqImportTot{(c, dst, y, s) in mImport}: vImportTot[c,dst,y,s]  =  sum{t1 in trade:((t1,c) in mTradeComm)}(sum{src in region:((t1,src,dst) in mTradeRoutes)}(sum{FORIF: (t1,c,src,dst,y,s) in mvTradeIr} ((pTradeIrEff[t1,src,dst,y,s]*vTradeIr[t1,c,src,dst,y,s]))))+sum{i in imp:((i,c) in mImpComm)}(sum{FORIF: (i,c,dst,y,s) in mImportRow} (vImportRow[i,c,dst,y,s]));
 
@@ -773,9 +882,9 @@ s.t.  eqTechOutTot{(c, r, y, s) in mTechOutTot}: vTechOutTot[c,r,y,s]  =  sum{t 
 
 # [agg-rewrite] eqTechOutRY/vTechOutRY retired (dead reporting)
 
-s.t.  eqStorageInpTot{(c, r, y, s) in mStorageInpTot}: vStorageInpTot[c,r,y,s]  =  sum{st1 in stg:((st1,c,r,y,s) in mvStorageStore)}(vStorageInp[st1,c,r,y,s])+sum{st1 in stg:((st1,c,r,y,s) in mvStorageAInp)}(vStorageAInp[st1,c,r,y,s]);
+s.t.  eqStorageInpTot{(c, r, y, s) in mStorageInpTot}: vStorageInpTot[c,r,y,s]  =  sum{st1 in stg:((st1,c,r,y,s) in mvStorageInp)}(vStorageInp[st1,c,r,y,s])+sum{st1 in stg:((st1,c,r,y,s) in mvStorageAInp)}(vStorageAInp[st1,c,r,y,s]);
 
-s.t.  eqStorageOutTot{(c, r, y, s) in mStorageOutTot}: vStorageOutTot[c,r,y,s]  =  sum{st1 in stg:((st1,c,r,y,s) in mvStorageStore)}(vStorageOut[st1,c,r,y,s])+sum{st1 in stg:((st1,c,r,y,s) in mvStorageAOut)}(vStorageAOut[st1,c,r,y,s]);
+s.t.  eqStorageOutTot{(c, r, y, s) in mStorageOutTot}: vStorageOutTot[c,r,y,s]  =  sum{st1 in stg:((st1,c,r,y,s) in mvStorageOut)}(vStorageOut[st1,c,r,y,s])+sum{st1 in stg:((st1,c,r,y,s) in mvStorageAOut)}(vStorageAOut[st1,c,r,y,s]);
 
 s.t.  eqDummyImportCost{(c, r, y) in mDummyImportCost}: vDummyImportCost[c,r,y]  =  sum{s in timeslice:((c,r,y,s) in mDummyImport)}(pTimesliceWeight[y,s]*pDummyImportCost[c,r,y,s]*sum{FORIF: (c,r,y,s) in mDummyImport} (vDummyImport[c,r,y,s]));
 
@@ -960,16 +1069,16 @@ for{(c, r, y) in mDummyExportCost : vDummyExportCost[c,r,y] <> 0} {
   printf "%s,%s,%s,%f\n", c,r,y,vDummyExportCost[c,r,y] >> "output/vDummyExportCost.csv";
 }
 printf "stg,comm,region,year,timeslice,value\n" > "output/vStorageInp.csv";
-for{(st1, c, r, y, s) in mvStorageStore : vStorageInp[st1,c,r,y,s] <> 0} {
+for{(st1, c, r, y, s) in mvStorageInp : vStorageInp[st1,c,r,y,s] <> 0} {
   printf "%s,%s,%s,%s,%s,%f\n", st1,c,r,y,s,vStorageInp[st1,c,r,y,s] >> "output/vStorageInp.csv";
 }
 printf "stg,comm,region,year,timeslice,value\n" > "output/vStorageOut.csv";
-for{(st1, c, r, y, s) in mvStorageStore : vStorageOut[st1,c,r,y,s] <> 0} {
+for{(st1, c, r, y, s) in mvStorageOut : vStorageOut[st1,c,r,y,s] <> 0} {
   printf "%s,%s,%s,%s,%s,%f\n", st1,c,r,y,s,vStorageOut[st1,c,r,y,s] >> "output/vStorageOut.csv";
 }
-printf "stg,comm,region,year,timeslice,value\n" > "output/vStorageStore.csv";
-for{(st1, c, r, y, s) in mvStorageStore : vStorageStore[st1,c,r,y,s] <> 0} {
-  printf "%s,%s,%s,%s,%s,%f\n", st1,c,r,y,s,vStorageStore[st1,c,r,y,s] >> "output/vStorageStore.csv";
+printf "stg,comm,region,year,timeslice,value\n" > "output/vStorageLevel.csv";
+for{(st1, c, r, y, s) in mvStorageLevel : vStorageLevel[st1,c,r,y,s] <> 0} {
+  printf "%s,%s,%s,%s,%s,%f\n", st1,c,r,y,s,vStorageLevel[st1,c,r,y,s] >> "output/vStorageLevel.csv";
 }
 printf "stg,region,year,value\n" > "output/vStorageInv.csv";
 for{(st1, r, y) in mStorageNew : vStorageInv[st1,r,y] <> 0} {
@@ -979,13 +1088,29 @@ printf "stg,region,year,value\n" > "output/vStorageEac.csv";
 for{(st1, r, y) in mStorageEac : vStorageEac[st1,r,y] <> 0} {
   printf "%s,%s,%s,%f\n", st1,r,y,vStorageEac[st1,r,y] >> "output/vStorageEac.csv";
 }
-printf "stg,region,year,value\n" > "output/vStorageCap.csv";
-for{(st1, r, y) in mStorageSpan : vStorageCap[st1,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", st1,r,y,vStorageCap[st1,r,y] >> "output/vStorageCap.csv";
+printf "stg,region,year,value\n" > "output/vStorageInpCap.csv";
+for{(st1, r, y) in mStorageInpCap : vStorageInpCap[st1,r,y] <> 0} {
+  printf "%s,%s,%s,%f\n", st1,r,y,vStorageInpCap[st1,r,y] >> "output/vStorageInpCap.csv";
 }
-printf "stg,region,year,value\n" > "output/vStorageNewCap.csv";
-for{(st1, r, y) in mStorageNew : vStorageNewCap[st1,r,y] <> 0} {
-  printf "%s,%s,%s,%f\n", st1,r,y,vStorageNewCap[st1,r,y] >> "output/vStorageNewCap.csv";
+printf "stg,region,year,value\n" > "output/vStorageInpNewCap.csv";
+for{(st1, r, y) in mStorageInpNew : vStorageInpNewCap[st1,r,y] <> 0} {
+  printf "%s,%s,%s,%f\n", st1,r,y,vStorageInpNewCap[st1,r,y] >> "output/vStorageInpNewCap.csv";
+}
+printf "stg,region,year,value\n" > "output/vStorageStgCap.csv";
+for{(st1, r, y) in mStorageStgCap : vStorageStgCap[st1,r,y] <> 0} {
+  printf "%s,%s,%s,%f\n", st1,r,y,vStorageStgCap[st1,r,y] >> "output/vStorageStgCap.csv";
+}
+printf "stg,region,year,value\n" > "output/vStorageStgNewCap.csv";
+for{(st1, r, y) in mStorageStgNew : vStorageStgNewCap[st1,r,y] <> 0} {
+  printf "%s,%s,%s,%f\n", st1,r,y,vStorageStgNewCap[st1,r,y] >> "output/vStorageStgNewCap.csv";
+}
+printf "stg,region,year,value\n" > "output/vStorageOutCap.csv";
+for{(st1, r, y) in mStorageSpan : vStorageOutCap[st1,r,y] <> 0} {
+  printf "%s,%s,%s,%f\n", st1,r,y,vStorageOutCap[st1,r,y] >> "output/vStorageOutCap.csv";
+}
+printf "stg,region,year,value\n" > "output/vStorageOutNewCap.csv";
+for{(st1, r, y) in mStorageNew : vStorageOutNewCap[st1,r,y] <> 0} {
+  printf "%s,%s,%s,%f\n", st1,r,y,vStorageOutNewCap[st1,r,y] >> "output/vStorageOutNewCap.csv";
 }
 printf "stg,region,year,value\n" > "output/vStorageFixom.csv";
 for{(st1, r, y) in mStorageFixom : vStorageFixom[st1,r,y] <> 0} {
@@ -1135,11 +1260,15 @@ printf "value\n" > "output/variable_list.csv";
     printf "vDummyExport\n" >> "output/variable_list.csv";
     printf "vStorageInp\n" >> "output/variable_list.csv";
     printf "vStorageOut\n" >> "output/variable_list.csv";
-    printf "vStorageStore\n" >> "output/variable_list.csv";
+    printf "vStorageLevel\n" >> "output/variable_list.csv";
     printf "vStorageInv\n" >> "output/variable_list.csv";
     printf "vStorageEac\n" >> "output/variable_list.csv";
-    printf "vStorageCap\n" >> "output/variable_list.csv";
-    printf "vStorageNewCap\n" >> "output/variable_list.csv";
+    printf "vStorageOutCap\n" >> "output/variable_list.csv";
+    printf "vStorageStgCap\n" >> "output/variable_list.csv";
+    printf "vStorageStgNewCap\n" >> "output/variable_list.csv";
+    printf "vStorageInpCap\n" >> "output/variable_list.csv";
+    printf "vStorageInpNewCap\n" >> "output/variable_list.csv";
+    printf "vStorageOutNewCap\n" >> "output/variable_list.csv";
     printf "vImportTot\n" >> "output/variable_list.csv";
     printf "vExportTot\n" >> "output/variable_list.csv";
     printf "vTradeIr\n" >> "output/variable_list.csv";

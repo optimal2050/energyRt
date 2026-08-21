@@ -21,7 +21,7 @@ getMix(
 
 \item{type}{character: \code{"generation"} (default -- output of \code{comm} by process,
 with storage-in and exports negative), \code{"capacity"} (\code{vTechCap} +
-\code{vStorageCap}), \code{"new_capacity"} (\code{vTechNewCap} + \code{vStorageNewCap}), or
+\code{vStorageOutCap}), \code{"new_capacity"} (\code{vTechNewCap} + \code{vStorageOutNewCap}), or
 \code{"fuel"} (technology fuel consumption \code{vTechInp} by input commodity).}
 
 \item{comm}{character, the balanced commodity for \code{"generation"}

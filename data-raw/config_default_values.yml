@@ -15,7 +15,7 @@ cap2act: 1.0
 cap2ainp: 0.0
 cap2aout: 0.0
 cap2cat: 1.0
-cap2stg: 1.0
+duration: 1.0
 card: 1.0
 cdst2ainp: 0.0
 cdst2aout: 0.0

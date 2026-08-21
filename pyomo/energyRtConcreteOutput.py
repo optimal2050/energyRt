@@ -799,7 +799,7 @@ f.close()
 flist.write("vStorageInp\n")
 f = open("output/vStorageInp.csv", "w")
 f.write("stg,comm,region,year,timeslice,value\n")
-for st1, c, r, y, s in mvStorageStore:
+for st1, c, r, y, s in mvStorageInp:
     if model.vStorageInp[(st1, c, r, y, s)].value != 0:
         f.write(
             str(st1)
@@ -819,7 +819,7 @@ f.close()
 flist.write("vStorageOut\n")
 f = open("output/vStorageOut.csv", "w")
 f.write("stg,comm,region,year,timeslice,value\n")
-for st1, c, r, y, s in mvStorageStore:
+for st1, c, r, y, s in mvStorageOut:
     if model.vStorageOut[(st1, c, r, y, s)].value != 0:
         f.write(
             str(st1)
@@ -836,11 +836,11 @@ for st1, c, r, y, s in mvStorageStore:
             + "\n"
         )
 f.close()
-flist.write("vStorageStore\n")
-f = open("output/vStorageStore.csv", "w")
+flist.write("vStorageLevel\n")
+f = open("output/vStorageLevel.csv", "w")
 f.write("stg,comm,region,year,timeslice,value\n")
-for st1, c, r, y, s in mvStorageStore:
-    if model.vStorageStore[(st1, c, r, y, s)].value != 0:
+for st1, c, r, y, s in mvStorageLevel:
+    if model.vStorageLevel[(st1, c, r, y, s)].value != 0:
         f.write(
             str(st1)
             + ","
@@ -852,7 +852,7 @@ for st1, c, r, y, s in mvStorageStore:
             + ","
             + str(s)
             + ","
-            + str(model.vStorageStore[(st1, c, r, y, s)].value)
+            + str(model.vStorageLevel[(st1, c, r, y, s)].value)
             + "\n"
         )
 f.close()
@@ -888,11 +888,15 @@ for st1, r, y in mStorageEac:
             + "\n"
         )
 f.close()
-flist.write("vStorageCap\n")
-f = open("output/vStorageCap.csv", "w")
+flist.write("vStorageOutCap\n")
+flist.write("vStorageStgCap\n")
+flist.write("vStorageStgNewCap\n")
+flist.write("vStorageInpCap\n")
+flist.write("vStorageInpNewCap\n")
+f = open("output/vStorageInpCap.csv", "w")
 f.write("stg,region,year,value\n")
-for st1, r, y in mStorageSpan:
-    if model.vStorageCap[(st1, r, y)].value != 0:
+for st1, r, y in mStorageInpCap:
+    if model.vStorageInpCap[(st1, r, y)].value != 0:
         f.write(
             str(st1)
             + ","
@@ -900,15 +904,14 @@ for st1, r, y in mStorageSpan:
             + ","
             + str(y)
             + ","
-            + str(model.vStorageCap[(st1, r, y)].value)
+            + str(model.vStorageInpCap[(st1, r, y)].value)
             + "\n"
         )
 f.close()
-flist.write("vStorageNewCap\n")
-f = open("output/vStorageNewCap.csv", "w")
+f = open("output/vStorageInpNewCap.csv", "w")
 f.write("stg,region,year,value\n")
-for st1, r, y in mStorageNew:
-    if model.vStorageNewCap[(st1, r, y)].value != 0:
+for st1, r, y in mStorageInpNew:
+    if model.vStorageInpNewCap[(st1, r, y)].value != 0:
         f.write(
             str(st1)
             + ","
@@ -916,7 +919,68 @@ for st1, r, y in mStorageNew:
             + ","
             + str(y)
             + ","
-            + str(model.vStorageNewCap[(st1, r, y)].value)
+            + str(model.vStorageInpNewCap[(st1, r, y)].value)
+            + "\n"
+        )
+f.close()
+f = open("output/vStorageStgCap.csv", "w")
+f.write("stg,region,year,value\n")
+for st1, r, y in mStorageStgCap:
+    if model.vStorageStgCap[(st1, r, y)].value != 0:
+        f.write(
+            str(st1)
+            + ","
+            + str(r)
+            + ","
+            + str(y)
+            + ","
+            + str(model.vStorageStgCap[(st1, r, y)].value)
+            + "\n"
+        )
+f.close()
+f = open("output/vStorageStgNewCap.csv", "w")
+f.write("stg,region,year,value\n")
+for st1, r, y in mStorageStgNew:
+    if model.vStorageStgNewCap[(st1, r, y)].value != 0:
+        f.write(
+            str(st1)
+            + ","
+            + str(r)
+            + ","
+            + str(y)
+            + ","
+            + str(model.vStorageStgNewCap[(st1, r, y)].value)
+            + "\n"
+        )
+f.close()
+f = open("output/vStorageOutCap.csv", "w")
+f.write("stg,region,year,value\n")
+for st1, r, y in mStorageSpan:
+    if model.vStorageOutCap[(st1, r, y)].value != 0:
+        f.write(
+            str(st1)
+            + ","
+            + str(r)
+            + ","
+            + str(y)
+            + ","
+            + str(model.vStorageOutCap[(st1, r, y)].value)
+            + "\n"
+        )
+f.close()
+flist.write("vStorageOutNewCap\n")
+f = open("output/vStorageOutNewCap.csv", "w")
+f.write("stg,region,year,value\n")
+for st1, r, y in mStorageNew:
+    if model.vStorageOutNewCap[(st1, r, y)].value != 0:
+        f.write(
+            str(st1)
+            + ","
+            + str(r)
+            + ","
+            + str(y)
+            + ","
+            + str(model.vStorageOutNewCap[(st1, r, y)].value)
             + "\n"
         )
 f.close()

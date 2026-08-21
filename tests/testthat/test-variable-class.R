@@ -172,7 +172,7 @@ test_that("a solved scenario fills its variables and getData reads them", {
 
   # A variable the solver skipped keeps its typed, empty skeleton -- so its
   # columns are known even with no rows, which a bare list could not express.
-  sk <- sol@modOut@variables$vStorageCap
+  sk <- sol@modOut@variables$vStorageOutCap
   expect_equal(nrow(get_data_slot(sk)), 0L)
   expect_identical(names(sk), c("stg", "region", "year", "value"))
 })

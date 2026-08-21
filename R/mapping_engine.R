@@ -927,19 +927,21 @@ recipe_value <- function(scen, names, fmp) {
   mTechRetUp    = list(domain = "mTechSpan", source = "pTechRet", types = "up",
                        gate = "optimizeRetirement"),
 
-  # C5 storage activity bounds (the storage balance map meqStorageStore is
-  # bespoke -- see `.build_meqStorageStore`).
-  meqStorageAfLo  = list(domain = "mvStorageStore", source = "pStorageAf",
+  # C5 storage activity bounds (the storage balance map meqStorageLevel is
+  # bespoke -- see `.build_meqStorageLevel`).
+  meqStorageAfLo  = list(domain = "mvStorageLevel", source = "pStorageAf",
                          types = "lo", drop = "lo"),
-  meqStorageAfUp  = list(domain = "mvStorageStore", source = "pStorageAf",
+  meqStorageAfUp  = list(domain = "mvStorageLevel", source = "pStorageAf",
                          types = "up", drop = "up", structural = TRUE),
-  meqStorageInpLo = list(domain = "mvStorageStore", source = "pStorageCinp",
+  # Flow bounds live on the FLOW's own domain, not the level's: the charging side
+  # may consume a different commodity from the one stored.
+  meqStorageInpLo = list(domain = "mvStorageInp", source = "pStorageCinp",
                          types = "lo", drop = "lo"),
-  meqStorageInpUp = list(domain = "mvStorageStore", source = "pStorageCinp",
+  meqStorageInpUp = list(domain = "mvStorageInp", source = "pStorageCinp",
                          types = "up", drop = "up"),
-  meqStorageOutLo = list(domain = "mvStorageStore", source = "pStorageCout",
+  meqStorageOutLo = list(domain = "mvStorageOut", source = "pStorageCout",
                          types = "lo", drop = "lo"),
-  meqStorageOutUp = list(domain = "mvStorageStore", source = "pStorageCout",
+  meqStorageOutUp = list(domain = "mvStorageOut", source = "pStorageCout",
                          types = "up", drop = "up"),
 
   # C6 storage capacity / retirement bounds.
@@ -951,6 +953,35 @@ recipe_value <- function(scen, names, fmp) {
                           types = "lo"),
   mStorageNewCapUp = list(domain = "mStorageNew",  source = "pStorageNewCap",
                           types = "up"),
+  # Storing-side bounds live on mStorageStgCap, not mStorageSpan: without data
+  # there is no vStorageStgCap to bound.
+  mStorageStgCapLo    = list(domain = "mStorageStgCap", source = "pStorageStgCap",
+                             types = "lo"),
+  mStorageStgCapUp    = list(domain = "mStorageStgCap", source = "pStorageStgCap",
+                             types = "up"),
+  mStorageStgNewCapLo = list(domain = "mStorageStgNew", source = "pStorageStgNewCap",
+                             types = "lo"),
+  mStorageStgNewCapUp = list(domain = "mStorageStgNew", source = "pStorageStgNewCap",
+                             types = "up"),
+  # The duration LINK is an equation only where both capacities are variables.
+  # Where the storing part has no data the ratio is inlined into the af bounds
+  # instead, so there is nothing to constrain and no row is emitted.
+  mStorageInpCapLo    = list(domain = "mStorageInpCap", source = "pStorageInpCap",
+                             types = "lo"),
+  mStorageInpCapUp    = list(domain = "mStorageInpCap", source = "pStorageInpCap",
+                             types = "up"),
+  mStorageInpNewCapLo = list(domain = "mStorageInpNew", source = "pStorageInpNewCap",
+                             types = "lo"),
+  mStorageInpNewCapUp = list(domain = "mStorageInpNew", source = "pStorageInpNewCap",
+                             types = "up"),
+  mStorageInp2outLo   = list(domain = "mStorageInpCap", source = "pStorageInp2out",
+                             types = "lo"),
+  mStorageInp2outUp   = list(domain = "mStorageInpCap", source = "pStorageInp2out",
+                             types = "up"),
+  mStorageDurationLo  = list(domain = "mStorageStgCap", source = "pStorageDuration",
+                             types = "lo"),
+  mStorageDurationUp  = list(domain = "mStorageStgCap", source = "pStorageDuration",
+                             types = "up"),
   mStorageRetLo    = list(domain = "mStorageSpan", source = "pStorageRet",
                           types = "lo"),
   mStorageRetUp    = list(domain = "mStorageSpan", source = "pStorageRet",
@@ -1061,26 +1092,101 @@ recipe_value <- function(scen, names, fmp) {
   .set_map(scen, name, df, fmp)
 }
 
-# meqStorageStore: storage-balance index. Each storing timeslice is paired with the
-# next timeslice (the inter-temporal storage link). Mirrors the legacy join in
-# obj2modInp.R: mvStorageStore.timeslice == mTimesliceNext.timeslicep, taking mTimesliceNext's
-# own timeslice as the "next" timeslice (renamed `timeslicep`).
-.build_meqStorageStore <- function(scen, fmp) {
-  name <- "meqStorageStore"
+# meqStorageLevel: storage-balance index. Each storing timeslice is paired with its
+# PRECEDING timeslice (the inter-temporal storage link). Mirrors the legacy join in
+# obj2modInp.R: mvStorageLevel.timeslice == mTimesliceNext.timeslicep, taking mTimesliceNext's
+# own timeslice as the preceding timeslice (renamed `timeslicep`).
+#
+# POLARITY WARNING. `timeslicep` means the NEXT timeslice in mTimesliceNext /
+# mTimesliceFYearNext (map_calendar.R:87-101) and the PREVIOUS one in this map -- the same
+# token with opposite meanings, two maps apart. The join below is therefore REVERSED
+# relative to `.build_ramp_maps()`, which joins forwards on `timeslice`: here we match each
+# storing timeslice against the row whose SUCCESSOR it is, so the row we pick up is its
+# predecessor. Copying the ramping join direction would run the storage balance backwards
+# in time -- and still solve.
+#
+# Which successor map applies depends on whether the storage cycles over the whole year
+# (`mTimesliceFYearNext`) or closes within its parent timeframe (`mTimesliceNext`).
+# `fullYear` is a per-storage flag (default TRUE, class-storage.R:217), so storages are
+# split accordingly -- the same treatment technology ramping gets in `.build_ramp_maps()`.
+#
+# The flag is read off the objects rather than from the `mStorageFullYear` map because that
+# builder returns early when no object sets it (map_calendar.R:139), which leaves NULL
+# ambiguous between "no storage is full-year" and "the map has not been built yet".
+#
+# [fullYear-fix] Before this, the parent-timeframe map was used unconditionally, so every
+# storage closed its cycle at each parent boundary -- a battery on an hourly calendar nested
+# under days could not carry energy from one day into the next, whatever @fullYear said, and
+# multi-day/seasonal storage was not representable. `mStorageFullYear` was built and declared
+# in all four backends but referenced by nothing. The archived GAMS template did honour it
+# (gams/.archive/energyRt - 202308.gms:1120-1121). The successor relation lives entirely in
+# this map, so restoring it needs no template change.
+.build_meqStorageLevel <- function(scen, fmp) {
+  name <- "meqStorageLevel"
   p <- scen@modInp@parameters[[name]]
   if (is.null(p)) return(scen)
-  store_par <- scen@modInp@parameters[["mvStorageStore"]]
-  next_par <- scen@modInp@parameters[["mTimesliceNext"]]
-  if (is.null(store_par) || is.null(next_par)) return(scen)
+  store_par <- scen@modInp@parameters[["mvStorageLevel"]]
+  if (is.null(store_par)) return(scen)
   store <- get_data_slot(store_par)
-  snext <- get_data_slot(next_par)
   if (is.null(store) || nrow(store) == 0) return(scen)
-  if (is.null(snext) || nrow(snext) == 0) return(scen)
   store <- as.data.frame(store)
-  snext <- as.data.frame(snext)
-  df <- store |>
-    dplyr::left_join(snext, by = c(timeslice = "timeslicep"), suffix = c(".x", ".y")) |>
-    dplyr::rename(timeslicep = "timeslice.y") |>
+
+  gdf <- function(nm) {
+    pp <- scen@modInp@parameters[[nm]]
+    if (is.null(pp)) return(NULL)
+    d <- get_data_slot(pp)
+    if (is.null(d) || nrow(d) == 0) return(NULL)
+    as.data.frame(d)
+  }
+  snext_pf <- gdf("mTimesliceNext")       # cycle closes within the parent timeframe
+  snext_fy <- gdf("mTimesliceFYearNext")  # cycle closes over the whole year
+  if (is.null(snext_pf) && is.null(snext_fy)) return(scen)
+
+  # Per-storage fullYear flag.
+  fy <- apply_to_scenario_data(
+    scen = scen, classes = "storage", as_list = TRUE,
+    func = function(obj) {
+      out <- list()
+      out[[obj@name]] <- data.frame(stg = obj@name,
+                                    fullYear = isTRUE(obj@fullYear),
+                                    stringsAsFactors = FALSE)
+      out
+    }
+  )
+  fy <- if (length(fy) == 0) NULL else dplyr::bind_rows(fy)
+  fy_stg <- if (is.null(fy)) character(0) else fy$stg[fy$fullYear]
+
+  # Fall back rather than drop. A storage missing from this map has NO balance equation,
+  # which leaves its level unconstrained by history -- free energy, reported OPTIMAL. Losing
+  # the year-wide cycle is wrong but bounded; losing the cycle altogether is not.
+  if (length(fy_stg) > 0 && is.null(snext_fy)) {
+    warning("mTimesliceFYearNext is empty; storage(s) ",
+            paste(utils::head(fy_stg, 5), collapse = ", "),
+            " requested `fullYear = TRUE` but will cycle within the parent timeframe.",
+            call. = FALSE)
+    fy_stg <- character(0)
+  }
+  if (length(fy_stg) < length(unique(store$stg)) && is.null(snext_pf)) {
+    warning("mTimesliceNext is empty; storage(s) with `fullYear = FALSE` will cycle over ",
+            "the full year instead.", call. = FALSE)
+    fy_stg <- unique(store$stg)
+  }
+
+  join_prev <- function(df, nextmap) {
+    if (is.null(nextmap) || nrow(df) == 0) return(NULL)
+    df |>
+      dplyr::left_join(nextmap, by = c(timeslice = "timeslicep"),
+                       suffix = c(".x", ".y")) |>
+      dplyr::rename(timeslicep = "timeslice.y")
+  }
+  fy_part <- if (length(fy_stg) > 0) {
+    join_prev(store[store$stg %in% fy_stg, , drop = FALSE], snext_fy)
+  } else NULL
+  pf_part <- join_prev(store[!(store$stg %in% fy_stg), , drop = FALSE], snext_pf)
+
+  res <- dplyr::bind_rows(fy_part, pf_part)
+  if (is.null(res) || nrow(res) == 0) return(scen)
+  df <- res |>
     dplyr::select(dplyr::any_of(p@dimSets)) |>
     dplyr::distinct()
   .set_map(scen, name, df, fmp)
@@ -1352,8 +1458,8 @@ recipe_constraint <- function(scen, names, fmp) {
   }
 
   # 2. Bespoke maps.
-  if ("meqStorageStore" %in% names) {
-    scen <- .build_meqStorageStore(scen, fmp)
+  if ("meqStorageLevel" %in% names) {
+    scen <- .build_meqStorageLevel(scen, fmp)
   }
   if ("meqTradeCapFlow" %in% names) {
     scen <- .build_meqTradeCapFlow(scen, fmp)
@@ -1371,7 +1477,7 @@ recipe_constraint <- function(scen, names, fmp) {
 
   # 3. Report any remaining maps not yet implemented in the engine.
   handled <- c(
-    names(.constraint_map_def), "meqStorageStore",
+    names(.constraint_map_def), "meqStorageLevel",
     "meqTradeCapFlow", .tech_group_maps, .ramp_maps,
     .constraint_maps_built_in_filter, .constraint_maps_built_elsewhere,
     .constraint_maps_empty_legacy

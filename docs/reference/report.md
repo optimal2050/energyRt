@@ -113,7 +113,10 @@ report(
 - image_file:
 
   Character. Optional path to a PNG/JPG image displayed in the
-  upper-right corner of the page. `NULL` skips the image.
+  upper-right corner of the page. Defaults to the object's own
+  `misc$image` when that names an existing local file (see
+  [`object_image`](https://energyRt.org/reference/object_image.md));
+  `NULL` with no `misc$image` skips the image.
 
 - file:
 

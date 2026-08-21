@@ -196,6 +196,11 @@ tsl2dtm <- function(tsl, format = tsl_guess_format(tsl), tmz = "UTC",
   # w <- NULL
   d <- NULL
   h <- NULL
+  # A format this function has no branch for (e.g. "h24", a season x hour
+  # calendar) used to fall through to `return(dtm)` with `dtm` never assigned,
+  # so the caller got "object 'dtm' not found" instead of an answer. NULL is the
+  # same "cannot date this" signal the two early returns below already use.
+  dtm <- NULL
   if (grepl("y", format)) y <- tsl2year(tsl)
   if (grepl("m", format)) m <- tsl2month(tsl)
   if (grepl("d", format)) d <- tsl2yday(tsl)

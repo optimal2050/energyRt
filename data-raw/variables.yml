@@ -55,19 +55,26 @@ vObjective:          {role: cost,     unit: currency}
 vOutTot:             {role: source,   unit: commodity}
 vStorageAInp:        {role: sink,     unit: commodity}
 vStorageAOut:        {role: source,   unit: commodity}
-vStorageCap:         {role: capacity, unit: capacity}
+vStorageOutCap:         {role: capacity, unit: capacity}
+# The storing side is ENERGY, not power: it is measured in the same unit as
+# vStorageLevel, which is why these two take `unit: commodity` while every
+# other storage capacity takes `unit: capacity`.
+vStorageStgCap:         {role: capacity, unit: commodity}
+vStorageStgNewCap:      {role: capacity, unit: commodity}
+vStorageInpCap:         {role: capacity, unit: capacity}
+vStorageInpNewCap:      {role: capacity, unit: capacity}
 vStorageEac:         {role: cost,     unit: currency}
 vStorageFixom:       {role: cost,     unit: currency}
 vStorageInp:         {role: sink,     unit: commodity}
 vStorageInpTot:      {role: sink,     unit: commodity}
 vStorageInv:         {role: cost,     unit: currency}
-vStorageNewCap:      {role: capacity, unit: capacity}
+vStorageOutNewCap:      {role: capacity, unit: capacity}
 vStorageOut:         {role: source,   unit: commodity}
 vStorageOutTot:      {role: source,   unit: commodity}
 # The storage LEVEL: a snapshot, not a flow. Summing it over timeslices is
 # meaningless, which is what `role: stock` encodes (it replaces the hard-coded
 # `.timeframe_state_vars` in get_data.R).
-vStorageStore:       {role: stock,    unit: commodity}
+vStorageLevel:       {role: stock,    unit: commodity}
 vStorageVarom:       {role: cost,     unit: currency}
 vSubsCost:           {role: cost,     unit: currency}
 vSupCost:            {role: cost,     unit: currency}

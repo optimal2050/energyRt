@@ -1,8 +1,8 @@
 Package: energyRt
 Type: Package
 Title: Energy Systems Modeling Toolbox
-Version: 0.80.3.9000
-Date: 2026-08-13
+Version: 0.85.0.9000
+Date: 2026-08-21
 Authors@R: 
   c(person(given = "Oleg", 
           family = "Lugovoy", 
@@ -82,6 +82,7 @@ Collate:
     'check_levels.R'
     'class-costs.R'
     'combine_vintages.R'
+    'commodity_properties.R'
     'config_file.R'
     'utils.R'
     'convert.R'
@@ -129,7 +130,9 @@ Collate:
     'read.R'
     'registry.R'
     'report.R'
+    'start_level.R'
     'start_msg.R'
+    'storage_duration.R'
     'techspec.R'
     'timeslices.R'
     'units.R'
@@ -138,6 +141,7 @@ Collate:
     'utopia_profiles.R'
     'variants.R'
     'vintage_lifespan.R'
+    'vre-data.R'
     'write.R'
     'write_gams.R'
     'write_glpk.R'

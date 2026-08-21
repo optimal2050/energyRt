@@ -24,6 +24,6 @@ Retrieve slot details in rd-format
 slotNames("technology")
 get_slot_doc("technology", "input") |> cat()
 get_slot_doc("technology", "capacity") |> cat()
-get_slot_doc("demand", "dem") |> cat()
+get_slot_doc("demand", "demand") |> cat()
 get_slot_doc("commodity", "agg") |> cat()
 }

@@ -31,15 +31,20 @@
   pTechCinp2use  = "mvTechInp",
   pTechUse2cact  = "mvTechOut",        # use->activity domain is the OUTPUT comm
   pTechCact2cout = "mvTechOut",
-  pStorageAf     = "mvStorageStore",
+  pStorageAf     = "mvStorageLevel",
   # combustion factor (defVal 1) is read only on the tech input-commodity set;
   # GAMS has no native default, so absent tuples read as 0 and zero out all
   # fuel-combustion emissions. Materialise 1.0 over mTechInpComm (explicit 0s,
   # e.g. non-combusting feedstock, are preserved by .densify_one).
   pTechEmisComm  = "mTechInpComm",
-  pStorageInpEff = "mvStorageStore",
-  pStorageOutEff = "mvStorageStore",
-  pStorageStgEff = "mvStorageStore",
+  # Each efficiency is read on the domain of the flow it scales, NOT the level's.
+  # `inpeff`/`outeff` are indexed by the INPUT / OUTPUT commodity (they are
+  # cross-commodity conversion factors once the roles differ), so densifying them
+  # over `mvStorageLevel` would materialise them against the STORED commodity and
+  # leave the real flow tuples absent -- reading as 0 and killing the flow.
+  pStorageInpEff = "mvStorageInp",
+  pStorageOutEff = "mvStorageOut",
+  pStorageStgEff = "mvStorageLevel",
   # weather coefficients: domain is the (empty-when-unused) weather link map, so a
   # model that does not use a given weather bound densifies to nothing.
   pTechWeatherAf      = "mTechWeatherAfUp",

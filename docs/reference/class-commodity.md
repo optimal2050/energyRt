@@ -84,8 +84,73 @@ commodities. The creation of a commodity object is done with the
   :   numeric. weight of the commodity in the aggregation, must be set
       for all aggregated commodities.
 
+- `property`:
+
+  data.frame. Physical properties of the commodity – heating values,
+  density, molar mass, composition. Reference data: it is never written
+  to the model input, but it gives `convert()` the physics needed to
+  move between measures of the same commodity (energy, mass, volume,
+  amount). A property whose unit is a ratio of two dimensions, such as
+  `lhv` in "GJ/t", acts as a conversion edge between them. Only
+  properties of the commodity itself belong here – anything whose
+  numerator is a *different* commodity, such as a CO2 emission factor,
+  belongs in `emis`. See
+  [`commodity_properties()`](https://energyRt.org/reference/commodity_properties.md)
+  for the recognised names.
+
+  property
+
+  :   character. Name of the property, e.g. "lhv", "hhv", "density",
+      "molar_mass", or "frac_C" for an element mass fraction.
+      Unrecognised names are kept with a warning.
+
+  value
+
+  :   numeric. The value of the property, in `unit`. Always the
+      deterministic point estimate – the mean, mode or best guess;
+      `min`, `max` and `sd` describe uncertainty around it and are never
+      read by `convert()`.
+
+  min
+
+  :   numeric. Lower bound of the value, for sensitivity analysis.
+      Optional.
+
+  max
+
+  :   numeric. Upper bound of the value, for sensitivity analysis.
+      Optional.
+
+  sd
+
+  :   numeric. Standard deviation of the value, for sensitivity
+      analysis. Optional.
+
+  dist
+
+  :   character. Distribution of the value for sensitivity analysis, one
+      of "point", "uniform", "triangular", "pert", "normal", or
+      "lognormal". Optional; "point" or NA means the value is treated as
+      certain. "uniform" reads `min` and `max`; "triangular" and "pert"
+      read `min`, `value` (the mode) and `max`; "normal" and "lognormal"
+      read `value` and `sd`.
+
+  unit
+
+  :   character. Unit of the property, e.g. "GJ/t", "t/m3", "g/mol",
+      "kg/kg". Applies to `value`, `min`, `max` and `sd` alike.
+
+  comment
+
+  :   character. Optional note on the source of the value or the
+      conditions it refers to, such as "bulk, as stockpiled" or "gas, 0
+      C, 1 atm".
+
 - `misc`:
 
   list. List of additional parameters that are not used in the model but
   can be used for reference or user-defined functions. For example,
-  links to the source of the commodity data, or other metadata.
+  links to the source of the commodity data, or other metadata. Two
+  names are conventional: `misc$image`, a path or URL to an illustration
+  used in reports, and `misc$icon`, a path or URL to a small icon. Both
+  can be set with the `image` and `icon` arguments of `newCommodity`.

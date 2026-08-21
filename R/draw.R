@@ -36,7 +36,7 @@ utils::globalVariables(
     "wacout.fx", "wacout.lo", "wacout.up", "wacact.fx", "wacact.lo",
     "wcinp.fx", "wcinp.lo", "wcinp.up", "wcout.fx", "wcout.lo", "wcout.up",
     "src", "dst", "region", "year", "timeslice",
-    "cap2act", "cap2stg", "cap2use",
+    "cap2act", "duration", "cap2use",
     "io", "na.omit", "share.lo", "share.up", "share.fx",
     "val_lbl", "where", "ginp2use", "desc", "x", "y"
   )
@@ -179,9 +179,9 @@ utils::globalVariables(
       ) |>
       summarise(
         val_lbl = make_label(
-          paste0(parameter, ":"),
+          paste0(unique(parameter), ":"),
           # in_brackets = prettyNum(value, digits = 2),
-          in_brackets = format_number(value),
+          in_brackets = format_value_range(value),
           two_lines = if_else(all(grepl("use2cact", parameter)), TRUE, FALSE),
           bracket_type = NULL
         ),
@@ -244,16 +244,18 @@ utils::globalVariables(
   }
 
   # parameter-labels for non-grouped commodities
+  # Group WITHOUT region/year/timeslice: one label per commodity+parameter, with
+  # the value collapsed to a number or a range. Grouping by region produced one
+  # label per region (36 for `E_CCGT` on the European model).
   ccom_par <- com_par |>
     filter(is.na(group)) |>
     group_by(across(
-      any_of(keys)
-      # any_of(c("io", "comm", "region", "year", "timeslice", "parameter"))
+      any_of(setdiff(keys, c("region", "year", "timeslice")))
     )) |>
     summarise(
       lab_par = make_label(
-        paste0(parameter, ":"),
-        in_brackets = value,
+        paste0(unique(parameter), ":"),
+        in_brackets = format_value_range(value),
         two_lines = FALSE
       ),
       .groups = "drop"
@@ -1142,66 +1144,93 @@ setMethod("draw", "technology", function(object, ...) {
 
 ## draw.storage ####
 draw.storage <- function(object, ...) {
+  # A storage has three commodity ROLES rather than one `@commodity`: what fills
+  # it, what it holds, and what it releases. For a battery all three are the same
+  # and the figure is unchanged; for a hydrogen store or a reservoir they differ,
+  # and each arrow now carries the commodity that actually flows along it.
+  .role <- function(r, fallback = TRUE) {
+    v <- tryCatch(as.character(methods::slot(object, r)$comm),
+                  error = function(e) character())
+    v <- unique(v[!is.na(v) & nzchar(v)])
+    if (length(v) || !fallback) return(v)
+    for (alt in c("storage", "input", "output")) {
+      v <- tryCatch(as.character(methods::slot(object, alt)$comm),
+                    error = function(e) character())
+      v <- unique(v[!is.na(v) & nzchar(v)])
+      if (length(v)) return(v)
+    }
+    character()
+  }
+  comm_inp <- .role("input")
+  comm_out <- .role("output")
+  comm_stg <- .role("storage")
+  comm_all <- unique(c(comm_inp, comm_stg, comm_out))
   keys <- c(
     "region", "year", "timeslice", "comm", "acomm",
     # "value",
     "lab_par", "lab_txt",
     "tech", "group", "weather", "unit", "io", "parameter"
   )
-  # browser()
-  comm <- data.frame(
-    comm = object@commodity
-    # unit = object@unit
-  ) |>
-    cross_join(object@seff) |>
-    pivot_longer(
-      cols = matches("eff"),
-      names_to = "parameter",
-      values_to = "value"
-    ) |>
-    group_by(comm, parameter) |>
-    summarize(
-      lab_par = make_label(
-        paste0(parameter, ":"),
-        in_brackets = value,
-        two_lines = FALSE,
-        bracket_type = "square"
-      ),
-      .groups = "drop"
-    ) |>
-    mutate(
-      group = NA_character_,
-      # io = "cinp",
-      # lab_txt = make_label(
-      #   comm,
-      #   in_brackets = object@unit,
-      #   two_lines = FALSE
-      # )
-      lab_txt = comm
-      # ioname = comm
+  # An arrow exists because the storage HAS that commodity role, not because it
+  # has an efficiency for it. This used to be one frame -- `comm_all` cross-joined
+  # with `@seff`, then split by whether the parameter name contained "inp"/"out"
+  # -- which got both halves wrong:
+  #
+  #   * `@seff` is optional and its prototype has zero rows, so `cross_join()`
+  #     collapsed the frame to nothing and a storage without efficiencies drew NO
+  #     arrows at all (the box and centre label still rendered, which is what made
+  #     it look like a layout bug rather than an empty edge table);
+  #   * splitting on the parameter name ignored the roles, so every commodity got
+  #     BOTH an input and an output arrow. Invisible for a battery, where all
+  #     three roles are the same commodity; wrong for a store that holds one thing
+  #     and exchanges another (H2 in, ELC out).
+  #
+  # So: the roles decide the rows, `@seff` only decorates them.
+  eff_label <- function(param) {
+    v <- object@seff[[param]] # NULL when the column is absent
+    v <- unique(v[!is.na(v)])
+    if (!length(v)) {
+      return(NA_character_)
+    }
+    make_label(
+      paste0(param, ":"),
+      in_brackets = v,
+      two_lines = FALSE,
+      bracket_type = "square"
     )
-  comm
-  com_txt <- comm |>
-    select(comm, lab_txt) |>
-    unique()
+  }
 
-  com_inp <- comm |>
-    filter(grepl("inp", parameter)) |>
-    mutate(iotype = "cinp") |>
-    rename(ioname = comm)
+  # `iotype`/`ioname`/`parameter`/`lab_par` are what `draw_process()` reads; see
+  # `single_com_inputs` in `draw.technology()`, which has the same shape.
+  role_rows <- function(comms, param, iotype) {
+    if (!length(comms)) {
+      return(NULL)
+    }
+    data.frame(
+      ioname = comms,
+      iotype = iotype,
+      parameter = param,
+      lab_par = eff_label(param),
+      lab_txt = comms,
+      group = NA_character_,
+      stringsAsFactors = FALSE
+    )
+  }
 
-  com_out <- comm |>
-    filter(grepl("out", parameter)) |>
-    mutate(iotype = "cout") |>
-    rename(ioname = comm)
+  com_inp <- role_rows(comm_inp, "inpeff", "cinp")
+  com_out <- role_rows(comm_out, "outeff", "cout")
 
-  # `cap2stg` is deliberately NOT carried here: `@cap2stg` is a data.frame, so
-  # `mutate(cap2stg = object@cap2stg)` only works while it has exactly one row,
+  # `duration` is deliberately NOT carried here: `@duration` is a data.frame, so
+  # `mutate(duration = object@duration)` only works while it has exactly one row,
   # and nothing downstream reads the column -- only `stg_par$lab_par` is used.
-  stg_par <- comm |>
-    filter(grepl("stg", parameter)) |>
-    mutate(iotype = "stg") |>
-    rename(ioname = comm)
+  stg_par <- role_rows(comm_stg, "stgeff", "stg")
+
+  # Names the arrow labels are looked up by (`arrow_labels`, below).
+  com_txt <- data.frame(
+    comm = comm_all,
+    lab_txt = comm_all,
+    stringsAsFactors = FALSE
+  )
 
   # aux
   aux <- object@aux |>
@@ -1279,7 +1308,7 @@ draw.storage <- function(object, ...) {
         lab_txt = if_else(
           is.na(NA),
           weather,
-          make_label(weather, in_brackets = object@commodity, two_lines = FALSE)
+          make_label(weather, in_brackets = comm_stg, two_lines = FALSE)
         ),
         lab_par = if_else(
           all(is.na(c(lab_waf, lab_wcinp))),
@@ -1304,16 +1333,31 @@ draw.storage <- function(object, ...) {
 
   # center labels
   #
-  # `@cap2stg` is a DATA FRAME (vintage, cluster, region, year, cap2stg) --
+  # `@duration` is a DATA FRAME (vintage, cluster, region, year, duration) --
   # not a scalar like technology's `@cap2act`. `paste0()` over it vectorises
-  # across COLUMNS, which printed one "cap2stg: NA" per key column and then
+  # across COLUMNS, which printed one "duration: NA" per key column and then
   # the real value. Take the value column, drop NAs, de-duplicate.
-  cap2stg_vals <- unique(object@cap2stg[["cap2stg"]])
-  cap2stg_vals <- cap2stg_vals[!is.na(cap2stg_vals)]
-  cap2stg_label <- if (length(cap2stg_vals) == 0L) NULL else
-    paste0("cap2stg: ", paste(cap2stg_vals, collapse = ", "))
+  # `duration` is a BOUND now, so the number lives in .fx (or the .lo/.up
+  # pair); the bare column is only the shorthand the constructor normalises
+  # away. Reading it alone printed nothing at all once that landed.
+  .dur_col <- function(k) {
+    v <- object@duration[[k]]
+    if (is.null(v)) numeric(0) else v[!is.na(v)]
+  }
+  duration_vals <- unique(c(.dur_col("duration.fx"), .dur_col("duration")))
+  if (length(duration_vals) == 0L) {
+    lo <- unique(.dur_col("duration.lo")); up <- unique(.dur_col("duration.up"))
+    if (length(lo) || length(up)) {
+      duration_vals <- paste0(
+        if (length(lo)) paste(lo, collapse = "/") else "0", "-",
+        if (length(up)) paste(up, collapse = "/") else "Inf")
+    }
+  }
+  duration_vals <- duration_vals[!is.na(duration_vals)]
+  duration_label <- if (length(duration_vals) == 0L) NULL else
+    paste0("duration: ", paste(duration_vals, collapse = ", "))
 
-  center_labels <- c(stg_par$lab_par, cap2stg_label)
+  center_labels <- c(stg_par$lab_par, duration_label)
   # drop empties, or an unset `lab_par` leaves a blank leading line
   center_labels <- center_labels[!is.na(center_labels) & nzchar(center_labels)]
   center_labels <- paste(center_labels, collapse = "\n")
@@ -1382,7 +1426,7 @@ draw.storage <- function(object, ...) {
 #'     # year = 2020,
 #'     fixom = 0.9 # fixed operation and maintenance cost
 #'   ),
-#'   cap2stg = 4, # four-hours of storage
+#'   duration = 4, # four-hours of storage
 #'   invcost = data.frame(
 #'     region = c("R1", NA), # region R1 and all other regions
 #'     invcost = c(1e3, 1.1e3) # investment cost in MUSD/GWh of 4-hour storage
@@ -1655,11 +1699,11 @@ draw.demand <- function(object, ...) {
 #'   desc = "Steel demand",
 #'   commodity = "STEEL",
 #'   unit = "Mt",
-#'   dem = data.frame(
+#'   demand = data.frame(
 #'     region = "UTOPIA", # NA for every region
 #'     year = c(2020, 2030, 2050),
 #'     timeslice = "ANNUAL",
-#'     dem = c(100, 200, 300)
+#'     demand = c(100, 200, 300)
 #'   ),
 #'   region = "UTOPIA", # optional, to narrow the specification of the demand
 #' )
@@ -3228,6 +3272,27 @@ shorten_string <- function(string, n, add_number = NULL) {
 #   scales::label_number(accuracy = accuracy)(x)
 # }
 
+
+# Collapse a parameter's values to ONE display string.
+#
+# A technology grouped by carrier spans many regions, so `@ceff` carries a row
+# per region and a naive label prints one entry per region -- 36 of them for
+# `E_CCGT` on the 41-node European model, which is unreadable and was never the
+# intent. Identical values collapse to a single number; genuinely differing ones
+# collapse to a `min-max` range, so the spread stays visible without the list.
+#
+# @param x numeric vector
+# @param accuracy passed to `format_number()`
+# @param tol values within this of each other count as identical
+# @return a length-1 character, or NA if nothing to show
+#' @keywords internal
+format_value_range <- function(x, accuracy = .01, tol = 1e-8) {
+  x <- suppressWarnings(as.numeric(x))
+  x <- x[!is.na(x) & !is.nan(x)]
+  if (!length(x)) return(NA_character_)
+  if (diff(range(x)) <= tol) return(as.character(format_number(x[1], accuracy)))
+  paste0(format_number(min(x), accuracy), "-", format_number(max(x), accuracy))
+}
 
 format_number <- function(x, accuracy = .01) {
   sapply(x, function(value) {

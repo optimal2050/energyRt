@@ -349,8 +349,8 @@ meqStorageOutUp:
   join_keys: []
   filter_by: []
   depends_on: []
-meqStorageStore:
-  name: meqStorageStore
+meqStorageLevel:
+  name: meqStorageLevel
   dims:
   - stg
   - comm
@@ -359,7 +359,7 @@ meqStorageStore:
   - timeslicep
   - timeslice
   gates_var: []
-  gates_eq: eqStorageStore
+  gates_eq: eqStorageLevel
   recipe: constraint
   source: constraint
   predicate: .na
@@ -1330,6 +1330,45 @@ mStorageComm:
   predicate: .na
   join_keys: []
   filter_by: []
+mStorageInpComm:
+  name: mStorageInpComm
+  dims:
+  - stg
+  - comm
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+mStorageOutComm:
+  name: mStorageOutComm
+  dims:
+  - stg
+  - comm
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+mStorageStgComm:
+  name: mStorageStgComm
+  dims:
+  - stg
+  - comm
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
   depends_on: []
 mStorageCout2AInp:
   name: mStorageCout2AInp
@@ -1376,6 +1415,318 @@ mStorageEac:
   gates_var: vStorageEac
   gates_eq: eqStorageEac
   recipe: lifespan
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageInpCap:
+  name: mStorageInpCap
+  dims:
+  - stg
+  - region
+  - year
+  gates_var:
+  - vStorageInpCap
+  gates_eq: eqStorageInpCap
+  recipe: value
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageNoInpCap:
+  name: mStorageNoInpCap
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: []
+  gates_eq: []
+  recipe: value
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageInpNew:
+  name: mStorageInpNew
+  dims:
+  - stg
+  - region
+  - year
+  gates_var:
+  - vStorageInpNewCap
+  gates_eq: []
+  recipe: value
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageInpCapLo:
+  name: mStorageInpCapLo
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: []
+  gates_eq: eqStorageInpCapLo
+  recipe: constraint
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageInpCapUp:
+  name: mStorageInpCapUp
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: []
+  gates_eq: eqStorageInpCapUp
+  recipe: constraint
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageInpNewCapLo:
+  name: mStorageInpNewCapLo
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: []
+  gates_eq: eqStorageInpNewCapLo
+  recipe: constraint
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageInpNewCapUp:
+  name: mStorageInpNewCapUp
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: []
+  gates_eq: eqStorageInpNewCapUp
+  recipe: constraint
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageInpFixom:
+  name: mStorageInpFixom
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: []
+  gates_eq: []
+  recipe: value
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageInpEac:
+  name: mStorageInpEac
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: []
+  gates_eq: []
+  recipe: value
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageInp2outLo:
+  name: mStorageInp2outLo
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: []
+  gates_eq: eqStorageInp2outLo
+  recipe: constraint
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageInp2outUp:
+  name: mStorageInp2outUp
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: []
+  gates_eq: eqStorageInp2outUp
+  recipe: constraint
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageStgCap:
+  name: mStorageStgCap
+  dims:
+  - stg
+  - region
+  - year
+  gates_var:
+  - vStorageStgCap
+  gates_eq: eqStorageStgCap
+  recipe: value
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageNoStgCap:
+  name: mStorageNoStgCap
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: []
+  gates_eq: []
+  recipe: value
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageStgNew:
+  name: mStorageStgNew
+  dims:
+  - stg
+  - region
+  - year
+  gates_var:
+  - vStorageStgNewCap
+  gates_eq: []
+  recipe: value
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageStgCapLo:
+  name: mStorageStgCapLo
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: []
+  gates_eq: eqStorageStgCapLo
+  recipe: constraint
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageStgCapUp:
+  name: mStorageStgCapUp
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: []
+  gates_eq: eqStorageStgCapUp
+  recipe: constraint
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageStgNewCapLo:
+  name: mStorageStgNewCapLo
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: []
+  gates_eq: eqStorageStgNewCapLo
+  recipe: constraint
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageStgNewCapUp:
+  name: mStorageStgNewCapUp
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: []
+  gates_eq: eqStorageStgNewCapUp
+  recipe: constraint
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageStgFixom:
+  name: mStorageStgFixom
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: []
+  gates_eq: []
+  recipe: value
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageStgEac:
+  name: mStorageStgEac
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: []
+  gates_eq: []
+  recipe: value
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageDurationLo:
+  name: mStorageDurationLo
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: []
+  gates_eq: eqStorageDurationLo
+  recipe: constraint
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageDurationUp:
+  name: mStorageDurationUp
+  dims:
+  - stg
+  - region
+  - year
+  gates_var: []
+  gates_eq: eqStorageDurationUp
+  recipe: constraint
   source: derived
   predicate: .na
   join_keys: []
@@ -3236,8 +3587,25 @@ mvStorageAOut:
   filter_by:
   - mCommReg
   depends_on: []
-mvStorageStore:
-  name: mvStorageStore
+mvStorageLevel:
+  name: mvStorageLevel
+  dims:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+  gates_var:
+  - vStorageLevel
+  gates_eq: eqStorageOutLevel
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+mvStorageInp:
+  name: mvStorageInp
   dims:
   - stg
   - comm
@@ -3246,9 +3614,24 @@ mvStorageStore:
   - timeslice
   gates_var:
   - vStorageInp
+  gates_eq: []
+  recipe: filter
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by:
+  - mCommReg
+mvStorageOut:
+  name: mvStorageOut
+  dims:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+  gates_var:
   - vStorageOut
-  - vStorageStore
-  gates_eq: eqStorageClear
+  gates_eq: []
   recipe: filter
   source: derived
   predicate: .na

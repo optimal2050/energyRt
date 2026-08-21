@@ -308,8 +308,13 @@ tech_spec_issues <- function(spec) {
   if (is.null(rows) || length(rows) == 0) return(NULL)
   used <- unique(unlist(lapply(rows, names)))
   used <- cols[cols %in% used]
+  # Dimension/label columns the slot prototypes want as character. NB
+  # `combustion` is NOT one of them: it is a numeric share (0-1) on @input, and
+  # listing it here coerced it to "0", so any technology setting it -- the
+  # INFR_* refuelling stations, for one -- wrote a valid spec that then failed
+  # to read back with "expecting numeric".
   chr_cols <- c("vintage", "cluster", "region", "timeslice", "comm",
-                "acomm", "group", "unit", "desc", "combustion", "weather")
+                "acomm", "group", "unit", "desc", "weather")
   out <- lapply(used, function(cc) {
     vals <- lapply(rows, function(r) {
       v <- r[[cc]]

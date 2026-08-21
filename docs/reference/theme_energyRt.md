@@ -1,7 +1,8 @@
 # energyRt's default ggplot theme
 
 A thin wrapper around `theme_energyRt()` giving every energyRt figure
-one base size and look. Package plots call it instead of `theme_bw()`
+one base size and look. Package plots call it instead of
+[`theme_bw()`](https://ggplot2.tidyverse.org/reference/ggtheme.html)
 directly, so restyling them is a one-line change here rather than an
 edit to every plotting function.
 

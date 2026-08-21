@@ -12,8 +12,10 @@
 - [energyRt model framework](https://energyRt.org/articles/model.md):
 - [Development Status and
   Roadmap](https://energyRt.org/articles/roadmap.md):
+- [Storage](https://energyRt.org/articles/storage.md):
 - [Time resolution: calendars and
   timeslices](https://energyRt.org/articles/time-resolution.md):
+- [Units](https://energyRt.org/articles/units.md):
 - [Energy System Modeling with
   R](https://energyRt.org/articles/use-R-2026.md):
 - [UTOPIA I: building the

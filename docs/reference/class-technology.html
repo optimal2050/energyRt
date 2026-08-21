@@ -23,7 +23,7 @@ shocks (weather factors)."><meta property="og:image" content="https://energyRt.o
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.80.3.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.85.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -40,7 +40,9 @@ shocks (weather factors)."><meta property="og:image" content="https://energyRt.o
   <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials"><li><a class="dropdown-item" href="../articles/install.html">Installation</a></li>
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
+    <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
@@ -586,7 +588,7 @@ shocks (weather factors).</p>
 
 
 <dt><code>fullYear</code></dt>
-<dd><p>logical. Incidates if the technology is operating on a full-year basis. Used in storages. currently ignored for technologies.</p></dd>
+<dd><p>logical. Indicates if the technology operates on a full-year basis, i.e. where its timeslice cycle closes. Currently it affects RAMPING only (<code>ramp</code> slot): with TRUE (default) the preceding timeslice of the first timeslice of a group is the last timeslice of the previous group; with FALSE each parent timeframe is an independent loop. A technology without ramping constraints is unaffected. See the <code>storage</code> class, where the same flag governs the state-of-charge balance.</p></dd>
 
 
 <dt><code>timeframe</code></dt>
@@ -598,7 +600,7 @@ shocks (weather factors).</p>
 
 
 <dt><code>misc</code></dt>
-<dd><p>list. List of additional parameters that are not used in the model but can be used for reference or user-defined functions. For example, links to the source of the technology data, or other metadata.</p></dd>
+<dd><p>list. List of additional parameters that are not used in the model but can be used for reference or user-defined functions. For example, links to the source of the technology data, or other metadata. Two names are conventional: <code>misc$image</code>, a path or URL to an illustration used in reports (the <code>image</code> scalar of a techspec YAML file lands here), and <code>misc$icon</code>, a path or URL to a small icon.</p></dd>
 
 
 </dl></div>

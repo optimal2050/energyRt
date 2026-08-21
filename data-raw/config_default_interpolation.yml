@@ -17,7 +17,7 @@ cap2act: back.inter.forth
 cap2ainp: back.inter.forth
 cap2aout: back.inter.forth
 cap2cat: back.inter.forth
-cap2stg: back.inter.forth
+duration: back.inter.forth
 card: back.inter.forth
 cdst2ainp: back.inter.forth
 cdst2aout: back.inter.forth

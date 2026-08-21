@@ -227,13 +227,13 @@ shocks (weather factors).
 
 \item{\code{optimizeRetirement}}{logical. Incidates if the retirement of the technology should be optimized. Also requires the same parameter in the \code{model} or \code{scenario} class to be set to TRUE to be effective.}
 
-\item{\code{fullYear}}{logical. Incidates if the technology is operating on a full-year basis. Used in storages. currently ignored for technologies.}
+\item{\code{fullYear}}{logical. Indicates if the technology operates on a full-year basis, i.e. where its timeslice cycle closes. Currently it affects RAMPING only (\code{ramp} slot): with TRUE (default) the preceding timeslice of the first timeslice of a group is the last timeslice of the previous group; with FALSE each parent timeframe is an independent loop. A technology without ramping constraints is unaffected. See the \code{storage} class, where the same flag governs the state-of-charge balance.}
 
 \item{\code{timeframe}}{character. Name of timeframe level the technology is operating. By default, the lowest level of timeframe of commodities used in the technology is applied.}
 
 \item{\code{region}}{character. Vector of regions where the technology exists or can be installed. Optional. If not specified, the technology is applied to all regions. If specified, must include all regions used in other slots.}
 
-\item{\code{misc}}{list. List of additional parameters that are not used in the model but can be used for reference or user-defined functions. For example, links to the source of the technology data, or other metadata.}
+\item{\code{misc}}{list. List of additional parameters that are not used in the model but can be used for reference or user-defined functions. For example, links to the source of the technology data, or other metadata. Two names are conventional: \code{misc$image}, a path or URL to an illustration used in reports (the \code{image} scalar of a techspec YAML file lands here), and \code{misc$icon}, a path or URL to a small icon.}
 }}
 
 \concept{technology process class}

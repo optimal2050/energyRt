@@ -12,10 +12,17 @@ plot_weather(
   palette = "D",
   datetime = FALSE,
   angle = 45,
+  region = NULL,
   ...
 )
 
-\method{autoplot}{weather}(object, style = c("heatmap", "line", "area"), calendar = NULL, ...)
+\method{autoplot}{weather}(
+  object,
+  style = c("heatmap", "line", "area"),
+  calendar = NULL,
+  region = NULL,
+  ...
+)
 }
 \arguments{
 \item{object}{A \code{weather} object.}
@@ -37,6 +44,12 @@ the categorical axis is kept (with a warning).}
 
 \item{angle}{Rotation (degrees) for the x-axis tick labels; overlapping labels
 are dropped so dense sub-annual axes stay legible. Default \code{45}; \code{0} = flat.}
+
+\item{region}{Which regions to draw. \code{NULL} (default) draws them all. A
+character vector names them; a single number takes that many, in the order
+they appear. Useful on converted continental models, where a weather factor
+can carry dozens of regions and faceting on all of them leaves the panels
+unreadable.}
 
 \item{...}{Reserved for future use.}
 }

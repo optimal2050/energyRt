@@ -523,7 +523,10 @@ setMethod("levcost", "scenario", function(object, comm, name, ...) {
 # Fuel cost of a process in a solved scenario: sum over inputs of
 # vTechInp[tech, comm] x mean supply price of that commodity, by year.
 .levcost_scenario_fuel <- function(scen, name) {
-  inp <- tryCatch(getData(scen, "vTechInp", tech = name, merge = TRUE),
+  # `timeframe = "lowest"` is pinned, not inherited: levcost wants ANNUAL totals,
+  # and the getData() default is now "highest" (native resolution).
+  inp <- tryCatch(getData(scen, "vTechInp", tech = name, merge = TRUE,
+                          timeframe = "lowest"),
                   error = function(e) NULL)
   if (is.null(inp) || !nrow(inp)) return(setNames(numeric(0), character(0)))
   sups <- tryCatch(getObjects(scen@model, "supply"), error = function(e) list())
@@ -554,7 +557,8 @@ setMethod("levcost", "scenario", function(object, comm, name, ...) {
       !identical(scen@modOut@stage, "solved")) {
     message("levcost(): the scenario is not solved -- solve it first."); return(invisible(NULL))
   }
-  out_all <- tryCatch(getData(scen, "vTechOut", tech = name, merge = TRUE),
+  out_all <- tryCatch(getData(scen, "vTechOut", tech = name, merge = TRUE,
+                              timeframe = "lowest"),
                       error = function(e) NULL)
   if (is.null(out_all) || !nrow(out_all)) {
     message("levcost(): process '", name, "' has no output in the solved scenario."); return(invisible(NULL))
@@ -570,7 +574,8 @@ setMethod("levcost", "scenario", function(object, comm, name, ...) {
     a <- aggregate(df$value, list(year = as.integer(df$year)), sum, na.rm = TRUE)
     setNames(a$x, as.character(a$year))
   }
-  gy <- function(v) by_year(tryCatch(getData(scen, v, tech = name, merge = TRUE),
+  gy <- function(v) by_year(tryCatch(getData(scen, v, tech = name, merge = TRUE,
+                                             timeframe = "lowest"),
                                      error = function(e) NULL))
   eac <- gy("vTechEac"); fixom <- gy("vTechFixom"); varom <- gy("vTechVarom")
   fuel <- .levcost_scenario_fuel(scen, name)
@@ -949,7 +954,8 @@ levcost_chain_ <- function(
 
   # ── 12. Extract results ───────────────────────────────────────────────────
   sfget <- function(v) tryCatch({
-    d <- getData(scen, name = v, merge = TRUE, drop.zeros = FALSE)
+    d <- getData(scen, name = v, merge = TRUE, drop.zeros = FALSE,
+                 timeframe = "lowest")   # annual totals; see .levcost_scenario_fuel
     if (is.null(d) || nrow(d) == 0) return(NULL)
     as.data.frame(d)
   }, error = function(e) NULL)
@@ -1874,7 +1880,8 @@ levcost_technology_ <- function(
                                reg_filter = NULL, tech_label = tech_name,
                                region_label = region) {
     sfget <- function(v) tryCatch({
-      d <- getData(sc, name = v, merge = TRUE, drop.zeros = FALSE)
+      d <- getData(sc, name = v, merge = TRUE, drop.zeros = FALSE,
+                   timeframe = "lowest")   # annual totals; see .levcost_scenario_fuel
       if (is.null(d) || nrow(d) == 0) return(NULL)
       d <- as.data.frame(d)
       if (!is.null(reg_filter) && "region" %in% names(d)) {
@@ -2384,7 +2391,8 @@ levcost_technology_ <- function(
     if (length(out_comms) == 2) {
       c1 <- out_comms[1]; c2 <- out_comms[2]
       sfget_fr <- function(sc, v) tryCatch({
-        d <- getData(sc, name = v, merge = TRUE, drop.zeros = FALSE)
+        d <- getData(sc, name = v, merge = TRUE, drop.zeros = FALSE,
+                   timeframe = "lowest")   # annual totals; see .levcost_scenario_fuel
         if (is.null(d) || nrow(d) == 0) return(NULL); as.data.frame(d)
       }, error = function(e) NULL)
 

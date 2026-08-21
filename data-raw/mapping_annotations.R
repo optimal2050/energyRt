@@ -69,7 +69,7 @@
     # activity / flow
     "mvTechAct", "mvTechInp", "mvTechOut", "mvTechAInp", "mvTechAOut",
     "mSupAva", "mSupAvaUp", "mvDemInp",
-    "mvStorageStore", "mvStorageAInp", "mvStorageAOut",
+    "mvStorageLevel", "mvStorageAInp", "mvStorageAOut",
     "mvTradeIr", "mTradeIr", "mImport", "mExport",
     "mImportRow", "mExportRow", "mImportRowUp", "mExportRowUp",
     "mDummyImport", "mDummyExport", "mEmsFuelTot", "mAggOut",
@@ -95,7 +95,7 @@
     # meq* (all except the lifespan-generated meqTechRetiredNewCap)
     "meqBalFx", "meqBalLo", "meqBalUp", "meqExportRowLo", "meqImportRowLo",
     "meqLECActivity", "meqStorageAfLo", "meqStorageAfUp", "meqStorageInpLo",
-    "meqStorageInpUp", "meqStorageOutLo", "meqStorageOutUp", "meqStorageStore",
+    "meqStorageInpUp", "meqStorageOutLo", "meqStorageOutUp", "meqStorageLevel",
     "meqSupAvaLo", "meqSupReserveLo", "meqTechActGrp", "meqTechActSng",
     "meqTechAfcInpLo", "meqTechAfcInpUp", "meqTechAfcOutLo", "meqTechAfcOutUp",
     "meqTechAfLo", "meqTechAfsLo", "meqTechAfsUp", "meqTechAfUp",

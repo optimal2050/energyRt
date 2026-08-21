@@ -787,8 +787,14 @@ costs, and exogenous shocks (weather factors).
 
 - `fullYear`:
 
-  logical. Incidates if the technology is operating on a full-year
-  basis. Used in storages. currently ignored for technologies.
+  logical. Indicates if the technology operates on a full-year basis,
+  i.e. where its timeslice cycle closes. Currently it affects RAMPING
+  only (`ramp` slot): with TRUE (default) the preceding timeslice of the
+  first timeslice of a group is the last timeslice of the previous
+  group; with FALSE each parent timeframe is an independent loop. A
+  technology without ramping constraints is unaffected. See the
+  `storage` class, where the same flag governs the state-of-charge
+  balance.
 
 - `timeframe`:
 
@@ -807,4 +813,7 @@ costs, and exogenous shocks (weather factors).
 
   list. List of additional parameters that are not used in the model but
   can be used for reference or user-defined functions. For example,
-  links to the source of the technology data, or other metadata.
+  links to the source of the technology data, or other metadata. Two
+  names are conventional: `misc$image`, a path or URL to an illustration
+  used in reports (the `image` scalar of a techspec YAML file lands
+  here), and `misc$icon`, a path or URL to a small icon.

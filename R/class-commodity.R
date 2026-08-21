@@ -18,6 +18,7 @@
 #' @slot unit `r get_slot_doc("commodity", "unit")`
 #' @slot emis `r get_slot_doc("commodity", "emis")`
 #' @slot agg `r get_slot_doc("commodity", "agg")`
+#' @slot property `r get_slot_doc("commodity", "property")`
 #' @slot misc `r get_slot_doc("commodity", "misc")`
 #'
 #' @rdname class-commodity
@@ -34,6 +35,7 @@ setClass("commodity",
     unit = "character",
     emis = "data.frame", # Emission factors
     agg = "data.frame", # Aggregation parameter
+    property = "data.frame", # Physical properties
     misc = "list"
   ),
   prototype(
@@ -53,6 +55,17 @@ setClass("commodity",
       comm = character(),
       unit = character(),
       emis = numeric(),
+      stringsAsFactors = FALSE
+    ),
+    property = data.frame(
+      property = character(),
+      value = numeric(),
+      min = numeric(),
+      max = numeric(),
+      sd = numeric(),
+      dist = character(),
+      unit = character(),
+      comment = character(),
       stringsAsFactors = FALSE
     ),
     misc = list()
@@ -75,7 +88,12 @@ setMethod("initialize", "commodity", function(.Object, ...) {
 #' @param unit `r get_slot_doc("commodity", "unit")`
 #' @param agg `r get_slot_doc("commodity", "agg")`
 #' @param emis `r get_slot_doc("commodity", "emis")`
+#' @param property `r get_slot_doc("commodity", "property")`
 #' @param misc `r get_slot_doc("commodity", "misc")`
+#' @param image character, optional path or URL to an illustration of the
+#'   commodity, used in reports. Stored in `misc$image`.
+#' @param icon character, optional path or URL to a small icon for the
+#'   commodity. Stored in `misc$icon`.
 #'
 #' @return commodity object
 #' @export
@@ -85,7 +103,19 @@ setMethod("initialize", "commodity", function(.Object, ...) {
 #' @family commodity
 #'
 #' @examples
-#' newCommodity(name = "ELC", desc = "Electricity")
+#' newCommodity(name = "ELC", desc = "Electricity", unit = "GWh")
+#'
+#' # physical properties give `convert()` the physics to move between measures
+#' newCommodity(
+#'   name = "COA", desc = "Steam coal", unit = "PJ",
+#'   property = data.frame(
+#'     property = c("lhv", "density"),
+#'     value = c(25.8, 0.85),
+#'     unit = c("GJ/t", "t/m3"),
+#'     comment = c("IEA average, other bituminous", "bulk, as stockpiled")
+#'   ),
+#'   emis = data.frame(comm = "CO2", unit = "Mt", emis = 0.0946)
+#' )
 newCommodity <- function(
     name = "",
     desc = "",
@@ -95,8 +125,14 @@ newCommodity <- function(
     unit = character(),
     agg = data.frame(),
     emis = data.frame(),
-    misc = list()) {
-  .data2slots(
+    property = data.frame(),
+    misc = list(),
+    image = NULL,
+    icon = NULL) {
+  # `image`/`icon` are conventions on `misc`, not slots of their own, so they are
+  # folded in here -- `.data2slots()` would reject them as unknown slot names.
+  misc <- .add_misc_image(misc, image = image, icon = icon)
+  obj <- .data2slots(
     "commodity",
     name,
     desc = desc,
@@ -106,8 +142,13 @@ newCommodity <- function(
     unit = unit,
     agg = agg,
     emis = emis,
+    property = property,
     misc = misc
   )
+  # after `.data2slots()`, so that a malformed table fails on its column names
+  # first and the checks below see a normalised, fully-columned table
+  .check_commodity_property(obj@property, name = obj@name)
+  obj
 }
 
 
@@ -116,5 +157,19 @@ newCommodity <- function(
 #' @export
 setMethod("update", signature(object = "commodity"), function(object, ...) {
   # update.supply <- function(obj, ...) {
-  .data2slots("commodity", object, ...)
+  arg <- list(...)
+  # `image`/`icon` are `misc` conventions, not slots -- fold them in, merging
+  # with whatever `misc` the object already carries unless a new one is given.
+  if (any(c("image", "icon") %in% names(arg))) {
+    base_misc <- if ("misc" %in% names(arg)) arg$misc else object@misc
+    arg$misc <- .add_misc_image(base_misc,
+                                image = arg$image, icon = arg$icon)
+    arg$image <- NULL
+    arg$icon <- NULL
+  }
+  obj <- do.call(.data2slots, c(list("commodity", object), arg))
+  if ("property" %in% names(arg)) {
+    .check_commodity_property(obj@property, name = obj@name)
+  }
+  obj
 })

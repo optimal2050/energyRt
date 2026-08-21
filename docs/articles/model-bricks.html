@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.80.3.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.85.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -51,7 +51,9 @@
 <li><a class="dropdown-item" href="../articles/install.html">Installation</a></li>
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
+    <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
@@ -272,12 +274,12 @@ time.</p>
 <p>Shifts a commodity across time. <code>seff</code> holds the
 charging/discharging/holding efficiencies
 (<code>inpeff</code>/<code>outeff</code>/<code>stgeff</code>) and
-<code>cap2stg</code> is the storage duration.</p>
+<code>duration</code> is the storage duration.</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">STG_ELC</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/storage.html">newStorage</a></span><span class="op">(</span></span>
 <span>  name <span class="op">=</span> <span class="st">"STG_ELC"</span>, desc <span class="op">=</span> <span class="st">"Battery"</span>, commodity <span class="op">=</span> <span class="st">"ELC"</span>,</span>
 <span>  seff <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>inpeff <span class="op">=</span> <span class="fl">0.9</span>, outeff <span class="op">=</span> <span class="fl">0.9</span>, stgeff <span class="op">=</span> <span class="fl">0.999</span><span class="op">)</span>,</span>
-<span>  cap2stg <span class="op">=</span> <span class="fl">4</span>,                                   <span class="co"># 4 hours of storage per unit power</span></span>
+<span>  duration <span class="op">=</span> <span class="fl">4</span>,                                   <span class="co"># 4 hours of storage per unit power</span></span>
 <span>  aux  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>acomm <span class="op">=</span> <span class="st">"MAT"</span>, unit <span class="op">=</span> <span class="st">"kt"</span><span class="op">)</span>,</span>
 <span>  aeff <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>acomm <span class="op">=</span> <span class="st">"MAT"</span>, ncap2ainp <span class="op">=</span> <span class="fl">0.25</span><span class="op">)</span><span class="op">)</span>  <span class="co"># material per new capacity</span></span>
 <span><span class="fu"><a href="../reference/draw.html">draw</a></span><span class="op">(</span><span class="va">STG_ELC</span><span class="op">)</span></span></code></pre></div>
@@ -349,15 +351,15 @@ unit.</p>
 commodity.</p>
 <div class="callout-note">
 <p><strong>Mixed units live in the coefficients.</strong> When inputs
-and outputs use different units, a unit conversion must ride on one of
-the chain coefficients so that <em>use</em>, <em>activity</em> and
-<code>cap2act</code> agree. Here the fuels are PJ and electricity is
-GWh: <code>ginp2use = 277.78</code> converts the fuel group to GWh (so
-the technology <em>operates</em> in GWh), and
-<code>cap2act = 8760</code> matches (1 GW × 8760 h). Keeping every
-commodity in one unit family (as UTOPIA does with PJ) avoids the
-gymnastics — <code>convert("PJ", "GWh", 1)</code> tells you the factor
-when you can’t.</p>
+and outputs use different units the conversion has to appear somewhere,
+so that <em>use</em>, <em>activity</em> and <code>cap2act</code> agree —
+and a chain coefficient is the natural place for it. Here the fuels are
+PJ and electricity is GWh: <code>ginp2use = 277.78</code> converts the
+fuel group to GWh (so the technology <em>operates</em> in GWh), and
+<code>cap2act = 8760</code> matches (1 GW × 8760 h). You do not have to
+work the factor out by hand: <code>convert("PJ", "GWh", 1)</code> gives
+it. See the <em>Units</em> article for where each unit is declared and
+how <code>convert()</code> finds a factor.</p>
 </div>
 </div>
 <div class="section level4">
@@ -370,10 +372,13 @@ the <em>maximum</em> activity through the scalar
 <ul>
 <li>
 <code>cap2act</code> — “how much product (activity, or output
-commodity if identical) is produced per unit of capacity”. For a power
-plant with capacity in <code>GW</code>, <code>cap2act = 8.76</code>
-gives a maximum activity of <code>8.76 GWh</code> per <code>GW</code>
-per year (8760 h, scaled to the cost/energy units in use).</li>
+commodity if identical) is produced per unit of capacity”. Its own units
+are <em>activity per capacity</em>, so the number depends on both. A
+power plant rated in <code>GW</code> running flat out for a year
+produces 8760 GWh, so <code>cap2act = 8760</code> with activity in
+<code>GWh</code> — and <code>cap2act = 31.536</code> for the same plant
+with activity in <code>PJ</code> (1 GW × 8760 h = 31.536 PJ), which is
+the convention <em>UTOPIA I</em> uses.</li>
 <li>Capacity itself is bounded in the <code>capacity</code> slot:
 <code>stock</code> (pre-existing), <code>cap.lo/up/fx</code> (total),
 <code>ncap.lo/up/fx</code> (new builds) and <code>ret.lo/up/fx</code>
@@ -679,6 +684,10 @@ technologies) and <em>UTOPIA II</em> (ex-post cost with
 </h2>
 <ul>
 <li>
+<strong>Units</strong> — where each unit is declared, how
+<code>convert()</code> moves between them, and what the model
+checks.</li>
+<li>
 <strong>Autoplot</strong> — plots of calendars, horizons, commodity
 emissions and the by-year
 <code>supply</code>/<code>demand</code>/<code>import</code>/<code>export</code>
@@ -690,7 +699,8 @@ model.</li>
 <code><a href="../reference/draw.html">?draw</a></code>, <code><a href="../reference/newCommodity.html">?newCommodity</a></code>,
 <code><a href="../reference/technology.html">?newTechnology</a></code>, <code><a href="../reference/newConstraint.html">?newConstraint</a></code>,
 <code><a href="../reference/newRepository.html">?newRepository</a></code>, <code><a href="../reference/newModel.html">?newModel</a></code>,
-<code><a href="../reference/levcost.html">?levcost</a></code>.</li>
+<code><a href="../reference/levcost.html">?levcost</a></code>, <code>?convert</code>,
+<code><a href="../reference/getUnits.html">?getUnits</a></code>.</li>
 </ul>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

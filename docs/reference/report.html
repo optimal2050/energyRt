@@ -61,7 +61,7 @@ when the calendar has one, emissions and cost tables.
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.80.3.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.85.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -78,7 +78,9 @@ when the calendar has one, emissions and cost tables.
   <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials"><li><a class="dropdown-item" href="../articles/install.html">Installation</a></li>
     <li><a class="dropdown-item" href="../articles/backends.html">Solver backends</a></li>
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
+    <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
@@ -216,7 +218,10 @@ Default <code>NULL</code> selects <code>"generic"</code> automatically.</p></dd>
 
 <dt id="arg-image-file">image_file<a class="anchor" aria-label="anchor" href="#arg-image-file"></a></dt>
 <dd><p>Character.  Optional path to a PNG/JPG image displayed in
-the upper-right corner of the page.  <code>NULL</code> skips the image.</p></dd>
+the upper-right corner of the page.  Defaults to the object's own
+<code>misc$image</code> when that names an existing local file (see
+<code><a href="object_image.html">object_image</a></code>); <code>NULL</code> with no <code>misc$image</code> skips
+the image.</p></dd>
 
 
 <dt id="arg-file">file<a class="anchor" aria-label="anchor" href="#arg-file"></a></dt>

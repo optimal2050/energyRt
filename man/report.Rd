@@ -78,7 +78,10 @@ absolute path to a custom \code{.Rmd} file to use your own template.
 Default \code{NULL} selects \code{"generic"} automatically.}
 
 \item{image_file}{Character.  Optional path to a PNG/JPG image displayed in
-the upper-right corner of the page.  \code{NULL} skips the image.}
+the upper-right corner of the page.  Defaults to the object's own
+\code{misc$image} when that names an existing local file (see
+\code{\link{object_image}}); \code{NULL} with no \code{misc$image} skips
+the image.}
 
 \item{file}{Character.  Destination file path.  Defaults to
 \code{report_<name>} in the current working directory, with the extension

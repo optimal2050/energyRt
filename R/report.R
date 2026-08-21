@@ -42,7 +42,10 @@
 #'   absolute path to a custom \code{.Rmd} file to use your own template.
 #'   Default \code{NULL} selects \code{"generic"} automatically.
 #' @param image_file Character.  Optional path to a PNG/JPG image displayed in
-#'   the upper-right corner of the page.  \code{NULL} skips the image.
+#'   the upper-right corner of the page.  Defaults to the object's own
+#'   \code{misc$image} when that names an existing local file (see
+#'   \code{\link{object_image}}); \code{NULL} with no \code{misc$image} skips
+#'   the image.
 #' @param file Character.  Destination file path.  Defaults to
 #'   \code{report_<name>} in the current working directory, with the extension
 #'   appropriate for \code{format}.
@@ -232,6 +235,11 @@ setMethod(
     file_base <- normalizePath(file_base, mustWork = FALSE)
 
     # -- absolute image path -----------------------------------------------
+    # Fall back to the object's own `misc$image` convention, so `report(tech)`
+    # picks up an image set in the process designer or a techspec YAML without
+    # the caller having to repeat it. URLs are skipped: templates take local
+    # files only.
+    if (is.null(image_file)) image_file <- .object_image_file(object)
     image_file_abs <- NULL
     if (!is.null(image_file)) {
       if (!file.exists(image_file)) {

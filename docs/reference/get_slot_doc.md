@@ -68,8 +68,14 @@ get_slot_doc("technology", "capacity") |> cat()
 #>     \item{ret.up}{numeric. Upper bound on the capacity retirement (age-based), ignored if NA.}
 #>     \item{ret.fx}{numeric. Fixed capacity retirement (age-based), ignored if NA. This parameter overrides `ret.lo` and `ret.up`.}
 #>  }
-get_slot_doc("demand", "dem") |> cat()
-#> Error in get_slot_doc("demand", "dem"): No slot found for slot: dem
+get_slot_doc("demand", "demand") |> cat()
+#> data.frame. Specification of the demand.
+#>   \describe{
+#>     \item{region}{character. Name of region for the demand value. NA for every region.}
+#>     \item{year}{integer. Year of the demand. NA for every year.}
+#>     \item{timeslice}{character. Name of the timeslice for the demand value. NA for every timeslice.}
+#>     \item{demand}{numeric. Value of the demand.}
+#>  }
 get_slot_doc("commodity", "agg") |> cat()
 #> data.frame. Used to define an aggregation of several commodities into the `name` commodity.
 #> 

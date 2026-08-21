@@ -950,7 +950,7 @@ write.sc <- write_sc
       rbind(
         .get_data_slot(
           prec@parameters$mvStorageAInp)[, -1],
-        .get_data_slot(prec@parameters$mvStorageStore)[, -1]
+        .get_data_slot(prec@parameters$mvStorageLevel)[, -1]
         )
       )
     )
@@ -963,7 +963,7 @@ write.sc <- write_sc
       rbind(
         .get_data_slot(
           prec@parameters$mvStorageAInp)[, -1],
-        .get_data_slot(prec@parameters$mvStorageStore)[, -1]
+        .get_data_slot(prec@parameters$mvStorageLevel)[, -1]
         )
       )
     )

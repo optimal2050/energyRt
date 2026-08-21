@@ -140,6 +140,30 @@
   out <- unique(df[, c(dims, "eac"), drop = FALSE])
   names(out)[names(out) == "eac"] <- "value"
 
+  # Keep a supplied `eac` for processes that have NO invcost.
+  #
+  # `df` was filtered to invcost-bearing rows above, so `out` covers only those
+  # processes. Writing it back wholesale ERASED every process whose capital cost
+  # came from `@invcost$eac` alone -- the charge simply left the objective, with
+  # no warning, and the capacity became free. The early return at the top of this
+  # function is what hid it: when NO process in the class has an invcost we never
+  # reach here, so it only bit MIXED models (some annuitised, some overnight),
+  # which is the ordinary case for a converted model.
+  #
+  # Matched on the process key alone, not the full dims: at this stage the seed
+  # is region-FOLDED while `out` is region-explicit (same reason the `ueac` join
+  # above goes through .eac_merge), so a full-key anti-join would match nothing
+  # and duplicate every row. Within a process that supplies both, the `ueac`
+  # coalesce above already gives the supplied value precedence row by row.
+  seed <- as.data.frame(get_data_slot(P[[eac_par]]))
+  if (!is.null(seed) && nrow(seed) > 0 && key %in% names(seed)) {
+    keep <- seed[!seed[[key]] %in% unique(df[[key]]), , drop = FALSE]
+    if (nrow(keep) > 0) {
+      for (cl in setdiff(names(out), names(keep))) keep[[cl]] <- NA
+      out <- rbind(out, keep[, names(out), drop = FALSE])
+    }
+  }
+
   scen@modInp@parameters[[eac_par]] <- .fold_write_back(P[[eac_par]], out)
   scen
 }
@@ -188,10 +212,16 @@
   invisible(NULL)
 }
 
-# `pXPayback` narrows the eqXEac charging window, and only the GLPK model has
-# been taught that. The other engines still key the window on pXOlife, so they
-# would quietly annuitise over the payback period but keep charging for the full
-# operational life -- over-recovering the investment. Refuse instead.
+# `pXPayback` narrows the eqXEac charging window. GLPK, GAMS, JuMP/Julia and
+# Pyomo-Concrete all implement it (ported from GLPK 2026-08-19).
+#
+# Pyomo-ABSTRACT does not, and cannot without a bigger change: its eqXEac is
+# still the pre-vintaging `pXEac * vXCap` form, which charges the annuity on
+# TOTAL capacity -- pre-existing stock included -- rather than summing over
+# still-alive vintages. Adding a payback window to that would be meaningless.
+# An engine left on the olife window would quietly annuitise over the payback
+# period while charging for the full operational life, over-recovering the
+# investment, so it is refused instead.
 .assert_payback_supported <- function(scen, engine) {
   used <- character()
   for (pn in c("pTechPayback", "pStoragePayback", "pTradePayback")) {
@@ -203,9 +233,11 @@
     }
   }
   if (length(used) == 0) return(invisible(NULL))
-  stop("`payback` is implemented for GLPK only, but the model is being written ",
-       "for ", engine, " (set in ", paste(used, collapse = ", "), ").\n",
-       "  Solve with `solver_options$glpk`, or drop `@invcost$payback` and use ",
+  stop("`payback` is not implemented for ", engine, " (set in ",
+       paste(used, collapse = ", "), ").\n",
+       "  It is available on GLPK, GAMS, JuMP/Julia and Pyomo-Concrete. ",
+       "Pyomo-Abstract still uses the pre-vintaging `pXEac * vXCap` form.\n",
+       "  Use one of those engines, or drop `@invcost$payback` and use ",
        "`@vintage$olife` for the cost-recovery period.")
 }
 
@@ -214,6 +246,16 @@ compute_eac_parameters <- function(scen) {
                    "pTechEac", "pTechWacc", "pTechPayback")
   scen <- .eac_one(scen, "stg", "pStorageInvcost", "pStorageOlife",
                    "mStorageNew", "pStorageEac", "pStorageWacc",
+                   "pStoragePayback")
+  # The STORING part's capital cost is per unit of ENERGY and annuitises
+  # separately, but on the same @vintage -- one storage, one lifetime and one
+  # wacc, two capital costs on different bases. Per-part lifetimes would need
+  # their own olife/wacc columns and are deliberately not in this change.
+  scen <- .eac_one(scen, "stg", "pStorageStgInvcost", "pStorageOlife",
+                   "mStorageStgNew", "pStorageStgEac", "pStorageWacc",
+                   "pStoragePayback")
+  scen <- .eac_one(scen, "stg", "pStorageInpInvcost", "pStorageOlife",
+                   "mStorageInpNew", "pStorageInpEac", "pStorageWacc",
                    "pStoragePayback")
   scen <- .eac_one(scen, "trade", "pTradeInvcost", "pTradeOlife", "mTradeNew",
                    "pTradeEac", "pTradeWacc", "pTradePayback")

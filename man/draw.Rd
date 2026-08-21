@@ -170,7 +170,7 @@ STG_ELC <- newStorage(
     # year = 2020,
     fixom = 0.9 # fixed operation and maintenance cost
   ),
-  cap2stg = 4, # four-hours of storage
+  duration = 4, # four-hours of storage
   invcost = data.frame(
     region = c("R1", NA), # region R1 and all other regions
     invcost = c(1e3, 1.1e3) # investment cost in MUSD/GWh of 4-hour storage
@@ -209,11 +209,11 @@ DSTEEL <- newDemand(
   desc = "Steel demand",
   commodity = "STEEL",
   unit = "Mt",
-  dem = data.frame(
+  demand = data.frame(
     region = "UTOPIA", # NA for every region
     year = c(2020, 2030, 2050),
     timeslice = "ANNUAL",
-    dem = c(100, 200, 300)
+    demand = c(100, 200, 300)
   ),
   region = "UTOPIA", # optional, to narrow the specification of the demand
 )

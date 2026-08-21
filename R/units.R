@@ -204,7 +204,7 @@ NULL
 setMethod("getUnits", "commodity", function(object, slots = NULL, ...) {
   rows <- list()
 
-  all_slots <- c("unit", "emis", "agg")
+  all_slots <- c("unit", "emis", "agg", "property")
   use_slots <- if (is.null(slots)) all_slots else intersect(slots, all_slots)
 
   if ("unit" %in% use_slots) {
@@ -243,6 +243,23 @@ setMethod("getUnits", "commodity", function(object, slots = NULL, ...) {
         comm        = object@agg$comm[i],
         description = "Aggregation weight",
         unit        = paste0(au, "/", cu),
+        stringsAsFactors = FALSE
+      )
+    }
+  }
+
+  # Physical properties carry their own, self-contained unit ("GJ/t", "t/m3"),
+  # so unlike `emis`/`agg` they are not composed with the commodity's `@unit`.
+  if ("property" %in% use_slots) {
+    prop <- .comm_property(object)
+    for (i in seq_len(nrow(prop))) {
+      def <- .property_def(prop$property[i])
+      rows[[length(rows) + 1]] <- data.frame(
+        slot        = "property",
+        parameter   = prop$property[i],
+        comm        = NA_character_,
+        description = if (is.null(def)) "Physical property" else def$description,
+        unit        = prop$unit[i],
         stringsAsFactors = FALSE
       )
     }
@@ -415,7 +432,11 @@ setMethod("getUnits", "technology", function(object, slots = NULL,
 }
 
 # ── print method ─────────────────────────────────────────────────────────────
-#' @export
+# `print` is an S4 generic here (R/print.R), so a plain @export registers the
+# function but NOT the method, and dispatch falls through to the data.frame
+# default -- printing the wide `description` column this method exists to drop.
+# See the same trap for print.commodity in AGENTS.md.
+#' @exportS3Method print energyRtUnits
 print.energyRtUnits <- function(x, ...) {
   nm  <- attr(x, "object_name")
   cls <- attr(x, "object_class")

@@ -7,13 +7,15 @@
 #' @md
 #' @slot name `r get_slot_doc("storage", "name")`
 #' @slot desc `r get_slot_doc("storage", "desc")`
-#' @slot commodity `r get_slot_doc("storage", "commodity")`
 #' @slot aux `r get_slot_doc("storage", "aux")`
 #' @slot region `r get_slot_doc("storage", "region")`
 #' @slot cluster `r get_slot_doc("storage", "cluster")`
 #' @slot vintage `r get_slot_doc("storage", "vintage")`
 #' @slot capacity `r get_slot_doc("storage", "capacity")`
-#' @slot charge `r get_slot_doc("storage", "charge")`
+#' @slot input `r get_slot_doc("storage", "input")`
+#' @slot output `r get_slot_doc("storage", "output")`
+#' @slot storage `r get_slot_doc("storage", "storage")`
+#' @slot startLevel `r get_slot_doc("storage", "startLevel")`
 #' @slot seff `r get_slot_doc("storage", "seff")`
 #' @slot af `r get_slot_doc("storage", "af")`
 #' @slot aeff `r get_slot_doc("storage", "aeff")`
@@ -21,7 +23,8 @@
 #' @slot varom `r get_slot_doc("storage", "varom")`
 #' @slot invcost `r get_slot_doc("storage", "invcost")`
 #' @slot fullYear `r get_slot_doc("storage", "fullYear")`
-#' @slot cap2stg `r get_slot_doc("storage", "cap2stg")`
+#' @slot duration `r get_slot_doc("storage", "duration")`
+#' @slot inp2out `r get_slot_doc("storage", "inp2out")`
 #' @slot weather `r get_slot_doc("storage", "weather")`
 #' @slot optimizeRetirement `r get_slot_doc("storage", "optimizeRetirement")`
 #' @slot misc `r get_slot_doc("storage", "misc")`
@@ -36,14 +39,16 @@ setClass("storage",
   representation(
     name = "character",
     desc = "character",
-    commodity = "character", # !!! ToDo: add units
+    input = "data.frame",    # what fills the store   (the "charger" side)
+    output = "data.frame",   # what it releases       (the "discharger" side)
+    storage = "data.frame",  # what it HOLDS -- the level's commodity
     aux = "data.frame", #
     region = "character",
     cluster = "data.frame",
     vintage = "data.frame",
     # stock = "data.frame", #
     capacity = "data.frame", #
-    charge = "data.frame", #
+    startLevel = "data.frame", #
     seff = "data.frame", #
     af = "data.frame", # Availability of the resource with prices
     aeff = "data.frame", #  Commodity efficiency
@@ -51,7 +56,8 @@ setClass("storage",
     varom = "data.frame", #
     invcost = "data.frame",
     fullYear = "logical",
-    cap2stg = "data.frame", # energy-to-power ratio; varies by cluster (duration)
+    duration = "data.frame", # energy-to-power ratio; varies by cluster (duration)
+    inp2out = "data.frame",  # charge-to-discharge power ratio
     weather = "data.frame", # weather condisions multiplier
     optimizeRetirement = "logical",
     misc = "list" #
@@ -59,10 +65,9 @@ setClass("storage",
   prototype(
     name = "",
     desc = "",
-    commodity = "",
     # Cluster declaration -- see the `technology` class for the full rationale.
     # For storage the motivating case is site-constrained capacity: pumped-hydro
-    # head classes, CAES caverns, or duration classes via per-cluster `cap2stg`.
+    # head classes, CAES caverns, or duration classes via per-cluster `duration`.
     cluster = data.frame(
       cluster = character(),
       desc = character(),
@@ -83,13 +88,122 @@ setClass("storage",
       olife = integer(),
       stringsAsFactors = FALSE
     ),
-    charge = data.frame(
+    # Energy added to the level ONCE PER CYCLE, at the first timeslice of the
+    # cycle. There is deliberately NO `timeslice` column: the slice is derived
+    # from the calendar and `@fullYear`, which is what removes the wildcard trap
+    # the old per-timeslice `@charge` had. Which cycle depends on `@fullYear`:
+    # once a year when TRUE, once per parent timeframe when FALSE.
+    # The three commodity ROLES -- the ONLY place a storage's commodities live.
+    # There is no `@commodity` slot: `newStorage(commodity = )` is still accepted
+    # and fills whichever roles were not named, at construction, so the object
+    # never carries two answers to "what does this consume". Same treatment
+    # `@start`/`@end`/`@olife` got when they merged into `@vintage`.
+    # `comm` only for now: capacity and cost columns arrive with the variables
+    # that read them, so the class never advertises a column no equation
+    # consumes (cf. storage retirement -- collected, mapped and declared with no
+    # equation in any backend).
+    # The charging side. `comm` is what fills the store; the rest is the
+    # CHARGER's own capacity and economics, in power. A dedicated charger rated
+    # differently from the discharger -- an EV drawing 7 kW but delivering 100 kW
+    # to the motor -- has nowhere else to live: `@capacity`/`@invcost` describe
+    # the output side. As with `@storage`, a part carrying only `comm` gets no
+    # capacity variable and the model is unchanged.
+    input = data.frame(
+      comm = character(),
+      # Unit of `comm` on this side, as on `technology@input`/`@output`. Purely
+      # descriptive -- carried for reporting and `convert()`, never interpolated.
+      # The COMMODITY's unit, not the capacity's: capacity follows `cap2act`.
+      unit = character(),
       vintage = character(),
       cluster = character(),
       region = character(),
       year = integer(),
-      timeslice = character(),
-      charge = numeric(),
+      # Capacity -> ANNUAL flow, exactly as `technology@cap2act`. The flow bound
+      # is `cinp.up * cap2act * cap * pTimesliceShare[s]`, so `cap` is a RATE and
+      # means the same physical thing on any calendar. Defaults to 8760 (hours in
+      # a year), which makes `cap` "commodity per hour" -- and leaves an hourly
+      # full-year model numerically unchanged, because 8760 * (1/8760) = 1.
+      cap2act = numeric(),
+      stock = numeric(),
+      cap.lo = numeric(),
+      cap.up = numeric(),
+      cap.fx = numeric(),
+      ncap.lo = numeric(),
+      ncap.up = numeric(),
+      ncap.fx = numeric(),
+      invcost = numeric(),
+      fixom = numeric(),
+      stringsAsFactors = FALSE
+    ),
+    # The discharging side. `comm` is what the store releases; the capacity and
+    # cost columns are accepted here for symmetry with `@input`/`@storage` and are
+    # FOLDED at construction into `@capacity`/`@invcost`/`@fixom`, which is where
+    # the output side has always lived. Writing `output = list(invcost = 12144)`
+    # and `invcost = 12144` are therefore the same statement -- supplying both is
+    # an error rather than a silent winner.
+    output = data.frame(
+      comm = character(),
+      # Unit of `comm` on this side, as on `technology@input`/`@output`. Purely
+      # descriptive -- carried for reporting and `convert()`, never interpolated.
+      # The COMMODITY's unit, not the capacity's: capacity follows `cap2act`.
+      unit = character(),
+      vintage = character(),
+      cluster = character(),
+      region = character(),
+      year = integer(),
+      # Capacity -> ANNUAL flow, exactly as `technology@cap2act`. The flow bound
+      # is `cinp.up * cap2act * cap * pTimesliceShare[s]`, so `cap` is a RATE and
+      # means the same physical thing on any calendar. Defaults to 8760 (hours in
+      # a year), which makes `cap` "commodity per hour" -- and leaves an hourly
+      # full-year model numerically unchanged, because 8760 * (1/8760) = 1.
+      cap2act = numeric(),
+      stock = numeric(),
+      cap.lo = numeric(),
+      cap.up = numeric(),
+      cap.fx = numeric(),
+      ncap.lo = numeric(),
+      ncap.up = numeric(),
+      ncap.fx = numeric(),
+      invcost = numeric(),
+      fixom = numeric(),
+      stringsAsFactors = FALSE
+    ),
+    # The storing side. `comm` is what the store HOLDS; every other column is
+    # that part's OWN capacity and economics, measured in ENERGY (e.g. MWh) --
+    # NOT power. This is what `@duration` used to stand in for: a battery's
+    # energy cost had to be hand-multiplied into its per-MW number because there
+    # was nowhere else to put it.
+    #
+    # A part carrying nothing but `comm` gets NO capacity variable: naming a
+    # commodity is metadata, not data. That rule is what keeps a storage written
+    # the old way byte-identical -- see `.storage_part_has_data()`.
+    storage = data.frame(
+      comm = character(),
+      # Unit of `comm` on this side, as on `technology@input`/`@output`. Purely
+      # descriptive -- carried for reporting and `convert()`, never interpolated.
+      # The COMMODITY's unit, not the capacity's: capacity follows `cap2act`.
+      unit = character(),
+      vintage = character(),
+      cluster = character(),
+      region = character(),
+      year = integer(),
+      stock = numeric(),
+      cap.lo = numeric(),
+      cap.up = numeric(),
+      cap.fx = numeric(),
+      ncap.lo = numeric(),
+      ncap.up = numeric(),
+      ncap.fx = numeric(),
+      invcost = numeric(),
+      fixom = numeric(),
+      stringsAsFactors = FALSE
+    ),
+    startLevel = data.frame(
+      vintage = character(),
+      cluster = character(),
+      region = character(),
+      year = integer(),
+      startLevel = numeric(),
       stringsAsFactors = FALSE
     ),
     seff = data.frame(
@@ -204,14 +318,39 @@ setClass("storage",
     ),
     # Energy-to-power ratio. A data.frame (not a scalar) so it can differ by
     # cluster: 1h / 4h / 8h duration classes of the same battery. The scalar
-    # shorthand `cap2stg = 4` still works via `.data2slots()`, because the slot
+    # shorthand `duration = 4` still works via `.data2slots()`, because the slot
     # carries a column of its own name.
-    cap2stg = data.frame(
+    # `duration` = storing capacity / output capacity, in hours. Now a BOUND:
+    # `.fx` ties the two (an N-hour battery), `.lo`/`.up` let the model choose
+    # the ratio. The bare `duration` column is kept as the scalar shorthand
+    # (`duration = 6`) and is normalised to `duration.fx` at construction --
+    # `.pack_bounds_long()` reads only the `.lo`/`.up`/`.fx` suffixes, so a bare
+    # column alone would be silently ignored.
+    duration = data.frame(
       vintage = character(),
       cluster = character(),
       region = character(),
       year = integer(),
-      cap2stg = numeric(),
+      duration = numeric(),
+      duration.lo = numeric(),
+      duration.up = numeric(),
+      duration.fx = numeric(),
+      stringsAsFactors = FALSE
+    ),
+    # inp2out = input capacity / output capacity, dimensionless. The charger
+    # rating relative to the discharger. Same bound semantics as `duration`:
+    # `.fx` ties them (one bidirectional inverter), `.lo`/`.up` let the model
+    # size them apart. Default [1, 1] -- symmetric, which is what a storage
+    # without a separate charger has always been.
+    inp2out = data.frame(
+      vintage = character(),
+      cluster = character(),
+      region = character(),
+      year = integer(),
+      inp2out = numeric(),
+      inp2out.lo = numeric(),
+      inp2out.up = numeric(),
+      inp2out.fx = numeric(),
       stringsAsFactors = FALSE
     ),
     fullYear = TRUE,
@@ -241,6 +380,215 @@ setMethod("initialize", "storage", function(.Object, ...) {
   .Object
 })
 
+# `@charge` -> `@startLevel` (v0.80) ------------------------------------------
+#
+# Renamed twice, and the second rename changed the semantics deliberately.
+#
+# `@charge` was documented as "pre-charged level at the beginning of the
+# operational cycle" but was implemented as an additive term in the level
+# balance at EVERY timeslice the user gave a row for. Since the balance is
+# cyclic there is no "beginning", so a row with no `timeslice` was broadcast to
+# every slice by the usual NA wildcard -- 8760 unpriced injections on an hourly
+# calendar where one was meant. That was the form the shipped example used.
+#
+# `@startLevel` keeps the additive behaviour but takes the slice out of the
+# user's hands: it is added ONCE PER CYCLE at the first timeslice of the cycle,
+# derived from the calendar and `@fullYear`. Dropping the `timeslice` column is
+# what removes the wildcard trap -- there is no longer anything to leave unset.
+#
+# It is free to the model, by design and unavoidably: a store that ends a cycle
+# below where it started has consumed an endowment nobody paid for. PyPSA has
+# the same property (`state_of_charge_initial`). Being additive, the level at
+# the first slice is `startLevel + carried-over`, i.e. >= startLevel, not equal
+# to it; the model may end the cycle empty and make it exact.
+#
+# Hydro inflow does NOT belong here -- use a `supply` (weather-driven, with
+# `ava.up` so spilling is free) feeding the storage.
+.storage_deprecated_args <- function(args, name = "") {
+  # `newStorage()` defaults both formals to `data.frame()`, so "supplied" has to
+  # mean "carries rows" -- `!is.null()` alone is TRUE for every call. Same
+  # reasoning as the `nonempty` filter in `.tech_lifespan_args()`.
+  .given <- function(x) {
+    if (is.null(x)) return(FALSE)
+    if (is.data.frame(x)) return(nrow(x) > 0L)
+    if (is.list(x)) return(length(x) > 0L)
+    length(x) > 0L
+  }
+  # `commodity` is an ARGUMENT, not a slot. Fill whichever roles were not named;
+  # an explicitly named role always wins. Doing this at construction (rather
+  # than leaving `@commodity` as a fallback) is what stops an object carrying
+  # two answers to "what does this consume" -- and what makes `update()`
+  # unambiguous.
+  if (!is.null(args$commodity)) {
+    cm <- as.character(args$commodity)
+    cm <- cm[!is.na(cm) & nzchar(cm)]
+    if (length(cm)) {
+      for (role in c("input", "output", "storage")) {
+        if (!.given(args[[role]])) {
+          # nothing supplied for this role -- it is exactly the default
+          args[[role]] <- data.frame(comm = cm, stringsAsFactors = FALSE)
+        } else if (!("comm" %in% names(args[[role]]))) {
+          # Data supplied WITHOUT a commodity, e.g. `storage = list(invcost =)`
+          # next to `commodity = "ELC"`. Replacing the frame here (as this did)
+          # silently threw that data away -- and it is precisely the shape the
+          # documented examples use, so a battery priced per MWh lost its energy
+          # cost without a word. Add the commodity to the supplied rows instead.
+          x <- as.data.frame(args[[role]])
+          args[[role]] <- if (length(cm) == 1L) {
+            cbind(comm = cm, x, stringsAsFactors = FALSE)
+          } else {
+            # several default commodities: every supplied row applies to each
+            merge(data.frame(comm = cm, stringsAsFactors = FALSE), x)
+          }
+        }
+      }
+    }
+    args$commodity <- NULL
+  }
+
+  # `@output`'s capacity and economics belong to slots that already exist:
+  # `@capacity` (stock and bounds), `@invcost` and `@fixom` are the OUTPUT side
+  # and always have been. Folding here keeps one storage-wide set of parameters
+  # instead of a parallel pStorageOut* family that would mean the same thing,
+  # while letting all three parts be written the same way.
+  if (.given(args$output) && is.data.frame(args$output)) {
+    out <- args$output
+    fold_to <- list(
+      capacity = c("stock", "cap.lo", "cap.up", "cap.fx",
+                   "ncap.lo", "ncap.up", "ncap.fx"),
+      invcost  = "invcost",
+      fixom    = "fixom"
+    )
+    keys <- c("vintage", "cluster", "region", "year")
+    for (slot_nm in names(fold_to)) {
+      cols <- intersect(fold_to[[slot_nm]], names(out))
+      cols <- cols[vapply(cols, function(k) any(!is.na(out[[k]])), logical(1))]
+      if (!length(cols)) next
+      if (.given(args[[slot_nm]])) {
+        stop("storage", if (nzchar(name)) paste0(" '", name, "'") else "",
+             ": supply the output side's ", paste(cols, collapse = "/"),
+             " either in `output` or in `", slot_nm, "`, not both.",
+             call. = FALSE)
+      }
+      keep <- intersect(keys, names(out))
+      df <- out[, c(keep, cols), drop = FALSE]
+      df <- df[rowSums(!is.na(df[, cols, drop = FALSE])) > 0, , drop = FALSE]
+      args[[slot_nm]] <- df
+      out[cols] <- NULL
+    }
+    args$output <- out
+  }
+
+  # `charge`/`inflow` -> `startLevel` (v0.80). The value column is renamed and any
+  # `timeslice` column is dropped with a warning: the slice is now derived, so a
+  # user-supplied one would be silently ignored otherwise.
+  for (old_nm in c("charge", "inflow")) {
+    if (!.given(args[[old_nm]])) { args[[old_nm]] <- NULL; next }
+    if (.given(args$startLevel)) {
+      stop("Supply either `startLevel` or the deprecated `", old_nm,
+           "`, not both. `", old_nm, "` was renamed to `startLevel`.")
+    }
+    .en_deprecate_once(
+      paste0("storage@", old_nm),
+      paste0("`storage@", old_nm, "` was renamed to `@startLevel` in energyRt ",
+             "v0.80 and is now added ONCE PER CYCLE at the first timeslice, not ",
+             "at every timeslice given. For a weather-driven inflow profile use ",
+             "a `supply` feeding the storage. This warning is shown once per ",
+             "session.")
+    )
+    x <- args[[old_nm]]
+    if (is.data.frame(x) || is.list(x)) {
+      if (old_nm %in% names(x)) names(x)[names(x) == old_nm] <- "startLevel"
+      if ("timeslice" %in% names(x)) {
+        warning("storage", if (nzchar(name)) paste0(" '", name, "'") else "",
+                ": the `timeslice` column of `@", old_nm, "` is ignored -- ",
+                "`@startLevel` is applied at the first timeslice of each cycle.",
+                call. = FALSE)
+        x[["timeslice"]] <- NULL
+      }
+    }
+    args$startLevel <- x
+    args[[old_nm]] <- NULL
+  }
+
+  # `cap2stg` -> `duration` (v0.80). Same number, clearer name: it is the ratio of
+  # storing capacity to (dis)charging capacity, i.e. how long the store runs at
+  # its rated output. `maps.R` had already flagged the rename ("to be renamed to
+  # duration"). The column keeps the slot's own name so the `duration = 6` scalar
+  # shorthand keeps working through `.data2slots()`.
+  if (.given(args$cap2stg)) {
+    if (.given(args$duration)) {
+      stop("Supply either `duration` or the deprecated `cap2stg`, not both. ",
+           "`cap2stg` was renamed to `duration` in energyRt v0.80.")
+    }
+    .en_deprecate_once(
+      "storage@cap2stg",
+      paste0("`storage@cap2stg` was renamed to `@duration` in energyRt v0.80; the ",
+             "supplied `cap2stg` is accepted and renamed. Please update your data. ",
+             "This warning is shown once per session.")
+    )
+    x <- args$cap2stg
+    if ((is.data.frame(x) || is.list(x)) && "cap2stg" %in% names(x)) {
+      names(x)[names(x) == "cap2stg"] <- "duration"
+    }
+    args$duration <- x
+  }
+
+  # `duration` is a BOUND now, and `.pack_bounds_long()` reads only the
+  # `.lo`/`.up`/`.fx` suffixes. A bare `duration` column -- which is what both
+  # the `duration = 6` scalar shorthand and every pre-v0.80 `cap2stg` produce --
+  # would therefore be read as nothing at all, silently untying the store's
+  # energy from its power. Normalise it to `duration.fx`, which is what "an
+  # N-hour battery" has always meant. An explicit bound always wins.
+  # `duration` and `inp2out` are both RATIO bounds and normalise identically.
+  # `.pack_bounds_long()` reads only the `.lo`/`.up`/`.fx` suffixes, so a bare
+  # column -- which is what the scalar shorthand and every pre-v0.80 `cap2stg`
+  # produce -- would be read as nothing at all, silently untying the two
+  # capacities it is supposed to link.
+  .norm_ratio <- function(x, nm) {
+    if (is.null(x)) return(x)
+    fx <- paste0(nm, ".fx"); lo <- paste0(nm, ".lo"); up <- paste0(nm, ".up")
+    if (is.numeric(x) && is.null(dim(x)) && is.null(names(x))) {
+      # an unnamed number means the ratio is FIXED
+      out <- data.frame(as.numeric(x), stringsAsFactors = FALSE)
+      names(out) <- fx
+      return(out)
+    }
+    if (is.list(x) && !is.data.frame(x)) x <- as.data.frame(x, stringsAsFactors = FALSE)
+    if (!is.data.frame(x)) return(x)
+    # An absent column must read as a column of NAs, not NULL: `!is.na(NULL)` is
+    # `logical(0)` and `TRUE & logical(0)` is `logical(0)`, which silently
+    # collapses the whole vector and moves nothing.
+    col <- function(d, k) if (is.null(d[[k]])) rep(NA_real_, nrow(d)) else as.numeric(d[[k]])
+    if (nm %in% names(x)) {
+      if (is.null(x[[fx]])) x[[fx]] <- NA_real_
+      bare  <- !is.na(x[[nm]])
+      given <- !is.na(col(x, fx)) | !is.na(col(x, lo)) | !is.na(col(x, up))
+      move <- bare & !given
+      x[[fx]][move] <- x[[nm]][move]
+      x[[nm]][move] <- NA_real_
+      if (all(is.na(x[[nm]]))) x[[nm]] <- NULL
+    }
+    # A ONE-SIDED range means the other side is open, not the default. The
+    # parameter defaults to [1, 1] so a storage saying nothing keeps the legacy
+    # tie; that must not leak into a deliberate `.up = 8`, which would otherwise
+    # also impose `.lo = 1`.
+    if (any(c(lo, up) %in% names(x))) {
+      if (is.null(x[[lo]])) x[[lo]] <- NA_real_
+      if (is.null(x[[up]])) x[[up]] <- NA_real_
+      one_sided <- is.na(col(x, fx)) & xor(is.na(x[[lo]]), is.na(x[[up]]))
+      x[[lo]][one_sided & is.na(x[[lo]])] <- 0
+      x[[up]][one_sided & is.na(x[[up]])] <- Inf
+    }
+    x
+  }
+  if (.given(args$duration)) args$duration <- .norm_ratio(args$duration, "duration")
+  if (.given(args$inp2out))  args$inp2out  <- .norm_ratio(args$inp2out, "inp2out")
+  args$cap2stg <- NULL
+
+  args
+}
+
 #' Create new storage object
 #'
 #' @description Storage type of technological processes with accumulating capacity of a commodity.
@@ -259,7 +607,12 @@ setMethod("initialize", "storage", function(.Object, ...) {
 #'
 #' @param name `r get_slot_doc("storage", "name")`
 #' @param desc `r get_slot_doc("storage", "desc")`
-#' @param commodity `r get_slot_doc("storage", "commodity")`
+#' @param commodity convenience shorthand: the commodity used for whichever of
+#'   `input`, `output` and `storage` do not name their own. A battery is
+#'   `commodity = "ELC"` and nothing else; a hydrogen store is
+#'   `commodity = "H2"` with `input`/`output` naming `"ELC"`. There is no
+#'   `@commodity` slot -- this is folded into the three roles at construction,
+#'   so the object never carries two answers.
 #' @param aux `r get_slot_doc("storage", "aux")`
 #' @param region `r get_slot_doc("storage", "region")`
 #' @param cluster `r get_slot_doc("storage", "cluster")`
@@ -267,15 +620,19 @@ setMethod("initialize", "storage", function(.Object, ...) {
 #' @param start deprecated, use the `start` column of `vintage`.
 #' @param end deprecated, use the `end` column of `vintage`.
 #' @param olife deprecated, use the `olife` column of `vintage`.
-#' @param charge `r get_slot_doc("storage", "charge")`
+#' @param input `r get_slot_doc("storage", "input")`
+#' @param output `r get_slot_doc("storage", "output")`
+#' @param storage `r get_slot_doc("storage", "storage")`
+#' @param startLevel `r get_slot_doc("storage", "startLevel")`
 #' @param seff `r get_slot_doc("storage", "seff")`
 #' @param aeff `r get_slot_doc("storage", "aeff")`
 #' @param af `r get_slot_doc("storage", "af")`
+#' @param inp2out `r get_slot_doc("storage", "inp2out")`
 #' @param fixom `r get_slot_doc("storage", "fixom")`
 #' @param varom `r get_slot_doc("storage", "varom")`
 #' @param invcost `r get_slot_doc("storage", "invcost")`
 #' @param capacity `r get_slot_doc("storage", "capacity")`
-#' @param cap2stg `r get_slot_doc("storage", "cap2stg")`
+#' @param duration `r get_slot_doc("storage", "duration")`
 #' @param fullYear `r get_slot_doc("storage", "fullYear")`
 #' @param weather `r get_slot_doc("storage", "weather")`
 #' @param optimizeRetirement `r get_slot_doc("storage", "optimizeRetirement")`
@@ -295,11 +652,10 @@ setMethod("initialize", "storage", function(.Object, ...) {
 #'   start = data.frame(region = "R1", start = 0),
 #'   end = data.frame(region = "R1", end = 1),
 #'   olife = data.frame(region = "R1", olife = 20),
-#'   charge = data.frame(
+#'   startLevel = data.frame(
 #'     # region = "R1",
 #'     year = 2020,
-#'     # timeslice = "HOUR",
-#'     charge = 0.1
+#'     startLevel = 0.1
 #'   ),
 #'   seff = data.frame(
 #'     # region = "R1",
@@ -347,7 +703,7 @@ setMethod("initialize", "storage", function(.Object, ...) {
 #'     ncap.up = 0.9, ncap.fx = 0.9, ret.lo = 0.9, ret.up = 0.9,
 #'     ret.fx = 0.9
 #'   ),
-#'   cap2stg = 1,
+#'   duration = 1,
 #'   fullYear = TRUE,
 #'   weather = data.frame(
 #'     weather = "sunny",
@@ -369,7 +725,10 @@ newStorage <- function(
     start = data.frame(),
     end = data.frame(),
     olife = data.frame(),
-    charge = data.frame(),
+    input = data.frame(),
+    output = data.frame(),
+    storage = data.frame(),
+    startLevel = data.frame(),
     seff = data.frame(),
     aeff = data.frame(),
     af = data.frame(),
@@ -379,7 +738,8 @@ newStorage <- function(
     capacity = data.frame(),
     cluster = data.frame(),
     vintage = data.frame(),
-    cap2stg = 1,
+    duration = NULL,
+    inp2out = NULL,
     fullYear = TRUE,
     weather = data.frame(),
     optimizeRetirement = FALSE,
@@ -396,7 +756,10 @@ newStorage <- function(
     start = start,
     end = end,
     olife = olife,
-    charge = charge,
+    input = input,
+    output = output,
+    storage = storage,
+    startLevel = startLevel,
     seff = seff,
     aeff = aeff,
     af = af,
@@ -404,7 +767,8 @@ newStorage <- function(
     varom = varom,
     invcost = invcost,
     capacity = capacity,
-    cap2stg = cap2stg,
+    duration = duration,
+    inp2out = inp2out,
     fullYear = fullYear,
     weather = weather,
     optimizeRetirement = optimizeRetirement,
@@ -412,6 +776,8 @@ newStorage <- function(
     ...)
   # fold the deprecated `start`/`end`/`olife` arguments into `vintage`
   args <- .tech_lifespan_args(args)
+  # fold the deprecated `charge` into `inflow`, and warn on a wildcard injection
+  args <- .storage_deprecated_args(args, name)
   do.call(.data2slots, c(list("storage", name), args))
 }
 
@@ -429,5 +795,6 @@ setMethod("update", signature(object = "storage"),
   # fold the deprecated `start`/`end`/`olife` arguments into `vintage` before
   # they reach `.data2slots()`, which no longer knows those slot names
   args <- .tech_lifespan_args(list(...))
+  args <- .storage_deprecated_args(args, tryCatch(object@name, error = function(e) ""))
   do.call(.data2slots, c(list("storage", object), args))
 })

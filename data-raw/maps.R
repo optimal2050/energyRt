@@ -47,13 +47,17 @@
   vAggOutTot = "vAggOutTot( comm , region , year , timeslice ) $ mAggOut( comm , region , year , timeslice )",
   vDummyImportCost = "vDummyImportCost( comm , region , year ) $ mDummyImportCost( comm , region , year )",
   vDummyExportCost = "vDummyExportCost( comm , region , year ) $ mDummyExportCost( comm , region , year )",
-  vStorageInp = "vStorageInp( stg , comm , region , year , timeslice ) $ mvStorageStore( stg , comm , region , year , timeslice )",
-  vStorageOut = "vStorageOut( stg , comm , region , year , timeslice ) $ mvStorageStore( stg , comm , region , year , timeslice )",
-  vStorageStore = "vStorageStore( stg , comm , region , year , timeslice ) $ mvStorageStore( stg , comm , region , year , timeslice )",
+  vStorageInp = "vStorageInp( stg , comm , region , year , timeslice ) $ mvStorageInp( stg , comm , region , year , timeslice )",
+  vStorageOut = "vStorageOut( stg , comm , region , year , timeslice ) $ mvStorageOut( stg , comm , region , year , timeslice )",
+  vStorageLevel = "vStorageLevel( stg , comm , region , year , timeslice ) $ mvStorageLevel( stg , comm , region , year , timeslice )",
   vStorageInv = "vStorageInv( stg , region , year ) $ mStorageNew( stg , region , year )",
   vStorageEac = "vStorageEac( stg , region , year ) $ mStorageEac( stg , region , year )",
-  vStorageCap = "vStorageCap( stg , region , year ) $ mStorageSpan( stg , region , year )",
-  vStorageNewCap = "vStorageNewCap( stg , region , year ) $ mStorageNew( stg , region , year )",
+  vStorageOutCap = "vStorageOutCap( stg , region , year ) $ mStorageSpan( stg , region , year )",
+  vStorageOutNewCap = "vStorageOutNewCap( stg , region , year ) $ mStorageNew( stg , region , year )",
+  vStorageStgCap = "vStorageStgCap( stg , region , year ) $ mStorageStgCap( stg , region , year )",
+  vStorageInpCap = "vStorageInpCap( stg , region , year ) $ mStorageInpCap( stg , region , year )",
+  vStorageInpNewCap = "vStorageInpNewCap( stg , region , year ) $ mStorageInpNew( stg , region , year )",
+  vStorageStgNewCap = "vStorageStgNewCap( stg , region , year ) $ mStorageStgNew( stg , region , year )",
   vStorageFixom = "vStorageFixom( stg , region , year ) $ mStorageFixom( stg , region , year )",
   vStorageVarom = "vStorageVarom( stg , region , year ) $ mStorageVarom( stg , region , year )",
   vImportTot = "vImportTot( comm , region , year , timeslice ) $ mImport( comm , region , year , timeslice )",
@@ -133,11 +137,15 @@
   vDummyExport = "Dummy export (for debugging)",
   vStorageInp = "Storage input",
   vStorageOut = "Storage output",
-  vStorageStore = "Storage level",
+  vStorageLevel = "Storage level",
   vStorageInv = "Storage investments",
   vStorageEac = "Storage EAC investments",
-  vStorageCap = "Storage capacity",
-  vStorageNewCap = "Storage new capacity",
+  vStorageOutCap = "Storage capacity",
+  vStorageOutNewCap = "Storage new capacity",
+  vStorageStgCap = "Storage energy (storing) capacity",
+  vStorageInpCap = "Storage charging (input) capacity",
+  vStorageInpNewCap = "Storage new charging (input) capacity",
+  vStorageStgNewCap = "Storage new energy (storing) capacity",
   vImportTot = "Total regional import (Ir + ROW) (weighted)",
   vExportTot = "Total regional export (Ir + ROW) (weighted)",
   vTradeIr = "Total physical trade flows between regions",
@@ -203,10 +211,10 @@
   eqDemInp = "Demand equation",
   eqAggOutTot = "Aggregating-commodity output (weighted)",
   eqEmsFuelTot = "Total emissions from commodity consumption (weighted)",
-  eqStorageStore = "Storage level",
+  eqStorageLevel = "Storage level",
   eqStorageAfLo = "Storage availability factor lower",
   eqStorageAfUp = "Storage availability factor upper",
-  eqStorageClear = "Storage output vs level",
+  eqStorageOutLevel = "Storage output vs level",
   eqStorageAInp = "Storage aux-commodity input",
   eqStorageAOut = "Storage aux-commodity output",
   eqStorageInpUp = "Storage input upper constraint",
@@ -214,6 +222,20 @@
   eqStorageOutUp = "Storage output upper constraint",
   eqStorageOutLo = "Storage output lower constraint",
   eqStorageCap = "Storage capacity",
+  eqStorageInpCap = "Storage charging capacity accounting",
+  eqStorageInpCapLo = "Storage charging capacity lower bound",
+  eqStorageInpCapUp = "Storage charging capacity upper bound",
+  eqStorageInpNewCapLo = "Storage new charging capacity lower bound",
+  eqStorageInpNewCapUp = "Storage new charging capacity upper bound",
+  eqStorageInp2outLo = "Storage charge-to-discharge ratio lower bound",
+  eqStorageInp2outUp = "Storage charge-to-discharge ratio upper bound",
+  eqStorageStgCap = "Storage energy capacity accounting",
+  eqStorageStgCapLo = "Storage energy capacity lower bound",
+  eqStorageStgCapUp = "Storage energy capacity upper bound",
+  eqStorageStgNewCapLo = "Storage new energy capacity lower bound",
+  eqStorageStgNewCapUp = "Storage new energy capacity upper bound",
+  eqStorageDurationLo = "Storage energy-to-power ratio lower bound",
+  eqStorageDurationUp = "Storage energy-to-power ratio upper bound",
   eqStorageCapLo = "Storage capacity lower bound",
   eqStorageCapUp = "Storage capacity upper bound",
   eqStorageNewCapLo = "Storage new capacity lower bound",
@@ -319,10 +341,10 @@
   eqDemInp = c("comm", "region", "year", "timeslice"),
   eqAggOutTot = c("comm", "region", "year", "timeslice"),
   eqEmsFuelTot = c("comm", "region", "year", "timeslice"),
-  eqStorageStore = c("stg", "comm", "region", "year", "timeslicep", "timeslice"),
+  eqStorageLevel = c("stg", "comm", "region", "year", "timeslicep", "timeslice"),
   eqStorageAfLo = c("stg", "comm", "region", "year", "timeslice"),
   eqStorageAfUp = c("stg", "comm", "region", "year", "timeslice"),
-  eqStorageClear = c("stg", "comm", "region", "year", "timeslice"),
+  eqStorageOutLevel = c("stg", "comm", "region", "year", "timeslice"),
   eqStorageAInp = c("stg", "comm", "region", "year", "timeslice"),
   eqStorageAOut = c("stg", "comm", "region", "year", "timeslice"),
   eqStorageInpUp = c("stg", "comm", "region", "year", "timeslice"),
@@ -330,6 +352,20 @@
   eqStorageOutUp = c("stg", "comm", "region", "year", "timeslice"),
   eqStorageOutLo = c("stg", "comm", "region", "year", "timeslice"),
   eqStorageCap = c("stg", "region", "year"),
+  eqStorageInpCap = c("stg", "region", "year"),
+  eqStorageInpCapLo = c("stg", "region", "year"),
+  eqStorageInpCapUp = c("stg", "region", "year"),
+  eqStorageInpNewCapLo = c("stg", "region", "year"),
+  eqStorageInpNewCapUp = c("stg", "region", "year"),
+  eqStorageInp2outLo = c("stg", "region", "year"),
+  eqStorageInp2outUp = c("stg", "region", "year"),
+  eqStorageStgCap = c("stg", "region", "year"),
+  eqStorageStgCapLo = c("stg", "region", "year"),
+  eqStorageStgCapUp = c("stg", "region", "year"),
+  eqStorageStgNewCapLo = c("stg", "region", "year"),
+  eqStorageStgNewCapUp = c("stg", "region", "year"),
+  eqStorageDurationLo = c("stg", "region", "year"),
+  eqStorageDurationUp = c("stg", "region", "year"),
   eqStorageCapLo = c("stg", "region", "year"),
   eqStorageCapUp = c("stg", "region", "year"),
   eqStorageNewCapLo = c("stg", "region", "year"),
@@ -468,6 +504,48 @@
   pStorageOutEff = "Storage output efficiency",
   pStorageStgEff = "Storage time-efficiency (annual)",
   pStorageStock = "Storage capacity stock",
+  pStorageInpCap2act = "Storage charging capacity to annual flow",
+  pStorageOutCap2act = "Storage discharging capacity to annual flow",
+  pStorageInpStock = "Storage exogenous charging capacity",
+  pStorageInpInvcost = "Storage investment cost per unit of charging capacity",
+  pStorageInpFixom = "Storage fixed O&M cost per unit of charging capacity",
+  pStorageInpEac = "Storage annualised charging-capacity investment cost",
+  pStorageInpCapLo = "Lower bound on storage charging capacity",
+  pStorageInpCapUp = "Upper bound on storage charging capacity",
+  pStorageInpNewCapLo = "Lower bound on new storage charging capacity",
+  pStorageInpNewCapUp = "Upper bound on new storage charging capacity",
+  pStorageInp2outLo = "Lower bound on the charge-to-discharge capacity ratio",
+  pStorageInp2outUp = "Upper bound on the charge-to-discharge capacity ratio",
+  mStorageInpCap = "Storage-years where the charging part carries data",
+  mStorageNoInpCap = "Storage-years where it does not (inp2out is inlined)",
+  mStorageInpNew = "Storage-years with new charging capacity",
+  mStorageInpCapLo = "Storage charging capacity lower bound domain",
+  mStorageInpCapUp = "Storage charging capacity upper bound domain",
+  mStorageInpNewCapLo = "New storage charging capacity lower bound domain",
+  mStorageInpNewCapUp = "New storage charging capacity upper bound domain",
+  mStorageInpFixom = "Storage charging fixed O&M domain",
+  mStorageInpEac = "Storage charging annuity domain",
+  mStorageInp2outLo = "Storage inp2out lower bound domain",
+  mStorageInp2outUp = "Storage inp2out upper bound domain",
+  pStorageStgStock = "Storage exogenous energy (storing) capacity",
+  pStorageStgInvcost = "Storage investment cost per unit of energy capacity",
+  pStorageStgFixom = "Storage fixed O&M cost per unit of energy capacity",
+  pStorageStgEac = "Storage annualised energy-capacity investment cost",
+  pStorageStgCapLo = "Lower bound on storage energy capacity",
+  pStorageStgCapUp = "Upper bound on storage energy capacity",
+  pStorageStgNewCapLo = "Lower bound on new storage energy capacity",
+  pStorageStgNewCapUp = "Upper bound on new storage energy capacity",
+  mStorageStgCap = "Storage-years where the storing part carries data",
+  mStorageNoStgCap = "Storage-years where it does not (duration is inlined)",
+  mStorageStgNew = "Storage-years with new energy capacity",
+  mStorageStgCapLo = "Storage energy capacity lower bound domain",
+  mStorageStgCapUp = "Storage energy capacity upper bound domain",
+  mStorageStgNewCapLo = "New storage energy capacity lower bound domain",
+  mStorageStgNewCapUp = "New storage energy capacity upper bound domain",
+  mStorageStgFixom = "Storage energy fixed O&M domain",
+  mStorageStgEac = "Storage energy annuity domain",
+  mStorageDurationLo = "Storage duration lower bound domain",
+  mStorageDurationUp = "Storage duration upper bound domain",
   pStorageCapUp = "Upper bound on storage capacity",
   pStorageCapLo = "Lower bound on storage capacity",
   pStorageNewCapUp = "Upper bound on new storage capacity",
@@ -482,7 +560,8 @@
   pStorageInvcost = "Storage investment costs",
   pStorageEac = "Storage equivalent annual costs",
   pStorageRetCost = "Storage early retirement costs",
-  pStorageCap2stg = "Storage (dis)charging capacity to accumulating capacity (to be renamed to duration)",
+  pStorageDurationUp = "Upper bound on storage energy-to-power ratio, hours",
+  pStorageDurationLo = "Lower bound on storage energy-to-power ratio, hours",
   pStorageAfLo = "Storage availability factor lower bound (minimum charging level)",
   pStorageAfUp = "Storage availability factor upper bound (maximum charging level)",
   pStorageCinpUp = "Storage input upper bound",
@@ -490,7 +569,7 @@
   pStorageCoutUp = "Storage output upper bound",
   pStorageCoutLo = "Storage output lower bound",
   pStorageNCap2Stg = "Initial storage charge level for new investment",
-  pStorageCharge = "Initial storage charge level for stock",
+  pStorageStartLevel = "Initial storage charge level for stock",
   pStorageStg2AInp = "Storage level to auxilary input",
   pStorageStg2AOut = "Storage level output",
   pStorageCinp2AInp = "Storage input to auxilary input",
@@ -630,6 +709,48 @@
   pStorageOutEff = c("stg", "comm", "region", "year", "timeslice"),
   pStorageStgEff = c("stg", "comm", "region", "year", "timeslice"),
   pStorageStock = c("stg", "region", "year"),
+  pStorageInpCap2act = c("stg"),
+  pStorageOutCap2act = c("stg"),
+  pStorageInpStock = c("stg", "region", "year"),
+  pStorageInpInvcost = c("stg", "region", "year"),
+  pStorageInpFixom = c("stg", "region", "year"),
+  pStorageInpEac = c("stg", "region", "year"),
+  pStorageInpCapLo = c("stg", "region", "year"),
+  pStorageInpCapUp = c("stg", "region", "year"),
+  pStorageInpNewCapLo = c("stg", "region", "year"),
+  pStorageInpNewCapUp = c("stg", "region", "year"),
+  pStorageInp2outLo = c("stg", "region", "year"),
+  pStorageInp2outUp = c("stg", "region", "year"),
+  mStorageInpCap = c("stg", "region", "year"),
+  mStorageNoInpCap = c("stg", "region", "year"),
+  mStorageInpNew = c("stg", "region", "year"),
+  mStorageInpCapLo = c("stg", "region", "year"),
+  mStorageInpCapUp = c("stg", "region", "year"),
+  mStorageInpNewCapLo = c("stg", "region", "year"),
+  mStorageInpNewCapUp = c("stg", "region", "year"),
+  mStorageInpFixom = c("stg", "region", "year"),
+  mStorageInpEac = c("stg", "region", "year"),
+  mStorageInp2outLo = c("stg", "region", "year"),
+  mStorageInp2outUp = c("stg", "region", "year"),
+  pStorageStgStock = c("stg", "region", "year"),
+  pStorageStgInvcost = c("stg", "region", "year"),
+  pStorageStgFixom = c("stg", "region", "year"),
+  pStorageStgEac = c("stg", "region", "year"),
+  pStorageStgCapLo = c("stg", "region", "year"),
+  pStorageStgCapUp = c("stg", "region", "year"),
+  pStorageStgNewCapLo = c("stg", "region", "year"),
+  pStorageStgNewCapUp = c("stg", "region", "year"),
+  mStorageStgCap = c("stg", "region", "year"),
+  mStorageNoStgCap = c("stg", "region", "year"),
+  mStorageStgNew = c("stg", "region", "year"),
+  mStorageStgCapLo = c("stg", "region", "year"),
+  mStorageStgCapUp = c("stg", "region", "year"),
+  mStorageStgNewCapLo = c("stg", "region", "year"),
+  mStorageStgNewCapUp = c("stg", "region", "year"),
+  mStorageStgFixom = c("stg", "region", "year"),
+  mStorageStgEac = c("stg", "region", "year"),
+  mStorageDurationLo = c("stg", "region", "year"),
+  mStorageDurationUp = c("stg", "region", "year"),
   pStorageCapUp = c("stg", "region", "year"),
   pStorageCapLo = c("stg", "region", "year"),
   pStorageNewCapUp = c("stg", "region", "year"),
@@ -644,7 +765,8 @@
   pStorageInvcost = c("stg", "region", "year"),
   pStorageEac = c("stg", "region", "year"),
   pStorageRetCost = c("stg", "region", "year"),
-  pStorageCap2stg = c("stg"),
+  pStorageDurationUp = c("stg", "region", "year"),
+  pStorageDurationLo = c("stg", "region", "year"),
   pStorageAfLo = c("stg", "region", "year", "timeslice"),
   pStorageAfUp = c("stg", "region", "year", "timeslice"),
   pStorageCinpUp = c("stg", "comm", "region", "year", "timeslice"),
@@ -652,7 +774,7 @@
   pStorageCoutUp = c("stg", "comm", "region", "year", "timeslice"),
   pStorageCoutLo = c("stg", "comm", "region", "year", "timeslice"),
   pStorageNCap2Stg = c("stg", "comm", "region", "year", "timeslice"),
-  pStorageCharge = c("stg", "comm", "region", "year", "timeslice"),
+  pStorageStartLevel = c("stg", "comm", "region", "year", "timeslice"),
   pStorageStg2AInp = c("stg", "comm", "region", "year", "timeslice"),
   pStorageStg2AOut = c("stg", "comm", "region", "year", "timeslice"),
   pStorageCinp2AInp = c("stg", "comm", "region", "year", "timeslice"),
@@ -759,10 +881,10 @@
   eqDemInp = "mvDemInp(comm, region, year, timeslice)",
   eqAggOutTot = "mAggOut(comm, region, year, timeslice)",
   eqEmsFuelTot = "mEmsFuelTot(comm, region, year, timeslice)",
-  eqStorageStore = "meqStorageStore(stg, comm, region, year, timeslicep, timeslice)",
+  eqStorageLevel = "meqStorageLevel(stg, comm, region, year, timeslicep, timeslice)",
   eqStorageAfLo = "meqStorageAfLo(stg, comm, region, year, timeslice)",
   eqStorageAfUp = "meqStorageAfUp(stg, comm, region, year, timeslice)",
-  eqStorageClear = "mvStorageStore(stg, comm, region, year, timeslice)",
+  eqStorageOutLevel = "mvStorageLevel(stg, comm, region, year, timeslice)",
   eqStorageAInp = "mvStorageAInp(stg, comm, region, year, timeslice)",
   eqStorageAOut = "mvStorageAOut(stg, comm, region, year, timeslice)",
   eqStorageInpUp = "meqStorageInpUp(stg, comm, region, year, timeslice)",
@@ -770,6 +892,20 @@
   eqStorageOutUp = "meqStorageOutUp(stg, comm, region, year, timeslice)",
   eqStorageOutLo = "meqStorageOutLo(stg, comm, region, year, timeslice)",
   eqStorageCap = "mStorageSpan(stg, region, year)",
+  eqStorageInpCap = "mStorageInpCap(stg, region, year)",
+  eqStorageInpCapLo = "mStorageInpCapLo(stg, region, year)",
+  eqStorageInpCapUp = "mStorageInpCapUp(stg, region, year)",
+  eqStorageInpNewCapLo = "mStorageInpNewCapLo(stg, region, year)",
+  eqStorageInpNewCapUp = "mStorageInpNewCapUp(stg, region, year)",
+  eqStorageInp2outLo = "mStorageInp2outLo(stg, region, year)",
+  eqStorageInp2outUp = "mStorageInp2outUp(stg, region, year)",
+  eqStorageStgCap = "mStorageStgCap(stg, region, year)",
+  eqStorageStgCapLo = "mStorageStgCapLo(stg, region, year)",
+  eqStorageStgCapUp = "mStorageStgCapUp(stg, region, year)",
+  eqStorageStgNewCapLo = "mStorageStgNewCapLo(stg, region, year)",
+  eqStorageStgNewCapUp = "mStorageStgNewCapUp(stg, region, year)",
+  eqStorageDurationLo = "mStorageDurationLo(stg, region, year)",
+  eqStorageDurationUp = "mStorageDurationUp(stg, region, year)",
   eqStorageCapLo = "mStorageCapLo(stg, region, year)",
   eqStorageCapUp = "mStorageCapUp(stg, region, year)",
   eqStorageNewCapLo = "mStorageNewCapLo(stg, region, year)",
@@ -947,8 +1083,10 @@
   mTechRetUp = "",
   mvStorageAInp = "",
   mvStorageAOut = "",
-  mvStorageStore = "",
-  meqStorageStore = "",
+  mvStorageLevel = "",
+  mvStorageInp = "",
+  mvStorageOut = "",
+  meqStorageLevel = "",
   mStorageStg2AOut = "",
   mStorageCinp2AOut = "",
   mStorageCout2AOut = "",
@@ -1205,8 +1343,10 @@
   mTechRetUp = c("tech", "region", "year"),
   mvStorageAInp = c("stg", "comm", "region", "year", "timeslice"),
   mvStorageAOut = c("stg", "comm", "region", "year", "timeslice"),
-  mvStorageStore = c("stg", "comm", "region", "year", "timeslice"),
-  meqStorageStore = c("stg", "comm", "region", "year", "timeslicep", "timeslice"),
+  mvStorageLevel = c("stg", "comm", "region", "year", "timeslice"),
+  mvStorageInp = c("stg", "comm", "region", "year", "timeslice"),
+  mvStorageOut = c("stg", "comm", "region", "year", "timeslice"),
+  meqStorageLevel = c("stg", "comm", "region", "year", "timeslicep", "timeslice"),
   mStorageStg2AOut = c("stg", "comm", "region", "year", "timeslice"),
   mStorageCinp2AOut = c("stg", "comm", "region", "year", "timeslice"),
   mStorageCout2AOut = c("stg", "comm", "region", "year", "timeslice"),
@@ -1439,52 +1579,52 @@
 .equation_variable[91, ] <- c("eqAggOutTot", "vOutTot")
 .equation_variable[92, ] <- c("eqEmsFuelTot", "vEmsFuelTot")
 .equation_variable[93, ] <- c("eqEmsFuelTot", "vTechInp")
-.equation_variable[94, ] <- c("eqStorageStore", "vStorageAInp")
-.equation_variable[95, ] <- c("eqStorageStore", "vStorageInp")
-.equation_variable[96, ] <- c("eqStorageStore", "vStorageOut")
-.equation_variable[97, ] <- c("eqStorageStore", "vStorageStore")
-.equation_variable[98, ] <- c("eqStorageStore", "vStorageCap")
-.equation_variable[99, ] <- c("eqStorageStore", "vStorageNewCap")
+.equation_variable[94, ] <- c("eqStorageLevel", "vStorageAInp")
+.equation_variable[95, ] <- c("eqStorageLevel", "vStorageInp")
+.equation_variable[96, ] <- c("eqStorageLevel", "vStorageOut")
+.equation_variable[97, ] <- c("eqStorageLevel", "vStorageLevel")
+.equation_variable[98, ] <- c("eqStorageLevel", "vStorageOutCap")
+.equation_variable[99, ] <- c("eqStorageLevel", "vStorageOutNewCap")
 .equation_variable[100, ] <- c("eqStorageAfLo", "vStorageAOut")
 .equation_variable[101, ] <- c("eqStorageAfLo", "vStorageInp")
 .equation_variable[102, ] <- c("eqStorageAfLo", "vStorageOut")
-.equation_variable[103, ] <- c("eqStorageAfLo", "vStorageStore")
-.equation_variable[104, ] <- c("eqStorageAfLo", "vStorageCap")
-.equation_variable[105, ] <- c("eqStorageAfLo", "vStorageNewCap")
+.equation_variable[103, ] <- c("eqStorageAfLo", "vStorageLevel")
+.equation_variable[104, ] <- c("eqStorageAfLo", "vStorageOutCap")
+.equation_variable[105, ] <- c("eqStorageAfLo", "vStorageOutNewCap")
 .equation_variable[106, ] <- c("eqStorageAfUp", "vStorageInp")
 .equation_variable[107, ] <- c("eqStorageAfUp", "vStorageOut")
-.equation_variable[108, ] <- c("eqStorageAfUp", "vStorageStore")
-.equation_variable[109, ] <- c("eqStorageAfUp", "vStorageNewCap")
-.equation_variable[110, ] <- c("eqStorageClear", "vStorageStore")
-.equation_variable[111, ] <- c("eqStorageClear", "vStorageCap")
-.equation_variable[112, ] <- c("eqStorageAInp", "vStorageStore")
-.equation_variable[113, ] <- c("eqStorageAInp", "vStorageCap")
+.equation_variable[108, ] <- c("eqStorageAfUp", "vStorageLevel")
+.equation_variable[109, ] <- c("eqStorageAfUp", "vStorageOutNewCap")
+.equation_variable[110, ] <- c("eqStorageOutLevel", "vStorageLevel")
+.equation_variable[111, ] <- c("eqStorageOutLevel", "vStorageOutCap")
+.equation_variable[112, ] <- c("eqStorageAInp", "vStorageLevel")
+.equation_variable[113, ] <- c("eqStorageAInp", "vStorageOutCap")
 .equation_variable[114, ] <- c("eqStorageAOut", "vStorageOut")
-.equation_variable[115, ] <- c("eqStorageAOut", "vStorageStore")
+.equation_variable[115, ] <- c("eqStorageAOut", "vStorageLevel")
 .equation_variable[116, ] <- c("eqStorageInpUp", "vStorageInp")
-.equation_variable[117, ] <- c("eqStorageInpUp", "vStorageCap")
+.equation_variable[117, ] <- c("eqStorageInpUp", "vStorageOutCap")
 .equation_variable[118, ] <- c("eqStorageInpLo", "vStorageInp")
-.equation_variable[119, ] <- c("eqStorageInpLo", "vStorageCap")
+.equation_variable[119, ] <- c("eqStorageInpLo", "vStorageOutCap")
 .equation_variable[120, ] <- c("eqStorageOutUp", "vStorageOut")
-.equation_variable[121, ] <- c("eqStorageOutUp", "vStorageCap")
+.equation_variable[121, ] <- c("eqStorageOutUp", "vStorageOutCap")
 .equation_variable[122, ] <- c("eqStorageOutLo", "vStorageOut")
-.equation_variable[123, ] <- c("eqStorageOutLo", "vStorageCap")
-.equation_variable[124, ] <- c("eqStorageCap", "vStorageCap")
-.equation_variable[125, ] <- c("eqStorageCap", "vStorageNewCap")
-.equation_variable[126, ] <- c("eqStorageCapLo", "vStorageCap")
-.equation_variable[127, ] <- c("eqStorageCapUp", "vStorageCap")
-.equation_variable[128, ] <- c("eqStorageNewCapLo", "vStorageNewCap")
-.equation_variable[129, ] <- c("eqStorageNewCapUp", "vStorageNewCap")
+.equation_variable[123, ] <- c("eqStorageOutLo", "vStorageOutCap")
+.equation_variable[124, ] <- c("eqStorageCap", "vStorageOutCap")
+.equation_variable[125, ] <- c("eqStorageCap", "vStorageOutNewCap")
+.equation_variable[126, ] <- c("eqStorageCapLo", "vStorageOutCap")
+.equation_variable[127, ] <- c("eqStorageCapUp", "vStorageOutCap")
+.equation_variable[128, ] <- c("eqStorageNewCapLo", "vStorageOutNewCap")
+.equation_variable[129, ] <- c("eqStorageNewCapUp", "vStorageOutNewCap")
 .equation_variable[130, ] <- c("eqStorageInv", "vStorageInv")
-.equation_variable[131, ] <- c("eqStorageInv", "vStorageNewCap")
+.equation_variable[131, ] <- c("eqStorageInv", "vStorageOutNewCap")
 .equation_variable[132, ] <- c("eqStorageEac", "vStorageEac")
-.equation_variable[133, ] <- c("eqStorageEac", "vStorageCap")
+.equation_variable[133, ] <- c("eqStorageEac", "vStorageOutCap")
 .equation_variable[134, ] <- c("eqStorageFixom", "vStorageFixom")
-.equation_variable[135, ] <- c("eqStorageFixom", "vStorageCap")
+.equation_variable[135, ] <- c("eqStorageFixom", "vStorageOutCap")
 .equation_variable[136, ] <- c("eqStorageVarom", "vStorageVarom")
 .equation_variable[137, ] <- c("eqStorageVarom", "vStorageInp")
 .equation_variable[138, ] <- c("eqStorageVarom", "vStorageOut")
-.equation_variable[139, ] <- c("eqStorageVarom", "vStorageStore")
+.equation_variable[139, ] <- c("eqStorageVarom", "vStorageLevel")
 .equation_variable[140, ] <- c("eqImportTot", "vImportTot")
 .equation_variable[141, ] <- c("eqImportTot", "vTradeIr")
 .equation_variable[142, ] <- c("eqImportTot", "vImportRow")
@@ -1604,6 +1744,40 @@
 .equation_variable[279, ] <- c("eqObjective", "vTotalCost")
 .equation_variable[280, ] <- c("eqObjective", "vObjective")
 .equation_variable[281, ] <- c("eqLECActivity", "vTechAct")
+.equation_variable <- rbind(.equation_variable, data.frame(
+  equation = c("eqStorageInpCap", "eqStorageInpCap",
+               "eqStorageInpCapLo", "eqStorageInpCapUp",
+               "eqStorageInpNewCapLo", "eqStorageInpNewCapUp",
+               "eqStorageInp2outLo", "eqStorageInp2outLo",
+               "eqStorageInp2outUp", "eqStorageInp2outUp",
+               "eqStorageInpLo", "eqStorageInpUp",
+               "eqStorageInv", "eqStorageEac", "eqStorageFixom"),
+  variable = c("vStorageInpCap", "vStorageInpNewCap",
+               "vStorageInpCap", "vStorageInpCap",
+               "vStorageInpNewCap", "vStorageInpNewCap",
+               "vStorageInpCap", "vStorageOutCap",
+               "vStorageInpCap", "vStorageOutCap",
+               "vStorageInpCap", "vStorageInpCap",
+               "vStorageInpNewCap", "vStorageInpNewCap", "vStorageInpCap"),
+  stringsAsFactors = FALSE))
+
+.equation_variable <- rbind(.equation_variable, data.frame(
+  equation = c("eqStorageStgCap", "eqStorageStgCap",
+               "eqStorageStgCapLo", "eqStorageStgCapUp",
+               "eqStorageStgNewCapLo", "eqStorageStgNewCapUp",
+               "eqStorageDurationLo", "eqStorageDurationLo",
+               "eqStorageDurationUp", "eqStorageDurationUp",
+               "eqStorageAfLo", "eqStorageAfUp",
+               "eqStorageInv", "eqStorageEac", "eqStorageFixom"),
+  variable = c("vStorageStgCap", "vStorageStgNewCap",
+               "vStorageStgCap", "vStorageStgCap",
+               "vStorageStgNewCap", "vStorageStgNewCap",
+               "vStorageStgCap", "vStorageOutCap",
+               "vStorageStgCap", "vStorageOutCap",
+               "vStorageStgCap", "vStorageStgCap",
+               "vStorageStgNewCap", "vStorageStgNewCap", "vStorageStgCap"),
+  stringsAsFactors = FALSE))
+
 .equation_variable <- .equation_variable[!is.na(.equation_variable$equation), ]
 model_structure <- rbind(
 	data.frame(name = names(.set_description), description = .set_description, 

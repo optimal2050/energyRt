@@ -33,6 +33,36 @@
   mStorageVarom = list(source = c("pStorageCostInp", "pStorageCostOut",
                                   "pStorageCostStore"),
                        window = "mStorageSpan"),
+  # STRUCTURE FOLLOWS DATA. `mStorageStgCap` is the set of (stg, region, year)
+  # where the storing part carries data of its own -- a stock, a bound, or a
+  # price. ONLY there does `vStorageStgCap` exist; elsewhere the af equations
+  # fall back to `duration * vStorageOutCap`, which is the previous model.
+  #
+  # `@storage$comm` is deliberately NOT a source: naming a commodity is
+  # metadata, not data. Were it included, every storage would acquire an energy
+  # capacity variable and `cinp.up`/`cout.up` defaulting to .inf would let the
+  # LP drive it to zero -- a priced-but-unbounded capacity vanishing silently.
+  mStorageStgCap = list(source = c("pStorageStgStock", "pStorageStgCap",
+                                   "pStorageStgNewCap", "pStorageStgInvcost",
+                                   "pStorageStgFixom"),
+                        window = "mStorageSpan"),
+  mStorageStgNew = list(source = c("pStorageStgStock", "pStorageStgCap",
+                                   "pStorageStgNewCap", "pStorageStgInvcost",
+                                   "pStorageStgFixom"),
+                        window = "mStorageNew"),
+  # The charging part, same structure-follows-data gate as the storing part.
+  mStorageInpCap = list(source = c("pStorageInpStock", "pStorageInpCap",
+                                   "pStorageInpNewCap", "pStorageInpInvcost",
+                                   "pStorageInpFixom"),
+                        window = "mStorageSpan"),
+  mStorageInpNew = list(source = c("pStorageInpStock", "pStorageInpCap",
+                                   "pStorageInpNewCap", "pStorageInpInvcost",
+                                   "pStorageInpFixom"),
+                        window = "mStorageNew"),
+  mStorageInpFixom = list(source = "pStorageInpFixom", window = "mStorageSpan"),
+  mStorageInpEac   = list(source = "pStorageInpEac",   window = "mStorageNew"),
+  mStorageStgFixom = list(source = "pStorageStgFixom", window = "mStorageSpan"),
+  mStorageStgEac   = list(source = "pStorageStgEac",   window = "mStorageNew"),
   # trade
   mTradeInv     = list(source = "pTradeInvcost", window = "mTradeNew"),
   mTradeEac     = list(source = "pTradeEac",     window = "mTradeNew"),
@@ -77,6 +107,36 @@ map_mTechFixom    <- function(scen, fmp) .value_std(scen, "mTechFixom", fmp)
 map_mTechVarom    <- function(scen, fmp) .value_std(scen, "mTechVarom", fmp)
 map_mTechRetCost  <- function(scen, fmp) .value_std(scen, "mTechRetCost", fmp)
 map_mStorageFixom <- function(scen, fmp) .value_std(scen, "mStorageFixom", fmp)
+map_mStorageStgCap   <- function(scen, fmp) .value_std(scen, "mStorageStgCap", fmp)
+map_mStorageInpCap   <- function(scen, fmp) .value_std(scen, "mStorageInpCap", fmp)
+map_mStorageInpNew   <- function(scen, fmp) .value_std(scen, "mStorageInpNew", fmp)
+map_mStorageInpFixom <- function(scen, fmp) .value_std(scen, "mStorageInpFixom", fmp)
+map_mStorageInpEac   <- function(scen, fmp) .value_std(scen, "mStorageInpEac", fmp)
+map_mStorageStgNew   <- function(scen, fmp) .value_std(scen, "mStorageStgNew", fmp)
+map_mStorageStgFixom <- function(scen, fmp) .value_std(scen, "mStorageStgFixom", fmp)
+map_mStorageStgEac   <- function(scen, fmp) .value_std(scen, "mStorageStgEac", fmp)
+
+# The COMPLEMENT of mStorageStgCap within the storage's operating span: where the
+# storing part has no data and therefore no capacity variable, so the af bounds
+# use `duration * vStorageOutCap` instead. Built as a set difference rather than
+# a value domain, hence the bespoke builder. Must run AFTER map_mStorageStgCap
+# (see the .value_builders order below).
+# `have` is the part's capacity domain; the complement within the operating span
+# is where that part has no variable and the linking ratio is inlined onto
+# vStorageOutCap instead. Must run AFTER the map it complements.
+.map_no_part_cap <- function(scen, name, have, fmp) {
+  span <- .gds(scen, "mStorageSpan")
+  if (is.null(span) || !nrow(span)) return(scen)
+  span <- as.data.frame(span)
+  h <- .gds(scen, have)
+  out <- if (is.null(h) || !nrow(h)) span else
+    dplyr::anti_join(span, as.data.frame(h), by = c("stg", "region", "year"))
+  .set_map(scen, name, as.data.frame(out), fmp)
+}
+map_mStorageNoStgCap <- function(scen, fmp)
+  .map_no_part_cap(scen, "mStorageNoStgCap", "mStorageStgCap", fmp)
+map_mStorageNoInpCap <- function(scen, fmp)
+  .map_no_part_cap(scen, "mStorageNoInpCap", "mStorageInpCap", fmp)
 map_mStorageVarom <- function(scen, fmp) .value_std(scen, "mStorageVarom", fmp)
 map_mTradeInv     <- function(scen, fmp) .value_std(scen, "mTradeInv", fmp)
 map_mTradeEac     <- function(scen, fmp) .value_std(scen, "mTradeEac", fmp)
@@ -170,6 +230,16 @@ map_mSubCost <- function(scen, fmp)
   mTechVarom    = map_mTechVarom,
   mTechRetCost  = map_mTechRetCost,
   mStorageFixom = map_mStorageFixom,
+  mStorageStgCap = map_mStorageStgCap,
+  mStorageInpCap = map_mStorageInpCap,
+  mStorageNoInpCap = map_mStorageNoInpCap,   # AFTER mStorageInpCap
+  mStorageInpNew = map_mStorageInpNew,
+  mStorageInpFixom = map_mStorageInpFixom,
+  mStorageInpEac = map_mStorageInpEac,
+  mStorageNoStgCap = map_mStorageNoStgCap,   # AFTER mStorageStgCap: complement
+  mStorageStgNew = map_mStorageStgNew,
+  mStorageStgFixom = map_mStorageStgFixom,
+  mStorageStgEac = map_mStorageStgEac,
   mStorageVarom = map_mStorageVarom,
   mTradeInv     = map_mTradeInv,
   mTradeEac     = map_mTradeEac,

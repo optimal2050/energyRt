@@ -160,14 +160,14 @@ draw(PIPE, node = "R2")   # imports from R1, exports to R3
 
 Shifts a commodity across time. `seff` holds the
 charging/discharging/holding efficiencies (`inpeff`/`outeff`/`stgeff`)
-and `cap2stg` is the storage duration.
+and `duration` is the storage duration.
 
 ``` r
 
 STG_ELC <- newStorage(
   name = "STG_ELC", desc = "Battery", commodity = "ELC",
   seff = data.frame(inpeff = 0.9, outeff = 0.9, stgeff = 0.999),
-  cap2stg = 4,                                   # 4 hours of storage per unit power
+  duration = 4,                                   # 4 hours of storage per unit power
   aux  = data.frame(acomm = "MAT", unit = "kt"),
   aeff = data.frame(acomm = "MAT", ncap2ainp = 0.25))  # material per new capacity
 draw(STG_ELC)
@@ -242,13 +242,14 @@ The share range is drawn in square brackets next to each grouped
 commodity.
 
 **Mixed units live in the coefficients.** When inputs and outputs use
-different units, a unit conversion must ride on one of the chain
-coefficients so that *use*, *activity* and `cap2act` agree. Here the
-fuels are PJ and electricity is GWh: `ginp2use = 277.78` converts the
-fuel group to GWh (so the technology *operates* in GWh), and
-`cap2act = 8760` matches (1 GW × 8760 h). Keeping every commodity in one
-unit family (as UTOPIA does with PJ) avoids the gymnastics —
-`convert("PJ", "GWh", 1)` tells you the factor when you can’t.
+different units the conversion has to appear somewhere, so that *use*,
+*activity* and `cap2act` agree — and a chain coefficient is the natural
+place for it. Here the fuels are PJ and electricity is GWh:
+`ginp2use = 277.78` converts the fuel group to GWh (so the technology
+*operates* in GWh), and `cap2act = 8760` matches (1 GW × 8760 h). You do
+not have to work the factor out by hand: `convert("PJ", "GWh", 1)` gives
+it. See the *Units* article for where each unit is declared and how
+`convert()` finds a factor.
 
 #### Activity, capacity and units
 
@@ -256,10 +257,12 @@ Everything a technology does is measured by its **activity**. Installed
 **capacity** limits the *maximum* activity through the scalar `cap2act`:
 
 - `cap2act` — “how much product (activity, or output commodity if
-  identical) is produced per unit of capacity”. For a power plant with
-  capacity in `GW`, `cap2act = 8.76` gives a maximum activity of
-  `8.76 GWh` per `GW` per year (8760 h, scaled to the cost/energy units
-  in use).
+  identical) is produced per unit of capacity”. Its own units are
+  *activity per capacity*, so the number depends on both. A power plant
+  rated in `GW` running flat out for a year produces 8760 GWh, so
+  `cap2act = 8760` with activity in `GWh` — and `cap2act = 31.536` for
+  the same plant with activity in `PJ` (1 GW × 8760 h = 31.536 PJ),
+  which is the convention *UTOPIA I* uses.
 - Capacity itself is bounded in the `capacity` slot: `stock`
   (pre-existing), `cap.lo/up/fx` (total), `ncap.lo/up/fx` (new builds)
   and `ret.lo/up/fx` (retirement). Availability factors `af`/`afs` bound
@@ -594,6 +597,8 @@ the container it returns `NULL` with a message unless
 
 ## See also
 
+- **Units** — where each unit is declared, how `convert()` moves between
+  them, and what the model checks.
 - **Autoplot** — plots of calendars, horizons, commodity emissions and
   the by-year `supply`/`demand`/`import`/`export` parameters.
 - **Solver backends** — turning a scenario into a solved model.
@@ -603,4 +608,5 @@ the container it returns `NULL` with a message unless
   [`?newConstraint`](https://energyRt.org/reference/newConstraint.md),
   [`?newRepository`](https://energyRt.org/reference/newRepository.md),
   [`?newModel`](https://energyRt.org/reference/newModel.md),
-  [`?levcost`](https://energyRt.org/reference/levcost.md).
+  [`?levcost`](https://energyRt.org/reference/levcost.md), `?convert`,
+  [`?getUnits`](https://energyRt.org/reference/getUnits.md).

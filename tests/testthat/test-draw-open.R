@@ -132,10 +132,10 @@ test_that("the label pad clears the arrow by the same distance on any device", {
 # --------------------------------------------------------------------------- #
 # 3. storage centre label
 
-test_that("draw(storage) shows one cap2stg value, not one per key column", {
-  # `@cap2stg` is a data.frame (vintage, cluster, region, year, cap2stg) while
-  # technology's `@cap2act` is a scalar, so `paste0("cap2stg: ", object@cap2stg)`
-  # vectorised over COLUMNS and drew "cap2stg: NA" four times before the value.
+test_that("draw(storage) shows one duration value, not one per key column", {
+  # `@duration` is a data.frame (vintage, cluster, region, year, duration) while
+  # technology's `@cap2act` is a scalar, so `paste0("duration: ", object@duration)`
+  # vectorised over COLUMNS and drew "duration: NA" four times before the value.
   o <- do_obj("storage")
   skip_if(is.null(o), "no storage in the fixture repo")
 
@@ -148,12 +148,12 @@ test_that("draw(storage) shows one cap2stg value, not one per key column", {
                  function(n) paste(grid::grid.get(n)$label, collapse = ""),
                  character(1))
 
-  cap <- grep("cap2stg", labs, value = TRUE)
+  cap <- grep("duration", labs, value = TRUE)
   expect_length(cap, 1L)
   expect_false(grepl("NA", cap))
-  # exactly one "cap2stg:" inside that label, and no blank leading line from an
+  # exactly one "duration:" inside that label, and no blank leading line from an
   # empty `stg_par$lab_par`
-  expect_equal(lengths(regmatches(cap, gregexpr("cap2stg:", cap)))[[1]], 1L)
+  expect_equal(lengths(regmatches(cap, gregexpr("duration:", cap)))[[1]], 1L)
   expect_false(startsWith(cap, "\n"))
 })
 

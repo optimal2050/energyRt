@@ -78,19 +78,55 @@ map_mSupAva <- function(scen, fmp) {
 # -- storage core ---------------------------------------------------------- #
 # Unfiltered storage store intermediate (stg span x comm x timeslice). The aux maps
 # below derive their base from THIS (unfiltered) frame, not the comm-filtered
-# persisted mvStorageStore, so it is recomputed here.
-.filter_storage_store <- function(scen) {
-  stg_span  <- .gds(scen, "mStorageSpan")
-  stg_comm  <- .gds(scen, "mStorageComm")
+# persisted mvStorageLevel, so it is recomputed here.
+# The storage's operating domain, WITHOUT a commodity -- the direct analogue of
+# mvTechAct. Each of the three roles then crosses it with its own commodity map,
+# exactly as mvTechInp = mvTechAct x mTechInpComm. This is what lets a storage
+# consume one commodity, hold a second and release a third: the flows follow
+# their own commodity while the level follows what is stored.
+#
+# Note the timeslices come from the STORAGE (`.filter_timeslice`), not from each
+# commodity, so a coarse output commodity is produced at the storage's own
+# resolution and its balance aggregates it up -- the same way a technology with a
+# coarse output behaves today.
+.filter_storage_act <- function(scen) {
+  stg_span <- .gds(scen, "mStorageSpan")
   stg_timeslice <- .filter_timeslice(scen, "storage", "stg")
-  if (is.null(stg_span) || is.null(stg_comm) || is.null(stg_timeslice)) return(NULL)
-  as.data.frame(merge0(as.data.frame(merge0(stg_span, stg_comm)), stg_timeslice))
+  if (is.null(stg_span) || is.null(stg_timeslice)) return(NULL)
+  as.data.frame(merge0(stg_span, stg_timeslice))
 }
 
-map_mvStorageStore <- function(scen, fmp) {
-  store <- .filter_storage_store(scen)
+# `role_map` is one of mStorageStgComm / mStorageInpComm / mStorageOutComm. All
+# three default from `newStorage(commodity = )`, so a storage written the old way
+# yields three identical domains and the model is unchanged.
+.filter_storage_role <- function(scen, role_map) {
+  act <- .filter_storage_act(scen)
+  cm  <- .gds(scen, role_map)
+  if (is.null(act) || is.null(cm)) return(NULL)
+  as.data.frame(merge0(act, cm))
+}
+
+# Kept for the aux maps below, which derive from the UNFILTERED store frame.
+.filter_storage_store <- function(scen) {
+  .filter_storage_role(scen, "mStorageStgComm")
+}
+
+map_mvStorageLevel <- function(scen, fmp) {
+  store <- .filter_storage_role(scen, "mStorageStgComm")
   if (is.null(store)) return(scen)
-  .set_map(scen, "mvStorageStore", .filt_cr(scen, store), fmp)
+  .set_map(scen, "mvStorageLevel", .filt_cr(scen, store), fmp)
+}
+
+map_mvStorageInp <- function(scen, fmp) {
+  d <- .filter_storage_role(scen, "mStorageInpComm")
+  if (is.null(d)) return(scen)
+  .set_map(scen, "mvStorageInp", .filt_cr(scen, d), fmp)
+}
+
+map_mvStorageOut <- function(scen, fmp) {
+  d <- .filter_storage_role(scen, "mStorageOutComm")
+  if (is.null(d)) return(scen)
+  .set_map(scen, "mvStorageOut", .filt_cr(scen, d), fmp)
 }
 
 map_mvStorageAInp <- function(scen, fmp) {
@@ -191,17 +227,26 @@ map_mSupOutTot <- function(scen, fmp) {
   .set_map(scen, "mSupOutTot", .reduce_sect(mSupAva[, -1, drop = FALSE]), fmp)
 }
 
-# mStorageInpTot / mStorageOutTot: legacy uses the SAME frame for both =
-# reduce_sect(rbind(mvStorageAInp[,-1], mvStorageStore[,-1])).
-.filter_storage_tot <- function(scen, name, fmp) {
-  ai <- .gds(scen, "mvStorageAInp"); st <- .gds(scen, "mvStorageStore")
-  if (is.null(ai) && is.null(st)) return(scen)
-  pieces <- lapply(Filter(Negate(is.null), list(ai, st)),
+# mStorageInpTot / mStorageOutTot: which (comm, region, year, timeslice) cells a
+# storage contributes to the commodity balance on each side.
+#
+# These MUST follow the flow's own commodity, not the level's. Legacy built both
+# from mvStorageLevel (plus mvStorageAInp for both sides), which was invisible
+# while a storage had one commodity -- and fatal once it can hold something other
+# than what it exchanges: a hydrogen store would register only in the H2 balance,
+# so the ELC balance never saw it charge or discharge and the store sat unused.
+# The aux side is likewise split: AInp feeds the input total, AOut the output.
+.filter_storage_tot <- function(scen, name, main, aux, fmp) {
+  m <- .gds(scen, main); a <- .gds(scen, aux)
+  if (is.null(m) && is.null(a)) return(scen)
+  pieces <- lapply(Filter(Negate(is.null), list(a, m)),
                    function(x) x[, -1, drop = FALSE])
   .set_map(scen, name, .reduce_sect(dplyr::bind_rows(pieces)), fmp)
 }
-map_mStorageInpTot <- function(scen, fmp) .filter_storage_tot(scen, "mStorageInpTot", fmp)
-map_mStorageOutTot <- function(scen, fmp) .filter_storage_tot(scen, "mStorageOutTot", fmp)
+map_mStorageInpTot <- function(scen, fmp)
+  .filter_storage_tot(scen, "mStorageInpTot", "mvStorageInp", "mvStorageAInp", fmp)
+map_mStorageOutTot <- function(scen, fmp)
+  .filter_storage_tot(scen, "mStorageOutTot", "mvStorageOut", "mvStorageAOut", fmp)
 
 # -- auxiliary-conversion domains (mTech*2A* / mStorage*2A*) ---------------- #
 # Each: relabel a conversion-factor parameter's aux commodity as `comm` and
@@ -716,7 +761,9 @@ map_mvBalance <- function(scen, fmp)
   mvTechAInp     = map_mvTechAInp,
   mvTechAOut     = map_mvTechAOut,
   mSupAva        = map_mSupAva,
-  mvStorageStore = map_mvStorageStore,
+  mvStorageLevel = map_mvStorageLevel,
+  mvStorageInp   = map_mvStorageInp,
+  mvStorageOut   = map_mvStorageOut,
   mvStorageAInp  = map_mvStorageAInp,
   mvStorageAOut  = map_mvStorageAOut,
   # derived totals

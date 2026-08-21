@@ -29,7 +29,6 @@ get_julia_path <- function() {
 
 # Functions to write Julia/JuMP model and data files
 .write_model_JuMP <- function(arg, scen) {
-  .assert_payback_supported(scen, "JuMP/Julia")
   .assert_geolevel_supported(scen, "JuMP/Julia")
   run_code <- scen@settings@sourceCode[["JuMP"]]
   run_codeout <- scen@settings@sourceCode[["JuMPOutput"]]
@@ -52,30 +51,18 @@ get_julia_path <- function() {
   #     substr(run_code[i], 1, nchar(run_code[i]) - nchar(tx))
   #   ), ")", tx)
   # }
-  # # Check for complicated weather
-  # for (pr in c(
-  #   "mTechWeatherAfLo", "mTechWeatherAfUp", "mTechWeatherAfsLo",
-  #   "mTechWeatherAfsUp", "mTechWeatherAfcLo", "mTechWeatherAfcUp",
-  #   "mTechWeatherAfcLo", "mTechWeatherAfcUp", "mSupWeatherUp",
-  #   "mSupWeatherLo", "mStorageWeatherAfLo", "mStorageWeatherAfUp",
-  #   "mStorageWeatherCinpUp", "mStorageWeatherCinpLo",
-  #   "mStorageWeatherCoutUp", "mStorageWeatherCoutLo"
-  # )) {
-  #   tmp <- .get_data_slot(scen@modInp@parameters[[pr]])
-  #   tmp$weather <- NULL
-  #   if (anyDuplicated(tmp)) {
-  #     assign("error_msg", tmp[duplicated(tmp), , drop = FALSE], globalenv())
-  #     stop(paste0(
-  #       "Multiplication of weather-factors is not supported in Julia/JuMP",
-  #       "version of energyRt.",
-  #       "The problem with `prod` is resolved, but to be implemented. ",
-  #       'The list of weather-factors to multiply"', pr,
-  #       '"is stored in `error_msg` object.',
-  #       "To execute the this model in Julia/JuMP language,",
-  #       "these weather-factors must be combined into one."
-  #     ))
-  #   }
-  # }
+  # [weather-prod] VERIFIED FIXED 2026-08-19 -- the guard that used to sit here is gone.
+  # It refused any model with more than one weather factor on the same process,
+  # because an early JuMP translation could not express the product. The emitted
+  # Julia now does, and carries the explicit identity the empty case needs:
+  #
+  #   prod( pTechWeatherAfUp[...] * pWeather[...]
+  #         for wth1 in weather if (wth1, t) in mTechWeatherAfUp ; init = 1)
+  #
+  # Checked on a two-factor technology (W1 = .9/.8/.7/.6, W2 = .5/.6/.7/.8 over
+  # four seasons): GLPK and Julia/HiGHS agree on the objective to 1.0000000000.
+  # Dropping a factor would roughly double af.up and halve capacity, so the
+  # objective is a sharp test. The old text is in git history at R/write_jump.R.
   # For downsize (rename?)
   fdownsize <- names(scen@modInp@parameters)[
     sapply(scen@modInp@parameters, function(x) length(x@misc$rem_col) != 0)

@@ -130,13 +130,13 @@ test_that("the temporal stock rule does NOT carry over to space", {
   skip_if_no_geoscales()
   # `role: stock` means "never summed over timeslices". Summing a storage level
   # across regions is meaningful, so it must aggregate normally here.
-  expect_true(.is_state_var("vStorageStore"))
-  expect_false(.is_flow_var("vStorageStore"))
+  expect_true(.is_state_var("vStorageLevel"))
+  expect_false(.is_flow_var("vStorageLevel"))
 
   gs <- demo_gs()
   x <- data.frame(region = c("R1", "R2", "R3", "R4"), value = c(1, 2, 3, 4))
   out <- .geo_aggregate(x, gs, from = "region", to = "zone",
-                        name = "vStorageStore")
+                        name = "vStorageLevel")
   expect_equal(sum(out$value), 10)
   expect_equal(out$value[out$zone == "N"], 3)
 })

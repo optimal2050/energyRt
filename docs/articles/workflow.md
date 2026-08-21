@@ -72,17 +72,17 @@ otherwise); every frame carries a `scenario` and a `name` column.
 ``` r
 
 getData(scen, "vObjective", merge = TRUE)$value      # total system cost, MEUR
-#> [1] 13007.08
+#> [1] 13043.69
 
 gen <- getData(scen, "vTechOut", comm = "ELC", merge = TRUE)
 head(gen[, c("scenario", "tech", "region", "year", "timeslice", "value")], 4)
 #> # A tibble: 4 × 6
-#>   scenario tech  region  year timeslice value
-#>   <chr>    <chr> <chr>  <int> <chr>     <dbl>
-#> 1 BASE     ECOA  R1      2020 ANNUAL    21.7 
-#> 2 BASE     ECOA  R1      2030 ANNUAL    34.7 
-#> 3 BASE     ECOA  R1      2040 ANNUAL    25.5 
-#> 4 BASE     EGAS  R1      2040 ANNUAL     2.82
+#>   scenario tech  region  year timeslice  value
+#>   <chr>    <chr> <chr>  <int> <chr>      <dbl>
+#> 1 BASE     ECOA  R1      2020 AUT_h06   0.0392
+#> 2 BASE     ECOA  R1      2020 AUT_h07   0.149 
+#> 3 BASE     ECOA  R1      2020 AUT_h08   0.183 
+#> 4 BASE     ECOA  R1      2020 AUT_h09   0.144
 ```
 
 The `...` accept set filters, exact (`comm = "ELC"`) or regex
@@ -158,7 +158,7 @@ as `name_model_calendar_horizon`:
 ``` r
 
 get_scenarios_path()
-#> [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpghSoO7/wf"
+#> [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpApr0Wm/wf"
 make_scenario_dirname(scen)
 #> [1] "BASE_UTOPIA_utopia_s4h24_base"
 ```
@@ -203,7 +203,7 @@ basename(saved@path)                                 # the scenario folder
 isInMemory(saved)                                    # FALSE -- data is on disk
 #> [1] FALSE
 getData(ld, "vObjective", merge = TRUE)$value        # lazy read, no full load
-#> [1] 13007.08
+#> [1] 13043.69
 ```
 
 ``` r
@@ -259,7 +259,7 @@ emis |>
 sapply(list(BASE = scen, CO2CAP = scen_cap),
        function(s) round(getData(s, "vObjective", merge = TRUE)$value[1]))
 #>   BASE CO2CAP 
-#>  13007  13427
+#>  13044  13482
 ```
 
 To reason about **model size** rather than results,
@@ -272,8 +272,8 @@ in-memory footprint:
 
 model_size(scen)
 #> model_size: BASE
-#>   parameters : 128 value, 233 maps, 13 sets
-#>   param rows : 5,902
+#>   parameters : 143 value, 260 maps, 13 sets
+#>   param rows : 5,901
 #>   estimate   : ~16,111 variables, ~16,832 constraints (from gating maps)
 #>   top parameters by rows:
 #>     pTechCinp2use      1,536
@@ -292,7 +292,7 @@ model_size(scen)
 #>     pTechInvcost       20
 #>     pTechStock         14
 size(scen)
-#> [1] "6.2 Mb"
+#> [1] "6.6 Mb"
 ```
 
 For a systematic check that a build is correct *and* efficient,
