@@ -1424,12 +1424,12 @@ draw.storage <- function(object, ...) {
 #'   fixom = data.frame(
 #'     # region = "R1",
 #'     # year = 2020,
-#'     fixom = 0.9 # fixed operation and maintenance cost
+#'     out.fixom = 0.9 # fixed operation and maintenance cost
 #'   ),
 #'   duration = 4, # four-hours of storage
 #'   invcost = data.frame(
 #'     region = c("R1", NA), # region R1 and all other regions
-#'     invcost = c(1e3, 1.1e3) # investment cost in MUSD/GWh of 4-hour storage
+#'     out.invcost = c(1e3, 1.1e3) # investment cost in MUSD/GWh of 4-hour storage
 #'   ),
 #'   fullYear = TRUE, # full year storage cycle
 #'   weather = data.frame(

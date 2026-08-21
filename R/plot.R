@@ -1550,7 +1550,10 @@ autoplot.trade <- function(object, map = NULL, ...) {
   check_package("geoscales")
   check_package("sf")
   level <- level %||% .geo_default_level(map)
-  shp <- geoscales::geo_geometry(map, level = level)
+  # geoscales 0.2 renamed `level` -> `geoframe`; the `geo_geometry()` shim
+  # forwards `...` unchanged, so `level =` reaches a function that no longer has
+  # that argument and errors with "unused argument". Use the current name.
+  shp <- geoscales::geoscale_geometry(map, geoframe = level)
   names(shp)[names(shp) == level] <- "region"
   # `st_point_on_surface()` rather than `st_centroid()`: a centroid can fall
   # outside a concave or multipart region, which would hang its routes and

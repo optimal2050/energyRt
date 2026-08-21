@@ -208,7 +208,7 @@ tm_STG_ELC <- newStorage(
   name = "STG_ELC",
   desc = "Electricity storage",
   commodity = "ELC",
-  invcost = list(invcost = 50),
+  invcost = list(out.invcost = 50),
   olife = list(olife = 15)
 )
 
@@ -231,7 +231,7 @@ tm_STG_ELC_aux <- newStorage(
     data.frame(acomm = "HET", stg2ainp = NA_real_, cap2ainp = NA_real_,
                stg2aout = 0.01)
   ),
-  invcost = list(invcost = 50),
+  invcost = list(out.invcost = 50),
   olife = list(olife = 15)
 )
 
@@ -258,7 +258,7 @@ tm_STG_ELC_weather <- newStorage(
     wcinp.up = 0.9,  # -> mStorageWeatherCinpUp
     wcout.up = 0.8   # -> mStorageWeatherCoutUp
   ),
-  invcost = list(invcost = 50),
+  invcost = list(out.invcost = 50),
   olife = list(olife = 15)
 )
 

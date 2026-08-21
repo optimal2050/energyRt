@@ -189,7 +189,7 @@
   ord <- yrs - min(yrs) + 1L
   span <- sum(len)
 
-  for (pn in c("pTechPayback", "pStoragePayback", "pTradePayback")) {
+  for (pn in c("pTechPayback", "pStorageOutPayback", "pTradePayback")) {
     p <- scen@modInp@parameters[[pn]]
     if (is.null(p)) next
     d <- tryCatch(as.data.frame(get_data_slot(p)), error = function(e) NULL)
@@ -224,7 +224,7 @@
 # investment, so it is refused instead.
 .assert_payback_supported <- function(scen, engine) {
   used <- character()
-  for (pn in c("pTechPayback", "pStoragePayback", "pTradePayback")) {
+  for (pn in c("pTechPayback", "pStorageOutPayback", "pTradePayback")) {
     p <- scen@modInp@parameters[[pn]]
     if (is.null(p)) next
     d <- as.data.frame(get_data_slot(p))
@@ -244,19 +244,19 @@
 compute_eac_parameters <- function(scen) {
   scen <- .eac_one(scen, "tech", "pTechInvcost", "pTechOlife", "mTechNew",
                    "pTechEac", "pTechWacc", "pTechPayback")
-  scen <- .eac_one(scen, "stg", "pStorageInvcost", "pStorageOlife",
-                   "mStorageNew", "pStorageEac", "pStorageWacc",
-                   "pStoragePayback")
+  scen <- .eac_one(scen, "stg", "pStorageOutInvcost", "pStorageOlife",
+                   "mStorageNew", "pStorageOutEac", "pStorageOutWacc",
+                   "pStorageOutPayback")
   # The STORING part's capital cost is per unit of ENERGY and annuitises
   # separately, but on the same @vintage -- one storage, one lifetime and one
   # wacc, two capital costs on different bases. Per-part lifetimes would need
   # their own olife/wacc columns and are deliberately not in this change.
   scen <- .eac_one(scen, "stg", "pStorageStgInvcost", "pStorageOlife",
-                   "mStorageStgNew", "pStorageStgEac", "pStorageWacc",
-                   "pStoragePayback")
+                   "mStorageStgNew", "pStorageStgEac", "pStorageOutWacc",
+                   "pStorageOutPayback")
   scen <- .eac_one(scen, "stg", "pStorageInpInvcost", "pStorageOlife",
-                   "mStorageInpNew", "pStorageInpEac", "pStorageWacc",
-                   "pStoragePayback")
+                   "mStorageInpNew", "pStorageInpEac", "pStorageOutWacc",
+                   "pStorageOutPayback")
   scen <- .eac_one(scen, "trade", "pTradeInvcost", "pTradeOlife", "mTradeNew",
                    "pTradeEac", "pTradeWacc", "pTradePayback")
   .check_payback_grid(scen)

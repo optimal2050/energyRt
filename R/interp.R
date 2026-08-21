@@ -619,7 +619,7 @@ interpolate_model <- function(mod, name = NULL, ...,
 
   #============================================================================#
   # Equivalent annual cost (EAC) ####
-  #   Annuitise investment cost into pTechEac / pStorageEac / pTradeEac. Must run
+  #   Annuitise investment cost into pTechEac / pStorageOutEac / pTradeEac. Must run
   #   after interpolation (reads pXInvcost / pDiscount / pXOlife) and before the
   #   value recipe (mTradeEac reads pTradeEac's value domain). The generic ob2mi
   #   slot loop leaves these equal to the raw invcost.
@@ -3311,6 +3311,10 @@ get_process_inputs <- function(scen, process = NULL, classes = NULL) {
     )
   }
 
+  # Names of processes that turn out to have no input commodity, so they can be
+  # reported in a single message instead of one warning each (see below).
+  .no_input_processes <- character()
+
   # collect all inputs for each process
 
   ll <- apply_to_scenario_data(
@@ -3337,12 +3341,28 @@ get_process_inputs <- function(scen, process = NULL, classes = NULL) {
           as.character() |>
           unique()
       } else {
-        warning("No inputs found for process ", x@name)
+        # No input commodity. This is legitimate, not a mistake: a weather-driven
+        # generator (wind, solar) converts an availability profile into output
+        # and consumes nothing, which is how PyPSA models a renewable Generator
+        # too. Collect the names and report ONCE below rather than warning per
+        # process -- six identical warnings per interpolation drown out a real
+        # one.
+        .no_input_processes <<- c(.no_input_processes, x@name)
         ll[[x@name]] <- character()
       }
       ll
     }
   )
+
+  # Verbose-only. A process with no input is a valid modelling choice, not a
+  # suspected mistake, and `get_process_inputs()` is called many times during one
+  # interpolation -- so reporting unconditionally produced the same list nine
+  # times over. There is no way to tell a deliberate weather-driven generator
+  # from a forgotten `@input`, so this informs rather than warns.
+  if (isTRUE(isVerbose()) && length(.no_input_processes)) {
+    message("Processes with no input commodity (output is bounded, not fuelled): ",
+            paste(sort(unique(.no_input_processes)), collapse = ", "))
+  }
   ll
 }
 
@@ -3898,6 +3918,22 @@ get_process_invest_years <- function(scen, process = NULL, classes = NULL) {
   x
 }
 
+# A `storage` keeps its exogenous capacity in THREE columns -- `out.stock`,
+# `inp.stock`, `stg.stock` -- one per commodity role, while `technology` and
+# `trade` keep a single `stock`. Everything that only asks "does this process
+# exist in this year" wants the union: a store is present if ANY of its parts
+# is. Collapse to a single `stock` column so those callers stay class-agnostic.
+.capacity_stock <- function(cap) {
+  if ("stock" %in% names(cap)) return(cap)
+  sc <- intersect(c("out.stock", "inp.stock", "stg.stock"), names(cap))
+  if (!length(sc)) {
+    cap$stock <- rep(NA_real_, NROW(cap))
+    return(cap)
+  }
+  cap$stock <- do.call(pmax, c(lapply(sc, function(k) cap[[k]]), na.rm = TRUE))
+  cap
+}
+
 get_process_stock_window <- function(scen, process = NULL, classes = NULL) {
   # collect capacity$stock years by process and region
   if (is.null(classes)) {
@@ -3919,7 +3955,7 @@ get_process_stock_window <- function(scen, process = NULL, classes = NULL) {
       # cat("Process: ", x@name, "\n")
       # browser()
       if (!.hasSlot(x, "capacity")) return(NULL)
-      dd <- x@capacity |>
+      dd <- .capacity_stock(x@capacity) |>
         select(any_of("region"), year, stock) |>
         filter(!is.na(stock)) |>
         unique() |>

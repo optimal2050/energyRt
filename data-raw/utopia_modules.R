@@ -175,7 +175,7 @@ build_utopia <- function(regions = paste0("R", 1:3),
 
   # ---- storage (STG_*, 4-hour battery, ~200 EUR/kWh energy) ----
   STG_ELC <- newStorage("STG_ELC", commodity = "ELC", olife = 20L,
-    invcost = list(invcost = convert("EUR/kWh", "MEUR/PJ", 200)),
+    invcost = list(out.invcost = convert("EUR/kWh", "MEUR/PJ", 200)),
     duration = 4, seff = data.frame(inpeff = 0.95, outeff = 0.95))
 
   # ---- interregional trade (TBD_*, bi-directional links along the chain) ----

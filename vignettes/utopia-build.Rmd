@@ -717,7 +717,7 @@ STG_ELC <- newStorage(
   desc = "Grid battery, 4-hour",
   commodity = "ELC",
   invcost = list(
-    invcost = convert("EUR/kWh", "MEUR/PJ", 200)
+    out.invcost = convert("EUR/kWh", "MEUR/PJ", 200)
   ),
   duration = 4,                            # 4 hours of storage per GW
   seff = data.frame(

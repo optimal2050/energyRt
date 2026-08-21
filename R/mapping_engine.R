@@ -945,13 +945,13 @@ recipe_value <- function(scen, names, fmp) {
                          types = "up", drop = "up"),
 
   # C6 storage capacity / retirement bounds.
-  mStorageCapLo    = list(domain = "mStorageSpan", source = "pStorageCap",
+  mStorageCapLo    = list(domain = "mStorageSpan", source = "pStorageOutCap",
                           types = "lo"),
-  mStorageCapUp    = list(domain = "mStorageSpan", source = "pStorageCap",
+  mStorageCapUp    = list(domain = "mStorageSpan", source = "pStorageOutCap",
                           types = "up"),
-  mStorageNewCapLo = list(domain = "mStorageNew",  source = "pStorageNewCap",
+  mStorageNewCapLo = list(domain = "mStorageNew",  source = "pStorageOutNewCap",
                           types = "lo"),
-  mStorageNewCapUp = list(domain = "mStorageNew",  source = "pStorageNewCap",
+  mStorageNewCapUp = list(domain = "mStorageNew",  source = "pStorageOutNewCap",
                           types = "up"),
   # Storing-side bounds live on mStorageStgCap, not mStorageSpan: without data
   # there is no vStorageStgCap to bound.
@@ -982,9 +982,9 @@ recipe_value <- function(scen, names, fmp) {
                              types = "lo"),
   mStorageDurationUp  = list(domain = "mStorageStgCap", source = "pStorageDuration",
                              types = "up"),
-  mStorageRetLo    = list(domain = "mStorageSpan", source = "pStorageRet",
+  mStorageRetLo    = list(domain = "mStorageSpan", source = "pStorageOutRet",
                           types = "lo"),
-  mStorageRetUp    = list(domain = "mStorageSpan", source = "pStorageRet",
+  mStorageRetUp    = list(domain = "mStorageSpan", source = "pStorageOutRet",
                           types = "up"),
 
   # C7 trade capacity / retirement bounds (trade flow & cap-flow maps are

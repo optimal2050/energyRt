@@ -986,8 +986,8 @@ pStorageOlife:
   colName: olife
   class: storage
   slot: vintage
-pStorageStock:
-  name: pStorageStock
+pStorageOutStock:
+  name: pStorageOutStock
   dimSets:
   - stg
   - region
@@ -995,11 +995,11 @@ pStorageStock:
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
-  colName: stock
+  colName: out.stock
   class: storage
   slot: capacity
-pStorageFixom:
-  name: pStorageFixom
+pStorageOutFixom:
+  name: pStorageOutFixom
   dimSets:
   - stg
   - region
@@ -1007,11 +1007,11 @@ pStorageFixom:
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
-  colName: fixom
+  colName: out.fixom
   class: storage
   slot: fixom
-pStorageInvcost:
-  name: pStorageInvcost
+pStorageOutInvcost:
+  name: pStorageOutInvcost
   dimSets:
   - stg
   - region
@@ -1019,12 +1019,12 @@ pStorageInvcost:
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
-  colName: invcost
+  colName: out.invcost
   class: storage
   slot: invcost
 # See pTechEac / pTechWacc / pTechPayback for what these three do.
-pStorageEac:
-  name: pStorageEac
+pStorageOutEac:
+  name: pStorageOutEac
   dimSets:
   - stg
   - region
@@ -1032,11 +1032,11 @@ pStorageEac:
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
-  colName: eac
+  colName: out.eac
   class: storage
   slot: invcost
-pStorageWacc:
-  name: pStorageWacc
+pStorageOutWacc:
+  name: pStorageOutWacc
   dimSets:
   - stg
   - region
@@ -1044,12 +1044,12 @@ pStorageWacc:
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
-  colName: wacc
+  colName: out.wacc
   class: storage
   slot: invcost
   dropIfEmpty: false
-pStoragePayback:
-  name: pStoragePayback
+pStorageOutPayback:
+  name: pStorageOutPayback
   dimSets:
   - stg
   - region
@@ -1057,7 +1057,7 @@ pStoragePayback:
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
-  colName: payback
+  colName: out.payback
   class: storage
   slot: invcost
   dropIfEmpty: false
@@ -1193,9 +1193,9 @@ pStorageStgStock:
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
-  colName: stock
+  colName: stg.stock
   class: storage
-  slot: storage
+  slot: capacity
 pStorageStgInvcost:
   name: pStorageStgInvcost
   dimSets:
@@ -1205,9 +1205,9 @@ pStorageStgInvcost:
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
-  colName: invcost
+  colName: stg.invcost
   class: storage
-  slot: storage
+  slot: invcost
 pStorageStgFixom:
   name: pStorageStgFixom
   dimSets:
@@ -1217,9 +1217,9 @@ pStorageStgFixom:
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
-  colName: fixom
+  colName: stg.fixom
   class: storage
-  slot: storage
+  slot: fixom
 # Annuitised from pStorageStgInvcost by compute_eac_parameters(); the storing and
 # output parts share the storage's @vintage (olife/wacc/payback), so only the
 # capital cost differs between them.
@@ -1232,9 +1232,9 @@ pStorageStgEac:
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
-  colName: eac
+  colName: stg.eac
   class: storage
-  slot: storage
+  slot: invcost
 pStorageStgCap:
   name: pStorageStgCap
   dimSets:
@@ -1248,9 +1248,9 @@ pStorageStgCap:
   interpolation:
   - inter.forth
   - inter.forth
-  colName: cap
+  colName: stg.cap
   class: storage
-  slot: storage
+  slot: capacity
 pStorageStgNewCap:
   name: pStorageStgNewCap
   dimSets:
@@ -1264,9 +1264,9 @@ pStorageStgNewCap:
   interpolation:
   - inter.forth
   - inter.forth
-  colName: ncap
+  colName: stg.ncap
   class: storage
-  slot: storage
+  slot: capacity
 # --- the CHARGING part's own capacity and economics -------------------------- #
 # Power, like the output side, but rated independently: an EV drawing 7 kW from
 # the grid while delivering 100 kW to its motor has nowhere else to put the
@@ -1280,9 +1280,9 @@ pStorageInpStock:
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
-  colName: stock
+  colName: inp.stock
   class: storage
-  slot: input
+  slot: capacity
 pStorageInpInvcost:
   name: pStorageInpInvcost
   dimSets:
@@ -1292,9 +1292,9 @@ pStorageInpInvcost:
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
-  colName: invcost
+  colName: inp.invcost
   class: storage
-  slot: input
+  slot: invcost
 pStorageInpFixom:
   name: pStorageInpFixom
   dimSets:
@@ -1304,9 +1304,9 @@ pStorageInpFixom:
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
-  colName: fixom
+  colName: inp.fixom
   class: storage
-  slot: input
+  slot: fixom
 pStorageInpEac:
   name: pStorageInpEac
   dimSets:
@@ -1316,9 +1316,9 @@ pStorageInpEac:
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
-  colName: eac
+  colName: inp.eac
   class: storage
-  slot: input
+  slot: invcost
 pStorageInpCap:
   name: pStorageInpCap
   dimSets:
@@ -1332,9 +1332,9 @@ pStorageInpCap:
   interpolation:
   - inter.forth
   - inter.forth
-  colName: cap
+  colName: inp.cap
   class: storage
-  slot: input
+  slot: capacity
 pStorageInpNewCap:
   name: pStorageInpNewCap
   dimSets:
@@ -1348,9 +1348,9 @@ pStorageInpNewCap:
   interpolation:
   - inter.forth
   - inter.forth
-  colName: ncap
+  colName: inp.ncap
   class: storage
-  slot: input
+  slot: capacity
 # inp2out = input capacity / output capacity, dimensionless. Same shape as
 # pStorageDuration; [1, 1] keeps a storage that says nothing symmetric, which is
 # what a single bidirectional inverter has always been.
@@ -1623,8 +1623,8 @@ pStorageStartLevel:
   colName: startLevel
   class: storage
   slot: startLevel
-pStorageCap:
-  name: pStorageCap
+pStorageOutCap:
+  name: pStorageOutCap
   dimSets:
   - stg
   - region
@@ -1636,11 +1636,11 @@ pStorageCap:
   interpolation:
   - inter.forth
   - inter.forth
-  colName: cap
+  colName: out.cap
   class: storage
   slot: capacity
-pStorageNewCap:
-  name: pStorageNewCap
+pStorageOutNewCap:
+  name: pStorageOutNewCap
   dimSets:
   - stg
   - region
@@ -1652,11 +1652,11 @@ pStorageNewCap:
   interpolation:
   - inter.forth
   - inter.forth
-  colName: ncap
+  colName: out.ncap
   class: storage
   slot: capacity
-pStorageRet:
-  name: pStorageRet
+pStorageOutRet:
+  name: pStorageOutRet
   dimSets:
   - stg
   - region
@@ -1668,11 +1668,11 @@ pStorageRet:
   interpolation:
   - inter.forth
   - inter.forth
-  colName: ret
+  colName: out.ret
   class: storage
   slot: capacity
-pStorageRetCost:
-  name: pStorageRetCost
+pStorageOutRetCost:
+  name: pStorageOutRetCost
   dimSets:
   - stg
   - region
@@ -1680,7 +1680,111 @@ pStorageRetCost:
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
-  colName: retcost
+  colName: out.retcost
+  class: storage
+  slot: invcost
+pStorageInpRet:
+  name: pStorageInpRet
+  dimSets:
+  - stg
+  - region
+  - year
+  type: bounds
+  defVal:
+  - 0.0
+  - .inf
+  interpolation:
+  - inter.forth
+  - inter.forth
+  colName: inp.ret
+  class: storage
+  slot: capacity
+pStorageInpWacc:
+  name: pStorageInpWacc
+  dimSets:
+  - stg
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: inp.wacc
+  class: storage
+  slot: invcost
+pStorageInpPayback:
+  name: pStorageInpPayback
+  dimSets:
+  - stg
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: inp.payback
+  class: storage
+  slot: invcost
+pStorageInpRetCost:
+  name: pStorageInpRetCost
+  dimSets:
+  - stg
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: inp.retcost
+  class: storage
+  slot: invcost
+pStorageStgRet:
+  name: pStorageStgRet
+  dimSets:
+  - stg
+  - region
+  - year
+  type: bounds
+  defVal:
+  - 0.0
+  - .inf
+  interpolation:
+  - inter.forth
+  - inter.forth
+  colName: stg.ret
+  class: storage
+  slot: capacity
+pStorageStgWacc:
+  name: pStorageStgWacc
+  dimSets:
+  - stg
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: stg.wacc
+  class: storage
+  slot: invcost
+pStorageStgPayback:
+  name: pStorageStgPayback
+  dimSets:
+  - stg
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: stg.payback
+  class: storage
+  slot: invcost
+pStorageStgRetCost:
+  name: pStorageStgRetCost
+  dimSets:
+  - stg
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: stg.retcost
   class: storage
   slot: invcost
 pTradeIrCsrc2Aout:

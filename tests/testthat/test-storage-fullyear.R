@@ -59,7 +59,7 @@ fy_model <- function(fullYear = TRUE, name = "fy") {
         vintage = data.frame(olife = 30L), cap2act = 1
       ),
       newStorage(
-        "STG", commodity = "ELC", invcost = list(invcost = 1),
+        "STG", commodity = "ELC", invcost = list(out.invcost = 1),
         vintage = data.frame(olife = 30L), fullYear = fullYear
       ),
       newDemand("DEM_ELC", commodity = "ELC",

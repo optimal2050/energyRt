@@ -661,8 +661,8 @@ write.sc <- write_sc
     rm(mTechRetUp)
   }
 
-  if (prec@parameters[["pStorageCap"]]@data |> nrow() > 0) {
-    mStorageCap <- prec@parameters[["pStorageCap"]]@data |>
+  if (prec@parameters[["pStorageOutCap"]]@data |> nrow() > 0) {
+    mStorageCap <- prec@parameters[["pStorageOutCap"]]@data |>
       inner_join(prec@parameters[["mStorageSpan"]]@data) |>
       # select(-value) |>
       unique()
@@ -682,9 +682,9 @@ write.sc <- write_sc
     rm(mStorageCapUp)
   }
 
-  if (nrow(prec@parameters[["pStorageNewCap"]]@data) > 0) {
+  if (nrow(prec@parameters[["pStorageOutNewCap"]]@data) > 0) {
     suppressMessages({
-      mStorageNewCap <- prec@parameters[["pStorageNewCap"]]@data |>
+      mStorageNewCap <- prec@parameters[["pStorageOutNewCap"]]@data |>
         inner_join(prec@parameters[["mStorageNew"]]@data) |>
         # select(-value) |>
         unique()
@@ -705,9 +705,9 @@ write.sc <- write_sc
     rm(mStorageNewCapUp)
   }
 
-  if(nrow(prec@parameters[["pStorageRet"]]@data) > 0) {
+  if(nrow(prec@parameters[["pStorageOutRet"]]@data) > 0) {
     suppressMessages({
-      mStorageRet <- prec@parameters[["pStorageRet"]]@data |>
+      mStorageRet <- prec@parameters[["pStorageOutRet"]]@data |>
         inner_join(prec@parameters[["mStorageSpan"]]@data) |>
         # select(-value) |>
         unique()

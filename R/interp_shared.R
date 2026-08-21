@@ -53,9 +53,9 @@
     "pTechWeatherAfc", "pTechWeatherAfc", "pStorageWeatherAf",
     "pStorageWeatherAf", "pStorageWeatherCinp", "pStorageWeatherCinp",
     "pStorageWeatherCout", "pStorageWeatherCout", "pStorageInpEff",
-    "pStorageOutEff", "pStorageStgEff", "pStorageStock", "pStorageOlife",
+    "pStorageOutEff", "pStorageStgEff", "pStorageOutStock", "pStorageOlife",
     "pStorageCostStore", "pStorageCostInp",
-    "pStorageCostOut", "pStorageFixom", "pStorageInvcost", "pStorageDuration",
+    "pStorageCostOut", "pStorageOutFixom", "pStorageOutInvcost", "pStorageDuration",
     "pStorageAf", "pStorageAf", "pStorageCinp", "pStorageCinp", "pStorageCout",
     "pStorageCout", "pStorageStg2AInp", "pStorageStg2AOut", "pStorageCinp2AInp",
     "pStorageCinp2AOut", "pStorageCout2AInp", "pStorageCout2AOut",
@@ -68,7 +68,7 @@
     "pImportRowRes", "pImportRow",
     "pImportRow",
     "pTechRet", "pTechCap", "pTechNewCap",
-    "pStorageRet", "pStorageCap", "pStorageNewCap",
+    "pStorageOutRet", "pStorageOutCap", "pStorageOutNewCap",
     "pTradeRet", "pTradeCap", "pTradeNewCap"
     # "pImportRowPrice"
   ))

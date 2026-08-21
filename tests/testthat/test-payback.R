@@ -119,7 +119,7 @@ test_that("payback is present in every backend template that claims to support i
     src <- code[[cs$nm]]
     expect_true(!is.null(src), info = paste(cs$nm, "template missing"))
     body <- strip(src, cs$cmt)
-    for (par in c("pTechPayback", "pStoragePayback", "pTradePayback")) {
+    for (par in c("pTechPayback", "pStorageOutPayback", "pTradePayback")) {
       expect_true(any(grepl(par, body, fixed = TRUE)),
                   info = paste(cs$nm, "does not use", par))
     }
@@ -136,7 +136,7 @@ test_that("payback reaches storage and trade, and their equations compile", {
   # a wrong answer, it fails to compile. Solving is the assertion.
   BATT <- newStorage(
     "BATT", commodity = "ELC",
-    invcost = data.frame(invcost = 300, payback = 5),
+    invcost = data.frame(out.invcost = 300, out.payback = 5),
     vintage = data.frame(olife = 15L), duration = 4)
   TBD <- newTrade(
     "TBD_ELC", commodity = "ELC",
@@ -145,9 +145,9 @@ test_that("payback reaches storage and trade, and their equations compile", {
     vintage = data.frame(olife = 20L), cap2act = 1)
 
   sc <- vt_interp(vt_model(BATT, TBD, name = "pbst"), "pbst")
-  expect_equal(unique(rt_val(sc, "pStoragePayback")), 5)
+  expect_equal(unique(rt_val(sc, "pStorageOutPayback")), 5)
   expect_equal(unique(rt_val(sc, "pTradePayback")), 5)
-  expect_equal(rt_val(sc, "pStorageEac"), round(300 * rt_crf(0.05, 5), 6))
+  expect_equal(rt_val(sc, "pStorageOutEac"), round(300 * rt_crf(0.05, 5), 6))
   expect_equal(rt_val(sc, "pTradeEac"), round(200 * rt_crf(0.05, 5), 6))
 
   sol <- vt_solve(sc)
@@ -156,7 +156,7 @@ test_that("payback reaches storage and trade, and their equations compile", {
   # Both classes validate the same way as technology.
   expect_error(vt_interp(vt_model(
     newStorage("BATT2", commodity = "ELC",
-               invcost = data.frame(invcost = 300, payback = 40),
+               invcost = data.frame(out.invcost = 300, out.payback = 40),
                vintage = data.frame(olife = 15L), duration = 4),
     name = "pbs2"), "pbs2"), "cannot exceed `olife`")
 })

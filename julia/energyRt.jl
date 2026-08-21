@@ -2545,10 +2545,10 @@ print("eqStorageCap(stg, region, year)...")
     [(st1, r, y) in mStorageSpan],
     vStorageOutCap[(st1, r, y)] ==
     (
-        if haskey(pStorageStock, (st1, r, y))
-            pStorageStock[(st1, r, y)]
+        if haskey(pStorageOutStock, (st1, r, y))
+            pStorageOutStock[(st1, r, y)]
         else
-            pStorageStockDef
+            pStorageOutStockDef
         end
     ) + sum(
         (
@@ -2791,10 +2791,10 @@ print("eqStorageCapLo(stg, region, year)...")
     model,
     [(st1, r, y) in mStorageCapLo],
     vStorageOutCap[(st1, r, y)] >= (
-        if haskey(pStorageCapLo, (st1, r, y))
-            pStorageCapLo[(st1, r, y)]
+        if haskey(pStorageOutCapLo, (st1, r, y))
+            pStorageOutCapLo[(st1, r, y)]
         else
-            pStorageCapLoDef
+            pStorageOutCapLoDef
         end
     )
 );
@@ -2810,10 +2810,10 @@ print("eqStorageCapUp(stg, region, year)...")
     model,
     [(st1, r, y) in mStorageCapUp],
     vStorageOutCap[(st1, r, y)] <= (
-        if haskey(pStorageCapUp, (st1, r, y))
-            pStorageCapUp[(st1, r, y)]
+        if haskey(pStorageOutCapUp, (st1, r, y))
+            pStorageOutCapUp[(st1, r, y)]
         else
-            pStorageCapUpDef
+            pStorageOutCapUpDef
         end
     )
 );
@@ -2830,10 +2830,10 @@ print("eqStorageNewCapLo(stg, region, year)...")
     [(st1, r, y) in mStorageNewCapLo],
     vStorageOutNewCap[(st1, r, y)] >=
     (
-        if haskey(pStorageNewCapLo, (st1, r, y))
-            pStorageNewCapLo[(st1, r, y)]
+        if haskey(pStorageOutNewCapLo, (st1, r, y))
+            pStorageOutNewCapLo[(st1, r, y)]
         else
-            pStorageNewCapLoDef
+            pStorageOutNewCapLoDef
         end
     ) * (
         if haskey(pPeriodLen, (y))
@@ -2856,10 +2856,10 @@ print("eqStorageNewCapUp(stg, region, year)...")
     [(st1, r, y) in mStorageNewCapUp],
     vStorageOutNewCap[(st1, r, y)] <=
     (
-        if haskey(pStorageNewCapUp, (st1, r, y))
-            pStorageNewCapUp[(st1, r, y)]
+        if haskey(pStorageOutNewCapUp, (st1, r, y))
+            pStorageOutNewCapUp[(st1, r, y)]
         else
-            pStorageNewCapUpDef
+            pStorageOutNewCapUpDef
         end
     ) * (
         if haskey(pPeriodLen, (y))
@@ -2882,10 +2882,10 @@ print("eqStorageInv(stg, region, year)...")
     [(st1, r, y) in mStorageNew],
     vStorageInv[(st1, r, y)] ==
     (
-        if haskey(pStorageInvcost, (st1, r, y))
-            pStorageInvcost[(st1, r, y)]
+        if haskey(pStorageOutInvcost, (st1, r, y))
+            pStorageOutInvcost[(st1, r, y)]
         else
-            pStorageInvcostDef
+            pStorageOutInvcostDef
         end
     ) * vStorageOutNewCap[(st1, r, y)] +
     # [2c] the storing side's capital cost is per unit of ENERGY; absent data
@@ -2928,13 +2928,13 @@ print("eqStorageEac(stg, region, year)...")
 @constraint(
     model,
     [(st1, r, y) in mStorageEac],
-    # [eac-fix] vintaged new-capacity form (pStorageEac applies to NEW capacity only)
+    # [eac-fix] vintaged new-capacity form (pStorageOutEac applies to NEW capacity only)
     vStorageEac[(st1, r, y)] == sum(
         (
-            if haskey(pStorageEac, (st1, r, yp))
-                pStorageEac[(st1, r, yp)]
+            if haskey(pStorageOutEac, (st1, r, yp))
+                pStorageOutEac[(st1, r, yp)]
             else
-                pStorageEacDef
+                pStorageOutEacDef
             end
         ) * vStorageOutNewCap[(st1, r, yp)] +
         # [2c] the storing side annuitises separately, on the same lifetime.
@@ -2969,23 +2969,23 @@ print("eqStorageEac(stg, region, year)...")
             # [payback] see eqTechEac.
             (
                 ((
-                    if haskey(pStoragePayback, (st1, r, yp))
-                        pStoragePayback[(st1, r, yp)]
+                    if haskey(pStorageOutPayback, (st1, r, yp))
+                        pStorageOutPayback[(st1, r, yp)]
                     else
-                        pStoragePaybackDef
+                        pStorageOutPaybackDef
                     end
                 ) > 0 && ordYear[(y)] < (
-                    if haskey(pStoragePayback, (st1, r, yp))
-                        pStoragePayback[(st1, r, yp)]
+                    if haskey(pStorageOutPayback, (st1, r, yp))
+                        pStorageOutPayback[(st1, r, yp)]
                     else
-                        pStoragePaybackDef
+                        pStorageOutPaybackDef
                     end
                 ) + ordYear[(yp)]) ||
                 ((
-                    if haskey(pStoragePayback, (st1, r, yp))
-                        pStoragePayback[(st1, r, yp)]
+                    if haskey(pStorageOutPayback, (st1, r, yp))
+                        pStorageOutPayback[(st1, r, yp)]
                     else
-                        pStoragePaybackDef
+                        pStorageOutPaybackDef
                     end
                 ) <= 0 && (
                     (st1, r) in mStorageOlifeInf ||
@@ -2998,11 +2998,11 @@ print("eqStorageEac(stg, region, year)...")
                     ) + ordYear[(yp)]
                 ))
             )
-            # [eac-fix] the `pStorageInvcost != 0` guard was REMOVED from the condition
+            # [eac-fix] the `pStorageOutInvcost != 0` guard was REMOVED from the condition
             # below. It dropped the annuity entirely when a user supplied `@invcost$eac`
             # without `invcost` (pre-annuitised capex, e.g. a PyPSA import), so the storage
             # was built for FREE -- silently, with an OPTIMAL solve. eqTechEac / eqTradeEac
-            # never carried it. pStorageEac defaults to 0, so a vintage with no capital cost
+            # never carried it. pStorageOutEac defaults to 0, so a vintage with no capital cost
             # now contributes a zero-coefficient term instead of being dropped from the sum.
         );
         init = 0
@@ -3021,10 +3021,10 @@ print("eqStorageFixom(stg, region, year)...")
     [(st1, r, y) in mStorageFixom],
     vStorageFixom[(st1, r, y)] ==
     (
-        if haskey(pStorageFixom, (st1, r, y))
-            pStorageFixom[(st1, r, y)]
+        if haskey(pStorageOutFixom, (st1, r, y))
+            pStorageOutFixom[(st1, r, y)]
         else
-            pStorageFixomDef
+            pStorageOutFixomDef
         end
     ) * vStorageOutCap[(st1, r, y)] +
     (

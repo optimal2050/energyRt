@@ -913,61 +913,10 @@ class:
       columns:
         comm:
           type: character
-          description: Commodity held in the store.
+          description: "Commodity the store HOLDS -- what `vStorageLevel` is measured in."
         unit:
           type: character
-          description: >
-            Unit of `comm` on this side, exactly as on `technology@input`/
-            `@output`. Descriptive only: it is carried for reporting and
-            `convert()` and never reaches the solver. It is the unit of the
-            COMMODITY (e.g. MWh), not of the capacity -- capacity units follow
-            from `cap2act`, and the storing side has no `cap2act` because a
-            reservoir is an amount rather than a rate.
-        vintage:
-          type: character
-          description: Vintage label selecting the variant this row applies to, NA for all.
-        cluster:
-          type: character
-          description: Cluster label selecting the variant this row applies to, NA for all.
-        region:
-          type: character
-          description: Region the row applies to, NA for all.
-        year:
-          type: integer
-          description: Year the row applies to, NA for all.
-        stock:
-          type: numeric
-          description: >
-            Pre-existing energy capacity, in commodity units. The energy analogue
-            of `capacity$stock`, which is power.
-        cap.lo:
-          type: numeric
-          description: Lower bound on total energy capacity.
-        cap.up:
-          type: numeric
-          description: Upper bound on total energy capacity.
-        cap.fx:
-          type: numeric
-          description: Fixed total energy capacity.
-        ncap.lo:
-          type: numeric
-          description: Lower bound on new energy capacity added in the period.
-        ncap.up:
-          type: numeric
-          description: Upper bound on new energy capacity added in the period.
-        ncap.fx:
-          type: numeric
-          description: Fixed new energy capacity added in the period.
-        invcost:
-          type: numeric
-          description: >
-            Overnight investment cost per unit of ENERGY capacity (currency/MWh),
-            annuitised on the storage's own `@vintage` -- one lifetime and one
-            wacc for the object, two capital costs on different bases. This is
-            what previously had to be hand-multiplied into the per-MW `@invcost`.
-        fixom:
-          type: numeric
-          description: Fixed O&M cost per unit of energy capacity per year.
+          description: "Unit of `comm`. Descriptive only, carried for reporting and `convert()` and never reaching the solver. There is no `cap2act` on this side -- energy is energy at any resolution."
     cluster:
       type: data.frame
       description: >-
@@ -1205,19 +1154,25 @@ class:
       columns:
         vintage:
           type: character
-          description: Vintage label selecting the variant this row applies to, NA for every vintage. See the `vintage` slot.
+          description: "Vintage label selecting the variant this row applies to, NA for every vintage. See the `vintage` slot."
         cluster:
           type: character
-          description: Cluster label selecting the variant this row applies to, NA for every cluster. See the `cluster` slot.
+          description: "Cluster label selecting the variant this row applies to, NA for every cluster. See the `cluster` slot."
         region:
           type: character
-          description: Region name to apply the parameter, NA for every region.
+          description: "Region name to apply the parameter, NA for every region."
         year:
           type: integer
-          description: Year to apply the parameter, NA for every year.
-        fixom:
+          description: "Year to apply the parameter, NA for every year."
+        out.fixom:
           type: numeric
-          description: Fixed operation and maintenance cost for the specified sets.
+          description: "Fixed operation and maintenance cost per unit of installed capacity of the discharging part -- the power the store can deliver."
+        inp.fixom:
+          type: numeric
+          description: "Fixed operation and maintenance cost per unit of installed capacity of the charging part -- the power the store can absorb."
+        stg.fixom:
+          type: numeric
+          description: "Fixed operation and maintenance cost per unit of installed capacity of the reservoir itself -- the energy the store can hold."
     varom:
       type: data.frame
       description: Variable operation and maintenance cost.
@@ -1252,44 +1207,61 @@ class:
       columns:
         vintage:
           type: character
-          description: Vintage label selecting the variant this row applies to, NA for every vintage. See the `vintage` slot.
+          description: "Vintage label selecting the variant this row applies to, NA for every vintage. See the `vintage` slot."
         cluster:
           type: character
-          description: Cluster label selecting the variant this row applies to, NA for every cluster. See the `cluster` slot.
+          description: "Cluster label selecting the variant this row applies to, NA for every cluster. See the `cluster` slot."
         region:
           type: character
-          description: Region name to apply the parameter, NA for every region.
+          description: "Region name to apply the parameter, NA for every region."
         year:
           type: integer
-          description: Year to apply the parameter, NA for every year.
-        invcost:
+          description: "Year to apply the parameter, NA for every year."
+        out.invcost:
           type: numeric
-          description: Overnight investment cost for the specified region and year.
-        wacc:
+          description: "Investment cost per unit of new capacity of the discharging part -- the power the store can deliver."
+        out.wacc:
           type: numeric
-          description: >-
-            Weighted average cost of capital used to annuitise `invcost` for
-            this storage. Overrides the model-wide `wacc` (see the model
-            `discount` argument). The social discount rate is never used here.
-        payback:
+          description: "Cost of capital used to annuitise the discharging part -- the power the store can deliver investment (overrides `pWacc`)."
+        out.payback:
           type: numeric
-          description: >-
-            Cost-recovery period in years. Where given it replaces `olife` in
-            the annuity AND in the years over which the annuity is charged, so
-            the investment is repaid over `payback` years while the capacity
-            keeps operating for its full operational life. Must be positive and
-            not exceed `olife`. Unset (or 0) means recover over `olife`.
-            Implemented for the GLPK solver only.
-        eac:
+          description: "Cost-recovery period of the discharging part -- the power the store can deliver, in years (overrides the operational life in the EAC charge)."
+        out.eac:
           type: numeric
-          description: >-
-            Equivalent annual cost, supplied directly instead of being computed
-            from `invcost`, `wacc` and the lifetime. Where given it wins; where
-            absent the annuity is computed. Mutually exclusive with `invcost`
-            per row.
-        retcost:
+          description: "Equivalent annual cost of the discharging part -- the power the store can deliver, supplied directly instead of being annuitised from `invcost`."
+        out.retcost:
           type: numeric
-          description: Costs of early retirement of the storage, default is 0.
+          description: "Cost of retiring the discharging part -- the power the store can deliver early."
+        inp.invcost:
+          type: numeric
+          description: "Investment cost per unit of new capacity of the charging part -- the power the store can absorb."
+        inp.wacc:
+          type: numeric
+          description: "Cost of capital used to annuitise the charging part -- the power the store can absorb investment (overrides `pWacc`)."
+        inp.payback:
+          type: numeric
+          description: "Cost-recovery period of the charging part -- the power the store can absorb, in years (overrides the operational life in the EAC charge)."
+        inp.eac:
+          type: numeric
+          description: "Equivalent annual cost of the charging part -- the power the store can absorb, supplied directly instead of being annuitised from `invcost`."
+        inp.retcost:
+          type: numeric
+          description: "Cost of retiring the charging part -- the power the store can absorb early."
+        stg.invcost:
+          type: numeric
+          description: "Investment cost per unit of new capacity of the reservoir itself -- the energy the store can hold."
+        stg.wacc:
+          type: numeric
+          description: "Cost of capital used to annuitise the reservoir itself -- the energy the store can hold investment (overrides `pWacc`)."
+        stg.payback:
+          type: numeric
+          description: "Cost-recovery period of the reservoir itself -- the energy the store can hold, in years (overrides the operational life in the EAC charge)."
+        stg.eac:
+          type: numeric
+          description: "Equivalent annual cost of the reservoir itself -- the energy the store can hold, supplied directly instead of being annuitised from `invcost`."
+        stg.retcost:
+          type: numeric
+          description: "Cost of retiring the reservoir itself -- the energy the store can hold early."
     fullYear:
       type: logical
       description: >
@@ -1448,48 +1420,106 @@ class:
       columns:
         vintage:
           type: character
-          description: Vintage label selecting the variant this row applies to, NA for every vintage. See the `vintage` slot.
+          description: "Vintage label selecting the variant this row applies to, NA for every vintage. See the `vintage` slot."
         cluster:
           type: character
-          description: Cluster label selecting the variant this row applies to, NA for every cluster. See the `cluster` slot.
+          description: "Cluster label selecting the variant this row applies to, NA for every cluster. See the `cluster` slot."
         region:
           type: character
-          description: Region name to apply the parameter, NA for every region.
+          description: "Region name to apply the parameter, NA for every region."
         year:
           type: integer
-          description: Year to apply the parameter, NA for every year.
-        cap:
+          description: "Year to apply the parameter, NA for every year."
+        out.stock:
           type: numeric
-          description: Capacity of the storage technology.
-        cap.lo:
+          description: "Existing (exogenous) capacity of the discharging part -- the power the store can deliver, in power units."
+        out.cap.lo:
           type: numeric
-          description: Lower bound of the storage capacity.
-        cap.up:
+          description: "Lower bound of the discharging part -- the power the store can deliver capacity."
+        out.cap.up:
           type: numeric
-          description: Upper bound of the storage capacity.
-        cap.fx:
+          description: "Upper bound of the discharging part -- the power the store can deliver capacity."
+        out.cap.fx:
           type: numeric
-          description: Fixed value of the storage capacity. This parameter overrides `cap.lo` and `cap.up`.
-        ncap.lo:
+          description: "Fixed value of the discharging part -- the power the store can deliver capacity. Overrides `out.cap.lo` and `out.cap.up`."
+        out.ncap.lo:
           type: numeric
-          description: Lower bound of the new storage capacity.
-        ncap.up:
+          description: "Lower bound of the discharging part -- the power the store can deliver new capacity."
+        out.ncap.up:
           type: numeric
-          description: Upper bound of the new storage capacity.
-        ncap.fx:
+          description: "Upper bound of the discharging part -- the power the store can deliver new capacity."
+        out.ncap.fx:
           type: numeric
-          description: >
-            Fixed value of the new storage capacity. This parameter overrides `ncap.lo` and `ncap.up`.
-        ret.lo:
+          description: "Fixed value of the discharging part -- the power the store can deliver new capacity. Overrides `out.ncap.lo` and `out.ncap.up`."
+        out.ret.lo:
           type: numeric
-          description: Lower bound of the storage capacity retirement.
-        ret.up:
+          description: "Lower bound of the discharging part -- the power the store can deliver capacity retirement."
+        out.ret.up:
           type: numeric
-          description: Upper bound of the storage capacity retirement.
-        ret.fx:
+          description: "Upper bound of the discharging part -- the power the store can deliver capacity retirement."
+        out.ret.fx:
           type: numeric
-          description: >
-            Fixed value of the storage capacity retirement. This parameter overrides `ret.lo` and `ret.up`.
+          description: "Fixed value of the discharging part -- the power the store can deliver capacity retirement. Overrides `out.ret.lo` and `out.ret.up`."
+        inp.stock:
+          type: numeric
+          description: "Existing (exogenous) capacity of the charging part -- the power the store can absorb, in power units."
+        inp.cap.lo:
+          type: numeric
+          description: "Lower bound of the charging part -- the power the store can absorb capacity."
+        inp.cap.up:
+          type: numeric
+          description: "Upper bound of the charging part -- the power the store can absorb capacity."
+        inp.cap.fx:
+          type: numeric
+          description: "Fixed value of the charging part -- the power the store can absorb capacity. Overrides `inp.cap.lo` and `inp.cap.up`."
+        inp.ncap.lo:
+          type: numeric
+          description: "Lower bound of the charging part -- the power the store can absorb new capacity."
+        inp.ncap.up:
+          type: numeric
+          description: "Upper bound of the charging part -- the power the store can absorb new capacity."
+        inp.ncap.fx:
+          type: numeric
+          description: "Fixed value of the charging part -- the power the store can absorb new capacity. Overrides `inp.ncap.lo` and `inp.ncap.up`."
+        inp.ret.lo:
+          type: numeric
+          description: "Lower bound of the charging part -- the power the store can absorb capacity retirement."
+        inp.ret.up:
+          type: numeric
+          description: "Upper bound of the charging part -- the power the store can absorb capacity retirement."
+        inp.ret.fx:
+          type: numeric
+          description: "Fixed value of the charging part -- the power the store can absorb capacity retirement. Overrides `inp.ret.lo` and `inp.ret.up`."
+        stg.stock:
+          type: numeric
+          description: "Existing (exogenous) capacity of the reservoir itself -- the energy the store can hold, in energy units."
+        stg.cap.lo:
+          type: numeric
+          description: "Lower bound of the reservoir itself -- the energy the store can hold capacity."
+        stg.cap.up:
+          type: numeric
+          description: "Upper bound of the reservoir itself -- the energy the store can hold capacity."
+        stg.cap.fx:
+          type: numeric
+          description: "Fixed value of the reservoir itself -- the energy the store can hold capacity. Overrides `stg.cap.lo` and `stg.cap.up`."
+        stg.ncap.lo:
+          type: numeric
+          description: "Lower bound of the reservoir itself -- the energy the store can hold new capacity."
+        stg.ncap.up:
+          type: numeric
+          description: "Upper bound of the reservoir itself -- the energy the store can hold new capacity."
+        stg.ncap.fx:
+          type: numeric
+          description: "Fixed value of the reservoir itself -- the energy the store can hold new capacity. Overrides `stg.ncap.lo` and `stg.ncap.up`."
+        stg.ret.lo:
+          type: numeric
+          description: "Lower bound of the reservoir itself -- the energy the store can hold capacity retirement."
+        stg.ret.up:
+          type: numeric
+          description: "Upper bound of the reservoir itself -- the energy the store can hold capacity retirement."
+        stg.ret.fx:
+          type: numeric
+          description: "Fixed value of the reservoir itself -- the energy the store can hold capacity retirement. Overrides `stg.ret.lo` and `stg.ret.up`."
     optimizeRetirement:
       type: logical
       description: >
@@ -2185,7 +2215,7 @@ class:
           type: numeric
           description: >-
             Weighted average cost of capital, used to annuitise investment costs
-            into `pTechEac` / `pStorageEac` / `pTradeEac`. A process may override
+            into `pTechEac` / `pStorageOutEac` / `pTradeEac`. A process may override
             it with its own `@invcost$wacc`. Default is 0.
         sdr:
           type: numeric

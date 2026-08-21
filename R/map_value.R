@@ -29,7 +29,7 @@
   mTechRetCost  = list(source = "pTechRetCost", window = NULL,
                        gate = "optimizeRetirement"),
   # storage
-  mStorageFixom = list(source = "pStorageFixom", window = "mStorageSpan"),
+  mStorageFixom = list(source = "pStorageOutFixom", window = "mStorageSpan"),
   mStorageVarom = list(source = c("pStorageCostInp", "pStorageCostOut",
                                   "pStorageCostStore"),
                        window = "mStorageSpan"),

@@ -52,15 +52,11 @@ STG_BTR <- newStorage(
   name      = "STG_BTR",
   desc      = "Lithium-ion battery (6-hour)",
   commodity = "ELC",
-  output    = list(
-    comm    = "ELC",
-    unit    = "MWh",
-    invcost = 12144                       # EUR/MW  -- the inverter
-  ),
-  storage   = list(
-    comm    = "ELC",
-    unit    = "MWh",
-    invcost = 8081                        # EUR/MWh -- the cells
+  output    = list(comm = "ELC", unit = "MWh"),
+  storage   = list(comm = "ELC", unit = "MWh"),
+  invcost   = list(
+    out.invcost = 12144,                  # EUR/MW  -- the inverter
+    stg.invcost = 8081                    # EUR/MWh -- the cells
   ),
   duration  = 6,                          # a 6-hour battery
   vintage   = data.frame(olife = 15L)
@@ -97,19 +93,12 @@ STG_H2 <- newStorage(
   name      = "STG_H2",
   desc      = "Salt-cavern hydrogen store with electrolyser and fuel cell",
   commodity = "H2",                       # what it HOLDS
-  input     = list(
-    comm    = "ELC",                      # electrolyser
-    unit    = "MWh",
-    invcost = 226174
-  ),
-  output    = list(
-    comm    = "ELC",                      # fuel cell
-    unit    = "MWh"
-  ),
-  storage   = list(
-    comm    = "H2",                       # the cavern
-    unit    = "MWh",
-    invcost = 112
+  input     = list(comm = "ELC", unit = "MWh"),   # electrolyser
+  output    = list(comm = "ELC", unit = "MWh"),   # fuel cell
+  storage   = list(comm = "H2",  unit = "MWh"),   # the cavern
+  invcost   = list(
+    inp.invcost = 226174,                 # the electrolyser
+    stg.invcost = 112                     # the cavern
   ),
   seff      = data.frame(
     inpeff  = 0.70,
@@ -223,7 +212,7 @@ STG_YEAR <- newStorage(
   name      = "STG_YEAR",
   desc      = "Electricity store, one cycle over the whole year",
   commodity = "ELC",
-  invcost   = list(invcost = 1),
+  invcost   = list(out.invcost = 1),
   vintage   = data.frame(olife = 30L),
   fullYear  = TRUE
 )
@@ -232,7 +221,7 @@ STG_DAY <- newStorage(
   name      = "STG_DAY",
   desc      = "The same store, but cycling once per day",
   commodity = "ELC",
-  invcost   = list(invcost = 1),
+  invcost   = list(out.invcost = 1),
   vintage   = data.frame(olife = 30L),
   fullYear  = FALSE
 )
@@ -336,8 +325,9 @@ STG_FLEX <- newStorage(
   name      = "STG_FLEX",
   desc      = "Battery whose energy-to-power ratio the model chooses",
   commodity = "ELC",
-  output    = list(comm = "ELC", unit = "MWh", invcost = 12),
-  storage   = list(comm = "ELC", unit = "MWh", invcost = 8),
+  output    = list(comm = "ELC", unit = "MWh"),
+  storage   = list(comm = "ELC", unit = "MWh"),
+  invcost   = list(out.invcost = 12, stg.invcost = 8),
   duration  = data.frame(
     duration.lo = 2,
     duration.up = 8
@@ -552,7 +542,8 @@ STG_RES <- newStorage(
   name      = "STG_RES",
   desc      = "Reservoir with a minimum head and a charging curfew",
   commodity = "ELC",
-  storage   = list(comm = "ELC", unit = "MWh", invcost = 40),
+  storage   = list(comm = "ELC", unit = "MWh"),
+  invcost   = list(stg.invcost = 40),
   af        = data.frame(
     timeslice = c(NA, "d046_h18"),
     af.lo     = c(0.15, NA),              # never draw below 15% full
@@ -569,11 +560,26 @@ matching `.lo`/`.up` pair.
 
 # Capacity, stock and retirement
 
-`@capacity` describes the object as a whole, in the same shape a `technology`
-uses: existing `stock`, bounds on total capacity (`cap.*`), bounds on new builds
-(`ncap.*`), and bounds on retirement (`ret.*`). Per-part capacity lives on
-`@input` / `@output` / `@storage`; `@capacity` is the place for what is true of
-the storage itself.
+`@capacity` holds every capacity the storage has, in the same shape a
+`technology` uses — existing `stock`, bounds on total capacity (`cap.*`), on new
+builds (`ncap.*`) and on retirement (`ret.*`) — but **once per part**, under a
+prefix naming the part it belongs to:
+
+| prefix | the part | measured in |
+|---|---|---|
+| `out.` | the discharger | power |
+| `inp.` | the charger | power |
+| `stg.` | the reservoir | energy |
+
+So `out.cap.up` bounds the discharger, `inp.cap.fx` fixes the charger, and
+`stg.stock` is the reservoir you already own. A charger rated differently from
+the discharger — an EV drawing 7 kW but delivering 100 kW to the motor — is
+`inp.cap.fx = 7` beside `out.cap.fx = 100`.
+
+The role slots `@input` / `@output` / `@storage` carry no capacity at all. They
+declare *what* each side handles — `comm`, `unit`, and `cap2act` on the two
+power sides — and nothing that varies by vintage, region or year. Writing a
+capacity there is an error that names the column to use instead.
 
 ```{r}
 STG_FLEET <- newStorage(
@@ -583,8 +589,8 @@ STG_FLEET <- newStorage(
   capacity  = data.frame(
     region  = "R1",
     year    = 2020L,
-    stock   = 120,                        # already built
-    ncap.up = 50                          # at most 50 more in this year
+    out.stock   = 120,                        # already built
+    out.ncap.up = 50                          # at most 50 more in this year
   ),
   vintage   = data.frame(olife = 15L)
 )
@@ -602,15 +608,16 @@ Three slots, on the three things you can spend money on:
 
 | slot | charged on | key columns |
 |---|---|---|
-| `@invcost` | new capacity | `invcost`, `wacc`, `payback`, `eac`, `retcost` |
-| `@fixom` | installed capacity, per year | `fixom` |
+| `@invcost` | new capacity | `<part>.invcost`, `.wacc`, `.payback`, `.eac`, `.retcost` |
+| `@fixom` | installed capacity, per year | `<part>.fixom` |
 | `@varom` | flows and level, per timeslice | `inpcost`, `outcost`, `stgcost` |
 
-`@invcost` and `@fixom` on the *object* price the whole store; the same names
-inside `@input` / `@output` / `@storage` price one part, which is what the
-battery at the top of this article does. `@varom` splits by what is charged:
-`inpcost` per unit charged, `outcost` per unit discharged, `stgcost` per unit
-held.
+`@invcost` and `@fixom` take the same `out.` / `inp.` / `stg.` prefixes as
+`@capacity`, so each part is priced in its own units: `out.invcost` per MW of
+discharger, `stg.invcost` per MWh of reservoir — which is exactly what the
+battery at the top of this article does. `@varom` instead splits by what is
+charged: `inpcost` per unit charged, `outcost` per unit discharged, `stgcost`
+per unit held.
 
 ```{r}
 STG_PRICED <- newStorage(
@@ -618,8 +625,8 @@ STG_PRICED <- newStorage(
   desc      = "Battery priced on capacity and on every unit moved",
   commodity = "ELC",
   duration  = 6,
-  invcost   = data.frame(invcost = 8081), # EUR/MWh on new capacity
-  fixom     = data.frame(fixom = 5),      # EUR/MW/yr on the whole store
+  invcost   = data.frame(out.invcost = 8081), # EUR/MWh on new capacity
+  fixom     = data.frame(out.fixom = 5),      # EUR/MW/yr on the whole store
   varom     = data.frame(
     inpcost = 0.5,
     outcost = 0.5
@@ -730,15 +737,15 @@ STG_VINT <- newStorage(
     end     = c(2049L, 2100L),
     olife   = c(12L, 20L)
   ),
-  storage   = list(
-    comm    = c("ELC", "ELC"),
-    unit    = c("MWh", "MWh"),
-    vintage = c("v2020", "v2050"),
-    invcost = c(8081, 3200)               # cells get cheaper
+  storage   = list(comm = "ELC", unit = "MWh"),
+  # the reservoir is what gets cheaper, so the per-vintage price is `stg.`
+  invcost   = data.frame(
+    vintage     = c("v2020", "v2050"),
+    stg.invcost = c(8081, 3200)           # cells get cheaper
   )
 )
 STG_VINT@vintage
-STG_VINT@storage[, c("comm", "vintage", "invcost")]
+STG_VINT@invcost[, c("vintage", "stg.invcost")]
 ```
 
 Every slot that carries a `vintage` (or `cluster`) column can be split this way,
@@ -805,7 +812,7 @@ STG_BTR_SOL <- newStorage(
   name      = "STG_BTR_SOL",
   desc      = "Battery paired with the solar plant",
   commodity = "ELC",
-  invcost   = list(invcost = 1),
+  invcost   = list(out.invcost = 1),
   vintage   = data.frame(olife = 30L),
   fullYear  = TRUE
 )
@@ -899,8 +906,10 @@ STG_BTR_VRE <- newStorage(
   name      = "STG_BTR_VRE",
   desc      = "Cheap store, energy and power sized separately",
   commodity = "ELC",
-  output    = list(comm = "ELC", unit = "MWh", invcost = 20),  # power, per MW
-  storage   = list(comm = "ELC", unit = "MWh", invcost = 1),   # energy, per MWh
+  output    = list(comm = "ELC", unit = "MWh"),
+  storage   = list(comm = "ELC", unit = "MWh"),
+  # power priced per MW on the discharger, energy per MWh on the reservoir
+  invcost   = list(out.invcost = 20, stg.invcost = 1),
   seff      = data.frame(inpeff = 0.95, outeff = 0.95),
   vintage   = data.frame(olife = 15L),
   fullYear  = TRUE

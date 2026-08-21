@@ -53,6 +53,12 @@
     slots = c("vintage", "capacity", "invcost", "fixom", "varom",
               "af", "seff", "charge", "aeff", "weather", "duration"),
     bound_var = list(cap = "vStorageOutCap", ncap = "vStorageOutNewCap"),
+    # A storage keeps one capacity per PART, so its `@capacity` columns read
+    # `out.cap.up`, not `cap.up`. Group bounds constrain the discharger -- which
+    # is what `vStorageOutCap` is -- so the scan wears this prefix. Without it
+    # `intersect()` matches nothing and BOTH the aggregation and the `ret.*`
+    # refusal below go silently missing.
+    bound_prefix = "out.",
     bound_dims = c("region", "year")
   ),
   trade = list(
@@ -485,11 +491,13 @@
     fixed <- setdiff(dims, c(tot, per))
     per   <- per[vapply(per, function(d) length(lv[[d]]) > 0L, logical(1))]
 
-    for (bc in intersect(.variant_bound_cols, names(r))) {
+    bpre <- if (is.null(def$bound_prefix)) "" else def$bound_prefix
+    for (bc in intersect(paste0(bpre, .variant_bound_cols), names(r))) {
       val <- r[[bc]]
       if (is.na(val)) next
-      stem <- sub("\\.(lo|up|fx)$", "", bc)
-      sfx  <- sub("^.*\\.", "", bc)
+      stem <- sub("[.](lo|up|fx)$", "", bc)
+      if (nzchar(bpre)) stem <- substring(stem, nchar(bpre) + 1L)
+      sfx  <- sub("^.*[.]", "", bc)
       if (is.null(bvar[[stem]])) {
         stop('Group-aggregate ("', .VARIANT_TOTAL, '") bounds are supported on ',
              'cap.* and ncap.* but not on `', bc, '` (', cls, ' "', tech@name,

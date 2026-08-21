@@ -188,10 +188,10 @@ pTechAvarom(tech, comm, region, year, timeslice)        Auxilary Commodity-speci
 pWacc(region, year)                                 Weighted average cost of capital (can be region and year specific)
 pSdr(region, year)                                  Social discount rate (can be region and year specific)
 pTechWacc(tech, region, year)                       Technology-specific cost of capital
-pStorageWacc(stg, region, year)                     Storage-specific cost of capital
+pStorageOutWacc(stg, region, year)                     Storage-specific cost of capital
 pTradeWacc(trade, region, year)                     Trade-specific cost of capital
 pTechPayback(tech, region, year)                    Cost-recovery period of a technology
-pStoragePayback(stg, region, year)                  Cost-recovery period of a storage
+pStorageOutPayback(stg, region, year)                  Cost-recovery period of a storage
 pTradePayback(trade, region, year)                  Cost-recovery period of a trade
 pDiscountFactor(region, year)                       Discount factor (cumulative)
 pDiscountFactorMileStone(region, year)              Discount factor (cumulative) sum for MileStone
@@ -231,8 +231,8 @@ parameters
 pStorageInpEff(stg, comm, region, year, timeslice)      Storage input efficiency
 pStorageOutEff(stg, comm, region, year, timeslice)      Storage output efficiency
 pStorageStgEff(stg, comm, region, year, timeslice)      Storage time-efficiency (annual)
-pStorageStock(stg, region, year)                    Storage capacity stock
-pStorageCapUp(stg, region, year)                    Upper bound on storage capacity
+pStorageOutStock(stg, region, year)                    Storage capacity stock
+pStorageOutCapUp(stg, region, year)                    Upper bound on storage capacity
 pStorageInpCap2act(stg)                             Storage charging capacity to annual flow
 pStorageOutCap2act(stg)                             Storage discharging capacity to annual flow
 pStorageInpStock(stg, region, year)                 Storage exogenous charging capacity
@@ -253,19 +253,32 @@ pStorageStgCapLo(stg, region, year)                 Lower bound on storage energ
 pStorageStgCapUp(stg, region, year)                 Upper bound on storage energy capacity
 pStorageStgNewCapLo(stg, region, year)              Lower bound on new storage energy capacity
 pStorageStgNewCapUp(stg, region, year)              Upper bound on new storage energy capacity
-pStorageCapLo(stg, region, year)                    Lower bound on storage capacity
-pStorageNewCapUp(stg, region, year)                 Upper bound on new storage capacity
-pStorageNewCapLo(stg, region, year)                 Lower bound on new storage capacity
-pStorageRetUp(stg, region, year)                    Upper bound on early retirement
-pStorageRetLo(stg, region, year)                    Lower bound on early retirement
+pStorageOutCapLo(stg, region, year)                    Lower bound on storage capacity
+pStorageOutNewCapUp(stg, region, year)                 Upper bound on new storage capacity
+pStorageOutNewCapLo(stg, region, year)                 Lower bound on new storage capacity
+pStorageOutRetUp(stg, region, year)                    Upper bound on early retirement
+pStorageOutRetLo(stg, region, year)                    Lower bound on early retirement
 pStorageOlife(stg, region)                          Storage operational life
 pStorageCostStore(stg, region, year, timeslice)         Storing costs per stored amount (annual)
 pStorageCostInp(stg, region, year, timeslice)           Storage input costs
 pStorageCostOut(stg, region, year, timeslice)           Storage output costs
-pStorageFixom(stg, region, year)                    Storage fixed O&M costs
-pStorageInvcost(stg, region, year)                  Storage investment costs
-pStorageEac(stg, region, year)                      Storage equivalent annual costs
-pStorageRetCost(stg, region, year)                  Storage early retirement costs
+pStorageOutFixom(stg, region, year)                    Storage fixed O&M costs
+pStorageOutInvcost(stg, region, year)                  Storage investment costs
+pStorageOutEac(stg, region, year)                      Storage equivalent annual costs
+pStorageOutRetCost(stg, region, year)                  Storage early retirement costs
+
+* Symmetry fill for the charging and storing parts -- declared, not used by
+* any equation (storage retirement has no equation in any back-end).
+pStorageInpRetUp(stg, region, year)                    Upper bound on early retirement of charging capacity
+pStorageInpRetLo(stg, region, year)                    Lower bound on early retirement of charging capacity
+pStorageInpWacc(stg, region, year)                     Storage charging-side cost of capital
+pStorageInpPayback(stg, region, year)                  Cost-recovery period of charging capacity
+pStorageInpRetCost(stg, region, year)                  Charging-capacity early retirement costs
+pStorageStgRetUp(stg, region, year)                    Upper bound on early retirement of energy capacity
+pStorageStgRetLo(stg, region, year)                    Lower bound on early retirement of energy capacity
+pStorageStgWacc(stg, region, year)                     Storage energy-side cost of capital
+pStorageStgPayback(stg, region, year)                  Cost-recovery period of energy capacity
+pStorageStgRetCost(stg, region, year)                  Energy-capacity early retirement costs
 pStorageDurationLo(stg, region, year)               Storage energy-to-power ratio, hours, lower bound
 pStorageDurationUp(stg, region, year)               Storage energy-to-power ratio, hours, upper bound
 pStorageAfLo(stg, region, year, timeslice)              Storage availability factor lower bound (minimum charging level)
@@ -1682,7 +1695,7 @@ eqStorageVarom(stg, region, year)    Storage variable costs
 eqStorageCap(stg, region, year)$mStorageSpan(stg, region, year)..
          vStorageOutCap(stg, region, year)
          =e=
-         pStorageStock(stg, region, year) +
+         pStorageOutStock(stg, region, year) +
          sum(yearp$(ordYear(year) >= ordYear(yearp)
                     and
                     (mStorageOlifeInf(stg, region)
@@ -1760,22 +1773,22 @@ eqStorageDurationUp(stg, region, year)$mStorageDurationUp(stg, region, year)..
   vStorageStgCap(stg, region, year) =l= pStorageDurationUp(stg, region, year) * vStorageOutCap(stg, region, year);
 
 eqStorageCapLo(stg, region, year)$mStorageCapLo(stg, region, year)..
-         vStorageOutCap(stg, region, year) =g= pStorageCapLo(stg, region, year);
+         vStorageOutCap(stg, region, year) =g= pStorageOutCapLo(stg, region, year);
 
 eqStorageCapUp(stg, region, year)$mStorageCapUp(stg, region, year)..
-          vStorageOutCap(stg, region, year) =l= pStorageCapUp(stg, region, year);
+          vStorageOutCap(stg, region, year) =l= pStorageOutCapUp(stg, region, year);
 
 eqStorageNewCapLo(stg, region, year)$mStorageNewCapLo(stg, region, year)..
-          vStorageOutNewCap(stg, region, year) =g= pStorageNewCapLo(stg, region, year) * pPeriodLen(year);
+          vStorageOutNewCap(stg, region, year) =g= pStorageOutNewCapLo(stg, region, year) * pPeriodLen(year);
 
 eqStorageNewCapUp(stg, region, year)$mStorageNewCapUp(stg, region, year)..
-          vStorageOutNewCap(stg, region, year) =l= pStorageNewCapUp(stg, region, year) * pPeriodLen(year);
+          vStorageOutNewCap(stg, region, year) =l= pStorageOutNewCapUp(stg, region, year) * pPeriodLen(year);
 
 * Investment equation
 eqStorageInv(stg, region, year)$mStorageNew(stg, region, year)..
          vStorageInv(stg, region, year)
          =e=
-         pStorageInvcost(stg, region, year) *
+         pStorageOutInvcost(stg, region, year) *
          vStorageOutNewCap(stg, region, year)
 *        [2c] the storing side's capital cost is per unit of ENERGY and rides on
 *        the same investment variable; absent data, the term does not exist.
@@ -1787,7 +1800,7 @@ eqStorageInv(stg, region, year)$mStorageNew(stg, region, year)..
            )$mStorageInpNew(stg, region, year);
 
 * EAC equation
-* [eac-fix] vintaged new-capacity form active (pStorageEac applies to NEW capacity only)
+* [eac-fix] vintaged new-capacity form active (pStorageOutEac applies to NEW capacity only)
 eqStorageEac(stg, region, year)$mStorageEac(stg, region, year)..
          vStorageEac(stg, region, year)
          =e=
@@ -1795,25 +1808,25 @@ eqStorageEac(stg, region, year)$mStorageEac(stg, region, year)..
                     and ordYear(year) >= ordYear(yearp)
 *                  [payback] see eqTechEac.
                     and (
-                         (pStoragePayback(stg, region, yearp) > 0
-                          and ordYear(year) < pStoragePayback(stg, region, yearp) + ordYear(yearp))
+                         (pStorageOutPayback(stg, region, yearp) > 0
+                          and ordYear(year) < pStorageOutPayback(stg, region, yearp) + ordYear(yearp))
                          or
-                         (pStoragePayback(stg, region, yearp) <= 0
+                         (pStorageOutPayback(stg, region, yearp) <= 0
                           and (mStorageOlifeInf(stg, region)
                                or ordYear(year) < pStorageOlife(stg, region) + ordYear(yearp)
                                )
                           )
                          )
-*                  [eac-fix] the `pStorageInvcost <> 0` guard was REMOVED from the summation
+*                  [eac-fix] the `pStorageOutInvcost <> 0` guard was REMOVED from the summation
 *                  condition below. It dropped the annuity entirely when a user supplied
 *                  `@invcost$eac` without `invcost` (pre-annuitised capex, e.g. a PyPSA import),
 *                  so the storage was built for FREE -- silently, with an OPTIMAL solve.
-*                  eqTechEac / eqTradeEac never carried it. pStorageEac defaults to 0, so a
+*                  eqTechEac / eqTradeEac never carried it. pStorageOutEac defaults to 0, so a
 *                  vintage with no capital cost now contributes a zero-coefficient term instead
 *                  of being dropped from the sum.
                     ),
 *                  pYearFraction(year) *
-            (pStorageEac(stg, region, yearp)
+            (pStorageOutEac(stg, region, yearp)
 *            * pPeriodLen(yearp)
              * vStorageOutNewCap(stg, region, yearp)
              + (pStorageStgEac(stg, region, yearp)
@@ -1828,7 +1841,7 @@ $ontext
 eqStorageEac(stg, region, year)$mStorageEac(stg, region, year)..
          vStorageEac(stg, region, year)
          =e=
-         pStorageEac(stg, region, year) * vStorageOutCap(stg, region, year);
+         pStorageOutEac(stg, region, year) * vStorageOutCap(stg, region, year);
 $offtext
 
 
@@ -1838,7 +1851,7 @@ eqStorageCost(stg, region, year)$mStorageOMCost(stg, region, year)..
          vStorageOMCost(stg, region, year)
          =e=
 *         pYearFraction(year) *
-         pStorageFixom(stg, region, year) * vStorageOutCap(stg, region, year)
+         pStorageOutFixom(stg, region, year) * vStorageOutCap(stg, region, year)
          +
          sum(comm$mStorageInpComm(stg, comm),
              sum(timeslice$mCommTimeslice(comm, timeslice),
@@ -1863,7 +1876,7 @@ $offtext
 eqStorageFixom(stg, region, year)$mStorageFixom(stg, region, year)..
          vStorageFixom(stg, region, year)
          =e=
-         pStorageFixom(stg, region, year) * vStorageOutCap(stg, region, year)
+         pStorageOutFixom(stg, region, year) * vStorageOutCap(stg, region, year)
          + (pStorageStgFixom(stg, region, year)
             * vStorageStgCap(stg, region, year)
            )$mStorageStgFixom(stg, region, year)

@@ -31,7 +31,7 @@ sl_model <- function(fullYear = TRUE, startLevel = 7, name = "sl") newModel(
               demand = data.frame(
                 timeslice = paste0(rep(c("d1", "d2"), each = 4), "_h", 1:4),
                 demand = 10)),
-    newStorage("STG", commodity = "ELC", invcost = list(invcost = 1),
+    newStorage("STG", commodity = "ELC", invcost = list(out.invcost = 1),
                vintage = data.frame(olife = 30L), fullYear = fullYear,
                startLevel = data.frame(startLevel = startLevel))))
 
@@ -91,7 +91,7 @@ test_that("a storage on a COARSE commodity still gets its startLevel", {
                     vintage = data.frame(olife = 30L), cap2act = 1),
       newDemand("DEM", commodity = "ELC",
                 demand = data.frame(timeslice = c("d1", "d2"), demand = 10)),
-      newStorage("STG", commodity = "ELC", invcost = list(invcost = 1),
+      newStorage("STG", commodity = "ELC", invcost = list(out.invcost = 1),
                  vintage = data.frame(olife = 30L),
                  startLevel = data.frame(startLevel = 7))))
   s <- suppressMessages(suppressWarnings(

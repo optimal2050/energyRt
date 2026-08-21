@@ -5,7 +5,7 @@
 # invcost/wacc/olife. That contract held for technology and trade but NOT for
 # storage: every backend gated the storage annuity on
 #
-#     and pStorageInvcost[...] <> 0
+#     and pStorageOutInvcost[...] <> 0
 #
 # so supplying `eac` alone dropped the capital cost entirely and the storage was
 # built for free. eqTechEac and eqTradeEac never carried that gate.

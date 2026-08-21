@@ -41,11 +41,11 @@ sr_rate_per_hour <- function(nslice, nm) {
       newCommodity("B", timeframe = "HOUR"),
       newSupply("SA", commodity = "A", supply = data.frame(cost = 1)),
       newStorage("S",
-        input    = list(comm = "A", cap.fx = 7),
-        storage  = list(comm = "B", cap.up = 1e9),
+        input    = list(comm = "A"),
+        storage  = list(comm = "B"),
         output   = list(comm = "B"),
         af       = data.frame(cinp.fx = 1),
-        capacity = list(cap.up = 1e9),
+        capacity = list(inp.cap.fx = 7, stg.cap.up = 1e9, out.cap.up = 1e9),
         duration = data.frame(duration.lo = 0, duration.up = 1e9),
         vintage  = data.frame(olife = 10L)),
       # B has free disposal (limtype LO), so the forced throughput needs no sink
@@ -70,7 +70,7 @@ test_that("a storage capacity means the same power at every resolution", {
 
 test_that("the ENERGY capacity is NOT rescaled by resolution", {
   skip_if_no_solver()
-  # `storage = list(cap.fx = )` is MWh and must mean the same MWh on any
+  # `capacity = list(stg.cap.fx = )` is MWh and must mean the same MWh on any
   # calendar. If it were given the share factor too, a coarse calendar would
   # inflate the store instead of leaving it alone.
   lvl <- function(nslice, nm) {
@@ -86,9 +86,9 @@ test_that("the ENERGY capacity is NOT rescaled by resolution", {
         newSupply("SA", commodity = "A", supply = data.frame(cost = 1)),
         newStorage("S",
           input    = list(comm = "A"),
-          storage  = list(comm = "B", cap.fx = 60),
+          storage  = list(comm = "B"),
           output   = list(comm = "B"),
-          capacity = list(cap.up = 1e9),
+          capacity = list(stg.cap.fx = 60, out.cap.up = 1e9),
           duration = data.frame(duration.lo = 0, duration.up = 1e9),
           vintage  = data.frame(olife = 10L)),
         newDemand("D", commodity = "B", demand = data.frame(demand = 0))))
@@ -118,9 +118,10 @@ test_that("`duration` now reads as HOURS", {
       newSupply("SA", commodity = "A", supply = data.frame(cost = 1)),
       newStorage("S",
         input    = list(comm = "A"),
-        storage  = list(comm = "B", cap.up = 1e9),
+        storage  = list(comm = "B"),
         output   = list(comm = "B"),
-        capacity = list(cap.fx = 10),      # 10 per hour of discharge
+        capacity = list(stg.cap.up = 1e9,
+                        out.cap.fx = 10),  # 10 per hour of discharge
         duration = 6,                      # a SIX-HOUR store
         vintage  = data.frame(olife = 10L)),
       newDemand("D", commodity = "B", demand = data.frame(demand = 0))))

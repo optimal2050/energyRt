@@ -355,10 +355,10 @@ param pTechAvarom{tech, comm, region, year, timeslice};
 param pWacc{region, year};
 param pSdr{region, year};
 param pTechWacc{tech, region, year};
-param pStorageWacc{stg, region, year};
+param pStorageOutWacc{stg, region, year};
 param pTradeWacc{trade, region, year};
 param pTechPayback{tech, region, year};
-param pStoragePayback{stg, region, year};
+param pStorageOutPayback{stg, region, year};
 param pTradePayback{trade, region, year};
 param pDiscountFactor{region, year};
 param pDiscountFactorMileStone{region, year};
@@ -389,21 +389,35 @@ param cardYear{year};
 param pStorageInpEff{stg, comm, region, year, timeslice};
 param pStorageOutEff{stg, comm, region, year, timeslice};
 param pStorageStgEff{stg, comm, region, year, timeslice};
-param pStorageStock{stg, region, year};
-param pStorageCapUp{stg, region, year};
-param pStorageCapLo{stg, region, year};
-param pStorageNewCapUp{stg, region, year};
-param pStorageNewCapLo{stg, region, year};
-param pStorageRetUp{stg, region, year};
-param pStorageRetLo{stg, region, year};
+param pStorageOutStock{stg, region, year};
+param pStorageOutCapUp{stg, region, year};
+param pStorageOutCapLo{stg, region, year};
+param pStorageOutNewCapUp{stg, region, year};
+param pStorageOutNewCapLo{stg, region, year};
+param pStorageOutRetUp{stg, region, year};
+param pStorageOutRetLo{stg, region, year};
 param pStorageOlife{stg, region};
 param pStorageCostStore{stg, region, year, timeslice};
 param pStorageCostInp{stg, region, year, timeslice};
 param pStorageCostOut{stg, region, year, timeslice};
-param pStorageFixom{stg, region, year};
-param pStorageInvcost{stg, region, year};
-param pStorageEac{stg, region, year};
-param pStorageRetCost{stg, region, year};
+param pStorageOutFixom{stg, region, year};
+param pStorageOutInvcost{stg, region, year};
+param pStorageOutEac{stg, region, year};
+param pStorageOutRetCost{stg, region, year};
+# Symmetry fill for the charging and storing parts: the discharging part
+# has always had these. Declared but NOT used by any equation -- storage
+# retirement has no equation in any back-end, for any part. Declaring them
+# keeps the .dat readable; giving them meaning is a separate change.
+param pStorageInpRetUp{stg, region, year};
+param pStorageInpRetLo{stg, region, year};
+param pStorageInpWacc{stg, region, year};
+param pStorageInpPayback{stg, region, year};
+param pStorageInpRetCost{stg, region, year};
+param pStorageStgRetUp{stg, region, year};
+param pStorageStgRetLo{stg, region, year};
+param pStorageStgWacc{stg, region, year};
+param pStorageStgPayback{stg, region, year};
+param pStorageStgRetCost{stg, region, year};
 param pStorageInpCap2act{stg};
 param pStorageOutCap2act{stg};
 param pStorageInpStock{stg, region, year};
@@ -709,7 +723,7 @@ s.t.  eqStorageOutUp{(st1, c, r, y, s) in meqStorageOutUp}: vStorageOut[st1,c,r,
 
 s.t.  eqStorageOutLo{(st1, c, r, y, s) in meqStorageOutLo}: vStorageOut[st1,c,r,y,s]  >=  vStorageOutCap[st1,r,y]*pStorageOutCap2act[st1]*pTimesliceShare[s]*pStorageCoutLo[st1,c,r,y,s]*(1 + sum{wth1 in weather:((wth1,st1) in mStorageWeatherCoutLo)}(pStorageWeatherCoutLo[wth1,st1]*pWeather[wth1,r,y,s] - 1));
 
-s.t.  eqStorageCap{(st1, r, y) in mStorageSpan}: vStorageOutCap[st1,r,y]  =  pStorageStock[st1,r,y]+sum{yp in year:((ordYear[y] >= ordYear[yp] and ((st1,r) in mStorageOlifeInf or ordYear[y]<pStorageOlife[st1,r]+ordYear[yp]) and (st1,r,yp) in mStorageNew))}(pPeriodLen[yp]*vStorageOutNewCap[st1,r,yp]);
+s.t.  eqStorageCap{(st1, r, y) in mStorageSpan}: vStorageOutCap[st1,r,y]  =  pStorageOutStock[st1,r,y]+sum{yp in year:((ordYear[y] >= ordYear[yp] and ((st1,r) in mStorageOlifeInf or ordYear[y]<pStorageOlife[st1,r]+ordYear[yp]) and (st1,r,yp) in mStorageNew))}(pPeriodLen[yp]*vStorageOutNewCap[st1,r,yp]);
 
 # [2c] The STORING side's own capacity, in ENERGY. It exists only where the
 # storing part carries data (mStorageStgCap); everywhere else the af bounds above
@@ -751,29 +765,29 @@ s.t.  eqStorageDurationLo{(st1, r, y) in mStorageDurationLo}: vStorageStgCap[st1
 
 s.t.  eqStorageDurationUp{(st1, r, y) in mStorageDurationUp}: vStorageStgCap[st1,r,y] <=  pStorageDurationUp[st1,r,y]*vStorageOutCap[st1,r,y];
 
-s.t.  eqStorageCapLo{(st1, r, y) in mStorageCapLo}: vStorageOutCap[st1,r,y]  >=  pStorageCapLo[st1,r,y];
+s.t.  eqStorageCapLo{(st1, r, y) in mStorageCapLo}: vStorageOutCap[st1,r,y]  >=  pStorageOutCapLo[st1,r,y];
 
-s.t.  eqStorageCapUp{(st1, r, y) in mStorageCapUp}: vStorageOutCap[st1,r,y] <=  pStorageCapUp[st1,r,y];
+s.t.  eqStorageCapUp{(st1, r, y) in mStorageCapUp}: vStorageOutCap[st1,r,y] <=  pStorageOutCapUp[st1,r,y];
 
-s.t.  eqStorageNewCapLo{(st1, r, y) in mStorageNewCapLo}: vStorageOutNewCap[st1,r,y]  >=  pStorageNewCapLo[st1,r,y]*pPeriodLen[y];
+s.t.  eqStorageNewCapLo{(st1, r, y) in mStorageNewCapLo}: vStorageOutNewCap[st1,r,y]  >=  pStorageOutNewCapLo[st1,r,y]*pPeriodLen[y];
 
-s.t.  eqStorageNewCapUp{(st1, r, y) in mStorageNewCapUp}: vStorageOutNewCap[st1,r,y] <=  pStorageNewCapUp[st1,r,y]*pPeriodLen[y];
+s.t.  eqStorageNewCapUp{(st1, r, y) in mStorageNewCapUp}: vStorageOutNewCap[st1,r,y] <=  pStorageOutNewCapUp[st1,r,y]*pPeriodLen[y];
 
-s.t.  eqStorageInv{(st1, r, y) in mStorageNew}: vStorageInv[st1,r,y]  =  pStorageInvcost[st1,r,y]*vStorageOutNewCap[st1,r,y]+sum{fi in FORIF: (st1,r,y) in mStorageStgNew} (pStorageStgInvcost[st1,r,y]*vStorageStgNewCap[st1,r,y])+sum{fi in FORIF: (st1,r,y) in mStorageInpNew} (pStorageInpInvcost[st1,r,y]*vStorageInpNewCap[st1,r,y]);
+s.t.  eqStorageInv{(st1, r, y) in mStorageNew}: vStorageInv[st1,r,y]  =  pStorageOutInvcost[st1,r,y]*vStorageOutNewCap[st1,r,y]+sum{fi in FORIF: (st1,r,y) in mStorageStgNew} (pStorageStgInvcost[st1,r,y]*vStorageStgNewCap[st1,r,y])+sum{fi in FORIF: (st1,r,y) in mStorageInpNew} (pStorageInpInvcost[st1,r,y]*vStorageInpNewCap[st1,r,y]);
 
 # [eac-fix] reverted to legacy vintaged new-capacity form (see eqTechEac).
-# OLD: s.t.  eqStorageEac{(st1, r, y) in mStorageEac}: vStorageEac[st1,r,y]  =  pStorageEac[st1,r,y]*vStorageOutCap[st1,r,y];
+# OLD: s.t.  eqStorageEac{(st1, r, y) in mStorageEac}: vStorageEac[st1,r,y]  =  pStorageOutEac[st1,r,y]*vStorageOutCap[st1,r,y];
 # [payback] see eqTechEac.
-# [eac-fix] the `pStorageInvcost <> 0` guard was REMOVED from the summation
+# [eac-fix] the `pStorageOutInvcost <> 0` guard was REMOVED from the summation
 # condition below. It dropped the annuity entirely when a user supplied
 # `@invcost$eac` without `invcost` (pre-annuitised capex, e.g. a PyPSA import),
 # so the storage was built for FREE -- silently, with an OPTIMAL solve.
-# eqTechEac / eqTradeEac never carried it. pStorageEac defaults to 0, so a
+# eqTechEac / eqTradeEac never carried it. pStorageOutEac defaults to 0, so a
 # vintage with no capital cost now contributes a zero-coefficient term instead
 # of being dropped from the sum.
-s.t.  eqStorageEac{(st1, r, y) in mStorageEac}: vStorageEac[st1,r,y]  =  sum{yp in year:(((st1,r,yp) in mStorageNew and ordYear[y] >= ordYear[yp] and ((pStoragePayback[st1,r,yp] > 0 and ordYear[y]<pStoragePayback[st1,r,yp]+ordYear[yp]) or (pStoragePayback[st1,r,yp] <= 0 and ((st1,r) in mStorageOlifeInf or ordYear[y]<pStorageOlife[st1,r]+ordYear[yp])))))}(pStorageEac[st1,r,yp]*vStorageOutNewCap[st1,r,yp]+sum{fi in FORIF: (st1,r,yp) in mStorageStgNew} (pStorageStgEac[st1,r,yp]*vStorageStgNewCap[st1,r,yp])+sum{fi in FORIF: (st1,r,yp) in mStorageInpNew} (pStorageInpEac[st1,r,yp]*vStorageInpNewCap[st1,r,yp]));
+s.t.  eqStorageEac{(st1, r, y) in mStorageEac}: vStorageEac[st1,r,y]  =  sum{yp in year:(((st1,r,yp) in mStorageNew and ordYear[y] >= ordYear[yp] and ((pStorageOutPayback[st1,r,yp] > 0 and ordYear[y]<pStorageOutPayback[st1,r,yp]+ordYear[yp]) or (pStorageOutPayback[st1,r,yp] <= 0 and ((st1,r) in mStorageOlifeInf or ordYear[y]<pStorageOlife[st1,r]+ordYear[yp])))))}(pStorageOutEac[st1,r,yp]*vStorageOutNewCap[st1,r,yp]+sum{fi in FORIF: (st1,r,yp) in mStorageStgNew} (pStorageStgEac[st1,r,yp]*vStorageStgNewCap[st1,r,yp])+sum{fi in FORIF: (st1,r,yp) in mStorageInpNew} (pStorageInpEac[st1,r,yp]*vStorageInpNewCap[st1,r,yp]));
 
-s.t.  eqStorageFixom{(st1, r, y) in mStorageFixom}: vStorageFixom[st1,r,y]  =  pStorageFixom[st1,r,y]*vStorageOutCap[st1,r,y]+sum{fi in FORIF: (st1,r,y) in mStorageStgFixom} (pStorageStgFixom[st1,r,y]*vStorageStgCap[st1,r,y])+sum{fi in FORIF: (st1,r,y) in mStorageInpFixom} (pStorageInpFixom[st1,r,y]*vStorageInpCap[st1,r,y]);
+s.t.  eqStorageFixom{(st1, r, y) in mStorageFixom}: vStorageFixom[st1,r,y]  =  pStorageOutFixom[st1,r,y]*vStorageOutCap[st1,r,y]+sum{fi in FORIF: (st1,r,y) in mStorageStgFixom} (pStorageStgFixom[st1,r,y]*vStorageStgCap[st1,r,y])+sum{fi in FORIF: (st1,r,y) in mStorageInpFixom} (pStorageInpFixom[st1,r,y]*vStorageInpCap[st1,r,y]);
 
 s.t.  eqStorageVarom{(st1, r, y) in mStorageVarom}: vStorageVarom[st1,r,y]  =  sum{c in comm:((st1,c) in mStorageInpComm)}(sum{s in timeslice:((c,s) in mCommTimeslice)}(pStorageCostInp[st1,r,y,s]*pTimesliceWeight[y,s]*vStorageInp[st1,c,r,y,s]))+sum{c in comm:((st1,c) in mStorageOutComm)}(sum{s in timeslice:((c,s) in mCommTimeslice)}(pStorageCostOut[st1,r,y,s]*pTimesliceWeight[y,s]*vStorageOut[st1,c,r,y,s]))+sum{c in comm:((st1,c) in mStorageStgComm)}(sum{s in timeslice:((c,s) in mCommTimeslice)}(pStorageCostStore[st1,r,y,s]*pTimesliceWeight[y,s]*vStorageLevel[st1,c,r,y,s]));
 

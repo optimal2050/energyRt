@@ -1851,7 +1851,7 @@ sys.stdout.flush()
 model.eqStorageCap = Constraint(
     mStorageSpan,
     rule=lambda model, st1, r, y: model.vStorageOutCap[st1, r, y]
-    == pStorageStock.get((st1, r, y))
+    == pStorageOutStock.get((st1, r, y))
     + sum(
         pPeriodLen.get((yp)) * model.vStorageOutNewCap[st1, r, yp]
         for yp in year
@@ -1975,7 +1975,7 @@ model.eqStorageDurationUp = Constraint(
 model.eqStorageCapLo = Constraint(
     mStorageCapLo,
     rule=lambda model, st1, r, y: model.vStorageOutCap[st1, r, y]
-    >= pStorageCapLo.get((st1, r, y)),
+    >= pStorageOutCapLo.get((st1, r, y)),
 )
 if verbose:
     print(
@@ -1992,7 +1992,7 @@ sys.stdout.flush()
 model.eqStorageCapUp = Constraint(
     mStorageCapUp,
     rule=lambda model, st1, r, y: model.vStorageOutCap[st1, r, y]
-    <= pStorageCapUp.get((st1, r, y)),
+    <= pStorageOutCapUp.get((st1, r, y)),
 )
 if verbose:
     print(
@@ -2009,7 +2009,7 @@ sys.stdout.flush()
 model.eqStorageNewCapLo = Constraint(
     mStorageNewCapLo,
     rule=lambda model, st1, r, y: model.vStorageOutNewCap[st1, r, y]
-    >= pStorageNewCapLo.get((st1, r, y)) * pPeriodLen.get((y)),
+    >= pStorageOutNewCapLo.get((st1, r, y)) * pPeriodLen.get((y)),
 )
 if verbose:
     print(
@@ -2026,7 +2026,7 @@ sys.stdout.flush()
 model.eqStorageNewCapUp = Constraint(
     mStorageNewCapUp,
     rule=lambda model, st1, r, y: model.vStorageOutNewCap[st1, r, y]
-    <= pStorageNewCapUp.get((st1, r, y)) * pPeriodLen.get((y)),
+    <= pStorageOutNewCapUp.get((st1, r, y)) * pPeriodLen.get((y)),
 )
 if verbose:
     print(
@@ -2043,7 +2043,7 @@ sys.stdout.flush()
 model.eqStorageInv = Constraint(
     mStorageNew,
     rule=lambda model, st1, r, y: model.vStorageInv[st1, r, y]
-    == pStorageInvcost.get((st1, r, y)) * model.vStorageOutNewCap[st1, r, y]
+    == pStorageOutInvcost.get((st1, r, y)) * model.vStorageOutNewCap[st1, r, y]
     # [2c] the storing side's capital cost is per unit of ENERGY.
     + (
         pStorageStgInvcost.get((st1, r, y)) * model.vStorageStgNewCap[st1, r, y]
@@ -2068,13 +2068,13 @@ if verbose:
 if verbose:
     print("eqStorageEac ", end="")
 sys.stdout.flush()
-# [eac-fix] vintaged new-capacity form (pStorageEac applies to NEW capacity only).
+# [eac-fix] vintaged new-capacity form (pStorageOutEac applies to NEW capacity only).
 model.eqStorageEac = Constraint(
     mStorageEac,
     rule=lambda model, st1, r, y: model.vStorageEac[st1, r, y]
     == sum(
         (
-            pStorageEac.get((st1, r, yp)) * model.vStorageOutNewCap[st1, r, yp]
+            pStorageOutEac.get((st1, r, yp)) * model.vStorageOutNewCap[st1, r, yp]
             # [2c] the storing side annuitises separately, same lifetime.
             + (
                 pStorageStgEac.get((st1, r, yp))
@@ -2096,12 +2096,12 @@ model.eqStorageEac = Constraint(
             # [payback] see eqTechEac.
             and (
                 (
-                    pStoragePayback.get((st1, r, yp)) > 0
+                    pStorageOutPayback.get((st1, r, yp)) > 0
                     and ordYear.get((y))
-                    < pStoragePayback.get((st1, r, yp)) + ordYear.get((yp))
+                    < pStorageOutPayback.get((st1, r, yp)) + ordYear.get((yp))
                 )
                 or (
-                    pStoragePayback.get((st1, r, yp)) <= 0
+                    pStorageOutPayback.get((st1, r, yp)) <= 0
                     and (
                         (st1, r) in mStorageOlifeInf
                         or ordYear.get((y))
@@ -2109,11 +2109,11 @@ model.eqStorageEac = Constraint(
                     )
                 )
             )
-            # [eac-fix] the `pStorageInvcost <> 0` guard was REMOVED from the summation
+            # [eac-fix] the `pStorageOutInvcost <> 0` guard was REMOVED from the summation
             # condition below. It dropped the annuity entirely when a user supplied
             # `@invcost$eac` without `invcost` (pre-annuitised capex, e.g. a PyPSA import),
             # so the storage was built for FREE -- silently, with an OPTIMAL solve.
-            # eqTechEac / eqTradeEac never carried it. pStorageEac defaults to 0, so a
+            # eqTechEac / eqTradeEac never carried it. pStorageOutEac defaults to 0, so a
             # vintage with no capital cost now contributes a zero-coefficient term instead
             # of being dropped from the sum.
         )
@@ -2134,7 +2134,7 @@ sys.stdout.flush()
 model.eqStorageFixom = Constraint(
     mStorageFixom,
     rule=lambda model, st1, r, y: model.vStorageFixom[st1, r, y]
-    == pStorageFixom.get((st1, r, y)) * model.vStorageOutCap[st1, r, y]
+    == pStorageOutFixom.get((st1, r, y)) * model.vStorageOutCap[st1, r, y]
     + (
         pStorageStgFixom.get((st1, r, y)) * model.vStorageStgCap[st1, r, y]
         if (st1, r, y) in mStorageStgFixom

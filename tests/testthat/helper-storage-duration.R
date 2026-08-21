@@ -47,7 +47,7 @@ sd_solved_scenario <- function() {
       newTechnology("BACKSTOP", input = list(comm = "GAS"), output = list(comm = "ELC"),
         invcost = data.frame(invcost = 9000), vintage = V, cap2act = 1),
       newStorage("STG", commodity = "ELC", vintage = V,
-        invcost = list(invcost = 4), storage = list(invcost = 1),
+        invcost = list(out.invcost = 4, stg.invcost = 1),
         duration = data.frame(duration.lo = 1, duration.up = 200),
         af = data.frame(cinp.up = 1, cout.up = 1)),
       newDemand("DEM", commodity = "ELC",

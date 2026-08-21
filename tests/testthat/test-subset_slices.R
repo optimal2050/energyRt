@@ -94,7 +94,7 @@ test_that("typical-day sampling (intra-day shape + storage) reproduces full obje
                     invcost = data.frame(region = "R1", invcost = 800),
                     olife = list(olife = 30), cap2act = 1),
       newStorage("STG_ELC", commodity = "ELC",
-                 invcost = list(invcost = 20), olife = list(olife = 15)),
+                 invcost = list(out.invcost = 20), olife = list(olife = 15)),
       newDemand("DEM_ELC", commodity = "ELC", demand = dem_df)),
     calendar = cal, region = "R1", horizon = newHorizon(2020), discount = 0.05)
 

@@ -4,11 +4,18 @@
 # `.eac_one()` fills only the rows the user left empty.
 
 test_that("@invcost carries the financial columns on all three classes", {
-  for (cls in c("technology", "storage", "trade")) {
-    nm <- names(new(cls)@invcost)
-    expect_true(all(c("invcost", "wacc", "payback", "eac", "retcost") %in% nm),
-                info = cls)
+  fin <- c("invcost", "wacc", "payback", "eac", "retcost")
+  for (cls in c("technology", "trade")) {
+    expect_true(all(fin %in% names(new(cls)@invcost)), info = cls)
   }
+  # `storage` prices three parts separately -- the charger, the reservoir and
+  # the discharger -- so the same five columns appear once per part under an
+  # `inp.`/`stg.`/`out.` prefix. A bare `invcost` there would be ambiguous.
+  nm <- names(new("storage")@invcost)
+  for (p in c("out", "inp", "stg")) {
+    expect_true(all(paste(p, fin, sep = ".") %in% nm), info = p)
+  }
+  expect_false(any(fin %in% nm))
 })
 
 test_that("a supplied eac is used verbatim, ignoring invcost and wacc", {
@@ -59,10 +66,15 @@ test_that("an object whose @invcost predates the new columns still builds", {
 
 test_that("pXEac reads the eac column, not invcost", {
   mi <- getFromNamespace(".modInp", "energyRt")
-  for (p in c("pTechEac", "pStorageEac", "pTradeEac")) {
+  for (p in c("pTechEac", "pTradeEac")) {
     expect_equal(mi[[p]]$colName, "eac", info = p)
   }
-  for (p in c("pTechInvcost", "pStorageInvcost", "pTradeInvcost")) {
+  for (p in c("pTechInvcost", "pTradeInvcost")) {
     expect_equal(mi[[p]]$colName, "invcost", info = p)
   }
+  # storage carries a part prefix -- the discharger is the `out.` one
+  expect_equal(mi[["pStorageOutEac"]]$colName, "out.eac")
+  expect_equal(mi[["pStorageOutInvcost"]]$colName, "out.invcost")
+  expect_equal(mi[["pStorageStgEac"]]$colName, "stg.eac")
+  expect_equal(mi[["pStorageInpInvcost"]]$colName, "inp.invcost")
 })

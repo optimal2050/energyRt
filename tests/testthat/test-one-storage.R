@@ -48,7 +48,7 @@ STG <- newStorage(
   name = "STG1H",
   desc = "Storage with 1 hour capacity",
   commodity = "OUT",
-  invcost = list(invcost = 10),
+  invcost = list(out.invcost = 10),
   olife = list(olife = 10)
 )
 
