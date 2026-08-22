@@ -51,9 +51,9 @@ NULL
 #'
 #' @examples
 #' \dontrun{
-#' gs <- geoscales::geoscale_from_leaves(
+#' gs <- geoscales::geoscale_from_leaftable(
 #'   data.frame(zone = c("N", "N", "S"), region = c("R1", "R2", "R3")),
-#'   levels = c("zone", "region")
+#'   geoframes = c("zone", "region")
 #' )
 #' mod <- newModel("demo", region = c("R1", "R2", "R3"), geoscale = gs)
 #' getGeoscale(mod)
@@ -137,7 +137,7 @@ check_geoscale_regions <- function(geoscale, region, level = NULL) {
   if (is.null(geoscale)) return(invisible(character()))
   check_package("geoscales")
   level <- level %||% .geo_default_level(geoscale)
-  known <- geoscales::geo_regions(geoscale, level)
+  known <- geoscales::geoscale_regions(geoscale, level)
 
   region <- as.character(region)
   region <- region[!is.na(region) & nzchar(region)]
@@ -165,7 +165,7 @@ check_geoscale_regions <- function(geoscale, region, level = NULL) {
 #' @noRd
 .geo_default_level <- function(geoscale) {
   check_package("geoscales")
-  geoscales::geo_levels(geoscale, finest = TRUE)
+  geoscales::geoscale_geoframes(geoscale, finest = TRUE)
 }
 
 # Region hierarchy -------------------------------------------------------------
@@ -185,7 +185,7 @@ check_geoscale_regions <- function(geoscale, region, level = NULL) {
   if (is.null(geoscale)) return(NULL)
   check_package("geoscales")
 
-  levels <- geoscales::geo_levels(geoscale)
+  levels <- geoscales::geoscale_geoframes(geoscale)
   if (length(levels) < 2L) return(NULL)
   finest <- levels[length(levels)]
 
@@ -193,11 +193,11 @@ check_geoscale_regions <- function(geoscale, region, level = NULL) {
   declared <- declared[!is.na(declared) & nzchar(declared)]
   if (length(declared) == 0L) return(NULL)
 
-  fam <- as.data.frame(geoscales::geo_family(geoscale))
+  fam <- as.data.frame(geoscales::geoscale_family(geoscale))
 
   # level -> the codes of that level that survive pruning.
   keep <- list()
-  keep[[finest]] <- intersect(geoscales::geo_regions(geoscale, finest),
+  keep[[finest]] <- intersect(geoscales::geoscale_regions(geoscale, finest),
                               declared)
   pairs <- list()
   for (i in rev(seq_len(length(levels) - 1L))) {

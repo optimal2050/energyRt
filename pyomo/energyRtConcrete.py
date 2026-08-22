@@ -117,8 +117,13 @@ model.vExportIrCost = Var(
 model.vImportRowCost = Var(mImportRowCost, doc="Import costs from the ROW")
 model.vExportRowCost = Var(mExportRowCost, doc="Credits for export to the ROW")
 model.vTechNewCap = Var(mTechNew, domain=pyo.NonNegativeReals, doc="New capacity")
-model.vTechRetiredStockCum = Var(
-    mvTechRetiredStock, domain=pyo.NonNegativeReals, doc="Early retired stock"
+model.vTechStockCap = Var(
+    mTechSpan, domain=pyo.NonNegativeReals,
+    doc="Surviving exogenous (legacy) capacity"
+)
+model.vTechStockPhaseOut = Var(
+    mvTechPhaseOut, domain=pyo.NonNegativeReals,
+    doc="Exogenous capacity leaving on the schedule"
 )
 model.vTechRetiredStock = Var(
     mvTechRetiredStock, domain=pyo.NonNegativeReals, doc="Early retired stock"
@@ -132,8 +137,13 @@ model.vTechPhaseOut = Var(
 model.vStoragePhaseOut = Var(
     mvStoragePhaseOut, domain=pyo.NonNegativeReals, doc="Storage capacity reaching end of life"
 )
-model.vStorageOutRetiredStockCum = Var(
-    mvStorageRetiredStock, domain=pyo.NonNegativeReals, doc="Early retired storage discharging stock cumulative"
+model.vStorageStockPhaseOut = Var(
+    mvStoragePhaseOut, domain=pyo.NonNegativeReals,
+    doc="Exogenous storage capacity leaving on the schedule"
+)
+model.vStorageOutStockCap = Var(
+    mStorageSpan, domain=pyo.NonNegativeReals,
+    doc="Surviving exogenous (legacy) capacity"
 )
 model.vStorageOutRetiredStock = Var(
     mvStorageRetiredStock, domain=pyo.NonNegativeReals, doc="Early retired storage discharging stock"
@@ -141,8 +151,9 @@ model.vStorageOutRetiredStock = Var(
 model.vStorageOutRetiredNewCap = Var(
     mvStorageRetiredNewCap, domain=pyo.NonNegativeReals, doc="Early retired new storage discharging capacity"
 )
-model.vStorageInpRetiredStockCum = Var(
-    mvStorageRetiredStock, domain=pyo.NonNegativeReals, doc="Early retired storage charging stock cumulative"
+model.vStorageInpStockCap = Var(
+    mStorageInpCap, domain=pyo.NonNegativeReals,
+    doc="Surviving exogenous (legacy) capacity"
 )
 model.vStorageInpRetiredStock = Var(
     mvStorageRetiredStock, domain=pyo.NonNegativeReals, doc="Early retired storage charging stock"
@@ -150,8 +161,9 @@ model.vStorageInpRetiredStock = Var(
 model.vStorageInpRetiredNewCap = Var(
     mvStorageRetiredNewCap, domain=pyo.NonNegativeReals, doc="Early retired new storage charging capacity"
 )
-model.vStorageStgRetiredStockCum = Var(
-    mvStorageRetiredStock, domain=pyo.NonNegativeReals, doc="Early retired storage energy stock cumulative"
+model.vStorageStgStockCap = Var(
+    mStorageStgCap, domain=pyo.NonNegativeReals,
+    doc="Surviving exogenous (legacy) capacity"
 )
 model.vStorageStgRetiredStock = Var(
     mvStorageRetiredStock, domain=pyo.NonNegativeReals, doc="Early retired storage energy stock"
@@ -160,8 +172,9 @@ model.vStorageStgRetiredNewCap = Var(
     mvStorageRetiredNewCap, domain=pyo.NonNegativeReals, doc="Early retired new storage energy capacity"
 )
 model.vStorageRetCost = Var(mStorageRetCost, doc="Storage early retirement costs")
-model.vTradeRetiredStockCum = Var(
-    mvTradeRetiredStock, domain=pyo.NonNegativeReals, doc="Early retired trade stock cumulative"
+model.vTradeStockCap = Var(
+    mTradeSpan, domain=pyo.NonNegativeReals,
+    doc="Surviving exogenous (legacy) capacity"
 )
 model.vTradeRetiredStock = Var(
     mvTradeRetiredStock, domain=pyo.NonNegativeReals, doc="Early retired trade stock"
@@ -961,8 +974,7 @@ sys.stdout.flush()
 model.eqTechCap = Constraint(
     mTechSpan,
     rule=lambda model, t, r, y: model.vTechCap[t, r, y]
-    == pTechStock.get((t, r, y))
-    - (model.vTechRetiredStockCum[t, r, y] if (t, r, y) in mvTechRetiredStock else 0)
+    == model.vTechStockCap[t, r, y]
     + sum(
         pPeriodLen.get((yp)) * model.vTechNewCap[t, r, yp]
         - sum(
@@ -1079,43 +1091,40 @@ if verbose:
         " s)",
         sep="",
     )
-# eqTechRetiredStockCum(tech, region, year)$mvTechRetiredStock(tech, region, year)
+# eqTechStockCap -- the legacy fleet as a recursive balance. `pTechStockSurv`
+# thins whatever is ACTUALLY standing, so a declining schedule can never demand
+# more capacity than exists and can never block early retirement -- the defect
+# of the cumulative form this replaces.
 if verbose:
-    print("eqTechRetiredStockCum ", end="")
+    print("eqTechStockCap ", end="")
 sys.stdout.flush()
-model.eqTechRetiredStockCum = Constraint(
-    mvTechRetiredStock,
-    rule=lambda model, t, r, y: model.vTechRetiredStockCum[t, r, y]
-    <= pTechStock.get((t, r, y)),
-)
-if verbose:
-    print(
-        datetime.datetime.now().strftime("%H:%M:%S"),
-        " (",
-        round(time.time() - seconds, 2),
-        " s)",
-        sep="",
+model.eqTechStockCap = Constraint(
+    mTechSpan,
+    rule=lambda model, t, r, y: model.vTechStockCap[t, r, y]
+    == pTechStockSurv.get((t, r, y))
+    * sum(
+        model.vTechStockCap[t, r, yp]
+        for yp in year
+        if ((yp, y) in mMilestoneNext and (t, r, yp) in mTechSpan)
     )
-# eqTechRetiredStock(tech, region, year)$mvTechRetiredStock(tech, region, year)
+    + pTechStockNew.get((t, r, y))
+    - (model.vTechRetiredStock[t, r, y] if (t, r, y) in mvTechRetiredStock else 0)
+    * pPeriodLen.get((y)),
+)
+# eqTechStockPhaseOut -- what the schedule actually removed.
 if verbose:
-    print("eqTechRetiredStock ", end="")
+    print("eqTechStockPhaseOut ", end="")
 sys.stdout.flush()
-model.eqTechRetiredStock = Constraint(
-    mvTechRetiredStock,
-    rule=lambda model, t, r, y: model.vTechRetiredStock[t, r, y] * pPeriodLen.get((y))
-    == model.vTechRetiredStockCum[t, r, y]
-    - sum(
-        model.vTechRetiredStockCum[t, r, yp] for yp in year if (yp, y) in mMilestoneNext
+model.eqTechStockPhaseOut = Constraint(
+    mvTechPhaseOut,
+    rule=lambda model, t, r, y: model.vTechStockPhaseOut[t, r, y] * pPeriodLen.get((y))
+    == (1 - pTechStockSurv.get((t, r, y)))
+    * sum(
+        model.vTechStockCap[t, r, yp]
+        for yp in year
+        if ((yp, y) in mMilestoneNext and (t, r, yp) in mTechSpan)
     ),
 )
-if verbose:
-    print(
-        datetime.datetime.now().strftime("%H:%M:%S"),
-        " (",
-        round(time.time() - seconds, 2),
-        " s)",
-        sep="",
-    )
 # eqTechRetUp(tech, region, year)$mTechRetUp(tech, region, year)
 if verbose:
     print("eqTechRetUp ", end="")
@@ -1178,23 +1187,19 @@ model.eqStorageOutRetiredNewCap = Constraint(
         else pyo.Constraint.Skip
     ),
 )
-# eqStorageOutRetiredStockCum(stg, region, year)$mvStorageRetiredStock
-model.eqStorageOutRetiredStockCum = Constraint(
-    mvStorageRetiredStock,
-    rule=lambda model, st1, r, y: model.vStorageOutRetiredStockCum[st1, r, y]
-    <= pStorageOutStock.get((st1, r, y)),
-)
-# eqStorageOutRetiredStock(stg, region, year)$mvStorageRetiredStock
-model.eqStorageOutRetiredStock = Constraint(
-    mvStorageRetiredStock,
-    rule=lambda model, st1, r, y: model.vStorageOutRetiredStock[st1, r, y]
-    * pPeriodLen.get((y))
-    == model.vStorageOutRetiredStockCum[st1, r, y]
-    - sum(
-        model.vStorageOutRetiredStockCum[st1, r, yp]
+# eqStorageOutStockCap -- the legacy fleet as a recursive balance.
+model.eqStorageOutStockCap = Constraint(
+    mStorageSpan,
+    rule=lambda model, st1, r, y: model.vStorageOutStockCap[st1, r, y]
+    == pStorageOutStockSurv.get((st1, r, y))
+    * sum(
+        model.vStorageOutStockCap[st1, r, yp]
         for yp in year
-        if ((yp, y) in mMilestoneNext and (st1, r, yp) in mvStorageRetiredStock)
-    ),
+        if ((yp, y) in mMilestoneNext and (st1, r, yp) in mStorageSpan)
+    )
+    + pStorageOutStockNew.get((st1, r, y))
+    - (model.vStorageOutRetiredStock[st1, r, y] if (st1, r, y) in mvStorageRetiredStock else 0)
+    * pPeriodLen.get((y)),
 )
 # eqStorageOutRetUp(stg, region, year)$mStorageOutRetUp
 model.eqStorageOutRetUp = Constraint(
@@ -1240,23 +1245,19 @@ model.eqStorageInpRetiredNewCap = Constraint(
         else pyo.Constraint.Skip
     ),
 )
-# eqStorageInpRetiredStockCum(stg, region, year)$mvStorageRetiredStock
-model.eqStorageInpRetiredStockCum = Constraint(
-    mvStorageRetiredStock,
-    rule=lambda model, st1, r, y: model.vStorageInpRetiredStockCum[st1, r, y]
-    <= pStorageInpStock.get((st1, r, y)),
-)
-# eqStorageInpRetiredStock(stg, region, year)$mvStorageRetiredStock
-model.eqStorageInpRetiredStock = Constraint(
-    mvStorageRetiredStock,
-    rule=lambda model, st1, r, y: model.vStorageInpRetiredStock[st1, r, y]
-    * pPeriodLen.get((y))
-    == model.vStorageInpRetiredStockCum[st1, r, y]
-    - sum(
-        model.vStorageInpRetiredStockCum[st1, r, yp]
+# eqStorageInpStockCap -- the legacy fleet as a recursive balance.
+model.eqStorageInpStockCap = Constraint(
+    mStorageInpCap,
+    rule=lambda model, st1, r, y: model.vStorageInpStockCap[st1, r, y]
+    == pStorageInpStockSurv.get((st1, r, y))
+    * sum(
+        model.vStorageInpStockCap[st1, r, yp]
         for yp in year
-        if ((yp, y) in mMilestoneNext and (st1, r, yp) in mvStorageRetiredStock)
-    ),
+        if ((yp, y) in mMilestoneNext and (st1, r, yp) in mStorageInpCap)
+    )
+    + pStorageInpStockNew.get((st1, r, y))
+    - (model.vStorageInpRetiredStock[st1, r, y] if (st1, r, y) in mvStorageRetiredStock else 0)
+    * pPeriodLen.get((y)),
 )
 # eqStorageInpRetUp(stg, region, year)$mStorageInpRetUp
 model.eqStorageInpRetUp = Constraint(
@@ -1302,23 +1303,19 @@ model.eqStorageStgRetiredNewCap = Constraint(
         else pyo.Constraint.Skip
     ),
 )
-# eqStorageStgRetiredStockCum(stg, region, year)$mvStorageRetiredStock
-model.eqStorageStgRetiredStockCum = Constraint(
-    mvStorageRetiredStock,
-    rule=lambda model, st1, r, y: model.vStorageStgRetiredStockCum[st1, r, y]
-    <= pStorageStgStock.get((st1, r, y)),
-)
-# eqStorageStgRetiredStock(stg, region, year)$mvStorageRetiredStock
-model.eqStorageStgRetiredStock = Constraint(
-    mvStorageRetiredStock,
-    rule=lambda model, st1, r, y: model.vStorageStgRetiredStock[st1, r, y]
-    * pPeriodLen.get((y))
-    == model.vStorageStgRetiredStockCum[st1, r, y]
-    - sum(
-        model.vStorageStgRetiredStockCum[st1, r, yp]
+# eqStorageStgStockCap -- the legacy fleet as a recursive balance.
+model.eqStorageStgStockCap = Constraint(
+    mStorageStgCap,
+    rule=lambda model, st1, r, y: model.vStorageStgStockCap[st1, r, y]
+    == pStorageStgStockSurv.get((st1, r, y))
+    * sum(
+        model.vStorageStgStockCap[st1, r, yp]
         for yp in year
-        if ((yp, y) in mMilestoneNext and (st1, r, yp) in mvStorageRetiredStock)
-    ),
+        if ((yp, y) in mMilestoneNext and (st1, r, yp) in mStorageStgCap)
+    )
+    + pStorageStgStockNew.get((st1, r, y))
+    - (model.vStorageStgRetiredStock[st1, r, y] if (st1, r, y) in mvStorageRetiredStock else 0)
+    * pPeriodLen.get((y)),
 )
 # eqStorageStgRetUp(stg, region, year)$mStorageStgRetUp
 model.eqStorageStgRetUp = Constraint(
@@ -1408,22 +1405,19 @@ model.eqTradeRetiredNewCap = Constraint(
         else pyo.Constraint.Skip
     ),
 )
-# eqTradeRetiredStockCum(trade, year)$mvTradeRetiredStock
-model.eqTradeRetiredStockCum = Constraint(
-    mvTradeRetiredStock,
-    rule=lambda model, t1, y: model.vTradeRetiredStockCum[t1, y]
-    <= pTradeStock.get((t1, y)),
-)
-# eqTradeRetiredStock(trade, year)$mvTradeRetiredStock
-model.eqTradeRetiredStock = Constraint(
-    mvTradeRetiredStock,
-    rule=lambda model, t1, y: model.vTradeRetiredStock[t1, y] * pPeriodLen.get((y))
-    == model.vTradeRetiredStockCum[t1, y]
-    - sum(
-        model.vTradeRetiredStockCum[t1, yp]
+# eqTradeStockCap -- the legacy fleet as a recursive balance.
+model.eqTradeStockCap = Constraint(
+    mTradeSpan,
+    rule=lambda model, t1, y: model.vTradeStockCap[t1, y]
+    == pTradeStockSurv.get((t1, y))
+    * sum(
+        model.vTradeStockCap[t1, yp]
         for yp in year
-        if ((yp, y) in mMilestoneNext and (t1, yp) in mvTradeRetiredStock)
-    ),
+        if ((yp, y) in mMilestoneNext and (t1, yp) in mTradeSpan)
+    )
+    + pTradeStockNew.get((t1, y))
+    - (model.vTradeRetiredStock[t1, y] if (t1, y) in mvTradeRetiredStock else 0)
+    * pPeriodLen.get((y)),
 )
 # eqTradeRetUp(trade, year)$mTradeRetUp
 model.eqTradeRetUp = Constraint(
@@ -1466,7 +1460,7 @@ model.eqTradeRetCost = Constraint(
     ),
 )
 # eqTechPhaseOut -- end-of-life departure, read off the capacity balance.
-# `max(0, dStock)` covers exogenous stock APPEARING mid-horizon: an inflow, not
+# `pTechStockNew` covers exogenous stock APPEARING mid-horizon: an inflow, not
 # a phase-out. Without it the residual goes negative and the model is infeasible.
 model.eqTechPhaseOut = Constraint(
     mvTechPhaseOut,
@@ -1487,15 +1481,7 @@ model.eqTechPhaseOut = Constraint(
         )
     )
     * pPeriodLen.get((y))
-    + max(
-        0,
-        pTechStock.get((t, r, y))
-        - sum(
-            pTechStock.get((t, r, yp))
-            for yp in year
-            if ((yp, y) in mMilestoneNext and (t, r, yp) in mTechSpan)
-        ),
-    ),
+    + pTechStockNew.get((t, r, y)),
 )
 # eqStoragePhaseOut -- end-of-life departure, read off the capacity balance.
 # `max(0, dStock)` covers exogenous stock APPEARING mid-horizon: an inflow, not
@@ -1519,14 +1505,18 @@ model.eqStoragePhaseOut = Constraint(
         )
     )
     * pPeriodLen.get((y))
-    + max(
-        0,
-        pStorageOutStock.get((st1, r, y))
-        - sum(
-            pStorageOutStock.get((st1, r, yp))
-            for yp in year
-            if ((yp, y) in mMilestoneNext and (st1, r, yp) in mStorageSpan)
-        ),
+    + pStorageOutStockNew.get((st1, r, y)),
+)
+# eqStorageStockPhaseOut -- what the schedule actually removed.
+model.eqStorageStockPhaseOut = Constraint(
+    mvStoragePhaseOut,
+    rule=lambda model, st1, r, y: model.vStorageStockPhaseOut[st1, r, y]
+    * pPeriodLen.get((y))
+    == (1 - pStorageOutStockSurv.get((st1, r, y)))
+    * sum(
+        model.vStorageOutStockCap[st1, r, yp]
+        for yp in year
+        if ((yp, y) in mMilestoneNext and (st1, r, yp) in mStorageSpan)
     ),
 )
 # eqTechRetCost(tech, region, year)$mTechRetCost(tech, region, year)
@@ -2297,12 +2287,7 @@ sys.stdout.flush()
 model.eqStorageOutCap = Constraint(
     mStorageSpan,
     rule=lambda model, st1, r, y: model.vStorageOutCap[st1, r, y]
-    == pStorageOutStock.get((st1, r, y))
-    - (
-        model.vStorageOutRetiredStockCum[st1, r, y]
-        if (st1, r, y) in mvStorageRetiredStock
-        else 0
-    )
+    == model.vStorageOutStockCap[st1, r, y]
     + sum(
         pPeriodLen.get((yp)) * model.vStorageOutNewCap[st1, r, yp]
         - sum(
@@ -2340,12 +2325,7 @@ sys.stdout.flush()
 model.eqStorageInpCap = Constraint(
     mStorageInpCap,
     rule=lambda model, st1, r, y: model.vStorageInpCap[st1, r, y]
-    == pStorageInpStock.get((st1, r, y))
-    - (
-        model.vStorageInpRetiredStockCum[st1, r, y]
-        if (st1, r, y) in mvStorageRetiredStock
-        else 0
-    )
+    == model.vStorageInpStockCap[st1, r, y]
     + sum(
         pPeriodLen.get((yp)) * model.vStorageInpNewCap[st1, r, yp]
         - sum(
@@ -2401,12 +2381,7 @@ model.eqStorageInp2outUp = Constraint(
 model.eqStorageStgCap = Constraint(
     mStorageStgCap,
     rule=lambda model, st1, r, y: model.vStorageStgCap[st1, r, y]
-    == pStorageStgStock.get((st1, r, y))
-    - (
-        model.vStorageStgRetiredStockCum[st1, r, y]
-        if (st1, r, y) in mvStorageRetiredStock
-        else 0
-    )
+    == model.vStorageStgStockCap[st1, r, y]
     + sum(
         pPeriodLen.get((yp)) * model.vStorageStgNewCap[st1, r, yp]
         - sum(
@@ -3103,12 +3078,7 @@ sys.stdout.flush()
 model.eqTradeCap = Constraint(
     mTradeSpan,
     rule=lambda model, t1, y: model.vTradeCap[t1, y]
-    == pTradeStock.get((t1, y))
-    - (
-        model.vTradeRetiredStockCum[t1, y]
-        if (t1, y) in mvTradeRetiredStock
-        else 0
-    )
+    == model.vTradeStockCap[t1, y]
     + sum(
         pPeriodLen.get((yp)) * model.vTradeNewCap[t1, yp]
         - sum(

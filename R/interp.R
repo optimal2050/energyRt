@@ -625,6 +625,7 @@ interpolate_model <- function(mod, name = NULL, ...,
   #   slot loop leaves these equal to the raw invcost.
   .interp_step(verbose, "computing equivalent annual costs (EAC)")
   scen <- compute_eac_parameters(scen)
+  scen <- compute_stock_parameters(scen)
 
   #============================================================================#
   # Value-derived mapping parameters ####

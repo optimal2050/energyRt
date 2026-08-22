@@ -5,7 +5,7 @@
 # as they already do, are optionally rolled up to a coarser level of the
 # model's geoscale, and are drawn. Nothing touches `modInp` or the solver.
 #
-# Aggregation is delegated to `geoscales::geo_recast()`. energyRt owns only the
+# Aggregation is delegated to `geoscales::recast_geoscale()`. energyRt owns only the
 # part geoscales cannot know about: which variables must not be summed
 # naively. That is read off the variable catalogue (`.variables`, built from
 # data-raw/variables.yml), never hardcoded -- the same approach
@@ -84,7 +84,7 @@ NULL
   }
 
   key <- key %||% if (from %in% names(df)) from else "region"
-  geoscales::geo_recast(df, gs, from = from, to = to, key = key,
+  geoscales::recast_geoscale(df, gs, from = from, to = to, key = key,
                         rule = "sum", na_action = "keep")
 }
 
@@ -137,7 +137,7 @@ NULL
 #' Named map from codes at `from` to codes at `to`
 #' @noRd
 .geo_level_map <- function(gs, from, to) {
-  fam <- geoscales::geo_family(gs, parent = to, child = from)
+  fam <- geoscales::geoscale_family(gs, parent = to, child = from)
   stats::setNames(fam$parent, fam$child)
 }
 
@@ -149,7 +149,7 @@ NULL
 #' aggregated to a coarser level of the geoscale.
 #'
 #' Requires a geoscale with geometry attached (see [setGeoscale()] and
-#' `geoscales::geo_attach_geometry()`), plus `sf` and `ggplot2`.
+#' `geoscales::attach_geometry_geoscale()`), plus `sf` and `ggplot2`.
 #'
 #' @param object a solved `scenario`.
 #' @param type what to map, passed to [getMix()]: `"generation"`, `"capacity"`,
@@ -202,7 +202,7 @@ plot_map <- function(object,
   # that level (national steel demand lands on the nation, not on a state).
   # Mixing them with the fine rows would double-count, and they have no
   # geometry of their own at `finest` anyway, so drop them and say so.
-  atoms <- geoscales::geo_regions(gs, finest)
+  atoms <- geoscales::geoscale_regions(gs, finest)
   coarse <- setdiff(unique(as.character(d$region)), atoms)
   if (length(coarse) > 0) {
     d <- d[d$region %in% atoms, , drop = FALSE]
@@ -230,8 +230,8 @@ plot_map <- function(object,
   # Drawing belongs to geoscales: it owns the geometry, the levels and the
   # dissolving. energyRt's job ends here, having decided WHAT to plot -- which
   # variable, netted or summed, at which level.
-  geoscales::geo_plot(
-    gs, data = d, level = level, fill = "value",
+  geoscales::geoscale_plot(
+    gs, data = d, geoframe = level, fill = "value",
     palette = palette,
     title = paste0(type, if (!is.null(year)) paste0(", ", year) else ""),
     subtitle = paste0("by ", level),

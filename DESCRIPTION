@@ -1,8 +1,8 @@
 Package: energyRt
 Type: Package
 Title: Energy Systems Modeling Toolbox
-Version: 0.85.0.9000
-Date: 2026-08-21
+Version: 0.85.2.9000
+Date: 2026-08-22
 Authors@R: 
   c(person(given = "Oleg", 
           family = "Lugovoy", 
@@ -102,6 +102,7 @@ Collate:
     'get_region.R'
     'install.R'
     'interp.R'
+    'stock_path.R'
     'interp_progress.R'
     'interp_shared.R'
     'interpolation_funs.R'

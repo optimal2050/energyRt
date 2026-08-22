@@ -48,3 +48,4 @@ dev/*
 ^AGENTS\.md$
 ^CLAUDE\.md$
 ^AUTHORS\.md$
+^CONVENTIONS\.md$

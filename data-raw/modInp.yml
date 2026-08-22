@@ -519,6 +519,31 @@ pTechStock:
   class: technology
   slot: capacity
   colName: stock
+# Exogenous capacity commissioned at this milestone: the INCREASE in `stock`,
+# and the whole of `stock` in the first year of the span. Derived from
+# pTechStock by compute_stock_parameters(); not written by the user.
+pTechStockNew:
+  name: pTechStockNew
+  type: numpar
+  dimSets:
+  - tech
+  - region
+  - year
+  defVal: 0.0
+  interpolation: back.inter.forth
+# Share of the PREVIOUS milestone's surviving stock that the exogenous
+# decommissioning schedule keeps. 1 = nothing scheduled to leave. Derived
+# from pTechStock; depends only on CONSECUTIVE years, so it is invariant
+# under a change of base year.
+pTechStockSurv:
+  name: pTechStockSurv
+  type: numpar
+  dimSets:
+  - tech
+  - region
+  - year
+  defVal: 1.0
+  interpolation: back.inter.forth
 pTechVarom:
   name: pTechVarom
   type: numpar
@@ -703,7 +728,7 @@ pTechNCap2AInp:
   interpolation: back.inter.forth
   class: technology
   slot: aeff
-  colName: cap2aout
+  colName: ncap2ainp
 pTechNCap2AOut:
   name: pTechNCap2AOut
   type: numpar
@@ -717,7 +742,7 @@ pTechNCap2AOut:
   interpolation: back.inter.forth
   class: technology
   slot: aeff
-  colName: cap2aout
+  colName: ncap2aout
 # End-of-life aux coefficients. `Pho` = reached end of life, `Ret` = retired
 # early; both multiply the per-year FLOW so the charge lands once.
 pTechPho2AInp:
@@ -1112,6 +1137,30 @@ pStorageOutStock:
   colName: out.stock
   class: storage
   slot: capacity
+# Exogenous capacity commissioned at this milestone: the INCREASE in
+# `pStorageOutStock`, and the whole of it in the first year of the span. Derived by
+# compute_stock_parameters(); not written by the user.
+pStorageOutStockNew:
+  name: pStorageOutStockNew
+  type: numpar
+  dimSets:
+  - stg
+  - region
+  - year
+  defVal: 0.0
+  interpolation: .inter.
+# Share of the previous milestone's surviving stock that the exogenous
+# schedule keeps (1 = nothing scheduled to leave). Derived from `pStorageOutStock`
+# by compute_stock_parameters(); not written by the user.
+pStorageOutStockSurv:
+  name: pStorageOutStockSurv
+  type: numpar
+  dimSets:
+  - stg
+  - region
+  - year
+  defVal: 1.0
+  interpolation: .inter.
 pStorageOutFixom:
   name: pStorageOutFixom
   dimSets:
@@ -1310,6 +1359,30 @@ pStorageStgStock:
   colName: stg.stock
   class: storage
   slot: capacity
+# Exogenous capacity commissioned at this milestone: the INCREASE in
+# `pStorageStgStock`, and the whole of it in the first year of the span. Derived by
+# compute_stock_parameters(); not written by the user.
+pStorageStgStockNew:
+  name: pStorageStgStockNew
+  type: numpar
+  dimSets:
+  - stg
+  - region
+  - year
+  defVal: 0.0
+  interpolation: .inter.
+# Share of the previous milestone's surviving stock that the exogenous
+# schedule keeps (1 = nothing scheduled to leave). Derived from `pStorageStgStock`
+# by compute_stock_parameters(); not written by the user.
+pStorageStgStockSurv:
+  name: pStorageStgStockSurv
+  type: numpar
+  dimSets:
+  - stg
+  - region
+  - year
+  defVal: 1.0
+  interpolation: .inter.
 pStorageStgInvcost:
   name: pStorageStgInvcost
   dimSets:
@@ -1397,6 +1470,30 @@ pStorageInpStock:
   colName: inp.stock
   class: storage
   slot: capacity
+# Exogenous capacity commissioned at this milestone: the INCREASE in
+# `pStorageInpStock`, and the whole of it in the first year of the span. Derived by
+# compute_stock_parameters(); not written by the user.
+pStorageInpStockNew:
+  name: pStorageInpStockNew
+  type: numpar
+  dimSets:
+  - stg
+  - region
+  - year
+  defVal: 0.0
+  interpolation: .inter.
+# Share of the previous milestone's surviving stock that the exogenous
+# schedule keeps (1 = nothing scheduled to leave). Derived from `pStorageInpStock`
+# by compute_stock_parameters(); not written by the user.
+pStorageInpStockSurv:
+  name: pStorageInpStockSurv
+  type: numpar
+  dimSets:
+  - stg
+  - region
+  - year
+  defVal: 1.0
+  interpolation: .inter.
 pStorageInpInvcost:
   name: pStorageInpInvcost
   dimSets:
@@ -2032,6 +2129,28 @@ pTradeStock:
   colName: stock
   class: trade
   slot: capacity
+# Exogenous capacity commissioned at this milestone: the INCREASE in
+# `pTradeStock`, and the whole of it in the first year of the span. Derived by
+# compute_stock_parameters(); not written by the user.
+pTradeStockNew:
+  name: pTradeStockNew
+  type: numpar
+  dimSets:
+  - trade
+  - year
+  defVal: 0.0
+  interpolation: .inter.
+# Share of the previous milestone's surviving stock that the exogenous
+# schedule keeps (1 = nothing scheduled to leave). Derived from `pTradeStock`
+# by compute_stock_parameters(); not written by the user.
+pTradeStockSurv:
+  name: pTradeStockSurv
+  type: numpar
+  dimSets:
+  - trade
+  - year
+  defVal: 1.0
+  interpolation: .inter.
 pTradeOlife:
   name: pTradeOlife
   dimSets: trade

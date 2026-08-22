@@ -372,21 +372,13 @@ for t, r, y in mTechNew:
             + "\n"
         )
 f.close()
-flist.write("vStorageOutRetiredStockCum\n")
-f = open("output/vStorageOutRetiredStockCum.csv", "w")
+flist.write("vStorageOutStockCap\n")
+f = open("output/vStorageOutStockCap.csv", "w")
 f.write("stg,region,year,value\n")
-for st1, r, y in mvStorageRetiredStock:
-    if model.vStorageOutRetiredStockCum[(st1, r, y)].value is not None and model.vStorageOutRetiredStockCum[(st1, r, y)].value != 0:
-        f.write(
-            str(st1)
-            + ","
-            + str(r)
-            + ","
-            + str(y)
-            + ","
-            + str(model.vStorageOutRetiredStockCum[(st1, r, y)].value)
-            + "\n"
-        )
+for st1, r, y in mStorageSpan:
+    val = model.vStorageOutStockCap[(st1, r, y)].value
+    if val is not None and val != 0:
+        f.write(str(st1) + "," + str(r) + "," + str(y) + "," + str(val) + "\n")
 f.close()
 flist.write("vStorageOutRetiredStock\n")
 f = open("output/vStorageOutRetiredStock.csv", "w")
@@ -422,21 +414,13 @@ for st1, r, y, yp in mvStorageRetiredNewCap:
             + "\n"
         )
 f.close()
-flist.write("vStorageInpRetiredStockCum\n")
-f = open("output/vStorageInpRetiredStockCum.csv", "w")
+flist.write("vStorageInpStockCap\n")
+f = open("output/vStorageInpStockCap.csv", "w")
 f.write("stg,region,year,value\n")
-for st1, r, y in mvStorageRetiredStock:
-    if model.vStorageInpRetiredStockCum[(st1, r, y)].value is not None and model.vStorageInpRetiredStockCum[(st1, r, y)].value != 0:
-        f.write(
-            str(st1)
-            + ","
-            + str(r)
-            + ","
-            + str(y)
-            + ","
-            + str(model.vStorageInpRetiredStockCum[(st1, r, y)].value)
-            + "\n"
-        )
+for st1, r, y in mStorageInpCap:
+    val = model.vStorageInpStockCap[(st1, r, y)].value
+    if val is not None and val != 0:
+        f.write(str(st1) + "," + str(r) + "," + str(y) + "," + str(val) + "\n")
 f.close()
 flist.write("vStorageInpRetiredStock\n")
 f = open("output/vStorageInpRetiredStock.csv", "w")
@@ -472,21 +456,13 @@ for st1, r, y, yp in mvStorageRetiredNewCap:
             + "\n"
         )
 f.close()
-flist.write("vStorageStgRetiredStockCum\n")
-f = open("output/vStorageStgRetiredStockCum.csv", "w")
+flist.write("vStorageStgStockCap\n")
+f = open("output/vStorageStgStockCap.csv", "w")
 f.write("stg,region,year,value\n")
-for st1, r, y in mvStorageRetiredStock:
-    if model.vStorageStgRetiredStockCum[(st1, r, y)].value is not None and model.vStorageStgRetiredStockCum[(st1, r, y)].value != 0:
-        f.write(
-            str(st1)
-            + ","
-            + str(r)
-            + ","
-            + str(y)
-            + ","
-            + str(model.vStorageStgRetiredStockCum[(st1, r, y)].value)
-            + "\n"
-        )
+for st1, r, y in mStorageStgCap:
+    val = model.vStorageStgStockCap[(st1, r, y)].value
+    if val is not None and val != 0:
+        f.write(str(st1) + "," + str(r) + "," + str(y) + "," + str(val) + "\n")
 f.close()
 flist.write("vStorageStgRetiredStock\n")
 f = open("output/vStorageStgRetiredStock.csv", "w")
@@ -538,19 +514,13 @@ for st1, r, y in mStorageRetCost:
             + "\n"
         )
 f.close()
-flist.write("vTradeRetiredStockCum\n")
-f = open("output/vTradeRetiredStockCum.csv", "w")
+flist.write("vTradeStockCap\n")
+f = open("output/vTradeStockCap.csv", "w")
 f.write("trade,year,value\n")
-for t1, y in mvTradeRetiredStock:
-    if model.vTradeRetiredStockCum[(t1, y)].value is not None and model.vTradeRetiredStockCum[(t1, y)].value != 0:
-        f.write(
-            str(t1)
-            + ","
-            + str(y)
-            + ","
-            + str(model.vTradeRetiredStockCum[(t1, y)].value)
-            + "\n"
-        )
+for t1, y in mTradeSpan:
+    val = model.vTradeStockCap[(t1, y)].value
+    if val is not None and val != 0:
+        f.write(str(t1) + "," + str(y) + "," + str(val) + "\n")
 f.close()
 flist.write("vTradeRetiredStock\n")
 f = open("output/vTradeRetiredStock.csv", "w")
@@ -630,21 +600,29 @@ for st1, r, y in mvStoragePhaseOut:
             + "\n"
         )
 f.close()
-flist.write("vTechRetiredStockCum\n")
-f = open("output/vTechRetiredStockCum.csv", "w")
+flist.write("vStorageStockPhaseOut\n")
+f = open("output/vStorageStockPhaseOut.csv", "w")
+f.write("stg,region,year,value\n")
+for st1, r, y in mvStoragePhaseOut:
+    val = model.vStorageStockPhaseOut[(st1, r, y)].value
+    if val is not None and val != 0:
+        f.write(str(st1) + "," + str(r) + "," + str(y) + "," + str(val) + "\n")
+f.close()
+flist.write("vTechStockCap\n")
+f = open("output/vTechStockCap.csv", "w")
 f.write("tech,region,year,value\n")
-for t, r, y in mvTechRetiredStock:
-    if model.vTechRetiredStockCum[(t, r, y)].value != 0:
-        f.write(
-            str(t)
-            + ","
-            + str(r)
-            + ","
-            + str(y)
-            + ","
-            + str(model.vTechRetiredStockCum[(t, r, y)].value)
-            + "\n"
-        )
+for t, r, y in mTechSpan:
+    val = model.vTechStockCap[(t, r, y)].value
+    if val is not None and val != 0:
+        f.write(str(t) + "," + str(r) + "," + str(y) + "," + str(val) + "\n")
+f.close()
+flist.write("vTechStockPhaseOut\n")
+f = open("output/vTechStockPhaseOut.csv", "w")
+f.write("tech,region,year,value\n")
+for t, r, y in mvTechPhaseOut:
+    val = model.vTechStockPhaseOut[(t, r, y)].value
+    if val is not None and val != 0:
+        f.write(str(t) + "," + str(r) + "," + str(y) + "," + str(val) + "\n")
 f.close()
 flist.write("vTechRetiredStock\n")
 f = open("output/vTechRetiredStock.csv", "w")

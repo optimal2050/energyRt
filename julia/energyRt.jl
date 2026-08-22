@@ -48,22 +48,24 @@ model = Model();
 @variable(model, vImportRowCost[mImportRowCost]);
 @variable(model, vExportRowCost[mExportRowCost]);
 @variable(model, vTechNewCap[mTechNew] >= 0);
-@variable(model, vTechRetiredStockCum[mvTechRetiredStock] >= 0);
+@variable(model, vTechStockCap[mTechSpan] >= 0);
+@variable(model, vTechStockPhaseOut[mvTechPhaseOut] >= 0);
 @variable(model, vTechRetiredStock[mvTechRetiredStock] >= 0);
 @variable(model, vTechRetiredNewCap[mvTechRetiredNewCap] >= 0);
 @variable(model, vTechPhaseOut[mvTechPhaseOut] >= 0);
 @variable(model, vStoragePhaseOut[mvStoragePhaseOut] >= 0);
-@variable(model, vStorageOutRetiredStockCum[mvStorageRetiredStock] >= 0);
+@variable(model, vStorageStockPhaseOut[mvStoragePhaseOut] >= 0);
+@variable(model, vStorageOutStockCap[mStorageSpan] >= 0);
 @variable(model, vStorageOutRetiredStock[mvStorageRetiredStock] >= 0);
 @variable(model, vStorageOutRetiredNewCap[mvStorageRetiredNewCap] >= 0);
-@variable(model, vStorageInpRetiredStockCum[mvStorageRetiredStock] >= 0);
+@variable(model, vStorageInpStockCap[mStorageInpCap] >= 0);
 @variable(model, vStorageInpRetiredStock[mvStorageRetiredStock] >= 0);
 @variable(model, vStorageInpRetiredNewCap[mvStorageRetiredNewCap] >= 0);
-@variable(model, vStorageStgRetiredStockCum[mvStorageRetiredStock] >= 0);
+@variable(model, vStorageStgStockCap[mStorageStgCap] >= 0);
 @variable(model, vStorageStgRetiredStock[mvStorageRetiredStock] >= 0);
 @variable(model, vStorageStgRetiredNewCap[mvStorageRetiredNewCap] >= 0);
 @variable(model, vStorageRetCost[mStorageRetCost]);
-@variable(model, vTradeRetiredStockCum[mvTradeRetiredStock] >= 0);
+@variable(model, vTradeStockCap[mTradeSpan] >= 0);
 @variable(model, vTradeRetiredStock[mvTradeRetiredStock] >= 0);
 @variable(model, vTradeRetiredNewCap[mvTradeRetiredNewCap] >= 0);
 @variable(model, vTradeRetCost[mTradeRetCost]);
@@ -1208,19 +1210,7 @@ print("eqTechCap(tech, region, year)...")
     model,
     [(t, r, y) in mTechSpan],
     vTechCap[(t, r, y)] ==
-    (
-        if haskey(pTechStock, (t, r, y))
-            pTechStock[(t, r, y)]
-        else
-            pTechStockDef
-        end
-    ) - (
-        if (t, r, y) in mvTechRetiredStock
-            vTechRetiredStockCum[(t, r, y)]
-        else
-            0
-        end
-    ) + sum(
+    vTechStockCap[(t, r, y)] + sum(
         (
             if haskey(pPeriodLen, (yp))
                 pPeriodLen[(yp)]
@@ -1374,46 +1364,35 @@ print(
     "
 ",
 )
-# eqTechRetiredStockCum(tech, region, year)$mvTechRetiredStock(tech, region, year)
-print("eqTechRetiredStockCum(tech, region, year)...")
+# eqTechStockCap(tech, region, year)$mTechSpan(tech, region, year)
+# The legacy fleet as a recursive balance: pTechStockSurv thins whatever is
+# ACTUALLY standing, so a declining schedule can never block early retirement.
+print("eqTechStockCap(tech, region, year)...")
 @constraint(
     model,
-    [(t, r, y) in mvTechRetiredStock],
-    vTechRetiredStockCum[(t, r, y)] <= (
-        if haskey(pTechStock, (t, r, y))
-            pTechStock[(t, r, y)]
-        else
-            pTechStockDef
-        end
-    )
+    [(t, r, y) in mTechSpan],
+    vTechStockCap[(t, r, y)] ==
+    (if haskey(pTechStockSurv, (t, r, y)); pTechStockSurv[(t, r, y)]; else; pTechStockSurvDef; end) *
+    sum(vTechStockCap[(t, r, yp)] for yp in year
+        if ((yp, y) in mMilestoneNext && (t, r, yp) in mTechSpan)) +
+    (if haskey(pTechStockNew, (t, r, y)); pTechStockNew[(t, r, y)]; else; pTechStockNewDef; end) -
+    (if (t, r, y) in mvTechRetiredStock; vTechRetiredStock[(t, r, y)]; else; 0; end) *
+    (if haskey(pPeriodLen, (y)); pPeriodLen[(y)]; else; pPeriodLenDef; end)
 );
-print(
-    " ",
-    Dates.format(now(), "HH:MM:SS"),
-    "
-",
-)
-# eqTechRetiredStock(tech, region, year)$mvTechRetiredStock(tech, region, year)
-print("eqTechRetiredStock(tech, region, year)...")
+print(" ", Dates.format(now(), "HH:MM:SS"), "
+")
+# eqTechStockPhaseOut(tech, region, year)$mvTechPhaseOut(tech, region, year)
+print("eqTechStockPhaseOut(tech, region, year)...")
 @constraint(
     model,
-    [(t, r, y) in mvTechRetiredStock],
-    vTechRetiredStock[(t, r, y)] * (
-        if haskey(pPeriodLen, (y))
-            pPeriodLen[(y)]
-        else
-            pPeriodLenDef
-        end
-    ) ==
-    vTechRetiredStockCum[(t, r, y)] -
-    sum(vTechRetiredStockCum[(t, r, yp)] for yp in year if (yp, y) in mMilestoneNext)
+    [(t, r, y) in mvTechPhaseOut],
+    vTechStockPhaseOut[(t, r, y)] * (if haskey(pPeriodLen, (y)); pPeriodLen[(y)]; else; pPeriodLenDef; end) ==
+    (1 - (if haskey(pTechStockSurv, (t, r, y)); pTechStockSurv[(t, r, y)]; else; pTechStockSurvDef; end)) *
+    sum(vTechStockCap[(t, r, yp)] for yp in year
+        if ((yp, y) in mMilestoneNext && (t, r, yp) in mTechSpan))
 );
-print(
-    " ",
-    Dates.format(now(), "HH:MM:SS"),
-    "
-",
-)
+print(" ", Dates.format(now(), "HH:MM:SS"), "
+")
 # eqTechRetUp(tech, region, year)$mTechRetUp(tech, region, year)
 print("eqTechRetUp(tech, region, year)...")
 @constraint(
@@ -1514,16 +1493,7 @@ print("eqTechPhaseOut(...)...")
         else
             pPeriodLenDef
         end
-    ) + max(0, (
-        if haskey(pTechStock, (t, r, y))
-            pTechStock[(t, r, y)]
-        else
-            pTechStockDef
-        end
-    ) - sum(
-        (if haskey(pTechStock, (t, r, yp)); pTechStock[(t, r, yp)]; else; pTechStockDef; end)
-        for yp in year if ((yp, y) in mMilestoneNext && (t, r, yp) in mTechSpan)
-    ))
+    ) + (if haskey(pTechStockNew, (t, r, y)); pTechStockNew[(t, r, y)]; else; pTechStockNewDef; end)
 );
 print(
     " ",
@@ -1563,17 +1533,20 @@ print("eqStoragePhaseOut(...)...")
         else
             pPeriodLenDef
         end
-    ) + max(0, (
-        if haskey(pStorageOutStock, (st1, r, y))
-            pStorageOutStock[(st1, r, y)]
-        else
-            pStorageOutStockDef
-        end
-    ) - sum(
-        (if haskey(pStorageOutStock, (st1, r, yp)); pStorageOutStock[(st1, r, yp)]; else; pStorageOutStockDef; end)
-        for yp in year if ((yp, y) in mMilestoneNext && (st1, r, yp) in mStorageSpan)
-    ))
+    ) + (if haskey(pStorageOutStockNew, (st1, r, y)); pStorageOutStockNew[(st1, r, y)]; else; pStorageOutStockNewDef; end)
 );
+# eqStorageStockPhaseOut -- what the schedule actually removed.
+print("eqStorageStockPhaseOut...")
+@constraint(
+    model,
+    [(st1, r, y) in mvStoragePhaseOut],
+    vStorageStockPhaseOut[(st1, r, y)] * (if haskey(pPeriodLen, (y)); pPeriodLen[(y)]; else; pPeriodLenDef; end) ==
+    (1 - (if haskey(pStorageOutStockSurv, (st1, r, y)); pStorageOutStockSurv[(st1, r, y)]; else; pStorageOutStockSurvDef; end)) *
+    sum(vStorageOutStockCap[(st1, r, yp)] for yp in year
+        if ((yp, y) in mMilestoneNext && (st1, r, yp) in mStorageSpan))
+);
+print(" ", Dates.format(now(), "HH:MM:SS"), "
+")
 print(
     " ",
     Dates.format(now(), "HH:MM:SS"),
@@ -1614,48 +1587,20 @@ print(
     "
 ",
 )
-# eqStorageOutRetiredStockCum(stg, region, year)
-print("eqStorageOutRetiredStockCum(stg, region, year)...")
+# eqStorageOutStockCap -- the legacy fleet as a recursive balance.
+print("eqStorageOutStockCap...")
 @constraint(
     model,
-    [(st1, r, y) in mvStorageRetiredStock],
-    vStorageOutRetiredStockCum[(st1, r, y)] <= (
-        if haskey(pStorageOutStock, (st1, r, y))
-            pStorageOutStock[(st1, r, y)]
-        else
-            pStorageOutStockDef
-        end
-    )
+    [(st1, r, y) in mStorageSpan],
+    vStorageOutStockCap[(st1, r, y)] ==
+    (if haskey(pStorageOutStockSurv, (st1, r, y)); pStorageOutStockSurv[(st1, r, y)]; else; pStorageOutStockSurvDef; end) *
+    sum(vStorageOutStockCap[(st1, r, yp)] for yp in year
+        if ((yp, y) in mMilestoneNext && (st1, r, yp) in mStorageSpan)) +
+    (if haskey(pStorageOutStockNew, (st1, r, y)); pStorageOutStockNew[(st1, r, y)]; else; pStorageOutStockNewDef; end) -
+    (if (st1, r, y) in mvStorageRetiredStock; vStorageOutRetiredStock[(st1, r, y)]; else; 0; end) * (if haskey(pPeriodLen, (y)); pPeriodLen[(y)]; else; pPeriodLenDef; end)
 );
-print(
-    " ",
-    Dates.format(now(), "HH:MM:SS"),
-    "
-",
-)
-# eqStorageOutRetiredStock(stg, region, year)
-print("eqStorageOutRetiredStock(stg, region, year)...")
-@constraint(
-    model,
-    [(st1, r, y) in mvStorageRetiredStock],
-    vStorageOutRetiredStock[(st1, r, y)] * (
-        if haskey(pPeriodLen, (y))
-            pPeriodLen[(y)]
-        else
-            pPeriodLenDef
-        end
-    ) ==
-    vStorageOutRetiredStockCum[(st1, r, y)] - sum(
-        vStorageOutRetiredStockCum[(st1, r, yp)] for
-        yp in year if ((yp, y) in mMilestoneNext && (st1, r, yp) in mvStorageRetiredStock)
-    )
-);
-print(
-    " ",
-    Dates.format(now(), "HH:MM:SS"),
-    "
-",
-)
+print(" ", Dates.format(now(), "HH:MM:SS"), "
+")
 # eqStorageOutRetUp(stg, region, year)
 print("eqStorageOutRetUp(stg, region, year)...")
 @constraint(
@@ -1758,48 +1703,20 @@ print(
     "
 ",
 )
-# eqStorageInpRetiredStockCum(stg, region, year)
-print("eqStorageInpRetiredStockCum(stg, region, year)...")
+# eqStorageInpStockCap -- the legacy fleet as a recursive balance.
+print("eqStorageInpStockCap...")
 @constraint(
     model,
-    [(st1, r, y) in mvStorageRetiredStock],
-    vStorageInpRetiredStockCum[(st1, r, y)] <= (
-        if haskey(pStorageInpStock, (st1, r, y))
-            pStorageInpStock[(st1, r, y)]
-        else
-            pStorageInpStockDef
-        end
-    )
+    [(st1, r, y) in mStorageInpCap],
+    vStorageInpStockCap[(st1, r, y)] ==
+    (if haskey(pStorageInpStockSurv, (st1, r, y)); pStorageInpStockSurv[(st1, r, y)]; else; pStorageInpStockSurvDef; end) *
+    sum(vStorageInpStockCap[(st1, r, yp)] for yp in year
+        if ((yp, y) in mMilestoneNext && (st1, r, yp) in mStorageInpCap)) +
+    (if haskey(pStorageInpStockNew, (st1, r, y)); pStorageInpStockNew[(st1, r, y)]; else; pStorageInpStockNewDef; end) -
+    (if (st1, r, y) in mvStorageRetiredStock; vStorageInpRetiredStock[(st1, r, y)]; else; 0; end) * (if haskey(pPeriodLen, (y)); pPeriodLen[(y)]; else; pPeriodLenDef; end)
 );
-print(
-    " ",
-    Dates.format(now(), "HH:MM:SS"),
-    "
-",
-)
-# eqStorageInpRetiredStock(stg, region, year)
-print("eqStorageInpRetiredStock(stg, region, year)...")
-@constraint(
-    model,
-    [(st1, r, y) in mvStorageRetiredStock],
-    vStorageInpRetiredStock[(st1, r, y)] * (
-        if haskey(pPeriodLen, (y))
-            pPeriodLen[(y)]
-        else
-            pPeriodLenDef
-        end
-    ) ==
-    vStorageInpRetiredStockCum[(st1, r, y)] - sum(
-        vStorageInpRetiredStockCum[(st1, r, yp)] for
-        yp in year if ((yp, y) in mMilestoneNext && (st1, r, yp) in mvStorageRetiredStock)
-    )
-);
-print(
-    " ",
-    Dates.format(now(), "HH:MM:SS"),
-    "
-",
-)
+print(" ", Dates.format(now(), "HH:MM:SS"), "
+")
 # eqStorageInpRetUp(stg, region, year)
 print("eqStorageInpRetUp(stg, region, year)...")
 @constraint(
@@ -1902,48 +1819,20 @@ print(
     "
 ",
 )
-# eqStorageStgRetiredStockCum(stg, region, year)
-print("eqStorageStgRetiredStockCum(stg, region, year)...")
+# eqStorageStgStockCap -- the legacy fleet as a recursive balance.
+print("eqStorageStgStockCap...")
 @constraint(
     model,
-    [(st1, r, y) in mvStorageRetiredStock],
-    vStorageStgRetiredStockCum[(st1, r, y)] <= (
-        if haskey(pStorageStgStock, (st1, r, y))
-            pStorageStgStock[(st1, r, y)]
-        else
-            pStorageStgStockDef
-        end
-    )
+    [(st1, r, y) in mStorageStgCap],
+    vStorageStgStockCap[(st1, r, y)] ==
+    (if haskey(pStorageStgStockSurv, (st1, r, y)); pStorageStgStockSurv[(st1, r, y)]; else; pStorageStgStockSurvDef; end) *
+    sum(vStorageStgStockCap[(st1, r, yp)] for yp in year
+        if ((yp, y) in mMilestoneNext && (st1, r, yp) in mStorageStgCap)) +
+    (if haskey(pStorageStgStockNew, (st1, r, y)); pStorageStgStockNew[(st1, r, y)]; else; pStorageStgStockNewDef; end) -
+    (if (st1, r, y) in mvStorageRetiredStock; vStorageStgRetiredStock[(st1, r, y)]; else; 0; end) * (if haskey(pPeriodLen, (y)); pPeriodLen[(y)]; else; pPeriodLenDef; end)
 );
-print(
-    " ",
-    Dates.format(now(), "HH:MM:SS"),
-    "
-",
-)
-# eqStorageStgRetiredStock(stg, region, year)
-print("eqStorageStgRetiredStock(stg, region, year)...")
-@constraint(
-    model,
-    [(st1, r, y) in mvStorageRetiredStock],
-    vStorageStgRetiredStock[(st1, r, y)] * (
-        if haskey(pPeriodLen, (y))
-            pPeriodLen[(y)]
-        else
-            pPeriodLenDef
-        end
-    ) ==
-    vStorageStgRetiredStockCum[(st1, r, y)] - sum(
-        vStorageStgRetiredStockCum[(st1, r, yp)] for
-        yp in year if ((yp, y) in mMilestoneNext && (st1, r, yp) in mvStorageRetiredStock)
-    )
-);
-print(
-    " ",
-    Dates.format(now(), "HH:MM:SS"),
-    "
-",
-)
+print(" ", Dates.format(now(), "HH:MM:SS"), "
+")
 # eqStorageStgRetUp(stg, region, year)
 print("eqStorageStgRetUp(stg, region, year)...")
 @constraint(
@@ -2113,48 +2002,20 @@ print(
     "
 ",
 )
-# eqTradeRetiredStockCum(trade, year)
-print("eqTradeRetiredStockCum(trade, year)...")
+# eqTradeStockCap -- the legacy fleet as a recursive balance.
+print("eqTradeStockCap...")
 @constraint(
     model,
-    [(t1, y) in mvTradeRetiredStock],
-    vTradeRetiredStockCum[(t1, y)] <= (
-        if haskey(pTradeStock, (t1, y))
-            pTradeStock[(t1, y)]
-        else
-            pTradeStockDef
-        end
-    )
+    [(t1, y) in mTradeSpan],
+    vTradeStockCap[(t1, y)] ==
+    (if haskey(pTradeStockSurv, (t1, y)); pTradeStockSurv[(t1, y)]; else; pTradeStockSurvDef; end) *
+    sum(vTradeStockCap[(t1, yp)] for yp in year
+        if ((yp, y) in mMilestoneNext && (t1, yp) in mTradeSpan)) +
+    (if haskey(pTradeStockNew, (t1, y)); pTradeStockNew[(t1, y)]; else; pTradeStockNewDef; end) -
+    (if (t1, y) in mvTradeRetiredStock; vTradeRetiredStock[(t1, y)]; else; 0; end) * (if haskey(pPeriodLen, (y)); pPeriodLen[(y)]; else; pPeriodLenDef; end)
 );
-print(
-    " ",
-    Dates.format(now(), "HH:MM:SS"),
-    "
-",
-)
-# eqTradeRetiredStock(trade, year)
-print("eqTradeRetiredStock(trade, year)...")
-@constraint(
-    model,
-    [(t1, y) in mvTradeRetiredStock],
-    vTradeRetiredStock[(t1, y)] * (
-        if haskey(pPeriodLen, (y))
-            pPeriodLen[(y)]
-        else
-            pPeriodLenDef
-        end
-    ) ==
-    vTradeRetiredStockCum[(t1, y)] - sum(
-        vTradeRetiredStockCum[(t1, yp)] for
-        yp in year if ((yp, y) in mMilestoneNext && (t1, yp) in mvTradeRetiredStock)
-    )
-);
-print(
-    " ",
-    Dates.format(now(), "HH:MM:SS"),
-    "
-",
-)
+print(" ", Dates.format(now(), "HH:MM:SS"), "
+")
 # eqTradeRetUp(trade, year)
 print("eqTradeRetUp(trade, year)...")
 @constraint(
@@ -3447,19 +3308,8 @@ print("eqStorageOutCap(stg, region, year)...")
     model,
     [(st1, r, y) in mStorageSpan],
     vStorageOutCap[(st1, r, y)] ==
-    (
-        if haskey(pStorageOutStock, (st1, r, y))
-            pStorageOutStock[(st1, r, y)]
-        else
-            pStorageOutStockDef
-        end
-    ) - (
-        if (st1, r, y) in mvStorageRetiredStock
-            vStorageOutRetiredStockCum[(st1, r, y)]
-        else
-            0
-        end
-    ) + sum(
+    vStorageOutStockCap[(st1, r, y)] +
+    sum(
         (
             if haskey(pPeriodLen, (yp))
                 pPeriodLen[(yp)]
@@ -3504,19 +3354,7 @@ print("eqStorageInpCap(stg, region, year)...")
     model,
     [(st1, r, y) in mStorageInpCap],
     vStorageInpCap[(st1, r, y)] ==
-    (
-        if haskey(pStorageInpStock, (st1, r, y))
-            pStorageInpStock[(st1, r, y)]
-        else
-            pStorageInpStockDef
-        end
-    ) - (
-        if (st1, r, y) in mvStorageRetiredStock
-            vStorageInpRetiredStockCum[(st1, r, y)]
-        else
-            0
-        end
-    ) +
+    vStorageInpStockCap[(st1, r, y)] +
     sum(
         (
         if haskey(pPeriodLen, (yp))
@@ -3622,19 +3460,7 @@ print("eqStorageStgCap(stg, region, year)...")
     model,
     [(st1, r, y) in mStorageStgCap],
     vStorageStgCap[(st1, r, y)] ==
-    (
-        if haskey(pStorageStgStock, (st1, r, y))
-            pStorageStgStock[(st1, r, y)]
-        else
-            pStorageStgStockDef
-        end
-    ) - (
-        if (st1, r, y) in mvStorageRetiredStock
-            vStorageStgRetiredStockCum[(st1, r, y)]
-        else
-            0
-        end
-    ) +
+    vStorageStgStockCap[(st1, r, y)] +
     sum(
         (
             if haskey(pPeriodLen, (yp))
@@ -4563,19 +4389,8 @@ print("eqTradeCap(trade, year)...")
     model,
     [(t1, y) in mTradeSpan],
     vTradeCap[(t1, y)] ==
-    (
-        if haskey(pTradeStock, (t1, y))
-            pTradeStock[(t1, y)]
-        else
-            pTradeStockDef
-        end
-    ) - (
-        if (t1, y) in mvTradeRetiredStock
-            vTradeRetiredStockCum[(t1, y)]
-        else
-            0
-        end
-    ) + sum(
+    vTradeStockCap[(t1, y)] +
+    sum(
         (
             if haskey(pPeriodLen, (yp))
                 pPeriodLen[(yp)]

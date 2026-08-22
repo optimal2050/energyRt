@@ -4,6 +4,9 @@ Onboarding notes for contributors and coding agents. Everything here is somethin
 otherwise discover the hard way — most of these failures are **silent**.
 
 This is the canonical file; `CLAUDE.md` and `.github/copilot-instructions.md` just point here.
+Stack-wide rules (naming, style, git policy, API principles) live in
+[`CONVENTIONS.md`](CONVENTIONS.md) — the unified optimal2050 conventions;
+this file adds only what is energyRt-specific.
 
 ## Layout
 

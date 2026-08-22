@@ -119,7 +119,7 @@ test_that("every engine emits a parameter's full row count", {
   checked <- 0L
   for (nm in names(sc@modInp@parameters)) {
     p <- sc@modInp@parameters[[nm]]
-    n <- nrow(get_data_slot(p))
+    n <- nrow(getFromNamespace("get_data_slot", "energyRt")(p))
     if (n == 0) next
     checked <- checked + 1L
     for (eng in names(emit)) {
