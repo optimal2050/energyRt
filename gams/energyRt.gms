@@ -2590,13 +2590,15 @@ eqTradeIrAInp(trade, comm, region, year, timeslice)$mvTradeIrAInp(trade, comm, r
   =e=
   sum(dst$mTradeIrCsrc2Ainp(trade, comm, region, dst, year, timeslice),
       pTradeIrCsrc2Ainp(trade, comm, region, dst, year, timeslice)
-      * sum(commp$mTradeComm(trade, commp),
+      * sum(commp$(mTradeComm(trade, commp)
+                     and mvTradeIr(trade, commp, region, dst, year, timeslice)),
             vTradeIr(trade, commp, region, dst, year, timeslice)
         )
   ) +
   sum(src$mTradeIrCdst2Ainp(trade, comm, src, region, year, timeslice),
       pTradeIrCdst2Ainp(trade, comm, src, region, year, timeslice)
-      * sum(commp$mTradeComm(trade, commp),
+      * sum(commp$(mTradeComm(trade, commp)
+                     and mvTradeIr(trade, commp, src, region, year, timeslice)),
             vTradeIr(trade, commp, src, region, year, timeslice)
         )
   );
@@ -2606,13 +2608,15 @@ eqTradeIrAOut(trade, comm, region, year, timeslice)$mvTradeIrAOut(trade, comm, r
   =e=
   sum(dst$mTradeIrCsrc2Aout(trade, comm, region, dst, year, timeslice),
       pTradeIrCsrc2Aout(trade, comm, region, dst, year, timeslice)
-      * sum(commp$mTradeComm(trade, commp),
+      * sum(commp$(mTradeComm(trade, commp)
+                     and mvTradeIr(trade, commp, region, dst, year, timeslice)),
             vTradeIr(trade, commp, region, dst, year, timeslice)
         )
   ) +
   sum(src$mTradeIrCdst2Aout(trade, comm, src, region, year, timeslice),
       pTradeIrCdst2Aout(trade, comm, src, region, year, timeslice)
-      * sum(commp$mTradeComm(trade, commp),
+      * sum(commp$(mTradeComm(trade, commp)
+                     and mvTradeIr(trade, commp, src, region, year, timeslice)),
             vTradeIr(trade, commp, src, region, year, timeslice)
         )
   );
@@ -2763,7 +2767,8 @@ $offtext
 eqSupOutTot(comm, region, year, timeslice)$mSupOutTot(comm, region, year, timeslice)..
           vSupOutTot(comm, region, year, timeslice)
           =e=
-          sum(sup$mSupComm(sup, comm),
+          sum(sup$(mSupComm(sup, comm)
+                   and mSupAva(sup, comm, region, year, timeslice)),
               vSupOut(sup, comm, region, year, timeslice)
           );
 

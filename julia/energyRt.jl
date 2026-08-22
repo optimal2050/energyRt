@@ -4625,7 +4625,8 @@ print("eqTradeIrAInp(trade, comm, region, year, timeslice)...")
             else
                 pTradeIrCsrc2AinpDef
             end
-        ) * sum(vTradeIr[(t1, cp, r, dst, y, s)] for cp in comm if (t1, cp) in mTradeComm)
+        ) * sum(vTradeIr[(t1, cp, r, dst, y, s)] for cp in comm
+              if ((t1, cp) in mTradeComm && (t1, cp, r, dst, y, s) in mvTradeIr))
         for dst in region if (t1, c, r, dst, y, s) in mTradeIrCsrc2Ainp
     ) + sum(
         (
@@ -4634,7 +4635,8 @@ print("eqTradeIrAInp(trade, comm, region, year, timeslice)...")
             else
                 pTradeIrCdst2AinpDef
             end
-        ) * sum(vTradeIr[(t1, cp, src, r, y, s)] for cp in comm if (t1, cp) in mTradeComm)
+        ) * sum(vTradeIr[(t1, cp, src, r, y, s)] for cp in comm
+              if ((t1, cp) in mTradeComm && (t1, cp, src, r, y, s) in mvTradeIr))
         for src in region if (t1, c, src, r, y, s) in mTradeIrCdst2Ainp
     )
 );
@@ -4657,7 +4659,8 @@ print("eqTradeIrAOut(trade, comm, region, year, timeslice)...")
             else
                 pTradeIrCsrc2AoutDef
             end
-        ) * sum(vTradeIr[(t1, cp, r, dst, y, s)] for cp in comm if (t1, cp) in mTradeComm)
+        ) * sum(vTradeIr[(t1, cp, r, dst, y, s)] for cp in comm
+              if ((t1, cp) in mTradeComm && (t1, cp, r, dst, y, s) in mvTradeIr))
         for dst in region if (t1, c, r, dst, y, s) in mTradeIrCsrc2Aout
     ) + sum(
         (
@@ -4666,7 +4669,8 @@ print("eqTradeIrAOut(trade, comm, region, year, timeslice)...")
             else
                 pTradeIrCdst2AoutDef
             end
-        ) * sum(vTradeIr[(t1, cp, src, r, y, s)] for cp in comm if (t1, cp) in mTradeComm)
+        ) * sum(vTradeIr[(t1, cp, src, r, y, s)] for cp in comm
+              if ((t1, cp) in mTradeComm && (t1, cp, src, r, y, s) in mvTradeIr))
         for src in region if (t1, c, src, r, y, s) in mTradeIrCdst2Aout
     )
 );
@@ -4918,13 +4922,18 @@ print(
 # [agg-rewrite] eqInpTotRY/vInpTotRY retired (dead reporting)
 # [agg-rewrite] eqInp2Lo removed: down-disaggregation of coarse input is
 # replaced by up-aggregation in eqInpTot (vInp2Lo retired). Mirrors GLPK.
+# `vSupOut` is declared over `mSupAva`, which carries the REGION. Gating this
+# sum on `mSupComm` alone indexes a region-restricted supply outside its own
+# domain: harmless in GLPK/GAMS (full-cube declarations, presolved away) and a
+# hard KeyError in Julia/Pyomo, which declare variables over their maps.
 # eqSupOutTot(comm, region, year, timeslice)$mSupOutTot(comm, region, year, timeslice)
 print("eqSupOutTot(comm, region, year, timeslice)...")
 @constraint(
     model,
     [(c, r, y, s) in mSupOutTot],
     vSupOutTot[(c, r, y, s)] ==
-    sum(vSupOut[(s1, c, r, y, s)] for s1 in sup if (s1, c) in mSupComm)
+    sum(vSupOut[(s1, c, r, y, s)] for s1 in sup
+        if ((s1, c) in mSupComm && (s1, c, r, y, s) in mSupAva))
 );
 print(
     " ",

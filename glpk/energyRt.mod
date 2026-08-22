@@ -945,9 +945,9 @@ s.t.  eqTradeEac{(t1, r, y) in mTradeEac}: vTradeEac[t1,r,y]  =  sum{yp in year:
 
 s.t.  eqTradeFixom{(t1, r, y) in mTradeFixom}: vTradeFixom[t1,r,y]  =  pTradeFixom[t1,r,y]*vTradeCap[t1,y];
 
-s.t.  eqTradeIrAInp{(t1, c, r, y, s) in mvTradeIrAInp}: vTradeIrAInp[t1,c,r,y,s]  =  sum{dst in region:((t1,c,r,dst,y,s) in mTradeIrCsrc2Ainp)}(pTradeIrCsrc2Ainp[t1,c,r,dst,y,s]*sum{cp in comm:((t1,cp) in mTradeComm)}(vTradeIr[t1,cp,r,dst,y,s]))+sum{src in region:((t1,c,src,r,y,s) in mTradeIrCdst2Ainp)}(pTradeIrCdst2Ainp[t1,c,src,r,y,s]*sum{cp in comm:((t1,cp) in mTradeComm)}(vTradeIr[t1,cp,src,r,y,s]));
+s.t.  eqTradeIrAInp{(t1, c, r, y, s) in mvTradeIrAInp}: vTradeIrAInp[t1,c,r,y,s]  =  sum{dst in region:((t1,c,r,dst,y,s) in mTradeIrCsrc2Ainp)}(pTradeIrCsrc2Ainp[t1,c,r,dst,y,s]*sum{cp in comm:(((t1,cp) in mTradeComm and (t1,cp,r,dst,y,s) in mvTradeIr))}(vTradeIr[t1,cp,r,dst,y,s]))+sum{src in region:((t1,c,src,r,y,s) in mTradeIrCdst2Ainp)}(pTradeIrCdst2Ainp[t1,c,src,r,y,s]*sum{cp in comm:(((t1,cp) in mTradeComm and (t1,cp,src,r,y,s) in mvTradeIr))}(vTradeIr[t1,cp,src,r,y,s]));
 
-s.t.  eqTradeIrAOut{(t1, c, r, y, s) in mvTradeIrAOut}: vTradeIrAOut[t1,c,r,y,s]  =  sum{dst in region:((t1,c,r,dst,y,s) in mTradeIrCsrc2Aout)}(pTradeIrCsrc2Aout[t1,c,r,dst,y,s]*sum{cp in comm:((t1,cp) in mTradeComm)}(vTradeIr[t1,cp,r,dst,y,s]))+sum{src in region:((t1,c,src,r,y,s) in mTradeIrCdst2Aout)}(pTradeIrCdst2Aout[t1,c,src,r,y,s]*sum{cp in comm:((t1,cp) in mTradeComm)}(vTradeIr[t1,cp,src,r,y,s]));
+s.t.  eqTradeIrAOut{(t1, c, r, y, s) in mvTradeIrAOut}: vTradeIrAOut[t1,c,r,y,s]  =  sum{dst in region:((t1,c,r,dst,y,s) in mTradeIrCsrc2Aout)}(pTradeIrCsrc2Aout[t1,c,r,dst,y,s]*sum{cp in comm:(((t1,cp) in mTradeComm and (t1,cp,r,dst,y,s) in mvTradeIr))}(vTradeIr[t1,cp,r,dst,y,s]))+sum{src in region:((t1,c,src,r,y,s) in mTradeIrCdst2Aout)}(pTradeIrCdst2Aout[t1,c,src,r,y,s]*sum{cp in comm:(((t1,cp) in mTradeComm and (t1,cp,src,r,y,s) in mvTradeIr))}(vTradeIr[t1,cp,src,r,y,s]));
 
 s.t.  eqTradeIrAInpTot{(c, r, y, s) in mvTradeIrAInpTot}: vTradeIrAInpTot[c,r,y,s]  =  sum{t1 in trade,sp in timeslice:(((c,s,sp) in mCommTimesliceOrParent and (t1,c,r,y,sp) in mvTradeIrAInp))}(vTradeIrAInp[t1,c,r,y,sp]);
 
@@ -988,7 +988,7 @@ s.t.  eqInpTot{(c, r, y, s) in mvInpTot}: vInpTot[c,r,y,s]  =  sum{FORIF: (c,r,y
 # up-aggregation in eqInpTot. Coarse input now lands in vInpTot at its own balance level.
 # s.t.  eqInp2Lo{(c, r, y, s) in mInp2Lo}: sum{sp in timeslice:((c,r,y,s,sp) in mvInp2Lo)}(vInp2Lo[c,r,y,s,sp])  =  sum{FORIF: (c,r,y,s) in mTechInpTot} (vTechInpTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mStorageInpTot} (vStorageInpTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mExport} (vExportTot[c,r,y,s])+sum{FORIF: (c,r,y,s) in mvTradeIrAInpTot} (vTradeIrAInpTot[c,r,y,s]);
 
-s.t.  eqSupOutTot{(c, r, y, s) in mSupOutTot}: vSupOutTot[c,r,y,s]  =  sum{s1 in sup:((s1,c) in mSupComm)}(vSupOut[s1,c,r,y,s]);
+s.t.  eqSupOutTot{(c, r, y, s) in mSupOutTot}: vSupOutTot[c,r,y,s]  =  sum{s1 in sup:(((s1,c) in mSupComm and (s1,c,r,y,s) in mSupAva))}(vSupOut[s1,c,r,y,s]);
 
 s.t.  eqTechInpTot{(c, r, y, s) in mTechInpTot}: vTechInpTot[c,r,y,s]  =  sum{t in tech:((t,c) in mTechInpCommSameTimeslice)}(sum{FORIF: (t,c,r,y,s) in mvTechInp} (vTechInp[t,c,r,y,s]))+sum{t in tech:((t,c) in mTechInpCommAgg)}(sum{sp in timeslice:((t,c,sp,s) in mTechInpCommAggTimeslice)}(sum{FORIF: (t,c,r,y,sp) in mvTechInp} (vTechInp[t,c,r,y,sp])))+sum{t in tech:((t,c) in mTechAInpCommSameTimeslice)}(sum{FORIF: (t,c,r,y,s) in mvTechAInp} (vTechAInp[t,c,r,y,s]))+sum{t in tech:((t,c) in mTechAInpCommAgg)}(sum{sp in timeslice:((t,c,sp,s) in mTechAInpCommAggTimeslice)}(sum{FORIF: (t,c,r,y,sp) in mvTechAInp} (vTechAInp[t,c,r,y,sp])));
 

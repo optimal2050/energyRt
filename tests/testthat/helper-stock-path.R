@@ -85,9 +85,12 @@ sp_trade <- function(stock, ret = NULL, optret = TRUE, name = "spt") {
     calendar = sp_cal(), optimizeRetirement = optret,
     repo = newRepository(
       "spr", newCommodity("ELC", timeframe = "HOUR"), TRD,
-      # PRICED by region rather than restricted to one: a region-restricted
-      # newSupply breaks eqSupOutTot in the Pyomo and Julia emitters, which has
-      # nothing to do with the stock path.
+      # PRICED by region rather than restricted to one. This shape was
+      # originally forced by a defect in eqSupOutTot (a region-restricted supply
+      # crashed Julia/Pyomo and leaked free supply on GLPK/GAMS); that is fixed
+      # and covered by test-region-scope.R. Kept as-is because pricing rather
+      # than excluding is the better fixture here: both regions have supply, so
+      # the trade route competes on price rather than on availability.
       newSupply("SUP", commodity = "ELC",
                 supply = data.frame(region = c("R1", "R2"), cost = c(1, 1000))),
       newDemand("DEM", commodity = "ELC", region = "R2",

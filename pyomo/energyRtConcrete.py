@@ -3261,7 +3261,7 @@ model.eqTradeIrAInp = Constraint(
         * sum(
             model.vTradeIr[t1, cp, r, dst, y, s]
             for cp in comm
-            if (t1, cp) in mTradeComm
+            if ((t1, cp) in mTradeComm and (t1, cp, r, dst, y, s) in mvTradeIr)
         )
         for dst in region
         if (t1, c, r, dst, y, s) in mTradeIrCsrc2Ainp
@@ -3271,7 +3271,7 @@ model.eqTradeIrAInp = Constraint(
         * sum(
             model.vTradeIr[t1, cp, src, r, y, s]
             for cp in comm
-            if (t1, cp) in mTradeComm
+            if ((t1, cp) in mTradeComm and (t1, cp, src, r, y, s) in mvTradeIr)
         )
         for src in region
         if (t1, c, src, r, y, s) in mTradeIrCdst2Ainp
@@ -3297,7 +3297,7 @@ model.eqTradeIrAOut = Constraint(
         * sum(
             model.vTradeIr[t1, cp, r, dst, y, s]
             for cp in comm
-            if (t1, cp) in mTradeComm
+            if ((t1, cp) in mTradeComm and (t1, cp, r, dst, y, s) in mvTradeIr)
         )
         for dst in region
         if (t1, c, r, dst, y, s) in mTradeIrCsrc2Aout
@@ -3307,7 +3307,7 @@ model.eqTradeIrAOut = Constraint(
         * sum(
             model.vTradeIr[t1, cp, src, r, y, s]
             for cp in comm
-            if (t1, cp) in mTradeComm
+            if ((t1, cp) in mTradeComm and (t1, cp, src, r, y, s) in mvTradeIr)
         )
         for src in region
         if (t1, c, src, r, y, s) in mTradeIrCdst2Aout
@@ -3497,10 +3497,18 @@ if verbose:
 if verbose:
     print("eqSupOutTot ", end="")
 sys.stdout.flush()
+# `vSupOut` is declared over `mSupAva`, which carries the REGION. Gating this
+# sum on `mSupComm` alone indexes a region-restricted supply outside its own
+# domain: harmless in GLPK/GAMS (full-cube declarations, presolved away) and a
+# hard KeyError in Julia/Pyomo, which declare variables over their maps.
 model.eqSupOutTot = Constraint(
     mSupOutTot,
     rule=lambda model, c, r, y, s: model.vSupOutTot[c, r, y, s]
-    == sum(model.vSupOut[s1, c, r, y, s] for s1 in sup if (s1, c) in mSupComm),
+    == sum(
+        model.vSupOut[s1, c, r, y, s]
+        for s1 in sup
+        if ((s1, c) in mSupComm and (s1, c, r, y, s) in mSupAva)
+    ),
 )
 if verbose:
     print(
