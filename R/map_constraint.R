@@ -82,6 +82,8 @@ map_mTradeRetUp    <- function(scen, fmp) .cjoin(scen, "mTradeRetUp", fmp)
 # C7 trade inter-regional flow bounds
 map_meqTradeFlowLo <- function(scen, fmp) .cjoin(scen, "meqTradeFlowLo", fmp)
 map_meqTradeFlowUp <- function(scen, fmp) .cjoin(scen, "meqTradeFlowUp", fmp)
+map_meqTradeIrAfLo <- function(scen, fmp) .cjoin(scen, "meqTradeIrAfLo", fmp)
+map_meqTradeIrAfUp <- function(scen, fmp) .cjoin(scen, "meqTradeIrAfUp", fmp)
 # C8 supply reserve margins
 map_meqSupReserveLo <- function(scen, fmp) .cjoin(scen, "meqSupReserveLo", fmp)
 map_mSupReserveUp   <- function(scen, fmp) .cjoin(scen, "mSupReserveUp", fmp)
@@ -148,6 +150,7 @@ map_mTechAfcUp     <- function(scen, fmp) scen
   mTradeNewCapLo = map_mTradeNewCapLo, mTradeNewCapUp = map_mTradeNewCapUp,
   mTradeRetLo = map_mTradeRetLo, mTradeRetUp = map_mTradeRetUp,
   meqTradeFlowLo = map_meqTradeFlowLo, meqTradeFlowUp = map_meqTradeFlowUp,
+  meqTradeIrAfLo = map_meqTradeIrAfLo, meqTradeIrAfUp = map_meqTradeIrAfUp,
   meqSupReserveLo = map_meqSupReserveLo, mSupReserveUp = map_mSupReserveUp,
   # bespoke
   meqStorageStore = map_meqStorageStore, meqTradeCapFlow = map_meqTradeCapFlow,

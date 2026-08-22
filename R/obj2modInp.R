@@ -1483,7 +1483,7 @@ setMethod(
   names(growth) <- as.character(mid)
   list(
     region = .model_regions(scen),
-    # Pruned region hierarchy, so a summand's `geolevel` can be resolved to the
+    # Pruned region hierarchy, so a summand's `geoframe` can be resolved to the
     # regions of that level (the spatial twin of `calendar@timeframes`).
     # NULL when no geoscale is attached.
     geo_hierarchy = .scen_geo_hierarchy(scen),

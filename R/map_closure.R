@@ -235,7 +235,7 @@ map_mCommReg <- function(scen, fmp) {
   # [nested-regions] the process/commodity level rule. Checked here because this
   # is the first point where process_region and process inputs/outputs are all
   # populated.
-  .assert_process_geolevel(scen)
+  .assert_process_geoframe(scen)
 
   # Declared timeslices/regions must match the commodity's own level for every
   # class that has no aggregation path (see check_levels.R). Same reason for

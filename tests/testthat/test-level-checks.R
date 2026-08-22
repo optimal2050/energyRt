@@ -1,7 +1,7 @@
 # =========================================================================== #
 # Declared resolution must match the commodity's own level.
 #
-# A commodity declares where it is BALANCED (`@timeframe`, `@geolevel`).
+# A commodity declares where it is BALANCED (`@timeframe`, `@geoframe`).
 # Classes with no aggregation path of their own -- demand, supply, import,
 # export, trade, storage -- must declare AT that level. Before this check, a
 # mismatch produced a cell nothing reads: the parameter was written, the
@@ -11,7 +11,7 @@
 # Three variants of that one failure are pinned here, all reproduced before
 # the check existed:
 #   1. demand at a finer TIMESLICE  than the commodity's timeframe -> demand lost
-#   2. demand at a finer REGION than the commodity's geolevel  -> demand lost
+#   2. demand at a finer REGION than the commodity's geoframe  -> demand lost
 #   3. a technology declared COARSER than a commodity it uses  -> flows stranded
 #
 # Technology is the exception: it may run at a different resolution, but never
@@ -40,7 +40,7 @@ lc_model <- function(steel_tf = "ANNUAL", steel_gl = character(),
     repo = newRepository("r",
       newCommodity("COA", timeframe = "ANNUAL"),
       newCommodity("ELC", timeframe = "SEASON"),
-      newCommodity("STEEL", timeframe = steel_tf, geolevel = steel_gl),
+      newCommodity("STEEL", timeframe = steel_tf, geoframe = steel_gl),
       newSupply("SUP", commodity = "COA",
                 supply = data.frame(region = regions, cost = 1)),
       newTechnology("ECOA", input = list(comm = "COA"),
@@ -81,7 +81,7 @@ test_that("demand at the commodity's own timeframe is accepted", {
   expect_s4_class(lc_interp(lc_model(name = "t2"), "t2"), "scenario")
 })
 
-test_that("demand below the commodity's geolevel is refused", {
+test_that("demand below the commodity's geoframe is refused", {
   skip_if_not_installed("geoscales")
   # STEEL balances at the nation; county demand used to yield 0 steel.
   mod <- setGeoscale(
@@ -92,7 +92,7 @@ test_that("demand below the commodity's geolevel is refused", {
   expect_error(lc_interp(mod, "t3"), "does not match the commodity")
 })
 
-test_that("demand at the commodity's own geolevel is accepted", {
+test_that("demand at the commodity's own geoframe is accepted", {
   skip_if_not_installed("geoscales")
   mod <- setGeoscale(
     lc_model(steel_gl = "nation",
@@ -120,7 +120,7 @@ test_that("a technology finer than its commodities is still allowed", {
   expect_equal(ptf[["MILL"]], "SEASON")
 })
 
-# --- the geo twins: summand@geolevel and getData(geolevel=) ---------------- #
+# --- the geo twins: summand@geoframe and getData(geoframe=) ---------------- #
 
 lc_geo_model <- function(extra = list(), regions = c("R1", "R2", "R3", "R4")) {
   objs <- c(list(
@@ -143,14 +143,14 @@ lc_geo_model <- function(extra = list(), regions = c("R1", "R2", "R3", "R4")) {
     levels = c("nation", "zone", "region"), key = "region", name = "g"))
 }
 
-test_that("getData(geolevel=) rolls results up and conserves the total", {
+test_that("getData(geoframe=) rolls results up and conserves the total", {
   skip_if_not_installed("geoscales")
   skip_if_no_solver()
   scen <- lc_interp(lc_geo_model(), "g1")
   sol <- suppressMessages(suppressWarnings(
     solve_scen(scen, solver = solver_options$glpk, wait = TRUE)))
   tot <- function(gl) {
-    d <- suppressMessages(getData(sol, "vTechOut", merge = TRUE, geolevel = gl))
+    d <- suppressMessages(getData(sol, "vTechOut", merge = TRUE, geoframe = gl))
     d <- d[d$comm == "ELC", ]
     list(regions = sort(unique(as.character(d$region))), total = sum(d$value))
   }
@@ -163,7 +163,7 @@ test_that("getData(geolevel=) rolls results up and conserves the total", {
   expect_equal(zone$total, fine$total, tolerance = 1e-9)
   expect_equal(nat$total, fine$total, tolerance = 1e-9)
 
-  d <- suppressMessages(getData(sol, "vTechOut", merge = TRUE, geolevel = "all"))
+  d <- suppressMessages(getData(sol, "vTechOut", merge = TRUE, geoframe = "all"))
   expect_true(all(c("R1", "W", "NAT") %in% d$region))
 })
 
@@ -200,14 +200,14 @@ test_that("a region the variable already has is kept, not expanded", {
   expect_setequal(lc_con_regions(lc_interp(lc_geo_model(list(con)), "g3")), "R3")
 })
 
-test_that("summand@geolevel resolves to indices the variable actually has", {
+test_that("summand@geoframe resolves to indices the variable actually has", {
   skip_if_not_installed("geoscales")
   # `vTechOut` exists only at process regions, so every level resolves to those
   # regions -- summing them is the level aggregate either way. The point of the
   # rule is that it resolves to something REAL rather than to a bare level name.
   con <- function(gl) {
     sm <- list(variable = "vTechOut", for.sum = list(comm = "ELC"),
-               geolevel = gl)
+               geoframe = gl)
     newConstraint("CAP", desc = "", sm, eq = "<=", defVal = Inf,
                   for.each = data.frame(year = c(2020, 2030)),
                   rhs = data.frame(rhs = 1e6))
@@ -218,13 +218,13 @@ test_that("summand@geolevel resolves to indices the variable actually has", {
                     c("R1", "R2", "R3", "R4"))
   }
   expect_error(lc_interp(lc_geo_model(list(con("bogus"))), "g5"),
-               "unknown geolevel")
+               "unknown geoframe")
 })
 
-test_that("summand@geolevel needs a geoscale and a region dimension", {
+test_that("summand@geoframe needs a geoscale and a region dimension", {
   skip_if_not_installed("geoscales")
-  # a variable with no region dimension cannot be pinned to a geolevel
-  sm <- list(variable = "vObjective", geolevel = "zone")
+  # a variable with no region dimension cannot be pinned to a geoframe
+  sm <- list(variable = "vObjective", geoframe = "zone")
   con <- newConstraint("NOREG", desc = "", sm, eq = "<=", defVal = Inf,
                        for.each = data.frame(year = 2020),
                        rhs = data.frame(rhs = 1))

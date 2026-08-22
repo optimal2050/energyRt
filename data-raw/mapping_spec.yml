@@ -782,6 +782,40 @@ meqTradeFlowUp:
   join_keys: []
   filter_by: []
   depends_on: []
+meqTradeIrAfLo:
+  name: meqTradeIrAfLo
+  dims:
+  - trade
+  - comm
+  - src
+  - dst
+  - year
+  - timeslice
+  gates_var: []
+  gates_eq: eqTradeIrAfLo
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+meqTradeIrAfUp:
+  name: meqTradeIrAfUp
+  dims:
+  - trade
+  - comm
+  - src
+  - dst
+  - year
+  - timeslice
+  gates_var: []
+  gates_eq: eqTradeIrAfUp
+  recipe: constraint
+  source: constraint
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
 meqTradeRetiredNewCap:
   name: meqTradeRetiredNewCap
   dims:

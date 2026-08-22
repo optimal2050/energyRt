@@ -1029,6 +1029,14 @@ recipe_value <- function(scen, names, fmp) {
   meqTradeFlowUp = list(domain = "mvTradeIr", source = "pTradeIr",
                         types = "up", drop = "up"),
 
+  # Relative flow bounds -- a fraction of the object's capacity, so each route
+  # of a multi-route object can be rated separately. Same domain and the same
+  # comm-from-merge0 trick as the absolute bounds above.
+  meqTradeIrAfLo = list(domain = "mvTradeIr", source = "pTradeIrAf",
+                        types = "lo", drop = "lo"),
+  meqTradeIrAfUp = list(domain = "mvTradeIr", source = "pTradeIrAf",
+                        types = "up", drop = "up"),
+
   # C8 supply reserve margins: direct projection of the bound parameter onto
   # its (sup, comm, region) dimensions -- no base domain to intersect.
   meqSupReserveLo = list(domain = NULL, source = "pSupReserve",

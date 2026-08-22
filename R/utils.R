@@ -77,8 +77,8 @@ nonchar_in_sets <- function(x) {
 #
 # `slotNames()` reads the CLASS DEFINITION, so on an object deserialized before
 # a slot was added it returns names that `slot()` then errors on:
-#   no slot of name "geolevel" for this object of class "commodity"
-# `@geolevel`, `@vintage`, `@cluster` and `@timeframe` are all recent, so every
+#   no slot of name "geoframe" for this object of class "commodity"
+# `@geoframe`, `@vintage`, `@cluster` and `@timeframe` are all recent, so every
 # model a user saved before them is affected -- as are this package's own
 # `data/*.rda` kits until they are rebuilt.
 #

@@ -9,7 +9,7 @@
 #                                   Mirrors mTimesliceFamily. Drives the
 #                                   up-aggregation term in eqOutTot/eqInpTot.
 #   mCommRegion(comm, region)       the regions each commodity is BALANCED at,
-#                                   i.e. the members of its `@geolevel`.
+#                                   i.e. the members of its `@geoframe`.
 #                                   Mirrors mCommTimeslice.
 #
 # Both are empty without a geoscale, which is what keeps a flat model bit-for-bit
@@ -32,14 +32,14 @@ NULL
 }
 
 # Regions of each commodity = the members of the commodity's own geo-level.
-# A commodity with no `@geolevel` sits at the finest level, which reproduces
+# A commodity with no `@geoframe` sits at the finest level, which reproduces
 # the flat behaviour exactly.
 #' @noRd
 .comm_region_df <- function(scen) {
   h <- .scen_geo_hierarchy(scen)
-  cgl <- map_comm_geolevel(scen)
+  cgl <- map_comm_geoframe(scen)
   if (is.null(h)) {
-    # No hierarchy: a `@geolevel` cannot be honoured, and silently balancing
+    # No hierarchy: a `@geoframe` cannot be honoured, and silently balancing
     # the commodity at the finest level would solve a different problem.
     named <- names(cgl)[vapply(cgl, function(v) {
       length(v) > 0 && !is.na(v[1]) && nzchar(v[1])
@@ -48,7 +48,7 @@ NULL
       stop("Commodity ", paste0("'", utils::head(named, 5), "'",
                                 collapse = ", "),
            if (length(named) > 5) ", ..." else "",
-           " declare(s) `@geolevel`, but the model has no geoscale with ",
+           " declare(s) `@geoframe`, but the model has no geoscale with ",
            "coarser levels. Attach one with `setGeoscale()`.", call. = FALSE)
     }
     return(NULL)
@@ -64,7 +64,7 @@ NULL
 
 # (comm, regionp, region): for each commodity, every ancestor `region` of a
 # declared region `regionp`, walking up ONE LEVEL AT A TIME and stopping at the
-# commodity's own `@geolevel`.
+# commodity's own `@geoframe`.
 #
 # Two things need this. `mvOutTot`/`mvInpTot` must be EXTENDED with the coarse
 # cells -- `vOutTot[STEEL, IND, ...]` has to exist before eqOutTot can write the
@@ -83,13 +83,13 @@ NULL
   rank <- stats::setNames(seq_along(levels), levels)   # 1 = coarsest
   finest <- h$finest
 
-  cgl <- map_comm_geolevel(scen)
+  cgl <- map_comm_geoframe(scen)
   target <- vapply(cgl, function(v) {
     if (length(v) == 0 || is.na(v[1]) || !nzchar(v[1])) finest else as.character(v[1])
   }, character(1))
   bad <- setdiff(unique(target), levels)
   if (length(bad) > 0) {
-    stop("Unknown `@geolevel` ", paste0("'", bad, "'", collapse = ", "),
+    stop("Unknown `@geoframe` ", paste0("'", bad, "'", collapse = ", "),
          ". The model's geoscale has: ", paste(levels, collapse = ", "), ".",
          call. = FALSE)
   }
@@ -208,7 +208,7 @@ map_mCommRegion <- function(scen, fmp) {
 # state-balanced commodity would have its output stranded at a cell no balance
 # equation reads, so it simply vanishes from the model.
 #' @noRd
-.assert_process_geolevel <- function(scen) {
+.assert_process_geoframe <- function(scen) {
   h <- .scen_geo_hierarchy(scen)
   if (is.null(h)) return(invisible(NULL))
   cr <- .comm_region_df(scen)
@@ -245,39 +245,11 @@ map_mCommRegion <- function(scen, fmp) {
        "use, whose flows could never reach that commodity's balance:\n   ",
        paste(utils::capture.output(print(bad)), collapse = "\n   "),
        "\nMove the process to a finer region, or declare the commodity at a ",
-       "coarser `@geolevel`.", call. = FALSE)
+       "coarser `@geoframe`.", call. = FALSE)
 }
 
 # -- engine support --------------------------------------------------------- #
 
-# Only GLPK and GAMS carry the mRegionFamily aggregation term in eqOutTot /
-# eqInpTot. The other engines would happily load `mCommRegion`, pin the balance
-# to the coarse level, and then find nothing feeding it -- silently solving a
-# different (infeasible or wrong) problem. Refuse instead.
-#
-# Mirrors `.assert_payback_supported()` in eac.R, which handles the same
-# situation for `payback`.
-#' @noRd
-.assert_geolevel_supported <- function(scen, engine) {
-  p <- scen@modInp@parameters[["mCommRegion"]]
-  if (is.null(p)) return(invisible(NULL))
-  d <- as.data.frame(get_data_slot(p))
-  if (is.null(d) || nrow(d) == 0) return(invisible(NULL))
-  fam <- scen@modInp@parameters[["mRegionFamily"]]
-  fd <- if (is.null(fam)) NULL else as.data.frame(get_data_slot(fam))
-  if (is.null(fd) || nrow(fd) == 0) return(invisible(NULL))
-  # Only a commodity actually placed on a coarse level matters; a hierarchy
-  # that nothing uses is inert and safe everywhere.
-  coarse <- intersect(unique(d$region), unique(fd$region))
-  if (length(coarse) == 0) return(invisible(NULL))
-  cm <- unique(d$comm[d$region %in% coarse])
-  stop("`commodity@geolevel` is implemented for GLPK and GAMS only, but the ",
-       "model is being written for ", engine, " (set on ",
-       paste0("'", utils::head(cm, 5), "'", collapse = ", "),
-       if (length(cm) > 5) ", ..." else "", ").\n",
-       "  Solve with `solver_options$glpk`, or drop `@geolevel` so every ",
-       "commodity is balanced at the finest level.")
-}
 
 # -- registry --------------------------------------------------------------- #
 

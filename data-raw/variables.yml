@@ -127,7 +127,7 @@ vTradeFixom:         {role: cost,     unit: currency}
 vTradeInv:           {role: cost,     unit: currency}
 # Physical transfer between regions: a sink in `src` and a source in `dst`, so
 # neither on its own.
-vTradeIr:            {role: flow,     unit: commodity}
+vTradeIr:            {role: interregional, unit: commodity}
 vTradeIrAInp:        {role: sink,     unit: commodity}
 vTradeIrAInpTot:     {role: sink,     unit: commodity}
 vTradeIrAOut:        {role: source,   unit: commodity}

@@ -67,6 +67,13 @@ setClass("trade",
       ava.up = numeric(),
       ava.fx = numeric(),
       ava.lo = numeric(),
+      # Relative flow bounds -- a fraction of the object's own capacity, as
+      # technology@af is. `ava.*` above is absolute, and cannot rate a line of a
+      # multi-route object because the right number depends on the capacity the
+      # solver is choosing.
+      af.up = numeric(),
+      af.fx = numeric(),
+      af.lo = numeric(),
       # cost = numeric(), # !!!ToDo: move to varom
       # markup = numeric(), # !!!ToDo: move to varom
       teff = numeric(),

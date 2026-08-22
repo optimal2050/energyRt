@@ -2118,6 +2118,30 @@ pTradeIr:
   colName: ava
   class: trade
   slot: trade
+# Availability factor of the flow on one directed route, as a fraction of the
+# object's own capacity (cap2act x vTradeCap x timeslice share). Unlike
+# `pTradeIr` (colName `ava`), which is an absolute commodity quantity, this
+# scales with the capacity decision -- which is what lets one trade object
+# carrying a whole network give each line its own rating. Gated by
+# meqTradeIrAfLo / meqTradeIrAfUp, so it costs nothing unless declared.
+pTradeIrAf:
+  name: pTradeIrAf
+  dimSets:
+  - trade
+  - src
+  - dst
+  - year
+  - timeslice
+  type: bounds
+  defVal:
+  - 0.0
+  - 1.0
+  interpolation:
+  - back.inter.forth
+  - back.inter.forth
+  colName: af
+  class: trade
+  slot: trade
 pTradeStock:
   name: pTradeStock
   dimSets:
@@ -4252,6 +4276,26 @@ meqTradeFlowUp:
   - timeslice
 meqTradeFlowLo:
   name: meqTradeFlowLo
+  type: map
+  dimSets:
+  - trade
+  - comm
+  - src
+  - dst
+  - year
+  - timeslice
+meqTradeIrAfUp:
+  name: meqTradeIrAfUp
+  type: map
+  dimSets:
+  - trade
+  - comm
+  - src
+  - dst
+  - year
+  - timeslice
+meqTradeIrAfLo:
+  name: meqTradeIrAfLo
   type: map
   dimSets:
   - trade

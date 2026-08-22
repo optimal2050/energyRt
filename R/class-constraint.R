@@ -93,9 +93,9 @@ setMethod("initialize", "constraint", function(.Object, ...) {
   if (!methods::is(s, "summand")) return(s)
   a <- names(attributes(s))
   if (!("timeframe" %in% a)) attr(s, "timeframe") <- NA_character_
-  # `geolevel` is the spatial twin and post-dates `timeframe`, so an object
+  # `geoframe` is the spatial twin and post-dates `timeframe`, so an object
   # serialized between the two carries one and not the other.
-  if (!("geolevel" %in% a)) attr(s, "geolevel") <- NA_character_
+  if (!("geoframe" %in% a)) attr(s, "geoframe") <- NA_character_
   s
 }
 
@@ -129,7 +129,7 @@ setClass("summand",
     variable = "character",
     for.sum = "list",
     timeframe = "character",
-    geolevel = "character",
+    geoframe = "character",
     mult = "data.frame",
     defVal = "numeric",
     misc = "list"
@@ -145,11 +145,11 @@ setClass("summand",
     # across levels. NA = no restriction (sum the variable's native timeslices).
     # Replaces the need for the *RY (year-resolution) aggregate variables.
     timeframe = NA_character_,
-    # `geolevel` is the spatial twin: it pins the geoscale level the variable is
+    # `geoframe` is the spatial twin: it pins the geoscale level the variable is
     # taken at (e.g. "zone", "nation"), restricting the variable's `region`
     # dimension to that level's regions. NA = no restriction (sum the
     # variable's native regions). Requires a geoscale on the model config.
-    geolevel = NA_character_,
+    geoframe = NA_character_,
     mult = data.frame(),
     defVal = 1,
     misc = list()
@@ -362,7 +362,7 @@ addSummand <- function(
     mult = data.frame(),
     for.sum = list(),
     timeframe = NA_character_,
-    geolevel = NA_character_,
+    geoframe = NA_character_,
     arg) {
   # browser()
   if (!is.null(names(arg))) {
@@ -371,7 +371,7 @@ addSummand <- function(
     if (any(names(arg) == "for.sum")) for.sum <- arg$for.sum
     if (any(names(arg) == "defVal")) defVal <- arg$defVal
     if (any(names(arg) == "timeframe")) timeframe <- arg$timeframe
-    if (any(names(arg) == "geolevel")) geolevel <- arg$geolevel
+    if (any(names(arg) == "geoframe")) geoframe <- arg$geoframe
     if (any(names(arg) == "for.each")) {
       stop(
         "The 'for.each' parameter is set of the entire constraint and",
@@ -411,10 +411,10 @@ addSummand <- function(
   } else {
     as.character(timeframe)[1]
   }
-  st@geolevel <- if (is.null(geolevel) || length(geolevel) == 0) {
+  st@geoframe <- if (is.null(geoframe) || length(geoframe) == 0) {
     NA_character_
   } else {
-    as.character(geolevel)[1]
+    as.character(geoframe)[1]
   }
   # browser()
   if (all(names(.variable_set) != variable)) {
@@ -573,29 +573,29 @@ addSummand <- function(
     stm@lhs[[i]]@for.sum$timeslice <- as.character(got)
   }
 
-  # Spatial twin of the loop above: resolve per-summand `geolevel` to an
+  # Spatial twin of the loop above: resolve per-summand `geoframe` to an
   # explicit `region` restriction. The variable is taken at exactly the regions
   # of that geoscale level, so summing them yields the level aggregate without
   # double-counting across levels.
   for (i in seq_along(stm@lhs)) {
-    gl <- tryCatch(stm@lhs[[i]]@geolevel, error = function(e) NA_character_)
+    gl <- tryCatch(stm@lhs[[i]]@geoframe, error = function(e) NA_character_)
     if (length(gl) != 1 || is.na(gl)) next
     if (!("region" %in% .variable_set[[stm@lhs[[i]]@variable]])) {
       stop.constr(paste0(
-        'geolevel = "', gl, '" set on variable "', stm@lhs[[i]]@variable,
+        'geoframe = "', gl, '" set on variable "', stm@lhs[[i]]@variable,
         '" which has no region dimension.'
       ))
     }
     hier <- approxim$geo_hierarchy
     if (is.null(hier)) {
       stop.constr(paste0(
-        'geolevel = "', gl, '" requires a geoscale on the model config; ',
+        'geoframe = "', gl, '" requires a geoscale on the model config; ',
         'attach one with `setGeoscale()`.'
       ))
     }
     if (!gl %in% hier$levels) {
       stop.constr(paste0(
-        'unknown geolevel "', gl, '". Available: ',
+        'unknown geoframe "', gl, '". Available: ',
         paste(hier$levels, collapse = ", ")
       ))
     }
@@ -606,7 +606,7 @@ addSummand <- function(
     got <- .resolve_level_indices(dom, gl, hier$members, desc)
     if (length(got) == 0) {
       stop.constr(paste0(
-        'geolevel = "', gl, '" does not resolve to any region of variable "',
+        'geoframe = "', gl, '" does not resolve to any region of variable "',
         stm@lhs[[i]]@variable, '". It exists at: ',
         paste(utils::head(sort(dom), 6), collapse = ", "),
         '.\n  Write the sum explicitly in `for.sum` instead.'

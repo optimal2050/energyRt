@@ -93,7 +93,7 @@ set mTimesliceFamily dimen 2;
 # No pRegionAgg counterpart: regional quantities are extensive, so this is a
 # plain sum, whereas timeslice values are intensive rates and need pTimesliceAgg.
 set mRegionFamily dimen 2;
-# [nested-regions] the region level a commodity is BALANCED at (its @geolevel).
+# [nested-regions] the region level a commodity is BALANCED at (its @geoframe).
 # Restricts mvBalance only -- totals stay available at finer levels so the
 # family term above can sum them. Also guards region sums that would otherwise
 # double-count a coarse commodity (see eqTaxCost/eqSubsCost).
@@ -311,6 +311,8 @@ set meqStorageOutUp dimen 5;
 set meqStorageOutLo dimen 5;
 set meqTradeFlowUp dimen 6;
 set meqTradeFlowLo dimen 6;
+set meqTradeIrAfUp dimen 6;
+set meqTradeIrAfLo dimen 6;
 set meqExportRowLo dimen 5;
 set meqImportRowUp dimen 5;
 set meqImportRowLo dimen 5;
@@ -500,6 +502,8 @@ param pStorageNCap2AOut{stg, comm, region, year, timeslice};
 param pTradeIrEff{trade, region, region, year, timeslice};
 param pTradeIrUp{trade, region, region, year, timeslice};
 param pTradeIrLo{trade, region, region, year, timeslice};
+param pTradeIrAfUp{trade, region, region, year, timeslice};
+param pTradeIrAfLo{trade, region, region, year, timeslice};
 param pTradeIrCost{trade, region, region, year, timeslice};
 param pTradeIrMarkup{trade, region, region, year, timeslice};
 param pTradeIrCsrc2Ainp{trade, comm, region, region, year, timeslice};
@@ -528,7 +532,8 @@ param pTradeInvcost{trade, region, year};
 param pTradeEac{trade, region, year};
 param pTradeRetCost{trade, region, year};
 param pTradeFixom{trade, region, year};
-param pTradeVarom{trade, region, region, year, timeslice};
+# [removed] pTradeVarom -- trade @varom is not implemented: no equation read it,
+# it was absent from Julia and Pyomo, and it is unregistered in modInp.yml.
 param pTradeCap2Act{trade};
 param pWeather{weather, region, year, timeslice};
 param pSupWeatherUp{weather, sup};
@@ -906,9 +911,17 @@ s.t.  eqTradeFlowUp{(t1, c, src, dst, y, s) in meqTradeFlowUp}: vTradeIr[t1,c,sr
 
 s.t.  eqTradeFlowLo{(t1, c, src, dst, y, s) in meqTradeFlowLo}: vTradeIr[t1,c,src,dst,y,s]  >=  pTradeIrLo[t1,src,dst,y,s];
 
-s.t.  eqImportIrCost{(t1, r, y) in mImportIrCost}: vImportIrCost[t1,r,y]  =  sum{src in region:((t1,src,r) in mTradeRoutes)}(sum{c in comm:((t1,c) in mTradeComm)}(sum{s in timeslice:((t1,s) in mTradeTimeslice)}(sum{fi in FORIF: (t1,c,src,r,y,s) in mvTradeIr} (((pTradeIrCost[t1,src,r,y,s]+pTradeIrMarkup[t1,src,r,y,s])*vTradeIr[t1,c,src,r,y,s]*pTimesliceWeight[y,s])))));
+# Relative flow bounds: the same limit as above, but as a fraction of the
+# object's own capacity rather than an absolute quantity, so one trade object
+# carrying several routes can rate each of them. Gated, hence empty unless
+# `af` is declared.
+s.t.  eqTradeIrAfUp{(t1, c, src, dst, y, s) in meqTradeIrAfUp}: vTradeIr[t1,c,src,dst,y,s] <=  pTradeIrAfUp[t1,src,dst,y,s]*pTradeCap2Act[t1]*vTradeCap[t1,y]*pTimesliceShare[s];
 
-s.t.  eqExportIrCost{(t1, r, y) in mExportIrCost}: vExportIrCost[t1,r,y]  =  -sum{dst in region:((t1,r,dst) in mTradeRoutes)}(sum{c in comm:((t1,c) in mTradeComm)}(sum{s in timeslice:((t1,s) in mTradeTimeslice)}(sum{fi in FORIF: (t1,c,r,dst,y,s) in mvTradeIr} (((pTradeIrCost[t1,r,dst,y,s]+pTradeIrMarkup[t1,r,dst,y,s])*vTradeIr[t1,c,r,dst,y,s]*pTimesliceWeight[y,s])))));
+s.t.  eqTradeIrAfLo{(t1, c, src, dst, y, s) in meqTradeIrAfLo}: vTradeIr[t1,c,src,dst,y,s]  >=  pTradeIrAfLo[t1,src,dst,y,s]*pTradeCap2Act[t1]*vTradeCap[t1,y]*pTimesliceShare[s];
+
+s.t.  eqImportIrCost{(t1, r, y) in mImportIrCost}: vImportIrCost[t1,r,y]  =  sum{src in region:((t1,src,r) in mTradeRoutes)}(sum{c in comm:((t1,c) in mTradeComm)}(sum{s in timeslice:((t1,s) in mTradeTimeslice)}(sum{fi in FORIF: (t1,c,src,r,y,s) in mvTradeIr} (((pTradeIrMarkup[t1,src,r,y,s])*vTradeIr[t1,c,src,r,y,s]*pTimesliceWeight[y,s])))));
+
+s.t.  eqExportIrCost{(t1, r, y) in mExportIrCost}: vExportIrCost[t1,r,y]  =  sum{dst in region:((t1,r,dst) in mTradeRoutes)}(sum{c in comm:((t1,c) in mTradeComm)}(sum{s in timeslice:((t1,s) in mTradeTimeslice)}(sum{fi in FORIF: (t1,c,r,dst,y,s) in mvTradeIr} (((pTradeIrCost[t1,r,dst,y,s]-pTradeIrMarkup[t1,r,dst,y,s])*vTradeIr[t1,c,r,dst,y,s]*pTimesliceWeight[y,s])))));
 
 s.t.  eqExportRowUp{(e, c, r, y, s) in mExportRowUp}: vExportRow[e,c,r,y,s] <=  pExportRowUp[e,r,y,s];
 

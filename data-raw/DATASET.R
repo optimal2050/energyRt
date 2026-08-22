@@ -184,8 +184,11 @@ local({
          paste(missed, collapse = ", "))
   }
 
-  roles <- c("source", "sink", "flow", "activity", "balance", "stock",
-             "capacity", "cost")
+  # DUPLICATE of `.VARIABLE_ROLES` in R/class-variable.R -- this script runs
+  # before the package is loadable, so it cannot read it. Keep the two in step;
+  # the validation below is what catches a drift, loudly.
+  roles <- c("source", "sink", "interregional", "activity", "balance",
+             "stock", "capacity", "cost")
   units <- c("commodity", "activity", "capacity", "currency")
 
   out <- lapply(names(ov), function(v) {

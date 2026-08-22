@@ -732,7 +732,7 @@ map_mvInpTot <- function(scen, fmp) {
     .gds(scen, "mvTradeIrAInpTot")),                    # [agg-rewrite] mInpSub dropped
     .gds(scen, "mCommTimeslice"))
   # [nested-regions] totals also exist at every level up to the commodity's own
-  # `@geolevel`, so eqInpTot has a cell to aggregate the finer ones into. A
+  # `@geoframe`, so eqInpTot has a cell to aggregate the finer ones into. A
   # no-op unless some commodity names a coarser level.
   inptot <- .extend_comm_region(inptot, .comm_region_chain(scen))
   .set_map(scen, "mvInpTot", inptot, fmp)

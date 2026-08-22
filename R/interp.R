@@ -312,6 +312,12 @@ interpolate_model <- function(mod, name = NULL, ...,
   if (!is.null(.h)) .known_regions <- .h$region
   .check_declared_regions(scen@model, .known_regions)
 
+  # Costs accrue only in the model's own regions (`mvTotalCost` is built from
+  # them, not from the widened set above), and trade costs are borne per
+  # endpoint. Name both edges rather than silently mis-charging.
+  .check_cost_regions(scen@model, as.character(scen@settings@region),
+                      .known_regions)
+
   # Advisory only: a geoscale is presentation metadata, so a region it does not
   # cover is a warning (that region simply will not appear on a map), never an
   # error. `@region` stays authoritative.
@@ -378,7 +384,7 @@ interpolate_model <- function(mod, name = NULL, ...,
   # AND the zones AND the nation -- exactly as `timeslice` already holds the timeslices
   # of every timeframe. Declared regions stay at the head in their original
   # order; coarser levels are appended and remain inert unless some commodity
-  # names one via `@geolevel`.
+  # names one via `@geoframe`.
   .geo_hier <- .geo_hierarchy(getGeoscale(scen@settings),
                               scen@modInp@sets$region)
   if (!is.null(.geo_hier)) scen@modInp@sets$region <- .geo_hier$region
@@ -667,6 +673,11 @@ interpolate_model <- function(mod, name = NULL, ...,
   #   full region x year grid (or the union of user-cost footprints). Built last
   #   because mvTotalUserCosts reads the interpolated user-cost (mCosts*) maps.
   scen <- build_mappings(scen, fmp = fmp, recipes = "cost_agg")
+
+  #   A cost declared at a coarse geoscale cell needs a discount factor there,
+  #   or `eqObjective` weights it by nothing. Inherits the children's rate where
+  #   they agree; refuses to invent one where they do not.
+  scen <- .extend_discount_to_coarse(scen)
 
   #============================================================================#
   # User-defined constraints ####
@@ -3071,7 +3082,7 @@ map_comm_timeframe <- function(scen, comm = NULL) {
 
 #' Balancing geo-level of commodities
 #'
-#' The spatial twin of [map_comm_timeframe()]. A commodity with no `@geolevel`
+#' The spatial twin of [map_comm_timeframe()]. A commodity with no `@geoframe`
 #' is balanced at the finest level, which is the flat, single-level behaviour.
 #'
 #' @param scen scenario object
@@ -3081,17 +3092,17 @@ map_comm_timeframe <- function(scen, comm = NULL) {
 #'
 #' @returns a named list mapping each commodity to its geo-level.
 #' @export
-map_comm_geolevel <- function(scen, comm = NULL) {
+map_comm_geoframe <- function(scen, comm = NULL) {
   apply_to_scenario_data(
     scen = scen,
     classes = "commodity",
     func = function(x) {
       ll <- list()
-      # `@geolevel` post-dates the class, so a commodity restored from an older
+      # `@geoframe` post-dates the class, so a commodity restored from an older
       # model may not carry the slot at all. NA means "the finest level", i.e.
       # the flat behaviour; `[[<-` keeps the entry when the value is empty,
       # which `[<-` would reject.
-      v <- if (.hasSlot(x, "geolevel")) as.character(x@geolevel) else character()
+      v <- if (.hasSlot(x, "geoframe")) as.character(x@geoframe) else character()
       ll[[x@name]] <- if (length(v) > 0) v[1] else NA_character_
       return(ll)
     }
@@ -3230,7 +3241,7 @@ get_process_timeframe <- function(scen, process = NULL,
     # aggregation only flows fine -> coarse, so a coarser process cannot meet
     # the finer balance and its demand leaks to imports. This used to warn and
     # silently substitute the finest timeframe, which hid the mistake; it is an
-    # error now, matching `.assert_process_geolevel()` on the spatial side.
+    # error now, matching `.assert_process_geoframe()` on the spatial side.
     stop(
       "Process(es) declared at a timeframe COARSER than a commodity they use:\n   ",
       paste(utils::capture.output(print(

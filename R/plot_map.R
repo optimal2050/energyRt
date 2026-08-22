@@ -16,25 +16,30 @@ NULL
 
 # Variable-catalogue helpers ---------------------------------------------------
 
-#' Is this variable an inter-regional flow?
+#' Is this variable carried BETWEEN regions?
 #'
-#' `vTradeIr` is the only variable declared `role: flow` -- and, independently,
-#' the only one carrying two `region` dimensions. Both tests agree, so the
-#' declared role is the criterion: a future inter-regional variable is covered
-#' by declaring what it is, not by editing a list here.
+#' `vTradeIr` is the only variable declared `role: interregional` -- and,
+#' independently, the only one carrying two `region` dimensions. Both tests
+#' agree, so the declared role is the criterion: a future interregional variable
+#' is covered by declaring what it is, not by editing a list here.
+#'
+#' The role was called `flow` until 0.85, which was a misnomer: `vTechOut` is
+#' `source`, `vTechInp` is `sink`, `vTechInv` is `cost`, and all of them are
+#' flows in the ordinary sense, region-indexed, and sum across regions perfectly
+#' well. What singles this one out is the second region index.
 #'
 #' Summing such a variable over an aggregated region double-counts, because a
-#' flow between two regions that end up in the same group is internal to that
-#' group and must cancel. See `.geo_net_trade()`.
+#' transfer between two regions that end up in the same group is internal to
+#' that group and must cancel. See `.geo_net_trade()`.
 #'
 #' @param nm character vector of variable names.
 #' @return logical vector.
 #' @noRd
-.is_flow_var <- function(nm) {
+.is_interregional_var <- function(nm) {
   spec <- tryCatch(.variables, error = function(e) NULL)
   if (is.null(spec)) return(rep(FALSE, length(nm)))
   vapply(nm, function(v) {
-    identical(tryCatch(spec[[v]]$role, error = function(e) NULL), "flow")
+    identical(tryCatch(spec[[v]]$role, error = function(e) NULL), "interregional")
   }, logical(1), USE.NAMES = FALSE)
 }
 
@@ -74,7 +79,7 @@ NULL
   check_package("geoscales")
   if (identical(from, to)) return(df)
 
-  if (!is.null(name) && length(name) == 1L && .is_flow_var(name)) {
+  if (!is.null(name) && length(name) == 1L && .is_interregional_var(name)) {
     return(.geo_net_trade(df, gs, from = from, to = to))
   }
   if (all(c("src", "dst") %in% names(df))) {
@@ -198,7 +203,7 @@ plot_map <- function(object,
     }
   }
 
-  # [nested-regions] A commodity balanced at a coarse `@geolevel` puts rows at
+  # [nested-regions] A commodity balanced at a coarse `@geoframe` puts rows at
   # that level (national steel demand lands on the nation, not on a state).
   # Mixing them with the fine rows would double-count, and they have no
   # geometry of their own at `finest` anyway, so drop them and say so.

@@ -25,7 +25,7 @@ class:
       description: >
         The default time-frame this commodity operates in the model.
         The lowest timeframe in the model is used by default.
-    geolevel:
+    geoframe:
       type: character
       description: >
         The geoscale level at which this commodity is balanced -- the spatial
@@ -194,7 +194,13 @@ class:
             This parameter overrides `res.lo` and `res.up`.
     supply:
       type: data.frame
-      description: Availability of the resource in physical units.
+      description: >
+        Availability of the resource in physical units. Unlike the `af`/`afs`
+        availability *factors* of technologies, `ava.*` is an absolute bound on
+        the supplied quantity per timeslice: supply processes have no capacity
+        variable, so nothing multiplies it (except weather factors, see
+        `weather`). Rows here also define where and when the supply exists in
+        the model.
       columns:
         region:
           type: character
@@ -213,15 +219,19 @@ class:
             Use NA to apply to all timeslices.
         ava.lo:
           type: numeric
-          description: Lower bound of the availability factor.
+          description: >
+            Lower bound on the supplied quantity, in physical commodity units
+            per timeslice.
         ava.up:
           type: numeric
-          description: Upper bound of the availability factor.
+          description: >
+            Upper bound on the supplied quantity, in physical commodity units
+            per timeslice.
         ava.fx:
           type: numeric
           description: >
-            Fixed value of the availability factor.
-            This parameter overrides `ava.lo` and `ava.up`.
+            Fixed value of the supplied quantity, in physical commodity units
+            per timeslice. This parameter overrides `ava.lo` and `ava.up`.
         cost:
           type: numeric
           description: >
@@ -429,13 +439,23 @@ class:
           description: Fixed share of commodity within a group, ignored if NA. This parameter overrides `share.lo` and `share.up`.
         afc.lo:
           type: numeric
-          description: Lower bound on the physical value of the commodity, ignored if NA.
+          description: >
+            Lower bound on the per-commodity availability factor: bounds this
+            commodity's input or output flow relative to installed capacity
+            (times `cap2act`), the commodity-level analogue of `af.lo`.
+            Ignored if NA.
         afc.up:
           type: numeric
-          description: Upper bound on the physical value of the commodity, ignored if NA.
+          description: >
+            Upper bound on the per-commodity availability factor: bounds this
+            commodity's input or output flow relative to installed capacity
+            (times `cap2act`), the commodity-level analogue of `af.up`.
+            Ignored if NA.
         afc.fx:
           type: numeric
-          description: Fixed physical value of the commodity, ignored if NA. This parameter overrides `afc.lo` and `afc.up`.
+          description: >
+            Fixed per-commodity availability factor, ignored if NA.
+            This parameter overrides `afc.lo` and `afc.up`.
     aeff:
       type: data.frame
       description: Parameters linking main commodities, activities, and capacities to auxiliary commodities.
@@ -537,7 +557,13 @@ class:
             hourly calendar. Give a per-slice value, or name a single slice.
     af:
       type: data.frame
-      description: Timeslice-level availability factor parameters.
+      description: >
+        Timeslice-level availability factor parameters, bounding activity in each
+        timeslice relative to installed capacity. `af.up` is the maximum capacity
+        factor per timeslice (what PyPSA calls `p_max_pu` and OSeMOSYS calls
+        `CapacityFactor`); `af.lo` is a must-run floor. See `afs` for
+        timeframe-level (e.g. annual) bounds and `ceff$afc.*` for per-commodity
+        bounds.
       columns:
         vintage:
           type: character
@@ -571,7 +597,14 @@ class:
           description: Ramping-down time constraint RHS value, ignored if NA. Depends on the technology timeframe.
     afs:
       type: data.frame
-      description: Timeframe-level availability factor constraints.
+      description: >
+        Timeframe-level availability factor constraints, bounding activity summed
+        over all child timeslices of the named timeslice relative to installed
+        capacity. With `timeslice = "ANNUAL"` this is the annual capacity-factor
+        bound (TIMES `NCAP_AFS`, OSeMOSYS `AvailabilityFactor`), e.g.
+        `afs.lo = 0.4` requires at least 40% annual utilization. Unlike `af`,
+        `afs` rows are not disaggregated to finer timeslices; they always
+        constrain the sum over the given timeframe.
       columns:
         vintage:
           type: character
@@ -593,7 +626,9 @@ class:
           description: Lower bound on the availability factor for the timeframe, default is 0.
         afs.up:
           type: numeric
-          description: Upper bound on the availability factor for the timeframe, default is 1.
+          description: >
+            Upper bound on the availability factor for the timeframe, default is
+            `Inf` (unbounded), in contrast to `af.up` which defaults to 1.
         afs.fx:
           type: numeric
           description: Fixed availability factor for the timeframe, ignored if NA. This parameter overrides `afs.lo` and `afs.up`.
@@ -1092,7 +1127,14 @@ class:
           description: Output efficiency rate.
     af:
       type: data.frame
-      description: Availability factor parameters.
+      description: >
+        Availability factor parameters. Unlike a technology's `af` (which bounds
+        activity, a flow), the storage `af.*` columns bound the stored LEVEL --
+        a stock -- as a fraction of the storing capacity, i.e. a state-of-charge
+        range. They are not capacity factors. The flow-side bounds are the
+        `cinp.*`/`cout.*` columns, which bound charge/discharge relative to
+        the charger/discharger capacity per timeslice (those are the storage
+        analogue of a technology's `af`).
       columns:
         vintage:
           type: character
@@ -1111,34 +1153,50 @@ class:
           description: Time timeslice to apply the parameter, NA for every timeslice.
         af.lo:
           type: numeric
-          description: Lower bound of the availability factor.
+          description: >
+            Lower bound of the stored level as a fraction of storing capacity
+            (minimum state of charge).
         af.up:
           type: numeric
-          description: Upper bound of the availability factor.
+          description: >
+            Upper bound of the stored level as a fraction of storing capacity
+            (maximum state of charge).
         af.fx:
           type: numeric
-          description: Fixed value of the availability factor. This parameter overrides `af.lo` and `af.up`.
+          description: >
+            Fixed value of the stored-level fraction.
+            This parameter overrides `af.lo` and `af.up`.
         cinp.lo:
           type: numeric
-          description: Lower bound of the input commodity availability factor.
+          description: >
+            Lower bound of the charging (input) flow relative to charger
+            capacity per timeslice.
         cinp.up:
           type: numeric
-          description: Upper bound of the input commodity availability factor.
+          description: >
+            Upper bound of the charging (input) flow relative to charger
+            capacity per timeslice.
         cinp.fx:
           type: numeric
           description: >
-            Fixed value of the input commodity availability factor.
+            Fixed value of the charging (input) flow relative to charger
+            capacity per timeslice.
             This parameter overrides `cinp.lo` and `cinp.up`.
         cout.lo:
           type: numeric
-          description: Lower bound of the output commodity availability factor.
+          description: >
+            Lower bound of the discharging (output) flow relative to
+            discharger capacity per timeslice.
         cout.up:
           type: numeric
-          description: Upper bound of the output commodity availability factor.
+          description: >
+            Upper bound of the discharging (output) flow relative to
+            discharger capacity per timeslice.
         cout.fx:
           type: numeric
           description: >
-            Fixed value of the output commodity availability factor.
+            Fixed value of the discharging (output) flow relative to
+            discharger capacity per timeslice.
             This parameter overrides `cout.lo` and `cout.up`.
     aeff:
       type: data.frame
@@ -1636,23 +1694,72 @@ class:
           description: Destination region.
     trade:
       type: data.frame
-      description: Technical parameters of trade.
+      description: >
+        Technical parameters of trade per directed route. Two kinds of flow
+        bound live here and they are not interchangeable: `ava.*` is ABSOLUTE,
+        in physical commodity units per timeslice, and does not scale with
+        capacity; `af.*` is RELATIVE, a fraction of the object's own capacity
+        (`cap2act` x `vTradeCap` x the timeslice share), and is the direct
+        analogue of `technology@af`. Use `af.*` to rate individual lines of a
+        multi-route object, where the absolute bound would have to be a number
+        correct for exactly one capacity -- and capacity is the decision.
       columns:
         vintage:
           type: character
           description: Vintage label selecting the variant this row applies to, NA for every vintage. See the `vintage` slot.
-        region:
+        src:
           type: character
-          description: Region name to apply the parameter, NA for every region.
+          description: Source region of the flow, NA for every source region on the route.
+        dst:
+          type: character
+          description: Destination region of the flow, NA for every destination region on the route.
         year:
           type: integer
           description: Year to apply the parameter, NA for every year.
         timeslice:
           type: character
           description: Time timeslice to apply the parameter, NA for every timeslice.
-        trade:
+        ava.lo:
           type: numeric
-          description: Trade volume.
+          description: >
+            Lower bound on the traded flow from `src` to `dst`, in physical
+            commodity units per timeslice.
+        ava.up:
+          type: numeric
+          description: >
+            Upper bound on the traded flow from `src` to `dst`, in physical
+            commodity units per timeslice.
+        ava.fx:
+          type: numeric
+          description: >
+            Fixed value of the traded flow from `src` to `dst`, in physical
+            commodity units per timeslice.
+            This parameter overrides `ava.lo` and `ava.up`.
+        af.lo:
+          type: numeric
+          description: >
+            Lower bound on the flow from `src` to `dst` as a FRACTION of the
+            object's capacity: `af.lo x cap2act x vTradeCap x share`. Forces a
+            minimum loading on that direction.
+        af.up:
+          type: numeric
+          description: >
+            Upper bound on the flow from `src` to `dst` as a FRACTION of the
+            object's capacity: `af.up x cap2act x vTradeCap x share`. This is
+            how a single trade object carrying several routes gives each line
+            its own rating -- `af.up = 0.5` on one leg limits it to half the
+            corridor whatever the corridor turns out to be. Note that `af.up`
+            of 1 is already implied by `eqTradeCapFlow` and cannot bind.
+        af.fx:
+          type: numeric
+          description: >
+            Fixed loading of the direction `src` -> `dst` as a fraction of
+            capacity. Overrides `af.lo` and `af.up`.
+        teff:
+          type: numeric
+          description: >
+            Trade efficiency: the fraction of the flow sent from `src` that is
+            delivered to `dst` (1 = lossless).
     aux:
       type: data.frame
       description: Auxiliary commodity of trade.
@@ -1690,14 +1797,29 @@ class:
           description: Trade-to-auxiliary-output-commodity coefficient (multiplier).
     invcost:
       type: data.frame
-      description: Investment cost of the trade capacity (per unit of capacity).
+      description: >
+        Investment cost of the trade capacity, as a RATE PER ENDPOINT REGION per
+        unit of capacity. Trade capacity is region-free -- one number per
+        corridor -- but its costs are region-indexed, and each region named in
+        `region` pays its own rate on the whole capacity. A corridor whose two
+        endpoints each pay 100 therefore costs 200 in total. Leaving `region`
+        unset applies the rate at every endpoint of the route; energyRt reports
+        that rather than correcting it, because the same rate is what a
+        partial-region study would see -- solve a subset of the endpoints and it
+        bears only their share, which is the intended behaviour. Name the regions
+        to vary the rate between them. `fixom`, `retcost` and `eac` follow the
+        same convention.
       columns:
         vintage:
           type: character
           description: Vintage label selecting the variant this row applies to, NA for every vintage. See the `vintage` slot.
         region:
           type: character
-          description: Region name to apply the parameter, NA for every region.
+          description: >
+            Endpoint region bearing this rate. NA applies the rate at every
+            endpoint of the route; name the regions to vary it between them. Must
+            be one of the model's own regions -- a coarser geoscale level is
+            accepted by validation but never reaches the objective.
         year:
           type: integer
           description: Year to apply the parameter, NA for every year.
@@ -1768,13 +1890,44 @@ class:
       description: Additional information.
     fixom:
       type: data.frame
-      description: (not implemented!) Fixed operation and maintenance costs.
+      description: >
+        Fixed operation and maintenance costs, per unit of standing capacity per
+        year. Like the other trade cost slots this is a RATE PER ENDPOINT REGION,
+        named in its `region` column -- see the note on `invcost`.
     varom:
       type: data.frame
-      description: (not implemented!) Variable operation and maintenance costs.
+      description: >
+        Costs charged on the traded flow, PER ROUTE. Unlike the capacity
+        costs above -- which are a rate per endpoint region -- these are indexed
+        by `(src, dst, year, timeslice)`, so they can differ by direction. The
+        two columns mean different things:
+
+          `varom`  -- variable operation and maintenance, a REAL resource cost.
+                      Charged where the flow ORIGINATES (`src`) and added to
+                      total system cost, exactly as `technology@varom` is. Use
+                      it for wheeling fees, transit taxes or any real charge per
+                      unit shipped. Becomes `pTradeIrCost`.
+
+          `markup` -- a border price or bilateral charge: a TRANSFER. The
+                      importing region pays it and the exporting region
+                      receives it, so it moves cost between regions and leaves
+                      the objective unchanged -- the same distinction as a tax
+                      versus a cap. Becomes `pTradeIrMarkup`.
+
+        Before 0.85 both columns were summed into a single term that cancelled
+        between `eqImportIrCost` and `eqExportIrCost`, so `varom` could not
+        express an operating cost at all; it now enters the objective once,
+        positively, at `src`. (A separate parameter `pTradeVarom` was once
+        declared in the GLPK and GAMS templates and read by no equation; it has
+        been removed and was never this slot.)
     capacity:
       type: data.frame
-      description: (not implemented!) Capacity parameters of the trade object.
+      description: >
+        Capacity parameters of the trade object: `stock` (the legacy corridor
+        still standing at each milestone), the `cap.*` bounds on total capacity,
+        the `ncap.*` bounds on the build RATE and the `ret.*` bounds on the early
+        retirement rate. Region-free: a route IS a pair of regions, so a
+        per-region capacity would be ambiguous.
     optimizeRetirement:
       type: logical
       description: >
@@ -1971,7 +2124,7 @@ class:
         level's timeslices, so summing them yields the level aggregate without
         double-counting across levels. `NA` (default) applies no restriction
         and sums the variable's native timeslices.
-    geolevel:
+    geoframe:
       type: character
       description: >
         The spatial twin of `timeframe`: pins the geoscale level the variable

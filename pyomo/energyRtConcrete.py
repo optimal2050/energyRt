@@ -2814,6 +2814,52 @@ if verbose:
         " s)",
         sep="",
     )
+# eqTradeIrAfUp(trade, comm, src, dst, year, timeslice)$meqTradeIrAfUp(trade, comm, src, dst, year, timeslice)
+# Relative flow bound: a fraction of the object's own capacity rather than an
+# absolute quantity, so one trade object carrying several routes can rate each
+# of them. Gated, hence empty unless `af` is declared.
+if verbose:
+    print("eqTradeIrAfUp ", end="")
+sys.stdout.flush()
+model.eqTradeIrAfUp = Constraint(
+    meqTradeIrAfUp,
+    rule=lambda model, t1, c, src, dst, y, s: model.vTradeIr[t1, c, src, dst, y, s]
+    <= pTradeIrAfUp.get((t1, src, dst, y, s))
+    * pTradeCap2Act.get((t1))
+    * model.vTradeCap[t1, y]
+    * pTimesliceShare.get((s)),
+)
+if verbose:
+    print(
+        datetime.datetime.now().strftime("%H:%M:%S"),
+        " (",
+        round(time.time() - seconds, 2),
+        " s)",
+        sep="",
+    )
+# eqTradeIrAfLo(trade, comm, src, dst, year, timeslice)$meqTradeIrAfLo(trade, comm, src, dst, year, timeslice)
+# Relative flow bound: a fraction of the object's own capacity rather than an
+# absolute quantity, so one trade object carrying several routes can rate each
+# of them. Gated, hence empty unless `af` is declared.
+if verbose:
+    print("eqTradeIrAfLo ", end="")
+sys.stdout.flush()
+model.eqTradeIrAfLo = Constraint(
+    meqTradeIrAfLo,
+    rule=lambda model, t1, c, src, dst, y, s: model.vTradeIr[t1, c, src, dst, y, s]
+    >= pTradeIrAfLo.get((t1, src, dst, y, s))
+    * pTradeCap2Act.get((t1))
+    * model.vTradeCap[t1, y]
+    * pTimesliceShare.get((s)),
+)
+if verbose:
+    print(
+        datetime.datetime.now().strftime("%H:%M:%S"),
+        " (",
+        round(time.time() - seconds, 2),
+        " s)",
+        sep="",
+    )
 # eqImportIrCost(trade, region, year)$mImportIrCost(trade, region, year)
 if verbose:
     print("eqImportIrCost ", end="")
@@ -2827,8 +2873,7 @@ model.eqImportIrCost = Constraint(
                 (
                     (
                         (
-                            pTradeIrCost.get((t1, src, r, y, s))
-                            + pTradeIrMarkup.get((t1, src, r, y, s))
+                            pTradeIrMarkup.get((t1, src, r, y, s))
                         )
                         * model.vTradeIr[t1, c, src, r, y, s]
                         * pTimesliceWeight.get((y, s))
@@ -2861,14 +2906,14 @@ sys.stdout.flush()
 model.eqExportIrCost = Constraint(
     mExportIrCost,
     rule=lambda model, t1, r, y: model.vExportIrCost[t1, r, y]
-    == -sum(
+    == sum(
         sum(
             sum(
                 (
                     (
                         (
                             pTradeIrCost.get((t1, r, dst, y, s))
-                            + pTradeIrMarkup.get((t1, r, dst, y, s))
+                            - pTradeIrMarkup.get((t1, r, dst, y, s))
                         )
                         * model.vTradeIr[t1, c, r, dst, y, s]
                         * pTimesliceWeight.get((y, s))
@@ -3490,6 +3535,14 @@ model.eqOutTot = Constraint(
         pTimesliceAgg.get((y, s, sp), 0) * model.vOutTot[c, r, y, sp]
         for sp in timeslice
         if ((s, sp) in mTimesliceFamily and (c, r, y, sp) in mvOutTot)
+    )
+    # [nested-regions] up-aggregation of the immediately-finer region level.
+    # Plain sum: regional quantities are extensive, unlike the intensive
+    # timeslice values above.
+    + sum(
+        model.vOutTot[c, rp, y, s]
+        for rp in region
+        if ((r, rp) in mRegionFamily and (c, rp, y, s) in mvOutTot)
     ),
 )
 if verbose:
@@ -3521,6 +3574,14 @@ model.eqInpTot = Constraint(
         pTimesliceAgg.get((y, s, sp), 0) * model.vInpTot[c, r, y, sp]
         for sp in timeslice
         if ((s, sp) in mTimesliceFamily and (c, r, y, sp) in mvInpTot)
+    )
+    # [nested-regions] up-aggregation of the immediately-finer region level.
+    # Plain sum: regional quantities are extensive, unlike the intensive
+    # timeslice values above.
+    + sum(
+        model.vInpTot[c, rp, y, s]
+        for rp in region
+        if ((r, rp) in mRegionFamily and (c, rp, y, s) in mvInpTot)
     ),
 )
 if verbose:

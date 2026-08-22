@@ -29,7 +29,6 @@ get_python_path <- function() {
 # Functions to write PYOMO model and data files
 .write_model_PYOMO <- function(arg, scen) {
   # browser()
-  .assert_geolevel_supported(scen, "Pyomo")
   AbstractModel <- any(grep("abstract", scen@settings@solver$lang, ignore.case = TRUE))
   if (AbstractModel) {
     # RETIRED. The Abstract template fell behind on three separate refactors --

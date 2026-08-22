@@ -1,7 +1,7 @@
 # check_levels ################################################################
 # Declared resolution must match the commodity's resolution.
 #
-# A commodity declares where it is BALANCED: `@timeframe` in time, `@geolevel`
+# A commodity declares where it is BALANCED: `@timeframe` in time, `@geoframe`
 # in space. Processes must respect that, and the rules differ by class:
 #
 #  * demand / supply / import / export / trade / storage -- must MATCH. These
@@ -66,7 +66,7 @@ NULL
   cal <- .declaration_calendar(scen)
   ctf <- map_comm_timeframe(scen)
   hier <- .scen_geo_hierarchy(scen)
-  cgl <- map_comm_geolevel(scen)
+  cgl <- map_comm_geoframe(scen)
 
   comms <- union(names(ctf), names(cgl))
   stats::setNames(lapply(comms, function(cm) {
@@ -160,7 +160,7 @@ NULL
     paste(utils::capture.output(print(tab, row.names = FALSE)),
           collapse = "\n   "),
     "\n\nDeclare them at the commodity's level, or change the commodity's ",
-    "`@timeframe`/`@geolevel`.",
+    "`@timeframe`/`@geoframe`.",
     call. = FALSE
   )
 }
@@ -172,7 +172,7 @@ NULL
 # Two readings are possible and the variable's own domain decides which:
 #
 #   * the variable occupies SEVERAL levels (e.g. `vOutTot` for a commodity with
-#     a coarse `@geolevel`, materialised at both the region and the nation):
+#     a coarse `@geoframe`, materialised at both the region and the nation):
 #     RESTRICT to the named level, or summing would double-count.
 #   * the variable occupies ONE level (e.g. `vTechOut`, only ever at process
 #     regions): EXPAND the named level to its members and sum them. This is

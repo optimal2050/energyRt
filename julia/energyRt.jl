@@ -4049,6 +4049,80 @@ print(
     "
 ",
 )
+# eqTradeIrAfUp(trade, comm, src, dst, year, timeslice)$meqTradeIrAfUp(trade, comm, src, dst, year, timeslice)
+# Relative flow bound: a fraction of the object's own capacity rather than an
+# absolute quantity, so one trade object carrying several routes can rate each
+# of them. Gated, hence empty unless `af` is declared.
+print("eqTradeIrAfUp(trade, comm, src, dst, year, timeslice)...")
+@constraint(
+    model,
+    [(t1, c, src, dst, y, s) in meqTradeIrAfUp],
+    vTradeIr[(t1, c, src, dst, y, s)] <= (
+        if haskey(pTradeIrAfUp, (t1, src, dst, y, s))
+            pTradeIrAfUp[(t1, src, dst, y, s)]
+        else
+            pTradeIrAfUpDef
+        end
+    ) *
+    (
+        if haskey(pTradeCap2Act, (t1))
+            pTradeCap2Act[(t1)]
+        else
+            pTradeCap2ActDef
+        end
+    ) *
+    vTradeCap[(t1, y)] *
+    (
+        if haskey(pTimesliceShare, (s))
+            pTimesliceShare[(s)]
+        else
+            pTimesliceShareDef
+        end
+    )
+);
+print(
+    " ",
+    Dates.format(now(), "HH:MM:SS"),
+    "
+",
+)
+# eqTradeIrAfLo(trade, comm, src, dst, year, timeslice)$meqTradeIrAfLo(trade, comm, src, dst, year, timeslice)
+# Relative flow bound: a fraction of the object's own capacity rather than an
+# absolute quantity, so one trade object carrying several routes can rate each
+# of them. Gated, hence empty unless `af` is declared.
+print("eqTradeIrAfLo(trade, comm, src, dst, year, timeslice)...")
+@constraint(
+    model,
+    [(t1, c, src, dst, y, s) in meqTradeIrAfLo],
+    vTradeIr[(t1, c, src, dst, y, s)] >= (
+        if haskey(pTradeIrAfLo, (t1, src, dst, y, s))
+            pTradeIrAfLo[(t1, src, dst, y, s)]
+        else
+            pTradeIrAfLoDef
+        end
+    ) *
+    (
+        if haskey(pTradeCap2Act, (t1))
+            pTradeCap2Act[(t1)]
+        else
+            pTradeCap2ActDef
+        end
+    ) *
+    vTradeCap[(t1, y)] *
+    (
+        if haskey(pTimesliceShare, (s))
+            pTimesliceShare[(s)]
+        else
+            pTimesliceShareDef
+        end
+    )
+);
+print(
+    " ",
+    Dates.format(now(), "HH:MM:SS"),
+    "
+",
+)
 # eqImportIrCost(trade, region, year)$mImportIrCost(trade, region, year)
 print("eqImportIrCost(trade, region, year)...")
 @constraint(
@@ -4062,12 +4136,6 @@ print("eqImportIrCost(trade, region, year)...")
                         (
                             (
                                 (
-                                    if haskey(pTradeIrCost, (t1, src, r, y, s))
-                                        pTradeIrCost[(t1, src, r, y, s)]
-                                    else
-                                        pTradeIrCostDef
-                                    end
-                                ) + (
                                     if haskey(pTradeIrMarkup, (t1, src, r, y, s))
                                         pTradeIrMarkup[(t1, src, r, y, s)]
                                     else
@@ -4104,7 +4172,7 @@ print("eqExportIrCost(trade, region, year)...")
     model,
     [(t1, r, y) in mExportIrCost],
     vExportIrCost[(t1, r, y)] ==
-    -sum(
+    sum(
         sum(
             sum(
                 (
@@ -4117,7 +4185,7 @@ print("eqExportIrCost(trade, region, year)...")
                                     else
                                         pTradeIrCostDef
                                     end
-                                ) + (
+                                ) - (
                                     if haskey(pTradeIrMarkup, (t1, r, dst, y, s))
                                         pTradeIrMarkup[(t1, r, dst, y, s)]
                                     else
@@ -4870,6 +4938,14 @@ print("eqOutTot(comm, region, year, timeslice)...")
         ) * vOutTot[(c, r, y, sp)]
         for sp in timeslice if ((s, sp) in mTimesliceFamily && (c, r, y, sp) in mvOutTot);
         init = 0
+    ) +
+    # [nested-regions] up-aggregation of the immediately-finer region level.
+    # Plain sum: regional quantities are extensive, unlike the intensive
+    # timeslice values above.
+    sum(
+        vOutTot[(c, rp, y, s)]
+        for rp in region if ((r, rp) in mRegionFamily && (c, rp, y, s) in mvOutTot);
+        init = 0
     )
 );
 print(
@@ -4940,6 +5016,14 @@ print("eqInpTot(comm, region, year, timeslice)...")
             end
         ) * vInpTot[(c, r, y, sp)]
         for sp in timeslice if ((s, sp) in mTimesliceFamily && (c, r, y, sp) in mvInpTot);
+        init = 0
+    ) +
+    # [nested-regions] up-aggregation of the immediately-finer region level.
+    # Plain sum: regional quantities are extensive, unlike the intensive
+    # timeslice values above.
+    sum(
+        vInpTot[(c, rp, y, s)]
+        for rp in region if ((r, rp) in mRegionFamily && (c, rp, y, s) in mvInpTot);
         init = 0
     )
 );

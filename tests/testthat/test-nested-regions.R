@@ -1,5 +1,5 @@
 # =========================================================================== #
-# Mixed-resolution commodities: `commodity@geolevel`.
+# Mixed-resolution commodities: `commodity@geoframe`.
 #
 # A commodity may be balanced at a COARSER geoscale level than the model's own
 # regions -- steel nationally while electricity stays per-state. The spatial
@@ -41,7 +41,7 @@ nr_model <- function(steel_level, steel_dem_region, extra = list(),
   objs <- c(list(
     newCommodity("COA", timeframe = "ANNUAL"),
     newCommodity("ELC", timeframe = "SEASON"),
-    newCommodity("STEEL", timeframe = "ANNUAL", geolevel = steel_level),
+    newCommodity("STEEL", timeframe = "ANNUAL", geoframe = steel_level),
     newSupply("SUP_COA", commodity = "COA",
               supply = data.frame(region = regions, cost = 1)),
     newTechnology("ECOA", input = list(comm = "COA"),
@@ -75,9 +75,9 @@ nr_gd <- function(scen, nm) {
 
 # --------------------------------------------------------------------------- #
 
-test_that("commodity@geolevel round-trips and defaults to empty", {
-  expect_equal(newCommodity("STEEL", geolevel = "nation")@geolevel, "nation")
-  expect_length(newCommodity("ELC")@geolevel, 0)
+test_that("commodity@geoframe round-trips and defaults to empty", {
+  expect_equal(newCommodity("STEEL", geoframe = "nation")@geoframe, "nation")
+  expect_length(newCommodity("ELC")@geoframe, 0)
 })
 
 test_that("the hierarchy is pruned to the model's own regions", {
@@ -179,6 +179,29 @@ test_that("nr_equivalence: a coarse balance equals free transport", {
   # A missed mCommRegion guard would show up here as steel taxed or counted
   # twice, so this doubles as the no-double-counting assertion.
   expect_gt(coarse, 0)
+
+  # The same property on the other back-ends. Julia and Pyomo REFUSED a coarse
+  # balance until the up-aggregation term over `mRegionFamily` was ported to
+  # their eqOutTot / eqInpTot, so this is what says the port is real rather than
+  # merely no longer erroring. GAMS is left out: it needs a dense scenario and a
+  # NEOS submission.
+  have <- function(f) { p <- tryCatch(f(), error = function(e) NULL)
+                        !is.null(p) && nzchar(p) }
+  engines <- c(if (have(get_julia_path))  "julia_highs",
+               if (have(get_python_path)) "pyomo_glpk")
+  for (eng in engines) {
+    o <- function(mod, tag) {
+      scen <- suppressMessages(suppressWarnings(
+        interpolate_model(mod, name = tag, fold = TRUE, sparse = FALSE)))
+      sum(suppressMessages(getData(
+        solve_scen(scen, solver = solver_options[[eng]]),
+        "vObjective", merge = TRUE))$value)
+    }
+    expect_equal(
+      o(setGeoscale(nr_model("nation", "NAT", name = paste0("nrA_", eng)),
+                    nr_geoscale()), paste0("nrA_", eng)),
+      coarse, tolerance = 1e-6, info = eng)
+  }
 })
 
 test_that("three levels chain through the intermediate one", {
@@ -220,16 +243,16 @@ test_that("three levels chain through the intermediate one", {
   expect_equal(a$v, b$v, tolerance = 1e-9)
 })
 
-test_that("@geolevel without a geoscale is refused", {
+test_that("@geoframe without a geoscale is refused", {
   skip_if_no_solver()
   expect_error(
     suppressMessages(suppressWarnings(interpolate_model(
       nr_model("nation", "R2", name = "nrC"), name = "nrC", fold = TRUE))),
-    "geolevel"
+    "geoframe"
   )
 })
 
-test_that("an unknown @geolevel names the levels that do exist", {
+test_that("an unknown @geoframe names the levels that do exist", {
   skip_if_no_geoscales()
   skip_if_no_solver()
   expect_error(
@@ -255,19 +278,25 @@ test_that("a process coarser than its commodity is refused", {
   )
 })
 
-test_that("engines without the aggregation term refuse a coarse commodity", {
+test_that("no engine refuses a coarse commodity any more", {
   skip_if_no_geoscales()
   skip_if_no_solver()
-  scen <- vt_interp(setGeoscale(nr_model("nation", "NAT", name = "nrF"),
-                                nr_geoscale()), "nrF")
-  # Julia and Pyomo have no mRegionFamily term (see the template baseline in
-  # dev notes), so they would pin the balance to NAT and find nothing feeding
-  # it. Fail loudly rather than solve a different problem.
-  for (eng in c("JuMP/Julia", "Pyomo")) {
-    expect_error(energyRt:::.assert_geolevel_supported(scen, eng),
-                 "GLPK and GAMS only")
+  # Julia and Pyomo used to have no `mRegionFamily` term in eqOutTot/eqInpTot, so
+  # they would have pinned the balance to NAT and found nothing feeding it. They
+  # were made to refuse rather than solve a different problem
+  # (`.assert_geoframe_supported()`, now retired to drafts/). The term is ported,
+  # so the guard is gone and every writer must accept the model.
+  mod <- setGeoscale(nr_model("nation", "NAT", name = "nrF"), nr_geoscale())
+  scen <- vt_interp(mod, "nrF")
+  expect_false(exists(".assert_geoframe_supported",
+                      envir = asNamespace("energyRt"), inherits = FALSE))
+
+  # The equations themselves must carry the term, in every template.
+  code <- getFromNamespace(".modelCode", "energyRt")
+  for (eng in c("GLPK", "GAMS", "JuMP", "PYOMOConcrete")) {
+    body <- paste(code[[eng]], collapse = "
+")
+    expect_true(grepl("mRegionFamily", body, fixed = TRUE), info = eng)
   }
-  # A model with no coarse commodity is fine everywhere.
-  flat <- vt_interp(vt_model(name = "nrG"), "nrG")
-  expect_null(energyRt:::.assert_geolevel_supported(flat, "Pyomo"))
 })
+

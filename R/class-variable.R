@@ -77,8 +77,15 @@ setClass(
   )
 )
 
-.VARIABLE_ROLES <- c("source", "sink", "flow", "activity", "balance", "stock",
-                     "capacity", "cost")
+# `interregional` marks a quantity carried BETWEEN regions -- two region indices,
+# a relation rather than a quantity in a place. It is not "a flow": vTechOut is
+# `source`, vTechInp is `sink`, vTechInv is `cost`, and every one of those is a
+# flow in the ordinary sense, region-indexed, and sums across regions perfectly
+# well. Only the two-index kind must never be summed spatially.
+# Duplicated as `roles` in data-raw/DATASET.R, which runs before the package
+# is loadable. Change both.
+.VARIABLE_ROLES <- c("source", "sink", "interregional", "activity", "balance",
+                     "stock", "capacity", "cost")
 .VARIABLE_UNITS <- c("commodity", "activity", "capacity", "currency")
 
 # The `@data` column skeleton. `parameter`'s builder cannot be reused: it

@@ -106,13 +106,13 @@ test_that("check_geoscale_regions warns only about uncovered regions", {
 
 # The variable catalogue drives the aggregation rules -------------------------
 
-test_that("flow variables are identified from the catalogue, not a list", {
-  expect_true(.is_flow_var("vTradeIr"))
-  expect_false(.is_flow_var("vTechOut"))
+test_that("interregional variables are identified from the catalogue, not a list", {
+  expect_true(.is_interregional_var("vTradeIr"))
+  expect_false(.is_interregional_var("vTechOut"))
   # If a second inter-regional variable is ever declared, the netting path
   # must be revisited -- this pins the assumption.
   spec <- .variables
-  flows <- names(spec)[vapply(spec, function(z) identical(z$role, "flow"),
+  flows <- names(spec)[vapply(spec, function(z) identical(z$role, "interregional"),
                               logical(1))]
   expect_equal(flows, "vTradeIr")
   # role and dimensions agree independently
@@ -131,7 +131,7 @@ test_that("the temporal stock rule does NOT carry over to space", {
   # `role: stock` means "never summed over timeslices". Summing a storage level
   # across regions is meaningful, so it must aggregate normally here.
   expect_true(.is_state_var("vStorageLevel"))
-  expect_false(.is_flow_var("vStorageLevel"))
+  expect_false(.is_interregional_var("vStorageLevel"))
 
   gs <- demo_gs()
   x <- data.frame(region = c("R1", "R2", "R3", "R4"), value = c(1, 2, 3, 4))

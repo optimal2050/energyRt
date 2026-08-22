@@ -323,6 +323,8 @@ parameters
 pTradeIrEff(trade, region, region, year, timeslice)     Inter-regional trade efficiency
 pTradeIrUp(trade, region, region, year, timeslice)      Upper bound on trade flow
 pTradeIrLo(trade, region, region, year, timeslice)      Lower bound on trade flow
+pTradeIrAfUp(trade, region, region, year, timeslice)    Upper availability factor of trade flow
+pTradeIrAfLo(trade, region, region, year, timeslice)    Lower availability factor of trade flow
 pTradeIrCost(trade, region, region, year, timeslice)    Costs of trade flow
 pTradeIrMarkup(trade, region, region, year, timeslice)  Markup of trade flow
 * Aux input and output
@@ -352,7 +354,8 @@ pTradeInvcost(trade, region, year)                   Overnight investment costs
 pTradeEac(trade, region, year)                       Equivalent annual costs
 pTradeRetCost(trade, region, year)                   Early retirement costs
 pTradeFixom(trade, region, year)                             Fixed O&M costs
-pTradeVarom(trade, region, region, year, timeslice)      Variable O&M costs
+* [removed] pTradeVarom -- trade @varom is not implemented: no equation read it,
+* it was absent from Julia and Pyomo, and it is unregistered in modInp.yml.
 pTradeCap2Act(trade)                                 Capacity to activity factor
 ;
 
@@ -833,6 +836,8 @@ meqStorageOutUp(stg, comm, region, year, timeslice)
 meqStorageOutLo(stg, comm, region, year, timeslice)
 meqTradeFlowUp(trade, comm, region, region, year, timeslice)
 meqTradeFlowLo(trade, comm, region, region, year, timeslice)
+meqTradeIrAfUp(trade, comm, region, region, year, timeslice)
+meqTradeIrAfLo(trade, comm, region, region, year, timeslice)
 meqExportRowLo(expp, comm, region, year, timeslice)
 meqImportRowUp(imp, comm, region, year, timeslice)
 meqImportRowLo(imp, comm, region, year, timeslice)
@@ -1557,15 +1562,7 @@ eqTechEac(tech, region, year)$mTechEac(tech, region, year)..
                        )
                 )
               );
-$ontext
-* [eac-fix] simplified "EAC for existing capacity" form disabled:
-eqTechEac(tech, region, year)$mTechSpan(tech, region, year)..
-         vTechEac(tech, region, year)
-* rewritten to include EAC for existing capacity
-         =e=
-         pTechEac(tech, region, year) * vTechCap(tech, region, year)
-;
-$offtext
+* [moved] * [eac-fix] simplified "EAC for existing capacity" form disa -- see drafts/gams-disabled-equations.gms
 
 * Investment equation
 eqTechInv(tech, region, year)$mTechInv(tech, region, year)..
@@ -1575,43 +1572,7 @@ eqTechInv(tech, region, year)$mTechInv(tech, region, year)..
         pTechInvcost(tech, region, year) * vTechNewCap(tech, region, year);
 
 
-$ontext
-* Annual O&M costs
-eqTechOMCost(tech, region, year)$mTechOMCost(tech, region, year)..
-        vTechOMCost(tech, region, year)
-        =e=
-*        pYearFraction(year) *
-        pTechFixom(tech, region, year) * vTechCap(tech, region, year) +
-        sum(timeslice$mTechTimeslice(tech, timeslice),
-            pTechVarom(tech, region, year, timeslice)
-            * pTimesliceWeight(year, timeslice)
-            * vTechAct(tech, region, year, timeslice) +
-            sum(comm$mTechInpComm(tech, comm),
-                pTechCvarom(tech, comm, region, year, timeslice)
-                * pTimesliceWeight(year, timeslice)
-                * vTechInp(tech, comm, region, year, timeslice)
-            )
-            +
-            sum(comm$mTechOutComm(tech, comm),
-                pTechCvarom(tech, comm, region, year, timeslice)
-                * pTimesliceWeight(year, timeslice)
-                * vTechOut(tech, comm, region, year, timeslice)
-            )
-            +
-            sum(comm$mvTechAOut(tech, comm, region, year, timeslice),
-                pTechAvarom(tech, comm, region, year, timeslice)
-                * pTimesliceWeight(year, timeslice)
-                * vTechAOut(tech, comm, region, year, timeslice)
-            )
-            +
-            sum(comm$mvTechAInp(tech, comm, region, year, timeslice),
-                pTechAvarom(tech, comm, region, year, timeslice)
-                * pTimesliceWeight(year, timeslice)
-                * vTechAInp(tech, comm, region, year, timeslice)
-            )
-         );
-*         / pYearFraction(year) ;
-$offtext
+* [moved] * Annual O&M costs -- see drafts/gams-disabled-equations.gms
 * Fixed O&M costs
 *mTechFixom(tech, region, year) = mTechSpan(tech, region, year);
 eqTechFixom(tech, region, year)$mTechFixom(tech, region, year)..
@@ -2159,41 +2120,10 @@ eqStorageEac(stg, region, year)$mStorageEac(stg, region, year)..
                 * vStorageInpNewCap(stg, region, yearp)
                )$mStorageInpNew(stg, region, yearp))
          );
-$ontext
-* [eac-fix] simplified "EAC for existing capacity" form disabled:
-eqStorageEac(stg, region, year)$mStorageEac(stg, region, year)..
-         vStorageEac(stg, region, year)
-         =e=
-         pStorageOutEac(stg, region, year) * vStorageOutCap(stg, region, year);
-$offtext
+* [moved] * [eac-fix] simplified "EAC for existing capacity" form disa -- see drafts/gams-disabled-equations.gms
 
 
-$ontext
-* Fixed and Variable O&M costs
-eqStorageCost(stg, region, year)$mStorageOMCost(stg, region, year)..
-         vStorageOMCost(stg, region, year)
-         =e=
-*         pYearFraction(year) *
-         pStorageOutFixom(stg, region, year) * vStorageOutCap(stg, region, year)
-         +
-         sum(comm$mStorageInpComm(stg, comm),
-             sum(timeslice$mCommTimeslice(comm, timeslice),
-                 pStorageCostInp(stg, region, year, timeslice)
-                    * pTimesliceWeight(year, timeslice)
-                    * vStorageInp(stg, comm, region, year, timeslice)))
-          + sum(comm$mStorageOutComm(stg, comm),
-             sum(timeslice$mCommTimeslice(comm, timeslice),
-                 pStorageCostOut(stg, region, year, timeslice)
-                    * pTimesliceWeight(year, timeslice)
-                    * vStorageOut(stg, comm, region, year, timeslice)))
-          + sum(comm$mStorageStgComm(stg, comm),
-             sum(timeslice$mCommTimeslice(comm, timeslice),
-                 pStorageCostStore(stg, region, year, timeslice)
-                    * pTimesliceWeight(year, timeslice)
-                    * vStorageLevel(stg, comm, region, year, timeslice)
-             )
-         );
-$offtext
+* [moved] * Fixed and Variable O&M costs -- see drafts/gams-disabled-equations.gms
 * Storage fixed costs
 *!!!eqStorageFixom(stg, region, year)$mStorageFixom(stg, region, year)..
 eqStorageFixom(stg, region, year)$mStorageFixom(stg, region, year)..
@@ -2240,6 +2170,8 @@ eqImportTot(comm, region, year, timeslice)             Import equation (Ir & ROW
 eqExportTot(comm, region, year, timeslice)             Export equation (Ir & ROW)
 eqTradeFlowUp(trade, comm, region, region, year, timeslice)   Trade upper bound
 eqTradeFlowLo(trade, comm, region, region, year, timeslice)   Trade lower bound
+eqTradeIrAfUp(trade, comm, region, region, year, timeslice)   Trade upper bound relative to capacity
+eqTradeIrAfLo(trade, comm, region, region, year, timeslice)   Trade lower bound relative to capacity
 *eqCostTrade(region, year)                         Total trade costs
 *eqCostRowTrade(region, year)                      Costs of trade with the Rest of the World (ROW)
 * eqCostIrTrade(region, year)                       Costs of import
@@ -2266,28 +2198,7 @@ eqImportIrCost(trade, region, year)               Interregional trade import cos
 eqExportIrCost(trade, region, year)               Interregional trade export costs
 ;
 
-$ontext
-* rewritten (dropped sum(timeslicep$mCommTimesliceOrParent...)
-* because timeframe of all one-commodity processes (sup, dem, exp, imp, ir-trd)
-* is fixed to the timeframe of commodity
-eqImportTot(comm, dst, year, timeslice)$mImport(comm, dst, year, timeslice)..
-  vImportTot(comm, dst, year, timeslice) =e=
-     sum(timeslicep$mCommTimesliceOrParent(comm, timeslice, timeslicep),
-         sum(trade$mTradeComm(trade, comm),
-             sum(src$mTradeRoutes(trade, src, dst),
-                 (pTradeIrEff(trade, src, dst, year, timeslicep)
-                  * vTradeIr(trade, comm, src, dst, year, timeslicep)
-                  )$mvTradeIr(trade, comm, src, dst, year, timeslicep)
-                 )
-            )
-         )
-     +
-     sum(timeslicep$mCommTimesliceOrParent(comm, timeslice, timeslicep),
-         sum(imp$mImpComm(imp, comm),
-             vImportRow(imp, comm, dst, year, timeslicep)$mImportRow(imp, comm, dst, year, timeslicep)
-         )
-     );
-$offtext
+* [moved] * rewritten (dropped sum(timeslicep$mCommTimesliceOrParent.. -- see drafts/gams-disabled-equations.gms
 
 eqImportTot(comm, dst, year, timeslice)$mImport(comm, dst, year, timeslice)..
   vImportTot(comm, dst, year, timeslice) =e=
@@ -2305,27 +2216,7 @@ eqImportTot(comm, dst, year, timeslice)$mImport(comm, dst, year, timeslice)..
     );
 *    ) * pTimesliceWeight(year, timeslice);
 
-$ontext
-* rewritten (dropped sum(timeslicep$mCommTimesliceOrParent...)
-* because timeframe of all one-commodity processes (sup, dem, exp, imp, ir-trd)
-* is fixed to the timeframe of commodity
-
-eqExportTot(comm, src, year, timeslice)$mExport(comm, src, year, timeslice)..
-  vExportTot(comm, src, year, timeslice)
-  =e=
-  sum(timeslicep$mCommTimesliceOrParent(comm, timeslice, timeslicep),
-      sum(trade$mTradeComm(trade, comm),
-          sum(dst$mTradeRoutes(trade, src, dst),
-              vTradeIr(trade, comm, src, dst, year, timeslicep)$mvTradeIr(trade, comm, src, dst, year, timeslicep)
-          )
-      )
-  ) +
-  sum(timeslicep$mCommTimesliceOrParent(comm, timeslice, timeslicep),
-      sum(expp$mExpComm(expp, comm),
-          vExportRow(expp, comm, src, year, timeslicep)$mExportRow(expp, comm, src, year, timeslicep)
-      )
-  );
-$offtext
+* [moved] * rewritten (dropped sum(timeslicep$mCommTimesliceOrParent.. -- see drafts/gams-disabled-equations.gms
 
 eqExportTot(comm, src, year, timeslice)$mExport(comm, src, year, timeslice)..
 
@@ -2349,100 +2240,16 @@ eqTradeFlowUp(trade, comm, src, dst, year, timeslice)$meqTradeFlowUp(trade, comm
 eqTradeFlowLo(trade, comm, src, dst, year, timeslice)$meqTradeFlowLo(trade, comm, src, dst, year, timeslice)..
       vTradeIr(trade, comm, src, dst, year, timeslice) =g= pTradeIrLo(trade, src, dst, year, timeslice);
 
-$ontext
-eqCostTrade(region, year)$mvTradeCost(region, year)..
-  vTradeCost(region, year)
-  =e=
-  vTradeRowCost(region, year)$mvTradeRowCost(region, year)
-  + vTradeIrCost(region, year)$mvTradeIrCost(region, year);
-*$offtext
+* Relative flow bounds: a fraction of the object own capacity rather than an
+* absolute quantity, so one trade object carrying several routes can rate each
+* of them. Gated, hence absent unless af is declared.
+eqTradeIrAfUp(trade, comm, src, dst, year, timeslice)$meqTradeIrAfUp(trade, comm, src, dst, year, timeslice)..
+      vTradeIr(trade, comm, src, dst, year, timeslice) =l= pTradeIrAfUp(trade, src, dst, year, timeslice) * pTradeCap2Act(trade) * vTradeCap(trade, year) * pTimesliceShare(timeslice);
 
-eqCostRowTrade(region, year)$mvTradeRowCost(region, year)..
-  vTradeRowCost(region, year)
-  =e=
-* Row
-  sum((imp, comm, timeslice)$mImportRow(imp, comm, region, year, timeslice),
-      pImportRowPrice(imp, region, year, timeslice) * pTimesliceWeight(year, timeslice)
-      * vImportRow(imp, comm, region, year, timeslice)
-  ) -
-  sum((expp, comm, timeslice)$mExportRow(expp, comm, region, year, timeslice),
-      pExportRowPrice(expp, region, year, timeslice) * pTimesliceWeight(year, timeslice)
-      * vExportRow(expp, comm, region, year, timeslice)
-  );
-*$offtext
+eqTradeIrAfLo(trade, comm, src, dst, year, timeslice)$meqTradeIrAfLo(trade, comm, src, dst, year, timeslice)..
+      vTradeIr(trade, comm, src, dst, year, timeslice) =g= pTradeIrAfLo(trade, src, dst, year, timeslice) * pTradeCap2Act(trade) * vTradeCap(trade, year) * pTimesliceShare(timeslice);
 
-eqCostIrTrade(region, year)$mvTradeIrCost(region, year)..
-  vTradeIrCost(region, year)
-  =e=
-* * Fixed O&M of stock (!!! check mTradeSpan when not mTradeCapacityVariable)
-*   sum(trade$mTradeSpan(trade, year),
-*       pTradeFixom(trade, year) * pTradeStock(trade, year) * pPeriodLen(year)
-*   )
-*   +
-* * Fixed O&M of new installations
-*   sum(trade$(mTradeSpan(trade, year) and mTradeCapacityVariable(trade)),
-*       pTradeFixom(trade, year) * (vTradeCap(trade, year) - pTradeStock(trade, year)) * pPeriodLen(year)
-*   )
-* Fixed O&M of trade
-  sum(trade$mTradeSpan(trade, year),
-      pTradeFixom(trade, region, year) * vTradeCap(trade, year) * pPeriodLen(year)
-  )
-  +
-* Eac
-  sum(trade$mTradeEac(trade, region, year),
-      vTradeEac(trade, region, year) * pPeriodLen(year)
-  )
-* Import (IR)
-  + sum((trade, src)$mTradeRoutes(trade, src, region),
-        sum(comm$mTradeComm(trade, comm),
-            sum(timeslice$mTradeTimeslice(trade, timeslice),
-                ((pTradeIrCost(trade, src, region, year, timeslice)
-                   + pTradeIrMarkup(trade, src, region, year, timeslice)
-                  ) * vTradeIr(trade, comm, src, region, year, timeslice) * pTimesliceWeight(year, timeslice) * pPeriodLen(year)
-                )$mvTradeIr(trade, comm, src, region, year, timeslice)
-            )
-        )
-    )
-* Export (IR)
-  - sum((trade, dst)$mTradeRoutes(trade, region, dst),
-        sum(comm$mTradeComm(trade, comm),
-            sum(timeslice$mTradeTimeslice(trade, timeslice),
-                ((pTradeIrCost(trade, region, dst, year, timeslice)
-                  + pTradeIrMarkup(trade, region, dst, year, timeslice)
-                  )* vTradeIr(trade, comm, region, dst, year, timeslice) * pTimesliceWeight(year, timeslice) * pPeriodLen(year)
-                 )$mvTradeIr(trade, comm, region, dst, year, timeslice)
-            )
-        )
-    );
-*$offtext
-
-* Rewritten IR-trade costs equation activity (non-capital) costs
-eqCostIrTrade(region, year)$mvTradeIrCost(region, year)..
-  vTradeIrCost(region, year)
-  =e=
-* Import (IR)
-  + sum((trade, src)$mTradeRoutes(trade, src, region),
-        sum(comm$mTradeComm(trade, comm),
-            sum(timeslice$mTradeTimeslice(trade, timeslice),
-                ((pTradeIrCost(trade, src, region, year, timeslice)
-                   + pTradeIrMarkup(trade, src, region, year, timeslice)
-                  ) * vTradeIr(trade, comm, src, region, year, timeslice) * pTimesliceWeight(year, timeslice)
-                )$mvTradeIr(trade, comm, src, region, year, timeslice)
-            )
-        )
-    )
-* Export (IR)
-  - sum((trade, dst)$mTradeRoutes(trade, region, dst),
-        sum(comm$mTradeComm(trade, comm),
-            sum(timeslice$mTradeTimeslice(trade, timeslice),
-                ((pTradeIrCost(trade, region, dst, year, timeslice)
-                  + pTradeIrMarkup(trade, region, dst, year, timeslice)
-                  ) * vTradeIr(trade, comm, region, dst, year, timeslice) * pTimesliceWeight(year, timeslice)
-                 )$mvTradeIr(trade, comm, region, dst, year, timeslice)
-            )
-        )
-    );
-$offtext
+* [moved] eqCostTrade(region, year)$mvTradeCost(region, year).. -- see drafts/gams-disabled-equations.gms
 
 * Import (IR)
 eqImportIrCost(trade, region, year)$mImportIrCost(trade, region, year)..
@@ -2451,8 +2258,7 @@ eqImportIrCost(trade, region, year)$mImportIrCost(trade, region, year)..
     sum((src)$mTradeRoutes(trade, src, region),
         sum(comm$mTradeComm(trade, comm),
             sum(timeslice$mTradeTimeslice(trade, timeslice),
-                ((pTradeIrCost(trade, src, region, year, timeslice)
-                   + pTradeIrMarkup(trade, src, region, year, timeslice)
+                ((pTradeIrMarkup(trade, src, region, year, timeslice)
                   ) * vTradeIr(trade, comm, src, region, year, timeslice) * pTimesliceWeight(year, timeslice)
                 )$mvTradeIr(trade, comm, src, region, year, timeslice)
             )
@@ -2463,11 +2269,11 @@ eqImportIrCost(trade, region, year)$mImportIrCost(trade, region, year)..
 eqExportIrCost(trade, region, year)$mExportIrCost(trade, region, year)..
   vExportIrCost(trade, region, year)
   =e=
-    - sum((dst)$mTradeRoutes(trade, region, dst),
+    sum((dst)$mTradeRoutes(trade, region, dst),
         sum(comm$mTradeComm(trade, comm),
             sum(timeslice$mTradeTimeslice(trade, timeslice),
                 ((pTradeIrCost(trade, region, dst, year, timeslice)
-                  + pTradeIrMarkup(trade, region, dst, year, timeslice)
+                  - pTradeIrMarkup(trade, region, dst, year, timeslice)
                   ) * vTradeIr(trade, comm, region, dst, year, timeslice) * pTimesliceWeight(year, timeslice)
                  )$mvTradeIr(trade, comm, region, dst, year, timeslice)
             )
@@ -2586,13 +2392,7 @@ eqTradeEac(trade, region, year)$mTradeEac(trade, region, year)..
               and (ordYear(year) < pTradeOlife(trade) + ordYear(yearp)
                    or mTradeOlifeInf(trade))))),
                 pTradeEac(trade, region, yearp) * vTradeNewCap(trade, yearp));
-$ontext
-* [eac-fix] simplified "EAC for existing capacity" form disabled:
-eqTradeEac(trade, region, year)$mTradeEac(trade, region, year)..
-         vTradeEac(trade, region, year)
-         =e=
-         pTradeEac(trade, region, year) * vTradeCap(trade, year);
-$offtext
+* [moved] * [eac-fix] simplified "EAC for existing capacity" form disa -- see drafts/gams-disabled-equations.gms
 
 
 * Fixed O&M costs
@@ -2736,19 +2536,7 @@ eqOutTot(comm, region, year, timeslice)$mvOutTot(comm, region, year, timeslice).
 * [agg-rewrite] eqOutTotRY/vOutTotRY retired (dead reporting)
 
 * [agg-rewrite] eqOut2Lo removed (up-aggregation in eqOutTot; vOut2Lo retired)
-$ontext
-eqOut2Lo(comm, region, year, timeslice)$mOut2Lo(comm, region, year, timeslice)..
-         sum(timeslicep$mvOut2Lo(comm, region, year, timeslice, timeslicep),
-             vOut2Lo(comm, region, year, timeslice, timeslicep))
-         =e=
-         vSupOutTot(comm, region, year, timeslice)$mSupOutTot(comm, region, year, timeslice)
-         + vEmsFuelTot(comm, region, year, timeslice)$mEmsFuelTot(comm, region, year, timeslice)
-         + vAggOutTot(comm, region, year, timeslice)$mAggOut(comm, region, year, timeslice)
-         + vTechOutTot(comm, region, year, timeslice)$mTechOutTot(comm, region, year, timeslice)
-         + vStorageOutTot(comm, region, year, timeslice)$mStorageOutTot(comm, region, year, timeslice)
-         + vImportTot(comm, region, year, timeslice)$mImport(comm, region, year, timeslice)
-         + vTradeIrAOutTot(comm, region, year, timeslice)$mvTradeIrAOutTot(comm, region, year, timeslice);
-$offtext
+* [moved] eqOut2Lo(comm, region, year, timeslice)$mOut2Lo(comm, region -- see drafts/gams-disabled-equations.gms
 
 eqInpTot(comm, region, year, timeslice)$mvInpTot(comm, region, year, timeslice)..
         vInpTot(comm, region, year, timeslice)
@@ -2778,17 +2566,7 @@ eqInpTot(comm, region, year, timeslice)$mvInpTot(comm, region, year, timeslice).
 * [agg-rewrite] eqInpTotRY/vInpTotRY retired (dead reporting)
 
 * [agg-rewrite] eqInp2Lo removed (up-aggregation in eqInpTot; vInp2Lo retired)
-$ontext
-eqInp2Lo(comm, region, year, timeslice)$mInp2Lo(comm, region, year, timeslice)..
-        sum(timeslicep$mvInp2Lo(comm, region, year, timeslice, timeslicep),
-            vInp2Lo(comm, region, year, timeslice, timeslicep)
-        )
-        =e=
-        vTechInpTot(comm, region, year, timeslice)$mTechInpTot(comm, region, year, timeslice)
-        + vStorageInpTot(comm, region, year, timeslice)$mStorageInpTot(comm, region, year, timeslice)
-        + vExportTot(comm, region, year, timeslice)$mExport(comm, region, year, timeslice)
-        + vTradeIrAInpTot(comm, region, year, timeslice)$mvTradeIrAInpTot(comm, region, year, timeslice);
-$offtext
+* [moved] eqInp2Lo(comm, region, year, timeslice)$mInp2Lo(comm, region -- see drafts/gams-disabled-equations.gms
 
 eqSupOutTot(comm, region, year, timeslice)$mSupOutTot(comm, region, year, timeslice)..
           vSupOutTot(comm, region, year, timeslice)

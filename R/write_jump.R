@@ -29,7 +29,6 @@ get_julia_path <- function() {
 
 # Functions to write Julia/JuMP model and data files
 .write_model_JuMP <- function(arg, scen) {
-  .assert_geolevel_supported(scen, "JuMP/Julia")
   run_code <- scen@settings@sourceCode[["JuMP"]]
   run_codeout <- scen@settings@sourceCode[["JuMPOutput"]]
   # # resolving `prod` issue in JuMP/Julia. temporary solution

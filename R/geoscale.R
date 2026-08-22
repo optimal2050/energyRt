@@ -13,7 +13,7 @@
 #
 #  * MODEL STRUCTURE. `sets$region` becomes the union of every level, so a
 #    coarse region such as a nation is a member alongside the states, and a
-#    commodity may declare `@geolevel` to be balanced there instead
+#    commodity may declare `@geoframe` to be balanced there instead
 #    (`mCommRegion`, `mRegionFamily` -- see map_region.R). Attaching a geoscale
 #    alone changes nothing observable: the extra members are inert until some
 #    commodity names a coarser level, which is what Verification 2 pins.
@@ -195,6 +195,22 @@ check_geoscale_regions <- function(geoscale, region, level = NULL) {
 
   fam <- as.data.frame(geoscales::geoscale_family(geoscale))
 
+  # geoscales renamed the family table's level columns to `*_geoframe` (the
+  # lattice rename). Reading the OLD names silently yields `logical(0)` from the
+  # filter below, so every geoscale collapses to a one-level hierarchy and the
+  # whole multi-level region feature goes dark without an error. Accept either
+  # spelling, and say so loudly if neither is present rather than degrading.
+  .fam_col <- function(which) {
+    for (nm in paste0(which, c("_geoframe", "_level"))) {
+      if (nm %in% names(fam)) return(fam[[nm]])
+    }
+    stop("geoscale_family() has neither `", which, "_geoframe` nor `", which,
+         "_level`; energyRt cannot read the region hierarchy. Columns: ",
+         paste(names(fam), collapse = ", "), call. = FALSE)
+  }
+  fam_parent_level <- .fam_col("parent")
+  fam_child_level  <- .fam_col("child")
+
   # level -> the codes of that level that survive pruning.
   keep <- list()
   keep[[finest]] <- intersect(geoscales::geoscale_regions(geoscale, finest),
@@ -203,7 +219,7 @@ check_geoscale_regions <- function(geoscale, region, level = NULL) {
   for (i in rev(seq_len(length(levels) - 1L))) {
     pl <- levels[i]
     cl <- levels[i + 1L]
-    f <- fam[fam$parent_level == pl & fam$child_level == cl &
+    f <- fam[fam_parent_level == pl & fam_child_level == cl &
                fam$child %in% keep[[cl]], , drop = FALSE]
     keep[[pl]] <- unique(f$parent)
     if (nrow(f) > 0L) {
@@ -265,7 +281,7 @@ check_geoscale_regions <- function(geoscale, region, level = NULL) {
 }
 
 # Regions at a named level, pruned to the model. `level = NULL` (a commodity
-# with no `@geolevel`) means the finest level, i.e. today's flat behaviour.
+# with no `@geoframe`) means the finest level, i.e. today's flat behaviour.
 #' @noRd
 .geo_level_regions <- function(hier, level = NULL) {
   if (is.null(hier)) return(NULL)

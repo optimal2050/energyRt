@@ -133,6 +133,7 @@
     "meqTechGrp2Grp", "meqTechGrp2Sng", "meqTechShareInpLo", "meqTechShareInpUp",
     "meqTechShareOutLo", "meqTechShareOutUp", "meqTechSng2Grp", "meqTechSng2Sng",
     "meqTradeCapFlow", "meqTradeFlowLo", "meqTradeFlowUp",
+    "meqTradeIrAfLo", "meqTradeIrAfUp",
     # bound m* sourced from constraint slots
     "mTechCapLo", "mTechCapUp", "mTechNewCapLo", "mTechNewCapUp",
     "mTechRetLo", "mTechRetUp", "mTechAfUp", "mTechAfcUp",
