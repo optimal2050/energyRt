@@ -1411,8 +1411,12 @@ mStorageInpCap:
   - stg
   - region
   - year
-  gates_var: vStorageInpCap
-  gates_eq: eqStorageInpCap
+  gates_var:
+  - vStorageInpStockCap
+  - vStorageInpCap
+  gates_eq:
+  - eqStorageInpStockCap
+  - eqStorageInpCap
   recipe: value
   source: param
   predicate: '!is.na(value)'
@@ -1879,8 +1883,12 @@ mStorageSpan:
   - stg
   - region
   - year
-  gates_var: vStorageOutCap
-  gates_eq: eqStorageOutCap
+  gates_var:
+  - vStorageOutStockCap
+  - vStorageOutCap
+  gates_eq:
+  - eqStorageOutStockCap
+  - eqStorageOutCap
   recipe: lifespan
   source: derived
   predicate: .na
@@ -1929,8 +1937,12 @@ mStorageStgCap:
   - stg
   - region
   - year
-  gates_var: vStorageStgCap
-  gates_eq: eqStorageStgCap
+  gates_var:
+  - vStorageStgStockCap
+  - vStorageStgCap
+  gates_eq:
+  - eqStorageStgStockCap
+  - eqStorageStgCap
   recipe: value
   source: param
   predicate: '!is.na(value)'
@@ -3197,10 +3209,13 @@ mTechSpan:
   - tech
   - region
   - year
-  gates_var: vTechCap
+  gates_var:
+  - vTechStockCap
+  - vTechCap
   gates_eq:
   - eqTechCap
   - eqTechEac
+  - eqTechStockCap
   recipe: lifespan
   source: derived
   predicate: .na
@@ -3724,8 +3739,12 @@ mTradeSpan:
   dims:
   - trade
   - year
-  gates_var: vTradeCap
-  gates_eq: eqTradeCap
+  gates_var:
+  - vTradeStockCap
+  - vTradeCap
+  gates_eq:
+  - eqTradeStockCap
+  - eqTradeCap
   recipe: lifespan
   source: derived
   predicate: .na
@@ -3913,8 +3932,12 @@ mvStoragePhaseOut:
   - stg
   - region
   - year
-  gates_var: vStoragePhaseOut
-  gates_eq: eqStoragePhaseOut
+  gates_var:
+  - vStorageStockPhaseOut
+  - vStoragePhaseOut
+  gates_eq:
+  - eqStorageStockPhaseOut
+  - eqStoragePhaseOut
   recipe: lifespan
   source: derived
   predicate: .na
@@ -3946,19 +3969,10 @@ mvStorageRetiredStock:
   - region
   - year
   gates_var:
-  - vStorageOutRetiredStockCum
   - vStorageOutRetiredStock
-  - vStorageInpRetiredStockCum
   - vStorageInpRetiredStock
-  - vStorageStgRetiredStockCum
   - vStorageStgRetiredStock
-  gates_eq:
-  - eqStorageOutRetiredStock
-  - eqStorageOutRetiredStockCum
-  - eqStorageInpRetiredStock
-  - eqStorageInpRetiredStockCum
-  - eqStorageStgRetiredStock
-  - eqStorageStgRetiredStockCum
+  gates_eq: []
   recipe: lifespan
   source: derived
   predicate: .na
@@ -4083,8 +4097,12 @@ mvTechPhaseOut:
   - tech
   - region
   - year
-  gates_var: vTechPhaseOut
-  gates_eq: eqTechPhaseOut
+  gates_var:
+  - vTechPhaseOut
+  - vTechStockPhaseOut
+  gates_eq:
+  - eqTechPhaseOut
+  - eqTechStockPhaseOut
   recipe: lifespan
   source: derived
   predicate: .na
@@ -4112,12 +4130,8 @@ mvTechRetiredStock:
   - tech
   - region
   - year
-  gates_var:
-  - vTechRetiredStockCum
-  - vTechRetiredStock
-  gates_eq:
-  - eqTechRetiredStock
-  - eqTechRetiredStockCum
+  gates_var: vTechRetiredStock
+  gates_eq: []
   recipe: lifespan
   source: derived
   predicate: .na
@@ -4234,6 +4248,23 @@ mvTradeIrAOutTot:
   filter_by:
   - mCommReg
   depends_on: []
+mvTradePhaseOut:
+  name: mvTradePhaseOut
+  dims:
+  - trade
+  - year
+  gates_var:
+  - vTradePhaseOut
+  - vTradeStockPhaseOut
+  gates_eq:
+  - eqTradePhaseOut
+  - eqTradeStockPhaseOut
+  recipe: lifespan
+  source: derived
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
 mvTradeRetiredNewCap:
   name: mvTradeRetiredNewCap
   dims:
@@ -4253,12 +4284,8 @@ mvTradeRetiredStock:
   dims:
   - trade
   - year
-  gates_var:
-  - vTradeRetiredStockCum
-  - vTradeRetiredStock
-  gates_eq:
-  - eqTradeRetiredStock
-  - eqTradeRetiredStockCum
+  gates_var: vTradeRetiredStock
+  gates_eq: []
   recipe: lifespan
   source: derived
   predicate: .na

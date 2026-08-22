@@ -3783,6 +3783,14 @@ mvStoragePhaseOut:
   - stg
   - region
   - year
+# Trade capacity is region-free (`vTradeCap{trade, year}`), so its phase-out
+# domain drops the region as the rest of the trade family does.
+mvTradePhaseOut:
+  name: mvTradePhaseOut
+  type: map
+  dimSets:
+  - trade
+  - year
 # Retirement maps for trade -- mirror of the technology trio. Trade capacity
 # carries no region (`vTradeCap{trade, year}`), so these drop it too; the COST
 # map keeps region, as `mTradeInv`/`mTradeEac`/`mTradeFixom` do.

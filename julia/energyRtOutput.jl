@@ -1346,6 +1346,24 @@ for (t1, y) in mTradeSpan
     end
 end;
 close(fvTradeStockCap);
+
+fvTradePhaseOut = open("output/vTradePhaseOut.csv", "w");
+println(fvTradePhaseOut, "trade,year,value");
+for (t1, y) in mvTradePhaseOut
+    if JuMP.value(vTradePhaseOut[(t1, y)]) != 0
+        println(fvTradePhaseOut, t1, ",", y, ",", JuMP.value(vTradePhaseOut[(t1, y)]))
+    end
+end;
+close(fvTradePhaseOut);
+
+fvTradeStockPhaseOut = open("output/vTradeStockPhaseOut.csv", "w");
+println(fvTradeStockPhaseOut, "trade,year,value");
+for (t1, y) in mvTradePhaseOut
+    if JuMP.value(vTradeStockPhaseOut[(t1, y)]) != 0
+        println(fvTradeStockPhaseOut, t1, ",", y, ",", JuMP.value(vTradeStockPhaseOut[(t1, y)]))
+    end
+end;
+close(fvTradeStockPhaseOut);
 fvTradeRetiredStock = open("output/vTradeRetiredStock.csv", "w");
 println(fvTradeRetiredStock, "trade,year,value");
 for (t1, y) in mvTradeRetiredStock
@@ -1414,6 +1432,8 @@ println(vrb_list, "vStorageStgRetiredStock");
 println(vrb_list, "vStorageStgRetiredNewCap");
 println(vrb_list, "vStorageRetCost");
 println(vrb_list, "vTradeStockCap");
+println(vrb_list, "vTradePhaseOut");
+println(vrb_list, "vTradeStockPhaseOut");
 println(vrb_list, "vTradeRetiredStock");
 println(vrb_list, "vTradeRetiredNewCap");
 println(vrb_list, "vTradeRetCost");

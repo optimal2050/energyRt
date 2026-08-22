@@ -36,7 +36,8 @@
                     eac = NA_character_, inf  = "mTradeOlifeInf",
                     ret_eqnew = "meqTradeRetiredNewCap",
                     ret_stock = "mvTradeRetiredStock",
-                    ret_pairs = "mvTradeRetiredNewCap")
+                    ret_pairs = "mvTradeRetiredNewCap",
+                    phaseout  = "mvTradePhaseOut")
 )
 
 # process -> class tibble (column needed to route windows to a family).
@@ -153,6 +154,7 @@ map_mvTradeRetiredNewCap    <- function(scen, fmp) .lifespan_retire_one(scen, "m
 
 map_mvTechPhaseOut    <- function(scen, fmp) .lifespan_phaseout_one(scen, "mvTechPhaseOut",    fmp, "technology")
 map_mvStoragePhaseOut <- function(scen, fmp) .lifespan_phaseout_one(scen, "mvStoragePhaseOut", fmp, "storage")
+map_mvTradePhaseOut   <- function(scen, fmp) .lifespan_phaseout_one(scen, "mvTradePhaseOut",   fmp, "trade")
 
 # -- registry for the lifespan family -------------------------------------- #
 .lifespan_builders <- list(
@@ -177,5 +179,6 @@ map_mvStoragePhaseOut <- function(scen, fmp) .lifespan_phaseout_one(scen, "mvSto
   mvTradeRetiredStock     = map_mvTradeRetiredStock,
   mvTradeRetiredNewCap    = map_mvTradeRetiredNewCap,
   mvTechPhaseOut          = map_mvTechPhaseOut,
-  mvStoragePhaseOut       = map_mvStoragePhaseOut
+  mvStoragePhaseOut       = map_mvStoragePhaseOut,
+  mvTradePhaseOut         = map_mvTradePhaseOut
 )

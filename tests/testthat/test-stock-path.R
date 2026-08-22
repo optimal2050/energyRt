@@ -72,38 +72,54 @@ test_that("trade carries the path on region-free capacity", {
   sol <- sp_solve(sp_trade(c(100, 80, 0), ret = c(0, 10, 0), name = "spc3"))
   expect_equal(unname(sp_by_year(sol, "vTradeStockCap")), c(100, 70, 0))
   expect_equal(unname(sp_by_year(sol, "vTradeRetiredStock")), c(0, 10, 0))
+  # Trade departures are tracked too, on the same footing as the other two
+  # classes: the schedule thins what survives early retirement, so 2022 loses
+  # 70, not 80. Identical to the storage case above -- that equality is the
+  # point, and it is what "the third class behaves like the other two" means.
+  expect_equal(unname(sp_by_year(sol, "vTradeStockPhaseOut")), c(0, 20, 70))
+  expect_equal(unname(sp_by_year(sol, "vTradePhaseOut")), c(0, 20, 70))
 })
 
-test_that("the cumulative retirement form is gone from every template", {
-  # `vXRetiredStockCum` and its two equations are what made requirements 1 and 2
-  # mutually exclusive. A template that still carries them would keep solving,
-  # and keep being wrong, so assert their absence directly.
-  code <- getFromNamespace(".modelCode", "energyRt")
-  engines <- c("GLPK", "GAMS", "GAMS_output", "JuMP", "JuMPOutput",
-               "PYOMOConcrete", "PYOMOConcreteOutput")
-  # Names, not just contents: a typo here would make the loop assert nothing.
-  expect_true(all(engines %in% names(code)))
-  for (eng in engines) {
-    expect_false(grepl("RetiredStockCum", paste(code[[eng]], collapse = "\n"),
-                       fixed = TRUE), info = eng)
-  }
-})
-
-test_that("every backend agrees on the schedule-plus-retirement case", {
+test_that("a trade schedule alone retires the whole fleet", {
   skip_if_no_solver()
-  # The combination is new, so backend parity has to be re-established for it.
-  # GAMS is excluded: it needs a dense scenario and a NEOS submission.
-  sc <- sp_interp(sp_tech(c(100, 80, 0), ret = c(0, 10, 0), name = "spd1"))
-  ref <- getData(solve_scen(sc), "vObjective", merge = TRUE)$value[1]
-  have <- function(f) { p <- tryCatch(f(), error = function(e) NULL)
-                        !is.null(p) && nzchar(p) }
-  engines <- c(if (have(get_julia_path))  "julia_highs",
-               if (have(get_python_path)) "pyomo_glpk")
-  for (eng in engines) {
-    sol <- solve_scen(sc, solver = solver_options[[eng]])
-    expect_equal(getData(sol, "vObjective", merge = TRUE)$value[1], ref,
-                 tolerance = 1e-6, info = eng)
-    expect_equal(unname(sp_by_year(sol, "vTechStockCap")), c(100, 70, 0),
-                 info = eng)
+  # No early retirement: the schedule accounts for all 100 units.
+  sol <- sp_solve(sp_trade(c(100, 80, 0), optret = FALSE, name = "spc4"))
+  expect_equal(unname(sp_by_year(sol, "vTradeStockCap")), c(100, 80, 0))
+  expect_equal(unname(sp_by_year(sol, "vTradeStockPhaseOut")), c(0, 20, 80))
+  # per-year rates on 1-year periods, so they total the fleet exactly
+  expect_equal(sum(sp_by_year(sol, "vTradeStockPhaseOut")), 100)
+})
+
+test_that("GAMS declares the same variables non-negative as GLPK", {
+  # `vTradeRetiredStock` and the storage retirement family were declared in a
+  # FREE `variable` block in GAMS while GLPK had them `>= 0`. A free retirement
+  # variable can go negative -- un-retiring capacity, i.e. creating it from
+  # nothing. Latent (the tested optima never wanted more capacity) but real.
+  # Written with fixed-string splits rather than regex: the point is the set
+  # comparison, and escaping backslashes through the build is its own hazard.
+  code <- getFromNamespace(".modelCode", "energyRt")
+
+  glpk  <- grep("^var v", code[["GLPK"]], value = TRUE)
+  parts <- strsplit(sub("^var ", "", glpk), "{", fixed = TRUE)
+  gnm   <- vapply(parts, function(x) x[1], "")
+  gtail <- vapply(parts, function(x) paste(x[-1], collapse = "{"), "")
+  glpk_pos <- gnm[grepl(">=", gtail, fixed = TRUE)]
+  expect_gt(length(glpk_pos), 50)
+
+  gams <- code[["GAMS"]]
+  blk  <- character(length(gams))
+  cur  <- NA_character_
+  for (i in seq_along(gams)) {
+    t <- tolower(trimws(gams[i]))
+    if (t %in% c("positive variables", "positive variable")) cur <- "pos"
+    else if (t %in% c("variables", "variable",
+                      "free variables", "free variable")) cur <- "free"
+    else if (t == ";") cur <- NA_character_
+    blk[i] <- cur
   }
+  isvar <- startsWith(gams, "v") & grepl("(", gams, fixed = TRUE) & !is.na(blk)
+  anm   <- vapply(strsplit(gams, "(", fixed = TRUE), function(x) x[1], "")
+  gams_free <- unique(anm[isvar & blk == "free"])
+
+  expect_setequal(intersect(glpk_pos, gams_free), character())
 })

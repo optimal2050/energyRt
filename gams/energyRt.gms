@@ -403,6 +403,7 @@ mvTechRetiredNewCap(tech, region, year, year)
 mvTechRetiredStock(tech, region, year)
 mvTechPhaseOut(tech, region, year)
 mvStoragePhaseOut(stg, region, year)
+mvTradePhaseOut(trade, year)
 mTechPho2AInp(tech, comm, region, year, timeslice)
 mTechPho2AOut(tech, comm, region, year, timeslice)
 mTechRet2AInp(tech, comm, region, year, timeslice)
@@ -540,14 +541,9 @@ vTechOut(tech, comm, region, year, timeslice)            Commodity output from t
 vTechAInp(tech, comm, region, year, timeslice)           Auxiliary commodity input
 *@ mvTechAOut(tech, comm, region, year, timeslice)
 vTechAOut(tech, comm, region, year, timeslice)           Auxiliary commodity output
-;
-variables
-*@ mTechInv(tech, region, year)
-vTechInv(tech, region, year)                         Overnight investment costs
-*@ mTechEac(tech, region, year)
-vTechEac(tech, region, year)                         Annualized investment costs
-*@ mTechRetCost(tech, region, year)
-vTechRetCost(tech, region, year)                     Early retirement costs
+* Storage and trade retirement / legacy-fleet variables. These are
+* NON-NEGATIVE, as GLPK declares them: a free retirement variable can go
+* negative, which un-retires capacity and creates it from nothing.
 vStorageOutStockCap(stg, region, year)    Surviving exogenous (legacy) capacity
 vStorageOutRetiredStock(stg, region, year)        Early retired storage Out stock
 vStorageOutRetiredNewCap(stg, region, year, year) Early retired new storage Out capacity
@@ -557,10 +553,20 @@ vStorageInpRetiredNewCap(stg, region, year, year) Early retired new storage Inp 
 vStorageStgStockCap(stg, region, year)    Surviving exogenous (legacy) capacity
 vStorageStgRetiredStock(stg, region, year)        Early retired storage Stg stock
 vStorageStgRetiredNewCap(stg, region, year, year) Early retired new storage Stg capacity
-vStorageRetCost(stg, region, year)                  Storage early retirement costs
 vTradeStockCap(trade, year)    Surviving exogenous (legacy) capacity
+vTradePhaseOut(trade, year)    Trade capacity reaching end of life
+vTradeStockPhaseOut(trade, year)    Exogenous trade capacity leaving on the schedule
 vTradeRetiredStock(trade, year)                     Early retired trade stock
 vTradeRetiredNewCap(trade, year, year)              Early retired new trade capacity
+;
+variables
+*@ mTechInv(tech, region, year)
+vTechInv(tech, region, year)                         Overnight investment costs
+*@ mTechEac(tech, region, year)
+vTechEac(tech, region, year)                         Annualized investment costs
+*@ mTechRetCost(tech, region, year)
+vTechRetCost(tech, region, year)                     Early retirement costs
+vStorageRetCost(stg, region, year)                  Storage early retirement costs
 vTradeRetCost(trade, region, year)                  Trade early retirement costs
 * mTechOMCost(tech, region, year)
 * vTechOMCost(tech, region, year)                      Sum of all operational costs is equal vTechFixom + vTechVarom (AVarom + CVarom + ActVarom)
@@ -1225,6 +1231,8 @@ eqStorageStgRetUp(stg, region, year)           Upper bound on retirement of stor
 eqStorageStgRetLo(stg, region, year)           Lower bound on retirement of storage Stg capacity
 eqStorageRetCost(stg, region, year)  Costs of retired storage capacity
 eqTradeStockCap(trade, year)   Recursive balance of the exogenous (legacy) fleet
+eqTradePhaseOut(trade, year)   Trade capacity reaching the end of its operational life
+eqTradeStockPhaseOut(trade, year) Exogenous trade capacity leaving on the schedule
 eqTradeRetiredNewCap(trade, year)    Retirement of new trade capacity
 eqTradeRetUp(trade, year)            Upper bound on retirement of trade capacity
 eqTradeRetLo(trade, year)            Lower bound on retirement of trade capacity
@@ -1470,6 +1478,24 @@ eqTradeStockCap(trade, year)$mTradeSpan(trade, year)..
          + pTradeStockNew(trade, year)
          - vTradeRetiredStock(trade, year)$mvTradeRetiredStock(trade, year)
            * pPeriodLen(year);
+
+eqTradePhaseOut(trade, year)$mvTradePhaseOut(trade, year)..
+    vTradePhaseOut(trade, year) * pPeriodLen(year) =e=
+    sum(yearp$(mMilestoneNext(yearp, year) and mTradeSpan(trade, yearp)),
+        vTradeCap(trade, yearp))
+    - vTradeCap(trade, year)
+    + vTradeNewCap(trade, year) * pPeriodLen(year)
+    - ( vTradeRetiredStock(trade, year)$mvTradeRetiredStock(trade, year)
+        + sum(yearp$mvTradeRetiredNewCap(trade, yearp, year),
+              vTradeRetiredNewCap(trade, yearp, year))
+      ) * pPeriodLen(year)
+    + pTradeStockNew(trade, year);
+
+eqTradeStockPhaseOut(trade, year)$mvTradePhaseOut(trade, year)..
+    vTradeStockPhaseOut(trade, year) * pPeriodLen(year) =e=
+    (1 - pTradeStockSurv(trade, year)) *
+    sum(yearp$(mMilestoneNext(yearp, year) and mTradeSpan(trade, yearp)),
+        vTradeStockCap(trade, yearp));
 
 eqTradeRetUp(trade, year)$mTradeRetUp(trade, year)..
          vTradeRetiredStock(trade, year)$mvTradeRetiredStock(trade, year)

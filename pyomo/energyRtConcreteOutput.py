@@ -522,6 +522,22 @@ for t1, y in mTradeSpan:
     if val is not None and val != 0:
         f.write(str(t1) + "," + str(y) + "," + str(val) + "\n")
 f.close()
+flist.write("vTradePhaseOut\n")
+f = open("output/vTradePhaseOut.csv", "w")
+f.write("trade,year,value\n")
+for t1, y in mvTradePhaseOut:
+    val = model.vTradePhaseOut[(t1, y)].value
+    if val is not None and val != 0:
+        f.write(str(t1) + "," + str(y) + "," + str(val) + "\n")
+f.close()
+flist.write("vTradeStockPhaseOut\n")
+f = open("output/vTradeStockPhaseOut.csv", "w")
+f.write("trade,year,value\n")
+for t1, y in mvTradePhaseOut:
+    val = model.vTradeStockPhaseOut[(t1, y)].value
+    if val is not None and val != 0:
+        f.write(str(t1) + "," + str(y) + "," + str(val) + "\n")
+f.close()
 flist.write("vTradeRetiredStock\n")
 f = open("output/vTradeRetiredStock.csv", "w")
 f.write("trade,year,value\n")

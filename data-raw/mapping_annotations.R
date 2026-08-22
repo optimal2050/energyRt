@@ -58,7 +58,7 @@
     "meqStorageRetiredNewCap",
     "mTradeSpan", "mTradeNew", "mTradeOlifeInf",
     "mvTradeRetiredStock", "mvTradeRetiredNewCap", "meqTradeRetiredNewCap",
-    "mvTechPhaseOut", "mvStoragePhaseOut"
+    "mvTechPhaseOut", "mvStoragePhaseOut", "mvTradePhaseOut"
   ),
   value = c(
     # Storage per-part maps: added with the three-role storage work and

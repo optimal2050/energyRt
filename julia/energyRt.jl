@@ -66,6 +66,8 @@ model = Model();
 @variable(model, vStorageStgRetiredNewCap[mvStorageRetiredNewCap] >= 0);
 @variable(model, vStorageRetCost[mStorageRetCost]);
 @variable(model, vTradeStockCap[mTradeSpan] >= 0);
+@variable(model, vTradePhaseOut[mvTradePhaseOut] >= 0);
+@variable(model, vTradeStockPhaseOut[mvTradePhaseOut] >= 0);
 @variable(model, vTradeRetiredStock[mvTradeRetiredStock] >= 0);
 @variable(model, vTradeRetiredNewCap[mvTradeRetiredNewCap] >= 0);
 @variable(model, vTradeRetCost[mTradeRetCost]);
@@ -2014,6 +2016,34 @@ print("eqTradeStockCap...")
     (if haskey(pTradeStockNew, (t1, y)); pTradeStockNew[(t1, y)]; else; pTradeStockNewDef; end) -
     (if (t1, y) in mvTradeRetiredStock; vTradeRetiredStock[(t1, y)]; else; 0; end) * (if haskey(pPeriodLen, (y)); pPeriodLen[(y)]; else; pPeriodLenDef; end)
 );
+# eqTradePhaseOut -- end-of-life departure, read off the capacity balance.
+print("eqTradePhaseOut...")
+@constraint(
+    model,
+    [(t1, y) in mvTradePhaseOut],
+    vTradePhaseOut[(t1, y)] * (if haskey(pPeriodLen, (y)); pPeriodLen[(y)]; else; pPeriodLenDef; end) ==
+    sum(vTradeCap[(t1, yp)] for yp in year
+        if ((yp, y) in mMilestoneNext && (t1, yp) in mTradeSpan)) -
+    vTradeCap[(t1, y)] + vTradeNewCap[(t1, y)] * (if haskey(pPeriodLen, (y)); pPeriodLen[(y)]; else; pPeriodLenDef; end) -
+    ((if (t1, y) in mvTradeRetiredStock; vTradeRetiredStock[(t1, y)]; else; 0; end) +
+     sum(vTradeRetiredNewCap[(t1, yp, y)] for yp in year
+         if (t1, yp, y) in mvTradeRetiredNewCap)) * (if haskey(pPeriodLen, (y)); pPeriodLen[(y)]; else; pPeriodLenDef; end) +
+    (if haskey(pTradeStockNew, (t1, y)); pTradeStockNew[(t1, y)]; else; pTradeStockNewDef; end)
+);
+print(" ", Dates.format(now(), "HH:MM:SS"), "
+")
+# eqTradeStockPhaseOut -- what the schedule actually removed.
+print("eqTradeStockPhaseOut...")
+@constraint(
+    model,
+    [(t1, y) in mvTradePhaseOut],
+    vTradeStockPhaseOut[(t1, y)] * (if haskey(pPeriodLen, (y)); pPeriodLen[(y)]; else; pPeriodLenDef; end) ==
+    (1 - (if haskey(pTradeStockSurv, (t1, y)); pTradeStockSurv[(t1, y)]; else; pTradeStockSurvDef; end)) *
+    sum(vTradeStockCap[(t1, yp)] for yp in year
+        if ((yp, y) in mMilestoneNext && (t1, yp) in mTradeSpan))
+);
+print(" ", Dates.format(now(), "HH:MM:SS"), "
+")
 print(" ", Dates.format(now(), "HH:MM:SS"), "
 ")
 # eqTradeRetUp(trade, year)

@@ -176,6 +176,14 @@ model.vTradeStockCap = Var(
     mTradeSpan, domain=pyo.NonNegativeReals,
     doc="Surviving exogenous (legacy) capacity"
 )
+model.vTradePhaseOut = Var(
+    mvTradePhaseOut, domain=pyo.NonNegativeReals,
+    doc="Trade capacity reaching end of life"
+)
+model.vTradeStockPhaseOut = Var(
+    mvTradePhaseOut, domain=pyo.NonNegativeReals,
+    doc="Exogenous trade capacity leaving on the schedule"
+)
 model.vTradeRetiredStock = Var(
     mvTradeRetiredStock, domain=pyo.NonNegativeReals, doc="Early retired trade stock"
 )
@@ -1418,6 +1426,39 @@ model.eqTradeStockCap = Constraint(
     + pTradeStockNew.get((t1, y))
     - (model.vTradeRetiredStock[t1, y] if (t1, y) in mvTradeRetiredStock else 0)
     * pPeriodLen.get((y)),
+)
+# eqTradePhaseOut -- end-of-life departure, read off the capacity balance.
+model.eqTradePhaseOut = Constraint(
+    mvTradePhaseOut,
+    rule=lambda model, t1, y: model.vTradePhaseOut[t1, y] * pPeriodLen.get((y))
+    == sum(
+        model.vTradeCap[t1, yp]
+        for yp in year
+        if ((yp, y) in mMilestoneNext and (t1, yp) in mTradeSpan)
+    )
+    - model.vTradeCap[t1, y]
+    + model.vTradeNewCap[t1, y] * pPeriodLen.get((y))
+    - (
+        (model.vTradeRetiredStock[t1, y] if (t1, y) in mvTradeRetiredStock else 0)
+        + sum(
+            model.vTradeRetiredNewCap[t1, yp, y]
+            for yp in year
+            if (t1, yp, y) in mvTradeRetiredNewCap
+        )
+    )
+    * pPeriodLen.get((y))
+    + pTradeStockNew.get((t1, y)),
+)
+# eqTradeStockPhaseOut -- what the schedule actually removed.
+model.eqTradeStockPhaseOut = Constraint(
+    mvTradePhaseOut,
+    rule=lambda model, t1, y: model.vTradeStockPhaseOut[t1, y] * pPeriodLen.get((y))
+    == (1 - pTradeStockSurv.get((t1, y)))
+    * sum(
+        model.vTradeStockCap[t1, yp]
+        for yp in year
+        if ((yp, y) in mMilestoneNext and (t1, yp) in mTradeSpan)
+    ),
 )
 # eqTradeRetUp(trade, year)$mTradeRetUp
 model.eqTradeRetUp = Constraint(

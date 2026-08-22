@@ -115,6 +115,8 @@ vStorageInpStockCap:  {role: capacity, unit: capacity}
 vStorageStgStockCap:  {role: capacity, unit: capacity}
 vStorageStockPhaseOut: {role: capacity, unit: capacity}
 vTradeStockCap:       {role: capacity, unit: capacity}
+vTradePhaseOut:       {role: capacity, unit: capacity}
+vTradeStockPhaseOut:  {role: capacity, unit: capacity}
 vStoragePhaseOut:     {role: capacity, unit: capacity}
 vTechVarom:          {role: cost,     unit: currency}
 vTotalCost:          {role: cost,     unit: currency}

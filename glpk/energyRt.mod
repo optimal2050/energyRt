@@ -129,6 +129,7 @@ set mvTechRetiredNewCap dimen 4;
 set mvTechRetiredStock dimen 3;
 set mvTechPhaseOut dimen 3;
 set mvStoragePhaseOut dimen 3;
+set mvTradePhaseOut dimen 2;
 set mTechPho2AInp dimen 5;
 set mTechPho2AOut dimen 5;
 set mTechRet2AInp dimen 5;
@@ -594,6 +595,8 @@ var vStorageStgRetiredStock{stg, region, year} >= 0;
 var vStorageStgRetiredNewCap{stg, region, year, year} >= 0;
 var vStorageRetCost{stg, region, year};
 var vTradeStockCap{trade, year} >= 0;
+var vTradePhaseOut{trade, year} >= 0;
+var vTradeStockPhaseOut{trade, year} >= 0;
 var vTradeRetiredStock{trade, year} >= 0;
 var vTradeRetiredNewCap{trade, year, year} >= 0;
 var vTradeRetCost{trade, region, year};
@@ -755,6 +758,10 @@ s.t.  eqStorageRetCost{(st1, r, y) in mStorageRetCost}: vStorageRetCost[st1,r,y]
 s.t.  eqTradeRetiredNewCap{(t1, y) in meqTradeRetiredNewCap}: sum{yp in year:((t1,y,yp) in mvTradeRetiredNewCap)}(vTradeRetiredNewCap[t1,y,yp]*pPeriodLen[yp]) <=  vTradeNewCap[t1,y]*pPeriodLen[y];
 
 s.t.  eqTradeStockCap{(t1, y) in mTradeSpan}: vTradeStockCap[t1,y]  =  pTradeStockSurv[t1,y]*sum{yp in year:(((yp,y) in mMilestoneNext and (t1,yp) in mTradeSpan))}(vTradeStockCap[t1,yp])+pTradeStockNew[t1,y]-sum{FORIF: (t1,y) in mvTradeRetiredStock} (vTradeRetiredStock[t1,y])*pPeriodLen[y];
+
+s.t.  eqTradePhaseOut{(t1, y) in mvTradePhaseOut}: vTradePhaseOut[t1,y]*pPeriodLen[y]  =  sum{yp in year:(((yp,y) in mMilestoneNext and (t1,yp) in mTradeSpan))}(vTradeCap[t1,yp])-vTradeCap[t1,y]+vTradeNewCap[t1,y]*pPeriodLen[y]-(sum{FORIF: (t1,y) in mvTradeRetiredStock} (vTradeRetiredStock[t1,y])+sum{yp in year:((t1,yp,y) in mvTradeRetiredNewCap)}(vTradeRetiredNewCap[t1,yp,y]))*pPeriodLen[y]+pTradeStockNew[t1,y];
+
+s.t.  eqTradeStockPhaseOut{(t1, y) in mvTradePhaseOut}: vTradeStockPhaseOut[t1,y]*pPeriodLen[y]  =  (1-pTradeStockSurv[t1,y])*sum{yp in year:(((yp,y) in mMilestoneNext and (t1,yp) in mTradeSpan))}(vTradeStockCap[t1,yp]);
 
 s.t.  eqTradeRetUp{(t1, y) in mTradeRetUp}: sum{FORIF: (t1,y) in mvTradeRetiredStock} (vTradeRetiredStock[t1,y])+sum{yp in year:((t1,yp,y) in mvTradeRetiredNewCap)}(vTradeRetiredNewCap[t1,yp,y]) <=  pTradeRetUp[t1,y]*pPeriodLen[y];
 
@@ -1072,6 +1079,14 @@ for{(st1, r, y, yp) in mvStorageRetiredNewCap : vStorageStgRetiredNewCap[st1,r,y
 printf "stg,region,year,value\n" > "output/vStorageRetCost.csv";
 for{(st1, r, y) in mStorageRetCost : vStorageRetCost[st1,r,y] <> 0} {
   printf "%s,%s,%s,%f\n", st1,r,y,vStorageRetCost[st1,r,y] >> "output/vStorageRetCost.csv";
+}
+printf "trade,year,value\n" > "output/vTradePhaseOut.csv";
+for{(t1, y) in mvTradePhaseOut : vTradePhaseOut[t1,y] <> 0} {
+  printf "%s,%s,%f\n", t1,y,vTradePhaseOut[t1,y] >> "output/vTradePhaseOut.csv";
+}
+printf "trade,year,value\n" > "output/vTradeStockPhaseOut.csv";
+for{(t1, y) in mvTradePhaseOut : vTradeStockPhaseOut[t1,y] <> 0} {
+  printf "%s,%s,%f\n", t1,y,vTradeStockPhaseOut[t1,y] >> "output/vTradeStockPhaseOut.csv";
 }
 printf "trade,year,value\n" > "output/vTradeStockCap.csv";
 for{(t1, y) in mTradeSpan : vTradeStockCap[t1,y] <> 0} {
@@ -1436,6 +1451,8 @@ printf "value\n" > "output/variable_list.csv";
     printf "vStorageStgRetiredNewCap\n" >> "output/variable_list.csv";
     printf "vStorageRetCost\n" >> "output/variable_list.csv";
     printf "vTradeStockCap\n" >> "output/variable_list.csv";
+    printf "vTradePhaseOut\n" >> "output/variable_list.csv";
+    printf "vTradeStockPhaseOut\n" >> "output/variable_list.csv";
     printf "vTradeRetiredStock\n" >> "output/variable_list.csv";
     printf "vTradeRetiredNewCap\n" >> "output/variable_list.csv";
     printf "vTradeRetCost\n" >> "output/variable_list.csv";
