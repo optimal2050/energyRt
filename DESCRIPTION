@@ -1,8 +1,8 @@
 Package: energyRt
 Type: Package
 Title: Energy Systems Modeling Toolbox
-Version: 0.85.2.9000
-Date: 2026-08-22
+Version: 0.86.0.9000
+Date: 2026-08-23
 Authors@R: 
   c(person(given = "Oleg", 
           family = "Lugovoy", 
@@ -30,7 +30,7 @@ Description: A macro-language for energy system modeling in R. Describe an
 Depends: R (>= 4.3)
 Imports: methods, grid, generics, data.table, DBI, RSQLite, tibble,
         tidyr, dplyr, rlang, stringr, lubridate, purrr, arrow,
-        progressr, tictoc, cli, zoo, registry, options (>= 0.2.0),
+        progressr, tictoc, cli, zoo, options (>= 0.2.0),
         glue, plyr, grDevices, utils, tools, yaml
 Suggests: shiny, DT, pak, gdxtools (== 0.7.1), knitr, rmarkdown, sf, ggplot2, testthat
         (>= 3.0.0), devtools, openxlsx, jsonlite, readxl, httr2, xml2,

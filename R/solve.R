@@ -65,39 +65,89 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
     # tmp.name - name of the directory for the solver's files
     # tmp.dir == fp(tmp.path, tmp.name)
   # tmp.del - if TRUE, the tmp.dir will be deleted after the scenario is solved
-  # return: arg with tmp.dir and tmp.del
-  # browser()
+  # return: arg with tmp.dir and tmp.del; for run-recorded solves also
+  #   run.dir / run.label / run.variant / run.record (layout 3:
+  #   tmp.dir == <scen@path>/runs/<variant>/<solve>/script)
   tmp.path <- tmp.name <- NULL
+  arg$run.record <- FALSE
 
-  # 1. tmp.dir is given
+  # 1. tmp.dir is given: legacy/external mode, no run record
   if (!is.null(arg[["tmp.dir"]]) && length(arg[["tmp.dir"]]) > 0) {
     arg[["tmp.dir"]] <- gsub("[\\/]+", "/", arg[["tmp.dir"]])
     return(arg)
   }
 
-  # if (isTRUE(arg[["tmp.del"]]) && is.null(arg[["tmp.dir"]])) {
+  # transient run: timestamp dir under <scen>/script/, deleted after the
+  # solve, no run record
   if (isTRUE(arg[["tmp.del"]])) {
     arg[["tmp.name"]] <-  format(Sys.time(), "%Y%m%d%H%M%S%Z", tz = "UTC")
-    # return(arg)
   }
-  # browser()
-  # 2. scen@misc$tmp.dir is given
+
+  # 2. scenario-owned run dir (layout 3): runs/<variant>/<solve>/script
   if (!is.null(scen)) {
-    # if (!is.null(scen@misc$tmp.dir) && length(scen@misc$tmp.dir) > 0) {
-    if (!is_empty(scen@misc$tmp.dir)) {
-      # browser()
-      if (identical(basename(scen@misc$tmp.dir), arg[["solver"]]$name)) {
-        if (!is.null(scen@misc$tmp.dir)) {
-          arg[["tmp.dir"]] <- scen@misc$tmp.dir
-        # } else {
-        #   arg[["tmp.dir"]] <- get_
-          return(arg)
-        }
+    label <- if (!is_empty(arg[["run.label"]])) {
+      arg[["run.label"]]
+    } else {
+      .solver_dir_name(arg[["solver"]])
+    }
+    # reuse a previously assigned layout-3 run dir for the same solve label —
+    # but only under the default "overwrite" policy; "suffix"/"error" must
+    # fall through to the conflict handling below
+    conflict <- arg[["run.conflict"]] %||% "overwrite"
+    if (conflict == "overwrite" &&
+        !is_empty(scen@misc$tmp.dir) && nzchar(label)) {
+      td <- gsub("[\\/]+", "/", scen@misc$tmp.dir)
+      if (identical(basename(td), "script") &&
+          identical(basename(dirname(td)), label)) {
+        arg[["tmp.dir"]] <- td
+        arg$run.dir <- dirname(td)
+        arg$run.label <- label
+        arg$run.variant <- basename(dirname(dirname(td)))
+        arg$run.record <- TRUE
+        return(arg)
       }
+      # an old-layout `script/<solver>/` tmp.dir is deliberately NOT reused:
+      # new solves write into runs/ (the legacy dir stays readable)
     }
     if (!is_empty(scen@path)) {
+      if (is_empty(arg[["tmp.name"]]) && is_empty(arg[["tmp.path"]]) &&
+          nzchar(label)) {
+        variant <- if (is.character(scen@misc$variant) &&
+                       length(scen@misc$variant) == 1L &&
+                       nzchar(scen@misc$variant)) {
+          scen@misc$variant
+        } else {
+          .RUN_DEFAULT_VARIANT
+        }
+        run_dir <- gsub("[\\/]+", "/", fp(scen@path, "runs", variant, label))
+        if (conflict != "overwrite" && file.exists(fp(run_dir, "run.yml"))) {
+          if (conflict == "error") {
+            stop("Run '", variant, "/", label, "' already exists in '",
+                 scen@path, "'. Pass run.conflict = \"overwrite\" or ",
+                 "\"suffix\", or a different `run` label.")
+          }
+          # "suffix": first free -2, -3, ... variant of the label
+          k <- 2L
+          repeat {
+            cand <- paste0(label, "-", k)
+            cand_dir <- gsub("[\\/]+", "/",
+                             fp(scen@path, "runs", variant, cand))
+            if (!file.exists(fp(cand_dir, "run.yml"))) {
+              label <- cand
+              run_dir <- cand_dir
+              break
+            }
+            k <- k + 1L
+          }
+        }
+        arg$run.dir <- run_dir
+        arg$run.label <- label
+        arg$run.variant <- variant
+        arg$run.record <- TRUE
+        arg[["tmp.dir"]] <- fp(run_dir, "script")
+        return(arg)
+      }
       tmp.path <- fp(scen@path, "script")
-      # return(arg)
     }
   }
 
@@ -217,6 +267,12 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
     }
   }
   scen@settings@solver$invisible <- arg$invisible
+  # `run` is historically the "run the solver" switch. A character value is the
+  # run (solve) label instead: solve into runs/<variant>/<label>/ (layout 3).
+  if (is.character(arg$run) && length(arg$run) == 1L && nzchar(arg$run)) {
+    arg$run.label <- arg$run
+    arg$run <- TRUE
+  }
   if (is_empty(arg$run)) arg$run <- TRUE
   if (is_empty(arg$n.threads)) arg$n.threads <- 1
 
@@ -241,6 +297,10 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
     }
   } else {
     scen@misc$tmp.dir <- arg$tmp.dir
+    if (isTRUE(arg$run.record)) {
+      scen@misc$variant <- arg$run.variant
+      scen@misc$run <- arg$run.label
+    }
     tmp_name <- scen@name
   }
   # arg$dir.result <- .fix_path(arg$dir.result)
@@ -303,7 +363,7 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
     }
 
     ## Write solver parameter
-    nn <- grep("^(inc[1-5]|files|code[[:digit:]]*)$",
+    nn <- grep("^(inc[1-5]|files|code_files|code[[:digit:]]*)$",
       names(scen@settings@solver),
       value = TRUE, invert = TRUE
     )
@@ -327,10 +387,39 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
     }
     scen@status$script <- TRUE
   }
-  # browser()
-  if (isTRUE(arg$run)) .call_solver(arg, scen)
+  record <- isTRUE(arg$run.record) && isTRUE(arg$run)
+  if (record) .run_record_start(scen, arg)
+  if (isTRUE(arg$run)) {
+    if (record) {
+      # finalize the run record on error/interrupt before rethrowing, so a
+      # crashed solve never leaves a stale `running` record behind
+      tryCatch(
+        .call_solver(arg, scen),
+        error = function(e) {
+          .run_record_finish(scen, arg, status = "failed")
+          stop(e)
+        },
+        interrupt = function(e) {
+          .run_record_finish(scen, arg, status = "interrupted")
+          stop("Solver run interrupted", call. = FALSE)
+        }
+      )
+    } else {
+      .call_solver(arg, scen)
+    }
+  }
   if (isTRUE(arg$read.solution) && isTRUE(arg$run)) {
     scen <- read_solution(scen, echo = arg$echo)
+  }
+  if (record) {
+    status <- if (!isTRUE(arg$read.solution)) {
+      "finished" # solver ran; solution not read, so optimality is unknown
+    } else if (isTRUE(scen@status$optimal)) {
+      "solved"
+    } else {
+      "not-optimal"
+    }
+    .run_record_finish(scen, arg, status = status)
   }
 
   return(scen)
@@ -534,9 +623,19 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
 #' @param ... for `solve_mod()`, arguments are routed to [interpolate_model()]
 #'   (settings / calendar / horizon / model data) or to the solver run
 #'   (`tmp.dir`, `tmp.del`, `force`, `read.solution`, `wait`, `echo`, `run`,
-#'   `n.threads`, ...). For `solve_scen()`, arguments are passed to
-#'   `.executeScenario()`. Set `echo = FALSE` for a quiet run: it silences both
-#'   the progress messages and the solver's own console output.
+#'   `run.conflict`, `n.threads`, ...). For `solve_scen()`, arguments are
+#'   passed to `.executeScenario()`. Set `echo = FALSE` for a quiet run: it
+#'   silences both the progress messages and the solver's own console output.
+#'
+#'   `run` doubles as the run label: `TRUE`/`FALSE` keeps its historical
+#'   meaning (run the solver or only write the script), while a character
+#'   value names the run — the solve lands in
+#'   `<scenario>/runs/<variant>/<run>/` with a `run.yml` provenance record
+#'   (default label: the solver directory name, e.g. `"glpk"`).
+#'   `run.conflict` controls an existing recorded run under the same label:
+#'   `"overwrite"` (default), `"suffix"` (append `-2`, `-3`, ...), `"error"`.
+#'   See [scenario_runs()] to list runs and [read_solution()] to switch
+#'   between them.
 #'
 #' @seealso [solve_model()], [interpolate_model()], [read_solution()]
 #' @return a scenario object with the solution.
@@ -551,7 +650,7 @@ solve_mod <- function(obj, name = NULL, solver = NULL,
   dots <- list(...)
   # Arguments that belong to the solver run rather than to interpolation.
   solve_args <- c("tmp.dir", "tmp.del", "force", "read.solution", "wait",
-                  "echo", "run", "n.threads", "invisible",
+                  "echo", "run", "run.conflict", "n.threads", "invisible",
                   "show.output.on.console", "open.folder")
   is_solve <- names(dots) %in% solve_args
   iarg <- dots[!is_solve]
@@ -568,7 +667,7 @@ solve_mod <- function(obj, name = NULL, solver = NULL,
 #' @rdname solve_mod
 #' @export
 solve_scen <- function(obj, name = obj@name, solver = NULL, tmp.dir = NULL,
-                       tmp.del = FALSE, force = FALSE, ...) {
+                       tmp.del = FALSE, force = FALSE, kvl = NULL, ...) {
   if (!inherits(obj, "scenario")) {
     stop("`solve_scen()` expects a scenario built by `interpolate_model()`. ",
          "Use `solve_mod()` for a model object.")
@@ -577,6 +676,12 @@ solve_scen <- function(obj, name = obj@name, solver = NULL, tmp.dir = NULL,
     stop("Scenario is not interpolated. Build it with `interpolate_model()` ",
          "or call `solve_mod()` on the model.")
   }
+  # `kvl` here GUARDS rather than builds -- the cycle constraints are baked in at
+  # interpolation time, so this is the last chance to notice that a solve is
+  # about to differ from what was asked for. KVL changes the answer, and the
+  # difference is silent otherwise: a scenario built without it simply solves
+  # the transport relaxation and reports nothing unusual.
+  .kvl_guard(obj, kvl)
   if (isTRUE(obj@status$optimal) && !isTRUE(force)) {
     message("The scenario is already solved to optimal.\n",
             "Use 'force = TRUE' to solve it again.")

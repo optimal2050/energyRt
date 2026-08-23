@@ -6,6 +6,13 @@
 #'
 #' @param scen scenario object.
 #' @param path character. Path to scenario directory.
+#' @param embed_model `NULL` (default), `TRUE`, or `FALSE`. Controls whether
+#'   the model is embedded in the saved scenario or referenced from the model
+#'   store (see [save_model()]). `NULL`: reference when the identical model
+#'   content is already in the store, embed otherwise. `TRUE`: always embed
+#'   (self-contained folder). `FALSE`: require a store hit, error otherwise.
+#'   A referenced save stores only `{name, hash, path}`; [load_scenario()]
+#'   resolves it back via the registry / model store.
 #' @param format file format (currently `parquet` only, arrow or feather will be implemented in further releases).
 #' @param overwrite logical. Overwrite existing scenario directory.
 #' @param clean_start logical. Clean scenario directory before saving.
@@ -23,8 +30,7 @@
 save_scenario <- function(
     scen,
     path = scen@path,
-    # save_model = FALSE,
-    # save_modInp = TRUE,
+    embed_model = NULL,
     format = get_arrow_format(),
     overwrite = TRUE,
     clean_start = FALSE,
@@ -42,18 +48,73 @@ save_scenario <- function(
   }
   # identify directories
   if (is.null(path)) {
-    scen@path <- fp("scenarios", scen@name)
+    scen@path <- fp(get_scenarios_path(), scen@name)
     message("Scenarios directory: ", scen@path)
   } else {
     scen@path <- path
   }
 
-  if (isOnDisk(scen)) {
-    stopifnot(dir.exists(path))
-    cat("Scenario '", scen@name, "' is already saved on disk.\n")
-    cat("Directory: '", scen@path, "'\n")
-    # cat("Use 'overwrite = TRUE' to overwrite.\n")
-    return(scen)
+  # An on-disk scenario (interpolate_model(ondisk = TRUE)) already has its
+  # parquet stores in place — but the thin object, the layout markers, the
+  # manifest, and the registry row still need writing, otherwise the folder
+  # has data and no `scen.RData` and load_scenario() fails. So an on-disk
+  # scenario skips only the obj2disk() data walk below, never the shell.
+  ondisk_data <- isOnDisk(scen)
+
+  # Model reference vs embedding. `embed_model = NULL` (auto): reference the
+  # model store entry when this exact content is already stored (see
+  # save_model()); embed otherwise. TRUE forces embedding; FALSE requires a
+  # store hit. A referenced save replaces the model in the SAVED copy with a
+  # stub carrying `misc$model_ref`; the returned in-memory object keeps its
+  # model. Note a thinned (on-disk) model hashes differently from its
+  # in-memory original, so ondisk scenarios normally embed.
+  model_ref <- NULL
+  model_hash_ <- ""
+  if (!isTRUE(embed_model) && nzchar(scen@model@name %||% "")) {
+    model_hash_ <- tryCatch(model_hash(scen@model), error = function(e) "")
+    store_dir <- if (nzchar(model_hash_)) {
+      tryCatch(.model_store_resolve(scen@model@name, model_hash_),
+               error = function(e) NULL)
+    }
+    if (!is.null(store_dir)) {
+      model_ref <- list(name = scen@model@name, hash = model_hash_,
+                        source = "ref",
+                        path = .registry_rel_path(store_dir))
+    } else if (isFALSE(embed_model)) {
+      stop("embed_model = FALSE, but model '", scen@model@name, "' (",
+           substr(model_hash_, 1, 8), ") is not in the model store ('",
+           get_models_path(), "'). save_model() it first, or use ",
+           "embed_model = NULL/TRUE.")
+    }
+  }
+  full_model <- NULL
+  if (!is.null(model_ref)) {
+    full_model <- scen@model
+    stub <- new("model")
+    stub@name <- scen@model@name
+    stub@misc$model_ref <- model_ref
+    scen@model <- stub
+    if (verbose) {
+      cat("Model '", model_ref$name, "' referenced from the store (",
+          substr(model_ref$hash, 1, 8), "), not embedded\n", sep = "")
+    }
+  }
+
+  # sourceCode blocks identical to the package's own templates are dropped
+  # from the saved copy (~0.5 MB per scenario) and restored from the current
+  # package on load; user-overridden blocks fail the identity test and are
+  # kept verbatim.
+  sourceCode_full <- scen@settings@sourceCode
+  if (length(sourceCode_full)) {
+    same <- vapply(
+      names(sourceCode_full),
+      function(k) identical(sourceCode_full[[k]], .modelCode[[k]]),
+      logical(1)
+    )
+    if (any(same)) {
+      scen@settings@sourceCode[names(sourceCode_full)[same]] <- NULL
+      scen@misc$sourceCode_default <- names(sourceCode_full)[same]
+    }
   }
 
   tictoc::tic("save_scenario")
@@ -106,21 +167,78 @@ save_scenario <- function(
     file = log_file, append = TRUE
   )
 
-  if (verbose) {
-    cat("Saving large slots of scenario object",
-      " '", scen@name, "' ", "on disk\n",
-      sep = ""
-    )
+  if (!ondisk_data) {
+    if (verbose) {
+      cat("Saving large slots of scenario object",
+        " '", scen@name, "' ", "on disk\n",
+        sep = ""
+      )
+    }
+    # Layout 3: the solution store belongs to its run. When the scenario has
+    # an active run, its modOut is written under runs/<variant>/<solve>/modOut
+    # instead of the top-level modOut/ (which remains the fallback for solved
+    # scenarios that predate run records, e.g. loaded from layout 2).
+    run_label <- scen@misc$run %||% ""
+    if (nzchar(run_label)) {
+      modout_path <- .run_dir(scen, .run_variant(scen), run_label)
+      modout_path <- fp(modout_path, "modOut")
+      mo <- scen@modOut
+      scen@modOut <- new("modOut") # keep the main walk off the modOut slot
+      scen <- obj2disk(
+        scen,
+        path = scen@path,
+        format = format,
+        verbose = verbose
+      )
+      scen@modOut <- obj2disk(
+        mo,
+        path = modout_path,
+        format = format,
+        verbose = verbose
+      )
+    } else {
+      scen <- obj2disk(
+        scen,
+        path = scen@path,
+        format = format,
+        verbose = verbose
+      )
+    }
+  } else {
+    if (verbose) {
+      cat("Scenario data already on disk; refreshing the scenario shell ",
+          "(scen.RData, manifest, registry)\n", sep = "")
+    }
+    # The data walk is skipped, but a solve AFTER an ondisk interpolation
+    # leaves the solution in memory — park it into its run store so the thin
+    # scen.RData stays thin.
+    if (!isOnDisk(scen@modOut) && length(scen@modOut@variables)) {
+      run_label <- scen@misc$run %||% ""
+      modout_path <- if (nzchar(run_label)) {
+        fp(.run_dir(scen, .run_variant(scen), run_label), "modOut")
+      } else {
+        fp(scen@path, "modOut")
+      }
+      scen@modOut <- obj2disk(
+        scen@modOut,
+        path = modout_path,
+        format = format,
+        verbose = verbose
+      )
+    }
   }
-  # message("Saving large data-frames on disk")
-  scen <- obj2disk(
-    scen,
-    path = scen@path,
-    format = format,
-    verbose = verbose
-  )
   # message("Saving the thinned scenario object")
   save(scen, file = fp(scen@path, "scen.RData"))
+  mf_model <- model_ref %||% list(
+    name = scen@model@name %||% "",
+    hash = model_hash_,
+    source = "embedded"
+  )
+  .write_scenario_manifest(scen, format, model = mf_model)
+  .registry_record_scenario(scen)
+  # the returned in-memory object keeps its full model and sourceCode
+  if (!is.null(full_model)) scen@model <- full_model
+  scen@settings@sourceCode <- sourceCode_full
   cat("Scenario '", scen@name, "' saved in '", scen@path, "'\n", sep = "")
   dirsize <- dir_size(scen@path)
   cat("Directory size: ", round(dirsize / 1024^2, 2), " MB\n", sep = "")
@@ -669,7 +787,11 @@ if (F) {
 # `save_scenario()` and checked by `load_scenario()`.
 #   1  modOut@variables stored as `variables/<v>/`      (data.frames)
 #   2  modOut@variables stored as `variables/<v>/data/` (`variable` objects)
-.SCENARIO_LAYOUT <- 2L
+#   3  solve artifacts + the solution store live per run under
+#      `runs/<variant>/<solve>/{run.yml, script/, modOut/}`; the scenario
+#      carries a `scenario.yml` manifest (default_variant, active run).
+#      Layout 2 is still readable; `save_scenario()` writes only 3.
+.SCENARIO_LAYOUT <- 3L
 
 .save_slots <- list(
   weather = c("weather"),
@@ -811,11 +933,11 @@ load_scenario <- function(
     } else {
       1L
     }
-    if (is.na(ver) || ver != .SCENARIO_LAYOUT) {
+    if (is.na(ver) || !(ver %in% c(2L, 3L))) {
       msg <- paste0(
         "Scenario directory '", path, "' uses on-disk layout ",
         if (is.na(ver)) "?" else ver, ", this version of energyRt reads ",
-        .SCENARIO_LAYOUT, ".\n",
+        "layouts 2 and 3.\n",
         "  Layout 2 moved each variable's data from `variables/<name>/` to ",
         "`variables/<name>/data/` when `modOut@variables` became a list of ",
         "`variable` objects.\n",
@@ -824,6 +946,13 @@ load_scenario <- function(
       if (!ignore_errors) stop(msg)
       if (verbose) message(msg)
       return(invisible(FALSE))
+    }
+    if (ver == 2L && verbose) {
+      message(
+        "Scenario '", basename(path), "' uses on-disk layout 2; it loads ",
+        "fine. Re-saving with save_scenario() migrates it to layout 3 ",
+        "(per-run folders with provenance under runs/)."
+      )
     }
     path <- fp(path, "scen.RData")
     if (!file.exists(path)) {
@@ -857,6 +986,53 @@ load_scenario <- function(
     if (verbose) message(msg)
     return(invisible(FALSE))
   }
+  scen_obj <- get(nm, envir = .en_tmp)
+
+  # restore the sourceCode blocks dropped at save time (identical to the
+  # package templates then; refilled from the CURRENT package — a re-solve
+  # uses current code, and the run's actual script is preserved in its run
+  # directory). User-overridden blocks were saved verbatim and stay.
+  dk <- scen_obj@misc$sourceCode_default
+  if (length(dk)) {
+    for (k in dk) {
+      if (is.null(scen_obj@settings@sourceCode[[k]])) {
+        scen_obj@settings@sourceCode[[k]] <- .modelCode[[k]]
+      }
+    }
+  }
+
+  # resolve a model reference (scenario saved with embed_model ref)
+  ref <- scen_obj@model@misc$model_ref
+  if (!is.null(ref)) {
+    mod <- tryCatch(
+      load_model(ref$name, hash = ref$hash, verbose = FALSE),
+      error = function(e) NULL)
+    if (is.null(mod) && !is.null(ref$path)) {
+      cand <- fp(dirname(get_registry_file()), ref$path)
+      if (file.exists(fp(cand, "mod.RData"))) {
+        mod <- tryCatch(load_model(ref$name, path = cand, verbose = FALSE),
+                        error = function(e) NULL)
+      }
+    }
+    if (is.null(mod)) {
+      msg <- paste0(
+        "Scenario '", scen_obj@name, "' references model '", ref$name, "@",
+        substr(ref$hash %||% "", 1, 8), "' which is not in the registry or ",
+        "the model store ('", get_models_path(), "').\n",
+        "  Run registry_refresh() to rescan, or re-save the scenario with ",
+        "embed_model = TRUE from a session that has the model."
+      )
+      if (!ignore_errors) stop(msg)
+      if (verbose) message(msg)
+      return(invisible(FALSE))
+    }
+    scen_obj@model <- mod
+    if (verbose) {
+      message("Model '", ref$name, "' resolved from the model store")
+    }
+  }
+  assign(nm, scen_obj, envir = .en_tmp)
+
   if (is.null(name)) name <- get(nm, envir = .en_tmp)@name
   if (is.null(env)) {
     scen <- get(nm, envir = .en_tmp)

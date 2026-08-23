@@ -134,15 +134,22 @@ options::define_option(
 )
 
 options::define_option(
-  "default_registry",
+  "registry_file",
   desc = paste(
-    "Where the registry of repositories, models and scenarios lives: a list",
-    "with the object `name` and the environment `env` holding it."
+    "Path to the project registry CSV indexing saved models, scenarios and",
+    "runs. Kept at the project root, a sibling of the scenarios/ and models/",
+    "stores, so one registry spans both."
   ),
-  default = list(
-    name = "registry",
-    env = ".scen"
-  )
+  default = "energyRt_registry.csv"
+)
+
+options::define_option(
+  "models_path",
+  desc = paste(
+    "Root directory for the model store. save_model() writes",
+    "content-addressed model folders (<name>@<hash8>) underneath it."
+  ),
+  default = "models/"
 )
 
 # Storage / exchange format ###################################################
@@ -461,55 +468,48 @@ get_scenarios_path <- function() {
 
 # Registry ####################################################################
 
-#' Default registry
+#' Registry file and model store locations
 #'
 #' @description
-#' The registry holds repositories, models and scenarios. `set_default_registry()`
-#' records which object, in which environment, energyRt should use;
-#' `which_registry()` reports it, and `get_registry()` returns the object itself,
-#' creating it if it does not exist yet.
+#' `get_registry_file()` / `set_registry_file()` locate the project registry
+#' CSV (see [registry_load()]). `get_models_path()` / `set_models_path()`
+#' locate the model store root used by `save_model()`. Both default to the
+#' project root / `models/`, siblings of [get_scenarios_path()].
 #'
-#' @param obj_name character, name of the registry object.
-#' @param env_name character, name of the environment holding it.
+#' @param path character, new location.
 #'
-#' @return `which_registry()` a list with `name` and `env`; `get_registry()` the
-#'   registry object; `set_default_registry()` the previous value, invisibly.
+#' @return getters return the path; setters return the previous value,
+#'   invisibly.
 #'
 #' @family options
-#' @rdname default_registry
+#' @rdname registry_file
 #' @export
-set_default_registry <- function(obj_name = "registry",
-                                 env_name = ".scen") {
-  registry <- list(name = obj_name, env = env_name)
-  options::opt_set("default_registry", registry)
+#' @examples
+#' get_registry_file()
+#' get_models_path()
+set_registry_file <- function(path = NULL) {
+  options::opt_set("registry_file", path)
 }
 
 #' @family options
-#' @rdname default_registry
+#' @rdname registry_file
 #' @export
-use_registry <- set_default_registry
-
-#' @family options
-#' @rdname default_registry
-#' @export
-which_registry <- function() {
-  options::opt("default_registry")
+get_registry_file <- function() {
+  options::opt("registry_file")
 }
 
-#' Returns the current registry object.
-#'
-#' @return The current registry object.
 #' @family options
-#' @rdname default_registry
+#' @rdname registry_file
 #' @export
-get_registry <- function() {
-  r <- which_registry()
-  if (exists(r$name, envir = get(r$env))) {
-    rg <- get(r$name, envir = get(r$env))
-  } else {
-    rg <- newRegistry(name = r$name, registry_env = r$env)
-  }
-  rg
+set_models_path <- function(path = NULL) {
+  options::opt_set("models_path", path)
+}
+
+#' @family options
+#' @rdname registry_file
+#' @export
+get_models_path <- function() {
+  options::opt("models_path")
 }
 
 # Arrow exchange format #######################################################

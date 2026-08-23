@@ -3,6 +3,10 @@
 #' The function and method read outputs of solved model/scenario and return the scenario object populated with variables data.
 #'
 #' @param obj scenario object
+#' @param run character, optional run to read: a solve label (resolved against
+#'   the scenario's default variant) or `"<variant>/<solve>"` — see
+#'   [scenario_runs()]. The scenario's active run switches to it. Default
+#'   `NULL` reads from the current `tmp.dir` (the active run).
 #' @param ... optional tmp.dir (if missing in the scenario object or to replace the saved path)
 #'
 #' @return
@@ -16,7 +20,7 @@
 #' \dontrun{
 #' scen <- read(scen)
 #' }
-read_solution <- function(obj, ...) {
+read_solution <- function(obj, run = NULL, ...) {
   scen <- obj
   ## arguments
   # scen
@@ -30,6 +34,20 @@ read_solution <- function(obj, ...) {
   # if (is.null(arg$readOutputFunction)) arg$readOutputFunction <- read.csv
   if (is.null(arg$readOutputFunction)) {
     arg$readOutputFunction <- data.table::fread
+  }
+  if (!is.null(run)) {
+    # switch the active run: read this run's script/output and remember it
+    id <- .parse_run_id(run, scen)
+    run_script <- fp(.run_dir(scen, id$variant, id$solve), "script")
+    if (!dir.exists(run_script)) {
+      stop("Run '", id$variant, "/", id$solve, "' has no script directory ",
+           "under '", scen@path, "'.\n  Available runs:\n",
+           .run_list_hint(scen))
+    }
+    arg$tmp.dir <- run_script
+    scen@misc$tmp.dir <- run_script
+    scen@misc$variant <- id$variant
+    scen@misc$run <- id$solve
   }
   if (is.null(arg$tmp.dir)) {
     arg$tmp.dir <- scen@misc$tmp.dir
@@ -176,10 +194,11 @@ read_solution <- function(obj, ...) {
     stringsAsFactors = FALSE
   )
   codes <- solver_data[grep("^code", solver_data$name), ]
-  for (i in seq_len(nrow(codes))) {
-    scen@settings@solver[[codes[i, "name"]]] <-
-      readLines(paste(arg$tmp.dir, "/", codes[i, "value"], sep = ""))
-  }
+  # Only the FILE NAMES are kept: the model text itself already lives in the
+  # run directory (`<tmp.dir>/<file>`), and importing it here used to bloat
+  # every solved scenario by the full model source (again, on top of
+  # settings@sourceCode). Nothing in the package consumed `solver$code1..n`.
+  scen@settings@solver$code_files <- codes$value
   if (all(scen@modOut@solutionLogs$parameter != "solution status")) {
     scen@modOut@stage <- "Scenario is not solved"
   } else if (all(scen@modOut@solutionLogs[
