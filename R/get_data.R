@@ -743,7 +743,10 @@ get_data <- getData
 # `getData(process = TRUE)` has renamed it -- so the join key is whichever of
 # those the frame carries, not `tech` alone.
 .attach_variants <- function(x, tv) {
-  col <- intersect(c("tech", "stg", "trade", "process"), names(x))
+  # Native id column first, `process` last: getData(process = TRUE) renames
+  # them all to `process`, so the specific names must win when present.
+  col <- intersect(c("tech", "stg", "trade", "sup", "expp", "imp",
+                     "process"), names(x))
   if (length(col) == 0L) return(x)
   col <- col[1]
   if (any(c("base", "vintage", "cluster") %in% names(x))) return(x)

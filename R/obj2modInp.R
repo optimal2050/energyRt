@@ -593,9 +593,18 @@ setMethod(
     # pExportRowRes <- NULL
     # if (exp@reserve != Inf) pExportRowRes <- data.table(expp = exp@name, value = exp@reserve)
     # obj@parameters[["pExportRowRes"]] <- .dat2par(obj@parameters[["pExportRowRes"]], pExportRowRes)
-    if (length(exp@reserve) == 1 && !is.na(exp@reserve) && is.finite(exp@reserve)) {
-      dat <- data.table(expp = exp@name, value = as.numeric(exp@reserve))
-      scen <- update_parameter(scen, "pExportRowRes", dat)
+    # `@reserve` is a data.frame since 0.85 (so it can carry a `cluster` column
+    # and be split across price steps), but the parameter is still ONE value per
+    # object: `pExportRowRes{expp}` caps the cumulative flow summed over every region,
+    # year and timeslice. After variant expansion each step IS its own object, so
+    # one value per object is exactly right.
+    res <- as.data.frame(exp@reserve)
+    if (nrow(res) && "res.up" %in% names(res)) {
+      v <- res$res.up[!is.na(res$res.up) & is.finite(res$res.up)]
+      if (length(v)) {
+        dat <- data.table(expp = exp@name, value = as.numeric(v[1]))
+        scen <- update_parameter(scen, "pExportRowRes", dat)
+      }
     }
 
     ## pExportRow ####
@@ -741,9 +750,18 @@ setMethod(
     # pImportRowRes <- NULL
     # if (imp@reserve != Inf) pImportRowRes <- data.table(imp = imp@name, value = imp@reserve)
     # obj@parameters[["pImportRowRes"]] <- .dat2par(obj@parameters[["pImportRowRes"]], pImportRowRes)
-    if (length(imp@reserve) == 1 && !is.na(imp@reserve) && is.finite(imp@reserve)) {
-      dat <- data.table(imp = imp@name, value = as.numeric(imp@reserve))
-      scen <- update_parameter(scen, "pImportRowRes", dat)
+    # `@reserve` is a data.frame since 0.85 (so it can carry a `cluster` column
+    # and be split across price steps), but the parameter is still ONE value per
+    # object: `pImportRowRes{imp}` caps the cumulative flow summed over every region,
+    # year and timeslice. After variant expansion each step IS its own object, so
+    # one value per object is exactly right.
+    res <- as.data.frame(imp@reserve)
+    if (nrow(res) && "res.up" %in% names(res)) {
+      v <- res$res.up[!is.na(res$res.up) & is.finite(res$res.up)]
+      if (length(v)) {
+        dat <- data.table(imp = imp@name, value = as.numeric(v[1]))
+        scen <- update_parameter(scen, "pImportRowRes", dat)
+      }
     }
 
     ## pImportRow ####

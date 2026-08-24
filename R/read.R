@@ -45,8 +45,20 @@ read_solution <- function(obj, run = NULL, ...) {
            "directory under '", scen@path, "'.\n  Available runs:\n",
            .run_list_hint(scen))
     }
+    # crossing a problem boundary (base <-> variant, or between variants)
+    # swaps the in-memory problem — settings + modInp — from the target's
+    # saved swap data before the solution is read. A variant DIR without a
+    # variant.yml is not an own problem — it is a legacy/interim wrapper
+    # (e.g. the retired runs/default/) around the SAME problem: no swap.
+    if (!identical(id$variant, .run_variant(scen))) {
+      own_problem <- !nzchar(id$variant) ||
+        file.exists(fp(scen@path, "runs", id$variant, "variant.yml"))
+      if (own_problem) {
+        scen <- .variant_swap(scen, id$variant)
+      }
+    }
     arg$solver.dir <- run_solver
-    scen@misc$variant <- id$variant
+    scen@misc$variant <- if (nzchar(id$variant)) id$variant else NULL
     scen@misc$run <- id$solve
     scen@misc$tmp.dir <- NULL
     scen@misc$solver.dir <- NULL

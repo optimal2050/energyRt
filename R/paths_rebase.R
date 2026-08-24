@@ -17,17 +17,9 @@
   old_root <- gsub("[\\/]+", "/", scen@path %||% "")
   scen@path <- root
 
-  # modInp + each parameter
-  if (length(get_ondisk_slots(scen@modInp))) {
-    scen@modInp@misc$path <- fp(root, "modInp")
-  }
-  for (nm in names(scen@modInp@parameters)) {
-    p <- scen@modInp@parameters[[nm]]
-    if (isS4(p) && length(get_ondisk_slots(p))) {
-      p@misc$path <- fp(root, "modInp", "parameters", nm)
-      scen@modInp@parameters[[nm]] <- p
-    }
-  }
+  # modInp + each parameter (an own-problem variant's store lives under its
+  # variant dir, the base problem's at the scenario level)
+  scen@modInp <- .modinp_rebase(scen@modInp, .problem_modinp_root(scen, root))
 
   # modOut + each variable
   mo_root <- if (nzchar(scen@misc$run %||% "")) {

@@ -78,6 +78,38 @@
     # `vTradeCap{trade, year}` has no region index, so a group bound spans years
     # only; a region on a TOTAL row errors rather than being silently replicated.
     bound_dims = "year"
+  ),
+  # supply / export / import have NO capacity variable at all -- quantity is
+  # limited purely by parameters (pSupAvaUp, pSupReserveUp, pImportRowUp, ...).
+  # So `bound_var` is empty and both constraint builders bail on their own
+  # guards: .variant_group_constraints() on `!.hasSlot(tech, "capacity")` and
+  # .variant_share_constraints() on `is.null(bvar)`. A cluster here is a PRICE
+  # STEP of a stepped curve, and nothing needs tying -- the helper writes the
+  # quantity split straight into the bounds.
+  #
+  # `slots` must list EVERY slot holding a quantity or a price. A slot left out
+  # is copied identically to every step, so an N-step curve would silently hold
+  # N times the resource. `reserve` is the trap: it is the cumulative cap.
+  supply = list(
+    key = "sup",
+    dims = "cluster",
+    slots = c("supply", "reserve", "weather"),
+    bound_var = list(),
+    bound_dims = character()
+  ),
+  export = list(
+    key = "expp",
+    dims = "cluster",
+    slots = c("export", "reserve"),
+    bound_var = list(),
+    bound_dims = character()
+  ),
+  import = list(
+    key = "imp",
+    dims = "cluster",
+    slots = c("import", "reserve"),
+    bound_var = list(),
+    bound_dims = character()
   )
 )
 
@@ -355,7 +387,7 @@
       if (nrow(st) > 0L) {
         if ("cluster" %in% names(st) && length(.variant_levels(tech, "cluster")) > 0L &&
             any(is.na(st$cluster))) {
-          stop('Existing `stock` must name its `cluster` once technology "', nm,
+          stop('Existing `stock` must name its `cluster` once ', cls, ' "', nm,
                '" is clustered: stock cannot be broadcast across clusters ',
                '(that would duplicate it).')
         }
@@ -383,14 +415,14 @@
         paste(names(by_slot)[vapply(by_slot, function(z) u %in% z, logical(1))],
               collapse = ", ")
       }, character(1))
-      stop('Undeclared cluster label(s) in technology "', nm, '": ',
+      stop('Undeclared cluster label(s) in ', cls, ' "', nm, '": ',
            paste0('"', undeclared, '" (in ', where, ')', collapse = "; "),
            '. Declared clusters are: ',
            paste0('"', dc$cluster, '"', collapse = ", "),
            '. Add the label to the `cluster` slot or fix the spelling.')
     }
     if (anyDuplicated(dc$cluster) > 0L) {
-      stop('Duplicated cluster label(s) in the `cluster` slot of technology "',
+      stop('Duplicated cluster label(s) in the `cluster` slot of ', cls, ' "',
            nm, '": ',
            paste(unique(dc$cluster[duplicated(dc$cluster)]), collapse = ", "))
     }
@@ -407,7 +439,7 @@
       msg <- paste0('"', partial, '" missing from: ',
                     vapply(missing_in[partial], paste, character(1),
                            collapse = ", "), collapse = "; ")
-      stop('Inconsistent cluster labels in technology "', nm, '": ', msg,
+      stop('Inconsistent cluster labels in ', cls, ' "', nm, '": ', msg,
            '. Every cluster should appear in each slot that differentiates ',
            'clusters, otherwise a misspelling silently creates an extra ',
            'technology with default (often unbounded) parameters. Declare the ',
@@ -465,7 +497,7 @@
         if (!is.null(regs) && !chk$region[i] %in% regs) {
           stop('`vintage` row for cluster "', chk$cluster[i], '" names region "',
                chk$region[i], '", but the `cluster` slot restricts that cluster ',
-               'to: ', paste(regs, collapse = ", "), ' (technology "', nm, '").')
+               'to: ', paste(regs, collapse = ", "), ' (', cls, ' "', nm, '").')
         }
       }
     }
@@ -480,7 +512,7 @@
         key <- paste(na_reg$vintage, na_reg$cluster, sep = "\r")
         if (any(duplicated(key))) {
           stop('More than one region-agnostic row for the same ',
-               '(vintage, cluster) in `@vintage` of technology "', nm, '".')
+               '(vintage, cluster) in `@vintage` of ', cls, ' "', nm, '".')
         }
       }
     }
@@ -773,7 +805,7 @@
     empty <- lv[!nzchar(tok)]
     if (length(empty) > 0L) {
       stop('The ', dm, ' label(s) ', paste0('"', empty, '"', collapse = ", "),
-           ' of technology "', tech@name, '" contain no letters or digits, so ',
+           ' of ', class(tech)[1], ' "', tech@name, '" contain no letters or digits, so ',
            'they reduce to an empty variant-name token. Rename them.')
     }
     if (anyDuplicated(tok) > 0L) {
@@ -782,7 +814,7 @@
         paste0(paste0('"', lv[tok == t], '"', collapse = " and "),
                ' both reduce to "', t, '"')
       }, character(1))
-      stop("Distinct ", dm, " labels of technology \"", tech@name,
+      stop("Distinct ", dm, " labels of ", class(tech)[1], " \"", tech@name,
            "\" collapse to the same variant-name token: ",
            paste(msg, collapse = "; "),
            ". They would produce one variant instead of two -- rename one, or ",
@@ -837,16 +869,19 @@
         if (!.hasSlot(tech, "region")) {
           stop('Cluster "', clu, '" of ', class(tech)[1], ' "', tech@name,
                '" is restricted to region(s) ', paste(cregs, collapse = ", "),
-               ', but a ', class(tech)[1], ' has no `region` slot -- its scope ',
-               'comes from the route endpoints, not from a region list. Drop ',
-               'the `region` column from the `cluster` declaration.',
+               ', but a ', class(tech)[1], ' has no `region` slot, so there is ',
+               'nothing for a cluster region to intersect with. Its scope comes ',
+               'from ',
+               if (methods::is(tech, "trade")) 'the route endpoints' else
+                 'the `region` column of its own data slots',
+               '. Drop the `region` column from the `cluster` declaration.',
                call. = FALSE)
         }
         base_regs <- as.character(tech@region)
         v@region <- if (length(base_regs) == 0L) cregs else
           intersect(base_regs, cregs)
         if (length(v@region) == 0L) {
-          stop('Cluster "', clu, '" of technology "', tech@name, '" exists in ',
+          stop('Cluster "', clu, '" of ', class(tech)[1], ' "', tech@name, '" exists in ',
                'region(s) ', paste(cregs, collapse = ", "),
                ', which do not overlap the technology\'s own `region` (',
                paste(base_regs, collapse = ", "), ').')
@@ -865,6 +900,16 @@
 
     for (s in .variant_slots_of(tech)) {
       if (!.hasSlot(tech, s)) next
+      # Every variant slot must be a data.frame: `.variant_timeslice()` coerces
+      # with as.data.frame() and the assignment below would then fail with
+      # "assignment of an object of class data.frame is not valid for @'...'".
+      # Loud here rather than cryptic there.
+      if (!is.data.frame(slot(tech, s))) {
+        stop('Variant slot "', s, '" of ', class(tech)[1], ' "', tech@name,
+             '" is a ', class(slot(tech, s))[1], ', not a data.frame. A slot ',
+             'listed in `.variant_classes$', class(tech)[1], '$slots` must be a ',
+             'table, or its rows cannot be selected per variant.', call. = FALSE)
+      }
       d <- .variant_timeslice(slot(tech, s), vin, clu)
       if (s == "vintage") d <- .variant_default_window(d, vin)
       if (s == "capacity" && "stock" %in% names(d) && !is.na(vin)) {
@@ -1146,7 +1191,8 @@ variantSummary <- function(scen, name, by = character(), weight = NULL, ...) {
     stop("Variable '", name, "' carries no variant processes.")
   }
   # the id column is `tech` / `stg` / `trade`, or `process` when renamed
-  idcol <- intersect(c("tech", "stg", "trade", "process"), names(d))[1]
+  idcol <- intersect(c("tech", "stg", "trade", "sup", "expp", "imp",
+                       "process"), names(d))[1]
   if (!is.null(weight)) {
     w <- getData(scen, name = weight, merge = TRUE, variants = TRUE, ...)
     keys <- intersect(names(d), names(w))

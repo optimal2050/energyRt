@@ -174,36 +174,51 @@ save_scenario <- function(
         sep = ""
       )
     }
-    # Layout 3: the solution store belongs to its run. When the scenario has
-    # an active run, its modOut is written under runs/<variant>/<solve>/modOut
-    # instead of the top-level modOut/ (which remains the fallback for solved
-    # scenarios that predate run records, e.g. loaded from layout 2).
+    # Layout 3: the solution store belongs to its run — with an active run,
+    # modOut is written under runs/[<variant>/]<solve>/modOut instead of the
+    # top-level modOut/ (which remains the fallback for solved scenarios that
+    # predate run records, e.g. loaded from layout 2). An OWN-PROBLEM VARIANT
+    # additionally owns its modInp: the store goes to runs/<variant>/modInp/
+    # (the scenario-level modInp/ stays the base problem's), plus the
+    # variant.yml manifest and the problem swap file. The base problem gets
+    # its symmetric swap file <scen>/problem.RData, enabling
+    # read_solution(run=) to switch problems in both directions.
     run_label <- scen@misc$run %||% ""
+    active_variant <- .run_variant(scen)
+    mo <- NULL
     if (nzchar(run_label)) {
-      modout_path <- .run_dir(scen, .run_variant(scen), run_label)
-      modout_path <- fp(modout_path, "modOut")
       mo <- scen@modOut
       scen@modOut <- new("modOut") # keep the main walk off the modOut slot
-      scen <- obj2disk(
-        scen,
-        path = scen@path,
-        format = format,
-        verbose = verbose
-      )
-      scen@modOut <- obj2disk(
-        mo,
-        path = modout_path,
-        format = format,
-        verbose = verbose
-      )
-    } else {
-      scen <- obj2disk(
-        scen,
-        path = scen@path,
+    }
+    mi <- NULL
+    if (nzchar(active_variant)) {
+      mi <- scen@modInp
+      scen@modInp <- new("modInp") # keep the main walk off the modInp slot
+    }
+    scen <- obj2disk(
+      scen,
+      path = scen@path,
+      format = format,
+      verbose = verbose
+    )
+    if (!is.null(mi)) {
+      scen@modInp <- obj2disk(
+        mi,
+        path = fp(scen@path, "runs", active_variant, "modInp"),
         format = format,
         verbose = verbose
       )
     }
+    if (!is.null(mo)) {
+      scen@modOut <- obj2disk(
+        mo,
+        path = fp(.run_dir(scen, active_variant, run_label), "modOut"),
+        format = format,
+        verbose = verbose
+      )
+    }
+    # swap file for the ACTIVE problem (variant.RData / problem.RData)
+    .write_problem_swap(scen, scen@modInp)
   } else {
     if (verbose) {
       cat("Scenario data already on disk; refreshing the scenario shell ",
@@ -212,6 +227,20 @@ save_scenario <- function(
     # The data walk is skipped, but a solve AFTER an ondisk interpolation
     # leaves the solution in memory — park it into its run store so the thin
     # scen.RData stays thin.
+    if (nzchar(.run_variant(scen))) {
+      # A re-save of an already-stored variant is fine (its modInp store sits
+      # under the variant dir). What is NOT supported is a variant problem
+      # whose store was written to the scenario level by
+      # interpolate_model(ondisk = TRUE) — that location belongs to the base.
+      mi_path <- gsub("[\\/]+", "/", getObjPath(scen@modInp) %||% "")
+      expected <- gsub("[\\/]+", "/", .problem_modinp_root(scen))
+      if (!identical(mi_path, expected)) {
+        stop("Own-problem variants of an ondisk-interpolated scenario are ",
+             "not supported yet: interpolate_model(ondisk = TRUE) writes ",
+             "the parameter store to the scenario level, which belongs to ",
+             "the base problem. Interpolate the variant's problem in memory.")
+      }
+    }
     if (!isOnDisk(scen@modOut) && length(scen@modOut@variables)) {
       run_label <- scen@misc$run %||% ""
       modout_path <- if (nzchar(run_label)) {
@@ -226,6 +255,7 @@ save_scenario <- function(
         verbose = verbose
       )
     }
+    .write_problem_swap(scen, scen@modInp)
   }
   # message("Saving the thinned scenario object")
   save(scen, file = fp(scen@path, "scen.RData"))

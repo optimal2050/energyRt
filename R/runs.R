@@ -139,7 +139,7 @@
     cmdline = paste(solver$cmdline %||% "", collapse = " "),
     started = .registry_now(),
     status = "running",
-    modinp = "shared",
+    modinp = if (nzchar(arg$run.variant %||% "")) "own" else "shared",
     energyRt_version = as.character(utils::packageVersion("energyRt")),
     hostname = unname(Sys.info()["nodename"]),
     user = unname(Sys.info()["user"])
@@ -315,6 +315,144 @@ scenario_drop_run <- function(scen, run, force = FALSE) {
   rd <- .run_dirs(scen)
   if (!nrow(rd)) return("    (none)")
   paste0("    ", mapply(.run_id, rd$variant, rd$solve), collapse = "\n")
+}
+
+# ---- own-problem variants (S5) ----------------------------------------------#
+# An own-problem variant carries its own interpolated problem:
+#   runs/<variant>/variant.yml    manifest (type, calendar, horizon, ...)
+#   runs/<variant>/modInp/        its parameter store (written once, shared by
+#                                 every solve of the variant)
+#   runs/<variant>/variant.RData  swap data: the thinned modInp skeleton + the
+#                                 settings snapshot
+# The BASE problem gets the symmetric swap file <scen>/problem.RData at save
+# time, so read_solution(run=) can switch the in-memory problem in both
+# directions without re-loading the scenario shell.
+
+# Drop settings@sourceCode blocks identical to the package templates (the
+# save_scenario dedup, reused for swap snapshots). Returns the thinned
+# settings + the dropped keys.
+.settings_thin <- function(settings) {
+  sc <- settings@sourceCode
+  dropped <- character(0)
+  if (length(sc)) {
+    same <- vapply(names(sc),
+                   function(k) identical(sc[[k]], .modelCode[[k]]),
+                   logical(1))
+    dropped <- names(sc)[same]
+    if (length(dropped)) settings@sourceCode[dropped] <- NULL
+  }
+  list(settings = settings, dropped = dropped)
+}
+
+.settings_restore <- function(settings, dropped) {
+  for (k in dropped) {
+    if (is.null(settings@sourceCode[[k]])) {
+      settings@sourceCode[[k]] <- .modelCode[[k]]
+    }
+  }
+  settings
+}
+
+# Rebase a thinned modInp (parameter store paths) onto its store root.
+.modinp_rebase <- function(mi, mi_root) {
+  mi_root <- gsub("[\\/]+", "/", mi_root)
+  if (length(get_ondisk_slots(mi))) mi@misc$path <- mi_root
+  for (nm in names(mi@parameters)) {
+    p <- mi@parameters[[nm]]
+    if (isS4(p) && length(get_ondisk_slots(p))) {
+      p@misc$path <- fp(mi_root, "parameters", nm)
+      mi@parameters[[nm]] <- p
+    }
+  }
+  mi
+}
+
+# The modInp store root of the ACTIVE problem: the variant's own store for an
+# own-problem variant, the scenario-level store for the base problem.
+.problem_modinp_root <- function(scen, root = scen@path) {
+  v <- .run_variant(scen)
+  if (nzchar(v)) fp(root, "runs", v, "modInp") else fp(root, "modInp")
+}
+
+# variant.yml, written by save_scenario() for an own-problem variant. Extra
+# fields written by drivers (type, sequence, step, sample) are preserved.
+.write_variant_manifest <- function(scen, vdir) {
+  mf_path <- fp(vdir, "variant.yml")
+  prev <- if (file.exists(mf_path)) {
+    tryCatch(yaml::read_yaml(mf_path), error = function(e) NULL)
+  } else {
+    NULL
+  }
+  now <- .registry_now()
+  mf <- list(
+    layout = .SCENARIO_LAYOUT,
+    class = "variant",
+    name = .run_variant(scen),
+    scenario = scen@name,
+    type = prev$type %||% "custom",
+    calendar = tryCatch(scen@settings@calendar@name, error = function(e) ""),
+    horizon = tryCatch(scen@settings@horizon@name, error = function(e) ""),
+    created = prev$created %||% now,
+    updated = now,
+    energyRt_version = as.character(utils::packageVersion("energyRt")),
+    modinp = "own"
+  )
+  for (k in setdiff(names(prev), names(mf))) mf[[k]] <- prev[[k]]
+  yaml::write_yaml(mf, mf_path)
+  invisible(mf_path)
+}
+
+# Swap the in-memory problem (settings + modInp) to `variant` ("" = base),
+# reading the swap file written at save time. Errors when the target problem
+# was never saved.
+.variant_swap <- function(scen, variant) {
+  if (identical(variant, .run_variant(scen))) return(scen)
+  swap_file <- if (nzchar(variant)) {
+    fp(scen@path, "runs", variant, "variant.RData")
+  } else {
+    fp(scen@path, "problem.RData")
+  }
+  if (!file.exists(swap_file)) {
+    stop("The ", if (nzchar(variant)) paste0("variant '", variant, "'") else
+           "base problem", " of scenario '", scen@name, "' has no saved ",
+         "problem data (", swap_file, ").\n",
+         "  Save the scenario while that problem is active ",
+         "(save_scenario()), then switch.")
+  }
+  e <- new.env(parent = emptyenv())
+  nm <- load(swap_file, envir = e)
+  vdata <- get(nm[1], envir = e)
+  stopifnot(is.list(vdata), !is.null(vdata$modInp), !is.null(vdata$settings))
+  scen@settings <- .settings_restore(vdata$settings,
+                                     vdata$sourceCode_default %||%
+                                       character(0))
+  scen@misc$variant <- if (nzchar(variant)) variant else NULL
+  scen@modInp <- .modinp_rebase(vdata$modInp,
+                                .problem_modinp_root(scen))
+  scen
+}
+
+# Write the swap file for the ACTIVE problem (called by save_scenario after
+# the modInp store is on disk; `mi` is the thinned modInp).
+.write_problem_swap <- function(scen, mi) {
+  v <- .run_variant(scen)
+  thin <- .settings_thin(scen@settings)
+  # save_scenario may already have thinned the sourceCode before this runs —
+  # the swap must remember EVERY dropped block to restore on switch
+  dropped <- union(thin$dropped,
+                   scen@misc$sourceCode_default %||% character(0))
+  vdata <- list(settings = thin$settings,
+                sourceCode_default = dropped,
+                modInp = mi)
+  if (nzchar(v)) {
+    vdir <- fp(scen@path, "runs", v)
+    dir.create(vdir, recursive = TRUE, showWarnings = FALSE)
+    save(vdata, file = fp(vdir, "variant.RData"))
+    .write_variant_manifest(scen, vdir)
+  } else {
+    save(vdata, file = fp(scen@path, "problem.RData"))
+  }
+  invisible(NULL)
 }
 
 # ---- scenario manifest (scenario.yml) + registry hook -----------------------#

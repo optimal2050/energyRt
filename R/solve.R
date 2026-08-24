@@ -606,6 +606,13 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
 #'   after the run (no run record).
 #' @param tmp.dir,tmp.del deprecated aliases of `solver.dir` / `transient`.
 #' @param force logical, re-solve a scenario already solved to optimal.
+#' @param variant character (`solve_scen()` only): declare the scenario's
+#'   interpolated problem an OWN-PROBLEM VARIANT of this name. Its solves
+#'   land in `runs/<variant>/<solve>/`, and [save_scenario()] stores the
+#'   variant's problem (`modInp`, settings snapshot, `variant.yml`) under
+#'   `runs/<variant>/` — once, shared by all its solves — leaving the
+#'   scenario-level (base) problem untouched. Switch between problems with
+#'   [read_solution()] (`run = "<variant>/<solve>"` vs `run = "<solve>"`).
 #' @param ... for `solve_mod()`, arguments are routed to [interpolate_model()]
 #'   (settings / calendar / horizon / model data) or to the solver run
 #'   (`solver.dir`, `transient`, `force`, `read.solution`, `wait`, `echo`,
@@ -656,8 +663,16 @@ solve_mod <- function(obj, name = NULL, solver = NULL,
 #' @rdname solve_mod
 #' @export
 solve_scen <- function(obj, name = obj@name, solver = NULL, solver.dir = NULL,
-                       transient = FALSE, force = FALSE, kvl = NULL, ...,
+                       transient = FALSE, force = FALSE, kvl = NULL,
+                       variant = NULL, ...,
                        tmp.dir = NULL, tmp.del = NULL) {
+  if (!is.null(variant)) {
+    # own-problem variant: the interpolated problem in `obj` belongs to this
+    # named variant — its solves land in runs/<variant>/<solve>/ and
+    # save_scenario() stores its modInp under runs/<variant>/modInp/
+    stopifnot(is.character(variant), length(variant) == 1L)
+    obj@misc$variant <- if (nzchar(variant)) variant else NULL
+  }
   if (!is.null(tmp.dir)) {
     rlang::warn(
       "The `tmp.dir` argument is deprecated; use `solver.dir`.",

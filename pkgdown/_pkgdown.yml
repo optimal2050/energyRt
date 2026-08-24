@@ -82,6 +82,8 @@ navbar:
         href: articles/utopia-use.html
       - text: Workflow
         href: articles/workflow.html
+      - text: Scenario management
+        href: articles/scenario-management.html
       - text: autoplot()
         href: articles/autoplot.html
       # menu:

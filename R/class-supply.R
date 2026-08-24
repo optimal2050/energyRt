@@ -23,6 +23,7 @@ setClass("supply",
     weather = "data.frame",
     reserve = "data.frame",
     supply = "data.frame",
+    cluster = "data.frame",
     region = "character",
     misc = "list"
   ),
@@ -32,6 +33,7 @@ setClass("supply",
     commodity = "",
     unit = "",
     weather = data.frame(
+      cluster = character(),
       weather = character(),
       wava.lo = numeric(),
       wava.up = numeric(),
@@ -39,6 +41,7 @@ setClass("supply",
       stringsAsFactors = FALSE
     ),
     reserve = data.frame(
+      cluster = character(),
       region = character(),
       res.lo = numeric(),
       res.up = numeric(),
@@ -46,6 +49,7 @@ setClass("supply",
       stringsAsFactors = FALSE
     ),
     supply = data.frame(
+      cluster = character(),
       region = character(),
       year = integer(),
       timeslice = character(),
@@ -56,6 +60,30 @@ setClass("supply",
       stringsAsFactors = FALSE
     ),
     region = character(),
+    # Cluster declaration. A cluster is a parallel sub-object of the same
+    # process -- for these classes, a PRICE STEP of a stepped supply / export /
+    # import curve, with its own share of the quantity and its own price. A
+    # single price cannot express a curve: real resource grades get dearer as
+    # you exhaust them, and a real export market pays less as you push volume
+    # into it.
+    #
+    # This slot declares WHAT the steps are; the per-step values live in the
+    # `cluster` column of the other slots. Build both with `asSupplyCurve()` /
+    # `asExportCurve()` / `asImportCurve()` rather than by hand.
+    #
+    # `share` here is DESCRIPTIVE, not enforced: unlike `technology` or `trade`,
+    # these classes have no capacity variable to tie, so the helper writes the
+    # split straight into the quantity bounds and records what it did here.
+    # `order` fixes the fill order (1 = first); without it labels sort
+    # alphabetically and "S10" would precede "S2".
+    cluster = data.frame(
+      cluster = character(),
+      desc = character(),
+      region = character(),
+      share = numeric(),
+      order = integer(),
+      stringsAsFactors = FALSE
+    ),
     misc = list()
   ),
   S3methods = FALSE
@@ -122,6 +150,7 @@ newSupply <- function(
   weather = data.frame(),
   reserve = data.frame(),
   supply = data.frame(),
+  cluster = data.frame(),
   region = character(),
   misc = list(),
   ...
@@ -135,6 +164,7 @@ newSupply <- function(
     weather = weather,
     reserve = reserve,
     supply = supply,
+    cluster = cluster,
     region = region,
     misc = misc,
     ...

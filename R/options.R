@@ -31,7 +31,7 @@ options::set_envvar_name_fn(function(package, option) {
 # Toolchain paths #############################################################
 # Locations of the external programs the solver backends shell out to. All
 # default to `NULL`, meaning "not configured" -- each backend then falls back to
-# its own discovery (see `.find_glpsol()`, `.find_mosox()`) or to the session
+# its own discovery (see `.find_glpsol()`) or to the session
 # `PATH`. Set them with `set_solver_path()` or the per-backend wrappers.
 
 options::define_option(
@@ -82,11 +82,7 @@ options::define_option(
   default = NULL
 )
 
-options::define_option(
-  "mosox_path",
-  desc = "Path to the directory containing the `mosox` executable.",
-  default = NULL
-)
+# (the `mosox_path` option moved to drafts/mosox/ with the mosox experiment)
 
 # NEOS ########################################################################
 # `neos_email` is the one option that keeps an explicit `envvar_name`: NEOS
@@ -263,8 +259,7 @@ get_option <- function(name, default = NULL) {
   gdxlib = "gdxlib_path",
   glpk   = "glpk_path",
   python = "python_path",
-  julia  = "julia_path",
-  mosox  = "mosox_path"
+  julia  = "julia_path"
 )
 
 # Environment variables these options used before the `ENERGYRT_` prefix was
@@ -275,8 +270,7 @@ get_option <- function(name, default = NULL) {
   gdxlib = "GDXLIB_PATH",
   glpk   = "glpk_path",
   python = "PYTHON_PATH",
-  julia  = "JULIA_PATH",
-  mosox  = "MOSOX_PATH"
+  julia  = "JULIA_PATH"
 )
 
 # Shared body of every path setter: reject a non-existent directory at the point
@@ -303,14 +297,14 @@ get_option <- function(name, default = NULL) {
 #' thin wrappers around them.
 #'
 #' Setting a path is optional. When it is unset, each backend falls back to its
-#' own discovery: `glpk` and `mosox` search the session `PATH` and well-known
+#' own discovery: `glpk` searches the session `PATH` and well-known
 #' install locations (on Windows `glpsol` is found in Rtools, which bundles
 #' GLPK), while `gams`, `python` and `julia` simply invoke the bare command and
 #' let the OS resolve it on `PATH`. Set a path only to override that, for
 #' instance to pick between several installed GAMS versions.
 #'
 #' @param backend character, one of `"gams"`, `"gdxlib"`, `"glpk"`,
-#'   `"python"`, `"julia"`, `"mosox"`.
+#'   `"python"`, `"julia"`.
 #' @param path character, path to the directory containing the executable or
 #'   library, or `NULL` to clear it. The directory must exist.
 #'

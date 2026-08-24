@@ -1,0 +1,261 @@
+---
+title: "Scenario management: how models, scenarios, and solutions are organized"
+editor_options:
+  chunk_output_type: console
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE, comment = "#>",
+  message = FALSE, warning = FALSE
+)
+```
+
+An energy-modeling project quickly accumulates artifacts: models built from
+shared repositories, scenarios interpolated from them at different scopes,
+and solutions produced by different solvers. energyRt organizes all of it
+in one project folder with three principles:
+
+1. **One folder per thing, one manifest per folder.** Every saved model,
+   repository, scenario, and solver run is a directory with a small YAML
+   manifest describing it. The manifests — not any central database — are
+   the source of truth; the project registry is a rebuildable index over
+   them.
+2. **Share by content, not by copy.** Models and repositories are stored
+   *content-addressed*: their folder name carries a hash of their content,
+   identical content is stored once, and other objects reference it by
+   name + hash. Embedding a private copy remains available where
+   portability matters — "interlinking to avoid duplication is an option,
+   not a rule".
+3. **Derive paths, don't trust stored ones.** Where a run's files live is
+   always computed from the scenario's location and the run's identity.
+   Loading a scenario re-bases every stored path onto the folder it is
+   actually loaded from, so moving or renaming folders — or opening a
+   project from a different working directory — just works.
+
+This article walks the whole layout bottom-up. The *Workflow* article shows
+the same machinery in day-to-day use; this one explains how the pieces fit.
+
+```{r setup}
+library(energyRt)
+```
+
+Everything lands under a throwaway project folder here; in a real project
+these are relative paths at the project root (the defaults are
+`scenarios/`, `models/`, `repositories/`, and `energyRt_registry.csv`).
+
+```{r paths}
+proj <- file.path(tempdir(), "sm-demo")
+set_scenarios_path(file.path(proj, "scenarios"))
+set_models_path(file.path(proj, "models"))
+set_repositories_path(file.path(proj, "repositories"))
+set_registry_file(file.path(proj, "energyRt_registry.csv"))
+```
+
+A small model to work with — one region, one technology, three years:
+
+```{r model}
+cal <- newCalendar(
+  timetable = make_timetable(
+    struct = list(ANNUAL = "ANNUAL", HOUR = sprintf("t%02d", 1:4))),
+  name = "smc")
+
+make_mod <- function(stock) {
+  TECH <- newTechnology(
+    "TECH", output = data.frame(comm = "ELC", unit = "GWh"), cap2act = 1,
+    capacity = data.frame(region = "R1", year = 2020:2022, stock = stock),
+    fixom = data.frame(fixom = 1),
+    vintage = data.frame(olife = 50L), optimizeRetirement = FALSE)
+  newModel(
+    name = "SM", region = "R1", discount = 0, calendar = cal,
+    horizon = newHorizon(2020:2022, intervals = c(1, 1, 1)),
+    repo = newRepository(
+      "smr", newCommodity("ELC", timeframe = "HOUR"), TECH,
+      newSupply("BACK", commodity = "ELC", supply = data.frame(cost = 1000)),
+      newDemand("DEM", commodity = "ELC", demand = data.frame(demand = 1))))
+}
+mod <- make_mod(stock = c(100, 100, 100))
+```
+
+# The scenario folder
+
+A **scenario** is one interpolated instance of a model: the model compiled
+onto a concrete calendar, horizon, and region scope. Solving it — possibly
+several times, with several solvers — produces **runs**. On disk:
+
+```
+scenarios/<name_model_calendar_horizon>/
+├── scenario.yml        # manifest: model reference, calendar, horizon,
+│                       #   `default:` — the default run (edit it freely)
+├── scen.RData          # the thin S4 shell (all big data lives beside it)
+├── class · format · layout · logfile.csv
+├── modInp/parameters/<param>/           # the (base) interpolated problem
+├── problem.RData       # swap data for the base problem (see Variants)
+├── model/…             # the model's data — only when embedded (see below)
+└── runs/               # one folder per solver run
+    ├── glpk/                            # a base-problem run
+    │   ├── run.yml     #   provenance: solver, cmdline, started/finished,
+    │   │               #   duration, status, objective, host, user
+    │   ├── solver/     #   the solver working dir; the solver writes its
+    │   │               #   own solver/output/ — never restructured
+    │   └── modOut/variables/<var>/      #   the parsed solution store
+    └── julia_highs/…                    # another backend, side by side
+```
+
+Three ideas to notice:
+
+* **A run owns its artifacts.** Solving the same scenario with a second
+  backend does not overwrite anything: each run keeps its inputs, raw
+  outputs, provenance, and parsed solution. The in-memory scenario object
+  holds ONE active solution at a time; switching is a read, not a re-solve.
+* **The run's location is derived.** Nothing stores "where run X lives" —
+  it is always `<scenario>/runs/<run-id>/`, computed on demand. That is why
+  a moved scenario folder cannot strand its runs.
+* **`default:` in scenario.yml is yours.** It names the run a bare
+  `read_solution(scen)` resolves to after loading; a save sets it to the
+  active run, and you may edit the file to point elsewhere.
+
+Let's produce that tree. `run = "<label>"` names a run explicitly; without
+it, the label defaults to the solver directory name (e.g. `"glpk"`):
+
+```{r solve}
+scen <- interpolate_model(mod, name = "BASE") |>
+  solve_scen(solver = solver_options$glpk, echo = FALSE)
+scen <- solve_scen(scen, solver = solver_options$glpk, echo = FALSE,
+                   force = TRUE, run = "glpk-alt")
+scenario_runs(scen)[, c("run", "status", "solver_name", "objective", "active")]
+```
+
+`scenario_run_info(scen, "glpk")` returns one run's full `run.yml`;
+`read_solution(scen, run = "glpk")` switches the active solution;
+`scenario_drop_run(scen, "glpk-alt")` deletes a run (the active one only
+with `force = TRUE`). An *external* working directory — outside the
+scenario, no run record — is available via
+`solve_scen(solver.dir = "...")`, and `transient = TRUE` solves in a
+throwaway folder.
+
+```{r save}
+scen <- save_scenario(scen, verbose = FALSE)
+sort(list.files(scen@path))
+```
+
+# Models and repositories: stored once, referenced by hash
+
+The model is part of the scenario, and by default a saved scenario embeds
+its own copy — self-contained, but wasteful when fifty scenarios share one
+model. The **model store** removes the duplication:
+
+```{r model-store}
+mod <- save_model(mod, verbose = FALSE)      # models/SM@<hash8>/
+scen <- save_scenario(scen, verbose = FALSE) # now saved with a REFERENCE
+yaml::read_yaml(file.path(scen@path, "scenario.yml"))$model
+```
+
+`model_hash()` identifies a model by its *content*: the hash is computed
+with all volatile bookkeeping stripped (internal `@misc` metadata, on-disk
+markers, session-specific attributes), so two identically-built models hash
+identically and any modeled change produces a new store entry —
+`models/SM@a1b2c3d4/` and `models/SM@e5f6a7b8/` can coexist, and a scenario
+pins exactly the version it was built from. Saving identical content twice
+is a no-op. `load_scenario()` resolves the reference back through the
+registry, and errors *loudly* — naming the fix — if the store is gone.
+`save_scenario(embed_model = TRUE)` keeps a folder self-contained instead.
+
+One level down, the same pattern applies to **repositories** — the shared
+building-block collections that many models have in common:
+
+```{r repo-store}
+repo <- mod@data[[1]]
+save_repository(repo, verbose = FALSE)        # repositories/smr@<hash8>/
+mod2 <- save_model(make_mod(c(100, 100, 100)), overwrite = TRUE,
+                   verbose = FALSE)           # repo now saved as a reference
+```
+
+`save_model(embed_repos = )` mirrors `embed_model`: with the repository in
+its store, the model's entry records a `{name, hash}` reference instead of
+a data copy, and `load_model()` re-assembles the chain — a scenario
+referencing a model whose repositories are themselves references loads
+back fully resolved.
+
+# The registry
+
+Every save also records its object in the project **registry** — one CSV at
+the project root indexing models, repositories, scenarios, and runs:
+
+```{r registry}
+reg <- registry_load()
+reg[, c("type", "name", "parent")]
+```
+
+The registry is an *index, never an authority*: `registry_refresh()`
+rebuilds it at any time by rescanning the stores and reading the manifests.
+`registry_find(reg, type = "model", hash = "a1b2")` looks entries up by
+type, name, or (short) hash.
+
+# Variants: several problems in one scenario
+
+A scenario sometimes needs *the same model asked a different question* —
+a sampled calendar, a restricted horizon, a myopic step with carried-over
+capacity. These are **own-problem variants**: named folders under `runs/`
+that carry their *own* interpolated problem, with their solves inside.
+
+```{r variant}
+scen_low <- interpolate_model(make_mod(c(50, 50, 50)), name = "BASE",
+                              overwrite = TRUE) |>
+  solve_scen(solver = solver_options$glpk, echo = FALSE, variant = "low")
+scen_low <- save_scenario(scen_low, verbose = FALSE)
+scenario_runs(scen_low)[, c("run", "variant", "modinp", "objective")]
+```
+
+```
+runs/
+├── glpk/  glpk-alt/     # base-problem runs (modinp: shared)
+└── low/                 # an own-problem variant
+    ├── variant.yml      #   what this problem IS (type, horizon, calendar;
+    │                    #   drivers add fields like sequence/step)
+    ├── modInp/          #   ITS parameter store — written once, shared by
+    ├── variant.RData    #   all of the variant's solves
+    └── glpk/…           #   its runs, same shape as any run
+```
+
+The base problem's store stays untouched at the scenario level.
+`read_solution(scen, run = "glpk")` vs `run = "low/glpk"` switches not just
+the solution but the whole in-memory *problem* — settings and parameters
+swap together, in both directions — so `getData()` is always consistent
+with the run you are looking at. This is the storage substrate for the
+upcoming sequential (myopic) solver, which keeps a whole year-by-year
+sequence as one scenario with one variant per step.
+
+# Moving folders, older layouts
+
+Because run and store locations are derived and manifests travel with their
+folders, the whole project directory can be moved, renamed, or synced
+between machines. `load_scenario()` re-bases all paths onto wherever the
+folder actually is — and if data genuinely is not where the object expects
+it, the failure is an *error naming the fix*, never silently empty results.
+
+Folders written by older energyRt versions (the pre-`runs/` layout with
+`script/<solver>/` directories) still load, and migrate in place with one
+idempotent call:
+
+```r
+scenario_upgrade_layout("scenarios/OLD")
+```
+
+which moves each solver directory into `runs/`, backfills the provenance
+records from what is on disk, and writes the current manifests.
+
+# Summary of the vocabulary
+
+| thing | where | identity | manifest |
+|---|---|---|---|
+| repository | `repositories/<name>@<hash8>/` | content hash | `repository.yml` |
+| model | `models/<name>@<hash8>/` | content hash | `model.yml` |
+| scenario | `scenarios/<slug>/` | name | `scenario.yml` |
+| variant (own problem) | `<scenario>/runs/<variant>/` | name within scenario | `variant.yml` |
+| run (solve) | `<scenario>/runs/[<variant>/]<solve>/` | run id `"<solve>"` / `"<variant>/<solve>"` | `run.yml` |
+| registry | `energyRt_registry.csv` | — (rebuildable index) | — |
+
+```{r cleanup, include = FALSE}
+unlink(proj, recursive = TRUE)
+```

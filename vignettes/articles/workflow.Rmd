@@ -112,6 +112,9 @@ writes rows straight into its parameter store.)
 
 # Scenario folders and structure
 
+(The *Scenario management* article explains this layer in depth — stores,
+manifests, the registry, runs, and variants; this section is the quick tour.)
+
 The scenarios directory is an option — read it with `get_scenarios_path()`, set it
 with `set_scenarios_path()` (default `"scenarios/"`). Each scenario gets its own
 folder, named automatically as `name_model_calendar_horizon` (duplicate parts

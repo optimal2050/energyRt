@@ -149,6 +149,9 @@ class:
       type: data.frame
       description: Weather factors to apply to the supply.
       columns:
+        cluster:
+          type: character
+          description: Price step this row applies to, NA for every step. See the `cluster` slot.
         weather:
           type: character
           description: >
@@ -176,6 +179,9 @@ class:
         Total available resource. Applicable to exhaustible resources.
         Set for each region. If not set, the resource is considered infinite.
       columns:
+        cluster:
+          type: character
+          description: Price step this row applies to, NA for every step. See the `cluster` slot.
         region:
           type: character
           description: >
@@ -202,6 +208,9 @@ class:
         `weather`). Rows here also define where and when the supply exists in
         the model.
       columns:
+        cluster:
+          type: character
+          description: Price step this row applies to, NA for every step. See the `cluster` slot.
         region:
           type: character
           description: >
@@ -237,6 +246,46 @@ class:
           description: >
             Cost of the resource extraction,
             if not set, the resource is considered free.
+    cluster:
+      type: data.frame
+      description: >
+        Declaration of the object's parallel sub-supplies. For supply a cluster
+        is a PRICE STEP -- a resource grade: its own share of the availability
+        and reserve, at its own cost. A single `cost` cannot express a supply
+        curve, where cheap grades are exhausted first and the next ones cost
+        more.
+
+        This slot declares WHAT the grades are; the per-grade values live in the
+        `cluster` column of `supply`, `reserve` and `weather`. Build both with
+        `asSupplyCurve()`, which also computes the costs and checks that the
+        curve rises.
+
+        Optional. When empty, labels are harvested from the `cluster` columns of
+        the other slots. When populated it is AUTHORITATIVE.
+      columns:
+        cluster:
+          type: character
+          description: Grade label, used in the expanded object name.
+        desc:
+          type: character
+          description: Description of the grade.
+        region:
+          type: character
+          description: >
+            Region(s) the grade exists in, NA for everywhere. Intersected with
+            the object's own `region` slot.
+        share:
+          type: numeric
+          description: >
+            The grade's fraction of the object's quantity. DESCRIPTIVE, not
+            enforced: supply has no capacity variable to tie, so
+            `asSupplyCurve()` writes the split straight into `ava.*` / `res.*`
+            and records here what it did.
+        order:
+          type: integer
+          description: >
+            Fill order, 1 = the cheapest grade. Without it labels sort
+            alphabetically and "S10" would precede "S2".
     region:
       type: character
       description: >
@@ -2027,15 +2076,38 @@ class:
       type: character
       description: Unit of the imported commodity.
     reserve:
-      type: numeric
-      description: Total accumulated limit through the model horizon.
+      type: data.frame
+      description: >
+        Cumulative limit over the whole model horizon, summed across ALL
+        regions, years and timeslices. A data.frame (rather than the bare number
+        it was before 0.85) so it can carry a `cluster` column and be split
+        across price steps; without that every step would inherit the FULL limit
+        and the model would quietly hold `nsteps` times the resource. A plain
+        number is still accepted by the constructor and read as `res.up`.
+
+        There is deliberately no `region` column: adding one would turn this
+        into a per-region cap and LOSE the all-region total, which is what it
+        means today.
+      columns:
+        cluster:
+          type: character
+          description: Price step this row applies to, NA for every step.
+        res.lo:
+          type: numeric
+          description: Lower bound on the cumulative volume.
+        res.up:
+          type: numeric
+          description: Upper bound on the cumulative volume.
+        res.fx:
+          type: numeric
+          description: Fixed cumulative volume. Overrides `res.lo` and `res.up`.
     import:
       type: data.frame
       description: Import parameters.
       columns:
-        vintage:
+        cluster:
           type: character
-          description: Vintage label selecting the variant this row applies to, NA for every vintage. See the `vintage` slot.
+          description: Price step this row applies to, NA for every step. See the `cluster` slot.
         region:
           type: character
           description: Region name to apply the parameter; use NA to apply to all regions.
@@ -2054,6 +2126,43 @@ class:
         imp.fx:
           type: numeric
           description: Fixed import volume, ignored if NA. This parameter overrides `imp.lo` and `imp.up`.
+        price:
+          type: numeric
+          description: Price paid per unit imported.
+    cluster:
+      type: data.frame
+      description: >
+        Declaration of the object's parallel sub-objects. For import a cluster is a
+        PRICE STEP of a stepped curve: its own share of the quantity, at its own
+        price. A single price cannot express a curve -- real resource grades get
+        dearer as they are exhausted, and a real export market pays less as more
+        volume is pushed into it.
+
+        This slot declares WHAT the steps are; the per-step values live in the
+        `cluster` column of the other slots. Build both with `asImportCurve()`, which
+        also computes the prices and checks the direction of the curve.
+
+        Optional. When empty, step labels are harvested from the `cluster`
+        columns of the other slots. When populated it is AUTHORITATIVE.
+      columns:
+        cluster:
+          type: character
+          description: Step label, used in the expanded object name.
+        desc:
+          type: character
+          description: Description of the step.
+        share:
+          type: numeric
+          description: >
+            The step's fraction of the object's quantity. DESCRIPTIVE, not
+            enforced: unlike `technology` or `trade` this class has no capacity
+            variable to tie, so `asImportCurve()` writes the split straight into the
+            quantity bounds and records here what it did.
+        order:
+          type: integer
+          description: >
+            Fill order, 1 = the cheapest step (or, for export, the best paid).
+            Without it labels sort alphabetically and "S10" would precede "S2".
     misc:
       type: list
       description: Additional information.
@@ -2072,12 +2181,38 @@ class:
       type: character
       description: Unit of the exported commodity.
     reserve:
-      type: numeric
-      description: Total accumulated limit through the model horizon.
+      type: data.frame
+      description: >
+        Cumulative limit over the whole model horizon, summed across ALL
+        regions, years and timeslices. A data.frame (rather than the bare number
+        it was before 0.85) so it can carry a `cluster` column and be split
+        across price steps; without that every step would inherit the FULL limit
+        and the model would quietly hold `nsteps` times the resource. A plain
+        number is still accepted by the constructor and read as `res.up`.
+
+        There is deliberately no `region` column: adding one would turn this
+        into a per-region cap and LOSE the all-region total, which is what it
+        means today.
+      columns:
+        cluster:
+          type: character
+          description: Price step this row applies to, NA for every step.
+        res.lo:
+          type: numeric
+          description: Lower bound on the cumulative volume.
+        res.up:
+          type: numeric
+          description: Upper bound on the cumulative volume.
+        res.fx:
+          type: numeric
+          description: Fixed cumulative volume. Overrides `res.lo` and `res.up`.
     export:
       type: data.frame
       description: Export parameters.
       columns:
+        cluster:
+          type: character
+          description: Price step this row applies to, NA for every step. See the `cluster` slot.
         region:
           type: character
           description: Region name to apply the parameter; use NA to apply to all regions.
@@ -2096,6 +2231,46 @@ class:
         exp.fx:
           type: numeric
           description: Fixed export volume, ignored if NA. This parameter overrides `exp.lo` and `exp.up`.
+        price:
+          type: numeric
+          description: >
+            Price received per unit exported. Export revenue is a NEGATIVE
+            cost -- the minus sits inside `eqExportRowCost` -- so a higher
+            price is a better outcome for the objective.
+    cluster:
+      type: data.frame
+      description: >
+        Declaration of the object's parallel sub-objects. For export a cluster is a
+        PRICE STEP of a stepped curve: its own share of the quantity, at its own
+        price. A single price cannot express a curve -- real resource grades get
+        dearer as they are exhausted, and a real export market pays less as more
+        volume is pushed into it.
+
+        This slot declares WHAT the steps are; the per-step values live in the
+        `cluster` column of the other slots. Build both with `asExportCurve()`, which
+        also computes the prices and checks the direction of the curve.
+
+        Optional. When empty, step labels are harvested from the `cluster`
+        columns of the other slots. When populated it is AUTHORITATIVE.
+      columns:
+        cluster:
+          type: character
+          description: Step label, used in the expanded object name.
+        desc:
+          type: character
+          description: Description of the step.
+        share:
+          type: numeric
+          description: >
+            The step's fraction of the object's quantity. DESCRIPTIVE, not
+            enforced: unlike `technology` or `trade` this class has no capacity
+            variable to tie, so `asExportCurve()` writes the split straight into the
+            quantity bounds and records here what it did.
+        order:
+          type: integer
+          description: >
+            Fill order, 1 = the cheapest step (or, for export, the best paid).
+            Without it labels sort alphabetically and "S10" would precede "S2".
     misc:
       type: list
       description: Additional information.

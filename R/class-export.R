@@ -27,9 +27,9 @@ setClass("export",
     commodity = "character",
     unit = "character",
     # !!! add @region
-    # !!! make reserve a data.frame with region, year, upper, lower, fixed
-    reserve = "numeric",
+    reserve = "data.frame",
     export = "data.frame",
+    cluster = "data.frame",
     # timeframe = "character", # depreciated (equal to commodity@timeframe)
     misc = "list"
   ),
@@ -38,8 +38,23 @@ setClass("export",
     desc = "",
     commodity = "",
     unit = "",
-    reserve = Inf,
+    # Cumulative limit over the whole horizon, summed across ALL regions, years
+    # and timeslices -- see `eqExportRowCum` / `eqImportRowCum`, which sum over
+    # `r in region`. A data.frame rather than a scalar so it can carry a
+    # `cluster` column and be split across price steps; without that every step
+    # of a stepped curve would inherit the FULL limit and the model would quietly
+    # hold `nsteps` times the resource. There is deliberately NO `region` column:
+    # adding one would turn this into a per-region cap and LOSE the all-region
+    # total, which is what it means today.
+    reserve = data.frame(
+      cluster = character(),
+      res.lo = numeric(),
+      res.up = numeric(),
+      res.fx = numeric(),
+      stringsAsFactors = FALSE
+    ),
     export = data.frame(
+      cluster = character(),
       region = character(),
       year = integer(),
       timeslice = character(),
@@ -51,6 +66,29 @@ setClass("export",
     ),
     # GIS           = NULL,
     # timeframe = character(),
+    # Cluster declaration. A cluster is a parallel sub-object of the same
+    # process -- for these classes, a PRICE STEP of a stepped supply / export /
+    # import curve, with its own share of the quantity and its own price. A
+    # single price cannot express a curve: real resource grades get dearer as
+    # you exhaust them, and a real export market pays less as you push volume
+    # into it.
+    #
+    # This slot declares WHAT the steps are; the per-step values live in the
+    # `cluster` column of the other slots. Build both with `asSupplyCurve()` /
+    # `asExportCurve()` / `asImportCurve()` rather than by hand.
+    #
+    # `share` here is DESCRIPTIVE, not enforced: unlike `technology` or `trade`,
+    # these classes have no capacity variable to tie, so the helper writes the
+    # split straight into the quantity bounds and records what it did here.
+    # `order` fixes the fill order (1 = first); without it labels sort
+    # alphabetically and "S10" would precede "S2".
+    cluster = data.frame(
+      cluster = character(),
+      desc = character(),
+      share = numeric(),
+      order = integer(),
+      stringsAsFactors = FALSE
+    ),
     # ! Misc
     misc = list()
   ),
@@ -117,11 +155,19 @@ newExport <- function(
     desc = "",
     commodity = "",
     unit = NULL,
-    reserve = Inf,
+    reserve = data.frame(),
     export = data.frame(),
+    cluster = data.frame(),
     misc = list(),
     ...
     ) {
+  # `reserve` was a bare number before 0.85. Accept one and read it as the
+  # cumulative upper limit it always was, so existing models keep working.
+  if (is.numeric(reserve)) {
+    reserve <- if (length(reserve) == 1L && is.finite(reserve))
+      data.frame(res.up = as.numeric(reserve), stringsAsFactors = FALSE) else
+      data.frame()
+  }
   .data2slots("export",
     name,
     desc = desc,
@@ -129,6 +175,7 @@ newExport <- function(
     unit = unit,
     reserve = reserve,
     export = export,
+    cluster = cluster,
     misc = misc,
     ...
     )
