@@ -112,3 +112,60 @@ test_that("the TOTAL token matches a hand-written newConstraint exactly", {
   o_hand <- suppressMessages(getData(vt_solve(s_hand), "vObjective", merge = TRUE))
   expect_equal(sum(o_tok$value), sum(o_hand$value), tolerance = 1e-8)
 })
+
+# =========================================================================== #
+# Every capacity PART, not just the discharger
+# =========================================================================== #
+
+test_that("a storage group bound reaches inp.* and stg.*, not only out.*", {
+  # `.variant_group_constraints()` used to derive its scan list from a single
+  # `bound_prefix` ("out."), so `inp.cap.up = "TOTAL"` and `stg.cap.up = "TOTAL"`
+  # matched no column, the loop body never ran, and the row did NOTHING -- no
+  # variant (the token is filtered out of the level set) and no bound. Silently.
+  mk <- function(col, val) {
+    cap <- data.frame(cluster = c("a", "b", "TOTAL"),
+                      out.cap.up = c(50, 50, NA))
+    cap[[col]] <- c(NA, NA, val)
+    if (col == "out.cap.up") cap$out.cap.up <- c(50, 50, val)
+    newStorage("BATT", commodity = "ELC", cluster = c("a", "b"),
+               invcost = data.frame(cluster = c("a", "b"),
+                                    out.invcost = c(10, 12)),
+               capacity = cap, vintage = data.frame(olife = 20L), duration = 4)
+  }
+  for (col in c("out.cap.up", "inp.cap.up", "stg.cap.up")) {
+    sc <- vt_interp(vt_stg_model(mk(col, 7), name = paste0("gp", substr(col, 1, 3))),
+                    paste0("gp", substr(col, 1, 3)))
+    expect_length(sc@modInp@gams.equation, 1L)
+  }
+})
+
+test_that("a group bound on the storing part actually binds", {
+  skip_if_no_solver()
+  # Per-cluster `stg.cap.lo` puts the storage in EXPLICIT storing-capacity mode
+  # (with only `duration`, `vStorageStgCap` does not exist and the bound would be
+  # vacuous), and forces the summed capacity to 20. The group cap then decides
+  # feasibility -- which is the sharpest way to show it is enforced at all.
+  mk <- function(tot) newStorage(
+    "BATT", commodity = "ELC", cluster = c("a", "b"),
+    invcost = data.frame(cluster = c("a", "b"), out.invcost = c(10, 12),
+                         stg.invcost = c(1, 1)),
+    capacity = data.frame(cluster = c("a", "b", "TOTAL"),
+                          stg.cap.lo = c(10, 10, NA),
+                          stg.cap.up = c(NA, NA, tot)),
+    vintage = data.frame(olife = 20L))
+
+  # 25 >= the forced 20: feasible, and the sum is the forced 20.
+  sol <- vt_solve(vt_interp(vt_stg_model(mk(25), name = "gsok"), "gsok"))
+  d <- suppressMessages(getData(sol, "vStorageStgCap", merge = TRUE))
+  expect_gt(nrow(d), 0)
+  expect_equal(sum(d$value[d$year == min(d$year) & d$region == d$region[1]]), 20)
+
+  # 15 < 20: infeasible. Before the fix this solved happily, because the bound
+  # was never generated.
+  bad <- vt_interp(vt_stg_model(mk(15), name = "gsbad"), "gsbad")
+  sol2 <- suppressWarnings(try(vt_solve(bad), silent = TRUE))
+  got <- if (inherits(sol2, "try-error")) 0L else
+    nrow(suppressWarnings(try(getData(sol2, "vObjective", merge = TRUE),
+                              silent = TRUE)))
+  expect_equal(got, 0L)
+})

@@ -65,7 +65,9 @@ NULL
 .comm_level_members <- function(scen) {
   cal <- .declaration_calendar(scen)
   ctf <- map_comm_timeframe(scen)
-  hier <- .scen_geo_hierarchy(scen)
+  # the MODEL's own hierarchy, not the (possibly sampled) settings one --
+  # the geo mirror of `.declaration_calendar()` above
+  hier <- .declaration_geo_hierarchy(scen)
   cgl <- map_comm_geoframe(scen)
 
   comms <- union(names(ctf), names(cgl))
@@ -104,7 +106,7 @@ NULL
   # these is not a level error (see the loop below).
   cal <- .declaration_calendar(scen)
   known_timeslices <- unique(unlist(cal@timeframes, use.names = FALSE))
-  hier <- .scen_geo_hierarchy(scen)
+  hier <- .declaration_geo_hierarchy(scen)
   known_regions <- if (is.null(hier)) .model_regions(scen) else hier$region
 
   bad <- list()

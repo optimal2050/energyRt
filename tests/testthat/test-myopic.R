@@ -183,3 +183,71 @@ test_that("intertemporal user constraints trigger the one loud warning", {
     energyRt:::.myopic_warn_intertemporal(mod),
     "WITHIN its own")
 })
+
+test_that("storage capacity carries across steps (three parts, no re-build)", {
+  skip_if_no_solver()
+  yrs <- 2020:2022
+  old_sp <- set_scenarios_path(my_scen_path("sg"))
+  on.exit(set_scenarios_path(old_sp), add = TRUE)
+
+  mod <- my_stg_mod(years = yrs, name = "sg")
+  fore <- solve_scen(interpolate_model(mod, name = "sg-fs"), echo = FALSE)
+  out_fore <- my_by_year(fore, "vStorageOutCap", yrs)
+  expect_gt(out_fore[["2020"]], 0) # the fixture really builds storage
+
+  res <- solve_myopic(mod, name = "sg", verbose = FALSE)
+  expect_true(all(res$steps$status == "solved"))
+  expect_equal(my_by_year(res, "vStorageOutCap", yrs), out_fore)
+  expect_equal(my_by_year(res, "vStorageStgCap", yrs),
+               my_by_year(fore, "vStorageStgCap", yrs))
+  # step 2 sees the step-1 build as exogenous stock and re-builds nothing
+  stock2 <- my_by_year(res, "vStorageOutStockCap", yrs)
+  expect_equal(unname(stock2[2]), unname(out_fore[1]))
+  new_myo <- my_by_year(res, "vStorageOutNewCap", yrs)
+  expect_equal(unname(new_myo[2:3]), c(0, 0))
+})
+
+test_that("trade capacity carries across steps (region-free family)", {
+  skip_if_no_solver()
+  yrs <- 2020:2022
+  old_sp <- set_scenarios_path(my_scen_path("tr"))
+  on.exit(set_scenarios_path(old_sp), add = TRUE)
+
+  mod <- my_trd_mod(years = yrs, name = "tr")
+  fore <- solve_scen(interpolate_model(mod, name = "tr-fs"), echo = FALSE)
+  cap_fore <- my_by_year(fore, "vTradeCap", yrs)
+  expect_gt(cap_fore[["2020"]], 0) # the fixture really builds the link
+
+  res <- solve_myopic(mod, name = "tr", verbose = FALSE)
+  expect_true(all(res$steps$status == "solved"))
+  expect_equal(my_by_year(res, "vTradeCap", yrs), cap_fore)
+  stock2 <- my_by_year(res, "vTradeStockCap", yrs)
+  expect_equal(unname(stock2[2]), unname(cap_fore[1]))
+  expect_equal(unname(my_by_year(res, "vTradeNewCap", yrs)[2:3]), c(0, 0))
+})
+
+test_that("a vintaged build is carried onto the RIGHT variant (provenance)", {
+  skip_if_no_solver()
+  yrs <- 2020:2022
+  old_sp <- set_scenarios_path(my_scen_path("vn"))
+  on.exit(set_scenarios_path(old_sp), add = TRUE)
+
+  mod <- my_vin_mod(years = yrs, name = "vn")
+  res <- solve_myopic(mod, name = "vn", verbose = FALSE)
+  expect_true(all(res$steps$status == "solved"))
+  # capacity path continuous: the early build persists as stock
+  cap <- my_by_year(res, "vTechCap", yrs)
+  expect_true(all(cap > 0))
+  expect_equal(unname(my_by_year(res, "vTechNewCap", yrs)[2:3]), c(0, 0))
+
+  # the ledger routed the carry through provenance: applying it to the
+  # pristine model writes the stock rows WITH the vintage selector
+  w <- horizon_windows(mod@config@horizon)[[2]]
+  mod2 <- model_apply_ledger(mod, res$ledger, w$horizon)
+  tech2 <- energyRt:::.model_find_object(mod2, "TECH", "technology")$obj
+  cap_df <- tech2@capacity
+  expect_true("vintage" %in% names(cap_df))
+  st_rows <- cap_df[!is.na(cap_df$stock) & cap_df$stock > 0, , drop = FALSE]
+  expect_true(nrow(st_rows) > 0)
+  expect_true(all(st_rows$vintage == "early"))
+})

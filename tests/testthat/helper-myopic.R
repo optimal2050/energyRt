@@ -62,6 +62,94 @@ my_scen_path <- function(name) {
   gsub("[\\/]+", "/", p)
 }
 
+# A storage-building model: free SUN only in slices t01-t02, flat ELC demand
+# in all four slices, so PV + storage beat the costly backstop and the solve
+# decides vStorage*NewCap.
+my_stg_mod <- function(years = 2020:2022, olife = 50L, name = "mys") {
+  tsl <- sprintf("t%02d", 1:4)
+  V <- data.frame(olife = olife)
+  newModel(
+    name = name, region = "R1", discount = 0, calendar = my_cal(),
+    horizon = newHorizon(min(years):max(years),
+                         intervals = rep(1L, length(years))),
+    repo = newRepository(
+      paste0(name, "r"),
+      newCommodity("SUN", timeframe = "HOUR"),
+      newCommodity("ELC", timeframe = "HOUR"),
+      newSupply("SUP_SUN", commodity = "SUN",
+                supply = data.frame(timeslice = tsl,
+                                    ava.up = c(2, 2, 0, 0), cost = 0)),
+      newTechnology("PV", input = list(comm = "SUN"),
+                    output = list(comm = "ELC"),
+                    invcost = data.frame(invcost = 5), vintage = V,
+                    cap2act = 1),
+      newStorage("STG", commodity = "ELC", vintage = V,
+                 invcost = list(out.invcost = 4, stg.invcost = 1),
+                 duration = data.frame(duration.lo = 1, duration.up = 200),
+                 af = data.frame(cinp.up = 1, cout.up = 1)),
+      newSupply("BACK", commodity = "ELC",
+                supply = data.frame(cost = MY_BACKSTOP_COST)),
+      newDemand("DEM", commodity = "ELC",
+                demand = data.frame(timeslice = tsl, demand = 1))))
+}
+
+# A trade-building model: cheap supply in R1, demand in R2, a tradable link
+# with an investment cost — the solve decides vTradeNewCap (region-free).
+my_trd_mod <- function(years = 2020:2022, olife = 50L, name = "myt") {
+  V <- data.frame(olife = olife)
+  newModel(
+    name = name, region = c("R1", "R2"), discount = 0, calendar = my_cal(),
+    horizon = newHorizon(min(years):max(years),
+                         intervals = rep(1L, length(years))),
+    repo = newRepository(
+      paste0(name, "r"),
+      newCommodity("ELC", timeframe = "HOUR"),
+      newTrade("TRD", commodity = "ELC", cap2act = 1,
+               routes = data.frame(src = "R1", dst = "R2"),
+               invcost = data.frame(invcost = 10),
+               # explicit capacity rows put the link into the capacity
+               # system (trade capacity is otherwise optional)
+               capacity = data.frame(year = years, cap.up = 100),
+               vintage = V,
+               optimizeRetirement = FALSE),
+      newSupply("SUP", commodity = "ELC",
+                supply = data.frame(region = c("R1", "R2"),
+                                    cost = c(1, MY_BACKSTOP_COST))),
+      # NOTE the explicit region COLUMN: on the current tree a region-scoped
+      # demand (@region = "R2") whose data row has region = NA interpolates
+      # to ZERO pDemand rows — a pre-existing bug in the in-flight region
+      # work (reproduced at HEAD), reported separately.
+      newDemand("DEM", commodity = "ELC", region = "R2",
+                demand = data.frame(region = "R2", demand = 1))))
+}
+
+# A vintaged technology: the "early" variant can only be built in the first
+# year, the "late" one afterwards — so a myopic carry must route the first
+# step's build back onto the RIGHT vintage selector.
+my_vin_mod <- function(years = 2020:2022, name = "myv") {
+  TECH <- newTechnology(
+    "TECH",
+    output = data.frame(comm = "ELC", unit = "GWh"), cap2act = 1,
+    invcost = data.frame(invcost = 10),
+    vintage = data.frame(vintage = c("early", "late"),
+                         start = c(min(years), min(years) + 1L),
+                         end = c(min(years), max(years)),
+                         olife = 50L),
+    optimizeRetirement = FALSE)
+  newModel(
+    name = name, region = "R1", discount = 0, calendar = my_cal(),
+    horizon = newHorizon(min(years):max(years),
+                         intervals = rep(1L, length(years))),
+    repo = newRepository(
+      paste0(name, "r"),
+      newCommodity("ELC", timeframe = "HOUR"),
+      TECH,
+      newSupply("BACK", commodity = "ELC",
+                supply = data.frame(cost = MY_BACKSTOP_COST)),
+      newDemand("DEM", commodity = "ELC",
+                demand = data.frame(demand = 1))))
+}
+
 # value of a variable by year, 0-filled over the given years
 my_by_year <- function(res_or_scen, name, years) {
   d <- if (inherits(res_or_scen, "myopic")) {

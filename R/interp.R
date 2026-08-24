@@ -39,6 +39,11 @@
 #'   (`GLPK`, `GAMS`, `JuMP`, `PYOMOConcrete`, ...), each either a script-file
 #'   path or a character vector of lines. Lets a model-script version be supplied
 #'   at interpolation time without rebuilding `sysdata` (handy to A/B templates).
+#' @param boundary_prices optional `data.frame` pricing import/export stubs
+#'   for trade routes dropped by a SPATIAL SAMPLE (a
+#'   `geoscales::filter_geoscale()` subset passed via `...`); see
+#'   [subset_model_regions()] for the columns. Ignored (with a warning)
+#'   when no sampled geoscale is supplied.
 #' @param verbose logical; print per-step progress.
 #'
 #' @return an interpolated [scenario] object.
@@ -49,6 +54,7 @@ interpolate_model <- function(mod, name = NULL, ...,
                        desc = NULL, ondisk = FALSE, overwrite = FALSE,
                        fold = FALSE, sparse = TRUE, prune = TRUE,
                        validate = TRUE, code = NULL, kvl = FALSE,
+                       boundary_prices = NULL,
                        verbose = isVerbose()) {
   # Accept a scenario (re-interpolate its model), matching the legacy interface.
   if (inherits(mod, "scenario")) mod <- mod@model
@@ -225,15 +231,50 @@ interpolate_model <- function(mod, name = NULL, ...,
     args <- args[!ii]
   }
 
-  # geoscale object -> settings@geoscale. Presentation-only: nothing downstream
-  # of here reads it, but carrying it on the scenario is what lets maps and
-  # region-level reporting work without the caller re-supplying it.
+  # geoscale object -> settings@geoscale. Beyond presentation (maps, region
+  # reporting), the geoscale is read for the region hierarchy
+  # (`.geo_hierarchy()` below) and, when it is a SAMPLE of the model's
+  # regions, it switches on spatial sampling -- the region mirror of the
+  # sampled calendar above (see R/sample_region.R).
+  .spatial_mode <- NULL
   ii <- vapply(args, is_geoscale, logical(1))
   if (sum(ii) > 1) {
     stop("Only one geoscale object is allowed in the arguments")
   } else if (sum(ii) == 1) {
     scen@settings@geoscale <- args[[which(ii)]]
     args <- args[!ii]
+
+    .spatial_mode <- .spatial_sample_mode(scen@settings@geoscale,
+                                          scen@model@config)
+    if (identical(.spatial_mode, "filtered")) {
+      .atoms <- geoscales::geoscale_regions(
+        scen@settings@geoscale,
+        geoscales::geoscale_geoframes(scen@settings@geoscale, finest = TRUE))
+      .r <- as.character(scen@settings@region)
+      scen@settings@region <- .r[.r %in% as.character(.atoms)]
+      if (isTRUE(verbose)) {
+        message("spatial sample: sub-territory solve on ",
+                length(scen@settings@region), " of ", length(.r),
+                " regions (", scen@settings@geoscale |>
+                  geoscales::geoscale_coverage() |>
+                  (\(cv) paste(names(cv), sprintf("%.1f%%", 100 * cv),
+                               collapse = ", "))(), " of the parent)")
+      }
+      mod <- .subset_model_regions(mod, keep = scen@settings@region,
+                                   boundary_prices = boundary_prices,
+                                   verbose = verbose)
+      scen@model <- mod
+    } else if (identical(.spatial_mode, "pruned")) {
+      stop("A pruned geoscale (coarser atom layer) requests a full-",
+           "territory solve at the parent level, which needs the region-",
+           "aggregation stage (`aggregate_model_regions()`) -- not ",
+           "implemented yet. Sample regions with ",
+           "geoscales::filter_geoscale() instead.", call. = FALSE)
+    }
+  }
+  if (!is.null(boundary_prices) && !identical(.spatial_mode, "filtered")) {
+    warning("`boundary_prices` given but no filtered (sampled) geoscale ",
+            "was passed; ignored.", call. = FALSE)
   }
 
   # horizon object -> settings@horizon (via setHorizon; the pipeline reads
@@ -296,6 +337,23 @@ interpolate_model <- function(mod, name = NULL, ...,
             paste(nm, collapse = ", "), call. = FALSE)
   }
 
+  # deprecated, never-wired hooks: sampling goes through sampled calendar /
+  # geoscale objects now. Warn when someone still fills them.
+  .ss <- scen@settings@subset
+  if (is.list(.ss) && any(vapply(unlist(.ss, recursive = FALSE),
+                                 length, integer(1)) > 0L)) {
+    warning("`settings@subset` is deprecated and has never been read; pass ",
+            "a sampled calendar / geoscale to interpolate_model() instead.",
+            call. = FALSE)
+  }
+  .yf <- scen@settings@yearFraction
+  if (is.data.frame(.yf) && nrow(.yf) > 0L &&
+      !all(is.na(.yf$year)) && !all(.yf$fraction == 1)) {
+    warning("`settings@yearFraction` is deprecated (experimental, unwired); ",
+            "a sampled calendar carries its own year_fraction.",
+            call. = FALSE)
+  }
+
   # guard: the mapping pipeline needs a non-empty horizon
   if (nrow(scen@settings@horizon@intervals) == 0L) {
     stop("The model has no horizon. Set one before interpolating, e.g. ",
@@ -312,9 +370,11 @@ interpolate_model <- function(mod, name = NULL, ...,
   # A geoscale's coarser levels count as declared: national demand for a
   # nationally-balanced commodity names the nation, which is a legitimate
   # region of the model even though it is not one of `@region`'s atoms.
-  .known_regions <- as.character(scen@settings@region)
-  .h <- .geo_hierarchy(getGeoscale(scen@settings), .known_regions)
-  if (!is.null(.h)) .known_regions <- .h$region
+  # Declarations are judged against the MODEL's own regions and geoscale
+  # (the `.declaration_calendar()` mirror): under a spatial sample the
+  # data legitimately still names the full region set; the parameter
+  # filter removes the out-of-sample rows later.
+  .known_regions <- .declaration_regions(scen)
   .check_declared_regions(scen@model, .known_regions)
 
   # Costs accrue only in the model's own regions (`mvTotalCost` is built from
@@ -657,6 +717,7 @@ interpolate_model <- function(mod, name = NULL, ...,
   # required for GAMS correctness). Legacy interpolate_model did this by default.
   .interp_step(verbose, "calendar-filter: restricting parameters to declared timeslices")
   scen <- .filter_params_by_declared_timeslices(scen, verbose)
+  scen <- .filter_params_by_declared_regions(scen, verbose)
 
   #============================================================================#
   # Equivalent annual cost (EAC) ####

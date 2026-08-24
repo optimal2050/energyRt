@@ -53,12 +53,19 @@
     dims = c("vintage", "cluster"),
     slots = c("vintage", "capacity", "invcost", "fixom", "varom",
               "af", "seff", "charge", "aeff", "weather", "duration"),
-    bound_var = list(cap = "vStorageOutCap", ncap = "vStorageOutNewCap"),
     # A storage keeps one capacity per PART, so its `@capacity` columns read
-    # `out.cap.up`, not `cap.up`. Group bounds constrain the discharger -- which
-    # is what `vStorageOutCap` is -- so the scan wears this prefix. Without it
-    # `intersect()` matches nothing and BOTH the aggregation and the `ret.*`
-    # refusal below go silently missing.
+    # `out.cap.up`, not `cap.up`, and each part has its own variable. Keyed on
+    # the FULL stem: keying on `cap`/`ncap` behind a single `out.` prefix made
+    # `inp.*` and `stg.*` match no column at all, so a TOTAL on either was
+    # silently dropped -- no variant (the token is filtered out of the level
+    # set) and no bound.
+    bound_var = list(
+      out.cap  = "vStorageOutCap", out.ncap = "vStorageOutNewCap",
+      inp.cap  = "vStorageInpCap", inp.ncap = "vStorageInpNewCap",
+      stg.cap  = "vStorageStgCap", stg.ncap = "vStorageStgNewCap"
+    ),
+    # Still the discharger for `.cluster_fixed_caps()`, which needs ONE primary
+    # capacity column to check share proportions against.
     bound_prefix = "out.",
     bound_dims = c("region", "year")
   ),
@@ -688,19 +695,23 @@
     fixed <- setdiff(dims, c(tot, per))
     per   <- per[vapply(per, function(d) length(lv[[d]]) > 0L, logical(1))]
 
-    bpre <- if (is.null(def$bound_prefix)) "" else def$bound_prefix
-    for (bc in intersect(paste0(bpre, .variant_bound_cols), names(r))) {
+    # Scan EVERY bound-shaped column the row carries, and look the stem up in
+    # `bound_var`. Deriving the scan list from a prefix instead let a column the
+    # class does have -- storage's `inp.*` / `stg.*` -- match nothing and be
+    # skipped in silence. An unsupported stem must be loud.
+    for (bc in grep("[.](lo|up|fx)$", names(r), value = TRUE)) {
       val <- r[[bc]]
       if (is.na(val)) next
       stem <- sub("[.](lo|up|fx)$", "", bc)
-      if (nzchar(bpre)) stem <- substring(stem, nchar(bpre) + 1L)
       sfx  <- sub("^.*[.]", "", bc)
       if (is.null(bvar[[stem]])) {
-        stop('Group-aggregate ("', .VARIANT_TOTAL, '") bounds are supported on ',
-             'cap.* and ncap.* but not on `', bc, '` (', cls, ' "', tech@name,
-             '"): the retirement variables carry a second year index (and no ',
-             'retirement equation exists for storage or trade), so a group ',
-             'retirement bound must be written explicitly with `newConstraint()`.')
+        stop('Group-aggregate ("', .VARIANT_TOTAL, '") bounds on ', cls, ' "',
+             tech@name, '" are supported on ',
+             paste0(names(bvar), ".*", collapse = ", "),
+             ' but not on `', bc, '`. The retirement variables carry a second ',
+             'year index (and no retirement equation exists for storage or ',
+             'trade), so a group retirement bound must be written explicitly ',
+             'with `newConstraint()`.', call. = FALSE)
       }
       grid <- if (length(per)) {
         expand.grid(lv[per], KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)

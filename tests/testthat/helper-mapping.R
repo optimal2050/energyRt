@@ -49,6 +49,23 @@ skip_if_no_fixtures <- function() {
   }
 }
 
+# One GLPK-solved scenario per tier, cached for the whole test run (used by
+# test-verify-solution.R, test-getdata-rollup.R, ...). Callers must have
+# passed skip_if_no_fixtures() and skip_if_no_solver().
+solved_tier <- local({
+  cache <- list()
+  function(tier) {
+    if (is.null(cache[[tier]])) {
+      env <- .mapping_fixture_env()
+      cache[[tier]] <<- suppressMessages(suppressWarnings(
+        solve_mod(env[[tier]](), name = paste0("st_", tier),
+                  solver = solver_options$glpk, tmp.del = TRUE, wait = TRUE)
+      ))
+    }
+    cache[[tier]]
+  }
+})
+
 # Interpolate a tier builder by name (in-memory, quiet).
 interp_tier <- function(tier) {
   env <- .mapping_fixture_env()
