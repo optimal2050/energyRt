@@ -192,3 +192,90 @@ test_that("a container prices every class, and `classes` narrows it", {
 
   expect_error(levcost(repo, classes = "supply"), "cannot price")
 })
+
+# ── vintage / cluster variants ───────────────────────────────────────────────
+
+.lct_vintaged <- function() {
+  newTrade(
+    "TRD_ELC", commodity = "ELC",
+    routes = data.frame(src = c("R1", "R2"), dst = c("R2", "R1")),
+    trade = data.frame(src = c("R1", "R2"), dst = c("R2", "R1"),
+                       teff = 0.95, af.up = 0.6),
+    invcost = data.frame(vintage = c("v2020", "v2030"),
+                         invcost = c(800, 500)),
+    fixom = data.frame(fixom = 12),
+    vintage = data.frame(vintage = c("v2020", "v2030"),
+                         start = c(2020L, 2030L), end = c(2029L, 2040L),
+                         olife = 40L),
+    cap2act = 8760)
+}
+
+test_that("a vintaged corridor fans out to one levcost per cell", {
+  # a trade has NO `region` slot, so `.levcost_devintage()` must not try to pin
+  # one -- this is the case that guard exists for
+  x <- levcost(.lct_vintaged(), discount = 0.05,
+               horizon = newHorizon(period = 2020:2024),
+               method = "analytic", verbose = FALSE)
+  expect_s3_class(x, "levcost_variants")
+  expect_length(x, 2L)
+  npv <- levcost_by_variant(x, "npv")
+  expect_setequal(npv$vintage, c("v2020", "v2030"))
+  expect_lt(npv$levcost_npv[npv$vintage == "v2030"],
+            npv$levcost_npv[npv$vintage == "v2020"])
+})
+
+test_that("each corridor cell equals pricing that cell on its own", {
+  trd <- .lct_vintaged()
+  h <- newHorizon(period = 2020:2024)
+  x <- levcost(trd, discount = 0.05, horizon = h, method = "analytic",
+               verbose = FALSE)
+  for (o in energyRt:::.tech_variants(trd)$objects) {
+    cell <- energyRt:::.levcost_unwindow(
+      energyRt:::.levcost_devintage(o, "R1"))
+    direct <- levcost(cell, discount = 0.05, horizon = h, method = "analytic",
+                      verbose = FALSE)
+    expect_equal(unname(x[[cell@name]]$levcost_npv),
+                 unname(direct$levcost_npv), tolerance = 1e-12,
+                 info = cell@name)
+  }
+})
+
+test_that("both engines agree on every corridor cell", {
+  skip_if_no_solver()
+  trd <- .lct_vintaged()
+  h <- newHorizon(period = 2020:2024)
+  a <- levcost(trd, discount = 0.05, horizon = h, method = "analytic",
+               verbose = FALSE)
+  s <- suppressMessages(suppressWarnings(
+    levcost(trd, discount = 0.05, horizon = h, method = "solve",
+            verbose = FALSE)))
+  expect_setequal(names(s), names(a))
+  for (nm in names(a))
+    expect_equal(unname(a[[nm]]$levcost_npv), unname(s[[nm]]$levcost_npv),
+                 tolerance = .lct_tol, info = nm)
+})
+
+test_that("a vintage window outside the horizon is still priced", {
+  # `.levcost_unwindow()`: the closed form never reads `start`/`end`, so a cell
+  # whose window falls outside the priced horizon used to return a number from
+  # one engine and INFEASIBLE from the other. Both must answer, and agree.
+  skip_if_no_solver()
+  h <- newHorizon(period = 2020:2024)          # excludes v2030 entirely
+  a <- levcost(.lct_vintaged(), discount = 0.05, horizon = h,
+               method = "analytic", verbose = FALSE)
+  s <- suppressMessages(suppressWarnings(
+    levcost(.lct_vintaged(), discount = 0.05, horizon = h, method = "solve",
+            verbose = FALSE)))
+  late <- "TRD_ELC_VINv2030"
+  expect_true(is.finite(unname(a[[late]]$levcost_npv)))
+  expect_equal(unname(a[[late]]$levcost_npv), unname(s[[late]]$levcost_npv),
+               tolerance = .lct_tol)
+})
+
+test_that("an un-vintaged corridor still returns a plain levcost", {
+  x <- levcost(.lct_line(), discount = 0.05,
+               horizon = newHorizon(period = 2020L), method = "analytic",
+               verbose = FALSE)
+  expect_s3_class(x, "levcost")
+  expect_false(inherits(x, "levcost_variants"))
+})

@@ -309,6 +309,24 @@
   object
 }
 
+#' Drop a devintaged cell's build window, keeping its lifetime
+#'
+#' `.levcost_devintage()` carries `start`/`end` through, and for a levelized
+#' cost they are actively wrong: the question is what a unit of THIS vintage
+#' costs, not whether it could have been built inside the priced horizon. Left
+#' in, the two engines disagree -- the closed form never reads the window and
+#' returns a number, while the mini-model honours it and a vintage whose window
+#' falls outside the horizon goes INFEASIBLE. `olife` is untouched; it is what
+#' drives the annuity.
+#' @noRd
+.levcost_unwindow <- function(obj) {
+  v <- obj@vintage
+  if (NROW(v) == 0) return(obj)
+  for (cc in intersect(c("start", "end"), names(v))) v[[cc]] <- NA_integer_
+  obj@vintage <- v
+  obj
+}
+
 #' Turn per-year totals and an output series into a `levcost` object
 #'
 #' One assembler for both classes, and deliberately the same list shape as
@@ -442,15 +460,43 @@ levcost_storage_ <- function(
   if (length(.levcost_tech_regions(object)) > 1)
     object <- .levcost_subset_tech_region(object, region)
 
-  object <- .levcost_strip_capacity(object, verbose = verbose,
-                                    what = "LCOS mini-model")
-
   # ── horizon ───────────────────────────────────────────────────────────────
   if (is.null(horizon))
     horizon <- .levcost_auto_horizon(object, base_year = base_year,
                                      verbose = verbose)
   hor_years <- as.integer(horizon@period)
   if (is.null(base_year)) base_year <- min(hor_years)
+
+  # ── vintage / cluster variants ────────────────────────────────────────────
+  # One cell per (vintage, cluster), each priced by a fresh call. The technology
+  # path instead rides every cell in ONE model pinned to artificial regions --
+  # worth it there because a technology mini-model is expensive, pointless here
+  # because a storage mini-model is two timeslices. `price` is deliberately
+  # still NULL at this point, so each cell resolves its own charging price.
+  #
+  # The horizon is resolved from the BASE object ABOVE and passed down, so it
+  # spans every vintage window. Letting each cell auto-size its own would price
+  # the vintages on different horizons and different discounting base years,
+  # which is exactly the comparison a variant fan-out exists to make.
+  vfan <- .tech_variants(object)
+  if (!is.null(vfan)) {
+    if (verbose)
+      message("levcost(): '", name, "' has ", length(vfan$objects),
+              " vintage/cluster cells; pricing each.")
+    cells <- lapply(lapply(vfan$objects, .levcost_devintage, region = region),
+                    .levcost_unwindow)
+    names(cells) <- vapply(cells, function(o) o@name, character(1))
+    per <- lapply(cells, function(o)
+      levcost_storage_(o, comm = comm, cycles = cycles, price = price,
+                       repo = repo, fuel_costs = fuel_costs,
+                       discount = discount, base_year = base_year,
+                       horizon = horizon, region = region, solver = solver,
+                       method = method, verbose = FALSE))
+    return(.levcost_variants_object(per, vfan$prov, name))
+  }
+
+  object <- .levcost_strip_capacity(object, verbose = verbose,
+                                    what = "LCOS mini-model")
 
   # ── price of the charging commodity ───────────────────────────────────────
   if (is.null(price)) {

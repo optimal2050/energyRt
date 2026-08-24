@@ -286,3 +286,87 @@ test_that("a name that is not a priceable process is reported, not crashed", {
   expect_message(x <- levcost(sc, name = "SUP_GAS"), "not a technology")
   expect_null(x)
 })
+
+# ── vintage / cluster variants ───────────────────────────────────────────────
+# A vintaged store fans out to one priced cell per (vintage, cluster), reusing
+# the same `levcost_variants` container the technology path returns -- so
+# `levcost_by_variant()` and `autoplot()` work on all three classes alike.
+
+.lcs_vintaged <- function() {
+  newStorage(
+    "STG_BTR", commodity = "ELC", region = "R1",
+    input = list(comm = "ELC", cap2act = 8760),
+    storage = list(comm = "ELC"),
+    invcost = data.frame(vintage = c("v2020", "v2030"),
+                         stg.invcost = c(100, 60), out.invcost = c(50, 40)),
+    seff = data.frame(inpeff = 0.9, outeff = 0.95),
+    duration = 4,
+    vintage = data.frame(vintage = c("v2020", "v2030"),
+                         start = c(2020L, 2030L), end = c(2029L, 2040L),
+                         olife = 10L))
+}
+
+test_that("a vintaged storage fans out to one levcost per cell", {
+  x <- levcost(.lcs_vintaged(), cycles = 365, price = 10, discount = 0.05,
+               horizon = newHorizon(period = 2020:2029),
+               method = "analytic", verbose = FALSE)
+  expect_s3_class(x, "levcost_variants")
+  expect_s3_class(x, "levcost_list")
+  expect_length(x, 2L)
+
+  npv <- levcost_by_variant(x, "npv")
+  expect_equal(nrow(npv), 2L)
+  expect_setequal(npv$vintage, c("v2020", "v2030"))
+  expect_equal(unique(npv$tech), "STG_BTR")
+  expect_true(all(is.finite(npv$levcost_npv)))
+  # the cheaper vintage is cheaper
+  expect_lt(npv$levcost_npv[npv$vintage == "v2030"],
+            npv$levcost_npv[npv$vintage == "v2020"])
+
+  for (what in c("levcost", "components"))
+    expect_true(all(c("tech", "variant", "vintage", "cluster") %in%
+                      names(levcost_by_variant(x, what))), info = what)
+})
+
+test_that("each cell equals pricing that cell on its own", {
+  # the fan-out must be exactly `devintage then price`, with nothing of the
+  # other cells leaking in
+  stg <- .lcs_vintaged()
+  h <- newHorizon(period = 2020:2029)
+  x <- levcost(stg, cycles = 365, price = 10, discount = 0.05, horizon = h,
+               method = "analytic", verbose = FALSE)
+  vf <- energyRt:::.tech_variants(stg)
+  for (o in vf$objects) {
+    cell <- energyRt:::.levcost_devintage(o, "R1")
+    direct <- levcost(cell, cycles = 365, price = 10, discount = 0.05,
+                      horizon = h, method = "analytic", verbose = FALSE)
+    expect_equal(unname(x[[cell@name]]$levcost_npv),
+                 unname(direct$levcost_npv), tolerance = 1e-12,
+                 info = cell@name)
+  }
+})
+
+test_that("the solve engine fans out the same way as the closed form", {
+  skip_if_no_solver()
+  stg <- .lcs_vintaged()
+  h <- newHorizon(period = 2020:2029)
+  a <- levcost(stg, cycles = 365, price = 10, discount = 0.05, horizon = h,
+               method = "analytic", verbose = FALSE)
+  s <- suppressMessages(suppressWarnings(
+    levcost(stg, cycles = 365, price = 10, discount = 0.05, horizon = h,
+            method = "solve", verbose = FALSE)))
+  expect_s3_class(s, "levcost_variants")
+  expect_setequal(names(s), names(a))
+  for (nm in names(a))
+    expect_equal(unname(a[[nm]]$levcost_npv), unname(s[[nm]]$levcost_npv),
+                 tolerance = .lcs_tol, info = nm)
+})
+
+test_that("an un-vintaged storage still returns a plain levcost", {
+  x <- levcost(.lcs_battery(), cycles = 365, price = 10, discount = 0.05,
+               horizon = newHorizon(period = 2020L), method = "analytic",
+               verbose = FALSE)
+  expect_s3_class(x, "levcost")
+  expect_false(inherits(x, "levcost_variants"))
+  expect_error(levcost_by_variant(x), "levcost_variants")
+})

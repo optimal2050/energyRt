@@ -286,14 +286,41 @@ levcost_trade_ <- function(
   rt   <- .lct_route(object, route)
   ends <- .lct_endpoints(object)
 
-  object <- .levcost_strip_capacity(object, verbose = verbose,
-                                    what = "LCOT mini-model")
-
   if (is.null(horizon))
     horizon <- .levcost_auto_horizon(object, base_year = base_year,
                                      verbose = verbose)
   hor_years <- as.integer(horizon@period)
   if (is.null(base_year)) base_year <- min(hor_years)
+
+  # ── vintage / cluster variants ────────────────────────────────────────────
+  # A trade cluster is a LOSS TRANCHE (see R/variants.R:35), so a fan-out here
+  # prices each tranche separately -- which is the whole point of declaring
+  # them. `.levcost_devintage()` blanks only `vintage`/`cluster`, never the
+  # `src`/`dst` of `@routes`. The route is passed on explicitly because a cell
+  # must be priced in the same direction as its parent, and the horizon is
+  # resolved from the BASE object above so every cell is discounted on the same
+  # span and base year -- otherwise the fan-out compares vintages priced on
+  # different horizons, which is not a comparison at all.
+  vfan <- .tech_variants(object)
+  if (!is.null(vfan)) {
+    if (verbose)
+      message("levcost(): '", name, "' has ", length(vfan$objects),
+              " vintage/cluster cells; pricing each.")
+    cells <- lapply(lapply(vfan$objects, .levcost_devintage, region = ends[1]),
+                    .levcost_unwindow)
+    names(cells) <- vapply(cells, function(o) o@name, character(1))
+    per <- lapply(cells, function(o)
+      levcost_trade_(o, comm = comm, route = c(rt$src, rt$dst),
+                     utilisation = utilisation, price = price, repo = repo,
+                     fuel_costs = fuel_costs, discount = discount,
+                     base_year = base_year, horizon = horizon,
+                     solver = solver, method = method, verbose = FALSE))
+    return(.levcost_variants_object(per, vfan$prov, name))
+  }
+
+  object <- .levcost_strip_capacity(object, verbose = verbose,
+                                    what = "LCOT mini-model")
+
 
   teff <- .lct_dir_series(object@trade, "teff", hor_years, rt$src, rt$dst,
                           default = 1)[1]

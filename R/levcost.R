@@ -1295,7 +1295,10 @@ levcost_chain_ <- function(
     methods::slot(obj, sl) <- d
   }
 
-  obj@region <- region
+  # A `trade` has no `region` slot at all -- its geography is `@routes` (src/dst)
+  # and its capacity carries no region index -- so pinning one is both
+  # impossible and meaningless. Technology and storage both have it.
+  if (methods::.hasSlot(obj, "region")) obj@region <- region
   obj
 }
 
