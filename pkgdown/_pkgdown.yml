@@ -145,6 +145,7 @@ reference:
   - starts_with("write")
   - starts_with("read")
   - starts_with("solve")
+  - subset_model_regions
   - mosox_run
   - en_mosox_run
   - matches("mapping")

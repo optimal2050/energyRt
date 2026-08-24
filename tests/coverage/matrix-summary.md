@@ -1,6 +1,6 @@
 # Coverage matrix summary
 
-Generated: 2026-08-23 20:44 | energyRt 0.86.0.9000
+Generated: 2026-08-24 16:51 | energyRt 0.87.1.9000
 
 ## Rows by kind x depth
 
@@ -9,11 +9,11 @@ Key: <kind>
      kind  none     C     I     S     X
    <char> <int> <int> <int> <int> <int>
    bounds    21     3     1     6     6
- equation   137     0     1     2     8
-      map   232     0    39     3    11
-   numpar    68     7     7    10    41
-      set     1     1     0     2     9
- variable    60     0     2    10    23
+ equation   134     0     1     9     4
+      map   233     0    39     2    11
+   numpar    59     8     6    19    41
+      set     0     0     0     3    10
+ variable    45     0     4    23    23
 ```
 
 ## Numeric parameters: family x depth
@@ -22,21 +22,21 @@ Key: <kind>
 Key: <family>
                       family  none     C     I     S     X
                       <char> <int> <int> <int> <int> <int>
-         calendar-timeslices     1     0     0     3     0
+         calendar-timeslices     0     0     0     4     0
                    commodity     2     0     0     0     0
-                      demand     1     0     0     0     0
+                      demand     0     1     0     0     0
                  discounting     0     0     0     0     3
                  dummy-debug     2     0     0     0     0
            horizon-periodlen     1     0     0     0     2
-           import-export-row     6     0     0     0     0
+           import-export-row     4     0     0     2     0
            storage-aux-flows    14     1     0     0     0
-           storage-costs-eac    17     0     2     1     8
+           storage-costs-eac    15     0     1     4     8
             storage-duration     0     0     0     0     1
           storage-efficiency     0     0     0     3     0
              storage-inp2out     1     0     0     0     0
     storage-roles-capacities     8     0     0     1     5
  storage-startlevel-fullyear     0     0     1     0     0
-               storage-varom     3     0     0     0     0
+               storage-varom     0     0     0     3     0
              storage-weather     2     1     0     0     0
                       supply     1     1     1     0     1
                  tax-subsidy     0     2     0     0     4
@@ -58,23 +58,19 @@ Key: <family>
                       <char> <int> <int> <int> <int> <int>
 ```
 
-## Zero-coverage numeric parameters (89)
+## Zero-coverage numeric parameters (80)
 
 ```
                  name                   family      class         slot
                <char>                   <char>     <char>       <char>
-        pYearFraction      calendar-timeslices   settings yearFraction
      pAggregateFactor                commodity  commodity          agg
       pEmissionFactor                commodity  commodity         emis
-              pDemand                   demand     demand          dem
      pDummyExportCost              dummy-debug   settings        debug
      pDummyImportCost              dummy-debug   settings        debug
              cardYear        horizon-periodlen                        
            pExportRow        import-export-row     export availability
-      pExportRowPrice        import-export-row     export availability
         pExportRowRes        import-export-row     export      reserve
            pImportRow        import-export-row     import availability
-      pImportRowPrice        import-export-row     import availability
         pImportRowRes        import-export-row     import      reserve
      pStorageCap2AInp        storage-aux-flows    storage         aeff
      pStorageCap2AOut        storage-aux-flows    storage         aeff
@@ -91,7 +87,6 @@ Key: <family>
      pStorageStg2AInp        storage-aux-flows    storage         aeff
      pStorageStg2AOut        storage-aux-flows    storage         aeff
        pStorageInpEac        storage-costs-eac    storage      invcost
-     pStorageInpFixom        storage-costs-eac    storage        fixom
    pStorageInpPayback        storage-costs-eac    storage      invcost
    pStorageInpRetCost        storage-costs-eac    storage      invcost
   pStorageInpStockNew        storage-costs-eac                        
@@ -101,7 +96,6 @@ Key: <family>
   pStorageOutStockNew        storage-costs-eac                        
  pStorageOutStockSurv        storage-costs-eac                        
       pStorageOutWacc        storage-costs-eac    storage      invcost
-     pStorageStgFixom        storage-costs-eac    storage        fixom
    pStorageStgPayback        storage-costs-eac    storage      invcost
    pStorageStgRetCost        storage-costs-eac    storage      invcost
   pStorageStgStockNew        storage-costs-eac                        
@@ -116,9 +110,6 @@ Key: <family>
     pStorageOutNewCap storage-roles-capacities    storage     capacity
        pStorageStgCap storage-roles-capacities    storage     capacity
     pStorageStgNewCap storage-roles-capacities    storage     capacity
-      pStorageCostInp            storage-varom    storage        varom
-      pStorageCostOut            storage-varom    storage        varom
-    pStorageCostStore            storage-varom    storage        varom
   pStorageWeatherCinp          storage-weather    storage      weather
   pStorageWeatherCout          storage-weather    storage      weather
           pSupReserve                   supply     supply      reserve
@@ -156,18 +147,14 @@ Key: <family>
                <char>                   <char>     <char>       <char>
      colName
       <char>
-            
          agg
         emis
-         dem
  dummyExport
  dummyImport
             
          exp
-       price
             
          imp
-       price
             
     cap2ainp
     cap2aout
@@ -184,7 +171,6 @@ Key: <family>
     stg2ainp
     stg2aout
      inp.eac
-   inp.fixom
  inp.payback
  inp.retcost
             
@@ -194,7 +180,6 @@ Key: <family>
             
             
     out.wacc
-   stg.fixom
  stg.payback
  stg.retcost
             
@@ -209,9 +194,6 @@ Key: <family>
     out.ncap
      stg.cap
     stg.ncap
-     inpcost
-     outcost
-     stgcost
        wcinp
        wcout
          res
@@ -249,4 +231,4 @@ Key: <family>
       <char>
 ```
 
-Tagged rows: 3 | inferred: 189 | uncovered: 519 of 711
+Tagged rows: 20 | inferred: 199 | uncovered: 492 of 711

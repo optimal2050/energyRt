@@ -983,14 +983,23 @@ recipe_value <- function(scen, names, fmp) {
                              types = "lo"),
   mStorageInpNewCapUp = list(domain = "mStorageInpNew", source = "pStorageInpNewCap",
                              types = "up"),
+  # STRUCTURAL: both ratios default to [1, 1] (`pStorageInp2out`,
+  # `pStorageDuration` in modInp.yml), and a binding default is exactly what
+  # `structural` is for. Left conditional, an empty `@duration` or `@inp2out`
+  # produced NO equation, so the documented default of 1 silently became "no
+  # constraint": `vStorageStgCap` was never tied to `vStorageOutCap`, and a
+  # charging part that was priced but not explicitly ratio'd kept
+  # `vStorageInpCap` at zero -- its `inp.invcost` and `inp.fixom` vanished from
+  # the objective. The domains already restrict these to storages whose part
+  # HAS a capacity variable, so nothing fires for an unpriced part.
   mStorageInp2outLo   = list(domain = "mStorageInpCap", source = "pStorageInp2out",
-                             types = "lo"),
+                             types = "lo", structural = TRUE),
   mStorageInp2outUp   = list(domain = "mStorageInpCap", source = "pStorageInp2out",
-                             types = "up"),
+                             types = "up", structural = TRUE),
   mStorageDurationLo  = list(domain = "mStorageStgCap", source = "pStorageDuration",
-                             types = "lo"),
+                             types = "lo", structural = TRUE),
   mStorageDurationUp  = list(domain = "mStorageStgCap", source = "pStorageDuration",
-                             types = "up"),
+                             types = "up", structural = TRUE),
   mStorageOutRetLo    = list(domain = "mStorageSpan", source = "pStorageOutRet",
                           types = "lo"),
   mStorageOutRetUp    = list(domain = "mStorageSpan", source = "pStorageOutRet",

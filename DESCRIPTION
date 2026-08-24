@@ -1,7 +1,7 @@
 Package: energyRt
 Type: Package
 Title: Energy Systems Modeling Toolbox
-Version: 0.87.0.9000
+Version: 0.87.1.9000
 Date: 2026-08-24
 Authors@R: 
   c(person(given = "Oleg", 
@@ -34,7 +34,7 @@ Imports: methods, grid, generics, data.table, DBI, RSQLite, tibble,
         glue, plyr, grDevices, utils, tools, yaml
 Suggests: shiny, DT, pak, gdxtools (== 0.7.1), knitr, rmarkdown, sf, ggplot2, testthat
         (>= 3.0.0), devtools, openxlsx, jsonlite, readxl, httr2, xml2,
-        base64enc, tinytex, patchwork, geoscales
+        base64enc, tinytex, patchwork, geoscales (>= 0.4.2.9000)
 Additional_repositories: https://optimal2050.r-universe.dev
 SystemRequirements: Julia (>= 1.6) with JuMP or Python (>= 3.7) with
         Pyomo or GAMS (>= 24.9) or GLPK (>= 4.0)
@@ -44,6 +44,7 @@ LazyData: true
 Encoding: UTF-8
 Collate: 
     'arrow.R'
+    'carry.R'
     'docs.R'
     'zzz.R'
     'options.R'
@@ -109,6 +110,8 @@ Collate:
     'solve.R'
     'levcost.R'
     'levcost_analytic.R'
+    'levcost_storage.R'
+    'levcost_trade.R'
     'map_closure.R'
     'map_constraint.R'
     'map_costagg.R'
@@ -133,6 +136,8 @@ Collate:
     'repo_store.R'
     'report.R'
     'runs.R'
+    'sample_region.R'
+    'solve_myopic.R'
     'start_level.R'
     'start_msg.R'
     'stock_path.R'
@@ -147,6 +152,7 @@ Collate:
     'utopia-geoscale.R'
     'utopia_profiles.R'
     'variants.R'
+    'verify_solution.R'
     'vintage_lifespan.R'
     'vre-data.R'
     'write.R'

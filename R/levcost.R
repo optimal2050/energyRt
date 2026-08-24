@@ -29,11 +29,24 @@
 #'     and discount rate from the model's configuration (each overridable).}
 #'   \item{\code{scenario}}{an \emph{ex-post} cost of the named process in the
 #'     \emph{solved} scenario: the discounted sum of its own costs (annualised
-#'     investment \code{vTechEac}, \code{vTechFixom}, \code{vTechVarom}, plus
-#'     attributed fuel cost) divided by its discounted output. Fuel is attributed
-#'     from \code{vTechInp}; a technology with a \emph{grouped} input (whose
-#'     per-commodity consumption is not a solution variable) therefore reports no
-#'     fuel component.}
+#'     investment, fixed and variable O&M, plus attributed fuel cost) divided by
+#'     its discounted output. The process may be a \code{technology},
+#'     \code{storage} or \code{trade}; each reads its own solved variables
+#'     (\code{vTechOut}/\code{vStorageOut}/\code{vTradeIr} and the matching
+#'     \code{*Eac}/\code{*Fixom}/\code{*Varom}). For a \code{trade} the
+#'     denominator is what ARRIVES, i.e. \code{vTradeIr} times the route
+#'     efficiency.
+#'
+#'     Fuel is attributed from the process's own input variable and priced from
+#'     the \code{supply} objects in the model. A commodity with no
+#'     \code{supply} -- anything the model produces itself, which is the usual
+#'     case for a store's charging electricity -- is charged at ZERO here,
+#'     because what it is worth is the commodity balance's dual and not a slot.
+#'     The scenario path therefore reports a store's OWN cost per unit
+#'     discharged, not its delivered cost; use \code{levcost()} on the
+#'     \code{storage} object with \code{price =} for the latter. Likewise a
+#'     technology with a \emph{grouped} input (whose per-commodity consumption
+#'     is not a solution variable) reports no fuel component.}
 #' }
 #'
 #' @param object  A \code{technology} (or list thereof), \code{repository},
@@ -180,17 +193,82 @@ setMethod("levcost", "technology", function(object, comm, name, ...) {
   levcost_technology_(object, comm = comm_arg, ...)
 })
 
+#' @rdname levcost
+setMethod("levcost", "storage", function(object, comm, name, ...) {
+  comm_arg <- if (missing(comm)) NULL else comm
+  levcost_storage_(object, comm = comm_arg, ...)
+})
+
+#' @rdname levcost
+setMethod("levcost", "trade", function(object, comm, name, ...) {
+  comm_arg <- if (missing(comm)) NULL else comm
+  levcost_trade_(object, comm = comm_arg, ...)
+})
+
 # ── levcost() for containers: repository & model ─────────────────────────────
-# Find a named technology inside a repository/model/scenario.
-.levcost_find_tech <- function(container, name) {
-  techs <- tryCatch(getObjects(container, "technology"), error = function(e) list())
-  if (!is.null(name) && name %in% names(techs)) techs[[name]] else NULL
+
+# The process classes levcost() can price, in the order a name is searched for.
+.LEVCOST_CLASSES <- c("technology", "storage", "trade")
+
+# The per-class entry point. Kept as a lookup rather than an S4 dispatch because
+# the container path needs to know WHICH class it found before it decides how to
+# prepare the object -- a trade must not be region-subset, for one.
+.levcost_driver <- function(cls) {
+  switch(cls,
+         technology = levcost_technology_,
+         storage    = levcost_storage_,
+         trade      = levcost_trade_,
+         stop("levcost(): no engine for class ", cls, call. = FALSE))
 }
 
-# Commodities a technology consumes (main + grouped inputs).
+# Every process in a container that levcost() can price, as
+# list(name = , class = , object = ), optionally narrowed to `classes`.
+.levcost_processes <- function(container, classes = NULL) {
+  cls <- if (is.null(classes)) .LEVCOST_CLASSES else
+    intersect(classes, .LEVCOST_CLASSES)
+  bad <- setdiff(classes %||% character(0), .LEVCOST_CLASSES)
+  if (length(bad))
+    stop("levcost(): cannot price class(es) ", paste(bad, collapse = ", "),
+         "; supported: ", paste(.LEVCOST_CLASSES, collapse = ", "),
+         call. = FALSE)
+  out <- list()
+  for (cl in cls) {
+    objs <- tryCatch(getObjects(container, cl), error = function(e) list())
+    for (nm in names(objs))
+      out[[length(out) + 1L]] <- list(name = nm, class = cl,
+                                      object = objs[[nm]])
+  }
+  out
+}
+
+# Find a named process of any priceable class inside a repository/model/scenario.
+# `classes` narrows the search, which is also how a name shared by two classes is
+# disambiguated.
+.levcost_find_process <- function(container, name, classes = NULL) {
+  if (is.null(name) || !nzchar(name)) return(NULL)
+  hits <- Filter(function(p) identical(p$name, name),
+                 .levcost_processes(container, classes))
+  if (!length(hits)) return(NULL)
+  if (length(hits) > 1)
+    stop("levcost(): '", name, "' names more than one process (",
+         paste(vapply(hits, `[[`, character(1), "class"), collapse = ", "),
+         "); pass classes = to choose.", call. = FALSE)
+  hits[[1]]
+}
+
+# Back-compat: the technology-only finder some callers still use.
+.levcost_find_tech <- function(container, name) {
+  p <- .levcost_find_process(container, name, classes = "technology")
+  if (is.null(p)) NULL else p$object
+}
+
+# Commodities a process consumes. A trade moves its own commodity rather than
+# consuming a different one, so it has no input to cover.
 .levcost_input_comms <- function(tech) {
+  if (inherits(tech, "trade")) return(character(0))
   ic <- character(0)
-  if (nrow(tech@input) > 0) ic <- unique(as.character(tech@input$comm))
+  if (.hasSlot(tech, "input") && nrow(tech@input) > 0)
+    ic <- unique(as.character(tech@input$comm))
   unique(ic[!is.na(ic) & nzchar(ic)])
 }
 
@@ -400,17 +478,44 @@ setMethod("levcost", "technology", function(object, comm, name, ...) {
   newHorizon(period = hor_years)
 }
 .levcost_container <- function(container, name, comm = NULL, autocomplete = FALSE,
-                               fuel_costs = NULL, verbose = TRUE, ...) {
+                               fuel_costs = NULL, verbose = TRUE,
+                               classes = NULL, ...) {
+  # No name: price every process the container holds that levcost() can price.
+  # `classes` narrows it -- classes = "technology" is exactly the historical
+  # single-class behaviour, one process at a time.
   if (is.null(name) || !nzchar(name)) {
-    message("levcost(): please give the technology `name = ` to price.")
-    return(invisible(NULL))
+    procs <- .levcost_processes(container, classes)
+    if (!length(procs)) {
+      message("levcost(): the ", class(container)[1], " holds no ",
+              "technology, storage or trade to price.")
+      return(invisible(NULL))
+    }
+    out <- lapply(procs, function(p)
+      tryCatch(.levcost_container(container, name = p$name, comm = comm,
+                                  autocomplete = autocomplete,
+                                  fuel_costs = fuel_costs, verbose = verbose,
+                                  classes = p$class, ...),
+               error = function(e) {
+                 warning("levcost(): ", p$class, " '", p$name, "' could not be ",
+                         "priced: ", conditionMessage(e), call. = FALSE)
+                 NULL
+               }))
+    names(out) <- vapply(procs, `[[`, character(1), "name")
+    out <- Filter(Negate(is.null), out)
+    # `levcost_list` is the class the VARIANT path already returns, so its
+    # print / autoplot / plot methods and report()'s handling of a multi-result
+    # apply to this unchanged
+    class(out) <- c("levcost_list", "list")
+    return(out)
   }
-  tech <- .levcost_find_tech(container, name)
-  if (is.null(tech)) {
-    message("levcost(): technology '", name, "' not found in the ",
+  proc <- .levcost_find_process(container, name, classes)
+  if (is.null(proc)) {
+    message("levcost(): process '", name, "' not found in the ",
             class(container)[1], ".")
     return(invisible(NULL))
   }
+  tech <- proc$object
+  cls  <- proc$class
   in_comms <- .levcost_input_comms(tech)
   # a commodity is "covered" if the container supplies it, an IMPORT prices it
   # (rest-of-world fuel at its import price), or `fuel_costs` prices it
@@ -443,7 +548,9 @@ setMethod("levcost", "technology", function(object, comm, name, ...) {
   } else {
     reg1 <- reg1[1]
   }
-  if (!is.null(reg1)) {
+  # A trade spans two regions by construction and its costs are charged in
+  # BOTH; subsetting it to one would silently halve the capital charge.
+  if (!is.null(reg1) && !identical(cls, "trade")) {
     tech <- .levcost_subset_tech_region(tech, reg1)
     dots$region <- reg1
   }
@@ -465,8 +572,12 @@ setMethod("levcost", "technology", function(object, comm, name, ...) {
   # the container's commodities + supplies become the levcost `repo`
   repo <- c(tryCatch(getObjects(container, "commodity"), error = function(e) list()),
             tryCatch(getObjects(container, "supply"),     error = function(e) list()))
-  do.call(levcost_technology_, c(list(tech, comm = comm, repo = repo,
-    fuel_costs = fuel_costs, verbose = verbose), dots))
+  args <- c(list(tech, comm = comm, repo = repo, fuel_costs = fuel_costs,
+                 verbose = verbose), dots)
+  # a trade is priced across BOTH endpoints, so the single-region arguments the
+  # technology path resolves above are meaningless to it
+  if (identical(cls, "trade")) args$region <- NULL
+  do.call(.levcost_driver(cls), args)
 }
 
 #' @rdname levcost
@@ -522,12 +633,56 @@ setMethod("levcost", "scenario", function(object, comm, name, ...) {
 
 # Fuel cost of a process in a solved scenario: sum over inputs of
 # vTechInp[tech, comm] x mean supply price of that commodity, by year.
-.levcost_scenario_fuel <- function(scen, name) {
-  # `timeframe = "lowest"` is pinned, not inherited: levcost wants ANNUAL totals,
-  # and the getData() default is now "highest" (native resolution).
-  inp <- tryCatch(getData(scen, "vTechInp", tech = name, merge = TRUE,
-                          timeframe = "lowest"),
-                  error = function(e) NULL)
+# Which solved variables carry a class's output and costs, and which index
+# column names the process. Everything class-specific about pricing a SOLVED
+# scenario lives here; `.levcost_scenario()` below is otherwise class-agnostic.
+#
+# `deliver_eff` matters for trade only: `vTradeIr` is what LEAVES the sending
+# region, so what arrives is `vTradeIr * teff`. `vStorageOut` and `vTechOut` are
+# already post-efficiency.
+.LEVCOST_SCEN_VARS <- list(
+  technology = list(index = "tech",  out = "vTechOut",
+                    eac = "vTechEac", fixom = "vTechFixom",
+                    varom = "vTechVarom", inp = "vTechInp"),
+  storage    = list(index = "stg",   out = "vStorageOut",
+                    eac = "vStorageEac", fixom = "vStorageFixom",
+                    varom = "vStorageVarom", inp = "vStorageInp"),
+  trade      = list(index = "trade", out = "vTradeIr",
+                    eac = "vTradeEac", fixom = "vTradeFixom",
+                    varom = NULL, inp = NULL)
+)
+
+# The class of a named process in a solved scenario's model.
+.levcost_scen_class <- function(scen, name) {
+  mdl <- tryCatch(scen@model, error = function(e) NULL)
+  if (is.null(mdl)) return(NULL)
+  for (cl in .LEVCOST_CLASSES) {
+    objs <- tryCatch(getObjects(mdl, cl), error = function(e) list())
+    if (name %in% names(objs)) return(cl)
+  }
+  NULL
+}
+
+.levcost_scenario_fuel <- function(scen, name, cls = "technology") {
+  vars <- .LEVCOST_SCEN_VARS[[cls]]
+  if (is.null(vars) || is.null(vars$inp))
+    return(setNames(numeric(0), character(0)))
+  inp <- .levcost_scen_get(scen, vars$inp, vars$index, name)
+  .levcost_scenario_fuel_(inp, scen)
+}
+
+# One solved variable as an annual data.frame, filtered to the named process by
+# whichever index column its class uses.
+.levcost_scen_get <- function(scen, var, index, name) {
+  if (is.null(var)) return(NULL)
+  args <- list(scen, var, merge = TRUE, timeframe = "lowest")
+  args[[index]] <- name
+  tryCatch(do.call(getData, args), error = function(e) NULL)
+}
+
+.levcost_scenario_fuel_ <- function(inp, scen) {
+  # `timeframe = "lowest"` is pinned by the caller, not inherited: levcost wants
+  # ANNUAL totals, and the getData() default is now "highest" (native).
   if (is.null(inp) || !nrow(inp)) return(setNames(numeric(0), character(0)))
   sups <- tryCatch(getObjects(scen@model, "supply"), error = function(e) list())
   price <- list()
@@ -537,7 +692,15 @@ setMethod("levcost", "scenario", function(object, comm, name, ...) {
     if (!is.null(av) && "cost" %in% names(av) && nrow(av) > 0)
       price[[cm]] <- mean(suppressWarnings(as.numeric(av$cost)), na.rm = TRUE)
   }
-  pr <- unlist(price[as.character(inp$comm)]); pr[is.na(pr)] <- 0
+  # A commodity with no `supply` object has no price here -- it is produced
+  # inside the model, and what it is worth is the balance dual, not a slot.
+  # `unlist()` on all-NULL lookups returns NULL, which silently collapsed
+  # `inp$value * pr` to length zero and made aggregate() fail; charge 0 and let
+  # the caller's documentation say so.
+  pr <- vapply(as.character(inp$comm), function(cm) {
+    v <- price[[cm]]
+    if (is.null(v) || !isTRUE(is.finite(v))) 0 else as.numeric(v)
+  }, numeric(1), USE.NAMES = FALSE)
   a <- aggregate(inp$value * pr, list(year = as.integer(inp$year)), sum, na.rm = TRUE)
   setNames(a$x, as.character(a$year))
 }
@@ -557,11 +720,27 @@ setMethod("levcost", "scenario", function(object, comm, name, ...) {
       !identical(scen@modOut@stage, "solved")) {
     message("levcost(): the scenario is not solved -- solve it first."); return(invisible(NULL))
   }
-  out_all <- tryCatch(getData(scen, "vTechOut", tech = name, merge = TRUE,
-                              timeframe = "lowest"),
-                      error = function(e) NULL)
+  cls <- .levcost_scen_class(scen, name)
+  if (is.null(cls)) {
+    message("levcost(): process '", name, "' is not a technology, storage or ",
+            "trade in the scenario's model."); return(invisible(NULL))
+  }
+  vars <- .LEVCOST_SCEN_VARS[[cls]]
+  out_all <- .levcost_scen_get(scen, vars$out, vars$index, name)
   if (is.null(out_all) || !nrow(out_all)) {
     message("levcost(): process '", name, "' has no output in the solved scenario."); return(invisible(NULL))
+  }
+  # `vTradeIr` is what LEAVES the sending region; what arrives -- the thing a
+  # levelized cost is per unit OF -- is that times the route's efficiency.
+  if (identical(cls, "trade")) {
+    teff <- tryCatch({
+      td <- getObjects(scen@model, "trade")[[name]]@trade
+      if (NROW(td) && "teff" %in% names(td)) {
+        v <- unique(stats::na.omit(as.numeric(td$teff)))
+        if (length(v) == 1L) v else 1
+      } else 1
+    }, error = function(e) 1)
+    out_all$value <- out_all$value * teff
   }
   if (!is.null(comm)) out_all <- out_all[as.character(out_all$comm) %in% comm, , drop = FALSE]
   ms <- suppressWarnings(as.integer(scen@modInp@sets$year))
@@ -574,11 +753,9 @@ setMethod("levcost", "scenario", function(object, comm, name, ...) {
     a <- aggregate(df$value, list(year = as.integer(df$year)), sum, na.rm = TRUE)
     setNames(a$x, as.character(a$year))
   }
-  gy <- function(v) by_year(tryCatch(getData(scen, v, tech = name, merge = TRUE,
-                                             timeframe = "lowest"),
-                                     error = function(e) NULL))
-  eac <- gy("vTechEac"); fixom <- gy("vTechFixom"); varom <- gy("vTechVarom")
-  fuel <- .levcost_scenario_fuel(scen, name)
+  gy <- function(v) by_year(.levcost_scen_get(scen, v, vars$index, name))
+  eac <- gy(vars$eac); fixom <- gy(vars$fixom); varom <- gy(vars$varom)
+  fuel <- .levcost_scenario_fuel(scen, name, cls)
   out  <- by_year(out_all)
 
   yrs <- sort(unique(as.integer(c(names(eac), names(fixom), names(varom),
@@ -1372,12 +1549,8 @@ levcost_technology_ <- function(
 
   # ── 1b. Strip capacity constraints (distort unit-demand mini-model) ─────────
   if (nrow(object@capacity) > 0) {
-    cap_cols <- c("stock", "cap.lo", "cap.up", "cap.fx",
-                  "ncap.lo", "ncap.up", "ncap.fx",
-                  "ret.lo",  "ret.up",  "ret.fx")
-    for (col in intersect(cap_cols, names(object@capacity)))
-      object@capacity[[col]] <- NA_real_
-    if (verbose) message("Capacity constraints stripped for LCOE mini-model.")
+    object <- .levcost_strip_capacity(object, verbose = verbose,
+                                      what = "LCOE mini-model")
   }
 
   # ── 2. Resolve region ───────────────────────────────────────────────────────
@@ -2628,7 +2801,7 @@ print.levcost <- function(x, ...) {
 
 #' @export
 print.levcost_list <- function(x, ...) {
-  cat("levcost_list (", length(x), " technologies)\n", sep = "")
+  cat("levcost_list (", length(x), " processes)\n", sep = "")
   for (nm in names(x)) {
     npv <- tryCatch(x[[nm]]$levcost_npv, error = function(e) NA_real_)
     cat("  ", nm, ": ", round(npv, 4), "\n", sep = "")

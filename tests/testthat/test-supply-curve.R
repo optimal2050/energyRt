@@ -240,3 +240,43 @@ test_that("stepped results carry base/cluster provenance", {
   expect_setequal(unique(d$base), "SUPC")
   expect_true(all(d$cluster %in% c("S1", "S2", "S3")))
 })
+
+test_that("import steps are used cheapest first", {
+  skip_if_no_solver()
+  # The mirror of the supply case, and the one class whose merit order was only
+  # checked at construction. Imports are supply-side: `vImportTot` feeds
+  # `eqOutTot`, so the cheapest step is used first for the same reason.
+  IMP <- asImportCurve(
+    newImport("IMPC", commodity = "COA", import = data.frame(imp.up = 100)),
+    range = c(10, 50), nsteps = 5)          # 20 units each at 14/22/30/38/46
+  s <- sc_solve(sc_model("sc10", list(IMP), demand = 50), "sc10")
+  f <- sc_by(s, "vImportRow", "imp")
+  expect_equal(unname(f[c("IMPC_CLS1", "IMPC_CLS2", "IMPC_CLS3")]), c(20, 20, 10))
+  expect_true(is.na(f["IMPC_CLS4"]))
+  expect_equal(getData(s, "vObjective", merge = TRUE)$value[1],
+               20 * 14 + 20 * 22 + 10 * 30)
+})
+
+test_that("`variantSummary()` works on a stepped supply-side object", {
+  skip_if_no_solver()
+  # `variantSummary()` picks its id column from the same lookup as
+  # `.attach_variants()`; before `sup` / `expp` / `imp` were added to it, the
+  # column came back NA and `n_distinct()` errored rather than saying why.
+  s <- sc_solve(sc_model("sc11", list(asSupplyCurve(
+    newSupply("SUPC", commodity = "COA", supply = data.frame(ava.up = 100)),
+    range = c(10, 50), nsteps = 3)), demand = 40), "sc11")
+  vs <- variantSummary(s, "vSupOut")
+  expect_s3_class(vs, "data.frame")
+  expect_gt(nrow(vs), 0)
+})
+
+test_that("a clustered supply still draws", {
+  # `draw()` calls `.expand_one_process()` generically, so registering supply in
+  # `.variant_classes` puts a clustered supply on the variant path for the first
+  # time.
+  SUP <- asSupplyCurve(
+    newSupply("SUPC", commodity = "COA", supply = data.frame(ava.up = 100)),
+    range = c(10, 50), nsteps = 3)
+  pdf(NULL); on.exit(grDevices::dev.off())
+  expect_error(draw(SUP), NA)
+})
