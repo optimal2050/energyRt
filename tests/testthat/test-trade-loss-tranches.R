@@ -236,3 +236,125 @@ test_that("shares that do not sum to 1 are refused at interpolation", {
   expect_error(suppressMessages(interpolate_model(m, name = "ltbad")),
                "sum to 0.9, not 1")
 })
+
+# =========================================================================== #
+# An absolute flow limit on a TRANCHED line
+# =========================================================================== #
+
+test_that("`ava.*` on a tranched line needs TOTAL, and splitting is wrong", {
+  skip_if_no_solver()
+  # A tranched line has its CAPACITY split, so an absolute flow bound cannot be
+  # handled per tranche:
+  #
+  #   broadcast (cluster = NA) -- each tranche gets the full value, so a 50
+  #     limit on two tranches permits 100. Correct per the NA convention, and
+  #     not what a line-level limit means.
+  #   split 25/25 -- the right total, but it forces flow onto the DEAR tranche
+  #     before the cheap one is full, doubling the modelled loss.
+  #   TOTAL -- the aggregate. Merit order survives, so the loss stays exact.
+  #
+  # Line of 100 in two equal tranches, 4% loss at rated load => r = 0.0004.
+  mk <- function(nm, avarows) {
+    tt <- lossTranches(c(0.5, 0.5), loss = 0.04, fix = 100)
+    L <- newACLine("L", "ELC", "R1", "R2", reactance = 0.1, cap2act = 1,
+                   vintage = data.frame(olife = 50L),
+                   trade = rbind(cbind(tt$trade, ava.up = NA_real_), avarows),
+                   cluster = tt$cluster, capacity = tt$capacity)
+    newModel(name = nm, region = c("R1", "R2"), horizon = tr_hor(),
+             discount = 0, calendar = tr_cal(),
+             repo = newRepository("r", newCommodity("ELC", timeframe = "ANNUAL"),
+               newSupply("SUP", commodity = "ELC",
+                         supply = data.frame(region = c("R1", "R2"),
+                                             cost = c(1, 1000))),
+               L, newDemand("DEM", commodity = "ELC",
+                            demand = data.frame(region = "R2", demand = 200))))
+  }
+  flows <- function(nm, avarows) {
+    s <- suppressMessages(solve_scen(suppressMessages(
+      interpolate_model(mk(nm, avarows), name = nm))))
+    d <- as.data.frame(getData(s, "vTradeIr", merge = TRUE))
+    d <- d[d$value > 1e-9, ]
+    setNames(round(d$value, 6), as.character(d$trade))
+  }
+  eff <- c(L_CLT1 = 0.98, L_CLT2 = 0.94)
+  loss <- function(f) sum(f) - sum(f * eff[names(f)])
+
+  # TOTAL: the line limit holds AND the cheap tranche is filled first, so the
+  # modelled loss equals the quadratic exactly.
+  ft <- flows("lta", data.frame(cluster = "TOTAL", teff = NA, ava.up = 50))
+  expect_equal(sum(ft), 50)
+  expect_equal(unname(ft["L_CLT1"]), 50)
+  expect_true(is.na(ft["L_CLT2"]))
+  expect_equal(loss(ft), 0.0004 * 50^2)          # == 1, the true r*f^2
+
+  # Broadcast still means "each", per the NA convention -- 50 on each tranche.
+  fb <- flows("ltb", data.frame(cluster = NA, teff = NA, ava.up = 50))
+  expect_equal(sum(fb), 100)
+
+  # Splitting reaches the right total but the WRONG loss: 2 against a true 1.
+  fs <- flows("ltc", data.frame(cluster = c("T1", "T2"), teff = NA,
+                                ava.up = c(25, 25)))
+  expect_equal(sum(fs), 50)
+  expect_equal(loss(fs), 2)
+  expect_gt(loss(fs), 0.0004 * 50^2)
+})
+
+test_that("a TOTAL row with nothing group-boundable is refused", {
+  # The token is filtered out of the variant levels, so a TOTAL row that names
+  # no boundable column would create neither a variant nor a bound -- it would
+  # do nothing at all. Loud instead.
+  tt <- lossTranches(c(0.5, 0.5), loss = 0.04, fix = 100)
+  L <- newACLine("L", "ELC", "R1", "R2", reactance = 0.1, cap2act = 1,
+                 vintage = data.frame(olife = 50L),
+                 trade = rbind(cbind(tt$trade, ava.up = NA_real_),
+                               data.frame(cluster = "TOTAL", teff = 0.9,
+                                          ava.up = NA_real_)),
+                 cluster = tt$cluster, capacity = tt$capacity)
+  m <- newModel(name = "ltbad", region = c("R1", "R2"), horizon = tr_hor(),
+                discount = 0, calendar = tr_cal(),
+                repo = newRepository("r",
+                  newCommodity("ELC", timeframe = "ANNUAL"), L))
+  expect_error(suppressMessages(interpolate_model(m, name = "ltbad")),
+               "carries no group-boundable value")
+})
+
+test_that("`af.*` on a tranched line has the same problem, and the same fix", {
+  skip_if_no_solver()
+  # A RELATIVE bound distorts exactly as the absolute one does, and for the same
+  # reason: the capacity is split, so `af.up = 0.5` per tranche means half of
+  # HALF the line each, forcing a 25/25 split instead of 50 on the cheap tranche.
+  # Same total, double the loss.
+  mk <- function(nm, afrows) {
+    tt <- lossTranches(c(0.5, 0.5), loss = 0.04, fix = 100)
+    L <- newACLine("L", "ELC", "R1", "R2", reactance = 0.1, cap2act = 1,
+                   vintage = data.frame(olife = 50L),
+                   trade = rbind(cbind(tt$trade, af.up = NA_real_), afrows),
+                   cluster = tt$cluster, capacity = tt$capacity)
+    newModel(name = nm, region = c("R1", "R2"), horizon = tr_hor(),
+             discount = 0, calendar = tr_cal(),
+             repo = newRepository("r", newCommodity("ELC", timeframe = "ANNUAL"),
+               newSupply("SUP", commodity = "ELC",
+                         supply = data.frame(region = c("R1", "R2"),
+                                             cost = c(1, 1000))),
+               L, newDemand("DEM", commodity = "ELC",
+                            demand = data.frame(region = "R2", demand = 200))))
+  }
+  flows <- function(nm, afrows) {
+    s <- suppressMessages(solve_scen(suppressMessages(
+      interpolate_model(mk(nm, afrows), name = nm))))
+    d <- as.data.frame(getData(s, "vTradeIr", merge = TRUE))
+    d <- d[d$value > 1e-9, ]
+    setNames(round(d$value, 6), as.character(d$trade))
+  }
+  eff <- c(L_CLT1 = 0.98, L_CLT2 = 0.94)
+  loss <- function(f) sum(f) - sum(f * eff[names(f)])
+
+  ft <- flows("lafa", data.frame(cluster = "TOTAL", teff = NA, af.up = 0.5))
+  expect_equal(sum(ft), 50)
+  expect_equal(unname(ft["L_CLT1"]), 50)
+  expect_equal(loss(ft), 0.0004 * 50^2)        # == 1
+
+  fb <- flows("lafb", data.frame(cluster = NA, teff = NA, af.up = 0.5))
+  expect_equal(sum(fb), 50)                    # same total ...
+  expect_equal(loss(fb), 2)                    # ... double the loss
+})

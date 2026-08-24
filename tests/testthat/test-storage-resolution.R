@@ -3,7 +3,7 @@
 #
 # The flow bounds used to read
 #
-#     vStorageInp <= cinp.up * vStorageInpCap
+#     vStorageInp <= inp.af.up * vStorageInpCap
 #
 # with no duration factor, so `vStorageInpCap` meant "commodity per TIMESLICE".
 # The same storage written `cap.fx = 7` then allowed 7 per hour on a 24 x 1-hour
@@ -25,7 +25,7 @@
 
 HOURS_PER_YEAR <- 8760
 
-# One storage spec, one number, several calendar resolutions. `cinp.fx` FORCES
+# One storage spec, one number, several calendar resolutions. `inp.af.fx` FORCES
 # the flow onto its bound, so this measures the constraint itself rather than
 # whatever the optimiser happens to find useful.
 sr_rate_per_hour <- function(nslice, nm) {
@@ -44,7 +44,7 @@ sr_rate_per_hour <- function(nslice, nm) {
         input    = list(comm = "A"),
         storage  = list(comm = "B"),
         output   = list(comm = "B"),
-        af       = data.frame(cinp.fx = 1),
+        af       = data.frame(inp.af.fx = 1),
         capacity = list(inp.cap.fx = 7, stg.cap.up = 1e9, out.cap.up = 1e9),
         duration = data.frame(duration.lo = 0, duration.up = 1e9),
         vintage  = data.frame(olife = 10L)),

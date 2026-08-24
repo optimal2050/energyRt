@@ -68,7 +68,7 @@ param_family <- function(name) {
     c("^pStorageWeather", "storage-weather"),
     c("^pStorage(Cinp|Cout|Cap|NCap|Pho|Ret|Stg)2A(Inp|Out)|^pStorageNCap2Stg|^pStorageStg2A", "storage-aux-flows"),
     c("^pStorage(Inp|Out|Stg)?(Invcost|Fixom|Eac|Wacc|Payback|RetCost|Stock|Olife)", "storage-costs-eac"),
-    c("^pStorage(Af|Cinp$|Cout$|InpCap|OutCap|StgCap|InpNewCap|OutNewCap|StgNewCap|InpRet|OutRet|StgRet|InpStock|OutStock|StgStock|InpCap2act|OutCap2act)", "storage-roles-capacities"),
+    c("^pStorage(Af|InpAf$|OutAf$|InpCap|OutCap|StgCap|InpNewCap|OutNewCap|StgNewCap|InpRet|OutRet|StgRet|InpStock|OutStock|StgStock|InpCap2act|OutCap2act)", "storage-roles-capacities"),
     c("^pTradeIr(Af)?$|^pTradeIrEff$", "trade-core"),
     c("^pTradeIr", "trade-costs"),
     c("^pTrade", "trade-capacity-vintage"),

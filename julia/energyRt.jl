@@ -3139,18 +3139,18 @@ print("eqStorageInpUp(stg, comm, region, year, timeslice)...")
         end
     ) *
     (
-        if haskey(pStorageCinpUp, (st1, c, r, y, s))
-            pStorageCinpUp[(st1, c, r, y, s)]
+        if haskey(pStorageInpAfUp, (st1, c, r, y, s))
+            pStorageInpAfUp[(st1, c, r, y, s)]
         else
-            pStorageCinpUpDef
+            pStorageInpAfUpDef
         end
     ) *
     prod(
         (
-            if haskey(pStorageWeatherCinpUp, (wth1, st1))
-                pStorageWeatherCinpUp[(wth1, st1)]
+            if haskey(pStorageWeatherInpAfUp, (wth1, st1))
+                pStorageWeatherInpAfUp[(wth1, st1)]
             else
-                pStorageWeatherCinpUpDef
+                pStorageWeatherInpAfUpDef
             end
         ) * (
             if haskey(pWeather, (wth1, r, y, s))
@@ -3158,7 +3158,7 @@ print("eqStorageInpUp(stg, comm, region, year, timeslice)...")
             else
                 pWeatherDef
             end
-        ) for wth1 in weather if (wth1, st1) in mStorageWeatherCinpUp
+        ) for wth1 in weather if (wth1, st1) in mStorageWeatherInpAfUp
     ; init = 1)
 );
 print(
@@ -3204,18 +3204,18 @@ print("eqStorageInpLo(stg, comm, region, year, timeslice)...")
         end
     ) *
     (
-        if haskey(pStorageCinpLo, (st1, c, r, y, s))
-            pStorageCinpLo[(st1, c, r, y, s)]
+        if haskey(pStorageInpAfLo, (st1, c, r, y, s))
+            pStorageInpAfLo[(st1, c, r, y, s)]
         else
-            pStorageCinpLoDef
+            pStorageInpAfLoDef
         end
     ) *
     prod(
         (
-            if haskey(pStorageWeatherCinpLo, (wth1, st1))
-                pStorageWeatherCinpLo[(wth1, st1)]
+            if haskey(pStorageWeatherInpAfLo, (wth1, st1))
+                pStorageWeatherInpAfLo[(wth1, st1)]
             else
-                pStorageWeatherCinpLoDef
+                pStorageWeatherInpAfLoDef
             end
         ) * (
             if haskey(pWeather, (wth1, r, y, s))
@@ -3223,7 +3223,7 @@ print("eqStorageInpLo(stg, comm, region, year, timeslice)...")
             else
                 pWeatherDef
             end
-        ) for wth1 in weather if (wth1, st1) in mStorageWeatherCinpLo
+        ) for wth1 in weather if (wth1, st1) in mStorageWeatherInpAfLo
     ; init = 1)
 );
 print(
@@ -3254,18 +3254,18 @@ print("eqStorageOutUp(stg, comm, region, year, timeslice)...")
         end
     ) *
     (
-        if haskey(pStorageCoutUp, (st1, c, r, y, s))
-            pStorageCoutUp[(st1, c, r, y, s)]
+        if haskey(pStorageOutAfUp, (st1, c, r, y, s))
+            pStorageOutAfUp[(st1, c, r, y, s)]
         else
-            pStorageCoutUpDef
+            pStorageOutAfUpDef
         end
     ) *
     prod(
         (
-            if haskey(pStorageWeatherCoutUp, (wth1, st1))
-                pStorageWeatherCoutUp[(wth1, st1)]
+            if haskey(pStorageWeatherOutAfUp, (wth1, st1))
+                pStorageWeatherOutAfUp[(wth1, st1)]
             else
-                pStorageWeatherCoutUpDef
+                pStorageWeatherOutAfUpDef
             end
         ) * (
             if haskey(pWeather, (wth1, r, y, s))
@@ -3273,7 +3273,7 @@ print("eqStorageOutUp(stg, comm, region, year, timeslice)...")
             else
                 pWeatherDef
             end
-        ) for wth1 in weather if (wth1, st1) in mStorageWeatherCoutUp
+        ) for wth1 in weather if (wth1, st1) in mStorageWeatherOutAfUp
     ; init = 1)
 );
 print(
@@ -3304,18 +3304,18 @@ print("eqStorageOutLo(stg, comm, region, year, timeslice)...")
         end
     ) *
     (
-        if haskey(pStorageCoutLo, (st1, c, r, y, s))
-            pStorageCoutLo[(st1, c, r, y, s)]
+        if haskey(pStorageOutAfLo, (st1, c, r, y, s))
+            pStorageOutAfLo[(st1, c, r, y, s)]
         else
-            pStorageCoutLoDef
+            pStorageOutAfLoDef
         end
     ) *
     prod(
         (
-            if haskey(pStorageWeatherCoutLo, (wth1, st1))
-                pStorageWeatherCoutLo[(wth1, st1)]
+            if haskey(pStorageWeatherOutAfLo, (wth1, st1))
+                pStorageWeatherOutAfLo[(wth1, st1)]
             else
-                pStorageWeatherCoutLoDef
+                pStorageWeatherOutAfLoDef
             end
         ) * (
             if haskey(pWeather, (wth1, r, y, s))
@@ -3323,7 +3323,7 @@ print("eqStorageOutLo(stg, comm, region, year, timeslice)...")
             else
                 pWeatherDef
             end
-        ) for wth1 in weather if (wth1, st1) in mStorageWeatherCoutLo
+        ) for wth1 in weather if (wth1, st1) in mStorageWeatherOutAfLo
     ; init = 1)
 );
 print(

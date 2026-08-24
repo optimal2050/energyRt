@@ -989,7 +989,7 @@ class:
           type: numeric
           description: >
             Capacity to ANNUAL flow, exactly as `technology@cap2act`. The flow
-            bound is `cinp.up * cap2act * cap * pTimesliceShare`, so `cap` is a
+            bound is `inp.af.up * cap2act * cap * pTimesliceShare`, so `cap` is a
             RATE and means the same physical thing on any calendar. Defaults to
             8760 (hours in a year), which makes `cap` read as commodity per
             HOUR; an hourly full-year model is unchanged because
@@ -1018,7 +1018,7 @@ class:
           type: numeric
           description: >
             Capacity to ANNUAL flow, exactly as `technology@cap2act`. The flow
-            bound is `cinp.up * cap2act * cap * pTimesliceShare`, so `cap` is a
+            bound is `inp.af.up * cap2act * cap * pTimesliceShare`, so `cap` is a
             RATE and means the same physical thing on any calendar. Defaults to
             8760 (hours in a year), which makes `cap` read as commodity per
             HOUR; an hourly full-year model is unchanged because
@@ -1215,38 +1215,38 @@ class:
           description: >
             Fixed value of the stored-level fraction.
             This parameter overrides `af.lo` and `af.up`.
-        cinp.lo:
+        inp.af.lo:
           type: numeric
           description: >
             Lower bound of the charging (input) flow relative to charger
             capacity per timeslice.
-        cinp.up:
+        inp.af.up:
           type: numeric
           description: >
             Upper bound of the charging (input) flow relative to charger
             capacity per timeslice.
-        cinp.fx:
+        inp.af.fx:
           type: numeric
           description: >
             Fixed value of the charging (input) flow relative to charger
             capacity per timeslice.
-            This parameter overrides `cinp.lo` and `cinp.up`.
-        cout.lo:
+            This parameter overrides `inp.af.lo` and `inp.af.up`.
+        out.af.lo:
           type: numeric
           description: >
             Lower bound of the discharging (output) flow relative to
             discharger capacity per timeslice.
-        cout.up:
+        out.af.up:
           type: numeric
           description: >
             Upper bound of the discharging (output) flow relative to
             discharger capacity per timeslice.
-        cout.fx:
+        out.af.fx:
           type: numeric
           description: >
             Fixed value of the discharging (output) flow relative to
             discharger capacity per timeslice.
-            This parameter overrides `cout.lo` and `cout.up`.
+            This parameter overrides `out.af.lo` and `out.af.up`.
     aeff:
       type: data.frame
       description: Auxiliary commodities efficiency parameters.
@@ -1577,32 +1577,32 @@ class:
           description: >
             Coefficient that links the weather factor with the fixed value of the availability factor.
             This parameter overrides `waf.lo` and `waf.up`.
-        wcinp.lo:
+        inp.waf.lo:
           type: numeric
           description: >
             Coefficient that links the weather factor with the lower bound of the input commodity availability factor.
-        wcinp.up:
+        inp.waf.up:
           type: numeric
           description: >
             Coefficient that links the weather factor with the upper bound of the input commodity availability factor.
-        wcinp.fx:
+        inp.waf.fx:
           type: numeric
           description: >
             Coefficient that links the weather factor with the fixed value of the input commodity availability factor.
-            This parameter overrides `wcinp.lo` and `wcinp.up`.
-        wcout.lo:
+            This parameter overrides `inp.waf.lo` and `inp.waf.up`.
+        out.waf.lo:
           type: numeric
           description: >
             Coefficient that links the weather factor with the lower bound of the output commodity availability factor.
-        wcout.up:
+        out.waf.up:
           type: numeric
           description: >
             Coefficient that links the weather factor with the upper bound of the output commodity availability factor.
-        wcout.fx:
+        out.waf.fx:
           type: numeric
           description: >
             Coefficient that links the weather factor with the fixed value of the output commodity availability factor.
-            This parameter overrides `wcout.lo` and `wcout.up`.
+            This parameter overrides `out.waf.lo` and `out.waf.up`.
     misc:
       type: list
       description: >

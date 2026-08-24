@@ -380,7 +380,7 @@ energyRt keeps flows as quantities *within* a timeslice, so the rate has to be
 converted at the bound:
 
 ```
-vStorageInp[.,s] <= cinp.up * cap2act * vStorageInpCap * pTimesliceShare[s]
+vStorageInp[.,s] <= inp.af.up * cap2act * vStorageInpCap * pTimesliceShare[s]
 ```
 
 `cap2act` is capacity → annual flow, exactly as on a `technology`. It defaults to
@@ -458,7 +458,7 @@ Making the rating resolution-independent does **not** make a coarse calendar
 adequate. Discharge in a slice is bounded by three things:
 
 ```
-(1) out <= cout.up · cap2act · outCap · share[s]
+(1) out <= out.af.up · cap2act · outCap · share[s]
 (2) out / outeff <= level[s]
 (3) level[s] <= af.up · stgCap
 ```
@@ -530,8 +530,8 @@ Three families share the slot:
 | columns | bounds |
 |---|---|
 | `af.lo` / `af.up` / `af.fx` | the **level**, against `vStorageStgCap` |
-| `cinp.lo` / `cinp.up` / `cinp.fx` | **charging**, against the charger |
-| `cout.lo` / `cout.up` / `cout.fx` | **discharging**, against the discharger |
+| `inp.af.lo` / `inp.af.up` / `inp.af.fx` | **charging**, against the charger |
+| `out.af.lo` / `out.af.up` / `out.af.fx` | **discharging**, against the discharger |
 
 Each accepts `region`, `year` and `timeslice`, so the bound can follow the
 calendar. A reservoir kept above a minimum head, and a grid connection that may
@@ -547,7 +547,7 @@ STG_RES <- newStorage(
   af        = data.frame(
     timeslice = c(NA, "d046_h18"),
     af.lo     = c(0.15, NA),              # never draw below 15% full
-    cinp.up   = c(NA, 0)                  # no charging in that slice
+    inp.af.up   = c(NA, 0)                  # no charging in that slice
   ),
   vintage   = data.frame(olife = 40L)
 )
@@ -699,7 +699,7 @@ STG_HYD_W <- newStorage(
   commodity = "ELC",
   weather   = data.frame(
     weather  = "WHYD",                    # a newWeather() object in the repo
-    wcinp.fx = 1                          # inflow drives charging
+    inp.waf.fx = 1                          # inflow drives charging
   ),
   vintage   = data.frame(olife = 60L)
 )

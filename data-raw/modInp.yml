@@ -1084,8 +1084,8 @@ pStorageWeatherAf:
   class: storage
   slot: weather
   colName: waf
-pStorageWeatherCinp:
-  name: pStorageWeatherCinp
+pStorageWeatherInpAf:
+  name: pStorageWeatherInpAf
   dimSets:
   - weather
   - stg
@@ -1098,9 +1098,9 @@ pStorageWeatherCinp:
   - back.inter.forth
   class: storage
   slot: weather
-  colName: wcinp
-pStorageWeatherCout:
-  name: pStorageWeatherCout
+  colName: inp.waf
+pStorageWeatherOutAf:
+  name: pStorageWeatherOutAf
   dimSets:
   - weather
   - stg
@@ -1113,7 +1113,7 @@ pStorageWeatherCout:
   - back.inter.forth
   class: storage
   slot: weather
-  colName: wcout
+  colName: out.waf
 pStorageOlife:
   name: pStorageOlife
   dimSets:
@@ -1582,7 +1582,7 @@ pStorageInp2out:
   class: storage
   slot: inp2out
 # --- capacity -> annual flow, so a capacity is a RATE ------------------------ #
-# The flow bounds read `cinp.up * cap2act * cap * pTimesliceShare[s]`, mirroring
+# The flow bounds read `inp.af.up * cap2act * cap * pTimesliceShare[s]`, mirroring
 # eqTechAfUp. Without the share factor `cap` meant "commodity per TIMESLICE": the
 # same storage allowed 7 per hour on a 24 x 1-hour calendar and 1.75 per hour on
 # a 6 x 4-hour one, so refining the resolution silently shrank every store.
@@ -1630,8 +1630,8 @@ pStorageDuration:
   class: storage
   slot: duration
   colName: duration
-pStorageCinp:
-  name: pStorageCinp
+pStorageInpAf:
+  name: pStorageInpAf
   dimSets:
   - stg
   - comm
@@ -1645,11 +1645,11 @@ pStorageCinp:
   interpolation:
   - back.inter.forth
   - back.inter.forth
-  colName: cinp
+  colName: inp.af
   class: storage
   slot: af
-pStorageCout:
-  name: pStorageCout
+pStorageOutAf:
+  name: pStorageOutAf
   dimSets:
   - stg
   - comm
@@ -1663,7 +1663,7 @@ pStorageCout:
   interpolation:
   - back.inter.forth
   - back.inter.forth
-  colName: cout
+  colName: out.af
   class: storage
   slot: af
 pStorageStg2AInp:
@@ -2471,26 +2471,26 @@ mStorageWeatherAfUp:
   dimSets:
   - weather
   - stg
-mStorageWeatherCinpUp:
-  name: mStorageWeatherCinpUp
+mStorageWeatherInpAfUp:
+  name: mStorageWeatherInpAfUp
   type: map
   dimSets:
   - weather
   - stg
-mStorageWeatherCinpLo:
-  name: mStorageWeatherCinpLo
+mStorageWeatherInpAfLo:
+  name: mStorageWeatherInpAfLo
   type: map
   dimSets:
   - weather
   - stg
-mStorageWeatherCoutUp:
-  name: mStorageWeatherCoutUp
+mStorageWeatherOutAfUp:
+  name: mStorageWeatherOutAfUp
   type: map
   dimSets:
   - weather
   - stg
-mStorageWeatherCoutLo:
-  name: mStorageWeatherCoutLo
+mStorageWeatherOutAfLo:
+  name: mStorageWeatherOutAfLo
   type: map
   dimSets:
   - weather

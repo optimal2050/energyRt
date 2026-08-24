@@ -79,8 +79,8 @@
     "mTechWeatherAfLo", "mTechWeatherAfUp", "mTechWeatherAfsLo",
     "mTechWeatherAfsUp", "mTechWeatherAfcLo", "mTechWeatherAfcUp",
     "mStorageWeatherAfLo", "mStorageWeatherAfUp",
-    "mStorageWeatherCinpLo", "mStorageWeatherCinpUp",
-    "mStorageWeatherCoutLo", "mStorageWeatherCoutUp"
+    "mStorageWeatherInpAfLo", "mStorageWeatherInpAfUp",
+    "mStorageWeatherOutAfLo", "mStorageWeatherOutAfUp"
   ),
   filter = c(
     # Storage per-part maps: added with the three-role storage work and

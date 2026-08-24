@@ -116,15 +116,15 @@ test_that("tm_weather builds weather maps split by bound type", {
   expect_equal(map_nrow(scen, "mTechWeatherAfsUp"), 1)
   expect_equal(map_nrow(scen, "mTechWeatherAfcUp"), 1)
   expect_equal(map_nrow(scen, "mStorageWeatherAfUp"), 1)
-  expect_equal(map_nrow(scen, "mStorageWeatherCinpUp"), 1)
-  expect_equal(map_nrow(scen, "mStorageWeatherCoutUp"), 1)
+  expect_equal(map_nrow(scen, "mStorageWeatherInpAfUp"), 1)
+  expect_equal(map_nrow(scen, "mStorageWeatherOutAfUp"), 1)
   expect_equal(map_nrow(scen, "mSupWeatherUp"), 1)
   # Only the technology af bound carries a lower bound in the fixture.
   expect_equal(map_nrow(scen, "mTechWeatherAfLo"), 1)
   # All other Lo maps stay empty (no lower bound supplied).
   for (nm in c("mTechWeatherAfsLo", "mTechWeatherAfcLo",
-               "mStorageWeatherAfLo", "mStorageWeatherCinpLo",
-               "mStorageWeatherCoutLo", "mSupWeatherLo")) {
+               "mStorageWeatherAfLo", "mStorageWeatherInpAfLo",
+               "mStorageWeatherOutAfLo", "mSupWeatherLo")) {
     expect_equal(map_nrow(scen, nm), 0)
   }
 })

@@ -152,8 +152,8 @@
       arg = "af",
       cols = c("vintage", "cluster", "region", "year", "timeslice",
                "af.lo", "af.up", "af.fx",
-               "cinp.lo", "cinp.up", "cinp.fx",
-               "cout.lo", "cout.up", "cout.fx"),
+               "inp.af.lo", "inp.af.up", "inp.af.fx",
+               "out.af.lo", "out.af.up", "out.af.fx"),
       dims = c("vintage", "cluster", "region", "year", "timeslice")),
     start_level = list(
       arg = "startLevel",
@@ -173,8 +173,8 @@
       arg = "weather",
       cols = c("vintage", "cluster", "weather",
                "waf.lo", "waf.up", "waf.fx",
-               "wcinp.lo", "wcinp.up", "wcinp.fx",
-               "wcout.lo", "wcout.up", "wcout.fx"),
+               "inp.waf.lo", "inp.waf.up", "inp.waf.fx",
+               "out.waf.lo", "out.waf.up", "out.waf.fx"),
       dims = c("vintage", "cluster")),
     invcost = list(
       arg = "invcost",

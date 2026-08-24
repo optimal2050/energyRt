@@ -2167,8 +2167,8 @@ mStorageWeatherAfUp:
   join_keys: []
   filter_by: []
   depends_on: []
-mStorageWeatherCinpLo:
-  name: mStorageWeatherCinpLo
+mStorageWeatherInpAfLo:
+  name: mStorageWeatherInpAfLo
   dims:
   - weather
   - stg
@@ -2181,8 +2181,8 @@ mStorageWeatherCinpLo:
   join_keys: []
   filter_by: []
   depends_on: []
-mStorageWeatherCinpUp:
-  name: mStorageWeatherCinpUp
+mStorageWeatherInpAfUp:
+  name: mStorageWeatherInpAfUp
   dims:
   - weather
   - stg
@@ -2195,8 +2195,8 @@ mStorageWeatherCinpUp:
   join_keys: []
   filter_by: []
   depends_on: []
-mStorageWeatherCoutLo:
-  name: mStorageWeatherCoutLo
+mStorageWeatherOutAfLo:
+  name: mStorageWeatherOutAfLo
   dims:
   - weather
   - stg
@@ -2209,8 +2209,8 @@ mStorageWeatherCoutLo:
   join_keys: []
   filter_by: []
   depends_on: []
-mStorageWeatherCoutUp:
-  name: mStorageWeatherCoutUp
+mStorageWeatherOutAfUp:
+  name: mStorageWeatherOutAfUp
   dims:
   - weather
   - stg

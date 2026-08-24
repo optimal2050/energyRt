@@ -117,7 +117,7 @@ setClass("storage",
       # The COMMODITY's unit, not the capacity's: capacity follows `cap2act`.
       unit = character(),
       # Capacity -> ANNUAL flow, exactly as `technology@cap2act`. The flow bound
-      # is `cinp.up * cap2act * cap * pTimesliceShare[s]`, so `cap` is a RATE and
+      # is `inp.af.up * cap2act * cap * pTimesliceShare[s]`, so `cap` is a RATE and
       # means the same physical thing on any calendar. Defaults to 8760 (hours in
       # a year), which makes `cap` "commodity per hour" -- and leaves an hourly
       # full-year model numerically unchanged, because 8760 * (1/8760) = 1.
@@ -140,7 +140,7 @@ setClass("storage",
       # The COMMODITY's unit, not the capacity's: capacity follows `cap2act`.
       unit = character(),
       # Capacity -> ANNUAL flow, exactly as `technology@cap2act`. The flow bound
-      # is `cinp.up * cap2act * cap * pTimesliceShare[s]`, so `cap` is a RATE and
+      # is `inp.af.up * cap2act * cap * pTimesliceShare[s]`, so `cap` is a RATE and
       # means the same physical thing on any calendar. Defaults to 8760 (hours in
       # a year), which makes `cap` "commodity per hour" -- and leaves an hourly
       # full-year model numerically unchanged, because 8760 * (1/8760) = 1.
@@ -240,12 +240,12 @@ setClass("storage",
       af.lo = numeric(),
       af.up = numeric(),
       af.fx = numeric(),
-      cinp.up = numeric(),
-      cinp.fx = numeric(),
-      cinp.lo = numeric(),
-      cout.up = numeric(),
-      cout.fx = numeric(),
-      cout.lo = numeric(),
+      inp.af.up = numeric(),
+      inp.af.fx = numeric(),
+      inp.af.lo = numeric(),
+      out.af.up = numeric(),
+      out.af.fx = numeric(),
+      out.af.lo = numeric(),
       stringsAsFactors = FALSE
     ),
     fixom = data.frame(
@@ -386,12 +386,12 @@ setClass("storage",
       waf.lo = numeric(),
       waf.up = numeric(),
       waf.fx = numeric(),
-      wcinp.lo = numeric(),
-      wcinp.fx = numeric(),
-      wcinp.up = numeric(),
-      wcout.lo = numeric(),
-      wcout.fx = numeric(),
-      wcout.up = numeric(),
+      inp.waf.lo = numeric(),
+      inp.waf.fx = numeric(),
+      inp.waf.up = numeric(),
+      out.waf.lo = numeric(),
+      out.waf.fx = numeric(),
+      out.waf.up = numeric(),
       stringsAsFactors = FALSE
     ),
     optimizeRetirement = FALSE,
@@ -422,6 +422,23 @@ setClass("storage",
        fixom    = paste0(c("out", "inp", "stg"), ".fixom"))
 })
 
+# v0.80: `cinp.*` / `cout.*` (and their weather twins) were availability factors
+# wearing a flow name. The bound the model builds is
+# `cinp.up * cap2act * cap * pTimesliceShare[s]` -- a per-capacity availability
+# factor, which is exactly what `af` means everywhere else, and the name read as
+# a flow limit in commodity units. Renamed onto the same `inp.`/`out.` prefixes
+# the cost and capacity slots already carry. A hard break, so the old name is an
+# error rather than a silent no-op -- but one that names its replacement.
+.storage_renamed_cols <- c(
+  stats::setNames(paste0("inp.af.",  c("lo", "up", "fx")),
+                  paste0("cinp.",  c("lo", "up", "fx"))),
+  stats::setNames(paste0("out.af.",  c("lo", "up", "fx")),
+                  paste0("cout.",  c("lo", "up", "fx"))),
+  stats::setNames(paste0("inp.waf.", c("lo", "up", "fx")),
+                  paste0("wcinp.", c("lo", "up", "fx"))),
+  stats::setNames(paste0("out.waf.", c("lo", "up", "fx")),
+                  paste0("wcout.", c("lo", "up", "fx"))))
+
 setValidity("storage", function(object) {
   bad <- character()
   for (role in c("input", "output", "storage")) {
@@ -430,6 +447,14 @@ setValidity("storage", function(object) {
     if (length(x)) bad <- c(bad, sprintf(
       "@%s holds the declaration only (%s); found %s", role,
       paste(ok, collapse = ", "), paste(x, collapse = ", ")))
+  }
+  for (nm in c("af", "weather")) {
+    hit <- intersect(names(slot(object, nm)), names(.storage_renamed_cols))
+    if (length(hit)) bad <- c(bad, sprintf(
+      "@%s: %s renamed -- %s", nm,
+      if (length(hit) > 1) "columns" else "column",
+      paste(sprintf("`%s` is now `%s`", hit, .storage_renamed_cols[hit]),
+            collapse = ", ")))
   }
   for (nm in names(.storage_part_cols)) {
     ok <- c(.storage_key_cols, .storage_part_cols[[nm]])
@@ -787,9 +812,9 @@ setMethod("initialize", "storage", function(.Object, ...) {
 #'   ),
 #'   af = data.frame(
 #'     region = "R1", year = 2020, timeslice = "HOUR",
-#'     af.lo = 0.9, af.up = 0.9, af.fx = 0.9, cinp.up = 0.9,
-#'     cinp.fx = 0.9, cinp.lo = 0.9, cout.up = 0.9,
-#'     cout.fx = 0.9, cout.lo = 0.9
+#'     af.lo = 0.9, af.up = 0.9, af.fx = 0.9, inp.af.up = 0.9,
+#'     inp.af.fx = 0.9, inp.af.lo = 0.9, out.af.up = 0.9,
+#'     out.af.fx = 0.9, out.af.lo = 0.9
 #'   ),
 #'   fixom = data.frame(region = "R1", year = 2020, out.fixom = 0.9),
 #'   varom = data.frame(
@@ -812,9 +837,9 @@ setMethod("initialize", "storage", function(.Object, ...) {
 #'     weather = "sunny",
 #'     waf.lo = 0.9,
 #'     waf.up = 0.9,
-#'     waf.fx = 0.9, wcinp.lo = 0.9,
-#'     wcinp.fx = 0.9, wcinp.up = 0.9, wcout.lo = 0.9, wcout.fx = 0.9,
-#'     wcout.up = 0.9
+#'     waf.fx = 0.9, inp.waf.lo = 0.9,
+#'     inp.waf.fx = 0.9, inp.waf.up = 0.9, out.waf.lo = 0.9, out.waf.fx = 0.9,
+#'     out.waf.up = 0.9
 #'   ),
 #'   optimizeRetirement = FALSE,
 #'   misc = list()

@@ -48,7 +48,7 @@
   #
   # `@storage$comm` is deliberately NOT a source: naming a commodity is
   # metadata, not data. Were it included, every storage would acquire an energy
-  # capacity variable and `cinp.up`/`cout.up` defaulting to .inf would let the
+  # capacity variable and `inp.af.up`/`out.af.up` defaulting to .inf would let the
   # LP drive it to zero -- a priced-but-unbounded capacity vanishing silently.
   mStorageStgCap = list(source = c("pStorageStgStock", "pStorageStgCap",
                                    "pStorageStgNewCap", "pStorageStgInvcost",
@@ -91,10 +91,10 @@
   mTechWeatherAfcLo     = list(source = "pTechWeatherAfc",     types = c("lo", "fx")),
   mStorageWeatherAfUp   = list(source = "pStorageWeatherAf",   types = c("up", "fx")),
   mStorageWeatherAfLo   = list(source = "pStorageWeatherAf",   types = c("lo", "fx")),
-  mStorageWeatherCinpUp = list(source = "pStorageWeatherCinp", types = c("up", "fx")),
-  mStorageWeatherCinpLo = list(source = "pStorageWeatherCinp", types = c("lo", "fx")),
-  mStorageWeatherCoutUp = list(source = "pStorageWeatherCout", types = c("up", "fx")),
-  mStorageWeatherCoutLo = list(source = "pStorageWeatherCout", types = c("lo", "fx")),
+  mStorageWeatherInpAfUp = list(source = "pStorageWeatherInpAf", types = c("up", "fx")),
+  mStorageWeatherInpAfLo = list(source = "pStorageWeatherInpAf", types = c("lo", "fx")),
+  mStorageWeatherOutAfUp = list(source = "pStorageWeatherOutAf", types = c("up", "fx")),
+  mStorageWeatherOutAfLo = list(source = "pStorageWeatherOutAf", types = c("lo", "fx")),
   mSupWeatherUp         = list(source = "pSupWeather",         types = c("up", "fx")),
   mSupWeatherLo         = list(source = "pSupWeather",         types = c("lo", "fx"))
 )
@@ -162,10 +162,10 @@ map_mTechWeatherAfcUp     <- function(scen, fmp) .value_weather(scen, "mTechWeat
 map_mTechWeatherAfcLo     <- function(scen, fmp) .value_weather(scen, "mTechWeatherAfcLo", fmp)
 map_mStorageWeatherAfUp   <- function(scen, fmp) .value_weather(scen, "mStorageWeatherAfUp", fmp)
 map_mStorageWeatherAfLo   <- function(scen, fmp) .value_weather(scen, "mStorageWeatherAfLo", fmp)
-map_mStorageWeatherCinpUp <- function(scen, fmp) .value_weather(scen, "mStorageWeatherCinpUp", fmp)
-map_mStorageWeatherCinpLo <- function(scen, fmp) .value_weather(scen, "mStorageWeatherCinpLo", fmp)
-map_mStorageWeatherCoutUp <- function(scen, fmp) .value_weather(scen, "mStorageWeatherCoutUp", fmp)
-map_mStorageWeatherCoutLo <- function(scen, fmp) .value_weather(scen, "mStorageWeatherCoutLo", fmp)
+map_mStorageWeatherInpAfUp <- function(scen, fmp) .value_weather(scen, "mStorageWeatherInpAfUp", fmp)
+map_mStorageWeatherInpAfLo <- function(scen, fmp) .value_weather(scen, "mStorageWeatherInpAfLo", fmp)
+map_mStorageWeatherOutAfUp <- function(scen, fmp) .value_weather(scen, "mStorageWeatherOutAfUp", fmp)
+map_mStorageWeatherOutAfLo <- function(scen, fmp) .value_weather(scen, "mStorageWeatherOutAfLo", fmp)
 map_mSupWeatherUp         <- function(scen, fmp) .value_weather(scen, "mSupWeatherUp", fmp)
 map_mSupWeatherLo         <- function(scen, fmp) .value_weather(scen, "mSupWeatherLo", fmp)
 
@@ -266,10 +266,10 @@ map_mSubCost <- function(scen, fmp)
   mTechWeatherAfcLo     = map_mTechWeatherAfcLo,
   mStorageWeatherAfUp   = map_mStorageWeatherAfUp,
   mStorageWeatherAfLo   = map_mStorageWeatherAfLo,
-  mStorageWeatherCinpUp = map_mStorageWeatherCinpUp,
-  mStorageWeatherCinpLo = map_mStorageWeatherCinpLo,
-  mStorageWeatherCoutUp = map_mStorageWeatherCoutUp,
-  mStorageWeatherCoutLo = map_mStorageWeatherCoutLo,
+  mStorageWeatherInpAfUp = map_mStorageWeatherInpAfUp,
+  mStorageWeatherInpAfLo = map_mStorageWeatherInpAfLo,
+  mStorageWeatherOutAfUp = map_mStorageWeatherOutAfUp,
+  mStorageWeatherOutAfLo = map_mStorageWeatherOutAfLo,
   mSupWeatherUp         = map_mSupWeatherUp,
   mSupWeatherLo         = map_mSupWeatherLo,
   mSupSpan        = map_mSupSpan,

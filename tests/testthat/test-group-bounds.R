@@ -169,3 +169,70 @@ test_that("a group bound on the storing part actually binds", {
                               silent = TRUE)))
   expect_equal(got, 0L)
 })
+
+# =========================================================================== #
+# Group AVAILABILITY FACTORS: activity against capacity
+# =========================================================================== #
+#
+# A capacity group bound constrains a stock with one summand. An availability
+# factor relates the summed ACTIVITY of a group to its summed CAPACITY:
+#
+#     sum_k act_k  <op>  af * cap2act * share_s * sum_k cap_k
+#
+# Two summands and a timeslice-varying coefficient. Note what this is NOT: it is
+# not the sum of the per-variant limits, because those carry each variant's own
+# weather factor. It is a bound in its own right -- "however good the weather,
+# the fleet cannot exceed X% of nameplate" -- and the per-variant constraints
+# still apply alongside it.
+
+gb_af <- function(nm, slot, row) {
+  W <- newTechnology("EWIN", output = list(comm = "ELC"),
+                     cluster = c("best", "mid"),
+                     invcost = data.frame(cluster = c("best", "mid"),
+                                          invcost = c(100, 110)),
+                     capacity = data.frame(cap.up = 100),
+                     vintage = data.frame(olife = 25L), cap2act = 1)
+  slot(W, slot) <- row
+  vt_interp(vt_model(W, name = nm), nm)
+}
+
+test_that("a group afs.up caps the fleet's annual utilisation", {
+  skip_if_no_solver()
+  sc <- gb_af("gafs", "afs", data.frame(cluster = "TOTAL", timeslice = "ANNUAL",
+                                        afs.up = 0.3))
+  expect_length(sc@modInp@gams.equation, 1L)
+  sol <- vt_solve(sc)
+  a <- suppressMessages(getData(sol, "vTechAct", merge = TRUE))
+  a <- a[grepl("^EWIN", a$tech) & a$region == "R1", ]
+  act <- sum(a$value[a$year == min(a$year)])
+  cap <- vt_cap(sol, "EWIN", "R1")
+  # Annual activity is exactly 30% of the summed nameplate. The model builds MORE
+  # capacity than it otherwise would, precisely because the cap bites.
+  expect_equal(act / cap, 0.3, tolerance = 1e-6)
+})
+
+test_that("a group af.up caps every timeslice against summed capacity", {
+  skip_if_no_solver()
+  peak <- function(nm, v) {
+    sc <- gb_af(nm, "af", data.frame(cluster = "TOTAL", af.up = v))
+    # one constraint per timeslice of the calendar (ANNUAL + four seasons)
+    expect_gt(length(sc@modInp@gams.equation), 1L)
+    sol <- vt_solve(sc)
+    a <- suppressMessages(getData(sol, "vTechAct", merge = TRUE))
+    a <- a[grepl("^EWIN", a$tech) & a$region == "R1", ]
+    a <- a[a$year == min(a$year), ]
+    p <- stats::aggregate(list(v = a$value), by = list(s = a$timeslice), FUN = sum)
+    max(p$v) / (vt_cap(sol, "EWIN", "R1") * 0.25)   # 0.25 = a season's share
+  }
+  expect_equal(peak("gaf5", 0.5), 0.5, tolerance = 1e-6)
+  expect_equal(peak("gaf9", 0.9), 0.9, tolerance = 1e-6)
+})
+
+test_that("a TOTAL row with no af value is refused", {
+  # The token is filtered out of the variant levels, so such a row would create
+  # neither a variant nor a bound.
+  expect_error(gb_af("gafbad", "afs",
+                     data.frame(cluster = "TOTAL", timeslice = "ANNUAL",
+                                afs.lo = NA_real_, afs.up = NA_real_)),
+               "carries no group-boundable value")
+})

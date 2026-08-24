@@ -2224,11 +2224,11 @@ model.eqStorageInpUp = Constraint(
     # [rate] capacity is per HOUR, not per timeslice
     * pStorageInpCap2act.get((st1))
     * pTimesliceShare.get((s))
-    * pStorageCinpUp.get((st1, c, r, y, s))
+    * pStorageInpAfUp.get((st1, c, r, y, s))
     * prod(
-        pStorageWeatherCinpUp.get((wth1, st1)) * pWeather.get((wth1, r, y, s))
+        pStorageWeatherInpAfUp.get((wth1, st1)) * pWeather.get((wth1, r, y, s))
         for wth1 in weather
-        if (wth1, st1) in mStorageWeatherCinpUp
+        if (wth1, st1) in mStorageWeatherInpAfUp
     ),
 )
 if verbose:
@@ -2256,11 +2256,11 @@ model.eqStorageInpLo = Constraint(
     # [rate] capacity is per HOUR, not per timeslice
     * pStorageInpCap2act.get((st1))
     * pTimesliceShare.get((s))
-    * pStorageCinpLo.get((st1, c, r, y, s))
+    * pStorageInpAfLo.get((st1, c, r, y, s))
     * prod(
-        pStorageWeatherCinpLo.get((wth1, st1)) * pWeather.get((wth1, r, y, s))
+        pStorageWeatherInpAfLo.get((wth1, st1)) * pWeather.get((wth1, r, y, s))
         for wth1 in weather
-        if (wth1, st1) in mStorageWeatherCinpLo
+        if (wth1, st1) in mStorageWeatherInpAfLo
     ),
 )
 if verbose:
@@ -2281,11 +2281,11 @@ model.eqStorageOutUp = Constraint(
     <= model.vStorageOutCap[st1, r, y]
     * pStorageOutCap2act.get((st1))
     * pTimesliceShare.get((s))
-    * pStorageCoutUp.get((st1, c, r, y, s))
+    * pStorageOutAfUp.get((st1, c, r, y, s))
     * prod(
-        pStorageWeatherCoutUp.get((wth1, st1)) * pWeather.get((wth1, r, y, s))
+        pStorageWeatherOutAfUp.get((wth1, st1)) * pWeather.get((wth1, r, y, s))
         for wth1 in weather
-        if (wth1, st1) in mStorageWeatherCoutUp
+        if (wth1, st1) in mStorageWeatherOutAfUp
     ),
 )
 if verbose:
@@ -2306,11 +2306,11 @@ model.eqStorageOutLo = Constraint(
     >= model.vStorageOutCap[st1, r, y]
     * pStorageOutCap2act.get((st1))
     * pTimesliceShare.get((s))
-    * pStorageCoutLo.get((st1, c, r, y, s))
+    * pStorageOutAfLo.get((st1, c, r, y, s))
     * prod(
-        pStorageWeatherCoutLo.get((wth1, st1)) * pWeather.get((wth1, r, y, s))
+        pStorageWeatherOutAfLo.get((wth1, st1)) * pWeather.get((wth1, r, y, s))
         for wth1 in weather
-        if (wth1, st1) in mStorageWeatherCoutLo
+        if (wth1, st1) in mStorageWeatherOutAfLo
     ),
 )
 if verbose:

@@ -1273,8 +1273,8 @@ setMethod(
     # has THREE roles (input / stored / output) instead of one `@commodity`, so
     # this has to pick the right one rather than inject one scalar. Keyed off the
     # parameter name, which already says which side it is about:
-    #   pStorageInpEff, pStorageCostInp, pStorageCinp*, pStorageWeatherCinp*
-    #   pStorageOutEff, pStorageCostOut, pStorageCout*, pStorageWeatherCout*
+    #   pStorageInpEff, pStorageCostInp, pStorageInpAf*, pStorageWeatherInpAf*
+    #   pStorageOutEff, pStorageCostOut, pStorageOutAf*, pStorageWeatherOutAf*
     #   everything else (StgEff, CostStore, StartLevel, NCap2Stg) -> the LEVEL
     # For a storage written with a bare `commodity =` all three roles hold the
     # same commodity, so this reproduces the old behaviour exactly.

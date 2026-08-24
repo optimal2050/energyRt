@@ -1,6 +1,6 @@
 # Coverage matrix summary
 
-Generated: 2026-08-24 16:51 | energyRt 0.87.1.9000
+Generated: 2026-08-24 19:17 | energyRt 0.87.1.9000
 
 ## Rows by kind x depth
 
@@ -8,12 +8,12 @@ Generated: 2026-08-24 16:51 | energyRt 0.87.1.9000
 Key: <kind>
      kind  none     C     I     S     X
    <char> <int> <int> <int> <int> <int>
-   bounds    21     3     1     6     6
- equation   134     0     1     9     4
-      map   233     0    39     2    11
-   numpar    59     8     6    19    41
-      set     0     0     0     3    10
- variable    45     0     4    23    23
+   bounds    18     3     1     4    11
+ equation   131     0     1     9     7
+      map   232     0    39     2    12
+   numpar    55     7     9    19    43
+      set     0     0     0     1    12
+ variable    42     0     4    21    28
 ```
 
 ## Numeric parameters: family x depth
@@ -24,11 +24,11 @@ Key: <family>
                       <char> <int> <int> <int> <int> <int>
          calendar-timeslices     0     0     0     4     0
                    commodity     2     0     0     0     0
-                      demand     0     1     0     0     0
+                      demand     0     0     0     1     0
                  discounting     0     0     0     0     3
                  dummy-debug     2     0     0     0     0
            horizon-periodlen     1     0     0     0     2
-           import-export-row     4     0     0     2     0
+           import-export-row     0     0     1     1     4
            storage-aux-flows    14     1     0     0     0
            storage-costs-eac    15     0     1     4     8
             storage-duration     0     0     0     0     1
@@ -41,8 +41,8 @@ Key: <family>
                       supply     1     1     1     0     1
                  tax-subsidy     0     2     0     0     4
               tech-aux-flows    12     1     1     0     0
-           tech-availability     3     0     0     1     0
-        tech-capacity-bounds     1     0     0     1     1
+           tech-availability     0     0     2     1     1
+        tech-capacity-bounds     1     0     0     0     2
                   tech-costs     0     2     0     0     3
        tech-eac-wacc-payback     0     0     0     1     2
              tech-efficiency     1     1     1     2     1
@@ -50,7 +50,7 @@ Key: <family>
            tech-share-bounds     0     0     0     1     0
        tech-stock-retirement     0     0     1     0     5
                 tech-weather     2     1     0     0     0
-      trade-capacity-vintage     4     0     1     2     7
+      trade-capacity-vintage     4     0     1     1     8
                   trade-core     2     0     0     0     1
                  trade-costs     4     0     0     0     2
                weather-class     0     0     0     0     1
@@ -58,177 +58,86 @@ Key: <family>
                       <char> <int> <int> <int> <int> <int>
 ```
 
-## Zero-coverage numeric parameters (80)
+## Zero-coverage numeric parameters (73)
 
 ```
-                 name                   family      class         slot
-               <char>                   <char>     <char>       <char>
-     pAggregateFactor                commodity  commodity          agg
-      pEmissionFactor                commodity  commodity         emis
-     pDummyExportCost              dummy-debug   settings        debug
-     pDummyImportCost              dummy-debug   settings        debug
-             cardYear        horizon-periodlen                        
-           pExportRow        import-export-row     export availability
-        pExportRowRes        import-export-row     export      reserve
-           pImportRow        import-export-row     import availability
-        pImportRowRes        import-export-row     import      reserve
-     pStorageCap2AInp        storage-aux-flows    storage         aeff
-     pStorageCap2AOut        storage-aux-flows    storage         aeff
-    pStorageCinp2AOut        storage-aux-flows    storage         aeff
-    pStorageCout2AInp        storage-aux-flows    storage         aeff
-    pStorageCout2AOut        storage-aux-flows    storage         aeff
-    pStorageNCap2AInp        storage-aux-flows    storage         aeff
-    pStorageNCap2AOut        storage-aux-flows    storage         aeff
-     pStorageNCap2Stg        storage-aux-flows    storage         aeff
-     pStoragePho2AInp        storage-aux-flows    storage         aeff
-     pStoragePho2AOut        storage-aux-flows    storage         aeff
-     pStorageRet2AInp        storage-aux-flows    storage         aeff
-     pStorageRet2AOut        storage-aux-flows    storage         aeff
-     pStorageStg2AInp        storage-aux-flows    storage         aeff
-     pStorageStg2AOut        storage-aux-flows    storage         aeff
-       pStorageInpEac        storage-costs-eac    storage      invcost
-   pStorageInpPayback        storage-costs-eac    storage      invcost
-   pStorageInpRetCost        storage-costs-eac    storage      invcost
-  pStorageInpStockNew        storage-costs-eac                        
- pStorageInpStockSurv        storage-costs-eac                        
-      pStorageInpWacc        storage-costs-eac    storage      invcost
-   pStorageOutRetCost        storage-costs-eac    storage      invcost
-  pStorageOutStockNew        storage-costs-eac                        
- pStorageOutStockSurv        storage-costs-eac                        
-      pStorageOutWacc        storage-costs-eac    storage      invcost
-   pStorageStgPayback        storage-costs-eac    storage      invcost
-   pStorageStgRetCost        storage-costs-eac    storage      invcost
-  pStorageStgStockNew        storage-costs-eac                        
- pStorageStgStockSurv        storage-costs-eac                        
-      pStorageStgWacc        storage-costs-eac    storage      invcost
-      pStorageInp2out          storage-inp2out    storage      inp2out
-           pStorageAf storage-roles-capacities    storage           af
-         pStorageCinp storage-roles-capacities    storage           af
-         pStorageCout storage-roles-capacities    storage           af
-       pStorageInpCap storage-roles-capacities    storage     capacity
-    pStorageInpNewCap storage-roles-capacities    storage     capacity
-    pStorageOutNewCap storage-roles-capacities    storage     capacity
-       pStorageStgCap storage-roles-capacities    storage     capacity
-    pStorageStgNewCap storage-roles-capacities    storage     capacity
-  pStorageWeatherCinp          storage-weather    storage      weather
-  pStorageWeatherCout          storage-weather    storage      weather
-          pSupReserve                   supply     supply      reserve
-        pTechAct2AOut           tech-aux-flows technology         aeff
-        pTechCap2AInp           tech-aux-flows technology         aeff
-        pTechCap2AOut           tech-aux-flows technology         aeff
-       pTechCinp2AOut           tech-aux-flows technology         aeff
-       pTechCout2AInp           tech-aux-flows technology         aeff
-       pTechCout2AOut           tech-aux-flows technology         aeff
-       pTechNCap2AInp           tech-aux-flows technology         aeff
-       pTechNCap2AOut           tech-aux-flows technology         aeff
-        pTechPho2AInp           tech-aux-flows technology         aeff
-        pTechPho2AOut           tech-aux-flows technology         aeff
-        pTechRet2AInp           tech-aux-flows technology         aeff
-        pTechRet2AOut           tech-aux-flows technology         aeff
-              pTechAf        tech-availability technology           af
-        pTechRampDown        tech-availability technology     rampdown
-          pTechRampUp        tech-availability technology       rampup
-          pTechNewCap     tech-capacity-bounds technology     capacity
-       pTechCinp2ginp          tech-efficiency technology         ceff
-        pTechEmisComm                tech-emis technology        input
-      pTechWeatherAfc             tech-weather technology      weather
-      pTechWeatherAfs             tech-weather technology      weather
-        pTradeCap2Act   trade-capacity-vintage      trade      cap2act
-         pTradeNewCap   trade-capacity-vintage      trade     capacity
-       pTradeStockNew   trade-capacity-vintage                        
-      pTradeStockSurv   trade-capacity-vintage                        
-             pTradeIr               trade-core      trade        trade
-           pTradeIrAf               trade-core      trade        trade
-    pTradeIrCdst2Ainp              trade-costs      trade         aeff
-    pTradeIrCdst2Aout              trade-costs      trade         aeff
-    pTradeIrCsrc2Ainp              trade-costs      trade         aeff
-    pTradeIrCsrc2Aout              trade-costs      trade         aeff
-                 name                   family      class         slot
-               <char>                   <char>     <char>       <char>
-     colName
-      <char>
-         agg
-        emis
- dummyExport
- dummyImport
-            
-         exp
-            
-         imp
-            
-    cap2ainp
-    cap2aout
-   cinp2aout
-   cout2ainp
-   cout2aout
-   ncap2ainp
-   ncap2aout
-    ncap2stg
-    pho2ainp
-    pho2aout
-    ret2ainp
-    ret2aout
-    stg2ainp
-    stg2aout
-     inp.eac
- inp.payback
- inp.retcost
-            
-            
-    inp.wacc
- out.retcost
-            
-            
-    out.wacc
- stg.payback
- stg.retcost
-            
-            
-    stg.wacc
-     inp2out
-          af
-        cinp
-        cout
-     inp.cap
-    inp.ncap
-    out.ncap
-     stg.cap
-    stg.ncap
-       wcinp
-       wcout
-         res
-    act2aout
-    cap2ainp
-    cap2aout
-   cinp2aout
-   cout2ainp
-   cout2aout
-   ncap2ainp
-   ncap2aout
-    pho2ainp
-    pho2aout
-    ret2ainp
-    ret2aout
-          af
-    rampdown
-      rampup
-        ncap
-   cinp2ginp
-  combustion
-        wafc
-        wafs
-            
-        ncap
-            
-            
-         ava
-          af
-   cdst2ainp
-   cdst2aout
-   csrc2ainp
-   csrc2aout
-     colName
-      <char>
+                 name                   family      class     slot     colName
+               <char>                   <char>     <char>   <char>      <char>
+     pAggregateFactor                commodity  commodity      agg         agg
+      pEmissionFactor                commodity  commodity     emis        emis
+     pDummyExportCost              dummy-debug   settings    debug dummyExport
+     pDummyImportCost              dummy-debug   settings    debug dummyImport
+             cardYear        horizon-periodlen                                
+     pStorageCap2AInp        storage-aux-flows    storage     aeff    cap2ainp
+     pStorageCap2AOut        storage-aux-flows    storage     aeff    cap2aout
+    pStorageCinp2AOut        storage-aux-flows    storage     aeff   cinp2aout
+    pStorageCout2AInp        storage-aux-flows    storage     aeff   cout2ainp
+    pStorageCout2AOut        storage-aux-flows    storage     aeff   cout2aout
+    pStorageNCap2AInp        storage-aux-flows    storage     aeff   ncap2ainp
+    pStorageNCap2AOut        storage-aux-flows    storage     aeff   ncap2aout
+     pStorageNCap2Stg        storage-aux-flows    storage     aeff    ncap2stg
+     pStoragePho2AInp        storage-aux-flows    storage     aeff    pho2ainp
+     pStoragePho2AOut        storage-aux-flows    storage     aeff    pho2aout
+     pStorageRet2AInp        storage-aux-flows    storage     aeff    ret2ainp
+     pStorageRet2AOut        storage-aux-flows    storage     aeff    ret2aout
+     pStorageStg2AInp        storage-aux-flows    storage     aeff    stg2ainp
+     pStorageStg2AOut        storage-aux-flows    storage     aeff    stg2aout
+       pStorageInpEac        storage-costs-eac    storage  invcost     inp.eac
+   pStorageInpPayback        storage-costs-eac    storage  invcost inp.payback
+   pStorageInpRetCost        storage-costs-eac    storage  invcost inp.retcost
+  pStorageInpStockNew        storage-costs-eac                                
+ pStorageInpStockSurv        storage-costs-eac                                
+      pStorageInpWacc        storage-costs-eac    storage  invcost    inp.wacc
+   pStorageOutRetCost        storage-costs-eac    storage  invcost out.retcost
+  pStorageOutStockNew        storage-costs-eac                                
+ pStorageOutStockSurv        storage-costs-eac                                
+      pStorageOutWacc        storage-costs-eac    storage  invcost    out.wacc
+   pStorageStgPayback        storage-costs-eac    storage  invcost stg.payback
+   pStorageStgRetCost        storage-costs-eac    storage  invcost stg.retcost
+  pStorageStgStockNew        storage-costs-eac                                
+ pStorageStgStockSurv        storage-costs-eac                                
+      pStorageStgWacc        storage-costs-eac    storage  invcost    stg.wacc
+      pStorageInp2out          storage-inp2out    storage  inp2out     inp2out
+           pStorageAf storage-roles-capacities    storage       af          af
+        pStorageInpAf storage-roles-capacities    storage       af      inp.af
+       pStorageInpCap storage-roles-capacities    storage capacity     inp.cap
+    pStorageInpNewCap storage-roles-capacities    storage capacity    inp.ncap
+        pStorageOutAf storage-roles-capacities    storage       af      out.af
+    pStorageOutNewCap storage-roles-capacities    storage capacity    out.ncap
+       pStorageStgCap storage-roles-capacities    storage capacity     stg.cap
+    pStorageStgNewCap storage-roles-capacities    storage capacity    stg.ncap
+ pStorageWeatherInpAf          storage-weather    storage  weather     inp.waf
+ pStorageWeatherOutAf          storage-weather    storage  weather     out.waf
+          pSupReserve                   supply     supply  reserve         res
+        pTechAct2AOut           tech-aux-flows technology     aeff    act2aout
+        pTechCap2AInp           tech-aux-flows technology     aeff    cap2ainp
+        pTechCap2AOut           tech-aux-flows technology     aeff    cap2aout
+       pTechCinp2AOut           tech-aux-flows technology     aeff   cinp2aout
+       pTechCout2AInp           tech-aux-flows technology     aeff   cout2ainp
+       pTechCout2AOut           tech-aux-flows technology     aeff   cout2aout
+       pTechNCap2AInp           tech-aux-flows technology     aeff   ncap2ainp
+       pTechNCap2AOut           tech-aux-flows technology     aeff   ncap2aout
+        pTechPho2AInp           tech-aux-flows technology     aeff    pho2ainp
+        pTechPho2AOut           tech-aux-flows technology     aeff    pho2aout
+        pTechRet2AInp           tech-aux-flows technology     aeff    ret2ainp
+        pTechRet2AOut           tech-aux-flows technology     aeff    ret2aout
+          pTechNewCap     tech-capacity-bounds technology capacity        ncap
+       pTechCinp2ginp          tech-efficiency technology     ceff   cinp2ginp
+        pTechEmisComm                tech-emis technology    input  combustion
+      pTechWeatherAfc             tech-weather technology  weather        wafc
+      pTechWeatherAfs             tech-weather technology  weather        wafs
+        pTradeCap2Act   trade-capacity-vintage      trade  cap2act            
+         pTradeNewCap   trade-capacity-vintage      trade capacity        ncap
+       pTradeStockNew   trade-capacity-vintage                                
+      pTradeStockSurv   trade-capacity-vintage                                
+             pTradeIr               trade-core      trade    trade         ava
+           pTradeIrAf               trade-core      trade    trade          af
+    pTradeIrCdst2Ainp              trade-costs      trade     aeff   cdst2ainp
+    pTradeIrCdst2Aout              trade-costs      trade     aeff   cdst2aout
+    pTradeIrCsrc2Ainp              trade-costs      trade     aeff   csrc2ainp
+    pTradeIrCsrc2Aout              trade-costs      trade     aeff   csrc2aout
+                 name                   family      class     slot     colName
+               <char>                   <char>     <char>   <char>      <char>
 ```
 
-Tagged rows: 20 | inferred: 199 | uncovered: 492 of 711
+Tagged rows: 41 | inferred: 192 | uncovered: 478 of 711

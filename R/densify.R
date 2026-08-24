@@ -52,8 +52,8 @@
   pTechWeatherAfc     = "mTechWeatherAfcUp",
   pSupWeather         = "mSupWeatherUp",
   pStorageWeatherAf   = "mStorageWeatherAfUp",
-  pStorageWeatherCinp = "mStorageWeatherCinpUp",
-  pStorageWeatherCout = "mStorageWeatherCoutUp"
+  pStorageWeatherInpAf = "mStorageWeatherInpAfUp",
+  pStorageWeatherOutAf = "mStorageWeatherOutAfUp"
 )
 
 # Parameters never densified by default-fill: their absent tuples are NOT the

@@ -944,13 +944,13 @@ recipe_value <- function(scen, names, fmp) {
                          types = "up", drop = "up", structural = TRUE),
   # Flow bounds live on the FLOW's own domain, not the level's: the charging side
   # may consume a different commodity from the one stored.
-  meqStorageInpLo = list(domain = "mvStorageInp", source = "pStorageCinp",
+  meqStorageInpLo = list(domain = "mvStorageInp", source = "pStorageInpAf",
                          types = "lo", drop = "lo"),
-  meqStorageInpUp = list(domain = "mvStorageInp", source = "pStorageCinp",
+  meqStorageInpUp = list(domain = "mvStorageInp", source = "pStorageInpAf",
                          types = "up", drop = "up"),
-  meqStorageOutLo = list(domain = "mvStorageOut", source = "pStorageCout",
+  meqStorageOutLo = list(domain = "mvStorageOut", source = "pStorageOutAf",
                          types = "lo", drop = "lo"),
-  meqStorageOutUp = list(domain = "mvStorageOut", source = "pStorageCout",
+  meqStorageOutUp = list(domain = "mvStorageOut", source = "pStorageOutAf",
                          types = "up", drop = "up"),
 
   # C6 storage capacity / retirement bounds.

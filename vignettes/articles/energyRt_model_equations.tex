@@ -222,13 +222,13 @@ pStorageAfLo(stg, region, year, timeslice) & $pStorageAfLo_{st1,r,y,s}$ & Storag
  \hline
 pStorageAfUp(stg, region, year, timeslice) & $pStorageAfUp_{st1,r,y,s}$ & Storage availability factor upper bound (maximum charging level) \\
  \hline
-pStorageCinpUp(stg, comm, region, year, timeslice) & $pStorageCinpUp_{st1,c,r,y,s}$ & Storage input upper bound \\
+pStorageInpAfUp(stg, comm, region, year, timeslice) & $pStorageInpAfUp_{st1,c,r,y,s}$ & Storage input upper bound \\
  \hline
-pStorageCinpLo(stg, comm, region, year, timeslice) & $pStorageCinpLo_{st1,c,r,y,s}$ & Storage input lower bound \\
+pStorageInpAfLo(stg, comm, region, year, timeslice) & $pStorageInpAfLo_{st1,c,r,y,s}$ & Storage input lower bound \\
  \hline
-pStorageCoutUp(stg, comm, region, year, timeslice) & $pStorageCoutUp_{st1,c,r,y,s}$ & Storage output upper bound \\
+pStorageOutAfUp(stg, comm, region, year, timeslice) & $pStorageOutAfUp_{st1,c,r,y,s}$ & Storage output upper bound \\
  \hline
-pStorageCoutLo(stg, comm, region, year, timeslice) & $pStorageCoutLo_{st1,c,r,y,s}$ & Storage output lower bound \\
+pStorageOutAfLo(stg, comm, region, year, timeslice) & $pStorageOutAfLo_{st1,c,r,y,s}$ & Storage output lower bound \\
  \hline
 pStorageNCap2Stg(stg, comm, region, year, timeslice) & $pStorageNCap2Stg_{st1,c,r,y,s}$ & Initial storage charge level for new investment \\
  \hline
@@ -338,13 +338,13 @@ pStorageWeatherAfLo(weather, stg) & $pStorageWeatherAfLo_{wth1,st1}$ & weather f
  \hline
 pStorageWeatherAfUp(weather, stg) & $pStorageWeatherAfUp_{wth1,st1}$ & weather factor for storage availability upper value (af.up) \\
  \hline
-pStorageWeatherCinpUp(weather, stg) & $pStorageWeatherCinpUp_{wth1,st1}$ & weather factor for storage commodity input upper value (cinp.up) \\
+pStorageWeatherInpAfUp(weather, stg) & $pStorageWeatherInpAfUp_{wth1,st1}$ & weather factor for storage commodity input upper value (inp.af.up) \\
  \hline
-pStorageWeatherCinpLo(weather, stg) & $pStorageWeatherCinpLo_{wth1,st1}$ & weather factor for storage commodity input lower value (cinp.lo) \\
+pStorageWeatherInpAfLo(weather, stg) & $pStorageWeatherInpAfLo_{wth1,st1}$ & weather factor for storage commodity input lower value (inp.af.lo) \\
  \hline
-pStorageWeatherCoutUp(weather, stg) & $pStorageWeatherCoutUp_{wth1,st1}$ & weather factor for storage commodity output upper value (cout.up) \\
+pStorageWeatherOutAfUp(weather, stg) & $pStorageWeatherOutAfUp_{wth1,st1}$ & weather factor for storage commodity output upper value (out.af.up) \\
  \hline
-pStorageWeatherCoutLo(weather, stg) & $pStorageWeatherCoutLo_{wth1,st1}$ & weather factor for storage commodity output lower value (cout.lo) \\
+pStorageWeatherOutAfLo(weather, stg) & $pStorageWeatherOutAfLo_{wth1,st1}$ & weather factor for storage commodity output lower value (out.af.lo) \\
  \hline
 pLECLoACT(region) & $pLECLoACT_{r}$ & levelized costs interim parameter \\
  \hline
@@ -1386,7 +1386,7 @@ $eqStorageInpUp_{st1,c,r,y,s}$
 
 
 \begin{dmath}
-{\bf vStorageInp}_{st1,c,r,y,s}  \le  {\bf vStorageCap}_{st1,r,y}*pStorageCinpUp_{st1,c,r,y,s}*\prod_{wth1}{\left(pStorageWeatherCinpUp_{wth1,st1}*pWeather_{wth1,r,y,s}\right)}
+{\bf vStorageInp}_{st1,c,r,y,s}  \le  {\bf vStorageCap}_{st1,r,y}*pStorageInpAfUp_{st1,c,r,y,s}*\prod_{wth1}{\left(pStorageWeatherInpAfUp_{wth1,st1}*pWeather_{wth1,r,y,s}\right)}
 \end{dmath}
 Storage input lower constraint
 
@@ -1404,7 +1404,7 @@ $eqStorageInpLo_{st1,c,r,y,s}$
 
 
 \begin{dmath}
-{\bf vStorageInp}_{st1,c,r,y,s}  \ge  {\bf vStorageCap}_{st1,r,y}*pStorageCinpLo_{st1,c,r,y,s}*\prod_{wth1}{\left(pStorageWeatherCinpLo_{wth1,st1}*pWeather_{wth1,r,y,s}\right)}
+{\bf vStorageInp}_{st1,c,r,y,s}  \ge  {\bf vStorageCap}_{st1,r,y}*pStorageInpAfLo_{st1,c,r,y,s}*\prod_{wth1}{\left(pStorageWeatherInpAfLo_{wth1,st1}*pWeather_{wth1,r,y,s}\right)}
 \end{dmath}
 Storage output upper constraint
 
@@ -1422,7 +1422,7 @@ $eqStorageOutUp_{st1,c,r,y,s}$
 
 
 \begin{dmath}
-{\bf vStorageOut}_{st1,c,r,y,s}  \le  {\bf vStorageCap}_{st1,r,y}*pStorageCoutUp_{st1,c,r,y,s}*\prod_{wth1}{\left(pStorageWeatherCoutUp_{wth1,st1}*pWeather_{wth1,r,y,s}\right)}
+{\bf vStorageOut}_{st1,c,r,y,s}  \le  {\bf vStorageCap}_{st1,r,y}*pStorageOutAfUp_{st1,c,r,y,s}*\prod_{wth1}{\left(pStorageWeatherOutAfUp_{wth1,st1}*pWeather_{wth1,r,y,s}\right)}
 \end{dmath}
 Storage output lower constraint
 
@@ -1440,7 +1440,7 @@ $eqStorageOutLo_{st1,c,r,y,s}$
 
 
 \begin{dmath}
-{\bf vStorageOut}_{st1,c,r,y,s}  \ge  {\bf vStorageCap}_{st1,r,y}*pStorageCoutLo_{st1,c,r,y,s}*\prod_{wth1}{\left(pStorageWeatherCoutLo_{wth1,st1}*pWeather_{wth1,r,y,s}\right)}
+{\bf vStorageOut}_{st1,c,r,y,s}  \ge  {\bf vStorageCap}_{st1,r,y}*pStorageOutAfLo_{st1,c,r,y,s}*\prod_{wth1}{\left(pStorageWeatherOutAfLo_{wth1,st1}*pWeather_{wth1,r,y,s}\right)}
 \end{dmath}
 \subsubsection*{Capacity and costs for storage}
 Storage capacity

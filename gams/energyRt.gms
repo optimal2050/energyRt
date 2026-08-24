@@ -301,10 +301,10 @@ pStorageAfLo(stg, region, year, timeslice)              Storage availability fac
 pStorageAfUp(stg, region, year, timeslice)              Storage availability factor upper bound (maximum charging level)
 *pStorageAfsLo(tech, region, year, timeslice)           add parameter and eq?
 *pStorageAfsUp(tech, region, year, timeslice)           add parameter and eq?
-pStorageCinpUp(stg, comm, region, year, timeslice)      Storage input upper bound
-pStorageCinpLo(stg, comm, region, year, timeslice)      Storage input lower bound
-pStorageCoutUp(stg, comm, region, year, timeslice)      Storage output upper bound
-pStorageCoutLo(stg, comm, region, year, timeslice)      Storage output lower bound
+pStorageInpAfUp(stg, comm, region, year, timeslice)      Storage input upper bound
+pStorageInpAfLo(stg, comm, region, year, timeslice)      Storage input lower bound
+pStorageOutAfUp(stg, comm, region, year, timeslice)      Storage output upper bound
+pStorageOutAfLo(stg, comm, region, year, timeslice)      Storage output lower bound
 pStorageNCap2Stg(stg, comm, region, year, timeslice)    Initial storage charge level for new investment
 pStorageStartLevel(stg, comm, region, year, timeslice)      Initial storage charge level for stock
 pStorageStg2AInp(stg, comm, region, year, timeslice)    Storage level to auxilary input
@@ -373,10 +373,10 @@ mTechWeatherAfcLo(weather, tech, comm)
 mTechWeatherAfcUp(weather, tech, comm)
 mStorageWeatherAfLo(weather, stg)
 mStorageWeatherAfUp(weather, stg)
-mStorageWeatherCinpUp(weather, stg)
-mStorageWeatherCinpLo(weather, stg)
-mStorageWeatherCoutUp(weather, stg)
-mStorageWeatherCoutLo(weather, stg)
+mStorageWeatherInpAfUp(weather, stg)
+mStorageWeatherInpAfLo(weather, stg)
+mStorageWeatherOutAfUp(weather, stg)
+mStorageWeatherOutAfLo(weather, stg)
 ;
 * Weather parameter
 parameters
@@ -391,10 +391,10 @@ pTechWeatherAfcLo(weather, tech, comm)          weather factor for technology av
 pTechWeatherAfcUp(weather, tech, comm)          weather factor for commodity availability upper value (afc.lo)
 pStorageWeatherAfLo(weather, stg)               weather factor for storage availability lower value (af.lo)
 pStorageWeatherAfUp(weather, stg)               weather factor for storage availability upper value (af.up)
-pStorageWeatherCinpUp(weather, stg)             weather factor for storage commodity input upper value (cinp.up)
-pStorageWeatherCinpLo(weather, stg)             weather factor for storage commodity input lower value (cinp.lo)
-pStorageWeatherCoutUp(weather, stg)             weather factor for storage commodity output upper value (cout.up)
-pStorageWeatherCoutLo(weather, stg)             weather factor for storage commodity output lower value (cout.lo)
+pStorageWeatherInpAfUp(weather, stg)             weather factor for storage commodity input upper value (inp.af.up)
+pStorageWeatherInpAfLo(weather, stg)             weather factor for storage commodity input lower value (inp.af.lo)
+pStorageWeatherOutAfUp(weather, stg)             weather factor for storage commodity output upper value (out.af.up)
+pStorageWeatherOutAfLo(weather, stg)             weather factor for storage commodity output lower value (out.af.lo)
 ;
 
 sets
@@ -1890,10 +1890,10 @@ eqStorageInpUp(stg, comm, region, year, timeslice)$meqStorageInpUp(stg, comm, re
        )$mStorageNoInpCap(stg, region, year))
 *   [rate] capacity is per HOUR, not per timeslice -- see pStorageInpCap2act
     * pStorageInpCap2act(stg) * pTimesliceShare(timeslice)
-    * pStorageCinpUp(stg, comm, region, year, timeslice)
+    * pStorageInpAfUp(stg, comm, region, year, timeslice)
 *         * pTimesliceShare(timeslice) *
-    * prod(weather$mStorageWeatherCinpUp(weather, stg),
-           pStorageWeatherCinpUp(weather, stg)
+    * prod(weather$mStorageWeatherInpAfUp(weather, stg),
+           pStorageWeatherInpAfUp(weather, stg)
            * pWeather(weather, region, year, timeslice));
 
 eqStorageInpLo(stg, comm, region, year, timeslice)$meqStorageInpLo(stg, comm, region, year, timeslice)..
@@ -1905,10 +1905,10 @@ eqStorageInpLo(stg, comm, region, year, timeslice)$meqStorageInpLo(stg, comm, re
        )$mStorageNoInpCap(stg, region, year))
 *   [rate] capacity is per HOUR, not per timeslice -- see pStorageInpCap2act
     * pStorageInpCap2act(stg) * pTimesliceShare(timeslice)
-    * pStorageCinpLo(stg, comm, region, year, timeslice)
+    * pStorageInpAfLo(stg, comm, region, year, timeslice)
 *    * pTimesliceShare(timeslice)
-    * prod(weather$mStorageWeatherCinpLo(weather, stg),
-           pStorageWeatherCinpLo(weather, stg)
+    * prod(weather$mStorageWeatherInpAfLo(weather, stg),
+           pStorageWeatherInpAfLo(weather, stg)
            * pWeather(weather, region, year, timeslice));
 
 * Output constraints
@@ -1917,9 +1917,9 @@ eqStorageOutUp(stg, comm, region, year, timeslice)$meqStorageOutUp(stg, comm, re
 *    pStorageDuration(stg) *
     vStorageOutCap(stg, region, year)
     * pStorageOutCap2act(stg) * pTimesliceShare(timeslice)
-    * pStorageCoutUp(stg, comm, region, year, timeslice)
-    * prod(weather$mStorageWeatherCoutUp(weather, stg),
-           pStorageWeatherCoutUp(weather, stg)
+    * pStorageOutAfUp(stg, comm, region, year, timeslice)
+    * prod(weather$mStorageWeatherOutAfUp(weather, stg),
+           pStorageWeatherOutAfUp(weather, stg)
            * pWeather(weather, region, year, timeslice));
 
 eqStorageOutLo(stg, comm, region, year, timeslice)$meqStorageOutLo(stg, comm, region, year, timeslice)..
@@ -1927,9 +1927,9 @@ eqStorageOutLo(stg, comm, region, year, timeslice)$meqStorageOutLo(stg, comm, re
 *    pStorageDuration(stg) *
     vStorageOutCap(stg, region, year)
     * pStorageOutCap2act(stg) * pTimesliceShare(timeslice)
-    * pStorageCoutLo(stg, comm, region, year, timeslice)
-    * prod(weather$mStorageWeatherCoutLo(weather, stg),
-           pStorageWeatherCoutLo(weather, stg)
+    * pStorageOutAfLo(stg, comm, region, year, timeslice)
+    * prod(weather$mStorageWeatherOutAfLo(weather, stg),
+           pStorageWeatherOutAfLo(weather, stg)
            * pWeather(weather, region, year, timeslice));
 
 ********************************************************************************

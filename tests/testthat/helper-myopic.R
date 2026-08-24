@@ -86,7 +86,7 @@ my_stg_mod <- function(years = 2020:2022, olife = 50L, name = "mys") {
       newStorage("STG", commodity = "ELC", vintage = V,
                  invcost = list(out.invcost = 4, stg.invcost = 1),
                  duration = data.frame(duration.lo = 1, duration.up = 200),
-                 af = data.frame(cinp.up = 1, cout.up = 1)),
+                 af = data.frame(inp.af.up = 1, out.af.up = 1)),
       newSupply("BACK", commodity = "ELC",
                 supply = data.frame(cost = MY_BACKSTOP_COST)),
       newDemand("DEM", commodity = "ELC",

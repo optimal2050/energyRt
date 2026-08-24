@@ -255,8 +255,8 @@ tm_STG_ELC_weather <- newStorage(
   weather = data.frame(
     weather  = "WWIN",
     waf.up   = 1,    # -> mStorageWeatherAfUp
-    wcinp.up = 0.9,  # -> mStorageWeatherCinpUp
-    wcout.up = 0.8   # -> mStorageWeatherCoutUp
+    inp.waf.up = 0.9,  # -> mStorageWeatherInpAfUp
+    out.waf.up = 0.8   # -> mStorageWeatherOutAfUp
   ),
   invcost = list(out.invcost = 50),
   olife = list(olife = 15)
