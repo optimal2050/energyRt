@@ -438,11 +438,13 @@ drop_na_cols <- function(x, unique = TRUE) {
   x
 }
 
-#' Make a name for a scenario directory
-#' @description A function to automate the creation of a scenario directory name.
-#' Used internally in `solve*()` and `interpolate*()` functions.
-#' Also can be used to amend the name of the scenario directory and explicitly
-#' assign the directory name to save the scenario object.
+#' Make a name for a scenario directory (deprecated)
+#' @description
+#' Deprecated: scenario folders are named by the internal
+#' `.scenario_dir_name()` (which slugs the parts and drops duplicates); this
+#' export never was the live implementation and produced different names.
+#' It now delegates to the real one; `prefix`/`suffix` are still honored.
+#' The previous body is archived in `drafts/make_scenario_dirname-legacy.R`.
 #'
 #' @param scen scenario object
 #' @param name character, name of the scenario, default is `scen@name`
@@ -451,17 +453,11 @@ drop_na_cols <- function(x, unique = TRUE) {
 #' @param horizon_name character, name of the horizon, default is `scen@settings@horizon@name`
 #' @param prefix character, prefix to add to the name
 #' @param suffix character, suffix to add to the name
-#' @param sep character, separator, default is `_`
+#' @param sep character, ignored (kept for backward compatibility)
 #'
 #' @return character, name of the scenario directory
+#' @keywords internal
 #' @export
-#'
-#' @examples
-#' \dontrun{
-#' make_scenario_dirname(scen_BASE)
-#' make_scenario_dirname(scen_BASE, prefix = "prefix", suffix = "suffix")
-#' }
-#'
 make_scenario_dirname <- function(
     scen,
     name = scen@name,
@@ -472,33 +468,10 @@ make_scenario_dirname <- function(
     suffix = NULL,
     sep = "_"
   ) {
-
-  if (isTRUE(nchar(prefix) > 0)) {
-    name <- paste(prefix, name, sep = sep)
-  }
-
-  if (isTRUE(is.null(name) && nchar(name) == 0)) {
-    warning("Scenario name is empty. Using 'scenario' as a default name.")
-    name <- "scenario"
-  }
-
-  if (isTRUE(nchar(model_name) > 0)) {
-    name <- paste(name, model_name, sep = sep)
-  }
-
-  if (isTRUE(nchar(calendar_name) > 0)) {
-    name <- paste(name, calendar_name, sep = sep)
-  }
-
-  if (isTRUE(nchar(horizon_name) > 0)) {
-    name <- paste(name, horizon_name, sep = sep)
-  }
-
-  if (isTRUE(nchar(suffix) > 0)) {
-    name <- paste(name, suffix, sep = sep)
-  }
-
-  return(name)
+  .Deprecated(msg = paste0(
+    "make_scenario_dirname() is deprecated; scenario folders are named ",
+    "automatically (interpolate_model / save_scenario)."))
+  .path_slug(prefix, name, model_name, calendar_name, horizon_name, suffix)
 }
 
 

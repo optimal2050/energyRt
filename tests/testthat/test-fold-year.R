@@ -14,7 +14,9 @@
 # are unaffected and were already correct.
 
 .fy_find <- function(rel) {
-  for (cand in c(rel, file.path("..", "..", rel))) {
+  cands <- c(testthat::test_path("fixtures", basename(rel)),
+             rel, file.path("..", "..", rel))
+  for (cand in cands) {
     if (file.exists(cand)) return(cand)
   }
   NULL

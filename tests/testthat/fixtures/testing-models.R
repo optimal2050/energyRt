@@ -26,7 +26,7 @@
 #
 # Usage:
 #   devtools::load_all(".")
-#   source("data-raw/testing-models.R")
+#   source("tests/testthat/fixtures/testing-models.R")
 #   mod <- tm_core()
 #
 # NOTE: For now the catalog lives as editable code here. Once the S4 classes

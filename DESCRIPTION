@@ -1,8 +1,8 @@
 Package: energyRt
 Type: Package
 Title: Energy Systems Modeling Toolbox
-Version: 0.86.0.9000
-Date: 2026-08-23
+Version: 0.87.0.9000
+Date: 2026-08-24
 Authors@R: 
   c(person(given = "Oleg", 
           family = "Lugovoy", 
@@ -120,22 +120,28 @@ Collate:
     'mapping_helpers.R'
     'mapping_registry.R'
     'model_size.R'
+    'model_store.R'
     'mosox.R'
     'neos.R'
     'obj2modInp.R'
+    'paths_rebase.R'
     'plot_scenario.R'
     'plot_map.R'
     'process_designer.R'
     'prune.R'
     'read.R'
     'registry.R'
+    'repo_store.R'
     'report.R'
+    'runs.R'
     'start_level.R'
     'start_msg.R'
     'stock_path.R'
     'storage_duration.R'
     'techspec.R'
     'timeslices.R'
+    'trade_kvl.R'
+    'trade_losses.R'
     'units.R'
     'utopia-data.R'
     'utopia-geoscale.R'

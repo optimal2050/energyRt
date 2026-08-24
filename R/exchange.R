@@ -2,8 +2,9 @@
 # exchange.R  --  single-file table exchange with the JuMP / Pyomo solvers.
 #
 # Each model parameter (input) and solution variable (output) is written as ONE
-# self-contained file in the solver run-folder (`<scenario>/script/<solver>/
-# input|output/`), which Arrow.jl (Julia) and pyarrow (Python) read directly.
+# self-contained file in the run's solver directory (`<scenario>/runs/<run>/
+# solver/input|output/`), which Arrow.jl (Julia) and pyarrow (Python) read
+# directly.
 # This is distinct from the partitioned `arrow::write_dataset` used for on-disk
 # scenario STORAGE (R/arrow.R): here a single data.frame maps to a single file.
 #

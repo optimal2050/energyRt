@@ -14,7 +14,7 @@
 
 # canonical column set; everything character for CSV round-trip stability
 .registry_cols <- c(
-  "type",             # "model" | "scenario" | "run"
+  "type",             # "model" | "repository" | "scenario" | "run"
   "name",             # object name; runs: "<variant>/<solve>"
   "hash",             # model content hash (model rows), "" otherwise
   "model_hash",       # scenario rows: hash of the referenced/embedded model
@@ -67,7 +67,7 @@
 #' @param file character, path to the registry CSV
 #'   (default [get_registry_file()]).
 #' @param reg a registry tibble as returned by `registry_load()`.
-#' @param type character: `"model"`, `"scenario"`, or `"run"`.
+#' @param type character: `"model"`, `"repository"`, `"scenario"`, or `"run"`.
 #' @param name character, object name (for runs: `"<variant>/<solve>"`).
 #' @param path character, object directory, relative to the registry file's
 #'   directory.
@@ -116,7 +116,7 @@ registry_save <- function(reg, file = get_registry_file()) {
 registry_add <- function(reg, type, name, path,
                          hash = "", model_hash = "", parent = "",
                          memo = "") {
-  type <- match.arg(type, c("model", "scenario", "run"))
+  type <- match.arg(type, c("model", "repository", "scenario", "run"))
   stopifnot(is.character(name), length(name) == 1L, nzchar(name))
   now <- .registry_now()
   ii <- which(reg$type == type & reg$name == name & reg$parent == parent)
@@ -152,6 +152,11 @@ registry_refresh <- function(root = ".", file = get_registry_file(),
                              write = TRUE) {
   old <- registry_load(file)
   rel_to_reg <- function(p) .registry_rel_path(p, reg_file = file)
+  # store roots from the options may be absolute (e.g. redirected to a temp
+  # dir); only prefix `root` onto relative ones
+  root_join <- function(p) {
+    if (grepl("^([A-Za-z]:|/|\\\\)", p)) gsub("[\\/]+", "/", p) else fp(root, p)
+  }
   keep_created <- function(reg, type, name, parent = "") {
     hit <- registry_find(old, type = type, name = name, parent = parent)
     if (nrow(hit)) {
@@ -166,7 +171,7 @@ registry_refresh <- function(root = ".", file = get_registry_file(),
 
   # scenarios: any first-level directory in the scenarios store carrying the
   # `class` marker file (layout >= 2) or a `scenario.yml` manifest (layout 3)
-  scen_root <- fp(root, get_scenarios_path())
+  scen_root <- root_join(get_scenarios_path())
   if (dir.exists(scen_root)) {
     for (d in list.dirs(scen_root, recursive = FALSE)) {
       manifest <- fp(d, "scenario.yml")
@@ -187,12 +192,20 @@ registry_refresh <- function(root = ".", file = get_registry_file(),
       reg <- registry_add(reg, "scenario", nm, path = rel_to_reg(d),
                           model_hash = model_hash)
       reg <- keep_created(reg, "scenario", nm)
-      # runs (layout 3): runs/<variant>/<solve>/run.yml
-      for (ry in Sys.glob(fp(d, "runs", "*", "*", "run.yml"))) {
+      # runs (layout 3): base runs at runs/<solve>/run.yml, variant runs at
+      # runs/<variant>/<solve>/run.yml
+      run_ymls <- c(Sys.glob(fp(d, "runs", "*", "run.yml")),
+                    Sys.glob(fp(d, "runs", "*", "*", "run.yml")))
+      for (ry in run_ymls) {
         rr <- tryCatch(yaml::read_yaml(ry), error = \(e) NULL)
         if (is.null(rr)) next
         run_dir <- dirname(ry)
-        run_name <- fp(basename(dirname(run_dir)), basename(run_dir))
+        parent_dir <- basename(dirname(run_dir))
+        run_name <- if (identical(parent_dir, "runs")) {
+          basename(run_dir)                       # base run: "<solve>"
+        } else {
+          fp(parent_dir, basename(run_dir))       # variant run: "<variant>/<solve>"
+        }
         reg <- registry_add(reg, "run", run_name, path = rel_to_reg(run_dir),
                             parent = nm)
         reg <- keep_created(reg, "run", run_name, parent = nm)
@@ -200,18 +213,25 @@ registry_refresh <- function(root = ".", file = get_registry_file(),
     }
   }
 
-  # models: models/<name>@<hash8>/ with a model.yml manifest (layout 3)
-  mod_root <- fp(root, get_models_path())
-  if (dir.exists(mod_root)) {
-    for (d in list.dirs(mod_root, recursive = FALSE)) {
-      manifest <- fp(d, "model.yml")
+  # models and repositories: content-addressed stores of <name>@<hash8>/
+  # folders, each with a manifest (layout 3)
+  stores <- list(
+    list(type = "model", root = root_join(get_models_path()),
+         manifest = "model.yml"),
+    list(type = "repository", root = root_join(get_repositories_path()),
+         manifest = "repository.yml")
+  )
+  for (st in stores) {
+    if (!dir.exists(st$root)) next
+    for (d in list.dirs(st$root, recursive = FALSE)) {
+      manifest <- fp(d, st$manifest)
       if (!file.exists(manifest)) next
       mf <- tryCatch(yaml::read_yaml(manifest), error = \(e) NULL)
       if (is.null(mf)) next
       nm <- mf$name %||% sub("@.*$", "", basename(d))
-      reg <- registry_add(reg, "model", nm, path = rel_to_reg(d),
+      reg <- registry_add(reg, st$type, nm, path = rel_to_reg(d),
                           hash = mf$hash %||% "")
-      reg <- keep_created(reg, "model", nm)
+      reg <- keep_created(reg, st$type, nm)
     }
   }
 

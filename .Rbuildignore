@@ -42,6 +42,7 @@ tmp/
 depreciated/*
 dev/*
 
+^tools$
 ^LICENSE\.md$
 ^\.positai$
 ^\.claude$

@@ -1,38 +1,62 @@
 # =============================================================================#
 # runs.R — per-run folders and provenance (storage layout 3).
 #
-# A scenario's solve artifacts live under `runs/<variant>/<solve>/`:
-#   variant — WHICH problem was solved. The base variant (folder named by the
-#             manifest's `default_variant`, "default" unless overridden) uses
-#             the scenario-level modInp; own-problem variants (stage S5) carry
-#             their own modInp store and a variant.yml.
-#   solve   — HOW it was solved: one backend/solver/options combination.
-#             Owns `run.yml` (provenance), `script/` (the solver working dir,
-#             with the solver's own `script/output/` untouched), and `modOut/`
-#             (the curated parquet store for the run active at save time).
-# The run identifier accepted by user-facing functions is either the solve
-# label alone (resolved against the default variant) or "<variant>/<solve>".
+# A scenario's solve artifacts live under `runs/`:
+#   runs/<solve>/            base-problem run: solved on the scenario-level
+#                            modInp; the folder name is the solve label
+#                            (solver dir name like "glpk"/"julia_highs", or a
+#                            user label). Owns `run.yml` (provenance),
+#                            `solver/` (the solver working directory, with the
+#                            solver's own `solver/output/` untouched), and
+#                            `modOut/` (the curated parquet solution store).
+#   runs/<variant>/<solve>/  own-problem variant (stage S5): the variant
+#                            folder carries `variant.yml` + its own modInp
+#                            store, its children are its solves.
+# Folder kind is self-describing: a dir with `run.yml` is a solve, a dir
+# holding solve dirs (and, from S5, a `variant.yml`) is a variant. There is no
+# "default" folder — the scenario manifest's `default:` field names the
+# default run, and the user may change it.
+# The run identifier is `"<solve>"` (base) or `"<variant>/<solve>"`.
 # =============================================================================#
 
-.RUN_DEFAULT_VARIANT <- "default"
-
-# active variant of the in-memory scenario ("default" unless set by S5 tooling)
+# active variant of the in-memory scenario; "" = base problem
 .run_variant <- function(scen) {
   v <- scen@misc$variant
-  if (is.character(v) && length(v) == 1L && nzchar(v)) v else .RUN_DEFAULT_VARIANT
+  if (is.character(v) && length(v) == 1L && nzchar(v)) v else ""
+}
+
+# run identifier from its parts: "glpk" or "cal-d24/glpk"
+.run_id <- function(variant, solve) {
+  if (nzchar(variant %||% "")) fp(variant, solve) else solve
 }
 
 .run_dir <- function(scen, variant, solve) {
-  gsub("[\\/]+", "/", fp(scen@path, "runs", variant, solve))
+  d <- if (nzchar(variant %||% "")) {
+    fp(scen@path, "runs", variant, solve)
+  } else {
+    fp(scen@path, "runs", solve)
+  }
+  gsub("[\\/]+", "/", d)
 }
 
-# "glpk" -> (default variant, "glpk"); "cal-d24/glpk" -> ("cal-d24", "glpk")
+# The solver working directory of a run. Named `solver/`; falls back to the
+# interim S2/S3-era name `script/` when only that exists (upgraded by
+# scenario_upgrade_layout()).
+.run_solver_dir <- function(run_dir) {
+  d <- fp(run_dir, "solver")
+  if (!dir.exists(d) && dir.exists(fp(run_dir, "script"))) {
+    return(gsub("[\\/]+", "/", fp(run_dir, "script")))
+  }
+  gsub("[\\/]+", "/", d)
+}
+
+# "glpk" -> (base, "glpk"); "cal-d24/glpk" -> ("cal-d24", "glpk")
 .parse_run_id <- function(run, scen) {
   stopifnot(is.character(run), length(run) == 1L, nzchar(run))
   parts <- strsplit(run, "/", fixed = TRUE)[[1]]
   parts <- parts[nzchar(parts)]
   if (length(parts) == 1L) {
-    list(variant = .run_variant(scen), solve = parts[1])
+    list(variant = "", solve = parts[1])
   } else if (length(parts) == 2L) {
     list(variant = parts[1], solve = parts[2])
   } else {
@@ -41,18 +65,39 @@
   }
 }
 
-# on-disk run directories: tibble(variant, solve, dir, has_record)
+# on-disk run directories: tibble(variant, solve, dir, has_record).
+# A first-level dir with a run.yml is a base solve; one without (but with
+# children carrying run.yml) is a variant — this also reads interim trees
+# that still have the retired `default/` wrapper as a variant of that name.
 .run_dirs <- function(scen) {
   root <- fp(scen@path, "runs")
   out <- tibble(variant = character(0), solve = character(0),
                 dir = character(0), has_record = logical(0))
   if (!dir.exists(root)) return(out)
-  for (vd in list.dirs(root, recursive = FALSE)) {
-    for (sd in list.dirs(vd, recursive = FALSE)) {
+  for (d1 in list.dirs(root, recursive = FALSE)) {
+    if (file.exists(fp(d1, "run.yml"))) {
       out <- bind_rows(out, tibble(
-        variant = basename(vd), solve = basename(sd),
-        dir = gsub("[\\/]+", "/", sd),
-        has_record = file.exists(fp(sd, "run.yml"))
+        variant = "", solve = basename(d1),
+        dir = gsub("[\\/]+", "/", d1), has_record = TRUE
+      ))
+      next
+    }
+    children <- list.dirs(d1, recursive = FALSE)
+    child_rec <- file.exists(fp(children, "run.yml"))
+    if (any(child_rec) || file.exists(fp(d1, "variant.yml"))) {
+      for (sd in children[child_rec]) {
+        out <- bind_rows(out, tibble(
+          variant = basename(d1), solve = basename(sd),
+          dir = gsub("[\\/]+", "/", sd), has_record = TRUE
+        ))
+      }
+    } else if (length(children) == 0L &&
+               dir.exists(.run_solver_dir(d1))) {
+      # a solve dir whose run.yml is missing (crash before the record):
+      # still list it so the user can see and drop it
+      out <- bind_rows(out, tibble(
+        variant = "", solve = basename(d1),
+        dir = gsub("[\\/]+", "/", d1), has_record = FALSE
       ))
     }
   }
@@ -86,7 +131,7 @@
   solver <- scen@settings@solver
   rec <- list(
     label = arg$run.label %||% basename(run_dir),
-    variant = arg$run.variant %||% .RUN_DEFAULT_VARIANT,
+    variant = arg$run.variant %||% "",
     scenario = scen@name,
     solver_name = solver$name %||% "",
     lang = solver$lang %||% "",
@@ -139,8 +184,11 @@
 #' List, inspect, and drop a scenario's runs
 #'
 #' @description
-#' A solved scenario's runs live under `<scenario>/runs/<variant>/<solve>/`,
-#' each with a `run.yml` provenance record (see `solve_scen()`).
+#' A solved scenario's runs live under `<scenario>/runs/` — base-problem runs
+#' directly (`runs/glpk/`), own-problem variants as named folders holding
+#' their solves (`runs/cal-d24/glpk/`) — each with a `run.yml` provenance
+#' record (see `solve_scen()`). The scenario manifest's `default:` field
+#' names the default run.
 #'
 #' * `scenario_runs()` lists them as a tibble — one row per run, including
 #'   legacy `script/<solver>/` directories from older layouts
@@ -150,12 +198,12 @@
 #'   currently loaded in the scenario object) is refused unless `force = TRUE`.
 #'
 #' @param scen a scenario object with a non-empty `@path`.
-#' @param run character, run identifier: a solve label (resolved against the
-#'   default variant), or `"<variant>/<solve>"`.
+#' @param run character, run identifier: `"<solve>"` for a base-problem run
+#'   or `"<variant>/<solve>"`.
 #' @param force logical, allow dropping the active run.
 #'
-#' @return `scenario_runs()` a tibble (variant, solve, status, solver_name,
-#'   lang, started, duration_sec, objective, modinp, active);
+#' @return `scenario_runs()` a tibble (run, variant, solve, status,
+#'   solver_name, lang, started, duration_sec, objective, modinp, active);
 #'   `scenario_run_info()` a named list; `scenario_drop_run()` the dropped
 #'   directory, invisibly.
 #'
@@ -176,6 +224,7 @@ scenario_runs <- function(scen) {
       list()
     }
     rows[[length(rows) + 1L]] <- tibble(
+      run = .run_id(rd$variant[i], rd$solve[i]),
       variant = rd$variant[i],
       solve = rd$solve[i],
       status = rec$status %||% "unknown",
@@ -190,9 +239,11 @@ scenario_runs <- function(scen) {
   }
 
   # legacy layout: <scen>/script/<solver>/ (a `solver` csv marks a real run;
-  # timestamp dirs from tmp.del runs are listed too, fields empty)
+  # timestamp dirs from transient runs are listed too, fields empty)
   legacy_root <- fp(scen@path, "script")
   if (dir.exists(legacy_root)) {
+    active_dir <- gsub("[\\/]+", "/",
+                       scen@misc$solver.dir %||% scen@misc$tmp.dir %||% "")
     for (sd in list.dirs(legacy_root, recursive = FALSE)) {
       solver_name <- ""
       sf <- fp(sd, "solver")
@@ -204,22 +255,21 @@ scenario_runs <- function(scen) {
         }
       }
       rows[[length(rows) + 1L]] <- tibble(
-        variant = "", solve = basename(sd), status = "legacy",
+        run = basename(sd), variant = "", solve = basename(sd),
+        status = "legacy",
         solver_name = solver_name %||% "", lang = "", started = "",
         duration_sec = NA_real_, objective = NA_real_, modinp = "shared",
-        active = identical(
-          gsub("[\\/]+", "/", sd),
-          gsub("[\\/]+", "/", scen@misc$tmp.dir %||% ""))
+        active = identical(gsub("[\\/]+", "/", sd), active_dir)
       )
     }
   }
 
   if (!length(rows)) {
     return(tibble(
-      variant = character(0), solve = character(0), status = character(0),
-      solver_name = character(0), lang = character(0), started = character(0),
-      duration_sec = numeric(0), objective = numeric(0),
-      modinp = character(0), active = logical(0)
+      run = character(0), variant = character(0), solve = character(0),
+      status = character(0), solver_name = character(0), lang = character(0),
+      started = character(0), duration_sec = numeric(0),
+      objective = numeric(0), modinp = character(0), active = logical(0)
     ))
   }
   bind_rows(rows)
@@ -251,27 +301,29 @@ scenario_drop_run <- function(scen, run, force = FALSE) {
   is_active <- identical(id$variant, .run_variant(scen)) &&
     identical(id$solve, scen@misc$run %||% "")
   if (is_active && !force) {
-    stop("Run '", id$variant, "/", id$solve, "' is the scenario's active ",
-         "run. Use force = TRUE to drop it anyway.")
+    stop("Run '", .run_id(id$variant, id$solve), "' is the scenario's ",
+         "active run. Use force = TRUE to drop it anyway.")
   }
   if (unlink(run_dir, recursive = TRUE, force = TRUE) != 0) {
     stop("Could not delete '", run_dir, "'")
   }
-  message("Dropped run '", id$variant, "/", id$solve, "'")
+  message("Dropped run '", .run_id(id$variant, id$solve), "'")
   invisible(run_dir)
 }
 
 .run_list_hint <- function(scen) {
   rd <- .run_dirs(scen)
   if (!nrow(rd)) return("    (none)")
-  paste0("    ", rd$variant, "/", rd$solve, collapse = "\n")
+  paste0("    ", mapply(.run_id, rd$variant, rd$solve), collapse = "\n")
 }
 
 # ---- scenario manifest (scenario.yml) + registry hook -----------------------#
 
-# Written by save_scenario(). Minimal, stable field set. `model` is the
-# manifest's model block: list(name, hash, source = "embedded"|"ref"
-# [, path]), built by save_scenario().
+# Written by save_scenario(). Minimal, stable field set. `default:` names the
+# scenario's default run (a run id, user-changeable in the file); a save sets
+# it to the active run. `model` is the manifest's model block:
+# list(name, hash, source = "embedded"|"ref" [, path]), built by
+# save_scenario().
 .write_scenario_manifest <- function(scen, format, model = NULL) {
   mf_path <- fp(scen@path, "scenario.yml")
   prev <- if (file.exists(mf_path)) {
@@ -280,6 +332,11 @@ scenario_drop_run <- function(scen, run, force = FALSE) {
     NULL
   }
   now <- .registry_now()
+  active <- if (nzchar(scen@misc$run %||% "")) {
+    .run_id(.run_variant(scen), scen@misc$run)
+  } else {
+    ""
+  }
   mf <- list(
     layout = .SCENARIO_LAYOUT,
     class = "scenario",
@@ -290,15 +347,21 @@ scenario_drop_run <- function(scen, run, force = FALSE) {
     format = format,
     calendar = tryCatch(scen@settings@calendar@name, error = function(e) ""),
     horizon = tryCatch(scen@settings@horizon@name, error = function(e) ""),
-    default_variant = .RUN_DEFAULT_VARIANT,
-    active = list(
-      variant = .run_variant(scen),
-      solve = scen@misc$run %||% ""
-    )
+    default = if (nzchar(active)) active else prev$default %||% ""
   )
   mf$model <- model %||% prev$model
   yaml::write_yaml(mf, mf_path)
   invisible(mf_path)
+}
+
+# The manifest's default run id, parsed; NULL when absent/empty.
+.scenario_default_run <- function(scen) {
+  mf_path <- fp(scen@path, "scenario.yml")
+  if (!file.exists(mf_path)) return(NULL)
+  mf <- tryCatch(yaml::read_yaml(mf_path), error = function(e) NULL)
+  d <- mf$default %||% ""
+  if (!nzchar(d)) return(NULL)
+  tryCatch(.parse_run_id(d, scen), error = function(e) NULL)
 }
 
 # Add/refresh this scenario's registry rows (scenario + its recorded runs).
@@ -310,7 +373,7 @@ scenario_drop_run <- function(scen, run, force = FALSE) {
     reg <- registry_add(reg, "scenario", scen@name, path = rel)
     rd <- .run_dirs(scen)
     for (i in which(rd$has_record)) {
-      run_name <- fp(rd$variant[i], rd$solve[i])
+      run_name <- .run_id(rd$variant[i], rd$solve[i])
       reg <- registry_add(reg, "run", run_name,
                           path = fp(rel, "runs", run_name),
                           parent = scen@name)

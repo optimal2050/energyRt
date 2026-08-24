@@ -1,7 +1,9 @@
 #' Write scenario object as a Python, Julia, GAMS, or MathProg script with data files to a directory
 #'
 #' @param scen scenario object, must be interpolated
-#' @param tmp.dir character, path
+#' @param solver.dir character, an external directory to write into; default
+#'   (`NULL`) writes into the run's `solver/` directory under the scenario
+#'   (`tmp.dir` is the deprecated alias).
 #' @param solver list of character with solver specification.
 #' @param ... additional solver parameters
 #' @family write scenario
@@ -9,37 +11,20 @@
 #' @seealso [solve()] to run the script, solve the scenario. [read_solution] to read model solution.
 #'
 #' @export
-write_script <- function(scen, tmp.dir = NULL, solver = NULL, ...) {
-  # scen <- obj
-  # if (is.null(tmp.dir)) {
-  #   # get_tmp_dir(scen, list(tmp.dir = tmp.dir, solver = solver, ...))
-  #   browser()
-  #   if (!is.null(scen@misc$tmp.dir)) {
-  #     tmp.dir <- scen@misc$tmp.dir
-  #   } else if (!is.null(scen@path)) {
-  #     tmp.dir <- file.path(scen@path, "script", solver$lang, solver$solver)
-  #   }
-  #   if (is.null(tmp.dir))
-  #     stop('Either "tmp.dir" or "scenario@path" must be set')
-  # }
-  # scen@misc$tmp.dir <- tmp.dir
+write_script <- function(scen, solver.dir = NULL, solver = NULL, ...) {
   if (!isTRUE(scen@status$interpolated)) {
     stop("Scenario must be interpolated before writing the script.")
   }
-  # browser()
-  # if (is.null(solver)) solver <- scen@settings@solver
-  # if (is.null(solver)) solver <- get_default_solver()
-  # if (is.null(solver)) stop("Solver must be specified.")
-  # arg <- list()
+  # deprecated aliases in `...` are mapped by .executeScenario itself
   .executeScenario(scen,
-                   tmp.dir = tmp.dir, solver = solver,
+                   solver.dir = solver.dir, solver = solver,
                    run = FALSE, write = TRUE, ...)
 }
 
 #' @export
 #' @rdname write
-write_sc <- function(x, tmp.dir = NULL, solver = NULL, ...) {
-  write_script(x, tmp.dir, solver, ...)
+write_sc <- function(x, solver.dir = NULL, solver = NULL, ...) {
+  write_script(x, solver.dir, solver, ...)
 }
 
 #' @export
@@ -115,7 +100,7 @@ write.sc <- write_sc
 #     }
 #     NULL
 #   }
-#   parLapply(cl, 0:(arg$n.threads - 1), wrt_fun, tlp, scen@modInp@parameters, arg$tmp.dir, func, type)
+#   parLapply(cl, 0:(arg$n.threads - 1), wrt_fun, tlp, scen@modInp@parameters, arg$solver.dir, func, type)
 #   stopCluster(cl)
 #   NULL
 # }
@@ -131,7 +116,7 @@ write.sc <- write_sc
   if (is.null(scen@settings@solver$inc_solver) && is.null(scen@settings@solver$solver)) {
     scen@settings@solver$inc_solver <- def_inc_solver
   }
-  fn <- file(file.path(arg$tmp.dir, paste0("inc_solver", type)), "w")
+  fn <- file(file.path(arg$solver.dir, paste0("inc_solver", type)), "w")
   cat(scen@settings@solver$inc_solver, file = fn, sep = "\n")
   close(fn)
 }
@@ -155,12 +140,12 @@ write.sc <- write_sc
     }
   }
   for (i in 1:5) {
-    fn <- file(file.path(arg$tmp.dir, paste0("inc", i, type)), "w")
+    fn <- file(file.path(arg$solver.dir, paste0("inc", i, type)), "w")
     cat(scen@settings@solver[[paste0("inc", i)]], sep = "\n", file = fn)
     close(fn)
   }
   for (i in names(scen@settings@solver$files)) {
-    fn <- file(file.path(arg$tmp.dir, i), "w")
+    fn <- file(file.path(arg$solver.dir, i), "w")
     cat(scen@settings@solver$files[[i]], sep = "\n", file = fn)
     close(fn)
   }

@@ -82,6 +82,13 @@ model_hash <- function(mod) {
 #'   path.
 #' @param hash character, full or short content hash to pin a version.
 #' @param path character, explicit store directory (bypasses the registry).
+#' @param embed_repos `NULL` (default), `TRUE`, or `FALSE`. Controls whether
+#'   the model's repositories are embedded in the store entry or referenced
+#'   from the repository store (see [save_repository()]). `NULL`: reference a
+#'   repository when its identical content is already stored, embed
+#'   otherwise. `TRUE`: always embed. `FALSE`: require a store hit for every
+#'   repository. The model hash is always taken over the FULL model, so it is
+#'   unaffected by this choice; `load_model()` resolves references back.
 #' @param registry logical, add/refresh the registry row on save.
 #' @param format storage format for the data slots (as in [save_scenario()]).
 #' @param overwrite logical, rewrite the store entry even when the hash
@@ -99,6 +106,7 @@ model_hash <- function(mod) {
 save_model <- function(
     mod,
     path = NULL,
+    embed_repos = NULL,
     registry = TRUE,
     format = get_arrow_format(),
     overwrite = FALSE,
@@ -110,6 +118,10 @@ save_model <- function(
   } else {
     tolower(format)
   }
+  # CRITICAL ORDER: the model hash is computed on the FULL model, before any
+  # repository is replaced by a store reference below — the recorded hash
+  # identifies the complete content regardless of how the repositories are
+  # persisted (embedded vs referenced).
   h <- model_hash(mod)
   h8 <- substr(h, 1, 8)
   if (is.null(path)) {
@@ -131,6 +143,53 @@ save_model <- function(
     }
   }
 
+  # Repository references: with embed_repos = NULL (auto), each repository
+  # whose exact content is already in the repository store (save_repository())
+  # is replaced — in the SAVED copy only — by a stub carrying
+  # `misc$repo_ref`; the manifest records every repository either way.
+  # TRUE always embeds; FALSE requires a store hit for every repository.
+  repo_entries <- list()
+  full_repos <- NULL
+  for (rp in names(mod@data)) {
+    repo <- mod@data[[rp]]
+    if (!is(repo, "repository")) next
+    rh <- tryCatch(repository_hash(repo), error = function(e) "")
+    store_dir <- NULL
+    if (!isTRUE(embed_repos) && nzchar(rh)) {
+      store_dir <- tryCatch(.repo_store_resolve(repo@name, rh),
+                            error = function(e) NULL)
+    }
+    if (!is.null(store_dir)) {
+      repo_entries[[rp]] <- list(name = repo@name, hash = rh,
+                                 source = "ref",
+                                 path = .registry_rel_path(store_dir))
+    } else if (isFALSE(embed_repos)) {
+      stop("embed_repos = FALSE, but repository '", repo@name, "' (",
+           substr(rh, 1, 8), ") is not in the repository store ('",
+           get_repositories_path(), "'). save_repository() it first, or ",
+           "use embed_repos = NULL/TRUE.")
+    } else {
+      repo_entries[[rp]] <- list(name = repo@name, hash = rh,
+                                 source = "embedded")
+    }
+  }
+  ref_slots <- names(repo_entries)[vapply(repo_entries,
+                                          \(e) e$source == "ref", logical(1))]
+  if (length(ref_slots)) {
+    full_repos <- mod@data
+    for (rp in ref_slots) {
+      stub <- new("repository")
+      stub@name <- mod@data[[rp]]@name
+      stub@misc$repo_ref <- repo_entries[[rp]]
+      mod@data[[rp]] <- stub
+    }
+    if (verbose) {
+      cat("Repositories referenced from the store (not embedded): ",
+          paste(vapply(repo_entries[ref_slots], `[[`, "", "name"),
+                collapse = ", "), "\n", sep = "")
+    }
+  }
+
   dir.create(path, recursive = TRUE, showWarnings = FALSE)
   # thin the big data slots into parquet next to the manifest
   mod <- obj2disk(mod, path = path, format = format, verbose = verbose)
@@ -145,8 +204,11 @@ save_model <- function(
     hash = h,
     created = .registry_now(),
     energyRt_version = as.character(utils::packageVersion("energyRt")),
-    format = format
+    format = format,
+    repositories = unname(repo_entries)
   ), mf_path)
+  # the returned in-memory object keeps its full repositories
+  if (!is.null(full_repos)) mod@data <- full_repos
   if (verbose) {
     cat("Model '", mod@name, "' (", h8, ") saved in '", path, "'\n", sep = "")
   }
@@ -165,9 +227,11 @@ save_model <- function(
   invisible(mod)
 }
 
-# Resolve a stored model directory from name/hash: registry first, then a
-# scan of the store. Returns the directory or NULL.
-.model_store_resolve <- function(name, hash = NULL) {
+# Resolve a content-addressed store directory from name/hash: registry first,
+# then a scan of the store root. Shared by the model and repository stores.
+# Returns the directory or NULL; errors when several versions match and no
+# hash pins one.
+.store_resolve <- function(name, hash, reg_type, root, manifest) {
   if (grepl("@", name, fixed = TRUE)) {
     parts <- strsplit(name, "@", fixed = TRUE)[[1]]
     name <- parts[1]
@@ -175,21 +239,20 @@ save_model <- function(
   }
   # 1. registry
   hit <- tryCatch(
-    registry_find(registry_load(), type = "model", name = name, hash = hash),
+    registry_find(registry_load(), type = reg_type, name = name, hash = hash),
     error = function(e) NULL)
   if (!is.null(hit) && nrow(hit)) {
     d <- fp(dirname(get_registry_file()), hit$path[1])
-    if (file.exists(fp(d, "model.yml"))) return(gsub("[\\/]+", "/", d))
+    if (file.exists(fp(d, manifest))) return(gsub("[\\/]+", "/", d))
   }
   # 2. store scan
-  root <- get_models_path()
   if (!dir.exists(root)) return(NULL)
   dd <- list.dirs(root, recursive = FALSE)
   slug <- .path_slug(name)
   dd <- dd[startsWith(basename(dd), paste0(slug, "@"))]
   if (!is.null(hash) && nzchar(hash)) {
     keep <- vapply(dd, function(d) {
-      mf <- tryCatch(yaml::read_yaml(fp(d, "model.yml")),
+      mf <- tryCatch(yaml::read_yaml(fp(d, manifest)),
                      error = function(e) NULL)
       !is.null(mf) && startsWith(mf$hash %||% "", hash)
     }, logical(1))
@@ -197,11 +260,16 @@ save_model <- function(
   }
   if (length(dd) == 1L) return(gsub("[\\/]+", "/", dd))
   if (length(dd) > 1L) {
-    stop("Model '", name, "' has ", length(dd), " versions in '", root,
+    stop(reg_type, " '", name, "' has ", length(dd), " versions in '", root,
          "': ", paste(basename(dd), collapse = ", "),
          ". Pin one with hash= or \"name@hash8\".")
   }
   NULL
+}
+
+.model_store_resolve <- function(name, hash = NULL) {
+  .store_resolve(name, hash, reg_type = "model", root = get_models_path(),
+                 manifest = "model.yml")
 }
 
 # Rebase the on-disk paths of a stored model to the directory it was actually
@@ -251,6 +319,37 @@ load_model <- function(name, hash = NULL, path = NULL, env = NULL,
     stop("'", fp(path, "mod.RData"), "' must contain exactly one model object")
   }
   mod <- .model_rebase(get(nm, envir = e), path)
+
+  # resolve repository references (repos saved to the repository store rather
+  # than embedded — see save_model(embed_repos=))
+  for (rp in names(mod@data)) {
+    repo <- mod@data[[rp]]
+    ref <- if (isS4(repo) && .hasSlot(repo, "misc")) {
+      repo@misc$repo_ref
+    } else {
+      NULL
+    }
+    if (is.null(ref)) next
+    r <- tryCatch(
+      load_repository(ref$name, hash = ref$hash, verbose = FALSE),
+      error = function(e) NULL)
+    if (is.null(r) && !is.null(ref$path)) {
+      cand <- fp(dirname(get_registry_file()), ref$path)
+      if (file.exists(fp(cand, "repo.RData"))) {
+        r <- tryCatch(load_repository(ref$name, path = cand, verbose = FALSE),
+                      error = function(e) NULL)
+      }
+    }
+    if (is.null(r)) {
+      stop("Model '", mod@name, "' references repository '", ref$name, "@",
+           substr(ref$hash %||% "", 1, 8), "' which is not in the registry ",
+           "or the repository store ('", get_repositories_path(), "').\n",
+           "  Run registry_refresh() to rescan, or re-save the model with ",
+           "embed_repos = TRUE from a session that has the repository.")
+    }
+    mod@data[[rp]] <- r
+  }
+
   if (verbose) {
     cat("Model '", mod@name, "' loaded from '", path, "'\n", sep = "")
   }

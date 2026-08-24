@@ -1707,6 +1707,9 @@ class:
         vintage:
           type: character
           description: Vintage label selecting the variant this row applies to, NA for every vintage. See the `vintage` slot.
+        cluster:
+          type: character
+          description: Cluster (loss tranche) label selecting the tranche this row applies to, NA for every tranche. See the `cluster` slot.
         src:
           type: character
           description: Source region of the flow, NA for every source region on the route.
@@ -1760,6 +1763,31 @@ class:
           description: >
             Trade efficiency: the fraction of the flow sent from `src` that is
             delivered to `dst` (1 = lossless).
+        reactance:
+          type: numeric
+          description: >
+            Series reactance `x` of the line, in the model's own impedance
+            units. Carried for AC lines and used by nothing unless the model is
+            interpolated with `kvl = TRUE`, when it becomes the coefficient of
+            Kirchhoff's voltage law. Presence of a finite `reactance` is what
+            marks a route as a PASSIVE AC branch: a controllable DC link has
+            none, because its flow is chosen rather than set by impedance.
+            Must be SYMMETRIC across the two directed rows of a line -- the
+            voltage law constrains the net flow -- and a line under KVL must be
+            declared in both directions. Where several physical circuits have
+            been merged into one route, the value is the EQUIVALENT reactance,
+            `1/x_eq = sum(1/x_i)`, not any one circuit's.
+        resistance:
+          type: numeric
+          description: >
+            Series resistance `r` of the line, same units and same symmetry
+            requirement as `reactance`. Recorded for round-tripping with
+            power-system models (PyPSA's `Line` carries both). It does not drive
+            losses by itself -- losses are the per-route `teff` -- but it is the
+            input `lossTranches()` turns into a piecewise-linear loss curve:
+            pass it with the rating it was measured against, since
+            `loss_full = r * F` and a resistance alone does not determine a loss
+            fraction.
     aux:
       type: data.frame
       description: Auxiliary commodity of trade.
@@ -1777,6 +1805,9 @@ class:
         vintage:
           type: character
           description: Vintage label selecting the variant this row applies to, NA for every vintage. See the `vintage` slot.
+        cluster:
+          type: character
+          description: Cluster (loss tranche) label selecting the tranche this row applies to, NA for every tranche. See the `cluster` slot.
         acomm:
           type: character
           description: Name of the auxiliary commodity (used in sets).
@@ -1813,6 +1844,9 @@ class:
         vintage:
           type: character
           description: Vintage label selecting the variant this row applies to, NA for every vintage. See the `vintage` slot.
+        cluster:
+          type: character
+          description: Cluster (loss tranche) label selecting the tranche this row applies to, NA for every tranche. See the `cluster` slot.
         region:
           type: character
           description: >
@@ -1859,10 +1893,10 @@ class:
         is a separately investable variant that keeps the characteristics of its
         build year for its whole life, so several vintages of one corridor mean
         several capacities on the same `(src, dst)` route, with their flows
-        summed in the commodity balance. `region` and `cluster` are present for a
-        uniform shape across process classes but are unused for trade: its scope
-        comes from the route endpoints, and `routes` already provides the
-        multiplicity a cluster dimension would add.
+        summed in the commodity balance. `region` is present for a uniform shape
+        across process classes but is unused for trade: its scope comes from the
+        route endpoints. `cluster` selects a loss tranche declared in the
+        `cluster` slot.
       columns:
         vintage:
           type: character
@@ -1872,7 +1906,9 @@ class:
           description: Unused for trade (no `region` slot); present for consistency with the other classes.
         cluster:
           type: character
-          description: Unused for trade (no cluster dimension); present for consistency with the other classes.
+          description: >
+            Cluster (loss tranche) this row applies to, NA for every tranche.
+            See the `cluster` slot.
         start:
           type: integer
           description: The first year the trade object is available for investment. NA means unbounded (up to `end`).
@@ -1882,6 +1918,49 @@ class:
         olife:
           type: integer
           description: Operational life of the trade object in years.
+    cluster:
+      type: data.frame
+      description: >
+        Declaration of the object's parallel sub-lines. For trade a cluster is a
+        LOSS TRANCHE: one segment of a piecewise-linear approximation of the
+        quadratic loss curve, with its own share of the capacity and its own
+        `teff`. Real losses go as `r * f^2`, so the loss FRACTION rises with
+        loading -- which a single `teff` cannot express, since under it a
+        half-loaded and a fully-loaded line lose the same proportion.
+
+        This slot declares WHAT the tranches are; the per-tranche values live in
+        the `cluster` column of the variant-varying slots (`trade`, `capacity`,
+        ...). Build both with `lossTranches()` rather than by hand.
+
+        There is deliberately no `region` column: a trade object has no `region`
+        slot -- its scope comes from the route endpoints -- so a region here
+        could restrict nothing, and its absence rejects the mistake at
+        construction rather than deep inside variant expansion.
+
+        Optional. When empty, tranche labels are harvested from the `cluster`
+        columns of the other slots. When populated it is AUTHORITATIVE.
+      columns:
+        cluster:
+          type: character
+          description: Tranche label, used in the expanded object name.
+        desc:
+          type: character
+          description: Description of the tranche.
+        share:
+          type: numeric
+          description: >
+            Fraction of the line's capacity this tranche occupies. The shares
+            must sum to 1: the tranche efficiencies are derived from them
+            (`lambda_t = loss_full * (alpha_t-1 + alpha_t)`) and are calibrated
+            only when they do. Declaring shares is also what makes the capacities
+            of an INVESTABLE line be tied to those proportions -- without the
+            tie the solver would build the whole corridor as the lowest-loss
+            tranche and the approximation would collapse.
+        order:
+          type: integer
+          description: >
+            Fill order, 1 = the lowest-loss tranche. Without it labels sort
+            alphabetically, so "T10" would precede "T2".
     cap2act:
       type: numeric
       description: Capacity to activity ratio.

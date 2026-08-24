@@ -67,6 +67,67 @@ styler::style_file("R/defaults.R")
 })
 stopifnot(all(unlist(.variable_set) %in% .dimSets))
 
+# DIMENSION NAMES, as distinct from dimension SETS.
+#
+# Six variables index the same set twice -- `vTradeIr` carries two `region`
+# dimensions (the endpoints of a route) and the five `*RetiredNewCap` variables
+# carry two `year`s (the milestone capacity was built in, and the one it is
+# retired in). `.variable_set` reports the SET, which is what domain lookups
+# need, but two dimensions cannot share an index NAME: the constraint generator
+# emitted `sum((trade, comm, region, region, timeslice), ...)` and GLPK refused
+# it with "duplicate dummy index r not allowed". So none of the six could appear
+# in a custom constraint at all, and `for.sum` had no way to address one
+# endpoint rather than the other.
+#
+# `.variable_dim` gives every position a distinct, meaningful name. It is
+# identical to `.variable_set` except for those six, and the names chosen are
+# the ones the rest of the package already uses for the same positions --
+# `src` / `dst` in the map specs, the `@trade` slot columns and `getData()`
+# output; `vintage` for a build milestone.
+.variable_dim <- .variable_set
+local({
+  fix <- list(
+    vTradeIr                 = c("trade", "comm", "src", "dst", "year", "timeslice"),
+    vTechRetiredNewCap       = c("tech", "region", "vintage", "year"),
+    vTradeRetiredNewCap      = c("trade", "vintage", "year"),
+    vStorageOutRetiredNewCap = c("stg", "region", "vintage", "year"),
+    vStorageInpRetiredNewCap = c("stg", "region", "vintage", "year"),
+    vStorageStgRetiredNewCap = c("stg", "region", "vintage", "year")
+  )
+  for (v in names(fix)) {
+    if (is.null(.variable_set[[v]])) next
+    stopifnot(length(fix[[v]]) == length(.variable_set[[v]]))
+    .variable_dim[[v]] <<- fix[[v]]
+  }
+  # Every variable that repeats a set must be listed above, or it stays broken
+  # in custom constraints -- fail loudly here rather than at solve time.
+  bad <- names(.variable_set)[vapply(.variable_set, function(x)
+    any(duplicated(x)), logical(1))]
+  miss <- setdiff(bad, names(fix))
+  if (length(miss)) {
+    stop("variables repeat a dimension set but have no `.variable_dim` entry: ",
+         paste(miss, collapse = ", "))
+  }
+  # ... and no variable may repeat a DIM name, which is the whole point.
+  bad2 <- names(.variable_dim)[vapply(.variable_dim, function(x)
+    any(duplicated(x)), logical(1))]
+  if (length(bad2)) {
+    stop("`.variable_dim` still repeats a name for: ",
+         paste(bad2, collapse = ", "))
+  }
+})
+
+# Set that each dimension NAME draws its members from, for the positions where
+# the two differ. Domain lookups key on this.
+.dim_set <- local({
+  out <- character()
+  for (v in names(.variable_dim)) {
+    d <- .variable_dim[[v]]; st <- .variable_set[[v]]
+    out[d[d != st]] <- st[d != st]
+  }
+  out[!duplicated(names(out))]
+})
+
 # `model_structure` (built in maps.R) inherits the same phantom in its variable
 # `dim` column. It also has a worse problem: it takes `name` from
 # `.variable_description` but `dim`/`map` positionally from `.variable_set` /
@@ -326,6 +387,8 @@ usethis::use_data(
   .parameter_set,
   .parameter_description,
   .variable_set,
+  .variable_dim,
+  .dim_set,
   .variable_description,
   .variable_mapping,
   .variables,

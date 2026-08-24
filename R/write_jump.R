@@ -110,10 +110,10 @@ get_julia_path <- function() {
       }
     }
   }
-  dir.create(fp(arg$tmp.dir, "output"), showWarnings = FALSE)
-  zz_data_julia <- file(fp(arg$tmp.dir, "data.jl"), "w")
-  zz_data_constr <- file(fp(arg$tmp.dir, "inc_constraints.jl"), "w")
-  zz_data_costs <- file(fp(arg$tmp.dir, "/inc_costs.jl"), "w")
+  dir.create(fp(arg$solver.dir, "output"), showWarnings = FALSE)
+  zz_data_julia <- file(fp(arg$solver.dir, "data.jl"), "w")
+  zz_data_constr <- file(fp(arg$solver.dir, "inc_constraints.jl"), "w")
+  zz_data_costs <- file(fp(arg$solver.dir, "/inc_costs.jl"), "w")
 
   .write_inc_solver(
     scen, arg,
@@ -158,7 +158,7 @@ get_julia_path <- function() {
   .use_arrow <- !is.null(.ex_fmt) &&
     tolower(.ex_fmt) %in% c("feather", "ipc", "arrow", "parquet")
   if (.use_arrow) {
-    in_dir <- fp(arg$tmp.dir, "input")
+    in_dir <- fp(arg$solver.dir, "input")
     dir.create(in_dir, showWarnings = FALSE)
     for (i in names(dat)) {
       .write_exchange_table(dat[[i]], fp(in_dir, i), format = "feather")
@@ -173,7 +173,7 @@ get_julia_path <- function() {
       "end\n", sep = "\n"),
       file = zz_data_julia)
   } else {
-    save("dat", file = fp(arg$tmp.dir, "data.RData"))
+    save("dat", file = fp(arg$solver.dir, "data.RData"))
     cat('using RData\nusing DataFrames\ndt = load("data.RData")["dat"]\n',
       sep = "\n", file = zz_data_julia
     )
@@ -195,7 +195,7 @@ get_julia_path <- function() {
   }
   close(zz_data_julia)
   # Mod begin
-  zz_mod <- file(fp(arg$tmp.dir, "energyRt.jl"), "w")
+  zz_mod <- file(fp(arg$solver.dir, "energyRt.jl"), "w")
   nobj <- grep("^[@]objective", run_code)[1] - 1
   cat(run_code[1:nobj], sep = "\n", file = zz_mod)
   # Add constraint
@@ -230,7 +230,7 @@ get_julia_path <- function() {
   close(zz_data_costs)
   cat(run_code[-(1:nobj)], sep = "\n", file = zz_mod)
   close(zz_mod)
-  zz_modout <- file(fp(arg$tmp.dir, "/output.jl"), "w")
+  zz_modout <- file(fp(arg$solver.dir, "/output.jl"), "w")
   # Arrow solution output: write each variable DIRECTLY as Arrow IPC (no CSV
   # round-trip). Inject a `_VarFile` helper (a drop-in for the CSV file handle:
   # the unchanged `println(fv, ...)` / `close(fv)` calls accumulate rows and emit

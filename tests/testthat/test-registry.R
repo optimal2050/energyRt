@@ -66,15 +66,19 @@ test_that("registry_refresh rebuilds from on-disk markers and manifests", {
   dir.create(file.path(scen_root, "OLD2"), recursive = TRUE)
   writeLines("scenario", file.path(scen_root, "OLD2", "class"))
 
-  # layout-3 style scenario with manifest + one run
-  dir.create(file.path(scen_root, "NEW3", "runs", "default", "glpk"),
+  # layout-3 style scenario with manifest + a base run and a variant run
+  dir.create(file.path(scen_root, "NEW3", "runs", "glpk"), recursive = TRUE)
+  dir.create(file.path(scen_root, "NEW3", "runs", "cal-d24", "glpk"),
              recursive = TRUE)
   yaml::write_yaml(
     list(layout = 3L, name = "NEW3", model = list(hash = "cafe0123deadbeef")),
     file.path(scen_root, "NEW3", "scenario.yml"))
   yaml::write_yaml(
-    list(label = "glpk", variant = "default", status = "solved"),
-    file.path(scen_root, "NEW3", "runs", "default", "glpk", "run.yml"))
+    list(label = "glpk", variant = "", status = "solved"),
+    file.path(scen_root, "NEW3", "runs", "glpk", "run.yml"))
+  yaml::write_yaml(
+    list(label = "glpk", variant = "cal-d24", status = "solved"),
+    file.path(scen_root, "NEW3", "runs", "cal-d24", "glpk", "run.yml"))
 
   # model store entry
   dir.create(file.path(mod_root, "UTOPIA@cafe0123"), recursive = TRUE)
@@ -93,8 +97,8 @@ test_that("registry_refresh rebuilds from on-disk markers and manifests", {
   expect_identical(registry_find(reg, type = "scenario", name = "NEW3")$model_hash,
                    "cafe0123deadbeef")
   run <- registry_find(reg, type = "run")
-  expect_identical(run$name, "default/glpk")
-  expect_identical(run$parent, "NEW3")
+  expect_setequal(run$name, c("glpk", "cal-d24/glpk"))
+  expect_setequal(run$parent, "NEW3")
   # paths are relative to the registry file's directory
   expect_false(any(grepl("^([A-Za-z]:|/)", registry_find(reg, type = "scenario")$path)))
 

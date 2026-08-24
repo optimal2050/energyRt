@@ -99,8 +99,8 @@ get_python_path <- function() {
       }
     }
   }
-  dir.create(fp(arg$tmp.dir, "input"), showWarnings = FALSE)
-  dir.create(fp(arg$tmp.dir, "output"), showWarnings = FALSE)
+  dir.create(fp(arg$solver.dir, "input"), showWarnings = FALSE)
+  dir.create(fp(arg$solver.dir, "output"), showWarnings = FALSE)
   # if (!is.null(scen@settings@solver$SQLite) && scen@settings@solver$SQLite) {
   .ex_fmt <- scen@settings@solver$export_format
   SQLite <- !is.null(.ex_fmt) && tolower(.ex_fmt) == "sqlite"
@@ -113,7 +113,7 @@ get_python_path <- function() {
     ### Generate SQLite file
     .write_sqlite_list(
       dat = .get_scen_data(scen),
-      sqlFile = fp(arg$tmp.dir, "input/data.db")
+      sqlFile = fp(arg$solver.dir, "input/data.db")
     )
   } else if (use_arrow_in) {
     # One Arrow IPC file per table in input/; read_set/read_dict (energyRtConcrete
@@ -123,7 +123,7 @@ get_python_path <- function() {
     for (.i in names(.dat)) {
       .d <- as.data.frame(.dat[[.i]])
       .d[] <- lapply(.d, function(x) if (is.factor(x)) as.character(x) else x)
-      .write_exchange_table(.d, fp(arg$tmp.dir, paste0("input/", .i)),
+      .write_exchange_table(.d, fp(arg$solver.dir, paste0("input/", .i)),
                             format = "feather")
     }
     run_code <- gsub('_DATA_FORMAT = "sqlite"', '_DATA_FORMAT = "arrow"',
@@ -131,14 +131,14 @@ get_python_path <- function() {
   }
   .write_inc_solver(scen, arg, "opt = SolverFactory('cplex');", ".py", "cplex")
   # Add constraint
-  zz_mod <- file(fp(arg$tmp.dir, "/energyRt.py"), "w")
-  zz_constr <- file(fp(arg$tmp.dir, "/inc_constraints.py"), "w")
-  zz_costs <- file(fp(arg$tmp.dir, "/inc_costs.py"), "w")
+  zz_mod <- file(fp(arg$solver.dir, "/energyRt.py"), "w")
+  zz_constr <- file(fp(arg$solver.dir, "/inc_constraints.py"), "w")
+  zz_costs <- file(fp(arg$solver.dir, "/inc_costs.py"), "w")
   npar <- grep("^##### decl par #####", run_code)[1]
   cat(run_code[1:npar], sep = "\n", file = zz_mod)
   if (!AbstractModel) {
     cat('exec(open("data.py").read())\n', file = zz_mod)
-    zz_inp_file <- file(fp(arg$tmp.dir, "data.py"), "w")
+    zz_inp_file <- file(fp(arg$solver.dir, "data.py"), "w")
   }
   if (AbstractModel) {
     f1 <- grep("^m(Costs|Cns)", names(scen@modInp@parameters), invert = TRUE)
@@ -162,7 +162,7 @@ get_python_path <- function() {
     }
   }
   if (AbstractModel) {
-    zz_data_pyomo <- file(fp(arg$tmp.dir, "data.dat"), "w")
+    zz_data_pyomo <- file(fp(arg$solver.dir, "data.dat"), "w")
   }
   file_w <- c()
   for (j in c("set", "map", "numpar", "bounds")) {
@@ -212,7 +212,7 @@ get_python_path <- function() {
               tfl <- paste0("input/", scen@modInp@parameters[[i]]@name, ".py")
               cat(paste0('exec(open("', tfl, '").read())\n'),
                   file = zz_inp_file)
-              zz_tfl <- file(fp(arg$tmp.dir, tfl), "w")
+              zz_tfl <- file(fp(arg$solver.dir, tfl), "w")
               cat(.toPyomo(scen@modInp@parameters[[i]]),
                 sep = "\n", file = zz_tfl
               )
@@ -275,7 +275,7 @@ get_python_path <- function() {
   close(zz_mod)
   close(zz_constr)
   close(zz_costs)
-  zz_modout <- file(fp(arg$tmp.dir, "/output.py"), "w")
+  zz_modout <- file(fp(arg$solver.dir, "/output.py"), "w")
   # Arrow solution output: write each variable DIRECTLY as Arrow IPC (no CSV
   # round-trip). Inject a `_VarFile` class (a drop-in for the CSV file handle: the
   # unchanged `f.write(...)` / `f.close()` calls accumulate rows and emit

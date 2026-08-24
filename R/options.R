@@ -152,6 +152,15 @@ options::define_option(
   default = "models/"
 )
 
+options::define_option(
+  "repositories_path",
+  desc = paste(
+    "Root directory for the repository store. save_repository() writes",
+    "content-addressed repository folders (<name>@<hash8>) underneath it."
+  ),
+  default = "repositories/"
+)
+
 # Storage / exchange format ###################################################
 # Format used to exchange model data / solution with the JuMP / Pyomo solvers
 # (written into the solver run-folder), and the default on-disk storage codec.
@@ -510,6 +519,20 @@ set_models_path <- function(path = NULL) {
 #' @export
 get_models_path <- function() {
   options::opt("models_path")
+}
+
+#' @family options
+#' @rdname registry_file
+#' @export
+set_repositories_path <- function(path = NULL) {
+  options::opt_set("repositories_path", path)
+}
+
+#' @family options
+#' @rdname registry_file
+#' @export
+get_repositories_path <- function() {
+  options::opt("repositories_path")
 }
 
 # Arrow exchange format #######################################################

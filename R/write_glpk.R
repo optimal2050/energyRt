@@ -76,7 +76,7 @@ get_glpk_path <- function() {
 # writes each parameter's full `@data` slot).
 .write_model_GLPK_CBC <- function(arg, scen, sm_fun = .sm_to_glpk) {
   run_code <- scen@settings@sourceCode[["GLPK"]]
-  dir.create(paste(arg$tmp.dir, "/output", sep = ""), showWarnings = FALSE)
+  dir.create(paste(arg$solver.dir, "/output", sep = ""), showWarnings = FALSE)
   file_w <- c()
   for (j in c("set", "map", "numpar", "bounds")) {
     for (i in names(scen@modInp@parameters)) {
@@ -159,7 +159,7 @@ get_glpk_path <- function() {
   }
 
   ### FUNC GLPK
-  fn <- file(paste(arg$tmp.dir, "/energyRt.mod", sep = ""), "w")
+  fn <- file(paste(arg$solver.dir, "/energyRt.mod", sep = ""), "w")
   if (length(grep("^minimize", run_code)) != 1) stop("Errors in GLPK model")
 
   cat(run_code[1:(grep("22b584bd-a17a-4fa0-9cd9-f603ab684e47", run_code) - 1)],
@@ -184,7 +184,7 @@ get_glpk_path <- function() {
   cat(run_code[grep("^end[;]", run_code):length(run_code)], sep = "\n",
       file = fn)
   close(fn)
-  fn <- file(paste(arg$tmp.dir, "/energyRt.dat", sep = ""), "w")
+  fn <- file(paste(arg$solver.dir, "/energyRt.dat", sep = ""), "w")
   cat("set FORIF := FORIFSET;\n", sep = "\n", file = fn)
   cat(file_w, sep = "\n", file = fn)
   cat("end;", "", sep = "\n", file = fn)

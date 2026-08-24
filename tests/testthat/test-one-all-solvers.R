@@ -6,7 +6,7 @@
 # applied automatically at load. Inspect with `en_config_show()`; write with
 # `en_config_write()`. This used to `source("~/.energyRt/settings.R")`, a path
 # the package itself never read.
-get_python_path()
+try(get_python_path(), silent = TRUE)
 
 h10 <- make_timetable(
   struct = list(
@@ -14,7 +14,7 @@ h10 <- make_timetable(
     HOUR = paste0("h", 0:9))
 )
 
-calendar_h10 <- newCalendar(h10, name = "h10")
+calendar_h10 <- newCalendar(timetable = h10, name = "h10")
 
 INP <- newCommodity("INP", timeframe = "HOUR")
 OUT <- newCommodity("OUT", timeframe = "HOUR")
@@ -69,7 +69,9 @@ mod_unit <- newModel(
 # vObjective <- getData(scen_unit, "vObjective", merge = TRUE)$value
 vObjective <- 4510
 
+# @covers vObjective vTechAct vTechNewCap depth=S backends=glpk
 test_that("ONE_glpk", {
+  skip_if_no_solver()
   invisible({
     scen <- solve(mod_unit, solver = solver_options$glpk)
   })
@@ -95,7 +97,9 @@ test_that("ONE_glpk", {
 #   expect_equal(vObjective, vObj)
 # })
 
+# @covers vObjective depth=X backends=pyomo
 test_that("ONE_pyomo_cbc", {
+  skip_if_no_pyomo()
   invisible({
     scen <- solve(mod_unit, solver = solver_options$pyomo_cbc)
   })
@@ -104,7 +108,9 @@ test_that("ONE_pyomo_cbc", {
   expect_equal(vObjective, vObj)
 })
 
+# @covers vObjective depth=X backends=julia_highs
 test_that("ONE_julia_highs", {
+  skip_if_no_julia_highs()
   invisible({
     scen <- solve(mod_unit, solver = solver_options$julia_highs)
   })
@@ -113,9 +119,12 @@ test_that("ONE_julia_highs", {
   expect_equal(vObjective, vObj)
 })
 
+# @covers vObjective depth=X backends=gams
 test_that("ONE_gams_gdx_cplex", {
+  skip_if_no_gams()
   invisible({
-    scen <- solve(mod_unit, solver = solver_options$gams_gdx_cplex)
+    # GAMS export requires a dense (sparse = FALSE) scenario
+    scen <- solve(mod_unit, solver = solver_options$gams_gdx_cplex, sparse = FALSE)
   })
   vObj <- getData(scen, "vObjective", merge = TRUE)$value
   expect_equal(vObjective, vObj)

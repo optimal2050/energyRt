@@ -48,7 +48,7 @@
 interpolate_model <- function(mod, name = NULL, ...,
                        desc = NULL, ondisk = FALSE, overwrite = FALSE,
                        fold = FALSE, sparse = TRUE, prune = TRUE,
-                       validate = TRUE, code = NULL,
+                       validate = TRUE, code = NULL, kvl = FALSE,
                        verbose = isVerbose()) {
   # Accept a scenario (re-interpolate its model), matching the legacy interface.
   if (inherits(mod, "scenario")) mod <- mod@model
@@ -70,6 +70,11 @@ interpolate_model <- function(mod, name = NULL, ...,
   # Upgrade any constraint summands serialized before the `timeframe` slot so
   # legacy models interpolate without a "no slot of name timeframe" error.
   mod <- .upgrade_model_summands(mod)
+
+  # NOTE: the `kvl` hook is NOT here. It has to run after the model is both
+  # complete (objects arriving through `...` are folded in further down) and
+  # variant-expanded, or it builds the cycle basis on a subgraph and names
+  # trade objects that expansion has renamed. See the hook below.
 
   drop_default <- isTRUE(sparse)
   # `fold` selects which dimensions to whole-column fold: TRUE -> region + timeslice
@@ -334,6 +339,36 @@ interpolate_model <- function(mod, name = NULL, ...,
   mod <- .tech_variants$model    # the sets below are collected from `mod`
   scen@model <- mod              # ... while get_process_*() read scen@model
   .assert_variants_expanded(mod)
+
+  # `kvl`: enforce Kirchhoff's voltage law on the AC network -- the trade routes
+  # that carry a `reactance`. OFF by default, because it is a restriction: a
+  # transport model chooses its flows, and KVL takes that choice away, so a
+  # model's objective can only rise. Turning it on emits one equality constraint
+  # per independent cycle (see R/trade_kvl.R); a radial network has none, and a
+  # model with no reactance anywhere is untouched either way.
+  #
+  # THIS IS THE EARLIEST CORRECT PLACE, and the position is load-bearing three
+  # times over. Run before the `...` objects are folded in (above) and an AC line
+  # passed that way is invisible, so the basis is built on a SUBGRAPH -- silently
+  # too few cycles. Run before `expand_variants()` and a vintaged or tranched
+  # line has been renamed, so `for.sum` names a `trade` member that no longer
+  # exists. And `.kvl_for_each()` needs the SCENARIO's calendar and horizon,
+  # which a `...` argument may have replaced, not the model's own.
+  if (isTRUE(kvl)) {
+    kvl_cns <- .kvl_build(mod, prov = .tech_variants$provenance,
+                          settings = scen@settings, verbose = verbose)
+    # Added as ONE named repository rather than one `add()` per cycle, so the
+    # cycles arrive as a discoverable group instead of scattered among whatever
+    # else the model carries.
+    if (length(kvl_cns)) {
+      mod <- add(mod, do.call(newRepository,
+                              c(list("kvl_cycles"), unname(kvl_cns))))
+      # MUST follow the add: `.interp_user_constraints()` compiles from
+      # `scen@model`, not from `mod`. Without this the constraints are silently
+      # dropped and the solve returns the transport relaxation.
+      scen@model <- mod
+    }
+  }
 
   # !!! ToDo:
   # ... subset timeslices and regions

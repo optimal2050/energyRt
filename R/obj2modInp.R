@@ -1,11 +1,11 @@
 setGeneric("ob2mi", function(scen, obj, extra_params) standardGeneric("ob2mi"))
 setGeneric("d2p", function(obj, data, path) standardGeneric("d2p"))
 
-get_data_slot <- function(obj) {
+get_data_slot <- function(obj, optional = FALSE) {
   # browser()
   data <- NULL
   if (isOnDisk(obj)) {
-    data <- get_lazy_data(obj, "data")
+    data <- get_lazy_data(obj, "data", optional = optional)
     # The csv/parquet round-trip loses column types: an all-NA column (e.g. a
     # folded `region`/`timeslice`, or a map built on a region-wildcard parameter)
     # comes back as `logical`, which then breaks type-sensitive joins in the
@@ -102,9 +102,12 @@ setMethod(
       )
     }
 
-    # combine existing data with new data
-    # browser()
-    data_exist <- get_data_slot(obj) |> force_cols_classes() # !!! ToDo: add filters
+    # combine existing data with new data. This is a PROBE: on the first write
+    # of an on-disk parameter the store does not exist yet (while the object's
+    # onDisk bookkeeping already records dims), so a missing dataset is normal
+    # here — hence optional, never the moved-folder error.
+    data_exist <- get_data_slot(obj, optional = TRUE) |>
+      force_cols_classes() # !!! ToDo: add filters
     data <- rbindlist(list(data_exist, data),
       use.names = TRUE,
       ignore.attr = TRUE # workaround for NA values in csv files

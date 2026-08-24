@@ -302,8 +302,8 @@ print.interp_settings_cmp <- function(x, top = 12L, ...) {
 #'   `horizon = newHorizon(period = 2024)`).
 #' @param name base scenario name.
 #' @param verbose forwarded to `interp_mod()`.
-#' @param tmp.dir solver working directory (passed to [solve_scen()]); `NULL`
-#'   lets the solver pick one.
+#' @param solver.dir external solver working directory (passed to
+#'   [solve_scen()]); `NULL` solves into each scenario's own run directory.
 #'
 #' @return an object of class `solve_settings_cmp`: `summary` (one row per
 #'   setting x solver: ok, seconds, objective, error), `interp` (the interp-size
@@ -319,7 +319,7 @@ print.interp_settings_cmp <- function(x, top = 12L, ...) {
 #' @export
 compare_solve_settings <- function(mod, settings = NULL, solvers, ...,
                                    name = "cmp", verbose = FALSE,
-                                   tmp.dir = NULL) {
+                                   solver.dir = NULL) {
   if (!is.list(solvers) || length(solvers) == 0) {
     stop("`solvers` must be a non-empty list, e.g. list(solver_options$glpk).")
   }
@@ -345,7 +345,7 @@ compare_solve_settings <- function(mod, settings = NULL, solvers, ...,
       if (isTRUE(verbose)) message("solve [", st, " x ", sl, "] ...")
       t0 <- Sys.time()
       res <- tryCatch(
-        solve_scen(scen, solver = sv, force = TRUE, tmp.dir = tmp.dir),
+        solve_scen(scen, solver = sv, force = TRUE, solver.dir = solver.dir),
         error = function(e) e)
       secs <- round(as.numeric(difftime(Sys.time(), t0, units = "secs")), 2)
       if (inherits(res, "error")) {

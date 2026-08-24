@@ -35,6 +35,13 @@
 # "begins with a letter" rule.
 .VARIANT_GROUP_PREFIX <- "VG"
 
+# Leading token of the constraint names generated to TIE variant capacities to
+# fixed proportions of one another (loss tranches). Distinct from the group
+# prefix above because the two constrain different things: a group bound caps
+# the SUM over variants, a share tie fixes their RATIO -- and a name collision
+# between them would be silently overwritten at insertion.
+.VARIANT_SHARE_PREFIX <- "VS"
+
 # Columns of the @vintage slot, in prototype order.
 .vintage_cols <- c("vintage", "region", "cluster", "start", "end", "olife")
 

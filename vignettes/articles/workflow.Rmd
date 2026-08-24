@@ -114,29 +114,46 @@ writes rows straight into its parameter store.)
 
 The scenarios directory is an option — read it with `get_scenarios_path()`, set it
 with `set_scenarios_path()` (default `"scenarios/"`). Each scenario gets its own
-folder, named by `make_scenario_dirname()` as `name_model_calendar_horizon`:
+folder, named automatically as `name_model_calendar_horizon` (duplicate parts
+are dropped, so a scenario and model sharing a name appear once):
 
 ```{r dirname}
 get_scenarios_path()
-make_scenario_dirname(scen)
+basename(scen@path)
 ```
 
 Saving a scenario writes an **Arrow-backed** folder that mirrors the scenario's
-structure — a thin `scen.RData` shell plus each large data slot as a dataset:
+structure — a thin `scen.RData` shell, a `scenario.yml` manifest, each large
+data slot as a dataset, and one folder per solver run:
 
 ```
 <scenarios-path>/<name_model_calendar_horizon>/
+├── scenario.yml        # manifest: model ref/hash, calendar, horizon,
+│                       #   `default:` — the default run (user-changeable)
 ├── scen.RData          # thinned S4 scenario shell
-├── class · format      # "scenario" · "parquet"
+├── class · format · layout   # "scenario" · "parquet" · "3"
 ├── logfile.csv         # timestamped save log
-├── model/data/<repo>/<object>/<slot>/   # the model objects' data
+├── model/data/<repo>/<object>/<slot>/   # model data (embedded scenarios only)
 ├── modInp/parameters/<param>/           # interpolated input parameters
-├── modOut/variables/<var>/              # solved variables (vTechOut, ...)
-└── script/<backend>_<solver>_<method>/  # solver working directory
+└── runs/               # one folder per solve
+    ├── glpk/           #   base-problem run, named by its solve label
+    │   ├── run.yml     #     provenance: solver, cmdline, times, objective
+    │   ├── solver/     #     the solver working dir (inputs + its output/)
+    │   └── modOut/variables/<var>/      # the solved variables
+    └── julia_highs/    #   another backend's run of the same problem
 ```
 
+Solving the same scenario with several backends (or option sets — pass
+`run = "<label>"` to `solve_scen()`) keeps every run side by side;
+`scenario_runs(scen)` lists them with status and objective, and
+`read_solution(scen, run = "<label>")` switches the active solution.
+A scenario referencing a model saved with `save_model()` skips the embedded
+`model/` copy entirely (see `?save_scenario`, `embed_model`).
+
 A scenario knows whether its data is in RAM or on disk via `isInMemory()`; when
-on disk, the slots are empty and read lazily from the folder on demand.
+on disk, the slots are empty and read lazily from the folder on demand. Folders
+from older energyRt versions are still readable and migrate in place with
+`scenario_upgrade_layout(path)`.
 
 # Saving and loading
 
@@ -164,10 +181,16 @@ ld <- obj2mem(ld)                                    # rehydrate fully into RAM
 isInMemory(ld)
 ```
 
-> A name-based scenario **registry** (`register()`, `getScenario()`,
-> `get_registry()`) is under development; for now, organize runs with
-> `set_scenarios_path()` and round-trip them with `save_scenario()` /
-> `load_scenario()`.
+Every `save_scenario()` / `save_model()` / `save_repository()` also records
+its object in the project **registry** — a single CSV (default
+`energyRt_registry.csv` at the project root, see `get_registry_file()`)
+indexing saved models, repositories, scenarios, and runs. Repositories shared
+by several models can be stored once with `save_repository()` and referenced
+by each model (`save_model(embed_repos = )`), just as scenarios can reference
+a stored model. `registry_load()` reads it, `registry_find()` filters it (by type,
+name, or model hash), and `registry_refresh()` rebuilds it by rescanning the
+`scenarios/` and `models/` stores — the on-disk manifests are the source of
+truth, so the registry can always be reconstructed.
 
 # Comparing scenarios
 

@@ -3,11 +3,12 @@
 
 test_that("model_size reports rows, estimates and fold saving", {
   tm_file <- NULL
-  for (cand in c("data-raw/testing-models.R",
+  for (cand in c(testthat::test_path("fixtures", "testing-models.R"),
+                 "data-raw/testing-models.R",
                  file.path("..", "..", "data-raw", "testing-models.R"))) {
     if (file.exists(cand)) { tm_file <- cand; break }
   }
-  skip_if(is.null(tm_file), "data-raw/testing-models.R not available")
+  skip_if(is.null(tm_file), "fixtures/testing-models.R not available")
   source(tm_file, local = TRUE)
   mod <- tm_weather()
 

@@ -197,10 +197,11 @@ test_that("saving and loading preserves a variable's rows", {
   sol@path <- p
   suppressMessages(suppressWarnings(save_scenario(sol, path = p,
                                                   verbose = FALSE)))
-  # Without `.save_slots$variable` nothing is written and this directory is absent
-  expect_true(dir.exists(file.path(p, "modOut", "variables", "vTechCap",
-                                   "data")))
-  expect_equal(readLines(file.path(p, "layout"), warn = FALSE)[1], "2")
+  # Without `.save_slots$variable` nothing is written and this directory is
+  # absent. Layout 3: the solution store lives under the active run.
+  expect_true(dir.exists(file.path(p, "runs", sol@misc$run,
+                                   "modOut", "variables", "vTechCap", "data")))
+  expect_equal(readLines(file.path(p, "layout"), warn = FALSE)[1], "3")
 
   l <- suppressMessages(suppressWarnings(
     load_scenario(p, env = NULL, verbose = FALSE)))

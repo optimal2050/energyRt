@@ -25,7 +25,7 @@
 # -- helpers and fixtures ----------------------------------------------------
 
 skip_if_no_mosox <- function() {
-  testthat::skip_on_cran()
+  skip_if_tier_below("fast")
   exe <- getFromNamespace(".find_mosox", "energyRt")()
   # `.find_mosox()` returns the bare "mosox" when it found nothing, so test both
   # a resolved path and PATH before deciding it is absent.
@@ -674,9 +674,8 @@ test_that("KNOWN-WRONG: the compiled energyRt matrix is wrong", {
 # ============================================================================ #
 
 skip_if_no_glpsol <- function() {
-  testthat::skip_on_cran()
-  cfg <- tryCatch(get_glpk_path(), error = function(e) NULL)
-  if (!nzchar(Sys.which("glpsol")) && (is.null(cfg) || !nzchar(cfg))) {
+  skip_if_tier_below("fast")
+  if (!has_glpsol()) {
     testthat::skip("glpsol not available")
   }
   invisible(getFromNamespace(".find_glpsol", "energyRt")())
@@ -723,8 +722,9 @@ test_that("mosox and GLPK templates agree on a weather model", {
   # objective is a sharp check.
   exe <- skip_if_no_glpsol()
   root <- skip_if_no_sources()
-  src <- file.path(root, "data-raw", "testing-models.R")
-  skip_if(!file.exists(src), "data-raw/testing-models.R not available")
+  src <- file.path(root, "tests", "testthat", "fixtures", "testing-models.R")
+  if (!file.exists(src)) src <- file.path(root, "data-raw", "testing-models.R")
+  skip_if(!file.exists(src), "fixtures/testing-models.R not available")
 
   env <- new.env(parent = globalenv())
   suppressMessages(suppressWarnings(sys.source(src, envir = env)))

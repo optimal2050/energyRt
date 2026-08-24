@@ -40,6 +40,7 @@ setClass("trade",
     invcost = "data.frame",
     fixom = "data.frame", # !!!ToDo: add fixom
     varom = "data.frame", # !!!ToDO: add varom
+    cluster = "data.frame", # parallel sub-lines (loss tranches)
     vintage = "data.frame",
     # stock = "data.frame", # !!!ToDo: deprecate (move to @capacity)
     capacity = "data.frame", # !!!ToDo: not implemented yet
@@ -60,6 +61,7 @@ setClass("trade",
     ),
     trade = data.frame(
       vintage = character(),
+      cluster = character(),
       src = character(),
       dst = character(),
       year = integer(),
@@ -77,10 +79,16 @@ setClass("trade",
       # cost = numeric(), # !!!ToDo: move to varom
       # markup = numeric(), # !!!ToDo: move to varom
       teff = numeric(),
+      # Electrical characteristics of the line. Inert unless the model is
+      # interpolated with `kvl = TRUE`; a finite `reactance` is what marks a
+      # route as a passive AC branch (see newACLine / newDCLink).
+      reactance = numeric(),
+      resistance = numeric(),
       stringsAsFactors = FALSE
     ),
     fixom = data.frame(
       vintage = character(),
+      cluster = character(),
       region = character(),
       year = integer(),
       fixom = numeric(),
@@ -88,6 +96,7 @@ setClass("trade",
     ),
     varom = data.frame(
       vintage = character(),
+      cluster = character(),
       src = character(),
       dst = character(),
       year = integer(),
@@ -101,6 +110,7 @@ setClass("trade",
     # supplies the annuity directly, bypassing both.
     invcost = data.frame(
       vintage = character(),
+      cluster = character(),
       region = character(),
       year = integer(),
       invcost = numeric(),
@@ -110,14 +120,40 @@ setClass("trade",
       retcost = numeric(),
       stringsAsFactors = FALSE
     ),
+    # Cluster declaration. A cluster is a parallel sub-line of the same corridor
+    # -- in practice a LOSS TRANCHE: one segment of a piecewise-linear
+    # approximation of the quadratic loss curve, with its own share of the
+    # capacity and its own `teff`. Real losses go as `r * f^2`, so the loss
+    # FRACTION rises with loading, which a single `teff` cannot express.
+    #
+    # `share` is the fraction of the line's capacity the tranche occupies; the
+    # shares must sum to 1, because the derived efficiencies are only calibrated
+    # when they do. `order` fixes the fill order (1 = lowest-loss); without it
+    # labels sort alphabetically and "T10" would precede "T2".
+    #
+    # There is deliberately NO `region` column. A trade object has no `@region`
+    # slot -- its scope comes from the route endpoints -- so a region here could
+    # restrict nothing, and its absence rejects the mistake at construction
+    # rather than deep inside variant expansion. Same technique, and the same
+    # reasoning, as the missing `region` on `@capacity`.
+    #
+    # Optional: when empty, cluster labels are harvested from the `cluster`
+    # column of the variant slots. When populated it is AUTHORITATIVE.
+    # See `lossTranches()`, which builds this table and the matching `teff`.
+    cluster = data.frame(
+      cluster = character(),
+      desc = character(),
+      share = numeric(),
+      order = integer(),
+      stringsAsFactors = FALSE
+    ),
     # Lifespan / vintage table, replacing the former `start`/`end`/`olife` slots
     # (whose ToDo notes asked for exactly this consistency with the other
     # processes). One row per vintage; `start`/`end` = user-defined window
     # (NA side = unbounded).
-    # `region` and `cluster` are carried for a uniform shape across classes but
-    # are unused here: trade has no `@region` slot -- its scope comes from the
-    # route endpoints -- and no cluster dimension, since `@routes` already
-    # provides multiplicity.
+    # `region` is carried for a uniform shape across classes but is unused here:
+    # trade has no `@region` slot, its scope coming from the route endpoints.
+    # `cluster` selects a tranche declared in `@cluster` (above).
     vintage = data.frame(
       vintage = character(),
       region = character(),
@@ -129,6 +165,7 @@ setClass("trade",
     ),
     capacity = data.frame(
       vintage = character(),
+      cluster = character(),
       # region = character(),
       year = integer(),
       stock = numeric(),
@@ -151,6 +188,7 @@ setClass("trade",
     # Auxiliary commodity parameters
     aeff = data.frame(
       vintage = character(),
+      cluster = character(),
       acomm = character(),
       src = character(),
       dst = character(),
@@ -267,6 +305,7 @@ newTrade <- function(
     trade = data.frame(),
     fixom = data.frame(),
     varom = data.frame(),
+    cluster = data.frame(),
     invcost = data.frame(),
     olife = data.frame(),
     # `-Inf` / `Inf` mean "no restriction"; `.tech_lifespan_args()` treats an
@@ -289,6 +328,7 @@ newTrade <- function(
     trade = trade,
     fixom = fixom,
     varom = varom,
+    cluster = cluster,
     invcost = invcost,
     vintage = vintage,
     olife = olife,

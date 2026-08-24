@@ -308,6 +308,10 @@ setReplaceMethod("$", c("repository", "ANY"),
 #' @family repository
 setMethod("names", "repository", function(x) names(x@data))
 
+# Name of the repository that `add(model, <object>)` creates when the caller
+# names none. Anything but "" -- see the note in add.model().
+.default_repo_name <- "default_repository"
+
 add.model <- function(obj, ..., overwrite = FALSE, repo_name = NULL) {
   # browser()
   # cls <- c('technology', 'commodity', 'region', 'commodity',
@@ -342,30 +346,36 @@ add.model <- function(obj, ..., overwrite = FALSE, repo_name = NULL) {
   if (any(ii)) {
     # arg <- arg[cc != 'repository']
     # Generate name
-    if (is.null(repo_name)) {
-      # if (length(obj@data) >= 1) {
-      #   # repo_name <- obj@data[[length(obj@data)]]@name
-      #   repo_name <- names(obj@data)[length(obj@data)]
-      #   warning('"repo_name" is not specified, adding objects to "',
-      #           repo_name, '" repository')
-      # } else {
-      # if (length(obj@data) == 0) {
-      add_repo <- new('repository', repo_name)
-      repo_name <- add_repo@name
-      # repo_name <- "default_repository"
-      if (is.null(obj@data[[repo_name]])) {
-        obj@data[[repo_name]] <- add_repo
-      }
-      # repo_name <- obj@data[[1]]@name # default name
-      # }
-    } else {
-      ff <- c(sapply(obj@data, function(x) x@name), recursive = TRUE)
-      if (all(ff != repo_name)) {
-        obj@data[[repo_name]] <- new('repository', name = repo_name)
-      }
-    }
+    # Objects added straight to a model (rather than to a named repository) land
+    # in an auto-created one. It used to be built with the class prototype's
+    # EMPTY name, which cannot work: `obj@data[[""]]` is always NULL, so the
+    # "does it exist already?" test below was always TRUE and EVERY add()
+    # appended ANOTHER empty-named repository. With two of them present,
+    # `ff == repo_name` matched two positions and `obj@data[[fl]]` became
+    # RECURSIVE indexing -- `obj@data[[c(2, 3)]]` -- which fails with
+    # "subscript out of bounds". A model could therefore be given exactly one
+    # object this way; a second `add()` errored.
+    #
+    # Naming the repository makes the lookup work, so repeated adds accumulate
+    # in one place. The name is also what the repository branch further down
+    # already demands of a user-supplied repository ("Empty repository name is
+    # not allowed"), so the auto-created one no longer breaks the class's own
+    # rule.
+    if (is.null(repo_name)) repo_name <- .default_repo_name
     ff <- c(sapply(obj@data, function(x) x@name), recursive = TRUE)
-    fl <- seq(alon = ff)[ff == repo_name]
+    if (!any(ff == repo_name)) {
+      # `newRepository()`, NOT `new("repository", name = ...)`: the class's
+      # `initialize` method discards `...` outright (it only fills `@permit`),
+      # so `new()` silently returns a repository whose name is still "" no
+      # matter what is passed. That was the other half of this bug -- a
+      # user-supplied `repo_name` was dropped exactly like the default one, so
+      # `add(mod, x, repo_name = "mine")` was equally unrepeatable.
+      obj@data[[repo_name]] <- newRepository(repo_name)
+      ff <- c(sapply(obj@data, function(x) x@name), recursive = TRUE)
+    }
+    # Positional, and deliberately ONE position: a legacy model deserialised
+    # with two same-named repositories would otherwise index recursively again.
+    fl <- which(ff == repo_name)[1]
     for (i in seq(along = arg[ii])) {
       obj@data[[fl]] <- add(obj@data[[fl]], arg[ii][[i]], overwrite = overwrite)
     }

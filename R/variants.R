@@ -31,9 +31,10 @@
 # `slots`      slots whose rows may be selected by vintage/cluster. Everything
 #              else is structural -- it defines the process's topology and must
 #              be identical across variants, otherwise it is a different process.
-# `dims`       the variant dimensions this class supports. `trade` gets vintage
-#              only: its routes (src/dst) already provide multiplicity, so a
-#              cluster axis would be redundant.
+# `dims`       the variant dimensions this class supports. All three classes
+#              support both. For `trade` a cluster is a LOSS TRANCHE: a parallel
+#              part of one line, with its own share of the capacity and its own
+#              `teff`, approximating the quadratic loss curve piecewise.
 # `bound_var`  capacity variables a group-aggregate ("TOTAL") bound constrains.
 # `bound_dims` dimensions available to such a bound. `vTradeCap{trade, year}`
 #              carries no region index, so a trade bound can only span years.
@@ -63,9 +64,14 @@
   ),
   trade = list(
     key = "trade",
-    # vintage only: `@routes` (src/dst) already provides multiplicity, so a
-    # cluster axis would be a redundant second one.
-    dims = "vintage",
+    # `@routes` gives one object several LINES; `cluster` gives one line several
+    # parallel TRANCHES on the same (src, dst) pair, each with its own capacity
+    # and its own `teff`. That is what a piecewise-linear approximation of the
+    # quadratic loss curve needs, and routes cannot express it -- so the two
+    # axes are not redundant. `@routes` stays out of `slots` below: it is
+    # structural, and every tranche must keep BOTH directed routes or it fails
+    # the KVL "declared in one direction only" check.
+    dims = c("vintage", "cluster"),
     slots = c("vintage", "capacity", "invcost", "fixom", "varom", "aeff",
               "trade"),
     bound_var = list(cap = "vTradeCap", ncap = "vTradeNewCap"),
@@ -410,6 +416,44 @@
     }
   }
 
+  # A class with no `@region` slot has no region scope for a cluster to
+  # restrict. Refused here, earlier and more legibly than the expansion loop
+  # could -- though `trade@cluster` has no `region` column at all, so the usual
+  # route to this is a hand-built declaration frame.
+  if (!is.null(dc) && !.hasSlot(tech, "region") &&
+      "region" %in% names(dc) && any(!is.na(dc$region))) {
+    stop(cls, ' "', nm, '" has no `region` slot, so a `region` on its `cluster` ',
+         'declaration cannot restrict anything. Remove the column.',
+         call. = FALSE)
+  }
+
+  # Cluster SHARES: the fractions of one process's capacity its parallel parts
+  # occupy. Used by loss tranches, where the derived efficiencies
+  # `lambda_t = loss_full * (alpha_{t-1} + alpha_t)` are calibrated ONLY when
+  # the shares sum to 1 -- shares summing to 0.9 understate total losses by 10%
+  # with no other symptom, which is why this is an error and not a warning.
+  if (!is.null(dc) && "share" %in% names(dc)) {
+    sh <- dc$share
+    if (any(!is.na(sh))) {
+      if (anyNA(sh)) {
+        stop('Either every declared cluster of ', cls, ' "', nm, '" carries a ',
+             '`share` or none does; got ', sum(!is.na(sh)), ' of ', length(sh),
+             '. A partly-shared set has no defensible reading.', call. = FALSE)
+      }
+      if (any(!is.finite(sh) | sh <= 0)) {
+        stop('The `share` values of ', cls, ' "', nm, '" must be finite and ',
+             'greater than zero; got ',
+             paste(format(sh), collapse = ", "), '.', call. = FALSE)
+      }
+      if (abs(sum(sh) - 1) > 1e-8) {
+        stop('The `share` values of ', cls, ' "', nm, '" sum to ',
+             format(sum(sh)), ', not 1. Shares are FRACTIONS of a capacity, ',
+             'not absolute capacities -- the tranche efficiencies were derived ',
+             'from them and would be wrong.', call. = FALSE)
+      }
+    }
+  }
+
   # @vintage must not reference a (cluster, region) the declaration excludes
   if (!is.null(dc) && .hasSlot(tech, "vintage")) {
     v <- as.data.frame(tech@vintage)
@@ -462,6 +506,127 @@
 # bound column stem -> variable it constrains, per class (see `.variant_classes`)
 # bound suffix -> relation
 .variant_bound_eq <- c(lo = ">=", up = "<=", fx = "==")
+
+# Constraints tying the capacities of a process's clusters to fixed PROPORTIONS
+# of one another, from the `share` column of its `@cluster` declaration.
+#
+# This is what makes loss tranches hold their shape when capacity is a decision.
+# A group-aggregate ("TOTAL") bound is NOT sufficient and is not a substitute: it
+# caps the SUM over variants -- the corridor size -- and says nothing about the
+# SPLIT, which is the entire content of the model. With a TOTAL cap of 4 and
+# three tranches the optimum is (4, 0, 0): tranche 1 has the best `teff` at the
+# same per-unit capex, so the piecewise-linear loss curve silently collapses back
+# to a single low-loss straight line, leaving the model MORE optimistic about
+# losses than the flat-`teff` model it replaced.
+#
+# Emitted here rather than by the user-facing helper because the variant names
+# are minted inside `expand_variants()` from `config@variant_prefix`; a
+# pre-computed name would be wrong for any model that overrides the prefix, and
+# would quietly reference a `trade` set member that does not exist.
+#
+# Ties are WITHIN a vintage, never across: each vintage is a physically separate
+# line. Two vintages x three tranches is 2 x 2 = 4 constraints, not 5.
+.variant_share_constraints <- function(tech, prov, regions, years) {
+  def <- .variant_def(tech)
+  if (is.null(def)) return(list())
+  dc <- .declared_clusters(tech)
+  if (is.null(dc) || !"share" %in% names(dc)) return(list())
+  dc <- dc[!is.na(dc$share), , drop = FALSE]
+  if (nrow(dc) < 2L) return(list())
+  bvar <- def$bound_var$cap
+  if (is.null(bvar)) return(list())
+  cls <- class(tech)[1]
+  dc <- dc[order(dc$order, dc$cluster, na.last = TRUE), , drop = FALSE]
+
+  # A fully FIXED set of capacities already determines the proportions, so a tie
+  # would be a redundant equality stacked on two fixed bounds. Verify instead --
+  # editing the shares and forgetting the capacities is the likeliest silent
+  # error, and it leaves the ratings disagreeing with the efficiencies.
+  fx <- .cluster_fixed_caps(tech, dc$cluster, def)
+  if (!is.null(fx)) {
+    if (anyNA(fx)) {
+      stop(cls, ' "', tech@name, '": some clusters have a fixed capacity and ',
+           'some do not (', paste(dc$cluster[is.na(fx)], collapse = ", "),
+           ' missing). A partly-fixed set of shares has no defensible reading ',
+           '-- fix all of them or none.', call. = FALSE)
+    }
+    ratio <- fx / sum(fx)
+    if (any(abs(ratio - dc$share) > 1e-6)) {
+      stop(cls, ' "', tech@name, '": the fixed capacities ',
+           paste(format(fx), collapse = ", "), ' are in proportion ',
+           paste(format(round(ratio, 6)), collapse = ", "),
+           ', but the declared shares are ',
+           paste(format(dc$share), collapse = ", "),
+           '. The tranche efficiencies were derived from the shares, so the ',
+           'ratings and the losses now disagree.', call. = FALSE)
+    }
+    return(list())
+  }
+
+  cell_args <- list(year = years)
+  if ("region" %in% def$bound_dims) {
+    cell_args <- c(list(region = regions), cell_args)
+  }
+  cells <- do.call(expand.grid, c(cell_args,
+    list(KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)))
+
+  vins <- unique(prov$vintage[prov$base == tech@name])
+  if (!length(vins)) vins <- NA_character_
+  out <- list()
+  for (vin in vins) {
+    pick <- function(cl) {
+      sel <- prov$base == tech@name & !is.na(prov$cluster) & prov$cluster == cl &
+        (if (is.na(vin)) is.na(prov$vintage) else
+           (!is.na(prov$vintage) & prov$vintage == vin))
+      as.character(prov$name[sel])
+    }
+    nref <- pick(dc$cluster[1])
+    if (length(nref) != 1L) next
+    for (i in seq_len(nrow(dc))[-1]) {
+      nvar <- pick(dc$cluster[i])
+      if (length(nvar) != 1L) next
+      nm <- paste0(.VARIANT_SHARE_PREFIX, .variant_token(tech@name),
+                   if (!is.na(vin)) .variant_token(vin) else "",
+                   .variant_token(dc$cluster[i]))
+      cns <- newConstraint(
+        name = nm,
+        desc = paste0("Capacity share tie: ", dc$cluster[i], " / ",
+                      dc$cluster[1], " = ", format(dc$share[i]), " / ",
+                      format(dc$share[1]), " for ", tech@name),
+        eq = "==", for.each = cells, rhs = 0, defVal = 0,
+        # A share ratio is exact, not a quantity to smooth between milestones.
+        interpolation = "inter",
+        t1 = list(variable = bvar,
+                  for.sum = stats::setNames(list(nvar), def$key),
+                  mult = dc$share[1]),
+        t2 = list(variable = bvar,
+                  for.sum = stats::setNames(list(nref), def$key),
+                  mult = -dc$share[i]))
+      cns@misc$.variant_source <- tech@name
+      cns@misc$.variant_class <- cls
+      out[[nm]] <- cns
+    }
+  }
+  out
+}
+
+# Per-cluster FIXED capacity, or NULL when the class/slot cannot carry one.
+# Returns one value per requested cluster, NA where that cluster has no `.fx`.
+.cluster_fixed_caps <- function(tech, clusters, def) {
+  if (!.hasSlot(tech, "capacity")) return(NULL)
+  cap <- as.data.frame(tech@capacity)
+  if (nrow(cap) == 0L || !"cluster" %in% names(cap)) return(NULL)
+  bpre <- if (is.null(def$bound_prefix)) "" else def$bound_prefix
+  col <- paste0(bpre, "cap.fx")
+  if (!col %in% names(cap)) return(NULL)
+  vals <- vapply(clusters, function(cl) {
+    r <- cap[!is.na(cap$cluster) & cap$cluster == cl, , drop = FALSE]
+    v <- r[[col]][!is.na(r[[col]])]
+    if (length(v)) as.numeric(v[1]) else NA_real_
+  }, numeric(1))
+  if (all(is.na(vals))) return(NULL)
+  unname(vals)
+}
 
 .variant_group_constraints <- function(tech, prov, regions, years) {
   def <- .variant_def(tech)
@@ -664,6 +829,19 @@
     if (!is.na(clu)) {
       cregs <- .cluster_regions(dc, clu)
       if (!is.null(cregs)) {
+        # A class with no `@region` slot has no region scope to intersect with,
+        # and `tech@region` would error rather than say so. `trade` is the case:
+        # its scope comes from the route endpoints. Generic on purpose -- the
+        # branch below is unchanged byte-for-byte for technology and storage,
+        # which both declare the slot.
+        if (!.hasSlot(tech, "region")) {
+          stop('Cluster "', clu, '" of ', class(tech)[1], ' "', tech@name,
+               '" is restricted to region(s) ', paste(cregs, collapse = ", "),
+               ', but a ', class(tech)[1], ' has no `region` slot -- its scope ',
+               'comes from the route endpoints, not from a region list. Drop ',
+               'the `region` column from the `cluster` declaration.',
+               call. = FALSE)
+        }
         base_regs <- as.character(tech@region)
         v@region <- if (length(base_regs) == 0L) cregs else
           intersect(base_regs, cregs)
@@ -840,6 +1018,8 @@ expand_variants <- function(mod, prefix = .variant_prefix(mod)) {
         prov[[length(prov) + 1L]] <<- res$provenance
         gb <- .variant_group_constraints(el, res$provenance, regions, years)
         if (length(gb)) cns[[length(cns) + 1L]] <<- gb
+        sb <- .variant_share_constraints(el, res$provenance, regions, years)
+        if (length(sb)) cns[[length(cns) + 1L]] <<- sb
       } else {
         out[[nm]] <- el
       }
@@ -873,7 +1053,7 @@ expand_variants <- function(mod, prefix = .variant_prefix(mod)) {
            ". The object names reduce to the same token; rename one.")
     }
     mod <- add(mod, cns, overwrite = TRUE)
-    message("Added ", length(cns), " group-aggregate bound constraint(s): ",
+    message("Added ", length(cns), " generated constraint(s): ",
             paste(names(cns), collapse = ", "))
   }
 

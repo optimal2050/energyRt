@@ -420,7 +420,24 @@ addSummand <- function(
   if (all(names(.variable_set) != variable)) {
     stop(paste0('Unknown variable "', variable, '"in summand "', eqt@name, '"'))
   }
-  need.set <- .variable_set[[variable]]
+  # Fill in an unrestricted `NA` entry for every dimension the caller did not
+  # name. Keyed by DIMENSION name, not set name: for the six variables that
+  # index one set twice this is the difference between two usable slots
+  # (`src` / `dst`) and one ambiguous one (`region`).
+  need.set <- .variable_dim[[variable]]
+  if (is.null(need.set) || length(need.set) != length(.variable_set[[variable]])) {
+    need.set <- .variable_set[[variable]]
+  }
+  bad <- setdiff(setdiff(names(st@for.sum), c("lag.year", "lead.year")), need.set)
+  if (length(intersect(bad, .variable_set[[variable]]))) {
+    stop(paste0('Variable "', variable, '" in summand of constraint "',
+                eqt@name, '" indexes "',
+                paste(intersect(bad, .variable_set[[variable]]), collapse = '", "'),
+                '" more than once, so `for.sum` must name the position rather ',
+                'than the set.
+  Available: ',
+                paste(need.set, collapse = ", ")), call. = FALSE)
+  }
   need.set <- need.set[!(need.set %in% c(names(eqt@for.each), names(st@for.sum)))]
   for (i in need.set) {
     st@for.sum[i] <- list(NA)
@@ -479,6 +496,9 @@ addSummand <- function(
   all.set <- data.frame(
     alias = character(), # name in equation
     set = character(), # original set
+    dim = character(), # position name; differs from `set` only where a
+    # variable indexes one set twice (vTradeIr's src/dst, the
+    # *RetiredNewCap vintage/year). See `.variable_dim`.
     for.each = logical(), # for.each, lhs
     lhs.num = numeric(), # number for lhs
     lead.year = logical(), # use only for year & lhs (next year)
@@ -508,6 +528,7 @@ addSummand <- function(
   if (length(old_for_each) > 0) {
     nn <- seq_along(old_for_each)
     all.set[nn, "set"] <- names(old_for_each)
+    all.set[nn, "dim"] <- names(old_for_each)
     all.set[nn, "alias"] <- names(old_for_each)
     all.set[nn, "for.each"] <- TRUE
     for.each.set <- names(old_for_each)
@@ -642,26 +663,50 @@ addSummand <- function(
     # browser()
 
     need.set <- .variable_set[[stm@lhs[[i]]@variable]]
+    # Position NAMES. Identical to `need.set` except for the six variables that
+    # index one set twice, where two dimensions cannot share an index name --
+    # see `.variable_dim` in data-raw/DATASET.R. `for.sum` is keyed by these, so
+    # `list(src = "R1")` addresses one endpoint of a route and `list(dst = ...)`
+    # the other; the SET is still what domain lookups use.
+    need.dim <- .variable_dim[[stm@lhs[[i]]@variable]]
+    if (is.null(need.dim) || length(need.dim) != length(need.set)) {
+      need.dim <- need.set
+    }
+    bad.fs <- setdiff(
+      setdiff(names(stm@lhs[[i]]@for.sum), c("lag.year", "lead.year")),
+      need.dim)
+    # A name that is a SET of this variable but not one of its dimension names
+    # is the interesting mistake: `for.sum = list(region = ...)` on vTradeIr,
+    # which cannot mean anything because the variable has two of them.
+    if (length(intersect(bad.fs, need.set))) {
+      stop.constr(paste0(
+        'variable "', stm@lhs[[i]]@variable, '" indexes "',
+        paste(intersect(bad.fs, need.set), collapse = '", "'),
+        '" more than once, so `for.sum` must name the position, not the set.',
+        "
+  Available: ", paste(need.dim, collapse = ", ")))
+    }
     nn <- (nn[length(nn)] + seq_along(need.set))
     all.set[nn, "set"] <- need.set
-    all.set[nn, "alias"] <- need.set
+    all.set[nn, "dim"] <- need.dim
+    all.set[nn, "alias"] <- need.dim
     all.set[nn, "lhs.num"] <- i
     if (any(names(stm@lhs[[i]]@for.sum) == "lag.year")) {
-      if (all(need.set != "year")) {
+      if (all(need.dim != "year")) {
         stop.constr("For lag.year have to define use variable with year")
       }
-      all.set[nn[need.set == "year"], c("lag.year", "def.lhs")] <- TRUE
+      all.set[nn[need.dim == "year"], c("lag.year", "def.lhs")] <- TRUE
     }
     if (any(names(stm@lhs[[i]]@for.sum) == "lead.year")) {
-      if (all(need.set != "year")) {
+      if (all(need.dim != "year")) {
         stop.constr("For lead.year have to define use variable with year")
       }
-      all.set[nn[need.set == "year"], c("lead.year", "def.lhs")] <- TRUE
+      all.set[nn[need.dim == "year"], c("lead.year", "def.lhs")] <- TRUE
     }
-    all.set[nn[need.set %in% names(stm@lhs[[i]]@for.sum)], "def.lhs"] <- TRUE
-    all.set[nn[!(need.set %in% for.each.set)], "def.lhs"] <- TRUE
+    all.set[nn[need.dim %in% names(stm@lhs[[i]]@for.sum)], "def.lhs"] <- TRUE
+    all.set[nn[!(need.dim %in% for.each.set)], "def.lhs"] <- TRUE
     # Add to set map
-    st <- names(stm@lhs[[i]]@for.sum)[names(stm@lhs[[i]]@for.sum) %in% need.set &
+    st <- names(stm@lhs[[i]]@for.sum)[names(stm@lhs[[i]]@for.sum) %in% need.dim &
       !sapply(is.na(stm@lhs[[i]]@for.sum), all)]
     # Fill add.map for for.lhs
     for (j in st) {
@@ -670,14 +715,16 @@ addSummand <- function(
       # now carry every timeslice level, so a timeslice restriction -- e.g. one derived
       # from a summand `timeframe` -- must be taken literally to avoid
       # double-counting across levels.
+      # `j` names a POSITION; its members come from the underlying set.
+      j.set <- if (j %in% names(.dim_set)) unname(.dim_set[[j]]) else j
       if (!is.null(stm@lhs[[i]]@for.sum[[j]]) &&
-        !all(prec@set[[j]] %in% stm@lhs[[i]]@for.sum[[j]])) {
+        !all(prec@set[[j.set]] %in% stm@lhs[[i]]@for.sum[[j]])) {
         # check if the same set in lhs exist
         fl <- FALSE
-        if (all(!c(all.set[nn[need.set == j], c("lead.year", "lag.year")],
+        if (all(!c(all.set[nn[need.dim == j], c("lead.year", "lag.year")],
           recursive = TRUE
         ))) {
-          fl <- nn[(!all.set$for.each[nn] & all.set$set[nn] == j &
+          fl <- nn[(!all.set$for.each[nn] & all.set$dim[nn] == j &
             !is.na(all.set$new.map[nn]))]
         }
         add.new <- TRUE
@@ -685,21 +732,24 @@ addSummand <- function(
           for (k in all.set[fl, "new.map"]) {
             if (length(stm@lhs[[i]]@for.sum[[j]]) == length(set.map[[k]]) &&
               all(stm@lhs[[i]]@for.sum[[j]] %in% set.map[[k]]) && all(set.map[[k]] %in% stm@lhs[[i]]@for.sum[[j]])) {
-              all.set[nn[need.set == j], "new.map"] <- k
+              all.set[nn[need.dim == j], "new.map"] <- k
               add.new <- FALSE
             }
           }
         }
         if (add.new) {
-          set.map.name <- c(set.map.name, j)
+          # The map is declared over the SET, but keyed by this position.
+          set.map.name <- c(set.map.name, j.set)
           set.map[[length(set.map.name)]] <- stm@lhs[[i]]@for.sum[[j]]
-          all.set[nn[need.set == j], "new.map"] <- length(set.map.name)
+          all.set[nn[need.dim == j], "new.map"] <- length(set.map.name)
         }
       }
     }
   }
   # Add alias
-  fl <- (!all.set$for.each & all.set$def.lhs & all.set$set %in% for.each.set)
+  # A lhs index collides with a for.each index only if it carries the same
+  # NAME; `src` and `dst` never collide with a for.each `region`.
+  fl <- (!all.set$for.each & all.set$def.lhs & all.set$dim %in% for.each.set)
   if (any(fl)) {
     all.set[fl, "alias"] <- paste0(all.set[fl, "set"], "p")
   }
@@ -892,6 +942,10 @@ addSummand <- function(
     vrb <- stm@lhs[[i]]@variable
     lhs.set2 <- lhs.set[lhs.set$lhs.num == i, ]
     vrb.lhs <- .variable_mapping[[vrb]]
+    # Coefficient pieces, assembled AFTER the index substitution below.
+    coef.val <- NULL        # literal factor, or the mult parameter defVal
+    coef.par <- ""          # mult parameter name, "" when the factor is literal
+    coef.set <- character() # the parameter OWN index list
     # Add multiple to vrb
     # Add to year multiplier if lag.year | lead.year
     if ((any(lhs.set2$lead.year) ||
@@ -976,21 +1030,74 @@ addSummand <- function(
         yy$value <- (sign(yy$value) * abs(yy$value)^nn)
         prec@parameters[[xx@name]] <- .dat2par(xx, yy)
       }
-      # Add mult
-      # browser()
-      vrb.lhs <- paste0(
-        xx@name,
-        if_else(length(need.set) > 0,
-                paste0("(", paste0(need.set, collapse = ", "), ")"),
-                ""),
-        " * ", vrb.lhs
-      )
-    # } else if (stm@lhs[[i]]@defVal != 1) {
-      vrb.lhs <- paste0(stm@lhs[[i]]@defVal, " * ", vrb.lhs)
+      # Add mult. NOT prepended here: the positional substitution below rewrites
+      # every parenthesised group it finds, so a `pCnsMult...(year)` sitting in
+      # front of the variable would have its OWN index list rewritten to the
+      # variable's full alias list -- a one-dimensional parameter referenced
+      # with six indices. Held aside and prepended after the substitution.
+      coef.val <- stm@lhs[[i]]@defVal
+      coef.par <- xx@name
+      coef.set <- need.set
+    } else if (length(stm@lhs[[i]]@defVal) == 1 &&
+               !is.na(stm@lhs[[i]]@defVal) &&
+               stm@lhs[[i]]@defVal != 1) {
+      # A SCALAR `mult` is stored in `defVal` (see addSummand), and this branch
+      # used to be commented out -- so the coefficient was silently DISCARDED.
+      # `mult = -1` then generated a sum where the user wrote a difference, and
+      # `mult = 3` a term with no coefficient at all. A constant coefficient is
+      # emitted as a literal; there is no parameter to build for it.
+      coef.val <- stm@lhs[[i]]@defVal
+      coef.par <- ""
+      coef.set <- character()
     }
     # Replace setsname
-    for (j in seq_len(nrow(lhs.set2))[lhs.set2$alias != lhs.set2$set]) {
-      vrb.lhs <- gsub(paste0(" ", lhs.set2$set[j], " "), lhs.set2$alias[j], vrb.lhs)
+    if (any(duplicated(lhs.set2$set))) {
+      # POSITIONAL substitution, for the six variables that index one set twice.
+      # A gsub on the set name rewrites BOTH occurrences to the same alias and
+      # emits `sum((trade, comm, region, region, timeslice), ...)`, which GLPK
+      # refuses -- "duplicate dummy index r not allowed" -- so none of them
+      # could appear in a custom constraint. Every parenthesised group in the
+      # template is the variable's dimensions in order (the variable itself,
+      # then its gating map), so each is replaced wholesale.
+      vrb.lhs <- gsub("[(][^()]*[)]",
+                      paste0("( ", paste(lhs.set2$alias, collapse = " , "), " )"),
+                      vrb.lhs)
+    } else {
+      for (j in seq_len(nrow(lhs.set2))[lhs.set2$alias != lhs.set2$set]) {
+        vrb.lhs <- gsub(paste0(" ", lhs.set2$set[j], " "), lhs.set2$alias[j], vrb.lhs)
+      }
+    }
+    if (!is.null(coef.val)) {
+      # The coefficient parameter carries its OWN, much shorter index list, and
+      # it is assembled HERE, after the substitution above -- which rewrites
+      # every parenthesised group it finds and would otherwise hand this
+      # parameter the variable's full alias list.
+      #
+      # The indices are deliberately NOT aliased. They never were: the old
+      # `gsub(" set ", alias, ...)` could not match inside `(year)`, which has
+      # no surrounding spaces. That is not an accident of the old code but the
+      # required behaviour -- for a lag/lead constraint the coefficient is
+      # indexed by the OUTER year while the variable takes the shifted one,
+      # e.g. `pCnsMultGROW_2[y] * vOutTot[c, r, yp, s]`. Aliasing them together
+      # would silently change every growth constraint in the package.
+      for (sn in coef.set) {
+        hit <- which(lhs.set2$set == sn)
+        if (length(hit) > 1L) {
+          stop.constr(paste0(
+            'the `mult` of summand ', i, ' is indexed by "', sn,
+            '", which variable "', vrb, '" carries more than once. Name the ',
+            'position instead: ', paste(lhs.set2$dim[hit], collapse = ", "), "."))
+        }
+      }
+      vrb.lhs <- paste0(
+        coef.val, " * ",
+        if (nzchar(coef.par)) {
+          paste0(coef.par,
+                 if (length(coef.set))
+                   paste0("(", paste(coef.set, collapse = ", "), ")") else "",
+                 " * ")
+        } else "",
+        vrb.lhs)
     }
     vrb.lhs <- gsub(
       "[ ]*[$][ ]*", "$",

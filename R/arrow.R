@@ -670,7 +670,8 @@ get_lazy_data <- function(obj,
                           InMemory = isInMemory(obj),
                           path = NULL,
                           collect_data = TRUE,
-                          default = NULL
+                          default = NULL,
+                          optional = FALSE
                           ) {
   # browser()
   # check if the object is "inMemory"
@@ -696,7 +697,26 @@ get_lazy_data <- function(obj,
   qu <- try(en_open_dataset(path), silent = TRUE)
   if (inherits(qu, "try-error")) {
     ff <- list.files(path)
-    if (length(ff) == 0) return(NULL)
+    if (length(ff) == 0) {
+      # Distinguish "never written" (an empty slot writes no dataset — normal)
+      # from "written but not there" (the folder was moved/renamed): the
+      # object's own onDisk bookkeeping records what was saved. Silently
+      # returning NULL in the second case made every result of a moved
+      # scenario come back as zero rows.
+      expected <- tryCatch({
+        od <- if (.hasSlot(obj, "misc")) obj@misc$onDisk else NULL
+        if (!is.null(slot)) od <- od[[slot]]
+        if (!is.null(element)) od <- od[[element]]
+        isTRUE(od$dim[1] > 0) || isTRUE(od$length > 0)
+      }, error = function(e) FALSE)
+      if (expected && !optional) {
+        stop("On-disk data expected but not found: ", path, "\n",
+             "  The scenario/model folder may have been moved or renamed. ",
+             "Re-load it with load_scenario() / load_model() to rebase ",
+             "its paths.")
+      }
+      return(NULL)
+    }
     stop("Cannot open dataset: ", path, "\n",
         "Files: ", paste(ff, collapse = ", "))
   }
@@ -788,7 +808,7 @@ if (F) {
 #   1  modOut@variables stored as `variables/<v>/`      (data.frames)
 #   2  modOut@variables stored as `variables/<v>/data/` (`variable` objects)
 #   3  solve artifacts + the solution store live per run under
-#      `runs/<variant>/<solve>/{run.yml, script/, modOut/}`; the scenario
+#      `runs/[<variant>/]<solve>/{run.yml, solver/, modOut/}`; the scenario
 #      carries a `scenario.yml` manifest (default_variant, active run).
 #      Layout 2 is still readable; `save_scenario()` writes only 3.
 .SCENARIO_LAYOUT <- 3L
@@ -950,10 +970,11 @@ load_scenario <- function(
     if (ver == 2L && verbose) {
       message(
         "Scenario '", basename(path), "' uses on-disk layout 2; it loads ",
-        "fine. Re-saving with save_scenario() migrates it to layout 3 ",
-        "(per-run folders with provenance under runs/)."
+        "fine. Run scenario_upgrade_layout('", path, "') to migrate it to ",
+        "layout 3 (per-run folders with provenance under runs/)."
       )
     }
+    scen_root <- path # the directory actually being loaded (for path rebase)
     path <- fp(path, "scen.RData")
     if (!file.exists(path)) {
       msg <- paste0("Scenario file '", path, "' has not been found.")
@@ -961,6 +982,8 @@ load_scenario <- function(
       if (verbose) message(msg)
       return(invisible(FALSE))
     }
+  } else {
+    scen_root <- dirname(path)
   }
   if (!(exists(".en_tmp") && is.environment(.en_tmp))) {
     .en_tmp <- new.env(parent = .GlobalEnv)
@@ -987,6 +1010,18 @@ load_scenario <- function(
     return(invisible(FALSE))
   }
   scen_obj <- get(nm, envir = .en_tmp)
+
+  # Rebase every stored path onto the folder actually loaded: the saved
+  # object recorded save-time paths (relative to the then-working directory),
+  # which break when the folder is moved or getwd() differs. Deterministic
+  # reconstruction, so nothing depends on the stored strings.
+  scen_obj <- tryCatch(
+    .scenario_rebase_paths(scen_obj, scen_root),
+    error = function(e) {
+      warning("Could not rebase the scenario's on-disk paths (",
+              conditionMessage(e), ")", call. = FALSE)
+      scen_obj
+    })
 
   # restore the sourceCode blocks dropped at save time (identical to the
   # package templates then; refilled from the CURRENT package — a re-solve
