@@ -1061,7 +1061,13 @@ recipe_value <- function(scen, names, fmp) {
   if (!is.null(def$gate) && !isTRUE(slot(scen@settings, def$gate))) return(scen)
 
   # Structural equation: instantiated over its WHOLE domain (its default bound
-  # binds), so the source bound does not filter the domain -- emit the full domain.
+  # binds), so the source bound does not filter the domain -- emit the full
+  # domain. EXCEPT where the user declared the side OPEN: `.norm_ratio()`
+  # completes a one-sided range with lo = 0 / up = Inf ("the other side is
+  # open, not the default"), and an open side must produce NO equation --
+  # writers drop Inf rows from the data, so an instantiated equation would
+  # silently fall back to the BINDING default (e.g. `inp2out.lo = 2` alone
+  # made the model infeasible against the resurrected default up = 1).
   if (isTRUE(def$structural)) {
     if (is.null(def$domain)) return(scen)
     dp <- scen@modInp@parameters[[def$domain]]
@@ -1071,6 +1077,28 @@ recipe_value <- function(scen, names, fmp) {
     df <- as.data.frame(dom) |>
       dplyr::select(dplyr::any_of(p@dimSets)) |>
       dplyr::distinct()
+    if (!is.null(def$source) && !is.null(def$types)) {
+      sp <- scen@modInp@parameters[[def$source]]
+      src <- if (is.null(sp)) NULL else get_data_slot(sp)
+      if (!is.null(src) && nrow(src) > 0 && !is.null(src$type) &&
+          !is.null(src$value)) {
+        src <- as.data.frame(src)
+        open_val <- if (identical(def$types, "lo")) 0 else Inf
+        open <- src[src$type %in% def$types & src$value == open_val,
+                    intersect(colnames(src), colnames(df)), drop = FALSE]
+        if (nrow(open) > 0) {
+          # the source may still be FOLDED here: a fully-NA dimension is a
+          # wildcard and must not block the match (same pattern as the value
+          # recipe and the ramp maps)
+          keep <- vapply(open, function(col) !all(is.na(col)), logical(1))
+          open <- dplyr::distinct(open[, keep, drop = FALSE])
+          if (ncol(open) > 0 && nrow(open) > 0) {
+            df <- dplyr::anti_join(df, open, by = colnames(open))
+          }
+        }
+      }
+    }
+    if (nrow(df) == 0) return(.set_map(scen, name, NULL, fmp))
     return(.set_map(scen, name, df, fmp))
   }
 
@@ -1452,9 +1480,15 @@ recipe_value <- function(scen, names, fmp) {
     if (is.null(src)) return(.set_map(scen, map_name, NULL, fmp))
     m <- src[, setdiff(colnames(src), "value"), drop = FALSE]
     # Restrict to the activity domain when the source carries fewer dimensions
-    # than the target map (i.e. before `timeslicep` is appended).
+    # than the target map (i.e. before `timeslicep` is appended). The source is
+    # read while still FOLDED: a fully-NA dimension is a wildcard ("all
+    # members") and must not constrain the join -- merge0 joins on shared
+    # columns and NA never matches an explicit member, which would wrongly
+    # empty the map (this kept mTechRampUp/Down empty and ramps inert). Drop
+    # fully-NA source columns; the activity domain supplies those dimensions.
     if (!is.null(mvTechAct) && ncol(m) != length(p@dimSets)) {
-      m <- as.data.frame(merge0(m, mvTechAct))
+      keep <- vapply(m, function(col) !all(is.na(col)), logical(1))
+      m <- as.data.frame(merge0(mvTechAct, m[, keep, drop = FALSE]))
     }
     if (nrow(m) == 0) return(.set_map(scen, map_name, NULL, fmp))
     join_next <- function(df, nextmap) {

@@ -3085,12 +3085,30 @@ autoplot.levcost_list <- function(object,
   comp_ord <- intersect(.levcost_comp_order, unique(plot_df$component))
   plot_df$component <- factor(plot_df$component,
                               levels = c(comp_ord, setdiff(unique(plot_df$component), comp_ord)))
+
+  # y-axis label: an explicit `cost_unit` wins; otherwise fall back to the
+  # units the levcost results carry (same contract as autoplot.levcost) --
+  # every element shares the source object's units, so the first one speaks
+  # for the list
+  y_lbl <- "Levelized Cost"
+  if (!is.null(cost_unit) && nzchar(cost_unit)) {
+    y_lbl <- paste0("Levelized cost [", cost_unit, "]")
+  } else {
+    u <- object[[1]]$units
+    cu <- if (!is.null(u$costs) && nzchar(u$costs)) u$costs else ""
+    au <- if (!is.null(u$activity) && nzchar(u$activity)) u$activity else ""
+    if (nzchar(cu)) {
+      y_lbl <- paste0("Levelized cost [",
+                      if (nzchar(au)) paste0(cu, " / ", au) else cu, "]")
+    }
+  }
+
   ggplot2::ggplot(plot_df, ggplot2::aes(x = tech, y = value, fill = component)) +
     ggplot2::geom_col(position = "stack") +
     ggplot2::scale_fill_brewer(palette = "Set2",
                                labels = .levcost_comp_labels[levels(plot_df$component)]) +
     ggplot2::labs(title = "NPV LCOE comparison", x = "Technology",
-                  y = "Levelized Cost", fill = "Component") +
+                  y = y_lbl, fill = "Component") +
     theme_energyRt() +
     ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 30, hjust = 1))
 }

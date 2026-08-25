@@ -353,10 +353,26 @@ setMethod(
         if (inherits(levcost, "levcost_variants")) {
           levcost_variants_plot <- tryCatch({
             p <- ggplot2::autoplot(levcost, type = "npv", cost_unit = cost_unit)
-            if (!is.null(p)) p + compact_theme +
-              ggplot2::labs(title = NULL, subtitle = NULL, caption = NULL,
-                            x = NULL)
-            else NULL
+            # the compact raster clips autoplot's full "Levelized cost
+            # [unit]" axis title; the section header already says
+            # "Levelized Cost", so the axis carries just the unit
+            y_short <- if (!is.null(cost_unit) && nzchar(cost_unit)) {
+              cost_unit
+            } else {
+              u <- levcost[[1]]$units
+              cu <- if (!is.null(u$costs) && nzchar(u$costs)) u$costs else ""
+              au <- if (!is.null(u$activity) && nzchar(u$activity))
+                u$activity else ""
+              if (nzchar(cu) && nzchar(au)) paste0(cu, "/", au) else
+                if (nzchar(cu)) cu else NULL
+            }
+            if (!is.null(p)) {
+              p <- p + compact_theme +
+                ggplot2::labs(title = NULL, subtitle = NULL, caption = NULL,
+                              x = NULL)
+              if (!is.null(y_short)) p <- p + ggplot2::labs(y = y_short)
+              p
+            } else NULL
           }, error = function(e) {
             warning("levcost by-vintage plot failed: ", conditionMessage(e))
             NULL
@@ -445,6 +461,143 @@ setMethod(
         ))
       )
 
+      message("Report written to: ", fout)
+      out_files <- c(out_files, fout)
+    }
+
+    .report_open(out_files, open)
+    invisible(if (length(out_files) == 1L) out_files[1L] else out_files)
+  }
+)
+
+# ── storage method ────────────────────────────────────────────────────────────
+# The generic template renders storage through the same params contract as
+# technology, plus the storage-only optional params (reservoir_df, seff_df,
+# duration_df, storage_cost_df). The levelized-cost sections are not wired
+# for storage yet and are omitted.
+
+#' @rdname report
+#' @export
+setMethod(
+  "report",
+  "storage",
+  function(object, template = NULL, image_file = NULL, file = NULL,
+           format = c("html", "pdf", "tex", "docx"),
+           levcost = NULL, cost_unit = NULL, open = interactive(), ...) {
+
+    format <- if (missing(format)) "html" else
+      match.arg(format, c("html", "pdf", "tex", "docx"), several.ok = TRUE)
+    format <- .report_check_formats(format)
+
+    if (!is.null(levcost) && !isFALSE(levcost)) {
+      message("report(): the levelized-cost section is not supported for ",
+              "storage objects yet and will be omitted.")
+    }
+
+    tmpl_name <- if (is.null(template)) "generic" else template
+    tmpl <- if (file.exists(tmpl_name)) {
+      normalizePath(tmpl_name, mustWork = TRUE)
+    } else {
+      .find_report_template(tmpl_name)
+    }
+
+    sorted      <- .report_sort_dots(list(...), tmpl)
+    param_dots  <- sorted$params
+    render_dots <- sorted$render
+
+    if (is.null(file)) {
+      file_base <- file.path(getwd(),
+        paste0("report_", gsub("[^A-Za-z0-9_]", "_", object@name)))
+    } else {
+      file_base <- tools::file_path_sans_ext(file)
+    }
+    file_base <- normalizePath(file_base, mustWork = FALSE)
+
+    if (is.null(image_file)) image_file <- .object_image_file(object)
+    image_file_abs <- NULL
+    if (!is.null(image_file)) {
+      if (!file.exists(image_file)) {
+        warning("image_file not found and will be ignored: ", image_file)
+      } else {
+        image_file_abs <- normalizePath(image_file, mustWork = TRUE)
+      }
+    }
+
+    draw_file <- tryCatch({
+      tmp_draw <- tempfile(pattern = "report_draw_", fileext = ".png")
+      grDevices::png(tmp_draw, width = 900, height = 600, res = 150,
+                     bg = "white")
+      draw_fn <- get("draw", envir = asNamespace("energyRt"))
+      draw_fn(object)
+      grDevices::dev.off()
+      if (file.exists(tmp_draw) && file.info(tmp_draw)$size > 5000)
+        tmp_draw else NULL
+    }, error = function(e) {
+      tryCatch(grDevices::dev.off(), error = function(e2) NULL)
+      warning("draw() failed and will be omitted: ", conditionMessage(e))
+      NULL
+    })
+
+    params <- .storage_report_params_generic(object, image_file_abs,
+                                             draw_file)
+    if (!is.null(cost_unit) && nzchar(cost_unit)) {
+      params$units_costs <- cost_unit
+    }
+
+    if (any(format %in% c("pdf", "tex"))) {
+      if (!isNamespaceLoaded("tinytex") &&
+          requireNamespace("tinytex", quietly = TRUE)) {
+        loadNamespace("tinytex")
+      }
+    }
+
+    out_files <- character(0)
+    for (fmt in format) {
+      ext  <- switch(fmt, pdf = ".pdf", html = ".html", tex = ".tex",
+                     docx = ".docx")
+      fout <- paste0(file_base, ext)
+      out_fmt <- switch(fmt,
+        pdf  = rmarkdown::pdf_document(latex_engine = .report_latex_engine(),
+                                       keep_tex = FALSE),
+        html = rmarkdown::html_document(self_contained = TRUE,
+               md_extensions = "-native_divs-native_spans"),
+        tex  = rmarkdown::latex_document(),
+        docx = rmarkdown::word_document()
+      )
+
+      fmt_params <- params
+      if (length(param_dots) > 0) fmt_params[names(param_dots)] <- param_dots
+      tmpl_params <- tryCatch(
+        names(rmarkdown::yaml_front_matter(tmpl)$params),
+        error = function(e) NULL)
+      if (!is.null(tmpl_params))
+        fmt_params <- fmt_params[names(fmt_params) %in% tmpl_params]
+      if (!is.null(image_file_abs) && fmt %in% c("pdf", "tex")) {
+        img <- image_file_abs
+        if (grepl(" ", img)) {
+          ext_img <- tolower(tools::file_ext(img))
+          tmp_img <- tempfile(pattern = "report_img_",
+                              fileext = paste0(".", ext_img))
+          file.copy(img, tmp_img, overwrite = TRUE)
+          img <- tmp_img
+        }
+        fmt_params$image_file <- gsub("\\\\", "/", img)
+      }
+
+      .with_knitr_guard(
+        do.call(rmarkdown::render, c(
+          list(
+            input             = tmpl,
+            output_format     = out_fmt,
+            output_file       = fout,
+            params            = fmt_params,
+            envir             = new.env(parent = globalenv()),
+            intermediates_dir = tempfile("report_int_"),
+            quiet             = TRUE
+          ),
+          render_dots
+        ))
+      )
       message("Report written to: ", fout)
       out_files <- c(out_files, fout)
     }
@@ -573,8 +726,10 @@ setMethod(
   inp <- gs("input"); out <- gs("output")
   if (is.data.frame(inp) && nrow(inp) > 0) add("input", as.character(inp$comm))
   if (is.data.frame(out) && nrow(out) > 0) add("output", as.character(out$comm))
-  cm <- gs("commodity")                                   # storage
-  if (is.character(cm) && length(cm) > 0) add("commodity", cm)
+  stg <- gs("storage")                       # storage reservoir role
+  if (is.data.frame(stg) && nrow(stg) > 0) {
+    add("storage", as.character(stg$comm))
+  }
   ceff <- gs("ceff")
   if (is.data.frame(ceff) && nrow(ceff) > 0) {
     for (cc in intersect(c("cinp2use", "cact2cout", "cinp2ginp"), names(ceff))) {
@@ -601,6 +756,22 @@ setMethod(
   add("invcost", num_rng(gs("invcost"), "invcost"))
   add("fixom",   num_rng(gs("fixom"),   "fixom"))
   add("varom",   num_rng(gs("varom"),   "varom"))
+  # storage costs and efficiencies live in part-prefixed columns
+  for (cc in c("stg.invcost", "inp.invcost", "out.invcost")) {
+    add(cc, num_rng(gs("invcost"), cc))
+  }
+  for (cc in c("stg.fixom", "inp.fixom", "out.fixom")) {
+    add(cc, num_rng(gs("fixom"), cc))
+  }
+  for (cc in c("stgcost", "inpcost", "outcost")) {
+    add(cc, num_rng(gs("varom"), cc))
+  }
+  for (cc in c("inpeff", "outeff", "stgeff")) {
+    add(cc, num_rng(gs("seff"), cc))
+  }
+  for (cc in c("duration.lo", "duration.up", "duration.fx", "duration")) {
+    add(cc, num_rng(gs("duration"), cc))
+  }
   # lifespan lives in `@vintage` for technology, in the separate slots elsewhere
   ol <- .lifespan_resolve(p, "olife")
   if (nrow(ol) > 0) add("olife", ol$olife[1])
@@ -865,6 +1036,12 @@ setMethod("report_pdf", "technology", function(object, ...) {
   report(object, ..., format = "pdf")
 })
 
+#' @rdname report_pdf
+#' @export
+setMethod("report_pdf", "storage", function(object, ...) {
+  report(object, ..., format = "pdf")
+})
+
 #' Generate an HTML report for an energyRt object
 #'
 #' Thin wrapper around \code{\link{report}} that fixes \code{format = "html"}.
@@ -878,6 +1055,12 @@ setGeneric("report_html", function(object, ...) standardGeneric("report_html"))
 #' @rdname report_html
 #' @export
 setMethod("report_html", "technology", function(object, ...) {
+  report(object, ..., format = "html")
+})
+
+#' @rdname report_html
+#' @export
+setMethod("report_html", "storage", function(object, ...) {
   report(object, ..., format = "html")
 })
 
@@ -897,6 +1080,12 @@ setMethod("report_tex", "technology", function(object, ...) {
   report(object, ..., format = "tex")
 })
 
+#' @rdname report_tex
+#' @export
+setMethod("report_tex", "storage", function(object, ...) {
+  report(object, ..., format = "tex")
+})
+
 #' Generate a Word report for an energyRt object
 #'
 #' Thin wrapper around \code{\link{report}} that fixes \code{format = "docx"}.
@@ -909,6 +1098,12 @@ setGeneric("report_docx", function(object, ...) standardGeneric("report_docx"))
 #' @rdname report_docx
 #' @export
 setMethod("report_docx", "technology", function(object, ...) {
+  report(object, ..., format = "docx")
+})
+
+#' @rdname report_docx
+#' @export
+setMethod("report_docx", "storage", function(object, ...) {
   report(object, ..., format = "docx")
 })
 
@@ -1057,6 +1252,124 @@ setMethod("report_docx", "technology", function(object, ...) {
     invcost_df  = invcost_df,
     fixom_df    = fixom_df,
     varom_df    = varom_df,
+    image_file  = image_file,
+    draw_file   = draw_file
+  )
+}
+
+#' Build the params list passed to rmarkdown::render (generic storage)
+#' Fills the same contract as `.tech_report_params_generic()` plus the
+#' storage-only optional params of the generic template (reservoir_df,
+#' seff_df, duration_df, storage_cost_df); the technology-only params
+#' stay NULL/NA so their sections are skipped.
+#' @noRd
+.storage_report_params_generic <- function(object, image_file = NULL,
+                                           draw_file = NULL) {
+  name <- if (nzchar(object@name)) object@name else "(unnamed)"
+  desc <- if (nzchar(object@desc)) object@desc else ""
+
+  # role slots declare comm/unit/cap2act; there is no @units slot
+  role1 <- function(df, col) {
+    if (is.data.frame(df) && col %in% names(df) && nrow(df) > 0) {
+      v <- df[[col]][!is.na(df[[col]])]
+      if (length(v) > 0) v[1] else NA
+    } else NA
+  }
+  cap2act <- suppressWarnings(as.numeric(role1(object@output, "cap2act")))
+  units_act <- role1(object@output, "unit")
+  if (is.na(units_act)) units_act <- ""
+
+  .ls1 <- function(col) {
+    d <- .lifespan_resolve(object, col)
+    v <- unique(d[[col]])
+    if (length(v) == 1 && !is.na(v)) v else NA_integer_
+  }
+  olife_val <- .ls1("olife")
+  start_val <- .ls1("start")
+  end_val   <- .ls1("end")
+  vintage_df <- .report_drop_empty_cols(as.data.frame(object@vintage))
+  multi_vin <- !is.null(vintage_df) && "vintage" %in% names(vintage_df) &&
+    length(unique(vintage_df$vintage[!is.na(vintage_df$vintage)])) > 1
+  if (multi_vin) {
+    olife_val <- NA_integer_
+    start_val <- NA_integer_
+    end_val   <- NA_integer_
+  }
+
+  # costs: fold the part prefixes into tidy rows the template appends to
+  # its cost table ("Investment cost (stg)" etc.)
+  part_label <- c(stg = "stg", inp = "inp", out = "out")
+  tidy_part_costs <- function(df, cols, label) {
+    if (!is.data.frame(df) || nrow(df) == 0) return(NULL)
+    rows <- list()
+    for (cc in intersect(cols, names(df))) {
+      v <- suppressWarnings(as.numeric(df[[cc]]))
+      if (!any(is.finite(v))) next
+      part <- sub("^(stg|inp|out)\\..*$", "\\1", cc)
+      part <- if (part %in% names(part_label)) part_label[[part]] else cc
+      rows[[length(rows) + 1L]] <- data.frame(
+        cost = paste0(label, " (", part, ")"),
+        vintage = if ("vintage" %in% names(df)) df$vintage else NA,
+        cluster = if ("cluster" %in% names(df)) df$cluster else NA,
+        region  = if ("region" %in% names(df)) df$region else NA,
+        year    = if ("year" %in% names(df)) df$year else NA,
+        value   = v,
+        stringsAsFactors = FALSE
+      )
+    }
+    if (length(rows) == 0) return(NULL)
+    do.call(rbind, rows)
+  }
+  storage_cost_df <- do.call(rbind, Filter(Negate(is.null), list(
+    tidy_part_costs(object@invcost,
+                    c("stg.invcost", "inp.invcost", "out.invcost"),
+                    "Investment cost"),
+    tidy_part_costs(object@fixom,
+                    c("stg.fixom", "inp.fixom", "out.fixom"),
+                    "Fixed O&M"),
+    tidy_part_costs(object@varom,
+                    c("stgcost", "inpcost", "outcost"),
+                    "Variable O&M")
+  )))
+  if (!is.null(storage_cost_df)) {
+    storage_cost_df <- storage_cost_df[!is.na(storage_cost_df$value), ,
+                                       drop = FALSE]
+    if (nrow(storage_cost_df) == 0) storage_cost_df <- NULL
+  }
+
+  seff_df <- if (nrow(object@seff) > 0) {
+    cc <- intersect(c("vintage", "cluster", "region", "year", "timeslice",
+                      "stgeff", "inpeff", "outeff"), names(object@seff))
+    .report_drop_empty_cols(object@seff[, cc, drop = FALSE])
+  } else NULL
+
+  duration_df <- .report_drop_empty_cols(as.data.frame(object@duration))
+
+  cap_df <- .report_drop_empty_cols(as.data.frame(object@capacity))
+
+  list(
+    name        = name,
+    desc        = desc,
+    cap2act     = if (is.finite(cap2act)) cap2act else NA_real_,
+    units_cap   = "",
+    units_act   = as.character(units_act),
+    units_costs = "",
+    olife       = olife_val,
+    stock       = NA_real_,
+    start       = start_val,
+    end         = end_val,
+    vintage_df  = vintage_df,
+    cap_df      = cap_df,
+    input_df    = .report_drop_empty_cols(as.data.frame(object@input)),
+    output_df   = .report_drop_empty_cols(as.data.frame(object@output)),
+    reservoir_df = .report_drop_empty_cols(as.data.frame(object@storage)),
+    ceff_df     = NULL,
+    seff_df     = seff_df,
+    duration_df = duration_df,
+    invcost_df  = NULL,
+    fixom_df    = NULL,
+    varom_df    = NULL,
+    storage_cost_df = storage_cost_df,
     image_file  = image_file,
     draw_file   = draw_file
   )

@@ -287,6 +287,43 @@ test_that("a storage spec round-trips faithfully", {
   expect_equal(nrow(back@vintage), nrow(obj@vintage))
 })
 
+test_that("logical flags round-trip against constructor defaults", {
+  # both constructors default fullYear = TRUE, optimizeRetirement =
+  # FALSE; the writer records only departures, resolved from the
+  # constructor formals per class (the technology PROTOTYPE disagrees
+  # with the constructor on both flags and must not be consulted)
+  tech <- newTechnology(
+    name = "TFLAG",
+    input = data.frame(comm = "GAS", unit = "GWh"),
+    output = data.frame(comm = "ELC", unit = "GWh"),
+    ceff = data.frame(comm = "GAS", cinp2use = 0.5),
+    optimizeRetirement = TRUE
+  )
+  spec <- process_to_spec(tech)
+  expect_identical(spec$optimizeRetirement, TRUE)
+  expect_null(spec$fullYear) # default TRUE, not recorded
+  expect_true(process_from_spec(spec)@optimizeRetirement)
+
+  stg <- newStorage(
+    name = "SFLAG",
+    commodity = "ELC",
+    seff = data.frame(inpeff = 0.9, outeff = 0.9),
+    fullYear = FALSE
+  )
+  spec <- process_to_spec(stg)
+  expect_identical(spec$fullYear, FALSE)
+  expect_null(spec$optimizeRetirement) # default FALSE, not recorded
+  expect_false(process_from_spec(spec)@fullYear)
+
+  # all-default objects: neither flag appears in the spec
+  s0 <- process_to_spec(update(tech, optimizeRetirement = FALSE))
+  expect_null(s0$optimizeRetirement)
+  expect_null(s0$fullYear)
+  s1 <- process_to_spec(update(stg, fullYear = TRUE))
+  expect_null(s1$fullYear)
+  expect_null(s1$optimizeRetirement)
+})
+
 test_that("a trade spec round-trips faithfully", {
   f <- ex_path("interconnector.yml")
   skip_if(!file.exists(f), "example spec not available")

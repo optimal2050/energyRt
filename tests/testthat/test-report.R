@@ -56,8 +56,56 @@ test_that("generic html: vintaged tech gets the by-vintage levcost section", {
   expect_match(h, "Vintages")                # the vintages table
   # per-vintage invcost survives (900 used to be silently dropped)
   expect_match(h, "900")
+  # the by-vintage NPV table column carries the levelized-cost unit
+  expect_match(h, "levcost \\(NPV\\), MUSD/GWh")
   # no all-NA columns leak into any table
   expect_false(grepl(">NA</td>", h, fixed = TRUE))
+})
+
+.rep_vint_storage <- function() {
+  newStorage(
+    "STGX", desc = "Battery storage (test fixture)",
+    commodity = "ELC",
+    vintage = data.frame(vintage = c("2025", "2035"),
+                         start = c(2025L, 2035L), end = c(2034L, NA),
+                         olife = c(12L, 15L)),
+    seff = data.frame(vintage = c("2025", "2035"),
+                      inpeff = c(0.93, 0.95), outeff = c(0.93, 0.95)),
+    invcost = data.frame(vintage = c("2025", "2035"),
+                         stg.invcost = c(8081, 5000),
+                         inp.invcost = c(607, 400),
+                         out.invcost = c(607, 400)),
+    fixom = data.frame(inp.fixom = 11, out.fixom = 11),
+    duration = 4)
+}
+
+test_that("generic html: storage renders with parts, seff, and costs", {
+  skip_if_no_pandoc()
+  stg <- .rep_vint_storage()
+  fb <- tempfile(pattern = "rep_stg_")
+  f <- suppressMessages(suppressWarnings(
+    report(stg, format = "html", file = fb, open = FALSE)))
+  expect_true(file.exists(f))
+  h <- paste(readLines(f, warn = FALSE), collapse = "\n")
+  expect_match(h, "STGX")
+  expect_match(h, "Vintages")
+  expect_match(h, "Efficiency \\(seff\\)")
+  expect_match(h, "Duration")
+  # part-prefixed costs reach the cost table (used to come out empty)
+  expect_match(h, "Investment cost \\(stg\\)")
+  expect_match(h, "8081")
+  expect_match(h, "Fixed O&amp;M \\(inp\\)|Fixed O&M \\(inp\\)")
+  expect_false(grepl(">NA</td>", h, fixed = TRUE))
+})
+
+test_that(".proc_info_df reads modern storage parts and costs", {
+  stg <- .rep_vint_storage()
+  info <- energyRt:::.proc_info_df(stg)
+  expect_true(is.data.frame(info))
+  expect_true("storage" %in% info$parameter)
+  expect_true(all(c("stg.invcost", "inp.invcost", "inpeff") %in%
+                    info$parameter))
+  expect_match(info$value[info$parameter == "stg.invcost"], "5000 - 8081")
 })
 
 test_that("generic html: plain tech renders with no vintage section", {

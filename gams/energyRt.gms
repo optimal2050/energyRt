@@ -1096,25 +1096,25 @@ eqTechAfsUp(tech, region, year, timeslice)$meqTechAfsUp(tech, region, year, time
 
 * Ramp Up factor - new mapping
 eqTechRampUp(tech, region, year, timeslice, timeslicep)$mTechRampUp(tech, region, year, timeslice, timeslicep)..
-         vTechAct(tech, region, year, timeslice) / pTimesliceShare(timeslice)
-         - vTechAct(tech, region, year, timeslicep) / pTimesliceShare(timeslicep)
-         =l=
-         pTimesliceShare(timeslice) * pTechCap2act(tech)
-*         * pYearFraction(year)
-         / pTechRampUp(tech, region, year, timeslice)
-*         * pYearFraction(year)
-         * pTechCap2act(tech) * vTechCap(tech, region, year);
-
-* Ramp Down factor - new mapping
-eqTechRampDown(tech, region, year, timeslice, timeslicep)$mTechRampDown(tech, region, year, timeslice, timeslicep)..
          vTechAct(tech, region, year, timeslicep) / pTimesliceShare(timeslicep)
          - vTechAct(tech, region, year, timeslice) / pTimesliceShare(timeslice)
          =l=
          pTimesliceShare(timeslice) * pTechCap2act(tech)
 *         * pYearFraction(year)
+         / pTechRampUp(tech, region, year, timeslice)
+*         * pYearFraction(year)
+         * vTechCap(tech, region, year);
+
+* Ramp Down factor - new mapping
+eqTechRampDown(tech, region, year, timeslice, timeslicep)$mTechRampDown(tech, region, year, timeslice, timeslicep)..
+         vTechAct(tech, region, year, timeslice) / pTimesliceShare(timeslice)
+         - vTechAct(tech, region, year, timeslicep) / pTimesliceShare(timeslicep)
+         =l=
+         pTimesliceShare(timeslice) * pTechCap2act(tech)
+*         * pYearFraction(year)
          / pTechRampDown(tech, region, year, timeslice)
 *         * pYearFraction(year)
-         * pTechCap2act(tech) * vTechCap(tech, region, year);
+         * vTechCap(tech, region, year);
 
 ********************************************************************************
 *** Connect activity with output

@@ -847,15 +847,15 @@ print("eqTechRampUp(tech, region, year, timeslice, timeslicep)...")
 @constraint(
     model,
     [(t, r, y, s, sp) in mTechRampUp],
-    (vTechAct[(t, r, y, s)]) / ((
-        if haskey(pTimesliceShare, (s))
-            pTimesliceShare[(s)]
+    (vTechAct[(t, r, y, sp)]) / ((
+        if haskey(pTimesliceShare, (sp))
+            pTimesliceShare[(sp)]
         else
             pTimesliceShareDef
         end
-    )) - (vTechAct[(t, r, y, sp)]) / ((
-        if haskey(pTimesliceShare, (sp))
-            pTimesliceShare[(sp)]
+    )) - (vTechAct[(t, r, y, s)]) / ((
+        if haskey(pTimesliceShare, (s))
+            pTimesliceShare[(s)]
         else
             pTimesliceShareDef
         end
@@ -866,13 +866,6 @@ print("eqTechRampUp(tech, region, year, timeslice, timeslicep)...")
                 pTimesliceShare[(s)]
             else
                 pTimesliceShareDef
-            end
-        ) *
-        (
-            if haskey(pTechCap2act, (t))
-                pTechCap2act[(t)]
-            else
-                pTechCap2actDef
             end
         ) *
         (
@@ -902,15 +895,15 @@ print("eqTechRampDown(tech, region, year, timeslice, timeslicep)...")
 @constraint(
     model,
     [(t, r, y, s, sp) in mTechRampDown],
-    (vTechAct[(t, r, y, sp)]) / ((
-        if haskey(pTimesliceShare, (sp))
-            pTimesliceShare[(sp)]
+    (vTechAct[(t, r, y, s)]) / ((
+        if haskey(pTimesliceShare, (s))
+            pTimesliceShare[(s)]
         else
             pTimesliceShareDef
         end
-    )) - (vTechAct[(t, r, y, s)]) / ((
-        if haskey(pTimesliceShare, (s))
-            pTimesliceShare[(s)]
+    )) - (vTechAct[(t, r, y, sp)]) / ((
+        if haskey(pTimesliceShare, (sp))
+            pTimesliceShare[(sp)]
         else
             pTimesliceShareDef
         end
@@ -921,13 +914,6 @@ print("eqTechRampDown(tech, region, year, timeslice, timeslicep)...")
                 pTimesliceShare[(s)]
             else
                 pTimesliceShareDef
-            end
-        ) *
-        (
-            if haskey(pTechCap2act, (t))
-                pTechCap2act[(t)]
-            else
-                pTechCap2actDef
             end
         ) *
         (

@@ -1,10 +1,259 @@
----
-editor_options: 
-  markdown: 
-    wrap: 72
----
+# energyRt (development version)
+
+## Breaking changes
+
+* A storage's availability columns are renamed onto the part prefixes the cost
+  and capacity slots already use: `@af$cinp.{lo,up,fx}` -> `inp.af.*`,
+  `cout.*` -> `out.af.*`, and in `@weather` `wcinp.*` -> `inp.waf.*`,
+  `wcout.*` -> `out.waf.*`. The old names are an error naming their
+  replacement. Solver parameters and all four back-end templates moved with
+  them; results are unchanged.
+* `commodity@geolevel` and `summand@geolevel` are now `@geoframe`, as are the
+  `geolevel =` arguments of `newCommodity()`, `newSummand()` and `getData()`;
+  `map_comm_geolevel()` is now `map_comm_geoframe()`. Supported on all four
+  back-ends.
+* The variable-catalogue role `flow` is now `interregional`.
+
+## New features
+
+* `solve_myopic()` solves a horizon window by window instead of all at once.
+  The primitives are exported and composable: `horizon_windows()`,
+  `solution_ledger()`, `model_apply_ledger()`.
+* `levcost()` prices `storage` (LCOS, per unit discharged, with a `cycles`
+  argument) and `trade` (LCOT, per unit arriving, summed over both endpoints)
+  as well as `technology` — closed-form and solver engines, held to each other
+  by a parity test. Containers price all three classes; `classes =` narrows.
+* `asSupplyCurve()`, `asImportCurve()` and `asExportCurve()` turn a single
+  price per `(region, year, timeslice)` into a stepped curve, so cheap resource
+  grades are exhausted before dearer ones.
+* Transmission losses can be quadratic, approximated by capacity tranches,
+  instead of the single fixed `teff` fraction.
+* `newACLine()` and `newDCLink()`, with an opt-in Kirchhoff voltage law — an AC
+  line is no longer modelled only as a controllable transport route.
+* `@trade$af` rates a route's flow *relative to its capacity*, alongside the
+  existing absolute `ava.lo/up/fx`.
+* A filtered geoscale passed to `interpolate_model()` produces a sub-territory
+  model — the spatial mirror of calendar sampling.
+* `"TOTAL"` in a `vintage` or `cluster` column now works on flow bounds and
+  availability factors, not only on `@capacity`.
+* `vTradeIr` and the `*RetiredNewCap` variables can be used in custom
+  constraints.
+* Scenario storage, in stages: a persisted per-project registry replaces the
+  in-memory one; solves get one folder each under `runs/<variant>/<solve>/`
+  with provenance; `save_model()` writes a content-addressed model store that
+  scenarios reference instead of embedding; `save_repository()` stores a shared
+  repository once; and a scenario can hold several own-problem variants side by
+  side via `solve_scen(variant = )`.
+
+## Deprecations
+
+* The mosox back-end experiment moved to `drafts/mosox/`; it was not
+  functional.
+
+## Bug fixes
+
+* `technology@af$rampup` / `$rampdown` were accepted by the constructor and
+  never reached the solver — the parameter catalogue named slots that do not
+  exist, so the ramp parameters stayed empty.
+* A one-sided `inp2out` (or `duration`) range no longer resurrects the binding
+  default on its open side: `.norm_ratio()` completes one-sided ranges with an
+  OPEN `lo = 0` / `up = Inf`, but writers drop `Inf` rows from solver data, so
+  the structural equation fell back to the default of 1 —
+  `inp2out = data.frame(inp2out.lo = 2)` alone made the model INFEASIBLE
+  (charger ≥ 2× discharger against a resurrected charger ≤ 1× discharger).
+  The structural ratio maps (`mStorageInp2out*`, `mStorageDuration*`) now skip
+  entries whose explicit value is non-binding, so an open side produces no
+  equation on any backend. Declared-open semantics unchanged and now tested
+  (`test-family-storage-inp2out.R`): a lone `.up` still leaves the charger
+  floor open — a priced charger may size to zero.
+* A supply restricted to one region leaked into every other region:
+  `eqSupOutTot` gated the sum on commodity alone.
+* Multi-level regions were inert — the geoscale hierarchy was read under the
+  old `parent_level` / `child_level` column names.
+* A cost declared at a coarser geoscale level (e.g. a national `invcost`) never
+  reached the objective.
+* `add()` on a model worked exactly once; the second call failed.
+* A scalar `mult` on a custom constraint summand was silently discarded.
+* Exogenous stock could phase out and retire at the same time; `capacity$stock`
+  is now read as the fleet still standing, not as the original endowment.
+* Trade phase-out is now reported rather than only computed, and GAMS declares
+  retirement non-negative.
+* A scenario folder that was moved now loads: stored paths are rebased onto the
+  folder actually being read, and one tool upgrades older layouts.
+
+## Documentation
+
+* One `trade` object is one **shared throughput budget**: `eqTradeCapFlow` sums
+  every route on the object against its single capacity, so a network in one
+  object is not a set of independently rated lines.
+* Trade costs are a **rate per endpoint region** — capacity is region-free, but
+  `invcost`, `fixom`, `retcost` and `eac` are region-indexed and each named
+  region pays its own rate on the whole capacity.
 
 # energyRt 0.80 (development) — the time dimension is now `timeslice`
+
+## Pyomo-Abstract retired
+
+`pyomo/energyRtAbstract.py` and its output writer have moved to `drafts/`. Asking
+for it now raises an error naming a Concrete option instead.
+
+It had fallen behind on three separate refactors and was documented as such in
+three places: the **agg-rewrite** (it still declared `mBalanceRY`, retired
+everywhere else as dead reporting — which is what made it crash on
+construction), the **eac-fix** (flat `pXEac * vXCap` rather than the vintaged
+new-capacity form, `NEWS` below), and **vintaging/payback**, which `R/eac.R`
+records as unreachable "without a bigger change". Retirement equations would
+have been the fourth.
+
+It rotted because nothing ran it: **no shipped solver option ever selected it** —
+the branch needs `lang` to contain `"abstract"`, and none of the eight Pyomo
+options does. That also made it a sixth template every equation change had to
+touch, with no test to notice when the change was wrong.
+
+Abstract earns its keep when one model structure is instantiated over many
+datasets in a single process. energyRt writes a fresh model per scenario with
+the data already resolved and then exits, so that separation already exists at
+the R level. If an AbstractModel is wanted later it should be **generated** from
+the Concrete template, the way the mosox template is generated from GLPK.
+
+## `storage`: role slots declare, parameter slots parameterise
+
+**Breaking, with no deprecation path.** A `storage`'s three role slots —
+`@input`, `@output`, `@storage` — used to carry capacity and economics as well
+as the commodity they name. That mixed two different kinds of thing in one
+table: `comm`, `unit` and `cap2act` are invariant, while capacity varies by
+vintage, region and year. It also gave the same quantity two homes, because the
+output side's capacity already lived in `@capacity`/`@invcost`/`@fixom` and was
+folded there at construction.
+
+Now every parameter has exactly one home. The role slots keep `comm`, `unit` and
+`cap2act` (`@storage` keeps `comm` and `unit` — the level is energy on both
+sides), and every capacity and cost lives in `@capacity`, `@invcost` or `@fixom`
+under a prefix naming its part:
+
+| prefix | part | measured in |
+|---|---|---|
+| `out.` | discharger | power |
+| `inp.` | charger | power |
+| `stg.` | reservoir | energy |
+
+```r
+# before                                  # now
+newStorage("BTR",                         newStorage("BTR",
+  output  = list(comm = "ELC",              output  = list(comm = "ELC"),
+                 invcost = 12144),          storage = list(comm = "ELC"),
+  storage = list(comm = "ELC",              invcost = list(out.invcost = 12144,
+                 invcost = 8081),                          stg.invcost = 8081),
+  capacity = list(cap.up = 100))            capacity = list(out.cap.up = 100))
+```
+
+The old spellings are **errors**, not warnings, and the message names the column
+to write instead. `setValidity("storage")` enforces the same rule, so a model
+serialised before this change fails loudly on `validObject()` rather than
+solving with a store that no mapping reads.
+
+Alongside it, the parameters were renamed to agree with the variables, which
+already used `Out`: `pStorageCap` → `pStorageOutCap`, `pStorageInvcost` →
+`pStorageOutInvcost`, and so on for all ten output-side families.
+
+Group-aggregate (`"TOTAL"`) bounds needed teaching about the prefix. The scan in
+`R/variants.R` matched `@capacity` columns by bare name, so on a storage it
+matched nothing — which would have silently dropped cluster group bounds *and*
+the refusal that tells you a group `ret.*` bound needs `newConstraint()`. The
+class definition now carries `bound_prefix`, and a guard that had stopped
+guarding is a test (`test-storage-variants.R`) rather than a discovery.
+
+The charger and the reservoir also gained the parameters only the discharger
+had — `ret.*`, `wacc`, `payback`, `retcost` — so all three parts are described
+the same way. **These are declared and inert**: storage retirement has no
+equation in any back-end, for any part, and that was already true before this
+change. Giving them meaning is separate work.
+
+
+## Plot fixes for converted continental models
+
+Both surfaced on a PyPSA-Eur conversion, where one `technology` groups a carrier
+across dozens of countries and a `weather` factor carries every region.
+
+-   **`draw()` printed one label per region.** A technology's `@ceff` holds a row
+    per region, so `E_CCGT` on a 41-node European model drew **36** `cinp2use`
+    labels stacked on one arrow — unreadable, and never the intent. Values now
+    collapse through a new internal `format_value_range()`: identical ones show
+    as a single number, differing ones as a `min-max` range (`0.50-0.71`).
+    Two paths were affected, grouped and non-grouped commodities; the latter also
+    grouped by `region`/`year`/`timeslice`, which is what multiplied the rows.
+    Fixed alongside it: `paste0(parameter, ":")` received the whole 36-element
+    vector rather than the group's single value.
+
+-   **`autoplot.weather()` / `plot_weather()` gained `region`.** Faceting 41
+    regions onto one heatmap leaves nothing legible but the strip labels. Pass a
+    count (`region = 2`, the first two) or names (`region = "BE0_0"`); `NULL`,
+    the default, keeps every region as before. An unknown name warns and is
+    dropped rather than failing.
+
+Known, unfixed, and older than these changes: `draw()` errors with
+`Can't combine ..1$region <logical> and ..2$region <character>` on a technology
+that carries `cap.lo` but no `stock` or `cap.up` — reproduced on `E_CCGT` and
+`E_NUCLEAR` in a converted single-region model.
+
+## New data: a year of hourly wind and solar
+
+-   **`vre_cf`** — 8760 hourly capacity factors for one wind and one
+    solar resource, derived from the MERRA-2 reanalysis via
+    `merra2ools`. The site is deliberately unlabelled: no coordinates,
+    region code or name, since the example needs a realistic pair of
+    contrasting profiles rather than a claim about a place. Its `slice`
+    column is already in the `d365_h24` vocabulary, so it joins straight
+    onto `calendars$d365_h24`.
+-   **`vre_storage_duration`** — the `storage_duration()` decomposition
+    of a battery in a full-year, hourly wind-solar model built on
+    `vre_cf`. Duration bands only mean something when the model can hold
+    energy for weeks, which needs all 8760 timeslices and a solve of
+    minutes on julia/HiGHS, so the result is precomputed
+    (`data-raw/vre_storage_duration.R`) and the **Storage** article plots
+    it beside the model that produced it. It shows what the coarse
+    example cannot: a thin band cycling within the day against most of
+    the energy committed for more than thirty days.
+
+## `storage_duration()` returned nothing on month-based calendars
+
+-   `storage_duration()` returned **zero rows, with no message**, for any
+    month-based calendar (`m12_h24`, e.g. `calendars$utopia_m12h24`) —
+    an empty chart and nothing to explain it. It called `tsl2dtm()`
+    without `mday`, which for that format returns `NULL`, so every group
+    was silently dropped. It now passes `mday`, and month calendars
+    decompose correctly.
+-   When the level genuinely cannot be dated, the function now **stops
+    with the format it read** instead of returning an empty frame, so an
+    unsuitable calendar says so.
+-   `tsl2dtm()` died with `object 'dtm' not found` for any format it has
+    no branch for — a season x hour calendar (`h24`,
+    `calendars$utopia_s4h24`) hit this. It returns `NULL` for those now,
+    the same "cannot date this" signal its other exits use.
+
+## Storage: `unit` on the three parts, and a `draw()` fix
+
+-   `storage@input`, `@output` and `@storage` now take a **`unit`**
+    column, as `technology@input`/`@output` already did. It is the unit
+    of the commodity on that side, carried for reporting and
+    `convert()`; it never reaches the solver, so adding one leaves the
+    model unchanged. Previously `newStorage(input = list(comm = "ELC",
+    unit = "MWh"))` was rejected outright, and a storage had nowhere to
+    declare its units.
+-   `draw()` on a storage drew **no arrows at all** unless `@seff` was
+    populated. The commodity frame was built by cross-joining the three
+    roles with `@seff`, whose prototype has zero rows, so an optional
+    slot decided whether the figure had edges. The arrows now come from
+    the roles and `@seff` only labels them. The same change fixes a
+    store whose roles differ — a hydrogen cavern exchanging electricity
+    drew both commodities on both sides, because the sides were split by
+    parameter name rather than by role.
+-   The **Storage** article is restyled to the modelling convention
+    (`STG_*` names, vertical calls, `desc` and `unit` declared, objects
+    defined before the repository) and extended to cover the slots it
+    previously skipped: `@af`, `@capacity`, `@optimizeRetirement`,
+    `@invcost`/`@fixom`/`@varom`, `@aux`/`@aeff`, `@weather`, `@region`,
+    `@cluster`/`@vintage`, and a slot map of the whole object.
 
 ## New article: Units
 
@@ -232,6 +481,506 @@ next to the spatial `region` dimension):
     `sysdata` regenerated with the new vocabulary.
 -   multimod's matching update is a recorded follow-up; until then it
     pairs with pre-v0.80 generated models.
+
+## A storage capacity is a RATE: `@input$cap2act` / `@output$cap2act`
+
+-   The flow bounds carried no duration factor, so `vStorageInpCap` and
+    `vStorageOutCap` meant "commodity per **timeslice**", not power. The same
+    storage written `cap.fx = 7` allowed **7 per hour** on a 24 x 1-hour calendar
+    and **1.75 per hour** on a 6 x 4-hour one: refine an hourly model to
+    4-hourly and every store silently became a quarter as powerful.
+-   `@input` and `@output` now carry a **`cap2act`**, and the four flow bounds
+    (plus `eqStorageThroughputUp`) read
+    `cinp.up * cap2act * cap * pTimesliceShare[s]` -- the same shape
+    `eqTechAfUp` has always had.
+-   **`cap2act` defaults to 8760**, the hours in a year, so a capacity reads as
+    commodity per HOUR on any calendar. On `d365_h24` -- and on representative-day
+    subsets, whose leaf share is still 1/8760 -- the factor is exactly 1, so
+    those models do not move at all. It assumes commodity unit = capacity unit x
+    hour (GW with GWh); GW with TWh wants `8.76`. Unlike `pTechCap2act`
+    (default 1) because a storage has an intrinsic clock -- the level -- that a
+    technology activity does not.
+-   The **storing** side deliberately gets no `cap2act`. Energy is energy at any
+    resolution, which is also exactly what PyPSA does: its `soc <= e_nom` and
+    `soc <= p_nom * max_hours` carry no elapsed-hours weighting, and only the
+    accumulation equation does.
+-   The storage block was already inconsistent with **itself**: the standing-loss
+    term has always been `(pStorageStgEff)^(pTimesliceShare)`, i.e. share was
+    already read as elapsed time for decay while the capacities ignored it. That
+    is now uniform.
+-   A welcome side effect: **`duration` finally reads as hours.** With the
+    discharger a per-hour rate and the reservoir an amount, `duration = 6` on a
+    10 MW discharger gives exactly 60 MWh -- pinned by a test.
+
+### It did not move the goldens
+
+The flow bounds are constraint maps built from `pStorageCinp`/`pStorageCout`
+DATA: with no `cinp`/`cout` supplied no bound equation is emitted at all, so the
+change is a no-op for those storages. No tier model in `data-raw/testing-models.R`
+sets them, and `model-regression` (396 assertions) did not move. The PyPSA-Eur
+converter does set `cinp.up = cout.up = 1`, but on the hourly calendar where the
+factor is exactly 1; it now states `cap2act = 8760` explicitly rather than
+leaning on the default.
+
+### What aggregation still costs, and what this does NOT fix
+
+Making the rating resolution-independent does not make a coarse calendar
+adequate. On slices longer than the discharge duration the power bound goes slack
+and the store is governed by its energy capacity alone -- and the **cycle count**
+collapses: `N` timeslices allow at most `floor(N/2)` cycles, so a day/night
+calendar permits a 6-hour battery exactly ONE cycle a year (60 MWh moved against
+roughly 21,900 MWh for a store that really cycles daily), and a single annual
+timeslice has no dynamic at all. A store whose cycle is shorter than one
+timeslice is **understated, not approximated**. The Storage article says so
+plainly; a cycle/throughput bound would be a separate feature.
+
+Still outstanding: aux flows driven by capacity (`pStorageCap2AInp *
+vStorageCap`) are now rate-proportional too and want the same factor. Left with
+the deferred `@aeff` pass.
+
+### Each `@seff` coefficient now reaches its own role's commodity
+
+-   `@seff` feeds three parameters -- `pStorageInpEff`, `pStorageOutEff` and
+    `pStorageStgEff` -- and the slot carries no `comm` column, so `ob2mi()` fills
+    one per parameter from the matching role. It assigned back into the shared
+    frame, so whichever parameter was processed first stamped `comm` and the
+    other two inherited it.
+-   Invisible while all three roles held the same commodity, and wrong the moment
+    they differ. An electric vehicle storing kWh and selling kilometres had its
+    six-kilometres-per-kWh `outeff` filed under **electricity**, where nothing
+    reads it, so the motor ran at the default efficiency of 1 and the car drew
+    six times too much from the grid -- with an OPTIMAL solve and no warning.
+-   Pinned by `test-storage-variants.R`, which checks both the parameter keys and
+    the resulting energy chain.
+
+## `storage_duration()`: how long the energy actually sits in the store
+
+-   A storage level answers "how full is it", not the question people ask of
+    it: how much of that energy is doing SHORT cycling -- an evening peak -- and
+    how much is a seasonal reserve sitting there for weeks. Those have entirely
+    different economics and are served by different technologies, yet both
+    appear as one `vStorageLevel` number.
+-   New exported **`storage_duration(scen, width = )`** splits the level into
+    duration bands and returns a tidy table ready to stack:
+
+    ``` r
+    d <- storage_duration(scen)                       # 12h / 1d / 1w / 30d
+    ggplot(d, aes(datetime, value, fill = duration)) + geom_area()
+    ```
+
+-   The split is by nested FLOORS, not by smoothing. For a window of `w` hours,
+    `floor_w` is the energy that never leaves the store across some `w`-hour
+    stretch -- energy committed for at least that long. Floors are nested by
+    construction, so successive differences partition the level with no overlap
+    and **no remainder**: the bands sum back to `vStorageLevel` exactly.
+-   Adapted from the IDEEA figure script (`fMA.R` +
+    `storage_duration_figure.R`). Despite the name, none of it was a moving
+    average -- an average would blur the bands together and would not sum back.
+    The original sampled a rolling minimum at every phase offset, filled down
+    and took a row-wise maximum, a loop over `w`; that is exactly a
+    right-aligned rolling MAXIMUM of the rolling minimum, so the port computes
+    the same number in one pass. The equality is what the test pins, against a
+    brute-force definition rather than a remembered output.
+-   Fixed while porting: a hard-coded `"Asia/Kolkata"` that silently moved every
+    model's clock (now a `tmz` argument defaulting to UTC), a `browser()`, the
+    pre-v0.80 `slice` vocabulary, and `vStorageStore` -> `vStorageLevel`. End
+    padding follows each storage's `@fullYear`: a store that cycles over the
+    year genuinely continues into itself and is wrapped, one that does not
+    repeats its edge values. `cyclic = TRUE`/`FALSE` overrides.
+-   Verified on a 21-day hourly model with two duties layered on one store --
+    solar-only generation forcing a daily cycle, plus a three-day overcast
+    stretch forcing a multi-day carry. They land in different bands (`>1w` mean
+    9.46 against `6h-1d` mean 1.73), and the bands reproduce the level to
+    4.4e-16.
+
+## A storage sizes its charger separately: `vStorageInpCap` and `@inp2out`
+
+-   The charging and discharging sides shared one capacity variable, so an
+    electric vehicle drawing 7 kW from the grid while delivering 100 kW to its
+    motor had nowhere to put the charger. `@input` now carries the CHARGER's own
+    stock, bounds and costs, and **`@inp2out`** links the two ratings the way
+    `@duration` links energy to power:
+
+    ``` r
+    newStorage("EV", commodity = "ELC",
+               output  = list(invcost = 12144),   # the motor / discharger
+               input   = list(invcost = 500),     # the on-board charger
+               inp2out = data.frame(inp2out.lo = 0, inp2out.up = 1))
+    ```
+
+-   Same bound semantics throughout: `.fx` ties the two, `.lo`/`.up` let the
+    model choose, a bare number is the fixed shorthand, and a one-sided range
+    opens the other side. The default `[1, 1]` keeps the two sides symmetric,
+    which is what a storage without a separate charger has always been.
+-   `@input$invcost` annuitises through the storage's own `@vintage`, like the
+    other two parts.
+
+## All three parts are written the same way
+
+-   `@output` now accepts the same capacity and cost columns as `@input` and
+    `@storage`, and **folds** them at construction into `@capacity`, `@invcost`
+    and `@fixom` — the slots where the output side has always lived. So
+    `output = list(invcost = 12144)` and `invcost = 12144` are the same
+    statement, and supplying both is an error rather than a silent winner. No
+    parallel `pStorageOut*` parameter family was created to say what the existing
+    one already says.
+
+    ``` r
+    newStorage("BAT", commodity = "ELC",
+               output  = list(invcost = 12144),   # EUR/MW
+               storage = list(invcost = 8081),    # EUR/MWh
+               input   = list(invcost = 500),     # EUR/MW
+               duration = 6, inp2out = 1)
+    ```
+
+## Removed: `@sharedThroughput`
+
+-   Added and then withdrawn in the same development cycle, before any release.
+    It asserted that charging and discharging share one device, so their flows in
+    a timeslice had to fit within the output capacity.
+-   Measurement showed it is **redundant where it is meaningful and meaningless
+    where it would matter**:
+    -   For a single-commodity storage the constraint never binds. On a 24-hour
+        arbitrage model the maximum simultaneous charge-and-discharge in any
+        timeslice was **0.000000** with and without the flag, at an identical
+        objective -- and that held even for a **lossless** store. The LP has no
+        reason to push energy into and out of the same store at once.
+    -   For a multi-commodity storage simultaneity does occur -- an EV charging
+        while driving showed an overlap of 3.703704 -- but the flag did not stop
+        it, and could not: the constraint added `vStorageInp` to `vStorageOut`
+        without conversion, i.e. **kWh to km**, and compared the sum against the
+        motor rating.
+-   Its right-hand side also omitted `pStorageCoutUp` while `eqStorageOutUp`
+    includes it, so with `cout.up > 1` it was simply a tighter per-flow bound.
+-   Archived with the measurements and a sketch of the correct form -- both flows
+    in STORED-commodity units, `inpeff*inp + out/outeff`, which is the only basis
+    on which they are commensurable -- in
+    `drafts/storage-shared-throughput.R`. Nothing in PyPSA imposes an equivalent
+    constraint either.
+
+## Verified
+
+-   A model exercising **all** of 2c at once — energy priced per MWh with an
+    optimised duration, a charger priced and rated separately, and a shared
+    device — gives the identical answer on **GLPK, Julia/HiGHS, Pyomo/GLPK,
+    Pyomo/CBC and GAMS/CPLEX (NEOS)**: objective 83.0000, output capacity 10,
+    energy 40, charger 10, duration 4.000 (strictly inside `[2, 8]`), `inp2out`
+    1.000.
+-   **Structure follows data** holds for the charging side too: omitting `@input`
+    data produces no `vStorageInpCap` at all and the input bounds inline
+    `inp2out * vStorageOutCap`, which at the default of 1 is the previous model.
+    `model-regression` (396 assertions) does not move.
+-   A bare bound binds with no cost attached: `input = list(cap.lo = 25)` gives a
+    charger of exactly 25 where only 10 is needed, and `cap.up = 8` gives exactly
+    8 — starving the store and forcing the expensive backstop.
+-   **GAMS/CPLEX via NEOS** returns the same answer as the other four, so the
+    GAMS port is verified at runtime and not only by inspection. No GAMS licence
+    is installed locally; `set_neos_email()` plus the existing `gdxlib_path`
+    (`C:/GAMS/35/`) is what makes the remote route work.
+
+## Also
+
+-   `draw()` showed no duration label once `@duration` became a bound: it read
+    the bare `duration` column, which the constructor now normalises into
+    `duration.fx`. It reads the bound columns and renders a range as `lo-up`.
+
+## A storage's energy capacity is its own variable: `vStorageStgCap`
+
+-   `@duration` used to be the *only* way to say how much energy a store held,
+    and it was a fixed coefficient on the right-hand side of two availability
+    constraints: `pStorageDuration` was indexed by **storage alone** — one number
+    for every region and every year — and appeared only as
+    `af * duration * vStorageCap`. Energy capacity could therefore not be
+    bounded, priced, reported or chosen by the model, and a 6-hour battery's
+    €/MWh component had to be hand-multiplied into its €/MW number.
+-   There is now a real **`vStorageStgCap`** (with `vStorageStgNewCap`), measured
+    in the commodity's own unit rather than in power, with its own stock, bounds
+    and capital and fixed costs on `@storage`:
+
+    ``` r
+    newStorage("BAT", commodity = "ELC",
+               invcost = list(invcost = 12144),   # EUR/MW  -- the inverter
+               storage = list(invcost = 8081),    # EUR/MWh -- the cells
+               duration = data.frame(duration.lo = 2, duration.up = 8))
+    ```
+
+-   **`@duration` is a bound** on `(storage, region, year)`: `duration.fx` ties
+    energy to power, `duration.lo`/`.up` let the model choose the ratio. The
+    scalar shorthand `duration = 6` normalises to `duration.fx = 6`. A one-sided
+    range opens the other side, so `duration.up = 8` means "up to 8 hours" and
+    does not silently inherit a lower bound of 1.
+-   `@storage$invcost` annuitises through the same `@vintage` as the power side —
+    one object, one lifetime and one wacc, two capital costs on different bases.
+    Per-part lifetimes are deliberately not in this change.
+
+### Structure follows data, so nothing moves for existing models
+
+-   A part carrying only a commodity name gets **no capacity variable**: naming a
+    commodity is metadata, not data. `vStorageStgCap` exists only where
+    `@storage` supplies a stock, a bound or a price (`mStorageStgCap`), and
+    everywhere else the availability bounds inline `duration * vStorageOutCap`
+    exactly as before. A storage written the old way therefore keeps one power
+    variable and its previous LP — `model-regression` (396 assertions) does not
+    move.
+-   That single rule is what the plan called "structure follows data" and "inline
+    a fixed link"; they turned out to be the same mechanism. It also avoids
+    over-determining a part pinned both by its own accounting equation and by an
+    `.fx` link.
+
+### Verified
+
+-   **Split-cost equivalence.** `invcost = 12 + 6*8` with no storing part gives
+    the same objective (80.000000) as `invcost = 12` + `storage = list(invcost =
+    8)` + `duration = 6`; the second reports `vStorageStgCap / vStorageOutCap` of
+    exactly 6, the first has no such variable at all.
+-   **The ratio is genuinely optimised.** With the output capacity made binding
+    and the range opened to `[2, 8]`, the model lands on **4.000** — strictly
+    interior — at an objective of 81.33, against 85.33 at a fixed 2 h and 92.00 at
+    a fixed 8 h (where energy is forced to 80 MWh though only 40 is needed).
+-   Identical on **GLPK, Julia/HiGHS, Pyomo/GLPK, Pyomo/CBC and GAMS/CPLEX via
+    NEOS**.
+
+### Renamed: `vStorageCap` -> `vStorageOutCap`
+
+-   `vStorageCap` means **power** and `vStorageStgCap` means **energy**, one
+    syllable apart. Rather than leave a name whose meaning now has to be guessed,
+    `vStorageCap` and `vStorageNewCap` become **`vStorageOutCap`** and
+    **`vStorageOutNewCap`** — the old names resolve to nothing instead of quietly
+    returning the wrong quantity. `getData(scen, "vStorageCap")` returns no rows;
+    use `"vStorageOutCap"`.
+
+### Three constructor defects fixed on the way
+
+-   **`newStorage(commodity = "ELC", storage = list(invcost = 8081))` silently
+    dropped the `invcost`.** The commodity shorthand *replaced* a supplied part
+    frame instead of adding the commodity to it — and that is exactly the shape
+    the documented examples use. It did not bite before only because `@storage`
+    had no cost column to lose.
+-   **`cap2stg` could never work.** `newStorage()`'s formal default was a bare
+    `duration = 1`, so "was duration supplied?" was always true and the
+    deprecation path always raised "supply either `duration` or the deprecated
+    `cap2stg`, not both". The default is now `NULL`; `pStorageDuration`'s `[1, 1]`
+    default supplies the tie instead.
+-   `!is.na(NULL)` is `logical(0)` and `TRUE & logical(0)` is `logical(0)`, so
+    testing the bound columns inline collapsed the normaliser's whole vector and
+    moved nothing whenever `.lo`/`.up` were absent — the common case.
+
+### Known, not fixed here
+
+-   **`pyomo/energyRtAbstract.py` still carries the pre-`[eac-fix]` flat EAC**
+    (`pStorageEac` on TOTAL capacity) while GLPK, GAMS, Julia and Pyomo-Concrete
+    use the vintaged new-capacity form. The storing-side term added here matches
+    the shape actually present so the energy cost is charged, but the underlying
+    divergence predates this change and is not addressed by it.
+
+## A storage names a commodity per role: `@input`, `@storage`, `@output`
+
+-   A storage used to have a single `@commodity`, so whatever went in came
+    back out. Modelling anything else meant composing three objects and an
+    **artificial commodity** to join them -- a hydrogen store became an
+    electrolyser + a store + a fuel cell, plus an `H2` balance whose only
+    job was to link them; an electric car needed an onboard `ELC_CAR`
+    commodity to stop the motor drawing from the grid while driving.
+-   The commodity is now named **per role**: `@input$comm` fills the store,
+    `@storage$comm` is what it HOLDS (what `vStorageLevel` measures), and
+    `@output$comm` is what it releases. One shape covers a battery
+    (ELC/ELC/ELC), a hydrogen store (ELC/**H2**/ELC) and a reservoir
+    (HYD/HYD/**ELC**).
+-   `@seff$inpeff` / `$outeff` become **cross-commodity conversion factors**
+    (input -> stored, stored -> output), the role `cinp2use` plays for a
+    technology. When the three commodities coincide they are the round-trip
+    efficiencies they always were.
+-   **There is no `@commodity` slot.** `newStorage(commodity = )` still
+    works and is still the one-liner for the common case -- it is folded
+    into all three roles at construction, so an object never carries two
+    answers to what it consumes, and `update()` stays unambiguous. Every
+    storage written the old way yields three identical roles and an
+    unchanged LP: `model-regression` (396 assertions) does not move.
+-   Measured on a two-day test model, the fused hydrogen storage reproduces
+    the objective of the storage + 2 technologies decomposition exactly
+    (193.142857 on GLPK, Julia/HiGHS and Pyomo/GLPK alike) in **149
+    variables / 151 constraints instead of 251 / 257**.
+
+### Three defects this exposed, each of which silently disabled storage
+
+-   **`mStorageInpTot` / `mStorageOutTot` followed the LEVEL's commodity.**
+    Both totals were built from `mvStorageLevel` (plus `mvStorageAInp` for
+    *both* sides), which was invisible while a storage had one commodity
+    and fatal once it could hold something else: a hydrogen store registered
+    only in the `H2` balance, so the `ELC` balance never saw it charge or
+    discharge and the store sat unused at a valid-looking optimum. Each
+    total now follows its own flow, and the aux side is split so `AInp`
+    feeds the input total and `AOut` the output.
+-   **The stored commodity never reached `mCommReg`.** `map_mCommReg()`
+    derives availability from process *outputs*, and a store's held
+    commodity is in neither its inputs nor its outputs, so it was absent
+    from the commodity-region closure, `.filt_cr()` emptied `mvStorageLevel`
+    and the storage lost its level variable altogether -- built, solved and
+    reported, storing nothing. A storage now makes its stored commodity
+    available wherever it operates.
+-   **`vStorageInp` / `vStorageOut` were declared and reported over
+    `mvStorageLevel`.** With the roles split, the flows exist on their own
+    domains; the previous domain silently reported zero flow for any
+    storage whose level commodity differed from what it exchanged.
+-   `pStorageInpEff` / `pStorageOutEff` are likewise densified over
+    `mvStorageInp` / `mvStorageOut` rather than the level's domain, where
+    they would have been materialised against the wrong commodity and read
+    as 0 -- zeroing the flow they scale.
+
+-   Ported to **all five backends**: GLPK, GAMS, JuMP/Julia, Pyomo-Concrete
+    and Pyomo-Abstract, plus the mosox template (regenerated from its
+    generator). Verified end-to-end on GLPK, Julia/HiGHS, Pyomo/CBC, Pyomo/GLPK
+    and **GAMS/CPLEX via NEOS** -- the fused hydrogen storage and its
+    storage+2-technologies decomposition both return 193.142857 on GAMS too,
+    with the same 114.286 in and 40.000 out.
+
+-   New `tests/testthat/test-namespace-integrity.R`: every `export()` in
+    NAMESPACE must name a real object. Roxygen has twice attached a block
+    (and its `@export`) to a helper inserted above the documented function
+    and then swallowed the following prose as tags, producing `export(a)`,
+    `export(and)` and `export("(hydrogen:")` while the real function lost
+    its export -- invisible under `load_all()`, which exports everything.
+    The earlier guard only checked a fixed list of constructors and missed
+    the second occurrence.
+
+## Renamed: `storage@cap2stg` -> `@duration`, `eqStorageClear` -> `eqStorageOutLevel`
+
+-   **`@cap2stg` is now `@duration`** (`pStorageCap2stg` -> `pStorageDuration`),
+    the rename `data-raw/maps.R` had already flagged ("to be renamed to
+    duration"). Same number, plainer meaning: how long the store runs at its
+    rated output. `cap2stg = ` is still accepted, renamed with a warning once
+    per session; supplying both spellings is an error. The `duration = 6` scalar
+    shorthand works exactly as `cap2stg = 6` did.
+-   Note `ncap2stg` (in `@aeff`) is a **different** parameter and is unchanged.
+-   **`eqStorageClear` is now `eqStorageOutLevel`.** "Clear" said nothing; the
+    equation bounds `vStorageOut` by the level available. It takes no `Lo`/`Up`
+    suffix because that marks a *paired* bound (a `.lo` and `.up` from one
+    parameter) and this one has no partner — the same convention as
+    `eqTradeCapFlow` and `eqTechRetiredStockCum`. Both backends now record why
+    it is stricter than the level's own non-negativity: it forbids discharging
+    energy charged in the *same* timeslice, and carries no decay factor. The
+    dead `eqStorageClean` placeholder beside it is removed.
+-   Neither rename changes a number: the model-regression goldens (396
+    assertions, objectives included) are unmoved.
+-   `data/utopia_modules.rda` was regenerated. Bundled datasets serialise S4
+    objects with the class definition of their time, so a storage saved before
+    the rename has no `@duration` slot and `draw()` fails on it. There is no
+    upgrade path for such objects — they must be rebuilt from `data-raw/`, the
+    same rule the `@vintage` merge established.
+-   New guard in `test-storage-inflow.R`: the public constructors must stay
+    exported. Inserting a helper *between* a roxygen block and the function it
+    documents silently reassigns the block — and its `@export` — to the helper.
+    `devtools::load_all()` exposes everything, so the suite stays green while an
+    installed package loses the function. That happened to `newStorage()` while
+    this shim was being added.
+
+## `storage@charge` -> `@startLevel`: an endowment once per cycle, not per timeslice
+
+-   The slot is now **`@startLevel`** (`pStorageCharge` -> `pStorageStartLevel`),
+    and the semantics changed deliberately. `charge = ` and the short-lived
+    `inflow = ` are both still accepted, renamed with a warning once per
+    session; supplying two spellings is an error.
+-   **The value is ANNUAL.** When the cycle is shorter than a year, each cycle
+    receives its share of it — 365 daily cycles get 1/365 each — so the annual
+    endowment is the same however the cycle closes, rather than being multiplied
+    by the number of cycles. A partial-year calendar endows that fraction.
+-   **`@startLevel` has no `timeslice` column.** The slice is derived from the
+    calendar and `@fullYear`: the energy is added ONCE PER CYCLE, at the first
+    timeslice of the cycle — once a year with `fullYear = TRUE`, once per parent
+    timeframe with `FALSE`. A `timeslice` column on a deprecated spelling is
+    dropped with a warning rather than silently ignored.
+-   **That is the bug fix.** `@charge` was documented as a "pre-charged level at
+    the beginning of the operational cycle" but was implemented as an additive
+    term at *every* timeslice it was given a row for. Since the storage balance
+    is cyclic there is no "beginning", so a row without a `timeslice` was
+    broadcast by the usual NA wildcard to every slice — 8760 unpriced injections
+    on an hourly calendar where one was meant, and exactly the form the shipped
+    `newStorage()` example used. Removing the column removes the trap: there is
+    no longer anything to leave unset.
+-   It is **free to the model**, by design and unavoidably: a store that ends a
+    cycle below where it started has consumed an endowment nobody paid for.
+    PyPSA's `state_of_charge_initial` has the same property. Being additive, the
+    level at the first timeslice is `startLevel` *plus* any carry-over — at
+    least `startLevel`, not exactly it; the model may end the cycle empty to
+    make it exact.
+-   **Hydro inflow does not belong here.** Use a weather-driven `supply` (with
+    `ava.up`, so spilling is free) feeding the storage: the water then stays
+    visible in the commodity balance, where it can be bounded, reported and
+    constrained.
+-   Implemented without touching any solver template: the balance term already
+    existed and defaults to zero, so a new interpolation step
+    (`place_start_level()`, alongside `compute_eac_parameters()`) rewrites the
+    wildcard row into one explicit row per cycle. It derives the cycle from the
+    same successor map the balance uses, so the two cannot disagree.
+-   New `tests/testthat/test-storage-startlevel.R` covers the placement under
+    both `fullYear` settings, that a zero writes nothing, both deprecated
+    spellings, the dropped `timeslice` column, and that the public constructors
+    stay exported.
+
+## Renamed: `vStorageStore` -> `vStorageLevel`
+
+-   The storage state-of-charge variable is now **`vStorageLevel`**, with
+    `eqStorageStore` -> `eqStorageLevel` and the maps `mvStorageStore` ->
+    `mvStorageLevel`, `meqStorageStore` -> `meqStorageLevel` following. The
+    rename had been flagged in the GAMS source itself (`*eqStorageStore -
+    rename to eqStorageLevel`) before it was made.
+-   Why: the level is a **state**, not a flow. Summing it over timeslices is
+    meaningless -- which is what `role: stock` already encoded -- while the old
+    name read as a verb and paired confusingly with `vStorageInp`/`vStorageOut`.
+    It also frees the word "charge" for the charger, ahead of the storage-class
+    redesign.
+-   **This is a breaking rename for result-reading code**:
+    `getData(scen, "vStorageStore")` returns nothing; use `"vStorageLevel"`.
+    Numbers are unchanged -- the model-regression goldens (396 assertions,
+    objectives included) are unmoved.
+-   Two dead placeholders were removed from the GAMS source at the same time:
+    `eqStorageStorePS` / `eqStorageStoreFY`, intended for splitting the
+    parent-timeslice and full-year storage cycles into separate equations. That
+    split never happened and is no longer needed -- the choice lives entirely in
+    `meqStorageLevel`, which picks `mTimesliceNext` or `mTimesliceFYearNext` per
+    storage from `@fullYear`.
+
+## `payback` now works on GAMS, Julia and Pyomo-Concrete, not just GLPK
+
+-   **`@invcost$payback` was implemented in the GLPK model only.** Every other
+    engine refused a model that set it (`.assert_payback_supported()`), because
+    their `eqXEac` still keyed the charging window on `pXOlife` — annuitising
+    over the payback period while charging for the full operational life would
+    have over-recovered the investment. The GAMS source even declared
+    `pTechPayback`/`pStoragePayback`/`pTradePayback` "for parity with the GLPK
+    model" and then did not use them.
+-   The cost-recovery disjunction is now ported into `eqTechEac`,
+    `eqStorageEac` and `eqTradeEac` of **GAMS, JuMP/Julia and Pyomo-Concrete**,
+    mirroring GLPK: `pXPayback` where the user set one (> 0), otherwise
+    `pXOlife`. `eqXCap` deliberately keeps `pXOlife` in every backend — the
+    technical life still governs when capacity *operates*; only the cost window
+    moves.
+-   **`Pyomo-Abstract` still refuses it**, and the guard now says so precisely.
+    Its `eqXEac` is the pre-vintaging `pXEac * vXCap` form, which charges the
+    annuity on total capacity including pre-existing stock, so a cost-recovery
+    window would have nothing to narrow. That form is a separate known defect;
+    it is unreachable from the shipped presets, which all resolve to Concrete.
+-   Verified by solving the same payback model on GLPK and Julia/HiGHS: the
+    objective agrees to 1.000000000000 and `sum(vTechEac)` to 1e-11, while
+    `payback = 10` moves the objective 5.6% against the same model without it —
+    so the agreement is between two genuinely different models, not two copies
+    of one. GAMS and Pyomo were not runnable in the development environment, so
+    they are covered structurally rather than numerically.
+-   New structural test in `test-payback.R`: the `eqXEac` of every backend that
+    claims support must reference `pXPayback` in `.modelCode`, and
+    `PYOMOAbstract` must not. It fails both on a template edit that drops the
+    disjunction and on a `sysdata` that was not rebuilt after one.
+
+## `prod()` over several weather factors: verified, guard retired
+
+-   `write_jump()` carried a commented-out guard refusing any model with more
+    than one weather factor on the same process, left from an early JuMP
+    translation that could not express the product. The emitted Julia does
+    express it, with the explicit `; init = 1` identity the empty case needs.
+-   Confirmed by solving a two-factor technology on GLPK and Julia/HiGHS: the
+    objectives agree to 1.0000000000. Dropping a factor would roughly double
+    `af.up` and halve capacity, so the objective is a sharp test. The dead guard
+    is replaced by a note recording the check.
 
 ## Breaking: `getData(timeframe =)` now defaults to `"highest"`, not `"lowest"`
 

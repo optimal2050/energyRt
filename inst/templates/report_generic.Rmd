@@ -28,6 +28,10 @@ params:
   invcost_df:         NULL
   fixom_df:           NULL
   varom_df:           NULL
+  reservoir_df:       NULL
+  seff_df:            NULL
+  duration_df:        NULL
+  storage_cost_df:    NULL
   image_file:         NULL
   draw_file:          NULL
   levcost_plot:       NULL
@@ -269,7 +273,8 @@ add_io <- function(df, dir) {
 }
 io_parts <- Filter(Negate(is.null),
                    list(add_io(params$input_df, "Input"),
-                        add_io(params$output_df, "Output")))
+                        add_io(params$output_df, "Output"),
+                        add_io(params$reservoir_df, "Storage")))
 if (length(io_parts) > 0) {
   all_cols <- unique(unlist(lapply(io_parts, names)))
   io_parts <- lapply(io_parts, function(d) {
@@ -317,6 +322,8 @@ left_tables <- function() {
   tbl(params$vintage_df, caption = "Vintages")
   tbl(io_df,             caption = "Inputs / Outputs")
   tbl(params$ceff_df,    caption = "Efficiency (ceff)")
+  tbl(params$seff_df,    caption = "Efficiency (seff)")
+  tbl(params$duration_df, caption = "Duration (energy/power ratio, h)")
 }
 
 if (is_html) {
@@ -383,6 +390,14 @@ if (length(cost_list) > 0) {
     out
   }))
   tidy_costs <- tidy_costs[!is.na(tidy_costs$value), , drop = FALSE]
+}
+
+# storage costs arrive pre-tidied (part folded into the cost label:
+# "Investment cost (stg)" etc.) with the same columns as tidy_costs
+if (!is.null(params$storage_cost_df) && nrow(params$storage_cost_df) > 0) {
+  sc <- params$storage_cost_df
+  sc <- sc[!is.na(sc$value), , drop = FALSE]
+  tidy_costs <- if (is.null(tidy_costs)) sc else rbind(tidy_costs, sc)
 }
 
 if (!is.null(tidy_costs) && nrow(tidy_costs) > 0) {
@@ -575,7 +590,9 @@ if (has_vint) {
   if (!is.null(lv_df) && nrow(lv_df) > 0) {
     show <- lv_df
     if ("levcost_npv" %in% names(show)) {
-      names(show)[names(show) == "levcost_npv"] <- "levcost (NPV)"
+      names(show)[names(show) == "levcost_npv"] <-
+        if (nzchar(lcoe_unit)) paste0("levcost (NPV), ", lcoe_unit) else
+          "levcost (NPV)"
     }
     show <- show[, setdiff(names(show), "tech"), drop = FALSE]
     tbl(show)

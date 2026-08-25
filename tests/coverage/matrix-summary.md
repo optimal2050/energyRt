@@ -1,6 +1,6 @@
 # Coverage matrix summary
 
-Generated: 2026-08-24 19:17 | energyRt 0.87.1.9000
+Generated: 2026-08-24 23:00 | energyRt 0.87.1.9000
 
 ## Rows by kind x depth
 
@@ -8,12 +8,12 @@ Generated: 2026-08-24 19:17 | energyRt 0.87.1.9000
 Key: <kind>
      kind  none     C     I     S     X
    <char> <int> <int> <int> <int> <int>
-   bounds    18     3     1     4    11
- equation   131     0     1     9     7
-      map   232     0    39     2    12
-   numpar    55     7     9    19    43
+   bounds    15     2     3     5    12
+ equation   120     0     1    19     8
+      map   228     0    39     5    13
+   numpar    36     3    18    37    39
       set     0     0     0     1    12
- variable    42     0     4    21    28
+ variable    32     0     4    32    27
 ```
 
 ## Numeric parameters: family x depth
@@ -26,62 +26,51 @@ Key: <family>
                    commodity     2     0     0     0     0
                       demand     0     0     0     1     0
                  discounting     0     0     0     0     3
-                 dummy-debug     2     0     0     0     0
+                 dummy-debug     0     0     0     2     0
            horizon-periodlen     1     0     0     0     2
            import-export-row     0     0     1     1     4
-           storage-aux-flows    14     1     0     0     0
+           storage-aux-flows     5     0     5     5     0
            storage-costs-eac    15     0     1     4     8
             storage-duration     0     0     0     0     1
           storage-efficiency     0     0     0     3     0
-             storage-inp2out     1     0     0     0     0
+             storage-inp2out     0     0     0     1     0
     storage-roles-capacities     8     0     0     1     5
  storage-startlevel-fullyear     0     0     1     0     0
                storage-varom     0     0     0     3     0
              storage-weather     2     1     0     0     0
                       supply     1     1     1     0     1
-                 tax-subsidy     0     2     0     0     4
-              tech-aux-flows    12     1     1     0     0
-           tech-availability     0     0     2     1     1
+                 tax-subsidy     0     0     2     4     0
+              tech-aux-flows     4     0     4     6     0
+           tech-availability     0     0     1     1     2
         tech-capacity-bounds     1     0     0     0     2
                   tech-costs     0     2     0     0     3
        tech-eac-wacc-payback     0     0     0     1     2
              tech-efficiency     1     1     1     2     1
                    tech-emis     1     0     0     0     0
-           tech-share-bounds     0     0     0     1     0
+           tech-share-bounds     0     0     0     0     1
        tech-stock-retirement     0     0     1     0     5
-                tech-weather     2     1     0     0     0
+                tech-weather     0     0     2     1     0
       trade-capacity-vintage     4     0     1     1     8
                   trade-core     2     0     0     0     1
                  trade-costs     4     0     0     0     2
-               weather-class     0     0     0     0     1
+               weather-class     0     0     0     1     0
                       family  none     C     I     S     X
                       <char> <int> <int> <int> <int> <int>
 ```
 
-## Zero-coverage numeric parameters (73)
+## Zero-coverage numeric parameters (51)
 
 ```
                  name                   family      class     slot     colName
                <char>                   <char>     <char>   <char>      <char>
      pAggregateFactor                commodity  commodity      agg         agg
       pEmissionFactor                commodity  commodity     emis        emis
-     pDummyExportCost              dummy-debug   settings    debug dummyExport
-     pDummyImportCost              dummy-debug   settings    debug dummyImport
              cardYear        horizon-periodlen                                
-     pStorageCap2AInp        storage-aux-flows    storage     aeff    cap2ainp
-     pStorageCap2AOut        storage-aux-flows    storage     aeff    cap2aout
-    pStorageCinp2AOut        storage-aux-flows    storage     aeff   cinp2aout
-    pStorageCout2AInp        storage-aux-flows    storage     aeff   cout2ainp
-    pStorageCout2AOut        storage-aux-flows    storage     aeff   cout2aout
-    pStorageNCap2AInp        storage-aux-flows    storage     aeff   ncap2ainp
-    pStorageNCap2AOut        storage-aux-flows    storage     aeff   ncap2aout
      pStorageNCap2Stg        storage-aux-flows    storage     aeff    ncap2stg
      pStoragePho2AInp        storage-aux-flows    storage     aeff    pho2ainp
      pStoragePho2AOut        storage-aux-flows    storage     aeff    pho2aout
      pStorageRet2AInp        storage-aux-flows    storage     aeff    ret2ainp
      pStorageRet2AOut        storage-aux-flows    storage     aeff    ret2aout
-     pStorageStg2AInp        storage-aux-flows    storage     aeff    stg2ainp
-     pStorageStg2AOut        storage-aux-flows    storage     aeff    stg2aout
        pStorageInpEac        storage-costs-eac    storage  invcost     inp.eac
    pStorageInpPayback        storage-costs-eac    storage  invcost inp.payback
    pStorageInpRetCost        storage-costs-eac    storage  invcost inp.retcost
@@ -97,7 +86,6 @@ Key: <family>
   pStorageStgStockNew        storage-costs-eac                                
  pStorageStgStockSurv        storage-costs-eac                                
       pStorageStgWacc        storage-costs-eac    storage  invcost    stg.wacc
-      pStorageInp2out          storage-inp2out    storage  inp2out     inp2out
            pStorageAf storage-roles-capacities    storage       af          af
         pStorageInpAf storage-roles-capacities    storage       af      inp.af
        pStorageInpCap storage-roles-capacities    storage capacity     inp.cap
@@ -109,14 +97,6 @@ Key: <family>
  pStorageWeatherInpAf          storage-weather    storage  weather     inp.waf
  pStorageWeatherOutAf          storage-weather    storage  weather     out.waf
           pSupReserve                   supply     supply  reserve         res
-        pTechAct2AOut           tech-aux-flows technology     aeff    act2aout
-        pTechCap2AInp           tech-aux-flows technology     aeff    cap2ainp
-        pTechCap2AOut           tech-aux-flows technology     aeff    cap2aout
-       pTechCinp2AOut           tech-aux-flows technology     aeff   cinp2aout
-       pTechCout2AInp           tech-aux-flows technology     aeff   cout2ainp
-       pTechCout2AOut           tech-aux-flows technology     aeff   cout2aout
-       pTechNCap2AInp           tech-aux-flows technology     aeff   ncap2ainp
-       pTechNCap2AOut           tech-aux-flows technology     aeff   ncap2aout
         pTechPho2AInp           tech-aux-flows technology     aeff    pho2ainp
         pTechPho2AOut           tech-aux-flows technology     aeff    pho2aout
         pTechRet2AInp           tech-aux-flows technology     aeff    ret2ainp
@@ -124,8 +104,6 @@ Key: <family>
           pTechNewCap     tech-capacity-bounds technology capacity        ncap
        pTechCinp2ginp          tech-efficiency technology     ceff   cinp2ginp
         pTechEmisComm                tech-emis technology    input  combustion
-      pTechWeatherAfc             tech-weather technology  weather        wafc
-      pTechWeatherAfs             tech-weather technology  weather        wafs
         pTradeCap2Act   trade-capacity-vintage      trade  cap2act            
          pTradeNewCap   trade-capacity-vintage      trade capacity        ncap
        pTradeStockNew   trade-capacity-vintage                                
@@ -140,4 +118,4 @@ Key: <family>
                <char>                   <char>     <char>   <char>      <char>
 ```
 
-Tagged rows: 41 | inferred: 192 | uncovered: 478 of 711
+Tagged rows: 100 | inferred: 180 | uncovered: 431 of 711

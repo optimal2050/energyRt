@@ -585,7 +585,7 @@ pTechRampUp:
   defVal: .inf
   interpolation: back.inter.forth
   class: technology
-  slot: rampup
+  slot: af
   colName: rampup
 pTechRampDown:
   name: pTechRampDown
@@ -598,7 +598,7 @@ pTechRampDown:
   defVal: .inf
   interpolation: back.inter.forth
   class: technology
-  slot: rampdown
+  slot: af
   colName: rampdown
 pTechAfs:
   name: pTechAfs

@@ -788,12 +788,11 @@ if verbose:
 sys.stdout.flush()
 model.eqTechRampUp = Constraint(
     mTechRampUp,
-    rule=lambda model, t, r, y, s, sp: (model.vTechAct[t, r, y, s])
-    / (pTimesliceShare.get((s)))
-    - (model.vTechAct[t, r, y, sp]) / (pTimesliceShare.get((sp)))
+    rule=lambda model, t, r, y, s, sp: (model.vTechAct[t, r, y, sp])
+    / (pTimesliceShare.get((sp)))
+    - (model.vTechAct[t, r, y, s]) / (pTimesliceShare.get((s)))
     <= (
         pTimesliceShare.get((s))
-        * pTechCap2act.get((t))
         * pTechCap2act.get((t))
         * model.vTechCap[t, r, y]
     )
@@ -813,12 +812,11 @@ if verbose:
 sys.stdout.flush()
 model.eqTechRampDown = Constraint(
     mTechRampDown,
-    rule=lambda model, t, r, y, s, sp: (model.vTechAct[t, r, y, sp])
-    / (pTimesliceShare.get((sp)))
-    - (model.vTechAct[t, r, y, s]) / (pTimesliceShare.get((s)))
+    rule=lambda model, t, r, y, s, sp: (model.vTechAct[t, r, y, s])
+    / (pTimesliceShare.get((s)))
+    - (model.vTechAct[t, r, y, sp]) / (pTimesliceShare.get((sp)))
     <= (
         pTimesliceShare.get((s))
-        * pTechCap2act.get((t))
         * pTechCap2act.get((t))
         * model.vTechCap[t, r, y]
     )

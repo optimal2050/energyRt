@@ -711,6 +711,10 @@ process_to_spec <- function(object, file = NULL) {
 
   spec <- list(techspec = 1L, class = cls, name = object@name)
   if (nzchar(object@desc %||% "")) spec$desc <- object@desc
+  # flag defaults come from the CONSTRUCTOR formals, per class; the S4
+  # prototype is not reliable here (technology's prototype disagrees
+  # with newTechnology()'s formals on both logical flags)
+  ctor_forms <- formals(get(.SPEC_CTOR[[cls]]))
 
   # scalar slots, in the same order the constructor takes them
   for (k in names(.SPEC_SCALAR_ARGS[[cls]])) {
@@ -724,9 +728,12 @@ process_to_spec <- function(object, file = NULL) {
       next
     }
     if (is.logical(v)) {
-      # only record a flag that departs from its default
-      if (k == "fullYear" && isFALSE(v)) spec[[k]] <- FALSE
-      if (k == "optimizeRetirement" && isTRUE(v)) spec[[k]] <- TRUE
+      # only record a flag that departs from its constructor default
+      d <- ctor_forms[[k]]
+      if (is.language(d)) d <- eval(d)
+      if (length(v) == 1 && !is.na(v) && !identical(unname(v), d)) {
+        spec[[k]] <- unname(v)
+      }
       next
     }
     if (is.numeric(v) && length(v) == 1 && is.finite(v)) spec[[k]] <- unname(v)
