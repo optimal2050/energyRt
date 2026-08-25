@@ -294,8 +294,8 @@ newCosts <- function(
     "[ ]*[)][ ]*", ")",
     gsub("[ ]*[(][ ]*", "(", gsub("[+][ ]*[-]", "-", gsub("[ ]*[$][ ]*", "$", costs)))
   ))))
-  prec@costs.equation <- c(prec@costs.equation, costs)
+  prec@user_costs <- c(prec@user_costs, costs)
   prec
 }
 
-#  .getSetEquation(prec, stm, approxim)@gams.equation
+#  .getSetEquation(prec, stm, approxim)@user_constraints

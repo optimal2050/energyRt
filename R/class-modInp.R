@@ -7,10 +7,10 @@
 #' scenario's calendar and horizon. The class is automatically created during the
 #' interpolation step and is not intended to be created by users.
 #'
-#' @slot set `r get_slot_doc("modInp", "set")`
+#' @slot sets `r get_slot_doc("modInp", "sets")`
 #' @slot parameters `r get_slot_doc("modInp", "parameters")`
-#' @slot gams.equation `r get_slot_doc("modInp", "gams.equation")`
-#' @slot costs.equation `r get_slot_doc("modInp", "costs.equation")`
+#' @slot user_constraints `r get_slot_doc("modInp", "user_constraints")`
+#' @slot user_costs `r get_slot_doc("modInp", "user_costs")`
 #' @slot misc `r get_slot_doc("modInp", "misc")`
 #'
 #' @include class-parameter.R
@@ -18,23 +18,20 @@
 setClass(
   "modInp",
   representation(
-    set = "list", # !!! renaming - to be removed
-    sets = "list", # !!! transiting from `set` to 'sets'
-    parameters = "list", #
-    # modelVersion = "character",  # !!! in use ???
-    # solver = "character", # !!! in use ???
-    gams.equation = "list", # user_constraints?
-    costs.equation = "character", # list? user_costs?
+    sets = "list",
+    parameters = "list",
+    # Solver-agnostic IR of user-defined constraints / cost terms (GAMS-
+    # flavored strings); every backend writer translates it. Compiled from
+    # `constraint` / `costs` objects -- see ob2mi methods in obj2modInp.R.
+    user_constraints = "list",
+    user_costs = "character",
     misc = "list"
   ),
   prototype(
-    set = list(), # !!! to be removed
-    sets = list(), # !!! transiting from `set` to 'sets'
+    sets = list(),
     parameters = list(),
-    # modelVersion = "",
-    # solver = "",
-    gams.equation = list(),
-    costs.equation = character(),
+    user_constraints = list(),
+    user_costs = character(),
     misc = list()
   )
 )
@@ -90,6 +87,39 @@ setMethod("initialize", "modInp", function(.Object) {
 # ============================================================================ #
 # Internal functions ####
 # ============================================================================ #
+
+# Upgrade a modInp serialized before the 2026-08 slot cleanup: the legacy
+# `set` slot is retired (folded into `sets` when it alone carried data), and
+# the old `gams.equation` / `costs.equation` slots move onto their new names
+# `user_constraints` / `user_costs`. Old slots live on as plain attributes on
+# deserialized objects (the class no longer declares them), so everything
+# moves via attr(). The old names below are string literals on purpose.
+#' @noRd
+.upgrade_modInp <- function(mi) {
+  if (!is(mi, "modInp")) return(mi)
+  # exact attribute access throughout: attr() partially matches, and "set"
+  # would fall through to the live `sets` slot
+  at <- attributes(mi)
+  old_set <- at[["set"]]
+  if (!is.null(old_set)) {
+    if (length(mi@sets) == 0 && length(old_set) > 0) mi@sets <- old_set
+    attr(mi, "set") <- NULL
+  }
+  old_cns <- at[[paste0("gams", ".equation")]]
+  if (!is.null(old_cns)) {
+    if (length(mi@user_constraints) == 0) mi@user_constraints <- old_cns
+    attr(mi, paste0("gams", ".equation")) <- NULL
+  }
+  old_costs <- at[[paste0("costs", ".equation")]]
+  if (!is.null(old_costs)) {
+    if (length(mi@user_costs) == 0) {
+      mi@user_costs <- as.character(old_costs)
+    }
+    attr(mi, paste0("costs", ".equation")) <- NULL
+  }
+  mi
+}
+
 .get_default_values <- function(modInp, name, drop.unused.values) {
   # Returns data.frame with default values of parameters on
   #       expanded grid of all (or used only, like horizon-mid-period)

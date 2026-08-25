@@ -98,6 +98,12 @@ Root directory for the dataset store. save_dataset() writes content-addressed da
 \item{envvar: }{ENERGYRT_DATASETS_PATH (evaluated if possible, raw string otherwise)}
 }}
 
+\item{log_file}{\describe{
+Optional operation-log CSV. Empty (default) = logging off; a path makes interpolate_model()/solve_scenario()/solve_myopic() append one line per operation. Read it back with read_log().\item{default: }{\preformatted{""}}
+\item{option: }{en.log_file}
+\item{envvar: }{ENERGYRT_LOG_FILE (evaluated if possible, raw string otherwise)}
+}}
+
 \item{reports_path}{\describe{
 Default directory for rendered reports of IN-MEMORY objects (treated as temporary output). Reports of saved objects land inside the owning folder (\if{html}{\out{<scenario>}}/reports/, \if{html}{\out{<model store entry>}}/reports/) instead.\item{default: }{\preformatted{"reports/"}}
 \item{option: }{en.reports_path}

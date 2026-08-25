@@ -529,7 +529,7 @@ newDCLink <- function(name, commodity, from, to, resistance = NA_real_,
 # constraints named `KVL_<n>`, so no extra state has to be stored on the
 # scenario for this to be answerable.
 .kvl_scenario_cycles <- function(scen) {
-  eqs <- tryCatch(names(scen@modInp@gams.equation), error = function(e) NULL)
+  eqs <- tryCatch(names(scen@modInp@user_constraints), error = function(e) NULL)
   grep("^KVL_[0-9]+$", eqs, value = TRUE)
 }
 

@@ -6,6 +6,10 @@
 #   Rscript tools/test/make_goldens.R --suite=tm [--dry-run]
 #   Rscript tools/test/make_goldens.R --suite=all
 #
+# Suites: tm (fast tier), utopia (fast/cross), utopia_nightly (R7/R11, only
+# read at the nightly tier), interp (solver-free modInp baselines -- delegated
+# to tools/test/interp_guard.R, stored as goldens/interp/*.rds).
+#
 # For every scenario in a suite: build, solve with the reference backend
 # (GLPK), run verify_solution() -- capture is REFUSED if any identity is
 # violated -- then store the objective and tracked values at the aggregation
@@ -52,7 +56,9 @@ SUITES <- list(
     tiers <- c("tm_core", "tm_flows", "tm_io", "tm_policy", "tm_weather")
     setNames(lapply(tiers, function(t) function() .fixture_env()[[t]]()), tiers)
   },
-  utopia = lapply(ut_entries(), function(a) function() do.call(ut_build, a))
+  utopia = lapply(ut_entries(), function(a) function() do.call(ut_build, a)),
+  utopia_nightly = lapply(ut_nightly_entries(),
+                          function(a) function() do.call(ut_build, a))
 )
 
 # --------------------------------------------------------------------------- #
@@ -88,11 +94,22 @@ diff_entry <- function(old, new, name) {
 main <- function(args = commandArgs(trailingOnly = TRUE)) {
   suite_arg <- sub("^--suite=", "", grep("^--suite=", args, value = TRUE))
   dry <- "--dry-run" %in% args
-  if (!length(suite_arg)) stop("Pass --suite=<", paste(c(names(SUITES), "all"),
+  all_suites <- c(names(SUITES), "interp")
+  if (!length(suite_arg)) stop("Pass --suite=<", paste(c(all_suites, "all"),
                                                        collapse = "|"), ">")
-  suites <- if (identical(suite_arg, "all")) names(SUITES) else suite_arg
-  bad <- setdiff(suites, names(SUITES))
+  suites <- if (identical(suite_arg, "all")) all_suites else suite_arg
+  bad <- setdiff(suites, all_suites)
   if (length(bad)) stop("Unknown suite(s): ", paste(bad, collapse = ", "))
+
+  # "interp" is solver-free and stores .rds baselines, not tracked-value JSON:
+  # delegate to the interp guard (tools/test/interp_guard.R).
+  if ("interp" %in% suites) {
+    cat("== suite: interp ==\n")
+    source(file.path("tools", "test", "interp_guard.R"))
+    if (dry) cat("  (dry-run: nothing written)\n") else ig_baseline()
+    suites <- setdiff(suites, "interp")
+    if (!length(suites)) return(invisible())
+  }
 
   dir.create(file.path("tests", "testthat", "goldens"),
              recursive = TRUE, showWarnings = FALSE)

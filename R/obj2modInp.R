@@ -1467,7 +1467,7 @@ setMethod(
 ## constraint (user-defined) ####
 # =============================================================================#
 # A user constraint compiles to the solver-agnostic GAMS-string IR
-# (`scen@modInp@gams.equation[[name]]`) plus its supporting `pCns*`/`mCns*`
+# (`scen@modInp@user_constraints[[name]]`) plus its supporting `pCns*`/`mCns*`
 # parameters; the writers (write_glpk / write_jump / write_pyomo / write_gams)
 # translate that IR per backend. Codegen reuses the proven `.getSetEquation`
 # engine. Unlike the per-object methods above, this runs AFTER the mapping
@@ -1490,13 +1490,7 @@ setMethod(
     # `.getSetEquation` can read `@timeframe` without erroring on old models.
     obj@lhs <- lapply(obj@lhs, .upgrade_summand)
 
-    # The engine reads model sets from the legacy `@set` slot; the new pipeline
-    # populates `@sets`. Shim a working copy, generate, then drop the shim.
-    mi <- scen@modInp
-    mi@set <- scen@modInp@sets
-    mi <- .getSetEquation(mi, obj, approxim)
-    mi@set <- list()
-    scen@modInp <- mi
+    scen@modInp <- .getSetEquation(scen@modInp, obj, approxim)
     scen
   }
 )
@@ -1507,7 +1501,7 @@ setMethod(
 # Mirrors the `constraint` method: compiled AFTER the variable domain maps by
 # `.interp_user_constraints`, never in the generic ob2mi loop. `.getCostEquation`
 # (R/class-costs.R) appends the pCosts*/mCosts* parameters and the term of the
-# vTotalUserCosts equation to `modInp@costs.equation`; the write step assembles
+# vTotalUserCosts equation to `modInp@user_costs`; the write step assembles
 # eqTotalUserCosts from those terms (R/write.R).
 setMethod(
   "ob2mi",

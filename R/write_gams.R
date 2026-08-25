@@ -139,21 +139,21 @@ get_gdxlib_path <- function() {
     for (yy in uuu) {
       templ <- paste0("(^|[^[:alnum:]])", yy, "[(]")
       if (any(grep("^pCns", nn))) {
-        for (www in seq_along(scen@modInp@gams.equation)) {
-          mmm <- grep(templ, scen@modInp@gams.equation[[www]]$equation)
+        for (www in seq_along(scen@modInp@user_constraints)) {
+          mmm <- grep(templ, scen@modInp@user_constraints[[www]]$equation)
           if (any(mmm)) {
-            scen@modInp@gams.equation[[www]]$equation[mmm] <- sapply(
-              strsplit(scen@modInp@gams.equation[[www]]$equation[mmm], yy),
+            scen@modInp@user_constraints[[www]]$equation[mmm] <- sapply(
+              strsplit(scen@modInp@user_constraints[[www]]$equation[mmm], yy),
               .rem_col, yy, rmm
             )
           }
         }
       } else if (any(grep("^pCosts", nn))) {
         # browser()
-        mmm <- grep(templ, scen@modInp@costs.equation)
+        mmm <- grep(templ, scen@modInp@user_costs)
         if (any(mmm)) {
-          scen@modInp@costs.equation[mmm] <- sapply(
-            strsplit(scen@modInp@costs.equation[mmm], yy), .rem_col, yy, rmm
+          scen@modInp@user_costs[mmm] <- sapply(
+            strsplit(scen@modInp@user_costs[mmm], yy), .rem_col, yy, rmm
           )
         }
       } else {
@@ -250,7 +250,7 @@ get_gdxlib_path <- function() {
   cat(run_code[1:grep("[$]include[[:space:]]*data.gms", run_code)], sep = "\n",
       file = fn)
   # Add parameter constraint declaration
-  if (length(scen@modInp@gams.equation) > 0) {
+  if (length(scen@modInp@user_constraints) > 0) {
     mps_name <- grep("^[m]Cns", names(scen@modInp@parameters), value = TRUE)
     mps_name_def <- c("set ", paste0(mps_name, "(", sapply(
       scen@modInp@parameters[mps_name],
@@ -319,22 +319,22 @@ get_gdxlib_path <- function() {
     }
     cat(c(
       "Equation\neqTotalUserCosts(region, year)\n;\n",
-      scen@modInp@costs.equation
+      scen@modInp@user_costs
     ), file = zz_costs)
   }
 
   # Add constraint equation
-  if (length(scen@modInp@gams.equation) > 0) {
+  if (length(scen@modInp@user_constraints) > 0) {
     # Declaration
     cat("equation", sapply(
-      scen@modInp@gams.equation,
+      scen@modInp@user_constraints,
       function(x) x$equationDeclaration
     ),
     ";", "",
     sep = "\n", file = zz_constrains
     )
     # Body equation
-    cat(sapply(scen@modInp@gams.equation, function(x) x$equation), "",
+    cat(sapply(scen@modInp@user_constraints, function(x) x$equation), "",
       sep = "\n", file = zz_constrains
     )
   }

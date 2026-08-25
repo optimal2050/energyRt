@@ -18,9 +18,34 @@
   `load/save/add_to/find/refresh_registry()`, `scenario_drop_run()` is
   `drop_scenario_run()`, `scenario_upgrade_layout()` is
   `upgrade_scenario_layout()`, and `model_apply_ledger()` is `apply_ledger()`.
+* `modInp` slot cleanup: the long-deprecated `@set` slot is removed (its role
+  passed to `@sets` years ago), and the two misnamed IR slots are renamed to
+  say what they hold -- `@gams.equation` is now `@user_constraints` (compiled
+  user-defined constraints in the solver-agnostic equation IR that every
+  back-end writer translates) and `@costs.equation` is now `@user_costs` (the
+  user cost terms summed into `eqTotalUserCosts`). Slots cannot alias, so
+  direct access to the old names no longer works; scenarios saved with the
+  old slots are migrated automatically on `load_scenario()` /
+  `read_solution()`.
 
 ## New features
 
+* A comparison layer, as the `compare_*` family. `compare_scenarios()`
+  compares solved results across a named list of scenarios or across
+  recorded runs of one scenario (`runs =`, non-destructive): objectives and
+  run metadata in an overview, plus a tolerance-aware value-by-value
+  comparison of role-selected variables against a baseline, with `print()`,
+  `autoplot()` (objective bars, faceted or dodged mixes, emissions, cost
+  breakdowns, largest-differences charts) and `report()` methods.
+  `report()` on a named list of scenarios renders the comparative report
+  directly (`report_scenarios.Rmd`). `compare_models()` diffs two models or
+  repositories at the declaration level (added / removed / changed objects
+  by content hash, configuration differences, per-object slot drill-down).
+  `compare_inputs()` -- promoted from a dev script -- diffs two scenarios'
+  interpolated `modInp` (parameter data, metadata, sets, compiled user
+  constraints and cost terms), with detailed per-parameter diffs when
+  \pkg{waldo} is installed (new Suggests). The golden tests and the
+  comparison layer now share one value-diff kernel.
 * The report-template helpers are exported as the `report_*` family
   (`report_setup()`, `report_output()`, `report_esc()`, `report_fmt_val()`,
   `report_img()`, `report_plot_png()`, `report_sec()`, `report_tbl()`,
@@ -85,6 +110,10 @@
   scenarios reference instead of embedding; `save_repository()` stores a shared
   repository once; and a scenario can hold several own-problem variants side by
   side via `solve_scen(variant = )`.
+* An optional operation log: `set_log_file("...")` makes
+  `interpolate_model()`, `solve_scenario()` and `solve_myopic()` append one
+  CSV line each (operation, object, status, objective, duration);
+  `read_log()` reads the sequence back. Off by default.
 * A dataset store completes the storage tiers: `save_dataset()` /
   `load_dataset()` keep a large table (a weather or demand series), a
   geoscale map, or a recorded generating call (`fun = "pkg::fun"` with a

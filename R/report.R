@@ -216,8 +216,8 @@ setMethod(
       (isTRUE(run_levcost) || (is.na(run_levcost) && length(lc_dots) > 0))
 
     # -- locate Rmd template -----------------------------------------------
-    # If tmpl_name is an existing file path, use it directly.
-    if (file.exists(tmpl_name)) {
+    # If tmpl_name is an existing file path (not a directory), use it.
+    if (file.exists(tmpl_name) && !dir.exists(tmpl_name)) {
       tmpl <- normalizePath(tmpl_name, mustWork = TRUE)
     } else {
       tmpl <- .find_report_template(tmpl_name)
@@ -546,7 +546,7 @@ setMethod(
     }
 
     tmpl_name <- if (is.null(template)) "generic" else template
-    tmpl <- if (file.exists(tmpl_name)) {
+    tmpl <- if (file.exists(tmpl_name) && !dir.exists(tmpl_name)) {
       normalizePath(tmpl_name, mustWork = TRUE)
     } else {
       .find_report_template(tmpl_name)
@@ -749,7 +749,11 @@ setMethod(
                            reports_path = NULL, force = FALSE, engine = NULL) {
   format <- .report_check_formats(
     match.arg(format, c("html", "pdf", "tex", "docx"), several.ok = TRUE))
-  tmpl <- if (!is.null(tmpl_name) && file.exists(tmpl_name)) {
+  # file.exists() is TRUE for directories too -- a template NAME that happens
+  # to match a folder in the working directory (e.g. "scenarios") must still
+  # resolve as a built-in template name
+  tmpl <- if (!is.null(tmpl_name) && file.exists(tmpl_name) &&
+              !dir.exists(tmpl_name)) {
     normalizePath(tmpl_name, mustWork = TRUE)
   } else {
     .find_report_template(tmpl_name, class = class)

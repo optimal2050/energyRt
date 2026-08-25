@@ -163,6 +163,7 @@ solve_myopic <- function(mod, name = NULL, ...,
                          keep_scenarios = TRUE,
                          on_error = c("stop", "return"),
                          verbose = TRUE) {
+  .log_t0 <- Sys.time()
   stopifnot(is(mod, "model"))
   store <- match.arg(store)
   on_error <- match.arg(on_error)
@@ -262,6 +263,12 @@ solve_myopic <- function(mod, name = NULL, ...,
     ledger <- solution_ledger(sol, years = w$decided, ledger = ledger)
     if (keep_scenarios) scens[[vlab]] <- sol
   }
+
+  .en_log("myopic", name,
+          status = if (failed) "failed" else "ok",
+          duration = difftime(Sys.time(), .log_t0, units = "secs"),
+          model = mod@name, steps = nrow(steps),
+          step = step, overlap = overlap, store = store)
 
   structure(list(
     name = name, model = mod, steps = steps, scenarios = scens,

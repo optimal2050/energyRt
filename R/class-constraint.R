@@ -546,11 +546,11 @@ addSummand <- function(
     for.each.set <- names(old_for_each)
     # Fill add.map for for.each
     for (j in for.each.set) {
-      if (!is.null(old_for_each[[j]]) && !all(prec@set[[j]] %in% old_for_each[[j]])) {
-        if (any(old_for_each[[j]] %in% prec@set[[j]])) {
+      if (!is.null(old_for_each[[j]]) && !all(prec@sets[[j]] %in% old_for_each[[j]])) {
+        if (any(old_for_each[[j]] %in% prec@sets[[j]])) {
           # warning(paste0('Set "'))
           old_for_each[[j]] <-
-            old_for_each[[j]][old_for_each[[j]] %in% prec@set[[j]]]
+            old_for_each[[j]][old_for_each[[j]] %in% prec@sets[[j]]]
         }
         set.map.name <- c(set.map.name, j)
         set.map[[length(set.map.name)]] <- old_for_each[[j]]
@@ -730,7 +730,7 @@ addSummand <- function(
       # `j` names a POSITION; its members come from the underlying set.
       j.set <- if (j %in% names(.dim_set)) unname(.dim_set[[j]]) else j
       if (!is.null(stm@lhs[[i]]@for.sum[[j]]) &&
-        !all(prec@set[[j.set]] %in% stm@lhs[[i]]@for.sum[[j]])) {
+        !all(prec@sets[[j.set]] %in% stm@lhs[[i]]@for.sum[[j]])) {
         # check if the same set in lhs exist
         fl <- FALSE
         if (all(!c(all.set[nn[need.dim == j], c("lead.year", "lag.year")],
@@ -790,7 +790,7 @@ addSummand <- function(
   if (nrow(all.set) > 0) {
     st <- unique(all.set$set)
     st <- st[!(st %in% names(approxim))]
-    for (ss in st) approxim[[ss]] <- prec@set[[ss]]
+    for (ss in st) approxim[[ss]] <- prec@sets[[ss]]
   }
 
   # Generate GAMS code with mult & rhs parameters
@@ -1176,11 +1176,11 @@ addSummand <- function(
   res$equation <- gsub("[+][[:blank:]]*[-]", "-", res$equation)
   res$equation <- paste0(res$equation, ";")
 
-  prec@gams.equation[[stm@name]] <- res
+  prec@user_constraints[[stm@name]] <- res
   prec
 }
 
-#  .getSetEquation(prec, stm, approxim)@gams.equation
+#  .getSetEquation(prec, stm, approxim)@user_constraints
 
 #' @export
 #' @family constraint policy

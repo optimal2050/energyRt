@@ -1216,14 +1216,14 @@ write.sc <- write_sc
     }
   }
   # browser()
-  if (length(prec@costs.equation) == 0) {
-    prec@costs.equation <-
+  if (length(prec@user_costs) == 0) {
+    prec@user_costs <-
       "eqTotalUserCosts(region, year)$mvTotalUserCosts(region, year).. vTotalUserCosts(region, year) =e= 0;"
   } else {
-    prec@costs.equation <- paste0(
+    prec@user_costs <- paste0(
       "eqTotalUserCosts(region, year)$mvTotalUserCosts(region, year)..",
       "   vTotalUserCosts(region, year) =e= ",
-      gsub("[+][ ]*[-]", "-", paste0(prec@costs.equation, collapse = " + ")), ";"
+      gsub("[+][ ]*[-]", "-", paste0(prec@user_costs, collapse = " + ")), ";"
     )
   }
 

@@ -685,6 +685,7 @@ solve_scenario <- function(obj, name = obj@name, solver = NULL, solver.dir = NUL
     stopifnot(is.character(variant), length(variant) == 1L)
     obj@misc$variant <- if (nzchar(variant)) variant else NULL
   }
+  .log_t0 <- Sys.time()
   if (!is.null(tmp.dir)) {
     rlang::warn(
       "The `tmp.dir` argument is deprecated; use `solver.dir`.",
@@ -767,5 +768,18 @@ solve_scenario <- function(obj, name = obj@name, solver = NULL, solver.dir = NUL
       }
     }
   }
+  sv <- scen@settings@solver
+  .en_log("solve", scen@name,
+          status = if (isTRUE(scen@status$optimal)) "optimal" else
+            "not-optimal",
+          duration = difftime(Sys.time(), .log_t0, units = "secs"),
+          run = scen@misc$run %||% "",
+          variant = .run_variant(scen),
+          solver = paste0(sv$name %||% "", "/", sv$lang %||% ""),
+          transient = isTRUE(transient),
+          objective = tryCatch(
+            round(as.numeric(get_variable(scen, "vObjective",
+                                          data = TRUE)$value[1]), 4),
+            error = function(e) NA_real_))
   scen
 }

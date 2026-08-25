@@ -65,13 +65,13 @@ get_python_path <- function() {
       for (yy in uuu) {
         templ <- paste0("(^|[^[:alnum:]])", yy, "[.]get[(][(]")
         if (any(grep("^pCns", nn))) {
-          for (www in seq_along(scen@modInp@gams.equation)) {
-            mmm <- grep(templ, scen@modInp@gams.equation[[www]]$equation)
+          for (www in seq_along(scen@modInp@user_constraints)) {
+            mmm <- grep(templ, scen@modInp@user_constraints[[www]]$equation)
             if (any(mmm)) {
-              scen@modInp@gams.equation[[www]]$equation[mmm] <-
+              scen@modInp@user_constraints[[www]]$equation[mmm] <-
                 sapply(
                   strsplit(
-                    scen@modInp@gams.equation[[www]]$equation[mmm],
+                    scen@modInp@user_constraints[[www]]$equation[mmm],
                     paste0(yy, "[.]get[(][(]")
                   ),
                   .rem_col_pyomo_concrete, yy, rmm
@@ -79,11 +79,11 @@ get_python_path <- function() {
             }
           }
         } else if (any(grep("^pCosts", nn))) {
-          mmm <- grep(templ, scen@modInp@costs.equation)
+          mmm <- grep(templ, scen@modInp@user_costs)
           if (any(mmm)) {
-            scen@modInp@costs.equation[mmm] <-
+            scen@modInp@user_costs[mmm] <-
               sapply(
-                strsplit(scen@modInp@costs.equation[mmm], yy),
+                strsplit(scen@modInp@user_costs[mmm], yy),
                 .rem_col, yy, rmm
               )
           }
@@ -229,10 +229,10 @@ get_python_path <- function() {
   npar2 <- (grep("^model[.]obj ", run_code)[1] - 1)
   cat(run_code[npar:npar2], sep = "\n", file = zz_mod)
   ## Add constraint equation
-  if (length(scen@modInp@gams.equation) > 0) {
+  if (length(scen@modInp@user_constraints) > 0) {
     cat("\n", file = zz_constr)
-    for (i in seq_along(scen@modInp@gams.equation)) {
-      eqt <- scen@modInp@gams.equation[[i]]
+    for (i in seq_along(scen@modInp@user_constraints)) {
+      eqt <- scen@modInp@user_constraints[[i]]
       if (AbstractModel) {
         cat(.equation.from.gams.to.pyomo.AbstractModel(eqt$equation),
           sep = "\n", file = zz_constr
@@ -250,11 +250,11 @@ get_python_path <- function() {
     cat("\n", file = zz_costs)
     if (AbstractModel) {
       cat(.equation.from.gams.to.pyomo.AbstractModel(
-        scen@modInp@costs.equation
+        scen@modInp@user_costs
       ), sep = "\n", file = zz_costs)
     } else {
       cat(.equation.from.gams.to.pyomo(
-        scen@modInp@costs.equation
+        scen@modInp@user_costs
       ), sep = "\n", file = zz_costs)
     }
   }

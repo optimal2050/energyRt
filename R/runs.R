@@ -427,8 +427,8 @@ drop_scenario_run <- function(scen, run, force = FALSE) {
                                      vdata$sourceCode_default %||%
                                        character(0))
   scen@misc$variant <- if (nzchar(variant)) variant else NULL
-  scen@modInp <- .modinp_rebase(vdata$modInp,
-                                .problem_modinp_root(scen))
+  scen@modInp <- .upgrade_modInp(
+    .modinp_rebase(vdata$modInp, .problem_modinp_root(scen)))
   scen
 }
 

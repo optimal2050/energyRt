@@ -30,7 +30,7 @@ dim_scen <- function(name, ...) suppressMessages(interpolate_model(
                     for.each = data.frame(comm = "ELC", year = 2020L), ...)),
   name = name))
 
-dim_eq <- function(name, ...) dim_scen(name, ...)@modInp@gams.equation[["DIMT"]]$equation
+dim_eq <- function(name, ...) dim_scen(name, ...)@modInp@user_constraints[["DIMT"]]$equation
 
 dim_obj <- function(name, ...) getData(
   suppressMessages(solve_scenario(dim_scen(name, ...))), "vObjective",

@@ -167,6 +167,16 @@ options::define_option(
 )
 
 options::define_option(
+  "log_file",
+  desc = paste(
+    "Optional operation-log CSV. Empty (default) = logging off; a path",
+    "makes interpolate_model()/solve_scenario()/solve_myopic() append one",
+    "line per operation. Read it back with read_log()."
+  ),
+  default = ""
+)
+
+options::define_option(
   "reports_path",
   desc = paste(
     "Default directory for rendered reports of IN-MEMORY objects (treated as",
@@ -618,6 +628,20 @@ set_levcost_cache_path <- function(path = NULL) {
 #' @export
 get_levcost_cache_path <- function() {
   options::opt("levcost_cache_path")
+}
+
+#' @family options
+#' @rdname log
+#' @export
+set_log_file <- function(path = NULL) {
+  options::opt_set("log_file", path)
+}
+
+#' @family options
+#' @rdname log
+#' @export
+get_log_file <- function() {
+  options::opt("log_file")
 }
 
 # Arrow exchange format #######################################################

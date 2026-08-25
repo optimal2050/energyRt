@@ -150,7 +150,36 @@ subset_model_regions <- function(mod, region, boundary_prices = NULL,
   stubs <- list()
 
   prune_obj <- function(el, nm) {
-    if (!methods::is(el, "trade")) return(el)
+    if (!methods::is(el, "trade")) {
+      # A non-trade object declares its scope in `@region`. Narrowing the
+      # scenario's region set without narrowing the DECLARATIONS leaves an
+      # object claiming regions the sample no longer has, and validation
+      # rejects it ("region(s) ... are not declared in the scenario region
+      # set") -- so the sample has to do both.
+      #
+      # An empty `@region` is the wildcard "everywhere" and is left alone: it
+      # broadcasts onto whatever the sample declares, which is already right.
+      if (.hasSlot(el, "region")) {
+        r <- methods::slot(el, "region")
+        if (is.character(r) && length(r)) {
+          kept <- r[r %in% keep]
+          if (!length(kept)) return(NULL)      # nothing of it is in the sample
+          if (length(kept) < length(r)) methods::slot(el, "region") <- kept
+        }
+      }
+      # Narrowing the scope is only half of it: the DATA has to follow. A row
+      # for a dropped region left in `@capacity` or `@af` is outside the
+      # object's own scope, and validation says so ("appear in a slot but are
+      # not in its @region scope"). NA stays -- it is the wildcard.
+      for (sl in methods::slotNames(el)) {
+        v <- methods::slot(el, sl)
+        if (is.data.frame(v) && nrow(v) && "region" %in% names(v)) {
+          methods::slot(el, sl) <-
+            v[is.na(v$region) | v$region %in% keep, , drop = FALSE]
+        }
+      }
+      return(el)
+    }
     rt <- el@routes
     if (nrow(rt) == 0L) return(el)
     in_keep <- rt$src %in% keep & rt$dst %in% keep
@@ -207,8 +236,9 @@ subset_model_regions <- function(mod, region, boundary_prices = NULL,
       } else {
         res <- prune_obj(el, nm)
         if (is.null(res)) {
-          message("spatial sample: removing trade object ", nm,
-                  " (no route inside the sample)")
+          message("spatial sample: removing ", class(el)[1], " ", nm,
+                  if (methods::is(el, "trade")) " (no route inside the sample)"
+                  else " (declared in no sampled region)")
           r@data[[nm]] <- NULL
         } else {
           r@data[[nm]] <- res

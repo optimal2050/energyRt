@@ -58,6 +58,20 @@ skip_if_no_golden <- function(suite, entry = NULL) {
   invisible(g)
 }
 
+# Strict verdict on a compare_inputs() result: TRUE only when the two modInp
+# are equivalent in every compared dimension (parameters, sets, compiled user
+# constraints / cost terms, misc). Shared by test-interp-golden.R and
+# tools/test/interp_guard.R so "identical" means the same thing in both.
+inputs_cmp_identical <- function(res) {
+  all(res$summary$status == "identical") &&
+    !length(res$params$only_A) && !length(res$params$only_B) &&
+    !length(res$sets$only_A) && !length(res$sets$only_B) &&
+    !length(res$sets$members) &&
+    !length(unlist(res$equations, use.names = FALSE)) &&
+    !length(res$misc$only_A) && !length(res$misc$only_B) &&
+    !length(res$misc$changed)
+}
+
 # default variables tracked in goldens: one per role family that is stable
 # under alternative optima once aggregated
 .golden_default_vars <- c("vTechNewCap", "vTechOut", "vTechInp",
@@ -98,21 +112,22 @@ capture_tracked_values <- function(scen, variables = .golden_default_vars,
 
 # Compare one golden level table (list-of-rows from JSON) against a freshly
 # captured data.table. Every golden row must exist with a matching value and
-# no extra non-zero rows may appear.
+# no extra non-zero rows may appear. The merge-and-tolerance arithmetic lives
+# in the package kernel (R/compare_values.R) -- one implementation for tests
+# and the comparison layer; missing rows count as zero on either side.
 .golden_compare_level <- function(golden_rows, fresh, tol_rel, tol_abs, label) {
   gd <- data.table::rbindlist(lapply(golden_rows, data.table::as.data.table),
                               use.names = TRUE, fill = TRUE)
   if ("year" %in% colnames(gd)) gd[, year := as.integer(year)]
-  keys <- setdiff(colnames(gd), "value")
-  m <- merge(gd, fresh, by = keys, all = TRUE, suffixes = c(".golden", ".new"))
-  m[is.na(value.golden), value.golden := 0]
-  m[is.na(value.new), value.new := 0]
-  bad <- abs(m$value.new - m$value.golden) >
-    tol_abs + tol_rel * pmax(abs(m$value.new), abs(m$value.golden))
+  out <- energyRt:::.compare_values(as.data.frame(gd), as.data.frame(fresh),
+                                    tol_rel = tol_rel, tol_abs = tol_abs)
+  bad <- out$differs
   if (any(bad)) {
     testthat::fail(paste0(
-      label, ": ", sum(bad), " of ", nrow(m), " tracked values differ; first: ",
-      paste(utils::capture.output(print(m[bad][1])), collapse = " ")))
+      label, ": ", sum(bad), " of ", nrow(out),
+      " tracked values differ; first: ",
+      paste(utils::capture.output(print(out[bad, , drop = FALSE][1, ])),
+            collapse = " ")))
   } else {
     testthat::succeed()
   }

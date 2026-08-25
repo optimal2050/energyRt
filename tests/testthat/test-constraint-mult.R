@@ -111,7 +111,7 @@ test_that("a `mult` data.frame works on a DOUBLE-INDEXED variable", {
                          t1 = list(variable = "vTradeIr",
                                    mult = data.frame(year = 2020L, value = 2))))
   scen <- suppressMessages(interpolate_model(m, name = "mu8"))
-  eq <- scen@modInp@gams.equation[["MULTDF"]]$equation
+  eq <- scen@modInp@user_constraints[["MULTDF"]]$equation
   # The parameter keeps its OWN index list ...
   expect_match(eq, "pCnsMultMULTDF_1(year)", fixed = TRUE)
   # ... while the variable gets the aliased six.

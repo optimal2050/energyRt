@@ -146,6 +146,12 @@ data slot as a dataset, and one folder per solver run:
     └── julia_highs/    #   another backend's run of the same problem
 ```
 
+Beyond the per-scenario traces above, an optional *operation log* records
+the sequence of a working session: `set_log_file("energyRt_log.csv")` makes
+`interpolate_model()`, `solve_scenario()` and `solve_myopic()` append one
+line each (operation, object, status, objective, duration), and
+`read_log()` returns the sequence as a tibble. It is off by default.
+
 Solving the same scenario with several backends (or option sets — pass
 `run = "<label>"` to `solve_scenario()`) keeps every run side by side;
 `scenario_runs(scen)` lists them with status and objective, and

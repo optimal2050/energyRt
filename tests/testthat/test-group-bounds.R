@@ -23,7 +23,7 @@ test_that("a per-variant bound (cluster = NA) caps each cluster separately", {
   skip_if_no_solver()
   W <- mk_clustered(capacity = data.frame(cap.up = 5))
   sc <- vt_interp(vt_model(W, name = "pv"), "pv")
-  expect_length(sc@modInp@gams.equation, 0L)   # no generated constraint
+  expect_length(sc@modInp@user_constraints, 0L)   # no generated constraint
   sol <- vt_solve(sc)
   # each of the two clusters can reach 5, so the total exceeds 5
   expect_gt(vt_cap(sol, "EWIN", "R1"), 5 + 1e-4)
@@ -33,7 +33,7 @@ test_that("cluster = TOTAL caps the SUM across clusters", {
   skip_if_no_solver()
   W <- mk_clustered(capacity = data.frame(cluster = "TOTAL", cap.up = 5))
   sc <- vt_interp(vt_model(W, name = "gt"), "gt")
-  expect_length(sc@modInp@gams.equation, 1L)
+  expect_length(sc@modInp@user_constraints, 1L)
   sol <- vt_solve(sc)
   expect_lte(vt_cap(sol, "EWIN", "R1"), 5 + 1e-6)
   expect_lte(vt_cap(sol, "EWIN", "R2"), 5 + 1e-6)
@@ -46,7 +46,7 @@ test_that("per-region group caps BOTH bind (regression: one used to vanish)", {
     cap.up  = c(5, 8)))
   sc <- vt_interp(vt_model(W, name = "pr"), "pr")
 
-  cns <- names(sc@modInp@gams.equation)
+  cns <- names(sc@modInp@user_constraints)
   expect_length(cns, 2L)                 # region is restricted -> part of the id
   expect_false(anyDuplicated(cns) > 0L)  # ... and the names are distinct
 
@@ -135,7 +135,7 @@ test_that("a storage group bound reaches inp.* and stg.*, not only out.*", {
   for (col in c("out.cap.up", "inp.cap.up", "stg.cap.up")) {
     sc <- vt_interp(vt_stg_model(mk(col, 7), name = paste0("gp", substr(col, 1, 3))),
                     paste0("gp", substr(col, 1, 3)))
-    expect_length(sc@modInp@gams.equation, 1L)
+    expect_length(sc@modInp@user_constraints, 1L)
   }
 })
 
@@ -200,7 +200,7 @@ test_that("a group afs.up caps the fleet's annual utilisation", {
   skip_if_no_solver()
   sc <- gb_af("gafs", "afs", data.frame(cluster = "TOTAL", timeslice = "ANNUAL",
                                         afs.up = 0.3))
-  expect_length(sc@modInp@gams.equation, 1L)
+  expect_length(sc@modInp@user_constraints, 1L)
   sol <- vt_solve(sc)
   a <- suppressMessages(getData(sol, "vTechAct", merge = TRUE))
   a <- a[grepl("^EWIN", a$tech) & a$region == "R1", ]
@@ -216,7 +216,7 @@ test_that("a group af.up caps every timeslice against summed capacity", {
   peak <- function(nm, v) {
     sc <- gb_af(nm, "af", data.frame(cluster = "TOTAL", af.up = v))
     # one constraint per timeslice of the calendar (ANNUAL + four seasons)
-    expect_gt(length(sc@modInp@gams.equation), 1L)
+    expect_gt(length(sc@modInp@user_constraints), 1L)
     sol <- vt_solve(sc)
     a <- suppressMessages(getData(sol, "vTechAct", merge = TRUE))
     a <- a[grepl("^EWIN", a$tech) & a$region == "R1", ]

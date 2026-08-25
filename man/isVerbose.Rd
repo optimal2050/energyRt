@@ -34,6 +34,7 @@ Other options:
 \code{\link[=en_config_show]{en_config_show()}},
 \code{\link[=get_arrow_format]{get_arrow_format()}},
 \code{\link[=get_default_solver]{get_default_solver()}},
+\code{\link[=set_log_file]{set_log_file()}},
 \code{\link[=set_option]{set_option()}},
 \code{\link[=set_registry_file]{set_registry_file()}},
 \code{\link[=set_reports_path]{set_reports_path()}},

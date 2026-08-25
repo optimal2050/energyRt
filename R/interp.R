@@ -56,6 +56,7 @@ interpolate_model <- function(mod, name = NULL, ...,
                        validate = TRUE, code = NULL, kvl = FALSE,
                        boundary_prices = NULL,
                        verbose = isVerbose()) {
+  .log_t0 <- Sys.time()
   # Accept a scenario (re-interpolate its model), matching the legacy interface.
   if (inherits(mod, "scenario")) mod <- mod@model
   # `...` (after `mod`/`name`) accepts ANY energyRt objects -- settings, config,
@@ -467,7 +468,6 @@ interpolate_model <- function(mod, name = NULL, ...,
 
   # slotNames(mi)
   # names(mi@parameters)
-  # names(mi@set) # !!! rename to "sets"
 
   sets_from_settings <- c("region", "year", "timeslice") # from settings
 
@@ -924,17 +924,17 @@ interpolate_model <- function(mod, name = NULL, ...,
   # Finalise the total user-cost equation. Accumulated per-cost contributions
   # (if any) are wrapped into the `eqTotalUserCosts` definition; with no user
   # cost objects the default zero form is used. Mirrors write.R.
-  if (length(scen@modInp@costs.equation) == 0) {
-    scen@modInp@costs.equation <- paste0(
+  if (length(scen@modInp@user_costs) == 0) {
+    scen@modInp@user_costs <- paste0(
       "eqTotalUserCosts(region, year)$mvTotalUserCosts(region, year).. ",
       "vTotalUserCosts(region, year) =e= 0;"
     )
   } else {
-    scen@modInp@costs.equation <- paste0(
+    scen@modInp@user_costs <- paste0(
       "eqTotalUserCosts(region, year)$mvTotalUserCosts(region, year)..",
       "   vTotalUserCosts(region, year) =e= ",
       gsub("[+][ ]*[-]", "-",
-           paste0(scen@modInp@costs.equation, collapse = " + ")), ";"
+           paste0(scen@modInp@user_costs, collapse = " + ")), ";"
     )
   }
 
@@ -995,6 +995,14 @@ interpolate_model <- function(mod, name = NULL, ...,
   }
 
   .interp_footer(scen, verbose)
+  .en_log("interpolate", scen@name,
+          duration = difftime(Sys.time(), .log_t0, units = "secs"),
+          model = mod@name,
+          calendar = tryCatch(scen@settings@calendar@name,
+                              error = function(e) ""),
+          horizon = tryCatch(scen@settings@horizon@name,
+                             error = function(e) ""),
+          ondisk = isTRUE(ondisk))
   scen
 }
 
@@ -1326,7 +1334,7 @@ if (F) {
   collect_object_names(utopia@model, classes = NULL)
 
   class(utopia)
-  utopia@modInp@set
+  utopia@modInp@sets
 
   scen
   obj <- utopia@model

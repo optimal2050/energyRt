@@ -70,8 +70,8 @@ nonchar_in_sets <- function(x) {
   y <- lapply(x, function(y) any(class(y) != "character"))
   y[unlist(y)]
 }
-# nonchar_in_sets(scen_BASE_int@modInp@set)
-# scen_BASE_int@modInp@set$year |> class()
+# nonchar_in_sets(scen_BASE_int@modInp@sets)
+# scen_BASE_int@modInp@sets$year |> class()
 
 # Slot names an INSTANCE actually carries.
 #

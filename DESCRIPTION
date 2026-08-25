@@ -1,7 +1,7 @@
 Package: energyRt
 Type: Package
 Title: Energy Systems Modeling Toolbox
-Version: 0.87.4.9000
+Version: 0.87.5.9000
 Date: 2026-08-25
 Authors@R: 
   c(person(given = "Oleg", 
@@ -34,7 +34,7 @@ Imports: methods, grid, generics, data.table, DBI, RSQLite, tibble,
         glue, plyr, grDevices, utils, tools, yaml
 Suggests: shiny, DT, pak, gdxtools (== 0.7.1), knitr, rmarkdown, sf, ggplot2, testthat
         (>= 3.0.0), devtools, openxlsx, jsonlite, readxl, httr2, xml2,
-        base64enc, tinytex, patchwork, geoscales (>= 0.5.0)
+        base64enc, tinytex, patchwork, geoscales (>= 0.5.0), waldo
 Additional_repositories: https://optimal2050.r-universe.dev
 SystemRequirements: Julia (>= 1.6) with JuMP or Python (>= 3.7) with
         Pyomo or GAMS (>= 24.9) or GLPK (>= 4.0)
@@ -84,6 +84,11 @@ Collate:
     'class-costs.R'
     'combine_vintages.R'
     'commodity_properties.R'
+    'compare_inputs.R'
+    'compare_models.R'
+    'report.R'
+    'compare_scenarios.R'
+    'compare_values.R'
     'config_file.R'
     'utils.R'
     'convert.R'
@@ -114,6 +119,7 @@ Collate:
     'levcost_cache.R'
     'levcost_storage.R'
     'levcost_trade.R'
+    'log.R'
     'map_closure.R'
     'map_constraint.R'
     'map_costagg.R'
@@ -136,7 +142,6 @@ Collate:
     'read.R'
     'registry.R'
     'repo_store.R'
-    'report.R'
     'report_cache.R'
     'report_helpers.R'
     'runs.R'

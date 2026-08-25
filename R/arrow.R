@@ -1098,6 +1098,10 @@ load_scenario <- function(
   }
   scen_obj <- get(nm, envir = .en_tmp)
 
+  # migrate modInp objects saved before the 2026-08 slot cleanup
+  # (set -> sets; gams.equation/costs.equation -> user_constraints/user_costs)
+  scen_obj@modInp <- .upgrade_modInp(scen_obj@modInp)
+
   # Rebase every stored path onto the folder actually loaded: the saved
   # object recorded save-time paths (relative to the then-working directory),
   # which break when the folder is moved or getwd() differs. Deterministic

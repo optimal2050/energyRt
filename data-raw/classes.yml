@@ -2852,7 +2852,7 @@ class:
       description: Any additional information or data to store in the object.
 ## modInp #######################################################################
   modInp:
-    set:
+    sets:
       type: list
       description: named list of character vectors with sets used in the model.
     parameters:
@@ -2865,18 +2865,19 @@ class:
           with 'p'
         - mapping sets: auxiliary, automatically created sets used to narrow
           the dimension of variables and constraints
-    gams.equation:
+    user_constraints:
       type: list
       description: >
-        named list of custom constraints added to the model from the
-        `constraint` class. The name of the slot is outdated and will be
-        changed in the future.
-    costs.equation:
-      type: list
+        named list of user-defined constraints compiled from `constraint`
+        objects: solver-agnostic equation code (GAMS-flavored intermediate
+        representation) that each backend writer translates into its
+        language. One entry per constraint.
+    user_costs:
+      type: character
       description: >
-        named list of custom costs added to the model's objective from the
-        `costs` class. The name of the slot is outdated and will be
-        changed in the future.
+        character vector of user cost terms compiled from `costs` objects,
+        in the same solver-agnostic representation; the write step sums them
+        into the `eqTotalUserCosts` equation of the objective.
     misc:
       type: list
       description: >

@@ -29,8 +29,8 @@ ut_build <- function(layout = "R3", calendar = "utopia_seasons", lever = NULL) {
 # The golden-suite entries: name -> builder args. Every layout kit targets
 # `utopia_s4h24` (ELC lives at the HOUR level; coarser calendars lack it), so
 # all entries run on that calendar. R3 base ~seconds; the five levers run on
-# the single-region R1 layout to keep the fast tier quick. R7/R11 and
-# utopia_m12h24 are nightly-tier candidates (not in this suite).
+# the single-region R1 layout to keep the fast tier quick. The larger R7/R11
+# layouts live in the `utopia_nightly` suite below (test-nightly-deep.R).
 ut_entries <- function() list(
   base_R1      = list(layout = "R1", calendar = "utopia_s4h24"),
   base_R3      = list(layout = "R3", calendar = "utopia_s4h24"),
@@ -39,6 +39,14 @@ ut_entries <- function() list(
   resshare_R1  = list(layout = "R1", calendar = "utopia_s4h24", lever = "RES_SHARE"),
   nonewnuc_R1  = list(layout = "R1", calendar = "utopia_s4h24", lever = "NO_NEW_NUC"),
   earlyret_R1  = list(layout = "R1", calendar = "utopia_s4h24", lever = "EARLY_RET")
+)
+
+# Nightly-only entries: the two larger region layouts on the same calendar.
+# Kept out of `ut_entries()` so the fast/cross tiers stay quick; goldens are
+# frozen with make_goldens.R --suite=utopia_nightly.
+ut_nightly_entries <- function() list(
+  base_R7  = list(layout = "R7", calendar = "utopia_s4h24"),
+  base_R11 = list(layout = "R11", calendar = "utopia_s4h24")
 )
 
 ut_solve_glpk <- function(args, tag) {

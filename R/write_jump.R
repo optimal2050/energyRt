@@ -76,22 +76,22 @@ get_julia_path <- function() {
     for (yy in uuu) {
       templ <- paste0("[(]if haskey[(]", yy, "[,]")
       if (any(grep("^pCns", nn))) {
-        for (www in seq_along(scen@modInp@gams.equation)) {
-          mmm <- grep(templ, scen@modInp@gams.equation[[www]]$equation)
+        for (www in seq_along(scen@modInp@user_constraints)) {
+          mmm <- grep(templ, scen@modInp@user_constraints[[www]]$equation)
           if (any(mmm)) {
-            scen@modInp@gams.equation[[www]]$equation[mmm] <-
+            scen@modInp@user_constraints[[www]]$equation[mmm] <-
               sapply(
-                strsplit(scen@modInp@gams.equation[[www]]$equation[mmm], yy),
+                strsplit(scen@modInp@user_constraints[[www]]$equation[mmm], yy),
                 .rem_jump, yy, rmm
               )
           }
         }
       } else if (any(grep("^pCosts", nn))) {
-        mmm <- grep(templ, scen@modInp@costs.equation)
+        mmm <- grep(templ, scen@modInp@user_costs)
         if (any(mmm)) {
-          scen@modInp@costs.equation[mmm] <-
+          scen@modInp@user_costs[mmm] <-
             sapply(
-              strsplit(scen@modInp@costs.equation[mmm], yy),
+              strsplit(scen@modInp@user_costs[mmm], yy),
               .rem_jump, yy, rmm
             )
         }
@@ -199,9 +199,9 @@ get_julia_path <- function() {
   nobj <- grep("^[@]objective", run_code)[1] - 1
   cat(run_code[1:nobj], sep = "\n", file = zz_mod)
   # Add constraint
-  if (length(scen@modInp@gams.equation) > 0) {
-    for (i in seq_along(scen@modInp@gams.equation)) {
-      eqt <- scen@modInp@gams.equation[[i]]
+  if (length(scen@modInp@user_constraints) > 0) {
+    for (i in seq_along(scen@modInp@user_constraints)) {
+      eqt <- scen@modInp@user_constraints[[i]]
       cat(.equation.from.gams.to.julia(eqt$equation),
         sep = "\n",
         file = zz_data_constr
@@ -218,7 +218,7 @@ get_julia_path <- function() {
   close(zz_data_constr)
   # Add costs
   {
-    cat(.equation.from.gams.to.julia(scen@modInp@costs.equation),
+    cat(.equation.from.gams.to.julia(scen@modInp@user_costs),
       sep = "\n", file = zz_data_costs
     )
     cat(
