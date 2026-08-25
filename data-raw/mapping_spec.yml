@@ -1825,6 +1825,182 @@ mStorageOutTot:
   filter_by:
   - mCommReg
   depends_on: []
+mStorageInpCommSameTimeslice:
+  name: mStorageInpCommSameTimeslice
+  dims:
+  - stg
+  - comm
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageInpCommAgg:
+  name: mStorageInpCommAgg
+  dims:
+  - stg
+  - comm
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageInpCommAggTimeslice:
+  name: mStorageInpCommAggTimeslice
+  dims:
+  - stg
+  - comm
+  - timeslice
+  - timeslicep
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageAInpCommSameTimeslice:
+  name: mStorageAInpCommSameTimeslice
+  dims:
+  - stg
+  - comm
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageAInpCommAgg:
+  name: mStorageAInpCommAgg
+  dims:
+  - stg
+  - comm
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageAInpCommAggTimeslice:
+  name: mStorageAInpCommAggTimeslice
+  dims:
+  - stg
+  - comm
+  - timeslice
+  - timeslicep
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageOutCommSameTimeslice:
+  name: mStorageOutCommSameTimeslice
+  dims:
+  - stg
+  - comm
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageOutCommAgg:
+  name: mStorageOutCommAgg
+  dims:
+  - stg
+  - comm
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageOutCommAggTimeslice:
+  name: mStorageOutCommAggTimeslice
+  dims:
+  - stg
+  - comm
+  - timeslice
+  - timeslicep
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageAOutCommSameTimeslice:
+  name: mStorageAOutCommSameTimeslice
+  dims:
+  - stg
+  - comm
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageAOutCommAgg:
+  name: mStorageAOutCommAgg
+  dims:
+  - stg
+  - comm
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
+mStorageAOutCommAggTimeslice:
+  name: mStorageAOutCommAggTimeslice
+  dims:
+  - stg
+  - comm
+  - timeslice
+  - timeslicep
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
 mStoragePho2AInp:
   name: mStoragePho2AInp
   dims:

@@ -100,3 +100,75 @@ test_that("the region gate is present in every back-end template", {
                4, label = paste(eng, "mvTradeIr references"))
   }
 })
+
+# ---------------------------------------------------------------------------- #
+# A region-scoped DEMAND with a wildcard (NA-region) data row.
+#
+# `ob2mi("demand")` filtered its rows with a bare `region %in% dem_regions`;
+# `NA %in% "R2"` is FALSE, so the wildcard row was DELETED and
+# `update_parameter()`'s empty-frame early exit made the loss silent — the
+# model built and solved with no demand at all. Demand was the only class with
+# this filter: supply/technology resolve the wildcard through their span maps,
+# export/import expand it eagerly with `.expand_na_region()`. The fix expands
+# demand's wildcard onto the object's scope the same eager way (a surviving NA
+# must NOT reach unfold: pDemand has no `dem` membership key, so it would
+# broadcast through the COMMODITY map to every region — a leak, not a fix).
+
+rs_dem_rows <- function(dem_obj) {
+  cal <- newCalendar(timetable = make_timetable(struct = list(ANNUAL = "ANNUAL")),
+                     name = "rsd_cal")
+  mod <- newModel(
+    name = "rsd", region = c("R1", "R2"),
+    horizon = newHorizon(2020:2021, intervals = c(1, 1)),
+    discount = 0, calendar = cal,
+    repo = newRepository("rsd_repo",
+      newCommodity("ELC", timeframe = "ANNUAL"),
+      newSupply("SUP", commodity = "ELC",
+                supply = data.frame(region = c("R1", "R2"), cost = c(1, 2))),
+      dem_obj))
+  sc <- suppressWarnings(suppressMessages(
+    interpolate_model(mod, name = "rsd")))
+  d <- get_data_slot(sc@modInp@parameters[["pDemand"]])
+  as.data.frame(d)
+}
+
+test_that("a scoped demand's wildcard row expands to the scope, not to nothing", {
+  # THE bug: scope + NA-region row used to interpolate to ZERO pDemand rows
+  d <- rs_dem_rows(newDemand("DEM", commodity = "ELC", region = "R2",
+                             demand = data.frame(demand = 1)))
+  expect_gt(nrow(d), 0)
+  expect_setequal(unique(as.character(d$region)), "R2")
+  expect_true(all(d$value == 1))
+
+  # controls: explicit column, and scope + column, give the identical rows
+  d_col <- rs_dem_rows(newDemand("DEM", commodity = "ELC",
+                                 demand = data.frame(region = "R2", demand = 1)))
+  d_both <- rs_dem_rows(newDemand("DEM", commodity = "ELC", region = "R2",
+                                  demand = data.frame(region = "R2", demand = 1)))
+  key <- c("region", "year", "value")
+  expect_equal(d[key], d_col[key])
+  expect_equal(d[key], d_both[key])
+})
+
+test_that("an unscoped wildcard demand row still broadcasts to all model regions", {
+  d <- rs_dem_rows(newDemand("DEM", commodity = "ELC",
+                             demand = data.frame(demand = 1)))
+  expect_setequal(unique(as.character(d$region)), c("R1", "R2"))
+})
+
+test_that("a multi-region scope expands the wildcard to every scope region", {
+  d <- rs_dem_rows(newDemand("DEM", commodity = "ELC", region = c("R1", "R2"),
+                             demand = data.frame(demand = 1)))
+  expect_setequal(unique(as.character(d$region)), c("R1", "R2"))
+})
+
+test_that("an explicit row OUTSIDE the scope errors loudly upstream", {
+  # `get_process_region()` (the region-scope validation) rejects a slot row
+  # naming a region outside `@region` before ob2mi ever runs — a loud error,
+  # which is the better contract than the old silent filter.
+  expect_error(
+    rs_dem_rows(newDemand("DEM", commodity = "ELC", region = "R2",
+                          demand = data.frame(region = c("R1", "R2"),
+                                              demand = c(7, 1)))),
+    "not in its @region scope")
+})

@@ -35,10 +35,12 @@ test_that("matrix rows assemble from package metadata with expected arithmetic",
   env <- load_matrix_tool()
   rows <- env$assemble_rows()
   counts <- table(rows$kind)
-  # 468 .modInp entries (13 set + 285 map + 133 numpar + 37 bounds)
-  # + 148 equations + 95 variables = 711
+  # 480 .modInp entries (13 set + 297 map + 133 numpar + 37 bounds)
+  # + 148 equations + 95 variables = 723
+  # (297 = 285 + the 12 mStorage*Comm{SameTimeslice,Agg,AggTimeslice} maps
+  # added with the storage coarse-timeframe aggregation fix, 2026-08-25)
   expect_equal(unname(counts[["set"]]), 13)
-  expect_equal(unname(counts[["map"]]), 285)
+  expect_equal(unname(counts[["map"]]), 297)
   expect_equal(unname(counts[["numpar"]]), 133)
   expect_equal(unname(counts[["bounds"]]), 37)
   expect_equal(unname(counts[["equation"]]), 148)

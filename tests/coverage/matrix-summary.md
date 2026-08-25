@@ -1,6 +1,6 @@
 # Coverage matrix summary
 
-Generated: 2026-08-24 23:00 | energyRt 0.87.1.9000
+Generated: 2026-08-25 10:45 | energyRt 0.87.1.9000
 
 ## Rows by kind x depth
 
@@ -9,9 +9,9 @@ Key: <kind>
      kind  none     C     I     S     X
    <char> <int> <int> <int> <int> <int>
    bounds    15     2     3     5    12
- equation   120     0     1    19     8
-      map   228     0    39     5    13
-   numpar    36     3    18    37    39
+ equation   120     0     1    18     9
+      map   238     0    39     7    13
+   numpar    36     3    18    36    40
       set     0     0     0     1    12
  variable    32     0     4    32    27
 ```
@@ -30,7 +30,7 @@ Key: <family>
            horizon-periodlen     1     0     0     0     2
            import-export-row     0     0     1     1     4
            storage-aux-flows     5     0     5     5     0
-           storage-costs-eac    15     0     1     4     8
+           storage-costs-eac    15     0     1     3     9
             storage-duration     0     0     0     0     1
           storage-efficiency     0     0     0     3     0
              storage-inp2out     0     0     0     1     0
@@ -118,4 +118,4 @@ Key: <family>
                <char>                   <char>     <char>   <char>      <char>
 ```
 
-Tagged rows: 100 | inferred: 180 | uncovered: 431 of 711
+Tagged rows: 103 | inferred: 179 | uncovered: 441 of 723

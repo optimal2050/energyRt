@@ -3715,14 +3715,32 @@ model.eqStorageInpTot = Constraint(
     mStorageInpTot,
     rule=lambda model, c, r, y, s: model.vStorageInpTot[c, r, y, s]
     == sum(
-        model.vStorageInp[st1, c, r, y, s]
+        (model.vStorageInp[st1, c, r, y, s] if (st1, c, r, y, s) in mvStorageInp else 0)
         for st1 in stg
-        if (st1, c, r, y, s) in mvStorageInp
+        if (st1, c) in mStorageInpCommSameTimeslice
     )
     + sum(
-        model.vStorageAInp[st1, c, r, y, s]
+        sum(
+            (model.vStorageInp[st1, c, r, y, sp] if (st1, c, r, y, sp) in mvStorageInp else 0)
+            for sp in timeslice
+            if (st1, c, sp, s) in mStorageInpCommAggTimeslice
+        )
         for st1 in stg
-        if (st1, c, r, y, s) in mvStorageAInp
+        if (st1, c) in mStorageInpCommAgg
+    )
+    + sum(
+        (model.vStorageAInp[st1, c, r, y, s] if (st1, c, r, y, s) in mvStorageAInp else 0)
+        for st1 in stg
+        if (st1, c) in mStorageAInpCommSameTimeslice
+    )
+    + sum(
+        sum(
+            (model.vStorageAInp[st1, c, r, y, sp] if (st1, c, r, y, sp) in mvStorageAInp else 0)
+            for sp in timeslice
+            if (st1, c, sp, s) in mStorageAInpCommAggTimeslice
+        )
+        for st1 in stg
+        if (st1, c) in mStorageAInpCommAgg
     ),
 )
 if verbose:
@@ -3741,14 +3759,32 @@ model.eqStorageOutTot = Constraint(
     mStorageOutTot,
     rule=lambda model, c, r, y, s: model.vStorageOutTot[c, r, y, s]
     == sum(
-        model.vStorageOut[st1, c, r, y, s]
+        (model.vStorageOut[st1, c, r, y, s] if (st1, c, r, y, s) in mvStorageOut else 0)
         for st1 in stg
-        if (st1, c, r, y, s) in mvStorageOut
+        if (st1, c) in mStorageOutCommSameTimeslice
     )
     + sum(
-        model.vStorageAOut[st1, c, r, y, s]
+        sum(
+            (model.vStorageOut[st1, c, r, y, sp] if (st1, c, r, y, sp) in mvStorageOut else 0)
+            for sp in timeslice
+            if (st1, c, sp, s) in mStorageOutCommAggTimeslice
+        )
         for st1 in stg
-        if (st1, c, r, y, s) in mvStorageAOut
+        if (st1, c) in mStorageOutCommAgg
+    )
+    + sum(
+        (model.vStorageAOut[st1, c, r, y, s] if (st1, c, r, y, s) in mvStorageAOut else 0)
+        for st1 in stg
+        if (st1, c) in mStorageAOutCommSameTimeslice
+    )
+    + sum(
+        sum(
+            (model.vStorageAOut[st1, c, r, y, sp] if (st1, c, r, y, sp) in mvStorageAOut else 0)
+            for sp in timeslice
+            if (st1, c, sp, s) in mStorageAOutCommAggTimeslice
+        )
+        for st1 in stg
+        if (st1, c) in mStorageAOutCommAgg
     ),
 )
 if verbose:

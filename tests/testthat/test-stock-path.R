@@ -70,6 +70,12 @@ test_that("storage carries the path on every part", {
 test_that("trade carries the path on region-free capacity", {
   skip_if_no_solver()
   sol <- sp_solve(sp_trade(c(100, 80, 0), ret = c(0, 10, 0), name = "spc3"))
+  # guard: the fixture's demand must actually BE in the model. Its shape
+  # (region-scoped demand + wildcard row) used to interpolate to ZERO pDemand
+  # rows, and every assertion below passed on a demand-less LP because the
+  # stock variables are exogenous-schedule-driven.
+  flows <- suppressMessages(getData(sol, "vTradeIr", merge = TRUE))
+  expect_gt(sum(flows$value), 0)
   expect_equal(unname(sp_by_year(sol, "vTradeStockCap")), c(100, 70, 0))
   expect_equal(unname(sp_by_year(sol, "vTradeRetiredStock")), c(0, 10, 0))
   # Trade departures are tracked too, on the same footing as the other two

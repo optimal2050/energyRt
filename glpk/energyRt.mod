@@ -266,7 +266,19 @@ set mExportRowCumUp dimen 2;
 set mExport dimen 4;
 set mImport dimen 4;
 set mStorageInpTot dimen 4;
+set mStorageInpCommSameTimeslice dimen 2;
+set mStorageInpCommAgg dimen 2;
+set mStorageInpCommAggTimeslice dimen 4;
+set mStorageAInpCommSameTimeslice dimen 2;
+set mStorageAInpCommAgg dimen 2;
+set mStorageAInpCommAggTimeslice dimen 4;
 set mStorageOutTot dimen 4;
+set mStorageOutCommSameTimeslice dimen 2;
+set mStorageOutCommAgg dimen 2;
+set mStorageOutCommAggTimeslice dimen 4;
+set mStorageAOutCommSameTimeslice dimen 2;
+set mStorageAOutCommAgg dimen 2;
+set mStorageAOutCommAggTimeslice dimen 4;
 set mTaxCost dimen 3;
 set mSubCost dimen 3;
 set mAggOut dimen 4;
@@ -1016,9 +1028,9 @@ s.t.  eqTechOutTot{(c, r, y, s) in mTechOutTot}: vTechOutTot[c,r,y,s]  =  sum{t 
 
 # [agg-rewrite] eqTechOutRY/vTechOutRY retired (dead reporting)
 
-s.t.  eqStorageInpTot{(c, r, y, s) in mStorageInpTot}: vStorageInpTot[c,r,y,s]  =  sum{st1 in stg:((st1,c,r,y,s) in mvStorageInp)}(vStorageInp[st1,c,r,y,s])+sum{st1 in stg:((st1,c,r,y,s) in mvStorageAInp)}(vStorageAInp[st1,c,r,y,s]);
+s.t.  eqStorageInpTot{(c, r, y, s) in mStorageInpTot}: vStorageInpTot[c,r,y,s]  =  sum{st1 in stg:((st1,c) in mStorageInpCommSameTimeslice)}(sum{FORIF: (st1,c,r,y,s) in mvStorageInp} (vStorageInp[st1,c,r,y,s]))+sum{st1 in stg:((st1,c) in mStorageInpCommAgg)}(sum{sp in timeslice:((st1,c,sp,s) in mStorageInpCommAggTimeslice)}(sum{FORIF: (st1,c,r,y,sp) in mvStorageInp} (vStorageInp[st1,c,r,y,sp])))+sum{st1 in stg:((st1,c) in mStorageAInpCommSameTimeslice)}(sum{FORIF: (st1,c,r,y,s) in mvStorageAInp} (vStorageAInp[st1,c,r,y,s]))+sum{st1 in stg:((st1,c) in mStorageAInpCommAgg)}(sum{sp in timeslice:((st1,c,sp,s) in mStorageAInpCommAggTimeslice)}(sum{FORIF: (st1,c,r,y,sp) in mvStorageAInp} (vStorageAInp[st1,c,r,y,sp])));
 
-s.t.  eqStorageOutTot{(c, r, y, s) in mStorageOutTot}: vStorageOutTot[c,r,y,s]  =  sum{st1 in stg:((st1,c,r,y,s) in mvStorageOut)}(vStorageOut[st1,c,r,y,s])+sum{st1 in stg:((st1,c,r,y,s) in mvStorageAOut)}(vStorageAOut[st1,c,r,y,s]);
+s.t.  eqStorageOutTot{(c, r, y, s) in mStorageOutTot}: vStorageOutTot[c,r,y,s]  =  sum{st1 in stg:((st1,c) in mStorageOutCommSameTimeslice)}(sum{FORIF: (st1,c,r,y,s) in mvStorageOut} (vStorageOut[st1,c,r,y,s]))+sum{st1 in stg:((st1,c) in mStorageOutCommAgg)}(sum{sp in timeslice:((st1,c,sp,s) in mStorageOutCommAggTimeslice)}(sum{FORIF: (st1,c,r,y,sp) in mvStorageOut} (vStorageOut[st1,c,r,y,sp])))+sum{st1 in stg:((st1,c) in mStorageAOutCommSameTimeslice)}(sum{FORIF: (st1,c,r,y,s) in mvStorageAOut} (vStorageAOut[st1,c,r,y,s]))+sum{st1 in stg:((st1,c) in mStorageAOutCommAgg)}(sum{sp in timeslice:((st1,c,sp,s) in mStorageAOutCommAggTimeslice)}(sum{FORIF: (st1,c,r,y,sp) in mvStorageAOut} (vStorageAOut[st1,c,r,y,sp])));
 
 s.t.  eqDummyImportCost{(c, r, y) in mDummyImportCost}: vDummyImportCost[c,r,y]  =  sum{s in timeslice:((c,r,y,s) in mDummyImport)}(pTimesliceWeight[y,s]*pDummyImportCost[c,r,y,s]*sum{FORIF: (c,r,y,s) in mDummyImport} (vDummyImport[c,r,y,s]));
 

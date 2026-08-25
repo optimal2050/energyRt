@@ -522,6 +522,12 @@ setMethod(
       # the `dem` object inside data.table's NSE, so `dem@region` must be taken
       # into a local first.
       dem_regions <- dem@region
+      # An NA region row is a wildcard: "every region in the object's scope",
+      # exactly as export/import treat it. Expand it BEFORE the scope filter —
+      # a bare `region %in% dem_regions` deleted the wildcard (NA %in% x is
+      # FALSE) and the demand vanished without a trace. The filter still
+      # applies afterwards, restricting explicit rows to the declared scope.
+      dat <- .expand_na_region(dat, dem_regions)
       dat <- dat[region %in% dem_regions]
     }
     scen <- update_parameter(scen, "pDemand", dat)

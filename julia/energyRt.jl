@@ -5155,9 +5155,44 @@ print("eqStorageInpTot(comm, region, year, timeslice)...")
     [(c, r, y, s) in mStorageInpTot],
     vStorageInpTot[(c, r, y, s)] ==
     sum(
-        vStorageInp[(st1, c, r, y, s)] for st1 in stg if (st1, c, r, y, s) in mvStorageInp
-    ) + sum(
-        vStorageAInp[(st1, c, r, y, s)] for st1 in stg if (st1, c, r, y, s) in mvStorageAInp
+        (
+            if (st1, c, r, y, s) in mvStorageInp
+                vStorageInp[(st1, c, r, y, s)]
+            else
+                0
+            end
+        ) for st1 in stg if (st1, c) in mStorageInpCommSameTimeslice
+    ) +
+    sum(
+        sum(
+            (
+                if (st1, c, r, y, sp) in mvStorageInp
+                    vStorageInp[(st1, c, r, y, sp)]
+                else
+                    0
+                end
+            ) for sp in timeslice if (st1, c, sp, s) in mStorageInpCommAggTimeslice
+        ) for st1 in stg if (st1, c) in mStorageInpCommAgg
+    ) +
+    sum(
+        (
+            if (st1, c, r, y, s) in mvStorageAInp
+                vStorageAInp[(st1, c, r, y, s)]
+            else
+                0
+            end
+        ) for st1 in stg if (st1, c) in mStorageAInpCommSameTimeslice
+    ) +
+    sum(
+        sum(
+            (
+                if (st1, c, r, y, sp) in mvStorageAInp
+                    vStorageAInp[(st1, c, r, y, sp)]
+                else
+                    0
+                end
+            ) for sp in timeslice if (st1, c, sp, s) in mStorageAInpCommAggTimeslice
+        ) for st1 in stg if (st1, c) in mStorageAInpCommAgg
     )
 );
 print(
@@ -5173,9 +5208,44 @@ print("eqStorageOutTot(comm, region, year, timeslice)...")
     [(c, r, y, s) in mStorageOutTot],
     vStorageOutTot[(c, r, y, s)] ==
     sum(
-        vStorageOut[(st1, c, r, y, s)] for st1 in stg if (st1, c, r, y, s) in mvStorageOut
-    ) + sum(
-        vStorageAOut[(st1, c, r, y, s)] for st1 in stg if (st1, c, r, y, s) in mvStorageAOut
+        (
+            if (st1, c, r, y, s) in mvStorageOut
+                vStorageOut[(st1, c, r, y, s)]
+            else
+                0
+            end
+        ) for st1 in stg if (st1, c) in mStorageOutCommSameTimeslice
+    ) +
+    sum(
+        sum(
+            (
+                if (st1, c, r, y, sp) in mvStorageOut
+                    vStorageOut[(st1, c, r, y, sp)]
+                else
+                    0
+                end
+            ) for sp in timeslice if (st1, c, sp, s) in mStorageOutCommAggTimeslice
+        ) for st1 in stg if (st1, c) in mStorageOutCommAgg
+    ) +
+    sum(
+        (
+            if (st1, c, r, y, s) in mvStorageAOut
+                vStorageAOut[(st1, c, r, y, s)]
+            else
+                0
+            end
+        ) for st1 in stg if (st1, c) in mStorageAOutCommSameTimeslice
+    ) +
+    sum(
+        sum(
+            (
+                if (st1, c, r, y, sp) in mvStorageAOut
+                    vStorageAOut[(st1, c, r, y, sp)]
+                else
+                    0
+                end
+            ) for sp in timeslice if (st1, c, sp, s) in mStorageAOutCommAggTimeslice
+        ) for st1 in stg if (st1, c) in mStorageAOutCommAgg
     )
 );
 print(

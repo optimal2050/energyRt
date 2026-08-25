@@ -55,6 +55,15 @@
 * `technology@af$rampup` / `$rampdown` were accepted by the constructor and
   never reached the solver — the parameter catalogue named slots that do not
   exist, so the ramp parameters stayed empty.
+* A storage flow into a commodity with a COARSER timeframe never reached the
+  balance: `eqStorageInpTot` / `eqStorageOutTot` summed only at identical
+  timeslices, so a slice-level storage's aux into an ANNUAL commodity was
+  computed but silently FREE (a priced aux cost nothing). The storage totals
+  now use the same SameTimeslice/Agg classification the technology totals have
+  had all along (12 new `mStorage{Inp,AInp,Out,AOut}Comm*` maps, 4-branch
+  equations on all four backends), and the totals domain is reduced to the
+  commodity's native timeslice and mCommReg-cut like `.filter_proc_tot`.
+  Covered by `test-family-storage-aux-flows.R` incl. Julia/Pyomo parity.
 * A one-sided `inp2out` (or `duration`) range no longer resurrects the binding
   default on its open side: `.norm_ratio()` completes one-sided ranges with an
   OPEN `lo = 0` / `up = Inf`, but writers drop `Inf` rows from solver data, so

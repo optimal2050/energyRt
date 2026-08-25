@@ -115,12 +115,11 @@ my_trd_mod <- function(years = 2020:2022, olife = 50L, name = "myt") {
       newSupply("SUP", commodity = "ELC",
                 supply = data.frame(region = c("R1", "R2"),
                                     cost = c(1, MY_BACKSTOP_COST))),
-      # NOTE the explicit region COLUMN: on the current tree a region-scoped
-      # demand (@region = "R2") whose data row has region = NA interpolates
-      # to ZERO pDemand rows — a pre-existing bug in the in-flight region
-      # work (reproduced at HEAD), reported separately.
+      # scope + wildcard row on purpose: this shape used to interpolate to
+      # ZERO pDemand (fixed in ob2mi("demand")); keeping it here doubles as
+      # an integration regression for that fix
       newDemand("DEM", commodity = "ELC", region = "R2",
-                demand = data.frame(region = "R2", demand = 1))))
+                demand = data.frame(demand = 1))))
 }
 
 # A vintaged technology: the "early" variant can only be built in the first

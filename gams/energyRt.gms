@@ -785,7 +785,19 @@ mExportRowCumUp(expp, comm)
 mExport(comm, region, year, timeslice)
 mImport(comm, region, year, timeslice)
 mStorageInpTot(comm, region, year, timeslice)
+mStorageInpCommSameTimeslice(stg, comm)
+mStorageInpCommAgg(stg, comm)
+mStorageInpCommAggTimeslice(stg, comm, timeslice, timeslicep)
+mStorageAInpCommSameTimeslice(stg, comm)
+mStorageAInpCommAgg(stg, comm)
+mStorageAInpCommAggTimeslice(stg, comm, timeslice, timeslicep)
 mStorageOutTot(comm, region, year, timeslice)
+mStorageOutCommSameTimeslice(stg, comm)
+mStorageOutCommAgg(stg, comm)
+mStorageOutCommAggTimeslice(stg, comm, timeslice, timeslicep)
+mStorageAOutCommSameTimeslice(stg, comm)
+mStorageAOutCommAgg(stg, comm)
+mStorageAOutCommAggTimeslice(stg, comm, timeslice, timeslicep)
 mTaxCost(comm, region, year)
 mSubCost(comm, region, year)
 mAggOut(comm, region, year, timeslice)
@@ -2644,25 +2656,47 @@ eqTechOutTot(comm, region, year, timeslice)$mTechOutTot(comm, region, year, time
 eqStorageInpTot(comm, region, year, timeslice)$mStorageInpTot(comm, region, year, timeslice)..
         vStorageInpTot(comm, region, year, timeslice)
         =e=
-*        pTimesliceWeight(year, timeslice) *
-        sum(stg$mvStorageInp(stg, comm, region, year, timeslice),
-            vStorageInp(stg, comm, region, year, timeslice)
+        sum(stg$mStorageInpCommSameTimeslice(stg, comm),
+            vStorageInp(stg, comm, region, year, timeslice)$mvStorageInp(stg, comm, region, year, timeslice)
         )
-*        + pTimesliceWeight(year, timeslice) *
-        + sum(stg$mvStorageAInp(stg, comm, region, year, timeslice),
-            vStorageAInp(stg, comm, region, year, timeslice)
+        +
+        sum(stg$mStorageInpCommAgg(stg, comm),
+            sum(timeslicep$mStorageInpCommAggTimeslice(stg, comm, timeslicep, timeslice),
+                vStorageInp(stg, comm, region, year, timeslicep)$mvStorageInp(stg, comm, region, year, timeslicep)
+            )
+        )
+        +
+        sum(stg$mStorageAInpCommSameTimeslice(stg, comm),
+            vStorageAInp(stg, comm, region, year, timeslice)$mvStorageAInp(stg, comm, region, year, timeslice)
+        )
+        +
+        sum(stg$mStorageAInpCommAgg(stg, comm),
+            sum(timeslicep$mStorageAInpCommAggTimeslice(stg, comm, timeslicep, timeslice),
+                vStorageAInp(stg, comm, region, year, timeslicep)$mvStorageAInp(stg, comm, region, year, timeslicep)
+            )
         );
 
 eqStorageOutTot(comm, region, year, timeslice)$mStorageOutTot(comm, region, year, timeslice)..
         vStorageOutTot(comm, region, year, timeslice)
         =e=
-*        pTimesliceWeight(year, timeslice) *
-        sum(stg$mvStorageOut(stg, comm, region, year, timeslice),
-            vStorageOut(stg, comm, region, year, timeslice)
+        sum(stg$mStorageOutCommSameTimeslice(stg, comm),
+            vStorageOut(stg, comm, region, year, timeslice)$mvStorageOut(stg, comm, region, year, timeslice)
         )
-*        + pTimesliceWeight(year, timeslice) *
-        + sum(stg$mvStorageAOut(stg, comm, region, year, timeslice),
-            vStorageAOut(stg, comm, region, year, timeslice)
+        +
+        sum(stg$mStorageOutCommAgg(stg, comm),
+            sum(timeslicep$mStorageOutCommAggTimeslice(stg, comm, timeslicep, timeslice),
+                vStorageOut(stg, comm, region, year, timeslicep)$mvStorageOut(stg, comm, region, year, timeslicep)
+            )
+        )
+        +
+        sum(stg$mStorageAOutCommSameTimeslice(stg, comm),
+            vStorageAOut(stg, comm, region, year, timeslice)$mvStorageAOut(stg, comm, region, year, timeslice)
+        )
+        +
+        sum(stg$mStorageAOutCommAgg(stg, comm),
+            sum(timeslicep$mStorageAOutCommAggTimeslice(stg, comm, timeslicep, timeslice),
+                vStorageAOut(stg, comm, region, year, timeslicep)$mvStorageAOut(stg, comm, region, year, timeslicep)
+            )
         );
 
 **********************************************

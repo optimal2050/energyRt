@@ -236,17 +236,33 @@ map_mSupOutTot <- function(scen, fmp) {
 # than what it exchanges: a hydrogen store would register only in the H2 balance,
 # so the ELC balance never saw it charge or discharge and the store sat unused.
 # The aux side is likewise split: AInp feeds the input total, AOut the output.
+# Like .filter_proc_tot, the domain is reduced to the COMMODITY's native
+# timeslice (and mCommReg-cut): a storage flowing into a coarser-timeframe
+# commodity (an ANNUAL aux from a slice-level storage) must instantiate the
+# totals equation at the commodity's level, with the Agg branch summing the
+# finer flow rows -- previously the rows stayed at the storage's timeslice,
+# nothing referenced them, and the aux was silently FREE.
 .filter_storage_tot <- function(scen, name, main, aux, fmp) {
   m <- .gds(scen, main); a <- .gds(scen, aux)
   if (is.null(m) && is.null(a)) return(scen)
   pieces <- lapply(Filter(Negate(is.null), list(a, m)),
                    function(x) x[, -1, drop = FALSE])
-  .set_map(scen, name, .reduce_sect(dplyr::bind_rows(pieces)), fmp)
+  tot <- .reduce_total_map(.reduce_sect(dplyr::bind_rows(pieces)),
+                           .gds(scen, "mCommTimesliceOrParent"))
+  .set_map(scen, name, .filt_cr(scen, tot), fmp)
 }
-map_mStorageInpTot <- function(scen, fmp)
-  .filter_storage_tot(scen, "mStorageInpTot", "mvStorageInp", "mvStorageAInp", fmp)
-map_mStorageOutTot <- function(scen, fmp)
-  .filter_storage_tot(scen, "mStorageOutTot", "mvStorageOut", "mvStorageAOut", fmp)
+map_mStorageInpTot <- function(scen, fmp) {
+  scen <- .filter_storage_tot(scen, "mStorageInpTot", "mvStorageInp",
+                              "mvStorageAInp", fmp)
+  scen <- .comm_timeslice_class_maps(scen, "mvStorageInp",  "mStorageInpComm",  fmp)
+  .comm_timeslice_class_maps(scen, "mvStorageAInp", "mStorageAInpComm", fmp)
+}
+map_mStorageOutTot <- function(scen, fmp) {
+  scen <- .filter_storage_tot(scen, "mStorageOutTot", "mvStorageOut",
+                              "mvStorageAOut", fmp)
+  scen <- .comm_timeslice_class_maps(scen, "mvStorageOut",  "mStorageOutComm",  fmp)
+  .comm_timeslice_class_maps(scen, "mvStorageAOut", "mStorageAOutComm", fmp)
+}
 
 # -- auxiliary-conversion domains (mTech*2A* / mStorage*2A*) ---------------- #
 # Each: relabel a conversion-factor parameter's aux commodity as `comm` and

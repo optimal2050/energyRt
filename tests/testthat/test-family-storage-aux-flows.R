@@ -9,12 +9,11 @@
 #   cout2ainp r: aux_s = r * discharge_s     (0.2 -> 2 @ s3)
 #   stg2ainp  r: aux_s = r * level_s         (0.05 -> 0.5 @ s2, s3)
 #
-# KNOWN BUG pinned below: unlike the tech side (eqTechInpTot has
-# SameTimeslice + Agg branches), eqStorageInpTot sums vStorageAInp only at
-# the SAME (comm, region, year, timeslice) -- a storage aux flowing into a
-# commodity with a COARSER timeframe (e.g. ANNUAL WAT vs slice-level storage)
-# never reaches the balance: the aux is computed but FREE. Workaround until
-# fixed: declare the aux commodity at the storage's timeframe.
+# A storage aux flowing into a commodity with a COARSER timeframe (ANNUAL WAT
+# vs slice-level storage) aggregates through eqStorageInpTot's Agg branch --
+# the same SameTimeslice/Agg map machinery the tech side uses (fixed
+# 2026-08-25; previously the aux was computed but silently FREE because the
+# totals equation only summed at identical timeslices).
 # =========================================================================== #
 
 sa_slices <- paste0("s", 1:4)
@@ -74,6 +73,24 @@ test_that("family storage-aux-flows: level-driven aux input", {
           "pStorageStg2AInp", 1)
 })
 
+# @covers eqStorageInpTot depth=X backends=julia_highs,pyomo forks=default
+test_that("family storage-aux-flows: coarse-timeframe aux agrees across backends", {
+  skip_if_no_solver()
+  for (backend in c("julia_highs", "pyomo_cbc")) {
+    if (backend == "julia_highs") skip_if_no_julia_highs() else skip_if_no_pyomo()
+    scen <- suppressMessages(suppressWarnings(interpolate_model(
+      sa_build(data.frame(acomm = "WAT", stg2ainp = 0.05),
+               wat_timeframe = "ANNUAL"),
+      name = paste0("sa_x_", backend), overwrite = TRUE)))
+    solver <- if (backend == "julia_highs") solver_options$julia_highs else
+      solver_options$pyomo_cbc
+    scen <- .fork_solve(scen, solver)
+    expect_true(verify_solution(scen)$ok, label = paste0(backend, " invariants"))
+    expect_equal(.fork_objective(scen), 12, tolerance = 1e-6,
+                 label = paste0(backend, " aux cost charged"))
+  }
+})
+
 # @covers pStorageCap2AInp pStorageNCap2AInp pStorageCinp2AOut pStorageCout2AOut pStorageStg2AOut depth=I backends=glpk
 test_that("family storage-aux-flows: remaining ratios land in modInp", {
   scen <- suppressMessages(suppressWarnings(interpolate_model(
@@ -96,15 +113,28 @@ test_that("family storage-aux-flows: remaining ratios land in modInp", {
   expect_equal(unique(ff_param(scen, "pStorageStg2AOut")$value), 0.05)
 })
 
-test_that("family storage-aux-flows: KNOWN-BUG aux into a coarser-timeframe commodity is free", {
+# @covers mStorageAInpCommAgg mStorageAInpCommAggTimeslice eqStorageInpTot depth=S backends=glpk
+test_that("family storage-aux-flows: aux into a coarser-timeframe commodity is costed", {
   skip_if_no_solver()
-  # same stg2ainp model but WAT at ANNUAL: the aux is computed yet never
-  # enters WAT's balance -- the objective misses the 2 * 1.0 aux cost
-  scen <- suppressMessages(suppressWarnings(interpolate_model(
-    sa_build(data.frame(acomm = "WAT", stg2ainp = 0.05), wat_timeframe = "ANNUAL"),
-    name = "sa_annual", overwrite = TRUE)))
-  scen <- .fork_solve(scen, solver_options$glpk)
-  expect_equal(ff_solution_sum(scen, "vStorageAInp"), 1, tolerance = 1e-6)
-  expect_equal(.fork_objective(scen), 10, tolerance = 1e-6,
-               label = "KNOWN-BUG pin: aux cost dropped (fix: add Agg branch to eqStorageInpTot)")
+  # same models but WAT at ANNUAL: the slice-level aux aggregates through the
+  # Agg branch of eqStorageInpTot and the cost matches the slice-level case
+  for (case in list(list(aeff = data.frame(acomm = "WAT", stg2ainp = 0.05),
+                         tag = "sa_annual_stg", aux = 1),
+                    list(aeff = data.frame(acomm = "WAT", cinp2ainp = 0.1),
+                         tag = "sa_annual_cinp", aux = 1),
+                    list(aeff = data.frame(acomm = "WAT", cout2ainp = 0.2),
+                         tag = "sa_annual_cout", aux = 2))) {
+    scen <- suppressMessages(suppressWarnings(interpolate_model(
+      sa_build(case$aeff, wat_timeframe = "ANNUAL"),
+      name = case$tag, overwrite = TRUE)))
+    # the Agg classification maps must be populated (WAT coarser than storage)
+    expect_gte(nrow(ff_param(scen, "mStorageAInpCommAgg")), 1)
+    expect_gte(nrow(ff_param(scen, "mStorageAInpCommAggTimeslice")), 1)
+    scen <- .fork_solve(scen, solver_options$glpk)
+    expect_true(verify_solution(scen)$ok, label = paste0(case$tag, " invariants"))
+    expect_equal(ff_solution_sum(scen, "vStorageAInp"), case$aux, tolerance = 1e-6,
+                 label = paste0(case$tag, " aux volume"))
+    expect_equal(.fork_objective(scen), 10 + 2 * case$aux, tolerance = 1e-6,
+                 label = paste0(case$tag, " objective includes aux cost"))
+  }
 })

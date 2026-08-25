@@ -3623,6 +3623,86 @@ mStorageOutTot:
   - region
   - year
   - timeslice
+mStorageInpCommSameTimeslice:
+  name: mStorageInpCommSameTimeslice
+  type: map
+  dimSets:
+  - stg
+  - comm
+mStorageInpCommAgg:
+  name: mStorageInpCommAgg
+  type: map
+  dimSets:
+  - stg
+  - comm
+mStorageInpCommAggTimeslice:
+  name: mStorageInpCommAggTimeslice
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - timeslice
+  - timeslicep
+mStorageAInpCommSameTimeslice:
+  name: mStorageAInpCommSameTimeslice
+  type: map
+  dimSets:
+  - stg
+  - comm
+mStorageAInpCommAgg:
+  name: mStorageAInpCommAgg
+  type: map
+  dimSets:
+  - stg
+  - comm
+mStorageAInpCommAggTimeslice:
+  name: mStorageAInpCommAggTimeslice
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - timeslice
+  - timeslicep
+mStorageOutCommSameTimeslice:
+  name: mStorageOutCommSameTimeslice
+  type: map
+  dimSets:
+  - stg
+  - comm
+mStorageOutCommAgg:
+  name: mStorageOutCommAgg
+  type: map
+  dimSets:
+  - stg
+  - comm
+mStorageOutCommAggTimeslice:
+  name: mStorageOutCommAggTimeslice
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - timeslice
+  - timeslicep
+mStorageAOutCommSameTimeslice:
+  name: mStorageAOutCommSameTimeslice
+  type: map
+  dimSets:
+  - stg
+  - comm
+mStorageAOutCommAgg:
+  name: mStorageAOutCommAgg
+  type: map
+  dimSets:
+  - stg
+  - comm
+mStorageAOutCommAggTimeslice:
+  name: mStorageAOutCommAggTimeslice
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - timeslice
+  - timeslicep
 mTaxCost:
   name: mTaxCost
   type: map
