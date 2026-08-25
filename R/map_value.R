@@ -37,7 +37,14 @@
   mTradeRetCost   = list(source = "pTradeRetCost", window = NULL,
                          gate = "optimizeRetirement"),
   # storage
-  mStorageFixom = list(source = "pStorageOutFixom", window = "mStorageSpan"),
+  # Spans the three parts, like `mStorageRetCost` above and for the same reason:
+  # `eqStorageFixom` sums all three into a single `vStorageFixom`, with the
+  # storing and charging terms as guarded sums INSIDE the equation. Sourced from
+  # the out part alone, a storage priced only on its reservoir got no equation at
+  # all and its fixed O&M silently left the objective.
+  mStorageFixom = list(source = c("pStorageOutFixom", "pStorageInpFixom",
+                                  "pStorageStgFixom"),
+                       window = "mStorageSpan"),
   mStorageVarom = list(source = c("pStorageCostInp", "pStorageCostOut",
                                   "pStorageCostStore"),
                        window = "mStorageSpan"),

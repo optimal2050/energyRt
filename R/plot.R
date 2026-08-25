@@ -1550,9 +1550,7 @@ autoplot.trade <- function(object, map = NULL, ...) {
   check_package("geoscales")
   check_package("sf")
   level <- level %||% .geo_default_level(map)
-  # geoscales 0.2 renamed `level` -> `geoframe`; the `geo_geometry()` shim
-  # forwards `...` unchanged, so `level =` reaches a function that no longer has
-  # that argument and errors with "unused argument". Use the current name.
+  # energyRt's own vocabulary still says `level`; geoscales' is `geoframe`
   shp <- geoscales::geoscale_geometry(map, geoframe = level)
   names(shp)[names(shp) == level] <- "region"
   # `st_point_on_surface()` rather than `st_centroid()`: a centroid can fall

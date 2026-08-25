@@ -65,6 +65,8 @@
 
 * `inp.eac` and `stg.eac` now give a `storage` part its own capacity; they priced
   the charging or storing part without bounding it, so it came out free.
+* `inp.fixom` and `stg.fixom` now reach the objective on their own; a `storage`
+  priced only on its charger or reservoir paid no fixed O&M at all.
 * Per-part `inp.` / `stg.` `wacc` and `payback` are honoured: they were accepted
   and interpolated but the annuity always read the `out.*` columns. The cascade
   is now part-specific > storage-wide (`out.*`) > model-wide `pWacc` (rate) or

@@ -27,3 +27,6 @@ drafts/
 dev/
 dev-scripts/
 .positai
+#temporary:
+man/
+docs/
