@@ -50,22 +50,29 @@
   # metadata, not data. Were it included, every storage would acquire an energy
   # capacity variable and `inp.af.up`/`out.af.up` defaulting to .inf would let the
   # LP drive it to zero -- a priced-but-unbounded capacity vanishing silently.
+  #
+  # `pStorage*Eac` IS a source, alongside its `pStorage*Invcost` sibling. Both
+  # are a price on the part, so both are data by the same rule. Omitting the eac
+  # produced exactly the failure the line above warns about, only from the other
+  # direction: `mStorage*Eac` still built an objective term, so the LP carried a
+  # capacity variable that was priced but appeared in no constraint, and drove it
+  # to zero. An `eac`-financed charging or storing part was silently free.
   mStorageStgCap = list(source = c("pStorageStgStock", "pStorageStgCap",
                                    "pStorageStgNewCap", "pStorageStgInvcost",
-                                   "pStorageStgFixom"),
+                                   "pStorageStgEac", "pStorageStgFixom"),
                         window = "mStorageSpan"),
   mStorageStgNew = list(source = c("pStorageStgStock", "pStorageStgCap",
                                    "pStorageStgNewCap", "pStorageStgInvcost",
-                                   "pStorageStgFixom"),
+                                   "pStorageStgEac", "pStorageStgFixom"),
                         window = "mStorageNew"),
   # The charging part, same structure-follows-data gate as the storing part.
   mStorageInpCap = list(source = c("pStorageInpStock", "pStorageInpCap",
                                    "pStorageInpNewCap", "pStorageInpInvcost",
-                                   "pStorageInpFixom"),
+                                   "pStorageInpEac", "pStorageInpFixom"),
                         window = "mStorageSpan"),
   mStorageInpNew = list(source = c("pStorageInpStock", "pStorageInpCap",
                                    "pStorageInpNewCap", "pStorageInpInvcost",
-                                   "pStorageInpFixom"),
+                                   "pStorageInpEac", "pStorageInpFixom"),
                         window = "mStorageNew"),
   mStorageInpFixom = list(source = "pStorageInpFixom", window = "mStorageSpan"),
   mStorageInpEac   = list(source = "pStorageInpEac",   window = "mStorageNew"),

@@ -448,6 +448,12 @@ interpolate_model <- function(mod, name = NULL, ...,
   scen@modInp <- mi
   rm(mi)
 
+  # Per-column default-value / interpolation-rule overrides from the scenario
+  # settings (scenario-level source of truth; model-level `config` flows in via
+  # `.config_to_settings()`). Catalog values from `.modInp` stay authoritative
+  # unless the user CHANGED a column relative to the baked baseline.
+  scen <- .apply_settings_param_overrides(scen)
+
   # set scenario directory and the type of solution (foresight or myopic)
   # scen@path
   # if (!dir.exists(scen@path)) {

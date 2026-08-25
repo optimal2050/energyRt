@@ -52,41 +52,37 @@
 
 ## Bug fixes
 
+* `inp.eac` and `stg.eac` now give a `storage` part its own capacity; they priced
+  the charging or storing part without bounding it, so it came out free.
 * `technology@af$rampup` / `$rampdown` were accepted by the constructor and
   never reached the solver — the parameter catalogue named slots that do not
-  exist, so the ramp parameters stayed empty.
-* The `costs` class (user cost terms in the objective) was never wired: no
-  `ob2mi` method dispatched it (interpolation errored on any model carrying
-  one), its compiler `.getCostEquation` had no callers, the class lacked the
-  `defVal` slot the compiler reads, the documented list form of `subset=`
-  errored, and the cost_agg recipe ran before the compile step that creates
-  the `mCosts*` maps it consumes. All wired now: costs compile alongside user
-  constraints (after the variable domain maps), a scalar `mult` is carried as
-  the constant `@defVal` in the equation and in the `vUserCosts` reporting,
-  and `eqTotalUserCosts` carries the terms into the objective. An unknown
-  summand field in `newConstraint()` (e.g. `tech = "X"` instead of
-  `for.sum = list(tech = "X")`) is now an error instead of being silently
-  dropped. Covered by `test-family-constraints-costs.R`.
-* A storage flow into a commodity with a COARSER timeframe never reached the
-  balance: `eqStorageInpTot` / `eqStorageOutTot` summed only at identical
-  timeslices, so a slice-level storage's aux into an ANNUAL commodity was
-  computed but silently FREE (a priced aux cost nothing). The storage totals
-  now use the same SameTimeslice/Agg classification the technology totals have
-  had all along (12 new `mStorage{Inp,AInp,Out,AOut}Comm*` maps, 4-branch
-  equations on all four backends), and the totals domain is reduced to the
-  commodity's native timeslice and mCommReg-cut like `.filter_proc_tot`.
-  Covered by `test-family-storage-aux-flows.R` incl. Julia/Pyomo parity.
-* A one-sided `inp2out` (or `duration`) range no longer resurrects the binding
-  default on its open side: `.norm_ratio()` completes one-sided ranges with an
-  OPEN `lo = 0` / `up = Inf`, but writers drop `Inf` rows from solver data, so
-  the structural equation fell back to the default of 1 —
-  `inp2out = data.frame(inp2out.lo = 2)` alone made the model INFEASIBLE
-  (charger ≥ 2× discharger against a resurrected charger ≤ 1× discharger).
-  The structural ratio maps (`mStorageInp2out*`, `mStorageDuration*`) now skip
-  entries whose explicit value is non-binding, so an open side produces no
-  equation on any backend. Declared-open semantics unchanged and now tested
-  (`test-family-storage-inp2out.R`): a lone `.up` still leaves the charger
-  floor open — a priced charger may size to zero.
+  exist, so the ramp parameters stayed empty. Once live, two template defects
+  surfaced and were fixed on all four backends: `cap2act` was multiplied twice
+  in the ramp bound, and the Up/Down equations were orientation-swapped
+  ("RampUp" bounded the decrease toward the next timeslice).
+* Per-column `config@defVal` / `config@interpolation` overrides were inert —
+  copied onto the scenario `settings` and never read. They now override the
+  parameter catalogue at interpolation, keyed by column (`af.up`, `dem`, ...);
+  a value equal to the shipped default stays a no-op, so untouched models are
+  unaffected.
+* The `costs` class was never wired: no `ob2mi` method dispatched it, its
+  compiler had no callers, the `defVal` slot it reads was missing, the
+  documented list form of `subset =` errored, and the cost-aggregation recipe
+  ran before the `mCosts*` maps it consumes existed. User cost terms now
+  compile with user constraints and reach the objective via `eqTotalUserCosts`.
+* An unknown summand field in `newConstraint()` (e.g. `tech = "X"` instead of
+  `for.sum = list(tech = "X")`) is an error instead of being silently dropped —
+  it quietly turned a per-technology cap into a global one.
+* A storage flow into a coarser-timeframe commodity never reached the balance:
+  the storage totals summed only at identical timeslices, so a slice-level
+  storage's aux into an annual commodity was computed but free. They now
+  aggregate through the same timeslice classification the technology totals
+  have always used.
+* A one-sided `inp2out` (or `duration`) range resurrected the binding default
+  of 1 on its open side — writers drop the completing `Inf` row —
+  so `inp2out.lo = 2` alone was infeasible. An open side now produces no
+  equation; declared-open semantics are unchanged, and a lone `.up` still
+  leaves the charger floor open.
 * A supply restricted to one region leaked into every other region:
   `eqSupOutTot` gated the sum on commodity alone.
 * Multi-level regions were inert — the geoscale hierarchy was read under the

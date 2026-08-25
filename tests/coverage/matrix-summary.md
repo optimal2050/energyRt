@@ -1,6 +1,6 @@
 # Coverage matrix summary
 
-Generated: 2026-08-25 11:52 | energyRt 0.87.2.9000
+Generated: 2026-08-25 12:20 | energyRt 0.87.2.9000
 
 ## Rows by kind x depth
 

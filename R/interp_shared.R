@@ -470,6 +470,62 @@ interpolate_slot <- interpolate_slot <- function(
   rs
 }
 
+# --------------------------------------------------------------------------- #
+# Settings-level per-column overrides of parameter defaults / interpolation.
+#
+# `settings@defVal` / `settings@interpolation` (inherited from `config`, filled
+# from config_default_values.yml / config_default_interpolation.yml, copied to
+# the scenario by `.config_to_settings()`) were initialised for years but never
+# consumed. They now override each parameter's catalog (`.modInp`) values,
+# keyed by the parameter's `colName` provenance -- `pTechAf` (colName "af",
+# bounds) reads columns `af.lo` / `af.up`; a numpar like `pDemand` (colName
+# "dem") reads column `dem`.
+#
+# An override applies ONLY where the settings value DIFFERS from the baked
+# baseline (`.defVal` / `.defInt`): the two YAML mirrors have drifted from
+# modInp.yml in places, and an untouched settings table must remain a no-op --
+# modInp.yml stays the source of defaults unless the user changes a column.
+# --------------------------------------------------------------------------- #
+.apply_settings_param_overrides <- function(scen) {
+  ss <- scen@settings
+  sv <- ss@defVal
+  si <- ss@interpolation
+  if ((is.null(sv) || nrow(sv) == 0) && (is.null(si) || nrow(si) == 0)) {
+    return(scen)
+  }
+  base_v <- .defVal
+  base_i <- .defInt
+
+  changed <- function(tab, base, key) {
+    !is.null(tab) && nrow(tab) >= 1 && key %in% colnames(tab) &&
+      !is.null(base[[key]]) &&
+      !isTRUE(all.equal(tab[[key]][1], base[[key]], tolerance = 0))
+  }
+
+  for (nm in names(scen@modInp@parameters)) {
+    p <- scen@modInp@parameters[[nm]]
+    if (!p@type %in% c("numpar", "bounds")) next
+    # colName provenance lives in @inClass (class / slot / colName)
+    cn <- unique(p@inClass$colName)
+    cn <- cn[!is.na(cn) & nzchar(cn)]
+    if (length(cn) != 1) next
+    keys <- if (p@type == "bounds") paste0(cn, c(".lo", ".up")) else cn
+    touched <- FALSE
+    for (j in seq_along(keys)) {
+      if (changed(sv, base_v, keys[j])) {
+        p@defVal[j] <- as.numeric(sv[[keys[j]]][1])
+        touched <- TRUE
+      }
+      if (changed(si, base_i, keys[j]) && j <= length(p@interpolation)) {
+        p@interpolation[j] <- as.character(si[[keys[j]]][1])
+        touched <- TRUE
+      }
+    }
+    if (touched) scen@modInp@parameters[[nm]] <- p
+  }
+  scen
+}
+
 merge0 <- merge0 <- function(x, y,
                    by = intersect(
                      colnames(as.data.table(x)),
