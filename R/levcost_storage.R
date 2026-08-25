@@ -239,7 +239,7 @@
   mdl <- newModel(name = ".LCS", region = region, discount = ctx$discount,
                   calendar = cal, horizon = ctx$horizon, data = repo)
   sc <- solve(mdl, name = ".LCS_RUN", solver = ctx$solver, transient = TRUE,
-              verbose = FALSE)
+              path = .levcost_scratch_path(".LCS_RUN"), verbose = FALSE)
   if (!isTRUE(sc@status$optimal))
     stop("levcost(): the storage mini-model did not solve to optimality.",
          call. = FALSE)

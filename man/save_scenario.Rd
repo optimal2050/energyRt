@@ -8,6 +8,7 @@ save_scenario(
   scen,
   path = scen@path,
   embed_model = NULL,
+  embed_datasets = NULL,
   format = get_arrow_format(),
   overwrite = TRUE,
   clean_start = FALSE,
@@ -27,6 +28,13 @@ content is already in the store, embed otherwise. \code{TRUE}: always embed
 (self-contained folder). \code{FALSE}: require a store hit, error otherwise.
 A referenced save stores only \verb{\{name, hash, path\}}; \code{\link[=load_scenario]{load_scenario()}}
 resolves it back via the registry / model store.}
+
+\item{embed_datasets}{the same choice for the big data tables and maps —
+the geoscale on \verb{@settings} and, when the model is embedded, its
+geoscale and its repositories' weather/demand tables (see
+\code{\link[=save_dataset]{save_dataset()}}). \code{NULL} (default) references whatever identical
+content is already in the dataset store; \code{TRUE} always embeds; \code{FALSE}
+requires a store hit.}
 
 \item{format}{file format (currently \code{parquet} only, arrow or feather will be implemented in further releases).}
 

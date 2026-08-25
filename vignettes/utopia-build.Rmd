@@ -953,11 +953,17 @@ report(EBIO, discount = 0.05,
 # a single process, priced inside the assembled model
 report(mod, name = "ENUC")
 
-# the WHOLE model: configuration, inventory, every process one-by-one
+# the WHOLE model -- the assumptions report: configuration, discount rates,
+# calendar/horizon charts, inventories of every stored class, and every
+# process one-by-one (html, pdf, or docx)
 report(mod)
 
-# a solved scenario: results overview (see UTOPIA II)
+# a solved scenario -- the results report: run provenance, solution checks,
+# generation/capacity charts and a cost breakdown (see UTOPIA II)
 # report(scen_BASE)
+
+# what templates ship, and for which class
+report_templates()
 ```
 
 # The packaged kit

@@ -165,7 +165,7 @@
   mdl <- newModel(name = ".LCT", region = c(src, dst), discount = ctx$discount,
                   horizon = ctx$horizon, data = repo)
   sc <- solve(mdl, name = ".LCT_RUN", solver = ctx$solver, transient = TRUE,
-              verbose = FALSE)
+              path = .levcost_scratch_path(".LCT_RUN"), verbose = FALSE)
   if (!isTRUE(sc@status$optimal))
     stop("levcost(): the trade mini-model did not solve to optimality.",
          call. = FALSE)

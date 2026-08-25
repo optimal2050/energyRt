@@ -68,6 +68,9 @@ test_that("family storage-inp2out: default ratio ties the charger to the dischar
     si_build(inp_invcost = 300), name = "si_base", overwrite = TRUE)))
   base <- .fork_solve(base, solver_options$glpk)
   expect_true(verify_solution(base)$ok)
+  # a good solve records its status (solved had no writer before 2026-08-25)
+  expect_true(isTRUE(base@status$solved))
+  expect_true(isTRUE(base@status$optimal))
   # binding default [1, 1]: InpCap == OutCap == 10, charger EAC 100
   expect_equal(ff_solution_sum(base, "vStorageInpCap"), 10, tolerance = 1e-6)
   expect_equal(ff_solution_sum(base, "vStorageOutCap"), 10, tolerance = 1e-6)

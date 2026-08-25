@@ -30,6 +30,8 @@ report(
   levcost = NULL,
   cost_unit = NULL,
   open = interactive(),
+  reports_path = NULL,
+  force = FALSE,
   ...
 )
 
@@ -42,6 +44,8 @@ report(
   levcost = NULL,
   cost_unit = NULL,
   open = interactive(),
+  reports_path = NULL,
+  force = FALSE,
   ...
 )
 
@@ -54,6 +58,8 @@ report(
   levcost = NULL,
   cost_unit = NULL,
   open = interactive(),
+  reports_path = NULL,
+  force = FALSE,
   ...
 )
 
@@ -66,6 +72,8 @@ report(
   levcost = NULL,
   cost_unit = NULL,
   open = interactive(),
+  reports_path = NULL,
+  force = FALSE,
   ...
 )
 
@@ -78,6 +86,10 @@ report(
   levcost = NULL,
   cost_unit = NULL,
   open = interactive(),
+  reports_path = NULL,
+  force = FALSE,
+  run = NULL,
+  verify = TRUE,
   ...
 )
 }
@@ -96,9 +108,10 @@ the upper-right corner of the page.  Defaults to the object's own
 \code{\link{object_image}}); \code{NULL} with no \code{misc$image} skips
 the image.}
 
-\item{file}{Character.  Destination file path.  Defaults to
-\code{report_<name>} in the current working directory, with the extension
-appropriate for \code{format}.}
+\item{file}{Character.  Destination file path (used verbatim).  Without it
+the report lands inside the owning folder's \code{reports/} when the
+object is saved (a scenario folder, a model/repository store entry), and
+otherwise in the temporary project-level \code{\link[=get_reports_path]{get_reports_path()}} folder.}
 
 \item{format}{Character.  Output format: \code{"html"} (default),
 \code{"pdf"}, \code{"tex"} (standalone LaTeX source), or \code{"docx"}
@@ -125,7 +138,25 @@ session, stays quiet in scripts and knits).}
 \item{...}{Arguments forwarded to \code{\link{levcost}} (when
 \code{levcost = NULL} and levcost parameters are provided) and/or to
 \code{rmarkdown::render()}.  Known \code{levcost} parameter names are
-intercepted automatically; everything else is passed to the renderer.}
+intercepted automatically; everything else is passed to the renderer.
+
+The \code{scenario} method additionally accepts \code{run} (character or
+\code{NULL}): the run id to report, as listed by
+\code{\link{scenario_runs}} (\code{"<solve>"} or
+\code{"<variant>/<solve>"}).  The default \code{NULL} reports the active
+run; a different run is read into a local copy, so the caller's scenario
+keeps its active run.  It also accepts \code{verify} (logical, default
+\code{TRUE}): include the \code{\link{verify_solution}} checks section.
+For a whole-scenario report, \code{levcost = TRUE} adds an ex-post
+levelized-cost table via \code{levcost(scenario)}.}
+
+\item{reports_path}{Character.  Redirects the default output directory for
+this call (\code{file =} still wins).}
+
+\item{force}{Logical.  Re-render even when the existing files are up to
+date.  Reports are skip-if-current: a sidecar (\code{*.report.yml})
+records a content key over the object, template, arguments, image and
+levcost identity, and an unchanged report is not rebuilt.}
 
 \item{name}{Character (container/scenario methods). Name of the technology /
 process to report.}

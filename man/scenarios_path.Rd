@@ -31,6 +31,7 @@ Other options:
 \code{\link[=isVerbose]{isVerbose()}},
 \code{\link[=set_option]{set_option()}},
 \code{\link[=set_registry_file]{set_registry_file()}},
+\code{\link[=set_reports_path]{set_reports_path()}},
 \code{\link[=set_solver_path]{set_solver_path()}}
 }
 \concept{options}

@@ -736,13 +736,13 @@ s.t.  eqTechRetLo{(t, r, y) in mTechRetLo}: sum{FORIF: (t,r,y) in mvTechRetiredS
 
 s.t.  eqTechRetCost{(t, r, y) in mTechRetCost}: vTechRetCost[t,r,y]  =  pTechRetCost[t,r,y]*sum{FORIF: (t,r,y) in mvTechRetiredStock} (vTechRetiredStock[t,r,y])+sum{yp in year:((t,r,yp,y) in mvTechRetiredNewCap)}(pTechRetCost[t,r,y]*sum{FORIF: (t,r,yp,y) in mvTechRetiredNewCap} (vTechRetiredNewCap[t,r,yp,y]));
 
-s.t.  eqTechPhaseOut{(t, r, y) in mvTechPhaseOut}: vTechPhaseOut[t,r,y]*pPeriodLen[y]  =  sum{yp in year:(((yp,y) in mMilestoneNext and (t,r,yp) in mTechSpan))}(vTechCap[t,r,yp])-vTechCap[t,r,y]+vTechNewCap[t,r,y]*pPeriodLen[y]-(sum{FORIF: (t,r,y) in mvTechRetiredStock} (vTechRetiredStock[t,r,y])+sum{yp in year:((t,r,yp,y) in mvTechRetiredNewCap)}(vTechRetiredNewCap[t,r,yp,y]))*pPeriodLen[y]+pTechStockNew[t,r,y];
+s.t.  eqTechPhaseOut{(t, r, y) in mvTechPhaseOut}: vTechPhaseOut[t,r,y]*pPeriodLen[y]  =  sum{yp in year:(((yp,y) in mMilestoneNext and (t,r,yp) in mTechSpan))}(vTechCap[t,r,yp])-vTechCap[t,r,y]+sum{FORIF: (t,r,y) in mTechNew} (vTechNewCap[t,r,y])*pPeriodLen[y]-(sum{FORIF: (t,r,y) in mvTechRetiredStock} (vTechRetiredStock[t,r,y])+sum{yp in year:((t,r,yp,y) in mvTechRetiredNewCap)}(vTechRetiredNewCap[t,r,yp,y]))*pPeriodLen[y]+pTechStockNew[t,r,y];
 
 s.t.  eqTechStockCap{(t, r, y) in mTechSpan}: vTechStockCap[t,r,y]  =  pTechStockSurv[t,r,y]*sum{yp in year:(((yp,y) in mMilestoneNext and (t,r,yp) in mTechSpan))}(vTechStockCap[t,r,yp])+pTechStockNew[t,r,y]-sum{FORIF: (t,r,y) in mvTechRetiredStock} (vTechRetiredStock[t,r,y])*pPeriodLen[y];
 
 s.t.  eqTechStockPhaseOut{(t, r, y) in mvTechPhaseOut}: vTechStockPhaseOut[t,r,y]*pPeriodLen[y]  =  (1-pTechStockSurv[t,r,y])*sum{yp in year:(((yp,y) in mMilestoneNext and (t,r,yp) in mTechSpan))}(vTechStockCap[t,r,yp]);
 
-s.t.  eqStoragePhaseOut{(st1, r, y) in mvStoragePhaseOut}: vStoragePhaseOut[st1,r,y]*pPeriodLen[y]  =  sum{yp in year:(((yp,y) in mMilestoneNext and (st1,r,yp) in mStorageSpan))}(vStorageOutCap[st1,r,yp])-vStorageOutCap[st1,r,y]+vStorageOutNewCap[st1,r,y]*pPeriodLen[y]-(sum{FORIF: (st1,r,y) in mvStorageRetiredStock} (vStorageOutRetiredStock[st1,r,y])+sum{yp in year:((st1,r,yp,y) in mvStorageRetiredNewCap)}(vStorageOutRetiredNewCap[st1,r,yp,y]))*pPeriodLen[y]+pStorageOutStockNew[st1,r,y];
+s.t.  eqStoragePhaseOut{(st1, r, y) in mvStoragePhaseOut}: vStoragePhaseOut[st1,r,y]*pPeriodLen[y]  =  sum{yp in year:(((yp,y) in mMilestoneNext and (st1,r,yp) in mStorageSpan))}(vStorageOutCap[st1,r,yp])-vStorageOutCap[st1,r,y]+sum{FORIF: (st1,r,y) in mStorageNew} (vStorageOutNewCap[st1,r,y])*pPeriodLen[y]-(sum{FORIF: (st1,r,y) in mvStorageRetiredStock} (vStorageOutRetiredStock[st1,r,y])+sum{yp in year:((st1,r,yp,y) in mvStorageRetiredNewCap)}(vStorageOutRetiredNewCap[st1,r,yp,y]))*pPeriodLen[y]+pStorageOutStockNew[st1,r,y];
 
 s.t.  eqStorageStockPhaseOut{(st1, r, y) in mvStoragePhaseOut}: vStorageStockPhaseOut[st1,r,y]*pPeriodLen[y]  =  (1-pStorageOutStockSurv[st1,r,y])*sum{yp in year:(((yp,y) in mMilestoneNext and (st1,r,yp) in mStorageSpan))}(vStorageOutStockCap[st1,r,yp]);
 

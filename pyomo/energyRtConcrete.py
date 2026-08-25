@@ -1510,7 +1510,8 @@ model.eqTechPhaseOut = Constraint(
         if ((yp, y) in mMilestoneNext and (t, r, yp) in mTechSpan)
     )
     - model.vTechCap[t, r, y]
-    + model.vTechNewCap[t, r, y] * pPeriodLen.get((y))
+    + (model.vTechNewCap[t, r, y] if (t, r, y) in mTechNew else 0)
+    * pPeriodLen.get((y))
     - (
         (model.vTechRetiredStock[t, r, y] if (t, r, y) in mvTechRetiredStock else 0)
         + sum(
@@ -1534,7 +1535,8 @@ model.eqStoragePhaseOut = Constraint(
         if ((yp, y) in mMilestoneNext and (st1, r, yp) in mStorageSpan)
     )
     - model.vStorageOutCap[st1, r, y]
-    + model.vStorageOutNewCap[st1, r, y] * pPeriodLen.get((y))
+    + (model.vStorageOutNewCap[st1, r, y] if (st1, r, y) in mStorageNew else 0)
+    * pPeriodLen.get((y))
     - (
         (model.vStorageOutRetiredStock[st1, r, y] if (st1, r, y) in mvStorageRetiredStock else 0)
         + sum(

@@ -21,6 +21,40 @@
 
 ## New features
 
+* The report-template helpers are exported as the `report_*` family
+  (`report_setup()`, `report_output()`, `report_esc()`, `report_fmt_val()`,
+  `report_img()`, `report_plot_png()`, `report_sec()`, `report_tbl()`,
+  `report_css()`, `report_header()`, `report_layout()`): shipped templates and
+  custom user templates now share one implementation of the three-output
+  (html/docx/latex) formatting instead of a copy-pasted helper block. Each
+  helper takes an explicit `output` argument, so they are testable outside a
+  render.
+* The model report is rebuilt as an assumptions-and-data report: tidy
+  per-region/year discount rates, horizon and calendar charts with a
+  timeslices-per-timeframe table, a geoscale summary (when one is attached
+  and geoscales is installed), inventories for every storable class
+  (export/import, weather, taxes and subsidies included), enriched
+  commodity/supply/demand/trade tables, per-process datasheets labelled by
+  class, and a `misc$logo` / `misc$image` header hook. The template is built
+  on the shared helpers, so `report(mod, format = "docx")` now renders a
+  real Word document; `report(repository)` shares the same template with the
+  model-only sections skipped.
+* The scenario report is rebuilt as a results report. `report(scen, run =
+  "<variant>/<solve>")` reports any run recorded under the layout-3
+  `runs/` store (default: the active run; the caller's scenario is never
+  switched), with a run inventory from `scenario_runs()` and per-run
+  provenance. New sections: problem size (`model_size()`), solution checks
+  (`verify_solution()`, disable with `verify = FALSE`), a role-driven cost
+  breakdown that picks up every solved variable the catalogue declares as a
+  cost (instead of hard-coded names) with a stacked cost chart, a variants
+  summary, and an opt-in ex-post levelized-cost table (`levcost = TRUE`).
+  The template is helper-based, so docx output works here too.
+* `report_templates()` lists the shipped report templates (name, class,
+  title, path); templates declare their target class in a `report-class:`
+  front-matter field. Template resolution is now class-scoped:
+  `report(mod, template = "x")` prefers `report_model_x.Rmd` over
+  `report_x.Rmd`, so containers and processes can share template names
+  without colliding.
 * `solve_myopic()` solves a horizon window by window instead of all at once.
   The primitives are exported and composable: `horizon_windows()`,
   `solution_ledger()`, `apply_ledger()`.
@@ -51,6 +85,25 @@
   scenarios reference instead of embedding; `save_repository()` stores a shared
   repository once; and a scenario can hold several own-problem variants side by
   side via `solve_scen(variant = )`.
+* A dataset store completes the storage tiers: `save_dataset()` /
+  `load_dataset()` keep a large table (a weather or demand series), a
+  geoscale map, or a recorded generating call (`fun = "pkg::fun"` with a
+  materialized snapshot) in a content-addressed `datasets/` folder, stored
+  once; `save_repository()` / `save_model()` / `save_scenario()` gain
+  `embed_datasets =` and reference stored content instead of re-saving it
+  with every version. `dataset_hash()` names the content; loading resolves
+  references back automatically.
+* Reports now have a home: a saved object's report renders into its own
+  folder (`<scenario>/reports/`, a store entry's `reports/`), an in-memory
+  object's into the project-level `reports/` (option `reports_path`), and an
+  unchanged report is not re-rendered — `force = TRUE` overrides.
+* `levcost()` results are cached on disk (`<owner>/levcost/`, or the
+  project-level `levcosts/` for in-memory objects, option
+  `levcost_cache_path`), keyed by object content and assumptions; a repeated
+  call returns the cached tables without solving. `report()` shares the cache,
+  so a report with a levcost section never re-solves one it already has.
+* `object_hash()` — the content hash behind the model store — now works for
+  any energyRt object, and `clear_levcost_cache()` empties an object's cache.
 
 ## Deprecations
 
@@ -63,10 +116,23 @@
 
 ## Bug fixes
 
+* `solve_scenario(transient = TRUE)` now actually deletes the throwaway
+  solver directory; it only did so when the caller had passed `solver.dir`.
+* `levcost()`'s mini-models no longer create scenario folders under the
+  project's scenarios store (where `refresh_registry()` indexed them as real
+  scenarios); they solve in a temporary scratch dir that is cleaned up.
 * `inp.eac` and `stg.eac` now give a `storage` part its own capacity; they priced
   the charging or storing part without bounding it, so it came out free.
 * `inp.fixom` and `stg.fixom` now reach the objective on their own; a `storage`
   priced only on its charger or reservoir paid no fixed O&M at all.
+* `eqTechPhaseOut` / `eqStoragePhaseOut` referenced `vTechNewCap` /
+  `vStorageOutNewCap` unguarded: a phaseout window extending past the
+  investment window crashed Pyomo (strict indexing) and left a stray free
+  variable on the other backends. The term is now gated on
+  `mTechNew` / `mStorageNew` on all four backends; objectives unchanged.
+* `scenario@status$solved` was never set — initialised `FALSE` at
+  interpolation with no writer, it stayed `FALSE` even after an optimal solve.
+  It is now set together with `status$optimal` when the solution is read.
 * Per-part `inp.` / `stg.` `wacc` and `payback` are honoured: they were accepted
   and interpolated but the annuity always read the `out.*` columns. The cascade
   is now part-specific > storage-wide (`out.*`) > model-wide `pWacc` (rate) or

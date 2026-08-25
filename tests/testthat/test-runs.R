@@ -103,6 +103,9 @@ test_that("a transient solve leaves no run record", {
   expect_false(dir.exists(file.path(sol@path, "runs")))
   expect_identical(nrow(scenario_runs(sol)[scenario_runs(sol)$status !=
                                              "legacy", ]), 0L)
+  # the throwaway solver dir (and its now-empty solver/ wrapper) is deleted
+  expect_null(sol@misc$solver.dir)
+  expect_false(dir.exists(file.path(sol@path, "solver")))
 })
 
 test_that("an explicit solver.dir is external mode: honored verbatim, no record", {

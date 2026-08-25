@@ -751,8 +751,21 @@ solve_scenario <- function(obj, name = obj@name, solver = NULL, solver.dir = NUL
 
   scen <- do.call(.executeScenario, arg)
 
-  if (isTRUE(transient) && !is.null(arg$solver.dir)) {
-    unlink(arg$solver.dir, recursive = TRUE)
+  if (isTRUE(transient)) {
+    # The internally resolved throwaway dir is not in `arg` (resolution happens
+    # inside .executeScenario) but survives on the returned scenario.
+    td <- if (!is.null(solver.dir)) solver.dir else scen@misc[["solver.dir"]]
+    if (!is.null(td)) {
+      unlink(td, recursive = TRUE)
+      scen@misc[["solver.dir"]] <- NULL
+      # transient dirs are <scen>/solver/<UTC stamp> and its only tenants;
+      # drop the wrapper once empty so the scenario folder stays clean
+      parent <- dirname(td)
+      if (identical(basename(parent), "solver") && dir.exists(parent) &&
+          !length(list.files(parent, all.files = TRUE, no.. = TRUE))) {
+        unlink(parent, recursive = TRUE)
+      }
+    }
   }
   scen
 }

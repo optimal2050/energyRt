@@ -177,6 +177,18 @@ a data copy, and `load_model()` re-assembles the chain — a scenario
 referencing a model whose repositories are themselves references loads
 back fully resolved.
 
+One level further down sits the **dataset store** (`datasets/`), for the
+data that dominates size and rarely changes: a weather or demand time
+series, a geoscale map. `save_dataset(x, "name")` stores it once,
+content-addressed like models and repositories; `save_repository()`,
+`save_model()` and `save_scenario()` then reference it (`embed_datasets =`,
+same `NULL`/`TRUE`/`FALSE` contract as `embed_repos`) instead of re-saving
+the table with every model or scenario version. A dataset can also record a
+*generating call* (`save_dataset(name = , fun = "pkg::fun", args = )`) with
+a materialized snapshot, so "the data" and "the code that made it" are the
+same store entry. Loading any owner resolves its dataset references back
+automatically — see `?save_dataset`.
+
 # The registry
 
 Every save also records its object in the project **registry** — one CSV at

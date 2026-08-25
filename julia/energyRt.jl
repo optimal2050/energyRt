@@ -1463,7 +1463,11 @@ print("eqTechPhaseOut(...)...")
     ) == sum(
         vTechCap[(t, r, yp)] for
         yp in year if ((yp, y) in mMilestoneNext && (t, r, yp) in mTechSpan)
-    ) - vTechCap[(t, r, y)] + vTechNewCap[(t, r, y)] * (
+    ) - vTechCap[(t, r, y)] + (if (t, r, y) in mTechNew
+        vTechNewCap[(t, r, y)]
+    else
+        0
+    end) * (
         if haskey(pPeriodLen, (y))
             pPeriodLen[(y)]
         else
@@ -1503,7 +1507,11 @@ print("eqStoragePhaseOut(...)...")
     ) == sum(
         vStorageOutCap[(st1, r, yp)] for
         yp in year if ((yp, y) in mMilestoneNext && (st1, r, yp) in mStorageSpan)
-    ) - vStorageOutCap[(st1, r, y)] + vStorageOutNewCap[(st1, r, y)] * (
+    ) - vStorageOutCap[(st1, r, y)] + (if (st1, r, y) in mStorageNew
+        vStorageOutNewCap[(st1, r, y)]
+    else
+        0
+    end) * (
         if haskey(pPeriodLen, (y))
             pPeriodLen[(y)]
         else

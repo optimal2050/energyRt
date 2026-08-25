@@ -23,9 +23,12 @@ suppressMessages({
   library(jsonlite)
 })
 
-# helper-goldens.R provides capture_tracked_values() etc.; helper files are
-# self-contained enough to source directly
+# helper-goldens.R provides capture_tracked_values() etc.; helper-utopia.R the
+# UTOPIA suite builders. Helper files are self-contained enough to source
+# directly (helper-utopia's testthat::test_path fallback is bypassed by running
+# from the package root).
 source(file.path("tests", "testthat", "helper-goldens.R"))
+source(file.path("tests", "testthat", "helper-utopia.R"))
 
 # --------------------------------------------------------------------------- #
 # suites: name -> list of entries; each entry builds an UNSOLVED model
@@ -48,7 +51,8 @@ SUITES <- list(
   tm = {
     tiers <- c("tm_core", "tm_flows", "tm_io", "tm_policy", "tm_weather")
     setNames(lapply(tiers, function(t) function() .fixture_env()[[t]]()), tiers)
-  }
+  },
+  utopia = lapply(ut_entries(), function(a) function() do.call(ut_build, a))
 )
 
 # --------------------------------------------------------------------------- #

@@ -1,0 +1,8 @@
+kind: levcost
+version: 1
+key: d82b593bc8d23d351463a158c2e14f84
+class: technology
+process: CHPX_VIN2035
+method: analytic
+created: '2026-08-25T19:53:18Z'
+energyRt_version: 0.87.3.9000

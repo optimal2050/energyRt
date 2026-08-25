@@ -2,15 +2,12 @@
 % Please edit documentation in R/report.R
 \name{report_tex}
 \alias{report_tex}
-\alias{report_tex,technology-method}
-\alias{report_tex,storage-method}
+\alias{report_tex,ANY-method}
 \title{Generate a LaTeX report for an energyRt object}
 \usage{
 report_tex(object, ...)
 
-\S4method{report_tex}{technology}(object, ...)
-
-\S4method{report_tex}{storage}(object, ...)
+\S4method{report_tex}{ANY}(object, ...)
 }
 \arguments{
 \item{object}{An energyRt S4 object: \code{technology}, \code{repository},
@@ -19,7 +16,17 @@ report_tex(object, ...)
 \item{...}{Arguments forwarded to \code{\link{levcost}} (when
 \code{levcost = NULL} and levcost parameters are provided) and/or to
 \code{rmarkdown::render()}.  Known \code{levcost} parameter names are
-intercepted automatically; everything else is passed to the renderer.}
+intercepted automatically; everything else is passed to the renderer.
+
+The \code{scenario} method additionally accepts \code{run} (character or
+\code{NULL}): the run id to report, as listed by
+\code{\link{scenario_runs}} (\code{"<solve>"} or
+\code{"<variant>/<solve>"}).  The default \code{NULL} reports the active
+run; a different run is read into a local copy, so the caller's scenario
+keeps its active run.  It also accepts \code{verify} (logical, default
+\code{TRUE}): include the \code{\link{verify_solution}} checks section.
+For a whole-scenario report, \code{levcost = TRUE} adds an ex-post
+levelized-cost table via \code{levcost(scenario)}.}
 }
 \value{
 Path to the generated \code{.tex} file (invisibly).

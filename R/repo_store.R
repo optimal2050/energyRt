@@ -44,6 +44,12 @@ repository_hash <- function(repo) {
 #' the store; `path` bypasses resolution.
 #'
 #' @param repo a repository object.
+#' @param embed_datasets `NULL` (default), `TRUE`, or `FALSE` — whether the
+#'   big data tables (weather/demand) are embedded in this entry or stored
+#'   as references into the dataset store (see [save_dataset()]). `NULL`
+#'   references whatever identical content is already stored and embeds the
+#'   rest; `TRUE` always embeds; `FALSE` requires a store hit and errors
+#'   otherwise. Mirrors `embed_repos` / `embed_model` one level down.
 #' @param name character, repository name, `"name@hash8"`, or a store
 #'   directory path.
 #' @param hash character, full or short content hash to pin a version.
@@ -65,6 +71,7 @@ repository_hash <- function(repo) {
 save_repository <- function(
     repo,
     path = NULL,
+    embed_datasets = NULL,
     registry = TRUE,
     format = get_arrow_format(),
     overwrite = FALSE,
@@ -98,13 +105,35 @@ save_repository <- function(
     }
   }
 
+  # Large data slots already in the dataset store become {name, hash} refs:
+  # a stubbed (0-row) slot makes obj2disk skip the duplicate parquet, and the
+  # ref travels in repo.RData on the owning object's @misc. NOTE: `h` was
+  # computed on the FULL repository above — content identity is independent
+  # of how the datasets are stored.
+  ds_entries <- list()
+  ds_full <- list()
+  if (!isTRUE(embed_datasets)) {
+    for (ob in names(repo@data)) {
+      th <- .thin_dataset_slot(repo@data[[ob]], embed_datasets, id = ob,
+                               verbose = verbose)
+      if (!is.null(th$entry)) {
+        repo@data[[ob]] <- th$obj
+        ds_entries[[length(ds_entries) + 1L]] <- th$entry
+        ds_full[[ob]] <- th$full
+      }
+    }
+  }
+
   dir.create(path, recursive = TRUE, showWarnings = FALSE)
   repo <- obj2disk(repo, path = path, format = format, verbose = verbose)
   repo@misc$hash <- h
+  # obj2disk records the path only when it wrote data slots; with every big
+  # table referenced there is nothing to write, so record it explicitly
+  repo@misc$path <- gsub("[\\/]+", "/", path)
   save(repo, file = fp(path, "repo.RData"))
   write("repository", fp(path, "class"), append = FALSE)
   write(as.character(.SCENARIO_LAYOUT), fp(path, "layout"), append = FALSE)
-  yaml::write_yaml(list(
+  yaml::write_yaml(c(list(
     layout = .SCENARIO_LAYOUT,
     class = "repository",
     name = repo@name,
@@ -112,7 +141,18 @@ save_repository <- function(
     created = .registry_now(),
     energyRt_version = as.character(utils::packageVersion("energyRt")),
     format = format
-  ), mf_path)
+  ), if (length(ds_entries)) list(datasets = ds_entries)), mf_path)
+
+  # the caller keeps a fully-loaded object: restore the referenced payloads
+  # (the stub lives only in the store entry)
+  for (ob in names(ds_full)) {
+    o <- repo@data[[ob]]
+    slot_name <- .dataset_slot_of(o)
+    methods::slot(o, slot_name) <- ds_full[[ob]]
+    o@misc[["dataset_ref"]][[slot_name]] <- NULL
+    if (!length(o@misc[["dataset_ref"]])) o@misc[["dataset_ref"]] <- NULL
+    repo@data[[ob]] <- o
+  }
   if (verbose) {
     cat("Repository '", repo@name, "' (", h8, ") saved in '", path, "'\n",
         sep = "")
@@ -179,6 +219,13 @@ load_repository <- function(name, hash = NULL, path = NULL, env = NULL,
          "' must contain exactly one repository object")
   }
   repo <- .repo_rebase(get(nm, envir = e), path)
+  # dataset refs resolve eagerly: a live object never holds a stub
+  for (ob in names(repo@data)) {
+    o <- repo@data[[ob]]
+    if (isS4(o) && .hasSlot(o, "misc")) {
+      repo@data[[ob]] <- .resolve_dataset_refs(o, verbose = verbose)
+    }
+  }
   if (verbose) {
     cat("Repository '", repo@name, "' loaded from '", path, "'\n", sep = "")
   }

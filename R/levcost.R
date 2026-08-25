@@ -188,21 +188,34 @@ setGeneric("levcost", function(object, comm, name, ...) {
   standardGeneric("levcost")
 })
 
+# Scratch anchor for levcost mini-scenarios. Keeps them out of the project's
+# scenarios store (they used to land under get_scenarios_path() and be indexed
+# by refresh_registry() as real scenarios). interpolate_model(ondisk = FALSE)
+# creates no directory here -- the path only anchors where the transient
+# solver dir lands, and solve_scenario(transient = TRUE) deletes that.
+.levcost_scratch_path <- function(name) {
+  fp(tempdir(), "energyRt-levcost",
+     paste0(.path_slug(name), "_", format(Sys.time(), "%Y%m%d%H%M%OS3")))
+}
+
 setMethod("levcost", "technology", function(object, comm, name, ...) {
   comm_arg <- if (missing(comm)) NULL else comm
-  levcost_technology_(object, comm = comm_arg, ...)
+  .levcost_with_cache("technology", object, c(list(comm = comm_arg), list(...)),
+                      levcost_technology_)
 })
 
 #' @rdname levcost
 setMethod("levcost", "storage", function(object, comm, name, ...) {
   comm_arg <- if (missing(comm)) NULL else comm
-  levcost_storage_(object, comm = comm_arg, ...)
+  .levcost_with_cache("storage", object, c(list(comm = comm_arg), list(...)),
+                      levcost_storage_)
 })
 
 #' @rdname levcost
 setMethod("levcost", "trade", function(object, comm, name, ...) {
   comm_arg <- if (missing(comm)) NULL else comm
-  levcost_trade_(object, comm = comm_arg, ...)
+  .levcost_with_cache("trade", object, c(list(comm = comm_arg), list(...)),
+                      levcost_trade_)
 })
 
 # ── levcost() for containers: repository & model ─────────────────────────────
@@ -572,12 +585,18 @@ setMethod("levcost", "trade", function(object, comm, name, ...) {
   # the container's commodities + supplies become the levcost `repo`
   repo <- c(tryCatch(getObjects(container, "commodity"), error = function(e) list()),
             tryCatch(getObjects(container, "supply"),     error = function(e) list()))
-  args <- c(list(tech, comm = comm, repo = repo, fuel_costs = fuel_costs,
+  # container-priced processes cache under the CONTAINER's owning folder
+  # (<scenario>/levcost/, models/<n>@<h8>/levcost/) unless redirected
+  if (is.null(dots[["cache_dir"]])) {
+    own <- .object_store_dir(container)
+    if (!is.null(own)) dots$cache_dir <- fp(own, "levcost")
+  }
+  args <- c(list(comm = comm, repo = repo, fuel_costs = fuel_costs,
                  verbose = verbose), dots)
   # a trade is priced across BOTH endpoints, so the single-region arguments the
   # technology path resolves above are meaningless to it
   if (identical(cls, "trade")) args$region <- NULL
-  do.call(.levcost_driver(cls), args)
+  .levcost_with_cache(cls, tech, args, .levcost_driver(cls))
 }
 
 #' @rdname levcost
@@ -1111,7 +1130,7 @@ levcost_chain_ <- function(
 
   # ── 11. Build and solve model ─────────────────────────────────────────────
   chain_id <- paste(tech_names, collapse = "_")
-  sn  <- paste0("lc_chain_", chain_id)
+  sn  <- paste0(".lc_chain_", chain_id)
   mdl <- newModel(
     name     = paste0("levcost_chain_", chain_id),
     desc     = paste0("Chain LCOE model: ", chain_name),
@@ -1126,8 +1145,12 @@ levcost_chain_ <- function(
   # New mapping pipeline: interpolate in memory (unfolded, so the writers see
   # explicit rows) then solve. `solve_scenario()` writes, runs and reads the solution
   # in one call (replacing the legacy write_sc / solve_scenario / read_solution).
-  scen <- interpolate_model(mdl, name = sn, ondisk = FALSE, fold = FALSE, ...)
-  scen <- solve_scenario(scen, solver = solver)
+  # Scratch-anchored + transient: nothing lands in the project's scenarios store.
+  iarg <- list(...)
+  if (is.null(iarg[["path"]])) iarg$path <- .levcost_scratch_path(sn)
+  scen <- do.call(interpolate_model,
+                  c(list(mdl, name = sn, ondisk = FALSE, fold = FALSE), iarg))
+  scen <- solve_scenario(scen, solver = solver, transient = TRUE)
 
   # ── 12. Extract results ───────────────────────────────────────────────────
   sfget <- function(v) tryCatch({
@@ -2038,11 +2061,16 @@ levcost_technology_ <- function(
       horizon  = hor
     )
     if (!is.null(debug_df)) mdl@config@debug <- debug_df
-    sn   <- paste0("lc_", tech_name, suffix)
+    sn   <- paste0(".lc_", tech_name, suffix)
     # New mapping pipeline (see levcost_chain_): interpolate in memory, unfolded,
-    # then write + run + read via solve_scenario() in one call.
-    scen <- interpolate_model(mdl, name = sn, ondisk = FALSE, fold = FALSE, ...)
-    solve_scenario(scen, solver = solver)
+    # then write + run + read via solve_scenario() in one call. The scenario is
+    # anchored in scratch (a caller-supplied `path` in `...` wins) and solved
+    # transiently, so nothing lands in the project's scenarios store.
+    iarg <- list(...)
+    if (is.null(iarg[["path"]])) iarg$path <- .levcost_scratch_path(sn)
+    scen <- do.call(interpolate_model,
+                    c(list(mdl, name = sn, ondisk = FALSE, fold = FALSE), iarg))
+    solve_scenario(scen, solver = solver, transient = TRUE)
   }
 
   # ── 11. Inner closure: extract LCOE from a solved scenario ──────────────────

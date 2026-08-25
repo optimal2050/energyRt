@@ -1352,7 +1352,7 @@ eqTechPhaseOut(tech, region, year)$mvTechPhaseOut(tech, region, year)..
     sum(yearp$(mMilestoneNext(yearp, year) and mTechSpan(tech, region, yearp)),
         vTechCap(tech, region, yearp))
     - vTechCap(tech, region, year)
-    + vTechNewCap(tech, region, year) * pPeriodLen(year)
+    + vTechNewCap(tech, region, year)$mTechNew(tech, region, year) * pPeriodLen(year)
     - ( vTechRetiredStock(tech, region, year)$mvTechRetiredStock(tech, region, year)
         + sum(yearp$mvTechRetiredNewCap(tech, region, yearp, year),
               vTechRetiredNewCap(tech, region, yearp, year))
@@ -1364,7 +1364,7 @@ eqStoragePhaseOut(stg, region, year)$mvStoragePhaseOut(stg, region, year)..
     sum(yearp$(mMilestoneNext(yearp, year) and mStorageSpan(stg, region, yearp)),
         vStorageOutCap(stg, region, yearp))
     - vStorageOutCap(stg, region, year)
-    + vStorageOutNewCap(stg, region, year) * pPeriodLen(year)
+    + vStorageOutNewCap(stg, region, year)$mStorageNew(stg, region, year) * pPeriodLen(year)
     - ( vStorageOutRetiredStock(stg, region, year)$mvStorageRetiredStock(stg, region, year)
         + sum(yearp$mvStorageRetiredNewCap(stg, region, yearp, year),
               vStorageOutRetiredNewCap(stg, region, yearp, year))

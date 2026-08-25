@@ -92,6 +92,24 @@ Root directory for the repository store. save_repository() writes content-addres
 \item{envvar: }{ENERGYRT_REPOSITORIES_PATH (evaluated if possible, raw string otherwise)}
 }}
 
+\item{datasets_path}{\describe{
+Root directory for the dataset store. save_dataset() writes content-addressed dataset folders (\if{html}{\out{<name>}}@\if{html}{\out{<hash8>}}) underneath it.\item{default: }{\preformatted{"datasets/"}}
+\item{option: }{en.datasets_path}
+\item{envvar: }{ENERGYRT_DATASETS_PATH (evaluated if possible, raw string otherwise)}
+}}
+
+\item{reports_path}{\describe{
+Default directory for rendered reports of IN-MEMORY objects (treated as temporary output). Reports of saved objects land inside the owning folder (\if{html}{\out{<scenario>}}/reports/, \if{html}{\out{<model store entry>}}/reports/) instead.\item{default: }{\preformatted{"reports/"}}
+\item{option: }{en.reports_path}
+\item{envvar: }{ENERGYRT_REPORTS_PATH (evaluated if possible, raw string otherwise)}
+}}
+
+\item{levcost_cache_path}{\describe{
+Default directory for cached levcost results of IN-MEMORY objects (treated as temporary). Results for saved objects are cached inside the owning folder (\if{html}{\out{<owner>}}/levcost/) instead.\item{default: }{\preformatted{"levcosts/"}}
+\item{option: }{en.levcost_cache_path}
+\item{envvar: }{ENERGYRT_LEVCOST_CACHE_PATH (evaluated if possible, raw string otherwise)}
+}}
+
 \item{arrow_format}{\describe{
 Default Arrow exchange format for the JuMP/Pyomo solvers: 'feather' (IPC), 'parquet', or 'csv'.\item{default: }{\preformatted{"feather"}}
 \item{option: }{en.arrow_format}

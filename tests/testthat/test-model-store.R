@@ -19,6 +19,23 @@ ms_local_store <- function(env = parent.frame()) {
   invisible(NULL)
 }
 
+test_that("object_hash generalizes model_hash to any S4 object", {
+  m <- sp_tech(c(100, 100, 100), optret = FALSE, name = "oh")
+  expect_identical(object_hash(m), model_hash(m))
+  expect_identical(object_hash(m@data[[1]]), repository_hash(m@data[[1]]))
+
+  t1 <- newTechnology(
+    "OHT", output = data.frame(comm = "ELC"),
+    invcost = data.frame(invcost = 500), cap2act = 1)
+  t2 <- t1
+  t2@misc$scratch <- "noise"
+  expect_identical(object_hash(t1), object_hash(t2))   # misc-blind
+  t3 <- t1
+  t3@invcost$invcost <- 600
+  expect_false(identical(object_hash(t1), object_hash(t3)))  # content-sensitive
+  expect_error(object_hash(list()), "isS4")
+})
+
 test_that("model_hash is stable across rebuilds and blind to @misc noise", {
   m1 <- sp_tech(c(100, 100, 100), optret = FALSE, name = "msh")
   m2 <- sp_tech(c(100, 100, 100), optret = FALSE, name = "msh")

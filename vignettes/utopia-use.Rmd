@@ -178,6 +178,11 @@ embedded is one call away (`report()` renders HTML/PDF; needs pandoc):
 
 ```{r levcost-report, eval = FALSE}
 report(scen_BASE, name = "ENUC", format = "html")
+
+# the whole-scenario results report: run provenance (scenario_runs()),
+# solution checks, generation/capacity charts, and a role-driven cost
+# breakdown; `run =` reports any recorded run, not only the active one
+report(scen_BASE)
 ```
 
 # Other structures

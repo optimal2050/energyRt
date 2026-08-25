@@ -14,7 +14,7 @@
 
 # canonical column set; everything character for CSV round-trip stability
 .registry_cols <- c(
-  "type",             # "model" | "repository" | "scenario" | "run"
+  "type",             # "model" | "repository" | "scenario" | "run" | "dataset"
   "name",             # object name; runs: "<variant>/<solve>"
   "hash",             # model content hash (model rows), "" otherwise
   "model_hash",       # scenario rows: hash of the referenced/embedded model
@@ -124,7 +124,8 @@ save_registry <- function(reg, file = get_registry_file()) {
 add_to_registry <- function(reg, type, name, path,
                          hash = "", model_hash = "", parent = "",
                          memo = "") {
-  type <- match.arg(type, c("model", "repository", "scenario", "run"))
+  type <- match.arg(type, c("model", "repository", "scenario", "run",
+                            "dataset"))
   stopifnot(is.character(name), length(name) == 1L, nzchar(name))
   now <- .registry_now()
   ii <- which(reg$type == type & reg$name == name & reg$parent == parent)
@@ -192,6 +193,8 @@ refresh_registry <- function(root = ".", file = get_registry_file(),
   scen_root <- root_join(get_scenarios_path())
   if (dir.exists(scen_root)) {
     for (d in list.dirs(scen_root, recursive = FALSE)) {
+      # dot-prefixed dirs are scratch by convention (e.g. levcost mini-models)
+      if (startsWith(basename(d), ".")) next
       manifest <- fp(d, "scenario.yml")
       class_file <- fp(d, "class")
       nm <- NULL
@@ -237,7 +240,9 @@ refresh_registry <- function(root = ".", file = get_registry_file(),
     list(type = "model", root = root_join(get_models_path()),
          manifest = "model.yml"),
     list(type = "repository", root = root_join(get_repositories_path()),
-         manifest = "repository.yml")
+         manifest = "repository.yml"),
+    list(type = "dataset", root = root_join(get_datasets_path()),
+         manifest = "dataset.yml")
   )
   for (st in stores) {
     if (!dir.exists(st$root)) next

@@ -195,3 +195,69 @@ test_that(".report_drop_empty_cols prunes columns and rows", {
   expect_null(f(NULL))
   expect_null(f(data.frame()))
 })
+
+test_that("report_templates lists shipped templates with classes", {
+  tt <- report_templates()
+  expect_true(all(c("name", "class", "title", "path") %in% names(tt)))
+  expect_true(all(c("generic", "summary", "vehicle") %in%
+                    tt$name[tt$class == "process"]))
+  expect_true("model" %in% tt$name[tt$class == "model"])
+  expect_true("scenario" %in% tt$name[tt$class == "scenario"])
+  expect_true(all(file.exists(tt$path)))
+  mm <- report_templates(class = "model")
+  expect_true(nrow(mm) >= 1L && all(mm$class == "model"))
+})
+
+test_that("template resolution is class-scoped with fallback", {
+  p <- energyRt:::.find_report_template("model", class = "model")
+  expect_identical(basename(p), "report_model.Rmd")
+  # a class-scoped name falls back to the unscoped template when no
+  # report_<class>_<name>.Rmd exists
+  p2 <- energyRt:::.find_report_template("summary", class = "model")
+  expect_identical(basename(p2), "report_summary.Rmd")
+  expect_error(energyRt:::.find_report_template("nope", class = "model"),
+               "not found")
+})
+
+test_that("report helpers: output detection, escaping, formatting, layout", {
+  # no knitr/pandoc context here, so the default wins
+  expect_equal(report_output(), "html")
+  expect_equal(report_output(default = "word"), "word")
+  expect_equal(report_esc("a & b", output = "html"), "a &amp; b")
+  expect_equal(report_esc('q"t', output = "html"), "q&quot;t")
+  expect_equal(report_esc("50%_x", output = "latex"), "50\\%\\_x")
+  expect_equal(report_esc(NULL, output = "html"), "")
+  expect_equal(report_fmt_val(NA), "--")
+  expect_equal(report_fmt_val(1234.5678), " 1235")  # formatC "fg" pads
+  lay <- report_layout()
+  expect_equal(lay$dpi, 150)
+  expect_equal(lay$hdr_img, 0.33)
+})
+
+test_that("report helpers: emitters branch per output (pandoc-free)", {
+  d <- data.frame(a = 1:2, b = c("x", "y"), stringsAsFactors = FALSE)
+  h <- paste(capture.output(report_tbl(d, caption = "Cap", output = "html")),
+             collapse = "\n")
+  expect_match(h, "kable-table")
+  expect_match(h, "<strong>Cap</strong>")
+  w <- paste(capture.output(report_tbl(d, output = "word")), collapse = "\n")
+  expect_match(w, "\\|\\s*a")                # pipe table
+  l <- paste(capture.output(report_tbl(d, output = "latex")), collapse = "\n")
+  expect_match(l, "toprule")                 # booktabs
+  # empty / all-NA tables emit nothing
+  expect_equal(capture.output(report_tbl(NULL)), character(0))
+  expect_equal(capture.output(report_tbl(data.frame(a = NA))), character(0))
+
+  s <- paste(capture.output(report_sec("T", "n", output = "word")),
+             collapse = "\n")
+  expect_match(s, "## T \\(n\\)")
+  expect_equal(capture.output(report_img("no/such/file.png", output = "html")),
+               character(0))
+  css <- paste(capture.output(report_css("html")), collapse = "\n")
+  expect_match(css, "kable-table")
+  expect_equal(capture.output(report_css("word")), character(0))
+  hd <- paste(capture.output(report_header("N", "d", output = "html")),
+              collapse = "\n")
+  expect_match(hd, "<h1")
+  expect_match(hd, "ert-rule")
+})

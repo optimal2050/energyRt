@@ -13,6 +13,12 @@
 #'   (self-contained folder). `FALSE`: require a store hit, error otherwise.
 #'   A referenced save stores only `{name, hash, path}`; [load_scenario()]
 #'   resolves it back via the registry / model store.
+#' @param embed_datasets the same choice for the big data tables and maps —
+#'   the geoscale on `@settings` and, when the model is embedded, its
+#'   geoscale and its repositories' weather/demand tables (see
+#'   [save_dataset()]). `NULL` (default) references whatever identical
+#'   content is already in the dataset store; `TRUE` always embeds; `FALSE`
+#'   requires a store hit.
 #' @param format file format (currently `parquet` only, arrow or feather will be implemented in further releases).
 #' @param overwrite logical. Overwrite existing scenario directory.
 #' @param clean_start logical. Clean scenario directory before saving.
@@ -31,6 +37,7 @@ save_scenario <- function(
     scen,
     path = scen@path,
     embed_model = NULL,
+    embed_datasets = NULL,
     format = get_arrow_format(),
     overwrite = TRUE,
     clean_start = FALSE,
@@ -97,6 +104,50 @@ save_scenario <- function(
     if (verbose) {
       cat("Model '", model_ref$name, "' referenced from the store (",
           substr(model_ref$hash, 1, 8), "), not embedded\n", sep = "")
+    }
+  }
+
+  # Dataset references (see save_dataset()): the geoscale map on @settings
+  # and — when the model is EMBEDDED — the model's own geoscale and its
+  # repositories' big tables become {name, hash} refs when the identical
+  # content is in the dataset store. A referenced model resolves its own
+  # datasets when its store entry loads.
+  ds_entries <- list()
+  full_settings_gs <- NULL
+  model_ds_backup <- NULL
+  if (!isTRUE(embed_datasets)) {
+    th <- .thin_dataset_slot(scen@settings, embed_datasets, id = "settings",
+                             verbose = verbose)
+    if (!is.null(th$entry)) {
+      scen@settings <- th$obj
+      ds_entries[[length(ds_entries) + 1L]] <- th$entry
+      full_settings_gs <- th$full
+    }
+    if (is.null(model_ref) && is(scen@model, "model")) {
+      model_backup <- scen@model   # captured BEFORE any thinning
+      touched_model <- FALSE
+      mth <- .thin_dataset_slot(scen@model@config, embed_datasets,
+                                id = "config", verbose = verbose)
+      if (!is.null(mth$entry)) {
+        scen@model@config <- mth$obj
+        ds_entries[[length(ds_entries) + 1L]] <- mth$entry
+        touched_model <- TRUE
+      }
+      for (rp in names(scen@model@data)) {
+        repo <- scen@model@data[[rp]]
+        if (!is(repo, "repository") || !is.null(repo@misc[["repo_ref"]])) next
+        for (ob in names(repo@data)) {
+          th2 <- .thin_dataset_slot(repo@data[[ob]], embed_datasets, id = ob,
+                                    verbose = verbose)
+          if (!is.null(th2$entry)) {
+            repo@data[[ob]] <- th2$obj
+            ds_entries[[length(ds_entries) + 1L]] <- th2$entry
+            touched_model <- TRUE
+          }
+        }
+        scen@model@data[[rp]] <- repo
+      }
+      if (touched_model) model_ds_backup <- model_backup
     }
   }
 
@@ -264,10 +315,16 @@ save_scenario <- function(
     hash = model_hash_,
     source = "embedded"
   )
-  .write_scenario_manifest(scen, format, model = mf_model)
+  .write_scenario_manifest(scen, format, model = mf_model,
+                           datasets = if (length(ds_entries)) ds_entries)
   .registry_record_scenario(scen)
-  # the returned in-memory object keeps its full model and sourceCode
+  # the returned in-memory object keeps its full model, datasets & sourceCode
   if (!is.null(full_model)) scen@model <- full_model
+  if (!is.null(model_ds_backup)) scen@model <- model_ds_backup
+  if (!is.null(full_settings_gs)) {
+    scen@settings@geoscale <- full_settings_gs
+    scen@settings@misc[["dataset_ref"]] <- NULL
+  }
   scen@settings@sourceCode <- sourceCode_full
   cat("Scenario '", scen@name, "' saved in '", scen@path, "'\n", sep = "")
   dirsize <- dir_size(scen@path)
@@ -1095,6 +1152,36 @@ load_scenario <- function(
     if (verbose) {
       message("Model '", ref$name, "' resolved from the model store")
     }
+  }
+
+  # resolve dataset references: the geoscale map on @settings, and — for an
+  # embedded model — its geoscale and its repositories' big tables (a
+  # referenced model already resolved its own datasets in load_model())
+  resolve_ds <- function() {
+    scen_obj@settings <<- .resolve_dataset_refs(scen_obj@settings,
+                                                verbose = verbose)
+    if (is.null(ref) && is(scen_obj@model, "model")) {
+      scen_obj@model@config <<- .resolve_dataset_refs(scen_obj@model@config,
+                                                      verbose = verbose)
+      for (rp in names(scen_obj@model@data)) {
+        repo <- scen_obj@model@data[[rp]]
+        if (!is(repo, "repository")) next
+        for (ob in names(repo@data)) {
+          o <- repo@data[[ob]]
+          if (isS4(o) && .hasSlot(o, "misc")) {
+            repo@data[[ob]] <- .resolve_dataset_refs(o, verbose = verbose)
+          }
+        }
+        scen_obj@model@data[[rp]] <<- repo
+      }
+    }
+    TRUE
+  }
+  ds_ok <- tryCatch(resolve_ds(), error = function(e) e)
+  if (inherits(ds_ok, "error")) {
+    if (!ignore_errors) stop(ds_ok)
+    if (verbose) message(conditionMessage(ds_ok))
+    return(invisible(FALSE))
   }
   assign(nm, scen_obj, envir = .en_tmp)
 

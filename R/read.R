@@ -428,7 +428,13 @@ read_solution <- function(obj, run = NULL, ...) {
     cat("Reading solution: ", round(proc.time()[3] -
       read_result_time, 2), "s\n", sep = "")
   }
-  if (scen@modOut@stage == "solved") scen@status$optimal <- TRUE
+  # `solved` had no writer at all (initialised FALSE at interpolation and never
+  # updated), so it read FALSE even after an optimal solve. It now records that
+  # the solve produced a readable optimal solution, alongside `optimal`.
+  if (scen@modOut@stage == "solved") {
+    scen@status$optimal <- TRUE
+    scen@status$solved <- TRUE
+  }
   invisible(scen)
 }
 #' @rdname read

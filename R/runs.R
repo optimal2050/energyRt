@@ -462,7 +462,8 @@ drop_scenario_run <- function(scen, run, force = FALSE) {
 # it to the active run. `model` is the manifest's model block:
 # list(name, hash, source = "embedded"|"ref" [, path]), built by
 # save_scenario().
-.write_scenario_manifest <- function(scen, format, model = NULL) {
+.write_scenario_manifest <- function(scen, format, model = NULL,
+                                     datasets = NULL) {
   mf_path <- fp(scen@path, "scenario.yml")
   prev <- if (file.exists(mf_path)) {
     tryCatch(yaml::read_yaml(mf_path), error = function(e) NULL)
@@ -488,6 +489,7 @@ drop_scenario_run <- function(scen, run, force = FALSE) {
     default = if (nzchar(active)) active else prev$default %||% ""
   )
   mf$model <- model %||% prev$model
+  mf$datasets <- datasets %||% prev$datasets
   yaml::write_yaml(mf, mf_path)
   invisible(mf_path)
 }

@@ -20,7 +20,10 @@
     if (.hasSlot(x, "misc")) x@misc <- list()
     if (.hasSlot(x, "inMemory")) x@inMemory <- TRUE
     for (s in slotNames(x)) {
-      slot(x, s) <- .strip_volatile(slot(x, s))
+      v <- .strip_volatile(slot(x, s))
+      # a slot whose prototype is NULL (e.g. scenario@desc) reads back as
+      # NULL, which cannot be re-assigned into a typed slot -- leave it be
+      if (!is.null(v)) slot(x, s) <- v
     }
     return(x)
   }
@@ -63,6 +66,32 @@ model_hash <- function(mod) {
   rlang::hash(.strip_volatile(mod))
 }
 
+#' Content hash of any energyRt object
+#'
+#' @description
+#' The generalization of [model_hash()] to any S4 object of the package
+#' (technology, storage, trade, scenario, calendar, horizon, weather, ...):
+#' `rlang::hash` of the object with volatile bookkeeping stripped, so two
+#' identically-built objects hash identically regardless of `@misc` contents,
+#' paths, or the `inMemory` flag. Models and repositories delegate to their
+#' dedicated hashes. Used as the object-identity half of the report and
+#' levcost cache keys.
+#'
+#' The thinning caveat of [model_hash()] applies: an object whose data slots
+#' live on disk hashes differently from its in-memory original.
+#'
+#' @param x an S4 object (model and repository delegate to [model_hash()] /
+#'   [repository_hash()]).
+#' @return character, the full hash.
+#' @rdname model_hash
+#' @export
+object_hash <- function(x) {
+  if (is(x, "model")) return(model_hash(x))
+  if (is(x, "repository")) return(repository_hash(x))
+  stopifnot(isS4(x))
+  rlang::hash(.strip_volatile(x))
+}
+
 #' Save a model to / load a model from the model store
 #'
 #' @description
@@ -89,6 +118,11 @@ model_hash <- function(mod) {
 #'   otherwise. `TRUE`: always embed. `FALSE`: require a store hit for every
 #'   repository. The model hash is always taken over the FULL model, so it is
 #'   unaffected by this choice; `load_model()` resolves references back.
+#' @param embed_datasets the same choice one level further down, for the big
+#'   data tables (weather/demand) of embedded repositories and the geoscale
+#'   map on `@config` — see [save_dataset()]. `NULL` (default) references
+#'   whatever identical content is already in the dataset store; `TRUE`
+#'   always embeds; `FALSE` requires a store hit.
 #' @param registry logical, add/refresh the registry row on save.
 #' @param format storage format for the data slots (as in [save_scenario()]).
 #' @param overwrite logical, rewrite the store entry even when the hash
@@ -107,6 +141,7 @@ save_model <- function(
     mod,
     path = NULL,
     embed_repos = NULL,
+    embed_datasets = NULL,
     registry = TRUE,
     format = get_arrow_format(),
     overwrite = FALSE,
@@ -190,14 +225,52 @@ save_model <- function(
     }
   }
 
+  # Dataset references (one level below repositories): the geoscale map on
+  # @config and the big tables of EMBEDDED repositories' weather/demand
+  # objects become {name, hash} refs when the identical content is in the
+  # dataset store (a REFERENCED repository's datasets are that store
+  # entry's business). Same hash-before-stub contract: `h` is already fixed.
+  ds_entries <- list()
+  full_config <- NULL
+  if (!isTRUE(embed_datasets)) {
+    th <- .thin_dataset_slot(mod@config, embed_datasets, id = "config",
+                             verbose = verbose)
+    if (!is.null(th$entry)) {
+      mod@config <- th$obj
+      ds_entries[[length(ds_entries) + 1L]] <- th$entry
+      full_config <- th$full
+    }
+    for (rp in setdiff(names(mod@data), ref_slots)) {
+      repo <- mod@data[[rp]]
+      if (!is(repo, "repository")) next
+      touched <- FALSE
+      for (ob in names(repo@data)) {
+        th <- .thin_dataset_slot(repo@data[[ob]], embed_datasets, id = ob,
+                                 verbose = verbose)
+        if (!is.null(th$entry)) {
+          repo@data[[ob]] <- th$obj
+          ds_entries[[length(ds_entries) + 1L]] <- th$entry
+          touched <- TRUE
+        }
+      }
+      if (touched) {
+        if (is.null(full_repos)) full_repos <- mod@data
+        mod@data[[rp]] <- repo
+      }
+    }
+  }
+
   dir.create(path, recursive = TRUE, showWarnings = FALSE)
   # thin the big data slots into parquet next to the manifest
   mod <- obj2disk(mod, path = path, format = format, verbose = verbose)
   mod@misc$hash <- h
+  # obj2disk records the path only when it wrote data slots; with everything
+  # referenced there is nothing to write, so record it explicitly
+  mod@misc$path <- path
   save(mod, file = fp(path, "mod.RData"))
   write("model", fp(path, "class"), append = FALSE)
   write(as.character(.SCENARIO_LAYOUT), fp(path, "layout"), append = FALSE)
-  yaml::write_yaml(list(
+  yaml::write_yaml(c(list(
     layout = .SCENARIO_LAYOUT,
     class = "model",
     name = mod@name,
@@ -206,9 +279,13 @@ save_model <- function(
     energyRt_version = as.character(utils::packageVersion("energyRt")),
     format = format,
     repositories = unname(repo_entries)
-  ), mf_path)
-  # the returned in-memory object keeps its full repositories
+  ), if (length(ds_entries)) list(datasets = ds_entries)), mf_path)
+  # the returned in-memory object keeps its full repositories and geoscale
   if (!is.null(full_repos)) mod@data <- full_repos
+  if (!is.null(full_config)) {
+    mod@config@geoscale <- full_config
+    mod@config@misc[["dataset_ref"]] <- NULL
+  }
   if (verbose) {
     cat("Model '", mod@name, "' (", h8, ") saved in '", path, "'\n", sep = "")
   }
@@ -348,6 +425,21 @@ load_model <- function(name, hash = NULL, path = NULL, env = NULL,
            "embed_repos = TRUE from a session that has the repository.")
     }
     mod@data[[rp]] <- r
+  }
+
+  # resolve dataset references (the geoscale map on @config, the big tables
+  # of embedded repositories' objects) — a live object never holds a stub
+  mod@config <- .resolve_dataset_refs(mod@config, verbose = verbose)
+  for (rp in names(mod@data)) {
+    repo <- mod@data[[rp]]
+    if (!is(repo, "repository")) next
+    for (ob in names(repo@data)) {
+      o <- repo@data[[ob]]
+      if (isS4(o) && .hasSlot(o, "misc")) {
+        repo@data[[ob]] <- .resolve_dataset_refs(o, verbose = verbose)
+      }
+    }
+    mod@data[[rp]] <- repo
   }
 
   if (verbose) {

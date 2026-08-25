@@ -157,6 +157,35 @@ options::define_option(
   default = "repositories/"
 )
 
+options::define_option(
+  "datasets_path",
+  desc = paste(
+    "Root directory for the dataset store. save_dataset() writes",
+    "content-addressed dataset folders (<name>@<hash8>) underneath it."
+  ),
+  default = "datasets/"
+)
+
+options::define_option(
+  "reports_path",
+  desc = paste(
+    "Default directory for rendered reports of IN-MEMORY objects (treated as",
+    "temporary output). Reports of saved objects land inside the owning",
+    "folder (<scenario>/reports/, <model store entry>/reports/) instead."
+  ),
+  default = "reports/"
+)
+
+options::define_option(
+  "levcost_cache_path",
+  desc = paste(
+    "Default directory for cached levcost results of IN-MEMORY objects",
+    "(treated as temporary). Results for saved objects are cached inside the",
+    "owning folder (<owner>/levcost/) instead."
+  ),
+  default = "levcosts/"
+)
+
 # Storage / exchange format ###################################################
 # Format used to exchange model data / solution with the JuMP / Pyomo solvers
 # (written into the solver run-folder), and the default on-disk storage codec.
@@ -527,6 +556,68 @@ set_repositories_path <- function(path = NULL) {
 #' @export
 get_repositories_path <- function() {
   options::opt("repositories_path")
+}
+
+#' @family options
+#' @rdname registry_file
+#' @export
+set_datasets_path <- function(path = NULL) {
+  options::opt_set("datasets_path", path)
+}
+
+#' @family options
+#' @rdname registry_file
+#' @export
+get_datasets_path <- function() {
+  options::opt("datasets_path")
+}
+
+# Derived-artifact locations ##################################################
+
+#' Report and levcost output locations
+#'
+#' @description
+#' Derived artifacts live with the object they describe when that object is
+#' saved: a scenario's reports render into `<scenario>/reports/` and its
+#' levcost results cache into `<scenario>/levcost/`; models and repositories
+#' use their store entries the same way. For IN-MEMORY objects the output is
+#' considered temporary and lands in these project-level folders instead:
+#' `get_reports_path()` (default `reports/`) and `get_levcost_cache_path()`
+#' (default `levcosts/`).
+#'
+#' @param path character, new location.
+#' @return getters return the path; setters return the previous value,
+#'   invisibly.
+#'
+#' @family options
+#' @rdname reports_path
+#' @export
+#' @examples
+#' get_reports_path()
+#' get_levcost_cache_path()
+set_reports_path <- function(path = NULL) {
+  options::opt_set("reports_path", path)
+}
+
+#' @family options
+#' @rdname reports_path
+#' @export
+get_reports_path <- function() {
+  options::opt("reports_path")
+}
+
+#' @family options
+#' @rdname reports_path
+#' @export
+set_levcost_cache_path <- function(path = NULL) {
+  options::opt_set("levcost_cache_path", path)
+}
+
+#' @family options
+#' @rdname reports_path
+#' @export
+get_levcost_cache_path <- function() {
+  options::opt("levcost_cache_path")
 }
 
 # Arrow exchange format #######################################################

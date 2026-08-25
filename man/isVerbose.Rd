@@ -36,6 +36,7 @@ Other options:
 \code{\link[=get_default_solver]{get_default_solver()}},
 \code{\link[=set_option]{set_option()}},
 \code{\link[=set_registry_file]{set_registry_file()}},
+\code{\link[=set_reports_path]{set_reports_path()}},
 \code{\link[=set_scenarios_path]{set_scenarios_path()}},
 \code{\link[=set_solver_path]{set_solver_path()}}
 }
