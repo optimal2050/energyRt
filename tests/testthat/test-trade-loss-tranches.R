@@ -189,7 +189,7 @@ test_that("investable tranche capacities are tied to the declared shares", {
   scen <- suppressMessages(interpolate_model(
     lt_link("lt8", tr, cap = data.frame(cap.up = 100), invcost = 10),
     name = "lt8"))
-  expect_true(any(grepl("^VS", names(scen@modInp@gams.equation))))
+  expect_true(any(grepl("^VS", names(scen@modInp@user_constraints))))
 
   cp <- as.data.frame(getData(suppressMessages(solve_scenario(scen)), "vTradeCap",
                               merge = TRUE))
@@ -204,7 +204,7 @@ test_that("fixed capacities are checked against the shares, not tied", {
   ok <- suppressMessages(interpolate_model(
     lt_link("lt9", tr, cap = data.frame(cluster = c("T1", "T2"),
                                         cap.fx = c(50, 50))), name = "lt9"))
-  expect_false(any(grepl("^VS", names(ok@modInp@gams.equation))))
+  expect_false(any(grepl("^VS", names(ok@modInp@user_constraints))))
 
   # Mis-proportioned is the commonest silent error: edit the shares, forget the
   # capacities, and the ratings no longer match the efficiencies derived from

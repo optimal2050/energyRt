@@ -2,7 +2,7 @@
 #
 # A `constraint` added to the model must be compiled by ob2mi("constraint")
 # (run after the mapping pipeline in interp_mod) into the solver-agnostic
-# GAMS-string IR (`scen@modInp@gams.equation`) plus its supporting pCns*/mCns*
+# GAMS-string IR (`scen@modInp@user_constraints`) plus its supporting pCns*/mCns*
 # parameters, and must translate to each backend. This is solver-independent:
 # it exercises the pure-R IR translators, so no Julia/Python/GLPK binary is
 # needed (mirrors the catalog-skip pattern of the mapping-engine tests).
@@ -31,8 +31,8 @@ test_that("a user constraint compiles to IR and translates to all backends", {
   ))
 
   # IR present and well-formed
-  expect_true("MAXNEWCAP" %in% names(scen@modInp@gams.equation))
-  eq <- scen@modInp@gams.equation[["MAXNEWCAP"]]$equation
+  expect_true("MAXNEWCAP" %in% names(scen@modInp@user_constraints))
+  eq <- scen@modInp@user_constraints[["MAXNEWCAP"]]$equation
   expect_match(eq, "eqCnsMAXNEWCAP")
   expect_match(eq, "vTechNewCap")
   expect_match(eq, "=l=", fixed = TRUE) # "<=" renders as GAMS =l=
@@ -75,7 +75,7 @@ test_that("a constraint with only `defVal` (no rhs data.frame) uses it as a cons
   scen <- suppressWarnings(suppressMessages(
     interpolate_model(mod, name = "dv", ondisk = FALSE)
   ))
-  eq <- scen@modInp@gams.equation[["MAXINV2"]]$equation
+  eq <- scen@modInp@user_constraints[["MAXINV2"]]$equation
   expect_match(eq, "=l= 500", fixed = TRUE) # defVal becomes the literal RHS
   # no pCnsRhs parameter is built for a constant RHS
   expect_false("pCnsRhsMAXINV2" %in% names(scen@modInp@parameters))

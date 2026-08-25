@@ -24,19 +24,21 @@ this file adds only what is energyRt-specific.
 ```r
 devtools::load_all()
 devtools::document()      # regenerates NAMESPACE and all of man/
-devtools::test()
+devtools::test()          # tier "fast" (GLPK); see dev/TESTING.md for tiers
 ```
 
-Two traps:
+The test system (coverage matrix, `@covers` tags, tiers, fork harness,
+`verify_solution()`, goldens) is documented in **`dev/TESTING.md`**; tag
+conventions in `tests/README.md`. Tiers: `ENERGYRT_TEST_TIER` in
+`check < fast < cross < nightly` (`tests/testthat/helper-solvers.R`). The old
+`skip_on_cran()` silent-skip trap is gone — a bare `Rscript` run solves
+whenever glpsol is present. Two current traps:
 
-- **`devtools::test()` aborts the whole run** with `unexpected input` at `1:1` — the file
-  `tests/testthat/test-mapping-engine.R` starts with a UTF-8 BOM (`EF BB BF`). Use
-  `devtools::test(filter = "...")` to work around it, and note that a "clean" run that stopped
-  early is not a passing run.
-- **Running a test file directly silently skips solver tests.** `skip_if_no_solver()` begins with
-  `skip_on_cran()`, and a bare `Rscript` has no `NOT_CRAN`. `devtools::test()` sets it; if you call
-  `testthat::test_file()` yourself, set `NOT_CRAN=true`. Symptom is a suspiciously green run
-  (e.g. 5 pass / 7 skip instead of 28 pass).
+- **`testthat::test_file()` needs the package loaded first** —
+  `pkgload::load_all(".")` (the installed copy may be stale vs the source
+  tree; setup files call package functions unqualified).
+- **Never run a second test/probe process in parallel with the full suite** —
+  scenario directories are shared and collisions produce phantom failures.
 
 ## Traps that fail silently
 

@@ -49,14 +49,20 @@ them — the summary diff is the review artifact. Never edit the CSV by hand.
 ## Test tiers (execution frame)
 
 Selected via the `ENERGYRT_TEST_TIER` environment variable
-(`check < fast < cross < nightly`); see `dev/TESTING.md` for the cheat sheet.
+(`check < fast < cross < nightly`); see `dev/TESTING.md` for the full guide.
 
 | Tier | Needs | Typical use |
 |---|---|---|
 | check | R only | `R CMD check` / CRAN — no solver, fixtures ship in `tests/` |
-| fast | + glpsol | default for `devtools::test()`; run before commit |
-| cross | + julia / pyomo / gams (any) | cross-backend parity |
-| nightly | + external model repos | deep regression, full fork grid |
+| fast | + glpsol | default for `devtools::test()`; `Rscript tools/test/run_fast.R` before commit |
+| cross | + julia / pyomo / gams (any) | `Rscript tools/test/run_cross.R` — cross-backend parity |
+| nightly | + external model repos | deep regression, full fork grid (runner: Stage 8) |
 
-Solver tests always skip cleanly when a toolchain is missing; they must never
-error on absence.
+Solver tests always skip cleanly when a toolchain is missing (the GAMS guard
+also skips an unlicensed install); they must never error on absence.
+
+Key shared machinery: `helper-forks.R` (`run_family()` fork harness),
+`helper-goldens.R` + `tools/test/make_goldens.R` (tracked-value benchmarks,
+capture gated by `verify_solution()`), `helper-utopia.R` (UTOPIA reference
+suite), `fixtures/testing-models.R` (the tm_* tier models),
+`helper-mapping.R::solved_tier()` (cached GLPK solves shared across files).

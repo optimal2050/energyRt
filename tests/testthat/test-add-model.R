@@ -89,7 +89,7 @@ test_that("the objects survive to the solver", {
                                       for.sum = list(src = "R1", dst = "R3"))))
   scen <- suppressMessages(interpolate_model(m, name = "am5"))
   expect_true(all(c("CAP_ALL", "CAP_DIRECT") %in%
-                    names(scen@modInp@gams.equation)))
+                    names(scen@modInp@user_constraints)))
 
   # 4 direct at cost 1, plus 2 more of the 6-unit budget carrying R2's own
   # supply at 5, and R3 buys the last 4 from itself at 100.

@@ -148,7 +148,7 @@ test_that("storage group bounds cap the sum across clusters", {
     capacity = data.frame(cluster = "TOTAL", out.cap.up = 3),
     vintage = data.frame(olife = 40L), duration = 4)
   sc <- vt_interp(vt_stg_model(PHS, "sg"), "sg")
-  expect_length(sc@modInp@gams.equation, 1L)
+  expect_length(sc@modInp@user_constraints, 1L)
 
   sol <- vt_solve(sc)
   d <- suppressMessages(getData(sol, "vStorageOutCap", merge = TRUE))
