@@ -55,6 +55,18 @@
 * `technology@af$rampup` / `$rampdown` were accepted by the constructor and
   never reached the solver — the parameter catalogue named slots that do not
   exist, so the ramp parameters stayed empty.
+* The `costs` class (user cost terms in the objective) was never wired: no
+  `ob2mi` method dispatched it (interpolation errored on any model carrying
+  one), its compiler `.getCostEquation` had no callers, the class lacked the
+  `defVal` slot the compiler reads, the documented list form of `subset=`
+  errored, and the cost_agg recipe ran before the compile step that creates
+  the `mCosts*` maps it consumes. All wired now: costs compile alongside user
+  constraints (after the variable domain maps), a scalar `mult` is carried as
+  the constant `@defVal` in the equation and in the `vUserCosts` reporting,
+  and `eqTotalUserCosts` carries the terms into the objective. An unknown
+  summand field in `newConstraint()` (e.g. `tech = "X"` instead of
+  `for.sum = list(tech = "X")`) is now an error instead of being silently
+  dropped. Covered by `test-family-constraints-costs.R`.
 * A storage flow into a commodity with a COARSER timeframe never reached the
   balance: `eqStorageInpTot` / `eqStorageOutTot` summed only at identical
   timeslices, so a slice-level storage's aux into an ANNUAL commodity was

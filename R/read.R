@@ -400,6 +400,11 @@ read_solution <- function(obj, run = NULL, ...) {
             in_dat$value <- in_dat$value * in_dat$par
             in_dat$par <- NULL
           }
+        } else if (nrow(in_dat) != 0 && length(tmp@defVal) == 1 &&
+                   is.finite(tmp@defVal)) {
+          # scalar multiplier: no pCosts* parameter is written, the constant
+          # lives in the cost object's @defVal (same as the model equation)
+          in_dat$value <- in_dat$value * tmp@defVal
         }
         if (nrow(in_dat) != 0) {
           in_dat <- aggregate(

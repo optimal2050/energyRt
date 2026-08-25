@@ -1,6 +1,6 @@
 # Coverage matrix summary
 
-Generated: 2026-08-25 10:45 | energyRt 0.87.1.9000
+Generated: 2026-08-25 11:52 | energyRt 0.87.2.9000
 
 ## Rows by kind x depth
 
@@ -8,12 +8,12 @@ Generated: 2026-08-25 10:45 | energyRt 0.87.1.9000
 Key: <kind>
      kind  none     C     I     S     X
    <char> <int> <int> <int> <int> <int>
-   bounds    15     2     3     5    12
- equation   120     0     1    18     9
-      map   238     0    39     7    13
-   numpar    36     3    18    36    40
+   bounds    14     2     3     6    12
+ equation   117     0     1    21     9
+      map   235     0    40     9    13
+   numpar    34     3    18    38    40
       set     0     0     0     1    12
- variable    32     0     4    32    27
+ variable    30     0     3    35    27
 ```
 
 ## Numeric parameters: family x depth
@@ -23,8 +23,8 @@ Key: <family>
                       family  none     C     I     S     X
                       <char> <int> <int> <int> <int> <int>
          calendar-timeslices     0     0     0     4     0
-                   commodity     2     0     0     0     0
-                      demand     0     0     0     1     0
+                   commodity     0     0     0     2     0
+                      demand     0     0     0     0     1
                  discounting     0     0     0     0     3
                  dummy-debug     0     0     0     2     0
            horizon-periodlen     1     0     0     0     2
@@ -38,12 +38,12 @@ Key: <family>
  storage-startlevel-fullyear     0     0     1     0     0
                storage-varom     0     0     0     3     0
              storage-weather     2     1     0     0     0
-                      supply     1     1     1     0     1
+                      supply     0     1     1     1     1
                  tax-subsidy     0     0     2     4     0
               tech-aux-flows     4     0     4     6     0
            tech-availability     0     0     1     1     2
         tech-capacity-bounds     1     0     0     0     2
-                  tech-costs     0     2     0     0     3
+                  tech-costs     0     2     0     1     2
        tech-eac-wacc-payback     0     0     0     1     2
              tech-efficiency     1     1     1     2     1
                    tech-emis     1     0     0     0     0
@@ -58,13 +58,11 @@ Key: <family>
                       <char> <int> <int> <int> <int> <int>
 ```
 
-## Zero-coverage numeric parameters (51)
+## Zero-coverage numeric parameters (48)
 
 ```
                  name                   family      class     slot     colName
                <char>                   <char>     <char>   <char>      <char>
-     pAggregateFactor                commodity  commodity      agg         agg
-      pEmissionFactor                commodity  commodity     emis        emis
              cardYear        horizon-periodlen                                
      pStorageNCap2Stg        storage-aux-flows    storage     aeff    ncap2stg
      pStoragePho2AInp        storage-aux-flows    storage     aeff    pho2ainp
@@ -96,7 +94,6 @@ Key: <family>
     pStorageStgNewCap storage-roles-capacities    storage capacity    stg.ncap
  pStorageWeatherInpAf          storage-weather    storage  weather     inp.waf
  pStorageWeatherOutAf          storage-weather    storage  weather     out.waf
-          pSupReserve                   supply     supply  reserve         res
         pTechPho2AInp           tech-aux-flows technology     aeff    pho2ainp
         pTechPho2AOut           tech-aux-flows technology     aeff    pho2aout
         pTechRet2AInp           tech-aux-flows technology     aeff    ret2ainp
@@ -118,4 +115,4 @@ Key: <family>
                <char>                   <char>     <char>   <char>      <char>
 ```
 
-Tagged rows: 103 | inferred: 179 | uncovered: 441 of 723
+Tagged rows: 119 | inferred: 174 | uncovered: 430 of 723

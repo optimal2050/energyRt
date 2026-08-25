@@ -366,6 +366,18 @@ addSummand <- function(
     arg) {
   # browser()
   if (!is.null(names(arg))) {
+    # An unknown field used to be dropped SILENTLY -- e.g. `tech = "X"`
+    # (instead of `for.sum = list(tech = "X")`) quietly turned a per-tech
+    # cap into a global one. Refuse rather than mislead.
+    known <- c("variable", "mult", "for.sum", "defVal", "timeframe",
+               "geoframe", "for.each", "desc")
+    bad <- setdiff(names(arg), known)
+    if (length(bad) > 0) {
+      stop("Unknown summand field(s) in constraint '", eqt@name, "': ",
+           paste0('"', bad, '"', collapse = ", "),
+           ". To restrict the variable to set members use ",
+           "`for.sum = list(", bad[1], " = ...)`.", call. = FALSE)
+    }
     if (any(names(arg) == "variable")) variable <- arg$variable
     if (any(names(arg) == "mult")) mult <- arg$mult
     if (any(names(arg) == "for.sum")) for.sum <- arg$for.sum

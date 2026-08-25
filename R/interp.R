@@ -693,9 +693,10 @@ interpolate_model <- function(mod, name = NULL, ...,
         # Advance the bar for EVERY object (incl. skipped ones) so it reaches
         # 100%; otherwise it freezes short of the end and looks stuck.
         if (!is.null(.prg)) .prg(message = scen@model@data[[i]]@data[[j]]@name)
-        # User constraints are compiled later (.interp_user_constraints), after
-        # the variable domain maps they reference (e.g. mTechNew) are built.
-        if (inherits(scen@model@data[[i]]@data[[j]], "constraint")) next
+        # User constraints and cost terms are compiled later
+        # (.interp_user_constraints), after the variable domain maps they
+        # reference (e.g. mTechNew) are built.
+        if (inherits(scen@model@data[[i]]@data[[j]], c("constraint", "costs"))) next
         scen <- ob2mi(scen, scen@model@data[[i]]@data[[j]], list())
       }
     }
@@ -764,6 +765,14 @@ interpolate_model <- function(mod, name = NULL, ...,
   scen <- build_mappings(scen, fmp = fmp, recipes = "constraint")
 
   #============================================================================#
+  # User-defined constraints and cost terms ####
+  #   Compile each `constraint` / `costs` object to the GAMS-string IR
+  #   (+ pCns/mCns/pCosts/mCosts params) now that all variable domain maps
+  #   exist. Must run BEFORE the cost_agg recipe: mvTotalUserCosts is built
+  #   from the mCosts* maps this step creates. See ob2mi("constraint"/"costs").
+  scen <- .interp_user_constraints(scen, verbose)
+
+  #============================================================================#
   # Cost-aggregation mapping parameters ####
   #   Top-level cost domains (mvTotalCost, mvTotalUserCosts) projected onto the
   #   full region x year grid (or the union of user-cost footprints). Built last
@@ -774,12 +783,6 @@ interpolate_model <- function(mod, name = NULL, ...,
   #   or `eqObjective` weights it by nothing. Inherits the children's rate where
   #   they agree; refuses to invent one where they do not.
   scen <- .extend_discount_to_coarse(scen)
-
-  #============================================================================#
-  # User-defined constraints ####
-  #   Compile each `constraint` object to the GAMS-string IR (+ pCns/mCns
-  #   params) now that all variable domain maps exist. See ob2mi("constraint").
-  scen <- .interp_user_constraints(scen, verbose)
 
   #============================================================================#
   # Prune parameters ####
@@ -1008,11 +1011,14 @@ interpolate_model <- function(mod, name = NULL, ...,
   for (i in seq_along(scen@model@data)) {
     for (j in seq_along(scen@model@data[[i]]@data)) {
       o <- scen@model@data[[i]]@data[[j]]
-      if (inherits(o, "constraint")) cns[[length(cns) + 1L]] <- o
+      # user cost terms (`costs`) share the compile point: both need the
+      # variable domain maps and the same set-value/calendar context
+      if (inherits(o, c("constraint", "costs"))) cns[[length(cns) + 1L]] <- o
     }
   }
   if (length(cns) == 0L) return(scen)
-  .interp_step(verbose, paste0("compiling ", length(cns), " user constraint(s)"))
+  .interp_step(verbose, paste0("compiling ", length(cns),
+                               " user constraint(s) / cost term(s)"))
   # Build the engine's set-value/calendar context once and reuse it.
   approxim <- .constraint_approxim(scen)
   for (o in cns) scen <- ob2mi(scen, o, list(approxim = approxim))

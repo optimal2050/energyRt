@@ -1501,6 +1501,25 @@ setMethod(
   }
 )
 
+# =============================================================================#
+## costs (user cost terms in the objective) ####
+# =============================================================================#
+# Mirrors the `constraint` method: compiled AFTER the variable domain maps by
+# `.interp_user_constraints`, never in the generic ob2mi loop. `.getCostEquation`
+# (R/class-costs.R) appends the pCosts*/mCosts* parameters and the term of the
+# vTotalUserCosts equation to `modInp@costs.equation`; the write step assembles
+# eqTotalUserCosts from those terms (R/write.R).
+setMethod(
+  "ob2mi",
+  signature(scen = "scenario", obj = "costs", extra_params = "list"),
+  function(scen, obj, extra_params = list()) {
+    approxim <- extra_params$approxim
+    if (is.null(approxim)) approxim <- .constraint_approxim(scen)
+    scen@modInp <- .getCostEquation(scen@modInp, obj, approxim)
+    scen
+  }
+)
+
 # Set-value / calendar context the constraint IR engine needs, derived directly
 # from `scen` (mirrors the `approxim` the settings builder assembles).
 .constraint_approxim <- function(scen) {
@@ -1508,7 +1527,7 @@ setMethod(
   mid <- as.integer(scen@modInp@sets$year)
   growth <- if (length(mid) > 0) c(diff(mid), 1L) else integer(0)
   names(growth) <- as.character(mid)
-  list(
+  out <- list(
     region = .model_regions(scen),
     # Pruned region hierarchy, so a summand's `geoframe` can be resolved to the
     # regions of that level (the spatial twin of `calendar@timeframes`).
@@ -1523,6 +1542,13 @@ setMethod(
     fullsets = TRUE,
     optimizeRetirement = ss@optimizeRetirement
   )
+  # entity set members: `.getCostEquation` filters a cost's `subset`/`mult`
+  # columns against these (a missing set would silently empty the map)
+  for (nm in c("comm", "tech", "stg", "trade", "sup", "dem", "expp", "imp",
+               "group", "weather")) {
+    out[[nm]] <- scen@modInp@sets[[nm]]
+  }
+  out
 }
 
 # The unwired ob2mi("horizon") and ob2mi("calendar") methods were archived to

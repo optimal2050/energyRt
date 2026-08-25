@@ -27,6 +27,10 @@ setClass("costs",
     variable = "character",
     subset = "data.frame",
     mult = "data.frame",
+    # scalar multiplier used when `mult` carries no set columns; the compile
+    # path (.getCostEquation) reads it, but the slot was never declared --
+    # newCosts errored on every path that touched it
+    defVal = "numeric",
     misc = "list"
     # parameter= list() # For the future
   ),
@@ -36,6 +40,7 @@ setClass("costs",
     variable = character(),
     subset = data.frame(),
     mult = data.frame(),
+    defVal = 0,
     # ! Misc
     misc = list()
   ),
@@ -101,13 +106,9 @@ newCosts <- function(
   # Add subset
   if (!is.null(subset)) {
     if (is.list(subset) && !is.data.frame(subset)) {
-      subset2 <- data.frame(stringsAsFactors = FALSE)
-      for (i in names(subset)) {
-        if (!is.null(subset[[i]])) {
-          subset2[[i]] <- subset[[i]]
-        }
-      }
-      subset <- subset2
+      # `[[<-` on a 0-row data.frame errors, so build directly from the list
+      subset <- as.data.frame(subset[!vapply(subset, is.null, logical(1))],
+                              stringsAsFactors = FALSE)
     }
     if (!all(colnames(subset) %in% sets)) {
       bug <- colnames(subset)[!(colnames(subset) %in% sets)]
@@ -134,7 +135,11 @@ newCosts <- function(
       stop(paste0('Mult must be numeric or data.frame (cost "', name, '").'))
     }
     if (is.numeric(mult)) {
-      obj@mult <- data.frame(value = mult)
+      if (length(mult) != 1) {
+        stop(paste0('A numeric mult must be a single value (cost "', name, '").'))
+      }
+      # scalar multiplier: same treatment as a set-less mult data.frame
+      obj@defVal <- mult
     } else {
       if (!all(colnames(mult) %in% c("value", sets))) {
         bug <- colnames(mult)[!(colnames(mult) %in% c("value", sets))]
@@ -166,7 +171,7 @@ newCosts <- function(
   if (nrow(obj@mult) == 0 && obj@defVal == 0) {
     warning(paste0('The cost constraint of the "', name, '" is strictly equal to zero.'))
   }
-  obj@misc <- misc
+  if (!is.null(misc)) obj@misc <- misc
   obj
 }
 
