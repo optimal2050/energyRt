@@ -3,11 +3,14 @@
 \name{report_docx}
 \alias{report_docx}
 \alias{report_docx,technology-method}
+\alias{report_docx,storage-method}
 \title{Generate a Word report for an energyRt object}
 \usage{
 report_docx(object, ...)
 
 \S4method{report_docx}{technology}(object, ...)
+
+\S4method{report_docx}{storage}(object, ...)
 }
 \arguments{
 \item{object}{An energyRt S4 object: \code{technology}, \code{repository},

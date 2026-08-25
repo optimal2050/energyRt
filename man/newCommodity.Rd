@@ -9,7 +9,7 @@ newCommodity(
   desc = "",
   limtype = "LO",
   timeframe = character(),
-  geolevel = character(),
+  geoframe = character(),
   unit = character(),
   agg = data.frame(),
   emis = data.frame(),
@@ -28,7 +28,7 @@ newCommodity(
 
 \item{timeframe}{character. The default time-frame this commodity operates in the model. The lowest timeframe in the model is used by default.}
 
-\item{geolevel}{character. The geoscale level at which this commodity is balanced -- the spatial counterpart of \code{timeframe}. The finest level in the model is used by default, reproducing the flat, single-level behaviour. Naming a coarser level (e.g. balancing steel nationally while electricity stays state-level) asserts free, unlimited transport of the commodity within that level, so it suits goods with a genuinely integrated market and never a network-constrained carrier such as electricity. Requires a geoscale on the model config; GLPK and GAMS only.}
+\item{geoframe}{character. The geoscale level at which this commodity is balanced -- the spatial counterpart of \code{timeframe}. The finest level in the model is used by default, reproducing the flat, single-level behaviour. Naming a coarser level (e.g. balancing steel nationally while electricity stays state-level) asserts free, unlimited transport of the commodity within that level, so it suits goods with a genuinely integrated market and never a network-constrained carrier such as electricity. Requires a geoscale on the model config; GLPK and GAMS only.}
 
 \item{unit}{character. The main unit of the commodity used in the model.}
 

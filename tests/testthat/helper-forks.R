@@ -60,7 +60,10 @@ fork_interp_cases <- function() {
 }
 
 .fork_objective <- function(scen) {
-  d <- get_data_slot(scen@modOut@variables[["vObjective"]], optional = TRUE)
+  # an infeasible/failed solve may leave modOut unpopulated -- report NA
+  d <- tryCatch(
+    get_data_slot(scen@modOut@variables[["vObjective"]], optional = TRUE),
+    error = function(e) NULL)
   if (is.null(d) || nrow(d) == 0) NA_real_ else d$value[1]
 }
 

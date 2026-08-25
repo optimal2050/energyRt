@@ -10,10 +10,10 @@ process_designer(spec = NULL, dir = NULL, launch.browser = NULL, ...)
 tech_designer(spec = NULL, dir = NULL, launch.browser = NULL, ...)
 }
 \arguments{
-\item{spec}{Optional techspec to open — a path to a \code{.yml} file or a
-spec list (see \code{\link[=read_techspec]{read_techspec()}}).}
+\item{spec}{Optional process spec to open — a path to a \code{.yml} file or
+a spec list (see \code{\link[=read_procspec]{read_procspec()}}).}
 
-\item{dir}{Optional directory of techspec \code{.yml} files (e.g. specs
+\item{dir}{Optional directory of process-spec \code{.yml} files (e.g. specs
 exported from a workbook import) added to the app's template gallery
 alongside the built-in examples.}
 
@@ -31,21 +31,28 @@ The value of \code{\link[shiny:runApp]{shiny::runApp()}} (invisibly; blocks whil
 runs).
 }
 \description{
-An interactive editor for \link[=tech_from_spec]{techspec} YAML process
+An interactive editor for \link[=process_from_spec]{process spec} YAML
 specifications: ports and parameter blocks as forms, a live \code{\link[=draw]{draw()}}
-schematic, a validation report enforcing the techspec policy (nothing
+schematic, a validation report enforcing the spec policy (nothing
 auto-invented; partial vintage coverage is reported), and YAML / R-code
-export. Currently edits \code{technology} processes; the other process
-classes (storage, supply, demand, trade, import, export) are reserved.
-Requires the suggested packages \code{shiny} and \code{DT}.
+export.
 }
 \details{
+The underlying spec layer reads, validates, draws and exports
+\code{technology}, \code{storage} and \code{trade} specs alike (see
+\code{\link[=process_from_spec]{process_from_spec()}}). The editing \strong{forms} are technology-shaped for
+now: opening a storage or trade spec works, and every tab except the
+parameter forms is fully functional, but its blocks are edited as YAML.
+The remaining process classes (supply, demand, import, export) are
+reserved.
+Requires the suggested packages \code{shiny} and \code{DT}.
+
 \code{tech_designer()} is the deprecated former name.
 }
 \examples{
 \dontrun{
 process_designer()
-process_designer(system.file("techspec", "examples", "coal_power.yml",
+process_designer(system.file("techspec", "examples", "battery.yml",
                              package = "energyRt"))
 process_designer(launch.browser = TRUE)  # system browser, no IDE chrome
 }

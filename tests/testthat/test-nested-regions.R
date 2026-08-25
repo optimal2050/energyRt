@@ -23,9 +23,9 @@ skip_if_no_geoscales <- function() {
 }
 
 nr_geoscale <- function(regions = c("R1", "R2")) {
-  geoscales::geoscale_from_leaves(
+  geoscales::geoscale_from_leaftable(
     data.frame(nation = "NAT", region = regions),
-    levels = c("nation", "region"), key = "region", name = "nr")
+    geoframes = c("nation", "region"), key = "region", name = "nr")
 }
 
 # Two regions, coal supply and a plant in each, a steel mill in R1 only.
@@ -82,10 +82,10 @@ test_that("commodity@geoframe round-trips and defaults to empty", {
 
 test_that("the hierarchy is pruned to the model's own regions", {
   skip_if_no_geoscales()
-  gs <- geoscales::geoscale_from_leaves(
+  gs <- geoscales::geoscale_from_leaftable(
     data.frame(nation = "NAT", zone = c("W", "W", "E"),
                region = c("R1", "R2", "R3")),
-    levels = c("nation", "zone", "region"), key = "region", name = "p")
+    geoframes = c("nation", "zone", "region"), key = "region", name = "p")
   h <- energyRt:::.geo_hierarchy(gs, c("R1", "R2"))
   # E has no declared child, so it must not enter the region set: a geoscale
   # covering more ground than the model is normal and must stay free.
@@ -212,9 +212,9 @@ test_that("three levels chain through the intermediate one", {
   # second step to have anything to read. This is the assertion that would fail
   # if the chain were built as a transitive closure instead.
   regs <- c("R1", "R2", "R3", "R4")
-  gs3 <- geoscales::geoscale_from_leaves(
+  gs3 <- geoscales::geoscale_from_leaftable(
     data.frame(nation = "NAT", zone = c("W", "W", "E", "E"), region = regs),
-    levels = c("nation", "zone", "region"), key = "region", name = "t3")
+    geoframes = c("nation", "zone", "region"), key = "region", name = "t3")
 
   obj <- function(mod, tag) {
     scen <- suppressMessages(suppressWarnings(

@@ -33,7 +33,7 @@ differently but share their names.
 \examples{
 \dontrun{
 gs <- utopia_geoscale()
-geoscales::geo_children(gs, "zone", "WEST")
+geoscales::geoscale_children(gs, "zone", "WEST")
 
 # the three-region model used in vignette("utopia-build")
 gs3 <- utopia_geoscale(region = c("R1", "R2", "R3"))

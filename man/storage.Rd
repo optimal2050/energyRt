@@ -67,7 +67,7 @@ so the object never carries two answers.}
 \item{comm}{character. Commodity consumed to fill the store.}
 \item{unit}{character. Unit of \code{comm} on this side, exactly as on \code{technology@input}/ \verb{@output}. Descriptive only: it is carried for reporting and \code{convert()} and never reaches the solver. It is the unit of the COMMODITY (e.g. MWh), not of the capacity -- capacity units follow from \code{cap2act}, and the storing side has no \code{cap2act} because a reservoir is an amount rather than a rate.
 }
-\item{cap2act}{numeric. Capacity to ANNUAL flow, exactly as \code{technology@cap2act}. The flow bound is \code{cinp.up * cap2act * cap * pTimesliceShare}, so \code{cap} is a RATE and means the same physical thing on any calendar. Defaults to 8760 (hours in a year), which makes \code{cap} read as commodity per HOUR; an hourly full-year model is unchanged because 8760 * (1/8760) = 1. Assumes commodity unit = capacity unit x hour (GW with GWh); GW with TWh wants 8.76. The STORING side has no cap2act -- energy is energy at any resolution.
+\item{cap2act}{numeric. Capacity to ANNUAL flow, exactly as \code{technology@cap2act}. The flow bound is \code{inp.af.up * cap2act * cap * pTimesliceShare}, so \code{cap} is a RATE and means the same physical thing on any calendar. Defaults to 8760 (hours in a year), which makes \code{cap} read as commodity per HOUR; an hourly full-year model is unchanged because 8760 * (1/8760) = 1. Assumes commodity unit = capacity unit x hour (GW with GWh); GW with TWh wants 8.76. The STORING side has no cap2act -- energy is energy at any resolution.
 }
 }}
 
@@ -77,31 +77,15 @@ so the object never carries two answers.}
 \item{comm}{character. Commodity produced when the store discharges.}
 \item{unit}{character. Unit of \code{comm} on this side, exactly as on \code{technology@input}/ \verb{@output}. Descriptive only: it is carried for reporting and \code{convert()} and never reaches the solver. It is the unit of the COMMODITY (e.g. MWh), not of the capacity -- capacity units follow from \code{cap2act}, and the storing side has no \code{cap2act} because a reservoir is an amount rather than a rate.
 }
-\item{cap2act}{numeric. Capacity to ANNUAL flow, exactly as \code{technology@cap2act}. The flow bound is \code{cinp.up * cap2act * cap * pTimesliceShare}, so \code{cap} is a RATE and means the same physical thing on any calendar. Defaults to 8760 (hours in a year), which makes \code{cap} read as commodity per HOUR; an hourly full-year model is unchanged because 8760 * (1/8760) = 1. Assumes commodity unit = capacity unit x hour (GW with GWh); GW with TWh wants 8.76. The STORING side has no cap2act -- energy is energy at any resolution.
+\item{cap2act}{numeric. Capacity to ANNUAL flow, exactly as \code{technology@cap2act}. The flow bound is \code{inp.af.up * cap2act * cap * pTimesliceShare}, so \code{cap} is a RATE and means the same physical thing on any calendar. Defaults to 8760 (hours in a year), which makes \code{cap} read as commodity per HOUR; an hourly full-year model is unchanged because 8760 * (1/8760) = 1. Assumes commodity unit = capacity unit x hour (GW with GWh); GW with TWh wants 8.76. The STORING side has no cap2act -- energy is energy at any resolution.
 }
 }}
 
 \item{storage}{data.frame. The commodity the store HOLDS -- what \code{vStorageLevel} is measured in. Named by \code{comm}, with an optional \code{unit}. Left empty it takes whatever \code{newStorage(commodity = )} supplied. It may differ from BOTH flows: a hydrogen store consumes and produces electricity while holding hydrogen. There is no \code{commodity} slot -- \code{newStorage(commodity = )} is a shorthand folded into these three at construction, so an object never carries two answers to what it consumes. Beyond \code{comm}, this slot carries the storing side's OWN capacity and economics, measured in ENERGY (e.g. MWh) rather than power. Supplying any of them materialises \code{vStorageStgCap}, so the store's energy can be sized, bounded and priced independently of its inverter; supplying none of them (a bare \code{comm}) leaves the storage with a single power capacity and the pre-v0.84 model, with \verb{@duration} inlined into the availability bounds.
 
 \describe{
-\item{comm}{character. Commodity held in the store.}
-\item{unit}{character. Unit of \code{comm} on this side, exactly as on \code{technology@input}/ \verb{@output}. Descriptive only: it is carried for reporting and \code{convert()} and never reaches the solver. It is the unit of the COMMODITY (e.g. MWh), not of the capacity -- capacity units follow from \code{cap2act}, and the storing side has no \code{cap2act} because a reservoir is an amount rather than a rate.
-}
-\item{vintage}{character. Vintage label selecting the variant this row applies to, NA for all.}
-\item{cluster}{character. Cluster label selecting the variant this row applies to, NA for all.}
-\item{region}{character. Region the row applies to, NA for all.}
-\item{year}{integer. Year the row applies to, NA for all.}
-\item{stock}{numeric. Pre-existing energy capacity, in commodity units. The energy analogue of \code{capacity$stock}, which is power.
-}
-\item{cap.lo}{numeric. Lower bound on total energy capacity.}
-\item{cap.up}{numeric. Upper bound on total energy capacity.}
-\item{cap.fx}{numeric. Fixed total energy capacity.}
-\item{ncap.lo}{numeric. Lower bound on new energy capacity added in the period.}
-\item{ncap.up}{numeric. Upper bound on new energy capacity added in the period.}
-\item{ncap.fx}{numeric. Fixed new energy capacity added in the period.}
-\item{invcost}{numeric. Overnight investment cost per unit of ENERGY capacity (currency/MWh), annuitised on the storage's own \verb{@vintage} -- one lifetime and one wacc for the object, two capital costs on different bases. This is what previously had to be hand-multiplied into the per-MW \verb{@invcost}.
-}
-\item{fixom}{numeric. Fixed O&M cost per unit of energy capacity per year.}
+\item{comm}{character. Commodity the store HOLDS -- what \code{vStorageLevel} is measured in.}
+\item{unit}{character. Unit of \code{comm}. Descriptive only, carried for reporting and \code{convert()} and never reaching the solver. There is no \code{cap2act} on this side -- energy is energy at any resolution.}
 }}
 
 \item{startLevel}{data.frame. Energy added to the storage level ONCE PER CYCLE, at the first timeslice of the cycle. There is deliberately no \code{timeslice} column: the slice is derived from the calendar and \code{fullYear}, so it cannot be left unset and broadcast to every timeslice the way the old \code{charge} slot could. Which cycle depends on \code{fullYear}: once a year when TRUE, once per parent timeframe when FALSE. The value is ANNUAL. When the cycle is shorter than a year each cycle receives its own SHARE of it -- 365 daily cycles get 1/365 each -- so the annual endowment is the same however the cycle closes. A calendar covering part of a year endows that fraction, consistently. It is FREE to the model, by design and unavoidably -- a store that ends a cycle below where it started has consumed an endowment nobody paid for. PyPSA's \code{state_of_charge_initial} has the same property. Being additive, the level at the first timeslice is \code{startLevel} PLUS whatever carried over from the previous cycle, i.e. at least \code{startLevel} rather than exactly it; the model may end the cycle empty to make it exact. Renamed from \code{charge} (via \code{inflow}) in v0.80; both are still accepted with a warning, and any \code{timeslice} column they carried is dropped. NOTE hydro inflow does NOT belong here -- use a weather-driven \code{supply} (with \code{ava.up}, so spilling is free) feeding the storage.
@@ -144,26 +128,42 @@ so the object never carries two answers.}
 \item{cap2aout}{numeric. Capacity-to-auxiliary-output-commodity coefficient (multiplier).}
 \item{ncap2ainp}{numeric. New-capacity-to-auxiliary-input-commodity coefficient (multiplier).}
 \item{ncap2aout}{numeric. New-capacity-to-auxiliary-output-commodity coefficient (multiplier).}
+\item{pho2ainp}{numeric. Aux commodity CONSUMED when capacity reaches the END OF ITS LIFE (demolition energy, labour). Multiplies the per-year phase-out FLOW, so the charge lands ONCE -- in the milestone where the capacity disappears -- not every year it stood. NO \code{pTimesliceShare} is applied and the aux balance is PER TIMESLICE, so a value given with \code{timeslice = NA} applies in EVERY slice and the annual total comes out multiplied by the slice count -- 8760x on an hourly calendar. Give a per-slice value, or name a single slice.
+}
+\item{pho2aout}{numeric. Aux commodity RELEASED when capacity reaches the END OF ITS LIFE (demolition waste, recovered material). Fires even when \code{optimizeRetirement} is FALSE, which is the usual case. NO \code{pTimesliceShare} is applied and the aux balance is PER TIMESLICE, so a value given with \code{timeslice = NA} applies in EVERY slice and the annual total comes out multiplied by the slice count -- 8760x on an hourly calendar. Give a per-slice value, or name a single slice.
+}
+\item{ret2ainp}{numeric. Aux commodity CONSUMED when capacity is retired EARLY. Separate from \code{pho2ainp} because the two differ physically: scrapping an intact plant is not the same job as demolishing a worn-out one. NO \code{pTimesliceShare} is applied and the aux balance is PER TIMESLICE, so a value given with \code{timeslice = NA} applies in EVERY slice and the annual total comes out multiplied by the slice count -- 8760x on an hourly calendar. Give a per-slice value, or name a single slice.
+}
+\item{ret2aout}{numeric. Aux commodity RELEASED when capacity is retired EARLY (scrap). Usually LARGER than \code{pho2aout}: a plant retired before its time is still largely intact, so more material is recoverable. NO \code{pTimesliceShare} is applied and the aux balance is PER TIMESLICE, so a value given with \code{timeslice = NA} applies in EVERY slice and the annual total comes out multiplied by the slice count -- 8760x on an hourly calendar. Give a per-slice value, or name a single slice.
+}
 \item{ncap2stg}{numeric. New-capacity-to-storage-level coefficient (multiplier).}
 }}
 
-\item{af}{data.frame. Availability factor parameters.
+\item{af}{data.frame. Availability factor parameters. Unlike a technology's \code{af} (which bounds activity, a flow), the storage \verb{af.*} columns bound the stored LEVEL -- a stock -- as a fraction of the storing capacity, i.e. a state-of-charge range. They are not capacity factors. The flow-side bounds are the \verb{cinp.*}/\verb{cout.*} columns, which bound charge/discharge relative to the charger/discharger capacity per timeslice (those are the storage analogue of a technology's \code{af}).
+
 \describe{
 \item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
 \item{cluster}{character. Cluster label selecting the variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{timeslice}{character. Time timeslice to apply the parameter, NA for every timeslice.}
-\item{af.lo}{numeric. Lower bound of the availability factor.}
-\item{af.up}{numeric. Upper bound of the availability factor.}
-\item{af.fx}{numeric. Fixed value of the availability factor. This parameter overrides \code{af.lo} and \code{af.up}.}
-\item{cinp.lo}{numeric. Lower bound of the input commodity availability factor.}
-\item{cinp.up}{numeric. Upper bound of the input commodity availability factor.}
-\item{cinp.fx}{numeric. Fixed value of the input commodity availability factor. This parameter overrides \code{cinp.lo} and \code{cinp.up}.
+\item{af.lo}{numeric. Lower bound of the stored level as a fraction of storing capacity (minimum state of charge).
 }
-\item{cout.lo}{numeric. Lower bound of the output commodity availability factor.}
-\item{cout.up}{numeric. Upper bound of the output commodity availability factor.}
-\item{cout.fx}{numeric. Fixed value of the output commodity availability factor. This parameter overrides \code{cout.lo} and \code{cout.up}.
+\item{af.up}{numeric. Upper bound of the stored level as a fraction of storing capacity (maximum state of charge).
+}
+\item{af.fx}{numeric. Fixed value of the stored-level fraction. This parameter overrides \code{af.lo} and \code{af.up}.
+}
+\item{inp.af.lo}{numeric. Lower bound of the charging (input) flow relative to charger capacity per timeslice.
+}
+\item{inp.af.up}{numeric. Upper bound of the charging (input) flow relative to charger capacity per timeslice.
+}
+\item{inp.af.fx}{numeric. Fixed value of the charging (input) flow relative to charger capacity per timeslice. This parameter overrides \code{inp.af.lo} and \code{inp.af.up}.
+}
+\item{out.af.lo}{numeric. Lower bound of the discharging (output) flow relative to discharger capacity per timeslice.
+}
+\item{out.af.up}{numeric. Upper bound of the discharging (output) flow relative to discharger capacity per timeslice.
+}
+\item{out.af.fx}{numeric. Fixed value of the discharging (output) flow relative to discharger capacity per timeslice. This parameter overrides \code{out.af.lo} and \code{out.af.up}.
 }
 }}
 
@@ -173,7 +173,9 @@ so the object never carries two answers.}
 \item{cluster}{character. Cluster label selecting the variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
-\item{fixom}{numeric. Fixed operation and maintenance cost for the specified sets.}
+\item{out.fixom}{numeric. Fixed operation and maintenance cost per unit of installed capacity of the discharging part -- the power the store can deliver.}
+\item{inp.fixom}{numeric. Fixed operation and maintenance cost per unit of installed capacity of the charging part -- the power the store can absorb.}
+\item{stg.fixom}{numeric. Fixed operation and maintenance cost per unit of installed capacity of the reservoir itself -- the energy the store can hold.}
 }}
 
 \item{varom}{data.frame. Variable operation and maintenance cost.
@@ -194,11 +196,21 @@ so the object never carries two answers.}
 \item{cluster}{character. Cluster label selecting the variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
-\item{invcost}{numeric. Overnight investment cost for the specified region and year.}
-\item{wacc}{numeric. Weighted average cost of capital used to annuitise \code{invcost} for this storage. Overrides the model-wide \code{wacc} (see the model \code{discount} argument). The social discount rate is never used here.}
-\item{payback}{numeric. Cost-recovery period in years. Where given it replaces \code{olife} in the annuity AND in the years over which the annuity is charged, so the investment is repaid over \code{payback} years while the capacity keeps operating for its full operational life. Must be positive and not exceed \code{olife}. Unset (or 0) means recover over \code{olife}. Implemented for the GLPK solver only.}
-\item{eac}{numeric. Equivalent annual cost, supplied directly instead of being computed from \code{invcost}, \code{wacc} and the lifetime. Where given it wins; where absent the annuity is computed. Mutually exclusive with \code{invcost} per row.}
-\item{retcost}{numeric. Costs of early retirement of the storage, default is 0.}
+\item{out.invcost}{numeric. Investment cost per unit of new capacity of the discharging part -- the power the store can deliver.}
+\item{out.wacc}{numeric. Cost of capital used to annuitise the discharging part -- the power the store can deliver investment (overrides \code{pWacc}).}
+\item{out.payback}{numeric. Cost-recovery period of the discharging part -- the power the store can deliver, in years (overrides the operational life in the EAC charge).}
+\item{out.eac}{numeric. Equivalent annual cost of the discharging part -- the power the store can deliver, supplied directly instead of being annuitised from \code{invcost}.}
+\item{out.retcost}{numeric. Cost of retiring the discharging part -- the power the store can deliver early.}
+\item{inp.invcost}{numeric. Investment cost per unit of new capacity of the charging part -- the power the store can absorb.}
+\item{inp.wacc}{numeric. Cost of capital used to annuitise the charging part -- the power the store can absorb investment (overrides \code{pWacc}).}
+\item{inp.payback}{numeric. Cost-recovery period of the charging part -- the power the store can absorb, in years (overrides the operational life in the EAC charge).}
+\item{inp.eac}{numeric. Equivalent annual cost of the charging part -- the power the store can absorb, supplied directly instead of being annuitised from \code{invcost}.}
+\item{inp.retcost}{numeric. Cost of retiring the charging part -- the power the store can absorb early.}
+\item{stg.invcost}{numeric. Investment cost per unit of new capacity of the reservoir itself -- the energy the store can hold.}
+\item{stg.wacc}{numeric. Cost of capital used to annuitise the reservoir itself -- the energy the store can hold investment (overrides \code{pWacc}).}
+\item{stg.payback}{numeric. Cost-recovery period of the reservoir itself -- the energy the store can hold, in years (overrides the operational life in the EAC charge).}
+\item{stg.eac}{numeric. Equivalent annual cost of the reservoir itself -- the energy the store can hold, supplied directly instead of being annuitised from \code{invcost}.}
+\item{stg.retcost}{numeric. Cost of retiring the reservoir itself -- the energy the store can hold early.}
 }}
 
 \item{capacity}{data.frame. Capacity parameters of the storage technology.
@@ -207,18 +219,36 @@ so the object never carries two answers.}
 \item{cluster}{character. Cluster label selecting the variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
-\item{cap}{numeric. Capacity of the storage technology.}
-\item{cap.lo}{numeric. Lower bound of the storage capacity.}
-\item{cap.up}{numeric. Upper bound of the storage capacity.}
-\item{cap.fx}{numeric. Fixed value of the storage capacity. This parameter overrides \code{cap.lo} and \code{cap.up}.}
-\item{ncap.lo}{numeric. Lower bound of the new storage capacity.}
-\item{ncap.up}{numeric. Upper bound of the new storage capacity.}
-\item{ncap.fx}{numeric. Fixed value of the new storage capacity. This parameter overrides \code{ncap.lo} and \code{ncap.up}.
-}
-\item{ret.lo}{numeric. Lower bound of the storage capacity retirement.}
-\item{ret.up}{numeric. Upper bound of the storage capacity retirement.}
-\item{ret.fx}{numeric. Fixed value of the storage capacity retirement. This parameter overrides \code{ret.lo} and \code{ret.up}.
-}
+\item{out.stock}{numeric. Existing (exogenous) capacity of the discharging part -- the power the store can deliver, in power units.}
+\item{out.cap.lo}{numeric. Lower bound of the discharging part -- the power the store can deliver capacity.}
+\item{out.cap.up}{numeric. Upper bound of the discharging part -- the power the store can deliver capacity.}
+\item{out.cap.fx}{numeric. Fixed value of the discharging part -- the power the store can deliver capacity. Overrides \code{out.cap.lo} and \code{out.cap.up}.}
+\item{out.ncap.lo}{numeric. Lower bound of the discharging part -- the power the store can deliver new capacity.}
+\item{out.ncap.up}{numeric. Upper bound of the discharging part -- the power the store can deliver new capacity.}
+\item{out.ncap.fx}{numeric. Fixed value of the discharging part -- the power the store can deliver new capacity. Overrides \code{out.ncap.lo} and \code{out.ncap.up}.}
+\item{out.ret.lo}{numeric. Lower bound of the discharging part -- the power the store can deliver capacity retirement.}
+\item{out.ret.up}{numeric. Upper bound of the discharging part -- the power the store can deliver capacity retirement.}
+\item{out.ret.fx}{numeric. Fixed value of the discharging part -- the power the store can deliver capacity retirement. Overrides \code{out.ret.lo} and \code{out.ret.up}.}
+\item{inp.stock}{numeric. Existing (exogenous) capacity of the charging part -- the power the store can absorb, in power units.}
+\item{inp.cap.lo}{numeric. Lower bound of the charging part -- the power the store can absorb capacity.}
+\item{inp.cap.up}{numeric. Upper bound of the charging part -- the power the store can absorb capacity.}
+\item{inp.cap.fx}{numeric. Fixed value of the charging part -- the power the store can absorb capacity. Overrides \code{inp.cap.lo} and \code{inp.cap.up}.}
+\item{inp.ncap.lo}{numeric. Lower bound of the charging part -- the power the store can absorb new capacity.}
+\item{inp.ncap.up}{numeric. Upper bound of the charging part -- the power the store can absorb new capacity.}
+\item{inp.ncap.fx}{numeric. Fixed value of the charging part -- the power the store can absorb new capacity. Overrides \code{inp.ncap.lo} and \code{inp.ncap.up}.}
+\item{inp.ret.lo}{numeric. Lower bound of the charging part -- the power the store can absorb capacity retirement.}
+\item{inp.ret.up}{numeric. Upper bound of the charging part -- the power the store can absorb capacity retirement.}
+\item{inp.ret.fx}{numeric. Fixed value of the charging part -- the power the store can absorb capacity retirement. Overrides \code{inp.ret.lo} and \code{inp.ret.up}.}
+\item{stg.stock}{numeric. Existing (exogenous) capacity of the reservoir itself -- the energy the store can hold, in energy units.}
+\item{stg.cap.lo}{numeric. Lower bound of the reservoir itself -- the energy the store can hold capacity.}
+\item{stg.cap.up}{numeric. Upper bound of the reservoir itself -- the energy the store can hold capacity.}
+\item{stg.cap.fx}{numeric. Fixed value of the reservoir itself -- the energy the store can hold capacity. Overrides \code{stg.cap.lo} and \code{stg.cap.up}.}
+\item{stg.ncap.lo}{numeric. Lower bound of the reservoir itself -- the energy the store can hold new capacity.}
+\item{stg.ncap.up}{numeric. Upper bound of the reservoir itself -- the energy the store can hold new capacity.}
+\item{stg.ncap.fx}{numeric. Fixed value of the reservoir itself -- the energy the store can hold new capacity. Overrides \code{stg.ncap.lo} and \code{stg.ncap.up}.}
+\item{stg.ret.lo}{numeric. Lower bound of the reservoir itself -- the energy the store can hold capacity retirement.}
+\item{stg.ret.up}{numeric. Upper bound of the reservoir itself -- the energy the store can hold capacity retirement.}
+\item{stg.ret.fx}{numeric. Fixed value of the reservoir itself -- the energy the store can hold capacity retirement. Overrides \code{stg.ret.lo} and \code{stg.ret.up}.}
 }}
 
 \item{cluster}{data.frame. Declaration of the storage clusters -- parallel sub-processes of the same storage with their own capacity, availability and costs. The motivating cases are site-constrained storage (pumped-hydro head classes, CAES caverns) and duration classes via a per-cluster \code{duration}. Optional: when empty, cluster labels are harvested from the other slots; when populated it is authoritative and an undeclared label raises an error.
@@ -277,17 +307,17 @@ so the object never carries two answers.}
 \item{waf.up}{numeric. Coefficient that links the weather factor with the upper bound of the availability factor.}
 \item{waf.fx}{numeric. Coefficient that links the weather factor with the fixed value of the availability factor. This parameter overrides \code{waf.lo} and \code{waf.up}.
 }
-\item{wcinp.lo}{numeric. Coefficient that links the weather factor with the lower bound of the input commodity availability factor.
+\item{inp.waf.lo}{numeric. Coefficient that links the weather factor with the lower bound of the input commodity availability factor.
 }
-\item{wcinp.up}{numeric. Coefficient that links the weather factor with the upper bound of the input commodity availability factor.
+\item{inp.waf.up}{numeric. Coefficient that links the weather factor with the upper bound of the input commodity availability factor.
 }
-\item{wcinp.fx}{numeric. Coefficient that links the weather factor with the fixed value of the input commodity availability factor. This parameter overrides \code{wcinp.lo} and \code{wcinp.up}.
+\item{inp.waf.fx}{numeric. Coefficient that links the weather factor with the fixed value of the input commodity availability factor. This parameter overrides \code{inp.waf.lo} and \code{inp.waf.up}.
 }
-\item{wcout.lo}{numeric. Coefficient that links the weather factor with the lower bound of the output commodity availability factor.
+\item{out.waf.lo}{numeric. Coefficient that links the weather factor with the lower bound of the output commodity availability factor.
 }
-\item{wcout.up}{numeric. Coefficient that links the weather factor with the upper bound of the output commodity availability factor.
+\item{out.waf.up}{numeric. Coefficient that links the weather factor with the upper bound of the output commodity availability factor.
 }
-\item{wcout.fx}{numeric. Coefficient that links the weather factor with the fixed value of the output commodity availability factor. This parameter overrides \code{wcout.lo} and \code{wcout.up}.
+\item{out.waf.fx}{numeric. Coefficient that links the weather factor with the fixed value of the output commodity availability factor. This parameter overrides \code{out.waf.lo} and \code{out.waf.up}.
 }
 }}
 
@@ -354,24 +384,24 @@ STG1 <- newStorage(
   ),
   af = data.frame(
     region = "R1", year = 2020, timeslice = "HOUR",
-    af.lo = 0.9, af.up = 0.9, af.fx = 0.9, cinp.up = 0.9,
-    cinp.fx = 0.9, cinp.lo = 0.9, cout.up = 0.9,
-    cout.fx = 0.9, cout.lo = 0.9
+    af.lo = 0.9, af.up = 0.9, af.fx = 0.9, inp.af.up = 0.9,
+    inp.af.fx = 0.9, inp.af.lo = 0.9, out.af.up = 0.9,
+    out.af.fx = 0.9, out.af.lo = 0.9
   ),
-  fixom = data.frame(region = "R1", year = 2020, fixom = 0.9),
+  fixom = data.frame(region = "R1", year = 2020, out.fixom = 0.9),
   varom = data.frame(
     region = "R1", year = 2020, timeslice = "HOUR",
     inpcost = 0.9, outcost = 0.9, stgcost = 0.9
   ),
   invcost = data.frame(
-    region = "R1", year = 2020, invcost = 0.9,
-    wacc = 0.09, payback = 10, retcost = 0.9
+    region = "R1", year = 2020, out.invcost = 0.9,
+    out.wacc = 0.09, out.payback = 10, out.retcost = 0.9
   ),
   capacity = data.frame(
-    region = "R1", year = 2020, stock = 0.9,
-    cap.lo = 0.9, cap.up = 0.9, cap.fx = 0.9, ncap.lo = 0.9,
-    ncap.up = 0.9, ncap.fx = 0.9, ret.lo = 0.9, ret.up = 0.9,
-    ret.fx = 0.9
+    region = "R1", year = 2020, out.stock = 0.9,
+    out.cap.lo = 0.9, out.cap.up = 0.9, out.cap.fx = 0.9, out.ncap.lo = 0.9,
+    out.ncap.up = 0.9, out.ncap.fx = 0.9, out.ret.lo = 0.9, out.ret.up = 0.9,
+    out.ret.fx = 0.9
   ),
   duration = 1,
   fullYear = TRUE,
@@ -379,9 +409,9 @@ STG1 <- newStorage(
     weather = "sunny",
     waf.lo = 0.9,
     waf.up = 0.9,
-    waf.fx = 0.9, wcinp.lo = 0.9,
-    wcinp.fx = 0.9, wcinp.up = 0.9, wcout.lo = 0.9, wcout.fx = 0.9,
-    wcout.up = 0.9
+    waf.fx = 0.9, inp.waf.lo = 0.9,
+    inp.waf.fx = 0.9, inp.waf.up = 0.9, out.waf.lo = 0.9, out.waf.fx = 0.9,
+    out.waf.up = 0.9
   ),
   optimizeRetirement = FALSE,
   misc = list()

@@ -2,7 +2,7 @@
 % Please edit documentation in R/utils.R
 \name{make_scenario_dirname}
 \alias{make_scenario_dirname}
-\title{Make a name for a scenario directory}
+\title{Make a name for a scenario directory (deprecated)}
 \usage{
 make_scenario_dirname(
   scen,
@@ -30,21 +30,16 @@ make_scenario_dirname(
 
 \item{suffix}{character, suffix to add to the name}
 
-\item{sep}{character, separator, default is \verb{_}}
+\item{sep}{character, ignored (kept for backward compatibility)}
 }
 \value{
 character, name of the scenario directory
 }
 \description{
-A function to automate the creation of a scenario directory name.
-Used internally in \verb{solve*()} and \verb{interpolate*()} functions.
-Also can be used to amend the name of the scenario directory and explicitly
-assign the directory name to save the scenario object.
+Deprecated: scenario folders are named by the internal
+\code{.scenario_dir_name()} (which slugs the parts and drops duplicates); this
+export never was the live implementation and produced different names.
+It now delegates to the real one; \code{prefix}/\code{suffix} are still honored.
+The previous body is archived in \code{drafts/make_scenario_dirname-legacy.R}.
 }
-\examples{
-\dontrun{
-make_scenario_dirname(scen_BASE)
-make_scenario_dirname(scen_BASE, prefix = "prefix", suffix = "suffix")
-}
-
-}
+\keyword{internal}

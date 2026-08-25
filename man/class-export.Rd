@@ -35,16 +35,27 @@ model horizon.
 
 \item{\code{unit}}{character. Unit of the exported commodity.}
 
-\item{\code{reserve}}{numeric. Total accumulated limit through the model horizon.}
+\item{\code{reserve}}{data.frame. Cumulative limit over the whole model horizon, summed across ALL regions, years and timeslices. A data.frame (rather than the bare number it was before 0.85) so it can carry a \code{cluster} column and be split across price steps; without that every step would inherit the FULL limit and the model would quietly hold \code{nsteps} times the resource. A plain number is still accepted by the constructor and read as \code{res.up}.
+There is deliberately no \code{region} column: adding one would turn this into a per-region cap and LOSE the all-region total, which is what it means today.
+
+\describe{
+\item{cluster}{character. Price step this row applies to, NA for every step.}
+\item{res.lo}{numeric. Lower bound on the cumulative volume.}
+\item{res.up}{numeric. Upper bound on the cumulative volume.}
+\item{res.fx}{numeric. Fixed cumulative volume. Overrides \code{res.lo} and \code{res.up}.}
+}}
 
 \item{\code{export}}{data.frame. Export parameters.
 \describe{
+\item{cluster}{character. Price step this row applies to, NA for every step. See the \code{cluster} slot.}
 \item{region}{character. Region name to apply the parameter; use NA to apply to all regions.}
 \item{year}{integer. Year to apply the parameter; use NA to apply to all years.}
 \item{timeslice}{character. Time timeslice to apply the parameter; use NA to apply to all timeslices.}
 \item{exp.lo}{numeric. Export lower bound.}
 \item{exp.up}{numeric. Export upper bound.}
 \item{exp.fx}{numeric. Fixed export volume, ignored if NA. This parameter overrides \code{exp.lo} and \code{exp.up}.}
+\item{price}{numeric. Price received per unit exported. Export revenue is a NEGATIVE cost -- the minus sits inside \code{eqExportRowCost} -- so a higher price is a better outcome for the objective.
+}
 }}
 
 \item{\code{misc}}{list. Additional information.}

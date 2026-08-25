@@ -109,9 +109,12 @@ newTechnology(
 \item{share.lo}{numeric. Lower bound on a share of commodity within a group, default is 0.}
 \item{share.up}{numeric. Upper bound on a share of commodity within a group, default is 1.}
 \item{share.fx}{numeric. Fixed share of commodity within a group, ignored if NA. This parameter overrides \code{share.lo} and \code{share.up}.}
-\item{afc.lo}{numeric. Lower bound on the physical value of the commodity, ignored if NA.}
-\item{afc.up}{numeric. Upper bound on the physical value of the commodity, ignored if NA.}
-\item{afc.fx}{numeric. Fixed physical value of the commodity, ignored if NA. This parameter overrides \code{afc.lo} and \code{afc.up}.}
+\item{afc.lo}{numeric. Lower bound on the per-commodity availability factor: bounds this commodity's input or output flow relative to installed capacity (times \code{cap2act}), the commodity-level analogue of \code{af.lo}. Ignored if NA.
+}
+\item{afc.up}{numeric. Upper bound on the per-commodity availability factor: bounds this commodity's input or output flow relative to installed capacity (times \code{cap2act}), the commodity-level analogue of \code{af.up}. Ignored if NA.
+}
+\item{afc.fx}{numeric. Fixed per-commodity availability factor, ignored if NA. This parameter overrides \code{afc.lo} and \code{afc.up}.
+}
 }}
 
 \item{aeff}{data.frame. Parameters linking main commodities, activities, and capacities to auxiliary commodities.
@@ -130,11 +133,21 @@ newTechnology(
 \item{act2aout}{numeric. Technology-activity-to-auxilary-commodity-output coefficient, ignored if NA.}
 \item{cap2ainp}{numeric. Technology-capacity-to-auxilary-commodity-input coefficient, ignored if NA.}
 \item{cap2aout}{numeric. Technology-capacity-to-auxilary-commodity-output coefficient, ignored if NA.}
-\item{ncap2ainp}{numeric. Technology-new-capacity-to-auxilary-commodity-input-coefficient, ignored if NA.}
+\item{ncap2ainp}{numeric. Aux commodity consumed per unit of NEW capacity -- a one-time charge at construction (materials, embodied energy), ignored if NA. NO \code{pTimesliceShare} is applied and the aux balance is PER TIMESLICE, so a value given with \code{timeslice = NA} applies in EVERY slice and the annual total comes out multiplied by the slice count -- 8760x on an hourly calendar. Give a per-slice value, or name a single slice.
+}
 \item{ncap2aout}{numeric. Technology-new-capacity-to-auxilary-commodity-output coefficient, ignored if NA.}
+\item{pho2ainp}{numeric. Aux commodity CONSUMED when capacity reaches the END OF ITS LIFE (demolition energy, labour). Multiplies the per-year phase-out FLOW, so the charge lands ONCE -- in the milestone where the capacity disappears -- not every year it stood. NO \code{pTimesliceShare} is applied and the aux balance is PER TIMESLICE, so a value given with \code{timeslice = NA} applies in EVERY slice and the annual total comes out multiplied by the slice count -- 8760x on an hourly calendar. Give a per-slice value, or name a single slice.
+}
+\item{pho2aout}{numeric. Aux commodity RELEASED when capacity reaches the END OF ITS LIFE (demolition waste, recovered material). Fires even when \code{optimizeRetirement} is FALSE, which is the usual case. NO \code{pTimesliceShare} is applied and the aux balance is PER TIMESLICE, so a value given with \code{timeslice = NA} applies in EVERY slice and the annual total comes out multiplied by the slice count -- 8760x on an hourly calendar. Give a per-slice value, or name a single slice.
+}
+\item{ret2ainp}{numeric. Aux commodity CONSUMED when capacity is retired EARLY. Separate from \code{pho2ainp} because the two differ physically: scrapping an intact plant is not the same job as demolishing a worn-out one. NO \code{pTimesliceShare} is applied and the aux balance is PER TIMESLICE, so a value given with \code{timeslice = NA} applies in EVERY slice and the annual total comes out multiplied by the slice count -- 8760x on an hourly calendar. Give a per-slice value, or name a single slice.
+}
+\item{ret2aout}{numeric. Aux commodity RELEASED when capacity is retired EARLY (scrap). Usually LARGER than \code{pho2aout}: a plant retired before its time is still largely intact, so more material is recoverable. NO \code{pTimesliceShare} is applied and the aux balance is PER TIMESLICE, so a value given with \code{timeslice = NA} applies in EVERY slice and the annual total comes out multiplied by the slice count -- 8760x on an hourly calendar. Give a per-slice value, or name a single slice.
+}
 }}
 
-\item{af}{data.frame. Timeslice-level availability factor parameters.
+\item{af}{data.frame. Timeslice-level availability factor parameters, bounding activity in each timeslice relative to installed capacity. \code{af.up} is the maximum capacity factor per timeslice (what PyPSA calls \code{p_max_pu} and OSeMOSYS calls \code{CapacityFactor}); \code{af.lo} is a must-run floor. See \code{afs} for timeframe-level (e.g. annual) bounds and \verb{ceff$afc.*} for per-commodity bounds.
+
 \describe{
 \item{vintage}{character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
 \item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{vintage} slot.}
@@ -148,7 +161,8 @@ newTechnology(
 \item{rampdown}{numeric. Ramping-down time constraint RHS value, ignored if NA. Depends on the technology timeframe.}
 }}
 
-\item{afs}{data.frame. Timeframe-level availability factor constraints.
+\item{afs}{data.frame. Timeframe-level availability factor constraints, bounding activity summed over all child timeslices of the named timeslice relative to installed capacity. With \code{timeslice = "ANNUAL"} this is the annual capacity-factor bound (TIMES \code{NCAP_AFS}, OSeMOSYS \code{AvailabilityFactor}), e.g. \code{afs.lo = 0.4} requires at least 40\% annual utilization. Unlike \code{af}, \code{afs} rows are not disaggregated to finer timeslices; they always constrain the sum over the given timeframe.
+
 \describe{
 \item{vintage}{character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
 \item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{vintage} slot.}
@@ -156,7 +170,8 @@ newTechnology(
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{timeslice}{character. Name of timeslice to apply the parameter, required.}
 \item{afs.lo}{numeric. Lower bound on the availability factor for the timeframe, default is 0.}
-\item{afs.up}{numeric. Upper bound on the availability factor for the timeframe, default is 1.}
+\item{afs.up}{numeric. Upper bound on the availability factor for the timeframe, default is \code{Inf} (unbounded), in contrast to \code{af.up} which defaults to 1.
+}
 \item{afs.fx}{numeric. Fixed availability factor for the timeframe, ignored if NA. This parameter overrides \code{afs.lo} and \code{afs.up}.}
 }}
 

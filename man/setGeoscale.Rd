@@ -59,9 +59,9 @@ for a \code{scenario} it reads \verb{@settings} first and falls back to the mode
 }
 \examples{
 \dontrun{
-gs <- geoscales::geoscale_from_leaves(
+gs <- geoscales::geoscale_from_leaftable(
   data.frame(zone = c("N", "N", "S"), region = c("R1", "R2", "R3")),
-  levels = c("zone", "region")
+  geoframes = c("zone", "region")
 )
 mod <- newModel("demo", region = c("R1", "R2", "R3"), geoscale = gs)
 getGeoscale(mod)

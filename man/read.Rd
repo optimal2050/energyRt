@@ -5,14 +5,20 @@
 \alias{read,scenario-method}
 \title{Read solution}
 \usage{
-read_solution(obj, ...)
+read_solution(obj, run = NULL, ...)
 
-\S4method{read}{scenario}(obj, ...)
+\S4method{read}{scenario}(obj, run = NULL, ...)
 }
 \arguments{
 \item{obj}{scenario object}
 
-\item{...}{optional tmp.dir (if missing in the scenario object or to replace the saved path)}
+\item{run}{character, optional run to read: \code{"<solve>"} for a base-problem
+run or \code{"<variant>/<solve>"} — see \code{\link[=scenario_runs]{scenario_runs()}}. The scenario's
+active run switches to it. Default \code{NULL} reads the active run (or, for
+a freshly loaded scenario, the manifest's \verb{default:} run).}
+
+\item{...}{optional \code{solver.dir} (an external solver directory, replacing
+the run resolution; \code{tmp.dir} is the deprecated alias)}
 }
 \value{
 The function returns the scenario object with populated modOut slot

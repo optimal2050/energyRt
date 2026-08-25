@@ -12,6 +12,7 @@ newSupply(
   weather = data.frame(),
   reserve = data.frame(),
   supply = data.frame(),
+  cluster = data.frame(),
   region = character(),
   misc = list(),
   ...
@@ -28,6 +29,7 @@ newSupply(
 
 \item{weather}{data.frame. Weather factors to apply to the supply.
 \describe{
+\item{cluster}{character. Price step this row applies to, NA for every step. See the \code{cluster} slot.}
 \item{weather}{character. Name of the weather factor to apply. Must match the weather factor names in a \code{weather} class in the model.
 }
 \item{wava.lo}{numeric. Coefficient that links the weather factor with the lower bound of the availability factor \code{ava.lo}.
@@ -41,6 +43,7 @@ newSupply(
 \item{reserve}{data.frame. Total available resource. Applicable to exhaustible resources. Set for each region. If not set, the resource is considered infinite.
 
 \describe{
+\item{cluster}{character. Price step this row applies to, NA for every step. See the \code{cluster} slot.}
 \item{region}{character. Region name to apply the parameter. Use NA to apply to all regions.
 }
 \item{res.lo}{numeric. Lower bound of the total available resource.}
@@ -49,17 +52,21 @@ newSupply(
 }
 }}
 
-\item{supply}{data.frame. Availability of the resource in physical units.
+\item{supply}{data.frame. Availability of the resource in physical units. Unlike the \code{af}/\code{afs} availability \emph{factors} of technologies, \verb{ava.*} is an absolute bound on the supplied quantity per timeslice: supply processes have no capacity variable, so nothing multiplies it (except weather factors, see \code{weather}). Rows here also define where and when the supply exists in the model.
+
 \describe{
+\item{cluster}{character. Price step this row applies to, NA for every step. See the \code{cluster} slot.}
 \item{region}{character. Region name to apply the parameter. Use NA to apply to all regions.
 }
 \item{year}{integer. Year to apply the parameter. Use NA to apply to all years.
 }
 \item{timeslice}{character. Time timeslice to apply the parameter. Use NA to apply to all timeslices.
 }
-\item{ava.lo}{numeric. Lower bound of the availability factor.}
-\item{ava.up}{numeric. Upper bound of the availability factor.}
-\item{ava.fx}{numeric. Fixed value of the availability factor. This parameter overrides \code{ava.lo} and \code{ava.up}.
+\item{ava.lo}{numeric. Lower bound on the supplied quantity, in physical commodity units per timeslice.
+}
+\item{ava.up}{numeric. Upper bound on the supplied quantity, in physical commodity units per timeslice.
+}
+\item{ava.fx}{numeric. Fixed value of the supplied quantity, in physical commodity units per timeslice. This parameter overrides \code{ava.lo} and \code{ava.up}.
 }
 \item{cost}{numeric. Cost of the resource extraction, if not set, the resource is considered free.
 }

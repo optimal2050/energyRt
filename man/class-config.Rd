@@ -29,7 +29,7 @@ As an ARGUMENT (\code{newModel(discount = )}, \code{update(cfg, discount = )}) t
 \describe{
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
-\item{wacc}{numeric. Weighted average cost of capital, used to annuitise investment costs into \code{pTechEac} / \code{pStorageEac} / \code{pTradeEac}. A process may override it with its own \verb{@invcost$wacc}. Default is 0.}
+\item{wacc}{numeric. Weighted average cost of capital, used to annuitise investment costs into \code{pTechEac} / \code{pStorageOutEac} / \code{pTradeEac}. A process may override it with its own \verb{@invcost$wacc}. Default is 0.}
 \item{sdr}{numeric. Social discount rate, used to build the cumulative discount factor applied to total system costs in the objective. A property of the model, never of an individual process. Default is 0.}
 }}
 

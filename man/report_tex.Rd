@@ -3,11 +3,14 @@
 \name{report_tex}
 \alias{report_tex}
 \alias{report_tex,technology-method}
+\alias{report_tex,storage-method}
 \title{Generate a LaTeX report for an energyRt object}
 \usage{
 report_tex(object, ...)
 
 \S4method{report_tex}{technology}(object, ...)
+
+\S4method{report_tex}{storage}(object, ...)
 }
 \arguments{
 \item{object}{An energyRt S4 object: \code{technology}, \code{repository},

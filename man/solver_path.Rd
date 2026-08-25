@@ -11,7 +11,7 @@ get_solver_path(backend)
 }
 \arguments{
 \item{backend}{character, one of \code{"gams"}, \code{"gdxlib"}, \code{"glpk"},
-\code{"python"}, \code{"julia"}, \code{"mosox"}.}
+\code{"python"}, \code{"julia"}.}
 
 \item{path}{character, path to the directory containing the executable or
 library, or \code{NULL} to clear it. The directory must exist.}
@@ -26,7 +26,7 @@ per-backend accessors (\code{\link[=set_gams_path]{set_gams_path()}}, \code{\lin
 thin wrappers around them.
 
 Setting a path is optional. When it is unset, each backend falls back to its
-own discovery: \code{glpk} and \code{mosox} search the session \code{PATH} and well-known
+own discovery: \code{glpk} searches the session \code{PATH} and well-known
 install locations (on Windows \code{glpsol} is found in Rtools, which bundles
 GLPK), while \code{gams}, \code{python} and \code{julia} simply invoke the bare command and
 let the OS resolve it on \code{PATH}. Set a path only to override that, for
@@ -45,8 +45,8 @@ Other options:
 \code{\link[=get_arrow_format]{get_arrow_format()}},
 \code{\link[=get_default_solver]{get_default_solver()}},
 \code{\link[=isVerbose]{isVerbose()}},
-\code{\link[=set_default_registry]{set_default_registry()}},
 \code{\link[=set_option]{set_option()}},
+\code{\link[=set_registry_file]{set_registry_file()}},
 \code{\link[=set_scenarios_path]{set_scenarios_path()}}
 
 Other solver:
@@ -54,18 +54,14 @@ Other solver:
 \code{\link[=en_check_packages]{en_check_packages()}},
 \code{\link[=en_install_deps]{en_install_deps()}},
 \code{\link[=en_install_python_deps]{en_install_python_deps()}},
-\code{\link[=en_mosox_run]{en_mosox_run()}},
 \code{\link[=en_setup]{en_setup()}},
 \code{\link[=get_default_solver]{get_default_solver()}},
-\code{\link[=get_mosox_path]{get_mosox_path()}},
 \code{\link[=get_neos_email]{get_neos_email()}},
-\code{\link[=mosox_run]{mosox_run()}},
 \code{\link{neos}},
 \code{\link[=neos_build_gams_text_job]{neos_build_gams_text_job()}},
 \code{\link[=neos_build_gams_xml]{neos_build_gams_xml()}},
 \code{\link[=neos_gams_inline]{neos_gams_inline()}},
-\code{\link{neos_job}},
-\code{\link[=set_mosox_path]{set_mosox_path()}}
+\code{\link{neos_job}}
 }
 \concept{options}
 \concept{solver}

@@ -3,11 +3,14 @@
 \name{report_html}
 \alias{report_html}
 \alias{report_html,technology-method}
+\alias{report_html,storage-method}
 \title{Generate an HTML report for an energyRt object}
 \usage{
 report_html(object, ...)
 
 \S4method{report_html}{technology}(object, ...)
+
+\S4method{report_html}{storage}(object, ...)
 }
 \arguments{
 \item{object}{An energyRt S4 object: \code{technology}, \code{repository},

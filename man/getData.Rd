@@ -27,7 +27,7 @@ getData(scen, ...)
   ...,
   merge = FALSE,
   timeframe = c("highest", "lowest", "all"),
-  geolevel = c("finest", "coarsest", "all"),
+  geoframe = c("finest", "coarsest", "all"),
   process = FALSE,
   parameters = TRUE,
   variables = TRUE,
@@ -60,7 +60,7 @@ getData(scen, ...)
   ...,
   merge = FALSE,
   timeframe = c("highest", "lowest", "all"),
-  geolevel = c("finest", "coarsest", "all"),
+  geoframe = c("finest", "coarsest", "all"),
   process = FALSE,
   parameters = TRUE,
   variables = TRUE,
@@ -245,9 +245,9 @@ get_data(scen, ...)
 
 \item{timeframe}{controls sub-annual time aggregation of results that carry a \code{timeslice} column. One of \code{"highest"} (default, native/finest resolution, as stored), \code{"lowest"} (aggregate/sum flows up to the coarsest level, normally \code{ANNUAL}), \code{"all"} (return every timeframe level stacked), or an explicit calendar level name (e.g. \code{"SEASON"}, \code{"YDAY"}) to aggregate to that level. Non-timeslice data, and state/level variables (e.g. \code{vStorageLevel}) for which summing over timeslices is meaningless, are returned unchanged.
 
-The default was \code{"lowest"} up to v0.80 and is now \code{"highest"}, matching the spatial twin \code{geolevel}, whose default \code{"finest"} has always meant "as stored". Returning data at native resolution unless asked otherwise is the safer default: the old one silently summed an 8760-slice hourly series into a single annual number, which reads as a plausible value rather than as an error, and is indistinguishable from a genuine annual result. Aggregation is easy to ask for and hard to notice when it is not wanted. Code that relied on annual totals must now pass \code{timeframe = "lowest"} explicitly.}
+The default was \code{"lowest"} up to v0.80 and is now \code{"highest"}, matching the spatial twin \code{geoframe}, whose default \code{"finest"} has always meant "as stored". Returning data at native resolution unless asked otherwise is the safer default: the old one silently summed an 8760-slice hourly series into a single annual number, which reads as a plausible value rather than as an error, and is indistinguishable from a genuine annual result. Aggregation is easy to ask for and hard to notice when it is not wanted. Code that relied on annual totals must now pass \code{timeframe = "lowest"} explicitly.}
 
-\item{geolevel}{controls spatial aggregation of results that carry a \code{region} column, the spatial twin of \code{timeframe}. One of \code{"finest"} (default, native resolution as stored), \code{"coarsest"} (aggregate up to the top geoscale level), \code{"all"} (return every level stacked), or an explicit geoscale level name (e.g. \code{"zone"}, \code{"nation"}). Requires a geoscale on the model; without one this is inert. Inter-regional flow variables (e.g. \code{vTradeIr}) are returned unchanged, because summing a flow across regions double-counts it — the spatial counterpart of leaving state variables alone under \code{timeframe}.}
+\item{geoframe}{controls spatial aggregation of results that carry a \code{region} column, the spatial twin of \code{timeframe}. One of \code{"finest"} (default, native resolution as stored), \code{"coarsest"} (aggregate up to the top geoscale level), \code{"all"} (return every level stacked), or an explicit geoscale level name (e.g. \code{"zone"}, \code{"nation"}). Requires a geoscale on the model; without one this is inert. Inter-regional flow variables (e.g. \code{vTradeIr}) are returned unchanged, because summing a flow across regions double-counts it — the spatial counterpart of leaving state variables alone under \code{timeframe}.}
 
 \item{process}{if TRUE, dimensions "tech", "stg", "trade", "imp", "expp", "dem", and "sup" will be renamed with "process".}
 

@@ -46,7 +46,7 @@ aggregated to a coarser level of the geoscale.
 }
 \details{
 Requires a geoscale with geometry attached (see \code{\link[=setGeoscale]{setGeoscale()}} and
-\code{geoscales::geo_attach_geometry()}), plus \code{sf} and \code{ggplot2}.
+\code{geoscales::attach_geometry_geoscale()}), plus \code{sf} and \code{ggplot2}.
 }
 \examples{
 \dontrun{

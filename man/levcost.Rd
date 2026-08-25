@@ -2,12 +2,18 @@
 % Please edit documentation in R/levcost.R
 \name{levcost}
 \alias{levcost}
+\alias{levcost,storage-method}
+\alias{levcost,trade-method}
 \alias{levcost,repository-method}
 \alias{levcost,model-method}
 \alias{levcost,scenario-method}
 \title{Levelized cost of commodity production}
 \usage{
 levcost(object, comm, name, ...)
+
+\S4method{levcost}{storage}(object, comm, name, ...)
+
+\S4method{levcost}{trade}(object, comm, name, ...)
 
 \S4method{levcost}{repository}(object, comm, name, ...)
 
@@ -143,25 +149,7 @@ Computes the levelized cost of energy (LCOE) for a \code{technology},
 \code{repository}, \code{model}, or \code{scenario} object.
 }
 \details{
-\describe{
-\item{\code{technology}}{a minimal single-technology energyRt model is built
-around the technology, solved, and the LCOE derived from the resulting
-cost and production variables.}
-\item{\code{repository} / \code{model}}{give the technology \code{name}; the
-method selects the related commodity and supply objects from the container
-and prices the named technology as above. If an input commodity has no
-supply in the container, it returns \code{NULL} with a message unless
-\code{autocomplete = TRUE} (which adds a zero-cost / \code{fuel_costs}
-supply). The \code{model} method also takes the calendar, region, horizon
-and discount rate from the model's configuration (each overridable).}
-\item{\code{scenario}}{an \emph{ex-post} cost of the named process in the
-\emph{solved} scenario: the discounted sum of its own costs (annualised
-investment \code{vTechEac}, \code{vTechFixom}, \code{vTechVarom}, plus
-attributed fuel cost) divided by its discounted output. Fuel is attributed
-from \code{vTechInp}; a technology with a \emph{grouped} input (whose
-per-commodity consumption is not a solution variable) therefore reports no
-fuel component.}
-}
+
 }
 \examples{
 \dontrun{

@@ -3,6 +3,7 @@
 \name{report}
 \alias{report}
 \alias{report,technology-method}
+\alias{report,storage-method}
 \alias{report,repository-method}
 \alias{report,model-method}
 \alias{report,scenario-method}
@@ -21,6 +22,18 @@ report(
 )
 
 \S4method{report}{technology}(
+  object,
+  template = NULL,
+  image_file = NULL,
+  file = NULL,
+  format = c("html", "pdf", "tex", "docx"),
+  levcost = NULL,
+  cost_unit = NULL,
+  open = interactive(),
+  ...
+)
+
+\S4method{report}{storage}(
   object,
   template = NULL,
   image_file = NULL,

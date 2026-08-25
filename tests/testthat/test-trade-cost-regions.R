@@ -12,9 +12,9 @@
 
 tcr_gs <- function() {
   skip_if_not_installed("geoscales")
-  geoscales::geoscale_from_leaves(
+  geoscales::geoscale_from_leaftable(
     data.frame(nation = "NAT", region = c("R1", "R2")),
-    levels = c("nation", "region"), key = "region", name = "tcr")
+    geoframes = c("nation", "region"), key = "region", name = "tcr")
 }
 
 # A corridor of 100 / 80 / 0 over three one-year periods at fixom 1 per unit-year

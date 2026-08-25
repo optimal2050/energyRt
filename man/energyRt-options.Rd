@@ -50,12 +50,6 @@ Path to a standalone GLPK installation containing the \code{glpsol} executable. 
 \item{envvar: }{ENERGYRT_GLPK_PATH (evaluated if possible, raw string otherwise)}
 }}
 
-\item{mosox_path}{\describe{
-Path to the directory containing the \code{mosox} executable.\item{default: }{\preformatted{NULL}}
-\item{option: }{en.mosox_path}
-\item{envvar: }{ENERGYRT_MOSOX_PATH (evaluated if possible, raw string otherwise)}
-}}
-
 \item{neos_email}{\describe{
 Email address for NEOS Server job submission (required by NEOS). Read from the \code{NEOS_EMAIL} environment variable if the option is unset.\item{default: }{\preformatted{NULL}}
 \item{option: }{en.neos_email}
@@ -80,10 +74,22 @@ Root directory for scenario folders. Scenario paths and solver working directori
 \item{envvar: }{ENERGYRT_SCENARIOS_PATH (evaluated if possible, raw string otherwise)}
 }}
 
-\item{default_registry}{\describe{
-Where the registry of repositories, models and scenarios lives: a list with the object \code{name} and the environment \code{env} holding it.\item{default: }{\preformatted{list(name = "registry", env = ".scen")}}
-\item{option: }{en.default_registry}
-\item{envvar: }{ENERGYRT_DEFAULT_REGISTRY (evaluated if possible, raw string otherwise)}
+\item{registry_file}{\describe{
+Path to the project registry CSV indexing saved models, scenarios and runs. Kept at the project root, a sibling of the scenarios/ and models/ stores, so one registry spans both.\item{default: }{\preformatted{"energyRt_registry.csv"}}
+\item{option: }{en.registry_file}
+\item{envvar: }{ENERGYRT_REGISTRY_FILE (evaluated if possible, raw string otherwise)}
+}}
+
+\item{models_path}{\describe{
+Root directory for the model store. save_model() writes content-addressed model folders (\if{html}{\out{<name>}}@\if{html}{\out{<hash8>}}) underneath it.\item{default: }{\preformatted{"models/"}}
+\item{option: }{en.models_path}
+\item{envvar: }{ENERGYRT_MODELS_PATH (evaluated if possible, raw string otherwise)}
+}}
+
+\item{repositories_path}{\describe{
+Root directory for the repository store. save_repository() writes content-addressed repository folders (\if{html}{\out{<name>}}@\if{html}{\out{<hash8>}}) underneath it.\item{default: }{\preformatted{"repositories/"}}
+\item{option: }{en.repositories_path}
+\item{envvar: }{ENERGYRT_REPOSITORIES_PATH (evaluated if possible, raw string otherwise)}
 }}
 
 \item{arrow_format}{\describe{

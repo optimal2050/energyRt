@@ -24,9 +24,9 @@ lc_cal <- function() {
 }
 
 lc_geoscale <- function(regions = c("R1", "R2")) {
-  geoscales::geoscale_from_leaves(
+  geoscales::geoscale_from_leaftable(
     data.frame(nation = "NAT", region = regions),
-    levels = c("nation", "region"), key = "region", name = "lc")
+    geoframes = c("nation", "region"), key = "region", name = "lc")
 }
 
 # STEEL's levels and the demand's declaration are the knobs under test.
@@ -138,9 +138,9 @@ lc_geo_model <- function(extra = list(), regions = c("R1", "R2", "R3", "R4")) {
   m <- newModel(name = "g", desc = "", calendar = lc_cal(), region = regions,
                 horizon = newHorizon(2020:2030, intervals = 10), discount = 0.05,
                 repo = do.call(newRepository, c(list("r"), objs)))
-  setGeoscale(m, geoscales::geoscale_from_leaves(
+  setGeoscale(m, geoscales::geoscale_from_leaftable(
     data.frame(nation = "NAT", zone = c("W", "W", "E", "E"), region = regions),
-    levels = c("nation", "zone", "region"), key = "region", name = "g"))
+    geoframes = c("nation", "zone", "region"), key = "region", name = "g"))
 }
 
 test_that("getData(geoframe=) rolls results up and conserves the total", {

@@ -16,6 +16,8 @@ interpolate_model(
   prune = TRUE,
   validate = TRUE,
   code = NULL,
+  kvl = FALSE,
+  boundary_prices = NULL,
   verbose = isVerbose()
 )
 }
@@ -62,6 +64,12 @@ duplicate keys, map/parameter coverage).}
 path or a character vector of lines. Lets a model-script version be supplied
 at interpolation time without rebuilding \code{sysdata} (handy to A/B templates).}
 
+\item{boundary_prices}{optional \code{data.frame} pricing import/export stubs
+for trade routes dropped by a SPATIAL SAMPLE (a
+\code{geoscales::filter_geoscale()} subset passed via \code{...}); see
+\code{\link[=subset_model_regions]{subset_model_regions()}} for the columns. Ignored (with a warning)
+when no sampled geoscale is supplied.}
+
 \item{verbose}{logical; print per-step progress.}
 }
 \value{
@@ -77,5 +85,8 @@ and validates the result. The returned scenario is ready for \code{\link[=solve_
 }
 \seealso{
 \code{\link[=solve_model]{solve_model()}}, \code{\link[=solve_scenario]{solve_scenario()}}, the \code{interpolate} S4 method.
+
+Other interpolation:
+\code{\link[=subset_model_regions]{subset_model_regions()}}
 }
 \concept{interpolation}
