@@ -92,6 +92,11 @@ map_mvTotalUserCosts <- function(scen, fmp) {
     df <- dregionyear
   } else if (length(footprints) > 0) {
     df <- dplyr::distinct(dplyr::bind_rows(footprints))
+  } else if (length(scen@modInp@costs.equation) > 0) {
+    # a cost term with no `subset` builds no mCosts* map but still spans the
+    # whole grid -- without this the eqTotalUserCosts domain stayed empty and
+    # the term silently never reached the objective
+    df <- dregionyear
   }
   if (!is.null(df) && nrow(df) > 0) {
     scen <- .set_map(scen, "mvTotalUserCosts", df, fmp)

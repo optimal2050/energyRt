@@ -148,7 +148,7 @@ test_that("getData(geoframe=) rolls results up and conserves the total", {
   skip_if_no_solver()
   scen <- lc_interp(lc_geo_model(), "g1")
   sol <- suppressMessages(suppressWarnings(
-    solve_scen(scen, solver = solver_options$glpk, wait = TRUE)))
+    solve_scenario(scen, solver = solver_options$glpk, wait = TRUE)))
   tot <- function(gl) {
     d <- suppressMessages(getData(sol, "vTechOut", merge = TRUE, geoframe = gl))
     d <- d[d$comm == "ELC", ]

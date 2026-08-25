@@ -549,7 +549,7 @@ newDCLink <- function(name, commodity, from, to, resistance = NA_real_,
     return(invisible(NULL))
   }
   if (isTRUE(kvl) && !has) {
-    stop("solve_scen(kvl = TRUE): this scenario carries no KVL constraints, so ",
+    stop("solve_scenario(kvl = TRUE): this scenario carries no KVL constraints, so ",
          "the solve would silently return the transport relaxation. KVL is ",
          "built at interpolation time -- rebuild with ",
          "`interpolate_model(mod, ..., kvl = TRUE)`. (If the network is radial ",
@@ -557,7 +557,7 @@ newDCLink <- function(name, commodity, from, to, resistance = NA_real_,
          "will say so.)", call. = FALSE)
   }
   if (isFALSE(kvl) && has) {
-    stop("solve_scen(kvl = FALSE): this scenario WAS built with KVL (",
+    stop("solve_scenario(kvl = FALSE): this scenario WAS built with KVL (",
          length(cy), " cycle constraint(s)) and they cannot be removed at ",
          "solve time. Re-interpolate without `kvl = TRUE` for the transport ",
          "relaxation.", call. = FALSE)

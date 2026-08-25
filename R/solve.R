@@ -1,6 +1,6 @@
 # =============================================================================#
 # solve.R -- solver framework (write / run / read) + the interp_mod pipeline
-# entry points solve_mod()/solve_scen() (merged here from the former solve_new.R).
+# entry points solve_model()/solve_scenario() (merged here from the former solve_new.R).
 # The shared framework (.executeScenario) is also used by the archived legacy
 # entry points (depreciated/R/solve_legacy.R). The public legacy names
 # interpolate_model()/solve_model()/solve_scenario()/`solve` are repurposed in
@@ -538,11 +538,11 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
 # NEW version ####
 
 # =============================================================================#
-# Solve model / scenario objects via the interp_mod() mapping pipeline.
-# (Merged from the former solve_new.R.) solve_mod()/solve_scen() build the
-# interpolated scenario with interp_mod() and reuse the write/run/read framework
-# above (.executeScenario()). The public legacy names interpolate_model() /
-# solve_model() / solve_scenario() wrap these in legacy_api_shims.R.
+# Solve model / scenario objects via the interpolate_model() mapping pipeline.
+# (Merged from the former solve_new.R.) solve_model()/solve_scenario() build
+# the interpolated scenario with interpolate_model() and reuse the
+# write/run/read framework above (.executeScenario()). The transitional names
+# solve_mod()/solve_scen() are deprecated aliases in legacy_api_shims.R.
 # =============================================================================#
 
 
@@ -583,16 +583,19 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
   scen
 }
 
-#' Solve a model or an interpolated scenario built with the new pipeline
+#' Solve a model or an interpolated scenario
 #'
-#' `solve_mod()` interpolates a model with [interpolate_model()] and solves it.
-#' `solve_scen()` solves a scenario that was already interpolated with
-#' [interpolate_model()]. Both reuse the existing write / run / read framework
-#' (`.executeScenario()`), so any solver backend supported by the legacy
-#' [solve_model()] (GLPK/GMPL, GAMS, Pyomo, JuMP) works unchanged.
+#' `solve_model()` interpolates a model with [interpolate_model()] and solves
+#' it (an already-interpolated scenario passed to it is solved as-is; an
+#' un-interpolated one is interpolated first). `solve_scenario()` solves a
+#' scenario that was already interpolated with [interpolate_model()] and
+#' errors otherwise. Both reuse the write / run / read framework
+#' (`.executeScenario()`); all solver backends (GLPK/GMPL, GAMS, Pyomo, JuMP)
+#' work unchanged. The transitional names `solve_mod()` / `solve_scen()` are
+#' deprecated aliases.
 #'
-#' @param obj a model object (`solve_mod()`) or an interpolated scenario object
-#'   (`solve_scen()`).
+#' @param obj a model object (`solve_model()`) or an interpolated scenario
+#'   object (`solve_scenario()`).
 #' @param name character name of the scenario to create / return.
 #' @param solver a character or list with solver settings. When `NULL`, the
 #'   scenario's own solver settings or `get_default_solver()` are used.
@@ -606,20 +609,20 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
 #'   after the run (no run record).
 #' @param tmp.dir,tmp.del deprecated aliases of `solver.dir` / `transient`.
 #' @param force logical, re-solve a scenario already solved to optimal.
-#' @param variant character (`solve_scen()` only): declare the scenario's
+#' @param variant character (`solve_scenario()` only): declare the scenario's
 #'   interpolated problem an OWN-PROBLEM VARIANT of this name. Its solves
 #'   land in `runs/<variant>/<solve>/`, and [save_scenario()] stores the
 #'   variant's problem (`modInp`, settings snapshot, `variant.yml`) under
 #'   `runs/<variant>/` — once, shared by all its solves — leaving the
 #'   scenario-level (base) problem untouched. Switch between problems with
 #'   [read_solution()] (`run = "<variant>/<solve>"` vs `run = "<solve>"`).
-#' @param ... for `solve_mod()`, arguments are routed to [interpolate_model()]
-#'   (settings / calendar / horizon / model data) or to the solver run
-#'   (`solver.dir`, `transient`, `force`, `read.solution`, `wait`, `echo`,
-#'   `run`, `run.conflict`, `n.threads`, ...). For `solve_scen()`, arguments
-#'   are passed to `.executeScenario()`. Set `echo = FALSE` for a quiet run:
-#'   it silences both the progress messages and the solver's own console
-#'   output.
+#' @param ... for `solve_model()`, arguments are routed to
+#'   [interpolate_model()] (settings / calendar / horizon / model data) or to
+#'   the solver run (`solver.dir`, `transient`, `force`, `read.solution`,
+#'   `wait`, `echo`, `run`, `run.conflict`, `n.threads`, ...). For
+#'   `solve_scenario()`, arguments are passed to `.executeScenario()`. Set
+#'   `echo = FALSE` for a quiet run: it silences both the progress messages
+#'   and the solver's own console output.
 #'
 #'   `run` doubles as the run label: `TRUE`/`FALSE` keeps its historical
 #'   meaning (run the solver or only write the script), while a character
@@ -631,15 +634,24 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
 #'   ...), `"error"`. See [scenario_runs()] to list runs and
 #'   [read_solution()] to switch between them.
 #'
-#' @seealso [solve_model()], [interpolate_model()], [read_solution()]
+#' @seealso [interpolate_model()], [read_solution()]
 #' @return a scenario object with the solution.
-#' @rdname solve_mod
+#' @rdname solve_model
 #' @export
-solve_mod <- function(obj, name = NULL, solver = NULL,
-                      ondisk = FALSE, fold = FALSE, ...) {
+solve_model <- function(obj, name = NULL, solver = NULL,
+                        ondisk = FALSE, fold = FALSE, ...) {
+  if (inherits(obj, "scenario")) {
+    # convenience: interpolate an un-interpolated scenario before solving; an
+    # already-interpolated scenario is solved as-is (its build knobs preserved)
+    if (!isTRUE(obj@status$interpolated)) {
+      obj <- interpolate_model(obj@model, name = obj@name)
+    }
+    return(do.call(solve_scenario, c(list(obj = obj, solver = solver),
+                                     list(...))))
+  }
   if (!inherits(obj, "model")) {
-    stop("`solve_mod()` expects a model object. ",
-         "Use `solve_scen()` for an interpolated scenario.")
+    stop("`solve_model()` expects a model or scenario object. ",
+         "Use `solve_scenario()` for an interpolated scenario.")
   }
   dots <- list(...)
   # Arguments that belong to the solver run rather than to interpolation
@@ -657,12 +669,12 @@ solve_mod <- function(obj, name = NULL, solver = NULL,
     c(list(mod = obj, name = name, ondisk = ondisk, fold = fold), iarg)
   )
 
-  do.call(solve_scen, c(list(obj = scen, solver = solver), sarg))
+  do.call(solve_scenario, c(list(obj = scen, solver = solver), sarg))
 }
 
-#' @rdname solve_mod
+#' @rdname solve_model
 #' @export
-solve_scen <- function(obj, name = obj@name, solver = NULL, solver.dir = NULL,
+solve_scenario <- function(obj, name = obj@name, solver = NULL, solver.dir = NULL,
                        transient = FALSE, force = FALSE, kvl = NULL,
                        variant = NULL, ...,
                        tmp.dir = NULL, tmp.del = NULL) {
@@ -686,12 +698,12 @@ solve_scen <- function(obj, name = obj@name, solver = NULL, solver.dir = NULL,
     transient <- tmp.del
   }
   if (!inherits(obj, "scenario")) {
-    stop("`solve_scen()` expects a scenario built by `interpolate_model()`. ",
-         "Use `solve_mod()` for a model object.")
+    stop("`solve_scenario()` expects a scenario built by `interpolate_model()`. ",
+         "Use `solve_model()` for a model object.")
   }
   if (!isTRUE(obj@status$interpolated)) {
     stop("Scenario is not interpolated. Build it with `interpolate_model()` ",
-         "or call `solve_mod()` on the model.")
+         "or call `solve_model()` on the model.")
   }
   # `kvl` here GUARDS rather than builds -- the cycle constraints are baked in at
   # interpolation time, so this is the last chance to notice that a solve is

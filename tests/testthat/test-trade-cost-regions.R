@@ -35,7 +35,7 @@ tcr_model <- function(fx, name, geo = FALSE) {
 }
 tcr_obj <- function(fx, name, geo = FALSE) {
   sol <- suppressMessages(suppressWarnings(
-    solve_scen(interpolate_model(tcr_model(fx, name, geo), name = name))))
+    solve_scenario(interpolate_model(tcr_model(fx, name, geo), name = name))))
   getData(sol, "vObjective", merge = TRUE)$value[1]
 }
 
@@ -98,7 +98,7 @@ test_that("a coarse cost lands in one cell, not the parent AND every child", {
   # The failure this guards against is the obvious one: adding coarse rows to
   # mvTotalCost could make eqCost visit the parent as well as its children and
   # count the same cost twice. It must appear at NAT only.
-  sol <- suppressMessages(solve_scen(interpolate_model(
+  sol <- suppressMessages(solve_scenario(interpolate_model(
     tcr_model(data.frame(region = "NAT", fixom = 1), "tcr10", TRUE), name = "tcr10")))
   d <- as.data.frame(getData(sol, "vTradeFixom", merge = TRUE))
   d <- d[d$value != 0, ]
@@ -119,7 +119,7 @@ test_that("a coarse cost survives a dense scenario and every back-end", {
   for (sp in c(TRUE, FALSE)) {
     sc <- suppressMessages(suppressWarnings(
       interpolate_model(mod, name = paste0("tcrs", sp), sparse = sp)))
-    expect_equal(getData(solve_scen(sc), "vObjective", merge = TRUE)$value[1],
+    expect_equal(getData(solve_scenario(sc), "vObjective", merge = TRUE)$value[1],
                  180, info = paste("sparse =", sp))
   }
 })

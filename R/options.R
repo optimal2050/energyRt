@@ -475,7 +475,7 @@ get_scenarios_path <- function() {
 #'
 #' @description
 #' `get_registry_file()` / `set_registry_file()` locate the project registry
-#' CSV (see [registry_load()]). `get_models_path()` / `set_models_path()`
+#' CSV (see [load_registry()]). `get_models_path()` / `set_models_path()`
 #' locate the model store root used by `save_model()`. Both default to the
 #' project root / `models/`, siblings of [get_scenarios_path()].
 #'

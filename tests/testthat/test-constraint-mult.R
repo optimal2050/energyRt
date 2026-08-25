@@ -76,7 +76,7 @@ test_that("a scalar `mult` agrees across the back-ends", {
                t1 = list(variable = "vExportTot", mult = 2)),
     name = "mu6"))
   got <- vapply(c("glpk", "julia_highs", "pyomo_glpk"), function(e) {
-    r <- try(suppressMessages(solve_scen(scen, solver = solver_options[[e]])),
+    r <- try(suppressMessages(solve_scenario(scen, solver = solver_options[[e]])),
              silent = TRUE)
     if (inherits(r, "try-error")) NA_real_
     else getData(r, "vObjective", merge = TRUE)$value[1]
@@ -119,7 +119,7 @@ test_that("a `mult` data.frame works on a DOUBLE-INDEXED variable", {
                fixed = TRUE)
 
   # And it binds: 2 x total flow <= 6 caps the mesh at 3, so R3 buys 7 at 100.
-  expect_equal(getData(suppressMessages(solve_scen(scen)), "vObjective",
+  expect_equal(getData(suppressMessages(solve_scenario(scen)), "vObjective",
                        merge = TRUE)$value[1], 3 * 1 + 7 * 100)
 })
 

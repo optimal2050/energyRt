@@ -60,7 +60,7 @@ tr_model <- function(routes,
 }
 
 tr_solve <- function(mod) suppressMessages(
-  solve_scen(interpolate_model(mod, name = mod@name)))
+  solve_scenario(interpolate_model(mod, name = mod@name)))
 
 tr_obj <- function(mod) getData(tr_solve(mod), "vObjective", merge = TRUE)$value[1]
 
@@ -76,7 +76,7 @@ tr_flows <- function(sol) {
 TR_ONE_WAY <- data.frame(src = "R1", dst = "R2")
 TR_TWO_WAY <- data.frame(src = c("R1", "R2"), dst = c("R2", "R1"))
 
-# An infeasible solve does NOT error: `solve_scen()` returns a scenario whose
+# An infeasible solve does NOT error: `solve_scenario()` returns a scenario whose
 # results are empty (the solver writes no output files and the reader gives up).
 # So infeasibility is detected by absence, not by a condition.
 tr_infeasible <- function(mod) {

@@ -58,7 +58,7 @@ solved_tier <- local({
     if (is.null(cache[[tier]])) {
       env <- .mapping_fixture_env()
       cache[[tier]] <<- suppressMessages(suppressWarnings(
-        solve_mod(env[[tier]](), name = paste0("st_", tier),
+        solve_model(env[[tier]](), name = paste0("st_", tier),
                   solver = solver_options$glpk, tmp.del = TRUE, wait = TRUE)
       ))
     }

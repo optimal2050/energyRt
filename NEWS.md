@@ -13,12 +13,19 @@
   `map_comm_geolevel()` is now `map_comm_geoframe()`. Supported on all four
   back-ends.
 * The variable-catalogue role `flow` is now `interregional`.
+* Scenario-management operations are renamed to the stack's verb-first
+  convention, with no aliases: `registry_load/save/add/find/refresh()` are now
+  `load/save/add_to/find/refresh_registry()`, `scenario_drop_run()` is
+  `drop_scenario_run()`, `scenario_upgrade_layout()` is
+  `upgrade_scenario_layout()`, and `model_apply_ledger()` is `apply_ledger()`.
 
 ## New features
 
 * `solve_myopic()` solves a horizon window by window instead of all at once.
   The primitives are exported and composable: `horizon_windows()`,
-  `solution_ledger()`, `model_apply_ledger()`.
+  `solution_ledger()`, `apply_ledger()`.
+* `add()` now also dispatches on a loaded registry, as a shorthand for
+  `add_to_registry()`.
 * `levcost()` prices `storage` (LCOS, per unit discharged, with a `cycles`
   argument) and `trade` (LCOT, per unit arriving, summed over both endpoints)
   as well as `technology` — closed-form and solver engines, held to each other
@@ -47,6 +54,10 @@
 
 ## Deprecations
 
+* `solve_mod()` / `solve_scen()` — the transitional working names of the solve
+  pipeline — are deprecated aliases of the canonical `solve_model()` /
+  `solve_scenario()`, which now hold the implementations (same engine, same
+  arguments; one-time message, like `interp_mod()`).
 * The mosox back-end experiment moved to `drafts/mosox/`; it was not
   functional.
 
@@ -54,6 +65,10 @@
 
 * `inp.eac` and `stg.eac` now give a `storage` part its own capacity; they priced
   the charging or storing part without bounding it, so it came out free.
+* Per-part `inp.` / `stg.` `wacc` and `payback` are honoured: they were accepted
+  and interpolated but the annuity always read the `out.*` columns. The cascade
+  is now part-specific > storage-wide (`out.*`) > model-wide `pWacc` (rate) or
+  `olife` (life).
 * `technology@af$rampup` / `$rampdown` were accepted by the constructor and
   never reached the solver — the parameter catalogue named slots that do not
   exist, so the ramp parameters stayed empty. Once live, two template defects
@@ -68,8 +83,10 @@
 * The `costs` class was never wired: no `ob2mi` method dispatched it, its
   compiler had no callers, the `defVal` slot it reads was missing, the
   documented list form of `subset =` errored, and the cost-aggregation recipe
-  ran before the `mCosts*` maps it consumes existed. User cost terms now
-  compile with user constraints and reach the objective via `eqTotalUserCosts`.
+  ran before the `mCosts*` maps it consumes existed; a cost without a
+  `subset` left the `eqTotalUserCosts` domain empty and silently never reached
+  the objective. User cost terms now compile with user constraints and reach
+  the objective via `eqTotalUserCosts`, with scalar and set-indexed `mult`.
 * An unknown summand field in `newConstraint()` (e.g. `tech = "X"` instead of
   `for.sum = list(tech = "X")`) is an error instead of being silently dropped —
   it quietly turned a per-technology cap into a global one.

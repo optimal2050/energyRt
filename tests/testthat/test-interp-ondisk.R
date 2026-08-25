@@ -59,7 +59,7 @@ test_that("on-disk interpolation equals in-memory (data + solve)", {
     unlink(td, recursive = TRUE)
     on.exit(unlink(td, recursive = TRUE), add = TRUE)
     suppressWarnings(suppressMessages(
-      solve_scen(s, name = tag, solver = "GLPK", tmp.dir = td, force = TRUE)))
+      solve_scenario(s, name = tag, solver = "GLPK", tmp.dir = td, force = TRUE)))
   }
   om <- getobj(solve1(mem, "mem"))
   od <- getobj(solve1(disk, "disk"))

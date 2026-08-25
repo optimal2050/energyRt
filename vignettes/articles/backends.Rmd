@@ -52,18 +52,18 @@ Use a preset in one of two ways:
 # 1. Set it as the session default, then solve normally
 set_default_solver(solver_options$julia_highs)
 get_default_solver()                       # inspect the current default
-scen <- solve_mod(model)                   # uses the default
+scen <- solve_model(model)                   # uses the default
 
 # 2. Pass it explicitly to a single solve
-scen <- solve_mod(model,  solver = solver_options$glpk)
-scen <- solve_scen(scen,  solver = solver_options$gams_gdx_cplex)
+scen <- solve_model(model,  solver = solver_options$glpk)
+scen <- solve_scenario(scen,  solver = solver_options$gams_gdx_cplex)
 ```
 
 `set_default_solver()` lasts for the session. To make a default stick across
 sessions, save it with `en_config_write()`; `en_config_show()` reports the
 current default together with the solver paths it depends on.
 
-`solve_mod()` interpolates a `model` and solves it; `solve_scen()` solves an
+`solve_model()` interpolates a `model` and solves it; `solve_scenario()` solves an
 already-interpolated scenario. With `solver = NULL` the scenario's own settings
 or `get_default_solver()` are used.
 
@@ -76,7 +76,7 @@ calls the `glpsol` executable — the lowest-friction option and a good default 
 small and medium models.
 
 ```{r}
-solve_mod(model, solver = solver_options$glpk)
+solve_model(model, solver = solver_options$glpk)
 ```
 
 ## Python / Pyomo
@@ -86,8 +86,8 @@ or Arrow/feather with the `*_arrow` presets) and solves it with the configured
 solver. CBC is the open-source default; CPLEX and GLPK are also available.
 
 ```{r}
-solve_mod(model, solver = solver_options$pyomo_cbc)
-solve_mod(model, solver = solver_options$pyomo_cplex_barrier)   # CPLEX barrier
+solve_model(model, solver = solver_options$pyomo_cbc)
+solve_model(model, solver = solver_options$pyomo_cplex_barrier)   # CPLEX barrier
 ```
 
 ## Julia / JuMP
@@ -98,9 +98,9 @@ fast and the recommended choice for large models; `*_barrier`, `*_simplex` and
 available.
 
 ```{r}
-solve_mod(model, solver = solver_options$julia_highs)           # default (auto)
-solve_mod(model, solver = solver_options$julia_highs_barrier)   # interior point
-solve_mod(model, solver = solver_options$julia_highs_parallel)  # parallel simplex
+solve_model(model, solver = solver_options$julia_highs)           # default (auto)
+solve_model(model, solver = solver_options$julia_highs_barrier)   # interior point
+solve_model(model, solver = solver_options$julia_highs_parallel)  # parallel simplex
 ```
 
 ## GAMS
@@ -111,8 +111,8 @@ presets use text/CSV. The `*_barrier` and `*_parallel` presets inject a tuned
 `cplex.opt` (LP method, threads, crossover, …).
 
 ```{r}
-solve_mod(model, solver = solver_options$gams_gdx_cplex)
-solve_mod(model, solver = solver_options$gams_gdx_cplex_barrier)
+solve_model(model, solver = solver_options$gams_gdx_cplex)
+solve_model(model, solver = solver_options$gams_gdx_cplex_barrier)
 ```
 
 ## NEOS (remote solve)
@@ -130,8 +130,8 @@ variable is *not* prefixed `ENERGYRT_`, because the Pyomo subprocess reads
 
 ```{r}
 set_neos_email("you@example.org")
-solve_mod(model, solver = solver_options$neos_gams_cplex)
-solve_mod(model, solver = solver_options$neos_pyomo_cplex_barrier)
+solve_model(model, solver = solver_options$neos_gams_cplex)
+solve_model(model, solver = solver_options$neos_pyomo_cplex_barrier)
 ```
 
 The low-level NEOS interface (submit/poll/fetch a job, list solvers, …) is also
@@ -176,12 +176,12 @@ Each preset is a plain list, so you can copy one and tweak it. Common fields:
 my_solver <- solver_options$julia_highs
 my_solver$name <- "julia_highs_custom"
 # ... adjust an inc* block to set HiGHS attributes ...
-solve_mod(model, solver = my_solver)
+solve_model(model, solver = my_solver)
 ```
 
 # See also
 
 * **Installation and Settings** — installing the runtimes and library layer.
 * **Model bricks** — assembling commodities, processes and structures into a model.
-* `?solve_mod`, `?solve_scen`, `?set_default_solver`, `?set_neos_email`.
+* `?solve_model`, `?solve_scenario`, `?set_default_solver`, `?set_neos_email`.
 * `?energyRt-options` for every setting, `?en_config_show` for what is in effect.

@@ -84,7 +84,7 @@
 #' @param verbose logical.
 #' @return the upgraded scenario object, invisibly.
 #' @export
-scenario_upgrade_layout <- function(path, verbose = TRUE) {
+upgrade_scenario_layout <- function(path, verbose = TRUE) {
   path <- gsub("[\\/]+", "/", path)
   if (!dir.exists(path) || !file.exists(fp(path, "scen.RData"))) {
     stop("'", path, "' is not a saved scenario directory (no scen.RData)")

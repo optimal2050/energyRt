@@ -33,7 +33,7 @@ dim_scen <- function(name, ...) suppressMessages(interpolate_model(
 dim_eq <- function(name, ...) dim_scen(name, ...)@modInp@gams.equation[["DIMT"]]$equation
 
 dim_obj <- function(name, ...) getData(
-  suppressMessages(solve_scen(dim_scen(name, ...))), "vObjective",
+  suppressMessages(solve_scenario(dim_scen(name, ...))), "vObjective",
   merge = TRUE)$value[1]
 
 test_that("the two endpoints of `vTradeIr` get distinct index names", {
@@ -125,7 +125,7 @@ test_that("the back-ends agree on a two-endpoint constraint", {
                    t1 = list(variable = "vTradeIr",
                              for.sum = list(src = "R1", dst = "R3")))
   got <- vapply(c("glpk", "julia_highs", "pyomo_glpk"), function(e) {
-    r <- try(suppressMessages(solve_scen(scen, solver = solver_options[[e]])),
+    r <- try(suppressMessages(solve_scenario(scen, solver = solver_options[[e]])),
              silent = TRUE)
     if (inherits(r, "try-error")) NA_real_
     else getData(r, "vObjective", merge = TRUE)$value[1]

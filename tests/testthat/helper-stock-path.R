@@ -97,5 +97,5 @@ sp_trade <- function(stock, ret = NULL, optret = TRUE, name = "spt") {
                 demand = data.frame(demand = 1))))
 }
 
-sp_solve <- function(mod) solve_scen(interpolate_model(mod, name = mod@name))
+sp_solve <- function(mod) solve_scenario(interpolate_model(mod, name = mod@name))
 sp_interp <- function(mod) interpolate_model(mod, name = mod@name)

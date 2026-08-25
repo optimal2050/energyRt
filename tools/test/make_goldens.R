@@ -56,7 +56,7 @@ SUITES <- list(
 solve_entry <- function(build_fn, name) {
   mod <- build_fn()
   suppressMessages(suppressWarnings(
-    solve_mod(mod, name = paste0("golden_", name),
+    solve_model(mod, name = paste0("golden_", name),
               solver = solver_options$glpk, tmp.del = TRUE, wait = TRUE)
   ))
 }

@@ -1124,10 +1124,10 @@ levcost_chain_ <- function(
     horizon  = hor
   )
   # New mapping pipeline: interpolate in memory (unfolded, so the writers see
-  # explicit rows) then solve. `solve_scen()` writes, runs and reads the solution
+  # explicit rows) then solve. `solve_scenario()` writes, runs and reads the solution
   # in one call (replacing the legacy write_sc / solve_scenario / read_solution).
   scen <- interpolate_model(mdl, name = sn, ondisk = FALSE, fold = FALSE, ...)
-  scen <- solve_scen(scen, solver = solver)
+  scen <- solve_scenario(scen, solver = solver)
 
   # ── 12. Extract results ───────────────────────────────────────────────────
   sfget <- function(v) tryCatch({
@@ -2040,9 +2040,9 @@ levcost_technology_ <- function(
     if (!is.null(debug_df)) mdl@config@debug <- debug_df
     sn   <- paste0("lc_", tech_name, suffix)
     # New mapping pipeline (see levcost_chain_): interpolate in memory, unfolded,
-    # then write + run + read via solve_scen() in one call.
+    # then write + run + read via solve_scenario() in one call.
     scen <- interpolate_model(mdl, name = sn, ondisk = FALSE, fold = FALSE, ...)
-    solve_scen(scen, solver = solver)
+    solve_scenario(scen, solver = solver)
   }
 
   # ── 11. Inner closure: extract LCOE from a solved scenario ──────────────────

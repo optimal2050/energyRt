@@ -5,7 +5,7 @@
 # root, a sibling of the `scenarios/` and `models/` stores) indexes what is
 # saved on disk: one row per model, scenario, or run. The on-disk manifests
 # (`scenario.yml`, `model.yml`, `run.yml`) are the source of truth; the CSV is
-# a rebuildable index — `registry_refresh()` rescans the stores and reconciles.
+# a rebuildable index — `refresh_registry()` rescans the stores and reconciles.
 #
 # The previous implementation (a wrapper over the CRAN `registry` package,
 # in-memory only) is archived in `drafts/registry-cran-wrapper.R`; its public
@@ -37,10 +37,18 @@
 }
 
 .registry_empty <- function() {
-  as_tibble(setNames(
+  .registry_class(as_tibble(setNames(
     lapply(.registry_cols, \(x) character(0)),
     .registry_cols
-  ))
+  )))
+}
+
+# the registry tibble carries an S3 subclass so generics (`add()`) can
+# dispatch on it; tibble/dplyr verbs drop extra classes, so every function
+# returning a registry re-attaches it
+.registry_class <- function(reg) {
+  class(reg) <- unique(c("ert_registry", class(reg)))
+  reg
 }
 
 #' Project registry of models, scenarios, and runs
@@ -50,23 +58,23 @@
 #' the saved models, scenarios, and runs: one row each, with type, name,
 #' content hash (models), path, parent (runs), timestamps, and a memo.
 #' It is a rebuildable index — the on-disk manifests are the source of truth,
-#' and `registry_refresh()` reconstructs the registry by rescanning the
+#' and `refresh_registry()` reconstructs the registry by rescanning the
 #' `scenarios/` and `models/` stores.
 #'
-#' * `registry_load()` reads the registry file into a tibble (an empty,
+#' * `load_registry()` reads the registry file into a tibble (an empty,
 #'   correctly-typed tibble if the file does not exist yet).
-#' * `registry_save()` writes the tibble back.
-#' * `registry_add()` inserts or updates one row (keyed by `type` + `name` +
+#' * `save_registry()` writes the tibble back.
+#' * `add_to_registry()` inserts or updates one row (keyed by `type` + `name` +
 #'   `parent`) and returns the updated tibble; it does not write the file.
-#' * `registry_find()` filters by any combination of `type`, `name`, `hash`,
+#' * `find_registry()` filters by any combination of `type`, `name`, `hash`,
 #'   and `parent` (exact matches; `NULL` = no filter).
-#' * `registry_refresh()` rescans the stores under `root` and rebuilds rows
+#' * `refresh_registry()` rescans the stores under `root` and rebuilds rows
 #'   from what is actually on disk, preserving `created`/`memo` of surviving
 #'   entries; with `write = TRUE` (default) the result is saved.
 #'
 #' @param file character, path to the registry CSV
 #'   (default [get_registry_file()]).
-#' @param reg a registry tibble as returned by `registry_load()`.
+#' @param reg a registry tibble as returned by `load_registry()`.
 #' @param type character: `"model"`, `"repository"`, `"scenario"`, or `"run"`.
 #' @param name character, object name (for runs: `"<variant>/<solve>"`).
 #' @param path character, object directory, relative to the registry file's
@@ -81,28 +89,28 @@
 #'   `scenarios/` and `models/` stores).
 #' @param write logical, save the refreshed registry to `file`.
 #'
-#' @return `registry_load()`, `registry_add()`, `registry_find()`, and
-#'   `registry_refresh()` return the registry tibble; `registry_save()`
+#' @return `load_registry()`, `add_to_registry()`, `find_registry()`, and
+#'   `refresh_registry()` return the registry tibble; `save_registry()`
 #'   returns `file` invisibly.
 #'
 #' @rdname registry
 #' @export
 #' @examples
-#' reg <- registry_load(tempfile(fileext = ".csv"))
-#' reg <- registry_add(reg, "scenario", "BASE", path = "scenarios/BASE")
-#' registry_find(reg, type = "scenario")
-registry_load <- function(file = get_registry_file()) {
+#' reg <- load_registry(tempfile(fileext = ".csv"))
+#' reg <- add_to_registry(reg, "scenario", "BASE", path = "scenarios/BASE")
+#' find_registry(reg, type = "scenario")
+load_registry <- function(file = get_registry_file()) {
   if (!file.exists(file)) return(.registry_empty())
   reg <- utils::read.csv(file, colClasses = "character",
                          stringsAsFactors = FALSE) |> as_tibble()
   missing_cols <- setdiff(.registry_cols, names(reg))
   for (m in missing_cols) reg[[m]] <- ""
-  reg[, .registry_cols]
+  .registry_class(reg[, .registry_cols])
 }
 
 #' @rdname registry
 #' @export
-registry_save <- function(reg, file = get_registry_file()) {
+save_registry <- function(reg, file = get_registry_file()) {
   stopifnot(is.data.frame(reg))
   reg <- as_tibble(reg)[, .registry_cols]
   dir_ <- dirname(file)
@@ -113,7 +121,7 @@ registry_save <- function(reg, file = get_registry_file()) {
 
 #' @rdname registry
 #' @export
-registry_add <- function(reg, type, name, path,
+add_to_registry <- function(reg, type, name, path,
                          hash = "", model_hash = "", parent = "",
                          memo = "") {
   type <- match.arg(type, c("model", "repository", "scenario", "run"))
@@ -129,12 +137,22 @@ registry_add <- function(reg, type, name, path,
     memo = if (nzchar(memo) || !length(ii)) memo else reg$memo[ii[1]]
   )
   if (length(ii)) reg <- reg[-ii, ]
-  bind_rows(reg, row)
+  .registry_class(bind_rows(reg, row))
 }
+
+#' @details
+#' `add()` dispatches on a loaded registry, so `add(reg, "scenario", "BASE",
+#' path = "scenarios/BASE")` is `add_to_registry()` under the generic shared
+#' with models and repositories.
+#'
+#' @rdname registry
+#' @method add ert_registry
+#' @export
+add.ert_registry <- function(obj, ...) add_to_registry(obj, ...)
 
 #' @rdname registry
 #' @export
-registry_find <- function(reg, type = NULL, name = NULL, hash = NULL,
+find_registry <- function(reg, type = NULL, name = NULL, hash = NULL,
                           parent = NULL) {
   if (!is.null(type)) reg <- reg[reg$type %in% type, ]
   if (!is.null(name)) reg <- reg[reg$name %in% name, ]
@@ -143,14 +161,14 @@ registry_find <- function(reg, type = NULL, name = NULL, hash = NULL,
     reg <- reg[startsWith(reg$hash, hash[1]) & nzchar(reg$hash), ]
   }
   if (!is.null(parent)) reg <- reg[reg$parent %in% parent, ]
-  reg
+  .registry_class(reg)
 }
 
 #' @rdname registry
 #' @export
-registry_refresh <- function(root = ".", file = get_registry_file(),
+refresh_registry <- function(root = ".", file = get_registry_file(),
                              write = TRUE) {
-  old <- registry_load(file)
+  old <- load_registry(file)
   rel_to_reg <- function(p) .registry_rel_path(p, reg_file = file)
   # store roots from the options may be absolute (e.g. redirected to a temp
   # dir); only prefix `root` onto relative ones
@@ -158,7 +176,7 @@ registry_refresh <- function(root = ".", file = get_registry_file(),
     if (grepl("^([A-Za-z]:|/|\\\\)", p)) gsub("[\\/]+", "/", p) else fp(root, p)
   }
   keep_created <- function(reg, type, name, parent = "") {
-    hit <- registry_find(old, type = type, name = name, parent = parent)
+    hit <- find_registry(old, type = type, name = name, parent = parent)
     if (nrow(hit)) {
       ii <- which(reg$type == type & reg$name == name & reg$parent == parent)
       reg$created[ii] <- hit$created[1]
@@ -189,7 +207,7 @@ registry_refresh <- function(root = ".", file = get_registry_file(),
         nm <- basename(d)
       }
       if (is.null(nm)) next
-      reg <- registry_add(reg, "scenario", nm, path = rel_to_reg(d),
+      reg <- add_to_registry(reg, "scenario", nm, path = rel_to_reg(d),
                           model_hash = model_hash)
       reg <- keep_created(reg, "scenario", nm)
       # runs (layout 3): base runs at runs/<solve>/run.yml, variant runs at
@@ -206,7 +224,7 @@ registry_refresh <- function(root = ".", file = get_registry_file(),
         } else {
           fp(parent_dir, basename(run_dir))       # variant run: "<variant>/<solve>"
         }
-        reg <- registry_add(reg, "run", run_name, path = rel_to_reg(run_dir),
+        reg <- add_to_registry(reg, "run", run_name, path = rel_to_reg(run_dir),
                             parent = nm)
         reg <- keep_created(reg, "run", run_name, parent = nm)
       }
@@ -229,12 +247,12 @@ registry_refresh <- function(root = ".", file = get_registry_file(),
       mf <- tryCatch(yaml::read_yaml(manifest), error = \(e) NULL)
       if (is.null(mf)) next
       nm <- mf$name %||% sub("@.*$", "", basename(d))
-      reg <- registry_add(reg, st$type, nm, path = rel_to_reg(d),
+      reg <- add_to_registry(reg, st$type, nm, path = rel_to_reg(d),
                           hash = mf$hash %||% "")
       reg <- keep_created(reg, st$type, nm)
     }
   }
 
-  if (write) registry_save(reg, file)
+  if (write) save_registry(reg, file)
   reg
 }

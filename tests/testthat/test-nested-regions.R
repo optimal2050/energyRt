@@ -194,7 +194,7 @@ test_that("nr_equivalence: a coarse balance equals free transport", {
       scen <- suppressMessages(suppressWarnings(
         interpolate_model(mod, name = tag, fold = TRUE, sparse = FALSE)))
       sum(suppressMessages(getData(
-        solve_scen(scen, solver = solver_options[[eng]]),
+        solve_scenario(scen, solver = solver_options[[eng]]),
         "vObjective", merge = TRUE))$value)
     }
     expect_equal(

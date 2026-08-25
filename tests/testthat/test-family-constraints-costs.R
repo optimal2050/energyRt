@@ -67,6 +67,26 @@ test_that("family constraints-costs: a user constraint on one tech forces the me
   expect_equal(.fork_objective(scen), 40 + 25 * 10 + 15 * 100, tolerance = 1e-6)
 })
 
+test_that("family constraints-costs: a set-indexed mult prices each member differently", {
+  skip_if_no_solver()
+  # force a 25/15 split, then fee vTechAct at 2 (cheap) / 3 (expensive):
+  # fee = 25*2 + 15*3 = 95 on top of the constrained obj 1790
+  cns <- newConstraint(
+    name = "CHEAPCAP", eq = "<=",
+    for.each = data.frame(year = 2025),
+    term1 = list(variable = "vTechNewCap", for.sum = list(tech = "ECHEAP")),
+    defVal = 25)
+  uc <- newCosts(name = "ACTFEES", variable = "vTechAct",
+                 mult = data.frame(tech = c("ECHEAP", "EEXP"), value = c(2, 3)))
+  mod <- cc_build(cns)
+  mod <- add(mod, uc)
+  scen <- .fork_solve(suppressMessages(suppressWarnings(interpolate_model(
+    mod, name = "cc_multdf", overwrite = TRUE))), solver_options$glpk)
+  expect_true(verify_solution(scen)$ok)
+  expect_equal(ff_solution_sum(scen, "vTotalUserCosts"), 95, tolerance = 1e-6)
+  expect_equal(.fork_objective(scen), 1790 + 95, tolerance = 1e-6)
+})
+
 # @covers vUserCosts vTotalUserCosts depth=S backends=glpk
 test_that("family constraints-costs: a costs object adds its term to the objective", {
   skip_if_no_solver()

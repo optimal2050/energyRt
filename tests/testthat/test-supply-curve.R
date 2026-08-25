@@ -35,7 +35,7 @@ sc_model <- function(name, objs, demand = 0) newModel(
               demand = data.frame(demand = demand))), objs)))
 
 sc_solve <- function(m, nm) suppressMessages(
-  solve_scen(suppressMessages(interpolate_model(m, name = nm))))
+  solve_scenario(suppressMessages(interpolate_model(m, name = nm))))
 
 sc_obj <- function(m, nm) getData(sc_solve(m, nm), "vObjective",
                                   merge = TRUE)$value[1]

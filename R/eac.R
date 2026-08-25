@@ -90,6 +90,9 @@
 }
 
 # Compute one family's EAC param from its invcost / wacc / olife / payback.
+# `wacc_par` / `payback_par` may be character VECTORS tried in order (a
+# storage part passes c(part-specific, storage-wide)): the first non-NA value
+# wins, then the model-wide `pWacc` (rate) or `olife` (life).
 .eac_one <- function(scen, key, inv_par, olife_par, new_par, eac_par,
                      wacc_par, payback_par) {
   P <- scen@modInp@parameters
@@ -111,17 +114,25 @@
   }
   if (nrow(df) == 0) return(scen)
 
-  # Rate: process-specific cost of capital, else the model-wide one. NA means
-  # "not supplied" -- an explicit 0 is a legitimate zero-interest rate and is
-  # kept (hence `dropIfEmpty: false` on both parameters in modInp.yml).
-  df <- .eac_join(scen, df, wacc_par, "pwacc", c(key, "region", "year"))
+  # Rate: process-specific cost of capital (first supplied of the given
+  # parameters, in order), else the model-wide one. NA means "not supplied" --
+  # an explicit 0 is a legitimate zero-interest rate and is kept (hence
+  # `dropIfEmpty: false` on both parameters in modInp.yml).
+  wacc_cols <- paste0("pwacc", seq_along(wacc_par))
+  for (i in seq_along(wacc_par)) {
+    df <- .eac_join(scen, df, wacc_par[i], wacc_cols[i], c(key, "region", "year"))
+  }
   df <- .eac_join(scen, df, "pWacc", "mwacc", c("region", "year"))
-  df$rate <- dplyr::coalesce(df$pwacc, df$mwacc, 0)
+  df$rate <- dplyr::coalesce(!!!df[c(wacc_cols, "mwacc")], 0)
 
-  # Period: cost-recovery life if given, else operational life (absent -> Inf,
-  # i.e. a perpetual annuity).
+  # Period: cost-recovery life if given (first supplied, in order), else
+  # operational life (absent -> Inf, i.e. a perpetual annuity).
   df <- .eac_join(scen, df, olife_par, "olife", c(key, "region"))
-  df <- .eac_join(scen, df, payback_par, "payback", c(key, "region", "year"))
+  pb_cols <- paste0("payback", seq_along(payback_par))
+  for (i in seq_along(payback_par)) {
+    df <- .eac_join(scen, df, payback_par[i], pb_cols[i], c(key, "region", "year"))
+  }
+  df$payback <- dplyr::coalesce(!!!df[pb_cols])
   df$payback[!is.na(df$payback) & df$payback == 0] <- NA_real_
   .check_payback(df, key)
   df$olife[is.na(df$olife)] <- Inf
@@ -247,16 +258,18 @@ compute_eac_parameters <- function(scen) {
   scen <- .eac_one(scen, "stg", "pStorageOutInvcost", "pStorageOlife",
                    "mStorageNew", "pStorageOutEac", "pStorageOutWacc",
                    "pStorageOutPayback")
-  # The STORING part's capital cost is per unit of ENERGY and annuitises
-  # separately, but on the same @vintage -- one storage, one lifetime and one
-  # wacc, two capital costs on different bases. Per-part lifetimes would need
-  # their own olife/wacc columns and are deliberately not in this change.
+  # Each part's capital cost annuitises separately on the shared @vintage
+  # lifetime. The `out.*` wacc/payback columns are the STORAGE-WIDE carrier
+  # (a storage that says nothing per part gets one rate); a part-specific
+  # `inp.` / `stg.` wacc or payback OVERRIDES it for that part.
   scen <- .eac_one(scen, "stg", "pStorageStgInvcost", "pStorageOlife",
-                   "mStorageStgNew", "pStorageStgEac", "pStorageOutWacc",
-                   "pStorageOutPayback")
+                   "mStorageStgNew", "pStorageStgEac",
+                   c("pStorageStgWacc", "pStorageOutWacc"),
+                   c("pStorageStgPayback", "pStorageOutPayback"))
   scen <- .eac_one(scen, "stg", "pStorageInpInvcost", "pStorageOlife",
-                   "mStorageInpNew", "pStorageInpEac", "pStorageOutWacc",
-                   "pStorageOutPayback")
+                   "mStorageInpNew", "pStorageInpEac",
+                   c("pStorageInpWacc", "pStorageOutWacc"),
+                   c("pStorageInpPayback", "pStorageOutPayback"))
   scen <- .eac_one(scen, "trade", "pTradeInvcost", "pTradeOlife", "mTradeNew",
                    "pTradeEac", "pTradeWacc", "pTradePayback")
   .check_payback_grid(scen)

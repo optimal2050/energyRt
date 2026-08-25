@@ -46,7 +46,7 @@
 #'
 #' @examples
 #' \dontrun{
-#' scen <- solve_mod(mod, solver = solver_options$glpk)
+#' scen <- solve_model(mod, solver = solver_options$glpk)
 #' vs <- verify_solution(scen)
 #' vs$ok
 #' print(vs)

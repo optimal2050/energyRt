@@ -44,7 +44,7 @@ test_that("year-fold is solution-invariant across GLPK / JuMP / Pyomo", {
     td <- file.path(tempdir(), paste0("fy_", tag)); unlink(td, recursive = TRUE)
     on.exit(unlink(td, recursive = TRUE), add = TRUE)
     s <- tryCatch(suppressWarnings(suppressMessages(
-      solve_mod(mod, name = tag, solver = solver, fold = fold,
+      solve_model(mod, name = tag, solver = solver, fold = fold,
                 tmp.dir = td, force = TRUE))),
       error = function(e) NULL)
     obj(s)

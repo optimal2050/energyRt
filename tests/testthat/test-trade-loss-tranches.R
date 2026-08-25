@@ -39,7 +39,7 @@ lt_link <- function(nm, tr, cap = NULL, invcost = NULL, demand = 30,
 }
 
 lt_solve <- function(m, nm) suppressMessages(
-  solve_scen(suppressMessages(interpolate_model(m, name = nm))))
+  solve_scenario(suppressMessages(interpolate_model(m, name = nm))))
 
 lt_flows <- function(s) {
   d <- as.data.frame(getData(s, "vTradeIr", merge = TRUE))
@@ -191,7 +191,7 @@ test_that("investable tranche capacities are tied to the declared shares", {
     name = "lt8"))
   expect_true(any(grepl("^VS", names(scen@modInp@gams.equation))))
 
-  cp <- as.data.frame(getData(suppressMessages(solve_scen(scen)), "vTradeCap",
+  cp <- as.data.frame(getData(suppressMessages(solve_scenario(scen)), "vTradeCap",
                               merge = TRUE))
   caps <- setNames(round(cp$value, 6), as.character(cp$trade))
   expect_equal(unname(caps["L_CLT1"]), unname(caps["L_CLT2"]))
@@ -270,7 +270,7 @@ test_that("`ava.*` on a tranched line needs TOTAL, and splitting is wrong", {
                             demand = data.frame(region = "R2", demand = 200))))
   }
   flows <- function(nm, avarows) {
-    s <- suppressMessages(solve_scen(suppressMessages(
+    s <- suppressMessages(solve_scenario(suppressMessages(
       interpolate_model(mk(nm, avarows), name = nm))))
     d <- as.data.frame(getData(s, "vTradeIr", merge = TRUE))
     d <- d[d$value > 1e-9, ]
@@ -340,7 +340,7 @@ test_that("`af.*` on a tranched line has the same problem, and the same fix", {
                             demand = data.frame(region = "R2", demand = 200))))
   }
   flows <- function(nm, afrows) {
-    s <- suppressMessages(solve_scen(suppressMessages(
+    s <- suppressMessages(solve_scenario(suppressMessages(
       interpolate_model(mk(nm, afrows), name = nm))))
     d <- as.data.frame(getData(s, "vTradeIr", merge = TRUE))
     d <- d[d$value > 1e-9, ]

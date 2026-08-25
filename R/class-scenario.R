@@ -67,7 +67,7 @@ setMethod("initialize", "scenario", function(.Object, ...) {
 #' @param ... any model objects or settings to be assigned to the scenario.
 #' @param env_name,registry,replace deprecated and ignored — the in-memory
 #'   registry has been replaced by the persisted project registry (see
-#'   [registry_load()]); scenarios are registered on [save_scenario()].
+#'   [load_registry()]); scenarios are registered on [save_scenario()].
 #'
 #' @return A new scenario object.
 #' @export

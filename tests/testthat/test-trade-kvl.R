@@ -51,10 +51,10 @@ kvl_scen <- function(name, lines, kvl) suppressMessages(
   interpolate_model(kvl_net(name, lines), name = name, kvl = kvl))
 
 kvl_obj <- function(s, ...) getData(
-  suppressMessages(solve_scen(s, ...)), "vObjective", merge = TRUE)$value[1]
+  suppressMessages(solve_scenario(s, ...)), "vObjective", merge = TRUE)$value[1]
 
 kvl_flows <- function(s) {
-  d <- as.data.frame(getData(suppressMessages(solve_scen(s)), "vTradeIr",
+  d <- as.data.frame(getData(suppressMessages(solve_scenario(s)), "vTradeIr",
                              merge = TRUE))
   d <- d[d$value > 1e-9, ]
   setNames(round(d$value, 4), paste0(d$src, "->", d$dst))
@@ -177,7 +177,7 @@ test_that("a network with two cycles is constrained by both", {
   scen <- suppressMessages(interpolate_model(sq("kvsq"), name = "kvsq", kvl = TRUE))
   expect_equal(length(energyRt:::.kvl_scenario_cycles(scen)), 2)
 
-  d <- as.data.frame(getData(suppressMessages(solve_scen(scen)), "vTradeIr",
+  d <- as.data.frame(getData(suppressMessages(solve_scenario(scen)), "vTradeIr",
                              merge = TRUE))
   d <- d[d$value > 1e-9, ]
   f <- setNames(round(d$value, 6), paste0(d$src, "->", d$dst))
@@ -212,7 +212,7 @@ test_that("a model with no reactance is untouched by the flag", {
   # the flag is safe to leave on in a script that also builds non-electrical
   # networks.
   expect_equal(tr_obj(tr_mesh_one(name = "kv8")), 10)
-  expect_equal(getData(suppressMessages(solve_scen(suppressMessages(
+  expect_equal(getData(suppressMessages(solve_scenario(suppressMessages(
     interpolate_model(tr_mesh_one(name = "kv9"), name = "kv9", kvl = TRUE)))),
     "vObjective", merge = TRUE)$value[1], 10)
 })
@@ -223,7 +223,7 @@ test_that("a model with no reactance is untouched by the flag", {
 
 test_that("a solve cannot silently differ from what was asked for", {
   skip_if_no_solver()
-  # The constraints are baked in at interpolation time, so `kvl` on solve_scen()
+  # The constraints are baked in at interpolation time, so `kvl` on solve_scenario()
   # can only check. Both mismatches are errors rather than warnings: each would
   # otherwise return a perfectly plausible number for the other model.
   expect_error(kvl_obj(kvl_scen("kv10", KVL_TRIANGLE(), FALSE), kvl = TRUE),
@@ -244,7 +244,7 @@ test_that("the back-ends agree on a KVL solve", {
   # manual cross-back-end sweep, where it agrees to eight decimals.
   scen <- kvl_scen("kv13", KVL_TRIANGLE(), TRUE)
   got <- vapply(c("glpk", "julia_highs", "pyomo_glpk"), function(e) {
-    r <- try(suppressMessages(solve_scen(scen, solver = solver_options[[e]])),
+    r <- try(suppressMessages(solve_scenario(scen, solver = solver_options[[e]])),
              silent = TRUE)
     if (inherits(r, "try-error")) NA_real_
     else getData(r, "vObjective", merge = TRUE)$value[1]
@@ -295,7 +295,7 @@ test_that("a tranched network solves to the same LINE-level flows", {
   tranched <- suppressMessages(interpolate_model(kvl_tranched("kvt3", 2),
                                                  name = "kvt3", kvl = TRUE))
   line_flows <- function(s) {
-    d <- as.data.frame(getData(suppressMessages(solve_scen(s)), "vTradeIr",
+    d <- as.data.frame(getData(suppressMessages(solve_scenario(s)), "vTradeIr",
                                merge = TRUE))
     d <- d[d$value > 1e-9, ]
     # Sum the tranches back up to their line.

@@ -1,4 +1,4 @@
-# scenario_upgrade_layout(): layout 2 -> 3 migration and interim-3 cleanup
+# upgrade_scenario_layout(): layout 2 -> 3 migration and interim-3 cleanup
 # (R/paths_rebase.R). Fixtures built by transforming a CURRENT save into the
 # old shapes, so the tests need no checked-in binary fixtures.
 
@@ -16,7 +16,7 @@ ul_make_layout2 <- function(name) {
   sc <- interpolate_model(sp_tech(c(100, 100, 100), optret = FALSE,
                                   name = name),
                           name = name, path = p)
-  sol <- solve_scen(sc)
+  sol <- solve_scenario(sc)
   saved <- suppressMessages(save_scenario(sol, verbose = FALSE))
   lbl <- saved@misc$run
 
@@ -47,7 +47,7 @@ test_that("a layout-2 folder upgrades to flat runs/ with a backfilled record", {
   fx <- ul_make_layout2("ul2")
 
   up <- suppressWarnings(suppressMessages(
-    scenario_upgrade_layout(fx$path, verbose = FALSE)))
+    upgrade_scenario_layout(fx$path, verbose = FALSE)))
 
   expect_identical(readLines(file.path(fx$path, "layout"), warn = FALSE)[1],
                    "3")
@@ -78,7 +78,7 @@ test_that("a layout-2 folder upgrades to flat runs/ with a backfilled record", {
 
   # idempotent
   up2 <- suppressWarnings(suppressMessages(
-    scenario_upgrade_layout(fx$path, verbose = FALSE)))
+    upgrade_scenario_layout(fx$path, verbose = FALSE)))
   expect_s4_class(up2, "scenario")
   expect_identical(nrow(scenario_runs(up2)), 1L)
   unlink(fx$path, recursive = TRUE)
@@ -91,7 +91,7 @@ test_that("an interim runs/default/<solve>/script tree is flattened and renamed"
   sc <- interpolate_model(sp_tech(c(60, 60, 60), optret = FALSE,
                                   name = "uli"),
                           name = "uli", path = p)
-  sol <- solve_scen(sc)
+  sol <- solve_scenario(sc)
   saved <- suppressMessages(save_scenario(sol, verbose = FALSE))
   lbl <- saved@misc$run
 
@@ -109,7 +109,7 @@ test_that("an interim runs/default/<solve>/script tree is flattened and renamed"
   save(scen, file = file.path(p, "scen.RData"))
 
   up <- suppressWarnings(suppressMessages(
-    scenario_upgrade_layout(p, verbose = FALSE)))
+    upgrade_scenario_layout(p, verbose = FALSE)))
 
   expect_true(dir.exists(file.path(p, "runs", lbl, "solver", "output")))
   expect_false(dir.exists(file.path(p, "runs", "default")))

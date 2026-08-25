@@ -16,7 +16,7 @@ test_that("tier models reproduce their golden tracked values (GLPK)", {
   for (tier in names(g)) {
     skip_if(!is.function(env[[tier]]), paste0(tier, "() not in fixture catalog"))
     scen <- suppressMessages(suppressWarnings(
-      solve_mod(env[[tier]](), name = paste0("gold_", tier),
+      solve_model(env[[tier]](), name = paste0("gold_", tier),
                 solver = solver_options$glpk, tmp.del = TRUE, wait = TRUE)))
     vs <- verify_solution(scen)
     expect_true(vs$ok, label = paste0(tier, " invariants"))

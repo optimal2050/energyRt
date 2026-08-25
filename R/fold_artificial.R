@@ -155,7 +155,7 @@ apply_fold_artificial <- function(scen, backends = "GLPK",
     #    `ordYear[(yp)] for yp in year`, so a spurious `0` in the `year` set throws
     #    `KeyError: key 0 not found`. GLPK/Pyomo declare params over the set and
     #    default missing keys, so they need the member in the set and tolerate it
-    #    in the loop. (Assumes single-backend calls, as from solve_scen's `.blk`.)
+    #    in the loop. (Assumes single-backend calls, as from solve_scenario's `.blk`.)
     skip_set_member <- dim == "year" && all(backends == "JuMP")
     if (!skip_set_member) {
       setp <- scen@modInp@parameters[[dim]]

@@ -115,7 +115,7 @@ horizon_windows <- function(horizon, step = 1L, overlap = 0L) {
 #' capacity built in earlier windows is carried forward as exogenous —
 #' sunk, investment-cost-free — `stock`, aged by each process's lifetime and
 #' net of its recorded retirements, and cumulative supply reserves are
-#' debited by past use (see [solution_ledger()] / [model_apply_ledger()]).
+#' debited by past use (see [solution_ledger()] / [apply_ledger()]).
 #'
 #' By default (`store = "variants"`) the whole sequence is ONE scenario:
 #' every step is an own-problem variant (`runs/s01-2020/…`), so the steps
@@ -135,8 +135,8 @@ horizon_windows <- function(horizon, step = 1L, overlap = 0L) {
 #'   calendar / config overrides).
 #' @param horizon the full horizon to split (default: the model's).
 #' @param step,overlap window shape, see [horizon_windows()].
-#' @param carry what to carry between steps, see [model_apply_ledger()].
-#' @param solver solver specification (as in [solve_scen()]).
+#' @param carry what to carry between steps, see [apply_ledger()].
+#' @param solver solver specification (as in [solve_scenario()]).
 #' @param tolerance carried values below it are treated as zero.
 #' @param store `"variants"` (one scenario, steps as own-problem variants)
 #'   or `"scenarios"` (one scenario folder per step).
@@ -152,7 +152,7 @@ horizon_windows <- function(horizon, step = 1L, overlap = 0L) {
 #'   plus the call parameters. `getData()` on it stitches per-step results
 #'   (each year contributed by the step that decided it).
 #'
-#' @seealso [horizon_windows()], [solution_ledger()], [model_apply_ledger()],
+#' @seealso [horizon_windows()], [solution_ledger()], [apply_ledger()],
 #'   [myopic_objective()]
 #' @export
 solve_myopic <- function(mod, name = NULL, ...,
@@ -202,7 +202,7 @@ solve_myopic <- function(mod, name = NULL, ...,
     mod_k <- if (k == 1L) {
       mod
     } else {
-      model_apply_ledger(mod, ledger, w$horizon, carry = carry,
+      apply_ledger(mod, ledger, w$horizon, carry = carry,
                          tolerance = tolerance, verbose = FALSE)
     }
     sol <- tryCatch({
@@ -214,7 +214,7 @@ solve_myopic <- function(mod, name = NULL, ...,
         suppressMessages(interpolate_model(
           mod_k, name = scen_name, ..., w$horizon, overwrite = TRUE))
       }
-      solve_scen(scen_k, solver = solver, echo = FALSE, force = TRUE,
+      solve_scenario(scen_k, solver = solver, echo = FALSE, force = TRUE,
                  variant = if (store == "variants") vlab else NULL)
     }, error = function(e) e)
 

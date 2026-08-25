@@ -120,18 +120,18 @@ it, the label defaults to the solver directory name (e.g. `"glpk"`):
 
 ```{r solve}
 scen <- interpolate_model(mod, name = "BASE") |>
-  solve_scen(solver = solver_options$glpk, echo = FALSE)
-scen <- solve_scen(scen, solver = solver_options$glpk, echo = FALSE,
+  solve_scenario(solver = solver_options$glpk, echo = FALSE)
+scen <- solve_scenario(scen, solver = solver_options$glpk, echo = FALSE,
                    force = TRUE, run = "glpk-alt")
 scenario_runs(scen)[, c("run", "status", "solver_name", "objective", "active")]
 ```
 
 `scenario_run_info(scen, "glpk")` returns one run's full `run.yml`;
 `read_solution(scen, run = "glpk")` switches the active solution;
-`scenario_drop_run(scen, "glpk-alt")` deletes a run (the active one only
+`drop_scenario_run(scen, "glpk-alt")` deletes a run (the active one only
 with `force = TRUE`). An *external* working directory — outside the
 scenario, no run record — is available via
-`solve_scen(solver.dir = "...")`, and `transient = TRUE` solves in a
+`solve_scenario(solver.dir = "...")`, and `transient = TRUE` solves in a
 throwaway folder.
 
 ```{r save}
@@ -183,13 +183,13 @@ Every save also records its object in the project **registry** — one CSV at
 the project root indexing models, repositories, scenarios, and runs:
 
 ```{r registry}
-reg <- registry_load()
+reg <- load_registry()
 reg[, c("type", "name", "parent")]
 ```
 
-The registry is an *index, never an authority*: `registry_refresh()`
+The registry is an *index, never an authority*: `refresh_registry()`
 rebuilds it at any time by rescanning the stores and reading the manifests.
-`registry_find(reg, type = "model", hash = "a1b2")` looks entries up by
+`find_registry(reg, type = "model", hash = "a1b2")` looks entries up by
 type, name, or (short) hash.
 
 # Variants: several problems in one scenario
@@ -202,7 +202,7 @@ that carry their *own* interpolated problem, with their solves inside.
 ```{r variant}
 scen_low <- interpolate_model(make_mod(c(50, 50, 50)), name = "BASE",
                               overwrite = TRUE) |>
-  solve_scen(solver = solver_options$glpk, echo = FALSE, variant = "low")
+  solve_scenario(solver = solver_options$glpk, echo = FALSE, variant = "low")
 scen_low <- save_scenario(scen_low, verbose = FALSE)
 scenario_runs(scen_low)[, c("run", "variant", "modinp", "objective")]
 ```
@@ -223,7 +223,7 @@ The base problem's store stays untouched at the scenario level.
 the solution but the whole in-memory *problem* — settings and parameters
 swap together, in both directions — so `getData()` is always consistent
 with the run you are looking at. This is the storage substrate for the
-upcoming sequential (myopic) solver, which keeps a whole year-by-year
+sequential (myopic) solver: `solve_myopic()` keeps a whole year-by-year
 sequence as one scenario with one variant per step.
 
 # Moving folders, older layouts
@@ -239,7 +239,7 @@ Folders written by older energyRt versions (the pre-`runs/` layout with
 idempotent call:
 
 ```r
-scenario_upgrade_layout("scenarios/OLD")
+upgrade_scenario_layout("scenarios/OLD")
 ```
 
 which moves each solver directory into `runs/`, backfills the provenance

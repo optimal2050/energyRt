@@ -120,10 +120,10 @@ save_repository <- function(
 
   if (isTRUE(registry)) {
     tryCatch({
-      reg <- registry_load()
-      reg <- registry_add(reg, "repository", repo@name,
+      reg <- load_registry()
+      reg <- add_to_registry(reg, "repository", repo@name,
                           path = .registry_rel_path(path), hash = h)
-      registry_save(reg)
+      save_registry(reg)
     }, error = function(e) {
       warning("Could not update the project registry (",
               conditionMessage(e), ")", call. = FALSE)
@@ -169,7 +169,7 @@ load_repository <- function(name, hash = NULL, path = NULL, env = NULL,
          if (is.null(hash)) name else paste0(name, "@", hash),
          "' was not found in the registry or the repository store ('",
          get_repositories_path(), "').\n",
-         "  Run registry_refresh() to rescan, save_repository() to store ",
+         "  Run refresh_registry() to rescan, save_repository() to store ",
          "it, or pass path= to a repository directory.")
   }
   e <- new.env(parent = emptyenv())

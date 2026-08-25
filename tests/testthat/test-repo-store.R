@@ -58,16 +58,16 @@ test_that("save_repository / load_repository round-trips; identical content is a
   expect_identical(back2@name, repo@name)
 
   # registry row + refresh rescan
-  reg <- registry_load()
+  reg <- load_registry()
   expect_identical(
-    nrow(registry_find(reg, type = "repository", name = repo@name)), 1L)
-  reg2 <- registry_refresh(root = rs_root(), file = rs_root("reg.csv"),
+    nrow(find_registry(reg, type = "repository", name = repo@name)), 1L)
+  reg2 <- refresh_registry(root = rs_root(), file = rs_root("reg.csv"),
                            write = FALSE)
   expect_identical(
-    nrow(registry_find(reg2, type = "repository", name = repo@name)), 1L)
+    nrow(find_registry(reg2, type = "repository", name = repo@name)), 1L)
 
   expect_error(load_repository("no-such-repo", verbose = FALSE),
-               "registry_refresh")
+               "refresh_registry")
 })
 
 test_that("save_model references a stored repository; load_model resolves it", {
@@ -134,7 +134,7 @@ test_that("the full chain resolves: scenario -> model ref -> repository ref", {
   save_model(mod, verbose = FALSE)
 
   sc <- interpolate_model(mod, name = "rsc", path = rs_root("scen"))
-  sol <- solve_scen(sc)
+  sol <- solve_scenario(sc)
   saved <- suppressMessages(save_scenario(sol, verbose = FALSE))
   mf <- yaml::read_yaml(file.path(saved@path, "scenario.yml"))
   expect_identical(mf$model$source, "ref")

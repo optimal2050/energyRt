@@ -21,12 +21,12 @@ vr_state <- local({
     if (!is.null(cache$st)) return(cache$st)
     unlink(vr_path, recursive = TRUE)
     # base problem: stock 100
-    base <- solve_scen(interpolate_model(
+    base <- solve_scenario(interpolate_model(
       sp_tech(c(100, 100, 100), optret = FALSE, name = "vr"),
       name = "vr", path = vr_path))
     base_saved <- suppressMessages(save_scenario(base, verbose = FALSE))
     # variant problem: stock 50, interpolated into the same scenario folder
-    alt <- solve_scen(
+    alt <- solve_scenario(
       interpolate_model(sp_tech(c(50, 50, 50), optret = FALSE, name = "vr"),
                         name = "vr", path = vr_path, overwrite = TRUE),
       variant = "low")
@@ -82,7 +82,7 @@ test_that("scenario_runs lists base and variant runs with modinp kind", {
 test_that("a second solve of the variant reuses its single problem store", {
   skip_if_no_solver()
   st <- vr_state()
-  sol2 <- solve_scen(st$alt, force = TRUE, run = "glpk-b")
+  sol2 <- solve_scenario(st$alt, force = TRUE, run = "glpk-b")
   expect_identical(sol2@misc$variant, "low")
   expect_true(dir.exists(file.path(vr_path, "runs", "low", "glpk-b",
                                    "solver", "output")))

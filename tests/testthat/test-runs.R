@@ -15,7 +15,7 @@ rn_solved <- local({
     sc <- interpolate_model(sp_tech(c(100, 100, 100), optret = FALSE,
                                     name = "rnbase"),
                             name = "rnbase", path = rn_scen_path("rnbase"))
-    cache$scen <- solve_scen(sc)
+    cache$scen <- solve_scenario(sc)
     cache$scen
   }
 })
@@ -57,7 +57,7 @@ test_that("a labeled second run coexists and read_solution(run=) switches", {
   first_lbl <- sol@misc$run
   obj1 <- scenario_run_info(sol, first_lbl)$objective
 
-  sol2 <- solve_scen(sol, force = TRUE, run = "glpk-b")
+  sol2 <- solve_scenario(sol, force = TRUE, run = "glpk-b")
   expect_identical(sol2@misc$run, "glpk-b")
   expect_true(dir.exists(file.path(sol2@path, "runs", "glpk-b",
                                    "solver", "output")))
@@ -83,13 +83,13 @@ test_that("a labeled second run coexists and read_solution(run=) switches", {
 test_that("run.conflict suffixes or errors on an existing recorded run", {
   skip_if_no_solver()
   sol <- rn_solved()
-  sol5 <- solve_scen(sol, force = TRUE, run = "cf", run.conflict = "overwrite")
+  sol5 <- solve_scenario(sol, force = TRUE, run = "cf", run.conflict = "overwrite")
   expect_identical(sol5@misc$run, "cf")
-  sol6 <- solve_scen(sol5, force = TRUE, run = "cf", run.conflict = "suffix")
+  sol6 <- solve_scenario(sol5, force = TRUE, run = "cf", run.conflict = "suffix")
   expect_identical(sol6@misc$run, "cf-2")
   expect_true(file.exists(file.path(sol6@path, "runs", "cf-2", "run.yml")))
   expect_error(
-    solve_scen(sol6, force = TRUE, run = "cf", run.conflict = "error"),
+    solve_scenario(sol6, force = TRUE, run = "cf", run.conflict = "error"),
     "already exists")
 })
 
@@ -98,7 +98,7 @@ test_that("a transient solve leaves no run record", {
   sc <- interpolate_model(sp_tech(c(50, 50, 50), optret = FALSE,
                                   name = "rntmp"),
                           name = "rntmp", path = rn_scen_path("rntmp"))
-  sol <- solve_scen(sc, transient = TRUE)
+  sol <- solve_scenario(sc, transient = TRUE)
   expect_true(isTRUE(sol@status$optimal))
   expect_false(dir.exists(file.path(sol@path, "runs")))
   expect_identical(nrow(scenario_runs(sol)[scenario_runs(sol)$status !=
@@ -111,7 +111,7 @@ test_that("an explicit solver.dir is external mode: honored verbatim, no record"
   sc <- interpolate_model(sp_tech(c(50, 50, 50), optret = FALSE,
                                   name = "rnext"),
                           name = "rnext", path = rn_scen_path("rnext"))
-  sol <- solve_scen(sc, solver.dir = td)
+  sol <- solve_scenario(sc, solver.dir = td)
   expect_true(isTRUE(sol@status$optimal))
   expect_identical(gsub("[\\/]+", "/", sol@misc$solver.dir), td)
   expect_false(dir.exists(file.path(sol@path, "runs")))
@@ -125,14 +125,14 @@ test_that("deprecated tmp.dir / tmp.del aliases still work, with a warning", {
                           name = "rnali", path = rn_scen_path("rnali"))
   # rlang::warn(.frequency = "once") warns once per session; don't assert the
   # warning object itself, only that the alias functions
-  sol <- suppressWarnings(solve_scen(sc, tmp.dir = td))
+  sol <- suppressWarnings(solve_scenario(sc, tmp.dir = td))
   expect_true(isTRUE(sol@status$optimal))
   expect_identical(gsub("[\\/]+", "/", sol@misc$solver.dir), td)
 
   sc2 <- interpolate_model(sp_tech(c(40, 40, 40), optret = FALSE,
                                    name = "rnali2"),
                            name = "rnali2", path = rn_scen_path("rnali2"))
-  sol2 <- suppressWarnings(solve_scen(sc2, tmp.del = TRUE))
+  sol2 <- suppressWarnings(solve_scenario(sc2, tmp.del = TRUE))
   expect_true(isTRUE(sol2@status$optimal))
   expect_false(dir.exists(file.path(sol2@path, "runs")))
 })
@@ -146,7 +146,7 @@ test_that("save_scenario writes the manifest (default run), per-run modOut, regi
   sc <- interpolate_model(sp_tech(c(80, 80, 80), optret = FALSE,
                                   name = "rnsave"),
                           name = "rnsave", path = rn_scen_path("rnsave"))
-  sol <- solve_scen(sc)
+  sol <- solve_scenario(sc)
   saved <- save_scenario(sol, verbose = FALSE)
 
   # layout marker and manifest
@@ -165,10 +165,10 @@ test_that("save_scenario writes the manifest (default run), per-run modOut, regi
   expect_false(dir.exists(file.path(saved@path, "modOut", "variables")))
 
   # registry rows: the scenario and its run (flat run id)
-  reg <- registry_load(reg_file)
-  expect_identical(registry_find(reg, type = "scenario", name = "rnsave") |>
+  reg <- load_registry(reg_file)
+  expect_identical(find_registry(reg, type = "scenario", name = "rnsave") |>
                      nrow(), 1L)
-  run_rows <- registry_find(reg, type = "run", parent = "rnsave")
+  run_rows <- find_registry(reg, type = "run", parent = "rnsave")
   expect_identical(nrow(run_rows), 1L)
   expect_identical(run_rows$name, saved@misc$run)
 
@@ -185,7 +185,7 @@ test_that("save_scenario on an ondisk-interpolated scenario is not a no-op", {
                                   name = "rnod"),
                           name = "rnod", path = rn_scen_path("rnod"),
                           ondisk = TRUE)
-  sol <- solve_scen(sc)
+  sol <- solve_scenario(sc)
   saved <- save_scenario(sol, verbose = FALSE)
   # the trap was: early return -> no scen.RData -> load_scenario fails
   expect_true(file.exists(file.path(saved@path, "scen.RData")))
@@ -200,7 +200,7 @@ test_that("interim S2/S3-era trees (runs/default/<solve>/script) are readable", 
   sc <- interpolate_model(sp_tech(c(30, 30, 30), optret = FALSE,
                                   name = "rnint"),
                           name = "rnint", path = rn_scen_path("rnint"))
-  sol <- solve_scen(sc)
+  sol <- solve_scenario(sc)
   lbl <- sol@misc$run
   # transform: runs/<lbl>/{solver,run.yml} -> runs/default/<lbl>/{script,run.yml}
   old_dir <- file.path(sol@path, "runs", lbl)

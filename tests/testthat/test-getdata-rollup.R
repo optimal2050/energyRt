@@ -83,7 +83,7 @@ test_that("roll-up holds on a sampled (subset) calendar", {
                                     demand = 10))),
     calendar = cal, region = "R1", horizon = newHorizon(2020), discount = 0.05)
   scen <- suppressMessages(suppressWarnings(
-    solve_mod(mod, name = "ru_smp", solver = solver_options$glpk,
+    solve_model(mod, name = "ru_smp", solver = solver_options$glpk,
               tmp.del = TRUE, wait = TRUE)))
   # weights annualise the sample: top slice carries weight 1/year_fraction
   w <- energyRt:::get_data_slot(scen@modInp@parameters[["pTimesliceWeight"]])

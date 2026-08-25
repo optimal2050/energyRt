@@ -93,7 +93,7 @@ test_that("the objects survive to the solver", {
 
   # 4 direct at cost 1, plus 2 more of the 6-unit budget carrying R2's own
   # supply at 5, and R3 buys the last 4 from itself at 100.
-  expect_equal(getData(suppressMessages(solve_scen(scen)), "vObjective",
+  expect_equal(getData(suppressMessages(solve_scenario(scen)), "vObjective",
                        merge = TRUE)$value[1],
                4 * 1 + 2 * 5 + 4 * 100)
 })

@@ -41,7 +41,7 @@
 
 # The solver working directory of a run. Named `solver/`; falls back to the
 # interim S2/S3-era name `script/` when only that exists (upgraded by
-# scenario_upgrade_layout()).
+# upgrade_scenario_layout()).
 .run_solver_dir <- function(run_dir) {
   d <- fp(run_dir, "solver")
   if (!dir.exists(d) && dir.exists(fp(run_dir, "script"))) {
@@ -187,14 +187,14 @@
 #' A solved scenario's runs live under `<scenario>/runs/` — base-problem runs
 #' directly (`runs/glpk/`), own-problem variants as named folders holding
 #' their solves (`runs/cal-d24/glpk/`) — each with a `run.yml` provenance
-#' record (see `solve_scen()`). The scenario manifest's `default:` field
+#' record (see `solve_scenario()`). The scenario manifest's `default:` field
 #' names the default run.
 #'
 #' * `scenario_runs()` lists them as a tibble — one row per run, including
 #'   legacy `script/<solver>/` directories from older layouts
 #'   (`status = "legacy"`).
 #' * `scenario_run_info()` returns one run's full `run.yml` record as a list.
-#' * `scenario_drop_run()` deletes a run directory. The active run (the one
+#' * `drop_scenario_run()` deletes a run directory. The active run (the one
 #'   currently loaded in the scenario object) is refused unless `force = TRUE`.
 #'
 #' @param scen a scenario object with a non-empty `@path`.
@@ -204,7 +204,7 @@
 #'
 #' @return `scenario_runs()` a tibble (run, variant, solve, status,
 #'   solver_name, lang, started, duration_sec, objective, modinp, active);
-#'   `scenario_run_info()` a named list; `scenario_drop_run()` the dropped
+#'   `scenario_run_info()` a named list; `drop_scenario_run()` the dropped
 #'   directory, invisibly.
 #'
 #' @rdname scenario_runs
@@ -290,7 +290,7 @@ scenario_run_info <- function(scen, run) {
 
 #' @rdname scenario_runs
 #' @export
-scenario_drop_run <- function(scen, run, force = FALSE) {
+drop_scenario_run <- function(scen, run, force = FALSE) {
   stopifnot(is(scen, "scenario"))
   id <- .parse_run_id(run, scen)
   run_dir <- .run_dir(scen, id$variant, id$solve)
@@ -506,17 +506,17 @@ scenario_drop_run <- function(scen, run, force = FALSE) {
 # Registry trouble must never fail a save: warn and continue.
 .registry_record_scenario <- function(scen) {
   tryCatch({
-    reg <- registry_load()
+    reg <- load_registry()
     rel <- .registry_rel_path(scen@path)
-    reg <- registry_add(reg, "scenario", scen@name, path = rel)
+    reg <- add_to_registry(reg, "scenario", scen@name, path = rel)
     rd <- .run_dirs(scen)
     for (i in which(rd$has_record)) {
       run_name <- .run_id(rd$variant[i], rd$solve[i])
-      reg <- registry_add(reg, "run", run_name,
+      reg <- add_to_registry(reg, "run", run_name,
                           path = fp(rel, "runs", run_name),
                           parent = scen@name)
     }
-    registry_save(reg)
+    save_registry(reg)
   }, error = function(e) {
     warning("Could not update the project registry (",
             conditionMessage(e), ")", call. = FALSE)

@@ -15,7 +15,7 @@ test_that("a moved scenario folder loads and reads data after the rebase", {
   sc <- interpolate_model(sp_tech(c(100, 100, 100), optret = FALSE,
                                   name = "pr1"),
                           name = "pr1", path = p1)
-  sol <- solve_scen(sc)
+  sol <- solve_scenario(sc)
   saved <- suppressMessages(save_scenario(sol, verbose = FALSE))
   n_cap <- nrow(suppressMessages(getData(sol, "vTechStockCap", merge = TRUE)))
   expect_gt(n_cap, 0L)
@@ -45,7 +45,7 @@ test_that("a bare read_solution on a loaded scenario uses the manifest default",
   sc <- interpolate_model(sp_tech(c(50, 50, 50), optret = FALSE,
                                   name = "pr2"),
                           name = "pr2", path = p)
-  sol <- solve_scen(sc)
+  sol <- solve_scenario(sc)
   suppressMessages(save_scenario(sol, verbose = FALSE))
 
   back <- suppressMessages(load_scenario(p, env = NULL, verbose = FALSE))

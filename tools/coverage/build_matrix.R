@@ -151,7 +151,7 @@ test_dir_default <- function() file.path("tests", "testthat")
 
 # depth of a test file from what it does
 file_depth <- function(txt) {
-  solves  <- any(grepl("solve_scen|solve_mod|solve_model|solve_scenario|vt_solve|rt_solve|sp_solve|tr_solve|solve\\(", txt))
+  solves  <- any(grepl("solve_scenario|solve_model|solve_model|solve_scenario|vt_solve|rt_solve|sp_solve|tr_solve|solve\\(", txt))
   interps <- any(grepl("interpolate_model|interp_mod|vt_interp|rt_interp|interpolate\\(", txt))
   backends <- c("GAMS|gams", "JuMP|julia", "PYOMO|pyomo", "GLPK|glpk|glpsol")
   nb <- sum(vapply(backends, function(b) any(grepl(b, txt)), TRUE))

@@ -36,6 +36,16 @@ Two things about the test suite that catch everyone once:
   run. Set `NOT_CRAN=true` if you invoke `testthat::test_file()` directly.
 - A run that **aborted early is not a passing run**. Check the totals.
 
+## Naming (digest — the full rule lives in the stack doc)
+
+- **`verb_class()`** for operations and transforms: `save_model()`,
+  `load_registry()`, `drop_scenario_run()`, `apply_ledger()`.
+- **Class-prefixed nouns** for properties and queries: `model_hash()`,
+  `scenario_runs()`, `solution_ledger()`.
+- Constructors (`newScenario()`), `get_/set_` option accessors, and foreign
+  generics keep their conventional shapes. See
+  [CONVENTIONS.md § Naming](https://github.com/optimal2050/.github/blob/main/CONVENTIONS.md).
+
 ## Solver backends
 
 Models are rendered to GLPK/MathProg, JuMP (Julia), Pyomo and GAMS, and the

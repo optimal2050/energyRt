@@ -147,7 +147,7 @@ data slot as a dataset, and one folder per solver run:
 ```
 
 Solving the same scenario with several backends (or option sets — pass
-`run = "<label>"` to `solve_scen()`) keeps every run side by side;
+`run = "<label>"` to `solve_scenario()`) keeps every run side by side;
 `scenario_runs(scen)` lists them with status and objective, and
 `read_solution(scen, run = "<label>")` switches the active solution.
 A scenario referencing a model saved with `save_model()` skips the embedded
@@ -156,7 +156,7 @@ A scenario referencing a model saved with `save_model()` skips the embedded
 A scenario knows whether its data is in RAM or on disk via `isInMemory()`; when
 on disk, the slots are empty and read lazily from the folder on demand. Folders
 from older energyRt versions are still readable and migrate in place with
-`scenario_upgrade_layout(path)`.
+`upgrade_scenario_layout(path)`.
 
 # Saving and loading
 
@@ -190,8 +190,8 @@ its object in the project **registry** — a single CSV (default
 indexing saved models, repositories, scenarios, and runs. Repositories shared
 by several models can be stored once with `save_repository()` and referenced
 by each model (`save_model(embed_repos = )`), just as scenarios can reference
-a stored model. `registry_load()` reads it, `registry_find()` filters it (by type,
-name, or model hash), and `registry_refresh()` rebuilds it by rescanning the
+a stored model. `load_registry()` reads it, `find_registry()` filters it (by type,
+name, or model hash), and `refresh_registry()` rebuilds it by rescanning the
 `scenarios/` and `models/` stores — the on-disk manifests are the source of
 truth, so the registry can always be reconstructed.
 

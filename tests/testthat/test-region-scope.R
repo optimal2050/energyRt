@@ -41,7 +41,7 @@ rs_model <- function(sup_region = "R1") {
 
 test_that("a region-restricted supply does not serve the region it excludes", {
   skip_if_no_solver()
-  sol <- solve_scen(interpolate_model(rs_model("R1"), name = "rs_glpk"))
+  sol <- solve_scenario(interpolate_model(rs_model("R1"), name = "rs_glpk"))
 
   out <- as.data.frame(getData(sol, "vSupOut", merge = TRUE))
   out <- out[out$value != 0, ]
@@ -58,7 +58,7 @@ test_that("lifting the restriction is what makes the cheap supply available", {
   # The companion case: same model, no `region =`. If the restricted variant
   # above ever drops below this, the supply is leaking again -- which is exactly
   # how the defect read (it solved to 2, cheaper than either correct answer).
-  sol <- solve_scen(interpolate_model(rs_model(NULL), name = "rs_open"))
+  sol <- solve_scenario(interpolate_model(rs_model(NULL), name = "rs_open"))
   expect_equal(getData(sol, "vObjective", merge = TRUE)$value[1], 4)
 })
 
@@ -66,13 +66,13 @@ test_that("every back-end agrees on a region-restricted supply", {
   skip_if_no_solver()
   # Julia and Pyomo could not build this model at all before the fix.
   sc  <- interpolate_model(rs_model("R1"), name = "rs_multi")
-  ref <- getData(solve_scen(sc), "vObjective", merge = TRUE)$value[1]
+  ref <- getData(solve_scenario(sc), "vObjective", merge = TRUE)$value[1]
   have <- function(f) { p <- tryCatch(f(), error = function(e) NULL)
                         !is.null(p) && nzchar(p) }
   engines <- c(if (have(get_julia_path))  "julia_highs",
                if (have(get_python_path)) "pyomo_glpk")
   for (eng in engines) {
-    sol <- solve_scen(sc, solver = solver_options[[eng]])
+    sol <- solve_scenario(sc, solver = solver_options[[eng]])
     expect_equal(getData(sol, "vObjective", merge = TRUE)$value[1], ref,
                  tolerance = 1e-6, info = eng)
   }

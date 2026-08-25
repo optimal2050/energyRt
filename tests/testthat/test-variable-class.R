@@ -40,7 +40,7 @@ vc_model <- function(name = "vc") {
 vc_interp <- function(m, n) suppressMessages(suppressWarnings(
   interpolate_model(m, name = n, fold = TRUE)))
 vc_solve <- function(s) suppressMessages(suppressWarnings(
-  solve_scen(s, solver = solver_options$glpk, wait = TRUE)))
+  solve_scenario(s, solver = solver_options$glpk, wait = TRUE)))
 
 # ---------------------------------------------------------------------------- #
 # the specification

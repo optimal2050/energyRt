@@ -50,7 +50,7 @@ rt_interp <- function(mod, name = "rt") {
 
 rt_solve <- function(scen) {
   suppressMessages(suppressWarnings(
-    solve_scen(scen, solver = solver_options$glpk, wait = TRUE)))
+    solve_scenario(scen, solver = solver_options$glpk, wait = TRUE)))
 }
 
 # A parameter's values as a plain vector, or by year.

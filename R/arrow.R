@@ -1000,7 +1000,7 @@ load_scenario <- function(
     if (ver == 2L && verbose) {
       message(
         "Scenario '", basename(path), "' uses on-disk layout 2; it loads ",
-        "fine. Run scenario_upgrade_layout('", path, "') to migrate it to ",
+        "fine. Run upgrade_scenario_layout('", path, "') to migrate it to ",
         "layout 3 (per-run folders with provenance under runs/)."
       )
     }
@@ -1084,7 +1084,7 @@ load_scenario <- function(
         "Scenario '", scen_obj@name, "' references model '", ref$name, "@",
         substr(ref$hash %||% "", 1, 8), "' which is not in the registry or ",
         "the model store ('", get_models_path(), "').\n",
-        "  Run registry_refresh() to rescan, or re-save the scenario with ",
+        "  Run refresh_registry() to rescan, or re-save the scenario with ",
         "embed_model = TRUE from a session that has the model."
       )
       if (!ignore_errors) stop(msg)

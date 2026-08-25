@@ -31,7 +31,7 @@ test_that("myopic reproduces the foresight capacity path (no intertemporal coupl
   on.exit(set_scenarios_path(old_sp), add = TRUE)
 
   mod <- my_mod(years = yrs, olife = 50L, demand = 1, name = "fe")
-  fore <- solve_scen(interpolate_model(mod, name = "fe-fs"), echo = FALSE)
+  fore <- solve_scenario(interpolate_model(mod, name = "fe-fs"), echo = FALSE)
   cap_fore <- my_by_year(fore, "vTechCap", yrs)
 
   res <- solve_myopic(mod, name = "fe", verbose = FALSE)
@@ -191,7 +191,7 @@ test_that("storage capacity carries across steps (three parts, no re-build)", {
   on.exit(set_scenarios_path(old_sp), add = TRUE)
 
   mod <- my_stg_mod(years = yrs, name = "sg")
-  fore <- solve_scen(interpolate_model(mod, name = "sg-fs"), echo = FALSE)
+  fore <- solve_scenario(interpolate_model(mod, name = "sg-fs"), echo = FALSE)
   out_fore <- my_by_year(fore, "vStorageOutCap", yrs)
   expect_gt(out_fore[["2020"]], 0) # the fixture really builds storage
 
@@ -214,7 +214,7 @@ test_that("trade capacity carries across steps (region-free family)", {
   on.exit(set_scenarios_path(old_sp), add = TRUE)
 
   mod <- my_trd_mod(years = yrs, name = "tr")
-  fore <- solve_scen(interpolate_model(mod, name = "tr-fs"), echo = FALSE)
+  fore <- solve_scenario(interpolate_model(mod, name = "tr-fs"), echo = FALSE)
   cap_fore <- my_by_year(fore, "vTradeCap", yrs)
   expect_gt(cap_fore[["2020"]], 0) # the fixture really builds the link
 
@@ -243,7 +243,7 @@ test_that("a vintaged build is carried onto the RIGHT variant (provenance)", {
   # the ledger routed the carry through provenance: applying it to the
   # pristine model writes the stock rows WITH the vintage selector
   w <- horizon_windows(mod@config@horizon)[[2]]
-  mod2 <- model_apply_ledger(mod, res$ledger, w$horizon)
+  mod2 <- apply_ledger(mod, res$ledger, w$horizon)
   tech2 <- energyRt:::.model_find_object(mod2, "TECH", "technology")$obj
   cap_df <- tech2@capacity
   expect_true("vintage" %in% names(cap_df))

@@ -9,7 +9,7 @@
 #                                  scenario, with the solving horizon's period
 #                                  lengths and each process's lifetime frozen
 #                                  in (windows may differ in interval shape).
-#   model_apply_ledger(mod, ...)   HOW it enters the next problem — a model
+#   apply_ledger(mod, ...)   HOW it enters the next problem — a model
 #                                  COPY whose objects carry the decided past
 #                                  as dense exogenous `stock` schedules (the
 #                                  recursive stock balance and its Surv/New
@@ -144,7 +144,7 @@
 #' lifetime frozen in), retirements of that capacity, endogenous stock
 #' retirements, the terminal exogenous-stock level, and cumulative supply
 #' use — into a `carry_ledger`. Pure read: nothing is modified. Ledgers of
-#' consecutive steps accumulate; [model_apply_ledger()] turns the
+#' consecutive steps accumulate; [apply_ledger()] turns the
 #' accumulated ledger into the next step's model.
 #'
 #' @param scen a solved scenario.
@@ -154,7 +154,7 @@
 #' @param ledger an existing `carry_ledger` to append to (default: empty).
 #'
 #' @return a `carry_ledger` object.
-#' @seealso [model_apply_ledger()], [solve_myopic()]
+#' @seealso [apply_ledger()], [solve_myopic()]
 #' @export
 solution_ledger <- function(scen, years = NULL, ledger = NULL) {
   stopifnot(is(scen, "scenario"))
@@ -381,7 +381,7 @@ print.carry_ledger <- function(x, ...) {
 #' @return a model object.
 #' @seealso [solution_ledger()], [solve_myopic()]
 #' @export
-model_apply_ledger <- function(mod, ledger, horizon,
+apply_ledger <- function(mod, ledger, horizon,
                                carry = c("capacity", "budgets"),
                                tolerance = 1e-6, verbose = FALSE) {
   stopifnot(is(mod, "model"), inherits(ledger, "carry_ledger"),

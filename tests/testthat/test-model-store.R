@@ -50,8 +50,8 @@ test_that("save_model / load_model round-trips; identical content is a no-op", {
   expect_identical(substr(mf$hash, 1, 8), h8)
 
   # registry row
-  reg <- registry_load()
-  expect_identical(nrow(registry_find(reg, type = "model", name = "msm")), 1L)
+  reg <- load_registry()
+  expect_identical(nrow(find_registry(reg, type = "model", name = "msm")), 1L)
 
   # re-saving identical content is a no-op with a message
   expect_message(save_model(mod), "already in the store")
@@ -67,7 +67,7 @@ test_that("save_model / load_model round-trips; identical content is a no-op", {
   expect_identical(back3@name, "msm")
 
   # a missing model errors with guidance
-  expect_error(load_model("no-such-model", verbose = FALSE), "registry_refresh")
+  expect_error(load_model("no-such-model", verbose = FALSE), "refresh_registry")
 })
 
 test_that("a stored model is referenced, not embedded; load resolves it", {
@@ -77,7 +77,7 @@ test_that("a stored model is referenced, not embedded; load resolves it", {
   save_model(mod, verbose = FALSE)
 
   sc <- interpolate_model(mod, name = "msref", path = ms_root("scen-ref"))
-  sol <- solve_scen(sc)
+  sol <- solve_scenario(sc)
   saved <- suppressMessages(save_scenario(sol, verbose = FALSE))
 
   mf <- yaml::read_yaml(file.path(saved@path, "scenario.yml"))
@@ -114,7 +114,7 @@ test_that("embed_model = TRUE embeds even when the store has the model", {
   mod <- sp_tech(c(40, 40, 40), optret = FALSE, name = "msemb")
   save_model(mod, verbose = FALSE)
   sc <- interpolate_model(mod, name = "msemb", path = ms_root("scen-emb"))
-  sol <- solve_scen(sc)
+  sol <- solve_scenario(sc)
   saved <- suppressMessages(save_scenario(sol, embed_model = TRUE,
                                           verbose = FALSE))
   mf <- yaml::read_yaml(file.path(saved@path, "scenario.yml"))
@@ -135,7 +135,7 @@ test_that("embed_model = FALSE errors when the model is not stored", {
   ms_local_store()
   mod <- sp_tech(c(30, 30, 30), optret = FALSE, name = "msreq")
   sc <- interpolate_model(mod, name = "msreq", path = ms_root("scen-req"))
-  sol <- solve_scen(sc)
+  sol <- solve_scenario(sc)
   expect_error(
     suppressMessages(save_scenario(sol, embed_model = FALSE, verbose = FALSE)),
     "save_model")
@@ -146,7 +146,7 @@ test_that("default sourceCode blocks are dropped on save and restored on load", 
   ms_local_store()
   mod <- sp_tech(c(20, 20, 20), optret = FALSE, name = "mssrc")
   sc <- interpolate_model(mod, name = "mssrc", path = ms_root("scen-src"))
-  sol <- solve_scen(sc)
+  sol <- solve_scenario(sc)
   # override ONE backend's code; the others stay identical to the package
   sol@settings@sourceCode[["GAMS"]] <-
     c("* custom override", sol@settings@sourceCode[["GAMS"]])
@@ -176,7 +176,7 @@ test_that("read_solution keeps solver code file NAMES, not their text", {
   ms_local_store()
   mod <- sp_tech(c(10, 10, 10), optret = FALSE, name = "mscode")
   sc <- interpolate_model(mod, name = "mscode", path = ms_root("scen-code"))
-  sol <- solve_scen(sc)
+  sol <- solve_scenario(sc)
   expect_null(sol@settings@solver$code1)
   expect_true("energyRt.mod" %in% sol@settings@solver$code_files)
 })

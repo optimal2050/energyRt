@@ -85,7 +85,7 @@ vt_interp <- function(mod, name = "vt") {
 
 vt_solve <- function(scen) {
   suppressMessages(suppressWarnings(
-    solve_scen(scen, solver = solver_options$glpk, wait = TRUE)
+    solve_scenario(scen, solver = solver_options$glpk, wait = TRUE)
   ))
 }
 

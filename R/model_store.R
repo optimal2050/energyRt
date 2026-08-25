@@ -70,7 +70,7 @@ model_hash <- function(mod) {
 #' `<models_path>/<name>@<hash8>/` (see [get_models_path()]): a `model.yml`
 #' manifest, the thinned `mod.RData`, and parquet stores for the large data
 #' slots. Saving the identical content again is a no-op. The model is
-#' registered in the project registry (see [registry_load()]) unless
+#' registered in the project registry (see [load_registry()]) unless
 #' `registry = FALSE`.
 #'
 #' `load_model()` resolves a stored model by `name` (optionally
@@ -215,10 +215,10 @@ save_model <- function(
 
   if (isTRUE(registry)) {
     tryCatch({
-      reg <- registry_load()
-      reg <- registry_add(reg, "model", mod@name,
+      reg <- load_registry()
+      reg <- add_to_registry(reg, "model", mod@name,
                           path = .registry_rel_path(path), hash = h)
-      registry_save(reg)
+      save_registry(reg)
     }, error = function(e) {
       warning("Could not update the project registry (",
               conditionMessage(e), ")", call. = FALSE)
@@ -239,7 +239,7 @@ save_model <- function(
   }
   # 1. registry
   hit <- tryCatch(
-    registry_find(registry_load(), type = reg_type, name = name, hash = hash),
+    find_registry(load_registry(), type = reg_type, name = name, hash = hash),
     error = function(e) NULL)
   if (!is.null(hit) && nrow(hit)) {
     d <- fp(dirname(get_registry_file()), hit$path[1])
@@ -310,7 +310,7 @@ load_model <- function(name, hash = NULL, path = NULL, env = NULL,
     stop("Model '", if (is.null(hash)) name else paste0(name, "@", hash),
          "' was not found in the registry or the model store ('",
          get_models_path(), "').\n",
-         "  Run registry_refresh() to rescan, save_model() to store it, ",
+         "  Run refresh_registry() to rescan, save_model() to store it, ",
          "or pass path= to a model directory.")
   }
   e <- new.env(parent = emptyenv())
@@ -344,7 +344,7 @@ load_model <- function(name, hash = NULL, path = NULL, env = NULL,
       stop("Model '", mod@name, "' references repository '", ref$name, "@",
            substr(ref$hash %||% "", 1, 8), "' which is not in the registry ",
            "or the repository store ('", get_repositories_path(), "').\n",
-           "  Run registry_refresh() to rescan, or re-save the model with ",
+           "  Run refresh_registry() to rescan, or re-save the model with ",
            "embed_repos = TRUE from a session that has the repository.")
     }
     mod@data[[rp]] <- r

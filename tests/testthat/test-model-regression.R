@@ -29,7 +29,7 @@ test_that("the tier models still produce their known objectives", {
     scen <- suppressMessages(suppressWarnings(
       interpolate_model(mod, name = tier, fold = TRUE)))
     sol <- suppressMessages(suppressWarnings(
-      solve_scen(scen, solver = solver_options$glpk, wait = TRUE)))
+      solve_scenario(scen, solver = solver_options$glpk, wait = TRUE)))
     obj <- suppressMessages(getData(sol, "vObjective", merge = TRUE))
     expect_equal(sum(obj$value), unname(.tm_golden[[tier]]),
                  tolerance = 1e-9, info = tier)

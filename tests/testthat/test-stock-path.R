@@ -9,7 +9,7 @@ test_that("a fixed fleet is untouched: surv = 1, new only in the first year", {
   expect_equal(unname(sp_by_year(sc, "pTechStockNew")), c(100, 0, 0))
   expect_length(rt_val(sc, "pTechStockSurv"), 0L)
 
-  sol <- solve_scen(sc)
+  sol <- solve_scenario(sc)
   # ... and the balance reproduces the declared stock exactly, which is what
   # backward compatibility means here.
   expect_equal(unname(sp_by_year(sol, "vTechStockCap")), c(100, 100, 100))
@@ -25,7 +25,7 @@ test_that("a declining schedule is read off consecutive milestones", {
   expect_equal(unname(sp_by_year(sc, "pTechStockNew")),  c(100, 0, 0))
   expect_equal(unname(sp_by_year(sc, "pTechStockSurv")), c(0, 0.8, 0))
 
-  sol <- solve_scen(sc)
+  sol <- solve_scenario(sc)
   expect_equal(unname(sp_by_year(sol, "vTechStockCap")), c(100, 80, 0))
   # the departures are now TRACKED, not merely implied by a falling stock
   expect_equal(unname(sp_by_year(sol, "vTechStockPhaseOut")), c(0, 20, 80))
@@ -36,7 +36,7 @@ test_that("a rising schedule is commissioning, not a negative phase-out", {
   sc <- sp_interp(sp_tech(c(50, 80, 120), optret = FALSE, name = "spb3"))
   expect_equal(unname(sp_by_year(sc, "pTechStockNew")), c(50, 30, 40))
   expect_length(rt_val(sc, "pTechStockSurv"), 0L)
-  sol <- solve_scen(sc)
+  sol <- solve_scenario(sc)
   expect_equal(unname(sp_by_year(sol, "vTechStockCap")), c(50, 80, 120))
   expect_equal(unname(sp_by_year(sol, "vTechStockPhaseOut")), c(0, 0, 0))
 })
