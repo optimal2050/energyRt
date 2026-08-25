@@ -1,4 +1,5 @@
 ---
+report-class: process
 output:
   pdf_document:
     latex_engine: xelatex

@@ -1,7 +1,7 @@
 Package: energyRt
 Type: Package
 Title: Energy Systems Modeling Toolbox
-Version: 0.87.3.9000
+Version: 0.87.4.9000
 Date: 2026-08-25
 Authors@R: 
   c(person(given = "Oleg", 
@@ -88,6 +88,7 @@ Collate:
     'utils.R'
     'convert.R'
     'data2slots.R'
+    'dataset_store.R'
     'densify.R'
     'design.R'
     'discount_rates.R'
@@ -110,6 +111,7 @@ Collate:
     'solve.R'
     'levcost.R'
     'levcost_analytic.R'
+    'levcost_cache.R'
     'levcost_storage.R'
     'levcost_trade.R'
     'map_closure.R'
@@ -135,6 +137,8 @@ Collate:
     'registry.R'
     'repo_store.R'
     'report.R'
+    'report_cache.R'
+    'report_helpers.R'
     'runs.R'
     'sample_region.R'
     'solve_myopic.R'

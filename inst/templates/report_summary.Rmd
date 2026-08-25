@@ -1,5 +1,6 @@
 ---
 title: "Technology Summary"
+report-class: process
 output:
   pdf_document:
     latex_engine: xelatex
@@ -45,8 +46,8 @@ header-includes:
 ```{r setup, include=FALSE}
 # One-page process summary: header, schematic, key facts, levelized cost.
 # Same params interface as report_generic.Rmd (built by
-# .tech_report_params_generic() in R/report.R); self-contained -- no
-# energyRt calls at knit time.
+# .tech_report_params_generic() in R/report.R); escaping comes from the
+# shared package helpers (?energyRt::report_helpers), the rest is local.
 knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE,
                       fig.pos = "H")
 library(knitr)
@@ -54,13 +55,7 @@ library(knitr)
 is_html <- knitr::is_html_output()
 `%||%` <- function(a, b) if (is.null(a)) b else a
 
-html_esc <- function(x) {
-  if (is.null(x) || !nzchar(x)) return("")
-  x <- gsub("&", "&amp;",  x, fixed = TRUE)
-  x <- gsub("<", "&lt;",   x, fixed = TRUE)
-  x <- gsub(">", "&gt;",   x, fixed = TRUE)
-  x
-}
+html_esc <- function(x) energyRt::report_esc(x, output = "html")
 fmt_val <- function(x, digits = 4L) {
   if (is.null(x) || length(x) == 0 || is.na(x)) return("--")
   formatC(as.numeric(x), digits = digits, format = "g")

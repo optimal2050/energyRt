@@ -1,39 +1,84 @@
 ---
 title: "`r params$title`"
+report-class: scenario
 output:
   html_document:
     self_contained: true
     md_extensions: "-native_divs-native_spans"
   pdf_document:
     latex_engine: xelatex
+  word_document: default
 params:
   title:        "Scenario report"
   scen_name:    ""
   scen_desc:    ""
+  image_file:   NULL
   status_df:    NULL
+  runs_df:      NULL
+  run_info_df:  NULL
+  size_df:      NULL
+  verify_df:    NULL
   gen_plot:     NULL
   gen_day_plot: NULL
   cap_plot:     NULL
   newcap_plot:  NULL
   emis_df:      NULL
   cost_df:      NULL
+  costs_plot:   NULL
+  variants_df:  NULL
+  levcost_df:   NULL
+header-includes:
+  - \usepackage{booktabs}
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
 library(ggplot2)
-kb <- function(df, ...) if (!is.null(df) && nrow(df) > 0) knitr::kable(df, row.names = FALSE, ...)
+
+# Shared helpers live in the package (see ?energyRt::report_helpers).
+fmt <- energyRt::report_setup()
+tbl <- function(df, caption = NULL, digits = 4L)
+  energyRt::report_tbl(df, caption, digits, output = fmt)
+emit_img <- function(path, frac = 1)
+  energyRt::report_img(path, frac, output = fmt)
+```
+
+```{r css, results='asis'}
+energyRt::report_css(fmt)
+```
+
+```{r logo, results='asis'}
+if (!is.null(params$image_file)) emit_img(params$image_file, 0.25)
 ```
 
 `r if (isTRUE(nzchar(params$scen_desc))) params$scen_desc`
 
 ## Overview
 
-```{r status}
-kb(params$status_df)
+```{r status, results='asis'}
+tbl(params$status_df)
 ```
 
-## Generation
+```{r size, results='asis', eval=!is.null(params$size_df)}
+tbl(params$size_df, caption = "Problem size")
+```
+
+```{r verify, results='asis', eval=!is.null(params$verify_df)}
+tbl(params$verify_df, caption = "Solution checks (verify_solution)")
+```
+
+```{r runs-header, results='asis', eval=!is.null(params$runs_df) && nrow(params$runs_df) > 0}
+cat("## Runs\n")
+```
+
+```{r runs, results='asis', eval=!is.null(params$runs_df) && nrow(params$runs_df) > 0}
+tbl(params$runs_df)
+```
+
+```{r run-info, results='asis', eval=!is.null(params$run_info_df)}
+tbl(params$run_info_df, caption = "Reported run")
+```
+
+## Results
 
 ```{r gen, fig.width=8, fig.height=4.5, eval=!is.null(params$gen_plot)}
 params$gen_plot
@@ -43,8 +88,6 @@ params$gen_plot
 params$gen_day_plot
 ```
 
-## Capacity
-
 ```{r cap, fig.width=8, fig.height=4.5, eval=!is.null(params$cap_plot)}
 params$cap_plot
 ```
@@ -53,18 +96,36 @@ params$cap_plot
 params$newcap_plot
 ```
 
+## Costs
+
+```{r costs-plot, fig.width=7, fig.height=4, eval=!is.null(params$costs_plot)}
+params$costs_plot
+```
+
+```{r costs, results='asis'}
+tbl(params$cost_df)
+```
+
 ```{r emis-header, results='asis', eval=!is.null(params$emis_df)}
 cat("## Emissions\n")
 ```
 
-```{r emis}
-kb(params$emis_df)
+```{r emis, results='asis', eval=!is.null(params$emis_df)}
+tbl(params$emis_df)
 ```
 
-```{r cost-header, results='asis', eval=!is.null(params$cost_df)}
-cat("## Costs\n")
+```{r variants-header, results='asis', eval=!is.null(params$variants_df)}
+cat("## Variants\n")
 ```
 
-```{r cost}
-kb(params$cost_df)
+```{r variants, results='asis', eval=!is.null(params$variants_df)}
+tbl(params$variants_df, caption = "Variants per base process")
+```
+
+```{r levcost-header, results='asis', eval=!is.null(params$levcost_df)}
+cat("## Levelized costs (ex-post)\n")
+```
+
+```{r levcost, results='asis', eval=!is.null(params$levcost_df)}
+tbl(params$levcost_df)
 ```

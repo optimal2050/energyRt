@@ -1,5 +1,6 @@
 ---
 title: "Technology Report"
+report-class: process
 output:
   pdf_document:
     latex_engine: xelatex
@@ -53,162 +54,54 @@ header-includes:
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
 library(ggplot2)
 
-# Three output modes. Word must be told apart from LaTeX explicitly:
-# knitr::is_latex_output() is FALSE for docx, but so is is_html_output(),
-# and raw TeX in the "else" branch is silently discarded by the docx writer.
-is_html  <- knitr::is_html_output()
-is_word  <- identical(knitr::pandoc_to(), "docx")
-is_latex <- !is_html && !is_word
-
-options(knitr.kable.NA = if (is_latex) "--" else "\u2014")
+# Shared helpers live in the package (see ?energyRt::report_helpers).
+# Local aliases keep the template body unchanged; report_setup() sets the
+# chunk defaults and the per-output kable NA placeholder, and returns the
+# detected output ("html" / "word" / "latex").
+fmt      <- energyRt::report_setup()
+is_html  <- fmt == "html"
+is_word  <- fmt == "word"
+is_latex <- fmt == "latex"
 
 # ── one sizing system (fractions of the text width, everywhere) ───────────────
-.HDR_IMG  <- 0.33   # header image column
-.SIDE     <- 0.45   # schematic column in the two-column body
-.MAIN     <- 0.52   # table column in the two-column body
-.LC_MAIN  <- 0.55   # levcost components plot
-.LC_SIDE  <- 0.43   # frontier plot next to it
-.PANEL    <- 0.30   # one share-mix panel
-.DPI      <- 150    # every rasterised ggplot
+.LAYOUT   <- energyRt::report_layout()
+.HDR_IMG  <- .LAYOUT$hdr_img   # header image column
+.SIDE     <- .LAYOUT$side      # schematic column in the two-column body
+.MAIN     <- .LAYOUT$main      # table column in the two-column body
+.LC_MAIN  <- .LAYOUT$lc_main   # levcost components plot
+.LC_SIDE  <- .LAYOUT$lc_side   # frontier plot next to it
+.PANEL    <- .LAYOUT$panel     # one share-mix panel
+.DPI      <- .LAYOUT$dpi       # every rasterised ggplot
 
-# Safe HTML / TeX escaping
-html_esc <- function(x) {
-  if (is.null(x) || !nzchar(x)) return("")
-  x <- gsub("&", "&amp;",  x, fixed = TRUE)
-  x <- gsub("<", "&lt;",   x, fixed = TRUE)
-  x <- gsub(">", "&gt;",   x, fixed = TRUE)
-  x <- gsub('"', "&quot;", x, fixed = TRUE)
-  x
-}
-tex_esc <- function(x) {
-  if (is.null(x) || !nzchar(x)) return("")
-  x <- gsub("\\", "\a", x, fixed = TRUE)   # placeholder: braces come later
-  x <- gsub("{",  "\\{",  x, fixed = TRUE)
-  x <- gsub("}",  "\\}",  x, fixed = TRUE)
-  x <- gsub("&",  "\\&",  x, fixed = TRUE)
-  x <- gsub("%",  "\\%",  x, fixed = TRUE)
-  x <- gsub("$",  "\\$",  x, fixed = TRUE)
-  x <- gsub("#",  "\\#",  x, fixed = TRUE)
-  x <- gsub("_",  "\\_",  x, fixed = TRUE)
-  x <- gsub("~",  "\\textasciitilde{}", x, fixed = TRUE)
-  x <- gsub("^",  "\\textasciicircum{}", x, fixed = TRUE)
-  x <- gsub("\a", "\\textbackslash{}", x, fixed = TRUE)
-  x
-}
-esc <- if (is_latex) tex_esc else html_esc
-
-# Fixed-notation value formatting -- never scientific (no "1.2e+03")
-fmt_val <- function(x, digits = 4L) {
-  if (is.null(x) || all(is.na(x))) return("--")
-  formatC(as.numeric(x)[1], digits = digits, format = "fg")
-}
+# Safe HTML / TeX escaping + fixed-notation value formatting
+html_esc <- function(x) energyRt::report_esc(x, output = "html")
+tex_esc  <- function(x) energyRt::report_esc(x, output = "latex")
+esc      <- function(x) energyRt::report_esc(x, output = fmt)
+fmt_val  <- energyRt::report_fmt_val
 
 # ── shared emitters ───────────────────────────────────────────────────────────
 # Image at a fraction of the line width; the ONLY way images enter the page.
-emit_img <- function(path, frac = 1) {
-  if (is.null(path) || !file.exists(path)) return(invisible(NULL))
-  p <- gsub("\\\\", "/", path)
-  if (is_html) {
-    cat("<img src='", p, "' style='width:", round(frac * 100), "%;height:auto' />\n",
-        sep = "")
-  } else if (is_word) {
-    cat("![](", p, "){width=", round(frac * 100), "%}\n\n", sep = "")
-  } else {
-    cat("\\includegraphics[width=", frac,
-        "\\linewidth,keepaspectratio]{", p, "}\n", sep = "")
-  }
-}
+emit_img <- function(path, frac = 1)
+  energyRt::report_img(path, frac, output = fmt)
 
 # Rasterise a ggplot at .DPI and return the png path (uniform pipeline for
 # all three formats; avoids knitr fig options, which docx partly rejects)
-plot_png <- function(p, w_in, h_in) {
-  tmp <- tempfile(fileext = ".png")
-  grDevices::png(tmp, width = round(w_in * .DPI), height = round(h_in * .DPI),
-                 res = .DPI, bg = "white")
-  print(p)
-  grDevices::dev.off()
-  tmp
-}
+plot_png <- function(p, w_in, h_in)
+  energyRt::report_plot_png(p, w_in, h_in, dpi = .DPI)
 
 # Section divider + bold title (+ gray note); Word gets a markdown heading
-sec <- function(title, note = NULL) {
-  if (is_html) {
-    cat("\n<hr class='ert-rule-thin' />\n")
-    cat("<p><strong>", html_esc(title), "</strong>", sep = "")
-    if (!is.null(note) && nzchar(note))
-      cat(" <span class='ert-gray'><small>", html_esc(note), "</small></span>",
-          sep = "")
-    cat("</p>\n")
-  } else if (is_word) {
-    cat("\n## ", title, if (!is.null(note) && nzchar(note))
-      paste0(" (", note, ")") else "", "\n\n", sep = "")
-  } else {
-    cat("\n\\vspace{8pt}\n")
-    cat("\\textcolor{ert_blue}{\\rule{\\linewidth}{0.6pt}}\\par\\vspace{2pt}\n")
-    cat("\\textbf{\\small ", tex_esc(title), "}", sep = "")
-    if (!is.null(note) && nzchar(note))
-      cat(" \\textcolor{ert_gray}{\\small ", tex_esc(note), "}", sep = "")
-    cat("\\par\\vspace{2pt}\n")
-  }
-}
+sec <- function(title, note = NULL)
+  energyRt::report_sec(title, note, output = fmt)
 
-# One table pipeline: prune empty columns/rows, round numerics, kable per
-# format. kable does the escaping (single-escaped, never double).
-tbl <- function(df, caption = NULL, digits = 4L) {
-  if (is.null(df) || nrow(df) == 0) return(invisible(NULL))
-  keep <- vapply(df, function(x) {
-    if (is.character(x)) any(!is.na(x) & nzchar(x)) else any(!is.na(x))
-  }, logical(1))
-  df <- df[, keep, drop = FALSE]
-  if (ncol(df) == 0) return(invisible(NULL))
-  for (i in seq_along(df)) {
-    if (is.numeric(df[[i]])) df[[i]] <- signif(df[[i]], digits)
-  }
-  if (!is.null(caption) && nzchar(caption)) {
-    if (is_html) cat("<p><strong>", html_esc(caption), "</strong></p>\n", sep = "")
-    else if (is_word) cat("**", caption, "**\n\n", sep = "")
-    else cat("{\\small\\bfseries ", tex_esc(caption), "}\\par\\vspace{1pt}\n",
-             sep = "")
-  }
-  k <- if (is_html) {
-    knitr::kable(df, format = "html", row.names = FALSE,
-                 table.attr = "class='kable-table'")
-  } else if (is_word) {
-    knitr::kable(df, format = "pipe", row.names = FALSE)
-  } else {
-    knitr::kable(df, format = "latex", booktabs = TRUE, linesep = "",
-                 row.names = FALSE)
-  }
-  cat(k, sep = "\n")
-  cat("\n")
-}
+# One table pipeline: prune empty columns, round numerics, kable per format.
+tbl <- function(df, caption = NULL, digits = 4L)
+  energyRt::report_tbl(df, caption, digits, output = fmt)
 ```
 
 ```{r html_css, results='asis'}
-if (is_html) {
-  cat("<style>
-body       { font-family: Arial, sans-serif; font-size: 13px; margin: 20px; }
-h1, h2     { color: #1f497d; }
-.ert-gray  { color: #808080; }
-.ert-rule      { border: none; border-top: 2px solid #1f497d; margin: 8px 0 4px; }
-.ert-rule-thin { border: none; border-top: 1px solid #1f497d; margin: 6px 0 4px; }
-.ert-two-col   { display: flex; gap: 20px; align-items: flex-start; }
-.ert-col-main  { flex: 0 0 52%; min-width: 0; }
-.ert-col-side  { flex: 0 0 45%; min-width: 0; }
-.ert-kp-table  { border-collapse: collapse; font-size: 12px; }
-.ert-kp-table td { padding: 2px 12px 2px 0; vertical-align: top; }
-.ert-kp-table td:first-child { font-family: monospace; }
-table.kable-table { border-collapse: collapse; font-size: 11px; margin: 4px 0 8px; }
-table.kable-table th { border-top: 1.5px solid #333; border-bottom: 1px solid #888;
-                       padding: 3px 12px 3px 4px; text-align: left; }
-table.kable-table td { border: none; padding: 2px 12px 2px 4px; }
-table.kable-table tbody tr:last-child td { border-bottom: 1.5px solid #333; }
-table.kable-table tbody tr:nth-child(odd) { background: #f7f7f7; }
-</style>\n")
-}
+energyRt::report_css(fmt)
 ```
 
 ```{r header, results='asis'}

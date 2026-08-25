@@ -46,9 +46,16 @@
 #'   \code{misc$image} when that names an existing local file (see
 #'   \code{\link{object_image}}); \code{NULL} with no \code{misc$image} skips
 #'   the image.
-#' @param file Character.  Destination file path.  Defaults to
-#'   \code{report_<name>} in the current working directory, with the extension
-#'   appropriate for \code{format}.
+#' @param file Character.  Destination file path (used verbatim).  Without it
+#'   the report lands inside the owning folder's \code{reports/} when the
+#'   object is saved (a scenario folder, a model/repository store entry), and
+#'   otherwise in the temporary project-level [get_reports_path()] folder.
+#' @param reports_path Character.  Redirects the default output directory for
+#'   this call (\code{file =} still wins).
+#' @param force Logical.  Re-render even when the existing files are up to
+#'   date.  Reports are skip-if-current: a sidecar (\code{*.report.yml})
+#'   records a content key over the object, template, arguments, image and
+#'   levcost identity, and an unchanged report is not rebuilt.
 #' @param format Character.  Output format: \code{"html"} (default),
 #'   \code{"pdf"}, \code{"tex"} (standalone LaTeX source), or \code{"docx"}
 #'   (Word; the templates' LaTeX styling degrades to Word's own styles).
@@ -71,6 +78,16 @@
 #'   \code{levcost = NULL} and levcost parameters are provided) and/or to
 #'   \code{rmarkdown::render()}.  Known \code{levcost} parameter names are
 #'   intercepted automatically; everything else is passed to the renderer.
+#'
+#'   The \code{scenario} method additionally accepts \code{run} (character or
+#'   \code{NULL}): the run id to report, as listed by
+#'   \code{\link{scenario_runs}} (\code{"<solve>"} or
+#'   \code{"<variant>/<solve>"}).  The default \code{NULL} reports the active
+#'   run; a different run is read into a local copy, so the caller's scenario
+#'   keeps its active run.  It also accepts \code{verify} (logical, default
+#'   \code{TRUE}): include the \code{\link{verify_solution}} checks section.
+#'   For a whole-scenario report, \code{levcost = TRUE} adds an ex-post
+#'   levelized-cost table via \code{levcost(scenario)}.
 #'
 #' @return The path(s) to the generated output file(s) (invisibly).  A single
 #'   string when one format is requested; a character vector when multiple
@@ -166,7 +183,8 @@ setMethod(
   "technology",
   function(object, template = NULL, image_file = NULL, file = NULL,
            format = c("html", "pdf", "tex", "docx"),
-           levcost = NULL, cost_unit = NULL, open = interactive(), ...) {
+           levcost = NULL, cost_unit = NULL, open = interactive(),
+           reports_path = NULL, force = FALSE, ...) {
 
     # default = html only (pdf/tex need LaTeX); explicit requests are honoured
     format <- if (missing(format)) "html" else
@@ -181,7 +199,7 @@ setMethod(
                          "discount", "base_year",
                          "horizon", "calendar", "region", "weather",
                          "frontier", "solver", "method", "full_output",
-                         "verbose")
+                         "verbose", "cache", "cache_dir")
     dots        <- list(...)
     lc_dots     <- dots[intersect(names(dots), .levcost_params)]
     render_dots <- dots[setdiff(names(dots), .levcost_params)]
@@ -194,19 +212,8 @@ setMethod(
       run_levcost <- isTRUE(levcost)
       levcost <- NULL
     }
-    # Auto-run levcost() when asked for it, or when its args (but not a ready
-    # result) were supplied. An explicit `levcost = FALSE` suppresses this.
-    if (is.null(levcost) &&
-        (isTRUE(run_levcost) || (is.na(run_levcost) && length(lc_dots) > 0))) {
-      levcost <- tryCatch(
-        do.call(energyRt::levcost, c(list(object = object), lc_dots)),
-        error = function(e) {
-          warning("levcost() failed inside report(): ",
-                  conditionMessage(e), "\nLevelized cost section will be omitted.")
-          NULL
-        }
-      )
-    }
+    auto_levcost <- is.null(levcost) &&
+      (isTRUE(run_levcost) || (is.na(run_levcost) && length(lc_dots) > 0))
 
     # -- locate Rmd template -----------------------------------------------
     # If tmpl_name is an existing file path, use it directly.
@@ -225,14 +232,9 @@ setMethod(
     render_dots <- sorted$render
 
     # -- output file base (extension stripped) ------------------------------
-    # default: report_<NAME> in the working directory (findable, deterministic)
-    if (is.null(file)) {
-      file_base <- file.path(getwd(),
-        paste0("report_", gsub("[^A-Za-z0-9_]", "_", object@name)))
-    } else {
-      file_base <- tools::file_path_sans_ext(file)
-    }
-    file_base <- normalizePath(file_base, mustWork = FALSE)
+    # saved objects render inside their owning folder's reports/; in-memory
+    # objects into the temporary get_reports_path() tier; file= wins verbatim
+    file_base <- .report_output_base(object, file, reports_path, object@name)
 
     # -- absolute image path -----------------------------------------------
     # Fall back to the object's own `misc$image` convention, so `report(tech)`
@@ -247,6 +249,48 @@ setMethod(
       } else {
         image_file_abs <- normalizePath(image_file, mustWork = TRUE)
       }
+    }
+
+    # -- skip-if-current -----------------------------------------------------
+    # The key names the report's content: object hash, template content, user
+    # args, image content, and the levcost identity (the cache key an auto-run
+    # WOULD use — computed without running, so an up-to-date report returns
+    # before levcost, draw() or any plot work happens).
+    lc_id <- if (!is.null(levcost)) {
+      .levcost_result_id(levcost)
+    } else if (auto_levcost) {
+      .levcost_call_key(object, lc_dots)
+    } else NULL
+    key <- .report_key("report/technology", object, tmpl,
+                       args = c(param_dots, render_dots,
+                                list(cost_unit = cost_unit)),
+                       image_file = image_file_abs, levcost_id = lc_id)
+    if (!isTRUE(force)) {
+      current <- vapply(format, function(f)
+        .report_uptodate(file_base, f, key), logical(1))
+    } else {
+      current <- rep(FALSE, length(format))
+    }
+    if (all(current)) {
+      out_files <- paste0(file_base, ".", format)
+      message("Report up to date: ", paste(out_files, collapse = ", "),
+              " (force = TRUE to re-render)")
+      .report_open(out_files, open)
+      return(invisible(if (length(out_files) == 1L) out_files[1L] else
+        out_files))
+    }
+    format <- format[!current]
+
+    # -- auto-run levcost (cache-backed, see R/levcost_cache.R) --------------
+    if (auto_levcost) {
+      levcost <- tryCatch(
+        do.call(energyRt::levcost, c(list(object = object), lc_dots)),
+        error = function(e) {
+          warning("levcost() failed inside report(): ",
+                  conditionMessage(e), "\nLevelized cost section will be omitted.")
+          NULL
+        }
+      )
     }
 
     # -- draw() schematic → temp PNG ---------------------------------------
@@ -465,6 +509,12 @@ setMethod(
       out_files <- c(out_files, fout)
     }
 
+    .report_sidecar_write(
+      file_base, key,
+      meta = list(object = list(class = "technology", name = object@name),
+                  template = tmpl_name),
+      files = stats::setNames(as.list(basename(out_files)), format))
+
     .report_open(out_files, open)
     invisible(if (length(out_files) == 1L) out_files[1L] else out_files)
   }
@@ -483,7 +533,8 @@ setMethod(
   "storage",
   function(object, template = NULL, image_file = NULL, file = NULL,
            format = c("html", "pdf", "tex", "docx"),
-           levcost = NULL, cost_unit = NULL, open = interactive(), ...) {
+           levcost = NULL, cost_unit = NULL, open = interactive(),
+           reports_path = NULL, force = FALSE, ...) {
 
     format <- if (missing(format)) "html" else
       match.arg(format, c("html", "pdf", "tex", "docx"), several.ok = TRUE)
@@ -505,13 +556,7 @@ setMethod(
     param_dots  <- sorted$params
     render_dots <- sorted$render
 
-    if (is.null(file)) {
-      file_base <- file.path(getwd(),
-        paste0("report_", gsub("[^A-Za-z0-9_]", "_", object@name)))
-    } else {
-      file_base <- tools::file_path_sans_ext(file)
-    }
-    file_base <- normalizePath(file_base, mustWork = FALSE)
+    file_base <- .report_output_base(object, file, reports_path, object@name)
 
     if (is.null(image_file)) image_file <- .object_image_file(object)
     image_file_abs <- NULL
@@ -522,6 +567,23 @@ setMethod(
         image_file_abs <- normalizePath(image_file, mustWork = TRUE)
       }
     }
+
+    key <- .report_key("report/storage", object, tmpl,
+                       args = c(param_dots, render_dots,
+                                list(cost_unit = cost_unit)),
+                       image_file = image_file_abs)
+    current <- if (isTRUE(force)) rep(FALSE, length(format)) else
+      vapply(format, function(f) .report_uptodate(file_base, f, key),
+             logical(1))
+    if (all(current)) {
+      out_files <- paste0(file_base, ".", format)
+      message("Report up to date: ", paste(out_files, collapse = ", "),
+              " (force = TRUE to re-render)")
+      .report_open(out_files, open)
+      return(invisible(if (length(out_files) == 1L) out_files[1L] else
+        out_files))
+    }
+    format <- format[!current]
 
     draw_file <- tryCatch({
       tmp_draw <- tempfile(pattern = "report_draw_", fileext = ".png")
@@ -602,6 +664,12 @@ setMethod(
       out_files <- c(out_files, fout)
     }
 
+    .report_sidecar_write(
+      file_base, key,
+      meta = list(object = list(class = "storage", name = object@name),
+                  template = tmpl_name),
+      files = stats::setNames(as.list(basename(out_files)), format))
+
     .report_open(out_files, open)
     invisible(if (length(out_files) == 1L) out_files[1L] else out_files)
   }
@@ -614,7 +682,7 @@ setMethod(
 .report_lc_params <- c("comm", "group", "repo", "autocomplete", "fuel_costs",
                        "discount", "base_year", "horizon", "calendar",
                        "region", "weather", "frontier", "solver", "method",
-                       "full_output", "verbose")
+                       "full_output", "verbose", "cache", "cache_dir")
 
 # The display instance of a ready-made `levcost_variants` result: newest
 # vintage, first cluster (draw()'s default cell), via the variants key --
@@ -630,7 +698,14 @@ setMethod(
 
 .report_container <- function(container, tech_source, object_for_levcost,
                               template, image_file, file, format, levcost,
-                              cost_unit, name, dots, open = interactive()) {
+                              cost_unit, name, dots, open = interactive(),
+                              reports_path = NULL, force = FALSE) {
+  # a process report from a saved container lands in the CONTAINER's
+  # reports/ folder (the process itself is not saved anywhere)
+  if (is.null(file) && is.null(reports_path)) {
+    own <- .object_store_dir(container)
+    if (!is.null(own)) reports_path <- fp(own, "reports")
+  }
   if (is.null(name) || !nzchar(name)) {
     message("report(): give the technology/process `name = ` to report.")
     return(invisible(NULL))
@@ -657,7 +732,7 @@ setMethod(
   }
   do.call(report, c(list(tech, template = template, image_file = image_file,
     file = file, format = format, levcost = levcost, cost_unit = cost_unit,
-    open = open), render_dots))
+    open = open, reports_path = reports_path, force = force), render_dots))
 }
 
 # ── whole-object reports ──────────────────────────────────────────────────────
@@ -665,26 +740,48 @@ setMethod(
 # configuration + inventory + every process one-by-one.
 # report(scenario) without `name`: a results overview built on getMix()/autoplot.
 
-# Shared render loop for the whole-object templates.
+# Shared render loop for the whole-object templates. `params` may be a ready
+# list or a zero-argument function building one — the lazy form lets an
+# up-to-date report return before any plot/draw work happens. When `owner` and
+# `engine` are given the render is skip-if-current (see R/report_cache.R).
 .report_render <- function(tmpl_name, params, file, format, render_dots, stub,
-                           open = interactive()) {
+                           open = interactive(), class = NULL, owner = NULL,
+                           reports_path = NULL, force = FALSE, engine = NULL) {
   format <- .report_check_formats(
     match.arg(format, c("html", "pdf", "tex", "docx"), several.ok = TRUE))
   tmpl <- if (!is.null(tmpl_name) && file.exists(tmpl_name)) {
     normalizePath(tmpl_name, mustWork = TRUE)
   } else {
-    .find_report_template(tmpl_name)
+    .find_report_template(tmpl_name, class = class)
   }
   sorted <- .report_sort_dots(render_dots, tmpl)
-  if (length(sorted$params) > 0) params[names(sorted$params)] <- sorted$params
   render_dots <- sorted$render
-  # default: report_<name> in the working directory (findable, deterministic)
-  file_base <- if (is.null(file)) {
-    file.path(getwd(), paste0("report_", gsub("[^A-Za-z0-9_]", "_", stub)))
-  } else {
-    tools::file_path_sans_ext(file)
+  file_base <- .report_output_base(owner, file, reports_path, stub)
+  key <- if (!is.null(owner) && !is.null(engine)) {
+    .report_key(engine, owner, tmpl, args = c(sorted$params, render_dots))
+  } else NULL
+  if (!is.null(key)) {
+    current <- if (isTRUE(force)) rep(FALSE, length(format)) else
+      vapply(format, function(f) .report_uptodate(file_base, f, key),
+             logical(1))
+    if (all(current)) {
+      out_files <- paste0(file_base, ".", format)
+      message("Report up to date: ", paste(out_files, collapse = ", "),
+              " (force = TRUE to re-render)")
+      .report_open(out_files, open)
+      return(invisible(if (length(out_files) == 1L) out_files[1L] else
+        out_files))
+    }
+    format <- format[!current]
   }
-  file_base <- normalizePath(file_base, mustWork = FALSE)
+  if (is.function(params)) params <- params()
+  if (length(sorted$params) > 0) params[names(sorted$params)] <- sorted$params
+  # Back-compat: rmarkdown hard-errors on params a template does not declare,
+  # so filter to the declared set -- an older or minimal custom template keeps
+  # rendering as the built-in param contracts grow.
+  declared <- tryCatch(names(rmarkdown::yaml_front_matter(tmpl)$params),
+                       error = function(e) NULL)
+  if (!is.null(declared)) params <- params[intersect(names(params), declared)]
   out_files <- character(0)
   for (fmt in format) {
     ext  <- switch(fmt, pdf = ".pdf", html = ".html", tex = ".tex",
@@ -708,6 +805,14 @@ setMethod(
     )
     message("Report written to: ", fout)
     out_files <- c(out_files, fout)
+  }
+  if (!is.null(key)) {
+    .report_sidecar_write(
+      file_base, key,
+      meta = list(object = list(class = sub("^report/", "", engine),
+                                name = stub),
+                  template = tmpl_name %||% ""),
+      files = stats::setNames(as.list(basename(out_files)), format))
   }
   .report_open(out_files, open)
   invisible(if (length(out_files) == 1L) out_files[1L] else out_files)
@@ -788,15 +893,36 @@ setMethod(
   do.call(rbind, rows)
 }
 
+# A container's header image: `misc$logo` first (the report-specific hook),
+# then the general `misc$image` convention. Local files only.
+#' @noRd
+.container_logo_file <- function(x) {
+  cand <- c(tryCatch(x@misc$logo, error = function(e) NULL),
+            tryCatch(x@misc$image, error = function(e) NULL))
+  for (p in cand) {
+    if (is.character(p) && length(p) == 1L && nzchar(p) && file.exists(p)) {
+      return(normalizePath(p, mustWork = TRUE))
+    }
+  }
+  NULL
+}
+
 .report_model <- function(object, template, file, format, dots,
-                          open = interactive()) {
+                          open = interactive(), reports_path = NULL,
+                          force = FALSE) {
   is_model <- inherits(object, "model")
   nm   <- if (nzchar(object@name)) object@name else class(object)[1]
+
+  # Everything below is deferred: an up-to-date report never builds it.
+  params_fn <- function() {
   desc <- tryCatch(object@desc, error = function(e) "")
 
   # -- configuration (model only) ------------------------------------------
   config_df <- NULL
   horizon <- NULL
+  discount_df <- calendar_df <- geoscale_df <- NULL
+  horizon_plot <- calendar_plot <- NULL
+  gg_ok <- requireNamespace("ggplot2", quietly = TRUE)
   if (is_model) {
     cfg <- object@config
     horizon <- tryCatch(cfg@horizon, error = function(e) NULL)
@@ -833,6 +959,43 @@ setMethod(
     cfg_rows <- c(cfg_rows, list(pair("optimizeRetirement",
       as.character(isTRUE(cfg@optimizeRetirement)))))
     config_df <- do.call(rbind, cfg_rows)
+
+    # tidy per-region/year discount rates (the config rows above only carry
+    # the distinct values)
+    if (is.data.frame(dsc) && nrow(dsc) > 0) {
+      keep <- intersect(c("region", "year", "wacc", "sdr"), names(dsc))
+      discount_df <- .report_drop_empty_cols(dsc[, keep, drop = FALSE])
+    }
+
+    if (!is.null(cal) && length(cal@timeslices_in_frame) > 0) {
+      calendar_df <- data.frame(
+        timeframe = names(cal@timeslices_in_frame),
+        timeslices = as.integer(cal@timeslices_in_frame),
+        stringsAsFactors = FALSE)
+    }
+
+    if (gg_ok && !is.null(horizon)) {
+      horizon_plot <- tryCatch(ggplot2::autoplot(horizon),
+                               error = function(e) NULL)
+    }
+    if (gg_ok && !is.null(cal)) {
+      calendar_plot <- tryCatch(ggplot2::autoplot(cal),
+                                error = function(e) NULL)
+    }
+
+    # geoscale summary: geoscales is Suggests, so everything crosses through
+    # its exported accessors under a requireNamespace() guard
+    gs <- tryCatch(getGeoscale(object), error = function(e) NULL)
+    if (!is.null(gs) && requireNamespace("geoscales", quietly = TRUE)) {
+      geoscale_df <- tryCatch({
+        lv <- as.character(geoscales::geoscale_geoframes(gs))
+        data.frame(
+          geoframe = lv,
+          regions = vapply(lv, function(l)
+            length(geoscales::geoscale_regions(gs, l)), integer(1)),
+          stringsAsFactors = FALSE)
+      }, error = function(e) NULL)
+    }
   }
 
   gobj <- function(cls) tryCatch(getObjects(object, cls),
@@ -840,20 +1003,34 @@ setMethod(
   comms <- gobj("commodity"); sups <- gobj("supply"); dems <- gobj("demand")
   stgs  <- gobj("storage");   trds <- gobj("trade")
   cns   <- gobj("constraint"); techs <- gobj("technology")
+  exps  <- gobj("export");    imps  <- gobj("import")
+  weas  <- gobj("weather");   taxes <- gobj("tax"); subs <- gobj("subsidy")
+  csts  <- gobj("costs")
 
+  # every class a repository can hold (`repository@permit`)
   counts_df <- data.frame(
     class = c("commodity", "supply", "demand", "technology", "storage",
-              "trade", "constraint"),
+              "trade", "export", "import", "weather", "tax", "subsidy",
+              "costs", "constraint"),
     count = c(length(comms), length(sups), length(dems), length(techs),
-              length(stgs), length(trds), length(cns)),
+              length(stgs), length(trds), length(exps), length(imps),
+              length(weas), length(taxes), length(subs), length(csts),
+              length(cns)),
     stringsAsFactors = FALSE)
   counts_df <- counts_df[counts_df$count > 0, , drop = FALSE]
+
+  slot_chr <- function(x, sl) {
+    v <- tryCatch(methods::slot(x, sl), error = function(e) NULL)
+    v <- as.character(v); v <- v[!is.na(v) & nzchar(v)]
+    if (length(v) == 0) "" else paste(unique(v), collapse = ", ")
+  }
 
   comm_df <- if (length(comms) > 0) do.call(rbind, lapply(comms, function(x) {
     em <- if (nrow(x@emis) > 0)
       paste(x@emis$comm, x@emis$emis, x@emis$unit, collapse = "; ") else ""
-    data.frame(name = x@name, timeframe = x@timeframe[1], emissions = em,
-               stringsAsFactors = FALSE)
+    data.frame(name = x@name, unit = slot_chr(x, "unit"),
+               timeframe = x@timeframe[1], emissions = em,
+               desc = slot_chr(x, "desc"), stringsAsFactors = FALSE)
   })) else NULL
 
   sup_df <- if (length(sups) > 0) do.call(rbind, lapply(sups, function(x) {
@@ -862,7 +1039,8 @@ setMethod(
       if (length(v) > 0) paste(unique(signif(range(v), 4)), collapse = " - ") else ""
     } else ""
     data.frame(name = x@name, commodity = paste(x@commodity, collapse = ", "),
-               cost = cost, stringsAsFactors = FALSE)
+               region = slot_chr(x, "region"), cost = cost,
+               stringsAsFactors = FALSE)
   })) else NULL
 
   dem_df <- if (length(dems) > 0) do.call(rbind, lapply(dems, function(x) {
@@ -871,17 +1049,46 @@ setMethod(
       if (length(v) > 0) signif(sum(v), 4) else NA
     } else NA
     data.frame(name = x@name, commodity = paste(x@commodity, collapse = ", "),
-               total = tot, stringsAsFactors = FALSE)
+               region = slot_chr(x, "region"), total = tot,
+               stringsAsFactors = FALSE)
   })) else NULL
 
-  trd_df <- if (length(trds) > 0) data.frame(name = names(trds),
-    stringsAsFactors = FALSE) else NULL
+  trd_df <- if (length(trds) > 0) do.call(rbind, lapply(trds, function(x) {
+    rt <- tryCatch(x@routes, error = function(e) NULL)
+    routes <- if (is.data.frame(rt) && nrow(rt) > 0 &&
+                  all(c("src", "dst") %in% names(rt))) {
+      paste(paste0(rt$src, " -> ", rt$dst), collapse = "; ")
+    } else ""
+    data.frame(name = x@name, commodity = paste(x@commodity, collapse = ", "),
+               routes = routes, stringsAsFactors = FALSE)
+  })) else NULL
   cns_df <- if (length(cns) > 0) data.frame(name = names(cns),
     desc = vapply(cns, function(x)
       tryCatch(x@desc, error = function(e) ""), character(1)),
     stringsAsFactors = FALSE) else NULL
 
-  windows_plot <- if (requireNamespace("ggplot2", quietly = TRUE)) tryCatch(
+  expimp <- c(exps, imps)
+  expimp_df <- if (length(expimp) > 0) do.call(rbind,
+    lapply(expimp, function(x) {
+      data.frame(name = x@name, class = class(x)[1],
+                 commodity = paste(x@commodity, collapse = ", "),
+                 desc = slot_chr(x, "desc"), stringsAsFactors = FALSE)
+    })) else NULL
+
+  weather_df <- if (length(weas) > 0) do.call(rbind, lapply(weas, function(x) {
+    data.frame(name = x@name, timeframe = slot_chr(x, "timeframe"),
+               region = slot_chr(x, "region"), desc = slot_chr(x, "desc"),
+               stringsAsFactors = FALSE)
+  })) else NULL
+
+  pols <- c(taxes, subs)
+  policy_df <- if (length(pols) > 0) do.call(rbind, lapply(pols, function(x) {
+    data.frame(name = x@name, class = class(x)[1],
+               commodity = slot_chr(x, "comm"), desc = slot_chr(x, "desc"),
+               stringsAsFactors = FALSE)
+  })) else NULL
+
+  windows_plot <- if (gg_ok) tryCatch(
     plot_process_windows(object, horizon = horizon), error = function(e) NULL)
     else NULL
 
@@ -899,40 +1106,131 @@ setMethod(
     })
     list(name = p@name,
          desc = tryCatch(p@desc, error = function(e) ""),
+         class = class(p)[1],
          draw_file = draw_file,
          info_df = .proc_info_df(p))
   })
 
-  params <- list(
-    title      = paste0("Model report: ", nm),
+  list(
+    title      = paste0(if (is_model) "Model report: " else
+      "Repository report: ", nm),
     model_name = nm, model_desc = desc,
-    config_df  = config_df, counts_df = counts_df,
+    image_file = .container_logo_file(object),
+    config_df  = config_df, discount_df = discount_df,
+    horizon_plot = horizon_plot, calendar_plot = calendar_plot,
+    calendar_df = calendar_df, geoscale_df = geoscale_df,
+    counts_df = counts_df,
     comm_df = comm_df, sup_df = sup_df, dem_df = dem_df,
-    trd_df = trd_df, cns_df = cns_df,
+    trd_df = trd_df, expimp_df = expimp_df, weather_df = weather_df,
+    policy_df = policy_df, cns_df = cns_df,
     windows_plot = windows_plot, techs = tech_list)
+  }
 
   tmpl <- if (is.null(template)) "model" else template
-  .report_render(tmpl, params, file, format, dots, nm, open = open)
+  .report_render(tmpl, params_fn, file, format, dots, nm, open = open,
+                 class = "model", owner = object, reports_path = reports_path,
+                 force = force,
+                 engine = if (is_model) "report/model" else "report/repository")
 }
 
 .report_scenario <- function(scen, template, file, format, dots,
-                             open = interactive()) {
+                             open = interactive(), reports_path = NULL,
+                             force = FALSE, run = NULL, verify = TRUE,
+                             levcost = NULL) {
   nm <- if (nzchar(scen@name)) scen@name else "scenario"
+
+  # -- run selection (layout 3) --------------------------------------------
+  # `run =` reports a non-active run under runs/<variant>/<solve>/ by
+  # switching a LOCAL copy of the scenario; the caller's object and its
+  # active run are never touched.
+  runs_df <- tryCatch(as.data.frame(scenario_runs(scen)),
+                      error = function(e) NULL)
+  if (!is.null(run)) {
+    if (is.null(runs_df) || !run %in% runs_df$run) {
+      stop("report(): unknown run '", run, "'. Available runs: ",
+           if (is.null(runs_df) || nrow(runs_df) == 0) "(none)" else
+             paste0('"', runs_df$run, '"', collapse = ", "), call. = FALSE)
+    }
+    active <- runs_df$run[which(runs_df$active)]
+    if (!identical(run, active[1] %||% NA_character_)) {
+      scen <- suppressMessages(read_solution(scen, run = run))
+    }
+  }
+  run_id <- if (!is.null(run)) run else {
+    a <- tryCatch(runs_df$run[which(runs_df$active)], error = function(e) NULL)
+    if (length(a) > 0) a[1] else NA_character_
+  }
+
+  # Everything below is deferred: an up-to-date report never builds it.
+  params_fn <- function() {
+  gg_ok <- requireNamespace("ggplot2", quietly = TRUE)
   gd <- function(v) tryCatch(
     as.data.frame(getData(scen, name = v, merge = TRUE, drop.zeros = FALSE)),
     error = function(e) NULL)
 
   obj    <- gd("vObjective")
+  active_row <- if (!is.null(runs_df) && any(runs_df$active))
+    runs_df[which(runs_df$active)[1], , drop = FALSE] else NULL
+  rr <- function(col) {
+    if (!is.null(run) && !is.null(runs_df) && run %in% runs_df$run) {
+      v <- runs_df[[col]][runs_df$run == run][1]
+    } else if (!is.null(active_row) && col %in% names(active_row)) {
+      v <- active_row[[col]][1]
+    } else v <- NA
+    if (is.null(v) || is.na(v)) "" else as.character(v)
+  }
   status_df <- data.frame(
-    item  = c("scenario", "solved (optimal)", "solver",
+    item  = c("scenario", "model", "run", "variant", "solver",
+              "solved (optimal)", "solve started", "duration (s)",
               "objective (total discounted cost)"),
-    value = c(nm, as.character(isTRUE(scen@status$optimal)),
-              tryCatch(paste(scen@settings@solver$lang), error = function(e) ""),
+    value = c(nm,
+              tryCatch(scen@model@name, error = function(e) ""),
+              if (is.na(run_id)) "" else run_id,
+              tryCatch(scen@misc$variant %||% "", error = function(e) ""),
+              paste0(rr("solver_name"),
+                     if (nzchar(rr("lang"))) paste0(" (", rr("lang"), ")")),
+              as.character(isTRUE(scen@status$optimal)),
+              rr("started"), rr("duration_sec"),
               if (!is.null(obj) && nrow(obj) > 0)
                 format(signif(obj$value[1], 6), big.mark = ",") else "n/a"),
     stringsAsFactors = FALSE)
+  status_df <- status_df[nzchar(status_df$value), , drop = FALSE]
 
-  ap <- function(...) if (requireNamespace("ggplot2", quietly = TRUE))
+  # -- run provenance ------------------------------------------------------
+  run_info_df <- if (!is.na(run_id)) tryCatch({
+    ri <- scenario_run_info(scen, run_id)
+    ri <- ri[!vapply(ri, is.list, logical(1))]
+    data.frame(item = names(ri),
+               value = vapply(ri, function(z)
+                 paste(format(z), collapse = ", "), character(1)),
+               stringsAsFactors = FALSE)
+  }, error = function(e) NULL) else NULL
+
+  # -- problem size (input side) -------------------------------------------
+  size_df <- tryCatch({
+    ms <- model_size(scen)
+    data.frame(
+      item = c("value parameters", "parameter rows",
+               "variables (estimate)", "constraints (estimate)"),
+      value = format(c(ms$n_param, ms$param_rows, ms$n_var_est, ms$n_con_est),
+                     big.mark = ","),
+      stringsAsFactors = FALSE)
+  }, error = function(e) NULL)
+
+  # -- solution checks -----------------------------------------------------
+  verify_df <- if (isTRUE(verify)) tryCatch({
+    vr <- verify_solution(scen)
+    do.call(rbind, lapply(names(vr$checks), function(k) {
+      ck <- vr$checks[[k]]
+      data.frame(check = k, status = as.character(ck$status),
+                 rows = ck$n %||% NA_integer_,
+                 violations = if (!is.null(ck$violations))
+                   nrow(ck$violations) else 0L,
+                 note = ck$reason %||% "", stringsAsFactors = FALSE)
+    }))
+  }, error = function(e) NULL) else NULL
+
+  ap <- function(...) if (gg_ok)
     tryCatch(ggplot2::autoplot(scen, ...), error = function(e) NULL) else NULL
   gen_plot    <- ap("generation")
   cap_plot    <- ap("capacity")
@@ -953,25 +1251,101 @@ setMethod(
     ag$value <- signif(ag$value, 5); ag
   } else NULL
 
-  cost <- gd("vTotalCost")
-  cost_df <- if (!is.null(cost) && nrow(cost) > 0) {
-    ag <- stats::aggregate(value ~ year, cost, sum)
-    names(ag)[2] <- "total cost"; ag[["total cost"]] <- signif(ag[["total cost"]], 6)
-    ag
+  # -- costs, role-driven --------------------------------------------------
+  # The variable catalogue (data-raw/variables.yml) declares what each
+  # variable IS; every solved variable with role "cost" enters the breakdown
+  # by name, so new cost variables appear without touching the report.
+  cost_vars <- tryCatch({
+    vs <- scen@modOut@variables
+    keep <- vapply(vs, function(v)
+      identical(tryCatch(v@role, error = function(e) NA_character_), "cost"),
+      logical(1))
+    setdiff(names(vs)[keep], c("vObjective", "vTotalCost"))
+  }, error = function(e) character())
+  cost_df <- NULL
+  if (length(cost_vars) > 0) {
+    parts <- lapply(cost_vars, function(v) {
+      d <- gd(v)
+      if (is.null(d) || nrow(d) == 0 || !"value" %in% names(d)) return(NULL)
+      ag <- if ("year" %in% names(d)) stats::aggregate(value ~ year, d, sum)
+        else data.frame(year = NA_integer_, value = sum(d$value, na.rm = TRUE))
+      if (all(ag$value == 0)) return(NULL)
+      cbind(data.frame(variable = v, stringsAsFactors = FALSE), ag)
+    })
+    parts <- Filter(Negate(is.null), parts)
+    if (length(parts) > 0) {
+      cost_df <- do.call(rbind, parts)
+      cost_df$value <- signif(cost_df$value, 5)
+    }
+  }
+  # fall back to the yearly total when no per-component variable was solved
+  if (is.null(cost_df)) {
+    cost <- gd("vTotalCost")
+    cost_df <- if (!is.null(cost) && nrow(cost) > 0) {
+      ag <- stats::aggregate(value ~ year, cost, sum)
+      cbind(data.frame(variable = "vTotalCost", stringsAsFactors = FALSE),
+            data.frame(year = ag$year, value = signif(ag$value, 6)))
+    } else NULL
+  }
+  costs_plot <- if (gg_ok && !is.null(cost_df) &&
+                    length(unique(cost_df$variable)) > 1 &&
+                    !all(is.na(cost_df$year))) {
+    tryCatch(
+      ggplot2::ggplot(cost_df,
+                      ggplot2::aes(.data$year, .data$value,
+                                   fill = .data$variable)) +
+        ggplot2::geom_col() +
+        ggplot2::labs(x = NULL, y = "cost", fill = NULL) +
+        theme_energyRt(),
+      error = function(e) NULL)
   } else NULL
+
+  # -- variants ------------------------------------------------------------
+  variants_df <- tryCatch({
+    tv <- getVariants(scen)
+    if (!is.null(tv) && nrow(tv) > 0) {
+      agg_by <- intersect(c("class", "base"), names(tv))
+      if (length(agg_by) > 0) {
+        ag <- stats::aggregate(list(variants = seq_len(nrow(tv))),
+                               by = tv[agg_by], FUN = length)
+        utils::head(ag[order(-ag$variants), , drop = FALSE], 25L)
+      } else NULL
+    } else NULL
+  }, error = function(e) NULL)
+
+  # -- levelized costs (opt-in: levcost = TRUE) ----------------------------
+  levcost_df <- if (isTRUE(levcost)) tryCatch({
+    lc <- suppressMessages(suppressWarnings(energyRt::levcost(scen)))
+    if (inherits(lc, "levcost")) lc <- list(lc)
+    rows <- lapply(lc, function(z) {
+      npv <- z[["levcost_npv"]]
+      if (is.null(npv) || length(npv) == 0) return(NULL)
+      data.frame(process = names(npv)[1] %||% "",
+                 levcost_npv = signif(as.numeric(npv)[1], 5),
+                 stringsAsFactors = FALSE)
+    })
+    rows <- Filter(Negate(is.null), rows)
+    if (length(rows) > 0) do.call(rbind, rows) else NULL
+  }, error = function(e) NULL) else NULL
 
   desc <- tryCatch(scen@desc, error = function(e) "")
   if (is.null(desc) || length(desc) == 0) desc <- ""
-  params <- list(
+  list(
     title = paste0("Scenario report: ", nm),
     scen_name = nm, scen_desc = desc,
-    status_df = status_df,
+    image_file = .container_logo_file(scen),
+    status_df = status_df, runs_df = runs_df, run_info_df = run_info_df,
+    size_df = size_df, verify_df = verify_df,
     gen_plot = gen_plot, gen_day_plot = gen_day_plot,
     cap_plot = cap_plot, newcap_plot = newcap_plot,
-    emis_df = emis_df, cost_df = cost_df)
+    emis_df = emis_df, cost_df = cost_df, costs_plot = costs_plot,
+    variants_df = variants_df, levcost_df = levcost_df)
+  }
 
   tmpl <- if (is.null(template)) "scenario" else template
-  .report_render(tmpl, params, file, format, dots, nm, open = open)
+  .report_render(tmpl, params_fn, file, format, dots, nm, open = open,
+                 class = "scenario", owner = scen, reports_path = reports_path,
+                 force = force, engine = "report/scenario")
 }
 
 #' @rdname report
@@ -979,14 +1353,16 @@ setMethod(
 setMethod("report", "repository",
   function(object, template = NULL, image_file = NULL, file = NULL,
            format = c("html", "pdf", "tex", "docx"), levcost = NULL, cost_unit = NULL,
-           open = interactive(), ...) {
+           open = interactive(), reports_path = NULL, force = FALSE, ...) {
     if (missing(format)) format <- "html"
     dots <- list(...); name <- dots[["name"]]; dots[["name"]] <- NULL
     if (is.null(name)) {
-      return(.report_model(object, template, file, format, dots, open = open))
+      return(.report_model(object, template, file, format, dots, open = open,
+                           reports_path = reports_path, force = force))
     }
     .report_container(object, object, object, template, image_file, file, format,
-                      levcost, cost_unit, name, dots, open = open)
+                      levcost, cost_unit, name, dots, open = open,
+                      reports_path = reports_path, force = force)
   })
 
 #' @rdname report
@@ -994,14 +1370,16 @@ setMethod("report", "repository",
 setMethod("report", "model",
   function(object, template = NULL, image_file = NULL, file = NULL,
            format = c("html", "pdf", "tex", "docx"), levcost = NULL, cost_unit = NULL,
-           open = interactive(), ...) {
+           open = interactive(), reports_path = NULL, force = FALSE, ...) {
     if (missing(format)) format <- "html"
     dots <- list(...); name <- dots[["name"]]; dots[["name"]] <- NULL
     if (is.null(name)) {
-      return(.report_model(object, template, file, format, dots, open = open))
+      return(.report_model(object, template, file, format, dots, open = open,
+                           reports_path = reports_path, force = force))
     }
     .report_container(object, object, object, template, image_file, file, format,
-                      levcost, cost_unit, name, dots, open = open)
+                      levcost, cost_unit, name, dots, open = open,
+                      reports_path = reports_path, force = force)
   })
 
 #' @rdname report
@@ -1009,14 +1387,18 @@ setMethod("report", "model",
 setMethod("report", "scenario",
   function(object, template = NULL, image_file = NULL, file = NULL,
            format = c("html", "pdf", "tex", "docx"), levcost = NULL, cost_unit = NULL,
-           open = interactive(), ...) {
+           open = interactive(), reports_path = NULL, force = FALSE,
+           run = NULL, verify = TRUE, ...) {
     if (missing(format)) format <- "html"
     dots <- list(...); name <- dots[["name"]]; dots[["name"]] <- NULL
     if (is.null(name)) {
-      return(.report_scenario(object, template, file, format, dots, open = open))
+      return(.report_scenario(object, template, file, format, dots, open = open,
+                              reports_path = reports_path, force = force,
+                              run = run, verify = verify, levcost = levcost))
     }
     .report_container(object, object@model, object, template, image_file, file,
-                      format, levcost, cost_unit, name, dots, open = open)
+                      format, levcost, cost_unit, name, dots, open = open,
+                      reports_path = reports_path, force = force)
   })
 
 # ── format wrappers ────────────────────────────────────────────────────────────
@@ -1032,13 +1414,7 @@ setGeneric("report_pdf", function(object, ...) standardGeneric("report_pdf"))
 
 #' @rdname report_pdf
 #' @export
-setMethod("report_pdf", "technology", function(object, ...) {
-  report(object, ..., format = "pdf")
-})
-
-#' @rdname report_pdf
-#' @export
-setMethod("report_pdf", "storage", function(object, ...) {
+setMethod("report_pdf", "ANY", function(object, ...) {
   report(object, ..., format = "pdf")
 })
 
@@ -1054,13 +1430,7 @@ setGeneric("report_html", function(object, ...) standardGeneric("report_html"))
 
 #' @rdname report_html
 #' @export
-setMethod("report_html", "technology", function(object, ...) {
-  report(object, ..., format = "html")
-})
-
-#' @rdname report_html
-#' @export
-setMethod("report_html", "storage", function(object, ...) {
+setMethod("report_html", "ANY", function(object, ...) {
   report(object, ..., format = "html")
 })
 
@@ -1076,13 +1446,7 @@ setGeneric("report_tex", function(object, ...) standardGeneric("report_tex"))
 
 #' @rdname report_tex
 #' @export
-setMethod("report_tex", "technology", function(object, ...) {
-  report(object, ..., format = "tex")
-})
-
-#' @rdname report_tex
-#' @export
-setMethod("report_tex", "storage", function(object, ...) {
+setMethod("report_tex", "ANY", function(object, ...) {
   report(object, ..., format = "tex")
 })
 
@@ -1097,13 +1461,7 @@ setGeneric("report_docx", function(object, ...) standardGeneric("report_docx"))
 
 #' @rdname report_docx
 #' @export
-setMethod("report_docx", "technology", function(object, ...) {
-  report(object, ..., format = "docx")
-})
-
-#' @rdname report_docx
-#' @export
-setMethod("report_docx", "storage", function(object, ...) {
+setMethod("report_docx", "ANY", function(object, ...) {
   report(object, ..., format = "docx")
 })
 
@@ -1132,40 +1490,105 @@ setMethod("report_docx", "storage", function(object, ...) {
 
 # ── template finder ────────────────────────────────────────────────────────────
 
-#' Locate a report Rmd template by name
-#' @param name Character template name (e.g. \code{"generic"}).
-#' @return Absolute path to the \code{.Rmd} file.
+# The shipped templates directory: installed package path, with a dev-mode
+# fallback to inst/templates.
 #' @noRd
-.find_report_template <- function(name) {
-  fname <- paste0("report_", name, ".Rmd")
-
-  # 1. Installed package path
-  pkg_path <- suppressWarnings(
-    tryCatch(system.file("templates", fname, package = "energyRt"), error = function(e) "")
-  )
-  if (nzchar(pkg_path) && file.exists(pkg_path)) return(pkg_path)
-
-  # 2. Development: inst/templates relative to this file's directory
-  this_dir <- tryCatch(dirname(normalizePath(sys.frame(0)$ofile)), error = function(e) ".")
-  candidates <- c(
-    file.path(this_dir, "..", "inst", "templates", fname),
-    file.path("inst", "templates", fname)
-  )
-  for (p in candidates) {
-    p2 <- tryCatch(normalizePath(p, mustWork = TRUE), error = function(e) NULL)
-    if (!is.null(p2) && file.exists(p2)) return(p2)
-  }
-
-  # list what actually ships rather than a hardcoded (stale) set
+.report_templates_dir <- function() {
   tdir <- suppressWarnings(tryCatch(
     system.file("templates", package = "energyRt"), error = function(e) ""))
-  if (!nzchar(tdir) || !dir.exists(tdir)) tdir <- "inst/templates"
-  avail <- sub("^report_(.*)[.]Rmd$", "\\1",
-               list.files(tdir, pattern = "^report_.*[.]Rmd$"))
-  stop("Report template '", fname, "' not found.\n",
-       "Expected location: inst/templates/", fname, "\n",
+  if (nzchar(tdir) && dir.exists(tdir)) return(tdir)
+  this_dir <- tryCatch(dirname(normalizePath(sys.frame(0)$ofile)),
+                       error = function(e) ".")
+  for (p in c(file.path(this_dir, "..", "inst", "templates"),
+              file.path("inst", "templates"))) {
+    p2 <- tryCatch(normalizePath(p, mustWork = TRUE), error = function(e) NULL)
+    if (!is.null(p2) && dir.exists(p2)) return(p2)
+  }
+  NULL
+}
+
+#' Locate a report Rmd template by name
+#' @param name Character template name (e.g. \code{"generic"}).
+#' @param class Optional class scope: with \code{class = "model"},
+#'   \code{name = "summary"} resolves \code{report_model_summary.Rmd} first,
+#'   then falls back to the unscoped \code{report_summary.Rmd}.
+#' @return Absolute path to the \code{.Rmd} file.
+#' @noRd
+.find_report_template <- function(name, class = NULL) {
+  fnames <- paste0("report_", name, ".Rmd")
+  if (!is.null(class) && !identical(class, name)) {
+    fnames <- c(paste0("report_", class, "_", name, ".Rmd"), fnames)
+  }
+  tdir <- .report_templates_dir()
+  if (!is.null(tdir)) {
+    for (fname in fnames) {
+      p <- file.path(tdir, fname)
+      if (file.exists(p)) return(normalizePath(p, mustWork = TRUE))
+    }
+  }
+  # list what actually ships rather than a hardcoded (stale) set
+  avail <- if (is.null(tdir)) character() else
+    sub("^report_(.*)[.]Rmd$", "\\1",
+        list.files(tdir, pattern = "^report_.*[.]Rmd$"))
+  stop("Report template '", fnames[length(fnames)], "' not found.\n",
+       "Expected location: inst/templates/", fnames[length(fnames)], "\n",
        "Available built-in templates: ",
        paste0('"', avail, '"', collapse = ", "))
+}
+
+#' List the available report templates
+#'
+#' Scans the shipped templates directory (`inst/templates/` of the installed
+#' package) and returns one row per template. The `class` column says which
+#' object class a template is designed for; it is read from the optional
+#' `report-class:` field of the template's YAML front matter, falling back to
+#' inference from the file name. Use the `name` as the `template =` argument
+#' of [report()]; a template designed for another class can still be forced by
+#' passing its file path.
+#'
+#' @param class Optional filter: return only templates whose `class` matches
+#'   (e.g. `"model"`, `"scenario"`, `"process"`).
+#' @return A data.frame with columns `name`, `class`, `title`, `path`.
+#' @examples
+#' report_templates()
+#' @export
+report_templates <- function(class = NULL) {
+  tdir <- .report_templates_dir()
+  files <- if (is.null(tdir)) character() else
+    list.files(tdir, pattern = "^report_.*[.]Rmd$", full.names = TRUE)
+  known <- c("model", "scenario", "repository", "process",
+             "technology", "storage")
+  rows <- lapply(files, function(f) {
+    base <- sub("^report_(.*)[.]Rmd$", "\\1", basename(f))
+    fm <- tryCatch(rmarkdown::yaml_front_matter(f), error = function(e) list())
+    cls <- fm[["report-class"]]
+    if (is.null(cls)) {
+      # infer from the file name: report_<class>_<name>.Rmd or a bare name
+      tok <- strsplit(base, "_", fixed = TRUE)[[1]]
+      cls <- if (tok[1] %in% known) tok[1] else NA_character_
+    }
+    name <- base
+    if (!is.na(cls) && startsWith(base, paste0(cls, "_"))) {
+      name <- substr(base, nchar(cls) + 2L, nchar(base))
+    }
+    ttl <- fm[["title"]]
+    if (!is.null(ttl) && grepl("`r ", ttl, fixed = TRUE)) {
+      ttl <- fm[["params"]][["title"]]      # inline-R title: use its default
+    }
+    data.frame(name = name, class = as.character(cls),
+               title = ttl %||% NA_character_,
+               path = f, stringsAsFactors = FALSE)
+  })
+  out <- if (length(rows) == 0) {
+    data.frame(name = character(), class = character(), title = character(),
+               path = character(), stringsAsFactors = FALSE)
+  } else {
+    do.call(rbind, rows)
+  }
+  if (!is.null(class)) out <- out[!is.na(out$class) & out$class %in% class, ,
+                                  drop = FALSE]
+  rownames(out) <- NULL
+  out
 }
 
 # ── params extractor ───────────────────────────────────────────────────────────
