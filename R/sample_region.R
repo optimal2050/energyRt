@@ -149,6 +149,20 @@ subset_model_regions <- function(mod, region, boundary_prices = NULL,
   keep <- as.character(keep)
   stubs <- list()
 
+  # The model's full declaration universe: its own regions plus every cell of
+  # its geoscale (declarations may legitimately name a coarser level). The
+  # pruning below drops only rows for regions INSIDE this universe but outside
+  # the sample; a region the model never knew stays put, so the undeclared-
+  # region guard (`.check_declared_regions()`, which runs after the sample) can
+  # still name it instead of the sample silently swallowing the typo.
+  declared <- as.character(mod@config@region)
+  gs <- tryCatch(mod@config@geoscale, error = function(e) NULL)
+  if (!is.null(gs) && is_geoscale(gs)) {
+    declared <- unique(c(declared, unlist(lapply(
+      geoscales::geoscale_geoframes(gs),
+      function(f) as.character(geoscales::geoscale_regions(gs, f))))))
+  }
+
   prune_obj <- function(el, nm) {
     if (!methods::is(el, "trade")) {
       # A non-trade object declares its scope in `@region`. Narrowing the
@@ -162,7 +176,7 @@ subset_model_regions <- function(mod, region, boundary_prices = NULL,
       if (.hasSlot(el, "region")) {
         r <- methods::slot(el, "region")
         if (is.character(r) && length(r)) {
-          kept <- r[r %in% keep]
+          kept <- r[r %in% keep | !(r %in% declared)]
           if (!length(kept)) return(NULL)      # nothing of it is in the sample
           if (length(kept) < length(r)) methods::slot(el, "region") <- kept
         }
@@ -175,7 +189,8 @@ subset_model_regions <- function(mod, region, boundary_prices = NULL,
         v <- methods::slot(el, sl)
         if (is.data.frame(v) && nrow(v) && "region" %in% names(v)) {
           methods::slot(el, sl) <-
-            v[is.na(v$region) | v$region %in% keep, , drop = FALSE]
+            v[is.na(v$region) | v$region %in% keep |
+                !(v$region %in% declared), , drop = FALSE]
         }
       }
       return(el)

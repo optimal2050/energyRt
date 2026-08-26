@@ -31,7 +31,7 @@ header-includes:
   - \usepackage{booktabs}
 ---
 
-```{r setup, include=FALSE}
+```{r en-setup, include=FALSE}
 library(ggplot2)
 
 # Shared helpers live in the package (see ?energyRt::report_helpers).
@@ -42,11 +42,11 @@ emit_img <- function(path, frac = 1)
   energyRt::report_img(path, frac, output = fmt)
 ```
 
-```{r css, results='asis'}
+```{r en-css, results='asis'}
 energyRt::report_css(fmt)
 ```
 
-```{r logo, results='asis'}
+```{r en-logo, results='asis'}
 if (!is.null(params$image_file)) emit_img(params$image_file, 0.25)
 ```
 
@@ -54,53 +54,53 @@ if (!is.null(params$image_file)) emit_img(params$image_file, 0.25)
 
 ## Overview
 
-```{r overview, results='asis'}
+```{r en-overview, results='asis'}
 tbl(params$overview_df)
 ```
 
-```{r objective, fig.width=6, fig.height=3.5, eval=!is.null(params$objective_plot)}
+```{r en-objective, fig.width=6, fig.height=3.5, eval=!is.null(params$objective_plot)}
 params$objective_plot
 ```
 
 ## Results
 
-```{r gen, fig.width=8, fig.height=4.5, eval=!is.null(params$gen_plot)}
+```{r en-gen, fig.width=8, fig.height=4.5, eval=!is.null(params$gen_plot)}
 params$gen_plot
 ```
 
-```{r cap, fig.width=8, fig.height=4.5, eval=!is.null(params$cap_plot)}
+```{r en-cap, fig.width=8, fig.height=4.5, eval=!is.null(params$cap_plot)}
 params$cap_plot
 ```
 
-```{r newcap, fig.width=8, fig.height=4.5, eval=!is.null(params$newcap_plot)}
+```{r en-newcap, fig.width=8, fig.height=4.5, eval=!is.null(params$newcap_plot)}
 params$newcap_plot
 ```
 
-```{r emis-header, results='asis', eval=!is.null(params$emis_df) || !is.null(params$emis_plot)}
+```{r en-emis-header, results='asis', eval=!is.null(params$emis_df) || !is.null(params$emis_plot)}
 cat("## Emissions\n")
 ```
 
-```{r emis-plot, fig.width=7, fig.height=4, eval=!is.null(params$emis_plot)}
+```{r en-emis-plot, fig.width=7, fig.height=4, eval=!is.null(params$emis_plot)}
 params$emis_plot
 ```
 
-```{r emis, results='asis', eval=!is.null(params$emis_df)}
+```{r en-emis, results='asis', eval=!is.null(params$emis_df)}
 tbl(params$emis_df)
 ```
 
 ## Costs
 
-```{r costs-plot, fig.width=7, fig.height=4, eval=!is.null(params$costs_plot)}
+```{r en-costs-plot, fig.width=7, fig.height=4, eval=!is.null(params$costs_plot)}
 params$costs_plot
 ```
 
-```{r costs, results='asis', eval=!is.null(params$cost_df)}
+```{r en-costs, results='asis', eval=!is.null(params$cost_df)}
 tbl(params$cost_df)
 ```
 
 ## Value differences
 
-```{r values, results='asis'}
+```{r en-values, results='asis'}
 v <- params$values_df
 if (!is.null(v)) {
   v <- v[!v$status %in% "identical", , drop = FALSE]
@@ -109,30 +109,30 @@ if (!is.null(v)) {
 }
 ```
 
-```{r top, results='asis', eval=!is.null(params$top_df)}
+```{r en-top, results='asis', eval=!is.null(params$top_df)}
 tbl(params$top_df, caption = "Largest differences vs baseline")
 ```
 
-```{r deltas, results='asis', eval=length(params$delta_tbls) > 0}
+```{r en-deltas, results='asis', eval=length(params$delta_tbls) > 0}
 for (v in names(params$delta_tbls)) {
   energyRt::report_sec(paste0(v, " -- differing rows"), output = fmt)
   tbl(params$delta_tbls[[v]])
 }
 ```
 
-```{r verify-header, results='asis', eval=!is.null(params$verify_df)}
+```{r en-verify-header, results='asis', eval=!is.null(params$verify_df)}
 cat("## Solution checks\n")
 ```
 
-```{r verify, results='asis', eval=!is.null(params$verify_df)}
+```{r en-verify, results='asis', eval=!is.null(params$verify_df)}
 tbl(params$verify_df)
 ```
 
-```{r inputs-header, results='asis', eval=!is.null(params$inputs_txt)}
+```{r en-inputs-header, results='asis', eval=!is.null(params$inputs_txt)}
 cat("## Input differences\n")
 ```
 
-```{r inputs, results='asis', eval=!is.null(params$inputs_txt)}
+```{r en-inputs, results='asis', eval=!is.null(params$inputs_txt)}
 cat("```\n")
 cat(params$inputs_txt, sep = "\n")
 cat("\n```\n")

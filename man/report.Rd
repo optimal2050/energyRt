@@ -62,6 +62,8 @@ report(
   open = interactive(),
   reports_path = NULL,
   force = FALSE,
+  logos = NULL,
+  figure = NULL,
   ...
 )
 
@@ -76,6 +78,8 @@ report(
   open = interactive(),
   reports_path = NULL,
   force = FALSE,
+  logos = NULL,
+  figure = NULL,
   ...
 )
 
@@ -92,6 +96,8 @@ report(
   force = FALSE,
   run = NULL,
   verify = TRUE,
+  logos = NULL,
+  badges = NULL,
   ...
 )
 
@@ -178,7 +184,17 @@ run; a different run is read into a local copy, so the caller's scenario
 keeps its active run.  It also accepts \code{verify} (logical, default
 \code{TRUE}): include the \code{\link{verify_solution}} checks section.
 For a whole-scenario report, \code{levcost = TRUE} adds an ex-post
-levelized-cost table via \code{levcost(scenario)}.}
+levelized-cost table via \code{levcost(scenario)}.
+
+The model, repository and scenario methods accept branding arguments:
+\code{logos} (character vector of image paths rendered as a banner
+row; default from \code{misc$logos}, then the scalar \code{misc$logo}
+/ \code{misc$image} -- a scenario shows its model's logos first, then
+its own), the model method \code{figure} (an optional half-page hero
+figure, default \code{misc$figure}), and the scenario method
+\code{badges} (small property-indicator images, default
+\code{misc$badges}). Branding content enters the render key, so a
+changed logo re-renders an otherwise up-to-date report.}
 
 \item{reports_path}{Character.  Redirects the default output directory for
 this call (\code{file =} still wins).}

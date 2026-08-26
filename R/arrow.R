@@ -1022,12 +1022,22 @@ load_scenario <- function(
     overwrite = FALSE,
     ignore_errors = FALSE,
     verbose = TRUE) {
-  # browser()
-  if (!file.exists(path) & !dir.exists(path)) {
-    msg <- paste0("File or directory '", path, "' does not exist")
-    if (!ignore_errors) stop(msg)
-    if (verbose) message(msg)
-    return(invisible(FALSE))
+  # A `path` that is not an existing file/directory is resolved as a
+  # scenario NAME: registry first, then a scan of the scenarios store
+  # (see .scenario_resolve).
+  if (!file.exists(path) && !dir.exists(path)) {
+    resolved <- if (!grepl("[\\/]", path)) .scenario_resolve(path) else NULL
+    if (is.null(resolved)) {
+      msg <- paste0(
+        "'", path, "' is neither an existing scenario directory nor a ",
+        "registered scenario name.\n",
+        "  Run refresh_registry() to rescan the scenarios store ('",
+        get_scenarios_path(), "'), or pass the folder path.")
+      if (!ignore_errors) stop(msg)
+      if (verbose) message(msg)
+      return(invisible(FALSE))
+    }
+    path <- resolved
   }
   finf <- file.info(path)
   if (finf$isdir) {
@@ -1215,6 +1225,63 @@ load_scenario <- function(
   # return(get(name, envir = env))
   # return(nm)
   return(invisible(FALSE))
+}
+
+#' Load several registered scenarios at once
+#'
+#' @description
+#' The batch companion of [load_scenario()]: resolves scenario NAMES through
+#' the project registry (all registered scenarios by default) and loads each
+#' as a thin on-disk shell. The result — a named list, or a filled
+#' environment — feeds [getData()] directly:
+#' `getData(load_scenarios(), name = "vTechOut", merge = TRUE)`.
+#'
+#' A registered scenario whose folder is gone is skipped with a warning
+#' (run [refresh_registry()] to drop the stale row).
+#'
+#' @param names character, scenario names to load; `NULL` (default) = every
+#'   scenario in the registry.
+#' @param run character, optional run id to activate in each loaded scenario
+#'   via [read_solution()] (scenarios without that run keep their default,
+#'   with a warning).
+#' @param env environment to assign the scenarios into (e.g. `.scen`), or
+#'   `NULL` (default) to return them as a named list.
+#' @param verbose logical.
+#' @return a named list of scenarios, or (with `env=`) the loaded names,
+#'   invisibly.
+#' @rdname load_scenario
+#' @export
+load_scenarios <- function(names = NULL, run = NULL, env = NULL,
+                           verbose = TRUE) {
+  if (is.null(names)) {
+    reg <- load_registry()
+    names <- find_registry(reg, type = "scenario")$name
+  }
+  stopifnot(is.character(names))
+  out <- list()
+  for (nm in names) {
+    sc <- tryCatch(
+      load_scenario(nm, env = NULL, verbose = verbose),
+      error = function(e) {
+        warning("Scenario '", nm, "' could not be loaded: ",
+                conditionMessage(e), call. = FALSE)
+        NULL
+      })
+    if (is.null(sc)) next
+    if (!is.null(run)) {
+      sc <- tryCatch(read_solution(sc, run = run, echo = FALSE),
+                     error = function(e) {
+                       warning("Scenario '", nm, "' has no run '", run,
+                               "'; keeping its default solution.",
+                               call. = FALSE)
+                       sc
+                     })
+    }
+    out[[nm]] <- sc
+  }
+  if (is.null(env)) return(out)
+  for (nm in names(out)) assign(nm, out[[nm]], envir = env)
+  invisible(names(out))
 }
 
 ## - DRAFTS -------------------------------------------------------####

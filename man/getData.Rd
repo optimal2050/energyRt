@@ -5,6 +5,8 @@
 \alias{getData.scenario}
 \alias{get_data}
 \alias{getData.list}
+\alias{getData.character}
+\alias{getData.environment}
 \alias{getData.default}
 \alias{getData.technology}
 \alias{getData.commodity}
@@ -86,6 +88,10 @@ getData(scen, ...)
   variants = TRUE,
   verbose = FALSE
 )
+
+\method{getData}{character}(scen, ...)
+
+\method{getData}{environment}(scen, ...)
 
 \method{getData}{default}(scen, ...)
 

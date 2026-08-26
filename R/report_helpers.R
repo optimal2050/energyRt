@@ -25,7 +25,11 @@
 #' @param x character or numeric value to escape / format.
 #' @param digits integer, significant digits for numeric formatting.
 #' @param path character, path to an image file.
+#' @param paths character vector of image paths (missing files dropped).
 #' @param frac numeric, width as a fraction of the text/line width.
+#' @param frac_total numeric, total line-width fraction a row of images
+#'   spans.
+#' @param gap numeric, fraction of the line width between row images.
 #' @param p a ggplot object.
 #' @param w_in,h_in numeric, plot size in inches.
 #' @param dpi integer, raster resolution.
@@ -146,6 +150,63 @@ report_img <- function(path, frac = 1, output = report_output()) {
   } else {
     cat("\\includegraphics[width=", frac,
         "\\linewidth,keepaspectratio]{", p, "}\n", sep = "")
+  }
+  invisible(NULL)
+}
+
+#' @describeIn report_helpers Emit a ROW of images (logos, banners, badges)
+#'   spanning `frac_total` of the line width, split evenly with `gap`
+#'   between them. Missing files are dropped silently; a single image is
+#'   capped at half of `frac_total` so a lone logo does not span the page.
+#' @export
+report_img_row <- function(paths, frac_total = 1, gap = 0.02,
+                           output = report_output()) {
+  paths <- as.character(paths %||% character(0))
+  paths <- paths[nzchar(paths) & file.exists(paths)]
+  n <- length(paths)
+  if (n == 0) return(invisible(NULL))
+  w <- (frac_total - gap * (n - 1)) / n
+  if (n == 1) w <- min(w, frac_total / 2)
+  w <- max(w, 0.01)
+  pp <- gsub("\\\\", "/", paths)
+  if (output == "html") {
+    cat("<div style='display:flex;gap:", round(gap * 100),
+        "%;align-items:center;width:", round(frac_total * 100),
+        "%'>\n", sep = "")
+    for (p in pp) {
+      cat("<img src='", p, "' style='width:", round(100 / n),
+          "%;height:auto;object-fit:contain' />\n", sep = "")
+    }
+    cat("</div>\n")
+  } else if (output == "word") {
+    # one markdown paragraph = one row
+    cat(paste0("![](", pp, "){width=", round(w * 100), "%}",
+               collapse = " "), "\n\n", sep = "")
+  } else {
+    for (i in seq_len(n)) {
+      cat("\\includegraphics[width=", signif(w, 3),
+          "\\linewidth,keepaspectratio]{", pp[i], "}", sep = "")
+      if (i < n) cat("\\hfill\n")
+    }
+    cat("\\par\n")
+  }
+  invisible(NULL)
+}
+
+#' @describeIn report_helpers Emit a page break: an always-break `<div>` for
+#'   HTML (honoured when printing), `\newpage` for LaTeX, and a raw
+#'   `{=openxml}` block for Word. Call from a `results='asis'` chunk.
+#' @export
+report_pagebreak <- function(output = report_output()) {
+  if (output == "html") {
+    cat("\n<div style='page-break-after: always;'></div>\n")
+  } else if (output == "word") {
+    # pandoc raw-attribute fenced block; the fence must sit at column 0
+    cat("\n```{=openxml}\n",
+        "<w:p><w:r><w:br w:type=\"page\"/></w:r></w:p>\n",
+        "```\n", sep = "")
+  } else {
+    cat("\n\\newpage\n")
   }
   invisible(NULL)
 }

@@ -77,11 +77,12 @@ report to `tmp/test-reports/nightly-YYYYMMDD-HHMM.md`. Opt-in extras via the
 environment:
 
 - `ENERGYRT_EXT_MODELS=<dir>` — directory with external real-world models
-  (the useR2026 belgium models: `belgium_model.rds`,
-  `belgium_storage_duration.rds`, `belgium_copperplate.rds`); each is loaded
-  through the serialization upgrade path, solved on julia/HiGHS, and checked
-  with `verify_solution()`. Unset ⇒ clean skips.
-- `ENERGYRT_TEST_HEAVY=true` — adds the full-year (8760 h) copperplate model.
+  (the useR2026 course data: `belgium_model.rds`, and behind the heavy flag
+  `belgium_copperplate.rds` / `eu41_model.rds`); each is loaded through the
+  serialization upgrade path, solved on julia/HiGHS, and checked with
+  `verify_solution()`. Unset ⇒ clean skips.
+- `ENERGYRT_TEST_HEAVY=true` — adds the full-year (8760 h) copperplate and
+  the 41-node European model.
 - `ENERGYRT_TEST_NEOS=true` — adds the NEOS remote-solver tests.
 
 To schedule on Windows (daily 02:30, from the package root):

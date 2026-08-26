@@ -26,7 +26,7 @@
 #'   `region = NULL` (they cancel out in an all-region sum).
 #' @param year integer vector or `NULL` (all milestone year).
 #' @param timeslice `NULL` for annual sums, or a regular expression selecting a
-#'   timeslice sample (e.g. `"^SUM_"` for the summer day on the `utopia_s4h24`
+#'   timeslice sample (e.g. `"^SUM_"` for the summer day on the `s4_h24`
 #'   calendar). When the matched timeslices carry an hour tag (`"_h00"..."_h23"`),
 #'   an integer `hour` column is added.
 #' @param drop_small numeric in `[0, 1)`: drop processes whose total absolute

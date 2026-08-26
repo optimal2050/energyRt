@@ -20,7 +20,13 @@ pa_autoplot_classes <- function(s4_only = TRUE) {
   nm <- grep("^autoplot\\.", ls(asNamespace("energyRt"), all.names = TRUE),
              value = TRUE)
   cl <- sub("^autoplot\\.", "", nm)
-  if (s4_only) cl <- cl[vapply(cl, methods::isClass, logical(1))]
+  if (s4_only) {
+    cl <- cl[vapply(cl, methods::isClass, logical(1))]
+    # setOldClass() bridges (e.g. scenarios_cmp) register VIRTUAL classes:
+    # they are S3 underneath, live in their feature file rather than a
+    # class-*.R, and their plot() symmetry is asserted separately.
+    cl <- cl[!vapply(cl, methods::isVirtualClass, logical(1))]
+  }
   sort(cl)
 }
 
@@ -81,7 +87,7 @@ test_that("plot() is a thin delegation, not a second implementation", {
   # this stops being true, which is the point.
   h <- newHorizon(2020:2030, intervals = 5L)
   expect_equal(class(plot(h)), class(ggplot2::autoplot(h)))
-  cal <- calendars[["utopia_s4h24"]]
+  cal <- calendars[["s4_h24"]]
   expect_equal(class(plot(cal)), class(ggplot2::autoplot(cal)))
 })
 
@@ -206,7 +212,7 @@ test_that("draw/autoplot/plot all render without error", {
   expect_true(draw(tech))
   expect_gt(length(grid::grid.ls(print = FALSE)$name), 0L)
 
-  cal <- calendars[["utopia_s4h24"]]
+  cal <- calendars[["s4_h24"]]
   expect_s3_class(ggplot2::autoplot(cal), "ggplot")
   expect_s3_class(plot(cal), "ggplot")
 })

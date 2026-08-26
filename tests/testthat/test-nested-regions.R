@@ -243,6 +243,127 @@ test_that("three levels chain through the intermediate one", {
   expect_equal(a$v, b$v, tolerance = 1e-9)
 })
 
+# --------------------------------------------------------------------------- #
+# STRICT-level processes AT the commodity's coarse level. check_levels demands
+# the exact-level shape for supply/storage; the span maps must then honour it
+# -- the historic bug was map_mSupSpan intersecting with the atoms and silently
+# DELETING a nation-level supply, leaving the balance a free costless vOutTot
+# cell (energy from nowhere, objective 0, feasible).
+
+# One-nation model: GAS balanced at NAT, demanded at NAT. `sup` is the supply
+# object under test.
+nrs_model <- function(name, sup, demand = 10) {
+  cal <- newCalendar(timetable = make_timetable(
+    struct = list(ANNUAL = "ANNUAL", SEASON = c("WIN", "SUM"))),
+    name = paste0("cal_", name))
+  newModel(name = name, calendar = cal, region = c("R1", "R2"),
+    horizon = newHorizon(2025), discount = 0,
+    repo = newRepository(paste0("repo_", name),
+      newCommodity("GAS", timeframe = "ANNUAL", geoframe = "nation"),
+      sup,
+      newDemand("DEM_GAS", commodity = "GAS", region = "NAT",
+                demand = data.frame(region = "NAT", timeslice = "ANNUAL",
+                                    demand = demand))))
+}
+
+nrs_solve <- function(mod, tag) {
+  scen <- suppressMessages(suppressWarnings(interpolate_model(
+    setGeoscale(mod, nr_geoscale()), name = tag, overwrite = TRUE)))
+  vt_solve(scen)
+}
+
+# @covers pSupCost pSupAva mSupOutTot vSupCost vSupOut depth=S backends=glpk forks=geoframe
+test_that("a supply at the commodity's coarse level is honoured and priced", {
+  skip_if_no_geoscales()
+  skip_if_no_solver()
+  sol_val <- function(scen, nm) {
+    d <- get_data_slot(scen@modOut@variables[[nm]], optional = TRUE)
+    if (is.null(d) || nrow(d) == 0) return(NULL)
+    as.data.frame(d)
+  }
+  # (a) explicit region = NAT rows in the supply frame
+  a <- nrs_solve(nrs_model("nrsA", newSupply("SUP_GAS", commodity = "GAS",
+    region = "NAT", supply = data.frame(region = "NAT", cost = 2))), "nrsA")
+  # hand: 10 GAS x cost 2, discount 0, one year -> objective exactly 20
+  expect_equal(sum(sol_val(a, "vObjective")$value), 20, tolerance = 1e-9)
+  sc <- sol_val(a, "vSupCost")
+  expect_equal(as.character(sc$region), "NAT")
+  expect_equal(sc$value, 20)
+  expect_equal(unique(as.character(sol_val(a, "vSupOutTot")$region)), "NAT")
+
+  # (b) the same supply through a region-less frame (wildcard row): exercises
+  # the unfold path that used to DELETE pSupCost against the empty span, and
+  # the cost_agg scan that used to run before the wildcard was materialised
+  b <- nrs_solve(nrs_model("nrsB", newSupply("SUP_GAS", commodity = "GAS",
+    region = "NAT", supply = data.frame(cost = 2))), "nrsB")
+  expect_equal(sum(sol_val(b, "vObjective")$value), 20, tolerance = 1e-9)
+  expect_equal(sol_val(b, "vSupCost")$value, 20)
+
+  # equivalence: the flat twin (finest-level GAS, supply and demand per atom)
+  # costs exactly the same
+  cal <- newCalendar(timetable = make_timetable(
+    struct = list(ANNUAL = "ANNUAL", SEASON = c("WIN", "SUM"))),
+    name = "cal_nrsF")
+  flat <- newModel(name = "nrsF", calendar = cal, region = c("R1", "R2"),
+    horizon = newHorizon(2025), discount = 0,
+    repo = newRepository("repo_nrsF",
+      newCommodity("GAS", timeframe = "ANNUAL"),
+      newSupply("SUP_GAS", commodity = "GAS",
+                supply = data.frame(cost = 2)),
+      newDemand("DEM_GAS", commodity = "GAS",
+                demand = data.frame(region = c("R1", "R2"),
+                                    timeslice = "ANNUAL", demand = 5))))
+  f <- vt_solve(suppressMessages(suppressWarnings(
+    interpolate_model(flat, name = "nrsF", overwrite = TRUE))))
+  expect_equal(sum(sol_val(f, "vObjective")$value),
+               sum(sol_val(a, "vObjective")$value), tolerance = 1e-9)
+})
+
+# @covers vStorageOut vStorageLevel depth=S backends=glpk forks=geoframe
+test_that("a storage at the commodity's coarse level operates and is priced", {
+  skip_if_no_geoscales()
+  skip_if_no_solver()
+  cal <- newCalendar(timetable = make_timetable(
+    struct = list(ANNUAL = "ANNUAL", SEASON = c("S1", "S2"))), name = "cal_nrsS")
+  mod <- newModel(name = "nrsS", calendar = cal, region = c("R1", "R2"),
+    horizon = newHorizon(2025), discount = 0,
+    repo = newRepository("repo_nrsS",
+      newCommodity("GAS", timeframe = "SEASON", geoframe = "nation"),
+      newSupply("SUP_GAS", commodity = "GAS", region = "NAT",
+                supply = data.frame(region = "NAT", timeslice = c("S1", "S2"),
+                                    cost = c(1, 100))),
+      newStorage("STG_GAS", commodity = "GAS", region = "NAT", olife = 1L,
+                 cap2act = 1, invcost = list(out.invcost = 1),
+                 seff = data.frame(inpeff = 1, outeff = 1)),
+      newDemand("DEM_GAS", commodity = "GAS", region = "NAT",
+                demand = data.frame(region = "NAT",
+                                    timeslice = c("S1", "S2"), demand = 5))))
+  scen <- vt_solve(suppressMessages(suppressWarnings(interpolate_model(
+    setGeoscale(mod, nr_geoscale()), name = "nrsS", overwrite = TRUE))))
+  d <- as.data.frame(get_data_slot(scen@modOut@variables[["vObjective"]]))
+  # hand: buy 10 in S1 at 1 (5 direct + 5 stored) + storage out cap 5 x 1 = 15
+  expect_equal(sum(d$value), 15, tolerance = 1e-9)
+  so <- as.data.frame(get_data_slot(scen@modOut@variables[["vStorageOut"]]))
+  expect_equal(unique(as.character(so$region)), "NAT")
+})
+
+test_that("RoW import/export at a coarse level are refused loudly", {
+  skip_if_no_geoscales()
+  skip_if_no_solver()
+  # import/export carry no @region slot; their region resolution defaults to
+  # the atoms, so the strict-level check refuses the shape instead of running
+  # a silently different model. Supporting them at a coarse level is an open
+  # capability -- this pins the refusal until it is built.
+  mod <- nrs_model("nrsI", newSupply("SUP_GAS", commodity = "GAS",
+    region = "NAT", supply = data.frame(region = "NAT", cost = 2)))
+  mod <- add(mod, newImport("IMP_GAS", commodity = "GAS",
+                            import = data.frame(region = "NAT", price = 3)))
+  expect_error(
+    suppressMessages(suppressWarnings(interpolate_model(
+      setGeoscale(mod, nr_geoscale()), name = "nrsI", overwrite = TRUE))),
+    "resolution does not match")
+})
+
 test_that("@geoframe without a geoscale is refused", {
   skip_if_no_solver()
   expect_error(

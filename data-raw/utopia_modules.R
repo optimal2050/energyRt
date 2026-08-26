@@ -2,7 +2,7 @@
 ## Build the packaged `utopia_modules` -- a kit of energyRt building blocks and
 ## scenario levers for the UTOPIA teaching model, mirroring the structure of
 ## IDEEA::ideea_modules. Region layouts (R1/R3/R7/R11) are assembled on the
-## base `utopia_s4h24` calendar by the local `build_utopia()` below (the same
+## base `s4_h24` calendar by the local `build_utopia()` below (the same
 ## explicit steps the "UTOPIA I: building the model" vignette walks through).
 ##
 ## Naming conventions (see the vignette's "Conventions" section):
@@ -34,7 +34,7 @@ res_share_lever <- function(years, growth, annual_demand, nreg,
 
 # Assemble a complete UTOPIA electricity kit for `regions` on `calendar`.
 build_utopia <- function(regions = paste0("R", 1:3),
-                         calendar = "utopia_s4h24",
+                         calendar = "s4_h24",
                          annual_demand = 100,
                          years = c(2020, 2030, 2040, 2050),
                          demand_growth = c(1, 1.2, 1.4, 1.6)) {
@@ -93,7 +93,7 @@ build_utopia <- function(regions = paste0("R", 1:3),
   # the model would front-load the whole reserve into the base year)
   #
   # Restricted to the timeslices ELC is BALANCED at. `@timeslice_share` carries every
-  # level (ANNUAL = 1, each season = 0.25, each hour = 1/96), so an unfiltered
+  # level (ANNUAL = 1, then day-proportional seasonal/hourly shares), so an unfiltered
   # `10 * share` also wrote an ANNUAL 10 and four seasonal 2.5 bounds. Those
   # read as a nested cap and are not one: only `mExportRowUp` timeslices are read,
   # and it holds the HOUR level alone, so the 20 coarse rows per region were
@@ -246,6 +246,59 @@ build_utopia <- function(regions = paste0("R", 1:3),
                 7,  6, 5)),  # gas ceiling  (GW/region), declining
     defVal = Inf)
 
+  # ---- add-on modules: supply curve, resource clusters, vintages -------------
+  # Shipped like the levers: NOT in `repo`. A scenario opts in with
+  # `add(mod, kit$<MODULE>, overwrite = TRUE)` -- GAS_CURVE / EWIN_SITES /
+  # ENUC_VINT REPLACE the flat SUP_GAS / EWIN / ENUC by name -- so the base
+  # kits (and their goldens) are untouched.
+  #
+  # GAS_CURVE: domestic gas as a 3-step marginal-cost curve (cluster variants
+  # via asSupplyCurve) around the flat 6.0, with finite yearly availability --
+  # the flat supply is unbounded, a curve cannot be.
+  GAS_CURVE <- if (length(gas_regs) > 0) {
+    asSupplyCurve(
+      newSupply("SUP_GAS", desc = "Domestic gas, stepped marginal cost",
+                commodity = "GAS",
+                supply = data.frame(region = gas_regs, ava.up = 60)),
+      price = c(4, 8, 12))
+  }
+  # EWIN_SITES: wind split into two resource grades -- GOOD sites keep the
+  # base capacity factor but are finite (5 GW/region), POOR sites are
+  # down-rated to 60% and unlimited. The classic supply-curve-of-sites: the
+  # model fills GOOD first, then pays the lower CF.
+  wwin_cf <- prof$weather[prof$weather$resource == "WWIN",
+                          c("region", "timeslice", "wval")]
+  WWIN_GOOD <- newWeather("WWIN_GOOD", timeframe = "HOUR", weather = wwin_cf)
+  wwin_poor <- wwin_cf; wwin_poor$wval <- 0.6 * wwin_poor$wval
+  WWIN_POOR <- newWeather("WWIN_POOR", timeframe = "HOUR", weather = wwin_poor)
+  EWIN_CL <- newTechnology("EWIN",
+    desc = "Wind power in two site grades (GOOD finite, POOR down-rated)",
+    cluster = data.frame(cluster = c("GOOD", "POOR")),
+    input = list(comm = "WIN"), output = list(comm = "ELC"),
+    ceff = data.frame(comm = "WIN", cinp2use = 1),
+    weather = data.frame(cluster = c("GOOD", "POOR"),
+                         weather = c("WWIN_GOOD", "WWIN_POOR"),
+                         comm = "WIN", waf.up = 1),
+    capacity = data.frame(cluster = "GOOD", year = years, cap.up = 5),
+    cap2act = 31.536, fixom = 35, invcost = list(invcost = mg(1300)),
+    olife = 25L, start = 2015L)
+  EWIN_SITES <- newRepository("EWIN_SITES", WWIN_GOOD, WWIN_POOR, EWIN_CL)
+  # ENUC_VINT: two build vintages -- the 2040 generation is cheaper, more
+  # efficient, and longer-lived. Same name as the base ENUC, same legacy stock.
+  ENUC_VINT <- newTechnology("ENUC",
+    desc = "Nuclear with two build vintages (v2025, v2040)",
+    vintage = data.frame(vintage = c("v2025", "v2040"),
+                         start = c(2025L, 2040L), end = c(2039L, NA),
+                         olife = c(50L, 60L)),
+    input = list(comm = "NUC"), output = list(comm = "ELC"),
+    ceff = data.frame(vintage = c("v2025", "v2040"), comm = "NUC",
+                      cinp2use = c(0.35, 0.40)),
+    af = data.frame(af.lo = 0.7),
+    cap2act = 31.536, fixom = 120,
+    invcost = data.frame(vintage = c("v2025", "v2040"),
+                         invcost = mg(c(8000, 5500))),
+    capacity = stk(gw_rule(2, character(0), 2), by + 40))
+
   list(regions = regions, calendar = calendar, repo = repo,
        repo_comm = repo_comm, repo_supply = repo_supply,
        DEM_ELC = DEM_ELC,
@@ -253,42 +306,162 @@ build_utopia <- function(regions = paste0("R", 1:3),
        ECOA = ECOA, EGAS = EGAS, ENUC = ENUC, ESOL = ESOL, EWIN = EWIN,
        EHYD = EHYD, EBIO = EBIO, STG_ELC = STG_ELC,
        CO2_CAP = CO2_CAP, CT_CO2 = CT_CO2, RES_SHARE = RES_SHARE,
-       NO_NEW_NUC = NO_NEW_NUC, EARLY_RET = EARLY_RET)
+       NO_NEW_NUC = NO_NEW_NUC, EARLY_RET = EARLY_RET,
+       GAS_CURVE = GAS_CURVE, EWIN_SITES = EWIN_SITES, ENUC_VINT = ENUC_VINT)
+}
+
+# ---- unit kit ---------------------------------------------------------------
+# The "unit model": every input is 1 (efficiencies, costs, lifetimes, cap2act,
+# demand per slice) on a perfectly symmetric calendar and a single-year
+# horizon with discount = 0, so every solved quantity and the objective are
+# small integers a reader verifies in their head. Complexity is opt-in through
+# add-on modules, each changing the arithmetic by a hand-computable amount.
+#
+#   base repo (U1):  DEM 1/slice -> E1 activity 4, capacity 4 (peak 1 over
+#                    share 1/4 at cap2act 1), fuel 4x1 -> objective 8.
+#   U3: PRM exists only in R1; R2/R3 import ELC over a unit trade chain:
+#                    fuel 12 + E1 cap 12 + trade caps 8 + 4 -> objective 36.
+#   SOLAR module:    a SELF-CONTAINED solar + storage model -- free resource
+#                    ON in half the slices (step levels = 2), storage bridges
+#                    the rest: ESUN cap 8 (2 per ON slice over share 1/4) +
+#                    storage out cap 2 (the part capacity rates ANNUAL
+#                    throughput at cap2act = 1: total discharge 2; no
+#                    sub-annual af is declared, so there is no per-slice
+#                    power bound) -> objective 10. Layered onto the base
+#                    (add, overwrite = TRUE) it stays idle: 10 > 8 is the
+#                    merit-order lesson.
+#   SUP_CURVE:       SUP_PRM as a 2-step curve (2 units @1 + 2 @2 -> fuel 6,
+#                    objective 10 when it replaces the flat supply).
+build_unit <- function(regions = "R1", calendar = "unit_s4") {
+  stopifnot(is.character(regions), length(regions) > 0)
+  cal <- calendars[[calendar]]
+  if (is.null(cal)) stop("unknown calendar '", calendar, "'")
+  lvl <- cal@default_timeframe
+  slices <- as.character(cal@timeframes[[lvl]])
+
+  ELC <- newCommodity("ELC", timeframe = lvl)
+  PRM <- newCommodity("PRM", timeframe = "ANNUAL")
+  SUN <- newCommodity("SUN", timeframe = lvl)
+
+  # the primary resource is an ENDOWMENT of the first region only: single-
+  # region kits are self-sufficient, multi-region kits must trade
+  SUP_PRM <- newSupply("SUP_PRM", commodity = "PRM",
+    supply = data.frame(region = regions[1], cost = 1))
+  E1 <- newTechnology("E1", desc = "Unit converter PRM -> ELC",
+    input = list(comm = "PRM"), output = list(comm = "ELC"),
+    ceff = data.frame(comm = "PRM", cinp2use = 1),
+    cap2act = 1, invcost = list(invcost = 1), olife = 1L,
+    region = regions[1])
+  DEM_ELC <- newDemand("DEM_ELC", commodity = "ELC",
+    demand = expand.grid(region = regions, timeslice = slices, demand = 1,
+                         stringsAsFactors = FALSE))
+
+  trades <- list()
+  if (length(regions) > 1) {
+    for (i in seq_len(length(regions) - 1)) {
+      r1 <- regions[i]; r2 <- regions[i + 1]
+      trades[[length(trades) + 1L]] <- newTrade(
+        name = paste("TBD_ELC", r1, r2, sep = "_"), commodity = "ELC",
+        routes = data.frame(src = c(r1, r2), dst = c(r2, r1)),
+        trade  = data.frame(src = c(r1, r2), dst = c(r2, r1), teff = 1),
+        invcost = data.frame(region = c(r1, r2), invcost = 0.5),  # 1 per corridor
+        cap2act = 1, olife = list(olife = 1))
+    }
+  }
+
+  repo <- newRepository("unit", ELC, PRM, SUP_PRM, E1, DEM_ELC)
+  for (trd in trades) repo <- add(repo, trd)
+
+  # -- SOLAR module: free on/off resource (+ storage makes it bridge) --------
+  prof <- utopia_profile("step", levels = 2, calendar = cal, regions = regions)
+  RES_SUN <- newSupply("RES_SUN", commodity = "SUN",
+    supply = data.frame(region = regions, cost = 0))
+  WSUN <- newWeather("WSUN", timeframe = lvl,
+    weather = data.frame(region = prof$region, timeslice = prof$timeslice,
+                         wval = prof$value))
+  ESUN <- newTechnology("ESUN", desc = "Unit solar: free fuel, ON half the year",
+    input = list(comm = "SUN"), output = list(comm = "ELC"),
+    ceff = data.frame(comm = "SUN", cinp2use = 1),
+    weather = list(weather = "WSUN", comm = "SUN", waf.up = 1),
+    cap2act = 1, invcost = list(invcost = 1), olife = 1L)
+
+  STG_ELC <- newStorage("STG_ELC", commodity = "ELC", olife = 1L, cap2act = 1,
+    invcost = list(out.invcost = 1),
+    seff = data.frame(inpeff = 1, outeff = 1))
+
+  # self-contained: `newModel(data = kit$SOLAR)` is the storage-bridging model
+  # on its own (objective 10); added onto the base repo the shared objects
+  # replace identically and the solar chain sits idle (8 < 10)
+  SOLAR <- newRepository("SOLAR", ELC, SUN, RES_SUN, WSUN, ESUN, STG_ELC,
+                         DEM_ELC)
+
+  SUP_CURVE <- asSupplyCurve(
+    newSupply("SUP_PRM", desc = "Unit supply as a 2-step curve",
+              commodity = "PRM",
+              supply = data.frame(region = regions[1], ava.up = 4)),
+    price = c(1, 2))
+
+  list(regions = regions, calendar = calendar, repo = repo,
+       DEM_ELC = DEM_ELC, E1 = E1, SUP_PRM = SUP_PRM,
+       SOLAR = SOLAR, STG_ELC = STG_ELC, SUP_CURVE = SUP_CURVE)
 }
 
 base_horizon <- newHorizon(period = 2020:2050, intervals = c(1, 10, 10, 10),
                            mid_is_end = TRUE, name = "base",
                            desc = "2020-2050, milestones 2020/2030/2040/2050")
+unit_horizon <- newHorizon(period = 2025, name = "unit",
+                           desc = "single-year horizon (2025) for the unit kits")
 
 utopia_modules <- list(
   info = paste("UTOPIA teaching-model modules: a kit of energyRt building blocks",
                "(commodity/supply repositories, weather, technologies, storage, a",
-               "ready base repository `$repo`) and scenario levers (CO2_CAP, CT_CO2,",
-               "RES_SHARE, NO_NEW_NUC), for region layouts under `$electricity`.",
-               "Built by the UTOPIA I vignette's explicit steps; mirrors",
+               "ready base repository `$repo`), scenario levers (CO2_CAP, CT_CO2,",
+               "RES_SHARE, NO_NEW_NUC, EARLY_RET) and add-on modules (GAS_CURVE,",
+               "EWIN_SITES, ENUC_VINT), for region layouts under `$electricity`;",
+               "all-unit-input models with hand-checkable integer objectives under",
+               "`$unit`. Built by the UTOPIA I vignette's explicit steps; mirrors",
                "IDEEA::ideea_modules."),
   maps      = utopia$map,
-  calendars = calendars[c("utopia_annual", "utopia_seasons",
-                          "utopia_s4h24", "utopia_m12h24")],
-  horizons  = list(base = base_horizon),
+  calendars = calendars[c("annual", "utopia_seasons",
+                          "s4_h24", "m12_h24",
+                          "unit_s4", "unit_s4h4")],
+  horizons  = list(base = base_horizon, unit = unit_horizon),
   # Keyed `R<n>` for an n-region layout, matching the `R1`..`R11` region names
   # the maps use. `R11` covers the full map; the smaller ones are its prefixes.
   electricity = list(
-    R1  = build_utopia("R1",                 calendar = "utopia_s4h24"),
-    R3  = build_utopia(paste0("R", 1:3),     calendar = "utopia_s4h24"),
-    R7  = build_utopia(paste0("R", 1:7),     calendar = "utopia_s4h24"),
-    R11 = build_utopia(paste0("R", 1:11),    calendar = "utopia_s4h24")
+    R1  = build_utopia("R1",                 calendar = "s4_h24"),
+    R3  = build_utopia(paste0("R", 1:3),     calendar = "s4_h24"),
+    R7  = build_utopia(paste0("R", 1:7),     calendar = "s4_h24"),
+    R11 = build_utopia(paste0("R", 1:11),    calendar = "s4_h24")
+  ),
+  # Unit kits: `U<n>` layouts on the symmetric unit calendar; use with
+  # `$horizons$unit` and `discount = 0` so the objective stays an integer.
+  unit = list(
+    U1 = build_unit("R1",             calendar = "unit_s4"),
+    U3 = build_unit(paste0("R", 1:3), calendar = "unit_s4")
   )
 )
 
-# sanity: each config has a base repo + the four levers
+# sanity: each config has a base repo + the five levers + the add-on modules
 for (cfg in names(utopia_modules$electricity)) {
   k <- utopia_modules$electricity[[cfg]]
   stopifnot(methods::is(k$repo, "repository"),
             all(c("CO2_CAP", "CT_CO2", "RES_SHARE", "NO_NEW_NUC",
-                  "EARLY_RET") %in% names(k)))
+                  "EARLY_RET") %in% names(k)),
+            methods::is(k$EWIN_SITES, "repository"),
+            methods::is(k$ENUC_VINT, "technology"),
+            # GAS_CURVE exists wherever the layout has a gas region (R2+)
+            cfg == "R1" || methods::is(k$GAS_CURVE, "supply"))
+}
+for (cfg in names(utopia_modules$unit)) {
+  k <- utopia_modules$unit[[cfg]]
+  stopifnot(methods::is(k$repo, "repository"),
+            methods::is(k$SOLAR, "repository"),
+            methods::is(k$STG_ELC, "storage"),
+            methods::is(k$SUP_CURVE, "supply"))
 }
 message("utopia_modules configs: ",
-        paste(names(utopia_modules$electricity), collapse = ", "))
+        paste(names(utopia_modules$electricity), collapse = ", "),
+        " | unit: ", paste(names(utopia_modules$unit), collapse = ", "))
 
 usethis::use_data(utopia_modules, overwrite = TRUE)

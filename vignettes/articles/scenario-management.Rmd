@@ -204,6 +204,21 @@ rebuilds it at any time by rescanning the stores and reading the manifests.
 `find_registry(reg, type = "model", hash = "a1b2")` looks entries up by
 type, name, or (short) hash.
 
+The registry is also what makes NAME-based access work. `getScenario("BASE")`
+resolves the name, loads the thin on-disk shell, and caches it in the
+session bank `.scen` — re-saved scenarios reload automatically, repeat
+access is free. `getData()` accepts names directly, so comparing registered
+scenarios needs no explicit loading at all:
+
+```{r getdata-by-name}
+getData("BASE", name = "vObjective", merge = TRUE)[, c("scenario", "value")]
+```
+
+`getModel()`, `getRepository()` and `getDataset()` are the typed
+companions; `load_scenarios()` returns many scenarios as a `getData()`-ready
+named list; and `open_project("path/")` points a session at another
+project's registry and stores in one call.
+
 # Variants: several problems in one scenario
 
 A scenario sometimes needs *the same model asked a different question* —

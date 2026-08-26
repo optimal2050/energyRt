@@ -43,7 +43,7 @@ header-includes:
   - \definecolor{ert_blue}{RGB}{31, 73, 125}
 ---
 
-```{r setup, include=FALSE}
+```{r en-setup, include=FALSE}
 # One-page process summary: header, schematic, key facts, levelized cost.
 # Same params interface as report_generic.Rmd (built by
 # .tech_report_params_generic() in R/report.R); escaping comes from the
@@ -69,7 +69,7 @@ comm_list <- function(df) {
 }
 ```
 
-```{r html_css, results='asis'}
+```{r en-html_css, results='asis'}
 if (is_html) {
   cat("<style>
 body { font-family: Arial, sans-serif; font-size: 13px; margin: 20px; }
@@ -84,7 +84,7 @@ table.kable-table td { padding: 2px 8px;
 }
 ```
 
-```{r header, results='asis'}
+```{r en-header, results='asis'}
 if (is_html) {
   cat("<h1>", html_esc(params$name), "</h1>\n", sep = "")
   if (nzchar(params$desc)) {
@@ -96,7 +96,7 @@ if (is_html) {
 }
 ```
 
-```{r image, results='asis'}
+```{r en-image, results='asis'}
 if (!is.null(params$image_file) && nzchar(params$image_file %||% "") &&
     file.exists(params$image_file)) {
   cat("![](", gsub("\\\\", "/", params$image_file), "){height=140px}\n\n",
@@ -104,7 +104,7 @@ if (!is.null(params$image_file) && nzchar(params$image_file %||% "") &&
 }
 ```
 
-```{r schematic, results='asis'}
+```{r en-schematic, results='asis'}
 if (!is.null(params$draw_file) && file.exists(params$draw_file)) {
   cat("![](", gsub("\\\\", "/", params$draw_file), ")\n\n", sep = "")
 }
@@ -112,7 +112,7 @@ if (!is.null(params$draw_file) && file.exists(params$draw_file)) {
 
 ## Key facts
 
-```{r facts}
+```{r en-facts}
 facts <- list(
   c("inputs",        comm_list(params$input_df)),
   c("outputs",       comm_list(params$output_df)),
@@ -135,7 +135,7 @@ knitr::kable(df, row.names = FALSE, col.names = c("", ""),
              format = if (is_html) "html" else "pipe")
 ```
 
-```{r levcost, results='asis'}
+```{r en-levcost, results='asis'}
 if (!is.null(params$levcost_npv) && is.finite(params$levcost_npv)) {
   u <- params$units_costs %||% ""
   ua <- params$units_act %||% ""

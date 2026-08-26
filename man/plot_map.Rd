@@ -13,6 +13,8 @@ plot_map(
   process = NULL,
   geoscale = NULL,
   palette = "D",
+  name = NULL,
+  facet = c("none", "year"),
   ...
 )
 }
@@ -20,12 +22,13 @@ plot_map(
 \item{object}{a solved \code{scenario}.}
 
 \item{type}{what to map, passed to \code{\link[=getMix]{getMix()}}: \code{"generation"}, \code{"capacity"},
-\code{"new_capacity"} or \code{"fuel"}.}
+\code{"new_capacity"} or \code{"fuel"}. Ignored when \code{name} is given.}
 
 \item{level}{level of the geoscale to draw. Defaults to the finest, i.e. the
 model's own regions. A coarser level aggregates first.}
 
-\item{comm}{balanced commodity for \code{"generation"}.}
+\item{comm}{balanced commodity for \code{"generation"}. On the \verb{name =} path a
+\code{comm} filter applies only when passed explicitly.}
 
 \item{year}{integer year, or \code{NULL} for the sum over all milestone years.}
 
@@ -34,6 +37,15 @@ model's own regions. A coarser level aggregates first.}
 \item{geoscale}{a \code{geoscales::Geoscale}, or \code{NULL} to use the scenario's.}
 
 \item{palette}{viridis palette option.}
+
+\item{name}{optional name of any solved variable carrying a \code{region}
+dimension (e.g. \code{"vTechNewCap"}, \code{"vTechRetiredStock"}): the map is
+drawn from \code{getData()} instead of \code{\link[=getMix]{getMix()}}. Variables without a
+region dimension (the \verb{vTrade*} capacity/retirement family) cannot be
+mapped.}
+
+\item{facet}{\code{"none"} (default; one map, values summed over years unless
+\verb{year =} selects one) or \code{"year"} (one panel per milestone year).}
 
 \item{...}{passed to \code{ggplot2::geom_sf()}.}
 }
@@ -53,12 +65,15 @@ Requires a geoscale with geometry attached (see \code{\link[=setGeoscale]{setGeo
 scen <- solve(interpolate(mod, "BASE"))
 plot_map(scen, "capacity")
 plot_map(scen, "capacity", level = "zone")
+plot_map(scen, name = "vTechNewCap", facet = "year")
+plot_map(scen, name = "vTechRetiredStock")
 }
 
 }
 \seealso{
 Other geoscale:
 \code{\link[=check_geoscale_regions]{check_geoscale_regions()}},
+\code{\link[=plot_geoscale]{plot_geoscale()}},
 \code{\link{setGeoscale,config-method}},
 \code{\link[=utopia_geoscale]{utopia_geoscale()}}
 }

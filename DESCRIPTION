@@ -1,8 +1,8 @@
 Package: energyRt
 Type: Package
 Title: Energy Systems Modeling Toolbox
-Version: 0.87.5.9000
-Date: 2026-08-25
+Version: 0.87.6.9000
+Date: 2026-08-26
 Authors@R: 
   c(person(given = "Oleg", 
           family = "Lugovoy", 
@@ -34,7 +34,7 @@ Imports: methods, grid, generics, data.table, DBI, RSQLite, tibble,
         glue, plyr, grDevices, utils, tools, yaml
 Suggests: shiny, DT, pak, gdxtools (== 0.7.1), knitr, rmarkdown, sf, ggplot2, testthat
         (>= 3.0.0), devtools, openxlsx, jsonlite, readxl, httr2, xml2,
-        base64enc, tinytex, patchwork, geoscales (>= 0.5.0), waldo
+        base64enc, tinytex, patchwork, geoscales (>= 0.5.0), timescales (>= 0.5.0), waldo
 Additional_repositories: https://optimal2050.r-universe.dev
 SystemRequirements: Julia (>= 1.6) with JuMP or Python (>= 3.7) with
         Pyomo or GAMS (>= 24.9) or GLPK (>= 4.0)
@@ -43,6 +43,7 @@ VignetteBuilder: knitr
 LazyData: true
 Encoding: UTF-8
 Collate: 
+    'accessors.R'
     'arrow.R'
     'carry.R'
     'docs.R'
@@ -160,6 +161,7 @@ Collate:
     'utopia-data.R'
     'utopia-geoscale.R'
     'utopia_profiles.R'
+    'utopia_shapes.R'
     'variants.R'
     'verify_solution.R'
     'vintage_lifespan.R'

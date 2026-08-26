@@ -67,6 +67,11 @@ md <- c(
   sprintf("| %s | %d | %d | %d | %.1f |",
           agg$file, agg$failed, agg$skipped, agg$passed, agg$real)
 )
+fails <- res[res$failed > 0 | res$error, c("file", "test"), drop = FALSE]
+if (nrow(fails)) {
+  md <- c(md, "", "## Failures", "",
+          sprintf("- `%s`: %s", fails$file, fails$test))
+}
 writeLines(md, report)
 
 cat(sprintf("\n[nightly] failed %d | skipped %d | passed %d | interp %s | %.1f min\n",

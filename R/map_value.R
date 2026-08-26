@@ -187,15 +187,26 @@ map_mSupWeatherLo         <- function(scen, fmp) .value_weather(scen, "mSupWeath
 # mSupSpan: (sup, region) operational span of each supply object (its own regions,
 # defaulting to all model regions when unspecified).
 map_mSupSpan <- function(scen, fmp) {
-  # Declared regions only: a supply sits at the finest level, never at a
-  # geoscale nation or zone.
-  regions <- .model_regions(scen)
+  # A supply spans the regions its COMMODITY is balanced at: the atoms for a
+  # finest-level commodity (the flat case, unchanged), the level's members
+  # for a commodity with a coarse `@geoframe`. Supply is a STRICT-level class
+  # (check_levels.R): a nation-balanced commodity MUST be supplied at the
+  # nation -- and the old blanket atom intersection silently DELETED exactly
+  # that shape, leaving the balance with a free costless vOutTot cell
+  # (energy from nowhere, objective 0, model feasible).
+  atoms <- .model_regions(scen)
+  comm_reg <- .comm_region_df(scen)   # NULL when no geoscale is attached
   res <- apply_to_scenario_data(
     scen = scen, classes = "supply", as_list = TRUE,
     func = function(obj) {
+      allowed <- atoms
+      if (!is.null(comm_reg)) {
+        m <- comm_reg$region[comm_reg$comm == obj@commodity]
+        if (length(m) > 0) allowed <- m
+      }
       regs <- obj@region
-      if (length(regs) == 0 || all(is.na(regs))) regs <- regions
-      regs <- regs[regs %in% regions]
+      if (length(regs) == 0 || all(is.na(regs))) regs <- allowed
+      regs <- regs[regs %in% allowed]
       if (length(regs) == 0) return(NULL)
       out <- list()
       out[[obj@name]] <- data.frame(sup = obj@name, region = regs,

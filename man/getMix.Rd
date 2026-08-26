@@ -34,7 +34,7 @@ flows are only meaningful for a region subset and are skipped when
 \item{year}{integer vector or \code{NULL} (all milestone year).}
 
 \item{timeslice}{\code{NULL} for annual sums, or a regular expression selecting a
-timeslice sample (e.g. \code{"^SUM_"} for the summer day on the \code{utopia_s4h24}
+timeslice sample (e.g. \code{"^SUM_"} for the summer day on the \code{s4_h24}
 calendar). When the matched timeslices carry an hour tag (\verb{"_h00"..."_h23"}),
 an integer \code{hour} column is added.}
 

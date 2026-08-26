@@ -52,7 +52,7 @@ params:
   levcost_npv_comm:       !r NULL
 ---
 
-```{r setup, include=FALSE}
+```{r en-setup, include=FALSE}
 knitr::opts_chunk$set(echo = FALSE, message = FALSE, warning = FALSE)
 library(knitr)
 
@@ -137,7 +137,7 @@ kable_block <- function(df, caption = NULL, digits = 3) {
 }
 ```
 
-```{r html_css, results='asis', eval=is_html}
+```{r en-html_css, results='asis', eval=is_html}
 cat("
 <style>
 .ideea-blue  { color: #1f497d; }
@@ -175,7 +175,7 @@ tbody tr:nth-child(odd) { background: #f7f7f7; }
 ")
 ```
 
-```{r header, results='asis'}
+```{r en-header, results='asis'}
 # ============================================================
 #  HEADER  -  name + description on left, image on right
 # ============================================================
@@ -221,7 +221,7 @@ if (is_html) {
 }
 ```
 
-```{r main_body, results='asis'}
+```{r en-main_body, results='asis'}
 # ============================================================
 #  MAIN BODY  -  tables on left, draw() schematic on right
 # ============================================================
@@ -416,7 +416,7 @@ if (is_html) {
 }
 ```
 
-```{r costs_section, results='asis'}
+```{r en-costs_section, results='asis'}
 # ============================================================
 #  COSTS SECTION
 # ============================================================
@@ -504,7 +504,7 @@ if (length(cost_list) > 0) {
 }
 ```
 
-```{r costs_chart, fig.height=2.2, fig.width=6.5, fig.align='center', out.width='100%'}
+```{r en-costs_chart, fig.height=2.2, fig.width=6.5, fig.align='center', out.width='100%'}
 # Only runs visibly when multi_year is TRUE
 cost_list_inner <- list(
   invcost = params$invcost_df,
@@ -558,7 +558,7 @@ if (length(cost_list_inner) > 0) {
 }
 ```
 
-```{r share_frontier_section, results='asis'}
+```{r en-share_frontier_section, results='asis'}
 # ============================================================
 #  SHARE MIX CONSTRAINTS  -  diagonal comm-vs-rest chart
 #  params$share_frontier_plot is a named list of ggplot objects
@@ -619,7 +619,7 @@ if (has_sfr) {
 }
 ```
 
-```{r levcost_section, results='asis'}
+```{r en-levcost_section, results='asis'}
 # ============================================================
 #  LEVELIZED COST SECTION  -  NPV breakdown + frontier (side by side)
 # ============================================================

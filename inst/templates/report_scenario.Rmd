@@ -13,8 +13,12 @@ params:
   scen_name:    ""
   scen_desc:    ""
   image_file:   NULL
+  logos:        NULL
+  badges:       NULL
   status_df:    NULL
   runs_df:      NULL
+  runs_plot:    NULL
+  runs_note:    NULL
   run_info_df:  NULL
   size_df:      NULL
   verify_df:    NULL
@@ -31,7 +35,7 @@ header-includes:
   - \usepackage{booktabs}
 ---
 
-```{r setup, include=FALSE}
+```{r en-setup, include=FALSE}
 library(ggplot2)
 
 # Shared helpers live in the package (see ?energyRt::report_helpers).
@@ -42,90 +46,107 @@ emit_img <- function(path, frac = 1)
   energyRt::report_img(path, frac, output = fmt)
 ```
 
-```{r css, results='asis'}
+```{r en-css, results='asis'}
 energyRt::report_css(fmt)
 ```
 
-```{r logo, results='asis'}
-if (!is.null(params$image_file)) emit_img(params$image_file, 0.25)
+```{r en-logo, results='asis'}
+if (length(params$logos) > 0) {
+  energyRt::report_img_row(params$logos, frac_total = 0.9, output = fmt)
+} else if (!is.null(params$image_file)) {
+  emit_img(params$image_file, 0.25)
+}
+if (length(params$badges) > 0) {
+  energyRt::report_img_row(params$badges,
+                           frac_total = min(0.9, 0.08 * length(params$badges)),
+                           output = fmt)
+}
 ```
 
 `r if (isTRUE(nzchar(params$scen_desc))) params$scen_desc`
 
 ## Overview
 
-```{r status, results='asis'}
+```{r en-status, results='asis'}
 tbl(params$status_df)
 ```
 
-```{r size, results='asis', eval=!is.null(params$size_df)}
+```{r en-size, results='asis', eval=!is.null(params$size_df)}
 tbl(params$size_df, caption = "Problem size")
 ```
 
-```{r verify, results='asis', eval=!is.null(params$verify_df)}
+```{r en-verify, results='asis', eval=!is.null(params$verify_df)}
 tbl(params$verify_df, caption = "Solution checks (verify_solution)")
 ```
 
-```{r runs-header, results='asis', eval=!is.null(params$runs_df) && nrow(params$runs_df) > 0}
+```{r en-runs-header, results='asis', eval=!is.null(params$runs_df) && nrow(params$runs_df) > 0}
 cat("## Runs\n")
 ```
 
-```{r runs, results='asis', eval=!is.null(params$runs_df) && nrow(params$runs_df) > 0}
+```{r en-runs, results='asis', eval=!is.null(params$runs_df) && nrow(params$runs_df) > 0}
 tbl(params$runs_df)
 ```
 
-```{r run-info, results='asis', eval=!is.null(params$run_info_df)}
+```{r en-runs-plot, fig.width=6, fig.height=2.5, eval=!is.null(params$runs_plot)}
+params$runs_plot
+```
+
+```{r en-runs-note, results='asis', eval=!is.null(params$runs_note)}
+cat(params$runs_note, "\n")
+```
+
+```{r en-run-info, results='asis', eval=!is.null(params$run_info_df)}
 tbl(params$run_info_df, caption = "Reported run")
 ```
 
 ## Results
 
-```{r gen, fig.width=8, fig.height=4.5, eval=!is.null(params$gen_plot)}
+```{r en-gen, fig.width=8, fig.height=4.5, eval=!is.null(params$gen_plot)}
 params$gen_plot
 ```
 
-```{r gen-day, fig.width=8, fig.height=4.5, eval=!is.null(params$gen_day_plot)}
+```{r en-gen-day, fig.width=8, fig.height=4.5, eval=!is.null(params$gen_day_plot)}
 params$gen_day_plot
 ```
 
-```{r cap, fig.width=8, fig.height=4.5, eval=!is.null(params$cap_plot)}
+```{r en-cap, fig.width=8, fig.height=4.5, eval=!is.null(params$cap_plot)}
 params$cap_plot
 ```
 
-```{r newcap, fig.width=8, fig.height=4.5, eval=!is.null(params$newcap_plot)}
+```{r en-newcap, fig.width=8, fig.height=4.5, eval=!is.null(params$newcap_plot)}
 params$newcap_plot
 ```
 
 ## Costs
 
-```{r costs-plot, fig.width=7, fig.height=4, eval=!is.null(params$costs_plot)}
+```{r en-costs-plot, fig.width=7, fig.height=4, eval=!is.null(params$costs_plot)}
 params$costs_plot
 ```
 
-```{r costs, results='asis'}
+```{r en-costs, results='asis'}
 tbl(params$cost_df)
 ```
 
-```{r emis-header, results='asis', eval=!is.null(params$emis_df)}
+```{r en-emis-header, results='asis', eval=!is.null(params$emis_df)}
 cat("## Emissions\n")
 ```
 
-```{r emis, results='asis', eval=!is.null(params$emis_df)}
+```{r en-emis, results='asis', eval=!is.null(params$emis_df)}
 tbl(params$emis_df)
 ```
 
-```{r variants-header, results='asis', eval=!is.null(params$variants_df)}
+```{r en-variants-header, results='asis', eval=!is.null(params$variants_df)}
 cat("## Variants\n")
 ```
 
-```{r variants, results='asis', eval=!is.null(params$variants_df)}
+```{r en-variants, results='asis', eval=!is.null(params$variants_df)}
 tbl(params$variants_df, caption = "Variants per base process")
 ```
 
-```{r levcost-header, results='asis', eval=!is.null(params$levcost_df)}
+```{r en-levcost-header, results='asis', eval=!is.null(params$levcost_df)}
 cat("## Levelized costs (ex-post)\n")
 ```
 
-```{r levcost, results='asis', eval=!is.null(params$levcost_df)}
+```{r en-levcost, results='asis', eval=!is.null(params$levcost_df)}
 tbl(params$levcost_df)
 ```

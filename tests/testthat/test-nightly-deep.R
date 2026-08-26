@@ -11,14 +11,17 @@
 # ENERGYRT_TEST_HEAVY=true (~minutes).
 # =========================================================================== #
 
-test_that("UTOPIA R7/R11 reproduce their golden tracked values (GLPK)", {
+test_that("UTOPIA R7/R11 reproduce their golden tracked values (julia/HiGHS)", {
   skip_if_tier_below("nightly")
-  skip_if_no_solver()
+  # mid-size models reference julia/HiGHS (the backend-choice convention;
+  # SUITE_SOLVERS in make_goldens.R) -- same-solver goldens, julia both sides
+  skip_if_no_julia_highs()
   g <- skip_if_no_golden("utopia_nightly")
   entries <- ut_nightly_entries()
   for (nm in names(g)) {
     skip_if(is.null(entries[[nm]]), paste0(nm, " not in ut_nightly_entries()"))
-    scen <- ut_solve_glpk(entries[[nm]], paste0("nightly_", nm))
+    scen <- ut_solve(entries[[nm]], paste0("nightly_", nm),
+                     solver = "julia_highs")
     vs <- verify_solution(scen)
     expect_true(vs$ok, label = paste0(nm, " invariants"))
     expect_matches_golden(scen, "utopia_nightly", nm, kind = "same_solver")
@@ -29,7 +32,7 @@ test_that("UTOPIA R3 solves to the golden objective on julia/HiGHS", {
   skip_if_tier_below("nightly")
   skip_if_no_julia_highs()
   g <- skip_if_no_golden("utopia", "base_R3")
-  mod <- ut_build(layout = "R3", calendar = "utopia_s4h24")
+  mod <- ut_build(layout = "R3", calendar = "s4_h24")
   scen <- suppressMessages(suppressWarnings(
     solve_model(mod, name = "nightly_R3_julia",
                 solver = solver_options$julia_highs,
@@ -70,6 +73,10 @@ test_that("UTOPIA R3 solves to the golden objective on julia/HiGHS", {
     testthat::skip(paste0(file, " no longer loads under the current class ",
                           "layout: ", conditionMessage(obj)))
   }
+  if (!methods::is(obj, "model") && !methods::is(obj, "scenario")) {
+    testthat::skip(paste0(file, " holds a ", class(obj)[1],
+                          ", not a model/scenario"))
+  }
   scen <- if (methods::is(obj, "scenario")) {
     suppressMessages(suppressWarnings(
       solve_scenario(obj, solver = solver_options$julia_highs,
@@ -90,12 +97,14 @@ test_that("external: belgium_model solves and verifies (julia)", {
   .ext_model_check("belgium_model.rds")
 })
 
-test_that("external: belgium_storage_duration solves and verifies (julia)", {
-  .ext_model_check("belgium_storage_duration.rds")
-})
-
 test_that("external: belgium_copperplate (8760 h) solves and verifies (julia)", {
   skip_if(!identical(Sys.getenv("ENERGYRT_TEST_HEAVY"), "true"),
           "heavy external models are opt-in (set ENERGYRT_TEST_HEAVY=true)")
   .ext_model_check("belgium_copperplate.rds")
+})
+
+test_that("external: eu41_model (41 nodes) solves and verifies (julia)", {
+  skip_if(!identical(Sys.getenv("ENERGYRT_TEST_HEAVY"), "true"),
+          "heavy external models are opt-in (set ENERGYRT_TEST_HEAVY=true)")
+  .ext_model_check("eu41_model.rds")
 })

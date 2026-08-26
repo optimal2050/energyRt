@@ -101,7 +101,6 @@ setMethod("solve", signature(a = "missing", b = "missing"), function(...) {
 #' * `newRegistry()` -> [load_registry()]
 #' * `register()` -> [add_to_registry()] + [save_registry()]
 #' * `get_registry()` -> [load_registry()]
-#' * `getScenario()` -> [load_scenario()] (path resolved via the registry)
 #' * `get_entry()` -> [find_registry()]
 #' * `set_default_registry()` / `use_registry()` -> [set_registry_file()]
 #' * `which_registry()` -> [get_registry_file()]
@@ -143,19 +142,8 @@ get_registry <- function() {
   load_registry()
 }
 
-#' @rdname registry-deprecated
-#' @export
-getScenario <- function(name, registry = NULL, ...) {
-  .Deprecated("load_scenario")
-  reg <- load_registry()
-  hit <- find_registry(reg, type = "scenario", name = name)
-  if (!nrow(hit)) {
-    stop("Scenario '", name, "' is not in the registry (",
-         get_registry_file(), "). Run refresh_registry() to rescan, or use ",
-         "load_scenario() with an explicit path.")
-  }
-  load_scenario(fp(dirname(get_registry_file()), hit$path[1]), env = NULL)
-}
+# NOTE: getScenario() used to live here as a deprecated registry-era shim;
+# it is now the LIVE cached accessor in R/accessors.R.
 
 #' @rdname registry-deprecated
 #' @export
@@ -167,7 +155,7 @@ get_entry <- function(name, registry = NULL, ...) {
 #' @rdname registry-deprecated
 #' @export
 get_entry_object <- function(name, registry = NULL, ...) {
-  .Deprecated("load_scenario")
+  .Deprecated("getScenario")
   getScenario(name)
 }
 

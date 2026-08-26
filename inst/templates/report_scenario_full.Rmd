@@ -1,0 +1,251 @@
+---
+title: "`r params$title`"
+report-class: scenario
+output:
+  html_document:
+    self_contained: true
+    md_extensions: "-native_divs-native_spans"
+  pdf_document:
+    latex_engine: xelatex
+  word_document: default
+params:
+  title:               "Scenario report"
+  scen_name:           ""
+  scen_desc:           ""
+  image_file:          NULL
+  logos:               NULL
+  badges:              NULL
+  status_df:           NULL
+  runs_df:             NULL
+  run_info_df:         NULL
+  runs_plot:           NULL
+  runs_note:           NULL
+  size_df:             NULL
+  verify_df:           NULL
+  calendar_plot:       NULL
+  calendar_model_plot: NULL
+  horizon_plot:        NULL
+  horizon_df:          NULL
+  geo_map:             NULL
+  geo_stack:           NULL
+  geo_note:            NULL
+  newcap_map:          NULL
+  ret_map:             NULL
+  gen_plot:            NULL
+  gen_day_plot:        NULL
+  cap_plot:            NULL
+  newcap_plot:         NULL
+  ret_bars:            NULL
+  io_bars:             NULL
+  emis_df:             NULL
+  cost_df:             NULL
+  costs_plot:          NULL
+  variants_df:         NULL
+  levcost_df:          NULL
+header-includes:
+  - \usepackage{booktabs}
+---
+
+```{r en-setup, include=FALSE}
+library(ggplot2)
+
+# Shared helpers live in the package (see ?energyRt::report_helpers).
+fmt <- energyRt::report_setup()
+tbl <- function(df, caption = NULL, digits = 4L)
+  energyRt::report_tbl(df, caption, digits, output = fmt)
+emit_img <- function(path, frac = 1)
+  energyRt::report_img(path, frac, output = fmt)
+pb <- function() energyRt::report_pagebreak(fmt)
+any_of <- function(...) !all(vapply(list(...), is.null, logical(1)))
+```
+
+```{r en-css, results='asis'}
+energyRt::report_css(fmt)
+```
+
+```{r en-branding, results='asis'}
+if (length(params$logos) > 0) {
+  energyRt::report_img_row(params$logos, frac_total = 0.9, output = fmt)
+} else if (!is.null(params$image_file)) {
+  emit_img(params$image_file, 0.25)
+}
+```
+
+`r if (isTRUE(nzchar(params$scen_desc))) params$scen_desc`
+
+```{r en-badges, results='asis'}
+if (length(params$badges) > 0) {
+  energyRt::report_img_row(params$badges,
+                           frac_total = min(0.9, 0.08 * length(params$badges)),
+                           output = fmt)
+}
+```
+
+## Overview
+
+```{r en-status, results='asis'}
+tbl(params$status_df)
+```
+
+```{r en-size, results='asis', eval=!is.null(params$size_df)}
+tbl(params$size_df, caption = "Problem size")
+```
+
+```{r en-runs-header, results='asis', eval=!is.null(params$runs_df) && nrow(params$runs_df) > 0}
+cat("## Runs\n")
+```
+
+```{r en-runs, results='asis', eval=!is.null(params$runs_df) && nrow(params$runs_df) > 0}
+tbl(params$runs_df)
+```
+
+```{r en-runs-plot, fig.width=6, fig.height=2.5, eval=!is.null(params$runs_plot)}
+params$runs_plot
+```
+
+```{r en-runs-note, results='asis', eval=!is.null(params$runs_note)}
+cat(params$runs_note, "\n")
+```
+
+```{r en-run-info, results='asis', eval=!is.null(params$run_info_df)}
+tbl(params$run_info_df, caption = "Reported run")
+```
+
+```{r en-pb1, results='asis'}
+if (any_of(params$calendar_plot, params$calendar_model_plot,
+           params$horizon_plot, params$horizon_df)) pb()
+```
+
+```{r en-time-header, results='asis', eval=any_of(params$calendar_plot, params$horizon_plot, params$horizon_df)}
+cat("## Time structure\n")
+```
+
+```{r en-cal-model-note, results='asis', eval=!is.null(params$calendar_model_plot)}
+cat("The scenario runs on a sampled calendar; the model's full calendar",
+    "is shown first, the scenario's sample (highlighted on the full grid)",
+    "below.\n")
+```
+
+```{r en-cal-model, fig.width=8, fig.height=3.6, eval=!is.null(params$calendar_model_plot)}
+params$calendar_model_plot
+```
+
+```{r en-cal, fig.width=8, fig.height=3.6, eval=!is.null(params$calendar_plot)}
+params$calendar_plot
+```
+
+```{r en-horizon-plot, fig.width=8, fig.height=2.4, eval=!is.null(params$horizon_plot)}
+params$horizon_plot
+```
+
+```{r en-horizon-df, results='asis', eval=!is.null(params$horizon_df)}
+tbl(params$horizon_df, caption = "Horizon intervals")
+```
+
+```{r en-pb2, results='asis'}
+if (any_of(params$geo_map, params$geo_stack, params$geo_note)) pb()
+```
+
+```{r en-geo-header, results='asis', eval=any_of(params$geo_map, params$geo_stack)}
+cat("## Geography\n")
+```
+
+```{r en-geo-note, results='asis', eval=!is.null(params$geo_note)}
+cat(params$geo_note, "\n\n")
+```
+
+```{r en-geo-map, fig.width=7, fig.height=5, eval=!is.null(params$geo_map)}
+params$geo_map
+```
+
+```{r en-geo-stack, fig.width=7, fig.height=6, eval=!is.null(params$geo_stack)}
+params$geo_stack
+```
+
+```{r en-pb3, results='asis'}
+if (any_of(params$newcap_map, params$ret_map)) pb()
+```
+
+```{r en-maps-header, results='asis', eval=any_of(params$newcap_map, params$ret_map)}
+cat("## Results on the map\n")
+```
+
+```{r en-newcap-map, fig.width=8, fig.height=6, eval=!is.null(params$newcap_map)}
+params$newcap_map
+```
+
+```{r en-ret-map, fig.width=8, fig.height=6, eval=!is.null(params$ret_map)}
+params$ret_map
+```
+
+```{r en-pb4, results='asis'}
+if (any_of(params$cap_plot, params$newcap_plot, params$ret_bars,
+           params$io_bars, params$gen_plot)) pb()
+```
+
+```{r en-bars-header, results='asis', eval=any_of(params$cap_plot, params$newcap_plot, params$ret_bars, params$io_bars, params$gen_plot)}
+cat("## Capacity, retirements, and flows\n")
+```
+
+```{r en-cap, fig.width=8, fig.height=4.5, eval=!is.null(params$cap_plot)}
+params$cap_plot
+```
+
+```{r en-newcap, fig.width=8, fig.height=4.5, eval=!is.null(params$newcap_plot)}
+params$newcap_plot
+```
+
+```{r en-ret-bars, fig.width=7, fig.height=3.6, eval=!is.null(params$ret_bars)}
+params$ret_bars
+```
+
+```{r en-io-bars, fig.width=8, fig.height=4.5, eval=!is.null(params$io_bars)}
+params$io_bars
+```
+
+```{r en-gen, fig.width=8, fig.height=4.5, eval=!is.null(params$gen_plot)}
+params$gen_plot
+```
+
+```{r en-gen-day, fig.width=8, fig.height=4.5, eval=!is.null(params$gen_day_plot)}
+params$gen_day_plot
+```
+
+```{r en-pb5, results='asis'}
+if (any_of(params$costs_plot, params$cost_df, params$emis_df,
+           params$verify_df, params$variants_df, params$levcost_df)) pb()
+```
+
+## Costs and checks
+
+```{r en-costs-plot, fig.width=7, fig.height=4, eval=!is.null(params$costs_plot)}
+params$costs_plot
+```
+
+```{r en-costs, results='asis'}
+tbl(params$cost_df)
+```
+
+```{r en-emis-header, results='asis', eval=!is.null(params$emis_df)}
+cat("### Emissions\n")
+```
+
+```{r en-emis, results='asis', eval=!is.null(params$emis_df)}
+tbl(params$emis_df)
+```
+
+```{r en-verify, results='asis', eval=!is.null(params$verify_df)}
+tbl(params$verify_df, caption = "Solution checks (verify_solution)")
+```
+
+```{r en-variants, results='asis', eval=!is.null(params$variants_df)}
+tbl(params$variants_df, caption = "Variants per base process")
+```
+
+```{r en-levcost-header, results='asis', eval=!is.null(params$levcost_df)}
+cat("### Levelized costs (ex-post)\n")
+```
+
+```{r en-levcost, results='asis', eval=!is.null(params$levcost_df)}
+tbl(params$levcost_df)
+```

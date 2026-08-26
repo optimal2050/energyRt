@@ -3,7 +3,12 @@
 # of one scenario), with print / autoplot methods; the comparative report
 # methods (Stage 4) live here too.
 # =========================================================================== #
+
+# collate: report.R defines the `report` generic this file adds methods to.
+# The @include block must attach to NULL -- floating directly above the next
+# roxygen block it merges in and swallows that topic's title.
 #' @include report.R
+NULL
 
 #' Compare solved scenarios (or runs of one scenario)
 #'
@@ -438,6 +443,14 @@ autoplot.scenarios_cmp <- function(object,
 # =========================================================================== #
 
 setOldClass("scenarios_cmp")
+
+#' @rdname compare_scenarios
+#' @param x a `scenarios_cmp` object (plot delegates to `autoplot`).
+#' @param y ignored.
+#' @export
+setMethod("plot", c("scenarios_cmp", "ANY"), function(x, y, ...) {
+  autoplot.scenarios_cmp(x, ...)
+})
 
 #' @rdname report
 #' @export

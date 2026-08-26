@@ -5,18 +5,18 @@
 # capacity factors can also be re-sourced at run time from IDEEA.
 #
 # Three target resolutions are supported, matching the saved calendars:
-#   "utopia_s4h24"  -- 4 seasons x 24 hours (96 timeslices, the DEFAULT base case;
+#   "s4_h24"  -- 4 seasons x 24 hours (96 timeslices, the DEFAULT base case;
 #                      full diurnal detail so storage cycles), "WIN_h00".
-#   "utopia_m12h24" -- 12 months x 24 hours (288 timeslices, higher resolution),
+#   "m12_h24" -- 12 months x 24 hours (288 timeslices, higher resolution),
 #                      timeslices like "m01_h00".
 #   "utopia_seasons" -- 4 seasons x 3 dayparts (12 timeslices), timeslices like "WIN_DAY".
 
-.utopia_calendars <- c("utopia_s4h24", "utopia_m12h24", "utopia_seasons")
+.utopia_calendars <- c("s4_h24", "m12_h24", "utopia_seasons")
 
 # ---- internal: map an IDEEA d365_h24 timeslice ("d001_h00") to a target timeslice -----
 .utopia_season_of_month <- function(m) {
   c("WIN", "WIN", "SPR", "SPR", "SPR", "SUM",
-    "SUM", "SUM", "AUT", "AUT", "AUT", "WIN")[m]
+    "SUM", "SUM", "FAL", "FAL", "FAL", "WIN")[m]
 }
 # dayparts: DAY 07-17 (11h), PK 18-20 (evening peak, 3h), NGT 21-06 (10h)
 .utopia_daypart_of_hour <- function(h) {
@@ -25,9 +25,9 @@
 # Vectorised (yday, hour) -> target timeslice name for a given calendar.
 .utopia_timeslice_key <- function(yday, hour, calendar) {
   month <- as.integer(format(as.Date(yday - 1, origin = "2019-01-01"), "%m"))
-  if (calendar == "utopia_s4h24") {
+  if (calendar == "s4_h24") {
     sprintf("%s_h%02d", .utopia_season_of_month(month), hour)
-  } else if (calendar == "utopia_m12h24") {
+  } else if (calendar == "m12_h24") {
     sprintf("m%02d_h%02d", month, hour)
   } else if (calendar == "utopia_seasons") {
     paste(.utopia_season_of_month(month), .utopia_daypart_of_hour(hour), sep = "_")
@@ -68,7 +68,7 @@
 # Re-source the calendar-aggregated weather CFs from IDEEA (used by
 # data-raw/utopia_data.R and by `utopia_profiles(source = "ideea")`).
 .utopia_weather_from_ideea <- function(
-    calendar = "utopia_m12h24",
+    calendar = "m12_h24",
     resources = c(WSOL = "WSOL", WWIN = "WWIN", WHYD = "WHYD"),
     cluster = 1L) {
   if (!requireNamespace("IDEEA", quietly = TRUE)) {
@@ -93,8 +93,8 @@
 #' dataset.
 #'
 #' @param regions character vector of region names.
-#' @param calendar target resolution: `"utopia_s4h24"` (4 seasons x 24 hours, 96
-#'   timeslices, the default base case), `"utopia_m12h24"` (12 months x 24 hours,
+#' @param calendar target resolution: `"s4_h24"` (4 seasons x 24 hours, 96
+#'   timeslices, the default base case), `"m12_h24"` (12 months x 24 hours,
 #'   288) or `"utopia_seasons"` (4 seasons x 3 dayparts, 12).
 #' @param source `"saved"` (packaged data, default) or `"ideea"` (re-aggregate
 #'   from `IDEEA::ideea_modules` if installed).
@@ -115,7 +115,7 @@
 #' @seealso [utopia_weather], [utopia_demand], [utopia_stock], [calendars]
 #' @export
 utopia_profiles <- function(regions,
-                            calendar = c("utopia_s4h24", "utopia_m12h24",
+                            calendar = c("s4_h24", "m12_h24",
                                          "utopia_seasons"),
                             source = c("saved", "ideea"),
                             resources = c(WSOL = "WSOL", WWIN = "WWIN",

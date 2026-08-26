@@ -1,7 +1,7 @@
 # =========================================================================== #
 # UTOPIA golden regression -- pins the shipped teaching model that the frozen
 # (eval = FALSE) vignettes describe as "validated out-of-band": base layouts
-# R1 / R3 on utopia_s4h24 and the five scenario levers on R1, each against
+# R1 / R3 on s4_h24 and the five scenario levers on R1, each against
 # tests/testthat/goldens/utopia.json (captured by make_goldens.R, which
 # refuses a benchmark that fails verify_solution()).
 #

@@ -671,6 +671,28 @@ getData.scenario <- function(
 #' @export
 getData.list <- getData.scenario
 
+#' Scenario NAMES resolve through the registry-backed [getScenario()] cache:
+#' `getData(c("base", "policy"), name = "vTechOut", merge = TRUE)` needs no
+#' explicit loading — first use loads the thin shells into `.scen`, repeat
+#' calls are free.
+#' @rdname getData
+#' @method getData character
+#' @export
+getData.character <- function(scen, ...) {
+  scens <- lapply(scen, getScenario)
+  names(scens) <- scen
+  getData.scenario(scens, ...)
+}
+
+#' An environment of scenarios (e.g. the session bank `.scen`) is read as a
+#' list: `getData(.scen, name = "vTechOut", merge = TRUE)`.
+#' @rdname getData
+#' @method getData environment
+#' @export
+getData.environment <- function(scen, ...) {
+  getData.scenario(as.list(scen), ...)
+}
+
 #' @rdname getData
 #' @method getData default
 #' @export

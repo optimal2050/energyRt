@@ -11,6 +11,9 @@
 
 # ── S4 generic ─────────────────────────────────────────────────────────────────
 
+# NB: never put a paragraph break (blank roxygen line) INSIDE an \item{}{}
+# argument -- roxygen's markdown-to-Rd translation then reports "@details has
+# mismatched braces or quotes". Multi-paragraph text goes AFTER \describe{}.
 #' Levelized cost of commodity production
 #'
 #' Computes the levelized cost of energy (LCOE) for a \code{technology},
@@ -35,19 +38,19 @@
 #'     (\code{vTechOut}/\code{vStorageOut}/\code{vTradeIr} and the matching
 #'     \code{*Eac}/\code{*Fixom}/\code{*Varom}). For a \code{trade} the
 #'     denominator is what ARRIVES, i.e. \code{vTradeIr} times the route
-#'     efficiency.
-#'
-#'     Fuel is attributed from the process's own input variable and priced from
-#'     the \code{supply} objects in the model. A commodity with no
-#'     \code{supply} -- anything the model produces itself, which is the usual
-#'     case for a store's charging electricity -- is charged at ZERO here,
-#'     because what it is worth is the commodity balance's dual and not a slot.
-#'     The scenario path therefore reports a store's OWN cost per unit
-#'     discharged, not its delivered cost; use \code{levcost()} on the
-#'     \code{storage} object with \code{price =} for the latter. Likewise a
-#'     technology with a \emph{grouped} input (whose per-commodity consumption
-#'     is not a solution variable) reports no fuel component.}
+#'     efficiency.}
 #' }
+#'
+#' On the \code{scenario} path, fuel is attributed from the process's own
+#' input variable and priced from the \code{supply} objects in the model. A
+#' commodity with no \code{supply} -- anything the model produces itself,
+#' which is the usual case for a store's charging electricity -- is charged
+#' at ZERO here, because what it is worth is the commodity balance's dual and
+#' not a slot. The scenario path therefore reports a store's OWN cost per
+#' unit discharged, not its delivered cost; use \code{levcost()} on the
+#' \code{storage} object with \code{price =} for the latter. Likewise a
+#' technology with a \emph{grouped} input (whose per-commodity consumption
+#' is not a solution variable) reports no fuel component.
 #'
 #' @param object  A \code{technology} (or list thereof), \code{repository},
 #'   \code{model}, or solved \code{scenario} object.

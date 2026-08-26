@@ -91,3 +91,34 @@ test_that("family commodity: limtype routes the balance to the right equation", 
     }
   }
 })
+
+
+# @covers mCommTimeslice depth=S backends=glpk
+test_that("family commodity: an omitted timeframe defaults to the finest level", {
+  skip_if_no_solver()
+  # `newCommodity()` leaves @timeframe empty (the documented default). This
+  # used to crash `map_comm_timeframe()` outright ("replacement has length
+  # zero") -- every real model had dodged it by always passing `timeframe =`.
+  cal <- newCalendar(
+    timetable = make_timetable(struct = list(ANNUAL = "ANNUAL",
+                                             SEASON = c("WIN", "SUM"))),
+    name = "cmtf_cal")
+  mod <- newModel("cmtf",
+    repo = newRepository("cmtf_repo",
+      newCommodity("ELC"),                        # <- no timeframe=
+      newSupply("SUP", commodity = "ELC", supply = data.frame(cost = 1)),
+      newDemand("DEM", commodity = "ELC", demand = data.frame(demand = 6))),
+    calendar = cal, region = "R1", horizon = newHorizon(2025), discount = 0)
+  scen <- suppressMessages(suppressWarnings(interpolate_model(
+    mod, name = "cmtf", overwrite = TRUE)))
+  # balanced at the calendar's finest level (SEASON), not ANNUAL
+  ct <- as.data.frame(get_data_slot(scen@modInp@parameters[["mCommTimeslice"]]))
+  expect_setequal(ct$timeslice[ct$comm == "ELC"], c("WIN", "SUM"))
+  scen <- .fork_solve(scen, solver_options$glpk)
+  expect_true(verify_solution(scen)$ok)
+  d <- as.data.frame(get_data_slot(scen@modOut@variables[["vObjective"]]))
+  # the timeslice-less demand row broadcasts 6 onto EACH season -- 12 total at
+  # cost 1 (were ELC balanced at ANNUAL, the objective would be 6: this doubles
+  # as the assertion that the finest level actually won)
+  expect_equal(sum(d$value), 12, tolerance = 1e-9)
+})

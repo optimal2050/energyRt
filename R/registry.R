@@ -36,6 +36,47 @@
   if (startsWith(pn, paste0(rn, "/"))) substring(pn, nchar(rn) + 2L) else p
 }
 
+# Resolve a scenario NAME to its folder: registry row first (path relative
+# to the registry file's directory), then a scan of the scenarios store for
+# a manifest (or layout-2 class marker + dir name) matching the name.
+# Scenarios are not content-addressed, so resolution is by name only; two
+# candidate folders for one name is an error, never a silent pick.
+.scenario_resolve <- function(name, registry = NULL) {
+  is_scen_dir <- function(d) {
+    file.exists(fp(d, "scenario.yml")) || file.exists(fp(d, "class"))
+  }
+  reg <- registry %||% tryCatch(load_registry(), error = function(e) NULL)
+  if (!is.null(reg)) {
+    hit <- find_registry(reg, type = "scenario", name = name)
+    if (nrow(hit)) {
+      p <- gsub("[\\/]+", "/", fp(dirname(get_registry_file()), hit$path[1]))
+      if (is_scen_dir(p)) return(p)
+    }
+  }
+  root <- get_scenarios_path()
+  if (!dir.exists(root)) return(NULL)
+  cand <- character(0)
+  for (d in list.dirs(root, recursive = FALSE)) {
+    if (startsWith(basename(d), ".")) next
+    mf <- fp(d, "scenario.yml")
+    nm <- if (file.exists(mf)) {
+      tryCatch(yaml::read_yaml(mf)$name %||% basename(d),
+               error = function(e) NULL)
+    } else if (file.exists(fp(d, "class"))) {
+      basename(d)   # layout 2: no manifest, the folder name is the name
+    } else {
+      NULL
+    }
+    if (identical(nm, name)) cand <- c(cand, gsub("[\\/]+", "/", d))
+  }
+  if (length(cand) > 1L) {
+    stop("Scenario '", name, "' matches ", length(cand), " folders in '",
+         root, "': ", paste(basename(cand), collapse = ", "),
+         ". Load one with an explicit path.")
+  }
+  if (length(cand) == 1L) cand else NULL
+}
+
 .registry_empty <- function() {
   .registry_class(as_tibble(setNames(
     lapply(.registry_cols, \(x) character(0)),

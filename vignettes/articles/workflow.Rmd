@@ -29,10 +29,11 @@ scenario files under a temporary folder.
 
 ```{r model}
 set_scenarios_path(file.path(tempdir(), "wf"))   # where scenarios are written
+set_registry_file(file.path(tempdir(), "wf", "energyRt_registry.csv"))
 
 um  <- utopia_modules$electricity$R1
 mod <- newModel("UTOPIA", data = um$repo,
-                calendar = utopia_modules$calendars$utopia_s4h24,
+                calendar = utopia_modules$calendars$s4_h24,
                 region   = um$regions,
                 horizon  = utopia_modules$horizons$base, discount = 0.05)
 ```
@@ -102,7 +103,7 @@ ECOA <- update(ECOA, invcost = data.frame(invcost = 2500))  # pricier coal capex
 repo_hi <- add(repo, ECOA, overwrite = TRUE)                # swap it back in
 
 mod_hi  <- newModel("UTOPIA_HI", data = repo_hi,
-                    calendar = utopia_modules$calendars$utopia_s4h24,
+                    calendar = utopia_modules$calendars$s4_h24,
                     region = um$regions, horizon = utopia_modules$horizons$base,
                     discount = 0.05)
 ```
@@ -176,6 +177,15 @@ saved <- save_scenario(scen, verbose = FALSE)
 ld    <- load_scenario(saved@path, env = NULL, verbose = FALSE)
 ```
 
+A saved scenario is also reachable by its registered **name** —
+`load_scenario("BASE", env = NULL)` resolves it through the project
+registry, and the cached accessor `getScenario("BASE")` is the everyday
+short form (see the *Scenario management* article):
+
+```{r saveload-name}
+identical(getScenario("BASE")@name, ld@name)
+```
+
 ```{r saveload}
 basename(saved@path)                                 # the scenario folder
 isInMemory(saved)                                    # FALSE -- data is on disk
@@ -205,7 +215,8 @@ truth, so the registry can always be reconstructed.
 
 Layer a policy lever onto the base model to get a second scenario, then pass a
 **named list of scenarios** to `getData()` — the `scenario` column makes the
-comparison a one-liner:
+comparison a one-liner. (Scenarios already *saved* compare by name alone:
+`getData(c("BASE", "CO2CAP"), ...)` loads them from the registry on the fly.)
 
 ```{r compare-solve}
 scen_cap <- interpolate_model(mod, "CO2CAP", um$CO2_CAP) |>   # add the CO2 cap lever
@@ -267,7 +278,7 @@ covers. Timeslice weights annualise the sample inside the solver
 slices are representative:
 
 ```{r sample-calendar}
-tt  <- utopia_modules$calendars$utopia_s4h24@timetable
+tt  <- utopia_modules$calendars$s4_h24@timetable
 tt2 <- tt[tt$SEASON %in% c("WIN", "SUM"), ]      # two of the four seasons
 cal2 <- newCalendar(timetable = tt2, name = "s2h24",
                     year_fraction = sum(tt2$share))

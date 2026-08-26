@@ -1485,8 +1485,8 @@ class:
         The bare `duration` column is the scalar shorthand and is normalised to
         `duration.fx` at construction. A ONE-SIDED range opens the other side (an
         `up` alone does not inherit the default `lo` of 1). Saying nothing leaves
-        the slot empty and the parameter default of [1, 1] ties energy to power at
-        one hour, which is the pre-v0.84 behaviour.
+        the slot empty and the parameter default of `[1, 1]` ties energy to power
+        at one hour, which is the pre-v0.84 behaviour.
       columns:
         vintage:
           type: character
@@ -1523,7 +1523,7 @@ class:
         `inp2out.lo`/`.up` let the model size them apart, and the bare `inp2out`
         column is the scalar shorthand, normalised to `.fx` at construction. A
         one-sided range opens the other side. Saying nothing leaves the slot
-        empty and the parameter default of [1, 1] keeps the two sides symmetric,
+        empty and the parameter default of `[1, 1]` keeps the two sides symmetric,
         which is what a storage without a separate charger has always been.
         It bites only when the charging side is priced or bounded via `@input`;
         otherwise there is no charging capacity variable to constrain.

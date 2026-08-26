@@ -1,6 +1,6 @@
 # Coverage matrix summary
 
-Generated: 2026-08-25 15:28 | energyRt 0.87.3.9000
+Generated: 2026-08-26 08:39 | energyRt 0.87.5.9000
 
 ## Rows by kind x depth
 
@@ -8,12 +8,12 @@ Generated: 2026-08-25 15:28 | energyRt 0.87.3.9000
 Key: <kind>
      kind  none     C     I     S     X
    <char> <int> <int> <int> <int> <int>
-   bounds     5     2     3    15    12
+   bounds     5     1     3    16    12
  equation   116     0     1    22     9
-      map   231     0    41    12    13
-   numpar    21     2    23    51    36
+      map   228     0    42    14    13
+   numpar    21     2    23    52    35
       set     0     0     0     1    12
- variable    28     0     3    38    26
+ variable    26     0     3    39    27
 ```
 
 ## Numeric parameters: family x depth
@@ -38,7 +38,7 @@ Key: <family>
  storage-startlevel-fullyear     0     0     1     0     0
                storage-varom     0     0     0     3     0
              storage-weather     1     1     0     1     0
-                      supply     0     1     1     1     1
+                      supply     0     0     1     3     0
                  tax-subsidy     0     0     2     4     0
               tech-aux-flows     4     0     4     6     0
            tech-availability     0     0     1     1     2
@@ -93,4 +93,4 @@ Key: <family>
                <char>                   <char>     <char>   <char>      <char>
 ```
 
-Tagged rows: 153 | inferred: 169 | uncovered: 401 of 723
+Tagged rows: 161 | inferred: 166 | uncovered: 396 of 723

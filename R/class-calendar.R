@@ -603,6 +603,13 @@ if (F) {
     for (i in 2:(ncol(dtf) - 2)) {
       # tmp <- apply(dtf[, 2:i, drop = FALSE], 1, paste, collapse = "_")
       timeslice_names <- apply(select(dtf, 2:i), 1, paste, collapse = "_")
+      # ROW-ORDER grouping: a bare tapply sorts groups alphabetically, which
+      # silently reorders any vocabulary that does not collate
+      # chronologically (e.g. seasons WIN/SPR/SUM/FAL) -- and
+      # `@next_in_year` (full-year storage) is derived from this order.
+      # The timetable's row order IS the calendar's chronology.
+      timeslice_names <- factor(timeslice_names,
+                                levels = unique(timeslice_names))
       # tmp <- tapply(dtf[, ncol(dtf)], tmp, sum)
       wh <- tapply(dtf[, weight], timeslice_names, sum)
       # w <- 1/year_fraction

@@ -30,10 +30,11 @@ devtools::check()
 
 Two things about the test suite that catch everyone once:
 
-- **Use `devtools::test()`, not a bare `Rscript`.** `skip_if_no_solver()` calls
-  `skip_on_cran()`, and outside `devtools` there is no `NOT_CRAN`, so every
-  solver test skips. The symptom is a suspiciously green, suspiciously small
-  run. Set `NOT_CRAN=true` if you invoke `testthat::test_file()` directly.
+- **Tiers, not `skip_on_cran()`.** Solver tests are gated by
+  `ENERGYRT_TEST_TIER` (`check < fast < cross < nightly`; unset resolves to
+  `fast` locally and `check` under `R CMD check`), so a plain run solves
+  whenever `glpsol` is present. For a standalone `testthat::test_file()`,
+  `pkgload::load_all(".")` first. See `tests/README.md` and `dev/TESTING.md`.
 - A run that **aborted early is not a passing run**. Check the totals.
 
 ## Naming (digest — the full rule lives in the stack doc)
@@ -45,6 +46,17 @@ Two things about the test suite that catch everyone once:
 - Constructors (`newScenario()`), `get_/set_` option accessors, and foreign
   generics keep their conventional shapes. See
   [CONVENTIONS.md § Naming](https://github.com/optimal2050/.github/blob/main/CONVENTIONS.md).
+- **`en_` is the package's namespace prefix** wherever a name must be
+  claimed in a space energyRt does not own: low-level utilities
+  (`en_config()`, `en_option()`, `en_open_dataset()`, `en_install_*()`)
+  and, as **`en-`**, the knitr chunk labels of every shipped report
+  template (`en-setup`, `en-css`, ...). Template chunk labels MUST carry
+  the prefix: `report()` can run inside a user's own knit, where an
+  unprefixed label like `setup` collides with the outer document's chunks
+  and aborts the render ("Duplicate chunk label"). Do not adopt new
+  prefixes (`ert`, package initials, project names) for this role — the
+  legacy `ert-`/`ideea-` CSS classes and LaTeX color names inside the
+  templates are grandfathered, not a precedent.
 
 ## Solver backends
 
@@ -58,6 +70,19 @@ values rather than names.
 
 GAMS needs a license; NEOS is the practical way to exercise that backend
 (`set_neos_email()`, then a `neos_gams_*` solver option).
+
+**Backend choice by model size.** The default backend for *small* models is
+**GLPK** (`solver_options$glpk`): zero startup cost, no external toolchain,
+and faster end-to-end whenever the solve itself is under ~30 seconds — the
+tm/unit test fixtures and the UTOPIA `R1`/`R3` layouts all fall here. For
+**mid-size and sampled models** — the UTOPIA `R7`/`R11` layouts, hourly or
+full-year calendars, spatially or temporally sampled runs — use
+**julia/HiGHS** (`solver_options$julia_highs`): its presolve and dual simplex
+dominate once the LP is large or degenerate (a full-year 8760-slice model:
+~3 minutes in glpsol vs ~2 seconds of HiGHS runtime after the one-off Julia
+warmup). The golden suites encode the same rule per suite
+(`SUITE_SOLVERS` in `tools/test/make_goldens.R`), so regenerating the
+mid-size goldens requires Julia with JuMP/HiGHS installed.
 
 ## Repository layout
 

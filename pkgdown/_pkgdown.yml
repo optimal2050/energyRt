@@ -84,6 +84,8 @@ navbar:
         href: articles/workflow.html
       - text: Scenario management
         href: articles/scenario-management.html
+      - text: Reports & levelized costs
+        href: articles/reports.html
       - text: autoplot()
         href: articles/autoplot.html
       # menu:
@@ -119,6 +121,8 @@ reference:
   - matches("initialize")
   - matches("update")
   - starts_with("add")
+  - asSupplyCurve
+  - lossTranches
 
 - title: Technology specs
   desc:  Portable technology specifications (YAML/JSON containers) and vintage tools.
@@ -146,8 +150,13 @@ reference:
   - starts_with("read")
   - starts_with("solve")
   - subset_model_regions
-  - mosox_run
-  - en_mosox_run
+  # myopic-solve primitives (solve_myopic itself matches "solve" above)
+  - horizon_windows
+  - solution_ledger
+  - apply_ledger
+  - myopic_objective
+  # - mosox_run
+  # - en_mosox_run
   - matches("mapping")
   - trim_parameters_by_maps
   - validate_scenario_parameters
@@ -182,6 +191,7 @@ reference:
   - commodity_property
   - matches("data")
   - getObject
+  - getScenario
   - getMix
   - getVariants
   - storage_duration
@@ -227,6 +237,7 @@ reference:
 - title: Validation
   contents:
   - starts_with("check")
+  - verify_solution
   - matches("levcost")
   - tech_share_frontier
 

@@ -149,7 +149,38 @@ Computes the levelized cost of energy (LCOE) for a \code{technology},
 \code{repository}, \code{model}, or \code{scenario} object.
 }
 \details{
+\describe{
+\item{\code{technology}}{a minimal single-technology energyRt model is built
+around the technology, solved, and the LCOE derived from the resulting
+cost and production variables.}
+\item{\code{repository} / \code{model}}{give the technology \code{name}; the
+method selects the related commodity and supply objects from the container
+and prices the named technology as above. If an input commodity has no
+supply in the container, it returns \code{NULL} with a message unless
+\code{autocomplete = TRUE} (which adds a zero-cost / \code{fuel_costs}
+supply). The \code{model} method also takes the calendar, region, horizon
+and discount rate from the model's configuration (each overridable).}
+\item{\code{scenario}}{an \emph{ex-post} cost of the named process in the
+\emph{solved} scenario: the discounted sum of its own costs (annualised
+investment, fixed and variable O&M, plus attributed fuel cost) divided by
+its discounted output. The process may be a \code{technology},
+\code{storage} or \code{trade}; each reads its own solved variables
+(\code{vTechOut}/\code{vStorageOut}/\code{vTradeIr} and the matching
+\code{*Eac}/\code{*Fixom}/\code{*Varom}). For a \code{trade} the
+denominator is what ARRIVES, i.e. \code{vTradeIr} times the route
+efficiency.}
+}
 
+On the \code{scenario} path, fuel is attributed from the process's own
+input variable and priced from the \code{supply} objects in the model. A
+commodity with no \code{supply} -- anything the model produces itself,
+which is the usual case for a store's charging electricity -- is charged
+at ZERO here, because what it is worth is the commodity balance's dual and
+not a slot. The scenario path therefore reports a store's OWN cost per
+unit discharged, not its delivered cost; use \code{levcost()} on the
+\code{storage} object with \code{price =} for the latter. Likewise a
+technology with a \emph{grouped} input (whose per-commodity consumption
+is not a solution variable) reports no fuel component.
 }
 \examples{
 \dontrun{

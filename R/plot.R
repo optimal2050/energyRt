@@ -1164,8 +1164,8 @@ plot_heatmap <- function(object, calendar = NULL, value = NULL, facet = NULL,
 #' \dontrun{
 #' data("calendars", package = "energyRt")
 #' W <- getObject(utopia_modules$electricity$R3$repo, name = "WSOL", drop = TRUE)
-#' autoplot(W, calendar = calendars$utopia_s4h24)                     # heatmap
-#' autoplot(W, style = "line", calendar = calendars$utopia_s4h24)
+#' autoplot(W, calendar = calendars$s4_h24)                     # heatmap
+#' autoplot(W, style = "line", calendar = calendars$s4_h24)
 #' }
 plot_weather <- function(object, style = c("heatmap", "line", "area"),
                          calendar = NULL, palette = "D",

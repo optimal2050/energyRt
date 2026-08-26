@@ -102,7 +102,7 @@ test_that("the registry indexes datasets and refresh_registry rescans them", {
 
 test_that("functional dataset: snapshot identity, drift check, call-hash mode", {
   ds_local()
-  args <- list(regions = c("R1", "R2"), calendar = "utopia_s4h24")
+  args <- list(regions = c("R1", "R2"), calendar = "s4_h24")
   info <- save_dataset(name = "utp", fun = "energyRt::utopia_profiles",
                        args = args, verbose = FALSE)
   expect_identical(info$kind, "function")

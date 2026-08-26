@@ -5,21 +5,46 @@
 \alias{calendars}
 \title{Example calendars}
 \format{
-A named list of \code{calendar} objects, including:
+A named list of \code{calendar} objects:
 \describe{
+\item{annual}{Annual resolution (1 timeslice).}
 \item{season_dn}{Four seasons x day/night (8 timeslices).}
+\item{utopia_seasons}{UTOPIA: 4 seasons x 3 dayparts (DAY/NIGHT/PEAK)
+with representative shares (12 timeslices).}
+\item{unit_s4, unit_s4h4}{Perfectly symmetric unit calendars for the
+hand-computable \code{utopia_modules$unit} kits.}
+\item{m12, m12a}{Monthly resolution, day-proportional shares --
+\code{m01..m12} and \code{JAN..DEC} labels respectively (12 timeslices).}
+\item{q4}{Calendar quarters \code{Q1..Q4}, day-proportional (4 timeslices).}
+\item{s4}{Meteorological seasons \code{WIN/SPR/SUM/FAL} in calendar order,
+day-proportional 90/92/92/91 shares (4 timeslices).}
+\item{s4_h24}{Seasons x 24 hours (96 timeslices) -- the UTOPIA base
+calendar.}
+\item{m12_h24}{Months x 24 hours (288 timeslices) -- the
+higher-resolution UTOPIA option.}
+\item{wd7_h24}{Weekday (\code{MON..SUN}) x 24 hours (168 timeslices).}
+\item{w52_h24}{Week (\code{w01..w52}) x 24 hours (1248 timeslices).}
 \item{d365}{Daily resolution, 365 days.}
-\item{utopia_annual}{UTOPIA: annual resolution (1 timeslice).}
-\item{utopia_seasons}{UTOPIA: 4 seasons x 3 dayparts (DAY/NIGHT/PEAK) with
-representative shares (12 timeslices) -- the default UTOPIA resolution.}
-\item{utopia_m12h24}{UTOPIA: 12 months x 24 hours (288 timeslices).}
-\item{d365_h24}{Full hourly year: 365 days x 24 hours (8760 timeslices).}
-\item{d365_h24_subset_1day_per_month}{Representative subset: one day per
-month at hourly resolution (288 timeslices, \code{year_fraction} ~ 12/365).}
+\item{d365_h24}{Full hourly year: 365 days x 24 hours (8760
+timeslices).}
+\item{s4_h24_subset_2seasons}{SAMPLED: \code{s4_h24} filtered to WIN+SUM;
+\code{year_fraction} ~ 0.499.}
+\item{m12_h24_subset_4months}{SAMPLED: \code{m12_h24} filtered to
+m01/m04/m07/m10; \code{year_fraction} ~ 0.337.}
+\item{m12_subset_q1}{SAMPLED: \code{m12} filtered to Jan-Mar;
+\code{year_fraction} = 90/365.}
+\item{d365_h24_subset_1day_per_month}{SAMPLED: one day per month at
+hourly resolution (288 timeslices, \code{year_fraction} ~ 12/365).}
 }
-The \verb{utopia_*} calendars are built from energyRt's own constructors; the
-hourly \verb{d365_h24*} calendars are imported from the IDEEA package. See
-\code{data-raw/calendars.R} for the generating script.
+The mainstream designs (\code{m12} .. \code{w52_h24} and the first three sampled
+entries) are generated from the \code{timescales} catalog at DATA-BUILD time
+only -- timescales is not a runtime dependency. Sampled calendars carry
+\code{year_fraction < 1} and solve partial years natively: their timetables
+are row subsets of the parent's (never rebuilt with
+\code{\link[=make_timetable]{make_timetable()}}, which would renormalise the shares) with the
+surviving \code{sum(share)} passed as \code{year_fraction}. The hourly
+\verb{d365_h24*} entries come from IDEEA. See \code{data-raw/calendars.R} for the
+generating script.
 }
 \usage{
 calendars

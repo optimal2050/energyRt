@@ -46,15 +46,15 @@ work.
 
 # Selecting a UTOPIA structure
 
-`utopia_modules$electricity` offers ready region layouts (`reg1`, `reg3`,
-`reg7`); each is a kit with a base repository `$repo` and scenario levers.
+`utopia_modules$electricity` offers ready region layouts (`R1`, `R3`, `R7`,
+`R11`); each is a kit with a base repository `$repo` and scenario levers.
 Calendars, horizons and maps sit alongside. (For a custom layout or calendar,
 build the blocks yourself following *UTOPIA I: building the model*.)
 
 ```{r select}
 names(utopia_modules$electricity)          # available layouts
 um  <- utopia_modules$electricity$R3     # the 3-region base case
-cal <- utopia_modules$calendars$utopia_s4h24
+cal <- utopia_modules$calendars$s4_h24
 hor <- utopia_modules$horizons$base        # milestones 2020/2030/2040/2050
 ```
 
@@ -68,7 +68,7 @@ scen_BASE <- interpolate_model(mod, name = "BASE") |>
 getData(scen_BASE, "vObjective", merge = TRUE)$value    # total system cost, MEUR
 ```
 
-The `reg3` kit wires its regions with bi-directional transmission links
+The `R3` kit wires its regions with bi-directional transmission links
 (`TBD_ELC_*`). `plot_trade_map()` draws that network over a map layout — pass any
 of `utopia_modules$maps` (here `honeycomb`); the 7-region kit shows six links:
 
@@ -191,8 +191,8 @@ report(scen_BASE)
 
 # Other structures
 
-The same code runs on a different layout -- e.g. the single-region `reg1` or the
-7-region `reg7` (heavier). Just swap the kit:
+The same code runs on a different layout -- e.g. the single-region `R1` or the
+larger `R7` / `R11` (heavier). Just swap the kit:
 
 ```{r other, eval = FALSE}
 um7 <- utopia_modules$electricity$R7

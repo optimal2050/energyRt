@@ -23,7 +23,7 @@
   list(
     tm_core    = function() env$tm_core(),
     tm_weather = function() env$tm_weather(),
-    utopia_R1  = function() ut_build("R1", "utopia_s4h24")
+    utopia_R1  = function() ut_build("R1", "s4_h24")
   )
 }
 

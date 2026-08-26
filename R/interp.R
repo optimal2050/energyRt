@@ -779,18 +779,6 @@ interpolate_model <- function(mod, name = NULL, ...,
   scen <- .interp_user_constraints(scen, verbose)
 
   #============================================================================#
-  # Cost-aggregation mapping parameters ####
-  #   Top-level cost domains (mvTotalCost, mvTotalUserCosts) projected onto the
-  #   full region x year grid (or the union of user-cost footprints). Built last
-  #   because mvTotalUserCosts reads the interpolated user-cost (mCosts*) maps.
-  scen <- build_mappings(scen, fmp = fmp, recipes = "cost_agg")
-
-  #   A cost declared at a coarse geoscale cell needs a discount factor there,
-  #   or `eqObjective` weights it by nothing. Inherits the children's rate where
-  #   they agree; refuses to invent one where they do not.
-  scen <- .extend_discount_to_coarse(scen)
-
-  #============================================================================#
   # Prune parameters ####
   #   Drop `value == prune$value` rows of parameters flagged `prune` in
   #   modInp.yml (e.g. pWeather: the 0 night-timeslice rows). Lossless: an absent
@@ -849,6 +837,24 @@ interpolate_model <- function(mod, name = NULL, ...,
   # maps that carry the explicit endpoints, and an unmaterialised wildcard would
   # silently resolve to the solver default.
   scen <- unfold_trade_routes(scen)
+
+  #============================================================================#
+  # Cost-aggregation mapping parameters ####
+  #   Top-level cost domains (mvTotalCost, mvTotalUserCosts) projected onto the
+  #   full region x year grid (or the union of user-cost footprints). Built
+  #   LAST, after the fold/unfold stage: mvTotalUserCosts reads the
+  #   interpolated user-cost (mCosts*) maps, and `.coarse_cost_cells()` scans
+  #   the cost-domain maps for coarse geoscale cells -- a wildcard (region NA)
+  #   cost row only becomes visible to that scan once map unfolding has
+  #   materialised it onto its explicit regions (e.g. a supply priced at a
+  #   nation through a region-less `supply` frame; before this ran post-unfold,
+  #   the NAT cell was missed and the cost never reached the objective).
+  scen <- build_mappings(scen, fmp = fmp, recipes = "cost_agg")
+
+  #   A cost declared at a coarse geoscale cell needs a discount factor there,
+  #   or `eqObjective` weights it by nothing. Inherits the children's rate where
+  #   they agree; refuses to invent one where they do not.
+  scen <- .extend_discount_to_coarse(scen)
 
   #============================================================================#
   # Make mapping-sets ####
@@ -3188,9 +3194,19 @@ map_comm_timeframe <- function(scen, comm = NULL) {
     scen = scen,
     classes = "commodity",
     func = function(x) {
-      # list(name = x@name, value = x@timeframe)
       ll <- list()
-      ll[x@name] <- x@timeframe
+      # An empty `@timeframe` is the documented default of `newCommodity()`
+      # and means "the calendar's finest level" -- resolve it here to the
+      # concrete `calendar@default_timeframe` (always set at interpolation
+      # time), so consumers never see an empty value. `[[<-` keeps the entry
+      # when the value is still empty (no calendar either), which `[<-`
+      # rejected with "replacement has length zero" -- the crash that made
+      # `newCommodity()` without `timeframe =` abort interpolation.
+      v <- as.character(x@timeframe)
+      if (length(v) == 0 || is.na(v[1]) || !nzchar(v[1])) {
+        v <- as.character(scen@settings@calendar@default_timeframe)
+      }
+      ll[[x@name]] <- if (length(v) > 0) v[1] else NA_character_
       return(ll)
     }
   )

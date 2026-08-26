@@ -9,16 +9,35 @@ A named list:
 \describe{
 \item{info}{a description string.}
 \item{maps}{\code{utopia$map} -- the reference \code{sf} maps.}
-\item{calendars}{the UTOPIA calendars (\code{utopia_annual}/\code{utopia_seasons}/
-\code{utopia_s4h24}/\code{utopia_m12h24}).}
-\item{horizons}{planning horizons (\code{base} = 2020/2030/2040/2050).}
+\item{calendars}{the UTOPIA calendars (\code{annual}/\code{utopia_seasons}/
+\code{s4_h24}/\code{m12_h24}) plus the symmetric unit calendars
+(\code{unit_s4}, 4 equal seasons; \code{unit_s4h4}, 4x4). Note \code{annual}
+cannot drive the shipped kits (\code{ELC} is balanced at the \code{HOUR} level
+and \code{\link[=utopia_profiles]{utopia_profiles()}} has no annual shapes); it ships as the
+coarsest example calendar.}
+\item{horizons}{planning horizons (\code{base} = 2020/2030/2040/2050;
+\code{unit} = the single year 2025 for the unit kits).}
 \item{electricity}{per region layout (\code{R1}, \code{R3}, \code{R7}, \code{R11} -- an
 n-region layout is keyed \verb{R<n>}, matching the \code{R1}..\code{R11} region names
 used by the maps), each a "kit":
 \code{repo} (the base repository), the individual blocks (\code{repo_comm},
 \code{repo_supply}, \code{DEM_ELC}, \code{WSOL}/\code{WWIN}/\code{WHYD}, the technologies,
-\code{STG_BTR}), and the scenario levers \code{CO2_CAP}, \code{CT_CO2}, \code{RES_SHARE},
-\code{NO_NEW_NUC}.}
+\code{STG_ELC}), the scenario levers \code{CO2_CAP}, \code{CT_CO2}, \code{RES_SHARE},
+\code{NO_NEW_NUC}, \code{EARLY_RET}, and the add-on modules -- re-declared
+objects that REPLACE their base counterpart when added with
+\code{add(mod, ., overwrite = TRUE)}: \code{GAS_CURVE} (domestic gas as a
+3-step \code{\link[=asSupplyCurve]{asSupplyCurve()}}, absent in \code{R1} which has no gas region),
+\code{EWIN_SITES} (wind in two site-grade clusters, finite GOOD +
+down-rated POOR), \code{ENUC_VINT} (nuclear in two build vintages).}
+\item{unit}{the "unit model" kits (\code{U1}, \code{U3}): every input is 1 on the
+symmetric \code{unit_s4} calendar, single-year \code{unit} horizon,
+\code{discount = 0}, so each variant's objective is a small hand-checkable
+integer -- base \code{U1} solves to exactly 8, \code{U3} (trade chain from the
+\code{R1} endowment) to 36, \code{SUP_CURVE} (2-step unit supply curve
+replacing the flat supply) to 10, the self-contained \code{SOLAR}
+repository (on/off resource from \code{\link[=utopia_profile]{utopia_profile()}} + storage
+bridging) to 10. The arithmetic is written out in
+\code{data-raw/utopia_modules.R} and pinned by \code{test-unit-model.R}.}
 }
 }
 \usage{
@@ -36,14 +55,22 @@ scenarios (see the \code{utopia-use} vignette). Built by
 \dontrun{
 um <- utopia_modules$electricity$R3
 mod <- newModel("UTOPIA", data = um$repo,
-                calendar = utopia_modules$calendars$utopia_s4h24,
+                calendar = utopia_modules$calendars$s4_h24,
                 region = um$regions, horizon = utopia_modules$horizons$base,
                 discount = 0.05)
 scen <- solve_scenario(interpolate_model(mod, "BASE"),
                        solver = solver_options$glpk)
+
+# the unit model: hand-checkable integer objective (8)
+uk <- utopia_modules$unit$U1
+umod <- newModel("UNIT", data = uk$repo,
+                 calendar = utopia_modules$calendars$unit_s4,
+                 region = uk$regions,
+                 horizon = utopia_modules$horizons$unit, discount = 0)
 }
 }
 \seealso{
-\link{calendars}, \link{horizons}, \code{\link[=utopia_profiles]{utopia_profiles()}}, the UTOPIA vignettes
+\link{calendars}, \link{horizons}, \code{\link[=utopia_profiles]{utopia_profiles()}}, \code{\link[=utopia_profile]{utopia_profile()}},
+\code{\link[=asSupplyCurve]{asSupplyCurve()}}, the UTOPIA vignettes
 }
 \keyword{datasets}

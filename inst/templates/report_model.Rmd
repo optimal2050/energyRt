@@ -13,12 +13,16 @@ params:
   model_name:    ""
   model_desc:    ""
   image_file:    NULL
+  logos:         NULL
+  figure:        NULL
   config_df:     NULL
   discount_df:   NULL
   horizon_plot:  NULL
   calendar_plot: NULL
   calendar_df:   NULL
   geoscale_df:   NULL
+  geo_map:       NULL
+  geo_stack:     NULL
   counts_df:     NULL
   comm_df:       NULL
   sup_df:        NULL
@@ -34,7 +38,7 @@ header-includes:
   - \usepackage{booktabs}
 ---
 
-```{r setup, include=FALSE}
+```{r en-setup, include=FALSE}
 library(ggplot2)
 
 # Shared helpers live in the package (see ?energyRt::report_helpers).
@@ -45,113 +49,129 @@ emit_img <- function(path, frac = 1)
   energyRt::report_img(path, frac, output = fmt)
 ```
 
-```{r css, results='asis'}
+```{r en-css, results='asis'}
 energyRt::report_css(fmt)
 ```
 
-```{r logo, results='asis'}
-if (!is.null(params$image_file)) emit_img(params$image_file, 0.25)
+```{r en-logo, results='asis'}
+if (length(params$logos) > 0) {
+  energyRt::report_img_row(params$logos, frac_total = 0.9, output = fmt)
+} else if (!is.null(params$image_file)) {
+  emit_img(params$image_file, 0.25)
+}
 ```
 
 `r if (isTRUE(nzchar(params$model_desc))) params$model_desc`
 
+```{r en-figure, results='asis', eval=!is.null(params$figure)}
+emit_img(params$figure, 0.5)
+```
+
 ## Configuration
 
-```{r config, results='asis'}
+```{r en-config, results='asis'}
 tbl(params$config_df)
 ```
 
-```{r discount, results='asis', eval=!is.null(params$discount_df)}
+```{r en-discount, results='asis', eval=!is.null(params$discount_df)}
 tbl(params$discount_df, caption = "Discount rates (wacc / sdr)")
 ```
 
-```{r geoscale, results='asis', eval=!is.null(params$geoscale_df)}
+```{r en-geoscale, results='asis', eval=!is.null(params$geoscale_df)}
 tbl(params$geoscale_df, caption = "Geoscale (regions per geoframe)")
 ```
 
-```{r calendar-df, results='asis', eval=!is.null(params$calendar_df)}
+```{r en-geo-map, fig.width=7, fig.height=5, eval=!is.null(params$geo_map)}
+params$geo_map
+```
+
+```{r en-geo-stack, fig.width=7, fig.height=6, eval=!is.null(params$geo_stack)}
+params$geo_stack
+```
+
+```{r en-calendar-df, results='asis', eval=!is.null(params$calendar_df)}
 tbl(params$calendar_df, caption = "Calendar (timeslices per timeframe)")
 ```
 
-```{r horizon-plot, fig.width=7, fig.height=2.6, eval=!is.null(params$horizon_plot)}
+```{r en-horizon-plot, fig.width=7, fig.height=2.6, eval=!is.null(params$horizon_plot)}
 params$horizon_plot
 ```
 
-```{r calendar-plot, fig.width=7, fig.height=3.4, eval=!is.null(params$calendar_plot)}
+```{r en-calendar-plot, fig.width=7, fig.height=3.4, eval=!is.null(params$calendar_plot)}
 params$calendar_plot
 ```
 
 ## Contents
 
-```{r counts, results='asis'}
+```{r en-counts, results='asis'}
 tbl(params$counts_df)
 ```
 
-```{r windows, fig.width=8, fig.height=4.5, eval=!is.null(params$windows_plot)}
+```{r en-windows, fig.width=8, fig.height=4.5, eval=!is.null(params$windows_plot)}
 params$windows_plot
 ```
 
 ## Commodities
 
-```{r comm, results='asis'}
+```{r en-comm, results='asis'}
 tbl(params$comm_df)
 ```
 
 ## Supply
 
-```{r sup, results='asis'}
+```{r en-sup, results='asis'}
 tbl(params$sup_df)
 ```
 
 ## Demand
 
-```{r dem, results='asis'}
+```{r en-dem, results='asis'}
 tbl(params$dem_df)
 ```
 
-```{r trd-header, results='asis', eval=!is.null(params$trd_df)}
+```{r en-trd-header, results='asis', eval=!is.null(params$trd_df)}
 cat("## Trade\n")
 ```
 
-```{r trd, results='asis', eval=!is.null(params$trd_df)}
+```{r en-trd, results='asis', eval=!is.null(params$trd_df)}
 tbl(params$trd_df)
 ```
 
-```{r expimp-header, results='asis', eval=!is.null(params$expimp_df)}
+```{r en-expimp-header, results='asis', eval=!is.null(params$expimp_df)}
 cat("## Export / import\n")
 ```
 
-```{r expimp, results='asis', eval=!is.null(params$expimp_df)}
+```{r en-expimp, results='asis', eval=!is.null(params$expimp_df)}
 tbl(params$expimp_df)
 ```
 
-```{r weather-header, results='asis', eval=!is.null(params$weather_df)}
+```{r en-weather-header, results='asis', eval=!is.null(params$weather_df)}
 cat("## Weather\n")
 ```
 
-```{r weather, results='asis', eval=!is.null(params$weather_df)}
+```{r en-weather, results='asis', eval=!is.null(params$weather_df)}
 tbl(params$weather_df)
 ```
 
-```{r policy-header, results='asis', eval=!is.null(params$policy_df)}
+```{r en-policy-header, results='asis', eval=!is.null(params$policy_df)}
 cat("## Taxes and subsidies\n")
 ```
 
-```{r policy, results='asis', eval=!is.null(params$policy_df)}
+```{r en-policy, results='asis', eval=!is.null(params$policy_df)}
 tbl(params$policy_df)
 ```
 
-```{r cns-header, results='asis', eval=!is.null(params$cns_df)}
+```{r en-cns-header, results='asis', eval=!is.null(params$cns_df)}
 cat("## User constraints\n")
 ```
 
-```{r cns, results='asis', eval=!is.null(params$cns_df)}
+```{r en-cns, results='asis', eval=!is.null(params$cns_df)}
 tbl(params$cns_df)
 ```
 
 ## Processes
 
-```{r techs, results='asis', fig.width=6, fig.height=4}
+```{r en-techs, results='asis', fig.width=6, fig.height=4}
 for (tt in params$techs) {
   cat("\n\n### ", tt$name,
       if (!is.null(tt$class) && nzchar(tt$class))

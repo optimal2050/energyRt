@@ -61,7 +61,7 @@ setMethod("initialize", "model", function(.Object, ...) {
 #'   discount = 0.05,
 #'   horizon = newHorizon(period = 2020:2050,
 #'                        intervals = rep(5, 10)),
-#'   calendar = calendars$d365h24
+#'   calendar = calendars$d365_h24
 #'   )
 #' }
 newModel <- function(name = "", desc = "", ...) {
@@ -343,6 +343,39 @@ add.model <- function(obj, ..., overwrite = FALSE, repo_name = NULL) {
   }
   # cc <- sapply(arg, function(x) class(x)[1])
   ii <- sapply(arg, function(x) inherits(x, cls))
+  # An incoming bare object whose class+name already lives in ONE OF THE
+  # MODEL'S REPOSITORIES is a REPLACEMENT, not an addition: with
+  # `overwrite = TRUE` it swaps in where the old object sits (this is what
+  # lets a kit module -- a re-declared `SUP_GAS`/`EWIN`/`ENUC` -- supersede
+  # the base declaration); without it, it is an error. Previously such an
+  # object was silently appended to the default repository NEXT TO the old
+  # one (the bare-object path returns before the cross-repository duplicate
+  # check below), and interpolation then used both.
+  if (any(ii)) {
+    for (k in which(ii)) {
+      x <- arg[[k]]
+      hit_repo <- NA_integer_; hit_obj <- NA_integer_
+      for (ri in seq_along(obj@data)) {
+        rdat <- obj@data[[ri]]@data
+        oi <- which(vapply(rdat, function(y)
+          identical(class(y)[1], class(x)[1]) && identical(y@name, x@name),
+          logical(1)))
+        if (length(oi)) { hit_repo <- ri; hit_obj <- oi[1]; break }
+      }
+      if (!is.na(hit_repo)) {
+        if (!overwrite) {
+          stop('Object "', x@name, '" (', class(x)[1], ') already exists in ',
+               'repository "', obj@data[[hit_repo]]@name,
+               '". Use `overwrite = TRUE` to replace it.', call. = FALSE)
+        }
+        obj@data[[hit_repo]]@data[[hit_obj]] <- x
+        ii[k] <- FALSE            # handled: keep it off the default-repo path
+        arg[k] <- list(NULL)
+      }
+    }
+    drop_k <- vapply(arg, is.null, logical(1))
+    arg <- arg[!drop_k]; ii <- ii[!drop_k]
+  }
   if (any(ii)) {
     # arg <- arg[cc != 'repository']
     # Generate name
@@ -394,10 +427,26 @@ add.model <- function(obj, ..., overwrite = FALSE, repo_name = NULL) {
       if (nm == "") stop('Empty repository name is not allowed.')
       if (any(ff == nm)) {
         # add data to existing repository
-        obj@data[[nm]] <- add(obj@data[[nm]], arg[ii][[i]])
+        obj@data[[nm]] <- add(obj@data[[nm]], arg[ii][[i]],
+                              overwrite = overwrite)
       } else {
         # !!! add name-check with other repositories
         obj@data[[nm]] <- arg[ii][[i]]
+      }
+      # With `overwrite = TRUE` an incoming repository SUPERSEDES same-named
+      # objects wherever they sit: a kit module (e.g. EWIN_SITES carrying a
+      # re-declared `EWIN`) replaces the base declaration in its own
+      # repository instead of tripping the duplicate check below.
+      if (isTRUE(overwrite)) {
+        keys <- vapply(arg[ii][[i]]@data,
+                       function(y) paste(class(y)[1], y@name), character(1))
+        for (ri in seq_along(obj@data)) {
+          if (identical(obj@data[[ri]]@name, nm)) next
+          rk <- vapply(obj@data[[ri]]@data,
+                       function(y) paste(class(y)[1], y@name), character(1))
+          dup <- rk %in% keys
+          if (any(dup)) obj@data[[ri]]@data <- obj@data[[ri]]@data[!dup]
+        }
       }
     }
     arg <- arg[!ii]

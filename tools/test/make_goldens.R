@@ -7,8 +7,10 @@
 #   Rscript tools/test/make_goldens.R --suite=all
 #
 # Suites: tm (fast tier), utopia (fast/cross), utopia_nightly (R7/R11, only
-# read at the nightly tier), interp (solver-free modInp baselines -- delegated
-# to tools/test/interp_guard.R, stored as goldens/interp/*.rds).
+# read at the nightly tier), unit (the all-unit-input kits with hand-computed
+# integer objectives -- test-unit-model.R also pins them analytically), interp
+# (solver-free modInp baselines -- delegated to tools/test/interp_guard.R,
+# stored as goldens/interp/*.rds).
 #
 # For every scenario in a suite: build, solve with the reference backend
 # (GLPK), run verify_solution() -- capture is REFUSED if any identity is
@@ -58,16 +60,24 @@ SUITES <- list(
   },
   utopia = lapply(ut_entries(), function(a) function() do.call(ut_build, a)),
   utopia_nightly = lapply(ut_nightly_entries(),
-                          function(a) function() do.call(ut_build, a))
+                          function(a) function() do.call(ut_build, a)),
+  unit = lapply(un_entries(), function(a) function() do.call(un_build, a))
 )
+
+# Reference solver PER SUITE (the backend-choice convention, dev/TESTING.md:
+# glpsol for small models -- zero startup, no toolchain; julia/HiGHS for
+# mid-size and sampled ones). Same-solver goldens are captured AND compared
+# with the suite's solver, so regenerating a julia suite needs Julia+HiGHS.
+SUITE_SOLVERS <- c(tm = "glpk", utopia = "glpk",
+                   utopia_nightly = "julia_highs", unit = "glpk")
 
 # --------------------------------------------------------------------------- #
 
-solve_entry <- function(build_fn, name) {
+solve_entry <- function(build_fn, name, solver = "glpk") {
   mod <- build_fn()
   suppressMessages(suppressWarnings(
     solve_model(mod, name = paste0("golden_", name),
-              solver = solver_options$glpk, tmp.del = TRUE, wait = TRUE)
+              solver = solver_options[[solver]], tmp.del = TRUE, wait = TRUE)
   ))
 }
 
@@ -115,12 +125,13 @@ main <- function(args = commandArgs(trailingOnly = TRUE)) {
              recursive = TRUE, showWarnings = FALSE)
 
   for (suite in suites) {
-    cat("== suite:", suite, "==\n")
+    slv <- SUITE_SOLVERS[[suite]]
+    cat("== suite:", suite, "( solver:", slv, ") ==\n")
     path <- file.path("tests", "testthat", "goldens", paste0(suite, ".json"))
     old <- if (file.exists(path)) jsonlite::fromJSON(path, simplifyVector = FALSE) else list()
     fresh <- list()
     for (name in names(SUITES[[suite]])) {
-      scen <- solve_entry(SUITES[[suite]][[name]], name)
+      scen <- solve_entry(SUITES[[suite]][[name]], name, solver = slv)
       vs <- verify_solution(scen)
       if (!vs$ok) {
         print(vs)
@@ -131,7 +142,7 @@ main <- function(args = commandArgs(trailingOnly = TRUE)) {
       cap$captured <- list(
         date = format(Sys.Date()),
         version = as.character(utils::packageVersion("energyRt")),
-        solver = "glpk"
+        solver = slv
       )
       diff_entry(old[[name]], cap, name)
       fresh[[name]] <- cap

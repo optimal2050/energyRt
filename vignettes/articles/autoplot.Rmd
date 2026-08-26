@@ -159,14 +159,14 @@ for `autoplot()`.
 
 Any timeslice-indexed model data lays out the same way. Here **electricity demand**
 and a **solar capacity factor** from the packaged UTOPIA kit, on its season × hour
-calendar (`utopia_s4h24`): pull the object with `getObject()`, take one region
+calendar (`s4_h24`): pull the object with `getObject()`, take one region
 (and, for demand, one year), and pass the `timeslice` + value columns to
 `plot_heatmap()`. The `name` argument carries the value's unit onto the colour
 bar.
 
 ```{r hm-demand, fig.height = 2.6}
 repo <- utopia_modules$electricity$R3$repo
-wcal <- calendars$utopia_s4h24
+wcal <- calendars$s4_h24
 
 DEM <- getObject(repo, name = "DEM_ELC", drop = TRUE)
 dem <- subset(as.data.frame(DEM@demand), region == "R1" & year == 2050)
@@ -268,7 +268,7 @@ for line/area.
 
 ```{r wea, fig.height = 3}
 WSOL <- getObject(utopia_modules$electricity$R3$repo, name = "WSOL", drop = TRUE)
-wcal <- calendars$utopia_s4h24
+wcal <- calendars$s4_h24
 
 autoplot(WSOL, calendar = wcal)                    # heatmap (default), faceted by region
 ```
