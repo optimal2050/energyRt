@@ -44,6 +44,19 @@
 #'   `geoscales::filter_geoscale()` subset passed via `...`); see
 #'   [subset_model_regions()] for the columns. Ignored (with a warning)
 #'   when no sampled geoscale is supplied.
+#' @param .prefilter EXPERIMENTAL, default `FALSE`. Restrict each model
+#'   object's data to the timeslices and regions the SCENARIO declares before
+#'   interpolating it, rather than interpolating everything and discarding the
+#'   excess afterwards.
+#'
+#'   On the sampled-calendar recipe -- a full-year model with a subset calendar
+#'   handed to this function -- the default order expands all 8,760 timeslices
+#'   in `ob2mi` and then keeps 96. The parameter filters that follow are cheap
+#'   (0.05s on a 5-node model); the cost is the interpolation they cannot undo.
+#'
+#'   Off by default because it is not obviously safe: anything deriving a
+#'   relation from the full declared grid rather than from the calendar would
+#'   see a narrower input. Compare objectives before relying on it.
 #' @param verbose logical; print per-step progress.
 #'
 #' @return an interpolated [scenario] object.
@@ -54,9 +67,10 @@ interpolate_model <- function(mod, name = NULL, ...,
                        desc = NULL, ondisk = FALSE, overwrite = FALSE,
                        fold = FALSE, sparse = TRUE, prune = TRUE,
                        validate = TRUE, code = NULL, kvl = FALSE,
-                       boundary_prices = NULL,
+                       boundary_prices = NULL, .prefilter = FALSE,
                        verbose = isVerbose()) {
   .log_t0 <- Sys.time()
+  .interp_stages_reset()
   # Accept a scenario (re-interpolate its model), matching the legacy interface.
   if (inherits(mod, "scenario")) mod <- mod@model
   # `...` (after `mod`/`name`) accepts ANY energyRt objects -- settings, config,
@@ -693,6 +707,22 @@ interpolate_model <- function(mod, name = NULL, ...,
   .interp_step(verbose, paste0("ob2mi: interpolating ", .n_obj, " model objects"),
                oneline = FALSE)
   .prg <- if (.n_obj > 0) progressr::progressor(steps = .n_obj) else NULL
+  # The grid the SCENARIO declares -- which a sampled calendar or a subset
+  # geoscale narrows relative to the model.
+  .pf_slices <- if (isTRUE(.prefilter)) {
+    tryCatch(as.character(scen@settings@calendar@timetable$timeslice),
+             error = function(e) character(0))
+  } else character(0)
+  .pf_regions <- if (isTRUE(.prefilter)) {
+    tryCatch(as.character(scen@settings@region), error = function(e) character(0))
+  } else character(0)
+  if (isTRUE(.prefilter)) {
+    .interp_step(verbose, paste0("pre-filter: ", length(.pf_slices),
+                                 " timeslice(s), ", length(.pf_regions),
+                                 " region(s) declared"))
+    .interp_step(verbose, paste0("ob2mi: interpolating ", .n_obj,
+                                 " model objects"), oneline = FALSE)
+  }
   for (i in seq(along = scen@model@data)) {
     for (j in seq(along = scen@model@data[[i]]@data)) {
       if (is.null(classes) || inherits(scen@model@data[[i]]@data[[j]], classes)) {
@@ -703,7 +733,33 @@ interpolate_model <- function(mod, name = NULL, ...,
         # (.interp_user_constraints), after the variable domain maps they
         # reference (e.g. mTechNew) are built.
         if (inherits(scen@model@data[[i]]@data[[j]], c("constraint", "costs"))) next
-        scen <- ob2mi(scen, scen@model@data[[i]]@data[[j]], list())
+        .obj <- scen@model@data[[i]]@data[[j]]
+        # PRE-FILTER (opt-in). The parameter filters at the end of this pipeline
+        # cost almost nothing themselves -- measured at 0.05s on a 5-node model
+        # -- because by then the work is already done. What they cannot undo is
+        # that `ob2mi` interpolated every row first. On the documented
+        # sampled-calendar recipe (full-year model, subset calendar handed to
+        # interpolate_model) that means 8,760 timeslices are expanded and then
+        # 96 kept.
+        #
+        # Filtering the object's slots BEFORE ob2mi attacks the cause instead.
+        # `.filter_data_in_slots()` keeps NA (wildcard) rows, so a parameter
+        # declared for "all regions" survives untouched.
+        #
+        # OFF BY DEFAULT because it is not obviously safe: anything that needs
+        # the full declared grid to build a relation -- reweighting a sampled
+        # calendar, family maps derived from object data rather than the
+        # calendar -- would see a narrower input. Compare objectives before
+        # trusting it.
+        if (isTRUE(.prefilter)) {
+          if (length(.pf_slices)) {
+            .obj <- .filter_data_in_slots(.obj, .pf_slices, "timeslice")
+          }
+          if (length(.pf_regions)) {
+            .obj <- .filter_data_in_slots(.obj, .pf_regions, "region")
+          }
+        }
+        scen <- ob2mi(scen, .obj, list())
       }
     }
   }
@@ -1001,6 +1057,17 @@ interpolate_model <- function(mod, name = NULL, ...,
   }
 
   .interp_footer(scen, verbose)
+  # Per-stage rows first, then the summary. The breakdown is the point: a single
+  # duration says an interpolation was slow, not WHICH part of it was.
+  .st <- tryCatch(.interp_stages(), error = function(e) NULL)
+  if (!is.null(.st) && nrow(.st)) {
+    for (i in seq_len(nrow(.st))) {
+      .en_log("interpolate.stage", scen@name,
+              duration = .st$secs[[i]],
+              mem_mb = .st$mem_mb[[i]], peak_mb = .st$peak_mb[[i]],
+              stage = .st$stage[[i]], d_mem_mb = .st$d_mem_mb[[i]])
+    }
+  }
   .en_log("interpolate", scen@name,
           duration = difftime(Sys.time(), .log_t0, units = "secs"),
           model = mod@name,

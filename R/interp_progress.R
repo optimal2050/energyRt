@@ -34,8 +34,24 @@
 # Mark the currently-running stage (if any) as done, with elapsed time. On a
 # dynamic TTY this overwrites the open `> msg` line in place with `v msg (time)`.
 .interp_step_done <- function(verbose = TRUE) {
-  if (!isTRUE(verbose) || is.null(.interp_clock$msg)) return(invisible())
+  if (is.null(.interp_clock$msg)) return(invisible())
   dt <- as.numeric(Sys.time() - .interp_clock$t, units = "secs")
+
+  # Record before printing, so a non-verbose run still accounts for the stage.
+  m1 <- tryCatch(.en_mem(), error = function(e) NULL)
+  .interp_clock$stages <- c(.interp_clock$stages %||% list(), list(list(
+    stage = .interp_clock$msg,
+    secs = round(dt, 2),
+    mem_mb = if (is.null(m1)) NA_real_ else m1$mem_mb,
+    peak_mb = if (is.null(m1)) NA_real_ else m1$peak_mb,
+    d_mem_mb = if (is.null(m1) || is.null(.interp_clock$m0)) NA_real_
+               else round(m1$mem_mb - .interp_clock$m0$mem_mb, 1))))
+
+  if (!isTRUE(verbose)) {
+    .interp_clock$open <- FALSE
+    .interp_clock$msg <- NULL
+    return(invisible())
+  }
   done <- paste0(.interp_clock$msg, " ",
                  cli::col_grey("(", .interp_fmt_secs(dt), ")"))
   if (isTRUE(.interp_clock$open)) {
@@ -76,11 +92,29 @@
 #'   output while running (e.g. a progressr bar), so that output gets a clean
 #'   line and the stage falls back to the two-line info/success form.
 #' @noRd
+# Stage accounting is ALWAYS on; `verbose` only controls whether it is printed.
+# The timings are what the operation log reports, and a log that only works in
+# verbose runs is no log at all.
+.interp_stages_reset <- function() {
+  .interp_clock$stages <- list()
+  invisible()
+}
+
+.interp_stages <- function() {
+  st <- .interp_clock$stages
+  if (is.null(st) || !length(st)) return(NULL)
+  do.call(rbind, lapply(st, as.data.frame, stringsAsFactors = FALSE))
+}
+
 .interp_step <- function(verbose, msg, oneline = TRUE) {
-  if (!isTRUE(verbose)) return(invisible())
   .interp_step_done(verbose)          # close prior stage with its timing
   .interp_clock$t   <- Sys.time()
   .interp_clock$msg <- msg
+  .interp_clock$m0  <- tryCatch(.en_mem(), error = function(e) NULL)
+  if (!isTRUE(verbose)) {
+    .interp_clock$open <- FALSE
+    return(invisible())
+  }
   if (isTRUE(oneline) && .interp_dyn_tty()) {
     # open the line (no newline); .interp_step_done() completes it in place
     cat(cli::col_cyan(cli::symbol$info), " ", msg, sep = "")

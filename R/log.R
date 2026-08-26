@@ -11,16 +11,44 @@
 # =============================================================================#
 
 .en_log_header <- c("timestamp", "op", "object", "status", "duration_sec",
-                    "details")
+                    "mem_mb", "peak_mb", "details")
+
+# R-heap memory, in MB. `Sys.procmem()` would give process RSS but is not
+# available on every platform (absent on Windows R 4.5), so gc() is what we can
+# rely on: `used` is the heap in use now, `max used` the high-water mark since
+# the last `gc(reset = TRUE)`.
+#
+# The peak is the number that answers "will this fit"; the current value only
+# says what survived. Both are logged because the gap between them is itself
+# informative -- a stage that peaks far above what it keeps is one that
+# materialises something large and throws it away.
+.en_mem <- function() {
+  g <- tryCatch(gc(verbose = FALSE, reset = FALSE), error = function(e) NULL)
+  if (is.null(g)) return(list(mem_mb = NA_real_, peak_mb = NA_real_))
+  # gc() returns: used | (Mb) | gc trigger | (Mb) | max used | (Mb)
+  # The MB figure always sits in the column immediately after its counter, so
+  # locate the counter by name and step one across. Matching the "(Mb)" headers
+  # directly is ambiguous -- there are three of them.
+  cn <- colnames(g)
+  mb_after <- function(counter) {
+    j <- which(cn == counter)
+    if (!length(j) || j[[1]] + 1L > ncol(g)) return(NA_real_)
+    sum(g[, j[[1]] + 1L], na.rm = TRUE)
+  }
+  list(mem_mb  = round(mb_after("used"), 1),
+       peak_mb = round(mb_after("max used"), 1))
+}
 
 # Append one operation line to the log file; silent no-op when logging is
 # off (empty `log_file` option) or `object` is scratch (dot-prefixed names,
 # e.g. levcost mini-scenarios — they would flood the log).
-.en_log <- function(op, object, status = "ok", duration = NA_real_, ...) {
+.en_log <- function(op, object, status = "ok", duration = NA_real_,
+                    mem_mb = NULL, peak_mb = NULL, ...) {
   file <- get_log_file()
   if (is.null(file) || !nzchar(file)) return(invisible(FALSE))
   if (startsWith(object %||% "", ".")) return(invisible(FALSE))
   ok <- tryCatch({
+    m <- .en_mem()
     kv <- list(...)
     kv <- kv[!vapply(kv, is.null, logical(1))]
     details <- paste(names(kv),
@@ -33,6 +61,8 @@
       object = object %||% "",
       status = status,
       duration_sec = round(as.numeric(duration), 2),
+      mem_mb = if (is.null(mem_mb)) m$mem_mb else round(as.numeric(mem_mb), 1),
+      peak_mb = if (is.null(peak_mb)) m$peak_mb else round(as.numeric(peak_mb), 1),
       details = details,
       stringsAsFactors = FALSE)
     dir_ <- dirname(file)
@@ -79,16 +109,18 @@
 #' }
 read_log <- function(file = get_log_file()) {
   if (is.null(file) || !nzchar(file) || !file.exists(file)) {
-    return(as_tibble(setNames(
-      c(list(as.POSIXct(character(0), tz = "UTC")),
-        lapply(c("op", "object", "status"), \(x) character(0)),
-        list(numeric(0), character(0))),
-      .en_log_header)))
+    num <- c("duration_sec", "mem_mb", "peak_mb")
+    return(as_tibble(setNames(lapply(.en_log_header, function(h) {
+      if (h == "timestamp") as.POSIXct(character(0), tz = "UTC")
+      else if (h %in% num) numeric(0) else character(0)
+    }), .en_log_header)))
   }
   d <- utils::read.csv(file, stringsAsFactors = FALSE,
                        colClasses = "character") |> as_tibble()
   d$timestamp <- as.POSIXct(d$timestamp, format = "%Y-%m-%dT%H:%M:%SZ",
                             tz = "UTC")
-  d$duration_sec <- suppressWarnings(as.numeric(d$duration_sec))
+  for (nm in c("duration_sec", "mem_mb", "peak_mb")) {
+    if (nm %in% names(d)) d[[nm]] <- suppressWarnings(as.numeric(d[[nm]]))
+  }
   d
 }
