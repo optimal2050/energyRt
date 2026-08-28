@@ -998,6 +998,137 @@ setMethod(
   }, character(1)))
 }
 
+# Structural fingerprint of a process: class + sorted commodity sets. Two
+# processes with the same key differ only in parameter VALUES -- values are
+# deliberately not in the key, so region-replicated technologies group
+# together (a 26-region model has ~64 topologies, not 1,674 processes).
+#' @noRd
+.proc_topology_key <- function(p) {
+  gs <- function(sl, col) {
+    d <- tryCatch(methods::slot(p, sl), error = function(e) NULL)
+    if (!is.data.frame(d) || !col %in% names(d)) return(character(0))
+    sort(unique(as.character(stats::na.omit(d[[col]]))))
+  }
+  paste0(class(p)[1],
+         "|in=", paste(gs("input", "comm"), collapse = ","),
+         "|out=", paste(gs("output", "comm"), collapse = ","),
+         "|stg=", paste(gs("storage", "comm"), collapse = ","),
+         "|aux=", paste(gs("aux", "acomm"), collapse = ","))
+}
+
+# Human-readable label from a topology key: "COA -> ELC (+CO2)".
+#' @noRd
+.proc_topology_label <- function(key) {
+  part <- function(tag) {
+    m <- regmatches(key, regexpr(paste0("\\|", tag, "=[^|]*"), key))
+    if (length(m) == 0) return("")
+    sub(paste0("^\\|", tag, "="), "", m)
+  }
+  inp <- part("in"); out <- part("out"); stg <- part("stg"); aux <- part("aux")
+  lab <- paste0(if (nzchar(inp)) inp else "-", " -> ",
+                if (nzchar(out)) out else if (nzchar(stg))
+                  paste0("[", stg, "]") else "-")
+  if (nzchar(aux)) lab <- paste0(lab, " (+", aux, ")")
+  lab
+}
+
+# Merge the per-member .proc_info_df() tables of one topology group into a
+# ranges view: numeric singletons collapse to "min - max", small string sets
+# to their union, anything else to "varies (n distinct)". Reuses
+# .proc_info_df() itself, so the parameter list cannot drift.
+#' @noRd
+.proc_ranges_df <- function(members) {
+  infos <- lapply(members, function(p)
+    tryCatch(.proc_info_df(p), error = function(e) NULL))
+  infos <- Filter(function(d) is.data.frame(d) && nrow(d) > 0, infos)
+  if (length(infos) == 0) return(NULL)
+  all_par <- unique(unlist(lapply(infos, function(d) d$parameter)))
+  rows <- lapply(all_par, function(pp) {
+    vals <- unlist(lapply(infos, function(d)
+      d$value[d$parameter == pp]))
+    vals <- vals[!is.na(vals) & nzchar(vals)]
+    u <- unique(vals)
+    num <- suppressWarnings(as.numeric(u))
+    rng <- if (length(u) == 1) {
+      u
+    } else if (all(is.finite(num))) {
+      paste(signif(min(num), 4), "-", signif(max(num), 4))
+    } else if (length(u) <= 4) {
+      paste(u, collapse = "; ")
+    } else {
+      paste0("varies (", length(u), " distinct)")
+    }
+    data.frame(parameter = pp, range = rng, members = length(vals),
+               stringsAsFactors = FALSE)
+  })
+  do.call(rbind, rows)
+}
+
+# Group processes by topology. One draw() schematic per GROUP (rendered from
+# the representative = first member, sorted by name) -- on a 26-region model
+# this is the difference between ~64 and 1,674 embedded images.
+#' @noRd
+.proc_groups <- function(procs, draw = TRUE) {
+  if (length(procs) == 0) return(list())
+  keys <- vapply(procs, .proc_topology_key, character(1))
+  nms <- vapply(procs, function(p) p@name, character(1))
+  groups <- split(seq_along(procs), keys)
+  out <- lapply(names(groups), function(k) {
+    idx <- groups[[k]][order(nms[groups[[k]]])]
+    members <- procs[idx]
+    rep_ <- members[[1]]
+    draw_file <- if (isTRUE(draw)) tryCatch({
+      tf <- tempfile(pattern = "report_draw_", fileext = ".png")
+      grDevices::png(tf, width = 900, height = 600, res = 150, bg = "white")
+      draw(rep_)
+      grDevices::dev.off()
+      if (file.exists(tf) && file.info(tf)$size > 5000) tf else NULL
+    }, error = function(e) {
+      tryCatch(grDevices::dev.off(), error = function(e2) NULL)
+      NULL
+    }) else NULL
+    members_df <- data.frame(
+      name = vapply(members, function(p) p@name, character(1)),
+      desc = vapply(members, function(p)
+        tryCatch(p@desc, error = function(e) ""), character(1)),
+      stringsAsFactors = FALSE)
+    detail_df <- tryCatch({
+      dparts <- lapply(members, function(p) {
+        d <- .proc_info_df(p)
+        if (is.null(d)) return(NULL)
+        keep <- d$parameter %in% c("input", "output", "invcost", "fixom",
+                                   "varom", "olife", "start",
+                                   "stock (total)")
+        d <- d[keep, , drop = FALSE]
+        if (nrow(d) == 0) return(NULL)
+        w <- as.data.frame(as.list(stats::setNames(d$value, d$parameter)),
+                          optional = TRUE, stringsAsFactors = FALSE)
+        cbind(data.frame(name = p@name, stringsAsFactors = FALSE), w)
+      })
+      dparts <- Filter(Negate(is.null), dparts)
+      if (length(dparts) == 0) NULL else {
+        cols <- unique(unlist(lapply(dparts, names)))
+        dparts <- lapply(dparts, function(d) {
+          for (cc in setdiff(cols, names(d))) d[[cc]] <- NA
+          d[, cols, drop = FALSE]
+        })
+        do.call(rbind, dparts)
+      }
+    }, error = function(e) NULL)
+    list(key = k, class = class(rep_)[1],
+         label = .proc_topology_label(k),
+         members = members_df$name, n = length(members),
+         representative = rep_@name,
+         members_df = members_df,
+         ranges_df = .proc_ranges_df(members),
+         detail_df = detail_df,
+         draw_file = draw_file)
+  })
+  out[order(-vapply(out, function(g) g$n, integer(1)),
+            vapply(out, function(g) g$class, character(1)),
+            vapply(out, function(g) g$label, character(1)))]
+}
+
 # A container's header image: `misc$logo` first (the report-specific hook),
 # then the general `misc$image` convention. Local files only.
 #' @noRd
@@ -1225,6 +1356,21 @@ setMethod(
     plot_process_windows(object, horizon = horizon), error = function(e) NULL)
     else NULL
 
+  # -- topology groups: one section per process STRUCTURE ------------------
+  # (a 26-region model has ~64 topologies vs 1,674 processes; the grouped
+  # view is what the default template shows, per-process `techs` below is
+  # built only for templates that still declare it)
+  need_groups <- want("proc_groups") || want("windows_group_plot")
+  proc_groups <- if (need_groups) tryCatch(
+    .proc_groups(c(techs, stgs), draw = want("proc_groups")),
+    error = function(e) list()) else list()
+  windows_group_n <- length(proc_groups)
+  windows_group_plot <- if (gg_ok && want("windows_group_plot") &&
+                            windows_group_n > 0) tryCatch({
+    .plot_windows_grouped(.proc_windows(object, horizon = horizon),
+                          proc_groups)
+  }, error = function(e) NULL) else NULL
+
   # -- per-process sections --------------------------------------------------
   tech_list <- if (!want("techs")) list() else
     lapply(c(techs, stgs), function(p) {
@@ -1259,6 +1405,9 @@ setMethod(
     trd_df = trd_df, expimp_df = expimp_df, weather_df = weather_df,
     policy_df = policy_df, cns_df = cns_df,
     windows_plot = windows_plot, techs = tech_list,
+    proc_groups = proc_groups,
+    windows_group_plot = windows_group_plot,
+    windows_group_n = windows_group_n,
     geo_map = geo_map, geo_stack = geo_stack)
   }
 
@@ -1381,9 +1530,12 @@ setMethod(
 
   ap <- function(...) if (gg_ok)
     tryCatch(ggplot2::autoplot(scen, ...), error = function(e) NULL) else NULL
-  gen_plot    <- if (want("gen_plot")) ap("generation") else NULL
-  cap_plot    <- if (want("cap_plot")) ap("capacity") else NULL
-  newcap_plot <- if (want("newcap_plot")) ap("new_capacity") else NULL
+  # top_n pinned explicitly so report output never drifts with the
+  # autoplot default; keeps legends readable on large models
+  gen_plot    <- if (want("gen_plot")) ap("generation", top_n = 12) else NULL
+  cap_plot    <- if (want("cap_plot")) ap("capacity", top_n = 12) else NULL
+  newcap_plot <- if (want("newcap_plot")) ap("new_capacity", top_n = 12)
+    else NULL
   # dispatch profile over a sub-annual sample when the calendar has one
   gen_day_plot <- NULL
   sl <- if (want("gen_day_plot"))
@@ -1392,20 +1544,29 @@ setMethod(
   sl <- setdiff(sl, "ANNUAL")
   if (length(sl) > 1) {
     pref <- sub("_.*$", "", sl[1])
-    gen_day_plot <- ap("generation", timeslice = paste0("^", pref, "_"))
+    gen_day_plot <- ap("generation", timeslice = paste0("^", pref, "_"),
+                       top_n = 12)
   }
 
-  emis <- if (want("emis_df")) gd("vEmsFuelTot") else NULL
-  emis_df <- if (!is.null(emis) && nrow(emis) > 0) {
+  emis <- if (want("emis_df") || want("emis_total_df")) gd("vEmsFuelTot")
+    else NULL
+  emis_df <- if (!is.null(emis) && nrow(emis) > 0 && want("emis_df")) {
     ag <- stats::aggregate(value ~ comm + year, emis, sum)
     ag$value <- signif(ag$value, 5); ag
   } else NULL
+  emis_total_df <- if (!is.null(emis) && nrow(emis) > 0 &&
+                       want("emis_total_df")) tryCatch({
+    ag <- stats::aggregate(value ~ comm, emis, sum)
+    names(ag)[2] <- "total"
+    rbind(ag, data.frame(comm = "TOTAL", total = sum(ag$total)))
+  }, error = function(e) NULL) else NULL
 
   # -- costs, role-driven --------------------------------------------------
   # The variable catalogue (data-raw/variables.yml) declares what each
   # variable IS; every solved variable with role "cost" enters the breakdown
   # by name, so new cost variables appear without touching the report.
-  cost_vars <- if (want("cost_df") || want("costs_plot")) tryCatch({
+  cost_vars <- if (want("cost_df") || want("costs_plot") ||
+                   want("cost_total_df")) tryCatch({
     vs <- scen@modOut@variables
     keep <- vapply(vs, function(v)
       identical(tryCatch(v@role, error = function(e) NA_character_), "cost"),
@@ -1429,7 +1590,7 @@ setMethod(
     }
   }
   # fall back to the yearly total when no per-component variable was solved
-  if (is.null(cost_df) && want("cost_df")) {
+  if (is.null(cost_df) && (want("cost_df") || want("cost_total_df"))) {
     cost <- gd("vTotalCost")
     cost_df <- if (!is.null(cost) && nrow(cost) > 0) {
       ag <- stats::aggregate(value ~ year, cost, sum)
@@ -1449,6 +1610,11 @@ setMethod(
         theme_energyRt(),
       error = function(e) NULL)
   } else NULL
+  cost_total_df <- if (!is.null(cost_df) && want("cost_total_df")) tryCatch({
+    ag <- stats::aggregate(value ~ variable, cost_df, sum)
+    names(ag)[2] <- "total"
+    rbind(ag, data.frame(variable = "TOTAL", total = sum(ag$total)))
+  }, error = function(e) NULL) else NULL
 
   # -- variants ------------------------------------------------------------
   variants_df <- if (want("variants_df")) tryCatch({
@@ -1475,7 +1641,11 @@ setMethod(
                  stringsAsFactors = FALSE)
     })
     rows <- Filter(Negate(is.null), rows)
-    if (length(rows) > 0) do.call(rbind, rows) else NULL
+    if (length(rows) > 0) {
+      lcdf <- do.call(rbind, rows)
+      # most expensive first, so a template cap shows what matters
+      lcdf[order(-lcdf$levcost_npv), , drop = FALSE]
+    } else NULL
   }, error = function(e) NULL) else NULL
 
   # -- multiple runs: objective chart + comparison pointer -----------------
@@ -1633,7 +1803,9 @@ setMethod(
     gen_plot = gen_plot, gen_day_plot = gen_day_plot,
     cap_plot = cap_plot, newcap_plot = newcap_plot,
     ret_bars = ret_bars, io_bars = io_bars,
-    emis_df = emis_df, cost_df = cost_df, costs_plot = costs_plot,
+    emis_df = emis_df, emis_total_df = emis_total_df,
+    cost_df = cost_df, cost_total_df = cost_total_df,
+    costs_plot = costs_plot,
     variants_df = variants_df, levcost_df = levcost_df)
   }
 

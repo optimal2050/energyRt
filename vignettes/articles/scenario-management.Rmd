@@ -139,26 +139,30 @@ scen <- save_scenario(scen, verbose = FALSE)
 sort(list.files(scen@path))
 ```
 
-# Models and repositories: stored once, referenced by hash
+# Models and repositories: stored once, verified by hash
 
 The model is part of the scenario, and by default a saved scenario embeds
 its own copy — self-contained, but wasteful when fifty scenarios share one
 model. The **model store** removes the duplication:
 
 ```{r model-store}
-mod <- save_model(mod, verbose = FALSE)      # models/SM@<hash8>/
+mod <- save_model(mod, verbose = FALSE)      # models/SM/
 scen <- save_scenario(scen, verbose = FALSE) # now saved with a REFERENCE
 yaml::read_yaml(file.path(scen@path, "scenario.yml"))$model
 ```
 
-`model_hash()` identifies a model by its *content*: the hash is computed
-with all volatile bookkeeping stripped (internal `@misc` metadata, on-disk
-markers, session-specific attributes), so two identically-built models hash
-identically and any modeled change produces a new store entry —
-`models/SM@a1b2c3d4/` and `models/SM@e5f6a7b8/` can coexist, and a scenario
-pins exactly the version it was built from. Saving identical content twice
-is a no-op. `load_scenario()` resolves the reference back through the
-registry, and errors *loudly* — naming the fix — if the store is gone.
+The store folder is simply the model's **name** — `models/SM/` — and it
+updates *in place*: edit a parameter, re-save, same folder. The content
+hash (`model_hash()`, computed with all volatile bookkeeping stripped)
+lives in the manifest and does the two jobs a hash is for: saving
+*identical* content twice is a no-op, and references *verify* — a scenario
+records the `{name, hash}` it was built against, and if the stored model
+has changed since, loading warns loudly that results may not reproduce
+(sealing, below, prevents exactly that; and
+`set_store_versioning("hash")` restores content-addressed
+`SM@<hash8>` folders with versions side by side, for those who want them).
+`load_scenario()` resolves the reference back through the registry and
+errors — naming the fix — if the store is gone.
 `save_scenario(embed_model = TRUE)` keeps a folder self-contained instead.
 
 One level down, the same pattern applies to **repositories** — the shared
@@ -166,7 +170,7 @@ building-block collections that many models have in common:
 
 ```{r repo-store}
 repo <- mod@data[[1]]
-save_repository(repo, verbose = FALSE)        # repositories/smr@<hash8>/
+save_repository(repo, verbose = FALSE)        # repositories/smr/
 mod2 <- save_model(make_mod(c(100, 100, 100)), overwrite = TRUE,
                    verbose = FALSE)           # repo now saved as a reference
 ```
@@ -272,12 +276,31 @@ upgrade_scenario_layout("scenarios/OLD")
 which moves each solver directory into `runs/`, backfills the provenance
 records from what is on disk, and writes the current manifests.
 
+# Lifecycle: sealing and the deletion queue
+
+Because entries update in place, finished work can be locked:
+`seal_model("SM")` (and `seal_repository()`, `seal_dataset()`,
+`seal_scenario()`) freezes the entry — identical re-saves stay silent
+no-ops, changed content errors until the matching `unseal_*()`. A sealed
+scenario is an archive: it loads, `getData()`s and reports freely, but
+refuses re-saves, new recorded solves, and `drop_scenario_run()`. Seal the
+inputs of anything you publish — a sealed model can never drift out from
+under the scenarios that reference it.
+
+The other end of the lifecycle is a soft-delete queue:
+`mark_delete(x, importance = )` tags an entry (higher importance = more
+valuable = deleted later), `unmark_delete()` clears the tag, and
+`delete_marked()` — **dry-run by default** — removes marked entries up to
+an importance threshold. Sealed entries are never deleted, even when
+marked.
+
 # Summary of the vocabulary
 
 | thing | where | identity | manifest |
 |---|---|---|---|
-| repository | `repositories/<name>@<hash8>/` | content hash | `repository.yml` |
-| model | `models/<name>@<hash8>/` | content hash | `model.yml` |
+| repository | `repositories/<name>/` | name (hash verifies) | `repository.yml` |
+| model | `models/<name>/` | name (hash verifies) | `model.yml` |
+| dataset | `datasets/<name>/` | name (hash verifies) | `dataset.yml` |
 | scenario | `scenarios/<slug>/` | name | `scenario.yml` |
 | variant (own problem) | `<scenario>/runs/<variant>/` | name within scenario | `variant.yml` |
 | run (solve) | `<scenario>/runs/[<variant>/]<solve>/` | run id `"<solve>"` / `"<variant>/<solve>"` | `run.yml` |

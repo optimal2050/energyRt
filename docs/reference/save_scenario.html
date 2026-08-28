@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.85.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,6 +36,8 @@
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
+    <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
+    <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
     <li><a class="dropdown-item" href="../articles/autoplot.html">autoplot()</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
@@ -69,6 +71,8 @@
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">save_scenario</span><span class="op">(</span></span>
 <span>  <span class="va">scen</span>,</span>
 <span>  path <span class="op">=</span> <span class="va">scen</span><span class="op">@</span><span class="va">path</span>,</span>
+<span>  embed_model <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  embed_datasets <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  format <span class="op">=</span> <span class="fu"><a href="arrow_format.html">get_arrow_format</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  overwrite <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  clean_start <span class="op">=</span> <span class="cn">FALSE</span>,</span>
@@ -87,6 +91,25 @@
 
 <dt id="arg-path">path<a class="anchor" aria-label="anchor" href="#arg-path"></a></dt>
 <dd><p>character. Path to scenario directory.</p></dd>
+
+
+<dt id="arg-embed-model">embed_model<a class="anchor" aria-label="anchor" href="#arg-embed-model"></a></dt>
+<dd><p><code>NULL</code> (default), <code>TRUE</code>, or <code>FALSE</code>. Controls whether
+the model is embedded in the saved scenario or referenced from the model
+store (see <code><a href="model_store.html">save_model()</a></code>). <code>NULL</code>: reference when the identical model
+content is already in the store, embed otherwise. <code>TRUE</code>: always embed
+(self-contained folder). <code>FALSE</code>: require a store hit, error otherwise.
+A referenced save stores only <code>{name, hash, path}</code>; <code><a href="load_scenario.html">load_scenario()</a></code>
+resolves it back via the registry / model store.</p></dd>
+
+
+<dt id="arg-embed-datasets">embed_datasets<a class="anchor" aria-label="anchor" href="#arg-embed-datasets"></a></dt>
+<dd><p>the same choice for the big data tables and maps —
+the geoscale on <code>@settings</code> and, when the model is embedded, its
+geoscale and its repositories' weather/demand tables (see
+<code><a href="dataset_store.html">save_dataset()</a></code>). <code>NULL</code> (default) references whatever identical
+content is already in the dataset store; <code>TRUE</code> always embeds; <code>FALSE</code>
+requires a store hit.</p></dd>
 
 
 <dt id="arg-format">format<a class="anchor" aria-label="anchor" href="#arg-format"></a></dt>

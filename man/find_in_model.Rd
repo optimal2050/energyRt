@@ -41,6 +41,7 @@ find_in_model(mod, "ES_off", classes = "technology")
 }
 \seealso{
 Other model:
-\code{\link[=get_region]{get_region()}}
+\code{\link[=get_region]{get_region()}},
+\code{\link[=get_weather]{get_weather()}}
 }
 \concept{model}

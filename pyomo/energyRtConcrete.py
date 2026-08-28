@@ -2709,6 +2709,18 @@ if verbose:
         " s)",
         sep="",
     )
+# Route indexes keyed by endpoint. `mTradeRoutes` is sparse (one entry per
+# existing corridor), so mapping an endpoint to its routes lets eqImportTot and
+# eqExportTot below visit only routes that exist, instead of iterating
+# `trade x region` and filtering.
+_routesByDst = {}
+_routesBySrc = {}
+_routesByTrade = {}
+for _t1, _s0, _d0 in mTradeRoutes:
+    _routesByDst.setdefault(_d0, []).append((_t1, _s0))
+    _routesBySrc.setdefault(_s0, []).append((_t1, _d0))
+    _routesByTrade.setdefault(_t1, []).append((_s0, _d0))
+
 # eqImportTot(comm, dst, year, timeslice)$mImport(comm, dst, year, timeslice)
 if verbose:
     print("eqImportTot ", end="")
@@ -2717,19 +2729,15 @@ model.eqImportTot = Constraint(
     mImport,
     rule=lambda model, c, dst, y, s: model.vImportTot[c, dst, y, s]
     == sum(
-        sum(
+        (
             (
-                (
-                    pTradeIrEff.get((t1, src, dst, y, s))
-                    * model.vTradeIr[t1, c, src, dst, y, s]
-                )
-                if (t1, c, src, dst, y, s) in mvTradeIr
-                else 0
+                pTradeIrEff.get((t1, src, dst, y, s))
+                * model.vTradeIr[t1, c, src, dst, y, s]
             )
-            for src in region
-            if (t1, src, dst) in mTradeRoutes
+            if (t1, c, src, dst, y, s) in mvTradeIr
+            else 0
         )
-        for t1 in trade
+        for (t1, src) in _routesByDst.get(dst, ())
         if (t1, c) in mTradeComm
     )
     + sum(
@@ -2754,16 +2762,12 @@ model.eqExportTot = Constraint(
     mExport,
     rule=lambda model, c, src, y, s: model.vExportTot[c, src, y, s]
     == sum(
-        sum(
-            (
-                model.vTradeIr[t1, c, src, dst, y, s]
-                if (t1, c, src, dst, y, s) in mvTradeIr
-                else 0
-            )
-            for dst in region
-            if (t1, src, dst) in mTradeRoutes
+        (
+            model.vTradeIr[t1, c, src, dst, y, s]
+            if (t1, c, src, dst, y, s) in mvTradeIr
+            else 0
         )
-        for t1 in trade
+        for (t1, dst) in _routesBySrc.get(src, ())
         if (t1, c) in mTradeComm
     )
     + sum(
@@ -3144,8 +3148,7 @@ model.eqTradeCapFlow = Constraint(
     * model.vTradeCap[t1, y]
     >= sum(
         model.vTradeIr[t1, c, src, dst, y, s]
-        for src in region
-        for dst in region
+        for (src, dst) in _routesByTrade.get(t1, ())
         if (t1, c, src, dst, y, s) in mvTradeIr
     ),
 )

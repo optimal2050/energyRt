@@ -60,7 +60,8 @@ test_that("save_model / load_model round-trips; identical content is a no-op", {
   h8 <- substr(model_hash(mod), 1, 8)
 
   saved <- save_model(mod, verbose = FALSE)
-  store_dir <- ms_root("models", paste0("msm@", h8))
+  # default layout: the folder is the NAME; the hash lives in the manifest
+  store_dir <- ms_root("models", "msm")
   expect_true(file.exists(file.path(store_dir, "mod.RData")))
   mf <- yaml::read_yaml(file.path(store_dir, "model.yml"))
   expect_identical(mf$name, "msm")

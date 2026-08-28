@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.85.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,6 +36,8 @@
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
+    <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
+    <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
     <li><a class="dropdown-item" href="../articles/autoplot.html">autoplot()</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
@@ -90,7 +92,10 @@
 
 
 <dt><code>weather</code></dt>
-<dd><p>data.frame. Weather factors to apply to the supply.</p><dl><dt>weather</dt>
+<dd><p>data.frame. Weather factors to apply to the supply.</p><dl><dt>cluster</dt>
+<dd><p>character. Price step this row applies to, NA for every step. See the <code>cluster</code> slot.</p></dd>
+
+<dt>weather</dt>
 <dd><p>character. Name of the weather factor to apply. Must match the weather factor names in a <code>weather</code> class in the model.</p></dd>
 
 <dt>wava.lo</dt>
@@ -108,7 +113,10 @@
 
 <dt><code>reserve</code></dt>
 <dd><p>data.frame. Total available resource. Applicable to exhaustible resources. Set for each region. If not set, the resource is considered infinite.</p>
-<dl><dt>region</dt>
+<dl><dt>cluster</dt>
+<dd><p>character. Price step this row applies to, NA for every step. See the <code>cluster</code> slot.</p></dd>
+
+<dt>region</dt>
 <dd><p>character. Region name to apply the parameter. Use NA to apply to all regions.</p></dd>
 
 <dt>res.lo</dt>
@@ -125,7 +133,11 @@
 
 
 <dt><code>supply</code></dt>
-<dd><p>data.frame. Availability of the resource in physical units.</p><dl><dt>region</dt>
+<dd><p>data.frame. Availability of the resource in physical units. Unlike the <code>af</code>/<code>afs</code> availability <em>factors</em> of technologies, <code>ava.*</code> is an absolute bound on the supplied quantity per timeslice: supply processes have no capacity variable, so nothing multiplies it (except weather factors, see <code>weather</code>). Rows here also define where and when the supply exists in the model.</p>
+<dl><dt>cluster</dt>
+<dd><p>character. Price step this row applies to, NA for every step. See the <code>cluster</code> slot.</p></dd>
+
+<dt>region</dt>
 <dd><p>character. Region name to apply the parameter. Use NA to apply to all regions.</p></dd>
 
 <dt>year</dt>
@@ -135,13 +147,13 @@
 <dd><p>character. Time timeslice to apply the parameter. Use NA to apply to all timeslices.</p></dd>
 
 <dt>ava.lo</dt>
-<dd><p>numeric. Lower bound of the availability factor.</p></dd>
+<dd><p>numeric. Lower bound on the supplied quantity, in physical commodity units per timeslice.</p></dd>
 
 <dt>ava.up</dt>
-<dd><p>numeric. Upper bound of the availability factor.</p></dd>
+<dd><p>numeric. Upper bound on the supplied quantity, in physical commodity units per timeslice.</p></dd>
 
 <dt>ava.fx</dt>
-<dd><p>numeric. Fixed value of the availability factor. This parameter overrides <code>ava.lo</code> and <code>ava.up</code>.</p></dd>
+<dd><p>numeric. Fixed value of the supplied quantity, in physical commodity units per timeslice. This parameter overrides <code>ava.lo</code> and <code>ava.up</code>.</p></dd>
 
 <dt>cost</dt>
 <dd><p>numeric. Cost of the resource extraction, if not set, the resource is considered free.</p></dd>

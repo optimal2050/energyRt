@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.85.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -57,6 +57,8 @@
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
+    <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
+    <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
     <li><a class="dropdown-item" href="../articles/autoplot.html">autoplot()</a></li>
   </ul>
 </li>
@@ -186,18 +188,18 @@ solver-specific tuning:</p>
 <code class="sourceCode R"><span><span class="co"># 1. Set it as the session default, then solve normally</span></span>
 <span><span class="fu"><a href="../reference/default_solver.html">set_default_solver</a></span><span class="op">(</span><span class="va">solver_options</span><span class="op">$</span><span class="va">julia_highs</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/default_solver.html">get_default_solver</a></span><span class="op">(</span><span class="op">)</span>                       <span class="co"># inspect the current default</span></span>
-<span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_mod.html">solve_mod</a></span><span class="op">(</span><span class="va">model</span><span class="op">)</span>                   <span class="co"># uses the default</span></span>
+<span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">model</span><span class="op">)</span>                   <span class="co"># uses the default</span></span>
 <span></span>
 <span><span class="co"># 2. Pass it explicitly to a single solve</span></span>
-<span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_mod.html">solve_mod</a></span><span class="op">(</span><span class="va">model</span>,  solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">glpk</span><span class="op">)</span></span>
-<span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_mod.html">solve_scen</a></span><span class="op">(</span><span class="va">scen</span>,  solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">gams_gdx_cplex</span><span class="op">)</span></span></code></pre></div>
+<span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">model</span>,  solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">glpk</span><span class="op">)</span></span>
+<span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_model.html">solve_scenario</a></span><span class="op">(</span><span class="va">scen</span>,  solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">gams_gdx_cplex</span><span class="op">)</span></span></code></pre></div>
 <p><code><a href="../reference/default_solver.html">set_default_solver()</a></code> lasts for the session. To make a
 default stick across sessions, save it with
 <code><a href="../reference/en_config.html">en_config_write()</a></code>; <code><a href="../reference/en_config_show.html">en_config_show()</a></code> reports
 the current default together with the solver paths it depends on.</p>
-<p><code><a href="../reference/solve_mod.html">solve_mod()</a></code> interpolates a <code>model</code> and solves
-it; <code><a href="../reference/solve_mod.html">solve_scen()</a></code> solves an already-interpolated scenario.
-With <code>solver = NULL</code> the scenario’s own settings or
+<p><code><a href="../reference/solve_model.html">solve_model()</a></code> interpolates a <code>model</code> and
+solves it; <code><a href="../reference/solve_model.html">solve_scenario()</a></code> solves an already-interpolated
+scenario. With <code>solver = NULL</code> the scenario’s own settings or
 <code><a href="../reference/default_solver.html">get_default_solver()</a></code> are used.</p>
 </div>
 <div class="section level2">
@@ -211,7 +213,7 @@ GMPL/MathProg and calls the <code>glpsol</code> executable — the
 lowest-friction option and a good default for small and medium
 models.</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/solve_mod.html">solve_mod</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">glpk</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">glpk</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="python-pyomo">Python / Pyomo<a class="anchor" aria-label="anchor" href="#python-pyomo"></a>
@@ -221,8 +223,8 @@ SQLite by default, or Arrow/feather with the <code>*_arrow</code>
 presets) and solves it with the configured solver. CBC is the
 open-source default; CPLEX and GLPK are also available.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/solve_mod.html">solve_mod</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">pyomo_cbc</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/solve_mod.html">solve_mod</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">pyomo_cplex_barrier</span><span class="op">)</span>   <span class="co"># CPLEX barrier</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">pyomo_cbc</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">pyomo_cplex_barrier</span><span class="op">)</span>   <span class="co"># CPLEX barrier</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="julia-jump">Julia / JuMP<a class="anchor" aria-label="anchor" href="#julia-jump"></a>
@@ -233,9 +235,9 @@ for large models; <code>*_barrier</code>, <code>*_simplex</code> and
 <code>*_parallel</code> presets select the HiGHS algorithm. Cbc, GLPK
 and CPLEX are also available.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/solve_mod.html">solve_mod</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">julia_highs</span><span class="op">)</span>           <span class="co"># default (auto)</span></span>
-<span><span class="fu"><a href="../reference/solve_mod.html">solve_mod</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">julia_highs_barrier</span><span class="op">)</span>   <span class="co"># interior point</span></span>
-<span><span class="fu"><a href="../reference/solve_mod.html">solve_mod</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">julia_highs_parallel</span><span class="op">)</span>  <span class="co"># parallel simplex</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">julia_highs</span><span class="op">)</span>           <span class="co"># default (auto)</span></span>
+<span><span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">julia_highs_barrier</span><span class="op">)</span>   <span class="co"># interior point</span></span>
+<span><span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">julia_highs_parallel</span><span class="op">)</span>  <span class="co"># parallel simplex</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="gams">GAMS<a class="anchor" aria-label="anchor" href="#gams"></a>
@@ -246,8 +248,8 @@ the <code>gams_csv_*</code> presets use text/CSV. The
 <code>*_barrier</code> and <code>*_parallel</code> presets inject a
 tuned <code>cplex.opt</code> (LP method, threads, crossover, …).</p>
 <div class="sourceCode" id="cb7"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/solve_mod.html">solve_mod</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">gams_gdx_cplex</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/solve_mod.html">solve_mod</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">gams_gdx_cplex_barrier</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">gams_gdx_cplex</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">gams_gdx_cplex_barrier</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="neos-remote-solve">NEOS (remote solve)<a class="anchor" aria-label="anchor" href="#neos-remote-solve"></a>
@@ -266,8 +268,8 @@ one energyRt setting whose environment variable is <em>not</em> prefixed
 <code>NEOS_EMAIL</code> directly):</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/neos_email.html">set_neos_email</a></span><span class="op">(</span><span class="st">"you@example.org"</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/solve_mod.html">solve_mod</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">neos_gams_cplex</span><span class="op">)</span></span>
-<span><span class="fu"><a href="../reference/solve_mod.html">solve_mod</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">neos_pyomo_cplex_barrier</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">neos_gams_cplex</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">neos_pyomo_cplex_barrier</span><span class="op">)</span></span></code></pre></div>
 <p>The low-level NEOS interface (submit/poll/fetch a job, list solvers,
 …) is also exported — see <code><a href="../reference/neos.html">?neos</a></code> and the <code>neos_*</code>
 functions.</p>
@@ -278,13 +280,13 @@ functions.</p>
 </h2>
 <p>The presets shipped with the package (generated from the installed
 data):</p>
-<table class="table">
+<table style="width:100%;" class="table">
 <colgroup>
-<col width="37%">
-<col width="20%">
-<col width="10%">
-<col width="10%">
-<col width="20%">
+<col width="34%">
+<col width="19%">
+<col width="16%">
+<col width="9%">
+<col width="19%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">preset</th>
@@ -333,6 +335,20 @@ data):</p>
 <td align="left">pyomo_glpk</td>
 <td align="left">Python/Pyomo</td>
 <td align="left">glpk</td>
+<td align="left"></td>
+<td align="left">SQLite</td>
+</tr>
+<tr class="odd">
+<td align="left">pyomo_highs</td>
+<td align="left">Python/Pyomo</td>
+<td align="left">appsi_highs</td>
+<td align="left"></td>
+<td align="left">SQLite</td>
+</tr>
+<tr class="even">
+<td align="left">pyomo_highs_barrier</td>
+<td align="left">Python/Pyomo</td>
+<td align="left">appsi_highs</td>
 <td align="left"></td>
 <td align="left">SQLite</td>
 </tr>
@@ -547,7 +563,7 @@ fields:</p>
 <span><span class="va">my_solver</span> <span class="op">&lt;-</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">julia_highs</span></span>
 <span><span class="va">my_solver</span><span class="op">$</span><span class="va">name</span> <span class="op">&lt;-</span> <span class="st">"julia_highs_custom"</span></span>
 <span><span class="co"># ... adjust an inc* block to set HiGHS attributes ...</span></span>
-<span><span class="fu"><a href="../reference/solve_mod.html">solve_mod</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">my_solver</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">my_solver</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a>
@@ -560,7 +576,7 @@ and library layer.</li>
 <strong>Model bricks</strong> — assembling commodities, processes
 and structures into a model.</li>
 <li>
-<code><a href="../reference/solve_mod.html">?solve_mod</a></code>, <code><a href="../reference/solve_mod.html">?solve_scen</a></code>,
+<code><a href="../reference/solve_model.html">?solve_model</a></code>, <code><a href="../reference/solve_model.html">?solve_scenario</a></code>,
 <code><a href="../reference/default_solver.html">?set_default_solver</a></code>, <code><a href="../reference/neos_email.html">?set_neos_email</a></code>.</li>
 <li>
 <code>?energyRt-options</code> for every setting,

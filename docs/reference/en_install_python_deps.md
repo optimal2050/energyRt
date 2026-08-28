@@ -19,7 +19,7 @@ for guidance on the system layer.
 ``` r
 en_install_python_deps(
   env = "energyRt",
-  packages = c("pyomo", "pandas", "pyarrow"),
+  packages = c("pyomo", "pandas", "pyarrow", "highspy"),
   solver = "coincbc",
   channel = "conda-forge",
   use_conda = NULL
@@ -54,30 +54,36 @@ en_install_python_deps(
 NULL, invisibly. Verify with
 [`en_check_pyomo()`](https://energyRt.org/reference/en_check.md).
 
+## HiGHS version
+
+`highspy` supplies HiGHS in-process and is the only Pyomo route to it;
+`SolverFactory("highs")` resolves to a shell solver requiring a `highs`
+executable. `solver_options$pyomo_highs_barrier` needs **HiGHS \>=
+1.13**: on 1.7.2 the `solver = "ipm"` option hangs before the solver
+starts and is not interruptible by a time limit. Check the installed
+version with
+[`en_check_pyomo()`](https://energyRt.org/reference/en_check.md).
+
 ## See also
 
 Other solver: [`en_check`](https://energyRt.org/reference/en_check.md),
 [`en_check_packages()`](https://energyRt.org/reference/en_check_packages.md),
 [`en_install_deps()`](https://energyRt.org/reference/en_install_deps.md),
-[`en_mosox_run()`](https://energyRt.org/reference/en_mosox_run.md),
 [`en_setup()`](https://energyRt.org/reference/en_setup.md),
 [`get_default_solver()`](https://energyRt.org/reference/default_solver.md),
-[`get_mosox_path()`](https://energyRt.org/reference/get_mosox_path.md),
 [`get_neos_email()`](https://energyRt.org/reference/neos_email.md),
-[`mosox_run()`](https://energyRt.org/reference/mosox_run.md),
 [`neos`](https://energyRt.org/reference/neos.md),
 [`neos_build_gams_text_job()`](https://energyRt.org/reference/neos_build_gams_text_job.md),
 [`neos_build_gams_xml()`](https://energyRt.org/reference/neos_build_gams_xml.md),
 [`neos_gams_inline()`](https://energyRt.org/reference/neos_gams_inline.md),
 [`neos_job`](https://energyRt.org/reference/neos_job.md),
-[`set_mosox_path()`](https://energyRt.org/reference/set_mosox_path.md),
 [`set_solver_path()`](https://energyRt.org/reference/solver_path.md)
 
 ## Examples
 
 ``` r
 if (FALSE) { # \dontrun{
-en_install_python_deps()                 # conda env "energyRt" with pyomo + cbc
+en_install_python_deps()                 # conda env with pyomo + highspy + cbc
 en_install_python_deps(use_conda = FALSE) # pip into current python
 } # }
 ```

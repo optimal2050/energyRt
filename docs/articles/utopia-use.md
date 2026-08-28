@@ -27,17 +27,17 @@ reads the solution. `echo = FALSE` keeps the solver log out of the page
 
 ## Selecting a UTOPIA structure
 
-`utopia_modules$electricity` offers ready region layouts (`reg1`,
-`reg3`, `reg7`); each is a kit with a base repository `$repo` and
-scenario levers. Calendars, horizons and maps sit alongside. (For a
-custom layout or calendar, build the blocks yourself following *UTOPIA
-I: building the model*.)
+`utopia_modules$electricity` offers ready region layouts (`R1`, `R3`,
+`R7`, `R11`); each is a kit with a base repository `$repo` and scenario
+levers. Calendars, horizons and maps sit alongside. (For a custom layout
+or calendar, build the blocks yourself following *UTOPIA I: building the
+model*.)
 
 ``` r
 
 names(utopia_modules$electricity)          # available layouts
 um  <- utopia_modules$electricity$R3     # the 3-region base case
-cal <- utopia_modules$calendars$utopia_s4h24
+cal <- utopia_modules$calendars$s4_h24
 hor <- utopia_modules$horizons$base        # milestones 2020/2030/2040/2050
 ```
 
@@ -52,7 +52,7 @@ scen_BASE <- interpolate_model(mod, name = "BASE") |>
 getData(scen_BASE, "vObjective", merge = TRUE)$value    # total system cost, MEUR
 ```
 
-The `reg3` kit wires its regions with bi-directional transmission links
+The `R3` kit wires its regions with bi-directional transmission links
 (`TBD_ELC_*`).
 [`plot_trade_map()`](https://energyRt.org/reference/plot_trade_map.md)
 draws that network over a map layout — pass any of `utopia_modules$maps`
@@ -113,27 +113,34 @@ first while the constraint sets the pace. The ceiling bites hardest on
 gas (the flexible backstop for wind and solar), pushing investment into
 nuclear, biomass and storage instead.
 
-Compare CO2 emissions across scenarios:
+Compare the scenarios with
+[`compare_scenarios()`](https://energyRt.org/reference/compare_scenarios.md):
+the overview carries every run’s objective (with differences against the
+baseline), the value tables flag which solved variables moved, and
+[`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+draws the comparison charts. The full comparative document is one
+`report(cmp)` call away.
 
 ``` r
 
 scl <- list(BASE = scen_BASE, CO2CAP = scen_CO2CAP,
             CARBONTAX = scen_CTAX, RES_SHARE = scen_RES,
             EARLY_RET = scen_ERET)
-lapply(scl, function(s) getData(s, "vEmsFuelTot", comm = "CO2", merge = TRUE)) |>
-  bind_rows() |>
-  group_by(scenario, year) |> summarise(ktCO2 = sum(value), .groups = "drop") |>
-  ggplot(aes(factor(year), ktCO2, fill = scenario)) +
-  geom_col(position = "dodge") +
-  labs(x = "year", title = "CO2 emissions by scenario") + theme_bw()
+cmp <- compare_scenarios(scl)
+cmp
+autoplot(cmp, "emissions")
 ```
 
-Total system cost (objective) by scenario:
+Total system cost (objective) by scenario, straight from the overview:
 
 ``` r
 
-sapply(scl, function(s) round(getData(s, "vObjective", merge = TRUE)$value[1]))
+with(cmp$overview, setNames(round(objective), scenario))
 ```
+
+(The same charts can always be hand-rolled from the tidy layer –
+`getData(scl, ...)` and `getMix(scl, ...)` accept named scenario lists
+and add a `scenario` column.)
 
 A carbon **tax** and a CO2 **cap** both cut emissions but through
 different mechanisms (price vs quantity); a **renewable target** raises
@@ -182,12 +189,17 @@ HTML/PDF; needs pandoc):
 ``` r
 
 report(scen_BASE, name = "ENUC", format = "html")
+
+# the whole-scenario results report: run provenance (scenario_runs()),
+# solution checks, generation/capacity charts, and a role-driven cost
+# breakdown; `run =` reports any recorded run, not only the active one
+report(scen_BASE)
 ```
 
 ## Other structures
 
-The same code runs on a different layout – e.g. the single-region `reg1`
-or the 7-region `reg7` (heavier). Just swap the kit:
+The same code runs on a different layout – e.g. the single-region `R1`
+or the larger `R7` / `R11` (heavier). Just swap the kit:
 
 ``` r
 

@@ -1,9 +1,11 @@
-# Make a name for a scenario directory
+# Make a name for a scenario directory (deprecated)
 
-A function to automate the creation of a scenario directory name. Used
-internally in `solve*()` and `interpolate*()` functions. Also can be
-used to amend the name of the scenario directory and explicitly assign
-the directory name to save the scenario object.
+Deprecated: scenario folders are named by the internal
+`.scenario_dir_name()` (which slugs the parts and drops duplicates);
+this export never was the live implementation and produced different
+names. It now delegates to the real one; `prefix`/`suffix` are still
+honored. The previous body is archived in
+`drafts/make_scenario_dirname-legacy.R`.
 
 ## Usage
 
@@ -54,17 +56,8 @@ make_scenario_dirname(
 
 - sep:
 
-  character, separator, default is `_`
+  character, ignored (kept for backward compatibility)
 
 ## Value
 
 character, name of the scenario directory
-
-## Examples
-
-``` r
-if (FALSE) { # \dontrun{
-make_scenario_dirname(scen_BASE)
-make_scenario_dirname(scen_BASE, prefix = "prefix", suffix = "suffix")
-} # }
-```

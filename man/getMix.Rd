@@ -12,7 +12,8 @@ getMix(
   year = NULL,
   timeslice = NULL,
   drop_small = 0,
-  by = NULL
+  by = NULL,
+  top_n = NULL
 )
 }
 \arguments{
@@ -39,7 +40,8 @@ calendar). When the matched timeslices carry an hour tag (\verb{"_h00"..."_h23"}
 an integer \code{hour} column is added.}
 
 \item{drop_small}{numeric in \verb{[0, 1)}: drop processes whose total absolute
-value is below this share of the largest process (default \code{0}, keep all).}
+value is below this share of the largest process (default \code{0}, keep all).
+Unlike \code{top_n} this DELETES rows -- stacked charts lose that mass.}
 
 \item{by}{character vector, any of \code{"vintage"} and \code{"cluster"}. Technology
 variants are always rolled back up to their base technology in \code{process};
@@ -47,6 +49,13 @@ by default (\code{NULL}) they are simply summed, so charts do not fragment into
 one series per variant. Naming a dimension here keeps it as an extra
 grouping column (with \code{"(none)"} for processes that have no variants), ready
 to drive a fill or facet.}
+
+\item{top_n}{integer: keep the \code{top_n} largest processes (by summed
+absolute value) and lump the rest into one \code{"Other"} series.
+Mass-preserving -- lumped rows are re-aggregated, not dropped -- and the
+demand overlay is never lumped. \code{NULL} (default) or \code{Inf} keeps every
+process. Applied after \code{drop_small}. On a list of scenarios the lumping
+runs per scenario, so each keeps its own top set.}
 }
 \value{
 A tidy data.frame with columns \code{scenario}, \code{type}, \code{process}, \code{flow}

@@ -1719,3 +1719,30 @@ theme_energyRt <- function(base_size = 11, ...) {
   # the package that must call ggplot2 directly, or it recurses into itself.
   ggplot2::theme_bw(base_size = base_size, ...)
 }
+
+# Legend management for many-key fill scales: a list of ggplot components to
+# `+` onto a plot; empty for small legends. Deliberately NOT part of
+# theme_energyRt() -- the theme is data-blind and serves 2-5-key charts where
+# a bottom multi-column legend would waste height; legend policy needs the
+# key count, which only the plot builder knows.
+#' @noRd
+.legend_compact <- function(n_keys, base_size = 11) {
+  if (!is.finite(n_keys) || n_keys <= 8) return(list())
+  list(
+    ggplot2::theme(
+      legend.position = "bottom",
+      legend.text = ggplot2::element_text(
+        size = if (n_keys > 15) base_size - 4 else base_size - 3),
+      legend.key.size = ggplot2::unit(if (n_keys > 15) 3.5 else 4.5, "mm"),
+      legend.margin = ggplot2::margin(0, 0, 0, 0)),
+    ggplot2::guides(fill = ggplot2::guide_legend(
+      ncol = if (n_keys > 15) 4L else 3L, byrow = TRUE)))
+}
+
+# Reorder a discrete fill column so the lump bucket stacks and lists last.
+#' @noRd
+.mix_other_last <- function(x, other = c("Other", "Other processes")) {
+  u <- unique(as.character(x))
+  tail_ <- intersect(other, u)
+  factor(as.character(x), levels = c(setdiff(sort(u), tail_), tail_))
+}

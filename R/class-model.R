@@ -492,10 +492,39 @@ setMethod("add", "model", add.model)
 summary.model <- function(object, ...) {
   cat("Model: ", object@name, "\n")
   cat("Description: ", object@desc, "\n")
-  cat("Repositories: ", names(object@data), "\n")
-  # cat("Horizon: ", getHorizon(object), "\n")
-  # cat("Calendar: ", getCalendar(object), "\n")
-  # invisible(object)
+  cat("Repositories: ", paste(names(object@data), collapse = ", "), "\n")
+  reg <- get_region(object)
+  if (length(reg) > 0L) {
+    cat("Regions: ", length(reg), " (", .preview_chr(reg), ")\n", sep = "")
+  }
+  cnt <- .object_counts(object)
+  if (length(cnt) > 0L) {
+    cat("Objects: ", sum(cnt), "\n", sep = "")
+    print(cnt)
+  }
+  invisible(cnt)
+}
+
+# Objects by class across every repository of the model -- the count
+# `summary()` already gives for a single repository, so that a reader can get it
+# from a model without reaching into `@data`.
+#' @noRd
+.object_counts <- function(object) {
+  cls <- unlist(lapply(object@data, function(rp) {
+    objs <- if (methods::is(rp, "repository")) rp@data else list(rp)
+    vapply(objs, function(o) class(o)[1], "")
+  }), use.names = FALSE)
+  if (length(cls) == 0L) {
+    return(integer(0))
+  }
+  tb <- table(cls)
+  stats::setNames(as.integer(tb), names(tb))
+}
+
+#' @noRd
+.preview_chr <- function(x, n = 5L) {
+  paste0(paste(utils::head(x, n), collapse = ", "),
+         if (length(x) > n) ", ..." else "")
 }
 
 #' @rdname summary

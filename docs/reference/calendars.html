@@ -19,7 +19,7 @@ template for newCalendar()."><meta property="og:image" content="https://energyRt
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.85.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -42,6 +42,8 @@ template for newCalendar()."><meta property="og:image" content="https://energyRt
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
+    <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
+    <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
     <li><a class="dropdown-item" href="../articles/autoplot.html">autoplot()</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
@@ -80,33 +82,78 @@ template for <code><a href="newCalendar.html">newCalendar()</a></code>.</p>
 
     <div class="section level2">
     <h2 id="format">Format<a class="anchor" aria-label="anchor" href="#format"></a></h2>
-    <p>A named list of <code>calendar</code> objects, including:</p><dl><dt>season_dn</dt>
+    <p>A named list of <code>calendar</code> objects:</p><dl><dt>annual</dt>
+<dd><p>Annual resolution (1 timeslice).</p></dd>
+
+<dt>season_dn</dt>
 <dd><p>Four seasons x day/night (8 timeslices).</p></dd>
+
+<dt>utopia_seasons</dt>
+<dd><p>UTOPIA: 4 seasons x 3 dayparts (DAY/NIGHT/PEAK)
+with representative shares (12 timeslices).</p></dd>
+
+<dt>unit_s4, unit_s4h4</dt>
+<dd><p>Perfectly symmetric unit calendars for the
+hand-computable <code>utopia_modules$unit</code> kits.</p></dd>
+
+<dt>m12, m12a</dt>
+<dd><p>Monthly resolution, day-proportional shares –
+<code>m01..m12</code> and <code>JAN..DEC</code> labels respectively (12 timeslices).</p></dd>
+
+<dt>q4</dt>
+<dd><p>Calendar quarters <code>Q1..Q4</code>, day-proportional (4 timeslices).</p></dd>
+
+<dt>s4</dt>
+<dd><p>Meteorological seasons <code>WIN/SPR/SUM/FAL</code> in calendar order,
+day-proportional 90/92/92/91 shares (4 timeslices).</p></dd>
+
+<dt>s4_h24</dt>
+<dd><p>Seasons x 24 hours (96 timeslices) – the UTOPIA base
+calendar.</p></dd>
+
+<dt>m12_h24</dt>
+<dd><p>Months x 24 hours (288 timeslices) – the
+higher-resolution UTOPIA option.</p></dd>
+
+<dt>wd7_h24</dt>
+<dd><p>Weekday (<code>MON..SUN</code>) x 24 hours (168 timeslices).</p></dd>
+
+<dt>w52_h24</dt>
+<dd><p>Week (<code>w01..w52</code>) x 24 hours (1248 timeslices).</p></dd>
 
 <dt>d365</dt>
 <dd><p>Daily resolution, 365 days.</p></dd>
 
-<dt>utopia_annual</dt>
-<dd><p>UTOPIA: annual resolution (1 timeslice).</p></dd>
-
-<dt>utopia_seasons</dt>
-<dd><p>UTOPIA: 4 seasons x 3 dayparts (DAY/NIGHT/PEAK) with
-representative shares (12 timeslices) – the default UTOPIA resolution.</p></dd>
-
-<dt>utopia_m12h24</dt>
-<dd><p>UTOPIA: 12 months x 24 hours (288 timeslices).</p></dd>
-
 <dt>d365_h24</dt>
-<dd><p>Full hourly year: 365 days x 24 hours (8760 timeslices).</p></dd>
+<dd><p>Full hourly year: 365 days x 24 hours (8760
+timeslices).</p></dd>
+
+<dt>s4_h24_subset_2seasons</dt>
+<dd><p>SAMPLED: <code>s4_h24</code> filtered to WIN+SUM;
+<code>year_fraction</code> ~ 0.499.</p></dd>
+
+<dt>m12_h24_subset_4months</dt>
+<dd><p>SAMPLED: <code>m12_h24</code> filtered to
+m01/m04/m07/m10; <code>year_fraction</code> ~ 0.337.</p></dd>
+
+<dt>m12_subset_q1</dt>
+<dd><p>SAMPLED: <code>m12</code> filtered to Jan-Mar;
+<code>year_fraction</code> = 90/365.</p></dd>
 
 <dt>d365_h24_subset_1day_per_month</dt>
-<dd><p>Representative subset: one day per
-month at hourly resolution (288 timeslices, <code>year_fraction</code> ~ 12/365).</p></dd>
+<dd><p>SAMPLED: one day per month at
+hourly resolution (288 timeslices, <code>year_fraction</code> ~ 12/365).</p></dd>
 
 
-</dl><p>The <code>utopia_*</code> calendars are built from energyRt's own constructors; the
-hourly <code>d365_h24*</code> calendars are imported from the IDEEA package. See
-<code>data-raw/calendars.R</code> for the generating script.</p>
+</dl><p>The mainstream designs (<code>m12</code> .. <code>w52_h24</code> and the first three sampled
+entries) are generated from the <code>timescales</code> catalog at DATA-BUILD time
+only – timescales is not a runtime dependency. Sampled calendars carry
+<code>year_fraction &lt; 1</code> and solve partial years natively: their timetables
+are row subsets of the parent's (never rebuilt with
+<code><a href="calendar.html">make_timetable()</a></code>, which would renormalise the shares) with the
+surviving <code>sum(share)</code> passed as <code>year_fraction</code>. The hourly
+<code>d365_h24*</code> entries come from IDEEA. See <code>data-raw/calendars.R</code> for the
+generating script.</p>
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
@@ -116,10 +163,16 @@ hourly <code>d365_h24*</code> calendars are imported from the IDEEA package. See
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">calendars</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "season_dn"                      "d365"                          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [3] "utopia_annual"                  "utopia_seasons"                </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [5] "utopia_s4h24"                   "utopia_m12h24"                 </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [7] "d365_h24"                       "d365_h24_subset_1day_per_month"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [1] "season_dn"                      "d365"                          </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [3] "annual"                         "utopia_seasons"                </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [5] "unit_s4"                        "unit_s4h4"                     </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [7] "d365_h24"                       "d365_h24_subset_1day_per_month"</span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [9] "m12"                            "m12a"                          </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [11] "q4"                             "s4"                            </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [13] "s4_h24"                         "m12_h24"                       </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [15] "wd7_h24"                        "w52_h24"                       </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [17] "s4_h24_subset_2seasons"         "m12_h24_subset_4months"        </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [19] "m12_subset_q1"                 </span>
 <span class="r-in"><span><span class="fu"><a href="draw.html">plot</a></span><span class="op">(</span><span class="va">calendars</span><span class="op">$</span><span class="va">season_dn</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="calendars-1.png" alt="" width="700" height="433"></span>
 </code></pre></div>

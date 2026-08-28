@@ -29,8 +29,10 @@ Other options:
 [`get_arrow_format()`](https://energyRt.org/reference/arrow_format.md),
 [`get_default_solver()`](https://energyRt.org/reference/default_solver.md),
 [`isVerbose()`](https://energyRt.org/reference/isVerbose.md),
-[`set_default_registry()`](https://energyRt.org/reference/default_registry.md),
+[`set_log_file()`](https://energyRt.org/reference/log.md),
 [`set_option()`](https://energyRt.org/reference/en_option.md),
+[`set_registry_file()`](https://energyRt.org/reference/registry_file.md),
+[`set_reports_path()`](https://energyRt.org/reference/reports_path.md),
 [`set_solver_path()`](https://energyRt.org/reference/solver_path.md)
 
 ## Examples

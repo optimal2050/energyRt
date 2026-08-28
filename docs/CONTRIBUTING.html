@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.85.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,6 +36,8 @@
     <li><a class="dropdown-item" href="articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="articles/workflow.html">Workflow</a></li>
+    <li><a class="dropdown-item" href="articles/scenario-management.html">Scenario management</a></li>
+    <li><a class="dropdown-item" href="articles/reports.html">Reports &amp; levelized costs</a></li>
     <li><a class="dropdown-item" href="articles/autoplot.html">autoplot()</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="news/index.html">News</a></li>
@@ -61,40 +63,67 @@
 
 <div id="contributing-to-energyrt" class="section level1">
 
-<p>This outlines how to propose a change to energyRt. For a detailed discussion on contributing to this and other tidyverse packages, please see the <a href="https://rstd.io/tidy-contrib" class="external-link">development contributing guide</a> and our <a href="https://code-review.tidyverse.org/" class="external-link">code review principles</a>.</p>
+<blockquote>
+<p>Stack-wide conventions (naming, style, git policy, API principles, and the terms on which AI assistance is used) are unified in <a href="https://github.com/optimal2050/.github/blob/main/CONVENTIONS.md" class="external-link">optimal2050 CONVENTIONS.md</a>; this file covers the workflow of this repo.</p>
+</blockquote>
+<p>Thanks for your interest! <code>energyRt</code> is the model hub of the optimal2050 modeling stack — it builds energy system optimization models and writes them out to several solver backends.</p>
+<blockquote>
+<p>The repository is public and contributions are welcome — issues, ideas, and pull requests alike. Open an issue first for larger changes; the package is pre-1.0 and APIs still move.</p>
+</blockquote>
+<p><strong>Before writing code, read <a href="../.claude/CLAUDE.html"><code>.claude/CLAUDE.md</code></a>.</strong> It records the failure modes of this codebase, most of which are <em>silent</em> — a run that looks green while having tested nothing, a parameter accepted by a constructor that never reaches the solver. It is the highest-value page here.</p>
 <div class="section level2">
-<h2 id="fixing-typos">Fixing typos<a class="anchor" aria-label="anchor" href="#fixing-typos"></a></h2>
-<p>You can fix typos, spelling mistakes, or grammatical errors in the documentation directly using the GitHub web interface, as long as the changes are made in the <em>source</em> file. This generally means you’ll need to edit <a href="https://roxygen2.r-lib.org/articles/roxygen2.html" class="external-link">roxygen2 comments</a> in an <code>.R</code>, not a <code>.Rd</code> file. You can find the <code>.R</code> file that generates the <code>.Rd</code> by reading the comment in the first line.</p>
+<h2 id="development-workflow">Development workflow<a class="anchor" aria-label="anchor" href="#development-workflow"></a></h2>
+<div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="co"># from the repo root</span></span>
+<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org/reference/load_all.html" class="external-link">load_all</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org/reference/document.html" class="external-link">document</a></span><span class="op">(</span><span class="op">)</span>      <span class="co"># regenerates NAMESPACE and all of man/</span></span>
+<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org/reference/test.html" class="external-link">test</a></span><span class="op">(</span><span class="op">)</span></span>
+<span><span class="fu">devtools</span><span class="fu">::</span><span class="fu"><a href="https://devtools.r-lib.org/reference/check.html" class="external-link">check</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p>Two things about the test suite that catch everyone once:</p>
+<ul><li>
+<strong>Tiers, not <code>skip_on_cran()</code>.</strong> Solver tests are gated by <code>ENERGYRT_TEST_TIER</code> (<code>check &lt; fast &lt; cross &lt; nightly</code>; unset resolves to <code>fast</code> locally and <code>check</code> under <code>R CMD check</code>), so a plain run solves whenever <code>glpsol</code> is present. For a standalone <code><a href="https://testthat.r-lib.org/reference/test_file.html" class="external-link">testthat::test_file()</a></code>, <code>pkgload::load_all(".")</code> first. See <code>tests/README.md</code> and <code>dev/TESTING.md</code>.</li>
+<li>A run that <strong>aborted early is not a passing run</strong>. Check the totals.</li>
+</ul></div>
+<div class="section level2">
+<h2 id="naming-digest--the-full-rule-lives-in-the-stack-doc">Naming (digest — the full rule lives in the stack doc)<a class="anchor" aria-label="anchor" href="#naming-digest--the-full-rule-lives-in-the-stack-doc"></a></h2>
+<ul><li>
+<strong><code>verb_class()</code></strong> for operations and transforms: <code><a href="reference/model_store.html">save_model()</a></code>, <code><a href="reference/registry.html">load_registry()</a></code>, <code><a href="reference/scenario_runs.html">drop_scenario_run()</a></code>, <code><a href="reference/apply_ledger.html">apply_ledger()</a></code>.</li>
+<li>
+<strong>Class-prefixed nouns</strong> for properties and queries: <code><a href="reference/model_hash.html">model_hash()</a></code>, <code><a href="reference/scenario_runs.html">scenario_runs()</a></code>, <code><a href="reference/solution_ledger.html">solution_ledger()</a></code>.</li>
+<li>Constructors (<code><a href="reference/newScenario.html">newScenario()</a></code>), <code>get_/set_</code> option accessors, and foreign generics keep their conventional shapes. See <a href="https://github.com/optimal2050/.github/blob/main/CONVENTIONS.md" class="external-link">CONVENTIONS.md § Naming</a>.</li>
+<li>
+<strong><code>en_</code> is the package’s namespace prefix</strong> wherever a name must be claimed in a space energyRt does not own: low-level utilities (<code>en_config()</code>, <code>en_option()</code>, <code>en_open_dataset()</code>, <code>en_install_*()</code>) and, as <strong><code>en-</code></strong>, the knitr chunk labels of every shipped report template (<code>en-setup</code>, <code>en-css</code>, …). Template chunk labels MUST carry the prefix: <code><a href="reference/report.html">report()</a></code> can run inside a user’s own knit, where an unprefixed label like <code>setup</code> collides with the outer document’s chunks and aborts the render (“Duplicate chunk label”). Do not adopt new prefixes (<code>ert</code>, package initials, project names) for this role — the legacy <code>ert-</code>/<code>ideea-</code> CSS classes and LaTeX color names inside the templates are grandfathered, not a precedent.</li>
+</ul></div>
+<div class="section level2">
+<h2 id="solver-backends">Solver backends<a class="anchor" aria-label="anchor" href="#solver-backends"></a></h2>
+<p>Models are rendered to GLPK/MathProg, JuMP (Julia), Pyomo and GAMS, and the templates in <code>glpk/</code>, <code>julia/</code>, <code>pyomo/</code> and <code>gams/</code> are baked into <code>R/sysdata.rda</code> by <code>data-raw/DATASET.R</code>. <strong>Editing a template does nothing until that script is re-run.</strong> A change to one backend almost always has to be made in all four; the golden benchmarks under <code>tests/testthat/goldens/</code> are what catch a backend left behind, because they store objectives and aggregated values rather than names.</p>
+<p>GAMS needs a license; NEOS is the practical way to exercise that backend (<code><a href="reference/neos_email.html">set_neos_email()</a></code>, then a <code>neos_gams_*</code> solver option).</p>
+<p><strong>Backend choice by model size.</strong> The default backend for <em>small</em> models is <strong>GLPK</strong> (<code>solver_options$glpk</code>): zero startup cost, no external toolchain, and faster end-to-end whenever the solve itself is under ~30 seconds — the tm/unit test fixtures and the UTOPIA <code>R1</code>/<code>R3</code> layouts all fall here. For <strong>mid-size and sampled models</strong> — the UTOPIA <code>R7</code>/<code>R11</code> layouts, hourly or full-year calendars, spatially or temporally sampled runs — use <strong>julia/HiGHS</strong> (<code>solver_options$julia_highs</code>): its presolve and dual simplex dominate once the LP is large or degenerate (a full-year 8760-slice model: ~3 minutes in glpsol vs ~2 seconds of HiGHS runtime after the one-off Julia warmup). The golden suites encode the same rule per suite (<code>SUITE_SOLVERS</code> in <code>tools/test/make_goldens.R</code>), so regenerating the mid-size goldens requires Julia with JuMP/HiGHS installed.</p>
 </div>
 <div class="section level2">
-<h2 id="bigger-changes">Bigger changes<a class="anchor" aria-label="anchor" href="#bigger-changes"></a></h2>
-<p>If you want to make a bigger change, it’s a good idea to first file an issue and make sure someone from the team agrees that it’s needed. If you’ve found a bug, please file an issue that illustrates the bug with a minimal <a href="https://www.tidyverse.org/help/#reprex" class="external-link">reprex</a> (this will also help you write a unit test, if needed). See our guide on <a href="https://code-review.tidyverse.org/issues/" class="external-link">how to create a great issue</a> for more advice.</p>
-<div class="section level3">
-<h3 id="pull-request-process">Pull request process<a class="anchor" aria-label="anchor" href="#pull-request-process"></a></h3>
-<ul><li><p>Fork the package and clone onto your computer. If you haven’t done this before, we recommend using <code>usethis::create_from_github("optimal2050/energyRt", fork = TRUE)</code>.</p></li>
-<li><p>Install all development dependencies with <code><a href="https://devtools.r-lib.org/reference/install_deps.html" class="external-link">devtools::install_dev_deps()</a></code>, and then make sure the package passes R CMD check by running <code><a href="https://devtools.r-lib.org/reference/check.html" class="external-link">devtools::check()</a></code>. If R CMD check doesn’t pass cleanly, it’s a good idea to ask for help before continuing.</p></li>
-<li><p>Create a Git branch for your pull request (PR). We recommend using <code>usethis::pr_init("brief-description-of-change")</code>.</p></li>
-<li><p>Make your changes, commit to git, and then create a PR by running <code><a href="https://usethis.r-lib.org/reference/pull-requests.html" class="external-link">usethis::pr_push()</a></code>, and following the prompts in your browser. The title of your PR should briefly describe the change. The body of your PR should contain <code>Fixes #issue-number</code>.</p></li>
-<li><p>For user-facing changes, add a bullet to the top of <code>NEWS.md</code> (i.e. just below the first header). Follow the style described in <a href="https://style.tidyverse.org/news.html" class="external-link uri">https://style.tidyverse.org/news.html</a>.</p></li>
-</ul></div>
-<div class="section level3">
-<h3 id="code-style">Code style<a class="anchor" aria-label="anchor" href="#code-style"></a></h3>
-<ul><li><p>New code should follow the tidyverse <a href="https://style.tidyverse.org" class="external-link">style guide</a>. You can use the <a href="https://CRAN.R-project.org/package=styler" class="external-link">styler</a> package to apply these styles, but please don’t restyle code that has nothing to do with your PR.</p></li>
-<li><p>We use <a href="https://cran.r-project.org/package=roxygen2" class="external-link">roxygen2</a>, with <a href="https://cran.r-project.org/web/packages/roxygen2/vignettes/rd-formatting.html" class="external-link">Markdown syntax</a>, for documentation.</p></li>
-<li><p>We use <a href="https://cran.r-project.org/package=testthat" class="external-link">testthat</a> for unit tests. Contributions with test cases included are easier to accept.</p></li>
-</ul></div>
+<h2 id="repository-layout">Repository layout<a class="anchor" aria-label="anchor" href="#repository-layout"></a></h2>
+<pre><code>R/                 the package
+glpk/ julia/ pyomo/ gams/   solver templates (baked into sysdata)
+data-raw/          DATASET.R rebuilds sysdata from the templates + YAML specs
+tests/testthat/    unit tests, goldens/, and _snaps/
+drafts/            archived code — superseded work moves here, it is not deleted
+dev/ dev-scripts/  design notes and the mapping-pipeline docs</code></pre>
 </div>
 <div class="section level2">
-<h2 id="ai-assisted-contributions">AI-assisted contributions<a class="anchor" aria-label="anchor" href="#ai-assisted-contributions"></a></h2>
-<p>AI-assisted contributions are welcome. We ask three things:</p>
-<ul><li><p><strong>Disclose it.</strong> Say in the pull request description that AI assistance was used, and roughly for what (drafting, refactoring, tests, documentation). Commit trailers such as <code>Co-authored-by:</code> or <code>Assisted-by:</code> are fine as provenance metadata.</p></li>
-<li><p><strong>You are responsible for it.</strong> As the submitter you take the same responsibility for AI-assisted code as for any code you did not write from scratch: that you have the right to contribute it, that it is compatible with the package licence (AGPL-3), and that it is correct. Please review generated code rather than pasting it, and make sure the test suite passes.</p></li>
-<li><p><strong>Read <a href="../AGENTS.html"><code>AGENTS.md</code></a> first.</strong> It lists the project conventions and the traps that fail <em>silently</em> in this codebase — constructors that return empty objects, templates that need a <code>sysdata</code> rebuild, S3 methods that never register. Generated code that ignores these tends to look right and behave wrong. Pointing your tool at that file up front saves a review cycle.</p></li>
-</ul><p>Note that AI tools are not listed as package authors. Authorship implies accountability for the work, so credit for a contribution goes to the person who submitted and vouched for it. See <a href="../AUTHORS.html"><code>AUTHORS.md</code></a> for how authorship and contribution are recorded.</p>
+<h2 id="commit--pr-conventions">Commit &amp; PR conventions<a class="anchor" aria-label="anchor" href="#commit--pr-conventions"></a></h2>
+<ul><li>Open PRs against <strong><code>dev</code></strong> — this repo’s default branch is not <code>main</code>.</li>
+<li>Conventional Commits style is encouraged but not enforced (<code>feat:</code>, <code>fix:</code>, <code>docs:</code>, <code>refactor:</code>, <code>test:</code>, <code>chore:</code>).</li>
+<li>CI must pass.</li>
+<li>User-facing changes get a bullet in <code>NEWS.md</code> under the development version, filed beneath one of <code>## Breaking changes / New features / Deprecations / Bug fixes / Documentation</code>. Keep it to the final state in one or two lines — rationale belongs in the commit message or <code>dev/</code>, not in NEWS.</li>
+<li>Reference the sibling package’s PR when a change spans both.</li>
+</ul></div>
+<div class="section level2">
+<h2 id="license">License<a class="anchor" aria-label="anchor" href="#license"></a></h2>
+<p>energyRt is <strong>AGPL-3</strong>. Note that other packages in the stack are Apache-2.0 or MIT — do not copy code or data across that boundary without an explicit maintainer decision. By contributing you agree that your contributions are licensed under the AGPL-3. See <a href="../LICENSE">LICENSE</a>.</p>
 </div>
 <div class="section level2">
 <h2 id="code-of-conduct">Code of Conduct<a class="anchor" aria-label="anchor" href="#code-of-conduct"></a></h2>
-<p>Please note that the energyRt project is released with a <a href="CODE_OF_CONDUCT.html">Contributor Code of Conduct</a>. By contributing to this project you agree to abide by its terms.</p>
+<p>Please note that this project is released with a Contributor Code of Conduct. By participating in it you agree to abide by its terms.</p>
 </div>
 </div>
 

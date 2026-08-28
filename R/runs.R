@@ -109,6 +109,8 @@
 .run_record_start <- function(scen, arg) {
   run_dir <- arg$run.dir
   if (is_empty(run_dir)) return(invisible(NULL))
+  # a sealed scenario accepts no new recorded runs (see ?seal_scenario)
+  .scenario_seal_guard(scen)
   ry <- fp(run_dir, "run.yml")
   if (file.exists(ry)) {
     prev <- tryCatch(yaml::read_yaml(ry), error = function(e) NULL)
@@ -292,6 +294,8 @@ scenario_run_info <- function(scen, run) {
 #' @export
 drop_scenario_run <- function(scen, run, force = FALSE) {
   stopifnot(is(scen, "scenario"))
+  # a sealed scenario keeps its runs (see ?seal_scenario)
+  .scenario_seal_guard(scen)
   id <- .parse_run_id(run, scen)
   run_dir <- .run_dir(scen, id$variant, id$solve)
   if (!dir.exists(run_dir)) {
@@ -490,6 +494,11 @@ drop_scenario_run <- function(scen, run, force = FALSE) {
   )
   mf$model <- model %||% prev$model
   mf$datasets <- datasets %||% prev$datasets
+  # lifecycle state (seal/mark, R/seal.R) survives re-saves
+  for (k in c("sealed", "sealed_at", "sealed_hash",
+              "marked_delete", "delete_importance", "marked_at")) {
+    if (!is.null(prev[[k]])) mf[[k]] <- prev[[k]]
+  }
   yaml::write_yaml(mf, mf_path)
   invisible(mf_path)
 }

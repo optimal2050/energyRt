@@ -40,8 +40,8 @@ library(ggplot2)
 
 # Shared helpers live in the package (see ?energyRt::report_helpers).
 fmt <- energyRt::report_setup()
-tbl <- function(df, caption = NULL, digits = 4L)
-  energyRt::report_tbl(df, caption, digits, output = fmt)
+tbl <- function(df, caption = NULL, digits = 4L, ...)
+  energyRt::report_tbl(df, caption, digits, output = fmt, ...)
 emit_img <- function(path, frac = 1)
   energyRt::report_img(path, frac, output = fmt)
 ```
@@ -101,19 +101,19 @@ tbl(params$run_info_df, caption = "Reported run")
 
 ## Results
 
-```{r en-gen, fig.width=8, fig.height=4.5, eval=!is.null(params$gen_plot)}
+```{r en-gen, fig.width=8, fig.height=5.5, eval=!is.null(params$gen_plot)}
 params$gen_plot
 ```
 
-```{r en-gen-day, fig.width=8, fig.height=4.5, eval=!is.null(params$gen_day_plot)}
+```{r en-gen-day, fig.width=8, fig.height=5.5, eval=!is.null(params$gen_day_plot)}
 params$gen_day_plot
 ```
 
-```{r en-cap, fig.width=8, fig.height=4.5, eval=!is.null(params$cap_plot)}
+```{r en-cap, fig.width=8, fig.height=5.5, eval=!is.null(params$cap_plot)}
 params$cap_plot
 ```
 
-```{r en-newcap, fig.width=8, fig.height=4.5, eval=!is.null(params$newcap_plot)}
+```{r en-newcap, fig.width=8, fig.height=5.5, eval=!is.null(params$newcap_plot)}
 params$newcap_plot
 ```
 
@@ -132,7 +132,7 @@ cat("## Emissions\n")
 ```
 
 ```{r en-emis, results='asis', eval=!is.null(params$emis_df)}
-tbl(params$emis_df)
+tbl(params$emis_df, max_rows = 30)
 ```
 
 ```{r en-variants-header, results='asis', eval=!is.null(params$variants_df)}
@@ -148,5 +148,5 @@ cat("## Levelized costs (ex-post)\n")
 ```
 
 ```{r en-levcost, results='asis', eval=!is.null(params$levcost_df)}
-tbl(params$levcost_df)
+tbl(params$levcost_df, caption = "Levelized cost, most expensive first", max_rows = 30)
 ```

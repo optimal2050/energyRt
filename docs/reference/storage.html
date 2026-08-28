@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.85.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,6 +36,8 @@
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
+    <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
+    <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
     <li><a class="dropdown-item" href="../articles/autoplot.html">autoplot()</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
@@ -155,7 +157,7 @@ so the object never carries two answers.</p></dd>
 <dd><p>character. Unit of <code>comm</code> on this side, exactly as on <code>technology@input</code>/ <code>@output</code>. Descriptive only: it is carried for reporting and <code>convert()</code> and never reaches the solver. It is the unit of the COMMODITY (e.g. MWh), not of the capacity – capacity units follow from <code>cap2act</code>, and the storing side has no <code>cap2act</code> because a reservoir is an amount rather than a rate.</p></dd>
 
 <dt>cap2act</dt>
-<dd><p>numeric. Capacity to ANNUAL flow, exactly as <code>technology@cap2act</code>. The flow bound is <code>cinp.up * cap2act * cap * pTimesliceShare</code>, so <code>cap</code> is a RATE and means the same physical thing on any calendar. Defaults to 8760 (hours in a year), which makes <code>cap</code> read as commodity per HOUR; an hourly full-year model is unchanged because 8760 * (1/8760) = 1. Assumes commodity unit = capacity unit x hour (GW with GWh); GW with TWh wants 8.76. The STORING side has no cap2act – energy is energy at any resolution.</p></dd>
+<dd><p>numeric. Capacity to ANNUAL flow, exactly as <code>technology@cap2act</code>. The flow bound is <code>inp.af.up * cap2act * cap * pTimesliceShare</code>, so <code>cap</code> is a RATE and means the same physical thing on any calendar. Defaults to 8760 (hours in a year), which makes <code>cap</code> read as commodity per HOUR; an hourly full-year model is unchanged because 8760 * (1/8760) = 1. Assumes commodity unit = capacity unit x hour (GW with GWh); GW with TWh wants 8.76. The STORING side has no cap2act – energy is energy at any resolution.</p></dd>
 
 
 </dl></dd>
@@ -170,7 +172,7 @@ so the object never carries two answers.</p></dd>
 <dd><p>character. Unit of <code>comm</code> on this side, exactly as on <code>technology@input</code>/ <code>@output</code>. Descriptive only: it is carried for reporting and <code>convert()</code> and never reaches the solver. It is the unit of the COMMODITY (e.g. MWh), not of the capacity – capacity units follow from <code>cap2act</code>, and the storing side has no <code>cap2act</code> because a reservoir is an amount rather than a rate.</p></dd>
 
 <dt>cap2act</dt>
-<dd><p>numeric. Capacity to ANNUAL flow, exactly as <code>technology@cap2act</code>. The flow bound is <code>cinp.up * cap2act * cap * pTimesliceShare</code>, so <code>cap</code> is a RATE and means the same physical thing on any calendar. Defaults to 8760 (hours in a year), which makes <code>cap</code> read as commodity per HOUR; an hourly full-year model is unchanged because 8760 * (1/8760) = 1. Assumes commodity unit = capacity unit x hour (GW with GWh); GW with TWh wants 8.76. The STORING side has no cap2act – energy is energy at any resolution.</p></dd>
+<dd><p>numeric. Capacity to ANNUAL flow, exactly as <code>technology@cap2act</code>. The flow bound is <code>inp.af.up * cap2act * cap * pTimesliceShare</code>, so <code>cap</code> is a RATE and means the same physical thing on any calendar. Defaults to 8760 (hours in a year), which makes <code>cap</code> read as commodity per HOUR; an hourly full-year model is unchanged because 8760 * (1/8760) = 1. Assumes commodity unit = capacity unit x hour (GW with GWh); GW with TWh wants 8.76. The STORING side has no cap2act – energy is energy at any resolution.</p></dd>
 
 
 </dl></dd>
@@ -179,49 +181,10 @@ so the object never carries two answers.</p></dd>
 <dt id="arg-storage">storage<a class="anchor" aria-label="anchor" href="#arg-storage"></a></dt>
 <dd><p>data.frame. The commodity the store HOLDS – what <code>vStorageLevel</code> is measured in. Named by <code>comm</code>, with an optional <code>unit</code>. Left empty it takes whatever <code>newStorage(commodity = )</code> supplied. It may differ from BOTH flows: a hydrogen store consumes and produces electricity while holding hydrogen. There is no <code>commodity</code> slot – <code>newStorage(commodity = )</code> is a shorthand folded into these three at construction, so an object never carries two answers to what it consumes. Beyond <code>comm</code>, this slot carries the storing side's OWN capacity and economics, measured in ENERGY (e.g. MWh) rather than power. Supplying any of them materialises <code>vStorageStgCap</code>, so the store's energy can be sized, bounded and priced independently of its inverter; supplying none of them (a bare <code>comm</code>) leaves the storage with a single power capacity and the pre-v0.84 model, with <code>@duration</code> inlined into the availability bounds.</p>
 <dl><dt>comm</dt>
-<dd><p>character. Commodity held in the store.</p></dd>
+<dd><p>character. Commodity the store HOLDS – what <code>vStorageLevel</code> is measured in.</p></dd>
 
 <dt>unit</dt>
-<dd><p>character. Unit of <code>comm</code> on this side, exactly as on <code>technology@input</code>/ <code>@output</code>. Descriptive only: it is carried for reporting and <code>convert()</code> and never reaches the solver. It is the unit of the COMMODITY (e.g. MWh), not of the capacity – capacity units follow from <code>cap2act</code>, and the storing side has no <code>cap2act</code> because a reservoir is an amount rather than a rate.</p></dd>
-
-<dt>vintage</dt>
-<dd><p>character. Vintage label selecting the variant this row applies to, NA for all.</p></dd>
-
-<dt>cluster</dt>
-<dd><p>character. Cluster label selecting the variant this row applies to, NA for all.</p></dd>
-
-<dt>region</dt>
-<dd><p>character. Region the row applies to, NA for all.</p></dd>
-
-<dt>year</dt>
-<dd><p>integer. Year the row applies to, NA for all.</p></dd>
-
-<dt>stock</dt>
-<dd><p>numeric. Pre-existing energy capacity, in commodity units. The energy analogue of <code>capacity$stock</code>, which is power.</p></dd>
-
-<dt>cap.lo</dt>
-<dd><p>numeric. Lower bound on total energy capacity.</p></dd>
-
-<dt>cap.up</dt>
-<dd><p>numeric. Upper bound on total energy capacity.</p></dd>
-
-<dt>cap.fx</dt>
-<dd><p>numeric. Fixed total energy capacity.</p></dd>
-
-<dt>ncap.lo</dt>
-<dd><p>numeric. Lower bound on new energy capacity added in the period.</p></dd>
-
-<dt>ncap.up</dt>
-<dd><p>numeric. Upper bound on new energy capacity added in the period.</p></dd>
-
-<dt>ncap.fx</dt>
-<dd><p>numeric. Fixed new energy capacity added in the period.</p></dd>
-
-<dt>invcost</dt>
-<dd><p>numeric. Overnight investment cost per unit of ENERGY capacity (currency/MWh), annuitised on the storage's own <code>@vintage</code> – one lifetime and one wacc for the object, two capital costs on different bases. This is what previously had to be hand-multiplied into the per-MW <code>@invcost</code>.</p></dd>
-
-<dt>fixom</dt>
-<dd><p>numeric. Fixed O&amp;M cost per unit of energy capacity per year.</p></dd>
+<dd><p>character. Unit of <code>comm</code>. Descriptive only, carried for reporting and <code>convert()</code> and never reaching the solver. There is no <code>cap2act</code> on this side – energy is energy at any resolution.</p></dd>
 
 
 </dl></dd>
@@ -326,6 +289,18 @@ so the object never carries two answers.</p></dd>
 <dt>ncap2aout</dt>
 <dd><p>numeric. New-capacity-to-auxiliary-output-commodity coefficient (multiplier).</p></dd>
 
+<dt>pho2ainp</dt>
+<dd><p>numeric. Aux commodity CONSUMED when capacity reaches the END OF ITS LIFE (demolition energy, labour). Multiplies the per-year phase-out FLOW, so the charge lands ONCE – in the milestone where the capacity disappears – not every year it stood. NO <code>pTimesliceShare</code> is applied and the aux balance is PER TIMESLICE, so a value given with <code>timeslice = NA</code> applies in EVERY slice and the annual total comes out multiplied by the slice count – 8760x on an hourly calendar. Give a per-slice value, or name a single slice.</p></dd>
+
+<dt>pho2aout</dt>
+<dd><p>numeric. Aux commodity RELEASED when capacity reaches the END OF ITS LIFE (demolition waste, recovered material). Fires even when <code>optimizeRetirement</code> is FALSE, which is the usual case. NO <code>pTimesliceShare</code> is applied and the aux balance is PER TIMESLICE, so a value given with <code>timeslice = NA</code> applies in EVERY slice and the annual total comes out multiplied by the slice count – 8760x on an hourly calendar. Give a per-slice value, or name a single slice.</p></dd>
+
+<dt>ret2ainp</dt>
+<dd><p>numeric. Aux commodity CONSUMED when capacity is retired EARLY. Separate from <code>pho2ainp</code> because the two differ physically: scrapping an intact plant is not the same job as demolishing a worn-out one. NO <code>pTimesliceShare</code> is applied and the aux balance is PER TIMESLICE, so a value given with <code>timeslice = NA</code> applies in EVERY slice and the annual total comes out multiplied by the slice count – 8760x on an hourly calendar. Give a per-slice value, or name a single slice.</p></dd>
+
+<dt>ret2aout</dt>
+<dd><p>numeric. Aux commodity RELEASED when capacity is retired EARLY (scrap). Usually LARGER than <code>pho2aout</code>: a plant retired before its time is still largely intact, so more material is recoverable. NO <code>pTimesliceShare</code> is applied and the aux balance is PER TIMESLICE, so a value given with <code>timeslice = NA</code> applies in EVERY slice and the annual total comes out multiplied by the slice count – 8760x on an hourly calendar. Give a per-slice value, or name a single slice.</p></dd>
+
 <dt>ncap2stg</dt>
 <dd><p>numeric. New-capacity-to-storage-level coefficient (multiplier).</p></dd>
 
@@ -334,7 +309,8 @@ so the object never carries two answers.</p></dd>
 
 
 <dt id="arg-af">af<a class="anchor" aria-label="anchor" href="#arg-af"></a></dt>
-<dd><p>data.frame. Availability factor parameters.</p><dl><dt>vintage</dt>
+<dd><p>data.frame. Availability factor parameters. Unlike a technology's <code>af</code> (which bounds activity, a flow), the storage <code>af.*</code> columns bound the stored LEVEL – a stock – as a fraction of the storing capacity, i.e. a state-of-charge range. They are not capacity factors. The flow-side bounds are the <code>cinp.*</code>/<code>cout.*</code> columns, which bound charge/discharge relative to the charger/discharger capacity per timeslice (those are the storage analogue of a technology's <code>af</code>).</p>
+<dl><dt>vintage</dt>
 <dd><p>character. Vintage label selecting the variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
 
 <dt>cluster</dt>
@@ -350,31 +326,31 @@ so the object never carries two answers.</p></dd>
 <dd><p>character. Time timeslice to apply the parameter, NA for every timeslice.</p></dd>
 
 <dt>af.lo</dt>
-<dd><p>numeric. Lower bound of the availability factor.</p></dd>
+<dd><p>numeric. Lower bound of the stored level as a fraction of storing capacity (minimum state of charge).</p></dd>
 
 <dt>af.up</dt>
-<dd><p>numeric. Upper bound of the availability factor.</p></dd>
+<dd><p>numeric. Upper bound of the stored level as a fraction of storing capacity (maximum state of charge).</p></dd>
 
 <dt>af.fx</dt>
-<dd><p>numeric. Fixed value of the availability factor. This parameter overrides <code>af.lo</code> and <code>af.up</code>.</p></dd>
+<dd><p>numeric. Fixed value of the stored-level fraction. This parameter overrides <code>af.lo</code> and <code>af.up</code>.</p></dd>
 
-<dt>cinp.lo</dt>
-<dd><p>numeric. Lower bound of the input commodity availability factor.</p></dd>
+<dt>inp.af.lo</dt>
+<dd><p>numeric. Lower bound of the charging (input) flow relative to charger capacity per timeslice.</p></dd>
 
-<dt>cinp.up</dt>
-<dd><p>numeric. Upper bound of the input commodity availability factor.</p></dd>
+<dt>inp.af.up</dt>
+<dd><p>numeric. Upper bound of the charging (input) flow relative to charger capacity per timeslice.</p></dd>
 
-<dt>cinp.fx</dt>
-<dd><p>numeric. Fixed value of the input commodity availability factor. This parameter overrides <code>cinp.lo</code> and <code>cinp.up</code>.</p></dd>
+<dt>inp.af.fx</dt>
+<dd><p>numeric. Fixed value of the charging (input) flow relative to charger capacity per timeslice. This parameter overrides <code>inp.af.lo</code> and <code>inp.af.up</code>.</p></dd>
 
-<dt>cout.lo</dt>
-<dd><p>numeric. Lower bound of the output commodity availability factor.</p></dd>
+<dt>out.af.lo</dt>
+<dd><p>numeric. Lower bound of the discharging (output) flow relative to discharger capacity per timeslice.</p></dd>
 
-<dt>cout.up</dt>
-<dd><p>numeric. Upper bound of the output commodity availability factor.</p></dd>
+<dt>out.af.up</dt>
+<dd><p>numeric. Upper bound of the discharging (output) flow relative to discharger capacity per timeslice.</p></dd>
 
-<dt>cout.fx</dt>
-<dd><p>numeric. Fixed value of the output commodity availability factor. This parameter overrides <code>cout.lo</code> and <code>cout.up</code>.</p></dd>
+<dt>out.af.fx</dt>
+<dd><p>numeric. Fixed value of the discharging (output) flow relative to discharger capacity per timeslice. This parameter overrides <code>out.af.lo</code> and <code>out.af.up</code>.</p></dd>
 
 
 </dl></dd>
@@ -393,8 +369,14 @@ so the object never carries two answers.</p></dd>
 <dt>year</dt>
 <dd><p>integer. Year to apply the parameter, NA for every year.</p></dd>
 
-<dt>fixom</dt>
-<dd><p>numeric. Fixed operation and maintenance cost for the specified sets.</p></dd>
+<dt>out.fixom</dt>
+<dd><p>numeric. Fixed operation and maintenance cost per unit of installed capacity of the discharging part – the power the store can deliver.</p></dd>
+
+<dt>inp.fixom</dt>
+<dd><p>numeric. Fixed operation and maintenance cost per unit of installed capacity of the charging part – the power the store can absorb.</p></dd>
+
+<dt>stg.fixom</dt>
+<dd><p>numeric. Fixed operation and maintenance cost per unit of installed capacity of the reservoir itself – the energy the store can hold.</p></dd>
 
 
 </dl></dd>
@@ -442,20 +424,50 @@ so the object never carries two answers.</p></dd>
 <dt>year</dt>
 <dd><p>integer. Year to apply the parameter, NA for every year.</p></dd>
 
-<dt>invcost</dt>
-<dd><p>numeric. Overnight investment cost for the specified region and year.</p></dd>
+<dt>out.invcost</dt>
+<dd><p>numeric. Investment cost per unit of new capacity of the discharging part – the power the store can deliver.</p></dd>
 
-<dt>wacc</dt>
-<dd><p>numeric. Weighted average cost of capital used to annuitise <code>invcost</code> for this storage. Overrides the model-wide <code>wacc</code> (see the model <code>discount</code> argument). The social discount rate is never used here.</p></dd>
+<dt>out.wacc</dt>
+<dd><p>numeric. Cost of capital used to annuitise the discharging part – the power the store can deliver investment (overrides <code>pWacc</code>).</p></dd>
 
-<dt>payback</dt>
-<dd><p>numeric. Cost-recovery period in years. Where given it replaces <code>olife</code> in the annuity AND in the years over which the annuity is charged, so the investment is repaid over <code>payback</code> years while the capacity keeps operating for its full operational life. Must be positive and not exceed <code>olife</code>. Unset (or 0) means recover over <code>olife</code>. Implemented for the GLPK solver only.</p></dd>
+<dt>out.payback</dt>
+<dd><p>numeric. Cost-recovery period of the discharging part – the power the store can deliver, in years (overrides the operational life in the EAC charge).</p></dd>
 
-<dt>eac</dt>
-<dd><p>numeric. Equivalent annual cost, supplied directly instead of being computed from <code>invcost</code>, <code>wacc</code> and the lifetime. Where given it wins; where absent the annuity is computed. Mutually exclusive with <code>invcost</code> per row.</p></dd>
+<dt>out.eac</dt>
+<dd><p>numeric. Equivalent annual cost of the discharging part – the power the store can deliver, supplied directly instead of being annuitised from <code>invcost</code>.</p></dd>
 
-<dt>retcost</dt>
-<dd><p>numeric. Costs of early retirement of the storage, default is 0.</p></dd>
+<dt>out.retcost</dt>
+<dd><p>numeric. Cost of retiring the discharging part – the power the store can deliver early.</p></dd>
+
+<dt>inp.invcost</dt>
+<dd><p>numeric. Investment cost per unit of new capacity of the charging part – the power the store can absorb.</p></dd>
+
+<dt>inp.wacc</dt>
+<dd><p>numeric. Cost of capital used to annuitise the charging part – the power the store can absorb investment (overrides <code>pWacc</code>).</p></dd>
+
+<dt>inp.payback</dt>
+<dd><p>numeric. Cost-recovery period of the charging part – the power the store can absorb, in years (overrides the operational life in the EAC charge).</p></dd>
+
+<dt>inp.eac</dt>
+<dd><p>numeric. Equivalent annual cost of the charging part – the power the store can absorb, supplied directly instead of being annuitised from <code>invcost</code>.</p></dd>
+
+<dt>inp.retcost</dt>
+<dd><p>numeric. Cost of retiring the charging part – the power the store can absorb early.</p></dd>
+
+<dt>stg.invcost</dt>
+<dd><p>numeric. Investment cost per unit of new capacity of the reservoir itself – the energy the store can hold.</p></dd>
+
+<dt>stg.wacc</dt>
+<dd><p>numeric. Cost of capital used to annuitise the reservoir itself – the energy the store can hold investment (overrides <code>pWacc</code>).</p></dd>
+
+<dt>stg.payback</dt>
+<dd><p>numeric. Cost-recovery period of the reservoir itself – the energy the store can hold, in years (overrides the operational life in the EAC charge).</p></dd>
+
+<dt>stg.eac</dt>
+<dd><p>numeric. Equivalent annual cost of the reservoir itself – the energy the store can hold, supplied directly instead of being annuitised from <code>invcost</code>.</p></dd>
+
+<dt>stg.retcost</dt>
+<dd><p>numeric. Cost of retiring the reservoir itself – the energy the store can hold early.</p></dd>
 
 
 </dl></dd>
@@ -474,35 +486,95 @@ so the object never carries two answers.</p></dd>
 <dt>year</dt>
 <dd><p>integer. Year to apply the parameter, NA for every year.</p></dd>
 
-<dt>cap</dt>
-<dd><p>numeric. Capacity of the storage technology.</p></dd>
+<dt>out.stock</dt>
+<dd><p>numeric. Existing (exogenous) capacity of the discharging part – the power the store can deliver, in power units.</p></dd>
 
-<dt>cap.lo</dt>
-<dd><p>numeric. Lower bound of the storage capacity.</p></dd>
+<dt>out.cap.lo</dt>
+<dd><p>numeric. Lower bound of the discharging part – the power the store can deliver capacity.</p></dd>
 
-<dt>cap.up</dt>
-<dd><p>numeric. Upper bound of the storage capacity.</p></dd>
+<dt>out.cap.up</dt>
+<dd><p>numeric. Upper bound of the discharging part – the power the store can deliver capacity.</p></dd>
 
-<dt>cap.fx</dt>
-<dd><p>numeric. Fixed value of the storage capacity. This parameter overrides <code>cap.lo</code> and <code>cap.up</code>.</p></dd>
+<dt>out.cap.fx</dt>
+<dd><p>numeric. Fixed value of the discharging part – the power the store can deliver capacity. Overrides <code>out.cap.lo</code> and <code>out.cap.up</code>.</p></dd>
 
-<dt>ncap.lo</dt>
-<dd><p>numeric. Lower bound of the new storage capacity.</p></dd>
+<dt>out.ncap.lo</dt>
+<dd><p>numeric. Lower bound of the discharging part – the power the store can deliver new capacity.</p></dd>
 
-<dt>ncap.up</dt>
-<dd><p>numeric. Upper bound of the new storage capacity.</p></dd>
+<dt>out.ncap.up</dt>
+<dd><p>numeric. Upper bound of the discharging part – the power the store can deliver new capacity.</p></dd>
 
-<dt>ncap.fx</dt>
-<dd><p>numeric. Fixed value of the new storage capacity. This parameter overrides <code>ncap.lo</code> and <code>ncap.up</code>.</p></dd>
+<dt>out.ncap.fx</dt>
+<dd><p>numeric. Fixed value of the discharging part – the power the store can deliver new capacity. Overrides <code>out.ncap.lo</code> and <code>out.ncap.up</code>.</p></dd>
 
-<dt>ret.lo</dt>
-<dd><p>numeric. Lower bound of the storage capacity retirement.</p></dd>
+<dt>out.ret.lo</dt>
+<dd><p>numeric. Lower bound of the discharging part – the power the store can deliver capacity retirement.</p></dd>
 
-<dt>ret.up</dt>
-<dd><p>numeric. Upper bound of the storage capacity retirement.</p></dd>
+<dt>out.ret.up</dt>
+<dd><p>numeric. Upper bound of the discharging part – the power the store can deliver capacity retirement.</p></dd>
 
-<dt>ret.fx</dt>
-<dd><p>numeric. Fixed value of the storage capacity retirement. This parameter overrides <code>ret.lo</code> and <code>ret.up</code>.</p></dd>
+<dt>out.ret.fx</dt>
+<dd><p>numeric. Fixed value of the discharging part – the power the store can deliver capacity retirement. Overrides <code>out.ret.lo</code> and <code>out.ret.up</code>.</p></dd>
+
+<dt>inp.stock</dt>
+<dd><p>numeric. Existing (exogenous) capacity of the charging part – the power the store can absorb, in power units.</p></dd>
+
+<dt>inp.cap.lo</dt>
+<dd><p>numeric. Lower bound of the charging part – the power the store can absorb capacity.</p></dd>
+
+<dt>inp.cap.up</dt>
+<dd><p>numeric. Upper bound of the charging part – the power the store can absorb capacity.</p></dd>
+
+<dt>inp.cap.fx</dt>
+<dd><p>numeric. Fixed value of the charging part – the power the store can absorb capacity. Overrides <code>inp.cap.lo</code> and <code>inp.cap.up</code>.</p></dd>
+
+<dt>inp.ncap.lo</dt>
+<dd><p>numeric. Lower bound of the charging part – the power the store can absorb new capacity.</p></dd>
+
+<dt>inp.ncap.up</dt>
+<dd><p>numeric. Upper bound of the charging part – the power the store can absorb new capacity.</p></dd>
+
+<dt>inp.ncap.fx</dt>
+<dd><p>numeric. Fixed value of the charging part – the power the store can absorb new capacity. Overrides <code>inp.ncap.lo</code> and <code>inp.ncap.up</code>.</p></dd>
+
+<dt>inp.ret.lo</dt>
+<dd><p>numeric. Lower bound of the charging part – the power the store can absorb capacity retirement.</p></dd>
+
+<dt>inp.ret.up</dt>
+<dd><p>numeric. Upper bound of the charging part – the power the store can absorb capacity retirement.</p></dd>
+
+<dt>inp.ret.fx</dt>
+<dd><p>numeric. Fixed value of the charging part – the power the store can absorb capacity retirement. Overrides <code>inp.ret.lo</code> and <code>inp.ret.up</code>.</p></dd>
+
+<dt>stg.stock</dt>
+<dd><p>numeric. Existing (exogenous) capacity of the reservoir itself – the energy the store can hold, in energy units.</p></dd>
+
+<dt>stg.cap.lo</dt>
+<dd><p>numeric. Lower bound of the reservoir itself – the energy the store can hold capacity.</p></dd>
+
+<dt>stg.cap.up</dt>
+<dd><p>numeric. Upper bound of the reservoir itself – the energy the store can hold capacity.</p></dd>
+
+<dt>stg.cap.fx</dt>
+<dd><p>numeric. Fixed value of the reservoir itself – the energy the store can hold capacity. Overrides <code>stg.cap.lo</code> and <code>stg.cap.up</code>.</p></dd>
+
+<dt>stg.ncap.lo</dt>
+<dd><p>numeric. Lower bound of the reservoir itself – the energy the store can hold new capacity.</p></dd>
+
+<dt>stg.ncap.up</dt>
+<dd><p>numeric. Upper bound of the reservoir itself – the energy the store can hold new capacity.</p></dd>
+
+<dt>stg.ncap.fx</dt>
+<dd><p>numeric. Fixed value of the reservoir itself – the energy the store can hold new capacity. Overrides <code>stg.ncap.lo</code> and <code>stg.ncap.up</code>.</p></dd>
+
+<dt>stg.ret.lo</dt>
+<dd><p>numeric. Lower bound of the reservoir itself – the energy the store can hold capacity retirement.</p></dd>
+
+<dt>stg.ret.up</dt>
+<dd><p>numeric. Upper bound of the reservoir itself – the energy the store can hold capacity retirement.</p></dd>
+
+<dt>stg.ret.fx</dt>
+<dd><p>numeric. Fixed value of the reservoir itself – the energy the store can hold capacity retirement. Overrides <code>stg.ret.lo</code> and <code>stg.ret.up</code>.</p></dd>
 
 
 </dl></dd>
@@ -549,7 +621,7 @@ so the object never carries two answers.</p></dd>
 
 
 <dt id="arg-duration">duration<a class="anchor" aria-label="anchor" href="#arg-duration"></a></dt>
-<dd><p>data.frame. How long the store can run at its rated output: the ratio of storing capacity to (dis)charging capacity. <code>duration = 6</code> on an hourly calendar is a 6-hour store. Renamed from <code>cap2stg</code> in v0.80, which is still accepted with a warning. It is a BOUND on (storage, region, year): <code>duration.fx</code> ties energy to power, <code>duration.lo</code>/<code>duration.up</code> let the model choose the ratio – which only bites when the storing side is priced, via <code>@storage$invcost</code>. The bare <code>duration</code> column is the scalar shorthand and is normalised to <code>duration.fx</code> at construction. A ONE-SIDED range opens the other side (an <code>up</code> alone does not inherit the default <code>lo</code> of 1). Saying nothing leaves the slot empty and the parameter default of 1, 1 ties energy to power at one hour, which is the pre-v0.84 behaviour.</p>
+<dd><p>data.frame. How long the store can run at its rated output: the ratio of storing capacity to (dis)charging capacity. <code>duration = 6</code> on an hourly calendar is a 6-hour store. Renamed from <code>cap2stg</code> in v0.80, which is still accepted with a warning. It is a BOUND on (storage, region, year): <code>duration.fx</code> ties energy to power, <code>duration.lo</code>/<code>duration.up</code> let the model choose the ratio – which only bites when the storing side is priced, via <code>@storage$invcost</code>. The bare <code>duration</code> column is the scalar shorthand and is normalised to <code>duration.fx</code> at construction. A ONE-SIDED range opens the other side (an <code>up</code> alone does not inherit the default <code>lo</code> of 1). Saying nothing leaves the slot empty and the parameter default of <code>[1, 1]</code> ties energy to power at one hour, which is the pre-v0.84 behaviour.</p>
 <dl><dt>vintage</dt>
 <dd><p>character. Vintage label selecting the variant this row applies to, NA for every vintage.</p></dd>
 
@@ -579,7 +651,7 @@ so the object never carries two answers.</p></dd>
 
 
 <dt id="arg-inp-out">inp2out<a class="anchor" aria-label="anchor" href="#arg-inp-out"></a></dt>
-<dd><p>data.frame. The charge-to-discharge capacity ratio, dimensionless: how big the charger is relative to the discharger. Same bound semantics as <code>duration</code> – <code>inp2out.fx</code> ties the two (one bidirectional inverter), <code>inp2out.lo</code>/<code>.up</code> let the model size them apart, and the bare <code>inp2out</code> column is the scalar shorthand, normalised to <code>.fx</code> at construction. A one-sided range opens the other side. Saying nothing leaves the slot empty and the parameter default of 1, 1 keeps the two sides symmetric, which is what a storage without a separate charger has always been. It bites only when the charging side is priced or bounded via <code>@input</code>; otherwise there is no charging capacity variable to constrain.</p>
+<dd><p>data.frame. The charge-to-discharge capacity ratio, dimensionless: how big the charger is relative to the discharger. Same bound semantics as <code>duration</code> – <code>inp2out.fx</code> ties the two (one bidirectional inverter), <code>inp2out.lo</code>/<code>.up</code> let the model size them apart, and the bare <code>inp2out</code> column is the scalar shorthand, normalised to <code>.fx</code> at construction. A one-sided range opens the other side. Saying nothing leaves the slot empty and the parameter default of <code>[1, 1]</code> keeps the two sides symmetric, which is what a storage without a separate charger has always been. It bites only when the charging side is priced or bounded via <code>@input</code>; otherwise there is no charging capacity variable to constrain.</p>
 <dl><dt>vintage</dt>
 <dd><p>character. Vintage label selecting the variant this row applies to, NA for all.</p></dd>
 
@@ -631,23 +703,23 @@ so the object never carries two answers.</p></dd>
 <dt>waf.fx</dt>
 <dd><p>numeric. Coefficient that links the weather factor with the fixed value of the availability factor. This parameter overrides <code>waf.lo</code> and <code>waf.up</code>.</p></dd>
 
-<dt>wcinp.lo</dt>
+<dt>inp.waf.lo</dt>
 <dd><p>numeric. Coefficient that links the weather factor with the lower bound of the input commodity availability factor.</p></dd>
 
-<dt>wcinp.up</dt>
+<dt>inp.waf.up</dt>
 <dd><p>numeric. Coefficient that links the weather factor with the upper bound of the input commodity availability factor.</p></dd>
 
-<dt>wcinp.fx</dt>
-<dd><p>numeric. Coefficient that links the weather factor with the fixed value of the input commodity availability factor. This parameter overrides <code>wcinp.lo</code> and <code>wcinp.up</code>.</p></dd>
+<dt>inp.waf.fx</dt>
+<dd><p>numeric. Coefficient that links the weather factor with the fixed value of the input commodity availability factor. This parameter overrides <code>inp.waf.lo</code> and <code>inp.waf.up</code>.</p></dd>
 
-<dt>wcout.lo</dt>
+<dt>out.waf.lo</dt>
 <dd><p>numeric. Coefficient that links the weather factor with the lower bound of the output commodity availability factor.</p></dd>
 
-<dt>wcout.up</dt>
+<dt>out.waf.up</dt>
 <dd><p>numeric. Coefficient that links the weather factor with the upper bound of the output commodity availability factor.</p></dd>
 
-<dt>wcout.fx</dt>
-<dd><p>numeric. Coefficient that links the weather factor with the fixed value of the output commodity availability factor. This parameter overrides <code>wcout.lo</code> and <code>wcout.up</code>.</p></dd>
+<dt>out.waf.fx</dt>
+<dd><p>numeric. Coefficient that links the weather factor with the fixed value of the output commodity availability factor. This parameter overrides <code>out.waf.lo</code> and <code>out.waf.up</code>.</p></dd>
 
 
 </dl></dd>
@@ -721,24 +793,24 @@ the storage cycle will be a calendar day).</p>
 <span class="r-in"><span>  <span class="op">)</span>,</span></span>
 <span class="r-in"><span>  af <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>    region <span class="op">=</span> <span class="st">"R1"</span>, year <span class="op">=</span> <span class="fl">2020</span>, timeslice <span class="op">=</span> <span class="st">"HOUR"</span>,</span></span>
-<span class="r-in"><span>    af.lo <span class="op">=</span> <span class="fl">0.9</span>, af.up <span class="op">=</span> <span class="fl">0.9</span>, af.fx <span class="op">=</span> <span class="fl">0.9</span>, cinp.up <span class="op">=</span> <span class="fl">0.9</span>,</span></span>
-<span class="r-in"><span>    cinp.fx <span class="op">=</span> <span class="fl">0.9</span>, cinp.lo <span class="op">=</span> <span class="fl">0.9</span>, cout.up <span class="op">=</span> <span class="fl">0.9</span>,</span></span>
-<span class="r-in"><span>    cout.fx <span class="op">=</span> <span class="fl">0.9</span>, cout.lo <span class="op">=</span> <span class="fl">0.9</span></span></span>
+<span class="r-in"><span>    af.lo <span class="op">=</span> <span class="fl">0.9</span>, af.up <span class="op">=</span> <span class="fl">0.9</span>, af.fx <span class="op">=</span> <span class="fl">0.9</span>, inp.af.up <span class="op">=</span> <span class="fl">0.9</span>,</span></span>
+<span class="r-in"><span>    inp.af.fx <span class="op">=</span> <span class="fl">0.9</span>, inp.af.lo <span class="op">=</span> <span class="fl">0.9</span>, out.af.up <span class="op">=</span> <span class="fl">0.9</span>,</span></span>
+<span class="r-in"><span>    out.af.fx <span class="op">=</span> <span class="fl">0.9</span>, out.af.lo <span class="op">=</span> <span class="fl">0.9</span></span></span>
 <span class="r-in"><span>  <span class="op">)</span>,</span></span>
-<span class="r-in"><span>  fixom <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>region <span class="op">=</span> <span class="st">"R1"</span>, year <span class="op">=</span> <span class="fl">2020</span>, fixom <span class="op">=</span> <span class="fl">0.9</span><span class="op">)</span>,</span></span>
+<span class="r-in"><span>  fixom <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>region <span class="op">=</span> <span class="st">"R1"</span>, year <span class="op">=</span> <span class="fl">2020</span>, out.fixom <span class="op">=</span> <span class="fl">0.9</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>  varom <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>    region <span class="op">=</span> <span class="st">"R1"</span>, year <span class="op">=</span> <span class="fl">2020</span>, timeslice <span class="op">=</span> <span class="st">"HOUR"</span>,</span></span>
 <span class="r-in"><span>    inpcost <span class="op">=</span> <span class="fl">0.9</span>, outcost <span class="op">=</span> <span class="fl">0.9</span>, stgcost <span class="op">=</span> <span class="fl">0.9</span></span></span>
 <span class="r-in"><span>  <span class="op">)</span>,</span></span>
 <span class="r-in"><span>  invcost <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>    region <span class="op">=</span> <span class="st">"R1"</span>, year <span class="op">=</span> <span class="fl">2020</span>, invcost <span class="op">=</span> <span class="fl">0.9</span>,</span></span>
-<span class="r-in"><span>    wacc <span class="op">=</span> <span class="fl">0.09</span>, payback <span class="op">=</span> <span class="fl">10</span>, retcost <span class="op">=</span> <span class="fl">0.9</span></span></span>
+<span class="r-in"><span>    region <span class="op">=</span> <span class="st">"R1"</span>, year <span class="op">=</span> <span class="fl">2020</span>, out.invcost <span class="op">=</span> <span class="fl">0.9</span>,</span></span>
+<span class="r-in"><span>    out.wacc <span class="op">=</span> <span class="fl">0.09</span>, out.payback <span class="op">=</span> <span class="fl">10</span>, out.retcost <span class="op">=</span> <span class="fl">0.9</span></span></span>
 <span class="r-in"><span>  <span class="op">)</span>,</span></span>
 <span class="r-in"><span>  capacity <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>    region <span class="op">=</span> <span class="st">"R1"</span>, year <span class="op">=</span> <span class="fl">2020</span>, stock <span class="op">=</span> <span class="fl">0.9</span>,</span></span>
-<span class="r-in"><span>    cap.lo <span class="op">=</span> <span class="fl">0.9</span>, cap.up <span class="op">=</span> <span class="fl">0.9</span>, cap.fx <span class="op">=</span> <span class="fl">0.9</span>, ncap.lo <span class="op">=</span> <span class="fl">0.9</span>,</span></span>
-<span class="r-in"><span>    ncap.up <span class="op">=</span> <span class="fl">0.9</span>, ncap.fx <span class="op">=</span> <span class="fl">0.9</span>, ret.lo <span class="op">=</span> <span class="fl">0.9</span>, ret.up <span class="op">=</span> <span class="fl">0.9</span>,</span></span>
-<span class="r-in"><span>    ret.fx <span class="op">=</span> <span class="fl">0.9</span></span></span>
+<span class="r-in"><span>    region <span class="op">=</span> <span class="st">"R1"</span>, year <span class="op">=</span> <span class="fl">2020</span>, out.stock <span class="op">=</span> <span class="fl">0.9</span>,</span></span>
+<span class="r-in"><span>    out.cap.lo <span class="op">=</span> <span class="fl">0.9</span>, out.cap.up <span class="op">=</span> <span class="fl">0.9</span>, out.cap.fx <span class="op">=</span> <span class="fl">0.9</span>, out.ncap.lo <span class="op">=</span> <span class="fl">0.9</span>,</span></span>
+<span class="r-in"><span>    out.ncap.up <span class="op">=</span> <span class="fl">0.9</span>, out.ncap.fx <span class="op">=</span> <span class="fl">0.9</span>, out.ret.lo <span class="op">=</span> <span class="fl">0.9</span>, out.ret.up <span class="op">=</span> <span class="fl">0.9</span>,</span></span>
+<span class="r-in"><span>    out.ret.fx <span class="op">=</span> <span class="fl">0.9</span></span></span>
 <span class="r-in"><span>  <span class="op">)</span>,</span></span>
 <span class="r-in"><span>  duration <span class="op">=</span> <span class="fl">1</span>,</span></span>
 <span class="r-in"><span>  fullYear <span class="op">=</span> <span class="cn">TRUE</span>,</span></span>
@@ -746,9 +818,9 @@ the storage cycle will be a calendar day).</p>
 <span class="r-in"><span>    weather <span class="op">=</span> <span class="st">"sunny"</span>,</span></span>
 <span class="r-in"><span>    waf.lo <span class="op">=</span> <span class="fl">0.9</span>,</span></span>
 <span class="r-in"><span>    waf.up <span class="op">=</span> <span class="fl">0.9</span>,</span></span>
-<span class="r-in"><span>    waf.fx <span class="op">=</span> <span class="fl">0.9</span>, wcinp.lo <span class="op">=</span> <span class="fl">0.9</span>,</span></span>
-<span class="r-in"><span>    wcinp.fx <span class="op">=</span> <span class="fl">0.9</span>, wcinp.up <span class="op">=</span> <span class="fl">0.9</span>, wcout.lo <span class="op">=</span> <span class="fl">0.9</span>, wcout.fx <span class="op">=</span> <span class="fl">0.9</span>,</span></span>
-<span class="r-in"><span>    wcout.up <span class="op">=</span> <span class="fl">0.9</span></span></span>
+<span class="r-in"><span>    waf.fx <span class="op">=</span> <span class="fl">0.9</span>, inp.waf.lo <span class="op">=</span> <span class="fl">0.9</span>,</span></span>
+<span class="r-in"><span>    inp.waf.fx <span class="op">=</span> <span class="fl">0.9</span>, inp.waf.up <span class="op">=</span> <span class="fl">0.9</span>, out.waf.lo <span class="op">=</span> <span class="fl">0.9</span>, out.waf.fx <span class="op">=</span> <span class="fl">0.9</span>,</span></span>
+<span class="r-in"><span>    out.waf.up <span class="op">=</span> <span class="fl">0.9</span></span></span>
 <span class="r-in"><span>  <span class="op">)</span>,</span></span>
 <span class="r-in"><span>  optimizeRetirement <span class="op">=</span> <span class="cn">FALSE</span>,</span></span>
 <span class="r-in"><span>  misc <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span></span></span>

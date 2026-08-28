@@ -15,6 +15,7 @@
   by = NULL,
   fill = NULL,
   facet = NULL,
+  top_n = 12,
   ...
 )
 }
@@ -36,6 +37,12 @@ columns. Implied automatically by \code{fill}/\code{facet}.}
 
 \item{facet}{name of the column to facet by. Defaults to \code{"region"} when the
 scenario has more than one region (the historical behaviour).}
+
+\item{top_n}{integer, passed to \code{\link[=getMix]{getMix()}}: keep the \code{top_n} largest
+processes and lump the rest into \code{"Other"} (mass-preserving). Default
+\code{12} keeps legends readable on large models; \code{NULL}/\code{Inf} shows every
+process. Legends with more than 8 keys move to a compact bottom
+multi-column layout automatically.}
 
 \item{...}{ignored.}
 }

@@ -57,7 +57,12 @@
 #'   Off by default because it is not obviously safe: anything deriving a
 #'   relation from the full declared grid rather than from the calendar would
 #'   see a narrower input. Compare objectives before relying on it.
-#' @param verbose logical; print per-step progress.
+#' @param verbose logical; print per-step progress. This also governs the
+#'   variant-expansion report -- how many process objects were expanded and how
+#'   many constraints were generated for them. The generated constraints
+#'   themselves are retrievable with `getObject(scen, class = "constraint")`;
+#'   each carries a readable `desc` and, in `misc$.variant_source`, the object
+#'   it was derived from.
 #'
 #' @return an interpolated [scenario] object.
 #' @seealso [solve_model()], [solve_scenario()], the `interpolate` S4 method.
@@ -392,6 +397,12 @@ interpolate_model <- function(mod, name = NULL, ...,
   .known_regions <- .declaration_regions(scen)
   .check_declared_regions(scen@model, .known_regions)
 
+  # guard: a weather profile referenced by name must have an object behind it.
+  # Unlike a stray region this one never surfaces later -- the reference is
+  # simply dropped and the process loses its availability limit.
+  .check_declared_objects(scen@model)
+  .check_group_members(scen@model)
+
   # Costs accrue only in the model's own regions (`mvTotalCost` is built from
   # them, not from the widened set above), and trade costs are borne per
   # endpoint. Name both edges rather than silently mis-charging.
@@ -410,7 +421,8 @@ interpolate_model <- function(mod, name = NULL, ...,
   # Non-destructive: only the internal build copy is expanded, the caller's model
   # object is untouched. The link back to each base object is kept in
   # `sets$variant` (see R/variants.R).
-  .tech_variants <- expand_variants(mod, prefix = .variant_prefix(scen@settings))
+  .tech_variants <- expand_variants(mod, prefix = .variant_prefix(scen@settings),
+                                    verbose = verbose)
   mod <- .tech_variants$model    # the sets below are collected from `mod`
   scen@model <- mod              # ... while get_process_*() read scen@model
   .assert_variants_expanded(mod)

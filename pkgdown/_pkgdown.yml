@@ -4,6 +4,12 @@ url: https://energyRt.org
 redirects:
   - ["use-R-2026/index.html", "articles/use-R-2026.html"]
 
+# Convention: figures are built on a SOLID background -- transparent PNGs
+# are illegible in the site's dark mode. pkgdown/extra.scss then stops the
+# dark theme inverting them (see optimal2050 CONVENTIONS.md).
+figures:
+  bg: "white"
+
 template:
   bootstrap: 5
   light-switch: true
@@ -150,6 +156,8 @@ reference:
   - starts_with("read")
   - starts_with("solve")
   - subset_model_regions
+  # solver-run options: progress log
+  - with_solver_log
   # myopic-solve primitives (solve_myopic itself matches "solve" above)
   - horizon_windows
   - solution_ledger
@@ -210,6 +218,7 @@ reference:
   - matches("drop_na_cols")
   - matches("obj2mem")
   - matches("isInMemory")
+  - isOnDisk
   - matches("register")
   - matches("registry")
   - matches("^save_")

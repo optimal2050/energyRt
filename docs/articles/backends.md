@@ -47,11 +47,11 @@ Use a preset in one of two ways:
 # 1. Set it as the session default, then solve normally
 set_default_solver(solver_options$julia_highs)
 get_default_solver()                       # inspect the current default
-scen <- solve_mod(model)                   # uses the default
+scen <- solve_model(model)                   # uses the default
 
 # 2. Pass it explicitly to a single solve
-scen <- solve_mod(model,  solver = solver_options$glpk)
-scen <- solve_scen(scen,  solver = solver_options$gams_gdx_cplex)
+scen <- solve_model(model,  solver = solver_options$glpk)
+scen <- solve_scenario(scen,  solver = solver_options$gams_gdx_cplex)
 ```
 
 [`set_default_solver()`](https://energyRt.org/reference/default_solver.md)
@@ -61,11 +61,11 @@ with [`en_config_write()`](https://energyRt.org/reference/en_config.md);
 reports the current default together with the solver paths it depends
 on.
 
-[`solve_mod()`](https://energyRt.org/reference/solve_mod.md)
+[`solve_model()`](https://energyRt.org/reference/solve_model.md)
 interpolates a `model` and solves it;
-[`solve_scen()`](https://energyRt.org/reference/solve_mod.md) solves an
-already-interpolated scenario. With `solver = NULL` the scenario’s own
-settings or
+[`solve_scenario()`](https://energyRt.org/reference/solve_model.md)
+solves an already-interpolated scenario. With `solver = NULL` the
+scenario’s own settings or
 [`get_default_solver()`](https://energyRt.org/reference/default_solver.md)
 are used.
 
@@ -79,7 +79,7 @@ option and a good default for small and medium models.
 
 ``` r
 
-solve_mod(model, solver = solver_options$glpk)
+solve_model(model, solver = solver_options$glpk)
 ```
 
 ### Python / Pyomo
@@ -91,8 +91,8 @@ are also available.
 
 ``` r
 
-solve_mod(model, solver = solver_options$pyomo_cbc)
-solve_mod(model, solver = solver_options$pyomo_cplex_barrier)   # CPLEX barrier
+solve_model(model, solver = solver_options$pyomo_cbc)
+solve_model(model, solver = solver_options$pyomo_cplex_barrier)   # CPLEX barrier
 ```
 
 ### Julia / JuMP
@@ -104,9 +104,9 @@ algorithm. Cbc, GLPK and CPLEX are also available.
 
 ``` r
 
-solve_mod(model, solver = solver_options$julia_highs)           # default (auto)
-solve_mod(model, solver = solver_options$julia_highs_barrier)   # interior point
-solve_mod(model, solver = solver_options$julia_highs_parallel)  # parallel simplex
+solve_model(model, solver = solver_options$julia_highs)           # default (auto)
+solve_model(model, solver = solver_options$julia_highs_barrier)   # interior point
+solve_model(model, solver = solver_options$julia_highs_parallel)  # parallel simplex
 ```
 
 ### GAMS
@@ -118,8 +118,8 @@ presets inject a tuned `cplex.opt` (LP method, threads, crossover, …).
 
 ``` r
 
-solve_mod(model, solver = solver_options$gams_gdx_cplex)
-solve_mod(model, solver = solver_options$gams_gdx_cplex_barrier)
+solve_model(model, solver = solver_options$gams_gdx_cplex)
+solve_model(model, solver = solver_options$gams_gdx_cplex_barrier)
 ```
 
 ### NEOS (remote solve)
@@ -139,8 +139,8 @@ Pyomo subprocess reads `NEOS_EMAIL` directly):
 ``` r
 
 set_neos_email("you@example.org")
-solve_mod(model, solver = solver_options$neos_gams_cplex)
-solve_mod(model, solver = solver_options$neos_pyomo_cplex_barrier)
+solve_model(model, solver = solver_options$neos_gams_cplex)
+solve_model(model, solver = solver_options$neos_pyomo_cplex_barrier)
 ```
 
 The low-level NEOS interface (submit/poll/fetch a job, list solvers, …)
@@ -152,35 +152,37 @@ and the `neos_*` functions.
 The presets shipped with the package (generated from the installed
 data):
 
-| preset                   | backend       | solver | remote | data exchange |
-|:-------------------------|:--------------|:-------|:-------|:--------------|
-| glpk                     | GLPK/MathProg | —      |        | default       |
-| pyomo_cbc                | Python/Pyomo  | cbc    |        | SQLite        |
-| pyomo_cbc_arrow          | Python/Pyomo  | cbc    |        | feather       |
-| pyomo_cplex              | Python/Pyomo  | cplex  |        | SQLite        |
-| pyomo_cplex_barrier      | Python/Pyomo  | cplex  |        | SQLite        |
-| pyomo_glpk               | Python/Pyomo  | glpk   |        | SQLite        |
-| neos_pyomo_cplex         | Python/Pyomo  | —      |        | SQLite        |
-| neos_pyomo_cplex_barrier | Python/Pyomo  | —      |        | SQLite        |
-| neos_pyomo_cbc           | Python/Pyomo  | —      |        | SQLite        |
-| julia_cbc                | Julia/JuMP    | Cbc    |        | default       |
-| julia_cplex              | Julia/JuMP    | CPLEX  |        | default       |
-| julia_cplex_barrier      | Julia/JuMP    | CPLEX  |        | default       |
-| julia_highs              | Julia/JuMP    | HiGHS  |        | default       |
-| julia_highs_arrow        | Julia/JuMP    | HiGHS  |        | feather       |
-| julia_highs_barrier      | Julia/JuMP    | HiGHS  |        | default       |
-| julia_glpk               | Julia/JuMP    | GLPK   |        | default       |
-| julia_highs_simplex      | Julia/JuMP    | HiGHS  |        | default       |
-| julia_highs_parallel     | Julia/JuMP    | HiGHS  |        | default       |
-| gams_cplex               | GAMS          | CPLEX  |        | default       |
-| gams_gdx_cplex           | GAMS          | CPLEX  |        | GDX           |
-| gams_gdx_cplex_barrier   | GAMS          | CPLEX  |        | GDX           |
-| gams_gdx_cplex_parallel  | GAMS          | CPLEX  |        | GDX           |
-| gams_cbc                 | GAMS          | CBC    |        | default       |
-| gams_gdx_cbc             | GAMS          | CBC    |        | GDX           |
-| neos_gams_cplex          | GAMS          | CPLEX  | NEOS   | default       |
-| neos_gams_cplex_barrier  | GAMS          | CPLEX  | NEOS   | default       |
-| neos_gams_cbc            | GAMS          | CBC    | NEOS   | default       |
+| preset                   | backend       | solver      | remote | data exchange |
+|:-------------------------|:--------------|:------------|:-------|:--------------|
+| glpk                     | GLPK/MathProg | —           |        | default       |
+| pyomo_cbc                | Python/Pyomo  | cbc         |        | SQLite        |
+| pyomo_cbc_arrow          | Python/Pyomo  | cbc         |        | feather       |
+| pyomo_cplex              | Python/Pyomo  | cplex       |        | SQLite        |
+| pyomo_cplex_barrier      | Python/Pyomo  | cplex       |        | SQLite        |
+| pyomo_glpk               | Python/Pyomo  | glpk        |        | SQLite        |
+| pyomo_highs              | Python/Pyomo  | appsi_highs |        | SQLite        |
+| pyomo_highs_barrier      | Python/Pyomo  | appsi_highs |        | SQLite        |
+| neos_pyomo_cplex         | Python/Pyomo  | —           |        | SQLite        |
+| neos_pyomo_cplex_barrier | Python/Pyomo  | —           |        | SQLite        |
+| neos_pyomo_cbc           | Python/Pyomo  | —           |        | SQLite        |
+| julia_cbc                | Julia/JuMP    | Cbc         |        | default       |
+| julia_cplex              | Julia/JuMP    | CPLEX       |        | default       |
+| julia_cplex_barrier      | Julia/JuMP    | CPLEX       |        | default       |
+| julia_highs              | Julia/JuMP    | HiGHS       |        | default       |
+| julia_highs_arrow        | Julia/JuMP    | HiGHS       |        | feather       |
+| julia_highs_barrier      | Julia/JuMP    | HiGHS       |        | default       |
+| julia_glpk               | Julia/JuMP    | GLPK        |        | default       |
+| julia_highs_simplex      | Julia/JuMP    | HiGHS       |        | default       |
+| julia_highs_parallel     | Julia/JuMP    | HiGHS       |        | default       |
+| gams_cplex               | GAMS          | CPLEX       |        | default       |
+| gams_gdx_cplex           | GAMS          | CPLEX       |        | GDX           |
+| gams_gdx_cplex_barrier   | GAMS          | CPLEX       |        | GDX           |
+| gams_gdx_cplex_parallel  | GAMS          | CPLEX       |        | GDX           |
+| gams_cbc                 | GAMS          | CBC         |        | default       |
+| gams_gdx_cbc             | GAMS          | CBC         |        | GDX           |
+| neos_gams_cplex          | GAMS          | CPLEX       | NEOS   | default       |
+| neos_gams_cplex_barrier  | GAMS          | CPLEX       | NEOS   | default       |
+| neos_gams_cbc            | GAMS          | CBC         | NEOS   | default       |
 
 ## Anatomy of a preset
 
@@ -203,7 +205,7 @@ fields:
 my_solver <- solver_options$julia_highs
 my_solver$name <- "julia_highs_custom"
 # ... adjust an inc* block to set HiGHS attributes ...
-solve_mod(model, solver = my_solver)
+solve_model(model, solver = my_solver)
 ```
 
 ## See also
@@ -212,8 +214,8 @@ solve_mod(model, solver = my_solver)
   layer.
 - **Model bricks** — assembling commodities, processes and structures
   into a model.
-- [`?solve_mod`](https://energyRt.org/reference/solve_mod.md),
-  [`?solve_scen`](https://energyRt.org/reference/solve_mod.md),
+- [`?solve_model`](https://energyRt.org/reference/solve_model.md),
+  [`?solve_scenario`](https://energyRt.org/reference/solve_model.md),
   [`?set_default_solver`](https://energyRt.org/reference/default_solver.md),
   [`?set_neos_email`](https://energyRt.org/reference/neos_email.md).
 - `?energyRt-options` for every setting,

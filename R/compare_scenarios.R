@@ -333,12 +333,15 @@ print.scenarios_cmp <- function(x, top = 10L, ...) {
 #' @param position `"facet"` (stacked mixes, one panel per scenario) or
 #'   `"dodge"` (scenarios side by side, aggregated over process).
 #' @param variable for `type = "delta"`: restrict to one variable.
+#' @param top_n integer, passed to [getMix()] for the mix charts: keep the
+#'   `top_n` largest processes per scenario and lump the rest into
+#'   `"Other"`. `NULL`/`Inf` keeps all.
 #' @rdname compare_scenarios
 autoplot.scenarios_cmp <- function(object,
     type = c("objective", "generation", "capacity", "new_capacity", "fuel",
              "emissions", "cost", "delta"),
     comm = "ELC", region = NULL, year = NULL,
-    position = c("facet", "dodge"), variable = NULL, ...) {
+    position = c("facet", "dodge"), variable = NULL, top_n = 12, ...) {
   check_package("ggplot2")
   type <- match.arg(type)
   position <- match.arg(position)
@@ -355,7 +358,7 @@ autoplot.scenarios_cmp <- function(object,
 
   if (type %in% c("generation", "capacity", "new_capacity", "fuel")) {
     mx <- getMix(object$scen, type = type, comm = comm, region = region,
-                 year = year)
+                 year = year, top_n = top_n)
     if (is.null(mx) || nrow(mx) == 0) stop("getMix() returned no data")
     if (position == "dodge") {
       agg <- stats::aggregate(value ~ scenario + year, mx, sum)
@@ -366,12 +369,14 @@ autoplot.scenarios_cmp <- function(object,
         ggplot2::labs(x = NULL, y = type, fill = NULL) +
         theme_energyRt())
     }
+    mx$process <- .mix_other_last(mx$process)
     p <- ggplot2::ggplot(mx,
            ggplot2::aes(factor(.data$year), .data$value,
                         fill = .data$process)) +
       ggplot2::geom_col() +
       ggplot2::labs(x = NULL, y = type, fill = NULL) +
       theme_energyRt()
+    for (comp in .legend_compact(length(unique(mx$process)))) p <- p + comp
     n_reg <- length(unique(mx$region))
     p <- if (n_reg > 1) {
       p + ggplot2::facet_grid(region ~ scenario)

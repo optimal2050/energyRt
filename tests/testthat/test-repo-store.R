@@ -42,7 +42,8 @@ test_that("save_repository / load_repository round-trips; identical content is a
   h8 <- substr(repository_hash(repo), 1, 8)
 
   save_repository(repo, verbose = FALSE)
-  store_dir <- rs_root("repositories", paste0(repo@name, "@", h8))
+  # default layout: the folder is the NAME; the hash lives in the manifest
+  store_dir <- rs_root("repositories", repo@name)
   expect_true(file.exists(file.path(store_dir, "repo.RData")))
   mf <- yaml::read_yaml(file.path(store_dir, "repository.yml"))
   expect_identical(mf$class, "repository")
@@ -80,7 +81,7 @@ test_that("save_model references a stored repository; load_model resolves it", {
   saved <- save_model(mod, verbose = FALSE)
 
   # manifest records the reference; the hash is of the FULL model
-  store_dir <- rs_root("models", paste0("rsm@", substr(h_full, 1, 8)))
+  store_dir <- rs_root("models", "rsm")
   mf <- yaml::read_yaml(file.path(store_dir, "model.yml"))
   expect_identical(mf$hash, h_full)
   expect_identical(length(mf$repositories), 1L)
@@ -112,8 +113,7 @@ test_that("embed_repos = TRUE embeds; FALSE requires a store hit", {
   save_repository(mod@data[[1]], verbose = FALSE)
 
   save_model(mod, embed_repos = TRUE, verbose = FALSE)
-  store_dir <- rs_root("models",
-                       paste0("rse@", substr(model_hash(mod), 1, 8)))
+  store_dir <- rs_root("models", "rse")
   mf <- yaml::read_yaml(file.path(store_dir, "model.yml"))
   expect_identical(mf$repositories[[1]]$source, "embedded")
   # loads without the repository store

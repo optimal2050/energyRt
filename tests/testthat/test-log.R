@@ -37,20 +37,24 @@ test_that("interpolate and solve append parseable rows in sequence", {
   sol <- solve_scenario(sc, transient = TRUE)
   expect_true(isTRUE(sol@status$optimal))
 
+  # sub-operations (e.g. interpolate.stage rows) may share the log; the
+  # top-level sequence is what this test pins
   d <- read_log()
-  expect_identical(nrow(d), 2L)
-  expect_identical(d$op, c("interpolate", "solve"))
-  expect_identical(d$object, c("lg", "lg"))
-  expect_identical(d$status[2], "optimal")
-  expect_true(all(is.finite(d$duration_sec)) && all(d$duration_sec >= 0))
+  top <- d[d$op %in% c("interpolate", "solve"), ]
+  expect_identical(nrow(top), 2L)
+  expect_identical(top$op, c("interpolate", "solve"))
+  expect_identical(top$object, c("lg", "lg"))
+  expect_identical(top$status[2], "optimal")
+  expect_true(all(is.finite(top$duration_sec)) && all(top$duration_sec >= 0))
   expect_true(inherits(d$timestamp, "POSIXct"))
-  expect_match(d$details[1], "model=lg")
-  expect_match(d$details[2], "objective=")
-  expect_match(d$details[2], "transient=TRUE")
+  expect_match(top$details[1], "model=lg")
+  expect_match(top$details[2], "objective=")
+  expect_match(top$details[2], "transient=TRUE")
 
   # appends accumulate across calls
   solve_scenario(sol, transient = TRUE, force = TRUE)
-  expect_identical(nrow(read_log()), 3L)
+  d2 <- read_log()
+  expect_identical(sum(d2$op == "solve"), 2L)
 })
 
 test_that("levcost mini-solves (dot-prefixed scratch) stay out of the log", {

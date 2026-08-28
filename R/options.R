@@ -177,6 +177,19 @@ options::define_option(
 )
 
 options::define_option(
+  "store_versioning",
+  desc = paste(
+    "How the model/repository/dataset stores name their entries. \"none\"",
+    "(default): one human-readable folder per name (models/UTOPIA/), updated",
+    "in place; the content hash lives in the manifest and misc$hash for",
+    "no-op detection and reference verification. \"hash\": content-addressed",
+    "<name>@<hash8> folders; every content change is a NEW entry and",
+    "versions coexist."
+  ),
+  default = "none"
+)
+
+options::define_option(
   "reports_path",
   desc = paste(
     "Default directory for rendered reports of IN-MEMORY objects (treated as",
@@ -580,6 +593,21 @@ set_datasets_path <- function(path = NULL) {
 #' @export
 get_datasets_path <- function() {
   options::opt("datasets_path")
+}
+
+#' @family options
+#' @rdname registry_file
+#' @export
+set_store_versioning <- function(x = NULL) {
+  if (!is.null(x)) x <- match.arg(x, c("none", "hash"))
+  options::opt_set("store_versioning", x)
+}
+
+#' @family options
+#' @rdname registry_file
+#' @export
+get_store_versioning <- function() {
+  options::opt("store_versioning")
 }
 
 # Derived-artifact locations ##################################################

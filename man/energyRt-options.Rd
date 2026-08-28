@@ -104,6 +104,12 @@ Optional operation-log CSV. Empty (default) = logging off; a path makes interpol
 \item{envvar: }{ENERGYRT_LOG_FILE (evaluated if possible, raw string otherwise)}
 }}
 
+\item{store_versioning}{\describe{
+How the model/repository/dataset stores name their entries. "none" (default): one human-readable folder per name (models/UTOPIA/), updated in place; the content hash lives in the manifest and misc$hash for no-op detection and reference verification. "hash": content-addressed \if{html}{\out{<name>}}@\if{html}{\out{<hash8>}} folders; every content change is a NEW entry and versions coexist.\item{default: }{\preformatted{"none"}}
+\item{option: }{en.store_versioning}
+\item{envvar: }{ENERGYRT_STORE_VERSIONING (evaluated if possible, raw string otherwise)}
+}}
+
 \item{reports_path}{\describe{
 Default directory for rendered reports of IN-MEMORY objects (treated as temporary output). Reports of saved objects land inside the owning folder (\if{html}{\out{<scenario>}}/reports/, \if{html}{\out{<model store entry>}}/reports/) instead.\item{default: }{\preformatted{"reports/"}}
 \item{option: }{en.reports_path}

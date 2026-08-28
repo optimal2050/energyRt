@@ -221,17 +221,21 @@ costs, and exogenous shocks (weather factors).
 
   afc.lo
 
-  :   numeric. Lower bound on the physical value of the commodity,
-      ignored if NA.
+  :   numeric. Lower bound on the per-commodity availability factor:
+      bounds this commodity's input or output flow relative to installed
+      capacity (times `cap2act`), the commodity-level analogue of
+      `af.lo`. Ignored if NA.
 
   afc.up
 
-  :   numeric. Upper bound on the physical value of the commodity,
-      ignored if NA.
+  :   numeric. Upper bound on the per-commodity availability factor:
+      bounds this commodity's input or output flow relative to installed
+      capacity (times `cap2act`), the commodity-level analogue of
+      `af.up`. Ignored if NA.
 
   afc.fx
 
-  :   numeric. Fixed physical value of the commodity, ignored if NA.
+  :   numeric. Fixed per-commodity availability factor, ignored if NA.
       This parameter overrides `afc.lo` and `afc.up`.
 
 - `aeff`:
@@ -309,18 +313,72 @@ costs, and exogenous shocks (weather factors).
 
   ncap2ainp
 
-  :   numeric.
-      Technology-new-capacity-to-auxilary-commodity-input-coefficient,
-      ignored if NA.
+  :   numeric. Aux commodity consumed per unit of NEW capacity – a
+      one-time charge at construction (materials, embodied energy),
+      ignored if NA. NO `pTimesliceShare` is applied and the aux balance
+      is PER TIMESLICE, so a value given with `timeslice = NA` applies
+      in EVERY slice and the annual total comes out multiplied by the
+      slice count – 8760x on an hourly calendar. Give a per-slice value,
+      or name a single slice.
 
   ncap2aout
 
   :   numeric. Technology-new-capacity-to-auxilary-commodity-output
       coefficient, ignored if NA.
 
+  pho2ainp
+
+  :   numeric. Aux commodity CONSUMED when capacity reaches the END OF
+      ITS LIFE (demolition energy, labour). Multiplies the per-year
+      phase-out FLOW, so the charge lands ONCE – in the milestone where
+      the capacity disappears – not every year it stood. NO
+      `pTimesliceShare` is applied and the aux balance is PER TIMESLICE,
+      so a value given with `timeslice = NA` applies in EVERY slice and
+      the annual total comes out multiplied by the slice count – 8760x
+      on an hourly calendar. Give a per-slice value, or name a single
+      slice.
+
+  pho2aout
+
+  :   numeric. Aux commodity RELEASED when capacity reaches the END OF
+      ITS LIFE (demolition waste, recovered material). Fires even when
+      `optimizeRetirement` is FALSE, which is the usual case. NO
+      `pTimesliceShare` is applied and the aux balance is PER TIMESLICE,
+      so a value given with `timeslice = NA` applies in EVERY slice and
+      the annual total comes out multiplied by the slice count – 8760x
+      on an hourly calendar. Give a per-slice value, or name a single
+      slice.
+
+  ret2ainp
+
+  :   numeric. Aux commodity CONSUMED when capacity is retired EARLY.
+      Separate from `pho2ainp` because the two differ physically:
+      scrapping an intact plant is not the same job as demolishing a
+      worn-out one. NO `pTimesliceShare` is applied and the aux balance
+      is PER TIMESLICE, so a value given with `timeslice = NA` applies
+      in EVERY slice and the annual total comes out multiplied by the
+      slice count – 8760x on an hourly calendar. Give a per-slice value,
+      or name a single slice.
+
+  ret2aout
+
+  :   numeric. Aux commodity RELEASED when capacity is retired EARLY
+      (scrap). Usually LARGER than `pho2aout`: a plant retired before
+      its time is still largely intact, so more material is recoverable.
+      NO `pTimesliceShare` is applied and the aux balance is PER
+      TIMESLICE, so a value given with `timeslice = NA` applies in EVERY
+      slice and the annual total comes out multiplied by the slice count
+      – 8760x on an hourly calendar. Give a per-slice value, or name a
+      single slice.
+
 - `af`:
 
-  data.frame. Timeslice-level availability factor parameters.
+  data.frame. Timeslice-level availability factor parameters, bounding
+  activity in each timeslice relative to installed capacity. `af.up` is
+  the maximum capacity factor per timeslice (what PyPSA calls `p_max_pu`
+  and OSeMOSYS calls `CapacityFactor`); `af.lo` is a must-run floor. See
+  `afs` for timeframe-level (e.g. annual) bounds and `ceff$afc.*` for
+  per-commodity bounds.
 
   vintage
 
@@ -371,7 +429,14 @@ costs, and exogenous shocks (weather factors).
 
 - `afs`:
 
-  data.frame. Timeframe-level availability factor constraints.
+  data.frame. Timeframe-level availability factor constraints, bounding
+  activity summed over all child timeslices of the named timeslice
+  relative to installed capacity. With `timeslice = "ANNUAL"` this is
+  the annual capacity-factor bound (TIMES `NCAP_AFS`, OSeMOSYS
+  `AvailabilityFactor`), e.g. `afs.lo = 0.4` requires at least 40%
+  annual utilization. Unlike `af`, `afs` rows are not disaggregated to
+  finer timeslices; they always constrain the sum over the given
+  timeframe.
 
   vintage
 
@@ -404,7 +469,8 @@ costs, and exogenous shocks (weather factors).
   afs.up
 
   :   numeric. Upper bound on the availability factor for the timeframe,
-      default is 1.
+      default is `Inf` (unbounded), in contrast to `af.up` which
+      defaults to 1.
 
   afs.fx
 

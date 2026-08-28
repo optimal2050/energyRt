@@ -1282,7 +1282,8 @@
 #
 # @return list(model = <expanded model>, provenance = <data.frame|NULL>)
 # @noRd
-expand_variants <- function(mod, prefix = .variant_prefix(mod)) {
+expand_variants <- function(mod, prefix = .variant_prefix(mod),
+                            verbose = isVerbose()) {
   prefix <- .variant_prefix_merge(prefix)
 
   regions <- as.character(mod@config@region)
@@ -1450,12 +1451,20 @@ expand_variants <- function(mod, prefix = .variant_prefix(mod)) {
            ". The object names reduce to the same token; rename one.")
     }
     mod <- add(mod, cns, overwrite = TRUE)
-    message("Added ", length(cns), " generated constraint(s): ",
-            paste(names(cns), collapse = ", "))
+    if (verbose) {
+      # Names are mangled tokens and there can be hundreds of them (455 on a
+      # 41-node tranched network), so report the families and leave the objects
+      # to `getObject(scen, class = "constraint")`, which carries a readable
+      # `desc` and `misc$.variant_source` for each.
+      n_share <- sum(startsWith(names(cns), .VARIANT_SHARE_PREFIX))
+      n_group <- length(cns) - n_share
+      message("Added ", length(cns), " generated constraint(s): ",
+              n_group, " group bound(s), ", n_share, " capacity-share tie(s).")
+    }
   }
 
   prov <- if (length(prov)) bind_rows(prov) else NULL
-  if (!is.null(prov)) {
+  if (!is.null(prov) && verbose) {
     n_base <- length(unique(paste(prov$class, prov$base)))
     message("Expanded ", n_base, " process object",
             if (n_base == 1L) "" else "s", " into ", nrow(prov),
@@ -1466,8 +1475,9 @@ expand_variants <- function(mod, prefix = .variant_prefix(mod)) {
 
 # Back-compat wrapper for the technology-only name.
 # @noRd
-expand_tech_variants <- function(mod, prefix = .variant_prefix(mod)) {
-  expand_variants(mod, prefix)
+expand_tech_variants <- function(mod, prefix = .variant_prefix(mod),
+                                verbose = isVerbose()) {
+  expand_variants(mod, prefix, verbose = verbose)
 }
 
 # -------------------------------------------------------------------------- #

@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.85.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -57,6 +57,8 @@
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
+    <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
+    <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
     <li><a class="dropdown-item" href="../articles/autoplot.html">autoplot()</a></li>
   </ul>
 </li>
@@ -154,15 +156,11 @@ separately, and the interesting modelling questions are about the
 <span>  name      <span class="op">=</span> <span class="st">"STG_BTR"</span>,</span>
 <span>  desc      <span class="op">=</span> <span class="st">"Lithium-ion battery (6-hour)"</span>,</span>
 <span>  commodity <span class="op">=</span> <span class="st">"ELC"</span>,</span>
-<span>  output    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    comm    <span class="op">=</span> <span class="st">"ELC"</span>,</span>
-<span>    unit    <span class="op">=</span> <span class="st">"MWh"</span>,</span>
-<span>    invcost <span class="op">=</span> <span class="fl">12144</span>                       <span class="co"># EUR/MW  -- the inverter</span></span>
-<span>  <span class="op">)</span>,</span>
-<span>  storage   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    comm    <span class="op">=</span> <span class="st">"ELC"</span>,</span>
-<span>    unit    <span class="op">=</span> <span class="st">"MWh"</span>,</span>
-<span>    invcost <span class="op">=</span> <span class="fl">8081</span>                        <span class="co"># EUR/MWh -- the cells</span></span>
+<span>  output    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>comm <span class="op">=</span> <span class="st">"ELC"</span>, unit <span class="op">=</span> <span class="st">"MWh"</span><span class="op">)</span>,</span>
+<span>  storage   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>comm <span class="op">=</span> <span class="st">"ELC"</span>, unit <span class="op">=</span> <span class="st">"MWh"</span><span class="op">)</span>,</span>
+<span>  invcost   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    out.invcost <span class="op">=</span> <span class="fl">12144</span>,                  <span class="co"># EUR/MW  -- the inverter</span></span>
+<span>    stg.invcost <span class="op">=</span> <span class="fl">8081</span>                    <span class="co"># EUR/MWh -- the cells</span></span>
 <span>  <span class="op">)</span>,</span>
 <span>  duration  <span class="op">=</span> <span class="fl">6</span>,                          <span class="co"># a 6-hour battery</span></span>
 <span>  vintage   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>olife <span class="op">=</span> <span class="fl">15L</span><span class="op">)</span></span>
@@ -202,19 +200,12 @@ they do not:</p>
 <span>  name      <span class="op">=</span> <span class="st">"STG_H2"</span>,</span>
 <span>  desc      <span class="op">=</span> <span class="st">"Salt-cavern hydrogen store with electrolyser and fuel cell"</span>,</span>
 <span>  commodity <span class="op">=</span> <span class="st">"H2"</span>,                       <span class="co"># what it HOLDS</span></span>
-<span>  input     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    comm    <span class="op">=</span> <span class="st">"ELC"</span>,                      <span class="co"># electrolyser</span></span>
-<span>    unit    <span class="op">=</span> <span class="st">"MWh"</span>,</span>
-<span>    invcost <span class="op">=</span> <span class="fl">226174</span></span>
-<span>  <span class="op">)</span>,</span>
-<span>  output    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    comm    <span class="op">=</span> <span class="st">"ELC"</span>,                      <span class="co"># fuel cell</span></span>
-<span>    unit    <span class="op">=</span> <span class="st">"MWh"</span></span>
-<span>  <span class="op">)</span>,</span>
-<span>  storage   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    comm    <span class="op">=</span> <span class="st">"H2"</span>,                       <span class="co"># the cavern</span></span>
-<span>    unit    <span class="op">=</span> <span class="st">"MWh"</span>,</span>
-<span>    invcost <span class="op">=</span> <span class="fl">112</span></span>
+<span>  input     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>comm <span class="op">=</span> <span class="st">"ELC"</span>, unit <span class="op">=</span> <span class="st">"MWh"</span><span class="op">)</span>,   <span class="co"># electrolyser</span></span>
+<span>  output    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>comm <span class="op">=</span> <span class="st">"ELC"</span>, unit <span class="op">=</span> <span class="st">"MWh"</span><span class="op">)</span>,   <span class="co"># fuel cell</span></span>
+<span>  storage   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>comm <span class="op">=</span> <span class="st">"H2"</span>,  unit <span class="op">=</span> <span class="st">"MWh"</span><span class="op">)</span>,   <span class="co"># the cavern</span></span>
+<span>  invcost   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
+<span>    inp.invcost <span class="op">=</span> <span class="fl">226174</span>,                 <span class="co"># the electrolyser</span></span>
+<span>    stg.invcost <span class="op">=</span> <span class="fl">112</span>                     <span class="co"># the cavern</span></span>
 <span>  <span class="op">)</span>,</span>
 <span>  seff      <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>    inpeff  <span class="op">=</span> <span class="fl">0.70</span>,</span>
@@ -422,7 +413,7 @@ if energy may cross the boundary between the two days.</p>
 <span>  name      <span class="op">=</span> <span class="st">"STG_YEAR"</span>,</span>
 <span>  desc      <span class="op">=</span> <span class="st">"Electricity store, one cycle over the whole year"</span>,</span>
 <span>  commodity <span class="op">=</span> <span class="st">"ELC"</span>,</span>
-<span>  invcost   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>invcost <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
+<span>  invcost   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>out.invcost <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
 <span>  vintage   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>olife <span class="op">=</span> <span class="fl">30L</span><span class="op">)</span>,</span>
 <span>  fullYear  <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span>
@@ -431,7 +422,7 @@ if energy may cross the boundary between the two days.</p>
 <span>  name      <span class="op">=</span> <span class="st">"STG_DAY"</span>,</span>
 <span>  desc      <span class="op">=</span> <span class="st">"The same store, but cycling once per day"</span>,</span>
 <span>  commodity <span class="op">=</span> <span class="st">"ELC"</span>,</span>
-<span>  invcost   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>invcost <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
+<span>  invcost   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>out.invcost <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
 <span>  vintage   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>olife <span class="op">=</span> <span class="fl">30L</span><span class="op">)</span>,</span>
 <span>  fullYear  <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
@@ -476,17 +467,17 @@ each gets its own repository and model:</p>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">scen_year</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">mod_year</span>, name <span class="op">=</span> <span class="st">"fy_year"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Solver directory:  scenarios/fy-year_d365-h24-subset-1day-per-month/script/glpk </span></span>
-<span><span class="co">#&gt; Writing files: 0.3s</span></span>
+<span><span class="co">#&gt; Solver directory:  scenarios/fy-year_d365-h24-subset-1day-per-month/runs/glpk/solver </span></span>
+<span><span class="co">#&gt; Writing files: 0.57s</span></span>
 <span><span class="co">#&gt; Starting  GLPK </span></span>
-<span><span class="co">#&gt; 0.15s</span></span>
-<span><span class="co">#&gt; Reading solution: 0.1s</span></span>
+<span><span class="co">#&gt; 0.17s</span></span>
+<span><span class="co">#&gt; Reading solution: 0.19s</span></span>
 <span><span class="va">scen_day</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">mod_day</span>, name <span class="op">=</span> <span class="st">"fy_day"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Solver directory:  scenarios/fy-day_d365-h24-subset-1day-per-month/script/glpk </span></span>
-<span><span class="co">#&gt; Writing files: 0.3s</span></span>
+<span><span class="co">#&gt; Solver directory:  scenarios/fy-day_d365-h24-subset-1day-per-month/runs/glpk/solver </span></span>
+<span><span class="co">#&gt; Writing files: 0.58s</span></span>
 <span><span class="co">#&gt; Starting  GLPK </span></span>
-<span><span class="co">#&gt; 0.12s</span></span>
-<span><span class="co">#&gt; Reading solution: 0.08s</span></span>
+<span><span class="co">#&gt; 0.14s</span></span>
+<span><span class="co">#&gt; Reading solution: 0.19s</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen_year</span>, <span class="st">"vObjective"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">$</span><span class="va">value</span></span>
 <span><span class="co">#&gt; [1] 9962.545</span></span>
@@ -543,8 +534,9 @@ lets the model choose:</p>
 <span>  name      <span class="op">=</span> <span class="st">"STG_FLEX"</span>,</span>
 <span>  desc      <span class="op">=</span> <span class="st">"Battery whose energy-to-power ratio the model chooses"</span>,</span>
 <span>  commodity <span class="op">=</span> <span class="st">"ELC"</span>,</span>
-<span>  output    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>comm <span class="op">=</span> <span class="st">"ELC"</span>, unit <span class="op">=</span> <span class="st">"MWh"</span>, invcost <span class="op">=</span> <span class="fl">12</span><span class="op">)</span>,</span>
-<span>  storage   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>comm <span class="op">=</span> <span class="st">"ELC"</span>, unit <span class="op">=</span> <span class="st">"MWh"</span>, invcost <span class="op">=</span> <span class="fl">8</span><span class="op">)</span>,</span>
+<span>  output    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>comm <span class="op">=</span> <span class="st">"ELC"</span>, unit <span class="op">=</span> <span class="st">"MWh"</span><span class="op">)</span>,</span>
+<span>  storage   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>comm <span class="op">=</span> <span class="st">"ELC"</span>, unit <span class="op">=</span> <span class="st">"MWh"</span><span class="op">)</span>,</span>
+<span>  invcost   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>out.invcost <span class="op">=</span> <span class="fl">12</span>, stg.invcost <span class="op">=</span> <span class="fl">8</span><span class="op">)</span>,</span>
 <span>  duration  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>    duration.lo <span class="op">=</span> <span class="fl">2</span>,</span>
 <span>    duration.up <span class="op">=</span> <span class="fl">8</span></span>
@@ -618,7 +610,7 @@ the year in hours or in four-hour blocks. A reservoir is an
 <strong>amount</strong> — 60 kWh is 60 kWh either way. energyRt keeps
 flows as quantities <em>within</em> a timeslice, so the rate has to be
 converted at the bound:</p>
-<pre><code><span><span class="va">vStorageInp</span><span class="op">[</span><span class="va">.</span>,<span class="va">s</span><span class="op">]</span> <span class="op">&lt;=</span> <span class="va">cinp.up</span> <span class="op">*</span> <span class="va">cap2act</span> <span class="op">*</span> <span class="va">vStorageInpCap</span> <span class="op">*</span> <span class="va">pTimesliceShare</span><span class="op">[</span><span class="va">s</span><span class="op">]</span></span></code></pre>
+<pre><code><span><span class="va">vStorageInp</span><span class="op">[</span><span class="va">.</span>,<span class="va">s</span><span class="op">]</span> <span class="op">&lt;=</span> <span class="va">inp.af.up</span> <span class="op">*</span> <span class="va">cap2act</span> <span class="op">*</span> <span class="va">vStorageInpCap</span> <span class="op">*</span> <span class="va">pTimesliceShare</span><span class="op">[</span><span class="va">s</span><span class="op">]</span></span></code></pre>
 <p><code>cap2act</code> is capacity → annual flow, exactly as on a
 <code>technology</code>. It defaults to <strong>8760</strong>, the hours
 in a year, which makes a capacity read as <em>commodity per hour</em> on
@@ -715,7 +707,7 @@ by elapsed time.</p>
 <p>Making the rating resolution-independent does <strong>not</strong>
 make a coarse calendar adequate. Discharge in a slice is bounded by
 three things:</p>
-<pre><code>(1) out &lt;= cout.up · cap2act · outCap · share[s]
+<pre><code>(1) out &lt;= out.af.up · cap2act · outCap · share[s]
 (2) out / outeff &lt;= level[s]
 (3) level[s] &lt;= af.up · stgCap</code></pre>
 <p>For a 6 h / 10 MW battery (60 MWh), only (1) changes with
@@ -853,16 +845,16 @@ their capacities. Three families share the slot:</p>
 </tr>
 <tr class="even">
 <td>
-<code>cinp.lo</code> / <code>cinp.up</code> /
-<code>cinp.fx</code>
+<code>inp.af.lo</code> / <code>inp.af.up</code> /
+<code>inp.af.fx</code>
 </td>
 <td>
 <strong>charging</strong>, against the charger</td>
 </tr>
 <tr class="odd">
 <td>
-<code>cout.lo</code> / <code>cout.up</code> /
-<code>cout.fx</code>
+<code>out.af.lo</code> / <code>out.af.up</code> /
+<code>out.af.fx</code>
 </td>
 <td>
 <strong>discharging</strong>, against the discharger</td>
@@ -878,21 +870,22 @@ charge during the evening peak:</p>
 <span>  name      <span class="op">=</span> <span class="st">"STG_RES"</span>,</span>
 <span>  desc      <span class="op">=</span> <span class="st">"Reservoir with a minimum head and a charging curfew"</span>,</span>
 <span>  commodity <span class="op">=</span> <span class="st">"ELC"</span>,</span>
-<span>  storage   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>comm <span class="op">=</span> <span class="st">"ELC"</span>, unit <span class="op">=</span> <span class="st">"MWh"</span>, invcost <span class="op">=</span> <span class="fl">40</span><span class="op">)</span>,</span>
+<span>  storage   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>comm <span class="op">=</span> <span class="st">"ELC"</span>, unit <span class="op">=</span> <span class="st">"MWh"</span><span class="op">)</span>,</span>
+<span>  invcost   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>stg.invcost <span class="op">=</span> <span class="fl">40</span><span class="op">)</span>,</span>
 <span>  af        <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>    timeslice <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="cn">NA</span>, <span class="st">"d046_h18"</span><span class="op">)</span>,</span>
 <span>    af.lo     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0.15</span>, <span class="cn">NA</span><span class="op">)</span>,              <span class="co"># never draw below 15% full</span></span>
-<span>    cinp.up   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="cn">NA</span>, <span class="fl">0</span><span class="op">)</span>                  <span class="co"># no charging in that slice</span></span>
+<span>    inp.af.up   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="cn">NA</span>, <span class="fl">0</span><span class="op">)</span>                  <span class="co"># no charging in that slice</span></span>
 <span>  <span class="op">)</span>,</span>
 <span>  vintage   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>olife <span class="op">=</span> <span class="fl">40L</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">STG_RES</span><span class="op">@</span><span class="va">af</span></span>
-<span><span class="co">#&gt;   vintage cluster region year timeslice af.lo af.up af.fx cinp.up cinp.fx</span></span>
-<span><span class="co">#&gt; 1    &lt;NA&gt;    &lt;NA&gt;   &lt;NA&gt;   NA      &lt;NA&gt;  0.15    NA    NA      NA      NA</span></span>
-<span><span class="co">#&gt; 2    &lt;NA&gt;    &lt;NA&gt;   &lt;NA&gt;   NA  d046_h18    NA    NA    NA       0      NA</span></span>
-<span><span class="co">#&gt;   cinp.lo cout.up cout.fx cout.lo</span></span>
-<span><span class="co">#&gt; 1      NA      NA      NA      NA</span></span>
-<span><span class="co">#&gt; 2      NA      NA      NA      NA</span></span></code></pre></div>
+<span><span class="co">#&gt;   vintage cluster region year timeslice af.lo af.up af.fx inp.af.up inp.af.fx</span></span>
+<span><span class="co">#&gt; 1    &lt;NA&gt;    &lt;NA&gt;   &lt;NA&gt;   NA      &lt;NA&gt;  0.15    NA    NA        NA        NA</span></span>
+<span><span class="co">#&gt; 2    &lt;NA&gt;    &lt;NA&gt;   &lt;NA&gt;   NA  d046_h18    NA    NA    NA         0        NA</span></span>
+<span><span class="co">#&gt;   inp.af.lo out.af.up out.af.fx out.af.lo</span></span>
+<span><span class="co">#&gt; 1        NA        NA        NA        NA</span></span>
+<span><span class="co">#&gt; 2        NA        NA        NA        NA</span></span></code></pre></div>
 <p><code>NA</code> in a key column means “every member of it”, so the
 first row applies in every timeslice and the second only in the named
 one. <code>.fx</code> overrides the matching
@@ -901,13 +894,47 @@ one. <code>.fx</code> overrides the matching
 <div class="section level2">
 <h2 id="capacity-stock-and-retirement">Capacity, stock and retirement<a class="anchor" aria-label="anchor" href="#capacity-stock-and-retirement"></a>
 </h2>
-<p><code>@capacity</code> describes the object as a whole, in the same
-shape a <code>technology</code> uses: existing <code>stock</code>,
-bounds on total capacity (<code>cap.*</code>), bounds on new builds
-(<code>ncap.*</code>), and bounds on retirement (<code>ret.*</code>).
-Per-part capacity lives on <code>@input</code> / <code>@output</code> /
-<code>@storage</code>; <code>@capacity</code> is the place for what is
-true of the storage itself.</p>
+<p><code>@capacity</code> holds every capacity the storage has, in the
+same shape a <code>technology</code> uses — existing <code>stock</code>,
+bounds on total capacity (<code>cap.*</code>), on new builds
+(<code>ncap.*</code>) and on retirement (<code>ret.*</code>) — but
+<strong>once per part</strong>, under a prefix naming the part it
+belongs to:</p>
+<table class="table">
+<thead><tr class="header">
+<th>prefix</th>
+<th>the part</th>
+<th>measured in</th>
+</tr></thead>
+<tbody>
+<tr class="odd">
+<td><code>out.</code></td>
+<td>the discharger</td>
+<td>power</td>
+</tr>
+<tr class="even">
+<td><code>inp.</code></td>
+<td>the charger</td>
+<td>power</td>
+</tr>
+<tr class="odd">
+<td><code>stg.</code></td>
+<td>the reservoir</td>
+<td>energy</td>
+</tr>
+</tbody>
+</table>
+<p>So <code>out.cap.up</code> bounds the discharger,
+<code>inp.cap.fx</code> fixes the charger, and <code>stg.stock</code> is
+the reservoir you already own. A charger rated differently from the
+discharger — an EV drawing 7 kW but delivering 100 kW to the motor — is
+<code>inp.cap.fx = 7</code> beside <code>out.cap.fx = 100</code>.</p>
+<p>The role slots <code>@input</code> / <code>@output</code> /
+<code>@storage</code> carry no capacity at all. They declare
+<em>what</em> each side handles — <code>comm</code>, <code>unit</code>,
+and <code>cap2act</code> on the two power sides — and nothing that
+varies by vintage, region or year. Writing a capacity there is an error
+that names the column to use instead.</p>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">STG_FLEET</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/storage.html">newStorage</a></span><span class="op">(</span></span>
 <span>  name      <span class="op">=</span> <span class="st">"STG_FLEET"</span>,</span>
@@ -916,16 +943,24 @@ true of the storage itself.</p>
 <span>  capacity  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>    region  <span class="op">=</span> <span class="st">"R1"</span>,</span>
 <span>    year    <span class="op">=</span> <span class="fl">2020L</span>,</span>
-<span>    stock   <span class="op">=</span> <span class="fl">120</span>,                        <span class="co"># already built</span></span>
-<span>    ncap.up <span class="op">=</span> <span class="fl">50</span>                          <span class="co"># at most 50 more in this year</span></span>
+<span>    out.stock   <span class="op">=</span> <span class="fl">120</span>,                        <span class="co"># already built</span></span>
+<span>    out.ncap.up <span class="op">=</span> <span class="fl">50</span>                          <span class="co"># at most 50 more in this year</span></span>
 <span>  <span class="op">)</span>,</span>
 <span>  vintage   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>olife <span class="op">=</span> <span class="fl">15L</span><span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">STG_FLEET</span><span class="op">@</span><span class="va">capacity</span></span>
-<span><span class="co">#&gt;   vintage cluster region year stock cap.lo cap.up cap.fx ncap.lo ncap.up</span></span>
-<span><span class="co">#&gt; 1    &lt;NA&gt;    &lt;NA&gt;     R1 2020   120     NA     NA     NA      NA      50</span></span>
-<span><span class="co">#&gt;   ncap.fx ret.lo ret.up ret.fx</span></span>
-<span><span class="co">#&gt; 1      NA     NA     NA     NA</span></span></code></pre></div>
+<span><span class="co">#&gt;   vintage cluster region year out.stock out.cap.lo out.cap.up out.cap.fx</span></span>
+<span><span class="co">#&gt; 1    &lt;NA&gt;    &lt;NA&gt;     R1 2020       120         NA         NA         NA</span></span>
+<span><span class="co">#&gt;   out.ncap.lo out.ncap.up out.ncap.fx out.ret.lo out.ret.up out.ret.fx</span></span>
+<span><span class="co">#&gt; 1          NA          50          NA         NA         NA         NA</span></span>
+<span><span class="co">#&gt;   inp.stock inp.cap.lo inp.cap.up inp.cap.fx inp.ncap.lo inp.ncap.up</span></span>
+<span><span class="co">#&gt; 1        NA         NA         NA         NA          NA          NA</span></span>
+<span><span class="co">#&gt;   inp.ncap.fx inp.ret.lo inp.ret.up inp.ret.fx stg.stock stg.cap.lo stg.cap.up</span></span>
+<span><span class="co">#&gt; 1          NA         NA         NA         NA        NA         NA         NA</span></span>
+<span><span class="co">#&gt;   stg.cap.fx stg.ncap.lo stg.ncap.up stg.ncap.fx stg.ret.lo stg.ret.up</span></span>
+<span><span class="co">#&gt; 1         NA          NA          NA          NA         NA         NA</span></span>
+<span><span class="co">#&gt;   stg.ret.fx</span></span>
+<span><span class="co">#&gt; 1         NA</span></span></code></pre></div>
 <p><code>@optimizeRetirement = TRUE</code> lets the model retire
 capacity before its operational life ends — worth it when a store is
 cheap to build and expensive to keep. It only takes effect when the
@@ -953,14 +988,14 @@ permission rather than an instruction.</p>
 <td><code>@invcost</code></td>
 <td>new capacity</td>
 <td>
-<code>invcost</code>, <code>wacc</code>, <code>payback</code>,
-<code>eac</code>, <code>retcost</code>
+<code>&lt;part&gt;.invcost</code>, <code>.wacc</code>,
+<code>.payback</code>, <code>.eac</code>, <code>.retcost</code>
 </td>
 </tr>
 <tr class="even">
 <td><code>@fixom</code></td>
 <td>installed capacity, per year</td>
-<td><code>fixom</code></td>
+<td><code>&lt;part&gt;.fixom</code></td>
 </tr>
 <tr class="odd">
 <td><code>@varom</code></td>
@@ -972,21 +1007,22 @@ permission rather than an instruction.</p>
 </tr>
 </tbody>
 </table>
-<p><code>@invcost</code> and <code>@fixom</code> on the <em>object</em>
-price the whole store; the same names inside <code>@input</code> /
-<code>@output</code> / <code>@storage</code> price one part, which is
-what the battery at the top of this article does. <code>@varom</code>
-splits by what is charged: <code>inpcost</code> per unit charged,
-<code>outcost</code> per unit discharged, <code>stgcost</code> per unit
-held.</p>
+<p><code>@invcost</code> and <code>@fixom</code> take the same
+<code>out.</code> / <code>inp.</code> / <code>stg.</code> prefixes as
+<code>@capacity</code>, so each part is priced in its own units:
+<code>out.invcost</code> per MW of discharger, <code>stg.invcost</code>
+per MWh of reservoir — which is exactly what the battery at the top of
+this article does. <code>@varom</code> instead splits by what is
+charged: <code>inpcost</code> per unit charged, <code>outcost</code> per
+unit discharged, <code>stgcost</code> per unit held.</p>
 <div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">STG_PRICED</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/storage.html">newStorage</a></span><span class="op">(</span></span>
 <span>  name      <span class="op">=</span> <span class="st">"STG_PRICED"</span>,</span>
 <span>  desc      <span class="op">=</span> <span class="st">"Battery priced on capacity and on every unit moved"</span>,</span>
 <span>  commodity <span class="op">=</span> <span class="st">"ELC"</span>,</span>
 <span>  duration  <span class="op">=</span> <span class="fl">6</span>,</span>
-<span>  invcost   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>invcost <span class="op">=</span> <span class="fl">8081</span><span class="op">)</span>, <span class="co"># EUR/MWh on new capacity</span></span>
-<span>  fixom     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>fixom <span class="op">=</span> <span class="fl">5</span><span class="op">)</span>,      <span class="co"># EUR/MW/yr on the whole store</span></span>
+<span>  invcost   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>out.invcost <span class="op">=</span> <span class="fl">8081</span><span class="op">)</span>, <span class="co"># EUR/MWh on new capacity</span></span>
+<span>  fixom     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>out.fixom <span class="op">=</span> <span class="fl">5</span><span class="op">)</span>,      <span class="co"># EUR/MW/yr on the whole store</span></span>
 <span>  varom     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>    inpcost <span class="op">=</span> <span class="fl">0.5</span>,</span>
 <span>    outcost <span class="op">=</span> <span class="fl">0.5</span></span>
@@ -1094,7 +1130,7 @@ ambient-temperature derating drives the bounds. The coefficients mirror
 <span>  commodity <span class="op">=</span> <span class="st">"ELC"</span>,</span>
 <span>  weather   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
 <span>    weather  <span class="op">=</span> <span class="st">"WHYD"</span>,                    <span class="co"># a newWeather() object in the repo</span></span>
-<span>    wcinp.fx <span class="op">=</span> <span class="fl">1</span>                          <span class="co"># inflow drives charging</span></span>
+<span>    inp.waf.fx <span class="op">=</span> <span class="fl">1</span>                          <span class="co"># inflow drives charging</span></span>
 <span>  <span class="op">)</span>,</span>
 <span>  vintage   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>olife <span class="op">=</span> <span class="fl">60L</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
@@ -1131,21 +1167,21 @@ can differ in cost without becoming two objects.</p>
 <span>    end     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2049L</span>, <span class="fl">2100L</span><span class="op">)</span>,</span>
 <span>    olife   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">12L</span>, <span class="fl">20L</span><span class="op">)</span></span>
 <span>  <span class="op">)</span>,</span>
-<span>  storage   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
-<span>    comm    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ELC"</span>, <span class="st">"ELC"</span><span class="op">)</span>,</span>
-<span>    unit    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"MWh"</span>, <span class="st">"MWh"</span><span class="op">)</span>,</span>
-<span>    vintage <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"v2020"</span>, <span class="st">"v2050"</span><span class="op">)</span>,</span>
-<span>    invcost <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">8081</span>, <span class="fl">3200</span><span class="op">)</span>               <span class="co"># cells get cheaper</span></span>
+<span>  storage   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>comm <span class="op">=</span> <span class="st">"ELC"</span>, unit <span class="op">=</span> <span class="st">"MWh"</span><span class="op">)</span>,</span>
+<span>  <span class="co"># the reservoir is what gets cheaper, so the per-vintage price is `stg.`</span></span>
+<span>  invcost   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>    vintage     <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"v2020"</span>, <span class="st">"v2050"</span><span class="op">)</span>,</span>
+<span>    stg.invcost <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">8081</span>, <span class="fl">3200</span><span class="op">)</span>           <span class="co"># cells get cheaper</span></span>
 <span>  <span class="op">)</span></span>
 <span><span class="op">)</span></span>
 <span><span class="va">STG_VINT</span><span class="op">@</span><span class="va">vintage</span></span>
 <span><span class="co">#&gt;   vintage region cluster start  end olife</span></span>
 <span><span class="co">#&gt; 1   v2020   &lt;NA&gt;    &lt;NA&gt;  2020 2049    12</span></span>
 <span><span class="co">#&gt; 2   v2050   &lt;NA&gt;    &lt;NA&gt;  2050 2100    20</span></span>
-<span><span class="va">STG_VINT</span><span class="op">@</span><span class="va">storage</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"comm"</span>, <span class="st">"vintage"</span>, <span class="st">"invcost"</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="co">#&gt;   comm vintage invcost</span></span>
-<span><span class="co">#&gt; 1  ELC   v2020    8081</span></span>
-<span><span class="co">#&gt; 2  ELC   v2050    3200</span></span></code></pre></div>
+<span><span class="va">STG_VINT</span><span class="op">@</span><span class="va">invcost</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"vintage"</span>, <span class="st">"stg.invcost"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;   vintage stg.invcost</span></span>
+<span><span class="co">#&gt; 1   v2020        8081</span></span>
+<span><span class="co">#&gt; 2   v2050        3200</span></span></code></pre></div>
 <p>Every slot that carries a <code>vintage</code> (or
 <code>cluster</code>) column can be split this way, so the two vintages
 differ only where you say they do. See the <a href="model-bricks.html">variants</a> material for how the two
@@ -1213,7 +1249,7 @@ in the evening.</p>
 <span>  name      <span class="op">=</span> <span class="st">"STG_BTR_SOL"</span>,</span>
 <span>  desc      <span class="op">=</span> <span class="st">"Battery paired with the solar plant"</span>,</span>
 <span>  commodity <span class="op">=</span> <span class="st">"ELC"</span>,</span>
-<span>  invcost   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>invcost <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
+<span>  invcost   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>out.invcost <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
 <span>  vintage   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>olife <span class="op">=</span> <span class="fl">30L</span><span class="op">)</span>,</span>
 <span>  fullYear  <span class="op">=</span> <span class="cn">TRUE</span></span>
 <span><span class="op">)</span></span>
@@ -1234,11 +1270,11 @@ in the evening.</p>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">sol_mod</span>, name <span class="op">=</span> <span class="st">"solar_battery"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Solver directory:  scenarios/solar-battery_d365-h24-subset-1day-per-month/script/glpk </span></span>
-<span><span class="co">#&gt; Writing files: 0.2s</span></span>
+<span><span class="co">#&gt; Solver directory:  scenarios/solar-battery_d365-h24-subset-1day-per-month/runs/glpk/solver </span></span>
+<span><span class="co">#&gt; Writing files: 0.42s</span></span>
 <span><span class="co">#&gt; Starting  GLPK </span></span>
-<span><span class="co">#&gt; 0.25s</span></span>
-<span><span class="co">#&gt; Reading solution: 0.08s</span></span></code></pre></div>
+<span><span class="co">#&gt; 0.26s</span></span>
+<span><span class="co">#&gt; Reading solution: 0.19s</span></span></code></pre></div>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/storage_duration.html">storage_duration</a></span><span class="op">(</span><span class="va">scen</span><span class="op">)</span>                 <span class="co"># 12h / 1d / 1w / 30d by default</span></span>
 <span></span>
@@ -1313,8 +1349,10 @@ than by the load.</p>
 <span>  name      <span class="op">=</span> <span class="st">"STG_BTR_VRE"</span>,</span>
 <span>  desc      <span class="op">=</span> <span class="st">"Cheap store, energy and power sized separately"</span>,</span>
 <span>  commodity <span class="op">=</span> <span class="st">"ELC"</span>,</span>
-<span>  output    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>comm <span class="op">=</span> <span class="st">"ELC"</span>, unit <span class="op">=</span> <span class="st">"MWh"</span>, invcost <span class="op">=</span> <span class="fl">20</span><span class="op">)</span>,  <span class="co"># power, per MW</span></span>
-<span>  storage   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>comm <span class="op">=</span> <span class="st">"ELC"</span>, unit <span class="op">=</span> <span class="st">"MWh"</span>, invcost <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,   <span class="co"># energy, per MWh</span></span>
+<span>  output    <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>comm <span class="op">=</span> <span class="st">"ELC"</span>, unit <span class="op">=</span> <span class="st">"MWh"</span><span class="op">)</span>,</span>
+<span>  storage   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>comm <span class="op">=</span> <span class="st">"ELC"</span>, unit <span class="op">=</span> <span class="st">"MWh"</span><span class="op">)</span>,</span>
+<span>  <span class="co"># power priced per MW on the discharger, energy per MWh on the reservoir</span></span>
+<span>  invcost   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>out.invcost <span class="op">=</span> <span class="fl">20</span>, stg.invcost <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
 <span>  seff      <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>inpeff <span class="op">=</span> <span class="fl">0.95</span>, outeff <span class="op">=</span> <span class="fl">0.95</span><span class="op">)</span>,</span>
 <span>  vintage   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>olife <span class="op">=</span> <span class="fl">15L</span><span class="op">)</span>,</span>
 <span>  fullYear  <span class="op">=</span> <span class="cn">TRUE</span></span>

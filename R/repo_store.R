@@ -1,7 +1,7 @@
 # =============================================================================#
 # repo_store.R — content-addressed repository store (layout 3, stage S4c).
 #
-# `repositories/<name>@<hash8>/` holds one saved repository version:
+# `repositories/<name>/` holds one saved repository (hash in the manifest):
 # `repository.yml`, the thinned `repo.RData`, and parquet stores for the big
 # data slots — the model store's pattern (R/model_store.R) one level down.
 # Repositories are where real sharing happens: many models differing only in
@@ -32,7 +32,7 @@ repository_hash <- function(repo) {
 #'
 #' @description
 #' `save_repository()` writes a repository into the content-addressed store
-#' `<repositories_path>/<name>@<hash8>/` (see [get_repositories_path()]):
+#' `<repositories_path>/<name>/` (see [get_repositories_path()]):
 #' a `repository.yml` manifest, the thinned `repo.RData`, and parquet stores
 #' for the large data slots. Saving identical content again is a no-op. The
 #' repository is registered in the project registry unless `registry =
@@ -83,18 +83,21 @@ save_repository <- function(
   } else {
     tolower(format)
   }
+  # rehydrate a thinned repository: hash the true content, never re-save
+  # an empty shell (see save_model)
+  if (!isInMemory(repo)) repo <- obj2mem(repo, verbose = FALSE)
   h <- repository_hash(repo)
   h8 <- substr(h, 1, 8)
   if (is.null(path)) {
-    path <- fp(get_repositories_path(),
-               paste0(.path_slug(repo@name), "@", h8))
+    path <- .store_entry_dir(get_repositories_path(), repo@name, h)
   }
   path <- gsub("[\\/]+", "/", path)
 
   mf_path <- fp(path, "repository.yml")
-  if (file.exists(mf_path) && !overwrite) {
+  prev <- NULL
+  if (file.exists(mf_path)) {
     prev <- tryCatch(yaml::read_yaml(mf_path), error = function(e) NULL)
-    if (!is.null(prev) && identical(prev$hash, h)) {
+    if (!overwrite && !is.null(prev) && identical(prev$hash, h)) {
       if (verbose) {
         message("Repository '", repo@name, "' (", h8,
                 ") is already in the store: ", path)
@@ -103,6 +106,8 @@ save_repository <- function(
       repo@misc$path <- path
       return(invisible(repo))
     }
+    .seal_guard(prev, "repository", repo@name, "unseal_repository")
+    .store_entry_wipe(path)
   }
 
   # Large data slots already in the dataset store become {name, hash} refs:
@@ -138,10 +143,12 @@ save_repository <- function(
     class = "repository",
     name = repo@name,
     hash = h,
-    created = .registry_now(),
+    created = prev$created %||% .registry_now(),
+    updated = .registry_now(),
     energyRt_version = as.character(utils::packageVersion("energyRt")),
     format = format
-  ), if (length(ds_entries)) list(datasets = ds_entries)), mf_path)
+  ), if (length(ds_entries)) list(datasets = ds_entries),
+     .lifecycle_carry(prev)), mf_path)
 
   # the caller keeps a fully-loaded object: restore the referenced payloads
   # (the stub lives only in the store entry)
@@ -212,6 +219,7 @@ load_repository <- function(name, hash = NULL, path = NULL, env = NULL,
          "  Run refresh_registry() to rescan, save_repository() to store ",
          "it, or pass path= to a repository directory.")
   }
+  .mark_notice("repository", path, name)
   e <- new.env(parent = emptyenv())
   nm <- load(fp(path, "repo.RData"), envir = e)
   if (length(nm) != 1L || !is(get(nm, envir = e), "repository")) {

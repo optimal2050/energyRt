@@ -160,7 +160,7 @@ getData(c("BASE", "CO2CAP"), name = "vEmsFuelTot", comm = "CO2",
 ├── scenarios/<scen>/
 │   ├── reports/          # this scenario's reports
 │   └── levcost/          # its levcost cache
-└── models/<name>@<hash8>/
+└── models/<name>/
     ├── reports/          # a stored model's reports
     └── levcost/          # its levcost cache
 ```

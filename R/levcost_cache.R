@@ -29,10 +29,11 @@
   if (is(x, "model") || is(x, "repository")) {
     p <- x@misc[["path"]]
     if (!is.null(p) && dir.exists(p)) return(p)
-    root <- if (is(x, "model")) get_models_path() else get_repositories_path()
-    h8 <- substr(object_hash(x), 1, 8)
-    cand <- fp(root, paste0(.path_slug(x@name), "@", h8))
-    if (dir.exists(cand)) return(cand)
+    cand <- tryCatch(
+      if (is(x, "model")) .model_store_resolve(x@name, NULL) else
+        .repo_store_resolve(x@name, NULL),
+      error = function(e) NULL)
+    if (!is.null(cand) && dir.exists(cand)) return(cand)
   }
   NULL
 }

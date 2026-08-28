@@ -1,7 +1,7 @@
 # =============================================================================#
 # model_store.R — content-addressed model store (storage layout 3, stage S3).
 #
-# `models/<name>@<hash8>/` holds one saved model version: a `model.yml`
+# `models/<name>/` holds one saved model (hash in the manifest; `store_versioning = "hash"` keeps `<name>@<hash8>` versions): a `model.yml`
 # manifest, the thinned `mod.RData`, and parquet stores for the big data
 # slots (weather/demand), written with the same obj2disk machinery as
 # scenarios. The full content hash identifies a model version; scenarios can
@@ -30,6 +30,15 @@
   if (is.data.frame(x)) {
     attr(x, ".internal.selfref") <- NULL
     attr(x, "index") <- NULL
+    # canonical representation: serialization is sensitive to attribute
+    # ORDER and row-name form, which differ between a constructed table and
+    # one rehydrated from parquet (arrow orders names,class,row.names) —
+    # normalize so content, not representation, decides the hash. Natively
+    # built tables already have this shape, so their hashes are unchanged.
+    at <- attributes(x)
+    ord <- intersect(c("names", "row.names", "class"), names(at))
+    attributes(x) <- at[c(ord, setdiff(names(at), ord))]
+    attr(x, "row.names") <- .set_row_names(nrow(x))
     return(x)
   }
   if (is.list(x) && length(x)) {
@@ -96,7 +105,7 @@ object_hash <- function(x) {
 #'
 #' @description
 #' `save_model()` writes a model into the content-addressed store
-#' `<models_path>/<name>@<hash8>/` (see [get_models_path()]): a `model.yml`
+#' `<models_path>/<name>/` (see [get_models_path()]; with `set_store_versioning("hash")`, `<name>@<hash8>` versions coexist): a `model.yml`
 #' manifest, the thinned `mod.RData`, and parquet stores for the large data
 #' slots. Saving the identical content again is a no-op. The model is
 #' registered in the project registry (see [load_registry()]) unless
@@ -153,6 +162,11 @@ save_model <- function(
   } else {
     tolower(format)
   }
+  # A thinned (on-disk) model hashes by its EMPTY slots — rehydrate first,
+  # so re-saving a just-saved/just-loaded model is a genuine no-op and an
+  # edited one a clean update (never a spurious new entry, never an entry
+  # overwritten with empty data).
+  if (!isInMemory(mod)) mod <- obj2mem(mod, verbose = FALSE)
   # CRITICAL ORDER: the model hash is computed on the FULL model, before any
   # repository is replaced by a store reference below — the recorded hash
   # identifies the complete content regardless of how the repositories are
@@ -160,14 +174,15 @@ save_model <- function(
   h <- model_hash(mod)
   h8 <- substr(h, 1, 8)
   if (is.null(path)) {
-    path <- fp(get_models_path(), paste0(.path_slug(mod@name), "@", h8))
+    path <- .store_entry_dir(get_models_path(), mod@name, h)
   }
   path <- gsub("[\\/]+", "/", path)
 
   mf_path <- fp(path, "model.yml")
-  if (file.exists(mf_path) && !overwrite) {
+  prev <- NULL
+  if (file.exists(mf_path)) {
     prev <- tryCatch(yaml::read_yaml(mf_path), error = function(e) NULL)
-    if (!is.null(prev) && identical(prev$hash, h)) {
+    if (!overwrite && !is.null(prev) && identical(prev$hash, h)) {
       if (verbose) {
         message("Model '", mod@name, "' (", h8, ") is already in the store: ",
                 path)
@@ -176,6 +191,10 @@ save_model <- function(
       mod@misc$path <- path
       return(invisible(mod))
     }
+    .seal_guard(prev, "model", mod@name, "unseal_model")
+    # changed content, default layout: the entry updates IN PLACE — clear
+    # the previous payload, keep the derived-artifact caches beside it
+    .store_entry_wipe(path)
   }
 
   # Repository references: with embed_repos = NULL (auto), each repository
@@ -275,11 +294,13 @@ save_model <- function(
     class = "model",
     name = mod@name,
     hash = h,
-    created = .registry_now(),
+    created = prev$created %||% .registry_now(),
+    updated = .registry_now(),
     energyRt_version = as.character(utils::packageVersion("energyRt")),
     format = format,
     repositories = unname(repo_entries)
-  ), if (length(ds_entries)) list(datasets = ds_entries)), mf_path)
+  ), if (length(ds_entries)) list(datasets = ds_entries),
+     .lifecycle_carry(prev)), mf_path)
   # the returned in-memory object keeps its full repositories and geoscale
   if (!is.null(full_repos)) mod@data <- full_repos
   if (!is.null(full_config)) {
@@ -308,6 +329,29 @@ save_model <- function(
 # then a scan of the store root. Shared by the model and repository stores.
 # Returns the directory or NULL; errors when several versions match and no
 # hash pins one.
+# The folder a store entry lives in. Default (`store_versioning = "none"`):
+# one human-readable folder per NAME, updated in place — the hash stays in
+# the manifest/misc for no-op detection and reference verification, never in
+# the path. `"hash"`: content-addressed <slug>@<hash8>, versions coexist.
+.store_entry_dir <- function(root, name, hash) {
+  slug <- .path_slug(name)
+  d <- if (identical(get_store_versioning(), "hash")) {
+    fp(root, paste0(slug, "@", substr(hash, 1, 8)))
+  } else {
+    fp(root, slug)
+  }
+  gsub("[\\/]+", "/", d)
+}
+
+# In-place update of an entry dir: clear the previous payload but KEEP the
+# mutable derived-artifact caches living beside it.
+.store_entry_wipe <- function(path, keep = c("reports", "levcost")) {
+  if (!dir.exists(path)) return(invisible(FALSE))
+  ff <- list.files(path, all.files = TRUE, no.. = TRUE)
+  unlink(fp(path, setdiff(ff, keep)), recursive = TRUE, force = TRUE)
+  invisible(TRUE)
+}
+
 .store_resolve <- function(name, hash, reg_type, root, manifest) {
   if (grepl("@", name, fixed = TRUE)) {
     parts <- strsplit(name, "@", fixed = TRUE)[[1]]
@@ -322,17 +366,28 @@ save_model <- function(
     d <- fp(dirname(get_registry_file()), hit$path[1])
     if (file.exists(fp(d, manifest))) return(gsub("[\\/]+", "/", d))
   }
-  # 2. store scan
+  # 2. store scan: a plain `<slug>/` entry (default layout) and/or
+  # `<slug>@<hash8>` versions (versioned layout, or pre-rework saves)
   if (!dir.exists(root)) return(NULL)
   dd <- list.dirs(root, recursive = FALSE)
   slug <- .path_slug(name)
-  dd <- dd[startsWith(basename(dd), paste0(slug, "@"))]
+  dd <- dd[basename(dd) == slug | startsWith(basename(dd), paste0(slug, "@"))]
+  dd <- dd[file.exists(fp(dd, manifest))]
   if (!is.null(hash) && nzchar(hash)) {
-    keep <- vapply(dd, function(d) {
+    mf_hash <- vapply(dd, function(d) {
       mf <- tryCatch(yaml::read_yaml(fp(d, manifest)),
                      error = function(e) NULL)
-      !is.null(mf) && startsWith(mf$hash %||% "", hash)
-    }, logical(1))
+      mf$hash %||% ""
+    }, character(1))
+    keep <- startsWith(mf_hash, hash)
+    if (length(dd) && !any(keep)) {
+      stop(reg_type, " '", name, "' version @", substr(hash, 1, 8),
+           " is not in the store ('", root, "'): it now holds @",
+           paste(substr(mf_hash, 1, 8), collapse = ", @"),
+           ". The entry was updated in place; load without hash= for the ",
+           "current version, or use set_store_versioning(\"hash\") to keep ",
+           "versions side by side.")
+    }
     dd <- dd[keep]
   }
   if (length(dd) == 1L) return(gsub("[\\/]+", "/", dd))
@@ -390,6 +445,7 @@ load_model <- function(name, hash = NULL, path = NULL, env = NULL,
          "  Run refresh_registry() to rescan, save_model() to store it, ",
          "or pass path= to a model directory.")
   }
+  .mark_notice("model", path, name)
   e <- new.env(parent = emptyenv())
   nm <- load(fp(path, "mod.RData"), envir = e)
   if (length(nm) != 1L || !is(get(nm, envir = e), "model")) {
@@ -412,9 +468,34 @@ load_model <- function(name, hash = NULL, path = NULL, env = NULL,
       error = function(e) NULL)
     if (is.null(r) && !is.null(ref$path)) {
       cand <- fp(dirname(get_registry_file()), ref$path)
-      if (file.exists(fp(cand, "repo.RData"))) {
+      cand_h <- tryCatch(yaml::read_yaml(fp(cand, "repository.yml"))$hash,
+                         error = function(e) "")
+      # accept the recorded path only when it still holds the recorded
+      # VERSION — an in-place-updated entry falls through to the warning
+      if (file.exists(fp(cand, "repo.RData")) &&
+          startsWith(cand_h %||% "", ref$hash %||% "")) {
         r <- tryCatch(load_repository(ref$name, path = cand, verbose = FALSE),
                       error = function(e) NULL)
+      }
+    }
+    if (is.null(r)) {
+      # the exact version is gone (entry updated in place): resolve by NAME
+      # and warn — the hash is verification, not an address
+      cur <- tryCatch(.repo_store_resolve(ref$name, NULL),
+                      error = function(e) NULL)
+      if (!is.null(cur)) {
+        cur_h <- tryCatch(yaml::read_yaml(fp(cur, "repository.yml"))$hash,
+                          error = function(e) "")
+        r <- tryCatch(load_repository(ref$name, path = cur, verbose = FALSE),
+                      error = function(e) NULL)
+        if (!is.null(r)) {
+          warning("Model '", mod@name, "' references repository '", ref$name,
+                  "' @", substr(ref$hash %||% "", 1, 8),
+                  "; the store now holds @", substr(cur_h %||% "", 1, 8),
+                  " — loading the current version. Results may not ",
+                  "reproduce; re-save the model, or keep versions with ",
+                  "set_store_versioning(\"hash\").", call. = FALSE)
+        }
       }
     }
     if (is.null(r)) {

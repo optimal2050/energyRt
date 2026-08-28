@@ -33,6 +33,7 @@ Invisibly, the regions that are declared but absent from `geoscale`.
 ## See also
 
 Other geoscale:
+[`plot_geoscale()`](https://energyRt.org/reference/plot_geoscale.md),
 [`plot_map()`](https://energyRt.org/reference/plot_map.md),
 [`setGeoscale,config-method`](https://energyRt.org/reference/setGeoscale.md),
 [`utopia_geoscale()`](https://energyRt.org/reference/utopia_geoscale.md)

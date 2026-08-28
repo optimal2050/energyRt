@@ -34,6 +34,35 @@ pyomo_glpk <- Pyomo
 pyomo_glpk$name <- "pyomo_glpk"
 pyomo_glpk$solver <- "glpk"
 
+## HiGHS through Pyomo's APPSI interface.
+##
+## `appsi_highs` talks to HiGHS in-process through `highspy` rather than writing
+## an LP/NL file and invoking an external binary. Requires `highspy` in the
+## Python environment; see `en_install_python_deps()` for the version constraint.
+pyomo_highs <- Pyomo
+pyomo_highs$name <- "pyomo_highs"
+pyomo_highs$solver <- "appsi_highs"
+
+## Interior point, matching `julia_highs_barrier` exactly. HiGHS spells the
+## choice `solver = ipm`.
+##
+## Crossover is off. Crossover recovers a basic (vertex) solution from the
+## interior point and does not scale: on a large LP it can cost more than the
+## barrier solve itself. Off is the usual setting for energy-system models and
+## matches `julia_highs_barrier`.
+##
+## Consequence for duals: without crossover the duals are INTERIOR-POINT duals
+## -- a point in the interior of the optimal dual face rather than a vertex of
+## it. On a degenerate LP (ties between marginal units, common in these models)
+## a vertex dual would be an arbitrary pick among many; the interior point is
+## the better-behaved choice, not a worse one. (Relevant to the parked duals
+## feature, drafts/duals.R.)
+pyomo_highs_barrier <- pyomo_highs
+pyomo_highs_barrier$name <- "pyomo_highs_barrier"
+pyomo_highs_barrier$inc4 <- {
+"opt.options['solver'] = 'ipm'
+opt.options['run_crossover'] = 'off'"}
+
 ## Python/Pyomo via NEOS (remote solve; no local solver, needs env var NEOS_EMAIL)
 # The scenario is still BUILT locally (Pyomo reads the data into the
 # ConcreteModel); only the SOLVE is dispatched to NEOS, which serialises the
@@ -373,6 +402,8 @@ solver_options <- list(
   pyomo_cplex = pyomo_cplex,
   pyomo_cplex_barrier = pyomo_cplex_barrier,
   pyomo_glpk = pyomo_glpk,
+  pyomo_highs = pyomo_highs,
+  pyomo_highs_barrier = pyomo_highs_barrier,
   # Python/Pyomo via NEOS (remote solve)
   neos_pyomo_cplex = neos_pyomo_cplex,
   neos_pyomo_cplex_barrier = neos_pyomo_cplex_barrier,

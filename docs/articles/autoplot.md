@@ -30,10 +30,16 @@ objects.
 
 data("calendars", package = "energyRt")
 names(calendars)
-#> [1] "season_dn"                      "d365"                          
-#> [3] "utopia_annual"                  "utopia_seasons"                
-#> [5] "utopia_s4h24"                   "utopia_m12h24"                 
-#> [7] "d365_h24"                       "d365_h24_subset_1day_per_month"
+#>  [1] "season_dn"                      "d365"                          
+#>  [3] "annual"                         "utopia_seasons"                
+#>  [5] "unit_s4"                        "unit_s4h4"                     
+#>  [7] "d365_h24"                       "d365_h24_subset_1day_per_month"
+#>  [9] "m12"                            "m12a"                          
+#> [11] "q4"                             "s4"                            
+#> [13] "s4_h24"                         "m12_h24"                       
+#> [15] "wd7_h24"                        "w52_h24"                       
+#> [17] "s4_h24_subset_2seasons"         "m12_h24_subset_4months"        
+#> [19] "m12_subset_q1"
 ```
 
 [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
@@ -197,10 +203,9 @@ exactly as for
 
 Any timeslice-indexed model data lays out the same way. Here
 **electricity demand** and a **solar capacity factor** from the packaged
-UTOPIA kit, on its season × hour calendar (`utopia_s4h24`): pull the
-object with
-[`getObject()`](https://energyRt.org/reference/getObject.md), take one
-region (and, for demand, one year), and pass the `timeslice` + value
+UTOPIA kit, on its season × hour calendar (`s4_h24`): pull the object
+with [`getObject()`](https://energyRt.org/reference/getObject.md), take
+one region (and, for demand, one year), and pass the `timeslice` + value
 columns to
 [`plot_heatmap()`](https://energyRt.org/reference/plot_heatmap.md). The
 `name` argument carries the value’s unit onto the colour bar.
@@ -208,7 +213,7 @@ columns to
 ``` r
 
 repo <- utopia_modules$electricity$R3$repo
-wcal <- calendars$utopia_s4h24
+wcal <- calendars$s4_h24
 
 DEM <- getObject(repo, name = "DEM_ELC", drop = TRUE)
 dem <- subset(as.data.frame(DEM@demand), region == "R1" & year == 2050)
@@ -354,7 +359,7 @@ for the heatmap, the y-axis for line/area.
 ``` r
 
 WSOL <- getObject(utopia_modules$electricity$R3$repo, name = "WSOL", drop = TRUE)
-wcal <- calendars$utopia_s4h24
+wcal <- calendars$s4_h24
 
 autoplot(WSOL, calendar = wcal)                    # heatmap (default), faceted by region
 ```

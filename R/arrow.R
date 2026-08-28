@@ -43,13 +43,12 @@ save_scenario <- function(
     clean_start = FALSE,
     write_log = TRUE,
     verbose = TRUE) {
-  # On-disk STORAGE format. The Arrow exchange default is "feather", but feather
-  # datasets are neither compressible nor lazily readable via write_dataset /
-  # en_open_dataset, so any Arrow request is stored as parquet (compressed with
-  # the global arrow_compression / arrow_compression_level options). "csv" stays
-  # csv. (Exchange with the solvers still uses feather; see get_arrow_format().)
-  format <- if (tolower(format) %in% c("feather", "arrow", "ipc")) {
-    "parquet"
+  # On-disk STORAGE format. feather/IPC and parquet are both compressible and
+  # both support lazy, filtered reads through open_dataset(); they trade off
+  # differently -- parquet is smaller, feather reads faster. "arrow" and "ipc"
+  # are aliases for feather; "csv" stays csv.
+  format <- if (tolower(format) %in% c("arrow", "ipc")) {
+    "feather"
   } else {
     tolower(format)
   }
@@ -60,6 +59,9 @@ save_scenario <- function(
   } else {
     scen@path <- path
   }
+
+  # a sealed scenario is an archive: no rewrites (see ?seal_scenario)
+  .scenario_seal_guard(scen)
 
   # An on-disk scenario (interpolate_model(ondisk = TRUE)) already has its
   # parquet stores in place — but the thin object, the layout markers, the
@@ -359,6 +361,26 @@ if (F) {
 # mem_to_disk
 # disk2mem
 
+# Compression codec for feather/IPC datasets. `write_dataset(format = "feather")`
+# takes a Codec object as `codec`, not the `compression` string parquet uses;
+# passing the string errors. Falls back to no compression when the codec is
+# unavailable in this arrow build.
+.en_ipc_codec <- function(compression, level = NULL) {
+  cmp <- tolower(compression)
+  if (identical(cmp, "lz4")) cmp <- "lz4_frame"
+  z <- try(if (is.null(level) || identical(cmp, "lz4_frame")) {
+    arrow::Codec$create(cmp)
+  } else {
+    arrow::Codec$create(cmp, compression_level = as.integer(level))
+  }, silent = TRUE)
+  if (inherits(z, "try-error")) {
+    warning("arrow codec '", compression, "' unavailable; writing uncompressed",
+            call. = FALSE)
+    return(NULL)
+  }
+  z
+}
+
 data2disk <- function(
     obj,
     path = NULL,
@@ -380,12 +402,17 @@ data2disk <- function(
     # if (verbose) cat(path, format, "\n")
     if (anyDuplicatedSets(obj)) obj <- rename_duplicated_sets(obj)
     dir.create(path, recursive = TRUE, showWarnings = FALSE)
-    # Parquet supports compression (zstd/lz4 + level); csv/feather datasets do not
-    # take a compression arg in write_dataset.
-    if (format == "parquet" && !identical(tolower(compression), "uncompressed")) {
+    # Compression is spelled differently per format: parquet takes
+    # `compression` + `compression_level`, feather/IPC takes a `codec` object.
+    # csv takes neither.
+    .cmp <- !identical(tolower(compression), "uncompressed")
+    if (format == "parquet" && .cmp) {
       arrow::write_dataset(obj, path = path, format = "parquet",
                            compression = compression,
                            compression_level = as.integer(compression_level))
+    } else if (format %in% c("feather", "arrow", "ipc") && .cmp) {
+      arrow::write_dataset(obj, path = path, format = "feather",
+                           codec = .en_ipc_codec(compression, compression_level))
     } else {
       arrow::write_dataset(obj, path = path, format = format)
     }
@@ -631,6 +658,9 @@ en_open_dataset <- function(path, format = NULL, engine = "arrow") {
       format <- "csv"
     } else if (all(ext %in% "parquet")) {
       format <- "parquet"
+    } else if (all(ext %in% c("arrow", "feather", "ipc"))) {
+      # write_dataset(format = "feather") names its files `.arrow`
+      format <- "feather"
     } else if (all(ext %in% "RData")) {
       format <- "RData"
     } else {
@@ -650,6 +680,9 @@ en_open_dataset <- function(path, format = NULL, engine = "arrow") {
     }
     if (format == "parquet") {
       return(arrow::open_dataset(path))
+    }
+    if (format %in% c("feather", "arrow", "ipc")) {
+      return(arrow::open_dataset(path, format = "feather"))
     }
   }
   if (format == "RData") {
@@ -703,6 +736,24 @@ isInMemory <- function(obj) {
   return(TRUE)
 }
 
+#' Is object stored on disk?
+#'
+#' The complement of [isInMemory()]. An on-disk object holds its data in an
+#' Arrow dataset rather than in its slots, so reading it is a scan rather than a
+#' subset -- which is what makes predicate pushdown possible for it and
+#' pointless for an in-memory one.
+#'
+#' @param obj Object, checks
+#'
+#' @return Logical value, TRUE if object is stored on disk, FALSE if in memory.
+#'
+#' @seealso [isInMemory()]
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' isOnDisk(scen_BASE)
+#' }
 isOnDisk <- function(obj) {
   !isInMemory(obj)
 }
@@ -758,7 +809,8 @@ get_lazy_data <- function(obj,
                           path = NULL,
                           collect_data = TRUE,
                           default = NULL,
-                          optional = FALSE
+                          optional = FALSE,
+                          filter = NULL
                           ) {
   # browser()
   # check if the object is "inMemory"
@@ -772,7 +824,7 @@ get_lazy_data <- function(obj,
       x <- slot(obj, slot)
     }
     if (!is.null(element)) x <- x[[element]]
-    return(x)
+    return(.en_apply_filter(x, filter))
   }
   if (is.null(path)) path <- getObjPath(obj)
   stopifnot(!is.null(path))
@@ -807,6 +859,9 @@ get_lazy_data <- function(obj,
     stop("Cannot open dataset: ", path, "\n",
         "Files: ", paste(ff, collapse = ", "))
   }
+  # Push the predicate into the Arrow query so only matching row groups /
+  # batches are read. Filtering after collect() reads the whole dataset first.
+  qu <- .en_apply_filter(qu, filter)
   if (collect_data) {
     qu <- collect(qu)
   }
@@ -1041,6 +1096,7 @@ load_scenario <- function(
   }
   finf <- file.info(path)
   if (finf$isdir) {
+    .mark_notice("scenario", path, basename(path))
     # Layout check before anything is read. An older directory stores each
     # variable's data one level up from where this version looks for it, and
     # that reads as "no data" rather than as an error -- so refuse it outright.
@@ -1145,9 +1201,33 @@ load_scenario <- function(
       error = function(e) NULL)
     if (is.null(mod) && !is.null(ref$path)) {
       cand <- fp(dirname(get_registry_file()), ref$path)
-      if (file.exists(fp(cand, "mod.RData"))) {
+      cand_h <- tryCatch(yaml::read_yaml(fp(cand, "model.yml"))$hash,
+                         error = function(e) "")
+      # accept the recorded path only when it still holds the recorded
+      # VERSION — an in-place-updated entry falls through to the warning
+      if (file.exists(fp(cand, "mod.RData")) &&
+          startsWith(cand_h %||% "", ref$hash %||% "")) {
         mod <- tryCatch(load_model(ref$name, path = cand, verbose = FALSE),
                         error = function(e) NULL)
+      }
+    }
+    if (is.null(mod)) {
+      # exact version gone (entry updated in place): resolve by NAME, warn
+      cur <- tryCatch(.model_store_resolve(ref$name, NULL),
+                      error = function(e) NULL)
+      if (!is.null(cur)) {
+        cur_h <- tryCatch(yaml::read_yaml(fp(cur, "model.yml"))$hash,
+                          error = function(e) "")
+        mod <- tryCatch(load_model(ref$name, path = cur, verbose = FALSE),
+                        error = function(e) NULL)
+        if (!is.null(mod)) {
+          warning("Scenario '", scen_obj@name, "' references model '",
+                  ref$name, "' @", substr(ref$hash %||% "", 1, 8),
+                  "; the store now holds @", substr(cur_h %||% "", 1, 8),
+                  " — loading the current version. Results may not ",
+                  "reproduce; re-save the scenario, or keep versions with ",
+                  "set_store_versioning(\"hash\").", call. = FALSE)
+        }
       }
     }
     if (is.null(mod)) {

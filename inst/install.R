@@ -73,11 +73,13 @@ install_energyRt <- function(ref = "optimal2050/energyRt",
   deps <- c(
     "generics", "data.table", "DBI", "RSQLite", "tibble", "tidyr", "dplyr",
     "rlang", "stringr", "lubridate", "purrr", "arrow", "progressr", "tictoc",
-    "cli", "zoo", "registry", "options", "glue", "plyr",
+    "cli", "zoo", "options", "glue", "plyr", "yaml",
     # suggested -- plots and reports (optional but recommended):
     "ggplot2", "patchwork", "knitr", "rmarkdown", "tinytex", "sf",
     # optional -- the process-designer GUI (process_designer()):
     "shiny", "DT",
+    # optional -- detailed per-parameter diffs in compare_inputs():
+    "waldo",
     # optional -- the NEOS client, which solves remotely with no local solver
     "httr2", "xml2", "base64enc"
   )

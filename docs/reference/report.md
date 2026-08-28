@@ -53,6 +53,23 @@ report(
   levcost = NULL,
   cost_unit = NULL,
   open = interactive(),
+  reports_path = NULL,
+  force = FALSE,
+  ...
+)
+
+# S4 method for class 'storage'
+report(
+  object,
+  template = NULL,
+  image_file = NULL,
+  file = NULL,
+  format = c("html", "pdf", "tex", "docx"),
+  levcost = NULL,
+  cost_unit = NULL,
+  open = interactive(),
+  reports_path = NULL,
+  force = FALSE,
   ...
 )
 
@@ -66,6 +83,10 @@ report(
   levcost = NULL,
   cost_unit = NULL,
   open = interactive(),
+  reports_path = NULL,
+  force = FALSE,
+  logos = NULL,
+  figure = NULL,
   ...
 )
 
@@ -79,6 +100,10 @@ report(
   levcost = NULL,
   cost_unit = NULL,
   open = interactive(),
+  reports_path = NULL,
+  force = FALSE,
+  logos = NULL,
+  figure = NULL,
   ...
 )
 
@@ -92,6 +117,42 @@ report(
   levcost = NULL,
   cost_unit = NULL,
   open = interactive(),
+  reports_path = NULL,
+  force = FALSE,
+  run = NULL,
+  verify = TRUE,
+  logos = NULL,
+  badges = NULL,
+  ...
+)
+
+# S4 method for class 'list'
+report(
+  object,
+  template = NULL,
+  image_file = NULL,
+  file = NULL,
+  format = c("html", "pdf", "tex", "docx"),
+  levcost = NULL,
+  cost_unit = NULL,
+  open = interactive(),
+  reports_path = NULL,
+  force = FALSE,
+  ...
+)
+
+# S4 method for class 'scenarios_cmp'
+report(
+  object,
+  template = NULL,
+  image_file = NULL,
+  file = NULL,
+  format = c("html", "pdf", "tex", "docx"),
+  levcost = NULL,
+  cost_unit = NULL,
+  open = interactive(),
+  reports_path = NULL,
+  force = FALSE,
   ...
 )
 ```
@@ -120,9 +181,12 @@ report(
 
 - file:
 
-  Character. Destination file path. Defaults to `report_<name>` in the
-  current working directory, with the extension appropriate for
-  `format`.
+  Character. Destination file path (used verbatim). Without it the
+  report lands inside the owning folder's `reports/` when the object is
+  saved (a scenario folder, a model/repository store entry), and
+  otherwise in the temporary project-level
+  [`get_reports_path()`](https://energyRt.org/reference/reports_path.md)
+  folder.
 
 - format:
 
@@ -163,6 +227,39 @@ report(
   [`rmarkdown::render()`](https://pkgs.rstudio.com/rmarkdown/reference/render.html).
   Known `levcost` parameter names are intercepted automatically;
   everything else is passed to the renderer.
+
+  The `scenario` method additionally accepts `run` (character or
+  `NULL`): the run id to report, as listed by
+  [`scenario_runs`](https://energyRt.org/reference/scenario_runs.md)
+  (`"<solve>"` or `"<variant>/<solve>"`). The default `NULL` reports the
+  active run; a different run is read into a local copy, so the caller's
+  scenario keeps its active run. It also accepts `verify` (logical,
+  default `TRUE`): include the
+  [`verify_solution`](https://energyRt.org/reference/verify_solution.md)
+  checks section. For a whole-scenario report, `levcost = TRUE` adds an
+  ex-post levelized-cost table via `levcost(scenario)`.
+
+  The model, repository and scenario methods accept branding arguments:
+  `logos` (character vector of image paths rendered as a banner row;
+  default from `misc$logos`, then the scalar `misc$logo` / `misc$image`
+  – a scenario shows its model's logos first, then its own), the model
+  method `figure` (an optional half-page hero figure, default
+  `misc$figure`), and the scenario method `badges` (small
+  property-indicator images, default `misc$badges`). Branding content
+  enters the render key, so a changed logo re-renders an otherwise
+  up-to-date report.
+
+- reports_path:
+
+  Character. Redirects the default output directory for this call
+  (`file =` still wins).
+
+- force:
+
+  Logical. Re-render even when the existing files are up to date.
+  Reports are skip-if-current: a sidecar (`*.report.yml`) records a
+  content key over the object, template, arguments, image and levcost
+  identity, and an unchanged report is not rebuilt.
 
 - name:
 

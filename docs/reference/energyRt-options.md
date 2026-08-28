@@ -86,20 +86,6 @@ package name to `env`.
 
   :   ENERGYRT_GLPK_PATH (evaluated if possible, raw string otherwise)
 
-- mosox_path:
-
-  default:
-
-  :   NULL
-
-  option:
-
-  :   en.mosox_path
-
-  envvar:
-
-  :   ENERGYRT_MOSOX_PATH (evaluated if possible, raw string otherwise)
-
 - neos_email:
 
   default:
@@ -158,19 +144,122 @@ package name to `env`.
   :   ENERGYRT_SCENARIOS_PATH (evaluated if possible, raw string
       otherwise)
 
-- default_registry:
+- registry_file:
 
   default:
 
-  :   list(name = "registry", env = ".scen")
+  :   "energyRt_registry.csv"
 
   option:
 
-  :   en.default_registry
+  :   en.registry_file
 
   envvar:
 
-  :   ENERGYRT_DEFAULT_REGISTRY (evaluated if possible, raw string
+  :   ENERGYRT_REGISTRY_FILE (evaluated if possible, raw string
+      otherwise)
+
+- models_path:
+
+  default:
+
+  :   "models/"
+
+  option:
+
+  :   en.models_path
+
+  envvar:
+
+  :   ENERGYRT_MODELS_PATH (evaluated if possible, raw string otherwise)
+
+- repositories_path:
+
+  default:
+
+  :   "repositories/"
+
+  option:
+
+  :   en.repositories_path
+
+  envvar:
+
+  :   ENERGYRT_REPOSITORIES_PATH (evaluated if possible, raw string
+      otherwise)
+
+- datasets_path:
+
+  default:
+
+  :   "datasets/"
+
+  option:
+
+  :   en.datasets_path
+
+  envvar:
+
+  :   ENERGYRT_DATASETS_PATH (evaluated if possible, raw string
+      otherwise)
+
+- log_file:
+
+  default:
+
+  :   ""
+
+  option:
+
+  :   en.log_file
+
+  envvar:
+
+  :   ENERGYRT_LOG_FILE (evaluated if possible, raw string otherwise)
+
+- store_versioning:
+
+  default:
+
+  :   "none"
+
+  option:
+
+  :   en.store_versioning
+
+  envvar:
+
+  :   ENERGYRT_STORE_VERSIONING (evaluated if possible, raw string
+      otherwise)
+
+- reports_path:
+
+  default:
+
+  :   "reports/"
+
+  option:
+
+  :   en.reports_path
+
+  envvar:
+
+  :   ENERGYRT_REPORTS_PATH (evaluated if possible, raw string
+      otherwise)
+
+- levcost_cache_path:
+
+  default:
+
+  :   "levcosts/"
+
+  option:
+
+  :   en.levcost_cache_path
+
+  envvar:
+
+  :   ENERGYRT_LEVCOST_CACHE_PATH (evaluated if possible, raw string
       otherwise)
 
 - arrow_format:

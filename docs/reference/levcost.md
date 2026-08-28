@@ -8,6 +8,12 @@ Computes the levelized cost of energy (LCOE) for a `technology`,
 ``` r
 levcost(object, comm, name, ...)
 
+# S4 method for class 'storage'
+levcost(object, comm, name, ...)
+
+# S4 method for class 'trade'
+levcost(object, comm, name, ...)
+
 # S4 method for class 'repository'
 levcost(object, comm, name, ...)
 
@@ -243,11 +249,24 @@ clusters is unaffected and still returns a single `"levcost"` object.
 - `scenario`:
 
   an *ex-post* cost of the named process in the *solved* scenario: the
-  discounted sum of its own costs (annualised investment `vTechEac`,
-  `vTechFixom`, `vTechVarom`, plus attributed fuel cost) divided by its
-  discounted output. Fuel is attributed from `vTechInp`; a technology
-  with a *grouped* input (whose per-commodity consumption is not a
-  solution variable) therefore reports no fuel component.
+  discounted sum of its own costs (annualised investment, fixed and
+  variable O&M, plus attributed fuel cost) divided by its discounted
+  output. The process may be a `technology`, `storage` or `trade`; each
+  reads its own solved variables (`vTechOut`/`vStorageOut`/`vTradeIr`
+  and the matching `*Eac`/`*Fixom`/`*Varom`). For a `trade` the
+  denominator is what ARRIVES, i.e. `vTradeIr` times the route
+  efficiency.
+
+On the `scenario` path, fuel is attributed from the process's own input
+variable and priced from the `supply` objects in the model. A commodity
+with no `supply` – anything the model produces itself, which is the
+usual case for a store's charging electricity – is charged at ZERO here,
+because what it is worth is the commodity balance's dual and not a slot.
+The scenario path therefore reports a store's OWN cost per unit
+discharged, not its delivered cost; use `levcost()` on the `storage`
+object with `price =` for the latter. Likewise a technology with a
+*grouped* input (whose per-commodity consumption is not a solution
+variable) reports no fuel component.
 
 ## See also
 

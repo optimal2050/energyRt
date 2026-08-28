@@ -331,8 +331,14 @@ print.carry_ledger <- function(x, ...) {
     return(stats::setNames(rep(0, length(years)), years))
   }
   s <- schedule[order(schedule$year), , drop = FALSE]
-  out <- stats::approx(s$year, s$value, xout = years,
-                       method = "linear", rule = 2)$y
+  if (nrow(s) == 1) {
+    # a single declared year: approx() needs two points; rule = 2 semantics
+    # degenerate to a flat hold at the declared value
+    out <- rep(s$value[1], length(years))
+  } else {
+    out <- stats::approx(s$year, s$value, xout = years,
+                         method = "linear", rule = 2)$y
+  }
   if (!hold_end) out[years > max(s$year)] <- 0
   stats::setNames(out, years)
 }

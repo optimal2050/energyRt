@@ -10,8 +10,9 @@ newExport(
   desc = "",
   commodity = "",
   unit = NULL,
-  reserve = Inf,
+  reserve = data.frame(),
   export = data.frame(),
+  cluster = data.frame(),
   misc = list(),
   ...
 )
@@ -37,11 +38,40 @@ newExport(
 
 - reserve:
 
-  numeric. Total accumulated limit through the model horizon.
+  data.frame. Cumulative limit over the whole model horizon, summed
+  across ALL regions, years and timeslices. A data.frame (rather than
+  the bare number it was before 0.85) so it can carry a `cluster` column
+  and be split across price steps; without that every step would inherit
+  the FULL limit and the model would quietly hold `nsteps` times the
+  resource. A plain number is still accepted by the constructor and read
+  as `res.up`. There is deliberately no `region` column: adding one
+  would turn this into a per-region cap and LOSE the all-region total,
+  which is what it means today.
+
+  cluster
+
+  :   character. Price step this row applies to, NA for every step.
+
+  res.lo
+
+  :   numeric. Lower bound on the cumulative volume.
+
+  res.up
+
+  :   numeric. Upper bound on the cumulative volume.
+
+  res.fx
+
+  :   numeric. Fixed cumulative volume. Overrides `res.lo` and `res.up`.
 
 - export:
 
   data.frame. Export parameters.
+
+  cluster
+
+  :   character. Price step this row applies to, NA for every step. See
+      the `cluster` slot.
 
   region
 
@@ -70,6 +100,12 @@ newExport(
 
   :   numeric. Fixed export volume, ignored if NA. This parameter
       overrides `exp.lo` and `exp.up`.
+
+  price
+
+  :   numeric. Price received per unit exported. Export revenue is a
+      NEGATIVE cost – the minus sits inside `eqExportRowCost` – so a
+      higher price is a better outcome for the objective.
 
 - misc:
 

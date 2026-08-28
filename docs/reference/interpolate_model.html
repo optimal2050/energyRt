@@ -23,7 +23,7 @@ solve_scenario()."><meta property="og:image" content="https://energyRt.org/logo.
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.85.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -46,6 +46,8 @@ solve_scenario()."><meta property="og:image" content="https://energyRt.org/logo.
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
+    <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
+    <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
     <li><a class="dropdown-item" href="../articles/autoplot.html">autoplot()</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
@@ -93,6 +95,9 @@ and validates the result. The returned scenario is ready for <code><a href="solv
 <span>  prune <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  validate <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  code <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  kvl <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  boundary_prices <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  .prefilter <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  verbose <span class="op">=</span> <span class="fu"><a href="isVerbose.html">isVerbose</a></span><span class="op">(</span><span class="op">)</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
@@ -165,8 +170,35 @@ path or a character vector of lines. Lets a model-script version be supplied
 at interpolation time without rebuilding <code>sysdata</code> (handy to A/B templates).</p></dd>
 
 
+<dt id="arg-boundary-prices">boundary_prices<a class="anchor" aria-label="anchor" href="#arg-boundary-prices"></a></dt>
+<dd><p>optional <code>data.frame</code> pricing import/export stubs
+for trade routes dropped by a SPATIAL SAMPLE (a
+<code><a href="https://optimal2050.github.io/geoscales/r/reference/filter_geoscale.html" class="external-link">geoscales::filter_geoscale()</a></code> subset passed via <code>...</code>); see
+<code><a href="subset_model_regions.html">subset_model_regions()</a></code> for the columns. Ignored (with a warning)
+when no sampled geoscale is supplied.</p></dd>
+
+
+<dt id="arg--prefilter">.prefilter<a class="anchor" aria-label="anchor" href="#arg--prefilter"></a></dt>
+<dd><p>EXPERIMENTAL, default <code>FALSE</code>. Restrict each model
+object's data to the timeslices and regions the SCENARIO declares before
+interpolating it, rather than interpolating everything and discarding the
+excess afterwards.</p>
+<p>On the sampled-calendar recipe – a full-year model with a subset calendar
+handed to this function – the default order expands all 8,760 timeslices
+in <code>ob2mi</code> and then keeps 96. The parameter filters that follow are cheap
+(0.05s on a 5-node model); the cost is the interpolation they cannot undo.</p>
+<p>Off by default because it is not obviously safe: anything deriving a
+relation from the full declared grid rather than from the calendar would
+see a narrower input. Compare objectives before relying on it.</p></dd>
+
+
 <dt id="arg-verbose">verbose<a class="anchor" aria-label="anchor" href="#arg-verbose"></a></dt>
-<dd><p>logical; print per-step progress.</p></dd>
+<dd><p>logical; print per-step progress. This also governs the
+variant-expansion report – how many process objects were expanded and how
+many constraints were generated for them. The generated constraints
+themselves are retrievable with <code>getObject(scen, class = "constraint")</code>;
+each carries a readable <code>desc</code> and, in <code>misc$.variant_source</code>, the object
+it was derived from.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -175,7 +207,10 @@ at interpolation time without rebuilding <code>sysdata</code> (handy to A/B temp
     </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><code><a href="solve_model.html">solve_model()</a></code>, <code><a href="solve_model.html">solve_scenario()</a></code>, the <code>interpolate</code> S4 method.</p></div>
+    <div class="dont-index"><p><code><a href="solve_model.html">solve_model()</a></code>, <code><a href="solve_model.html">solve_scenario()</a></code>, the <code>interpolate</code> S4 method.</p>
+<p>Other interpolation:
+<code><a href="subset_model_regions.html">subset_model_regions()</a></code>,
+<code><a href="with_solver_log.html">with_solver_log()</a></code></p></div>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

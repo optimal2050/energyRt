@@ -31,7 +31,7 @@ commodities. The creation of a commodity object is done with the
   character. The default time-frame this commodity operates in the
   model. The lowest timeframe in the model is used by default.
 
-- `geolevel`:
+- `geoframe`:
 
   character. The geoscale level at which this commodity is balanced –
   the spatial counterpart of `timeframe`. The finest level in the model

@@ -96,8 +96,8 @@ sec <- function(title, note = NULL)
   energyRt::report_sec(title, note, output = fmt)
 
 # One table pipeline: prune empty columns, round numerics, kable per format.
-tbl <- function(df, caption = NULL, digits = 4L)
-  energyRt::report_tbl(df, caption, digits, output = fmt)
+tbl <- function(df, caption = NULL, digits = 4L, ...)
+  energyRt::report_tbl(df, caption, digits, output = fmt, ...)
 ```
 
 ```{r en-html_css, results='asis'}

@@ -35,6 +35,11 @@
 #' @param dpi integer, raster resolution.
 #' @param title,note,caption character, section / table headings.
 #' @param df data.frame to render as a table.
+#' @param max_rows integer or `NULL`: cap the printed rows with a
+#'   "... K more rows" footer. `NULL` prints all rows in HTML and caps
+#'   PDF/Word at a 200-row safety limit.
+#' @param scroll logical (HTML only): render tables over 15 rows inside a
+#'   scrollable box with a sticky header.
 #' @param name,desc character, object name and description for the page
 #'   header.
 #' @param image_file character or `NULL`, optional header image (logo).
@@ -250,12 +255,22 @@ report_sec <- function(title, note = NULL, output = report_output()) {
   invisible(NULL)
 }
 
+# PDF and Word cannot scroll: a table that forgets to pass max_rows is
+# still hard-capped there, so a 1,000-row inventory can never take over a
+# printed report. HTML shows all rows (scrolled) unless max_rows is given.
+.report_tbl_hard_cap <- 200L
+
 #' @describeIn report_helpers One table pipeline: prune empty columns, round
 #'   numerics, `kable` per format. kable does the escaping (single-escaped,
-#'   never double).
+#'   never double). Large tables stay readable: in HTML a table with more
+#'   than 15 rows renders inside a scrollable box with a sticky header
+#'   (`scroll = FALSE` disables); `max_rows` caps the printed rows with a
+#'   "... K more rows (of N)" footer -- PDF/Word additionally enforce a
+#'   200-row safety cap when `max_rows` is not given.
 #' @export
 report_tbl <- function(df, caption = NULL, digits = 4L,
-                       output = report_output()) {
+                       output = report_output(),
+                       max_rows = NULL, scroll = TRUE) {
   if (is.null(df) || nrow(df) == 0) return(invisible(NULL))
   keep <- vapply(df, function(x) {
     if (is.character(x)) any(!is.na(x) & nzchar(x)) else any(!is.na(x))
@@ -265,6 +280,13 @@ report_tbl <- function(df, caption = NULL, digits = 4L,
   for (i in seq_along(df)) {
     if (is.numeric(df[[i]])) df[[i]] <- signif(df[[i]], digits)
   }
+  n_all <- nrow(df)
+  cap_at <- if (output == "html") max_rows else
+    max_rows %||% .report_tbl_hard_cap
+  if (!is.null(cap_at) && is.finite(cap_at) && n_all > cap_at) {
+    df <- utils::head(df, cap_at)
+  }
+  n_more <- n_all - nrow(df)
   if (!is.null(caption) && nzchar(caption)) {
     if (output == "html") {
       cat("<p><strong>", .report_html_esc(caption), "</strong></p>\n",
@@ -276,6 +298,8 @@ report_tbl <- function(df, caption = NULL, digits = 4L,
           "}\\par\\vspace{1pt}\n", sep = "")
     }
   }
+  wrap <- output == "html" && isTRUE(scroll) && nrow(df) > 15
+  if (wrap) cat("<div class='ert-scroll'>\n")
   k <- if (output == "html") {
     knitr::kable(df, format = "html", row.names = FALSE,
                  table.attr = "class='kable-table'")
@@ -287,6 +311,19 @@ report_tbl <- function(df, caption = NULL, digits = 4L,
   }
   cat(k, sep = "\n")
   cat("\n")
+  if (wrap) cat("</div>\n")
+  if (n_more > 0) {
+    note <- paste0("... ", n_more, " more rows (of ", n_all, ")")
+    if (output == "html") {
+      cat("<p class='ert-gray'><small>", .report_html_esc(note),
+          "</small></p>\n", sep = "")
+    } else if (output == "word") {
+      cat("*", note, "*\n\n", sep = "")
+    } else {
+      cat("{\\small\\color{ert_gray} ", .report_tex_esc(note), "}\\par\n",
+          sep = "")
+    }
+  }
   invisible(NULL)
 }
 
@@ -313,6 +350,12 @@ table.kable-table th { border-top: 1.5px solid #333; border-bottom: 1px solid #8
 table.kable-table td { border: none; padding: 2px 12px 2px 4px; }
 table.kable-table tbody tr:last-child td { border-bottom: 1.5px solid #333; }
 table.kable-table tbody tr:nth-child(odd) { background: #f7f7f7; }
+.ert-scroll { max-height: 320px; overflow-y: auto;
+              border-bottom: 1.5px solid #333; margin: 4px 0 8px; }
+.ert-scroll table.kable-table { margin: 0; }
+.ert-scroll table.kable-table thead th { position: sticky; top: 0;
+              background: #fff; z-index: 1; }
+.ert-scroll table.kable-table tbody tr:last-child td { border-bottom: none; }
 </style>\n")
   invisible(NULL)
 }

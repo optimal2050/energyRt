@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.85.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,6 +36,8 @@
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
+    <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
+    <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
     <li><a class="dropdown-item" href="../articles/autoplot.html">autoplot()</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
@@ -68,7 +70,7 @@
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">report_pdf</span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
-<span><span class="co"># S4 method for class 'technology'</span></span>
+<span><span class="co"># S4 method for class 'ANY'</span></span>
 <span><span class="fu">report_pdf</span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -85,7 +87,25 @@
 <dd><p>Arguments forwarded to <code><a href="levcost.html">levcost</a></code> (when
 <code>levcost = NULL</code> and levcost parameters are provided) and/or to
 <code><a href="https://pkgs.rstudio.com/rmarkdown/reference/render.html" class="external-link">rmarkdown::render()</a></code>.  Known <code>levcost</code> parameter names are
-intercepted automatically; everything else is passed to the renderer.</p></dd>
+intercepted automatically; everything else is passed to the renderer.</p>
+<p>The <code>scenario</code> method additionally accepts <code>run</code> (character or
+<code>NULL</code>): the run id to report, as listed by
+<code><a href="scenario_runs.html">scenario_runs</a></code> (<code>"&lt;solve&gt;"</code> or
+<code>"&lt;variant&gt;/&lt;solve&gt;"</code>).  The default <code>NULL</code> reports the active
+run; a different run is read into a local copy, so the caller's scenario
+keeps its active run.  It also accepts <code>verify</code> (logical, default
+<code>TRUE</code>): include the <code><a href="verify_solution.html">verify_solution</a></code> checks section.
+For a whole-scenario report, <code>levcost = TRUE</code> adds an ex-post
+levelized-cost table via <code>levcost(scenario)</code>.</p>
+<p>The model, repository and scenario methods accept branding arguments:
+<code>logos</code> (character vector of image paths rendered as a banner
+row; default from <code>misc$logos</code>, then the scalar <code>misc$logo</code>
+/ <code>misc$image</code> – a scenario shows its model's logos first, then
+its own), the model method <code>figure</code> (an optional half-page hero
+figure, default <code>misc$figure</code>), and the scenario method
+<code>badges</code> (small property-indicator images, default
+<code>misc$badges</code>). Branding content enters the render key, so a
+changed logo re-renders an otherwise up-to-date report.</p></dd>
 
 </dl></div>
     <div class="section level2">

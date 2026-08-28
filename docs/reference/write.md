@@ -6,11 +6,11 @@ data files to a directory
 ## Usage
 
 ``` r
-write_script(scen, tmp.dir = NULL, solver = NULL, ...)
+write_script(scen, solver.dir = NULL, solver = NULL, ...)
 
-write_sc(x, tmp.dir = NULL, solver = NULL, ...)
+write_sc(x, solver.dir = NULL, solver = NULL, ...)
 
-write.sc(x, tmp.dir = NULL, solver = NULL, ...)
+write.sc(x, solver.dir = NULL, solver = NULL, ...)
 ```
 
 ## Arguments
@@ -19,9 +19,11 @@ write.sc(x, tmp.dir = NULL, solver = NULL, ...)
 
   scenario object, must be interpolated
 
-- tmp.dir:
+- solver.dir:
 
-  character, path
+  character, an external directory to write into; default (`NULL`)
+  writes into the run's `solver/` directory under the scenario
+  (`tmp.dir` is the deprecated alias).
 
 - solver:
 

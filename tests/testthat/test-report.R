@@ -211,10 +211,13 @@ test_that("report_templates lists shipped templates with classes", {
 test_that("template resolution is class-scoped with fallback", {
   p <- energyRt:::.find_report_template("model", class = "model")
   expect_identical(basename(p), "report_model.Rmd")
-  # a class-scoped name falls back to the unscoped template when no
-  # report_<class>_<name>.Rmd exists
+  # a class-scoped file wins when it exists ...
   p2 <- energyRt:::.find_report_template("summary", class = "model")
-  expect_identical(basename(p2), "report_summary.Rmd")
+  expect_identical(basename(p2), "report_model_summary.Rmd")
+  # ... and a class-scoped name falls back to the unscoped template when
+  # no report_<class>_<name>.Rmd exists
+  p3 <- energyRt:::.find_report_template("generic", class = "model")
+  expect_identical(basename(p3), "report_generic.Rmd")
   expect_error(energyRt:::.find_report_template("nope", class = "model"),
                "not found")
 })

@@ -10,9 +10,9 @@ newScenario(
   model = NULL,
   path = fp(get_scenarios_path(), name),
   ...,
-  env_name = ".scen",
-  registry = get_registry(),
-  replace = FALSE
+  env_name = NULL,
+  registry = NULL,
+  replace = NULL
 )
 ```
 
@@ -32,19 +32,13 @@ newScenario(
 
   any model objects or settings to be assigned to the scenario.
 
-- env_name:
+- env_name, registry, replace:
 
-  character. Name of the environment to register the scenario. Default
-  is ".scen". Used only if registry is provided. (in development)
-
-- registry:
-
-  optional registry object to register the scenario. (in development)
-
-- replace:
-
-  logical. If TRUE, replace the entry of the scenario in the registry if
-  the entry already exists. (in development)
+  deprecated and ignored — the in-memory registry has been replaced by
+  the persisted project registry (see
+  [`load_registry()`](https://energyRt.org/reference/registry.md));
+  scenarios are registered on
+  [`save_scenario()`](https://energyRt.org/reference/save_scenario.md).
 
 ## Value
 

@@ -17,7 +17,7 @@ scenario settings."><meta property="og:image" content="https://energyRt.org/logo
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.85.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -40,6 +40,8 @@ scenario settings."><meta property="og:image" content="https://energyRt.org/logo
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
+    <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
+    <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
     <li><a class="dropdown-item" href="../articles/autoplot.html">autoplot()</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
@@ -108,7 +110,7 @@ As an ARGUMENT (<code>newModel(discount = )</code>, <code>update(cfg, discount =
 <dd><p>integer. Year to apply the parameter, NA for every year.</p></dd>
 
 <dt>wacc</dt>
-<dd><p>numeric. Weighted average cost of capital, used to annuitise investment costs into <code>pTechEac</code> / <code>pStorageEac</code> / <code>pTradeEac</code>. A process may override it with its own <code>@invcost$wacc</code>. Default is 0.</p></dd>
+<dd><p>numeric. Weighted average cost of capital, used to annuitise investment costs into <code>pTechEac</code> / <code>pStorageOutEac</code> / <code>pTradeEac</code>. A process may override it with its own <code>@invcost$wacc</code>. Default is 0.</p></dd>
 
 <dt>sdr</dt>
 <dd><p>numeric. Social discount rate, used to build the cumulative discount factor applied to total system costs in the objective. A property of the model, never of an individual process. Default is 0.</p></dd>

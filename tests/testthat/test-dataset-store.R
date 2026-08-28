@@ -62,9 +62,19 @@ test_that("a table round-trips through the store with column classes intact", {
   d3 <- load_dataset(info$path, verbose = FALSE)
   expect_identical(dataset_hash(d3), info$hash)
 
-  # changed content is a SECOND version side by side
+  # changed content UPDATES IN PLACE: same folder, new manifest hash
   info2 <- save_dataset(ds_table(2), "wtest", verbose = FALSE)
-  expect_false(identical(info2$path, info$path))
+  expect_identical(info2$path, info$path)
+  expect_false(identical(info2$hash, info$hash))
+  expect_length(list.dirs(ds_root("datasets"), recursive = FALSE), 1L)
+  expect_identical(dataset_hash(load_dataset("wtest", verbose = FALSE)),
+                   info2$hash)
+
+  # ...and set_store_versioning("hash") keeps versions side by side
+  old_sv <- set_store_versioning("hash")
+  on.exit(set_store_versioning(old_sv), add = TRUE)
+  info3 <- save_dataset(ds_table(3), "wtest", verbose = FALSE)
+  expect_true(grepl("@", basename(info3$path)))
   expect_length(list.dirs(ds_root("datasets"), recursive = FALSE), 2L)
 })
 

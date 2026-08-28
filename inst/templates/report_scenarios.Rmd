@@ -36,8 +36,8 @@ library(ggplot2)
 
 # Shared helpers live in the package (see ?energyRt::report_helpers).
 fmt <- energyRt::report_setup()
-tbl <- function(df, caption = NULL, digits = 4L)
-  energyRt::report_tbl(df, caption, digits, output = fmt)
+tbl <- function(df, caption = NULL, digits = 4L, ...)
+  energyRt::report_tbl(df, caption, digits, output = fmt, ...)
 emit_img <- function(path, frac = 1)
   energyRt::report_img(path, frac, output = fmt)
 ```

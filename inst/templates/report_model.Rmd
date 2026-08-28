@@ -32,8 +32,9 @@ params:
   weather_df:    NULL
   policy_df:     NULL
   cns_df:        NULL
-  windows_plot:  NULL
-  techs:         NULL
+  proc_groups:        NULL
+  windows_group_plot: NULL
+  windows_group_n:    0
 header-includes:
   - \usepackage{booktabs}
 ---
@@ -43,8 +44,8 @@ library(ggplot2)
 
 # Shared helpers live in the package (see ?energyRt::report_helpers).
 fmt <- energyRt::report_setup()
-tbl <- function(df, caption = NULL, digits = 4L)
-  energyRt::report_tbl(df, caption, digits, output = fmt)
+tbl <- function(df, caption = NULL, digits = 4L, ...)
+  energyRt::report_tbl(df, caption, digits, output = fmt, ...)
 emit_img <- function(path, frac = 1)
   energyRt::report_img(path, frac, output = fmt)
 ```
@@ -107,8 +108,9 @@ params$calendar_plot
 tbl(params$counts_df)
 ```
 
-```{r en-windows, fig.width=8, fig.height=4.5, eval=!is.null(params$windows_plot)}
-params$windows_plot
+```{r en-windows-grp, results='asis', eval=!is.null(params$windows_group_plot)}
+h_in <- min(9, max(2.5, 1.2 + 0.18 * params$windows_group_n))
+emit_img(energyRt::report_plot_png(params$windows_group_plot, 8, h_in), 1)
 ```
 
 ## Commodities
@@ -150,7 +152,7 @@ cat("## Weather\n")
 ```
 
 ```{r en-weather, results='asis', eval=!is.null(params$weather_df)}
-tbl(params$weather_df)
+tbl(params$weather_df, max_rows = 40)
 ```
 
 ```{r en-policy-header, results='asis', eval=!is.null(params$policy_df)}
@@ -171,14 +173,16 @@ tbl(params$cns_df)
 
 ## Processes
 
-```{r en-techs, results='asis', fig.width=6, fig.height=4}
-for (tt in params$techs) {
-  cat("\n\n### ", tt$name,
-      if (!is.null(tt$class) && nzchar(tt$class))
-        paste0(" (", tt$class, ")"),
-      if (nzchar(tt$desc)) paste0(" --- ", tt$desc), "\n\n", sep = "")
-  emit_img(tt$draw_file, 0.7)
+One section per process STRUCTURE (class + input/output/aux commodities);
+the members list names every process sharing it. Per-process datasheets:
+`report(mod, name = "<process>")`.
+
+```{r en-proc-groups, results='asis'}
+for (g in params$proc_groups) {
+  cat("\n\n### ", g$n, " x ", g$label, " (", g$class, ")\n\n", sep = "")
+  emit_img(g$draw_file, 0.6)
   cat("\n")
-  tbl(tt$info_df)
+  tbl(g$members_df, caption = "Members", max_rows = 25)
+  tbl(g$ranges_df, caption = "Parameter ranges across members")
 }
 ```

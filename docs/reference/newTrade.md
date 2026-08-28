@@ -13,6 +13,7 @@ newTrade(
   trade = data.frame(),
   fixom = data.frame(),
   varom = data.frame(),
+  cluster = data.frame(),
   invcost = data.frame(),
   olife = data.frame(),
   start = data.frame(start = -Inf, stringsAsFactors = FALSE),
@@ -57,17 +58,35 @@ newTrade(
 
 - trade:
 
-  data.frame. Technical parameters of trade.
+  data.frame. Technical parameters of trade per directed route. Two
+  kinds of flow bound live here and they are not interchangeable:
+  `ava.*` is ABSOLUTE, in physical commodity units per timeslice, and
+  does not scale with capacity; `af.*` is RELATIVE, a fraction of the
+  object's own capacity (`cap2act` x `vTradeCap` x the timeslice share),
+  and is the direct analogue of `technology@af`. Use `af.*` to rate
+  individual lines of a multi-route object, where the absolute bound
+  would have to be a number correct for exactly one capacity – and
+  capacity is the decision.
 
   vintage
 
   :   character. Vintage label selecting the variant this row applies
       to, NA for every vintage. See the `vintage` slot.
 
-  region
+  cluster
 
-  :   character. Region name to apply the parameter, NA for every
-      region.
+  :   character. Cluster (loss tranche) label selecting the tranche this
+      row applies to, NA for every tranche. See the `cluster` slot.
+
+  src
+
+  :   character. Source region of the flow, NA for every source region
+      on the route.
+
+  dst
+
+  :   character. Destination region of the flow, NA for every
+      destination region on the route.
 
   year
 
@@ -78,33 +97,138 @@ newTrade(
   :   character. Time timeslice to apply the parameter, NA for every
       timeslice.
 
-  trade
+  ava.lo
 
-  :   numeric. Trade volume.
+  :   numeric. Lower bound on the traded flow from `src` to `dst`, in
+      physical commodity units per timeslice.
+
+  ava.up
+
+  :   numeric. Upper bound on the traded flow from `src` to `dst`, in
+      physical commodity units per timeslice.
+
+  ava.fx
+
+  :   numeric. Fixed value of the traded flow from `src` to `dst`, in
+      physical commodity units per timeslice. This parameter overrides
+      `ava.lo` and `ava.up`.
+
+  af.lo
+
+  :   numeric. Lower bound on the flow from `src` to `dst` as a FRACTION
+      of the object's capacity: `af.lo x cap2act x vTradeCap x share`.
+      Forces a minimum loading on that direction.
+
+  af.up
+
+  :   numeric. Upper bound on the flow from `src` to `dst` as a FRACTION
+      of the object's capacity: `af.up x cap2act x vTradeCap x share`.
+      This is how a single trade object carrying several routes gives
+      each line its own rating – `af.up = 0.5` on one leg limits it to
+      half the corridor whatever the corridor turns out to be. Note that
+      `af.up` of 1 is already implied by `eqTradeCapFlow` and cannot
+      bind.
+
+  af.fx
+
+  :   numeric. Fixed loading of the direction `src` -\> `dst` as a
+      fraction of capacity. Overrides `af.lo` and `af.up`.
+
+  teff
+
+  :   numeric. Trade efficiency: the fraction of the flow sent from
+      `src` that is delivered to `dst` (1 = lossless).
+
+  reactance
+
+  :   numeric. Series reactance `x` of the line, in the model's own
+      impedance units. Carried for AC lines and used by nothing unless
+      the model is interpolated with `kvl = TRUE`, when it becomes the
+      coefficient of Kirchhoff's voltage law. Presence of a finite
+      `reactance` is what marks a route as a PASSIVE AC branch: a
+      controllable DC link has none, because its flow is chosen rather
+      than set by impedance. Must be SYMMETRIC across the two directed
+      rows of a line – the voltage law constrains the net flow – and a
+      line under KVL must be declared in both directions. Where several
+      physical circuits have been merged into one route, the value is
+      the EQUIVALENT reactance, `1/x_eq = sum(1/x_i)`, not any one
+      circuit's.
+
+  resistance
+
+  :   numeric. Series resistance `r` of the line, same units and same
+      symmetry requirement as `reactance`. Recorded for round-tripping
+      with power-system models (PyPSA's `Line` carries both). It does
+      not drive losses by itself – losses are the per-route `teff` – but
+      it is the input
+      [`lossTranches()`](https://energyRt.org/reference/lossTranches.md)
+      turns into a piecewise-linear loss curve: pass it with the rating
+      it was measured against, since `loss_full = r * F` and a
+      resistance alone does not determine a loss fraction.
 
 - fixom:
 
-  data.frame. (not implemented!) Fixed operation and maintenance costs.
+  data.frame. Fixed operation and maintenance costs, per unit of
+  standing capacity per year. Like the other trade cost slots this is a
+  RATE PER ENDPOINT REGION, named in its `region` column – see the note
+  on `invcost`.
 
 - varom:
 
-  data.frame. (not implemented!) Variable operation and maintenance
-  costs.
+  data.frame. Costs charged on the traded flow, PER ROUTE. Unlike the
+  capacity costs above – which are a rate per endpoint region – these
+  are indexed by `(src, dst, year, timeslice)`, so they can differ by
+  direction. The two columns mean different things:
+
+  `varom` – variable operation and maintenance, a REAL resource cost.
+  Charged where the flow ORIGINATES (`src`) and added to total system
+  cost, exactly as `technology@varom` is. Use it for wheeling fees,
+  transit taxes or any real charge per unit shipped. Becomes
+  `pTradeIrCost`.
+
+  `markup` – a border price or bilateral charge: a TRANSFER. The
+  importing region pays it and the exporting region receives it, so it
+  moves cost between regions and leaves the objective unchanged – the
+  same distinction as a tax versus a cap. Becomes `pTradeIrMarkup`.
+
+  Before 0.85 both columns were summed into a single term that cancelled
+  between `eqImportIrCost` and `eqExportIrCost`, so `varom` could not
+  express an operating cost at all; it now enters the objective once,
+  positively, at `src`. (A separate parameter `pTradeVarom` was once
+  declared in the GLPK and GAMS templates and read by no equation; it
+  has been removed and was never this slot.)
 
 - invcost:
 
-  data.frame. Investment cost of the trade capacity (per unit of
-  capacity).
+  data.frame. Investment cost of the trade capacity, as a RATE PER
+  ENDPOINT REGION per unit of capacity. Trade capacity is region-free –
+  one number per corridor – but its costs are region-indexed, and each
+  region named in `region` pays its own rate on the whole capacity. A
+  corridor whose two endpoints each pay 100 therefore costs 200 in
+  total. Leaving `region` unset applies the rate at every endpoint of
+  the route; energyRt reports that rather than correcting it, because
+  the same rate is what a partial-region study would see – solve a
+  subset of the endpoints and it bears only their share, which is the
+  intended behaviour. Name the regions to vary the rate between them.
+  `fixom`, `retcost` and `eac` follow the same convention.
 
   vintage
 
   :   character. Vintage label selecting the variant this row applies
       to, NA for every vintage. See the `vintage` slot.
 
+  cluster
+
+  :   character. Cluster (loss tranche) label selecting the tranche this
+      row applies to, NA for every tranche. See the `cluster` slot.
+
   region
 
-  :   character. Region name to apply the parameter, NA for every
-      region.
+  :   character. Endpoint region bearing this rate. NA applies the rate
+      at every endpoint of the route; name the regions to vary it
+      between them. Must be one of the model's own regions – a coarser
+      geoscale level is accepted by validation but never reaches the
+      objective.
 
   year
 
@@ -162,10 +286,9 @@ newTrade(
   the characteristics of its build year for its whole life, so several
   vintages of one corridor mean several capacities on the same
   `(src, dst)` route, with their flows summed in the commodity balance.
-  `region` and `cluster` are present for a uniform shape across process
-  classes but are unused for trade: its scope comes from the route
-  endpoints, and `routes` already provides the multiplicity a cluster
-  dimension would add.
+  `region` is present for a uniform shape across process classes but is
+  unused for trade: its scope comes from the route endpoints. `cluster`
+  selects a loss tranche declared in the `cluster` slot.
 
   vintage
 
@@ -179,8 +302,8 @@ newTrade(
 
   cluster
 
-  :   character. Unused for trade (no cluster dimension); present for
-      consistency with the other classes.
+  :   character. Cluster (loss tranche) this row applies to, NA for
+      every tranche. See the `cluster` slot.
 
   start
 
@@ -198,8 +321,11 @@ newTrade(
 
 - capacity:
 
-  data.frame. (not implemented!) Capacity parameters of the trade
-  object.
+  data.frame. Capacity parameters of the trade object: `stock` (the
+  legacy corridor still standing at each milestone), the `cap.*` bounds
+  on total capacity, the `ncap.*` bounds on the build RATE and the
+  `ret.*` bounds on the early retirement rate. Region-free: a route IS a
+  pair of regions, so a per-region capacity would be ambiguous.
 
 - aux:
 
@@ -221,6 +347,11 @@ newTrade(
 
   :   character. Vintage label selecting the variant this row applies
       to, NA for every vintage. See the `vintage` slot.
+
+  cluster
+
+  :   character. Cluster (loss tranche) label selecting the tranche this
+      row applies to, NA for every tranche. See the `cluster` slot.
 
   acomm
 

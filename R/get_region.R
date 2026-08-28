@@ -21,6 +21,16 @@ get_region <- function(obj) {
   if (!isS4(obj)) {
     return(character(0))
   }
+  # A model declares its regions on `@config`, not on a slot of its own, so the
+  # reflective walk below finds nothing there. Its declared regions are the
+  # answer a caller wants, and reading them should not require `@config@region`.
+  if (methods::.hasSlot(obj, "config")) {
+    cfg <- methods::slot(obj, "config")
+    if (isS4(cfg) && methods::.hasSlot(cfg, "region")) {
+      out <- as.character(methods::slot(cfg, "region"))
+      return(unique(out[!is.na(out) & nzchar(out)]))
+    }
+  }
   keys <- c("region", "src", "dst")
   out <- character(0)
   for (sn in .instance_slots(obj)) {
@@ -63,6 +73,140 @@ get_region <- function(obj) {
     )
   }
   invisible(TRUE)
+}
+
+#' Collect the weather objects an object refers to
+#'
+#' Reflective accessor that walks every slot of an S4 model object (except
+#' `misc`) and gathers the names in any `weather` column. A `technology`,
+#' `storage` or `supply` links to a weather profile by name; the profile itself
+#' is a separate `weather` object in the repository.
+#'
+#' @param obj a model object (S4) such as `technology`, `storage` or `supply`.
+#'
+#' @returns a character vector of weather object names (possibly empty).
+#'
+#' @family model
+#' @export
+get_weather <- function(obj) {
+  if (!isS4(obj)) {
+    return(character(0))
+  }
+  out <- character(0)
+  for (sn in .instance_slots(obj)) {
+    if (identical(sn, "misc")) next
+    v <- methods::slot(obj, sn)
+    if (is.data.frame(v) && "weather" %in% colnames(v)) {
+      out <- c(out, as.character(v[["weather"]]))
+    }
+  }
+  out <- out[!is.na(out) & nzchar(out)]
+  unique(out)
+}
+
+# Guard: error if a weather profile referenced by name has no object behind it.
+#
+# Nothing else reconciles the two. `collect_set_elements()` builds the `weather`
+# set from the REFERENCES, not from the declared objects, so a dangling name
+# enters the set, contributes no `pWeather` rows, and the availability link it
+# was meant to impose disappears entirely -- the process runs unconstrained.
+# On a one-technology wind model that is capacity 40 instead of 200 and an
+# objective of 1,333.3 instead of 6,666.7, with no error and no warning.
+#
+# This mirrors `.check_declared_regions()`; regions and commodities are already
+# guarded, weather was the gap.
+.check_declared_objects <- function(model) {
+  declared <- character(0)
+  used <- list()
+  for (rp in model@data) {
+    objs <- if (methods::is(rp, "repository")) rp@data else list(rp)
+    for (o in objs) {
+      if (methods::is(o, "weather")) declared <- c(declared, o@name)
+      w <- get_weather(o)
+      if (length(w) > 0) {
+        used[[length(used) + 1L]] <- data.frame(
+          object = .object_label(o), weather = w, stringsAsFactors = FALSE)
+      }
+    }
+  }
+  if (length(used) == 0L) {
+    return(invisible(TRUE))
+  }
+  used <- do.call(rbind, used)
+  miss <- used[!used$weather %in% declared, , drop = FALSE]
+  if (nrow(miss) > 0L) {
+    by_w <- tapply(miss$object, miss$weather, function(x)
+      paste(unique(x), collapse = ", "))
+    stop(
+      "The model references weather object(s) that are not in the repository: ",
+      paste(sprintf("%s (from %s)", names(by_w), by_w), collapse = "; "),
+      ".\nAdd them with `add()`, or remove the reference from the affected ",
+      "objects' `weather` slot. A dangling reference does not fail on its own: ",
+      "the availability limit it carries is silently dropped.",
+      call. = FALSE
+    )
+  }
+  invisible(TRUE)
+}
+
+# Guard: error if a technology's `geff` names an input group that no commodity
+# belongs to.
+#
+# `@group` itself is optional -- groups are collected from the `group` column of
+# `@input` / `@output`, and a model with the same groups declared and undeclared
+# gives an identical answer -- so membership, not declaration, is what can be
+# checked. A `geff` row for an empty group builds a group-efficiency constraint
+# over no commodities, which makes the problem INFEASIBLE rather than wrong. It
+# is loud but undiagnosable: the solver reports only "PROBLEM HAS NO PRIMAL
+# FEASIBLE SOLUTION", with nothing to connect it back to the typo.
+.check_group_members <- function(model) {
+  bad <- list()
+  for (rp in model@data) {
+    objs <- if (methods::is(rp, "repository")) rp@data else list(rp)
+    for (o in objs) {
+      if (!methods::is(o, "technology")) next
+      ge <- methods::slot(o, "geff")
+      if (!is.data.frame(ge) || !"group" %in% colnames(ge)) next
+      used <- .nonblank(ge[["group"]])
+      if (length(used) == 0L) next
+      members <- unique(c(.slot_col(o, "input", "group"),
+                          .slot_col(o, "output", "group")))
+      orphan <- setdiff(used, members)
+      if (length(orphan) > 0L) {
+        bad[[length(bad) + 1L]] <- sprintf("%s: %s", .object_label(o),
+                                           paste(sort(orphan), collapse = ", "))
+      }
+    }
+  }
+  if (length(bad) > 0L) {
+    stop(
+      "The `geff` of the following technology/ies names input group(s) that no ",
+      "commodity belongs to: ", paste(unlist(bad), collapse = "; "),
+      ".\nPut a commodity in the group via the `group` column of `@input` or ",
+      "`@output`, or drop the `geff` row. A group with no members yields an ",
+      "infeasible problem, not a wrong one.",
+      call. = FALSE
+    )
+  }
+  invisible(TRUE)
+}
+
+.slot_col <- function(o, slot, col) {
+  v <- tryCatch(methods::slot(o, slot), error = function(e) NULL)
+  if (!is.data.frame(v) || !col %in% colnames(v)) return(character(0))
+  .nonblank(v[[col]])
+}
+
+.nonblank <- function(x) {
+  x <- as.character(x)
+  unique(x[!is.na(x) & nzchar(x)])
+}
+
+# A name for the error message. Every model object has `@name`, but an unnamed
+# one would make the message useless, so fall back to the class.
+.object_label <- function(o) {
+  nm <- tryCatch(as.character(methods::slot(o, "name")), error = function(e) "")
+  if (length(nm) != 1L || is.na(nm) || !nzchar(nm)) class(o)[1] else nm
 }
 
 # =========================================================================== #

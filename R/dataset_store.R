@@ -2,7 +2,7 @@
 # dataset_store.R — content-addressed dataset store (the fourth storage tier:
 # datasets / repositories / models / scenarios).
 #
-# `datasets/<name>@<hash8>/` holds one dataset version: a `dataset.yml`
+# `datasets/<name>/` holds one saved dataset (hash in the manifest): a `dataset.yml`
 # manifest and the payload — a parquet store under `data/` for tables
 # (weather/demand series), or `payload.rds` for other objects (a Geoscale
 # map). A dataset may instead RECORD A CALL (`fun` + `args`) that generates
@@ -154,7 +154,7 @@ dataset_hash <- function(x) {
 #' @description
 #' `save_dataset()` writes a payload — a data.frame (a weather or demand
 #' series), a `geoscales::Geoscale` map, or any R object — into the
-#' content-addressed store `<datasets_path>/<name>@<hash8>/` (see
+#' store `<datasets_path>/<name>/` (see
 #' [get_datasets_path()]). Saving identical content again is a no-op. A
 #' stored dataset can then be REFERENCED by repositories, models, and
 #' scenarios instead of embedded — see the `embed_datasets` argument of
@@ -245,14 +245,15 @@ save_dataset <- function(
   }
   h8 <- substr(h, 1, 8)
   if (is.null(path)) {
-    path <- fp(get_datasets_path(), paste0(.path_slug(name), "@", h8))
+    path <- .store_entry_dir(get_datasets_path(), name, h)
   }
   path <- gsub("[\\/]+", "/", path)
 
   mf_path <- fp(path, "dataset.yml")
-  if (file.exists(mf_path) && !overwrite) {
+  prev <- NULL
+  if (file.exists(mf_path)) {
     prev <- tryCatch(yaml::read_yaml(mf_path), error = function(e) NULL)
-    if (!is.null(prev) && identical(prev$hash, h)) {
+    if (!overwrite && !is.null(prev) && identical(prev$hash, h)) {
       if (verbose) {
         message("Dataset '", name, "' (", h8,
                 ") is already in the store: ", path)
@@ -260,6 +261,8 @@ save_dataset <- function(
       return(invisible(list(name = name, hash = h, kind = prev$kind,
                             path = path)))
     }
+    .seal_guard(prev, "dataset", name, "unseal_dataset")
+    .store_entry_wipe(path)
   }
 
   dir.create(path, recursive = TRUE, showWarnings = FALSE)
@@ -283,9 +286,11 @@ save_dataset <- function(
            "content"),
     payload_fields,
     fun_fields,
-    list(created = .registry_now(),
+    list(created = prev$created %||% .registry_now(),
+         updated = .registry_now(),
          energyRt_version = as.character(utils::packageVersion("energyRt")),
-         memo = memo)
+         memo = memo),
+    .lifecycle_carry(prev)
   ), mf_path)
   if (verbose) {
     cat("Dataset '", name, "' (", h8, ", ", kind, ") saved in '", path,
@@ -401,6 +406,7 @@ load_dataset <- function(name, hash = NULL, path = NULL, evaluate = FALSE,
          "  Run refresh_registry() to rescan, save_dataset() to store it, ",
          "or pass path= to a dataset directory.")
   }
+  .mark_notice("dataset", path, mf$name %||% name)
   x <- .dataset_payload(path, mf, prefer_snapshot = !isTRUE(evaluate),
                         strict = strict, verbose = verbose)
   if (verbose) {
@@ -481,10 +487,31 @@ load_dataset <- function(name, hash = NULL, path = NULL, evaluate = FALSE,
   if (is.null(refs) || !length(refs)) return(obj)
   for (slot_name in names(refs)) {
     ref <- refs[[slot_name]]
-    path <- .dataset_store_resolve(ref$name, ref$hash)
+    path <- tryCatch(.dataset_store_resolve(ref$name, ref$hash),
+                     error = function(e) NULL)
     if (is.null(path) && !is.null(ref$path)) {
       cand <- fp(dirname(get_registry_file()), ref$path)
-      if (file.exists(fp(cand, "dataset.yml"))) path <- cand
+      if (file.exists(fp(cand, "dataset.yml"))) {
+        cand_h <- tryCatch(yaml::read_yaml(fp(cand, "dataset.yml"))$hash,
+                           error = function(e) "")
+        if (startsWith(cand_h %||% "", ref$hash %||% "")) path <- cand
+      }
+    }
+    if (is.null(path)) {
+      # exact version gone (entry updated in place): resolve by NAME, warn
+      cur <- tryCatch(.dataset_store_resolve(ref$name, NULL),
+                      error = function(e) NULL)
+      if (!is.null(cur)) {
+        cur_h <- tryCatch(yaml::read_yaml(fp(cur, "dataset.yml"))$hash,
+                          error = function(e) "")
+        warning("The '", slot_name, "' data references dataset '", ref$name,
+                "' @", substr(ref$hash %||% "", 1, 8),
+                "; the store now holds @", substr(cur_h %||% "", 1, 8),
+                " — loading the current version. Results may not reproduce; ",
+                "re-save the owner, or keep versions with ",
+                "set_store_versioning(\"hash\").", call. = FALSE)
+        path <- cur
+      }
     }
     if (is.null(path)) {
       id <- if (.hasSlot(obj, "name") && nzchar(obj@name)) obj@name else

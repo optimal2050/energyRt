@@ -74,6 +74,14 @@ en_install_julia_pkgs <- function(pkgs = NULL, update = FALSE) {
 #' This installs *libraries only*. It does not install Python or conda
 #' themselves --- see [en_check_dependencies()] for guidance on the system layer.
 #'
+#' @section HiGHS version:
+#' `highspy` supplies HiGHS in-process and is the only Pyomo route to it;
+#' `SolverFactory("highs")` resolves to a shell solver requiring a `highs`
+#' executable. `solver_options$pyomo_highs_barrier` needs **HiGHS >= 1.13**: on
+#' 1.7.2 the `solver = "ipm"` option hangs before the solver starts and is not
+#' interruptible by a time limit. Check the installed version with
+#' `en_check_pyomo()`.
+#'
 #' @param env character. Name of the conda environment to create/use.
 #' @param packages character vector of Python packages to install.
 #' @param solver character. Conda solver package to install (e.g. `"coincbc"`).
@@ -87,11 +95,12 @@ en_install_julia_pkgs <- function(pkgs = NULL, update = FALSE) {
 #'
 #' @examples
 #' \dontrun{
-#' en_install_python_deps()                 # conda env "energyRt" with pyomo + cbc
+#' en_install_python_deps()                 # conda env with pyomo + highspy + cbc
 #' en_install_python_deps(use_conda = FALSE) # pip into current python
 #' }
 en_install_python_deps <- function(env = "energyRt",
-                                   packages = c("pyomo", "pandas", "pyarrow"),
+                                   packages = c("pyomo", "pandas", "pyarrow",
+                                                "highspy"),
                                    solver = "coincbc",
                                    channel = "conda-forge",
                                    use_conda = NULL) {
@@ -124,8 +133,10 @@ en_install_python_deps <- function(env = "energyRt",
     }
     message("Using pip via ", py)
     system2(py, c("-m", "pip", "install", "--upgrade", packages))
-    message("Note: pip cannot provide the CBC solver binary. Install a ",
-            "Pyomo-compatible solver (e.g. CBC) separately, or use conda.")
+    # `highspy` ships HiGHS as a wheel, so the pip route still yields a solver.
+    message("Note: pip cannot provide the CBC binary. `highspy` (installed ",
+            "above) supplies HiGHS -- see solver_options$pyomo_highs_barrier. ",
+            "Install CBC separately, or use conda, if CBC is required.")
   }
   return(invisible())
 }

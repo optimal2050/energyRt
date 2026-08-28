@@ -305,15 +305,43 @@ getData.scenario <- function(
   for (s in 1:length(scen)) { # loop over scenarios
     sc <- names(scen)[s]
     # Data availability: an un-interpolated scenario has no modInp parameters.
-    # Solvedness is read off `@stage`, NOT off the number of variables --
-    # `modOut` now pre-populates one empty `variable` per declared variable, so
-    # a failed solve has just as many as a successful one.
+    # Solvedness is read off `@stage` OR off actual DATA rows -- `modOut`
+    # pre-populates one empty `variable` per declared variable (so COUNTING
+    # variables proves nothing), but non-empty rows are real: a solver that
+    # stopped short of proven optimality (a MIP at its gap/time limit, an
+    # odd status code) still exports its incumbent, and withholding it
+    # silently made getData() return an empty frame while the data sat in
+    # `@modOut` in plain sight. Serve it, and SAY so.
+    stage_s <- tryCatch(scen[[s]]@modOut@stage, error = function(e) "")
+    solved_s <- identical(stage_s, "solved")
+    has_rows_s <- tryCatch(
+      any(vapply(scen[[s]]@modOut@variables,
+                 function(v) {
+                   nrow(v@data) > 0 || isTRUE(v@misc$onDisk$data$dim[1] > 0)
+                 }, logical(1))),
+      error = function(e) FALSE)
     avail <- c(
       parameters = tryCatch(length(scen[[s]]@modInp@parameters) > 0,
         error = function(e) FALSE),
-      variables = tryCatch(identical(scen[[s]]@modOut@stage, "solved"),
-        error = function(e) FALSE)
+      variables = solved_s || has_rows_s
     )
+    if (isTRUE(variables) && !solved_s && length(stage_s) == 1L &&
+        nzchar(stage_s)) {
+      # only speak up when the query can actually touch variables: a full
+      # dump, or a name matching a declared variable
+      vnames <- tryCatch(names(scen[[s]]@modOut@variables),
+                         error = function(e) character(0))
+      touches <- is.null(name) ||
+        any(tolower(vnames) %in% tolower(as.character(name)))
+      if (touches && has_rows_s) {
+        warning("Solution stage of scenario '", sc, "' is \"", stage_s,
+                "\" — returning the stored solution anyway; treat the ",
+                "values as not proven optimal.", call. = FALSE)
+      } else if (touches && !has_rows_s) {
+        message("Scenario '", sc, "' carries no solution values (stage: \"",
+                stage_s, "\").")
+      }
+    }
     if (verbose && !any(avail)) {
       message("Scenario '", sc, "' has no interpolated/solved data to extract.")
     }

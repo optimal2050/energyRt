@@ -1,0 +1,83 @@
+---
+title: "`r params$title`"
+report-class: model
+output:
+  html_document:
+    self_contained: true
+    md_extensions: "-native_divs-native_spans"
+  pdf_document:
+    latex_engine: xelatex
+  word_document: default
+params:
+  title:              "Model summary"
+  model_name:         ""
+  model_desc:         ""
+  image_file:         NULL
+  logos:              NULL
+  figure:             NULL
+  config_df:          NULL
+  counts_df:          NULL
+  horizon_plot:       NULL
+  geo_map:            NULL
+  windows_group_plot: NULL
+  windows_group_n:    0
+header-includes:
+  - \usepackage{booktabs}
+---
+
+```{r en-setup, include=FALSE}
+library(ggplot2)
+
+# One-two page glimpse of a model: configuration, contents, key figures.
+# No inventories, no per-process sections -- those live in the standard and
+# full model templates. Declaration-gating means none of the heavy
+# components are even built for this template.
+fmt <- energyRt::report_setup()
+tbl <- function(df, caption = NULL, digits = 4L, ...)
+  energyRt::report_tbl(df, caption, digits, output = fmt, ...)
+emit_img <- function(path, frac = 1)
+  energyRt::report_img(path, frac, output = fmt)
+```
+
+```{r en-css, results='asis'}
+energyRt::report_css(fmt)
+```
+
+```{r en-logo, results='asis'}
+if (length(params$logos) > 0) {
+  energyRt::report_img_row(params$logos, frac_total = 0.9, output = fmt)
+} else if (!is.null(params$image_file)) {
+  emit_img(params$image_file, 0.25)
+}
+```
+
+`r if (isTRUE(nzchar(params$model_desc))) params$model_desc`
+
+```{r en-figure, results='asis', eval=!is.null(params$figure)}
+emit_img(params$figure, 0.4)
+```
+
+## Configuration
+
+```{r en-config, results='asis'}
+tbl(params$config_df)
+```
+
+## Contents
+
+```{r en-counts, results='asis'}
+tbl(params$counts_df)
+```
+
+```{r en-horizon-plot, fig.width=7, fig.height=2.6, eval=!is.null(params$horizon_plot)}
+params$horizon_plot
+```
+
+```{r en-geo-map, fig.width=6, fig.height=4, eval=!is.null(params$geo_map)}
+params$geo_map
+```
+
+```{r en-windows-grp, results='asis', eval=!is.null(params$windows_group_plot)}
+h_in <- min(5, max(2, 1 + 0.15 * params$windows_group_n))
+emit_img(energyRt::report_plot_png(params$windows_group_plot, 7.5, h_in), 1)
+```

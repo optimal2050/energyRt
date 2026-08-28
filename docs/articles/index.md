@@ -10,8 +10,12 @@
 - [Installation and Settings](https://energyRt.org/articles/install.md):
 - [Model bricks](https://energyRt.org/articles/model-bricks.md):
 - [energyRt model framework](https://energyRt.org/articles/model.md):
+- [Reports and levelized
+  costs](https://energyRt.org/articles/reports.md):
 - [Development Status and
   Roadmap](https://energyRt.org/articles/roadmap.md):
+- [Scenario management: how models, scenarios, and solutions are
+  organized](https://energyRt.org/articles/scenario-management.md):
 - [Storage](https://energyRt.org/articles/storage.md):
 - [Time resolution: calendars and
   timeslices](https://energyRt.org/articles/time-resolution.md):

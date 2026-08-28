@@ -6,10 +6,10 @@ the scenario object populated with variables data.
 ## Usage
 
 ``` r
-read_solution(obj, ...)
+read_solution(obj, run = NULL, ...)
 
 # S4 method for class 'scenario'
-read(obj, ...)
+read(obj, run = NULL, ...)
 ```
 
 ## Arguments
@@ -18,10 +18,19 @@ read(obj, ...)
 
   scenario object
 
+- run:
+
+  character, optional run to read: `"<solve>"` for a base-problem run or
+  `"<variant>/<solve>"` — see
+  [`scenario_runs()`](https://energyRt.org/reference/scenario_runs.md).
+  The scenario's active run switches to it. Default `NULL` reads the
+  active run (or, for a freshly loaded scenario, the manifest's
+  `default:` run).
+
 - ...:
 
-  optional tmp.dir (if missing in the scenario object or to replace the
-  saved path)
+  optional `solver.dir` (an external solver directory, replacing the run
+  resolution; `tmp.dir` is the deprecated alias)
 
 ## Value
 

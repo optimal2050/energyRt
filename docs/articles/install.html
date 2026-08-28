@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.85.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -57,6 +57,8 @@
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
+    <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
+    <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
     <li><a class="dropdown-item" href="../articles/autoplot.html">autoplot()</a></li>
   </ul>
 </li>
@@ -130,9 +132,11 @@ cross-check results between them.</p>
 </tr>
 <tr class="odd">
 <td><strong>Python / Pyomo</strong></td>
-<td>Python + <code>pyomo</code> + a solver (CBC)</td>
+<td>Python + <code>pyomo</code> + <code>highspy</code>
+</td>
 <td>open-source</td>
-<td>Convenient if you already use conda.</td>
+<td>Fast (HiGHS barrier), low start-up overhead. Needs a
+<strong>current</strong> HiGHS — see below.</td>
 </tr>
 <tr class="even">
 <td><strong>GAMS</strong></td>
@@ -348,8 +352,32 @@ helpers:</p>
 <span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a>         <span class="st">"CodecBzip2"</span>, <span class="st">"Gadfly"</span>, <span class="st">"DataFrames"</span>, <span class="st">"CSV"</span>, <span class="st">"SQLite"</span>, <span class="st">"Dates"</span>])</span></code></pre></div>
 <p>Python/Pyomo layer — conda (recommended) or pip:</p>
 <div class="sourceCode" id="cb11"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="ex">conda</span> create <span class="at">-y</span> <span class="at">-n</span> energyRt python</span>
-<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a><span class="ex">conda</span> install <span class="at">-y</span> <span class="at">-n</span> energyRt <span class="at">-c</span> conda-forge pyomo pandas pyarrow coincbc</span>
-<span id="cb11-3"><a href="#cb11-3" tabindex="-1"></a><span class="co"># pip fallback (no CBC binary): python -m pip install --upgrade pyomo pandas pyarrow</span></span></code></pre></div>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a><span class="ex">conda</span> install <span class="at">-y</span> <span class="at">-n</span> energyRt <span class="at">-c</span> conda-forge pyomo pandas pyarrow highspy coincbc</span></code></pre></div>
+<p><code>pip</code> works just as well for this backend, because
+<code>highspy</code> ships HiGHS itself as a wheel (unlike CBC, which
+pip cannot supply):</p>
+<div class="sourceCode" id="cb12"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb12-1"><a href="#cb12-1" tabindex="-1"></a><span class="ex">conda</span> create <span class="at">-y</span> <span class="at">-n</span> energyRt python=3.12 pip</span>
+<span id="cb12-2"><a href="#cb12-2" tabindex="-1"></a><span class="ex">conda</span> run <span class="at">-n</span> energyRt python <span class="at">-m</span> pip install <span class="at">--upgrade</span> pyomo highspy pandas pyarrow</span></code></pre></div>
+</div>
+<div class="section level3">
+<h3 id="highs-version">HiGHS version matters<a class="anchor" aria-label="anchor" href="#highs-version"></a>
+</h3>
+<p><code>highspy</code> is the <strong>only</strong> way Pyomo reaches
+HiGHS: <code>SolverFactory("highs")</code> resolves to a shell solver
+that looks for a <code>highs</code> executable and reports itself
+unavailable. Install a current <code>highspy</code> and check what you
+actually got:</p>
+<div class="sourceCode" id="cb13"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb13-1"><a href="#cb13-1" tabindex="-1"></a><span class="ex">python</span> <span class="at">-c</span> <span class="st">"import highspy; h=highspy.Highs(); print(h.versionMajor(), h.versionMinor(), h.versionPatch())"</span></span></code></pre></div>
+<p>On <strong>HiGHS 1.7.2</strong> the interior-point option —
+<code>solver = "ipm"</code>, which
+<code>solver_options$pyomo_highs_barrier</code> sets — <strong>hangs
+before the solver starts</strong>: no HiGHS banner, no CPU use, and a
+<code>time_limit</code> cannot interrupt it, because HiGHS is never
+reached. The same models solve normally on <strong>HiGHS 1.13+</strong>.
+If you are stuck on an old <code>highspy</code>, use
+<code>solver_options$pyomo_highs</code> (simplex defaults), which works
+on 1.7.2 — but expect it to be several times slower than barrier on a
+large LP.</p>
 </div>
 </div>
 <div class="section level2">
@@ -357,7 +385,7 @@ helpers:</p>
 </h2>
 <p>If a runtime is not on your <code>PATH</code>, set its path. For
 Python/Pyomo, point at the conda environment created above:</p>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/solver.html">set_julia_path</a></span><span class="op">(</span><span class="st">"~/.juliaup/bin/"</span><span class="op">)</span>             <span class="co"># same on all platforms</span></span>
 <span><span class="fu"><a href="../reference/solver.html">set_python_path</a></span><span class="op">(</span><span class="st">"~/.conda/envs/energyRt"</span><span class="op">)</span>     <span class="co"># or the env you created</span></span>
 <span><span class="fu"><a href="../reference/solver.html">set_glpk_path</a></span><span class="op">(</span><span class="st">"C:/rtools45/x86_64-w64-mingw32.static.posix/bin"</span><span class="op">)</span>  <span class="co"># Windows (Rtools 4.5); unneeded on macOS/Ubuntu</span></span>
@@ -370,7 +398,7 @@ reads better.</p>
 </h3>
 <p>The calls above last for the current session. Save them once and
 every later session starts configured:</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/en_config.html">en_config_write</a></span><span class="op">(</span><span class="op">)</span>        <span class="co"># -&gt; ~/.energyRt/config.yml</span></span></code></pre></div>
 <p><code><a href="../reference/en_config.html">en_config_write()</a></code> with no arguments writes every option
 that differs from the package default. Use
@@ -379,7 +407,7 @@ that differs from the package default. Use
 project needs a different GAMS version from the rest.</p>
 <p>To see what is actually in effect — and, when a solver is not found,
 where the wrong value came from:</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/en_config_show.html">en_config_show</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p>Each option reports its source: an R option
 (<code>options(en.gams_path = )</code>), an environment variable
@@ -393,7 +421,7 @@ all.</p>
 </h2>
 <p>Re-check (everything you installed should now be green), choose a
 default solver, and solve a tiny model:</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/en_check.html">en_check_dependencies</a></span><span class="op">(</span>solver_pkgs <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>   <span class="co"># also verifies JuMP/HiGHS in Julia</span></span>
 <span><span class="fu"><a href="../reference/default_solver.html">set_default_solver</a></span><span class="op">(</span><span class="va">solver_options</span><span class="op">$</span><span class="va">julia_highs_barrier</span><span class="op">)</span>  <span class="co"># or solver_options$glpk</span></span>
 <span></span>
@@ -408,7 +436,7 @@ correct.</p>
 </h2>
 <p>Everything below is optional — energyRt solves models without any of
 it.</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># plotting (all autoplot()/draw() charts) + levcost side-by-side panels</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"ggplot2"</span>, <span class="st">"patchwork"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>

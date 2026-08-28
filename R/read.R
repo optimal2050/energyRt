@@ -248,7 +248,9 @@ read_solution <- function(obj, run = NULL, ...) {
   }
 
   if (scen@modOut@stage != "solved") {
-    warning(scen@modOut@stage)
+    warning(scen@modOut@stage,
+            ". Any exported (incumbent) solution is still read; getData() ",
+            "returns it with a warning.")
   }
 
   scen@modOut@sets <- rr$set_vec

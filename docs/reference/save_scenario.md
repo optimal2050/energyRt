@@ -8,6 +8,8 @@ Save scenario object on disk in parquet format using `arrow` package.
 save_scenario(
   scen,
   path = scen@path,
+  embed_model = NULL,
+  embed_datasets = NULL,
   format = get_arrow_format(),
   overwrite = TRUE,
   clean_start = FALSE,
@@ -25,6 +27,27 @@ save_scenario(
 - path:
 
   character. Path to scenario directory.
+
+- embed_model:
+
+  `NULL` (default), `TRUE`, or `FALSE`. Controls whether the model is
+  embedded in the saved scenario or referenced from the model store (see
+  [`save_model()`](https://energyRt.org/reference/model_store.md)).
+  `NULL`: reference when the identical model content is already in the
+  store, embed otherwise. `TRUE`: always embed (self-contained folder).
+  `FALSE`: require a store hit, error otherwise. A referenced save
+  stores only `{name, hash, path}`;
+  [`load_scenario()`](https://energyRt.org/reference/load_scenario.md)
+  resolves it back via the registry / model store.
+
+- embed_datasets:
+
+  the same choice for the big data tables and maps — the geoscale on
+  `@settings` and, when the model is embedded, its geoscale and its
+  repositories' weather/demand tables (see
+  [`save_dataset()`](https://energyRt.org/reference/dataset_store.md)).
+  `NULL` (default) references whatever identical content is already in
+  the dataset store; `TRUE` always embeds; `FALSE` requires a store hit.
 
 - format:
 

@@ -3937,6 +3937,20 @@ print(
     "
 ",
 )
+# Route indexes keyed by endpoint. `mTradeRoutes` is sparse (one entry per
+# existing corridor), so mapping an endpoint to its routes lets eqImportTot and
+# eqExportTot below visit only routes that exist, instead of iterating
+# `trade x region` and filtering.
+_routesByDst = Dict{Any,Vector{Tuple{Any,Any}}}()
+_routesBySrc = Dict{Any,Vector{Tuple{Any,Any}}}()
+_routesByTrade = Dict{Any,Vector{Tuple{Any,Any}}}()
+for (_t1, _s0, _d0) in mTradeRoutes
+    push!(get!(_routesByDst, _d0, Tuple{Any,Any}[]), (_t1, _s0))
+    push!(get!(_routesBySrc, _s0, Tuple{Any,Any}[]), (_t1, _d0))
+    push!(get!(_routesByTrade, _t1, Tuple{Any,Any}[]), (_s0, _d0))
+end
+_noRoutes = Tuple{Any,Any}[]
+
 # eqImportTot(comm, dst, year, timeslice)$mImport(comm, dst, year, timeslice)
 print("eqImportTot(comm, dst, year, timeslice)...")
 @constraint(
@@ -3944,8 +3958,7 @@ print("eqImportTot(comm, dst, year, timeslice)...")
     [(c, dst, y, s) in mImport],
     vImportTot[(c, dst, y, s)] ==
     sum(
-        sum(
-            (
+        (
                 if (t1, c, src, dst, y, s) in mvTradeIr
                     (
                         (
@@ -3959,8 +3972,9 @@ print("eqImportTot(comm, dst, year, timeslice)...")
                 else
                     0
                 end
-            ) for src in region if (t1, src, dst) in mTradeRoutes
-        ) for t1 in trade if (t1, c) in mTradeComm
+            ) for (t1, src) in get(_routesByDst, dst, _noRoutes) if
+            (t1, c) in mTradeComm;
+        init = 0
     ) + sum((
         if (i, c, dst, y, s) in mImportRow
             vImportRow[(i, c, dst, y, s)]
@@ -3982,15 +3996,15 @@ print("eqExportTot(comm, src, year, timeslice)...")
     [(c, src, y, s) in mExport],
     vExportTot[(c, src, y, s)] ==
     sum(
-        sum(
-            (
+        (
                 if (t1, c, src, dst, y, s) in mvTradeIr
                     vTradeIr[(t1, c, src, dst, y, s)]
                 else
                     0
                 end
-            ) for dst in region if (t1, src, dst) in mTradeRoutes
-        ) for t1 in trade if (t1, c) in mTradeComm
+            ) for (t1, dst) in get(_routesBySrc, src, _noRoutes) if
+            (t1, c) in mTradeComm;
+        init = 0
     ) + sum((
         if (e, c, src, y, s) in mExportRow
             vExportRow[(e, c, src, y, s)]
@@ -4465,8 +4479,10 @@ print("eqTradeCapFlow(trade, comm, year, timeslice)...")
         end
     ) *
     vTradeCap[(t1, y)] >= sum(
-        vTradeIr[(t1, c, src, dst, y, s)] for src in region for
-        dst in region if (t1, c, src, dst, y, s) in mvTradeIr
+        vTradeIr[(t1, c, src, dst, y, s)] for
+        (src, dst) in get(_routesByTrade, t1, _noRoutes) if
+        (t1, c, src, dst, y, s) in mvTradeIr;
+        init = 0
     )
 );
 print(

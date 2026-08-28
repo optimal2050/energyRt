@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.85.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -57,6 +57,8 @@
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
+    <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
+    <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
     <li><a class="dropdown-item" href="../articles/autoplot.html">autoplot()</a></li>
   </ul>
 </li>
@@ -110,10 +112,11 @@ article tours that layer.</p>
 and keep all scenario files under a temporary folder.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/scenarios_path.html">set_scenarios_path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"wf"</span><span class="op">)</span><span class="op">)</span>   <span class="co"># where scenarios are written</span></span>
+<span><span class="fu"><a href="../reference/registry_file.html">set_registry_file</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"wf"</span>, <span class="st">"energyRt_registry.csv"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">um</span>  <span class="op">&lt;-</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">R1</span></span>
 <span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newModel.html">newModel</a></span><span class="op">(</span><span class="st">"UTOPIA"</span>, data <span class="op">=</span> <span class="va">um</span><span class="op">$</span><span class="va">repo</span>,</span>
-<span>                calendar <span class="op">=</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">utopia_s4h24</span>,</span>
+<span>                calendar <span class="op">=</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24</span>,</span>
 <span>                region   <span class="op">=</span> <span class="va">um</span><span class="op">$</span><span class="va">regions</span>,</span>
 <span>                horizon  <span class="op">=</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">base</span>, discount <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
@@ -157,17 +160,17 @@ otherwise); every frame carries a <code>scenario</code> and a
 <code>name</code> column.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen</span>, <span class="st">"vObjective"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">$</span><span class="va">value</span>      <span class="co"># total system cost, MEUR</span></span>
-<span><span class="co">#&gt; [1] 13043.69</span></span>
+<span><span class="co">#&gt; [1] 12999.41</span></span>
 <span></span>
 <span><span class="va">gen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen</span>, <span class="st">"vTechOut"</span>, comm <span class="op">=</span> <span class="st">"ELC"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">gen</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"scenario"</span>, <span class="st">"tech"</span>, <span class="st">"region"</span>, <span class="st">"year"</span>, <span class="st">"timeslice"</span>, <span class="st">"value"</span><span class="op">)</span><span class="op">]</span>, <span class="fl">4</span><span class="op">)</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 4 × 6</span></span></span>
 <span><span class="co">#&gt;   scenario tech  region  year timeslice  value</span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> BASE     ECOA  R1      <span style="text-decoration: underline;">2</span>020 AUT_h06   0.039<span style="text-decoration: underline;">2</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> BASE     ECOA  R1      <span style="text-decoration: underline;">2</span>020 AUT_h07   0.149 </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> BASE     ECOA  R1      <span style="text-decoration: underline;">2</span>020 AUT_h08   0.183 </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> BASE     ECOA  R1      <span style="text-decoration: underline;">2</span>020 AUT_h09   0.144</span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> BASE     ECOA  R1      <span style="text-decoration: underline;">2</span>020 WIN_h00   0.151 </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> BASE     ECOA  R1      <span style="text-decoration: underline;">2</span>020 WIN_h01   0.088<span style="text-decoration: underline;">2</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> BASE     ECOA  R1      <span style="text-decoration: underline;">2</span>020 WIN_h02   0.050<span style="text-decoration: underline;">1</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> BASE     ECOA  R1      <span style="text-decoration: underline;">2</span>020 WIN_h03   0.025<span style="text-decoration: underline;">3</span></span></span></code></pre></div>
 <p>The <code>...</code> accept set filters, exact
 (<code>comm = "ELC"</code>) or regex (<code>comm_ = "^EL"</code>).
 <code>timeframe = c("lowest","highest","all")</code> controls how
@@ -178,25 +181,28 @@ values on the way out with <code>newNames =</code> /
 set with <code><a href="../reference/findData.html">findData()</a></code>:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu"><a href="../reference/findData.html">findData</a></span><span class="op">(</span><span class="va">scen</span>, setsNames_ <span class="op">=</span> <span class="st">"tech"</span><span class="op">)</span><span class="op">)</span>           <span class="co"># parameters indexed by 'tech'</span></span>
-<span><span class="co">#&gt;  [1] "pTechWeatherAf"       "pTechWeatherAfs"      "pTechWeatherAfc"     </span></span>
-<span><span class="co">#&gt;  [4] "pTechCap2act"         "pTechEac"             "pTechWacc"           </span></span>
-<span><span class="co">#&gt;  [7] "pTechPayback"         "pTechEmisComm"        "pTechOlife"          </span></span>
-<span><span class="co">#&gt; [10] "pTechFixom"           "pTechInvcost"         "pTechStock"          </span></span>
-<span><span class="co">#&gt; [13] "pTechVarom"           "pTechAf"              "pTechRampUp"         </span></span>
-<span><span class="co">#&gt; [16] "pTechRampDown"        "pTechAfs"             "pTechGinp2use"       </span></span>
-<span><span class="co">#&gt; [19] "pTechCinp2ginp"       "pTechUse2cact"        "pTechAct2AInp"       </span></span>
-<span><span class="co">#&gt; [22] "pTechCap2AInp"        "pTechAct2AOut"        "pTechCap2AOut"       </span></span>
-<span><span class="co">#&gt; [25] "pTechNCap2AInp"       "pTechNCap2AOut"       "pTechCinp2AInp"      </span></span>
-<span><span class="co">#&gt; [28] "pTechCout2AInp"       "pTechCinp2AOut"       "pTechCout2AOut"      </span></span>
-<span><span class="co">#&gt; [31] "pTechCact2cout"       "pTechCinp2use"        "pTechCvarom"         </span></span>
-<span><span class="co">#&gt; [34] "pTechAvarom"          "pTechShare"           "pTechAfc"            </span></span>
-<span><span class="co">#&gt; [37] "pTechCap"             "pTechNewCap"          "pTechRet"            </span></span>
-<span><span class="co">#&gt; [40] "pTechRetCost"         "vTechAInp"            "vTechAOut"           </span></span>
-<span><span class="co">#&gt; [43] "vTechAct"             "vTechCap"             "vTechEac"            </span></span>
-<span><span class="co">#&gt; [46] "vTechFixom"           "vTechInp"             "vTechInv"            </span></span>
-<span><span class="co">#&gt; [49] "vTechNewCap"          "vTechOut"             "vTechRetCost"        </span></span>
-<span><span class="co">#&gt; [52] "vTechRetiredNewCap"   "vTechRetiredStock"    "vTechRetiredStockCum"</span></span>
-<span><span class="co">#&gt; [55] "vTechVarom"           "vTechEmsFuel"</span></span></code></pre></div>
+<span><span class="co">#&gt;  [1] "pTechWeatherAf"     "pTechWeatherAfs"    "pTechWeatherAfc"   </span></span>
+<span><span class="co">#&gt;  [4] "pTechCap2act"       "pTechEac"           "pTechWacc"         </span></span>
+<span><span class="co">#&gt;  [7] "pTechPayback"       "pTechEmisComm"      "pTechOlife"        </span></span>
+<span><span class="co">#&gt; [10] "pTechFixom"         "pTechInvcost"       "pTechStock"        </span></span>
+<span><span class="co">#&gt; [13] "pTechStockNew"      "pTechStockSurv"     "pTechVarom"        </span></span>
+<span><span class="co">#&gt; [16] "pTechAf"            "pTechRampUp"        "pTechRampDown"     </span></span>
+<span><span class="co">#&gt; [19] "pTechAfs"           "pTechGinp2use"      "pTechCinp2ginp"    </span></span>
+<span><span class="co">#&gt; [22] "pTechUse2cact"      "pTechAct2AInp"      "pTechCap2AInp"     </span></span>
+<span><span class="co">#&gt; [25] "pTechAct2AOut"      "pTechCap2AOut"      "pTechNCap2AInp"    </span></span>
+<span><span class="co">#&gt; [28] "pTechNCap2AOut"     "pTechPho2AInp"      "pTechPho2AOut"     </span></span>
+<span><span class="co">#&gt; [31] "pTechRet2AInp"      "pTechRet2AOut"      "pTechCinp2AInp"    </span></span>
+<span><span class="co">#&gt; [34] "pTechCout2AInp"     "pTechCinp2AOut"     "pTechCout2AOut"    </span></span>
+<span><span class="co">#&gt; [37] "pTechCact2cout"     "pTechCinp2use"      "pTechCvarom"       </span></span>
+<span><span class="co">#&gt; [40] "pTechAvarom"        "pTechShare"         "pTechAfc"          </span></span>
+<span><span class="co">#&gt; [43] "pTechCap"           "pTechNewCap"        "pTechRet"          </span></span>
+<span><span class="co">#&gt; [46] "pTechRetCost"       "vTechAInp"          "vTechAOut"         </span></span>
+<span><span class="co">#&gt; [49] "vTechAct"           "vTechCap"           "vTechEac"          </span></span>
+<span><span class="co">#&gt; [52] "vTechFixom"         "vTechInp"           "vTechInv"          </span></span>
+<span><span class="co">#&gt; [55] "vTechNewCap"        "vTechOut"           "vTechRetCost"      </span></span>
+<span><span class="co">#&gt; [58] "vTechRetiredNewCap" "vTechRetiredStock"  "vTechPhaseOut"     </span></span>
+<span><span class="co">#&gt; [61] "vTechStockCap"      "vTechStockPhaseOut" "vTechVarom"        </span></span>
+<span><span class="co">#&gt; [64] "vTechEmsFuel"</span></span></code></pre></div>
 <p><code>find_in_model(mod, "ECOA")</code> text-searches every object
 slot for a value — handy for locating where a name is used.</p>
 </div>
@@ -214,7 +220,7 @@ the object, put it back into the repository with
 <span><span class="va">repo_hi</span> <span class="op">&lt;-</span> <span class="fu">add</span><span class="op">(</span><span class="va">repo</span>, <span class="va">ECOA</span>, overwrite <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>                <span class="co"># swap it back in</span></span>
 <span></span>
 <span><span class="va">mod_hi</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newModel.html">newModel</a></span><span class="op">(</span><span class="st">"UTOPIA_HI"</span>, data <span class="op">=</span> <span class="va">repo_hi</span>,</span>
-<span>                    calendar <span class="op">=</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">utopia_s4h24</span>,</span>
+<span>                    calendar <span class="op">=</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24</span>,</span>
 <span>                    region <span class="op">=</span> <span class="va">um</span><span class="op">$</span><span class="va">regions</span>, horizon <span class="op">=</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">base</span>,</span>
 <span>                    discount <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span></code></pre></div>
 <p>(For an already-interpolated scenario,
@@ -224,31 +230,59 @@ into its parameter store.)</p>
 <div class="section level2">
 <h2 id="scenario-folders-and-structure">Scenario folders and structure<a class="anchor" aria-label="anchor" href="#scenario-folders-and-structure"></a>
 </h2>
+<p>(The <em>Scenario management</em> article explains this layer in
+depth — stores, manifests, the registry, runs, and variants; this
+section is the quick tour.)</p>
 <p>The scenarios directory is an option — read it with
 <code><a href="../reference/scenarios_path.html">get_scenarios_path()</a></code>, set it with
 <code><a href="../reference/scenarios_path.html">set_scenarios_path()</a></code> (default <code>"scenarios/"</code>).
-Each scenario gets its own folder, named by
-<code><a href="../reference/make_scenario_dirname.html">make_scenario_dirname()</a></code> as
-<code>name_model_calendar_horizon</code>:</p>
+Each scenario gets its own folder, named automatically as
+<code>name_model_calendar_horizon</code> (duplicate parts are dropped,
+so a scenario and model sharing a name appear once):</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/scenarios_path.html">get_scenarios_path</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpApr0Wm/wf"</span></span>
-<span><span class="fu"><a href="../reference/make_scenario_dirname.html">make_scenario_dirname</a></span><span class="op">(</span><span class="va">scen</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "BASE_UTOPIA_utopia_s4h24_base"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpecC46o/wf"</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename</a></span><span class="op">(</span><span class="va">scen</span><span class="op">@</span><span class="va">path</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "BASE_UTOPIA_s4-h24_base"</span></span></code></pre></div>
 <p>Saving a scenario writes an <strong>Arrow-backed</strong> folder that
-mirrors the scenario’s structure — a thin <code>scen.RData</code> shell
-plus each large data slot as a dataset:</p>
+mirrors the scenario’s structure — a thin <code>scen.RData</code> shell,
+a <code>scenario.yml</code> manifest, each large data slot as a dataset,
+and one folder per solver run:</p>
 <pre><code>&lt;scenarios-path&gt;/&lt;name_model_calendar_horizon&gt;/
+├── scenario.yml        # manifest: model ref/hash, calendar, horizon,
+│                       #   `default:` — the default run (user-changeable)
 ├── scen.RData          # thinned S4 scenario shell
-├── class · format      # "scenario" · "parquet"
+├── class · format · layout   # "scenario" · "parquet" · "3"
 ├── logfile.csv         # timestamped save log
-├── model/data/&lt;repo&gt;/&lt;object&gt;/&lt;slot&gt;/   # the model objects' data
+├── model/data/&lt;repo&gt;/&lt;object&gt;/&lt;slot&gt;/   # model data (embedded scenarios only)
 ├── modInp/parameters/&lt;param&gt;/           # interpolated input parameters
-├── modOut/variables/&lt;var&gt;/              # solved variables (vTechOut, ...)
-└── script/&lt;backend&gt;_&lt;solver&gt;_&lt;method&gt;/  # solver working directory</code></pre>
+└── runs/               # one folder per solve
+    ├── glpk/           #   base-problem run, named by its solve label
+    │   ├── run.yml     #     provenance: solver, cmdline, times, objective
+    │   ├── solver/     #     the solver working dir (inputs + its output/)
+    │   └── modOut/variables/&lt;var&gt;/      # the solved variables
+    └── julia_highs/    #   another backend's run of the same problem</code></pre>
+<p>Beyond the per-scenario traces above, an optional <em>operation
+log</em> records the sequence of a working session:
+<code>set_log_file("energyRt_log.csv")</code> makes
+<code><a href="../reference/interpolate_model.html">interpolate_model()</a></code>, <code><a href="../reference/solve_model.html">solve_scenario()</a></code> and
+<code><a href="../reference/solve_myopic.html">solve_myopic()</a></code> append one line each (operation, object,
+status, objective, duration), and <code><a href="../reference/log.html">read_log()</a></code> returns the
+sequence as a tibble. It is off by default.</p>
+<p>Solving the same scenario with several backends (or option sets —
+pass <code>run = "&lt;label&gt;"</code> to
+<code><a href="../reference/solve_model.html">solve_scenario()</a></code>) keeps every run side by side;
+<code>scenario_runs(scen)</code> lists them with status and objective,
+and <code>read_solution(scen, run = "&lt;label&gt;")</code> switches the
+active solution. A scenario referencing a model saved with
+<code><a href="../reference/model_store.html">save_model()</a></code> skips the embedded <code>model/</code> copy
+entirely (see <code><a href="../reference/save_scenario.html">?save_scenario</a></code>,
+<code>embed_model</code>).</p>
 <p>A scenario knows whether its data is in RAM or on disk via
 <code><a href="../reference/isInMemory.html">isInMemory()</a></code>; when on disk, the slots are empty and read
-lazily from the folder on demand.</p>
+lazily from the folder on demand. Folders from older energyRt versions
+are still readable and migrate in place with
+<code>upgrade_scenario_layout(path)</code>.</p>
 </div>
 <div class="section level2">
 <h2 id="saving-and-loading">Saving and loading<a class="anchor" aria-label="anchor" href="#saving-and-loading"></a>
@@ -262,25 +296,40 @@ memory.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">saved</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/save_scenario.html">save_scenario</a></span><span class="op">(</span><span class="va">scen</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="va">ld</span>    <span class="op">&lt;-</span> <span class="fu"><a href="../reference/load_scenario.html">load_scenario</a></span><span class="op">(</span><span class="va">saved</span><span class="op">@</span><span class="va">path</span>, env <span class="op">=</span> <span class="cn">NULL</span>, verbose <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
+<p>A saved scenario is also reachable by its registered
+<strong>name</strong> — <code>load_scenario("BASE", env = NULL)</code>
+resolves it through the project registry, and the cached accessor
+<code>getScenario("BASE")</code> is the everyday short form (see the
+<em>Scenario management</em> article):</p>
 <div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="fu"><a href="../reference/accessors.html">getScenario</a></span><span class="op">(</span><span class="st">"BASE"</span><span class="op">)</span><span class="op">@</span><span class="va">name</span>, <span class="va">ld</span><span class="op">@</span><span class="va">name</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename</a></span><span class="op">(</span><span class="va">saved</span><span class="op">@</span><span class="va">path</span><span class="op">)</span>                                 <span class="co"># the scenario folder</span></span>
-<span><span class="co">#&gt; [1] "BASE_UTOPIA_utopia-s4h24_base"</span></span>
+<span><span class="co">#&gt; [1] "BASE_UTOPIA_s4-h24_base"</span></span>
 <span><span class="fu"><a href="../reference/isInMemory.html">isInMemory</a></span><span class="op">(</span><span class="va">saved</span><span class="op">)</span>                                    <span class="co"># FALSE -- data is on disk</span></span>
 <span><span class="co">#&gt; [1] FALSE</span></span>
 <span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">ld</span>, <span class="st">"vObjective"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">$</span><span class="va">value</span>        <span class="co"># lazy read, no full load</span></span>
-<span><span class="co">#&gt; [1] 13043.69</span></span></code></pre></div>
-<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">ld</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/obj2mem.html">obj2mem</a></span><span class="op">(</span><span class="va">ld</span><span class="op">)</span>                                    <span class="co"># rehydrate fully into RAM</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] 12999.41</span></span></code></pre></div>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">ld</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/obj2mem.html">obj2mem</a></span><span class="op">(</span><span class="va">ld</span><span class="op">)</span>                                    <span class="co"># rehydrate fully into RAM</span></span></code></pre></div>
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/isInMemory.html">isInMemory</a></span><span class="op">(</span><span class="va">ld</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
-<blockquote>
-<p>A name-based scenario <strong>registry</strong>
-(<code><a href="../reference/register.html">register()</a></code>, <code>getScenario()</code>,
-<code><a href="../reference/default_registry.html">get_registry()</a></code>) is under development; for now, organize
-runs with <code><a href="../reference/scenarios_path.html">set_scenarios_path()</a></code> and round-trip them with
-<code><a href="../reference/save_scenario.html">save_scenario()</a></code> / <code><a href="../reference/load_scenario.html">load_scenario()</a></code>.</p>
-</blockquote>
+<p>Every <code><a href="../reference/save_scenario.html">save_scenario()</a></code> / <code><a href="../reference/model_store.html">save_model()</a></code> /
+<code><a href="../reference/repo_store.html">save_repository()</a></code> also records its object in the project
+<strong>registry</strong> — a single CSV (default
+<code>energyRt_registry.csv</code> at the project root, see
+<code><a href="../reference/registry_file.html">get_registry_file()</a></code>) indexing saved models, repositories,
+scenarios, and runs. Repositories shared by several models can be stored
+once with <code><a href="../reference/repo_store.html">save_repository()</a></code> and referenced by each model
+(<code>save_model(embed_repos = )</code>), just as scenarios can
+reference a stored model. <code><a href="../reference/registry.html">load_registry()</a></code> reads it,
+<code><a href="../reference/registry.html">find_registry()</a></code> filters it (by type, name, or model hash),
+and <code><a href="../reference/registry.html">refresh_registry()</a></code> rebuilds it by rescanning the
+<code>scenarios/</code> and <code>models/</code> stores — the on-disk
+manifests are the source of truth, so the registry can always be
+reconstructed.</p>
 </div>
 <div class="section level2">
 <h2 id="comparing-scenarios">Comparing scenarios<a class="anchor" aria-label="anchor" href="#comparing-scenarios"></a>
@@ -288,11 +337,13 @@ runs with <code><a href="../reference/scenarios_path.html">set_scenarios_path()<
 <p>Layer a policy lever onto the base model to get a second scenario,
 then pass a <strong>named list of scenarios</strong> to
 <code><a href="../reference/getData.html">getData()</a></code> — the <code>scenario</code> column makes the
-comparison a one-liner:</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+comparison a one-liner. (Scenarios already <em>saved</em> compare by
+name alone: <code>getData(c("BASE", "CO2CAP"), ...)</code> loads them
+from the registry on the fly.)</p>
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">scen_cap</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod</span>, <span class="st">"CO2CAP"</span>, <span class="va">um</span><span class="op">$</span><span class="va">CO2_CAP</span><span class="op">)</span> <span class="op">|&gt;</span>   <span class="co"># add the CO2 cap lever</span></span>
 <span>  <span class="fu"><a href="../reference/solve_model.html">solve_scenario</a></span><span class="op">(</span>solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">glpk</span>, echo <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span></code></pre></div>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">emis</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>BASE <span class="op">=</span> <span class="va">scen</span>, CO2CAP <span class="op">=</span> <span class="va">scen_cap</span><span class="op">)</span>, <span class="st">"vEmsFuelTot"</span>,</span>
 <span>                comm <span class="op">=</span> <span class="st">"CO2"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span></span>
@@ -302,21 +353,21 @@ comparison a one-liner:</p>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_bar.html" class="external-link">geom_col</a></span><span class="op">(</span>position <span class="op">=</span> <span class="st">"dodge"</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"year"</span>, title <span class="op">=</span> <span class="st">"CO2 emissions by scenario"</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_bw</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
 <p><img src="workflow_files/figure-html/compare-emis-1.png" class="r-plt" alt="" width="770"></p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>BASE <span class="op">=</span> <span class="va">scen</span>, CO2CAP <span class="op">=</span> <span class="va">scen_cap</span><span class="op">)</span>,</span>
 <span>       <span class="kw">function</span><span class="op">(</span><span class="va">s</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">s</span>, <span class="st">"vObjective"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">$</span><span class="va">value</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt;   BASE CO2CAP </span></span>
-<span><span class="co">#&gt;  13044  13482</span></span></code></pre></div>
+<span><span class="co">#&gt;  12999  13413</span></span></code></pre></div>
 <p>To reason about <strong>model size</strong> rather than results,
 <code><a href="../reference/model_size.html">model_size()</a></code> estimates the parameter/variable/constraint
 counts of an interpolated scenario, and <code><a href="../reference/size.html">size()</a></code> reports its
 in-memory footprint:</p>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/model_size.html">model_size</a></span><span class="op">(</span><span class="va">scen</span><span class="op">)</span></span>
 <span><span class="co">#&gt; model_size: BASE</span></span>
-<span><span class="co">#&gt;   parameters : 143 value, 260 maps, 13 sets</span></span>
-<span><span class="co">#&gt;   param rows : 5,901</span></span>
-<span><span class="co">#&gt;   estimate   : ~16,111 variables, ~16,832 constraints (from gating maps)</span></span>
+<span><span class="co">#&gt;   parameters : 170 value, 297 maps, 13 sets</span></span>
+<span><span class="co">#&gt;   param rows : 5,927</span></span>
+<span><span class="co">#&gt;   estimate   : ~16,178 variables, ~16,852 constraints (from gating maps)</span></span>
 <span><span class="co">#&gt;   top parameters by rows:</span></span>
 <span><span class="co">#&gt;     pTechCinp2use      1,536</span></span>
 <span><span class="co">#&gt;     pWeather           1,004</span></span>
@@ -334,7 +385,7 @@ in-memory footprint:</p>
 <span><span class="co">#&gt;     pTechInvcost       20</span></span>
 <span><span class="co">#&gt;     pTechStock         14</span></span>
 <span><span class="fu"><a href="../reference/size.html">size</a></span><span class="op">(</span><span class="va">scen</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "6.6 Mb"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "7 Mb"</span></span></code></pre></div>
 <p>For a systematic check that a build is correct <em>and</em>
 efficient, <code>compare_interp_settings(mod)</code> and
 <code>compare_solve_settings(mod, solvers = ...)</code> interpolate (and
@@ -342,9 +393,126 @@ solve) the model under different storage settings and tabulate build
 size, time and — crucially — confirm the objective is invariant across
 <code>fold</code>/<code>sparse</code>/<code>prune</code>. These run
 several builds, so they are best run interactively:</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/compare_interp_settings.html">compare_interp_settings</a></span><span class="op">(</span><span class="va">mod</span><span class="op">)</span>                          <span class="co"># size/time by setting</span></span>
 <span><span class="fu"><a href="../reference/compare_solve_settings.html">compare_solve_settings</a></span><span class="op">(</span><span class="va">mod</span>, solvers <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="va">solver_options</span><span class="op">$</span><span class="va">glpk</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+</div>
+<div class="section level2">
+<h2 id="sampling-solving-a-subset-of-the-model">Sampling: solving a subset of the model<a class="anchor" aria-label="anchor" href="#sampling-solving-a-subset-of-the-model"></a>
+</h2>
+<p>Interpolation can solve a <em>sample</em> of a model without editing
+the model itself — in time (a sampled calendar) and in space (a sampled
+geoscale). Both work the same way: build the sample object, pass it to
+<code><a href="../reference/interpolate_model.html">interpolate_model()</a></code>, and the scenario is declared,
+validated and solved on the sample.</p>
+<div class="section level3">
+<h3 id="sampled-calendars">Sampled calendars<a class="anchor" aria-label="anchor" href="#sampled-calendars"></a>
+</h3>
+<p>A sampled calendar is a <strong>row subset of the full calendar’s
+timetable</strong> plus an explicit <code>year_fraction</code> — the
+fraction of the year the sample covers. Timeslice weights annualise the
+sample inside the solver (the top slice carries weight
+<code>1/year_fraction</code>), so the objective is an <em>estimate</em>
+of the full model’s — and exactly equals it when the sampled slices are
+representative:</p>
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">tt</span>  <span class="op">&lt;-</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24</span><span class="op">@</span><span class="va">timetable</span></span>
+<span><span class="va">tt2</span> <span class="op">&lt;-</span> <span class="va">tt</span><span class="op">[</span><span class="va">tt</span><span class="op">$</span><span class="va">SEASON</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"WIN"</span>, <span class="st">"SUM"</span><span class="op">)</span>, <span class="op">]</span>      <span class="co"># two of the four seasons</span></span>
+<span><span class="va">cal2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newCalendar.html">newCalendar</a></span><span class="op">(</span>timetable <span class="op">=</span> <span class="va">tt2</span>, name <span class="op">=</span> <span class="st">"s2h24"</span>,</span>
+<span>                    year_fraction <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">tt2</span><span class="op">$</span><span class="va">share</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">scen_t</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod</span>, <span class="st">"S2"</span>, <span class="va">cal2</span><span class="op">)</span> <span class="op">|&gt;</span></span>
+<span>  <span class="fu"><a href="../reference/solve_model.html">solve_scenario</a></span><span class="op">(</span>solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">glpk</span>, echo <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>full <span class="op">=</span> <span class="va">scen</span>, sampled <span class="op">=</span> <span class="va">scen_t</span><span class="op">)</span>,</span>
+<span>       <span class="kw">function</span><span class="op">(</span><span class="va">s</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">s</span>, <span class="st">"vObjective"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">$</span><span class="va">value</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="co">#&gt;    full sampled </span></span>
+<span><span class="co">#&gt;   12999   13505</span></span></code></pre></div>
+<p>Two traps: pass <code>year_fraction</code>
+<strong>explicitly</strong> (it is not recomputed from the subset), and
+<strong>subset the existing timetable</strong> rather than rebuilding
+one with <code><a href="../reference/calendar.html">make_timetable()</a></code> (which would renormalise the
+shares to a full year). Declarations are validated against the
+<em>model’s</em> calendar, so objects naming out-of-sample timeslices
+interpolate cleanly — their out-of-sample rows are simply filtered.</p>
+</div>
+<div class="section level3">
+<h3 id="spatial-sampling">Spatial sampling<a class="anchor" aria-label="anchor" href="#spatial-sampling"></a>
+</h3>
+<p>The spatial mirror: pass a <strong>filtered geoscale</strong> — a
+<code><a href="https://optimal2050.github.io/geoscales/r/reference/filter_geoscale.html" class="external-link">geoscales::filter_geoscale()</a></code> subset of the model’s regions
+— and the scenario becomes a <em>sub-territory</em> model: only the
+sampled regions are declared, out-of-sample parameter rows are filtered,
+and trade routes crossing the sample boundary are dropped (with a
+message). Unlike calendar sampling there is <strong>no
+reweighting</strong>: regional quantities are extensive, so the
+objective is the sub-territory’s own, and disjoint samples <em>add
+up</em> to the full model (absent cross-boundary trade).</p>
+<p>UTOPIA is single-region, so a compact three-region demo:</p>
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://optimal2050.github.io/geoscales/r/" class="external-link">geoscales</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">r3</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"R1"</span>, <span class="st">"R2"</span>, <span class="st">"R3"</span><span class="op">)</span></span>
+<span><span class="va">gs</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://optimal2050.github.io/geoscales/r/reference/geoscale_from_leaftable.html" class="external-link">geoscale_from_leaftable</a></span><span class="op">(</span></span>
+<span>  <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>zone <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"Z12"</span>, <span class="st">"Z12"</span>, <span class="st">"Z3"</span><span class="op">)</span>, region <span class="op">=</span> <span class="va">r3</span>, km2 <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
+<span>  geoframes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"zone"</span>, <span class="st">"region"</span><span class="op">)</span>, name <span class="op">=</span> <span class="st">"demo"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="va">m3</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newModel.html">newModel</a></span><span class="op">(</span></span>
+<span>  <span class="st">"M3"</span>, region <span class="op">=</span> <span class="va">r3</span>, horizon <span class="op">=</span> <span class="fu"><a href="../reference/newHorizon.html">newHorizon</a></span><span class="op">(</span><span class="fl">2020</span><span class="op">)</span>, discount <span class="op">=</span> <span class="fl">0.05</span>,</span>
+<span>  repo <span class="op">=</span> <span class="fu"><a href="../reference/newRepository.html">newRepository</a></span><span class="op">(</span></span>
+<span>    <span class="st">"r"</span>,</span>
+<span>    <span class="fu"><a href="../reference/newCommodity.html">newCommodity</a></span><span class="op">(</span><span class="st">"COA"</span>, timeframe <span class="op">=</span> <span class="st">"ANNUAL"</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="../reference/newCommodity.html">newCommodity</a></span><span class="op">(</span><span class="st">"ELC"</span>, timeframe <span class="op">=</span> <span class="st">"ANNUAL"</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="../reference/newSupply.html">newSupply</a></span><span class="op">(</span><span class="st">"SUP_COA"</span>, commodity <span class="op">=</span> <span class="st">"COA"</span>,</span>
+<span>              supply <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>region <span class="op">=</span> <span class="va">r3</span>, cost <span class="op">=</span> <span class="fl">5</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="../reference/technology.html">newTechnology</a></span><span class="op">(</span><span class="st">"ECOA"</span>, input <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>comm <span class="op">=</span> <span class="st">"COA"</span><span class="op">)</span>,</span>
+<span>                  output <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>comm <span class="op">=</span> <span class="st">"ELC"</span><span class="op">)</span>,</span>
+<span>                  af <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>af.up <span class="op">=</span> <span class="fl">0.9</span><span class="op">)</span>,</span>
+<span>                  invcost <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>invcost <span class="op">=</span> <span class="fl">1000</span><span class="op">)</span>,</span>
+<span>                  olife <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>olife <span class="op">=</span> <span class="fl">30</span><span class="op">)</span>, cap2act <span class="op">=</span> <span class="fl">1</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="../reference/newDemand.html">newDemand</a></span><span class="op">(</span><span class="st">"DEM_ELC"</span>, commodity <span class="op">=</span> <span class="st">"ELC"</span>,</span>
+<span>              demand <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>region <span class="op">=</span> <span class="va">r3</span>, demand <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">10</span>, <span class="fl">20</span>, <span class="fl">30</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>    <span class="fu"><a href="../reference/newTrade.html">newTrade</a></span><span class="op">(</span><span class="st">"TR23"</span>, commodity <span class="op">=</span> <span class="st">"ELC"</span>, cap2act <span class="op">=</span> <span class="fl">1</span>,</span>
+<span>             routes <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>src <span class="op">=</span> <span class="st">"R2"</span>, dst <span class="op">=</span> <span class="st">"R3"</span><span class="op">)</span>,</span>
+<span>             trade  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>src <span class="op">=</span> <span class="st">"R2"</span>, dst <span class="op">=</span> <span class="st">"R3"</span>, ava.up <span class="op">=</span> <span class="fl">4</span><span class="op">)</span>,</span>
+<span>             invcost <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>invcost <span class="op">=</span> <span class="fl">10</span><span class="op">)</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>Filtering the geoscale to <code>R1 + R2</code> and interpolating
+drops the <code>R2 -&gt; R3</code> route on the way:</p>
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">gs12</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://optimal2050.github.io/geoscales/r/reference/filter_geoscale.html" class="external-link">filter_geoscale</a></span><span class="op">(</span><span class="va">gs</span>, <span class="st">"region"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"R1"</span>, <span class="st">"R2"</span><span class="op">)</span>,</span>
+<span>                        drop_empty_geoframes <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="va">scen12</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">m3</span>, <span class="st">"S12"</span>, <span class="va">gs12</span><span class="op">)</span></span>
+<span><span class="co">#&gt; spatial sample: dropping trade route TR23: R2 -&gt; R3 (no boundary price; no stub)</span></span>
+<span><span class="co">#&gt; spatial sample: removing trade TR23 (no route inside the sample)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">scen12</span><span class="op">@</span><span class="va">settings</span><span class="op">@</span><span class="va">region</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "R1" "R2"</span></span></code></pre></div>
+<p>A dropped route can optionally leave a <strong>priced boundary
+stub</strong> at the kept endpoint — an export (kept source) or import
+(kept destination) object bounded by <code>cap.up</code> (or, failing
+that, the route’s <code>ava.up</code>) — via
+<code>boundary_prices</code>; routes without a price row are just
+dropped:</p>
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">bp</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>src <span class="op">=</span> <span class="st">"R2"</span>, dst <span class="op">=</span> <span class="st">"R3"</span>, price <span class="op">=</span> <span class="fl">50</span>, cap.up <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
+<span><span class="va">scen12p</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">m3</span>, <span class="st">"S12P"</span>, <span class="va">gs12</span>, boundary_prices <span class="op">=</span> <span class="va">bp</span><span class="op">)</span></span>
+<span><span class="co">#&gt; spatial sample: dropping trade route TR23: R2 -&gt; R3 (EXP_TR23_R22R3 stub added)</span></span>
+<span><span class="co">#&gt; spatial sample: removing trade TR23 (no route inside the sample)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grep</a></span><span class="op">(</span><span class="st">"^EXP"</span>, <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">scen12p</span><span class="op">@</span><span class="va">modInp</span><span class="op">@</span><span class="va">sets</span><span class="op">$</span><span class="va">expp</span><span class="op">)</span>, value <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "EXP_TR23_R22R3"</span></span></code></pre></div>
+<p>The same surgery is available up front, as a model-to-model verb:</p>
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">m12</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/subset_model_regions.html">subset_model_regions</a></span><span class="op">(</span><span class="va">m3</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"R1"</span>, <span class="st">"R2"</span><span class="op">)</span>, boundary_prices <span class="op">=</span> <span class="va">bp</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">m12</span><span class="op">@</span><span class="va">config</span><span class="op">@</span><span class="va">region</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "R1" "R2"</span></span></code></pre></div>
+<p>The filtered geoscale records its <strong>coverage</strong> (fraction
+of each weight’s parent total — see
+<code><a href="https://optimal2050.github.io/geoscales/r/reference/geoscale_coverage.html" class="external-link">geoscales::geoscale_coverage()</a></code>), and its name is mangled
+(<code>"demo[region:R1+R2]"</code>) so different samples of one parent
+never collide in caches or joins. A <strong>pruned</strong> geoscale (a
+coarser level of the model’s own hierarchy) requests a full-territory
+solve at the parent level instead; that requires aggregating the model’s
+data (<code>aggregate_model_regions()</code>) and is not implemented
+yet.</p>
+</div>
 </div>
 <div class="section level2">
 <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a>
@@ -360,7 +528,8 @@ interpolating and solving.</li>
 <code><a href="../reference/getData.html">?getData</a></code>, <code><a href="../reference/getObject.html">?getObject</a></code>,
 <code><a href="https://energyRt.org/reference/newDemand.html">?update</a></code>, <code><a href="../reference/save_scenario.html">?save_scenario</a></code>,
 <code><a href="../reference/load_scenario.html">?load_scenario</a></code>, <code><a href="../reference/model_size.html">?model_size</a></code>,
-<code><a href="../reference/compare_solve_settings.html">?compare_solve_settings</a></code>.</li>
+<code><a href="../reference/compare_solve_settings.html">?compare_solve_settings</a></code>,
+<code><a href="../reference/subset_model_regions.html">?subset_model_regions</a></code>.</li>
 </ul>
 </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

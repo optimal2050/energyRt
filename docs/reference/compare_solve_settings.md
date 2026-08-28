@@ -18,7 +18,7 @@ compare_solve_settings(
   ...,
   name = "cmp",
   verbose = FALSE,
-  tmp.dir = NULL
+  solver.dir = NULL
 )
 ```
 
@@ -54,11 +54,11 @@ compare_solve_settings(
 
   forwarded to `interp_mod()`.
 
-- tmp.dir:
+- solver.dir:
 
-  solver working directory (passed to
-  [`solve_scen()`](https://energyRt.org/reference/solve_mod.md)); `NULL`
-  lets the solver pick one.
+  external solver working directory (passed to
+  [`solve_scenario()`](https://energyRt.org/reference/solve_model.md));
+  `NULL` solves into each scenario's own run directory.
 
 ## Value
 
@@ -69,7 +69,7 @@ table), plus `top` / `details` from the interpolation comparison.
 ## See also
 
 [`compare_interp_settings()`](https://energyRt.org/reference/compare_interp_settings.md),
-[`solve_scen()`](https://energyRt.org/reference/solve_mod.md),
+[`solve_scenario()`](https://energyRt.org/reference/solve_model.md),
 [`model_size()`](https://energyRt.org/reference/model_size.md)
 
 ## Examples

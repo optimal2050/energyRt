@@ -14,7 +14,7 @@ data and never needs an external dataset.
 ``` r
 utopia_profiles(
   regions,
-  calendar = c("utopia_s4h24", "utopia_m12h24", "utopia_seasons"),
+  calendar = c("s4_h24", "m12_h24", "utopia_seasons"),
   source = c("saved", "ideea"),
   resources = c(WSOL = "WSOL", WWIN = "WWIN", WHYD = "WHYD"),
   cluster = 1L,
@@ -30,15 +30,14 @@ utopia_profiles(
 
 - calendar:
 
-  target resolution: `"utopia_s4h24"` (4 seasons x 24 hours, 96
-  timeslices, the default base case), `"utopia_m12h24"` (12 months x 24
-  hours, 288) or `"utopia_seasons"` (4 seasons x 3 dayparts, 12).
+  target resolution: `"s4_h24"` (4 seasons x 24 hours, 96 timeslices,
+  the default base case), `"m12_h24"` (12 months x 24 hours, 288) or
+  `"utopia_seasons"` (4 seasons x 3 dayparts, 12).
 
 - source:
 
   `"saved"` (packaged data, default) or `"ideea"` (re-aggregate from
-  [`IDEEA::ideea_modules`](https://ideea-model.github.io/IDEEA/reference/ideea_modules.html)
-  if installed).
+  `IDEEA::ideea_modules` if installed).
 
 - resources:
 
