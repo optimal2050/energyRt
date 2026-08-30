@@ -716,6 +716,20 @@ interpolate_model <- function(mod, name = NULL, ...,
   #   of `scen@model@data`, so they are not dispatched here.
   classes <- NULL
 
+  # Parameter writes inside the loop below append O(chunk) instead of rebuilding
+  # the accumulated table per write; `.flush_pending_parameters()` collapses them
+  # afterwards. Scoped to this loop so that any other caller of
+  # `update_parameter()` keeps the original eager behaviour.
+  # (set `options(en.bulk_param_write = FALSE)` to force the original
+  # write-and-deduplicate-on-every-append path, e.g. to A/B the two.)
+  # Scoped to the object loop ONLY: it is the sole place that appends to the
+  # same parameter once per object. Later stages (`build_mappings()`) write each
+  # parameter in a single call, so they never had the accumulation cost and stay
+  # on the eager path -- which also keeps `@data` valid for anything that reads
+  # it directly.
+  .bulk_prev <- getOption("en.bulk_param_write")
+  if (is.null(.bulk_prev)) options(en.bulk_param_write = TRUE)
+
   .n_obj <- sum(vapply(scen@model@data, function(r) length(r@data), integer(1)))
   .interp_step(verbose, paste0("ob2mi: interpolating ", .n_obj, " model objects"),
                oneline = FALSE)
@@ -776,6 +790,10 @@ interpolate_model <- function(mod, name = NULL, ...,
       }
     }
   }
+
+  # Leave bulk mode and collapse the chunks `d2p()` parked during the loop.
+  if (is.null(.bulk_prev)) options(en.bulk_param_write = NULL)
+  scen <- .flush_pending_parameters(scen)
 
   #============================================================================#
   # Fill NAs in sets ####
@@ -1244,6 +1262,12 @@ interpolate_model <- function(mod, name = NULL, ...,
       scen <- update_parameter(scen, nm, as.data.frame(d))
     }
   }
+
+  # Safety net: nothing should still be parked here (the object loop flushes its
+  # own chunks and leaves bulk mode), but a caller who forces
+  # `en.bulk_param_write = TRUE` for the whole call would otherwise ship a
+  # scenario whose `@data` is not yet materialised.
+  scen <- .flush_pending_parameters(scen)
 
   scen
 }
@@ -2677,8 +2701,10 @@ get_parameter_full_sets <- function(
       stop("On-disk parameter '", pn, "' has no path for write-back.")
     }
     data_dir <- file.path(ppath, "data")
-    existing <- list.files(data_dir, recursive = TRUE)
-    fmt <- if (any(grepl("\\.parquet$", existing))) "parquet" else "csv"
+    # Keep the store's own codec: re-deriving it used to recognize only
+    # parquet-or-csv, so a feather store got CSV written beside its `.arrow`
+    # files and became unreadable (a dataset cannot mix codecs).
+    fmt <- .store_format(data_dir, fp(scen@path, "scenario.yml"))
     unlink(data_dir, recursive = TRUE)
     data2disk(data.table::as.data.table(new_data), path = data_dir,
               format = fmt)

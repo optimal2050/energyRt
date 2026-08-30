@@ -1,7 +1,7 @@
 setGeneric("ob2mi", function(scen, obj, extra_params) standardGeneric("ob2mi"))
 setGeneric("d2p", function(obj, data, path) standardGeneric("d2p"))
 
-get_data_slot <- function(obj, optional = FALSE) {
+get_data_slot <- function(obj, optional = FALSE, dedup = TRUE) {
   # browser()
   data <- NULL
   if (isOnDisk(obj)) {
@@ -14,6 +14,22 @@ get_data_slot <- function(obj, optional = FALSE) {
   }
   if (is.null(data)) {
     data <- obj@data
+  }
+  # In bulk mode `d2p()` parks chunks in `@misc$.pending_chunks` instead of
+  # rebuilding the accumulated table on every write (see there). Readers always
+  # get the complete, de-duplicated view; `.flush_pending_parameters()` makes it
+  # permanent once the object loop is done. `dedup = FALSE` is for `d2p()`
+  # itself, which must not pay for the merge it is deferring.
+  if (dedup) {
+    pend <- obj@misc[[".pending_chunks"]]
+    if (length(pend) > 0) {
+      data <- unique(rbindlist(c(list(data), pend),
+        use.names = TRUE, ignore.attr = TRUE
+      ))
+    } else if (isTRUE(obj@misc[[".dedup_pending"]]) &&
+               !is.null(data) && nrow(data) > 0) {
+      data <- unique(data)
+    }
   }
   return(data)
 }
@@ -106,13 +122,45 @@ setMethod(
     # of an on-disk parameter the store does not exist yet (while the object's
     # onDisk bookkeeping already records dims), so a missing dataset is normal
     # here — hence optional, never the moved-folder error.
-    data_exist <- get_data_slot(obj, optional = TRUE) |>
-      force_cols_classes() # !!! ToDo: add filters
-    data <- rbindlist(list(data_exist, data),
-      use.names = TRUE,
-      ignore.attr = TRUE # workaround for NA values in csv files
-    )
-    data <- unique(data)
+    #
+    # Only the NEW chunk is de-duplicated here, and the accumulated table is
+    # left alone. De-duplicating (and re-coercing) the whole accumulated table
+    # on EVERY write made interpolation quadratic in the number of objects:
+    # a 26-region model writing ~58M weather rows over 1,113 objects spent most
+    # of its interpolation inside this one `unique()`. Set union is
+    # associative, so a single `unique()` per parameter once the object loop is
+    # done -- `.dedup_pending_parameters()`, called from `interpolate_model()`
+    # -- yields the identical table. Readers are covered in the meantime by the
+    # `.dedup_pending` branch of `get_data_slot()`.
+    #
+    # `data_exist` needs no class coercion: every chunk is normalised on the
+    # way in (`force_cols_classes()` above) and `get_data_slot()` normalises
+    # on-disk reads. The on-disk branch keeps the eager behaviour -- it pays a
+    # parquet round-trip per call anyway, so the dedup is not what costs there.
+    if (!isOnDisk(obj) && isTRUE(getOption("en.bulk_param_write", FALSE))) {
+      # BULK MODE (the object loop of `interpolate_model()`): park the chunk and
+      # return. Appending is O(chunk) instead of O(accumulated), which is what
+      # takes the loop from quadratic to linear in the number of objects.
+      # `get_data_slot()` merges pending chunks for any reader in the meantime,
+      # and `.flush_pending_parameters()` collapses them once the loop ends.
+      obj@misc[[".pending_chunks"]] <-
+        c(obj@misc[[".pending_chunks"]], list(unique(data)))
+      return(obj)
+    }
+    data_exist <- get_data_slot(obj, optional = TRUE, dedup = FALSE)
+    if (isOnDisk(obj)) {
+      data <- rbindlist(list(force_cols_classes(data_exist), data),
+        use.names = TRUE,
+        ignore.attr = TRUE # workaround for NA values in csv files
+      )
+      data <- unique(data)
+    } else {
+      data <- rbindlist(list(data_exist, unique(data)),
+        use.names = TRUE,
+        ignore.attr = TRUE # workaround for NA values in csv files
+      )
+      data <- unique(data)
+    }
 
     if (isOnDisk(obj)) {
       if (is.null(path)) {
@@ -121,23 +169,10 @@ setMethod(
           stop("Path to the parameter ", obj@name, " is not specified.")
         }
       }
-      # write data to disk
-      partitioning_dim <- NULL
-      if (any(colnames(data) == "year")) {
-        partitioning_dim <- "year"
-      }
-
-      # browser()
+      # write data to disk in the store's own codec (or `storage_format` for a
+      # store that does not exist yet)
       obj@data <- data
-      obj <- obj2disk(obj)
-      # arrow::write_dataset(
-      #   data,
-      #   path = path,
-      #   format = "parquet",
-      #   partitioning = partitioning_dim,
-      #   existing_data_behavior = "overwrite" # !!! ToDo: consider on-disk merge
-      # )
-      # obj@data <- obj@data[0,] # clear data in memory
+      obj <- obj2disk(obj, format = .store_format(fp(path, "data")))
       obj@data <- reset_slot(obj@data)
     } else {
       # assign data to the parameter
@@ -217,10 +252,10 @@ setMethod(
       ) |>
         unique()
 
-      # write data to disk
-      partitioning_dim <- NULL
+      # write data to disk (see the numeric method: keep the store's codec)
       obj@data <- data
-      obj <- obj2disk(obj, path = path)
+      obj <- obj2disk(obj, path = path,
+                      format = .store_format(fp(path, "data")))
       obj@data <- reset_slot(obj@data)
     } else {
       obj@data <- rbindlist(
@@ -1826,7 +1861,7 @@ force_cols_classes <- function(dtf) {
   force_class <- "integer"
   # force_class <- "numeric"
   for (y in year_vars) {
-    if (!is.null(dtf[[y]]) && !inherits(dtf, force_class)) {
+    if (!is.null(dtf[[y]]) && !inherits(dtf[[y]], force_class)) {
       dtf[[y]] <- as(dtf[[y]], force_class)
     }
   }
@@ -1843,7 +1878,7 @@ force_cols_classes <- function(dtf) {
   )
 
   for (s in string_vars) {
-    if (!is.null(dtf[[s]]) && !inherits(dtf, "character")) {
+    if (!is.null(dtf[[s]]) && !inherits(dtf[[s]], "character")) {
       dtf[[s]] <- as.character(dtf[[s]])
     }
   }
@@ -1863,6 +1898,33 @@ force_cols_classes <- function(dtf) {
   }
 
   as.data.table(dtf)
+}
+
+# Merge the chunks `d2p()` parked in bulk mode into each parameter's `@data`.
+#
+# In bulk mode `d2p()` appends to `@misc$.pending_chunks` rather than rebuilding
+# (and re-de-duplicating) the accumulated table on every write -- doing that per
+# write is what made the object loop quadratic in the number of objects. Set
+# union is associative, so collapsing once here reproduces exactly the table the
+# eager path produced. Called by `interpolate_model()` after the object loop;
+# a no-op when nothing is pending.
+.flush_pending_parameters <- function(scen) {
+  for (nm in names(scen@modInp@parameters)) {
+    p <- scen@modInp@parameters[[nm]]
+    pend <- p@misc[[".pending_chunks"]]
+    if (length(pend) == 0 && !isTRUE(p@misc[[".dedup_pending"]])) next
+    if (length(pend) > 0) {
+      p@data <- unique(rbindlist(c(list(p@data), pend),
+        use.names = TRUE, ignore.attr = TRUE
+      ))
+    } else if (!is.null(p@data) && nrow(p@data) > 0) {
+      p@data <- unique(p@data)
+    }
+    p@misc[[".pending_chunks"]] <- NULL
+    p@misc[[".dedup_pending"]] <- NULL
+    scen@modInp@parameters[[nm]] <- p
+  }
+  scen
 }
 
 # =============================================================================#
