@@ -132,8 +132,12 @@ read_solution <- function(obj, run = NULL, ...) {
   ss$commp <- ss$comm
   ss$timeslicep <- ss$timeslice
   rr$set_vec <- ss
-  if (is.null(scen@settings@solver$import_format)) {
-    scen@settings@solver$import_format <- "csv" # !!! workaround
+  # Every writer records the format it produced (the JuMP/Pyomo pair through
+  # .resolve_exchange_formats(), GAMS in .write_model_GAMS). Only backends that
+  # never set one -- GLPK -- land here, and those write CSV.
+  if (is.null(scen@settings@solver$import_format) ||
+      !nzchar(scen@settings@solver$import_format)) {
+    scen@settings@solver$import_format <- "csv"
   }
   # browser()
   if (grepl("^gdx$", scen@settings@solver$import_format, ignore.case = TRUE)) {

@@ -3,8 +3,9 @@
 #' Install Julia packages
 #'
 #' @param pkgs A character vector of Julia packages to install. The default is
-#'  \code{c("JuMP", "HiGHS", "Cbc", "Clp", "RData", "RCall", "CodecBzip2",
-#'  "Gadfly", "DataFrames", "CSV", "SQLite", "Dates")}.
+#'  \code{c("JuMP", "HiGHS", "Cbc", "Clp", "Arrow", "RData", "RCall",
+#'  "CodecBzip2", "Gadfly", "DataFrames", "Dates")}. `Arrow` is required for
+#'  the default data exchange (see [get_exchange_format()]).
 #'  If you have pre-installed CPLEX or Gurobi, you can add them to the list.
 #'
 #' @return NULL if the completion is successful. The verification of the installation is
@@ -18,8 +19,12 @@
 en_install_julia_pkgs <- function(pkgs = NULL, update = FALSE) {
 
   if (is.null(pkgs)) {
-    pkgs <- c("JuMP", "HiGHS", "Cbc", "Clp", "RData", "RCall", "CodecBzip2",
-              "Gadfly", "DataFrames", "CSV", "SQLite", "Dates")
+    # `Arrow` reads the model data and writes the solution (the default
+    # exchange); `RData` serves the legacy `julia_highs_rdata` preset. Neither
+    # `CSV` nor `SQLite` is used by the Julia path -- the generated code writes
+    # csv with plain `println` and never opens a database.
+    pkgs <- c("JuMP", "HiGHS", "Cbc", "Clp", "Arrow", "RData", "RCall",
+              "CodecBzip2", "Gadfly", "DataFrames", "Dates")
   }
 
   # check if Julia is installed and available on the path

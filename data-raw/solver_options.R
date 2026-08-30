@@ -1,8 +1,10 @@
 ## Python/Pyomo
+## No `export_format`/`import_format`: both fall through to the
+## `exchange_format` option (Arrow IPC by default). See the `*_sqlite` /
+## `*_rdata` presets below for the legacy containers.
 Pyomo <- list(
   name = "pyomo",
   lang = "PYOMO",
-  export_format = "SQLite",
   # solver = "cplex"
   # solver = "glpk"
   solver = "cbc"
@@ -381,24 +383,28 @@ gams_gdx_cbc <- list(
   solver = "CBC"
 )
 
-# Arrow IPC/feather exchange variants: model data AND solution exchanged as
-# Arrow IPC (feather, zstd) instead of SQLite/RData (input) and CSV (output).
-pyomo_cbc_arrow <- pyomo_cbc
-pyomo_cbc_arrow$name <- "pyomo_cbc_arrow"
-pyomo_cbc_arrow$export_format <- "feather"
-pyomo_cbc_arrow$import_format <- "feather"
+# LEGACY exchange variants. Arrow is now the default for every JuMP/Pyomo
+# preset (via the `exchange_format` option), so these name the older containers
+# explicitly: one SQLite database read with sqlite3/pandas, and one RData
+# bundle read with RData.jl. Both keep the historical CSV solution output.
+# They exist to keep the fallback reachable, documented and testable -- prefer
+# the plain presets.
+pyomo_cbc_sqlite <- pyomo_cbc
+pyomo_cbc_sqlite$name <- "pyomo_cbc_sqlite"
+pyomo_cbc_sqlite$export_format <- "SQLite"
+pyomo_cbc_sqlite$import_format <- "csv"
 
-julia_highs_arrow <- julia_highs
-julia_highs_arrow$name <- "julia_highs_arrow"
-julia_highs_arrow$export_format <- "feather"
-julia_highs_arrow$import_format <- "feather"
+julia_highs_rdata <- julia_highs
+julia_highs_rdata$name <- "julia_highs_rdata"
+julia_highs_rdata$export_format <- "RData"
+julia_highs_rdata$import_format <- "csv"
 
 solver_options <- list(
   # GLPK
   glpk = glpk,
   # Python/Pyomo
   pyomo_cbc = pyomo_cbc,
-  pyomo_cbc_arrow = pyomo_cbc_arrow,
+  pyomo_cbc_sqlite = pyomo_cbc_sqlite,
   pyomo_cplex = pyomo_cplex,
   pyomo_cplex_barrier = pyomo_cplex_barrier,
   pyomo_glpk = pyomo_glpk,
@@ -413,7 +419,7 @@ solver_options <- list(
   julia_cplex = julia_cplex,
   julia_cplex_barrier = julia_cplex_barrier,
   julia_highs = julia_highs,
-  julia_highs_arrow = julia_highs_arrow,
+  julia_highs_rdata = julia_highs_rdata,
   julia_highs_barrier = julia_highs_barrier,
   julia_glpk = julia_glpk,
   julia_highs_simplex = julia_highs_simplex,

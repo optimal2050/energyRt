@@ -75,9 +75,13 @@ test_that("declared defaults are what the getters return", {
       options(structure(list(NULL), names = paste0("en.", n)))
     }
     expect_identical(get_scenarios_path(), "scenarios/")
-    expect_identical(get_arrow_format(), "feather")
-    expect_identical(get_arrow_compression(), "zstd")
-    expect_identical(get_arrow_compression_level(), 15L)
+    expect_identical(get_storage_format(), "feather")
+    expect_identical(get_storage_compression(), "zstd")
+    expect_identical(get_storage_compression_level(), 15L)
+    # exchange files live for one solve: cheaper codec by default
+    expect_identical(get_exchange_format(), "feather")
+    expect_identical(get_exchange_compression(), "lz4")
+    expect_identical(get_exchange_compression_level(), 15L)
     expect_identical(get_default_solver(), list(name = "glpk", lang = "GLPK"))
     expect_identical(get_registry_file(), "energyRt_registry.csv")
     expect_identical(get_models_path(), "models/")
@@ -97,24 +101,24 @@ test_that("the default solver matches the solver_options preset it names", {
 
 test_that("an R option beats an environment variable beats the default", {
   with_clean_options({
-    options(en.arrow_format = NULL)
-    withr_env <- Sys.getenv("ENERGYRT_ARROW_FORMAT", unset = NA)
+    options(en.storage_format = NULL)
+    withr_env <- Sys.getenv("ENERGYRT_STORAGE_FORMAT", unset = NA)
     on.exit({
-      if (is.na(withr_env)) Sys.unsetenv("ENERGYRT_ARROW_FORMAT")
-      else Sys.setenv(ENERGYRT_ARROW_FORMAT = withr_env)
+      if (is.na(withr_env)) Sys.unsetenv("ENERGYRT_STORAGE_FORMAT")
+      else Sys.setenv(ENERGYRT_STORAGE_FORMAT = withr_env)
     }, add = TRUE)
 
-    Sys.unsetenv("ENERGYRT_ARROW_FORMAT")
-    expect_identical(.en_opt_source("arrow_format"), "default")
-    expect_identical(get_arrow_format(), "feather")
+    Sys.unsetenv("ENERGYRT_STORAGE_FORMAT")
+    expect_identical(.en_opt_source("storage_format"), "default")
+    expect_identical(get_storage_format(), "feather")
 
-    Sys.setenv(ENERGYRT_ARROW_FORMAT = "csv")
-    expect_identical(.en_opt_source("arrow_format"), "envvar")
-    expect_identical(get_arrow_format(), "csv")
+    Sys.setenv(ENERGYRT_STORAGE_FORMAT = "csv")
+    expect_identical(.en_opt_source("storage_format"), "envvar")
+    expect_identical(get_storage_format(), "csv")
 
-    options(en.arrow_format = "parquet")
-    expect_identical(.en_opt_source("arrow_format"), "option")
-    expect_identical(get_arrow_format(), "parquet")
+    options(en.storage_format = "parquet")
+    expect_identical(.en_opt_source("storage_format"), "option")
+    expect_identical(get_storage_format(), "parquet")
   })
 })
 
@@ -228,7 +232,7 @@ test_that("en_config_write()/en_config_read() round-trip", {
   }, add = TRUE)
 
   with_clean_options({
-    cfg <- list(arrow_format = "parquet", scenarios_path = "scen/")
+    cfg <- list(storage_format = "parquet", scenarios_path = "scen/")
     expect_silent(suppressMessages(en_config_write(cfg, global = FALSE)))
     expect_true(file.exists(en_config_path(global = FALSE)))
     expect_identical(en_config_read(global = FALSE), cfg)
@@ -247,24 +251,24 @@ test_that("the config file fills only options the user has not set", {
 
   with_clean_options({
     suppressMessages(en_config_write(
-      list(arrow_format = "parquet", arrow_compression = "lz4"),
+      list(storage_format = "parquet", storage_compression = "lz4"),
       global = FALSE
     ))
 
     # nothing set -> the config supplies both
-    options(en.arrow_format = NULL, en.arrow_compression = NULL)
-    Sys.unsetenv(c("ENERGYRT_ARROW_FORMAT", "ENERGYRT_ARROW_COMPRESSION"))
+    options(en.storage_format = NULL, en.storage_compression = NULL)
+    Sys.unsetenv(c("ENERGYRT_STORAGE_FORMAT", "ENERGYRT_STORAGE_COMPRESSION"))
     .en_apply_config()
-    expect_identical(get_arrow_format(), "parquet")
-    expect_identical(get_arrow_compression(), "lz4")
+    expect_identical(get_storage_format(), "parquet")
+    expect_identical(get_storage_compression(), "lz4")
 
     # an env var outranks the config file
-    options(en.arrow_format = NULL, en.arrow_compression = NULL)
-    Sys.setenv(ENERGYRT_ARROW_FORMAT = "csv")
-    on.exit(Sys.unsetenv("ENERGYRT_ARROW_FORMAT"), add = TRUE)
+    options(en.storage_format = NULL, en.storage_compression = NULL)
+    Sys.setenv(ENERGYRT_STORAGE_FORMAT = "csv")
+    on.exit(Sys.unsetenv("ENERGYRT_STORAGE_FORMAT"), add = TRUE)
     .en_apply_config()
-    expect_identical(get_arrow_format(), "csv")
-    expect_identical(get_arrow_compression(), "lz4")
+    expect_identical(get_storage_format(), "csv")
+    expect_identical(get_storage_compression(), "lz4")
   })
 })
 
@@ -303,7 +307,7 @@ test_that("en_config_show() reports the source of every option", {
     expect_true(is.data.frame(res))
     expect_setequal(res$option, .en_option_names())
     expect_identical(res$source[res$option == "scenarios_path"], "option")
-    expect_identical(res$source[res$option == "arrow_compression_level"],
+    expect_identical(res$source[res$option == "storage_compression_level"],
                      "default")
   })
 })

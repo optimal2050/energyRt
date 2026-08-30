@@ -350,8 +350,10 @@
       stop("On-disk parameter '", param@name, "' has no path for fold write-back.")
     }
     data_dir <- file.path(ppath, "data")
-    existing <- list.files(data_dir, recursive = TRUE)
-    fmt <- if (any(grepl("\\.parquet$", existing))) "parquet" else "csv"
+    # Keep the store's own codec (see .interp_write_param): re-deriving it
+    # recognised only parquet-or-csv, so a feather store got CSV written
+    # beside its `.arrow` files and stopped being a readable dataset.
+    fmt <- .store_format(data_dir)
     unlink(data_dir, recursive = TRUE)
     data2disk(data.table::as.data.table(new_data), path = data_dir,
               format = fmt)

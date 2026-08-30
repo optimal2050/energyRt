@@ -38,7 +38,7 @@ save_scenario <- function(
     path = scen@path,
     embed_model = NULL,
     embed_datasets = NULL,
-    format = get_arrow_format(),
+    format = get_storage_format(),
     overwrite = TRUE,
     clean_start = FALSE,
     write_log = TRUE,
@@ -64,10 +64,11 @@ save_scenario <- function(
   .scenario_seal_guard(scen)
 
   # An on-disk scenario (interpolate_model(ondisk = TRUE)) already has its
-  # parquet stores in place — but the thin object, the layout markers, the
-  # manifest, and the registry row still need writing, otherwise the folder
-  # has data and no `scen.RData` and load_scenario() fails. So an on-disk
-  # scenario skips only the obj2disk() data walk below, never the shell.
+  # parameter stores in place, in whatever codec `storage_format` was when they
+  # were written — but the thin object, the layout markers, the manifest, and
+  # the registry row still need writing, otherwise the folder has data and no
+  # `scen.RData` and load_scenario() fails. So an on-disk scenario skips only
+  # the obj2disk() data walk below, never the shell.
   ondisk_data <- isOnDisk(scen)
 
   # Model reference vs embedding. `embed_model = NULL` (auto): reference the
@@ -405,10 +406,9 @@ if (F) {
 data2disk <- function(
     obj,
     path = NULL,
-    # format = "parquet",
-    format = "csv",
-    compression = get_arrow_compression(),
-    compression_level = get_arrow_compression_level(),
+    format = get_storage_format(),
+    compression = get_storage_compression(),
+    compression_level = get_storage_compression_level(),
     verbose = FALSE) {
   # saves certain type of data to disk, returns TRUE if saved, FALSE if not
   if (is.null(path)) path <- getObjPath(obj)
@@ -417,6 +417,15 @@ data2disk <- function(
   # browser()
   # obj_class <- class(obj)
 
+  # One writer for both shapes: an atomic vector becomes a one-column table
+  # named after the slot. It used to be written as csv unconditionally, which
+  # put csv files in a store whose other slots were feather/parquet -- a
+  # directory arrow refuses to open as one dataset.
+  if (inherits(obj, c("character", "numeric", "logical")) &&
+      !inherits(obj, "data.frame")) {
+    obj <- as.data.table(obj)
+    data.table::setnames(obj, old = "obj", new = basename(path))
+  }
   if (inherits(obj, "data.frame")) {
     obj <- as.data.table(obj)
     obj_class <- class(obj)
@@ -440,19 +449,6 @@ data2disk <- function(
     # write(format, file = fp(path, "format"), append = FALSE)
     # write(obj_class, file = fp(path, "class"), append = FALSE)
     return(invisible(TRUE))
-  } else if (inherits(obj, c("character", "numeric", "logical"))) {
-    # if (verbose) cat(path, "csv", "\n")
-    # if (anyDuplicatedSets(obj)) obj <- rename_duplicated_sets(obj)
-    # arrow::write_dataset(obj, path = path, format = "csv")
-    # browser()
-    obj <- as.data.table(obj)
-    data.table::setnames(obj, old = "obj", new = basename(path))
-    # fwrite(obj, file = fp(path, "obj.csv"))
-    dir.create(path, recursive = TRUE, showWarnings = FALSE)
-    arrow::write_dataset(obj, path = path, format = "csv")
-    # write(obj_class, file = fp(path, "class"), append = FALSE)
-    # write("csv", file = fp(path, "format"), append = FALSE)
-    return(invisible(TRUE))
   }
   return(FALSE)
 }
@@ -460,8 +456,7 @@ data2disk <- function(
 obj2disk <- function(
     obj,
     path = NULL,
-    # format = "parquet",
-    format = "csv",
+    format = get_storage_format(),
     save_not_S4 = FALSE,
     force_save = FALSE,
     verbose = FALSE,
@@ -669,30 +664,87 @@ anyDuplicatedSets <- function(x) {
   any(duplicated(colnames(x)))
 }
 
+# The extensions each dataset format writes. `write_dataset(format =
+# "feather")` names its files `.arrow`, so feather owns three spellings.
+.en_format_ext <- list(
+  csv = "csv", parquet = "parquet",
+  feather = c("arrow", "feather", "ipc"), RData = "RData"
+)
+
+# Infer a dataset's format from the extensions present; NULL when they are
+# mixed or unrecognized -- a mix means two writers disagreed about the codec,
+# which arrow cannot read as one dataset.
+#
+# An EMPTY vector matches the first format vacuously, and that is deliberate: a
+# slot with no rows writes no files, and reading such a directory as csv yields
+# an empty dataset. A directory that does not exist at all still fails in the
+# reader below, which is how get_lazy_data() tells "never written" (fine) from
+# "written but the folder moved" (an error worth raising).
+.en_sniff_format <- function(ext) {
+  for (fmt in names(.en_format_ext)) {
+    if (all(ext %in% .en_format_ext[[fmt]])) return(fmt)
+  }
+  NULL
+}
+
+# The codec to use when REWRITING an existing store. Priority:
+#   1. the files already there -- authoritative, because a directory holding two
+#      codecs is not a readable dataset (see en_open_dataset);
+#   2. the format recorded in the owning manifest (scenario.yml / model.yml /
+#      repository.yml / dataset.yml), for a store whose data dir is empty;
+#   3. the storage option.
+# Nothing here consults the option while files exist, so changing the option
+# never mixes codecs inside a store that is already written.
+.store_format <- function(data_dir = NULL, manifest = NULL) {
+  if (!is.null(data_dir) && dir.exists(data_dir)) {
+    ext <- unique(tools::file_ext(list.files(data_dir)))
+    # only files decide; an empty store matches every format vacuously (see
+    # .en_sniff_format) and must fall through to the manifest instead
+    if (length(ext)) {
+      fmt <- .en_sniff_format(ext)
+      if (!is.null(fmt)) return(fmt)
+    }
+  }
+  if (!is.null(manifest) && file.exists(manifest)) {
+    mf <- tryCatch(yaml::read_yaml(manifest), error = function(e) NULL)
+    fmt <- tolower(as.character(mf$format %||% ""))
+    if (length(fmt) == 1L && nzchar(fmt)) {
+      if (fmt %in% c("arrow", "ipc")) fmt <- "feather"
+      if (fmt %in% names(.en_format_ext)) return(fmt)
+    }
+  }
+  get_storage_format()
+}
+
 en_open_dataset <- function(path, format = NULL, engine = "arrow") {
   # if (basename(path) == "vObjective") browser()
   # identify format
   ff <- list.files(path)
   ext <- tools::file_ext(ff) |> unique()
+  sniffed <- .en_sniff_format(ext)
   if (is.null(format)) {
-    if (all(ext %in% "csv")) {
-      format <- "csv"
-    } else if (all(ext %in% "parquet")) {
-      format <- "parquet"
-    } else if (all(ext %in% c("arrow", "feather", "ipc"))) {
-      # write_dataset(format = "feather") names its files `.arrow`
-      format <- "feather"
-    } else if (all(ext %in% "RData")) {
-      format <- "RData"
-    } else {
+    if (is.null(sniffed)) {
       stop(
         "Cannot identify format of the dataset\n     ",
         paste0(length(ff), " files or directories, extensions: '"),
         paste(ext, collapse = "', '"), "'"
       )
     }
+    format <- sniffed
   } else {
-    # !!! check if files are consistent with the format
+    # A declared format must match what is on disk: reading parquet files as
+    # feather fails deep inside arrow with an opaque message, and a directory
+    # that mixes codecs cannot be one dataset whatever the caller declares.
+    format <- tolower(format)
+    if (format %in% c("arrow", "ipc")) format <- "feather"
+    if (!format %in% names(.en_format_ext)) {
+      stop("Unknown dataset format: '", format, "'.")
+    }
+    if (length(ext) && !all(ext %in% .en_format_ext[[format]])) {
+      stop("Dataset '", path, "' was opened as '", format,
+           "' but holds extensions '", paste(ext, collapse = "', '"),
+           "'. The store's recorded format and its files disagree.")
+    }
   }
 
   if (engine == "arrow") {

@@ -222,7 +222,8 @@ d2v <- function(obj, data, path = NULL) {
       stop("Path to the variable ", obj@name, " is not specified.")
     }
     obj@data <- data
-    obj <- obj2disk(obj)
+    # keep the store's own codec (see d2p in R/obj2modInp.R)
+    obj <- obj2disk(obj, format = .store_format(fp(path, "data")))
     obj@data <- reset_slot(obj@data)
   } else {
     obj@data <- data

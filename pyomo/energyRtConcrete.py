@@ -38,8 +38,11 @@ exec(open("inc1.py").read())
 model = ConcreteModel()
 import pandas as pd
 
-# Data source: "sqlite" (input/data.db) or "arrow" (input/<name>.arrow). The R
-# writer (energyRt) rewrites this line at write time based on export_format.
+# Data source: "sqlite" (input/data.db), "feather" (input/<name>.arrow) or
+# "parquet" (input/<name>.parquet). The R writer (energyRt) rewrites this line
+# at write time from the solver's export_format. A table with no rows is not
+# written at all -- the model code never reads those -- so a missing table
+# reads back as empty rather than failing.
 _DATA_FORMAT = "sqlite"
 if _DATA_FORMAT == "sqlite":
     import sqlite3
@@ -47,13 +50,38 @@ if _DATA_FORMAT == "sqlite":
     _con = sqlite3.connect("input/data.db")
 
     def _read_tbl(name):
-        return pd.read_sql_query(f'SELECT * FROM "{name}"', _con)
+        try:
+            return pd.read_sql_query(f'SELECT * FROM "{name}"', _con)
+        except Exception:
+            return pd.DataFrame()
 
 else:
-    import pyarrow.feather as _feather
+    import os
+
+    try:
+        if _DATA_FORMAT == "parquet":
+            import pyarrow.parquet as _pq
+
+            _ext, _reader = ".parquet", _pq.read_table
+        else:
+            import pyarrow.feather as _feather
+
+            _ext, _reader = ".arrow", _feather.read_feather
+    except ImportError:
+        raise SystemExit(
+            "energyRt: the Python package 'pyarrow' is required to read the "
+            "model data in the Arrow exchange format.\n"
+            "  Install it with en_install_python_deps() in R, or select the "
+            "legacy exchange with solver_options$pyomo_cbc_sqlite "
+            '(or solver$export_format <- "SQLite").'
+        )
 
     def _read_tbl(name):
-        return _feather.read_feather("input/" + name + ".arrow")
+        path = "input/" + name + _ext
+        if not os.path.exists(path):
+            return pd.DataFrame()
+        tbl = _reader(path)
+        return tbl.to_pandas() if hasattr(tbl, "to_pandas") else tbl
 
 
 def read_set(name):

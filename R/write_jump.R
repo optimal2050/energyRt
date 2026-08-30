@@ -28,7 +28,23 @@ get_julia_path <- function() {
 }
 
 # Functions to write Julia/JuMP model and data files
+# Arrow.jl reads and writes the IPC ("feather") format only -- it has no
+# parquet reader or writer. Refuse a parquet request loudly: served silently as
+# feather, R would then look for `output/<var>.parquet`, find nothing, and read
+# the scenario back empty.
+.assert_julia_arrow_format <- function(fmt, what) {
+  if (identical(tolower(fmt), "parquet")) {
+    stop("The Julia/JuMP backend cannot exchange parquet: Arrow.jl reads and ",
+         "writes IPC only. Set `", what, "` to \"feather\" (or use the Pyomo ",
+         "backend, which supports parquet).", call. = FALSE)
+  }
+  invisible(TRUE)
+}
+
 .write_model_JuMP <- function(arg, scen) {
+  # Arrow in and out unless the preset asks for the legacy RData bundle;
+  # `exchange_format` supplies the default (R/exchange.R).
+  scen@settings@solver <- .resolve_exchange_formats(scen@settings@solver)
   run_code <- scen@settings@sourceCode[["JuMP"]]
   run_codeout <- scen@settings@sourceCode[["JuMPOutput"]]
   # # resolving `prod` issue in JuMP/Julia. temporary solution
@@ -151,19 +167,32 @@ get_julia_path <- function() {
     })
 
   # Data exchange: Arrow IPC/feather (one file per table in `input/`, read in
-  # Julia via Arrow.jl) when the solver requests it, else the legacy single
-  # `data.RData` (read via RData.jl). Julia's Arrow.jl reads IPC ("feather"); a
-  # `parquet` request is served as feather here (Arrow.jl does not read parquet).
+  # Julia via Arrow.jl) by default, else the legacy single `data.RData` (read
+  # via RData.jl). Arrow.jl reads IPC only, so a `parquet` request is refused
+  # here rather than silently served as feather -- the two sides would then
+  # disagree about the extension and the solve would read nothing.
   .ex_fmt <- scen@settings@solver$export_format
-  .use_arrow <- !is.null(.ex_fmt) &&
-    tolower(.ex_fmt) %in% c("feather", "ipc", "arrow", "parquet")
+  .use_arrow <- .is_arrow_exchange(.ex_fmt)
+  if (.use_arrow) .assert_julia_arrow_format(.ex_fmt, "export_format")
   if (.use_arrow) {
     in_dir <- fp(arg$solver.dir, "input")
     dir.create(in_dir, showWarnings = FALSE)
     for (i in names(dat)) {
+      # An empty table is never read by the generated code (see .toJuliaHead),
+      # so writing it is pure overhead -- on a UTOPIA-size model most tables
+      # are empty.
+      if (!nrow(dat[[i]])) next
       .write_exchange_table(dat[[i]], fp(in_dir, i), format = "feather")
     }
     cat(paste(
+      # A missing Arrow.jl otherwise fails as a bare `ArgumentError: Package
+      # Arrow not found`, which says nothing about how to proceed.
+      'if Base.find_package("Arrow") === nothing',
+      '    error("energyRt: the Julia package `Arrow` is required to read " *',
+      '          "the model data. Install it with en_install_julia_pkgs() " *',
+      '          "in R, or select the legacy exchange with " *',
+      '          "solver_options\\$julia_highs_rdata.")',
+      "end",
       "using Arrow",
       "using DataFrames",
       "dt = Dict{String, DataFrame}()",
@@ -238,8 +267,8 @@ get_julia_path <- function() {
   # `open("output/v<Name>.csv")` to `open_var(...)`. Meta files (variable_list /
   # raw_data_set / log) keep streaming CSV. CSV output is unchanged when not Arrow.
   .im_fmt <- scen@settings@solver$import_format
-  if (!is.null(.im_fmt) &&
-      tolower(.im_fmt) %in% c("feather", "ipc", "arrow", "parquet")) {
+  if (.is_arrow_exchange(.im_fmt)) {
+    .assert_julia_arrow_format(.im_fmt, "import_format")
     cat(.jump_arrow_output_helpers(), sep = "\n", file = zz_modout)
     run_codeout <- gsub(
       'open\\("output/(v[A-Z][A-Za-z0-9_]*)\\.csv", "w"\\)',
@@ -381,12 +410,10 @@ get_julia_path <- function() {
       data <- data[data$value != Inf & data$value != def, ]
       rtt <- paste0("# ", name, name2, "\n", name, "Def = ", def, ";\n")
       if (nrow(data) == 0) {
-        return(
-          c(
-            paste0(rtt, name, " = Dict()"),
-            paste0('sizehint!(', name, ', nrow(dt["', name, '"]))')
-          )
-        )
+        # No `sizehint!` here: it would index `dt[name]`, and a table with no
+        # rows is not written at all (see .write_model_JuMP), so the key is
+        # absent and the lookup would throw a KeyError.
+        return(paste0(rtt, name, " = Dict()"))
       }
       colnames(data) <- gsub("[.]1", "p", colnames(data))
       return(c(
@@ -668,11 +695,22 @@ names(.alias_set) <- .set_al
 # Julia `_VarFile` helper for DIRECT per-variable Arrow solution output. A drop-in
 # for the CSV file handle: `open_var()` replaces `open(..., "w")`; the unchanged
 # `println(vf, ...)` / `close(vf)` calls (dispatched on `_VarFile`) accumulate rows
-# and write `output/<var>.arrow` (zstd) on close. The first `println` (the CSV
-# header string) sets the column names; row `println`s drop the interleaved ","
-# separators. Empty variables emit a typed 0-row table. Injected by
-# `.write_model_JuMP` only when the solution is imported as Arrow.
-.jump_arrow_output_helpers <- function() {
+# and write `output/<var>.arrow` on close, in the codec `exchange_compression`
+# names. The first `println` (the CSV header string) sets the column names; row
+# `println`s drop the interleaved "," separators. Empty variables emit a typed
+# 0-row table. Injected by `.write_model_JuMP` only when the solution is
+# imported as Arrow.
+.jump_arrow_output_helpers <- function(
+    compression = get_exchange_compression()) {
+  # Arrow.jl spells the codec as a Symbol and takes `nothing` for none; it has
+  # no compression-level argument (`exchange_compression_level` is R-side only).
+  compress <- switch(tolower(compression),
+    uncompressed = "nothing",
+    lz4 = ":lz4",
+    zstd = ":zstd",
+    stop("Unsupported exchange compression for Arrow.jl: '", compression,
+         "'. Use \"zstd\", \"lz4\", or \"uncompressed\".", call. = FALSE)
+  )
   c(
     "using Arrow, DataFrames",
     "mutable struct _VarFile",
@@ -695,7 +733,8 @@ names(.alias_set) <- .set_al
     '        col = n == 0 ? (c == "value" ? Float64[] : String[]) : [vf.rows[r][i] for r in 1:n]',
     "        push!(cols, Symbol(c) => col)",
     "    end",
-    '    Arrow.write(vf.base * ".arrow", DataFrame(cols); compress = :zstd)',
+    paste0('    Arrow.write(vf.base * ".arrow", DataFrame(cols); compress = ',
+           compress, ')'),
     "end",
     ""
   )

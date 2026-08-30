@@ -233,7 +233,11 @@ map_mCommRegion <- function(scen, fmp) {
   pio <- pio[!is.na(pio$comm) & pio$comm %in% names(comm_rank), , drop = FALSE]
   if (nrow(pio) == 0 || nrow(preg) == 0) return(invisible(NULL))
 
-  d <- merge(preg, pio, by = "process")
+  # One row per (process, region, comm): with an object declared for many
+  # regions and carrying several commodities this is legitimately larger than
+  # nrow(preg) + nrow(pio), which is exactly the case data.table refuses by
+  # default. The cross is the point of the check.
+  d <- merge(preg, pio, by = "process", allow.cartesian = TRUE)
   d$preg_rank <- unname(rank[lvl_of[d$region]])
   d$comm_rank <- unname(comm_rank[d$comm])
   bad <- d[!is.na(d$preg_rank) & !is.na(d$comm_rank) &

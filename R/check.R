@@ -203,10 +203,24 @@ en_check_pyomo <- function() {
   # A real success prints a bare version number (e.g. "6.7.3").
   ok <- length(ver) > 0 && grepl("^[0-9]+\\.[0-9]+", ver[length(ver)])
   cbc <- .en_which("cbc")
+  # pyarrow reads the model data in the default exchange; without it a solve
+  # fails inside the generated script, where the message is easy to miss.
+  pa <- if (ok) {
+    out <- tryCatch(
+      suppressWarnings(system2(py,
+        c("-c", shQuote("import pyarrow; print(pyarrow.__version__)")),
+        stdout = TRUE, stderr = TRUE)),
+      error = function(e) character(0)
+    )
+    any(grepl("^[0-9]+\\.[0-9]+", out))
+  } else {
+    FALSE
+  }
   .en_status_row("Pyomo", required = FALSE,
     list(found = ok, path = if (ok) py else NA_character_,
          version = if (ok) ver[length(ver)] else NA_character_),
     note = if (!ok) "en_install_python_deps()" else
+      if (!pa) "Pyomo ok; pyarrow MISSING -> en_install_python_deps()" else
       if (is.na(cbc)) "Pyomo ok; no 'cbc' solver on PATH" else
         paste0("solver cbc: ", cbc))
 }
@@ -235,7 +249,7 @@ en_check_gdx <- function() {
 #' @rdname en_check
 #' @param pkgs character vector of Julia package names to verify.
 #' @export
-en_check_julia_pkgs <- function(pkgs = c("JuMP", "HiGHS")) {
+en_check_julia_pkgs <- function(pkgs = c("JuMP", "HiGHS", "Arrow")) {
   jp <- .en_which("julia", get_julia_path())
   if (is.na(jp)) {
     return(.en_status_row("Julia packages", required = FALSE,
@@ -254,7 +268,7 @@ en_check_julia_pkgs <- function(pkgs = c("JuMP", "HiGHS")) {
   ok <- length(missing) == 0
   .en_status_row("Julia packages", required = FALSE,
     list(found = ok, path = jp, version = paste(pkgs, collapse = ",")),
-    note = if (ok) "JuMP/HiGHS present" else
+    note = if (ok) paste0(paste(pkgs, collapse = "/"), " present") else
       paste0("missing: ", paste(missing, collapse = ", "), " -> en_install_julia_pkgs()"))
 }
 

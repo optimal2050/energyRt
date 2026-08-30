@@ -207,28 +207,63 @@ options::define_option(
   default = list()
 )
 
-# Storage / exchange format ###################################################
-# Format used to exchange model data / solution with the JuMP / Pyomo solvers
-# (written into the solver run-folder), and the default on-disk storage codec.
+# Storage and exchange formats ################################################
+# Two distinct roles, two distinct options. STORAGE is the codec of the on-disk
+# tables that outlive the session (scenario parameter/variable stores, the
+# model/repository/dataset stores). EXCHANGE is the codec of the files handed to
+# the JuMP / Pyomo solvers in a run folder, written once and read once.
+# They pull in opposite directions -- storage trades CPU for lasting size,
+# exchange wants the write and the read cheap -- so their compression defaults
+# differ.
 
 options::define_option(
-  "arrow_format",
+  "storage_format",
   desc = paste(
-    "Default Arrow exchange format for the JuMP/Pyomo solvers:",
-    "'feather' (IPC), 'parquet', or 'csv'."
+    "On-disk table storage format: 'feather' (IPC), 'parquet', or 'csv'.",
+    "Parquet is smaller, feather reads faster; both support lazy filtered",
+    "reads. The content-addressed stores pin parquet for hash stability."
   ),
   default = "feather"
 )
 
 options::define_option(
-  "arrow_compression",
-  desc = "Arrow compression codec: 'zstd', 'lz4', or 'uncompressed'.",
+  "storage_compression",
+  desc = "Storage compression codec: 'zstd', 'lz4', or 'uncompressed'.",
   default = "zstd"
 )
 
 options::define_option(
-  "arrow_compression_level",
-  desc = "Arrow compression level (codec-dependent; ZSTD supports 1-22).",
+  "storage_compression_level",
+  desc = "Storage compression level (codec-dependent; ZSTD supports 1-22).",
+  default = 15L
+)
+
+options::define_option(
+  "exchange_format",
+  desc = paste(
+    "Data-exchange format for the JuMP/Pyomo solvers: 'feather' (IPC),",
+    "'parquet', or 'csv'. Julia's Arrow.jl reads IPC only. A solver's",
+    "`export_format`/`import_format` overrides this per solve."
+  ),
+  default = "feather"
+)
+
+options::define_option(
+  "exchange_compression",
+  desc = paste(
+    "Exchange compression codec: 'zstd', 'lz4', or 'uncompressed'. Exchange",
+    "files are written and read within the same solve, so the default trades",
+    "size for speed."
+  ),
+  default = "lz4"
+)
+
+options::define_option(
+  "exchange_compression_level",
+  desc = paste(
+    "Exchange compression level (codec-dependent; ZSTD supports 1-22).",
+    "Ignored for lz4."
+  ),
   default = 15L
 )
 
@@ -288,7 +323,7 @@ options::define_option(
 #' @rdname en_option
 #' @export
 #' @examples
-#' get_option("arrow_format")
+#' get_option("storage_format")
 set_option <- function(name, value) {
   options::opt_set(name, value, env = "energyRt")
 }
@@ -727,55 +762,135 @@ get_log_file <- function() {
   options::opt("log_file")
 }
 
-# Arrow exchange format #######################################################
+# Storage format ##############################################################
 
-#' Arrow exchange-format options
+#' On-disk table storage options
 #'
-#' Getters / setters for the Arrow format used to exchange data with the
-#' JuMP / Pyomo solvers (and the default on-disk storage codec).
+#' @description
+#' Getters / setters for the codec of the tables energyRt writes to disk: a
+#' scenario's parameter and variable stores, and the model / repository /
+#' dataset stores. `"feather"` (Arrow IPC) and `"parquet"` both compress and
+#' both support lazy, filtered reads through `open_dataset()`; parquet is
+#' smaller, feather reads faster. `"csv"` is uncompressed and loses column
+#' types on the round trip.
+#'
+#' The format is recorded in the store's manifest and is authoritative when an
+#' existing store is rewritten, so changing this option never mixes codecs
+#' inside one store. The content-addressed stores ([save_model()],
+#' [save_repository()], [save_dataset()]) pin parquet regardless, because their
+#' identity is a content hash that must be reproducible.
+#'
+#' For the files handed to a solver, see [get_exchange_format()].
 #'
 #' @param format one of `"feather"`, `"parquet"`, `"csv"`.
 #' @param codec compression codec, e.g. `"zstd"`, `"lz4"`, `"uncompressed"`.
-#' @param level integer compression level (ZSTD: 1-22).
+#' @param level integer compression level (ZSTD: 1-22; ignored for lz4).
 #'
 #' @return the option value (getters) or the previous value, invisibly (setters).
 #'
 #' @family options
-#' @rdname arrow_format
+#' @rdname storage_format
 #' @export
 #' @examples
-#' get_arrow_format()
-get_arrow_format <- function() options::opt("arrow_format")
+#' get_storage_format()
+get_storage_format <- function() options::opt("storage_format")
 
 #' @family options
-#' @rdname arrow_format
+#' @rdname storage_format
 #' @export
-set_arrow_format <- function(format = c("feather", "parquet", "csv")) {
+set_storage_format <- function(format = c("feather", "parquet", "csv")) {
   format <- match.arg(format)
-  options::opt_set("arrow_format", format)
+  options::opt_set("storage_format", format)
 }
 
 #' @family options
-#' @rdname arrow_format
+#' @rdname storage_format
 #' @export
-get_arrow_compression <- function() options::opt("arrow_compression")
+get_storage_compression <- function() options::opt("storage_compression")
 
 #' @family options
-#' @rdname arrow_format
+#' @rdname storage_format
 #' @export
-set_arrow_compression <- function(codec = c("zstd", "lz4", "uncompressed")) {
+set_storage_compression <- function(codec = c("zstd", "lz4", "uncompressed")) {
   codec <- match.arg(codec)
-  options::opt_set("arrow_compression", codec)
+  options::opt_set("storage_compression", codec)
 }
 
 #' @family options
-#' @rdname arrow_format
+#' @rdname storage_format
 #' @export
-get_arrow_compression_level <- function() options::opt("arrow_compression_level")
+get_storage_compression_level <- function() {
+  options::opt("storage_compression_level")
+}
 
 #' @family options
-#' @rdname arrow_format
+#' @rdname storage_format
 #' @export
-set_arrow_compression_level <- function(level = 15L) {
-  options::opt_set("arrow_compression_level", as.integer(level))
+set_storage_compression_level <- function(level = 15L) {
+  options::opt_set("storage_compression_level", as.integer(level))
+}
+
+# Exchange format #############################################################
+
+#' Solver data-exchange options
+#'
+#' @description
+#' Getters / setters for the codec of the files exchanged with the JuMP and
+#' Pyomo backends: the model data written into the run's `solver/input/`, and
+#' the solution written back into `solver/output/`. Julia's `Arrow.jl` reads
+#' IPC only, so `"parquet"` is available on the Pyomo path and refused on the
+#' Julia one.
+#'
+#' These files live for the duration of one solve, which is why the compression
+#' default is cheaper here than for storage ([get_storage_compression()]).
+#'
+#' A solver preset's `export_format` / `import_format` overrides these options
+#' for that solve, and the two directions stay independent -- Arrow input with
+#' CSV output is a legal combination. Setting a preset's `export_format` to
+#' `"SQLite"` (Pyomo) or `"RData"` (Julia) selects the legacy exchange.
+#'
+#' @inheritParams set_storage_format
+#'
+#' @return the option value (getters) or the previous value, invisibly (setters).
+#'
+#' @family options
+#' @rdname exchange_format
+#' @export
+#' @examples
+#' get_exchange_format()
+get_exchange_format <- function() options::opt("exchange_format")
+
+#' @family options
+#' @rdname exchange_format
+#' @export
+set_exchange_format <- function(format = c("feather", "parquet", "csv")) {
+  format <- match.arg(format)
+  options::opt_set("exchange_format", format)
+}
+
+#' @family options
+#' @rdname exchange_format
+#' @export
+get_exchange_compression <- function() options::opt("exchange_compression")
+
+#' @family options
+#' @rdname exchange_format
+#' @export
+set_exchange_compression <- function(codec = c("zstd", "lz4", "uncompressed")) {
+  codec <- match.arg(codec)
+  options::opt_set("exchange_compression", codec)
+}
+
+#' @family options
+#' @rdname exchange_format
+#' @export
+get_exchange_compression_level <- function() {
+  options::opt("exchange_compression_level")
+}
+
+#' @family options
+#' @rdname exchange_format
+#' @export
+set_exchange_compression_level <- function(level = 15L) {
+  options::opt_set("exchange_compression_level", as.integer(level))
 }

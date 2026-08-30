@@ -217,7 +217,7 @@ save_dataset <- function(
     materialize = TRUE,
     path = NULL,
     registry = TRUE,
-    format = get_arrow_format(),
+    format = get_storage_format(),
     overwrite = FALSE,
     rehash = TRUE,
     memo = "",
