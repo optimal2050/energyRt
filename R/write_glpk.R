@@ -76,7 +76,7 @@ get_glpk_path <- function() {
 # writes each parameter's full `@data` slot).
 .write_model_GLPK_CBC <- function(arg, scen, sm_fun = .sm_to_glpk) {
   run_code <- scen@settings@sourceCode[["GLPK"]]
-  dir.create(paste(arg$tmp.dir, "/output", sep = ""), showWarnings = FALSE)
+  dir.create(paste(arg$solver.dir, "/output", sep = ""), showWarnings = FALSE)
   file_w <- c()
   for (j in c("set", "map", "numpar", "bounds")) {
     for (i in names(scen@modInp@parameters)) {
@@ -99,11 +99,11 @@ get_glpk_path <- function() {
       templ <- paste0("(^|[^[:alnum:]])", yy, "[[]")
       templ2 <- paste0("(^|[^[:alnum:]])", yy, "[{]")
       if (any(grep("^pCns", nn))) {
-        for (www in seq_along(scen@modInp@gams.equation)) {
-          mmm <- grep(templ, scen@modInp@gams.equation[[www]]$equation)
+        for (www in seq_along(scen@modInp@user_constraints)) {
+          mmm <- grep(templ, scen@modInp@user_constraints[[www]]$equation)
           if (any(mmm)) {
-            scen@modInp@gams.equation[[www]]$equation[mmm] <-
-              sapply(strsplit(scen@modInp@gams.equation[[www]]$equation[mmm], yy),
+            scen@modInp@user_constraints[[www]]$equation[mmm] <-
+              sapply(strsplit(scen@modInp@user_constraints[[www]]$equation[mmm], yy),
                      .rem_col_sq, yy, rmm)
           }
         }
@@ -119,8 +119,8 @@ get_glpk_path <- function() {
   }
 
   # Add constraint
-  if (length(scen@modInp@gams.equation) > 0) {
-    add_eq <- sapply(scen@modInp@gams.equation,
+  if (length(scen@modInp@user_constraints) > 0) {
+    add_eq <- sapply(scen@modInp@user_constraints,
                      function(x) .equation.from.gams.to.glpk(x$equation))
     # Add additional maps
     mps_name <- grep("^[m]Cns", names(scen@modInp@parameters), value = TRUE)
@@ -139,7 +139,7 @@ get_glpk_path <- function() {
   ### Costs
   {
     # browser()
-    add_eq_costs <- .equation.from.gams.to.glpk(scen@modInp@costs.equation)
+    add_eq_costs <- .equation.from.gams.to.glpk(scen@modInp@user_costs)
     # Add additional maps
     mps_name_costs <- grep("^[m]Costs", names(scen@modInp@parameters),
                            value = TRUE)
@@ -159,12 +159,12 @@ get_glpk_path <- function() {
   }
 
   ### FUNC GLPK
-  fn <- file(paste(arg$tmp.dir, "/energyRt.mod", sep = ""), "w")
+  fn <- file(paste(arg$solver.dir, "/energyRt.mod", sep = ""), "w")
   if (length(grep("^minimize", run_code)) != 1) stop("Errors in GLPK model")
 
   cat(run_code[1:(grep("22b584bd-a17a-4fa0-9cd9-f603ab684e47", run_code) - 1)],
       sep = "\n", file = fn)
-  if (length(scen@modInp@gams.equation) > 0) {
+  if (length(scen@modInp@user_constraints) > 0) {
     cat(mps_name_def, sep = "\n", file = fn)
     cat(pps_name_def, sep = "\n", file = fn)
     cat(add_eq, sep = "\n", file = fn)
@@ -184,7 +184,7 @@ get_glpk_path <- function() {
   cat(run_code[grep("^end[;]", run_code):length(run_code)], sep = "\n",
       file = fn)
   close(fn)
-  fn <- file(paste(arg$tmp.dir, "/energyRt.dat", sep = ""), "w")
+  fn <- file(paste(arg$solver.dir, "/energyRt.dat", sep = ""), "w")
   cat("set FORIF := FORIFSET;\n", sep = "\n", file = fn)
   cat(file_w, sep = "\n", file = fn)
   cat("end;", "", sep = "\n", file = fn)

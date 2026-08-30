@@ -1,0 +1,8 @@
+kind: levcost
+version: 1
+key: 1a9fc6d6f6e0e311d7e4ba635301d445
+class: technology
+process: PPX
+method: analytic
+created: '2026-08-25T19:53:21Z'
+energyRt_version: 0.87.3.9000

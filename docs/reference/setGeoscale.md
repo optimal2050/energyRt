@@ -70,6 +70,7 @@ model's `@config`, matching how `@calendar` is resolved.
 
 Other geoscale:
 [`check_geoscale_regions()`](https://energyRt.org/reference/check_geoscale_regions.md),
+[`plot_geoscale()`](https://energyRt.org/reference/plot_geoscale.md),
 [`plot_map()`](https://energyRt.org/reference/plot_map.md),
 [`utopia_geoscale()`](https://energyRt.org/reference/utopia_geoscale.md)
 
@@ -77,9 +78,9 @@ Other geoscale:
 
 ``` r
 if (FALSE) { # \dontrun{
-gs <- geoscales::geoscale_from_leaves(
+gs <- geoscales::geoscale_from_leaftable(
   data.frame(zone = c("N", "N", "S"), region = c("R1", "R2", "R3")),
-  levels = c("zone", "region")
+  geoframes = c("zone", "region")
 )
 mod <- newModel("demo", region = c("R1", "R2", "R3"), geoscale = gs)
 getGeoscale(mod)

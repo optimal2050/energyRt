@@ -6,7 +6,7 @@
 \usage{
 en_install_python_deps(
   env = "energyRt",
-  packages = c("pyomo", "pandas", "pyarrow"),
+  packages = c("pyomo", "pandas", "pyarrow", "highspy"),
   solver = "coincbc",
   channel = "conda-forge",
   use_conda = NULL
@@ -38,9 +38,19 @@ CBC solver binary, which must then be installed separately.
 This installs \emph{libraries only}. It does not install Python or conda
 themselves --- see \code{\link[=en_check_dependencies]{en_check_dependencies()}} for guidance on the system layer.
 }
+\section{HiGHS version}{
+
+\code{highspy} supplies HiGHS in-process and is the only Pyomo route to it;
+\code{SolverFactory("highs")} resolves to a shell solver requiring a \code{highs}
+executable. \code{solver_options$pyomo_highs_barrier} needs \strong{HiGHS >= 1.13}: on
+1.7.2 the \code{solver = "ipm"} option hangs before the solver starts and is not
+interruptible by a time limit. Check the installed version with
+\code{en_check_pyomo()}.
+}
+
 \examples{
 \dontrun{
-en_install_python_deps()                 # conda env "energyRt" with pyomo + cbc
+en_install_python_deps()                 # conda env with pyomo + highspy + cbc
 en_install_python_deps(use_conda = FALSE) # pip into current python
 }
 }
@@ -49,18 +59,14 @@ Other solver:
 \code{\link{en_check}},
 \code{\link[=en_check_packages]{en_check_packages()}},
 \code{\link[=en_install_deps]{en_install_deps()}},
-\code{\link[=en_mosox_run]{en_mosox_run()}},
 \code{\link[=en_setup]{en_setup()}},
 \code{\link[=get_default_solver]{get_default_solver()}},
-\code{\link[=get_mosox_path]{get_mosox_path()}},
 \code{\link[=get_neos_email]{get_neos_email()}},
-\code{\link[=mosox_run]{mosox_run()}},
 \code{\link{neos}},
 \code{\link[=neos_build_gams_text_job]{neos_build_gams_text_job()}},
 \code{\link[=neos_build_gams_xml]{neos_build_gams_xml()}},
 \code{\link[=neos_gams_inline]{neos_gams_inline()}},
 \code{\link{neos_job}},
-\code{\link[=set_mosox_path]{set_mosox_path()}},
 \code{\link[=set_solver_path]{set_solver_path()}}
 }
 \concept{solver}

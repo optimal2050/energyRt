@@ -159,10 +159,10 @@ findData <- function(scen,
 #' @param ... filters for various sets (setname = c(val1, val2) or setname_ = "matching pattern"), see details.
 #' @param name character vector with names of parameters and/or variables.
 #' @param merge if TRUE, the search results will be merged in one dataframe; the named list will be returned if FALSE. When TRUE, a data.frame (empty if nothing matched) is always returned, never NULL.
-#' @param geolevel controls spatial aggregation of results that carry a `region` column, the spatial twin of `timeframe`. One of `"finest"` (default, native resolution as stored), `"coarsest"` (aggregate up to the top geoscale level), `"all"` (return every level stacked), or an explicit geoscale level name (e.g. `"zone"`, `"nation"`). Requires a geoscale on the model; without one this is inert. Inter-regional flow variables (e.g. `vTradeIr`) are returned unchanged, because summing a flow across regions double-counts it — the spatial counterpart of leaving state variables alone under `timeframe`.
+#' @param geoframe controls spatial aggregation of results that carry a `region` column, the spatial twin of `timeframe`. One of `"finest"` (default, native resolution as stored), `"coarsest"` (aggregate up to the top geoscale level), `"all"` (return every level stacked), or an explicit geoscale level name (e.g. `"zone"`, `"nation"`). Requires a geoscale on the model; without one this is inert. Inter-regional flow variables (e.g. `vTradeIr`) are returned unchanged, because summing a flow across regions double-counts it — the spatial counterpart of leaving state variables alone under `timeframe`.
 #' @param timeframe controls sub-annual time aggregation of results that carry a `timeslice` column. One of `"highest"` (default, native/finest resolution, as stored), `"lowest"` (aggregate/sum flows up to the coarsest level, normally `ANNUAL`), `"all"` (return every timeframe level stacked), or an explicit calendar level name (e.g. `"SEASON"`, `"YDAY"`) to aggregate to that level. Non-timeslice data, and state/level variables (e.g. `vStorageLevel`) for which summing over timeslices is meaningless, are returned unchanged.
 #'
-#'   The default was `"lowest"` up to v0.80 and is now `"highest"`, matching the spatial twin `geolevel`, whose default `"finest"` has always meant "as stored". Returning data at native resolution unless asked otherwise is the safer default: the old one silently summed an 8760-slice hourly series into a single annual number, which reads as a plausible value rather than as an error, and is indistinguishable from a genuine annual result. Aggregation is easy to ask for and hard to notice when it is not wanted. Code that relied on annual totals must now pass `timeframe = "lowest"` explicitly.
+#'   The default was `"lowest"` up to v0.80 and is now `"highest"`, matching the spatial twin `geoframe`, whose default `"finest"` has always meant "as stored". Returning data at native resolution unless asked otherwise is the safer default: the old one silently summed an 8760-slice hourly series into a single annual number, which reads as a plausible value rather than as an error, and is indistinguishable from a genuine annual result. Aggregation is easy to ask for and hard to notice when it is not wanted. Code that relied on annual totals must now pass `timeframe = "lowest"` explicitly.
 #' @param process if TRUE, dimensions "tech", "stg", "trade", "imp", "expp", "dem", and "sup" will be renamed with "process".
 #' @param parameters if TRUE, parameters will be included in the search and returned if found.
 #' @param variables if TRUE, variables will be included in the search and returned if found.
@@ -205,7 +205,7 @@ getData.scenario <- function(
     ...,
     merge = FALSE,
     timeframe = c("highest", "lowest", "all"),
-    geolevel = c("finest", "coarsest", "all"),
+    geoframe = c("finest", "coarsest", "all"),
     process = FALSE,
     parameters = TRUE,
     variables = TRUE,
@@ -305,15 +305,43 @@ getData.scenario <- function(
   for (s in 1:length(scen)) { # loop over scenarios
     sc <- names(scen)[s]
     # Data availability: an un-interpolated scenario has no modInp parameters.
-    # Solvedness is read off `@stage`, NOT off the number of variables --
-    # `modOut` now pre-populates one empty `variable` per declared variable, so
-    # a failed solve has just as many as a successful one.
+    # Solvedness is read off `@stage` OR off actual DATA rows -- `modOut`
+    # pre-populates one empty `variable` per declared variable (so COUNTING
+    # variables proves nothing), but non-empty rows are real: a solver that
+    # stopped short of proven optimality (a MIP at its gap/time limit, an
+    # odd status code) still exports its incumbent, and withholding it
+    # silently made getData() return an empty frame while the data sat in
+    # `@modOut` in plain sight. Serve it, and SAY so.
+    stage_s <- tryCatch(scen[[s]]@modOut@stage, error = function(e) "")
+    solved_s <- identical(stage_s, "solved")
+    has_rows_s <- tryCatch(
+      any(vapply(scen[[s]]@modOut@variables,
+                 function(v) {
+                   nrow(v@data) > 0 || isTRUE(v@misc$onDisk$data$dim[1] > 0)
+                 }, logical(1))),
+      error = function(e) FALSE)
     avail <- c(
       parameters = tryCatch(length(scen[[s]]@modInp@parameters) > 0,
         error = function(e) FALSE),
-      variables = tryCatch(identical(scen[[s]]@modOut@stage, "solved"),
-        error = function(e) FALSE)
+      variables = solved_s || has_rows_s
     )
+    if (isTRUE(variables) && !solved_s && length(stage_s) == 1L &&
+        nzchar(stage_s)) {
+      # only speak up when the query can actually touch variables: a full
+      # dump, or a name matching a declared variable
+      vnames <- tryCatch(names(scen[[s]]@modOut@variables),
+                         error = function(e) character(0))
+      touches <- is.null(name) ||
+        any(tolower(vnames) %in% tolower(as.character(name)))
+      if (touches && has_rows_s) {
+        warning("Solution stage of scenario '", sc, "' is \"", stage_s,
+                "\" — returning the stored solution anyway; treat the ",
+                "values as not proven optimal.", call. = FALSE)
+      } else if (touches && !has_rows_s) {
+        message("Scenario '", sc, "' carries no solution values (stage: \"",
+                stage_s, "\").")
+      }
+    }
     if (verbose && !any(avail)) {
       message("Scenario '", sc, "' has no interpolated/solved data to extract.")
     }
@@ -575,12 +603,12 @@ getData.scenario <- function(
     if (!is.null(cal)) ll <- .apply_timeframe(ll, cal, timeframe)
   }
 
-  # Spatial roll-up, see `geolevel`. Inert without a geoscale, and
-  # `geolevel = "finest"` (the default) leaves results at native resolution --
+  # Spatial roll-up, see `geoframe`. Inert without a geoscale, and
+  # `geoframe = "finest"` (the default) leaves results at native resolution --
   # so this changes nothing unless asked for.
-  if (length(ll) > 0 && !identical(tolower(as.character(geolevel)[1]), "finest")) {
+  if (length(ll) > 0 && !identical(tolower(as.character(geoframe)[1]), "finest")) {
     hier <- tryCatch(.scen_geo_hierarchy(scen[[1]]), error = function(e) NULL)
-    if (!is.null(hier)) ll <- .apply_geolevel(ll, hier, geolevel)
+    if (!is.null(hier)) ll <- .apply_geoframe(ll, hier, geoframe)
   }
 
   if (merge) {
@@ -671,6 +699,28 @@ getData.scenario <- function(
 #' @export
 getData.list <- getData.scenario
 
+#' Scenario NAMES resolve through the registry-backed [getScenario()] cache:
+#' `getData(c("base", "policy"), name = "vTechOut", merge = TRUE)` needs no
+#' explicit loading — first use loads the thin shells into `.scen`, repeat
+#' calls are free.
+#' @rdname getData
+#' @method getData character
+#' @export
+getData.character <- function(scen, ...) {
+  scens <- lapply(scen, getScenario)
+  names(scens) <- scen
+  getData.scenario(scens, ...)
+}
+
+#' An environment of scenarios (e.g. the session bank `.scen`) is read as a
+#' list: `getData(.scen, name = "vTechOut", merge = TRUE)`.
+#' @rdname getData
+#' @method getData environment
+#' @export
+getData.environment <- function(scen, ...) {
+  getData.scenario(as.list(scen), ...)
+}
+
 #' @rdname getData
 #' @method getData default
 #' @export
@@ -743,7 +793,10 @@ get_data <- getData
 # `getData(process = TRUE)` has renamed it -- so the join key is whichever of
 # those the frame carries, not `tech` alone.
 .attach_variants <- function(x, tv) {
-  col <- intersect(c("tech", "stg", "trade", "process"), names(x))
+  # Native id column first, `process` last: getData(process = TRUE) renames
+  # them all to `process`, so the specific names must win when present.
+  col <- intersect(c("tech", "stg", "trade", "sup", "expp", "imp",
+                     "process"), names(x))
   if (length(col) == 0L) return(x)
   col <- col[1]
   if (any(c("base", "vintage", "cluster") %in% names(x))) return(x)
@@ -784,7 +837,7 @@ get_data <- getData
   as.data.frame(out)
 }
 
-# ---- geolevel (region roll-up): the spatial twin of the block above --------
+# ---- geoframe (region roll-up): the spatial twin of the block above --------
 #
 # Same shape as `.timeslice_rank_map()` / `.aggregate_timeframe_df()`, with two
 # deliberate differences:
@@ -830,11 +883,14 @@ get_data <- getData
 }
 
 #' @noRd
-.aggregate_geolevel_df <- function(df, hier, target_rank) {
+.aggregate_geoframe_df <- function(df, hier, target_rank) {
   if (is.na(target_rank)) return(df)
   if (!("region" %in% names(df)) || !("value" %in% names(df))) return(df)
-  # never sum an inter-regional flow across regions -- it would double-count
-  if ("name" %in% names(df) && any(.is_flow_var(unique(df$name)))) return(df)
+  # Never sum an INTERREGIONAL quantity across regions. It carries two region
+  # indices, so mapping both ends to a common parent turns an exchange into a
+  # total of flows that are internal to that parent and cancel.
+  if ("name" %in% names(df) && any(.is_interregional_var(unique(df$name))))
+    return(df)
   map <- .region_target_map(hier, target_rank)
   tgt <- unname(map[as.character(df$region)])
   na <- is.na(tgt)
@@ -850,23 +906,23 @@ get_data <- getData
   as.data.frame(out)
 }
 
-# Apply the requested `geolevel` to a list of result data.frames.
+# Apply the requested `geoframe` to a list of result data.frames.
 #   "finest" -> native (unchanged); "coarsest" -> the top level;
 #   "all"    -> native + every coarser aggregate, stacked;
 #   <level>  -> aggregate to that named geoscale level.
 #' @noRd
-.apply_geolevel <- function(ll, hier, geolevel) {
+.apply_geoframe <- function(ll, hier, geoframe) {
   if (length(ll) == 0 || is.null(hier)) return(ll)
   lvl <- hier$levels
   if (length(lvl) <= 1) return(ll)
-  gl <- as.character(geolevel)[1]
+  gl <- as.character(geoframe)[1]
   if (identical(tolower(gl), "finest")) return(ll)
 
   if (identical(tolower(gl), "all")) {
     out <- lapply(ll, function(df) {
       if (!("region" %in% names(df)) || !("value" %in% names(df))) return(df)
       pieces <- lapply(seq_along(lvl), function(r) {
-        .aggregate_geolevel_df(df, hier, r)
+        .aggregate_geoframe_df(df, hier, r)
       })
       dplyr::distinct(dplyr::bind_rows(pieces))
     })
@@ -879,10 +935,10 @@ get_data <- getData
   } else if (identical(tolower(gl), "coarsest")) {
     1L
   } else {
-    stop("Unknown 'geolevel' = '", gl, "'. Use 'coarsest', 'finest', 'all', ",
+    stop("Unknown 'geoframe' = '", gl, "'. Use 'coarsest', 'finest', 'all', ",
          "or a geoscale level name: ", paste(lvl, collapse = ", "))
   }
-  lapply(ll, function(df) .aggregate_geolevel_df(df, hier, target_rank))
+  lapply(ll, function(df) .aggregate_geoframe_df(df, hier, target_rank))
 }
 
 # Apply the requested `timeframe` to a list of result data.frames.

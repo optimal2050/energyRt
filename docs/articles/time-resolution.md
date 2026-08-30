@@ -17,10 +17,10 @@ between realism and model size:
 
 | calendar         | structure                  | timeslices |
 |------------------|----------------------------|-----------:|
-| `utopia_annual`  | one annual timeslice       |          1 |
+| `annual`         | one annual timeslice       |          1 |
 | `utopia_seasons` | 4 seasons × day/night/peak |         12 |
-| `utopia_s4h24`   | 4 seasons × 24 hours       |         96 |
-| `utopia_m12h24`  | 12 months × 24 hours       |        288 |
+| `s4_h24`         | 4 seasons × 24 hours       |         96 |
+| `m12_h24`        | 12 months × 24 hours       |        288 |
 | `d365`           | 365 days                   |        365 |
 
 Model variables scale roughly linearly with timeslices — the
@@ -38,18 +38,18 @@ equally:
 ``` r
 
 tt <- make_timetable(list(
-  SEASON = c("WIN", "SPR", "SUM", "AUT"),
+  SEASON = c("WIN", "SPR", "SUM", "FAL"),
   HOUR   = paste0("h", formatC(0:23, width = 2, flag = "0"))
 ))
 head(tt)          # 4 x 24 = 96 leaf timeslices, equal shares
 #>    ANNUAL SEASON   HOUR timeslice      share weight
 #>    <char> <char> <char>    <char>      <num>  <num>
-#> 1: ANNUAL    AUT    h00   AUT_h00 0.01041667      1
-#> 2: ANNUAL    AUT    h01   AUT_h01 0.01041667      1
-#> 3: ANNUAL    AUT    h02   AUT_h02 0.01041667      1
-#> 4: ANNUAL    AUT    h03   AUT_h03 0.01041667      1
-#> 5: ANNUAL    AUT    h04   AUT_h04 0.01041667      1
-#> 6: ANNUAL    AUT    h05   AUT_h05 0.01041667      1
+#> 1: ANNUAL    FAL    h00   FAL_h00 0.01041667      1
+#> 2: ANNUAL    FAL    h01   FAL_h01 0.01041667      1
+#> 3: ANNUAL    FAL    h02   FAL_h02 0.01041667      1
+#> 4: ANNUAL    FAL    h03   FAL_h03 0.01041667      1
+#> 5: ANNUAL    FAL    h04   FAL_h04 0.01041667      1
+#> 6: ANNUAL    FAL    h05   FAL_h05 0.01041667      1
 ```
 
 Unequal **shares** are given per timeslice; a nested
@@ -63,15 +63,15 @@ tt12 <- make_timetable(list(
     WIN = list(1 / 4, HOUR = list(DAY =  9 / 24, NGT = 12 / 24, PK = 3 / 24)),
     SPR = list(1 / 4, HOUR = list(DAY = 11 / 24, NGT = 11 / 24, PK = 2 / 24)),
     SUM = list(1 / 4, HOUR = list(DAY = 12 / 24, NGT =  9 / 24, PK = 3 / 24)),
-    AUT = list(1 / 4, HOUR = list(DAY = 11 / 24, NGT = 11 / 24, PK = 2 / 24))
+    FAL = list(1 / 4, HOUR = list(DAY = 11 / 24, NGT = 11 / 24, PK = 2 / 24))
   )
 ))
 head(tt12)
 #>    ANNUAL SEASON   HOUR timeslice      share weight
 #>    <char> <char> <char>    <char>      <num>  <num>
-#> 1: ANNUAL    AUT    DAY   AUT_DAY 0.11458333      1
-#> 2: ANNUAL    AUT    NGT   AUT_NGT 0.11458333      1
-#> 3: ANNUAL    AUT     PK    AUT_PK 0.02083333      1
+#> 1: ANNUAL    FAL    DAY   FAL_DAY 0.11458333      1
+#> 2: ANNUAL    FAL    NGT   FAL_NGT 0.11458333      1
+#> 3: ANNUAL    FAL     PK    FAL_PK 0.02083333      1
 #> 4: ANNUAL    SPR    DAY   SPR_DAY 0.11458333      1
 #> 5: ANNUAL    SPR    NGT   SPR_NGT 0.11458333      1
 #> 6: ANNUAL    SPR     PK    SPR_PK 0.02083333      1
@@ -94,7 +94,7 @@ nrow(cal@timeslice_share)          # timeslices with their share of the year
 head(as.data.frame(cal@timeslice_share), 3)
 #>   timeslice share weight
 #> 1    ANNUAL  1.00      1
-#> 2       AUT  0.25      1
+#> 2       FAL  0.25      1
 #> 3       SPR  0.25      1
 cal@timeframe_rank             # levels, coarsest (ANNUAL) to finest
 #> ANNUAL SEASON   HOUR 
@@ -122,22 +122,53 @@ autoplot(cal)
 
 ## Ready-made calendars
 
-The package ships a `calendars` list, built by `data-raw/calendars.R`
-with exactly the grammar above — including the whole UTOPIA family:
+The package ships a `calendars` list, built by `data-raw/calendars.R`. A
+few small designs use exactly the grammar above; the mainstream family
+(`m12`, `m12a`, `q4`, `s4`, `s4_h24`, `m12_h24`, `wd7_h24`, `w52_h24`)
+is generated from the
+[timescales](https://github.com/optimal2050/timescales) catalog at
+data-build time — timescales is **not** a runtime dependency — with
+day-proportional shares (a month’s share is its day count over 365;
+seasons are `WIN/SPR/SUM/FAL` in calendar order):
 
 ``` r
 
 names(calendars)
-#> [1] "season_dn"                      "d365"                          
-#> [3] "utopia_annual"                  "utopia_seasons"                
-#> [5] "utopia_s4h24"                   "utopia_m12h24"                 
-#> [7] "d365_h24"                       "d365_h24_subset_1day_per_month"
+#>  [1] "season_dn"                      "d365"                          
+#>  [3] "annual"                         "utopia_seasons"                
+#>  [5] "unit_s4"                        "unit_s4h4"                     
+#>  [7] "d365_h24"                       "d365_h24_subset_1day_per_month"
+#>  [9] "m12"                            "m12a"                          
+#> [11] "q4"                             "s4"                            
+#> [13] "s4_h24"                         "m12_h24"                       
+#> [15] "wd7_h24"                        "w52_h24"                       
+#> [17] "s4_h24_subset_2seasons"         "m12_h24_subset_4months"        
+#> [19] "m12_subset_q1"
 calendars$utopia_seasons@desc
 #> [1] "UTOPIA: 4 seasons x 3 dayparts (DAY/NIGHT/PEAK), 12 timeslices"
+s4 <- as.data.frame(calendars$s4@timetable)[, c("SEASON", "share")]
+s4$share <- round(s4$share, 4)
+s4
+#>   SEASON  share
+#> 1    WIN 0.2466
+#> 2    SPR 0.2521
+#> 3    SUM 0.2521
+#> 4    FAL 0.2493
+```
+
+Four entries are **sampled** calendars: row subsets of a parent design
+whose `year_fraction < 1` is the surviving share of the year. They solve
+partial years natively — declared timeslices, weights, and storage
+cycles all follow the sample:
+
+``` r
+
+calendars$s4_h24_subset_2seasons@year_fraction   # WIN + SUM
+#> [1] 0.4986301
 ```
 
 Pick one and pass it to `newModel(calendar = ...)`; the UTOPIA vignettes
-use `calendars$utopia_s4h24` throughout.
+use `calendars$s4_h24` throughout.
 
 ## Timeslice-string helpers
 
@@ -181,10 +212,10 @@ bookkeeping stays cheap.
 
 - Start coarse (`utopia_seasons`-like, ~12 timeslices) while the model
   structure is in flux — solves are instant.
-- Move to hour-within-season (`utopia_s4h24`, 96) once storage, VRE
-  profiles or peak pricing matter — intra-day dynamics need real hours.
-- Full-year hourly detail (`utopia_m12h24`, 288 or `d365`+hours) is for
-  final runs; check tractability with
+- Move to hour-within-season (`s4_h24`, 96) once storage, VRE profiles
+  or peak pricing matter — intra-day dynamics need real hours.
+- Full-year hourly detail (`m12_h24`, 288 or `d365`+hours) is for final
+  runs; check tractability with
   [`model_size()`](https://energyRt.org/reference/model_size.md) first.
 
 The [UTOPIA vignettes](https://energyRt.org/articles/utopia-build.md)

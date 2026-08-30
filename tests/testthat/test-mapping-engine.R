@@ -73,19 +73,26 @@ test_that("tm_flows builds aux-conversion, emission and aggregate maps", {
   scen <- interp_tier("tm_flows")
   # Auxiliary-commodity conversion chain.
   expect_equal(map_nrow(scen, "mTechAInp"), 1)
-  expect_equal(map_nrow(scen, "mTechCap2AInp"), 2)
+  # Since the agg rewrite, capacity-driven aux is materialised over the tech's
+  # timeslice-resolved activity domain:
+  # ECOA x WAT x 2 regions x 2 years x 4 seasons = 16.
+  expect_equal(map_nrow(scen, "mTechCap2AInp"), 16)
   expect_equal(map_nrow(scen, "mStorageStg2AInp"), 16)
   expect_equal(map_nrow(scen, "mTradeIrAInp"), 1)
   expect_equal(map_nrow(scen, "mTradeIrCsrc2Ainp"), 8)
-  # Emission-fuel maps.
-  expect_equal(map_nrow(scen, "mTechEmsFuel"), 2)
-  expect_equal(map_nrow(scen, "mEmsFuelTot"), 2)
+  # Emission-fuel maps: the pair map on the activity domain
+  # (ECOA x CO2xCOA x 2 regions x 2 years x 4 seasons = 16), the total at the
+  # emission commodity's own ANNUAL timeframe (CO2 x 2 regions x 2 years = 4).
+  expect_equal(map_nrow(scen, "mTechEmsFuel"), 16)
+  expect_equal(map_nrow(scen, "mEmsFuelTot"), 4)
   # Aggregate commodity maps.
   expect_equal(map_nrow(scen, "mAggOut"), 4)
   expect_equal(map_nrow(scen, "mAggregateFactor"), 1)
-  # Input / output subsidy-support maps.
-  expect_equal(map_nrow(scen, "mInpSub"), 8)
-  expect_equal(map_nrow(scen, "mOutSub"), 8)
+  # mInpSub / mOutSub were removed from modInp by the agg rewrite (the
+  # solver-side subsidy-support map is derived at WRITE time from mvInp2Lo,
+  # R/write.R) -- guard that they STAY absent/empty in the interpolated input.
+  expect_equal(map_nrow(scen, "mInpSub"), 0)
+  expect_equal(map_nrow(scen, "mOutSub"), 0)
 })
 
 test_that("tm_io builds import / export and supply-availability maps", {
@@ -116,15 +123,15 @@ test_that("tm_weather builds weather maps split by bound type", {
   expect_equal(map_nrow(scen, "mTechWeatherAfsUp"), 1)
   expect_equal(map_nrow(scen, "mTechWeatherAfcUp"), 1)
   expect_equal(map_nrow(scen, "mStorageWeatherAfUp"), 1)
-  expect_equal(map_nrow(scen, "mStorageWeatherCinpUp"), 1)
-  expect_equal(map_nrow(scen, "mStorageWeatherCoutUp"), 1)
+  expect_equal(map_nrow(scen, "mStorageWeatherInpAfUp"), 1)
+  expect_equal(map_nrow(scen, "mStorageWeatherOutAfUp"), 1)
   expect_equal(map_nrow(scen, "mSupWeatherUp"), 1)
   # Only the technology af bound carries a lower bound in the fixture.
   expect_equal(map_nrow(scen, "mTechWeatherAfLo"), 1)
   # All other Lo maps stay empty (no lower bound supplied).
   for (nm in c("mTechWeatherAfsLo", "mTechWeatherAfcLo",
-               "mStorageWeatherAfLo", "mStorageWeatherCinpLo",
-               "mStorageWeatherCoutLo", "mSupWeatherLo")) {
+               "mStorageWeatherAfLo", "mStorageWeatherInpAfLo",
+               "mStorageWeatherOutAfLo", "mSupWeatherLo")) {
     expect_equal(map_nrow(scen, nm), 0)
   }
 })

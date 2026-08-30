@@ -6,6 +6,19 @@
 #'
 #' @param scen scenario object.
 #' @param path character. Path to scenario directory.
+#' @param embed_model `NULL` (default), `TRUE`, or `FALSE`. Controls whether
+#'   the model is embedded in the saved scenario or referenced from the model
+#'   store (see [save_model()]). `NULL`: reference when the identical model
+#'   content is already in the store, embed otherwise. `TRUE`: always embed
+#'   (self-contained folder). `FALSE`: require a store hit, error otherwise.
+#'   A referenced save stores only `{name, hash, path}`; [load_scenario()]
+#'   resolves it back via the registry / model store.
+#' @param embed_datasets the same choice for the big data tables and maps —
+#'   the geoscale on `@settings` and, when the model is embedded, its
+#'   geoscale and its repositories' weather/demand tables (see
+#'   [save_dataset()]). `NULL` (default) references whatever identical
+#'   content is already in the dataset store; `TRUE` always embeds; `FALSE`
+#'   requires a store hit.
 #' @param format file format (currently `parquet` only, arrow or feather will be implemented in further releases).
 #' @param overwrite logical. Overwrite existing scenario directory.
 #' @param clean_start logical. Clean scenario directory before saving.
@@ -23,37 +36,138 @@
 save_scenario <- function(
     scen,
     path = scen@path,
-    # save_model = FALSE,
-    # save_modInp = TRUE,
+    embed_model = NULL,
+    embed_datasets = NULL,
     format = get_arrow_format(),
     overwrite = TRUE,
     clean_start = FALSE,
     write_log = TRUE,
     verbose = TRUE) {
-  # On-disk STORAGE format. The Arrow exchange default is "feather", but feather
-  # datasets are neither compressible nor lazily readable via write_dataset /
-  # en_open_dataset, so any Arrow request is stored as parquet (compressed with
-  # the global arrow_compression / arrow_compression_level options). "csv" stays
-  # csv. (Exchange with the solvers still uses feather; see get_arrow_format().)
-  format <- if (tolower(format) %in% c("feather", "arrow", "ipc")) {
-    "parquet"
+  # On-disk STORAGE format. feather/IPC and parquet are both compressible and
+  # both support lazy, filtered reads through open_dataset(); they trade off
+  # differently -- parquet is smaller, feather reads faster. "arrow" and "ipc"
+  # are aliases for feather; "csv" stays csv.
+  format <- if (tolower(format) %in% c("arrow", "ipc")) {
+    "feather"
   } else {
     tolower(format)
   }
   # identify directories
   if (is.null(path)) {
-    scen@path <- fp("scenarios", scen@name)
+    scen@path <- fp(get_scenarios_path(), scen@name)
     message("Scenarios directory: ", scen@path)
   } else {
     scen@path <- path
   }
 
-  if (isOnDisk(scen)) {
-    stopifnot(dir.exists(path))
-    cat("Scenario '", scen@name, "' is already saved on disk.\n")
-    cat("Directory: '", scen@path, "'\n")
-    # cat("Use 'overwrite = TRUE' to overwrite.\n")
-    return(scen)
+  # a sealed scenario is an archive: no rewrites (see ?seal_scenario)
+  .scenario_seal_guard(scen)
+
+  # An on-disk scenario (interpolate_model(ondisk = TRUE)) already has its
+  # parquet stores in place — but the thin object, the layout markers, the
+  # manifest, and the registry row still need writing, otherwise the folder
+  # has data and no `scen.RData` and load_scenario() fails. So an on-disk
+  # scenario skips only the obj2disk() data walk below, never the shell.
+  ondisk_data <- isOnDisk(scen)
+
+  # Model reference vs embedding. `embed_model = NULL` (auto): reference the
+  # model store entry when this exact content is already stored (see
+  # save_model()); embed otherwise. TRUE forces embedding; FALSE requires a
+  # store hit. A referenced save replaces the model in the SAVED copy with a
+  # stub carrying `misc$model_ref`; the returned in-memory object keeps its
+  # model. Note a thinned (on-disk) model hashes differently from its
+  # in-memory original, so ondisk scenarios normally embed.
+  model_ref <- NULL
+  model_hash_ <- ""
+  if (!isTRUE(embed_model) && nzchar(scen@model@name %||% "")) {
+    model_hash_ <- tryCatch(model_hash(scen@model), error = function(e) "")
+    store_dir <- if (nzchar(model_hash_)) {
+      tryCatch(.model_store_resolve(scen@model@name, model_hash_),
+               error = function(e) NULL)
+    }
+    if (!is.null(store_dir)) {
+      model_ref <- list(name = scen@model@name, hash = model_hash_,
+                        source = "ref",
+                        path = .registry_rel_path(store_dir))
+    } else if (isFALSE(embed_model)) {
+      stop("embed_model = FALSE, but model '", scen@model@name, "' (",
+           substr(model_hash_, 1, 8), ") is not in the model store ('",
+           get_models_path(), "'). save_model() it first, or use ",
+           "embed_model = NULL/TRUE.")
+    }
+  }
+  full_model <- NULL
+  if (!is.null(model_ref)) {
+    full_model <- scen@model
+    stub <- new("model")
+    stub@name <- scen@model@name
+    stub@misc$model_ref <- model_ref
+    scen@model <- stub
+    if (verbose) {
+      cat("Model '", model_ref$name, "' referenced from the store (",
+          substr(model_ref$hash, 1, 8), "), not embedded\n", sep = "")
+    }
+  }
+
+  # Dataset references (see save_dataset()): the geoscale map on @settings
+  # and — when the model is EMBEDDED — the model's own geoscale and its
+  # repositories' big tables become {name, hash} refs when the identical
+  # content is in the dataset store. A referenced model resolves its own
+  # datasets when its store entry loads.
+  ds_entries <- list()
+  full_settings_gs <- NULL
+  model_ds_backup <- NULL
+  if (!isTRUE(embed_datasets)) {
+    th <- .thin_dataset_slot(scen@settings, embed_datasets, id = "settings",
+                             verbose = verbose)
+    if (!is.null(th$entry)) {
+      scen@settings <- th$obj
+      ds_entries[[length(ds_entries) + 1L]] <- th$entry
+      full_settings_gs <- th$full
+    }
+    if (is.null(model_ref) && is(scen@model, "model")) {
+      model_backup <- scen@model   # captured BEFORE any thinning
+      touched_model <- FALSE
+      mth <- .thin_dataset_slot(scen@model@config, embed_datasets,
+                                id = "config", verbose = verbose)
+      if (!is.null(mth$entry)) {
+        scen@model@config <- mth$obj
+        ds_entries[[length(ds_entries) + 1L]] <- mth$entry
+        touched_model <- TRUE
+      }
+      for (rp in names(scen@model@data)) {
+        repo <- scen@model@data[[rp]]
+        if (!is(repo, "repository") || !is.null(repo@misc[["repo_ref"]])) next
+        for (ob in names(repo@data)) {
+          th2 <- .thin_dataset_slot(repo@data[[ob]], embed_datasets, id = ob,
+                                    verbose = verbose)
+          if (!is.null(th2$entry)) {
+            repo@data[[ob]] <- th2$obj
+            ds_entries[[length(ds_entries) + 1L]] <- th2$entry
+            touched_model <- TRUE
+          }
+        }
+        scen@model@data[[rp]] <- repo
+      }
+      if (touched_model) model_ds_backup <- model_backup
+    }
+  }
+
+  # sourceCode blocks identical to the package's own templates are dropped
+  # from the saved copy (~0.5 MB per scenario) and restored from the current
+  # package on load; user-overridden blocks fail the identity test and are
+  # kept verbatim.
+  sourceCode_full <- scen@settings@sourceCode
+  if (length(sourceCode_full)) {
+    same <- vapply(
+      names(sourceCode_full),
+      function(k) identical(sourceCode_full[[k]], .modelCode[[k]]),
+      logical(1)
+    )
+    if (any(same)) {
+      scen@settings@sourceCode[names(sourceCode_full)[same]] <- NULL
+      scen@misc$sourceCode_default <- names(sourceCode_full)[same]
+    }
   }
 
   tictoc::tic("save_scenario")
@@ -106,21 +220,114 @@ save_scenario <- function(
     file = log_file, append = TRUE
   )
 
-  if (verbose) {
-    cat("Saving large slots of scenario object",
-      " '", scen@name, "' ", "on disk\n",
-      sep = ""
+  if (!ondisk_data) {
+    if (verbose) {
+      cat("Saving large slots of scenario object",
+        " '", scen@name, "' ", "on disk\n",
+        sep = ""
+      )
+    }
+    # Layout 3: the solution store belongs to its run — with an active run,
+    # modOut is written under runs/[<variant>/]<solve>/modOut instead of the
+    # top-level modOut/ (which remains the fallback for solved scenarios that
+    # predate run records, e.g. loaded from layout 2). An OWN-PROBLEM VARIANT
+    # additionally owns its modInp: the store goes to runs/<variant>/modInp/
+    # (the scenario-level modInp/ stays the base problem's), plus the
+    # variant.yml manifest and the problem swap file. The base problem gets
+    # its symmetric swap file <scen>/problem.RData, enabling
+    # read_solution(run=) to switch problems in both directions.
+    run_label <- scen@misc$run %||% ""
+    active_variant <- .run_variant(scen)
+    mo <- NULL
+    if (nzchar(run_label)) {
+      mo <- scen@modOut
+      scen@modOut <- new("modOut") # keep the main walk off the modOut slot
+    }
+    mi <- NULL
+    if (nzchar(active_variant)) {
+      mi <- scen@modInp
+      scen@modInp <- new("modInp") # keep the main walk off the modInp slot
+    }
+    scen <- obj2disk(
+      scen,
+      path = scen@path,
+      format = format,
+      verbose = verbose
     )
+    if (!is.null(mi)) {
+      scen@modInp <- obj2disk(
+        mi,
+        path = fp(scen@path, "runs", active_variant, "modInp"),
+        format = format,
+        verbose = verbose
+      )
+    }
+    if (!is.null(mo)) {
+      scen@modOut <- obj2disk(
+        mo,
+        path = fp(.run_dir(scen, active_variant, run_label), "modOut"),
+        format = format,
+        verbose = verbose
+      )
+    }
+    # swap file for the ACTIVE problem (variant.RData / problem.RData)
+    .write_problem_swap(scen, scen@modInp)
+  } else {
+    if (verbose) {
+      cat("Scenario data already on disk; refreshing the scenario shell ",
+          "(scen.RData, manifest, registry)\n", sep = "")
+    }
+    # The data walk is skipped, but a solve AFTER an ondisk interpolation
+    # leaves the solution in memory — park it into its run store so the thin
+    # scen.RData stays thin.
+    if (nzchar(.run_variant(scen))) {
+      # A re-save of an already-stored variant is fine (its modInp store sits
+      # under the variant dir). What is NOT supported is a variant problem
+      # whose store was written to the scenario level by
+      # interpolate_model(ondisk = TRUE) — that location belongs to the base.
+      mi_path <- gsub("[\\/]+", "/", getObjPath(scen@modInp) %||% "")
+      expected <- gsub("[\\/]+", "/", .problem_modinp_root(scen))
+      if (!identical(mi_path, expected)) {
+        stop("Own-problem variants of an ondisk-interpolated scenario are ",
+             "not supported yet: interpolate_model(ondisk = TRUE) writes ",
+             "the parameter store to the scenario level, which belongs to ",
+             "the base problem. Interpolate the variant's problem in memory.")
+      }
+    }
+    if (!isOnDisk(scen@modOut) && length(scen@modOut@variables)) {
+      run_label <- scen@misc$run %||% ""
+      modout_path <- if (nzchar(run_label)) {
+        fp(.run_dir(scen, .run_variant(scen), run_label), "modOut")
+      } else {
+        fp(scen@path, "modOut")
+      }
+      scen@modOut <- obj2disk(
+        scen@modOut,
+        path = modout_path,
+        format = format,
+        verbose = verbose
+      )
+    }
+    .write_problem_swap(scen, scen@modInp)
   }
-  # message("Saving large data-frames on disk")
-  scen <- obj2disk(
-    scen,
-    path = scen@path,
-    format = format,
-    verbose = verbose
-  )
   # message("Saving the thinned scenario object")
   save(scen, file = fp(scen@path, "scen.RData"))
+  mf_model <- model_ref %||% list(
+    name = scen@model@name %||% "",
+    hash = model_hash_,
+    source = "embedded"
+  )
+  .write_scenario_manifest(scen, format, model = mf_model,
+                           datasets = if (length(ds_entries)) ds_entries)
+  .registry_record_scenario(scen)
+  # the returned in-memory object keeps its full model, datasets & sourceCode
+  if (!is.null(full_model)) scen@model <- full_model
+  if (!is.null(model_ds_backup)) scen@model <- model_ds_backup
+  if (!is.null(full_settings_gs)) {
+    scen@settings@geoscale <- full_settings_gs
+    scen@settings@misc[["dataset_ref"]] <- NULL
+  }
+  scen@settings@sourceCode <- sourceCode_full
   cat("Scenario '", scen@name, "' saved in '", scen@path, "'\n", sep = "")
   dirsize <- dir_size(scen@path)
   cat("Directory size: ", round(dirsize / 1024^2, 2), " MB\n", sep = "")
@@ -154,6 +361,26 @@ if (F) {
 # mem_to_disk
 # disk2mem
 
+# Compression codec for feather/IPC datasets. `write_dataset(format = "feather")`
+# takes a Codec object as `codec`, not the `compression` string parquet uses;
+# passing the string errors. Falls back to no compression when the codec is
+# unavailable in this arrow build.
+.en_ipc_codec <- function(compression, level = NULL) {
+  cmp <- tolower(compression)
+  if (identical(cmp, "lz4")) cmp <- "lz4_frame"
+  z <- try(if (is.null(level) || identical(cmp, "lz4_frame")) {
+    arrow::Codec$create(cmp)
+  } else {
+    arrow::Codec$create(cmp, compression_level = as.integer(level))
+  }, silent = TRUE)
+  if (inherits(z, "try-error")) {
+    warning("arrow codec '", compression, "' unavailable; writing uncompressed",
+            call. = FALSE)
+    return(NULL)
+  }
+  z
+}
+
 data2disk <- function(
     obj,
     path = NULL,
@@ -175,12 +402,17 @@ data2disk <- function(
     # if (verbose) cat(path, format, "\n")
     if (anyDuplicatedSets(obj)) obj <- rename_duplicated_sets(obj)
     dir.create(path, recursive = TRUE, showWarnings = FALSE)
-    # Parquet supports compression (zstd/lz4 + level); csv/feather datasets do not
-    # take a compression arg in write_dataset.
-    if (format == "parquet" && !identical(tolower(compression), "uncompressed")) {
+    # Compression is spelled differently per format: parquet takes
+    # `compression` + `compression_level`, feather/IPC takes a `codec` object.
+    # csv takes neither.
+    .cmp <- !identical(tolower(compression), "uncompressed")
+    if (format == "parquet" && .cmp) {
       arrow::write_dataset(obj, path = path, format = "parquet",
                            compression = compression,
                            compression_level = as.integer(compression_level))
+    } else if (format %in% c("feather", "arrow", "ipc") && .cmp) {
+      arrow::write_dataset(obj, path = path, format = "feather",
+                           codec = .en_ipc_codec(compression, compression_level))
     } else {
       arrow::write_dataset(obj, path = path, format = format)
     }
@@ -426,6 +658,9 @@ en_open_dataset <- function(path, format = NULL, engine = "arrow") {
       format <- "csv"
     } else if (all(ext %in% "parquet")) {
       format <- "parquet"
+    } else if (all(ext %in% c("arrow", "feather", "ipc"))) {
+      # write_dataset(format = "feather") names its files `.arrow`
+      format <- "feather"
     } else if (all(ext %in% "RData")) {
       format <- "RData"
     } else {
@@ -445,6 +680,9 @@ en_open_dataset <- function(path, format = NULL, engine = "arrow") {
     }
     if (format == "parquet") {
       return(arrow::open_dataset(path))
+    }
+    if (format %in% c("feather", "arrow", "ipc")) {
+      return(arrow::open_dataset(path, format = "feather"))
     }
   }
   if (format == "RData") {
@@ -498,6 +736,24 @@ isInMemory <- function(obj) {
   return(TRUE)
 }
 
+#' Is object stored on disk?
+#'
+#' The complement of [isInMemory()]. An on-disk object holds its data in an
+#' Arrow dataset rather than in its slots, so reading it is a scan rather than a
+#' subset -- which is what makes predicate pushdown possible for it and
+#' pointless for an in-memory one.
+#'
+#' @param obj Object, checks
+#'
+#' @return Logical value, TRUE if object is stored on disk, FALSE if in memory.
+#'
+#' @seealso [isInMemory()]
+#' @export
+#'
+#' @examples
+#' \dontrun{
+#' isOnDisk(scen_BASE)
+#' }
 isOnDisk <- function(obj) {
   !isInMemory(obj)
 }
@@ -552,7 +808,9 @@ get_lazy_data <- function(obj,
                           InMemory = isInMemory(obj),
                           path = NULL,
                           collect_data = TRUE,
-                          default = NULL
+                          default = NULL,
+                          optional = FALSE,
+                          filter = NULL
                           ) {
   # browser()
   # check if the object is "inMemory"
@@ -566,7 +824,7 @@ get_lazy_data <- function(obj,
       x <- slot(obj, slot)
     }
     if (!is.null(element)) x <- x[[element]]
-    return(x)
+    return(.en_apply_filter(x, filter))
   }
   if (is.null(path)) path <- getObjPath(obj)
   stopifnot(!is.null(path))
@@ -578,10 +836,32 @@ get_lazy_data <- function(obj,
   qu <- try(en_open_dataset(path), silent = TRUE)
   if (inherits(qu, "try-error")) {
     ff <- list.files(path)
-    if (length(ff) == 0) return(NULL)
+    if (length(ff) == 0) {
+      # Distinguish "never written" (an empty slot writes no dataset — normal)
+      # from "written but not there" (the folder was moved/renamed): the
+      # object's own onDisk bookkeeping records what was saved. Silently
+      # returning NULL in the second case made every result of a moved
+      # scenario come back as zero rows.
+      expected <- tryCatch({
+        od <- if (.hasSlot(obj, "misc")) obj@misc$onDisk else NULL
+        if (!is.null(slot)) od <- od[[slot]]
+        if (!is.null(element)) od <- od[[element]]
+        isTRUE(od$dim[1] > 0) || isTRUE(od$length > 0)
+      }, error = function(e) FALSE)
+      if (expected && !optional) {
+        stop("On-disk data expected but not found: ", path, "\n",
+             "  The scenario/model folder may have been moved or renamed. ",
+             "Re-load it with load_scenario() / load_model() to rebase ",
+             "its paths.")
+      }
+      return(NULL)
+    }
     stop("Cannot open dataset: ", path, "\n",
         "Files: ", paste(ff, collapse = ", "))
   }
+  # Push the predicate into the Arrow query so only matching row groups /
+  # batches are read. Filtering after collect() reads the whole dataset first.
+  qu <- .en_apply_filter(qu, filter)
   if (collect_data) {
     qu <- collect(qu)
   }
@@ -669,7 +949,11 @@ if (F) {
 # `save_scenario()` and checked by `load_scenario()`.
 #   1  modOut@variables stored as `variables/<v>/`      (data.frames)
 #   2  modOut@variables stored as `variables/<v>/data/` (`variable` objects)
-.SCENARIO_LAYOUT <- 2L
+#   3  solve artifacts + the solution store live per run under
+#      `runs/[<variant>/]<solve>/{run.yml, solver/, modOut/}`; the scenario
+#      carries a `scenario.yml` manifest (default_variant, active run).
+#      Layout 2 is still readable; `save_scenario()` writes only 3.
+.SCENARIO_LAYOUT <- 3L
 
 .save_slots <- list(
   weather = c("weather"),
@@ -793,15 +1077,26 @@ load_scenario <- function(
     overwrite = FALSE,
     ignore_errors = FALSE,
     verbose = TRUE) {
-  # browser()
-  if (!file.exists(path) & !dir.exists(path)) {
-    msg <- paste0("File or directory '", path, "' does not exist")
-    if (!ignore_errors) stop(msg)
-    if (verbose) message(msg)
-    return(invisible(FALSE))
+  # A `path` that is not an existing file/directory is resolved as a
+  # scenario NAME: registry first, then a scan of the scenarios store
+  # (see .scenario_resolve).
+  if (!file.exists(path) && !dir.exists(path)) {
+    resolved <- if (!grepl("[\\/]", path)) .scenario_resolve(path) else NULL
+    if (is.null(resolved)) {
+      msg <- paste0(
+        "'", path, "' is neither an existing scenario directory nor a ",
+        "registered scenario name.\n",
+        "  Run refresh_registry() to rescan the scenarios store ('",
+        get_scenarios_path(), "'), or pass the folder path.")
+      if (!ignore_errors) stop(msg)
+      if (verbose) message(msg)
+      return(invisible(FALSE))
+    }
+    path <- resolved
   }
   finf <- file.info(path)
   if (finf$isdir) {
+    .mark_notice("scenario", path, basename(path))
     # Layout check before anything is read. An older directory stores each
     # variable's data one level up from where this version looks for it, and
     # that reads as "no data" rather than as an error -- so refuse it outright.
@@ -811,11 +1106,11 @@ load_scenario <- function(
     } else {
       1L
     }
-    if (is.na(ver) || ver != .SCENARIO_LAYOUT) {
+    if (is.na(ver) || !(ver %in% c(2L, 3L))) {
       msg <- paste0(
         "Scenario directory '", path, "' uses on-disk layout ",
         if (is.na(ver)) "?" else ver, ", this version of energyRt reads ",
-        .SCENARIO_LAYOUT, ".\n",
+        "layouts 2 and 3.\n",
         "  Layout 2 moved each variable's data from `variables/<name>/` to ",
         "`variables/<name>/data/` when `modOut@variables` became a list of ",
         "`variable` objects.\n",
@@ -825,6 +1120,14 @@ load_scenario <- function(
       if (verbose) message(msg)
       return(invisible(FALSE))
     }
+    if (ver == 2L && verbose) {
+      message(
+        "Scenario '", basename(path), "' uses on-disk layout 2; it loads ",
+        "fine. Run upgrade_scenario_layout('", path, "') to migrate it to ",
+        "layout 3 (per-run folders with provenance under runs/)."
+      )
+    }
+    scen_root <- path # the directory actually being loaded (for path rebase)
     path <- fp(path, "scen.RData")
     if (!file.exists(path)) {
       msg <- paste0("Scenario file '", path, "' has not been found.")
@@ -832,6 +1135,8 @@ load_scenario <- function(
       if (verbose) message(msg)
       return(invisible(FALSE))
     }
+  } else {
+    scen_root <- dirname(path)
   }
   if (!(exists(".en_tmp") && is.environment(.en_tmp))) {
     .en_tmp <- new.env(parent = .GlobalEnv)
@@ -857,6 +1162,123 @@ load_scenario <- function(
     if (verbose) message(msg)
     return(invisible(FALSE))
   }
+  scen_obj <- get(nm, envir = .en_tmp)
+
+  # migrate modInp objects saved before the 2026-08 slot cleanup
+  # (set -> sets; gams.equation/costs.equation -> user_constraints/user_costs)
+  scen_obj@modInp <- .upgrade_modInp(scen_obj@modInp)
+
+  # Rebase every stored path onto the folder actually loaded: the saved
+  # object recorded save-time paths (relative to the then-working directory),
+  # which break when the folder is moved or getwd() differs. Deterministic
+  # reconstruction, so nothing depends on the stored strings.
+  scen_obj <- tryCatch(
+    .scenario_rebase_paths(scen_obj, scen_root),
+    error = function(e) {
+      warning("Could not rebase the scenario's on-disk paths (",
+              conditionMessage(e), ")", call. = FALSE)
+      scen_obj
+    })
+
+  # restore the sourceCode blocks dropped at save time (identical to the
+  # package templates then; refilled from the CURRENT package — a re-solve
+  # uses current code, and the run's actual script is preserved in its run
+  # directory). User-overridden blocks were saved verbatim and stay.
+  dk <- scen_obj@misc$sourceCode_default
+  if (length(dk)) {
+    for (k in dk) {
+      if (is.null(scen_obj@settings@sourceCode[[k]])) {
+        scen_obj@settings@sourceCode[[k]] <- .modelCode[[k]]
+      }
+    }
+  }
+
+  # resolve a model reference (scenario saved with embed_model ref)
+  ref <- scen_obj@model@misc$model_ref
+  if (!is.null(ref)) {
+    mod <- tryCatch(
+      load_model(ref$name, hash = ref$hash, verbose = FALSE),
+      error = function(e) NULL)
+    if (is.null(mod) && !is.null(ref$path)) {
+      cand <- fp(dirname(get_registry_file()), ref$path)
+      cand_h <- tryCatch(yaml::read_yaml(fp(cand, "model.yml"))$hash,
+                         error = function(e) "")
+      # accept the recorded path only when it still holds the recorded
+      # VERSION — an in-place-updated entry falls through to the warning
+      if (file.exists(fp(cand, "mod.RData")) &&
+          startsWith(cand_h %||% "", ref$hash %||% "")) {
+        mod <- tryCatch(load_model(ref$name, path = cand, verbose = FALSE),
+                        error = function(e) NULL)
+      }
+    }
+    if (is.null(mod)) {
+      # exact version gone (entry updated in place): resolve by NAME, warn
+      cur <- tryCatch(.model_store_resolve(ref$name, NULL),
+                      error = function(e) NULL)
+      if (!is.null(cur)) {
+        cur_h <- tryCatch(yaml::read_yaml(fp(cur, "model.yml"))$hash,
+                          error = function(e) "")
+        mod <- tryCatch(load_model(ref$name, path = cur, verbose = FALSE),
+                        error = function(e) NULL)
+        if (!is.null(mod)) {
+          warning("Scenario '", scen_obj@name, "' references model '",
+                  ref$name, "' @", substr(ref$hash %||% "", 1, 8),
+                  "; the store now holds @", substr(cur_h %||% "", 1, 8),
+                  " — loading the current version. Results may not ",
+                  "reproduce; re-save the scenario, or keep versions with ",
+                  "set_store_versioning(\"hash\").", call. = FALSE)
+        }
+      }
+    }
+    if (is.null(mod)) {
+      msg <- paste0(
+        "Scenario '", scen_obj@name, "' references model '", ref$name, "@",
+        substr(ref$hash %||% "", 1, 8), "' which is not in the registry or ",
+        "the model store ('", get_models_path(), "').\n",
+        "  Run refresh_registry() to rescan, or re-save the scenario with ",
+        "embed_model = TRUE from a session that has the model."
+      )
+      if (!ignore_errors) stop(msg)
+      if (verbose) message(msg)
+      return(invisible(FALSE))
+    }
+    scen_obj@model <- mod
+    if (verbose) {
+      message("Model '", ref$name, "' resolved from the model store")
+    }
+  }
+
+  # resolve dataset references: the geoscale map on @settings, and — for an
+  # embedded model — its geoscale and its repositories' big tables (a
+  # referenced model already resolved its own datasets in load_model())
+  resolve_ds <- function() {
+    scen_obj@settings <<- .resolve_dataset_refs(scen_obj@settings,
+                                                verbose = verbose)
+    if (is.null(ref) && is(scen_obj@model, "model")) {
+      scen_obj@model@config <<- .resolve_dataset_refs(scen_obj@model@config,
+                                                      verbose = verbose)
+      for (rp in names(scen_obj@model@data)) {
+        repo <- scen_obj@model@data[[rp]]
+        if (!is(repo, "repository")) next
+        for (ob in names(repo@data)) {
+          o <- repo@data[[ob]]
+          if (isS4(o) && .hasSlot(o, "misc")) {
+            repo@data[[ob]] <- .resolve_dataset_refs(o, verbose = verbose)
+          }
+        }
+        scen_obj@model@data[[rp]] <<- repo
+      }
+    }
+    TRUE
+  }
+  ds_ok <- tryCatch(resolve_ds(), error = function(e) e)
+  if (inherits(ds_ok, "error")) {
+    if (!ignore_errors) stop(ds_ok)
+    if (verbose) message(conditionMessage(ds_ok))
+    return(invisible(FALSE))
+  }
+  assign(nm, scen_obj, envir = .en_tmp)
+
   if (is.null(name)) name <- get(nm, envir = .en_tmp)@name
   if (is.null(env)) {
     scen <- get(nm, envir = .en_tmp)
@@ -883,6 +1305,63 @@ load_scenario <- function(
   # return(get(name, envir = env))
   # return(nm)
   return(invisible(FALSE))
+}
+
+#' Load several registered scenarios at once
+#'
+#' @description
+#' The batch companion of [load_scenario()]: resolves scenario NAMES through
+#' the project registry (all registered scenarios by default) and loads each
+#' as a thin on-disk shell. The result — a named list, or a filled
+#' environment — feeds [getData()] directly:
+#' `getData(load_scenarios(), name = "vTechOut", merge = TRUE)`.
+#'
+#' A registered scenario whose folder is gone is skipped with a warning
+#' (run [refresh_registry()] to drop the stale row).
+#'
+#' @param names character, scenario names to load; `NULL` (default) = every
+#'   scenario in the registry.
+#' @param run character, optional run id to activate in each loaded scenario
+#'   via [read_solution()] (scenarios without that run keep their default,
+#'   with a warning).
+#' @param env environment to assign the scenarios into (e.g. `.scen`), or
+#'   `NULL` (default) to return them as a named list.
+#' @param verbose logical.
+#' @return a named list of scenarios, or (with `env=`) the loaded names,
+#'   invisibly.
+#' @rdname load_scenario
+#' @export
+load_scenarios <- function(names = NULL, run = NULL, env = NULL,
+                           verbose = TRUE) {
+  if (is.null(names)) {
+    reg <- load_registry()
+    names <- find_registry(reg, type = "scenario")$name
+  }
+  stopifnot(is.character(names))
+  out <- list()
+  for (nm in names) {
+    sc <- tryCatch(
+      load_scenario(nm, env = NULL, verbose = verbose),
+      error = function(e) {
+        warning("Scenario '", nm, "' could not be loaded: ",
+                conditionMessage(e), call. = FALSE)
+        NULL
+      })
+    if (is.null(sc)) next
+    if (!is.null(run)) {
+      sc <- tryCatch(read_solution(sc, run = run, echo = FALSE),
+                     error = function(e) {
+                       warning("Scenario '", nm, "' has no run '", run,
+                               "'; keeping its default solution.",
+                               call. = FALSE)
+                       sc
+                     })
+    }
+    out[[nm]] <- sc
+  }
+  if (is.null(env)) return(out)
+  for (nm in names(out)) assign(nm, out[[nm]], envir = env)
+  invisible(names(out))
 }
 
 ## - DRAFTS -------------------------------------------------------####

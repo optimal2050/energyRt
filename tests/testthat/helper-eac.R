@@ -55,7 +55,7 @@ eac_pair <- function(class = c("technology", "storage", "trade"),
       storage = newStorage(
         "SEAC", commodity = "ELC",
         invcost = cost_df, vintage = vin, duration = 4,
-        capacity = data.frame(cap.fx = cap)),
+        capacity = data.frame(out.cap.fx = cap)),
       trade = newTrade(
         "TEAC", commodity = "ELC",
         routes = data.frame(src = "R1", dst = "R2"),
@@ -71,9 +71,16 @@ eac_pair <- function(class = c("technology", "storage", "trade"),
     else vt_model(obj, name = nm)
   }
 
+  # `storage` prices three parts, so its financial columns carry an `out.`/
+  # `inp.`/`stg.` prefix; the discharger is the one `capacity` above sizes.
+  cost1 <- function(col, val) {
+    d <- data.frame(val); names(d) <- if (class == "storage") paste0("out.", col) else col
+    d
+  }
+
   list(
-    inv = wrap(mk(data.frame(invcost = invcost)), "inv"),
-    eac = wrap(mk(data.frame(eac = a)), "eac"),
+    inv = wrap(mk(cost1("invcost", invcost)), "inv"),
+    eac = wrap(mk(cost1("eac", a)), "eac"),
     annuity = a,
     cap = cap
   )
@@ -97,7 +104,7 @@ eac_var <- function(sol, v) {
 # The eqXEac statement for one class out of one backend's template text.
 #
 # COMMENTS ARE STRIPPED FIRST. The [eac-fix] notes left in the templates quote
-# the removed guard verbatim ("pStorageInvcost <> 0"), so a naive text search
+# the removed guard verbatim ("pStorageOutInvcost <> 0"), so a naive text search
 # matches the explanation rather than the code -- which is exactly what this
 # invariant must not do.
 #

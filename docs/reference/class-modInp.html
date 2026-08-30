@@ -19,7 +19,7 @@ interpolation step and is not intended to be created by users."><meta property="
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.85.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -42,6 +42,8 @@ interpolation step and is not intended to be created by users."><meta property="
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
+    <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
+    <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
     <li><a class="dropdown-item" href="../articles/autoplot.html">autoplot()</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
@@ -78,7 +80,7 @@ interpolation step and is not intended to be created by users.</p>
     <h2 id="slots">Slots<a class="anchor" aria-label="anchor" href="#slots"></a></h2>
 
 
-<dl><dt><code>set</code></dt>
+<dl><dt><code>sets</code></dt>
 <dd><p>list. named list of character vectors with sets used in the model.</p></dd>
 
 
@@ -90,12 +92,12 @@ the dimension of variables and constraints</p></li>
 </ul></dd>
 
 
-<dt><code>gams.equation</code></dt>
-<dd><p>list. named list of custom constraints added to the model from the <code>constraint</code> class. The name of the slot is outdated and will be changed in the future.</p></dd>
+<dt><code>user_constraints</code></dt>
+<dd><p>list. named list of user-defined constraints compiled from <code>constraint</code> objects: solver-agnostic equation code (GAMS-flavored intermediate representation) that each backend writer translates into its language. One entry per constraint.</p></dd>
 
 
-<dt><code>costs.equation</code></dt>
-<dd><p>list. named list of custom costs added to the model's objective from the <code>costs</code> class. The name of the slot is outdated and will be changed in the future.</p></dd>
+<dt><code>user_costs</code></dt>
+<dd><p>character. character vector of user cost terms compiled from <code>costs</code> objects, in the same solver-agnostic representation; the write step sums them into the <code>eqTotalUserCosts</code> equation of the objective.</p></dd>
 
 
 <dt><code>misc</code></dt>

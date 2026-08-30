@@ -132,48 +132,161 @@ cycle will be a calendar day).
 
   :   integer. Year to apply the parameter, NA for every year.
 
-  cap
+  out.stock
 
-  :   numeric. Capacity of the storage technology.
+  :   numeric. Existing (exogenous) capacity of the discharging part –
+      the power the store can deliver, in power units.
 
-  cap.lo
+  out.cap.lo
 
-  :   numeric. Lower bound of the storage capacity.
+  :   numeric. Lower bound of the discharging part – the power the store
+      can deliver capacity.
 
-  cap.up
+  out.cap.up
 
-  :   numeric. Upper bound of the storage capacity.
+  :   numeric. Upper bound of the discharging part – the power the store
+      can deliver capacity.
 
-  cap.fx
+  out.cap.fx
 
-  :   numeric. Fixed value of the storage capacity. This parameter
-      overrides `cap.lo` and `cap.up`.
+  :   numeric. Fixed value of the discharging part – the power the store
+      can deliver capacity. Overrides `out.cap.lo` and `out.cap.up`.
 
-  ncap.lo
+  out.ncap.lo
 
-  :   numeric. Lower bound of the new storage capacity.
+  :   numeric. Lower bound of the discharging part – the power the store
+      can deliver new capacity.
 
-  ncap.up
+  out.ncap.up
 
-  :   numeric. Upper bound of the new storage capacity.
+  :   numeric. Upper bound of the discharging part – the power the store
+      can deliver new capacity.
 
-  ncap.fx
+  out.ncap.fx
 
-  :   numeric. Fixed value of the new storage capacity. This parameter
-      overrides `ncap.lo` and `ncap.up`.
+  :   numeric. Fixed value of the discharging part – the power the store
+      can deliver new capacity. Overrides `out.ncap.lo` and
+      `out.ncap.up`.
 
-  ret.lo
+  out.ret.lo
 
-  :   numeric. Lower bound of the storage capacity retirement.
+  :   numeric. Lower bound of the discharging part – the power the store
+      can deliver capacity retirement.
 
-  ret.up
+  out.ret.up
 
-  :   numeric. Upper bound of the storage capacity retirement.
+  :   numeric. Upper bound of the discharging part – the power the store
+      can deliver capacity retirement.
 
-  ret.fx
+  out.ret.fx
 
-  :   numeric. Fixed value of the storage capacity retirement. This
-      parameter overrides `ret.lo` and `ret.up`.
+  :   numeric. Fixed value of the discharging part – the power the store
+      can deliver capacity retirement. Overrides `out.ret.lo` and
+      `out.ret.up`.
+
+  inp.stock
+
+  :   numeric. Existing (exogenous) capacity of the charging part – the
+      power the store can absorb, in power units.
+
+  inp.cap.lo
+
+  :   numeric. Lower bound of the charging part – the power the store
+      can absorb capacity.
+
+  inp.cap.up
+
+  :   numeric. Upper bound of the charging part – the power the store
+      can absorb capacity.
+
+  inp.cap.fx
+
+  :   numeric. Fixed value of the charging part – the power the store
+      can absorb capacity. Overrides `inp.cap.lo` and `inp.cap.up`.
+
+  inp.ncap.lo
+
+  :   numeric. Lower bound of the charging part – the power the store
+      can absorb new capacity.
+
+  inp.ncap.up
+
+  :   numeric. Upper bound of the charging part – the power the store
+      can absorb new capacity.
+
+  inp.ncap.fx
+
+  :   numeric. Fixed value of the charging part – the power the store
+      can absorb new capacity. Overrides `inp.ncap.lo` and
+      `inp.ncap.up`.
+
+  inp.ret.lo
+
+  :   numeric. Lower bound of the charging part – the power the store
+      can absorb capacity retirement.
+
+  inp.ret.up
+
+  :   numeric. Upper bound of the charging part – the power the store
+      can absorb capacity retirement.
+
+  inp.ret.fx
+
+  :   numeric. Fixed value of the charging part – the power the store
+      can absorb capacity retirement. Overrides `inp.ret.lo` and
+      `inp.ret.up`.
+
+  stg.stock
+
+  :   numeric. Existing (exogenous) capacity of the reservoir itself –
+      the energy the store can hold, in energy units.
+
+  stg.cap.lo
+
+  :   numeric. Lower bound of the reservoir itself – the energy the
+      store can hold capacity.
+
+  stg.cap.up
+
+  :   numeric. Upper bound of the reservoir itself – the energy the
+      store can hold capacity.
+
+  stg.cap.fx
+
+  :   numeric. Fixed value of the reservoir itself – the energy the
+      store can hold capacity. Overrides `stg.cap.lo` and `stg.cap.up`.
+
+  stg.ncap.lo
+
+  :   numeric. Lower bound of the reservoir itself – the energy the
+      store can hold new capacity.
+
+  stg.ncap.up
+
+  :   numeric. Upper bound of the reservoir itself – the energy the
+      store can hold new capacity.
+
+  stg.ncap.fx
+
+  :   numeric. Fixed value of the reservoir itself – the energy the
+      store can hold new capacity. Overrides `stg.ncap.lo` and
+      `stg.ncap.up`.
+
+  stg.ret.lo
+
+  :   numeric. Lower bound of the reservoir itself – the energy the
+      store can hold capacity retirement.
+
+  stg.ret.up
+
+  :   numeric. Upper bound of the reservoir itself – the energy the
+      store can hold capacity retirement.
+
+  stg.ret.fx
+
+  :   numeric. Fixed value of the reservoir itself – the energy the
+      store can hold capacity retirement. Overrides `stg.ret.lo` and
+      `stg.ret.up`.
 
 - `input`:
 
@@ -197,13 +310,13 @@ cycle will be a calendar day).
   cap2act
 
   :   numeric. Capacity to ANNUAL flow, exactly as `technology@cap2act`.
-      The flow bound is `cinp.up * cap2act * cap * pTimesliceShare`, so
-      `cap` is a RATE and means the same physical thing on any calendar.
-      Defaults to 8760 (hours in a year), which makes `cap` read as
-      commodity per HOUR; an hourly full-year model is unchanged because
-      8760 \* (1/8760) = 1. Assumes commodity unit = capacity unit x
-      hour (GW with GWh); GW with TWh wants 8.76. The STORING side has
-      no cap2act – energy is energy at any resolution.
+      The flow bound is `inp.af.up * cap2act * cap * pTimesliceShare`,
+      so `cap` is a RATE and means the same physical thing on any
+      calendar. Defaults to 8760 (hours in a year), which makes `cap`
+      read as commodity per HOUR; an hourly full-year model is unchanged
+      because 8760 \* (1/8760) = 1. Assumes commodity unit = capacity
+      unit x hour (GW with GWh); GW with TWh wants 8.76. The STORING
+      side has no cap2act – energy is energy at any resolution.
 
 - `output`:
 
@@ -227,13 +340,13 @@ cycle will be a calendar day).
   cap2act
 
   :   numeric. Capacity to ANNUAL flow, exactly as `technology@cap2act`.
-      The flow bound is `cinp.up * cap2act * cap * pTimesliceShare`, so
-      `cap` is a RATE and means the same physical thing on any calendar.
-      Defaults to 8760 (hours in a year), which makes `cap` read as
-      commodity per HOUR; an hourly full-year model is unchanged because
-      8760 \* (1/8760) = 1. Assumes commodity unit = capacity unit x
-      hour (GW with GWh); GW with TWh wants 8.76. The STORING side has
-      no cap2act – energy is energy at any resolution.
+      The flow bound is `inp.af.up * cap2act * cap * pTimesliceShare`,
+      so `cap` is a RATE and means the same physical thing on any
+      calendar. Defaults to 8760 (hours in a year), which makes `cap`
+      read as commodity per HOUR; an hourly full-year model is unchanged
+      because 8760 \* (1/8760) = 1. Assumes commodity unit = capacity
+      unit x hour (GW with GWh); GW with TWh wants 8.76. The STORING
+      side has no cap2act – energy is energy at any resolution.
 
 - `storage`:
 
@@ -254,75 +367,14 @@ cycle will be a calendar day).
 
   comm
 
-  :   character. Commodity held in the store.
+  :   character. Commodity the store HOLDS – what `vStorageLevel` is
+      measured in.
 
   unit
 
-  :   character. Unit of `comm` on this side, exactly as on
-      `technology@input`/ `@output`. Descriptive only: it is carried for
-      reporting and `convert()` and never reaches the solver. It is the
-      unit of the COMMODITY (e.g. MWh), not of the capacity – capacity
-      units follow from `cap2act`, and the storing side has no `cap2act`
-      because a reservoir is an amount rather than a rate.
-
-  vintage
-
-  :   character. Vintage label selecting the variant this row applies
-      to, NA for all.
-
-  cluster
-
-  :   character. Cluster label selecting the variant this row applies
-      to, NA for all.
-
-  region
-
-  :   character. Region the row applies to, NA for all.
-
-  year
-
-  :   integer. Year the row applies to, NA for all.
-
-  stock
-
-  :   numeric. Pre-existing energy capacity, in commodity units. The
-      energy analogue of `capacity$stock`, which is power.
-
-  cap.lo
-
-  :   numeric. Lower bound on total energy capacity.
-
-  cap.up
-
-  :   numeric. Upper bound on total energy capacity.
-
-  cap.fx
-
-  :   numeric. Fixed total energy capacity.
-
-  ncap.lo
-
-  :   numeric. Lower bound on new energy capacity added in the period.
-
-  ncap.up
-
-  :   numeric. Upper bound on new energy capacity added in the period.
-
-  ncap.fx
-
-  :   numeric. Fixed new energy capacity added in the period.
-
-  invcost
-
-  :   numeric. Overnight investment cost per unit of ENERGY capacity
-      (currency/MWh), annuitised on the storage's own `@vintage` – one
-      lifetime and one wacc for the object, two capital costs on
-      different bases. This is what previously had to be hand-multiplied
-      into the per-MW `@invcost`.
-
-  fixom
-
-  :   numeric. Fixed O&M cost per unit of energy capacity per year.
+  :   character. Unit of `comm`. Descriptive only, carried for reporting
+      and `convert()` and never reaching the solver. There is no
+      `cap2act` on this side – energy is energy at any resolution.
 
 - `startLevel`:
 
@@ -413,7 +465,13 @@ cycle will be a calendar day).
 
 - `af`:
 
-  data.frame. Availability factor parameters.
+  data.frame. Availability factor parameters. Unlike a technology's `af`
+  (which bounds activity, a flow), the storage `af.*` columns bound the
+  stored LEVEL – a stock – as a fraction of the storing capacity, i.e. a
+  state-of-charge range. They are not capacity factors. The flow-side
+  bounds are the `cinp.*`/`cout.*` columns, which bound charge/discharge
+  relative to the charger/discharger capacity per timeslice (those are
+  the storage analogue of a technology's `af`).
 
   vintage
 
@@ -441,42 +499,50 @@ cycle will be a calendar day).
 
   af.lo
 
-  :   numeric. Lower bound of the availability factor.
+  :   numeric. Lower bound of the stored level as a fraction of storing
+      capacity (minimum state of charge).
 
   af.up
 
-  :   numeric. Upper bound of the availability factor.
+  :   numeric. Upper bound of the stored level as a fraction of storing
+      capacity (maximum state of charge).
 
   af.fx
 
-  :   numeric. Fixed value of the availability factor. This parameter
+  :   numeric. Fixed value of the stored-level fraction. This parameter
       overrides `af.lo` and `af.up`.
 
-  cinp.lo
+  inp.af.lo
 
-  :   numeric. Lower bound of the input commodity availability factor.
+  :   numeric. Lower bound of the charging (input) flow relative to
+      charger capacity per timeslice.
 
-  cinp.up
+  inp.af.up
 
-  :   numeric. Upper bound of the input commodity availability factor.
+  :   numeric. Upper bound of the charging (input) flow relative to
+      charger capacity per timeslice.
 
-  cinp.fx
+  inp.af.fx
 
-  :   numeric. Fixed value of the input commodity availability factor.
-      This parameter overrides `cinp.lo` and `cinp.up`.
+  :   numeric. Fixed value of the charging (input) flow relative to
+      charger capacity per timeslice. This parameter overrides
+      `inp.af.lo` and `inp.af.up`.
 
-  cout.lo
+  out.af.lo
 
-  :   numeric. Lower bound of the output commodity availability factor.
+  :   numeric. Lower bound of the discharging (output) flow relative to
+      discharger capacity per timeslice.
 
-  cout.up
+  out.af.up
 
-  :   numeric. Upper bound of the output commodity availability factor.
+  :   numeric. Upper bound of the discharging (output) flow relative to
+      discharger capacity per timeslice.
 
-  cout.fx
+  out.af.fx
 
-  :   numeric. Fixed value of the output commodity availability factor.
-      This parameter overrides `cout.lo` and `cout.up`.
+  :   numeric. Fixed value of the discharging (output) flow relative to
+      discharger capacity per timeslice. This parameter overrides
+      `out.af.lo` and `out.af.up`.
 
 - `aeff`:
 
@@ -560,6 +626,51 @@ cycle will be a calendar day).
   :   numeric. New-capacity-to-auxiliary-output-commodity coefficient
       (multiplier).
 
+  pho2ainp
+
+  :   numeric. Aux commodity CONSUMED when capacity reaches the END OF
+      ITS LIFE (demolition energy, labour). Multiplies the per-year
+      phase-out FLOW, so the charge lands ONCE – in the milestone where
+      the capacity disappears – not every year it stood. NO
+      `pTimesliceShare` is applied and the aux balance is PER TIMESLICE,
+      so a value given with `timeslice = NA` applies in EVERY slice and
+      the annual total comes out multiplied by the slice count – 8760x
+      on an hourly calendar. Give a per-slice value, or name a single
+      slice.
+
+  pho2aout
+
+  :   numeric. Aux commodity RELEASED when capacity reaches the END OF
+      ITS LIFE (demolition waste, recovered material). Fires even when
+      `optimizeRetirement` is FALSE, which is the usual case. NO
+      `pTimesliceShare` is applied and the aux balance is PER TIMESLICE,
+      so a value given with `timeslice = NA` applies in EVERY slice and
+      the annual total comes out multiplied by the slice count – 8760x
+      on an hourly calendar. Give a per-slice value, or name a single
+      slice.
+
+  ret2ainp
+
+  :   numeric. Aux commodity CONSUMED when capacity is retired EARLY.
+      Separate from `pho2ainp` because the two differ physically:
+      scrapping an intact plant is not the same job as demolishing a
+      worn-out one. NO `pTimesliceShare` is applied and the aux balance
+      is PER TIMESLICE, so a value given with `timeslice = NA` applies
+      in EVERY slice and the annual total comes out multiplied by the
+      slice count – 8760x on an hourly calendar. Give a per-slice value,
+      or name a single slice.
+
+  ret2aout
+
+  :   numeric. Aux commodity RELEASED when capacity is retired EARLY
+      (scrap). Usually LARGER than `pho2aout`: a plant retired before
+      its time is still largely intact, so more material is recoverable.
+      NO `pTimesliceShare` is applied and the aux balance is PER
+      TIMESLICE, so a value given with `timeslice = NA` applies in EVERY
+      slice and the annual total comes out multiplied by the slice count
+      – 8760x on an hourly calendar. Give a per-slice value, or name a
+      single slice.
+
   ncap2stg
 
   :   numeric. New-capacity-to-storage-level coefficient (multiplier).
@@ -587,10 +698,23 @@ cycle will be a calendar day).
 
   :   integer. Year to apply the parameter, NA for every year.
 
-  fixom
+  out.fixom
 
-  :   numeric. Fixed operation and maintenance cost for the specified
-      sets.
+  :   numeric. Fixed operation and maintenance cost per unit of
+      installed capacity of the discharging part – the power the store
+      can deliver.
+
+  inp.fixom
+
+  :   numeric. Fixed operation and maintenance cost per unit of
+      installed capacity of the charging part – the power the store can
+      absorb.
+
+  stg.fixom
+
+  :   numeric. Fixed operation and maintenance cost per unit of
+      installed capacity of the reservoir itself – the energy the store
+      can hold.
 
 - `varom`:
 
@@ -655,37 +779,86 @@ cycle will be a calendar day).
 
   :   integer. Year to apply the parameter, NA for every year.
 
-  invcost
+  out.invcost
 
-  :   numeric. Overnight investment cost for the specified region and
-      year.
+  :   numeric. Investment cost per unit of new capacity of the
+      discharging part – the power the store can deliver.
 
-  wacc
+  out.wacc
 
-  :   numeric. Weighted average cost of capital used to annuitise
-      `invcost` for this storage. Overrides the model-wide `wacc` (see
-      the model `discount` argument). The social discount rate is never
-      used here.
+  :   numeric. Cost of capital used to annuitise the discharging part –
+      the power the store can deliver investment (overrides `pWacc`).
 
-  payback
+  out.payback
 
-  :   numeric. Cost-recovery period in years. Where given it replaces
-      `olife` in the annuity AND in the years over which the annuity is
-      charged, so the investment is repaid over `payback` years while
-      the capacity keeps operating for its full operational life. Must
-      be positive and not exceed `olife`. Unset (or 0) means recover
-      over `olife`. Implemented for the GLPK solver only.
+  :   numeric. Cost-recovery period of the discharging part – the power
+      the store can deliver, in years (overrides the operational life in
+      the EAC charge).
 
-  eac
+  out.eac
 
-  :   numeric. Equivalent annual cost, supplied directly instead of
-      being computed from `invcost`, `wacc` and the lifetime. Where
-      given it wins; where absent the annuity is computed. Mutually
-      exclusive with `invcost` per row.
+  :   numeric. Equivalent annual cost of the discharging part – the
+      power the store can deliver, supplied directly instead of being
+      annuitised from `invcost`.
 
-  retcost
+  out.retcost
 
-  :   numeric. Costs of early retirement of the storage, default is 0.
+  :   numeric. Cost of retiring the discharging part – the power the
+      store can deliver early.
+
+  inp.invcost
+
+  :   numeric. Investment cost per unit of new capacity of the charging
+      part – the power the store can absorb.
+
+  inp.wacc
+
+  :   numeric. Cost of capital used to annuitise the charging part – the
+      power the store can absorb investment (overrides `pWacc`).
+
+  inp.payback
+
+  :   numeric. Cost-recovery period of the charging part – the power the
+      store can absorb, in years (overrides the operational life in the
+      EAC charge).
+
+  inp.eac
+
+  :   numeric. Equivalent annual cost of the charging part – the power
+      the store can absorb, supplied directly instead of being
+      annuitised from `invcost`.
+
+  inp.retcost
+
+  :   numeric. Cost of retiring the charging part – the power the store
+      can absorb early.
+
+  stg.invcost
+
+  :   numeric. Investment cost per unit of new capacity of the reservoir
+      itself – the energy the store can hold.
+
+  stg.wacc
+
+  :   numeric. Cost of capital used to annuitise the reservoir itself –
+      the energy the store can hold investment (overrides `pWacc`).
+
+  stg.payback
+
+  :   numeric. Cost-recovery period of the reservoir itself – the energy
+      the store can hold, in years (overrides the operational life in
+      the EAC charge).
+
+  stg.eac
+
+  :   numeric. Equivalent annual cost of the reservoir itself – the
+      energy the store can hold, supplied directly instead of being
+      annuitised from `invcost`.
+
+  stg.retcost
+
+  :   numeric. Cost of retiring the reservoir itself – the energy the
+      store can hold early.
 
 - `fullYear`:
 
@@ -713,8 +886,8 @@ cycle will be a calendar day).
   The bare `duration` column is the scalar shorthand and is normalised
   to `duration.fx` at construction. A ONE-SIDED range opens the other
   side (an `up` alone does not inherit the default `lo` of 1). Saying
-  nothing leaves the slot empty and the parameter default of 1, 1 ties
-  energy to power at one hour, which is the pre-v0.84 behaviour.
+  nothing leaves the slot empty and the parameter default of `[1, 1]`
+  ties energy to power at one hour, which is the pre-v0.84 behaviour.
 
   vintage
 
@@ -760,11 +933,11 @@ cycle will be a calendar day).
   `inp2out.lo`/`.up` let the model size them apart, and the bare
   `inp2out` column is the scalar shorthand, normalised to `.fx` at
   construction. A one-sided range opens the other side. Saying nothing
-  leaves the slot empty and the parameter default of 1, 1 keeps the two
-  sides symmetric, which is what a storage without a separate charger
-  has always been. It bites only when the charging side is priced or
-  bounded via `@input`; otherwise there is no charging capacity variable
-  to constrain.
+  leaves the slot empty and the parameter default of `[1, 1]` keeps the
+  two sides symmetric, which is what a storage without a separate
+  charger has always been. It bites only when the charging side is
+  priced or bounded via `@input`; otherwise there is no charging
+  capacity variable to constrain.
 
   vintage
 
@@ -834,37 +1007,37 @@ cycle will be a calendar day).
       value of the availability factor. This parameter overrides
       `waf.lo` and `waf.up`.
 
-  wcinp.lo
+  inp.waf.lo
 
   :   numeric. Coefficient that links the weather factor with the lower
       bound of the input commodity availability factor.
 
-  wcinp.up
+  inp.waf.up
 
   :   numeric. Coefficient that links the weather factor with the upper
       bound of the input commodity availability factor.
 
-  wcinp.fx
+  inp.waf.fx
 
   :   numeric. Coefficient that links the weather factor with the fixed
       value of the input commodity availability factor. This parameter
-      overrides `wcinp.lo` and `wcinp.up`.
+      overrides `inp.waf.lo` and `inp.waf.up`.
 
-  wcout.lo
+  out.waf.lo
 
   :   numeric. Coefficient that links the weather factor with the lower
       bound of the output commodity availability factor.
 
-  wcout.up
+  out.waf.up
 
   :   numeric. Coefficient that links the weather factor with the upper
       bound of the output commodity availability factor.
 
-  wcout.fx
+  out.waf.fx
 
   :   numeric. Coefficient that links the weather factor with the fixed
       value of the output commodity availability factor. This parameter
-      overrides `wcout.lo` and `wcout.up`.
+      overrides `out.waf.lo` and `out.waf.up`.
 
 - `optimizeRetirement`:
 

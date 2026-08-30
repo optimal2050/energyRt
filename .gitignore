@@ -15,6 +15,9 @@ solwork
 Meta
 #docs
 scenarios/
+levcost/
+levcosts/
+reports/
 .archive/
 drafts/
 .formatted/
@@ -27,3 +30,6 @@ drafts/
 dev/
 dev-scripts/
 .positai
+#temporary:
+man/
+docs/

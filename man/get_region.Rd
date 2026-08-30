@@ -29,6 +29,7 @@ slot (e.g. \code{import} / \code{export}).
 }
 \seealso{
 Other model:
-\code{\link[=find_in_model]{find_in_model()}}
+\code{\link[=find_in_model]{find_in_model()}},
+\code{\link[=get_weather]{get_weather()}}
 }
 \concept{model}

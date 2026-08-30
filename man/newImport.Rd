@@ -9,8 +9,9 @@ newImport(
   desc = "",
   commodity = "",
   unit = NULL,
-  reserve = Inf,
+  reserve = data.frame(),
   import = data.frame(),
+  cluster = data.frame(),
   misc = list(),
   ...
 )
@@ -24,17 +25,26 @@ newImport(
 
 \item{unit}{character. Unit of the imported commodity.}
 
-\item{reserve}{numeric. Total accumulated limit through the model horizon.}
+\item{reserve}{data.frame. Cumulative limit over the whole model horizon, summed across ALL regions, years and timeslices. A data.frame (rather than the bare number it was before 0.85) so it can carry a \code{cluster} column and be split across price steps; without that every step would inherit the FULL limit and the model would quietly hold \code{nsteps} times the resource. A plain number is still accepted by the constructor and read as \code{res.up}.
+There is deliberately no \code{region} column: adding one would turn this into a per-region cap and LOSE the all-region total, which is what it means today.
+
+\describe{
+\item{cluster}{character. Price step this row applies to, NA for every step.}
+\item{res.lo}{numeric. Lower bound on the cumulative volume.}
+\item{res.up}{numeric. Upper bound on the cumulative volume.}
+\item{res.fx}{numeric. Fixed cumulative volume. Overrides \code{res.lo} and \code{res.up}.}
+}}
 
 \item{import}{data.frame. Import parameters.
 \describe{
-\item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
+\item{cluster}{character. Price step this row applies to, NA for every step. See the \code{cluster} slot.}
 \item{region}{character. Region name to apply the parameter; use NA to apply to all regions.}
 \item{year}{integer. Year to apply the parameter; use NA to apply to all years.}
 \item{timeslice}{character. Time timeslice to apply the parameter; use NA to apply to all timeslices.}
 \item{imp.lo}{numeric. Lower bound on the import volume.}
 \item{imp.up}{numeric. Upper bound on the import volume.}
 \item{imp.fx}{numeric. Fixed import volume, ignored if NA. This parameter overrides \code{imp.lo} and \code{imp.up}.}
+\item{price}{numeric. Price paid per unit imported.}
 }}
 
 \item{misc}{list. Additional information.}

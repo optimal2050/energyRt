@@ -6,7 +6,7 @@
 \usage{
 utopia_profiles(
   regions,
-  calendar = c("utopia_s4h24", "utopia_m12h24", "utopia_seasons"),
+  calendar = c("s4_h24", "m12_h24", "utopia_seasons"),
   source = c("saved", "ideea"),
   resources = c(WSOL = "WSOL", WWIN = "WWIN", WHYD = "WHYD"),
   cluster = 1L,
@@ -16,8 +16,8 @@ utopia_profiles(
 \arguments{
 \item{regions}{character vector of region names.}
 
-\item{calendar}{target resolution: \code{"utopia_s4h24"} (4 seasons x 24 hours, 96
-timeslices, the default base case), \code{"utopia_m12h24"} (12 months x 24 hours,
+\item{calendar}{target resolution: \code{"s4_h24"} (4 seasons x 24 hours, 96
+timeslices, the default base case), \code{"m12_h24"} (12 months x 24 hours,
 288) or \code{"utopia_seasons"} (4 seasons x 3 dayparts, 12).}
 
 \item{source}{\code{"saved"} (packaged data, default) or \code{"ideea"} (re-aggregate

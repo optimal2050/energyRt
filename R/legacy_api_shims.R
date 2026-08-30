@@ -50,39 +50,23 @@ setMethod("interpolate", signature(object = "model"),
 setMethod("interpolate", signature(object = "scenario"),
   function(object, ...) interpolate_model(object, ...))
 
-#' Solve a model or scenario (legacy names; new pipeline)
-#'
-#' `solve_model()` is the "do everything" entry point: it interpolates a model
-#' via [interpolate_model()] and solves it (or, given an un-interpolated
-#' scenario, interpolates it first), then routes to [solve_mod()] / [solve_scen()].
-#' `solve_scenario()` **expects an already-interpolated scenario** and only solves
-#' it via [solve_scen()]; it does **not** re-interpolate (an un-interpolated
-#' scenario is an error pointing to `solve_model()` / `interpolate_model()`).
-#' @param obj a `model` or `scenario`.
-#' @param ... passed to [solve_mod()] / [solve_scen()].
-#' @seealso [solve_mod()], [solve_scen()]
+# `solve_mod()` / `solve_scen()` were the transitional working names of the
+# new solve pipeline; the implementations now live under the canonical names
+# solve_model() / solve_scenario() (same engine, same arguments). The aliases
+# issue a one-time deprecation message and share the canonical help page.
+
 #' @rdname solve_model
 #' @export
-solve_model <- function(obj, ...) {
-  if (inherits(obj, "scenario")) {
-    # convenience: interpolate an un-interpolated scenario before solving. An
-    # already-interpolated scenario is solved as-is (its build knobs preserved).
-    if (!isTRUE(obj@status$interpolated)) {
-      obj <- interpolate_model(obj@model, name = obj@name)
-    }
-    return(do.call(solve_scen, c(list(obj), list(...))))
-  }
-  do.call(solve_mod, c(list(obj), list(...)))
+solve_mod <- function(obj, ...) {
+  .Deprecated("solve_model", old = "solve_mod")
+  solve_model(obj, ...)
 }
 
 #' @rdname solve_model
 #' @export
-solve_scenario <- function(obj, ...) {
-  # Expects an interpolated scenario: delegate straight to solve_scen(), which
-  # errors (pointing to solve_model() / interpolate_model()) if it is not
-  # interpolated. Never silently re-interpolates (which would use default build
-  # args, not the scenario's original sparse/fold/prune settings).
-  do.call(solve_scen, c(list(obj), list(...)))
+solve_scen <- function(obj, ...) {
+  .Deprecated("solve_scenario", old = "solve_scen")
+  solve_scenario(obj, ...)
 }
 
 .solve_model_method   <- function(a, b, ...) solve_model(a, ...)
@@ -99,3 +83,107 @@ setMethod("solve", signature(a = "missing", b = "missing"), function(...) {
   if (is(arg$obj, "model"))    return(do.call(solve_model, arg))
   NextMethod(arg)
 })
+
+# Registry shims ==============================================================#
+# The in-memory registry (a wrapper over the CRAN `registry` package, archived
+# in drafts/registry-cran-wrapper.R) is replaced by the persisted tibble+CSV
+# registry in R/registry.R. These shims keep the old exported names alive with
+# deprecation messages; none of them were usable in released versions (the old
+# register() contained a leftover browser() call), so the mappings are best-
+# effort conveniences, not exact behavior ports.
+
+#' Deprecated registry API
+#'
+#' @description
+#' The in-memory registry has been replaced by a persisted, file-backed
+#' registry — see [load_registry()], [add_to_registry()], [refresh_registry()],
+#' and [get_registry_file()]. These names are deprecated:
+#' * `newRegistry()` -> [load_registry()]
+#' * `register()` -> [add_to_registry()] + [save_registry()]
+#' * `get_registry()` -> [load_registry()]
+#' * `get_entry()` -> [find_registry()]
+#' * `set_default_registry()` / `use_registry()` -> [set_registry_file()]
+#' * `which_registry()` -> [get_registry_file()]
+#'
+#' @param name character, object name.
+#' @param obj object to register (scenario, model, or repository).
+#' @param registry ignored (the registry is now a file, not an object).
+#' @param env,... ignored, kept for backward compatibility.
+#' @param obj_name,env_name ignored, kept for backward compatibility.
+#'
+#' @keywords internal
+#' @rdname registry-deprecated
+#' @export
+newRegistry <- function(...) {
+  .Deprecated("load_registry")
+  load_registry()
+}
+
+#' @rdname registry-deprecated
+#' @export
+register <- function(obj, registry = NULL, name = NULL, ...) {
+  .Deprecated("add_to_registry")
+  nm <- name %||% obj@name
+  type <- if (is(obj, "scenario")) "scenario" else
+          if (is(obj, "model")) "model" else
+          stop("Only scenario and model objects can be registered; got ",
+               class(obj)[1])
+  path_ <- tryCatch(obj@path, error = function(e) "")
+  reg <- load_registry()
+  reg <- add_to_registry(reg, type, nm, path = path_)
+  save_registry(reg)
+  invisible(reg)
+}
+
+#' @rdname registry-deprecated
+#' @export
+get_registry <- function() {
+  .Deprecated("load_registry")
+  load_registry()
+}
+
+# NOTE: getScenario() used to live here as a deprecated registry-era shim;
+# it is now the LIVE cached accessor in R/accessors.R.
+
+#' @rdname registry-deprecated
+#' @export
+get_entry <- function(name, registry = NULL, ...) {
+  .Deprecated("find_registry")
+  find_registry(load_registry(), name = name)
+}
+
+#' @rdname registry-deprecated
+#' @export
+get_entry_object <- function(name, registry = NULL, ...) {
+  .Deprecated("getScenario")
+  getScenario(name)
+}
+
+#' @rdname registry-deprecated
+#' @export
+registry.exists <- function(name, env = NULL) {
+  .Deprecated("find_registry")
+  nrow(find_registry(load_registry(), name = name)) > 0L
+}
+
+#' @rdname registry-deprecated
+#' @export
+registry_exists <- registry.exists
+
+#' @rdname registry-deprecated
+#' @export
+set_default_registry <- function(obj_name = NULL, env_name = NULL) {
+  .Deprecated("set_registry_file")
+  invisible(NULL)
+}
+
+#' @rdname registry-deprecated
+#' @export
+use_registry <- set_default_registry
+
+#' @rdname registry-deprecated
+#' @export
+which_registry <- function() {
+  .Deprecated("get_registry_file")
+  list(file = get_registry_file())
+}

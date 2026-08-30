@@ -40,7 +40,7 @@ vc_model <- function(name = "vc") {
 vc_interp <- function(m, n) suppressMessages(suppressWarnings(
   interpolate_model(m, name = n, fold = TRUE)))
 vc_solve <- function(s) suppressMessages(suppressWarnings(
-  solve_scen(s, solver = solver_options$glpk, wait = TRUE)))
+  solve_scenario(s, solver = solver_options$glpk, wait = TRUE)))
 
 # ---------------------------------------------------------------------------- #
 # the specification
@@ -76,10 +76,19 @@ test_that("@colNames matches what the GLPK writer actually emits", {
                      setdiff(strsplit(hd[k], ",", fixed = TRUE)[[1]], "value"),
                      info = nm[k])
   }
-  # The only two that differ from the model dims are the duplicate-dim cases.
-  differs <- names(V)[vapply(V, function(x)
-    !identical(x$colNames, x$dimSets), logical(1))]
-  expect_setequal(differs, c("vTradeIr", "vTechRetiredNewCap"))
+  # `colNames` differs from `dimSets` EXACTLY when a dimension repeats: a CSV
+  # header cannot carry `year,year`, so the second copy is renamed (`yearp`,
+  # or `src`/`dst` for `vTradeIr`'s two regions). Asserting the RULE rather
+  # than a list of names means adding another duplicate-dim variable does not
+  # need this test edited -- but getting one WRONG still fails here.
+  dup <- vapply(V, function(x) anyDuplicated(x$dimSets) > 0, logical(1))
+  dif <- vapply(V, function(x) !identical(x$colNames, x$dimSets), logical(1))
+  expect_identical(unname(dif), unname(dup))
+  # and every renamed slot must still be unique, or the CSV has two same-named
+  # columns and `getData()` silently keeps one
+  for (v in names(V)[dup]) {
+    expect_false(anyDuplicated(V[[v]]$colNames) > 0, info = v)
+  }
 })
 
 test_that("a scalar variable has no dimensions", {
@@ -188,10 +197,11 @@ test_that("saving and loading preserves a variable's rows", {
   sol@path <- p
   suppressMessages(suppressWarnings(save_scenario(sol, path = p,
                                                   verbose = FALSE)))
-  # Without `.save_slots$variable` nothing is written and this directory is absent
-  expect_true(dir.exists(file.path(p, "modOut", "variables", "vTechCap",
-                                   "data")))
-  expect_equal(readLines(file.path(p, "layout"), warn = FALSE)[1], "2")
+  # Without `.save_slots$variable` nothing is written and this directory is
+  # absent. Layout 3: the solution store lives under the active run.
+  expect_true(dir.exists(file.path(p, "runs", sol@misc$run,
+                                   "modOut", "variables", "vTechCap", "data")))
+  expect_equal(readLines(file.path(p, "layout"), warn = FALSE)[1], "3")
 
   l <- suppressMessages(suppressWarnings(
     load_scenario(p, env = NULL, verbose = FALSE)))

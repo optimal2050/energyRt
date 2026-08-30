@@ -21,6 +21,7 @@ autoplot(
   by = NULL,
   fill = NULL,
   facet = NULL,
+  top_n = 12,
   ...
 )
 ```
@@ -59,6 +60,15 @@ autoplot(
 
   name of the column to facet by. Defaults to `"region"` when the
   scenario has more than one region (the historical behaviour).
+
+- top_n:
+
+  integer, passed to
+  [`getMix()`](https://energyRt.org/reference/getMix.md): keep the
+  `top_n` largest processes and lump the rest into `"Other"`
+  (mass-preserving). Default `12` keeps legends readable on large
+  models; `NULL`/`Inf` shows every process. Legends with more than 8
+  keys move to a compact bottom multi-column layout automatically.
 
 - ...:
 

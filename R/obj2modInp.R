@@ -1,11 +1,11 @@
 setGeneric("ob2mi", function(scen, obj, extra_params) standardGeneric("ob2mi"))
 setGeneric("d2p", function(obj, data, path) standardGeneric("d2p"))
 
-get_data_slot <- function(obj) {
+get_data_slot <- function(obj, optional = FALSE) {
   # browser()
   data <- NULL
   if (isOnDisk(obj)) {
-    data <- get_lazy_data(obj, "data")
+    data <- get_lazy_data(obj, "data", optional = optional)
     # The csv/parquet round-trip loses column types: an all-NA column (e.g. a
     # folded `region`/`timeslice`, or a map built on a region-wildcard parameter)
     # comes back as `logical`, which then breaks type-sensitive joins in the
@@ -102,9 +102,12 @@ setMethod(
       )
     }
 
-    # combine existing data with new data
-    # browser()
-    data_exist <- get_data_slot(obj) |> force_cols_classes() # !!! ToDo: add filters
+    # combine existing data with new data. This is a PROBE: on the first write
+    # of an on-disk parameter the store does not exist yet (while the object's
+    # onDisk bookkeeping already records dims), so a missing dataset is normal
+    # here — hence optional, never the moved-folder error.
+    data_exist <- get_data_slot(obj, optional = TRUE) |>
+      force_cols_classes() # !!! ToDo: add filters
     data <- rbindlist(list(data_exist, data),
       use.names = TRUE,
       ignore.attr = TRUE # workaround for NA values in csv files
@@ -519,6 +522,12 @@ setMethod(
       # the `dem` object inside data.table's NSE, so `dem@region` must be taken
       # into a local first.
       dem_regions <- dem@region
+      # An NA region row is a wildcard: "every region in the object's scope",
+      # exactly as export/import treat it. Expand it BEFORE the scope filter —
+      # a bare `region %in% dem_regions` deleted the wildcard (NA %in% x is
+      # FALSE) and the demand vanished without a trace. The filter still
+      # applies afterwards, restricting explicit rows to the declared scope.
+      dat <- .expand_na_region(dat, dem_regions)
       dat <- dat[region %in% dem_regions]
     }
     scen <- update_parameter(scen, "pDemand", dat)
@@ -590,9 +599,18 @@ setMethod(
     # pExportRowRes <- NULL
     # if (exp@reserve != Inf) pExportRowRes <- data.table(expp = exp@name, value = exp@reserve)
     # obj@parameters[["pExportRowRes"]] <- .dat2par(obj@parameters[["pExportRowRes"]], pExportRowRes)
-    if (length(exp@reserve) == 1 && !is.na(exp@reserve) && is.finite(exp@reserve)) {
-      dat <- data.table(expp = exp@name, value = as.numeric(exp@reserve))
-      scen <- update_parameter(scen, "pExportRowRes", dat)
+    # `@reserve` is a data.frame since 0.85 (so it can carry a `cluster` column
+    # and be split across price steps), but the parameter is still ONE value per
+    # object: `pExportRowRes{expp}` caps the cumulative flow summed over every region,
+    # year and timeslice. After variant expansion each step IS its own object, so
+    # one value per object is exactly right.
+    res <- as.data.frame(exp@reserve)
+    if (nrow(res) && "res.up" %in% names(res)) {
+      v <- res$res.up[!is.na(res$res.up) & is.finite(res$res.up)]
+      if (length(v)) {
+        dat <- data.table(expp = exp@name, value = as.numeric(v[1]))
+        scen <- update_parameter(scen, "pExportRowRes", dat)
+      }
     }
 
     ## pExportRow ####
@@ -738,9 +756,18 @@ setMethod(
     # pImportRowRes <- NULL
     # if (imp@reserve != Inf) pImportRowRes <- data.table(imp = imp@name, value = imp@reserve)
     # obj@parameters[["pImportRowRes"]] <- .dat2par(obj@parameters[["pImportRowRes"]], pImportRowRes)
-    if (length(imp@reserve) == 1 && !is.na(imp@reserve) && is.finite(imp@reserve)) {
-      dat <- data.table(imp = imp@name, value = as.numeric(imp@reserve))
-      scen <- update_parameter(scen, "pImportRowRes", dat)
+    # `@reserve` is a data.frame since 0.85 (so it can carry a `cluster` column
+    # and be split across price steps), but the parameter is still ONE value per
+    # object: `pImportRowRes{imp}` caps the cumulative flow summed over every region,
+    # year and timeslice. After variant expansion each step IS its own object, so
+    # one value per object is exactly right.
+    res <- as.data.frame(imp@reserve)
+    if (nrow(res) && "res.up" %in% names(res)) {
+      v <- res$res.up[!is.na(res$res.up) & is.finite(res$res.up)]
+      if (length(v)) {
+        dat <- data.table(imp = imp@name, value = as.numeric(v[1]))
+        scen <- update_parameter(scen, "pImportRowRes", dat)
+      }
     }
 
     ## pImportRow ####
@@ -1252,8 +1279,8 @@ setMethod(
     # has THREE roles (input / stored / output) instead of one `@commodity`, so
     # this has to pick the right one rather than inject one scalar. Keyed off the
     # parameter name, which already says which side it is about:
-    #   pStorageInpEff, pStorageCostInp, pStorageCinp*, pStorageWeatherCinp*
-    #   pStorageOutEff, pStorageCostOut, pStorageCout*, pStorageWeatherCout*
+    #   pStorageInpEff, pStorageCostInp, pStorageInpAf*, pStorageWeatherInpAf*
+    #   pStorageOutEff, pStorageCostOut, pStorageOutAf*, pStorageWeatherOutAf*
     #   everything else (StgEff, CostStore, StartLevel, NCap2Stg) -> the LEVEL
     # For a storage written with a bare `commodity =` all three roles hold the
     # same commodity, so this reproduces the old behaviour exactly.
@@ -1440,7 +1467,7 @@ setMethod(
 ## constraint (user-defined) ####
 # =============================================================================#
 # A user constraint compiles to the solver-agnostic GAMS-string IR
-# (`scen@modInp@gams.equation[[name]]`) plus its supporting `pCns*`/`mCns*`
+# (`scen@modInp@user_constraints[[name]]`) plus its supporting `pCns*`/`mCns*`
 # parameters; the writers (write_glpk / write_jump / write_pyomo / write_gams)
 # translate that IR per backend. Codegen reuses the proven `.getSetEquation`
 # engine. Unlike the per-object methods above, this runs AFTER the mapping
@@ -1463,13 +1490,26 @@ setMethod(
     # `.getSetEquation` can read `@timeframe` without erroring on old models.
     obj@lhs <- lapply(obj@lhs, .upgrade_summand)
 
-    # The engine reads model sets from the legacy `@set` slot; the new pipeline
-    # populates `@sets`. Shim a working copy, generate, then drop the shim.
-    mi <- scen@modInp
-    mi@set <- scen@modInp@sets
-    mi <- .getSetEquation(mi, obj, approxim)
-    mi@set <- list()
-    scen@modInp <- mi
+    scen@modInp <- .getSetEquation(scen@modInp, obj, approxim)
+    scen
+  }
+)
+
+# =============================================================================#
+## costs (user cost terms in the objective) ####
+# =============================================================================#
+# Mirrors the `constraint` method: compiled AFTER the variable domain maps by
+# `.interp_user_constraints`, never in the generic ob2mi loop. `.getCostEquation`
+# (R/class-costs.R) appends the pCosts*/mCosts* parameters and the term of the
+# vTotalUserCosts equation to `modInp@user_costs`; the write step assembles
+# eqTotalUserCosts from those terms (R/write.R).
+setMethod(
+  "ob2mi",
+  signature(scen = "scenario", obj = "costs", extra_params = "list"),
+  function(scen, obj, extra_params = list()) {
+    approxim <- extra_params$approxim
+    if (is.null(approxim)) approxim <- .constraint_approxim(scen)
+    scen@modInp <- .getCostEquation(scen@modInp, obj, approxim)
     scen
   }
 )
@@ -1481,9 +1521,9 @@ setMethod(
   mid <- as.integer(scen@modInp@sets$year)
   growth <- if (length(mid) > 0) c(diff(mid), 1L) else integer(0)
   names(growth) <- as.character(mid)
-  list(
+  out <- list(
     region = .model_regions(scen),
-    # Pruned region hierarchy, so a summand's `geolevel` can be resolved to the
+    # Pruned region hierarchy, so a summand's `geoframe` can be resolved to the
     # regions of that level (the spatial twin of `calendar@timeframes`).
     # NULL when no geoscale is attached.
     geo_hierarchy = .scen_geo_hierarchy(scen),
@@ -1496,6 +1536,13 @@ setMethod(
     fullsets = TRUE,
     optimizeRetirement = ss@optimizeRetirement
   )
+  # entity set members: `.getCostEquation` filters a cost's `subset`/`mult`
+  # columns against these (a missing set would silently empty the map)
+  for (nm in c("comm", "tech", "stg", "trade", "sup", "dem", "expp", "imp",
+               "group", "weather")) {
+    out[[nm]] <- scen@modInp@sets[[nm]]
+  }
+  out
 }
 
 # The unwired ob2mi("horizon") and ob2mi("calendar") methods were archived to

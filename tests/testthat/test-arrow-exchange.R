@@ -4,7 +4,9 @@
 # export_format / import_format. The solve must be format-invariant.
 
 .ax_find <- function(rel) {
-  for (cand in c(rel, file.path("..", "..", rel))) if (file.exists(cand)) return(cand)
+  cands <- c(testthat::test_path("fixtures", basename(rel)),
+             rel, file.path("..", "..", rel))
+  for (cand in cands) if (file.exists(cand)) return(cand)
   NULL
 }
 
@@ -38,7 +40,7 @@ test_that("arrow exchange solves identically to the legacy format (Julia + Pyomo
     td <- file.path(tempdir(), paste0("ax_", tag)); unlink(td, recursive = TRUE)
     on.exit(unlink(td, recursive = TRUE), add = TRUE)
     suppressWarnings(suppressMessages(
-      solve_mod(mod, name = tag, solver = sv, tmp.dir = td, force = TRUE)))
+      solve_model(mod, name = tag, solver = sv, tmp.dir = td, force = TRUE)))
   }
 
   skip_if(is.null(get_glpk_path()) || !nzchar(get_glpk_path()), "GLPK not configured")

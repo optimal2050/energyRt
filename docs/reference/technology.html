@@ -21,7 +21,7 @@ documentation."><meta property="og:image" content="https://energyRt.org/logo.png
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.85.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -44,6 +44,8 @@ documentation."><meta property="og:image" content="https://energyRt.org/logo.png
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
+    <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
+    <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
     <li><a class="dropdown-item" href="../articles/autoplot.html">autoplot()</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
@@ -270,13 +272,13 @@ documentation.</p>
 <dd><p>numeric. Fixed share of commodity within a group, ignored if NA. This parameter overrides <code>share.lo</code> and <code>share.up</code>.</p></dd>
 
 <dt>afc.lo</dt>
-<dd><p>numeric. Lower bound on the physical value of the commodity, ignored if NA.</p></dd>
+<dd><p>numeric. Lower bound on the per-commodity availability factor: bounds this commodity's input or output flow relative to installed capacity (times <code>cap2act</code>), the commodity-level analogue of <code>af.lo</code>. Ignored if NA.</p></dd>
 
 <dt>afc.up</dt>
-<dd><p>numeric. Upper bound on the physical value of the commodity, ignored if NA.</p></dd>
+<dd><p>numeric. Upper bound on the per-commodity availability factor: bounds this commodity's input or output flow relative to installed capacity (times <code>cap2act</code>), the commodity-level analogue of <code>af.up</code>. Ignored if NA.</p></dd>
 
 <dt>afc.fx</dt>
-<dd><p>numeric. Fixed physical value of the commodity, ignored if NA. This parameter overrides <code>afc.lo</code> and <code>afc.up</code>.</p></dd>
+<dd><p>numeric. Fixed per-commodity availability factor, ignored if NA. This parameter overrides <code>afc.lo</code> and <code>afc.up</code>.</p></dd>
 
 
 </dl></dd>
@@ -326,17 +328,30 @@ documentation.</p>
 <dd><p>numeric. Technology-capacity-to-auxilary-commodity-output coefficient, ignored if NA.</p></dd>
 
 <dt>ncap2ainp</dt>
-<dd><p>numeric. Technology-new-capacity-to-auxilary-commodity-input-coefficient, ignored if NA.</p></dd>
+<dd><p>numeric. Aux commodity consumed per unit of NEW capacity – a one-time charge at construction (materials, embodied energy), ignored if NA. NO <code>pTimesliceShare</code> is applied and the aux balance is PER TIMESLICE, so a value given with <code>timeslice = NA</code> applies in EVERY slice and the annual total comes out multiplied by the slice count – 8760x on an hourly calendar. Give a per-slice value, or name a single slice.</p></dd>
 
 <dt>ncap2aout</dt>
 <dd><p>numeric. Technology-new-capacity-to-auxilary-commodity-output coefficient, ignored if NA.</p></dd>
+
+<dt>pho2ainp</dt>
+<dd><p>numeric. Aux commodity CONSUMED when capacity reaches the END OF ITS LIFE (demolition energy, labour). Multiplies the per-year phase-out FLOW, so the charge lands ONCE – in the milestone where the capacity disappears – not every year it stood. NO <code>pTimesliceShare</code> is applied and the aux balance is PER TIMESLICE, so a value given with <code>timeslice = NA</code> applies in EVERY slice and the annual total comes out multiplied by the slice count – 8760x on an hourly calendar. Give a per-slice value, or name a single slice.</p></dd>
+
+<dt>pho2aout</dt>
+<dd><p>numeric. Aux commodity RELEASED when capacity reaches the END OF ITS LIFE (demolition waste, recovered material). Fires even when <code>optimizeRetirement</code> is FALSE, which is the usual case. NO <code>pTimesliceShare</code> is applied and the aux balance is PER TIMESLICE, so a value given with <code>timeslice = NA</code> applies in EVERY slice and the annual total comes out multiplied by the slice count – 8760x on an hourly calendar. Give a per-slice value, or name a single slice.</p></dd>
+
+<dt>ret2ainp</dt>
+<dd><p>numeric. Aux commodity CONSUMED when capacity is retired EARLY. Separate from <code>pho2ainp</code> because the two differ physically: scrapping an intact plant is not the same job as demolishing a worn-out one. NO <code>pTimesliceShare</code> is applied and the aux balance is PER TIMESLICE, so a value given with <code>timeslice = NA</code> applies in EVERY slice and the annual total comes out multiplied by the slice count – 8760x on an hourly calendar. Give a per-slice value, or name a single slice.</p></dd>
+
+<dt>ret2aout</dt>
+<dd><p>numeric. Aux commodity RELEASED when capacity is retired EARLY (scrap). Usually LARGER than <code>pho2aout</code>: a plant retired before its time is still largely intact, so more material is recoverable. NO <code>pTimesliceShare</code> is applied and the aux balance is PER TIMESLICE, so a value given with <code>timeslice = NA</code> applies in EVERY slice and the annual total comes out multiplied by the slice count – 8760x on an hourly calendar. Give a per-slice value, or name a single slice.</p></dd>
 
 
 </dl></dd>
 
 
 <dt id="arg-af">af<a class="anchor" aria-label="anchor" href="#arg-af"></a></dt>
-<dd><p>data.frame. Timeslice-level availability factor parameters.</p><dl><dt>vintage</dt>
+<dd><p>data.frame. Timeslice-level availability factor parameters, bounding activity in each timeslice relative to installed capacity. <code>af.up</code> is the maximum capacity factor per timeslice (what PyPSA calls <code>p_max_pu</code> and OSeMOSYS calls <code>CapacityFactor</code>); <code>af.lo</code> is a must-run floor. See <code>afs</code> for timeframe-level (e.g. annual) bounds and <code>ceff$afc.*</code> for per-commodity bounds.</p>
+<dl><dt>vintage</dt>
 <dd><p>character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
 
 <dt>cluster</dt>
@@ -371,7 +386,8 @@ documentation.</p>
 
 
 <dt id="arg-afs">afs<a class="anchor" aria-label="anchor" href="#arg-afs"></a></dt>
-<dd><p>data.frame. Timeframe-level availability factor constraints.</p><dl><dt>vintage</dt>
+<dd><p>data.frame. Timeframe-level availability factor constraints, bounding activity summed over all child timeslices of the named timeslice relative to installed capacity. With <code>timeslice = "ANNUAL"</code> this is the annual capacity-factor bound (TIMES <code>NCAP_AFS</code>, OSeMOSYS <code>AvailabilityFactor</code>), e.g. <code>afs.lo = 0.4</code> requires at least 40% annual utilization. Unlike <code>af</code>, <code>afs</code> rows are not disaggregated to finer timeslices; they always constrain the sum over the given timeframe.</p>
+<dl><dt>vintage</dt>
 <dd><p>character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
 
 <dt>cluster</dt>
@@ -390,7 +406,7 @@ documentation.</p>
 <dd><p>numeric. Lower bound on the availability factor for the timeframe, default is 0.</p></dd>
 
 <dt>afs.up</dt>
-<dd><p>numeric. Upper bound on the availability factor for the timeframe, default is 1.</p></dd>
+<dd><p>numeric. Upper bound on the availability factor for the timeframe, default is <code>Inf</code> (unbounded), in contrast to <code>af.up</code> which defaults to 1.</p></dd>
 
 <dt>afs.fx</dt>
 <dd><p>numeric. Fixed availability factor for the timeframe, ignored if NA. This parameter overrides <code>afs.lo</code> and <code>afs.up</code>.</p></dd>

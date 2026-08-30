@@ -11,7 +11,7 @@ compare_solve_settings(
   ...,
   name = "cmp",
   verbose = FALSE,
-  tmp.dir = NULL
+  solver.dir = NULL
 )
 }
 \arguments{
@@ -31,8 +31,8 @@ from the list names when present, otherwise from each option's \verb{$name}.}
 
 \item{verbose}{forwarded to \code{interp_mod()}.}
 
-\item{tmp.dir}{solver working directory (passed to \code{\link[=solve_scen]{solve_scen()}}); \code{NULL}
-lets the solver pick one.}
+\item{solver.dir}{external solver working directory (passed to
+\code{\link[=solve_scenario]{solve_scenario()}}); \code{NULL} solves into each scenario's own run directory.}
 }
 \value{
 an object of class \code{solve_settings_cmp}: \code{summary} (one row per
@@ -55,5 +55,5 @@ compare_solve_settings(mod,
 }
 }
 \seealso{
-\code{\link[=compare_interp_settings]{compare_interp_settings()}}, \code{\link[=solve_scen]{solve_scen()}}, \code{\link[=model_size]{model_size()}}
+\code{\link[=compare_interp_settings]{compare_interp_settings()}}, \code{\link[=solve_scenario]{solve_scenario()}}, \code{\link[=model_size]{model_size()}}
 }

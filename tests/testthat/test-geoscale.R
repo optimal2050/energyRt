@@ -5,13 +5,13 @@
 skip_if_no_geoscales <- function() skip_if_not_installed("geoscales")
 
 demo_gs <- function() {
-  geoscales::geoscale_from_leaves(
+  geoscales::geoscale_from_leaftable(
     data.frame(
       zone   = c("N", "N", "S", "S"),
       region = c("R1", "R2", "R3", "R4"),
       km2    = c(10, 20, 30, 40)
     ),
-    levels = c("zone", "region"),
+    geoframes = c("zone", "region"),
     name = "demo"
   )
 }
@@ -106,13 +106,13 @@ test_that("check_geoscale_regions warns only about uncovered regions", {
 
 # The variable catalogue drives the aggregation rules -------------------------
 
-test_that("flow variables are identified from the catalogue, not a list", {
-  expect_true(.is_flow_var("vTradeIr"))
-  expect_false(.is_flow_var("vTechOut"))
+test_that("interregional variables are identified from the catalogue, not a list", {
+  expect_true(.is_interregional_var("vTradeIr"))
+  expect_false(.is_interregional_var("vTechOut"))
   # If a second inter-regional variable is ever declared, the netting path
   # must be revisited -- this pins the assumption.
   spec <- .variables
-  flows <- names(spec)[vapply(spec, function(z) identical(z$role, "flow"),
+  flows <- names(spec)[vapply(spec, function(z) identical(z$role, "interregional"),
                               logical(1))]
   expect_equal(flows, "vTradeIr")
   # role and dimensions agree independently
@@ -131,7 +131,7 @@ test_that("the temporal stock rule does NOT carry over to space", {
   # `role: stock` means "never summed over timeslices". Summing a storage level
   # across regions is meaningful, so it must aggregate normally here.
   expect_true(.is_state_var("vStorageLevel"))
-  expect_false(.is_flow_var("vStorageLevel"))
+  expect_false(.is_interregional_var("vStorageLevel"))
 
   gs <- demo_gs()
   x <- data.frame(region = c("R1", "R2", "R3", "R4"), value = c(1, 2, 3, 4))
@@ -199,15 +199,15 @@ test_that("the src/dst shape is netted even without a variable name", {
 test_that("utopia_geoscale builds, with and without geometry", {
   skip_if_no_geoscales()
   g0 <- utopia_geoscale(layout = NULL)
-  expect_equal(geoscales::geo_levels(g0), c("nation", "zone", "region"))
-  expect_setequal(geoscales::geo_regions(g0, "region"), paste0("R", 1:11))
-  expect_equal(geoscales::geo_children(g0, "zone", "WEST"),
+  expect_equal(geoscales::geoscale_geoframes(g0), c("nation", "zone", "region"))
+  expect_setequal(geoscales::geoscale_regions(g0, "region"), paste0("R", 1:11))
+  expect_equal(geoscales::geoscale_children(g0, "zone", "WEST"),
                c("R1", "R2", "R3"))
 
   skip_if_not_installed("sf")
   gs <- utopia_geoscale()
-  expect_equal(geoscales::geo_weights(gs), "area")
-  expect_equal(nrow(geoscales::geo_geometry(gs, "zone")), 3L)
+  expect_equal(geoscales::geoscale_weights(gs), "area")
+  expect_equal(nrow(geoscales::geoscale_geometry(gs, "zone")), 3L)
 
   # every layout shares the region names, so the hierarchy fits all of them
   for (nm in names(utopia$map)) {
@@ -238,12 +238,12 @@ test_that("utopia_geoscale reaches its data the way an INSTALL does", {
 test_that("utopia_geoscale can be subset to a model's regions", {
   skip_if_no_geoscales()
   gs <- utopia_geoscale(layout = NULL, region = c("R1", "R2", "R3"))
-  expect_setequal(geoscales::geo_regions(gs, "region"), c("R1", "R2", "R3"))
-  expect_equal(geoscales::geo_regions(gs, "zone"), "WEST")
+  expect_setequal(geoscales::geoscale_regions(gs, "region"), c("R1", "R2", "R3"))
+  expect_equal(geoscales::geoscale_regions(gs, "zone"), "WEST")
   expect_error(utopia_geoscale(region = "R99"), "Unknown UTOPIA region")
 })
 
-test_that("plot_map delegates drawing to geoscales::geo_plot", {
+test_that("plot_map delegates drawing to geoscales::geoscale_plot", {
   skip_if_no_geoscales()
   skip_if_not_installed("sf")
   skip_if_not_installed("ggplot2")
@@ -252,8 +252,8 @@ test_that("plot_map delegates drawing to geoscales::geo_plot", {
   # it. This pins the handover: the plot must carry the viridis scale, the
   # titles energyRt composes, and no legend key -- the same output as when
   # plot_map built the ggplot itself.
-  skip_if(!("palette" %in% names(formals(geoscales::geo_plot))),
-          "installed geoscales predates the geo_plot() enrichment")
+  skip_if(!("palette" %in% names(formals(geoscales::geoscale_plot))),
+          "installed geoscales predates the geoscale_plot() enrichment")
 
   regs <- c("R1", "R2")
   mod <- setGeoscale(vt_model(name = "gm", regions = regs),

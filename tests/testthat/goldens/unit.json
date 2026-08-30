@@ -1,0 +1,532 @@
+{
+  "base_U1": {
+    "objective": 8,
+    "values": {
+      "vTechNewCap": {
+        "annual_region": [
+          {
+            "tech": "E1",
+            "region": "R1",
+            "year": 2025,
+            "value": 4
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "E1",
+            "year": 2025,
+            "value": 4
+          }
+        ]
+      },
+      "vTechOut": {
+        "annual_region": [
+          {
+            "tech": "E1",
+            "comm": "ELC",
+            "region": "R1",
+            "year": 2025,
+            "value": 4
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "E1",
+            "comm": "ELC",
+            "year": 2025,
+            "value": 4
+          }
+        ]
+      },
+      "vTechInp": {
+        "annual_region": [
+          {
+            "tech": "E1",
+            "comm": "PRM",
+            "region": "R1",
+            "year": 2025,
+            "value": 4
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "E1",
+            "comm": "PRM",
+            "year": 2025,
+            "value": 4
+          }
+        ]
+      },
+      "vSupOut": {
+        "annual_region": [
+          {
+            "sup": "SUP_PRM",
+            "comm": "PRM",
+            "region": "R1",
+            "year": 2025,
+            "value": 4
+          }
+        ],
+        "annual_total": [
+          {
+            "sup": "SUP_PRM",
+            "comm": "PRM",
+            "year": 2025,
+            "value": 4
+          }
+        ]
+      },
+      "vDemInp": {
+        "annual_region": [
+          {
+            "comm": "ELC",
+            "region": "R1",
+            "year": 2025,
+            "value": 4
+          }
+        ],
+        "annual_total": [
+          {
+            "comm": "ELC",
+            "year": 2025,
+            "value": 4
+          }
+        ]
+      }
+    },
+    "captured": {
+      "date": "2026-08-25",
+      "version": "0.87.5.9000",
+      "solver": "glpk"
+    }
+  },
+  "trade_U3": {
+    "objective": 36,
+    "values": {
+      "vTechNewCap": {
+        "annual_region": [
+          {
+            "tech": "E1",
+            "region": "R1",
+            "year": 2025,
+            "value": 12
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "E1",
+            "year": 2025,
+            "value": 12
+          }
+        ]
+      },
+      "vTechOut": {
+        "annual_region": [
+          {
+            "tech": "E1",
+            "comm": "ELC",
+            "region": "R1",
+            "year": 2025,
+            "value": 12
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "E1",
+            "comm": "ELC",
+            "year": 2025,
+            "value": 12
+          }
+        ]
+      },
+      "vTechInp": {
+        "annual_region": [
+          {
+            "tech": "E1",
+            "comm": "PRM",
+            "region": "R1",
+            "year": 2025,
+            "value": 12
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "E1",
+            "comm": "PRM",
+            "year": 2025,
+            "value": 12
+          }
+        ]
+      },
+      "vSupOut": {
+        "annual_region": [
+          {
+            "sup": "SUP_PRM",
+            "comm": "PRM",
+            "region": "R1",
+            "year": 2025,
+            "value": 12
+          }
+        ],
+        "annual_total": [
+          {
+            "sup": "SUP_PRM",
+            "comm": "PRM",
+            "year": 2025,
+            "value": 12
+          }
+        ]
+      },
+      "vDemInp": {
+        "annual_region": [
+          {
+            "comm": "ELC",
+            "region": "R1",
+            "year": 2025,
+            "value": 4
+          },
+          {
+            "comm": "ELC",
+            "region": "R2",
+            "year": 2025,
+            "value": 4
+          },
+          {
+            "comm": "ELC",
+            "region": "R3",
+            "year": 2025,
+            "value": 4
+          }
+        ],
+        "annual_total": [
+          {
+            "comm": "ELC",
+            "year": 2025,
+            "value": 12
+          }
+        ]
+      }
+    },
+    "captured": {
+      "date": "2026-08-25",
+      "version": "0.87.5.9000",
+      "solver": "glpk"
+    }
+  },
+  "curve_U1": {
+    "objective": 10,
+    "values": {
+      "vTechNewCap": {
+        "annual_region": [
+          {
+            "tech": "E1",
+            "region": "R1",
+            "year": 2025,
+            "value": 4
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "E1",
+            "year": 2025,
+            "value": 4
+          }
+        ]
+      },
+      "vTechOut": {
+        "annual_region": [
+          {
+            "tech": "E1",
+            "comm": "ELC",
+            "region": "R1",
+            "year": 2025,
+            "value": 4
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "E1",
+            "comm": "ELC",
+            "year": 2025,
+            "value": 4
+          }
+        ]
+      },
+      "vTechInp": {
+        "annual_region": [
+          {
+            "tech": "E1",
+            "comm": "PRM",
+            "region": "R1",
+            "year": 2025,
+            "value": 4
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "E1",
+            "comm": "PRM",
+            "year": 2025,
+            "value": 4
+          }
+        ]
+      },
+      "vSupOut": {
+        "annual_region": [
+          {
+            "sup": "SUP_PRM_CLS1",
+            "comm": "PRM",
+            "region": "R1",
+            "year": 2025,
+            "value": 2
+          },
+          {
+            "sup": "SUP_PRM_CLS2",
+            "comm": "PRM",
+            "region": "R1",
+            "year": 2025,
+            "value": 2
+          }
+        ],
+        "annual_total": [
+          {
+            "sup": "SUP_PRM_CLS1",
+            "comm": "PRM",
+            "year": 2025,
+            "value": 2
+          },
+          {
+            "sup": "SUP_PRM_CLS2",
+            "comm": "PRM",
+            "year": 2025,
+            "value": 2
+          }
+        ]
+      },
+      "vDemInp": {
+        "annual_region": [
+          {
+            "comm": "ELC",
+            "region": "R1",
+            "year": 2025,
+            "value": 4
+          }
+        ],
+        "annual_total": [
+          {
+            "comm": "ELC",
+            "year": 2025,
+            "value": 4
+          }
+        ]
+      }
+    },
+    "captured": {
+      "date": "2026-08-25",
+      "version": "0.87.5.9000",
+      "solver": "glpk"
+    }
+  },
+  "solar_U1": {
+    "objective": 10,
+    "values": {
+      "vTechNewCap": {
+        "annual_region": [
+          {
+            "tech": "ESUN",
+            "region": "R1",
+            "year": 2025,
+            "value": 8
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "ESUN",
+            "year": 2025,
+            "value": 8
+          }
+        ]
+      },
+      "vTechOut": {
+        "annual_region": [
+          {
+            "tech": "ESUN",
+            "comm": "ELC",
+            "region": "R1",
+            "year": 2025,
+            "value": 4
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "ESUN",
+            "comm": "ELC",
+            "year": 2025,
+            "value": 4
+          }
+        ]
+      },
+      "vTechInp": {
+        "annual_region": [
+          {
+            "tech": "ESUN",
+            "comm": "SUN",
+            "region": "R1",
+            "year": 2025,
+            "value": 4
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "ESUN",
+            "comm": "SUN",
+            "year": 2025,
+            "value": 4
+          }
+        ]
+      },
+      "vSupOut": {
+        "annual_region": [
+          {
+            "sup": "RES_SUN",
+            "comm": "SUN",
+            "region": "R1",
+            "year": 2025,
+            "value": 4
+          }
+        ],
+        "annual_total": [
+          {
+            "sup": "RES_SUN",
+            "comm": "SUN",
+            "year": 2025,
+            "value": 4
+          }
+        ]
+      },
+      "vDemInp": {
+        "annual_region": [
+          {
+            "comm": "ELC",
+            "region": "R1",
+            "year": 2025,
+            "value": 4
+          }
+        ],
+        "annual_total": [
+          {
+            "comm": "ELC",
+            "year": 2025,
+            "value": 4
+          }
+        ]
+      }
+    },
+    "captured": {
+      "date": "2026-08-25",
+      "version": "0.87.5.9000",
+      "solver": "glpk"
+    }
+  },
+  "basesolar_U1": {
+    "objective": 8,
+    "values": {
+      "vTechNewCap": {
+        "annual_region": [
+          {
+            "tech": "E1",
+            "region": "R1",
+            "year": 2025,
+            "value": 4
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "E1",
+            "year": 2025,
+            "value": 4
+          }
+        ]
+      },
+      "vTechOut": {
+        "annual_region": [
+          {
+            "tech": "E1",
+            "comm": "ELC",
+            "region": "R1",
+            "year": 2025,
+            "value": 4
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "E1",
+            "comm": "ELC",
+            "year": 2025,
+            "value": 4
+          }
+        ]
+      },
+      "vTechInp": {
+        "annual_region": [
+          {
+            "tech": "E1",
+            "comm": "PRM",
+            "region": "R1",
+            "year": 2025,
+            "value": 4
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "E1",
+            "comm": "PRM",
+            "year": 2025,
+            "value": 4
+          }
+        ]
+      },
+      "vSupOut": {
+        "annual_region": [
+          {
+            "sup": "SUP_PRM",
+            "comm": "PRM",
+            "region": "R1",
+            "year": 2025,
+            "value": 4
+          }
+        ],
+        "annual_total": [
+          {
+            "sup": "SUP_PRM",
+            "comm": "PRM",
+            "year": 2025,
+            "value": 4
+          }
+        ]
+      },
+      "vDemInp": {
+        "annual_region": [
+          {
+            "comm": "ELC",
+            "region": "R1",
+            "year": 2025,
+            "value": 4
+          }
+        ],
+        "annual_total": [
+          {
+            "comm": "ELC",
+            "year": 2025,
+            "value": 4
+          }
+        ]
+      }
+    },
+    "captured": {
+      "date": "2026-08-25",
+      "version": "0.87.5.9000",
+      "solver": "glpk"
+    }
+  }
+}

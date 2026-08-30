@@ -50,12 +50,6 @@ Path to a standalone GLPK installation containing the \code{glpsol} executable. 
 \item{envvar: }{ENERGYRT_GLPK_PATH (evaluated if possible, raw string otherwise)}
 }}
 
-\item{mosox_path}{\describe{
-Path to the directory containing the \code{mosox} executable.\item{default: }{\preformatted{NULL}}
-\item{option: }{en.mosox_path}
-\item{envvar: }{ENERGYRT_MOSOX_PATH (evaluated if possible, raw string otherwise)}
-}}
-
 \item{neos_email}{\describe{
 Email address for NEOS Server job submission (required by NEOS). Read from the \code{NEOS_EMAIL} environment variable if the option is unset.\item{default: }{\preformatted{NULL}}
 \item{option: }{en.neos_email}
@@ -80,10 +74,52 @@ Root directory for scenario folders. Scenario paths and solver working directori
 \item{envvar: }{ENERGYRT_SCENARIOS_PATH (evaluated if possible, raw string otherwise)}
 }}
 
-\item{default_registry}{\describe{
-Where the registry of repositories, models and scenarios lives: a list with the object \code{name} and the environment \code{env} holding it.\item{default: }{\preformatted{list(name = "registry", env = ".scen")}}
-\item{option: }{en.default_registry}
-\item{envvar: }{ENERGYRT_DEFAULT_REGISTRY (evaluated if possible, raw string otherwise)}
+\item{registry_file}{\describe{
+Path to the project registry CSV indexing saved models, scenarios and runs. Kept at the project root, a sibling of the scenarios/ and models/ stores, so one registry spans both.\item{default: }{\preformatted{"energyRt_registry.csv"}}
+\item{option: }{en.registry_file}
+\item{envvar: }{ENERGYRT_REGISTRY_FILE (evaluated if possible, raw string otherwise)}
+}}
+
+\item{models_path}{\describe{
+Root directory for the model store. save_model() writes content-addressed model folders (\if{html}{\out{<name>}}@\if{html}{\out{<hash8>}}) underneath it.\item{default: }{\preformatted{"models/"}}
+\item{option: }{en.models_path}
+\item{envvar: }{ENERGYRT_MODELS_PATH (evaluated if possible, raw string otherwise)}
+}}
+
+\item{repositories_path}{\describe{
+Root directory for the repository store. save_repository() writes content-addressed repository folders (\if{html}{\out{<name>}}@\if{html}{\out{<hash8>}}) underneath it.\item{default: }{\preformatted{"repositories/"}}
+\item{option: }{en.repositories_path}
+\item{envvar: }{ENERGYRT_REPOSITORIES_PATH (evaluated if possible, raw string otherwise)}
+}}
+
+\item{datasets_path}{\describe{
+Root directory for the dataset store. save_dataset() writes content-addressed dataset folders (\if{html}{\out{<name>}}@\if{html}{\out{<hash8>}}) underneath it.\item{default: }{\preformatted{"datasets/"}}
+\item{option: }{en.datasets_path}
+\item{envvar: }{ENERGYRT_DATASETS_PATH (evaluated if possible, raw string otherwise)}
+}}
+
+\item{log_file}{\describe{
+Optional operation-log CSV. Empty (default) = logging off; a path makes interpolate_model()/solve_scenario()/solve_myopic() append one line per operation. Read it back with read_log().\item{default: }{\preformatted{""}}
+\item{option: }{en.log_file}
+\item{envvar: }{ENERGYRT_LOG_FILE (evaluated if possible, raw string otherwise)}
+}}
+
+\item{store_versioning}{\describe{
+How the model/repository/dataset stores name their entries. "none" (default): one human-readable folder per name (models/UTOPIA/), updated in place; the content hash lives in the manifest and misc$hash for no-op detection and reference verification. "hash": content-addressed \if{html}{\out{<name>}}@\if{html}{\out{<hash8>}} folders; every content change is a NEW entry and versions coexist.\item{default: }{\preformatted{"none"}}
+\item{option: }{en.store_versioning}
+\item{envvar: }{ENERGYRT_STORE_VERSIONING (evaluated if possible, raw string otherwise)}
+}}
+
+\item{reports_path}{\describe{
+Default directory for rendered reports of IN-MEMORY objects (treated as temporary output). Reports of saved objects land inside the owning folder (\if{html}{\out{<scenario>}}/reports/, \if{html}{\out{<model store entry>}}/reports/) instead.\item{default: }{\preformatted{"reports/"}}
+\item{option: }{en.reports_path}
+\item{envvar: }{ENERGYRT_REPORTS_PATH (evaluated if possible, raw string otherwise)}
+}}
+
+\item{levcost_cache_path}{\describe{
+Default directory for cached levcost results of IN-MEMORY objects (treated as temporary). Results for saved objects are cached inside the owning folder (\if{html}{\out{<owner>}}/levcost/) instead.\item{default: }{\preformatted{"levcosts/"}}
+\item{option: }{en.levcost_cache_path}
+\item{envvar: }{ENERGYRT_LEVCOST_CACHE_PATH (evaluated if possible, raw string otherwise)}
 }}
 
 \item{arrow_format}{\describe{

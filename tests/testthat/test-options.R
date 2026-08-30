@@ -66,7 +66,7 @@ test_that(".en_option_names() keeps options whose value is NULL", {
   # element removes it. This is what the helper exists to avoid.
   nms <- .en_option_names()
   expect_true(all(c("gams_path", "julia_path", "python_path", "glpk_path",
-                    "gdxlib_path", "mosox_path", "neos_email") %in% nms))
+                    "gdxlib_path", "neos_email") %in% nms))
 })
 
 test_that("declared defaults are what the getters return", {
@@ -79,7 +79,8 @@ test_that("declared defaults are what the getters return", {
     expect_identical(get_arrow_compression(), "zstd")
     expect_identical(get_arrow_compression_level(), 15L)
     expect_identical(get_default_solver(), list(name = "glpk", lang = "GLPK"))
-    expect_identical(which_registry(), list(name = "registry", env = ".scen"))
+    expect_identical(get_registry_file(), "energyRt_registry.csv")
+    expect_identical(get_models_path(), "models/")
     expect_false(isVerbose())
     expect_false(isDebug())
   })
@@ -126,8 +127,7 @@ test_that("set_solver_path() and the per-backend wrappers agree", {
     gdxlib = list(set_gdxlib_path, get_gdxlib_path),
     glpk   = list(set_glpk_path,   get_glpk_path),
     python = list(set_python_path, get_python_path),
-    julia  = list(set_julia_path,  get_julia_path),
-    mosox  = list(set_mosox_path,  get_mosox_path)
+    julia  = list(set_julia_path,  get_julia_path)
   )
   with_clean_options({
     for (backend in names(pairs)) {

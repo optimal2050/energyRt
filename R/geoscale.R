@@ -13,7 +13,7 @@
 #
 #  * MODEL STRUCTURE. `sets$region` becomes the union of every level, so a
 #    coarse region such as a nation is a member alongside the states, and a
-#    commodity may declare `@geolevel` to be balanced there instead
+#    commodity may declare `@geoframe` to be balanced there instead
 #    (`mCommRegion`, `mRegionFamily` -- see map_region.R). Attaching a geoscale
 #    alone changes nothing observable: the extra members are inert until some
 #    commodity names a coarser level, which is what Verification 2 pins.
@@ -51,9 +51,9 @@ NULL
 #'
 #' @examples
 #' \dontrun{
-#' gs <- geoscales::geoscale_from_leaves(
+#' gs <- geoscales::geoscale_from_leaftable(
 #'   data.frame(zone = c("N", "N", "S"), region = c("R1", "R2", "R3")),
-#'   levels = c("zone", "region")
+#'   geoframes = c("zone", "region")
 #' )
 #' mod <- newModel("demo", region = c("R1", "R2", "R3"), geoscale = gs)
 #' getGeoscale(mod)
@@ -137,7 +137,7 @@ check_geoscale_regions <- function(geoscale, region, level = NULL) {
   if (is.null(geoscale)) return(invisible(character()))
   check_package("geoscales")
   level <- level %||% .geo_default_level(geoscale)
-  known <- geoscales::geo_regions(geoscale, level)
+  known <- geoscales::geoscale_regions(geoscale, level)
 
   region <- as.character(region)
   region <- region[!is.na(region) & nzchar(region)]
@@ -165,7 +165,7 @@ check_geoscale_regions <- function(geoscale, region, level = NULL) {
 #' @noRd
 .geo_default_level <- function(geoscale) {
   check_package("geoscales")
-  geoscales::geo_levels(geoscale, finest = TRUE)
+  geoscales::geoscale_geoframes(geoscale, finest = TRUE)
 }
 
 # Region hierarchy -------------------------------------------------------------
@@ -185,7 +185,7 @@ check_geoscale_regions <- function(geoscale, region, level = NULL) {
   if (is.null(geoscale)) return(NULL)
   check_package("geoscales")
 
-  levels <- geoscales::geo_levels(geoscale)
+  levels <- geoscales::geoscale_geoframes(geoscale)
   if (length(levels) < 2L) return(NULL)
   finest <- levels[length(levels)]
 
@@ -193,17 +193,33 @@ check_geoscale_regions <- function(geoscale, region, level = NULL) {
   declared <- declared[!is.na(declared) & nzchar(declared)]
   if (length(declared) == 0L) return(NULL)
 
-  fam <- as.data.frame(geoscales::geo_family(geoscale))
+  fam <- as.data.frame(geoscales::geoscale_family(geoscale))
+
+  # geoscales renamed the family table's level columns to `*_geoframe` (the
+  # lattice rename). Reading the OLD names silently yields `logical(0)` from the
+  # filter below, so every geoscale collapses to a one-level hierarchy and the
+  # whole multi-level region feature goes dark without an error. Accept either
+  # spelling, and say so loudly if neither is present rather than degrading.
+  .fam_col <- function(which) {
+    for (nm in paste0(which, c("_geoframe", "_level"))) {
+      if (nm %in% names(fam)) return(fam[[nm]])
+    }
+    stop("geoscale_family() has neither `", which, "_geoframe` nor `", which,
+         "_level`; energyRt cannot read the region hierarchy. Columns: ",
+         paste(names(fam), collapse = ", "), call. = FALSE)
+  }
+  fam_parent_level <- .fam_col("parent")
+  fam_child_level  <- .fam_col("child")
 
   # level -> the codes of that level that survive pruning.
   keep <- list()
-  keep[[finest]] <- intersect(geoscales::geo_regions(geoscale, finest),
+  keep[[finest]] <- intersect(geoscales::geoscale_regions(geoscale, finest),
                               declared)
   pairs <- list()
   for (i in rev(seq_len(length(levels) - 1L))) {
     pl <- levels[i]
     cl <- levels[i + 1L]
-    f <- fam[fam$parent_level == pl & fam$child_level == cl &
+    f <- fam[fam_parent_level == pl & fam_child_level == cl &
                fam$child %in% keep[[cl]], , drop = FALSE]
     keep[[pl]] <- unique(f$parent)
     if (nrow(f) > 0L) {
@@ -265,7 +281,7 @@ check_geoscale_regions <- function(geoscale, region, level = NULL) {
 }
 
 # Regions at a named level, pruned to the model. `level = NULL` (a commodity
-# with no `@geolevel`) means the finest level, i.e. today's flat behaviour.
+# with no `@geoframe`) means the finest level, i.e. today's flat behaviour.
 #' @noRd
 .geo_level_regions <- function(hier, level = NULL) {
   if (is.null(hier)) return(NULL)

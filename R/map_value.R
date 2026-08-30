@@ -28,8 +28,23 @@
   mTechVarom    = list(source = "pTechVarom",   window = "mTechSpan"),
   mTechRetCost  = list(source = "pTechRetCost", window = NULL,
                        gate = "optimizeRetirement"),
+  # One retirement-cost domain per storage, spanning the three parts -- the
+  # cost equation sums them into a single `vStorageRetCost`, as eqStorageEac
+  # does for the annuity.
+  mStorageRetCost = list(source = c("pStorageOutRetCost", "pStorageInpRetCost",
+                                    "pStorageStgRetCost"),
+                         window = NULL, gate = "optimizeRetirement"),
+  mTradeRetCost   = list(source = "pTradeRetCost", window = NULL,
+                         gate = "optimizeRetirement"),
   # storage
-  mStorageFixom = list(source = "pStorageFixom", window = "mStorageSpan"),
+  # Spans the three parts, like `mStorageRetCost` above and for the same reason:
+  # `eqStorageFixom` sums all three into a single `vStorageFixom`, with the
+  # storing and charging terms as guarded sums INSIDE the equation. Sourced from
+  # the out part alone, a storage priced only on its reservoir got no equation at
+  # all and its fixed O&M silently left the objective.
+  mStorageFixom = list(source = c("pStorageOutFixom", "pStorageInpFixom",
+                                  "pStorageStgFixom"),
+                       window = "mStorageSpan"),
   mStorageVarom = list(source = c("pStorageCostInp", "pStorageCostOut",
                                   "pStorageCostStore"),
                        window = "mStorageSpan"),
@@ -40,24 +55,31 @@
   #
   # `@storage$comm` is deliberately NOT a source: naming a commodity is
   # metadata, not data. Were it included, every storage would acquire an energy
-  # capacity variable and `cinp.up`/`cout.up` defaulting to .inf would let the
+  # capacity variable and `inp.af.up`/`out.af.up` defaulting to .inf would let the
   # LP drive it to zero -- a priced-but-unbounded capacity vanishing silently.
+  #
+  # `pStorage*Eac` IS a source, alongside its `pStorage*Invcost` sibling. Both
+  # are a price on the part, so both are data by the same rule. Omitting the eac
+  # produced exactly the failure the line above warns about, only from the other
+  # direction: `mStorage*Eac` still built an objective term, so the LP carried a
+  # capacity variable that was priced but appeared in no constraint, and drove it
+  # to zero. An `eac`-financed charging or storing part was silently free.
   mStorageStgCap = list(source = c("pStorageStgStock", "pStorageStgCap",
                                    "pStorageStgNewCap", "pStorageStgInvcost",
-                                   "pStorageStgFixom"),
+                                   "pStorageStgEac", "pStorageStgFixom"),
                         window = "mStorageSpan"),
   mStorageStgNew = list(source = c("pStorageStgStock", "pStorageStgCap",
                                    "pStorageStgNewCap", "pStorageStgInvcost",
-                                   "pStorageStgFixom"),
+                                   "pStorageStgEac", "pStorageStgFixom"),
                         window = "mStorageNew"),
   # The charging part, same structure-follows-data gate as the storing part.
   mStorageInpCap = list(source = c("pStorageInpStock", "pStorageInpCap",
                                    "pStorageInpNewCap", "pStorageInpInvcost",
-                                   "pStorageInpFixom"),
+                                   "pStorageInpEac", "pStorageInpFixom"),
                         window = "mStorageSpan"),
   mStorageInpNew = list(source = c("pStorageInpStock", "pStorageInpCap",
                                    "pStorageInpNewCap", "pStorageInpInvcost",
-                                   "pStorageInpFixom"),
+                                   "pStorageInpEac", "pStorageInpFixom"),
                         window = "mStorageNew"),
   mStorageInpFixom = list(source = "pStorageInpFixom", window = "mStorageSpan"),
   mStorageInpEac   = list(source = "pStorageInpEac",   window = "mStorageNew"),
@@ -83,10 +105,10 @@
   mTechWeatherAfcLo     = list(source = "pTechWeatherAfc",     types = c("lo", "fx")),
   mStorageWeatherAfUp   = list(source = "pStorageWeatherAf",   types = c("up", "fx")),
   mStorageWeatherAfLo   = list(source = "pStorageWeatherAf",   types = c("lo", "fx")),
-  mStorageWeatherCinpUp = list(source = "pStorageWeatherCinp", types = c("up", "fx")),
-  mStorageWeatherCinpLo = list(source = "pStorageWeatherCinp", types = c("lo", "fx")),
-  mStorageWeatherCoutUp = list(source = "pStorageWeatherCout", types = c("up", "fx")),
-  mStorageWeatherCoutLo = list(source = "pStorageWeatherCout", types = c("lo", "fx")),
+  mStorageWeatherInpAfUp = list(source = "pStorageWeatherInpAf", types = c("up", "fx")),
+  mStorageWeatherInpAfLo = list(source = "pStorageWeatherInpAf", types = c("lo", "fx")),
+  mStorageWeatherOutAfUp = list(source = "pStorageWeatherOutAf", types = c("up", "fx")),
+  mStorageWeatherOutAfLo = list(source = "pStorageWeatherOutAf", types = c("lo", "fx")),
   mSupWeatherUp         = list(source = "pSupWeather",         types = c("up", "fx")),
   mSupWeatherLo         = list(source = "pSupWeather",         types = c("lo", "fx"))
 )
@@ -106,6 +128,8 @@ map_mTechInv      <- function(scen, fmp) .value_std(scen, "mTechInv", fmp)
 map_mTechFixom    <- function(scen, fmp) .value_std(scen, "mTechFixom", fmp)
 map_mTechVarom    <- function(scen, fmp) .value_std(scen, "mTechVarom", fmp)
 map_mTechRetCost  <- function(scen, fmp) .value_std(scen, "mTechRetCost", fmp)
+map_mStorageRetCost <- function(scen, fmp) .value_std(scen, "mStorageRetCost", fmp)
+map_mTradeRetCost   <- function(scen, fmp) .value_std(scen, "mTradeRetCost", fmp)
 map_mStorageFixom <- function(scen, fmp) .value_std(scen, "mStorageFixom", fmp)
 map_mStorageStgCap   <- function(scen, fmp) .value_std(scen, "mStorageStgCap", fmp)
 map_mStorageInpCap   <- function(scen, fmp) .value_std(scen, "mStorageInpCap", fmp)
@@ -152,10 +176,10 @@ map_mTechWeatherAfcUp     <- function(scen, fmp) .value_weather(scen, "mTechWeat
 map_mTechWeatherAfcLo     <- function(scen, fmp) .value_weather(scen, "mTechWeatherAfcLo", fmp)
 map_mStorageWeatherAfUp   <- function(scen, fmp) .value_weather(scen, "mStorageWeatherAfUp", fmp)
 map_mStorageWeatherAfLo   <- function(scen, fmp) .value_weather(scen, "mStorageWeatherAfLo", fmp)
-map_mStorageWeatherCinpUp <- function(scen, fmp) .value_weather(scen, "mStorageWeatherCinpUp", fmp)
-map_mStorageWeatherCinpLo <- function(scen, fmp) .value_weather(scen, "mStorageWeatherCinpLo", fmp)
-map_mStorageWeatherCoutUp <- function(scen, fmp) .value_weather(scen, "mStorageWeatherCoutUp", fmp)
-map_mStorageWeatherCoutLo <- function(scen, fmp) .value_weather(scen, "mStorageWeatherCoutLo", fmp)
+map_mStorageWeatherInpAfUp <- function(scen, fmp) .value_weather(scen, "mStorageWeatherInpAfUp", fmp)
+map_mStorageWeatherInpAfLo <- function(scen, fmp) .value_weather(scen, "mStorageWeatherInpAfLo", fmp)
+map_mStorageWeatherOutAfUp <- function(scen, fmp) .value_weather(scen, "mStorageWeatherOutAfUp", fmp)
+map_mStorageWeatherOutAfLo <- function(scen, fmp) .value_weather(scen, "mStorageWeatherOutAfLo", fmp)
 map_mSupWeatherUp         <- function(scen, fmp) .value_weather(scen, "mSupWeatherUp", fmp)
 map_mSupWeatherLo         <- function(scen, fmp) .value_weather(scen, "mSupWeatherLo", fmp)
 
@@ -163,15 +187,26 @@ map_mSupWeatherLo         <- function(scen, fmp) .value_weather(scen, "mSupWeath
 # mSupSpan: (sup, region) operational span of each supply object (its own regions,
 # defaulting to all model regions when unspecified).
 map_mSupSpan <- function(scen, fmp) {
-  # Declared regions only: a supply sits at the finest level, never at a
-  # geoscale nation or zone.
-  regions <- .model_regions(scen)
+  # A supply spans the regions its COMMODITY is balanced at: the atoms for a
+  # finest-level commodity (the flat case, unchanged), the level's members
+  # for a commodity with a coarse `@geoframe`. Supply is a STRICT-level class
+  # (check_levels.R): a nation-balanced commodity MUST be supplied at the
+  # nation -- and the old blanket atom intersection silently DELETED exactly
+  # that shape, leaving the balance with a free costless vOutTot cell
+  # (energy from nowhere, objective 0, model feasible).
+  atoms <- .model_regions(scen)
+  comm_reg <- .comm_region_df(scen)   # NULL when no geoscale is attached
   res <- apply_to_scenario_data(
     scen = scen, classes = "supply", as_list = TRUE,
     func = function(obj) {
+      allowed <- atoms
+      if (!is.null(comm_reg)) {
+        m <- comm_reg$region[comm_reg$comm == obj@commodity]
+        if (length(m) > 0) allowed <- m
+      }
       regs <- obj@region
-      if (length(regs) == 0 || all(is.na(regs))) regs <- regions
-      regs <- regs[regs %in% regions]
+      if (length(regs) == 0 || all(is.na(regs))) regs <- allowed
+      regs <- regs[regs %in% allowed]
       if (length(regs) == 0) return(NULL)
       out <- list()
       out[[obj@name]] <- data.frame(sup = obj@name, region = regs,
@@ -186,7 +221,7 @@ map_mSupSpan <- function(scen, fmp) {
 # mTechRetirement: technologies with retirement optimisation enabled.
 map_mTechRetirement <- function(scen, fmp) {
   if (!isTRUE(scen@settings@optimizeRetirement)) return(scen)
-  techs <- .retirement_techs(scen)
+  techs <- .retirement_objects(scen, "technology")
   if (length(techs) == 0) return(scen)
   .set_map(scen, "mTechRetirement",
            data.frame(tech = techs, stringsAsFactors = FALSE), fmp)
@@ -229,6 +264,8 @@ map_mSubCost <- function(scen, fmp)
   mTechFixom    = map_mTechFixom,
   mTechVarom    = map_mTechVarom,
   mTechRetCost  = map_mTechRetCost,
+  mStorageRetCost = map_mStorageRetCost,
+  mTradeRetCost = map_mTradeRetCost,
   mStorageFixom = map_mStorageFixom,
   mStorageStgCap = map_mStorageStgCap,
   mStorageInpCap = map_mStorageInpCap,
@@ -254,10 +291,10 @@ map_mSubCost <- function(scen, fmp)
   mTechWeatherAfcLo     = map_mTechWeatherAfcLo,
   mStorageWeatherAfUp   = map_mStorageWeatherAfUp,
   mStorageWeatherAfLo   = map_mStorageWeatherAfLo,
-  mStorageWeatherCinpUp = map_mStorageWeatherCinpUp,
-  mStorageWeatherCinpLo = map_mStorageWeatherCinpLo,
-  mStorageWeatherCoutUp = map_mStorageWeatherCoutUp,
-  mStorageWeatherCoutLo = map_mStorageWeatherCoutLo,
+  mStorageWeatherInpAfUp = map_mStorageWeatherInpAfUp,
+  mStorageWeatherInpAfLo = map_mStorageWeatherInpAfLo,
+  mStorageWeatherOutAfUp = map_mStorageWeatherOutAfUp,
+  mStorageWeatherOutAfLo = map_mStorageWeatherOutAfLo,
   mSupWeatherUp         = map_mSupWeatherUp,
   mSupWeatherLo         = map_mSupWeatherLo,
   mSupSpan        = map_mSupSpan,

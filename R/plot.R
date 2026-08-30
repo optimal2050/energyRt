@@ -1164,8 +1164,8 @@ plot_heatmap <- function(object, calendar = NULL, value = NULL, facet = NULL,
 #' \dontrun{
 #' data("calendars", package = "energyRt")
 #' W <- getObject(utopia_modules$electricity$R3$repo, name = "WSOL", drop = TRUE)
-#' autoplot(W, calendar = calendars$utopia_s4h24)                     # heatmap
-#' autoplot(W, style = "line", calendar = calendars$utopia_s4h24)
+#' autoplot(W, calendar = calendars$s4_h24)                     # heatmap
+#' autoplot(W, style = "line", calendar = calendars$s4_h24)
 #' }
 plot_weather <- function(object, style = c("heatmap", "line", "area"),
                          calendar = NULL, palette = "D",
@@ -1550,7 +1550,8 @@ autoplot.trade <- function(object, map = NULL, ...) {
   check_package("geoscales")
   check_package("sf")
   level <- level %||% .geo_default_level(map)
-  shp <- geoscales::geo_geometry(map, level = level)
+  # energyRt's own vocabulary still says `level`; geoscales' is `geoframe`
+  shp <- geoscales::geoscale_geometry(map, geoframe = level)
   names(shp)[names(shp) == level] <- "region"
   # `st_point_on_surface()` rather than `st_centroid()`: a centroid can fall
   # outside a concave or multipart region, which would hang its routes and
@@ -1717,4 +1718,31 @@ theme_energyRt <- function(base_size = 11, ...) {
   # NB `ggplot2::theme_bw()`, not `theme_energyRt()` -- this is the one place in
   # the package that must call ggplot2 directly, or it recurses into itself.
   ggplot2::theme_bw(base_size = base_size, ...)
+}
+
+# Legend management for many-key fill scales: a list of ggplot components to
+# `+` onto a plot; empty for small legends. Deliberately NOT part of
+# theme_energyRt() -- the theme is data-blind and serves 2-5-key charts where
+# a bottom multi-column legend would waste height; legend policy needs the
+# key count, which only the plot builder knows.
+#' @noRd
+.legend_compact <- function(n_keys, base_size = 11) {
+  if (!is.finite(n_keys) || n_keys <= 8) return(list())
+  list(
+    ggplot2::theme(
+      legend.position = "bottom",
+      legend.text = ggplot2::element_text(
+        size = if (n_keys > 15) base_size - 4 else base_size - 3),
+      legend.key.size = ggplot2::unit(if (n_keys > 15) 3.5 else 4.5, "mm"),
+      legend.margin = ggplot2::margin(0, 0, 0, 0)),
+    ggplot2::guides(fill = ggplot2::guide_legend(
+      ncol = if (n_keys > 15) 4L else 3L, byrow = TRUE)))
+}
+
+# Reorder a discrete fill column so the lump bucket stacks and lists last.
+#' @noRd
+.mix_other_last <- function(x, other = c("Other", "Other processes")) {
+  u <- unique(as.character(x))
+  tail_ <- intersect(other, u)
+  factor(as.character(x), levels = c(setdiff(sort(u), tail_), tail_))
 }

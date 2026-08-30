@@ -1,0 +1,689 @@
+{
+  "tm_core": {
+    "objective": 9921.9914995,
+    "values": {
+      "vTechNewCap": {
+        "annual_region": [
+          {
+            "tech": "ECOA",
+            "region": "R1",
+            "year": 2020,
+            "value": 18
+          },
+          {
+            "tech": "ECOA",
+            "region": "R2",
+            "year": 2020,
+            "value": 24
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "ECOA",
+            "year": 2020,
+            "value": 42
+          }
+        ]
+      },
+      "vTechOut": {
+        "annual_region": [
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "R1",
+            "year": 2020,
+            "value": 18
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "R1",
+            "year": 2025,
+            "value": 18
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "R2",
+            "year": 2020,
+            "value": 17
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "region": "R2",
+            "year": 2025,
+            "value": 12
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "year": 2020,
+            "value": 35
+          },
+          {
+            "tech": "ECOA",
+            "comm": "ELC",
+            "year": 2025,
+            "value": 30
+          }
+        ]
+      },
+      "vTechInp": {
+        "annual_region": [
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "R1",
+            "year": 2020,
+            "value": 18
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "R1",
+            "year": 2025,
+            "value": 18
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "R2",
+            "year": 2020,
+            "value": 17
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "region": "R2",
+            "year": 2025,
+            "value": 12
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "year": 2020,
+            "value": 35
+          },
+          {
+            "tech": "ECOA",
+            "comm": "COA",
+            "year": 2025,
+            "value": 30
+          }
+        ]
+      },
+      "vSupOut": {
+        "annual_region": [
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "region": "R1",
+            "year": 2020,
+            "value": 18
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "region": "R1",
+            "year": 2025,
+            "value": 18
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "region": "R2",
+            "year": 2020,
+            "value": 17
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "region": "R2",
+            "year": 2025,
+            "value": 12
+          }
+        ],
+        "annual_total": [
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "year": 2020,
+            "value": 35
+          },
+          {
+            "sup": "SUP_COA",
+            "comm": "COA",
+            "year": 2025,
+            "value": 30
+          }
+        ]
+      },
+      "vDemInp": {
+        "annual_region": [
+          {
+            "comm": "ELC",
+            "region": "R1",
+            "year": 2020,
+            "value": 18
+          },
+          {
+            "comm": "ELC",
+            "region": "R1",
+            "year": 2025,
+            "value": 18
+          },
+          {
+            "comm": "ELC",
+            "region": "R2",
+            "year": 2020,
+            "value": 11
+          },
+          {
+            "comm": "ELC",
+            "region": "R2",
+            "year": 2025,
+            "value": 11
+          }
+        ],
+        "annual_total": [
+          {
+            "comm": "ELC",
+            "year": 2020,
+            "value": 29
+          },
+          {
+            "comm": "ELC",
+            "year": 2025,
+            "value": 29
+          }
+        ]
+      }
+    },
+    "captured": {
+      "date": "2026-08-24",
+      "version": "0.87.1.9000",
+      "solver": "glpk"
+    }
+  },
+  "tm_flows": {
+    "objective": 34277.4251473,
+    "values": {
+      "vTechNewCap": {
+        "annual_region": [
+          {
+            "tech": "EWIN",
+            "region": "R1",
+            "year": 2020,
+            "value": 40
+          },
+          {
+            "tech": "EWIN",
+            "region": "R2",
+            "year": 2020,
+            "value": 24
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "EWIN",
+            "year": 2020,
+            "value": 64
+          }
+        ]
+      },
+      "vTechOut": {
+        "annual_region": [
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "R1",
+            "year": 2020,
+            "value": 18
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "R1",
+            "year": 2025,
+            "value": 18
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "R2",
+            "year": 2020,
+            "value": 11
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "R2",
+            "year": 2025,
+            "value": 11
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "year": 2020,
+            "value": 29
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "year": 2025,
+            "value": 29
+          }
+        ]
+      },
+      "vDemInp": {
+        "annual_region": [
+          {
+            "comm": "ELC",
+            "region": "R1",
+            "year": 2020,
+            "value": 18
+          },
+          {
+            "comm": "ELC",
+            "region": "R1",
+            "year": 2025,
+            "value": 18
+          },
+          {
+            "comm": "ELC",
+            "region": "R2",
+            "year": 2020,
+            "value": 11
+          },
+          {
+            "comm": "ELC",
+            "region": "R2",
+            "year": 2025,
+            "value": 11
+          }
+        ],
+        "annual_total": [
+          {
+            "comm": "ELC",
+            "year": 2020,
+            "value": 29
+          },
+          {
+            "comm": "ELC",
+            "year": 2025,
+            "value": 29
+          }
+        ]
+      }
+    },
+    "captured": {
+      "date": "2026-08-24",
+      "version": "0.87.1.9000",
+      "solver": "glpk"
+    }
+  },
+  "tm_io": {
+    "objective": 33746.0106044,
+    "values": {
+      "vTechNewCap": {
+        "annual_region": [
+          {
+            "tech": "EWIN",
+            "region": "R1",
+            "year": 2020,
+            "value": 40
+          },
+          {
+            "tech": "EWIN",
+            "region": "R2",
+            "year": 2020,
+            "value": 24
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "EWIN",
+            "year": 2020,
+            "value": 64
+          }
+        ]
+      },
+      "vTechOut": {
+        "annual_region": [
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "R1",
+            "year": 2020,
+            "value": 40
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "R1",
+            "year": 2025,
+            "value": 40
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "R2",
+            "year": 2020,
+            "value": 11
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "R2",
+            "year": 2025,
+            "value": 11
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "year": 2020,
+            "value": 51
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "year": 2025,
+            "value": 51
+          }
+        ]
+      },
+      "vDemInp": {
+        "annual_region": [
+          {
+            "comm": "ELC",
+            "region": "R1",
+            "year": 2020,
+            "value": 18
+          },
+          {
+            "comm": "ELC",
+            "region": "R1",
+            "year": 2025,
+            "value": 18
+          },
+          {
+            "comm": "ELC",
+            "region": "R2",
+            "year": 2020,
+            "value": 11
+          },
+          {
+            "comm": "ELC",
+            "region": "R2",
+            "year": 2025,
+            "value": 11
+          }
+        ],
+        "annual_total": [
+          {
+            "comm": "ELC",
+            "year": 2020,
+            "value": 29
+          },
+          {
+            "comm": "ELC",
+            "year": 2025,
+            "value": 29
+          }
+        ]
+      }
+    },
+    "captured": {
+      "date": "2026-08-24",
+      "version": "0.87.1.9000",
+      "solver": "glpk"
+    }
+  },
+  "tm_policy": {
+    "objective": 33447.4469695,
+    "values": {
+      "vTechNewCap": {
+        "annual_region": [
+          {
+            "tech": "EWIN",
+            "region": "R1",
+            "year": 2020,
+            "value": 40
+          },
+          {
+            "tech": "EWIN",
+            "region": "R2",
+            "year": 2020,
+            "value": 24
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "EWIN",
+            "year": 2020,
+            "value": 64
+          }
+        ]
+      },
+      "vTechOut": {
+        "annual_region": [
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "R1",
+            "year": 2020,
+            "value": 40
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "R1",
+            "year": 2025,
+            "value": 40
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "R2",
+            "year": 2020,
+            "value": 11
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "R2",
+            "year": 2025,
+            "value": 11
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "year": 2020,
+            "value": 51
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "year": 2025,
+            "value": 51
+          }
+        ]
+      },
+      "vDemInp": {
+        "annual_region": [
+          {
+            "comm": "ELC",
+            "region": "R1",
+            "year": 2020,
+            "value": 18
+          },
+          {
+            "comm": "ELC",
+            "region": "R1",
+            "year": 2025,
+            "value": 18
+          },
+          {
+            "comm": "ELC",
+            "region": "R2",
+            "year": 2020,
+            "value": 11
+          },
+          {
+            "comm": "ELC",
+            "region": "R2",
+            "year": 2025,
+            "value": 11
+          }
+        ],
+        "annual_total": [
+          {
+            "comm": "ELC",
+            "year": 2020,
+            "value": 29
+          },
+          {
+            "comm": "ELC",
+            "year": 2025,
+            "value": 29
+          }
+        ]
+      }
+    },
+    "captured": {
+      "date": "2026-08-24",
+      "version": "0.87.1.9000",
+      "solver": "glpk"
+    }
+  },
+  "tm_weather": {
+    "objective": 135773.813654,
+    "values": {
+      "vTechNewCap": {
+        "annual_region": [
+          {
+            "tech": "EWIN",
+            "region": "R1",
+            "year": 2020,
+            "value": 160
+          },
+          {
+            "tech": "EWIN",
+            "region": "R2",
+            "year": 2020,
+            "value": 100
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "EWIN",
+            "year": 2020,
+            "value": 260
+          }
+        ]
+      },
+      "vTechOut": {
+        "annual_region": [
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "R1",
+            "year": 2020,
+            "value": 56
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "R1",
+            "year": 2025,
+            "value": 56
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "R2",
+            "year": 2020,
+            "value": 11
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "region": "R2",
+            "year": 2025,
+            "value": 17.5
+          }
+        ],
+        "annual_total": [
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "year": 2020,
+            "value": 67
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "year": 2025,
+            "value": 73.5
+          }
+        ]
+      },
+      "vDemInp": {
+        "annual_region": [
+          {
+            "comm": "ELC",
+            "region": "R1",
+            "year": 2020,
+            "value": 18
+          },
+          {
+            "comm": "ELC",
+            "region": "R1",
+            "year": 2025,
+            "value": 18
+          },
+          {
+            "comm": "ELC",
+            "region": "R2",
+            "year": 2020,
+            "value": 11
+          },
+          {
+            "comm": "ELC",
+            "region": "R2",
+            "year": 2025,
+            "value": 11
+          }
+        ],
+        "annual_total": [
+          {
+            "comm": "ELC",
+            "year": 2020,
+            "value": 29
+          },
+          {
+            "comm": "ELC",
+            "year": 2025,
+            "value": 29
+          }
+        ]
+      }
+    },
+    "captured": {
+      "date": "2026-08-24",
+      "version": "0.87.1.9000",
+      "solver": "glpk"
+    }
+  }
+}

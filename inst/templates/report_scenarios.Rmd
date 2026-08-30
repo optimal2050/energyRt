@@ -1,0 +1,139 @@
+---
+title: "`r params$title`"
+report-class: scenarios
+output:
+  html_document:
+    self_contained: true
+    md_extensions: "-native_divs-native_spans"
+  pdf_document:
+    latex_engine: xelatex
+  word_document: default
+params:
+  title:          "Scenario comparison"
+  cmp_name:       ""
+  base_name:      ""
+  image_file:     NULL
+  overview_df:    NULL
+  objective_plot: NULL
+  gen_plot:       NULL
+  cap_plot:       NULL
+  newcap_plot:    NULL
+  emis_plot:      NULL
+  emis_df:        NULL
+  cost_df:        NULL
+  costs_plot:     NULL
+  values_df:      NULL
+  top_df:         NULL
+  delta_tbls:     NULL
+  verify_df:      NULL
+  inputs_txt:     NULL
+header-includes:
+  - \usepackage{booktabs}
+---
+
+```{r en-setup, include=FALSE}
+library(ggplot2)
+
+# Shared helpers live in the package (see ?energyRt::report_helpers).
+fmt <- energyRt::report_setup()
+tbl <- function(df, caption = NULL, digits = 4L, ...)
+  energyRt::report_tbl(df, caption, digits, output = fmt, ...)
+emit_img <- function(path, frac = 1)
+  energyRt::report_img(path, frac, output = fmt)
+```
+
+```{r en-css, results='asis'}
+energyRt::report_css(fmt)
+```
+
+```{r en-logo, results='asis'}
+if (!is.null(params$image_file)) emit_img(params$image_file, 0.25)
+```
+
+`r if (isTRUE(nzchar(params$base_name))) paste0("Baseline: **", params$base_name, "**. Differences are reported against it.")`
+
+## Overview
+
+```{r en-overview, results='asis'}
+tbl(params$overview_df)
+```
+
+```{r en-objective, fig.width=6, fig.height=3.5, eval=!is.null(params$objective_plot)}
+params$objective_plot
+```
+
+## Results
+
+```{r en-gen, fig.width=8, fig.height=4.5, eval=!is.null(params$gen_plot)}
+params$gen_plot
+```
+
+```{r en-cap, fig.width=8, fig.height=4.5, eval=!is.null(params$cap_plot)}
+params$cap_plot
+```
+
+```{r en-newcap, fig.width=8, fig.height=4.5, eval=!is.null(params$newcap_plot)}
+params$newcap_plot
+```
+
+```{r en-emis-header, results='asis', eval=!is.null(params$emis_df) || !is.null(params$emis_plot)}
+cat("## Emissions\n")
+```
+
+```{r en-emis-plot, fig.width=7, fig.height=4, eval=!is.null(params$emis_plot)}
+params$emis_plot
+```
+
+```{r en-emis, results='asis', eval=!is.null(params$emis_df)}
+tbl(params$emis_df)
+```
+
+## Costs
+
+```{r en-costs-plot, fig.width=7, fig.height=4, eval=!is.null(params$costs_plot)}
+params$costs_plot
+```
+
+```{r en-costs, results='asis', eval=!is.null(params$cost_df)}
+tbl(params$cost_df)
+```
+
+## Value differences
+
+```{r en-values, results='asis'}
+v <- params$values_df
+if (!is.null(v)) {
+  v <- v[!v$status %in% "identical", , drop = FALSE]
+  if (nrow(v) > 0) tbl(v, caption = "Differing variables") else
+    cat("All compared values are within tolerance.\n")
+}
+```
+
+```{r en-top, results='asis', eval=!is.null(params$top_df)}
+tbl(params$top_df, caption = "Largest differences vs baseline")
+```
+
+```{r en-deltas, results='asis', eval=length(params$delta_tbls) > 0}
+for (v in names(params$delta_tbls)) {
+  energyRt::report_sec(paste0(v, " -- differing rows"), output = fmt)
+  tbl(params$delta_tbls[[v]])
+}
+```
+
+```{r en-verify-header, results='asis', eval=!is.null(params$verify_df)}
+cat("## Solution checks\n")
+```
+
+```{r en-verify, results='asis', eval=!is.null(params$verify_df)}
+tbl(params$verify_df)
+```
+
+```{r en-inputs-header, results='asis', eval=!is.null(params$inputs_txt)}
+cat("## Input differences\n")
+```
+
+```{r en-inputs, results='asis', eval=!is.null(params$inputs_txt)}
+cat("```\n")
+cat(params$inputs_txt, sep = "\n")
+cat("\n```\n")
+```

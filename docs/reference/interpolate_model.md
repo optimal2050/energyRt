@@ -26,6 +26,9 @@ interpolate_model(
   prune = TRUE,
   validate = TRUE,
   code = NULL,
+  kvl = FALSE,
+  boundary_prices = NULL,
+  .prefilter = FALSE,
   verbose = isVerbose()
 )
 ```
@@ -99,9 +102,41 @@ interpolate_model(
   supplied at interpolation time without rebuilding `sysdata` (handy to
   A/B templates).
 
+- boundary_prices:
+
+  optional `data.frame` pricing import/export stubs for trade routes
+  dropped by a SPATIAL SAMPLE (a
+  [`geoscales::filter_geoscale()`](https://optimal2050.github.io/geoscales/r/reference/filter_geoscale.html)
+  subset passed via `...`); see
+  [`subset_model_regions()`](https://energyRt.org/reference/subset_model_regions.md)
+  for the columns. Ignored (with a warning) when no sampled geoscale is
+  supplied.
+
+- .prefilter:
+
+  EXPERIMENTAL, default `FALSE`. Restrict each model object's data to
+  the timeslices and regions the SCENARIO declares before interpolating
+  it, rather than interpolating everything and discarding the excess
+  afterwards.
+
+  On the sampled-calendar recipe – a full-year model with a subset
+  calendar handed to this function – the default order expands all 8,760
+  timeslices in `ob2mi` and then keeps 96. The parameter filters that
+  follow are cheap (0.05s on a 5-node model); the cost is the
+  interpolation they cannot undo.
+
+  Off by default because it is not obviously safe: anything deriving a
+  relation from the full declared grid rather than from the calendar
+  would see a narrower input. Compare objectives before relying on it.
+
 - verbose:
 
-  logical; print per-step progress.
+  logical; print per-step progress. This also governs the
+  variant-expansion report – how many process objects were expanded and
+  how many constraints were generated for them. The generated
+  constraints themselves are retrievable with
+  `getObject(scen, class = "constraint")`; each carries a readable
+  `desc` and, in `misc$.variant_source`, the object it was derived from.
 
 ## Value
 
@@ -113,3 +148,7 @@ an interpolated
 [`solve_model()`](https://energyRt.org/reference/solve_model.md),
 [`solve_scenario()`](https://energyRt.org/reference/solve_model.md), the
 `interpolate` S4 method.
+
+Other interpolation:
+[`subset_model_regions()`](https://energyRt.org/reference/subset_model_regions.md),
+[`with_solver_log()`](https://energyRt.org/reference/with_solver_log.md)

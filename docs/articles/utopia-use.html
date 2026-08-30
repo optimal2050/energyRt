@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.85.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -57,6 +57,8 @@
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
+    <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
+    <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
     <li><a class="dropdown-item" href="../articles/autoplot.html">autoplot()</a></li>
   </ul>
 </li>
@@ -89,7 +91,7 @@
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>UTOPIA II: running scenarios</h1>
             
-            <h4 data-toc-skip class="date">2026-08-21</h4>
+            <h4 data-toc-skip class="date">2026-08-28</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/optimal2050/energyRt/blob/HEAD/vignettes/utopia-use.Rmd" class="external-link"><code>vignettes/utopia-use.Rmd</code></a></small>
       <div class="d-none name"><code>utopia-use.Rmd</code></div>
@@ -122,15 +124,15 @@ to watch GLPK work.</p>
 <h2 id="selecting-a-utopia-structure">Selecting a UTOPIA structure<a class="anchor" aria-label="anchor" href="#selecting-a-utopia-structure"></a>
 </h2>
 <p><code>utopia_modules$electricity</code> offers ready region layouts
-(<code>reg1</code>, <code>reg3</code>, <code>reg7</code>); each is a kit
-with a base repository <code>$repo</code> and scenario levers.
-Calendars, horizons and maps sit alongside. (For a custom layout or
-calendar, build the blocks yourself following <em>UTOPIA I: building the
-model</em>.)</p>
+(<code>R1</code>, <code>R3</code>, <code>R7</code>, <code>R11</code>);
+each is a kit with a base repository <code>$repo</code> and scenario
+levers. Calendars, horizons and maps sit alongside. (For a custom layout
+or calendar, build the blocks yourself following <em>UTOPIA I: building
+the model</em>.)</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">utopia_modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">)</span>          <span class="co"># available layouts</span></span>
 <span><span class="va">um</span>  <span class="op">&lt;-</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">R3</span>     <span class="co"># the 3-region base case</span></span>
-<span><span class="va">cal</span> <span class="op">&lt;-</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">utopia_s4h24</span></span>
+<span><span class="va">cal</span> <span class="op">&lt;-</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24</span></span>
 <span><span class="va">hor</span> <span class="op">&lt;-</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">base</span>        <span class="co"># milestones 2020/2030/2040/2050</span></span></code></pre></div>
 </div>
 <div class="section level2">
@@ -142,7 +144,7 @@ model</em>.)</p>
 <span><span class="va">scen_BASE</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod</span>, name <span class="op">=</span> <span class="st">"BASE"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
 <span>  <span class="fu"><a href="../reference/solve_model.html">solve_scenario</a></span><span class="op">(</span>echo <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen_BASE</span>, <span class="st">"vObjective"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">$</span><span class="va">value</span>    <span class="co"># total system cost, MEUR</span></span></code></pre></div>
-<p>The <code>reg3</code> kit wires its regions with bi-directional
+<p>The <code>R3</code> kit wires its regions with bi-directional
 transmission links (<code>TBD_ELC_*</code>).
 <code><a href="../reference/plot_trade_map.html">plot_trade_map()</a></code> draws that network over a map layout —
 pass any of <code>utopia_modules$maps</code> (here
@@ -188,20 +190,25 @@ ceiling on installed coal and gas capacity – the plants carry
 The ceiling bites hardest on gas (the flexible backstop for wind and
 solar), pushing investment into nuclear, biomass and storage
 instead.</p>
-<p>Compare CO2 emissions across scenarios:</p>
+<p>Compare the scenarios with <code><a href="../reference/compare_scenarios.html">compare_scenarios()</a></code>: the
+overview carries every run’s objective (with differences against the
+baseline), the value tables flag which solved variables moved, and
+<code><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot()</a></code> draws the comparison charts. The full
+comparative document is one <code>report(cmp)</code> call away.</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">scl</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>BASE <span class="op">=</span> <span class="va">scen_BASE</span>, CO2CAP <span class="op">=</span> <span class="va">scen_CO2CAP</span>,</span>
 <span>            CARBONTAX <span class="op">=</span> <span class="va">scen_CTAX</span>, RES_SHARE <span class="op">=</span> <span class="va">scen_RES</span>,</span>
 <span>            EARLY_RET <span class="op">=</span> <span class="va">scen_ERET</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">lapply</a></span><span class="op">(</span><span class="va">scl</span>, <span class="kw">function</span><span class="op">(</span><span class="va">s</span><span class="op">)</span> <span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">s</span>, <span class="st">"vEmsFuelTot"</span>, comm <span class="op">=</span> <span class="st">"CO2"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/bind_rows.html" class="external-link">bind_rows</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="https://dplyr.tidyverse.org/reference/group_by.html" class="external-link">group_by</a></span><span class="op">(</span><span class="va">scenario</span>, <span class="va">year</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://dplyr.tidyverse.org/reference/summarise.html" class="external-link">summarise</a></span><span class="op">(</span>ktCO2 <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">value</span><span class="op">)</span>, .groups <span class="op">=</span> <span class="st">"drop"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/factor.html" class="external-link">factor</a></span><span class="op">(</span><span class="va">year</span><span class="op">)</span>, <span class="va">ktCO2</span>, fill <span class="op">=</span> <span class="va">scenario</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_bar.html" class="external-link">geom_col</a></span><span class="op">(</span>position <span class="op">=</span> <span class="st">"dodge"</span><span class="op">)</span> <span class="op">+</span></span>
-<span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/labs.html" class="external-link">labs</a></span><span class="op">(</span>x <span class="op">=</span> <span class="st">"year"</span>, title <span class="op">=</span> <span class="st">"CO2 emissions by scenario"</span><span class="op">)</span> <span class="op">+</span> <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggtheme.html" class="external-link">theme_bw</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
-<p>Total system cost (objective) by scenario:</p>
+<span><span class="va">cmp</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/compare_scenarios.html">compare_scenarios</a></span><span class="op">(</span><span class="va">scl</span><span class="op">)</span></span>
+<span><span class="va">cmp</span></span>
+<span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">cmp</span>, <span class="st">"emissions"</span><span class="op">)</span></span></code></pre></div>
+<p>Total system cost (objective) by scenario, straight from the
+overview:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/lapply.html" class="external-link">sapply</a></span><span class="op">(</span><span class="va">scl</span>, <span class="kw">function</span><span class="op">(</span><span class="va">s</span><span class="op">)</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">s</span>, <span class="st">"vObjective"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">$</span><span class="va">value</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/with.html" class="external-link">with</a></span><span class="op">(</span><span class="va">cmp</span><span class="op">$</span><span class="va">overview</span>, <span class="fu"><a href="https://rdrr.io/r/stats/setNames.html" class="external-link">setNames</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">objective</span><span class="op">)</span>, <span class="va">scenario</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<p>(The same charts can always be hand-rolled from the tidy layer –
+<code>getData(scl, ...)</code> and <code>getMix(scl, ...)</code> accept
+named scenario lists and add a <code>scenario</code> column.)</p>
 <p>A carbon <strong>tax</strong> and a CO2 <strong>cap</strong> both cut
 emissions but through different mechanisms (price vs quantity); a
 <strong>renewable target</strong> raises cost and can even raise CO2
@@ -241,14 +248,19 @@ activity instead.) A full technology datasheet with the ex-post cost
 embedded is one call away (<code><a href="../reference/report.html">report()</a></code> renders HTML/PDF; needs
 pandoc):</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/report.html">report</a></span><span class="op">(</span><span class="va">scen_BASE</span>, name <span class="op">=</span> <span class="st">"ENUC"</span>, format <span class="op">=</span> <span class="st">"html"</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/report.html">report</a></span><span class="op">(</span><span class="va">scen_BASE</span>, name <span class="op">=</span> <span class="st">"ENUC"</span>, format <span class="op">=</span> <span class="st">"html"</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># the whole-scenario results report: run provenance (scenario_runs()),</span></span>
+<span><span class="co"># solution checks, generation/capacity charts, and a role-driven cost</span></span>
+<span><span class="co"># breakdown; `run =` reports any recorded run, not only the active one</span></span>
+<span><span class="fu"><a href="../reference/report.html">report</a></span><span class="op">(</span><span class="va">scen_BASE</span><span class="op">)</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="other-structures">Other structures<a class="anchor" aria-label="anchor" href="#other-structures"></a>
 </h2>
 <p>The same code runs on a different layout – e.g. the single-region
-<code>reg1</code> or the 7-region <code>reg7</code> (heavier). Just swap
-the kit:</p>
+<code>R1</code> or the larger <code>R7</code> / <code>R11</code>
+(heavier). Just swap the kit:</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">um7</span> <span class="op">&lt;-</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">R7</span></span>
 <span><span class="va">mod7</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newModel.html">newModel</a></span><span class="op">(</span><span class="st">"UTOPIA7"</span>, data <span class="op">=</span> <span class="va">um7</span><span class="op">$</span><span class="va">repo</span>, calendar <span class="op">=</span> <span class="va">cal</span>,</span>

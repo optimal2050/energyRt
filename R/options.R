@@ -31,7 +31,7 @@ options::set_envvar_name_fn(function(package, option) {
 # Toolchain paths #############################################################
 # Locations of the external programs the solver backends shell out to. All
 # default to `NULL`, meaning "not configured" -- each backend then falls back to
-# its own discovery (see `.find_glpsol()`, `.find_mosox()`) or to the session
+# its own discovery (see `.find_glpsol()`) or to the session
 # `PATH`. Set them with `set_solver_path()` or the per-backend wrappers.
 
 options::define_option(
@@ -82,11 +82,7 @@ options::define_option(
   default = NULL
 )
 
-options::define_option(
-  "mosox_path",
-  desc = "Path to the directory containing the `mosox` executable.",
-  default = NULL
-)
+# (the `mosox_path` option moved to drafts/mosox/ with the mosox experiment)
 
 # NEOS ########################################################################
 # `neos_email` is the one option that keeps an explicit `envvar_name`: NEOS
@@ -134,15 +130,83 @@ options::define_option(
 )
 
 options::define_option(
-  "default_registry",
+  "registry_file",
   desc = paste(
-    "Where the registry of repositories, models and scenarios lives: a list",
-    "with the object `name` and the environment `env` holding it."
+    "Path to the project registry CSV indexing saved models, scenarios and",
+    "runs. Kept at the project root, a sibling of the scenarios/ and models/",
+    "stores, so one registry spans both."
   ),
-  default = list(
-    name = "registry",
-    env = ".scen"
-  )
+  default = "energyRt_registry.csv"
+)
+
+options::define_option(
+  "models_path",
+  desc = paste(
+    "Root directory for the model store. save_model() writes",
+    "content-addressed model folders (<name>@<hash8>) underneath it."
+  ),
+  default = "models/"
+)
+
+options::define_option(
+  "repositories_path",
+  desc = paste(
+    "Root directory for the repository store. save_repository() writes",
+    "content-addressed repository folders (<name>@<hash8>) underneath it."
+  ),
+  default = "repositories/"
+)
+
+options::define_option(
+  "datasets_path",
+  desc = paste(
+    "Root directory for the dataset store. save_dataset() writes",
+    "content-addressed dataset folders (<name>@<hash8>) underneath it."
+  ),
+  default = "datasets/"
+)
+
+options::define_option(
+  "log_file",
+  desc = paste(
+    "Optional operation-log CSV. Empty (default) = logging off; a path",
+    "makes interpolate_model()/solve_scenario()/solve_myopic() append one",
+    "line per operation. Read it back with read_log()."
+  ),
+  default = ""
+)
+
+options::define_option(
+  "store_versioning",
+  desc = paste(
+    "How the model/repository/dataset stores name their entries. \"none\"",
+    "(default): one human-readable folder per name (models/UTOPIA/), updated",
+    "in place; the content hash lives in the manifest and misc$hash for",
+    "no-op detection and reference verification. \"hash\": content-addressed",
+    "<name>@<hash8> folders; every content change is a NEW entry and",
+    "versions coexist."
+  ),
+  default = "none"
+)
+
+options::define_option(
+  "reports_path",
+  desc = paste(
+    "Default directory for rendered reports of IN-MEMORY objects (treated as",
+    "temporary output). Reports of saved objects land inside the owning",
+    "folder (<scenario>/reports/, <model store entry>/reports/) instead."
+  ),
+  default = "reports/"
+)
+
+options::define_option(
+  "levcost_cache_path",
+  desc = paste(
+    "Default directory for cached levcost results of IN-MEMORY objects",
+    "(treated as temporary). Results for saved objects are cached inside the",
+    "owning folder (<owner>/levcost/) instead."
+  ),
+  default = "levcosts/"
 )
 
 # Storage / exchange format ###################################################
@@ -247,8 +311,7 @@ get_option <- function(name, default = NULL) {
   gdxlib = "gdxlib_path",
   glpk   = "glpk_path",
   python = "python_path",
-  julia  = "julia_path",
-  mosox  = "mosox_path"
+  julia  = "julia_path"
 )
 
 # Environment variables these options used before the `ENERGYRT_` prefix was
@@ -259,8 +322,7 @@ get_option <- function(name, default = NULL) {
   gdxlib = "GDXLIB_PATH",
   glpk   = "glpk_path",
   python = "PYTHON_PATH",
-  julia  = "JULIA_PATH",
-  mosox  = "MOSOX_PATH"
+  julia  = "JULIA_PATH"
 )
 
 # Shared body of every path setter: reject a non-existent directory at the point
@@ -287,14 +349,14 @@ get_option <- function(name, default = NULL) {
 #' thin wrappers around them.
 #'
 #' Setting a path is optional. When it is unset, each backend falls back to its
-#' own discovery: `glpk` and `mosox` search the session `PATH` and well-known
+#' own discovery: `glpk` searches the session `PATH` and well-known
 #' install locations (on Windows `glpsol` is found in Rtools, which bundles
 #' GLPK), while `gams`, `python` and `julia` simply invoke the bare command and
 #' let the OS resolve it on `PATH`. Set a path only to override that, for
 #' instance to pick between several installed GAMS versions.
 #'
 #' @param backend character, one of `"gams"`, `"gdxlib"`, `"glpk"`,
-#'   `"python"`, `"julia"`, `"mosox"`.
+#'   `"python"`, `"julia"`.
 #' @param path character, path to the directory containing the executable or
 #'   library, or `NULL` to clear it. The directory must exist.
 #'
@@ -461,55 +523,153 @@ get_scenarios_path <- function() {
 
 # Registry ####################################################################
 
-#' Default registry
+#' Registry file and model store locations
 #'
 #' @description
-#' The registry holds repositories, models and scenarios. `set_default_registry()`
-#' records which object, in which environment, energyRt should use;
-#' `which_registry()` reports it, and `get_registry()` returns the object itself,
-#' creating it if it does not exist yet.
+#' `get_registry_file()` / `set_registry_file()` locate the project registry
+#' CSV (see [load_registry()]). `get_models_path()` / `set_models_path()`
+#' locate the model store root used by `save_model()`. Both default to the
+#' project root / `models/`, siblings of [get_scenarios_path()].
 #'
-#' @param obj_name character, name of the registry object.
-#' @param env_name character, name of the environment holding it.
+#' @param path character, new location.
 #'
-#' @return `which_registry()` a list with `name` and `env`; `get_registry()` the
-#'   registry object; `set_default_registry()` the previous value, invisibly.
+#' @return getters return the path; setters return the previous value,
+#'   invisibly.
 #'
 #' @family options
-#' @rdname default_registry
+#' @rdname registry_file
 #' @export
-set_default_registry <- function(obj_name = "registry",
-                                 env_name = ".scen") {
-  registry <- list(name = obj_name, env = env_name)
-  options::opt_set("default_registry", registry)
+#' @examples
+#' get_registry_file()
+#' get_models_path()
+set_registry_file <- function(path = NULL) {
+  options::opt_set("registry_file", path)
 }
 
 #' @family options
-#' @rdname default_registry
+#' @rdname registry_file
 #' @export
-use_registry <- set_default_registry
-
-#' @family options
-#' @rdname default_registry
-#' @export
-which_registry <- function() {
-  options::opt("default_registry")
+get_registry_file <- function() {
+  options::opt("registry_file")
 }
 
-#' Returns the current registry object.
-#'
-#' @return The current registry object.
 #' @family options
-#' @rdname default_registry
+#' @rdname registry_file
 #' @export
-get_registry <- function() {
-  r <- which_registry()
-  if (exists(r$name, envir = get(r$env))) {
-    rg <- get(r$name, envir = get(r$env))
-  } else {
-    rg <- newRegistry(name = r$name, registry_env = r$env)
-  }
-  rg
+set_models_path <- function(path = NULL) {
+  options::opt_set("models_path", path)
+}
+
+#' @family options
+#' @rdname registry_file
+#' @export
+get_models_path <- function() {
+  options::opt("models_path")
+}
+
+#' @family options
+#' @rdname registry_file
+#' @export
+set_repositories_path <- function(path = NULL) {
+  options::opt_set("repositories_path", path)
+}
+
+#' @family options
+#' @rdname registry_file
+#' @export
+get_repositories_path <- function() {
+  options::opt("repositories_path")
+}
+
+#' @family options
+#' @rdname registry_file
+#' @export
+set_datasets_path <- function(path = NULL) {
+  options::opt_set("datasets_path", path)
+}
+
+#' @family options
+#' @rdname registry_file
+#' @export
+get_datasets_path <- function() {
+  options::opt("datasets_path")
+}
+
+#' @family options
+#' @rdname registry_file
+#' @export
+set_store_versioning <- function(x = NULL) {
+  if (!is.null(x)) x <- match.arg(x, c("none", "hash"))
+  options::opt_set("store_versioning", x)
+}
+
+#' @family options
+#' @rdname registry_file
+#' @export
+get_store_versioning <- function() {
+  options::opt("store_versioning")
+}
+
+# Derived-artifact locations ##################################################
+
+#' Report and levcost output locations
+#'
+#' @description
+#' Derived artifacts live with the object they describe when that object is
+#' saved: a scenario's reports render into `<scenario>/reports/` and its
+#' levcost results cache into `<scenario>/levcost/`; models and repositories
+#' use their store entries the same way. For IN-MEMORY objects the output is
+#' considered temporary and lands in these project-level folders instead:
+#' `get_reports_path()` (default `reports/`) and `get_levcost_cache_path()`
+#' (default `levcosts/`).
+#'
+#' @param path character, new location.
+#' @return getters return the path; setters return the previous value,
+#'   invisibly.
+#'
+#' @family options
+#' @rdname reports_path
+#' @export
+#' @examples
+#' get_reports_path()
+#' get_levcost_cache_path()
+set_reports_path <- function(path = NULL) {
+  options::opt_set("reports_path", path)
+}
+
+#' @family options
+#' @rdname reports_path
+#' @export
+get_reports_path <- function() {
+  options::opt("reports_path")
+}
+
+#' @family options
+#' @rdname reports_path
+#' @export
+set_levcost_cache_path <- function(path = NULL) {
+  options::opt_set("levcost_cache_path", path)
+}
+
+#' @family options
+#' @rdname reports_path
+#' @export
+get_levcost_cache_path <- function() {
+  options::opt("levcost_cache_path")
+}
+
+#' @family options
+#' @rdname log
+#' @export
+set_log_file <- function(path = NULL) {
+  options::opt_set("log_file", path)
+}
+
+#' @family options
+#' @rdname log
+#' @export
+get_log_file <- function() {
+  options::opt("log_file")
 }
 
 # Arrow exchange format #######################################################

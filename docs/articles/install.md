@@ -9,7 +9,7 @@ between them.
 |----|----|----|----|
 | **GLPK** | `glpsol` executable | open-source | Easiest to install; slow on very large models. |
 | **Julia / JuMP** | Julia + `JuMP`, `HiGHS` | open-source | Fast (HiGHS barrier); recommended for large models. |
-| **Python / Pyomo** | Python + `pyomo` + a solver (CBC) | open-source | Convenient if you already use conda. |
+| **Python / Pyomo** | Python + `pyomo` + `highspy` | open-source | Fast (HiGHS barrier), low start-up overhead. Needs a **current** HiGHS — see below. |
 | **GAMS** | GAMS distribution | proprietary | Needs a license; also enables GDX I/O. |
 
 The package ships helpers to **detect** what you have and **auto-install
@@ -231,9 +231,35 @@ Python/Pyomo layer — conda (recommended) or pip:
 
 ``` bash
 conda create -y -n energyRt python
-conda install -y -n energyRt -c conda-forge pyomo pandas pyarrow coincbc
-# pip fallback (no CBC binary): python -m pip install --upgrade pyomo pandas pyarrow
+conda install -y -n energyRt -c conda-forge pyomo pandas pyarrow highspy coincbc
 ```
+
+`pip` works just as well for this backend, because `highspy` ships HiGHS
+itself as a wheel (unlike CBC, which pip cannot supply):
+
+``` bash
+conda create -y -n energyRt python=3.12 pip
+conda run -n energyRt python -m pip install --upgrade pyomo highspy pandas pyarrow
+```
+
+### HiGHS version matters
+
+`highspy` is the **only** way Pyomo reaches HiGHS:
+`SolverFactory("highs")` resolves to a shell solver that looks for a
+`highs` executable and reports itself unavailable. Install a current
+`highspy` and check what you actually got:
+
+``` bash
+python -c "import highspy; h=highspy.Highs(); print(h.versionMajor(), h.versionMinor(), h.versionPatch())"
+```
+
+On **HiGHS 1.7.2** the interior-point option — `solver = "ipm"`, which
+`solver_options$pyomo_highs_barrier` sets — **hangs before the solver
+starts**: no HiGHS banner, no CPU use, and a `time_limit` cannot
+interrupt it, because HiGHS is never reached. The same models solve
+normally on **HiGHS 1.13+**. If you are stuck on an old `highspy`, use
+`solver_options$pyomo_highs` (simplex defaults), which works on 1.7.2 —
+but expect it to be several times slower than barrier on a large LP.
 
 ## 5. Point energyRt at the installations
 

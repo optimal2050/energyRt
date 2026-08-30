@@ -1,0 +1,25 @@
+techspec: 1
+class: trade
+name: TRD_ELC
+desc: Electricity interconnector between R1 and R2
+commodity: ELC
+cap2act: 8760.0
+notes: A route is a pair of regions; capacity has no region index.
+routes:
+- src: R1
+  dst: R2
+- src: R2
+  dst: R1
+trade:
+- src: R1
+  dst: R2
+  teff: 0.97
+- src: R2
+  dst: R1
+  teff: 0.97
+invcost:
+- invcost: 800.0
+fixom:
+- fixom: 12.0
+vintages:
+- olife: 40

@@ -1,7 +1,9 @@
 #' Write scenario object as a Python, Julia, GAMS, or MathProg script with data files to a directory
 #'
 #' @param scen scenario object, must be interpolated
-#' @param tmp.dir character, path
+#' @param solver.dir character, an external directory to write into; default
+#'   (`NULL`) writes into the run's `solver/` directory under the scenario
+#'   (`tmp.dir` is the deprecated alias).
 #' @param solver list of character with solver specification.
 #' @param ... additional solver parameters
 #' @family write scenario
@@ -9,37 +11,20 @@
 #' @seealso [solve()] to run the script, solve the scenario. [read_solution] to read model solution.
 #'
 #' @export
-write_script <- function(scen, tmp.dir = NULL, solver = NULL, ...) {
-  # scen <- obj
-  # if (is.null(tmp.dir)) {
-  #   # get_tmp_dir(scen, list(tmp.dir = tmp.dir, solver = solver, ...))
-  #   browser()
-  #   if (!is.null(scen@misc$tmp.dir)) {
-  #     tmp.dir <- scen@misc$tmp.dir
-  #   } else if (!is.null(scen@path)) {
-  #     tmp.dir <- file.path(scen@path, "script", solver$lang, solver$solver)
-  #   }
-  #   if (is.null(tmp.dir))
-  #     stop('Either "tmp.dir" or "scenario@path" must be set')
-  # }
-  # scen@misc$tmp.dir <- tmp.dir
+write_script <- function(scen, solver.dir = NULL, solver = NULL, ...) {
   if (!isTRUE(scen@status$interpolated)) {
     stop("Scenario must be interpolated before writing the script.")
   }
-  # browser()
-  # if (is.null(solver)) solver <- scen@settings@solver
-  # if (is.null(solver)) solver <- get_default_solver()
-  # if (is.null(solver)) stop("Solver must be specified.")
-  # arg <- list()
+  # deprecated aliases in `...` are mapped by .executeScenario itself
   .executeScenario(scen,
-                   tmp.dir = tmp.dir, solver = solver,
+                   solver.dir = solver.dir, solver = solver,
                    run = FALSE, write = TRUE, ...)
 }
 
 #' @export
 #' @rdname write
-write_sc <- function(x, tmp.dir = NULL, solver = NULL, ...) {
-  write_script(x, tmp.dir, solver, ...)
+write_sc <- function(x, solver.dir = NULL, solver = NULL, ...) {
+  write_script(x, solver.dir, solver, ...)
 }
 
 #' @export
@@ -115,7 +100,7 @@ write.sc <- write_sc
 #     }
 #     NULL
 #   }
-#   parLapply(cl, 0:(arg$n.threads - 1), wrt_fun, tlp, scen@modInp@parameters, arg$tmp.dir, func, type)
+#   parLapply(cl, 0:(arg$n.threads - 1), wrt_fun, tlp, scen@modInp@parameters, arg$solver.dir, func, type)
 #   stopCluster(cl)
 #   NULL
 # }
@@ -131,7 +116,7 @@ write.sc <- write_sc
   if (is.null(scen@settings@solver$inc_solver) && is.null(scen@settings@solver$solver)) {
     scen@settings@solver$inc_solver <- def_inc_solver
   }
-  fn <- file(file.path(arg$tmp.dir, paste0("inc_solver", type)), "w")
+  fn <- file(file.path(arg$solver.dir, paste0("inc_solver", type)), "w")
   cat(scen@settings@solver$inc_solver, file = fn, sep = "\n")
   close(fn)
 }
@@ -155,12 +140,12 @@ write.sc <- write_sc
     }
   }
   for (i in 1:5) {
-    fn <- file(file.path(arg$tmp.dir, paste0("inc", i, type)), "w")
+    fn <- file(file.path(arg$solver.dir, paste0("inc", i, type)), "w")
     cat(scen@settings@solver[[paste0("inc", i)]], sep = "\n", file = fn)
     close(fn)
   }
   for (i in names(scen@settings@solver$files)) {
-    fn <- file(file.path(arg$tmp.dir, i), "w")
+    fn <- file(file.path(arg$solver.dir, i), "w")
     cat(scen@settings@solver$files[[i]], sep = "\n", file = fn)
     close(fn)
   }
@@ -661,71 +646,71 @@ write.sc <- write_sc
     rm(mTechRetUp)
   }
 
-  if (prec@parameters[["pStorageCap"]]@data |> nrow() > 0) {
-    mStorageCap <- prec@parameters[["pStorageCap"]]@data |>
+  if (prec@parameters[["pStorageOutCap"]]@data |> nrow() > 0) {
+    mStorageCap <- prec@parameters[["pStorageOutCap"]]@data |>
       inner_join(prec@parameters[["mStorageSpan"]]@data) |>
       # select(-value) |>
       unique()
-    mStorageCapLo <- filter(mStorageCap, type == "lo") |>
+    mStorageOutCapLo <- filter(mStorageCap, type == "lo") |>
       select(-type, -value)
-    if (!is.null(mStorageCapLo) && nrow(mStorageCapLo) > 0) {
-      prec@parameters[["mStorageCapLo"]] <-
-        .dat2par(prec@parameters[["mStorageCapLo"]], mStorageCapLo)
+    if (!is.null(mStorageOutCapLo) && nrow(mStorageOutCapLo) > 0) {
+      prec@parameters[["mStorageOutCapLo"]] <-
+        .dat2par(prec@parameters[["mStorageOutCapLo"]], mStorageOutCapLo)
     }
-    rm(mStorageCapLo)
-    mStorageCapUp <- filter(mStorageCap, type == "up") |>
+    rm(mStorageOutCapLo)
+    mStorageOutCapUp <- filter(mStorageCap, type == "up") |>
       select(-type, -value)
-    if (!is.null(mStorageCapUp) && nrow(mStorageCapUp) > 0) {
-      prec@parameters[["mStorageCapUp"]] <-
-        .dat2par(prec@parameters[["mStorageCapUp"]], mStorageCapUp)
+    if (!is.null(mStorageOutCapUp) && nrow(mStorageOutCapUp) > 0) {
+      prec@parameters[["mStorageOutCapUp"]] <-
+        .dat2par(prec@parameters[["mStorageOutCapUp"]], mStorageOutCapUp)
     }
-    rm(mStorageCapUp)
+    rm(mStorageOutCapUp)
   }
 
-  if (nrow(prec@parameters[["pStorageNewCap"]]@data) > 0) {
+  if (nrow(prec@parameters[["pStorageOutNewCap"]]@data) > 0) {
     suppressMessages({
-      mStorageNewCap <- prec@parameters[["pStorageNewCap"]]@data |>
+      mStorageNewCap <- prec@parameters[["pStorageOutNewCap"]]@data |>
         inner_join(prec@parameters[["mStorageNew"]]@data) |>
         # select(-value) |>
         unique()
     })
-    mStorageNewCapLo <- filter(mStorageNewCap, type == "lo") |>
+    mStorageOutNewCapLo <- filter(mStorageNewCap, type == "lo") |>
       select(-type, -value)
-    if (!is.null(mStorageNewCapLo) && nrow(mStorageNewCapLo) > 0) {
-      prec@parameters[["mStorageNewCapLo"]] <-
-        .dat2par(prec@parameters[["mStorageNewCapLo"]], mStorageNewCapLo)
+    if (!is.null(mStorageOutNewCapLo) && nrow(mStorageOutNewCapLo) > 0) {
+      prec@parameters[["mStorageOutNewCapLo"]] <-
+        .dat2par(prec@parameters[["mStorageOutNewCapLo"]], mStorageOutNewCapLo)
     }
-    rm(mStorageNewCapLo)
-    mStorageNewCapUp <- filter(mStorageNewCap, type == "up") |>
+    rm(mStorageOutNewCapLo)
+    mStorageOutNewCapUp <- filter(mStorageNewCap, type == "up") |>
       select(-type, -value)
-    if (!is.null(mStorageNewCapUp) && nrow(mStorageNewCapUp) > 0) {
-      prec@parameters[["mStorageNewCapUp"]] <-
-        .dat2par(prec@parameters[["mStorageNewCapUp"]], mStorageNewCapUp)
+    if (!is.null(mStorageOutNewCapUp) && nrow(mStorageOutNewCapUp) > 0) {
+      prec@parameters[["mStorageOutNewCapUp"]] <-
+        .dat2par(prec@parameters[["mStorageOutNewCapUp"]], mStorageOutNewCapUp)
     }
-    rm(mStorageNewCapUp)
+    rm(mStorageOutNewCapUp)
   }
 
-  if(nrow(prec@parameters[["pStorageRet"]]@data) > 0) {
+  if(nrow(prec@parameters[["pStorageOutRet"]]@data) > 0) {
     suppressMessages({
-      mStorageRet <- prec@parameters[["pStorageRet"]]@data |>
+      mStorageRet <- prec@parameters[["pStorageOutRet"]]@data |>
         inner_join(prec@parameters[["mStorageSpan"]]@data) |>
         # select(-value) |>
         unique()
     })
-    mStorageRetLo <- filter(mStorageRet, type == "lo") |>
+    mStorageOutRetLo <- filter(mStorageRet, type == "lo") |>
       select(-type, -value)
-    if (!is.null(mStorageRetLo) && nrow(mStorageRetLo) > 0) {
-      prec@parameters[["mStorageRetLo"]] <-
-        .dat2par(prec@parameters[["mStorageRetLo"]], mStorageRetLo)
+    if (!is.null(mStorageOutRetLo) && nrow(mStorageOutRetLo) > 0) {
+      prec@parameters[["mStorageOutRetLo"]] <-
+        .dat2par(prec@parameters[["mStorageOutRetLo"]], mStorageOutRetLo)
     }
-    rm(mStorageRetLo)
-    mStorageRetUp <- filter(mStorageRet, type == "up") |>
+    rm(mStorageOutRetLo)
+    mStorageOutRetUp <- filter(mStorageRet, type == "up") |>
       select(-type, -value)
-    if (!is.null(mStorageRetUp) && nrow(mStorageRetUp) > 0) {
-      prec@parameters[["mStorageRetUp"]] <-
-        .dat2par(prec@parameters[["mStorageRetUp"]], mStorageRetUp)
+    if (!is.null(mStorageOutRetUp) && nrow(mStorageOutRetUp) > 0) {
+      prec@parameters[["mStorageOutRetUp"]] <-
+        .dat2par(prec@parameters[["mStorageOutRetUp"]], mStorageOutRetUp)
     }
-    rm(mStorageRetUp)
+    rm(mStorageOutRetUp)
   }
   # browser()
   # mTradeCap ####
@@ -1231,14 +1216,14 @@ write.sc <- write_sc
     }
   }
   # browser()
-  if (length(prec@costs.equation) == 0) {
-    prec@costs.equation <-
+  if (length(prec@user_costs) == 0) {
+    prec@user_costs <-
       "eqTotalUserCosts(region, year)$mvTotalUserCosts(region, year).. vTotalUserCosts(region, year) =e= 0;"
   } else {
-    prec@costs.equation <- paste0(
+    prec@user_costs <- paste0(
       "eqTotalUserCosts(region, year)$mvTotalUserCosts(region, year)..",
       "   vTotalUserCosts(region, year) =e= ",
-      gsub("[+][ ]*[-]", "-", paste0(prec@costs.equation, collapse = " + ")), ";"
+      gsub("[+][ ]*[-]", "-", paste0(prec@user_costs, collapse = " + ")), ";"
     )
   }
 

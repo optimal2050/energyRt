@@ -26,11 +26,18 @@
 #'   `region = NULL` (they cancel out in an all-region sum).
 #' @param year integer vector or `NULL` (all milestone year).
 #' @param timeslice `NULL` for annual sums, or a regular expression selecting a
-#'   timeslice sample (e.g. `"^SUM_"` for the summer day on the `utopia_s4h24`
+#'   timeslice sample (e.g. `"^SUM_"` for the summer day on the `s4_h24`
 #'   calendar). When the matched timeslices carry an hour tag (`"_h00"..."_h23"`),
 #'   an integer `hour` column is added.
 #' @param drop_small numeric in `[0, 1)`: drop processes whose total absolute
 #'   value is below this share of the largest process (default `0`, keep all).
+#'   Unlike `top_n` this DELETES rows -- stacked charts lose that mass.
+#' @param top_n integer: keep the `top_n` largest processes (by summed
+#'   absolute value) and lump the rest into one `"Other"` series.
+#'   Mass-preserving -- lumped rows are re-aggregated, not dropped -- and the
+#'   demand overlay is never lumped. `NULL` (default) or `Inf` keeps every
+#'   process. Applied after `drop_small`. On a list of scenarios the lumping
+#'   runs per scenario, so each keeps its own top set.
 #' @param by character vector, any of `"vintage"` and `"cluster"`. Technology
 #'   variants are always rolled back up to their base technology in `process`;
 #'   by default (`NULL`) they are simply summed, so charts do not fragment into
@@ -56,14 +63,16 @@
 getMix <- function(scen,
                    type = c("generation", "capacity", "new_capacity", "fuel"),
                    comm = "ELC", region = NULL, year = NULL, timeslice = NULL,
-                   drop_small = 0, by = NULL) {
+                   drop_small = 0, by = NULL, top_n = NULL) {
   type <- match.arg(type)
   by <- if (is.null(by)) character() else intersect(by, c("vintage", "cluster"))
-  # named list of scenarios -> row-bind
+  # named list of scenarios -> row-bind (lumping applied per scenario, so
+  # each keeps its own top set)
   if (is.list(scen) && !isS4(scen)) {
     out <- lapply(seq_along(scen), function(i) {
       d <- getMix(scen[[i]], type = type, comm = comm, region = region,
-                  year = year, timeslice = timeslice, drop_small = drop_small, by = by)
+                  year = year, timeslice = timeslice, drop_small = drop_small,
+                  by = by, top_n = top_n)
       if (!is.null(d) && nrow(d) > 0) {
         nm <- names(scen)[i]
         if (!is.null(nm) && nzchar(nm)) d$scenario <- nm
@@ -227,10 +236,50 @@ getMix <- function(scen,
     keep <- names(tot)[tot >= drop_small * max(tot)]
     out <- out[out$process %in% keep | out$flow == "demand", , drop = FALSE]
   }
+  # lump everything below the top_n largest processes into "Other"
+  # (mass-preserving, unlike drop_small; applied AFTER drop_small)
+  out <- .mix_lump(out, top_n)
 
   front <- intersect(c("scenario", "type", "process", "flow", "comm", "region",
                        "year", "timeslice", "hour", "value"), names(out))
   out <- out[, c(front, setdiff(names(out), front)), drop = FALSE]
+  rownames(out) <- NULL
+  out
+}
+
+# Lump all but the top_n largest processes (by summed |value| over
+# non-demand rows) into `other`. Mass-preserving: lumped rows are
+# re-aggregated over every non-value column, not dropped -- stacked charts
+# still sum to the balance. The demand overlay is never lumped. Identity
+# when top_n is NULL / non-finite / >= the process count.
+.mix_lump <- function(out, top_n = NULL, other = "Other") {
+  if (is.null(out) || nrow(out) == 0 || is.null(top_n) ||
+      !is.finite(top_n) || !"process" %in% names(out)) {
+    return(out)
+  }
+  pool <- out$flow != "demand"
+  procs <- unique(out$process[pool])
+  procs <- procs[!is.na(procs)]
+  if (length(procs) <= top_n) return(out)
+  tot <- tapply(abs(out$value[pool]), out$process[pool], sum, na.rm = TRUE)
+  keep <- names(sort(tot, decreasing = TRUE))[seq_len(top_n)]
+  if (other %in% keep) other <- paste(other, "processes")
+  lump <- pool & !out$process %in% keep
+  if (!any(lump)) return(out)
+  out$process[lump] <- other
+  # collapse the lumped rows over all non-value columns. NOT via
+  # stats::aggregate: it silently drops rows whose by-columns hold NA
+  # (comm/timeslice are NA for some mix types). A composite key keeps NA
+  # groups and the original column types.
+  lump_rows <- out[lump, , drop = FALSE]
+  grp_cols <- setdiff(names(lump_rows), "value")
+  key <- do.call(paste, c(lapply(lump_rows[grp_cols], function(z)
+    ifelse(is.na(z), "\r<NA>", as.character(z))), list(sep = "\r")))
+  sums <- tapply(lump_rows$value, key, sum, na.rm = TRUE)
+  first <- !duplicated(key)
+  agg <- lump_rows[first, , drop = FALSE]
+  agg$value <- unname(sums[key[first]])
+  out <- rbind(out[!lump, , drop = FALSE], agg)
   rownames(out) <- NULL
   out
 }
@@ -282,6 +331,11 @@ getMix <- function(scen,
 #'   columns. Implied automatically by `fill`/`facet`.
 #' @param fill name of the column to colour the bars by (default `"process"`);
 #'   `"vintage"` or `"cluster"` shows the composition of a variant group.
+#' @param top_n integer, passed to [getMix()]: keep the `top_n` largest
+#'   processes and lump the rest into `"Other"` (mass-preserving). Default
+#'   `12` keeps legends readable on large models; `NULL`/`Inf` shows every
+#'   process. Legends with more than 8 keys move to a compact bottom
+#'   multi-column layout automatically.
 #' @param facet name of the column to facet by. Defaults to `"region"` when the
 #'   scenario has more than one region (the historical behaviour).
 #' @param ... ignored.
@@ -300,7 +354,7 @@ getMix <- function(scen,
 autoplot.scenario <- function(object,
     type = c("generation", "capacity", "new_capacity", "fuel", "storage"),
     comm = "ELC", region = NULL, year = NULL, timeslice = NULL,
-    drop_small = 0, by = NULL, fill = NULL, facet = NULL, ...) {
+    drop_small = 0, by = NULL, fill = NULL, facet = NULL, top_n = 12, ...) {
   # ggplot2 is in Suggests. Without this the failure is R's bare "there is no
   # package called 'ggplot2'" from the first `ggplot2::` call, and R CMD check
   # flags a Suggests package used unconditionally. `R/plot.R` guards this way.
@@ -322,7 +376,8 @@ autoplot.scenario <- function(object,
     if (length(yrs) > 0) year <- max(yrs)
   }
   mx <- getMix(object, type = gtype, comm = comm, region = region,
-               year = year, timeslice = timeslice, drop_small = drop_small, by = by)
+               year = year, timeslice = timeslice, drop_small = drop_small,
+               by = by, top_n = top_n)
   if (type == "storage")
     mx <- mx[grepl("^storage", mx$flow), , drop = FALSE]
   if (nrow(mx) == 0) stop("No '", type, "' data found in scenario '",
@@ -340,12 +395,14 @@ autoplot.scenario <- function(object,
     # hourly dispatch over the timeslice sample
     agg <- stats::aggregate(value ~ process + hour,
                             rbind(bars[c("process", "hour", "value")]), sum)
+    agg$process <- .mix_other_last(agg$process)
     p <- ggplot2::ggplot(agg, ggplot2::aes(hour, value, fill = process)) +
       ggplot2::geom_col(width = 1, alpha = 0.9) +
       ggplot2::labs(x = "hour", y = "value", fill = NULL,
                     title = ttl, subtitle = paste0("timeslices: ", timeslice,
                                                    "  year: ", year)) +
       theme_energyRt()
+    for (comp in .legend_compact(length(unique(agg$process)))) p <- p + comp
     if (nrow(dem) > 0 && "hour" %in% names(dem)) {
       dl <- stats::aggregate(value ~ hour, dem[c("hour", "value")], sum)
       p <- p + ggplot2::geom_line(data = dl,
@@ -362,12 +419,16 @@ autoplot.scenario <- function(object,
   bycols <- intersect(bycols, names(bars))
   agg <- stats::aggregate(bars[["value"]], by = bars[bycols], FUN = sum)
   names(agg)[ncol(agg)] <- "value"
+  if (identical(fill_var, "process")) {
+    agg$process <- .mix_other_last(agg$process)
+  }
   p <- ggplot2::ggplot(agg,
       ggplot2::aes(factor(.data$year), .data$value,
                    fill = .data[[fill_var]])) +
     ggplot2::geom_col(alpha = 0.9) +
     ggplot2::labs(x = "year", y = "value", fill = NULL, title = ttl) +
     theme_energyRt()
+  for (comp in .legend_compact(length(unique(agg[[fill_var]])))) p <- p + comp
   if (nrow(dem) > 0 && gtype == "generation") {
     dby <- c("year", if (n_reg > 1) "region")
     dl <- stats::aggregate(dem[["value"]], by = dem[dby], FUN = sum)
@@ -485,6 +546,50 @@ plot_process_windows <- function(object, region = NULL, horizon = NULL) {
     theme_energyRt()
   if (vary) p <- p + ggplot2::facet_wrap(~region)
   p
+}
+
+# Availability windows collapsed to one row per process-topology group
+# (min build_start .. max build_end solid, tail to max oper_end), sized for
+# large models where the per-process chart is an unreadable band. `groups`
+# comes from .proc_groups() (R/report.R).
+#' @noRd
+.plot_windows_grouped <- function(w, groups) {
+  if (is.null(w) || nrow(w) == 0 || length(groups) == 0) return(NULL)
+  labs_ <- vapply(groups, function(g) g$label, character(1))
+  if (anyDuplicated(labs_)) {
+    labs_ <- paste0(labs_, " [",
+                    vapply(groups, function(g) g$class, character(1)), "]")
+  }
+  labs_ <- paste0(labs_, "  (", vapply(groups, function(g) g$n, integer(1)),
+                  ")")
+  map <- unlist(lapply(seq_along(groups), function(i)
+    stats::setNames(rep(labs_[i], length(groups[[i]]$members)),
+                    groups[[i]]$members)))
+  w$grp <- unname(map[w$process])
+  w <- w[!is.na(w$grp), , drop = FALSE]
+  if (nrow(w) == 0) return(NULL)
+  agg <- do.call(rbind, lapply(split(w, w$grp), function(d) data.frame(
+    grp = d$grp[1],
+    build_start = suppressWarnings(min(d$build_start, na.rm = TRUE)),
+    build_end = suppressWarnings(max(d$build_end, na.rm = TRUE)),
+    oper_end = suppressWarnings(max(d$oper_end, na.rm = TRUE)),
+    stringsAsFactors = FALSE)))
+  agg$grp <- stats::reorder(agg$grp, agg$build_start)
+  ggplot2::ggplot(agg) +
+    ggplot2::geom_segment(
+      ggplot2::aes(x = .data$build_end, xend = .data$oper_end,
+                   y = .data$grp, yend = .data$grp),
+      linewidth = 4, alpha = 0.3, colour = "steelblue", na.rm = TRUE) +
+    ggplot2::geom_segment(
+      ggplot2::aes(x = .data$build_start, xend = .data$build_end,
+                   y = .data$grp, yend = .data$grp),
+      linewidth = 4, colour = "steelblue", na.rm = TRUE) +
+    ggplot2::labs(x = "year", y = NULL,
+                  title = "Process availability windows (by structure)",
+                  subtitle = paste("solid: new capacity can be built",
+                                   "· translucent: last vintage",
+                                   "operates · (n) = processes")) +
+    theme_energyRt()
 }
 
 #' @param object a `model` / `repository` object (autoplot methods).

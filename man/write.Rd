@@ -6,16 +6,18 @@
 \alias{write.sc}
 \title{Write scenario object as a Python, Julia, GAMS, or MathProg script with data files to a directory}
 \usage{
-write_script(scen, tmp.dir = NULL, solver = NULL, ...)
+write_script(scen, solver.dir = NULL, solver = NULL, ...)
 
-write_sc(x, tmp.dir = NULL, solver = NULL, ...)
+write_sc(x, solver.dir = NULL, solver = NULL, ...)
 
-write.sc(x, tmp.dir = NULL, solver = NULL, ...)
+write.sc(x, solver.dir = NULL, solver = NULL, ...)
 }
 \arguments{
 \item{scen}{scenario object, must be interpolated}
 
-\item{tmp.dir}{character, path}
+\item{solver.dir}{character, an external directory to write into; default
+(\code{NULL}) writes into the run's \verb{solver/} directory under the scenario
+(\code{tmp.dir} is the deprecated alias).}
 
 \item{solver}{list of character with solver specification.}
 

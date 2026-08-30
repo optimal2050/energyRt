@@ -31,7 +31,7 @@ NULL
 #' @examples
 #' \dontrun{
 #' gs <- utopia_geoscale()
-#' geoscales::geo_children(gs, "zone", "WEST")
+#' geoscales::geoscale_children(gs, "zone", "WEST")
 #'
 #' # the three-region model used in vignette("utopia-build")
 #' gs3 <- utopia_geoscale(region = c("R1", "R2", "R3"))
@@ -64,9 +64,9 @@ utopia_geoscale <- function(layout = "honeycomb", region = NULL,
     geo <- geo[geo$region %in% region, , drop = FALSE]
   }
 
-  gs <- geoscales::geoscale_from_leaves(
+  gs <- geoscales::geoscale_from_leaftable(
     geo,
-    levels = c("nation", "zone", "region"),
+    geoframes = c("nation", "zone", "region"),
     key = "region",
     weights = character(),
     name = "utopia",
@@ -81,14 +81,15 @@ utopia_geoscale <- function(layout = "honeycomb", region = NULL,
          paste(names(utopia$map), collapse = ", "), call. = FALSE)
   }
   check_package("sf")
-  gs <- geoscales::geo_attach_geometry(gs, utopia$map[[layout]],
-                                       by = "region", level = "region")
+  gs <- geoscales::attach_geometry_geoscale(gs, utopia$map[[layout]],
+                                            by = "region",
+                                            geoframe = "region")
   if (isTRUE(area)) {
-    # The reference layouts carry no CRS, so `geo_area()` measures planar area
+    # The reference layouts carry no CRS, so `add_area_geoscale()` measures planar area
     # and warns. That is the honest result for a synthetic map; suppress only
     # that one warning rather than let it fire on every call.
     withCallingHandlers(
-      gs <- geoscales::geo_area(gs, name = "area"),
+      gs <- geoscales::add_area_geoscale(gs, name = "area"),
       warning = function(w) {
         if (grepl("no CRS", conditionMessage(w))) invokeRestart("muffleWarning")
       }

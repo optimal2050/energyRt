@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.85.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,6 +36,8 @@
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
+    <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
+    <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
     <li><a class="dropdown-item" href="../articles/autoplot.html">autoplot()</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
@@ -154,21 +156,6 @@ Path to a standalone GLPK installation containing the glpsol executable. If unse
 </dl></dd>
 
 
-<dt>mosox_path</dt>
-<dd><dl>
-Path to the directory containing the mosox executable.<dt>default: </dt>
-<dd><div class="sourceCode"><pre><code><span><span class="cn">NULL</span></span></code></pre></div></dd>
-
-<dt>option: </dt>
-<dd><p>en.mosox_path</p></dd>
-
-<dt>envvar: </dt>
-<dd><p>ENERGYRT_MOSOX_PATH (evaluated if possible, raw string otherwise)</p></dd>
-
-
-</dl></dd>
-
-
 <dt>neos_email</dt>
 <dd><dl>
 Email address for NEOS Server job submission (required by NEOS). Read from the NEOS_EMAIL environment variable if the option is unset.<dt>default: </dt>
@@ -229,19 +216,124 @@ Root directory for scenario folders. Scenario paths and solver working directori
 </dl></dd>
 
 
-<dt>default_registry</dt>
+<dt>registry_file</dt>
 <dd><dl>
-Where the registry of repositories, models and scenarios lives: a list with the object name and the environment env holding it.<dt>default: </dt>
-<dd><div class="sourceCode"><pre><code><span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>name <span class="op">=</span> <span class="st">"registry"</span>, env <span class="op">=</span> <span class="st">".scen"</span><span class="op">)</span></span></code></pre></div></dd>
+Path to the project registry CSV indexing saved models, scenarios and runs. Kept at the project root, a sibling of the scenarios/ and models/ stores, so one registry spans both.<dt>default: </dt>
+<dd><div class="sourceCode"><pre><code><span><span class="st">"energyRt_registry.csv"</span></span></code></pre></div></dd>
 
 <dt>option: </dt>
-<dd><p>en.default_registry</p></dd>
+<dd><p>en.registry_file</p></dd>
 
 <dt>envvar: </dt>
-<dd><p>ENERGYRT_DEFAULT_REGISTRY (evaluated if possible, raw string otherwise)</p></dd>
+<dd><p>ENERGYRT_REGISTRY_FILE (evaluated if possible, raw string otherwise)</p></dd>
 
 
 </dl></dd>
+
+
+<dt>models_path</dt>
+<dd><dl>
+Root directory for the model store. save_model() writes content-addressed model folders (html<name>@html<hash8>) underneath it.<dt>default: </dt>
+<dd><div class="sourceCode"><pre><code><span><span class="st">"models/"</span></span></code></pre></div></dd>
+
+<dt>option: </dt>
+<dd><p>en.models_path</p></dd>
+
+<dt>envvar: </dt>
+<dd><p>ENERGYRT_MODELS_PATH (evaluated if possible, raw string otherwise)</p></dd>
+
+
+</hash8></name></dl></dd>
+
+
+<dt>repositories_path</dt>
+<dd><dl>
+Root directory for the repository store. save_repository() writes content-addressed repository folders (html<name>@html<hash8>) underneath it.<dt>default: </dt>
+<dd><div class="sourceCode"><pre><code><span><span class="st">"repositories/"</span></span></code></pre></div></dd>
+
+<dt>option: </dt>
+<dd><p>en.repositories_path</p></dd>
+
+<dt>envvar: </dt>
+<dd><p>ENERGYRT_REPOSITORIES_PATH (evaluated if possible, raw string otherwise)</p></dd>
+
+
+</hash8></name></dl></dd>
+
+
+<dt>datasets_path</dt>
+<dd><dl>
+Root directory for the dataset store. save_dataset() writes content-addressed dataset folders (html<name>@html<hash8>) underneath it.<dt>default: </dt>
+<dd><div class="sourceCode"><pre><code><span><span class="st">"datasets/"</span></span></code></pre></div></dd>
+
+<dt>option: </dt>
+<dd><p>en.datasets_path</p></dd>
+
+<dt>envvar: </dt>
+<dd><p>ENERGYRT_DATASETS_PATH (evaluated if possible, raw string otherwise)</p></dd>
+
+
+</hash8></name></dl></dd>
+
+
+<dt>log_file</dt>
+<dd><dl>
+Optional operation-log CSV. Empty (default) = logging off; a path makes interpolate_model()/solve_scenario()/solve_myopic() append one line per operation. Read it back with read_log().<dt>default: </dt>
+<dd><div class="sourceCode"><pre><code><span><span class="st">""</span></span></code></pre></div></dd>
+
+<dt>option: </dt>
+<dd><p>en.log_file</p></dd>
+
+<dt>envvar: </dt>
+<dd><p>ENERGYRT_LOG_FILE (evaluated if possible, raw string otherwise)</p></dd>
+
+
+</dl></dd>
+
+
+<dt>store_versioning</dt>
+<dd><dl>
+How the model/repository/dataset stores name their entries. "none" (default): one human-readable folder per name (models/UTOPIA/), updated in place; the content hash lives in the manifest and misc$hash for no-op detection and reference verification. "hash": content-addressed html<name>@html<hash8> folders; every content change is a NEW entry and versions coexist.<dt>default: </dt>
+<dd><div class="sourceCode"><pre><code><span><span class="st">"none"</span></span></code></pre></div></dd>
+
+<dt>option: </dt>
+<dd><p>en.store_versioning</p></dd>
+
+<dt>envvar: </dt>
+<dd><p>ENERGYRT_STORE_VERSIONING (evaluated if possible, raw string otherwise)</p></dd>
+
+
+</hash8></name></dl></dd>
+
+
+<dt>reports_path</dt>
+<dd><dl>
+Default directory for rendered reports of IN-MEMORY objects (treated as temporary output). Reports of saved objects land inside the owning folder (html<scenario>/reports/, html<model store entry>/reports/) instead.<dt>default: </dt>
+<dd><div class="sourceCode"><pre><code><span><span class="st">"reports/"</span></span></code></pre></div></dd>
+
+<dt>option: </dt>
+<dd><p>en.reports_path</p></dd>
+
+<dt>envvar: </dt>
+<dd><p>ENERGYRT_REPORTS_PATH (evaluated if possible, raw string otherwise)</p></dd>
+
+
+</model></scenario></dl></dd>
+
+
+<dt>levcost_cache_path</dt>
+<dd><dl>
+Default directory for cached levcost results of IN-MEMORY objects (treated as temporary). Results for saved objects are cached inside the owning folder (html<owner>/levcost/) instead.<dt>default: </dt>
+<dd><div class="sourceCode"><pre><code><span><span class="st">"levcosts/"</span></span></code></pre></div></dd>
+
+<dt>option: </dt>
+<dd><p>en.levcost_cache_path</p></dd>
+
+<dt>envvar: </dt>
+<dd><p>ENERGYRT_LEVCOST_CACHE_PATH (evaluated if possible, raw string otherwise)</p></dd>
+
+
+</owner></dl></dd>
 
 
 <dt>arrow_format</dt>

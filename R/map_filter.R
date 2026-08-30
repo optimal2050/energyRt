@@ -236,17 +236,33 @@ map_mSupOutTot <- function(scen, fmp) {
 # than what it exchanges: a hydrogen store would register only in the H2 balance,
 # so the ELC balance never saw it charge or discharge and the store sat unused.
 # The aux side is likewise split: AInp feeds the input total, AOut the output.
+# Like .filter_proc_tot, the domain is reduced to the COMMODITY's native
+# timeslice (and mCommReg-cut): a storage flowing into a coarser-timeframe
+# commodity (an ANNUAL aux from a slice-level storage) must instantiate the
+# totals equation at the commodity's level, with the Agg branch summing the
+# finer flow rows -- previously the rows stayed at the storage's timeslice,
+# nothing referenced them, and the aux was silently FREE.
 .filter_storage_tot <- function(scen, name, main, aux, fmp) {
   m <- .gds(scen, main); a <- .gds(scen, aux)
   if (is.null(m) && is.null(a)) return(scen)
   pieces <- lapply(Filter(Negate(is.null), list(a, m)),
                    function(x) x[, -1, drop = FALSE])
-  .set_map(scen, name, .reduce_sect(dplyr::bind_rows(pieces)), fmp)
+  tot <- .reduce_total_map(.reduce_sect(dplyr::bind_rows(pieces)),
+                           .gds(scen, "mCommTimesliceOrParent"))
+  .set_map(scen, name, .filt_cr(scen, tot), fmp)
 }
-map_mStorageInpTot <- function(scen, fmp)
-  .filter_storage_tot(scen, "mStorageInpTot", "mvStorageInp", "mvStorageAInp", fmp)
-map_mStorageOutTot <- function(scen, fmp)
-  .filter_storage_tot(scen, "mStorageOutTot", "mvStorageOut", "mvStorageAOut", fmp)
+map_mStorageInpTot <- function(scen, fmp) {
+  scen <- .filter_storage_tot(scen, "mStorageInpTot", "mvStorageInp",
+                              "mvStorageAInp", fmp)
+  scen <- .comm_timeslice_class_maps(scen, "mvStorageInp",  "mStorageInpComm",  fmp)
+  .comm_timeslice_class_maps(scen, "mvStorageAInp", "mStorageAInpComm", fmp)
+}
+map_mStorageOutTot <- function(scen, fmp) {
+  scen <- .filter_storage_tot(scen, "mStorageOutTot", "mvStorageOut",
+                              "mvStorageAOut", fmp)
+  scen <- .comm_timeslice_class_maps(scen, "mvStorageOut",  "mStorageOutComm",  fmp)
+  .comm_timeslice_class_maps(scen, "mvStorageAOut", "mStorageAOutComm", fmp)
+}
 
 # -- auxiliary-conversion domains (mTech*2A* / mStorage*2A*) ---------------- #
 # Each: relabel a conversion-factor parameter's aux commodity as `comm` and
@@ -272,7 +288,15 @@ map_mStorageOutTot <- function(scen, fmp)
   mStorageCap2AInp  = list("pStorageCap2AInp",  "mvStorageAInp",  FALSE),
   mStorageCap2AOut  = list("pStorageCap2AOut",  "mvStorageAOut",  FALSE),
   mStorageNCap2AInp = list("pStorageNCap2AInp", "mvStorageAInp",  FALSE),
-  mStorageNCap2AOut = list("pStorageNCap2AOut", "mvStorageAOut",  FALSE)
+  mStorageNCap2AOut = list("pStorageNCap2AOut", "mvStorageAOut",  FALSE),
+  mTechPho2AInp    = list("pTechPho2AInp",    "mvTechAct",      FALSE),
+  mTechRet2AInp    = list("pTechRet2AInp",    "mvTechAct",      FALSE),
+  mTechPho2AOut    = list("pTechPho2AOut",    "mvTechAct",      FALSE),
+  mTechRet2AOut    = list("pTechRet2AOut",    "mvTechAct",      FALSE),
+  mStoragePho2AInp = list("pStoragePho2AInp", "mvStorageAInp",  FALSE),
+  mStorageRet2AInp = list("pStorageRet2AInp", "mvStorageAInp",  FALSE),
+  mStoragePho2AOut = list("pStoragePho2AOut", "mvStorageAOut",  FALSE),
+  mStorageRet2AOut = list("pStorageRet2AOut", "mvStorageAOut",  FALSE)
 )
 .filter_aux_conv <- function(scen, name, fmp) {
   sp <- .aux_conv_spec[[name]]
@@ -298,6 +322,14 @@ map_mStorageCout2AOut <- function(scen, fmp) .filter_aux_conv(scen, "mStorageCou
 map_mStorageCap2AInp  <- function(scen, fmp) .filter_aux_conv(scen, "mStorageCap2AInp", fmp)
 map_mStorageCap2AOut  <- function(scen, fmp) .filter_aux_conv(scen, "mStorageCap2AOut", fmp)
 map_mStorageNCap2AInp <- function(scen, fmp) .filter_aux_conv(scen, "mStorageNCap2AInp", fmp)
+map_mTechPho2AInp         <- function(scen, fmp) .filter_aux_conv(scen, "mTechPho2AInp", fmp)
+map_mTechPho2AOut         <- function(scen, fmp) .filter_aux_conv(scen, "mTechPho2AOut", fmp)
+map_mTechRet2AInp         <- function(scen, fmp) .filter_aux_conv(scen, "mTechRet2AInp", fmp)
+map_mTechRet2AOut         <- function(scen, fmp) .filter_aux_conv(scen, "mTechRet2AOut", fmp)
+map_mStoragePho2AInp      <- function(scen, fmp) .filter_aux_conv(scen, "mStoragePho2AInp", fmp)
+map_mStoragePho2AOut      <- function(scen, fmp) .filter_aux_conv(scen, "mStoragePho2AOut", fmp)
+map_mStorageRet2AInp      <- function(scen, fmp) .filter_aux_conv(scen, "mStorageRet2AInp", fmp)
+map_mStorageRet2AOut      <- function(scen, fmp) .filter_aux_conv(scen, "mStorageRet2AOut", fmp)
 map_mStorageNCap2AOut <- function(scen, fmp) .filter_aux_conv(scen, "mStorageNCap2AOut", fmp)
 
 # -- dummy import / export slack domains ----------------------------------- #
@@ -716,7 +748,7 @@ map_mvInpTot <- function(scen, fmp) {
     .gds(scen, "mvTradeIrAInpTot")),                    # [agg-rewrite] mInpSub dropped
     .gds(scen, "mCommTimeslice"))
   # [nested-regions] totals also exist at every level up to the commodity's own
-  # `@geolevel`, so eqInpTot has a cell to aggregate the finer ones into. A
+  # `@geoframe`, so eqInpTot has a cell to aggregate the finer ones into. A
   # no-op unless some commodity names a coarser level.
   inptot <- .extend_comm_region(inptot, .comm_region_chain(scen))
   .set_map(scen, "mvInpTot", inptot, fmp)
@@ -777,6 +809,14 @@ map_mvBalance <- function(scen, fmp)
   mTechAct2AInp     = map_mTechAct2AInp,
   mTechAct2AOut     = map_mTechAct2AOut,
   mTechCap2AInp     = map_mTechCap2AInp,
+  mTechPho2AInp     = map_mTechPho2AInp,
+  mTechPho2AOut     = map_mTechPho2AOut,
+  mTechRet2AInp     = map_mTechRet2AInp,
+  mTechRet2AOut     = map_mTechRet2AOut,
+  mStoragePho2AInp  = map_mStoragePho2AInp,
+  mStoragePho2AOut  = map_mStoragePho2AOut,
+  mStorageRet2AInp  = map_mStorageRet2AInp,
+  mStorageRet2AOut  = map_mStorageRet2AOut,
   mTechCap2AOut     = map_mTechCap2AOut,
   mTechNCap2AInp    = map_mTechNCap2AInp,
   mTechNCap2AOut    = map_mTechNCap2AOut,

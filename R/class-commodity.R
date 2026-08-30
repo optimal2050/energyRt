@@ -14,7 +14,7 @@
 #' @slot desc `r get_slot_doc("commodity", "desc")`
 #' @slot limtype `r get_slot_doc("commodity", "limtype")`
 #' @slot timeframe `r get_slot_doc("commodity", "timeframe")`
-#' @slot geolevel `r get_slot_doc("commodity", "geolevel")`
+#' @slot geoframe `r get_slot_doc("commodity", "geoframe")`
 #' @slot unit `r get_slot_doc("commodity", "unit")`
 #' @slot emis `r get_slot_doc("commodity", "emis")`
 #' @slot agg `r get_slot_doc("commodity", "agg")`
@@ -31,7 +31,7 @@ setClass("commodity",
     desc = "character", # Details
     limtype = "factor",
     timeframe = "character",
-    geolevel = "character",
+    geoframe = "character",
     unit = "character",
     emis = "data.frame", # Emission factors
     agg = "data.frame", # Aggregation parameter
@@ -43,7 +43,7 @@ setClass("commodity",
     desc = character(),
     limtype = factor("LO", levels = c("FX", "UP", "LO")),
     timeframe = character(),
-    geolevel = character(),
+    geoframe = character(),
     unit = character(),
     agg = data.frame(
       comm = character(),
@@ -84,7 +84,7 @@ setMethod("initialize", "commodity", function(.Object, ...) {
 #' @param desc `r get_slot_doc("commodity", "desc")`
 #' @param limtype `r get_slot_doc("commodity", "limtype")`
 #' @param timeframe `r get_slot_doc("commodity", "timeframe")`
-#' @param geolevel `r get_slot_doc("commodity", "geolevel")`
+#' @param geoframe `r get_slot_doc("commodity", "geoframe")`
 #' @param unit `r get_slot_doc("commodity", "unit")`
 #' @param agg `r get_slot_doc("commodity", "agg")`
 #' @param emis `r get_slot_doc("commodity", "emis")`
@@ -121,7 +121,7 @@ newCommodity <- function(
     desc = "",
     limtype = "LO",
     timeframe = character(),
-    geolevel = character(),
+    geoframe = character(),
     unit = character(),
     agg = data.frame(),
     emis = data.frame(),
@@ -138,7 +138,7 @@ newCommodity <- function(
     desc = desc,
     limtype = limtype,
     timeframe = timeframe,
-    geolevel = geolevel,
+    geoframe = geoframe,
     unit = unit,
     agg = agg,
     emis = emis,

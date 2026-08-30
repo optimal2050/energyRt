@@ -4,14 +4,15 @@
 # class-normalised) and, where a GLPK binary is available, an identical objective.
 
 test_that("on-disk interpolation equals in-memory (data + solve)", {
-  # Reuse the guard's test-model builders (data-raw is present in the source tree
-  # but not in an installed package, so skip cleanly when absent).
+  # Reuse the tier-model builders (tests/testthat/fixtures/, with the legacy
+  # data-raw/ location as fallback; skip cleanly when absent).
   tm_file <- NULL
-  for (cand in c("data-raw/testing-models.R",
+  for (cand in c(testthat::test_path("fixtures", "testing-models.R"),
+                 "data-raw/testing-models.R",
                  file.path("..", "..", "data-raw", "testing-models.R"))) {
     if (file.exists(cand)) { tm_file <- cand; break }
   }
-  skip_if(is.null(tm_file), "data-raw/testing-models.R not available")
+  skip_if(is.null(tm_file), "fixtures/testing-models.R not available")
   source(tm_file, local = TRUE)
   mod <- tm_weather()
 
@@ -58,7 +59,7 @@ test_that("on-disk interpolation equals in-memory (data + solve)", {
     unlink(td, recursive = TRUE)
     on.exit(unlink(td, recursive = TRUE), add = TRUE)
     suppressWarnings(suppressMessages(
-      solve_scen(s, name = tag, solver = "GLPK", tmp.dir = td, force = TRUE)))
+      solve_scenario(s, name = tag, solver = "GLPK", tmp.dir = td, force = TRUE)))
   }
   om <- getobj(solve1(mem, "mem"))
   od <- getobj(solve1(disk, "disk"))

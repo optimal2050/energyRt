@@ -67,8 +67,8 @@ settings.
   wacc
 
   :   numeric. Weighted average cost of capital, used to annuitise
-      investment costs into `pTechEac` / `pStorageEac` / `pTradeEac`. A
-      process may override it with its own `@invcost$wacc`. Default is
+      investment costs into `pTechEac` / `pStorageOutEac` / `pTradeEac`.
+      A process may override it with its own `@invcost$wacc`. Default is
       0.
 
   sdr

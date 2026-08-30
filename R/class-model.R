@@ -61,7 +61,7 @@ setMethod("initialize", "model", function(.Object, ...) {
 #'   discount = 0.05,
 #'   horizon = newHorizon(period = 2020:2050,
 #'                        intervals = rep(5, 10)),
-#'   calendar = calendars$d365h24
+#'   calendar = calendars$d365_h24
 #'   )
 #' }
 newModel <- function(name = "", desc = "", ...) {
@@ -308,6 +308,10 @@ setReplaceMethod("$", c("repository", "ANY"),
 #' @family repository
 setMethod("names", "repository", function(x) names(x@data))
 
+# Name of the repository that `add(model, <object>)` creates when the caller
+# names none. Anything but "" -- see the note in add.model().
+.default_repo_name <- "default_repository"
+
 add.model <- function(obj, ..., overwrite = FALSE, repo_name = NULL) {
   # browser()
   # cls <- c('technology', 'commodity', 'region', 'commodity',
@@ -339,33 +343,72 @@ add.model <- function(obj, ..., overwrite = FALSE, repo_name = NULL) {
   }
   # cc <- sapply(arg, function(x) class(x)[1])
   ii <- sapply(arg, function(x) inherits(x, cls))
+  # An incoming bare object whose class+name already lives in ONE OF THE
+  # MODEL'S REPOSITORIES is a REPLACEMENT, not an addition: with
+  # `overwrite = TRUE` it swaps in where the old object sits (this is what
+  # lets a kit module -- a re-declared `SUP_GAS`/`EWIN`/`ENUC` -- supersede
+  # the base declaration); without it, it is an error. Previously such an
+  # object was silently appended to the default repository NEXT TO the old
+  # one (the bare-object path returns before the cross-repository duplicate
+  # check below), and interpolation then used both.
+  if (any(ii)) {
+    for (k in which(ii)) {
+      x <- arg[[k]]
+      hit_repo <- NA_integer_; hit_obj <- NA_integer_
+      for (ri in seq_along(obj@data)) {
+        rdat <- obj@data[[ri]]@data
+        oi <- which(vapply(rdat, function(y)
+          identical(class(y)[1], class(x)[1]) && identical(y@name, x@name),
+          logical(1)))
+        if (length(oi)) { hit_repo <- ri; hit_obj <- oi[1]; break }
+      }
+      if (!is.na(hit_repo)) {
+        if (!overwrite) {
+          stop('Object "', x@name, '" (', class(x)[1], ') already exists in ',
+               'repository "', obj@data[[hit_repo]]@name,
+               '". Use `overwrite = TRUE` to replace it.', call. = FALSE)
+        }
+        obj@data[[hit_repo]]@data[[hit_obj]] <- x
+        ii[k] <- FALSE            # handled: keep it off the default-repo path
+        arg[k] <- list(NULL)
+      }
+    }
+    drop_k <- vapply(arg, is.null, logical(1))
+    arg <- arg[!drop_k]; ii <- ii[!drop_k]
+  }
   if (any(ii)) {
     # arg <- arg[cc != 'repository']
     # Generate name
-    if (is.null(repo_name)) {
-      # if (length(obj@data) >= 1) {
-      #   # repo_name <- obj@data[[length(obj@data)]]@name
-      #   repo_name <- names(obj@data)[length(obj@data)]
-      #   warning('"repo_name" is not specified, adding objects to "',
-      #           repo_name, '" repository')
-      # } else {
-      # if (length(obj@data) == 0) {
-      add_repo <- new('repository', repo_name)
-      repo_name <- add_repo@name
-      # repo_name <- "default_repository"
-      if (is.null(obj@data[[repo_name]])) {
-        obj@data[[repo_name]] <- add_repo
-      }
-      # repo_name <- obj@data[[1]]@name # default name
-      # }
-    } else {
-      ff <- c(sapply(obj@data, function(x) x@name), recursive = TRUE)
-      if (all(ff != repo_name)) {
-        obj@data[[repo_name]] <- new('repository', name = repo_name)
-      }
-    }
+    # Objects added straight to a model (rather than to a named repository) land
+    # in an auto-created one. It used to be built with the class prototype's
+    # EMPTY name, which cannot work: `obj@data[[""]]` is always NULL, so the
+    # "does it exist already?" test below was always TRUE and EVERY add()
+    # appended ANOTHER empty-named repository. With two of them present,
+    # `ff == repo_name` matched two positions and `obj@data[[fl]]` became
+    # RECURSIVE indexing -- `obj@data[[c(2, 3)]]` -- which fails with
+    # "subscript out of bounds". A model could therefore be given exactly one
+    # object this way; a second `add()` errored.
+    #
+    # Naming the repository makes the lookup work, so repeated adds accumulate
+    # in one place. The name is also what the repository branch further down
+    # already demands of a user-supplied repository ("Empty repository name is
+    # not allowed"), so the auto-created one no longer breaks the class's own
+    # rule.
+    if (is.null(repo_name)) repo_name <- .default_repo_name
     ff <- c(sapply(obj@data, function(x) x@name), recursive = TRUE)
-    fl <- seq(alon = ff)[ff == repo_name]
+    if (!any(ff == repo_name)) {
+      # `newRepository()`, NOT `new("repository", name = ...)`: the class's
+      # `initialize` method discards `...` outright (it only fills `@permit`),
+      # so `new()` silently returns a repository whose name is still "" no
+      # matter what is passed. That was the other half of this bug -- a
+      # user-supplied `repo_name` was dropped exactly like the default one, so
+      # `add(mod, x, repo_name = "mine")` was equally unrepeatable.
+      obj@data[[repo_name]] <- newRepository(repo_name)
+      ff <- c(sapply(obj@data, function(x) x@name), recursive = TRUE)
+    }
+    # Positional, and deliberately ONE position: a legacy model deserialised
+    # with two same-named repositories would otherwise index recursively again.
+    fl <- which(ff == repo_name)[1]
     for (i in seq(along = arg[ii])) {
       obj@data[[fl]] <- add(obj@data[[fl]], arg[ii][[i]], overwrite = overwrite)
     }
@@ -384,10 +427,26 @@ add.model <- function(obj, ..., overwrite = FALSE, repo_name = NULL) {
       if (nm == "") stop('Empty repository name is not allowed.')
       if (any(ff == nm)) {
         # add data to existing repository
-        obj@data[[nm]] <- add(obj@data[[nm]], arg[ii][[i]])
+        obj@data[[nm]] <- add(obj@data[[nm]], arg[ii][[i]],
+                              overwrite = overwrite)
       } else {
         # !!! add name-check with other repositories
         obj@data[[nm]] <- arg[ii][[i]]
+      }
+      # With `overwrite = TRUE` an incoming repository SUPERSEDES same-named
+      # objects wherever they sit: a kit module (e.g. EWIN_SITES carrying a
+      # re-declared `EWIN`) replaces the base declaration in its own
+      # repository instead of tripping the duplicate check below.
+      if (isTRUE(overwrite)) {
+        keys <- vapply(arg[ii][[i]]@data,
+                       function(y) paste(class(y)[1], y@name), character(1))
+        for (ri in seq_along(obj@data)) {
+          if (identical(obj@data[[ri]]@name, nm)) next
+          rk <- vapply(obj@data[[ri]]@data,
+                       function(y) paste(class(y)[1], y@name), character(1))
+          dup <- rk %in% keys
+          if (any(dup)) obj@data[[ri]]@data <- obj@data[[ri]]@data[!dup]
+        }
       }
     }
     arg <- arg[!ii]
@@ -433,10 +492,39 @@ setMethod("add", "model", add.model)
 summary.model <- function(object, ...) {
   cat("Model: ", object@name, "\n")
   cat("Description: ", object@desc, "\n")
-  cat("Repositories: ", names(object@data), "\n")
-  # cat("Horizon: ", getHorizon(object), "\n")
-  # cat("Calendar: ", getCalendar(object), "\n")
-  # invisible(object)
+  cat("Repositories: ", paste(names(object@data), collapse = ", "), "\n")
+  reg <- get_region(object)
+  if (length(reg) > 0L) {
+    cat("Regions: ", length(reg), " (", .preview_chr(reg), ")\n", sep = "")
+  }
+  cnt <- .object_counts(object)
+  if (length(cnt) > 0L) {
+    cat("Objects: ", sum(cnt), "\n", sep = "")
+    print(cnt)
+  }
+  invisible(cnt)
+}
+
+# Objects by class across every repository of the model -- the count
+# `summary()` already gives for a single repository, so that a reader can get it
+# from a model without reaching into `@data`.
+#' @noRd
+.object_counts <- function(object) {
+  cls <- unlist(lapply(object@data, function(rp) {
+    objs <- if (methods::is(rp, "repository")) rp@data else list(rp)
+    vapply(objs, function(o) class(o)[1], "")
+  }), use.names = FALSE)
+  if (length(cls) == 0L) {
+    return(integer(0))
+  }
+  tb <- table(cls)
+  stats::setNames(as.integer(tb), names(tb))
+}
+
+#' @noRd
+.preview_chr <- function(x, n = 5L) {
+  paste0(paste(utils::head(x, n), collapse = ", "),
+         if (length(x) > n) ", ..." else "")
 }
 
 #' @rdname summary

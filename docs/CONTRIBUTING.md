@@ -1,104 +1,135 @@
 # Contributing to energyRt
 
-This outlines how to propose a change to energyRt. For a detailed
-discussion on contributing to this and other tidyverse packages, please
-see the [development contributing guide](https://rstd.io/tidy-contrib)
-and our [code review principles](https://code-review.tidyverse.org/).
+> Stack-wide conventions (naming, style, git policy, API principles, and
+> the terms on which AI assistance is used) are unified in [optimal2050
+> CONVENTIONS.md](https://github.com/optimal2050/.github/blob/main/CONVENTIONS.md);
+> this file covers the workflow of this repo.
 
-## Fixing typos
+Thanks for your interest! `energyRt` is the model hub of the optimal2050
+modeling stack — it builds energy system optimization models and writes
+them out to several solver backends.
 
-You can fix typos, spelling mistakes, or grammatical errors in the
-documentation directly using the GitHub web interface, as long as the
-changes are made in the *source* file. This generally means you’ll need
-to edit [roxygen2
-comments](https://roxygen2.r-lib.org/articles/roxygen2.html) in an `.R`,
-not a `.Rd` file. You can find the `.R` file that generates the `.Rd` by
-reading the comment in the first line.
+> The repository is public and contributions are welcome — issues,
+> ideas, and pull requests alike. Open an issue first for larger
+> changes; the package is pre-1.0 and APIs still move.
 
-## Bigger changes
+**Before writing code, read
+[`.claude/CLAUDE.md`](https://energyRt.org/.claude/CLAUDE.md).** It
+records the failure modes of this codebase, most of which are *silent* —
+a run that looks green while having tested nothing, a parameter accepted
+by a constructor that never reaches the solver. It is the highest-value
+page here.
 
-If you want to make a bigger change, it’s a good idea to first file an
-issue and make sure someone from the team agrees that it’s needed. If
-you’ve found a bug, please file an issue that illustrates the bug with a
-minimal [reprex](https://www.tidyverse.org/help/#reprex) (this will also
-help you write a unit test, if needed). See our guide on [how to create
-a great issue](https://code-review.tidyverse.org/issues/) for more
-advice.
+## Development workflow
 
-### Pull request process
+``` r
 
-- Fork the package and clone onto your computer. If you haven’t done
-  this before, we recommend using
-  `usethis::create_from_github("optimal2050/energyRt", fork = TRUE)`.
+# from the repo root
+devtools::load_all()
+devtools::document()      # regenerates NAMESPACE and all of man/
+devtools::test()
+devtools::check()
+```
 
-- Install all development dependencies with
-  [`devtools::install_dev_deps()`](https://devtools.r-lib.org/reference/install_deps.html),
-  and then make sure the package passes R CMD check by running
-  [`devtools::check()`](https://devtools.r-lib.org/reference/check.html).
-  If R CMD check doesn’t pass cleanly, it’s a good idea to ask for help
-  before continuing.
+Two things about the test suite that catch everyone once:
 
-- Create a Git branch for your pull request (PR). We recommend using
-  `usethis::pr_init("brief-description-of-change")`.
+- **Tiers, not `skip_on_cran()`.** Solver tests are gated by
+  `ENERGYRT_TEST_TIER` (`check < fast < cross < nightly`; unset resolves
+  to `fast` locally and `check` under `R CMD check`), so a plain run
+  solves whenever `glpsol` is present. For a standalone
+  [`testthat::test_file()`](https://testthat.r-lib.org/reference/test_file.html),
+  `pkgload::load_all(".")` first. See `tests/README.md` and
+  `dev/TESTING.md`.
+- A run that **aborted early is not a passing run**. Check the totals.
 
-- Make your changes, commit to git, and then create a PR by running
-  [`usethis::pr_push()`](https://usethis.r-lib.org/reference/pull-requests.html),
-  and following the prompts in your browser. The title of your PR should
-  briefly describe the change. The body of your PR should contain
-  `Fixes #issue-number`.
+## Naming (digest — the full rule lives in the stack doc)
 
-- For user-facing changes, add a bullet to the top of `NEWS.md`
-  (i.e. just below the first header). Follow the style described in
-  <https://style.tidyverse.org/news.html>.
+- **`verb_class()`** for operations and transforms:
+  [`save_model()`](https://energyRt.org/reference/model_store.md),
+  [`load_registry()`](https://energyRt.org/reference/registry.md),
+  [`drop_scenario_run()`](https://energyRt.org/reference/scenario_runs.md),
+  [`apply_ledger()`](https://energyRt.org/reference/apply_ledger.md).
+- **Class-prefixed nouns** for properties and queries:
+  [`model_hash()`](https://energyRt.org/reference/model_hash.md),
+  [`scenario_runs()`](https://energyRt.org/reference/scenario_runs.md),
+  [`solution_ledger()`](https://energyRt.org/reference/solution_ledger.md).
+- Constructors
+  ([`newScenario()`](https://energyRt.org/reference/newScenario.md)),
+  `get_/set_` option accessors, and foreign generics keep their
+  conventional shapes. See [CONVENTIONS.md §
+  Naming](https://github.com/optimal2050/.github/blob/main/CONVENTIONS.md).
+- **`en_` is the package’s namespace prefix** wherever a name must be
+  claimed in a space energyRt does not own: low-level utilities
+  (`en_config()`, `en_option()`, `en_open_dataset()`, `en_install_*()`)
+  and, as **`en-`**, the knitr chunk labels of every shipped report
+  template (`en-setup`, `en-css`, …). Template chunk labels MUST carry
+  the prefix: [`report()`](https://energyRt.org/reference/report.md) can
+  run inside a user’s own knit, where an unprefixed label like `setup`
+  collides with the outer document’s chunks and aborts the render
+  (“Duplicate chunk label”). Do not adopt new prefixes (`ert`, package
+  initials, project names) for this role — the legacy `ert-`/`ideea-`
+  CSS classes and LaTeX color names inside the templates are
+  grandfathered, not a precedent.
 
-### Code style
+## Solver backends
 
-- New code should follow the tidyverse [style
-  guide](https://style.tidyverse.org). You can use the
-  [styler](https://CRAN.R-project.org/package=styler) package to apply
-  these styles, but please don’t restyle code that has nothing to do
-  with your PR.
+Models are rendered to GLPK/MathProg, JuMP (Julia), Pyomo and GAMS, and
+the templates in `glpk/`, `julia/`, `pyomo/` and `gams/` are baked into
+`R/sysdata.rda` by `data-raw/DATASET.R`. **Editing a template does
+nothing until that script is re-run.** A change to one backend almost
+always has to be made in all four; the golden benchmarks under
+`tests/testthat/goldens/` are what catch a backend left behind, because
+they store objectives and aggregated values rather than names.
 
-- We use [roxygen2](https://cran.r-project.org/package=roxygen2), with
-  [Markdown
-  syntax](https://cran.r-project.org/web/packages/roxygen2/vignettes/rd-formatting.html),
-  for documentation.
+GAMS needs a license; NEOS is the practical way to exercise that backend
+([`set_neos_email()`](https://energyRt.org/reference/neos_email.md),
+then a `neos_gams_*` solver option).
 
-- We use [testthat](https://cran.r-project.org/package=testthat) for
-  unit tests. Contributions with test cases included are easier to
-  accept.
+**Backend choice by model size.** The default backend for *small* models
+is **GLPK** (`solver_options$glpk`): zero startup cost, no external
+toolchain, and faster end-to-end whenever the solve itself is under ~30
+seconds — the tm/unit test fixtures and the UTOPIA `R1`/`R3` layouts all
+fall here. For **mid-size and sampled models** — the UTOPIA `R7`/`R11`
+layouts, hourly or full-year calendars, spatially or temporally sampled
+runs — use **julia/HiGHS** (`solver_options$julia_highs`): its presolve
+and dual simplex dominate once the LP is large or degenerate (a
+full-year 8760-slice model: ~3 minutes in glpsol vs ~2 seconds of HiGHS
+runtime after the one-off Julia warmup). The golden suites encode the
+same rule per suite (`SUITE_SOLVERS` in `tools/test/make_goldens.R`), so
+regenerating the mid-size goldens requires Julia with JuMP/HiGHS
+installed.
 
-## AI-assisted contributions
+## Repository layout
 
-AI-assisted contributions are welcome. We ask three things:
+    R/                 the package
+    glpk/ julia/ pyomo/ gams/   solver templates (baked into sysdata)
+    data-raw/          DATASET.R rebuilds sysdata from the templates + YAML specs
+    tests/testthat/    unit tests, goldens/, and _snaps/
+    drafts/            archived code — superseded work moves here, it is not deleted
+    dev/ dev-scripts/  design notes and the mapping-pipeline docs
 
-- **Disclose it.** Say in the pull request description that AI
-  assistance was used, and roughly for what (drafting, refactoring,
-  tests, documentation). Commit trailers such as `Co-authored-by:` or
-  `Assisted-by:` are fine as provenance metadata.
+## Commit & PR conventions
 
-- **You are responsible for it.** As the submitter you take the same
-  responsibility for AI-assisted code as for any code you did not write
-  from scratch: that you have the right to contribute it, that it is
-  compatible with the package licence (AGPL-3), and that it is correct.
-  Please review generated code rather than pasting it, and make sure the
-  test suite passes.
+- Open PRs against **`dev`** — this repo’s default branch is not `main`.
+- Conventional Commits style is encouraged but not enforced (`feat:`,
+  `fix:`, `docs:`, `refactor:`, `test:`, `chore:`).
+- CI must pass.
+- User-facing changes get a bullet in `NEWS.md` under the development
+  version, filed beneath one of
+  `## Breaking changes / New features / Deprecations / Bug fixes / Documentation`.
+  Keep it to the final state in one or two lines — rationale belongs in
+  the commit message or `dev/`, not in NEWS.
+- Reference the sibling package’s PR when a change spans both.
 
-- **Read [`AGENTS.md`](https://energyRt.org/AGENTS.md) first.** It lists
-  the project conventions and the traps that fail *silently* in this
-  codebase — constructors that return empty objects, templates that need
-  a `sysdata` rebuild, S3 methods that never register. Generated code
-  that ignores these tends to look right and behave wrong. Pointing your
-  tool at that file up front saves a review cycle.
+## License
 
-Note that AI tools are not listed as package authors. Authorship implies
-accountability for the work, so credit for a contribution goes to the
-person who submitted and vouched for it. See
-[`AUTHORS.md`](https://energyRt.org/AUTHORS.md) for how authorship and
-contribution are recorded.
+energyRt is **AGPL-3**. Note that other packages in the stack are
+Apache-2.0 or MIT — do not copy code or data across that boundary
+without an explicit maintainer decision. By contributing you agree that
+your contributions are licensed under the AGPL-3. See
+[LICENSE](https://energyRt.org/LICENSE).
 
 ## Code of Conduct
 
-Please note that the energyRt project is released with a [Contributor
-Code of Conduct](https://energyRt.org/CODE_OF_CONDUCT.md). By
-contributing to this project you agree to abide by its terms.
+Please note that this project is released with a Contributor Code of
+Conduct. By participating in it you agree to abide by its terms.

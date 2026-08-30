@@ -21,6 +21,11 @@
 
 .mapping_recipe <- list(
   membership = c(
+    # Storage per-part maps: added with the three-role storage work and
+    # never registered here, so a spec regeneration dropped them to
+    # UNCLASSIFIED. Recovered from the previous mapping_spec.yml.
+    "mStorageInpComm", "mStorageOutComm", "mStorageStgComm",
+
     "mDemComm", "mSupComm", "mExpComm", "mImpComm", "mTradeComm", "mStorageComm",
     "mTechInpComm", "mTechOutComm", "mTechAInp", "mTechAOut", "mTechOneComm",
     "mTechGroupComm", "mTechInpGroup", "mTechOutGroup",
@@ -49,10 +54,22 @@
     "mTechNew", "mTechSpan", "mTechEac", "mvTechRetiredStock",
     "mvTechRetiredNewCap", "meqTechRetiredNewCap", "mTechOlifeInf",
     "mStorageNew", "mStorageSpan", "mStorageEac", "mStorageOlifeInf",
-    "mTradeSpan", "mTradeNew", "mTradeOlifeInf"
+    "mvStorageRetiredStock", "mvStorageRetiredNewCap",
+    "meqStorageRetiredNewCap",
+    "mTradeSpan", "mTradeNew", "mTradeOlifeInf",
+    "mvTradeRetiredStock", "mvTradeRetiredNewCap", "meqTradeRetiredNewCap",
+    "mvTechPhaseOut", "mvStoragePhaseOut", "mvTradePhaseOut"
   ),
   value = c(
+    # Storage per-part maps: added with the three-role storage work and
+    # never registered here, so a spec regeneration dropped them to
+    # UNCLASSIFIED. Recovered from the previous mapping_spec.yml.
+    "mStorageInpCap", "mStorageInpEac", "mStorageInpFixom", "mStorageInpNew",
+    "mStorageNoInpCap", "mStorageNoStgCap", "mStorageStgCap", "mStorageStgEac",
+    "mStorageStgFixom", "mStorageStgNew",
+
     "mTechInv", "mTechFixom", "mTechVarom", "mTechRetCost", "mTechRetirement",
+    "mStorageRetCost", "mTradeRetCost",
     "mTechUpgrade", "mvSupCost", "mvSupReserve", "mSupSpan",
     "mTradeInv", "mTradeEac", "mTradeFixom",
     "mImportIrCost", "mExportIrCost", "mImportRowCost", "mExportRowCost",
@@ -62,10 +79,15 @@
     "mTechWeatherAfLo", "mTechWeatherAfUp", "mTechWeatherAfsLo",
     "mTechWeatherAfsUp", "mTechWeatherAfcLo", "mTechWeatherAfcUp",
     "mStorageWeatherAfLo", "mStorageWeatherAfUp",
-    "mStorageWeatherCinpLo", "mStorageWeatherCinpUp",
-    "mStorageWeatherCoutLo", "mStorageWeatherCoutUp"
+    "mStorageWeatherInpAfLo", "mStorageWeatherInpAfUp",
+    "mStorageWeatherOutAfLo", "mStorageWeatherOutAfUp"
   ),
   filter = c(
+    # Storage per-part maps: added with the three-role storage work and
+    # never registered here, so a spec regeneration dropped them to
+    # UNCLASSIFIED. Recovered from the previous mapping_spec.yml.
+    "mvStorageInp", "mvStorageOut",
+
     # activity / flow
     "mvTechAct", "mvTechInp", "mvTechOut", "mvTechAInp", "mvTechAOut",
     "mSupAva", "mSupAvaUp", "mvDemInp",
@@ -88,10 +110,19 @@
     "mStorageCap2AInp", "mStorageNCap2AInp",
     "mStorageStg2AOut", "mStorageCinp2AOut", "mStorageCout2AOut",
     "mStorageCap2AOut", "mStorageNCap2AOut",
+    "mTechPho2AInp", "mTechPho2AOut", "mTechRet2AInp", "mTechRet2AOut",
+    "mStoragePho2AInp", "mStoragePho2AOut", "mStorageRet2AInp", "mStorageRet2AOut",
     "mTradeIrCsrc2Ainp", "mTradeIrCdst2Ainp",
     "mTradeIrCsrc2Aout", "mTradeIrCdst2Aout"
   ),
   constraint = c(
+    # Storage per-part maps: added with the three-role storage work and
+    # never registered here, so a spec regeneration dropped them to
+    # UNCLASSIFIED. Recovered from the previous mapping_spec.yml.
+    "mStorageDurationLo", "mStorageDurationUp", "mStorageInp2outLo", "mStorageInp2outUp",
+    "mStorageInpCapLo", "mStorageInpCapUp", "mStorageInpNewCapLo", "mStorageInpNewCapUp",
+    "mStorageStgCapLo", "mStorageStgCapUp", "mStorageStgNewCapLo", "mStorageStgNewCapUp",
+
     # meq* (all except the lifespan-generated meqTechRetiredNewCap)
     "meqBalFx", "meqBalLo", "meqBalUp", "meqExportRowLo", "meqImportRowLo",
     "meqLECActivity", "meqStorageAfLo", "meqStorageAfUp", "meqStorageInpLo",
@@ -102,12 +133,15 @@
     "meqTechGrp2Grp", "meqTechGrp2Sng", "meqTechShareInpLo", "meqTechShareInpUp",
     "meqTechShareOutLo", "meqTechShareOutUp", "meqTechSng2Grp", "meqTechSng2Sng",
     "meqTradeCapFlow", "meqTradeFlowLo", "meqTradeFlowUp",
+    "meqTradeIrAfLo", "meqTradeIrAfUp",
     # bound m* sourced from constraint slots
     "mTechCapLo", "mTechCapUp", "mTechNewCapLo", "mTechNewCapUp",
     "mTechRetLo", "mTechRetUp", "mTechAfUp", "mTechAfcUp",
     "mTechRampUp", "mTechRampDown", "mSupReserveUp",
-    "mStorageCapLo", "mStorageCapUp", "mStorageNewCapLo", "mStorageNewCapUp",
-    "mStorageRetLo", "mStorageRetUp",
+    "mStorageOutCapLo", "mStorageOutCapUp", "mStorageOutNewCapLo", "mStorageOutNewCapUp",
+    "mStorageOutRetLo", "mStorageOutRetUp",
+    "mStorageInpRetLo", "mStorageInpRetUp",
+    "mStorageStgRetLo", "mStorageStgRetUp",
     "mTradeCapLo", "mTradeCapUp", "mTradeNewCapLo", "mTradeNewCapUp",
     "mTradeRetLo", "mTradeRetUp",
     "mExportRowCumUp", "mImportRowCumUp",
@@ -149,8 +183,8 @@ annotate_specs <- function(specs) {
   }
 
   for (nm in names(specs)) {
-    rc <- recipe_of[[nm]]
-    if (is.null(rc) || is.na(rc)) {
+    rc <- unname(recipe_of[nm])
+    if (is.na(rc)) {
       specs[[nm]]$recipe <- "UNCLASSIFIED"
       next
     }

@@ -2,6 +2,7 @@
 % Please edit documentation in R/arrow.R
 \name{load_scenario}
 \alias{load_scenario}
+\alias{load_scenarios}
 \title{Load scenario (in progress)}
 \usage{
 load_scenario(
@@ -12,6 +13,8 @@ load_scenario(
   ignore_errors = FALSE,
   verbose = TRUE
 )
+
+load_scenarios(names = NULL, run = NULL, env = NULL, verbose = TRUE)
 }
 \arguments{
 \item{path}{character. Path to saved with function \code{save_scenario} scenario directory.}
@@ -19,20 +22,38 @@ load_scenario(
 \item{name}{character. Name to assign to the loaded scenario object.
 By default, the name is taken from the loaded scenario object.}
 
-\item{env}{environment. Environment to assign the loaded scenario object.}
+\item{env}{environment to assign the scenarios into (e.g. \code{.scen}), or
+\code{NULL} (default) to return them as a named list.}
 
 \item{overwrite}{logical. Overwrite existing scenario object in the environment.}
 
 \item{ignore_errors}{logical. Ignore load errors and continue execution.
 This option is useful when some data is missing or corrupted.}
 
-\item{verbose}{logical. Print messages.}
+\item{verbose}{logical.}
+
+\item{names}{character, scenario names to load; \code{NULL} (default) = every
+scenario in the registry.}
+
+\item{run}{character, optional run id to activate in each loaded scenario
+via \code{\link[=read_solution]{read_solution()}} (scenarios without that run keep their default,
+with a warning).}
 }
 \value{
 TRUE if scenario is loaded, FALSE if not.
+
+a named list of scenarios, or (with \verb{env=}) the loaded names,
+invisibly.
 }
 \description{
-Load scenario (in progress)
+The batch companion of \code{\link[=load_scenario]{load_scenario()}}: resolves scenario NAMES through
+the project registry (all registered scenarios by default) and loads each
+as a thin on-disk shell. The result — a named list, or a filled
+environment — feeds \code{\link[=getData]{getData()}} directly:
+\code{getData(load_scenarios(), name = "vTechOut", merge = TRUE)}.
+
+A registered scenario whose folder is gone is skipped with a warning
+(run \code{\link[=refresh_registry]{refresh_registry()}} to drop the stale row).
 }
 \examples{
 \dontrun{

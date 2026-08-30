@@ -32,7 +32,7 @@ mod <- newModel(
   discount = 0.05,
   horizon = newHorizon(period = 2020:2050,
                        intervals = rep(5, 10)),
-  calendar = calendars$d365h24
+  calendar = calendars$d365_h24
   )
 }
 }

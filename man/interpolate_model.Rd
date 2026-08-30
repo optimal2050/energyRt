@@ -16,6 +16,9 @@ interpolate_model(
   prune = TRUE,
   validate = TRUE,
   code = NULL,
+  kvl = FALSE,
+  boundary_prices = NULL,
+  .prefilter = FALSE,
   verbose = isVerbose()
 )
 }
@@ -62,7 +65,32 @@ duplicate keys, map/parameter coverage).}
 path or a character vector of lines. Lets a model-script version be supplied
 at interpolation time without rebuilding \code{sysdata} (handy to A/B templates).}
 
-\item{verbose}{logical; print per-step progress.}
+\item{boundary_prices}{optional \code{data.frame} pricing import/export stubs
+for trade routes dropped by a SPATIAL SAMPLE (a
+\code{geoscales::filter_geoscale()} subset passed via \code{...}); see
+\code{\link[=subset_model_regions]{subset_model_regions()}} for the columns. Ignored (with a warning)
+when no sampled geoscale is supplied.}
+
+\item{.prefilter}{EXPERIMENTAL, default \code{FALSE}. Restrict each model
+object's data to the timeslices and regions the SCENARIO declares before
+interpolating it, rather than interpolating everything and discarding the
+excess afterwards.
+
+On the sampled-calendar recipe -- a full-year model with a subset calendar
+handed to this function -- the default order expands all 8,760 timeslices
+in \code{ob2mi} and then keeps 96. The parameter filters that follow are cheap
+(0.05s on a 5-node model); the cost is the interpolation they cannot undo.
+
+Off by default because it is not obviously safe: anything deriving a
+relation from the full declared grid rather than from the calendar would
+see a narrower input. Compare objectives before relying on it.}
+
+\item{verbose}{logical; print per-step progress. This also governs the
+variant-expansion report -- how many process objects were expanded and how
+many constraints were generated for them. The generated constraints
+themselves are retrievable with \code{getObject(scen, class = "constraint")};
+each carries a readable \code{desc} and, in \code{misc$.variant_source}, the object
+it was derived from.}
 }
 \value{
 an interpolated \link{scenario} object.
@@ -77,5 +105,9 @@ and validates the result. The returned scenario is ready for \code{\link[=solve_
 }
 \seealso{
 \code{\link[=solve_model]{solve_model()}}, \code{\link[=solve_scenario]{solve_scenario()}}, the \code{interpolate} S4 method.
+
+Other interpolation:
+\code{\link[=subset_model_regions]{subset_model_regions()}},
+\code{\link[=with_solver_log]{with_solver_log()}}
 }
 \concept{interpolation}

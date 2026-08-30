@@ -21,7 +21,7 @@ autoplot(scenario, ...), the scenario report, and any custom analysis
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.85.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -44,6 +44,8 @@ autoplot(scenario, ...), the scenario report, and any custom analysis
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
+    <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
+    <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
     <li><a class="dropdown-item" href="../articles/autoplot.html">autoplot()</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
@@ -86,7 +88,8 @@ and rest-of-world trade, and demand. The same extractor feeds
 <span>  year <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  timeslice <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  drop_small <span class="op">=</span> <span class="fl">0</span>,</span>
-<span>  by <span class="op">=</span> <span class="cn">NULL</span></span>
+<span>  by <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  top_n <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -123,14 +126,15 @@ flows are only meaningful for a region subset and are skipped when
 
 <dt id="arg-timeslice">timeslice<a class="anchor" aria-label="anchor" href="#arg-timeslice"></a></dt>
 <dd><p><code>NULL</code> for annual sums, or a regular expression selecting a
-timeslice sample (e.g. <code>"^SUM_"</code> for the summer day on the <code>utopia_s4h24</code>
+timeslice sample (e.g. <code>"^SUM_"</code> for the summer day on the <code>s4_h24</code>
 calendar). When the matched timeslices carry an hour tag (<code>"_h00"..."_h23"</code>),
 an integer <code>hour</code> column is added.</p></dd>
 
 
 <dt id="arg-drop-small">drop_small<a class="anchor" aria-label="anchor" href="#arg-drop-small"></a></dt>
 <dd><p>numeric in <code>[0, 1)</code>: drop processes whose total absolute
-value is below this share of the largest process (default <code>0</code>, keep all).</p></dd>
+value is below this share of the largest process (default <code>0</code>, keep all).
+Unlike <code>top_n</code> this DELETES rows – stacked charts lose that mass.</p></dd>
 
 
 <dt id="arg-by">by<a class="anchor" aria-label="anchor" href="#arg-by"></a></dt>
@@ -140,6 +144,15 @@ by default (<code>NULL</code>) they are simply summed, so charts do not fragment
 one series per variant. Naming a dimension here keeps it as an extra
 grouping column (with <code>"(none)"</code> for processes that have no variants), ready
 to drive a fill or facet.</p></dd>
+
+
+<dt id="arg-top-n">top_n<a class="anchor" aria-label="anchor" href="#arg-top-n"></a></dt>
+<dd><p>integer: keep the <code>top_n</code> largest processes (by summed
+absolute value) and lump the rest into one <code>"Other"</code> series.
+Mass-preserving – lumped rows are re-aggregated, not dropped – and the
+demand overlay is never lumped. <code>NULL</code> (default) or <code>Inf</code> keeps every
+process. Applied after <code>drop_small</code>. On a list of scenarios the lumping
+runs per scenario, so each keeps its own top set.</p></dd>
 
 </dl></div>
     <div class="section level2">

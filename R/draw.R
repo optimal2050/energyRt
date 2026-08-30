@@ -34,7 +34,7 @@ utils::globalVariables(
     "wafs.fx", "wafs.lo", "wafs.up", "wafc.fx", "wafc.lo", "wafc.up",
     "ainp", "aout", "wacinp.fx", "wacinp.lo", "wacinp.up",
     "wacout.fx", "wacout.lo", "wacout.up", "wacact.fx", "wacact.lo",
-    "wcinp.fx", "wcinp.lo", "wcinp.up", "wcout.fx", "wcout.lo", "wcout.up",
+    "inp.waf.fx", "inp.waf.lo", "inp.waf.up", "out.waf.fx", "out.waf.lo", "out.waf.up",
     "src", "dst", "region", "year", "timeslice",
     "cap2act", "duration", "cap2use",
     "io", "na.omit", "share.lo", "share.up", "share.fx",
@@ -1288,21 +1288,21 @@ draw.storage <- function(object, ...) {
       select(-waf.lo, -waf.up, -waf.fx) |>
       mutate(
         lab_wcinp = if_else(
-          !is.na(wcinp.fx),
-          make_label("wcinp.fx:", in_brackets = wcinp.fx, two_lines = FALSE),
-          if_else(!is.na(wcinp.lo) & !is.na(wcinp.up),
-            paste0("wcinp.lo: ", wcinp.lo, "\n", "wcinp.up: ", wcinp.up),
-            if_else(!is.na(wcinp.lo),
-              paste0("wcinp.lo: ", wcinp.lo),
-              if_else(!is.na(wcinp.up),
-                paste0("wcinp.up: ", wcinp.up),
+          !is.na(inp.waf.fx),
+          make_label("inp.waf.fx:", in_brackets = inp.waf.fx, two_lines = FALSE),
+          if_else(!is.na(inp.waf.lo) & !is.na(inp.waf.up),
+            paste0("inp.waf.lo: ", inp.waf.lo, "\n", "inp.waf.up: ", inp.waf.up),
+            if_else(!is.na(inp.waf.lo),
+              paste0("inp.waf.lo: ", inp.waf.lo),
+              if_else(!is.na(inp.waf.up),
+                paste0("inp.waf.up: ", inp.waf.up),
                 NA_character_
               )
             )
           )
         )
       ) |>
-      select(-wcinp.lo, -wcinp.up, -wcinp.fx) |>
+      select(-inp.waf.lo, -inp.waf.up, -inp.waf.fx) |>
       rowwise() |>
       mutate(
         lab_txt = if_else(
@@ -1424,12 +1424,12 @@ draw.storage <- function(object, ...) {
 #'   fixom = data.frame(
 #'     # region = "R1",
 #'     # year = 2020,
-#'     fixom = 0.9 # fixed operation and maintenance cost
+#'     out.fixom = 0.9 # fixed operation and maintenance cost
 #'   ),
 #'   duration = 4, # four-hours of storage
 #'   invcost = data.frame(
 #'     region = c("R1", NA), # region R1 and all other regions
-#'     invcost = c(1e3, 1.1e3) # investment cost in MUSD/GWh of 4-hour storage
+#'     out.invcost = c(1e3, 1.1e3) # investment cost in MUSD/GWh of 4-hour storage
 #'   ),
 #'   fullYear = TRUE, # full year storage cycle
 #'   weather = data.frame(

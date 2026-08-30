@@ -65,9 +65,9 @@ setMethod("initialize", "scenario", function(.Object, ...) {
 #' @param name `r get_slot_doc("scenario", "name")`
 #' @param path `r get_slot_doc("scenario", "path")`
 #' @param ... any model objects or settings to be assigned to the scenario.
-#' @param env_name character. Name of the environment to register the scenario. Default is ".scen". Used only if registry is provided. (in development)
-#' @param registry optional registry object to register the scenario. (in development)
-#' @param replace logical. If TRUE, replace the entry of the scenario in the registry if the entry already exists. (in development)
+#' @param env_name,registry,replace deprecated and ignored — the in-memory
+#'   registry has been replaced by the persisted project registry (see
+#'   [load_registry()]); scenarios are registered on [save_scenario()].
 #'
 #' @return A new scenario object.
 #' @export
@@ -79,33 +79,24 @@ newScenario <- function(
     model = NULL,
     path = fp(get_scenarios_path(), name),
     ...,
-    env_name = ".scen",
-    registry = get_registry(),
-    replace = FALSE
+    env_name = NULL,
+    registry = NULL,
+    replace = NULL
 ) {
-  # browser()
+  if (!is.null(env_name) || !is.null(registry) || !is.null(replace)) {
+    message("newScenario(): the `env_name`, `registry`, and `replace` ",
+            "arguments are deprecated and ignored; scenarios are registered ",
+            "in the project registry on save_scenario().")
+  }
   scen <- new("scenario")
   scen@name <- name
   if (!is.null(path)) {
     scen@path <- path
   }
-  if (!is.null(registry)) {
-    if (registry$has_entry(name, ...)) {
-      if (replace) {
-        registry$delete_entry(name, ...)
-      } else {
-        cat("Scenario ", name,
-            " already exists in the registry.\n")
-        return(invisible(FALSE))
-      }
-    }
-    register(scen, registry, ..., env = env_name)
-    cat("Scenario ", name, " created in ", env_name,
-        " environment and registered.\n")
-    return(invisible(TRUE))
-  } else {
-    return(scen)
+  if (!is.null(model)) {
+    scen@model <- model
   }
+  scen
 }
 
 # summary <- function(...) UseMethod("summary")

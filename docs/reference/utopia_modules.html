@@ -23,7 +23,7 @@ UTOPIA I: building the model vignette."><meta property="og:image" content="https
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.85.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -46,6 +46,8 @@ UTOPIA I: building the model vignette."><meta property="og:image" content="https
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
+    <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
+    <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
     <li><a class="dropdown-item" href="../articles/autoplot.html">autoplot()</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
@@ -72,7 +74,7 @@ UTOPIA I: building the model vignette."><meta property="og:image" content="https
 
     <div class="ref-description section level2">
     <p>A kit of ready energyRt building blocks and scenario levers for the UTOPIA
-teaching model, mirroring the structure of <code><a href="https://ideea-model.github.io/IDEEA/reference/ideea_modules.html" class="external-link">IDEEA::ideea_modules</a></code>. Assemble a
+teaching model, mirroring the structure of <code>IDEEA::ideea_modules</code>. Assemble a
 model from a chosen region layout, solve it, and layer the levers to run
 scenarios (see the <code>utopia-use</code> vignette). Built by
 <code>data-raw/utopia_modules.R</code>, which follows the same explicit steps as the
@@ -93,11 +95,16 @@ scenarios (see the <code>utopia-use</code> vignette). Built by
 <dd><p><code>utopia$map</code> – the reference <code>sf</code> maps.</p></dd>
 
 <dt>calendars</dt>
-<dd><p>the UTOPIA calendars (<code>utopia_annual</code>/<code>utopia_seasons</code>/
-<code>utopia_s4h24</code>/<code>utopia_m12h24</code>).</p></dd>
+<dd><p>the UTOPIA calendars (<code>annual</code>/<code>utopia_seasons</code>/
+<code>s4_h24</code>/<code>m12_h24</code>) plus the symmetric unit calendars
+(<code>unit_s4</code>, 4 equal seasons; <code>unit_s4h4</code>, 4x4). Note <code>annual</code>
+cannot drive the shipped kits (<code>ELC</code> is balanced at the <code>HOUR</code> level
+and <code><a href="utopia_profiles.html">utopia_profiles()</a></code> has no annual shapes); it ships as the
+coarsest example calendar.</p></dd>
 
 <dt>horizons</dt>
-<dd><p>planning horizons (<code>base</code> = 2020/2030/2040/2050).</p></dd>
+<dd><p>planning horizons (<code>base</code> = 2020/2030/2040/2050;
+<code>unit</code> = the single year 2025 for the unit kits).</p></dd>
 
 <dt>electricity</dt>
 <dd><p>per region layout (<code>R1</code>, <code>R3</code>, <code>R7</code>, <code>R11</code> – an
@@ -105,14 +112,31 @@ n-region layout is keyed <code>R&lt;n&gt;</code>, matching the <code>R1</code>..
 used by the maps), each a "kit":
 <code>repo</code> (the base repository), the individual blocks (<code>repo_comm</code>,
 <code>repo_supply</code>, <code>DEM_ELC</code>, <code>WSOL</code>/<code>WWIN</code>/<code>WHYD</code>, the technologies,
-<code>STG_BTR</code>), and the scenario levers <code>CO2_CAP</code>, <code>CT_CO2</code>, <code>RES_SHARE</code>,
-<code>NO_NEW_NUC</code>.</p></dd>
+<code>STG_ELC</code>), the scenario levers <code>CO2_CAP</code>, <code>CT_CO2</code>, <code>RES_SHARE</code>,
+<code>NO_NEW_NUC</code>, <code>EARLY_RET</code>, and the add-on modules – re-declared
+objects that REPLACE their base counterpart when added with
+<code>add(mod, ., overwrite = TRUE)</code>: <code>GAS_CURVE</code> (domestic gas as a
+3-step <code><a href="supply-curve.html">asSupplyCurve()</a></code>, absent in <code>R1</code> which has no gas region),
+<code>EWIN_SITES</code> (wind in two site-grade clusters, finite GOOD +
+down-rated POOR), <code>ENUC_VINT</code> (nuclear in two build vintages).</p></dd>
+
+<dt>unit</dt>
+<dd><p>the "unit model" kits (<code>U1</code>, <code>U3</code>): every input is 1 on the
+symmetric <code>unit_s4</code> calendar, single-year <code>unit</code> horizon,
+<code>discount = 0</code>, so each variant's objective is a small hand-checkable
+integer – base <code>U1</code> solves to exactly 8, <code>U3</code> (trade chain from the
+<code>R1</code> endowment) to 36, <code>SUP_CURVE</code> (2-step unit supply curve
+replacing the flat supply) to 10, the self-contained <code>SOLAR</code>
+repository (on/off resource from <code><a href="utopia_profile.html">utopia_profile()</a></code> + storage
+bridging) to 10. The arithmetic is written out in
+<code>data-raw/utopia_modules.R</code> and pinned by <code>test-unit-model.R</code>.</p></dd>
 
 
 </dl></div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
-    <div class="dont-index"><p><a href="calendars.html">calendars</a>, <a href="horizons.html">horizons</a>, <code><a href="utopia_profiles.html">utopia_profiles()</a></code>, the UTOPIA vignettes</p></div>
+    <div class="dont-index"><p><a href="calendars.html">calendars</a>, <a href="horizons.html">horizons</a>, <code><a href="utopia_profiles.html">utopia_profiles()</a></code>, <code><a href="utopia_profile.html">utopia_profile()</a></code>,
+<code><a href="supply-curve.html">asSupplyCurve()</a></code>, the UTOPIA vignettes</p></div>
     </div>
 
     <div class="section level2">
@@ -120,11 +144,18 @@ used by the maps), each a "kit":
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
 <span class="r-in"><span><span class="va">um</span> <span class="op">&lt;-</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">R3</span></span></span>
 <span class="r-in"><span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="newModel.html">newModel</a></span><span class="op">(</span><span class="st">"UTOPIA"</span>, data <span class="op">=</span> <span class="va">um</span><span class="op">$</span><span class="va">repo</span>,</span></span>
-<span class="r-in"><span>                calendar <span class="op">=</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">utopia_s4h24</span>,</span></span>
+<span class="r-in"><span>                calendar <span class="op">=</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24</span>,</span></span>
 <span class="r-in"><span>                region <span class="op">=</span> <span class="va">um</span><span class="op">$</span><span class="va">regions</span>, horizon <span class="op">=</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">base</span>,</span></span>
 <span class="r-in"><span>                discount <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu"><a href="solve_model.html">solve_scenario</a></span><span class="op">(</span><span class="fu"><a href="interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod</span>, <span class="st">"BASE"</span><span class="op">)</span>,</span></span>
 <span class="r-in"><span>                       solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">glpk</span><span class="op">)</span></span></span>
+<span class="r-in"><span></span></span>
+<span class="r-in"><span><span class="co"># the unit model: hand-checkable integer objective (8)</span></span></span>
+<span class="r-in"><span><span class="va">uk</span> <span class="op">&lt;-</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">unit</span><span class="op">$</span><span class="va">U1</span></span></span>
+<span class="r-in"><span><span class="va">umod</span> <span class="op">&lt;-</span> <span class="fu"><a href="newModel.html">newModel</a></span><span class="op">(</span><span class="st">"UNIT"</span>, data <span class="op">=</span> <span class="va">uk</span><span class="op">$</span><span class="va">repo</span>,</span></span>
+<span class="r-in"><span>                 calendar <span class="op">=</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">unit_s4</span>,</span></span>
+<span class="r-in"><span>                 region <span class="op">=</span> <span class="va">uk</span><span class="op">$</span><span class="va">regions</span>,</span></span>
+<span class="r-in"><span>                 horizon <span class="op">=</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">unit</span>, discount <span class="op">=</span> <span class="fl">0</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="op">}</span> <span class="co"># }</span></span></span>
 </code></pre></div>
     </div>

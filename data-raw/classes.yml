@@ -25,7 +25,7 @@ class:
       description: >
         The default time-frame this commodity operates in the model.
         The lowest timeframe in the model is used by default.
-    geolevel:
+    geoframe:
       type: character
       description: >
         The geoscale level at which this commodity is balanced -- the spatial
@@ -149,6 +149,9 @@ class:
       type: data.frame
       description: Weather factors to apply to the supply.
       columns:
+        cluster:
+          type: character
+          description: Price step this row applies to, NA for every step. See the `cluster` slot.
         weather:
           type: character
           description: >
@@ -176,6 +179,9 @@ class:
         Total available resource. Applicable to exhaustible resources.
         Set for each region. If not set, the resource is considered infinite.
       columns:
+        cluster:
+          type: character
+          description: Price step this row applies to, NA for every step. See the `cluster` slot.
         region:
           type: character
           description: >
@@ -194,8 +200,17 @@ class:
             This parameter overrides `res.lo` and `res.up`.
     supply:
       type: data.frame
-      description: Availability of the resource in physical units.
+      description: >
+        Availability of the resource in physical units. Unlike the `af`/`afs`
+        availability *factors* of technologies, `ava.*` is an absolute bound on
+        the supplied quantity per timeslice: supply processes have no capacity
+        variable, so nothing multiplies it (except weather factors, see
+        `weather`). Rows here also define where and when the supply exists in
+        the model.
       columns:
+        cluster:
+          type: character
+          description: Price step this row applies to, NA for every step. See the `cluster` slot.
         region:
           type: character
           description: >
@@ -213,20 +228,64 @@ class:
             Use NA to apply to all timeslices.
         ava.lo:
           type: numeric
-          description: Lower bound of the availability factor.
+          description: >
+            Lower bound on the supplied quantity, in physical commodity units
+            per timeslice.
         ava.up:
           type: numeric
-          description: Upper bound of the availability factor.
+          description: >
+            Upper bound on the supplied quantity, in physical commodity units
+            per timeslice.
         ava.fx:
           type: numeric
           description: >
-            Fixed value of the availability factor.
-            This parameter overrides `ava.lo` and `ava.up`.
+            Fixed value of the supplied quantity, in physical commodity units
+            per timeslice. This parameter overrides `ava.lo` and `ava.up`.
         cost:
           type: numeric
           description: >
             Cost of the resource extraction,
             if not set, the resource is considered free.
+    cluster:
+      type: data.frame
+      description: >
+        Declaration of the object's parallel sub-supplies. For supply a cluster
+        is a PRICE STEP -- a resource grade: its own share of the availability
+        and reserve, at its own cost. A single `cost` cannot express a supply
+        curve, where cheap grades are exhausted first and the next ones cost
+        more.
+
+        This slot declares WHAT the grades are; the per-grade values live in the
+        `cluster` column of `supply`, `reserve` and `weather`. Build both with
+        `asSupplyCurve()`, which also computes the costs and checks that the
+        curve rises.
+
+        Optional. When empty, labels are harvested from the `cluster` columns of
+        the other slots. When populated it is AUTHORITATIVE.
+      columns:
+        cluster:
+          type: character
+          description: Grade label, used in the expanded object name.
+        desc:
+          type: character
+          description: Description of the grade.
+        region:
+          type: character
+          description: >
+            Region(s) the grade exists in, NA for everywhere. Intersected with
+            the object's own `region` slot.
+        share:
+          type: numeric
+          description: >
+            The grade's fraction of the object's quantity. DESCRIPTIVE, not
+            enforced: supply has no capacity variable to tie, so
+            `asSupplyCurve()` writes the split straight into `ava.*` / `res.*`
+            and records here what it did.
+        order:
+          type: integer
+          description: >
+            Fill order, 1 = the cheapest grade. Without it labels sort
+            alphabetically and "S10" would precede "S2".
     region:
       type: character
       description: >
@@ -429,13 +488,23 @@ class:
           description: Fixed share of commodity within a group, ignored if NA. This parameter overrides `share.lo` and `share.up`.
         afc.lo:
           type: numeric
-          description: Lower bound on the physical value of the commodity, ignored if NA.
+          description: >
+            Lower bound on the per-commodity availability factor: bounds this
+            commodity's input or output flow relative to installed capacity
+            (times `cap2act`), the commodity-level analogue of `af.lo`.
+            Ignored if NA.
         afc.up:
           type: numeric
-          description: Upper bound on the physical value of the commodity, ignored if NA.
+          description: >
+            Upper bound on the per-commodity availability factor: bounds this
+            commodity's input or output flow relative to installed capacity
+            (times `cap2act`), the commodity-level analogue of `af.up`.
+            Ignored if NA.
         afc.fx:
           type: numeric
-          description: Fixed physical value of the commodity, ignored if NA. This parameter overrides `afc.lo` and `afc.up`.
+          description: >
+            Fixed per-commodity availability factor, ignored if NA.
+            This parameter overrides `afc.lo` and `afc.up`.
     aeff:
       type: data.frame
       description: Parameters linking main commodities, activities, and capacities to auxiliary commodities.
@@ -484,13 +553,66 @@ class:
           description: Technology-capacity-to-auxilary-commodity-output coefficient, ignored if NA.
         ncap2ainp:
           type: numeric
-          description: Technology-new-capacity-to-auxilary-commodity-input-coefficient, ignored if NA.
+          description: >
+            Aux commodity consumed per unit of NEW capacity -- a one-time charge at
+            construction (materials, embodied energy), ignored if NA.
+            NO `pTimesliceShare` is applied and the aux balance is PER TIMESLICE,
+            so a value given with `timeslice = NA` applies in EVERY slice and the
+            annual total comes out multiplied by the slice count -- 8760x on an
+            hourly calendar. Give a per-slice value, or name a single slice.
         ncap2aout:
           type: numeric
           description: Technology-new-capacity-to-auxilary-commodity-output coefficient, ignored if NA.
+        pho2ainp:
+          type: numeric
+          description: >
+            Aux commodity CONSUMED when capacity reaches the END OF ITS LIFE
+            (demolition energy, labour). Multiplies the per-year phase-out FLOW,
+            so the charge lands ONCE -- in the milestone where the capacity
+            disappears -- not every year it stood.
+            NO `pTimesliceShare` is applied and the aux balance is PER TIMESLICE,
+            so a value given with `timeslice = NA` applies in EVERY slice and the
+            annual total comes out multiplied by the slice count -- 8760x on an
+            hourly calendar. Give a per-slice value, or name a single slice.
+        pho2aout:
+          type: numeric
+          description: >
+            Aux commodity RELEASED when capacity reaches the END OF ITS LIFE
+            (demolition waste, recovered material). Fires even when
+            `optimizeRetirement` is FALSE, which is the usual case.
+            NO `pTimesliceShare` is applied and the aux balance is PER TIMESLICE,
+            so a value given with `timeslice = NA` applies in EVERY slice and the
+            annual total comes out multiplied by the slice count -- 8760x on an
+            hourly calendar. Give a per-slice value, or name a single slice.
+        ret2ainp:
+          type: numeric
+          description: >
+            Aux commodity CONSUMED when capacity is retired EARLY. Separate from
+            `pho2ainp` because the two differ physically: scrapping an intact
+            plant is not the same job as demolishing a worn-out one.
+            NO `pTimesliceShare` is applied and the aux balance is PER TIMESLICE,
+            so a value given with `timeslice = NA` applies in EVERY slice and the
+            annual total comes out multiplied by the slice count -- 8760x on an
+            hourly calendar. Give a per-slice value, or name a single slice.
+        ret2aout:
+          type: numeric
+          description: >
+            Aux commodity RELEASED when capacity is retired EARLY (scrap). Usually
+            LARGER than `pho2aout`: a plant retired before its time is still
+            largely intact, so more material is recoverable.
+            NO `pTimesliceShare` is applied and the aux balance is PER TIMESLICE,
+            so a value given with `timeslice = NA` applies in EVERY slice and the
+            annual total comes out multiplied by the slice count -- 8760x on an
+            hourly calendar. Give a per-slice value, or name a single slice.
     af:
       type: data.frame
-      description: Timeslice-level availability factor parameters.
+      description: >
+        Timeslice-level availability factor parameters, bounding activity in each
+        timeslice relative to installed capacity. `af.up` is the maximum capacity
+        factor per timeslice (what PyPSA calls `p_max_pu` and OSeMOSYS calls
+        `CapacityFactor`); `af.lo` is a must-run floor. See `afs` for
+        timeframe-level (e.g. annual) bounds and `ceff$afc.*` for per-commodity
+        bounds.
       columns:
         vintage:
           type: character
@@ -524,7 +646,14 @@ class:
           description: Ramping-down time constraint RHS value, ignored if NA. Depends on the technology timeframe.
     afs:
       type: data.frame
-      description: Timeframe-level availability factor constraints.
+      description: >
+        Timeframe-level availability factor constraints, bounding activity summed
+        over all child timeslices of the named timeslice relative to installed
+        capacity. With `timeslice = "ANNUAL"` this is the annual capacity-factor
+        bound (TIMES `NCAP_AFS`, OSeMOSYS `AvailabilityFactor`), e.g.
+        `afs.lo = 0.4` requires at least 40% annual utilization. Unlike `af`,
+        `afs` rows are not disaggregated to finer timeslices; they always
+        constrain the sum over the given timeframe.
       columns:
         vintage:
           type: character
@@ -546,7 +675,9 @@ class:
           description: Lower bound on the availability factor for the timeframe, default is 0.
         afs.up:
           type: numeric
-          description: Upper bound on the availability factor for the timeframe, default is 1.
+          description: >
+            Upper bound on the availability factor for the timeframe, default is
+            `Inf` (unbounded), in contrast to `af.up` which defaults to 1.
         afs.fx:
           type: numeric
           description: Fixed availability factor for the timeframe, ignored if NA. This parameter overrides `afs.lo` and `afs.up`.
@@ -858,7 +989,7 @@ class:
           type: numeric
           description: >
             Capacity to ANNUAL flow, exactly as `technology@cap2act`. The flow
-            bound is `cinp.up * cap2act * cap * pTimesliceShare`, so `cap` is a
+            bound is `inp.af.up * cap2act * cap * pTimesliceShare`, so `cap` is a
             RATE and means the same physical thing on any calendar. Defaults to
             8760 (hours in a year), which makes `cap` read as commodity per
             HOUR; an hourly full-year model is unchanged because
@@ -887,7 +1018,7 @@ class:
           type: numeric
           description: >
             Capacity to ANNUAL flow, exactly as `technology@cap2act`. The flow
-            bound is `cinp.up * cap2act * cap * pTimesliceShare`, so `cap` is a
+            bound is `inp.af.up * cap2act * cap * pTimesliceShare`, so `cap` is a
             RATE and means the same physical thing on any calendar. Defaults to
             8760 (hours in a year), which makes `cap` read as commodity per
             HOUR; an hourly full-year model is unchanged because
@@ -913,61 +1044,10 @@ class:
       columns:
         comm:
           type: character
-          description: Commodity held in the store.
+          description: "Commodity the store HOLDS -- what `vStorageLevel` is measured in."
         unit:
           type: character
-          description: >
-            Unit of `comm` on this side, exactly as on `technology@input`/
-            `@output`. Descriptive only: it is carried for reporting and
-            `convert()` and never reaches the solver. It is the unit of the
-            COMMODITY (e.g. MWh), not of the capacity -- capacity units follow
-            from `cap2act`, and the storing side has no `cap2act` because a
-            reservoir is an amount rather than a rate.
-        vintage:
-          type: character
-          description: Vintage label selecting the variant this row applies to, NA for all.
-        cluster:
-          type: character
-          description: Cluster label selecting the variant this row applies to, NA for all.
-        region:
-          type: character
-          description: Region the row applies to, NA for all.
-        year:
-          type: integer
-          description: Year the row applies to, NA for all.
-        stock:
-          type: numeric
-          description: >
-            Pre-existing energy capacity, in commodity units. The energy analogue
-            of `capacity$stock`, which is power.
-        cap.lo:
-          type: numeric
-          description: Lower bound on total energy capacity.
-        cap.up:
-          type: numeric
-          description: Upper bound on total energy capacity.
-        cap.fx:
-          type: numeric
-          description: Fixed total energy capacity.
-        ncap.lo:
-          type: numeric
-          description: Lower bound on new energy capacity added in the period.
-        ncap.up:
-          type: numeric
-          description: Upper bound on new energy capacity added in the period.
-        ncap.fx:
-          type: numeric
-          description: Fixed new energy capacity added in the period.
-        invcost:
-          type: numeric
-          description: >
-            Overnight investment cost per unit of ENERGY capacity (currency/MWh),
-            annuitised on the storage's own `@vintage` -- one lifetime and one
-            wacc for the object, two capital costs on different bases. This is
-            what previously had to be hand-multiplied into the per-MW `@invcost`.
-        fixom:
-          type: numeric
-          description: Fixed O&M cost per unit of energy capacity per year.
+          description: "Unit of `comm`. Descriptive only, carried for reporting and `convert()` and never reaching the solver. There is no `cap2act` on this side -- energy is energy at any resolution."
     cluster:
       type: data.frame
       description: >-
@@ -1096,7 +1176,14 @@ class:
           description: Output efficiency rate.
     af:
       type: data.frame
-      description: Availability factor parameters.
+      description: >
+        Availability factor parameters. Unlike a technology's `af` (which bounds
+        activity, a flow), the storage `af.*` columns bound the stored LEVEL --
+        a stock -- as a fraction of the storing capacity, i.e. a state-of-charge
+        range. They are not capacity factors. The flow-side bounds are the
+        `cinp.*`/`cout.*` columns, which bound charge/discharge relative to
+        the charger/discharger capacity per timeslice (those are the storage
+        analogue of a technology's `af`).
       columns:
         vintage:
           type: character
@@ -1115,35 +1202,51 @@ class:
           description: Time timeslice to apply the parameter, NA for every timeslice.
         af.lo:
           type: numeric
-          description: Lower bound of the availability factor.
+          description: >
+            Lower bound of the stored level as a fraction of storing capacity
+            (minimum state of charge).
         af.up:
           type: numeric
-          description: Upper bound of the availability factor.
+          description: >
+            Upper bound of the stored level as a fraction of storing capacity
+            (maximum state of charge).
         af.fx:
           type: numeric
-          description: Fixed value of the availability factor. This parameter overrides `af.lo` and `af.up`.
-        cinp.lo:
-          type: numeric
-          description: Lower bound of the input commodity availability factor.
-        cinp.up:
-          type: numeric
-          description: Upper bound of the input commodity availability factor.
-        cinp.fx:
+          description: >
+            Fixed value of the stored-level fraction.
+            This parameter overrides `af.lo` and `af.up`.
+        inp.af.lo:
           type: numeric
           description: >
-            Fixed value of the input commodity availability factor.
-            This parameter overrides `cinp.lo` and `cinp.up`.
-        cout.lo:
-          type: numeric
-          description: Lower bound of the output commodity availability factor.
-        cout.up:
-          type: numeric
-          description: Upper bound of the output commodity availability factor.
-        cout.fx:
+            Lower bound of the charging (input) flow relative to charger
+            capacity per timeslice.
+        inp.af.up:
           type: numeric
           description: >
-            Fixed value of the output commodity availability factor.
-            This parameter overrides `cout.lo` and `cout.up`.
+            Upper bound of the charging (input) flow relative to charger
+            capacity per timeslice.
+        inp.af.fx:
+          type: numeric
+          description: >
+            Fixed value of the charging (input) flow relative to charger
+            capacity per timeslice.
+            This parameter overrides `inp.af.lo` and `inp.af.up`.
+        out.af.lo:
+          type: numeric
+          description: >
+            Lower bound of the discharging (output) flow relative to
+            discharger capacity per timeslice.
+        out.af.up:
+          type: numeric
+          description: >
+            Upper bound of the discharging (output) flow relative to
+            discharger capacity per timeslice.
+        out.af.fx:
+          type: numeric
+          description: >
+            Fixed value of the discharging (output) flow relative to
+            discharger capacity per timeslice.
+            This parameter overrides `out.af.lo` and `out.af.up`.
     aeff:
       type: data.frame
       description: Auxiliary commodities efficiency parameters.
@@ -1196,6 +1299,47 @@ class:
         ncap2aout:
           type: numeric
           description: New-capacity-to-auxiliary-output-commodity coefficient (multiplier).
+        pho2ainp:
+          type: numeric
+          description: >
+            Aux commodity CONSUMED when capacity reaches the END OF ITS LIFE
+            (demolition energy, labour). Multiplies the per-year phase-out FLOW,
+            so the charge lands ONCE -- in the milestone where the capacity
+            disappears -- not every year it stood.
+            NO `pTimesliceShare` is applied and the aux balance is PER TIMESLICE,
+            so a value given with `timeslice = NA` applies in EVERY slice and the
+            annual total comes out multiplied by the slice count -- 8760x on an
+            hourly calendar. Give a per-slice value, or name a single slice.
+        pho2aout:
+          type: numeric
+          description: >
+            Aux commodity RELEASED when capacity reaches the END OF ITS LIFE
+            (demolition waste, recovered material). Fires even when
+            `optimizeRetirement` is FALSE, which is the usual case.
+            NO `pTimesliceShare` is applied and the aux balance is PER TIMESLICE,
+            so a value given with `timeslice = NA` applies in EVERY slice and the
+            annual total comes out multiplied by the slice count -- 8760x on an
+            hourly calendar. Give a per-slice value, or name a single slice.
+        ret2ainp:
+          type: numeric
+          description: >
+            Aux commodity CONSUMED when capacity is retired EARLY. Separate from
+            `pho2ainp` because the two differ physically: scrapping an intact
+            plant is not the same job as demolishing a worn-out one.
+            NO `pTimesliceShare` is applied and the aux balance is PER TIMESLICE,
+            so a value given with `timeslice = NA` applies in EVERY slice and the
+            annual total comes out multiplied by the slice count -- 8760x on an
+            hourly calendar. Give a per-slice value, or name a single slice.
+        ret2aout:
+          type: numeric
+          description: >
+            Aux commodity RELEASED when capacity is retired EARLY (scrap). Usually
+            LARGER than `pho2aout`: a plant retired before its time is still
+            largely intact, so more material is recoverable.
+            NO `pTimesliceShare` is applied and the aux balance is PER TIMESLICE,
+            so a value given with `timeslice = NA` applies in EVERY slice and the
+            annual total comes out multiplied by the slice count -- 8760x on an
+            hourly calendar. Give a per-slice value, or name a single slice.
         ncap2stg:
           type: numeric
           description: New-capacity-to-storage-level coefficient (multiplier).
@@ -1205,19 +1349,25 @@ class:
       columns:
         vintage:
           type: character
-          description: Vintage label selecting the variant this row applies to, NA for every vintage. See the `vintage` slot.
+          description: "Vintage label selecting the variant this row applies to, NA for every vintage. See the `vintage` slot."
         cluster:
           type: character
-          description: Cluster label selecting the variant this row applies to, NA for every cluster. See the `cluster` slot.
+          description: "Cluster label selecting the variant this row applies to, NA for every cluster. See the `cluster` slot."
         region:
           type: character
-          description: Region name to apply the parameter, NA for every region.
+          description: "Region name to apply the parameter, NA for every region."
         year:
           type: integer
-          description: Year to apply the parameter, NA for every year.
-        fixom:
+          description: "Year to apply the parameter, NA for every year."
+        out.fixom:
           type: numeric
-          description: Fixed operation and maintenance cost for the specified sets.
+          description: "Fixed operation and maintenance cost per unit of installed capacity of the discharging part -- the power the store can deliver."
+        inp.fixom:
+          type: numeric
+          description: "Fixed operation and maintenance cost per unit of installed capacity of the charging part -- the power the store can absorb."
+        stg.fixom:
+          type: numeric
+          description: "Fixed operation and maintenance cost per unit of installed capacity of the reservoir itself -- the energy the store can hold."
     varom:
       type: data.frame
       description: Variable operation and maintenance cost.
@@ -1252,44 +1402,61 @@ class:
       columns:
         vintage:
           type: character
-          description: Vintage label selecting the variant this row applies to, NA for every vintage. See the `vintage` slot.
+          description: "Vintage label selecting the variant this row applies to, NA for every vintage. See the `vintage` slot."
         cluster:
           type: character
-          description: Cluster label selecting the variant this row applies to, NA for every cluster. See the `cluster` slot.
+          description: "Cluster label selecting the variant this row applies to, NA for every cluster. See the `cluster` slot."
         region:
           type: character
-          description: Region name to apply the parameter, NA for every region.
+          description: "Region name to apply the parameter, NA for every region."
         year:
           type: integer
-          description: Year to apply the parameter, NA for every year.
-        invcost:
+          description: "Year to apply the parameter, NA for every year."
+        out.invcost:
           type: numeric
-          description: Overnight investment cost for the specified region and year.
-        wacc:
+          description: "Investment cost per unit of new capacity of the discharging part -- the power the store can deliver."
+        out.wacc:
           type: numeric
-          description: >-
-            Weighted average cost of capital used to annuitise `invcost` for
-            this storage. Overrides the model-wide `wacc` (see the model
-            `discount` argument). The social discount rate is never used here.
-        payback:
+          description: "Cost of capital used to annuitise the discharging part -- the power the store can deliver investment (overrides `pWacc`)."
+        out.payback:
           type: numeric
-          description: >-
-            Cost-recovery period in years. Where given it replaces `olife` in
-            the annuity AND in the years over which the annuity is charged, so
-            the investment is repaid over `payback` years while the capacity
-            keeps operating for its full operational life. Must be positive and
-            not exceed `olife`. Unset (or 0) means recover over `olife`.
-            Implemented for the GLPK solver only.
-        eac:
+          description: "Cost-recovery period of the discharging part -- the power the store can deliver, in years (overrides the operational life in the EAC charge)."
+        out.eac:
           type: numeric
-          description: >-
-            Equivalent annual cost, supplied directly instead of being computed
-            from `invcost`, `wacc` and the lifetime. Where given it wins; where
-            absent the annuity is computed. Mutually exclusive with `invcost`
-            per row.
-        retcost:
+          description: "Equivalent annual cost of the discharging part -- the power the store can deliver, supplied directly instead of being annuitised from `invcost`."
+        out.retcost:
           type: numeric
-          description: Costs of early retirement of the storage, default is 0.
+          description: "Cost of retiring the discharging part -- the power the store can deliver early."
+        inp.invcost:
+          type: numeric
+          description: "Investment cost per unit of new capacity of the charging part -- the power the store can absorb."
+        inp.wacc:
+          type: numeric
+          description: "Cost of capital used to annuitise the charging part -- the power the store can absorb investment (overrides `pWacc`)."
+        inp.payback:
+          type: numeric
+          description: "Cost-recovery period of the charging part -- the power the store can absorb, in years (overrides the operational life in the EAC charge)."
+        inp.eac:
+          type: numeric
+          description: "Equivalent annual cost of the charging part -- the power the store can absorb, supplied directly instead of being annuitised from `invcost`."
+        inp.retcost:
+          type: numeric
+          description: "Cost of retiring the charging part -- the power the store can absorb early."
+        stg.invcost:
+          type: numeric
+          description: "Investment cost per unit of new capacity of the reservoir itself -- the energy the store can hold."
+        stg.wacc:
+          type: numeric
+          description: "Cost of capital used to annuitise the reservoir itself -- the energy the store can hold investment (overrides `pWacc`)."
+        stg.payback:
+          type: numeric
+          description: "Cost-recovery period of the reservoir itself -- the energy the store can hold, in years (overrides the operational life in the EAC charge)."
+        stg.eac:
+          type: numeric
+          description: "Equivalent annual cost of the reservoir itself -- the energy the store can hold, supplied directly instead of being annuitised from `invcost`."
+        stg.retcost:
+          type: numeric
+          description: "Cost of retiring the reservoir itself -- the energy the store can hold early."
     fullYear:
       type: logical
       description: >
@@ -1318,8 +1485,8 @@ class:
         The bare `duration` column is the scalar shorthand and is normalised to
         `duration.fx` at construction. A ONE-SIDED range opens the other side (an
         `up` alone does not inherit the default `lo` of 1). Saying nothing leaves
-        the slot empty and the parameter default of [1, 1] ties energy to power at
-        one hour, which is the pre-v0.84 behaviour.
+        the slot empty and the parameter default of `[1, 1]` ties energy to power
+        at one hour, which is the pre-v0.84 behaviour.
       columns:
         vintage:
           type: character
@@ -1356,7 +1523,7 @@ class:
         `inp2out.lo`/`.up` let the model size them apart, and the bare `inp2out`
         column is the scalar shorthand, normalised to `.fx` at construction. A
         one-sided range opens the other side. Saying nothing leaves the slot
-        empty and the parameter default of [1, 1] keeps the two sides symmetric,
+        empty and the parameter default of `[1, 1]` keeps the two sides symmetric,
         which is what a storage without a separate charger has always been.
         It bites only when the charging side is priced or bounded via `@input`;
         otherwise there is no charging capacity variable to constrain.
@@ -1410,32 +1577,32 @@ class:
           description: >
             Coefficient that links the weather factor with the fixed value of the availability factor.
             This parameter overrides `waf.lo` and `waf.up`.
-        wcinp.lo:
+        inp.waf.lo:
           type: numeric
           description: >
             Coefficient that links the weather factor with the lower bound of the input commodity availability factor.
-        wcinp.up:
+        inp.waf.up:
           type: numeric
           description: >
             Coefficient that links the weather factor with the upper bound of the input commodity availability factor.
-        wcinp.fx:
+        inp.waf.fx:
           type: numeric
           description: >
             Coefficient that links the weather factor with the fixed value of the input commodity availability factor.
-            This parameter overrides `wcinp.lo` and `wcinp.up`.
-        wcout.lo:
+            This parameter overrides `inp.waf.lo` and `inp.waf.up`.
+        out.waf.lo:
           type: numeric
           description: >
             Coefficient that links the weather factor with the lower bound of the output commodity availability factor.
-        wcout.up:
+        out.waf.up:
           type: numeric
           description: >
             Coefficient that links the weather factor with the upper bound of the output commodity availability factor.
-        wcout.fx:
+        out.waf.fx:
           type: numeric
           description: >
             Coefficient that links the weather factor with the fixed value of the output commodity availability factor.
-            This parameter overrides `wcout.lo` and `wcout.up`.
+            This parameter overrides `out.waf.lo` and `out.waf.up`.
     misc:
       type: list
       description: >
@@ -1448,48 +1615,106 @@ class:
       columns:
         vintage:
           type: character
-          description: Vintage label selecting the variant this row applies to, NA for every vintage. See the `vintage` slot.
+          description: "Vintage label selecting the variant this row applies to, NA for every vintage. See the `vintage` slot."
         cluster:
           type: character
-          description: Cluster label selecting the variant this row applies to, NA for every cluster. See the `cluster` slot.
+          description: "Cluster label selecting the variant this row applies to, NA for every cluster. See the `cluster` slot."
         region:
           type: character
-          description: Region name to apply the parameter, NA for every region.
+          description: "Region name to apply the parameter, NA for every region."
         year:
           type: integer
-          description: Year to apply the parameter, NA for every year.
-        cap:
+          description: "Year to apply the parameter, NA for every year."
+        out.stock:
           type: numeric
-          description: Capacity of the storage technology.
-        cap.lo:
+          description: "Existing (exogenous) capacity of the discharging part -- the power the store can deliver, in power units."
+        out.cap.lo:
           type: numeric
-          description: Lower bound of the storage capacity.
-        cap.up:
+          description: "Lower bound of the discharging part -- the power the store can deliver capacity."
+        out.cap.up:
           type: numeric
-          description: Upper bound of the storage capacity.
-        cap.fx:
+          description: "Upper bound of the discharging part -- the power the store can deliver capacity."
+        out.cap.fx:
           type: numeric
-          description: Fixed value of the storage capacity. This parameter overrides `cap.lo` and `cap.up`.
-        ncap.lo:
+          description: "Fixed value of the discharging part -- the power the store can deliver capacity. Overrides `out.cap.lo` and `out.cap.up`."
+        out.ncap.lo:
           type: numeric
-          description: Lower bound of the new storage capacity.
-        ncap.up:
+          description: "Lower bound of the discharging part -- the power the store can deliver new capacity."
+        out.ncap.up:
           type: numeric
-          description: Upper bound of the new storage capacity.
-        ncap.fx:
+          description: "Upper bound of the discharging part -- the power the store can deliver new capacity."
+        out.ncap.fx:
           type: numeric
-          description: >
-            Fixed value of the new storage capacity. This parameter overrides `ncap.lo` and `ncap.up`.
-        ret.lo:
+          description: "Fixed value of the discharging part -- the power the store can deliver new capacity. Overrides `out.ncap.lo` and `out.ncap.up`."
+        out.ret.lo:
           type: numeric
-          description: Lower bound of the storage capacity retirement.
-        ret.up:
+          description: "Lower bound of the discharging part -- the power the store can deliver capacity retirement."
+        out.ret.up:
           type: numeric
-          description: Upper bound of the storage capacity retirement.
-        ret.fx:
+          description: "Upper bound of the discharging part -- the power the store can deliver capacity retirement."
+        out.ret.fx:
           type: numeric
-          description: >
-            Fixed value of the storage capacity retirement. This parameter overrides `ret.lo` and `ret.up`.
+          description: "Fixed value of the discharging part -- the power the store can deliver capacity retirement. Overrides `out.ret.lo` and `out.ret.up`."
+        inp.stock:
+          type: numeric
+          description: "Existing (exogenous) capacity of the charging part -- the power the store can absorb, in power units."
+        inp.cap.lo:
+          type: numeric
+          description: "Lower bound of the charging part -- the power the store can absorb capacity."
+        inp.cap.up:
+          type: numeric
+          description: "Upper bound of the charging part -- the power the store can absorb capacity."
+        inp.cap.fx:
+          type: numeric
+          description: "Fixed value of the charging part -- the power the store can absorb capacity. Overrides `inp.cap.lo` and `inp.cap.up`."
+        inp.ncap.lo:
+          type: numeric
+          description: "Lower bound of the charging part -- the power the store can absorb new capacity."
+        inp.ncap.up:
+          type: numeric
+          description: "Upper bound of the charging part -- the power the store can absorb new capacity."
+        inp.ncap.fx:
+          type: numeric
+          description: "Fixed value of the charging part -- the power the store can absorb new capacity. Overrides `inp.ncap.lo` and `inp.ncap.up`."
+        inp.ret.lo:
+          type: numeric
+          description: "Lower bound of the charging part -- the power the store can absorb capacity retirement."
+        inp.ret.up:
+          type: numeric
+          description: "Upper bound of the charging part -- the power the store can absorb capacity retirement."
+        inp.ret.fx:
+          type: numeric
+          description: "Fixed value of the charging part -- the power the store can absorb capacity retirement. Overrides `inp.ret.lo` and `inp.ret.up`."
+        stg.stock:
+          type: numeric
+          description: "Existing (exogenous) capacity of the reservoir itself -- the energy the store can hold, in energy units."
+        stg.cap.lo:
+          type: numeric
+          description: "Lower bound of the reservoir itself -- the energy the store can hold capacity."
+        stg.cap.up:
+          type: numeric
+          description: "Upper bound of the reservoir itself -- the energy the store can hold capacity."
+        stg.cap.fx:
+          type: numeric
+          description: "Fixed value of the reservoir itself -- the energy the store can hold capacity. Overrides `stg.cap.lo` and `stg.cap.up`."
+        stg.ncap.lo:
+          type: numeric
+          description: "Lower bound of the reservoir itself -- the energy the store can hold new capacity."
+        stg.ncap.up:
+          type: numeric
+          description: "Upper bound of the reservoir itself -- the energy the store can hold new capacity."
+        stg.ncap.fx:
+          type: numeric
+          description: "Fixed value of the reservoir itself -- the energy the store can hold new capacity. Overrides `stg.ncap.lo` and `stg.ncap.up`."
+        stg.ret.lo:
+          type: numeric
+          description: "Lower bound of the reservoir itself -- the energy the store can hold capacity retirement."
+        stg.ret.up:
+          type: numeric
+          description: "Upper bound of the reservoir itself -- the energy the store can hold capacity retirement."
+        stg.ret.fx:
+          type: numeric
+          description: "Fixed value of the reservoir itself -- the energy the store can hold capacity retirement. Overrides `stg.ret.lo` and `stg.ret.up`."
     optimizeRetirement:
       type: logical
       description: >
@@ -1518,23 +1743,100 @@ class:
           description: Destination region.
     trade:
       type: data.frame
-      description: Technical parameters of trade.
+      description: >
+        Technical parameters of trade per directed route. Two kinds of flow
+        bound live here and they are not interchangeable: `ava.*` is ABSOLUTE,
+        in physical commodity units per timeslice, and does not scale with
+        capacity; `af.*` is RELATIVE, a fraction of the object's own capacity
+        (`cap2act` x `vTradeCap` x the timeslice share), and is the direct
+        analogue of `technology@af`. Use `af.*` to rate individual lines of a
+        multi-route object, where the absolute bound would have to be a number
+        correct for exactly one capacity -- and capacity is the decision.
       columns:
         vintage:
           type: character
           description: Vintage label selecting the variant this row applies to, NA for every vintage. See the `vintage` slot.
-        region:
+        cluster:
           type: character
-          description: Region name to apply the parameter, NA for every region.
+          description: Cluster (loss tranche) label selecting the tranche this row applies to, NA for every tranche. See the `cluster` slot.
+        src:
+          type: character
+          description: Source region of the flow, NA for every source region on the route.
+        dst:
+          type: character
+          description: Destination region of the flow, NA for every destination region on the route.
         year:
           type: integer
           description: Year to apply the parameter, NA for every year.
         timeslice:
           type: character
           description: Time timeslice to apply the parameter, NA for every timeslice.
-        trade:
+        ava.lo:
           type: numeric
-          description: Trade volume.
+          description: >
+            Lower bound on the traded flow from `src` to `dst`, in physical
+            commodity units per timeslice.
+        ava.up:
+          type: numeric
+          description: >
+            Upper bound on the traded flow from `src` to `dst`, in physical
+            commodity units per timeslice.
+        ava.fx:
+          type: numeric
+          description: >
+            Fixed value of the traded flow from `src` to `dst`, in physical
+            commodity units per timeslice.
+            This parameter overrides `ava.lo` and `ava.up`.
+        af.lo:
+          type: numeric
+          description: >
+            Lower bound on the flow from `src` to `dst` as a FRACTION of the
+            object's capacity: `af.lo x cap2act x vTradeCap x share`. Forces a
+            minimum loading on that direction.
+        af.up:
+          type: numeric
+          description: >
+            Upper bound on the flow from `src` to `dst` as a FRACTION of the
+            object's capacity: `af.up x cap2act x vTradeCap x share`. This is
+            how a single trade object carrying several routes gives each line
+            its own rating -- `af.up = 0.5` on one leg limits it to half the
+            corridor whatever the corridor turns out to be. Note that `af.up`
+            of 1 is already implied by `eqTradeCapFlow` and cannot bind.
+        af.fx:
+          type: numeric
+          description: >
+            Fixed loading of the direction `src` -> `dst` as a fraction of
+            capacity. Overrides `af.lo` and `af.up`.
+        teff:
+          type: numeric
+          description: >
+            Trade efficiency: the fraction of the flow sent from `src` that is
+            delivered to `dst` (1 = lossless).
+        reactance:
+          type: numeric
+          description: >
+            Series reactance `x` of the line, in the model's own impedance
+            units. Carried for AC lines and used by nothing unless the model is
+            interpolated with `kvl = TRUE`, when it becomes the coefficient of
+            Kirchhoff's voltage law. Presence of a finite `reactance` is what
+            marks a route as a PASSIVE AC branch: a controllable DC link has
+            none, because its flow is chosen rather than set by impedance.
+            Must be SYMMETRIC across the two directed rows of a line -- the
+            voltage law constrains the net flow -- and a line under KVL must be
+            declared in both directions. Where several physical circuits have
+            been merged into one route, the value is the EQUIVALENT reactance,
+            `1/x_eq = sum(1/x_i)`, not any one circuit's.
+        resistance:
+          type: numeric
+          description: >
+            Series resistance `r` of the line, same units and same symmetry
+            requirement as `reactance`. Recorded for round-tripping with
+            power-system models (PyPSA's `Line` carries both). It does not drive
+            losses by itself -- losses are the per-route `teff` -- but it is the
+            input `lossTranches()` turns into a piecewise-linear loss curve:
+            pass it with the rating it was measured against, since
+            `loss_full = r * F` and a resistance alone does not determine a loss
+            fraction.
     aux:
       type: data.frame
       description: Auxiliary commodity of trade.
@@ -1552,6 +1854,9 @@ class:
         vintage:
           type: character
           description: Vintage label selecting the variant this row applies to, NA for every vintage. See the `vintage` slot.
+        cluster:
+          type: character
+          description: Cluster (loss tranche) label selecting the tranche this row applies to, NA for every tranche. See the `cluster` slot.
         acomm:
           type: character
           description: Name of the auxiliary commodity (used in sets).
@@ -1572,14 +1877,32 @@ class:
           description: Trade-to-auxiliary-output-commodity coefficient (multiplier).
     invcost:
       type: data.frame
-      description: Investment cost of the trade capacity (per unit of capacity).
+      description: >
+        Investment cost of the trade capacity, as a RATE PER ENDPOINT REGION per
+        unit of capacity. Trade capacity is region-free -- one number per
+        corridor -- but its costs are region-indexed, and each region named in
+        `region` pays its own rate on the whole capacity. A corridor whose two
+        endpoints each pay 100 therefore costs 200 in total. Leaving `region`
+        unset applies the rate at every endpoint of the route; energyRt reports
+        that rather than correcting it, because the same rate is what a
+        partial-region study would see -- solve a subset of the endpoints and it
+        bears only their share, which is the intended behaviour. Name the regions
+        to vary the rate between them. `fixom`, `retcost` and `eac` follow the
+        same convention.
       columns:
         vintage:
           type: character
           description: Vintage label selecting the variant this row applies to, NA for every vintage. See the `vintage` slot.
+        cluster:
+          type: character
+          description: Cluster (loss tranche) label selecting the tranche this row applies to, NA for every tranche. See the `cluster` slot.
         region:
           type: character
-          description: Region name to apply the parameter, NA for every region.
+          description: >
+            Endpoint region bearing this rate. NA applies the rate at every
+            endpoint of the route; name the regions to vary it between them. Must
+            be one of the model's own regions -- a coarser geoscale level is
+            accepted by validation but never reaches the objective.
         year:
           type: integer
           description: Year to apply the parameter, NA for every year.
@@ -1619,10 +1942,10 @@ class:
         is a separately investable variant that keeps the characteristics of its
         build year for its whole life, so several vintages of one corridor mean
         several capacities on the same `(src, dst)` route, with their flows
-        summed in the commodity balance. `region` and `cluster` are present for a
-        uniform shape across process classes but are unused for trade: its scope
-        comes from the route endpoints, and `routes` already provides the
-        multiplicity a cluster dimension would add.
+        summed in the commodity balance. `region` is present for a uniform shape
+        across process classes but is unused for trade: its scope comes from the
+        route endpoints. `cluster` selects a loss tranche declared in the
+        `cluster` slot.
       columns:
         vintage:
           type: character
@@ -1632,7 +1955,9 @@ class:
           description: Unused for trade (no `region` slot); present for consistency with the other classes.
         cluster:
           type: character
-          description: Unused for trade (no cluster dimension); present for consistency with the other classes.
+          description: >
+            Cluster (loss tranche) this row applies to, NA for every tranche.
+            See the `cluster` slot.
         start:
           type: integer
           description: The first year the trade object is available for investment. NA means unbounded (up to `end`).
@@ -1642,6 +1967,49 @@ class:
         olife:
           type: integer
           description: Operational life of the trade object in years.
+    cluster:
+      type: data.frame
+      description: >
+        Declaration of the object's parallel sub-lines. For trade a cluster is a
+        LOSS TRANCHE: one segment of a piecewise-linear approximation of the
+        quadratic loss curve, with its own share of the capacity and its own
+        `teff`. Real losses go as `r * f^2`, so the loss FRACTION rises with
+        loading -- which a single `teff` cannot express, since under it a
+        half-loaded and a fully-loaded line lose the same proportion.
+
+        This slot declares WHAT the tranches are; the per-tranche values live in
+        the `cluster` column of the variant-varying slots (`trade`, `capacity`,
+        ...). Build both with `lossTranches()` rather than by hand.
+
+        There is deliberately no `region` column: a trade object has no `region`
+        slot -- its scope comes from the route endpoints -- so a region here
+        could restrict nothing, and its absence rejects the mistake at
+        construction rather than deep inside variant expansion.
+
+        Optional. When empty, tranche labels are harvested from the `cluster`
+        columns of the other slots. When populated it is AUTHORITATIVE.
+      columns:
+        cluster:
+          type: character
+          description: Tranche label, used in the expanded object name.
+        desc:
+          type: character
+          description: Description of the tranche.
+        share:
+          type: numeric
+          description: >
+            Fraction of the line's capacity this tranche occupies. The shares
+            must sum to 1: the tranche efficiencies are derived from them
+            (`lambda_t = loss_full * (alpha_t-1 + alpha_t)`) and are calibrated
+            only when they do. Declaring shares is also what makes the capacities
+            of an INVESTABLE line be tied to those proportions -- without the
+            tie the solver would build the whole corridor as the lowest-loss
+            tranche and the approximation would collapse.
+        order:
+          type: integer
+          description: >
+            Fill order, 1 = the lowest-loss tranche. Without it labels sort
+            alphabetically, so "T10" would precede "T2".
     cap2act:
       type: numeric
       description: Capacity to activity ratio.
@@ -1650,13 +2018,44 @@ class:
       description: Additional information.
     fixom:
       type: data.frame
-      description: (not implemented!) Fixed operation and maintenance costs.
+      description: >
+        Fixed operation and maintenance costs, per unit of standing capacity per
+        year. Like the other trade cost slots this is a RATE PER ENDPOINT REGION,
+        named in its `region` column -- see the note on `invcost`.
     varom:
       type: data.frame
-      description: (not implemented!) Variable operation and maintenance costs.
+      description: >
+        Costs charged on the traded flow, PER ROUTE. Unlike the capacity
+        costs above -- which are a rate per endpoint region -- these are indexed
+        by `(src, dst, year, timeslice)`, so they can differ by direction. The
+        two columns mean different things:
+
+          `varom`  -- variable operation and maintenance, a REAL resource cost.
+                      Charged where the flow ORIGINATES (`src`) and added to
+                      total system cost, exactly as `technology@varom` is. Use
+                      it for wheeling fees, transit taxes or any real charge per
+                      unit shipped. Becomes `pTradeIrCost`.
+
+          `markup` -- a border price or bilateral charge: a TRANSFER. The
+                      importing region pays it and the exporting region
+                      receives it, so it moves cost between regions and leaves
+                      the objective unchanged -- the same distinction as a tax
+                      versus a cap. Becomes `pTradeIrMarkup`.
+
+        Before 0.85 both columns were summed into a single term that cancelled
+        between `eqImportIrCost` and `eqExportIrCost`, so `varom` could not
+        express an operating cost at all; it now enters the objective once,
+        positively, at `src`. (A separate parameter `pTradeVarom` was once
+        declared in the GLPK and GAMS templates and read by no equation; it has
+        been removed and was never this slot.)
     capacity:
       type: data.frame
-      description: (not implemented!) Capacity parameters of the trade object.
+      description: >
+        Capacity parameters of the trade object: `stock` (the legacy corridor
+        still standing at each milestone), the `cap.*` bounds on total capacity,
+        the `ncap.*` bounds on the build RATE and the `ret.*` bounds on the early
+        retirement rate. Region-free: a route IS a pair of regions, so a
+        per-region capacity would be ambiguous.
     optimizeRetirement:
       type: logical
       description: >
@@ -1677,15 +2076,38 @@ class:
       type: character
       description: Unit of the imported commodity.
     reserve:
-      type: numeric
-      description: Total accumulated limit through the model horizon.
+      type: data.frame
+      description: >
+        Cumulative limit over the whole model horizon, summed across ALL
+        regions, years and timeslices. A data.frame (rather than the bare number
+        it was before 0.85) so it can carry a `cluster` column and be split
+        across price steps; without that every step would inherit the FULL limit
+        and the model would quietly hold `nsteps` times the resource. A plain
+        number is still accepted by the constructor and read as `res.up`.
+
+        There is deliberately no `region` column: adding one would turn this
+        into a per-region cap and LOSE the all-region total, which is what it
+        means today.
+      columns:
+        cluster:
+          type: character
+          description: Price step this row applies to, NA for every step.
+        res.lo:
+          type: numeric
+          description: Lower bound on the cumulative volume.
+        res.up:
+          type: numeric
+          description: Upper bound on the cumulative volume.
+        res.fx:
+          type: numeric
+          description: Fixed cumulative volume. Overrides `res.lo` and `res.up`.
     import:
       type: data.frame
       description: Import parameters.
       columns:
-        vintage:
+        cluster:
           type: character
-          description: Vintage label selecting the variant this row applies to, NA for every vintage. See the `vintage` slot.
+          description: Price step this row applies to, NA for every step. See the `cluster` slot.
         region:
           type: character
           description: Region name to apply the parameter; use NA to apply to all regions.
@@ -1704,6 +2126,43 @@ class:
         imp.fx:
           type: numeric
           description: Fixed import volume, ignored if NA. This parameter overrides `imp.lo` and `imp.up`.
+        price:
+          type: numeric
+          description: Price paid per unit imported.
+    cluster:
+      type: data.frame
+      description: >
+        Declaration of the object's parallel sub-objects. For import a cluster is a
+        PRICE STEP of a stepped curve: its own share of the quantity, at its own
+        price. A single price cannot express a curve -- real resource grades get
+        dearer as they are exhausted, and a real export market pays less as more
+        volume is pushed into it.
+
+        This slot declares WHAT the steps are; the per-step values live in the
+        `cluster` column of the other slots. Build both with `asImportCurve()`, which
+        also computes the prices and checks the direction of the curve.
+
+        Optional. When empty, step labels are harvested from the `cluster`
+        columns of the other slots. When populated it is AUTHORITATIVE.
+      columns:
+        cluster:
+          type: character
+          description: Step label, used in the expanded object name.
+        desc:
+          type: character
+          description: Description of the step.
+        share:
+          type: numeric
+          description: >
+            The step's fraction of the object's quantity. DESCRIPTIVE, not
+            enforced: unlike `technology` or `trade` this class has no capacity
+            variable to tie, so `asImportCurve()` writes the split straight into the
+            quantity bounds and records here what it did.
+        order:
+          type: integer
+          description: >
+            Fill order, 1 = the cheapest step (or, for export, the best paid).
+            Without it labels sort alphabetically and "S10" would precede "S2".
     misc:
       type: list
       description: Additional information.
@@ -1722,12 +2181,38 @@ class:
       type: character
       description: Unit of the exported commodity.
     reserve:
-      type: numeric
-      description: Total accumulated limit through the model horizon.
+      type: data.frame
+      description: >
+        Cumulative limit over the whole model horizon, summed across ALL
+        regions, years and timeslices. A data.frame (rather than the bare number
+        it was before 0.85) so it can carry a `cluster` column and be split
+        across price steps; without that every step would inherit the FULL limit
+        and the model would quietly hold `nsteps` times the resource. A plain
+        number is still accepted by the constructor and read as `res.up`.
+
+        There is deliberately no `region` column: adding one would turn this
+        into a per-region cap and LOSE the all-region total, which is what it
+        means today.
+      columns:
+        cluster:
+          type: character
+          description: Price step this row applies to, NA for every step.
+        res.lo:
+          type: numeric
+          description: Lower bound on the cumulative volume.
+        res.up:
+          type: numeric
+          description: Upper bound on the cumulative volume.
+        res.fx:
+          type: numeric
+          description: Fixed cumulative volume. Overrides `res.lo` and `res.up`.
     export:
       type: data.frame
       description: Export parameters.
       columns:
+        cluster:
+          type: character
+          description: Price step this row applies to, NA for every step. See the `cluster` slot.
         region:
           type: character
           description: Region name to apply the parameter; use NA to apply to all regions.
@@ -1746,6 +2231,46 @@ class:
         exp.fx:
           type: numeric
           description: Fixed export volume, ignored if NA. This parameter overrides `exp.lo` and `exp.up`.
+        price:
+          type: numeric
+          description: >
+            Price received per unit exported. Export revenue is a NEGATIVE
+            cost -- the minus sits inside `eqExportRowCost` -- so a higher
+            price is a better outcome for the objective.
+    cluster:
+      type: data.frame
+      description: >
+        Declaration of the object's parallel sub-objects. For export a cluster is a
+        PRICE STEP of a stepped curve: its own share of the quantity, at its own
+        price. A single price cannot express a curve -- real resource grades get
+        dearer as they are exhausted, and a real export market pays less as more
+        volume is pushed into it.
+
+        This slot declares WHAT the steps are; the per-step values live in the
+        `cluster` column of the other slots. Build both with `asExportCurve()`, which
+        also computes the prices and checks the direction of the curve.
+
+        Optional. When empty, step labels are harvested from the `cluster`
+        columns of the other slots. When populated it is AUTHORITATIVE.
+      columns:
+        cluster:
+          type: character
+          description: Step label, used in the expanded object name.
+        desc:
+          type: character
+          description: Description of the step.
+        share:
+          type: numeric
+          description: >
+            The step's fraction of the object's quantity. DESCRIPTIVE, not
+            enforced: unlike `technology` or `trade` this class has no capacity
+            variable to tie, so `asExportCurve()` writes the split straight into the
+            quantity bounds and records here what it did.
+        order:
+          type: integer
+          description: >
+            Fill order, 1 = the cheapest step (or, for export, the best paid).
+            Without it labels sort alphabetically and "S10" would precede "S2".
     misc:
       type: list
       description: Additional information.
@@ -1853,7 +2378,7 @@ class:
         level's timeslices, so summing them yields the level aggregate without
         double-counting across levels. `NA` (default) applies no restriction
         and sums the variable's native timeslices.
-    geolevel:
+    geoframe:
       type: character
       description: >
         The spatial twin of `timeframe`: pins the geoscale level the variable
@@ -2185,7 +2710,7 @@ class:
           type: numeric
           description: >-
             Weighted average cost of capital, used to annuitise investment costs
-            into `pTechEac` / `pStorageEac` / `pTradeEac`. A process may override
+            into `pTechEac` / `pStorageOutEac` / `pTradeEac`. A process may override
             it with its own `@invcost$wacc`. Default is 0.
         sdr:
           type: numeric
@@ -2327,7 +2852,7 @@ class:
       description: Any additional information or data to store in the object.
 ## modInp #######################################################################
   modInp:
-    set:
+    sets:
       type: list
       description: named list of character vectors with sets used in the model.
     parameters:
@@ -2340,18 +2865,19 @@ class:
           with 'p'
         - mapping sets: auxiliary, automatically created sets used to narrow
           the dimension of variables and constraints
-    gams.equation:
+    user_constraints:
       type: list
       description: >
-        named list of custom constraints added to the model from the
-        `constraint` class. The name of the slot is outdated and will be
-        changed in the future.
-    costs.equation:
-      type: list
+        named list of user-defined constraints compiled from `constraint`
+        objects: solver-agnostic equation code (GAMS-flavored intermediate
+        representation) that each backend writer translates into its
+        language. One entry per constraint.
+    user_costs:
+      type: character
       description: >
-        named list of custom costs added to the model's objective from the
-        `costs` class. The name of the slot is outdated and will be
-        changed in the future.
+        character vector of user cost terms compiled from `costs` objects,
+        in the same solver-agnostic representation; the write step sums them
+        into the `eqTotalUserCosts` equation of the objective.
     misc:
       type: list
       description: >

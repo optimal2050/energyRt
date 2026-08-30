@@ -29,10 +29,11 @@ scenario files under a temporary folder.
 
 ```{r model}
 set_scenarios_path(file.path(tempdir(), "wf"))   # where scenarios are written
+set_registry_file(file.path(tempdir(), "wf", "energyRt_registry.csv"))
 
 um  <- utopia_modules$electricity$R1
 mod <- newModel("UTOPIA", data = um$repo,
-                calendar = utopia_modules$calendars$utopia_s4h24,
+                calendar = utopia_modules$calendars$s4_h24,
                 region   = um$regions,
                 horizon  = utopia_modules$horizons$base, discount = 0.05)
 ```
@@ -102,7 +103,7 @@ ECOA <- update(ECOA, invcost = data.frame(invcost = 2500))  # pricier coal capex
 repo_hi <- add(repo, ECOA, overwrite = TRUE)                # swap it back in
 
 mod_hi  <- newModel("UTOPIA_HI", data = repo_hi,
-                    calendar = utopia_modules$calendars$utopia_s4h24,
+                    calendar = utopia_modules$calendars$s4_h24,
                     region = um$regions, horizon = utopia_modules$horizons$base,
                     discount = 0.05)
 ```
@@ -112,31 +113,57 @@ writes rows straight into its parameter store.)
 
 # Scenario folders and structure
 
+(The *Scenario management* article explains this layer in depth — stores,
+manifests, the registry, runs, and variants; this section is the quick tour.)
+
 The scenarios directory is an option — read it with `get_scenarios_path()`, set it
 with `set_scenarios_path()` (default `"scenarios/"`). Each scenario gets its own
-folder, named by `make_scenario_dirname()` as `name_model_calendar_horizon`:
+folder, named automatically as `name_model_calendar_horizon` (duplicate parts
+are dropped, so a scenario and model sharing a name appear once):
 
 ```{r dirname}
 get_scenarios_path()
-make_scenario_dirname(scen)
+basename(scen@path)
 ```
 
 Saving a scenario writes an **Arrow-backed** folder that mirrors the scenario's
-structure — a thin `scen.RData` shell plus each large data slot as a dataset:
+structure — a thin `scen.RData` shell, a `scenario.yml` manifest, each large
+data slot as a dataset, and one folder per solver run:
 
 ```
 <scenarios-path>/<name_model_calendar_horizon>/
+├── scenario.yml        # manifest: model ref/hash, calendar, horizon,
+│                       #   `default:` — the default run (user-changeable)
 ├── scen.RData          # thinned S4 scenario shell
-├── class · format      # "scenario" · "parquet"
+├── class · format · layout   # "scenario" · "parquet" · "3"
 ├── logfile.csv         # timestamped save log
-├── model/data/<repo>/<object>/<slot>/   # the model objects' data
+├── model/data/<repo>/<object>/<slot>/   # model data (embedded scenarios only)
 ├── modInp/parameters/<param>/           # interpolated input parameters
-├── modOut/variables/<var>/              # solved variables (vTechOut, ...)
-└── script/<backend>_<solver>_<method>/  # solver working directory
+└── runs/               # one folder per solve
+    ├── glpk/           #   base-problem run, named by its solve label
+    │   ├── run.yml     #     provenance: solver, cmdline, times, objective
+    │   ├── solver/     #     the solver working dir (inputs + its output/)
+    │   └── modOut/variables/<var>/      # the solved variables
+    └── julia_highs/    #   another backend's run of the same problem
 ```
 
+Beyond the per-scenario traces above, an optional *operation log* records
+the sequence of a working session: `set_log_file("energyRt_log.csv")` makes
+`interpolate_model()`, `solve_scenario()` and `solve_myopic()` append one
+line each (operation, object, status, objective, duration), and
+`read_log()` returns the sequence as a tibble. It is off by default.
+
+Solving the same scenario with several backends (or option sets — pass
+`run = "<label>"` to `solve_scenario()`) keeps every run side by side;
+`scenario_runs(scen)` lists them with status and objective, and
+`read_solution(scen, run = "<label>")` switches the active solution.
+A scenario referencing a model saved with `save_model()` skips the embedded
+`model/` copy entirely (see `?save_scenario`, `embed_model`).
+
 A scenario knows whether its data is in RAM or on disk via `isInMemory()`; when
-on disk, the slots are empty and read lazily from the folder on demand.
+on disk, the slots are empty and read lazily from the folder on demand. Folders
+from older energyRt versions are still readable and migrate in place with
+`upgrade_scenario_layout(path)`.
 
 # Saving and loading
 
@@ -148,6 +175,15 @@ pulls the whole scenario back into memory.
 ```{r saveload-run, results = "hide"}
 saved <- save_scenario(scen, verbose = FALSE)
 ld    <- load_scenario(saved@path, env = NULL, verbose = FALSE)
+```
+
+A saved scenario is also reachable by its registered **name** —
+`load_scenario("BASE", env = NULL)` resolves it through the project
+registry, and the cached accessor `getScenario("BASE")` is the everyday
+short form (see the *Scenario management* article):
+
+```{r saveload-name}
+identical(getScenario("BASE")@name, ld@name)
 ```
 
 ```{r saveload}
@@ -164,16 +200,23 @@ ld <- obj2mem(ld)                                    # rehydrate fully into RAM
 isInMemory(ld)
 ```
 
-> A name-based scenario **registry** (`register()`, `getScenario()`,
-> `get_registry()`) is under development; for now, organize runs with
-> `set_scenarios_path()` and round-trip them with `save_scenario()` /
-> `load_scenario()`.
+Every `save_scenario()` / `save_model()` / `save_repository()` also records
+its object in the project **registry** — a single CSV (default
+`energyRt_registry.csv` at the project root, see `get_registry_file()`)
+indexing saved models, repositories, scenarios, and runs. Repositories shared
+by several models can be stored once with `save_repository()` and referenced
+by each model (`save_model(embed_repos = )`), just as scenarios can reference
+a stored model. `load_registry()` reads it, `find_registry()` filters it (by type,
+name, or model hash), and `refresh_registry()` rebuilds it by rescanning the
+`scenarios/` and `models/` stores — the on-disk manifests are the source of
+truth, so the registry can always be reconstructed.
 
 # Comparing scenarios
 
 Layer a policy lever onto the base model to get a second scenario, then pass a
 **named list of scenarios** to `getData()` — the `scenario` column makes the
-comparison a one-liner:
+comparison a one-liner. (Scenarios already *saved* compare by name alone:
+`getData(c("BASE", "CO2CAP"), ...)` loads them from the registry on the fly.)
 
 ```{r compare-solve}
 scen_cap <- interpolate_model(mod, "CO2CAP", um$CO2_CAP) |>   # add the CO2 cap lever
@@ -217,9 +260,123 @@ compare_interp_settings(mod)                          # size/time by setting
 compare_solve_settings(mod, solvers = list(solver_options$glpk))
 ```
 
+# Sampling: solving a subset of the model
+
+Interpolation can solve a *sample* of a model without editing the model
+itself — in time (a sampled calendar) and in space (a sampled geoscale).
+Both work the same way: build the sample object, pass it to
+`interpolate_model()`, and the scenario is declared, validated and solved
+on the sample.
+
+## Sampled calendars
+
+A sampled calendar is a **row subset of the full calendar's timetable**
+plus an explicit `year_fraction` — the fraction of the year the sample
+covers. Timeslice weights annualise the sample inside the solver
+(the top slice carries weight `1/year_fraction`), so the objective is an
+*estimate* of the full model's — and exactly equals it when the sampled
+slices are representative:
+
+```{r sample-calendar}
+tt  <- utopia_modules$calendars$s4_h24@timetable
+tt2 <- tt[tt$SEASON %in% c("WIN", "SUM"), ]      # two of the four seasons
+cal2 <- newCalendar(timetable = tt2, name = "s2h24",
+                    year_fraction = sum(tt2$share))
+
+scen_t <- interpolate_model(mod, "S2", cal2) |>
+  solve_scenario(solver = solver_options$glpk, echo = FALSE)
+sapply(list(full = scen, sampled = scen_t),
+       function(s) round(getData(s, "vObjective", merge = TRUE)$value[1]))
+```
+
+Two traps: pass `year_fraction` **explicitly** (it is not recomputed from
+the subset), and **subset the existing timetable** rather than rebuilding
+one with `make_timetable()` (which would renormalise the shares to a full
+year). Declarations are validated against the *model's* calendar, so
+objects naming out-of-sample timeslices interpolate cleanly — their
+out-of-sample rows are simply filtered.
+
+## Spatial sampling
+
+The spatial mirror: pass a **filtered geoscale** — a
+`geoscales::filter_geoscale()` subset of the model's regions — and the
+scenario becomes a *sub-territory* model: only the sampled regions are
+declared, out-of-sample parameter rows are filtered, and trade routes
+crossing the sample boundary are dropped (with a message). Unlike
+calendar sampling there is **no reweighting**: regional quantities are
+extensive, so the objective is the sub-territory's own, and disjoint
+samples *add up* to the full model (absent cross-boundary trade).
+
+UTOPIA is single-region, so a compact three-region demo:
+
+```{r sample-regions-model}
+library(geoscales)
+
+r3 <- c("R1", "R2", "R3")
+gs <- geoscale_from_leaftable(
+  data.frame(zone = c("Z12", "Z12", "Z3"), region = r3, km2 = 1),
+  geoframes = c("zone", "region"), name = "demo")
+
+m3 <- newModel(
+  "M3", region = r3, horizon = newHorizon(2020), discount = 0.05,
+  repo = newRepository(
+    "r",
+    newCommodity("COA", timeframe = "ANNUAL"),
+    newCommodity("ELC", timeframe = "ANNUAL"),
+    newSupply("SUP_COA", commodity = "COA",
+              supply = data.frame(region = r3, cost = 5)),
+    newTechnology("ECOA", input = list(comm = "COA"),
+                  output = list(comm = "ELC"),
+                  af = data.frame(af.up = 0.9),
+                  invcost = data.frame(invcost = 1000),
+                  olife = list(olife = 30), cap2act = 1),
+    newDemand("DEM_ELC", commodity = "ELC",
+              demand = data.frame(region = r3, demand = c(10, 20, 30))),
+    newTrade("TR23", commodity = "ELC", cap2act = 1,
+             routes = data.frame(src = "R2", dst = "R3"),
+             trade  = data.frame(src = "R2", dst = "R3", ava.up = 4),
+             invcost = data.frame(invcost = 10))))
+```
+
+Filtering the geoscale to `R1 + R2` and interpolating drops the
+`R2 -> R3` route on the way:
+
+```{r sample-regions, message = TRUE}
+gs12 <- filter_geoscale(gs, "region", c("R1", "R2"),
+                        drop_empty_geoframes = TRUE)
+scen12 <- interpolate_model(m3, "S12", gs12)
+as.character(scen12@settings@region)
+```
+
+A dropped route can optionally leave a **priced boundary stub** at the
+kept endpoint — an export (kept source) or import (kept destination)
+object bounded by `cap.up` (or, failing that, the route's `ava.up`) —
+via `boundary_prices`; routes without a price row are just dropped:
+
+```{r sample-stub, message = TRUE}
+bp <- data.frame(src = "R2", dst = "R3", price = 50, cap.up = 4)
+scen12p <- interpolate_model(m3, "S12P", gs12, boundary_prices = bp)
+grep("^EXP", as.character(scen12p@modInp@sets$expp), value = TRUE)
+```
+
+The same surgery is available up front, as a model-to-model verb:
+
+```{r subset-verb}
+m12 <- subset_model_regions(m3, c("R1", "R2"), boundary_prices = bp)
+as.character(m12@config@region)
+```
+
+The filtered geoscale records its **coverage** (fraction of each weight's
+parent total — see `geoscales::geoscale_coverage()`), and its name is
+mangled (`"demo[region:R1+R2]"`) so different samples of one parent never
+collide in caches or joins. A **pruned** geoscale (a coarser level of the
+model's own hierarchy) requests a full-territory solve at the parent
+level instead; that requires aggregating the model's data
+(`aggregate_model_regions()`) and is not implemented yet.
+
 # See also
 
 * **Model bricks** and **UTOPIA I** — building the objects and the model.
 * **Solver backends** and **UTOPIA II** — interpolating and solving.
 * `?getData`, `?getObject`, `?update`, `?save_scenario`, `?load_scenario`,
-  `?model_size`, `?compare_solve_settings`.
+  `?model_size`, `?compare_solve_settings`, `?subset_model_regions`.

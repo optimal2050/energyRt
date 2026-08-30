@@ -1,195 +1,304 @@
-# usethis::use_package("registry")
-# Registry is class for storing and managing records of scenarios, models, and repositories.
-# Unless specified, the registry is stored in the global environment. It has entries of objects located either in the global environment (.GlobalEnv), default environment to store scenario or model objects (.scen), or stored in the file system.
-# The 'registry' objects are lightweight and can be saved on the disk and loaded back.
+# =============================================================================#
+# registry.R — persisted project registry of models, scenarios, and runs.
+#
+# One CSV file per project (default `energyRt_registry.csv` at the project
+# root, a sibling of the `scenarios/` and `models/` stores) indexes what is
+# saved on disk: one row per model, scenario, or run. The on-disk manifests
+# (`scenario.yml`, `model.yml`, `run.yml`) are the source of truth; the CSV is
+# a rebuildable index — `refresh_registry()` rescans the stores and reconciles.
+#
+# The previous implementation (a wrapper over the CRAN `registry` package,
+# in-memory only) is archived in `drafts/registry-cran-wrapper.R`; its public
+# names live on as deprecated shims at the bottom of this file.
+# =============================================================================#
 
-#' @title Create a new registry object.
-#'
-#' @description
-#' Create a new registry object to store records of scenarios, models, and repositories.
-#' `r lifecycle::badge("experimental")`
-#'
-#' @param class character, type of the classes to be stored in the registry.
-#' @param name character, name of the registry object.
-#' @param registry_env character, environment to store the registry object.
-#' @param store_env character, environment to store the objects.
-#'
-#' @export
-#'
-#' @examples
-#' # The `registry` methods are in development.
-newRegistry <- function(
-    class = c("scenario", "model", "repository"),
-    name = NULL,
-    registry_env = ".GlobalEnv",
-    store_env = ".scen"
-  ) {
-  # inventory
-  book <- registry::registry()
-  # key values:
-  book$set_field("name", "character", is_mandatory = TRUE, is_key = TRUE)
-  book$set_field("class", "character", is_mandatory = TRUE, is_key = TRUE)
-  book$set_field("project", "character", is_mandatory = FALSE, is_key = FALSE)
-  # user/system specific:
-  book$set_field("path", "character", is_mandatory = FALSE, is_key = FALSE)
-  # entry specific:
-  book$set_field("memo", "character", is_mandatory = FALSE, is_key = FALSE)
-  book$set_field("datetime", class(Sys.time()), is_mandatory = FALSE,
-                 is_key = FALSE)
-  book$set_field("user", "character")
-  book$set_field("system", "character")
-  # book$set_field("path", "character")
-  # book$set_field("registry_env", "character", default = env)
-  book$set_field("env", "character", default = store_env)
-  if (!is.null(name)) {
-    if (exists(name, envir = get(registry_env))) {
-      stop(
-        "Registry already exists in the environment.\n",
-        "Remove it rm(", name, ") first or use a different name."
-      )
-    }
-    assign(name, book, envir = get(registry_env))
-    cat("Registry ", name, " created.\n")
-  }
-  return(invisible(book))
+# canonical column set; everything character for CSV round-trip stability
+.registry_cols <- c(
+  "type",             # "model" | "repository" | "scenario" | "run" | "dataset"
+  "name",             # object name; runs: "<variant>/<solve>"
+  "hash",             # model content hash (model rows), "" otherwise
+  "model_hash",       # scenario rows: hash of the referenced/embedded model
+  "path",             # relative to the registry file's directory
+  "parent",           # runs: scenario name; "" otherwise
+  "created", "updated",  # UTC timestamps, "%Y-%m-%dT%H:%M:%SZ"
+  "energyRt_version",
+  "memo"
+)
+
+.registry_now <- function() format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC")
+
+# a path relative to the registry file's directory when possible (portability)
+.registry_rel_path <- function(p, reg_file = get_registry_file()) {
+  p <- gsub("[\\/]+", "/", p)
+  rn <- gsub("[\\/]+", "/", normalizePath(dirname(reg_file), winslash = "/",
+                                          mustWork = FALSE))
+  pn <- gsub("[\\/]+", "/", normalizePath(p, winslash = "/", mustWork = FALSE))
+  if (startsWith(pn, paste0(rn, "/"))) substring(pn, nchar(rn) + 2L) else p
 }
 
-#' Register an object in the registry.
-#'
-#' @description
-#' Register an repository, model, or scenario object in the registry.
-#' `r lifecycle::badge("experimental")`
-#'
-#' @param obj object to be registered.
-#' @param registry registry object to add the entry.
-#' @param name character, name of the object.
-#' @param project character, optional, the name of the project.
-#' @param path character, optional path to the object's 'onDisk' directory.
-#' @param memo character, optional short note about the object.
-#' @param datetime timestamp, optional, date and time of the registration.
-#' @param user character, optional, user who registered the object.
-#' @param system character, optional, system where the object is registered.
-#' @param ...  (reserved for future use).
-#' @param env character, environment where the object is stored.
-#' @param replace logical, if TRUE, replace the existing entry.
-#'
-#' @export
-#'
-#' @examples
-#' # `registry` methods are in development.
-register <- function(
-    obj,
-    registry,
-    # registry = get(".scen$registry"),
-    # class = NULL,
-    name = obj@name,
-    project = "",
-    path = "",
-    # updatable
-    memo = "",
-    datetime = lubridate::now(tzone = "UTC"),
-    user = Sys.info()["user"],
-    system = Sys.info()["sysname"],
-    ...,
-    env = obj@misc$env,
-    replace = FALSE
-    # update = TRUE,
-    # history = FALSE
-    ) {
-  browser()
-
-  reg_exist <- registry$get_entry(
-    name = name,
-    project = project,
-    path = path,
-    ...
-  )
-
-  if (!is.null(reg_exist)) {
-    if (replace) {
-      registry$remove_entry(name)
-    # } else if (history) {
-      # update fields:
+# Resolve a scenario NAME to its folder: registry row first (path relative
+# to the registry file's directory), then a scan of the scenarios store for
+# a manifest (or layout-2 class marker + dir name) matching the name.
+# Scenarios are not content-addressed, so resolution is by name only; two
+# candidate folders for one name is an error, never a silent pick.
+.scenario_resolve <- function(name, registry = NULL) {
+  is_scen_dir <- function(d) {
+    file.exists(fp(d, "scenario.yml")) || file.exists(fp(d, "class"))
+  }
+  reg <- registry %||% tryCatch(load_registry(), error = function(e) NULL)
+  if (!is.null(reg)) {
+    hit <- find_registry(reg, type = "scenario", name = name)
+    if (nrow(hit)) {
+      p <- gsub("[\\/]+", "/", fp(dirname(get_registry_file()), hit$path[1]))
+      if (is_scen_dir(p)) return(p)
+    }
+  }
+  root <- get_scenarios_path()
+  if (!dir.exists(root)) return(NULL)
+  cand <- character(0)
+  for (d in list.dirs(root, recursive = FALSE)) {
+    if (startsWith(basename(d), ".")) next
+    mf <- fp(d, "scenario.yml")
+    nm <- if (file.exists(mf)) {
+      tryCatch(yaml::read_yaml(mf)$name %||% basename(d),
+               error = function(e) NULL)
+    } else if (file.exists(fp(d, "class"))) {
+      basename(d)   # layout 2: no manifest, the folder name is the name
     } else {
-      stop(
-        "Object ", name, " already exists in the registry.\n",
-        "Use replace = TRUE to replace."
-      )
+      NULL
+    }
+    if (identical(nm, name)) cand <- c(cand, gsub("[\\/]+", "/", d))
+  }
+  if (length(cand) > 1L) {
+    stop("Scenario '", name, "' matches ", length(cand), " folders in '",
+         root, "': ", paste(basename(cand), collapse = ", "),
+         ". Load one with an explicit path.")
+  }
+  if (length(cand) == 1L) cand else NULL
+}
+
+.registry_empty <- function() {
+  .registry_class(as_tibble(setNames(
+    lapply(.registry_cols, \(x) character(0)),
+    .registry_cols
+  )))
+}
+
+# the registry tibble carries an S3 subclass so generics (`add()`) can
+# dispatch on it; tibble/dplyr verbs drop extra classes, so every function
+# returning a registry re-attaches it
+.registry_class <- function(reg) {
+  class(reg) <- unique(c("ert_registry", class(reg)))
+  reg
+}
+
+#' Project registry of models, scenarios, and runs
+#'
+#' @description
+#' The registry is a per-project CSV file (see [get_registry_file()]) indexing
+#' the saved models, scenarios, and runs: one row each, with type, name,
+#' content hash (models), path, parent (runs), timestamps, and a memo.
+#' It is a rebuildable index — the on-disk manifests are the source of truth,
+#' and `refresh_registry()` reconstructs the registry by rescanning the
+#' `scenarios/` and `models/` stores.
+#'
+#' * `load_registry()` reads the registry file into a tibble (an empty,
+#'   correctly-typed tibble if the file does not exist yet).
+#' * `save_registry()` writes the tibble back.
+#' * `add_to_registry()` inserts or updates one row (keyed by `type` + `name` +
+#'   `parent`) and returns the updated tibble; it does not write the file.
+#' * `find_registry()` filters by any combination of `type`, `name`, `hash`,
+#'   and `parent` (exact matches; `NULL` = no filter).
+#' * `refresh_registry()` rescans the stores under `root` and rebuilds rows
+#'   from what is actually on disk, preserving `created`/`memo` of surviving
+#'   entries; with `write = TRUE` (default) the result is saved.
+#'
+#' @param file character, path to the registry CSV
+#'   (default [get_registry_file()]).
+#' @param reg a registry tibble as returned by `load_registry()`.
+#' @param type character: `"model"`, `"repository"`, `"scenario"`, or `"run"`.
+#' @param name character, object name (for runs: `"<variant>/<solve>"`).
+#' @param path character, object directory, relative to the registry file's
+#'   directory.
+#' @param hash character, model content hash (from `model_hash()`, arriving
+#'   with the model store); `""` for scenario/run rows.
+#' @param model_hash character, for scenario rows: hash of the referenced or
+#'   embedded model.
+#' @param parent character, for run rows: the scenario name.
+#' @param memo character, optional free-form note.
+#' @param root character, project root to rescan (the directory holding the
+#'   `scenarios/` and `models/` stores).
+#' @param write logical, save the refreshed registry to `file`.
+#'
+#' @return `load_registry()`, `add_to_registry()`, `find_registry()`, and
+#'   `refresh_registry()` return the registry tibble; `save_registry()`
+#'   returns `file` invisibly.
+#'
+#' @rdname registry
+#' @export
+#' @examples
+#' reg <- load_registry(tempfile(fileext = ".csv"))
+#' reg <- add_to_registry(reg, "scenario", "BASE", path = "scenarios/BASE")
+#' find_registry(reg, type = "scenario")
+load_registry <- function(file = get_registry_file()) {
+  if (!file.exists(file)) return(.registry_empty())
+  reg <- utils::read.csv(file, colClasses = "character",
+                         stringsAsFactors = FALSE) |> as_tibble()
+  missing_cols <- setdiff(.registry_cols, names(reg))
+  for (m in missing_cols) reg[[m]] <- ""
+  .registry_class(reg[, .registry_cols])
+}
+
+#' @rdname registry
+#' @export
+save_registry <- function(reg, file = get_registry_file()) {
+  stopifnot(is.data.frame(reg))
+  reg <- as_tibble(reg)[, .registry_cols]
+  dir_ <- dirname(file)
+  if (!dir.exists(dir_)) dir.create(dir_, recursive = TRUE)
+  utils::write.csv(reg, file, row.names = FALSE, na = "")
+  invisible(file)
+}
+
+#' @rdname registry
+#' @export
+add_to_registry <- function(reg, type, name, path,
+                         hash = "", model_hash = "", parent = "",
+                         memo = "") {
+  type <- match.arg(type, c("model", "repository", "scenario", "run",
+                            "dataset"))
+  stopifnot(is.character(name), length(name) == 1L, nzchar(name))
+  now <- .registry_now()
+  ii <- which(reg$type == type & reg$name == name & reg$parent == parent)
+  row <- tibble(
+    type = type, name = name, hash = hash, model_hash = model_hash,
+    path = path, parent = parent,
+    created = if (length(ii)) reg$created[ii[1]] else now,
+    updated = now,
+    energyRt_version = as.character(utils::packageVersion("energyRt")),
+    memo = if (nzchar(memo) || !length(ii)) memo else reg$memo[ii[1]]
+  )
+  if (length(ii)) reg <- reg[-ii, ]
+  .registry_class(bind_rows(reg, row))
+}
+
+#' @details
+#' `add()` dispatches on a loaded registry, so `add(reg, "scenario", "BASE",
+#' path = "scenarios/BASE")` is `add_to_registry()` under the generic shared
+#' with models and repositories.
+#'
+#' @rdname registry
+#' @method add ert_registry
+#' @export
+add.ert_registry <- function(obj, ...) add_to_registry(obj, ...)
+
+#' @rdname registry
+#' @export
+find_registry <- function(reg, type = NULL, name = NULL, hash = NULL,
+                          parent = NULL) {
+  if (!is.null(type)) reg <- reg[reg$type %in% type, ]
+  if (!is.null(name)) reg <- reg[reg$name %in% name, ]
+  if (!is.null(hash)) {
+    # accept full or short (prefix) hashes
+    reg <- reg[startsWith(reg$hash, hash[1]) & nzchar(reg$hash), ]
+  }
+  if (!is.null(parent)) reg <- reg[reg$parent %in% parent, ]
+  .registry_class(reg)
+}
+
+#' @rdname registry
+#' @export
+refresh_registry <- function(root = ".", file = get_registry_file(),
+                             write = TRUE) {
+  old <- load_registry(file)
+  rel_to_reg <- function(p) .registry_rel_path(p, reg_file = file)
+  # store roots from the options may be absolute (e.g. redirected to a temp
+  # dir); only prefix `root` onto relative ones
+  root_join <- function(p) {
+    if (grepl("^([A-Za-z]:|/|\\\\)", p)) gsub("[\\/]+", "/", p) else fp(root, p)
+  }
+  keep_created <- function(reg, type, name, parent = "") {
+    hit <- find_registry(old, type = type, name = name, parent = parent)
+    if (nrow(hit)) {
+      ii <- which(reg$type == type & reg$name == name & reg$parent == parent)
+      reg$created[ii] <- hit$created[1]
+      if (!nzchar(reg$memo[ii])) reg$memo[ii] <- hit$memo[1]
+    }
+    reg
+  }
+
+  reg <- .registry_empty()
+
+  # scenarios: any first-level directory in the scenarios store carrying the
+  # `class` marker file (layout >= 2) or a `scenario.yml` manifest (layout 3)
+  scen_root <- root_join(get_scenarios_path())
+  if (dir.exists(scen_root)) {
+    for (d in list.dirs(scen_root, recursive = FALSE)) {
+      # dot-prefixed dirs are scratch by convention (e.g. levcost mini-models)
+      if (startsWith(basename(d), ".")) next
+      manifest <- fp(d, "scenario.yml")
+      class_file <- fp(d, "class")
+      nm <- NULL
+      model_hash <- ""
+      if (file.exists(manifest)) {
+        mf <- tryCatch(yaml::read_yaml(manifest), error = \(e) NULL)
+        if (!is.null(mf)) {
+          nm <- mf$name %||% basename(d)
+          model_hash <- mf$model$hash %||% ""
+        }
+      } else if (file.exists(class_file) &&
+                 any(grepl("scenario", readLines(class_file, warn = FALSE)))) {
+        nm <- basename(d)
+      }
+      if (is.null(nm)) next
+      reg <- add_to_registry(reg, "scenario", nm, path = rel_to_reg(d),
+                          model_hash = model_hash)
+      reg <- keep_created(reg, "scenario", nm)
+      # runs (layout 3): base runs at runs/<solve>/run.yml, variant runs at
+      # runs/<variant>/<solve>/run.yml
+      run_ymls <- c(Sys.glob(fp(d, "runs", "*", "run.yml")),
+                    Sys.glob(fp(d, "runs", "*", "*", "run.yml")))
+      for (ry in run_ymls) {
+        rr <- tryCatch(yaml::read_yaml(ry), error = \(e) NULL)
+        if (is.null(rr)) next
+        run_dir <- dirname(ry)
+        parent_dir <- basename(dirname(run_dir))
+        run_name <- if (identical(parent_dir, "runs")) {
+          basename(run_dir)                       # base run: "<solve>"
+        } else {
+          fp(parent_dir, basename(run_dir))       # variant run: "<variant>/<solve>"
+        }
+        reg <- add_to_registry(reg, "run", run_name, path = rel_to_reg(run_dir),
+                            parent = nm)
+        reg <- keep_created(reg, "run", run_name, parent = nm)
+      }
     }
   }
 
-  registry$set_entry(
-    name = obj@name,
-    class = class(obj),
-    project = project,
-    path = path,
-    memo = memo,
-    datetime = datetime,
-    user = user,
-    system = system,
-    env = env
-    # ...
+  # models and repositories: content-addressed stores of <name>@<hash8>/
+  # folders, each with a manifest (layout 3)
+  stores <- list(
+    list(type = "model", root = root_join(get_models_path()),
+         manifest = "model.yml"),
+    list(type = "repository", root = root_join(get_repositories_path()),
+         manifest = "repository.yml"),
+    list(type = "dataset", root = root_join(get_datasets_path()),
+         manifest = "dataset.yml")
   )
+  for (st in stores) {
+    if (!dir.exists(st$root)) next
+    for (d in list.dirs(st$root, recursive = FALSE)) {
+      manifest <- fp(d, st$manifest)
+      if (!file.exists(manifest)) next
+      mf <- tryCatch(yaml::read_yaml(manifest), error = \(e) NULL)
+      if (is.null(mf)) next
+      nm <- mf$name %||% sub("@.*$", "", basename(d))
+      reg <- add_to_registry(reg, st$type, nm, path = rel_to_reg(d),
+                          hash = mf$hash %||% "")
+      reg <- keep_created(reg, st$type, nm)
+    }
+  }
+
+  if (write) save_registry(reg, file)
+  reg
 }
-
-#' @export
-registry.exists <- function(name, env = ".GlobalEnv") {
-  exists(name, envir = get(env))
-}
-#' @export
-registry_exists <- registry.exists
-
-#' @export
-getScenario <- function(name, registry = get_registry(), ...) {
-  registry[[name]]
-}
-
-#' @export
-get_entry <- function(name, registry = get_registry(), ...) {
-  registry$get_entry(name, ...)
-}
-
-#' @export
-get_entry_object <- function(name, registry = get_registry(), ...) {
-  re <- registry$get_entry(name, ...)
-  get(re$name, envir = re$env)[[name]]
-}
-
-if (F) {
-  ls(pattern = "scen_")
-  # set_scenario_path("scenarios")
-  get_scenarios_path()
-
-  # SCEN <- newRegistry(class = "scenario")
-  newRegistry(name = "SCEN")
-  rm(SCEN)
-  .scen |> ls()
-  newRegistry(name = "SCEN")
-  set_default_registry("SCEN", ".GlobalEnv")
-  which_registry()
-  get_registry()
-
-  SCEN$get_fields() |> names()
-  use_registry("SCEN")
-  which_registry()
-
-  register(scen_BASE, SCEN)
-  SCEN$get_entries("BASE")
-  SCEN$n_of_entries()
-  SCEN$has_entry("BASE")
-
-  SCEN[["BASE"]]
-  getScenario("BASE")
-
-  newScenario("TEST", path = "scenarios")
-  getScenario("TEST")
-  newScenario("TEST", path = "scenarios", registry = SCEN)
-  newScenario("TEST", path = "scenarios", registry = SCEN, replace = TRUE)
-  SCEN$get_entries("TEST")
-  SCEN$n_of_entries()
-  SCEN$get_entries()
-  SCEN[["TEST"]]
-  register(scen_TES= TRUE, SCEN)
-
-}
-

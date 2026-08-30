@@ -88,13 +88,13 @@ This vignette builds a **three-region** model on the first three regions
 
 ## Time resolution and inputs
 
-We pick a ready calendar – `utopia_s4h24`, four seasons x 24 hours (96
+We pick a ready calendar – `s4_h24`, four seasons x 24 hours (96
 timeslices); calendar construction is covered in the [time-resolution
 article](https://energyrt.org/articles/time-resolution.html).
 
 ``` r
 
-cal  <- calendars$utopia_s4h24
+cal  <- calendars$s4_h24
 autoplot(cal)
 ```
 
@@ -107,7 +107,7 @@ profiles come from
 
 regions <- c("R1", "R2", "R3")
 
-prof <- utopia_profiles(regions, calendar = "utopia_s4h24")
+prof <- utopia_profiles(regions, calendar = "s4_h24")
 str(prof, max.level = 1)
 ```
 
@@ -729,7 +729,7 @@ STG_ELC <- newStorage(
   desc = "Grid battery, 4-hour",
   commodity = "ELC",
   invcost = list(
-    invcost = convert("EUR/kWh", "MEUR/PJ", 200)
+    out.invcost = convert("EUR/kWh", "MEUR/PJ", 200)
   ),
   duration = 4,                            # 4 hours of storage per GW
   seff = data.frame(
@@ -984,17 +984,23 @@ report(EBIO, discount = 0.05,
 # a single process, priced inside the assembled model
 report(mod, name = "ENUC")
 
-# the WHOLE model: configuration, inventory, every process one-by-one
+# the WHOLE model -- the assumptions report: configuration, discount rates,
+# calendar/horizon charts, inventories of every stored class, and every
+# process one-by-one (html, pdf, or docx)
 report(mod)
 
-# a solved scenario: results overview (see UTOPIA II)
+# a solved scenario -- the results report: run provenance, solution checks,
+# generation/capacity charts and a cost breakdown (see UTOPIA II)
 # report(scen_BASE)
+
+# what templates ship, and for which class
+report_templates()
 ```
 
 ## The packaged kit
 
 The steps above are exactly what `data-raw/utopia_modules.R` runs for a
-few region layouts (1, 3 and 7 regions) to produce the shipped
+few region layouts (1, 3, 7 and 11 regions) to produce the shipped
 \[`utopia_modules`\] dataset – a ready base repository (`$repo`), the
 individual blocks, and the levers, alongside the calendars, horizons and
 maps:

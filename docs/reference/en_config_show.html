@@ -17,7 +17,7 @@ package default. This is the first thing to run when a solver is not found."><me
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.85.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -40,6 +40,8 @@ package default. This is the first thing to run when a solver is not found."><me
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
+    <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
+    <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
     <li><a class="dropdown-item" href="../articles/autoplot.html">autoplot()</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
@@ -89,8 +91,10 @@ came from, where applicable.</p>
 <code><a href="arrow_format.html">get_arrow_format()</a></code>,
 <code><a href="default_solver.html">get_default_solver()</a></code>,
 <code><a href="isVerbose.html">isVerbose()</a></code>,
-<code><a href="default_registry.html">set_default_registry()</a></code>,
+<code><a href="log.html">set_log_file()</a></code>,
 <code><a href="en_option.html">set_option()</a></code>,
+<code><a href="registry_file.html">set_registry_file()</a></code>,
+<code><a href="reports_path.html">set_reports_path()</a></code>,
 <code><a href="scenarios_path.html">set_scenarios_path()</a></code>,
 <code><a href="solver_path.html">set_solver_path()</a></code></p></div>
     </div>
@@ -103,19 +107,25 @@ came from, where applicable.</p>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   arrow_compression        "zstd"                      [default]</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   arrow_compression_level  15                          [default]</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   arrow_format             "feather"                   [default]</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   datasets_path            "datasets/"                 [default]</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   debug                    0                           [default]</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   default_registry         list(name="registry", env=".scen")  [default]</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   gams_path                "C:/GAMS/32/"               [config] C:\Users\admin\AppData\Roaming/R/config/R/energyRt/config.yml</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   gdxlib_path              "C:/GAMS/35/"               [config] C:\Users\admin\AppData\Roaming/R/config/R/energyRt/config.yml</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   glpk_path                NULL                        [default]</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   julia_path               NULL                        [default]</span>
-<span class="r-msg co"><span class="r-pr">#&gt;</span>   mosox_path               NULL                        [default]</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   levcost_cache_path       "levcosts/"                 [default]</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   log_file                 ""                          [default]</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   models_path              "models/"                   [default]</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   neos_email               NULL                        [default]</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   neos_endpoint            "https://neos-server.org:3333"  [default]</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   progress_bar             TRUE                        [default]</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   python_path              "C:\Users\admin\AppData\Local\r-miniconda\env...  [config] C:\Users\admin\AppData\Roaming/R/config/R/energyRt/config.yml</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   registry_file            "energyRt_registry.csv"     [default]</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   reports_path             "reports/"                  [default]</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   repositories_path        "repositories/"             [default]</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   scenarios_path           "scenarios/"                [default]</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   solver                   list(name="glpk", lang="GLPK")  [config] C:\Users\admin\AppData\Roaming/R/config/R/energyRt/config.yml</span>
+<span class="r-msg co"><span class="r-pr">#&gt;</span>   store_versioning         "none"                      [default]</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span>   verbose                  0                           [default]</span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-msg co"><span class="r-pr">#&gt;</span> <span style="color: #00BBBB;">ℹ</span> Priority: R option &gt; env var &gt; <a href="file://C:/Users/admin/Documents/R/energyRt/docs/reference/./.energyRt.yml"><span style="color: #0000BB;">./.energyRt.yml</span></a> &gt; <a href="file://C:\Users\admin\AppData\Roaming/R/config/R/energyRt/config.yml"><span style="color: #0000BB;">C:\Users\admin\AppData\Roaming/R/config/R/energyRt/config.yml</span></a> &gt; default</span>

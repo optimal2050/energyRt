@@ -1,0 +1,35 @@
+techspec: 1
+class: storage
+name: STG_BTR
+desc: Lithium-ion battery, 6-hour
+notes: Energy and power priced separately; the model picks the ratio.
+inputs:
+- comm: ELC
+  unit: MWh
+outputs:
+- comm: ELC
+  unit: MWh
+reservoir:
+- comm: ELC
+  unit: MWh
+efficiency:
+- stgeff: 0.999
+  inpeff: 0.95
+  outeff: 0.95
+duration:
+- duration.lo: 2.0
+  duration.up: 8.0
+invcost:
+- out.invcost: 12144.0
+  stg.invcost: 8081.0
+fixom:
+- out.fixom: 5.0
+vintages:
+- vintage: v2020
+  start: 2020
+  end: 2029
+  olife: 15
+- vintage: v2030
+  start: 2030
+  end: 2050
+  olife: 15

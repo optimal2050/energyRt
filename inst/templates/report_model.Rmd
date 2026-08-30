@@ -1,96 +1,188 @@
 ---
 title: "`r params$title`"
+report-class: model
 output:
   html_document:
     self_contained: true
     md_extensions: "-native_divs-native_spans"
   pdf_document:
     latex_engine: xelatex
+  word_document: default
 params:
-  title:        "Model report"
-  model_name:   ""
-  model_desc:   ""
-  config_df:    NULL
-  counts_df:    NULL
-  comm_df:      NULL
-  sup_df:       NULL
-  dem_df:       NULL
-  trd_df:       NULL
-  cns_df:       NULL
-  windows_plot: NULL
-  techs:        NULL
+  title:         "Model report"
+  model_name:    ""
+  model_desc:    ""
+  image_file:    NULL
+  logos:         NULL
+  figure:        NULL
+  config_df:     NULL
+  discount_df:   NULL
+  horizon_plot:  NULL
+  calendar_plot: NULL
+  calendar_df:   NULL
+  geoscale_df:   NULL
+  geo_map:       NULL
+  geo_stack:     NULL
+  counts_df:     NULL
+  comm_df:       NULL
+  sup_df:        NULL
+  dem_df:        NULL
+  trd_df:        NULL
+  expimp_df:     NULL
+  weather_df:    NULL
+  policy_df:     NULL
+  cns_df:        NULL
+  proc_groups:        NULL
+  windows_group_plot: NULL
+  windows_group_n:    0
+header-includes:
+  - \usepackage{booktabs}
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+```{r en-setup, include=FALSE}
 library(ggplot2)
-kb <- function(df, ...) if (!is.null(df) && nrow(df) > 0) knitr::kable(df, row.names = FALSE, ...)
+
+# Shared helpers live in the package (see ?energyRt::report_helpers).
+fmt <- energyRt::report_setup()
+tbl <- function(df, caption = NULL, digits = 4L, ...)
+  energyRt::report_tbl(df, caption, digits, output = fmt, ...)
+emit_img <- function(path, frac = 1)
+  energyRt::report_img(path, frac, output = fmt)
+```
+
+```{r en-css, results='asis'}
+energyRt::report_css(fmt)
+```
+
+```{r en-logo, results='asis'}
+if (length(params$logos) > 0) {
+  energyRt::report_img_row(params$logos, frac_total = 0.9, output = fmt)
+} else if (!is.null(params$image_file)) {
+  emit_img(params$image_file, 0.25)
+}
 ```
 
 `r if (isTRUE(nzchar(params$model_desc))) params$model_desc`
 
+```{r en-figure, results='asis', eval=!is.null(params$figure)}
+emit_img(params$figure, 0.5)
+```
+
 ## Configuration
 
-```{r config}
-kb(params$config_df)
+```{r en-config, results='asis'}
+tbl(params$config_df)
+```
+
+```{r en-discount, results='asis', eval=!is.null(params$discount_df)}
+tbl(params$discount_df, caption = "Discount rates (wacc / sdr)")
+```
+
+```{r en-geoscale, results='asis', eval=!is.null(params$geoscale_df)}
+tbl(params$geoscale_df, caption = "Geoscale (regions per geoframe)")
+```
+
+```{r en-geo-map, fig.width=7, fig.height=5, eval=!is.null(params$geo_map)}
+params$geo_map
+```
+
+```{r en-geo-stack, fig.width=7, fig.height=6, eval=!is.null(params$geo_stack)}
+params$geo_stack
+```
+
+```{r en-calendar-df, results='asis', eval=!is.null(params$calendar_df)}
+tbl(params$calendar_df, caption = "Calendar (timeslices per timeframe)")
+```
+
+```{r en-horizon-plot, fig.width=7, fig.height=2.6, eval=!is.null(params$horizon_plot)}
+params$horizon_plot
+```
+
+```{r en-calendar-plot, fig.width=7, fig.height=3.4, eval=!is.null(params$calendar_plot)}
+params$calendar_plot
 ```
 
 ## Contents
 
-```{r counts}
-kb(params$counts_df)
+```{r en-counts, results='asis'}
+tbl(params$counts_df)
 ```
 
-```{r windows, fig.width=8, fig.height=4.5, eval=!is.null(params$windows_plot)}
-params$windows_plot
+```{r en-windows-grp, results='asis', eval=!is.null(params$windows_group_plot)}
+h_in <- min(9, max(2.5, 1.2 + 0.18 * params$windows_group_n))
+emit_img(energyRt::report_plot_png(params$windows_group_plot, 8, h_in), 1)
 ```
 
 ## Commodities
 
-```{r comm}
-kb(params$comm_df)
+```{r en-comm, results='asis'}
+tbl(params$comm_df)
 ```
 
 ## Supply
 
-```{r sup}
-kb(params$sup_df)
+```{r en-sup, results='asis'}
+tbl(params$sup_df)
 ```
 
 ## Demand
 
-```{r dem}
-kb(params$dem_df)
+```{r en-dem, results='asis'}
+tbl(params$dem_df)
 ```
 
-```{r trd-header, results='asis', eval=!is.null(params$trd_df)}
+```{r en-trd-header, results='asis', eval=!is.null(params$trd_df)}
 cat("## Trade\n")
 ```
 
-```{r trd, eval=!is.null(params$trd_df)}
-kb(params$trd_df)
+```{r en-trd, results='asis', eval=!is.null(params$trd_df)}
+tbl(params$trd_df)
 ```
 
-```{r cns-header, results='asis', eval=!is.null(params$cns_df)}
+```{r en-expimp-header, results='asis', eval=!is.null(params$expimp_df)}
+cat("## Export / import\n")
+```
+
+```{r en-expimp, results='asis', eval=!is.null(params$expimp_df)}
+tbl(params$expimp_df)
+```
+
+```{r en-weather-header, results='asis', eval=!is.null(params$weather_df)}
+cat("## Weather\n")
+```
+
+```{r en-weather, results='asis', eval=!is.null(params$weather_df)}
+tbl(params$weather_df, max_rows = 40)
+```
+
+```{r en-policy-header, results='asis', eval=!is.null(params$policy_df)}
+cat("## Taxes and subsidies\n")
+```
+
+```{r en-policy, results='asis', eval=!is.null(params$policy_df)}
+tbl(params$policy_df)
+```
+
+```{r en-cns-header, results='asis', eval=!is.null(params$cns_df)}
 cat("## User constraints\n")
 ```
 
-```{r cns, eval=!is.null(params$cns_df)}
-kb(params$cns_df)
+```{r en-cns, results='asis', eval=!is.null(params$cns_df)}
+tbl(params$cns_df)
 ```
 
 ## Processes
 
-```{r techs, results='asis', fig.width=6, fig.height=4}
-for (tt in params$techs) {
-  cat("\n\n### ", tt$name,
-      if (nzchar(tt$desc)) paste0(" --- ", tt$desc), "\n\n", sep = "")
-  if (!is.null(tt$draw_file) && file.exists(tt$draw_file)) {
-    cat("![](", gsub("\\\\", "/", tt$draw_file), "){width=70%}\n\n", sep = "")
-  }
-  if (!is.null(tt$info_df) && nrow(tt$info_df) > 0) {
-    print(knitr::kable(tt$info_df, row.names = FALSE))
-    cat("\n")
-  }
+One section per process STRUCTURE (class + input/output/aux commodities);
+the members list names every process sharing it. Per-process datasheets:
+`report(mod, name = "<process>")`.
+
+```{r en-proc-groups, results='asis'}
+for (g in params$proc_groups) {
+  cat("\n\n### ", g$n, " x ", g$label, " (", g$class, ")\n\n", sep = "")
+  emit_img(g$draw_file, 0.6)
+  cat("\n")
+  tbl(g$members_df, caption = "Members", max_rows = 25)
+  tbl(g$ranges_df, caption = "Parameter ranges across members")
 }
 ```

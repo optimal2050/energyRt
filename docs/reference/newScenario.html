@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.85.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,6 +36,8 @@
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
+    <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
+    <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
     <li><a class="dropdown-item" href="../articles/autoplot.html">autoplot()</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
@@ -71,9 +73,9 @@
 <span>  model <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  path <span class="op">=</span> <span class="fu">fp</span><span class="op">(</span><span class="fu"><a href="scenarios_path.html">get_scenarios_path</a></span><span class="op">(</span><span class="op">)</span>, <span class="va">name</span><span class="op">)</span>,</span>
 <span>  <span class="va">...</span>,</span>
-<span>  env_name <span class="op">=</span> <span class="st">".scen"</span>,</span>
-<span>  registry <span class="op">=</span> <span class="fu"><a href="default_registry.html">get_registry</a></span><span class="op">(</span><span class="op">)</span>,</span>
-<span>  replace <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span>  env_name <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  registry <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  replace <span class="op">=</span> <span class="cn">NULL</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -93,16 +95,10 @@
 <dd><p>any model objects or settings to be assigned to the scenario.</p></dd>
 
 
-<dt id="arg-env-name">env_name<a class="anchor" aria-label="anchor" href="#arg-env-name"></a></dt>
-<dd><p>character. Name of the environment to register the scenario. Default is ".scen". Used only if registry is provided. (in development)</p></dd>
-
-
-<dt id="arg-registry">registry<a class="anchor" aria-label="anchor" href="#arg-registry"></a></dt>
-<dd><p>optional registry object to register the scenario. (in development)</p></dd>
-
-
-<dt id="arg-replace">replace<a class="anchor" aria-label="anchor" href="#arg-replace"></a></dt>
-<dd><p>logical. If TRUE, replace the entry of the scenario in the registry if the entry already exists. (in development)</p></dd>
+<dt id="arg-env-name-registry-replace">env_name, registry, replace<a class="anchor" aria-label="anchor" href="#arg-env-name-registry-replace"></a></dt>
+<dd><p>deprecated and ignored — the in-memory
+registry has been replaced by the persisted project registry (see
+<code><a href="registry.html">load_registry()</a></code>); scenarios are registered on <code><a href="save_scenario.html">save_scenario()</a></code>.</p></dd>
 
 </dl></div>
     <div class="section level2">

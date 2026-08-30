@@ -74,8 +74,8 @@ object's \verb{@unit} (or \code{"capacity factor"} if unset).
 \dontrun{
 data("calendars", package = "energyRt")
 W <- getObject(utopia_modules$electricity$R3$repo, name = "WSOL", drop = TRUE)
-autoplot(W, calendar = calendars$utopia_s4h24)                     # heatmap
-autoplot(W, style = "line", calendar = calendars$utopia_s4h24)
+autoplot(W, calendar = calendars$s4_h24)                     # heatmap
+autoplot(W, style = "line", calendar = calendars$s4_h24)
 }
 }
 \keyword{internal}

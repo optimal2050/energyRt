@@ -8,7 +8,7 @@ to be created by users.
 
 ## Slots
 
-- `set`:
+- `sets`:
 
   list. named list of character vectors with sets used in the model.
 
@@ -22,17 +22,18 @@ to be created by users.
   - mapping sets: auxiliary, automatically created sets used to narrow
     the dimension of variables and constraints
 
-- `gams.equation`:
+- `user_constraints`:
 
-  list. named list of custom constraints added to the model from the
-  `constraint` class. The name of the slot is outdated and will be
-  changed in the future.
+  list. named list of user-defined constraints compiled from
+  `constraint` objects: solver-agnostic equation code (GAMS-flavored
+  intermediate representation) that each backend writer translates into
+  its language. One entry per constraint.
 
-- `costs.equation`:
+- `user_costs`:
 
-  list. named list of custom costs added to the model's objective from
-  the `costs` class. The name of the slot is outdated and will be
-  changed in the future.
+  character. character vector of user cost terms compiled from `costs`
+  objects, in the same solver-agnostic representation; the write step
+  sums them into the `eqTotalUserCosts` equation of the objective.
 
 - `misc`:
 

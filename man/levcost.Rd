@@ -2,12 +2,18 @@
 % Please edit documentation in R/levcost.R
 \name{levcost}
 \alias{levcost}
+\alias{levcost,storage-method}
+\alias{levcost,trade-method}
 \alias{levcost,repository-method}
 \alias{levcost,model-method}
 \alias{levcost,scenario-method}
 \title{Levelized cost of commodity production}
 \usage{
 levcost(object, comm, name, ...)
+
+\S4method{levcost}{storage}(object, comm, name, ...)
+
+\S4method{levcost}{trade}(object, comm, name, ...)
 
 \S4method{levcost}{repository}(object, comm, name, ...)
 
@@ -156,12 +162,25 @@ supply). The \code{model} method also takes the calendar, region, horizon
 and discount rate from the model's configuration (each overridable).}
 \item{\code{scenario}}{an \emph{ex-post} cost of the named process in the
 \emph{solved} scenario: the discounted sum of its own costs (annualised
-investment \code{vTechEac}, \code{vTechFixom}, \code{vTechVarom}, plus
-attributed fuel cost) divided by its discounted output. Fuel is attributed
-from \code{vTechInp}; a technology with a \emph{grouped} input (whose
-per-commodity consumption is not a solution variable) therefore reports no
-fuel component.}
+investment, fixed and variable O&M, plus attributed fuel cost) divided by
+its discounted output. The process may be a \code{technology},
+\code{storage} or \code{trade}; each reads its own solved variables
+(\code{vTechOut}/\code{vStorageOut}/\code{vTradeIr} and the matching
+\code{*Eac}/\code{*Fixom}/\code{*Varom}). For a \code{trade} the
+denominator is what ARRIVES, i.e. \code{vTradeIr} times the route
+efficiency.}
 }
+
+On the \code{scenario} path, fuel is attributed from the process's own
+input variable and priced from the \code{supply} objects in the model. A
+commodity with no \code{supply} -- anything the model produces itself,
+which is the usual case for a store's charging electricity -- is charged
+at ZERO here, because what it is worth is the commodity balance's dual and
+not a slot. The scenario path therefore reports a store's OWN cost per
+unit discharged, not its delivered cost; use \code{levcost()} on the
+\code{storage} object with \code{price =} for the latter. Likewise a
+technology with a \emph{grouped} input (whose per-commodity consumption
+is not a solution variable) reports no fuel component.
 }
 \examples{
 \dontrun{

@@ -8,12 +8,11 @@
 # =========================================================================== #
 
 skip_if_no_solver <- function() {
-  testthat::skip_on_cran()
-  # energyRt finds glpsol either on PATH or via ~/.energyRt/config.yml, so
-  # checking PATH alone skips on machines where the solver IS configured.
-  # Sturdier form promoted from test-subset_slices.R:34-36.
-  cfg <- tryCatch(get_glpk_path(), error = function(e) NULL)
-  if (!nzchar(Sys.which("glpsol")) && (is.null(cfg) || !nzchar(cfg))) {
+  # Tier gate replaces skip_on_cran(): under R CMD check the tier is "check"
+  # (solver-free); a bare Rscript/test_file() run now defaults to "fast" and
+  # solves whenever glpsol is present. See helper-solvers.R.
+  skip_if_tier_below("fast")
+  if (!has_glpsol()) {
     testthat::skip("glpsol not available (PATH or ~/.energyRt/config.yml)")
   }
 }
@@ -86,7 +85,7 @@ vt_interp <- function(mod, name = "vt") {
 
 vt_solve <- function(scen) {
   suppressMessages(suppressWarnings(
-    solve_scen(scen, solver = solver_options$glpk, wait = TRUE)
+    solve_scenario(scen, solver = solver_options$glpk, wait = TRUE)
   ))
 }
 

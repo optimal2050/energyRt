@@ -47,7 +47,7 @@ observed year range) with each parameter's default interpolation rule."><meta pr
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.85.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -70,6 +70,8 @@ observed year range) with each parameter's default interpolation rule."><meta pr
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
+    <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
+    <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
     <li><a class="dropdown-item" href="../articles/autoplot.html">autoplot()</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
@@ -123,7 +125,7 @@ observed year range) with each parameter's default interpolation rule.</p>
 <span>  <span class="va">...</span>,</span>
 <span>  merge <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  timeframe <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"highest"</span>, <span class="st">"lowest"</span>, <span class="st">"all"</span><span class="op">)</span>,</span>
-<span>  geolevel <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"finest"</span>, <span class="st">"coarsest"</span>, <span class="st">"all"</span><span class="op">)</span>,</span>
+<span>  geoframe <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"finest"</span>, <span class="st">"coarsest"</span>, <span class="st">"all"</span><span class="op">)</span>,</span>
 <span>  process <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  parameters <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  variables <span class="op">=</span> <span class="cn">TRUE</span>,</span>
@@ -157,7 +159,7 @@ observed year range) with each parameter's default interpolation rule.</p>
 <span>  <span class="va">...</span>,</span>
 <span>  merge <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  timeframe <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"highest"</span>, <span class="st">"lowest"</span>, <span class="st">"all"</span><span class="op">)</span>,</span>
-<span>  geolevel <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"finest"</span>, <span class="st">"coarsest"</span>, <span class="st">"all"</span><span class="op">)</span>,</span>
+<span>  geoframe <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"finest"</span>, <span class="st">"coarsest"</span>, <span class="st">"all"</span><span class="op">)</span>,</span>
 <span>  process <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  parameters <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  variables <span class="op">=</span> <span class="cn">TRUE</span>,</span>
@@ -183,6 +185,12 @@ observed year range) with each parameter's default interpolation rule.</p>
 <span>  variants <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  verbose <span class="op">=</span> <span class="cn">FALSE</span></span>
 <span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S3 method for class 'character'</span></span>
+<span><span class="fu">getData</span><span class="op">(</span><span class="va">scen</span>, <span class="va">...</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S3 method for class 'environment'</span></span>
+<span><span class="fu">getData</span><span class="op">(</span><span class="va">scen</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># Default S3 method</span></span>
 <span><span class="fu">getData</span><span class="op">(</span><span class="va">scen</span>, <span class="va">...</span><span class="op">)</span></span>
@@ -366,10 +374,10 @@ observed year range) with each parameter's default interpolation rule.</p>
 
 <dt id="arg-timeframe">timeframe<a class="anchor" aria-label="anchor" href="#arg-timeframe"></a></dt>
 <dd><p>controls sub-annual time aggregation of results that carry a <code>timeslice</code> column. One of <code>"highest"</code> (default, native/finest resolution, as stored), <code>"lowest"</code> (aggregate/sum flows up to the coarsest level, normally <code>ANNUAL</code>), <code>"all"</code> (return every timeframe level stacked), or an explicit calendar level name (e.g. <code>"SEASON"</code>, <code>"YDAY"</code>) to aggregate to that level. Non-timeslice data, and state/level variables (e.g. <code>vStorageLevel</code>) for which summing over timeslices is meaningless, are returned unchanged.</p>
-<p>The default was <code>"lowest"</code> up to v0.80 and is now <code>"highest"</code>, matching the spatial twin <code>geolevel</code>, whose default <code>"finest"</code> has always meant "as stored". Returning data at native resolution unless asked otherwise is the safer default: the old one silently summed an 8760-slice hourly series into a single annual number, which reads as a plausible value rather than as an error, and is indistinguishable from a genuine annual result. Aggregation is easy to ask for and hard to notice when it is not wanted. Code that relied on annual totals must now pass <code>timeframe = "lowest"</code> explicitly.</p></dd>
+<p>The default was <code>"lowest"</code> up to v0.80 and is now <code>"highest"</code>, matching the spatial twin <code>geoframe</code>, whose default <code>"finest"</code> has always meant "as stored". Returning data at native resolution unless asked otherwise is the safer default: the old one silently summed an 8760-slice hourly series into a single annual number, which reads as a plausible value rather than as an error, and is indistinguishable from a genuine annual result. Aggregation is easy to ask for and hard to notice when it is not wanted. Code that relied on annual totals must now pass <code>timeframe = "lowest"</code> explicitly.</p></dd>
 
 
-<dt id="arg-geolevel">geolevel<a class="anchor" aria-label="anchor" href="#arg-geolevel"></a></dt>
+<dt id="arg-geoframe">geoframe<a class="anchor" aria-label="anchor" href="#arg-geoframe"></a></dt>
 <dd><p>controls spatial aggregation of results that carry a <code>region</code> column, the spatial twin of <code>timeframe</code>. One of <code>"finest"</code> (default, native resolution as stored), <code>"coarsest"</code> (aggregate up to the top geoscale level), <code>"all"</code> (return every level stacked), or an explicit geoscale level name (e.g. <code>"zone"</code>, <code>"nation"</code>). Requires a geoscale on the model; without one this is inert. Inter-regional flow variables (e.g. <code>vTradeIr</code>) are returned unchanged, because summing a flow across regions double-counts it — the spatial counterpart of leaving state variables alone under <code>timeframe</code>.</p></dd>
 
 

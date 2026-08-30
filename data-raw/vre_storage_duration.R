@@ -64,8 +64,10 @@ EPEAK <- newTechnology(
 STG_BTR <- newStorage(
   name = "STG_BTR", desc = "Cheap store, energy and power sized separately",
   commodity = "ELC",
-  output = list(comm = "ELC", unit = "MWh", invcost = 20),  # power, per MW
-  storage = list(comm = "ELC", unit = "MWh", invcost = 1),  # energy, per MWh
+  output = list(comm = "ELC", unit = "MWh"),
+  storage = list(comm = "ELC", unit = "MWh"),
+  # power sized per MW on the discharger, energy per MWh on the reservoir
+  invcost = list(out.invcost = 20, stg.invcost = 1),
   seff = data.frame(inpeff = 0.95, outeff = 0.95),
   vintage = data.frame(olife = 15L),
   fullYear = TRUE)

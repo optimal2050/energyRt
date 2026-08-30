@@ -29,7 +29,6 @@ get_julia_path <- function() {
 
 # Functions to write Julia/JuMP model and data files
 .write_model_JuMP <- function(arg, scen) {
-  .assert_geolevel_supported(scen, "JuMP/Julia")
   run_code <- scen@settings@sourceCode[["JuMP"]]
   run_codeout <- scen@settings@sourceCode[["JuMPOutput"]]
   # # resolving `prod` issue in JuMP/Julia. temporary solution
@@ -77,22 +76,22 @@ get_julia_path <- function() {
     for (yy in uuu) {
       templ <- paste0("[(]if haskey[(]", yy, "[,]")
       if (any(grep("^pCns", nn))) {
-        for (www in seq_along(scen@modInp@gams.equation)) {
-          mmm <- grep(templ, scen@modInp@gams.equation[[www]]$equation)
+        for (www in seq_along(scen@modInp@user_constraints)) {
+          mmm <- grep(templ, scen@modInp@user_constraints[[www]]$equation)
           if (any(mmm)) {
-            scen@modInp@gams.equation[[www]]$equation[mmm] <-
+            scen@modInp@user_constraints[[www]]$equation[mmm] <-
               sapply(
-                strsplit(scen@modInp@gams.equation[[www]]$equation[mmm], yy),
+                strsplit(scen@modInp@user_constraints[[www]]$equation[mmm], yy),
                 .rem_jump, yy, rmm
               )
           }
         }
       } else if (any(grep("^pCosts", nn))) {
-        mmm <- grep(templ, scen@modInp@costs.equation)
+        mmm <- grep(templ, scen@modInp@user_costs)
         if (any(mmm)) {
-          scen@modInp@costs.equation[mmm] <-
+          scen@modInp@user_costs[mmm] <-
             sapply(
-              strsplit(scen@modInp@costs.equation[mmm], yy),
+              strsplit(scen@modInp@user_costs[mmm], yy),
               .rem_jump, yy, rmm
             )
         }
@@ -111,10 +110,10 @@ get_julia_path <- function() {
       }
     }
   }
-  dir.create(fp(arg$tmp.dir, "output"), showWarnings = FALSE)
-  zz_data_julia <- file(fp(arg$tmp.dir, "data.jl"), "w")
-  zz_data_constr <- file(fp(arg$tmp.dir, "inc_constraints.jl"), "w")
-  zz_data_costs <- file(fp(arg$tmp.dir, "/inc_costs.jl"), "w")
+  dir.create(fp(arg$solver.dir, "output"), showWarnings = FALSE)
+  zz_data_julia <- file(fp(arg$solver.dir, "data.jl"), "w")
+  zz_data_constr <- file(fp(arg$solver.dir, "inc_constraints.jl"), "w")
+  zz_data_costs <- file(fp(arg$solver.dir, "/inc_costs.jl"), "w")
 
   .write_inc_solver(
     scen, arg,
@@ -159,7 +158,7 @@ get_julia_path <- function() {
   .use_arrow <- !is.null(.ex_fmt) &&
     tolower(.ex_fmt) %in% c("feather", "ipc", "arrow", "parquet")
   if (.use_arrow) {
-    in_dir <- fp(arg$tmp.dir, "input")
+    in_dir <- fp(arg$solver.dir, "input")
     dir.create(in_dir, showWarnings = FALSE)
     for (i in names(dat)) {
       .write_exchange_table(dat[[i]], fp(in_dir, i), format = "feather")
@@ -174,7 +173,7 @@ get_julia_path <- function() {
       "end\n", sep = "\n"),
       file = zz_data_julia)
   } else {
-    save("dat", file = fp(arg$tmp.dir, "data.RData"))
+    save("dat", file = fp(arg$solver.dir, "data.RData"))
     cat('using RData\nusing DataFrames\ndt = load("data.RData")["dat"]\n',
       sep = "\n", file = zz_data_julia
     )
@@ -196,13 +195,13 @@ get_julia_path <- function() {
   }
   close(zz_data_julia)
   # Mod begin
-  zz_mod <- file(fp(arg$tmp.dir, "energyRt.jl"), "w")
+  zz_mod <- file(fp(arg$solver.dir, "energyRt.jl"), "w")
   nobj <- grep("^[@]objective", run_code)[1] - 1
   cat(run_code[1:nobj], sep = "\n", file = zz_mod)
   # Add constraint
-  if (length(scen@modInp@gams.equation) > 0) {
-    for (i in seq_along(scen@modInp@gams.equation)) {
-      eqt <- scen@modInp@gams.equation[[i]]
+  if (length(scen@modInp@user_constraints) > 0) {
+    for (i in seq_along(scen@modInp@user_constraints)) {
+      eqt <- scen@modInp@user_constraints[[i]]
       cat(.equation.from.gams.to.julia(eqt$equation),
         sep = "\n",
         file = zz_data_constr
@@ -219,7 +218,7 @@ get_julia_path <- function() {
   close(zz_data_constr)
   # Add costs
   {
-    cat(.equation.from.gams.to.julia(scen@modInp@costs.equation),
+    cat(.equation.from.gams.to.julia(scen@modInp@user_costs),
       sep = "\n", file = zz_data_costs
     )
     cat(
@@ -231,7 +230,7 @@ get_julia_path <- function() {
   close(zz_data_costs)
   cat(run_code[-(1:nobj)], sep = "\n", file = zz_mod)
   close(zz_mod)
-  zz_modout <- file(fp(arg$tmp.dir, "/output.jl"), "w")
+  zz_modout <- file(fp(arg$solver.dir, "/output.jl"), "w")
   # Arrow solution output: write each variable DIRECTLY as Arrow IPC (no CSV
   # round-trip). Inject a `_VarFile` helper (a drop-in for the CSV file handle:
   # the unchanged `println(fv, ...)` / `close(fv)` calls accumulate rows and emit

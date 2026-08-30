@@ -15,7 +15,7 @@ repository, model, or scenario object."><meta property="og:image" content="https
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.85.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -38,6 +38,8 @@ repository, model, or scenario object."><meta property="og:image" content="https
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
+    <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
+    <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
     <li><a class="dropdown-item" href="../articles/autoplot.html">autoplot()</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
@@ -70,6 +72,12 @@ repository, model, or scenario object."><meta property="og:image" content="https
     <div class="section level2">
     <h2 id="ref-usage">Usage<a class="anchor" aria-label="anchor" href="#ref-usage"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span><span class="fu">levcost</span><span class="op">(</span><span class="va">object</span>, <span class="va">comm</span>, <span class="va">name</span>, <span class="va">...</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S4 method for class 'storage'</span></span>
+<span><span class="fu">levcost</span><span class="op">(</span><span class="va">object</span>, <span class="va">comm</span>, <span class="va">name</span>, <span class="va">...</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S4 method for class 'trade'</span></span>
+<span><span class="fu">levcost</span><span class="op">(</span><span class="va">object</span>, <span class="va">comm</span>, <span class="va">name</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S4 method for class 'repository'</span></span>
 <span><span class="fu">levcost</span><span class="op">(</span><span class="va">object</span>, <span class="va">comm</span>, <span class="va">name</span>, <span class="va">...</span><span class="op">)</span></span>
@@ -286,14 +294,26 @@ and discount rate from the model's configuration (each overridable).</p></dd>
 <dt><code>scenario</code></dt>
 <dd><p>an <em>ex-post</em> cost of the named process in the
 <em>solved</em> scenario: the discounted sum of its own costs (annualised
-investment <code>vTechEac</code>, <code>vTechFixom</code>, <code>vTechVarom</code>, plus
-attributed fuel cost) divided by its discounted output. Fuel is attributed
-from <code>vTechInp</code>; a technology with a <em>grouped</em> input (whose
-per-commodity consumption is not a solution variable) therefore reports no
-fuel component.</p></dd>
+investment, fixed and variable O&amp;M, plus attributed fuel cost) divided by
+its discounted output. The process may be a <code>technology</code>,
+<code>storage</code> or <code>trade</code>; each reads its own solved variables
+(<code>vTechOut</code>/<code>vStorageOut</code>/<code>vTradeIr</code> and the matching
+<code>*Eac</code>/<code>*Fixom</code>/<code>*Varom</code>). For a <code>trade</code> the
+denominator is what ARRIVES, i.e. <code>vTradeIr</code> times the route
+efficiency.</p></dd>
 
 
-</dl></div>
+</dl><p>On the <code>scenario</code> path, fuel is attributed from the process's own
+input variable and priced from the <code>supply</code> objects in the model. A
+commodity with no <code>supply</code> – anything the model produces itself,
+which is the usual case for a store's charging electricity – is charged
+at ZERO here, because what it is worth is the commodity balance's dual and
+not a slot. The scenario path therefore reports a store's OWN cost per
+unit discharged, not its delivered cost; use <code>levcost()</code> on the
+<code>storage</code> object with <code>price =</code> for the latter. Likewise a
+technology with a <em>grouped</em> input (whose per-commodity consumption
+is not a solution variable) reports no fuel component.</p>
+    </div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="levcost_by_variant.html">levcost_by_variant()</a></code></p></div>

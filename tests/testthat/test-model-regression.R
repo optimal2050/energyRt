@@ -29,7 +29,7 @@ test_that("the tier models still produce their known objectives", {
     scen <- suppressMessages(suppressWarnings(
       interpolate_model(mod, name = tier, fold = TRUE)))
     sol <- suppressMessages(suppressWarnings(
-      solve_scen(scen, solver = solver_options$glpk, wait = TRUE)))
+      solve_scenario(scen, solver = solver_options$glpk, wait = TRUE)))
     obj <- suppressMessages(getData(sol, "vObjective", merge = TRUE))
     expect_equal(sum(obj$value), unname(.tm_golden[[tier]]),
                  tolerance = 1e-9, info = tier)
@@ -119,7 +119,7 @@ test_that("every engine emits a parameter's full row count", {
   checked <- 0L
   for (nm in names(sc@modInp@parameters)) {
     p <- sc@modInp@parameters[[nm]]
-    n <- nrow(get_data_slot(p))
+    n <- nrow(getFromNamespace("get_data_slot", "energyRt")(p))
     if (n == 0) next
     checked <- checked + 1L
     for (eng in names(emit)) {

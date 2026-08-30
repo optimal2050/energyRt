@@ -31,9 +31,10 @@
 # `slots`      slots whose rows may be selected by vintage/cluster. Everything
 #              else is structural -- it defines the process's topology and must
 #              be identical across variants, otherwise it is a different process.
-# `dims`       the variant dimensions this class supports. `trade` gets vintage
-#              only: its routes (src/dst) already provide multiplicity, so a
-#              cluster axis would be redundant.
+# `dims`       the variant dimensions this class supports. All three classes
+#              support both. For `trade` a cluster is a LOSS TRANCHE: a parallel
+#              part of one line, with its own share of the capacity and its own
+#              `teff`, approximating the quadratic loss curve piecewise.
 # `bound_var`  capacity variables a group-aggregate ("TOTAL") bound constrains.
 # `bound_dims` dimensions available to such a bound. `vTradeCap{trade, year}`
 #              carries no region index, so a trade bound can only span years.
@@ -45,27 +46,105 @@
     slots = c("vintage", "capacity", "ceff", "geff", "aeff",
               "af", "afs", "weather", "fixom", "varom", "invcost"),
     bound_var = list(cap = "vTechCap", ncap = "vTechNewCap"),
-    bound_dims = c("region", "year")
+    bound_dims = c("region", "year"),
+    # Availability factors that may be declared for a GROUP of variants: the
+    # summed activity of the group against its summed capacity. `afs` sums the
+    # activity over the DESCENDANTS of the named slice, `af` takes it at that
+    # slice -- the same difference the two slots have per variant.
+    af_bounds = list(
+      list(slot = "af",  stem = "af",  act = "vTechAct", cap = "vTechCap",
+           sum_children = FALSE),
+      list(slot = "afs", stem = "afs", act = "vTechAct", cap = "vTechCap",
+           sum_children = TRUE)
+    )
   ),
   storage = list(
     key = "stg",
     dims = c("vintage", "cluster"),
     slots = c("vintage", "capacity", "invcost", "fixom", "varom",
               "af", "seff", "charge", "aeff", "weather", "duration"),
-    bound_var = list(cap = "vStorageOutCap", ncap = "vStorageOutNewCap"),
+    # A storage keeps one capacity per PART, so its `@capacity` columns read
+    # `out.cap.up`, not `cap.up`, and each part has its own variable. Keyed on
+    # the FULL stem: keying on `cap`/`ncap` behind a single `out.` prefix made
+    # `inp.*` and `stg.*` match no column at all, so a TOTAL on either was
+    # silently dropped -- no variant (the token is filtered out of the level
+    # set) and no bound.
+    bound_var = list(
+      out.cap  = "vStorageOutCap", out.ncap = "vStorageOutNewCap",
+      inp.cap  = "vStorageInpCap", inp.ncap = "vStorageInpNewCap",
+      stg.cap  = "vStorageStgCap", stg.ncap = "vStorageStgNewCap"
+    ),
+    # Still the discharger for `.cluster_fixed_caps()`, which needs ONE primary
+    # capacity column to check share proportions against.
+    bound_prefix = "out.",
     bound_dims = c("region", "year")
   ),
   trade = list(
     key = "trade",
-    # vintage only: `@routes` (src/dst) already provides multiplicity, so a
-    # cluster axis would be a redundant second one.
-    dims = "vintage",
+    # `@routes` gives one object several LINES; `cluster` gives one line several
+    # parallel TRANCHES on the same (src, dst) pair, each with its own capacity
+    # and its own `teff`. That is what a piecewise-linear approximation of the
+    # quadratic loss curve needs, and routes cannot express it -- so the two
+    # axes are not redundant. `@routes` stays out of `slots` below: it is
+    # structural, and every tranche must keep BOTH directed routes or it fails
+    # the KVL "declared in one direction only" check.
+    dims = c("vintage", "cluster"),
     slots = c("vintage", "capacity", "invcost", "fixom", "varom", "aeff",
               "trade"),
     bound_var = list(cap = "vTradeCap", ncap = "vTradeNewCap"),
     # `vTradeCap{trade, year}` has no region index, so a group bound spans years
     # only; a region on a TOTAL row errors rather than being silently replicated.
-    bound_dims = "year"
+    bound_dims = "year",
+    # Absolute FLOW bounds that may be declared for a group of variants. Needed
+    # by loss tranches: a line split into tranches has its capacity split too, so
+    # a per-tranche `ava.up` is NOT the line's limit -- broadcasting 50 to two
+    # tranches permits 100, and splitting it 25/25 forces flow onto the dear
+    # tranche and DOUBLES the modelled loss. Only an aggregate is correct.
+    #
+    # `keys` are pinned in `for.sum` (one constraint each) rather than in
+    # `for.each`, because `src`/`dst` are dimension names, not sets.
+    flow_bounds = list(
+      list(slot = "trade", stems = "ava", var = "vTradeIr",
+           keys = c("src", "dst"), cells = c("year", "timeslice"))
+    ),
+    # `af` on a tranched line has the same problem `ava` does: the capacity is
+    # split, so a per-tranche relative bound forces flow onto the dearer tranche.
+    af_bounds = list(
+      list(slot = "trade", stem = "af", act = "vTradeIr", cap = "vTradeCap",
+           sum_children = FALSE)
+    )
+  ),
+  # supply / export / import have NO capacity variable at all -- quantity is
+  # limited purely by parameters (pSupAvaUp, pSupReserveUp, pImportRowUp, ...).
+  # So `bound_var` is empty and both constraint builders bail on their own
+  # guards: .variant_group_constraints() on `!.hasSlot(tech, "capacity")` and
+  # .variant_share_constraints() on `is.null(bvar)`. A cluster here is a PRICE
+  # STEP of a stepped curve, and nothing needs tying -- the helper writes the
+  # quantity split straight into the bounds.
+  #
+  # `slots` must list EVERY slot holding a quantity or a price. A slot left out
+  # is copied identically to every step, so an N-step curve would silently hold
+  # N times the resource. `reserve` is the trap: it is the cumulative cap.
+  supply = list(
+    key = "sup",
+    dims = "cluster",
+    slots = c("supply", "reserve", "weather"),
+    bound_var = list(),
+    bound_dims = character()
+  ),
+  export = list(
+    key = "expp",
+    dims = "cluster",
+    slots = c("export", "reserve"),
+    bound_var = list(),
+    bound_dims = character()
+  ),
+  import = list(
+    key = "imp",
+    dims = "cluster",
+    slots = c("import", "reserve"),
+    bound_var = list(),
+    bound_dims = character()
   )
 )
 
@@ -323,7 +402,49 @@
   # is a user error -- and it must be caught, because `.variant_levels()`
   # deliberately filters the token out, so such a row would otherwise be
   # silently ignored rather than becoming a variant.
-  for (s in setdiff(.variant_slots_of(tech), "capacity")) {
+  # Slots where the token IS meaningful: `capacity` (stock bounds) plus any slot
+  # declaring flow bounds. The builders check the COLUMN, so a TOTAL row landing
+  # in an accepted slot but on a non-boundable column is caught there rather
+  # than dropped.
+  vdef   <- .variant_def(tech)
+  fb_def <- vdef$flow_bounds
+  ab_def <- vdef$af_bounds
+  tot_ok <- c("capacity",
+              if (length(fb_def)) vapply(fb_def, function(x) x$slot,
+                                         character(1)) else character(),
+              if (length(ab_def)) vapply(ab_def, function(x) x$slot,
+                                         character(1)) else character())
+  # A TOTAL row landing in an accepted slot must carry a value some builder can
+  # use. The token is filtered out of the variant levels, so a row that no
+  # builder claims creates neither a variant nor a bound -- it does nothing at
+  # all. Checked here, once, because a slot may feed several builders (`@trade`
+  # carries `ava.*` for the flow builder and `af.*` for the availability one).
+  acc <- list()
+  for (x in fb_def) acc[[x$slot]] <- c(acc[[x$slot]],
+    as.vector(outer(x$stems, c(".lo", ".up", ".fx"), paste0)))
+  for (x in ab_def) acc[[x$slot]] <- c(acc[[x$slot]],
+    paste0(x$stem, c(".lo", ".up", ".fx")))
+  for (sl in names(acc)) {
+    if (!.hasSlot(tech, sl)) next
+    d <- as.data.frame(slot(tech, sl))
+    if (!nrow(d)) next
+    dm <- intersect(.variant_dims, names(d))
+    if (!length(dm)) next
+    tot <- Reduce(`|`, lapply(dm, function(x)
+      !is.na(d[[x]]) & d[[x]] == .VARIANT_TOTAL))
+    if (!any(tot)) next
+    cols <- intersect(acc[[sl]], names(d))
+    for (i in which(tot)) {
+      if (length(cols) && any(!is.na(unlist(d[i, cols, drop = FALSE])))) next
+      stop('A "', .VARIANT_TOTAL, '" row in `', sl, '` of ', cls, ' "', nm,
+           '" carries no group-boundable value. On this slot the token applies ',
+           'to ', paste(sort(acc[[sl]]), collapse = ", "),
+           '; a row without one of those creates neither a variant nor a bound.',
+           call. = FALSE)
+    }
+  }
+
+  for (s in setdiff(.variant_slots_of(tech), tot_ok)) {
     if (!.hasSlot(tech, s)) next
     d <- as.data.frame(slot(tech, s))
     if (nrow(d) == 0L) next
@@ -343,7 +464,7 @@
       if (nrow(st) > 0L) {
         if ("cluster" %in% names(st) && length(.variant_levels(tech, "cluster")) > 0L &&
             any(is.na(st$cluster))) {
-          stop('Existing `stock` must name its `cluster` once technology "', nm,
+          stop('Existing `stock` must name its `cluster` once ', cls, ' "', nm,
                '" is clustered: stock cannot be broadcast across clusters ',
                '(that would duplicate it).')
         }
@@ -371,14 +492,14 @@
         paste(names(by_slot)[vapply(by_slot, function(z) u %in% z, logical(1))],
               collapse = ", ")
       }, character(1))
-      stop('Undeclared cluster label(s) in technology "', nm, '": ',
+      stop('Undeclared cluster label(s) in ', cls, ' "', nm, '": ',
            paste0('"', undeclared, '" (in ', where, ')', collapse = "; "),
            '. Declared clusters are: ',
            paste0('"', dc$cluster, '"', collapse = ", "),
            '. Add the label to the `cluster` slot or fix the spelling.')
     }
     if (anyDuplicated(dc$cluster) > 0L) {
-      stop('Duplicated cluster label(s) in the `cluster` slot of technology "',
+      stop('Duplicated cluster label(s) in the `cluster` slot of ', cls, ' "',
            nm, '": ',
            paste(unique(dc$cluster[duplicated(dc$cluster)]), collapse = ", "))
     }
@@ -395,12 +516,50 @@
       msg <- paste0('"', partial, '" missing from: ',
                     vapply(missing_in[partial], paste, character(1),
                            collapse = ", "), collapse = "; ")
-      stop('Inconsistent cluster labels in technology "', nm, '": ', msg,
+      stop('Inconsistent cluster labels in ', cls, ' "', nm, '": ', msg,
            '. Every cluster should appear in each slot that differentiates ',
            'clusters, otherwise a misspelling silently creates an extra ',
            'technology with default (often unbounded) parameters. Declare the ',
            'clusters in the `cluster` slot to state the intended set ',
            'explicitly, or give each cluster a value in every listed slot.')
+    }
+  }
+
+  # A class with no `@region` slot has no region scope for a cluster to
+  # restrict. Refused here, earlier and more legibly than the expansion loop
+  # could -- though `trade@cluster` has no `region` column at all, so the usual
+  # route to this is a hand-built declaration frame.
+  if (!is.null(dc) && !.hasSlot(tech, "region") &&
+      "region" %in% names(dc) && any(!is.na(dc$region))) {
+    stop(cls, ' "', nm, '" has no `region` slot, so a `region` on its `cluster` ',
+         'declaration cannot restrict anything. Remove the column.',
+         call. = FALSE)
+  }
+
+  # Cluster SHARES: the fractions of one process's capacity its parallel parts
+  # occupy. Used by loss tranches, where the derived efficiencies
+  # `lambda_t = loss_full * (alpha_{t-1} + alpha_t)` are calibrated ONLY when
+  # the shares sum to 1 -- shares summing to 0.9 understate total losses by 10%
+  # with no other symptom, which is why this is an error and not a warning.
+  if (!is.null(dc) && "share" %in% names(dc)) {
+    sh <- dc$share
+    if (any(!is.na(sh))) {
+      if (anyNA(sh)) {
+        stop('Either every declared cluster of ', cls, ' "', nm, '" carries a ',
+             '`share` or none does; got ', sum(!is.na(sh)), ' of ', length(sh),
+             '. A partly-shared set has no defensible reading.', call. = FALSE)
+      }
+      if (any(!is.finite(sh) | sh <= 0)) {
+        stop('The `share` values of ', cls, ' "', nm, '" must be finite and ',
+             'greater than zero; got ',
+             paste(format(sh), collapse = ", "), '.', call. = FALSE)
+      }
+      if (abs(sum(sh) - 1) > 1e-8) {
+        stop('The `share` values of ', cls, ' "', nm, '" sum to ',
+             format(sum(sh)), ', not 1. Shares are FRACTIONS of a capacity, ',
+             'not absolute capacities -- the tranche efficiencies were derived ',
+             'from them and would be wrong.', call. = FALSE)
+      }
     }
   }
 
@@ -415,7 +574,7 @@
         if (!is.null(regs) && !chk$region[i] %in% regs) {
           stop('`vintage` row for cluster "', chk$cluster[i], '" names region "',
                chk$region[i], '", but the `cluster` slot restricts that cluster ',
-               'to: ', paste(regs, collapse = ", "), ' (technology "', nm, '").')
+               'to: ', paste(regs, collapse = ", "), ' (', cls, ' "', nm, '").')
         }
       }
     }
@@ -430,7 +589,7 @@
         key <- paste(na_reg$vintage, na_reg$cluster, sep = "\r")
         if (any(duplicated(key))) {
           stop('More than one region-agnostic row for the same ',
-               '(vintage, cluster) in `@vintage` of technology "', nm, '".')
+               '(vintage, cluster) in `@vintage` of ', cls, ' "', nm, '".')
         }
       }
     }
@@ -456,6 +615,379 @@
 # bound column stem -> variable it constrains, per class (see `.variant_classes`)
 # bound suffix -> relation
 .variant_bound_eq <- c(lo = ">=", up = "<=", fx = "==")
+
+# Constraints tying the capacities of a process's clusters to fixed PROPORTIONS
+# of one another, from the `share` column of its `@cluster` declaration.
+#
+# This is what makes loss tranches hold their shape when capacity is a decision.
+# A group-aggregate ("TOTAL") bound is NOT sufficient and is not a substitute: it
+# caps the SUM over variants -- the corridor size -- and says nothing about the
+# SPLIT, which is the entire content of the model. With a TOTAL cap of 4 and
+# three tranches the optimum is (4, 0, 0): tranche 1 has the best `teff` at the
+# same per-unit capex, so the piecewise-linear loss curve silently collapses back
+# to a single low-loss straight line, leaving the model MORE optimistic about
+# losses than the flat-`teff` model it replaced.
+#
+# Emitted here rather than by the user-facing helper because the variant names
+# are minted inside `expand_variants()` from `config@variant_prefix`; a
+# pre-computed name would be wrong for any model that overrides the prefix, and
+# would quietly reference a `trade` set member that does not exist.
+#
+# Ties are WITHIN a vintage, never across: each vintage is a physically separate
+# line. Two vintages x three tranches is 2 x 2 = 4 constraints, not 5.
+.variant_share_constraints <- function(tech, prov, regions, years) {
+  def <- .variant_def(tech)
+  if (is.null(def)) return(list())
+  dc <- .declared_clusters(tech)
+  if (is.null(dc) || !"share" %in% names(dc)) return(list())
+  dc <- dc[!is.na(dc$share), , drop = FALSE]
+  if (nrow(dc) < 2L) return(list())
+  bvar <- def$bound_var$cap
+  if (is.null(bvar)) return(list())
+  cls <- class(tech)[1]
+  dc <- dc[order(dc$order, dc$cluster, na.last = TRUE), , drop = FALSE]
+
+  # A fully FIXED set of capacities already determines the proportions, so a tie
+  # would be a redundant equality stacked on two fixed bounds. Verify instead --
+  # editing the shares and forgetting the capacities is the likeliest silent
+  # error, and it leaves the ratings disagreeing with the efficiencies.
+  fx <- .cluster_fixed_caps(tech, dc$cluster, def)
+  if (!is.null(fx)) {
+    if (anyNA(fx)) {
+      stop(cls, ' "', tech@name, '": some clusters have a fixed capacity and ',
+           'some do not (', paste(dc$cluster[is.na(fx)], collapse = ", "),
+           ' missing). A partly-fixed set of shares has no defensible reading ',
+           '-- fix all of them or none.', call. = FALSE)
+    }
+    ratio <- fx / sum(fx)
+    if (any(abs(ratio - dc$share) > 1e-6)) {
+      stop(cls, ' "', tech@name, '": the fixed capacities ',
+           paste(format(fx), collapse = ", "), ' are in proportion ',
+           paste(format(round(ratio, 6)), collapse = ", "),
+           ', but the declared shares are ',
+           paste(format(dc$share), collapse = ", "),
+           '. The tranche efficiencies were derived from the shares, so the ',
+           'ratings and the losses now disagree.', call. = FALSE)
+    }
+    return(list())
+  }
+
+  cell_args <- list(year = years)
+  if ("region" %in% def$bound_dims) {
+    cell_args <- c(list(region = regions), cell_args)
+  }
+  cells <- do.call(expand.grid, c(cell_args,
+    list(KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)))
+
+  vins <- unique(prov$vintage[prov$base == tech@name])
+  if (!length(vins)) vins <- NA_character_
+  out <- list()
+  for (vin in vins) {
+    pick <- function(cl) {
+      sel <- prov$base == tech@name & !is.na(prov$cluster) & prov$cluster == cl &
+        (if (is.na(vin)) is.na(prov$vintage) else
+           (!is.na(prov$vintage) & prov$vintage == vin))
+      as.character(prov$name[sel])
+    }
+    nref <- pick(dc$cluster[1])
+    if (length(nref) != 1L) next
+    for (i in seq_len(nrow(dc))[-1]) {
+      nvar <- pick(dc$cluster[i])
+      if (length(nvar) != 1L) next
+      nm <- paste0(.VARIANT_SHARE_PREFIX, .variant_token(tech@name),
+                   if (!is.na(vin)) .variant_token(vin) else "",
+                   .variant_token(dc$cluster[i]))
+      cns <- newConstraint(
+        name = nm,
+        desc = paste0("Capacity share tie: ", dc$cluster[i], " / ",
+                      dc$cluster[1], " = ", format(dc$share[i]), " / ",
+                      format(dc$share[1]), " for ", tech@name),
+        eq = "==", for.each = cells, rhs = 0, defVal = 0,
+        # A share ratio is exact, not a quantity to smooth between milestones.
+        interpolation = "inter",
+        t1 = list(variable = bvar,
+                  for.sum = stats::setNames(list(nvar), def$key),
+                  mult = dc$share[1]),
+        t2 = list(variable = bvar,
+                  for.sum = stats::setNames(list(nref), def$key),
+                  mult = -dc$share[i]))
+      cns@misc$.variant_source <- tech@name
+      cns@misc$.variant_class <- cls
+      out[[nm]] <- cns
+    }
+  }
+  out
+}
+
+# Per-cluster FIXED capacity, or NULL when the class/slot cannot carry one.
+# Returns one value per requested cluster, NA where that cluster has no `.fx`.
+.cluster_fixed_caps <- function(tech, clusters, def) {
+  if (!.hasSlot(tech, "capacity")) return(NULL)
+  cap <- as.data.frame(tech@capacity)
+  if (nrow(cap) == 0L || !"cluster" %in% names(cap)) return(NULL)
+  bpre <- if (is.null(def$bound_prefix)) "" else def$bound_prefix
+  col <- paste0(bpre, "cap.fx")
+  if (!col %in% names(cap)) return(NULL)
+  vals <- vapply(clusters, function(cl) {
+    r <- cap[!is.na(cap$cluster) & cap$cluster == cl, , drop = FALSE]
+    v <- r[[col]][!is.na(r[[col]])]
+    if (length(v)) as.numeric(v[1]) else NA_real_
+  }, numeric(1))
+  if (all(is.na(vals))) return(NULL)
+  unname(vals)
+}
+
+# Group-aggregate bounds on a FLOW, from a `"TOTAL"` token in the vintage or
+# cluster column of a non-capacity slot.
+#
+# Capacity group bounds (above) constrain a stock: one summand, one variable, no
+# selector columns. A flow bound differs in two ways. It can vary by TIMESLICE,
+# which the capacity cell grid has no room for; and its variable may carry
+# selector dimensions -- `vTradeIr`'s `src`/`dst` -- that identify WHICH flow is
+# bounded. Those are pinned inside `for.sum`, not `for.each`, because they are
+# dimension names rather than sets, and one constraint is emitted per key
+# combination.
+#
+# Why this is needed rather than splitting the bound across variants: a tranched
+# line already has its CAPACITY split, so a per-tranche `ava.up` of half the
+# line's limit forces flow onto the dearer tranche before the cheap one is full.
+# On a 100-unit line in two tranches with a 50 flow limit that doubles the
+# modelled loss (2 instead of the true 1). Only the aggregate is correct.
+.variant_flow_group_constraints <- function(tech, prov, regions, years, slices) {
+  def <- .variant_def(tech)
+  if (is.null(def) || is.null(def$flow_bounds)) return(list())
+  cls <- class(tech)[1]
+  out <- list()
+
+  for (fb in def$flow_bounds) {
+    if (!.hasSlot(tech, fb$slot)) next
+    d <- as.data.frame(slot(tech, fb$slot))
+    dims <- intersect(.variant_dims, names(d))
+    if (nrow(d) == 0L || length(dims) == 0L) next
+
+    is_tot <- Reduce(`|`, lapply(dims, function(x)
+      !is.na(d[[x]]) & d[[x]] == .VARIANT_TOTAL))
+    rows <- d[is_tot, , drop = FALSE]
+    if (nrow(rows) == 0L) next
+
+    bcols <- as.vector(outer(fb$stems, c(".lo", ".up", ".fx"), paste0))
+    lv <- lapply(stats::setNames(dims, dims),
+                 function(x) .variant_levels(tech, x))
+
+    for (i in seq_len(nrow(rows))) {
+      r <- rows[i, , drop = FALSE]
+      tot   <- dims[vapply(dims, function(x) !is.na(r[[x]]) &&
+                             r[[x]] == .VARIANT_TOTAL, logical(1))]
+      per   <- dims[vapply(dims, function(x) is.na(r[[x]]), logical(1))]
+      fixed <- setdiff(dims, c(tot, per))
+      per   <- per[vapply(per, function(x) length(lv[[x]]) > 0L, logical(1))]
+
+      hit <- intersect(bcols, names(r))
+      hit <- hit[vapply(hit, function(bc) !is.na(r[[bc]]), logical(1))]
+      # A row this builder cannot use may still be for another one -- `@trade`
+      # carries both `ava.*` (here) and `af.*`. The "usable by nobody" case is
+      # caught once, in .variant_validate().
+      if (!length(hit)) next
+
+      # Which key combinations (e.g. routes) this row speaks for: the value it
+      # names, or every one the object declares.
+      keyvals <- lapply(stats::setNames(fb$keys, fb$keys), function(k) {
+        if (k %in% names(r) && !is.na(r[[k]])) as.character(r[[k]])
+        else unique(as.character(d[[k]][!is.na(d[[k]])]))
+      })
+      keygrid <- if (length(fb$keys) && all(lengths(keyvals) > 0)) {
+        expand.grid(keyvals, KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)
+      } else data.frame(.one = 1L)
+
+      grid <- if (length(per)) {
+        expand.grid(lv[per], KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)
+      } else data.frame(.one = 1L)
+
+      for (bc in hit) {
+        val <- r[[bc]]
+        sfx <- sub("^.*[.]", "", bc)
+        for (g in seq_len(nrow(grid))) {
+          keep <- rep(TRUE, nrow(prov))
+          for (x in per)   keep <- keep & !is.na(prov[[x]]) & prov[[x]] == grid[[x]][g]
+          for (x in fixed) keep <- keep & !is.na(prov[[x]]) & prov[[x]] == r[[x]]
+          variants <- prov$name[keep]
+          if (length(variants) < 1L) next
+
+          for (kk in seq_len(nrow(keygrid))) {
+            # `for.each` carries only the cell dims the bound may vary over,
+            # restricted to what the row named.
+            cell_args <- list()
+            for (cd in fb$cells) {
+              pool <- switch(cd, year = years, timeslice = slices,
+                             region = regions, NULL)
+              if (is.null(pool)) next
+              cell_args[[cd]] <- if (cd %in% names(r) && !is.na(r[[cd]]))
+                (if (cd == "year") as.integer(r[[cd]]) else as.character(r[[cd]]))
+                else pool
+            }
+            cells <- do.call(expand.grid, c(cell_args,
+              list(KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)))
+            if (!nrow(cells)) next
+
+            fs <- c(stats::setNames(list(variants), def$key),
+                    lapply(stats::setNames(fb$keys, fb$keys),
+                           function(k) keygrid[[k]][kk]))
+            nm <- paste0(.VARIANT_GROUP_PREFIX, .variant_token(tech@name),
+                         .variant_token(bc),
+                         if (length(per)) paste0(vapply(per, function(x)
+                           .variant_token(grid[[x]][g]), character(1)),
+                           collapse = "") else "",
+                         if (length(fb$keys)) paste0(vapply(fb$keys, function(k)
+                           .variant_token(keygrid[[k]][kk]), character(1)),
+                           collapse = "") else "")
+            cns <- newConstraint(
+              name = nm,
+              desc = paste0("Group ", sfx, " bound on ", sub("[.].*$", "", bc),
+                            " across ", paste(tot, collapse = "+"), " for ",
+                            tech@name),
+              eq = .variant_bound_eq[[sfx]],
+              for.each = cells,
+              term1 = list(variable = fb$var, for.sum = fs),
+              defVal = as.numeric(val))
+            cns@misc$.variant_source <- tech@name
+            cns@misc$.variant_class <- cls
+            out[[nm]] <- cns
+          }
+        }
+      }
+    }
+  }
+  out
+}
+
+# Group-aggregate AVAILABILITY-FACTOR bounds: a `"TOTAL"` token on `@af` /
+# `@afs`, bounding the summed ACTIVITY of a group of variants against their
+# summed CAPACITY.
+#
+#   sum_k act_k  <op>  af * cap2act * share_s * sum_k cap_k
+#
+# Unlike a capacity group bound this has TWO summands and a coefficient, and the
+# coefficient varies by timeslice (`pTimesliceShare[s]`) -- carried in a
+# timeslice-keyed `mult`, which is only usable because the data.frame-`mult`
+# defect on multi-indexed variables was fixed.
+#
+# `afs` differs from `af` in one way: the activity side is summed over the
+# DESCENDANTS of the named slice rather than taken at that slice, so the
+# constraint is emitted once per named parent with the descendants listed in
+# `for.sum`. `timeslice_ancestry` is a transitive closure, so that is a lookup.
+#
+# WHAT THIS IS AND IS NOT. A group bound is a constraint in its own right --
+# "however good the weather, the fleet cannot exceed X% of nameplate". It is NOT
+# the sum of the per-variant limits: those carry each variant's own weather
+# factor, a `prod{}` only the solver template can evaluate. That sum is still
+# enforced, because the per-variant constraints remain. A group bound with its
+# OWN weather profile would need a model equation and is not attempted here.
+.variant_af_group_constraints <- function(tech, prov, regions, years, slices,
+                                          shares, ancestry) {
+  def <- .variant_def(tech)
+  if (is.null(def) || is.null(def$af_bounds)) return(list())
+  cls <- class(tech)[1]
+  c2a <- tryCatch(as.numeric(tech@cap2act), error = function(e) 1)
+  if (!length(c2a) || !is.finite(c2a)) c2a <- 1
+  shr <- function(x) {
+    v <- shares$share[match(as.character(x), as.character(shares$timeslice))]
+    ifelse(is.na(v), 1, v)
+  }
+  out <- list()
+
+  for (ab in def$af_bounds) {
+    if (!.hasSlot(tech, ab$slot)) next
+    d <- as.data.frame(slot(tech, ab$slot))
+    dims <- intersect(.variant_dims, names(d))
+    if (nrow(d) == 0L || length(dims) == 0L) next
+    is_tot <- Reduce(`|`, lapply(dims, function(x)
+      !is.na(d[[x]]) & d[[x]] == .VARIANT_TOTAL))
+    rows <- d[is_tot, , drop = FALSE]
+    if (nrow(rows) == 0L) next
+
+    bcols <- paste0(ab$stem, c(".lo", ".up", ".fx"))
+    lv <- lapply(stats::setNames(dims, dims),
+                 function(x) .variant_levels(tech, x))
+
+    for (i in seq_len(nrow(rows))) {
+      r <- rows[i, , drop = FALSE]
+      tot   <- dims[vapply(dims, function(x) !is.na(r[[x]]) &&
+                             r[[x]] == .VARIANT_TOTAL, logical(1))]
+      per   <- dims[vapply(dims, function(x) is.na(r[[x]]), logical(1))]
+      fixed <- setdiff(dims, c(tot, per))
+      per   <- per[vapply(per, function(x) length(lv[[x]]) > 0L, logical(1))]
+
+      hit <- intersect(bcols, names(r))
+      hit <- hit[vapply(hit, function(bc) !is.na(r[[bc]]), logical(1))]
+      if (!length(hit)) next
+
+      # Which timeslice cells this row speaks for. For `af` each named slice is
+      # its own cell; for `afs` the named slice is a PARENT and the activity is
+      # summed over its descendants.
+      parents <- if ("timeslice" %in% names(r) && !is.na(r$timeslice))
+        as.character(r$timeslice) else slices
+      regs <- if ("region" %in% names(r) && !is.na(r$region))
+        as.character(r$region) else regions
+      yrs  <- if ("year" %in% names(r) && !is.na(r$year))
+        as.integer(r$year) else years
+
+      grid <- if (length(per)) {
+        expand.grid(lv[per], KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)
+      } else data.frame(.one = 1L)
+
+      for (bc in hit) {
+        val <- as.numeric(r[[bc]])
+        sfx <- sub("^.*[.]", "", bc)
+        for (g in seq_len(nrow(grid))) {
+          keep <- rep(TRUE, nrow(prov))
+          for (x in per)   keep <- keep & !is.na(prov[[x]]) & prov[[x]] == grid[[x]][g]
+          for (x in fixed) keep <- keep & !is.na(prov[[x]]) & prov[[x]] == r[[x]]
+          variants <- prov$name[keep]
+          if (length(variants) < 1L) next
+
+          for (ps in parents) {
+            act_slices <- if (isTRUE(ab$sum_children)) {
+              unique(c(ps, ancestry$child[as.character(ancestry$parent) == ps]))
+            } else ps
+            # The capacity side is weighted by the share of the NAMED slice --
+            # the parent's own share for `afs`, the slice's for `af`.
+            coef <- -val * c2a * shr(ps)
+            cells <- expand.grid(region = regs, year = yrs,
+                                 KEEP.OUT.ATTRS = FALSE,
+                                 stringsAsFactors = FALSE)
+            if (!nrow(cells)) next
+            nm <- paste0(.VARIANT_GROUP_PREFIX, .variant_token(tech@name),
+                         .variant_token(bc),
+                         if (length(per)) paste0(vapply(per, function(x)
+                           .variant_token(grid[[x]][g]), character(1)),
+                           collapse = "") else "",
+                         .variant_token(ps))
+            cns <- newConstraint(
+              name = nm,
+              desc = paste0("Group ", sfx, " ", ab$stem, " bound across ",
+                            paste(tot, collapse = "+"), " for ", tech@name,
+                            " at ", ps),
+              eq = .variant_bound_eq[[sfx]],
+              for.each = cells,
+              term1 = list(
+                variable = ab$act,
+                for.sum = c(stats::setNames(list(variants), def$key),
+                            list(timeslice = act_slices))),
+              term2 = list(
+                variable = ab$cap,
+                for.sum = stats::setNames(list(variants), def$key),
+                mult = coef),
+              rhs = 0, defVal = 0, interpolation = "inter")
+            cns@misc$.variant_source <- tech@name
+            cns@misc$.variant_class <- cls
+            out[[nm]] <- cns
+          }
+        }
+      }
+    }
+  }
+  out
+}
 
 .variant_group_constraints <- function(tech, prov, regions, years) {
   def <- .variant_def(tech)
@@ -485,17 +1017,23 @@
     fixed <- setdiff(dims, c(tot, per))
     per   <- per[vapply(per, function(d) length(lv[[d]]) > 0L, logical(1))]
 
-    for (bc in intersect(.variant_bound_cols, names(r))) {
+    # Scan EVERY bound-shaped column the row carries, and look the stem up in
+    # `bound_var`. Deriving the scan list from a prefix instead let a column the
+    # class does have -- storage's `inp.*` / `stg.*` -- match nothing and be
+    # skipped in silence. An unsupported stem must be loud.
+    for (bc in grep("[.](lo|up|fx)$", names(r), value = TRUE)) {
       val <- r[[bc]]
       if (is.na(val)) next
-      stem <- sub("\\.(lo|up|fx)$", "", bc)
-      sfx  <- sub("^.*\\.", "", bc)
+      stem <- sub("[.](lo|up|fx)$", "", bc)
+      sfx  <- sub("^.*[.]", "", bc)
       if (is.null(bvar[[stem]])) {
-        stop('Group-aggregate ("', .VARIANT_TOTAL, '") bounds are supported on ',
-             'cap.* and ncap.* but not on `', bc, '` (', cls, ' "', tech@name,
-             '"): the retirement variables carry a second year index (and no ',
-             'retirement equation exists for storage or trade), so a group ',
-             'retirement bound must be written explicitly with `newConstraint()`.')
+        stop('Group-aggregate ("', .VARIANT_TOTAL, '") bounds on ', cls, ' "',
+             tech@name, '" are supported on ',
+             paste0(names(bvar), ".*", collapse = ", "),
+             ' but not on `', bc, '`. The retirement variables carry a second ',
+             'year index (and no retirement equation exists for storage or ',
+             'trade), so a group retirement bound must be written explicitly ',
+             'with `newConstraint()`.', call. = FALSE)
       }
       grid <- if (length(per)) {
         expand.grid(lv[per], KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)
@@ -600,7 +1138,7 @@
     empty <- lv[!nzchar(tok)]
     if (length(empty) > 0L) {
       stop('The ', dm, ' label(s) ', paste0('"', empty, '"', collapse = ", "),
-           ' of technology "', tech@name, '" contain no letters or digits, so ',
+           ' of ', class(tech)[1], ' "', tech@name, '" contain no letters or digits, so ',
            'they reduce to an empty variant-name token. Rename them.')
     }
     if (anyDuplicated(tok) > 0L) {
@@ -609,7 +1147,7 @@
         paste0(paste0('"', lv[tok == t], '"', collapse = " and "),
                ' both reduce to "', t, '"')
       }, character(1))
-      stop("Distinct ", dm, " labels of technology \"", tech@name,
+      stop("Distinct ", dm, " labels of ", class(tech)[1], " \"", tech@name,
            "\" collapse to the same variant-name token: ",
            paste(msg, collapse = "; "),
            ". They would produce one variant instead of two -- rename one, or ",
@@ -656,11 +1194,27 @@
     if (!is.na(clu)) {
       cregs <- .cluster_regions(dc, clu)
       if (!is.null(cregs)) {
+        # A class with no `@region` slot has no region scope to intersect with,
+        # and `tech@region` would error rather than say so. `trade` is the case:
+        # its scope comes from the route endpoints. Generic on purpose -- the
+        # branch below is unchanged byte-for-byte for technology and storage,
+        # which both declare the slot.
+        if (!.hasSlot(tech, "region")) {
+          stop('Cluster "', clu, '" of ', class(tech)[1], ' "', tech@name,
+               '" is restricted to region(s) ', paste(cregs, collapse = ", "),
+               ', but a ', class(tech)[1], ' has no `region` slot, so there is ',
+               'nothing for a cluster region to intersect with. Its scope comes ',
+               'from ',
+               if (methods::is(tech, "trade")) 'the route endpoints' else
+                 'the `region` column of its own data slots',
+               '. Drop the `region` column from the `cluster` declaration.',
+               call. = FALSE)
+        }
         base_regs <- as.character(tech@region)
         v@region <- if (length(base_regs) == 0L) cregs else
           intersect(base_regs, cregs)
         if (length(v@region) == 0L) {
-          stop('Cluster "', clu, '" of technology "', tech@name, '" exists in ',
+          stop('Cluster "', clu, '" of ', class(tech)[1], ' "', tech@name, '" exists in ',
                'region(s) ', paste(cregs, collapse = ", "),
                ', which do not overlap the technology\'s own `region` (',
                paste(base_regs, collapse = ", "), ').')
@@ -679,6 +1233,16 @@
 
     for (s in .variant_slots_of(tech)) {
       if (!.hasSlot(tech, s)) next
+      # Every variant slot must be a data.frame: `.variant_timeslice()` coerces
+      # with as.data.frame() and the assignment below would then fail with
+      # "assignment of an object of class data.frame is not valid for @'...'".
+      # Loud here rather than cryptic there.
+      if (!is.data.frame(slot(tech, s))) {
+        stop('Variant slot "', s, '" of ', class(tech)[1], ' "', tech@name,
+             '" is a ', class(slot(tech, s))[1], ', not a data.frame. A slot ',
+             'listed in `.variant_classes$', class(tech)[1], '$slots` must be a ',
+             'table, or its rows cannot be selected per variant.', call. = FALSE)
+      }
       d <- .variant_timeslice(slot(tech, s), vin, clu)
       if (s == "vintage") d <- .variant_default_window(d, vin)
       if (s == "capacity" && "stock" %in% names(d) && !is.na(vin)) {
@@ -718,12 +1282,26 @@
 #
 # @return list(model = <expanded model>, provenance = <data.frame|NULL>)
 # @noRd
-expand_variants <- function(mod, prefix = .variant_prefix(mod)) {
+expand_variants <- function(mod, prefix = .variant_prefix(mod),
+                            verbose = isVerbose()) {
   prefix <- .variant_prefix_merge(prefix)
 
   regions <- as.character(mod@config@region)
   years   <- tryCatch(as.integer(mod@config@horizon@intervals$mid),
                       error = function(e) integer())
+  # Flow bounds (unlike capacity bounds) can vary by timeslice, so the cell grid
+  # needs the calendar's slices too.
+  slices  <- tryCatch(unique(as.character(
+                        mod@config@calendar@timeslice_share$timeslice)),
+                      error = function(e) character())
+  shares  <- tryCatch(as.data.frame(mod@config@calendar@timeslice_share),
+                      error = function(e)
+                        data.frame(timeslice = character(), share = numeric()))
+  # A transitive closure, so a named parent reaches every descendant in one
+  # lookup -- which is what an `afs` group bound sums over.
+  ancestry <- tryCatch(as.data.frame(mod@config@calendar@timeslice_ancestry),
+                       error = function(e)
+                         data.frame(parent = character(), child = character()))
 
   # ---- 1. COLLECT ---------------------------------------------------------- #
   # Pure traversal: expand each object but mutate nothing yet. Inserting as we go
@@ -832,6 +1410,14 @@ expand_variants <- function(mod, prefix = .variant_prefix(mod)) {
         prov[[length(prov) + 1L]] <<- res$provenance
         gb <- .variant_group_constraints(el, res$provenance, regions, years)
         if (length(gb)) cns[[length(cns) + 1L]] <<- gb
+        fb <- .variant_flow_group_constraints(el, res$provenance, regions,
+                                              years, slices)
+        if (length(fb)) cns[[length(cns) + 1L]] <<- fb
+        ab <- .variant_af_group_constraints(el, res$provenance, regions, years,
+                                            slices, shares, ancestry)
+        if (length(ab)) cns[[length(cns) + 1L]] <<- ab
+        sb <- .variant_share_constraints(el, res$provenance, regions, years)
+        if (length(sb)) cns[[length(cns) + 1L]] <<- sb
       } else {
         out[[nm]] <- el
       }
@@ -865,12 +1451,20 @@ expand_variants <- function(mod, prefix = .variant_prefix(mod)) {
            ". The object names reduce to the same token; rename one.")
     }
     mod <- add(mod, cns, overwrite = TRUE)
-    message("Added ", length(cns), " group-aggregate bound constraint(s): ",
-            paste(names(cns), collapse = ", "))
+    if (verbose) {
+      # Names are mangled tokens and there can be hundreds of them (455 on a
+      # 41-node tranched network), so report the families and leave the objects
+      # to `getObject(scen, class = "constraint")`, which carries a readable
+      # `desc` and `misc$.variant_source` for each.
+      n_share <- sum(startsWith(names(cns), .VARIANT_SHARE_PREFIX))
+      n_group <- length(cns) - n_share
+      message("Added ", length(cns), " generated constraint(s): ",
+              n_group, " group bound(s), ", n_share, " capacity-share tie(s).")
+    }
   }
 
   prov <- if (length(prov)) bind_rows(prov) else NULL
-  if (!is.null(prov)) {
+  if (!is.null(prov) && verbose) {
     n_base <- length(unique(paste(prov$class, prov$base)))
     message("Expanded ", n_base, " process object",
             if (n_base == 1L) "" else "s", " into ", nrow(prov),
@@ -881,8 +1475,9 @@ expand_variants <- function(mod, prefix = .variant_prefix(mod)) {
 
 # Back-compat wrapper for the technology-only name.
 # @noRd
-expand_tech_variants <- function(mod, prefix = .variant_prefix(mod)) {
-  expand_variants(mod, prefix)
+expand_tech_variants <- function(mod, prefix = .variant_prefix(mod),
+                                verbose = isVerbose()) {
+  expand_variants(mod, prefix, verbose = verbose)
 }
 
 # -------------------------------------------------------------------------- #
@@ -958,7 +1553,8 @@ variantSummary <- function(scen, name, by = character(), weight = NULL, ...) {
     stop("Variable '", name, "' carries no variant processes.")
   }
   # the id column is `tech` / `stg` / `trade`, or `process` when renamed
-  idcol <- intersect(c("tech", "stg", "trade", "process"), names(d))[1]
+  idcol <- intersect(c("tech", "stg", "trade", "sup", "expp", "imp",
+                       "process"), names(d))[1]
   if (!is.null(weight)) {
     w <- getData(scen, name = weight, merge = TRUE, variants = TRUE, ...)
     keys <- intersect(names(d), names(w))

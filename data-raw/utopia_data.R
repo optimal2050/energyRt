@@ -1,7 +1,7 @@
 ## data-raw/utopia_data.R
 ## Deterministic, sourced input data for the UTOPIA vignette (replaces the old
 ## random generators: fLoadCurve / rwind / rclouds / runif). Builds, for BOTH
-## teaching calendars (utopia_m12h24 = default, 288 timeslices; utopia_seasons = 12):
+## teaching calendars (m12_h24 = default, 288 timeslices; utopia_seasons = 12):
 ##   utopia_weather - representative solar/wind/hydro capacity factors by timeslice
 ##   utopia_demand  - a deterministic electricity load shape by timeslice
 ##   utopia_stock   - deterministic base-year capacity per technology (calendar-agnostic)
@@ -12,7 +12,7 @@
 if (!isNamespaceLoaded("energyRt")) library(energyRt)
 library(usethis)
 
-CALS <- c("utopia_s4h24", "utopia_m12h24", "utopia_seasons")
+CALS <- c("s4_h24", "m12_h24", "utopia_seasons")
 
 # ── curated fallback CF (used only when IDEEA is not installed) ────────────────
 # Physically motivated: solar = daylight bell curve, wind ~ flat w/ night boost,
@@ -37,14 +37,57 @@ CALS <- c("utopia_s4h24", "utopia_m12h24", "utopia_seasons")
 }
 
 # ── 1. Weather (CF) for both calendars ────────────────────────────────────────
-have_ideea <- requireNamespace("IDEEA", quietly = TRUE)
-utopia_weather <- do.call(rbind, lapply(CALS, function(cal) {
-  cf <- if (have_ideea) energyRt:::.utopia_weather_from_ideea(cal) else .curated_cf(cal)
-  cbind(calendar = cal, cf, stringsAsFactors = FALSE, row.names = NULL)
-}))
-attr(utopia_weather, "source") <- if (have_ideea) {
-  "IDEEA::ideea_modules$electricity$reg5 (d365_h24 CL01, calendar-aggregated)"
-} else "curated fallback (IDEEA not installed)"
+# "installed but no data" (IDEEA >= 0.80 ships no datasets) counts as not
+# installed -- same treatment as data-raw/calendars.R
+have_ideea <- FALSE
+if (requireNamespace("IDEEA", quietly = TRUE)) {
+  .ide <- new.env()
+  suppressWarnings(utils::data("ideea_modules", package = "IDEEA",
+                               envir = .ide))
+  have_ideea <- !is.null(.ide$ideea_modules)
+}
+# NON-DESTRUCTIVE second choice: without IDEEA, carry the previously
+# shipped weather forward (re-keyed to the current calendar names/labels)
+# rather than regenerating from the curated toy CFs. The toy profiles have
+# almost no unique values (flat steps), which makes UTOPIA LPs massively
+# DEGENERATE -- GLPK cycles for hours on ties the real profiles never
+# produce. The curated fallback remains the last resort only.
+.prev_weather <- NULL
+if (!have_ideea && file.exists("data/utopia_weather.rda")) {
+  .pw <- new.env()
+  load("data/utopia_weather.rda", envir = .pw)
+  .prev_weather <- .pw$utopia_weather
+}
+
+if (have_ideea) {
+  utopia_weather <- do.call(rbind, lapply(CALS, function(cal) {
+    cf <- energyRt:::.utopia_weather_from_ideea(cal)
+    cbind(calendar = cal, cf, stringsAsFactors = FALSE, row.names = NULL)
+  }))
+  attr(utopia_weather, "source") <-
+    "IDEEA::ideea_modules$electricity$reg5 (d365_h24 CL01, calendar-aggregated)"
+} else if (!is.null(.prev_weather)) {
+  message("IDEEA data not available: carrying previously shipped ",
+          "utopia_weather over (re-keyed to current calendar labels).")
+  utopia_weather <- as.data.frame(.prev_weather)
+  # 2026-08 unification re-keys: retired calendar names and the AUT season
+  .cal_map <- c(utopia_annual = "annual", utopia_s4h24 = "s4_h24",
+                utopia_m12h24 = "m12_h24")
+  hit <- utopia_weather$calendar %in% names(.cal_map)
+  utopia_weather$calendar[hit] <- .cal_map[utopia_weather$calendar[hit]]
+  utopia_weather$timeslice <- sub("^AUT_", "FAL_", utopia_weather$timeslice)
+  stopifnot(sort(unique(utopia_weather$calendar)) %in%
+              sort(unique(c(CALS, "annual"))))
+  attr(utopia_weather, "source") <- paste0(
+    attr(.prev_weather, "source") %||% "previously shipped",
+    " [carried over; re-keyed 2026-08]")
+} else {
+  utopia_weather <- do.call(rbind, lapply(CALS, function(cal) {
+    cf <- .curated_cf(cal)
+    cbind(calendar = cal, cf, stringsAsFactors = FALSE, row.names = NULL)
+  }))
+  attr(utopia_weather, "source") <- "curated fallback (IDEEA not installed)"
+}
 message("utopia_weather source: ", attr(utopia_weather, "source"),
         "  rows: ", nrow(utopia_weather))
 
@@ -56,24 +99,24 @@ message("utopia_weather source: ", attr(utopia_weather, "source"),
                 1.30, 1.32, 1.25, 1.10, 0.95, 0.80)   # 18-23 evening peak
 .monthly12 <- c(1.20, 1.15, 1.00, 0.90, 0.90, 1.00,
                 1.10, 1.10, 0.95, 0.90, 1.00, 1.20)
-.season_factor <- c(WIN = 1.2, SPR = 0.9, SUM = 1.1, AUT = 0.9)
+.season_factor <- c(WIN = 1.2, SPR = 0.9, SUM = 1.1, FAL = 0.9)
 .demand_shape <- function(calendar) {
-  if (calendar == "utopia_s4h24") {
-    g <- expand.grid(season = c("WIN", "SPR", "SUM", "AUT"), hour = 0:23,
+  if (calendar == "s4_h24") {
+    g <- expand.grid(season = c("WIN", "SPR", "SUM", "FAL"), hour = 0:23,
                      stringsAsFactors = FALSE)
     data.frame(timeslice = sprintf("%s_h%02d", g$season, g$hour),
                load = .season_factor[g$season] * .diurnal24[g$hour + 1],
                stringsAsFactors = FALSE)
-  } else if (calendar == "utopia_m12h24") {
+  } else if (calendar == "m12_h24") {
     g <- expand.grid(month = 1:12, hour = 0:23)
     data.frame(timeslice = sprintf("m%02d_h%02d", g$month, g$hour),
                load = .monthly12[g$month] * .diurnal24[g$hour + 1],
                stringsAsFactors = FALSE)
   } else { # utopia_seasons
-    sl <- expand.grid(season = c("WIN", "SPR", "SUM", "AUT"),
+    sl <- expand.grid(season = c("WIN", "SPR", "SUM", "FAL"),
                       daypart = c("DAY", "NGT", "PK"), stringsAsFactors = FALSE)
     dp <- c(DAY = 1.0, NGT = 0.6, PK = 1.35)
-    se <- c(WIN = 1.2, SPR = 0.9, SUM = 1.1, AUT = 0.9)
+    se <- c(WIN = 1.2, SPR = 0.9, SUM = 1.1, FAL = 0.9)
     data.frame(timeslice = paste(sl$season, sl$daypart, sep = "_"),
                load = dp[sl$daypart] * se[sl$season], stringsAsFactors = FALSE)
   }

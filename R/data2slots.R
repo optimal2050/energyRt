@@ -37,6 +37,23 @@
 #'
 #' @return created or updated object with the added/updated data in the object slots.
 #' @noRd
+# A column RENAMED by a release is the likeliest reason an "unknown column"
+# error fires, and the generic message below cannot say so -- all it knows is
+# that the column is not in the prototype. This makes the message actionable
+# ("`cinp.up` is now `inp.af.up`") without loosening the check itself.
+#' @noRd
+.renamed_column_hint <- function(cols, class_name) {
+  tbl <- switch(as.character(class_name)[1],
+                storage = .storage_renamed_cols,
+                NULL)
+  if (is.null(tbl)) return("")
+  hit <- intersect(cols, names(tbl))
+  if (!length(hit)) return("")
+  paste0("  Renamed in v0.80: ",
+         paste(sprintf("`%s` is now `%s`", hit, tbl[hit]), collapse = ", "),
+         ".")
+}
+
 .data2slots <- function(
     class_name = NULL,
     x,
@@ -114,13 +131,15 @@
           if (any(!(colnames(dat) %in% colnames(slot(obj, s))))) {
             # !!! ToDo: take columns from "new()" or from the class
             # Check column names
+            .bad <- colnames(dat)[!(colnames(dat) %in% colnames(slot(obj, s)))]
             stop(paste(
               'Unknown column "',
-              paste(colnames(dat)[!(colnames(dat) %in% colnames(slot(obj, s)))],
+              paste(.bad,
               '"in the slot: "',
               s,
               collapse = '", "'),
               '"\n',
+              .renamed_column_hint(.bad, class_name),
               sep = ""
             ))
           }

@@ -3,7 +3,12 @@
 #' The function and method read outputs of solved model/scenario and return the scenario object populated with variables data.
 #'
 #' @param obj scenario object
-#' @param ... optional tmp.dir (if missing in the scenario object or to replace the saved path)
+#' @param run character, optional run to read: `"<solve>"` for a base-problem
+#'   run or `"<variant>/<solve>"` — see [scenario_runs()]. The scenario's
+#'   active run switches to it. Default `NULL` reads the active run (or, for
+#'   a freshly loaded scenario, the manifest's `default:` run).
+#' @param ... optional `solver.dir` (an external solver directory, replacing
+#'   the run resolution; `tmp.dir` is the deprecated alias)
 #'
 #' @return
 #' The function returns the scenario object with populated modOut slot
@@ -16,14 +21,14 @@
 #' \dontrun{
 #' scen <- read(scen)
 #' }
-read_solution <- function(obj, ...) {
+read_solution <- function(obj, run = NULL, ...) {
   scen <- obj
   ## arguments
   # scen
   # readOutputFunction = read.csv (may use data.table::fread)
-  # tmp.dir dir from wich read results, by default in scen@misc$tmp.dir
+  # solver.dir - dir to read results from; default: the active run's solver/
   # echo = TRUE - print working data
-  arg <- list(...)
+  arg <- .solver_dir_aliases(list(...))
   # browser()
   read_result_time <- proc.time()[3]
   if (is.null(arg$echo)) arg$echo <- TRUE
@@ -31,14 +36,58 @@ read_solution <- function(obj, ...) {
   if (is.null(arg$readOutputFunction)) {
     arg$readOutputFunction <- data.table::fread
   }
-  if (is.null(arg$tmp.dir)) {
-    arg$tmp.dir <- scen@misc$tmp.dir
-    if (is.null(arg$tmp.dir)) {
-      stop('Directory "tmp.dir" not specified')
+  if (!is.null(run)) {
+    # switch the active run: read this run's solver/output and remember it
+    id <- .parse_run_id(run, scen)
+    run_solver <- .run_solver_dir(.run_dir(scen, id$variant, id$solve))
+    if (!dir.exists(run_solver)) {
+      stop("Run '", .run_id(id$variant, id$solve), "' has no solver ",
+           "directory under '", scen@path, "'.\n  Available runs:\n",
+           .run_list_hint(scen))
+    }
+    # crossing a problem boundary (base <-> variant, or between variants)
+    # swaps the in-memory problem — settings + modInp — from the target's
+    # saved swap data before the solution is read. A variant DIR without a
+    # variant.yml is not an own problem — it is a legacy/interim wrapper
+    # (e.g. the retired runs/default/) around the SAME problem: no swap.
+    if (!identical(id$variant, .run_variant(scen))) {
+      own_problem <- !nzchar(id$variant) ||
+        file.exists(fp(scen@path, "runs", id$variant, "variant.yml"))
+      if (own_problem) {
+        scen <- .variant_swap(scen, id$variant)
+      }
+    }
+    arg$solver.dir <- run_solver
+    scen@misc$variant <- if (nzchar(id$variant)) id$variant else NULL
+    scen@misc$run <- id$solve
+    scen@misc$tmp.dir <- NULL
+    scen@misc$solver.dir <- NULL
+  }
+  if (is.null(arg$solver.dir)) {
+    if (nzchar(scen@misc$run %||% "")) {
+      # recorded run: the directory is derived, never stored
+      arg$solver.dir <- .run_solver_dir(
+        .run_dir(scen, .run_variant(scen), scen@misc$run))
+    } else if (!is.null(scen@misc$solver.dir %||% scen@misc$tmp.dir)) {
+      # external solve, or an object saved by an older version
+      arg$solver.dir <- scen@misc$solver.dir %||% scen@misc$tmp.dir
+    } else {
+      # fall back to the manifest's default run
+      id <- .scenario_default_run(scen)
+      if (!is.null(id)) {
+        arg$solver.dir <- .run_solver_dir(
+          .run_dir(scen, id$variant, id$solve))
+        scen@misc$variant <- id$variant
+        scen@misc$run <- id$solve
+      }
+    }
+    if (is.null(arg$solver.dir)) {
+      stop("No solver directory to read from: the scenario has no active or ",
+           "default run. Pass run= (see scenario_runs()) or solver.dir=.")
     }
   }
   # Read basic variable list (vrb_list) and additional if user need (vrb_list2)
-  var_file <- paste(arg$tmp.dir, "/output/variable_list.csv", sep = "")
+  var_file <- paste(arg$solver.dir, "/output/variable_list.csv", sep = "")
   vrb_list <- try({
     arg$readOutputFunction(
       var_file,
@@ -54,9 +103,9 @@ read_solution <- function(obj, ...) {
       return(invisible(obj))
     }
   }
-  if (file.exists(paste(arg$tmp.dir, "/output/variable_list2.csv", sep = ""))) {
+  if (file.exists(paste(arg$solver.dir, "/output/variable_list2.csv", sep = ""))) {
     vrb_list2 <- arg$readOutputFunction(
-      paste(arg$tmp.dir, "/output/variable_list2.csv", sep = ""),
+      paste(arg$solver.dir, "/output/variable_list2.csv", sep = ""),
       stringsAsFactors = FALSE
     )$value
   } else {
@@ -65,7 +114,7 @@ read_solution <- function(obj, ...) {
   rr <- list(
     variables = list(),
     set = arg$readOutputFunction(
-      paste(arg$tmp.dir, "/output/raw_data_set.csv", sep = ""),
+      paste(arg$solver.dir, "/output/raw_data_set.csv", sep = ""),
       stringsAsFactors = FALSE
     )
   )
@@ -92,7 +141,7 @@ read_solution <- function(obj, ...) {
     .check_load_gdxtools()
     # Read variables gdx
     # browser()
-    gd <- gdxtools::gdx(paste(arg$tmp.dir, "/output/output.gdx", sep = ""))
+    gd <- gdxtools::gdx(paste(arg$solver.dir, "/output/output.gdx", sep = ""))
     for (i in c(vrb_list, vrb_list2)) {
       # cat(i, "\n")
       # if (i == "vOutTot") browser() # debug
@@ -141,7 +190,7 @@ read_solution <- function(obj, ...) {
     .arrow_imp <- .imf %in% c("feather", "ipc", "arrow", "parquet")
     .ext <- if (.imf == "parquet") ".parquet" else if (.arrow_imp) ".arrow" else ".csv"
     for (i in c(vrb_list, vrb_list2)) {
-      vfile <- paste(arg$tmp.dir, "/output/", i, .ext, sep = "")
+      vfile <- paste(arg$solver.dir, "/output/", i, .ext, sep = "")
       if (.arrow_imp) {
         if (!file.exists(vfile)) next # variable with no non-zero values
         vr <- .read_exchange_table(vfile)
@@ -169,17 +218,18 @@ read_solution <- function(obj, ...) {
   }
   scen@modOut <- new("modOut")
   # Read solution status
-  scen@modOut@solutionLogs <- read.csv(paste(arg$tmp.dir, "/output/log.csv",
+  scen@modOut@solutionLogs <- read.csv(paste(arg$solver.dir, "/output/log.csv",
     sep = ""
   ))
-  solver_data <- read.csv(paste(arg$tmp.dir, "/solver", sep = ""),
+  solver_data <- read.csv(paste(arg$solver.dir, "/solver", sep = ""),
     stringsAsFactors = FALSE
   )
   codes <- solver_data[grep("^code", solver_data$name), ]
-  for (i in seq_len(nrow(codes))) {
-    scen@settings@solver[[codes[i, "name"]]] <-
-      readLines(paste(arg$tmp.dir, "/", codes[i, "value"], sep = ""))
-  }
+  # Only the FILE NAMES are kept: the model text itself already lives in the
+  # run's solver directory, and importing it here used to bloat
+  # every solved scenario by the full model source (again, on top of
+  # settings@sourceCode). Nothing in the package consumed `solver$code1..n`.
+  scen@settings@solver$code_files <- codes$value
   if (all(scen@modOut@solutionLogs$parameter != "solution status")) {
     scen@modOut@stage <- "Scenario is not solved"
   } else if (all(scen@modOut@solutionLogs[
@@ -198,7 +248,9 @@ read_solution <- function(obj, ...) {
   }
 
   if (scen@modOut@stage != "solved") {
-    warning(scen@modOut@stage)
+    warning(scen@modOut@stage,
+            ". Any exported (incumbent) solution is still read; getData() ",
+            "returns it with a warning.")
   }
 
   scen@modOut@sets <- rr$set_vec
@@ -350,6 +402,11 @@ read_solution <- function(obj, ...) {
             in_dat$value <- in_dat$value * in_dat$par
             in_dat$par <- NULL
           }
+        } else if (nrow(in_dat) != 0 && length(tmp@defVal) == 1 &&
+                   is.finite(tmp@defVal)) {
+          # scalar multiplier: no pCosts* parameter is written, the constant
+          # lives in the cost object's @defVal (same as the model equation)
+          in_dat$value <- in_dat$value * tmp@defVal
         }
         if (nrow(in_dat) != 0) {
           in_dat <- aggregate(
@@ -373,7 +430,13 @@ read_solution <- function(obj, ...) {
     cat("Reading solution: ", round(proc.time()[3] -
       read_result_time, 2), "s\n", sep = "")
   }
-  if (scen@modOut@stage == "solved") scen@status$optimal <- TRUE
+  # `solved` had no writer at all (initialised FALSE at interpolation and never
+  # updated), so it read FALSE even after an optimal solve. It now records that
+  # the solve produced a readable optimal solution, alongside `optimal`.
+  if (scen@modOut@stage == "solved") {
+    scen@status$optimal <- TRUE
+    scen@status$solved <- TRUE
+  }
   invisible(scen)
 }
 #' @rdname read

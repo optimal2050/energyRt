@@ -147,6 +147,14 @@ pTechEmisComm(tech, comm)                          Combustion factor for input c
 pTechAct2AInp(tech, comm, region, year, timeslice)     Activity to aux-commodity input
 pTechCap2AInp(tech, comm, region, year, timeslice)     Capacity to aux-commodity input
 pTechNCap2AInp(tech, comm, region, year, timeslice)     New capacity to aux-commodity input
+pTechPho2AInp(tech, comm, region, year, timeslice)      Technology end-of-life aux input
+pTechPho2AOut(tech, comm, region, year, timeslice)      Technology end-of-life aux output
+pTechRet2AInp(tech, comm, region, year, timeslice)      Technology early-retirement aux input
+pTechRet2AOut(tech, comm, region, year, timeslice)      Technology early-retirement aux output
+pStoragePho2AInp(stg, comm, region, year, timeslice)    Storage end-of-life aux input
+pStoragePho2AOut(stg, comm, region, year, timeslice)    Storage end-of-life aux output
+pStorageRet2AInp(stg, comm, region, year, timeslice)    Storage early-retirement aux input
+pStorageRet2AOut(stg, comm, region, year, timeslice)    Storage early-retirement aux output
 pTechCinp2AInp(tech, comm, comm, region, year, timeslice)    Commodity input to aux-commodity input
 pTechCout2AInp(tech, comm, comm, region, year, timeslice)    Commodity output to aux-commodity input
 * Aux output comm map
@@ -172,6 +180,8 @@ pTechAfsUp(tech, region, year, timeslice)               Upper bound on availabil
 pTechAfcLo(tech, comm, region, year, timeslice)         Lower bound for commodity output
 pTechAfcUp(tech, comm, region, year, timeslice)         Upper bound for commodity output
 pTechStock(tech, region, year)                      Technology capacity stock
+pTechStockNew(tech, region, year)                   Exogenous capacity commissioned at this milestone
+pTechStockSurv(tech, region, year)                  Share of the previous milestone stock that the schedule keeps
 pTechCapUp(tech, region, year)                      Upper bound on technology capacity
 pTechCapLo(tech, region, year)                      Lower bound on technology capacity
 pTechNewCapUp(tech, region, year)                   Upper bound on new technology capacity
@@ -188,10 +198,10 @@ pTechAvarom(tech, comm, region, year, timeslice)        Auxilary Commodity-speci
 pWacc(region, year)                                 Weighted average cost of capital (can be region and year specific)
 pSdr(region, year)                                  Social discount rate (can be region and year specific)
 pTechWacc(tech, region, year)                       Technology-specific cost of capital
-pStorageWacc(stg, region, year)                     Storage-specific cost of capital
+pStorageOutWacc(stg, region, year)                     Storage-specific cost of capital
 pTradeWacc(trade, region, year)                     Trade-specific cost of capital
 pTechPayback(tech, region, year)                    Cost-recovery period of a technology
-pStoragePayback(stg, region, year)                  Cost-recovery period of a storage
+pStorageOutPayback(stg, region, year)                  Cost-recovery period of a storage
 pTradePayback(trade, region, year)                  Cost-recovery period of a trade
 pDiscountFactor(region, year)                       Discount factor (cumulative)
 pDiscountFactorMileStone(region, year)              Discount factor (cumulative) sum for MileStone
@@ -231,11 +241,15 @@ parameters
 pStorageInpEff(stg, comm, region, year, timeslice)      Storage input efficiency
 pStorageOutEff(stg, comm, region, year, timeslice)      Storage output efficiency
 pStorageStgEff(stg, comm, region, year, timeslice)      Storage time-efficiency (annual)
-pStorageStock(stg, region, year)                    Storage capacity stock
-pStorageCapUp(stg, region, year)                    Upper bound on storage capacity
+pStorageOutStock(stg, region, year)                    Storage capacity stock
+pStorageOutStockNew(stg, region, year)    Exogenous capacity commissioned at this milestone
+pStorageOutStockSurv(stg, region, year)   Share of the previous milestone stock that the schedule keeps
+pStorageOutCapUp(stg, region, year)                    Upper bound on storage capacity
 pStorageInpCap2act(stg)                             Storage charging capacity to annual flow
 pStorageOutCap2act(stg)                             Storage discharging capacity to annual flow
 pStorageInpStock(stg, region, year)                 Storage exogenous charging capacity
+pStorageInpStockNew(stg, region, year)    Exogenous capacity commissioned at this milestone
+pStorageInpStockSurv(stg, region, year)   Share of the previous milestone stock that the schedule keeps
 pStorageInpInvcost(stg, region, year)               Storage investment cost per unit of charging capacity
 pStorageInpFixom(stg, region, year)                 Storage fixed OM cost per unit of charging capacity
 pStorageInpEac(stg, region, year)                   Storage annualised charging-capacity investment cost
@@ -246,6 +260,8 @@ pStorageInpNewCapUp(stg, region, year)              Upper bound on new storage c
 pStorageInp2outLo(stg, region, year)                Lower bound on the charge-to-discharge ratio
 pStorageInp2outUp(stg, region, year)                Upper bound on the charge-to-discharge ratio
 pStorageStgStock(stg, region, year)                 Storage exogenous energy capacity
+pStorageStgStockNew(stg, region, year)    Exogenous capacity commissioned at this milestone
+pStorageStgStockSurv(stg, region, year)   Share of the previous milestone stock that the schedule keeps
 pStorageStgInvcost(stg, region, year)               Storage investment cost per unit of energy capacity
 pStorageStgFixom(stg, region, year)                 Storage fixed OM cost per unit of energy capacity
 pStorageStgEac(stg, region, year)                   Storage annualised energy-capacity investment cost
@@ -253,29 +269,42 @@ pStorageStgCapLo(stg, region, year)                 Lower bound on storage energ
 pStorageStgCapUp(stg, region, year)                 Upper bound on storage energy capacity
 pStorageStgNewCapLo(stg, region, year)              Lower bound on new storage energy capacity
 pStorageStgNewCapUp(stg, region, year)              Upper bound on new storage energy capacity
-pStorageCapLo(stg, region, year)                    Lower bound on storage capacity
-pStorageNewCapUp(stg, region, year)                 Upper bound on new storage capacity
-pStorageNewCapLo(stg, region, year)                 Lower bound on new storage capacity
-pStorageRetUp(stg, region, year)                    Upper bound on early retirement
-pStorageRetLo(stg, region, year)                    Lower bound on early retirement
+pStorageOutCapLo(stg, region, year)                    Lower bound on storage capacity
+pStorageOutNewCapUp(stg, region, year)                 Upper bound on new storage capacity
+pStorageOutNewCapLo(stg, region, year)                 Lower bound on new storage capacity
+pStorageOutRetUp(stg, region, year)                    Upper bound on early retirement
+pStorageOutRetLo(stg, region, year)                    Lower bound on early retirement
 pStorageOlife(stg, region)                          Storage operational life
 pStorageCostStore(stg, region, year, timeslice)         Storing costs per stored amount (annual)
 pStorageCostInp(stg, region, year, timeslice)           Storage input costs
 pStorageCostOut(stg, region, year, timeslice)           Storage output costs
-pStorageFixom(stg, region, year)                    Storage fixed O&M costs
-pStorageInvcost(stg, region, year)                  Storage investment costs
-pStorageEac(stg, region, year)                      Storage equivalent annual costs
-pStorageRetCost(stg, region, year)                  Storage early retirement costs
+pStorageOutFixom(stg, region, year)                    Storage fixed O&M costs
+pStorageOutInvcost(stg, region, year)                  Storage investment costs
+pStorageOutEac(stg, region, year)                      Storage equivalent annual costs
+pStorageOutRetCost(stg, region, year)                  Storage early retirement costs
+
+* Symmetry fill for the charging and storing parts -- declared, not used by
+* any equation (storage retirement has no equation in any back-end).
+pStorageInpRetUp(stg, region, year)                    Upper bound on early retirement of charging capacity
+pStorageInpRetLo(stg, region, year)                    Lower bound on early retirement of charging capacity
+pStorageInpWacc(stg, region, year)                     Storage charging-side cost of capital
+pStorageInpPayback(stg, region, year)                  Cost-recovery period of charging capacity
+pStorageInpRetCost(stg, region, year)                  Charging-capacity early retirement costs
+pStorageStgRetUp(stg, region, year)                    Upper bound on early retirement of energy capacity
+pStorageStgRetLo(stg, region, year)                    Lower bound on early retirement of energy capacity
+pStorageStgWacc(stg, region, year)                     Storage energy-side cost of capital
+pStorageStgPayback(stg, region, year)                  Cost-recovery period of energy capacity
+pStorageStgRetCost(stg, region, year)                  Energy-capacity early retirement costs
 pStorageDurationLo(stg, region, year)               Storage energy-to-power ratio, hours, lower bound
 pStorageDurationUp(stg, region, year)               Storage energy-to-power ratio, hours, upper bound
 pStorageAfLo(stg, region, year, timeslice)              Storage availability factor lower bound (minimum charging level)
 pStorageAfUp(stg, region, year, timeslice)              Storage availability factor upper bound (maximum charging level)
 *pStorageAfsLo(tech, region, year, timeslice)           add parameter and eq?
 *pStorageAfsUp(tech, region, year, timeslice)           add parameter and eq?
-pStorageCinpUp(stg, comm, region, year, timeslice)      Storage input upper bound
-pStorageCinpLo(stg, comm, region, year, timeslice)      Storage input lower bound
-pStorageCoutUp(stg, comm, region, year, timeslice)      Storage output upper bound
-pStorageCoutLo(stg, comm, region, year, timeslice)      Storage output lower bound
+pStorageInpAfUp(stg, comm, region, year, timeslice)      Storage input upper bound
+pStorageInpAfLo(stg, comm, region, year, timeslice)      Storage input lower bound
+pStorageOutAfUp(stg, comm, region, year, timeslice)      Storage output upper bound
+pStorageOutAfLo(stg, comm, region, year, timeslice)      Storage output lower bound
 pStorageNCap2Stg(stg, comm, region, year, timeslice)    Initial storage charge level for new investment
 pStorageStartLevel(stg, comm, region, year, timeslice)      Initial storage charge level for stock
 pStorageStg2AInp(stg, comm, region, year, timeslice)    Storage level to auxilary input
@@ -294,6 +323,8 @@ parameters
 pTradeIrEff(trade, region, region, year, timeslice)     Inter-regional trade efficiency
 pTradeIrUp(trade, region, region, year, timeslice)      Upper bound on trade flow
 pTradeIrLo(trade, region, region, year, timeslice)      Lower bound on trade flow
+pTradeIrAfUp(trade, region, region, year, timeslice)    Upper availability factor of trade flow
+pTradeIrAfLo(trade, region, region, year, timeslice)    Lower availability factor of trade flow
 pTradeIrCost(trade, region, region, year, timeslice)    Costs of trade flow
 pTradeIrMarkup(trade, region, region, year, timeslice)  Markup of trade flow
 * Aux input and output
@@ -310,6 +341,8 @@ pImportRowUp(imp, region, year, timeslice)               Upper bount on import f
 pImportRowLo(imp, region, year, timeslice)               Lower bound on import from the ROW
 pImportRowPrice(imp, region, year, timeslice)            Import prices from the ROW
 pTradeStock(trade, year)                             Existing capacity
+pTradeStockNew(trade, year)    Exogenous capacity commissioned at this milestone
+pTradeStockSurv(trade, year)   Share of the previous milestone stock that the schedule keeps
 pTradeCapUp(trade, year)                             Upper bound on trade capacity
 pTradeCapLo(trade, year)                             Lower bound on trade capacity
 pTradeNewCapUp(trade, year)                          Upper bound on new trade capacity
@@ -321,7 +354,8 @@ pTradeInvcost(trade, region, year)                   Overnight investment costs
 pTradeEac(trade, region, year)                       Equivalent annual costs
 pTradeRetCost(trade, region, year)                   Early retirement costs
 pTradeFixom(trade, region, year)                             Fixed O&M costs
-pTradeVarom(trade, region, region, year, timeslice)      Variable O&M costs
+* [removed] pTradeVarom -- trade @varom is not implemented: no equation read it,
+* it was absent from Julia and Pyomo, and it is unregistered in modInp.yml.
 pTradeCap2Act(trade)                                 Capacity to activity factor
 ;
 
@@ -339,10 +373,10 @@ mTechWeatherAfcLo(weather, tech, comm)
 mTechWeatherAfcUp(weather, tech, comm)
 mStorageWeatherAfLo(weather, stg)
 mStorageWeatherAfUp(weather, stg)
-mStorageWeatherCinpUp(weather, stg)
-mStorageWeatherCinpLo(weather, stg)
-mStorageWeatherCoutUp(weather, stg)
-mStorageWeatherCoutLo(weather, stg)
+mStorageWeatherInpAfUp(weather, stg)
+mStorageWeatherInpAfLo(weather, stg)
+mStorageWeatherOutAfUp(weather, stg)
+mStorageWeatherOutAfLo(weather, stg)
 ;
 * Weather parameter
 parameters
@@ -357,10 +391,10 @@ pTechWeatherAfcLo(weather, tech, comm)          weather factor for technology av
 pTechWeatherAfcUp(weather, tech, comm)          weather factor for commodity availability upper value (afc.lo)
 pStorageWeatherAfLo(weather, stg)               weather factor for storage availability lower value (af.lo)
 pStorageWeatherAfUp(weather, stg)               weather factor for storage availability upper value (af.up)
-pStorageWeatherCinpUp(weather, stg)             weather factor for storage commodity input upper value (cinp.up)
-pStorageWeatherCinpLo(weather, stg)             weather factor for storage commodity input lower value (cinp.lo)
-pStorageWeatherCoutUp(weather, stg)             weather factor for storage commodity output upper value (cout.up)
-pStorageWeatherCoutLo(weather, stg)             weather factor for storage commodity output lower value (cout.lo)
+pStorageWeatherInpAfUp(weather, stg)             weather factor for storage commodity input upper value (inp.af.up)
+pStorageWeatherInpAfLo(weather, stg)             weather factor for storage commodity input lower value (inp.af.lo)
+pStorageWeatherOutAfUp(weather, stg)             weather factor for storage commodity output upper value (out.af.up)
+pStorageWeatherOutAfLo(weather, stg)             weather factor for storage commodity output lower value (out.af.lo)
 ;
 
 sets
@@ -370,6 +404,27 @@ mvSupReserve(sup, comm, region)
 mvTechRetiredNewCap(tech, region, year, year)
 
 mvTechRetiredStock(tech, region, year)
+mvTechPhaseOut(tech, region, year)
+mvStoragePhaseOut(stg, region, year)
+mvTradePhaseOut(trade, year)
+mTechPho2AInp(tech, comm, region, year, timeslice)
+mTechPho2AOut(tech, comm, region, year, timeslice)
+mTechRet2AInp(tech, comm, region, year, timeslice)
+mTechRet2AOut(tech, comm, region, year, timeslice)
+mStoragePho2AInp(stg, comm, region, year, timeslice)
+mStoragePho2AOut(stg, comm, region, year, timeslice)
+mStorageRet2AInp(stg, comm, region, year, timeslice)
+mStorageRet2AOut(stg, comm, region, year, timeslice)
+mvStorageRetiredStock(stg, region, year)
+mvStorageRetiredNewCap(stg, region, year, year)
+mStorageRetCost(stg, region, year)
+mStorageInpRetLo(stg, region, year)
+mStorageInpRetUp(stg, region, year)
+mStorageStgRetLo(stg, region, year)
+mStorageStgRetUp(stg, region, year)
+mvTradeRetiredStock(trade, year)
+mvTradeRetiredNewCap(trade, year, year)
+mTradeRetCost(trade, region, year)
 *meqTechRetUp(tech, region, year)
 *meqTechRetLo(tech, region, year)
 mvTechAct(tech, region, year, timeslice)
@@ -430,12 +485,12 @@ mStorageStgFixom(stg, region, year)
 mStorageStgEac(stg, region, year)
 mStorageDurationLo(stg, region, year)
 mStorageDurationUp(stg, region, year)
-mStorageCapLo(stg, region, year)
-mStorageCapUp(stg, region, year)
-mStorageNewCapLo(stg, region, year)
-mStorageNewCapUp(stg, region, year)
-mStorageRetLo(stg, region, year)
-mStorageRetUp(stg, region, year)
+mStorageOutCapLo(stg, region, year)
+mStorageOutCapUp(stg, region, year)
+mStorageOutNewCapLo(stg, region, year)
+mStorageOutNewCapUp(stg, region, year)
+mStorageOutRetLo(stg, region, year)
+mStorageOutRetUp(stg, region, year)
 
 mvTradeIr(trade, comm, region, region, year, timeslice)
 mTradeIrCsrc2Ainp(trade, comm, region, region, year, timeslice)
@@ -466,11 +521,15 @@ positive variables
 *@ mTechNew(tech, region, year)
 vTechNewCap(tech, region, year)                      New capacity
 *@ mvTechRetiredStock(tech, region, year)
-vTechRetiredStockCum(tech, region, year)                Early retired stock
+vTechStockCap(tech, region, year)                       Surviving exogenous (legacy) capacity
+vTechStockPhaseOut(tech, region, year)                  Exogenous capacity leaving on the schedule
 *@ mvTechRetiredStock(tech, region, year)
 vTechRetiredStock(tech, region, year)            Early retired stock
 *@ mvTechRetiredNewCap(tech, region, year, year)
 vTechRetiredNewCap(tech, region, year, year)         Early retired new capacity
+vTechPhaseOut(tech, region, year)                    Capacity reaching end of life
+vStoragePhaseOut(stg, region, year)                  Storage capacity reaching end of life
+vStorageStockPhaseOut(stg, region, year)             Exogenous storage capacity leaving on the schedule
 * Activity and intput-output
 *@ mTechSpan(tech, region, year)
 vTechCap(tech, region, year)                         Total capacity of the technology
@@ -485,6 +544,23 @@ vTechOut(tech, comm, region, year, timeslice)            Commodity output from t
 vTechAInp(tech, comm, region, year, timeslice)           Auxiliary commodity input
 *@ mvTechAOut(tech, comm, region, year, timeslice)
 vTechAOut(tech, comm, region, year, timeslice)           Auxiliary commodity output
+* Storage and trade retirement / legacy-fleet variables. These are
+* NON-NEGATIVE, as GLPK declares them: a free retirement variable can go
+* negative, which un-retires capacity and creates it from nothing.
+vStorageOutStockCap(stg, region, year)    Surviving exogenous (legacy) capacity
+vStorageOutRetiredStock(stg, region, year)        Early retired storage Out stock
+vStorageOutRetiredNewCap(stg, region, year, year) Early retired new storage Out capacity
+vStorageInpStockCap(stg, region, year)    Surviving exogenous (legacy) capacity
+vStorageInpRetiredStock(stg, region, year)        Early retired storage Inp stock
+vStorageInpRetiredNewCap(stg, region, year, year) Early retired new storage Inp capacity
+vStorageStgStockCap(stg, region, year)    Surviving exogenous (legacy) capacity
+vStorageStgRetiredStock(stg, region, year)        Early retired storage Stg stock
+vStorageStgRetiredNewCap(stg, region, year, year) Early retired new storage Stg capacity
+vTradeStockCap(trade, year)    Surviving exogenous (legacy) capacity
+vTradePhaseOut(trade, year)    Trade capacity reaching end of life
+vTradeStockPhaseOut(trade, year)    Exogenous trade capacity leaving on the schedule
+vTradeRetiredStock(trade, year)                     Early retired trade stock
+vTradeRetiredNewCap(trade, year, year)              Early retired new trade capacity
 ;
 variables
 *@ mTechInv(tech, region, year)
@@ -493,6 +569,8 @@ vTechInv(tech, region, year)                         Overnight investment costs
 vTechEac(tech, region, year)                         Annualized investment costs
 *@ mTechRetCost(tech, region, year)
 vTechRetCost(tech, region, year)                     Early retirement costs
+vStorageRetCost(stg, region, year)                  Storage early retirement costs
+vTradeRetCost(trade, region, year)                  Trade early retirement costs
 * mTechOMCost(tech, region, year)
 * vTechOMCost(tech, region, year)                      Sum of all operational costs is equal vTechFixom + vTechVarom (AVarom + CVarom + ActVarom)
 *@ mTechFixom(tech, region, year)
@@ -707,7 +785,19 @@ mExportRowCumUp(expp, comm)
 mExport(comm, region, year, timeslice)
 mImport(comm, region, year, timeslice)
 mStorageInpTot(comm, region, year, timeslice)
+mStorageInpCommSameTimeslice(stg, comm)
+mStorageInpCommAgg(stg, comm)
+mStorageInpCommAggTimeslice(stg, comm, timeslice, timeslicep)
+mStorageAInpCommSameTimeslice(stg, comm)
+mStorageAInpCommAgg(stg, comm)
+mStorageAInpCommAggTimeslice(stg, comm, timeslice, timeslicep)
 mStorageOutTot(comm, region, year, timeslice)
+mStorageOutCommSameTimeslice(stg, comm)
+mStorageOutCommAgg(stg, comm)
+mStorageOutCommAggTimeslice(stg, comm, timeslice, timeslicep)
+mStorageAOutCommSameTimeslice(stg, comm)
+mStorageAOutCommAgg(stg, comm)
+mStorageAOutCommAggTimeslice(stg, comm, timeslice, timeslicep)
 mTaxCost(comm, region, year)
 mSubCost(comm, region, year)
 mAggOut(comm, region, year, timeslice)
@@ -728,6 +818,8 @@ mSupReserveUp(sup, comm, region)
 
 sets
 meqTechRetiredNewCap(tech, region, year)
+meqStorageRetiredNewCap(stg, region, year)
+meqTradeRetiredNewCap(trade, year)
 meqTechSng2Sng(tech, region, comm, comm, year, timeslice)
 meqTechGrp2Sng(tech, region, group, comm, year, timeslice)
 meqTechSng2Grp(tech, region, comm, group, year, timeslice)
@@ -756,6 +848,8 @@ meqStorageOutUp(stg, comm, region, year, timeslice)
 meqStorageOutLo(stg, comm, region, year, timeslice)
 meqTradeFlowUp(trade, comm, region, region, year, timeslice)
 meqTradeFlowLo(trade, comm, region, region, year, timeslice)
+meqTradeIrAfUp(trade, comm, region, region, year, timeslice)
+meqTradeIrAfLo(trade, comm, region, region, year, timeslice)
 meqExportRowLo(expp, comm, region, year, timeslice)
 meqImportRowUp(imp, comm, region, year, timeslice)
 meqImportRowLo(imp, comm, region, year, timeslice)
@@ -905,6 +999,12 @@ eqTechAInp(tech, comm, region, year, timeslice)$mvTechAInp(tech, comm, region, y
     pTechCap2AInp(tech, comm, region, year, timeslice) / pTechCap2act(tech))$mTechCap2AInp(tech, comm, region, year, timeslice) +
   (vTechNewCap(tech, region, year) *
     pTechNCap2AInp(tech, comm, region, year, timeslice))$mTechNCap2AInp(tech, comm, region, year, timeslice) +
+  (vTechPhaseOut(tech, region, year)$mvTechPhaseOut(tech, region, year) *
+    pTechPho2AInp(tech, comm, region, year, timeslice))$mTechPho2AInp(tech, comm, region, year, timeslice) +
+  (( vTechRetiredStock(tech, region, year)$mvTechRetiredStock(tech, region, year)
+     + sum(yearp$mvTechRetiredNewCap(tech, region, yearp, year),
+           vTechRetiredNewCap(tech, region, yearp, year)) ) *
+    pTechRet2AInp(tech, comm, region, year, timeslice))$mTechRet2AInp(tech, comm, region, year, timeslice) +
   sum(commp$mTechCinp2AInp(tech, comm, commp, region, year, timeslice),
       pTechCinp2AInp(tech, comm, commp, region, year, timeslice) *
          vTechInp(tech, commp, region, year, timeslice)) +
@@ -920,6 +1020,12 @@ eqTechAOut(tech, comm, region, year, timeslice)$mvTechAOut(tech, comm, region, y
     pTechCap2AOut(tech, comm, region, year, timeslice) / pTechCap2act(tech))$mTechCap2AOut(tech, comm, region, year, timeslice) +
   (vTechNewCap(tech, region, year) *
     pTechNCap2AOut(tech, comm, region, year, timeslice))$mTechNCap2AOut(tech, comm, region, year, timeslice) +
+  (vTechPhaseOut(tech, region, year)$mvTechPhaseOut(tech, region, year) *
+    pTechPho2AOut(tech, comm, region, year, timeslice))$mTechPho2AOut(tech, comm, region, year, timeslice) +
+  (( vTechRetiredStock(tech, region, year)$mvTechRetiredStock(tech, region, year)
+     + sum(yearp$mvTechRetiredNewCap(tech, region, yearp, year),
+           vTechRetiredNewCap(tech, region, yearp, year)) ) *
+    pTechRet2AOut(tech, comm, region, year, timeslice))$mTechRet2AOut(tech, comm, region, year, timeslice) +
   sum(commp$mTechCinp2AOut(tech, comm, commp, region, year, timeslice),
       pTechCinp2AOut(tech, comm, commp, region, year, timeslice) *
          vTechInp(tech, commp, region, year, timeslice)) +
@@ -1002,25 +1108,25 @@ eqTechAfsUp(tech, region, year, timeslice)$meqTechAfsUp(tech, region, year, time
 
 * Ramp Up factor - new mapping
 eqTechRampUp(tech, region, year, timeslice, timeslicep)$mTechRampUp(tech, region, year, timeslice, timeslicep)..
-         vTechAct(tech, region, year, timeslice) / pTimesliceShare(timeslice)
-         - vTechAct(tech, region, year, timeslicep) / pTimesliceShare(timeslicep)
-         =l=
-         pTimesliceShare(timeslice) * pTechCap2act(tech)
-*         * pYearFraction(year)
-         / pTechRampUp(tech, region, year, timeslice)
-*         * pYearFraction(year)
-         * pTechCap2act(tech) * vTechCap(tech, region, year);
-
-* Ramp Down factor - new mapping
-eqTechRampDown(tech, region, year, timeslice, timeslicep)$mTechRampDown(tech, region, year, timeslice, timeslicep)..
          vTechAct(tech, region, year, timeslicep) / pTimesliceShare(timeslicep)
          - vTechAct(tech, region, year, timeslice) / pTimesliceShare(timeslice)
          =l=
          pTimesliceShare(timeslice) * pTechCap2act(tech)
 *         * pYearFraction(year)
+         / pTechRampUp(tech, region, year, timeslice)
+*         * pYearFraction(year)
+         * vTechCap(tech, region, year);
+
+* Ramp Down factor - new mapping
+eqTechRampDown(tech, region, year, timeslice, timeslicep)$mTechRampDown(tech, region, year, timeslice, timeslicep)..
+         vTechAct(tech, region, year, timeslice) / pTimesliceShare(timeslice)
+         - vTechAct(tech, region, year, timeslicep) / pTimesliceShare(timeslicep)
+         =l=
+         pTimesliceShare(timeslice) * pTechCap2act(tech)
+*         * pYearFraction(year)
          / pTechRampDown(tech, region, year, timeslice)
 *         * pYearFraction(year)
-         * pTechCap2act(tech) * vTechCap(tech, region, year);
+         * vTechCap(tech, region, year);
 
 ********************************************************************************
 *** Connect activity with output
@@ -1113,8 +1219,8 @@ eqTechCapLo(tech, region, year)      Technology capacity lower bound
 eqTechCapUp(tech, region, year)      Technology capacity upper bound
 eqTechNewCapLo(tech, region, year)   Lower bound on new capacity
 eqTechNewCapUp(tech, region, year)   Upper bound on new capacity
-eqTechRetiredStock(tech, region, year)    Retirement of existing capacity
-eqTechRetiredStockCum(tech, region, year) Cumulative retirement of existing capacity
+eqTechStockCap(tech, region, year)        Recursive balance of the legacy fleet
+eqTechStockPhaseOut(tech, region, year)   Legacy capacity leaving on the exogenous schedule
 eqTechRetiredNewCap(tech, region, year)   Retirement of new capacity
 eqTechRetLo(tech, region, year)    Lower bound on economic retirement of capacity
 eqTechRetUp(tech, region, year)    Upper bound on economic retirement of capacity
@@ -1125,14 +1231,36 @@ eqTechInv(tech, region, year)             Technology overnight investment costs
 eqTechFixom(tech, region, year)        Technology fixed costs
 eqTechVarom(tech, region, year)   Technology variable costs
 eqTechRetCost(tech, region, year)  Costs of retired capacity of technology
+eqTechPhaseOut(tech, region, year)   Capacity reaching the end of its operational life
+eqStoragePhaseOut(stg, region, year) Storage capacity reaching the end of its operational life
+eqStorageStockPhaseOut(stg, region, year) Exogenous storage capacity leaving on the schedule
+eqStorageOutStockCap(stg, region, year)   Recursive balance of the exogenous (legacy) fleet
+eqStorageOutRetiredNewCap(stg, region, year)   Retirement of new storage Out capacity
+eqStorageOutRetUp(stg, region, year)           Upper bound on retirement of storage Out capacity
+eqStorageOutRetLo(stg, region, year)           Lower bound on retirement of storage Out capacity
+eqStorageInpStockCap(stg, region, year)   Recursive balance of the exogenous (legacy) fleet
+eqStorageInpRetiredNewCap(stg, region, year)   Retirement of new storage Inp capacity
+eqStorageInpRetUp(stg, region, year)           Upper bound on retirement of storage Inp capacity
+eqStorageInpRetLo(stg, region, year)           Lower bound on retirement of storage Inp capacity
+eqStorageStgStockCap(stg, region, year)   Recursive balance of the exogenous (legacy) fleet
+eqStorageStgRetiredNewCap(stg, region, year)   Retirement of new storage Stg capacity
+eqStorageStgRetUp(stg, region, year)           Upper bound on retirement of storage Stg capacity
+eqStorageStgRetLo(stg, region, year)           Lower bound on retirement of storage Stg capacity
+eqStorageRetCost(stg, region, year)  Costs of retired storage capacity
+eqTradeStockCap(trade, year)   Recursive balance of the exogenous (legacy) fleet
+eqTradePhaseOut(trade, year)   Trade capacity reaching the end of its operational life
+eqTradeStockPhaseOut(trade, year) Exogenous trade capacity leaving on the schedule
+eqTradeRetiredNewCap(trade, year)    Retirement of new trade capacity
+eqTradeRetUp(trade, year)            Upper bound on retirement of trade capacity
+eqTradeRetLo(trade, year)            Lower bound on retirement of trade capacity
+eqTradeRetCost(trade, region, year)  Costs of retired trade capacity
 ;
 
 * Capacity equations
 eqTechCap(tech, region, year)$mTechSpan(tech, region, year)..
          vTechCap(tech, region, year)
          =e=
-         pTechStock(tech, region, year) -
-         vTechRetiredStockCum(tech, region, year)$mvTechRetiredStock(tech, region, year) +
+         vTechStockCap(tech, region, year) +
          sum(yearp$(mTechNew(tech, region, yearp)
                     and
                     ordYear(year) >= ordYear(yearp)
@@ -1142,14 +1270,13 @@ eqTechCap(tech, region, year)$mTechSpan(tech, region, year)..
                      mTechOlifeInf(tech, region)
                      )
                     ),
-                 pPeriodLen(yearp) *
-                 (vTechNewCap(tech, region, yearp) -
-                   sum(yeare$(mvTechRetiredNewCap(tech, region, yearp, yeare)
+                 pPeriodLen(yearp) * vTechNewCap(tech, region, yearp)
+                 - sum(yeare$(mvTechRetiredNewCap(tech, region, yearp, yeare)
                               and
                               ordYear(year) >= ordYear(yeare)),
                        vTechRetiredNewCap(tech, region, yearp, yeare)
+                       * pPeriodLen(yeare)
                        )
-                 )
          );
 
 eqTechCapLo(tech, region, year)$mTechCapLo(tech, region, year)..
@@ -1171,27 +1298,37 @@ eqTechRetiredNewCap(tech, region, year)$meqTechRetiredNewCap(tech, region, year)
          =l=
          vTechNewCap(tech, region, year) * pPeriodLen(year);
 
-* Cumulative retirement of existing capacity
-eqTechRetiredStockCum(tech, region, year)$mvTechRetiredStock(tech, region, year)..
-         vTechRetiredStockCum(tech, region, year) =l= pTechStock(tech, region, year);
+* The legacy fleet, as a recursive balance. `pTechStockSurv` thins whatever is
+* ACTUALLY standing (post-retirement), so a declining schedule can never demand
+* more capacity than exists and can never block early retirement -- the defect
+* of the cumulative form this replaces. `vTechRetiredStock` is now a direct
+* decision variable; vTechStockCap >= 0 is what keeps it inside the fleet.
+eqTechStockCap(tech, region, year)$mTechSpan(tech, region, year)..
+         vTechStockCap(tech, region, year) =e=
+         pTechStockSurv(tech, region, year) *
+         sum(yearp$(mMilestoneNext(yearp, year) and mTechSpan(tech, region, yearp)),
+             vTechStockCap(tech, region, yearp))
+         + pTechStockNew(tech, region, year)
+         - vTechRetiredStock(tech, region, year)$mvTechRetiredStock(tech, region, year)
+           * pPeriodLen(year);
 
-eqTechRetiredStock(tech, region, year)$mvTechRetiredStock(tech, region, year)..
-         vTechRetiredStock(tech, region, year) * pPeriodLen(year)  =e=
-         vTechRetiredStockCum(tech, region, year) -
-         sum(yearp$mMilestoneNext(yearp, year),
-             vTechRetiredStockCum(tech, region, yearp)
-          );
+* What the schedule actually removed -- reported, and the driver of pho2a*.
+eqTechStockPhaseOut(tech, region, year)$mvTechPhaseOut(tech, region, year)..
+         vTechStockPhaseOut(tech, region, year) * pPeriodLen(year) =e=
+         (1 - pTechStockSurv(tech, region, year)) *
+         sum(yearp$(mMilestoneNext(yearp, year) and mTechSpan(tech, region, yearp)),
+             vTechStockCap(tech, region, yearp));
 
 eqTechRetUp(tech, region, year)$mTechRetUp(tech, region, year)..
          vTechRetiredStock(tech, region, year)$mvTechRetiredStock(tech, region, year)
-         + sum(yearp$mvTechRetiredNewCap(tech, region, year, yearp),
-               vTechRetiredNewCap(tech, region, year, yearp))
+         + sum(yearp$mvTechRetiredNewCap(tech, region, yearp, year),
+               vTechRetiredNewCap(tech, region, yearp, year))
          =l= pTechRetUp(tech, region, year) * pPeriodLen(year);
 
 eqTechRetLo(tech, region, year)$mTechRetLo(tech, region, year)..
          vTechRetiredStock(tech, region, year)$mvTechRetiredStock(tech, region, year)
-         + sum(yearp$mvTechRetiredNewCap(tech, region, year, yearp),
-               vTechRetiredNewCap(tech, region, year, yearp))
+         + sum(yearp$mvTechRetiredNewCap(tech, region, yearp, year),
+               vTechRetiredNewCap(tech, region, yearp, year))
          =g= pTechRetLo(tech, region, year) * pPeriodLen(year);
 
 * Costs of early retirement
@@ -1205,6 +1342,197 @@ eqTechRetCost(tech, region, year)$mTechRetCost(tech, region, year)..
               pTechRetCost(tech, region, year)
               * vTechRetiredNewCap(tech, region, yearp, year)$mvTechRetiredNewCap(tech, region, yearp, year)
               );
+
+* End-of-life departure = capacity that left between milestones, minus what left
+* because it was retired early. `max(0, dStock)` covers exogenous stock that
+* APPEARS mid-horizon -- an inflow, not a phase-out; without it the residual
+* goes negative and the model is infeasible.
+eqTechPhaseOut(tech, region, year)$mvTechPhaseOut(tech, region, year)..
+    vTechPhaseOut(tech, region, year) * pPeriodLen(year) =e=
+    sum(yearp$(mMilestoneNext(yearp, year) and mTechSpan(tech, region, yearp)),
+        vTechCap(tech, region, yearp))
+    - vTechCap(tech, region, year)
+    + vTechNewCap(tech, region, year)$mTechNew(tech, region, year) * pPeriodLen(year)
+    - ( vTechRetiredStock(tech, region, year)$mvTechRetiredStock(tech, region, year)
+        + sum(yearp$mvTechRetiredNewCap(tech, region, yearp, year),
+              vTechRetiredNewCap(tech, region, yearp, year))
+      ) * pPeriodLen(year)
+    + pTechStockNew(tech, region, year);
+
+eqStoragePhaseOut(stg, region, year)$mvStoragePhaseOut(stg, region, year)..
+    vStoragePhaseOut(stg, region, year) * pPeriodLen(year) =e=
+    sum(yearp$(mMilestoneNext(yearp, year) and mStorageSpan(stg, region, yearp)),
+        vStorageOutCap(stg, region, yearp))
+    - vStorageOutCap(stg, region, year)
+    + vStorageOutNewCap(stg, region, year)$mStorageNew(stg, region, year) * pPeriodLen(year)
+    - ( vStorageOutRetiredStock(stg, region, year)$mvStorageRetiredStock(stg, region, year)
+        + sum(yearp$mvStorageRetiredNewCap(stg, region, yearp, year),
+              vStorageOutRetiredNewCap(stg, region, yearp, year))
+      ) * pPeriodLen(year)
+    + pStorageOutStockNew(stg, region, year);
+
+eqStorageStockPhaseOut(stg, region, year)$mvStoragePhaseOut(stg, region, year)..
+         vStorageStockPhaseOut(stg, region, year) * pPeriodLen(year) =e=
+         (1 - pStorageOutStockSurv(stg, region, year)) *
+         sum(yearp$(mMilestoneNext(yearp, year) and mStorageSpan(stg, region, yearp)),
+             vStorageOutStockCap(stg, region, yearp));
+
+
+* --- storage Out part: early retirement ---
+eqStorageOutRetiredNewCap(stg, region, year)$meqStorageRetiredNewCap(stg, region, year)..
+    sum(yearp$mvStorageRetiredNewCap(stg, region, year, yearp),
+         vStorageOutRetiredNewCap(stg, region, year, yearp) * pPeriodLen(yearp))
+         =l=
+         vStorageOutNewCap(stg, region, year) * pPeriodLen(year);
+
+eqStorageOutStockCap(stg, region, year)$mStorageSpan(stg, region, year)..
+         vStorageOutStockCap(stg, region, year) =e=
+         pStorageOutStockSurv(stg, region, year) *
+         sum(yearp$(mMilestoneNext(yearp, year) and mStorageSpan(stg, region, yearp)),
+             vStorageOutStockCap(stg, region, yearp))
+         + pStorageOutStockNew(stg, region, year)
+         - vStorageOutRetiredStock(stg, region, year)$mvStorageRetiredStock(stg, region, year)
+           * pPeriodLen(year);
+
+eqStorageOutRetUp(stg, region, year)$mStorageOutRetUp(stg, region, year)..
+         vStorageOutRetiredStock(stg, region, year)$mvStorageRetiredStock(stg, region, year)
+         + sum(yearp$mvStorageRetiredNewCap(stg, region, yearp, year),
+               vStorageOutRetiredNewCap(stg, region, yearp, year))
+         =l= pStorageOutRetUp(stg, region, year) * pPeriodLen(year);
+
+eqStorageOutRetLo(stg, region, year)$mStorageOutRetLo(stg, region, year)..
+         vStorageOutRetiredStock(stg, region, year)$mvStorageRetiredStock(stg, region, year)
+         + sum(yearp$mvStorageRetiredNewCap(stg, region, yearp, year),
+               vStorageOutRetiredNewCap(stg, region, yearp, year))
+         =g= pStorageOutRetLo(stg, region, year) * pPeriodLen(year);
+
+* --- storage Inp part: early retirement ---
+eqStorageInpRetiredNewCap(stg, region, year)$meqStorageRetiredNewCap(stg, region, year)..
+    sum(yearp$mvStorageRetiredNewCap(stg, region, year, yearp),
+         vStorageInpRetiredNewCap(stg, region, year, yearp) * pPeriodLen(yearp))
+         =l=
+         vStorageInpNewCap(stg, region, year) * pPeriodLen(year);
+
+eqStorageInpStockCap(stg, region, year)$mStorageInpCap(stg, region, year)..
+         vStorageInpStockCap(stg, region, year) =e=
+         pStorageInpStockSurv(stg, region, year) *
+         sum(yearp$(mMilestoneNext(yearp, year) and mStorageInpCap(stg, region, yearp)),
+             vStorageInpStockCap(stg, region, yearp))
+         + pStorageInpStockNew(stg, region, year)
+         - vStorageInpRetiredStock(stg, region, year)$mvStorageRetiredStock(stg, region, year)
+           * pPeriodLen(year);
+
+eqStorageInpRetUp(stg, region, year)$mStorageInpRetUp(stg, region, year)..
+         vStorageInpRetiredStock(stg, region, year)$mvStorageRetiredStock(stg, region, year)
+         + sum(yearp$mvStorageRetiredNewCap(stg, region, yearp, year),
+               vStorageInpRetiredNewCap(stg, region, yearp, year))
+         =l= pStorageInpRetUp(stg, region, year) * pPeriodLen(year);
+
+eqStorageInpRetLo(stg, region, year)$mStorageInpRetLo(stg, region, year)..
+         vStorageInpRetiredStock(stg, region, year)$mvStorageRetiredStock(stg, region, year)
+         + sum(yearp$mvStorageRetiredNewCap(stg, region, yearp, year),
+               vStorageInpRetiredNewCap(stg, region, yearp, year))
+         =g= pStorageInpRetLo(stg, region, year) * pPeriodLen(year);
+
+* --- storage Stg part: early retirement ---
+eqStorageStgRetiredNewCap(stg, region, year)$meqStorageRetiredNewCap(stg, region, year)..
+    sum(yearp$mvStorageRetiredNewCap(stg, region, year, yearp),
+         vStorageStgRetiredNewCap(stg, region, year, yearp) * pPeriodLen(yearp))
+         =l=
+         vStorageStgNewCap(stg, region, year) * pPeriodLen(year);
+
+eqStorageStgStockCap(stg, region, year)$mStorageStgCap(stg, region, year)..
+         vStorageStgStockCap(stg, region, year) =e=
+         pStorageStgStockSurv(stg, region, year) *
+         sum(yearp$(mMilestoneNext(yearp, year) and mStorageStgCap(stg, region, yearp)),
+             vStorageStgStockCap(stg, region, yearp))
+         + pStorageStgStockNew(stg, region, year)
+         - vStorageStgRetiredStock(stg, region, year)$mvStorageRetiredStock(stg, region, year)
+           * pPeriodLen(year);
+
+eqStorageStgRetUp(stg, region, year)$mStorageStgRetUp(stg, region, year)..
+         vStorageStgRetiredStock(stg, region, year)$mvStorageRetiredStock(stg, region, year)
+         + sum(yearp$mvStorageRetiredNewCap(stg, region, yearp, year),
+               vStorageStgRetiredNewCap(stg, region, yearp, year))
+         =l= pStorageStgRetUp(stg, region, year) * pPeriodLen(year);
+
+eqStorageStgRetLo(stg, region, year)$mStorageStgRetLo(stg, region, year)..
+         vStorageStgRetiredStock(stg, region, year)$mvStorageRetiredStock(stg, region, year)
+         + sum(yearp$mvStorageRetiredNewCap(stg, region, yearp, year),
+               vStorageStgRetiredNewCap(stg, region, yearp, year))
+         =g= pStorageStgRetLo(stg, region, year) * pPeriodLen(year);
+
+* One retirement-cost variable per storage, summed over the three parts --
+* the shape eqStorageEac uses for the annuity.
+eqStorageRetCost(stg, region, year)$mStorageRetCost(stg, region, year)..
+         vStorageRetCost(stg, region, year) =e=
+        pStorageOutRetCost(stg, region, year)
+        * (vStorageOutRetiredStock(stg, region, year)$mvStorageRetiredStock(stg, region, year)
+           + sum(yearp$mvStorageRetiredNewCap(stg, region, yearp, year),
+                 vStorageOutRetiredNewCap(stg, region, yearp, year)))
+        +
+        pStorageInpRetCost(stg, region, year)
+        * (vStorageInpRetiredStock(stg, region, year)$mvStorageRetiredStock(stg, region, year)
+           + sum(yearp$mvStorageRetiredNewCap(stg, region, yearp, year),
+                 vStorageInpRetiredNewCap(stg, region, yearp, year)))
+        +
+        pStorageStgRetCost(stg, region, year)
+        * (vStorageStgRetiredStock(stg, region, year)$mvStorageRetiredStock(stg, region, year)
+           + sum(yearp$mvStorageRetiredNewCap(stg, region, yearp, year),
+                 vStorageStgRetiredNewCap(stg, region, yearp, year)));
+
+* --- trade: early retirement (capacity carries no region) ---
+eqTradeRetiredNewCap(trade, year)$meqTradeRetiredNewCap(trade, year)..
+    sum(yearp$mvTradeRetiredNewCap(trade, year, yearp),
+         vTradeRetiredNewCap(trade, year, yearp) * pPeriodLen(yearp))
+         =l= vTradeNewCap(trade, year) * pPeriodLen(year);
+
+eqTradeStockCap(trade, year)$mTradeSpan(trade, year)..
+         vTradeStockCap(trade, year) =e=
+         pTradeStockSurv(trade, year) *
+         sum(yearp$(mMilestoneNext(yearp, year) and mTradeSpan(trade, yearp)),
+             vTradeStockCap(trade, yearp))
+         + pTradeStockNew(trade, year)
+         - vTradeRetiredStock(trade, year)$mvTradeRetiredStock(trade, year)
+           * pPeriodLen(year);
+
+eqTradePhaseOut(trade, year)$mvTradePhaseOut(trade, year)..
+    vTradePhaseOut(trade, year) * pPeriodLen(year) =e=
+    sum(yearp$(mMilestoneNext(yearp, year) and mTradeSpan(trade, yearp)),
+        vTradeCap(trade, yearp))
+    - vTradeCap(trade, year)
+    + vTradeNewCap(trade, year) * pPeriodLen(year)
+    - ( vTradeRetiredStock(trade, year)$mvTradeRetiredStock(trade, year)
+        + sum(yearp$mvTradeRetiredNewCap(trade, yearp, year),
+              vTradeRetiredNewCap(trade, yearp, year))
+      ) * pPeriodLen(year)
+    + pTradeStockNew(trade, year);
+
+eqTradeStockPhaseOut(trade, year)$mvTradePhaseOut(trade, year)..
+    vTradeStockPhaseOut(trade, year) * pPeriodLen(year) =e=
+    (1 - pTradeStockSurv(trade, year)) *
+    sum(yearp$(mMilestoneNext(yearp, year) and mTradeSpan(trade, yearp)),
+        vTradeStockCap(trade, yearp));
+
+eqTradeRetUp(trade, year)$mTradeRetUp(trade, year)..
+         vTradeRetiredStock(trade, year)$mvTradeRetiredStock(trade, year)
+         + sum(yearp$mvTradeRetiredNewCap(trade, yearp, year),
+               vTradeRetiredNewCap(trade, yearp, year))
+         =l= pTradeRetUp(trade, year) * pPeriodLen(year);
+
+eqTradeRetLo(trade, year)$mTradeRetLo(trade, year)..
+         vTradeRetiredStock(trade, year)$mvTradeRetiredStock(trade, year)
+         + sum(yearp$mvTradeRetiredNewCap(trade, yearp, year),
+               vTradeRetiredNewCap(trade, yearp, year))
+         =g= pTradeRetLo(trade, year) * pPeriodLen(year);
+
+eqTradeRetCost(trade, region, year)$mTradeRetCost(trade, region, year)..
+         vTradeRetCost(trade, region, year) =e=
+         pTradeRetCost(trade, region, year)
+         * (vTradeRetiredStock(trade, year)$mvTradeRetiredStock(trade, year)
+            + sum(yearp$mvTradeRetiredNewCap(trade, yearp, year),
+                  vTradeRetiredNewCap(trade, yearp, year)));
+
 
 * Technology Equivalent Annual Cost (EAC)
 * [eac-fix] vintaged new-capacity form active (pTechEac applies to NEW capacity only)
@@ -1246,15 +1574,7 @@ eqTechEac(tech, region, year)$mTechEac(tech, region, year)..
                        )
                 )
               );
-$ontext
-* [eac-fix] simplified "EAC for existing capacity" form disabled:
-eqTechEac(tech, region, year)$mTechSpan(tech, region, year)..
-         vTechEac(tech, region, year)
-* rewritten to include EAC for existing capacity
-         =e=
-         pTechEac(tech, region, year) * vTechCap(tech, region, year)
-;
-$offtext
+* [moved] * [eac-fix] simplified "EAC for existing capacity" form disa -- see drafts/gams-disabled-equations.gms
 
 * Investment equation
 eqTechInv(tech, region, year)$mTechInv(tech, region, year)..
@@ -1264,43 +1584,7 @@ eqTechInv(tech, region, year)$mTechInv(tech, region, year)..
         pTechInvcost(tech, region, year) * vTechNewCap(tech, region, year);
 
 
-$ontext
-* Annual O&M costs
-eqTechOMCost(tech, region, year)$mTechOMCost(tech, region, year)..
-        vTechOMCost(tech, region, year)
-        =e=
-*        pYearFraction(year) *
-        pTechFixom(tech, region, year) * vTechCap(tech, region, year) +
-        sum(timeslice$mTechTimeslice(tech, timeslice),
-            pTechVarom(tech, region, year, timeslice)
-            * pTimesliceWeight(year, timeslice)
-            * vTechAct(tech, region, year, timeslice) +
-            sum(comm$mTechInpComm(tech, comm),
-                pTechCvarom(tech, comm, region, year, timeslice)
-                * pTimesliceWeight(year, timeslice)
-                * vTechInp(tech, comm, region, year, timeslice)
-            )
-            +
-            sum(comm$mTechOutComm(tech, comm),
-                pTechCvarom(tech, comm, region, year, timeslice)
-                * pTimesliceWeight(year, timeslice)
-                * vTechOut(tech, comm, region, year, timeslice)
-            )
-            +
-            sum(comm$mvTechAOut(tech, comm, region, year, timeslice),
-                pTechAvarom(tech, comm, region, year, timeslice)
-                * pTimesliceWeight(year, timeslice)
-                * vTechAOut(tech, comm, region, year, timeslice)
-            )
-            +
-            sum(comm$mvTechAInp(tech, comm, region, year, timeslice),
-                pTechAvarom(tech, comm, region, year, timeslice)
-                * pTimesliceWeight(year, timeslice)
-                * vTechAInp(tech, comm, region, year, timeslice)
-            )
-         );
-*         / pYearFraction(year) ;
-$offtext
+* [moved] * Annual O&M costs -- see drafts/gams-disabled-equations.gms
 * Fixed O&M costs
 *mTechFixom(tech, region, year) = mTechSpan(tech, region, year);
 eqTechFixom(tech, region, year)$mTechFixom(tech, region, year)..
@@ -1463,7 +1747,7 @@ eqStorageAfUp(stg, comm, region, year, timeslice)   Storage availability factor 
 * [rename] eqStorageClear -> eqStorageOutLevel 2026-08-19. "Clear" said nothing;
 * the equation bounds vStorageOut by the level available. It takes no Lo/Up
 * suffix because that marks a PAIRED bound (a .lo and .up from one parameter) --
-* cf. eqTradeCapFlow, eqTechRetiredStockCum. There is no "discharge at least the
+* cf. eqTradeCapFlow, eqTechRetUp/Lo. There is no "discharge at least the
 * level". The dead eqStorageClean placeholder alongside it is removed.
 eqStorageOutLevel(stg, comm, region, year, timeslice)  Storage output limited by the level
 eqStorageAInp(stg, comm, region, year, timeslice)   Storage aux-commodity input
@@ -1498,6 +1782,14 @@ eqStorageAInp(stg, comm, region, year, timeslice)$mvStorageAInp(stg, comm, regio
       + (pStorageNCap2AInp(stg, comm, region, year, timeslice)
            * vStorageOutNewCap(stg, region, year)
         )$mStorageNCap2AInp(stg, comm, region, year, timeslice)
+      + (pStoragePho2AInp(stg, comm, region, year, timeslice)
+           * vStoragePhaseOut(stg, region, year)$mvStoragePhaseOut(stg, region, year)
+        )$mStoragePho2AInp(stg, comm, region, year, timeslice)
+      + (pStorageRet2AInp(stg, comm, region, year, timeslice)
+           * ( vStorageOutRetiredStock(stg, region, year)$mvStorageRetiredStock(stg, region, year)
+       + sum(yearp$mvStorageRetiredNewCap(stg, region, yearp, year),
+             vStorageOutRetiredNewCap(stg, region, yearp, year)) )
+        )$mStorageRet2AInp(stg, comm, region, year, timeslice)
     ;
 
 eqStorageAOut(stg, comm, region, year, timeslice)$mvStorageAOut(stg, comm, region, year, timeslice)..
@@ -1529,6 +1821,14 @@ eqStorageAOut(stg, comm, region, year, timeslice)$mvStorageAOut(stg, comm, regio
       (pStorageNCap2AOut(stg, comm, region, year, timeslice)
        * vStorageOutNewCap(stg, region, year)
       )$mStorageNCap2AOut(stg, comm, region, year, timeslice)
+      + (pStoragePho2AOut(stg, comm, region, year, timeslice)
+           * vStoragePhaseOut(stg, region, year)$mvStoragePhaseOut(stg, region, year)
+        )$mStoragePho2AOut(stg, comm, region, year, timeslice)
+      + (pStorageRet2AOut(stg, comm, region, year, timeslice)
+           * ( vStorageOutRetiredStock(stg, region, year)$mvStorageRetiredStock(stg, region, year)
+       + sum(yearp$mvStorageRetiredNewCap(stg, region, yearp, year),
+             vStorageOutRetiredNewCap(stg, region, yearp, year)) )
+        )$mStorageRet2AOut(stg, comm, region, year, timeslice)
 ;
 
 * timeslicep == timeslice[-1]
@@ -1602,10 +1902,10 @@ eqStorageInpUp(stg, comm, region, year, timeslice)$meqStorageInpUp(stg, comm, re
        )$mStorageNoInpCap(stg, region, year))
 *   [rate] capacity is per HOUR, not per timeslice -- see pStorageInpCap2act
     * pStorageInpCap2act(stg) * pTimesliceShare(timeslice)
-    * pStorageCinpUp(stg, comm, region, year, timeslice)
+    * pStorageInpAfUp(stg, comm, region, year, timeslice)
 *         * pTimesliceShare(timeslice) *
-    * prod(weather$mStorageWeatherCinpUp(weather, stg),
-           pStorageWeatherCinpUp(weather, stg)
+    * prod(weather$mStorageWeatherInpAfUp(weather, stg),
+           pStorageWeatherInpAfUp(weather, stg)
            * pWeather(weather, region, year, timeslice));
 
 eqStorageInpLo(stg, comm, region, year, timeslice)$meqStorageInpLo(stg, comm, region, year, timeslice)..
@@ -1617,10 +1917,10 @@ eqStorageInpLo(stg, comm, region, year, timeslice)$meqStorageInpLo(stg, comm, re
        )$mStorageNoInpCap(stg, region, year))
 *   [rate] capacity is per HOUR, not per timeslice -- see pStorageInpCap2act
     * pStorageInpCap2act(stg) * pTimesliceShare(timeslice)
-    * pStorageCinpLo(stg, comm, region, year, timeslice)
+    * pStorageInpAfLo(stg, comm, region, year, timeslice)
 *    * pTimesliceShare(timeslice)
-    * prod(weather$mStorageWeatherCinpLo(weather, stg),
-           pStorageWeatherCinpLo(weather, stg)
+    * prod(weather$mStorageWeatherInpAfLo(weather, stg),
+           pStorageWeatherInpAfLo(weather, stg)
            * pWeather(weather, region, year, timeslice));
 
 * Output constraints
@@ -1629,9 +1929,9 @@ eqStorageOutUp(stg, comm, region, year, timeslice)$meqStorageOutUp(stg, comm, re
 *    pStorageDuration(stg) *
     vStorageOutCap(stg, region, year)
     * pStorageOutCap2act(stg) * pTimesliceShare(timeslice)
-    * pStorageCoutUp(stg, comm, region, year, timeslice)
-    * prod(weather$mStorageWeatherCoutUp(weather, stg),
-           pStorageWeatherCoutUp(weather, stg)
+    * pStorageOutAfUp(stg, comm, region, year, timeslice)
+    * prod(weather$mStorageWeatherOutAfUp(weather, stg),
+           pStorageWeatherOutAfUp(weather, stg)
            * pWeather(weather, region, year, timeslice));
 
 eqStorageOutLo(stg, comm, region, year, timeslice)$meqStorageOutLo(stg, comm, region, year, timeslice)..
@@ -1639,9 +1939,9 @@ eqStorageOutLo(stg, comm, region, year, timeslice)$meqStorageOutLo(stg, comm, re
 *    pStorageDuration(stg) *
     vStorageOutCap(stg, region, year)
     * pStorageOutCap2act(stg) * pTimesliceShare(timeslice)
-    * pStorageCoutLo(stg, comm, region, year, timeslice)
-    * prod(weather$mStorageWeatherCoutLo(weather, stg),
-           pStorageWeatherCoutLo(weather, stg)
+    * pStorageOutAfLo(stg, comm, region, year, timeslice)
+    * prod(weather$mStorageWeatherOutAfLo(weather, stg),
+           pStorageWeatherOutAfLo(weather, stg)
            * pWeather(weather, region, year, timeslice));
 
 ********************************************************************************
@@ -1649,7 +1949,7 @@ eqStorageOutLo(stg, comm, region, year, timeslice)$meqStorageOutLo(stg, comm, re
 ********************************************************************************
 Equation
 * Capacity equations
-eqStorageCap(stg, region, year)       Storage capacity
+eqStorageOutCap(stg, region, year)       Storage capacity
 eqStorageInpCap(stg, region, year)      Storage charging capacity accounting
 eqStorageInpCapLo(stg, region, year)    Storage charging capacity lower bound
 eqStorageInpCapUp(stg, region, year)    Storage charging capacity upper bound
@@ -1664,10 +1964,10 @@ eqStorageStgNewCapLo(stg, region, year) Storage new energy capacity lower bound
 eqStorageStgNewCapUp(stg, region, year) Storage new energy capacity upper bound
 eqStorageDurationLo(stg, region, year)  Storage energy-to-power ratio lower bound
 eqStorageDurationUp(stg, region, year)  Storage energy-to-power ratio upper bound
-eqStorageCapLo(stg, region, year)     Storage capacity lower bound
-eqStorageCapUp(stg, region, year)     Storage capacity upper bound
-eqStorageNewCapLo(stg, region, year)  Storage new capacity lower bound
-eqStorageNewCapUp(stg, region, year)  Storage new capacity upper bound
+eqStorageOutCapLo(stg, region, year)     Storage capacity lower bound
+eqStorageOutCapUp(stg, region, year)     Storage capacity upper bound
+eqStorageOutNewCapLo(stg, region, year)  Storage new capacity lower bound
+eqStorageOutNewCapUp(stg, region, year)  Storage new capacity upper bound
 * Investment equation
 eqStorageInv(stg, region, year)       Storage overnight investment costs
 eqStorageEac(stg, region, year)       Storage equivalent annual cost
@@ -1679,10 +1979,10 @@ eqStorageVarom(stg, region, year)    Storage variable costs
 ;
 
 * Capacity equation
-eqStorageCap(stg, region, year)$mStorageSpan(stg, region, year)..
+eqStorageOutCap(stg, region, year)$mStorageSpan(stg, region, year)..
          vStorageOutCap(stg, region, year)
          =e=
-         pStorageStock(stg, region, year) +
+         vStorageOutStockCap(stg, region, year) +
          sum(yearp$(ordYear(year) >= ordYear(yearp)
                     and
                     (mStorageOlifeInf(stg, region)
@@ -1692,8 +1992,11 @@ eqStorageCap(stg, region, year)$mStorageSpan(stg, region, year)..
                     and
                      mStorageNew(stg, region, yearp)
                  ),
-                 pPeriodLen(yearp) *
-                 vStorageOutNewCap(stg, region, yearp)
+                 pPeriodLen(yearp) * vStorageOutNewCap(stg, region, yearp)
+                 - sum(yeare$(mvStorageRetiredNewCap(stg, region, yearp, yeare)
+                              and ordYear(year) >= ordYear(yeare)),
+                       vStorageOutRetiredNewCap(stg, region, yearp, yeare)
+                       * pPeriodLen(yeare))
          );
 
 * [2c] The CHARGING side has its own capacity, in power, rated independently
@@ -1702,12 +2005,15 @@ eqStorageCap(stg, region, year)$mStorageSpan(stg, region, year)..
 eqStorageInpCap(stg, region, year)$mStorageInpCap(stg, region, year)..
   vStorageInpCap(stg, region, year)
   =e=
-  pStorageInpStock(stg, region, year)
-  + sum(yearp$(ord(year) >= ord(yearp)
+  vStorageInpStockCap(stg, region, year) + sum(yearp$(ord(year) >= ord(yearp)
         and (mStorageOlifeInf(stg, region)
              or ord(year) < pStorageOlife(stg, region) + ord(yearp))
         and mStorageInpNew(stg, region, yearp)),
-      pPeriodLen(yearp) * vStorageInpNewCap(stg, region, yearp));
+      pPeriodLen(yearp) * vStorageInpNewCap(stg, region, yearp)
+        - sum(yeare$(mvStorageRetiredNewCap(stg, region, yearp, yeare)
+                    and ord(year) >= ord(yeare)),
+              vStorageInpRetiredNewCap(stg, region, yearp, yeare)
+              * pPeriodLen(yeare)));
 
 eqStorageInpCapLo(stg, region, year)$mStorageInpCapLo(stg, region, year)..
   vStorageInpCap(stg, region, year) =g= pStorageInpCapLo(stg, region, year);
@@ -1733,12 +2039,15 @@ eqStorageInp2outUp(stg, region, year)$mStorageInp2outUp(stg, region, year)..
 eqStorageStgCap(stg, region, year)$mStorageStgCap(stg, region, year)..
   vStorageStgCap(stg, region, year)
   =e=
-  pStorageStgStock(stg, region, year)
-  + sum(yearp$(ord(year) >= ord(yearp)
+  vStorageStgStockCap(stg, region, year) + sum(yearp$(ord(year) >= ord(yearp)
         and (mStorageOlifeInf(stg, region)
              or ord(year) < pStorageOlife(stg, region) + ord(yearp))
         and mStorageStgNew(stg, region, yearp)),
-      pPeriodLen(yearp) * vStorageStgNewCap(stg, region, yearp));
+      pPeriodLen(yearp) * vStorageStgNewCap(stg, region, yearp)
+        - sum(yeare$(mvStorageRetiredNewCap(stg, region, yearp, yeare)
+                    and ord(year) >= ord(yeare)),
+              vStorageStgRetiredNewCap(stg, region, yearp, yeare)
+              * pPeriodLen(yeare)));
 
 eqStorageStgCapLo(stg, region, year)$mStorageStgCapLo(stg, region, year)..
   vStorageStgCap(stg, region, year) =g= pStorageStgCapLo(stg, region, year);
@@ -1759,23 +2068,23 @@ eqStorageDurationLo(stg, region, year)$mStorageDurationLo(stg, region, year)..
 eqStorageDurationUp(stg, region, year)$mStorageDurationUp(stg, region, year)..
   vStorageStgCap(stg, region, year) =l= pStorageDurationUp(stg, region, year) * vStorageOutCap(stg, region, year);
 
-eqStorageCapLo(stg, region, year)$mStorageCapLo(stg, region, year)..
-         vStorageOutCap(stg, region, year) =g= pStorageCapLo(stg, region, year);
+eqStorageOutCapLo(stg, region, year)$mStorageOutCapLo(stg, region, year)..
+         vStorageOutCap(stg, region, year) =g= pStorageOutCapLo(stg, region, year);
 
-eqStorageCapUp(stg, region, year)$mStorageCapUp(stg, region, year)..
-          vStorageOutCap(stg, region, year) =l= pStorageCapUp(stg, region, year);
+eqStorageOutCapUp(stg, region, year)$mStorageOutCapUp(stg, region, year)..
+          vStorageOutCap(stg, region, year) =l= pStorageOutCapUp(stg, region, year);
 
-eqStorageNewCapLo(stg, region, year)$mStorageNewCapLo(stg, region, year)..
-          vStorageOutNewCap(stg, region, year) =g= pStorageNewCapLo(stg, region, year) * pPeriodLen(year);
+eqStorageOutNewCapLo(stg, region, year)$mStorageOutNewCapLo(stg, region, year)..
+          vStorageOutNewCap(stg, region, year) =g= pStorageOutNewCapLo(stg, region, year) * pPeriodLen(year);
 
-eqStorageNewCapUp(stg, region, year)$mStorageNewCapUp(stg, region, year)..
-          vStorageOutNewCap(stg, region, year) =l= pStorageNewCapUp(stg, region, year) * pPeriodLen(year);
+eqStorageOutNewCapUp(stg, region, year)$mStorageOutNewCapUp(stg, region, year)..
+          vStorageOutNewCap(stg, region, year) =l= pStorageOutNewCapUp(stg, region, year) * pPeriodLen(year);
 
 * Investment equation
 eqStorageInv(stg, region, year)$mStorageNew(stg, region, year)..
          vStorageInv(stg, region, year)
          =e=
-         pStorageInvcost(stg, region, year) *
+         pStorageOutInvcost(stg, region, year) *
          vStorageOutNewCap(stg, region, year)
 *        [2c] the storing side's capital cost is per unit of ENERGY and rides on
 *        the same investment variable; absent data, the term does not exist.
@@ -1787,7 +2096,7 @@ eqStorageInv(stg, region, year)$mStorageNew(stg, region, year)..
            )$mStorageInpNew(stg, region, year);
 
 * EAC equation
-* [eac-fix] vintaged new-capacity form active (pStorageEac applies to NEW capacity only)
+* [eac-fix] vintaged new-capacity form active (pStorageOutEac applies to NEW capacity only)
 eqStorageEac(stg, region, year)$mStorageEac(stg, region, year)..
          vStorageEac(stg, region, year)
          =e=
@@ -1795,25 +2104,25 @@ eqStorageEac(stg, region, year)$mStorageEac(stg, region, year)..
                     and ordYear(year) >= ordYear(yearp)
 *                  [payback] see eqTechEac.
                     and (
-                         (pStoragePayback(stg, region, yearp) > 0
-                          and ordYear(year) < pStoragePayback(stg, region, yearp) + ordYear(yearp))
+                         (pStorageOutPayback(stg, region, yearp) > 0
+                          and ordYear(year) < pStorageOutPayback(stg, region, yearp) + ordYear(yearp))
                          or
-                         (pStoragePayback(stg, region, yearp) <= 0
+                         (pStorageOutPayback(stg, region, yearp) <= 0
                           and (mStorageOlifeInf(stg, region)
                                or ordYear(year) < pStorageOlife(stg, region) + ordYear(yearp)
                                )
                           )
                          )
-*                  [eac-fix] the `pStorageInvcost <> 0` guard was REMOVED from the summation
+*                  [eac-fix] the `pStorageOutInvcost <> 0` guard was REMOVED from the summation
 *                  condition below. It dropped the annuity entirely when a user supplied
 *                  `@invcost$eac` without `invcost` (pre-annuitised capex, e.g. a PyPSA import),
 *                  so the storage was built for FREE -- silently, with an OPTIMAL solve.
-*                  eqTechEac / eqTradeEac never carried it. pStorageEac defaults to 0, so a
+*                  eqTechEac / eqTradeEac never carried it. pStorageOutEac defaults to 0, so a
 *                  vintage with no capital cost now contributes a zero-coefficient term instead
 *                  of being dropped from the sum.
                     ),
 *                  pYearFraction(year) *
-            (pStorageEac(stg, region, yearp)
+            (pStorageOutEac(stg, region, yearp)
 *            * pPeriodLen(yearp)
              * vStorageOutNewCap(stg, region, yearp)
              + (pStorageStgEac(stg, region, yearp)
@@ -1823,47 +2132,16 @@ eqStorageEac(stg, region, year)$mStorageEac(stg, region, year)..
                 * vStorageInpNewCap(stg, region, yearp)
                )$mStorageInpNew(stg, region, yearp))
          );
-$ontext
-* [eac-fix] simplified "EAC for existing capacity" form disabled:
-eqStorageEac(stg, region, year)$mStorageEac(stg, region, year)..
-         vStorageEac(stg, region, year)
-         =e=
-         pStorageEac(stg, region, year) * vStorageOutCap(stg, region, year);
-$offtext
+* [moved] * [eac-fix] simplified "EAC for existing capacity" form disa -- see drafts/gams-disabled-equations.gms
 
 
-$ontext
-* Fixed and Variable O&M costs
-eqStorageCost(stg, region, year)$mStorageOMCost(stg, region, year)..
-         vStorageOMCost(stg, region, year)
-         =e=
-*         pYearFraction(year) *
-         pStorageFixom(stg, region, year) * vStorageOutCap(stg, region, year)
-         +
-         sum(comm$mStorageInpComm(stg, comm),
-             sum(timeslice$mCommTimeslice(comm, timeslice),
-                 pStorageCostInp(stg, region, year, timeslice)
-                    * pTimesliceWeight(year, timeslice)
-                    * vStorageInp(stg, comm, region, year, timeslice)))
-          + sum(comm$mStorageOutComm(stg, comm),
-             sum(timeslice$mCommTimeslice(comm, timeslice),
-                 pStorageCostOut(stg, region, year, timeslice)
-                    * pTimesliceWeight(year, timeslice)
-                    * vStorageOut(stg, comm, region, year, timeslice)))
-          + sum(comm$mStorageStgComm(stg, comm),
-             sum(timeslice$mCommTimeslice(comm, timeslice),
-                 pStorageCostStore(stg, region, year, timeslice)
-                    * pTimesliceWeight(year, timeslice)
-                    * vStorageLevel(stg, comm, region, year, timeslice)
-             )
-         );
-$offtext
+* [moved] * Fixed and Variable O&M costs -- see drafts/gams-disabled-equations.gms
 * Storage fixed costs
 *!!!eqStorageFixom(stg, region, year)$mStorageFixom(stg, region, year)..
 eqStorageFixom(stg, region, year)$mStorageFixom(stg, region, year)..
          vStorageFixom(stg, region, year)
          =e=
-         pStorageFixom(stg, region, year) * vStorageOutCap(stg, region, year)
+         pStorageOutFixom(stg, region, year) * vStorageOutCap(stg, region, year)
          + (pStorageStgFixom(stg, region, year)
             * vStorageStgCap(stg, region, year)
            )$mStorageStgFixom(stg, region, year)
@@ -1904,6 +2182,8 @@ eqImportTot(comm, region, year, timeslice)             Import equation (Ir & ROW
 eqExportTot(comm, region, year, timeslice)             Export equation (Ir & ROW)
 eqTradeFlowUp(trade, comm, region, region, year, timeslice)   Trade upper bound
 eqTradeFlowLo(trade, comm, region, region, year, timeslice)   Trade lower bound
+eqTradeIrAfUp(trade, comm, region, region, year, timeslice)   Trade upper bound relative to capacity
+eqTradeIrAfLo(trade, comm, region, region, year, timeslice)   Trade lower bound relative to capacity
 *eqCostTrade(region, year)                         Total trade costs
 *eqCostRowTrade(region, year)                      Costs of trade with the Rest of the World (ROW)
 * eqCostIrTrade(region, year)                       Costs of import
@@ -1930,28 +2210,7 @@ eqImportIrCost(trade, region, year)               Interregional trade import cos
 eqExportIrCost(trade, region, year)               Interregional trade export costs
 ;
 
-$ontext
-* rewritten (dropped sum(timeslicep$mCommTimesliceOrParent...)
-* because timeframe of all one-commodity processes (sup, dem, exp, imp, ir-trd)
-* is fixed to the timeframe of commodity
-eqImportTot(comm, dst, year, timeslice)$mImport(comm, dst, year, timeslice)..
-  vImportTot(comm, dst, year, timeslice) =e=
-     sum(timeslicep$mCommTimesliceOrParent(comm, timeslice, timeslicep),
-         sum(trade$mTradeComm(trade, comm),
-             sum(src$mTradeRoutes(trade, src, dst),
-                 (pTradeIrEff(trade, src, dst, year, timeslicep)
-                  * vTradeIr(trade, comm, src, dst, year, timeslicep)
-                  )$mvTradeIr(trade, comm, src, dst, year, timeslicep)
-                 )
-            )
-         )
-     +
-     sum(timeslicep$mCommTimesliceOrParent(comm, timeslice, timeslicep),
-         sum(imp$mImpComm(imp, comm),
-             vImportRow(imp, comm, dst, year, timeslicep)$mImportRow(imp, comm, dst, year, timeslicep)
-         )
-     );
-$offtext
+* [moved] * rewritten (dropped sum(timeslicep$mCommTimesliceOrParent.. -- see drafts/gams-disabled-equations.gms
 
 eqImportTot(comm, dst, year, timeslice)$mImport(comm, dst, year, timeslice)..
   vImportTot(comm, dst, year, timeslice) =e=
@@ -1969,27 +2228,7 @@ eqImportTot(comm, dst, year, timeslice)$mImport(comm, dst, year, timeslice)..
     );
 *    ) * pTimesliceWeight(year, timeslice);
 
-$ontext
-* rewritten (dropped sum(timeslicep$mCommTimesliceOrParent...)
-* because timeframe of all one-commodity processes (sup, dem, exp, imp, ir-trd)
-* is fixed to the timeframe of commodity
-
-eqExportTot(comm, src, year, timeslice)$mExport(comm, src, year, timeslice)..
-  vExportTot(comm, src, year, timeslice)
-  =e=
-  sum(timeslicep$mCommTimesliceOrParent(comm, timeslice, timeslicep),
-      sum(trade$mTradeComm(trade, comm),
-          sum(dst$mTradeRoutes(trade, src, dst),
-              vTradeIr(trade, comm, src, dst, year, timeslicep)$mvTradeIr(trade, comm, src, dst, year, timeslicep)
-          )
-      )
-  ) +
-  sum(timeslicep$mCommTimesliceOrParent(comm, timeslice, timeslicep),
-      sum(expp$mExpComm(expp, comm),
-          vExportRow(expp, comm, src, year, timeslicep)$mExportRow(expp, comm, src, year, timeslicep)
-      )
-  );
-$offtext
+* [moved] * rewritten (dropped sum(timeslicep$mCommTimesliceOrParent.. -- see drafts/gams-disabled-equations.gms
 
 eqExportTot(comm, src, year, timeslice)$mExport(comm, src, year, timeslice)..
 
@@ -2013,100 +2252,16 @@ eqTradeFlowUp(trade, comm, src, dst, year, timeslice)$meqTradeFlowUp(trade, comm
 eqTradeFlowLo(trade, comm, src, dst, year, timeslice)$meqTradeFlowLo(trade, comm, src, dst, year, timeslice)..
       vTradeIr(trade, comm, src, dst, year, timeslice) =g= pTradeIrLo(trade, src, dst, year, timeslice);
 
-$ontext
-eqCostTrade(region, year)$mvTradeCost(region, year)..
-  vTradeCost(region, year)
-  =e=
-  vTradeRowCost(region, year)$mvTradeRowCost(region, year)
-  + vTradeIrCost(region, year)$mvTradeIrCost(region, year);
-*$offtext
+* Relative flow bounds: a fraction of the object own capacity rather than an
+* absolute quantity, so one trade object carrying several routes can rate each
+* of them. Gated, hence absent unless af is declared.
+eqTradeIrAfUp(trade, comm, src, dst, year, timeslice)$meqTradeIrAfUp(trade, comm, src, dst, year, timeslice)..
+      vTradeIr(trade, comm, src, dst, year, timeslice) =l= pTradeIrAfUp(trade, src, dst, year, timeslice) * pTradeCap2Act(trade) * vTradeCap(trade, year) * pTimesliceShare(timeslice);
 
-eqCostRowTrade(region, year)$mvTradeRowCost(region, year)..
-  vTradeRowCost(region, year)
-  =e=
-* Row
-  sum((imp, comm, timeslice)$mImportRow(imp, comm, region, year, timeslice),
-      pImportRowPrice(imp, region, year, timeslice) * pTimesliceWeight(year, timeslice)
-      * vImportRow(imp, comm, region, year, timeslice)
-  ) -
-  sum((expp, comm, timeslice)$mExportRow(expp, comm, region, year, timeslice),
-      pExportRowPrice(expp, region, year, timeslice) * pTimesliceWeight(year, timeslice)
-      * vExportRow(expp, comm, region, year, timeslice)
-  );
-*$offtext
+eqTradeIrAfLo(trade, comm, src, dst, year, timeslice)$meqTradeIrAfLo(trade, comm, src, dst, year, timeslice)..
+      vTradeIr(trade, comm, src, dst, year, timeslice) =g= pTradeIrAfLo(trade, src, dst, year, timeslice) * pTradeCap2Act(trade) * vTradeCap(trade, year) * pTimesliceShare(timeslice);
 
-eqCostIrTrade(region, year)$mvTradeIrCost(region, year)..
-  vTradeIrCost(region, year)
-  =e=
-* * Fixed O&M of stock (!!! check mTradeSpan when not mTradeCapacityVariable)
-*   sum(trade$mTradeSpan(trade, year),
-*       pTradeFixom(trade, year) * pTradeStock(trade, year) * pPeriodLen(year)
-*   )
-*   +
-* * Fixed O&M of new installations
-*   sum(trade$(mTradeSpan(trade, year) and mTradeCapacityVariable(trade)),
-*       pTradeFixom(trade, year) * (vTradeCap(trade, year) - pTradeStock(trade, year)) * pPeriodLen(year)
-*   )
-* Fixed O&M of trade
-  sum(trade$mTradeSpan(trade, year),
-      pTradeFixom(trade, region, year) * vTradeCap(trade, year) * pPeriodLen(year)
-  )
-  +
-* Eac
-  sum(trade$mTradeEac(trade, region, year),
-      vTradeEac(trade, region, year) * pPeriodLen(year)
-  )
-* Import (IR)
-  + sum((trade, src)$mTradeRoutes(trade, src, region),
-        sum(comm$mTradeComm(trade, comm),
-            sum(timeslice$mTradeTimeslice(trade, timeslice),
-                ((pTradeIrCost(trade, src, region, year, timeslice)
-                   + pTradeIrMarkup(trade, src, region, year, timeslice)
-                  ) * vTradeIr(trade, comm, src, region, year, timeslice) * pTimesliceWeight(year, timeslice) * pPeriodLen(year)
-                )$mvTradeIr(trade, comm, src, region, year, timeslice)
-            )
-        )
-    )
-* Export (IR)
-  - sum((trade, dst)$mTradeRoutes(trade, region, dst),
-        sum(comm$mTradeComm(trade, comm),
-            sum(timeslice$mTradeTimeslice(trade, timeslice),
-                ((pTradeIrCost(trade, region, dst, year, timeslice)
-                  + pTradeIrMarkup(trade, region, dst, year, timeslice)
-                  )* vTradeIr(trade, comm, region, dst, year, timeslice) * pTimesliceWeight(year, timeslice) * pPeriodLen(year)
-                 )$mvTradeIr(trade, comm, region, dst, year, timeslice)
-            )
-        )
-    );
-*$offtext
-
-* Rewritten IR-trade costs equation activity (non-capital) costs
-eqCostIrTrade(region, year)$mvTradeIrCost(region, year)..
-  vTradeIrCost(region, year)
-  =e=
-* Import (IR)
-  + sum((trade, src)$mTradeRoutes(trade, src, region),
-        sum(comm$mTradeComm(trade, comm),
-            sum(timeslice$mTradeTimeslice(trade, timeslice),
-                ((pTradeIrCost(trade, src, region, year, timeslice)
-                   + pTradeIrMarkup(trade, src, region, year, timeslice)
-                  ) * vTradeIr(trade, comm, src, region, year, timeslice) * pTimesliceWeight(year, timeslice)
-                )$mvTradeIr(trade, comm, src, region, year, timeslice)
-            )
-        )
-    )
-* Export (IR)
-  - sum((trade, dst)$mTradeRoutes(trade, region, dst),
-        sum(comm$mTradeComm(trade, comm),
-            sum(timeslice$mTradeTimeslice(trade, timeslice),
-                ((pTradeIrCost(trade, region, dst, year, timeslice)
-                  + pTradeIrMarkup(trade, region, dst, year, timeslice)
-                  ) * vTradeIr(trade, comm, region, dst, year, timeslice) * pTimesliceWeight(year, timeslice)
-                 )$mvTradeIr(trade, comm, region, dst, year, timeslice)
-            )
-        )
-    );
-$offtext
+* [moved] eqCostTrade(region, year)$mvTradeCost(region, year).. -- see drafts/gams-disabled-equations.gms
 
 * Import (IR)
 eqImportIrCost(trade, region, year)$mImportIrCost(trade, region, year)..
@@ -2115,8 +2270,7 @@ eqImportIrCost(trade, region, year)$mImportIrCost(trade, region, year)..
     sum((src)$mTradeRoutes(trade, src, region),
         sum(comm$mTradeComm(trade, comm),
             sum(timeslice$mTradeTimeslice(trade, timeslice),
-                ((pTradeIrCost(trade, src, region, year, timeslice)
-                   + pTradeIrMarkup(trade, src, region, year, timeslice)
+                ((pTradeIrMarkup(trade, src, region, year, timeslice)
                   ) * vTradeIr(trade, comm, src, region, year, timeslice) * pTimesliceWeight(year, timeslice)
                 )$mvTradeIr(trade, comm, src, region, year, timeslice)
             )
@@ -2127,11 +2281,11 @@ eqImportIrCost(trade, region, year)$mImportIrCost(trade, region, year)..
 eqExportIrCost(trade, region, year)$mExportIrCost(trade, region, year)..
   vExportIrCost(trade, region, year)
   =e=
-    - sum((dst)$mTradeRoutes(trade, region, dst),
+    sum((dst)$mTradeRoutes(trade, region, dst),
         sum(comm$mTradeComm(trade, comm),
             sum(timeslice$mTradeTimeslice(trade, timeslice),
                 ((pTradeIrCost(trade, region, dst, year, timeslice)
-                  + pTradeIrMarkup(trade, region, dst, year, timeslice)
+                  - pTradeIrMarkup(trade, region, dst, year, timeslice)
                   ) * vTradeIr(trade, comm, region, dst, year, timeslice) * pTimesliceWeight(year, timeslice)
                  )$mvTradeIr(trade, comm, region, dst, year, timeslice)
             )
@@ -2209,11 +2363,14 @@ eqTradeCapFlow(trade, comm, year, timeslice)$meqTradeCapFlow(trade, comm, year, 
 eqTradeCap(trade, year)$mTradeSpan(trade, year)..
          vTradeCap(trade, year)
          =e=
-         pTradeStock(trade, year) +
+         vTradeStockCap(trade, year) +
          sum(yearp$(mTradeNew(trade, yearp) and  ordYear(year) >= ordYear(yearp) and
                     (ordYear(year) < pTradeOlife(trade) + ordYear(yearp) or mTradeOlifeInf(trade))),
-             pPeriodLen(yearp) *
-             vTradeNewCap(trade, yearp)
+             pPeriodLen(yearp) * vTradeNewCap(trade, yearp)
+             - sum(yeare$(mvTradeRetiredNewCap(trade, yearp, yeare)
+                          and ordYear(year) >= ordYear(yeare)),
+                   vTradeRetiredNewCap(trade, yearp, yeare)
+                   * pPeriodLen(yeare))
              );
 
 eqTradeCapLo(trade, year)$mTradeCapLo(trade, year)..
@@ -2247,13 +2404,7 @@ eqTradeEac(trade, region, year)$mTradeEac(trade, region, year)..
               and (ordYear(year) < pTradeOlife(trade) + ordYear(yearp)
                    or mTradeOlifeInf(trade))))),
                 pTradeEac(trade, region, yearp) * vTradeNewCap(trade, yearp));
-$ontext
-* [eac-fix] simplified "EAC for existing capacity" form disabled:
-eqTradeEac(trade, region, year)$mTradeEac(trade, region, year)..
-         vTradeEac(trade, region, year)
-         =e=
-         pTradeEac(trade, region, year) * vTradeCap(trade, year);
-$offtext
+* [moved] * [eac-fix] simplified "EAC for existing capacity" form disa -- see drafts/gams-disabled-equations.gms
 
 
 * Fixed O&M costs
@@ -2277,13 +2428,15 @@ eqTradeIrAInp(trade, comm, region, year, timeslice)$mvTradeIrAInp(trade, comm, r
   =e=
   sum(dst$mTradeIrCsrc2Ainp(trade, comm, region, dst, year, timeslice),
       pTradeIrCsrc2Ainp(trade, comm, region, dst, year, timeslice)
-      * sum(commp$mTradeComm(trade, commp),
+      * sum(commp$(mTradeComm(trade, commp)
+                     and mvTradeIr(trade, commp, region, dst, year, timeslice)),
             vTradeIr(trade, commp, region, dst, year, timeslice)
         )
   ) +
   sum(src$mTradeIrCdst2Ainp(trade, comm, src, region, year, timeslice),
       pTradeIrCdst2Ainp(trade, comm, src, region, year, timeslice)
-      * sum(commp$mTradeComm(trade, commp),
+      * sum(commp$(mTradeComm(trade, commp)
+                     and mvTradeIr(trade, commp, src, region, year, timeslice)),
             vTradeIr(trade, commp, src, region, year, timeslice)
         )
   );
@@ -2293,13 +2446,15 @@ eqTradeIrAOut(trade, comm, region, year, timeslice)$mvTradeIrAOut(trade, comm, r
   =e=
   sum(dst$mTradeIrCsrc2Aout(trade, comm, region, dst, year, timeslice),
       pTradeIrCsrc2Aout(trade, comm, region, dst, year, timeslice)
-      * sum(commp$mTradeComm(trade, commp),
+      * sum(commp$(mTradeComm(trade, commp)
+                     and mvTradeIr(trade, commp, region, dst, year, timeslice)),
             vTradeIr(trade, commp, region, dst, year, timeslice)
         )
   ) +
   sum(src$mTradeIrCdst2Aout(trade, comm, src, region, year, timeslice),
       pTradeIrCdst2Aout(trade, comm, src, region, year, timeslice)
-      * sum(commp$mTradeComm(trade, commp),
+      * sum(commp$(mTradeComm(trade, commp)
+                     and mvTradeIr(trade, commp, src, region, year, timeslice)),
             vTradeIr(trade, commp, src, region, year, timeslice)
         )
   );
@@ -2393,19 +2548,7 @@ eqOutTot(comm, region, year, timeslice)$mvOutTot(comm, region, year, timeslice).
 * [agg-rewrite] eqOutTotRY/vOutTotRY retired (dead reporting)
 
 * [agg-rewrite] eqOut2Lo removed (up-aggregation in eqOutTot; vOut2Lo retired)
-$ontext
-eqOut2Lo(comm, region, year, timeslice)$mOut2Lo(comm, region, year, timeslice)..
-         sum(timeslicep$mvOut2Lo(comm, region, year, timeslice, timeslicep),
-             vOut2Lo(comm, region, year, timeslice, timeslicep))
-         =e=
-         vSupOutTot(comm, region, year, timeslice)$mSupOutTot(comm, region, year, timeslice)
-         + vEmsFuelTot(comm, region, year, timeslice)$mEmsFuelTot(comm, region, year, timeslice)
-         + vAggOutTot(comm, region, year, timeslice)$mAggOut(comm, region, year, timeslice)
-         + vTechOutTot(comm, region, year, timeslice)$mTechOutTot(comm, region, year, timeslice)
-         + vStorageOutTot(comm, region, year, timeslice)$mStorageOutTot(comm, region, year, timeslice)
-         + vImportTot(comm, region, year, timeslice)$mImport(comm, region, year, timeslice)
-         + vTradeIrAOutTot(comm, region, year, timeslice)$mvTradeIrAOutTot(comm, region, year, timeslice);
-$offtext
+* [moved] eqOut2Lo(comm, region, year, timeslice)$mOut2Lo(comm, region -- see drafts/gams-disabled-equations.gms
 
 eqInpTot(comm, region, year, timeslice)$mvInpTot(comm, region, year, timeslice)..
         vInpTot(comm, region, year, timeslice)
@@ -2435,22 +2578,13 @@ eqInpTot(comm, region, year, timeslice)$mvInpTot(comm, region, year, timeslice).
 * [agg-rewrite] eqInpTotRY/vInpTotRY retired (dead reporting)
 
 * [agg-rewrite] eqInp2Lo removed (up-aggregation in eqInpTot; vInp2Lo retired)
-$ontext
-eqInp2Lo(comm, region, year, timeslice)$mInp2Lo(comm, region, year, timeslice)..
-        sum(timeslicep$mvInp2Lo(comm, region, year, timeslice, timeslicep),
-            vInp2Lo(comm, region, year, timeslice, timeslicep)
-        )
-        =e=
-        vTechInpTot(comm, region, year, timeslice)$mTechInpTot(comm, region, year, timeslice)
-        + vStorageInpTot(comm, region, year, timeslice)$mStorageInpTot(comm, region, year, timeslice)
-        + vExportTot(comm, region, year, timeslice)$mExport(comm, region, year, timeslice)
-        + vTradeIrAInpTot(comm, region, year, timeslice)$mvTradeIrAInpTot(comm, region, year, timeslice);
-$offtext
+* [moved] eqInp2Lo(comm, region, year, timeslice)$mInp2Lo(comm, region -- see drafts/gams-disabled-equations.gms
 
 eqSupOutTot(comm, region, year, timeslice)$mSupOutTot(comm, region, year, timeslice)..
           vSupOutTot(comm, region, year, timeslice)
           =e=
-          sum(sup$mSupComm(sup, comm),
+          sum(sup$(mSupComm(sup, comm)
+                   and mSupAva(sup, comm, region, year, timeslice)),
               vSupOut(sup, comm, region, year, timeslice)
           );
 
@@ -2522,25 +2656,47 @@ eqTechOutTot(comm, region, year, timeslice)$mTechOutTot(comm, region, year, time
 eqStorageInpTot(comm, region, year, timeslice)$mStorageInpTot(comm, region, year, timeslice)..
         vStorageInpTot(comm, region, year, timeslice)
         =e=
-*        pTimesliceWeight(year, timeslice) *
-        sum(stg$mvStorageInp(stg, comm, region, year, timeslice),
-            vStorageInp(stg, comm, region, year, timeslice)
+        sum(stg$mStorageInpCommSameTimeslice(stg, comm),
+            vStorageInp(stg, comm, region, year, timeslice)$mvStorageInp(stg, comm, region, year, timeslice)
         )
-*        + pTimesliceWeight(year, timeslice) *
-        + sum(stg$mvStorageAInp(stg, comm, region, year, timeslice),
-            vStorageAInp(stg, comm, region, year, timeslice)
+        +
+        sum(stg$mStorageInpCommAgg(stg, comm),
+            sum(timeslicep$mStorageInpCommAggTimeslice(stg, comm, timeslicep, timeslice),
+                vStorageInp(stg, comm, region, year, timeslicep)$mvStorageInp(stg, comm, region, year, timeslicep)
+            )
+        )
+        +
+        sum(stg$mStorageAInpCommSameTimeslice(stg, comm),
+            vStorageAInp(stg, comm, region, year, timeslice)$mvStorageAInp(stg, comm, region, year, timeslice)
+        )
+        +
+        sum(stg$mStorageAInpCommAgg(stg, comm),
+            sum(timeslicep$mStorageAInpCommAggTimeslice(stg, comm, timeslicep, timeslice),
+                vStorageAInp(stg, comm, region, year, timeslicep)$mvStorageAInp(stg, comm, region, year, timeslicep)
+            )
         );
 
 eqStorageOutTot(comm, region, year, timeslice)$mStorageOutTot(comm, region, year, timeslice)..
         vStorageOutTot(comm, region, year, timeslice)
         =e=
-*        pTimesliceWeight(year, timeslice) *
-        sum(stg$mvStorageOut(stg, comm, region, year, timeslice),
-            vStorageOut(stg, comm, region, year, timeslice)
+        sum(stg$mStorageOutCommSameTimeslice(stg, comm),
+            vStorageOut(stg, comm, region, year, timeslice)$mvStorageOut(stg, comm, region, year, timeslice)
         )
-*        + pTimesliceWeight(year, timeslice) *
-        + sum(stg$mvStorageAOut(stg, comm, region, year, timeslice),
-            vStorageAOut(stg, comm, region, year, timeslice)
+        +
+        sum(stg$mStorageOutCommAgg(stg, comm),
+            sum(timeslicep$mStorageOutCommAggTimeslice(stg, comm, timeslicep, timeslice),
+                vStorageOut(stg, comm, region, year, timeslicep)$mvStorageOut(stg, comm, region, year, timeslicep)
+            )
+        )
+        +
+        sum(stg$mStorageAOutCommSameTimeslice(stg, comm),
+            vStorageAOut(stg, comm, region, year, timeslice)$mvStorageAOut(stg, comm, region, year, timeslice)
+        )
+        +
+        sum(stg$mStorageAOutCommAgg(stg, comm),
+            sum(timeslicep$mStorageAOutCommAggTimeslice(stg, comm, timeslicep, timeslice),
+                vStorageAOut(stg, comm, region, year, timeslicep)$mvStorageAOut(stg, comm, region, year, timeslicep)
+            )
         );
 
 **********************************************
@@ -2625,6 +2781,8 @@ eqCost(region, year)$mvTotalCost(region, year)..
         + sum(tech$mTechEac(tech, region, year), vTechEac(tech, region, year)$mTechEac(tech, region, year))
 * technology endogenous retirement
         + sum(tech$mTechRetCost(tech, region, year), vTechRetCost(tech, region, year)$mTechRetCost(tech, region, year))
+        + sum(stg$mStorageRetCost(stg, region, year), vStorageRetCost(stg, region, year)$mStorageRetCost(stg, region, year))
+        + sum(trade$mTradeRetCost(trade, region, year), vTradeRetCost(trade, region, year)$mTradeRetCost(trade, region, year))
 * technology fixed O&M costs
         + sum(tech$mTechFixom(tech, region, year), vTechFixom(tech, region, year)$mTechFixom(tech, region, year))
 * technology variable O&M costs

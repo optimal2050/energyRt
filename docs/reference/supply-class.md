@@ -28,6 +28,11 @@ supply object with given specifications.
 
   data.frame. Weather factors to apply to the supply.
 
+  cluster
+
+  :   character. Price step this row applies to, NA for every step. See
+      the `cluster` slot.
+
   weather
 
   :   character. Name of the weather factor to apply. Must match the
@@ -55,6 +60,11 @@ supply object with given specifications.
   resources. Set for each region. If not set, the resource is considered
   infinite.
 
+  cluster
+
+  :   character. Price step this row applies to, NA for every step. See
+      the `cluster` slot.
+
   region
 
   :   character. Region name to apply the parameter. Use NA to apply to
@@ -75,7 +85,17 @@ supply object with given specifications.
 
 - `supply`:
 
-  data.frame. Availability of the resource in physical units.
+  data.frame. Availability of the resource in physical units. Unlike the
+  `af`/`afs` availability *factors* of technologies, `ava.*` is an
+  absolute bound on the supplied quantity per timeslice: supply
+  processes have no capacity variable, so nothing multiplies it (except
+  weather factors, see `weather`). Rows here also define where and when
+  the supply exists in the model.
+
+  cluster
+
+  :   character. Price step this row applies to, NA for every step. See
+      the `cluster` slot.
 
   region
 
@@ -94,16 +114,19 @@ supply object with given specifications.
 
   ava.lo
 
-  :   numeric. Lower bound of the availability factor.
+  :   numeric. Lower bound on the supplied quantity, in physical
+      commodity units per timeslice.
 
   ava.up
 
-  :   numeric. Upper bound of the availability factor.
+  :   numeric. Upper bound on the supplied quantity, in physical
+      commodity units per timeslice.
 
   ava.fx
 
-  :   numeric. Fixed value of the availability factor. This parameter
-      overrides `ava.lo` and `ava.up`.
+  :   numeric. Fixed value of the supplied quantity, in physical
+      commodity units per timeslice. This parameter overrides `ava.lo`
+      and `ava.up`.
 
   cost
 

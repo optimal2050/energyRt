@@ -45,6 +45,7 @@ differently but share their names.
 
 Other geoscale:
 [`check_geoscale_regions()`](https://energyRt.org/reference/check_geoscale_regions.md),
+[`plot_geoscale()`](https://energyRt.org/reference/plot_geoscale.md),
 [`plot_map()`](https://energyRt.org/reference/plot_map.md),
 [`setGeoscale,config-method`](https://energyRt.org/reference/setGeoscale.md)
 
@@ -53,7 +54,7 @@ Other geoscale:
 ``` r
 if (FALSE) { # \dontrun{
 gs <- utopia_geoscale()
-geoscales::geo_children(gs, "zone", "WEST")
+geoscales::geoscale_children(gs, "zone", "WEST")
 
 # the three-region model used in vignette("utopia-build")
 gs3 <- utopia_geoscale(region = c("R1", "R2", "R3"))

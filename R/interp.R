@@ -39,7 +39,30 @@
 #'   (`GLPK`, `GAMS`, `JuMP`, `PYOMOConcrete`, ...), each either a script-file
 #'   path or a character vector of lines. Lets a model-script version be supplied
 #'   at interpolation time without rebuilding `sysdata` (handy to A/B templates).
-#' @param verbose logical; print per-step progress.
+#' @param boundary_prices optional `data.frame` pricing import/export stubs
+#'   for trade routes dropped by a SPATIAL SAMPLE (a
+#'   `geoscales::filter_geoscale()` subset passed via `...`); see
+#'   [subset_model_regions()] for the columns. Ignored (with a warning)
+#'   when no sampled geoscale is supplied.
+#' @param .prefilter EXPERIMENTAL, default `FALSE`. Restrict each model
+#'   object's data to the timeslices and regions the SCENARIO declares before
+#'   interpolating it, rather than interpolating everything and discarding the
+#'   excess afterwards.
+#'
+#'   On the sampled-calendar recipe -- a full-year model with a subset calendar
+#'   handed to this function -- the default order expands all 8,760 timeslices
+#'   in `ob2mi` and then keeps 96. The parameter filters that follow are cheap
+#'   (0.05s on a 5-node model); the cost is the interpolation they cannot undo.
+#'
+#'   Off by default because it is not obviously safe: anything deriving a
+#'   relation from the full declared grid rather than from the calendar would
+#'   see a narrower input. Compare objectives before relying on it.
+#' @param verbose logical; print per-step progress. This also governs the
+#'   variant-expansion report -- how many process objects were expanded and how
+#'   many constraints were generated for them. The generated constraints
+#'   themselves are retrievable with `getObject(scen, class = "constraint")`;
+#'   each carries a readable `desc` and, in `misc$.variant_source`, the object
+#'   it was derived from.
 #'
 #' @return an interpolated [scenario] object.
 #' @seealso [solve_model()], [solve_scenario()], the `interpolate` S4 method.
@@ -48,8 +71,11 @@
 interpolate_model <- function(mod, name = NULL, ...,
                        desc = NULL, ondisk = FALSE, overwrite = FALSE,
                        fold = FALSE, sparse = TRUE, prune = TRUE,
-                       validate = TRUE, code = NULL,
+                       validate = TRUE, code = NULL, kvl = FALSE,
+                       boundary_prices = NULL, .prefilter = FALSE,
                        verbose = isVerbose()) {
+  .log_t0 <- Sys.time()
+  .interp_stages_reset()
   # Accept a scenario (re-interpolate its model), matching the legacy interface.
   if (inherits(mod, "scenario")) mod <- mod@model
   # `...` (after `mod`/`name`) accepts ANY energyRt objects -- settings, config,
@@ -70,6 +96,11 @@ interpolate_model <- function(mod, name = NULL, ...,
   # Upgrade any constraint summands serialized before the `timeframe` slot so
   # legacy models interpolate without a "no slot of name timeframe" error.
   mod <- .upgrade_model_summands(mod)
+
+  # NOTE: the `kvl` hook is NOT here. It has to run after the model is both
+  # complete (objects arriving through `...` are folded in further down) and
+  # variant-expanded, or it builds the cycle basis on a subgraph and names
+  # trade objects that expansion has renamed. See the hook below.
 
   drop_default <- isTRUE(sparse)
   # `fold` selects which dimensions to whole-column fold: TRUE -> region + timeslice
@@ -220,15 +251,50 @@ interpolate_model <- function(mod, name = NULL, ...,
     args <- args[!ii]
   }
 
-  # geoscale object -> settings@geoscale. Presentation-only: nothing downstream
-  # of here reads it, but carrying it on the scenario is what lets maps and
-  # region-level reporting work without the caller re-supplying it.
+  # geoscale object -> settings@geoscale. Beyond presentation (maps, region
+  # reporting), the geoscale is read for the region hierarchy
+  # (`.geo_hierarchy()` below) and, when it is a SAMPLE of the model's
+  # regions, it switches on spatial sampling -- the region mirror of the
+  # sampled calendar above (see R/sample_region.R).
+  .spatial_mode <- NULL
   ii <- vapply(args, is_geoscale, logical(1))
   if (sum(ii) > 1) {
     stop("Only one geoscale object is allowed in the arguments")
   } else if (sum(ii) == 1) {
     scen@settings@geoscale <- args[[which(ii)]]
     args <- args[!ii]
+
+    .spatial_mode <- .spatial_sample_mode(scen@settings@geoscale,
+                                          scen@model@config)
+    if (identical(.spatial_mode, "filtered")) {
+      .atoms <- geoscales::geoscale_regions(
+        scen@settings@geoscale,
+        geoscales::geoscale_geoframes(scen@settings@geoscale, finest = TRUE))
+      .r <- as.character(scen@settings@region)
+      scen@settings@region <- .r[.r %in% as.character(.atoms)]
+      if (isTRUE(verbose)) {
+        message("spatial sample: sub-territory solve on ",
+                length(scen@settings@region), " of ", length(.r),
+                " regions (", scen@settings@geoscale |>
+                  geoscales::geoscale_coverage() |>
+                  (\(cv) paste(names(cv), sprintf("%.1f%%", 100 * cv),
+                               collapse = ", "))(), " of the parent)")
+      }
+      mod <- .subset_model_regions(mod, keep = scen@settings@region,
+                                   boundary_prices = boundary_prices,
+                                   verbose = verbose)
+      scen@model <- mod
+    } else if (identical(.spatial_mode, "pruned")) {
+      stop("A pruned geoscale (coarser atom layer) requests a full-",
+           "territory solve at the parent level, which needs the region-",
+           "aggregation stage (`aggregate_model_regions()`) -- not ",
+           "implemented yet. Sample regions with ",
+           "geoscales::filter_geoscale() instead.", call. = FALSE)
+    }
+  }
+  if (!is.null(boundary_prices) && !identical(.spatial_mode, "filtered")) {
+    warning("`boundary_prices` given but no filtered (sampled) geoscale ",
+            "was passed; ignored.", call. = FALSE)
   }
 
   # horizon object -> settings@horizon (via setHorizon; the pipeline reads
@@ -291,6 +357,23 @@ interpolate_model <- function(mod, name = NULL, ...,
             paste(nm, collapse = ", "), call. = FALSE)
   }
 
+  # deprecated, never-wired hooks: sampling goes through sampled calendar /
+  # geoscale objects now. Warn when someone still fills them.
+  .ss <- scen@settings@subset
+  if (is.list(.ss) && any(vapply(unlist(.ss, recursive = FALSE),
+                                 length, integer(1)) > 0L)) {
+    warning("`settings@subset` is deprecated and has never been read; pass ",
+            "a sampled calendar / geoscale to interpolate_model() instead.",
+            call. = FALSE)
+  }
+  .yf <- scen@settings@yearFraction
+  if (is.data.frame(.yf) && nrow(.yf) > 0L &&
+      !all(is.na(.yf$year)) && !all(.yf$fraction == 1)) {
+    warning("`settings@yearFraction` is deprecated (experimental, unwired); ",
+            "a sampled calendar carries its own year_fraction.",
+            call. = FALSE)
+  }
+
   # guard: the mapping pipeline needs a non-empty horizon
   if (nrow(scen@settings@horizon@intervals) == 0L) {
     stop("The model has no horizon. Set one before interpolating, e.g. ",
@@ -307,10 +390,24 @@ interpolate_model <- function(mod, name = NULL, ...,
   # A geoscale's coarser levels count as declared: national demand for a
   # nationally-balanced commodity names the nation, which is a legitimate
   # region of the model even though it is not one of `@region`'s atoms.
-  .known_regions <- as.character(scen@settings@region)
-  .h <- .geo_hierarchy(getGeoscale(scen@settings), .known_regions)
-  if (!is.null(.h)) .known_regions <- .h$region
+  # Declarations are judged against the MODEL's own regions and geoscale
+  # (the `.declaration_calendar()` mirror): under a spatial sample the
+  # data legitimately still names the full region set; the parameter
+  # filter removes the out-of-sample rows later.
+  .known_regions <- .declaration_regions(scen)
   .check_declared_regions(scen@model, .known_regions)
+
+  # guard: a weather profile referenced by name must have an object behind it.
+  # Unlike a stray region this one never surfaces later -- the reference is
+  # simply dropped and the process loses its availability limit.
+  .check_declared_objects(scen@model)
+  .check_group_members(scen@model)
+
+  # Costs accrue only in the model's own regions (`mvTotalCost` is built from
+  # them, not from the widened set above), and trade costs are borne per
+  # endpoint. Name both edges rather than silently mis-charging.
+  .check_cost_regions(scen@model, as.character(scen@settings@region),
+                      .known_regions)
 
   # Advisory only: a geoscale is presentation metadata, so a region it does not
   # cover is a warning (that region simply will not appear on a map), never an
@@ -324,10 +421,41 @@ interpolate_model <- function(mod, name = NULL, ...,
   # Non-destructive: only the internal build copy is expanded, the caller's model
   # object is untouched. The link back to each base object is kept in
   # `sets$variant` (see R/variants.R).
-  .tech_variants <- expand_variants(mod, prefix = .variant_prefix(scen@settings))
+  .tech_variants <- expand_variants(mod, prefix = .variant_prefix(scen@settings),
+                                    verbose = verbose)
   mod <- .tech_variants$model    # the sets below are collected from `mod`
   scen@model <- mod              # ... while get_process_*() read scen@model
   .assert_variants_expanded(mod)
+
+  # `kvl`: enforce Kirchhoff's voltage law on the AC network -- the trade routes
+  # that carry a `reactance`. OFF by default, because it is a restriction: a
+  # transport model chooses its flows, and KVL takes that choice away, so a
+  # model's objective can only rise. Turning it on emits one equality constraint
+  # per independent cycle (see R/trade_kvl.R); a radial network has none, and a
+  # model with no reactance anywhere is untouched either way.
+  #
+  # THIS IS THE EARLIEST CORRECT PLACE, and the position is load-bearing three
+  # times over. Run before the `...` objects are folded in (above) and an AC line
+  # passed that way is invisible, so the basis is built on a SUBGRAPH -- silently
+  # too few cycles. Run before `expand_variants()` and a vintaged or tranched
+  # line has been renamed, so `for.sum` names a `trade` member that no longer
+  # exists. And `.kvl_for_each()` needs the SCENARIO's calendar and horizon,
+  # which a `...` argument may have replaced, not the model's own.
+  if (isTRUE(kvl)) {
+    kvl_cns <- .kvl_build(mod, prov = .tech_variants$provenance,
+                          settings = scen@settings, verbose = verbose)
+    # Added as ONE named repository rather than one `add()` per cycle, so the
+    # cycles arrive as a discoverable group instead of scattered among whatever
+    # else the model carries.
+    if (length(kvl_cns)) {
+      mod <- add(mod, do.call(newRepository,
+                              c(list("kvl_cycles"), unname(kvl_cns))))
+      # MUST follow the add: `.interp_user_constraints()` compiles from
+      # `scen@model`, not from `mod`. Without this the constraints are silently
+      # dropped and the solve returns the transport relaxation.
+      scen@model <- mod
+    }
+  }
 
   # !!! ToDo:
   # ... subset timeslices and regions
@@ -347,6 +475,12 @@ interpolate_model <- function(mod, name = NULL, ...,
   scen@modInp <- mi
   rm(mi)
 
+  # Per-column default-value / interpolation-rule overrides from the scenario
+  # settings (scenario-level source of truth; model-level `config` flows in via
+  # `.config_to_settings()`). Catalog values from `.modInp` stay authoritative
+  # unless the user CHANGED a column relative to the baked baseline.
+  scen <- .apply_settings_param_overrides(scen)
+
   # set scenario directory and the type of solution (foresight or myopic)
   # scen@path
   # if (!dir.exists(scen@path)) {
@@ -360,7 +494,6 @@ interpolate_model <- function(mod, name = NULL, ...,
 
   # slotNames(mi)
   # names(mi@parameters)
-  # names(mi@set) # !!! rename to "sets"
 
   sets_from_settings <- c("region", "year", "timeslice") # from settings
 
@@ -378,7 +511,7 @@ interpolate_model <- function(mod, name = NULL, ...,
   # AND the zones AND the nation -- exactly as `timeslice` already holds the timeslices
   # of every timeframe. Declared regions stay at the head in their original
   # order; coarser levels are appended and remain inert unless some commodity
-  # names one via `@geolevel`.
+  # names one via `@geoframe`.
   .geo_hier <- .geo_hierarchy(getGeoscale(scen@settings),
                               scen@modInp@sets$region)
   if (!is.null(.geo_hier)) scen@modInp@sets$region <- .geo_hier$region
@@ -586,16 +719,59 @@ interpolate_model <- function(mod, name = NULL, ...,
   .interp_step(verbose, paste0("ob2mi: interpolating ", .n_obj, " model objects"),
                oneline = FALSE)
   .prg <- if (.n_obj > 0) progressr::progressor(steps = .n_obj) else NULL
+  # The grid the SCENARIO declares -- which a sampled calendar or a subset
+  # geoscale narrows relative to the model.
+  .pf_slices <- if (isTRUE(.prefilter)) {
+    tryCatch(as.character(scen@settings@calendar@timetable$timeslice),
+             error = function(e) character(0))
+  } else character(0)
+  .pf_regions <- if (isTRUE(.prefilter)) {
+    tryCatch(as.character(scen@settings@region), error = function(e) character(0))
+  } else character(0)
+  if (isTRUE(.prefilter)) {
+    .interp_step(verbose, paste0("pre-filter: ", length(.pf_slices),
+                                 " timeslice(s), ", length(.pf_regions),
+                                 " region(s) declared"))
+    .interp_step(verbose, paste0("ob2mi: interpolating ", .n_obj,
+                                 " model objects"), oneline = FALSE)
+  }
   for (i in seq(along = scen@model@data)) {
     for (j in seq(along = scen@model@data[[i]]@data)) {
       if (is.null(classes) || inherits(scen@model@data[[i]]@data[[j]], classes)) {
         # Advance the bar for EVERY object (incl. skipped ones) so it reaches
         # 100%; otherwise it freezes short of the end and looks stuck.
         if (!is.null(.prg)) .prg(message = scen@model@data[[i]]@data[[j]]@name)
-        # User constraints are compiled later (.interp_user_constraints), after
-        # the variable domain maps they reference (e.g. mTechNew) are built.
-        if (inherits(scen@model@data[[i]]@data[[j]], "constraint")) next
-        scen <- ob2mi(scen, scen@model@data[[i]]@data[[j]], list())
+        # User constraints and cost terms are compiled later
+        # (.interp_user_constraints), after the variable domain maps they
+        # reference (e.g. mTechNew) are built.
+        if (inherits(scen@model@data[[i]]@data[[j]], c("constraint", "costs"))) next
+        .obj <- scen@model@data[[i]]@data[[j]]
+        # PRE-FILTER (opt-in). The parameter filters at the end of this pipeline
+        # cost almost nothing themselves -- measured at 0.05s on a 5-node model
+        # -- because by then the work is already done. What they cannot undo is
+        # that `ob2mi` interpolated every row first. On the documented
+        # sampled-calendar recipe (full-year model, subset calendar handed to
+        # interpolate_model) that means 8,760 timeslices are expanded and then
+        # 96 kept.
+        #
+        # Filtering the object's slots BEFORE ob2mi attacks the cause instead.
+        # `.filter_data_in_slots()` keeps NA (wildcard) rows, so a parameter
+        # declared for "all regions" survives untouched.
+        #
+        # OFF BY DEFAULT because it is not obviously safe: anything that needs
+        # the full declared grid to build a relation -- reweighting a sampled
+        # calendar, family maps derived from object data rather than the
+        # calendar -- would see a narrower input. Compare objectives before
+        # trusting it.
+        if (isTRUE(.prefilter)) {
+          if (length(.pf_slices)) {
+            .obj <- .filter_data_in_slots(.obj, .pf_slices, "timeslice")
+          }
+          if (length(.pf_regions)) {
+            .obj <- .filter_data_in_slots(.obj, .pf_regions, "region")
+          }
+        }
+        scen <- ob2mi(scen, .obj, list())
       }
     }
   }
@@ -616,15 +792,17 @@ interpolate_model <- function(mod, name = NULL, ...,
   # required for GAMS correctness). Legacy interpolate_model did this by default.
   .interp_step(verbose, "calendar-filter: restricting parameters to declared timeslices")
   scen <- .filter_params_by_declared_timeslices(scen, verbose)
+  scen <- .filter_params_by_declared_regions(scen, verbose)
 
   #============================================================================#
   # Equivalent annual cost (EAC) ####
-  #   Annuitise investment cost into pTechEac / pStorageEac / pTradeEac. Must run
+  #   Annuitise investment cost into pTechEac / pStorageOutEac / pTradeEac. Must run
   #   after interpolation (reads pXInvcost / pDiscount / pXOlife) and before the
   #   value recipe (mTradeEac reads pTradeEac's value domain). The generic ob2mi
   #   slot loop leaves these equal to the raw invcost.
   .interp_step(verbose, "computing equivalent annual costs (EAC)")
   scen <- compute_eac_parameters(scen)
+  scen <- compute_stock_parameters(scen)
 
   #============================================================================#
   # Value-derived mapping parameters ####
@@ -661,16 +839,11 @@ interpolate_model <- function(mod, name = NULL, ...,
   scen <- build_mappings(scen, fmp = fmp, recipes = "constraint")
 
   #============================================================================#
-  # Cost-aggregation mapping parameters ####
-  #   Top-level cost domains (mvTotalCost, mvTotalUserCosts) projected onto the
-  #   full region x year grid (or the union of user-cost footprints). Built last
-  #   because mvTotalUserCosts reads the interpolated user-cost (mCosts*) maps.
-  scen <- build_mappings(scen, fmp = fmp, recipes = "cost_agg")
-
-  #============================================================================#
-  # User-defined constraints ####
-  #   Compile each `constraint` object to the GAMS-string IR (+ pCns/mCns
-  #   params) now that all variable domain maps exist. See ob2mi("constraint").
+  # User-defined constraints and cost terms ####
+  #   Compile each `constraint` / `costs` object to the GAMS-string IR
+  #   (+ pCns/mCns/pCosts/mCosts params) now that all variable domain maps
+  #   exist. Must run BEFORE the cost_agg recipe: mvTotalUserCosts is built
+  #   from the mCosts* maps this step creates. See ob2mi("constraint"/"costs").
   scen <- .interp_user_constraints(scen, verbose)
 
   #============================================================================#
@@ -732,6 +905,24 @@ interpolate_model <- function(mod, name = NULL, ...,
   # maps that carry the explicit endpoints, and an unmaterialised wildcard would
   # silently resolve to the solver default.
   scen <- unfold_trade_routes(scen)
+
+  #============================================================================#
+  # Cost-aggregation mapping parameters ####
+  #   Top-level cost domains (mvTotalCost, mvTotalUserCosts) projected onto the
+  #   full region x year grid (or the union of user-cost footprints). Built
+  #   LAST, after the fold/unfold stage: mvTotalUserCosts reads the
+  #   interpolated user-cost (mCosts*) maps, and `.coarse_cost_cells()` scans
+  #   the cost-domain maps for coarse geoscale cells -- a wildcard (region NA)
+  #   cost row only becomes visible to that scan once map unfolding has
+  #   materialised it onto its explicit regions (e.g. a supply priced at a
+  #   nation through a region-less `supply` frame; before this ran post-unfold,
+  #   the NAT cell was missed and the cost never reached the objective).
+  scen <- build_mappings(scen, fmp = fmp, recipes = "cost_agg")
+
+  #   A cost declared at a coarse geoscale cell needs a discount factor there,
+  #   or `eqObjective` weights it by nothing. Inherits the children's rate where
+  #   they agree; refuses to invent one where they do not.
+  scen <- .extend_discount_to_coarse(scen)
 
   #============================================================================#
   # Make mapping-sets ####
@@ -807,17 +998,17 @@ interpolate_model <- function(mod, name = NULL, ...,
   # Finalise the total user-cost equation. Accumulated per-cost contributions
   # (if any) are wrapped into the `eqTotalUserCosts` definition; with no user
   # cost objects the default zero form is used. Mirrors write.R.
-  if (length(scen@modInp@costs.equation) == 0) {
-    scen@modInp@costs.equation <- paste0(
+  if (length(scen@modInp@user_costs) == 0) {
+    scen@modInp@user_costs <- paste0(
       "eqTotalUserCosts(region, year)$mvTotalUserCosts(region, year).. ",
       "vTotalUserCosts(region, year) =e= 0;"
     )
   } else {
-    scen@modInp@costs.equation <- paste0(
+    scen@modInp@user_costs <- paste0(
       "eqTotalUserCosts(region, year)$mvTotalUserCosts(region, year)..",
       "   vTotalUserCosts(region, year) =e= ",
       gsub("[+][ ]*[-]", "-",
-           paste0(scen@modInp@costs.equation, collapse = " + ")), ";"
+           paste0(scen@modInp@user_costs, collapse = " + ")), ";"
     )
   }
 
@@ -878,6 +1069,25 @@ interpolate_model <- function(mod, name = NULL, ...,
   }
 
   .interp_footer(scen, verbose)
+  # Per-stage rows first, then the summary. The breakdown is the point: a single
+  # duration says an interpolation was slow, not WHICH part of it was.
+  .st <- tryCatch(.interp_stages(), error = function(e) NULL)
+  if (!is.null(.st) && nrow(.st)) {
+    for (i in seq_len(nrow(.st))) {
+      .en_log("interpolate.stage", scen@name,
+              duration = .st$secs[[i]],
+              mem_mb = .st$mem_mb[[i]], peak_mb = .st$peak_mb[[i]],
+              stage = .st$stage[[i]], d_mem_mb = .st$d_mem_mb[[i]])
+    }
+  }
+  .en_log("interpolate", scen@name,
+          duration = difftime(Sys.time(), .log_t0, units = "secs"),
+          model = mod@name,
+          calendar = tryCatch(scen@settings@calendar@name,
+                              error = function(e) ""),
+          horizon = tryCatch(scen@settings@horizon@name,
+                             error = function(e) ""),
+          ondisk = isTRUE(ondisk))
   scen
 }
 
@@ -900,11 +1110,14 @@ interpolate_model <- function(mod, name = NULL, ...,
   for (i in seq_along(scen@model@data)) {
     for (j in seq_along(scen@model@data[[i]]@data)) {
       o <- scen@model@data[[i]]@data[[j]]
-      if (inherits(o, "constraint")) cns[[length(cns) + 1L]] <- o
+      # user cost terms (`costs`) share the compile point: both need the
+      # variable domain maps and the same set-value/calendar context
+      if (inherits(o, c("constraint", "costs"))) cns[[length(cns) + 1L]] <- o
     }
   }
   if (length(cns) == 0L) return(scen)
-  .interp_step(verbose, paste0("compiling ", length(cns), " user constraint(s)"))
+  .interp_step(verbose, paste0("compiling ", length(cns),
+                               " user constraint(s) / cost term(s)"))
   # Build the engine's set-value/calendar context once and reuse it.
   approxim <- .constraint_approxim(scen)
   for (o in cns) scen <- ob2mi(scen, o, list(approxim = approxim))
@@ -1206,7 +1419,7 @@ if (F) {
   collect_object_names(utopia@model, classes = NULL)
 
   class(utopia)
-  utopia@modInp@set
+  utopia@modInp@sets
 
   scen
   obj <- utopia@model
@@ -3060,9 +3273,19 @@ map_comm_timeframe <- function(scen, comm = NULL) {
     scen = scen,
     classes = "commodity",
     func = function(x) {
-      # list(name = x@name, value = x@timeframe)
       ll <- list()
-      ll[x@name] <- x@timeframe
+      # An empty `@timeframe` is the documented default of `newCommodity()`
+      # and means "the calendar's finest level" -- resolve it here to the
+      # concrete `calendar@default_timeframe` (always set at interpolation
+      # time), so consumers never see an empty value. `[[<-` keeps the entry
+      # when the value is still empty (no calendar either), which `[<-`
+      # rejected with "replacement has length zero" -- the crash that made
+      # `newCommodity()` without `timeframe =` abort interpolation.
+      v <- as.character(x@timeframe)
+      if (length(v) == 0 || is.na(v[1]) || !nzchar(v[1])) {
+        v <- as.character(scen@settings@calendar@default_timeframe)
+      }
+      ll[[x@name]] <- if (length(v) > 0) v[1] else NA_character_
       return(ll)
     }
   )
@@ -3070,7 +3293,7 @@ map_comm_timeframe <- function(scen, comm = NULL) {
 
 #' Balancing geo-level of commodities
 #'
-#' The spatial twin of [map_comm_timeframe()]. A commodity with no `@geolevel`
+#' The spatial twin of [map_comm_timeframe()]. A commodity with no `@geoframe`
 #' is balanced at the finest level, which is the flat, single-level behaviour.
 #'
 #' @param scen scenario object
@@ -3080,17 +3303,17 @@ map_comm_timeframe <- function(scen, comm = NULL) {
 #'
 #' @returns a named list mapping each commodity to its geo-level.
 #' @export
-map_comm_geolevel <- function(scen, comm = NULL) {
+map_comm_geoframe <- function(scen, comm = NULL) {
   apply_to_scenario_data(
     scen = scen,
     classes = "commodity",
     func = function(x) {
       ll <- list()
-      # `@geolevel` post-dates the class, so a commodity restored from an older
+      # `@geoframe` post-dates the class, so a commodity restored from an older
       # model may not carry the slot at all. NA means "the finest level", i.e.
       # the flat behaviour; `[[<-` keeps the entry when the value is empty,
       # which `[<-` would reject.
-      v <- if (.hasSlot(x, "geolevel")) as.character(x@geolevel) else character()
+      v <- if (.hasSlot(x, "geoframe")) as.character(x@geoframe) else character()
       ll[[x@name]] <- if (length(v) > 0) v[1] else NA_character_
       return(ll)
     }
@@ -3229,7 +3452,7 @@ get_process_timeframe <- function(scen, process = NULL,
     # aggregation only flows fine -> coarse, so a coarser process cannot meet
     # the finer balance and its demand leaks to imports. This used to warn and
     # silently substitute the finest timeframe, which hid the mistake; it is an
-    # error now, matching `.assert_process_geolevel()` on the spatial side.
+    # error now, matching `.assert_process_geoframe()` on the spatial side.
     stop(
       "Process(es) declared at a timeframe COARSER than a commodity they use:\n   ",
       paste(utils::capture.output(print(
@@ -3311,6 +3534,10 @@ get_process_inputs <- function(scen, process = NULL, classes = NULL) {
     )
   }
 
+  # Names of processes that turn out to have no input commodity, so they can be
+  # reported in a single message instead of one warning each (see below).
+  .no_input_processes <- character()
+
   # collect all inputs for each process
 
   ll <- apply_to_scenario_data(
@@ -3337,12 +3564,28 @@ get_process_inputs <- function(scen, process = NULL, classes = NULL) {
           as.character() |>
           unique()
       } else {
-        warning("No inputs found for process ", x@name)
+        # No input commodity. This is legitimate, not a mistake: a weather-driven
+        # generator (wind, solar) converts an availability profile into output
+        # and consumes nothing, which is how PyPSA models a renewable Generator
+        # too. Collect the names and report ONCE below rather than warning per
+        # process -- six identical warnings per interpolation drown out a real
+        # one.
+        .no_input_processes <<- c(.no_input_processes, x@name)
         ll[[x@name]] <- character()
       }
       ll
     }
   )
+
+  # Verbose-only. A process with no input is a valid modelling choice, not a
+  # suspected mistake, and `get_process_inputs()` is called many times during one
+  # interpolation -- so reporting unconditionally produced the same list nine
+  # times over. There is no way to tell a deliberate weather-driven generator
+  # from a forgotten `@input`, so this informs rather than warns.
+  if (isTRUE(isVerbose()) && length(.no_input_processes)) {
+    message("Processes with no input commodity (output is bounded, not fuelled): ",
+            paste(sort(unique(.no_input_processes)), collapse = ", "))
+  }
   ll
 }
 
@@ -3898,6 +4141,22 @@ get_process_invest_years <- function(scen, process = NULL, classes = NULL) {
   x
 }
 
+# A `storage` keeps its exogenous capacity in THREE columns -- `out.stock`,
+# `inp.stock`, `stg.stock` -- one per commodity role, while `technology` and
+# `trade` keep a single `stock`. Everything that only asks "does this process
+# exist in this year" wants the union: a store is present if ANY of its parts
+# is. Collapse to a single `stock` column so those callers stay class-agnostic.
+.capacity_stock <- function(cap) {
+  if ("stock" %in% names(cap)) return(cap)
+  sc <- intersect(c("out.stock", "inp.stock", "stg.stock"), names(cap))
+  if (!length(sc)) {
+    cap$stock <- rep(NA_real_, NROW(cap))
+    return(cap)
+  }
+  cap$stock <- do.call(pmax, c(lapply(sc, function(k) cap[[k]]), na.rm = TRUE))
+  cap
+}
+
 get_process_stock_window <- function(scen, process = NULL, classes = NULL) {
   # collect capacity$stock years by process and region
   if (is.null(classes)) {
@@ -3919,7 +4178,14 @@ get_process_stock_window <- function(scen, process = NULL, classes = NULL) {
       # cat("Process: ", x@name, "\n")
       # browser()
       if (!.hasSlot(x, "capacity")) return(NULL)
-      dd <- x@capacity |>
+      cap <- .capacity_stock(x@capacity)
+      # `trade` capacity is region-free (`vTradeCap{trade, year}`), so its rows
+      # carry no `region`. Without one the guard below drops the WHOLE table --
+      # in a trade-only model that silently emptied the stock window. An
+      # explicit NA routes it through the existing "expand NA to the process's
+      # regions" path instead.
+      if (!("region" %in% names(cap))) cap$region <- rep(NA_character_, NROW(cap))
+      dd <- cap |>
         select(any_of("region"), year, stock) |>
         filter(!is.na(stock)) |>
         unique() |>

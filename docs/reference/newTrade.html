@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.85.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,6 +36,8 @@
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
+    <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
+    <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
     <li><a class="dropdown-item" href="../articles/autoplot.html">autoplot()</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
@@ -74,6 +76,7 @@
 <span>  trade <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  fixom <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  varom <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  cluster <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  invcost <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  olife <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  start <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>start <span class="op">=</span> <span class="op">-</span><span class="cn">Inf</span>, stringsAsFactors <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>,</span>
@@ -117,11 +120,18 @@
 
 
 <dt id="arg-trade">trade<a class="anchor" aria-label="anchor" href="#arg-trade"></a></dt>
-<dd><p>data.frame. Technical parameters of trade.</p><dl><dt>vintage</dt>
+<dd><p>data.frame. Technical parameters of trade per directed route. Two kinds of flow bound live here and they are not interchangeable: <code>ava.*</code> is ABSOLUTE, in physical commodity units per timeslice, and does not scale with capacity; <code>af.*</code> is RELATIVE, a fraction of the object's own capacity (<code>cap2act</code> x <code>vTradeCap</code> x the timeslice share), and is the direct analogue of <code>technology@af</code>. Use <code>af.*</code> to rate individual lines of a multi-route object, where the absolute bound would have to be a number correct for exactly one capacity – and capacity is the decision.</p>
+<dl><dt>vintage</dt>
 <dd><p>character. Vintage label selecting the variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
 
-<dt>region</dt>
-<dd><p>character. Region name to apply the parameter, NA for every region.</p></dd>
+<dt>cluster</dt>
+<dd><p>character. Cluster (loss tranche) label selecting the tranche this row applies to, NA for every tranche. See the <code>cluster</code> slot.</p></dd>
+
+<dt>src</dt>
+<dd><p>character. Source region of the flow, NA for every source region on the route.</p></dd>
+
+<dt>dst</dt>
+<dd><p>character. Destination region of the flow, NA for every destination region on the route.</p></dd>
 
 <dt>year</dt>
 <dd><p>integer. Year to apply the parameter, NA for every year.</p></dd>
@@ -129,27 +139,66 @@
 <dt>timeslice</dt>
 <dd><p>character. Time timeslice to apply the parameter, NA for every timeslice.</p></dd>
 
-<dt>trade</dt>
-<dd><p>numeric. Trade volume.</p></dd>
+<dt>ava.lo</dt>
+<dd><p>numeric. Lower bound on the traded flow from <code>src</code> to <code>dst</code>, in physical commodity units per timeslice.</p></dd>
+
+<dt>ava.up</dt>
+<dd><p>numeric. Upper bound on the traded flow from <code>src</code> to <code>dst</code>, in physical commodity units per timeslice.</p></dd>
+
+<dt>ava.fx</dt>
+<dd><p>numeric. Fixed value of the traded flow from <code>src</code> to <code>dst</code>, in physical commodity units per timeslice. This parameter overrides <code>ava.lo</code> and <code>ava.up</code>.</p></dd>
+
+<dt>af.lo</dt>
+<dd><p>numeric. Lower bound on the flow from <code>src</code> to <code>dst</code> as a FRACTION of the object's capacity: <code>af.lo x cap2act x vTradeCap x share</code>. Forces a minimum loading on that direction.</p></dd>
+
+<dt>af.up</dt>
+<dd><p>numeric. Upper bound on the flow from <code>src</code> to <code>dst</code> as a FRACTION of the object's capacity: <code>af.up x cap2act x vTradeCap x share</code>. This is how a single trade object carrying several routes gives each line its own rating – <code>af.up = 0.5</code> on one leg limits it to half the corridor whatever the corridor turns out to be. Note that <code>af.up</code> of 1 is already implied by <code>eqTradeCapFlow</code> and cannot bind.</p></dd>
+
+<dt>af.fx</dt>
+<dd><p>numeric. Fixed loading of the direction <code>src</code> -&gt; <code>dst</code> as a fraction of capacity. Overrides <code>af.lo</code> and <code>af.up</code>.</p></dd>
+
+<dt>teff</dt>
+<dd><p>numeric. Trade efficiency: the fraction of the flow sent from <code>src</code> that is delivered to <code>dst</code> (1 = lossless).</p></dd>
+
+<dt>reactance</dt>
+<dd><p>numeric. Series reactance <code>x</code> of the line, in the model's own impedance units. Carried for AC lines and used by nothing unless the model is interpolated with <code>kvl = TRUE</code>, when it becomes the coefficient of Kirchhoff's voltage law. Presence of a finite <code>reactance</code> is what marks a route as a PASSIVE AC branch: a controllable DC link has none, because its flow is chosen rather than set by impedance. Must be SYMMETRIC across the two directed rows of a line – the voltage law constrains the net flow – and a line under KVL must be declared in both directions. Where several physical circuits have been merged into one route, the value is the EQUIVALENT reactance, <code>1/x_eq = sum(1/x_i)</code>, not any one circuit's.</p></dd>
+
+<dt>resistance</dt>
+<dd><p>numeric. Series resistance <code>r</code> of the line, same units and same symmetry requirement as <code>reactance</code>. Recorded for round-tripping with power-system models (PyPSA's <code>Line</code> carries both). It does not drive losses by itself – losses are the per-route <code>teff</code> – but it is the input <code><a href="lossTranches.html">lossTranches()</a></code> turns into a piecewise-linear loss curve: pass it with the rating it was measured against, since <code>loss_full = r * F</code> and a resistance alone does not determine a loss fraction.</p></dd>
 
 
 </dl></dd>
 
 
 <dt id="arg-fixom">fixom<a class="anchor" aria-label="anchor" href="#arg-fixom"></a></dt>
-<dd><p>data.frame. (not implemented!) Fixed operation and maintenance costs.</p></dd>
+<dd><p>data.frame. Fixed operation and maintenance costs, per unit of standing capacity per year. Like the other trade cost slots this is a RATE PER ENDPOINT REGION, named in its <code>region</code> column – see the note on <code>invcost</code>.</p></dd>
 
 
 <dt id="arg-varom">varom<a class="anchor" aria-label="anchor" href="#arg-varom"></a></dt>
-<dd><p>data.frame. (not implemented!) Variable operation and maintenance costs.</p></dd>
+<dd><p>data.frame. Costs charged on the traded flow, PER ROUTE. Unlike the capacity costs above – which are a rate per endpoint region – these are indexed by <code>(src, dst, year, timeslice)</code>, so they can differ by direction. The two columns mean different things:</p>
+<p><code>varom</code>  – variable operation and maintenance, a REAL resource cost.
+Charged where the flow ORIGINATES (<code>src</code>) and added to
+total system cost, exactly as <code>technology@varom</code> is. Use
+it for wheeling fees, transit taxes or any real charge per
+unit shipped. Becomes <code>pTradeIrCost</code>.</p>
+<p><code>markup</code> – a border price or bilateral charge: a TRANSFER. The
+importing region pays it and the exporting region
+receives it, so it moves cost between regions and leaves
+the objective unchanged – the same distinction as a tax
+versus a cap. Becomes <code>pTradeIrMarkup</code>.</p>
+<p>Before 0.85 both columns were summed into a single term that cancelled between <code>eqImportIrCost</code> and <code>eqExportIrCost</code>, so <code>varom</code> could not express an operating cost at all; it now enters the objective once, positively, at <code>src</code>. (A separate parameter <code>pTradeVarom</code> was once declared in the GLPK and GAMS templates and read by no equation; it has been removed and was never this slot.)</p></dd>
 
 
 <dt id="arg-invcost">invcost<a class="anchor" aria-label="anchor" href="#arg-invcost"></a></dt>
-<dd><p>data.frame. Investment cost of the trade capacity (per unit of capacity).</p><dl><dt>vintage</dt>
+<dd><p>data.frame. Investment cost of the trade capacity, as a RATE PER ENDPOINT REGION per unit of capacity. Trade capacity is region-free – one number per corridor – but its costs are region-indexed, and each region named in <code>region</code> pays its own rate on the whole capacity. A corridor whose two endpoints each pay 100 therefore costs 200 in total. Leaving <code>region</code> unset applies the rate at every endpoint of the route; energyRt reports that rather than correcting it, because the same rate is what a partial-region study would see – solve a subset of the endpoints and it bears only their share, which is the intended behaviour. Name the regions to vary the rate between them. <code>fixom</code>, <code>retcost</code> and <code>eac</code> follow the same convention.</p>
+<dl><dt>vintage</dt>
 <dd><p>character. Vintage label selecting the variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
 
+<dt>cluster</dt>
+<dd><p>character. Cluster (loss tranche) label selecting the tranche this row applies to, NA for every tranche. See the <code>cluster</code> slot.</p></dd>
+
 <dt>region</dt>
-<dd><p>character. Region name to apply the parameter, NA for every region.</p></dd>
+<dd><p>character. Endpoint region bearing this rate. NA applies the rate at every endpoint of the route; name the regions to vary it between them. Must be one of the model's own regions – a coarser geoscale level is accepted by validation but never reaches the objective.</p></dd>
 
 <dt>year</dt>
 <dd><p>integer. Year to apply the parameter, NA for every year.</p></dd>
@@ -186,14 +235,14 @@
 
 
 <dt id="arg-vintage">vintage<a class="anchor" aria-label="anchor" href="#arg-vintage"></a></dt>
-<dd><p>data.frame. Investment window and operational life of the trade object, one row per vintage. Replaces the former <code>start</code>, <code>end</code> and <code>olife</code> slots. A vintage is a separately investable variant that keeps the characteristics of its build year for its whole life, so several vintages of one corridor mean several capacities on the same <code>(src, dst)</code> route, with their flows summed in the commodity balance. <code>region</code> and <code>cluster</code> are present for a uniform shape across process classes but are unused for trade: its scope comes from the route endpoints, and <code>routes</code> already provides the multiplicity a cluster dimension would add.</p><dl><dt>vintage</dt>
+<dd><p>data.frame. Investment window and operational life of the trade object, one row per vintage. Replaces the former <code>start</code>, <code>end</code> and <code>olife</code> slots. A vintage is a separately investable variant that keeps the characteristics of its build year for its whole life, so several vintages of one corridor mean several capacities on the same <code>(src, dst)</code> route, with their flows summed in the commodity balance. <code>region</code> is present for a uniform shape across process classes but is unused for trade: its scope comes from the route endpoints. <code>cluster</code> selects a loss tranche declared in the <code>cluster</code> slot.</p><dl><dt>vintage</dt>
 <dd><p>character. Vintage label, normally the build year as a string. NA for an un-vintaged trade.</p></dd>
 
 <dt>region</dt>
 <dd><p>character. Unused for trade (no <code>region</code> slot); present for consistency with the other classes.</p></dd>
 
 <dt>cluster</dt>
-<dd><p>character. Unused for trade (no cluster dimension); present for consistency with the other classes.</p></dd>
+<dd><p>character. Cluster (loss tranche) this row applies to, NA for every tranche. See the <code>cluster</code> slot.</p></dd>
 
 <dt>start</dt>
 <dd><p>integer. The first year the trade object is available for investment. NA means unbounded (up to <code>end</code>).</p></dd>
@@ -209,7 +258,7 @@
 
 
 <dt id="arg-capacity">capacity<a class="anchor" aria-label="anchor" href="#arg-capacity"></a></dt>
-<dd><p>data.frame. (not implemented!) Capacity parameters of the trade object.</p></dd>
+<dd><p>data.frame. Capacity parameters of the trade object: <code>stock</code> (the legacy corridor still standing at each milestone), the <code>cap.*</code> bounds on total capacity, the <code>ncap.*</code> bounds on the build RATE and the <code>ret.*</code> bounds on the early retirement rate. Region-free: a route IS a pair of regions, so a per-region capacity would be ambiguous.</p></dd>
 
 
 <dt id="arg-aux">aux<a class="anchor" aria-label="anchor" href="#arg-aux"></a></dt>
@@ -226,6 +275,9 @@
 <dt id="arg-aeff">aeff<a class="anchor" aria-label="anchor" href="#arg-aeff"></a></dt>
 <dd><p>data.frame. Auxiliary commodity efficiency parameters.</p><dl><dt>vintage</dt>
 <dd><p>character. Vintage label selecting the variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
+
+<dt>cluster</dt>
+<dd><p>character. Cluster (loss tranche) label selecting the tranche this row applies to, NA for every tranche. See the <code>cluster</code> slot.</p></dd>
 
 <dt>acomm</dt>
 <dd><p>character. Name of the auxiliary commodity (used in sets).</p></dd>

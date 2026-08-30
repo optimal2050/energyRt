@@ -113,7 +113,7 @@ test_that("a trade group bound spans years, and a region on it errors", {
     invcost = data.frame(vintage = c("2020", "2030"), invcost = c(200, 140)),
     capacity = data.frame(vintage = "TOTAL", cap.up = 4), cap2act = 1)
   sc <- vt_interp(vt_trade_model(ok, "tg"), "tg")
-  expect_length(sc@modInp@gams.equation, 1L)
+  expect_length(sc@modInp@user_constraints, 1L)
 
   # `vTradeCap{trade, year}` has no region index, so a region-restricted group
   # bound is not expressible: an unmatched for.each dim is auto-summed by

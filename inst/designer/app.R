@@ -745,15 +745,31 @@ server <- function(input, output, session) {
       }
     }
   }
+  # The editing tabs are technology-shaped. A storage or trade spec reads,
+  # validates, draws and exports correctly (the spec layer is class-aware),
+  # but its parameter blocks have no forms yet, so say so plainly rather than
+  # rendering a technology form over a storage spec.
+  .warn_if_unsupported_class <- function(s) {
+    cls <- s$class %||% "technology"
+    if (identical(cls, "technology")) return(invisible(FALSE))
+    showNotification(
+      HTML(paste0("Opened a <b>", cls, "</b> spec. The YAML, validation, ",
+                  "schematic and R-code tabs work; the parameter forms are ",
+                  "technology-only for now, so edit this one as YAML.")),
+      type = "warning", duration = 15)
+    invisible(TRUE)
+  }
   observeEvent(input$load_template, {
     s <- if (nzchar(input$template)) {
-      energyRt::read_techspec(input$template)
+      energyRt::read_procspec(input$template)
     } else .blank_spec()
+    .warn_if_unsupported_class(s)
     set_spec(s); set_identity_inputs(s)
     updateNavlistPanel(session, "wizard", selected = "Metadata")
   })
   observeEvent(input$upload, {
-    s <- energyRt::read_techspec(input$upload$datapath)
+    s <- energyRt::read_procspec(input$upload$datapath)
+    .warn_if_unsupported_class(s)
     set_spec(s); set_identity_inputs(s)
     updateNavlistPanel(session, "wizard", selected = "Metadata")
   })
@@ -764,7 +780,7 @@ server <- function(input, output, session) {
   output$save_json <- downloadHandler(
     filename = function() paste0(spec()$name %||% "techspec", ".json"),
     content = function(file) {
-      # same container rules as tech_to_spec(file = "*.json")
+      # same container rules as process_to_spec(file = "*.json")
       jsonlite::write_json(spec(), file, auto_unbox = TRUE, pretty = TRUE,
                            digits = NA, na = "null")
     }
@@ -872,7 +888,7 @@ server <- function(input, output, session) {
                        type = "error")
       return()
     }
-    s <- energyRt::tech_to_spec(obj)
+    s <- energyRt::process_to_spec(obj)
     set_spec(s); set_identity_inputs(s)
     updateNavlistPanel(session, "wizard", selected = "Metadata")
   })
@@ -1219,7 +1235,7 @@ server <- function(input, output, session) {
 
   # ── build + info panel ────────────────────────────────────────────────
   built <- reactive({
-    tryCatch(suppressWarnings(energyRt::tech_from_spec(spec())),
+    tryCatch(suppressWarnings(energyRt::process_from_spec(spec())),
              error = function(e) e)
   })
   # slot/parameter/unit table for the tables' units header rows; NULL while
@@ -1338,11 +1354,11 @@ server <- function(input, output, session) {
   })
   output$yaml_out <- renderText(yaml::as.yaml(spec()))
   output$code_out <- renderText({
-    tryCatch(energyRt::tech_spec_code(spec()),
+    tryCatch(energyRt::process_spec_code(spec()),
              error = function(e) paste("##", conditionMessage(e)))
   })
   output$issues <- DT::renderDT({
-    iss <- tryCatch(energyRt::tech_spec_issues(spec()),
+    iss <- tryCatch(energyRt::process_spec_issues(spec()),
                     error = function(e) data.frame(
                       severity = "error", section = "spec",
                       message = conditionMessage(e)))

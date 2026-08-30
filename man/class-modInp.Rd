@@ -13,7 +13,7 @@ interpolation step and is not intended to be created by users.
 \section{Slots}{
 
 \describe{
-\item{\code{set}}{list. named list of character vectors with sets used in the model.}
+\item{\code{sets}}{list. named list of character vectors with sets used in the model.}
 
 \item{\code{parameters}}{list. named list of \code{parameter} objects with three tipes - set: detailed description of the set - parameter: all model parameters, interpolated for every milestone
 year in the model horizon if applicable. Names of parameters start
@@ -23,9 +23,9 @@ with 'p'
 the dimension of variables and constraints
 }}
 
-\item{\code{gams.equation}}{list. named list of custom constraints added to the model from the \code{constraint} class. The name of the slot is outdated and will be changed in the future.}
+\item{\code{user_constraints}}{list. named list of user-defined constraints compiled from \code{constraint} objects: solver-agnostic equation code (GAMS-flavored intermediate representation) that each backend writer translates into its language. One entry per constraint.}
 
-\item{\code{costs.equation}}{list. named list of custom costs added to the model's objective from the \code{costs} class. The name of the slot is outdated and will be changed in the future.}
+\item{\code{user_costs}}{character. character vector of user cost terms compiled from \code{costs} objects, in the same solver-agnostic representation; the write step sums them into the \code{eqTotalUserCosts} equation of the objective.}
 
 \item{\code{misc}}{list. Any additional information or data to store in the object. Also used to store paths to the data files of objects stored on the disk.}
 }}

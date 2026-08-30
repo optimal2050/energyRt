@@ -33,7 +33,7 @@ getData(
   ...,
   merge = FALSE,
   timeframe = c("highest", "lowest", "all"),
-  geolevel = c("finest", "coarsest", "all"),
+  geoframe = c("finest", "coarsest", "all"),
   process = FALSE,
   parameters = TRUE,
   variables = TRUE,
@@ -67,7 +67,7 @@ getData(
   ...,
   merge = FALSE,
   timeframe = c("highest", "lowest", "all"),
-  geolevel = c("finest", "coarsest", "all"),
+  geoframe = c("finest", "coarsest", "all"),
   process = FALSE,
   parameters = TRUE,
   variables = TRUE,
@@ -93,6 +93,12 @@ getData(
   variants = TRUE,
   verbose = FALSE
 )
+
+# S3 method for class 'character'
+getData(scen, ...)
+
+# S3 method for class 'environment'
+getData(scen, ...)
 
 # Default S3 method
 getData(scen, ...)
@@ -287,7 +293,7 @@ getData(
   timeslices is meaningless, are returned unchanged.
 
   The default was `"lowest"` up to v0.80 and is now `"highest"`,
-  matching the spatial twin `geolevel`, whose default `"finest"` has
+  matching the spatial twin `geoframe`, whose default `"finest"` has
   always meant "as stored". Returning data at native resolution unless
   asked otherwise is the safer default: the old one silently summed an
   8760-slice hourly series into a single annual number, which reads as a
@@ -296,7 +302,7 @@ getData(
   notice when it is not wanted. Code that relied on annual totals must
   now pass `timeframe = "lowest"` explicitly.
 
-- geolevel:
+- geoframe:
 
   controls spatial aggregation of results that carry a `region` column,
   the spatial twin of `timeframe`. One of `"finest"` (default, native

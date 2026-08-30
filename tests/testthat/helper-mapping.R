@@ -1,19 +1,21 @@
 # =========================================================================== #
 # Helpers for the mapping-engine tests (test-mapping-engine.R).
 #
-# The tm_*() tier builders live in data-raw/testing-models.R, which is part of
-# the source checkout but is NOT shipped with the installed package. These
-# helpers locate and lazily source that catalog so the mapping-engine tests can
-# run under devtools::test(); when the catalog is unavailable (e.g. an installed
-# package under R CMD check) the dependent tests skip cleanly.
+# The tm_*() tier builders live in tests/testthat/fixtures/testing-models.R
+# (moved from data-raw/ so the catalog ships in the source tarball and the
+# fixture-gated tests run under R CMD check too). These helpers locate and
+# lazily source that catalog; when it is unavailable (e.g. an installed,
+# tests-stripped package) the dependent tests skip cleanly.
 # =========================================================================== #
 
-# Resolve the path to data-raw/testing-models.R from a few candidate roots.
+# Resolve the path to fixtures/testing-models.R from a few candidate roots
+# (legacy data-raw/ locations kept as fallback for older checkouts).
 .mapping_fixture_file <- function() {
   candidates <- c(
+    testthat::test_path("fixtures", "testing-models.R"),
+    file.path("tests", "testthat", "fixtures", "testing-models.R"),
     testthat::test_path("..", "..", "data-raw", "testing-models.R"),
-    file.path("data-raw", "testing-models.R"),
-    testthat::test_path("..", "..", "..", "data-raw", "testing-models.R")
+    file.path("data-raw", "testing-models.R")
   )
   for (f in candidates) {
     if (file.exists(f)) {
@@ -43,9 +45,26 @@
 
 skip_if_no_fixtures <- function() {
   if (is.null(.mapping_fixture_env())) {
-    testthat::skip("data-raw/testing-models.R not available")
+    testthat::skip("fixtures/testing-models.R not available")
   }
 }
+
+# One GLPK-solved scenario per tier, cached for the whole test run (used by
+# test-verify-solution.R, test-getdata-rollup.R, ...). Callers must have
+# passed skip_if_no_fixtures() and skip_if_no_solver().
+solved_tier <- local({
+  cache <- list()
+  function(tier) {
+    if (is.null(cache[[tier]])) {
+      env <- .mapping_fixture_env()
+      cache[[tier]] <<- suppressMessages(suppressWarnings(
+        solve_model(env[[tier]](), name = paste0("st_", tier),
+                  solver = solver_options$glpk, tmp.del = TRUE, wait = TRUE)
+      ))
+    }
+    cache[[tier]]
+  }
+})
 
 # Interpolate a tier builder by name (in-memory, quiet).
 interp_tier <- function(tier) {

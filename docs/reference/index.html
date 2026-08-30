@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.85.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,6 +36,8 @@
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
+    <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
+    <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
     <li><a class="dropdown-item" href="../articles/autoplot.html">autoplot()</a></li>
   </ul></li>
 <li class="nav-item"><a class="nav-link" href="../news/index.html">News</a></li>
@@ -261,6 +263,13 @@
 
       <dl><dt>
 
+          <code><a href="newACLine.html">newACLine()</a></code>
+          <span class="badge lifecycle lifecycle-experimental">experimental</span>
+        </dt>
+        <dd>Create an AC transmission line</dd>
+
+        <dt>
+
           <code><a href="newCalendar.html">newCalendar()</a></code>
 
         </dt>
@@ -286,6 +295,13 @@
 
         </dt>
         <dd>Create new costs object</dd>
+
+        <dt>
+
+          <code><a href="newDCLink.html">newDCLink()</a></code>
+          <span class="badge lifecycle lifecycle-experimental">experimental</span>
+        </dt>
+        <dd>Create a DC transmission link</dd>
 
         <dt>
 
@@ -321,13 +337,6 @@
 
         </dt>
         <dd>Create new model object</dd>
-
-        <dt>
-
-          <code><a href="newRegistry.html">newRegistry()</a></code>
-          <span class="badge lifecycle lifecycle-experimental">experimental</span>
-        </dt>
-        <dd>Create a new registry object.</dd>
 
         <dt>
 
@@ -401,13 +410,6 @@
 
         <dt>
 
-          <code><a href="make_scenario_dirname.html">make_scenario_dirname()</a></code>
-
-        </dt>
-        <dd>Make a name for a scenario directory</dd>
-
-        <dt>
-
           <code><a href="newTechnology.html">update(<i>&lt;export&gt;</i>)</a></code> <code><a href="newTechnology.html">update(<i>&lt;weather&gt;</i>)</a></code>
 
         </dt>
@@ -447,6 +449,27 @@
 
         </dt>
         <dd>Convert units</dd>
+
+        <dt>
+
+          <code><a href="registry.html">load_registry()</a></code> <code><a href="registry.html">save_registry()</a></code> <code><a href="registry.html">add_to_registry()</a></code> <code><a href="registry.html">add(<i>&lt;ert_registry&gt;</i>)</a></code> <code><a href="registry.html">find_registry()</a></code> <code><a href="registry.html">refresh_registry()</a></code>
+
+        </dt>
+        <dd>Project registry of models, scenarios, and runs</dd>
+
+        <dt>
+
+          <code><a href="supply-curve.html">asSupplyCurve()</a></code> <code><a href="supply-curve.html">asImportCurve()</a></code> <code><a href="supply-curve.html">asExportCurve()</a></code>
+          <span class="badge lifecycle lifecycle-experimental">experimental</span>
+        </dt>
+        <dd>Stepped supply, export and import curves</dd>
+
+        <dt>
+
+          <code><a href="lossTranches.html">lossTranches()</a></code>
+          <span class="badge lifecycle lifecycle-experimental">experimental</span>
+        </dt>
+        <dd>Loss tranches for a transmission line</dd>
       </dl></div><div class="section level2">
       <h2 id="technology-specs">Technology specs<a class="anchor" aria-label="anchor" href="#technology-specs"></a></h2>
 
@@ -459,31 +482,31 @@
 
       <dl><dt>
 
-          <code><a href="tech_from_spec.html">tech_from_spec()</a></code>
+          <code><a href="process_from_spec.html">process_from_spec()</a></code> <code><a href="process_from_spec.html">tech_from_spec()</a></code>
 
         </dt>
-        <dd>Build a technology object from a techspec</dd>
+        <dd>Build a process object from a spec</dd>
 
         <dt>
 
-          <code><a href="tech_to_spec.html">tech_to_spec()</a></code>
+          <code><a href="process_to_spec.html">process_to_spec()</a></code> <code><a href="process_to_spec.html">tech_to_spec()</a></code>
 
         </dt>
-        <dd>Export a technology object as a techspec list</dd>
+        <dd>Export a process object as a spec list</dd>
 
         <dt>
 
-          <code><a href="tech_spec_code.html">tech_spec_code()</a></code>
+          <code><a href="process_spec_code.html">process_spec_code()</a></code> <code><a href="process_spec_code.html">tech_spec_code()</a></code>
 
         </dt>
-        <dd>The newTechnology() call equivalent to a techspec, as text</dd>
+        <dd>The constructor call equivalent to a process spec, as text</dd>
 
         <dt>
 
-          <code><a href="tech_spec_issues.html">tech_spec_issues()</a></code>
+          <code><a href="process_spec_issues.html">process_spec_issues()</a></code> <code><a href="process_spec_issues.html">tech_spec_issues()</a></code>
 
         </dt>
-        <dd>Validate a techspec and report issues</dd>
+        <dd>Validate a process spec and report issues</dd>
 
         <dt>
 
@@ -645,10 +668,24 @@
 
         <dt>
 
+          <code><a href="log.html">set_log_file()</a></code> <code><a href="log.html">get_log_file()</a></code> <code><a href="log.html">read_log()</a></code>
+
+        </dt>
+        <dd>Read the operation log</dd>
+
+        <dt>
+
           <code><a href="read.html">read_solution()</a></code> <code><a href="read.html">read(<i>&lt;scenario&gt;</i>)</a></code>
 
         </dt>
         <dd>Read solution</dd>
+
+        <dt>
+
+          <code><a href="read_procspec.html">read_procspec()</a></code> <code><a href="read_procspec.html">read_techspec()</a></code>
+
+        </dt>
+        <dd>Read and validate a process spec</dd>
 
         <dt>
 
@@ -659,38 +696,59 @@
 
         <dt>
 
-          <code><a href="read_techspec.html">read_techspec()</a></code>
+          <code><a href="solve_model.html">solve_mod()</a></code> <code><a href="solve_model.html">solve_scen()</a></code> <code><a href="solve_model.html">solve_model()</a></code> <code><a href="solve_model.html">solve_scenario()</a></code>
 
         </dt>
-        <dd>Read and validate a techspec</dd>
+        <dd>Solve a model or an interpolated scenario</dd>
 
         <dt>
 
-          <code><a href="solve_mod.html">solve_mod()</a></code> <code><a href="solve_mod.html">solve_scen()</a></code>
+          <code><a href="solve_myopic.html">solve_myopic()</a></code>
 
         </dt>
-        <dd>Solve a model or an interpolated scenario built with the new pipeline</dd>
+        <dd>Solve a model sequentially (myopic foresight)</dd>
 
         <dt>
 
-          <code><a href="solve_model.html">solve_model()</a></code> <code><a href="solve_model.html">solve_scenario()</a></code>
+          <code><a href="subset_model_regions.html">subset_model_regions()</a></code>
 
         </dt>
-        <dd>Solve a model or scenario (legacy names; new pipeline)</dd>
+        <dd>Restrict a model to a region subset</dd>
 
         <dt>
 
-          <code><a href="mosox_run.html">mosox_run()</a></code>
+          <code><a href="with_solver_log.html">with_solver_log()</a></code>
 
         </dt>
-        <dd>Run mosox on a GMPL model or data file</dd>
+        <dd>Send the solver's progress log to a file</dd>
 
         <dt>
 
-          <code><a href="en_mosox_run.html">en_mosox_run()</a></code>
+          <code><a href="horizon_windows.html">horizon_windows()</a></code>
 
         </dt>
-        <dd>Run mosox on a GMPL model or data file</dd>
+        <dd>Split a horizon into sequential solve windows</dd>
+
+        <dt>
+
+          <code><a href="solution_ledger.html">solution_ledger()</a></code>
+
+        </dt>
+        <dd>Extract the carry-forward ledger from a solved scenario</dd>
+
+        <dt>
+
+          <code><a href="apply_ledger.html">apply_ledger()</a></code>
+
+        </dt>
+        <dd>Apply a carry ledger to a model</dd>
+
+        <dt>
+
+          <code><a href="myopic_objective.html">myopic_objective()</a></code>
+
+        </dt>
+        <dd>Globally discounted total cost of a myopic sequence</dd>
 
         <dt>
 
@@ -796,6 +854,13 @@
 
         <dt>
 
+          <code><a href="report_helpers.html">report_output()</a></code> <code><a href="report_helpers.html">report_setup()</a></code> <code><a href="report_helpers.html">report_layout()</a></code> <code><a href="report_helpers.html">report_esc()</a></code> <code><a href="report_helpers.html">report_fmt_val()</a></code> <code><a href="report_helpers.html">report_img()</a></code> <code><a href="report_helpers.html">report_img_row()</a></code> <code><a href="report_helpers.html">report_pagebreak()</a></code> <code><a href="report_helpers.html">report_plot_png()</a></code> <code><a href="report_helpers.html">report_sec()</a></code> <code><a href="report_helpers.html">report_tbl()</a></code> <code><a href="report_helpers.html">report_css()</a></code> <code><a href="report_helpers.html">report_header()</a></code>
+
+        </dt>
+        <dd>Report template helpers</dd>
+
+        <dt>
+
           <code><a href="report_html.html">report_html()</a></code>
 
         </dt>
@@ -810,10 +875,61 @@
 
         <dt>
 
+          <code><a href="report_templates.html">report_templates()</a></code>
+
+        </dt>
+        <dd>List the available report templates</dd>
+
+        <dt>
+
           <code><a href="report_tex.html">report_tex()</a></code>
 
         </dt>
         <dd>Generate a LaTeX report for an energyRt object</dd>
+      </dl></div><div class="section level2">
+      <h2 id="comparison">Comparison<a class="anchor" aria-label="anchor" href="#comparison"></a></h2>
+
+      <div class="section-desc"><p>Compare scenarios’ solved results (or runs of one scenario), models’ declarations, and interpolated model inputs.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="compare_inputs.html">compare_inputs()</a></code> <code><a href="compare_inputs.html">print(<i>&lt;inputs_cmp&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Compare two scenarios' model inputs</dd>
+
+        <dt>
+
+          <code><a href="compare_interp_settings.html">compare_interp_settings()</a></code>
+
+        </dt>
+        <dd>Compare interpolation settings (size &amp; build time) for a model</dd>
+
+        <dt>
+
+          <code><a href="compare_models.html">compare_models()</a></code> <code><a href="compare_models.html">print(<i>&lt;models_cmp&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Compare two models' contents</dd>
+
+        <dt>
+
+          <code><a href="compare_scenarios.html">compare_scenarios()</a></code> <code><a href="compare_scenarios.html">print(<i>&lt;scenarios_cmp&gt;</i>)</a></code> <code><a href="compare_scenarios.html">autoplot(<i>&lt;scenarios_cmp&gt;</i>)</a></code> <code><a href="compare_scenarios.html">plot(<i>&lt;scenarios_cmp&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Compare solved scenarios (or runs of one scenario)</dd>
+
+        <dt>
+
+          <code><a href="compare_solve_settings.html">compare_solve_settings()</a></code>
+
+        </dt>
+        <dd>Compare interpolation settings AND solvers for a model</dd>
       </dl></div><div class="section level2">
       <h2 id="example-datasets">Example datasets<a class="anchor" aria-label="anchor" href="#example-datasets"></a></h2>
 
@@ -884,6 +1000,13 @@
 
         <dt>
 
+          <code><a href="dataset_store.html">dataset_hash()</a></code> <code><a href="dataset_store.html">save_dataset()</a></code> <code><a href="dataset_store.html">load_dataset()</a></code>
+
+        </dt>
+        <dd>Content hash of a dataset payload</dd>
+
+        <dt>
+
           <code><a href="getData.html">getData()</a></code> <code><a href="getData.html">get_data()</a></code>
 
         </dt>
@@ -891,10 +1014,31 @@
 
         <dt>
 
+          <code><a href="registry_file.html">set_registry_file()</a></code> <code><a href="registry_file.html">get_registry_file()</a></code> <code><a href="registry_file.html">set_models_path()</a></code> <code><a href="registry_file.html">get_models_path()</a></code> <code><a href="registry_file.html">set_repositories_path()</a></code> <code><a href="registry_file.html">get_repositories_path()</a></code> <code><a href="registry_file.html">set_datasets_path()</a></code> <code><a href="registry_file.html">get_datasets_path()</a></code> <code><a href="registry_file.html">set_store_versioning()</a></code> <code><a href="registry_file.html">get_store_versioning()</a></code>
+
+        </dt>
+        <dd>Registry file and model store locations</dd>
+
+        <dt>
+
+          <code><a href="seal.html">seal_model()</a></code> <code><a href="seal.html">unseal_model()</a></code> <code><a href="seal.html">seal_repository()</a></code> <code><a href="seal.html">unseal_repository()</a></code> <code><a href="seal.html">seal_dataset()</a></code> <code><a href="seal.html">unseal_dataset()</a></code> <code><a href="seal.html">seal_scenario()</a></code> <code><a href="seal.html">unseal_scenario()</a></code> <code><a href="seal.html">mark_delete()</a></code> <code><a href="seal.html">unmark_delete()</a></code> <code><a href="seal.html">delete_marked()</a></code>
+
+        </dt>
+        <dd>Seal and unseal store entries; mark them for deletion</dd>
+
+        <dt>
+
           <code><a href="getObject.html">getObject()</a></code>
 
         </dt>
         <dd>Retrieve model objects from a repository, model or scenario</dd>
+
+        <dt>
+
+          <code><a href="accessors.html">getScenario()</a></code> <code><a href="accessors.html">getModel()</a></code> <code><a href="accessors.html">getRepository()</a></code> <code><a href="accessors.html">getDataset()</a></code> <code><a href="accessors.html">open_project()</a></code>
+
+        </dt>
+        <dd>Access registered scenarios, models, repositories, and datasets by name</dd>
 
         <dt>
 
@@ -951,6 +1095,13 @@
 
         </dt>
         <dd>Find where value(s) are stored across a model's objects</dd>
+
+        <dt>
+
+          <code><a href="registry.html">load_registry()</a></code> <code><a href="registry.html">save_registry()</a></code> <code><a href="registry.html">add_to_registry()</a></code> <code><a href="registry.html">add(<i>&lt;ert_registry&gt;</i>)</a></code> <code><a href="registry.html">find_registry()</a></code> <code><a href="registry.html">refresh_registry()</a></code>
+
+        </dt>
+        <dd>Project registry of models, scenarios, and runs</dd>
 
         <dt>
 
@@ -1038,17 +1189,24 @@
 
         <dt>
 
-          <code><a href="register.html">register()</a></code>
-          <span class="badge lifecycle lifecycle-experimental">experimental</span>
+          <code><a href="isOnDisk.html">isOnDisk()</a></code>
+
         </dt>
-        <dd>Register an object in the registry.</dd>
+        <dd>Is object stored on disk?</dd>
 
         <dt>
 
-          <code><a href="default_registry.html">set_default_registry()</a></code> <code><a href="default_registry.html">use_registry()</a></code> <code><a href="default_registry.html">which_registry()</a></code> <code><a href="default_registry.html">get_registry()</a></code>
+          <code><a href="model_store.html">save_model()</a></code> <code><a href="model_store.html">load_model()</a></code>
 
         </dt>
-        <dd>Default registry</dd>
+        <dd>Save a model to / load a model from the model store</dd>
+
+        <dt>
+
+          <code><a href="repo_store.html">save_repository()</a></code> <code><a href="repo_store.html">load_repository()</a></code>
+
+        </dt>
+        <dd>Save a repository to / load a repository from the repository store</dd>
 
         <dt>
 
@@ -1059,10 +1217,52 @@
 
         <dt>
 
-          <code><a href="load_scenario.html">load_scenario()</a></code>
+          <code><a href="load_mapping_spec.html">load_mapping_spec()</a></code>
+
+        </dt>
+        <dd>Load the mapping specification</dd>
+
+        <dt>
+
+          <code><a href="load_scenario.html">load_scenario()</a></code> <code><a href="load_scenario.html">load_scenarios()</a></code>
 
         </dt>
         <dd>Load scenario (in progress)</dd>
+
+        <dt>
+
+          <code><a href="model_hash.html">model_hash()</a></code> <code><a href="model_hash.html">object_hash()</a></code>
+
+        </dt>
+        <dd>Content hash of a model</dd>
+
+        <dt>
+
+          <code><a href="repository_hash.html">repository_hash()</a></code>
+
+        </dt>
+        <dd>Content hash of a repository</dd>
+
+        <dt>
+
+          <code><a href="scenario_runs.html">scenario_runs()</a></code> <code><a href="scenario_runs.html">scenario_run_info()</a></code> <code><a href="scenario_runs.html">drop_scenario_run()</a></code>
+
+        </dt>
+        <dd>List, inspect, and drop a scenario's runs</dd>
+
+        <dt>
+
+          <code><a href="upgrade_scenario_layout.html">upgrade_scenario_layout()</a></code>
+
+        </dt>
+        <dd>Upgrade a scenario folder to the current on-disk layout</dd>
+
+        <dt>
+
+          <code><a href="clear_levcost_cache.html">clear_levcost_cache()</a></code>
+
+        </dt>
+        <dd>Clear cached levcost results</dd>
 
         <dt>
 
@@ -1091,6 +1291,13 @@
 
         </dt>
         <dd>UTOPIA model modules</dd>
+
+        <dt>
+
+          <code><a href="utopia_profile.html">utopia_profile()</a></code>
+
+        </dt>
+        <dd>Synthetic input shapes on a calendar (deterministic)</dd>
 
         <dt>
 
@@ -1159,10 +1366,24 @@
 
         <dt>
 
+          <code><a href="compare_scenarios.html">compare_scenarios()</a></code> <code><a href="compare_scenarios.html">print(<i>&lt;scenarios_cmp&gt;</i>)</a></code> <code><a href="compare_scenarios.html">autoplot(<i>&lt;scenarios_cmp&gt;</i>)</a></code> <code><a href="compare_scenarios.html">plot(<i>&lt;scenarios_cmp&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Compare solved scenarios (or runs of one scenario)</dd>
+
+        <dt>
+
           <code><a href="plot_calendar_method.html">autoplot(<i>&lt;calendar&gt;</i>)</a></code>
 
         </dt>
         <dd>Visualize a Calendar object</dd>
+
+        <dt>
+
+          <code><a href="plot_geoscale.html">plot_geoscale()</a></code>
+
+        </dt>
+        <dd>Draw a model's geoscale</dd>
 
         <dt>
 
@@ -1198,6 +1419,13 @@
 
         </dt>
         <dd>Map inter-regional trade routes</dd>
+
+        <dt>
+
+          <code><a href="report_helpers.html">report_output()</a></code> <code><a href="report_helpers.html">report_setup()</a></code> <code><a href="report_helpers.html">report_layout()</a></code> <code><a href="report_helpers.html">report_esc()</a></code> <code><a href="report_helpers.html">report_fmt_val()</a></code> <code><a href="report_helpers.html">report_img()</a></code> <code><a href="report_helpers.html">report_img_row()</a></code> <code><a href="report_helpers.html">report_pagebreak()</a></code> <code><a href="report_helpers.html">report_plot_png()</a></code> <code><a href="report_helpers.html">report_sec()</a></code> <code><a href="report_helpers.html">report_tbl()</a></code> <code><a href="report_helpers.html">report_css()</a></code> <code><a href="report_helpers.html">report_header()</a></code>
+
+        </dt>
+        <dd>Report template helpers</dd>
 
         <dt>
 
@@ -1273,6 +1501,20 @@
 
         <dt>
 
+          <code><a href="verify_solution.html">verify_solution()</a></code>
+
+        </dt>
+        <dd>Verify accounting identities of a solved scenario</dd>
+
+        <dt>
+
+          <code><a href="clear_levcost_cache.html">clear_levcost_cache()</a></code>
+
+        </dt>
+        <dd>Clear cached levcost results</dd>
+
+        <dt>
+
           <code><a href="levcost.html">levcost()</a></code>
 
         </dt>
@@ -1284,6 +1526,27 @@
 
         </dt>
         <dd>Per-variant levelized cost tables</dd>
+
+        <dt>
+
+          <code><a href="levcost_storage_.html">levcost_storage_()</a></code>
+
+        </dt>
+        <dd>Levelized cost of storage</dd>
+
+        <dt>
+
+          <code><a href="levcost_trade_.html">levcost_trade_()</a></code>
+
+        </dt>
+        <dd>Levelized cost of transmission</dd>
+
+        <dt>
+
+          <code><a href="reports_path.html">set_reports_path()</a></code> <code><a href="reports_path.html">get_reports_path()</a></code> <code><a href="reports_path.html">set_levcost_cache_path()</a></code> <code><a href="reports_path.html">get_levcost_cache_path()</a></code>
+
+        </dt>
+        <dd>Report and levcost output locations</dd>
 
         <dt>
 
@@ -1302,6 +1565,27 @@
 
 
       <dl><dt>
+
+          <code><a href="compare_inputs.html">compare_inputs()</a></code> <code><a href="compare_inputs.html">print(<i>&lt;inputs_cmp&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Compare two scenarios' model inputs</dd>
+
+        <dt>
+
+          <code><a href="compare_models.html">compare_models()</a></code> <code><a href="compare_models.html">print(<i>&lt;models_cmp&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Compare two models' contents</dd>
+
+        <dt>
+
+          <code><a href="compare_scenarios.html">compare_scenarios()</a></code> <code><a href="compare_scenarios.html">print(<i>&lt;scenarios_cmp&gt;</i>)</a></code> <code><a href="compare_scenarios.html">autoplot(<i>&lt;scenarios_cmp&gt;</i>)</a></code> <code><a href="compare_scenarios.html">plot(<i>&lt;scenarios_cmp&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Compare solved scenarios (or runs of one scenario)</dd>
+
+        <dt>
 
           <code><a href="print.html">print()</a></code>
 
@@ -1333,13 +1617,6 @@
 
         <dt>
 
-          <code><a href="default_registry.html">set_default_registry()</a></code> <code><a href="default_registry.html">use_registry()</a></code> <code><a href="default_registry.html">which_registry()</a></code> <code><a href="default_registry.html">get_registry()</a></code>
-
-        </dt>
-        <dd>Default registry</dd>
-
-        <dt>
-
           <code><a href="default_solver.html">get_default_solver()</a></code> <code><a href="default_solver.html">set_default_solver()</a></code>
 
         </dt>
@@ -1351,6 +1628,13 @@
 
         </dt>
         <dd>Get or set an energyRt option</dd>
+
+        <dt>
+
+          <code><a href="log.html">set_log_file()</a></code> <code><a href="log.html">get_log_file()</a></code> <code><a href="log.html">read_log()</a></code>
+
+        </dt>
+        <dd>Read the operation log</dd>
 
         <dt>
 
@@ -1382,6 +1666,20 @@
 
         <dt>
 
+          <code><a href="registry_file.html">set_registry_file()</a></code> <code><a href="registry_file.html">get_registry_file()</a></code> <code><a href="registry_file.html">set_models_path()</a></code> <code><a href="registry_file.html">get_models_path()</a></code> <code><a href="registry_file.html">set_repositories_path()</a></code> <code><a href="registry_file.html">get_repositories_path()</a></code> <code><a href="registry_file.html">set_datasets_path()</a></code> <code><a href="registry_file.html">get_datasets_path()</a></code> <code><a href="registry_file.html">set_store_versioning()</a></code> <code><a href="registry_file.html">get_store_versioning()</a></code>
+
+        </dt>
+        <dd>Registry file and model store locations</dd>
+
+        <dt>
+
+          <code><a href="reports_path.html">set_reports_path()</a></code> <code><a href="reports_path.html">get_reports_path()</a></code> <code><a href="reports_path.html">set_levcost_cache_path()</a></code> <code><a href="reports_path.html">get_levcost_cache_path()</a></code>
+
+        </dt>
+        <dd>Report and levcost output locations</dd>
+
+        <dt>
+
           <code><a href="scenarios_path.html">set_scenarios_path()</a></code> <code><a href="scenarios_path.html">get_scenarios_path()</a></code>
 
         </dt>
@@ -1396,13 +1694,6 @@
 
         <dt>
 
-          <code><a href="set_mosox_path.html">set_mosox_path()</a></code>
-
-        </dt>
-        <dd>Set the path to the mosox executable</dd>
-
-        <dt>
-
           <code><a href="solver.html">set_gams_path()</a></code> <code><a href="solver.html">get_gams_path()</a></code> <code><a href="solver.html">set_gdxlib_path()</a></code> <code><a href="solver.html">get_gdxlib_path()</a></code> <code><a href="solver.html">set_glpk_path()</a></code> <code><a href="solver.html">get_glpk_path()</a></code> <code><a href="solver.html">set_julia_path()</a></code> <code><a href="solver.html">get_julia_path()</a></code> <code><a href="solver.html">set_python_path()</a></code> <code><a href="solver.html">get_python_path()</a></code>
 
         </dt>
@@ -1414,13 +1705,6 @@
 
         </dt>
         <dd>Set or get the path to a solver toolchain</dd>
-
-        <dt>
-
-          <code><a href="make_scenario_dirname.html">make_scenario_dirname()</a></code>
-
-        </dt>
-        <dd>Make a name for a scenario directory</dd>
 
         <dt>
 
@@ -1517,13 +1801,6 @@
 
         <dt>
 
-          <code><a href="default_registry.html">set_default_registry()</a></code> <code><a href="default_registry.html">use_registry()</a></code> <code><a href="default_registry.html">which_registry()</a></code> <code><a href="default_registry.html">get_registry()</a></code>
-
-        </dt>
-        <dd>Default registry</dd>
-
-        <dt>
-
           <code><a href="default_solver.html">get_default_solver()</a></code> <code><a href="default_solver.html">set_default_solver()</a></code>
 
         </dt>
@@ -1556,13 +1833,6 @@
 
         </dt>
         <dd>Return default value for one, several, or all parameters</dd>
-
-        <dt>
-
-          <code><a href="get_mosox_path.html">get_mosox_path()</a></code>
-
-        </dt>
-        <dd>Get the configured mosox executable path</dd>
 
         <dt>
 
@@ -1650,10 +1920,38 @@
 
         <dt>
 
+          <code><a href="get_weather.html">get_weather()</a></code>
+
+        </dt>
+        <dd>Collect the weather objects an object refers to</dd>
+
+        <dt>
+
+          <code><a href="log.html">set_log_file()</a></code> <code><a href="log.html">get_log_file()</a></code> <code><a href="log.html">read_log()</a></code>
+
+        </dt>
+        <dd>Read the operation log</dd>
+
+        <dt>
+
           <code><a href="neos_email.html">get_neos_email()</a></code> <code><a href="neos_email.html">set_neos_email()</a></code>
 
         </dt>
         <dd>NEOS submission email</dd>
+
+        <dt>
+
+          <code><a href="registry_file.html">set_registry_file()</a></code> <code><a href="registry_file.html">get_registry_file()</a></code> <code><a href="registry_file.html">set_models_path()</a></code> <code><a href="registry_file.html">get_models_path()</a></code> <code><a href="registry_file.html">set_repositories_path()</a></code> <code><a href="registry_file.html">get_repositories_path()</a></code> <code><a href="registry_file.html">set_datasets_path()</a></code> <code><a href="registry_file.html">get_datasets_path()</a></code> <code><a href="registry_file.html">set_store_versioning()</a></code> <code><a href="registry_file.html">get_store_versioning()</a></code>
+
+        </dt>
+        <dd>Registry file and model store locations</dd>
+
+        <dt>
+
+          <code><a href="reports_path.html">set_reports_path()</a></code> <code><a href="reports_path.html">get_reports_path()</a></code> <code><a href="reports_path.html">set_levcost_cache_path()</a></code> <code><a href="reports_path.html">get_levcost_cache_path()</a></code>
+
+        </dt>
+        <dd>Report and levcost output locations</dd>
 
         <dt>
 
@@ -1713,7 +2011,7 @@
 
         <dt>
 
-          <code><a href="map_comm_geolevel.html">map_comm_geolevel()</a></code>
+          <code><a href="map_comm_geoframe.html">map_comm_geoframe()</a></code>
 
         </dt>
         <dd>Balancing geo-level of commodities</dd>

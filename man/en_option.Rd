@@ -40,7 +40,9 @@ Other options:
 \code{\link[=get_arrow_format]{get_arrow_format()}},
 \code{\link[=get_default_solver]{get_default_solver()}},
 \code{\link[=isVerbose]{isVerbose()}},
-\code{\link[=set_default_registry]{set_default_registry()}},
+\code{\link[=set_log_file]{set_log_file()}},
+\code{\link[=set_registry_file]{set_registry_file()}},
+\code{\link[=set_reports_path]{set_reports_path()}},
 \code{\link[=set_scenarios_path]{set_scenarios_path()}},
 \code{\link[=set_solver_path]{set_solver_path()}}
 }

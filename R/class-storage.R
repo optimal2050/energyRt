@@ -98,41 +98,33 @@ setClass("storage",
     # and fills whichever roles were not named, at construction, so the object
     # never carries two answers to "what does this consume". Same treatment
     # `@start`/`@end`/`@olife` got when they merged into `@vintage`.
-    # `comm` only for now: capacity and cost columns arrive with the variables
-    # that read them, so the class never advertises a column no equation
-    # consumes (cf. storage retirement -- collected, mapped and declared with no
-    # equation in any backend).
-    # The charging side. `comm` is what fills the store; the rest is the
-    # CHARGER's own capacity and economics, in power. A dedicated charger rated
-    # differently from the discharger -- an EV drawing 7 kW but delivering 100 kW
-    # to the motor -- has nowhere else to live: `@capacity`/`@invcost` describe
-    # the output side. As with `@storage`, a part carrying only `comm` gets no
-    # capacity variable and the model is unchanged.
+    #
+    # A role slot DECLARES; it does not parameterise. `comm`, `unit` and
+    # `cap2act` are invariant -- a charger consumes ELC in MW whatever the
+    # vintage, region or year -- so the slot carries no key columns at all.
+    # Everything that varies lives in `@capacity`, `@invcost` and `@fixom`,
+    # under a `inp.`/`out.`/`stg.` prefix naming the part it belongs to:
+    # `inp.cap.up`, `stg.invcost`, `out.fixom`. That is one home per quantity,
+    # which is what stops the same number being reachable two ways.
+    #
+    # The charging side. A dedicated charger rated differently from the
+    # discharger -- an EV drawing 7 kW but delivering 100 kW to the motor -- is
+    # `inp.cap.fx = 7` next to `out.cap.fx = 100`.
     input = data.frame(
       comm = character(),
       # Unit of `comm` on this side, as on `technology@input`/`@output`. Purely
       # descriptive -- carried for reporting and `convert()`, never interpolated.
       # The COMMODITY's unit, not the capacity's: capacity follows `cap2act`.
       unit = character(),
-      vintage = character(),
-      cluster = character(),
-      region = character(),
-      year = integer(),
       # Capacity -> ANNUAL flow, exactly as `technology@cap2act`. The flow bound
-      # is `cinp.up * cap2act * cap * pTimesliceShare[s]`, so `cap` is a RATE and
+      # is `inp.af.up * cap2act * cap * pTimesliceShare[s]`, so `cap` is a RATE and
       # means the same physical thing on any calendar. Defaults to 8760 (hours in
       # a year), which makes `cap` "commodity per hour" -- and leaves an hourly
       # full-year model numerically unchanged, because 8760 * (1/8760) = 1.
+      #
+      # Invariant, which is why it belongs here: a conversion factor between two
+      # units does not vary by vintage, region or year.
       cap2act = numeric(),
-      stock = numeric(),
-      cap.lo = numeric(),
-      cap.up = numeric(),
-      cap.fx = numeric(),
-      ncap.lo = numeric(),
-      ncap.up = numeric(),
-      ncap.fx = numeric(),
-      invcost = numeric(),
-      fixom = numeric(),
       stringsAsFactors = FALSE
     ),
     # The discharging side. `comm` is what the store releases; the capacity and
@@ -147,25 +139,15 @@ setClass("storage",
       # descriptive -- carried for reporting and `convert()`, never interpolated.
       # The COMMODITY's unit, not the capacity's: capacity follows `cap2act`.
       unit = character(),
-      vintage = character(),
-      cluster = character(),
-      region = character(),
-      year = integer(),
       # Capacity -> ANNUAL flow, exactly as `technology@cap2act`. The flow bound
-      # is `cinp.up * cap2act * cap * pTimesliceShare[s]`, so `cap` is a RATE and
+      # is `inp.af.up * cap2act * cap * pTimesliceShare[s]`, so `cap` is a RATE and
       # means the same physical thing on any calendar. Defaults to 8760 (hours in
       # a year), which makes `cap` "commodity per hour" -- and leaves an hourly
       # full-year model numerically unchanged, because 8760 * (1/8760) = 1.
+      #
+      # Invariant, which is why it belongs here: a conversion factor between two
+      # units does not vary by vintage, region or year.
       cap2act = numeric(),
-      stock = numeric(),
-      cap.lo = numeric(),
-      cap.up = numeric(),
-      cap.fx = numeric(),
-      ncap.lo = numeric(),
-      ncap.up = numeric(),
-      ncap.fx = numeric(),
-      invcost = numeric(),
-      fixom = numeric(),
       stringsAsFactors = FALSE
     ),
     # The storing side. `comm` is what the store HOLDS; every other column is
@@ -183,19 +165,6 @@ setClass("storage",
       # descriptive -- carried for reporting and `convert()`, never interpolated.
       # The COMMODITY's unit, not the capacity's: capacity follows `cap2act`.
       unit = character(),
-      vintage = character(),
-      cluster = character(),
-      region = character(),
-      year = integer(),
-      stock = numeric(),
-      cap.lo = numeric(),
-      cap.up = numeric(),
-      cap.fx = numeric(),
-      ncap.lo = numeric(),
-      ncap.up = numeric(),
-      ncap.fx = numeric(),
-      invcost = numeric(),
-      fixom = numeric(),
       stringsAsFactors = FALSE
     ),
     startLevel = data.frame(
@@ -239,6 +208,26 @@ setClass("storage",
       cap2aout = numeric(),
       ncap2ainp = numeric(),
       ncap2aout = numeric(),
+      # --- end of life -------------------------------------------------
+      # `pho2a*` fires when capacity reaches the END OF ITS LIFE, `ret2a*` when
+      # it is retired EARLY. They are separate because the recovery differs:
+      # a plant scrapped early is largely intact, a worn-out one is not.
+      #
+      # Both multiply the per-year retirement/phase-out FLOW, so the charge
+      # lands ONCE -- in the milestone where the capacity disappears -- exactly
+      # as `ncap2ainp` lands once at construction. Multiplying a standing
+      # quantity instead would recur every year.
+      #
+      # TIMESLICE WARNING, inherited deliberately from `ncap2ainp`: the term
+      # carries NO `pTimesliceShare`, and `vTechAInp`/`vTechAOut` enter a
+      # PER-TIMESLICE balance. A coefficient given with `timeslice = NA`
+      # therefore applies in every slice and the annual total comes out
+      # multiplied by the slice count -- 8760x on an hourly calendar. Give a
+      # per-slice value, or name one slice.
+      pho2ainp = numeric(),
+      pho2aout = numeric(),
+      ret2ainp = numeric(),
+      ret2aout = numeric(),
       ncap2stg = numeric(),
       stringsAsFactors = FALSE
     ),
@@ -251,12 +240,12 @@ setClass("storage",
       af.lo = numeric(),
       af.up = numeric(),
       af.fx = numeric(),
-      cinp.up = numeric(),
-      cinp.fx = numeric(),
-      cinp.lo = numeric(),
-      cout.up = numeric(),
-      cout.fx = numeric(),
-      cout.lo = numeric(),
+      inp.af.up = numeric(),
+      inp.af.fx = numeric(),
+      inp.af.lo = numeric(),
+      out.af.up = numeric(),
+      out.af.fx = numeric(),
+      out.af.lo = numeric(),
       stringsAsFactors = FALSE
     ),
     fixom = data.frame(
@@ -264,7 +253,9 @@ setClass("storage",
       cluster = character(),
       region = character(),
       year = integer(),
-      fixom = numeric(),
+      out.fixom = numeric(),
+      inp.fixom = numeric(),
+      stg.fixom = numeric(),
       stringsAsFactors = FALSE
     ),
     varom = data.frame(
@@ -286,11 +277,21 @@ setClass("storage",
       cluster = character(),
       region = character(),
       year = integer(),
-      invcost = numeric(),
-      wacc = numeric(),
-      payback = numeric(),
-      eac = numeric(),
-      retcost = numeric(),
+      out.invcost = numeric(),
+      out.wacc = numeric(),
+      out.payback = numeric(),
+      out.eac = numeric(),
+      out.retcost = numeric(),
+      inp.invcost = numeric(),
+      inp.wacc = numeric(),
+      inp.payback = numeric(),
+      inp.eac = numeric(),
+      inp.retcost = numeric(),
+      stg.invcost = numeric(),
+      stg.wacc = numeric(),
+      stg.payback = numeric(),
+      stg.eac = numeric(),
+      stg.retcost = numeric(),
       stringsAsFactors = FALSE
     ),
     # stock = data.frame(
@@ -304,16 +305,39 @@ setClass("storage",
       cluster = character(),
       region = character(),
       year = integer(),
-      stock = numeric(),
-      cap.lo = numeric(),
-      cap.up = numeric(),
-      cap.fx = numeric(),
-      ncap.lo = numeric(),
-      ncap.up = numeric(),
-      ncap.fx = numeric(),
-      ret.lo = numeric(),
-      ret.up = numeric(),
-      ret.fx = numeric(),
+      # discharging side
+      out.stock = numeric(),
+      out.cap.lo = numeric(),
+      out.cap.up = numeric(),
+      out.cap.fx = numeric(),
+      out.ncap.lo = numeric(),
+      out.ncap.up = numeric(),
+      out.ncap.fx = numeric(),
+      out.ret.lo = numeric(),
+      out.ret.up = numeric(),
+      out.ret.fx = numeric(),
+      # charging side
+      inp.stock = numeric(),
+      inp.cap.lo = numeric(),
+      inp.cap.up = numeric(),
+      inp.cap.fx = numeric(),
+      inp.ncap.lo = numeric(),
+      inp.ncap.up = numeric(),
+      inp.ncap.fx = numeric(),
+      inp.ret.lo = numeric(),
+      inp.ret.up = numeric(),
+      inp.ret.fx = numeric(),
+      # stored energy side
+      stg.stock = numeric(),
+      stg.cap.lo = numeric(),
+      stg.cap.up = numeric(),
+      stg.cap.fx = numeric(),
+      stg.ncap.lo = numeric(),
+      stg.ncap.up = numeric(),
+      stg.ncap.fx = numeric(),
+      stg.ret.lo = numeric(),
+      stg.ret.up = numeric(),
+      stg.ret.fx = numeric(),
       stringsAsFactors = FALSE
     ),
     # Energy-to-power ratio. A data.frame (not a scalar) so it can differ by
@@ -362,12 +386,12 @@ setClass("storage",
       waf.lo = numeric(),
       waf.up = numeric(),
       waf.fx = numeric(),
-      wcinp.lo = numeric(),
-      wcinp.fx = numeric(),
-      wcinp.up = numeric(),
-      wcout.lo = numeric(),
-      wcout.fx = numeric(),
-      wcout.up = numeric(),
+      inp.waf.lo = numeric(),
+      inp.waf.fx = numeric(),
+      inp.waf.up = numeric(),
+      out.waf.lo = numeric(),
+      out.waf.fx = numeric(),
+      out.waf.up = numeric(),
       stringsAsFactors = FALSE
     ),
     optimizeRetirement = FALSE,
@@ -375,6 +399,73 @@ setClass("storage",
   ),
   S3methods = FALSE
 )
+
+
+# Reject the pre-refactor column spellings ---------------------------------
+#
+# `.storage_deprecated_args()` runs inside `newStorage()`/`update()` only, so a
+# DESERIALISED object bypasses it entirely. Every `.rds` written before the
+# `inp.`/`out.`/`stg.` prefixes existed carries `cap.up` in `@capacity` and keys
+# plus capacity in `@input` -- columns no mapping now reads. Without this check
+# such a model loads clean and solves with the store simply absent: no error, no
+# warning, a silently different answer. Validity is the only place that catches
+# it, because it is the only thing that runs on `readRDS()`.
+.storage_decl_cols <- c("comm", "unit", "cap2act")
+.storage_key_cols  <- c("vintage", "cluster", "region", "year")
+.storage_part_cols <- local({
+  q <- c("stock", outer(c("cap", "ncap", "ret"), c("lo", "up", "fx"),
+                        paste, sep = "."))
+  list(capacity = as.vector(outer(c("out", "inp", "stg"), q, paste, sep = ".")),
+       invcost  = as.vector(outer(c("out", "inp", "stg"),
+                                  c("invcost", "wacc", "payback", "eac", "retcost"),
+                                  paste, sep = ".")),
+       fixom    = paste0(c("out", "inp", "stg"), ".fixom"))
+})
+
+# v0.80: `cinp.*` / `cout.*` (and their weather twins) were availability factors
+# wearing a flow name. The bound the model builds is
+# `cinp.up * cap2act * cap * pTimesliceShare[s]` -- a per-capacity availability
+# factor, which is exactly what `af` means everywhere else, and the name read as
+# a flow limit in commodity units. Renamed onto the same `inp.`/`out.` prefixes
+# the cost and capacity slots already carry. A hard break, so the old name is an
+# error rather than a silent no-op -- but one that names its replacement.
+.storage_renamed_cols <- c(
+  stats::setNames(paste0("inp.af.",  c("lo", "up", "fx")),
+                  paste0("cinp.",  c("lo", "up", "fx"))),
+  stats::setNames(paste0("out.af.",  c("lo", "up", "fx")),
+                  paste0("cout.",  c("lo", "up", "fx"))),
+  stats::setNames(paste0("inp.waf.", c("lo", "up", "fx")),
+                  paste0("wcinp.", c("lo", "up", "fx"))),
+  stats::setNames(paste0("out.waf.", c("lo", "up", "fx")),
+                  paste0("wcout.", c("lo", "up", "fx"))))
+
+setValidity("storage", function(object) {
+  bad <- character()
+  for (role in c("input", "output", "storage")) {
+    ok <- if (role == "storage") .storage_decl_cols[1:2] else .storage_decl_cols
+    x <- setdiff(names(slot(object, role)), ok)
+    if (length(x)) bad <- c(bad, sprintf(
+      "@%s holds the declaration only (%s); found %s", role,
+      paste(ok, collapse = ", "), paste(x, collapse = ", ")))
+  }
+  for (nm in c("af", "weather")) {
+    hit <- intersect(names(slot(object, nm)), names(.storage_renamed_cols))
+    if (length(hit)) bad <- c(bad, sprintf(
+      "@%s: %s renamed -- %s", nm,
+      if (length(hit) > 1) "columns" else "column",
+      paste(sprintf("`%s` is now `%s`", hit, .storage_renamed_cols[hit]),
+            collapse = ", ")))
+  }
+  for (nm in names(.storage_part_cols)) {
+    ok <- c(.storage_key_cols, .storage_part_cols[[nm]])
+    x <- setdiff(names(slot(object, nm)), ok)
+    if (length(x)) bad <- c(bad, sprintf(
+      "@%s: unknown column%s %s -- parameters are prefixed inp./out./stg. now",
+      nm, if (length(x) > 1) "s" else "", paste(x, collapse = ", ")))
+  }
+  if (length(bad)) paste0("storage '", object@name, "': ",
+                          paste(bad, collapse = "; ")) else TRUE
+})
 
 setMethod("initialize", "storage", function(.Object, ...) {
   .Object
@@ -446,37 +537,74 @@ setMethod("initialize", "storage", function(.Object, ...) {
     args$commodity <- NULL
   }
 
-  # `@output`'s capacity and economics belong to slots that already exist:
-  # `@capacity` (stock and bounds), `@invcost` and `@fixom` are the OUTPUT side
-  # and always have been. Folding here keeps one storage-wide set of parameters
-  # instead of a parallel pStorageOut* family that would mean the same thing,
-  # while letting all three parts be written the same way.
-  if (.given(args$output) && is.data.frame(args$output)) {
-    out <- args$output
-    fold_to <- list(
-      capacity = c("stock", "cap.lo", "cap.up", "cap.fx",
-                   "ncap.lo", "ncap.up", "ncap.fx"),
-      invcost  = "invcost",
-      fixom    = "fixom"
-    )
-    keys <- c("vintage", "cluster", "region", "year")
-    for (slot_nm in names(fold_to)) {
-      cols <- intersect(fold_to[[slot_nm]], names(out))
-      cols <- cols[vapply(cols, function(k) any(!is.na(out[[k]])), logical(1))]
-      if (!length(cols)) next
-      if (.given(args[[slot_nm]])) {
-        stop("storage", if (nzchar(name)) paste0(" '", name, "'") else "",
-             ": supply the output side's ", paste(cols, collapse = "/"),
-             " either in `output` or in `", slot_nm, "`, not both.",
-             call. = FALSE)
+  # `cap2act` at the top level applies to BOTH power sides.
+  #
+  # It was never a formal and never a slot, so it fell through `...` into
+  # `.data2slots()` and was dropped without a word -- the PyPSA converter passes
+  # `cap2act = 8760` believing it does something, and was saved only by 8760
+  # already being the default. Now that `cap2act` is the declaration slots' own
+  # content, give the shorthand a meaning: fill whichever power side did not
+  # name one. `@storage` never gets it -- energy is energy at any resolution.
+  if (!is.null(args$cap2act)) {
+    c2a <- args$cap2act
+    for (role in c("input", "output")) {
+      x <- args[[role]]
+      if (is.null(x) || !.given(x)) {
+        args[[role]] <- data.frame(cap2act = c2a, stringsAsFactors = FALSE)
+      } else {
+        x <- as.data.frame(x)
+        if (!("cap2act" %in% names(x))) x$cap2act <- c2a
+        args[[role]] <- x
       }
-      keep <- intersect(keys, names(out))
-      df <- out[, c(keep, cols), drop = FALSE]
-      df <- df[rowSums(!is.na(df[, cols, drop = FALSE])) > 0, , drop = FALSE]
-      args[[slot_nm]] <- df
-      out[cols] <- NULL
     }
-    args$output <- out
+    args$cap2act <- NULL
+  }
+
+  # A role slot DECLARES: `comm`, `unit`, `cap2act` and nothing else. Every
+  # parameter lives in `@capacity`/`@invcost`/`@fixom` under an `inp.`/`out.`/
+  # `stg.` prefix, so there is exactly one home per quantity and no fold.
+  #
+  # This USED to accept `output = list(cap.up = )` and quietly move it. That
+  # convenience was the second route this class was refactored to remove, so it
+  # is now an error that names the column to write instead -- silence here would
+  # mean a capacity that no mapping reads and a store that is simply absent.
+  .DECL <- c("comm", "unit", "cap2act")
+  .PREFIX <- c(input = "inp", output = "out", storage = "stg")
+  .HOME <- c(stock = "capacity", cap = "capacity", ncap = "capacity",
+             ret = "capacity", invcost = "invcost", wacc = "invcost",
+             payback = "invcost", eac = "invcost", retcost = "invcost",
+             fixom = "fixom")
+  for (role in c("input", "output", "storage")) {
+    if (!.given(args[[role]])) next
+    x <- args[[role]]
+    extra <- setdiff(names(as.data.frame(x)), .DECL)
+    # `@storage` holds ENERGY on both sides, so it has no cap2act to convert.
+    if (role == "storage") extra <- union(extra, intersect(names(as.data.frame(x)), "cap2act"))
+    if (!length(extra)) next
+    pre <- .PREFIX[[role]]
+    home <- unname(.HOME[sub("[.](lo|up|fx)$", "", extra)])
+    known <- !is.na(home)
+    msg <- paste0("storage", if (nzchar(name)) paste0(" '", name, "'") else "",
+                  ": `", role, "` holds the declaration only (",
+                  paste(if (role == "storage") .DECL[1:2] else .DECL,
+                        collapse = ", "), ").")
+    # A misplaced parameter gets the column to write; an unrecognised name is a
+    # different mistake and saying "move `frobnicate` to `frobnicate`" helps
+    # nobody -- name the two cases separately.
+    if (any(known)) {
+      msg <- paste0(msg, "
+  Move ",
+                    paste0("`", extra[known], "`", collapse = ", "), " to ",
+                    paste(unique(paste0("`", home[known], "$", pre, ".",
+                                        extra[known], "`")), collapse = ", "),
+                    ".")
+    }
+    if (any(!known)) {
+      msg <- paste0(msg, "
+  Not a storage parameter: ",
+                    paste0("`", extra[!known], "`", collapse = ", "), ".")
+    }
+    stop(msg, call. = FALSE)
   }
 
   # `charge`/`inflow` -> `startLevel` (v0.80). The value column is renamed and any
@@ -684,24 +812,24 @@ setMethod("initialize", "storage", function(.Object, ...) {
 #'   ),
 #'   af = data.frame(
 #'     region = "R1", year = 2020, timeslice = "HOUR",
-#'     af.lo = 0.9, af.up = 0.9, af.fx = 0.9, cinp.up = 0.9,
-#'     cinp.fx = 0.9, cinp.lo = 0.9, cout.up = 0.9,
-#'     cout.fx = 0.9, cout.lo = 0.9
+#'     af.lo = 0.9, af.up = 0.9, af.fx = 0.9, inp.af.up = 0.9,
+#'     inp.af.fx = 0.9, inp.af.lo = 0.9, out.af.up = 0.9,
+#'     out.af.fx = 0.9, out.af.lo = 0.9
 #'   ),
-#'   fixom = data.frame(region = "R1", year = 2020, fixom = 0.9),
+#'   fixom = data.frame(region = "R1", year = 2020, out.fixom = 0.9),
 #'   varom = data.frame(
 #'     region = "R1", year = 2020, timeslice = "HOUR",
 #'     inpcost = 0.9, outcost = 0.9, stgcost = 0.9
 #'   ),
 #'   invcost = data.frame(
-#'     region = "R1", year = 2020, invcost = 0.9,
-#'     wacc = 0.09, payback = 10, retcost = 0.9
+#'     region = "R1", year = 2020, out.invcost = 0.9,
+#'     out.wacc = 0.09, out.payback = 10, out.retcost = 0.9
 #'   ),
 #'   capacity = data.frame(
-#'     region = "R1", year = 2020, stock = 0.9,
-#'     cap.lo = 0.9, cap.up = 0.9, cap.fx = 0.9, ncap.lo = 0.9,
-#'     ncap.up = 0.9, ncap.fx = 0.9, ret.lo = 0.9, ret.up = 0.9,
-#'     ret.fx = 0.9
+#'     region = "R1", year = 2020, out.stock = 0.9,
+#'     out.cap.lo = 0.9, out.cap.up = 0.9, out.cap.fx = 0.9, out.ncap.lo = 0.9,
+#'     out.ncap.up = 0.9, out.ncap.fx = 0.9, out.ret.lo = 0.9, out.ret.up = 0.9,
+#'     out.ret.fx = 0.9
 #'   ),
 #'   duration = 1,
 #'   fullYear = TRUE,
@@ -709,9 +837,9 @@ setMethod("initialize", "storage", function(.Object, ...) {
 #'     weather = "sunny",
 #'     waf.lo = 0.9,
 #'     waf.up = 0.9,
-#'     waf.fx = 0.9, wcinp.lo = 0.9,
-#'     wcinp.fx = 0.9, wcinp.up = 0.9, wcout.lo = 0.9, wcout.fx = 0.9,
-#'     wcout.up = 0.9
+#'     waf.fx = 0.9, inp.waf.lo = 0.9,
+#'     inp.waf.fx = 0.9, inp.waf.up = 0.9, out.waf.lo = 0.9, out.waf.fx = 0.9,
+#'     out.waf.up = 0.9
 #'   ),
 #'   optimizeRetirement = FALSE,
 #'   misc = list()

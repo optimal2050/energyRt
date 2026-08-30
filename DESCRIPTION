@@ -1,8 +1,8 @@
 Package: energyRt
 Type: Package
 Title: Energy Systems Modeling Toolbox
-Version: 0.85.0.9000
-Date: 2026-08-21
+Version: 0.88.0.9000
+Date: 2026-08-28
 Authors@R: 
   c(person(given = "Oleg", 
           family = "Lugovoy", 
@@ -30,12 +30,11 @@ Description: A macro-language for energy system modeling in R. Describe an
 Depends: R (>= 4.3)
 Imports: methods, grid, generics, data.table, DBI, RSQLite, tibble,
         tidyr, dplyr, rlang, stringr, lubridate, purrr, arrow,
-        progressr, tictoc, cli, zoo, registry, options (>= 0.2.0),
+        progressr, tictoc, cli, zoo, options (>= 0.2.0),
         glue, plyr, grDevices, utils, tools, yaml
 Suggests: shiny, DT, pak, gdxtools (== 0.7.1), knitr, rmarkdown, sf, ggplot2, testthat
         (>= 3.0.0), devtools, openxlsx, jsonlite, readxl, httr2, xml2,
-        base64enc, tinytex, patchwork, geoscales
-Additional_repositories: https://optimal2050.r-universe.dev
+        base64enc, tinytex, patchwork, geoscales (>= 0.5.0), timescales (>= 0.5.0), waldo
 SystemRequirements: Julia (>= 1.6) with JuMP or Python (>= 3.7) with
         Pyomo or GAMS (>= 24.9) or GLPK (>= 4.0)
 License: AGPL (>= 3)
@@ -43,7 +42,10 @@ VignetteBuilder: knitr
 LazyData: true
 Encoding: UTF-8
 Collate: 
+    'accessors.R'
     'arrow.R'
+    'arrow_filter.R'
+    'carry.R'
     'docs.R'
     'zzz.R'
     'options.R'
@@ -83,10 +85,16 @@ Collate:
     'class-costs.R'
     'combine_vintages.R'
     'commodity_properties.R'
+    'compare_inputs.R'
+    'compare_models.R'
+    'report.R'
+    'compare_scenarios.R'
+    'compare_values.R'
     'config_file.R'
     'utils.R'
     'convert.R'
     'data2slots.R'
+    'dataset_store.R'
     'densify.R'
     'design.R'
     'discount_rates.R'
@@ -109,6 +117,10 @@ Collate:
     'solve.R'
     'levcost.R'
     'levcost_analytic.R'
+    'levcost_cache.R'
+    'levcost_storage.R'
+    'levcost_trade.R'
+    'log.R'
     'map_closure.R'
     'map_constraint.R'
     'map_costagg.R'
@@ -120,26 +132,40 @@ Collate:
     'mapping_helpers.R'
     'mapping_registry.R'
     'model_size.R'
-    'mosox.R'
+    'model_store.R'
     'neos.R'
     'obj2modInp.R'
+    'paths_rebase.R'
     'plot_scenario.R'
     'plot_map.R'
     'process_designer.R'
     'prune.R'
     'read.R'
     'registry.R'
-    'report.R'
+    'repo_store.R'
+    'report_cache.R'
+    'report_helpers.R'
+    'runs.R'
+    'sample_region.R'
+    'seal.R'
+    'solve_myopic.R'
+    'solver_log.R'
     'start_level.R'
     'start_msg.R'
+    'stock_path.R'
     'storage_duration.R'
+    'supply_curve.R'
     'techspec.R'
     'timeslices.R'
+    'trade_kvl.R'
+    'trade_losses.R'
     'units.R'
     'utopia-data.R'
     'utopia-geoscale.R'
     'utopia_profiles.R'
+    'utopia_shapes.R'
     'variants.R'
+    'verify_solution.R'
     'vintage_lifespan.R'
     'vre-data.R'
     'write.R'

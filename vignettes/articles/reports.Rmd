@@ -1,0 +1,169 @@
+---
+title: "Reports and levelized costs"
+editor_options:
+  chunk_output_type: console
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE, comment = "#>",
+  warning = FALSE,
+  eval = requireNamespace("rmarkdown", quietly = TRUE) &&
+    rmarkdown::pandoc_available("2.0")
+)
+```
+
+energyRt renders **reports** — self-contained HTML/PDF/Word datasheets — for
+technologies and storages, whole models and repositories, solved scenarios,
+and scenario comparisons. Reports and the **levelized costs** (`levcost()`)
+that feed them are *derived artifacts*: both are cached on disk and
+re-computed only when their inputs change. This article tours the layer —
+what renders where, how the caching works, and how to compare scenarios.
+
+```{r setup, message = FALSE}
+library(energyRt)
+```
+
+Everything lands under a throwaway project here; `open_project()` anchors
+the registry, the object stores, and the two derived-artifact folders
+(`reports/`, `levcosts/`) in one call:
+
+```{r project}
+proj <- file.path(tempdir(), "rep-demo")
+dir.create(proj, showWarnings = FALSE)
+open_project(proj)
+```
+
+A technology to price and report on:
+
+```{r tech}
+PP <- newTechnology(
+  "PP", desc = "Gas power plant",
+  input  = list(comm = "GAS", unit = "GWh"),
+  output = list(comm = "ELC", unit = "GWh"),
+  ceff   = data.frame(comm = "GAS", cinp2use = 0.55),
+  invcost = data.frame(invcost = 800),
+  fixom = data.frame(fixom = 20), varom = data.frame(varom = 2),
+  af = data.frame(af.up = 0.85),
+  vintage = data.frame(olife = 25L), cap2act = 8.76)
+```
+
+# Levelized costs, cached
+
+`levcost()` prices a technology (LCOE), storage (LCOS), or trade route
+(LCOT). `method = "auto"` uses a closed-form engine when the process
+qualifies and falls back to a small solver run otherwise:
+
+```{r levcost}
+lc <- levcost(PP, fuel_costs = c(GAS = 25), discount = 0.06,
+              base_year = 2025, verbose = FALSE)
+round(as.numeric(lc$levcost_npv), 2)
+```
+
+The result was also written to the on-disk cache, keyed by the
+technology's *content hash* plus the assumptions. Re-pricing the identical
+question returns instantly from disk:
+
+```{r levcost-cache}
+lc2 <- levcost(PP, fuel_costs = c(GAS = 25), discount = 0.06,
+               base_year = 2025)
+list.files(get_levcost_cache_path())
+```
+
+Anything that changes the answer — the technology's data, `discount`, fuel
+prices, the method — is part of the cache key, so a stale hit is
+impossible; `force = TRUE` recomputes regardless, and `cache = FALSE`
+skips the cache entirely. For objects *saved* in a store the cache moves
+into the owning folder (`<scenario>/levcost/`, a model store entry's
+`levcost/`); the project-level `levcosts/` above is the tier for in-memory
+objects.
+
+# Rendering a datasheet
+
+`report()` renders a technology datasheet — parameters, the `draw()`
+diagram, and (with `levcost =`) the levelized-cost section. The same rule
+places the output: saved objects render inside their own folder's
+`reports/`, in-memory objects into the project-level `reports/` tier:
+
+```{r report-tech}
+f <- report(PP, levcost = lc, format = "html", open = FALSE)
+basename(f)
+```
+
+A report is **skip-if-current**: the rendered file carries a sidecar
+(`*.report.yml`) keying the object content, the template content, the
+arguments, and the levcost identity. Repeating the call re-renders
+nothing:
+
+```{r report-uptodate}
+f <- report(PP, levcost = lc, format = "html", open = FALSE)
+```
+
+Editing the technology, the template, or any argument invalidates the key;
+`force = TRUE` re-renders unconditionally. Formats: `format =` takes any of
+`"html"`, `"pdf"`, `"tex"`, `"docx"` (PDF needs a LaTeX toolchain).
+
+# Model and scenario reports
+
+Container reports split by role: `report(model)` documents the
+**assumptions** (configuration, inventories, per-process sheets), while
+`report(scenario)` documents the **results** of a solved scenario — status,
+generation/capacity charts, costs, emissions; `run =` renders any recorded
+run, and `template = "full"` switches to the comprehensive page-broken
+layout with maps and branding. Reporting a single process from a container
+injects its container-priced levelized cost:
+
+```{r report-scen, eval = FALSE}
+report(scen)                       # results overview -> <scenario>/reports/
+report(scen, run = "julia_highs")  # another recorded run
+report(scen, template = "full")    # comprehensive, page-broken layout
+report(scen, name = "PP")          # one process, priced in this scenario
+```
+
+The shipped templates are listed by `report_templates()`; custom `.Rmd`
+templates build on the exported `report_*` helper family and are passed via
+`template = "<path>"`.
+
+# Comparing scenarios
+
+`compare_scenarios()` takes a named list of solved scenarios (or one
+scenario plus `runs =` to compare its recorded runs) and returns a
+classed comparison — overview, per-variable deltas against the base, and
+the largest movers; `autoplot()` charts it and `report()` renders the
+comparative report:
+
+```{r compare, eval = FALSE}
+cmp <- compare_scenarios(list(BASE = base, CO2CAP = capped))
+cmp                                # printed overview + top deltas
+autoplot(cmp)                      # faceted comparison charts
+report(cmp, open = FALSE)          # the comparative report (report_scenarios)
+```
+
+`compare_models()` diffs two models' declarations (inventory by content
+hash, config, then per-slot drill-down), and `compare_inputs()` diffs two
+interpolated scenarios' parameter stores — the tool for "same model,
+different numbers?" questions. For quick ad-hoc comparisons, plain
+`getData()` across scenarios remains the one-liner (see the *Workflow*
+article):
+
+```{r getdata-compare, eval = FALSE}
+getData(c("BASE", "CO2CAP"), name = "vEmsFuelTot", comm = "CO2",
+        merge = TRUE)
+```
+
+# Where everything lands
+
+```
+<project>/
+├── reports/              # reports of in-memory objects (temporary tier)
+├── levcosts/             # levcost cache of in-memory objects
+├── scenarios/<scen>/
+│   ├── reports/          # this scenario's reports
+│   └── levcost/          # its levcost cache
+└── models/<name>/
+    ├── reports/          # a stored model's reports
+    └── levcost/          # its levcost cache
+```
+
+Both tiers are *caches of derived artifacts*: safe to delete at any time,
+rebuilt on demand, and never consulted for anything but skipping work.

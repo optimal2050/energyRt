@@ -29,56 +29,25 @@ get_python_path <- function() {
 # Functions to write PYOMO model and data files
 .write_model_PYOMO <- function(arg, scen) {
   # browser()
-  .assert_geolevel_supported(scen, "Pyomo")
   AbstractModel <- any(grep("abstract", scen@settings@solver$lang, ignore.case = TRUE))
   if (AbstractModel) {
-    # Concrete implements `payback`; Abstract does not -- its eqXEac is still the
-    # pre-vintaging `pXEac * vXCap` form, so a payback window has nothing to
-    # narrow. Guard the Abstract branch only.
-    .assert_payback_supported(scen, "Pyomo-Abstract")
-    run_code <- scen@settings@sourceCode[["PYOMOAbstract"]]
-    run_codeout <- scen@settings@sourceCode[["PYOMOAbstractOutput"]]
-
-    # For downsize
-    fdownsize <- names(scen@modInp@parameters)[
-      sapply(scen@modInp@parameters, function(x) length(x@misc$rem_col) != 0)
-    ]
-    for (nn in fdownsize) {
-      rmm <- scen@modInp@parameters[[nn]]@misc$rem_col
-      if (scen@modInp@parameters[[nn]]@type == "bounds") {
-        uuu <- paste0(nn, c("Lo", "Up"))
-      } else {
-        uuu <- nn
-      }
-      for (yy in uuu) {
-        templ <- paste0("(^|[^[:alnum:]])", yy, "[[]")
-        if (any(grep("^pCns", nn))) {
-          for (www in seq_along(scen@modInp@gams.equation)) {
-            mmm <- grep(templ, scen@modInp@gams.equation[[www]]$equation)
-            if (any(mmm)) {
-              scen@modInp@gams.equation[[www]]$equation[mmm] <-
-                sapply(
-                  strsplit(scen@modInp@gams.equation[[www]]$equation[mmm], yy),
-                  .rem_col_sq, yy, rmm
-                )
-            }
-          }
-        } else if (any(grep("^pCosts", nn))) {
-          mmm <- grep(templ, scen@modInp@costs.equation)
-          if (any(mmm)) {
-            scen@modInp@costs.equation[mmm] <-
-              sapply(strsplit(scen@modInp@costs.equation[mmm], yy),
-                     .rem_col_sq, yy, rmm)
-          }
-        } else {
-          mmm <- grep(templ, run_code)
-          if (any(mmm)) {
-            run_code[mmm] <-
-              sapply(strsplit(run_code[mmm], yy), .rem_col_sq, yy, rmm)
-          }
-        }
-      }
-    }
+    # RETIRED. The Abstract template fell behind on three separate refactors --
+    # the agg-rewrite (it still declared `mBalanceRY`, removed everywhere else),
+    # the eac-fix (flat `pXEac * vXCap` instead of the vintaged form), and
+    # vintaging/payback, which `R/eac.R` records as impossible "without a bigger
+    # change". No shipped solver option selected it, so nothing exercised it and
+    # it rotted silently. Kept for reference in drafts/energyRtAbstract.py.
+    #
+    # If an AbstractModel is ever wanted, GENERATE it from the Concrete template
+    # the way mosox is generated from GLPK -- do not hand-maintain a sixth copy.
+    stop("The Pyomo-Abstract back-end has been retired: it was several ",
+         "refactors behind and unreachable (no solver option selected it).
+",
+         "  Use a Concrete Pyomo option instead, e.g. ",
+         "`solver_options$pyomo_glpk` or `$pyomo_cbc`.
+",
+         "  The template is kept for reference in drafts/energyRtAbstract.py.",
+         call. = FALSE)
   } else {
     run_code <- scen@settings@sourceCode[["PYOMOConcrete"]]
     run_codeout <- scen@settings@sourceCode[["PYOMOConcreteOutput"]]
@@ -96,13 +65,13 @@ get_python_path <- function() {
       for (yy in uuu) {
         templ <- paste0("(^|[^[:alnum:]])", yy, "[.]get[(][(]")
         if (any(grep("^pCns", nn))) {
-          for (www in seq_along(scen@modInp@gams.equation)) {
-            mmm <- grep(templ, scen@modInp@gams.equation[[www]]$equation)
+          for (www in seq_along(scen@modInp@user_constraints)) {
+            mmm <- grep(templ, scen@modInp@user_constraints[[www]]$equation)
             if (any(mmm)) {
-              scen@modInp@gams.equation[[www]]$equation[mmm] <-
+              scen@modInp@user_constraints[[www]]$equation[mmm] <-
                 sapply(
                   strsplit(
-                    scen@modInp@gams.equation[[www]]$equation[mmm],
+                    scen@modInp@user_constraints[[www]]$equation[mmm],
                     paste0(yy, "[.]get[(][(]")
                   ),
                   .rem_col_pyomo_concrete, yy, rmm
@@ -110,11 +79,11 @@ get_python_path <- function() {
             }
           }
         } else if (any(grep("^pCosts", nn))) {
-          mmm <- grep(templ, scen@modInp@costs.equation)
+          mmm <- grep(templ, scen@modInp@user_costs)
           if (any(mmm)) {
-            scen@modInp@costs.equation[mmm] <-
+            scen@modInp@user_costs[mmm] <-
               sapply(
-                strsplit(scen@modInp@costs.equation[mmm], yy),
+                strsplit(scen@modInp@user_costs[mmm], yy),
                 .rem_col, yy, rmm
               )
           }
@@ -130,8 +99,8 @@ get_python_path <- function() {
       }
     }
   }
-  dir.create(fp(arg$tmp.dir, "input"), showWarnings = FALSE)
-  dir.create(fp(arg$tmp.dir, "output"), showWarnings = FALSE)
+  dir.create(fp(arg$solver.dir, "input"), showWarnings = FALSE)
+  dir.create(fp(arg$solver.dir, "output"), showWarnings = FALSE)
   # if (!is.null(scen@settings@solver$SQLite) && scen@settings@solver$SQLite) {
   .ex_fmt <- scen@settings@solver$export_format
   SQLite <- !is.null(.ex_fmt) && tolower(.ex_fmt) == "sqlite"
@@ -144,7 +113,7 @@ get_python_path <- function() {
     ### Generate SQLite file
     .write_sqlite_list(
       dat = .get_scen_data(scen),
-      sqlFile = fp(arg$tmp.dir, "input/data.db")
+      sqlFile = fp(arg$solver.dir, "input/data.db")
     )
   } else if (use_arrow_in) {
     # One Arrow IPC file per table in input/; read_set/read_dict (energyRtConcrete
@@ -154,7 +123,7 @@ get_python_path <- function() {
     for (.i in names(.dat)) {
       .d <- as.data.frame(.dat[[.i]])
       .d[] <- lapply(.d, function(x) if (is.factor(x)) as.character(x) else x)
-      .write_exchange_table(.d, fp(arg$tmp.dir, paste0("input/", .i)),
+      .write_exchange_table(.d, fp(arg$solver.dir, paste0("input/", .i)),
                             format = "feather")
     }
     run_code <- gsub('_DATA_FORMAT = "sqlite"', '_DATA_FORMAT = "arrow"',
@@ -162,14 +131,14 @@ get_python_path <- function() {
   }
   .write_inc_solver(scen, arg, "opt = SolverFactory('cplex');", ".py", "cplex")
   # Add constraint
-  zz_mod <- file(fp(arg$tmp.dir, "/energyRt.py"), "w")
-  zz_constr <- file(fp(arg$tmp.dir, "/inc_constraints.py"), "w")
-  zz_costs <- file(fp(arg$tmp.dir, "/inc_costs.py"), "w")
+  zz_mod <- file(fp(arg$solver.dir, "/energyRt.py"), "w")
+  zz_constr <- file(fp(arg$solver.dir, "/inc_constraints.py"), "w")
+  zz_costs <- file(fp(arg$solver.dir, "/inc_costs.py"), "w")
   npar <- grep("^##### decl par #####", run_code)[1]
   cat(run_code[1:npar], sep = "\n", file = zz_mod)
   if (!AbstractModel) {
     cat('exec(open("data.py").read())\n', file = zz_mod)
-    zz_inp_file <- file(fp(arg$tmp.dir, "data.py"), "w")
+    zz_inp_file <- file(fp(arg$solver.dir, "data.py"), "w")
   }
   if (AbstractModel) {
     f1 <- grep("^m(Costs|Cns)", names(scen@modInp@parameters), invert = TRUE)
@@ -193,7 +162,7 @@ get_python_path <- function() {
     }
   }
   if (AbstractModel) {
-    zz_data_pyomo <- file(fp(arg$tmp.dir, "data.dat"), "w")
+    zz_data_pyomo <- file(fp(arg$solver.dir, "data.dat"), "w")
   }
   file_w <- c()
   for (j in c("set", "map", "numpar", "bounds")) {
@@ -243,7 +212,7 @@ get_python_path <- function() {
               tfl <- paste0("input/", scen@modInp@parameters[[i]]@name, ".py")
               cat(paste0('exec(open("', tfl, '").read())\n'),
                   file = zz_inp_file)
-              zz_tfl <- file(fp(arg$tmp.dir, tfl), "w")
+              zz_tfl <- file(fp(arg$solver.dir, tfl), "w")
               cat(.toPyomo(scen@modInp@parameters[[i]]),
                 sep = "\n", file = zz_tfl
               )
@@ -260,10 +229,10 @@ get_python_path <- function() {
   npar2 <- (grep("^model[.]obj ", run_code)[1] - 1)
   cat(run_code[npar:npar2], sep = "\n", file = zz_mod)
   ## Add constraint equation
-  if (length(scen@modInp@gams.equation) > 0) {
+  if (length(scen@modInp@user_constraints) > 0) {
     cat("\n", file = zz_constr)
-    for (i in seq_along(scen@modInp@gams.equation)) {
-      eqt <- scen@modInp@gams.equation[[i]]
+    for (i in seq_along(scen@modInp@user_constraints)) {
+      eqt <- scen@modInp@user_constraints[[i]]
       if (AbstractModel) {
         cat(.equation.from.gams.to.pyomo.AbstractModel(eqt$equation),
           sep = "\n", file = zz_constr
@@ -281,11 +250,11 @@ get_python_path <- function() {
     cat("\n", file = zz_costs)
     if (AbstractModel) {
       cat(.equation.from.gams.to.pyomo.AbstractModel(
-        scen@modInp@costs.equation
+        scen@modInp@user_costs
       ), sep = "\n", file = zz_costs)
     } else {
       cat(.equation.from.gams.to.pyomo(
-        scen@modInp@costs.equation
+        scen@modInp@user_costs
       ), sep = "\n", file = zz_costs)
     }
   }
@@ -306,7 +275,7 @@ get_python_path <- function() {
   close(zz_mod)
   close(zz_constr)
   close(zz_costs)
-  zz_modout <- file(fp(arg$tmp.dir, "/output.py"), "w")
+  zz_modout <- file(fp(arg$solver.dir, "/output.py"), "w")
   # Arrow solution output: write each variable DIRECTLY as Arrow IPC (no CSV
   # round-trip). Inject a `_VarFile` class (a drop-in for the CSV file handle: the
   # unchanged `f.write(...)` / `f.close()` calls accumulate rows and emit
