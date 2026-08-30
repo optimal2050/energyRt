@@ -109,3 +109,73 @@ getObject.model <- .getObject_container
 #' @rdname getObject
 #' @export
 getObject.scenario <- .getObject_container
+
+# -- registry ------------------------------------------------------------------
+# A registry indexes SAVED objects, so getObject() on one loads what the rows
+# point at. Names are unique only within a type (a model and a scenario may
+# both be "UTOPIA", and run labels repeat across scenarios), so the returned
+# list is keyed `type/name` rather than by bare name -- otherwise same-named
+# objects of different types would overwrite each other.
+
+#' @rdname getObject
+#' @param type character, registry row type(s) to load: "model", "repository",
+#'   "scenario", "dataset". `NULL` (default) loads every loadable type.
+#' @param hash character, content hash (prefix) selecting a stored version.
+#' @param parent,variant character, extra registry filters (run bookkeeping).
+#' @param run which run to activate in loaded scenarios: `"main"` (default)
+#'   keeps the scenario's own run, a character selects that run, and `NULL`,
+#'   `NA` or `"ALL"` returns one entry per recorded run, keyed
+#'   `scenario/<name>:<variant>/<label>`.
+#' @export
+getObject.en_registry <- function(x, type = NULL, name = NULL, hash = NULL,
+                                  parent = NULL, variant = NULL,
+                                  run = "main", drop = FALSE,
+                                  verbose = FALSE, ...) {
+  rows <- find_in_registry(x, type = type, name = name, hash = hash,
+                           parent = parent, variant = variant)
+  # run rows are bookkeeping inside a scenario, not standalone objects; they
+  # are reachable through `run =` below, or scenario_runs()
+  rows <- rows[rows$type != "run", , drop = FALSE]
+  if (!nrow(rows)) {
+    if (isTRUE(drop)) {
+      stop("No registry entry matches; nothing to return with drop = TRUE.",
+           call. = FALSE)
+    }
+    return(list())
+  }
+
+  all_runs <- .run_is_all(run)
+  out <- list()
+  for (i in seq_len(nrow(rows))) {
+    r <- rows[i, , drop = FALSE]
+    obj <- .registry_row_object(r, verbose = verbose)
+    key <- paste0(r$type, "/", r$name)
+    if (identical(r$type, "scenario") && !identical(run, "main")) {
+      if (all_runs) {
+        rr <- tryCatch(scenario_runs(obj), error = function(e) NULL)
+        if (is.null(rr) || !nrow(rr)) { out[[key]] <- obj; next }
+        for (j in seq_len(nrow(rr))) {
+          sc <- tryCatch(read_solution(obj, run = rr$run[j], echo = FALSE),
+                         error = function(e) NULL)
+          if (is.null(sc)) next
+          out[[paste0(key, ":", rr$run[j])]] <- sc
+        }
+        next
+      }
+      obj <- read_solution(obj, run = run, echo = FALSE)
+      key <- paste0(key, ":", run)
+    }
+    out[[key]] <- obj
+  }
+
+  if (isTRUE(drop)) {
+    if (length(out) != 1L) {
+      stop("drop = TRUE needs exactly one match; got ", length(out),
+           if (length(out)) paste0(": ", paste(names(out), collapse = ", "))
+           else "", ".\n  Narrow with type=/name=/hash=, or use drop = FALSE.",
+           call. = FALSE)
+    }
+    return(out[[1]])
+  }
+  out
+}

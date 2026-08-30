@@ -104,6 +104,7 @@ newHorizon <- function(
   }
   if (!is.null(name)) {
     stopifnot(is.character(name))
+    .assert_object_name(as.character(name), what = "horizon")
     h@name <- as.character(name)
   }
   if (mid_is_end & mid_is_start) {

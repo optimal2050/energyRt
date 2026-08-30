@@ -177,19 +177,6 @@ options::define_option(
 )
 
 options::define_option(
-  "store_versioning",
-  desc = paste(
-    "How the model/repository/dataset stores name their entries. \"none\"",
-    "(default): one human-readable folder per name (models/UTOPIA/), updated",
-    "in place; the content hash lives in the manifest and misc$hash for",
-    "no-op detection and reference verification. \"hash\": content-addressed",
-    "<name>@<hash8> folders; every content change is a NEW entry and",
-    "versions coexist."
-  ),
-  default = "none"
-)
-
-options::define_option(
   "reports_path",
   desc = paste(
     "Default directory for rendered reports of IN-MEMORY objects (treated as",
@@ -207,6 +194,17 @@ options::define_option(
     "owning folder (<owner>/levcost/) instead."
   ),
   default = "levcosts/"
+)
+
+options::define_option(
+  "path_builders",
+  desc = paste(
+    "Named list of user functions overriding the built-in folder-name",
+    "derivations (session-local; set with set_path_builder()). Hookable",
+    "kinds: scenario_dir, store_entry, run_label, slug — see",
+    "?path_builders for the contracts."
+  ),
+  default = list()
 )
 
 # Storage / exchange format ###################################################
@@ -595,20 +593,6 @@ get_datasets_path <- function() {
   options::opt("datasets_path")
 }
 
-#' @family options
-#' @rdname registry_file
-#' @export
-set_store_versioning <- function(x = NULL) {
-  if (!is.null(x)) x <- match.arg(x, c("none", "hash"))
-  options::opt_set("store_versioning", x)
-}
-
-#' @family options
-#' @rdname registry_file
-#' @export
-get_store_versioning <- function() {
-  options::opt("store_versioning")
-}
 
 # Derived-artifact locations ##################################################
 
@@ -656,6 +640,77 @@ set_levcost_cache_path <- function(path = NULL) {
 #' @export
 get_levcost_cache_path <- function() {
   options::opt("levcost_cache_path")
+}
+
+# Path builders ###############################################################
+
+#' Override how folder names are derived
+#'
+#' @description
+#' The storage layer derives every folder name through a small set of
+#' seams, each of which a user function can replace for the session:
+#'
+#' | kind | signature | names |
+#' |---|---|---|
+#' | `scenario_dir` | `function(name, model, calendar, horizon)` | the scenario folder basename under [get_scenarios_path()] |
+#' | `store_entry` | `function(type, name)` — type `"model"`, `"repository"` or `"dataset"` | a store entry's basename under its root |
+#' | `run_label` | `function(solver)` — the solver spec list | the default solve label when `run =` is not given |
+#' | `slug` | `function(parts)` — character vector | the sanitize-and-join primitive used everywhere else |
+#'
+#' A hook must return a single non-empty, filesystem-safe string (no path
+#' separators; letters, digits, `.`/`_`/`-`); an invalid return is an
+#' ERROR naming the contract — never a silent fallback. Custom scenario
+#' and store folder names are fully safe: resolution goes through the
+#' registry and the folder manifests, never through parsing names. The
+#' run TREE (`runs/<solve>` vs `runs/<variant>/<solve>`) is structural and
+#' not hookable. A custom `slug` should keep dashes out of the individual
+#' parts, or folder labels become ambiguous (harmless — nothing parses
+#' them — but stated). Hooks are session-local options, not stored in
+#' projects.
+#'
+#' @param scenario_dir,store_entry,run_label,slug a function per the table
+#'   (merged into the active set), or `FALSE` to remove that hook; `NULL`
+#'   (default) leaves it unchanged.
+#' @param kind character, one hook name to fetch (or `NULL` for the whole
+#'   list).
+#' @return `set_path_builder()` the previous list, invisibly;
+#'   `get_path_builder()` the requested function (or `NULL`) / the list.
+#'
+#' @examples
+#' \dontrun{
+#' set_path_builder(scenario_dir = function(name, model, calendar, horizon)
+#'   paste(name, calendar, sep = "."))
+#' set_path_builder(scenario_dir = FALSE)   # back to the default
+#' }
+#' @family options
+#' @rdname path_builders
+#' @export
+set_path_builder <- function(scenario_dir = NULL, store_entry = NULL,
+                             run_label = NULL, slug = NULL) {
+  hooks <- list(scenario_dir = scenario_dir, store_entry = store_entry,
+                run_label = run_label, slug = slug)
+  cur <- options::opt("path_builders") %||% list()
+  old <- cur
+  for (k in names(hooks)) {
+    v <- hooks[[k]]
+    if (is.null(v)) next
+    if (isFALSE(v)) {
+      cur[[k]] <- NULL
+    } else if (is.function(v)) {
+      cur[[k]] <- v
+    } else {
+      stop("`", k, "` must be a function (or FALSE to remove the hook).")
+    }
+  }
+  options::opt_set("path_builders", cur)
+  invisible(old)
+}
+
+#' @rdname path_builders
+#' @export
+get_path_builder <- function(kind = NULL) {
+  cur <- options::opt("path_builders") %||% list()
+  if (is.null(kind)) cur else cur[[kind]]
 }
 
 #' @family options

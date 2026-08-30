@@ -218,7 +218,7 @@ test_that("a vintaged corridor fans out to one levcost per cell", {
                method = "analytic", verbose = FALSE)
   expect_s3_class(x, "levcost_variants")
   expect_length(x, 2L)
-  npv <- levcost_by_variant(x, "npv")
+  npv <- levcost(x, by_variant = "npv")
   expect_setequal(npv$vintage, c("v2020", "v2030"))
   expect_lt(npv$levcost_npv[npv$vintage == "v2030"],
             npv$levcost_npv[npv$vintage == "v2020"])

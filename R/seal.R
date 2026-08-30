@@ -1,7 +1,7 @@
 # =============================================================================#
 # seal.R — store-entry lifecycle: seal / unseal, and mark-for-deletion.
 #
-# With the default name-addressed stores (see `store_versioning`) an entry
+# With the name-addressed stores an entry
 # updates IN PLACE, so finished work needs a lock: SEALING freezes an entry
 # against modification (identical re-saves stay silent no-ops; changed
 # content errors, naming the unseal verb). The opposite end of the
@@ -120,8 +120,7 @@
 #' Seal and unseal store entries; mark them for deletion
 #'
 #' @description
-#' The default stores update entries IN PLACE (see
-#' [get_store_versioning()]), so finished work can be locked:
+#' Store entries update IN PLACE, so finished work can be locked:
 #' `seal_model("UTOPIA")` freezes the store entry — re-saving identical
 #' content stays a silent no-op, but CHANGED content errors until
 #' `unseal_model()`. A sealed scenario is an archive: it loads, `getData()`s

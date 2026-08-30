@@ -190,6 +190,12 @@ dataset_hash <- function(x) {
 #' @param format storage format for tables (as in [save_scenario()]).
 #' @param overwrite logical, rewrite the store entry even when the hash
 #'   matches.
+#' @param rehash logical; `FALSE` keeps the DESTINATION entry's recorded
+#'   hash while writing the changed content — for changes the user declares
+#'   insignificant (a description, a memo). The manifest marks the
+#'   exception (`hash_kept: true`); references then verify against the
+#'   retained hash. With `rehash = FALSE` the hash is a user-managed
+#'   version tag, not a content proof.
 #' @param evaluate logical, for a functional entry: re-evaluate the recorded
 #'   call (verifying `result_hash`) instead of only reading the snapshot.
 #'   Falls back to the snapshot with a message when the package is missing.
@@ -213,6 +219,7 @@ save_dataset <- function(
     registry = TRUE,
     format = get_arrow_format(),
     overwrite = FALSE,
+    rehash = TRUE,
     memo = "",
     verbose = TRUE) {
   stopifnot(is.character(name), length(name) == 1L, nzchar(name))
@@ -245,12 +252,13 @@ save_dataset <- function(
   }
   h8 <- substr(h, 1, 8)
   if (is.null(path)) {
-    path <- .store_entry_dir(get_datasets_path(), name, h)
+    path <- .store_entry_dir(get_datasets_path(), name, h, type = "dataset")
   }
   path <- gsub("[\\/]+", "/", path)
 
   mf_path <- fp(path, "dataset.yml")
   prev <- NULL
+  hash_kept <- FALSE
   if (file.exists(mf_path)) {
     prev <- tryCatch(yaml::read_yaml(mf_path), error = function(e) NULL)
     if (!overwrite && !is.null(prev) && identical(prev$hash, h)) {
@@ -262,6 +270,11 @@ save_dataset <- function(
                             path = path)))
     }
     .seal_guard(prev, "dataset", name, "unseal_dataset")
+    if (!isTRUE(rehash) && nzchar(prev$hash %||% "")) {
+      h <- prev$hash
+      h8 <- substr(h, 1, 8)
+      hash_kept <- TRUE
+    }
     .store_entry_wipe(path)
   }
 
@@ -290,6 +303,7 @@ save_dataset <- function(
          updated = .registry_now(),
          energyRt_version = as.character(utils::packageVersion("energyRt")),
          memo = memo),
+    if (hash_kept) list(hash_kept = TRUE),
     .lifecycle_carry(prev)
   ), mf_path)
   if (verbose) {
@@ -299,7 +313,7 @@ save_dataset <- function(
 
   if (isTRUE(registry)) {
     tryCatch({
-      reg <- load_registry()
+      reg <- .registry_open()
       reg <- add_to_registry(reg, "dataset", name,
                              path = .registry_rel_path(path), hash = h,
                              memo = memo)
@@ -322,8 +336,8 @@ save_dataset <- function(
 # the auto mode of `embed_datasets` refs by content, not by name.
 .dataset_store_find_hash <- function(hash) {
   hit <- tryCatch({
-    reg <- load_registry()
-    r <- find_registry(reg, type = "dataset", hash = hash)
+    reg <- .registry_open()
+    r <- find_in_registry(reg, type = "dataset", hash = hash)
     if (nrow(r)) {
       p <- fp(dirname(get_registry_file()), r$path[1])
       if (file.exists(fp(p, "dataset.yml"))) {
@@ -508,8 +522,8 @@ load_dataset <- function(name, hash = NULL, path = NULL, evaluate = FALSE,
                 "' @", substr(ref$hash %||% "", 1, 8),
                 "; the store now holds @", substr(cur_h %||% "", 1, 8),
                 " — loading the current version. Results may not reproduce; ",
-                "re-save the owner, or keep versions with ",
-                "set_store_versioning(\"hash\").", call. = FALSE)
+                "re-save the owner to adopt it, or seal_dataset() finished ",
+                "inputs.", call. = FALSE)
         path <- cur
       }
     }

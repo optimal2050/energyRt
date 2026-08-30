@@ -117,6 +117,7 @@ interpolate_model <- function(mod, name = NULL, ...,
     name <- paste0("scen_", mod@name)
     if (verbose) message("Scenario name not provided; using default: ", name)
   }
+  .assert_object_name(name, what = "scenario")
   scen@name <- name
 
   if (!is.null(desc)) {
@@ -4556,3 +4557,12 @@ if (FALSE) {
 
 
 
+
+# The `interpolate` generic''s methods, dispatching onto interpolate_model().
+# LIVE API -- kept beside the implementation, not in the deprecation file
+# (which is deleted wholesale at the sunset).
+setMethod("interpolate", signature(object = "model"),
+          function(object, ...) interpolate_model(object, ...))
+
+setMethod("interpolate", signature(object = "scenario"),
+          function(object, ...) interpolate_model(object, ...))

@@ -310,8 +310,29 @@ save_scenario <- function(
     }
     .write_problem_swap(scen, scen@modInp)
   }
-  # message("Saving the thinned scenario object")
-  save(scen, file = fp(scen@path, "scen.RData"))
+  # scen.RData is the BASE problem's one and only home (problem.RData is
+  # retired): with the base problem active the shell is (re)written from
+  # the in-memory object; with a VARIANT active the existing shell is left
+  # untouched — the variant's problem lives in its own variant.RData, and
+  # the base shells must never be overwritten by a variant's. A
+  # variant-born scenario (no base problem ever materialized) writes a
+  # shell flagged `misc$has_base = FALSE`, so a later swap to base errors
+  # informatively instead of restoring garbage.
+  scen_shell_path <- fp(scen@path, "scen.RData")
+  if (!nzchar(.run_variant(scen))) {
+    scen@misc$has_base <- TRUE
+    save(scen, file = scen_shell_path)
+  } else if (!file.exists(scen_shell_path)) {
+    e_born <- new.env(parent = emptyenv())
+    e_born$scen <- scen
+    e_born$scen@misc$variant <- NULL
+    e_born$scen@misc$run <- NULL
+    e_born$scen@misc$has_base <- FALSE
+    e_born$scen@modInp <- new("modInp")
+    e_born$scen@modOut <- new("modOut")
+    save(list = "scen", envir = e_born, file = scen_shell_path)
+    rm(e_born)
+  }
   mf_model <- model_ref %||% list(
     name = scen@model@name %||% "",
     hash = model_hash_,
@@ -1225,8 +1246,8 @@ load_scenario <- function(
                   ref$name, "' @", substr(ref$hash %||% "", 1, 8),
                   "; the store now holds @", substr(cur_h %||% "", 1, 8),
                   " — loading the current version. Results may not ",
-                  "reproduce; re-save the scenario, or keep versions with ",
-                  "set_store_versioning(\"hash\").", call. = FALSE)
+                  "reproduce; re-save the scenario to adopt it, or seal_model() the ",
+                  "inputs of finished work.", call. = FALSE)
         }
       }
     }
@@ -1276,6 +1297,27 @@ load_scenario <- function(
     if (!ignore_errors) stop(ds_ok)
     if (verbose) message(conditionMessage(ds_ok))
     return(invisible(FALSE))
+  }
+
+  # scen.RData holds the BASE problem; the manifest's `default:` run names
+  # what should be ACTIVE. When that is a variant run, activate it — the
+  # loaded object then matches what was last saved, exactly as before the
+  # problem.RData retirement.
+  def <- tryCatch(.scenario_default_run(scen_obj), error = function(e) NULL)
+  if (!is.null(def) && nzchar(def$variant %||% "") &&
+      !identical(def$variant, .run_variant(scen_obj))) {
+    scen_act <- tryCatch(
+      read_solution(scen_obj, run = .run_id(def$variant, def$solve),
+                    echo = FALSE),
+      error = function(e) {
+        if (verbose) {
+          message("Could not activate the default run '",
+                  .run_id(def$variant, def$solve), "': ",
+                  conditionMessage(e))
+        }
+        NULL
+      })
+    if (!is.null(scen_act)) scen_obj <- scen_act
   }
   assign(nm, scen_obj, envir = .en_tmp)
 
@@ -1334,8 +1376,8 @@ load_scenario <- function(
 load_scenarios <- function(names = NULL, run = NULL, env = NULL,
                            verbose = TRUE) {
   if (is.null(names)) {
-    reg <- load_registry()
-    names <- find_registry(reg, type = "scenario")$name
+    reg <- .registry_open()
+    names <- find_in_registry(reg, type = "scenario")$name
   }
   stopifnot(is.character(names))
   out <- list()

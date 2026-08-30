@@ -60,7 +60,7 @@
 #'
 #' @param name character, the object's registered name. Scenarios accept a
 #'   name only; models/repositories/datasets also accept `"name@hash8"`.
-#' @param registry an `ert_registry` tibble to resolve against (default:
+#' @param registry an `en_registry` tibble to resolve against (default:
 #'   [load_registry()]).
 #' @param run character, optional run id activated in the returned scenario
 #'   via [read_solution()] (the cached copy keeps the default run).
@@ -81,8 +81,12 @@
 #' base <- getScenario("base")
 #' getData(c("base", "policy"), name = "vTechOut", merge = TRUE)
 #' }
-getScenario <- function(name, registry = NULL, run = NULL, refresh = FALSE,
-                        verbose = FALSE) {
+getScenario <- function(name, ...) UseMethod("getScenario")
+
+#' @rdname accessors
+#' @export
+getScenario.character <- function(name, registry = NULL, run = NULL,
+                                  refresh = FALSE, verbose = FALSE, ...) {
   stopifnot(is.character(name), length(name) == 1L, nzchar(name))
   path <- .scenario_resolve(name, registry = registry)
   if (is.null(path)) {
@@ -109,6 +113,51 @@ getScenario <- function(name, registry = NULL, run = NULL, refresh = FALSE,
   }
   if (!is.null(run)) sc <- read_solution(sc, run = run, echo = FALSE)
   sc
+}
+
+# `run` selection shared by the registry accessors: the scenario's own
+# (main) run by default, a named run, or every recorded run when NULL / NA /
+# "ALL" is given.
+#' @noRd
+.run_is_all <- function(run) {
+  is.null(run) || (length(run) == 1L &&
+                     (is.na(run) || identical(toupper(as.character(run)),
+                                              "ALL")))
+}
+
+# One registry row -> the object it points at. Version resolution and the
+# "entry updated in place" errors belong to the store loaders, so delegate.
+#' @noRd
+.registry_row_object <- function(row, verbose = FALSE) {
+  h <- if (nzchar(row$hash %||% "")) row$hash else NULL
+  switch(row$type,
+    model      = load_model(row$name, hash = h, verbose = verbose),
+    repository = load_repository(row$name, hash = h, verbose = verbose),
+    dataset    = load_dataset(row$name, hash = h, verbose = verbose),
+    scenario   = load_scenario(
+      gsub("[\\/]+", "/", fp(dirname(get_registry_file()), row$path)),
+      env = NULL, verbose = verbose),
+    stop("Registry rows of type '", row$type, "' hold no loadable object.",
+         call. = FALSE))
+}
+
+#' @rdname accessors
+#' @param scenario character, the scenario name to fetch from a registry.
+#' @export
+getScenario.en_registry <- function(name, scenario = NULL, run = NULL,
+                                    refresh = FALSE, verbose = FALSE, ...) {
+  reg <- name          # dispatch put the registry in the generic's first slot
+  stopifnot(is.character(scenario), length(scenario) == 1L, nzchar(scenario))
+  hit <- find_in_registry(reg, type = "scenario", name = scenario)
+  if (!nrow(hit)) {
+    known <- find_in_registry(reg, type = "scenario")$name
+    stop("Scenario '", scenario, "' is not in this registry. Registered ",
+         "scenarios: ",
+         if (length(known)) paste(known, collapse = ", ") else "(none)",
+         call. = FALSE)
+  }
+  getScenario(scenario, registry = reg, run = run, refresh = refresh,
+              verbose = verbose)
 }
 
 #' @rdname accessors
@@ -145,7 +194,7 @@ open_project <- function(path = ".", verbose = TRUE) {
   )
   if (isTRUE(verbose)) {
     n_scen <- tryCatch(
-      nrow(find_registry(load_registry(), type = "scenario")),
+      nrow(find_in_registry(.registry_open(), type = "scenario")),
       error = function(e) 0L)
     message("energyRt project: ", path,
             " (", n_scen, " registered scenario",

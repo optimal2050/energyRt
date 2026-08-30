@@ -74,6 +74,7 @@ newRepository <- function(
     ) {
   # browser()
   obj <- new("repository")
+  .assert_object_name(name, what = "repository")
   obj@name <- name
   arg <- list(...)
   if (!is.na(desc) && !is_empty(desc)) arg <- c(arg, desc = desc)

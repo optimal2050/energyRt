@@ -57,9 +57,10 @@ test_that("a variant's solve and problem land under runs/<variant>/", {
   expect_true(dir.exists(file.path(vdir, "modInp", "parameters")))
   expect_true(file.exists(file.path(vdir, "variant.RData")))
 
-  # the base problem is untouched at the scenario level, with its swap file
+  # the base problem is untouched at the scenario level; its one home is
+  # scen.RData (problem.RData is retired)
   expect_true(dir.exists(file.path(vr_path, "modInp", "parameters")))
-  expect_true(file.exists(file.path(vr_path, "problem.RData")))
+  expect_false(file.exists(file.path(vr_path, "problem.RData")))
 
   # manifest default follows the last save (the variant's run)
   mf <- yaml::read_yaml(file.path(vr_path, "scenario.yml"))

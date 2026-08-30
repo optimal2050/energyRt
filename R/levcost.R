@@ -165,13 +165,17 @@
 #'   priced in its own region so the variants cannot serve each other's demand;
 #'   without that isolation they compete for one unit of demand and the result
 #'   silently sums across them. The stacked tables are reachable with
-#'   [levcost_by_variant()], and \code{autoplot()} compares the variants.
+#'   \code{levcost(x, by_variant = )}, and \code{autoplot()} compares the
+#'   variants.
 #'   \code{$frontier} is \code{NULL} on this path -- the frontier corners are a
 #'   per-commodity sweep, orthogonal to variants, and are not fanned out.
 #'   A technology with no vintages or clusters is unaffected and still returns a
 #'   single \code{"levcost"} object.
 #'
-#' @seealso [levcost_by_variant()]
+#' @param by_variant for a technology declaring vintages or clusters: `FALSE`
+#'   (default) returns the result object; `TRUE` (= `"levcost"`), `"npv"` or
+#'   `"components"` returns that per-variant table instead. Passing an existing
+#'   result — `levcost(lc, by_variant = "npv")` — extracts without re-solving.
 #' @export
 #'
 #' @include solve.R
@@ -191,6 +195,13 @@ setGeneric("levcost", function(object, comm, name, ...) {
   standardGeneric("levcost")
 })
 
+# `levcost_variants` is the S3 class a variant fan-out returns; registering it
+# lets levcost() dispatch on an existing result (`by_variant =` without a
+# re-solve). The plain `levcost` result is registered too, so passing one back
+# reports what is wrong instead of failing S4 dispatch.
+setOldClass(c("levcost_variants", "levcost_list", "list"))
+setOldClass(c("levcost", "list"))
+
 # Scratch anchor for levcost mini-scenarios. Keeps them out of the project's
 # scenarios store (they used to land under get_scenarios_path() and be indexed
 # by refresh_registry() as real scenarios). interpolate_model(ondisk = FALSE)
@@ -201,11 +212,14 @@ setGeneric("levcost", function(object, comm, name, ...) {
      paste0(.path_slug(name), "_", format(Sys.time(), "%Y%m%d%H%M%OS3")))
 }
 
-setMethod("levcost", "technology", function(object, comm, name, ...) {
-  comm_arg <- if (missing(comm)) NULL else comm
-  .levcost_with_cache("technology", object, c(list(comm = comm_arg), list(...)),
-                      levcost_technology_)
-})
+setMethod("levcost", "technology",
+  function(object, comm, name, by_variant = FALSE, ...) {
+    comm_arg <- if (missing(comm)) NULL else comm
+    res <- .levcost_with_cache("technology", object,
+                               c(list(comm = comm_arg), list(...)),
+                               levcost_technology_)
+    if (isFALSE(by_variant)) res else .levcost_by_variant(res, by_variant)
+  })
 
 #' @rdname levcost
 setMethod("levcost", "storage", function(object, comm, name, ...) {
@@ -603,11 +617,13 @@ setMethod("levcost", "trade", function(object, comm, name, ...) {
 }
 
 #' @rdname levcost
-setMethod("levcost", "repository", function(object, comm, name, ...) {
-  comm_arg <- if (missing(comm)) NULL else comm
-  name_arg <- if (missing(name)) NULL else name
-  .levcost_container(object, name = name_arg, comm = comm_arg, ...)
-})
+setMethod("levcost", "repository",
+  function(object, comm, name, by_variant = FALSE, ...) {
+    comm_arg <- if (missing(comm)) NULL else comm
+    name_arg <- if (missing(name)) NULL else name
+    res <- .levcost_container(object, name = name_arg, comm = comm_arg, ...)
+    if (isFALSE(by_variant)) res else .levcost_by_variant(res, by_variant)
+  })
 
 # The scalar rate a levelised cost is annuitised at: the cost of CAPITAL, not
 # the social discount rate. Levelised cost answers "what must this unit earn per
@@ -623,7 +639,8 @@ setMethod("levcost", "repository", function(object, comm, name, ...) {
 }
 
 #' @rdname levcost
-setMethod("levcost", "model", function(object, comm, name, ...) {
+setMethod("levcost", "model",
+          function(object, comm, name, by_variant = FALSE, ...) {
   comm_arg <- if (missing(comm)) NULL else comm
   name_arg <- if (missing(name)) NULL else name
   cfg  <- object@config
@@ -643,8 +660,11 @@ setMethod("levcost", "model", function(object, comm, name, ...) {
   }
   disc <- if (!is.null(dots$discount)) dots$discount else .levcost_model_discount(cfg)
   dots$calendar <- dots$region <- dots$horizon <- dots$discount <- NULL
-  do.call(.levcost_container, c(list(object, name = name_arg, comm = comm_arg,
-    calendar = cal, region = reg, horizon = hor, discount = disc), dots))
+  res <- do.call(.levcost_container,
+                 c(list(object, name = name_arg, comm = comm_arg,
+                        calendar = cal, region = reg, horizon = hor,
+                        discount = disc), dots))
+  if (isFALSE(by_variant)) res else .levcost_by_variant(res, by_variant)
 })
 
 #' @rdname levcost
@@ -1466,32 +1486,49 @@ levcost_chain_ <- function(
   )
 }
 
-#' Per-variant levelized cost tables
-#'
-#' Stack the per-variant tables of a [levcost()] result computed for a vintaged
-#' or clustered technology, keyed by variant.
-#'
-#' @param x A `levcost_variants` object, as returned by [levcost()] for a
-#'   technology declaring vintages and/or clusters.
-#' @param what Which table to stack: `"levcost"` (levelized cost by year),
-#'   `"npv"` (one row per variant), or `"components"` (cost breakdown by year).
-#'
-#' @return A data.frame with `tech`, `variant`, `vintage` and `cluster` key
-#'   columns prepended to the requested table.
-#' @export
-levcost_by_variant <- function(x, what = c("levcost", "npv", "components")) {
-  what <- match.arg(what)
-  if (!inherits(x, "levcost_variants"))
-    stop("`x` must be a `levcost_variants` object (a levcost() result for a ",
-         "technology with vintages or clusters).", call. = FALSE)
-  key <- attr(x, "variants")
-  tbl <- switch(what,
+# Per-variant tables of a levcost result. Reached through
+# `levcost(x, by_variant = )` -- both on a fresh computation and on an
+# already-computed `levcost_variants` object (the method below), so the
+# tables never require a re-solve.
+#' @noRd
+.levcost_by_variant <- function(x, what = c("levcost", "npv", "components")) {
+  if (isTRUE(what)) what <- "levcost"
+  what <- match.arg(as.character(what), c("levcost", "npv", "components"))
+  if (!inherits(x, "levcost_variants")) {
+    stop("`by_variant` needs a levcost() result for a technology declaring ",
+         "vintages or clusters; this one has none.", call. = FALSE)
+  }
+  switch(what,
     levcost    = attr(x, "by_variant"),
     npv        = attr(x, "by_variant_npv"),
     components = attr(x, "by_variant_components"))
-  if (is.null(tbl)) return(NULL)
-  tbl
 }
+
+#' Per-variant levelized cost tables, from an existing result
+#'
+#' `levcost()` on a `levcost_variants` object stacks its per-variant tables
+#' without re-solving: `levcost(lc, by_variant = "npv")`.
+#'
+#' @rdname levcost
+#' @export
+setMethod("levcost", "levcost_variants",
+  function(object, comm, name, by_variant = TRUE, ...) {
+    .levcost_by_variant(object, by_variant)
+  })
+
+# A result from a technology with no vintages/clusters: say so, rather than
+# letting S4 dispatch fail with "unable to find an inherited method".
+#' @rdname levcost
+#' @export
+setMethod("levcost", "levcost",
+  function(object, comm, name, by_variant = FALSE, ...) {
+    if (isFALSE(by_variant)) {
+      stop("`object` is already a levcost() result. Pass `by_variant = ` to ",
+           "stack its per-variant tables, or call levcost() on the process ",
+           "object to price it again.", call. = FALSE)
+    }
+    .levcost_by_variant(object, by_variant)
+  })
 
 #' @export
 print.levcost_variants <- function(x, ...) {
@@ -1504,7 +1541,7 @@ print.levcost_variants <- function(x, ...) {
                             names(npv)), drop = FALSE]
     print(show, row.names = FALSE)
   }
-  cat("\nUse levcost_by_variant(x) for the stacked tables, ",
+  cat("\nUse levcost(x, by_variant = ) for the stacked tables, ",
       "autoplot(x) to compare.\n", sep = "")
   invisible(x)
 }

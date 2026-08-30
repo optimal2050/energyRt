@@ -20,6 +20,7 @@
   "model_hash",       # scenario rows: hash of the referenced/embedded model
   "path",             # relative to the registry file's directory
   "parent",           # runs: scenario name; "" otherwise
+  "variant",          # runs: own-problem variant label; "" = base problem
   "created", "updated",  # UTC timestamps, "%Y-%m-%dT%H:%M:%SZ"
   "energyRt_version",
   "memo"
@@ -47,7 +48,7 @@
   }
   reg <- registry %||% tryCatch(load_registry(), error = function(e) NULL)
   if (!is.null(reg)) {
-    hit <- find_registry(reg, type = "scenario", name = name)
+    hit <- find_in_registry(reg, type = "scenario", name = name)
     if (nrow(hit)) {
       p <- gsub("[\\/]+", "/", fp(dirname(get_registry_file()), hit$path[1]))
       if (is_scen_dir(p)) return(p)
@@ -88,7 +89,7 @@
 # dispatch on it; tibble/dplyr verbs drop extra classes, so every function
 # returning a registry re-attaches it
 .registry_class <- function(reg) {
-  class(reg) <- unique(c("ert_registry", class(reg)))
+  class(reg) <- unique(c("en_registry", class(reg)))
   reg
 }
 
@@ -102,12 +103,16 @@
 #' and `refresh_registry()` reconstructs the registry by rescanning the
 #' `scenarios/` and `models/` stores.
 #'
-#' * `load_registry()` reads the registry file into a tibble (an empty,
-#'   correctly-typed tibble if the file does not exist yet).
+#' * `newRegistry()` constructs a new, empty registry. Creating one is
+#'   explicit: `load_registry()` does NOT invent a registry for you.
+#' * `load_registry()` reads the registry file into a tibble, and errors when
+#'   the file does not exist — naming `newRegistry()`. (Object stores create
+#'   their own registry on first write, so `save_model()` and friends work in
+#'   a fresh project without any ceremony.)
 #' * `save_registry()` writes the tibble back.
 #' * `add_to_registry()` inserts or updates one row (keyed by `type` + `name` +
 #'   `parent`) and returns the updated tibble; it does not write the file.
-#' * `find_registry()` filters by any combination of `type`, `name`, `hash`,
+#' * `find_in_registry()` filters by any combination of `type`, `name`, `hash`,
 #'   and `parent` (exact matches; `NULL` = no filter).
 #' * `refresh_registry()` rescans the stores under `root` and rebuilds rows
 #'   from what is actually on disk, preserving `created`/`memo` of surviving
@@ -130,23 +135,43 @@
 #'   `scenarios/` and `models/` stores).
 #' @param write logical, save the refreshed registry to `file`.
 #'
-#' @return `load_registry()`, `add_to_registry()`, `find_registry()`, and
+#' @return `load_registry()`, `add_to_registry()`, `find_in_registry()`, and
 #'   `refresh_registry()` return the registry tibble; `save_registry()`
 #'   returns `file` invisibly.
 #'
 #' @rdname registry
 #' @export
 #' @examples
-#' reg <- load_registry(tempfile(fileext = ".csv"))
+#' reg <- newRegistry()
 #' reg <- add_to_registry(reg, "scenario", "BASE", path = "scenarios/BASE")
-#' find_registry(reg, type = "scenario")
+#' find_in_registry(reg, type = "scenario")
+newRegistry <- function() .registry_empty()
+
+#' @rdname registry
+#' @export
 load_registry <- function(file = get_registry_file()) {
-  if (!file.exists(file)) return(.registry_empty())
+  if (!file.exists(file)) {
+    stop("No registry at '", file, "'.\n",
+         "  Create one with `newRegistry()` (then `save_registry()`), or ",
+         "rebuild it from the stores with `refresh_registry()`.",
+         call. = FALSE)
+  }
   reg <- utils::read.csv(file, colClasses = "character",
                          stringsAsFactors = FALSE) |> as_tibble()
   missing_cols <- setdiff(.registry_cols, names(reg))
   for (m in missing_cols) reg[[m]] <- ""
   .registry_class(reg[, .registry_cols])
+}
+
+# Load the registry, or start a fresh one when the project has none yet.
+# The INTERNAL counterpart of load_registry(): the object stores register
+# what they write, and must work in a project whose first save is happening
+# right now. Public `load_registry()` stays strict on purpose — creating a
+# registry is `newRegistry()`, never a side effect of reading.
+#' @noRd
+.registry_open <- function(file = get_registry_file()) {
+  if (!file.exists(file)) return(.registry_empty())
+  load_registry(file)
 }
 
 #' @rdname registry
@@ -164,15 +189,20 @@ save_registry <- function(reg, file = get_registry_file()) {
 #' @export
 add_to_registry <- function(reg, type, name, path,
                          hash = "", model_hash = "", parent = "",
-                         memo = "") {
+                         variant = "", memo = "") {
   type <- match.arg(type, c("model", "repository", "scenario", "run",
                             "dataset"))
   stopifnot(is.character(name), length(name) == 1L, nzchar(name))
   now <- .registry_now()
-  ii <- which(reg$type == type & reg$name == name & reg$parent == parent)
+  # run rows store the plain solve label in `name` and the problem in
+  # `variant` — the upsert key must span both, or a base run and a variant
+  # run sharing a solve label would collapse into one row
+  vcol <- if (is.null(reg[["variant"]])) rep("", nrow(reg)) else reg$variant
+  ii <- which(reg$type == type & reg$name == name & reg$parent == parent &
+                vcol == variant)
   row <- tibble(
     type = type, name = name, hash = hash, model_hash = model_hash,
-    path = path, parent = parent,
+    path = path, parent = parent, variant = variant,
     created = if (length(ii)) reg$created[ii[1]] else now,
     updated = now,
     energyRt_version = as.character(utils::packageVersion("energyRt")),
@@ -188,14 +218,14 @@ add_to_registry <- function(reg, type, name, path,
 #' with models and repositories.
 #'
 #' @rdname registry
-#' @method add ert_registry
+#' @method add en_registry
 #' @export
-add.ert_registry <- function(obj, ...) add_to_registry(obj, ...)
+add.en_registry <- function(obj, ...) add_to_registry(obj, ...)
 
 #' @rdname registry
 #' @export
-find_registry <- function(reg, type = NULL, name = NULL, hash = NULL,
-                          parent = NULL) {
+find_in_registry <- function(reg, type = NULL, name = NULL, hash = NULL,
+                          parent = NULL, variant = NULL) {
   if (!is.null(type)) reg <- reg[reg$type %in% type, ]
   if (!is.null(name)) reg <- reg[reg$name %in% name, ]
   if (!is.null(hash)) {
@@ -203,6 +233,9 @@ find_registry <- function(reg, type = NULL, name = NULL, hash = NULL,
     reg <- reg[startsWith(reg$hash, hash[1]) & nzchar(reg$hash), ]
   }
   if (!is.null(parent)) reg <- reg[reg$parent %in% parent, ]
+  if (!is.null(variant) && !is.null(reg[["variant"]])) {
+    reg <- reg[reg$variant %in% variant, ]
+  }
   .registry_class(reg)
 }
 
@@ -210,17 +243,19 @@ find_registry <- function(reg, type = NULL, name = NULL, hash = NULL,
 #' @export
 refresh_registry <- function(root = ".", file = get_registry_file(),
                              write = TRUE) {
-  old <- load_registry(file)
+  old <- .registry_open(file)
   rel_to_reg <- function(p) .registry_rel_path(p, reg_file = file)
   # store roots from the options may be absolute (e.g. redirected to a temp
   # dir); only prefix `root` onto relative ones
   root_join <- function(p) {
     if (grepl("^([A-Za-z]:|/|\\\\)", p)) gsub("[\\/]+", "/", p) else fp(root, p)
   }
-  keep_created <- function(reg, type, name, parent = "") {
-    hit <- find_registry(old, type = type, name = name, parent = parent)
+  keep_created <- function(reg, type, name, parent = "", variant = "") {
+    hit <- find_in_registry(old, type = type, name = name, parent = parent,
+                         variant = variant)
     if (nrow(hit)) {
-      ii <- which(reg$type == type & reg$name == name & reg$parent == parent)
+      ii <- which(reg$type == type & reg$name == name &
+                    reg$parent == parent & reg$variant == variant)
       reg$created[ii] <- hit$created[1]
       if (!nzchar(reg$memo[ii])) reg$memo[ii] <- hit$memo[1]
     }
@@ -263,14 +298,15 @@ refresh_registry <- function(root = ".", file = get_registry_file(),
         if (is.null(rr)) next
         run_dir <- dirname(ry)
         parent_dir <- basename(dirname(run_dir))
-        run_name <- if (identical(parent_dir, "runs")) {
-          basename(run_dir)                       # base run: "<solve>"
-        } else {
-          fp(parent_dir, basename(run_dir))       # variant run: "<variant>/<solve>"
-        }
-        reg <- add_to_registry(reg, "run", run_name, path = rel_to_reg(run_dir),
-                            parent = nm)
-        reg <- keep_created(reg, "run", run_name, parent = nm)
+        # plain solve label in `name`; the own-problem variant (if any) in
+        # its own column — never a compound "variant/solve" name
+        run_variant <- if (identical(parent_dir, "runs")) "" else parent_dir
+        solve_lbl <- basename(run_dir)
+        reg <- add_to_registry(reg, "run", solve_lbl,
+                            path = rel_to_reg(run_dir),
+                            parent = nm, variant = run_variant)
+        reg <- keep_created(reg, "run", solve_lbl, parent = nm,
+                            variant = run_variant)
       }
     }
   }

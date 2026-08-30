@@ -67,6 +67,6 @@ test_that("refresh_registry skips dot-prefixed scenario dirs", {
   writeLines("scenario", file.path(scen_root, ".lc_scratch", "class"))
 
   reg <- refresh_registry(root = root, file = reg_file, write = FALSE)
-  expect_identical(find_registry(reg, type = "scenario")$name, "REAL")
+  expect_identical(find_in_registry(reg, type = "scenario")$name, "REAL")
   unlink(root, recursive = TRUE)
 })

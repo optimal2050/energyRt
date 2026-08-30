@@ -162,8 +162,8 @@ test_that("vintaged technology: per-cell parity without artificial regions", {
   p <- .lc_pair(T8, fuel_costs = c(GAS = 10), discount = 0.05,
                 base_year = 2025)
   expect_s3_class(p$a, "levcost_variants")
-  a <- levcost_by_variant(p$a, "npv")
-  s <- levcost_by_variant(p$s, "npv")
+  a <- levcost(p$a, by_variant = "npv")
+  s <- levcost(p$s, by_variant = "npv")
   m <- merge(a[, c("variant", "levcost_npv")], s[, c("variant", "levcost_npv")],
              by = "variant")
   expect_equal(nrow(m), 2L)

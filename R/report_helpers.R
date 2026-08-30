@@ -234,10 +234,10 @@ report_plot_png <- function(p, w_in, h_in, dpi = 150) {
 #' @export
 report_sec <- function(title, note = NULL, output = report_output()) {
   if (output == "html") {
-    cat("\n<hr class='ert-rule-thin' />\n")
+    cat("\n<hr class='en-rule-thin' />\n")
     cat("<p><strong>", .report_html_esc(title), "</strong>", sep = "")
     if (!is.null(note) && nzchar(note))
-      cat(" <span class='ert-gray'><small>", .report_html_esc(note),
+      cat(" <span class='en-gray'><small>", .report_html_esc(note),
           "</small></span>", sep = "")
     cat("</p>\n")
   } else if (output == "word") {
@@ -245,10 +245,10 @@ report_sec <- function(title, note = NULL, output = report_output()) {
       paste0(" (", note, ")") else "", "\n\n", sep = "")
   } else {
     cat("\n\\vspace{8pt}\n")
-    cat("\\textcolor{ert_blue}{\\rule{\\linewidth}{0.6pt}}\\par\\vspace{2pt}\n")
+    cat("\\textcolor{en_blue}{\\rule{\\linewidth}{0.6pt}}\\par\\vspace{2pt}\n")
     cat("\\textbf{\\small ", .report_tex_esc(title), "}", sep = "")
     if (!is.null(note) && nzchar(note))
-      cat(" \\textcolor{ert_gray}{\\small ", .report_tex_esc(note), "}",
+      cat(" \\textcolor{en_gray}{\\small ", .report_tex_esc(note), "}",
           sep = "")
     cat("\\par\\vspace{2pt}\n")
   }
@@ -299,7 +299,7 @@ report_tbl <- function(df, caption = NULL, digits = 4L,
     }
   }
   wrap <- output == "html" && isTRUE(scroll) && nrow(df) > 15
-  if (wrap) cat("<div class='ert-scroll'>\n")
+  if (wrap) cat("<div class='en-scroll'>\n")
   k <- if (output == "html") {
     knitr::kable(df, format = "html", row.names = FALSE,
                  table.attr = "class='kable-table'")
@@ -315,12 +315,12 @@ report_tbl <- function(df, caption = NULL, digits = 4L,
   if (n_more > 0) {
     note <- paste0("... ", n_more, " more rows (of ", n_all, ")")
     if (output == "html") {
-      cat("<p class='ert-gray'><small>", .report_html_esc(note),
+      cat("<p class='en-gray'><small>", .report_html_esc(note),
           "</small></p>\n", sep = "")
     } else if (output == "word") {
       cat("*", note, "*\n\n", sep = "")
     } else {
-      cat("{\\small\\color{ert_gray} ", .report_tex_esc(note), "}\\par\n",
+      cat("{\\small\\color{en_gray} ", .report_tex_esc(note), "}\\par\n",
           sep = "")
     }
   }
@@ -335,27 +335,27 @@ report_css <- function(output = report_output()) {
   cat("<style>
 body       { font-family: Arial, sans-serif; font-size: 13px; margin: 20px; }
 h1, h2     { color: #1f497d; }
-.ert-gray  { color: #808080; }
-.ert-rule      { border: none; border-top: 2px solid #1f497d; margin: 8px 0 4px; }
-.ert-rule-thin { border: none; border-top: 1px solid #1f497d; margin: 6px 0 4px; }
-.ert-two-col   { display: flex; gap: 20px; align-items: flex-start; }
-.ert-col-main  { flex: 0 0 52%; min-width: 0; }
-.ert-col-side  { flex: 0 0 45%; min-width: 0; }
-.ert-kp-table  { border-collapse: collapse; font-size: 12px; }
-.ert-kp-table td { padding: 2px 12px 2px 0; vertical-align: top; }
-.ert-kp-table td:first-child { font-family: monospace; }
+.en-gray  { color: #808080; }
+.en-rule      { border: none; border-top: 2px solid #1f497d; margin: 8px 0 4px; }
+.en-rule-thin { border: none; border-top: 1px solid #1f497d; margin: 6px 0 4px; }
+.en-two-col   { display: flex; gap: 20px; align-items: flex-start; }
+.en-col-main  { flex: 0 0 52%; min-width: 0; }
+.en-col-side  { flex: 0 0 45%; min-width: 0; }
+.en-kp-table  { border-collapse: collapse; font-size: 12px; }
+.en-kp-table td { padding: 2px 12px 2px 0; vertical-align: top; }
+.en-kp-table td:first-child { font-family: monospace; }
 table.kable-table { border-collapse: collapse; font-size: 11px; margin: 4px 0 8px; }
 table.kable-table th { border-top: 1.5px solid #333; border-bottom: 1px solid #888;
                        padding: 3px 12px 3px 4px; text-align: left; }
 table.kable-table td { border: none; padding: 2px 12px 2px 4px; }
 table.kable-table tbody tr:last-child td { border-bottom: 1.5px solid #333; }
 table.kable-table tbody tr:nth-child(odd) { background: #f7f7f7; }
-.ert-scroll { max-height: 320px; overflow-y: auto;
+.en-scroll { max-height: 320px; overflow-y: auto;
               border-bottom: 1.5px solid #333; margin: 4px 0 8px; }
-.ert-scroll table.kable-table { margin: 0; }
-.ert-scroll table.kable-table thead th { position: sticky; top: 0;
+.en-scroll table.kable-table { margin: 0; }
+.en-scroll table.kable-table thead th { position: sticky; top: 0;
               background: #fff; z-index: 1; }
-.ert-scroll table.kable-table tbody tr:last-child td { border-bottom: none; }
+.en-scroll table.kable-table tbody tr:last-child td { border-bottom: none; }
 </style>\n")
   invisible(NULL)
 }
@@ -370,11 +370,11 @@ report_header <- function(name, desc = "", image_file = NULL,
   has_img <- !is.null(image_file) && nzchar(image_file) &&
     file.exists(image_file)
   if (output == "html") {
-    cat("<div class='ert-two-col'>\n<div style='flex:1;min-width:0'>\n")
+    cat("<div class='en-two-col'>\n<div style='flex:1;min-width:0'>\n")
     cat("<h1 style='margin:0 0 4px'>", .report_html_esc(name), "</h1>\n",
         sep = "")
     if (nzchar(desc))
-      cat("<p class='ert-gray' style='margin:2px 0 8px 0'>",
+      cat("<p class='en-gray' style='margin:2px 0 8px 0'>",
           .report_html_esc(desc), "</p>\n", sep = "")
     cat("</div>\n")
     if (has_img) {
@@ -383,7 +383,7 @@ report_header <- function(name, desc = "", image_file = NULL,
       report_img(image_file, 1, output = output)
       cat("</div>\n")
     }
-    cat("</div>\n<hr class='ert-rule' />\n")
+    cat("</div>\n<hr class='en-rule' />\n")
   } else if (output == "word") {
     cat("# ", name, "\n\n", sep = "")
     if (nzchar(desc)) cat("*", desc, "*\n\n", sep = "")
@@ -391,10 +391,10 @@ report_header <- function(name, desc = "", image_file = NULL,
   } else {
     txt_w <- if (has_img) 1 - frac - 0.03 else 1
     cat("\\begin{minipage}[t]{", txt_w, "\\textwidth}\n", sep = "")
-    cat("{\\Large\\bfseries\\color{ert_blue} ", .report_tex_esc(name),
+    cat("{\\Large\\bfseries\\color{en_blue} ", .report_tex_esc(name),
         "}\\par\n", sep = "")
     if (nzchar(desc))
-      cat("{\\small\\color{ert_gray} ", .report_tex_esc(desc), "}\\par\n",
+      cat("{\\small\\color{en_gray} ", .report_tex_esc(desc), "}\\par\n",
           sep = "")
     cat("\\end{minipage}")
     if (has_img) {
@@ -404,7 +404,7 @@ report_header <- function(name, desc = "", image_file = NULL,
       cat("\\end{minipage}\n")
     }
     cat("\n\\vspace{4pt}\n")
-    cat("\\textcolor{ert_blue}{\\rule{\\textwidth}{1.5pt}}\\par\\vspace{4pt}\n")
+    cat("\\textcolor{en_blue}{\\rule{\\textwidth}{1.5pt}}\\par\\vspace{4pt}\n")
   }
   invisible(NULL)
 }

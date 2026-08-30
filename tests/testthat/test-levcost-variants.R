@@ -89,7 +89,7 @@ test_that("a vintaged technology returns one levcost per vintage", {
 test_that("cheaper vintages price lower, and the base vintage matches the plain tech", {
   skip_if_no_solver()
   lc  <- lv_run(lv_tech(c(2020, 2030, 2040), invcost = c(300, 200, 100)))
-  npv <- levcost_by_variant(lc, "npv")$levcost_npv
+  npv <- levcost(lc, by_variant = "npv")$levcost_npv
 
   expect_true(all(is.finite(npv)))
   expect_true(all(diff(npv) < 0))          # 300 > 200 > 100 invcost
@@ -110,37 +110,39 @@ test_that("vintage x cluster expands to the full grid", {
   expect_length(lc, 4L)
   expect_setequal(names(lc), c("PWR_VIN2020_CLa", "PWR_VIN2030_CLa",
                                "PWR_VIN2020_CLb", "PWR_VIN2030_CLb"))
-  key <- levcost_by_variant(lc, "npv")
+  key <- levcost(lc, by_variant = "npv")
   expect_setequal(unique(key$vintage), c("2020", "2030"))
   expect_setequal(unique(key$cluster), c("a", "b"))
 })
 
-test_that("levcost_by_variant() stacks the tables with variant keys", {
+test_that("levcost(, by_variant = TRUE) stacks the tables with variant keys", {
   skip_if_no_solver()
   lc <- lv_run(lv_tech(c(2020, 2030, 2040), invcost = c(300, 200, 100)))
 
-  npv <- levcost_by_variant(lc, "npv")
+  npv <- levcost(lc, by_variant = "npv")
   expect_equal(nrow(npv), 3L)
   expect_true(all(c("tech", "variant", "vintage", "cluster", "levcost_npv")
                   %in% names(npv)))
   expect_equal(unique(npv$tech), "PWR")
 
-  lcv <- levcost_by_variant(lc, "levcost")
+  lcv <- levcost(lc, by_variant = "levcost")
   expect_true(all(c("tech", "variant", "vintage", "year", "levcost") %in% names(lcv)))
   expect_setequal(unique(lcv$variant), names(lc))
 
-  cmp <- levcost_by_variant(lc, "components")
+  cmp <- levcost(lc, by_variant = "components")
   expect_true(all(c("variant", "component", "value") %in% names(cmp)))
   expect_true("eac" %in% cmp$component)
 
-  expect_error(levcost_by_variant(lv_run(lv_tech())), "levcost_variants")
+  # a result with no variants names the reason, rather than failing dispatch
+  expect_error(levcost(lv_run(lv_tech()), by_variant = TRUE),
+               "vintages or clusters")
 })
 
 test_that("sequential and single runs agree", {
   skip_if_no_solver()
   tech <- lv_tech(c(2020, 2030, 2040), invcost = c(300, 200, 100))
-  a <- levcost_by_variant(lv_run(tech, run = "single"), "npv")
-  b <- levcost_by_variant(lv_run(tech, run = "sequential"), "npv")
+  a <- levcost(lv_run(tech, run = "single"), by_variant = "npv")
+  b <- levcost(lv_run(tech, run = "sequential"), by_variant = "npv")
 
   expect_equal(a$variant, b$variant)
   expect_equal(a$levcost_npv, b$levcost_npv, tolerance = 1e-8)
@@ -243,4 +245,51 @@ test_that("the auto-horizon covers late vintage windows", {
   npv <- vapply(res, function(z) as.numeric(z$levcost_npv[1]), numeric(1))
   expect_true(all(is.finite(npv)))
   expect_true(all(npv > 0))
+})
+# levcost(by_variant = ) -- the merged form of the former
+# levcost(, by_variant = TRUE). Both paths must give the same tables: computing with
+# by_variant set, and passing an already-computed result back (no re-solve).
+
+test_that("levcost(by_variant=) matches the result's own tables", {
+  skip_if_no_solver()
+  tech <- newTechnology("TV",
+    input = list(comm = "COA"), output = list(comm = "ELC"),
+    vintage = data.frame(vintage = c("v1", "v2"), start = c(2020L, 2030L),
+                         end = c(2029L, 2050L), olife = c(20L, 20L)),
+    ceff = data.frame(comm = "COA", cinp2use = 0.4),
+    invcost = data.frame(vintage = c("v1", "v2"), invcost = c(1000, 800)),
+    cap2act = 1)
+  lc <- suppressMessages(suppressWarnings(
+    levcost(tech, comm = "ELC", fuel_costs = c(COA = 2), verbose = FALSE)))
+  skip_if_not(inherits(lc, "levcost_variants"),
+              "technology did not fan out into variants")
+
+  # result method: extraction without recomputing
+  expect_identical(levcost(lc, by_variant = TRUE), attr(lc, "by_variant"))
+  expect_identical(levcost(lc, by_variant = "levcost"), attr(lc, "by_variant"))
+  expect_identical(levcost(lc, by_variant = "npv"), attr(lc, "by_variant_npv"))
+  expect_identical(levcost(lc, by_variant = "components"),
+                   attr(lc, "by_variant_components"))
+
+  # the deprecated extractor still agrees, and warns
+  expect_warning(old <- levcost_by_variant(lc, "npv"), "v0.90")
+  expect_identical(old, levcost(lc, by_variant = "npv"))
+
+  # computing with by_variant returns the table, not the object
+  direct <- suppressMessages(suppressWarnings(
+    levcost(tech, comm = "ELC", fuel_costs = c(COA = 2), verbose = FALSE,
+            by_variant = "npv")))
+  expect_s3_class(direct, "data.frame")
+  expect_identical(nrow(direct), nrow(attr(lc, "by_variant_npv")))
+
+  # a technology with no variants says so rather than returning NULL
+  flat <- newTechnology("TF", input = list(comm = "COA"),
+                        output = list(comm = "ELC"),
+                        ceff = data.frame(comm = "COA", cinp2use = 0.4),
+                        invcost = data.frame(invcost = 1000), cap2act = 1)
+  expect_error(
+    suppressMessages(suppressWarnings(
+      levcost(flat, comm = "ELC", fuel_costs = c(COA = 2), verbose = FALSE,
+              by_variant = TRUE))),
+    "vintages or clusters")
 })

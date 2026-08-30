@@ -130,13 +130,15 @@ reference:
   - asSupplyCurve
   - lossTranches
 
-- title: Technology specs
-  desc:  Portable technology specifications (YAML/JSON containers) and vintage tools.
+- title: Process specs
+  desc:  Portable process specifications (YAML/JSON containers) and vintage tools.
   contents:
-  - tech_from_spec
-  - tech_to_spec
-  - tech_spec_code
-  - tech_spec_issues
+  - process_from_spec
+  - process_to_spec
+  - process_spec_code
+  - process_spec_issues
+  - read_process_spec
+  - process_designer
   - combine_vintages
 
 - title: Configuration and Settings
@@ -192,9 +194,10 @@ reference:
   - vre_cf
   - vre_storage_duration
 
-- title: Data manimulation
+- title: Data manipulation
   contents:
   - matches("convert")
+  - getUnits
   - commodity_properties
   - commodity_property
   - matches("data")

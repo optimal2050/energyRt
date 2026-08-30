@@ -96,11 +96,11 @@ test_that(".legend_compact thresholds", {
 test_that("report_tbl scrolls in html and caps elsewhere", {
   d <- data.frame(i = 1:40, v = rnorm(40))
   h <- paste(capture.output(report_tbl(d, output = "html")), collapse = "\n")
-  expect_match(h, "class='ert-scroll'")
+  expect_match(h, "class='en-scroll'")
   expect_equal(lengths(regmatches(h, gregexpr("<tr", h))), 41L)  # 40 + head
   h2 <- paste(capture.output(report_tbl(d, output = "html", scroll = FALSE)),
               collapse = "\n")
-  expect_false(grepl("ert-scroll", h2))
+  expect_false(grepl("en-scroll", h2))
   w <- paste(capture.output(report_tbl(d, output = "word", max_rows = 10)),
              collapse = "\n")
   expect_match(w, "\\.\\.\\. 30 more rows \\(of 40\\)")

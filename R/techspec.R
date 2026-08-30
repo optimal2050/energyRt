@@ -343,7 +343,7 @@
 #'   [process_spec_issues()] for the report).
 #' @family process spec
 #' @export
-read_procspec <- function(spec) {
+read_process_spec <- function(spec) {
   if (is.character(spec) && length(spec) == 1) {
     if (!file.exists(spec)) stop("process spec file not found: ", spec)
     spec <- if (grepl("[.]json$", spec, ignore.case = TRUE)) {
@@ -361,13 +361,6 @@ read_procspec <- function(spec) {
   spec
 }
 
-#' @rdname read_procspec
-#' @export
-read_techspec <- function(spec) {
-  .Deprecated("read_procspec")
-  read_procspec(spec)
-}
-
 #' @noRd
 .techspec_need_jsonlite <- function(what) {
   if (!requireNamespace("jsonlite", quietly = TRUE)) {
@@ -383,7 +376,7 @@ read_techspec <- function(spec) {
 #' per-vintage values covering only a subset of the declared vintages are
 #' reported (never silently filled); nothing is auto-invented.
 #'
-#' @param spec Path or list (see [read_procspec()]).
+#' @param spec Path or list (see [read_process_spec()]).
 #' @return A `data.frame` with columns `severity` (`"error"`/`"warning"`),
 #'   `section`, and `message`. Zero rows means a clean spec.
 #' @family process spec
@@ -393,7 +386,7 @@ read_techspec <- function(spec) {
 #' if (nzchar(f)) process_spec_issues(f)
 #' @export
 process_spec_issues <- function(spec) {
-  spec <- read_procspec(spec)
+  spec <- read_process_spec(spec)
   iss <- list()
   add <- function(severity, section, message) {
     iss[[length(iss) + 1L]] <<- data.frame(
@@ -573,13 +566,6 @@ process_spec_issues <- function(spec) {
   done()
 }
 
-#' @rdname process_spec_issues
-#' @export
-tech_spec_issues <- function(spec) {
-  .Deprecated("process_spec_issues")
-  process_spec_issues(spec)
-}
-
 #' Rows of one spec section as a data.frame
 #'
 #' `"ALL"` in a dimension column becomes `NA` (the energyRt wildcard); a
@@ -629,7 +615,7 @@ tech_spec_issues <- function(spec) {
 #' spec's `class`. Errors in the issue report stop the build (warnings are
 #' shown).
 #'
-#' @param spec Path or list (see [read_procspec()]).
+#' @param spec Path or list (see [read_process_spec()]).
 #' @param strict Stop on warnings too? Default `FALSE`.
 #' @return A `technology`, `storage` or `trade` object.
 #' @family process spec
@@ -639,7 +625,7 @@ tech_spec_issues <- function(spec) {
 #' if (nzchar(f)) process_from_spec(f)
 #' @export
 process_from_spec <- function(spec, strict = FALSE) {
-  spec <- read_procspec(spec)
+  spec <- read_process_spec(spec)
   iss <- process_spec_issues(spec)
   errs <- iss[iss$severity == "error", , drop = FALSE]
   wrns <- iss[iss$severity == "warning", , drop = FALSE]
@@ -678,13 +664,6 @@ process_from_spec <- function(spec, strict = FALSE) {
     if (!is.null(df) && nrow(df) > 0) args[[SECS[[sec]]$arg]] <- df
   }
   do.call(.SPEC_CTOR[[cls]], args)
-}
-
-#' @rdname process_from_spec
-#' @export
-tech_from_spec <- function(spec, strict = FALSE) {
-  .Deprecated("process_from_spec")
-  process_from_spec(spec, strict = strict)
 }
 
 #' Export a process object as a spec list
@@ -776,23 +755,16 @@ process_to_spec <- function(object, file = NULL) {
   spec
 }
 
-#' @rdname process_to_spec
-#' @export
-tech_to_spec <- function(object, file = NULL) {
-  .Deprecated("process_to_spec")
-  process_to_spec(object, file)
-}
-
 #' The constructor call equivalent to a process spec, as text
 #'
 #' Used by the designer's export tab.
 #'
-#' @param spec Path or list (see [read_procspec()]).
+#' @param spec Path or list (see [read_process_spec()]).
 #' @return A single character string of R code.
 #' @family process spec
 #' @export
 process_spec_code <- function(spec) {
-  spec <- read_procspec(spec)
+  spec <- read_process_spec(spec)
   cls  <- .spec_class(spec)
   SECS <- .spec_sections(cls)
   if (is.null(SECS)) {
@@ -853,9 +825,3 @@ process_spec_code <- function(spec) {
   paste0(.SPEC_CTOR[[cls]], "(\n", paste(parts, collapse = ",\n"), "\n)")
 }
 
-#' @rdname process_spec_code
-#' @export
-tech_spec_code <- function(spec) {
-  .Deprecated("process_spec_code")
-  process_spec_code(spec)
-}

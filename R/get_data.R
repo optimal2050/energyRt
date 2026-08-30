@@ -733,9 +733,7 @@ getData.default <- function(scen, ...) {
   )
 }
 
-#' @rdname getData
-#' @export
-get_data <- getData
+# get_data() is deprecated -> R/legacy_api_shims.R
 
 # ---- getData helpers: empty result + timeframe (timeslice) aggregation ----------
 

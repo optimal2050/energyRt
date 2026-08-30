@@ -58,6 +58,12 @@ repository_hash <- function(repo) {
 #' @param format storage format for the data slots (as in [save_scenario()]).
 #' @param overwrite logical, rewrite the store entry even when the hash
 #'   matches.
+#' @param rehash logical; `FALSE` keeps the DESTINATION entry's recorded
+#'   hash while writing the changed content — for changes the user declares
+#'   insignificant (a description, a memo). The manifest marks the
+#'   exception (`hash_kept: true`); references then verify against the
+#'   retained hash. With `rehash = FALSE` the hash is a user-managed
+#'   version tag, not a content proof.
 #' @param env environment to assign the repository into by name, or `NULL`
 #'   (default) to return it.
 #' @param verbose logical.
@@ -75,6 +81,7 @@ save_repository <- function(
     registry = TRUE,
     format = get_arrow_format(),
     overwrite = FALSE,
+    rehash = TRUE,
     verbose = TRUE) {
   stopifnot(is(repo, "repository"))
   if (!nzchar(repo@name)) stop("The repository must have a non-empty @name")
@@ -89,12 +96,14 @@ save_repository <- function(
   h <- repository_hash(repo)
   h8 <- substr(h, 1, 8)
   if (is.null(path)) {
-    path <- .store_entry_dir(get_repositories_path(), repo@name, h)
+    path <- .store_entry_dir(get_repositories_path(), repo@name, h,
+                             type = "repository")
   }
   path <- gsub("[\\/]+", "/", path)
 
   mf_path <- fp(path, "repository.yml")
   prev <- NULL
+  hash_kept <- FALSE
   if (file.exists(mf_path)) {
     prev <- tryCatch(yaml::read_yaml(mf_path), error = function(e) NULL)
     if (!overwrite && !is.null(prev) && identical(prev$hash, h)) {
@@ -107,6 +116,11 @@ save_repository <- function(
       return(invisible(repo))
     }
     .seal_guard(prev, "repository", repo@name, "unseal_repository")
+    if (!isTRUE(rehash) && nzchar(prev$hash %||% "")) {
+      h <- prev$hash
+      h8 <- substr(h, 1, 8)
+      hash_kept <- TRUE
+    }
     .store_entry_wipe(path)
   }
 
@@ -148,6 +162,7 @@ save_repository <- function(
     energyRt_version = as.character(utils::packageVersion("energyRt")),
     format = format
   ), if (length(ds_entries)) list(datasets = ds_entries),
+     if (hash_kept) list(hash_kept = TRUE),
      .lifecycle_carry(prev)), mf_path)
 
   # the caller keeps a fully-loaded object: restore the referenced payloads
@@ -167,7 +182,7 @@ save_repository <- function(
 
   if (isTRUE(registry)) {
     tryCatch({
-      reg <- load_registry()
+      reg <- .registry_open()
       reg <- add_to_registry(reg, "repository", repo@name,
                           path = .registry_rel_path(path), hash = h)
       save_registry(reg)

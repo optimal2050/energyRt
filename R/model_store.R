@@ -1,7 +1,8 @@
 # =============================================================================#
 # model_store.R — content-addressed model store (storage layout 3, stage S3).
 #
-# `models/<name>/` holds one saved model (hash in the manifest; `store_versioning = "hash"` keeps `<name>@<hash8>` versions): a `model.yml`
+# `models/<name>/` holds one saved model — the folder is the NAME, the
+# content hash lives in the manifest (never in the path): a `model.yml`
 # manifest, the thinned `mod.RData`, and parquet stores for the big data
 # slots (weather/demand), written with the same obj2disk machinery as
 # scenarios. The full content hash identifies a model version; scenarios can
@@ -105,7 +106,7 @@ object_hash <- function(x) {
 #'
 #' @description
 #' `save_model()` writes a model into the content-addressed store
-#' `<models_path>/<name>/` (see [get_models_path()]; with `set_store_versioning("hash")`, `<name>@<hash8>` versions coexist): a `model.yml`
+#' `<models_path>/<name>/` (see [get_models_path()]): a `model.yml`
 #' manifest, the thinned `mod.RData`, and parquet stores for the large data
 #' slots. Saving the identical content again is a no-op. The model is
 #' registered in the project registry (see [load_registry()]) unless
@@ -136,6 +137,12 @@ object_hash <- function(x) {
 #' @param format storage format for the data slots (as in [save_scenario()]).
 #' @param overwrite logical, rewrite the store entry even when the hash
 #'   matches.
+#' @param rehash logical; `FALSE` keeps the DESTINATION entry's recorded
+#'   hash while writing the changed content — for changes the user declares
+#'   insignificant (a description, a memo). The manifest marks the
+#'   exception (`hash_kept: true`); references then verify against the
+#'   retained hash. With `rehash = FALSE` the hash is a user-managed
+#'   version tag, not a content proof.
 #' @param env environment to assign the model into by name, or `NULL`
 #'   (default) to return it.
 #' @param verbose logical.
@@ -154,6 +161,7 @@ save_model <- function(
     registry = TRUE,
     format = get_arrow_format(),
     overwrite = FALSE,
+    rehash = TRUE,
     verbose = TRUE) {
   stopifnot(is(mod, "model"))
   if (!nzchar(mod@name)) stop("The model must have a non-empty @name")
@@ -174,12 +182,13 @@ save_model <- function(
   h <- model_hash(mod)
   h8 <- substr(h, 1, 8)
   if (is.null(path)) {
-    path <- .store_entry_dir(get_models_path(), mod@name, h)
+    path <- .store_entry_dir(get_models_path(), mod@name, h, type = "model")
   }
   path <- gsub("[\\/]+", "/", path)
 
   mf_path <- fp(path, "model.yml")
   prev <- NULL
+  hash_kept <- FALSE
   if (file.exists(mf_path)) {
     prev <- tryCatch(yaml::read_yaml(mf_path), error = function(e) NULL)
     if (!overwrite && !is.null(prev) && identical(prev$hash, h)) {
@@ -192,8 +201,16 @@ save_model <- function(
       return(invisible(mod))
     }
     .seal_guard(prev, "model", mod@name, "unseal_model")
-    # changed content, default layout: the entry updates IN PLACE — clear
-    # the previous payload, keep the derived-artifact caches beside it
+    # rehash = FALSE: the user declares the change insignificant — write the
+    # new content but KEEP the recorded hash (a version tag, not a content
+    # proof; the manifest marks the exception with `hash_kept`)
+    if (!isTRUE(rehash) && nzchar(prev$hash %||% "")) {
+      h <- prev$hash
+      h8 <- substr(h, 1, 8)
+      hash_kept <- TRUE
+    }
+    # changed content: the entry updates IN PLACE — clear the previous
+    # payload, keep the derived-artifact caches beside it
     .store_entry_wipe(path)
   }
 
@@ -300,6 +317,7 @@ save_model <- function(
     format = format,
     repositories = unname(repo_entries)
   ), if (length(ds_entries)) list(datasets = ds_entries),
+     if (hash_kept) list(hash_kept = TRUE),
      .lifecycle_carry(prev)), mf_path)
   # the returned in-memory object keeps its full repositories and geoscale
   if (!is.null(full_repos)) mod@data <- full_repos
@@ -313,7 +331,7 @@ save_model <- function(
 
   if (isTRUE(registry)) {
     tryCatch({
-      reg <- load_registry()
+      reg <- .registry_open()
       reg <- add_to_registry(reg, "model", mod@name,
                           path = .registry_rel_path(path), hash = h)
       save_registry(reg)
@@ -329,18 +347,16 @@ save_model <- function(
 # then a scan of the store root. Shared by the model and repository stores.
 # Returns the directory or NULL; errors when several versions match and no
 # hash pins one.
-# The folder a store entry lives in. Default (`store_versioning = "none"`):
-# one human-readable folder per NAME, updated in place — the hash stays in
-# the manifest/misc for no-op detection and reference verification, never in
-# the path. `"hash"`: content-addressed <slug>@<hash8>, versions coexist.
-.store_entry_dir <- function(root, name, hash) {
-  slug <- .path_slug(name)
-  d <- if (identical(get_store_versioning(), "hash")) {
-    fp(root, paste0(slug, "@", substr(hash, 1, 8)))
-  } else {
-    fp(root, slug)
-  }
-  gsub("[\\/]+", "/", d)
+# The folder a store entry lives in: one human-readable folder per NAME,
+# updated in place. The content hash stays in the manifest/misc — for no-op
+# detection and reference verification — and never in the path. (Pre-rework
+# `<name>@<hash8>` folders still resolve; they just cannot be newly made.)
+# Basename overridable via the `store_entry` path builder (receives type +
+# name); resolution stays manifest-based, so custom folder names load fine.
+.store_entry_dir <- function(root, name, hash, type = "") {
+  base <- .path_hook("store_entry", function(type, name) .path_slug(name),
+                     type, name)
+  gsub("[\\/]+", "/", fp(root, base))
 }
 
 # In-place update of an entry dir: clear the previous payload but KEEP the
@@ -360,7 +376,7 @@ save_model <- function(
   }
   # 1. registry
   hit <- tryCatch(
-    find_registry(load_registry(), type = reg_type, name = name, hash = hash),
+    find_in_registry(.registry_open(), type = reg_type, name = name, hash = hash),
     error = function(e) NULL)
   if (!is.null(hit) && nrow(hit)) {
     d <- fp(dirname(get_registry_file()), hit$path[1])
@@ -371,8 +387,20 @@ save_model <- function(
   if (!dir.exists(root)) return(NULL)
   dd <- list.dirs(root, recursive = FALSE)
   slug <- .path_slug(name)
-  dd <- dd[basename(dd) == slug | startsWith(basename(dd), paste0(slug, "@"))]
-  dd <- dd[file.exists(fp(dd, manifest))]
+  cand <- dd[basename(dd) == slug |
+               startsWith(basename(dd), paste0(slug, "@"))]
+  cand <- cand[file.exists(fp(cand, manifest))]
+  if (!length(cand)) {
+    # slug miss (custom `store_entry` folder names): match manifests by name
+    dd <- dd[file.exists(fp(dd, manifest))]
+    mf_name <- vapply(dd, function(d) {
+      mf <- tryCatch(yaml::read_yaml(fp(d, manifest)),
+                     error = function(e) NULL)
+      as.character(mf$name %||% "")[1]
+    }, character(1))
+    cand <- dd[mf_name == name]
+  }
+  dd <- cand
   if (!is.null(hash) && nzchar(hash)) {
     mf_hash <- vapply(dd, function(d) {
       mf <- tryCatch(yaml::read_yaml(fp(d, manifest)),
@@ -385,8 +413,8 @@ save_model <- function(
            " is not in the store ('", root, "'): it now holds @",
            paste(substr(mf_hash, 1, 8), collapse = ", @"),
            ". The entry was updated in place; load without hash= for the ",
-           "current version, or use set_store_versioning(\"hash\") to keep ",
-           "versions side by side.")
+           "current version (entries update in place; the hash in the ",
+           "manifest is the version record).")
     }
     dd <- dd[keep]
   }
@@ -493,8 +521,8 @@ load_model <- function(name, hash = NULL, path = NULL, env = NULL,
                   "' @", substr(ref$hash %||% "", 1, 8),
                   "; the store now holds @", substr(cur_h %||% "", 1, 8),
                   " — loading the current version. Results may not ",
-                  "reproduce; re-save the model, or keep versions with ",
-                  "set_store_versioning(\"hash\").", call. = FALSE)
+                  "reproduce; re-save the model to adopt it, or seal_repository() the ",
+                  "inputs of finished work.", call. = FALSE)
         }
       }
     }

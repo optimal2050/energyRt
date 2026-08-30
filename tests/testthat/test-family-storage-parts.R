@@ -200,3 +200,58 @@ test_that("family storage-parts: a weather window restricts when the storage may
   expect_equal(as.character(inp$timeslice), "s1")
   expect_equal(.fork_objective(scen), 20, tolerance = 1e-6)  # forced to s1 at cost 2
 })
+
+
+# @covers pStorageInpAfUp pStorageOutAfUp depth=S backends=glpk forks=sampled
+test_that("KNOWN BUG: out-part af rows are infeasible on a year_fraction < 1 calendar", {
+  skip_if_no_solver()
+  # Found 2026-08-28 building the EV training chapter (one-day calendar,
+  # year_fraction = 1/365): ANY `out.af.*` row -- timeslice-less or hourly --
+  # makes the storage's discharge infeasible, while the identical model with
+  # `inp.af.*` rows (or no af at all, or year_fraction = 1) solves. The two
+  # pins below record BOTH sides; when the out-part af path is fixed, the
+  # second expectation flips and this test names the intended objective.
+  hrs <- sprintf("h%02d", 0:23)
+  cal1d <- newCalendar(
+    timetable = make_timetable(struct = list(ANNUAL = "ANNUAL", HOUR = hrs),
+                               year_fraction = 1 / 365),
+    year_fraction = 1 / 365, name = "sp_one_day")
+  price <- ifelse(0:23 < 6, 0.05, ifelse(0:23 >= 17 & 0:23 <= 21, 0.40, 0.15))
+  mk <- function(af) {
+    stg <- newStorage(name = "CAR", input = list(comm = "ELC"),
+      storage = list(comm = "BAT"), output = list(comm = "KM"),
+      seff = data.frame(inpeff = 0.90, outeff = 6), af = af,
+      capacity = list(inp.cap.up = 7, stg.cap.up = 60, out.cap.up = 120),
+      duration = data.frame(duration.lo = 0, duration.up = 1e6),
+      vintage = data.frame(olife = 10L))
+    newModel(name = "sp_af", region = "R1", horizon = newHorizon(2020),
+      discount = 0, calendar = cal1d,
+      repo = newRepository("r",
+        newCommodity(name = "ELC", timeframe = "HOUR"),
+        newCommodity(name = "BAT", timeframe = "HOUR"),
+        newCommodity(name = "KM",  timeframe = "HOUR"),
+        newSupply(name = "GRID", commodity = "ELC",
+                  supply = data.frame(timeslice = hrs, cost = price)),
+        stg,
+        newDemand(name = "TRIPS", commodity = "KM",
+                  demand = data.frame(timeslice = c("h08", "h18"),
+                                      demand = 30))))
+  }
+  slv <- function(mod, tag) tryCatch(
+    suppressMessages(suppressWarnings(
+      interpolate_model(mod, name = tag, overwrite = TRUE) |> .fork_solve(solver_options$glpk))),
+    error = function(e) NULL)
+
+  # inp-part af per hour: works, and prices the commute exactly
+  s_in <- slv(mk(data.frame(timeslice = hrs, inp.af.up = 1)), "sp_af_inp")
+  expect_true(!is.null(s_in) && isTRUE(s_in@status$solved))
+  d <- as.data.frame(get_data_slot(s_in@modOut@variables[["vObjective"]]))
+  expect_equal(sum(d$value), 202.7778, tolerance = 1e-4)
+
+  # out-part af: the SAME rating expressed on the discharge side -- currently
+  # infeasible (the bug). 120 km/h x share never binds, so a fix must land on
+  # the identical 202.7778 objective.
+  s_out <- slv(mk(data.frame(timeslice = hrs, out.af.up = 1)), "sp_af_out")
+  expect_false(!is.null(s_out) && isTRUE(s_out@status$solved),
+               label = "KNOWN BUG pin: flip to expect_true + objective when fixed")
+})

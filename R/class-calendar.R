@@ -261,7 +261,10 @@ newCalendar <- function(
   arg$name <- name
   arg$desc <- desc
   arg$misc <- misc
-  if (!is.null(arg$name)) obj@name <- arg$name
+  if (!is.null(arg$name)) {
+    .assert_object_name(arg$name, what = "calendar")
+    obj@name <- arg$name
+  }
   if (!is.null(arg$desc)) obj@desc <- arg$desc
   if (!is.null(arg$misc)) obj@misc <- arg$misc
   if (!is.null(arg$default_timeframe)) {

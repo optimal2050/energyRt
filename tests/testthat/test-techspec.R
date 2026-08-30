@@ -40,7 +40,7 @@ test_that("partial vintage coverage is reported, never auto-filled", {
 })
 
 test_that("unknown sections/columns and undeclared vintages are errors", {
-  spec <- read_procspec(.ex("ldv_bev.yml"))
+  spec <- read_process_spec(.ex("ldv_bev.yml"))
 
   bad1 <- spec; bad1$mystery <- list()
   expect_true(any(grepl("unknown section",
@@ -59,7 +59,7 @@ test_that("unknown sections/columns and undeclared vintages are errors", {
 })
 
 test_that("efficiency commodities must be declared ports", {
-  spec <- read_procspec(.ex("coal_power.yml"))
+  spec <- read_process_spec(.ex("coal_power.yml"))
   spec$efficiency[[1]]$comm <- "GHOST"
   iss <- process_spec_issues(spec)
   expect_true(any(iss$severity == "error" &
@@ -67,7 +67,7 @@ test_that("efficiency commodities must be declared ports", {
 })
 
 test_that("end-before-start vintage windows are errors", {
-  spec <- read_procspec(.ex("ldv_bev.yml"))
+  spec <- read_process_spec(.ex("ldv_bev.yml"))
   spec$vintages[[2]]$end <- 2029   # start 2030
   iss <- process_spec_issues(spec)
   expect_true(any(iss$severity == "error" &
@@ -100,7 +100,7 @@ test_that("the designer app constructs (shiny+DT available)", {
 })
 
 test_that("clusters section maps to the cluster slot", {
-  spec <- read_procspec(.ex("coal_power.yml"))
+  spec <- read_process_spec(.ex("coal_power.yml"))
   spec$clusters <- list(list(cluster = "CL1", desc = "class 1", order = 1),
                         list(cluster = "CL2", desc = "class 2", order = 2))
   tech <- process_from_spec(spec)
@@ -112,7 +112,7 @@ test_that("clusters section maps to the cluster slot", {
 })
 
 test_that("image scalar round-trips through misc", {
-  spec <- read_procspec(.ex("coal_power.yml"))
+  spec <- read_process_spec(.ex("coal_power.yml"))
   spec$image <- "https://example.org/coal.png"
   tech <- process_from_spec(spec)
   expect_equal(tech@misc$image, "https://example.org/coal.png")
@@ -144,7 +144,7 @@ test_that("report(template = 'summary') renders the one-pager", {
 })
 
 test_that("afs section maps to the afs slot", {
-  spec <- read_procspec(.ex("coal_power.yml"))
+  spec <- read_process_spec(.ex("coal_power.yml"))
   spec$afs <- list(list(timeslice = "ANNUAL", afs.up = 0.8))
   tech <- process_from_spec(spec)
   expect_equal(tech@afs$afs.up, 0.8)
@@ -152,7 +152,7 @@ test_that("afs section maps to the afs slot", {
 })
 
 test_that("weather section and scalar flags round-trip", {
-  spec <- read_procspec(.ex("coal_power.yml"))
+  spec <- read_process_spec(.ex("coal_power.yml"))
   spec$weather <- list(list(weather = "WSOL", waf.up = 0.9),
                        list(weather = "WSOL", comm = "ELC", wafc.up = 1))
   spec$optimizeRetirement <- TRUE
@@ -168,13 +168,13 @@ test_that("weather section and scalar flags round-trip", {
   expect_true(s2$optimizeRetirement)
   expect_equal(s2$region, c("R1", "R2"))
   # defaults are not exported
-  s0 <- process_to_spec(process_from_spec(read_procspec(.ex("coal_power.yml"))))
+  s0 <- process_to_spec(process_from_spec(read_process_spec(.ex("coal_power.yml"))))
   expect_null(s0$optimizeRetirement)
   expect_null(s0$fullYear)
 })
 
 test_that("report template scalar round-trips through misc", {
-  spec <- read_procspec(.ex("coal_power.yml"))
+  spec <- read_process_spec(.ex("coal_power.yml"))
   spec$report <- "summary"
   tech <- process_from_spec(spec)
   expect_equal(tech@misc$report, "summary")
@@ -196,7 +196,7 @@ test_that("JSON is an equivalent techspec container", {
     t_yml <- suppressWarnings(process_from_spec(.ex(ex)))
     jf <- tempfile(fileext = ".json")
     process_to_spec(t_yml, file = jf)
-    spec_json <- read_procspec(jf)
+    spec_json <- read_process_spec(jf)
     # identical validation report
     expect_identical(process_spec_issues(spec_json),
                      process_spec_issues(process_to_spec(t_yml)), info = ex)
@@ -213,12 +213,12 @@ test_that("JSON is an equivalent techspec container", {
 
 test_that("JSON round-trip preserves full numeric precision", {
   skip_if_not_installed("jsonlite")
-  spec <- read_procspec(.ex("coal_power.yml"))
+  spec <- read_process_spec(.ex("coal_power.yml"))
   spec$efficiency[[1]]$cinp2use <- 1798.61111112345
   t1 <- process_from_spec(spec)
   jf <- tempfile(fileext = ".json")
   process_to_spec(t1, file = jf)
-  t2 <- process_from_spec(read_procspec(jf))
+  t2 <- process_from_spec(read_process_spec(jf))
   v <- t2@ceff$cinp2use[!is.na(t2@ceff$cinp2use)]
   expect_identical(v[1], 1798.61111112345)
   unlink(jf)

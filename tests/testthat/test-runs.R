@@ -169,9 +169,9 @@ test_that("save_scenario writes the manifest (default run), per-run modOut, regi
 
   # registry rows: the scenario and its run (flat run id)
   reg <- load_registry(reg_file)
-  expect_identical(find_registry(reg, type = "scenario", name = "rnsave") |>
+  expect_identical(find_in_registry(reg, type = "scenario", name = "rnsave") |>
                      nrow(), 1L)
-  run_rows <- find_registry(reg, type = "run", parent = "rnsave")
+  run_rows <- find_in_registry(reg, type = "run", parent = "rnsave")
   expect_identical(nrow(run_rows), 1L)
   expect_identical(run_rows$name, saved@misc$run)
 

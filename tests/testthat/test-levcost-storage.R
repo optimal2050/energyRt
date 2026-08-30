@@ -290,7 +290,7 @@ test_that("a name that is not a priceable process is reported, not crashed", {
 # ── vintage / cluster variants ───────────────────────────────────────────────
 # A vintaged store fans out to one priced cell per (vintage, cluster), reusing
 # the same `levcost_variants` container the technology path returns -- so
-# `levcost_by_variant()` and `autoplot()` work on all three classes alike.
+# `levcost(by_variant = )` and `autoplot()` work on all three classes alike.
 
 .lcs_vintaged <- function() {
   newStorage(
@@ -314,7 +314,7 @@ test_that("a vintaged storage fans out to one levcost per cell", {
   expect_s3_class(x, "levcost_list")
   expect_length(x, 2L)
 
-  npv <- levcost_by_variant(x, "npv")
+  npv <- levcost(x, by_variant = "npv")
   expect_equal(nrow(npv), 2L)
   expect_setequal(npv$vintage, c("v2020", "v2030"))
   expect_equal(unique(npv$tech), "STG_BTR")
@@ -325,7 +325,7 @@ test_that("a vintaged storage fans out to one levcost per cell", {
 
   for (what in c("levcost", "components"))
     expect_true(all(c("tech", "variant", "vintage", "cluster") %in%
-                      names(levcost_by_variant(x, what))), info = what)
+                      names(levcost(x, by_variant = what))), info = what)
 })
 
 test_that("each cell equals pricing that cell on its own", {
@@ -368,5 +368,7 @@ test_that("an un-vintaged storage still returns a plain levcost", {
                verbose = FALSE)
   expect_s3_class(x, "levcost")
   expect_false(inherits(x, "levcost_variants"))
-  expect_error(levcost_by_variant(x), "levcost_variants")
+  # no variants to stack -- the error says why (levcost_by_variant() is the
+  # deprecated spelling of `by_variant =`)
+  expect_error(levcost(x, by_variant = TRUE), "vintages or clusters")
 })

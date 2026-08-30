@@ -44,7 +44,7 @@
 #' `tech_designer()` is the deprecated former name.
 #'
 #' @param spec Optional process spec to open — a path to a `.yml` file or
-#'   a spec list (see [read_procspec()]).
+#'   a spec list (see [read_process_spec()]).
 #' @param dir Optional directory of process-spec `.yml` files (e.g. specs
 #'   exported from a workbook import) added to the app's template gallery
 #'   alongside the built-in examples.
@@ -78,7 +78,7 @@ process_designer <- function(spec = NULL, dir = NULL, launch.browser = NULL,
     stop("designer app not found; reinstall energyRt", call. = FALSE)
   }
   if (!is.null(spec)) {
-    old <- options(energyRt.designer.spec = read_procspec(spec))
+    old <- options(energyRt.designer.spec = read_process_spec(spec))
     on.exit(options(old), add = TRUE)
   }
   if (!is.null(dir)) {
@@ -96,11 +96,3 @@ process_designer <- function(spec = NULL, dir = NULL, launch.browser = NULL,
   }
 }
 
-#' @rdname process_designer
-#' @export
-tech_designer <- function(spec = NULL, dir = NULL, launch.browser = NULL,
-                          ...) {
-  .Deprecated("process_designer")
-  process_designer(spec = spec, dir = dir, launch.browser = launch.browser,
-                   ...)
-}

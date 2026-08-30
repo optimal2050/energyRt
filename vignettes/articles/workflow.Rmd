@@ -118,7 +118,8 @@ manifests, the registry, runs, and variants; this section is the quick tour.)
 
 The scenarios directory is an option — read it with `get_scenarios_path()`, set it
 with `set_scenarios_path()` (default `"scenarios/"`). Each scenario gets its own
-folder, named automatically as `name_model_calendar_horizon` (duplicate parts
+folder, named automatically as `name-model-calendar-horizon` (parts joined
+by dashes, which valid names cannot contain; duplicate parts
 are dropped, so a scenario and model sharing a name appear once):
 
 ```{r dirname}
@@ -131,7 +132,7 @@ structure — a thin `scen.RData` shell, a `scenario.yml` manifest, each large
 data slot as a dataset, and one folder per solver run:
 
 ```
-<scenarios-path>/<name_model_calendar_horizon>/
+<scenarios-path>/<name-model-calendar-horizon>/
 ├── scenario.yml        # manifest: model ref/hash, calendar, horizon,
 │                       #   `default:` — the default run (user-changeable)
 ├── scen.RData          # thinned S4 scenario shell
@@ -206,7 +207,7 @@ its object in the project **registry** — a single CSV (default
 indexing saved models, repositories, scenarios, and runs. Repositories shared
 by several models can be stored once with `save_repository()` and referenced
 by each model (`save_model(embed_repos = )`), just as scenarios can reference
-a stored model. `load_registry()` reads it, `find_registry()` filters it (by type,
+a stored model. `load_registry()` reads it, `find_in_registry()` filters it (by type,
 name, or model hash), and `refresh_registry()` rebuilds it by rescanning the
 `scenarios/` and `models/` stores — the on-disk manifests are the source of
 truth, so the registry can always be reconstructed.

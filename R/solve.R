@@ -8,54 +8,91 @@
 # =============================================================================#
 
 # ---- "smart" path helpers ----------------------------------------------------
-# Build a filesystem-safe slug from parts, dropping empty/NA and case-insensitive
+
+# Consult a user path-builder hook (see ?path_builders) or run the default.
+# A hook's return is VALIDATED — one non-empty, filesystem-safe string —
+# and an invalid return errors naming the contract: a broken hook must be
+# heard, never silently papered over.
+.path_hook <- function(kind, default, ...) {
+  fn <- tryCatch(get_path_builder(kind), error = function(e) NULL)
+  if (!is.function(fn)) return(default(...))
+  out <- fn(...)
+  if (!is.character(out) || length(out) != 1L || is.na(out) ||
+      !nzchar(out) || grepl("[/\\\\]", out) ||
+      grepl("[^A-Za-z0-9._-]", out)) {
+    stop("The `", kind, "` path builder must return one non-empty, ",
+         "filesystem-safe string (letters, digits, '.', '_', '-'; no path ",
+         "separators); got ",
+         if (is.character(out) && length(out) == 1L && !is.na(out))
+           paste0("'", out, "'") else paste0("<", class(out)[1], ">"),
+         ". See ?path_builders.", call. = FALSE)
+  }
+  out
+}
+
+# Build a filesystem-safe slug from parts, dropping empty/NA and
 # duplicate components (e.g. when the scenario and model share a name).
-.path_slug <- function(..., sep = "_") {
-  parts <- unlist(list(...), use.names = FALSE)
-  parts <- parts[!is.na(parts)]
-  parts <- trimws(as.character(parts))
-  parts <- parts[nzchar(parts)]
-  parts <- gsub("[^A-Za-z0-9]+", "-", parts) # path-safe
-  parts <- gsub("(^-+)|(-+$)", "", parts)
-  parts <- parts[nzchar(parts)]
-  parts <- parts[!duplicated(parts)] # drop exact repeats (e.g. scenario==model)
-  paste(parts, collapse = sep)
+# Parts are joined by "-", which VALID OBJECT NAMES cannot contain (see
+# check_name(): letters, digits, underscore) — so the separator is
+# unambiguous and underscores inside names pass through VERBATIM
+# ("s4_h24" stays "s4_h24"). Unsafe characters inside a part collapse to
+# "_", never to the separator. Overridable via the `slug` path builder
+# (which receives the RAW parts and does its own sanitizing).
+.path_slug <- function(..., sep = "-") {
+  raw <- unlist(list(...), use.names = FALSE)
+  raw <- trimws(as.character(raw[!is.na(raw)]))
+  raw <- raw[nzchar(raw)]
+  if (!length(raw)) return("") # nothing to slug; callers have fallbacks
+  .path_hook("slug", function(parts) {
+    parts <- gsub("[^A-Za-z0-9_]+", "_", parts) # path-safe, "_" preserved
+    parts <- gsub("(^-+)|(-+$)", "", parts)
+    parts <- parts[nzchar(parts)]
+    parts <- parts[!duplicated(parts)] # drop repeats (e.g. scenario==model)
+    paste(parts, collapse = sep)
+  }, raw)
 }
 
 # Smart solver-directory name: {backend}_{solver}_{method}. Prefers an explicit
 # `solver$name` (curated, e.g. "julia_highs"); otherwise derives from the
 # backend (solver$backend or solver$lang), solver, and method (solver$method or
-# inferred from a "barrier"/"simplex" hint).
+# inferred from a "barrier"/"simplex" hint). Overridable via the `run_label`
+# path builder (receives the solver spec list, possibly NULL).
 .solver_dir_name <- function(solver) {
-  if (is.null(solver)) {
-    return("")
-  }
-  if (!is.null(solver$name) && nzchar(solver$name)) {
-    return(solver$name)
-  }
-  method <- solver$method
-  if (is.null(method) || !nzchar(method)) {
-    hint <- paste(c(solver$name, names(solver)), collapse = " ")
-    method <- if (grepl("barrier", hint, ignore.case = TRUE)) {
-      "barrier"
-    } else if (grepl("simplex", hint, ignore.case = TRUE)) {
-      "simplex"
-    } else {
-      NULL
+  .path_hook("run_label", function(solver) {
+    if (is.null(solver)) {
+      return("")
     }
-  }
-  backend <- solver$backend
-  if (is.null(backend) || !nzchar(backend)) backend <- solver$lang
-  nm <- .path_slug(backend, solver$solver, method)
-  if (!nzchar(nm)) "solver" else nm
+    if (!is.null(solver$name) && nzchar(solver$name)) {
+      return(solver$name)
+    }
+    method <- solver$method
+    if (is.null(method) || !nzchar(method)) {
+      hint <- paste(c(solver$name, names(solver)), collapse = " ")
+      method <- if (grepl("barrier", hint, ignore.case = TRUE)) {
+        "barrier"
+      } else if (grepl("simplex", hint, ignore.case = TRUE)) {
+        "simplex"
+      } else {
+        NULL
+      }
+    }
+    backend <- solver$backend
+    if (is.null(backend) || !nzchar(backend)) backend <- solver$lang
+    nm <- .path_slug(backend, solver$solver, method)
+    if (!nzchar(nm)) "solver" else nm
+  }, solver)
 }
 
-# Smart scenario-folder name: {scenario}_{model}_{calendar}_{horizon}.
-# Empty and duplicate components are dropped.
+# Smart scenario-folder name: {scenario}-{model}-{calendar}-{horizon}.
+# Empty and duplicate components are dropped. Overridable via the
+# `scenario_dir` path builder.
 .scenario_dir_name <- function(scenario_name, model_name = "",
                                calendar_name = "", horizon_name = "") {
-  nm <- .path_slug(scenario_name, model_name, calendar_name, horizon_name)
-  if (!nzchar(nm)) as.character(scenario_name)[1] else nm
+  .path_hook("scenario_dir", function(scenario_name, model_name,
+                                      calendar_name, horizon_name) {
+    nm <- .path_slug(scenario_name, model_name, calendar_name, horizon_name)
+    if (!nzchar(nm)) as.character(scenario_name)[1] else nm
+  }, scenario_name, model_name, calendar_name, horizon_name)
 }
 
 # Map the deprecated tmp.* argument names onto the current vocabulary.
@@ -783,3 +820,26 @@ solve_scenario <- function(obj, name = obj@name, solver = NULL, solver.dir = NUL
             error = function(e) NA_real_))
   scen
 }
+
+# ---- S4 method layer ---------------------------------------------------------
+# The `solve` generic''s methods, dispatching onto the canonical
+# solve_model() / solve_scenario(). These are LIVE API and live beside the
+# implementations: they used to sit in R/legacy_api_shims.R, which is deleted
+# wholesale at the deprecation sunset -- taking these with it.
+
+.solve_model_method    <- function(a, b, ...) solve_model(a, ...)
+.solve_scenario_method <- function(a, b, ...) solve_scenario(a, ...)
+
+setMethod("solve", signature(a = "model", b = "character"), .solve_model_method)
+setMethod("solve", signature(a = "model", b = "missing"),   .solve_model_method)
+setMethod("solve", signature(a = "scenario", b = "character"),
+          .solve_scenario_method)
+setMethod("solve", signature(a = "scenario", b = "missing"),
+          .solve_scenario_method)
+setMethod("solve", signature(a = "missing", b = "missing"), function(...) {
+  arg <- list(...)
+  if (is.null(arg$obj)) return(do.call(NextMethod, arg))
+  if (is(arg$obj, "scenario")) return(do.call(solve_scenario, arg))
+  if (is(arg$obj, "model"))    return(do.call(solve_model, arg))
+  NextMethod(arg)
+})

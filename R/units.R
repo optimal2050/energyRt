@@ -448,7 +448,4 @@ print.energyRtUnits <- function(x, ...) {
   invisible(x)
 }
 
-# ── snake_case alias ──────────────────────────────────────────────────────────
-#' @rdname getUnits
-#' @export
-get_units <- function(object, ...) getUnits(object, ...)
+# get_units() is deprecated -> R/legacy_api_shims.R

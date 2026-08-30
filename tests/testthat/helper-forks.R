@@ -49,7 +49,12 @@ fork_interp_cases <- function() {
   # previous run (matters for the ondisk case, which claims a directory)
   args$overwrite <- TRUE
   do.call(interpolate_model,
-          c(list(mod, name = paste0("ff_", family, "_", case_name)), args))
+          # scenario names are solver identifiers: letters/digits/underscore
+          # only (.assert_object_name), so a family named "import-export"
+          # cannot go in verbatim
+          c(list(mod, name = gsub("[^A-Za-z0-9_]+", "_",
+                                  paste0("ff_", family, "_", case_name))),
+            args))
 }
 
 .fork_solve <- function(scen, solver) {

@@ -40,7 +40,7 @@ header-includes:
   - \usepackage{booktabs}
   - \usepackage{float}
   - \pagenumbering{gobble}
-  - \definecolor{ert_blue}{RGB}{31, 73, 125}
+  - \definecolor{en_blue}{RGB}{31, 73, 125}
 ---
 
 ```{r en-setup, include=FALSE}
@@ -74,7 +74,7 @@ if (is_html) {
   cat("<style>
 body { font-family: Arial, sans-serif; font-size: 13px; margin: 20px; }
 h1   { font-size: 18px; color: #1f497d; margin-bottom: 4px; }
-.ert-gray { color: #808080; }
+.en-gray { color: #808080; }
 table.kable-table { border-collapse: collapse; font-size: 12px; }
 table.kable-table th { background: #1f497d; color: white;
   padding: 3px 8px; }
@@ -88,7 +88,7 @@ table.kable-table td { padding: 2px 8px;
 if (is_html) {
   cat("<h1>", html_esc(params$name), "</h1>\n", sep = "")
   if (nzchar(params$desc)) {
-    cat("<p class='ert-gray'>", html_esc(params$desc), "</p>\n", sep = "")
+    cat("<p class='en-gray'>", html_esc(params$desc), "</p>\n", sep = "")
   }
 } else {
   cat("# ", params$name, "\n\n", sep = "")

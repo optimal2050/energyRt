@@ -70,6 +70,7 @@ newModel <- function(name = "", desc = "", ...) {
   #                    ignore_args = unique(c(config_slots, horizon_slots)),
   #                    ignore_classes = "repository", ...)
   obj <- new("model")
+  .assert_object_name(name, what = "model")
   obj@name <- name
   obj@desc <- desc
   arg <- list(...)

@@ -69,7 +69,7 @@ test_that("save_model / load_model round-trips; identical content is a no-op", {
 
   # registry row
   reg <- load_registry()
-  expect_identical(nrow(find_registry(reg, type = "model", name = "msm")), 1L)
+  expect_identical(nrow(find_in_registry(reg, type = "model", name = "msm")), 1L)
 
   # re-saving identical content is a no-op with a message
   expect_message(save_model(mod), "already in the store")

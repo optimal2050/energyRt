@@ -112,6 +112,7 @@
   # a sealed scenario accepts no new recorded runs (see ?seal_scenario)
   .scenario_seal_guard(scen)
   ry <- fp(run_dir, "run.yml")
+  prev <- NULL
   if (file.exists(ry)) {
     prev <- tryCatch(yaml::read_yaml(ry), error = function(e) NULL)
     if (!is.null(prev) && identical(prev$status, "running")) {
@@ -144,7 +145,9 @@
     modinp = if (nzchar(arg$run.variant %||% "")) "own" else "shared",
     energyRt_version = as.character(utils::packageVersion("energyRt")),
     hostname = unname(Sys.info()["nodename"]),
-    user = unname(Sys.info()["user"])
+    user = unname(Sys.info()["user"]),
+    saved = prev$saved %||% .registry_now(),
+    updated = .registry_now()
   )
   yaml::write_yaml(rec, ry)
   invisible(ry)
@@ -179,6 +182,12 @@
     } else NA_real_
   }, error = function(e) NA_real_)
   rec$objective <- obj
+  # resource footprint of the solve (R-heap now + high-water mark; see
+  # .en_mem in R/log.R) and record bookkeeping
+  m <- .en_mem()
+  rec$mem_mb <- m$mem_mb
+  rec$peak_mb <- m$peak_mb
+  rec$updated <- .registry_now()
   yaml::write_yaml(rec, ry)
   invisible(ry)
 }
@@ -205,7 +214,8 @@
 #' @param force logical, allow dropping the active run.
 #'
 #' @return `scenario_runs()` a tibble (run, variant, solve, status,
-#'   solver_name, lang, started, duration_sec, objective, modinp, active);
+#'   solver_name, lang, started, duration_sec, peak_mb, updated,
+#'   objective, modinp, active);
 #'   `scenario_run_info()` a named list; `drop_scenario_run()` the dropped
 #'   directory, invisibly.
 #'
@@ -234,6 +244,8 @@ scenario_runs <- function(scen) {
       lang = rec$lang %||% "",
       started = rec$started %||% "",
       duration_sec = as.numeric(rec$duration_sec %||% NA_real_),
+      peak_mb = as.numeric(rec$peak_mb %||% NA_real_),
+      updated = rec$updated %||% "",
       objective = as.numeric(rec$objective %||% NA_real_),
       modinp = rec$modinp %||% "shared",
       active = rd$variant[i] == active_variant && rd$solve[i] == active_solve
@@ -260,7 +272,8 @@ scenario_runs <- function(scen) {
         run = basename(sd), variant = "", solve = basename(sd),
         status = "legacy",
         solver_name = solver_name %||% "", lang = "", started = "",
-        duration_sec = NA_real_, objective = NA_real_, modinp = "shared",
+        duration_sec = NA_real_, peak_mb = NA_real_, updated = "",
+        objective = NA_real_, modinp = "shared",
         active = identical(gsub("[\\/]+", "/", sd), active_dir)
       )
     }
@@ -271,6 +284,7 @@ scenario_runs <- function(scen) {
       run = character(0), variant = character(0), solve = character(0),
       status = character(0), solver_name = character(0), lang = character(0),
       started = character(0), duration_sec = numeric(0),
+      peak_mb = numeric(0), updated = character(0),
       objective = numeric(0), modinp = character(0), active = logical(0)
     ))
   }
@@ -406,40 +420,76 @@ drop_scenario_run <- function(scen, run, force = FALSE) {
   invisible(mf_path)
 }
 
-# Swap the in-memory problem (settings + modInp) to `variant` ("" = base),
-# reading the swap file written at save time. Errors when the target problem
-# was never saved.
+# Swap the in-memory problem (settings + modInp) to `variant` ("" = base).
+# Variants read their runs/<v>/variant.RData cartridge; the BASE problem
+# lives in scen.RData itself (its one home — problem.RData is retired; a
+# legacy problem.RData is still honored as fallback). Errors when the
+# target problem was never saved.
 .variant_swap <- function(scen, variant) {
   if (identical(variant, .run_variant(scen))) return(scen)
-  swap_file <- if (nzchar(variant)) {
-    fp(scen@path, "runs", variant, "variant.RData")
+  vdata <- NULL
+  if (nzchar(variant)) {
+    swap_file <- fp(scen@path, "runs", variant, "variant.RData")
+    if (file.exists(swap_file)) {
+      e <- new.env(parent = emptyenv())
+      nm <- load(swap_file, envir = e)
+      vdata <- get(nm[1], envir = e)
+    }
   } else {
-    fp(scen@path, "problem.RData")
+    shell_file <- fp(scen@path, "scen.RData")
+    if (file.exists(shell_file)) {
+      e <- new.env(parent = emptyenv())
+      nm <- load(shell_file, envir = e)
+      sh <- get(nm[1], envir = e)
+      # a LEGACY shell saved while a variant was active (old semantics)
+      # carries that variant's problem, not the base's — skip to the
+      # problem.RData fallback in that case
+      sh_variant <- sh@misc[["variant"]] %||% ""
+      if (is(sh, "scenario") && !isFALSE(sh@misc$has_base) &&
+          !nzchar(sh_variant) &&
+          length(sh@modInp@parameters)) {
+        vdata <- list(settings = sh@settings,
+                      sourceCode_default =
+                        sh@misc$sourceCode_default %||% character(0),
+                      modInp = sh@modInp)
+      }
+    }
+    if (is.null(vdata)) {
+      # pre-rework folders kept the base cartridge in problem.RData
+      legacy <- fp(scen@path, "problem.RData")
+      if (file.exists(legacy)) {
+        e <- new.env(parent = emptyenv())
+        nm <- load(legacy, envir = e)
+        vdata <- get(nm[1], envir = e)
+      }
+    }
   }
-  if (!file.exists(swap_file)) {
+  if (is.null(vdata)) {
     stop("The ", if (nzchar(variant)) paste0("variant '", variant, "'") else
            "base problem", " of scenario '", scen@name, "' has no saved ",
-         "problem data (", swap_file, ").\n",
+         "problem data.\n",
          "  Save the scenario while that problem is active ",
          "(save_scenario()), then switch.")
   }
-  e <- new.env(parent = emptyenv())
-  nm <- load(swap_file, envir = e)
-  vdata <- get(nm[1], envir = e)
   stopifnot(is.list(vdata), !is.null(vdata$modInp), !is.null(vdata$settings))
-  scen@settings <- .settings_restore(vdata$settings,
-                                     vdata$sourceCode_default %||%
-                                       character(0))
+  # the stored settings may carry dataset refs (thinned geoscale) — a live
+  # object never holds a stub
+  scen@settings <- .resolve_dataset_refs(
+    .settings_restore(vdata$settings,
+                      vdata$sourceCode_default %||% character(0)),
+    verbose = FALSE)
   scen@misc$variant <- if (nzchar(variant)) variant else NULL
   scen@modInp <- .upgrade_modInp(
     .modinp_rebase(vdata$modInp, .problem_modinp_root(scen)))
   scen
 }
 
-# Write the swap file for the ACTIVE problem (called by save_scenario after
-# the modInp store is on disk; `mi` is the thinned modInp).
+# Write the ACTIVE problem's cartridge — VARIANTS only (called by
+# save_scenario after the modInp store is on disk; `mi` is the thinned
+# modInp). The base problem needs no cartridge: scen.RData is its home.
 .write_problem_swap <- function(scen, mi) {
   v <- .run_variant(scen)
+  if (!nzchar(v)) return(invisible(NULL))
   thin <- .settings_thin(scen@settings)
   # save_scenario may already have thinned the sourceCode before this runs —
   # the swap must remember EVERY dropped block to restore on switch
@@ -448,14 +498,10 @@ drop_scenario_run <- function(scen, run, force = FALSE) {
   vdata <- list(settings = thin$settings,
                 sourceCode_default = dropped,
                 modInp = mi)
-  if (nzchar(v)) {
-    vdir <- fp(scen@path, "runs", v)
-    dir.create(vdir, recursive = TRUE, showWarnings = FALSE)
-    save(vdata, file = fp(vdir, "variant.RData"))
-    .write_variant_manifest(scen, vdir)
-  } else {
-    save(vdata, file = fp(scen@path, "problem.RData"))
-  }
+  vdir <- fp(scen@path, "runs", v)
+  dir.create(vdir, recursive = TRUE, showWarnings = FALSE)
+  save(vdata, file = fp(vdir, "variant.RData"))
+  .write_variant_manifest(scen, vdir)
   invisible(NULL)
 }
 
@@ -517,15 +563,18 @@ drop_scenario_run <- function(scen, run, force = FALSE) {
 # Registry trouble must never fail a save: warn and continue.
 .registry_record_scenario <- function(scen) {
   tryCatch({
-    reg <- load_registry()
+    reg <- .registry_open()
     rel <- .registry_rel_path(scen@path)
     reg <- add_to_registry(reg, "scenario", scen@name, path = rel)
     rd <- .run_dirs(scen)
     for (i in which(rd$has_record)) {
-      run_name <- .run_id(rd$variant[i], rd$solve[i])
-      reg <- add_to_registry(reg, "run", run_name,
-                          path = fp(rel, "runs", run_name),
-                          parent = scen@name)
+      # plain solve label in `name`, the problem in `variant` — the
+      # addressing id "<variant>/<solve>" is assembled by .run_id(), never
+      # stored as a compound name
+      reg <- add_to_registry(reg, "run", rd$solve[i],
+                          path = fp(rel, "runs",
+                                    .run_id(rd$variant[i], rd$solve[i])),
+                          parent = scen@name, variant = rd$variant[i])
     }
     save_registry(reg)
   }, error = function(e) {

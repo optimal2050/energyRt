@@ -56,7 +56,7 @@ horizon_windows <- function(horizon, step = 1L, overlap = 0L) {
     rows <- iv[c(idx_d, idx_la), , drop = FALSE]
     h <- newHorizon(intervals = rows,
                     force_BY_interval_to_1_year = FALSE,
-                    name = sprintf("w%02d-%d", k, iv$mid[idx_d[1]]))
+                    name = sprintf("w%02d_%d", k, iv$mid[idx_d[1]]))
     out[[k]] <- list(horizon = h,
                      decided = as.integer(iv$mid[idx_d]),
                      lookahead = as.integer(iv$mid[idx_la]))
@@ -129,7 +129,7 @@ horizon_windows <- function(horizon, step = 1L, overlap = 0L) {
 #' a globally discounted total cost over the decided years.
 #'
 #' @param mod a model.
-#' @param name character, sequence name (default `"<model>-myopic"`); names
+#' @param name character, sequence name (default `"<model>_myopic"`); names
 #'   the scenario (or the per-step scenario prefix).
 #' @param ... forwarded to [interpolate_model()] for every step (settings /
 #'   calendar / config overrides).
@@ -167,7 +167,7 @@ solve_myopic <- function(mod, name = NULL, ...,
   stopifnot(is(mod, "model"))
   store <- match.arg(store)
   on_error <- match.arg(on_error)
-  name <- name %||% paste0(mod@name, "-myopic")
+  name <- name %||% paste0(mod@name, "_myopic")
   horizon <- horizon %||% tryCatch(mod@config@horizon, error = function(e) NULL)
   if (is.null(horizon) || nrow(horizon@intervals) == 0) {
     stop("No horizon: pass `horizon =` or give the model one.")

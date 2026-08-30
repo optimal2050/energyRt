@@ -761,14 +761,14 @@ server <- function(input, output, session) {
   }
   observeEvent(input$load_template, {
     s <- if (nzchar(input$template)) {
-      energyRt::read_procspec(input$template)
+      energyRt::read_process_spec(input$template)
     } else .blank_spec()
     .warn_if_unsupported_class(s)
     set_spec(s); set_identity_inputs(s)
     updateNavlistPanel(session, "wizard", selected = "Metadata")
   })
   observeEvent(input$upload, {
-    s <- energyRt::read_procspec(input$upload$datapath)
+    s <- energyRt::read_process_spec(input$upload$datapath)
     .warn_if_unsupported_class(s)
     set_spec(s); set_identity_inputs(s)
     updateNavlistPanel(session, "wizard", selected = "Metadata")

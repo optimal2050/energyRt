@@ -21,20 +21,22 @@
   # variant dir, the base problem's at the scenario level)
   scen@modInp <- .modinp_rebase(scen@modInp, .problem_modinp_root(scen, root))
 
-  # modOut + each variable
-  mo_root <- if (nzchar(scen@misc$run %||% "")) {
-    fp(.run_dir(scen, .run_variant(scen), scen@misc$run), "modOut")
-  } else {
-    fp(root, "modOut")
-  }
-  if (length(get_ondisk_slots(scen@modOut))) {
-    scen@modOut@misc$path <- mo_root
-  }
-  for (nm in names(scen@modOut@variables)) {
-    v <- scen@modOut@variables[[nm]]
-    if (isS4(v) && length(get_ondisk_slots(v))) {
-      v@misc$path <- fp(mo_root, "variables", nm)
-      scen@modOut@variables[[nm]] <- v
+  # modOut + each variable (NULL until the first solve)
+  if (isS4(scen@modOut)) {
+    mo_root <- if (nzchar(scen@misc$run %||% "")) {
+      fp(.run_dir(scen, .run_variant(scen), scen@misc$run), "modOut")
+    } else {
+      fp(root, "modOut")
+    }
+    if (length(get_ondisk_slots(scen@modOut))) {
+      scen@modOut@misc$path <- mo_root
+    }
+    for (nm in names(scen@modOut@variables)) {
+      v <- scen@modOut@variables[[nm]]
+      if (isS4(v) && length(get_ondisk_slots(v))) {
+        v@misc$path <- fp(mo_root, "variables", nm)
+        scen@modOut@variables[[nm]] <- v
+      }
     }
   }
 
@@ -223,6 +225,28 @@ upgrade_scenario_layout <- function(path, verbose = TRUE) {
   # undid, and writes layout marker + manifest + registry rows)
   scen <- .scenario_rebase_paths(scen, path)
   scen <- suppressMessages(save_scenario(scen, path = path, verbose = FALSE))
+
+  # -- fold a legacy problem.RData into scen.RData (its one home now): the
+  # shell takes the base problem's shells and the separate cartridge goes
+  legacy <- fp(path, "problem.RData")
+  if (file.exists(legacy)) {
+    say("Folding problem.RData into scen.RData")
+    e <- new.env(parent = emptyenv())
+    vdata <- get(load(legacy, envir = e)[1], envir = e)
+    es <- new.env(parent = emptyenv())
+    sh <- get(load(fp(path, "scen.RData"), envir = es)[1], envir = es)
+    sh@settings <- vdata$settings
+    sh@misc$sourceCode_default <- vdata$sourceCode_default %||% character(0)
+    sh@modInp <- vdata$modInp
+    sh@misc$variant <- NULL
+    sh@misc$run <- NULL
+    sh@misc$has_base <- TRUE
+    es2 <- new.env(parent = emptyenv())
+    es2$scen <- sh
+    save(list = "scen", envir = es2, file = fp(path, "scen.RData"))
+    unlink(legacy)
+  }
+
   say("Scenario '", scen@name, "' upgraded to layout ", .SCENARIO_LAYOUT)
   invisible(scen)
 }

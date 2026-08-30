@@ -176,7 +176,7 @@ test_that("levcost report params carry the vintage tables", {
   lc <- levcost(tech, fuel_costs = c(COA = 8, BIO = 20), discount = 0.06,
                 base_year = 2025, verbose = FALSE)
   expect_s3_class(lc, "levcost_variants")
-  df <- energyRt:::.report_drop_empty_cols(levcost_by_variant(lc, "npv"))
+  df <- energyRt:::.report_drop_empty_cols(levcost(lc, by_variant = "npv"))
   expect_true(all(c("variant", "vintage", "levcost_npv") %in% names(df)))
   expect_equal(nrow(df), 2L)
   inst <- energyRt:::.report_pick_instance(lc)
@@ -262,5 +262,5 @@ test_that("report helpers: emitters branch per output (pandoc-free)", {
   hd <- paste(capture.output(report_header("N", "d", output = "html")),
               collapse = "\n")
   expect_match(hd, "<h1")
-  expect_match(hd, "ert-rule")
+  expect_match(hd, "en-rule")
 })

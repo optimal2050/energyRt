@@ -356,7 +356,7 @@ setMethod(
     lc_obj <- levcost
     if (inherits(levcost, "levcost_variants")) {
       levcost_by_vintage_df <- tryCatch(
-        .report_drop_empty_cols(levcost_by_variant(levcost, "npv")),
+        .report_drop_empty_cols(levcost(levcost, by_variant = "npv")),
         error = function(e) NULL)
       inst <- tryCatch(.levcost_instance(object), error = function(e) NULL)
       lc_inst <- NULL

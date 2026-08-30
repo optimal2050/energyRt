@@ -181,28 +181,6 @@ fp <- function(...) {
 }
 
 
-#' Check validity of object's names used in sets
-#'
-#' @param x character, name of an object of `energyRt`
-#'
-#' @return logical, TRUE if the name is valid.
-#' @export
-#'
-#' @examples
-#' check_name("name")
-#' check_name("1name")
-#' check_name("name1")
-#' check_name("name_1")
-#' check_name("name_1!")
-#' check_name(c("a", "b")) # FALSE, not a single name
-#' check_name(1) # FALSE, not character
-check_name <- function(x) {
-  # NB the guards used to be OR'd into the "valid" expression, so a non-scalar
-  # or non-character input was reported as VALID. They must negate it instead.
-  length(x) == 1 && is.character(x) &&
-    sub("^[[:alpha:]][[:alnum:]_]*$", "", x) == ""
-}
-
 #' Function to find duplicated values in interpolated scenario.
 #'
 #' @param x scenario or data.frame with data to check.
@@ -438,42 +416,7 @@ drop_na_cols <- function(x, unique = TRUE) {
   x
 }
 
-#' Make a name for a scenario directory (deprecated)
-#' @description
-#' Deprecated: scenario folders are named by the internal
-#' `.scenario_dir_name()` (which slugs the parts and drops duplicates); this
-#' export never was the live implementation and produced different names.
-#' It now delegates to the real one; `prefix`/`suffix` are still honored.
-#' The previous body is archived in `drafts/make_scenario_dirname-legacy.R`.
-#'
-#' @param scen scenario object
-#' @param name character, name of the scenario, default is `scen@name`
-#' @param model_name character, name of the model, default is `scen@model@name`
-#' @param calendar_name character, name of the calendar, default is `scen@settings@calendar@name`
-#' @param horizon_name character, name of the horizon, default is `scen@settings@horizon@name`
-#' @param prefix character, prefix to add to the name
-#' @param suffix character, suffix to add to the name
-#' @param sep character, ignored (kept for backward compatibility)
-#'
-#' @return character, name of the scenario directory
-#' @keywords internal
-#' @export
-make_scenario_dirname <- function(
-    scen,
-    name = scen@name,
-    model_name = scen@model@name,
-    calendar_name = scen@settings@calendar@name,
-    horizon_name = scen@settings@horizon@name,
-    prefix = NULL,
-    suffix = NULL,
-    sep = "_"
-  ) {
-  .Deprecated(msg = paste0(
-    "make_scenario_dirname() is deprecated; scenario folders are named ",
-    "automatically (interpolate_model / save_scenario)."))
-  .path_slug(prefix, name, model_name, calendar_name, horizon_name, suffix)
-}
-
+# make_scenario_dirname() is deprecated -> R/legacy_api_shims.R
 
 fEAC <- function(invcost, discount, olife) {
   stopifnot(olife > 0)

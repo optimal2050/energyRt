@@ -70,12 +70,15 @@ test_that("a table round-trips through the store with column classes intact", {
   expect_identical(dataset_hash(load_dataset("wtest", verbose = FALSE)),
                    info2$hash)
 
-  # ...and set_store_versioning("hash") keeps versions side by side
-  old_sv <- set_store_versioning("hash")
-  on.exit(set_store_versioning(old_sv), add = TRUE)
-  info3 <- save_dataset(ds_table(3), "wtest", verbose = FALSE)
-  expect_true(grepl("@", basename(info3$path)))
-  expect_length(list.dirs(ds_root("datasets"), recursive = FALSE), 2L)
+  # ...and rehash = FALSE keeps the recorded hash for a change the user
+  # declares insignificant (a version tag, not a content proof)
+  info3 <- save_dataset(ds_table(3), "wtest", rehash = FALSE,
+                        verbose = FALSE)
+  expect_identical(info3$hash, info2$hash)          # hash kept
+  mf3 <- yaml::read_yaml(fp(info3$path, "dataset.yml"))
+  expect_true(isTRUE(mf3$hash_kept))
+  expect_identical(load_dataset("wtest", verbose = FALSE)$wval[1],
+                   ds_table(3)$wval[1])             # content updated
 })
 
 test_that("a non-tabular object (Geoscale map) stores as rds", {
@@ -99,7 +102,7 @@ test_that("the registry indexes datasets and refresh_registry rescans them", {
   unlink(ds_root(), recursive = TRUE)
   info <- save_dataset(ds_table(), "wreg", verbose = FALSE)
   reg <- load_registry()
-  row <- find_registry(reg, type = "dataset", name = "wreg")
+  row <- find_in_registry(reg, type = "dataset", name = "wreg")
   expect_identical(nrow(row), 1L)
   expect_identical(row$hash, info$hash)
 
@@ -107,7 +110,7 @@ test_that("the registry indexes datasets and refresh_registry rescans them", {
   unlink(ds_root("reg.csv"))
   reg2 <- refresh_registry(root = ds_root(), file = ds_root("reg.csv"),
                            write = FALSE)
-  expect_identical(find_registry(reg2, type = "dataset")$name, "wreg")
+  expect_identical(find_in_registry(reg2, type = "dataset")$name, "wreg")
 })
 
 test_that("functional dataset: snapshot identity, drift check, call-hash mode", {

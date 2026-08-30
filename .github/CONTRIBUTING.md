@@ -48,15 +48,18 @@ Two things about the test suite that catch everyone once:
   [CONVENTIONS.md § Naming](https://github.com/optimal2050/.github/blob/main/CONVENTIONS.md).
 - **`en_` is the package's namespace prefix** wherever a name must be
   claimed in a space energyRt does not own: low-level utilities
-  (`en_config()`, `en_option()`, `en_open_dataset()`, `en_install_*()`)
-  and, as **`en-`**, the knitr chunk labels of every shipped report
-  template (`en-setup`, `en-css`, ...). Template chunk labels MUST carry
-  the prefix: `report()` can run inside a user's own knit, where an
-  unprefixed label like `setup` collides with the outer document's chunks
-  and aborts the render ("Duplicate chunk label"). Do not adopt new
-  prefixes (`ert`, package initials, project names) for this role — the
-  legacy `ert-`/`ideea-` CSS classes and LaTeX color names inside the
-  templates are grandfathered, not a precedent.
+  (`en_config()`, `en_option()`, `en_open_dataset()`, `en_install_*()`),
+  S3 class tags on foreign structures (`en_registry` on the registry
+  tibble), CSS classes and LaTeX colour names in the report templates
+  (`.en-rule`, `en_blue`), and, as **`en-`**, the knitr chunk labels of
+  every shipped template (`en-setup`, `en-css`, ...). Template chunk
+  labels MUST carry the prefix: `report()` can run inside a user's own
+  knit, where an unprefixed label like `setup` collides with the outer
+  document's chunks and aborts the render ("Duplicate chunk label").
+  **`en` is the only permitted prefix** — never package initials or
+  project names (`ert`, `ideea`). This is now checked:
+  `tests/testthat/test-naming.R` fails on a foreign prefix, so the rule
+  cannot rot back in.
 
 ## Solver backends
 

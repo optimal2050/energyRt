@@ -61,3 +61,46 @@
 
   invisible()
 }
+
+#' Check validity of object's names used in sets
+#'
+#' @param x character, name of an object of `energyRt`
+#'
+#' @return logical, TRUE if the name is valid.
+#' @export
+#'
+#' @examples
+#' check_name("name")
+#' check_name("1name")
+#' check_name("name1")
+#' check_name("name_1")
+#' check_name("name_1!")
+#' check_name(c("a", "b")) # FALSE, not a single name
+#' check_name(1) # FALSE, not character
+check_name <- function(x, dot = FALSE) {
+  # NB the guards used to be OR'd into the "valid" expression, so a non-scalar
+  # or non-character input was reported as VALID. They must negate it instead.
+  # `dot = TRUE` additionally allows ONE leading dot — the internal scratch
+  # convention (levcost mini-models, `.LCS_RUN`) — never dots elsewhere.
+  pat <- if (dot) "^\\.?[[:alpha:]][[:alnum:]_]*$" else
+    "^[[:alpha:]][[:alnum:]_]*$"
+  length(x) == 1 && is.character(x) && sub(pat, "", x) == ""
+}
+
+# Enforce the object-name rule at construction: letters, digits, underscore,
+# starting with a letter (optionally one leading dot for internal scratch
+# objects). Names travel into GAMS/GLPK/JuMP/Pyomo identifiers, where
+# dashes, dots and spaces are illegal — and "-" is the path-slug separator.
+# Run/variant LABELS are not object names and are not checked here.
+.assert_object_name <- function(name, what = "object") {
+  if (!length(name) || !nzchar(name %||% "")) return(invisible(TRUE))
+  if (!check_name(name, dot = TRUE)) {
+    bad <- gsub("[.A-Za-z0-9_]", "", name)
+    stop("Invalid ", what, " name '", name, "'",
+         if (nzchar(bad)) paste0(" (offending: '", bad, "')"),
+         ": names use letters, digits and underscore, and start with a ",
+         "letter — they become solver identifiers on all four backends.",
+         call. = FALSE)
+  }
+  invisible(TRUE)
+}
