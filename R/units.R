@@ -110,6 +110,127 @@ NULL
   "weather.waf.fx"    = "factor"
 )
 
+# Formulas for the flow classes. These carry a single scalar `@unit` (the
+# COMMODITY's unit), so `{comm}` is that scalar and `{costs}` stays a
+# placeholder unless the caller supplies a currency -- the same convention
+# `getUnits(complete = TRUE)` already renders for technology.
+.flow_unit_formulas <- list(
+  supply = list(
+    "reserve.res.lo"  = "{comm}",
+    "reserve.res.up"  = "{comm}",
+    "reserve.res.fx"  = "{comm}",
+    "supply.ava.lo"   = "{comm}/year",
+    "supply.ava.up"   = "{comm}/year",
+    "supply.ava.fx"   = "{comm}/year",
+    "supply.cost"     = "{costs}/{comm}"
+  ),
+  import = list(
+    "import.imp.lo"   = "{comm}/year",
+    "import.imp.up"   = "{comm}/year",
+    "import.imp.fx"   = "{comm}/year",
+    "import.price"    = "{costs}/{comm}"
+  ),
+  export = list(
+    "export.exp.lo"   = "{comm}/year",
+    "export.exp.up"   = "{comm}/year",
+    "export.exp.fx"   = "{comm}/year",
+    "export.price"    = "{costs}/{comm}"
+  ),
+  demand = list(
+    "demand.demand"   = "{comm}"
+  )
+)
+
+# Storage: no `@units` slot (units live on the role declarations), and the
+# parameters are part-prefixed inp./out./stg.
+.storage_unit_formulas <- local({
+  parts <- c("inp", "out", "stg")
+  caps <- stats::setNames(
+    as.list(rep("{capacity}", length(parts) * 10)),
+    unlist(lapply(parts, function(p) paste0(
+      "capacity.", p, ".",
+      c("stock", "cap.lo", "cap.up", "cap.fx", "ncap.lo", "ncap.up",
+        "ncap.fx", "ret.lo", "ret.up", "ret.fx")))))
+  inv <- stats::setNames(
+    as.list(rep("{costs}/{capacity}", length(parts) * 2)),
+    unlist(lapply(parts, function(p)
+      c(paste0("invcost.", p, ".invcost"), paste0("fixom.", p, ".fixom")))))
+  c(caps, inv, list(
+    "varom.inpcost"   = "{costs}/{comm}",
+    "varom.outcost"   = "{costs}/{comm}",
+    "varom.stgcost"   = "{costs}/{comm}",
+    "seff.inpeff"     = "fraction",
+    "seff.outeff"     = "fraction",
+    "seff.stgeff"     = "fraction",
+    "duration.duration"    = "hours",
+    "duration.duration.lo" = "hours",
+    "duration.duration.up" = "hours",
+    "duration.duration.fx" = "hours",
+    "startLevel.startLevel" = "fraction",
+    "vintage.olife"   = "years",
+    "vintage.start"   = "year",
+    "vintage.end"     = "year"
+  ))
+})
+
+# The formula registry for a class, or NULL when the class has none.
+#' @noRd
+.unit_formulas_for <- function(cls) {
+  if (identical(cls, "technology")) return(.tech_unit_formulas)
+  if (identical(cls, "storage")) return(.storage_unit_formulas)
+  .flow_unit_formulas[[cls]]
+}
+
+# Base tokens + comm lookup for ANY supported class, so one resolver serves
+# technology (rich `@units`), storage (role slots) and the flow classes
+# (scalar `@unit`). `units` overrides tokens by name, e.g. c(costs = "MUSD").
+#' @noRd
+.unit_context <- function(object, units = NULL) {
+  cls <- class(object)[1]
+  if (identical(cls, "technology")) {
+    base <- .resolve_base_units(object)
+    comm_units <- .resolve_comm_units(object)
+  } else {
+    base <- list(capacity = "{capacity}", activity = "{activity}",
+                 use = "{use}", costs = "{costs}")
+    comm_units <- character(0)
+    u <- tryCatch(slot(object, "unit"), error = function(e) NULL)
+    if (length(u) == 1 && !is.na(u) && nzchar(u)) {
+      # the scalar `@unit` IS the commodity unit of a flow object
+      base$comm <- u
+    }
+    if (identical(cls, "storage")) {
+      for (role in c("output", "input", "storage")) {
+        df <- tryCatch(slot(object, role), error = function(e) NULL)
+        if (is.data.frame(df) && nrow(df) > 0 && "unit" %in% names(df)) {
+          v <- df$unit[!is.na(df$unit) & nzchar(df$unit)]
+          if (length(v)) { base$comm <- v[1]; break }
+        }
+      }
+    }
+  }
+  if (is.null(base$comm)) base$comm <- "{comm}"
+  if (!is.null(units)) {
+    for (nm in intersect(names(units), names(base))) {
+      if (!is.na(units[[nm]]) && nzchar(units[[nm]])) base[[nm]] <- units[[nm]]
+    }
+  }
+  list(base = base, comm_units = comm_units)
+}
+
+# Resolve one "slot.param" key to a unit string; NA when the class has no
+# formula for it. Unresolved tokens are left in place as placeholders.
+#' @noRd
+.resolve_param_unit <- function(object, key, units = NULL, comm = NA) {
+  f <- .unit_formulas_for(class(object)[1])
+  if (is.null(f) || is.null(f[[key]])) return(NA_character_)
+  ctx <- .unit_context(object, units)
+  s <- .substitute_units(f[[key]], ctx$base, ctx$comm_units, comm = comm)
+  # flow classes carry the commodity unit as a base token
+  s <- gsub("\\{comm\\}", ctx$base$comm, s)
+  s
+}
+
 # ── Helpers ─────────────────────────────────────────────────────────────────────
 
 # Extract base units from technology@units; return placeholders for missing ones.
@@ -449,3 +570,99 @@ print.energyRtUnits <- function(x, ...) {
 }
 
 # get_units() is deprecated -> R/legacy_api_shims.R
+
+# ── Facet labels for plot_process_year() ───────────────────────────────────────
+
+# A ggplot2 labeller turning facet keys ("ava", "cost", "invcost") into
+# "ava [GWh/year]". `raw` supplies the parameter names behind each facet
+# base; members of a bound family (ava.lo/up/fx) share a unit, so the first
+# resolvable one speaks for the facet. Facets with no formula, or whose unit
+# is a bare placeholder, are left unlabelled rather than showing "{costs}".
+#' @noRd
+.unit_labeller <- function(object, raw, units = NULL) {
+  slot_of <- .process_year_slot[[class(object)[1]]]
+  unit_for <- function(base) {
+    params <- unique(raw$param[raw$base == base])
+    for (sl in slot_of) {
+      for (pm in params) {
+        u <- .resolve_param_unit(object, paste0(sl, ".", pm), units = units)
+        if (!is.na(u) && nzchar(u) && !grepl("^[{][^}]*[}]$", u)) return(u)
+      }
+    }
+    NA_character_
+  }
+  function(labels) {
+    key <- labels[[1]]
+    lab <- vapply(as.character(key), function(b) {
+      u <- tryCatch(unit_for(b), error = function(e) NA_character_)
+      if (is.na(u)) b else paste0(b, " [", u, "]")
+    }, character(1), USE.NAMES = FALSE)
+    labels[[1]] <- lab
+    labels
+  }
+}
+
+# ── getUnits() for the flow and storage classes ────────────────────────────────
+# One method body serves supply/demand/import/export/storage: walk the class's
+# formula registry, keep the parameters the object actually populates, and
+# resolve each through the shared engine.
+#' @noRd
+.get_units_process <- function(object, slots = NULL, complete = FALSE,
+                               units = NULL, ...) {
+  cls <- class(object)[1]
+  f <- .unit_formulas_for(cls)
+  if (is.null(f)) {
+    stop("getUnits(): no unit formulas for class '", cls, "'.", call. = FALSE)
+  }
+  keys <- names(f)
+  sl <- sub("[.].*$", "", keys)
+  pm <- sub("^[^.]*[.]", "", keys)
+  keep <- rep(TRUE, length(keys))
+  if (!complete) {
+    keep <- mapply(function(s, p) {
+      d <- tryCatch(methods::slot(object, s), error = function(e) NULL)
+      is.data.frame(d) && nrow(d) > 0 && p %in% names(d) &&
+        any(!is.na(d[[p]]))
+    }, sl, pm)
+  }
+  if (!is.null(slots)) keep <- keep & sl %in% slots
+  if (!any(keep)) {
+    out <- data.frame(slot = character(), parameter = character(),
+                      comm = character(), description = character(),
+                      unit = character(), stringsAsFactors = FALSE)
+  } else {
+    out <- data.frame(
+      slot = sl[keep], parameter = pm[keep],
+      comm = NA_character_,
+      description = vapply(which(keep), function(i)
+        .get_param_desc(cls, sl[i], pm[i]), character(1)),
+      unit = vapply(which(keep), function(i)
+        .resolve_param_unit(object, keys[i], units = units), character(1)),
+      stringsAsFactors = FALSE
+    )
+  }
+  attr(out, "object_name") <- tryCatch(object@name, error = function(e) NA)
+  attr(out, "object_class") <- cls
+  class(out) <- c("energyRtUnits", "data.frame")
+  out
+}
+
+#' @rdname getUnits
+#' @export
+setMethod("getUnits", "supply", .get_units_process)
+
+#' @rdname getUnits
+#' @export
+setMethod("getUnits", "demand", .get_units_process)
+
+#' @rdname getUnits
+#' @export
+setMethod("getUnits", "import", .get_units_process)
+
+#' @rdname getUnits
+#' @export
+setMethod("getUnits", "export", .get_units_process)
+
+#' @rdname getUnits
+#' @export
+setMethod("getUnits", "storage", .get_units_process)

@@ -542,7 +542,7 @@ autoplot.commodity <- function(object, ...) {
 }
 
 plot_process_year <- function(object, year = NULL, interpolate = TRUE,
-                              show_defaults = FALSE, ...) {
+                              show_defaults = FALSE, units = NULL, ...) {
   check_package("ggplot2")
   cls      <- class(object)[1]
   obj_name <- tryCatch(object@name, error = function(e) "")
@@ -640,7 +640,8 @@ plot_process_year <- function(object, year = NULL, interpolate = TRUE,
   p <- p +
     ggplot2::geom_point(
       data = raw_pt, ggplot2::aes(year, value, colour = param), size = 2, na.rm = TRUE) +
-    ggplot2::facet_wrap(~ base, scales = "free_y") +
+    ggplot2::facet_wrap(~ base, scales = "free_y",
+                        labeller = .unit_labeller(object, raw, units)) +
     ggplot2::labs(x = if (no_years) "year (not set)" else "year",
                   y = NULL, colour = NULL,
                   title = if (nzchar(obj_name)) obj_name else NULL,
@@ -691,9 +692,9 @@ plot_process_year <- function(object, year = NULL, interpolate = TRUE,
 #' @rdname autoplot.process
 #' @exportS3Method ggplot2::autoplot
 autoplot.supply <- function(object, year = NULL, interpolate = TRUE,
-                            show_defaults = FALSE, ...) {
+                            show_defaults = FALSE, units = NULL, ...) {
   plot_process_year(object, year = year, interpolate = interpolate,
-                    show_defaults = show_defaults, ...)
+                    show_defaults = show_defaults, units = units, ...)
 }
 
 # Demand gets its own plot: a timeslice-resolved demand has too many series for the
@@ -826,33 +827,33 @@ autoplot.demand <- function(object, style = c("area", "line"), year = NULL,
 #' @rdname autoplot.process
 #' @exportS3Method ggplot2::autoplot
 autoplot.import <- function(object, year = NULL, interpolate = TRUE,
-                            show_defaults = FALSE, ...) {
+                            show_defaults = FALSE, units = NULL, ...) {
   plot_process_year(object, year = year, interpolate = interpolate,
-                    show_defaults = show_defaults, ...)
+                    show_defaults = show_defaults, units = units, ...)
 }
 
 #' @rdname autoplot.process
 #' @exportS3Method ggplot2::autoplot
 autoplot.export <- function(object, year = NULL, interpolate = TRUE,
-                            show_defaults = FALSE, ...) {
+                            show_defaults = FALSE, units = NULL, ...) {
   plot_process_year(object, year = year, interpolate = interpolate,
-                    show_defaults = show_defaults, ...)
+                    show_defaults = show_defaults, units = units, ...)
 }
 
 #' @rdname autoplot.process
 #' @exportS3Method ggplot2::autoplot
 autoplot.technology <- function(object, year = NULL, interpolate = TRUE,
-                                show_defaults = FALSE, ...) {
+                                show_defaults = FALSE, units = NULL, ...) {
   plot_process_year(object, year = year, interpolate = interpolate,
-                    show_defaults = show_defaults, ...)
+                    show_defaults = show_defaults, units = units, ...)
 }
 
 #' @rdname autoplot.process
 #' @exportS3Method ggplot2::autoplot
 autoplot.storage <- function(object, year = NULL, interpolate = TRUE,
-                             show_defaults = FALSE, ...) {
+                             show_defaults = FALSE, units = NULL, ...) {
   plot_process_year(object, year = year, interpolate = interpolate,
-                    show_defaults = show_defaults, ...)
+                    show_defaults = show_defaults, units = units, ...)
 }
 
 

@@ -9,15 +9,50 @@
 \alias{autoplot.storage}
 \title{Visualize a process object over years}
 \usage{
-\method{autoplot}{supply}(object, year = NULL, interpolate = TRUE, show_defaults = FALSE, ...)
+\method{autoplot}{supply}(
+  object,
+  year = NULL,
+  interpolate = TRUE,
+  show_defaults = FALSE,
+  units = NULL,
+  ...
+)
 
-\method{autoplot}{import}(object, year = NULL, interpolate = TRUE, show_defaults = FALSE, ...)
+\method{autoplot}{import}(
+  object,
+  year = NULL,
+  interpolate = TRUE,
+  show_defaults = FALSE,
+  units = NULL,
+  ...
+)
 
-\method{autoplot}{export}(object, year = NULL, interpolate = TRUE, show_defaults = FALSE, ...)
+\method{autoplot}{export}(
+  object,
+  year = NULL,
+  interpolate = TRUE,
+  show_defaults = FALSE,
+  units = NULL,
+  ...
+)
 
-\method{autoplot}{technology}(object, year = NULL, interpolate = TRUE, show_defaults = FALSE, ...)
+\method{autoplot}{technology}(
+  object,
+  year = NULL,
+  interpolate = TRUE,
+  show_defaults = FALSE,
+  units = NULL,
+  ...
+)
 
-\method{autoplot}{storage}(object, year = NULL, interpolate = TRUE, show_defaults = FALSE, ...)
+\method{autoplot}{storage}(
+  object,
+  year = NULL,
+  interpolate = TRUE,
+  show_defaults = FALSE,
+  units = NULL,
+  ...
+)
 }
 \arguments{
 \item{object}{A \code{supply}, \code{demand}, \code{import}, \code{export}, \code{technology}, or

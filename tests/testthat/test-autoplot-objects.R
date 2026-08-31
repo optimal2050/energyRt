@@ -117,3 +117,61 @@ test_that("lever and demand plots honour interpolate", {
   expect_s3_class(ggplot2::autoplot(dem), "ggplot")
   expect_s3_class(ggplot2::autoplot(dem, interpolate = FALSE), "ggplot")
 })
+
+# ── unit labels on the process autoplots ──────────────────────────────────────
+# These are the package's first assertions on a plot label. The facet strip
+# carries the unit because each facet holds one parameter family
+# (ava.lo/up/fx share a dimension) while the y scale is free.
+
+.facet_labs <- function(p) {
+  keys <- unique(as.character(ggplot2::ggplot_build(p)$layout$layout$base))
+  as.character(unlist(p$facet$params$labeller(data.frame(base = keys))))
+}
+
+.units_supply <- function() {
+  newSupply("SUP_COA", commodity = "COA", unit = "GWh",
+            reserve = data.frame(region = "R1", res.up = 1e5),
+            supply = data.frame(region = "R1", year = c(2020L, 2060L),
+                                ava.up = c(1000, 2000), cost = c(50, 60)))
+}
+
+test_that("supply autoplot labels facets with the commodity unit", {
+  skip_if_not_installed("ggplot2")
+  labs <- .facet_labs(ggplot2::autoplot(.units_supply()))
+  expect_true(any(grepl("ava [GWh/year]", labs, fixed = TRUE)))
+  # the currency is unknown on a supply, so it stays a placeholder token
+  expect_true(any(grepl("cost [{costs}/GWh]", labs, fixed = TRUE)))
+})
+
+test_that("`units =` resolves the tokens the object cannot know", {
+  skip_if_not_installed("ggplot2")
+  labs <- .facet_labs(
+    ggplot2::autoplot(.units_supply(), units = c(costs = "cr.INR")))
+  expect_true(any(grepl("cost [cr.INR/GWh]", labs, fixed = TRUE)))
+  expect_true(any(grepl("ava [GWh/year]", labs, fixed = TRUE)))
+})
+
+test_that("technology autoplot resolves units from @units", {
+  skip_if_not_installed("ggplot2")
+  tec <- newTechnology(
+    "EGAS", input = data.frame(comm = "GAS", unit = "GWh"),
+    output = data.frame(comm = "ELC", unit = "GWh"),
+    units = data.frame(capacity = "GW", activity = "GWh", costs = "MUSD"),
+    invcost = data.frame(year = c(2020L, 2050L), invcost = c(800, 700)),
+    fixom = data.frame(fixom = 20), varom = data.frame(varom = 2),
+    capacity = data.frame(year = 2020L, stock = 1))
+  labs <- .facet_labs(ggplot2::autoplot(tec))
+  expect_true(any(grepl("invcost [MUSD/GW]", labs, fixed = TRUE)))
+  expect_true(any(grepl("varom [MUSD/GWh]", labs, fixed = TRUE)))
+  expect_true(any(grepl("stock [GW]", labs, fixed = TRUE)))
+})
+
+test_that("getUnits() covers the flow classes", {
+  u <- getUnits(.units_supply())
+  expect_s3_class(u, "energyRtUnits")
+  expect_setequal(u$parameter, c("res.up", "ava.up", "cost"))
+  expect_equal(u$unit[u$parameter == "ava.up"], "GWh/year")
+  expect_equal(u$unit[u$parameter == "cost"], "{costs}/GWh")
+  u2 <- getUnits(.units_supply(), units = c(costs = "cr.INR"))
+  expect_equal(u2$unit[u2$parameter == "cost"], "cr.INR/GWh")
+})
