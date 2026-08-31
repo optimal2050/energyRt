@@ -18,6 +18,21 @@ getUnits(object, slots = NULL, ...)
 
 # S4 method for class 'technology'
 getUnits(object, slots = NULL, complete = FALSE, ...)
+
+# S4 method for class 'supply'
+getUnits(object, slots = NULL, complete = FALSE, units = NULL, ...)
+
+# S4 method for class 'demand'
+getUnits(object, slots = NULL, complete = FALSE, units = NULL, ...)
+
+# S4 method for class 'import'
+getUnits(object, slots = NULL, complete = FALSE, units = NULL, ...)
+
+# S4 method for class 'export'
+getUnits(object, slots = NULL, complete = FALSE, units = NULL, ...)
+
+# S4 method for class 'storage'
+getUnits(object, slots = NULL, complete = FALSE, units = NULL, ...)
 ```
 
 ## Arguments

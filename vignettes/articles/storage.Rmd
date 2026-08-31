@@ -281,8 +281,7 @@ model falls back on the expensive plant. The flag is not a detail.
 ::: {.callout-warning}
 `@fullYear` was **inert** before energyRt v0.80 — every storage cycled within
 its parent timeframe whatever the flag said, which made multi-day and seasonal
-storage silently unrepresentable. It surfaced when a converted PyPSA-Eur battery
-came out 2.1x oversized and idle 6,624 hours of 8,760.
+storage silently unrepresentable.
 :::
 
 # `@startLevel`: an endowment, once per cycle
@@ -437,20 +436,6 @@ energy is energy.
 This is also what makes `duration` honest. With the discharger a per-hour rate
 and the reservoir an amount, `duration = vStorageStgCap / vStorageOutCap` is an
 hour count — so `duration = 6` on a 10 MW discharger gives exactly 60 MWh.
-
-### PyPSA does the same thing from the other end
-
-PyPSA's state-of-charge equation is
-
-```
-soc[t] = (1-standing_loss)^eh · soc[t-1] + eff_store·eh·p_store − eh·p_dispatch/eff_dispatch
-```
-
-where `eh` is elapsed hours. Its `p_*` variables are **rates**, so no limit
-constraint is scaled at all — neither `p ≤ p_nom` nor `soc ≤ e_nom`. energyRt
-puts the conversion on the bound instead of in the variable; the physics is
-identical. Note energyRt already agreed on the decay term, which has always been
-`(pStorageStgEff)^(pTimesliceShare)` — the same compounding by elapsed time.
 
 ### What aggregation still costs you
 
@@ -970,31 +955,6 @@ Despite its name in the original IDEEA script, this is not a moving average. An
 average would blur the bands into each other and would not sum back to the
 level.
 :::
-
-<!-- # Mapping from PyPSA -->
-
-<!-- PyPSA has two storage representations, and they map onto different parts: -->
-
-<!-- | PyPSA | energyRt | -->
-<!-- |---|---| -->
-<!-- | `StorageUnit` (`p_nom`, `max_hours`) | one storage; `p_nom` -> `@output`, `max_hours` -> `duration.fx` | -->
-<!-- | `Store` (`e_nom`) | `@storage` capacity — `vStorageStgCap` | -->
-<!-- | `Link` into the store (`p_nom`) | `@input` capacity — `vStorageInpCap` | -->
-<!-- | `Link` out of the store (`p_nom`) | `@output` capacity — `vStorageOutCap` | -->
-<!-- | `cyclic_state_of_charge` | `@fullYear` | -->
-<!-- | `efficiency_store` / `_dispatch` | `@seff$inpeff` / `$outeff` | -->
-<!-- | `standing_loss` | `@seff$stgeff` | -->
-
-<!-- A `Store` plus two `Link`s is one energyRt storage with all three parts -->
-<!-- present — which is why `Store.e_nom` and `Link.p_nom` being independent in PyPSA -->
-<!-- needed the parts to be independent here too. -->
-
-<!-- ::: {.callout-warning} -->
-<!-- A PyPSA `Link` is rated on its **`bus0` (input)** side, while an energyRt -->
-<!-- capacity is rated on activity, i.e. output. Converting one to the other means -->
-<!-- scaling by the efficiency: `capacity = p_nom * eff`, `invcost = capital_cost / -->
-<!-- eff`. Getting this wrong is worth about 1.4% on a Belgium-sized system. -->
-<!-- ::: -->
 
 # See also
 

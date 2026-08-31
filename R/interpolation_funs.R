@@ -7,21 +7,10 @@
 #'
 #' @noRd
 .interpolation0 <- function(dtf, parameter, defVal, arg) {
-  # The function is obsolete, to be replaced
-  # browser()
-  # dtf <- interpolation_message$interpolation0_arg$dtf;
-  # parameter <- interpolation_message$interpolation0_arg$parameter;
-  # defVal <- interpolation_message$interpolation0_arg$defVal;
-  # arg <- interpolation_message$interpolation0_arg$arg;
-  # Remove not used approxim
-  # print()
-  # browser()
-  # if (parameter == "rhs") browser() # DEBUG
   if (length(defVal) != 1 || is.na(defVal) || is.null(defVal)) {
     invisible()  # browser() disabled
     stop("defVal value is not defined")
   }
-  # browser()
   if (arg$approxim$fullsets && defVal != 0 && is.finite(defVal)) arg$all <- TRUE
 
   # Get timeslice
@@ -124,7 +113,6 @@
       if (ncol(obj2) == 1 || nrow(obj2) == prod(
         sapply(approxim2[names(obj2)[-ncol(obj2)]], length)
       )) { # numpar approximation is applicable
-        # browser()
         for (i in names(dtf)[c(!f1, FALSE)]) {
           obj2 <- merge0(obj2, approxim2[i])
         }
@@ -146,11 +134,9 @@
     if (any(sapply(apr, length) == 0)) {
       return(NULL)
     }
-    # browser()
     dd <- as.data.frame.table(
       array(NA, dim = sapply(apr, length), dimnames = apr),
       stringsAsFactors = FALSE, responseName = parameter)
-    # browser()
     # dd <- dd[, c(prior, parameter), drop = FALSE]
     if (anyDuplicated(c(prior, parameter))) invisible()  # browser() disabled # mappings check
     dd <- dd |> select(all_of(c(prior, parameter)))
@@ -161,7 +147,6 @@
   }
   if (nrow(dtf) != 0) {
     ii <- 2^(seq(length.out = ncol(dtf) - 1) - 1)
-    # browser()
     # KK <- colSums(ii * t(is.na(dtf[, true_prior[true_prior %in% prior],
     #                                drop = FALSE])))
     sel_col <- true_prior[true_prior %in% prior]
@@ -308,26 +293,6 @@
       stop(cond)
     }
   )
-  # if (is.null(dtf_int)) return(dtf_int)
-  # # patch (temporary) to check/adjust interpolation horizon ####
-  # if (!is.null(dtf[["year"]]) && !any(is.na(dtf[["year"]]))) {
-  #   if (is.null(arg$rule)) stop("Interpolation rule is not set for ", parameter)
-  #   if (!grepl("back", arg$rule)) {
-  #     browser()
-  #     dtf_int <- filter(dtf_int, year >= min(dtf[["year"]]))
-  #   }
-  #   if (!grepl("forth", arg$rule)) {
-  #     dtf_int <- filter(dtf_int, year <= max(dtf[["year"]]))
-  #   }
-  #   if (!grepl("inter", arg$rule)) {
-  #     dtf_int <- filter(
-  #       dtf_int,
-  #       (year < min(dtf[["year"]])) |# 'back' if set
-  #         (year > max(dtf[["year"]])) | # 'forth' if set
-  #         (year %in% dtf[["year"]])
-  #       )
-  #   }
-  # } # patch - end
   dtf_int
 }
 
@@ -344,7 +309,6 @@
 #'
 #' @noRd
 .interpolation_bound <- function(dtf, parameter, defVal, rule, ...) {
-  # browser()
   dtf <- as.data.table(dtf)
   gg <- paste(parameter, c(".lo", ".fx", ".up"), sep = "")
   # aa <- dtf[, !(colnames(dtf) %in% gg), drop = FALSE]
@@ -369,7 +333,6 @@
     defVal = defVal[2], rule = rule[2], ...
   )
   if (!is.null(d2)) {
-    # browser()
     # mx <- d2[, -ncol(d2), drop = FALSE]
     mx <- d2 |> select(-ncol(d2))
     # mx[, "type"] <- "up"
@@ -429,23 +392,6 @@
     }
     dtf <- dtf[!duplicated(dtf), , drop = FALSE]
   }
-  # if (parameter == "pCnsRhsCO2_CAP") browser()
-  # if (parameter == "rhs") browser()
-  # dtf_year_range <- range(approxim$year)
-  # if (!is.null(dtf$year) && !any(is.na(dtf$year))) {
-  #   # if (grepl("inter", mtp@interpolation)) {
-  #     dtf_year_range <- range(dtf$year)
-  #   # } else {
-  #     # dtf_year_range <- dtf$year
-  #   # }
-  #   if (grepl("back", mtp@interpolation)) {
-  #     dtf_year_range <- range(c(min(approxim$year), dtf_year_range))
-  #   }
-  #   if (grepl("forth", mtp@interpolation)) {
-  #     dtf_year_range <- range(c(max(approxim$year), dtf_year_range))
-  #   }
-  #
-  # }
   dd <- .interpolation(dtf, parameter,
                        rule = mtp@interpolation,
                        defVal = mtp@defVal,
@@ -475,7 +421,6 @@
     # dd <- dd[, c(mtp@dimSets, "value"), drop = FALSE]
     dd <- dd |> select(all_of(c(mtp@dimSets, "value")))
   } else {
-    # browser()
     # d3 <- data.frame(stringsAsFactors = FALSE)
     # for (i in 1:length(add_set_value)) {
     #   d3[1:nrow(dd), i] <- rep(add_set_value[i])
@@ -530,7 +475,6 @@
     add_set_name = NULL, add_set_value = NULL, remove_duplicate = NULL,
     remValueUp = NULL, remValueLo = NULL) {
   # if (parameter == "cout") browser()
-  # browser()
   has_year_col <- any(colnames(dtf) == "year")
   if (!is.null(mtp@misc$not_need_interpolate)) {
     # dtf <- dtf[, !(colnames(dtf) %in% mtp@misc$not_need_interpolate), drop = FALSE]

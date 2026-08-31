@@ -383,8 +383,8 @@
   d
 }
 
-# Investment-window semantics (user ruling 2026-08-13): `start`/`end` are
-# USER-DEFINED and may overlap across vintages. An NA `start` means "all
+# Investment-window semantics: `start`/`end` are user-defined and may
+# overlap across vintages. An NA `start` means "all
 # years up to `end`", an NA `end` means "all years from `start` on", and
 # both NA means the full model horizon — exactly the pre-merge `@start`/
 # `@end` semantics, now uniform for vintaged and plain technologies.

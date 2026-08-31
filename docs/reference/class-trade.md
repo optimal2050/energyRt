@@ -141,10 +141,9 @@ parts of the trade network (aka transmission lines).
   resistance
 
   :   numeric. Series resistance `r` of the line, same units and same
-      symmetry requirement as `reactance`. Recorded for round-tripping
-      with power-system models (PyPSA's `Line` carries both). It does
-      not drive losses by itself – losses are the per-route `teff` – but
-      it is the input
+      symmetry requirement as `reactance`. Recorded so a line keeps both
+      parameters through a round trip. It does not drive losses by
+      itself – losses are the per-route `teff` – but it is the input
       [`lossTranches()`](https://energyRt.org/reference/lossTranches.md)
       turns into a piecewise-linear loss curve: pass it with the rating
       it was measured against, since `loss_full = r * F` and a

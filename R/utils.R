@@ -56,7 +56,6 @@ countdown_timer <- function(
 factors_in_params <- function(x) {
   # x - list
   # if (inherits(x, "list")) y <- lapply()
-  # browser()
   y <- lapply(x, function(y) any(sapply(y@data, class) == "factors"))
   y[unlist(y)]
 }
@@ -66,7 +65,6 @@ factors_in_params <- function(x) {
 nonchar_in_sets <- function(x) {
   # x - list
   # if (inherits(x, "list")) y <- lapply()
-  # browser()
   y <- lapply(x, function(y) any(class(y) != "character"))
   y[unlist(y)]
 }
@@ -114,7 +112,6 @@ nonchar_in_sets <- function(x) {
 #' size(rep(1L, 1e3))
 size <- function(x, level1 = FALSE, units = "auto", sort = TRUE,
                  decreasing = FALSE, byteTol = 0, asNumeric = FALSE) {
-  # browser()
   if (!level1) {
     format(object.size(x), units = units)
   } else {
@@ -145,7 +142,6 @@ size <- function(x, level1 = FALSE, units = "auto", sort = TRUE,
         format(z, units = units)
       })
     }
-    # browser()
     ii <- vv >= byteTol
     val[ii]
   }

@@ -1595,7 +1595,7 @@ pStorageInp2out:
 # clock -- the level -- that a technology's activity does not.
 #
 # The STORING side deliberately has no cap2act: energy is energy at any
-# resolution, exactly as PyPSA leaves `soc <= e_nom` unscaled by elapsed hours.
+# resolution: the energy bound carries no elapsed-hours weighting.
 pStorageInpCap2act:
   name: pStorageInpCap2act
   dimSets: stg

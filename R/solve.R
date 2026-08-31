@@ -207,16 +207,6 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
     # read.solution = FALSE,
     # write = FALSE
     ) {
-  # - solves scen, interpolate if required (NULL), force (TRUE), or no interpolation (FALSE, error if not interpolated)
-  ## arguments
-  # solver.dir - external solver working directory (default: the run's solver/)
-  # echo = TRUE - print working data
-  # open.folder = FALSE - open folder before the run
-  # show.output.on.console = FALSE & invisible = FALSE arg for command system
-  # only.listing = FALSE (!depreciated?) generate only listing file (works for gams only)
-  # read.solution = TRUE read result
-  # transient - throwaway solver dir, deleted after the solve
-  # browser()
   arg <- .solver_dir_aliases(list(...))
   # if (is_empty(arg[["solver.dir"]])) arg[["solver.dir"]] <- NULL
   # if (is_empty(arg[["solver"]])) arg[["solver"]] <- NULL
@@ -225,10 +215,8 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
 
   # arg <- get_tmp_dir(scen, arg)
   # if (is.null(arg$solver.dir)) {
-  #   browser()
   #   stop("tmp.dir is not specified")
   # }
-  # browser()
   if (is_empty(arg$echo)) arg$echo <- TRUE
   if (is_empty(arg[["solver"]])) {
     if (is_empty(scen@settings@solver)) {
@@ -287,19 +275,6 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
   if (is_empty(arg[["run"]])) arg[["run"]] <- TRUE
   if (is_empty(arg$n.threads)) arg$n.threads <- 1
 
-  # if (is.null(arg$onefile)) arg$onefile <- FALSE
-  # if (!is.null(arg$dir.result)) {
-  #   warning("solve_model: parameter `dir.result` is depreciated, use `tmp.dir` instead")
-  #   if (is.null(arg$solver.dir)) {
-  #     arg$solver.dir <- arg$dir.result
-  #   } else {
-  #     stop("check `dir.result` and `tmp.dir` - only one should be used")
-  #   }
-  # } else {
-  #   # temporary - will be depreciated
-  #   arg$dir.result <- arg$solver.dir
-  # }
-  # browser()
   arg <- .resolve_solver_dir(scen, arg)
 
   if (is.null(scen)) {
@@ -325,19 +300,8 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
   # arg$solver.dir <- .fix_path(arg$solver.dir)
   # if (!is.null(scen)) scen@misc$tmp.dir <- .fix_path(scen@misc$tmp.dir)
 
-  # if (is.null(arg$solver.dir)) {
-  #   arg$solver.dir <- .fp(
-  #     fp(getwd(), "solwork"),
-  #     paste(arg[["solver"]]$lang, tmp_name, # scen@name,
-  #       format(Sys.time(), "%Y%m%d%H%M%S%Z", tz = Sys.timezone()),
-  #       sep = "_"
-  #     )
-  #   )
-  # }
-  # arg$dir.result <- arg$solver.dir
 
   # interpolate
-  # browser()
   if (isTRUE(arg$interpolate)) {
     scen <- energyRt::interpolate(scen, ...)
     arg$write <- TRUE
@@ -346,7 +310,6 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
   }
 
   # write
-  # browser()
   # dir.create(arg$solver.dir, recursive = TRUE, showWarnings = FALSE)
   # if (arg$open.folder) shell.exec(arg$solver.dir)
   if (is.null(arg$solver.dir) || length(arg$solver.dir) == 0) {
@@ -444,7 +407,6 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
 }
 
 .call_solver <- function(arg, scen) {
-  # browser()
   HOMEDIR <- getwd()
   if (!arg[["run"]]) {
     return()

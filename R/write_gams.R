@@ -106,7 +106,6 @@ get_gdxlib_path <- function() {
 # Internal functions to write GAMS model files
 .write_model_GAMS <- function(arg, scen, trim = FALSE) {
   # if (trim) scen <- fold(scen)
-  # browser()
   .write_inc_solver(scen, arg, "option lp = cplex;", ".gms", "cplex")
   if (is.null(scen@status$sparse)) stop("scen@status$sparse not found")
   # GAMS needs a DENSE scenario: it has no native parameter default (an absent
@@ -149,7 +148,6 @@ get_gdxlib_path <- function() {
           }
         }
       } else if (any(grep("^pCosts", nn))) {
-        # browser()
         mmm <- grep(templ, scen@modInp@user_costs)
         if (any(mmm)) {
           scen@modInp@user_costs[mmm] <- sapply(
@@ -183,7 +181,6 @@ get_gdxlib_path <- function() {
   }
   dir.create(fp(arg$solver.dir, "input"), showWarnings = FALSE)
   dir.create(fp(arg$solver.dir, "output"), showWarnings = FALSE)
-  # browser()
   zz_output <- file(fp(arg$solver.dir, "output.gms"), "w")
   cat(scen@settings@sourceCode[["GAMS_output"]], sep = "\n", file = zz_output)
   close(zz_output)
@@ -196,7 +193,6 @@ get_gdxlib_path <- function() {
            '(rebuild with interp_mod(..., sparse = FALSE))')
     }
     # Generate gdx
-    # browser()
     .write_gdx_list(
       dat = .get_scen_data(scen),
       gdxName = fp(arg$solver.dir, "input/data.gdx")
@@ -233,14 +229,6 @@ get_gdxlib_path <- function() {
       }
     }
   } else {
-    # for (j in c("set", "map", "numpar", "bounds")) {
-    #   for (i in names(scen@modInp@parameters)) {
-    #     if (scen@modInp@parameters[[i]]@type == j) {
-    #       cat(paste0("$include input/", i, ".gms\n"), file = zz_data_gms)
-    #     }
-    #   }
-    # }
-    # .write_multi_threads(arg, scen, func = .toGams, type = "gms")
   }
   close(zz_data_gms)
   ### Model code to text
@@ -436,7 +424,6 @@ get_gdxlib_path <- function() {
 # Generate GAMS code, return character string with the GAMS code
 .toGams0 <- function(obj, include.def) {
   gen_gg <- function(name, dtt) {
-    # browser()
     if (ncol(dtt) == 1) {
       ret <- paste0(name, " = ", dtt[[1]][1], ";")
     } else {
@@ -444,7 +431,6 @@ get_gdxlib_path <- function() {
       for (i in seq_len(ncol(dtt) - 2) + 1) {
         ret <- paste0(ret, '", "', dtt[[i]])
       }
-      # browser()
       # paste0(ret, '") = ', dtt[, ncol(dtt)], ";")
       # paste0(ret, '") = ', select(dtt, last_col()), ";")
       paste0(ret, '") = ', dtt[[ncol(dtt)]], ";")
@@ -505,7 +491,6 @@ get_gdxlib_path <- function() {
     # print(dtt)
     if (nrow(dtt) == 0 || all(dtt$value %in% c(0, Inf))) { #
       if (ncol(dtt) > 1) {
-        # browser()
         return(paste0(
           name, "(",
           paste0(colnames(dtt)[-ncol(dtt)], collapse = ", "),
@@ -551,7 +536,6 @@ get_gdxlib_path <- function() {
     return(as_numpar(obj@data, obj@name, obj@defVal, include.def))
   } else if (obj@type == "bounds") {
     # cat(obj@name, "\n")
-    # browser()
     return(c(
       as_numpar(
         # obj@data[obj@data$type == "lo", 1 - ncol(obj@data), drop = FALSE],
@@ -573,7 +557,6 @@ get_gdxlib_path <- function() {
 
 # GDX exchange ####
 .get_scen_data <- function(scen) {
-  # browser()
   all_factor <- function(x) {
     for (i in colnames(x)[colnames(x) != "value"]) {
       x[[i]] <- factor(x[[i]])
@@ -632,7 +615,6 @@ get_gdxlib_path <- function() {
   }
   if (nr > 0) {
     for (j in domains[v]) {
-      # browser()
       # df[, j] <- factor(df[, j]) # add levels from sets!
       df[[j]] <- factor(df[[j]]) # add levels from sets!
     }
@@ -664,27 +646,6 @@ get_gdxlib_path <- function() {
   # the function exports named list of sets and parameters to GDX file
   # stopifnot("gdxrrw" %in% rownames(installed.packages()))
   .check_load_gdxtools()
-  # .check_load_gdxlib()
-  # rw <- require("gdxrrw")
-  # if (!rw) {
-  #   stop('"gdxrrw" package has not been found. ',
-  #        'It is required for writing and reading "*.gdx" files.',
-  #        '"https://github.com/GAMS-dev/gdxrrw"')
-  # }
-  # en_gdxlib_loaded <- getOption("en_gdxlib_loaded")
-  # if (is.null(en_gdxlib_loaded) || as.logical(en_gdxlib_loaded) == FALSE) {
-  #   lb <- options::opt("gdxlib_path")
-  #   if (is.null(lb)) {
-  #     lb <- options::opt("gams_path")
-  #   }
-  #   ix <- igdx(lb)
-  #   if (!ix) {
-  #     stop('Cannot load "gdx" library. Check "?set_gdxlib_path" to setup.')
-  #   } else {
-  #     options(en_gdxlib_loaded = TRUE)
-  #   }
-  # }
-  # browser()
   cat(" data.gdx ")
   nms <- names(dat)
   max_length <- max(nchar(nms))
@@ -696,7 +657,6 @@ get_gdxlib_path <- function() {
     x <- c(x, list(.df2uels(data.frame(dat[[i]]), i)))
   }
   # gdxrrw::wgdx(gdxName = gdxName, x, squeeze = FALSE)
-  # browser()
   # !!!ToDo: add check for NAs
   gdxtools::wgdx(gdxName = gdxName, x, squeeze = FALSE)
   cat(wipe, sep = "")

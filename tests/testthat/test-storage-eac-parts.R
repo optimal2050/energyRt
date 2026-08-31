@@ -12,10 +12,9 @@
 # reservoir was free, and its flow fell back to the `mStorageNo*Cap` branch
 # (`ratio * vStorageOutCap`) instead of being bounded by its own capacity.
 #
-# Found converting PyPSA-Eur, where `capital_cost` is already annuitised and so
-# maps to `eac` rather than `invcost`: a fused H2 store plus electrolyser plus
-# fuel cell solved 0.35% BELOW the equivalent three-object model, with an
-# unbounded reservoir and a free electrolyser.
+# With a pre-annuitised capex supplied as `eac` rather than `invcost`, a fused
+# H2 store plus electrolyser plus fuel cell solves BELOW the equivalent
+# three-object model, with an unbounded reservoir and a free electrolyser.
 # =========================================================================== #
 
 se_slices <- paste0("s", 1:4)

@@ -2,7 +2,6 @@ setGeneric("ob2mi", function(scen, obj, extra_params) standardGeneric("ob2mi"))
 setGeneric("d2p", function(obj, data, path) standardGeneric("d2p"))
 
 get_data_slot <- function(obj, optional = FALSE, dedup = TRUE) {
-  # browser()
   data <- NULL
   if (isOnDisk(obj)) {
     data <- get_lazy_data(obj, "data", optional = optional)
@@ -42,7 +41,6 @@ setMethod(
   signature(obj = "parameter", data = "data.frame", path = "character"),
   function(obj, data, path = NULL) {
     # ondisk <- !is.null(path) && isOnDisk(obj)
-    # browser()
 
     # args <- list(...)
 
@@ -187,7 +185,6 @@ setMethod(
   "d2p",
   signature(obj = "parameter", data = "character", path = "character"),
   function(obj, data, path = NULL) {
-    # browser()
 
     if (is.null(data)) {
       return(obj)
@@ -304,7 +301,6 @@ setMethod(
 #' @returns the updated `scenario` object, invisibly.
 #' @export
 update_parameter <- function(scen, param, data, path = NULL) {
-  # browser()
 
   if (is.null(data)) {
     return(scen)
@@ -415,7 +411,6 @@ setMethod(
   function(scen, obj, extra_params = list()) {
     # .checkTimesliceLevel(obj, extra_params)
     # .check_timeframe(obj, scen)
-    # browser()
 
     obj@name <- toString(obj@name)
     # obj <- .filter_data_in_slots(obj, extra_params$region, "region")
@@ -465,32 +460,6 @@ setMethod(
       force_cols_classes()
     scen <- update_parameter(scen, "mCommTimeslice", dat)
 
-    # browser()
-    ## pDummyImportCost ####
-    # !!! ToDo: move to "generic parameters"
-    # if (any(is.na(extra_params$debug$comm) | extra_params$debug$comm == obj@name)) {
-    #   extra_params$debug$comm[is.na(extra_params$debug$comm)] <- obj@name
-    #   dbg <- extra_params$debug[
-    #     !is.na(extra_params$debug$comm) &
-    #       extra_params$debug$comm == obj@name, ,
-    #     drop = FALSE
-    #   ]
-    #   extra_params$comm <- obj@name
-    #   scen@parameters[["pDummyImportCost"]] <- .dat2par(
-    #     scen@parameters[["pDummyImportCost"]],
-    #     .interp_numpar(
-    #       dbg, "dummyImport",
-    #       scen@parameters[["pDummyImportCost"]], extra_params
-    #     )
-    #   )
-    #   scen@parameters[["pDummyExportCost"]] <- .dat2par(
-    #     scen@parameters[["pDummyExportCost"]],
-    #     .interp_numpar(
-    #       dbg, "dummyExport",
-    #       scen@parameters[["pDummyExportCost"]], extra_params
-    #     )
-    #   )
-    # }
     scen
   }
 )
@@ -506,7 +475,6 @@ setMethod(
     dem <- obj
     dem@name <- toString(dem@name)
 
-    # browser()
 
     # check if only one commodity is specified
     if (length(dem@commodity) != 1) {
@@ -579,7 +547,6 @@ setMethod(
   signature(scen = "scenario", obj = "export", extra_params = "list"),
   function(scen, obj, extra_params = list()) {
     # .checkTimesliceLevel(app, approxim)
-    # browser()
     exp <- obj
     exp@name <- toString(exp@name)
     if (length(exp@commodity) != 1) {
@@ -598,18 +565,6 @@ setMethod(
         '" is not declared in the model.'
       )
     }
-    # exp <- .filter_data_in_slots(exp, approxim$region, "region")
-    # browser()
-    # approxim <- .fix_approximation_list(approxim,
-    #                                     comm = exp@commodity,
-    #                                     lev = character(0)
-    #                                     # lev = exp@timeframe
-    # )
-    # exp <- .disaggregateTimesliceLevel(exp, approxim)
-    # mExpTimeslice <- data.table(expp = rep(exp@name, length(approxim$timeslice)), timeslice = approxim$timeslice)
-    # obj@parameters[["mExpTimeslice"]] <- .dat2par(obj@parameters[["mExpTimeslice"]], mExpTimeslice)
-    # mExpComm <- data.table(expp = exp@name, comm = exp@commodity)
-    # obj@parameters[["mExpComm"]] <- .dat2par(obj@parameters[["mExpComm"]], mExpComm)
 
 
     ## pExportRowPrice ####
@@ -661,58 +616,6 @@ setMethod(
     }
 
 
-    # mExportRow <- merge0(merge0(mExpTimeslice, list(region = approxim$region)), list(year = approxim$mileStoneYears))
-    # if (!is.null(pExportRow) && nrow(pExportRow) != 0) {
-    #   pExportRow2 <- pExportRow |>
-    #     filter(type == "up" & value == 0) |>
-    #     select(any_of(colnames(mExportRow)))
-    #   # pExportRow2 <- pExportRow[pExportRow$type == "up" & pExportRow$value == 0,
-    #   #                           colnames(pExportRow) %in% colnames(mExportRow),
-    #   #                           drop = FALSE]
-    #   if (nrow(pExportRow2) != 0) {
-    #     # pExportRow2 <- mExportRow[1, 1:2, drop = FALSE]
-    #     if (ncol(pExportRow2) != ncol(mExportRow)) pExportRow2 <- merge0(mExportRow, pExportRow2)
-    #     mExportRow <- mExportRow[(!duplicated(rbind(mExportRow, pExportRow2), fromLast = TRUE)[1:nrow(mExportRow)]), , drop = FALSE]
-    #   }
-    # }
-    # mExportRow$comm <- exp@commodity
-    # obj@parameters[["mExportRow"]] <- .dat2par(obj@parameters[["mExportRow"]], mExportRow)
-    # if (!is.null(pExportRow) && any(pExportRow$type == "up" & pExportRow$value != Inf & pExportRow$value != 0)) {
-    #   mExportRowUp <- pExportRow |>
-    #     filter(type == "up" & value != Inf & value != 0) |>
-    #     select(any_of(obj@parameters[["mExportRowUp"]]@dimSets))
-    #   # mExportRowUp <- pExportRow[
-    #   #   pExportRow$type == "up" & pExportRow$value != Inf & pExportRow$value != 0,
-    #   #   colnames(pExportRow) %in% obj@parameters[["mExportRowUp"]]@dimSets,
-    #   #   drop = FALSE]
-    #   mExportRowUp$comm <- exp@commodity
-    #   if (!all(obj@parameters[["mExportRowUp"]]@dimSets %in% mExportRowUp)) {
-    #     mExportRowUp <- merge0(mExportRow, mExportRowUp)
-    #   }
-    #   obj@parameters[["mExportRowUp"]] <-
-    #     .dat2par(obj@parameters[["mExportRowUp"]], mExportRowUp)
-    #   meqExportRowLo <- pExportRow |>
-    #     filter(type == "lo" & value != 0) |>
-    #     select(any_of(obj@parameters[["meqExportRowLo"]]@dimSets))
-    #   # pExportRow[pExportRow$type == "lo" & pExportRow$value != 0,
-    #   #            colnames(pExportRow) %in% obj@parameters[["meqExportRowLo"]]@dimSets,
-    #   #            drop = FALSE]
-    #   meqExportRowLo$comm <- exp@commodity
-    #   if (!all(obj@parameters[["meqExportRowLo"]]@dimSets %in% meqExportRowLo)) {
-    #     meqExportRowLo <- merge0(mExportRow, meqExportRowLo)
-    #   }
-    #   obj@parameters[["meqExportRowLo"]] <- .dat2par(
-    #     obj@parameters[["meqExportRowLo"]],
-    #     merge0(mExportRow, meqExportRowLo)
-    #   )
-    # }
-    # if (!is.null(pExportRowRes)) {
-    #   pExportRowRes$comm <- exp@commodity
-    #   obj@parameters[["mExportRowCumUp"]] <- .dat2par(
-    #     obj@parameters[["mExportRowCumUp"]],
-    #     pExportRowRes[pExportRowRes$value != Inf, c("expp", "comm"), drop = FALSE]
-    #   )
-    # }
     scen
   }
 )
@@ -748,21 +651,6 @@ setMethod(
       )
     }
 
-    # imp <- .filter_data_in_slots(imp, approxim$region, "region")
-    # browser()
-    # approxim <- .fix_approximation_list(approxim,
-    #                                     comm = imp@commodity,
-    #                                     lev = character(0)
-    #                                     # lev = imp@timeframe
-    # )
-    # imp <- .disaggregateTimesliceLevel(imp, approxim)
-    # mImpTimeslice <- data.table(
-    #   imp = rep(imp@name, length(approxim$timeslice)),
-    #   timeslice = approxim$timeslice)
-    # obj@parameters[["mImpTimeslice"]] <-
-    #   .dat2par(obj@parameters[["mImpTimeslice"]], mImpTimeslice)
-    # mImpComm <- data.table(imp = imp@name, comm = imp@commodity)
-    # obj@parameters[["mImpComm"]] <- .dat2par(obj@parameters[["mImpComm"]], mImpComm)
 
     # pImportRowPrice <- .interp_numpar(
     #   imp@import, "price",
@@ -820,60 +708,8 @@ setMethod(
       scen <- update_parameter(scen, "pImportRow", dat)
     }
 
-    # mImportRow <- merge0(merge0(mImpTimeslice, list(region = approxim$region)), list(year = approxim$mileStoneYears))
-    # if (!is.null(pImportRow) && nrow(pImportRow) != 0) {
-    #   pImportRow2 <- pImportRow |>
-    #     filter(type == "up" & value == 0) |>
-    #     select(any_of(colnames(mImportRow)))
-    #   # pImportRow[pImportRow$type == "up" & pImportRow$value == 0,
-    #   #            colnames(pImportRow) %in% colnames(mImportRow), drop = FALSE]
-    #   if (nrow(pImportRow2) != 0) {
-    #     pImportRow2 <- mImportRow[1, 1:2, drop = FALSE]
-    #     if (ncol(pImportRow2) != ncol(mImportRow)) pImportRow2 <- merge0(mImportRow, pImportRow2)
-    #     mImportRow <- mImportRow[(!duplicated(rbind(mImportRow, pImportRow2), fromLast = TRUE)[1:nrow(mImportRow)]), , drop = FALSE]
-    #   }
-    # }
-    # mImportRow$comm <- imp@commodity
-    # obj@parameters[["mImportRow"]] <- .dat2par(obj@parameters[["mImportRow"]], mImportRow)
 
 
-    # if (!is.null(pImportRow)) {
-    #   mImportRowUp <- pImportRow |>
-    #     filter(type == "up" & value != Inf & value != 0) |>
-    #     select(any_of(obj@parameters[["mImportRowUp"]]@dimSets))
-    #   # pImportRow[
-    #   #   pImportRow$type == "up" & pImportRow$value != Inf & pImportRow$value != 0,
-    #   #   colnames(pImportRow) %in% obj@parameters[["mImportRowUp"]]@dimSets,
-    #   #   drop = FALSE]
-    #   mImportRowUp$comm <- imp@commodity
-    #   if (!all(obj@parameters[["mImportRowUp"]]@dimSets %in% mImportRowUp)) {
-    #     mImportRowUp <- merge0(mImportRow, mImportRowUp)
-    #   }
-    #   obj@parameters[["mImportRowUp"]] <- .dat2par(obj@parameters[["mImportRowUp"]], mImportRowUp)
-    #   meqImportRowLo <- pImportRow |>
-    #     filter(type == "lo" & value != 0) |>
-    #     select(any_of(obj@parameters[["meqImportRowLo"]]@dimSets))
-    #   # meqImportRowLo <- pImportRow[
-    #   #   pImportRow$type == "lo" & pImportRow$value != 0,
-    #   #   colnames(pImportRow) %in% obj@parameters[["meqImportRowLo"]]@dimSets,
-    #   #   drop = FALSE]
-    #   meqImportRowLo$comm <- imp@commodity
-    #   if (!all(obj@parameters[["meqImportRowLo"]]@dimSets %in% meqImportRowLo)) {
-    #     meqImportRowLo <- merge0(mImportRow, meqImportRowLo)
-    #   }
-    #   obj@parameters[["meqImportRowLo"]] <- .dat2par(
-    #     obj@parameters[["meqImportRowLo"]],
-    #     merge0(mImportRow, meqImportRowLo)
-    #   )
-    # }
-    # if (!is.null(pImportRowRes)) {
-    #   pImportRowRes$comm <- exp@commodity
-    #   obj@parameters[["mImportRowCumUp"]] <- .dat2par(
-    #     obj@parameters[["mImportRowCumUp"]],
-    #     pImportRowRes[pImportRowRes$value != Inf, c("expp", "comm"),
-    #                   drop = FALSE]
-    #   )
-    # }
     scen
   }
 )
@@ -904,63 +740,6 @@ setMethod(
       )
     }
 
-    # browser()
-    # approxim <- .fix_approximation_list(approxim, comm = sup@commodity,
-    # lev = sup@timeframe) # dropped
-    # approxim <- .fix_approximation_list(approxim, comm = sup@commodity)
-    # sup <- .disaggregateTimesliceLevel(sup, approxim)
-    # if (length(sup@region) != 0) {
-    #   approxim$region <- approxim$region[approxim$region %in% sup@region]
-    #   ss <- getSlots("supply")
-    #   ss <- names(ss)[ss %in% "data.frame"]
-    #   ss <- ss[sapply(ss, function(x) {
-    #     (any(colnames(slot(sup, x)) == "region") &&
-    #       any(!is.na(slot(sup, x)$region)))
-    #   })]
-    #   for (sl in ss) {
-    #     if (any(!is.na(slot(sup, sl)$region) &
-    #       !(slot(sup, sl)$region %in% sup@region))) {
-    #       rr <- !is.na(slot(sup, sl)$region) &
-    #         !(slot(sup, sl)$region %in% sup@region)
-    #       warning(
-    #         paste('There are data supply "', sup@name, '" for unused region: "',
-    #           paste(unique(slot(sup, sl)$region[rr]), collapse = '", "'), '"',
-    #           sep = ""
-    #         )
-    #       )
-    #       slot(sup, sl) <- slot(sup, sl)[!rr, , drop = FALSE]
-    #     }
-    #   }
-    #   mSupSpan <- data.table(
-    #     sup = rep(sup@name, length(sup@region)),
-    #     region = sup@region
-    #   )
-    #   obj@parameters[["mSupSpan"]] <- .dat2par(
-    #     obj@parameters[["mSupSpan"]],
-    #     mSupSpan
-    #   )
-    # } else {
-    #   mSupSpan <- data.table(
-    #     sup = rep(sup@name, length(approxim$region)),
-    #     region = approxim$region
-    #   )
-    #   obj@parameters[["mSupSpan"]] <- .dat2par(
-    #     obj@parameters[["mSupSpan"]],
-    #     mSupSpan
-    #   )
-    # }
-    # sup <- .filter_data_in_slots(sup, approxim$region, "region")
-    # mSupTimeslice <- data.table(
-    #   sup = rep(sup@name, length(approxim$timeslice)),
-    #   timeslice = approxim$timeslice
-    # )
-    # obj@parameters[["mSupTimeslice"]] <-
-    #   .dat2par(obj@parameters[["mSupTimeslice"]], mSupTimeslice)
-    # browser()
-    # mSupComm <- data.table(sup = sup@name, comm = sup@commodity)
-    # obj@parameters[["mSupComm"]] <-
-    #   .dat2par(obj@parameters[["mSupComm"]], mSupComm)
-    # browser()
 
     ## pSupCost ####
     # scen@modInp@parameters$pSupCost@data
@@ -974,7 +753,6 @@ setMethod(
     #   obj@parameters[["pSupCost"]],
     #   pSupCost
     # )
-    # browser()
     dat <- data.table(
       sup = sup@name,
       comm = sup@commodity,
@@ -989,15 +767,6 @@ setMethod(
     dat <- dat[!is.na(dat$value), , drop = FALSE]
     if (nrow(dat) > 0) scen <- update_parameter(scen, "pSupCost", dat)
 
-    ## pSupReserve ####
-    # scen@modInp@parameters$pSupReserve@data
-    # pSupReserve <- .interp_bounds(
-    #   sup@reserve, "res", obj@parameters[["pSupReserve"]],
-    #   approxim, c("sup", "comm"), c(sup@name, sup@commodity)
-    # )
-    # obj@parameters[["pSupReserve"]] <-
-    #   .dat2par(obj@parameters[["pSupReserve"]], pSupReserve)
-    # browser()
     dat <- .pack_bounds_long(sup@reserve, "res", c("region"))
     if (!is.null(dat)) {
       dat <- data.table(sup = sup@name, comm = sup@commodity, dat) |>
@@ -1005,14 +774,6 @@ setMethod(
       scen <- update_parameter(scen, "pSupReserve", dat)
     }
 
-    ## pSupAva ####
-    # scen@modInp@parameters$pSupAva@data
-    # pSupAva <- .interp_bounds(
-    #   sup@supply, "ava",
-    #   obj@parameters[["pSupAva"]], approxim, c("sup", "comm"),
-    #   c(sup@name, sup@commodity)
-    # )
-    # obj@parameters[["pSupAva"]] <- .dat2par(obj@parameters[["pSupAva"]], pSupAva)
     dat <- .pack_bounds_long(sup@supply, "ava", c("region", "year", "timeslice"))
     if (!is.null(dat)) {
       dat <- data.table(sup = sup@name, comm = sup@commodity, dat) |>
@@ -1022,135 +783,7 @@ setMethod(
 
 
 
-    # zero_ava_up <- pSupAva[pSupAva$value == 0 & pSupAva$type == "up",
-    #                        colnames(pSupAva) != "value", drop = FALSE]
-    # browser()
-    # if (is.null(pSupAva)) {
-    #   zero_ava_up <- NULL
-    # } else {
-    #   zero_ava_up <- pSupAva |>
-    #     filter(value == 0, type == "up") |>
-    #     select(-any_of("value"))
-    #   # browser()
-    # }
-    # # mSupAva <- merge0(merge0(mSupSpan, list(comm = sup@commodity, year = approxim$mileStoneYears)), mSupTimeslice)
-    # mSupAva <- mSupSpan |>
-    #   merge0(list(comm = sup@commodity, year = approxim$mileStoneYears)) |>
-    #   merge0(mSupTimeslice)
 
-    # if (!is.null(zero_ava_up) && nrow(zero_ava_up) != 0) {
-    #   if (all(colnames(mSupAva) %in% colnames(zero_ava_up))) {
-    #     # mSupAva <-
-    #     #   mSupAva[(!duplicated(
-    #     #     rbind(mSupAva, zero_ava_up[, colnames(mSupAva)]),
-    #     #     fromLast = TRUE))[1:nrow(mSupAva)], ]
-    #     ii <- mSupAva |>
-    #       rbind(select(zero_ava_up, all_of(colnames(mSupAva)))) |>
-    #       duplicated(fromLast = TRUE)
-    #     # filter(n() <= nrow(mSupAva))
-    #     ii <- ii[1:nrow(mSupAva)]
-    #     mSupAva <- mSupAva[!ii, ]
-    #   } else {
-    #     # mSupAva <- mSupAva[(!duplicated(rbind(mSupAva, merge0(mSupAva, zero_ava_up[, colnames(zero_ava_up) %in% colnames(mSupAva), drop = FALSE])[, colnames(mSupAva)]), fromLast = TRUE))[1:nrow(mSupAva)], ]
-    #     ii <- mSupAva |>
-    #       rbind(
-    #         merge0(mSupAva, select(zero_ava_up, any_of(colnames(mSupAva))))
-    #       ) |>
-    #       select(all_of(colnames(mSupAva))) |>
-    #       duplicated(fromLast = TRUE)
-    #     ii <- ii[1:nrow(mSupAva)] # ???
-    #     mSupAva <- mSupAva[!ii, ]
-    #   }
-    # }
-    # obj@parameters[["mSupAva"]] <- .dat2par(obj@parameters[["mSupAva"]], mSupAva)
-    # mvSupReserve <- merge0(mSupComm, mSupSpan)
-    # obj@parameters[["mvSupReserve"]] <-
-    #   .dat2par(obj@parameters[["mvSupReserve"]], mvSupReserve)
-    # if (all(c("sup", "comm", "region") %in% colnames(pSupReserve))) {
-    #   obj@parameters[["mSupReserveUp"]] <-
-    #     .dat2par(
-    #       obj@parameters[["mSupReserveUp"]],
-    #       pSupReserve[
-    #         pSupReserve$type == "up" & pSupReserve$value != Inf,
-    #         c("sup", "comm", "region")
-    #       ]
-    #     )
-    #   obj@parameters[["meqSupReserveLo"]] <-
-    #     .dat2par(
-    #       obj@parameters[["meqSupReserveLo"]],
-    #       pSupReserve[
-    #         pSupReserve$type == "lo" & pSupReserve$value != 0,
-    #         c("sup", "comm", "region")
-    #       ]
-    #     )
-    # } else {
-    #   # obj@parameters[["mSupReserveUp"]] <- .dat2par(
-    #   #   obj@parameters[["mSupReserveUp"]],
-    #   #   merge0(mvSupReserve, pSupReserve[pSupReserve$type == "up" & pSupReserve$value != Inf,
-    #   #     colnames(pSupReserve) %in% c("sup", "comm", "region"),
-    #   #     drop = FALSE
-    #   #   ])
-    #   # )
-    #   .null_to_empty_param("pSupReserve", obj@parameters)
-    #   # browser()
-    #   obj@parameters[["mSupReserveUp"]] <-
-    #     .dat2par(
-    #       obj@parameters[["mSupReserveUp"]],
-    #       merge0(
-    #         mvSupReserve,
-    #         select(
-    #           filter(pSupReserve, type == "up" & value != Inf),
-    #           any_of(c("sup", "comm", "region"))
-    #         )
-    #       )
-    #     )
-    #   # obj@parameters[["meqSupReserveLo"]] <- .dat2par(
-    #   #   obj@parameters[["meqSupReserveLo"]],
-    #   #   merge0(mvSupReserve, pSupReserve[pSupReserve$type == "lo" & pSupReserve$value != 0,
-    #   #     colnames(pSupReserve) %in% c("sup", "comm", "region"),
-    #   #     drop = FALSE
-    #   #   ])
-    #   # )
-    #   obj@parameters[["meqSupReserveLo"]] <-
-    #     .dat2par(
-    #       obj@parameters[["meqSupReserveLo"]],
-    #       merge0(
-    #         mvSupReserve,
-    #         select(
-    #           filter(pSupReserve, type == "lo" & value != 0),
-    #           any_of(c("sup", "comm", "region"))
-    #         )
-    #       )
-    #     )
-    # }
-    # .null_to_empty_param("pSupAva", obj@parameters)
-    # obj@parameters[["meqSupAvaLo"]] <- .dat2par(
-    #   obj@parameters[["meqSupAvaLo"]],
-    #   # merge0(mSupAva, pSupAva[pSupAva$type == "lo" & pSupAva$value != 0, colnames(pSupAva) %in% colnames(mSupAva)])
-    #   merge0(
-    #     mSupAva,
-    #     select(
-    #       filter(pSupAva, type == "lo" & value != 0),
-    #       all_of(colnames(mSupAva))
-    #     )
-    #   )
-    # )
-    # # .null_to_empty_param("pSupAva", obj@parameters)
-    # # browser()
-    # obj@parameters[["mSupAvaUp"]] <- .dat2par(
-    #   obj@parameters[["mSupAvaUp"]],
-    #   # merge0(mSupAva, pSupAva[pSupAva$type == "up" & pSupAva$value != Inf,
-    #   # colnames(pSupAva) %in% colnames(mSupAva)])
-    #   merge0(
-    #     mSupAva,
-    #     select(
-    #       filter(pSupAva, type == "up" & value != Inf),
-    #       all_of(colnames(mSupAva))
-    #     )
-    #   )
-    # )
-    # For weather
-    # browser()
 
     ## pSupReserve ####
     # scen@modInp@parameters$pSupReserve@data
@@ -1165,15 +798,6 @@ setMethod(
     scen <- update_parameter(scen, "pSupReserve", dat)
 
 
-    # if (nrow(sup@weather) > 0) {
-    #   tmp <- .toWeatherImply(sup@weather, "wava", "sup", sup@name)
-    #   obj@parameters[["pSupWeather"]] <-
-    #     .dat2par(obj@parameters[["pSupWeather"]], tmp$par)
-    #   obj@parameters[["mSupWeatherUp"]] <-
-    #     .dat2par(obj@parameters[["mSupWeatherUp"]], tmp$mapup)
-    #   obj@parameters[["mSupWeatherLo"]] <-
-    #     .dat2par(obj@parameters[["mSupWeatherLo"]], tmp$maplo)
-    # }
 
     ## pSupWeather ####
     # scen@modInp@parameters$pSupWeather@data
@@ -1184,25 +808,6 @@ setMethod(
       scen <- update_parameter(scen, "pSupWeather", dat)
     }
 
-    # t1 <- mSupAva[, c("sup", "region", "year")] |> unique()
-    # t1 <- t1[!duplicated(t1), ]
-    # t2 <- pSupCost[pSupCost$value != 0, colnames(pSupCost)[colnames(pSupCost) %in% c("sup", "region", "year")], drop = FALSE]
-    # t2 <- t2[!duplicated(t2), , drop = FALSE]
-    # browser()
-    # .null_to_empty_param("pSupCost", obj@parameters)
-    # t2 <- pSupCost |>
-    #   filter(value != 0) |>
-    #   select(any_of(c("sup", "region", "year"))) |>
-    #   unique()
-    # if (!is.null(t2) && ncol(t2) != 3) {
-    #   browser()
-    #   # t2 <- merge0(t2, mSupAva[!duplicated(mSupAva[, c("sup", "region", "year")]),
-    #   #                          c("sup", "region", "year")])
-    #   t2 <- merge0(t2, unique(mSupAva[, c("sup", "region", "year")]))
-    # }
-    # mvSupCost <- merge0(t1, t2)
-    # mvSupCost <- mvSupCost[!duplicated(mvSupCost), ]
-    # obj@parameters[["mvSupCost"]] <- .dat2par(obj@parameters[["mvSupCost"]], mvSupCost)
     scen
   }
 )
@@ -1214,7 +819,6 @@ setMethod(
   "ob2mi",
   signature(scen = "scenario", obj = "weather", extra_params = "list"),
   function(scen, obj, extra_params = list()) {
-  # browser()
   wth <- obj
   wth@name <- toString(wth@name)
   # if (length(wth@timeframe) == 0 && length(approxim$calendar@timeslices_in_frame) > 1) {
@@ -1223,19 +827,6 @@ setMethod(
   if (length(wth@timeframe) == 0) {
     stop("Weather object must have a timeframe.")
   }
-  #
-  # if (length(wth@timeframe) == 0) {
-  #   wth@timeframe <- names(approxim$calendar@timeslices_in_frame)[1]
-  # }
-  # approxim <- .fix_approximation_list(approxim, lev = wth@timeframe)
-  # # region fix
-  # if (length(wth@region) != 0) {
-  #   approxim$region <- approxim$region[approxim$region %in% wth@region]
-  # }
-  # wth@region <- approxim$region
-  # browser()
-  # wth <- .filter_data_in_slots(wth, approxim$region, "region")
-  # wth <- .disaggregateTimesliceLevel(wth, approxim)
 
   ## pWeather ####
   # scen@modInp@parameters$pWeather@data
@@ -1641,7 +1232,6 @@ setMethod(
         stringsAsFactors = FALSE
       )
     )
-    # browser()
     if (length(approxim$calendar@next_in_timeframe) != 0) {
       obj@parameters[["mTimesliceNext"]] <-
         .dat2par(obj@parameters[["mTimesliceNext"]],
@@ -1682,7 +1272,6 @@ setMethod(
     )
     approxim_comm$timeslice <- approxim$calendar@timeslice_share$timeslice
 
-    # browser()
     data.table::setNumericRounding(2) # ignore small differences in 'unique' function
     # add pTimesliceWeight from calendar@misc$pTimesliceWeight o @timeslice_share$weight
     if (!is_null(approxim$calendar@misc$pTimesliceWeight)) {
@@ -1768,7 +1357,6 @@ setMethod(
     obj@parameters[["pTimesliceAgg"]] <- .dat2par(
       obj@parameters[["pTimesliceAgg"]], pTimesliceAgg_tmp)
     rm(pTimesliceAgg_tmp)
-    # browser()
     rm(a, b, ab, pTimesliceWeight_tmp)
 
     if (nrow(app@horizon@intervals) == 0) { # ???
@@ -1785,7 +1373,6 @@ setMethod(
       obj@parameters[["mMilestoneFirst"]],
       data.table(year = min(app@horizon@intervals$mid))
     )
-    # browser()
     obj@parameters[["mMilestoneNext"]] <- .dat2par(
       obj@parameters[["mMilestoneNext"]],
       data.table(year = app@horizon@intervals$mid[-nrow(app@horizon@intervals)],
@@ -1806,7 +1393,6 @@ setMethod(
       data.table(region = app@region,
                  regionp = app@region)
     )
-    # browser()
     # tmp <- data.frame(year = .get_data_slot(obj@parameters$year))
     tmp <- .get_data_slot(obj@parameters$year)
     # tmp$value <- seq_along(tmp$year)
@@ -1822,7 +1408,6 @@ setMethod(
                             app@horizon@intervals$start + 1),
                  stringsAsFactors = FALSE)
     )
-    # browser()
     # Cumulative discount factor for the objective -- built from the SOCIAL
     # discount rate. The financing rate (`wacc`) never enters here; it is spent
     # in R/eac.R annuitising investment.
@@ -1841,7 +1426,6 @@ setMethod(
       )
     pYearFraction <- .get_data_slot(obj@parameters$year)
     pYearFraction$value <- app@yearFraction$fraction
-    # browser()
     obj@parameters[["pYearFraction"]] <-
       .dat2par(obj@parameters[["pYearFraction"]], pYearFraction)
     obj@parameters[["pYearFraction"]]@defVal <- 1 # !!! temporary fix
@@ -1865,7 +1449,6 @@ force_cols_classes <- function(dtf) {
       dtf[[y]] <- as(dtf[[y]], force_class)
     }
   }
-  # browser()
   string_vars <- c(
     "comm", "commp",
     "timeslice", "timeslicep",
@@ -2005,7 +1588,6 @@ make_data_param <- function(
   }
 
   if (par_meta$type == "bounds") {
-    # browser()
     bound_names <- paste0(par_meta$colName, c(".lo", ".up", ".fx"))
     # names(bound_names) <- c("lo", "up", "fx")
 
@@ -2047,7 +1629,6 @@ make_data_param <- function(
       force_cols_classes()
 
   } else {
-  # browser()
     # Pack RAW (sparse) numeric values. Interpolation is deferred to
     # `interpolate_parameters`.
     dat <- slot_data |>
@@ -2099,31 +1680,13 @@ get_slot_meta <- function(class = NULL,
                           flat = length(return_names) == 1,
                           ...
                           ) {
-  # sname = colName
-  # browser()
-  # ll <- lapply(.modInp, function(x) {
-  #   # if (x$name == "pTechAct2AOut") browser()
-  #   # if (x$name == "pTechCap2Act") browser()
-  #
-  #   if (!is.null(class) && !any(x$class %in% class)) {return(NULL)}
-  #   if (!is.null(slot) && !any(x$slot %in% slot)) {return(NULL)}
-  #   if (!is.null(type) && !any(x$type %in% type)) {return(NULL)}
-  #   if (!is.null(dimSets) && !all(dimSets %in% x$dimSets)) {return(NULL)}
-  #   if (!is.null(return_names)) {
-  #     x <- x[names(x) %in% return_names]
-  #   }
-  #   x
-  # })
-  # ll <- ll[!sapply(ll, is_empty)]
 
-  # browser()
   ll <- list()
   # for ( in seq_along(.modInp)) {
   for (x in .modInp) {
     # if (x$name == "pTechAct2AOut") browser()
     # if (x$name == "pTechCap2Act") browser()
     # x <- .modInp[[i]]
-    # browser()
     if (!is.null(class) && !any(x$class %in% class)) {next}
     if (!is.null(slot) && !any(x$slot %in% slot)) {next}
     if (!is.null(type) && !any(x$type %in% type)) {next}
@@ -2131,7 +1694,6 @@ get_slot_meta <- function(class = NULL,
     if (!is.null(colName) && !any(x$colName %in% colName)) {next}
     x_name <- x$name
     if (!is.null(return_names)) {
-      # browser()
       if (length(return_names) > 1 || isFALSE(flat)) {
         x <- x[names(x) %in% return_names]
       } else {

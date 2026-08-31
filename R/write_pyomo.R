@@ -28,7 +28,6 @@ get_python_path <- function() {
 
 # Functions to write PYOMO model and data files
 .write_model_PYOMO <- function(arg, scen) {
-  # browser()
   # Arrow in and out unless the preset asks for the legacy SQLite database;
   # `exchange_format` supplies the default (R/exchange.R).
   scen@settings@solver <- .resolve_exchange_formats(scen@settings@solver)
@@ -228,7 +227,6 @@ get_python_path <- function() {
       }
     }
   }
-  # browser()
   if (AbstractModel) try(close(zz_data_pyomo))
   if (!AbstractModel) try(close(zz_inp_file))
   npar2 <- (grep("^model[.]obj ", run_code)[1] - 1)
@@ -249,7 +247,6 @@ get_python_path <- function() {
       }
     }
   }
-  # browser()
   ## Add costs equation
   {
     cat("\n", file = zz_costs)
@@ -396,7 +393,6 @@ get_python_path <- function() {
     hh <- gsub("[(][)]", "",
                paste0("(", paste0(obj@dimSets, collapse = ", "), ")")
                )
-    # browser()
     return(c(
       as_numpar(
         # obj@data[obj@data$type == "lo", 1 - ncol(obj@data), drop = FALSE],
@@ -624,17 +620,6 @@ get_python_path <- function() {
   rs <- paste0(rs, "")
   rs
 }
-# .set_al <- c("stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "stgp", "tradep", "exppp", "impp", "techp", "demp", "supp", "weatherp", "regionp", "yearp", "timeslicep", "groupp", "commp", "cnsp", "stge", "tradee", "exppe", "impe", "teche", "deme", "supe", "weathere", "regione", "yeare", "timeslicee", "groupe", "comme", "cnse", "stgn", "traden", "exppn", "impn", "techn", "demn", "supn", "weathern", "regionn", "yearn", "timeslicen", "groupn", "commn", "cnsn", "src", "dst")
-# .alias_set <- c("st1", "t1", "e", "i", "t", "d", "s1", "wth1", "r", "y", "s", "g", "c", "cn1", "st1p", "t1p", "ep", "ip", "tp", "dp", "s1p", "wth1p", "rp", "yp", "sp", "gp", "cp", "cn1p", "st1e", "t1e", "ee", "ie", "te", "de", "s1e", "wth1e", "re", "ye", "se", "ge", "ce", "cn1e", "st1n", "t1n", "en", "in", "tn", "dn", "s1n", "wth1n", "rn", "yn", "sn", "gn", "cn", "cn1n", "src", "dst")
-# names(.alias_set) <- .set_al
-# .aliasName <- function(x) {
-#   if (!all(x %in% .set_al)) {
-#     cat("Unknown .set_al\n")
-#     browser()
-#     stop("Unknown set")
-#   }
-#   .alias_set[x]
-# }
 
 # .fremset <-   c("comm", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "region", "region")
 # names(.fremset) <-   c("acomm", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "stgp", "tradep", "exppp", "impp", "techp", "demp", "supp", "weatherp", "regionp", "yearp", "timeslicep", "groupp", "commp", "cnsp", "stge", "tradee", "exppe", "impe", "teche", "deme", "supe", "weathere", "regione", "yeare", "timeslicee", "groupe", "comme", "cnse", "stgn", "traden", "exppn", "impn", "techn", "demn", "supn", "weathern", "regionn", "yearn", "timeslicen", "groupn", "commn", "cnsn", "src", "dst")
@@ -743,7 +728,6 @@ get_python_path <- function() {
 }
 .eqt.to.pyomo <- function(tmp) {
   # if (any(grep('', tmp))) browser()
-  # browser()
   rs <- ""
   while (nchar(tmp) != 0) {
     tmp <- gsub("^[ ]*", "", tmp)
@@ -767,7 +751,6 @@ get_python_path <- function() {
       a1 <- sub("^[[:alnum:]_]*", "", tmp)
       # if (substr(tmp, 1, 1) == 'p') {
       #   vrb <- paste0('model.', substr(tmp, 1, nchar(tmp) - nchar(a1)))
-      #   browser()
       # }
       vrb <- paste0("model.", substr(tmp, 1, nchar(tmp) - nchar(a1)))
       a2 <- .get.bracket.pyomo(a1)
@@ -863,17 +846,6 @@ get_python_path <- function() {
   rs <- paste0(rs, "")
   rs
 }
-# .set_al <- c("stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "stgp", "tradep", "exppp", "impp", "techp", "demp", "supp", "weatherp", "regionp", "yearp", "timeslicep", "groupp", "commp", "cnsp", "stge", "tradee", "exppe", "impe", "teche", "deme", "supe", "weathere", "regione", "yeare", "timeslicee", "groupe", "comme", "cnse", "stgn", "traden", "exppn", "impn", "techn", "demn", "supn", "weathern", "regionn", "yearn", "timeslicen", "groupn", "commn", "cnsn", "src", "dst")
-# .alias_set <- c("st1", "t1", "e", "i", "t", "d", "s1", "wth1", "r", "y", "s", "g", "c", "cn1", "st1p", "t1p", "ep", "ip", "tp", "dp", "s1p", "wth1p", "rp", "yp", "sp", "gp", "cp", "cn1p", "st1e", "t1e", "ee", "ie", "te", "de", "s1e", "wth1e", "re", "ye", "se", "ge", "ce", "cn1e", "st1n", "t1n", "en", "in", "tn", "dn", "s1n", "wth1n", "rn", "yn", "sn", "gn", "cn", "cn1n", "src", "dst")
-# names(.alias_set) <- .set_al
-# .aliasName <- function(x) {
-#   if (!all(x %in% .set_al)) {
-#     cat("Unknown .set_al\n")
-#     browser()
-#     stop("Unknown set")
-#   }
-#   .alias_set[x]
-# }
 
 # .fremset <- c("comm", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "region", "region")
 # names(.fremset) <- c("acomm", "stg", "trade", "expp", "imp", "tech", "dem", "sup", "weather", "region", "year", "timeslice", "group", "comm", "cns", "stgp", "tradep", "exppp", "impp", "techp", "demp", "supp", "weatherp", "regionp", "yearp", "timeslicep", "groupp", "commp", "cnsp", "stge", "tradee", "exppe", "impe", "teche", "deme", "supe", "weathere", "regione", "yeare", "timeslicee", "groupe", "comme", "cnse", "stgn", "traden", "exppn", "impn", "techn", "demn", "supn", "weathern", "regionn", "yearn", "timeslicen", "groupn", "commn", "cnsn", "src", "dst")
@@ -977,7 +949,6 @@ get_python_path <- function() {
 }
 
 .eqt.to.pyomo.jump <- function(tmp) {
-  # browser()
   rs <- ""
   while (nchar(tmp) != 0) {
     tmp <- gsub("^[ ]*", "", tmp)

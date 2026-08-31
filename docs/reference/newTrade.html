@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.1.9003</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -164,7 +164,7 @@
 <dd><p>numeric. Series reactance <code>x</code> of the line, in the model's own impedance units. Carried for AC lines and used by nothing unless the model is interpolated with <code>kvl = TRUE</code>, when it becomes the coefficient of Kirchhoff's voltage law. Presence of a finite <code>reactance</code> is what marks a route as a PASSIVE AC branch: a controllable DC link has none, because its flow is chosen rather than set by impedance. Must be SYMMETRIC across the two directed rows of a line – the voltage law constrains the net flow – and a line under KVL must be declared in both directions. Where several physical circuits have been merged into one route, the value is the EQUIVALENT reactance, <code>1/x_eq = sum(1/x_i)</code>, not any one circuit's.</p></dd>
 
 <dt>resistance</dt>
-<dd><p>numeric. Series resistance <code>r</code> of the line, same units and same symmetry requirement as <code>reactance</code>. Recorded for round-tripping with power-system models (PyPSA's <code>Line</code> carries both). It does not drive losses by itself – losses are the per-route <code>teff</code> – but it is the input <code><a href="lossTranches.html">lossTranches()</a></code> turns into a piecewise-linear loss curve: pass it with the rating it was measured against, since <code>loss_full = r * F</code> and a resistance alone does not determine a loss fraction.</p></dd>
+<dd><p>numeric. Series resistance <code>r</code> of the line, same units and same symmetry requirement as <code>reactance</code>. Recorded so a line keeps both parameters through a round trip. It does not drive losses by itself – losses are the per-route <code>teff</code> – but it is the input <code><a href="lossTranches.html">lossTranches()</a></code> turns into a piecewise-linear loss curve: pass it with the rating it was measured against, since <code>loss_full = r * F</code> and a resistance alone does not determine a loss fraction.</p></dd>
 
 
 </dl></dd>

@@ -609,8 +609,7 @@ class:
       description: >
         Timeslice-level availability factor parameters, bounding activity in each
         timeslice relative to installed capacity. `af.up` is the maximum capacity
-        factor per timeslice (what PyPSA calls `p_max_pu` and OSeMOSYS calls
-        `CapacityFactor`); `af.lo` is a must-run floor. See `afs` for
+        factor per timeslice; `af.lo` is a must-run floor. See `afs` for
         timeframe-level (e.g. annual) bounds and `ceff$afc.*` for per-commodity
         bounds.
       columns:
@@ -650,7 +649,7 @@ class:
         Timeframe-level availability factor constraints, bounding activity summed
         over all child timeslices of the named timeslice relative to installed
         capacity. With `timeslice = "ANNUAL"` this is the annual capacity-factor
-        bound (TIMES `NCAP_AFS`, OSeMOSYS `AvailabilityFactor`), e.g.
+        bound, e.g.
         `afs.lo = 0.4` requires at least 40% annual utilization. Unlike `af`,
         `afs` rows are not disaggregated to finer timeslices; they always
         constrain the sum over the given timeframe.
@@ -1122,7 +1121,6 @@ class:
         part of a year endows that fraction, consistently.
         It is FREE to the model, by design and unavoidably -- a store that ends a
         cycle below where it started has consumed an endowment nobody paid for.
-        PyPSA's `state_of_charge_initial` has the same property.
         Being additive, the level at the first timeslice is `startLevel` PLUS
         whatever carried over from the previous cycle, i.e. at least `startLevel`
         rather than exactly it; the model may end the cycle empty to make it exact.
@@ -1830,8 +1828,8 @@ class:
           type: numeric
           description: >
             Series resistance `r` of the line, same units and same symmetry
-            requirement as `reactance`. Recorded for round-tripping with
-            power-system models (PyPSA's `Line` carries both). It does not drive
+            requirement as `reactance`. Recorded so a line keeps both
+            parameters through a round trip. It does not drive
             losses by itself -- losses are the per-route `teff` -- but it is the
             input `lossTranches()` turns into a piecewise-linear loss curve:
             pass it with the rating it was measured against, since

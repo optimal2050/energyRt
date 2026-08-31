@@ -516,6 +516,11 @@ and `horizons` are listed under Configuration above.
 
 - [`getUnits(`*`<commodity>`*`)`](https://energyRt.org/reference/getUnits.md)
   [`getUnits(`*`<technology>`*`)`](https://energyRt.org/reference/getUnits.md)
+  [`getUnits(`*`<supply>`*`)`](https://energyRt.org/reference/getUnits.md)
+  [`getUnits(`*`<demand>`*`)`](https://energyRt.org/reference/getUnits.md)
+  [`getUnits(`*`<import>`*`)`](https://energyRt.org/reference/getUnits.md)
+  [`getUnits(`*`<export>`*`)`](https://energyRt.org/reference/getUnits.md)
+  [`getUnits(`*`<storage>`*`)`](https://energyRt.org/reference/getUnits.md)
   : Get parameter units for energyRt class objects
 
 - [`commodity_properties()`](https://energyRt.org/reference/commodity_properties.md)

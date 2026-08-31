@@ -18,19 +18,54 @@ direction.
 
 ``` r
 # S3 method for class 'supply'
-autoplot(object, year = NULL, interpolate = TRUE, show_defaults = FALSE, ...)
+autoplot(
+  object,
+  year = NULL,
+  interpolate = TRUE,
+  show_defaults = FALSE,
+  units = NULL,
+  ...
+)
 
 # S3 method for class 'import'
-autoplot(object, year = NULL, interpolate = TRUE, show_defaults = FALSE, ...)
+autoplot(
+  object,
+  year = NULL,
+  interpolate = TRUE,
+  show_defaults = FALSE,
+  units = NULL,
+  ...
+)
 
 # S3 method for class 'export'
-autoplot(object, year = NULL, interpolate = TRUE, show_defaults = FALSE, ...)
+autoplot(
+  object,
+  year = NULL,
+  interpolate = TRUE,
+  show_defaults = FALSE,
+  units = NULL,
+  ...
+)
 
 # S3 method for class 'technology'
-autoplot(object, year = NULL, interpolate = TRUE, show_defaults = FALSE, ...)
+autoplot(
+  object,
+  year = NULL,
+  interpolate = TRUE,
+  show_defaults = FALSE,
+  units = NULL,
+  ...
+)
 
 # S3 method for class 'storage'
-autoplot(object, year = NULL, interpolate = TRUE, show_defaults = FALSE, ...)
+autoplot(
+  object,
+  year = NULL,
+  interpolate = TRUE,
+  show_defaults = FALSE,
+  units = NULL,
+  ...
+)
 ```
 
 ## Arguments

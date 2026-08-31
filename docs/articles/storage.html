@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.1.9003</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -468,16 +468,16 @@ each gets its own repository and model:</p>
 <span></span>
 <span><span class="va">scen_year</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">mod_year</span>, name <span class="op">=</span> <span class="st">"fy_year"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Solver directory:  scenarios/fy_year-d365_h24_subset_1day_per_month/runs/glpk/solver </span></span>
-<span><span class="co">#&gt; Writing files: 0.7s</span></span>
+<span><span class="co">#&gt; Writing files: 0.39s</span></span>
 <span><span class="co">#&gt; Starting  GLPK </span></span>
-<span><span class="co">#&gt; 0.19s</span></span>
-<span><span class="co">#&gt; Reading solution: 0.19s</span></span>
+<span><span class="co">#&gt; 0.17s</span></span>
+<span><span class="co">#&gt; Reading solution: 0.11s</span></span>
 <span><span class="va">scen_day</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">mod_day</span>, name <span class="op">=</span> <span class="st">"fy_day"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Solver directory:  scenarios/fy_day-d365_h24_subset_1day_per_month/runs/glpk/solver </span></span>
-<span><span class="co">#&gt; Writing files: 0.63s</span></span>
+<span><span class="co">#&gt; Writing files: 0.37s</span></span>
 <span><span class="co">#&gt; Starting  GLPK </span></span>
-<span><span class="co">#&gt; 0.14s</span></span>
-<span><span class="co">#&gt; Reading solution: 0.22s</span></span>
+<span><span class="co">#&gt; 0.13s</span></span>
+<span><span class="co">#&gt; Reading solution: 0.07s</span></span>
 <span></span>
 <span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen_year</span>, <span class="st">"vObjective"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">$</span><span class="va">value</span></span>
 <span><span class="co">#&gt; [1] 9962.545</span></span>
@@ -490,8 +490,7 @@ detail.</p>
 <p><code>@fullYear</code> was <strong>inert</strong> before energyRt
 v0.80 — every storage cycled within its parent timeframe whatever the
 flag said, which made multi-day and seasonal storage silently
-unrepresentable. It surfaced when a converted PyPSA-Eur battery came out
-2.1x oversized and idle 6,624 hours of 8,760.</p>
+unrepresentable.</p>
 </div>
 </div>
 <div class="section level2">
@@ -688,20 +687,6 @@ discharger a per-hour rate and the reservoir an amount,
 — so <code>duration = 6</code> on a 10 MW discharger gives exactly 60
 MWh.</p>
 <div class="section level4">
-<h4 id="pypsa-does-the-same-thing-from-the-other-end">PyPSA does the same thing from the other end<a class="anchor" aria-label="anchor" href="#pypsa-does-the-same-thing-from-the-other-end"></a>
-</h4>
-<p>PyPSA’s state-of-charge equation is</p>
-<pre><code>soc[t] = (1-standing_loss)^eh · soc[t-1] + eff_store·eh·p_store − eh·p_dispatch/eff_dispatch</code></pre>
-<p>where <code>eh</code> is elapsed hours. Its <code>p_*</code>
-variables are <strong>rates</strong>, so no limit constraint is scaled
-at all — neither <code>p ≤ p_nom</code> nor <code>soc ≤ e_nom</code>.
-energyRt puts the conversion on the bound instead of in the variable;
-the physics is identical. Note energyRt already agreed on the decay
-term, which has always been
-<code>(pStorageStgEff)^(pTimesliceShare)</code> — the same compounding
-by elapsed time.</p>
-</div>
-<div class="section level4">
 <h4 id="what-aggregation-still-costs-you">What aggregation still costs you<a class="anchor" aria-label="anchor" href="#what-aggregation-still-costs-you"></a>
 </h4>
 <p>Making the rating resolution-independent does <strong>not</strong>
@@ -801,7 +786,7 @@ applied at different places in the level equation:</p>
 <code>0.999</code> is a per-hour retention and not a per-timeslice one.
 That is what keeps a self-discharge assumption stable when the calendar
 is refined.</p>
-<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">STG_BTR_LOSS</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/storage.html">newStorage</a></span><span class="op">(</span></span>
 <span>  name      <span class="op">=</span> <span class="st">"STG_BTR_LOSS"</span>,</span>
 <span>  desc      <span class="op">=</span> <span class="st">"Battery with round-trip and self-discharge losses"</span>,</span>
@@ -865,7 +850,7 @@ their capacities. Three families share the slot:</p>
 <code>timeslice</code>, so the bound can follow the calendar. A
 reservoir kept above a minimum head, and a grid connection that may not
 charge during the evening peak:</p>
-<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">STG_RES</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/storage.html">newStorage</a></span><span class="op">(</span></span>
 <span>  name      <span class="op">=</span> <span class="st">"STG_RES"</span>,</span>
 <span>  desc      <span class="op">=</span> <span class="st">"Reservoir with a minimum head and a charging curfew"</span>,</span>
@@ -935,7 +920,7 @@ discharger — an EV drawing 7 kW but delivering 100 kW to the motor — is
 and <code>cap2act</code> on the two power sides — and nothing that
 varies by vintage, region or year. Writing a capacity there is an error
 that names the column to use instead.</p>
-<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">STG_FLEET</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/storage.html">newStorage</a></span><span class="op">(</span></span>
 <span>  name      <span class="op">=</span> <span class="st">"STG_FLEET"</span>,</span>
 <span>  desc      <span class="op">=</span> <span class="st">"Existing battery fleet with a build limit"</span>,</span>
@@ -1015,7 +1000,7 @@ per MWh of reservoir — which is exactly what the battery at the top of
 this article does. <code>@varom</code> instead splits by what is
 charged: <code>inpcost</code> per unit charged, <code>outcost</code> per
 unit discharged, <code>stgcost</code> per unit held.</p>
-<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">STG_PRICED</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/storage.html">newStorage</a></span><span class="op">(</span></span>
 <span>  name      <span class="op">=</span> <span class="st">"STG_PRICED"</span>,</span>
 <span>  desc      <span class="op">=</span> <span class="st">"Battery priced on capacity and on every unit moved"</span>,</span>
@@ -1089,7 +1074,7 @@ is auxiliary input per unit of <strong>new</strong> capacity, and
 </tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb16"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">MAT</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newCommodity.html">newCommodity</a></span><span class="op">(</span></span>
 <span>  name <span class="op">=</span> <span class="st">"MAT"</span>,</span>
 <span>  desc <span class="op">=</span> <span class="st">"Battery-grade lithium"</span>,</span>
@@ -1123,7 +1108,7 @@ is auxiliary input per unit of <strong>new</strong> capacity, and
 ambient-temperature derating drives the bounds. The coefficients mirror
 <code>@af</code>: <code>waf.*</code> scales the level bound,
 <code>wcinp.*</code> charging and <code>wcout.*</code> discharging.</p>
-<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb17"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">STG_HYD_W</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/storage.html">newStorage</a></span><span class="op">(</span></span>
 <span>  name      <span class="op">=</span> <span class="st">"STG_HYD_W"</span>,</span>
 <span>  desc      <span class="op">=</span> <span class="st">"Reservoir hydro driven by an inflow series"</span>,</span>
@@ -1155,7 +1140,7 @@ such as a resource grade. Both are declared once and then referenced
 from the <code>vintage</code> / <code>cluster</code> column that nearly
 every other slot carries, which is how a 2020 battery and a 2050 battery
 can differ in cost without becoming two objects.</p>
-<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">STG_VINT</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/storage.html">newStorage</a></span><span class="op">(</span></span>
 <span>  name      <span class="op">=</span> <span class="st">"STG_VINT"</span>,</span>
 <span>  desc      <span class="op">=</span> <span class="st">"Battery with two build vintages"</span>,</span>
@@ -1204,7 +1189,7 @@ overlap and no remainder: <strong>the bands sum back to
 <p>A solar-plus-battery system on the same bundled calendar gives it
 something to decompose: generation only in the middle of the day, demand
 in the evening.</p>
-<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb19"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">hr</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/integer.html" class="external-link">as.integer</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">sub</a></span><span class="op">(</span><span class="st">".*_h"</span>, <span class="st">""</span>, <span class="va">slices</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">SOL</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newCommodity.html">newCommodity</a></span><span class="op">(</span></span>
@@ -1271,11 +1256,11 @@ in the evening.</p>
 <span></span>
 <span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">sol_mod</span>, name <span class="op">=</span> <span class="st">"solar_battery"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Solver directory:  scenarios/solar_battery-d365_h24_subset_1day_per_month/runs/glpk/solver </span></span>
-<span><span class="co">#&gt; Writing files: 0.67s</span></span>
+<span><span class="co">#&gt; Writing files: 0.31s</span></span>
 <span><span class="co">#&gt; Starting  GLPK </span></span>
-<span><span class="co">#&gt; 0.24s</span></span>
-<span><span class="co">#&gt; Reading solution: 0.2s</span></span></code></pre></div>
-<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
+<span><span class="co">#&gt; 0.25s</span></span>
+<span><span class="co">#&gt; Reading solution: 0.1s</span></span></code></pre></div>
+<div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/storage_duration.html">storage_duration</a></span><span class="op">(</span><span class="va">scen</span><span class="op">)</span>                 <span class="co"># 12h / 1d / 1w / 30d by default</span></span>
 <span></span>
 <span><span class="co"># One panel per representative day: this calendar's days are a month apart, so</span></span>
@@ -1301,7 +1286,7 @@ full-year calendar.</p>
 and one solar resource, derived from the MERRA-2 reanalysis. Its
 <code>slice</code> column is already in the <code>d365_h24</code>
 vocabulary, so it drops onto the bundled hourly calendar:</p>
-<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/utils/str.html" class="external-link">str</a></span><span class="op">(</span><span class="va">vre_cf</span><span class="op">)</span></span>
 <span><span class="co">#&gt; 'data.frame':    8760 obs. of  3 variables:</span></span>
 <span><span class="co">#&gt;  $ slice: chr  "d001_h00" "d001_h01" "d001_h02" "d001_h03" ...</span></span>
@@ -1314,7 +1299,7 @@ vocabulary, so it drops onto the bundled hourly calendar:</p>
 backstop, a cheap store and a <strong>constant</strong> demand. With
 demand flat, everything the store does is forced by the resource rather
 than by the load.</p>
-<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb22"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">cal</span> <span class="op">&lt;-</span> <span class="va">calendars</span><span class="op">$</span><span class="va">d365_h24</span></span>
 <span></span>
 <span><span class="co"># The capacity factor belongs on the TECHNOLOGY, as an hourly availability</span></span>
@@ -1379,7 +1364,7 @@ runs it as a season-length reservoir.</p>
 timeslices the difference is minutes, which is why the result is
 precomputed and shipped as <code>vre_storage_duration</code> rather than
 solved while this page builds.</p>
-<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/ggplot.html" class="external-link">ggplot</a></span><span class="op">(</span><span class="va">vre_storage_duration</span>, <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/aes.html" class="external-link">aes</a></span><span class="op">(</span><span class="va">datetime</span>, <span class="va">value</span>, fill <span class="op">=</span> <span class="va">duration</span><span class="op">)</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/geom_ribbon.html" class="external-link">geom_area</a></span><span class="op">(</span><span class="op">)</span> <span class="op">+</span></span>
 <span>  <span class="fu"><a href="https://ggplot2.tidyverse.org/reference/scale_viridis.html" class="external-link">scale_fill_viridis_d</a></span><span class="op">(</span>direction <span class="op">=</span> <span class="op">-</span><span class="fl">1</span>, name <span class="op">=</span> <span class="st">"Duration"</span><span class="op">)</span> <span class="op">+</span></span>
@@ -1390,7 +1375,7 @@ solved while this page builds.</p>
 job: a thin band cycles within the day, while most of the energy is
 committed for <strong>more than thirty days</strong> — charged when wind
 and sun are abundant and released a season later.</p>
-<div class="sourceCode" id="cb25"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/tapply.html" class="external-link">tapply</a></span><span class="op">(</span><span class="va">vre_storage_duration</span><span class="op">$</span><span class="va">value</span>, <span class="va">vre_storage_duration</span><span class="op">$</span><span class="va">duration</span>, <span class="va">sum</span><span class="op">)</span></span>
 <span><span class="co">#&gt;        &lt;12h      12h-1d       1d-1w      1w-30d        &gt;30d </span></span>
 <span><span class="co">#&gt;    3848.461    6035.640   56860.498  173581.134 2141880.391</span></span></code></pre></div>
@@ -1409,26 +1394,6 @@ split.</p>
 average. An average would blur the bands into each other and would not
 sum back to the level.</p>
 </div>
-<!-- # Mapping from PyPSA -->
-<!-- PyPSA has two storage representations, and they map onto different parts: -->
-<!-- | PyPSA | energyRt | -->
-<!-- |---|---| -->
-<!-- | `StorageUnit` (`p_nom`, `max_hours`) | one storage; `p_nom` -> `@output`, `max_hours` -> `duration.fx` | -->
-<!-- | `Store` (`e_nom`) | `@storage` capacity — `vStorageStgCap` | -->
-<!-- | `Link` into the store (`p_nom`) | `@input` capacity — `vStorageInpCap` | -->
-<!-- | `Link` out of the store (`p_nom`) | `@output` capacity — `vStorageOutCap` | -->
-<!-- | `cyclic_state_of_charge` | `@fullYear` | -->
-<!-- | `efficiency_store` / `_dispatch` | `@seff$inpeff` / `$outeff` | -->
-<!-- | `standing_loss` | `@seff$stgeff` | -->
-<!-- A `Store` plus two `Link`s is one energyRt storage with all three parts -->
-<!-- present — which is why `Store.e_nom` and `Link.p_nom` being independent in PyPSA -->
-<!-- needed the parts to be independent here too. -->
-<!-- ::: {.callout-warning} -->
-<!-- A PyPSA `Link` is rated on its **`bus0` (input)** side, while an energyRt -->
-<!-- capacity is rated on activity, i.e. output. Converting one to the other means -->
-<!-- scaling by the efficiency: `capacity = p_nom * eff`, `invcost = capital_cost / -->
-<!-- eff`. Getting this wrong is worth about 1.4% on a Belgium-sized system. -->
-<!-- ::: -->
 </div>
 </div>
 <div class="section level2">

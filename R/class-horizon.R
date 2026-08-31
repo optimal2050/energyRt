@@ -96,7 +96,6 @@ newHorizon <- function(
     desc = NULL,
     name = NULL
     ) {
-  # browser()
   h <- new("horizon") # !!! update .data2slots for this class
   if (!is.null(desc)) {
     stopifnot(is.character(desc))
@@ -225,7 +224,6 @@ newHorizon <- function(
 #' @rdname newHorizon
 #' @export
 setMethod("update", "horizon", function(object, ..., warn_nodata = TRUE) {
-  # browser()
   # !!! add no-data check for warning
   # cf <- .data2slots("config", object, ..., warn_nodata = FALSE)
   object <- .data2slots("horizon", object, ...,

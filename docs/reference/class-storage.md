@@ -389,15 +389,15 @@ cycle will be a calendar day).
   endowment is the same however the cycle closes. A calendar covering
   part of a year endows that fraction, consistently. It is FREE to the
   model, by design and unavoidably – a store that ends a cycle below
-  where it started has consumed an endowment nobody paid for. PyPSA's
-  `state_of_charge_initial` has the same property. Being additive, the
-  level at the first timeslice is `startLevel` PLUS whatever carried
-  over from the previous cycle, i.e. at least `startLevel` rather than
-  exactly it; the model may end the cycle empty to make it exact.
-  Renamed from `charge` (via `inflow`) in v0.80; both are still accepted
-  with a warning, and any `timeslice` column they carried is dropped.
-  NOTE hydro inflow does NOT belong here – use a weather-driven `supply`
-  (with `ava.up`, so spilling is free) feeding the storage.
+  where it started has consumed an endowment nobody paid for. Being
+  additive, the level at the first timeslice is `startLevel` PLUS
+  whatever carried over from the previous cycle, i.e. at least
+  `startLevel` rather than exactly it; the model may end the cycle empty
+  to make it exact. Renamed from `charge` (via `inflow`) in v0.80; both
+  are still accepted with a warning, and any `timeslice` column they
+  carried is dropped. NOTE hydro inflow does NOT belong here – use a
+  weather-driven `supply` (with `ava.up`, so spilling is free) feeding
+  the storage.
 
   vintage
 

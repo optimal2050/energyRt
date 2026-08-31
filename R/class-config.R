@@ -138,7 +138,6 @@ is_geoscale <- function(x) {
 }
 
 setMethod("initialize", "config", function(.Object, ...) {
-  # browser()
   if (!exists(".defVal") || !exists(".modInp") || !exists(".defInt")) {
     load("R/sysdata.rda")
   }
@@ -202,7 +201,6 @@ setMethod("getGeoscale", signature(obj = "config"), function(obj, ...) {
 #' @export
 setMethod(
   "setHorizon", signature(obj = "config"), function(obj, period, ...) {
-    # browser()
     # obj@horizon <- milestoneYears(start, interval)
     # obj@year <- min(obj@horizon@intervals$start):max(obj@horizon@intervals$end)
     obj@horizon <- newHorizon(period = period, ...)
@@ -245,21 +243,5 @@ setMethod("update", "config", function(object, ..., warn_nodata = TRUE) {
 
 
 
-# setGeneric("milestoneYears",
-#            function(start, interval) standardGeneric("milestoneYears"))
-#
-# setMethod("milestoneYears",
-#           signature(start = "numeric", interval = "numeric"),
-#           function(start, interval) {
-#             browser()
-#   if (interval[1] != 1) stop("setMileStoneYears: first interval have to be 1")
-#   mlst <- data.frame(
-#     start = start + cumsum(c(0, interval[-length(interval)])),
-#     mid = rep(NA, length(interval)),
-#     end = start + cumsum(interval) - 1
-#   )
-#   mlst[, "mid"] <- trunc(.5 * (mlst[, "start"] + mlst[, "end"]))
-#   mlst
-# })
 
 

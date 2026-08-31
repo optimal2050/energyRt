@@ -166,17 +166,6 @@ print.region <- function(x) {
   if (!is.null(x@misc$color)) cat("color: ", x@misc$color, "\n")
 }
 
-#------------------------------------------------------------------------------
-# print.repository <- function(x) {
-#   cat("Name: ", x@name, "\n")
-#   if (length(x@desc) != 0 && x@desc != "") cat("desc: ", x@desc, "\n")
-#   for (i in seq(along = x@data)) {
-#     cat(class(x@data[[i]]), " ", i, ":\n", sep = "")
-#     print(x@data[[i]])
-#   }
-# }
-#
-#------------------------------------------------------------------------------
 print.scenario <- function(x) {
   cat("Name: ", x@name, "\n")
   if (length(x@desc) != 0 && x@desc != "") cat("desc: ", x@desc, "\n")
@@ -184,23 +173,6 @@ print.scenario <- function(x) {
     cat("Model:\n")
     print(x@model)
   }
-  #    if (!is.null(x@discount)) cat('Discount: ', x@discount, '\n')
-  #    if (!is.null(x@year)) {
-  #      cat('Year:\n')
-  #      print(x@year)
-  #    }
-  #    if (!is.null(x@timeslice)) {
-  #      cat('Timeslice:\n')
-  #      print(x@timeslice)
-  #    }
-  #    if (!is.null(x@repository)) {
-  #      cat('Repository:\n')
-  #      print(x@repository)
-  #    }
-  #    if (!is.null(x@result)) {
-  #      cat('result:\n')
-  #      print(x@result)
-  #    }
 }
 
 #------------------------------------------------------------------------------
@@ -255,14 +227,6 @@ print.config <- function(x) {
       cat("\n")
     }
   }
-  # for (i in c("region", "horizon")) {
-  #   if (is.null(slot(x, i))) {
-  #     # cat("There is no ", i, "\n", sep = "")
-  #   } else {
-  #     cat(i, ":\n", sep = "")
-  #     print(slot(x, i))
-  #   }
-  # }
   if_print_data_frame(x, "debug")
   if_print_data_frame(x, "discount")
   # if_print_data_frame(x, 'tax')

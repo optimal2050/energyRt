@@ -58,7 +58,7 @@ en_config_show()
 #>   neos_endpoint               "https://neos-server.org:3333"  [default]
 #>   path_builders               list()                      [default]
 #>   progress_bar                TRUE                        [default]
-#>   python_path                 "C:\Users\admin\AppData\Local\r-miniconda\env...  [config] C:\Users\admin\AppData\Roaming/R/config/R/energyRt/config.yml
+#>   python_path                 "C:/Users/admin/.conda/envs/energyrt-solve/"  [config] C:\Users\admin\AppData\Roaming/R/config/R/energyRt/config.yml
 #>   registry_file               "energyRt_registry.csv"     [default]
 #>   reports_path                "reports/"                  [default]
 #>   repositories_path           "repositories/"             [default]

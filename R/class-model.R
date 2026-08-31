@@ -65,7 +65,6 @@ setMethod("initialize", "model", function(.Object, ...) {
 #'   )
 #' }
 newModel <- function(name = "", desc = "", ...) {
-  # browser()
   # mdl <- .data2slots("model", name,
   #                    ignore_args = unique(c(config_slots, horizon_slots)),
   #                    ignore_classes = "repository", ...)
@@ -77,7 +76,6 @@ newModel <- function(name = "", desc = "", ...) {
   if (is_empty(arg)) return(obj)
 
   ## flatten unnamed lists if any ####
-  # browser()
   # nn <- names(arg)
   ii <- sapply(seq_along(arg), function(i) {
     inherits(arg[[i]], "list") && names(arg)[[i]] == ""
@@ -250,7 +248,6 @@ setMethod("setHorizon", signature(obj = "model"),
   # signature(obj = "model", period = "numeric", intervals = "numeric"),
   function(obj, ...) {
     args <- list(...)
-    # browser()
     has_h <- sapply(args, function(x) inherits(x, "horizon"))
     if (any(has_h)) {
       if (sum(has_h) > 1) stop('Two or more "horizon" objects found.')
@@ -272,14 +269,12 @@ setMethod("getHorizon", signature(obj = "model"), function(obj) {
 ## [[ ####
 #' @export
 setMethod("[[", c("model", "ANY"), function(x, i) {
-  # browser()
   flatten_mod_data(x@data)[i]
   }
 )
 
 #' @export
 setMethod("[", c("model", "ANY"), function(x, i) {
-  # browser()
   flatten_mod_data(x@data)[i]
 }
 )
@@ -314,7 +309,6 @@ setMethod("names", "repository", function(x) names(x@data))
 .default_repo_name <- "default_repository"
 
 add.model <- function(obj, ..., overwrite = FALSE, repo_name = NULL) {
-  # browser()
   # cls <- c('technology', 'commodity', 'region', 'commodity',
   #          'constraint', 'costs',
   #          'stock', 'reserve',

@@ -74,7 +74,6 @@ get_slot_doc <- function(class_name = "technology",
   # returns a roxygen2 formatted string
   # slot_doc <- getSlots(class_name) |> filter(slotname == slot_name)
   df <- .classes
-  # browser()
   slot_data <- df |> filter(slotname == slot_name, 
                             class == class_name)
   if (nrow(slot_data) == 0) {
@@ -100,7 +99,6 @@ get_slot_doc <- function(class_name = "technology",
     # return one-line description
     return(slot_desc)
   }
-  # browser()
   # Check if the slot is a data.frame and contains column information
   if (slot_type == "data.frame") {
     slot_desc <- paste0(slot_desc, "\n  \\describe{\n")

@@ -167,7 +167,7 @@ scenario and model sharing a name appear once):
 ``` r
 
 get_scenarios_path()
-#> [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpMlim5W/wf"
+#> [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\Rtmp6dR5L9/wf"
 basename(scen@path)
 #> [1] "BASE-UTOPIA-s4_h24-base"
 ```
@@ -464,8 +464,7 @@ Filtering the geoscale to `R1 + R2` and interpolating drops the
 gs12 <- filter_geoscale(gs, "region", c("R1", "R2"),
                         drop_empty_geoframes = TRUE)
 scen12 <- interpolate_model(m3, "S12", gs12)
-#> spatial sample: dropping trade route TR23: R2 -> R3 (no boundary price; no stub)
-#> spatial sample: removing trade TR23 (no route inside the sample)
+#> spatial sample: kept 2 region(s); dropped 1 object(s) and 1 trade route(s) outside the sample (verbose = TRUE lists them)
 as.character(scen12@settings@region)
 #> [1] "R1" "R2"
 ```
@@ -479,8 +478,7 @@ via `boundary_prices`; routes without a price row are just dropped:
 
 bp <- data.frame(src = "R2", dst = "R3", price = 50, cap.up = 4)
 scen12p <- interpolate_model(m3, "S12P", gs12, boundary_prices = bp)
-#> spatial sample: dropping trade route TR23: R2 -> R3 (EXP_TR23_R22R3 stub added)
-#> spatial sample: removing trade TR23 (no route inside the sample)
+#> spatial sample: kept 2 region(s); dropped 1 object(s) and 1 trade route(s) outside the sample (verbose = TRUE lists them)
 grep("^EXP", as.character(scen12p@modInp@sets$expp), value = TRUE)
 #> [1] "EXP_TR23_R22R3"
 ```

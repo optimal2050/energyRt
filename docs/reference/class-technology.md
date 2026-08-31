@@ -375,10 +375,9 @@ costs, and exogenous shocks (weather factors).
 
   data.frame. Timeslice-level availability factor parameters, bounding
   activity in each timeslice relative to installed capacity. `af.up` is
-  the maximum capacity factor per timeslice (what PyPSA calls `p_max_pu`
-  and OSeMOSYS calls `CapacityFactor`); `af.lo` is a must-run floor. See
-  `afs` for timeframe-level (e.g. annual) bounds and `ceff$afc.*` for
-  per-commodity bounds.
+  the maximum capacity factor per timeslice; `af.lo` is a must-run
+  floor. See `afs` for timeframe-level (e.g. annual) bounds and
+  `ceff$afc.*` for per-commodity bounds.
 
   vintage
 
@@ -432,11 +431,10 @@ costs, and exogenous shocks (weather factors).
   data.frame. Timeframe-level availability factor constraints, bounding
   activity summed over all child timeslices of the named timeslice
   relative to installed capacity. With `timeslice = "ANNUAL"` this is
-  the annual capacity-factor bound (TIMES `NCAP_AFS`, OSeMOSYS
-  `AvailabilityFactor`), e.g. `afs.lo = 0.4` requires at least 40%
-  annual utilization. Unlike `af`, `afs` rows are not disaggregated to
-  finer timeslices; they always constrain the sum over the given
-  timeframe.
+  the annual capacity-factor bound, e.g. `afs.lo = 0.4` requires at
+  least 40% annual utilization. Unlike `af`, `afs` rows are not
+  disaggregated to finer timeslices; they always constrain the sum over
+  the given timeframe.
 
   vintage
 

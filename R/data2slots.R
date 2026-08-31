@@ -63,7 +63,6 @@
     update = !is.character(x),
     warn_nodata = TRUE) {
   # alternative names: data2class, add2slots, fit2slots, ...
-  # browser()
   if (update) {
     if (!grepl("energyRt", attr(class(x), "package"))) {
       stop("Unknown type of the object")
@@ -152,7 +151,6 @@
             slot(obj, s)[nn, ] <- NA
             for (i in names(dat)) {
               # fill-in the data by columns !!! Check ANNUAL/HOUR
-              # browser()
               if (is.factor(slot(obj, s)[, i, drop = FALSE]) ||
                   is.factor(dat[[i]])) {
                 # coerce factors to characters

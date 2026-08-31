@@ -107,22 +107,6 @@
 #' plot(horizons$Y2020_2060_by_5)
 "horizons"
 
-# tsl_sets <- list(
-#   d365 = list(
-#     YDAY = paste0("d", formatC(1:365, width = 3, flag = "0"))),
-#   d366 = list(
-#     YDAY = paste0("d", formatC(1:366, width = 3, flag = "0"))),
-#   d365_h24 = list(
-#     YDAY = paste0("d", formatC(1:365, width = 3, flag = "0")),
-#     HOUR = paste0("h", formatC(0:23, width = 2, flag = "0"))),
-#   d366_h24 = list(
-#     YDAY = paste0("d", formatC(1:366, width = 3, flag = "0")),
-#     HOUR = paste0("h", formatC(0:23, width = 2, flag = "0"))),
-#   m12_h24 = list(
-#     MONTH = paste0("d", formatC(1:12, width = 3, flag = "0")),
-#     HOUR = paste0("h", formatC(0:23, width = 2, flag = "0")))
-# )
-# save(tsl, file = "data/tsl_sets.RData")
 
 
 #' @title Convert date-time objects to time-timeslice
@@ -212,7 +196,6 @@ if (F) {
 #' tsl2dtm(tsl[3:4], year = 1900)
 tsl2dtm <- function(tsl, format = tsl_guess_format(tsl), tmz = "UTC",
                     year = NULL, mday = NULL) {
-  # browser()
   if (is.null(format)) {
     return(NULL)
   }
@@ -277,7 +260,6 @@ tsl2dtm <- function(tsl, format = tsl_guess_format(tsl), tmz = "UTC",
 #' tsl <- c("y2007_d365_h15", NA, "d151_h22", "d001", "m10_h12")
 #' tsl2year(tsl)
 tsl2year <- function(tsl, return.null = TRUE) {
-  # browser()
   # library(stringr)
   y <- NULL
   y <- str_extract(tsl, "y[0-9]++")
@@ -357,7 +339,6 @@ tsl2hour <- function(tsl, return.null = TRUE, pattern = "h[0-9]++") {
 #' tsl2month(c("d001_h00", "d151_h22", "d365_h23"))
 #' tsl2month(c("m01_h12", "m05_h02", "m10_h01"))
 tsl2month <- function(tsl, format = tsl_guess_format(tsl), return.null = TRUE) {
-  # browser()
   if (grepl("m[0-9]+", format)) { # has month
     m <- str_extract(tsl, "m[0-9]+")
     if (return.null) {
@@ -399,7 +380,6 @@ tsl2month <- function(tsl, format = tsl_guess_format(tsl), return.null = TRUE) {
 #' tsl_guess_format(tsl[4])
 #' tsl_guess_format(tsl[5])
 tsl_guess_format <- function(tsl) {
-  # browser()
   y <- grepl("y[0-9]+", tsl)
   ny <- sum(y, na.rm = TRUE)
   m <- grepl("m[0-9]+", tsl)

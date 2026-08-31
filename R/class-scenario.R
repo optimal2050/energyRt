@@ -102,7 +102,6 @@ newScenario <- function(
 # summary <- function(...) UseMethod("summary")
 
 summary.scenario <- function(object, ...) {
-  # browser()
   scen <- object
   cat("Scenario:", scen@name, "\n")
   cat("desc:", scen@desc, "\n")
@@ -112,7 +111,6 @@ summary.scenario <- function(object, ...) {
   if (scen@status$interpolated) {
     if (!is.null(scen@modOut) && scen@modOut@stage == "solved") {
       cat("Solution status: ", ifelse(scen@status$optimal, "", "NOT "), "optimal\n", sep = "")
-      # browser()
       vObj <- getData(scen, "vObjective", merge = TRUE)
       cat("vObjective: ", vObj$value, "\n")
       # `vDummyCost` has never existed -- the variables are `vDummyImportCost`
@@ -168,7 +166,6 @@ setMethod("setHorizon", signature(obj = "scenario"),
   function(obj, ...) {
     args <- list(...)
     has_h <- sapply(args, function(x) inherits(x, "horizon"))
-    # browser()
     if (any(has_h)) {
       if (sum(has_h) > 1) stop("Only one horizon object is allowed.")
       obj@settings@horizon <- args[[which(has_h)]]
@@ -183,39 +180,13 @@ setMethod("setHorizon", signature(obj = "scenario"),
   }
 )
 
-# @export
-# setMethod(
-#   "setHorizon",
-#   signature(obj = "scenario", horizon = "horizon"),
-#   function(obj, horizon) {
-#     # obj@model <- setHorizon(obj@model, period, intervals)
-#     browser()
-#     obj
-#   }
-# )
 
 #' @export
 setMethod("getHorizon", signature(obj = "scenario"), function(obj) {
   # getHorizon(obj@model)
   obj@settings@horizon
-  # browser()
 })
 
-# .modelCode <- list(
-#   GAMS = readLines("gams/energyRt.gms"),
-#   JuMP = readLines("julia/energyRt.jl"),
-#   JuMPOutput = readLines("julia/energyRtOutput.jl"),
-#   PYOMOConcrete = readLines("pyomo/energyRtConcrete.py"),
-#   PYOMOConcreteOutput = readLines("pyomo/energyRtConcreteOutput.py"),
-#   PYOMOAbstract = readLines("pyomo/energyRtAbstract.py"),
-#   PYOMOAbstractOutput = readLines("pyomo/energyRtAbstractOutput.py"),
-#   GLPK = readLines("glpk/energyRt.mod"),
-#   GAMS_output = readLines("gams/output.gms"),
-#   checkGAMS = readLines("gams/check.gms"),
-#   checkJULIA = readLines("julia/check.jl"),
-#   checkPYOMO = readLines("pyomo/check.py"),
-#   checkGLPK = readLines("glpk/check.mod")
-# )
 
 # @method add scenario
 # @rdname add

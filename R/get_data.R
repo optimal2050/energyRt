@@ -47,7 +47,6 @@ findData <- function(scen,
                      dfNames = TRUE,
                      asMatrix = FALSE) {
   ll <- lt <- list()
-  # browser()
   # 1 Parameters
   ii <- dataType == "parameters"
   if (any(ii)) {
@@ -55,7 +54,6 @@ findData <- function(scen,
     # dat <- scen@modInp@parameters
     lt <- lapply(scen@modInp@parameters, function(x) {
       # if (dim(x@data)[1] > 0 || !dropEmpty) {
-      # browser()
       # cat(x@name, " ")
       qu <- get_lazy_dim_names(x, slot = "data")
       # qu <- get_lazy_data(x, slot = "data")
@@ -68,7 +66,6 @@ findData <- function(scen,
       qu
     })
   }
-  # browser()
   ll <- c(ll, lt)
 
   # 2. Variables
@@ -76,15 +73,6 @@ findData <- function(scen,
   if (any(ii)) {
     lt <- list()
     dataType <- dataType[!ii]
-    # dat <- scen@modOut@variables
-    # lt <- lapply(dat, function(x) {
-    #   if (dim(x)[1] > 0 || !dropEmpty) {
-    #     list(
-    #       dim = if (dfDim) dim(x) else NULL,
-    #       names = if (dfNames) names(x) else NULL
-    #     )
-    #   }
-    # })
     for (v in names(scen@modOut@variables)) {
       # The `variable` object itself, exactly as the parameter branch above
       # passes the `parameter`. Passing the modOut container instead returns
@@ -95,19 +83,9 @@ findData <- function(scen,
         dim = qu$dim,
         names = qu$names
       )
-      # if (dim(x)[1] > 0 || !dropEmpty) {
-      # qu <- get_lazy_data(scen@modOut, slot = "variables", element = v)
-      # if (nrow(qu) > 0 || !dropEmpty) {
-      #   lt[[v]] <- list(
-      #     dim = if (dfDim) dim(qu) else NULL,
-      #     names = if (dfNames) names(qu) else NULL
-      #   )
-      # }
-      # })
     }
     ll <- c(ll, lt)
   }
-  # browser()
   if (valueColumn) {
     ii <- sapply(ll, function(x) {
       any(grepl("^value$", x$names,
@@ -117,7 +95,6 @@ findData <- function(scen,
     ll <- ll[ii]
   }
 
-  # browser()
   if (length(setsNames_) > 0) {
     ii <- sapply(ll, function(x) {
       if (allSets) {
@@ -232,7 +209,6 @@ getData.scenario <- function(
     variants = TRUE,
     verbose = FALSE) {
   # if (name == "vObjective") browser()
-  # browser()
   arg <- list(...)
   argnam <- names(arg)
   stopifnot(!any(duplicated(argnam)))
@@ -251,7 +227,6 @@ getData.scenario <- function(
       newNames <- newNamesDefault
     }
   }
-  # browser()
   # Select scenarios, check and add names if not provided
   if (!is.list(scen)) {
     scen <- list(scen)
@@ -406,7 +381,6 @@ getData.scenario <- function(
           any(grepl(x, nflt1, ignore.case = ignore.case))
         })
         clNames <- clNames[ii]
-        # browser()
         if (length(clNames) == 0) {
           warning("Inconsistent combination of filters.")
           return(.getdata_empty(merge, asTibble))
@@ -431,7 +405,6 @@ getData.scenario <- function(
       } else {
         for (pv in pvNames) { # selected pars/vars
           if (datype == "parameters") {
-            # browser()
             dat <- get_lazy_data(scen[[s]]@modInp@parameters[[pv]],
               slot = "data"
             )
@@ -448,17 +421,8 @@ getData.scenario <- function(
                 )
               }
             }
-            # temporary. ToDo: rewrite filter-algo for lazy-data
-            # if (!is.null(scen[[sc]]@modInp@parameters[[pv]])) {
-            # if (!is.null(qu) {
-            # dat <- scen[[sc]]@modInp@parameters[[pv]]@data
-            # if (verbose) cat("   ", pv, "\n")
-            # } else {
-            # warning("Parameter '", pv, "' was not found.")
-            # }
           } else {
             # dat <- scen[[sc]]@modOut@variables[[pv]]
-            # browser()
             dat <- get_lazy_data(scen[[s]]@modOut@variables[[pv]],
               slot = "data"
             )
@@ -470,9 +434,7 @@ getData.scenario <- function(
           dim1 <- dim(dat)[1]
           if (is.null(dim1)) dim1 <- 0
           kk <- rep(TRUE, dim1)
-          # browser()
           if (length(nflt1) > 0) { # the data should be filtered
-            # browser()
             if (dim1 > 0) { # data exists
               prcl <- names(dat)
               prcl <- prcl[prcl %in% nflt1]
@@ -522,18 +484,7 @@ getData.scenario <- function(
     }
   }
 
-  ## Temporary solution for non-mileStone period data in parameters
-  # msy <- scen[[1]]@model@config@horizon@intervals$mid
-  # if (length(ll) > 0) {
-  #   for (i in 1:length(ll)) {
-  #     if (!is.null(ll[[i]]$year)) {
-  #       ii <- ll[[i]]$year %in% msy # temporary solution
-  #       if (!all(ii)) ll[[i]] <- ll[[i]][ii,] # temporary solution
-  #     }
-  #   }
-  # }
 
-  # browser()
   force_format <- function(x) {
     # converts sets-columns to strings, year to integer
     cnames <- colnames(x)
@@ -1073,7 +1024,6 @@ revalueSets <- function(x, newValues = NULL) {
   stopifnot(any(class(x) == "data.frame"))
   nnms <- names(newValues)
   xnms <- names(x)
-  # browser()
   jj <- xnms %in% nnms
   for (j in xnms[jj]) {
     x[[j]] <- plyr::revalue(x[[j]], newValues[[j]], warn_missing = FALSE)

@@ -47,37 +47,6 @@ get_julia_path <- function() {
   scen@settings@solver <- .resolve_exchange_formats(scen@settings@solver)
   run_code <- scen@settings@sourceCode[["JuMP"]]
   run_codeout <- scen@settings@sourceCode[["JuMPOutput"]]
-  # # resolving `prod` issue in JuMP/Julia. temporary solution
-  # # UPDATE: the issue can be resolved by adding 'init = 1':
-  # # prod(...; init = 1)
-  # # The addition is not is currently not automated - ToDo.
-  # # the for-loop below doesn't work for formatted Julia script
-  # for (i in grep("^[@].*prod[(]", run_code)) {
-  #   # browser() # julia code is not formatted
-  #   tx <- gsub("^[@].*prod[(]", "", run_code[i])
-  #   k <- 1
-  #   while (k != 0) {
-  #     tx <- gsub("^[^)(]*", "", tx)
-  #     if (substr(tx, 1, 1) == "(") k <- k + 1 else k <- k - 1
-  #     tx <- gsub("^[)(]", "", tx)
-  #   }
-  #   run_code[i] <- paste0(gsub(
-  #     "[*][ ]*prod[(]", "*(1 + sum(-1 + ",
-  #     substr(run_code[i], 1, nchar(run_code[i]) - nchar(tx))
-  #   ), ")", tx)
-  # }
-  # [weather-prod] VERIFIED FIXED 2026-08-19 -- the guard that used to sit here is gone.
-  # It refused any model with more than one weather factor on the same process,
-  # because an early JuMP translation could not express the product. The emitted
-  # Julia now does, and carries the explicit identity the empty case needs:
-  #
-  #   prod( pTechWeatherAfUp[...] * pWeather[...]
-  #         for wth1 in weather if (wth1, t) in mTechWeatherAfUp ; init = 1)
-  #
-  # Checked on a two-factor technology (W1 = .9/.8/.7/.6, W2 = .5/.6/.7/.8 over
-  # four seasons): GLPK and Julia/HiGHS agree on the objective to 1.0000000000.
-  # Dropping a factor would roughly double af.up and halve capacity, so the
-  # objective is a sharp test. The old text is in git history at R/write_jump.R.
   # For downsize (rename?)
   fdownsize <- names(scen@modInp@parameters)[
     sapply(scen@modInp@parameters, function(x) length(x@misc$rem_col) != 0)
@@ -140,14 +109,6 @@ get_julia_path <- function() {
   for (i in names(scen@modInp@parameters)) {
     tmp <- .get_data_slot(scen@modInp@parameters[[i]])
     colnames(tmp) <- gsub("[.]1", "p", colnames(tmp))
-    # if (!is.null(scen@modInp@parameters[[i]]@data$year)) {
-    #   scen@modInp@parameters[[i]]@data$year <-
-    #     as.character(as.integer(scen@modInp@parameters[[i]]@data$year))
-    # }
-    # if (!is.null(scen@modInp@parameters[[i]]@data$yearp)) {
-    #   scen@modInp@parameters[[i]]@data$yearp <-
-    #     as.character(as.integer(scen@modInp@parameters[[i]]@data$yearp))
-    # }
     if (scen@modInp@parameters[[i]]@type != "bounds") {
       dat[[i]] <- tmp
     } else {
@@ -158,7 +119,6 @@ get_julia_path <- function() {
       dat[[paste0(i, "Lo")]] <- select(filter(tmp, type == "lo"), -type)
     }
   }
-  # browser()
   # data.tables - > data.frames to avoid warning:
   # ┌ Warning: Conversion of RData.RExtPtr to Julia is not implemented
   # └ @ RData C:\Users\...\.julia\packages\RData\L5u8v\src\convert.jl:198
@@ -207,7 +167,6 @@ get_julia_path <- function() {
       sep = "\n", file = zz_data_julia
     )
   }
-  # browser()
   for (j in c("set", "map", "numpar", "bounds")) {
     for (i in names(scen@modInp@parameters)) {
       if (scen@modInp@parameters[[i]]@type == j) {
@@ -315,7 +274,6 @@ get_julia_path <- function() {
 # Generate Julia code, return the code as a character vector
 .toJulia <- function(obj) {
   as_numpar <- function(data, name, name2, def) {
-    # browser()
     # add here the line: sizehint!(PARAMETER, nrow(dt["PARAMETER"])
     if (ncol(obj@data) == 1) {
       return(c(
@@ -399,7 +357,6 @@ get_julia_path <- function() {
 
 .toJuliaHead <- function(obj) {
   as_numpar <- function(data, name, name2, def) {
-    # browser()
     # add here the line: sizehint!(PARAMETER, nrow(dt["PARAMETER"])
     if (ncol(obj@data) == 1) {
       return(c(
@@ -526,7 +483,6 @@ names(.alias_set) <- .set_al
 #   .fremset[x]
 # }
 .generate_loop_julia <- function(set_num, set_loop) {
-  # browser()
   # Consdition split and divet by subset
   while (!is.null(set_loop) && substr(set_loop, 1, 1) == "(" &&
          substr(set_loop, nchar(set_loop), nchar(set_loop)) == ")") {

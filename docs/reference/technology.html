@@ -21,7 +21,7 @@ documentation."><meta property="og:image" content="https://energyRt.org/logo.png
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.1.9003</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -350,7 +350,7 @@ documentation.</p>
 
 
 <dt id="arg-af">af<a class="anchor" aria-label="anchor" href="#arg-af"></a></dt>
-<dd><p>data.frame. Timeslice-level availability factor parameters, bounding activity in each timeslice relative to installed capacity. <code>af.up</code> is the maximum capacity factor per timeslice (what PyPSA calls <code>p_max_pu</code> and OSeMOSYS calls <code>CapacityFactor</code>); <code>af.lo</code> is a must-run floor. See <code>afs</code> for timeframe-level (e.g. annual) bounds and <code>ceff$afc.*</code> for per-commodity bounds.</p>
+<dd><p>data.frame. Timeslice-level availability factor parameters, bounding activity in each timeslice relative to installed capacity. <code>af.up</code> is the maximum capacity factor per timeslice; <code>af.lo</code> is a must-run floor. See <code>afs</code> for timeframe-level (e.g. annual) bounds and <code>ceff$afc.*</code> for per-commodity bounds.</p>
 <dl><dt>vintage</dt>
 <dd><p>character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
 
@@ -386,7 +386,7 @@ documentation.</p>
 
 
 <dt id="arg-afs">afs<a class="anchor" aria-label="anchor" href="#arg-afs"></a></dt>
-<dd><p>data.frame. Timeframe-level availability factor constraints, bounding activity summed over all child timeslices of the named timeslice relative to installed capacity. With <code>timeslice = "ANNUAL"</code> this is the annual capacity-factor bound (TIMES <code>NCAP_AFS</code>, OSeMOSYS <code>AvailabilityFactor</code>), e.g. <code>afs.lo = 0.4</code> requires at least 40% annual utilization. Unlike <code>af</code>, <code>afs</code> rows are not disaggregated to finer timeslices; they always constrain the sum over the given timeframe.</p>
+<dd><p>data.frame. Timeframe-level availability factor constraints, bounding activity summed over all child timeslices of the named timeslice relative to installed capacity. With <code>timeslice = "ANNUAL"</code> this is the annual capacity-factor bound, e.g. <code>afs.lo = 0.4</code> requires at least 40% annual utilization. Unlike <code>af</code>, <code>afs</code> rows are not disaggregated to finer timeslices; they always constrain the sum over the given timeframe.</p>
 <dl><dt>vintage</dt>
 <dd><p>character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
 

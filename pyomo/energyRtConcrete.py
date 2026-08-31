@@ -2640,7 +2640,7 @@ model.eqStorageEac = Constraint(
             )
             # [eac-fix] the `pStorageOutInvcost <> 0` guard was REMOVED from the summation
             # condition below. It dropped the annuity entirely when a user supplied
-            # `@invcost$eac` without `invcost` (pre-annuitised capex, e.g. a PyPSA import),
+            # `@invcost$eac` without `invcost` (pre-annuitised capex),
             # so the storage was built for FREE -- silently, with an OPTIMAL solve.
             # eqTechEac / eqTradeEac never carried it. pStorageOutEac defaults to 0, so a
             # vintage with no capital cost now contributes a zero-coefficient term instead

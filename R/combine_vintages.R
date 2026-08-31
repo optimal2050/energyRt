@@ -1,8 +1,8 @@
 # =============================================================================
 # combine_vintages() — merge per-vintage technology objects into one
 # =============================================================================
-# Workbooks and older catalogs (DEA, PyPSA technology-data) are often
-# imported as one technology object PER vintage year (FDAC_S_VIN2030,
+# Workbooks and technology catalogs are often imported as one technology
+# object PER vintage year (FDAC_S_VIN2030,
 # FDAC_S_VIN2040, ...). The vintage machinery makes that one object with a
 # `@vintage` table and vintage-keyed parameter rows; this is the
 # combinator that gets you there from the per-vintage list.

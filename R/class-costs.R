@@ -79,7 +79,6 @@ newCosts <- function(
     subset = NULL,
     misc = NULL
     ) {
-  # browser()
   obj <- new("costs")
   obj@name <- name
   obj@desc <- desc
@@ -179,7 +178,6 @@ newCosts <- function(
 ## internal functions ####
 # Check if the constraint needs additional set(s), add if needed
 .getCostEquation <- function(prec, stm, approxim) {
-  # browser()
   stop.constr <- function(x) {
     stop(paste0('Cost "', stm@name, '" error: ', x))
   }
@@ -199,7 +197,6 @@ newCosts <- function(
   }
   # Generate mult
   if (nrow(stm@mult) != 0) {
-    # browser()
     approxim2 <- approxim[
       unique(c(colnames(stm@mult)[colnames(stm@mult) %in% names(approxim)],
                "fullsets", "solver", "year"))]

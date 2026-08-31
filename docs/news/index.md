@@ -302,6 +302,13 @@
   Pyomo honours parquet on both legs; Julia refuses it at write time.
 - Tables with no rows are no longer written — on a UTOPIA-size model
   roughly two thirds of the tables are empty.
+- [`obj2mem()`](https://energyRt.org/reference/obj2mem.md) is quiet by
+  default and reports a progress bar instead of one path per table;
+  `verbose` is now passed down the recursion, so a top-level
+  `verbose = FALSE` is no longer lost on nested objects.
+- [`subset_model_regions()`](https://energyRt.org/reference/subset_model_regions.md)
+  reports one summary line — regions kept, objects and routes dropped —
+  instead of a message per item; `verbose = TRUE` lists them.
 - Interpolation no longer re-deduplicates a parameter’s whole table on
   every object that writes to it, making that stage linear rather than
   quadratic. On a 6-region full-year model (53M rows) the object stage

@@ -106,15 +106,10 @@ get_weather <- function(obj) {
 
 # Guard: error if a weather profile referenced by name has no object behind it.
 #
-# Nothing else reconciles the two. `collect_set_elements()` builds the `weather`
-# set from the REFERENCES, not from the declared objects, so a dangling name
-# enters the set, contributes no `pWeather` rows, and the availability link it
-# was meant to impose disappears entirely -- the process runs unconstrained.
-# On a one-technology wind model that is capacity 40 instead of 200 and an
-# objective of 1,333.3 instead of 6,666.7, with no error and no warning.
-#
-# This mirrors `.check_declared_regions()`; regions and commodities are already
-# guarded, weather was the gap.
+# `collect_set_elements()` builds the `weather` set from the REFERENCES, not
+# from the declared objects, so a dangling name enters the set, contributes no
+# `pWeather` rows, and the availability limit it carries is dropped without
+# error -- the process then runs unconstrained.
 .check_declared_objects <- function(model) {
   declared <- character(0)
   used <- list()
@@ -156,9 +151,8 @@ get_weather <- function(obj) {
 # `@input` / `@output`, and a model with the same groups declared and undeclared
 # gives an identical answer -- so membership, not declaration, is what can be
 # checked. A `geff` row for an empty group builds a group-efficiency constraint
-# over no commodities, which makes the problem INFEASIBLE rather than wrong. It
-# is loud but undiagnosable: the solver reports only "PROBLEM HAS NO PRIMAL
-# FEASIBLE SOLUTION", with nothing to connect it back to the typo.
+# over no commodities, making the problem infeasible; the solver reports only
+# "PROBLEM HAS NO PRIMAL FEASIBLE SOLUTION", which does not name the group.
 .check_group_members <- function(model) {
   bad <- list()
   for (rp in model@data) {
@@ -218,9 +212,8 @@ get_weather <- function(obj) {
 # That is the intended convention (`invcost` is what each endpoint bears), but it
 # has two edges a user cannot see:
 #
-#   * an UNREGIONED row broadcasts to every endpoint, so a two-endpoint corridor
-#     is charged twice -- measured: fixom 1 on a 100/80/0 fleet costs 360, not
-#     180;
+#   * an UNREGIONED row broadcasts to every endpoint, so a two-endpoint
+#     corridor is charged twice;
 #   * a COARSER geoscale level is charged ONCE at that cell -- not at each
 #     child -- which is usually what a national cost datum means, but is a
 #     different number from naming the children individually.

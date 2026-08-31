@@ -16,7 +16,7 @@
 # Representation note: start/end/olife are ordinary keyed slot columns --
 # collected by (vintage, region, cluster) like any other slot, with the
 # universal broadcast rule (an NA key applies to all members; a specific
-# row overrides the broadcast) [user ruling 2026-08-13]. An NA in a VALUE
+# row overrides the broadcast). An NA in a VALUE
 # column simply means "not specified by this row", so a global `start`
 # row can sit beside per-region `olife` rows without materialising the
 # global value per region. Reads go through `.lifespan_col()` (keys kept)

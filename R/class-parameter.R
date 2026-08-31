@@ -123,22 +123,6 @@ setMethod("initialize", signature = "parameter",
     if (!is.null(check)) .Object@check <- check
     .Object@defVal <- defVal
     .Object@interpolation <- interpolation
-    # .Object@inClass$class <- cls
-    # .Object@inClass$slot <- slot
-    # make @data
-    # data <- data.frame(
-    #   tech = character(), techp = character(), sup = character(),
-    #   weather = character(), dem = character(),
-    #   acomm = character(), comm = character(), commp = character(),
-    #   group = character(), region = character(), regionp = character(),
-    #   src = character(), dst = character(),
-    #   year = integer(), yearp = numeric(), timeslicep = character(),
-    #   timeslice = character(), stg = character(),
-    #   expp = character(), imp = character(), trade = character(),
-    #   type = factor(levels = c("lo", "up")),
-    #   value = numeric(), stringsAsFactors = FALSE
-    # )
-    # dimSets <- .Object@dimSets
     data <- as.data.frame(array(character(), c(0, length(.dimSets)),
                                 dimnames = list(character(), .dimSets)),
                           stringsAsFactors = FALSE)
@@ -147,7 +131,6 @@ setMethod("initialize", signature = "parameter",
     data$year <- integer()
     data$yearp <- integer()
     # data <- as_tibble(data)
-    # browser()
 
     if (type == "bounds") dimSets <- c(dimSets, "type")
     if (any(type == c("numpar", "bounds"))) dimSets <- c(dimSets, "value")
@@ -220,10 +203,8 @@ setMethod(
     # if (!is.data.table(data)) browser() # DEBUG
     if (!is.data.table(data)) { # DEBUG
       # warning("\nDEBUG info: class ", class(data), " in ", obj@name, "@data\n")
-      # browser()
     }
     # if (obj@name == "ordYear") browser() # DEBUG
-    # browser()
     if (nrow(data) > 0) {
       if (ncol(data) != ncol(obj@data) ||
         any(sort(colnames(data)) != sort(colnames(obj@data)))) {
@@ -270,7 +251,6 @@ setMethod(
 setMethod(
   ".dat2par", signature(obj = "parameter", data = "character"),
   function(obj, data) {
-    # browser()
     if (obj@type != "set") {
       message("Error: ", obj@name, " parameter:")
       print(head(data))
@@ -288,7 +268,6 @@ setMethod(
     # !!! rewrite with dplyr or data.table
     # nn <- nrow(obj@data) + 1:length(data)
     # obj@data[nn, ] <- data
-    # browser()
     obj@data <- rbindlist(list(as.data.table(obj@data), as.data.table(data)),
                           use.names = FALSE)
     if (ncol(obj@data) != 1) browser()
@@ -301,7 +280,6 @@ setMethod(
 setMethod(
   ".dat2par", signature(obj = "parameter", data = "numeric"),
   function(obj, data) {
-    # browser()
     if (obj@type != "set") {
       stop("Set type of parameter is expected for the numeric data. \n",
            "Parameter: ", obj@name, ", data: ", head(data), "...")
@@ -341,7 +319,6 @@ setMethod(
 # setMethod('.drop_set_value', signature(obj = 'parameter', dimSets = "character", value = "character"),
 .drop_set_value <- function(obj, dimSets, value) {
   # !!! better name? value -> ? dimSets -> dimSet?
-  # browser()
   if (length(dimSets) != 1 || all(dimSets != obj@dimSets)) {
     stop(
       "Inconsistent sets in parameter ", obj@name,

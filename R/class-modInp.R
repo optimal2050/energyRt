@@ -45,7 +45,6 @@ setClass(
 #' @param modInp an uninitialized (created by "new", empty) model input class object.
 #' @noRd
 setMethod("initialize", "modInp", function(.Object) {
-  # browser()
   # x <- .Object@parameters
   x <- list()
   # .dimSets <- c("horizon", .dimSets) |> unique() #!!! test
@@ -56,7 +55,6 @@ setMethod("initialize", "modInp", function(.Object) {
     # if (nm == "DEBUG") browser() # DEBUG
     # if (nm == "pTechRet") browser() # DEBUG
     if (ob[[i]]$type == "set") {
-      # browser()
       x[[nm]] <- newSet(nm)
     } else if (ob[[i]]$type == "map") {
       x[[nm]] <- newParameter(
@@ -79,7 +77,6 @@ setMethod("initialize", "modInp", function(.Object) {
       )
     }
   }
-  # browser()
   .Object@parameters <- x
   return(.Object)
 })
@@ -193,7 +190,6 @@ setMethod("initialize", "modInp", function(.Object) {
     if (is.null(sets)) {
       sets <- tmp
     } else {
-      # browser()
       sets <- merge0(sets, tmp)
     }
   }
@@ -222,7 +218,6 @@ setMethod("initialize", "modInp", function(.Object) {
   tmp <- .get_default_values(modInp, name, drop.unused.values)
   # tmp$value <- 0
   dtt <- .get_data_slot(modInp@parameters[[name]])
-  # browser()
   if (!is.null(tmp)) {
     if (use.dplyr) {
       cols <- colnames(dtt)

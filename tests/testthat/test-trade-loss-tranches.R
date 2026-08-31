@@ -14,7 +14,7 @@
 #     lambda_t = loss_full * (alpha_{t-1} + alpha_t),   teff_t = 1 - lambda_t
 # which is the SECANT slope across the tranche -- so the fit is exact at every
 # breakpoint and overestimates in between (a chord of a convex function lies
-# above it). PyPSA's tangent envelope errs the other way; neither is "more
+# above it). A tangent envelope errs the other way; neither is "more
 # correct" at the same segment count.
 # =========================================================================== #
 
@@ -153,7 +153,7 @@ test_that("the loss curve is EXACT at every breakpoint", {
 
   # BETWEEN breakpoints the secant lies ABOVE the quadratic, so the model
   # overestimates losses. That is the honest direction of the error and the
-  # opposite of PyPSA's tangent envelope; it is not a defect to be "fixed".
+  # opposite of a tangent envelope; it is not a defect to be "fixed".
   s <- sent(20, "lt5")
   expect_gt(s - 20, 0.0004 * s^2)
 })
@@ -162,8 +162,8 @@ test_that("tranche loss rates are invariant under parallel expansion", {
   skip_if_no_solver()
   # A second circuit halves r and doubles F, so `loss_full = r*F` is unchanged
   # and the SAME tranche efficiencies apply. This is what lets losses work when
-  # capacity is a decision, with no outer loop -- PyPSA's tangent formulation
-  # cannot do it because its tangent points are absolute.
+  # capacity is a decision, with no outer loop; a formulation with absolute
+  # breakpoints cannot do it.
   tr1 <- lossTranches(c(0.5, 0.5), loss = 0.04, fix = 100)
   tr2 <- lossTranches(c(0.5, 0.5), loss = 0.04, fix = 200)   # r halved, F doubled
   expect_equal(tr1$trade$teff, tr2$trade$teff)

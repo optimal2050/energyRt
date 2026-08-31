@@ -37,75 +37,15 @@ write_sc <- function(x, solver.dir = NULL, solver = NULL, ...) {
 # @export
 # setMethod("write", signature(x = "scenario"), definition = write_script)
 
-# @family write scenario
-# @rdname write
-# @export
-# setMethod("write", signature(x = "missing"), definition = function(...) {
-#   arg <- list(...)
-#   if (is.null(arg$obj)) {
-#     if (is.null(arg$x) | class(arg$x)[1] != "scenario") NextMethod(...)
-#   } else if (!is.null(arg$x)) {
-#     if (class(arg$x)[1] != "scenario") NextMethod(...)
-#   } else if (class(arg$obj)[1] != "scenario") {
-#     NextMethod(...)
-#   }
-#   return(do.call(write_script, arg))
-# })
 
-# @family write scenario
-# @rdname write
-# @export
-# setMethod("write", signature(x = "ANY"), definition = function(...) {
-#   browser()
-#   arg <- list(...)
-#   arg <- c(x = x, arg)
-#   if (class(x)[1] == "scenario") return(do.call(write_script, arg))
-#   return(do.call(base::write, arg))
-# })
 
 # write <- function(scen, ...) UseMethod("write")
 
-# write.model <- function(scen, ...) {
-#   message('Error:
-#   No applicable method for "write" applied to an object of class "model".
-#   Use "interpolate(model, ...)" instead to get "scenario" object,
-#   and then "write(scenario, ...)"')
-#   # stop()
-# }
-#
-#
-# write_model <- function(scen, tmp.dir = NULL, solver = NULL, ...) {
-#   message("The function is depreciated, use `write` instead")
-#   write_script(scen, tmp.dir, solver, ...)
-# }
 
 
-#### Internal functions ####
-# .write_multi_threads <- function(arg, scen, func, type) {
-#   # require(parallel)
-#   tlp <- lapply(0:(arg$n.threads - 1), function(y) {
-#     names(scen@modInp@parameters)[
-#       seq_along(scen@modInp@parameters) %% arg$n.threads == y
-#     ]
-#   })
-#   cl <- makeCluster(arg$n.threads)
-#   wrt_fun <- function(x, tlp, par, drr, func, type) {
-#     require(energyRt)
-#     for (i in tlp[[x + 1]]) {
-#       zz_data_tmp <- file(paste(drr, "/input/", i, ".", type, sep = ""), "w")
-#       cat(func(par[[i]]), sep = "\n", file = zz_data_tmp)
-#       close(zz_data_tmp)
-#     }
-#     NULL
-#   }
-#   parLapply(cl, 0:(arg$n.threads - 1), wrt_fun, tlp, scen@modInp@parameters, arg$solver.dir, func, type)
-#   stopCluster(cl)
-#   NULL
-# }
 
 .write_inc_solver <- function(scen, arg, def_inc_solver, type, templ) {
   if (!is.null(scen@settings@solver$inc_solver) && !is.null(scen@settings@solver$solver)) {
-    # browser()
     stop("have to define only one argument from scen@settings@solver$inc_solver & scen@settings@solver$solver")
   }
   if (!is.null(scen@settings@solver$solver)) {
@@ -171,7 +111,6 @@ write_sc <- function(x, solver.dir = NULL, solver = NULL, ...) {
 
   # Clean previous set data if any
   reduce.sect <- function(x, set) {
-    # browser()
     # x <- x[, set, drop = FALSE]
     if (!missing(set)) {
       x <- select(x, all_of(set)) |> relocate(all_of(set))
@@ -214,27 +153,11 @@ write_sc <- function(x, solver.dir = NULL, solver = NULL, ...) {
   colnames(map_for_comm) <- c("comm", "timeslice")
   map_for_comm <- map_for_comm[!duplicated(map_for_comm), ]
 
-  # # mCommReg ####
-  # rest <- rest + 1
-  # .interpolation_message("mCommReg", rest, interpolation_count,
-  #                        interpolation_start_time, len_name)
-  # browser()
-  # # scan all "^p"-parameters for (comm, region)
-  # allpar <- names(prec@parameters); allpar <- allpar[grepl("^p", allpar)]
-  # comreg <- lapply(prec@parameters[allpar], function(x) {
-  #   if (!all(c("comm", "region") %in% x@dimSets)) return(NULL)
-  #   select(x@data, comm, region) |> unique()
-  # }) |>
-  #   rbindlist() |>
-  #   unique()
-  # prec@parameters[["mCommReg"]] <-
-  #   .dat2par(prec@parameters[["mCommReg"]], comreg)
 
   .interpolation_message("mCommTimesliceOrParent", rest, interpolation_count,
                          interpolation_start_time, len_name)
   rest <- rest + 1
   # mCommTimesliceOrParent ####
-  # browser()
   l1 <- merge0(.get_data_slot(prec@parameters$comm),
                .get_data_slot(prec@parameters$timeslice))
   # l2 <- merge0(mCommTimeslice, mTimesliceParentChildE)[, c("comm", "timeslice", "timeslicep")]
@@ -250,97 +173,8 @@ write_sc <- function(x, solver.dir = NULL, solver = NULL, ...) {
   mCommTimesliceOrParent <- rbind(l2, l3)
   prec@parameters[["mCommTimesliceOrParent"]] <-
     .dat2par(prec@parameters[["mCommTimesliceOrParent"]], mCommTimesliceOrParent)
-  # browser()
-  # !!! Attempt to separate commodities with multi and one time frame !!!
-  # prec@parameters[["mCommTimesliceOrParent1"]] <-
-  #   .dat2par(prec@parameters[["mCommTimesliceOrParent1"]],
-  #            filter(mCommTimesliceOrParent, timeslice != timeslicep)
-  #            )
-  # cm <- unique(mCommTimesliceOrParent$comm)
-  # cm1 <- unique(prec@parameters[["mCommTimesliceOrParent1"]]@data$comm)
-  # ii <- cm %in% cm1
-  # mCommTimesliceOrParent0 <- cm[!ii]
-  # prec@parameters[["mCommTimesliceOrParent0"]] <-
-  #   .dat2par(prec@parameters[["mCommTimesliceOrParent0"]],
-  #            data.table(comm = mCommTimesliceOrParent0))
-  #  Example of use in GAMS equations:
-  # eqEmsFuelTot(comm, region, year, timeslice)$mEmsFuelTot(comm, region, year, timeslice)..
-  # vEmsFuelTot(comm, region, year, timeslice)
-  # =e=
-  #   sum(commp$(pEmissionFactor(comm, commp) > 0),
-  #       pEmissionFactor(comm, commp)
-  #       * sum(tech$mTechInpComm(tech, commp),
-  #             pTechEmisComm(tech, commp)
-  #             * (sum(timeslicep$mCommTimesliceOrParent1(comm, timeslice, timeslicep),
-  #                    vTechInp(tech, commp, region, year, timeslicep)$mTechEmsFuel(tech, comm, commp, region, year, timeslicep))
-  #                +
-  #                  vTechInp(tech, commp, region, year, timeslice)$(
-  #                    mTechEmsFuel(tech, comm, commp, region, year, timeslice)
-  #                    and
-  #                    mCommTimesliceOrParent0(commp)
-  #                  )
-  #             )
-  #       )
-  #   ) * pTimesliceWeight(timeslice);
 
-  # browser()
-  # mvTechOutS ####
-  # finish: mTechCommTimesliceTimesliceP
-  # mvTechOutS <- prec@parameters[["mvTechOut"]]@data |>
-  #   rename(timeslicep = timeslice) |>
-  #   left_join(prec@parameters[["mCommTimesliceOrParent"]]@data,
-  #             by = c("comm", "timeslicep")) |>
-  #   select(all_of(prec@parameters[["mvTechOutS"]]@dimSets)) |>
-  #   unique()
-  # prec@parameters[["mvTechOutS"]] <-
-  #   .dat2par(prec@parameters[["mvTechOutS"]], mvTechOutS)
-  #
-  # mvTechAOutS ####
-  # mvTechAOutS <- prec@parameters[["mvTechAOut"]]@data |>
-  #   rename(timeslicep = timeslice) |>
-  #   left_join(prec@parameters[["mCommTimesliceOrParent"]]@data,
-  #             by = c("comm", "timeslicep")) |>
-  #   select(all_of(prec@parameters[["mvTechAOutS"]]@dimSets)) |>
-  #   unique()
-  # prec@parameters[["mvTechAOutS"]] <-
-  #   .dat2par(prec@parameters[["mvTechAOutS"]], mvTechAOutS)
-  #
-  # # mTechCommTimesliceTimesliceP ####
-  # ! mTechCommTimesliceTimesliceP, mTechCommOutTimesliceTimesliceP, mTechCommAOutTimesliceTimesliceP
-  # ! have been dropped due to large size in models with many commodities
-  # new map for eqTechOutTot
-  # mTechCommTimesliceTimesliceP <- prec@parameters[["mTechTimeslice"]]@data |>
-  #   rename(timeslicep = timeslice) |>
-  #   left_join(mCommTimesliceOrParent, by = c("timeslicep")) |>
-  #   select(all_of(prec@parameters[["mTechCommTimesliceTimesliceP"]]@dimSets)) |>
-  #   unique()
-  # prec@parameters[["mTechCommTimesliceTimesliceP"]] <-
-  #   .dat2par(prec@parameters[["mTechCommTimesliceTimesliceP"]], mTechCommTimesliceTimesliceP)
-  # # browser()
-  #
-  # mTechCommOutTimesliceTimesliceP <- prec@parameters[["mvTechOut"]]@data |>
-  #   # bind_rows(prec@parameters[["mvTechAOut"]]@data) |>
-  #   rename(timeslicep = timeslice) |>
-  #   select(-region, -year) |> unique() |>
-  #   left_join(mCommTimesliceOrParent, by = c("comm", "timeslicep")) |>
-  #   select(all_of(prec@parameters[["mTechCommOutTimesliceTimesliceP"]]@dimSets)) |>
-  #   unique()
-  # prec@parameters[["mTechCommOutTimesliceTimesliceP"]] <-
-  #   .dat2par(prec@parameters[["mTechCommOutTimesliceTimesliceP"]],
-  #            mTechCommOutTimesliceTimesliceP)
-  #
-  # mTechCommAOutTimesliceTimesliceP <- prec@parameters[["mvTechAOut"]]@data |>
-  #   # bind_rows(prec@parameters[["mvTechAOut"]]@data) |>
-  #   rename(timeslicep = timeslice) |>
-  #   select(-region, -year) |> unique() |>
-  #   left_join(mCommTimesliceOrParent, by = c("comm", "timeslicep")) |>
-  #   select(all_of(prec@parameters[["mTechCommAOutTimesliceTimesliceP"]]@dimSets)) |>
-  #   unique()
-  # prec@parameters[["mTechCommAOutTimesliceTimesliceP"]] <-
-  #   .dat2par(prec@parameters[["mTechCommAOutTimesliceTimesliceP"]],
-  #            mTechCommAOutTimesliceTimesliceP)
 
-  # browser()
   # mTechInpCommAggTimeslice ####
   mTechInpCommAggTimeslice <- prec@parameters$mvTechInp@data |>
     select(-(any_of(c("region", "year")))) |> unique() |>
@@ -354,14 +188,6 @@ write_sc <- function(x, solver.dir = NULL, solver = NULL, ...) {
     unique()
   prec@parameters[["mTechInpCommSameTimeslice"]] <-
     .dat2par(prec@parameters[["mTechInpCommSameTimeslice"]], mTechInpCommSameTimeslice)
-  #
-  # mvTechInpCommSameTimeslice <- prec@parameters[["mvTechInp"]]@data |>
-  #   semi_join(mTechInpCommSameTimeslice,
-  #             by = c("tech", "comm"))
-  # prec@parameters[["mvTechInpCommSameTimeslice"]] <-
-  #   .dat2par(prec@parameters[["mvTechInpCommSameTimeslice"]],
-  #            mvTechInpCommSameTimeslice)
-  # rm(mTechInpCommSameTimeslice, mvTechInpCommSameTimeslice)
 
   mTechInpCommAggTimeslice <- mTechInpCommAggTimeslice |>
     filter(timeslicep != timeslice) |>
@@ -422,7 +248,6 @@ write_sc <- function(x, solver.dir = NULL, solver = NULL, ...) {
     reduce.duplicate(merge0(yy, mCommTimesliceOrParent,
                             by = c("comm", "timeslicep"))[, -2])
   }
-  # browser()
   mTechInpTot <- rbind(
     select(.get_data_slot(prec@parameters$mvTechInp), -any_of("tech")),
     select(.get_data_slot(prec@parameters$mvTechAInp), -any_of("tech"))
@@ -448,15 +273,6 @@ write_sc <- function(x, solver.dir = NULL, solver = NULL, ...) {
   prec@parameters[["mTechOutTot"]] <-
     .dat2par(prec@parameters[["mTechOutTot"]], mTechOutTot)
   rm(mTechOutTot)
-      # reduce_total_map(
-      #   reduce.sect(
-      #     rbind(.get_data_slot(prec@parameters$mvTechOut)[, -1],
-      #           .get_data_slot(prec@parameters$mvTechAOut)[, -1])
-      #     )
-      #   )
-      # )
-  # browser()
-  # mTechOutCommAggTimeslice ####
   mTechOutCommAggTimeslice <- prec@parameters$mvTechOut@data |>
     select(-(any_of(c("region", "year")))) |> unique() |>
     left_join(prec@parameters$mCommTimesliceOrParent@data,
@@ -509,7 +325,6 @@ write_sc <- function(x, solver.dir = NULL, solver = NULL, ...) {
   mTechAOutCommAgg <- mTechAOutCommAggTimeslice |>
     select(-any_of(c("timeslicep", "timeslice"))) |>
     unique()
-  # browser()
   prec@parameters[["mTechAOutCommAgg"]] <-
     .dat2par(prec@parameters[["mTechAOutCommAgg"]],
              mTechAOutCommAgg)
@@ -549,7 +364,6 @@ write_sc <- function(x, solver.dir = NULL, solver = NULL, ...) {
     inner_join(prec@parameters[["mCommReg"]]@data, by = c("comm", "region")) |>
     unique()
   # mTechEmsFuel ####
-  # browser()
   .interpolation_message("mTechEmsFuel", rest, interpolation_count,
                          interpolation_start_time, len_name)
   rest <- rest + 1
@@ -571,7 +385,6 @@ write_sc <- function(x, solver.dir = NULL, solver = NULL, ...) {
         )
       )
 
-  # browser()
   if (nrow(prec@parameters[["pTechCap"]]@data) > 0) {
     suppressMessages({
       mTechCap <- prec@parameters[["pTechCap"]]@data |>
@@ -596,7 +409,6 @@ write_sc <- function(x, solver.dir = NULL, solver = NULL, ...) {
   }
 
   if (nrow(prec@parameters[["pTechNewCap"]]@data) > 0) {
-    # browser()
     suppressMessages({
       mTechNewCap <- prec@parameters[["pTechNewCap"]]@data |>
         inner_join(prec@parameters[["mTechNew"]]@data) |>
@@ -619,7 +431,6 @@ write_sc <- function(x, solver.dir = NULL, solver = NULL, ...) {
     rm(mTechNewCapUp)
   }
 
-  # browser()
   if (nrow(prec@parameters[["pTechRet"]]@data) > 0 &&
       scen_settings@optimizeRetirement == TRUE) {
     suppressMessages({
@@ -710,7 +521,6 @@ write_sc <- function(x, solver.dir = NULL, solver = NULL, ...) {
     }
     rm(mStorageOutRetUp)
   }
-  # browser()
   # mTradeCap ####
   if (nrow(prec@parameters[["pTradeCap"]]@data) > 0) {
     suppressMessages({
@@ -734,7 +544,6 @@ write_sc <- function(x, solver.dir = NULL, solver = NULL, ...) {
     }
     rm(mTradeCapUp)
   }
-  # browser()
   #mTradeNewCap ####
   if (nrow(prec@parameters[["pTradeNewCap"]]@data) > 0) {
     suppressMessages({
@@ -758,7 +567,6 @@ write_sc <- function(x, solver.dir = NULL, solver = NULL, ...) {
     }
     rm(mTradeNewCapUp)
   }
-  # browser()
   if (nrow(prec@parameters[["pTradeRet"]]@data) > 0) {
     suppressMessages({
       mTradeRet <- prec@parameters[["pTradeRet"]]@data |>
@@ -799,7 +607,6 @@ write_sc <- function(x, solver.dir = NULL, solver = NULL, ...) {
     # x[x$value != Inf, -ncol(x)]
     x |> filter(value != Inf) |> select(-last_col())
   }
-  # browser()
   prec@parameters[["mDummyImport"]] <-
     .dat2par(prec@parameters[["mDummyImport"]], no_inf("pDummyImportCost"))
   .interpolation_message("mDummyExport", rest, interpolation_count,
@@ -1012,7 +819,6 @@ write_sc <- function(x, solver.dir = NULL, solver = NULL, ...) {
   for2Lo$timeslicep <- NULL
   for2Lo <- reduce.duplicate(for2Lo)
   # cll <- c("comm", "region", "year", "timeslice")
-  # browser()
   mOut2Lo <-
     merge0(
       reduce.duplicate(
@@ -1066,18 +872,8 @@ write_sc <- function(x, solver.dir = NULL, solver = NULL, ...) {
   )[, c("comm", "region", "year", "timeslice")]
   mInp2Lo <- mInp2Lo[!(paste0(mInp2Lo$comm, "#", mInp2Lo$timeslice) %in% paste0(mCommTimeslice$comm, "#", mCommTimeslice$timeslice)), ]
   prec@parameters[["mInp2Lo"]] <- .dat2par(prec@parameters[["mInp2Lo"]], mInp2Lo)
-  # browser()
   ##
   dregionyear <- merge0(region, year)
-  # .interpolation_message("mvTradeCost", rest, interpolation_count, interpolation_start_time, len_name)
-  # rest <- rest + 1
-  # prec@parameters[["mvTradeCost"]] <- .dat2par(prec@parameters[["mvTradeCost"]], dregionyear)
-  # .interpolation_message("mvTradeRowCost", rest, interpolation_count, interpolation_start_time, len_name)
-  # rest <- rest + 1
-  # prec@parameters[["mvTradeRowCost"]] <- .dat2par(prec@parameters[["mvTradeRowCost"]], dregionyear)
-  # .interpolation_message("mvTradeIrCost", rest, interpolation_count, interpolation_start_time, len_name)
-  # rest <- rest + 1
-  # prec@parameters[["mvTradeIrCost"]] <- .dat2par(prec@parameters[["mvTradeIrCost"]], dregionyear)
   prec@parameters[["mExportRowCost"]] <- .dat2par(
     prec@parameters[["mExportRowCost"]],
     merge(
@@ -1213,7 +1009,6 @@ write_sc <- function(x, solver.dir = NULL, solver = NULL, ...) {
       )
     }
   }
-  # browser()
   if (length(prec@user_costs) == 0) {
     prec@user_costs <-
       "eqTotalUserCosts(region, year)$mvTotalUserCosts(region, year).. vTotalUserCosts(region, year) =e= 0;"
@@ -1233,7 +1028,6 @@ write_sc <- function(x, solver.dir = NULL, solver = NULL, ...) {
     x$value <- 1
     x
   }
-  # browser()
   # mvInpTot ####
   .interpolation_message("mvInpTot", rest, interpolation_count,
                          interpolation_start_time, len_name)
@@ -1249,25 +1043,6 @@ write_sc <- function(x, solver.dir = NULL, solver = NULL, ...) {
   )
   mvInpTot <- mvInpTot[!duplicated(mvInpTot), ]
   mvInpTot <- merge0(mvInpTot, mCommTimeslice) |> unique()
-  # if (T) { # check
-  #   # mvInpTot <-
-  #   dim_mvInpTot <- mvInpTot |>
-  #     inner_join(prec@parameters$mCommReg@data, by = c("comm", "region")) |>
-  #     unique() |> dim()
-  #   if (!all(dim_mvInpTot == dim(mvInpTot))) {
-  #    if (F) browser() # Debug
-  #     x <- merge0(dregionyear, mCommTimeslice) |>
-  #       inner_join(prec@parameters$mCommReg@data, by = c("comm", "region")) |>
-  #       unique()
-  #     browser()
-  #     suppressMessages({
-  #       y <- anti_join(x, mvBalance)
-  #     })
-  #     yc <- y$comm |> unique()
-  #     warning("Dropped commodities: ", paste(yc, collapse = ", ", sep = ""))
-  #     rm(x, y, yc)
-  #   }
-  # }
   prec@parameters[["mvInpTot"]] <-
     .dat2par(prec@parameters[["mvInpTot"]], mvInpTot)
   # rm(mvInpTot)
@@ -1394,19 +1169,6 @@ write_sc <- function(x, solver.dir = NULL, solver = NULL, ...) {
       .dat2par(prec@parameters[["mAggregateFactor"]], tmp)
   }
   cat(bacs, paste0(rep(" ", len_name), collapse = ""), bacs)
-  # mvOutTot |>
-  #   filter(comm %in% prec@parameters[["mAggregateFactor"]]@data$comm.1) |>
-  #   arrange(comm, year) |>
-  #   left_join(prec@parameters[["mCommTimeslice"]]@data, by = c("comm", "timeslice")) |>
-  # if (T) { # check
-  #   # mvOutTot <-
-  #   dim_mvOutTot <- mvOutTot |>
-  #     inner_join(prec@parameters$mCommReg@data, by = c("comm", "region")) |>
-  #     unique() |> dim()
-  #   if (!all(dim_mvOutTot == dim(
-  #     filter(mvOutTot, !(comm %in% prec@parameters$mAggregateFactor@data$comm))
-  #     ))) browser() # Debug
-  # }
   mOutTotRY <- mvOutTot |> select(-timeslice) |> unique()
   prec@parameters[["mOutTotRY"]] <-
     .dat2par(prec@parameters[["mOutTotRY"]], mOutTotRY)
@@ -1414,7 +1176,6 @@ write_sc <- function(x, solver.dir = NULL, solver = NULL, ...) {
   prec
 }
 
-# browser()
 
 
 # Sets, parameters, + to use in write_* and interpolation functions ####

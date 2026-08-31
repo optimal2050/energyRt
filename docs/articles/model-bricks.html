@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.1.9003</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -387,14 +387,13 @@ the convention <em>UTOPIA I</em> uses.</li>
 (retirement). Availability factors <code>af</code>/<code>afs</code>
 bound activity within capacity: <code>af.up</code> caps activity in
 <em>each</em> timeslice as a fraction of capacity — a maximum capacity
-factor per slice (PyPSA’s <code>p_max_pu</code>), with
-<code>af.lo</code> as a must-run floor — while <code>afs</code> bounds
-activity <em>summed over a timeframe</em>, so <code>afs</code> with
-<code>timeslice = "ANNUAL"</code> is the annual capacity-factor bound
-(e.g. <code>afs.lo = 0.4</code> forces at least 40% annual utilization).
-A third variant, <code>afc.*</code> in the <code>ceff</code> slot,
-applies the same capacity-relative bound to an individual commodity flow
-instead of total activity.</li>
+factor per slice, with <code>af.lo</code> as a must-run floor — while
+<code>afs</code> bounds activity <em>summed over a timeframe</em>, so
+<code>afs</code> with <code>timeslice = "ANNUAL"</code> is the annual
+capacity-factor bound (e.g. <code>afs.lo = 0.4</code> forces at least
+40% annual utilization). A third variant, <code>afc.*</code> in the
+<code>ceff</code> slot, applies the same capacity-relative bound to an
+individual commodity flow instead of total activity.</li>
 </ul>
 <div class="section level5">
 <h5 id="capacity-in-input-vs--output-units">Capacity in input vs. output units<a class="anchor" aria-label="anchor" href="#capacity-in-input-vs--output-units"></a>

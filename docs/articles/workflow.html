@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.1.9003</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -242,7 +242,7 @@ valid names cannot contain; duplicate parts are dropped, so a scenario
 and model sharing a name appear once):</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/scenarios_path.html">get_scenarios_path</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpMlim5W/wf"</span></span>
+<span><span class="co">#&gt; [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\Rtmp6dR5L9/wf"</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename</a></span><span class="op">(</span><span class="va">scen</span><span class="op">@</span><span class="va">path</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "BASE-UTOPIA-s4_h24-base"</span></span></code></pre></div>
 <p>Saving a scenario writes an <strong>Arrow-backed</strong> folder that
@@ -482,8 +482,7 @@ drops the <code>R2 -&gt; R3</code> route on the way:</p>
 <code class="sourceCode R"><span><span class="va">gs12</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://optimal2050.github.io/geoscales/r/reference/filter_geoscale.html" class="external-link">filter_geoscale</a></span><span class="op">(</span><span class="va">gs</span>, <span class="st">"region"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"R1"</span>, <span class="st">"R2"</span><span class="op">)</span>,</span>
 <span>                        drop_empty_geoframes <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="va">scen12</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">m3</span>, <span class="st">"S12"</span>, <span class="va">gs12</span><span class="op">)</span></span>
-<span><span class="co">#&gt; spatial sample: dropping trade route TR23: R2 -&gt; R3 (no boundary price; no stub)</span></span>
-<span><span class="co">#&gt; spatial sample: removing trade TR23 (no route inside the sample)</span></span>
+<span><span class="co">#&gt; spatial sample: kept 2 region(s); dropped 1 object(s) and 1 trade route(s) outside the sample (verbose = TRUE lists them)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">scen12</span><span class="op">@</span><span class="va">settings</span><span class="op">@</span><span class="va">region</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "R1" "R2"</span></span></code></pre></div>
 <p>A dropped route can optionally leave a <strong>priced boundary
@@ -495,8 +494,7 @@ dropped:</p>
 <div class="sourceCode" id="cb23"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">bp</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>src <span class="op">=</span> <span class="st">"R2"</span>, dst <span class="op">=</span> <span class="st">"R3"</span>, price <span class="op">=</span> <span class="fl">50</span>, cap.up <span class="op">=</span> <span class="fl">4</span><span class="op">)</span></span>
 <span><span class="va">scen12p</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">m3</span>, <span class="st">"S12P"</span>, <span class="va">gs12</span>, boundary_prices <span class="op">=</span> <span class="va">bp</span><span class="op">)</span></span>
-<span><span class="co">#&gt; spatial sample: dropping trade route TR23: R2 -&gt; R3 (EXP_TR23_R22R3 stub added)</span></span>
-<span><span class="co">#&gt; spatial sample: removing trade TR23 (no route inside the sample)</span></span>
+<span><span class="co">#&gt; spatial sample: kept 2 region(s); dropped 1 object(s) and 1 trade route(s) outside the sample (verbose = TRUE lists them)</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/grep.html" class="external-link">grep</a></span><span class="op">(</span><span class="st">"^EXP"</span>, <span class="fu"><a href="https://rdrr.io/r/base/character.html" class="external-link">as.character</a></span><span class="op">(</span><span class="va">scen12p</span><span class="op">@</span><span class="va">modInp</span><span class="op">@</span><span class="va">sets</span><span class="op">$</span><span class="va">expp</span><span class="op">)</span>, value <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "EXP_TR23_R22R3"</span></span></code></pre></div>
 <p>The same surgery is available up front, as a model-to-model verb:</p>

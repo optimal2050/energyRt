@@ -72,7 +72,6 @@ newRepository <- function(
     desc = NA_character_,
     misc = list()
     ) {
-  # browser()
   obj <- new("repository")
   .assert_object_name(name, what = "repository")
   obj@name <- name
@@ -97,28 +96,6 @@ if (F) {
   newRepository("repo", ELC, GAS, ECOA, TRBD_ELC) |> print()
 
 }
-  # nn <- rep(FALSE, length(arg)) # imported args
-  # for (i in seq_along(arg)) {
-  #   if (class(arg[[i]])[1] %in% obj@permit) {
-  #     obj <- add(obj, arg[[i]]); nn[[i]] <- TRUE
-  #   }
-  # }
-  # arg <- arg[!nn]
-  # N <- length(arg)
-  # if (!is_empty(arg)) warning("Ignored ", N, "objects: ",
-  #                             paste(head(names(arg), 100), sep = ", "),
-  #                             ifelse(N > 100, "...", "."))
-  # obj <- do.call(add, list(obj = obj, unlist(arg)))
-  # return(obj)
-  # old script
-  # in_rep <- c("commodity", "technology", "supply", "demand", "trade",
-  #             "import", "export", "trade", "storage")
-  # rps <- .data2slots("repository", name, ignore_classes = in_rep, ...)
-  # arg <- list(...)
-  # arg <- arg[sapply(arg, class) %in% in_rep]
-  # if (length(arg) > 0) rps <- add(rps, arg)
-  # rps
-# }
 
 
 # Methods ####
@@ -206,7 +183,6 @@ setMethod("summary", signature(object = "repository"), function(object, ...) {
 #' @family repository
 #' @export
 setMethod("add", signature("repository"), function(obj, ..., overwrite = FALSE) {
-  # browser()
   arg = list(...) |> unlist()
   if (is_empty(arg)) return(obj)
   arg <- sapply(arg, function(x) {
@@ -239,17 +215,6 @@ setMethod("add", signature("repository"), function(obj, ..., overwrite = FALSE) 
 #                  }
 # )
 
-# setMethod("add", "repository", add.repository)
-# setGeneric("newRepository", function(name, ...) standardGeneric("newRepository"))
-#
-# setMethod("newRepository", signature(name = "character"), function(name, ...) {
-#   in_rep <- c("commodity", "technology", "supply", "demand", "trade", "import", "export", "trade", "storage")
-#   rps <- .data2slots("repository", name, ignore_classes = in_rep, ...)
-#   arg <- list(...)
-#   arg <- arg[sapply(arg, class) %in% in_rep]
-#   if (length(arg) > 0) rps <- add(rps, arg)
-#   rps
-# })
 
 # setMethod("add", signature("repository", "commodity"), function())
 
@@ -261,46 +226,3 @@ setMethod("add", signature("repository"), function(obj, ..., overwrite = FALSE) 
 
 # add <- function(...) UseMethod("add")
 
-# @rdname add
-#
-# @export
-# @family repository
-# add.repository <- function(obj, app, ..., overwrite = FALSE) {
-#   if (length(list(...)) != 0) {
-#     obj <- add(obj, app, overwrite = overwrite)
-#     arg <- list(...)
-#     for (i in seq(along = arg)) {
-#       obj <- add(obj, arg[[i]], overwrite = overwrite)
-#     }
-#   } else if (class(app) == "repository") {
-#     for (i in seq(along = app@data)) {
-#       obj <- add(obj, app@data[[i]], overwrite = overwrite)
-#     }
-#   } else if (class(app) == "list") {
-#     for (i in seq(along = app)) {
-#       obj <- add(obj, app[[i]], overwrite = overwrite)
-#     }
-#   } else {
-#     # if (class(add) != tolower(sub('^.', '', class(x)))) stop('Error type to repository')
-#     if (all(class(app) != c(
-#       # "region", "commodity", "stock", "reserve",
-#       "commodity", "demand", "supply", "technology", "storage",
-#       "trade", "export", "import", "weather",
-#       "tax", "subsidy", "constraint", "costs"
-#     ))) {
-#       stop("Error type to repository ", class(app))
-#     }
-#     if (app@name == "" ||
-#       any(sapply(obj@data, function(z) app@name == z@name & class(app) == class(z)))) {
-#       if (app@name == "" || !overwrite) stop("Check name of the object")
-#       obj@data <-
-#         obj@data[!sapply(obj@data, function(z) app@name == z@name & class(app) == class(z))]
-#     }
-#     if (sub("[[:alpha:]][[:alnum:]_]*", "", app@name) != "") {
-#       stop("Check name of the object")
-#     }
-#     # mx <- c(names(x@data), add@name)
-#     obj@data[[app@name]] <- app
-#   }
-#   obj
-# }

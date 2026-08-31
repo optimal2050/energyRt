@@ -25,8 +25,8 @@
 # the tree path between its endpoints. Constraining a basis constrains every
 # cycle, because every cycle is a sum of basis cycles.
 #
-# NOTE ON HONESTY. This closes the gap to power-system models like PyPSA -- it
-# does not close the gap to reality. Linearised DC power flow assumes flat
+# SCOPE. KVL narrows the gap to a power-flow formulation, not to reality.
+# Linearised DC power flow assumes flat
 # voltage, small angle differences and no reactive power, and is lossless by
 # construction; `teff` then bolts on a FIXED loss fraction where the physics is
 # quadratic. Non-linear AC formulations outperform all of this. What KVL buys
@@ -94,9 +94,9 @@ newACLine <- function(name, commodity, from, to, reactance,
 #'
 #' @details
 #' A DC link's flow is a control decision, which is what a transport model
-#' represents natively, so this constructor adds no physics: it exists so that a
-#' network reads as what it is, and so that a translation from a power-system
-#' model maps one-to-one (PyPSA's `Line` to [newACLine()], its `Link` to this).
+#' represents natively, so this constructor adds no physics: it exists so that
+#' a network reads as what it is, with AC lines built by [newACLine()] and DC
+#' links by this.
 #'
 #' A DC link carries NO reactance and is therefore never part of the KVL cycle
 #' basis, however the model is interpolated. `resistance` is recorded for

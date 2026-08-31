@@ -240,7 +240,6 @@ newConstraint <- function(
     )
   }
   obj@eq[] <- eq
-  # browser()
   if (is.null(defVal)) {
     warning("It is advisable to define 'defVal' parameter.")
     if (eq == "==") {
@@ -276,26 +275,6 @@ newConstraint <- function(
     if (is.na(defVal)) defVal <- rhs[1, 1]
     rhs <- data.frame()
   }
-  # if (is.numeric(rhs)) {
-  #   if (length(rhs) != 1) {
-  #     stop("rhs must be a single numeric value or a data.frame with sets and numeric values for each constraint.")
-  #   }
-  #   if (is.na(defVal)) defVal <- rhs
-  #   rhs <- data.frame()
-  # }
-  # if (!is.data.frame(rhs) && is.list(rhs)) {
-  #   xx <- sapply(rhs, length)
-  #   if (any(xx[1] != xx)) {
-  #     stop("Length of the list elements in 'rhs' must be identical.")
-  #   }
-  #   if (xx[1] >= 1) {
-  #     xx <- data.frame(stringsAsFactors = FALSE)
-  #     xx[seq_len(length(rhs[[1]])), ] <- NA
-  #     for (i in names(rhs)) xx[[i]] <- rhs[[i]]
-  #     rhs <- xx
-  #   }
-  # }
-  # Replace zero values with 1e-20 in rhs and defVal
   if (!is.null(replace_zerros) && any(rhs$rhs == 0)) {
     # warning("Zero values in 'rhs' will be replaced with '", replace_zerros, "' to avoid ignoring them by the current interpolation algorithms. Use non-zero value to avoid auto-replacement and the warning. Use 'replace_zerros = NULL' to avoid replacement.")
     rhs[rhs == 0] <- replace_zerros
@@ -368,7 +347,6 @@ addSummand <- function(
     timeframe = NA_character_,
     geoframe = NA_character_,
     arg) {
-  # browser()
   if (!is.null(names(arg))) {
     # An unknown field used to be dropped SILENTLY -- e.g. `tech = "X"`
     # (instead of `for.sum = list(tech = "X")`) quietly turned a per-tech
@@ -432,7 +410,6 @@ addSummand <- function(
   } else {
     as.character(geoframe)[1]
   }
-  # browser()
   if (all(names(.variable_set) != variable)) {
     stop(paste0('Unknown variable "', variable, '"in summand "', eqt@name, '"'))
   }
@@ -478,16 +455,6 @@ addSummand <- function(
 
 # Calculate do equation need additional set, and add it
 .getSetEquation <- function(prec, stm, approxim) {
-  # if (grepl("THERM", stm@name)) browser()
-  # browser()
-  # if (stm@name == "CO2_CAP") browser()
-  # if (grepl("CESR_", stm@name)) browser()
-  # if (grepl("CESR_5_2030", stm@name)) browser()
-  # !!! add interpolation patch here? or in the calling function? !!!
-  # if (nrow(stm@for.each) > 0) {
-  # .interpolation0(stm@rhs, parameter = "rhs", defVal = stm@defVal,
-  #                 arg = list(approxim = approxim)
-  #                 )
 
   # temporary fix for constraints interpolation: expanding year set
   # works only for year set and if no NA values in the set
@@ -676,7 +643,6 @@ addSummand <- function(
 
   # lhs
   for (i in seq_along(stm@lhs)) {
-    # browser()
 
     need.set <- .variable_set[[stm@lhs[[i]]@variable]]
     # Position NAMES. Identical to `need.set` except for the six variables that
@@ -851,7 +817,6 @@ addSummand <- function(
     }
   }
   if (nrow(stm@for.each) > 0) {
-    # browser()
     nmn <- paste0("mCnsForEach", stm@name)
     prec@parameters[[nmn]] <- .dat2par(
       newParameter(nmn, colnames(stm@for.each), "map",
@@ -896,7 +861,6 @@ addSummand <- function(
     }
     approxim2$fullsets <- approxim$fullsets
     need.set0 <- for.each.set[for.each.set %in% colnames(stm@rhs)]
-    # browser()
     xx <- newParameter(paste0("pCnsRhs", stm@name), need.set0, "numpar",
       defVal = stm@defVal,
       # interpolation = "back.inter.forth",
@@ -905,7 +869,6 @@ addSummand <- function(
       colName = "rhs"
     )
     # !!! Similar interpolation for LHS is needed
-    # browser()
     yy <- .interp_numpar(stm@rhs, "rhs", xx, approxim2)
     n1 <- colnames(yy)[colnames(yy) != "value"]
     # yy <- yy[
@@ -1028,7 +991,6 @@ addSummand <- function(
         }
       }
       approxim2$fullsets <- approxim$fullsets
-      # browser()
       xx <- newParameter(paste0("pCnsMult", stm@name, "_", i),
         need.set,
         "numpar",

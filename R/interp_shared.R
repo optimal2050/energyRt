@@ -72,7 +72,6 @@
     "pTradeRet", "pTradeCap", "pTradeNewCap"
     # "pImportRowPrice"
   ))
-  # browser()
   msg_small_err <- NULL
   for (i in non_negative) {
     if (any(scen@modInp@parameters[[i]]@data$value < 0)) {
@@ -109,55 +108,6 @@
   }
   # Check share
   if (nrow(scen@modInp@parameters$pTechShare@data) > 0) {
-    # Share check is not working, probably unfinished migration to dplyr & data.table
-    # !!! ToDo: rewrite this function.
-    # browser()
-    # mTechGroupComm <- .get_data_slot(scen@modInp@parameters$mTechGroupComm)
-    # # scen@modInp@parameters$pTechShare@data <- merge(scen@modInp@parameters$pTechShare@data, mTechGroupComm)
-    # # if (scen@modInp@parameters$pTechShare@misc$nValues != - 1)
-    # # 		scen@modInp@parameters$pTechShare@misc$nValues <- nrow(scen@modInp@parameters$pTechShare@data)
-    # tmp <- .add_dropped_zeros(scen@modInp, "pTechShare")
-    # mTechSpan <- .get_data_slot(scen@modInp@parameters$mTechSpan)
-    # browser()
-    # tmp <- merge(tmp, mTechSpan)
-    # tmp_lo <- merge0(tmp[tmp$type == "lo", , drop = FALSE], mTechGroupComm)
-    # tmp_up <- merge0(tmp[tmp$type == "up", , drop = FALSE], mTechGroupComm)
-    # tmp_lo <- aggregate(
-    #   tmp_lo[, "value", drop = FALSE],
-    #   select(tmp_lo, -any_of(c("type", "comm", "value"))),
-    #   # tmp_lo[, !(colnames(tmp_lo) %in% c("type", "comm", "value")),
-    #   #        drop = FALSE],
-    #   sum)
-    #   tmp_up <- aggregate(
-    #   tmp_up[, "value", drop = FALSE],
-    #   tmp_up[, !(colnames(tmp_up) %in% c("type", "comm", "value")),
-    #          drop = FALSE],
-    #   sum)
-    # if (any(tmp_lo$value > 1) || any(tmp_up$value < 1)) {
-    #   tech_wrong_lo <- tmp_lo[tmp_lo$value > 1, , drop = FALSE]
-    #   tech_wrong_up <- tmp_up[tmp_up$value < 1, , drop = FALSE]
-    #   tech_wrong <- unique(c(tech_wrong_up$tech, tech_wrong_lo$tech))
-    #   assign("tech_wrong_lo", tech_wrong_lo, globalenv())
-    #   assign("tech_wrong_up", tech_wrong_up, globalenv())
-    #   stop(paste0(
-    #     "Error in share (sum of up < 1 or sum of lo > 1)",
-    #     "(see `tech_wrong_lo` and `tech_wrong_up`)",
-    #     ' for technology "', paste0(tech_wrong, collapse = '", "'), '"'
-    #   ))
-    # }
-    # fl <- colnames(tmp)[!(colnames(tmp) %in% c("type"))]
-    # tmp_cmd <- merge(tmp[tmp$type == "lo", fl, drop = FALSE],
-    #                  tmp[tmp$type == "up", fl, drop = FALSE],
-    #                  by = fl[fl != "value"])
-    # if (any(tmp_cmd$value.x > tmp_cmd$value.y)) {
-    #   tech_wrong <- tmp_cmd[tmp_cmd$value.x > tmp_cmd$value.y, , drop = FALSE]
-    #   assign("tech_wrong", tech_wrong, globalenv())
-    #   stop(paste0(
-    #     'Error in share data (tuple (tech, comm, region, year, timeslice) lo",
-    #     " share > up), see `tech_wrong`"',
-    #     paste0(unique(tech_wrong$tech), collapse = '", "'), '"'
-    #   ))
-    # }
   }
   scen
 }
@@ -216,7 +166,6 @@ interpolate_slot <- interpolate_slot <- function(
     year_seq = NULL,
     val = "value"
 ) {
-  # browser()
   if (!is.null(x$year)) {
     # year_seq = full_seq(c(x$year, year_seq), 1)
     if (is.null(year_seq)) year_seq = full_seq(x$year, 1)
@@ -246,7 +195,6 @@ interpolate_slot <- interpolate_slot <- function(
 # ---- from obj2modInp.R ----
 .add_ramp0 <- .add_ramp0 <- function(obj, name, tech, mact, approxim) {
   if (any(!is.na(tech@af[[name]]))) {
-    # browser()
     pname <- paste0(
       "p", c("technology" = "Tech", "storage" = "Storage")[class(tech)],
       c("rampup" = "RampUp", "rampdown" = "RampDown", name)[name]
@@ -267,7 +215,6 @@ interpolate_slot <- interpolate_slot <- function(
     if (ncol(mTechRampUp) != ncol(obj@parameters[[mname]]@data)) {
       mTechRampUp <- merge0(mTechRampUp, mact)
     }
-    # browser()
     # adding timeslicep (next) to the mapping
     # ramp_data <- c(tech@af$rampdown, tech@af$rampup)
     # if (!is_empty(ramp_data) && any(!is.na(ramp_data))) {
@@ -280,54 +227,13 @@ interpolate_slot <- interpolate_slot <- function(
     mTechRampUp <- left_join(mTechRampUp, TimesliceNext, by = "timeslice") |>
       select(all_of(obj@parameters[[mname]]@dimSets))
 
-    # tech_name <- tech@name
-      # mTechRampTimesliceNext <- mTechRampTimesliceNext |>
-      #   mutate(tech = tech_name, .before = 1) |>
-      #   merge0(mvTechAct) |>
-        # select(all_of(obj@parameters[["mTechRampTimesliceNext"]]@dimSets))
-      # obj@parameters[["mTechRampTimesliceNext"]] <-
-      #   .dat2par(obj@parameters[["mTechRampTimesliceNext"]], mTechRampTimesliceNext)
-    # }
-    # !!! Temporary fix: drop values beyond technology lifespan
-    # synchronizing with activity timeslices
-    # if (!is.null(pTechRampUp$region)) {
-    #   pTechRampUp <- dplyr::filter(pTechRampUp, region %in% unique(mact$region))
-    #   mTechRampUp <- dplyr::filter(mTechRampUp, region %in% unique(mact$region))
-    # }
-    # if (!is.null(pTechRampUp$year)) {
-    #   pTechRampUp <- dplyr::filter(pTechRampUp, year %in% unique(mact$year))
-    #   mTechRampUp <- dplyr::filter(mTechRampUp, year %in% unique(mact$year))
-    # }
-    # if (!is.null(pTechRampUp$timeslice)) {
-    #   pTechRampUp <- dplyr::filter(pTechRampUp, timeslice %in% unique(mact$timeslice))
-    #   mTechRampUp <- dplyr::filter(mTechRampUp, timeslice %in% unique(mact$timeslice))
-    # }
-    # !!! end
-    #
     obj@parameters[[pname]] <- .dat2par(obj@parameters[[pname]], pTechRampUp)
     obj@parameters[[mname]] <- .dat2par(obj@parameters[[mname]], mTechRampUp)
-    #
-    # browser()
-    # adding mapping for `timeslicep`
-    # "mTechRampTimesliceNext" # tech, region, year, timeslice, timeslicep
-    # if (tech@fullYear) {
-    #   x <- obj@parameters[["mTimesliceFYearNext"]]@data
-    # } else {
-    #   x <- obj@parameters[["mTimesliceNext"]]@data
-    # }
-    # tech_name <- tech@name
-    # x <- mutate(x, tech = tech_name, .before = 1) |>
-    #   merge0(mact)
-    # obj@parameters[["mTechFullYear"]]@data
-    # obj@parameters[["mTimesliceFYearNext"]]@data
-    # obj@parameters[["mTimesliceNext"]]
-    # obj@parameters[["mvTechAct"]]@data
   }
   obj
 }
 
 .filter_data_in_slots <- .filter_data_in_slots <- function(obj, lst, coln) {
-  # browser()
   # filter out
   # by INSTANCE, not by class definition: an object saved before a slot was
   # added still deserialises, and `slot()` on the missing name errors
@@ -353,7 +259,6 @@ interpolate_slot <- interpolate_slot <- function(
 
 .fix_approximation_list <- .fix_approximation_list <- function(approxim, lev = NULL, comm = NULL) {
   # better name?
-  # browser()
   if (length(lev) == 0) {
     if (length(comm) == 0) {
       stop("Internal error: 66a37cde-24e2-4ac5-ab24-b79e0f603bf7")
@@ -407,7 +312,6 @@ interpolate_slot <- interpolate_slot <- function(
 
 .null_to_empty_param <- .null_to_empty_param <- function(pname, pp) {
   # pp - podInp@parameters
-  # browser()
   # pp <- get(pp, envir = parent.frame())
   p <- get(pname, envir = parent.frame())
   if (is.null(p)) p <- pp[[pname]]@data[0, ]
@@ -534,14 +438,12 @@ merge0 <- merge0 <- function(x, y,
                    ...) {
   # assign('x', x, globalenv()) assign('y', y, globalenv())
   if (length(by) != 0) {
-    # browser()
     y <- as.data.table(y) |> .force_year_class_df()
     x <- as.data.table(x) |> .force_year_class_df()
     xy <- merge(x, y, by = by, ..., allow.cartesian = TRUE)
     # return(as.data.table(xy)) # debug pDiscountFactorMileStone
     return(xy)
   }
-  # browser()
   # y <- as.data.table(y) |> .force_year_class_df()
   # x <- as.data.table(x) |> .force_year_class_df()
   y <- .force_year_class_df(y)

@@ -18,8 +18,7 @@
 # polytope {sum(s) = 1, lo <= s <= up}, every vertex of which has at most one
 # fractional coordinate. `.levcost_share_vertices()` enumerates them all, the
 # base result takes the cost-minimal vertex, and `$frontier_vertices` reports
-# every corner (user request 2026-08-13: all corner solutions, not just the
-# minimum).
+# every corner, not only the minimum.
 #
 # Anything the closed form cannot represent is REFUSED -- never approximated
 # (no-auto-invention policy): cheap static checks live in

@@ -194,7 +194,6 @@ interpolate_model <- function(mod, name = NULL, ...,
     new_varom <- newTrade("")@varom
     for (o in repo@data) {
       if (inherits(o, "trade")) {
-        # browser()
         # !!! ToDo: modify update function to check columns
         # varom <- newTrade("")@varom |> full_join(o@varom)
         # o <- update(o, varom = varom)
@@ -482,16 +481,6 @@ interpolate_model <- function(mod, name = NULL, ...,
   # unless the user CHANGED a column relative to the baked baseline.
   scen <- .apply_settings_param_overrides(scen)
 
-  # set scenario directory and the type of solution (foresight or myopic)
-  # scen@path
-  # if (!dir.exists(scen@path)) {
-  #   # add log/message
-  #   dir.create(scen@path, recursive = TRUE)
-  # }
-  # if (!dir.exists(mi_path) && ondisk) {
-  #   # add log/message
-  #   dir.create(mi_path, recursive = TRUE)
-  # }
 
   # slotNames(mi)
   # names(mi@parameters)
@@ -761,10 +750,9 @@ interpolate_model <- function(mod, name = NULL, ...,
         # reference (e.g. mTechNew) are built.
         if (inherits(scen@model@data[[i]]@data[[j]], c("constraint", "costs"))) next
         .obj <- scen@model@data[[i]]@data[[j]]
-        # PRE-FILTER (opt-in). The parameter filters at the end of this pipeline
-        # cost almost nothing themselves -- measured at 0.05s on a 5-node model
-        # -- because by then the work is already done. What they cannot undo is
-        # that `ob2mi` interpolated every row first. On the documented
+        # PRE-FILTER (opt-in). The parameter filters at the end of this
+        # pipeline are cheap in themselves but cannot undo that `ob2mi`
+        # interpolated every row first. On the documented
         # sampled-calendar recipe (full-year model, subset calendar handed to
         # interpolate_model) that means 8,760 timeslices are expanded and then
         # 96 kept.
@@ -1308,7 +1296,6 @@ interp_slot <- function(obj, slot, overrides) {
 #' @returns a character vector of set elements
 #' @keywords internal
 collect_set_elements <- function(obj, set_name) {
-  # browser()
 
   set_elements <- list()
   if (isS4(obj)) {
@@ -1370,7 +1357,6 @@ collect_object_names <- function(
       "export", "import",
       "demand", "supply", "commodity", "weather"
     )) {
-  # browser()
   # obj - model or another S4 object
   # classes - character vector of class names to search for
   # returns a character vector of process names
@@ -1477,7 +1463,6 @@ apply_to_scenario_data <- function(
   for (i in seq(along = scen@model@data)) {
     for (j in seq(along = scen@model@data[[i]]@data)) {
       if (is.null(classes) || inherits(scen@model@data[[i]]@data[[j]], classes)) {
-        # browser()
         rr <- func(scen@model@data[[i]]@data[[j]], ...)
         rs <- c(rs, rr)
       }
@@ -1489,7 +1474,6 @@ apply_to_scenario_data <- function(
     return(rs)
   }
 
-  # browser()
   dd <- try(rbindlist(rs, use.names = TRUE, fill = TRUE), silent = TRUE)
   if (inherits(dd, "try-error")) {
     # add log/message
@@ -1505,11 +1489,9 @@ apply_to_parameters <- function(
     ...,
     as_list = TRUE
 ) {
-  # browser()
   rs <- list()
   for (i in seq(along = scen@modInp@parameters)) {
     if (inherits(scen@modInp@parameters[[i]], "parameter")) {
-      # browser()
       rr <- func(scen@modInp@parameters[[i]], ...)
       rs <- c(rs, rr)
     }
@@ -1543,7 +1525,6 @@ apply_to_parameters <- function(
     val = "value",
     int_rule = "inter",
     yleft = 0, yright = 0) {
-  # browser()
   if (is.null(year_seq)) year_seq <- full_seq(x$year, 1)
   .rule <- c(1, 1)
   if (!grepl("int", int_rule, ignore.case = T)) stop("Not implemented")
@@ -1628,15 +1609,6 @@ apply_to_parameters <- function(
       as.data.table()
   }
 
-  # Add filtration for process_years if no NAs in region & year
-  # process_years <- scen@modInp@sets$process_years |>
-  #   filter(process == proc_name) |>
-  #   select(region, year) |>
-  #   unique()
-  #
-  # filter out years and regions not in process_years
-  # x <- x |>
-  #   dplyr::semi_join(process_years, by = c("region", "year"))
 
   return(x)
 }
@@ -1824,7 +1796,6 @@ guess_sets <- function(x) {}
 #' @returns data frame with expanded rows
 #' @keywords internal
 expand_na_rows <- function(data, column, all_values, group_cols = NULL) {
-  # browser()
   # checks
   if (is_empty(data) || is_empty(all_values)) {
     return(data)
@@ -1867,16 +1838,6 @@ expand_na_rows <- function(data, column, all_values, group_cols = NULL) {
 
     rbindlist(list(non_na_rows, expanded), use.names = TRUE)
   })
-  # na_rows <- data |>
-  #   dplyr::filter(is.na(.data[[col]])) |> select(-!!col)
-  # non_na_rows <- data |> filter(!is.na(.data[[col]])) |> as.data.table()
-  #
-  # # Create all combinations: NA rows × all_values
-  # expanded <- tidyr::crossing(
-  #   na_rows,
-  #   as.data.table(set_names(list(all_values), col)))
-  #
-  # rbindlist(list(non_na_rows, expanded), use.names = TRUE)
   dd <- rbindlist(dd, use.names = TRUE) |>
     arrange(across(any_of(c("region", "vintage", "year"))))
 
@@ -1918,7 +1879,6 @@ expand_sets <- function(
     add_missing_dims = !skip_na_dims,
     unmatched_action = c("warning", "drop")
     ) {
-  # browser()
 
   # check if data is empty
   if (is_empty(data)) {
@@ -1937,15 +1897,6 @@ expand_sets <- function(
   if (!is.data.frame(full_sets)) {
     stop("full_sets must be a data frame")
   }
-  # check if full_sets has 'year' column
-  # if (!("year" %in% names(full_sets))) {
-  #   stop("full_sets does not have 'year' column")
-  # }
-  # # check if data has 'year' column
-  # if (!("year" %in% names(data))) {
-  #   stop("data does not have 'year' column")
-  # }
-  # check if full_sets has any NAs
   if (anyNA(full_sets)) {
     stop("full_sets cannot have NAs. It should be a full set of elements.")
   }
@@ -1976,12 +1927,10 @@ expand_sets <- function(
   }
 
   #!!! check if there are duplicated values for the same key_cols with NAs
-  # browser()
   amb_check <- data |> select(all_of(key_cols))
   ii <- duplicated(amb_check) | duplicated(amb_check, fromLast = TRUE)
   duplicated_rows <- data[ii, ]
   if (any(ii)) {
-    # browser()
     stop("Ambiguous assignment for parameter '", value_col, "':\n",
          paste0(
            apply(duplicated_rows, 1, function(x) {
@@ -1997,7 +1946,6 @@ expand_sets <- function(
     # if (skip_na_dims) {
     #   stop("skip_na_dims and add_missing_dims cannot be both TRUE")
     # }
-    # browser()
     missing_cols <- setdiff(names(full_sets), key_cols)
     # add missing dimensions
     for (col in missing_cols) {
@@ -2015,7 +1963,6 @@ expand_sets <- function(
   }
 
   if (skip_na_dims) {
-    # browser()
     na_cols <- data |>
       select(all_of(key_cols)) |>
       sapply(function(x) all(is_any(x)))
@@ -2047,7 +1994,6 @@ expand_sets <- function(
   full_sets <- full_sets |>
     anti_join(complete_rows, by = key_cols)
 
-  # browser()
   # Rows with NA in any of the specified columns
   na_rows <- data |> filter(if_any(all_of(key_cols), is.na))
   if (nrow(na_rows) == 0) {
@@ -2094,7 +2040,6 @@ expand_sets <- function(
     # continue with at least one non-NA column in the row
     # select rows in proc_year with matching to non-NA columns in the row
 
-    # browser()
 
     fill_rows <- semi_join(
       proc_year,
@@ -2108,22 +2053,12 @@ expand_sets <- function(
       by = intersect(names(row), non_na_keys)
     )
 
-    # missing_rows <- anti_join(
-    #   proc_year,
-    #   fill_rows,
-    #   by = names(proc_year)
-    # )
-    #
-    # expanded_rows <- rbindlist(
-    #   list(expanded_rows, missing_rows),
-    #   use.names = TRUE, fill = TRUE)
 
     ll[[length(ll) + 1]] <- expanded_rows
 
   }
     # }) |> rbindlist()
   expanded_rows <- rbindlist(ll, use.names = TRUE, fill = TRUE)
-  # browser()
 
   d <- rbindlist(list(complete_rows, expanded_rows), use.names = TRUE) |>
     unique() |>
@@ -2251,7 +2186,6 @@ interpolate_numpar <- function(
     int_rule = "inter",
     def_val = NULL
   ) {
-  # browser()
   if (F) {
     # data
     set_cols <- scen@modInp@sets$set_names
@@ -2407,7 +2341,6 @@ interpolate_bounds <- function(
     def_val = NULL,
     value_sfx = c(".lo", ".up", ".fx")
 ) {
-  # browser()
   if (nrow(data) == 0) {
     return(data)
   }
@@ -2432,7 +2365,6 @@ interpolate_bounds <- function(
     unique() |>
     force_cols_classes()
 
-  # browser()
 
   # check for conflicts in data
   lo <- !is.na(d[[bound_cols[1]]])
@@ -2460,18 +2392,6 @@ interpolate_bounds <- function(
     }
   }
 
-  # interpolate every bound separately
-  # for (i in seq_along(bound_cols)) {
-  #   # browser()
-  #   # interpolate bounds
-  #   d <- interpolate_numpar(
-  #     data = d,
-  #     value_col = bound_cols[i],
-  #     set_cols = set_cols,
-  #     int_rule = int_rule,
-  #     def_val = def_val
-  #   )
-  # }
 
   # interpolate every bound separately
   d <- purrr::reduce(bound_cols, function(data, col) {
@@ -2576,24 +2496,6 @@ if (F) {
 
 }
 
-# fill_defaults <- function(
-#     x, # data frame
-#     param_name, # name of the parameter
-#     def_val = NULL # default value for the parameter
-# ) {
-#   # browser()
-#   # check if param_name is in x
-#   if (!param_name %in% names(x)) {
-#     stop("Parameter '", param_name, "' not found in data frame")
-#   }
-#   # check if def_val is NULL
-#   if (is.null(def_val)) {
-#     return(x)
-#   }
-#   # assign default value to NA elements of the parameter
-#   x[[param_name]][is.na(x[[param_name]])] <- def_val
-#   return(x)
-# }
 
 
 get_parameter_full_sets <- function(
@@ -3378,7 +3280,6 @@ map_comm_geoframe <- function(scen, comm = NULL) {
 #' @export
 get_process_timeframe <- function(scen, process = NULL,
                                   comm_timeframe = NULL) {
-  # browser()
   # collect assigned timeframes for all processes in the scenario
   ll <- apply_to_scenario_data(
     scen = scen,
@@ -3612,8 +3513,8 @@ get_process_inputs <- function(scen, process = NULL, classes = NULL) {
       } else {
         # No input commodity. This is legitimate, not a mistake: a weather-driven
         # generator (wind, solar) converts an availability profile into output
-        # and consumes nothing, which is how PyPSA models a renewable Generator
-        # too. Collect the names and report ONCE below rather than warning per
+        # and consumes nothing. Collect the names and report ONCE below rather
+        # than warning per
         # process -- six identical warnings per interpolation drown out a real
         # one.
         .no_input_processes <<- c(.no_input_processes, x@name)
@@ -3841,7 +3742,6 @@ get_process_stored <- function(scen, process = NULL, classes = NULL) {
 #' @export
 get_process_comm <- function(scen, process = NULL, classes = NULL,
                              return_list = TRUE) {
-  # browser()
 
   # collect all commodities for each process
   ll_inp <- get_process_inputs(scen, process = process, classes = classes)
@@ -3887,7 +3787,6 @@ get_process_comm <- function(scen, process = NULL, classes = NULL,
 #' @aliases nl2df
 #' @keywords internal
 named_list_to_df <- function(named_list, col_names = c("name", "value")) {
-  # browser()
   nms <- names(named_list)
   # Empty input: return an empty table that still carries `col_names`, so that
   # downstream joins (`by = col_names[1]`) find the expected columns instead of
@@ -3898,7 +3797,6 @@ named_list_to_df <- function(named_list, col_names = c("name", "value")) {
     return(out)
   }
   lapply(nms, function(x) {
-    # browser()
     if (length(named_list[x]) == 1) {
       data.table(name = x, value = named_list[[x]]) |> setNames(col_names)
     } else if (length(named_list[x]) > 1) {
@@ -3938,7 +3836,6 @@ nl2df <- named_list_to_df
 #' @export
 get_process_region <- function(scen, process = NULL, classes = NULL,
                                return_list = TRUE) {
-  # browser()
   # collect all regions for each process
   if (is.null(classes)) {
     classes <- c(
@@ -4222,7 +4119,6 @@ get_process_stock_window <- function(scen, process = NULL, classes = NULL) {
     func = function(x) {
       ll <- list()
       # cat("Process: ", x@name, "\n")
-      # browser()
       if (!.hasSlot(x, "capacity")) return(NULL)
       cap <- .capacity_stock(x@capacity)
       # `trade` capacity is region-free (`vTradeCap{trade, year}`), so its rows
@@ -4441,7 +4337,6 @@ get_default_value <- function(
     global = is.null(scen),
     one_value = FALSE
     ) {
-  # browser()
   # global defaults from .modInp
   if (!is.null(pname) && !is.null(sname)) {
     stop("Either `pname` or `sname` must be provided, not both.")
@@ -4506,14 +4401,6 @@ get_default_value <- function(
 }
 
 if (FALSE) {
-  # debug
-  # scen <- get_scenario("ECOA")
-  # pname <- "cinp2use"
-  # sname <- "cinp2use"
-  # class <- "capacity"
-  # bound <- "lo"
-  # global <- FALSE
-  # one_value <- TRUE
   get_default_value(pname = "pWeather")
   get_default_value(sname = "wval")
   get_default_value(sname = "cinp2use")

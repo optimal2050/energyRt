@@ -121,7 +121,7 @@ shocks (weather factors).
 }
 }}
 
-\item{\code{af}}{data.frame. Timeslice-level availability factor parameters, bounding activity in each timeslice relative to installed capacity. \code{af.up} is the maximum capacity factor per timeslice (what PyPSA calls \code{p_max_pu} and OSeMOSYS calls \code{CapacityFactor}); \code{af.lo} is a must-run floor. See \code{afs} for timeframe-level (e.g. annual) bounds and \verb{ceff$afc.*} for per-commodity bounds.
+\item{\code{af}}{data.frame. Timeslice-level availability factor parameters, bounding activity in each timeslice relative to installed capacity. \code{af.up} is the maximum capacity factor per timeslice; \code{af.lo} is a must-run floor. See \code{afs} for timeframe-level (e.g. annual) bounds and \verb{ceff$afc.*} for per-commodity bounds.
 
 \describe{
 \item{vintage}{character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
@@ -136,7 +136,7 @@ shocks (weather factors).
 \item{rampdown}{numeric. Ramping-down time constraint RHS value, ignored if NA. Depends on the technology timeframe.}
 }}
 
-\item{\code{afs}}{data.frame. Timeframe-level availability factor constraints, bounding activity summed over all child timeslices of the named timeslice relative to installed capacity. With \code{timeslice = "ANNUAL"} this is the annual capacity-factor bound (TIMES \code{NCAP_AFS}, OSeMOSYS \code{AvailabilityFactor}), e.g. \code{afs.lo = 0.4} requires at least 40\% annual utilization. Unlike \code{af}, \code{afs} rows are not disaggregated to finer timeslices; they always constrain the sum over the given timeframe.
+\item{\code{afs}}{data.frame. Timeframe-level availability factor constraints, bounding activity summed over all child timeslices of the named timeslice relative to installed capacity. With \code{timeslice = "ANNUAL"} this is the annual capacity-factor bound, e.g. \code{afs.lo = 0.4} requires at least 40\% annual utilization. Unlike \code{af}, \code{afs} rows are not disaggregated to finer timeslices; they always constrain the sum over the given timeframe.
 
 \describe{
 \item{vintage}{character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the \code{vintage} slot.}

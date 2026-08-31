@@ -271,16 +271,16 @@ mod_day <- newModel(
 
 scen_year <- solve_model(mod_year, name = "fy_year")
 #> Solver directory:  scenarios/fy_year-d365_h24_subset_1day_per_month/runs/glpk/solver 
-#> Writing files: 0.7s
+#> Writing files: 0.39s
 #> Starting  GLPK 
-#> 0.19s
-#> Reading solution: 0.19s
+#> 0.17s
+#> Reading solution: 0.11s
 scen_day <- solve_model(mod_day, name = "fy_day")
 #> Solver directory:  scenarios/fy_day-d365_h24_subset_1day_per_month/runs/glpk/solver 
-#> Writing files: 0.63s
+#> Writing files: 0.37s
 #> Starting  GLPK 
-#> 0.14s
-#> Reading solution: 0.22s
+#> 0.13s
+#> Reading solution: 0.07s
 
 getData(scen_year, "vObjective", merge = TRUE)$value
 #> [1] 9962.545
@@ -293,9 +293,7 @@ the model falls back on the expensive plant. The flag is not a detail.
 
 `@fullYear` was **inert** before energyRt v0.80 — every storage cycled
 within its parent timeframe whatever the flag said, which made multi-day
-and seasonal storage silently unrepresentable. It surfaced when a
-converted PyPSA-Eur battery came out 2.1x oversized and idle 6,624 hours
-of 8,760.
+and seasonal storage silently unrepresentable.
 
 ## `@startLevel`: an endowment, once per cycle
 
@@ -450,20 +448,6 @@ This is also what makes `duration` honest. With the discharger a
 per-hour rate and the reservoir an amount,
 `duration = vStorageStgCap / vStorageOutCap` is an hour count — so
 `duration = 6` on a 10 MW discharger gives exactly 60 MWh.
-
-#### PyPSA does the same thing from the other end
-
-PyPSA’s state-of-charge equation is
-
-    soc[t] = (1-standing_loss)^eh · soc[t-1] + eff_store·eh·p_store − eh·p_dispatch/eff_dispatch
-
-where `eh` is elapsed hours. Its `p_*` variables are **rates**, so no
-limit constraint is scaled at all — neither `p ≤ p_nom` nor
-`soc ≤ e_nom`. energyRt puts the conversion on the bound instead of in
-the variable; the physics is identical. Note energyRt already agreed on
-the decay term, which has always been
-`(pStorageStgEff)^(pTimesliceShare)` — the same compounding by elapsed
-time.
 
 #### What aggregation still costs you
 
@@ -893,10 +877,10 @@ sol_mod <- newModel(
 
 scen <- solve_model(sol_mod, name = "solar_battery")
 #> Solver directory:  scenarios/solar_battery-d365_h24_subset_1day_per_month/runs/glpk/solver 
-#> Writing files: 0.67s
+#> Writing files: 0.31s
 #> Starting  GLPK 
-#> 0.24s
-#> Reading solution: 0.2s
+#> 0.25s
+#> Reading solution: 0.1s
 ```
 
 ``` r

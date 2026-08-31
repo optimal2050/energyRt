@@ -267,14 +267,13 @@ Everything a technology does is measured by its **activity**. Installed
   (pre-existing), `cap.lo/up/fx` (total), `ncap.lo/up/fx` (new builds)
   and `ret.lo/up/fx` (retirement). Availability factors `af`/`afs` bound
   activity within capacity: `af.up` caps activity in *each* timeslice as
-  a fraction of capacity — a maximum capacity factor per slice (PyPSA’s
-  `p_max_pu`), with `af.lo` as a must-run floor — while `afs` bounds
-  activity *summed over a timeframe*, so `afs` with
-  `timeslice = "ANNUAL"` is the annual capacity-factor bound
-  (e.g. `afs.lo = 0.4` forces at least 40% annual utilization). A third
-  variant, `afc.*` in the `ceff` slot, applies the same
-  capacity-relative bound to an individual commodity flow instead of
-  total activity.
+  a fraction of capacity — a maximum capacity factor per slice, with
+  `af.lo` as a must-run floor — while `afs` bounds activity *summed over
+  a timeframe*, so `afs` with `timeslice = "ANNUAL"` is the annual
+  capacity-factor bound (e.g. `afs.lo = 0.4` forces at least 40% annual
+  utilization). A third variant, `afc.*` in the `ceff` slot, applies the
+  same capacity-relative bound to an individual commodity flow instead
+  of total activity.
 
 ##### Capacity in input vs. output units
 

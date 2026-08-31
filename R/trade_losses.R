@@ -31,8 +31,8 @@
 # load -- is invariant under parallel-circuit expansion: a second circuit halves
 # `r` and doubles `F`. So relative tranches carry over to an expanded line with
 # no recomputation, which is what lets losses work when capacity is a decision
-# variable. (PyPSA's tangent-envelope formulation cannot do this: its tangent
-# points are absolute, which is why it requires a finite `s_nom_max`.)
+# variable. A formulation with absolute breakpoints cannot do this: it needs a
+# finite capacity bound to place them.
 #
 # WHAT THIS DOES NOT COVER. Convexity is an assumption about the rest of the
 # model, not a theorem. The merit order holds because `teff` falls across

@@ -224,7 +224,7 @@
 }
 
 # `pXPayback` narrows the eqXEac charging window. GLPK, GAMS, JuMP/Julia and
-# Pyomo-Concrete all implement it (ported from GLPK 2026-08-19).
+# Pyomo-Concrete all implement it.
 #
 # Pyomo-ABSTRACT does not, and cannot without a bigger change: its eqXEac is
 # still the pre-vintaging `pXEac * vXCap` form, which charges the annuity on

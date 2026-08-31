@@ -354,7 +354,6 @@ save_scenario <- function(
   dirsize <- dir_size(scen@path)
   cat("Directory size: ", round(dirsize / 1024^2, 2), " MB\n", sep = "")
   scen@misc$dirsize <- dirsize
-  # browser()
   if (verbose) tictoc::toc()
   tictoc::tic.clear()
   return(invisible(scen))
@@ -414,7 +413,6 @@ data2disk <- function(
   if (is.null(path)) path <- getObjPath(obj)
   stopifnot(!is.null(path))
   # dir.create(path, recursive = TRUE, showWarnings = FALSE)
-  # browser()
   # obj_class <- class(obj)
 
   # One writer for both shapes: an atomic vector becomes a one-column table
@@ -467,7 +465,6 @@ obj2disk <- function(
   if (is.null(path)) path <- getObjPath(obj)
   stopifnot(!is.null(path))
   # dir.create(path, recursive = TRUE, showWarnings = FALSE)
-  # browser()
   # obj_class <- class(obj)
   # if (inherits(obj, "list")) browser()
   # if (inherits(obj, "modOut")) browser()
@@ -484,7 +481,6 @@ obj2disk <- function(
     cl <- class(obj)[1]
     obj <- set_ondisk_slots(obj)
     ondsk <- get_ondisk_slots(obj)
-    # browser()
     stopifnot(all(ondsk %in% slotNames(obj)))
     for (s in ondsk) { # slots to save
       if (isS4(slot(obj, s))) {
@@ -519,7 +515,6 @@ obj2disk <- function(
             make_progress_bar <- FALSE
           }
         }
-        # browser()
         if (make_progress_bar) p <- progressr::progressor(along = nm)
         for (i in nm) { # loop over list
           if (make_progress_bar) p(i)
@@ -552,7 +547,6 @@ obj2disk <- function(
               if (xs) {
                 isSaved <- TRUE
                 # dim_list[[i]] <- dim(slot(obj, s)[[i]])
-                # browser()
                 slot(obj, s)[[i]] <- reset_slot(slot(obj, s)[[i]])
                 # slot(obj, s) <- setObjPath(slot(obj, s),
                 # path = fp(path, s))
@@ -576,7 +570,6 @@ obj2disk <- function(
           )
           if (xs) {
             isSaved <- TRUE
-            # browser()
             # store dim
             slot(obj, s) <- reset_slot(slot(obj, s))
             obj <- setObjPath(obj, path = fp(path))
@@ -636,7 +629,6 @@ if (F) {
 
 rename_duplicated_sets <- function(x) {
   # x - table
-  # browser()
   stopifnot(inherits(x, "data.frame"))
   nm <- colnames(x)
   # nm <- c("a", "b", "c", "b", "b", "a", "a", "a")
@@ -885,7 +877,6 @@ get_lazy_data <- function(obj,
                           optional = FALSE,
                           filter = NULL
                           ) {
-  # browser()
   # check if the object is "inMemory"
   if (InMemory) {
     if (is.null(slot)) {
@@ -946,7 +937,6 @@ get_lazy_dim_names <- function(obj, slot = NULL, element = NULL,
                                InMemory = isInMemory(obj),
                                path = NULL) {
   # returns dim and names of the object's slot if available
-  # browser()
   # if (obj@name == "pTechStock") browser()
   ll <- list(
     dim = NULL,
@@ -975,7 +965,6 @@ get_lazy_dim_names <- function(obj, slot = NULL, element = NULL,
   if (!is.null(slot) && !.hasSlot(obj, slot)) {
     return(ll) # no data
   }
-  # browser()
   # One branch for `parameter` and `variable` alike. The `modOut` container used
   # to be handled separately, reading `colnames()` off the list ELEMENT; once
   # those elements became S4 objects that returned NULL, which `findData()`'s
@@ -1044,7 +1033,6 @@ if (F) {
 )
 
 set_ondisk_slots <- function(obj) {
-  # browser()
   # obj - object to be marked
   for (o in names(.save_slots)) {
     if (inherits(obj, o)) {
@@ -1474,7 +1462,6 @@ load_scenarios <- function(names = NULL, run = NULL, env = NULL,
 #' obj2mem(scen_ondisk)
 #' }
 obj2mem <- function(obj, verbose = isVerbose()) {
-  # browser()
   if (!isS4(obj)) {
     stop("Object must be of S4 class, actual class: ", class(obj))
   }

@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.1.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.1.9003</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -184,6 +184,10 @@
 <li>
 <code>import_format = "parquet"</code> returned an empty scenario silently: R looked for <code>output/&lt;var&gt;.parquet</code> while both backends wrote <code>.arrow</code>. Pyomo honours parquet on both legs; Julia refuses it at write time.</li>
 <li>Tables with no rows are no longer written — on a UTOPIA-size model roughly two thirds of the tables are empty.</li>
+<li>
+<code><a href="../reference/obj2mem.html">obj2mem()</a></code> is quiet by default and reports a progress bar instead of one path per table; <code>verbose</code> is now passed down the recursion, so a top-level <code>verbose = FALSE</code> is no longer lost on nested objects.</li>
+<li>
+<code><a href="../reference/subset_model_regions.html">subset_model_regions()</a></code> reports one summary line — regions kept, objects and routes dropped — instead of a message per item; <code>verbose = TRUE</code> lists them.</li>
 <li>Interpolation no longer re-deduplicates a parameter’s whole table on every object that writes to it, making that stage linear rather than quadratic. On a 6-region full-year model (53M rows) the object stage went 3m01s → 1m19s. Set <code>options(en.bulk_param_write = FALSE)</code> for the previous path.</li>
 <li>The process/commodity level check no longer refuses models whose objects span many regions (a data.table join-size refusal).</li>
 <li>Conflicting-bounds detection names the parameter again instead of dying on “comparison of these types is not implemented”.</li>

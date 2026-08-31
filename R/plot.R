@@ -1181,9 +1181,9 @@ plot_weather <- function(object, style = c("heatmap", "line", "area"),
   }
   d <- d[!is.na(d$wval), , drop = FALSE]
 
-  # A weather factor converted from a continental model carries every region --
-  # 41 of them for PyPSA-Eur -- and faceting on all of them leaves panels too
-  # small to read. `region` selects a subset; `region = 1` (or any number) takes
+  # A weather factor from a continental model carries every region, and
+  # faceting on all of them leaves panels too small to read. `region` selects
+  # a subset; `region = 1` (or any number) takes
   # that many, in the order they appear.
   if (!is.null(region) && "region" %in% names(d)) {
     have <- unique(d$region)

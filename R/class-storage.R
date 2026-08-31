@@ -488,8 +488,8 @@ setMethod("initialize", "storage", function(.Object, ...) {
 # what removes the wildcard trap -- there is no longer anything to leave unset.
 #
 # It is free to the model, by design and unavoidably: a store that ends a cycle
-# below where it started has consumed an endowment nobody paid for. PyPSA has
-# the same property (`state_of_charge_initial`). Being additive, the level at
+# below where it started has consumed an endowment nobody paid for. Being
+# additive, the level at
 # the first slice is `startLevel + carried-over`, i.e. >= startLevel, not equal
 # to it; the model may end the cycle empty and make it exact.
 #
@@ -539,12 +539,10 @@ setMethod("initialize", "storage", function(.Object, ...) {
 
   # `cap2act` at the top level applies to BOTH power sides.
   #
-  # It was never a formal and never a slot, so it fell through `...` into
-  # `.data2slots()` and was dropped without a word -- the PyPSA converter passes
-  # `cap2act = 8760` believing it does something, and was saved only by 8760
-  # already being the default. Now that `cap2act` is the declaration slots' own
-  # content, give the shorthand a meaning: fill whichever power side did not
-  # name one. `@storage` never gets it -- energy is energy at any resolution.
+  # Not a formal and not a slot, so it would otherwise fall through `...` into
+  # `.data2slots()` and be dropped silently. `cap2act` is the declaration slots'
+  # own content, so the shorthand fills whichever power side did not name one.
+  # `@storage` never gets it -- energy is energy at any resolution.
   if (!is.null(args$cap2act)) {
     c2a <- args$cap2act
     for (role in c("input", "output")) {

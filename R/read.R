@@ -29,7 +29,6 @@ read_solution <- function(obj, run = NULL, ...) {
   # solver.dir - dir to read results from; default: the active run's solver/
   # echo = TRUE - print working data
   arg <- .solver_dir_aliases(list(...))
-  # browser()
   read_result_time <- proc.time()[3]
   if (is.null(arg$echo)) arg$echo <- TRUE
   # if (is.null(arg$readOutputFunction)) arg$readOutputFunction <- read.csv
@@ -139,12 +138,10 @@ read_solution <- function(obj, run = NULL, ...) {
       !nzchar(scen@settings@solver$import_format)) {
     scen@settings@solver$import_format <- "csv"
   }
-  # browser()
   if (grepl("^gdx$", scen@settings@solver$import_format, ignore.case = TRUE)) {
     # .check_load_gdxlib()
     .check_load_gdxtools()
     # Read variables gdx
-    # browser()
     gd <- gdxtools::gdx(paste(arg$solver.dir, "/output/output.gdx", sep = ""))
     for (i in c(vrb_list, vrb_list2)) {
       # cat(i, "\n")
@@ -311,7 +308,6 @@ read_solution <- function(obj, run = NULL, ...) {
     salvage$yearp <- NULL
     # if (F) {
     # !!! unfinished
-    # browser()
     salvage <- salvage[salvage$start + salvage$olife > end_year, ]
 
     salvage$value <- salvage$newcap * salvage$invcost *

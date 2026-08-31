@@ -94,11 +94,9 @@ setMethod(
   ),
   function(type, unit, coef, alias = "",
            SI_prefixes = FALSE, database = "base", update = TRUE) {
-    # browser()
     SI <- SI_prefixes # rename
     convert_data <- get("convert_data", globalenv())
     alias <- unique(alias)
-    # browser()
     if (!exists("convert_data", where = .GlobalEnv)) data("convert_data")
     if (all(names(convert_data[[database]]) != type)) {
       if (!SI_prefixes) {
@@ -252,36 +250,7 @@ setMethod(
 
 # @method convert character character numeric
 
-# setMethod(
-#   "convert",
-#   signature(x = "character"),
-#   # signature(from = "character", to = "character", x = "numeric"),
-#   function(from, to, value = 1, database = "base", ...) {
-#     h_from <- .find_unit(from, database = database)
-#     h_to <- .find_unit(to, database = database)
-#     if (h_from$type != h_to$type) {
-#       stop("Different unit type")
-#     }
-#     conval <- value * (h_from$coef / h_to$coef)
-#     names(conval) <- NULL
-#     conval
-#   }
-# )
 
 # setGeneric("convert", function(value, from, to, ...) standardGeneric("convert"))
 
-# setMethod(
-#   "convert",
-#   signature(value = "numeric", from = "character", to = "character"),
-#   function(from, to, value = 1, database = "base", ...) {
-#     h_from <- .find_unit(from, database = database)
-#     h_to <- .find_unit(to, database = database)
-#     if (h_from$type != h_to$type) {
-#       stop("Different unit type")
-#     }
-#     conval <- value * (h_from$coef / h_to$coef)
-#     names(conval) <- NULL
-#     conval
-#   }
-# )
 

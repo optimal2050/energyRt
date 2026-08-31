@@ -102,7 +102,6 @@ utils::globalVariables(
 # unchanged except that it now forwards `...` (and therefore `newpage`) to
 # `draw_process()`. `draw.technology()` below wraps it to handle vintages.
 .draw_technology_one <- function(object, ..., .ghost = FALSE) {
-  # browser()
   com_inp <- object@input |>
     mutate(io = "cinp", .before = 1) |>
     rowwise() |>
@@ -152,16 +151,6 @@ utils::globalVariables(
 
   com_par <- bind_rows(com_inp, com_out)
 
-  # # add technology parameters
-  # com_par <- com_tbl |>
-  #   full_join(object@ceff, by = "comm") |>
-  #   pivot_longer(
-  #     cols = matches("2"), # non-grouped-comm-params have "2" in their names
-  #     names_to = "parameter",
-  #     values_to = "value"
-  #   ) |>
-  #   group_by(io, comm) |>
-  #   filter(!is.na(value) | (is.na(value) & row_number() == 1))
 
   # parameter-labels for grouped commodities
   # gcom_par <- com_par |> filter(!is.na(group))
@@ -301,7 +290,6 @@ utils::globalVariables(
   aout
 
   # aux combined
-  # browser()
   aux <- bind_rows(ainp, aout)
   if (nrow(aux) > 0) {
     aux <- aux |>
@@ -538,14 +526,6 @@ utils::globalVariables(
     )
   }
 
-  # arrow_labels_tb <- rbindlist(list(
-  #   gcom_par |> select(any_of(c("comm", "lab_txt"))) |> unique() |> rename(ioname = comm),
-  #   ccom_par |> select(any_of(c("comm", "lab_txt"))) |> unique() |> rename(ioname = comm),
-  #   aux |> select(any_of(c("comm", "lab_txt"))) |> unique() |> rename(ioname = acomm),
-  #   wea |> select(any_of(c("comm", "lab_txt"))) |> unique() |> rename(ioname = weather)
-  # ),
-  # use.names = TRUE, fill = TRUE
-  # )
 
   # cap2act ####
   cap2act_label <- paste0("cap2act: ", object@cap2act)
@@ -1451,7 +1431,6 @@ draw.supply <- function(object, ...) {
   #           # "value",
   #           "lab_par", "lab_txt",
   #           "tech", "group", "weather", "unit", "io", "parameter")
-  # browser()
   if (nrow(object@supply) == 0) {
     sup_par <- data.frame(
       lab_par = "",
@@ -1479,17 +1458,6 @@ draw.supply <- function(object, ...) {
         ),
         .groups = "drop"
       ) |>
-      # mutate(
-      #   iotype = "cout",
-      #   ioname = object@commodity,
-      #   group = NA_character_,
-      #   lab_txt = make_label(
-      #     object@commodity,
-      #     in_brackets = object@unit,
-      #     return_name_if_empty = TRUE,
-      #     two_lines = FALSE
-      #   )
-      # ) |>
       mutate(
         iotype = "cout",
         ioname = object@commodity,
@@ -1621,7 +1589,6 @@ setMethod("draw", "supply", draw.supply)
 
 ## draw.demand ####
 draw.demand <- function(object, ...) {
-  # browser()
   dem_par <- object@demand |>
     pivot_longer(
       cols = matches("demand"),
@@ -1716,7 +1683,6 @@ setMethod(
 
 ## draw.export ####
 draw.export <- function(object, ...) {
-  # browser()
 
   # key columns
 
@@ -1740,19 +1706,6 @@ draw.export <- function(object, ...) {
       ),
       .groups = "drop"
     ) |>
-    # mutate(
-    #   lab_par = if_else(
-    #     is.na(lab_regions),
-    #     lab_par,
-    #     paste(lab_par, lab_regions, sep = " ")
-    #   ),
-    #   lab_par = if_else(
-    #     is.na(lab_years),
-    #     lab_par,
-    #     paste(lab_par, lab_years, sep = " ")
-    #   )
-    # ) |>
-    # select(-lab_regions, -lab_years) |>
     mutate(
       iotype = "cinp",
       ioname = object@commodity,
@@ -1761,27 +1714,6 @@ draw.export <- function(object, ...) {
     group_by(ioname, iotype, group) |>
     summarize(
       lab_par = paste0(lab_par, collapse = "\n"),
-      #   lab_regions = if_else(
-      #     all(is.na(region)),
-      #     NA_character_,
-      #     paste0(
-      #       # "{R(", length(unique(object@export$region)), "):",
-      #       "Regions: {",
-      #       shorten_string(
-      #         paste0(sort(unique(object@export$region)), collapse = ","),
-      #         n = 15, add_number = length(unique(object@export$region))),
-      #       "}")
-      #   ),
-      #   lab_years = if_else(
-      #     all(is.na(year)),
-      #     NA_character_,
-      #     paste0(
-      #       "Years: [",
-      #       shorten_string(
-      #         paste0(range(object@export$year, na.rm = TRUE), collapse = ","),
-      #         15),
-      #       "]")
-      #   ),
       .groups = "drop"
     ) |>
     mutate(
@@ -1847,7 +1779,6 @@ setMethod("draw", "export", draw.export)
 ## draw.import ####
 draw.import <- function(object, ...) {
   # key columns
-  # browser()
   # import parameters
   imp_par <-
     object@import |>
@@ -1868,19 +1799,6 @@ draw.import <- function(object, ...) {
       ),
       .groups = "drop"
     ) |>
-    # mutate(
-    #   lab_par = if_else(
-    #     is.na(lab_regions),
-    #     lab_par,
-    #     paste(lab_par, lab_regions, sep = " ")
-    #   ),
-    #   lab_par = if_else(
-    #     is.na(lab_years),
-    #     lab_par,
-    #     paste(lab_par, lab_years, sep = " ")
-    #   )
-    # ) |>
-    # select(-lab_regions, -lab_years) |>
     mutate(
       iotype = "cout",
       ioname = object@commodity,
@@ -1889,27 +1807,6 @@ draw.import <- function(object, ...) {
     group_by(ioname, iotype, group) |>
     summarize(
       lab_par = paste0(lab_par, collapse = "\n"),
-      #   lab_regions = if_else(
-      #     all(is.na(region)),
-      #     NA_character_,
-      #     paste0(
-      #       # "{R(", length(unique(object@import$region)), "):",
-      #       "Regions: {",
-      #       shorten_string(
-      #         paste0(sort(unique(object@import$region)), collapse = ","),
-      #         n = 15, add_number = length(unique(object@import$region))),
-      #       "}")
-      #   ),
-      #   lab_years = if_else(
-      #     all(is.na(year)),
-      #     NA_character_,
-      #     paste0(
-      #       "Years: [",
-      #       shorten_string(
-      #         paste0(range(object@import$year, na.rm = TRUE), collapse = ","),
-      #         15),
-      #       "]")
-      #   ),
       .groups = "drop"
     ) |>
     mutate(
@@ -1976,7 +1873,6 @@ setMethod("draw", "import", draw.import)
 ## draw.trade ####
 draw.trade <- function(object, ...) {
   arg <- list(...)
-  # browser()
   if (!is.null(arg$region)) {
     node <- arg$region
   } else if (!is.null(arg$node)) {
@@ -2261,7 +2157,6 @@ make_label <- function(
     return_name_if_empty = FALSE,
     bracket_type = "round", # "round", "square", "curly", "angle", or NULL
     comma = ",") {
-  # browser()
 
   # if (all(is.na(in_brackets))) return(NA)
 
@@ -2279,7 +2174,6 @@ make_label <- function(
   in_brackets <- in_brackets[!is.na(in_brackets)]
   in_brackets <- in_brackets[in_brackets != ""]
   if (is_empty(in_brackets)) {
-    # browser()
     if (isTRUE(return_name_if_empty)) return(name)
     return("")
   }
@@ -2327,7 +2221,6 @@ make_label <- function(
 #' @param verbose A logical value if to print messages
 #' @noRd
 en_obj2df <- function(object, sets = NULL, verbose = FALSE) {
-  # browser()
   if (!isS4(object)) {
     stop("Object must be an S4 class")
   }
@@ -2390,7 +2283,6 @@ if (F) {
 #' @noRd
 #' @return A data frame with the pivoted data
 pivot_by_type <- function(x, sets = NULL, slot_name = NULL) {
-  # browser()
   if (is.null(sets)) {
     sets <- c("region", "year", "timeslice", "comm", "acomm")
   }
@@ -2582,7 +2474,6 @@ draw_process <- function(
   box_open <- match.arg(box_open)
   result <- tryCatch(
     {
-      # browser()
 
       if (isTRUE(show_all)) {
         show_inputs <- TRUE
@@ -2680,7 +2571,6 @@ draw_process <- function(
       }
 
       # Process description subtitle
-      # browser()
       if (!is_empty(process_desc) && process_desc != "") {
         txt_x <- 0.5 + box_height / 2 + spacing_bw_titles +
           font_in_npc(process_desc_fontsize) / 2
@@ -2951,7 +2841,6 @@ draw_process <- function(
 
       # Outputs ####
       if (show_outputs) {
-        # browser()
         # combine all outputs
         outputs <- bind_rows(
           grouped_com_outputs,
@@ -3031,7 +2920,6 @@ draw_process <- function(
             outputs$y[ii] <- y_pos
 
             # draw arrow o
-            # browser()
             grid::grid.lines(
               x = c(x_pos, 0.5 + 0.5 * box_width + arrow_length),
               y = c(y_pos, y_pos),
@@ -3148,7 +3036,6 @@ draw_process <- function(
           } # end of show_act_bar
 
           ## use2cact labels ####
-          # browser()
           if (show_act_bar && show_use_bar &&
             any(grepl("use2cact", outputs$parameter))) {
             use2cact <- outputs |>
@@ -3240,33 +3127,9 @@ shorten_string <- function(string, n, add_number = NULL) {
   }
 }
 
-# format_number <- function(x) {
-#   # browser()
-#   # if (length(x) > 1) {
-#   #   return(sapply(x, format_number))
-#   # }
-#   # Use scientific notation if the number is larger than 100 or smaller than 0.01 (positive or negative)
-#   if (any(abs(x) > 100) || any(abs(x) < 0.01)) {
-#     return(prettyNum(format(x, scientific = TRUE), big.mark = ","))
-#   } else {
-#     return(prettyNum(format(x, nsmall = 2), big.mark = ","))
-#   }
-# }
 
 # x <- c(0.01224201, 1002360.1)
 
-# Define a function for conditional formatting
-# format_number <- function(x, threshold = 1e5, small_threshold = 1e-3) {
-#   sapply(x, function(n) {
-#     if (abs(n) >= threshold || (abs(n) < small_threshold && n != 0)) {
-#       # Use scientific notation for very large or very small numbers
-#       formatC(n, format = "e", digits = 3)
-#     } else {
-#       # Use fixed decimal format
-#       formatC(n, format = "f", digits = 3)
-#     }
-#   })
-# }
 
 # format_number <- function(x, accuracy = 3) {
 #   scales::label_number(accuracy = accuracy)(x)

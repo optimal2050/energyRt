@@ -14,9 +14,7 @@
 # The flag was silently ignored for years: `.build_meqStorageLevel()` joined
 # `mTimesliceNext` unconditionally, so every storage behaved as `FALSE`
 # regardless -- which made multi-day and seasonal storage unrepresentable and,
-# because the default is TRUE, did so without any user asking for it. It
-# surfaced when a converted PyPSA-Eur battery came out 2.1x oversized and idle
-# 6,624 hours of 8,760 against PyPSA's cyclic-over-the-year equivalent.
+# because the default is TRUE, did so without any user asking for it.
 #
 # These tests pin the map itself (no solver) and then the behaviour it buys.
 # =========================================================================== #

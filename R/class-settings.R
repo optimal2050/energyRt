@@ -54,7 +54,6 @@ setMethod("initialize", "settings", function(.Object, ...) {
 .config_to_settings <- function(cfg, stt = NULL) {
   # import model configuration to scenario settings
   # (no processing, direct overwriting)
-  # browser()
   if (is.null(stt)) stt <- new("settings")
   imp_slots <- slotNames("config")
   imp_slots <- imp_slots[!(imp_slots %in% c(".S3Class"))]

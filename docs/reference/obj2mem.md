@@ -5,7 +5,7 @@ Loads objects from disk to memory
 ## Usage
 
 ``` r
-obj2mem(obj, verbose = TRUE)
+obj2mem(obj, verbose = isVerbose())
 ```
 
 ## Arguments
