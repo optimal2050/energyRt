@@ -156,7 +156,7 @@ covers calendars, commodities, weather, costs and more.
 
 **A complete teaching model.** The UTOPIA electricity model ships with
 the package — both as step-by-step vignettes and as the ready
-`utopia_modules` data kit with scenario levers (CO₂ cap, carbon tax,
+`utopia$modules` data kit with scenario levers (CO₂ cap, carbon tax,
 renewable share, nuclear moratorium) — so the path from “hello world” to
 policy analysis is paved.
 

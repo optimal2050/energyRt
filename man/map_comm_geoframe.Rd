@@ -20,3 +20,4 @@ a named list mapping each commodity to its geo-level.
 The spatial twin of \code{\link[=map_comm_timeframe]{map_comm_timeframe()}}. A commodity with no \verb{@geoframe}
 is balanced at the finest level, which is the flat, single-level behaviour.
 }
+\keyword{internal}

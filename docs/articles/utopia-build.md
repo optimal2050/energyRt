@@ -8,7 +8,7 @@ conversion technologies to electricity demand. This vignette builds
 **every block** explicitly, one constructor call per object, so you can
 see exactly how a model is assembled – and ends by packing the blocks
 into a repository and a solvable model. The companion vignette *UTOPIA
-II: running scenarios* loads a ready-made kit (\[`utopia_modules`\],
+II: running scenarios* loads a ready-made kit (\[`utopia`\]`$modules`,
 built by these same steps) and solves it.
 
 All inputs are **deterministic** and shipped with the package.
@@ -1001,15 +1001,15 @@ report_templates()
 
 The steps above are exactly what `data-raw/utopia_modules.R` runs for a
 few region layouts (1, 3, 7 and 11 regions) to produce the shipped
-\[`utopia_modules`\] dataset – a ready base repository (`$repo`), the
+\[`utopia`\]`$modules` kit – a ready base repository (`$repo`), the
 individual blocks, and the levers, alongside the calendars, horizons and
 maps:
 
 ``` r
 
-names(utopia_modules)
-names(utopia_modules$electricity)                 # kits by number of regions
-um <- utopia_modules$electricity$R3
+names(utopia$modules)
+names(utopia$modules$electricity)                 # kits by number of regions
+um <- utopia$modules$electricity$R3
 identical(names(repo), names(um$repo))            # same blocks we just built
 ```
 

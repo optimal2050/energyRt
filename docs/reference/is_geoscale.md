@@ -24,6 +24,6 @@ is_geoscale(x)
 ## Examples
 
 ``` r
-is_geoscale(NULL)
+energyRt:::is_geoscale(NULL)
 #> [1] FALSE
 ```

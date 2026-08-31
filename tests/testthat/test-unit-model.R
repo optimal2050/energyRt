@@ -1,5 +1,5 @@
 # =========================================================================== #
-# The unit kits (utopia_modules$unit): every input is 1 on the symmetric
+# The unit kits (utopia$modules$unit): every input is 1 on the symmetric
 # unit_s4 calendar (4 equal seasons), single-year horizon, discount 0 -- so
 # the objective of every variant is a small integer computed BY HAND below.
 # These are the quickest sanity anchors in the suite: if one moves, the
@@ -45,7 +45,7 @@ test_that("unit kits solve to their hand-computed integer objectives", {
 
 test_that("unit add-on modules replace, not duplicate, the base objects", {
   skip_if_no_fixtures()
-  kit <- utopia_modules$unit$U1
+  kit <- utopia$modules$unit$U1
   mod <- add(un_build("U1"), kit$SUP_CURVE, overwrite = TRUE)
   scen <- suppressMessages(suppressWarnings(interpolate_model(
     mod, "unit_curve_I", ondisk = FALSE, overwrite = TRUE)))
@@ -57,11 +57,11 @@ test_that("unit add-on modules replace, not duplicate, the base objects", {
 # @covers mTechNew vTechNewCap depth=I backends=glpk forks=cluster,vintage
 test_that("UTOPIA add-on modules land as clusters/vintages (R3)", {
   skip_if_no_fixtures()
-  k3 <- utopia_modules$electricity$R3
+  k3 <- utopia$modules$electricity$R3
   mod <- newModel("R3mods", data = k3$repo,
-                  calendar = utopia_modules$calendars$s4_h24,
+                  calendar = utopia$modules$calendars$s4_h24,
                   region = k3$regions,
-                  horizon = utopia_modules$horizons$base, discount = 0.05)
+                  horizon = utopia$modules$horizons$base, discount = 0.05)
   mod <- add(mod, k3$GAS_CURVE, overwrite = TRUE)
   mod <- add(mod, k3$EWIN_SITES, overwrite = TRUE)
   mod <- add(mod, k3$ENUC_VINT, overwrite = TRUE)

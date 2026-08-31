@@ -151,7 +151,7 @@ technology; `autoplot()` covers calendars, commodities, weather, costs and
 more.
 
 **A complete teaching model.** The UTOPIA electricity model ships with the
-package — both as step-by-step vignettes and as the ready `utopia_modules`
+package — both as step-by-step vignettes and as the ready `utopia$modules`
 data kit with scenario levers (CO~2~ cap, carbon tax, renewable share, nuclear
 moratorium) — so the path from "hello world" to policy analysis is paved.
 

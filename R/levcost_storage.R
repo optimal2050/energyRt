@@ -418,7 +418,7 @@
 #'   As in [levcost()] for a technology.
 #' @param ... Ignored, for signature compatibility with the technology method.
 #' @return A `levcost` object -- the same shape the technology method returns.
-#' @export
+#' @keywords internal
 levcost_storage_ <- function(
     object,
     comm       = NULL,

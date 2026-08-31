@@ -49,6 +49,10 @@ Other geoscale:
 [`plot_map()`](https://energyRt.org/reference/plot_map.md),
 [`setGeoscale,config-method`](https://energyRt.org/reference/setGeoscale.md)
 
+Other utopia: [`utopia`](https://energyRt.org/reference/utopia.md),
+[`utopia_profile()`](https://energyRt.org/reference/utopia_profile.md),
+[`utopia_profiles()`](https://energyRt.org/reference/utopia_profiles.md)
+
 ## Examples
 
 ``` r

@@ -26,3 +26,4 @@ a data frame with the completed set combinations.
 Replaces \code{NA} values in a data frame column \code{set_name} with missing values
 from \code{full_set} for each unique combination of other columns.
 }
+\keyword{internal}

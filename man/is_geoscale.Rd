@@ -19,5 +19,6 @@ name and the unqualified one used when the package is sourced rather than
 installed.
 }
 \examples{
-is_geoscale(NULL)
+energyRt:::is_geoscale(NULL)
 }
+\keyword{internal}

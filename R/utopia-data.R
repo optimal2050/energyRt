@@ -1,76 +1,43 @@
 # Dataset documentation for the UTOPIA teaching model.
 
-#' UTOPIA reference maps
+#' The UTOPIA reference dataset
 #'
-#' Geographic maps for the imaginary country "Utopia" used by the UTOPIA
-#' vignette to lay out regions, neighbours and trade routes.
+#' Everything the UTOPIA teaching model needs, in one list: the maps of the
+#' imaginary country "Utopia", the deterministic weather / demand / stock
+#' profiles, and the kit of ready energyRt building blocks and scenario levers.
+#' Built by `data-raw/utopia_maps.R`, `utopia_data.R` and `utopia_modules.R`,
+#' folded together by `data-raw/utopia_assemble.R`.
 #'
-#' @format A named list. Element `map` is a named list of `sf` polygon layers
-#'   (`honeycomb`, `continent`, `island`, `squares`, ...); the vignette uses
-#'   `utopia$map$honeycomb` and keeps the first few regions.
-#' @seealso the `utopia` vignette, [utopia_weather], [utopia_demand],
-#'   [utopia_stock], [utopia_profiles()]
-#' @examples
-#' names(utopia)
-#' names(utopia$map)
-"utopia"
-
-#' UTOPIA representative capacity-factor profiles
+#' The profile tables are region-agnostic; expand them to a model's regions
+#' with [utopia_profiles()]. For synthetic shapes on any calendar (rather than
+#' UTOPIA's saved curves) use [utopia_profile()].
 #'
-#' Deterministic solar / wind / hydro capacity factors for the UTOPIA model,
-#' provided for the three teaching calendars (`s4_h24`, 96 timeslices,
-#' the default base case; `m12_h24`, 288; and `utopia_seasons`, 12).
-#' Region-agnostic; expand to regions with [utopia_profiles()]. Built by
-#' `data-raw/utopia_data.R` from IDEEA reanalysis profiles (with a curated
-#' fallback when IDEEA is absent); see `attr(.,"source")`.
+#' @format A named list of six elements:
+#' \describe{
+#'   \item{map}{named list of `sf` polygon layers (`squares`, `honeycomb`,
+#'     `island`, `continent`) used to lay out regions, neighbours and trade
+#'     routes.}
+#'   \item{geo}{a data.frame with columns `nation`, `zone`, `region`, `name` --
+#'     the region hierarchy behind the maps.}
+#'   \item{weather}{deterministic solar / wind / hydro capacity factors for the
+#'     three teaching calendars. Columns `calendar`
+#'     (`s4_h24`/`m12_h24`/`utopia_seasons`), `resource`
+#'     (`WSOL`/`WWIN`/`WHYD`), `timeslice` (e.g. `SUM_h12`, `m06_h12` or
+#'     `SUM_DAY`) and `wval` (capacity factor, 0-1). Attribute `source` records
+#'     whether it came from IDEEA reanalysis or the curated fallback.}
+#'   \item{demand}{a relative electricity-load shape by timeslice, for the same
+#'     three calendars. Columns `calendar`, `timeslice` and `load` (relative,
+#'     mean ~1); scale it by a region's annual demand and the timeslice shares
+#'     to get energy per timeslice.}
+#'   \item{stock}{deterministic base-year installed capacity per technology.
+#'     Columns `tech` and `gw`.}
+#'   \item{modules}{the kit -- see below.}
+#' }
 #'
-#' @format A data.frame with columns `calendar`
-#'   (`s4_h24`/`m12_h24`/`utopia_seasons`), `resource`
-#'   (`WSOL`/`WWIN`/`WHYD`), `timeslice` (e.g. `SUM_h12`, `m06_h12` or
-#'   `SUM_DAY`) and `wval` (capacity factor, 0-1). Attribute `source`.
-#' @seealso [utopia_profiles()], [utopia_demand], [utopia_stock], [calendars]
-#' @examples
-#' head(utopia_weather)
-#' attr(utopia_weather, "source")
-"utopia_weather"
-
-#' UTOPIA electricity load shape
-#'
-#' A deterministic relative electricity-load shape by timeslice, for the three
-#' teaching calendars (replaces the vignette's former random load curve).
-#' [utopia_profiles()] / the vignette scale it by a region's annual demand and
-#' the timeslice shares to get energy per timeslice.
-#'
-#' @format A data.frame with columns `calendar`
-#'   (`s4_h24`/`m12_h24`/`utopia_seasons`), `timeslice` and `load`
-#'   (relative, mean ~1).
-#' @seealso [utopia_profiles()], [utopia_weather], [utopia_stock]
-#' @examples
-#' utopia_demand
-"utopia_demand"
-
-#' UTOPIA base-year capacity stock
-#'
-#' Deterministic base-year installed capacity per technology (GW), per region
-#' (replaces the vignette's former `runif` stocks). Expand across regions with
-#' [utopia_profiles()].
-#'
-#' @format A data.frame with columns `tech` and `gw` (base-year capacity, GW).
-#' @seealso [utopia_profiles()], [utopia_weather], [utopia_demand]
-#' @examples
-#' utopia_stock
-"utopia_stock"
-
-#' UTOPIA model modules
-#'
-#' A kit of ready energyRt building blocks and scenario levers for the UTOPIA
-#' teaching model, mirroring the structure of `IDEEA::ideea_modules`. Assemble a
-#' model from a chosen region layout, solve it, and layer the levers to run
-#' scenarios (see the `utopia-use` vignette). Built by
-#' `data-raw/utopia_modules.R`, which follows the same explicit steps as the
-#' *UTOPIA I: building the model* vignette.
-#'
-#' @format A named list:
+#' @section The `modules` kit:
+#' Mirrors the structure of `IDEEA::ideea_modules`. Assemble a model from a
+#' chosen region layout, solve it, and layer the levers to run scenarios (see
+#' the `utopia-use` vignette).
 #' \describe{
 #'   \item{info}{a description string.}
 #'   \item{maps}{`utopia$map` -- the reference `sf` maps.}
@@ -104,23 +71,53 @@
 #'     bridging) to 10. The arithmetic is written out in
 #'     `data-raw/utopia_modules.R` and pinned by `test-unit-model.R`.}
 #' }
-#' @seealso [calendars], [horizons], [utopia_profiles()], [utopia_profile()],
-#'   [asSupplyCurve()], the UTOPIA vignettes
+#'
+#' @seealso [utopia_profiles()], [utopia_profile()], [utopia_geoscale()],
+#'   [calendars], [horizons], [asSupplyCurve()], the UTOPIA vignettes
+#' @family utopia
 #' @examples
+#' names(utopia)
+#' names(utopia$map)
+#' head(utopia$weather)
+#' utopia$stock
+#'
 #' \dontrun{
-#' um <- utopia_modules$electricity$R3
+#' um <- utopia$modules$electricity$R3
 #' mod <- newModel("UTOPIA", data = um$repo,
-#'                 calendar = utopia_modules$calendars$s4_h24,
-#'                 region = um$regions, horizon = utopia_modules$horizons$base,
+#'                 calendar = utopia$modules$calendars$s4_h24,
+#'                 region = um$regions,
+#'                 horizon = utopia$modules$horizons$base,
 #'                 discount = 0.05)
 #' scen <- solve_scenario(interpolate_model(mod, "BASE"),
 #'                        solver = solver_options$glpk)
 #'
 #' # the unit model: hand-checkable integer objective (8)
-#' uk <- utopia_modules$unit$U1
+#' uk <- utopia$modules$unit$U1
 #' umod <- newModel("UNIT", data = uk$repo,
-#'                  calendar = utopia_modules$calendars$unit_s4,
+#'                  calendar = utopia$modules$calendars$unit_s4,
 #'                  region = uk$regions,
-#'                  horizon = utopia_modules$horizons$unit, discount = 0)
+#'                  horizon = utopia$modules$horizons$unit, discount = 0)
 #' }
+"utopia"
+
+#' Deprecated UTOPIA datasets
+#'
+#' These four datasets are now elements of the single [utopia] list --
+#' `utopia$weather`, `utopia$demand`, `utopia$stock` and `utopia$modules`.
+#' They are still shipped so existing code keeps working, and will be removed
+#' in energyRt v0.90.
+#'
+#' @format See [utopia].
+#' @name utopia-deprecated-data
+#' @keywords internal
+#' @seealso [utopia]
+"utopia_weather"
+
+#' @rdname utopia-deprecated-data
+"utopia_demand"
+
+#' @rdname utopia-deprecated-data
+"utopia_stock"
+
+#' @rdname utopia-deprecated-data
 "utopia_modules"

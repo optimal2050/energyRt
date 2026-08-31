@@ -47,5 +47,11 @@ Other geoscale:
 \code{\link[=plot_geoscale]{plot_geoscale()}},
 \code{\link[=plot_map]{plot_map()}},
 \code{\link{setGeoscale,config-method}}
+
+Other utopia:
+\code{\link{utopia}},
+\code{\link[=utopia_profile]{utopia_profile()}},
+\code{\link[=utopia_profiles]{utopia_profiles()}}
 }
 \concept{geoscale}
+\concept{utopia}

@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -114,11 +114,11 @@ and keep all scenario files under a temporary folder.</p>
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/scenarios_path.html">set_scenarios_path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"wf"</span><span class="op">)</span><span class="op">)</span>   <span class="co"># where scenarios are written</span></span>
 <span><span class="fu"><a href="../reference/registry_file.html">set_registry_file</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"wf"</span>, <span class="st">"energyRt_registry.csv"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">um</span>  <span class="op">&lt;-</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">R1</span></span>
+<span><span class="va">um</span>  <span class="op">&lt;-</span> <span class="va">utopia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">R1</span></span>
 <span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newModel.html">newModel</a></span><span class="op">(</span><span class="st">"UTOPIA"</span>, data <span class="op">=</span> <span class="va">um</span><span class="op">$</span><span class="va">repo</span>,</span>
-<span>                calendar <span class="op">=</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24</span>,</span>
+<span>                calendar <span class="op">=</span> <span class="va">utopia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24</span>,</span>
 <span>                region   <span class="op">=</span> <span class="va">um</span><span class="op">$</span><span class="va">regions</span>,</span>
-<span>                horizon  <span class="op">=</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">base</span>, discount <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span></code></pre></div>
+<span>                horizon  <span class="op">=</span> <span class="va">utopia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">base</span>, discount <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># interpolate + solve on the bundled GLPK; echo = FALSE keeps the log quiet</span></span>
 <span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod</span>, name <span class="op">=</span> <span class="st">"BASE"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
@@ -220,8 +220,8 @@ the object, put it back into the repository with
 <span><span class="va">repo_hi</span> <span class="op">&lt;-</span> <span class="fu">add</span><span class="op">(</span><span class="va">repo</span>, <span class="va">ECOA</span>, overwrite <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>                <span class="co"># swap it back in</span></span>
 <span></span>
 <span><span class="va">mod_hi</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newModel.html">newModel</a></span><span class="op">(</span><span class="st">"UTOPIA_HI"</span>, data <span class="op">=</span> <span class="va">repo_hi</span>,</span>
-<span>                    calendar <span class="op">=</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24</span>,</span>
-<span>                    region <span class="op">=</span> <span class="va">um</span><span class="op">$</span><span class="va">regions</span>, horizon <span class="op">=</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">base</span>,</span>
+<span>                    calendar <span class="op">=</span> <span class="va">utopia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24</span>,</span>
+<span>                    region <span class="op">=</span> <span class="va">um</span><span class="op">$</span><span class="va">regions</span>, horizon <span class="op">=</span> <span class="va">utopia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">base</span>,</span>
 <span>                    discount <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span></code></pre></div>
 <p>(For an already-interpolated scenario,
 <code>update_parameter(scen, param, data)</code> writes rows straight
@@ -237,18 +237,19 @@ section is the quick tour.)</p>
 <code><a href="../reference/scenarios_path.html">get_scenarios_path()</a></code>, set it with
 <code><a href="../reference/scenarios_path.html">set_scenarios_path()</a></code> (default <code>"scenarios/"</code>).
 Each scenario gets its own folder, named automatically as
-<code>name_model_calendar_horizon</code> (duplicate parts are dropped,
-so a scenario and model sharing a name appear once):</p>
+<code>name-model-calendar-horizon</code> (parts joined by dashes, which
+valid names cannot contain; duplicate parts are dropped, so a scenario
+and model sharing a name appear once):</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/scenarios_path.html">get_scenarios_path</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpecC46o/wf"</span></span>
+<span><span class="co">#&gt; [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\Rtmp8mEWgs/wf"</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename</a></span><span class="op">(</span><span class="va">scen</span><span class="op">@</span><span class="va">path</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "BASE_UTOPIA_s4-h24_base"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "BASE-UTOPIA-s4_h24-base"</span></span></code></pre></div>
 <p>Saving a scenario writes an <strong>Arrow-backed</strong> folder that
 mirrors the scenario’s structure — a thin <code>scen.RData</code> shell,
 a <code>scenario.yml</code> manifest, each large data slot as a dataset,
 and one folder per solver run:</p>
-<pre><code>&lt;scenarios-path&gt;/&lt;name_model_calendar_horizon&gt;/
+<pre><code>&lt;scenarios-path&gt;/&lt;name-model-calendar-horizon&gt;/
 ├── scenario.yml        # manifest: model ref/hash, calendar, horizon,
 │                       #   `default:` — the default run (user-changeable)
 ├── scen.RData          # thinned S4 scenario shell
@@ -306,7 +307,7 @@ resolves it through the project registry, and the cached accessor
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename</a></span><span class="op">(</span><span class="va">saved</span><span class="op">@</span><span class="va">path</span><span class="op">)</span>                                 <span class="co"># the scenario folder</span></span>
-<span><span class="co">#&gt; [1] "BASE_UTOPIA_s4-h24_base"</span></span>
+<span><span class="co">#&gt; [1] "BASE-UTOPIA-s4_h24-base"</span></span>
 <span><span class="fu"><a href="../reference/isInMemory.html">isInMemory</a></span><span class="op">(</span><span class="va">saved</span><span class="op">)</span>                                    <span class="co"># FALSE -- data is on disk</span></span>
 <span><span class="co">#&gt; [1] FALSE</span></span>
 <span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">ld</span>, <span class="st">"vObjective"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">$</span><span class="va">value</span>        <span class="co"># lazy read, no full load</span></span>
@@ -325,8 +326,8 @@ scenarios, and runs. Repositories shared by several models can be stored
 once with <code><a href="../reference/repo_store.html">save_repository()</a></code> and referenced by each model
 (<code>save_model(embed_repos = )</code>), just as scenarios can
 reference a stored model. <code><a href="../reference/registry.html">load_registry()</a></code> reads it,
-<code><a href="../reference/registry.html">find_registry()</a></code> filters it (by type, name, or model hash),
-and <code><a href="../reference/registry.html">refresh_registry()</a></code> rebuilds it by rescanning the
+<code><a href="../reference/registry.html">find_in_registry()</a></code> filters it (by type, name, or model
+hash), and <code><a href="../reference/registry.html">refresh_registry()</a></code> rebuilds it by rescanning the
 <code>scenarios/</code> and <code>models/</code> stores — the on-disk
 manifests are the source of truth, so the registry can always be
 reconstructed.</p>
@@ -416,7 +417,7 @@ sample inside the solver (the top slice carries weight
 of the full model’s — and exactly equals it when the sampled slices are
 representative:</p>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">tt</span>  <span class="op">&lt;-</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24</span><span class="op">@</span><span class="va">timetable</span></span>
+<code class="sourceCode R"><span><span class="va">tt</span>  <span class="op">&lt;-</span> <span class="va">utopia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24</span><span class="op">@</span><span class="va">timetable</span></span>
 <span><span class="va">tt2</span> <span class="op">&lt;-</span> <span class="va">tt</span><span class="op">[</span><span class="va">tt</span><span class="op">$</span><span class="va">SEASON</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"WIN"</span>, <span class="st">"SUM"</span><span class="op">)</span>, <span class="op">]</span>      <span class="co"># two of the four seasons</span></span>
 <span><span class="va">cal2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newCalendar.html">newCalendar</a></span><span class="op">(</span>timetable <span class="op">=</span> <span class="va">tt2</span>, name <span class="op">=</span> <span class="st">"s2h24"</span>,</span>
 <span>                    year_fraction <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">tt2</span><span class="op">$</span><span class="va">share</span><span class="op">)</span><span class="op">)</span></span>

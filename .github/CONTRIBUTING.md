@@ -61,6 +61,62 @@ Two things about the test suite that catch everyone once:
   `tests/testthat/test-naming.R` fails on a foreign prefix, so the rule
   cannot rot back in.
 
+## Code style
+
+The stack rules are in
+[CONVENTIONS.md § Code style](https://github.com/optimal2050/.github/blob/main/CONVENTIONS.md).
+The one that bites hardest here:
+
+**Never nest the pipeline calls.** Use `|>`, or assign each step. A reader
+should follow a run top to bottom without unwrapping parentheses, and every
+intermediate should be inspectable — which is the whole point of a scenario
+object that carries its own state.
+
+```r
+# no
+scen <- solve_scenario(interpolate_model(mod, name = "BASE"),
+                       solver = solver_options$glpk)
+```
+
+energyRt gives you two shapes instead, and both are first-class API.
+
+**One call** — interpolates and solves. Use it in READMEs, `@examples` and
+anywhere the intermediate scenario is not the point:
+
+```r
+scen <- solve_model(mod, name = "BASE", solver = solver_options$glpk)
+scen <- solve(mod, name = "BASE", solver = solver_options$glpk)   # identical
+```
+
+**Step by step** — each verb takes a scenario and returns one, so a stage can
+be inspected or re-run with different arguments:
+
+```r
+scen <- interpolate(mod, name = "BASE")   # or interpolate_model()
+scen <- solve(scen)                       # or solve_scenario()
+
+# same thing as a pipeline
+scen <- mod |> interpolate(name = "BASE") |> solve()
+```
+
+**`solve()` does the whole solver stage**: it writes the script, runs the
+solver, waits (`wait = TRUE`) and reads the solution back
+(`read.solution = TRUE`). Do not append `read()` to a solve — the scenario it
+returns is already populated. The other two verbs exist for the cases where
+that is not what you want:
+
+- `write_script()` / `write_sc()` — write the solver files without running
+  them, to hand off or inspect.
+- `read()` / `read_solution(scen, run = )` — read a **different recorded run**
+  back into the scenario (`"<solve>"` or `"<variant>/<solve>"`, see
+  `scenario_runs()`), or pick up a solve that ran with `wait = FALSE`.
+
+`solve()`, `interpolate()` and `read()` are the S4 generics; `solve_model()`,
+`solve_scenario()`, `interpolate_model()` and `read_solution()` are the
+canonical names they dispatch onto. Both spellings are supported and neither is
+deprecated — prefer the generic in prose and examples, the explicit name where
+the class being acted on is not obvious from context.
+
 ## Solver backends
 
 Models are rendered to GLPK/MathProg, JuMP (Julia), Pyomo and GAMS, and the

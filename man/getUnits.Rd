@@ -4,14 +4,11 @@
 \alias{getUnits}
 \alias{getUnits,commodity-method}
 \alias{getUnits,technology-method}
-\alias{get_units}
 \title{Get parameter units for energyRt class objects}
 \usage{
 \S4method{getUnits}{commodity}(object, slots = NULL, ...)
 
 \S4method{getUnits}{technology}(object, slots = NULL, complete = FALSE, ...)
-
-get_units(object, ...)
 }
 \arguments{
 \item{object}{A \code{commodity} or \code{technology} S4 object.}

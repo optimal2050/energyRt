@@ -8,16 +8,14 @@ solves a scenario that was already interpolated with
 [`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md)
 and errors otherwise. Both reuse the write / run / read framework
 (`.executeScenario()`); all solver backends (GLPK/GMPL, GAMS, Pyomo,
-JuMP) work unchanged. The transitional names `solve_mod()` /
-`solve_scen()` are deprecated aliases.
+JuMP) work unchanged. The transitional names
+[`solve_mod()`](https://energyRt.org/reference/energyRt-deprecated.md) /
+[`solve_scen()`](https://energyRt.org/reference/energyRt-deprecated.md)
+are deprecated aliases.
 
 ## Usage
 
 ``` r
-solve_mod(obj, ...)
-
-solve_scen(obj, ...)
-
 solve_model(obj, name = NULL, solver = NULL, ondisk = FALSE, fold = FALSE, ...)
 
 solve_scenario(
@@ -42,6 +40,24 @@ solve_scenario(
   a model object (`solve_model()`) or an interpolated scenario object
   (`solve_scenario()`).
 
+- name:
+
+  character name of the scenario to create / return.
+
+- solver:
+
+  a character or list with solver settings. When `NULL`, the scenario's
+  own solver settings or
+  [`get_default_solver()`](https://energyRt.org/reference/default_solver.md)
+  are used.
+
+- ondisk, fold:
+
+  passed to
+  [`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md).
+  Defaults (`FALSE`/`FALSE`) keep parameters in memory and unfolded,
+  matching the shape the writers expect.
+
 - ...:
 
   for `solve_model()`, arguments are routed to
@@ -65,24 +81,6 @@ solve_scenario(
   to list runs and
   [`read_solution()`](https://energyRt.org/reference/read.md) to switch
   between them.
-
-- name:
-
-  character name of the scenario to create / return.
-
-- solver:
-
-  a character or list with solver settings. When `NULL`, the scenario's
-  own solver settings or
-  [`get_default_solver()`](https://energyRt.org/reference/default_solver.md)
-  are used.
-
-- ondisk, fold:
-
-  passed to
-  [`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md).
-  Defaults (`FALSE`/`FALSE`) keep parameters in memory and unfolded,
-  matching the shape the writers expect.
 
 - solver.dir:
 

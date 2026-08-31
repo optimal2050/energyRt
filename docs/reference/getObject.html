@@ -21,7 +21,7 @@ objects' parameter data."><meta property="og:image" content="https://energyRt.or
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -125,6 +125,20 @@ objects' parameter data.</p>
 <span>  ignore.case <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  region_agnostic <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  drop <span class="op">=</span> <span class="cn">FALSE</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S3 method for class 'en_registry'</span></span>
+<span><span class="fu">getObject</span><span class="op">(</span></span>
+<span>  <span class="va">x</span>,</span>
+<span>  type <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  name <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  hash <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  parent <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  variant <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  run <span class="op">=</span> <span class="st">"main"</span>,</span>
+<span>  drop <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  verbose <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span></code></pre></div>
     </div>
 
@@ -181,6 +195,26 @@ satisfy a <code>region</code> filter (default <code>TRUE</code>).</p></dd>
 <dd><p>logical; if <code>TRUE</code> and exactly one object matches, return that
 object itself instead of a one-element list (default <code>FALSE</code>).</p></dd>
 
+
+<dt id="arg-type">type<a class="anchor" aria-label="anchor" href="#arg-type"></a></dt>
+<dd><p>character, registry row type(s) to load: "model", "repository",
+"scenario", "dataset". <code>NULL</code> (default) loads every loadable type.</p></dd>
+
+
+<dt id="arg-hash">hash<a class="anchor" aria-label="anchor" href="#arg-hash"></a></dt>
+<dd><p>character, content hash (prefix) selecting a stored version.</p></dd>
+
+
+<dt id="arg-parent-variant">parent, variant<a class="anchor" aria-label="anchor" href="#arg-parent-variant"></a></dt>
+<dd><p>character, extra registry filters (run bookkeeping).</p></dd>
+
+
+<dt id="arg-run">run<a class="anchor" aria-label="anchor" href="#arg-run"></a></dt>
+<dd><p>which run to activate in loaded scenarios: <code>"main"</code> (default)
+keeps the scenario's own run, a character selects that run, and <code>NULL</code>,
+<code>NA</code> or <code>"ALL"</code> returns one entry per recorded run, keyed
+<code>scenario/&lt;name&gt;:&lt;variant&gt;/&lt;label&gt;</code>.</p></dd>
+
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
@@ -204,7 +238,7 @@ structurally). A scenario is unwrapped to its model automatically.</p>
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
-<span class="r-in"><span><span class="va">repo</span> <span class="op">&lt;-</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">R3</span><span class="op">$</span><span class="va">repo</span></span></span>
+<span class="r-in"><span><span class="va">repo</span> <span class="op">&lt;-</span> <span class="va">utopia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">R3</span><span class="op">$</span><span class="va">repo</span></span></span>
 <span class="r-in"><span><span class="fu">getObject</span><span class="op">(</span><span class="va">repo</span>, class <span class="op">=</span> <span class="st">"technology"</span><span class="op">)</span>                 <span class="co"># all technologies</span></span></span>
 <span class="r-in"><span><span class="fu">getObject</span><span class="op">(</span><span class="va">repo</span>, class <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"supply"</span>, <span class="st">"commodity"</span><span class="op">)</span><span class="op">)</span>     <span class="co"># two classes</span></span></span>
 <span class="r-in"><span><span class="fu">getObject</span><span class="op">(</span><span class="va">repo</span>, region <span class="op">=</span> <span class="st">"R1"</span><span class="op">)</span>                         <span class="co"># everything in R1</span></span></span>

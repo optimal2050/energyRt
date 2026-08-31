@@ -16,11 +16,12 @@ logical, TRUE if the name is valid.
 Check validity of object's names used in sets
 }
 \examples{
-check_name("name")
-check_name("1name")
-check_name("name1")
-check_name("name_1")
-check_name("name_1!")
-check_name(c("a", "b")) # FALSE, not a single name
-check_name(1) # FALSE, not character
+energyRt:::check_name("name")
+energyRt:::check_name("1name")
+energyRt:::check_name("name1")
+energyRt:::check_name("name_1")
+energyRt:::check_name("name_1!")
+energyRt:::check_name(c("a", "b")) # FALSE, not a single name
+energyRt:::check_name(1) # FALSE, not character
 }
+\keyword{internal}

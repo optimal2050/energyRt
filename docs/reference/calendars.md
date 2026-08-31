@@ -35,7 +35,7 @@ A named list of `calendar` objects:
 - unit_s4, unit_s4h4:
 
   Perfectly symmetric unit calendars for the hand-computable
-  `utopia_modules$unit` kits.
+  `utopia$modules$unit` kits.
 
 - m12, m12a:
 

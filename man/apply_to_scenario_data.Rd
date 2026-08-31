@@ -25,3 +25,4 @@ a list or vector of \code{func} results, one per matching object.
 \description{
 Apply function to scenario data
 }
+\keyword{internal}

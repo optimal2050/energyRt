@@ -2,7 +2,6 @@
 % Please edit documentation in R/class-constraint.R
 \name{newConstraint}
 \alias{newConstraint}
-\alias{isConstraint}
 \alias{newConstraintS}
 \title{Create constraint object to add custom constraints to the model.}
 \usage{
@@ -17,8 +16,6 @@ newConstraint(
   interpolation = "inter",
   replace_zerros = 1e-20
 )
-
-isConstraint(object)
 
 newConstraintS(
   name,
@@ -65,13 +62,9 @@ Note: zero values will be replaced with \code{replace_zerros} to avoid dropping 
 \item{interpolation}{character. Interpolation rule for the constraint. Recognized values, any combination of "back", "inter", "forth", e.g., "back.inter" or "forth.inter", indicating the direction of interpolation. The default value is "inter", meaning that the interpolation is done for years between the specified values. The "back" and "forth" values induce backward and forward interpolation of the \code{rhs} values, respectively.}
 
 \item{replace_zerros}{numeric value to replace zero values in \code{rhs} and \code{defVal}. Default is \code{1e-20}.}
-
-\item{object}{any R object}
 }
 \value{
 Object of class \code{constraint}.
-
-TRUE if the object inherits class \code{constraint}, FALSE otherwise.
 }
 \description{
 The function creates a new constraint object that can be used
@@ -95,14 +88,18 @@ The 'lhs' terms are defined as a list of linear terms (summands).
 Each summand consists of a variable, a multiplier, and a set of sets
 for which the summand is defined.
 }
-\section{Functions}{
-\itemize{
-\item \code{isConstraint()}: Check if an object is a constraint.
-
-}}
 \examples{
-isConstraint(1)
-isConstraint(newConstraint(""))
+# cap total exports in 2020 at 1 unit
+cnst <- newConstraint(
+  name = "EXP_CAP",
+  desc = "Total exports in 2020",
+  eq = "<=",
+  defVal = 1,
+  for.each = data.frame(year = 2020L),
+  total = list(variable = "vExportTot", for.sum = list(region = "R1"))
+)
+cnst
+
 }
 \seealso{
 Other class constraint policy:
@@ -113,10 +110,6 @@ Other class constraint policy:
 \code{\link[=newTax]{newTax()}},
 \code{\link{subsidy-class}},
 \code{\link{tax-class}}
-
-Other class constraint:
-\code{\link{class-summand}}
 }
-\concept{class constraint}
 \concept{class constraint policy}
 \concept{constraint policy}

@@ -84,10 +84,13 @@ solve_model(model, solver = solver_options$glpk)
 
 ### Python / Pyomo
 
-energyRt writes a Pyomo `ConcreteModel` (data exchanged as SQLite by
-default, or Arrow/feather with the `*_arrow` presets) and solves it with
-the configured solver. CBC is the open-source default; CPLEX and GLPK
-are also available.
+energyRt writes a Pyomo `ConcreteModel` and solves it with the
+configured solver. CBC is the open-source default; CPLEX and GLPK are
+also available. Model data and the solution are exchanged as Arrow
+files, which needs `pyarrow` in the Python environment
+([`en_install_python_deps()`](https://energyRt.org/reference/en_install_python_deps.md)
+installs it); `solver_options$pyomo_cbc_sqlite` selects the older SQLite
+exchange instead.
 
 ``` r
 
@@ -100,7 +103,11 @@ solve_model(model, solver = solver_options$pyomo_cplex_barrier)   # CPLEX barrie
 energyRt writes a JuMP model and solves it in Julia. **HiGHS**
 (open-source) is fast and the recommended choice for large models;
 `*_barrier`, `*_simplex` and `*_parallel` presets select the HiGHS
-algorithm. Cbc, GLPK and CPLEX are also available.
+algorithm. Cbc, GLPK and CPLEX are also available. Model data and the
+solution are exchanged as Arrow files, read and written by `Arrow.jl`
+([`en_install_julia_pkgs()`](https://energyRt.org/reference/en_install_julia_pkgs.md)
+installs it); `solver_options$julia_highs_rdata` selects the older RData
+exchange instead.
 
 ``` r
 
@@ -155,21 +162,21 @@ data):
 | preset                   | backend       | solver      | remote | data exchange |
 |:-------------------------|:--------------|:------------|:-------|:--------------|
 | glpk                     | GLPK/MathProg | —           |        | default       |
-| pyomo_cbc                | Python/Pyomo  | cbc         |        | SQLite        |
-| pyomo_cbc_arrow          | Python/Pyomo  | cbc         |        | feather       |
-| pyomo_cplex              | Python/Pyomo  | cplex       |        | SQLite        |
-| pyomo_cplex_barrier      | Python/Pyomo  | cplex       |        | SQLite        |
-| pyomo_glpk               | Python/Pyomo  | glpk        |        | SQLite        |
-| pyomo_highs              | Python/Pyomo  | appsi_highs |        | SQLite        |
-| pyomo_highs_barrier      | Python/Pyomo  | appsi_highs |        | SQLite        |
-| neos_pyomo_cplex         | Python/Pyomo  | —           |        | SQLite        |
-| neos_pyomo_cplex_barrier | Python/Pyomo  | —           |        | SQLite        |
-| neos_pyomo_cbc           | Python/Pyomo  | —           |        | SQLite        |
+| pyomo_cbc                | Python/Pyomo  | cbc         |        | default       |
+| pyomo_cbc_sqlite         | Python/Pyomo  | cbc         |        | SQLite        |
+| pyomo_cplex              | Python/Pyomo  | cplex       |        | default       |
+| pyomo_cplex_barrier      | Python/Pyomo  | cplex       |        | default       |
+| pyomo_glpk               | Python/Pyomo  | glpk        |        | default       |
+| pyomo_highs              | Python/Pyomo  | appsi_highs |        | default       |
+| pyomo_highs_barrier      | Python/Pyomo  | appsi_highs |        | default       |
+| neos_pyomo_cplex         | Python/Pyomo  | —           |        | default       |
+| neos_pyomo_cplex_barrier | Python/Pyomo  | —           |        | default       |
+| neos_pyomo_cbc           | Python/Pyomo  | —           |        | default       |
 | julia_cbc                | Julia/JuMP    | Cbc         |        | default       |
 | julia_cplex              | Julia/JuMP    | CPLEX       |        | default       |
 | julia_cplex_barrier      | Julia/JuMP    | CPLEX       |        | default       |
 | julia_highs              | Julia/JuMP    | HiGHS       |        | default       |
-| julia_highs_arrow        | Julia/JuMP    | HiGHS       |        | feather       |
+| julia_highs_rdata        | Julia/JuMP    | HiGHS       |        | RData         |
 | julia_highs_barrier      | Julia/JuMP    | HiGHS       |        | default       |
 | julia_glpk               | Julia/JuMP    | GLPK        |        | default       |
 | julia_highs_simplex      | Julia/JuMP    | HiGHS       |        | default       |
@@ -184,6 +191,42 @@ data):
 | neos_gams_cplex_barrier  | GAMS          | CPLEX       | NEOS   | default       |
 | neos_gams_cbc            | GAMS          | CBC         | NEOS   | default       |
 
+A `default` in the last column means the preset names no format and
+follows the `exchange_format` option — Arrow IPC unless you change it.
+
+## Data exchange and storage
+
+Two separate option families, easy to confuse because both once shared
+one option:
+
+- **exchange** — the files handed to a solver for one solve, in
+  `runs/<run>/solver/input|output/`. Written once, read once, deleted
+  with the run.
+  [`get_exchange_format()`](https://energyRt.org/reference/exchange_format.md)
+  (`"feather"`),
+  [`get_exchange_compression()`](https://energyRt.org/reference/exchange_format.md)
+  (`"lz4"` — the codec is cheap because nothing here is kept).
+- **storage** — the tables that outlive the session: a scenario’s
+  parameter and variable stores, and the model / repository / dataset
+  stores.
+  [`get_storage_format()`](https://energyRt.org/reference/storage_format.md)
+  (`"feather"`),
+  [`get_storage_compression()`](https://energyRt.org/reference/storage_format.md)
+  (`"zstd"`, level 15).
+
+``` r
+
+set_exchange_format("parquet")     # Pyomo only; Arrow.jl cannot read parquet
+set_exchange_compression("uncompressed")
+set_storage_format("parquet")      # smaller on disk; feather reads faster
+```
+
+A solver preset’s `export_format` / `import_format` overrides the
+exchange option for that solve. A store records the format it was
+written in and keeps it when rewritten, so changing the option never
+mixes codecs inside an existing store — it applies to what you write
+next.
+
 ## Anatomy of a preset
 
 Each preset is a plain list, so you can copy one and tweak it. Common
@@ -194,7 +237,7 @@ fields:
 | `name` | preset name (informational) |
 | `lang` | backend: `"GLPK"`, `"PYOMO"`, `"JuMP"`, `"GAMS"` |
 | `solver` | underlying solver (e.g. `"HiGHS"`, `"cbc"`, `"CPLEX"`) |
-| `export_format` / `import_format` | data exchange: `SQLite`, `feather` (Arrow), `GDX`, CSV/text |
+| `export_format` / `import_format` | data exchange in / out: `feather` (Arrow, the default), `parquet` (Pyomo only), `SQLite` / `RData` (legacy input), `GDX`, CSV/text. Unset on a JuMP/Pyomo preset means “follow [`get_exchange_format()`](https://energyRt.org/reference/exchange_format.md)”; the two directions are independent |
 | `backend` | `"neos"` for a remote NEOS solve |
 | `neos_solver`, `neos_category` | remote solver and NEOS problem category |
 | `inc3`, `inc4`, … | backend-specific code blocks injected into the model template (e.g. a `cplex.opt` for LP-method tuning) |

@@ -13,7 +13,9 @@ en_install_julia_pkgs(pkgs = NULL, update = FALSE)
 - pkgs:
 
   A character vector of Julia packages to install. The default is
-  `c("JuMP", "HiGHS", "Cbc", "Clp", "RData", "RCall", "CodecBzip2", "Gadfly", "DataFrames", "CSV", "SQLite", "Dates")`.
+  `c("JuMP", "HiGHS", "Cbc", "Clp", "Arrow", "RData", "RCall", "CodecBzip2", "Gadfly", "DataFrames", "Dates")`.
+  `Arrow` is required for the default data exchange (see
+  [`get_exchange_format()`](https://energyRt.org/reference/exchange_format.md)).
   If you have pre-installed CPLEX or Gurobi, you can add them to the
   list.
 

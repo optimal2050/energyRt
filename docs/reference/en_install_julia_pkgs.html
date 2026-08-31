@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -77,8 +77,9 @@
 
 <dl><dt id="arg-pkgs">pkgs<a class="anchor" aria-label="anchor" href="#arg-pkgs"></a></dt>
 <dd><p>A character vector of Julia packages to install. The default is
-<code>c("JuMP", "HiGHS", "Cbc", "Clp", "RData", "RCall", "CodecBzip2",
-"Gadfly", "DataFrames", "CSV", "SQLite", "Dates")</code>.
+<code>c("JuMP", "HiGHS", "Cbc", "Clp", "Arrow", "RData", "RCall",
+"CodecBzip2", "Gadfly", "DataFrames", "Dates")</code>. <code>Arrow</code> is required for
+the default data exchange (see <code><a href="exchange_format.html">get_exchange_format()</a></code>).
 If you have pre-installed CPLEX or Gurobi, you can add them to the list.</p></dd>
 
 </dl></div>

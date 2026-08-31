@@ -165,7 +165,7 @@ calendar (`s4_h24`): pull the object with `getObject()`, take one region
 bar.
 
 ```{r hm-demand, fig.height = 2.6}
-repo <- utopia_modules$electricity$R3$repo
+repo <- utopia$modules$electricity$R3$repo
 wcal <- calendars$s4_h24
 
 DEM <- getObject(repo, name = "DEM_ELC", drop = TRUE)
@@ -267,7 +267,7 @@ when unset) labels the value axis — the fill legend for the heatmap, the y-axi
 for line/area.
 
 ```{r wea, fig.height = 3}
-WSOL <- getObject(utopia_modules$electricity$R3$repo, name = "WSOL", drop = TRUE)
+WSOL <- getObject(utopia$modules$electricity$R3$repo, name = "WSOL", drop = TRUE)
 wcal <- calendars$s4_h24
 
 autoplot(WSOL, calendar = wcal)                    # heatmap (default), faceted by region

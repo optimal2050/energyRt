@@ -28,3 +28,4 @@ updated scenario object.
 \description{
 Build mapping parameters for a scenario, in recipe (dependency) order
 }
+\keyword{internal}

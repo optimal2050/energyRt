@@ -31,11 +31,11 @@ scenario files under a temporary folder.
 set_scenarios_path(file.path(tempdir(), "wf"))   # where scenarios are written
 set_registry_file(file.path(tempdir(), "wf", "energyRt_registry.csv"))
 
-um  <- utopia_modules$electricity$R1
+um  <- utopia$modules$electricity$R1
 mod <- newModel("UTOPIA", data = um$repo,
-                calendar = utopia_modules$calendars$s4_h24,
+                calendar = utopia$modules$calendars$s4_h24,
                 region   = um$regions,
-                horizon  = utopia_modules$horizons$base, discount = 0.05)
+                horizon  = utopia$modules$horizons$base, discount = 0.05)
 ```
 
 ```{r base-solve}
@@ -103,8 +103,8 @@ ECOA <- update(ECOA, invcost = data.frame(invcost = 2500))  # pricier coal capex
 repo_hi <- add(repo, ECOA, overwrite = TRUE)                # swap it back in
 
 mod_hi  <- newModel("UTOPIA_HI", data = repo_hi,
-                    calendar = utopia_modules$calendars$s4_h24,
-                    region = um$regions, horizon = utopia_modules$horizons$base,
+                    calendar = utopia$modules$calendars$s4_h24,
+                    region = um$regions, horizon = utopia$modules$horizons$base,
                     discount = 0.05)
 ```
 
@@ -279,7 +279,7 @@ covers. Timeslice weights annualise the sample inside the solver
 slices are representative:
 
 ```{r sample-calendar}
-tt  <- utopia_modules$calendars$s4_h24@timetable
+tt  <- utopia$modules$calendars$s4_h24@timetable
 tt2 <- tt[tt$SEASON %in% c("WIN", "SUM"), ]      # two of the four seasons
 cal2 <- newCalendar(timetable = tt2, name = "s2h24",
                     year_fraction = sum(tt2$share))

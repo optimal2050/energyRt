@@ -28,7 +28,8 @@ Countdown timer to use in R scripts
 }
 \examples{
 \dontrun{
-countdown_timer(10)
-countdown_timer(10, warn_message = "Something important is going to happen in 10 seconds.")
+energyRt:::countdown_timer(10)
+energyRt:::countdown_timer(10, warn_message = "Something important is going to happen in 10 seconds.")
 }
 }
+\keyword{internal}

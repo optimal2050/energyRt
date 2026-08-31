@@ -54,6 +54,6 @@ An S4 class to represent scenario, an interpolated and/or solved model.
 ## See also
 
 `interpolate()`, [`solve()`](https://rdrr.io/r/base/solve.html),
-[`register()`](https://energyRt.org/reference/registry-deprecated.md),
+[`register()`](https://energyRt.org/reference/energyRt-deprecated.md),
 [`summary()`](https://energyRt.org/reference/summary.md),
 [`newScenario()`](https://energyRt.org/reference/newScenario.md)

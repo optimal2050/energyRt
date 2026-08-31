@@ -7,18 +7,18 @@
 #' @param repl replacement character
 #'
 #' @returns character vector with special characters replaced
-#' @export
 #'
 #' @examples
-#' en_replace_specials(c("valid", "invalid!", "in-valid", "valid_1", "invalid.2"))
-#' en_replace_specials(c("valid", "invalid!"), "[\\.\\^\\$\\*\\+\\?\\!]", "_fixed")
+#' energyRt:::en_replace_specials(c("valid", "invalid!", "in-valid", "valid_1", "invalid.2"))
+#' energyRt:::en_replace_specials(c("valid", "invalid!"), "[\\.\\^\\$\\*\\+\\?\\!]", "_fixed")
+#' @keywords internal
 en_replace_specials <- function(x, pattern = "[^[:alnum:]]", repl = "_") {
   # x - character
   gsub(pattern, repl, x)
 }
 
 #' @describeIn en_replace_specials Return `TRUE` if any element contains a special character.
-#' @export
+#' @keywords internal
 en_has_specials <- function(x, pattern = "[^[:alnum:]]") {
   # x - character
   if (!is.character(x)) stop("x must be a character vector")
@@ -26,7 +26,7 @@ en_has_specials <- function(x, pattern = "[^[:alnum:]]") {
 }
 
 #' @describeIn en_replace_specials Return the match positions of special characters (via [gregexpr()]).
-#' @export
+#' @keywords internal
 en_find_specials <- function(x, pattern = "[^[:alnum:]]") {
   # x - character
   if (!is.character(x)) stop("x must be a character vector")
@@ -236,7 +236,6 @@ en_check_gams <- function() {
 }
 
 #' @rdname en_check
-#' @export
 en_check_gdx <- function() {
   ok <- requireNamespace("gdxtools", quietly = TRUE)
   ver <- if (ok) as.character(utils::packageVersion("gdxtools")) else NA_character_

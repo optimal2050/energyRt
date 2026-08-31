@@ -3,6 +3,9 @@
 Computes the levelized cost of energy (LCOE) for a `technology`,
 `repository`, `model`, or `scenario` object.
 
+`levcost()` on a `levcost_variants` object stacks its per-variant tables
+without re-solving: `levcost(lc, by_variant = "npv")`.
+
 ## Usage
 
 ``` r
@@ -15,13 +18,19 @@ levcost(object, comm, name, ...)
 levcost(object, comm, name, ...)
 
 # S4 method for class 'repository'
-levcost(object, comm, name, ...)
+levcost(object, comm, name, by_variant = FALSE, ...)
 
 # S4 method for class 'model'
-levcost(object, comm, name, ...)
+levcost(object, comm, name, by_variant = FALSE, ...)
 
 # S4 method for class 'scenario'
 levcost(object, comm, name, ...)
+
+# S4 method for class 'levcost_variants'
+levcost(object, comm, name, by_variant = TRUE, ...)
+
+# S4 method for class 'levcost'
+levcost(object, comm, name, by_variant = FALSE, ...)
 ```
 
 ## Arguments
@@ -173,6 +182,14 @@ levcost(object, comm, name, ...)
 
   :   Logical, default `TRUE`.
 
+- by_variant:
+
+  for a technology declaring vintages or clusters: `FALSE` (default)
+  returns the result object; `TRUE` (= `"levcost"`), `"npv"` or
+  `"components"` returns that per-variant table instead. Passing an
+  existing result — `levcost(lc, by_variant = "npv")` — extracts without
+  re-solving.
+
 ## Value
 
 For `technology` input: a list of class `"levcost"` with fields:
@@ -221,12 +238,11 @@ holding one full `"levcost"` result per variant, keyed by variant name
 (`"PWR_VIN2030"`). Each variant is priced in its own region so the
 variants cannot serve each other's demand; without that isolation they
 compete for one unit of demand and the result silently sums across them.
-The stacked tables are reachable with
-[`levcost_by_variant()`](https://energyRt.org/reference/levcost_by_variant.md),
-and `autoplot()` compares the variants. `$frontier` is `NULL` on this
-path – the frontier corners are a per-commodity sweep, orthogonal to
-variants, and are not fanned out. A technology with no vintages or
-clusters is unaffected and still returns a single `"levcost"` object.
+The stacked tables are reachable with `levcost(x, by_variant = )`, and
+`autoplot()` compares the variants. `$frontier` is `NULL` on this path –
+the frontier corners are a per-commodity sweep, orthogonal to variants,
+and are not fanned out. A technology with no vintages or clusters is
+unaffected and still returns a single `"levcost"` object.
 
 ## Details
 
@@ -267,10 +283,6 @@ discharged, not its delivered cost; use `levcost()` on the `storage`
 object with `price =` for the latter. Likewise a technology with a
 *grouped* input (whose per-commodity consumption is not a solution
 variable) reports no fuel component.
-
-## See also
-
-[`levcost_by_variant()`](https://energyRt.org/reference/levcost_by_variant.md)
 
 ## Examples
 

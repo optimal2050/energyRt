@@ -21,11 +21,11 @@ keep all scenario files under a temporary folder.
 set_scenarios_path(file.path(tempdir(), "wf"))   # where scenarios are written
 set_registry_file(file.path(tempdir(), "wf", "energyRt_registry.csv"))
 
-um  <- utopia_modules$electricity$R1
+um  <- utopia$modules$electricity$R1
 mod <- newModel("UTOPIA", data = um$repo,
-                calendar = utopia_modules$calendars$s4_h24,
+                calendar = utopia$modules$calendars$s4_h24,
                 region   = um$regions,
-                horizon  = utopia_modules$horizons$base, discount = 0.05)
+                horizon  = utopia$modules$horizons$base, discount = 0.05)
 ```
 
 ``` r
@@ -140,8 +140,8 @@ ECOA <- update(ECOA, invcost = data.frame(invcost = 2500))  # pricier coal capex
 repo_hi <- add(repo, ECOA, overwrite = TRUE)                # swap it back in
 
 mod_hi  <- newModel("UTOPIA_HI", data = repo_hi,
-                    calendar = utopia_modules$calendars$s4_h24,
-                    region = um$regions, horizon = utopia_modules$horizons$base,
+                    calendar = utopia$modules$calendars$s4_h24,
+                    region = um$regions, horizon = utopia$modules$horizons$base,
                     discount = 0.05)
 ```
 
@@ -160,15 +160,16 @@ The scenarios directory is an option — read it with
 set it with
 [`set_scenarios_path()`](https://energyRt.org/reference/scenarios_path.md)
 (default `"scenarios/"`). Each scenario gets its own folder, named
-automatically as `name_model_calendar_horizon` (duplicate parts are
-dropped, so a scenario and model sharing a name appear once):
+automatically as `name-model-calendar-horizon` (parts joined by dashes,
+which valid names cannot contain; duplicate parts are dropped, so a
+scenario and model sharing a name appear once):
 
 ``` r
 
 get_scenarios_path()
-#> [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpecC46o/wf"
+#> [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\Rtmp8mEWgs/wf"
 basename(scen@path)
-#> [1] "BASE_UTOPIA_s4-h24_base"
+#> [1] "BASE-UTOPIA-s4_h24-base"
 ```
 
 Saving a scenario writes an **Arrow-backed** folder that mirrors the
@@ -176,7 +177,7 @@ scenario’s structure — a thin `scen.RData` shell, a `scenario.yml`
 manifest, each large data slot as a dataset, and one folder per solver
 run:
 
-    <scenarios-path>/<name_model_calendar_horizon>/
+    <scenarios-path>/<name-model-calendar-horizon>/
     ├── scenario.yml        # manifest: model ref/hash, calendar, horizon,
     │                       #   `default:` — the default run (user-changeable)
     ├── scen.RData          # thinned S4 scenario shell
@@ -248,7 +249,7 @@ identical(getScenario("BASE")@name, ld@name)
 ``` r
 
 basename(saved@path)                                 # the scenario folder
-#> [1] "BASE_UTOPIA_s4-h24_base"
+#> [1] "BASE-UTOPIA-s4_h24-base"
 isInMemory(saved)                                    # FALSE -- data is on disk
 #> [1] FALSE
 getData(ld, "vObjective", merge = TRUE)$value        # lazy read, no full load
@@ -279,7 +280,7 @@ shared by several models can be stored once with
 referenced by each model (`save_model(embed_repos = )`), just as
 scenarios can reference a stored model.
 [`load_registry()`](https://energyRt.org/reference/registry.md) reads
-it, [`find_registry()`](https://energyRt.org/reference/registry.md)
+it, [`find_in_registry()`](https://energyRt.org/reference/registry.md)
 filters it (by type, name, or model hash), and
 [`refresh_registry()`](https://energyRt.org/reference/registry.md)
 rebuilds it by rescanning the `scenarios/` and `models/` stores — the
@@ -389,7 +390,7 @@ slices are representative:
 
 ``` r
 
-tt  <- utopia_modules$calendars$s4_h24@timetable
+tt  <- utopia$modules$calendars$s4_h24@timetable
 tt2 <- tt[tt$SEASON %in% c("WIN", "SUM"), ]      # two of the four seasons
 cal2 <- newCalendar(timetable = tt2, name = "s2h24",
                     year_fraction = sum(tt2$share))

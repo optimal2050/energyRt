@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -284,7 +284,7 @@
 
         <dt>
 
-          <code><a href="newConstraint.html">newConstraint()</a></code> <code><a href="newConstraint.html">isConstraint()</a></code> <code><a href="newConstraint.html">newConstraintS()</a></code>
+          <code><a href="newConstraint.html">newConstraint()</a></code> <code><a href="newConstraint.html">newConstraintS()</a></code>
 
         </dt>
         <dd>Create constraint object to add custom constraints to the model.</dd>
@@ -389,6 +389,13 @@
 
         <dt>
 
+          <code><a href="registry.html">newRegistry()</a></code> <code><a href="registry.html">load_registry()</a></code> <code><a href="registry.html">save_registry()</a></code> <code><a href="registry.html">add_to_registry()</a></code> <code><a href="registry.html">add(<i>&lt;en_registry&gt;</i>)</a></code> <code><a href="registry.html">find_in_registry()</a></code> <code><a href="registry.html">refresh_registry()</a></code>
+
+        </dt>
+        <dd>Project registry of models, scenarios, and runs</dd>
+
+        <dt>
+
           <code><a href="storage.html">newStorage()</a></code>
 
         </dt>
@@ -452,13 +459,6 @@
 
         <dt>
 
-          <code><a href="registry.html">load_registry()</a></code> <code><a href="registry.html">save_registry()</a></code> <code><a href="registry.html">add_to_registry()</a></code> <code><a href="registry.html">add(<i>&lt;ert_registry&gt;</i>)</a></code> <code><a href="registry.html">find_registry()</a></code> <code><a href="registry.html">refresh_registry()</a></code>
-
-        </dt>
-        <dd>Project registry of models, scenarios, and runs</dd>
-
-        <dt>
-
           <code><a href="supply-curve.html">asSupplyCurve()</a></code> <code><a href="supply-curve.html">asImportCurve()</a></code> <code><a href="supply-curve.html">asExportCurve()</a></code>
           <span class="badge lifecycle lifecycle-experimental">experimental</span>
         </dt>
@@ -471,9 +471,9 @@
         </dt>
         <dd>Loss tranches for a transmission line</dd>
       </dl></div><div class="section level2">
-      <h2 id="technology-specs">Technology specs<a class="anchor" aria-label="anchor" href="#technology-specs"></a></h2>
+      <h2 id="process-specs">Process specs<a class="anchor" aria-label="anchor" href="#process-specs"></a></h2>
 
-      <div class="section-desc"><p>Portable technology specifications (YAML/JSON containers) and vintage tools.</p></div>
+      <div class="section-desc"><p>Portable process specifications (YAML/JSON containers) and vintage tools.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -482,31 +482,45 @@
 
       <dl><dt>
 
-          <code><a href="process_from_spec.html">process_from_spec()</a></code> <code><a href="process_from_spec.html">tech_from_spec()</a></code>
+          <code><a href="process_from_spec.html">process_from_spec()</a></code>
 
         </dt>
         <dd>Build a process object from a spec</dd>
 
         <dt>
 
-          <code><a href="process_to_spec.html">process_to_spec()</a></code> <code><a href="process_to_spec.html">tech_to_spec()</a></code>
+          <code><a href="process_to_spec.html">process_to_spec()</a></code>
 
         </dt>
         <dd>Export a process object as a spec list</dd>
 
         <dt>
 
-          <code><a href="process_spec_code.html">process_spec_code()</a></code> <code><a href="process_spec_code.html">tech_spec_code()</a></code>
+          <code><a href="process_spec_code.html">process_spec_code()</a></code>
 
         </dt>
         <dd>The constructor call equivalent to a process spec, as text</dd>
 
         <dt>
 
-          <code><a href="process_spec_issues.html">process_spec_issues()</a></code> <code><a href="process_spec_issues.html">tech_spec_issues()</a></code>
+          <code><a href="process_spec_issues.html">process_spec_issues()</a></code>
 
         </dt>
         <dd>Validate a process spec and report issues</dd>
+
+        <dt>
+
+          <code><a href="read_process_spec.html">read_process_spec()</a></code>
+
+        </dt>
+        <dd>Read and validate a process spec</dd>
+
+        <dt>
+
+          <code><a href="process_designer.html">process_designer()</a></code>
+
+        </dt>
+        <dd>Launch the process designer</dd>
 
         <dt>
 
@@ -626,13 +640,6 @@
 
       <dl><dt>
 
-          <code><a href="interpolate_bounds.html">interpolate_bounds()</a></code>
-
-        </dt>
-        <dd>Interpolate lower and upper bounds</dd>
-
-        <dt>
-
           <code><a href="interpolate_model.html">interpolate_model()</a></code>
 
         </dt>
@@ -640,21 +647,7 @@
 
         <dt>
 
-          <code><a href="interpolate_numpar.html">interpolate_numpar()</a></code>
-
-        </dt>
-        <dd>Interpolate numerical parameter for missing years</dd>
-
-        <dt>
-
-          <code><a href="interpolate_parameters.html">interpolate_parameters()</a></code>
-
-        </dt>
-        <dd>Interpolate all year-indexed numeric/bounds parameters of a scenario</dd>
-
-        <dt>
-
-          <code><a href="write.html">write_script()</a></code> <code><a href="write.html">write_sc()</a></code> <code><a href="write.html">write.sc()</a></code>
+          <code><a href="write.html">write_script()</a></code> <code><a href="write.html">write_sc()</a></code>
 
         </dt>
         <dd>Write scenario object as a Python, Julia, GAMS, or MathProg script with data files to a directory</dd>
@@ -682,7 +675,7 @@
 
         <dt>
 
-          <code><a href="read_procspec.html">read_procspec()</a></code> <code><a href="read_procspec.html">read_techspec()</a></code>
+          <code><a href="read_process_spec.html">read_process_spec()</a></code>
 
         </dt>
         <dd>Read and validate a process spec</dd>
@@ -696,7 +689,7 @@
 
         <dt>
 
-          <code><a href="solve_model.html">solve_mod()</a></code> <code><a href="solve_model.html">solve_scen()</a></code> <code><a href="solve_model.html">solve_model()</a></code> <code><a href="solve_model.html">solve_scenario()</a></code>
+          <code><a href="solve_model.html">solve_model()</a></code> <code><a href="solve_model.html">solve_scenario()</a></code>
 
         </dt>
         <dd>Solve a model or an interpolated scenario</dd>
@@ -752,27 +745,6 @@
 
         <dt>
 
-          <code><a href="build_mappings.html">build_mappings()</a></code>
-
-        </dt>
-        <dd>Build mapping parameters for a scenario, in recipe (dependency) order</dd>
-
-        <dt>
-
-          <code><a href="load_mapping_spec.html">load_mapping_spec()</a></code>
-
-        </dt>
-        <dd>Load the mapping specification</dd>
-
-        <dt>
-
-          <code><a href="mappings_by_recipe.html">mappings_by_recipe()</a></code>
-
-        </dt>
-        <dd>Group mapping specs by recipe, in evaluation order</dd>
-
-        <dt>
-
           <code><a href="trim_parameters_by_maps.html">trim_parameters_by_maps()</a></code>
 
         </dt>
@@ -796,38 +768,10 @@
 
       <dl><dt>
 
-          <code><a href="neos.html">neos_ping()</a></code> <code><a href="neos.html">neos_list_categories()</a></code> <code><a href="neos.html">neos_list_solvers()</a></code> <code><a href="neos.html">neos_get_template()</a></code>
+          <code><a href="neos.html">neos_ping()</a></code> <code><a href="neos.html">neos_list_solvers()</a></code>
 
         </dt>
         <dd>NEOS Server client (query the remote solver service)</dd>
-
-        <dt>
-
-          <code><a href="neos_build_gams_text_job.html">neos_build_gams_text_job()</a></code>
-
-        </dt>
-        <dd>Build a NEOS GAMS job from a text-mode scenario directory (no input GDX)</dd>
-
-        <dt>
-
-          <code><a href="neos_build_gams_xml.html">neos_build_gams_xml()</a></code>
-
-        </dt>
-        <dd>Assemble a NEOS GAMS job document</dd>
-
-        <dt>
-
-          <code><a href="neos_gams_inline.html">neos_gams_inline()</a></code>
-
-        </dt>
-        <dd>Inline a GAMS model's <code>$include</code> files into one self-contained string</dd>
-
-        <dt>
-
-          <code><a href="neos_job.html">neos_submit_job()</a></code> <code><a href="neos_job.html">neos_job_status()</a></code> <code><a href="neos_job.html">neos_completion_code()</a></code> <code><a href="neos_job.html">neos_final_results()</a></code> <code><a href="neos_job.html">neos_get_output_file()</a></code> <code><a href="neos_job.html">neos_wait()</a></code>
-
-        </dt>
-        <dd>Submit and manage a NEOS job</dd>
       </dl></div><div class="section level2">
       <h2 id="reporting">Reporting<a class="anchor" aria-label="anchor" href="#reporting"></a></h2>
 
@@ -954,7 +898,7 @@
         </dt>
         <dd>Duration bands of a full-year battery, precomputed</dd>
       </dl></div><div class="section level2">
-      <h2 id="data-manimulation">Data manimulation<a class="anchor" aria-label="anchor" href="#data-manimulation"></a></h2>
+      <h2 id="data-manipulation">Data manipulation<a class="anchor" aria-label="anchor" href="#data-manipulation"></a></h2>
 
 
 
@@ -979,6 +923,13 @@
 
         <dt>
 
+          <code><a href="getUnits.html">getUnits(<i>&lt;commodity&gt;</i>)</a></code> <code><a href="getUnits.html">getUnits(<i>&lt;technology&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Get parameter units for energyRt class objects</dd>
+
+        <dt>
+
           <code><a href="commodity_properties.html">commodity_properties()</a></code>
 
         </dt>
@@ -993,13 +944,6 @@
 
         <dt>
 
-          <code><a href="apply_to_scenario_data.html">apply_to_scenario_data()</a></code>
-
-        </dt>
-        <dd>Apply function to scenario data</dd>
-
-        <dt>
-
           <code><a href="dataset_store.html">dataset_hash()</a></code> <code><a href="dataset_store.html">save_dataset()</a></code> <code><a href="dataset_store.html">load_dataset()</a></code>
 
         </dt>
@@ -1007,14 +951,14 @@
 
         <dt>
 
-          <code><a href="getData.html">getData()</a></code> <code><a href="getData.html">get_data()</a></code>
+          <code><a href="getData.html">getData()</a></code>
 
         </dt>
         <dd>Extract data from energyRt objects</dd>
 
         <dt>
 
-          <code><a href="registry_file.html">set_registry_file()</a></code> <code><a href="registry_file.html">get_registry_file()</a></code> <code><a href="registry_file.html">set_models_path()</a></code> <code><a href="registry_file.html">get_models_path()</a></code> <code><a href="registry_file.html">set_repositories_path()</a></code> <code><a href="registry_file.html">get_repositories_path()</a></code> <code><a href="registry_file.html">set_datasets_path()</a></code> <code><a href="registry_file.html">get_datasets_path()</a></code> <code><a href="registry_file.html">set_store_versioning()</a></code> <code><a href="registry_file.html">get_store_versioning()</a></code>
+          <code><a href="registry_file.html">set_registry_file()</a></code> <code><a href="registry_file.html">get_registry_file()</a></code> <code><a href="registry_file.html">set_models_path()</a></code> <code><a href="registry_file.html">get_models_path()</a></code> <code><a href="registry_file.html">set_repositories_path()</a></code> <code><a href="registry_file.html">get_repositories_path()</a></code> <code><a href="registry_file.html">set_datasets_path()</a></code> <code><a href="registry_file.html">get_datasets_path()</a></code>
 
         </dt>
         <dd>Registry file and model store locations</dd>
@@ -1070,13 +1014,6 @@
 
         <dt>
 
-          <code><a href="en_replace_specials.html">en_replace_specials()</a></code> <code><a href="en_replace_specials.html">en_has_specials()</a></code> <code><a href="en_replace_specials.html">en_find_specials()</a></code>
-
-        </dt>
-        <dd>Find and replace special characters</dd>
-
-        <dt>
-
           <code><a href="findData.html">findData()</a></code>
 
         </dt>
@@ -1098,7 +1035,7 @@
 
         <dt>
 
-          <code><a href="registry.html">load_registry()</a></code> <code><a href="registry.html">save_registry()</a></code> <code><a href="registry.html">add_to_registry()</a></code> <code><a href="registry.html">add(<i>&lt;ert_registry&gt;</i>)</a></code> <code><a href="registry.html">find_registry()</a></code> <code><a href="registry.html">refresh_registry()</a></code>
+          <code><a href="registry.html">newRegistry()</a></code> <code><a href="registry.html">load_registry()</a></code> <code><a href="registry.html">save_registry()</a></code> <code><a href="registry.html">add_to_registry()</a></code> <code><a href="registry.html">add(<i>&lt;en_registry&gt;</i>)</a></code> <code><a href="registry.html">find_in_registry()</a></code> <code><a href="registry.html">refresh_registry()</a></code>
 
         </dt>
         <dd>Project registry of models, scenarios, and runs</dd>
@@ -1168,13 +1105,6 @@
 
         <dt>
 
-          <code><a href="drop_na_cols.html">drop_na_cols()</a></code>
-
-        </dt>
-        <dd>Drop columns in a data.frame with all NA values</dd>
-
-        <dt>
-
           <code><a href="obj2mem.html">obj2mem()</a></code>
 
         </dt>
@@ -1214,13 +1144,6 @@
 
         </dt>
         <dd>Save scenario object on disk in parquet format using <code>arrow</code> package.</dd>
-
-        <dt>
-
-          <code><a href="load_mapping_spec.html">load_mapping_spec()</a></code>
-
-        </dt>
-        <dd>Load the mapping specification</dd>
 
         <dt>
 
@@ -1269,14 +1192,7 @@
           <code><a href="utopia.html">utopia</a></code>
 
         </dt>
-        <dd>UTOPIA reference maps</dd>
-
-        <dt>
-
-          <code><a href="utopia_demand.html">utopia_demand</a></code>
-
-        </dt>
-        <dd>UTOPIA electricity load shape</dd>
+        <dd>The UTOPIA reference dataset</dd>
 
         <dt>
 
@@ -1284,13 +1200,6 @@
 
         </dt>
         <dd>A geoscale for the UTOPIA reference model</dd>
-
-        <dt>
-
-          <code><a href="utopia_modules.html">utopia_modules</a></code>
-
-        </dt>
-        <dd>UTOPIA model modules</dd>
 
         <dt>
 
@@ -1305,20 +1214,6 @@
 
         </dt>
         <dd>UTOPIA input profiles (deterministic)</dd>
-
-        <dt>
-
-          <code><a href="utopia_stock.html">utopia_stock</a></code>
-
-        </dt>
-        <dd>UTOPIA base-year capacity stock</dd>
-
-        <dt>
-
-          <code><a href="utopia_weather.html">utopia_weather</a></code>
-
-        </dt>
-        <dd>UTOPIA representative capacity-factor profiles</dd>
       </dl></div><div class="section level2">
       <h2 id="visualisation">Visualisation<a class="anchor" aria-label="anchor" href="#visualisation"></a></h2>
 
@@ -1450,7 +1345,7 @@
 
         <dt>
 
-          <code><a href="process_designer.html">process_designer()</a></code> <code><a href="process_designer.html">tech_designer()</a></code>
+          <code><a href="process_designer.html">process_designer()</a></code>
 
         </dt>
         <dd>Launch the process designer</dd>
@@ -1494,13 +1389,6 @@
 
         <dt>
 
-          <code><a href="check_name.html">check_name()</a></code>
-
-        </dt>
-        <dd>Check validity of object's names used in sets</dd>
-
-        <dt>
-
           <code><a href="verify_solution.html">verify_solution()</a></code>
 
         </dt>
@@ -1519,27 +1407,6 @@
 
         </dt>
         <dd>Levelized cost of commodity production</dd>
-
-        <dt>
-
-          <code><a href="levcost_by_variant.html">levcost_by_variant()</a></code>
-
-        </dt>
-        <dd>Per-variant levelized cost tables</dd>
-
-        <dt>
-
-          <code><a href="levcost_storage_.html">levcost_storage_()</a></code>
-
-        </dt>
-        <dd>Levelized cost of storage</dd>
-
-        <dt>
-
-          <code><a href="levcost_trade_.html">levcost_trade_()</a></code>
-
-        </dt>
-        <dd>Levelized cost of transmission</dd>
 
         <dt>
 
@@ -1610,13 +1477,6 @@
 
       <dl><dt>
 
-          <code><a href="arrow_format.html">get_arrow_format()</a></code> <code><a href="arrow_format.html">set_arrow_format()</a></code> <code><a href="arrow_format.html">get_arrow_compression()</a></code> <code><a href="arrow_format.html">set_arrow_compression()</a></code> <code><a href="arrow_format.html">get_arrow_compression_level()</a></code> <code><a href="arrow_format.html">set_arrow_compression_level()</a></code>
-
-        </dt>
-        <dd>Arrow exchange-format options</dd>
-
-        <dt>
-
           <code><a href="default_solver.html">get_default_solver()</a></code> <code><a href="default_solver.html">set_default_solver()</a></code>
 
         </dt>
@@ -1628,6 +1488,13 @@
 
         </dt>
         <dd>Get or set an energyRt option</dd>
+
+        <dt>
+
+          <code><a href="exchange_format.html">get_exchange_format()</a></code> <code><a href="exchange_format.html">set_exchange_format()</a></code> <code><a href="exchange_format.html">get_exchange_compression()</a></code> <code><a href="exchange_format.html">set_exchange_compression()</a></code> <code><a href="exchange_format.html">get_exchange_compression_level()</a></code> <code><a href="exchange_format.html">set_exchange_compression_level()</a></code>
+
+        </dt>
+        <dd>Solver data-exchange options</dd>
 
         <dt>
 
@@ -1659,6 +1526,13 @@
 
         <dt>
 
+          <code><a href="path_builders.html">set_path_builder()</a></code> <code><a href="path_builders.html">get_path_builder()</a></code>
+
+        </dt>
+        <dd>Override how folder names are derived</dd>
+
+        <dt>
+
           <code><a href="progress.html">set_progress_bar()</a></code> <code><a href="progress.html">show_progress_bar()</a></code>
 
         </dt>
@@ -1666,7 +1540,7 @@
 
         <dt>
 
-          <code><a href="registry_file.html">set_registry_file()</a></code> <code><a href="registry_file.html">get_registry_file()</a></code> <code><a href="registry_file.html">set_models_path()</a></code> <code><a href="registry_file.html">get_models_path()</a></code> <code><a href="registry_file.html">set_repositories_path()</a></code> <code><a href="registry_file.html">get_repositories_path()</a></code> <code><a href="registry_file.html">set_datasets_path()</a></code> <code><a href="registry_file.html">get_datasets_path()</a></code> <code><a href="registry_file.html">set_store_versioning()</a></code> <code><a href="registry_file.html">get_store_versioning()</a></code>
+          <code><a href="registry_file.html">set_registry_file()</a></code> <code><a href="registry_file.html">get_registry_file()</a></code> <code><a href="registry_file.html">set_models_path()</a></code> <code><a href="registry_file.html">get_models_path()</a></code> <code><a href="registry_file.html">set_repositories_path()</a></code> <code><a href="registry_file.html">get_repositories_path()</a></code> <code><a href="registry_file.html">set_datasets_path()</a></code> <code><a href="registry_file.html">get_datasets_path()</a></code>
 
         </dt>
         <dd>Registry file and model store locations</dd>
@@ -1705,6 +1579,13 @@
 
         </dt>
         <dd>Set or get the path to a solver toolchain</dd>
+
+        <dt>
+
+          <code><a href="storage_format.html">get_storage_format()</a></code> <code><a href="storage_format.html">set_storage_format()</a></code> <code><a href="storage_format.html">get_storage_compression()</a></code> <code><a href="storage_format.html">set_storage_compression()</a></code> <code><a href="storage_format.html">get_storage_compression_level()</a></code> <code><a href="storage_format.html">set_storage_compression_level()</a></code>
+
+        </dt>
+        <dd>On-disk table storage options</dd>
 
         <dt>
 
@@ -1787,20 +1668,6 @@
 
         <dt>
 
-          <code><a href="collect_set_elements.html">collect_set_elements()</a></code>
-
-        </dt>
-        <dd>Search through model data for set elements</dd>
-
-        <dt>
-
-          <code><a href="arrow_format.html">get_arrow_format()</a></code> <code><a href="arrow_format.html">set_arrow_format()</a></code> <code><a href="arrow_format.html">get_arrow_compression()</a></code> <code><a href="arrow_format.html">set_arrow_compression()</a></code> <code><a href="arrow_format.html">get_arrow_compression_level()</a></code> <code><a href="arrow_format.html">set_arrow_compression_level()</a></code>
-
-        </dt>
-        <dd>Arrow exchange-format options</dd>
-
-        <dt>
-
           <code><a href="default_solver.html">get_default_solver()</a></code> <code><a href="default_solver.html">set_default_solver()</a></code>
 
         </dt>
@@ -1815,17 +1682,17 @@
 
         <dt>
 
-          <code><a href="getData.html">getData()</a></code> <code><a href="getData.html">get_data()</a></code>
+          <code><a href="exchange_format.html">get_exchange_format()</a></code> <code><a href="exchange_format.html">set_exchange_format()</a></code> <code><a href="exchange_format.html">get_exchange_compression()</a></code> <code><a href="exchange_format.html">set_exchange_compression()</a></code> <code><a href="exchange_format.html">get_exchange_compression_level()</a></code> <code><a href="exchange_format.html">set_exchange_compression_level()</a></code>
 
         </dt>
-        <dd>Extract data from energyRt objects</dd>
+        <dd>Solver data-exchange options</dd>
 
         <dt>
 
-          <code><a href="getUnits.html">getUnits(<i>&lt;commodity&gt;</i>)</a></code> <code><a href="getUnits.html">getUnits(<i>&lt;technology&gt;</i>)</a></code> <code><a href="getUnits.html">get_units()</a></code>
+          <code><a href="getData.html">getData()</a></code>
 
         </dt>
-        <dd>Get parameter units for energyRt class objects</dd>
+        <dd>Extract data from energyRt objects</dd>
 
         <dt>
 
@@ -1906,13 +1773,6 @@
 
         <dt>
 
-          <code><a href="get_slot_doc.html">get_slot_doc()</a></code>
-
-        </dt>
-        <dd>Retrieve slot details in rd-format</dd>
-
-        <dt>
-
           <code><a href="get_variable.html">get_variable()</a></code>
 
         </dt>
@@ -1941,7 +1801,14 @@
 
         <dt>
 
-          <code><a href="registry_file.html">set_registry_file()</a></code> <code><a href="registry_file.html">get_registry_file()</a></code> <code><a href="registry_file.html">set_models_path()</a></code> <code><a href="registry_file.html">get_models_path()</a></code> <code><a href="registry_file.html">set_repositories_path()</a></code> <code><a href="registry_file.html">get_repositories_path()</a></code> <code><a href="registry_file.html">set_datasets_path()</a></code> <code><a href="registry_file.html">get_datasets_path()</a></code> <code><a href="registry_file.html">set_store_versioning()</a></code> <code><a href="registry_file.html">get_store_versioning()</a></code>
+          <code><a href="path_builders.html">set_path_builder()</a></code> <code><a href="path_builders.html">get_path_builder()</a></code>
+
+        </dt>
+        <dd>Override how folder names are derived</dd>
+
+        <dt>
+
+          <code><a href="registry_file.html">set_registry_file()</a></code> <code><a href="registry_file.html">get_registry_file()</a></code> <code><a href="registry_file.html">set_models_path()</a></code> <code><a href="registry_file.html">get_models_path()</a></code> <code><a href="registry_file.html">set_repositories_path()</a></code> <code><a href="registry_file.html">get_repositories_path()</a></code> <code><a href="registry_file.html">set_datasets_path()</a></code> <code><a href="registry_file.html">get_datasets_path()</a></code>
 
         </dt>
         <dd>Registry file and model store locations</dd>
@@ -1976,59 +1843,10 @@
 
         <dt>
 
-          <code><a href="complete_set.html">complete_set()</a></code>
+          <code><a href="storage_format.html">get_storage_format()</a></code> <code><a href="storage_format.html">set_storage_format()</a></code> <code><a href="storage_format.html">get_storage_compression()</a></code> <code><a href="storage_format.html">set_storage_compression()</a></code> <code><a href="storage_format.html">get_storage_compression_level()</a></code> <code><a href="storage_format.html">set_storage_compression_level()</a></code>
 
         </dt>
-        <dd>Complete a data frame with missing set elements</dd>
-
-        <dt>
-
-          <code><a href="expand_na_rows.html">expand_na_rows()</a></code> <code><a href="expand_na_rows.html">expand_na_regions()</a></code> <code><a href="expand_na_rows.html">expand_na_years()</a></code> <code><a href="expand_na_rows.html">expand_sets()</a></code>
-
-        </dt>
-        <dd>Expand rows with NA values in set columns</dd>
-
-        <dt>
-
-          <code><a href="countdown_timer.html">countdown_timer()</a></code>
-
-        </dt>
-        <dd>Countdown timer to use in R scripts</dd>
-
-        <dt>
-
-          <code><a href="is_any.html">is_any()</a></code>
-
-        </dt>
-        <dd>Check if an element of a set is "ANY*" or NA</dd>
-
-        <dt>
-
-          <code><a href="is_geoscale.html">is_geoscale()</a></code>
-
-        </dt>
-        <dd>Is this a geoscales::Geoscale?</dd>
-
-        <dt>
-
-          <code><a href="map_comm_geoframe.html">map_comm_geoframe()</a></code>
-
-        </dt>
-        <dd>Balancing geo-level of commodities</dd>
-
-        <dt>
-
-          <code><a href="map_comm_timeframe.html">map_comm_timeframe()</a></code>
-
-        </dt>
-        <dd>Operational timeframe of a commodities</dd>
-
-        <dt>
-
-          <code><a href="named_list_to_df.html">named_list_to_df()</a></code>
-
-        </dt>
-        <dd>Convert a named list of vectors to a data frame</dd>
+        <dd>On-disk table storage options</dd>
       </dl></div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>

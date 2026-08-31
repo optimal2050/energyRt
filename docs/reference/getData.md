@@ -103,8 +103,6 @@ getData(scen, ...)
 # Default S3 method
 getData(scen, ...)
 
-get_data(scen, ...)
-
 # S3 method for class 'technology'
 getData(
   obj,

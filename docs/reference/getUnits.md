@@ -18,8 +18,6 @@ getUnits(object, slots = NULL, ...)
 
 # S4 method for class 'technology'
 getUnits(object, slots = NULL, complete = FALSE, ...)
-
-get_units(object, ...)
 ```
 
 ## Arguments

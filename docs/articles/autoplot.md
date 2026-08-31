@@ -212,7 +212,7 @@ columns to
 
 ``` r
 
-repo <- utopia_modules$electricity$R3$repo
+repo <- utopia$modules$electricity$R3$repo
 wcal <- calendars$s4_h24
 
 DEM <- getObject(repo, name = "DEM_ELC", drop = TRUE)
@@ -358,7 +358,7 @@ for the heatmap, the y-axis for line/area.
 
 ``` r
 
-WSOL <- getObject(utopia_modules$electricity$R3$repo, name = "WSOL", drop = TRUE)
+WSOL <- getObject(utopia$modules$electricity$R3$repo, name = "WSOL", drop = TRUE)
 wcal <- calendars$s4_h24
 
 autoplot(WSOL, calendar = wcal)                    # heatmap (default), faceted by region

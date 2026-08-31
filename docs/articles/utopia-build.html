@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -91,7 +91,7 @@
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>UTOPIA I: building the model</h1>
             
-            <h4 data-toc-skip class="date">2026-08-28</h4>
+            <h4 data-toc-skip class="date">2026-08-30</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/optimal2050/energyRt/blob/HEAD/vignettes/utopia-build.Rmd" class="external-link"><code>vignettes/utopia-build.Rmd</code></a></small>
       <div class="d-none name"><code>utopia-build.Rmd</code></div>
@@ -109,8 +109,8 @@ builds <strong>every block</strong> explicitly, one constructor call per
 object, so you can see exactly how a model is assembled – and ends by
 packing the blocks into a repository and a solvable model. The companion
 vignette <em>UTOPIA II: running scenarios</em> loads a ready-made kit
-([<code>utopia_modules</code>], built by these same steps) and solves
-it.</p>
+([<code>utopia</code>]<code>$modules</code>, built by these same steps)
+and solves it.</p>
 <p>All inputs are <strong>deterministic</strong> and shipped with the
 package.</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
@@ -1080,13 +1080,13 @@ them in your session:</p>
 <p>The steps above are exactly what
 <code>data-raw/utopia_modules.R</code> runs for a few region layouts (1,
 3, 7 and 11 regions) to produce the shipped
-[<code>utopia_modules</code>] dataset – a ready base repository
+[<code>utopia</code>]<code>$modules</code> kit – a ready base repository
 (<code>$repo</code>), the individual blocks, and the levers, alongside
 the calendars, horizons and maps:</p>
 <div class="sourceCode" id="cb32"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">utopia_modules</span><span class="op">)</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">utopia_modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">)</span>                 <span class="co"># kits by number of regions</span></span>
-<span><span class="va">um</span> <span class="op">&lt;-</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">R3</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">utopia</span><span class="op">$</span><span class="va">modules</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">utopia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">)</span>                 <span class="co"># kits by number of regions</span></span>
+<span><span class="va">um</span> <span class="op">&lt;-</span> <span class="va">utopia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">R3</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/identical.html" class="external-link">identical</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">repo</span><span class="op">)</span>, <span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">um</span><span class="op">$</span><span class="va">repo</span><span class="op">)</span><span class="op">)</span>            <span class="co"># same blocks we just built</span></span></code></pre></div>
 <p>Continue with <em>UTOPIA II: running scenarios</em>, which loads this
 kit, assembles a model and solves the base case and policy

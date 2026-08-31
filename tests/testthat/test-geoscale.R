@@ -18,15 +18,15 @@ demo_gs <- function() {
 
 # Attachment -------------------------------------------------------------------
 
-test_that("is_geoscale() needs no geoscales namespace", {
-  expect_false(is_geoscale(NULL))
-  expect_false(is_geoscale(42))
-  expect_false(is_geoscale(data.frame()))
+test_that("energyRt:::is_geoscale() needs no geoscales namespace", {
+  expect_false(energyRt:::is_geoscale(NULL))
+  expect_false(energyRt:::is_geoscale(42))
+  expect_false(energyRt:::is_geoscale(data.frame()))
   # An S7 object carries a plain character class attribute, so the test is a
   # pure attribute check -- this is what lets `config` validate without a
   # hard dependency.
   fake <- structure(list(), class = c("geoscales::Geoscale", "S7_object"))
-  expect_true(is_geoscale(fake))
+  expect_true(energyRt:::is_geoscale(fake))
 })
 
 test_that("a fresh config has no geoscale", {
@@ -38,16 +38,16 @@ test_that("setGeoscale round-trips on config, model and scenario", {
   gs <- demo_gs()
 
   cfg <- setGeoscale(new("config"), gs)
-  expect_true(is_geoscale(getGeoscale(cfg)))
+  expect_true(energyRt:::is_geoscale(getGeoscale(cfg)))
   expect_null(getGeoscale(setGeoscale(cfg, NULL)))
 
   mod <- newModel("demo", region = c("R1", "R2", "R3", "R4"), geoscale = gs)
-  expect_true(is_geoscale(getGeoscale(mod)))
+  expect_true(energyRt:::is_geoscale(getGeoscale(mod)))
 
   # settings inherits from config, so `.config_to_settings()` carries it over
   # with no extra plumbing
   stt <- .config_to_settings(mod@config)
-  expect_true(is_geoscale(getGeoscale(stt)))
+  expect_true(energyRt:::is_geoscale(getGeoscale(stt)))
 })
 
 test_that("the setter and the validity method reject non-geoscales", {
@@ -69,10 +69,10 @@ test_that("the setter and the validity method reject non-geoscales", {
 test_that("update() and unnamed dispatch both reach the slot", {
   skip_if_no_geoscales()
   gs <- demo_gs()
-  expect_true(is_geoscale(getGeoscale(update(new("config"), geoscale = gs))))
+  expect_true(energyRt:::is_geoscale(getGeoscale(update(new("config"), geoscale = gs))))
   # name and desc are positional, so an unnamed geoscale must follow them
   mod <- newModel("demo", "desc", gs, region = c("R1", "R2"))
-  expect_true(is_geoscale(getGeoscale(mod)))
+  expect_true(energyRt:::is_geoscale(getGeoscale(mod)))
 })
 
 test_that("a model serialised before the slot existed still converts", {
@@ -225,7 +225,8 @@ test_that("utopia_geoscale reaches its data the way an INSTALL does", {
   expect_false(is.null(getExportedValue("energyRt", "utopia")))
   e <- new.env(parent = emptyenv())
   utils::data("utopia", package = "energyRt", envir = e)
-  expect_setequal(names(get("utopia", envir = e)), c("map", "geo"))
+  expect_setequal(names(get("utopia", envir = e)),
+                  c("map", "geo", "weather", "demand", "stock", "modules"))
 
   # and the function must work with the namespace copy absent
   local({

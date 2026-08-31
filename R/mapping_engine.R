@@ -33,7 +33,7 @@
 #' Load the mapping specification
 #'
 #' @returns named list of mapping specs (see `data-raw/mapping_spec.yml`).
-#' @export
+#' @keywords internal
 load_mapping_spec <- function() {
   spec <- get0(".mapping_spec", envir = asNamespace("energyRt"),
                ifnotfound = NULL)
@@ -52,7 +52,7 @@ load_mapping_spec <- function() {
 #' @param spec mapping specification (defaults to `load_mapping_spec()`).
 #' @returns named list keyed by recipe, each a character vector of mapping
 #'   names, ordered per `.mapping_recipe_order`.
-#' @export
+#' @keywords internal
 mappings_by_recipe <- function(spec = load_mapping_spec()) {
   recipes <- vapply(spec, function(x) x$recipe %||% NA_character_, character(1))
   out <- lapply(.mapping_recipe_order, function(rc) names(recipes)[recipes == rc])
@@ -1581,7 +1581,7 @@ recipe_constraint <- function(scen, names, fmp) {
 #' @param recipes character vector of recipes to run (defaults to all, in
 #'   `.mapping_recipe_order`).
 #' @returns updated scenario object.
-#' @export
+#' @keywords internal
 build_mappings <- function(scen, fmp = NULL,
                            spec = load_mapping_spec(),
                            recipes = .mapping_recipe_order) {

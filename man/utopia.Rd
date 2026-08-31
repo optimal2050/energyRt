@@ -3,25 +3,117 @@
 \docType{data}
 \name{utopia}
 \alias{utopia}
-\title{UTOPIA reference maps}
+\title{The UTOPIA reference dataset}
 \format{
-A named list. Element \code{map} is a named list of \code{sf} polygon layers
-(\code{honeycomb}, \code{continent}, \code{island}, \code{squares}, ...); the vignette uses
-\code{utopia$map$honeycomb} and keeps the first few regions.
+A named list of six elements:
+\describe{
+\item{map}{named list of \code{sf} polygon layers (\code{squares}, \code{honeycomb},
+\code{island}, \code{continent}) used to lay out regions, neighbours and trade
+routes.}
+\item{geo}{a data.frame with columns \code{nation}, \code{zone}, \code{region}, \code{name} --
+the region hierarchy behind the maps.}
+\item{weather}{deterministic solar / wind / hydro capacity factors for the
+three teaching calendars. Columns \code{calendar}
+(\code{s4_h24}/\code{m12_h24}/\code{utopia_seasons}), \code{resource}
+(\code{WSOL}/\code{WWIN}/\code{WHYD}), \code{timeslice} (e.g. \code{SUM_h12}, \code{m06_h12} or
+\code{SUM_DAY}) and \code{wval} (capacity factor, 0-1). Attribute \code{source} records
+whether it came from IDEEA reanalysis or the curated fallback.}
+\item{demand}{a relative electricity-load shape by timeslice, for the same
+three calendars. Columns \code{calendar}, \code{timeslice} and \code{load} (relative,
+mean ~1); scale it by a region's annual demand and the timeslice shares
+to get energy per timeslice.}
+\item{stock}{deterministic base-year installed capacity per technology.
+Columns \code{tech} and \code{gw}.}
+\item{modules}{the kit -- see below.}
+}
 }
 \usage{
 utopia
 }
 \description{
-Geographic maps for the imaginary country "Utopia" used by the UTOPIA
-vignette to lay out regions, neighbours and trade routes.
+Everything the UTOPIA teaching model needs, in one list: the maps of the
+imaginary country "Utopia", the deterministic weather / demand / stock
+profiles, and the kit of ready energyRt building blocks and scenario levers.
+Built by \code{data-raw/utopia_maps.R}, \code{utopia_data.R} and \code{utopia_modules.R},
+folded together by \code{data-raw/utopia_assemble.R}.
 }
+\details{
+The profile tables are region-agnostic; expand them to a model's regions
+with \code{\link[=utopia_profiles]{utopia_profiles()}}. For synthetic shapes on any calendar (rather than
+UTOPIA's saved curves) use \code{\link[=utopia_profile]{utopia_profile()}}.
+}
+\section{The \code{modules} kit}{
+
+Mirrors the structure of \code{IDEEA::ideea_modules}. Assemble a model from a
+chosen region layout, solve it, and layer the levers to run scenarios (see
+the \code{utopia-use} vignette).
+\describe{
+\item{info}{a description string.}
+\item{maps}{\code{utopia$map} -- the reference \code{sf} maps.}
+\item{calendars}{the UTOPIA calendars (\code{annual}/\code{utopia_seasons}/
+\code{s4_h24}/\code{m12_h24}) plus the symmetric unit calendars
+(\code{unit_s4}, 4 equal seasons; \code{unit_s4h4}, 4x4). Note \code{annual}
+cannot drive the shipped kits (\code{ELC} is balanced at the \code{HOUR} level
+and \code{\link[=utopia_profiles]{utopia_profiles()}} has no annual shapes); it ships as the
+coarsest example calendar.}
+\item{horizons}{planning horizons (\code{base} = 2020/2030/2040/2050;
+\code{unit} = the single year 2025 for the unit kits).}
+\item{electricity}{per region layout (\code{R1}, \code{R3}, \code{R7}, \code{R11} -- an
+n-region layout is keyed \verb{R<n>}, matching the \code{R1}..\code{R11} region names
+used by the maps), each a "kit":
+\code{repo} (the base repository), the individual blocks (\code{repo_comm},
+\code{repo_supply}, \code{DEM_ELC}, \code{WSOL}/\code{WWIN}/\code{WHYD}, the technologies,
+\code{STG_ELC}), the scenario levers \code{CO2_CAP}, \code{CT_CO2}, \code{RES_SHARE},
+\code{NO_NEW_NUC}, \code{EARLY_RET}, and the add-on modules -- re-declared
+objects that REPLACE their base counterpart when added with
+\code{add(mod, ., overwrite = TRUE)}: \code{GAS_CURVE} (domestic gas as a
+3-step \code{\link[=asSupplyCurve]{asSupplyCurve()}}, absent in \code{R1} which has no gas region),
+\code{EWIN_SITES} (wind in two site-grade clusters, finite GOOD +
+down-rated POOR), \code{ENUC_VINT} (nuclear in two build vintages).}
+\item{unit}{the "unit model" kits (\code{U1}, \code{U3}): every input is 1 on the
+symmetric \code{unit_s4} calendar, single-year \code{unit} horizon,
+\code{discount = 0}, so each variant's objective is a small hand-checkable
+integer -- base \code{U1} solves to exactly 8, \code{U3} (trade chain from the
+\code{R1} endowment) to 36, \code{SUP_CURVE} (2-step unit supply curve
+replacing the flat supply) to 10, the self-contained \code{SOLAR}
+repository (on/off resource from \code{\link[=utopia_profile]{utopia_profile()}} + storage
+bridging) to 10. The arithmetic is written out in
+\code{data-raw/utopia_modules.R} and pinned by \code{test-unit-model.R}.}
+}
+}
+
 \examples{
 names(utopia)
 names(utopia$map)
+head(utopia$weather)
+utopia$stock
+
+\dontrun{
+um <- utopia$modules$electricity$R3
+mod <- newModel("UTOPIA", data = um$repo,
+                calendar = utopia$modules$calendars$s4_h24,
+                region = um$regions,
+                horizon = utopia$modules$horizons$base,
+                discount = 0.05)
+scen <- solve_scenario(interpolate_model(mod, "BASE"),
+                       solver = solver_options$glpk)
+
+# the unit model: hand-checkable integer objective (8)
+uk <- utopia$modules$unit$U1
+umod <- newModel("UNIT", data = uk$repo,
+                 calendar = utopia$modules$calendars$unit_s4,
+                 region = uk$regions,
+                 horizon = utopia$modules$horizons$unit, discount = 0)
+}
 }
 \seealso{
-the \code{utopia} vignette, \link{utopia_weather}, \link{utopia_demand},
-\link{utopia_stock}, \code{\link[=utopia_profiles]{utopia_profiles()}}
+\code{\link[=utopia_profiles]{utopia_profiles()}}, \code{\link[=utopia_profile]{utopia_profile()}}, \code{\link[=utopia_geoscale]{utopia_geoscale()}},
+\link{calendars}, \link{horizons}, \code{\link[=asSupplyCurve]{asSupplyCurve()}}, the UTOPIA vignettes
+
+Other utopia:
+\code{\link[=utopia_geoscale]{utopia_geoscale()}},
+\code{\link[=utopia_profile]{utopia_profile()}},
+\code{\link[=utopia_profiles]{utopia_profiles()}}
 }
+\concept{utopia}
 \keyword{datasets}

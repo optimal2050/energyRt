@@ -131,8 +131,8 @@ setValidity("config", function(object) {
 #' @return `TRUE` or `FALSE`.
 #'
 #' @examples
-#' is_geoscale(NULL)
-#' @export
+#' energyRt:::is_geoscale(NULL)
+#' @keywords internal
 is_geoscale <- function(x) {
   inherits(x, c("geoscales::Geoscale", "Geoscale"))
 }

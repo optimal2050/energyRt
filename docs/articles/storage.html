@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -467,14 +467,14 @@ each gets its own repository and model:</p>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">scen_year</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">mod_year</span>, name <span class="op">=</span> <span class="st">"fy_year"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Solver directory:  scenarios/fy-year_d365-h24-subset-1day-per-month/runs/glpk/solver </span></span>
-<span><span class="co">#&gt; Writing files: 0.57s</span></span>
+<span><span class="co">#&gt; Solver directory:  scenarios/fy_year-d365_h24_subset_1day_per_month/runs/glpk/solver </span></span>
+<span><span class="co">#&gt; Writing files: 0.6s</span></span>
 <span><span class="co">#&gt; Starting  GLPK </span></span>
-<span><span class="co">#&gt; 0.17s</span></span>
+<span><span class="co">#&gt; 0.18s</span></span>
 <span><span class="co">#&gt; Reading solution: 0.19s</span></span>
 <span><span class="va">scen_day</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">mod_day</span>, name <span class="op">=</span> <span class="st">"fy_day"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Solver directory:  scenarios/fy-day_d365-h24-subset-1day-per-month/runs/glpk/solver </span></span>
-<span><span class="co">#&gt; Writing files: 0.58s</span></span>
+<span><span class="co">#&gt; Solver directory:  scenarios/fy_day-d365_h24_subset_1day_per_month/runs/glpk/solver </span></span>
+<span><span class="co">#&gt; Writing files: 0.64s</span></span>
 <span><span class="co">#&gt; Starting  GLPK </span></span>
 <span><span class="co">#&gt; 0.14s</span></span>
 <span><span class="co">#&gt; Reading solution: 0.19s</span></span>
@@ -1270,11 +1270,11 @@ in the evening.</p>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">sol_mod</span>, name <span class="op">=</span> <span class="st">"solar_battery"</span><span class="op">)</span></span>
-<span><span class="co">#&gt; Solver directory:  scenarios/solar-battery_d365-h24-subset-1day-per-month/runs/glpk/solver </span></span>
-<span><span class="co">#&gt; Writing files: 0.42s</span></span>
+<span><span class="co">#&gt; Solver directory:  scenarios/solar_battery-d365_h24_subset_1day_per_month/runs/glpk/solver </span></span>
+<span><span class="co">#&gt; Writing files: 0.72s</span></span>
 <span><span class="co">#&gt; Starting  GLPK </span></span>
 <span><span class="co">#&gt; 0.26s</span></span>
-<span><span class="co">#&gt; Reading solution: 0.19s</span></span></code></pre></div>
+<span><span class="co">#&gt; Reading solution: 0.21s</span></span></code></pre></div>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/storage_duration.html">storage_duration</a></span><span class="op">(</span><span class="va">scen</span><span class="op">)</span>                 <span class="co"># 12h / 1d / 1w / 30d by default</span></span>
 <span></span>

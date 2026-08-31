@@ -206,6 +206,18 @@ setClass("summand",
 #' @family class constraint policy
 #' @rdname newConstraint
 #'
+#' @examples
+#' # cap total exports in 2020 at 1 unit
+#' cnst <- newConstraint(
+#'   name = "EXP_CAP",
+#'   desc = "Total exports in 2020",
+#'   eq = "<=",
+#'   defVal = 1,
+#'   for.each = data.frame(year = 2020L),
+#'   total = list(variable = "vExportTot", for.sum = list(region = "R1"))
+#' )
+#' cnst
+#'
 #' @export
 newConstraint <- function(
     name,
@@ -336,19 +348,11 @@ newConstraint <- function(
   obj
 }
 
-#' A function to check if an object is of class `constraint`.
+#' Check if an object is of class `constraint`.
 #'
 #' @param object any R object
-#'
 #' @return TRUE if the object inherits class `constraint`, FALSE otherwise.
-#' @export
-#'
-#' @family class constraint
-#' @describeIn newConstraint Check if an object is a constraint.
-#'
-#' @examples
-#' isConstraint(1)
-#' isConstraint(newConstraint(""))
+#' @noRd
 isConstraint <- function(object) {
   inherits(object, "constraint")
 }

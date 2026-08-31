@@ -1306,7 +1306,7 @@ interp_slot <- function(obj, slot, overrides) {
 #' @param set_name name of the set to search for
 #'
 #' @returns a character vector of set elements
-#' @export
+#' @keywords internal
 collect_set_elements <- function(obj, set_name) {
   # browser()
 
@@ -1464,7 +1464,7 @@ if (F) {
 #' return a vector of results
 #'
 #' @returns a list or vector of `func` results, one per matching object.
-#' @export
+#' @keywords internal
 apply_to_scenario_data <- function(
     scen,
     func,
@@ -1657,7 +1657,7 @@ apply_to_parameters <- function(
 #' @param ... additional arguments (currently unused).
 #'
 #' @returns a data frame with the completed set combinations.
-#' @export
+#' @keywords internal
 complete_set <- function(
     x, # data.frame
     set_name, # name of the set to complete
@@ -1822,7 +1822,7 @@ guess_sets <- function(x) {}
 #' @param all_years vector of all possible years
 #'
 #' @returns data frame with expanded rows
-#' @export
+#' @keywords internal
 expand_na_rows <- function(data, column, all_values, group_cols = NULL) {
   # browser()
   # checks
@@ -1886,14 +1886,14 @@ expand_na_rows <- function(data, column, all_values, group_cols = NULL) {
 
 }
 
-#' @export
 #' @rdname expand_na_rows
+#' @keywords internal
 expand_na_regions <- function(data, all_regions, group_cols = NULL) {
   expand_na_rows(data, "region", all_regions, group_cols)
 }
 
-#' @export
 #' @rdname expand_na_rows
+#' @keywords internal
 expand_na_years <- function(data, all_years, group_cols = NULL) {
   expand_na_rows(data, "year", all_years, group_cols)
 }
@@ -1907,8 +1907,8 @@ expand_na_years <- function(data, all_years, group_cols = NULL) {
 #' @param unmatched_action action to take if no matching process years are found
 #' in the data frame. Possible values are "warning", "drop", "error", and "ignore".
 #' Default is a combination of "warning" and "drop".
-#' @export
 #' @rdname expand_na_rows
+#' @keywords internal
 expand_sets <- function(
     data,
     full_sets, # full_sets
@@ -2243,7 +2243,7 @@ if (F) {
 #' will be returned for missing years not covered by the interpolation rule.
 #'
 #' @returns data frame with interpolated values for the parameter
-#' @export
+#' @keywords internal
 interpolate_numpar <- function(
     data,
     value_col,
@@ -2398,7 +2398,7 @@ interpolate_numpar <- function(
 #' @param value_sfx suffix for the value column, default is c(".lo", ".up", ".fx")
 #'
 #' @returns data frame with interpolated values for the parameter
-#' @export
+#' @keywords internal
 interpolate_bounds <- function(
     data,
     value_col,
@@ -2860,7 +2860,7 @@ trim_parameters_by_maps <- function(scen, verbose = FALSE) {
 #'   issues.
 #' @returns (invisibly) a data frame of issues with columns
 #'   `parameter`, `check`, `detail`.
-#' @export
+#' @keywords internal
 validate_scenario_parameters <- function(scen, fold = TRUE,
                                           action = c("warn", "stop", "silent")) {
   action <- match.arg(action)
@@ -3038,7 +3038,7 @@ validate_scenario_parameters <- function(scen, fold = TRUE,
 #'   Dropping defaults requires the solver/writer to honour declared parameter
 #'   defaults (GLPK / JuMP / Pyomo do; GAMS support is unverified).
 #' @returns the scenario with interpolated parameter data.
-#' @export
+#' @keywords internal
 interpolate_parameters <- function(scen, drop_default = FALSE) {
   milestones <- as.integer(scen@modInp@sets$year)
   if (length(milestones) == 0) {
@@ -3112,6 +3112,25 @@ interpolate_parameters <- function(scen, drop_default = FALSE) {
         dplyr::mutate(type = as.character(type)) |>
         tidyr::pivot_wider(names_from = "type", values_from = "value")
       if (all(c("lo", "up") %in% names(given))) {
+        # `pivot_wider()` returns a LIST column when one key carries several
+        # values of the same bound type. Comparing those aborts with
+        # "comparison of these types is not implemented", naming neither the
+        # parameter nor the rows; say what is actually wrong instead.
+        if (is.list(given$lo) || is.list(given$up)) {
+          dup_key <- given[lengths(given$lo) > 1 | lengths(given$up) > 1, ,
+                           drop = FALSE]
+          stop(
+            "Duplicated bounds in the input data for parameter '", pn,
+            "': the same key carries more than one lower/upper value.
+   ",
+            paste(utils::capture.output(print(utils::head(
+              as.data.frame(dup_key), 5))), collapse = "
+   "),
+            "
+Declare one bound per key.
+", call. = FALSE
+          )
+        }
         bad <- given |> dplyr::filter(!is.na(lo), !is.na(up), lo > up)
         if (nrow(bad) > 0) {
           stop(
@@ -3294,7 +3313,7 @@ interpolate_parameters <- function(scen, drop_default = FALSE) {
 #' `collect_set_names` function.
 #'
 #' @returns a named list mapping each commodity to its timeframe.
-#' @export
+#' @keywords internal
 map_comm_timeframe <- function(scen, comm = NULL) {
   apply_to_scenario_data(
     scen = scen,
@@ -3329,7 +3348,7 @@ map_comm_timeframe <- function(scen, comm = NULL) {
 #' `collect_set_names` function.
 #'
 #' @returns a named list mapping each commodity to its geo-level.
-#' @export
+#' @keywords internal
 map_comm_geoframe <- function(scen, comm = NULL) {
   apply_to_scenario_data(
     scen = scen,
@@ -3865,8 +3884,8 @@ get_process_comm <- function(scen, process = NULL, classes = NULL,
 #' @returns data frame with two columns ("name" and "value" by default) where
 #' each row represents a name-value pair from the input list. The function
 #' ensures that the resulting data frame is unique and sorted by name.
-#' @export
 #' @aliases nl2df
+#' @keywords internal
 named_list_to_df <- function(named_list, col_names = c("name", "value")) {
   # browser()
   nms <- names(named_list)

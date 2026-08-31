@@ -12,3 +12,4 @@ named list of mapping specs (see \code{data-raw/mapping_spec.yml}).
 \description{
 Load the mapping specification
 }
+\keyword{internal}

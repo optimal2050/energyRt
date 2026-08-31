@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -289,7 +289,7 @@ and pass the <code>timeslice</code> + value columns to
 <code><a href="../reference/plot_heatmap.html">plot_heatmap()</a></code>. The <code>name</code> argument carries the
 value’s unit onto the colour bar.</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">repo</span> <span class="op">&lt;-</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">R3</span><span class="op">$</span><span class="va">repo</span></span>
+<code class="sourceCode R"><span><span class="va">repo</span> <span class="op">&lt;-</span> <span class="va">utopia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">R3</span><span class="op">$</span><span class="va">repo</span></span>
 <span><span class="va">wcal</span> <span class="op">&lt;-</span> <span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24</span></span>
 <span></span>
 <span><span class="va">DEM</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/getObject.html">getObject</a></span><span class="op">(</span><span class="va">repo</span>, name <span class="op">=</span> <span class="st">"DEM_ELC"</span>, drop <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
@@ -397,7 +397,7 @@ value’s unit (<code>@unit</code>, or <code>"capacity factor"</code> when
 unset) labels the value axis — the fill legend for the heatmap, the
 y-axis for line/area.</p>
 <div class="sourceCode" id="cb24"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">WSOL</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/getObject.html">getObject</a></span><span class="op">(</span><span class="va">utopia_modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">R3</span><span class="op">$</span><span class="va">repo</span>, name <span class="op">=</span> <span class="st">"WSOL"</span>, drop <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="va">WSOL</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/getObject.html">getObject</a></span><span class="op">(</span><span class="va">utopia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">R3</span><span class="op">$</span><span class="va">repo</span>, name <span class="op">=</span> <span class="st">"WSOL"</span>, drop <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span>
 <span><span class="va">wcal</span> <span class="op">&lt;-</span> <span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24</span></span>
 <span></span>
 <span><span class="fu"><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot</a></span><span class="op">(</span><span class="va">WSOL</span>, calendar <span class="op">=</span> <span class="va">wcal</span><span class="op">)</span>                    <span class="co"># heatmap (default), faceted by region</span></span></code></pre></div>

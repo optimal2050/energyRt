@@ -1,13 +1,11 @@
 # UTOPIA input profiles (deterministic)
 
-Expand the saved, region-agnostic UTOPIA profiles
-([utopia_weather](https://energyRt.org/reference/utopia_weather.md),
-[utopia_demand](https://energyRt.org/reference/utopia_demand.md),
-[utopia_stock](https://energyRt.org/reference/utopia_stock.md)) to a set
-of regions for a chosen calendar. Replaces the vignette's former random
-generators. The weather capacity factors can be re-sourced at run time
-from IDEEA (`source = "ideea"`); `"saved"` (default) uses the packaged
-data and never needs an external dataset.
+Expand UTOPIA's saved, region-agnostic profiles (`utopia$weather`,
+`utopia$demand`, `utopia$stock`) to a set of regions for a chosen
+calendar, returning a list of three tidy data.frames. The weather
+capacity factors can be re-sourced at run time from IDEEA
+(`source = "ideea"`); `"saved"` (default) uses the packaged data and
+never needs an external dataset.
 
 ## Usage
 
@@ -63,9 +61,19 @@ a list of tidy data.frames, each replicated across `regions`: `weather`
 `timeslice`, `load` – a relative load shape) and `stock` (`region`,
 `tech`, `gw` – base-year capacity).
 
+## Details
+
+Not to be confused with the near-namesake
+[`utopia_profile()`](https://energyRt.org/reference/utopia_profile.md),
+which takes no UTOPIA data at all: it generates a synthetic step / sine
+/ cosine / hex shape over any calendar and returns a single data.frame.
+
 ## See also
 
-[utopia_weather](https://energyRt.org/reference/utopia_weather.md),
-[utopia_demand](https://energyRt.org/reference/utopia_demand.md),
-[utopia_stock](https://energyRt.org/reference/utopia_stock.md),
+[utopia](https://energyRt.org/reference/utopia.md),
+[`utopia_profile()`](https://energyRt.org/reference/utopia_profile.md),
 [calendars](https://energyRt.org/reference/calendars.md)
+
+Other utopia: [`utopia`](https://energyRt.org/reference/utopia.md),
+[`utopia_geoscale()`](https://energyRt.org/reference/utopia_geoscale.md),
+[`utopia_profile()`](https://energyRt.org/reference/utopia_profile.md)

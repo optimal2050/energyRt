@@ -85,12 +85,15 @@
 
 #' UTOPIA input profiles (deterministic)
 #'
-#' Expand the saved, region-agnostic UTOPIA profiles ([utopia_weather],
-#' [utopia_demand], [utopia_stock]) to a set of regions for a chosen calendar.
-#' Replaces the vignette's former random generators. The weather capacity
-#' factors can be re-sourced at run time from IDEEA (`source = "ideea"`);
-#' `"saved"` (default) uses the packaged data and never needs an external
-#' dataset.
+#' Expand UTOPIA's saved, region-agnostic profiles (`utopia$weather`,
+#' `utopia$demand`, `utopia$stock`) to a set of regions for a chosen calendar,
+#' returning a list of three tidy data.frames. The weather capacity factors can
+#' be re-sourced at run time from IDEEA (`source = "ideea"`); `"saved"`
+#' (default) uses the packaged data and never needs an external dataset.
+#'
+#' Not to be confused with the near-namesake [utopia_profile()], which takes no
+#' UTOPIA data at all: it generates a synthetic step / sine / cosine / hex shape
+#' over any calendar and returns a single data.frame.
 #'
 #' @param regions character vector of region names.
 #' @param calendar target resolution: `"s4_h24"` (4 seasons x 24 hours, 96
@@ -112,7 +115,8 @@
 #'   `weather` (`resource`, `region`, `timeslice`, `wval`), `demand` (`region`,
 #'   `timeslice`, `load` -- a relative load shape) and `stock` (`region`, `tech`,
 #'   `gw` -- base-year capacity).
-#' @seealso [utopia_weather], [utopia_demand], [utopia_stock], [calendars]
+#' @seealso [utopia], [utopia_profile()], [calendars]
+#' @family utopia
 #' @export
 utopia_profiles <- function(regions,
                             calendar = c("s4_h24", "m12_h24",
@@ -129,12 +133,12 @@ utopia_profiles <- function(regions,
   wx <- if (source == "ideea") {
     .utopia_weather_from_ideea(calendar, resources, cluster)
   } else {
-    w <- as.data.frame(utopia_weather)
+    w <- as.data.frame(utopia$weather)
     w[w$calendar == calendar, c("resource", "timeslice", "wval")]
   }
-  d <- as.data.frame(utopia_demand)
+  d <- as.data.frame(utopia$demand)
   dx <- d[d$calendar == calendar, c("timeslice", "load")]
-  sx <- as.data.frame(utopia_stock)
+  sx <- as.data.frame(utopia$stock)
 
   # replicate each region-agnostic profile across the requested regions
   rep_reg <- function(df) {

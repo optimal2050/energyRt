@@ -77,10 +77,10 @@ test_that("model config and scenario settings must agree", {
   )
 })
 
-test_that("check_name() rejects non-scalar and non-character input", {
+test_that("energyRt:::check_name() rejects non-scalar and non-character input", {
   # the guards used to be OR'd into the "valid" expression
-  expect_true(check_name("a1_b"))
-  expect_false(check_name("1abc"))
-  expect_false(check_name(c("a", "b")))
-  expect_false(check_name(1))
+  expect_true(energyRt:::check_name("a1_b"))
+  expect_false(energyRt:::check_name("1abc"))
+  expect_false(energyRt:::check_name(c("a", "b")))
+  expect_false(energyRt:::check_name(1))
 })

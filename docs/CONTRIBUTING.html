@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -92,7 +92,7 @@
 <strong>Class-prefixed nouns</strong> for properties and queries: <code><a href="reference/model_hash.html">model_hash()</a></code>, <code><a href="reference/scenario_runs.html">scenario_runs()</a></code>, <code><a href="reference/solution_ledger.html">solution_ledger()</a></code>.</li>
 <li>Constructors (<code><a href="reference/newScenario.html">newScenario()</a></code>), <code>get_/set_</code> option accessors, and foreign generics keep their conventional shapes. See <a href="https://github.com/optimal2050/.github/blob/main/CONVENTIONS.md" class="external-link">CONVENTIONS.md § Naming</a>.</li>
 <li>
-<strong><code>en_</code> is the package’s namespace prefix</strong> wherever a name must be claimed in a space energyRt does not own: low-level utilities (<code>en_config()</code>, <code>en_option()</code>, <code>en_open_dataset()</code>, <code>en_install_*()</code>) and, as <strong><code>en-</code></strong>, the knitr chunk labels of every shipped report template (<code>en-setup</code>, <code>en-css</code>, …). Template chunk labels MUST carry the prefix: <code><a href="reference/report.html">report()</a></code> can run inside a user’s own knit, where an unprefixed label like <code>setup</code> collides with the outer document’s chunks and aborts the render (“Duplicate chunk label”). Do not adopt new prefixes (<code>ert</code>, package initials, project names) for this role — the legacy <code>ert-</code>/<code>ideea-</code> CSS classes and LaTeX color names inside the templates are grandfathered, not a precedent.</li>
+<strong><code>en_</code> is the package’s namespace prefix</strong> wherever a name must be claimed in a space energyRt does not own: low-level utilities (<code>en_config()</code>, <code>en_option()</code>, <code>en_open_dataset()</code>, <code>en_install_*()</code>), S3 class tags on foreign structures (<code>en_registry</code> on the registry tibble), CSS classes and LaTeX colour names in the report templates (<code>.en-rule</code>, <code>en_blue</code>), and, as <strong><code>en-</code></strong>, the knitr chunk labels of every shipped template (<code>en-setup</code>, <code>en-css</code>, …). Template chunk labels MUST carry the prefix: <code><a href="reference/report.html">report()</a></code> can run inside a user’s own knit, where an unprefixed label like <code>setup</code> collides with the outer document’s chunks and aborts the render (“Duplicate chunk label”). <strong><code>en</code> is the only permitted prefix</strong> — never package initials or project names (<code>ert</code>, <code>ideea</code>). This is now checked: <code>tests/testthat/test-naming.R</code> fails on a foreign prefix, so the rule cannot rot back in.</li>
 </ul></div>
 <div class="section level2">
 <h2 id="solver-backends">Solver backends<a class="anchor" aria-label="anchor" href="#solver-backends"></a></h2>

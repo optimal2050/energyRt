@@ -9,8 +9,6 @@ data files to a directory
 write_script(scen, solver.dir = NULL, solver = NULL, ...)
 
 write_sc(x, solver.dir = NULL, solver = NULL, ...)
-
-write.sc(x, solver.dir = NULL, solver = NULL, ...)
 ```
 
 ## Arguments

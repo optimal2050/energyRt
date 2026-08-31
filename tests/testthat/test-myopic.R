@@ -243,7 +243,7 @@ test_that("a vintaged build is carried onto the RIGHT variant (provenance)", {
   # the ledger routed the carry through provenance: applying it to the
   # pristine model writes the stock rows WITH the vintage selector
   w <- horizon_windows(mod@config@horizon)[[2]]
-  mod2 <- apply_ledger(mod, res$ledger, w$horizon)
+  mod2 <- energyRt:::apply_ledger(mod, res$ledger, w$horizon)
   tech2 <- energyRt:::.model_find_object(mod2, "TECH", "technology")$obj
   cap_df <- tech2@capacity
   expect_true("vintage" %in% names(cap_df))

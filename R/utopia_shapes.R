@@ -99,6 +99,11 @@
 #' input that isolates one mechanism" (storage bridging an on/off resource,
 #' techs following a ramp, trade smoothing opposite phases).
 #'
+#' Despite the shared prefix, this function reads no UTOPIA data and is not
+#' limited to UTOPIA: it works on any calendar and returns a single data.frame.
+#' [utopia_profiles()] (plural) is the other one -- it expands UTOPIA's saved
+#' weather / demand / stock to regions and returns a list of three.
+#'
 #' The shape spans `period` once: `"year"` stretches it over the whole
 #' calendar; `"frame"` repeats it inside each parent timeframe (e.g. each
 #' season's hours get the same diurnal shape). Slice positions are the
@@ -142,8 +147,9 @@
 #' head(utopia_profile("sine", calendar = "s4_h24",
 #'                     regions = paste0("R", 1:3), vary = "phase",
 #'                     period = "frame"))
-#' @seealso [utopia_profiles()] for the realistic UTOPIA curves,
-#'   [utopia_modules] for the teaching kits.
+#' @seealso [utopia_profiles()] for the realistic UTOPIA curves, [utopia] for
+#'   the reference dataset and the teaching kits.
+#' @family utopia
 #' @export
 utopia_profile <- function(shape = c("step", "sine", "cosine", "hex"),
                            levels = 4L,

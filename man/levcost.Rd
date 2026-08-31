@@ -7,6 +7,8 @@
 \alias{levcost,repository-method}
 \alias{levcost,model-method}
 \alias{levcost,scenario-method}
+\alias{levcost,levcost_variants-method}
+\alias{levcost,levcost-method}
 \title{Levelized cost of commodity production}
 \usage{
 levcost(object, comm, name, ...)
@@ -15,11 +17,15 @@ levcost(object, comm, name, ...)
 
 \S4method{levcost}{trade}(object, comm, name, ...)
 
-\S4method{levcost}{repository}(object, comm, name, ...)
+\S4method{levcost}{repository}(object, comm, name, by_variant = FALSE, ...)
 
-\S4method{levcost}{model}(object, comm, name, ...)
+\S4method{levcost}{model}(object, comm, name, by_variant = FALSE, ...)
 
 \S4method{levcost}{scenario}(object, comm, name, ...)
+
+\S4method{levcost}{levcost_variants}(object, comm, name, by_variant = TRUE, ...)
+
+\S4method{levcost}{levcost}(object, comm, name, by_variant = FALSE, ...)
 }
 \arguments{
 \item{object}{A \code{technology} (or list thereof), \code{repository},
@@ -110,6 +116,11 @@ to bound the time spent on a technology whose variants all fail.}
 tables attached to \code{scenario@misc}.}
 \item{\code{verbose}}{Logical, default \code{TRUE}.}
 }}
+
+\item{by_variant}{for a technology declaring vintages or clusters: \code{FALSE}
+(default) returns the result object; \code{TRUE} (= \code{"levcost"}), \code{"npv"} or
+\code{"components"} returns that per-variant table instead. Passing an existing
+result — \code{levcost(lc, by_variant = "npv")} — extracts without re-solving.}
 }
 \value{
 For \code{technology} input: a list of class \code{"levcost"} with fields:
@@ -138,7 +149,8 @@ variant, keyed by variant name (\code{"PWR_VIN2030"}). Each variant is
 priced in its own region so the variants cannot serve each other's demand;
 without that isolation they compete for one unit of demand and the result
 silently sums across them. The stacked tables are reachable with
-\code{\link[=levcost_by_variant]{levcost_by_variant()}}, and \code{autoplot()} compares the variants.
+\code{levcost(x, by_variant = )}, and \code{autoplot()} compares the
+variants.
 \code{$frontier} is \code{NULL} on this path -- the frontier corners are a
 per-commodity sweep, orthogonal to variants, and are not fanned out.
 A technology with no vintages or clusters is unaffected and still returns a
@@ -147,6 +159,9 @@ single \code{"levcost"} object.
 \description{
 Computes the levelized cost of energy (LCOE) for a \code{technology},
 \code{repository}, \code{model}, or \code{scenario} object.
+
+\code{levcost()} on a \code{levcost_variants} object stacks its per-variant tables
+without re-solving: \code{levcost(lc, by_variant = "npv")}.
 }
 \details{
 \describe{
@@ -194,7 +209,4 @@ autoplot(lc, type = "npv")
 lc_list <- levcost(list(tech1, tech2), discount = 0.07)
 autoplot(lc_list, type = "npv")
 }
-}
-\seealso{
-\code{\link[=levcost_by_variant]{levcost_by_variant()}}
 }

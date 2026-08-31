@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -291,21 +291,6 @@ Optional operation-log CSV. Empty (default) = logging off; a path makes interpol
 </dl></dd>
 
 
-<dt>store_versioning</dt>
-<dd><dl>
-How the model/repository/dataset stores name their entries. "none" (default): one human-readable folder per name (models/UTOPIA/), updated in place; the content hash lives in the manifest and misc$hash for no-op detection and reference verification. "hash": content-addressed html<name>@html<hash8> folders; every content change is a NEW entry and versions coexist.<dt>default: </dt>
-<dd><div class="sourceCode"><pre><code><span><span class="st">"none"</span></span></code></pre></div></dd>
-
-<dt>option: </dt>
-<dd><p>en.store_versioning</p></dd>
-
-<dt>envvar: </dt>
-<dd><p>ENERGYRT_STORE_VERSIONING (evaluated if possible, raw string otherwise)</p></dd>
-
-
-</hash8></name></dl></dd>
-
-
 <dt>reports_path</dt>
 <dd><dl>
 Default directory for rendered reports of IN-MEMORY objects (treated as temporary output). Reports of saved objects land inside the owning folder (html<scenario>/reports/, html<model store entry>/reports/) instead.<dt>default: </dt>
@@ -336,46 +321,106 @@ Default directory for cached levcost results of IN-MEMORY objects (treated as te
 </owner></dl></dd>
 
 
-<dt>arrow_format</dt>
+<dt>path_builders</dt>
 <dd><dl>
-Default Arrow exchange format for the JuMP/Pyomo solvers: 'feather' (IPC), 'parquet', or 'csv'.<dt>default: </dt>
+Named list of user functions overriding the built-in folder-name derivations (session-local; set with set_path_builder()). Hookable kinds: scenario_dir, store_entry, run_label, slug — see ?path_builders for the contracts.<dt>default: </dt>
+<dd><div class="sourceCode"><pre><code><span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div></dd>
+
+<dt>option: </dt>
+<dd><p>en.path_builders</p></dd>
+
+<dt>envvar: </dt>
+<dd><p>ENERGYRT_PATH_BUILDERS (evaluated if possible, raw string otherwise)</p></dd>
+
+
+</dl></dd>
+
+
+<dt>storage_format</dt>
+<dd><dl>
+On-disk table storage format: 'feather' (IPC), 'parquet', or 'csv'. Parquet is smaller, feather reads faster; both support lazy filtered reads. The content-addressed stores pin parquet for hash stability.<dt>default: </dt>
 <dd><div class="sourceCode"><pre><code><span><span class="st">"feather"</span></span></code></pre></div></dd>
 
 <dt>option: </dt>
-<dd><p>en.arrow_format</p></dd>
+<dd><p>en.storage_format</p></dd>
 
 <dt>envvar: </dt>
-<dd><p>ENERGYRT_ARROW_FORMAT (evaluated if possible, raw string otherwise)</p></dd>
+<dd><p>ENERGYRT_STORAGE_FORMAT (evaluated if possible, raw string otherwise)</p></dd>
 
 
 </dl></dd>
 
 
-<dt>arrow_compression</dt>
+<dt>storage_compression</dt>
 <dd><dl>
-Arrow compression codec: 'zstd', 'lz4', or 'uncompressed'.<dt>default: </dt>
+Storage compression codec: 'zstd', 'lz4', or 'uncompressed'.<dt>default: </dt>
 <dd><div class="sourceCode"><pre><code><span><span class="st">"zstd"</span></span></code></pre></div></dd>
 
 <dt>option: </dt>
-<dd><p>en.arrow_compression</p></dd>
+<dd><p>en.storage_compression</p></dd>
 
 <dt>envvar: </dt>
-<dd><p>ENERGYRT_ARROW_COMPRESSION (evaluated if possible, raw string otherwise)</p></dd>
+<dd><p>ENERGYRT_STORAGE_COMPRESSION (evaluated if possible, raw string otherwise)</p></dd>
 
 
 </dl></dd>
 
 
-<dt>arrow_compression_level</dt>
+<dt>storage_compression_level</dt>
 <dd><dl>
-Arrow compression level (codec-dependent; ZSTD supports 1-22).<dt>default: </dt>
+Storage compression level (codec-dependent; ZSTD supports 1-22).<dt>default: </dt>
 <dd><div class="sourceCode"><pre><code><span><span class="fl">15L</span></span></code></pre></div></dd>
 
 <dt>option: </dt>
-<dd><p>en.arrow_compression_level</p></dd>
+<dd><p>en.storage_compression_level</p></dd>
 
 <dt>envvar: </dt>
-<dd><p>ENERGYRT_ARROW_COMPRESSION_LEVEL (evaluated if possible, raw string otherwise)</p></dd>
+<dd><p>ENERGYRT_STORAGE_COMPRESSION_LEVEL (evaluated if possible, raw string otherwise)</p></dd>
+
+
+</dl></dd>
+
+
+<dt>exchange_format</dt>
+<dd><dl>
+Data-exchange format for the JuMP/Pyomo solvers: 'feather' (IPC), 'parquet', or 'csv'. Julia's Arrow.jl reads IPC only. A solver's export_format/import_format overrides this per solve.<dt>default: </dt>
+<dd><div class="sourceCode"><pre><code><span><span class="st">"feather"</span></span></code></pre></div></dd>
+
+<dt>option: </dt>
+<dd><p>en.exchange_format</p></dd>
+
+<dt>envvar: </dt>
+<dd><p>ENERGYRT_EXCHANGE_FORMAT (evaluated if possible, raw string otherwise)</p></dd>
+
+
+</dl></dd>
+
+
+<dt>exchange_compression</dt>
+<dd><dl>
+Exchange compression codec: 'zstd', 'lz4', or 'uncompressed'. Exchange files are written and read within the same solve, so the default trades size for speed.<dt>default: </dt>
+<dd><div class="sourceCode"><pre><code><span><span class="st">"lz4"</span></span></code></pre></div></dd>
+
+<dt>option: </dt>
+<dd><p>en.exchange_compression</p></dd>
+
+<dt>envvar: </dt>
+<dd><p>ENERGYRT_EXCHANGE_COMPRESSION (evaluated if possible, raw string otherwise)</p></dd>
+
+
+</dl></dd>
+
+
+<dt>exchange_compression_level</dt>
+<dd><dl>
+Exchange compression level (codec-dependent; ZSTD supports 1-22). Ignored for lz4.<dt>default: </dt>
+<dd><div class="sourceCode"><pre><code><span><span class="fl">15L</span></span></code></pre></div></dd>
+
+<dt>option: </dt>
+<dd><p>en.exchange_compression_level</p></dd>
+
+<dt>envvar: </dt>
+<dd><p>ENERGYRT_EXCHANGE_COMPRESSION_LEVEL (evaluated if possible, raw string otherwise)</p></dd>
 
 
 </dl></dd>

@@ -58,3 +58,4 @@ Other solver:
 \code{\link[=set_solver_path]{set_solver_path()}}
 }
 \concept{solver}
+\keyword{internal}

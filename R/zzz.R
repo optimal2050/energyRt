@@ -67,16 +67,16 @@
 #' @param x character, name of an object of `energyRt`
 #'
 #' @return logical, TRUE if the name is valid.
-#' @export
 #'
 #' @examples
-#' check_name("name")
-#' check_name("1name")
-#' check_name("name1")
-#' check_name("name_1")
-#' check_name("name_1!")
-#' check_name(c("a", "b")) # FALSE, not a single name
-#' check_name(1) # FALSE, not character
+#' energyRt:::check_name("name")
+#' energyRt:::check_name("1name")
+#' energyRt:::check_name("name1")
+#' energyRt:::check_name("name_1")
+#' energyRt:::check_name("name_1!")
+#' energyRt:::check_name(c("a", "b")) # FALSE, not a single name
+#' energyRt:::check_name(1) # FALSE, not character
+#' @keywords internal
 check_name <- function(x, dot = FALSE) {
   # NB the guards used to be OR'd into the "valid" expression, so a non-scalar
   # or non-character input was reported as VALID. They must negate it instead.

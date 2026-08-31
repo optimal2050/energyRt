@@ -10,11 +10,7 @@ wiring NEOS in as a solver backend. No account or API key is required.
 ``` r
 neos_ping(timeout = 30)
 
-neos_list_categories(timeout = 30)
-
 neos_list_solvers(category, timeout = 30)
-
-neos_get_template(category, solver, inputMethod = "GAMS", timeout = 30)
 ```
 
 ## Arguments
@@ -25,30 +21,15 @@ neos_get_template(category, solver, inputMethod = "GAMS", timeout = 30)
 
 - category:
 
-  NEOS solver category abbreviation, e.g. `"milp"`, `"lp"`, `"nco"` (see
-  `neos_list_categories()`).
-
-- solver:
-
-  NEOS solver name, e.g. `"CPLEX"`, `"Gurobi"` (see
-  `neos_list_solvers()`).
-
-- inputMethod:
-
-  input format, e.g. `"GAMS"`, `"MPS"`, `"AMPL"`.
+  NEOS solver category abbreviation, e.g. `"milp"`, `"lp"`, `"nco"`.
 
 ## Value
 
 - `neos_ping()`: a status string (invisibly), `TRUE` if the server is
   alive.
 
-- `neos_list_categories()`: a named character vector (abbrev -\> full
-  name).
-
 - `neos_list_solvers()`: a character vector of `solver:inputMethod`
   strings.
-
-- `neos_get_template()`: the XML job template as a single string.
 
 ## Details
 
@@ -77,8 +58,6 @@ Other solver: [`en_check`](https://energyRt.org/reference/en_check.md),
 ``` r
 if (FALSE) { # \dontrun{
 neos_ping()
-head(neos_list_categories())
 neos_list_solvers("milp")
-cat(neos_get_template("milp", "CPLEX", "GAMS"))
 } # }
 ```

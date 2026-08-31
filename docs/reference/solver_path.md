@@ -43,11 +43,13 @@ if unset; `set_solver_path()` the path, invisibly.
 Other options:
 [`en_config_path()`](https://energyRt.org/reference/en_config.md),
 [`en_config_show()`](https://energyRt.org/reference/en_config_show.md),
-[`get_arrow_format()`](https://energyRt.org/reference/arrow_format.md),
 [`get_default_solver()`](https://energyRt.org/reference/default_solver.md),
+[`get_exchange_format()`](https://energyRt.org/reference/exchange_format.md),
+[`get_storage_format()`](https://energyRt.org/reference/storage_format.md),
 [`isVerbose()`](https://energyRt.org/reference/isVerbose.md),
 [`set_log_file()`](https://energyRt.org/reference/log.md),
 [`set_option()`](https://energyRt.org/reference/en_option.md),
+[`set_path_builder()`](https://energyRt.org/reference/path_builders.md),
 [`set_registry_file()`](https://energyRt.org/reference/registry_file.md),
 [`set_reports_path()`](https://energyRt.org/reference/reports_path.md),
 [`set_scenarios_path()`](https://energyRt.org/reference/scenarios_path.md)

@@ -95,8 +95,6 @@ getData(scen, ...)
 
 \method{getData}{default}(scen, ...)
 
-get_data(scen, ...)
-
 \method{getData}{technology}(
   obj,
   name = NULL,

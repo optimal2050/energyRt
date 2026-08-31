@@ -1530,6 +1530,7 @@ setMethod("levcost", "levcost",
     .levcost_by_variant(object, by_variant)
   })
 
+#' @method print levcost_variants
 #' @export
 print.levcost_variants <- function(x, ...) {
   npv <- attr(x, "by_variant_npv")
@@ -2828,6 +2829,7 @@ plot_share_frontier <- function(object, title = NULL, base_size = 11L) {
   all_plots
 }
 
+#' @method print share_frontier_plots
 #' @export
 print.share_frontier_plots <- function(x, ...) {
   if (requireNamespace("patchwork", quietly = TRUE)) {
@@ -2853,6 +2855,7 @@ print.share_frontier_plots <- function(x, ...) {
                            import = "Import",
                            export = "Export (credit)")
 
+#' @method print levcost
 #' @export
 print.levcost <- function(x, ...) {
   cat("levcost\n")
@@ -2870,6 +2873,7 @@ print.levcost <- function(x, ...) {
   invisible(x)
 }
 
+#' @method print levcost_list
 #' @export
 print.levcost_list <- function(x, ...) {
   cat("levcost_list (", length(x), " processes)\n", sep = "")

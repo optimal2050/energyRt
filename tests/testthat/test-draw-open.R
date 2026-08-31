@@ -14,7 +14,7 @@
 #    negative. `.draw_arrow_label()` now measures the pad itself.
 # =========================================================================== #
 
-do_repo <- function() utopia_modules$electricity$R3$repo
+do_repo <- function() utopia$modules$electricity$R3$repo
 do_obj  <- function(cl) {
   o <- getObject(do_repo(), class = cl, drop = FALSE)
   if (length(o) == 0L) NULL else o[[1]]

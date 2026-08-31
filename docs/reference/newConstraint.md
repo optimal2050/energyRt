@@ -18,8 +18,6 @@ newConstraint(
   replace_zerros = 1e-20
 )
 
-isConstraint(object)
-
 newConstraintS(
   name,
   type,
@@ -99,15 +97,9 @@ newConstraintS(
   numeric value to replace zero values in `rhs` and `defVal`. Default is
   `1e-20`.
 
-- object:
-
-  any R object
-
 ## Value
 
 Object of class `constraint`.
-
-TRUE if the object inherits class `constraint`, FALSE otherwise.
 
 ## Details
 
@@ -127,10 +119,6 @@ set by the `for.each` parameter. The 'lhs' terms are defined as a list
 of linear terms (summands). Each summand consists of a variable, a
 multiplier, and a set of sets for which the summand is defined.
 
-## Functions
-
-- `isConstraint()`: Check if an object is a constraint.
-
 ## See also
 
 Other class constraint policy:
@@ -142,15 +130,36 @@ Other class constraint policy:
 [`subsidy-class`](https://energyRt.org/reference/class-subsidy.md),
 [`tax-class`](https://energyRt.org/reference/class-tax.md)
 
-Other class constraint:
-[`class-summand`](https://energyRt.org/reference/class-summand.md)
-
 ## Examples
 
 ``` r
-isConstraint(1)
-#> [1] FALSE
-isConstraint(newConstraint(""))
-#> Warning: It is advisable to define 'defVal' parameter.
-#> [1] TRUE
+# cap total exports in 2020 at 1 unit
+cnst <- newConstraint(
+  name = "EXP_CAP",
+  desc = "Total exports in 2020",
+  eq = "<=",
+  defVal = 1,
+  for.each = data.frame(year = 2020L),
+  total = list(variable = "vExportTot", for.sum = list(region = "R1"))
+)
+cnst
+#> Name: EXP_CAP, eq: <=, defVal: 1
+#> desc:  Total exports in 2020 
+#> 
+#>  for.each 
+#>   year
+#> 1 2020
+#> 
+#> Term 1:
+#> variable: vExportTot, defVal: 1
+#> for.sum set:
+#> $region
+#> [1] "R1"
+#> 
+#> $comm
+#> [1] NA
+#> 
+#> $timeslice
+#> [1] NA
+#> 
 ```

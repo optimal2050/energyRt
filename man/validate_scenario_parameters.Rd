@@ -42,3 +42,4 @@ within the union of their maps (no orphan / out-of-domain rows). After
 trimming this must hold exactly.
 }
 }
+\keyword{internal}

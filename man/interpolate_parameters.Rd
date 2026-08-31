@@ -23,3 +23,4 @@ the scenario with interpolated parameter data.
 \description{
 Interpolate all year-indexed numeric/bounds parameters of a scenario
 }
+\keyword{internal}

@@ -30,8 +30,4 @@ and is not intended to be used directly by the user.
 \item{\code{misc}}{list. Additional information.}
 }}
 
-\seealso{
-Other class constraint:
-\code{\link[=newConstraint]{newConstraint()}}
-}
 \concept{class constraint}

@@ -17,3 +17,4 @@ a character vector of set elements
 \description{
 Search through model data for set elements
 }
+\keyword{internal}

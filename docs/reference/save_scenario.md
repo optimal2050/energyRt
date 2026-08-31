@@ -10,7 +10,7 @@ save_scenario(
   path = scen@path,
   embed_model = NULL,
   embed_datasets = NULL,
-  format = get_arrow_format(),
+  format = get_storage_format(),
   overwrite = TRUE,
   clean_start = FALSE,
   write_log = TRUE,

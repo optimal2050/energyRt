@@ -386,7 +386,7 @@ print.carry_ledger <- function(x, ...) {
 #'
 #' @return a model object.
 #' @seealso [solution_ledger()], [solve_myopic()]
-#' @export
+#' @keywords internal
 apply_ledger <- function(mod, ledger, horizon,
                                carry = c("capacity", "budgets"),
                                tolerance = 1e-6, verbose = FALSE) {

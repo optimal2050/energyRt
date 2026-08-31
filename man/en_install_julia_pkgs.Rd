@@ -8,8 +8,9 @@ en_install_julia_pkgs(pkgs = NULL, update = FALSE)
 }
 \arguments{
 \item{pkgs}{A character vector of Julia packages to install. The default is
-\code{c("JuMP", "HiGHS", "Cbc", "Clp", "RData", "RCall", "CodecBzip2",
-"Gadfly", "DataFrames", "CSV", "SQLite", "Dates")}.
+\code{c("JuMP", "HiGHS", "Cbc", "Clp", "Arrow", "RData", "RCall",
+"CodecBzip2", "Gadfly", "DataFrames", "Dates")}. \code{Arrow} is required for
+the default data exchange (see \code{\link[=get_exchange_format]{get_exchange_format()}}).
 If you have pre-installed CPLEX or Gurobi, you can add them to the list.}
 }
 \value{

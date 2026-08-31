@@ -23,3 +23,4 @@ ensures that the resulting data frame is unique and sorted by name.
 \description{
 Convert a named list of vectors to a data frame
 }
+\keyword{internal}

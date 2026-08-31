@@ -45,7 +45,7 @@
 #' @seealso [getData()], [get_region()], [find_in_model()]
 #' @examples
 #' \dontrun{
-#' repo <- utopia_modules$electricity$R3$repo
+#' repo <- utopia$modules$electricity$R3$repo
 #' getObject(repo, class = "technology")                 # all technologies
 #' getObject(repo, class = c("supply", "commodity"))     # two classes
 #' getObject(repo, region = "R1")                         # everything in R1

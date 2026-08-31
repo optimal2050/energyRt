@@ -19,3 +19,4 @@ a named list mapping each commodity to its timeframe.
 \description{
 Operational timeframe of a commodities
 }
+\keyword{internal}

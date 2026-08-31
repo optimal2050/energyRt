@@ -10,13 +10,13 @@
 #' @param final_message character, message to display at the end of the countdown
 #'
 #' @returns NULL
-#' @export
 #'
 #' @examples
 #' \dontrun{
-#' countdown_timer(10)
-#' countdown_timer(10, warn_message = "Something important is going to happen in 10 seconds.")
+#' energyRt:::countdown_timer(10)
+#' energyRt:::countdown_timer(10, warn_message = "Something important is going to happen in 10 seconds.")
 #' }
+#' @keywords internal
 countdown_timer <- function(
     seconds,
     warn_message = NULL,
@@ -404,12 +404,12 @@ show_progress_bar <- function(show = TRUE) {
 #' @param unique logical, if TRUE (default), `unique()` function will be applied to the result.
 #'
 #' @return data.frame with dropped columns
-#' @export
 #'
 #' @examples
 #' x <- data.frame(a = c(1, 2, NA), b = c(NA, NA, NA), c = c(NA, 2, 3))
-#' drop_na_cols(x)
+#' energyRt:::drop_na_cols(x)
 #'
+#' @keywords internal
 drop_na_cols <- function(x, unique = TRUE) {
   x <- select(x, where(~ !all(is.na(.))))
   if (unique) x <- unique(x)
@@ -435,10 +435,10 @@ fEAC <- function(invcost, discount, olife) {
 #' @param any_mask character, regular expression to match "ANY*" elements
 #'
 #' @returns logical vector, TRUE if an element of the set is "ANY*"
-#' @export
 #'
 #' @examples
-#' is_any(c("ANY", "ANYREGION", "ANYTIMESLICE", "ANYYEAR", "A", "B"))
+#' energyRt:::is_any(c("ANY", "ANYREGION", "ANYTIMESLICE", "ANYYEAR", "A", "B"))
+#' @keywords internal
 is_any <- function(x, na = TRUE, any_mask = "^ANY_?[A-Z]*$") {
   # x - vector
   # na - logical, if TRUE, NA values are included

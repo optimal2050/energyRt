@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -91,7 +91,7 @@
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>UTOPIA II: running scenarios</h1>
             
-            <h4 data-toc-skip class="date">2026-08-28</h4>
+            <h4 data-toc-skip class="date">2026-08-30</h4>
       
       <small class="dont-index">Source: <a href="https://github.com/optimal2050/energyRt/blob/HEAD/vignettes/utopia-use.Rmd" class="external-link"><code>vignettes/utopia-use.Rmd</code></a></small>
       <div class="d-none name"><code>utopia-use.Rmd</code></div>
@@ -102,10 +102,11 @@
 <div class="section level2">
 <h2 id="overview">Overview<a class="anchor" aria-label="anchor" href="#overview"></a>
 </h2>
-<p>This vignette uses the packaged [<code>utopia_modules</code>] kit
-(built in <em>UTOPIA I: building the model modules</em>) to assemble an
-energy-system model and run scenarios with <strong>GLPK</strong>
-(bundled, no external solver needed).</p>
+<p>This vignette uses the packaged
+[<code>utopia</code>]<code>$modules</code> kit (built in <em>UTOPIA I:
+building the model modules</em>) to assemble an energy-system model and
+run scenarios with <strong>GLPK</strong> (bundled, no external solver
+needed).</p>
 <div class="sourceCode" id="cb1"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://energyRt.org">energyRt</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span>
@@ -123,17 +124,17 @@ to watch GLPK work.</p>
 <div class="section level2">
 <h2 id="selecting-a-utopia-structure">Selecting a UTOPIA structure<a class="anchor" aria-label="anchor" href="#selecting-a-utopia-structure"></a>
 </h2>
-<p><code>utopia_modules$electricity</code> offers ready region layouts
+<p><code>utopia$modules$electricity</code> offers ready region layouts
 (<code>R1</code>, <code>R3</code>, <code>R7</code>, <code>R11</code>);
 each is a kit with a base repository <code>$repo</code> and scenario
 levers. Calendars, horizons and maps sit alongside. (For a custom layout
 or calendar, build the blocks yourself following <em>UTOPIA I: building
 the model</em>.)</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">utopia_modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">)</span>          <span class="co"># available layouts</span></span>
-<span><span class="va">um</span>  <span class="op">&lt;-</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">R3</span>     <span class="co"># the 3-region base case</span></span>
-<span><span class="va">cal</span> <span class="op">&lt;-</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24</span></span>
-<span><span class="va">hor</span> <span class="op">&lt;-</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">base</span>        <span class="co"># milestones 2020/2030/2040/2050</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">utopia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">)</span>          <span class="co"># available layouts</span></span>
+<span><span class="va">um</span>  <span class="op">&lt;-</span> <span class="va">utopia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">R3</span>     <span class="co"># the 3-region base case</span></span>
+<span><span class="va">cal</span> <span class="op">&lt;-</span> <span class="va">utopia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24</span></span>
+<span><span class="va">hor</span> <span class="op">&lt;-</span> <span class="va">utopia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">base</span>        <span class="co"># milestones 2020/2030/2040/2050</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="assembling-and-solving-the-base-model">Assembling and solving the base model<a class="anchor" aria-label="anchor" href="#assembling-and-solving-the-base-model"></a>
@@ -147,10 +148,10 @@ the model</em>.)</p>
 <p>The <code>R3</code> kit wires its regions with bi-directional
 transmission links (<code>TBD_ELC_*</code>).
 <code><a href="../reference/plot_trade_map.html">plot_trade_map()</a></code> draws that network over a map layout —
-pass any of <code>utopia_modules$maps</code> (here
+pass any of <code>utopia$modules$maps</code> (here
 <code>honeycomb</code>); the 7-region kit shows six links:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_trade_map.html">plot_trade_map</a></span><span class="op">(</span><span class="va">um</span><span class="op">$</span><span class="va">repo</span>, map <span class="op">=</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">maps</span><span class="op">$</span><span class="va">honeycomb</span><span class="op">)</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/plot_trade_map.html">plot_trade_map</a></span><span class="op">(</span><span class="va">um</span><span class="op">$</span><span class="va">repo</span>, map <span class="op">=</span> <span class="va">utopia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">maps</span><span class="op">$</span><span class="va">honeycomb</span><span class="op">)</span></span></code></pre></div>
 <p>Electricity generation by technology:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen_BASE</span>, <span class="st">"vTechOut"</span>, comm <span class="op">=</span> <span class="st">"ELC"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span> <span class="op">|&gt;</span></span>
@@ -262,7 +263,7 @@ pandoc):</p>
 <code>R1</code> or the larger <code>R7</code> / <code>R11</code>
 (heavier). Just swap the kit:</p>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">um7</span> <span class="op">&lt;-</span> <span class="va">utopia_modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">R7</span></span>
+<code class="sourceCode R"><span><span class="va">um7</span> <span class="op">&lt;-</span> <span class="va">utopia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">R7</span></span>
 <span><span class="va">mod7</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newModel.html">newModel</a></span><span class="op">(</span><span class="st">"UTOPIA7"</span>, data <span class="op">=</span> <span class="va">um7</span><span class="op">$</span><span class="va">repo</span>, calendar <span class="op">=</span> <span class="va">cal</span>,</span>
 <span>                 region <span class="op">=</span> <span class="va">um7</span><span class="op">$</span><span class="va">regions</span>, horizon <span class="op">=</span> <span class="va">hor</span>, discount <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span>
 <span><span class="va">scen7</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod7</span>, <span class="st">"BASE7"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
@@ -272,7 +273,7 @@ pandoc):</p>
 <h2 id="next-steps">Next steps<a class="anchor" aria-label="anchor" href="#next-steps"></a>
 </h2>
 <p>Extend UTOPIA with inter-regional trade (using the
-<code>utopia_modules$maps</code>), technologies introduced via scenarios
+<code>utopia$modules$maps</code>), technologies introduced via scenarios
 (CCS, hydrogen, CHP), and the honeycomb multi-region layout. See the
 workshop exercises for a step-by-step build.</p>
 </div>

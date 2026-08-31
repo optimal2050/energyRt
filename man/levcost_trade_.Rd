@@ -63,3 +63,4 @@ fixed charges -- see the header of this file for why both endpoints pay.
 (glpk/energyRt.mod:535). A trade carrying them gets a warning rather than a
 number that no solver would reproduce.
 }
+\keyword{internal}

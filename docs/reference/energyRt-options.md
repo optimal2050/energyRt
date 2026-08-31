@@ -217,21 +217,6 @@ package name to `env`.
 
   :   ENERGYRT_LOG_FILE (evaluated if possible, raw string otherwise)
 
-- store_versioning:
-
-  default:
-
-  :   "none"
-
-  option:
-
-  :   en.store_versioning
-
-  envvar:
-
-  :   ENERGYRT_STORE_VERSIONING (evaluated if possible, raw string
-      otherwise)
-
 - reports_path:
 
   default:
@@ -262,7 +247,22 @@ package name to `env`.
   :   ENERGYRT_LEVCOST_CACHE_PATH (evaluated if possible, raw string
       otherwise)
 
-- arrow_format:
+- path_builders:
+
+  default:
+
+  :   list()
+
+  option:
+
+  :   en.path_builders
+
+  envvar:
+
+  :   ENERGYRT_PATH_BUILDERS (evaluated if possible, raw string
+      otherwise)
+
+- storage_format:
 
   default:
 
@@ -270,14 +270,14 @@ package name to `env`.
 
   option:
 
-  :   en.arrow_format
+  :   en.storage_format
 
   envvar:
 
-  :   ENERGYRT_ARROW_FORMAT (evaluated if possible, raw string
+  :   ENERGYRT_STORAGE_FORMAT (evaluated if possible, raw string
       otherwise)
 
-- arrow_compression:
+- storage_compression:
 
   default:
 
@@ -285,14 +285,14 @@ package name to `env`.
 
   option:
 
-  :   en.arrow_compression
+  :   en.storage_compression
 
   envvar:
 
-  :   ENERGYRT_ARROW_COMPRESSION (evaluated if possible, raw string
+  :   ENERGYRT_STORAGE_COMPRESSION (evaluated if possible, raw string
       otherwise)
 
-- arrow_compression_level:
+- storage_compression_level:
 
   default:
 
@@ -300,11 +300,56 @@ package name to `env`.
 
   option:
 
-  :   en.arrow_compression_level
+  :   en.storage_compression_level
 
   envvar:
 
-  :   ENERGYRT_ARROW_COMPRESSION_LEVEL (evaluated if possible, raw
+  :   ENERGYRT_STORAGE_COMPRESSION_LEVEL (evaluated if possible, raw
+      string otherwise)
+
+- exchange_format:
+
+  default:
+
+  :   "feather"
+
+  option:
+
+  :   en.exchange_format
+
+  envvar:
+
+  :   ENERGYRT_EXCHANGE_FORMAT (evaluated if possible, raw string
+      otherwise)
+
+- exchange_compression:
+
+  default:
+
+  :   "lz4"
+
+  option:
+
+  :   en.exchange_compression
+
+  envvar:
+
+  :   ENERGYRT_EXCHANGE_COMPRESSION (evaluated if possible, raw string
+      otherwise)
+
+- exchange_compression_level:
+
+  default:
+
+  :   15L
+
+  option:
+
+  :   en.exchange_compression_level
+
+  envvar:
+
+  :   ENERGYRT_EXCHANGE_COMPRESSION_LEVEL (evaluated if possible, raw
       string otherwise)
 
 - verbose:

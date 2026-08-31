@@ -22,8 +22,9 @@ Retrieve slot details in rd-format
 }
 \examples{
 slotNames("technology")
-get_slot_doc("technology", "input") |> cat()
-get_slot_doc("technology", "capacity") |> cat()
-get_slot_doc("demand", "demand") |> cat()
-get_slot_doc("commodity", "agg") |> cat()
+energyRt:::get_slot_doc("technology", "input") |> cat()
+energyRt:::get_slot_doc("technology", "capacity") |> cat()
+energyRt:::get_slot_doc("demand", "demand") |> cat()
+energyRt:::get_slot_doc("commodity", "agg") |> cat()
 }
+\keyword{internal}

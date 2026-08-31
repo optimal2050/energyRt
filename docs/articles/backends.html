@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -218,10 +218,13 @@ models.</p>
 <div class="section level3">
 <h3 id="python-pyomo">Python / Pyomo<a class="anchor" aria-label="anchor" href="#python-pyomo"></a>
 </h3>
-<p>energyRt writes a Pyomo <code>ConcreteModel</code> (data exchanged as
-SQLite by default, or Arrow/feather with the <code>*_arrow</code>
-presets) and solves it with the configured solver. CBC is the
-open-source default; CPLEX and GLPK are also available.</p>
+<p>energyRt writes a Pyomo <code>ConcreteModel</code> and solves it with
+the configured solver. CBC is the open-source default; CPLEX and GLPK
+are also available. Model data and the solution are exchanged as Arrow
+files, which needs <code>pyarrow</code> in the Python environment
+(<code><a href="../reference/en_install_python_deps.html">en_install_python_deps()</a></code> installs it);
+<code>solver_options$pyomo_cbc_sqlite</code> selects the older SQLite
+exchange instead.</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">pyomo_cbc</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">pyomo_cplex_barrier</span><span class="op">)</span>   <span class="co"># CPLEX barrier</span></span></code></pre></div>
@@ -233,7 +236,11 @@ open-source default; CPLEX and GLPK are also available.</p>
 <strong>HiGHS</strong> (open-source) is fast and the recommended choice
 for large models; <code>*_barrier</code>, <code>*_simplex</code> and
 <code>*_parallel</code> presets select the HiGHS algorithm. Cbc, GLPK
-and CPLEX are also available.</p>
+and CPLEX are also available. Model data and the solution are exchanged
+as Arrow files, read and written by <code>Arrow.jl</code>
+(<code><a href="../reference/en_install_julia_pkgs.html">en_install_julia_pkgs()</a></code> installs it);
+<code>solver_options$julia_highs_rdata</code> selects the older RData
+exchange instead.</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">julia_highs</span><span class="op">)</span>           <span class="co"># default (auto)</span></span>
 <span><span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">julia_highs_barrier</span><span class="op">)</span>   <span class="co"># interior point</span></span>
@@ -308,70 +315,70 @@ data):</p>
 <td align="left">Python/Pyomo</td>
 <td align="left">cbc</td>
 <td align="left"></td>
-<td align="left">SQLite</td>
+<td align="left">default</td>
 </tr>
 <tr class="odd">
-<td align="left">pyomo_cbc_arrow</td>
+<td align="left">pyomo_cbc_sqlite</td>
 <td align="left">Python/Pyomo</td>
 <td align="left">cbc</td>
 <td align="left"></td>
-<td align="left">feather</td>
+<td align="left">SQLite</td>
 </tr>
 <tr class="even">
 <td align="left">pyomo_cplex</td>
 <td align="left">Python/Pyomo</td>
 <td align="left">cplex</td>
 <td align="left"></td>
-<td align="left">SQLite</td>
+<td align="left">default</td>
 </tr>
 <tr class="odd">
 <td align="left">pyomo_cplex_barrier</td>
 <td align="left">Python/Pyomo</td>
 <td align="left">cplex</td>
 <td align="left"></td>
-<td align="left">SQLite</td>
+<td align="left">default</td>
 </tr>
 <tr class="even">
 <td align="left">pyomo_glpk</td>
 <td align="left">Python/Pyomo</td>
 <td align="left">glpk</td>
 <td align="left"></td>
-<td align="left">SQLite</td>
+<td align="left">default</td>
 </tr>
 <tr class="odd">
 <td align="left">pyomo_highs</td>
 <td align="left">Python/Pyomo</td>
 <td align="left">appsi_highs</td>
 <td align="left"></td>
-<td align="left">SQLite</td>
+<td align="left">default</td>
 </tr>
 <tr class="even">
 <td align="left">pyomo_highs_barrier</td>
 <td align="left">Python/Pyomo</td>
 <td align="left">appsi_highs</td>
 <td align="left"></td>
-<td align="left">SQLite</td>
+<td align="left">default</td>
 </tr>
 <tr class="odd">
 <td align="left">neos_pyomo_cplex</td>
 <td align="left">Python/Pyomo</td>
 <td align="left">—</td>
 <td align="left"></td>
-<td align="left">SQLite</td>
+<td align="left">default</td>
 </tr>
 <tr class="even">
 <td align="left">neos_pyomo_cplex_barrier</td>
 <td align="left">Python/Pyomo</td>
 <td align="left">—</td>
 <td align="left"></td>
-<td align="left">SQLite</td>
+<td align="left">default</td>
 </tr>
 <tr class="odd">
 <td align="left">neos_pyomo_cbc</td>
 <td align="left">Python/Pyomo</td>
 <td align="left">—</td>
 <td align="left"></td>
-<td align="left">SQLite</td>
+<td align="left">default</td>
 </tr>
 <tr class="even">
 <td align="left">julia_cbc</td>
@@ -402,11 +409,11 @@ data):</p>
 <td align="left">default</td>
 </tr>
 <tr class="even">
-<td align="left">julia_highs_arrow</td>
+<td align="left">julia_highs_rdata</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">HiGHS</td>
 <td align="left"></td>
-<td align="left">feather</td>
+<td align="left">RData</td>
 </tr>
 <tr class="odd">
 <td align="left">julia_highs_barrier</td>
@@ -501,6 +508,39 @@ data):</p>
 </tr>
 </tbody>
 </table>
+<p>A <code>default</code> in the last column means the preset names no
+format and follows the <code>exchange_format</code> option — Arrow IPC
+unless you change it.</p>
+</div>
+<div class="section level2">
+<h2 id="data-exchange-and-storage">Data exchange and storage<a class="anchor" aria-label="anchor" href="#data-exchange-and-storage"></a>
+</h2>
+<p>Two separate option families, easy to confuse because both once
+shared one option:</p>
+<ul>
+<li>
+<strong>exchange</strong> — the files handed to a solver for one
+solve, in <code>runs/&lt;run&gt;/solver/input|output/</code>. Written
+once, read once, deleted with the run.
+<code><a href="../reference/exchange_format.html">get_exchange_format()</a></code> (<code>"feather"</code>),
+<code><a href="../reference/exchange_format.html">get_exchange_compression()</a></code> (<code>"lz4"</code> — the codec
+is cheap because nothing here is kept).</li>
+<li>
+<strong>storage</strong> — the tables that outlive the session: a
+scenario’s parameter and variable stores, and the model / repository /
+dataset stores. <code><a href="../reference/storage_format.html">get_storage_format()</a></code>
+(<code>"feather"</code>), <code><a href="../reference/storage_format.html">get_storage_compression()</a></code>
+(<code>"zstd"</code>, level 15).</li>
+</ul>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/exchange_format.html">set_exchange_format</a></span><span class="op">(</span><span class="st">"parquet"</span><span class="op">)</span>     <span class="co"># Pyomo only; Arrow.jl cannot read parquet</span></span>
+<span><span class="fu"><a href="../reference/exchange_format.html">set_exchange_compression</a></span><span class="op">(</span><span class="st">"uncompressed"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/storage_format.html">set_storage_format</a></span><span class="op">(</span><span class="st">"parquet"</span><span class="op">)</span>      <span class="co"># smaller on disk; feather reads faster</span></span></code></pre></div>
+<p>A solver preset’s <code>export_format</code> /
+<code>import_format</code> overrides the exchange option for that solve.
+A store records the format it was written in and keeps it when
+rewritten, so changing the option never mixes codecs inside an existing
+store — it applies to what you write next.</p>
 </div>
 <div class="section level2">
 <h2 id="anatomy-of-a-preset">Anatomy of a preset<a class="anchor" aria-label="anchor" href="#anatomy-of-a-preset"></a>
@@ -536,8 +576,11 @@ fields:</p>
 <td>
 <code>export_format</code> / <code>import_format</code>
 </td>
-<td>data exchange: <code>SQLite</code>, <code>feather</code> (Arrow),
-<code>GDX</code>, CSV/text</td>
+<td>data exchange in / out: <code>feather</code> (Arrow, the default),
+<code>parquet</code> (Pyomo only), <code>SQLite</code> /
+<code>RData</code> (legacy input), <code>GDX</code>, CSV/text. Unset on
+a JuMP/Pyomo preset means “follow <code><a href="../reference/exchange_format.html">get_exchange_format()</a></code>”;
+the two directions are independent</td>
 </tr>
 <tr class="odd">
 <td><code>backend</code></td>
@@ -558,7 +601,7 @@ fields:</p>
 </tr>
 </tbody>
 </table>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># start from a preset and customise</span></span>
 <span><span class="va">my_solver</span> <span class="op">&lt;-</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">julia_highs</span></span>
 <span><span class="va">my_solver</span><span class="op">$</span><span class="va">name</span> <span class="op">&lt;-</span> <span class="st">"julia_highs_custom"</span></span>

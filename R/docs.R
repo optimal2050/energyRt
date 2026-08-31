@@ -58,14 +58,14 @@ roxygen_slots <- function(df, roxy_par = "slot") {
 #' returned for data.frame slots.
 #'
 #' @return character, roxygen2 formatted string with slot details.
-#' @export
 #'
 #' @examples
 #' slotNames("technology")
-#' get_slot_doc("technology", "input") |> cat()
-#' get_slot_doc("technology", "capacity") |> cat()
-#' get_slot_doc("demand", "demand") |> cat()
-#' get_slot_doc("commodity", "agg") |> cat()
+#' energyRt:::get_slot_doc("technology", "input") |> cat()
+#' energyRt:::get_slot_doc("technology", "capacity") |> cat()
+#' energyRt:::get_slot_doc("demand", "demand") |> cat()
+#' energyRt:::get_slot_doc("commodity", "agg") |> cat()
+#' @keywords internal
 get_slot_doc <- function(class_name = "technology",
                           slot_name = "ceff",
                           col_names = TRUE

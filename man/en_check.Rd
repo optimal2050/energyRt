@@ -24,7 +24,7 @@ en_check_gams()
 
 en_check_gdx()
 
-en_check_julia_pkgs(pkgs = c("JuMP", "HiGHS"))
+en_check_julia_pkgs(pkgs = c("JuMP", "HiGHS", "Arrow"))
 
 en_check_dependencies(solver_pkgs = FALSE)
 }

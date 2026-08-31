@@ -54,3 +54,4 @@ data frame with expanded rows
 Replaces \code{NA} values in a data frame column with all possible
 values for each unique combination of other columns.
 }
+\keyword{internal}

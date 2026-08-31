@@ -12,7 +12,7 @@ A named list of \code{calendar} objects:
 \item{utopia_seasons}{UTOPIA: 4 seasons x 3 dayparts (DAY/NIGHT/PEAK)
 with representative shares (12 timeslices).}
 \item{unit_s4, unit_s4h4}{Perfectly symmetric unit calendars for the
-hand-computable \code{utopia_modules$unit} kits.}
+hand-computable \code{utopia$modules$unit} kits.}
 \item{m12, m12a}{Monthly resolution, day-proportional shares --
 \code{m01..m12} and \code{JAN..DEC} labels respectively (12 timeslices).}
 \item{q4}{Calendar quarters \code{Q1..Q4}, day-proportional (4 timeslices).}

@@ -104,12 +104,6 @@ Optional operation-log CSV. Empty (default) = logging off; a path makes interpol
 \item{envvar: }{ENERGYRT_LOG_FILE (evaluated if possible, raw string otherwise)}
 }}
 
-\item{store_versioning}{\describe{
-How the model/repository/dataset stores name their entries. "none" (default): one human-readable folder per name (models/UTOPIA/), updated in place; the content hash lives in the manifest and misc$hash for no-op detection and reference verification. "hash": content-addressed \if{html}{\out{<name>}}@\if{html}{\out{<hash8>}} folders; every content change is a NEW entry and versions coexist.\item{default: }{\preformatted{"none"}}
-\item{option: }{en.store_versioning}
-\item{envvar: }{ENERGYRT_STORE_VERSIONING (evaluated if possible, raw string otherwise)}
-}}
-
 \item{reports_path}{\describe{
 Default directory for rendered reports of IN-MEMORY objects (treated as temporary output). Reports of saved objects land inside the owning folder (\if{html}{\out{<scenario>}}/reports/, \if{html}{\out{<model store entry>}}/reports/) instead.\item{default: }{\preformatted{"reports/"}}
 \item{option: }{en.reports_path}
@@ -122,22 +116,46 @@ Default directory for cached levcost results of IN-MEMORY objects (treated as te
 \item{envvar: }{ENERGYRT_LEVCOST_CACHE_PATH (evaluated if possible, raw string otherwise)}
 }}
 
-\item{arrow_format}{\describe{
-Default Arrow exchange format for the JuMP/Pyomo solvers: 'feather' (IPC), 'parquet', or 'csv'.\item{default: }{\preformatted{"feather"}}
-\item{option: }{en.arrow_format}
-\item{envvar: }{ENERGYRT_ARROW_FORMAT (evaluated if possible, raw string otherwise)}
+\item{path_builders}{\describe{
+Named list of user functions overriding the built-in folder-name derivations (session-local; set with set_path_builder()). Hookable kinds: scenario_dir, store_entry, run_label, slug — see ?path_builders for the contracts.\item{default: }{\preformatted{list()}}
+\item{option: }{en.path_builders}
+\item{envvar: }{ENERGYRT_PATH_BUILDERS (evaluated if possible, raw string otherwise)}
 }}
 
-\item{arrow_compression}{\describe{
-Arrow compression codec: 'zstd', 'lz4', or 'uncompressed'.\item{default: }{\preformatted{"zstd"}}
-\item{option: }{en.arrow_compression}
-\item{envvar: }{ENERGYRT_ARROW_COMPRESSION (evaluated if possible, raw string otherwise)}
+\item{storage_format}{\describe{
+On-disk table storage format: 'feather' (IPC), 'parquet', or 'csv'. Parquet is smaller, feather reads faster; both support lazy filtered reads. The content-addressed stores pin parquet for hash stability.\item{default: }{\preformatted{"feather"}}
+\item{option: }{en.storage_format}
+\item{envvar: }{ENERGYRT_STORAGE_FORMAT (evaluated if possible, raw string otherwise)}
 }}
 
-\item{arrow_compression_level}{\describe{
-Arrow compression level (codec-dependent; ZSTD supports 1-22).\item{default: }{\preformatted{15L}}
-\item{option: }{en.arrow_compression_level}
-\item{envvar: }{ENERGYRT_ARROW_COMPRESSION_LEVEL (evaluated if possible, raw string otherwise)}
+\item{storage_compression}{\describe{
+Storage compression codec: 'zstd', 'lz4', or 'uncompressed'.\item{default: }{\preformatted{"zstd"}}
+\item{option: }{en.storage_compression}
+\item{envvar: }{ENERGYRT_STORAGE_COMPRESSION (evaluated if possible, raw string otherwise)}
+}}
+
+\item{storage_compression_level}{\describe{
+Storage compression level (codec-dependent; ZSTD supports 1-22).\item{default: }{\preformatted{15L}}
+\item{option: }{en.storage_compression_level}
+\item{envvar: }{ENERGYRT_STORAGE_COMPRESSION_LEVEL (evaluated if possible, raw string otherwise)}
+}}
+
+\item{exchange_format}{\describe{
+Data-exchange format for the JuMP/Pyomo solvers: 'feather' (IPC), 'parquet', or 'csv'. Julia's Arrow.jl reads IPC only. A solver's \code{export_format}/\code{import_format} overrides this per solve.\item{default: }{\preformatted{"feather"}}
+\item{option: }{en.exchange_format}
+\item{envvar: }{ENERGYRT_EXCHANGE_FORMAT (evaluated if possible, raw string otherwise)}
+}}
+
+\item{exchange_compression}{\describe{
+Exchange compression codec: 'zstd', 'lz4', or 'uncompressed'. Exchange files are written and read within the same solve, so the default trades size for speed.\item{default: }{\preformatted{"lz4"}}
+\item{option: }{en.exchange_compression}
+\item{envvar: }{ENERGYRT_EXCHANGE_COMPRESSION (evaluated if possible, raw string otherwise)}
+}}
+
+\item{exchange_compression_level}{\describe{
+Exchange compression level (codec-dependent; ZSTD supports 1-22). Ignored for lz4.\item{default: }{\preformatted{15L}}
+\item{option: }{en.exchange_compression_level}
+\item{envvar: }{ENERGYRT_EXCHANGE_COMPRESSION_LEVEL (evaluated if possible, raw string otherwise)}
 }}
 
 \item{verbose}{\describe{

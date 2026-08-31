@@ -39,6 +39,7 @@ NULL
 #' }
 #'
 #' @family geoscale
+#' @family utopia
 #' @export
 utopia_geoscale <- function(layout = "honeycomb", region = NULL,
                             area = TRUE) {

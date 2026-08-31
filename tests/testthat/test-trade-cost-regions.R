@@ -156,10 +156,10 @@ test_that("the trade slot docs no longer deny implemented features", {
   # pin down: a dead parameter `pTradeVarom` shared its name, and the slot is
   # implemented under `pTradeIrCost` / `pTradeIrMarkup`.
   for (slot in c("capacity", "fixom", "varom")) {
-    expect_false(grepl("not implemented", get_slot_doc("trade", slot),
+    expect_false(grepl("not implemented", energyRt:::get_slot_doc("trade", slot),
                        fixed = TRUE), info = slot)
   }
   # and the conventions are written down where a user will meet them
-  expect_match(get_slot_doc("trade", "invcost"), "endpoint")
-  expect_match(get_slot_doc("trade", "varom"), "PER ROUTE")
+  expect_match(energyRt:::get_slot_doc("trade", "invcost"), "endpoint")
+  expect_match(energyRt:::get_slot_doc("trade", "varom"), "PER ROUTE")
 })

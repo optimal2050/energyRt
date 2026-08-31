@@ -40,7 +40,7 @@ slotNames("technology")
 #> [19] "vintage"            "capacity"           "optimizeRetirement"
 #> [22] "fullYear"           "timeframe"          "region"            
 #> [25] "misc"              
-get_slot_doc("technology", "input") |> cat()
+energyRt:::get_slot_doc("technology", "input") |> cat()
 #> data.frame. Main commodities input. Main commodities are linked to the process capacity and activity. Their parameters are defined in the `ceff` slot.
 #>   \describe{
 #>     \item{comm}{character. Name of the input commodity.}
@@ -49,7 +49,7 @@ get_slot_doc("technology", "input") |> cat()
 #>     \item{combustion}{numeric. combustion factor from 0 to 1 (default 1) to calculate emissions from fuels combustion (commodities intermediate consumption, more broadly)
 #> }
 #>  }
-get_slot_doc("technology", "capacity") |> cat()
+energyRt:::get_slot_doc("technology", "capacity") |> cat()
 #> data.frame. Capacity of the installed technology (in units of capacity).
 #>   \describe{
 #>     \item{vintage}{character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.}
@@ -68,7 +68,7 @@ get_slot_doc("technology", "capacity") |> cat()
 #>     \item{ret.up}{numeric. Upper bound on the capacity retirement (age-based), ignored if NA.}
 #>     \item{ret.fx}{numeric. Fixed capacity retirement (age-based), ignored if NA. This parameter overrides `ret.lo` and `ret.up`.}
 #>  }
-get_slot_doc("demand", "demand") |> cat()
+energyRt:::get_slot_doc("demand", "demand") |> cat()
 #> data.frame. Specification of the demand.
 #>   \describe{
 #>     \item{region}{character. Name of region for the demand value. NA for every region.}
@@ -76,7 +76,7 @@ get_slot_doc("demand", "demand") |> cat()
 #>     \item{timeslice}{character. Name of the timeslice for the demand value. NA for every timeslice.}
 #>     \item{demand}{numeric. Value of the demand.}
 #>  }
-get_slot_doc("commodity", "agg") |> cat()
+energyRt:::get_slot_doc("commodity", "agg") |> cat()
 #> data.frame. Used to define an aggregation of several commodities into the `name` commodity.
 #> 
 #>   \describe{

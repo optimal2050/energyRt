@@ -81,13 +81,13 @@ Vector in Date-Time format
 
 ``` r
 dtm2tsl(lubridate::now())
-#> [1] "d240_h06"
+#> [1] "d242_h22"
 dtm2tsl(lubridate::ymd("2020-12-31"))
 #> [1] NA
 dtm2tsl(lubridate::ymd("2020-12-31"), d366.as.na = FALSE)
 #> [1] "d366_h00"
 dtm2tsl(lubridate::now(tzone = "UTC"), format = "d365")
-#> [1] "d240"
+#> [1] "d243"
 dtm2tsl(lubridate::ymd("2020-12-31"), format = "d365")
 #> [1] NA
 dtm2tsl(lubridate::ymd("2020-12-31"), format = "d365", d366.as.na = FALSE)

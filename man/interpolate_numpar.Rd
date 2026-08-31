@@ -33,3 +33,4 @@ data frame with interpolated values for the parameter
 \description{
 Interpolate numerical parameter for missing years
 }
+\keyword{internal}

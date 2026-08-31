@@ -14,14 +14,14 @@ test_that("path slugs keep underscores and join parts with dashes", {
 })
 
 test_that("check_name enforces the backend-identifier rule", {
-  expect_true(check_name("s4_h24"))
-  expect_true(check_name("UTOPIA_R11"))
-  expect_false(check_name("bad-name"))
-  expect_false(check_name("1abc"))
-  expect_false(check_name("a b"))
-  expect_false(check_name(".lc_x"))                 # dot only with dot=TRUE
-  expect_true(check_name(".lc_x", dot = TRUE))
-  expect_false(check_name("a.b", dot = TRUE))       # dot only LEADING
+  expect_true(energyRt:::check_name("s4_h24"))
+  expect_true(energyRt:::check_name("UTOPIA_R11"))
+  expect_false(energyRt:::check_name("bad-name"))
+  expect_false(energyRt:::check_name("1abc"))
+  expect_false(energyRt:::check_name("a b"))
+  expect_false(energyRt:::check_name(".lc_x"))                 # dot only with dot=TRUE
+  expect_true(energyRt:::check_name(".lc_x", dot = TRUE))
+  expect_false(energyRt:::check_name("a.b", dot = TRUE))       # dot only LEADING
 })
 
 test_that("constructors reject invalid names, naming the rule", {

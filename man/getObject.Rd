@@ -6,6 +6,7 @@
 \alias{getObject.repository}
 \alias{getObject.model}
 \alias{getObject.scenario}
+\alias{getObject.en_registry}
 \title{Retrieve model objects from a repository, model or scenario}
 \usage{
 getObject(x, ...)
@@ -50,6 +51,19 @@ getObject(x, ...)
   region_agnostic = TRUE,
   drop = FALSE
 )
+
+\method{getObject}{en_registry}(
+  x,
+  type = NULL,
+  name = NULL,
+  hash = NULL,
+  parent = NULL,
+  variant = NULL,
+  run = "main",
+  drop = FALSE,
+  verbose = FALSE,
+  ...
+)
 }
 \arguments{
 \item{x}{a \code{repository}, \code{model} or \code{scenario}.}
@@ -81,6 +95,18 @@ satisfy a \code{region} filter (default \code{TRUE}).}
 
 \item{drop}{logical; if \code{TRUE} and exactly one object matches, return that
 object itself instead of a one-element list (default \code{FALSE}).}
+
+\item{type}{character, registry row type(s) to load: "model", "repository",
+"scenario", "dataset". \code{NULL} (default) loads every loadable type.}
+
+\item{hash}{character, content hash (prefix) selecting a stored version.}
+
+\item{parent, variant}{character, extra registry filters (run bookkeeping).}
+
+\item{run}{which run to activate in loaded scenarios: \code{"main"} (default)
+keeps the scenario's own run, a character selects that run, and \code{NULL},
+\code{NA} or \code{"ALL"} returns one entry per recorded run, keyed
+\verb{scenario/<name>:<variant>/<label>}.}
 }
 \value{
 A named list of model objects keyed by \verb{@name} (empty list if none
@@ -103,7 +129,7 @@ structurally). A scenario is unwrapped to its model automatically.
 }
 \examples{
 \dontrun{
-repo <- utopia_modules$electricity$R3$repo
+repo <- utopia$modules$electricity$R3$repo
 getObject(repo, class = "technology")                 # all technologies
 getObject(repo, class = c("supply", "commodity"))     # two classes
 getObject(repo, region = "R1")                         # everything in R1

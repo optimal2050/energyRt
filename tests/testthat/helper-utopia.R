@@ -2,21 +2,21 @@
 # UTOPIA golden-suite builders, shared by test-utopia-golden.R,
 # test-cross-solver.R, and tools/test/make_goldens.R (--suite=utopia).
 #
-# Assembles a model from the shipped `utopia_modules` teaching kits (deterministic
-# inputs) per the documented pattern (?utopia_modules): a region layout's `repo`
+# Assembles a model from the shipped `utopia$modules` teaching kits (deterministic
+# inputs) per the documented pattern (?utopia$modules): a region layout's `repo`
 # + a calendar + the base horizon; scenario levers (constraints / a carbon tax)
 # are added on top. Closes the gap that the UTOPIA vignettes are `eval = FALSE`
 # ("validated out-of-band"): these entries pin them to goldens.
 # =========================================================================== #
 
 ut_build <- function(layout = "R3", calendar = "utopia_seasons", lever = NULL) {
-  um <- utopia_modules$electricity[[layout]]
+  um <- utopia$modules$electricity[[layout]]
   stopifnot(!is.null(um))
   mod <- newModel(paste0("UT_", layout),
     data = um$repo,
-    calendar = utopia_modules$calendars[[calendar]],
+    calendar = utopia$modules$calendars[[calendar]],
     region = um$regions,
-    horizon = utopia_modules$horizons$base,
+    horizon = utopia$modules$horizons$base,
     discount = 0.05)
   if (!is.null(lever)) {
     lv <- um[[lever]]
@@ -49,18 +49,18 @@ ut_nightly_entries <- function() list(
   base_R11 = list(layout = "R11", calendar = "s4_h24")
 )
 
-# -- unit kits (utopia_modules$unit): all-unit inputs, integer objectives ---- #
+# -- unit kits (utopia$modules$unit): all-unit inputs, integer objectives ---- #
 # `module = "SOLAR_only"` builds the self-contained solar+storage model from
 # kit$SOLAR; any other module name is `add()`ed onto the base repo with
 # overwrite = TRUE (SUP_CURVE replaces the flat supply, SOLAR layers on idle).
 un_build <- function(layout = "U1", module = NULL) {
-  kit <- utopia_modules$unit[[layout]]
+  kit <- utopia$modules$unit[[layout]]
   stopifnot(!is.null(kit))
   mod <- newModel(paste0("UN_", layout),
     data = if (identical(module, "SOLAR_only")) kit$SOLAR else kit$repo,
-    calendar = utopia_modules$calendars[[kit$calendar]],
+    calendar = utopia$modules$calendars[[kit$calendar]],
     region = kit$regions,
-    horizon = utopia_modules$horizons$unit,
+    horizon = utopia$modules$horizons$unit,
     discount = 0)
   if (!is.null(module) && !identical(module, "SOLAR_only")) {
     mod <- add(mod, kit[[module]], overwrite = TRUE)

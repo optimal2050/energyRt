@@ -40,6 +40,7 @@
 <url><loc>https://energyRt.org/reference/a.html</loc></url>
 <url><loc>https://energyRt.org/reference/accessors.html</loc></url>
 <url><loc>https://energyRt.org/reference/add,scenario-method.html</loc></url>
+<url><loc>https://energyRt.org/reference/add.ert_registry.html</loc></url>
 <url><loc>https://energyRt.org/reference/add.html</loc></url>
 <url><loc>https://energyRt.org/reference/addSummand.html</loc></url>
 <url><loc>https://energyRt.org/reference/and.html</loc></url>
@@ -132,6 +133,7 @@
 <url><loc>https://energyRt.org/reference/draw.supply.html</loc></url>
 <url><loc>https://energyRt.org/reference/draw.trade.html</loc></url>
 <url><loc>https://energyRt.org/reference/drop_na_cols.html</loc></url>
+<url><loc>https://energyRt.org/reference/energyRt-deprecated.html</loc></url>
 <url><loc>https://energyRt.org/reference/energyRt-options.html</loc></url>
 <url><loc>https://energyRt.org/reference/energyRt-package.html</loc></url>
 <url><loc>https://energyRt.org/reference/en_check.html</loc></url>
@@ -146,6 +148,7 @@
 <url><loc>https://energyRt.org/reference/en_option.html</loc></url>
 <url><loc>https://energyRt.org/reference/en_replace_specials.html</loc></url>
 <url><loc>https://energyRt.org/reference/en_setup.html</loc></url>
+<url><loc>https://energyRt.org/reference/exchange_format.html</loc></url>
 <url><loc>https://energyRt.org/reference/expand_na_rows.html</loc></url>
 <url><loc>https://energyRt.org/reference/export-class.html</loc></url>
 <url><loc>https://energyRt.org/reference/export.html</loc></url>
@@ -159,6 +162,8 @@
 <url><loc>https://energyRt.org/reference/getObject.html</loc></url>
 <url><loc>https://energyRt.org/reference/getUnits.html</loc></url>
 <url><loc>https://energyRt.org/reference/getVariants.html</loc></url>
+<url><loc>https://energyRt.org/reference/get_arrow_compression.html</loc></url>
+<url><loc>https://energyRt.org/reference/get_arrow_compression_level.html</loc></url>
 <url><loc>https://energyRt.org/reference/get_default_value.html</loc></url>
 <url><loc>https://energyRt.org/reference/get_mosox_path.html</loc></url>
 <url><loc>https://energyRt.org/reference/get_process_aux.html</loc></url>
@@ -173,6 +178,7 @@
 <url><loc>https://energyRt.org/reference/get_region.html</loc></url>
 <url><loc>https://energyRt.org/reference/get_slot_doc.html</loc></url>
 <url><loc>https://energyRt.org/reference/get_slot_info.html</loc></url>
+<url><loc>https://energyRt.org/reference/get_store_versioning.html</loc></url>
 <url><loc>https://energyRt.org/reference/get_variable.html</loc></url>
 <url><loc>https://energyRt.org/reference/get_weather.html</loc></url>
 <url><loc>https://energyRt.org/reference/ghost_options.html</loc></url>
@@ -192,6 +198,7 @@
 <url><loc>https://energyRt.org/reference/interpolate_numpar.html</loc></url>
 <url><loc>https://energyRt.org/reference/interpolate_parameters.html</loc></url>
 <url><loc>https://energyRt.org/reference/is.html</loc></url>
+<url><loc>https://energyRt.org/reference/isConstraint.html</loc></url>
 <url><loc>https://energyRt.org/reference/isInMemory.html</loc></url>
 <url><loc>https://energyRt.org/reference/isOnDisk.html</loc></url>
 <url><loc>https://energyRt.org/reference/isVerbose.html</loc></url>
@@ -199,7 +206,6 @@
 <url><loc>https://energyRt.org/reference/is_geoscale.html</loc></url>
 <url><loc>https://energyRt.org/reference/It.html</loc></url>
 <url><loc>https://energyRt.org/reference/levcost.html</loc></url>
-<url><loc>https://energyRt.org/reference/levcost_by_variant.html</loc></url>
 <url><loc>https://energyRt.org/reference/levcost_storage_.html</loc></url>
 <url><loc>https://energyRt.org/reference/levcost_trade_.html</loc></url>
 <url><loc>https://energyRt.org/reference/load_mapping_spec.html</loc></url>
@@ -207,7 +213,6 @@
 <url><loc>https://energyRt.org/reference/log.html</loc></url>
 <url><loc>https://energyRt.org/reference/lossTranches.html</loc></url>
 <url><loc>https://energyRt.org/reference/make_label.html</loc></url>
-<url><loc>https://energyRt.org/reference/make_scenario_dirname.html</loc></url>
 <url><loc>https://energyRt.org/reference/make_timetable.html</loc></url>
 <url><loc>https://energyRt.org/reference/mappings_by_recipe.html</loc></url>
 <url><loc>https://energyRt.org/reference/map_comm_geoframe.html</loc></url>
@@ -229,7 +234,9 @@
 <url><loc>https://energyRt.org/reference/neos_build_gams_xml.html</loc></url>
 <url><loc>https://energyRt.org/reference/neos_email.html</loc></url>
 <url><loc>https://energyRt.org/reference/neos_gams_inline.html</loc></url>
+<url><loc>https://energyRt.org/reference/neos_get_template.html</loc></url>
 <url><loc>https://energyRt.org/reference/neos_job.html</loc></url>
+<url><loc>https://energyRt.org/reference/neos_list_categories.html</loc></url>
 <url><loc>https://energyRt.org/reference/new.html</loc></url>
 <url><loc>https://energyRt.org/reference/newACLine.html</loc></url>
 <url><loc>https://energyRt.org/reference/newCalendar.html</loc></url>
@@ -261,6 +268,7 @@
 <url><loc>https://energyRt.org/reference/options.html</loc></url>
 <url><loc>https://energyRt.org/reference/parameter-class.html</loc></url>
 <url><loc>https://energyRt.org/reference/parameter.html</loc></url>
+<url><loc>https://energyRt.org/reference/path_builders.html</loc></url>
 <url><loc>https://energyRt.org/reference/pipe.html</loc></url>
 <url><loc>https://energyRt.org/reference/place_start_level.html</loc></url>
 <url><loc>https://energyRt.org/reference/plot-horizon-method.html</loc></url>
@@ -285,7 +293,7 @@
 <url><loc>https://energyRt.org/reference/process_to_spec.html</loc></url>
 <url><loc>https://energyRt.org/reference/progress.html</loc></url>
 <url><loc>https://energyRt.org/reference/read.html</loc></url>
-<url><loc>https://energyRt.org/reference/read_procspec.html</loc></url>
+<url><loc>https://energyRt.org/reference/read_process_spec.html</loc></url>
 <url><loc>https://energyRt.org/reference/read_technology_xlsx.html</loc></url>
 <url><loc>https://energyRt.org/reference/recipe_closure.html</loc></url>
 <url><loc>https://energyRt.org/reference/recipe_constraint.html</loc></url>
@@ -320,7 +328,11 @@
 <url><loc>https://energyRt.org/reference/settings-class.html</loc></url>
 <url><loc>https://energyRt.org/reference/settings..html</loc></url>
 <url><loc>https://energyRt.org/reference/settings.html</loc></url>
+<url><loc>https://energyRt.org/reference/set_arrow_compression.html</loc></url>
+<url><loc>https://energyRt.org/reference/set_arrow_compression_level.html</loc></url>
+<url><loc>https://energyRt.org/reference/set_arrow_format.html</loc></url>
 <url><loc>https://energyRt.org/reference/set_mosox_path.html</loc></url>
+<url><loc>https://energyRt.org/reference/set_store_versioning.html</loc></url>
 <url><loc>https://energyRt.org/reference/size.html</loc></url>
 <url><loc>https://energyRt.org/reference/solution_ledger.html</loc></url>
 <url><loc>https://energyRt.org/reference/solve,model,character-method.html</loc></url>
@@ -328,11 +340,11 @@
 <url><loc>https://energyRt.org/reference/solve.html</loc></url>
 <url><loc>https://energyRt.org/reference/solver.html</loc></url>
 <url><loc>https://energyRt.org/reference/solver_path.html</loc></url>
-<url><loc>https://energyRt.org/reference/solve_mod.html</loc></url>
 <url><loc>https://energyRt.org/reference/solve_model.html</loc></url>
 <url><loc>https://energyRt.org/reference/solve_myopic.html</loc></url>
 <url><loc>https://energyRt.org/reference/storage.html</loc></url>
 <url><loc>https://energyRt.org/reference/storage_duration.html</loc></url>
+<url><loc>https://energyRt.org/reference/storage_format.html</loc></url>
 <url><loc>https://energyRt.org/reference/stored.html</loc></url>
 <url><loc>https://energyRt.org/reference/sub-class.html</loc></url>
 <url><loc>https://energyRt.org/reference/subset_model_regions.html</loc></url>
@@ -364,15 +376,12 @@
 <url><loc>https://energyRt.org/reference/upgrade_scenario_layout.html</loc></url>
 <url><loc>https://energyRt.org/reference/Use.html</loc></url>
 <url><loc>https://energyRt.org/reference/used.html</loc></url>
+<url><loc>https://energyRt.org/reference/utopia-deprecated-data.html</loc></url>
 <url><loc>https://energyRt.org/reference/utopia.html</loc></url>
 <url><loc>https://energyRt.org/reference/utopia_build.html</loc></url>
-<url><loc>https://energyRt.org/reference/utopia_demand.html</loc></url>
 <url><loc>https://energyRt.org/reference/utopia_geoscale.html</loc></url>
-<url><loc>https://energyRt.org/reference/utopia_modules.html</loc></url>
 <url><loc>https://energyRt.org/reference/utopia_profile.html</loc></url>
 <url><loc>https://energyRt.org/reference/utopia_profiles.html</loc></url>
-<url><loc>https://energyRt.org/reference/utopia_stock.html</loc></url>
-<url><loc>https://energyRt.org/reference/utopia_weather.html</loc></url>
 <url><loc>https://energyRt.org/reference/validate_scenario_parameters.html</loc></url>
 <url><loc>https://energyRt.org/reference/variantSummary.html</loc></url>
 <url><loc>https://energyRt.org/reference/verify_solution.html</loc></url>

@@ -56,6 +56,20 @@ getObject(
   region_agnostic = TRUE,
   drop = FALSE
 )
+
+# S3 method for class 'en_registry'
+getObject(
+  x,
+  type = NULL,
+  name = NULL,
+  hash = NULL,
+  parent = NULL,
+  variant = NULL,
+  run = "main",
+  drop = FALSE,
+  verbose = FALSE,
+  ...
+)
 ```
 
 ## Arguments
@@ -110,6 +124,26 @@ getObject(
   logical; if `TRUE` and exactly one object matches, return that object
   itself instead of a one-element list (default `FALSE`).
 
+- type:
+
+  character, registry row type(s) to load: "model", "repository",
+  "scenario", "dataset". `NULL` (default) loads every loadable type.
+
+- hash:
+
+  character, content hash (prefix) selecting a stored version.
+
+- parent, variant:
+
+  character, extra registry filters (run bookkeeping).
+
+- run:
+
+  which run to activate in loaded scenarios: `"main"` (default) keeps
+  the scenario's own run, a character selects that run, and `NULL`, `NA`
+  or `"ALL"` returns one entry per recorded run, keyed
+  `scenario/<name>:<variant>/<label>`.
+
 ## Value
 
 A named list of model objects keyed by `@name` (empty list if none
@@ -136,7 +170,7 @@ structurally). A scenario is unwrapped to its model automatically.
 
 ``` r
 if (FALSE) { # \dontrun{
-repo <- utopia_modules$electricity$R3$repo
+repo <- utopia$modules$electricity$R3$repo
 getObject(repo, class = "technology")                 # all technologies
 getObject(repo, class = c("supply", "commodity"))     # two classes
 getObject(repo, region = "R1")                         # everything in R1

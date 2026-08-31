@@ -41,13 +41,23 @@ a list of tidy data.frames, each replicated across \code{regions}:
 \code{gw} -- base-year capacity).
 }
 \description{
-Expand the saved, region-agnostic UTOPIA profiles (\link{utopia_weather},
-\link{utopia_demand}, \link{utopia_stock}) to a set of regions for a chosen calendar.
-Replaces the vignette's former random generators. The weather capacity
-factors can be re-sourced at run time from IDEEA (\code{source = "ideea"});
-\code{"saved"} (default) uses the packaged data and never needs an external
-dataset.
+Expand UTOPIA's saved, region-agnostic profiles (\code{utopia$weather},
+\code{utopia$demand}, \code{utopia$stock}) to a set of regions for a chosen calendar,
+returning a list of three tidy data.frames. The weather capacity factors can
+be re-sourced at run time from IDEEA (\code{source = "ideea"}); \code{"saved"}
+(default) uses the packaged data and never needs an external dataset.
+}
+\details{
+Not to be confused with the near-namesake \code{\link[=utopia_profile]{utopia_profile()}}, which takes no
+UTOPIA data at all: it generates a synthetic step / sine / cosine / hex shape
+over any calendar and returns a single data.frame.
 }
 \seealso{
-\link{utopia_weather}, \link{utopia_demand}, \link{utopia_stock}, \link{calendars}
+\link{utopia}, \code{\link[=utopia_profile]{utopia_profile()}}, \link{calendars}
+
+Other utopia:
+\code{\link{utopia}},
+\code{\link[=utopia_geoscale]{utopia_geoscale()}},
+\code{\link[=utopia_profile]{utopia_profile()}}
 }
+\concept{utopia}

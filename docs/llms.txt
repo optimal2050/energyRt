@@ -221,7 +221,6 @@ Functions to create model components.
 - [`newCommodity()`](https://energyRt.org/reference/newCommodity.md) :
   Create new commodity object
 - [`newConstraint()`](https://energyRt.org/reference/newConstraint.md)
-  [`isConstraint()`](https://energyRt.org/reference/newConstraint.md)
   [`newConstraintS()`](https://energyRt.org/reference/newConstraint.md)
   : Create constraint object to add custom constraints to the model.
 - [`newCosts()`](https://energyRt.org/reference/newCosts.md) : Create
@@ -258,6 +257,14 @@ Functions to create model components.
   new trade object
 - [`newWeather()`](https://energyRt.org/reference/newWeather.md) :
   Create new weather object
+- [`newRegistry()`](https://energyRt.org/reference/registry.md)
+  [`load_registry()`](https://energyRt.org/reference/registry.md)
+  [`save_registry()`](https://energyRt.org/reference/registry.md)
+  [`add_to_registry()`](https://energyRt.org/reference/registry.md)
+  [`add(`*`<en_registry>`*`)`](https://energyRt.org/reference/registry.md)
+  [`find_in_registry()`](https://energyRt.org/reference/registry.md)
+  [`refresh_registry()`](https://energyRt.org/reference/registry.md) :
+  Project registry of models, scenarios, and runs
 - [`newStorage()`](https://energyRt.org/reference/storage.md) : Create
   new storage object
 - [`newTechnology()`](https://energyRt.org/reference/technology.md)
@@ -283,13 +290,6 @@ Functions to create model components.
   [`convert(`*`<numeric>`*`)`](https://energyRt.org/reference/convert.md)
   [`add_to_convert(`*`<character>`*`,`*`<character>`*`,`*`<numeric>`*`)`](https://energyRt.org/reference/convert.md)
   : Convert units
-- [`load_registry()`](https://energyRt.org/reference/registry.md)
-  [`save_registry()`](https://energyRt.org/reference/registry.md)
-  [`add_to_registry()`](https://energyRt.org/reference/registry.md)
-  [`add(`*`<ert_registry>`*`)`](https://energyRt.org/reference/registry.md)
-  [`find_registry()`](https://energyRt.org/reference/registry.md)
-  [`refresh_registry()`](https://energyRt.org/reference/registry.md) :
-  Project registry of models, scenarios, and runs
 - [`asSupplyCurve()`](https://energyRt.org/reference/supply-curve.md)
   [`asImportCurve()`](https://energyRt.org/reference/supply-curve.md)
   [`asExportCurve()`](https://energyRt.org/reference/supply-curve.md)
@@ -297,23 +297,23 @@ Functions to create model components.
 - [`lossTranches()`](https://energyRt.org/reference/lossTranches.md)
   **\[experimental\]** : Loss tranches for a transmission line
 
-## Technology specs
+## Process specs
 
-Portable technology specifications (YAML/JSON containers) and vintage
+Portable process specifications (YAML/JSON containers) and vintage
 tools.
 
 - [`process_from_spec()`](https://energyRt.org/reference/process_from_spec.md)
-  [`tech_from_spec()`](https://energyRt.org/reference/process_from_spec.md)
   : Build a process object from a spec
 - [`process_to_spec()`](https://energyRt.org/reference/process_to_spec.md)
-  [`tech_to_spec()`](https://energyRt.org/reference/process_to_spec.md)
   : Export a process object as a spec list
 - [`process_spec_code()`](https://energyRt.org/reference/process_spec_code.md)
-  [`tech_spec_code()`](https://energyRt.org/reference/process_spec_code.md)
   : The constructor call equivalent to a process spec, as text
 - [`process_spec_issues()`](https://energyRt.org/reference/process_spec_issues.md)
-  [`tech_spec_issues()`](https://energyRt.org/reference/process_spec_issues.md)
   : Validate a process spec and report issues
+- [`read_process_spec()`](https://energyRt.org/reference/read_process_spec.md)
+  : Read and validate a process spec
+- [`process_designer()`](https://energyRt.org/reference/process_designer.md)
+  : Launch the process designer
 - [`combine_vintages()`](https://energyRt.org/reference/combine_vintages.md)
   : Combine per-vintage technology objects into one vintaged technology
 
@@ -362,21 +362,11 @@ Model configuration and scenario settings
 
 ## Solving
 
-- [`interpolate_bounds()`](https://energyRt.org/reference/interpolate_bounds.md)
-  : Interpolate lower and upper bounds
-
 - [`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md)
   : Interpolate a model into a solver-ready scenario
 
-- [`interpolate_numpar()`](https://energyRt.org/reference/interpolate_numpar.md)
-  : Interpolate numerical parameter for missing years
-
-- [`interpolate_parameters()`](https://energyRt.org/reference/interpolate_parameters.md)
-  : Interpolate all year-indexed numeric/bounds parameters of a scenario
-
 - [`write_script()`](https://energyRt.org/reference/write.md)
-  [`write_sc()`](https://energyRt.org/reference/write.md)
-  [`write.sc()`](https://energyRt.org/reference/write.md) : Write
+  [`write_sc()`](https://energyRt.org/reference/write.md) : Write
   scenario object as a Python, Julia, GAMS, or MathProg script with data
   files to a directory
 
@@ -394,18 +384,15 @@ Model configuration and scenario settings
   [`read(`*`<scenario>`*`)`](https://energyRt.org/reference/read.md) :
   Read solution
 
-- [`read_procspec()`](https://energyRt.org/reference/read_procspec.md)
-  [`read_techspec()`](https://energyRt.org/reference/read_procspec.md) :
-  Read and validate a process spec
+- [`read_process_spec()`](https://energyRt.org/reference/read_process_spec.md)
+  : Read and validate a process spec
 
 - [`read_technology_xlsx()`](https://energyRt.org/reference/read_technology_xlsx.md)
   :
 
   Read `technology` object(s) from an Excel workbook
 
-- [`solve_mod()`](https://energyRt.org/reference/solve_model.md)
-  [`solve_scen()`](https://energyRt.org/reference/solve_model.md)
-  [`solve_model()`](https://energyRt.org/reference/solve_model.md)
+- [`solve_model()`](https://energyRt.org/reference/solve_model.md)
   [`solve_scenario()`](https://energyRt.org/reference/solve_model.md) :
   Solve a model or an interpolated scenario
 
@@ -430,16 +417,6 @@ Model configuration and scenario settings
 - [`myopic_objective()`](https://energyRt.org/reference/myopic_objective.md)
   : Globally discounted total cost of a myopic sequence
 
-- [`build_mappings()`](https://energyRt.org/reference/build_mappings.md)
-  : Build mapping parameters for a scenario, in recipe (dependency)
-  order
-
-- [`load_mapping_spec()`](https://energyRt.org/reference/load_mapping_spec.md)
-  : Load the mapping specification
-
-- [`mappings_by_recipe()`](https://energyRt.org/reference/mappings_by_recipe.md)
-  : Group mapping specs by recipe, in evaluation order
-
 - [`trim_parameters_by_maps()`](https://energyRt.org/reference/trim_parameters_by_maps.md)
   : Trim numeric/bounds parameters to the domain of the maps that index
   them
@@ -450,30 +427,8 @@ Model configuration and scenario settings
 ## Remote solver (NEOS)
 
 - [`neos_ping()`](https://energyRt.org/reference/neos.md)
-  [`neos_list_categories()`](https://energyRt.org/reference/neos.md)
-  [`neos_list_solvers()`](https://energyRt.org/reference/neos.md)
-  [`neos_get_template()`](https://energyRt.org/reference/neos.md) : NEOS
+  [`neos_list_solvers()`](https://energyRt.org/reference/neos.md) : NEOS
   Server client (query the remote solver service)
-
-- [`neos_build_gams_text_job()`](https://energyRt.org/reference/neos_build_gams_text_job.md)
-  : Build a NEOS GAMS job from a text-mode scenario directory (no input
-  GDX)
-
-- [`neos_build_gams_xml()`](https://energyRt.org/reference/neos_build_gams_xml.md)
-  : Assemble a NEOS GAMS job document
-
-- [`neos_gams_inline()`](https://energyRt.org/reference/neos_gams_inline.md)
-  :
-
-  Inline a GAMS model's `$include` files into one self-contained string
-
-- [`neos_submit_job()`](https://energyRt.org/reference/neos_job.md)
-  [`neos_job_status()`](https://energyRt.org/reference/neos_job.md)
-  [`neos_completion_code()`](https://energyRt.org/reference/neos_job.md)
-  [`neos_final_results()`](https://energyRt.org/reference/neos_job.md)
-  [`neos_get_output_file()`](https://energyRt.org/reference/neos_job.md)
-  [`neos_wait()`](https://energyRt.org/reference/neos_job.md) : Submit
-  and manage a NEOS job
 
 ## Reporting
 
@@ -535,7 +490,7 @@ and `horizons` are listed under Configuration above.
 - [`vre_storage_duration`](https://energyRt.org/reference/vre_storage_duration.md)
   : Duration bands of a full-year battery, precomputed
 
-## Data manimulation
+## Data manipulation
 
 - [`convert(`*`<character>`*`)`](https://energyRt.org/reference/convert.md)
   [`convert(`*`<numeric>`*`)`](https://energyRt.org/reference/convert.md)
@@ -546,22 +501,22 @@ and `horizons` are listed under Configuration above.
 
   Basic units conversion database for `convert` methods
 
+- [`getUnits(`*`<commodity>`*`)`](https://energyRt.org/reference/getUnits.md)
+  [`getUnits(`*`<technology>`*`)`](https://energyRt.org/reference/getUnits.md)
+  : Get parameter units for energyRt class objects
+
 - [`commodity_properties()`](https://energyRt.org/reference/commodity_properties.md)
   : Recognised commodity properties
 
 - [`commodity_property()`](https://energyRt.org/reference/commodity_property.md)
   : Physical property of a commodity
 
-- [`apply_to_scenario_data()`](https://energyRt.org/reference/apply_to_scenario_data.md)
-  : Apply function to scenario data
-
 - [`dataset_hash()`](https://energyRt.org/reference/dataset_store.md)
   [`save_dataset()`](https://energyRt.org/reference/dataset_store.md)
   [`load_dataset()`](https://energyRt.org/reference/dataset_store.md) :
   Content hash of a dataset payload
 
-- [`getData()`](https://energyRt.org/reference/getData.md)
-  [`get_data()`](https://energyRt.org/reference/getData.md) : Extract
+- [`getData()`](https://energyRt.org/reference/getData.md) : Extract
   data from energyRt objects
 
 - [`set_registry_file()`](https://energyRt.org/reference/registry_file.md)
@@ -572,8 +527,6 @@ and `horizons` are listed under Configuration above.
   [`get_repositories_path()`](https://energyRt.org/reference/registry_file.md)
   [`set_datasets_path()`](https://energyRt.org/reference/registry_file.md)
   [`get_datasets_path()`](https://energyRt.org/reference/registry_file.md)
-  [`set_store_versioning()`](https://energyRt.org/reference/registry_file.md)
-  [`get_store_versioning()`](https://energyRt.org/reference/registry_file.md)
   : Registry file and model store locations
 
 - [`seal_model()`](https://energyRt.org/reference/seal.md)
@@ -612,11 +565,6 @@ and `horizons` are listed under Configuration above.
 - [`variantSummary()`](https://energyRt.org/reference/variantSummary.md)
   : Summarise a result variable across technology variants
 
-- [`en_replace_specials()`](https://energyRt.org/reference/en_replace_specials.md)
-  [`en_has_specials()`](https://energyRt.org/reference/en_replace_specials.md)
-  [`en_find_specials()`](https://energyRt.org/reference/en_replace_specials.md)
-  : Find and replace special characters
-
 - [`findData()`](https://energyRt.org/reference/findData.md) :
 
   Performs search for available data in *scenario* object.
@@ -627,11 +575,12 @@ and `horizons` are listed under Configuration above.
 - [`find_in_model()`](https://energyRt.org/reference/find_in_model.md) :
   Find where value(s) are stored across a model's objects
 
-- [`load_registry()`](https://energyRt.org/reference/registry.md)
+- [`newRegistry()`](https://energyRt.org/reference/registry.md)
+  [`load_registry()`](https://energyRt.org/reference/registry.md)
   [`save_registry()`](https://energyRt.org/reference/registry.md)
   [`add_to_registry()`](https://energyRt.org/reference/registry.md)
-  [`add(`*`<ert_registry>`*`)`](https://energyRt.org/reference/registry.md)
-  [`find_registry()`](https://energyRt.org/reference/registry.md)
+  [`add(`*`<en_registry>`*`)`](https://energyRt.org/reference/registry.md)
+  [`find_in_registry()`](https://energyRt.org/reference/registry.md)
   [`refresh_registry()`](https://energyRt.org/reference/registry.md) :
   Project registry of models, scenarios, and runs
 
@@ -668,9 +617,6 @@ and `horizons` are listed under Configuration above.
 - [`tsl_guess_format()`](https://energyRt.org/reference/tsl_guess_format.md)
   : Guess format of time-timeslices
 
-- [`drop_na_cols()`](https://energyRt.org/reference/drop_na_cols.md) :
-  Drop columns in a data.frame with all NA values
-
 - [`obj2mem()`](https://energyRt.org/reference/obj2mem.md) : Loads
   objects from disk to memory
 
@@ -691,9 +637,6 @@ and `horizons` are listed under Configuration above.
 - [`save_scenario()`](https://energyRt.org/reference/save_scenario.md) :
 
   Save scenario object on disk in parquet format using `arrow` package.
-
-- [`load_mapping_spec()`](https://energyRt.org/reference/load_mapping_spec.md)
-  : Load the mapping specification
 
 - [`load_scenario()`](https://energyRt.org/reference/load_scenario.md)
   [`load_scenarios()`](https://energyRt.org/reference/load_scenario.md)
@@ -717,29 +660,17 @@ and `horizons` are listed under Configuration above.
 - [`clear_levcost_cache()`](https://energyRt.org/reference/clear_levcost_cache.md)
   : Clear cached levcost results
 
-- [`utopia`](https://energyRt.org/reference/utopia.md) : UTOPIA
-  reference maps
-
-- [`utopia_demand`](https://energyRt.org/reference/utopia_demand.md) :
-  UTOPIA electricity load shape
+- [`utopia`](https://energyRt.org/reference/utopia.md) : The UTOPIA
+  reference dataset
 
 - [`utopia_geoscale()`](https://energyRt.org/reference/utopia_geoscale.md)
   : A geoscale for the UTOPIA reference model
-
-- [`utopia_modules`](https://energyRt.org/reference/utopia_modules.md) :
-  UTOPIA model modules
 
 - [`utopia_profile()`](https://energyRt.org/reference/utopia_profile.md)
   : Synthetic input shapes on a calendar (deterministic)
 
 - [`utopia_profiles()`](https://energyRt.org/reference/utopia_profiles.md)
   : UTOPIA input profiles (deterministic)
-
-- [`utopia_stock`](https://energyRt.org/reference/utopia_stock.md) :
-  UTOPIA base-year capacity stock
-
-- [`utopia_weather`](https://energyRt.org/reference/utopia_weather.md) :
-  UTOPIA representative capacity-factor profiles
 
 ## Visualisation
 
@@ -802,7 +733,6 @@ and `horizons` are listed under Configuration above.
 - [`design()`](https://energyRt.org/reference/design.md) : Generate an R
   script that recreates an energyRt object
 - [`process_designer()`](https://energyRt.org/reference/process_designer.md)
-  [`tech_designer()`](https://energyRt.org/reference/process_designer.md)
   : Launch the process designer
 - [`object_image()`](https://energyRt.org/reference/object_image.md) :
   Image or icon attached to a model object
@@ -815,20 +745,12 @@ and `horizons` are listed under Configuration above.
 
 - [`check_geoscale_regions()`](https://energyRt.org/reference/check_geoscale_regions.md)
   : Check a geoscale against the model's declared regions
-- [`check_name()`](https://energyRt.org/reference/check_name.md) : Check
-  validity of object's names used in sets
 - [`verify_solution()`](https://energyRt.org/reference/verify_solution.md)
   : Verify accounting identities of a solved scenario
 - [`clear_levcost_cache()`](https://energyRt.org/reference/clear_levcost_cache.md)
   : Clear cached levcost results
 - [`levcost()`](https://energyRt.org/reference/levcost.md) : Levelized
   cost of commodity production
-- [`levcost_by_variant()`](https://energyRt.org/reference/levcost_by_variant.md)
-  : Per-variant levelized cost tables
-- [`levcost_storage_()`](https://energyRt.org/reference/levcost_storage_.md)
-  : Levelized cost of storage
-- [`levcost_trade_()`](https://energyRt.org/reference/levcost_trade_.md)
-  : Levelized cost of transmission
 - [`set_reports_path()`](https://energyRt.org/reference/reports_path.md)
   [`get_reports_path()`](https://energyRt.org/reference/reports_path.md)
   [`set_levcost_cache_path()`](https://energyRt.org/reference/reports_path.md)
@@ -858,19 +780,19 @@ and `horizons` are listed under Configuration above.
 
 ## energyRt options and settings
 
-- [`get_arrow_format()`](https://energyRt.org/reference/arrow_format.md)
-  [`set_arrow_format()`](https://energyRt.org/reference/arrow_format.md)
-  [`get_arrow_compression()`](https://energyRt.org/reference/arrow_format.md)
-  [`set_arrow_compression()`](https://energyRt.org/reference/arrow_format.md)
-  [`get_arrow_compression_level()`](https://energyRt.org/reference/arrow_format.md)
-  [`set_arrow_compression_level()`](https://energyRt.org/reference/arrow_format.md)
-  : Arrow exchange-format options
 - [`get_default_solver()`](https://energyRt.org/reference/default_solver.md)
   [`set_default_solver()`](https://energyRt.org/reference/default_solver.md)
   : Default solver
 - [`set_option()`](https://energyRt.org/reference/en_option.md)
   [`get_option()`](https://energyRt.org/reference/en_option.md) : Get or
   set an energyRt option
+- [`get_exchange_format()`](https://energyRt.org/reference/exchange_format.md)
+  [`set_exchange_format()`](https://energyRt.org/reference/exchange_format.md)
+  [`get_exchange_compression()`](https://energyRt.org/reference/exchange_format.md)
+  [`set_exchange_compression()`](https://energyRt.org/reference/exchange_format.md)
+  [`get_exchange_compression_level()`](https://energyRt.org/reference/exchange_format.md)
+  [`set_exchange_compression_level()`](https://energyRt.org/reference/exchange_format.md)
+  : Solver data-exchange options
 - [`set_log_file()`](https://energyRt.org/reference/log.md)
   [`get_log_file()`](https://energyRt.org/reference/log.md)
   [`read_log()`](https://energyRt.org/reference/log.md) : Read the
@@ -887,6 +809,9 @@ and `horizons` are listed under Configuration above.
   [`setHorizon(`*`<model>`*`)`](https://energyRt.org/reference/newModel.md)
   [`getHorizon(`*`<model>`*`)`](https://energyRt.org/reference/newModel.md)
   : Create new model object
+- [`set_path_builder()`](https://energyRt.org/reference/path_builders.md)
+  [`get_path_builder()`](https://energyRt.org/reference/path_builders.md)
+  : Override how folder names are derived
 - [`set_progress_bar()`](https://energyRt.org/reference/progress.md)
   [`show_progress_bar()`](https://energyRt.org/reference/progress.md) :
   Switch on/off and select/customize progress bar
@@ -898,8 +823,6 @@ and `horizons` are listed under Configuration above.
   [`get_repositories_path()`](https://energyRt.org/reference/registry_file.md)
   [`set_datasets_path()`](https://energyRt.org/reference/registry_file.md)
   [`get_datasets_path()`](https://energyRt.org/reference/registry_file.md)
-  [`set_store_versioning()`](https://energyRt.org/reference/registry_file.md)
-  [`get_store_versioning()`](https://energyRt.org/reference/registry_file.md)
   : Registry file and model store locations
 - [`set_reports_path()`](https://energyRt.org/reference/reports_path.md)
   [`get_reports_path()`](https://energyRt.org/reference/reports_path.md)
@@ -933,6 +856,13 @@ and `horizons` are listed under Configuration above.
 - [`set_solver_path()`](https://energyRt.org/reference/solver_path.md)
   [`get_solver_path()`](https://energyRt.org/reference/solver_path.md) :
   Set or get the path to a solver toolchain
+- [`get_storage_format()`](https://energyRt.org/reference/storage_format.md)
+  [`set_storage_format()`](https://energyRt.org/reference/storage_format.md)
+  [`get_storage_compression()`](https://energyRt.org/reference/storage_format.md)
+  [`set_storage_compression()`](https://energyRt.org/reference/storage_format.md)
+  [`get_storage_compression_level()`](https://energyRt.org/reference/storage_format.md)
+  [`set_storage_compression_level()`](https://energyRt.org/reference/storage_format.md)
+  : On-disk table storage options
 - [`energyRt-options`](https://energyRt.org/reference/energyRt-options.md)
   : energyRt Options
 - [`en_config_path()`](https://energyRt.org/reference/en_config.md)
@@ -966,28 +896,21 @@ and `horizons` are listed under Configuration above.
   : Detect external solver software and dependencies
 - [`en_check_packages()`](https://energyRt.org/reference/en_check_packages.md)
   : Check R package and external-tool dependencies
-- [`collect_set_elements()`](https://energyRt.org/reference/collect_set_elements.md)
-  : Search through model data for set elements
-- [`get_arrow_format()`](https://energyRt.org/reference/arrow_format.md)
-  [`set_arrow_format()`](https://energyRt.org/reference/arrow_format.md)
-  [`get_arrow_compression()`](https://energyRt.org/reference/arrow_format.md)
-  [`set_arrow_compression()`](https://energyRt.org/reference/arrow_format.md)
-  [`get_arrow_compression_level()`](https://energyRt.org/reference/arrow_format.md)
-  [`set_arrow_compression_level()`](https://energyRt.org/reference/arrow_format.md)
-  : Arrow exchange-format options
 - [`get_default_solver()`](https://energyRt.org/reference/default_solver.md)
   [`set_default_solver()`](https://energyRt.org/reference/default_solver.md)
   : Default solver
 - [`set_option()`](https://energyRt.org/reference/en_option.md)
   [`get_option()`](https://energyRt.org/reference/en_option.md) : Get or
   set an energyRt option
-- [`getData()`](https://energyRt.org/reference/getData.md)
-  [`get_data()`](https://energyRt.org/reference/getData.md) : Extract
+- [`get_exchange_format()`](https://energyRt.org/reference/exchange_format.md)
+  [`set_exchange_format()`](https://energyRt.org/reference/exchange_format.md)
+  [`get_exchange_compression()`](https://energyRt.org/reference/exchange_format.md)
+  [`set_exchange_compression()`](https://energyRt.org/reference/exchange_format.md)
+  [`get_exchange_compression_level()`](https://energyRt.org/reference/exchange_format.md)
+  [`set_exchange_compression_level()`](https://energyRt.org/reference/exchange_format.md)
+  : Solver data-exchange options
+- [`getData()`](https://energyRt.org/reference/getData.md) : Extract
   data from energyRt objects
-- [`getUnits(`*`<commodity>`*`)`](https://energyRt.org/reference/getUnits.md)
-  [`getUnits(`*`<technology>`*`)`](https://energyRt.org/reference/getUnits.md)
-  [`get_units()`](https://energyRt.org/reference/getUnits.md) : Get
-  parameter units for energyRt class objects
 - [`get_default_value()`](https://energyRt.org/reference/get_default_value.md)
   : Return default value for one, several, or all parameters
 - [`get_process_aux()`](https://energyRt.org/reference/get_process_aux.md)
@@ -1010,8 +933,6 @@ and `horizons` are listed under Configuration above.
   : Get operational timeframe of processes
 - [`get_region()`](https://energyRt.org/reference/get_region.md) :
   Collect the regions an object operates in
-- [`get_slot_doc()`](https://energyRt.org/reference/get_slot_doc.md) :
-  Retrieve slot details in rd-format
 - [`get_variable()`](https://energyRt.org/reference/get_variable.md) :
   Get one solved variable from a scenario
 - [`get_weather()`](https://energyRt.org/reference/get_weather.md) :
@@ -1023,6 +944,9 @@ and `horizons` are listed under Configuration above.
 - [`get_neos_email()`](https://energyRt.org/reference/neos_email.md)
   [`set_neos_email()`](https://energyRt.org/reference/neos_email.md) :
   NEOS submission email
+- [`set_path_builder()`](https://energyRt.org/reference/path_builders.md)
+  [`get_path_builder()`](https://energyRt.org/reference/path_builders.md)
+  : Override how folder names are derived
 - [`set_registry_file()`](https://energyRt.org/reference/registry_file.md)
   [`get_registry_file()`](https://energyRt.org/reference/registry_file.md)
   [`set_models_path()`](https://energyRt.org/reference/registry_file.md)
@@ -1031,8 +955,6 @@ and `horizons` are listed under Configuration above.
   [`get_repositories_path()`](https://energyRt.org/reference/registry_file.md)
   [`set_datasets_path()`](https://energyRt.org/reference/registry_file.md)
   [`get_datasets_path()`](https://energyRt.org/reference/registry_file.md)
-  [`set_store_versioning()`](https://energyRt.org/reference/registry_file.md)
-  [`get_store_versioning()`](https://energyRt.org/reference/registry_file.md)
   : Registry file and model store locations
 - [`set_reports_path()`](https://energyRt.org/reference/reports_path.md)
   [`get_reports_path()`](https://energyRt.org/reference/reports_path.md)
@@ -1056,25 +978,13 @@ and `horizons` are listed under Configuration above.
 - [`set_solver_path()`](https://energyRt.org/reference/solver_path.md)
   [`get_solver_path()`](https://energyRt.org/reference/solver_path.md) :
   Set or get the path to a solver toolchain
-- [`complete_set()`](https://energyRt.org/reference/complete_set.md) :
-  Complete a data frame with missing set elements
-- [`expand_na_rows()`](https://energyRt.org/reference/expand_na_rows.md)
-  [`expand_na_regions()`](https://energyRt.org/reference/expand_na_rows.md)
-  [`expand_na_years()`](https://energyRt.org/reference/expand_na_rows.md)
-  [`expand_sets()`](https://energyRt.org/reference/expand_na_rows.md) :
-  Expand rows with NA values in set columns
-- [`countdown_timer()`](https://energyRt.org/reference/countdown_timer.md)
-  : Countdown timer to use in R scripts
-- [`is_any()`](https://energyRt.org/reference/is_any.md) : Check if an
-  element of a set is "ANY\*" or NA
-- [`is_geoscale()`](https://energyRt.org/reference/is_geoscale.md) : Is
-  this a geoscales::Geoscale?
-- [`map_comm_geoframe()`](https://energyRt.org/reference/map_comm_geoframe.md)
-  : Balancing geo-level of commodities
-- [`map_comm_timeframe()`](https://energyRt.org/reference/map_comm_timeframe.md)
-  : Operational timeframe of a commodities
-- [`named_list_to_df()`](https://energyRt.org/reference/named_list_to_df.md)
-  : Convert a named list of vectors to a data frame
+- [`get_storage_format()`](https://energyRt.org/reference/storage_format.md)
+  [`set_storage_format()`](https://energyRt.org/reference/storage_format.md)
+  [`get_storage_compression()`](https://energyRt.org/reference/storage_format.md)
+  [`set_storage_compression()`](https://energyRt.org/reference/storage_format.md)
+  [`get_storage_compression_level()`](https://energyRt.org/reference/storage_format.md)
+  [`set_storage_compression_level()`](https://energyRt.org/reference/storage_format.md)
+  : On-disk table storage options
 
 # Articles
 

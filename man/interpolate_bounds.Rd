@@ -33,3 +33,4 @@ data frame with interpolated values for the parameter
 \description{
 Interpolate lower and upper bounds
 }
+\keyword{internal}

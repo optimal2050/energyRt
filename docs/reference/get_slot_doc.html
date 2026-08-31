@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.88.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.1.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -105,7 +105,7 @@ returned for data.frame slots.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [19] "vintage"            "capacity"           "optimizeRetirement"</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [22] "fullYear"           "timeframe"          "region"            </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [25] "misc"              </span>
-<span class="r-in"><span><span class="fu">get_slot_doc</span><span class="op">(</span><span class="st">"technology"</span>, <span class="st">"input"</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">energyRt</span><span class="fu">:::</span><span class="fu">get_slot_doc</span><span class="op">(</span><span class="st">"technology"</span>, <span class="st">"input"</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> data.frame. Main commodities input. Main commodities are linked to the process capacity and activity. Their parameters are defined in the `ceff` slot.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   \describe{</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     \item{comm}{character. Name of the input commodity.}</span>
@@ -114,7 +114,7 @@ returned for data.frame slots.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     \item{combustion}{numeric. combustion factor from 0 to 1 (default 1) to calculate emissions from fuels combustion (commodities intermediate consumption, more broadly)</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> }</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  }</span>
-<span class="r-in"><span><span class="fu">get_slot_doc</span><span class="op">(</span><span class="st">"technology"</span>, <span class="st">"capacity"</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">energyRt</span><span class="fu">:::</span><span class="fu">get_slot_doc</span><span class="op">(</span><span class="st">"technology"</span>, <span class="st">"capacity"</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> data.frame. Capacity of the installed technology (in units of capacity).</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   \describe{</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     \item{vintage}{character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.}</span>
@@ -133,7 +133,7 @@ returned for data.frame slots.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     \item{ret.up}{numeric. Upper bound on the capacity retirement (age-based), ignored if NA.}</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     \item{ret.fx}{numeric. Fixed capacity retirement (age-based), ignored if NA. This parameter overrides `ret.lo` and `ret.up`.}</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  }</span>
-<span class="r-in"><span><span class="fu">get_slot_doc</span><span class="op">(</span><span class="st">"demand"</span>, <span class="st">"demand"</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">energyRt</span><span class="fu">:::</span><span class="fu">get_slot_doc</span><span class="op">(</span><span class="st">"demand"</span>, <span class="st">"demand"</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> data.frame. Specification of the demand.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   \describe{</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     \item{region}{character. Name of region for the demand value. NA for every region.}</span>
@@ -141,7 +141,7 @@ returned for data.frame slots.</p></dd>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     \item{timeslice}{character. Name of the timeslice for the demand value. NA for every timeslice.}</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>     \item{demand}{numeric. Value of the demand.}</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  }</span>
-<span class="r-in"><span><span class="fu">get_slot_doc</span><span class="op">(</span><span class="st">"commodity"</span>, <span class="st">"agg"</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu">energyRt</span><span class="fu">:::</span><span class="fu">get_slot_doc</span><span class="op">(</span><span class="st">"commodity"</span>, <span class="st">"agg"</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/cat.html" class="external-link">cat</a></span><span class="op">(</span><span class="op">)</span></span></span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> data.frame. Used to define an aggregation of several commodities into the `name` commodity.</span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>   \describe{</span>

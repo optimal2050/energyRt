@@ -2,7 +2,7 @@
 
 ## Overview
 
-This vignette uses the packaged \[`utopia_modules`\] kit (built in
+This vignette uses the packaged \[`utopia`\]`$modules` kit (built in
 *UTOPIA I: building the model modules*) to assemble an energy-system
 model and run scenarios with **GLPK** (bundled, no external solver
 needed).
@@ -27,7 +27,7 @@ reads the solution. `echo = FALSE` keeps the solver log out of the page
 
 ## Selecting a UTOPIA structure
 
-`utopia_modules$electricity` offers ready region layouts (`R1`, `R3`,
+`utopia$modules$electricity` offers ready region layouts (`R1`, `R3`,
 `R7`, `R11`); each is a kit with a base repository `$repo` and scenario
 levers. Calendars, horizons and maps sit alongside. (For a custom layout
 or calendar, build the blocks yourself following *UTOPIA I: building the
@@ -35,10 +35,10 @@ model*.)
 
 ``` r
 
-names(utopia_modules$electricity)          # available layouts
-um  <- utopia_modules$electricity$R3     # the 3-region base case
-cal <- utopia_modules$calendars$s4_h24
-hor <- utopia_modules$horizons$base        # milestones 2020/2030/2040/2050
+names(utopia$modules$electricity)          # available layouts
+um  <- utopia$modules$electricity$R3     # the 3-region base case
+cal <- utopia$modules$calendars$s4_h24
+hor <- utopia$modules$horizons$base        # milestones 2020/2030/2040/2050
 ```
 
 ## Assembling and solving the base model
@@ -55,12 +55,12 @@ getData(scen_BASE, "vObjective", merge = TRUE)$value    # total system cost, MEU
 The `R3` kit wires its regions with bi-directional transmission links
 (`TBD_ELC_*`).
 [`plot_trade_map()`](https://energyRt.org/reference/plot_trade_map.md)
-draws that network over a map layout — pass any of `utopia_modules$maps`
+draws that network over a map layout — pass any of `utopia$modules$maps`
 (here `honeycomb`); the 7-region kit shows six links:
 
 ``` r
 
-plot_trade_map(um$repo, map = utopia_modules$maps$honeycomb)
+plot_trade_map(um$repo, map = utopia$modules$maps$honeycomb)
 ```
 
 Electricity generation by technology:
@@ -203,7 +203,7 @@ or the larger `R7` / `R11` (heavier). Just swap the kit:
 
 ``` r
 
-um7 <- utopia_modules$electricity$R7
+um7 <- utopia$modules$electricity$R7
 mod7 <- newModel("UTOPIA7", data = um7$repo, calendar = cal,
                  region = um7$regions, horizon = hor, discount = 0.05)
 scen7 <- interpolate_model(mod7, "BASE7") |>
@@ -213,6 +213,6 @@ scen7 <- interpolate_model(mod7, "BASE7") |>
 ## Next steps
 
 Extend UTOPIA with inter-regional trade (using the
-`utopia_modules$maps`), technologies introduced via scenarios (CCS,
+`utopia$modules$maps`), technologies introduced via scenarios (CCS,
 hydrogen, CHP), and the honeycomb multi-region layout. See the workshop
 exercises for a step-by-step build.
