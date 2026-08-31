@@ -563,9 +563,30 @@ setMethod(
       match.arg(format, c("html", "pdf", "tex", "docx"), several.ok = TRUE)
     format <- .report_check_formats(format)
 
-    if (!is.null(levcost) && !isFALSE(levcost)) {
-      message("report(): the levelized-cost section is not supported for ",
-              "storage objects yet and will be omitted.")
+    # Levelized cost of storage (LCOS): energyRt >= 0.89 computes levcost()
+    # for `storage`, so the section is built exactly as for technology --
+    # `levcost = TRUE` runs it here using the levcost arguments passed in `...`.
+    .levcost_params <- c("comm", "group", "repo", "fuel_costs", "discount",
+                         "base_year", "horizon", "calendar", "region",
+                         "weather", "solver", "method", "full_output",
+                         "verbose")
+    dots0   <- list(...)
+    lc_dots <- dots0[intersect(names(dots0), .levcost_params)]
+    run_levcost <- NA
+    if (is.logical(levcost)) {
+      run_levcost <- isTRUE(levcost)
+      levcost <- NULL
+    }
+    if (is.null(levcost) &&
+        (isTRUE(run_levcost) || (is.na(run_levcost) && length(lc_dots) > 0))) {
+      levcost <- tryCatch(
+        do.call(energyRt::levcost, c(list(object = object), lc_dots)),
+        error = function(e) {
+          warning("levcost() failed inside report(): ", conditionMessage(e),
+                  "
+Levelized cost section will be omitted.")
+          NULL
+        })
     }
 
     tmpl_name <- if (is.null(template)) "generic" else template
@@ -575,7 +596,8 @@ setMethod(
       .find_report_template(tmpl_name)
     }
 
-    sorted      <- .report_sort_dots(list(...), tmpl)
+    sorted      <- .report_sort_dots(
+      dots0[setdiff(names(dots0), .levcost_params)], tmpl)
     param_dots  <- sorted$params
     render_dots <- sorted$render
 
@@ -627,6 +649,59 @@ setMethod(
                                              draw_file)
     if (!is.null(cost_unit) && nzchar(cost_unit)) {
       params$units_costs <- cost_unit
+    }
+
+    # LCOS section. Storage has no `@units` slot, so `levcost()` returns no
+    # cost unit: the label is composed here from the report's own units
+    # (`units_costs` per `units_act`), which is also what the template uses
+    # for the section header.
+    if (!is.null(levcost)) {
+      lc_unit <- if (nzchar(params$units_costs) && nzchar(params$units_act)) {
+        paste0(params$units_costs, "/", params$units_act)
+      } else if (nzchar(params$units_costs)) {
+        params$units_costs
+      } else NULL
+      lc_theme <- theme_energyRt(base_size = 10L) +
+        ggplot2::theme(
+          legend.position = "bottom",
+          legend.key.size = ggplot2::unit(0.3, "cm"),
+          legend.text     = ggplot2::element_text(size = 6),
+          axis.text.x     = ggplot2::element_text(angle = 45, hjust = 1,
+                                                  size = 7))
+      has_gg <- requireNamespace("ggplot2", quietly = TRUE)
+      if (inherits(levcost, "levcost_variants")) {
+        params$levcost_by_vintage_df <- tryCatch(
+          .report_drop_empty_cols(energyRt::levcost(levcost,
+                                                    by_variant = "npv")),
+          error = function(e) NULL)
+        if (has_gg) {
+          params$levcost_variants_plot <- tryCatch({
+            p <- ggplot2::autoplot(levcost, type = "npv",
+                                   cost_unit = lc_unit)
+            if (!is.null(p)) {
+              p <- p + lc_theme + ggplot2::labs(title = NULL, subtitle = NULL,
+                                                caption = NULL, x = NULL)
+              if (!is.null(lc_unit)) p <- p + ggplot2::labs(y = lc_unit)
+              p
+            } else NULL
+          }, error = function(e) {
+            warning("levcost by-vintage plot failed: ", conditionMessage(e))
+            NULL
+          })
+        }
+      } else {
+        npv <- levcost$levcost_npv
+        if (!is.null(npv)) params$levcost_npv <- as.numeric(npv)[1]
+        if (has_gg) {
+          params$levcost_plot <- tryCatch({
+            p <- ggplot2::autoplot(levcost, type = "npv",
+                                   cost_unit = lc_unit)
+            if (!is.null(p)) p + lc_theme +
+              ggplot2::labs(title = NULL, subtitle = NULL, caption = NULL)
+            else NULL
+          }, error = function(e) NULL)
+        }
+      }
     }
 
     if (any(format %in% c("pdf", "tex"))) {

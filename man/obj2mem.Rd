@@ -4,7 +4,7 @@
 \alias{obj2mem}
 \title{Loads objects from disk to memory}
 \usage{
-obj2mem(obj, verbose = TRUE)
+obj2mem(obj, verbose = isVerbose())
 }
 \arguments{
 \item{obj}{Object of S4 class, saved on disk (scenario, model, etc.)}

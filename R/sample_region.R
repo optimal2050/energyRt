@@ -148,6 +148,9 @@ subset_model_regions <- function(mod, region, boundary_prices = NULL,
                                   verbose = isVerbose()) {
   keep <- as.character(keep)
   stubs <- list()
+  # Dropping model content must never be silent: count here, report once at the end.
+  n_routes_dropped <- 0L
+  n_objs_dropped <- 0L
 
   # The model's full declaration universe: its own regions plus every cell of
   # its geoscale (declarations may legitimately name a coarser level). The
@@ -205,7 +208,9 @@ subset_model_regions <- function(mod, region, boundary_prices = NULL,
       s <- as.character(dropped$src[i]); d <- as.character(dropped$dst[i])
       stub <- .boundary_stub(el, s, d, keep, boundary_prices)
       if (!is.null(stub)) stubs[[length(stubs) + 1L]] <<- stub
-      message("spatial sample: dropping trade route ", el@name, ": ",
+      n_routes_dropped <<- n_routes_dropped + 1L
+      if (isTRUE(verbose)) message(
+        "spatial sample: dropping trade route ", el@name, ": ",
               s, " -> ", d,
               if (!is.null(stub)) paste0(" (", stub@name, " stub added)")
               else " (no boundary price; no stub)")
@@ -251,9 +256,12 @@ subset_model_regions <- function(mod, region, boundary_prices = NULL,
       } else {
         res <- prune_obj(el, nm)
         if (is.null(res)) {
-          message("spatial sample: removing ", class(el)[1], " ", nm,
-                  if (methods::is(el, "trade")) " (no route inside the sample)"
-                  else " (declared in no sampled region)")
+          n_objs_dropped <<- n_objs_dropped + 1L
+          if (isTRUE(verbose)) {
+            message("spatial sample: removing ", class(el)[1], " ", nm,
+                    if (methods::is(el, "trade")) " (no route inside the sample)"
+                    else " (declared in no sampled region)")
+          }
           r@data[[nm]] <- NULL
         } else {
           r@data[[nm]] <- res
@@ -263,6 +271,14 @@ subset_model_regions <- function(mod, region, boundary_prices = NULL,
     r
   }
   for (i in seq_along(mod@data)) mod@data[[i]] <- walk(mod@data[[i]])
+
+  # One line, always: what left the model. `verbose = TRUE` names each item.
+  if (n_objs_dropped > 0L || n_routes_dropped > 0L) {
+    message("spatial sample: kept ", length(keep), " region(s); dropped ",
+            n_objs_dropped, " object(s) and ", n_routes_dropped,
+            " trade route(s) outside the sample",
+            if (!isTRUE(verbose)) " (verbose = TRUE lists them)" else "")
+  }
 
   if (length(stubs) > 0L) {
     repo <- newRepository("boundary_stubs")

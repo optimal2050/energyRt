@@ -245,11 +245,23 @@ system:</p>
 <span>  horizon <span class="op">=</span> <span class="fu"><a href="../reference/newHorizon.html">newHorizon</a></span><span class="op">(</span>period <span class="op">=</span> <span class="fl">2025</span><span class="op">:</span><span class="fl">2040</span>, intervals <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">5</span>, <span class="fl">10</span><span class="op">)</span>,</span>
 <span>                       mid_is_end <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_model.html">solve_scenario</a></span><span class="op">(</span><span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod</span>, name <span class="op">=</span> <span class="st">"BASE"</span><span class="op">)</span>,</span>
-<span>                       solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">glpk</span>,</span>
-<span>                       echo <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>    <span class="co"># echo = FALSE silences the solver log</span></span></code></pre></div>
-<p>Results come back as tidy tables:</p>
+<span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">mod</span>, name <span class="op">=</span> <span class="st">"BASE"</span>,</span>
+<span>                    solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">glpk</span>,</span>
+<span>                    echo <span class="op">=</span> <span class="cn">FALSE</span><span class="op">)</span>    <span class="co"># echo = FALSE silences the solver log</span></span></code></pre></div>
+<p><code><a href="../reference/solve_model.html">solve_model()</a></code> interpolates the model and solves it in
+one call; <code>solve(mod, ...)</code> is the same thing. When the
+interpolated problem is worth inspecting on its own, split it in two —
+each verb takes a scenario and returns one:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="va">mod</span> <span class="op">|&gt;</span> <span class="fu">interpolate</span><span class="op">(</span>name <span class="op">=</span> <span class="st">"BASE"</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/solve.html" class="external-link">solve</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p><code><a href="https://rdrr.io/r/base/solve.html" class="external-link">solve()</a></code> covers the whole solver stage: it writes the
+script, runs the solver, waits, and reads the solution back, so the
+scenario it returns is ready to query. <code><a href="../reference/write.html">write_script()</a></code>
+writes the solver files <em>without</em> running them, and
+<code>read_solution(scen, run = )</code> reads another recorded run back
+into the scenario.</p>
+<p>Results come back as tidy tables:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen</span>, <span class="st">"vObjective"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>   <span class="co"># total discounted system cost, MEUR</span></span>
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 1 × 3</span></span></span>
 <span><span class="co">#&gt;   scenario name       value</span></span>

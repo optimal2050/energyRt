@@ -96,10 +96,27 @@ mod <- newModel("HELLO",
   horizon = newHorizon(period = 2025:2040, intervals = c(1, 5, 10),
                        mid_is_end = TRUE))
 
-scen <- solve_scenario(interpolate_model(mod, name = "BASE"),
-                       solver = solver_options$glpk,
-                       echo = FALSE)    # echo = FALSE silences the solver log
+scen <- solve_model(mod, name = "BASE",
+                    solver = solver_options$glpk,
+                    echo = FALSE)    # echo = FALSE silences the solver log
 ```
+
+[`solve_model()`](https://energyRt.org/reference/solve_model.md)
+interpolates the model and solves it in one call; `solve(mod, ...)` is
+the same thing. When the interpolated problem is worth inspecting on its
+own, split it in two — each verb takes a scenario and returns one:
+
+``` r
+
+scen <- mod |> interpolate(name = "BASE") |> solve()
+```
+
+[`solve()`](https://rdrr.io/r/base/solve.html) covers the whole solver
+stage: it writes the script, runs the solver, waits, and reads the
+solution back, so the scenario it returns is ready to query.
+[`write_script()`](https://energyRt.org/reference/write.md) writes the
+solver files *without* running them, and `read_solution(scen, run = )`
+reads another recorded run back into the scenario.
 
 Results come back as tidy tables:
 

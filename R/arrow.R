@@ -1473,7 +1473,7 @@ load_scenarios <- function(names = NULL, run = NULL, env = NULL,
 #' \dontrun{
 #' obj2mem(scen_ondisk)
 #' }
-obj2mem <- function(obj, verbose = TRUE) {
+obj2mem <- function(obj, verbose = isVerbose()) {
   # browser()
   if (!isS4(obj)) {
     stop("Object must be of S4 class, actual class: ", class(obj))
@@ -1489,12 +1489,18 @@ obj2mem <- function(obj, verbose = TRUE) {
     pth <- fp(obj_pth, s)
     if (isS4(slot(obj, s))) {
       # cat(getObjPath(slot(obj, s)), "\n")
-      slot(obj, s) <- obj2mem(slot(obj, s))
+      slot(obj, s) <- obj2mem(slot(obj, s), verbose = verbose)
     } else if (inherits(slot(obj, s), "list")) {
       sls2 <- names(obj@misc$onDisk[[s]])
+      # A repository's `@data` is where the object count lives (thousands on
+      # a converted model), so report progress there instead of printing one
+      # path per table. Mirrors `obj2disk()`, and stays silent unless the
+      # caller registered a handler (see `set_progress_bar()`).
+      p <- if (length(sls2) > 1L) progressr::progressor(along = sls2) else NULL
       for (i in sls2) {
+        if (!is.null(p)) p(i)
         if (isS4(slot(obj, s)[[i]])) {
-          slot(obj, s)[[i]] <- obj2mem(slot(obj, s)[[i]])
+          slot(obj, s)[[i]] <- obj2mem(slot(obj, s)[[i]], verbose = verbose)
         } else {
           if (obj@misc$onDisk[[s]][[i]]$dim[1] == 0) next
           pth2 <- fp(pth, i)

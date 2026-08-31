@@ -50,7 +50,7 @@ GAS <- newCommodity("GAS", timeframe = "ANNUAL")
 ELC <- newCommodity("ELC", timeframe = "ANNUAL")
 
 SUP_GAS <- newSupply("SUP_GAS", commodity = "GAS",
-                     availability = data.frame(cost = 6.0))   # fuel price, MEUR/PJ
+                     supply = data.frame(cost = 6.0))         # fuel price, MEUR/PJ
 
 EGAS <- newTechnology("EGAS",
   input   = list(comm = "GAS"), output = list(comm = "ELC"),
@@ -59,7 +59,7 @@ EGAS <- newTechnology("EGAS",
   fixom   = 25, cap2act = 31.536, olife = 25L)
 
 DEM_ELC <- newDemand("DEM_ELC", commodity = "ELC",
-                     dem = data.frame(dem = 50))               # 50 PJ a year
+                     demand = data.frame(demand = 50))         # 50 PJ a year
 
 mod <- newModel("HELLO",
   data    = newRepository("parts", GAS, ELC, SUP_GAS, EGAS, DEM_ELC),
@@ -67,12 +67,25 @@ mod <- newModel("HELLO",
   horizon = newHorizon(period = 2025:2040, intervals = c(1, 5, 10),
                        mid_is_end = TRUE))
 
-scen <- solve_scenario(interpolate_model(mod, name = "BASE"),
-                       solver = solver_options$glpk)
+scen <- solve_model(mod, name = "BASE", solver = solver_options$glpk)
 
 getData(scen, "vObjective", merge = TRUE)   # total discounted system cost
 getData(scen, "vTechCap",   merge = TRUE)   # capacity the model built, GW
 ```
+
+[`solve_model()`](https://energyRt.org/reference/solve_model.md)
+interpolates and solves in one call — `solve(mod, ...)` is the same
+thing. When you want the stages separately, each verb takes a scenario
+and returns one, so they compose:
+
+``` r
+
+scen <- mod |> interpolate(name = "BASE") |> solve()
+```
+
+[`solve()`](https://rdrr.io/r/base/solve.html) runs the whole solver
+stage — writes the script, runs the solver, waits, and reads the
+solution back — so the scenario it returns is ready to query.
 
 The [Get started](https://energyrt.org/articles/energyRt.html) vignette
 walks through this example and the ideas behind it.

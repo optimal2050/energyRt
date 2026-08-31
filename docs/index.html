@@ -146,7 +146,7 @@
 <span><span class="va">ELC</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/newCommodity.html">newCommodity</a></span><span class="op">(</span><span class="st">"ELC"</span>, timeframe <span class="op">=</span> <span class="st">"ANNUAL"</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">SUP_GAS</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/newSupply.html">newSupply</a></span><span class="op">(</span><span class="st">"SUP_GAS"</span>, commodity <span class="op">=</span> <span class="st">"GAS"</span>,</span>
-<span>                     availability <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>cost <span class="op">=</span> <span class="fl">6.0</span><span class="op">)</span><span class="op">)</span>   <span class="co"># fuel price, MEUR/PJ</span></span>
+<span>                     supply <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>cost <span class="op">=</span> <span class="fl">6.0</span><span class="op">)</span><span class="op">)</span>         <span class="co"># fuel price, MEUR/PJ</span></span>
 <span></span>
 <span><span class="va">EGAS</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/technology.html">newTechnology</a></span><span class="op">(</span><span class="st">"EGAS"</span>,</span>
 <span>  input   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>comm <span class="op">=</span> <span class="st">"GAS"</span><span class="op">)</span>, output <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>comm <span class="op">=</span> <span class="st">"ELC"</span><span class="op">)</span>,</span>
@@ -155,7 +155,7 @@
 <span>  fixom   <span class="op">=</span> <span class="fl">25</span>, cap2act <span class="op">=</span> <span class="fl">31.536</span>, olife <span class="op">=</span> <span class="fl">25L</span><span class="op">)</span></span>
 <span></span>
 <span><span class="va">DEM_ELC</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/newDemand.html">newDemand</a></span><span class="op">(</span><span class="st">"DEM_ELC"</span>, commodity <span class="op">=</span> <span class="st">"ELC"</span>,</span>
-<span>                     dem <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>dem <span class="op">=</span> <span class="fl">50</span><span class="op">)</span><span class="op">)</span>               <span class="co"># 50 PJ a year</span></span>
+<span>                     demand <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>demand <span class="op">=</span> <span class="fl">50</span><span class="op">)</span><span class="op">)</span>         <span class="co"># 50 PJ a year</span></span>
 <span></span>
 <span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/newModel.html">newModel</a></span><span class="op">(</span><span class="st">"HELLO"</span>,</span>
 <span>  data    <span class="op">=</span> <span class="fu"><a href="reference/newRepository.html">newRepository</a></span><span class="op">(</span><span class="st">"parts"</span>, <span class="va">GAS</span>, <span class="va">ELC</span>, <span class="va">SUP_GAS</span>, <span class="va">EGAS</span>, <span class="va">DEM_ELC</span><span class="op">)</span>,</span>
@@ -163,11 +163,14 @@
 <span>  horizon <span class="op">=</span> <span class="fu"><a href="reference/newHorizon.html">newHorizon</a></span><span class="op">(</span>period <span class="op">=</span> <span class="fl">2025</span><span class="op">:</span><span class="fl">2040</span>, intervals <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">5</span>, <span class="fl">10</span><span class="op">)</span>,</span>
 <span>                       mid_is_end <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/solve_model.html">solve_scenario</a></span><span class="op">(</span><span class="fu"><a href="reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod</span>, name <span class="op">=</span> <span class="st">"BASE"</span><span class="op">)</span>,</span>
-<span>                       solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">glpk</span><span class="op">)</span></span>
+<span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu"><a href="reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">mod</span>, name <span class="op">=</span> <span class="st">"BASE"</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">glpk</span><span class="op">)</span></span>
 <span></span>
 <span><span class="fu"><a href="reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen</span>, <span class="st">"vObjective"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>   <span class="co"># total discounted system cost</span></span>
 <span><span class="fu"><a href="reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen</span>, <span class="st">"vTechCap"</span>,   merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>   <span class="co"># capacity the model built, GW</span></span></code></pre></div>
+<p><code><a href="reference/solve_model.html">solve_model()</a></code> interpolates and solves in one call — <code>solve(mod, ...)</code> is the same thing. When you want the stages separately, each verb takes a scenario and returns one, so they compose:</p>
+<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="va">mod</span> <span class="op">|&gt;</span> <span class="fu">interpolate</span><span class="op">(</span>name <span class="op">=</span> <span class="st">"BASE"</span><span class="op">)</span> <span class="op">|&gt;</span> <span class="fu"><a href="https://rdrr.io/r/base/solve.html" class="external-link">solve</a></span><span class="op">(</span><span class="op">)</span></span></code></pre></div>
+<p><code><a href="https://rdrr.io/r/base/solve.html" class="external-link">solve()</a></code> runs the whole solver stage — writes the script, runs the solver, waits, and reads the solution back — so the scenario it returns is ready to query.</p>
 <p>The <a href="https://energyrt.org/articles/energyRt.html" class="external-link">Get started</a> vignette walks through this example and the ideas behind it.</p>
 </div>
 <div class="section level3">
@@ -207,7 +210,7 @@
 <div class="section level2">
 <h2 id="installation">Installation<a class="anchor" aria-label="anchor" href="#installation"></a>
 </h2>
-<div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pkg_install.html" class="external-link">pkg_install</a></span><span class="op">(</span><span class="st">"optimal2050/energyRt"</span><span class="op">)</span></span>
 <span><span class="co"># or</span></span>
 <span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"optimal2050/energyRt"</span><span class="op">)</span></span></code></pre></div>
