@@ -84,8 +84,13 @@ test_that("an unsolved scenario skips every check rather than passing", {
     interpolate_model(env$tm_core(), name = "vs_unsolved", ondisk = FALSE)))
   vs <- verify_solution(scen)
   expect_true(all(vapply(vs$checks, function(x) x$status, "") == "skipped"))
-  # skipped is not a pass certificate, but it is not a violation either
-  expect_true(vs$ok)
+  # Skipped is not a pass certificate -- and `ok` now says so. Counting only
+  # "violated" made a scenario with NO solution verify clean, which is how an
+  # all-zero solve (every variable empty, every check skipped for want of rows)
+  # sailed through `expect_true(vs$ok)` in the golden suites for a whole day.
+  expect_false(vs$ok)
+  expect_equal(vs$n_ran, 0L)
+  expect_equal(vs$n_skipped, length(vs$checks))
 })
 
 test_that("tolerances separate solver noise from real violations", {

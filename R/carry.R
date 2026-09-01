@@ -29,13 +29,19 @@
 # =============================================================================#
 
 # family spec: how each process class maps to variables, lifetime, and the
-# stock column(s) of its @capacity slot
+# stock column(s) of its @capacity slot.
+#
+# `totalcap` and `bound_prefix` serve the TARGET layer (apply_targets()) rather
+# than the carry: `totalcap` is the solved standing-capacity variable a target
+# is read from, and `bound_prefix` builds the bound column it is written to
+# (`""` -> `cap.lo`; `"out."` -> `out.cap.lo`).
 .carry_families <- function() {
   list(
     tech = list(
       class = "technology", proc = "tech",
       newcap = "vTechNewCap", retnew = "vTechRetiredNewCap",
       stockcap = "vTechStockCap", retstock = "vTechRetiredStock",
+      totalcap = "vTechCap", bound_prefix = "",
       olife = "pTechOlife", olife_inf = "mTechOlifeInf",
       stock_col = "stock", has_region = TRUE
     ),
@@ -43,6 +49,7 @@
       class = "storage", proc = "stg",
       newcap = "vStorageOutNewCap", retnew = "vStorageOutRetiredNewCap",
       stockcap = "vStorageOutStockCap", retstock = "vStorageOutRetiredStock",
+      totalcap = "vStorageOutCap", bound_prefix = "out.",
       olife = "pStorageOlife", olife_inf = "mStorageOlifeInf",
       stock_col = "out.stock", has_region = TRUE
     ),
@@ -50,6 +57,7 @@
       class = "storage", proc = "stg",
       newcap = "vStorageInpNewCap", retnew = "vStorageInpRetiredNewCap",
       stockcap = "vStorageInpStockCap", retstock = "vStorageInpRetiredStock",
+      totalcap = "vStorageInpCap", bound_prefix = "inp.",
       olife = "pStorageOlife", olife_inf = "mStorageOlifeInf",
       stock_col = "inp.stock", has_region = TRUE
     ),
@@ -57,6 +65,7 @@
       class = "storage", proc = "stg",
       newcap = "vStorageStgNewCap", retnew = "vStorageStgRetiredNewCap",
       stockcap = "vStorageStgStockCap", retstock = "vStorageStgRetiredStock",
+      totalcap = "vStorageStgCap", bound_prefix = "stg.",
       olife = "pStorageOlife", olife_inf = "mStorageOlifeInf",
       stock_col = "stg.stock", has_region = TRUE
     ),
@@ -64,6 +73,7 @@
       class = "trade", proc = "trade",
       newcap = "vTradeNewCap", retnew = "vTradeRetiredNewCap",
       stockcap = "vTradeStockCap", retstock = "vTradeRetiredStock",
+      totalcap = "vTradeCap", bound_prefix = "",
       olife = "pTradeOlife", olife_inf = "mTradeOlifeInf",
       stock_col = "stock", has_region = FALSE
     )
@@ -562,4 +572,242 @@ apply_ledger <- function(mod, ledger, horizon,
 .model_replace_object <- function(mod, repo_name, obj) {
   mod@data[[repo_name]]@data[[obj@name]] <- obj
   mod
+}
+
+# =========================================================================== #
+# Capacity TARGETS -- the guided-foresight counterpart of the carry above.
+#
+# A carry moves a DECIDED capacity forward as `stock`: exogenous, sunk, paying
+# no EAC. A target moves an INDICATIVE capacity sideways as a `cap.lo` bound:
+# the capacity is still built and still pays for itself, but the solver may not
+# fall below (1 - slack) of the guiding run's answer. That is what lets a cheap
+# endpoint or reduced-calendar run steer an expensive full-horizon one.
+#
+# Two hazards decided the shape of this, both verified in the equations:
+#
+#   * `cap.lo` bounds the STANDING FLEET and carries no period-length factor
+#     (`eqTechCapLo: vTechCap >= pTechCapLo`), whereas `ncap.lo` bounds a BUILD
+#     RATE and is multiplied by `pPeriodLen` (`eqTechNewCapLo`). Since
+#     `vTechNewCap` is itself an annual rate, a naive `ncap.lo = f * vTechNewCap`
+#     asks for `f * plen` times the observed rate. `cap` is therefore the
+#     default basis and `ncap` divides by the period length.
+#   * `inter.forth` holds the LAST anchor to the end of the horizon, so a
+#     target written at one year floors every later milestone too. Targets are
+#     written at exactly the years supplied, and a target set that stops short
+#     of the horizon's end warns.
+# =========================================================================== #
+
+#' Capacity targets from a solved scenario
+#'
+#' @description
+#' Harvests standing capacity per process, region and milestone year from a
+#' solved scenario, for use as a guide on a later solve of the same model. The
+#' target counterpart of [solution_ledger()]: where a ledger records decided
+#' capacity to be carried forward as sunk `stock`, a target records indicative
+#' capacity to be imposed as a `cap.lo` bound by [apply_targets()].
+#'
+#' @param scen a solved scenario.
+#' @param years integer, milestone years to harvest; `NULL` (default) takes
+#'   every year present in the solution.
+#' @param classes character, families to harvest; defaults to all
+#'   (technology, the three storage parts, trade).
+#'
+#' @return a `capacity_targets` tibble: `family`, `proc`, `region`, `year`,
+#'   `value`, carrying the scenario's variant `provenance` as an attribute.
+#' @seealso [apply_targets()], [solve_guided()]
+#' @export
+solution_targets <- function(scen, years = NULL, classes = NULL) {
+  stopifnot(is(scen, "scenario"))
+  if (!isTRUE(scen@status$optimal)) {
+    stop("Capacity targets can only be taken from an optimal solution; ",
+         "this scenario's status is '",
+         scen@status$solution_status %||% "unsolved", "'.", call. = FALSE)
+  }
+  fams <- .carry_families()
+  if (!is.null(classes)) fams <- fams[intersect(names(fams), classes)]
+  out <- list()
+  for (fk in names(fams)) {
+    fam <- fams[[fk]]
+    d <- .ledger_var(scen, fam$totalcap)
+    if (is.null(d) || !"value" %in% names(d)) next
+    if (!is.null(years)) d <- d[d$year %in% as.integer(years), , drop = FALSE]
+    d <- d[!is.na(d$value) & d$value > 0, , drop = FALSE]
+    if (!nrow(d)) next
+    reg <- if (fam$has_region && "region" %in% names(d)) {
+      as.character(d$region)
+    } else {
+      NA_character_
+    }
+    out[[length(out) + 1L]] <- tibble(
+      family = fk, proc = as.character(d[[fam$proc]]), region = reg,
+      year = as.integer(d$year), value = as.numeric(d$value))
+  }
+  res <- if (length(out)) bind_rows(out) else
+    tibble(family = character(0), proc = character(0), region = character(0),
+           year = integer(0), value = numeric(0))
+  prov <- scen@modInp@sets$variant
+  if (!is.null(prov) && is.data.frame(prov) && nrow(prov)) {
+    attr(res, "provenance") <- as_tibble(prov)
+  }
+  structure(res, class = c("capacity_targets", class(res)))
+}
+
+#' Impose capacity targets on a model
+#'
+#' @description
+#' Writes capacity targets from [solution_targets()] into a model's process
+#' `@capacity` slots as bounds, so a later solve is steered toward a guiding
+#' run's answer without being pinned to it. The target counterpart of
+#' [apply_ledger()].
+#'
+#' @details
+#' Targets are written at exactly the years present in `targets` — they are
+#' NOT densified across the horizon, because a bound is forward-filled to the
+#' end of the horizon by `inter.forth` interpolation and a fabricated
+#' intermediate value would bind years the guiding run never examined. A target
+#' set whose last year precedes the horizon's last milestone warns for the same
+#' reason.
+#'
+#' Every imposed value is rounded DOWN, the same defence the legacy GAMS driver
+#' used: a target that exceeds what some other constraint permits turns a guide
+#' into an infeasibility.
+#'
+#' @param mod a model object.
+#' @param targets a `capacity_targets` tibble from [solution_targets()].
+#' @param horizon the horizon of the solve the targets are being written for;
+#'   used to validate the target years.
+#' @param slack numeric in `[0, 1]`, the fraction by which a target is relaxed:
+#'   the bound is `(1 - slack) * value`. `slack = 1` disables the guidance.
+#' @param mode `"lo"` (default) writes a lower bound, `"fx"` fixes the
+#'   capacity outright.
+#' @param basis `"cap"` (default) bounds the standing fleet; `"ncap"` bounds
+#'   the new-build rate and divides by the period length.
+#' @param digits integer, decimal places kept when rounding a target down.
+#' @param tolerance numeric, targets below this are dropped rather than written
+#'   as a zero bound.
+#' @param verbose logical.
+#'
+#' @return the model, with `@capacity` bound columns written.
+#' @seealso [solution_targets()], [solve_guided()], [apply_ledger()]
+#' @export
+apply_targets <- function(mod, targets, horizon, slack = 0.2,
+                          mode = c("lo", "fx"), basis = c("cap", "ncap"),
+                          digits = 6, tolerance = 1e-6, verbose = FALSE) {
+  stopifnot(is(mod, "model"), is.data.frame(targets), is(horizon, "horizon"))
+  mode <- match.arg(mode)
+  basis <- match.arg(basis)
+  if (!is.numeric(slack) || length(slack) != 1L || is.na(slack) ||
+      slack < 0 || slack > 1) {
+    stop("`slack` must be one number in [0, 1].", call. = FALSE)
+  }
+  if (slack >= 1 || nrow(targets) == 0) return(mod)
+
+  iv <- as.data.frame(horizon@intervals)
+  mids <- as.integer(iv$mid)
+  plen <- stats::setNames(as.numeric(iv$end - iv$start + 1L),
+                          as.character(iv$mid))
+
+  # years outside the solved milestones cannot bind: the bound parameter is
+  # narrowed to milestones during interpolation, so such a row vanishes.
+  off <- setdiff(unique(targets$year), mids)
+  if (length(off)) {
+    warning("apply_targets(): ", length(off), " target year(s) are not ",
+            "milestones of this horizon and were dropped: ",
+            paste(sort(off), collapse = ", "), call. = FALSE)
+    targets <- targets[targets$year %in% mids, , drop = FALSE]
+  }
+  if (!nrow(targets)) return(mod)
+  if (max(targets$year) < max(mids)) {
+    warning("apply_targets(): the last target year (", max(targets$year),
+            ") precedes the horizon's last milestone (", max(mids), "). ",
+            "Bounds are forward-filled, so this target will also bind every ",
+            "later milestone.", call. = FALSE)
+  }
+
+  prov <- attr(targets, "provenance")
+  fams <- .carry_families()
+  keys <- unique(targets[, c("family", "proc", "region")])
+
+  for (i in seq_len(nrow(keys))) {
+    fk <- keys$family[i]
+    fam <- fams[[fk]]
+    proc <- keys$proc[i]
+    region <- keys$region[i]
+
+    # solved (possibly variant-expanded) name -> base object + selectors,
+    # exactly as apply_ledger() resolves it
+    base <- proc
+    sel <- list()
+    if (!is.null(prov) && proc %in% prov$name) {
+      pr <- prov[prov$name == proc, , drop = FALSE][1, ]
+      base <- pr$base
+      if (!is.na(pr$vintage %||% NA)) sel$vintage <- pr$vintage
+      if (!is.na(pr$cluster %||% NA)) sel$cluster <- pr$cluster
+    }
+    hit <- .model_find_object(mod, base, fam$class)
+    if (is.null(hit)) {
+      warning("Targets name ", fam$class, " '", base,
+              "' which the model does not contain; skipped.", call. = FALSE)
+      next
+    }
+    obj <- hit$obj
+
+    rows <- targets$family == fk & targets$proc == proc &
+      (targets$region %in% region | (is.na(targets$region) & is.na(region)))
+    tt <- targets[rows, , drop = FALSE]
+    if (!nrow(tt)) next
+    tt <- tt[order(tt$year), , drop = FALSE]
+
+    val <- (1 - slack) * tt$value
+    if (basis == "ncap") {
+      # `ncap.*` is multiplied by pPeriodLen in the equation while the solved
+      # variable is already an annual rate: divide out the period length.
+      val <- val / plen[as.character(tt$year)]
+    }
+    # round DOWN so a guide never over-reaches a bound it cannot see
+    val <- floor(val * 10^digits) / 10^digits
+    keep <- !is.na(val) & val > tolerance
+    if (!any(keep)) next
+    tt <- tt[keep, , drop = FALSE]
+    val <- val[keep]
+
+    bcol <- paste0(fam$bound_prefix, basis, ".",
+                   if (mode == "fx") "fx" else "lo")
+    add <- data.frame(year = as.integer(tt$year))
+    if (fam$has_region) add$region <- region
+    for (s in names(sel)) add[[s]] <- sel[[s]]
+    add[[bcol]] <- as.numeric(val)
+
+    cap <- obj@capacity
+    obj@capacity <- if (!is.data.frame(cap) || nrow(cap) == 0) {
+      add
+    } else {
+      as.data.frame(bind_rows(cap, add))
+    }
+    mod <- .model_replace_object(mod, hit$repo, obj)
+    if (verbose) {
+      message("target: ", fam$class, " '", base, "'",
+              if (!is.na(region)) paste0(" [", region, "]"),
+              " ", bcol, " <- ", paste(round(val, 4), collapse = ", "))
+    }
+  }
+  mod
+}
+
+#' @method print capacity_targets
+#' @export
+print.capacity_targets <- function(x, ...) {
+  cat("capacity_targets: ", nrow(x), " row(s)", sep = "")
+  if (nrow(x)) {
+    cat(" | ", length(unique(paste(x$family, x$proc, x$region))),
+        " key(s) | years ", min(x$year), "-", max(x$year), sep = "")
+  }
+  cat("\n")
+  if (nrow(x)) {
+    fam <- table(x$family)
+    cat("  by family: ",
+        paste(names(fam), unname(fam), sep = "=", collapse = ", "), "\n",
+        sep = "")
+  }
+  invisible(x)
 }

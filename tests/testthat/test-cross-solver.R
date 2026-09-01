@@ -9,6 +9,11 @@
 # writers) and the UTOPIA R1 teaching layout. GAMS cells skip on a missing or
 # unlicensed install; the NEOS fallback is future work (skip_if_no_neos).
 #
+# Backends are also a DATA-EXCHANGE dimension: `julia_highs` / `pyomo_cbc` run
+# the default Arrow exchange, `julia_highs_rdata` / `pyomo_cbc_sqlite` the
+# legacy containers. Both must reach the same objective as GLPK, so a drift in
+# what a writer hands the solver cannot hide inside one format.
+#
 # What is compared: DEGENERACY constrains it hard. tm_core has equal-cost
 # alternative optima where even annual, entity-collapsed production totals
 # differ between solvers (GLPK 65 vs HiGHS 58 at the identical objective:
@@ -32,6 +37,14 @@
                      skip = quote(skip_if_no_julia_highs())),
   pyomo_cbc = list(solver = quote(solver_options$pyomo_cbc),
                    skip = quote(skip_if_no_pyomo())),
+  # The same backends through their LEGACY exchange containers. Arrow is the
+  # default now, so without these a format-dependent drift in the data written
+  # to a solver would pass unnoticed: each entry solves the identical model and
+  # is compared against the same GLPK reference as its arrow twin.
+  julia_highs_rdata = list(solver = quote(solver_options$julia_highs_rdata),
+                           skip = quote(skip_if_no_julia_highs())),
+  pyomo_cbc_sqlite = list(solver = quote(solver_options$pyomo_cbc_sqlite),
+                          skip = quote(skip_if_no_pyomo())),
   gams = list(solver = quote(solver_options$gams_gdx_cplex),
               skip = quote(skip_if_no_gams()))
 )

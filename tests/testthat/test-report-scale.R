@@ -7,7 +7,7 @@
 }
 
 # A "large" model in miniature: 4 process structures x n regions of
-# region-prefixed technologies (the USENSYS pattern), all sharing 4 fuels.
+# region-prefixed technologies, all sharing 4 fuels.
 .rs_big_model <- function(n_regions = 3) {
   regs <- paste0("R", seq_len(n_regions))
   fuels <- c(coal = "COA", gas = "GAS", bio = "BIO", oil = "OIL")
