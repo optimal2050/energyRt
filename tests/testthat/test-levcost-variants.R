@@ -293,3 +293,43 @@ test_that("levcost(by_variant=) matches the result's own tables", {
               by_variant = TRUE))),
     "vintages or clusters")
 })
+
+# --------------------------------------------------------------------------- #
+# report(levcost = TRUE, by_variant = ) on a vintaged technology.
+#
+# The regression: `by_variant` used to fall through report()'s dots straight to
+# rmarkdown::render(). Forwarding it to levcost() instead is equally wrong --
+# levcost(by_variant = TRUE) returns an EXTRACTED data.frame, which fails
+# report()'s `inherits(levcost, "levcost_variants")` test and silently drops the
+# whole levelised-cost section. report() consumes the flag itself: TRUE (the
+# default for a variant process) keeps the per-variant table and comparison
+# chart, FALSE reports the display instance alone.
+# --------------------------------------------------------------------------- #
+
+test_that("report() consumes by_variant instead of forwarding it to levcost()", {
+  skip_if_not_installed("rmarkdown")
+  tech <- lv_tech(vintages = c(2020, 2030, 2040), invcost = c(300, 200, 100))
+
+  f_on <- tempfile(fileext = ".html")
+  expect_no_error(suppressWarnings(suppressMessages(
+    report(tech, levcost = TRUE, by_variant = TRUE, horizon = lv_hor(),
+           file = f_on, format = "html", open = FALSE))))
+  expect_true(file.exists(f_on))
+
+  f_off <- tempfile(fileext = ".html")
+  expect_no_error(suppressWarnings(suppressMessages(
+    report(tech, levcost = TRUE, by_variant = FALSE, horizon = lv_hor(),
+           file = f_off, format = "html", open = FALSE))))
+  expect_true(file.exists(f_off))
+
+  # by_variant = TRUE must not degrade the report: dropping the per-variant
+  # section was the silent failure, and it makes the file materially smaller
+  expect_gt(file.size(f_on), file.size(f_off))
+
+  # and it must match the default, which is already per-variant
+  f_def <- tempfile(fileext = ".html")
+  suppressWarnings(suppressMessages(
+    report(tech, levcost = TRUE, horizon = lv_hor(),
+           file = f_def, format = "html", open = FALSE)))
+  expect_equal(file.size(f_on), file.size(f_def), tolerance = 0.01)
+})

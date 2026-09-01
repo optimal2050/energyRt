@@ -1507,6 +1507,23 @@ force_cols_classes <- function(dtf) {
     p@misc[[".dedup_pending"]] <- NULL
     scen@modInp@parameters[[nm]] <- p
   }
+
+  # Post-condition. Bulk mode parks chunks in `@misc$.pending_chunks`; if any
+  # survive this flush the scenario ships with unmaterialised `@data`, which
+  # writes out as a model with missing parameters and solves to OPTIMAL with
+  # objective 0 -- silently. Assert instead of hoping.
+  .left <- names(scen@modInp@parameters)[vapply(
+    scen@modInp@parameters,
+    function(p) length(p@misc[[".pending_chunks"]]) > 0L, logical(1))]
+  if (length(.left) > 0L) {
+    stop("interpolation left ", length(.left),
+         " parameter(s) unmaterialised after the final flush: ",
+         paste(utils::head(.left, 10), collapse = ", "),
+         if (length(.left) > 10L) ", ..." else "",
+         "\n  Their `@data` is still parked in `@misc$.pending_chunks`, so the ",
+         "model would be written out with those parameters empty.",
+         call. = FALSE)
+  }
   scen
 }
 

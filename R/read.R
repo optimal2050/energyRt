@@ -190,6 +190,12 @@ read_solution <- function(obj, run = NULL, ...) {
     .imf <- tolower(scen@settings@solver$import_format)
     .arrow_imp <- .imf %in% c("feather", "ipc", "arrow", "parquet")
     .ext <- if (.imf == "parquet") ".parquet" else if (.arrow_imp) ".arrow" else ".csv"
+    # Count what was actually read. A per-variable miss is legitimate (a
+    # variable with no non-zero values writes no file), but a TOTAL miss is
+    # not: it means the solver wrote a format this reader is not looking for,
+    # and skipping every file silently yields a scenario of zeros reported
+    # OPTIMAL -- the shape of the bug that went undiagnosed for a day.
+    .n_found <- 0L
     for (i in c(vrb_list, vrb_list2)) {
       vfile <- paste(arg$solver.dir, "/output/", i, .ext, sep = "")
       if (.arrow_imp) {
@@ -200,6 +206,7 @@ read_solution <- function(obj, run = NULL, ...) {
       }
       if (ncol(vr) == 1) {
         rr$variables[[i]] <- data.frame(value = vr[1, 1])
+        .n_found <- .n_found + 1L
       } else {
         for (j in seq_len(ncol(vr))[colnames(vr) != "value"]) {
           # Remove [.][:digit:] if any
@@ -214,7 +221,18 @@ read_solution <- function(obj, run = NULL, ...) {
           }
         }
         rr$variables[[i]] <- vr
+        .n_found <- .n_found + 1L
       }
+    }
+    if (.n_found == 0L && length(c(vrb_list, vrb_list2)) > 0L) {
+      stop("read_solution(): none of the ",
+           length(c(vrb_list, vrb_list2)),
+           " declared variables produced an output file.\n",
+           "  Looked for '*", .ext, "' in: ", arg$solver.dir, "/output/\n",
+           "  The solver reported a solution, so it wrote its results in ",
+           "another format.\n  Check `import_format` on the solver ",
+           "options (currently '", scen@settings@solver$import_format,
+           "'): the MathProg/GLPK backend writes CSV only.", call. = FALSE)
     }
   }
   scen@modOut <- new("modOut")

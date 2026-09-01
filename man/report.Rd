@@ -161,7 +161,15 @@ none is found.}
 \code{\link{levcost}}, or \code{NULL} (default).  When \code{NULL} and any
 \code{levcost} keyword arguments are passed via \code{...} (e.g.
 \code{group}, \code{repo}, \code{discount}), \code{levcost()} is called
-automatically on \code{object} with those arguments.}
+automatically on \code{object} with those arguments.
+
+For a process declaring vintages or clusters the report carries the
+per-variant levelised costs (a table plus a comparison chart) alongside
+the detail figures for one display instance. Pass \code{by_variant = FALSE}
+in \code{...} to report that single instance only. \code{by_variant} is
+consumed by \code{report()} and deliberately not forwarded to
+\code{levcost()}, whose \code{by_variant = TRUE} returns an extracted
+data frame rather than the object the report is built from.}
 
 \item{cost_unit}{Character or \code{NULL}.  Cost unit label used on LCOE
 axis (e.g. \code{"USD/GJ"}).  \code{NULL} derives the label from

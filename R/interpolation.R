@@ -716,8 +716,19 @@ interpolate_model <- function(mod, name = NULL, ...,
   # parameter in a single call, so they never had the accumulation cost and stay
   # on the eager path -- which also keeps `@data` valid for anything that reads
   # it directly.
+  # Bulk mode is an INTERNAL optimisation for the object loop only, so it is
+  # enabled here unless the caller opted out with FALSE, and the caller's own
+  # value is restored on EVERY exit path. Restoring only on the normal path (as
+  # this did) leaks `en.bulk_param_write = TRUE` out of any interpolation that
+  # errors inside the loop -- after which every later interpolation in the
+  # session sees a non-NULL option, never leaves bulk mode, and ships a scenario
+  # whose parameters are still parked in `@misc$.pending_chunks`. That model
+  # writes out with missing data and solves to OPTIMAL with objective 0, with no
+  # warning anywhere. Same class as the `.call_solver()` working-directory leak
+  # fixed in 0.74.
   .bulk_prev <- getOption("en.bulk_param_write")
-  if (is.null(.bulk_prev)) options(en.bulk_param_write = TRUE)
+  if (!identical(.bulk_prev, FALSE)) options(en.bulk_param_write = TRUE)
+  on.exit(options(en.bulk_param_write = .bulk_prev), add = TRUE)
 
   .n_obj <- sum(vapply(scen@model@data, function(r) length(r@data), integer(1)))
   .interp_step(verbose, paste0("ob2mi: interpolating ", .n_obj, " model objects"),
@@ -780,7 +791,11 @@ interpolate_model <- function(mod, name = NULL, ...,
   }
 
   # Leave bulk mode and collapse the chunks `d2p()` parked during the loop.
-  if (is.null(.bulk_prev)) options(en.bulk_param_write = NULL)
+  # Unconditional: the later stages write each parameter in a single call and
+  # MUST stay eager, so `@data` is valid for anything that reads it directly.
+  # A caller who set the option TRUE does not get to hold the whole call in
+  # bulk mode -- `on.exit()` above hands them their value back at the end.
+  options(en.bulk_param_write = FALSE)
   scen <- .flush_pending_parameters(scen)
 
   #============================================================================#
@@ -2772,10 +2787,14 @@ validate_scenario_parameters <- function(scen, fold = TRUE,
   trim_dims <- if (isTRUE(fold)) c("region", "timeslice", "vintage")
     else if (is.character(fold)) fold else character(0)
   issues <- list()
-  add <- function(parameter, check, detail) {
+  # `severity`: "structural" means the model cannot be correct -- a populated
+  # map whose source parameter is empty writes out as missing data and solves
+  # to OPTIMAL with objective 0. Those are errors whatever `action` says;
+  # `action` governs only the advisory findings.
+  add <- function(parameter, check, detail, severity = "advisory") {
     issues[[length(issues) + 1L]] <<-
       data.frame(parameter = parameter, check = check, detail = detail,
-                 stringsAsFactors = FALSE)
+                 severity = severity, stringsAsFactors = FALSE)
   }
 
   # Progress bar: this pass scans every parameter's rows (and the value-map
@@ -2884,7 +2903,8 @@ validate_scenario_parameters <- function(scen, fold = TRUE,
     if (is.null(union_src) || nrow(union_src) == 0) {
       add(mp, "map_not_in_param",
           paste0("map has ", nrow(md),
-                 " tuple(s) but source(s) '", src_label, "' are empty"))
+                 " tuple(s) but source(s) '", src_label, "' are empty"),
+          severity = "structural")
       next
     }
     union_src <- dplyr::distinct(union_src)
@@ -2912,18 +2932,38 @@ validate_scenario_parameters <- function(scen, fold = TRUE,
 
   res <- if (length(issues) == 0) {
     data.frame(parameter = character(0), check = character(0),
-               detail = character(0), stringsAsFactors = FALSE)
+               detail = character(0), severity = character(0),
+               stringsAsFactors = FALSE)
   } else {
     do.call(rbind, issues)
   }
 
-  if (nrow(res) > 0 && action != "silent") {
-    msg <- paste0(
-      "validate_scenario_parameters: ", nrow(res), " issue(s):\n",
-      paste0("  [", res$check, "] ", res$parameter, ": ", res$detail,
-             collapse = "\n")
-    )
-    if (action == "stop") stop(msg, call. = FALSE) else warning(msg, call. = FALSE)
+  .fmt <- function(d) paste0("  [", d$check, "] ", d$parameter, ": ",
+                             d$detail, collapse = "\n")
+  .structural <- res[res$severity == "structural", , drop = FALSE]
+  .advisory <- res[res$severity != "structural", , drop = FALSE]
+
+  # Always announce the count through message(): warnings are routinely
+  # wrapped in suppressWarnings() around a solve, which is how a correct
+  # diagnosis of this exact failure went unseen for a day.
+  if (nrow(res) > 0) {
+    message("validate_scenario_parameters: ", nrow(res), " issue(s) (",
+            nrow(.structural), " structural, ", nrow(.advisory),
+            " advisory)")
+  }
+
+  # Structural findings are not silenceable: the model would be written out
+  # with missing data and solve to OPTIMAL with a meaningless objective.
+  if (nrow(.structural) > 0) {
+    stop("validate_scenario_parameters: ", nrow(.structural),
+         " structural issue(s) -- the model would be written out with ",
+         "missing data:\n", .fmt(.structural), call. = FALSE)
+  }
+  if (nrow(.advisory) > 0 && action != "silent") {
+    msg <- paste0("validate_scenario_parameters: ", nrow(.advisory),
+                  " issue(s):\n", .fmt(.advisory))
+    if (action == "stop") stop(msg, call. = FALSE) else
+      warning(msg, call. = FALSE)
   }
 
   invisible(res)

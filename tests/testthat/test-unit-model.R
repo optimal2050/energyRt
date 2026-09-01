@@ -27,25 +27,11 @@
 test_that("unit kits solve to their hand-computed integer objectives", {
   skip_if_no_solver()
   g <- golden_read("unit")   # optional: also diff against the frozen golden
-  ## TEMP DIAGNOSTIC -- remove after the order-dependency hunt
-  cat("\n[DIAG] wd            =", getwd(),
-      "\n[DIAG] scenarios_path =", get_scenarios_path(),
-      "\n[DIAG] glpsol        =", energyRt:::.find_glpsol(),
-      "\n[DIAG] glpk lang/name=", solver_options$glpk$lang,
-      "/", solver_options$glpk$name,
-      "\n[DIAG] tempdir exists=", dir.exists(tempdir()),
-      "\n[DIAG] golden read   =", !is.null(g), "\n")
   for (nm in names(un_entries())) {
     mod <- do.call(un_build, un_entries()[[nm]])
     scen <- suppressMessages(suppressWarnings(
       solve_model(mod, name = paste0("unit_", nm),
                   solver = solver_options$glpk, tmp.del = TRUE, wait = TRUE)))
-    ## TEMP DIAGNOSTIC
-    cat("[DIAG]", nm, "optimal=", isTRUE(scen@status$optimal),
-        "solved=", isTRUE(scen@status$solved),
-        "script=", isTRUE(scen@status$script),
-        "nvars=", length(scen@modOut@variables),
-        "solver.dir=", scen@misc[["solver.dir"]] %||% "NULL", "\n")
     vs <- verify_solution(scen)
     expect_true(vs$ok, label = paste0(nm, " invariants"))
     obj <- capture_tracked_values(scen)$objective

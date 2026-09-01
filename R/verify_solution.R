@@ -77,9 +77,19 @@ verify_solution <- function(scen,
   })
   names(res) <- checks
 
+  .status <- vapply(res, function(x) x$status %||% "skipped", "")
+  .n_ran <- sum(.status == "ok")
+
+  # `ok` requires that the identities actually RAN. Counting only "violated"
+  # made an empty solution pass: every check skips for want of rows, nothing is
+  # violated, and `ok` came back TRUE -- which is how a scenario of zeros
+  # reported OPTIMAL sailed through `expect_true(vs$ok)`. A verification that
+  # verified nothing is not a pass.
   out <- list(
     scenario = scen@name,
-    ok = !any(vapply(res, function(x) identical(x$status, "violated"), TRUE)),
+    ok = sum(.status == "violated") == 0L && .n_ran > 0L,
+    n_ran = .n_ran,
+    n_skipped = sum(.status == "skipped"),
     checks = res
   )
   class(out) <- "solution_verification"
@@ -89,7 +99,14 @@ verify_solution <- function(scen,
 #' @exportS3Method base::print
 print.solution_verification <- function(x, ...) {
   cat("verify_solution: scenario '", x$scenario, "' -- ",
-      if (x$ok) "OK" else "VIOLATIONS FOUND", "\n", sep = "")
+      if (x$ok) "OK" else if ((x$n_ran %||% 1L) == 0L) "NOTHING VERIFIED"
+      else "VIOLATIONS FOUND", "
+", sep = "")
+  if ((x$n_skipped %||% 0L) > 0L) {
+    cat("  ", x$n_ran %||% NA, " check(s) ran, ", x$n_skipped,
+        " skipped
+", sep = "")
+  }
   for (nm in names(x$checks)) {
     ck <- x$checks[[nm]]
     line <- sprintf("  %-12s %-9s", nm, ck$status)

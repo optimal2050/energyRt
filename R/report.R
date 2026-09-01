@@ -71,6 +71,14 @@
 #'   \code{levcost} keyword arguments are passed via \code{...} (e.g.
 #'   \code{group}, \code{repo}, \code{discount}), \code{levcost()} is called
 #'   automatically on \code{object} with those arguments.
+#'
+#'   For a process declaring vintages or clusters the report carries the
+#'   per-variant levelised costs (a table plus a comparison chart) alongside
+#'   the detail figures for one display instance. Pass \code{by_variant = FALSE}
+#'   in \code{...} to report that single instance only. \code{by_variant} is
+#'   consumed by \code{report()} and deliberately not forwarded to
+#'   \code{levcost()}, whose \code{by_variant = TRUE} returns an extracted
+#'   data frame rather than the object the report is built from.
 #' @param cost_unit Character or \code{NULL}.  Cost unit label used on LCOE
 #'   axis (e.g. \code{"USD/GJ"}).  \code{NULL} derives the label from
 #'   \code{object@@units}.
@@ -222,8 +230,16 @@ setMethod(
                          "discount", "base_year",
                          "horizon", "calendar", "region", "weather",
                          "frontier", "solver", "method", "full_output",
-                         "verbose", "cache", "cache_dir")
+                         "verbose", "cache", "cache_dir",
+                         # instance selectors, forwarded to levcost()
+                         "vintage", "cluster")
     dots        <- list(...)
+    # `by_variant` is consumed HERE, not forwarded: levcost(by_variant = TRUE)
+    # returns an extracted data.frame, which would fail the levcost_variants
+    # test below and silently drop the whole levelised-cost section. The flag
+    # instead selects whether the report carries the per-variant tables.
+    by_variant  <- dots$by_variant
+    dots$by_variant <- NULL
     lc_dots     <- dots[intersect(names(dots), .levcost_params)]
     render_dots <- dots[setdiff(names(dots), .levcost_params)]
 
@@ -354,7 +370,11 @@ setMethod(
     levcost_by_vintage_df  <- NULL
     levcost_instance_label <- NULL
     lc_obj <- levcost
-    if (inherits(levcost, "levcost_variants")) {
+    if (inherits(levcost, "levcost_variants") && identical(by_variant, FALSE)) {
+      # explicitly asked for a single-instance report: keep the display
+      # instance and drop the per-variant table and comparison chart
+      lc_obj <- .report_pick_instance(levcost)
+    } else if (inherits(levcost, "levcost_variants")) {
       levcost_by_vintage_df <- tryCatch(
         .report_drop_empty_cols(levcost(levcost, by_variant = "npv")),
         error = function(e) NULL)
@@ -569,8 +589,9 @@ setMethod(
     .levcost_params <- c("comm", "group", "repo", "fuel_costs", "discount",
                          "base_year", "horizon", "calendar", "region",
                          "weather", "solver", "method", "full_output",
-                         "verbose")
+                         "verbose", "vintage", "cluster")
     dots0   <- list(...)
+    dots0$by_variant <- NULL   # consumed, see the technology method
     lc_dots <- dots0[intersect(names(dots0), .levcost_params)]
     run_levcost <- NA
     if (is.logical(levcost)) {
