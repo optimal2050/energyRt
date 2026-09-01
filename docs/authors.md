@@ -16,13 +16,13 @@ Source:
 [`inst/CITATION`](https://github.com/optimal2050/energyRt/blob/HEAD/inst/CITATION)
 
 Lugovoy O, Potashnikov V (2026). *energyRt: Energy Systems Modeling
-Toolbox*. R package version 0.89.1.9003, <https://energyRt.org>.
+Toolbox*. R package version 0.89.2.9000, <https://energyRt.org>.
 
     @Manual{,
       title = {energyRt: Energy Systems Modeling Toolbox},
       author = {Oleg Lugovoy and Vladimir Potashnikov},
       year = {2026},
-      note = {R package version 0.89.1.9003},
+      note = {R package version 0.89.2.9000},
       url = {https://energyRt.org},
     }
 

@@ -149,9 +149,48 @@ Rtools** — no extra setup. For Julia/JuMP, Python/Pyomo, or GAMS see the
 the [solver backends
 article](https://energyrt.org/articles/backends.html).
 
+Geoscale features
+([`utopia_geoscale()`](https://energyRt.org/reference/utopia_geoscale.md),
+[`plot_geoscale()`](https://energyRt.org/reference/plot_geoscale.md),
+multi-level regions) need the sibling package, which is not on CRAN:
+
+``` r
+
+pak::pkg_install("optimal2050/geoscales")
+```
+
+### Start here
+
+1.  Install R and, on Windows, **Rtools** — it bundles `glpsol`, so GLPK
+    is ready with no further setup and is the right backend for every
+    small model.
+2.  Install energyRt (above), then
+    [`library(energyRt); en_setup()`](https://energyRt.org) and
+    [`en_check_dependencies()`](https://energyRt.org/reference/en_check.md)
+    to see what is green.
+3.  Run the **Quickstart** above — one fuel, one plant, one demand,
+    solved and read in ~20 lines.
+4.  [Get started](https://energyrt.org/articles/energyRt.html) — the
+    same model, explained.
+5.  [Model bricks](https://energyrt.org/articles/model-bricks.html) →
+    [Units](https://energyrt.org/articles/units.html) → [Time
+    resolution](https://energyrt.org/articles/time-resolution.html) —
+    what the objects are and how they fit together.
+6.  [UTOPIA I: building the
+    model](https://energyrt.org/articles/utopia-build.html) → [UTOPIA
+    II: running
+    scenarios](https://energyrt.org/articles/utopia-use.html) — a full
+    multi-region model and its scenario levers.
+7.  [Workflow](https://energyrt.org/articles/workflow.html) and
+    [Scenario
+    management](https://energyrt.org/articles/scenario-management.html)
+    — saving models, recorded runs, variants.
+8.  Add a second backend only when models grow: **julia/HiGHS** for
+    mid-size, hourly, full-year and sampled runs.
+
 ### Development status
 
-The current development line (**v0.60.x**) modernizes the interpolation
+The current development line (**v0.89.x**) modernizes the interpolation
 pipeline, scenario storage, and analysis tools (`levcost`, `report`,
 `autoplot`) on the way to **v1.0**. The **v0.50** release
 (*“half-way-there”*) is frozen and remains available for pre-2026

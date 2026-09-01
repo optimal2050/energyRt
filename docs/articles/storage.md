@@ -271,16 +271,16 @@ mod_day <- newModel(
 
 scen_year <- solve_model(mod_year, name = "fy_year")
 #> Solver directory:  scenarios/fy_year-d365_h24_subset_1day_per_month/runs/glpk/solver 
-#> Writing files: 0.39s
+#> Writing files: 0.74s
 #> Starting  GLPK 
 #> 0.17s
-#> Reading solution: 0.11s
+#> Reading solution: 0.17s
 scen_day <- solve_model(mod_day, name = "fy_day")
 #> Solver directory:  scenarios/fy_day-d365_h24_subset_1day_per_month/runs/glpk/solver 
-#> Writing files: 0.37s
+#> Writing files: 0.63s
 #> Starting  GLPK 
-#> 0.13s
-#> Reading solution: 0.07s
+#> 0.14s
+#> Reading solution: 0.17s
 
 getData(scen_year, "vObjective", merge = TRUE)$value
 #> [1] 9962.545
@@ -877,10 +877,10 @@ sol_mod <- newModel(
 
 scen <- solve_model(sol_mod, name = "solar_battery")
 #> Solver directory:  scenarios/solar_battery-d365_h24_subset_1day_per_month/runs/glpk/solver 
-#> Writing files: 0.31s
+#> Writing files: 0.24s
 #> Starting  GLPK 
 #> 0.25s
-#> Reading solution: 0.1s
+#> Reading solution: 0.09s
 ```
 
 ``` r

@@ -217,7 +217,16 @@ R layer — the GAMS GDX bridge (not on CRAN) plus optional I/O helpers:
 
 pak::pkg_install("lolow/gdxtools")   # or remotes::install_github("lolow/gdxtools")
 install.packages(c("jsonlite", "readxl", "openxlsx"))
+
+# geoscale features -- utopia_geoscale(), plot_geoscale(), multi-level regions.
+# A sibling optimal2050 package, not on CRAN:
+pak::pkg_install("optimal2050/geoscales")
 ```
+
+(`timescales`, the other sibling, is a *build-time* dependency only: the
+shipped `calendars` are generated from its catalog by
+`data-raw/calendars.R`. Nothing at run time needs it, so there is no
+reason to install it to use energyRt.)
 
 Julia layer — from the Julia REPL (or `julia -e "..."`):
 
@@ -231,8 +240,14 @@ Python/Pyomo layer — conda (recommended) or pip:
 
 ``` bash
 conda create -y -n energyRt python
-conda install -y -n energyRt -c conda-forge pyomo pandas pyarrow highspy coincbc
+conda install -y -n energyRt -c conda-forge pyomo pandas pyarrow highspy coincbc glpk
 ```
+
+`glpk` and `coincbc` are what `solver_options$pyomo_glpk` and
+`$pyomo_cbc` reach for: Pyomo finds them as **executables**, so leaving
+either out makes that preset report itself unavailable even though Pyomo
+itself is installed. `highspy` is different — it ships HiGHS as a
+library (see below).
 
 `pip` works just as well for this backend, because `highspy` ships HiGHS
 itself as a wheel (unlike CBC, which pip cannot supply):

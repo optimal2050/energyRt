@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.1.9003</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.2.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -344,7 +344,15 @@ can also install per backend:</p>
 helpers:</p>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pkg_install.html" class="external-link">pkg_install</a></span><span class="op">(</span><span class="st">"lolow/gdxtools"</span><span class="op">)</span>   <span class="co"># or remotes::install_github("lolow/gdxtools")</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"jsonlite"</span>, <span class="st">"readxl"</span>, <span class="st">"openxlsx"</span><span class="op">)</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="https://rdrr.io/r/utils/install.packages.html" class="external-link">install.packages</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"jsonlite"</span>, <span class="st">"readxl"</span>, <span class="st">"openxlsx"</span><span class="op">)</span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># geoscale features -- utopia_geoscale(), plot_geoscale(), multi-level regions.</span></span>
+<span><span class="co"># A sibling optimal2050 package, not on CRAN:</span></span>
+<span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pkg_install.html" class="external-link">pkg_install</a></span><span class="op">(</span><span class="st">"optimal2050/geoscales"</span><span class="op">)</span></span></code></pre></div>
+<p>(<code>timescales</code>, the other sibling, is a <em>build-time</em>
+dependency only: the shipped <code>calendars</code> are generated from
+its catalog by <code>data-raw/calendars.R</code>. Nothing at run time
+needs it, so there is no reason to install it to use energyRt.)</p>
 <p>Julia layer — from the Julia REPL (or
 <code>julia -e "..."</code>):</p>
 <div class="sourceCode" id="cb10"><pre class="sourceCode julia"><code class="sourceCode julia"><span id="cb10-1"><a href="#cb10-1" tabindex="-1"></a><span class="im">using</span> <span class="bu">Pkg</span></span>
@@ -352,7 +360,13 @@ helpers:</p>
 <span id="cb10-3"><a href="#cb10-3" tabindex="-1"></a>         <span class="st">"CodecBzip2"</span>, <span class="st">"Gadfly"</span>, <span class="st">"DataFrames"</span>, <span class="st">"CSV"</span>, <span class="st">"SQLite"</span>, <span class="st">"Dates"</span>])</span></code></pre></div>
 <p>Python/Pyomo layer — conda (recommended) or pip:</p>
 <div class="sourceCode" id="cb11"><pre class="sourceCode bash"><code class="sourceCode bash"><span id="cb11-1"><a href="#cb11-1" tabindex="-1"></a><span class="ex">conda</span> create <span class="at">-y</span> <span class="at">-n</span> energyRt python</span>
-<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a><span class="ex">conda</span> install <span class="at">-y</span> <span class="at">-n</span> energyRt <span class="at">-c</span> conda-forge pyomo pandas pyarrow highspy coincbc</span></code></pre></div>
+<span id="cb11-2"><a href="#cb11-2" tabindex="-1"></a><span class="ex">conda</span> install <span class="at">-y</span> <span class="at">-n</span> energyRt <span class="at">-c</span> conda-forge pyomo pandas pyarrow highspy coincbc glpk</span></code></pre></div>
+<p><code>glpk</code> and <code>coincbc</code> are what
+<code>solver_options$pyomo_glpk</code> and <code>$pyomo_cbc</code> reach
+for: Pyomo finds them as <strong>executables</strong>, so leaving either
+out makes that preset report itself unavailable even though Pyomo itself
+is installed. <code>highspy</code> is different — it ships HiGHS as a
+library (see below).</p>
 <p><code>pip</code> works just as well for this backend, because
 <code>highspy</code> ships HiGHS itself as a wheel (unlike CBC, which
 pip cannot supply):</p>

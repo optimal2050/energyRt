@@ -80,6 +80,9 @@ install_energyRt <- function(ref = "optimal2050/energyRt",
     "shiny", "DT",
     # optional -- detailed per-parameter diffs in compare_inputs():
     "waldo",
+    # optional -- techspec JSON containers, and the Excel technology readers
+    # (read_technology_xlsx() / write_technology_xlsx()):
+    "jsonlite", "readxl", "openxlsx",
     # optional -- the NEOS client, which solves remotely with no local solver
     "httr2", "xml2", "base64enc"
   )
@@ -101,6 +104,20 @@ install_energyRt <- function(ref = "optimal2050/energyRt",
       if (!ok) failed <- c(failed, pkg)
     }
   }
+
+  # 3b. geoscales -- an optimal2050 sibling, NOT on CRAN. It gates the geoscale
+  #     features (utopia_geoscale(), plot_geoscale(), multi-level regions) and
+  #     nothing else, so a failure here must NOT block energyRt itself.
+  #     (`timescales`, the other sibling, is build-time only: the shipped
+  #     `calendars` are generated from its catalog. Users never need it.)
+  tryCatch({
+    pak::pkg_install("optimal2050/geoscales", ask = FALSE)
+    message("  [ok]   geoscales (optional, geoscale features)")
+  }, error = function(e) {
+    message("  [skip] geoscales: ", conditionMessage(e),
+            "\n         Optional -- energyRt works without it; geoscale ",
+            "features will be unavailable.")
+  })
 
   # 4. Install energyRt itself (only if the dependency layer is clean).
   if (length(failed) == 0) {

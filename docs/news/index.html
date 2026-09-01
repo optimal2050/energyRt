@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.1.9003</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.2.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -172,63 +172,47 @@
 </ul></div>
 <div class="section level3">
 <h3 id="bug-fixes-development-version">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-development-version"></a></h3>
-<ul><li>A <code>supply</code> at a commodity’s coarse <code>@geoframe</code> level was silently costless: <code>mSupSpan</code> intersected with the atoms instead of spanning the commodity’s balance regions, leaving a free <code>vOutTot</code> cell, empty <code>vSupCost</code> and an objective of 0. Cost-aggregation maps are also built after wildcard unfolding. Rest-of-world import/export at a coarse level are refused loudly.</li>
-<li>
-<code><a href="../reference/newCommodity.html">newCommodity()</a></code> without <code>timeframe =</code> no longer crashes interpolation; the empty slot resolves to the calendar’s finest timeframe.</li>
-<li>
-<code>add(mod, x, overwrite = TRUE)</code> replaces an object of the same class and name instead of appending a duplicate next to it; without <code>overwrite</code> the collision is an error.</li>
-<li>Calendar chronology follows the timetable’s row order. <code>.complete_calendar()</code> ordered mid-level timeslices alphabetically, so <code>@next_in_year</code> mis-chained any vocabulary that does not collate chronologically.</li>
-<li>On-disk parameter stores no longer default to CSV; they follow <code>storage_format</code>. Existing CSV stores keep loading.</li>
-<li>A parameter write-back could make its store unreadable — both write-back paths re-derived the codec from a directory listing that knew only parquet-or-csv, writing CSV beside <code>.arrow</code> files. The store’s recorded format is now authoritative.</li>
-<li>An atomic (single-column) slot was always written as CSV, mixing codecs inside a store.</li>
-<li>
-<code>import_format = "parquet"</code> returned an empty scenario silently: R looked for <code>output/&lt;var&gt;.parquet</code> while both backends wrote <code>.arrow</code>. Pyomo honours parquet on both legs; Julia refuses it at write time.</li>
-<li>Tables with no rows are no longer written — on a UTOPIA-size model roughly two thirds of the tables are empty.</li>
-<li>
-<code><a href="../reference/obj2mem.html">obj2mem()</a></code> is quiet by default and reports a progress bar instead of one path per table; <code>verbose</code> is now passed down the recursion, so a top-level <code>verbose = FALSE</code> is no longer lost on nested objects.</li>
-<li>
-<code><a href="../reference/subset_model_regions.html">subset_model_regions()</a></code> reports one summary line — regions kept, objects and routes dropped — instead of a message per item; <code>verbose = TRUE</code> lists them.</li>
-<li>Interpolation no longer re-deduplicates a parameter’s whole table on every object that writes to it, making that stage linear rather than quadratic. On a 6-region full-year model (53M rows) the object stage went 3m01s → 1m19s. Set <code>options(en.bulk_param_write = FALSE)</code> for the previous path.</li>
-<li>The process/commodity level check no longer refuses models whose objects span many regions (a data.table join-size refusal).</li>
-<li>Conflicting-bounds detection names the parameter again instead of dying on “comparison of these types is not implemented”.</li>
-<li>
-<code>force_cols_classes()</code> tested the data.frame instead of the column, re-coercing every year and character column on every write.</li>
-<li>Variant expansion respects <code>verbose</code>; because <code>verbose</code> defaults to off, the generated-constraint and variant-expansion messages no longer appear by default. When shown, constraints are counted by family rather than listed.</li>
-<li>
-<code><a href="../reference/get_region.html">get_region()</a></code> returns a model’s declared regions — a model carries them on <code>@config</code>, which the reflective walk missed.</li>
-<li>
-<code><a href="../reference/load_scenario.html">load_scenario()</a></code> on a saved-but-never-solved scenario no longer warns about rebasing on-disk paths.</li>
-<li>
-<code><a href="../reference/getData.html">getData()</a></code> no longer returns an empty frame for a scenario whose solve was not proven optimal: a stored incumbent is served with a warning naming the stage.</li>
-<li>
-<code>solve_scenario(transient = TRUE)</code> deletes the throwaway solver directory.</li>
-<li>
-<code><a href="../reference/levcost.html">levcost()</a></code>’s mini-models solve in a scratch dir instead of creating scenario folders that <code><a href="../reference/registry.html">refresh_registry()</a></code> indexed as real scenarios.</li>
-<li>
-<code>inp.eac</code> / <code>stg.eac</code> give a storage part its own capacity — they priced the charging or storing part without bounding it, so it came out free.</li>
-<li>
-<code>inp.fixom</code> / <code>stg.fixom</code> reach the objective; a storage priced only on its charger or reservoir paid no fixed O&amp;M.</li>
-<li>
-<code>eqTechPhaseOut</code> / <code>eqStoragePhaseOut</code> are gated on <code>mTechNew</code> / <code>mStorageNew</code>: a phaseout window past the investment window crashed Pyomo and left a stray free variable elsewhere. Objectives unchanged.</li>
-<li>
-<code>scenario@status$solved</code> is set when the solution is read; it had no writer and stayed <code>FALSE</code> after an optimal solve.</li>
-<li>Per-part <code>inp.</code> / <code>stg.</code> <code>wacc</code> and <code>payback</code> are honoured; the annuity always read the <code>out.*</code> columns.</li>
-<li>
-<code>technology@af$rampup</code> / <code>$rampdown</code> reach the solver — the parameter catalogue named slots that do not exist. Two template defects surfaced with them and are fixed on all four backends: <code>cap2act</code> was applied twice, and the Up/Down equations were orientation-swapped.</li>
-<li>Per-column <code>config@defVal</code> / <code>config@interpolation</code> overrides are read at interpolation instead of being copied onto the scenario and ignored.</li>
-<li>The <code>costs</code> class is wired: it had no dispatching <code>ob2mi</code> method, no callers for its compiler, a missing <code>defVal</code> slot, a broken list form of <code>subset =</code>, and a recipe that ran before the maps it consumes existed. User cost terms now reach the objective via <code>eqTotalUserCosts</code>.</li>
-<li>An unknown summand field in <code><a href="../reference/newConstraint.html">newConstraint()</a></code> is an error instead of being dropped — it quietly turned a per-technology cap into a global one.</li>
-<li>A storage flow into a coarser-timeframe commodity reaches the balance; the totals summed only at identical timeslices.</li>
-<li>A one-sided <code>inp2out</code> or <code>duration</code> range no longer resurrects the binding default of 1 on its open side, which made <code>inp2out.lo = 2</code> infeasible.</li>
-<li>A supply restricted to one region no longer leaks into every other region.</li>
-<li>Multi-level regions were inert — the hierarchy was read under the old <code>parent_level</code> / <code>child_level</code> column names.</li>
-<li>A cost declared at a coarser geoscale level never reached the objective.</li>
-<li>
-<code>add()</code> on a model worked exactly once.</li>
-<li>A scalar <code>mult</code> on a custom constraint summand was silently discarded.</li>
-<li>Exogenous stock could phase out and retire at the same time; <code>capacity$stock</code> reads as the fleet still standing.</li>
-<li>Trade phase-out is reported, not only computed; GAMS declares retirement non-negative.</li>
-<li>A moved scenario folder loads: stored paths are rebased onto the folder being read.</li>
+<ul><li><p>A user <code>constraint</code> whose <code>for.each</code> years all fall outside the solved horizon is dropped with a warning instead of generating unusable solver code. Its equation was still declared over an index domain the horizon filter had emptied, and JuMP rejected the dangling reference (“Unexpected error parsing reference set: eqCns<name>”).</name></p></li>
+<li><p>A <code>supply</code> at a commodity’s coarse <code>@geoframe</code> level was silently costless: <code>mSupSpan</code> intersected with the atoms instead of spanning the commodity’s balance regions, leaving a free <code>vOutTot</code> cell, empty <code>vSupCost</code> and an objective of 0. Cost-aggregation maps are also built after wildcard unfolding. Rest-of-world import/export at a coarse level are refused loudly.</p></li>
+<li><p><code><a href="../reference/newCommodity.html">newCommodity()</a></code> without <code>timeframe =</code> no longer crashes interpolation; the empty slot resolves to the calendar’s finest timeframe.</p></li>
+<li><p><code>add(mod, x, overwrite = TRUE)</code> replaces an object of the same class and name instead of appending a duplicate next to it; without <code>overwrite</code> the collision is an error.</p></li>
+<li><p>Calendar chronology follows the timetable’s row order. <code>.complete_calendar()</code> ordered mid-level timeslices alphabetically, so <code>@next_in_year</code> mis-chained any vocabulary that does not collate chronologically.</p></li>
+<li><p>On-disk parameter stores no longer default to CSV; they follow <code>storage_format</code>. Existing CSV stores keep loading.</p></li>
+<li><p>A parameter write-back could make its store unreadable — both write-back paths re-derived the codec from a directory listing that knew only parquet-or-csv, writing CSV beside <code>.arrow</code> files. The store’s recorded format is now authoritative.</p></li>
+<li><p>An atomic (single-column) slot was always written as CSV, mixing codecs inside a store.</p></li>
+<li><p><code>import_format = "parquet"</code> returned an empty scenario silently: R looked for <code>output/&lt;var&gt;.parquet</code> while both backends wrote <code>.arrow</code>. Pyomo honours parquet on both legs; Julia refuses it at write time.</p></li>
+<li><p>Tables with no rows are no longer written — on a UTOPIA-size model roughly two thirds of the tables are empty.</p></li>
+<li><p><code><a href="../reference/obj2mem.html">obj2mem()</a></code> is quiet by default and reports a progress bar instead of one path per table; <code>verbose</code> is now passed down the recursion, so a top-level <code>verbose = FALSE</code> is no longer lost on nested objects.</p></li>
+<li><p><code><a href="../reference/subset_model_regions.html">subset_model_regions()</a></code> reports one summary line — regions kept, objects and routes dropped — instead of a message per item; <code>verbose = TRUE</code> lists them.</p></li>
+<li><p>Interpolation no longer re-deduplicates a parameter’s whole table on every object that writes to it, making that stage linear rather than quadratic. On a 6-region full-year model (53M rows) the object stage went 3m01s → 1m19s. Set <code>options(en.bulk_param_write = FALSE)</code> for the previous path.</p></li>
+<li><p>The process/commodity level check no longer refuses models whose objects span many regions (a data.table join-size refusal).</p></li>
+<li><p>Conflicting-bounds detection names the parameter again instead of dying on “comparison of these types is not implemented”.</p></li>
+<li><p><code>force_cols_classes()</code> tested the data.frame instead of the column, re-coercing every year and character column on every write.</p></li>
+<li><p>Variant expansion respects <code>verbose</code>; because <code>verbose</code> defaults to off, the generated-constraint and variant-expansion messages no longer appear by default. When shown, constraints are counted by family rather than listed.</p></li>
+<li><p><code><a href="../reference/get_region.html">get_region()</a></code> returns a model’s declared regions — a model carries them on <code>@config</code>, which the reflective walk missed.</p></li>
+<li><p><code><a href="../reference/load_scenario.html">load_scenario()</a></code> on a saved-but-never-solved scenario no longer warns about rebasing on-disk paths.</p></li>
+<li><p><code><a href="../reference/getData.html">getData()</a></code> no longer returns an empty frame for a scenario whose solve was not proven optimal: a stored incumbent is served with a warning naming the stage.</p></li>
+<li><p><code>solve_scenario(transient = TRUE)</code> deletes the throwaway solver directory.</p></li>
+<li><p><code><a href="../reference/levcost.html">levcost()</a></code>’s mini-models solve in a scratch dir instead of creating scenario folders that <code><a href="../reference/registry.html">refresh_registry()</a></code> indexed as real scenarios.</p></li>
+<li><p><code>inp.eac</code> / <code>stg.eac</code> give a storage part its own capacity — they priced the charging or storing part without bounding it, so it came out free.</p></li>
+<li><p><code>inp.fixom</code> / <code>stg.fixom</code> reach the objective; a storage priced only on its charger or reservoir paid no fixed O&amp;M.</p></li>
+<li><p><code>eqTechPhaseOut</code> / <code>eqStoragePhaseOut</code> are gated on <code>mTechNew</code> / <code>mStorageNew</code>: a phaseout window past the investment window crashed Pyomo and left a stray free variable elsewhere. Objectives unchanged.</p></li>
+<li><p><code>scenario@status$solved</code> is set when the solution is read; it had no writer and stayed <code>FALSE</code> after an optimal solve.</p></li>
+<li><p>Per-part <code>inp.</code> / <code>stg.</code> <code>wacc</code> and <code>payback</code> are honoured; the annuity always read the <code>out.*</code> columns.</p></li>
+<li><p><code>technology@af$rampup</code> / <code>$rampdown</code> reach the solver — the parameter catalogue named slots that do not exist. Two template defects surfaced with them and are fixed on all four backends: <code>cap2act</code> was applied twice, and the Up/Down equations were orientation-swapped.</p></li>
+<li><p>Per-column <code>config@defVal</code> / <code>config@interpolation</code> overrides are read at interpolation instead of being copied onto the scenario and ignored.</p></li>
+<li><p>The <code>costs</code> class is wired: it had no dispatching <code>ob2mi</code> method, no callers for its compiler, a missing <code>defVal</code> slot, a broken list form of <code>subset =</code>, and a recipe that ran before the maps it consumes existed. User cost terms now reach the objective via <code>eqTotalUserCosts</code>.</p></li>
+<li><p>An unknown summand field in <code><a href="../reference/newConstraint.html">newConstraint()</a></code> is an error instead of being dropped — it quietly turned a per-technology cap into a global one.</p></li>
+<li><p>A storage flow into a coarser-timeframe commodity reaches the balance; the totals summed only at identical timeslices.</p></li>
+<li><p>A one-sided <code>inp2out</code> or <code>duration</code> range no longer resurrects the binding default of 1 on its open side, which made <code>inp2out.lo = 2</code> infeasible.</p></li>
+<li><p>A supply restricted to one region no longer leaks into every other region.</p></li>
+<li><p>Multi-level regions were inert — the hierarchy was read under the old <code>parent_level</code> / <code>child_level</code> column names.</p></li>
+<li><p>A cost declared at a coarser geoscale level never reached the objective.</p></li>
+<li><p><code>add()</code> on a model worked exactly once.</p></li>
+<li><p>A scalar <code>mult</code> on a custom constraint summand was silently discarded.</p></li>
+<li><p>Exogenous stock could phase out and retire at the same time; <code>capacity$stock</code> reads as the fleet still standing.</p></li>
+<li><p>Trade phase-out is reported, not only computed; GAMS declares retirement non-negative.</p></li>
+<li><p>A moved scenario folder loads: stored paths are rebased onto the folder being read.</p></li>
 </ul></div>
 <div class="section level3">
 <h3 id="documentation-development-version">Documentation<a class="anchor" aria-label="anchor" href="#documentation-development-version"></a></h3>

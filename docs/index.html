@@ -35,7 +35,7 @@
 
     <a class="navbar-brand me-2" href="index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.1.9003</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.2.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -216,10 +216,31 @@
 <span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"optimal2050/energyRt"</span><span class="op">)</span></span></code></pre></div>
 <p>To reproduce <strong>pre-2026 models</strong>, install the frozen legacy release instead: <code>pak::pkg_install("optimal2050/energyRt@v0.50")</code>.</p>
 <p>You will need at least one solver backend. On Windows, <strong>GLPK ships with Rtools</strong> — no extra setup. For Julia/JuMP, Python/Pyomo, or GAMS see the <a href="https://energyrt.org/articles/install.html" class="external-link">installation article</a> and the <a href="https://energyrt.org/articles/backends.html" class="external-link">solver backends article</a>.</p>
+<p>Geoscale features (<code><a href="reference/utopia_geoscale.html">utopia_geoscale()</a></code>, <code><a href="reference/plot_geoscale.html">plot_geoscale()</a></code>, multi-level regions) need the sibling package, which is not on CRAN:</p>
+<div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pkg_install.html" class="external-link">pkg_install</a></span><span class="op">(</span><span class="st">"optimal2050/geoscales"</span><span class="op">)</span></span></code></pre></div>
+<div class="section level3">
+<h3 id="start-here">Start here<a class="anchor" aria-label="anchor" href="#start-here"></a>
+</h3>
+<ol style="list-style-type: decimal">
+<li>Install R and, on Windows, <strong>Rtools</strong> — it bundles <code>glpsol</code>, so GLPK is ready with no further setup and is the right backend for every small model.</li>
+<li>Install energyRt (above), then <code><a href="https://energyRt.org">library(energyRt); en_setup()</a></code> and <code><a href="reference/en_check.html">en_check_dependencies()</a></code> to see what is green.</li>
+<li>Run the <strong>Quickstart</strong> above — one fuel, one plant, one demand, solved and read in ~20 lines.</li>
+<li>
+<a href="https://energyrt.org/articles/energyRt.html" class="external-link">Get started</a> — the same model, explained.</li>
+<li>
+<a href="https://energyrt.org/articles/model-bricks.html" class="external-link">Model bricks</a> → <a href="https://energyrt.org/articles/units.html" class="external-link">Units</a> → <a href="https://energyrt.org/articles/time-resolution.html" class="external-link">Time resolution</a> — what the objects are and how they fit together.</li>
+<li>
+<a href="https://energyrt.org/articles/utopia-build.html" class="external-link">UTOPIA I: building the model</a> → <a href="https://energyrt.org/articles/utopia-use.html" class="external-link">UTOPIA II: running scenarios</a> — a full multi-region model and its scenario levers.</li>
+<li>
+<a href="https://energyrt.org/articles/workflow.html" class="external-link">Workflow</a> and <a href="https://energyrt.org/articles/scenario-management.html" class="external-link">Scenario management</a> — saving models, recorded runs, variants.</li>
+<li>Add a second backend only when models grow: <strong>julia/HiGHS</strong> for mid-size, hourly, full-year and sampled runs.</li>
+</ol>
+</div>
 <div class="section level3">
 <h3 id="development-status">Development status<a class="anchor" aria-label="anchor" href="#development-status"></a>
 </h3>
-<p>The current development line (<strong>v0.60.x</strong>) modernizes the interpolation pipeline, scenario storage, and analysis tools (<code>levcost</code>, <code>report</code>, <code>autoplot</code>) on the way to <strong>v1.0</strong>. The <strong>v0.50</strong> release (<em>“half-way-there”</em>) is frozen and remains available for pre-2026 modeling projects; its model code, classes and methods will receive fixes only.</p>
+<p>The current development line (<strong>v0.89.x</strong>) modernizes the interpolation pipeline, scenario storage, and analysis tools (<code>levcost</code>, <code>report</code>, <code>autoplot</code>) on the way to <strong>v1.0</strong>. The <strong>v0.50</strong> release (<em>“half-way-there”</em>) is frozen and remains available for pre-2026 modeling projects; its model code, classes and methods will receive fixes only.</p>
 <p>The package website: <a href="https://energyrt.org" class="external-link uri">https://energyrt.org</a></p>
 </div>
 </div>

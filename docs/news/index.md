@@ -273,117 +273,162 @@
 
 ### Bug fixes
 
+- A user `constraint` whose `for.each` years all fall outside the solved
+  horizon is dropped with a warning instead of generating unusable
+  solver code. Its equation was still declared over an index domain the
+  horizon filter had emptied, and JuMP rejected the dangling reference
+  (“Unexpected error parsing reference set: eqCns”).
+
 - A `supply` at a commodity’s coarse `@geoframe` level was silently
   costless: `mSupSpan` intersected with the atoms instead of spanning
   the commodity’s balance regions, leaving a free `vOutTot` cell, empty
   `vSupCost` and an objective of 0. Cost-aggregation maps are also built
   after wildcard unfolding. Rest-of-world import/export at a coarse
   level are refused loudly.
+
 - [`newCommodity()`](https://energyRt.org/reference/newCommodity.md)
   without `timeframe =` no longer crashes interpolation; the empty slot
   resolves to the calendar’s finest timeframe.
+
 - `add(mod, x, overwrite = TRUE)` replaces an object of the same class
   and name instead of appending a duplicate next to it; without
   `overwrite` the collision is an error.
+
 - Calendar chronology follows the timetable’s row order.
   `.complete_calendar()` ordered mid-level timeslices alphabetically, so
   `@next_in_year` mis-chained any vocabulary that does not collate
   chronologically.
+
 - On-disk parameter stores no longer default to CSV; they follow
   `storage_format`. Existing CSV stores keep loading.
+
 - A parameter write-back could make its store unreadable — both
   write-back paths re-derived the codec from a directory listing that
   knew only parquet-or-csv, writing CSV beside `.arrow` files. The
   store’s recorded format is now authoritative.
+
 - An atomic (single-column) slot was always written as CSV, mixing
   codecs inside a store.
+
 - `import_format = "parquet"` returned an empty scenario silently: R
   looked for `output/<var>.parquet` while both backends wrote `.arrow`.
   Pyomo honours parquet on both legs; Julia refuses it at write time.
+
 - Tables with no rows are no longer written — on a UTOPIA-size model
   roughly two thirds of the tables are empty.
+
 - [`obj2mem()`](https://energyRt.org/reference/obj2mem.md) is quiet by
   default and reports a progress bar instead of one path per table;
   `verbose` is now passed down the recursion, so a top-level
   `verbose = FALSE` is no longer lost on nested objects.
+
 - [`subset_model_regions()`](https://energyRt.org/reference/subset_model_regions.md)
   reports one summary line — regions kept, objects and routes dropped —
   instead of a message per item; `verbose = TRUE` lists them.
+
 - Interpolation no longer re-deduplicates a parameter’s whole table on
   every object that writes to it, making that stage linear rather than
   quadratic. On a 6-region full-year model (53M rows) the object stage
   went 3m01s → 1m19s. Set `options(en.bulk_param_write = FALSE)` for the
   previous path.
+
 - The process/commodity level check no longer refuses models whose
   objects span many regions (a data.table join-size refusal).
+
 - Conflicting-bounds detection names the parameter again instead of
   dying on “comparison of these types is not implemented”.
+
 - `force_cols_classes()` tested the data.frame instead of the column,
   re-coercing every year and character column on every write.
+
 - Variant expansion respects `verbose`; because `verbose` defaults to
   off, the generated-constraint and variant-expansion messages no longer
   appear by default. When shown, constraints are counted by family
   rather than listed.
+
 - [`get_region()`](https://energyRt.org/reference/get_region.md) returns
   a model’s declared regions — a model carries them on `@config`, which
   the reflective walk missed.
+
 - [`load_scenario()`](https://energyRt.org/reference/load_scenario.md)
   on a saved-but-never-solved scenario no longer warns about rebasing
   on-disk paths.
+
 - [`getData()`](https://energyRt.org/reference/getData.md) no longer
   returns an empty frame for a scenario whose solve was not proven
   optimal: a stored incumbent is served with a warning naming the stage.
+
 - `solve_scenario(transient = TRUE)` deletes the throwaway solver
   directory.
+
 - [`levcost()`](https://energyRt.org/reference/levcost.md)’s mini-models
   solve in a scratch dir instead of creating scenario folders that
   [`refresh_registry()`](https://energyRt.org/reference/registry.md)
   indexed as real scenarios.
+
 - `inp.eac` / `stg.eac` give a storage part its own capacity — they
   priced the charging or storing part without bounding it, so it came
   out free.
+
 - `inp.fixom` / `stg.fixom` reach the objective; a storage priced only
   on its charger or reservoir paid no fixed O&M.
+
 - `eqTechPhaseOut` / `eqStoragePhaseOut` are gated on `mTechNew` /
   `mStorageNew`: a phaseout window past the investment window crashed
   Pyomo and left a stray free variable elsewhere. Objectives unchanged.
+
 - `scenario@status$solved` is set when the solution is read; it had no
   writer and stayed `FALSE` after an optimal solve.
+
 - Per-part `inp.` / `stg.` `wacc` and `payback` are honoured; the
   annuity always read the `out.*` columns.
+
 - `technology@af$rampup` / `$rampdown` reach the solver — the parameter
   catalogue named slots that do not exist. Two template defects surfaced
   with them and are fixed on all four backends: `cap2act` was applied
   twice, and the Up/Down equations were orientation-swapped.
+
 - Per-column `config@defVal` / `config@interpolation` overrides are read
   at interpolation instead of being copied onto the scenario and
   ignored.
+
 - The `costs` class is wired: it had no dispatching `ob2mi` method, no
   callers for its compiler, a missing `defVal` slot, a broken list form
   of `subset =`, and a recipe that ran before the maps it consumes
   existed. User cost terms now reach the objective via
   `eqTotalUserCosts`.
+
 - An unknown summand field in
   [`newConstraint()`](https://energyRt.org/reference/newConstraint.md)
   is an error instead of being dropped — it quietly turned a
   per-technology cap into a global one.
+
 - A storage flow into a coarser-timeframe commodity reaches the balance;
   the totals summed only at identical timeslices.
+
 - A one-sided `inp2out` or `duration` range no longer resurrects the
   binding default of 1 on its open side, which made `inp2out.lo = 2`
   infeasible.
+
 - A supply restricted to one region no longer leaks into every other
   region.
+
 - Multi-level regions were inert — the hierarchy was read under the old
   `parent_level` / `child_level` column names.
+
 - A cost declared at a coarser geoscale level never reached the
   objective.
+
 - `add()` on a model worked exactly once.
+
 - A scalar `mult` on a custom constraint summand was silently discarded.
+
 - Exogenous stock could phase out and retire at the same time;
   `capacity$stock` reads as the fleet still standing.
+
 - Trade phase-out is reported, not only computed; GAMS declares
   retirement non-negative.
+
 - A moved scenario folder loads: stored paths are rebased onto the
   folder being read.
 
