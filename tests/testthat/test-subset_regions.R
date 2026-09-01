@@ -117,7 +117,9 @@ test_that("boundary-crossing trade routes are dropped with a message", {
       geoscales::filter_geoscale(gs, "region", c("R1", "R2"),
                                  drop_empty_geoframes = TRUE),
       ondisk = FALSE)),
-    "dropping trade route")
+    # dropped content is reported ONCE at the end; `verbose = TRUE` names each
+    # route instead (R/sample_region.R)
+    "trade route\\(s\\) outside the sample")
   expect_false("TR23" %in% as.character(scen@modInp@sets$trade))
 })
 

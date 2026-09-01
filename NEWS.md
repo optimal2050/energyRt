@@ -175,6 +175,12 @@
 
 ## Bug fixes
 
+* A user `constraint` whose `for.each` years all fall outside the solved
+  horizon is dropped with a warning instead of generating unusable solver
+  code. Its equation was still declared over an index domain the horizon
+  filter had emptied, and JuMP rejected the dangling reference
+  ("Unexpected error parsing reference set: eqCns<name>").
+
 * A `supply` at a commodity's coarse `@geoframe` level was silently costless:
   `mSupSpan` intersected with the atoms instead of spanning the commodity's
   balance regions, leaving a free `vOutTot` cell, empty `vSupCost` and an

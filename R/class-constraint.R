@@ -453,6 +453,35 @@ addSummand <- function(
 # stm <- add0_message$add0_arg$app
 # approxim <- add0_message$add0_arg$approxim
 
+# Report a constraint that has been dropped because the horizon filter left its
+# `for.each` domain empty. Names the constraint, what it asked for, and what the
+# model offers, so the user can widen the horizon or delete the constraint.
+.drop_unbinding_constraint <- function(stm, for_each, prec) {
+  detail <- ""
+  if (!is.null(for_each$year)) {
+    model_years <- sort(unique(prec@parameters[["mMidMilestone"]]@data$year))
+    detail <- paste0(
+      " Its year(s) ", .collapse_values(sort(unique(for_each$year))),
+      " are outside the model horizon (",
+      .collapse_values(model_years), ")."
+    )
+  }
+  warning(
+    "Constraint \"", stm@name, "\" cannot bind in this scenario and has been ",
+    "dropped.", detail,
+    call. = FALSE
+  )
+  invisible(NULL)
+}
+
+# Compact vector for messages: "2020", "2020, 2025", "2020, 2025, ... 2050".
+.collapse_values <- function(x) {
+  if (length(x) <= 4) {
+    return(paste0(x, collapse = ", "))
+  }
+  paste0(paste0(x[1:3], collapse = ", "), ", ... ", x[length(x)])
+}
+
 # Calculate do equation need additional set, and add it
 .getSetEquation <- function(prec, stm, approxim) {
 
@@ -807,6 +836,8 @@ addSummand <- function(
     }
     stm@for.each <- tmp_fe
   }
+  # kept for the diagnostic below: the requested domain, before horizon filtering
+  fe_before_horizon <- stm@for.each
   if (!is.null(stm@for.each$year)) {
     stm@for.each <- stm@for.each[stm@for.each$year %in% prec@parameters[["mMidMilestone"]]@data$year, , drop = FALSE]
     if (any(all.set$lag.year)) {
@@ -815,6 +846,16 @@ addSummand <- function(
     if (any(all.set$lead.year)) {
       stm@for.each <- stm@for.each[stm@for.each$year %in% prec@parameters[["mMilestoneHasNext"]]@data$year, , drop = FALSE]
     }
+  }
+  # An indexed equation whose `for.each` domain was emptied by the horizon
+  # filter above cannot bind on anything. The `mCnsForEach` guard below is
+  # written only for a non-empty domain, so keeping the constraint would leave
+  # `eqCns<name>(...)` declared over a domain that is never defined, and the
+  # backends emit that as a reference to a non-existent set. Drop it instead.
+  if (nrow(stm@for.each) == 0 && length(old_for_each) > 0) {
+    .drop_unbinding_constraint(stm, fe_before_horizon, prec)
+    if (length(set.map) > 0) prec@parameters[new.map.name] <- NULL
+    return(prec)
   }
   if (nrow(stm@for.each) > 0) {
     nmn <- paste0("mCnsForEach", stm@name)
