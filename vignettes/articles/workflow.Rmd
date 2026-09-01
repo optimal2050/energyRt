@@ -375,6 +375,60 @@ model's own hierarchy) requests a full-territory solve at the parent
 level instead; that requires aggregating the model's data
 (`aggregate_model_regions()`) and is not implemented yet.
 
+
+## A trade window instead of a flat price
+
+A stub priced with a single number is a perfectly elastic counterparty: the
+region can buy or sell any amount the bound allows without moving the price.
+For supply-curve work that is usually too generous. `boundary_window()` builds
+a **stepped curve** instead — a rising cost of imports, a falling revenue on
+exports — and sizes its quantity from the region's own demand:
+
+```{r boundary-window}
+bw <- boundary_window(m3, regions = c("R1", "R2"),
+                      share = 0.1, nsteps = 3, price = 40)
+head(bw, 2)
+```
+
+`share = 0.1` caps the boundary at 10% of the region's demand **in each
+timeslice**, which is where the import/export bound lives; summed over the year
+that is 10% of annual demand. The window deliberately refuses to guess a price
+— it can size the quantity from the model, but what the neighbours would charge
+is a judgement, so `price` is required.
+
+The result is an ordinary `boundary_prices` table with three extra columns
+(`nsteps`, `price_lo`, `price_hi`), so it goes where a flat one goes; omit them
+and you get exactly the flat stub as before.
+
+```{r boundary-window-stub}
+m12w <- subset_model_regions(m3, c("R1", "R2"), boundary_prices = bw)
+stub <- m12w@data[["boundary_stubs"]]@data[[1]]
+as.data.frame(stub@cluster)[, c("cluster", "share", "order")]
+```
+
+## Region by region
+
+`solve_by_region()` runs the whole sweep — one region at a time by default, or
+one group at a time — storing each as a variant of a single scenario:
+
+```{r solve-by-region, eval = FALSE}
+br <- solve_by_region(m3, name = "sweep")           # autarky
+br <- solve_by_region(m3, name = "sweep_w",         # with a trade window
+                      trade = "auto", price = 40, share = 0.1)
+br$runs
+getData(br, "vTechCap", merge = TRUE)               # stacked, region column
+```
+
+With `trade = "none"` the regions are disjoint and nothing crosses, so the
+per-region objectives **add up** to the full model's — the same property the
+sample objectives have above. Any trade window breaks it: each region then
+faces an exterior the others cannot see. `br$additive` records which case you
+are in, and `print()` says so rather than leaving it to be discovered.
+
+`on_error = "continue"` keeps the sweep going past a region that fails to
+solve, which matters at 30-odd regions: a single infeasible one should not cost
+you the rest.
+
 # See also
 
 * **Model bricks** and **UTOPIA I** — building the objects and the model.

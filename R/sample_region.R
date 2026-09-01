@@ -310,6 +310,7 @@ subset_model_regions <- function(mod, region, boundary_prices = NULL,
   mk_rows <- function(kind) {
     reg <- if (kind == "imp") dst else src
     up_col <- paste0(kind, ".up")
+    lo_col <- paste0(kind, ".lo")
     rows <- data.frame(region = reg,
                        year = as.integer(bp$year %||% NA_integer_),
                        timeslice = as.character(bp$timeslice %||%
@@ -332,10 +333,14 @@ subset_model_regions <- function(mod, region, boundary_prices = NULL,
       message("boundary stub ", src, "->", dst, ": no cap.up and no route ",
               "ava.up -- the stub is priced but UNBOUNDED")
     }
+    # the lower side of the window: a minimum contracted flow
+    lo_src <- if (lo_col %in% names(bp)) bp[[lo_col]] else
+      if ("cap.lo" %in% names(bp)) bp$cap.lo else NULL
+    if (!is.null(lo_src) && any(!is.na(lo_src))) rows[[lo_col]] <- lo_src
     rows
   }
 
-  if (kept_end == "dst") {
+  stub <- if (kept_end == "dst") {
     newImport(name = paste0("IMP_", trd@name, "_", src, "2", dst),
               desc = paste0("boundary import stub for dropped route ",
                             src, " -> ", dst, " of ", trd@name),
@@ -348,6 +353,33 @@ subset_model_regions <- function(mod, region, boundary_prices = NULL,
               commodity = trd@commodity,
               export = mk_rows("exp"))
   }
+
+  # A stepped price curve instead of a flat price, when the window asks for one.
+  # The exterior then has a rising cost of imports / falling revenue on exports
+  # rather than being an infinitely elastic price taker. `asImportCurve()`
+  # refuses an unbounded object and enforces the direction, so both are checked
+  # for us -- but the range must be handed over in the right order: ASCENDING
+  # for an import, DESCENDING for an export (export revenue is a negative cost,
+  # so a rising curve would not be convex).
+  .n <- suppressWarnings(as.integer((bp$nsteps %||% NA)[1]))
+  .plo <- suppressWarnings(as.numeric((bp$price_lo %||% NA)[1]))
+  .phi <- suppressWarnings(as.numeric((bp$price_hi %||% NA)[1]))
+  if (!is.na(.n) && .n > 1L && !is.na(.plo) && !is.na(.phi)) {
+    rng <- if (kept_end == "dst") c(.plo, .phi) else c(.phi, .plo)
+    stub <- tryCatch({
+      if (kept_end == "dst") {
+        asImportCurve(stub, range = rng, nsteps = .n)
+      } else {
+        asExportCurve(stub, range = rng, nsteps = .n)
+      }
+    }, error = function(e) {
+      warning("boundary stub ", src, "->", dst, ": could not build a ",
+              .n, "-step price curve (", conditionMessage(e),
+              "); falling back to the flat price.", call. = FALSE)
+      stub
+    })
+  }
+  stub
 }
 
 # Filter interpolated VALUE parameters to the scenario's DECLARED regions --
@@ -377,4 +409,218 @@ subset_model_regions <- function(mod, region, boundary_prices = NULL,
     scen <- .interp_write_param(scen, pn, new_data)
   }
   scen
+}
+
+# =========================================================================== #
+# The boundary trade WINDOW.
+#
+# A dropped route can be replaced by a priced import/export stub at the kept
+# endpoint (see .boundary_stub()). A flat price gives the exterior infinite
+# elasticity; the window below builds a stepped curve instead -- a rising cost
+# of imports, a falling revenue on exports -- sized from the region's demand.
+#
+# The bound is per timeslice, not an annual budget. An annual per-region cap
+# cannot be expressed: `@reserve` is an all-region horizon total, and
+# `newConstraint()` collapses the region dimension when interpolating its RHS.
+# A per-timeslice bound lands on `pImportRowUp`, and applied to each slice's
+# own demand it sums over the year to `share` x annual demand.
+# =========================================================================== #
+
+# The demand profile of a model, summed over every demand object, at the
+# resolution it was DECLARED. `NA` region is a wildcard broadcast across
+# `regions`; `NA` timeslice is left as-is (it means "every slice" and is
+# resolved by interpolation, not here).
+#' @noRd
+.region_demand_profile <- function(mod, regions = NULL) {
+  stopifnot(is(mod, "model"))
+  if (is.null(regions)) regions <- as.character(mod@config@region)
+  regions <- as.character(regions)
+  out <- list()
+  for (rp in names(mod@data)) {
+    repo <- mod@data[[rp]]
+    if (!isS4(repo)) next
+    for (nm in names(repo@data)) {
+      o <- repo@data[[nm]]
+      if (!is(o, "demand")) next
+      d <- as.data.frame(o@demand)
+      if (!nrow(d) || !"demand" %in% names(d)) next
+      d <- d[!is.na(d$demand), , drop = FALSE]
+      if (!nrow(d)) next
+      if (!"region" %in% names(d)) d$region <- NA_character_
+      if (!"year" %in% names(d)) d$year <- NA_integer_
+      if (!"timeslice" %in% names(d)) d$timeslice <- NA_character_
+      # a region-less row applies to every region the object is declared for,
+      # falling back to the sample
+      wild <- is.na(d$region)
+      if (any(wild)) {
+        own <- as.character(o@region)
+        tgt <- if (length(own)) intersect(own, regions) else regions
+        if (length(tgt)) {
+          rep_rows <- d[rep(which(wild), each = length(tgt)), , drop = FALSE]
+          rep_rows$region <- rep(tgt, times = sum(wild))
+          d <- rbind(d[!wild, , drop = FALSE], rep_rows)
+        } else {
+          d <- d[!wild, , drop = FALSE]
+        }
+      }
+      d <- d[d$region %in% regions, , drop = FALSE]
+      if (!nrow(d)) next
+      out[[length(out) + 1L]] <- data.frame(
+        region = as.character(d$region), year = as.integer(d$year),
+        timeslice = as.character(d$timeslice),
+        demand = as.numeric(d$demand), stringsAsFactors = FALSE)
+    }
+  }
+  if (!length(out)) {
+    return(data.frame(region = character(0), year = integer(0),
+                      timeslice = character(0), demand = numeric(0),
+                      stringsAsFactors = FALSE))
+  }
+  res <- do.call(rbind, out)
+  # NOT stats::aggregate(): it drops every row whose grouping variable is NA,
+  # and `year`/`timeslice` are legitimately NA on a demand that applies to the
+  # whole horizon and every slice -- the most common declaration shape.
+  as.data.frame(dplyr::summarise(
+    res, demand = sum(.data$demand, na.rm = TRUE),
+    .by = c("region", "year", "timeslice")))
+}
+
+# Annualised demand per (region, year): each declared row weighted by its own
+# timeslice weight, which is 1 on a full calendar and 1/year_fraction on a
+# sampled one. Verified against `sum(pDemand * pTimesliceWeight)` of the
+# interpolated scenario -- see test-region-window.R.
+#' @noRd
+.region_annual_demand <- function(mod, regions = NULL, calendar = NULL) {
+  prof <- .region_demand_profile(mod, regions)
+  if (!nrow(prof)) {
+    return(data.frame(region = character(0), year = integer(0),
+                      demand = numeric(0), stringsAsFactors = FALSE))
+  }
+  cal <- calendar %||% tryCatch(mod@config@calendar, error = function(e) NULL)
+  w <- 1
+  if (!is.null(cal) && is(cal, "calendar")) {
+    ts <- as.data.frame(cal@timeslice_share)
+    wv <- stats::setNames(as.numeric(ts$weight), as.character(ts$timeslice))
+    w <- unname(wv[as.character(prof$timeslice)])
+    w[is.na(w)] <- 1                 # NA timeslice, or a slice not in the map
+  }
+  prof$demand <- prof$demand * w
+  as.data.frame(dplyr::summarise(
+    prof, demand = sum(.data$demand, na.rm = TRUE),
+    .by = c("region", "year")))
+}
+
+#' A generic boundary trade window
+#'
+#' @description
+#' Builds a `boundary_prices` table for [subset_model_regions()] /
+#' [solve_by_region()] sized from the model's own demand: each severed route is
+#' replaced by a stepped import or export curve whose total quantity is
+#' `share` of the region's demand in that timeslice.
+#'
+#' The quantity is sized from the model's own demand; the price is taken from
+#' `price` and is not estimated from the model. Inspect and edit the returned
+#' data.frame before use, or supply your own.
+#'
+#' @details
+#' The bound is applied **per timeslice** (`share * demand[r, y, s]`), which is
+#' where `pImportRowUp` lives. Summed over the year that is `share` of annual
+#' demand, so the familiar "trade is at most 10% of consumption" reading holds
+#' without needing an annual budget — which could not be expressed correctly
+#' anyway (a per-region reserve does not exist, and a constraint RHS averages
+#' across regions).
+#'
+#' @param mod a model object.
+#' @param regions character, the regions being solved (the sample). Routes are
+#'   priced at whichever endpoint is inside this set.
+#' @param share numeric in `(0, 1]`, the fraction of a region's demand the
+#'   boundary may supply or absorb. `0.1` by default.
+#' @param nsteps integer, steps in the price curve; `1` gives a flat price.
+#' @param price numeric, the reference price. With `nsteps > 1` the curve spans
+#'   `price * (1 +/- spread)`, rising for imports and falling for exports.
+#' @param spread numeric, the half-width of the curve as a fraction of `price`.
+#' @param routes optional `data.frame(src, dst)` limiting which routes get a
+#'   window; by default every route leaving the sample.
+#'
+#' @return a `data.frame` with the `boundary_prices` columns — `src`, `dst`,
+#'   `price`, `cap.up`, and the curve columns `nsteps`, `price_lo`, `price_hi`.
+#' @seealso [subset_model_regions()], [solve_by_region()], [asImportCurve()]
+#' @export
+boundary_window <- function(mod, regions, share = 0.1, nsteps = 3,
+                            price = NULL, spread = 0.5, routes = NULL) {
+  stopifnot(is(mod, "model"))
+  if (!is.numeric(share) || length(share) != 1L || is.na(share) ||
+      share <= 0 || share > 1) {
+    stop("`share` must be one number in (0, 1].", call. = FALSE)
+  }
+  if (is.null(price) || !is.numeric(price) || is.na(price[1])) {
+    stop("`boundary_window()` needs a reference `price`: the generic window ",
+         "sizes the QUANTITY from demand but cannot invent a price. Pass ",
+         "`price =`, or use trade = \"none\" for an autarky run.",
+         call. = FALSE)
+  }
+  regions <- as.character(regions)
+  price <- as.numeric(price)[1]
+  nsteps <- max(1L, as.integer(nsteps))
+
+  # every route with exactly one endpoint in the sample
+  rr <- routes
+  if (is.null(rr)) {
+    rows <- list()
+    for (rp in names(mod@data)) {
+      repo <- mod@data[[rp]]
+      if (!isS4(repo)) next
+      for (nm in names(repo@data)) {
+        o <- repo@data[[nm]]
+        if (!is(o, "trade")) next
+        rt <- as.data.frame(o@routes)
+        if (!nrow(rt)) next
+        cross <- xor(rt$src %in% regions, rt$dst %in% regions)
+        if (any(cross)) {
+          rows[[length(rows) + 1L]] <- data.frame(
+            src = as.character(rt$src[cross]),
+            dst = as.character(rt$dst[cross]),
+            stringsAsFactors = FALSE)
+        }
+      }
+    }
+    rr <- if (length(rows)) unique(do.call(rbind, rows)) else NULL
+  }
+  if (is.null(rr) || !nrow(rr)) {
+    return(data.frame(src = character(0), dst = character(0),
+                      price = numeric(0), cap.up = numeric(0),
+                      nsteps = integer(0), price_lo = numeric(0),
+                      price_hi = numeric(0), stringsAsFactors = FALSE))
+  }
+
+  # the bound: `share` of the kept endpoint's demand, per timeslice
+  prof <- .region_demand_profile(mod, regions)
+  out <- list()
+  for (i in seq_len(nrow(rr))) {
+    src <- as.character(rr$src[i])
+    dst <- as.character(rr$dst[i])
+    kept <- if (dst %in% regions) dst else src
+    imp <- identical(kept, dst)
+    dd <- prof[prof$region == kept, , drop = FALSE]
+    if (!nrow(dd)) {
+      # no declared demand to size against: skip rather than invent a bound
+      next
+    }
+    # one row per (year, timeslice) the region declares demand for
+    lo <- if (imp) price else price * (1 - spread)
+    hi <- if (imp) price * (1 + spread) else price
+    out[[length(out) + 1L]] <- data.frame(
+      src = src, dst = dst,
+      year = dd$year, timeslice = dd$timeslice,
+      price = price, cap.up = share * dd$demand,
+      nsteps = nsteps, price_lo = lo, price_hi = hi,
+      stringsAsFactors = FALSE)
+  }
+  if (!length(out)) {
+    return(data.frame(src = character(0), dst = character(0),
+                      price = numeric(0), cap.up = numeric(0),
+                      nsteps = integer(0), price_lo = numeric(0),
+                      price_hi = numeric(0), stringsAsFactors = FALSE))
+  }
+  do.call(rbind, out)
 }

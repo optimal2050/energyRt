@@ -149,6 +149,7 @@ Collate:
     'runs.R'
     'sample_region.R'
     'seal.R'
+    'solve_by_region.R'
     'solve_guided.R'
     'solve_myopic.R'
     'solver_log.R'

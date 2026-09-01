@@ -583,18 +583,16 @@ apply_ledger <- function(mod, ledger, horizon,
 # fall below (1 - slack) of the guiding run's answer. That is what lets a cheap
 # endpoint or reduced-calendar run steer an expensive full-horizon one.
 #
-# Two hazards decided the shape of this, both verified in the equations:
+# Basis. `cap.lo` bounds the standing fleet with no period-length factor
+# (`eqTechCapLo: vTechCap >= pTechCapLo`); `ncap.lo` bounds a build RATE and is
+# multiplied by `pPeriodLen` (`eqTechNewCapLo`) while `vTechNewCap` is already
+# an annual rate. `cap` is the default basis; `ncap` divides by the period
+# length.
 #
-#   * `cap.lo` bounds the STANDING FLEET and carries no period-length factor
-#     (`eqTechCapLo: vTechCap >= pTechCapLo`), whereas `ncap.lo` bounds a BUILD
-#     RATE and is multiplied by `pPeriodLen` (`eqTechNewCapLo`). Since
-#     `vTechNewCap` is itself an annual rate, a naive `ncap.lo = f * vTechNewCap`
-#     asks for `f * plen` times the observed rate. `cap` is therefore the
-#     default basis and `ncap` divides by the period length.
-#   * `inter.forth` holds the LAST anchor to the end of the horizon, so a
-#     target written at one year floors every later milestone too. Targets are
-#     written at exactly the years supplied, and a target set that stops short
-#     of the horizon's end warns.
+# Years. `inter.forth` holds the last anchor to the end of the horizon, so a
+# target binds every milestone at or after the last year supplied. Targets are
+# written at exactly the years given, and a set ending before the horizon's
+# last milestone warns.
 # =========================================================================== #
 
 #' Capacity targets from a solved scenario
@@ -668,9 +666,8 @@ solution_targets <- function(scen, years = NULL, classes = NULL) {
 #' set whose last year precedes the horizon's last milestone warns for the same
 #' reason.
 #'
-#' Every imposed value is rounded DOWN, the same defence the legacy GAMS driver
-#' used: a target that exceeds what some other constraint permits turns a guide
-#' into an infeasibility.
+#' Every imposed value is rounded down, so a target cannot exceed what another
+#' constraint permits and turn a guide into an infeasibility.
 #'
 #' @param mod a model object.
 #' @param targets a `capacity_targets` tibble from [solution_targets()].

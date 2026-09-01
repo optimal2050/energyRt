@@ -54,6 +54,15 @@
 
 ## New features
 
+* `solve_by_region()` solves a multi-region model one region, or one group of
+  regions, at a time; each run is stored as a variant of one scenario. With
+  `trade = "none"` the per-region objectives sum to the full model's; the
+  result's `additive` field says whether they do.
+* A severed trade route can be replaced by a stepped price curve instead of a
+  flat price: `boundary_prices` gains `nsteps`, `price_lo`, `price_hi` and
+  `imp.lo`/`exp.lo` columns.
+* `boundary_window()` builds a `boundary_prices` table whose quantity is
+  `share` of each region's demand per timeslice; `price` is required.
 * `solve_guided()` solves a too-large model in stages: cheap endpoint problems
   seed capacity targets for one final full-horizon solve, and `guided_gap()`
   reports the objective gap to perfect foresight. Composable primitives:
