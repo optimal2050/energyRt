@@ -54,6 +54,15 @@
 
 ## New features
 
+* `solve_guided()` solves a too-large model in stages: cheap endpoint problems
+  seed capacity targets for one final full-horizon solve, and `guided_gap()`
+  reports the objective gap to perfect foresight. Composable primitives:
+  `solution_targets()`, `apply_targets()`, `guided_windows()`; stages are
+  recorded as runs of one scenario.
+* Every energyRt object now has a `report()` method: the 14 element classes
+  render one-object datasheets from per-class shipped templates,
+  `report(mod, name = )` finds an element of any class in a container
+  (`class = ` narrows), and `misc$report` sets an object's default template.
 * `calendars` ships the mainstream timescales designs — `m12`, `m12a`, `q4`,
   `s4`, `s4_h24`, `m12_h24`, `wd7_h24`, `w52_h24` — plus three sampled
   calendars whose `year_fraction < 1` solves partial years natively.
@@ -80,34 +89,28 @@
   TRUE)`.
 * `solve_myopic()` solves a horizon window by window. The primitives are
   composable: `horizon_windows()`, `solution_ledger()`, `apply_ledger()`.
-* A comparison layer: `compare_scenarios()` (across scenarios or recorded runs,
-  with `print()`, `autoplot()` and `report()` methods), `compare_models()`
-  (declaration-level diff) and `compare_inputs()` (interpolated `modInp` diff,
-  detailed with **waldo** installed).
+* A comparison layer: `compare_scenarios()` (scenarios or recorded runs, with
+  `print()`, `autoplot()` and `report()` methods), `compare_models()`
+  (declaration diff) and `compare_inputs()` (interpolated-input diff).
 * `report(scen, template = "full")` renders a page-broken document with
   branding, time and geography pages, result choropleths and stacked bars.
   `report(mod/scen, template = "summary")` renders one-page glimpses.
-* The model report is an assumptions-and-data report (discount rates, horizon
-  and calendar charts, geoscale summary, inventories per storable class,
-  per-process datasheets); the scenario report is a results report with problem
-  size, solution checks, a role-driven cost breakdown and an opt-in levcost
-  table. Both render to HTML, PDF and Word.
-* Reports group per-process sections by structure — one section per unique
-  topology — so a 26-region model renders ~64 sections instead of 1,674.
-  `template = "full"` restores per-member tables.
+* Container reports split by role: the model report documents assumptions and
+  data, the scenario report the results of a solved scenario. Both render to
+  HTML, PDF and Word.
+* Model reports group per-process sections by structure — one section per
+  unique topology; `template = "full"` restores per-member tables.
 * Report branding: `misc$logos`, `misc$figure` and scenario `misc$badges`, with
-  `report(logos = , figure = , badges = )` overrides; branding enters the render
-  key. New helpers `report_img_row()` and `report_pagebreak()`.
-* The report-template helpers are exported as the `report_*` family, so shipped
-  and custom templates share one three-output implementation. Each takes an
-  explicit `output` argument and is testable outside a render.
+  `report(logos = , figure = , badges = )` overrides. New helpers
+  `report_img_row()` and `report_pagebreak()`.
+* The report-template helpers are exported as the `report_*` family for use in
+  custom templates.
 * `report_templates()` lists shipped templates; resolution is class-scoped, so
   containers and processes can share template names.
 * `report()` works inside a knitr chunk — the nested render no longer collides
   with the outer document's chunk labels.
-* `report_tbl()` gains `max_rows` and `scroll`: HTML renders large tables in a
-  scrollable box with a sticky header, PDF/Word cap with a "... K more rows"
-  footer.
+* `report_tbl()` gains `max_rows` and `scroll`: scrollable tables in HTML,
+  a capped table with a "... K more rows" footer in PDF/Word.
 * `getMix(top_n = )` keeps the N largest processes and lumps the rest into
   `"Other"`, mass-preserving. `autoplot()` defaults to `top_n = 12`.
 * `plot_map()` maps any solved variable carrying a region dimension via `name =`
@@ -175,17 +178,37 @@
 
 ## Bug fixes
 
+* **An interpolation that failed part-way left `en.bulk_param_write` set, and
+  every later solve in the session silently returned objective 0.** The option
+  was restored only on the normal exit path, so after one failure bulk mode
+  never ended: parameters written by the post-loop stages stayed parked and the
+  model was written out with missing data, solving to OPTIMAL with a meaningless
+  objective. It is now restored on every exit path.
+* `verify_solution()$ok` no longer reports `TRUE` when every check was
+  *skipped*. A scenario with no solution verified clean, which is how the
+  zeroed solves above passed their invariant checks. New `n_ran` / `n_skipped`
+  fields, and `print()` says "NOTHING VERIFIED".
+* `validate_scenario_parameters()` issues carry a severity. A populated map
+  whose source parameter is empty is **structural** and now errors whatever
+  `action` says — it previously warned, and a warning around a solve is
+  routinely swallowed by `suppressWarnings()`. The issue count is always
+  announced with `message()`.
+* `interpolate_model()` asserts no parameter is left unmaterialised after the
+  final flush, naming the offenders.
+* `read_solution()` errors when *none* of the declared variables produced an
+  output file, naming the extension it looked for and the active
+  `import_format`. A per-variable miss is still legitimate; a total miss used
+  to yield a scenario of zeros reported OPTIMAL.
+
 * A user `constraint` whose `for.each` years all fall outside the solved
   horizon is dropped with a warning instead of generating unusable solver
   code. Its equation was still declared over an index domain the horizon
   filter had emptied, and JuMP rejected the dangling reference
   ("Unexpected error parsing reference set: eqCns<name>").
 
-* A `supply` at a commodity's coarse `@geoframe` level was silently costless:
-  `mSupSpan` intersected with the atoms instead of spanning the commodity's
-  balance regions, leaving a free `vOutTot` cell, empty `vSupCost` and an
-  objective of 0. Cost-aggregation maps are also built after wildcard unfolding.
-  Rest-of-world import/export at a coarse level are refused loudly.
+* A `supply` at a commodity's coarse `@geoframe` level was silently costless;
+  it is now priced, and rest-of-world import/export at a coarse level are
+  refused loudly.
 * `newCommodity()` without `timeframe =` no longer crashes interpolation; the
   empty slot resolves to the calendar's finest timeframe.
 * `add(mod, x, overwrite = TRUE)` replaces an object of the same class and name

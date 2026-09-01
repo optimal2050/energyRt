@@ -124,6 +124,29 @@ The shipped templates are listed by `report_templates()`; custom `.Rmd`
 templates build on the exported `report_*` helper family and are passed via
 `template = "<path>"`.
 
+# Element datasheets
+
+Every model component has a `report()` method — commodities, supply,
+demand, trade, import/export, weather, taxes and subsidies, user
+constraints, calendars, horizons, configurations, and user costs each
+render a one-object datasheet from their own shipped template:
+
+```{r report-elements, eval = FALSE}
+report(COA)                          # a commodity datasheet
+report(SUP_COA)                      # a supply datasheet
+report(mod, name = "SUP_COA")        # the same, found inside a model
+report(mod, name = "X", class = "demand")   # narrow a name lookup
+```
+
+An object can carry its own default template in `misc$report` (also the
+techspec `report:` key) — a template name or a file path; an explicit
+`template = ` argument always wins:
+
+```{r report-misc, eval = FALSE}
+SUP_COA@misc$report <- "my_supply_sheet.Rmd"
+report(SUP_COA)                      # renders my_supply_sheet.Rmd
+```
+
 # Comparing scenarios
 
 `compare_scenarios()` takes a named list of solved scenarios (or one

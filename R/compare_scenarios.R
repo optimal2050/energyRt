@@ -1,7 +1,7 @@
 # =========================================================================== #
 # compare_scenarios.R -- results comparison across solved scenarios (or runs
 # of one scenario), with print / autoplot methods; the comparative report
-# methods (Stage 4) live here too.
+# methods live here too.
 # =========================================================================== #
 
 # collate: report.R defines the `report` generic this file adds methods to.

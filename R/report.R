@@ -223,7 +223,7 @@ setMethod(
     format <- .report_check_formats(format)
 
     # -- resolve template --------------------------------------------------
-    tmpl_name <- if (is.null(template)) "generic" else template
+    tmpl_name <- template %||% .report_misc_template(object) %||% "generic"
 
     # -- split ... into levcost args vs rmarkdown::render args -------------
     .levcost_params <- c("comm", "group", "repo", "fuel_costs",
@@ -610,7 +610,7 @@ Levelized cost section will be omitted.")
         })
     }
 
-    tmpl_name <- if (is.null(template)) "generic" else template
+    tmpl_name <- template %||% .report_misc_template(object) %||% "generic"
     tmpl <- if (file.exists(tmpl_name) && !dir.exists(tmpl_name)) {
       normalizePath(tmpl_name, mustWork = TRUE)
     } else {
@@ -826,32 +826,74 @@ Levelized cost section will be omitted.")
     if (!is.null(own)) reports_path <- fp(own, "reports")
   }
   if (is.null(name) || !nzchar(name)) {
-    message("report(): give the technology/process `name = ` to report.")
+    message("report(): give the element `name = ` to report.")
     return(invisible(NULL))
   }
-  tech <- .levcost_find_tech(tech_source, name)
-  if (is.null(tech)) {
-    message("report(): technology '", name, "' not found in the ",
+  # element lookup across ALL classes (was technology-only via
+  # .levcost_find_tech); `class = ` in ... narrows/disambiguates
+  cls_flt <- dots[["class"]]
+  dots[["class"]] <- NULL
+  found <- tryCatch(
+    getObject(tech_source, name = name, class = cls_flt),
+    error = function(e) list())
+  if (length(found) == 0) {
+    message("report(): element '", name, "' not found in the ",
             class(container)[1], ".")
     return(invisible(NULL))
   }
+  if (length(found) > 1) {
+    # the same name in several classes: deterministic pick, priced classes
+    # first, then alphabetical; `class = ` chooses explicitly
+    cl1 <- vapply(found, function(o) class(o)[1], character(1))
+    pri <- c(.LEVCOST_CLASSES, setdiff(sort(unique(cl1)), .LEVCOST_CLASSES))
+    pick <- order(match(cl1, pri))[1]
+    message("report(): '", name, "' matches several classes (",
+            paste(sort(unique(cl1)), collapse = ", "), "); reporting the ",
+            cl1[pick], ". Pass `class = ` to choose another.")
+    found <- found[pick]
+  }
+  obj <- found[[1]]
+  cls <- class(obj)[1]
+
   lc_dots     <- dots[intersect(names(dots), .report_lc_params)]
   render_dots <- dots[setdiff(names(dots), .report_lc_params)]
   if (is.null(lc_dots$verbose)) lc_dots$verbose <- FALSE
-  if (is.null(levcost)) {
-    levcost <- tryCatch(
-      do.call(energyRt::levcost, c(list(object_for_levcost, name = name), lc_dots)),
-      error = function(e) {
-        warning("levcost() failed in report(): ", conditionMessage(e)); NULL
-      })
+
+  if (cls %in% c("technology", "storage")) {
+    # process datasheet path, unchanged (storage becomes reachable by name)
     if (is.null(levcost)) {
-      message("report(): could not compute levelized cost for '", name, "'.")
-      return(invisible(NULL))
+      levcost <- tryCatch(
+        do.call(energyRt::levcost,
+                c(list(object_for_levcost, name = name), lc_dots)),
+        error = function(e) {
+          warning("levcost() failed in report(): ", conditionMessage(e))
+          NULL
+        })
+      if (is.null(levcost)) {
+        message("report(): could not compute levelized cost for '", name,
+                "'.")
+        return(invisible(NULL))
+      }
     }
+    return(do.call(report, c(list(obj, template = template,
+      image_file = image_file, file = file, format = format,
+      levcost = levcost, cost_unit = cost_unit, open = open,
+      reports_path = reports_path, force = force), render_dots)))
   }
-  do.call(report, c(list(tech, template = template, image_file = image_file,
-    file = file, format = format, levcost = levcost, cost_unit = cost_unit,
-    open = open, reports_path = reports_path, force = force), render_dots))
+
+  if (cls == "trade" && is.null(levcost)) {
+    # priceable, but a trade datasheet without the levcost section is
+    # still useful -- non-fatal
+    levcost <- tryCatch(suppressWarnings(
+      do.call(energyRt::levcost,
+              c(list(object_for_levcost, name = name), lc_dots))),
+      error = function(e) NULL)
+  }
+  do.call(report, c(list(obj, template = template, image_file = image_file,
+    file = file, format = format,
+    levcost = if (cls == "trade") levcost else NULL,
+    open = open, reports_path = reports_path, force = force,
+    .container = container), render_dots))
 }
 
 # ── whole-object reports ──────────────────────────────────────────────────────
@@ -1097,7 +1139,7 @@ Levelized cost section will be omitted.")
 # Structural fingerprint of a process: class + sorted commodity sets. Two
 # processes with the same key differ only in parameter VALUES -- values are
 # deliberately not in the key, so region-replicated technologies group
-# together (a 26-region model has ~64 topologies, not 1,674 processes).
+# together.
 #' @noRd
 .proc_topology_key <- function(p) {
   gs <- function(sl, col) {
@@ -1160,9 +1202,8 @@ Levelized cost section will be omitted.")
   do.call(rbind, rows)
 }
 
-# Group processes by topology. One draw() schematic per GROUP (rendered from
-# the representative = first member, sorted by name) -- on a 26-region model
-# this is the difference between ~64 and 1,674 embedded images.
+# Group processes by topology. One draw() schematic per GROUP, rendered from
+# the representative = first member, sorted by name.
 #' @noRd
 .proc_groups <- function(procs, draw = TRUE) {
   if (length(procs) == 0) return(list())
@@ -1269,52 +1310,9 @@ Levelized cost section will be omitted.")
     cfg <- object@config
     horizon <- tryCatch(cfg@horizon, error = function(e) NULL)
     cal     <- tryCatch(cfg@calendar, error = function(e) NULL)
-    pair <- function(k, v) data.frame(setting = k, value = v,
-                                      stringsAsFactors = FALSE)
-    cfg_rows <- list(pair("regions", paste(cfg@region, collapse = ", ")))
-    if (!is.null(horizon) && nrow(horizon@intervals) > 0) {
-      cfg_rows <- c(cfg_rows,
-        list(pair("horizon", paste(range(horizon@period), collapse = " - ")),
-             pair("milestone years",
-                  paste(horizon@intervals$mid, collapse = ", "))))
-    }
-    if (!is.null(cal)) {
-      ns <- tryCatch(nrow(cal@timeslice_share), error = function(e) NA)
-      cfg_rows <- c(cfg_rows, list(pair("calendar",
-        paste0(if (nzchar(cal@name)) cal@name else "(unnamed)",
-               " (", ns, " timeslices)"))))
-    }
-    # Both rates, each under its own name -- they do different jobs and a model
-    # may well set them differently.
-    dsc <- tryCatch(cfg@discount, error = function(e) NULL)
-    if (is.data.frame(dsc) && nrow(dsc) > 0) {
-      for (col in c("wacc", "sdr")) {
-        if (!col %in% names(dsc)) next
-        v <- suppressWarnings(as.numeric(dsc[[col]]))
-        v <- v[is.finite(v)]
-        if (length(v) > 0) {
-          cfg_rows <- c(cfg_rows, list(pair(col,
-            paste(unique(signif(v, 4)), collapse = ", "))))
-        }
-      }
-    }
-    cfg_rows <- c(cfg_rows, list(pair("optimizeRetirement",
-      as.character(isTRUE(cfg@optimizeRetirement)))))
-    config_df <- do.call(rbind, cfg_rows)
-
-    # tidy per-region/year discount rates (the config rows above only carry
-    # the distinct values)
-    if (is.data.frame(dsc) && nrow(dsc) > 0) {
-      keep <- intersect(c("region", "year", "wacc", "sdr"), names(dsc))
-      discount_df <- .report_drop_empty_cols(dsc[, keep, drop = FALSE])
-    }
-
-    if (!is.null(cal) && length(cal@timeslices_in_frame) > 0) {
-      calendar_df <- data.frame(
-        timeframe = names(cal@timeslices_in_frame),
-        timeslices = as.integer(cal@timeslices_in_frame),
-        stringsAsFactors = FALSE)
-    }
+    config_df <- .config_report_rows(cfg)
+    discount_df <- .config_discount_df(cfg)
+    calendar_df <- if (!is.null(cal)) .calendar_frames_df(cal) else NULL
 
     if (gg_ok && !is.null(horizon) && want("horizon_plot")) {
       horizon_plot <- tryCatch(ggplot2::autoplot(horizon),
@@ -1453,9 +1451,8 @@ Levelized cost section will be omitted.")
     else NULL
 
   # -- topology groups: one section per process STRUCTURE ------------------
-  # (a 26-region model has ~64 topologies vs 1,674 processes; the grouped
-  # view is what the default template shows, per-process `techs` below is
-  # built only for templates that still declare it)
+  # (the grouped view is what the default template shows; per-process
+  # `techs` below is built only for templates that still declare it)
   need_groups <- want("proc_groups") || want("windows_group_plot")
   proc_groups <- if (need_groups) tryCatch(
     .proc_groups(c(techs, stgs), draw = want("proc_groups")),
@@ -1507,7 +1504,7 @@ Levelized cost section will be omitted.")
     geo_map = geo_map, geo_stack = geo_stack)
   }
 
-  tmpl <- if (is.null(template)) "model" else template
+  tmpl <- template %||% .report_misc_template(object) %||% "model"
   .report_render(tmpl, params_fn, file, format, dots, nm, open = open,
                  class = "model", owner = object, reports_path = reports_path,
                  force = force,
@@ -1905,7 +1902,7 @@ Levelized cost section will be omitted.")
     variants_df = variants_df, levcost_df = levcost_df)
   }
 
-  tmpl <- if (is.null(template)) "scenario" else template
+  tmpl <- template %||% .report_misc_template(scen) %||% "scenario"
   .report_render(tmpl, params_fn, file, format, dots, nm, open = open,
                  class = "scenario", owner = scen, reports_path = reports_path,
                  force = force, engine = "report/scenario",
@@ -2126,7 +2123,7 @@ report_templates <- function(class = NULL) {
   files <- if (is.null(tdir)) character() else
     list.files(tdir, pattern = "^report_.*[.]Rmd$", full.names = TRUE)
   known <- c("model", "scenario", "repository", "process",
-             "technology", "storage")
+             "technology", "storage", .REPORT_ELEMENT_CLASSES)
   rows <- lapply(files, function(f) {
     base <- sub("^report_(.*)[.]Rmd$", "\\1", basename(f))
     fm <- tryCatch(rmarkdown::yaml_front_matter(f), error = function(e) list())

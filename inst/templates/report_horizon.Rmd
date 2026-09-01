@@ -1,0 +1,55 @@
+---
+title: "`r params$title`"
+report-class: horizon
+output:
+  html_document:
+    self_contained: true
+    md_extensions: "-native_divs-native_spans"
+  pdf_document:
+    latex_engine: xelatex
+  word_document: default
+params:
+  title:        "Horizon"
+  name:         ""
+  desc:         ""
+  class:        "horizon"
+  image_file:   NULL
+  logos:        NULL
+  info_df:      NULL
+  main_plot:    NULL
+  intervals_df: NULL
+header-includes:
+  - \usepackage{booktabs}
+---
+
+```{r en-setup, include=FALSE}
+library(ggplot2)
+
+fmt <- energyRt::report_setup()
+tbl <- function(df, caption = NULL, digits = 4L, ...)
+  energyRt::report_tbl(df, caption, digits, output = fmt, ...)
+emit_img <- function(path, frac = 1)
+  energyRt::report_img(path, frac, output = fmt)
+```
+
+```{r en-css, results='asis'}
+energyRt::report_css(fmt)
+```
+
+```{r en-header, results='asis'}
+energyRt::report_header(params$name, params$desc,
+                        image_file = params$image_file, output = fmt)
+```
+
+```{r en-info, results='asis'}
+energyRt::report_sec("Key facts", output = fmt)
+tbl(params$info_df)
+```
+
+```{r en-hero, results='asis', eval=!is.null(params$main_plot)}
+emit_img(energyRt::report_plot_png(params$main_plot, 7.5, 2.4), 1)
+```
+
+```{r en-intervals, results='asis', eval=!is.null(params$intervals_df)}
+tbl(params$intervals_df, caption = "Intervals", max_rows = 30)
+```

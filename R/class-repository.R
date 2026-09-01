@@ -185,7 +185,7 @@ setMethod("summary", signature(object = "repository"), function(object, ...) {
 setMethod("add", signature("repository"), function(obj, ..., overwrite = FALSE) {
   arg = list(...) |> unlist()
   if (is_empty(arg)) return(obj)
-  arg <- sapply(arg, function(x) {
+  arg <- lapply(arg, function(x) {
     if (is(x, "repository")) return(x@data)
     x
   }) |> list_flatten()

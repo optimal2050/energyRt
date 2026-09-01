@@ -1,0 +1,77 @@
+---
+title: "`r params$title`"
+report-class: supply
+output:
+  html_document:
+    self_contained: true
+    md_extensions: "-native_divs-native_spans"
+  pdf_document:
+    latex_engine: xelatex
+  word_document: default
+params:
+  title:      "Supply"
+  name:       ""
+  desc:       ""
+  class:      "supply"
+  image_file: NULL
+  logos:      NULL
+  info_df:    NULL
+  main_plot:  NULL
+  draw_file:  NULL
+  supply_df:  NULL
+  reserve_df: NULL
+  weather_df: NULL
+header-includes:
+  - \usepackage{booktabs}
+---
+
+```{r en-setup, include=FALSE}
+library(ggplot2)
+
+fmt <- energyRt::report_setup()
+tbl <- function(df, caption = NULL, digits = 4L, ...)
+  energyRt::report_tbl(df, caption, digits, output = fmt, ...)
+emit_img <- function(path, frac = 1)
+  energyRt::report_img(path, frac, output = fmt)
+.LAYOUT <- energyRt::report_layout()
+```
+
+```{r en-css, results='asis'}
+energyRt::report_css(fmt)
+```
+
+```{r en-logo, results='asis'}
+if (length(params$logos) > 0) {
+  energyRt::report_img_row(params$logos, frac_total = 0.9, output = fmt)
+}
+```
+
+```{r en-header, results='asis'}
+energyRt::report_header(params$name, params$desc,
+                        image_file = params$image_file, output = fmt)
+```
+
+```{r en-body, results='asis'}
+energyRt::report_sec("Key facts", output = fmt)
+tbl(params$info_df)
+if (!is.null(params$draw_file)) {
+  emit_img(params$draw_file, .LAYOUT$side)
+}
+```
+
+```{r en-profile, results='asis', eval=!is.null(params$main_plot)}
+energyRt::report_sec("Year profile", output = fmt)
+emit_img(energyRt::report_plot_png(params$main_plot, 7, 3.6), 1)
+```
+
+```{r en-data, results='asis', eval=!is.null(params$supply_df)}
+tbl(params$supply_df, caption = "Supply data", max_rows = 40)
+```
+
+```{r en-reserve, results='asis', eval=!is.null(params$reserve_df)}
+tbl(params$reserve_df, caption = "Reserve", max_rows = 25)
+```
+
+```{r en-weather, results='asis', eval=!is.null(params$weather_df)}
+tbl(params$weather_df, caption = "Weather multipliers", max_rows = 25)
+```

@@ -1,7 +1,6 @@
 # =========================================================================== #
-# compare_inputs.R -- diff two scenarios' model inputs (modInp).
-# Promoted from dev-scripts/compare_modInp.R (arsenal engine replaced by the
-# .compare_values() kernel; waldo is optional detail rendering only).
+# compare_inputs.R -- diff two scenarios' model inputs (modInp), on the
+# .compare_values() kernel; waldo is optional detail rendering only.
 # =========================================================================== #
 
 #' Compare two scenarios' model inputs

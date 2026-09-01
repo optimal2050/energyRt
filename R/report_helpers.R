@@ -1,9 +1,7 @@
-# Shared helpers for report templates.
-# Extracted from the inline helper block of inst/templates/report_generic.Rmd
-# so that all shipped templates and user-authored templates use one exported
-# implementation instead of copy-pasted chunks. Every emitter takes an
-# explicit `output` argument (auto-detected from the knitr context by
-# default), which also makes the helpers unit-testable outside a render.
+# Shared helpers for report templates: one exported implementation used by
+# shipped and user-authored templates alike. Every emitter takes an explicit
+# `output` argument (auto-detected from the knitr context by default), which
+# also makes the helpers unit-testable outside a render.
 
 #' Report template helpers
 #'

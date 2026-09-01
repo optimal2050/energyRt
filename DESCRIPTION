@@ -1,7 +1,7 @@
 Package: energyRt
 Type: Package
 Title: Energy Systems Modeling Toolbox
-Version: 0.89.2.9001
+Version: 0.89.2.9002
 Date: 2026-09-01
 Authors@R: 
   c(person(given = "Oleg", 
@@ -109,9 +109,9 @@ Collate:
     'get_object.R'
     'get_region.R'
     'install.R'
-    'interp.R'
     'interp_progress.R'
     'interp_shared.R'
+    'interpolation.R'
     'interpolation_funs.R'
     'legacy_api_shims.R'
     'solve.R'
@@ -144,10 +144,12 @@ Collate:
     'registry.R'
     'repo_store.R'
     'report_cache.R'
+    'report_elements.R'
     'report_helpers.R'
     'runs.R'
     'sample_region.R'
     'seal.R'
+    'solve_guided.R'
     'solve_myopic.R'
     'solver_log.R'
     'start_level.R'
