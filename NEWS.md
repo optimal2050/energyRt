@@ -2,6 +2,17 @@
 
 ## Breaking changes
 
+* A run's solver files are written directly into `runs/<solve>/`, beside
+  `run.yml`, instead of a `solver/` subfolder. The nested folder restated the
+  solve name, and the Arrow exchange writes one file per symbol beneath it, so
+  the paths reached Windows' 260-character limit for some solvers and not
+  others -- the same model wrote fine under `julia_highs` and failed under
+  `julia_highs_barrier`. Existing scenarios still open: `solver/` and the
+  interim `script/` are both still read.
+* The per-solve metadata file is now `solver.csv`. It used to be called
+  `solver`, which after the flattening would sit exactly where the `solver/`
+  directory used to be. The old name is still read.
+
 * The Julia and Python backends exchange data as Arrow files. `data.RData` and
   `input/data.db` are opt-in through `solver_options$julia_highs_rdata` and
   `$pyomo_cbc_sqlite`; the `*_arrow` presets are retired.
@@ -127,6 +138,18 @@
   HTML, PDF and Word.
 * Model reports group per-process sections by structure — one section per
   unique topology; `template = "full"` restores per-member tables.
+* Topology groups carry a short index (G1, G2, ...) used on charts and
+  section headings, with an index table mapping it back to the structure.
+* Supply charts: `autoplot(supply, style = "bar")` draws availability and
+  cost by region (curve steps stacked in order); `style = "regions"` draws
+  region bars, unlimited availability as a translucent full-height bar.
+* Levelized-cost comparison charts: `report(model)` and `report(scenario)`
+  with `levcost = TRUE` add overall and per-group comparisons; a process
+  datasheet reported from a container compares it with its structural peers.
+* Model reports summarise weather factors (mean/min/max per factor and
+  region) and draw calendar heatmaps per factor family (the 6 best and 6
+  last of many clusters) and per demand; `autoplot(demand, style =
+  "heatmap")` draws the demand heatmap directly.
 * Report branding: `misc$logos`, `misc$figure` and scenario `misc$badges`, with
   `report(logos = , figure = , badges = )` overrides. New helpers
   `report_img_row()` and `report_pagebreak()`.
@@ -205,6 +228,24 @@
 
 ## Bug fixes
 
+* `plot_process_windows()` no longer draws a process backwards. A process whose
+  investment window closes before the horizon -- `@vintage$end` earlier than the
+  first milestone, which is how an exogenous fleet says "not investable" --
+  produced `build_start > build_end` and was drawn as a reversed bar. Its
+  window is now empty, and its **stock** is drawn instead: `.proc_windows()`
+  reads `@capacity$stock`, which it previously ignored, so exogenous capacity
+  appears at all. A missing `olife` is also treated as the infinite life it is,
+  running the operating tail to the end of the horizon rather than collapsing
+  it onto the build year.
+* A zero discount rate with no operational life is refused instead of silently
+  charging nothing. The annuity of a perpetuity at a zero rate is undefined,
+  and `.crf()` computed it as `1/Inf`, so the capital charge left the objective
+  without warning. Supplying `@invcost$eac` directly is unaffected.
+* The solver exchange checks its longest prospective file path before writing
+  and stops with the directory, the offending symbol and what to do about it,
+  rather than failing inside an Arrow writer as "cannot find the path
+  specified". `dir.create()` for the exchange directories is now recursive.
+
 * A process declared in a region where a commodity it consumes is unavailable
   is dropped there instead of producing from nothing; the dropped cells are
   reported and listed in `scenario@misc$region_gaps`.
@@ -233,6 +274,18 @@
   output file, naming the extension it looked for and the active
   `import_format`. A per-variable miss is still legitimate; a total miss used
   to yield a scenario of zeros reported OPTIMAL.
+
+* `add()` accepts a repository holding more than one object. `sapply()` over
+  the expansion simplified to a matrix whenever the expansions were the same
+  length -- one multi-object repository, or several of equal size -- and
+  `list_flatten()` rejected it with "`x` must be a node".
+
+* `report(levcost = TRUE, by_variant = )` no longer drops the levelised-cost
+  section. `by_variant` fell through to `rmarkdown::render()`; forwarding it to
+  `levcost()` is equally wrong, since that returns an extracted data frame
+  rather than the object the report is built from. `report()` consumes the flag:
+  `FALSE` reports the display instance alone, the default keeps the per-variant
+  tables.
 
 * A user `constraint` whose `for.each` years all fall outside the solved
   horizon is dropped with a warning instead of generating unusable solver

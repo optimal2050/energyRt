@@ -165,14 +165,18 @@ upgrade_scenario_layout <- function(path, verbose = TRUE) {
     old_active <- gsub("[\\/]+", "/",
                        scen@misc$solver.dir %||% scen@misc$tmp.dir %||% "")
     for (sd in list.dirs(legacy_root, recursive = FALSE)) {
-      sf <- fp(sd, "solver")
-      if (!file.exists(sf)) next # transient/unknown dir: leave in place
+      # The solve's metadata marks a real run directory. It is `solver.csv`
+      # since the run folder was flattened and `solver` before that, so both
+      # names identify one -- a folder written either side of the change still
+      # migrates.
+      sf <- .solver_meta_path(sd)
+      if (is.na(sf)) next # transient/unknown dir: leave in place
       lbl <- basename(sd)
       run_dir <- .run_dir(scen, "", lbl)
       if (file.exists(fp(run_dir, "run.yml"))) next # already migrated
       say("Migrating script/", lbl, " -> runs/", lbl, "/solver")
       .mv(sd, fp(run_dir, "solver"))
-      sv <- tryCatch(utils::read.csv(sf <- fp(run_dir, "solver", "solver"),
+      sv <- tryCatch(utils::read.csv(.solver_meta_path(fp(run_dir, "solver")),
                                      stringsAsFactors = FALSE),
                      error = function(e) NULL)
       getv <- function(k) {

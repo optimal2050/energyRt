@@ -21,6 +21,7 @@ params:
   geo_map:            NULL
   windows_group_plot: NULL
   windows_group_n:    0
+  group_index_df:     NULL
 header-includes:
   - \usepackage{booktabs}
 ---
@@ -80,4 +81,8 @@ params$geo_map
 ```{r en-windows-grp, results='asis', eval=!is.null(params$windows_group_plot)}
 h_in <- min(5, max(2, 1 + 0.15 * params$windows_group_n))
 emit_img(energyRt::report_plot_png(params$windows_group_plot, 7.5, h_in), 1)
+```
+
+```{r en-group-index, results='asis', eval=!is.null(params$group_index_df)}
+tbl(params$group_index_df, caption = "Process-group index", max_rows = 25)
 ```

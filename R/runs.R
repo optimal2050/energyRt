@@ -39,15 +39,23 @@
   gsub("[\\/]+", "/", d)
 }
 
-# The solver working directory of a run. Named `solver/`; falls back to the
-# interim S2/S3-era name `script/` when only that exists (upgraded by
-# upgrade_scenario_layout()).
+# The solver working directory of a run.
+#
+# New runs write it FLAT -- straight into the run folder, beside `run.yml` --
+# because `runs/<solve>/solver/` restated the solve name for seven characters,
+# and the exchange writes one file per symbol under it. On Windows those paths
+# reach the 260-character limit, and the solver's own name is part of the run
+# folder, so the same model wrote fine under `julia_highs` and failed under
+# `julia_highs_barrier`.
+#
+# Older layouts are still read: `solver/` (layout 3) and the interim S2/S3
+# `script/`. An existing scenario therefore opens unchanged.
 .run_solver_dir <- function(run_dir) {
-  d <- fp(run_dir, "solver")
-  if (!dir.exists(d) && dir.exists(fp(run_dir, "script"))) {
-    return(gsub("[\\/]+", "/", fp(run_dir, "script")))
+  for (sub in c("solver", "script")) {
+    d <- fp(run_dir, sub)
+    if (dir.exists(d)) return(gsub("[\\/]+", "/", d))
   }
-  gsub("[\\/]+", "/", d)
+  gsub("[\\/]+", "/", run_dir)
 }
 
 # "glpk" -> (base, "glpk"); "cal-d24/glpk" -> ("cal-d24", "glpk")
@@ -91,8 +99,8 @@
           dir = gsub("[\\/]+", "/", sd), has_record = TRUE
         ))
       }
-    } else if (length(children) == 0L &&
-               dir.exists(.run_solver_dir(d1))) {
+    } else if (dir.exists(.run_solver_dir(d1)) &&
+               !any(dir.exists(fp(children, "runs")))) {
       # a solve dir whose run.yml is missing (crash before the record):
       # still list it so the user can see and drop it
       out <- bind_rows(out, tibble(

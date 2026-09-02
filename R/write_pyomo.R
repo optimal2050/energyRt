@@ -101,8 +101,10 @@ get_python_path <- function() {
       }
     }
   }
-  dir.create(fp(arg$solver.dir, "input"), showWarnings = FALSE)
-  dir.create(fp(arg$solver.dir, "output"), showWarnings = FALSE)
+  dir.create(fp(arg$solver.dir, "input"), showWarnings = FALSE,
+             recursive = TRUE)
+  dir.create(fp(arg$solver.dir, "output"), showWarnings = FALSE,
+             recursive = TRUE)
   # if (!is.null(scen@settings@solver$SQLite) && scen@settings@solver$SQLite) {
   .ex_fmt <- scen@settings@solver$export_format
   SQLite <- !is.null(.ex_fmt) && tolower(.ex_fmt) == "sqlite"
@@ -123,6 +125,7 @@ get_python_path <- function() {
     # as happily as IPC, so an explicit `parquet` request is honoured here.
     .in_fmt <- if (identical(tolower(.ex_fmt), "parquet")) "parquet" else "feather"
     .dat <- .drop_empty_tables(.get_scen_data(scen))
+    .check_exchange_path_len(fp(arg$solver.dir, "input"), names(.dat), .in_fmt)
     for (.i in names(.dat)) {
       .d <- as.data.frame(.dat[[.i]])
       .d[] <- lapply(.d, function(x) if (is.factor(x)) as.character(x) else x)

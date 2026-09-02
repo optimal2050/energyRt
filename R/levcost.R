@@ -3129,7 +3129,9 @@ autoplot.levcost_list <- function(object,
                                   type = c("components", "npv", "totals",
                                            "frontier", "input_frontier"),
                                   year = NULL, cost_unit = NULL,
-                                  cost_unit_comm = NULL, ...) {
+                                  cost_unit_comm = NULL,
+                                  top_n = NULL, sort = !is.null(top_n),
+                                  groups = NULL, ...) {
   check_package("ggplot2")
   type <- match.arg(type)
 
@@ -3158,6 +3160,35 @@ autoplot.levcost_list <- function(object,
   plot_df$component <- factor(plot_df$component,
                               levels = c(comp_ord, setdiff(unique(plot_df$component), comp_ord)))
 
+  # Ordering and capping. The default keeps the list's own order (a variants
+  # fan-out is in vintage order); `sort`/`top_n` are for cross-technology
+  # comparisons: most expensive first, capped with a caption.
+  caption <- NULL
+  tot <- stats::aggregate(value ~ tech, plot_df, sum, na.rm = TRUE)
+  if (isTRUE(sort)) {
+    plot_df$tech <- factor(plot_df$tech,
+                           levels = tot$tech[order(-tot$value)])
+  } else {
+    plot_df$tech <- factor(plot_df$tech, levels = unique(plot_df$tech))
+  }
+  if (!is.null(top_n) && is.finite(top_n) && top_n < nrow(tot)) {
+    keep <- tot$tech[order(-tot$value)][seq_len(top_n)]
+    plot_df <- plot_df[plot_df$tech %in% keep, , drop = FALSE]
+    plot_df$tech <- droplevels(plot_df$tech)
+    caption <- paste0("showing the ", top_n, " most expensive of ",
+                      nrow(tot), " processes")
+  }
+
+  # `groups` (a .proc_groups() list) facets by topology group; strips carry
+  # the short index, the index table maps it back to the structure
+  if (!is.null(groups) && length(groups) > 0) {
+    gmap <- unlist(lapply(groups, function(g)
+      stats::setNames(rep(g$index %||% g$label, length(g$members)),
+                      g$members)))
+    plot_df$group <- unname(gmap[as.character(plot_df$tech)])
+    plot_df$group[is.na(plot_df$group)] <- "other"
+  }
+
   # y-axis label: an explicit `cost_unit` wins; otherwise fall back to the
   # units the levcost results carry (same contract as autoplot.levcost) --
   # every element shares the source object's units, so the first one speaks
@@ -3175,14 +3206,18 @@ autoplot.levcost_list <- function(object,
     }
   }
 
-  ggplot2::ggplot(plot_df, ggplot2::aes(x = tech, y = value, fill = component)) +
+  p <- ggplot2::ggplot(plot_df,
+                       ggplot2::aes(x = tech, y = value, fill = component)) +
     ggplot2::geom_col(position = "stack") +
     ggplot2::scale_fill_brewer(palette = "Set2",
                                labels = .levcost_comp_labels[levels(plot_df$component)]) +
     ggplot2::labs(title = "NPV LCOE comparison", x = "Technology",
-                  y = y_lbl, fill = "Component") +
+                  y = y_lbl, fill = "Component", caption = caption) +
     theme_energyRt() +
     ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 30, hjust = 1))
+  if (!is.null(plot_df$group))
+    p <- p + ggplot2::facet_wrap(~group, scales = "free_x")
+  p
 }
 
 # -- plot() for the levcost S3 classes ----------------------------------------

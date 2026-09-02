@@ -52,6 +52,90 @@ test_that("show_defaults draws finite defaults, notes non-finite ones", {
   expect_match(p$labels$caption, "ava.up = Inf")   # Inf not drawn, noted
 })
 
+test_that("supply style='bar' stacks availability by region", {
+  sup <- newSupply("SUP_BAR", commodity = "COA", unit = "GWh",
+                   supply = data.frame(region = rep(c("R1", "R2"), each = 2),
+                                       year = rep(c(2025L, 2030L), 2),
+                                       ava.up = c(10, 12, 20, 24),
+                                       cost = c(2, 3, 4, 5)))
+  p <- ggplot2::autoplot(sup, style = "bar")
+  expect_s3_class(p, "ggplot")
+  expect_true("GeomCol" %in% .ap_geoms(p))
+  b <- ggplot2::ggplot_build(p)
+  expect_equal(nrow(b$data[[1]]), 4L)             # 2 regions x 2 years
+  pc <- ggplot2::autoplot(sup, style = "bar", type = "cost")
+  expect_true("GeomStep" %in% .ap_geoms(pc))
+})
+
+test_that("supply style='bar' orders supply-curve steps by @cluster$order", {
+  sup <- newSupply("SUP_CURVE", commodity = "GAS", unit = "GWh",
+                   supply = data.frame(year = c(2025L, 2030L),
+                                       ava.up = c(100, 120), cost = 2))
+  cur <- asSupplyCurve(sup, range = c(1, 5), nsteps = 3)
+  p <- ggplot2::autoplot(cur, style = "bar")
+  expect_s3_class(p, "ggplot")
+  expect_true(is.factor(p$data$cluster))
+  expect_equal(levels(p$data$cluster),
+               cur@cluster$cluster[order(cur@cluster$order)])
+  # mass preserved: each year's stack sums to the original bound
+  y25 <- sum(p$data$value[p$data$year == 2025])
+  expect_equal(y25, 100)
+})
+
+test_that("supply style='regions' draws uncapped availability full-height", {
+  sup <- newSupply("SUP_REG", commodity = "COA", unit = "GWh",
+                   region = c("R1", "R2"),
+                   supply = data.frame(region = c("R1", "R2"), year = 2025L,
+                                       ava.up = c(50, NA), cost = c(2, 3)))
+  p <- ggplot2::autoplot(sup, style = "regions")
+  expect_s3_class(p, "ggplot")
+  expect_match(p$labels$caption, "unlimited availability")
+  expect_true("GeomText" %in% .ap_geoms(p))       # the "uncapped" label
+  d <- p$data
+  ava <- d[grepl("availability", as.character(d$measure)), , drop = FALSE]
+  # the uncapped region's bar is drawn at the finite panel maximum
+  expect_equal(ava$value[ava$uncapped], max(ava$value[!ava$uncapped]))
+  expect_no_error(ggplot2::ggplot_build(p))
+})
+
+test_that("demand style='heatmap' draws region rows on the calendar", {
+  dem <- newDemand("DEM_HM", commodity = "ELC", unit = "GWh",
+    demand = data.frame(region = rep(c("R1", "R2"), each = 3),
+                        timeslice = rep(c("s1_h01", "s1_h02", "s1_h03"), 2),
+                        demand = c(1, 2, 3, 4, 5, 6)))
+  p <- ggplot2::autoplot(dem, style = "heatmap")
+  expect_true("GeomTile" %in% .ap_geoms(p))
+  expect_setequal(unique(as.character(p$data$region)), c("R1", "R2"))
+  expect_match(p$labels$subtitle, "commodity: ELC")
+})
+
+test_that("weather family heatmap keeps the best and last clusters", {
+  ws <- lapply(1:15, function(i) newWeather(
+    paste0("WWIN_c", i), unit = "1",
+    weather = data.frame(region = "R1",
+                         timeslice = c("s1_h01", "s1_h02"),
+                         wval = c(i / 20, i / 10))))
+  expect_equal(energyRt:::.weather_type_key("WWIN_c7"), "WWIN")
+  expect_equal(energyRt:::.weather_type_key("WSOL"), "WSOL")
+  p <- energyRt:::.weather_group_heatmap(ws, title = "WWIN")
+  fl <- levels(p$data$fct)
+  expect_length(fl, 12L)
+  expect_true(all(paste0("WWIN_c", 10:15) %in% fl))   # 6 highest means
+  expect_true(all(paste0("WWIN_c", 1:6) %in% fl))     # 6 lowest
+  expect_match(p$labels$subtitle, "15 factors")
+})
+
+test_that(".weather_cf_df averages per weather and region", {
+  w <- newWeather("WX", unit = "1",
+    weather = data.frame(region = c("R1", "R1", "R2"),
+                         timeslice = c("a", "b", "a"),
+                         wval = c(0.2, 0.4, 0.6)))
+  cf <- energyRt:::.weather_cf_df(list(w))
+  expect_equal(cf$mean[cf$region == "R1"], 0.3)
+  expect_equal(cf$min[cf$region == "R1"], 0.2)
+  expect_equal(cf$max[cf$region == "R2"], 0.6)
+})
+
 test_that("the other process classes plot without messages", {
   tech <- newTechnology("TT", output = list(comm = "ELC"),
     invcost = data.frame(year = c(2020L, 2030L), invcost = c(1000, 800)),

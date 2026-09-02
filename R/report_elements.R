@@ -162,10 +162,21 @@ NULL
       collapse = ", ")),
     .el_pair("reserve", if (NROW(tryCatch(object@reserve,
       error = function(e) NULL)) > 0) "yes" else "no")))
+  gg_ok <- requireNamespace("ggplot2", quietly = TRUE)
   list(info_df = .report_drop_empty_cols(info),
        supply_df = if (want("supply_df")) .el_slot_df(object, "supply"),
        reserve_df = if (want("reserve_df")) .el_slot_df(object, "reserve"),
-       weather_df = if (want("weather_df")) .el_slot_df(object, "weather"))
+       weather_df = if (want("weather_df")) .el_slot_df(object, "weather"),
+       cluster_df = if (want("cluster_df")) .el_slot_df(object, "cluster"),
+       bar_plot = if (gg_ok && want("bar_plot")) tryCatch(
+         ggplot2::autoplot(object, style = "bar"),
+         error = function(e) NULL),
+       cost_plot = if (gg_ok && want("cost_plot")) tryCatch(
+         ggplot2::autoplot(object, style = "bar", type = "cost"),
+         error = function(e) NULL),
+       regions_plot = if (gg_ok && want("regions_plot")) tryCatch(
+         ggplot2::autoplot(object, style = "regions"),
+         error = function(e) NULL))
 }
 
 .el_params_demand <- function(object, want) {

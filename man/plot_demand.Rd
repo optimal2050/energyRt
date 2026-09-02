@@ -7,26 +7,29 @@
 \usage{
 plot_demand(
   object,
-  style = c("area", "line"),
+  style = c("area", "line", "heatmap"),
   year = NULL,
   interpolate = TRUE,
   palette = "D",
+  calendar = NULL,
   ...
 )
 
 \method{autoplot}{demand}(
   object,
-  style = c("area", "line"),
+  style = c("area", "line", "heatmap"),
   year = NULL,
   interpolate = TRUE,
   palette = "D",
+  calendar = NULL,
   ...
 )
 }
 \arguments{
 \item{object}{A \code{demand} object.}
 
-\item{style}{\code{"area"} (annual totals) or \code{"line"} (timeslice profiles).}
+\item{style}{\code{"area"} (annual totals), \code{"line"} (timeslice profiles) or
+\code{"heatmap"} (calendar heatmap by region).}
 
 \item{year}{Optional integer vector of years. For \code{"area"} these are the
 interpolation targets (default: range of the given years); for \code{"line"}
@@ -37,6 +40,9 @@ annual totals over the target years; \code{FALSE} aggregates only the given
 data years.}
 
 \item{palette}{viridis palette option, as in \code{\link[ggplot2:scale_fill_viridis_d]{ggplot2::scale_fill_viridis_d()}}.}
+
+\item{calendar}{Optional \code{calendar} object ordering the heatmap's
+timeslice axis.}
 
 \item{...}{Passed to \code{\link[=getData]{getData()}} (e.g. \verb{region =} filter).}
 }
@@ -53,6 +59,9 @@ region), with the given data years marked as points.}
 region and year. Timeslices with an hour tag (\code{"..._h07"}) are drawn against
 the hour of day (faceted season x region when a season prefix is
 present); other calendars fall back to the timeslice sequence.}
+\item{\code{style = "heatmap"}}{a calendar heatmap of the demand shape --
+timeslices on \code{x} (in calendar order when \verb{calendar =} is given),
+one row per region, values meaned over years.}
 }
 }
 \keyword{internal}

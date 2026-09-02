@@ -70,7 +70,9 @@
 #'   \code{\link{levcost}}, or \code{NULL} (default).  When \code{NULL} and any
 #'   \code{levcost} keyword arguments are passed via \code{...} (e.g.
 #'   \code{group}, \code{repo}, \code{discount}), \code{levcost()} is called
-#'   automatically on \code{object} with those arguments.
+#'   automatically on \code{object} with those arguments. On a whole-model or
+#'   scenario report, \code{levcost = TRUE} adds the levelized-cost
+#'   comparison section (overall and per-topology-group charts + table).
 #'
 #'   For a process declaring vintages or clusters the report carries the
 #'   per-variant levelised costs (a table plus a comparison chart) alongside
@@ -82,6 +84,10 @@
 #' @param cost_unit Character or \code{NULL}.  Cost unit label used on LCOE
 #'   axis (e.g. \code{"USD/GJ"}).  \code{NULL} derives the label from
 #'   \code{object@@units}.
+#' @param levcost_peers A \code{levcost_list} of the process's topology-group
+#'   peers, rendered as a comparison chart. Filled automatically when the
+#'   datasheet is requested from a container (\code{report(mod, name = )});
+#'   rarely passed by hand.
 #' @param ... Arguments forwarded to \code{\link{levcost}} (when
 #'   \code{levcost = NULL} and levcost parameters are provided) and/or to
 #'   \code{rmarkdown::render()}.  Known \code{levcost} parameter names are
@@ -207,6 +213,15 @@ setGeneric(
 
 # ── technology method ──────────────────────────────────────────────────────────
 
+# The `...` names report() claims for levcost() instead of the renderer.
+.report_levcost_params <- c("comm", "group", "repo", "fuel_costs",
+                            "discount", "base_year",
+                            "horizon", "calendar", "region", "weather",
+                            "frontier", "solver", "method", "full_output",
+                            "verbose", "cache", "cache_dir",
+                            # instance selectors, forwarded to levcost()
+                            "vintage", "cluster")
+
 #' @rdname report
 #' @export
 setMethod(
@@ -214,7 +229,8 @@ setMethod(
   "technology",
   function(object, template = NULL, image_file = NULL, file = NULL,
            format = c("html", "pdf", "tex", "docx"),
-           levcost = NULL, cost_unit = NULL, open = interactive(),
+           levcost = NULL, cost_unit = NULL, levcost_peers = NULL,
+           open = interactive(),
            reports_path = NULL, force = FALSE, ...) {
 
     # default = html only (pdf/tex need LaTeX); explicit requests are honoured
@@ -226,13 +242,7 @@ setMethod(
     tmpl_name <- template %||% .report_misc_template(object) %||% "generic"
 
     # -- split ... into levcost args vs rmarkdown::render args -------------
-    .levcost_params <- c("comm", "group", "repo", "fuel_costs",
-                         "discount", "base_year",
-                         "horizon", "calendar", "region", "weather",
-                         "frontier", "solver", "method", "full_output",
-                         "verbose", "cache", "cache_dir",
-                         # instance selectors, forwarded to levcost()
-                         "vintage", "cluster")
+    .levcost_params <- .report_levcost_params
     dots        <- list(...)
     # `by_variant` is consumed HERE, not forwarded: levcost(by_variant = TRUE)
     # returns an extracted data.frame, which would fail the levcost_variants
@@ -300,9 +310,14 @@ setMethod(
     } else if (auto_levcost) {
       .levcost_call_key(object, lc_dots)
     } else NULL
+    # peers enter the key by their levcost identities (a ggplot or the list
+    # itself would hash environments and never match across sessions)
+    peers_id <- if (!is.null(levcost_peers))
+      vapply(levcost_peers, .levcost_result_id, character(1)) else NULL
     key <- .report_key("report/technology", object, tmpl,
                        args = c(param_dots, render_dots,
-                                list(cost_unit = cost_unit)),
+                                list(cost_unit = cost_unit,
+                                     levcost_peers_id = peers_id)),
                        image_file = image_file_abs, levcost_id = lc_id)
     if (!isTRUE(force)) {
       current <- vapply(format, function(f)
@@ -402,6 +417,21 @@ setMethod(
     levcost_plot  <- NULL
     frontier_plot <- NULL
     levcost_variants_plot <- NULL
+    levcost_peers_plot <- NULL
+    if (!is.null(levcost_peers) &&
+        requireNamespace("ggplot2", quietly = TRUE)) {
+      levcost_peers_plot <- tryCatch({
+        p <- ggplot2::autoplot(levcost_peers, sort = TRUE,
+                               cost_unit = cost_unit)
+        nm_self <- object@name
+        if (!is.null(p)) p +
+          ggplot2::scale_x_discrete(labels = function(l)
+            ifelse(l == nm_self, paste0("\u25b6 ", l), l)) +
+          ggplot2::labs(title = NULL, subtitle = NULL,
+                        caption = "\u25b6 marks this process")
+        else NULL
+      }, error = function(e) NULL)
+    }
     if (!is.null(levcost)) {
       if (!requireNamespace("ggplot2", quietly = TRUE)) {
         warning("Package 'ggplot2' is required for levcost plots; they will be omitted.")
@@ -474,6 +504,7 @@ setMethod(
     params$frontier_plot          <- frontier_plot
     params$share_frontier_plot    <- share_frontier_plot
     params$levcost_variants_plot  <- levcost_variants_plot
+    params$levcost_peers_plot     <- levcost_peers_plot
     params$levcost_by_vintage_df  <- levcost_by_vintage_df
     params$levcost_instance_label <- levcost_instance_label
     params$units_costs         <- if (!is.null(cost_unit) && nzchar(cost_unit)) cost_unit else
@@ -803,6 +834,43 @@ Levelized cost section will be omitted.")
                        "region", "weather", "frontier", "solver", "method",
                        "full_output", "verbose", "cache", "cache_dir")
 
+# The reported process plus its topology-group peers, each priced with the
+# same arguments (cache-backed). NULL when the process has fewer than two
+# priced peers; a peer that fails to price is dropped.
+#' @noRd
+.levcost_peers_list <- function(container, obj, lc_dots, cap = 12L) {
+  procs <- tryCatch(.levcost_processes(container), error = function(e) list())
+  if (length(procs) < 2) return(NULL)
+  key0 <- .proc_topology_key(obj)
+  peers <- Filter(function(p) class(p$object)[1] == class(obj)[1] &&
+                    .proc_topology_key(p$object) == key0, procs)
+  nms <- vapply(peers, `[[`, character(1), "name")
+  if (length(nms) < 2) return(NULL)
+  # the reported process always in, the rest alphabetical up to the cap
+  nms <- unique(c(obj@name, sort(nms)))
+  nms <- nms[seq_len(min(cap, length(nms)))]
+  out <- .levcost_name_list(container, nms, lc_dots)
+  if (is.null(out) || length(out) < 2) return(NULL)
+  out
+}
+
+# Price the named processes of a container one by one (cache-backed); a
+# variants result reduces to its display instance; failures drop.
+#' @noRd
+.levcost_name_list <- function(container, nms, lc_args = list()) {
+  out <- list()
+  for (nm in nms) {
+    z <- tryCatch(suppressMessages(suppressWarnings(
+      do.call(energyRt::levcost, c(list(container, name = nm), lc_args)))),
+      error = function(e) NULL)
+    if (inherits(z, "levcost_variants"))
+      z <- tryCatch(.report_pick_instance(z), error = function(e) NULL)
+    if (inherits(z, "levcost")) out[[nm]] <- z
+  }
+  if (length(out) == 0) return(NULL)
+  structure(out, class = c("levcost_list", "list"))
+}
+
 # The display instance of a ready-made `levcost_variants` result: newest
 # vintage, first cluster (draw()'s default cell), via the variants key --
 # never by parsing names.
@@ -875,10 +943,16 @@ Levelized cost section will be omitted.")
         return(invisible(NULL))
       }
     }
+    peers <- if (cls == "technology")
+      .levcost_peers_list(object_for_levcost, obj, lc_dots) else NULL
+    # only the technology method has the formal; a named NULL would fall
+    # into `...` and warn as an unknown argument
+    peers_arg <- if (is.null(peers)) list() else
+      list(levcost_peers = peers)
     return(do.call(report, c(list(obj, template = template,
       image_file = image_file, file = file, format = format,
       levcost = levcost, cost_unit = cost_unit, open = open,
-      reports_path = reports_path, force = force), render_dots)))
+      reports_path = reports_path, force = force), peers_arg, render_dots)))
   }
 
   if (cls == "trade" && is.null(levcost)) {
@@ -1163,6 +1237,9 @@ Levelized cost section will be omitted.")
     sub(paste0("^\\|", tag, "="), "", m)
   }
   inp <- part("in"); out <- part("out"); stg <- part("stg"); aux <- part("aux")
+  # a class with no ports at all (e.g. trade) labels as its class name
+  if (!nzchar(inp) && !nzchar(out) && !nzchar(stg) && !nzchar(aux))
+    return(sub("\\|.*$", "", key))
   lab <- paste0(if (nzchar(inp)) inp else "-", " -> ",
                 if (nzchar(out)) out else if (nzchar(stg))
                   paste0("[", stg, "]") else "-")
@@ -1261,9 +1338,130 @@ Levelized cost section will be omitted.")
          detail_df = detail_df,
          draw_file = draw_file)
   })
-  out[order(-vapply(out, function(g) g$n, integer(1)),
-            vapply(out, function(g) g$class, character(1)),
-            vapply(out, function(g) g$label, character(1)))]
+  out <- out[order(-vapply(out, function(g) g$n, integer(1)),
+                   vapply(out, function(g) g$class, character(1)),
+                   vapply(out, function(g) g$label, character(1)))]
+  # index stamped after the final sort so G1..Gn matches display order
+  for (i in seq_along(out)) out[[i]]$index <- sprintf("G%d", i)
+  out
+}
+
+# Per-(weather, region) summary of the factor values: unweighted mean /
+# min / max over timeslices and years.
+#' @noRd
+.weather_cf_df <- function(weas) {
+  rows <- lapply(weas, function(w) {
+    d <- tryCatch(as.data.frame(w@weather), error = function(e) NULL)
+    if (!is.data.frame(d) || !"wval" %in% names(d)) return(NULL)
+    v <- suppressWarnings(as.numeric(d$wval))
+    ok <- is.finite(v)
+    if (!any(ok)) return(NULL)
+    d <- d[ok, , drop = FALSE]; v <- v[ok]
+    if (!"region" %in% names(d)) d$region <- NA_character_
+    d$region[is.na(d$region)] <- "(all)"
+    data.frame(weather = w@name,
+               region = names(tapply(v, d$region, mean)),
+               mean = signif(unname(tapply(v, d$region, mean)), 4),
+               min = signif(unname(tapply(v, d$region, min)), 4),
+               max = signif(unname(tapply(v, d$region, max)), 4),
+               stringsAsFactors = FALSE)
+  })
+  rows <- Filter(Negate(is.null), rows)
+  if (length(rows) == 0) return(NULL)
+  do.call(rbind, rows)
+}
+
+# Group index table: the chart/section key (G1..Gn) mapped back to the
+# full structure.
+#' @noRd
+.proc_group_index_df <- function(groups) {
+  if (length(groups) == 0) return(NULL)
+  data.frame(
+    index = vapply(groups, function(g) g$index, character(1)),
+    structure = vapply(groups, function(g) g$label, character(1)),
+    class = vapply(groups, function(g) g$class, character(1)),
+    n = vapply(groups, function(g) g$n, integer(1)),
+    stringsAsFactors = FALSE)
+}
+
+# Levcost comparison components for a container report (`levcost = TRUE`
+# opt-in): price every process the container can price, join the
+# topology-group index, and build the overall + per-group comparison
+# charts. Each component NULLs independently on failure.
+#' @noRd
+.levcost_cmp_params <- function(container, want, enabled, gg_ok,
+                                lc_args = list(), cost_unit = NULL,
+                                groups = NULL) {
+  none <- list(levcost_df = NULL, levcost_cmp_plot = NULL,
+               levcost_group_plots = NULL)
+  wanted <- want("levcost_df") || want("levcost_cmp_plot") ||
+    want("levcost_group_plots")
+  if (!isTRUE(enabled) || !wanted) return(none)
+  lc <- tryCatch(suppressMessages(suppressWarnings(
+    do.call(energyRt::levcost, c(list(container), lc_args)))),
+    error = function(e) NULL)
+  if (inherits(lc, "levcost") && !inherits(lc, "levcost_list")) {
+    nm1 <- names(lc$levcost_npv)[1] %||% "process"
+    lc <- structure(stats::setNames(list(lc), nm1),
+                    class = c("levcost_list", "list"))
+  }
+  if (!inherits(lc, "levcost_list") || length(lc) == 0) {
+    # no whole-container fan-out (a scenario's levcost needs `name =`):
+    # price each priceable process by name instead
+    nms <- vapply(tryCatch(.levcost_processes(container),
+                           error = function(e) list()),
+                  `[[`, character(1), "name")
+    lc <- .levcost_name_list(container, nms, lc_args)
+  }
+  if (!inherits(lc, "levcost_list") || length(lc) == 0) return(none)
+
+  # a caller with its own group set (the model report's index table) passes
+  # it so indexes agree across the report
+  if (is.null(groups)) groups <- tryCatch(.proc_groups(
+    lapply(.levcost_processes(container), `[[`, "object"), draw = FALSE),
+    error = function(e) list())
+  idx_map <- if (length(groups) > 0) unlist(lapply(groups, function(g)
+    stats::setNames(rep(g$index, length(g$members)), g$members)))
+    else stats::setNames(character(0), character(0))
+
+  levcost_df <- if (want("levcost_df")) tryCatch({
+    rows <- lapply(names(lc), function(nm) {
+      npv <- lc[[nm]][["levcost_npv"]]
+      if (is.null(npv) || length(npv) == 0) return(NULL)
+      data.frame(process = nm, group = unname(idx_map[nm]),
+                 levcost_npv = signif(as.numeric(npv)[1], 5),
+                 stringsAsFactors = FALSE)
+    })
+    rows <- Filter(Negate(is.null), rows)
+    if (length(rows) > 0) {
+      lcdf <- do.call(rbind, rows)
+      # most expensive first, so a template cap shows what matters
+      lcdf[order(-lcdf$levcost_npv), , drop = FALSE]
+    } else NULL
+  }, error = function(e) NULL) else NULL
+
+  levcost_cmp_plot <- if (gg_ok && want("levcost_cmp_plot")) tryCatch(
+    ggplot2::autoplot(lc, top_n = 15L, cost_unit = cost_unit),
+    error = function(e) NULL) else NULL
+
+  levcost_group_plots <- if (gg_ok && want("levcost_group_plots") &&
+                             length(groups) > 0) tryCatch({
+    ps <- list()
+    for (g in groups) {
+      mem <- intersect(g$members, names(lc))
+      if (length(mem) < 2) next
+      sub <- structure(lc[mem], class = c("levcost_list", "list"))
+      p <- tryCatch(
+        ggplot2::autoplot(sub, cost_unit = cost_unit) +
+          ggplot2::ggtitle(paste0(g$index, " \u2014 ", g$label)),
+        error = function(e) NULL)
+      if (!is.null(p)) ps[[g$index]] <- p
+    }
+    if (length(ps) == 0) NULL else ps
+  }, error = function(e) NULL) else NULL
+
+  list(levcost_df = levcost_df, levcost_cmp_plot = levcost_cmp_plot,
+       levcost_group_plots = levcost_group_plots)
 }
 
 # A container's header image: `misc$logo` first (the report-specific hook),
@@ -1282,9 +1480,17 @@ Levelized cost section will be omitted.")
 
 .report_model <- function(object, template, file, format, dots,
                           open = interactive(), reports_path = NULL,
-                          force = FALSE, logos = NULL, figure = NULL) {
+                          force = FALSE, logos = NULL, figure = NULL,
+                          levcost = NULL, cost_unit = NULL) {
   is_model <- inherits(object, "model")
   nm   <- if (nzchar(object@name)) object@name else class(object)[1]
+
+  # `levcost = TRUE` opt-in claims the levcost() arguments from `...`
+  lc_dots <- list()
+  if (isTRUE(levcost)) {
+    lc_dots <- dots[intersect(names(dots), .report_levcost_params)]
+    dots <- dots[setdiff(names(dots), .report_levcost_params)]
+  }
 
   # branding resolved eagerly (cheap): it also enters the render key, so a
   # changed logo/figure re-renders an otherwise up-to-date report
@@ -1300,7 +1506,7 @@ Levelized cost section will be omitted.")
 
   # -- configuration (model only) ------------------------------------------
   config_df <- NULL
-  horizon <- NULL
+  horizon <- cal <- NULL
   discount_df <- calendar_df <- geoscale_df <- NULL
   horizon_plot <- calendar_plot <- NULL
   gg_ok <- requireNamespace("ggplot2", quietly = TRUE)
@@ -1439,6 +1645,43 @@ Levelized cost section will be omitted.")
                stringsAsFactors = FALSE)
   })) else NULL
 
+  weather_cf_df <- if (want("weather_cf_df") && length(weas) > 0)
+    tryCatch(.weather_cf_df(weas), error = function(e) NULL) else NULL
+
+  # one heatmap per factor family (name minus a cluster suffix); a family
+  # of one keeps the richer single-object layout
+  weather_heatmaps <- if (gg_ok && want("weather_heatmaps") &&
+                          length(weas) > 0) tryCatch({
+    fam <- split(weas, vapply(weas, function(w) .weather_type_key(w@name),
+                              character(1)))
+    ps <- list()
+    for (ty in names(fam)) {
+      p <- if (length(fam[[ty]]) == 1L) {
+        tryCatch(suppressMessages(
+          ggplot2::autoplot(fam[[ty]][[1]], calendar = cal)),
+          error = function(e) NULL)
+      } else {
+        tryCatch(.weather_group_heatmap(fam[[ty]], title = ty,
+                                        calendar = cal),
+                 error = function(e) NULL)
+      }
+      if (!is.null(p)) ps[[ty]] <- p
+    }
+    if (length(ps) == 0) NULL else ps
+  }, error = function(e) NULL) else NULL
+
+  demand_heatmaps <- if (gg_ok && want("demand_heatmaps") &&
+                         length(dems) > 0) tryCatch({
+    ps <- list()
+    for (x in dems) {
+      p <- tryCatch(suppressMessages(
+        ggplot2::autoplot(x, style = "heatmap", calendar = cal)),
+        error = function(e) NULL)
+      if (!is.null(p)) ps[[x@name]] <- p
+    }
+    if (length(ps) == 0) NULL else ps
+  }, error = function(e) NULL) else NULL
+
   pols <- c(taxes, subs)
   policy_df <- if (length(pols) > 0) do.call(rbind, lapply(pols, function(x) {
     data.frame(name = x@name, class = class(x)[1],
@@ -1453,11 +1696,23 @@ Levelized cost section will be omitted.")
   # -- topology groups: one section per process STRUCTURE ------------------
   # (the grouped view is what the default template shows; per-process
   # `techs` below is built only for templates that still declare it)
-  need_groups <- want("proc_groups") || want("windows_group_plot")
+  need_groups <- want("proc_groups") || want("windows_group_plot") ||
+    want("group_index_df") || want("levcost_group_plots")
   proc_groups <- if (need_groups) tryCatch(
     .proc_groups(c(techs, stgs), draw = want("proc_groups")),
     error = function(e) list()) else list()
   windows_group_n <- length(proc_groups)
+  group_index_df <- if (want("group_index_df"))
+    .proc_group_index_df(proc_groups) else NULL
+
+  # -- levelized costs, ex-ante (opt-in: levcost = TRUE) -------------------
+  lcp <- .levcost_cmp_params(object, want, isTRUE(levcost), gg_ok,
+                             lc_args = lc_dots, cost_unit = cost_unit,
+                             groups = if (length(proc_groups) > 0)
+                               proc_groups else NULL)
+  levcost_df <- lcp$levcost_df
+  levcost_cmp_plot <- lcp$levcost_cmp_plot
+  levcost_group_plots <- lcp$levcost_group_plots
   windows_group_plot <- if (gg_ok && want("windows_group_plot") &&
                             windows_group_n > 0) tryCatch({
     .plot_windows_grouped(.proc_windows(object, horizon = horizon),
@@ -1496,11 +1751,16 @@ Levelized cost section will be omitted.")
     counts_df = counts_df,
     comm_df = comm_df, sup_df = sup_df, dem_df = dem_df,
     trd_df = trd_df, expimp_df = expimp_df, weather_df = weather_df,
+    weather_cf_df = weather_cf_df, weather_heatmaps = weather_heatmaps,
+    demand_heatmaps = demand_heatmaps,
     policy_df = policy_df, cns_df = cns_df,
     windows_plot = windows_plot, techs = tech_list,
     proc_groups = proc_groups,
     windows_group_plot = windows_group_plot,
     windows_group_n = windows_group_n,
+    group_index_df = group_index_df,
+    levcost_df = levcost_df, levcost_cmp_plot = levcost_cmp_plot,
+    levcost_group_plots = levcost_group_plots,
     geo_map = geo_map, geo_stack = geo_stack)
   }
 
@@ -1515,8 +1775,16 @@ Levelized cost section will be omitted.")
 .report_scenario <- function(scen, template, file, format, dots,
                              open = interactive(), reports_path = NULL,
                              force = FALSE, run = NULL, verify = TRUE,
-                             levcost = NULL, logos = NULL, badges = NULL) {
+                             levcost = NULL, cost_unit = NULL,
+                             logos = NULL, badges = NULL) {
   nm <- if (nzchar(scen@name)) scen@name else "scenario"
+
+  # `levcost = TRUE` opt-in claims the levcost() arguments from `...`
+  lc_dots <- list()
+  if (isTRUE(levcost)) {
+    lc_dots <- dots[intersect(names(dots), .report_levcost_params)]
+    dots <- dots[setdiff(names(dots), .report_levcost_params)]
+  }
 
   # branding: model logos first, then the scenario's own; badges are the
   # scenario's small property indicators. Resolved eagerly -- they enter
@@ -1722,24 +1990,12 @@ Levelized cost section will be omitted.")
     } else NULL
   }, error = function(e) NULL) else NULL
 
-  # -- levelized costs (opt-in: levcost = TRUE) ----------------------------
-  levcost_df <- if (isTRUE(levcost) && want("levcost_df")) tryCatch({
-    lc <- suppressMessages(suppressWarnings(energyRt::levcost(scen)))
-    if (inherits(lc, "levcost")) lc <- list(lc)
-    rows <- lapply(lc, function(z) {
-      npv <- z[["levcost_npv"]]
-      if (is.null(npv) || length(npv) == 0) return(NULL)
-      data.frame(process = names(npv)[1] %||% "",
-                 levcost_npv = signif(as.numeric(npv)[1], 5),
-                 stringsAsFactors = FALSE)
-    })
-    rows <- Filter(Negate(is.null), rows)
-    if (length(rows) > 0) {
-      lcdf <- do.call(rbind, rows)
-      # most expensive first, so a template cap shows what matters
-      lcdf[order(-lcdf$levcost_npv), , drop = FALSE]
-    } else NULL
-  }, error = function(e) NULL) else NULL
+  # -- levelized costs, ex-post (opt-in: levcost = TRUE) -------------------
+  lcp <- .levcost_cmp_params(scen, want, isTRUE(levcost), gg_ok,
+                             lc_args = lc_dots, cost_unit = cost_unit)
+  levcost_df <- lcp$levcost_df
+  levcost_cmp_plot <- lcp$levcost_cmp_plot
+  levcost_group_plots <- lcp$levcost_group_plots
 
   # -- multiple runs: objective chart + comparison pointer -----------------
   runs_plot <- runs_note <- NULL
@@ -1899,7 +2155,9 @@ Levelized cost section will be omitted.")
     emis_df = emis_df, emis_total_df = emis_total_df,
     cost_df = cost_df, cost_total_df = cost_total_df,
     costs_plot = costs_plot,
-    variants_df = variants_df, levcost_df = levcost_df)
+    variants_df = variants_df, levcost_df = levcost_df,
+    levcost_cmp_plot = levcost_cmp_plot,
+    levcost_group_plots = levcost_group_plots)
   }
 
   tmpl <- template %||% .report_misc_template(scen) %||% "scenario"
@@ -1921,7 +2179,8 @@ setMethod("report", "repository",
     if (is.null(name)) {
       return(.report_model(object, template, file, format, dots, open = open,
                            reports_path = reports_path, force = force,
-                           logos = logos, figure = figure))
+                           logos = logos, figure = figure,
+                           levcost = levcost, cost_unit = cost_unit))
     }
     .report_container(object, object, object, template, image_file, file, format,
                       levcost, cost_unit, name, dots, open = open,
@@ -1940,7 +2199,8 @@ setMethod("report", "model",
     if (is.null(name)) {
       return(.report_model(object, template, file, format, dots, open = open,
                            reports_path = reports_path, force = force,
-                           logos = logos, figure = figure))
+                           logos = logos, figure = figure,
+                           levcost = levcost, cost_unit = cost_unit))
     }
     .report_container(object, object, object, template, image_file, file, format,
                       levcost, cost_unit, name, dots, open = open,
@@ -1960,6 +2220,7 @@ setMethod("report", "scenario",
       return(.report_scenario(object, template, file, format, dots, open = open,
                               reports_path = reports_path, force = force,
                               run = run, verify = verify, levcost = levcost,
+                              cost_unit = cost_unit,
                               logos = logos, badges = badges))
     }
     .report_container(object, object@model, object, template, image_file, file,

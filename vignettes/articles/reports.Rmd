@@ -120,6 +120,20 @@ report(scen, template = "full")    # comprehensive, page-broken layout
 report(scen, name = "PP")          # one process, priced in this scenario
 ```
 
+Large models group per-process sections by *structure*; each group carries
+a short index (`G1`, `G2`, ...) used on charts and headings, with an index
+table mapping it back to the topology. `levcost = TRUE` adds a
+levelized-cost comparison — an overall chart, one chart per topology
+group, and the ranked table — ex-ante on a model, ex-post on a solved
+scenario; a process datasheet requested from a container also compares the
+process with its structural peers:
+
+```{r report-levcost, eval = FALSE}
+report(mod, levcost = TRUE)        # ex-ante LCOE comparison section
+report(scen, levcost = TRUE)       # ex-post, from the solved scenario
+report(mod, name = "PP")           # datasheet + "vs peers" chart
+```
+
 The shipped templates are listed by `report_templates()`; custom `.Rmd`
 templates build on the exported `report_*` helper family and are passed via
 `template = "<path>"`.
@@ -129,7 +143,10 @@ templates build on the exported `report_*` helper family and are passed via
 Every model component has a `report()` method — commodities, supply,
 demand, trade, import/export, weather, taxes and subsidies, user
 constraints, calendars, horizons, configurations, and user costs each
-render a one-object datasheet from their own shipped template:
+render a one-object datasheet from their own shipped template. A supply
+datasheet charts availability and cost by region (`autoplot(sup,
+style = "bar")` / `style = "regions"` draw the same views directly;
+an unlimited availability shows as a translucent full-height bar):
 
 ```{r report-elements, eval = FALSE}
 report(COA)                          # a commodity datasheet

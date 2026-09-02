@@ -136,7 +136,10 @@ get_julia_path <- function() {
   if (.use_arrow) .assert_julia_arrow_format(.ex_fmt, "export_format")
   if (.use_arrow) {
     in_dir <- fp(arg$solver.dir, "input")
-    dir.create(in_dir, showWarnings = FALSE)
+    dir.create(in_dir, showWarnings = FALSE, recursive = TRUE)
+    .check_exchange_path_len(
+      in_dir, names(dat)[vapply(dat, function(d) nrow(d) > 0L, logical(1))],
+      "feather")
     for (i in names(dat)) {
       # An empty table is never read by the generated code (see .toJuliaHead),
       # so writing it is pure overhead -- on a UTOPIA-size model most tables

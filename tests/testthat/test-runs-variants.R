@@ -43,7 +43,7 @@ test_that("a variant's solve and problem land under runs/<variant>/", {
   st <- vr_state()
   expect_identical(st$alt@misc$variant, "low")
   vdir <- file.path(vr_path, "runs", "low")
-  expect_true(dir.exists(file.path(vdir, st$solve_lbl, "solver", "output")))
+  expect_true(dir.exists(file.path(vdir, st$solve_lbl, "output")))
   expect_true(file.exists(file.path(vdir, st$solve_lbl, "run.yml")))
   rec <- yaml::read_yaml(file.path(vdir, st$solve_lbl, "run.yml"))
   expect_identical(rec$variant, "low")
@@ -86,7 +86,7 @@ test_that("a second solve of the variant reuses its single problem store", {
   sol2 <- solve_scenario(st$alt, force = TRUE, run = "glpk-b")
   expect_identical(sol2@misc$variant, "low")
   expect_true(dir.exists(file.path(vr_path, "runs", "low", "glpk-b",
-                                   "solver", "output")))
+                                   "output")))
   expect_equal(vr_obj(sol2), st$obj_alt)
   saved2 <- suppressMessages(save_scenario(sol2, verbose = FALSE))
   # still exactly one modInp store for the variant

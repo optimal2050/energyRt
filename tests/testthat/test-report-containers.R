@@ -51,10 +51,10 @@ test_that("model report renders html and docx with the new sections", {
   expect_match(h, "Configuration")
   expect_match(h, "Calendar \\(timeslices per timeframe\\)")
   expect_match(h, "Commodities")
-  # per-process sections are grouped by structure since the scale round:
-  # the group heading carries the topology and class, the member table the
-  # process name
-  expect_match(h, "COA -&gt; ELC \\(technology\\)|COA -> ELC \\(technology\\)")
+  # per-process sections are grouped by structure: the heading carries the
+  # group index, topology and class; the member table the process name
+  expect_match(h,
+    "COA -&gt; ELC \\(technology, n = |COA -> ELC \\(technology, n = ")
   expect_match(h, "PP_COA")                       # listed as a member
   expect_false(grepl(">NA</td>", h, fixed = TRUE))
   fd <- grep("docx$", f, value = TRUE)

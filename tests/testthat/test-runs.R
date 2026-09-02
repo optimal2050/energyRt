@@ -31,7 +31,9 @@ test_that("a solve lands in runs/<solver>/ with a run.yml record", {
   expect_null(sol@misc$solver.dir)
 
   run_dir <- file.path(sol@path, "runs", solve_lbl)   # FLAT: no default/
-  expect_true(dir.exists(file.path(run_dir, "solver", "output")))
+  # layout 4: the solver files sit in the run folder itself
+  expect_true(dir.exists(file.path(run_dir, "output")))
+  expect_false(dir.exists(file.path(run_dir, "solver")))
   expect_true(file.exists(file.path(run_dir, "run.yml")))
 
   rec <- scenario_run_info(sol, solve_lbl)
@@ -60,7 +62,7 @@ test_that("a labeled second run coexists and read_solution(run=) switches", {
   sol2 <- solve_scenario(sol, force = TRUE, run = "glpk-b")
   expect_identical(sol2@misc$run, "glpk-b")
   expect_true(dir.exists(file.path(sol2@path, "runs", "glpk-b",
-                                   "solver", "output")))
+                                   "output")))
   runs <- scenario_runs(sol2)
   expect_identical(nrow(runs), 2L)
   expect_setequal(runs$run, c(first_lbl, "glpk-b"))
@@ -205,13 +207,18 @@ test_that("interim S2/S3-era trees (runs/default/<solve>/script) are readable", 
                           name = "rnint", path = rn_scen_path("rnint"))
   sol <- solve_scenario(sc)
   lbl <- sol@misc$run
-  # transform: runs/<lbl>/{solver,run.yml} -> runs/default/<lbl>/{script,run.yml}
+  # transform a layout-4 run into the retired shape:
+  # runs/<lbl>/{*,run.yml} -> runs/default/<lbl>/{script/*,run.yml}
   old_dir <- file.path(sol@path, "runs", lbl)
   new_dir <- file.path(sol@path, "runs", "default", lbl)
   dir.create(dirname(new_dir), recursive = TRUE)
   stopifnot(file.rename(old_dir, new_dir))
-  stopifnot(file.rename(file.path(new_dir, "solver"),
-                        file.path(new_dir, "script")))
+  sdir <- file.path(new_dir, "script")
+  dir.create(sdir)
+  moved <- setdiff(list.files(new_dir, all.files = TRUE, no.. = TRUE),
+                   c("run.yml", "modOut", "script"))
+  stopifnot(all(file.rename(file.path(new_dir, moved),
+                            file.path(sdir, moved))))
 
   runs <- scenario_runs(sol)
   expect_identical(nrow(runs), 1L)

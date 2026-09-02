@@ -149,6 +149,22 @@ test_that("misc$report sets the default template", {
   expect_match(h2, "Supply: SUP_COA")
 })
 
+test_that("supply datasheet renders the region charts", {
+  .re_skip_if_no_pandoc()
+  sup <- newSupply("SUP_STEP", commodity = "GAS", unit = "GWh",
+                   region = c("R1", "R2"),
+                   supply = data.frame(region = c("R1", "R2"), year = 2025L,
+                                       ava.up = c(100, NA), cost = c(3, 4)))
+  f <- suppressMessages(suppressWarnings(report(
+    sup, format = "html", file = tempfile("re_sup2_"), open = FALSE)))
+  h <- paste(gsub("\\s+", " ", readLines(f, warn = FALSE)), collapse = " ")
+  expect_match(h, "Supply by region")
+  expect_match(h, "Across regions")
+  # the uncapped-bar caption lives inside the PNG; assert it on the builder
+  pp <- energyRt:::.el_params_supply(sup, function(p) TRUE)
+  expect_match(pp$regions_plot$labels$caption, "unlimited availability")
+})
+
 test_that("element reports are skip-if-current cached", {
   .re_skip_if_no_pandoc()
   fx <- .re_fixtures()

@@ -30,11 +30,18 @@ params:
   trd_df:        NULL
   expimp_df:     NULL
   weather_df:    NULL
+  weather_cf_df:    NULL
+  weather_heatmaps: NULL
+  demand_heatmaps:  NULL
   policy_df:     NULL
   cns_df:        NULL
   proc_groups:        NULL
   windows_group_plot: NULL
   windows_group_n:    0
+  group_index_df:     NULL
+  levcost_df:          NULL
+  levcost_cmp_plot:    NULL
+  levcost_group_plots: NULL
 header-includes:
   - \usepackage{booktabs}
 ---
@@ -113,6 +120,21 @@ h_in <- min(9, max(2.5, 1.2 + 0.18 * params$windows_group_n))
 emit_img(energyRt::report_plot_png(params$windows_group_plot, 8, h_in), 1)
 ```
 
+```{r en-group-index, results='asis', eval=!is.null(params$group_index_df)}
+tbl(params$group_index_df, caption = "Process-group index", max_rows = 40)
+```
+
+```{r en-levcost, results='asis', eval=!is.null(params$levcost_cmp_plot) || !is.null(params$levcost_df)}
+cat("## Levelized costs (ex-ante)\n\n")
+if (!is.null(params$levcost_cmp_plot))
+  emit_img(energyRt::report_plot_png(params$levcost_cmp_plot, 7.5, 3.6), 1)
+for (p in params$levcost_group_plots)
+  emit_img(energyRt::report_plot_png(p, 6.5, 3.0), 0.9)
+if (!is.null(params$levcost_df))
+  tbl(params$levcost_df, caption = "Levelized cost, most expensive first",
+      max_rows = 30)
+```
+
 ## Commodities
 
 ```{r en-comm, results='asis'}
@@ -129,6 +151,11 @@ tbl(params$sup_df)
 
 ```{r en-dem, results='asis'}
 tbl(params$dem_df)
+```
+
+```{r en-dem-heat, results='asis', eval=length(params$demand_heatmaps) > 0}
+for (p in params$demand_heatmaps)
+  emit_img(energyRt::report_plot_png(p, 7.5, 2.8), 1)
 ```
 
 ```{r en-trd-header, results='asis', eval=!is.null(params$trd_df)}
@@ -155,6 +182,17 @@ cat("## Weather\n")
 tbl(params$weather_df, max_rows = 40)
 ```
 
+```{r en-weather-cf, results='asis', eval=!is.null(params$weather_cf_df)}
+tbl(params$weather_cf_df,
+    caption = "Average factors (unweighted mean over timeslices and years)",
+    max_rows = 40)
+```
+
+```{r en-weather-heat, results='asis', eval=length(params$weather_heatmaps) > 0}
+for (p in params$weather_heatmaps)
+  emit_img(energyRt::report_plot_png(p, 7.5, 3.2), 1)
+```
+
 ```{r en-policy-header, results='asis', eval=!is.null(params$policy_df)}
 cat("## Taxes and subsidies\n")
 ```
@@ -179,7 +217,8 @@ the members list names every process sharing it. Per-process datasheets:
 
 ```{r en-proc-groups, results='asis'}
 for (g in params$proc_groups) {
-  cat("\n\n### ", g$n, " x ", g$label, " (", g$class, ")\n\n", sep = "")
+  cat("\n\n### ", g$index, " — ", g$label, " (", g$class, ", n = ", g$n,
+      ")\n\n", sep = "")
   emit_img(g$draw_file, 0.6)
   cat("\n")
   tbl(g$members_df, caption = "Members", max_rows = 25)

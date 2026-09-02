@@ -21,6 +21,10 @@ params:
   supply_df:  NULL
   reserve_df: NULL
   weather_df: NULL
+  cluster_df: NULL
+  bar_plot:     NULL
+  cost_plot:    NULL
+  regions_plot: NULL
 header-includes:
   - \usepackage{booktabs}
 ---
@@ -64,8 +68,25 @@ energyRt::report_sec("Year profile", output = fmt)
 emit_img(energyRt::report_plot_png(params$main_plot, 7, 3.6), 1)
 ```
 
+```{r en-byregion, results='asis', eval=!is.null(params$bar_plot) || !is.null(params$cost_plot)}
+energyRt::report_sec("Supply by region", output = fmt)
+if (!is.null(params$bar_plot))
+  emit_img(energyRt::report_plot_png(params$bar_plot, 7, 3.4), 1)
+if (!is.null(params$cost_plot))
+  emit_img(energyRt::report_plot_png(params$cost_plot, 7, 3.0), 1)
+```
+
+```{r en-regions, results='asis', eval=!is.null(params$regions_plot)}
+energyRt::report_sec("Across regions", output = fmt)
+emit_img(energyRt::report_plot_png(params$regions_plot, 7, 3.2), 1)
+```
+
 ```{r en-data, results='asis', eval=!is.null(params$supply_df)}
 tbl(params$supply_df, caption = "Supply data", max_rows = 40)
+```
+
+```{r en-steps, results='asis', eval=!is.null(params$cluster_df)}
+tbl(params$cluster_df, caption = "Supply-curve steps", max_rows = 25)
 ```
 
 ```{r en-reserve, results='asis', eval=!is.null(params$reserve_df)}

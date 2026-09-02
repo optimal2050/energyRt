@@ -63,6 +63,37 @@
   )
 }
 
+# Windows refuses a path of 260 characters or more, and reports it as "cannot
+# find the path specified" -- indistinguishable from a missing directory. The
+# exchange writes one file per symbol, and a generated variant constraint has a
+# long name, so a deep scenarios directory overruns the limit on some solvers
+# and not others (the run directory carries the solver's name).
+#
+# Checked before anything is written, so the failure names the cause instead of
+# surfacing from inside an Arrow writer half way through.
+#' @noRd
+.check_exchange_path_len <- function(in_dir, symbols, format, limit = 259L) {
+  if (.Platform$OS.type != "windows") return(invisible(NULL))
+  if (length(symbols) == 0L) return(invisible(NULL))
+  root <- if (grepl("^([A-Za-z]:|[\\/])", in_dir)) in_dir
+          else file.path(getwd(), in_dir)
+  files <- paste0(symbols, ".", .exchange_ext(format))
+  n <- nchar(root) + 1L + nchar(files)
+  if (max(n) <= limit) return(invisible(NULL))
+  worst <- which.max(n)
+  stop("the solver exchange needs a ", max(n), "-character path and Windows ",
+       "allows ", limit + 1L, ".
+",
+       "  directory     : ", root, " (", nchar(root), " chars)
+",
+       "  longest symbol: ", files[worst], " (", nchar(files[worst]),
+       " chars)
+",
+       "  Shorten set_scenarios_path(), or use a single-file exchange ",
+       "(solver_options$julia_highs_rdata, solver_options$pyomo_cbc_sqlite).",
+       call. = FALSE)
+}
+
 # Write ONE data.frame to ONE file `<path_noext>.<ext>`. Returns the file path.
 .write_exchange_table <- function(df, path_noext,
                                   format = get_exchange_format(),

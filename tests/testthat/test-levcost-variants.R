@@ -212,6 +212,34 @@ test_that("autoplot.levcost_list survives variants without a breakdown", {
   expect_s3_class(p, "ggplot")
 })
 
+test_that("autoplot.levcost_list sorts, caps and facets for comparisons", {
+  skip_if_not_installed("ggplot2")
+  mk <- function(nm, v) structure(list(
+    levcost_npv = stats::setNames(v, nm),
+    cost_breakdown_npv = data.frame(component = c("eac", "varom"),
+                                    value = c(v * 0.6, v * 0.4)),
+    units = list(costs = "MUSD", activity = "GWh")),
+    class = c("levcost", "list"))
+  lcl <- structure(list(A = mk("A", 5), B = mk("B", 9), C = mk("C", 2)),
+                   class = c("levcost_list", "list"))
+  # default keeps the list's own order (the variants contract)
+  p0 <- ggplot2::autoplot(lcl)
+  expect_equal(levels(p0$data$tech), c("A", "B", "C"))
+  # sort = most expensive first
+  p1 <- ggplot2::autoplot(lcl, sort = TRUE)
+  expect_equal(levels(p1$data$tech), c("B", "A", "C"))
+  # top_n caps and captions
+  p2 <- ggplot2::autoplot(lcl, top_n = 2)
+  expect_setequal(unique(as.character(p2$data$tech)), c("A", "B"))
+  expect_match(p2$labels$caption, "2 most expensive of 3")
+  # groups facet with the short index
+  grp <- list(list(index = "G1", label = "x", members = c("A", "B"), n = 2L),
+              list(index = "G2", label = "y", members = "C", n = 1L))
+  p3 <- ggplot2::autoplot(lcl, groups = grp)
+  expect_equal(sort(unique(p3$data$group)), c("G1", "G2"))
+  expect_s3_class(p3$facet, "FacetWrap")
+})
+
 test_that("fuel_costs prices auxiliary input commodities", {
   tech <- newTechnology(
     name    = "PWRA",

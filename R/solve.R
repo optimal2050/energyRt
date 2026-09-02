@@ -360,7 +360,11 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
       name = paste0("code", seq_along(scen@settings@solver$code)),
       value = scen@settings@solver$code, stringsAsFactors = FALSE
     ))
-    write.csv(tmp, file = fp(arg$solver.dir, "solver"), row.names = FALSE)
+    # Named `solver.csv`, not `solver`: with the run folder flattened this file
+    # sits where layout 3 kept the `solver/` DIRECTORY, and two things of the
+    # same name in the same place is a trap even though `dir.exists()` tells
+    # them apart. `.read_solver_meta()` still reads the old name.
+    write.csv(tmp, file = fp(arg$solver.dir, "solver.csv"), row.names = FALSE)
 
     if (arg$echo) {
       cat(round(proc.time()[3] - solver_solver_time, 2), "s\n", sep = "")

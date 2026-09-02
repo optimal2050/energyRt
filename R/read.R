@@ -7,6 +7,28 @@
 #'   run or `"<variant>/<solve>"` — see [scenario_runs()]. The scenario's
 #'   active run switches to it. Default `NULL` reads the active run (or, for
 #'   a freshly loaded scenario, the manifest's `default:` run).
+# The solve's own metadata (solver codes and command). Written as `solver.csv`
+# since the run folder was flattened; scenarios solved under layout 3 carry it
+# as a file simply called `solver`.
+#' @noRd
+.solver_meta_path <- function(solver_dir) {
+  for (nm in c("solver.csv", "solver")) {
+    f <- fp(solver_dir, nm)
+    if (file.exists(f) && !dir.exists(f)) return(f)
+  }
+  NA_character_
+}
+
+#' @noRd
+.read_solver_meta <- function(solver_dir) {
+  f <- .solver_meta_path(solver_dir)
+  if (is.na(f)) {
+    stop("no solver metadata (`solver.csv`) in '", solver_dir, "'.",
+         call. = FALSE)
+  }
+  utils::read.csv(f, stringsAsFactors = FALSE)
+}
+
 #' @param ... optional `solver.dir` (an external solver directory, replacing
 #'   the run resolution; `tmp.dir` is the deprecated alias)
 #'
@@ -240,9 +262,7 @@ read_solution <- function(obj, run = NULL, ...) {
   scen@modOut@solutionLogs <- read.csv(paste(arg$solver.dir, "/output/log.csv",
     sep = ""
   ))
-  solver_data <- read.csv(paste(arg$solver.dir, "/solver", sep = ""),
-    stringsAsFactors = FALSE
-  )
+  solver_data <- .read_solver_meta(arg$solver.dir)
   codes <- solver_data[grep("^code", solver_data$name), ]
   # Only the FILE NAMES are kept: the model text itself already lives in the
   # run's solver directory, and importing it here used to bloat

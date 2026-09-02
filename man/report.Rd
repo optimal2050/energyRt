@@ -46,6 +46,7 @@ report(
   format = c("html", "pdf", "tex", "docx"),
   levcost = NULL,
   cost_unit = NULL,
+  levcost_peers = NULL,
   open = interactive(),
   reports_path = NULL,
   force = FALSE,
@@ -372,7 +373,9 @@ none is found.}
 \code{\link{levcost}}, or \code{NULL} (default).  When \code{NULL} and any
 \code{levcost} keyword arguments are passed via \code{...} (e.g.
 \code{group}, \code{repo}, \code{discount}), \code{levcost()} is called
-automatically on \code{object} with those arguments.
+automatically on \code{object} with those arguments. On a whole-model or
+scenario report, \code{levcost = TRUE} adds the levelized-cost
+comparison section (overall and per-topology-group charts + table).
 
 For a process declaring vintages or clusters the report carries the
 per-variant levelised costs (a table plus a comparison chart) alongside
@@ -414,6 +417,11 @@ figure, default \code{misc$figure}), and the scenario method
 \code{badges} (small property-indicator images, default
 \code{misc$badges}). Branding content enters the render key, so a
 changed logo re-renders an otherwise up-to-date report.}
+
+\item{levcost_peers}{A \code{levcost_list} of the process's topology-group
+peers, rendered as a comparison chart. Filled automatically when the
+datasheet is requested from a container (\code{report(mod, name = )});
+rarely passed by hand.}
 
 \item{reports_path}{Character.  Redirects the default output directory for
 this call (\code{file =} still wins).}

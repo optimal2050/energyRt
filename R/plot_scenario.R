@@ -615,12 +615,8 @@ plot_process_windows <- function(object, region = NULL, horizon = NULL) {
 #' @noRd
 .plot_windows_grouped <- function(w, groups) {
   if (is.null(w) || nrow(w) == 0 || length(groups) == 0) return(NULL)
-  labs_ <- vapply(groups, function(g) g$label, character(1))
-  if (anyDuplicated(labs_)) {
-    labs_ <- paste0(labs_, " [",
-                    vapply(groups, function(g) g$class, character(1)), "]")
-  }
-  labs_ <- paste0(labs_, "  (", vapply(groups, function(g) g$n, integer(1)),
+  labs_ <- vapply(groups, function(g) g$index %||% g$label, character(1))
+  labs_ <- paste0(labs_, " (", vapply(groups, function(g) g$n, integer(1)),
                   ")")
   map <- unlist(lapply(seq_along(groups), function(i)
     stats::setNames(rep(labs_[i], length(groups[[i]]$members)),
@@ -663,7 +659,8 @@ plot_process_windows <- function(object, region = NULL, horizon = NULL) {
                   title = "Process investment and operating windows (by structure)",
                   subtitle = paste("grey: exogenous stock · solid: new",
                                    "capacity can be built · translucent:",
-                                   "last vintage operates · (n) = processes")) +
+                                   "last vintage operates · (n) = processes ·",
+                                   "Gk = group, see index table")) +
     theme_energyRt()
   if (nrow(pt) > 0) {
     p <- p + ggplot2::geom_point(

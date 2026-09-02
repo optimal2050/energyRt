@@ -597,8 +597,10 @@ plot_process_year <- function(object, year = NULL, interpolate = TRUE,
     if (!is.null(def_df)) def_df <- unique(def_df)
   }
 
-  # Series = param (split by region/timeslice when present) for correct grouping.
-  grp_cols <- intersect(c("param", "region", "timeslice"), names(raw))
+  # Series = param (split by region/timeslice/cluster when present) for
+  # correct grouping -- without `cluster` a supply curve's steps overplot.
+  grp_cols <- intersect(c("param", "region", "timeslice", "cluster"),
+                        names(raw))
   mkg <- function(d) if (nrow(d) == 0) character(0) else
     do.call(paste, c(lapply(grp_cols, function(k) as.character(d[[k]])), sep = " | "))
   raw$base <- base_of(raw$param); raw$series <- mkg(raw)
@@ -690,11 +692,255 @@ plot_process_year <- function(object, year = NULL, interpolate = TRUE,
 #' @return A `ggplot` object (or `NULL`, invisibly, if there is nothing to plot).
 #' @name autoplot.process
 #' @rdname autoplot.process
+#' @param style For `supply` only: `"profile"` (default) draws the
+#'   per-parameter year profile shared by all process classes; `"bar"` draws
+#'   quantity or price by region over the years (stacked availability bars,
+#'   per-region cost lines; `type =` picks the quantity); `"regions"` draws
+#'   the across-region comparison — availability and cost bars per region,
+#'   with an unlimited (`Inf`) availability shown as a translucent
+#'   full-height bar labelled "uncapped".
+#' @param type For `style = "bar"`: `"availability"` (default) or `"cost"`.
 #' @exportS3Method ggplot2::autoplot
 autoplot.supply <- function(object, year = NULL, interpolate = TRUE,
-                            show_defaults = FALSE, units = NULL, ...) {
-  plot_process_year(object, year = year, interpolate = interpolate,
-                    show_defaults = show_defaults, units = units, ...)
+                            show_defaults = FALSE, units = NULL,
+                            style = c("profile", "bar", "regions"),
+                            type = c("availability", "cost"), ...) {
+  style <- match.arg(style)
+  switch(style,
+    profile = plot_process_year(object, year = year,
+                                interpolate = interpolate,
+                                show_defaults = show_defaults,
+                                units = units, ...),
+    bar = plot_supply_bar(object, type = match.arg(type), year = year,
+                          interpolate = interpolate, ...),
+    regions = plot_supply_regions(object, year = year,
+                                  interpolate = interpolate, ...))
+}
+
+# Long supply data for the bar/regions charts: the given (milestone-year)
+# data, or an explicit `year` grid interpolated. A stepped supply (several
+# clusters) always keeps its raw values -- interpolation collapses the
+# duplicate-year step rows into one series.
+.supply_long <- function(object, year = NULL, interpolate = TRUE, ...) {
+  raw <- .obj_long_get(object, "supply", FALSE, NULL, ...)
+  if (is.null(raw) || nrow(raw) == 0) return(NULL)
+  multi_step <- "cluster" %in% names(raw) &&
+    length(unique(stats::na.omit(raw$cluster))) > 1
+  d <- raw
+  if (!is.null(year) && isTRUE(interpolate) && !multi_step) {
+    di <- .obj_long_get(object, "supply", TRUE, year, ...)
+    if (!is.null(di) && nrow(di) > 0) d <- di
+  }
+  d <- d[is.finite(d$value), , drop = FALSE]
+  if (nrow(d) == 0) return(NULL)
+  if (!"region" %in% names(d)) d$region <- NA_character_
+  d$region[is.na(d$region)] <- "(all)"
+  d
+}
+
+# Cluster factor in @cluster$order (fill/stack order of curve steps).
+.supply_cluster_levels <- function(object, d) {
+  if (!"cluster" %in% names(d)) return(d)
+  cl <- tryCatch(object@cluster, error = function(e) NULL)
+  if (is.data.frame(cl) && nrow(cl) > 0 && "order" %in% names(cl) &&
+      !all(is.na(cl$order))) {
+    d$cluster <- factor(d$cluster, levels = cl$cluster[order(cl$order)])
+  }
+  d
+}
+
+# Effective annual availability per (region, cluster, year): timeslice rows
+# sum to annual; ava.fx wins over ava.up on the same key. A key with neither
+# is unbounded and carries no row here.
+.supply_ava_annual <- function(d) {
+  a <- d[d$param %in% c("ava.up", "ava.fx") & is.finite(d$value), ,
+         drop = FALSE]
+  if (nrow(a) == 0) return(NULL)
+  kc <- intersect(c("region", "cluster", "year"), names(a))
+  a <- a |>
+    dplyr::group_by(dplyr::across(dplyr::all_of(c(kc, "param")))) |>
+    dplyr::summarise(value = sum(.data$value), .groups = "drop") |>
+    as.data.frame()
+  fx <- a[a$param == "ava.fx", , drop = FALSE]
+  up <- a[a$param == "ava.up", , drop = FALSE]
+  if (nrow(fx) > 0 && nrow(up) > 0) {
+    up <- up[!(interaction(up[kc], drop = TRUE) %in%
+                 interaction(fx[kc], drop = TRUE)), , drop = FALSE]
+  }
+  rbind(fx, up)
+}
+
+# Quantity and price by region over the years. Not exported: autoplot(sup,
+# style = "bar") reaches it.
+plot_supply_bar <- function(object, type = c("availability", "cost"),
+                            year = NULL, interpolate = TRUE, ...) {
+  check_package("ggplot2")
+  type <- match.arg(type)
+  obj_name <- tryCatch(object@name, error = function(e) "")
+  d <- .supply_long(object, year = year, interpolate = interpolate, ...)
+  if (is.null(d)) {
+    message("No supply data to plot for '", obj_name, "'.")
+    return(invisible(NULL))
+  }
+  d <- .supply_cluster_levels(object, d)
+  has_cluster <- "cluster" %in% names(d) &&
+    length(unique(stats::na.omit(d$cluster))) > 1
+  unit <- tryCatch(object@unit, error = function(e) "")
+  unit <- if (length(unit) == 1 && !is.na(unit) && nzchar(unit)) unit else NULL
+
+  if (type == "availability") {
+    a <- .supply_ava_annual(d)
+    if (is.null(a) || nrow(a) == 0) {
+      message("No finite availability (ava.up/ava.fx) for '", obj_name,
+              "': supply is uncapped.")
+      return(invisible(NULL))
+    }
+    a$year_f <- factor(ifelse(is.na(a$year), "all", as.character(a$year)))
+    fill_col <- if (has_cluster && "cluster" %in% names(a)) "cluster" else
+      "region"
+    p <- ggplot2::ggplot(a, ggplot2::aes(x = .data$year_f, y = .data$value,
+                                         fill = .data[[fill_col]])) +
+      ggplot2::geom_col(position = "stack")
+    if (fill_col == "cluster" && length(unique(a$region)) > 1)
+      p <- p + ggplot2::facet_wrap(~region)
+    p + ggplot2::labs(
+      x = "year",
+      y = if (is.null(unit)) "availability" else
+        paste0("availability [", unit, "/year]"),
+      fill = NULL,
+      title = if (nzchar(obj_name)) obj_name else NULL,
+      subtitle = "annual supply availability (ava.fx, else ava.up)") +
+      theme_energyRt() +
+      ggplot2::theme(plot.title = ggplot2::element_text(face = "bold"),
+                     axis.text.x = ggplot2::element_text(angle = 45,
+                                                         hjust = 1)) +
+      .legend_compact(length(unique(a[[fill_col]])))
+  } else {
+    co <- d[d$param == "cost" & !is.na(d$value), , drop = FALSE]
+    if (nrow(co) == 0) {
+      message("No supply cost to plot for '", obj_name, "'.")
+      return(invisible(NULL))
+    }
+    kc <- intersect(c("region", "cluster", "year"), names(co))
+    co <- co |>
+      dplyr::group_by(dplyr::across(dplyr::all_of(kc))) |>
+      dplyr::summarise(value = mean(.data$value), .groups = "drop") |>
+      as.data.frame()
+    co$year_x <- ifelse(is.na(co$year), 0, co$year)
+    aes_ln <- if (has_cluster && "cluster" %in% names(co))
+      ggplot2::aes(x = .data$year_x, y = .data$value,
+                   colour = .data$region, linetype = .data$cluster,
+                   group = interaction(.data$region, .data$cluster)) else
+      ggplot2::aes(x = .data$year_x, y = .data$value,
+                   colour = .data$region, group = .data$region)
+    ggplot2::ggplot(co, aes_ln) +
+      ggplot2::geom_step(direction = "hv", linewidth = 0.6, na.rm = TRUE) +
+      ggplot2::geom_point(size = 1.6, na.rm = TRUE) +
+      ggplot2::labs(
+        x = "year",
+        y = if (is.null(unit)) "cost" else paste0("cost [per ", unit, "]"),
+        colour = NULL, linetype = NULL,
+        title = if (nzchar(obj_name)) obj_name else NULL,
+        subtitle = "supply cost by region (mean over timeslices)") +
+      theme_energyRt() +
+      ggplot2::theme(plot.title = ggplot2::element_text(face = "bold")) +
+      .legend_compact(length(unique(co$region)))
+  }
+}
+
+# Across-region availability and cost bars for one display year. Not
+# exported: autoplot(sup, style = "regions") reaches it.
+plot_supply_regions <- function(object, year = NULL, interpolate = TRUE,
+                                ...) {
+  check_package("ggplot2")
+  obj_name <- tryCatch(object@name, error = function(e) "")
+  d <- .supply_long(object, year = NULL, interpolate = interpolate, ...)
+  if (is.null(d)) {
+    message("No supply data to plot for '", obj_name, "'.")
+    return(invisible(NULL))
+  }
+  # display year: the requested one, else the latest with data
+  yrs <- sort(unique(stats::na.omit(as.integer(d$year))))
+  yr <- if (!is.null(year)) as.integer(year)[1] else
+    if (length(yrs) > 0) max(yrs) else NA_integer_
+  dd <- if (is.na(yr)) d else {
+    keep <- is.na(d$year) | d$year == yr
+    d[keep, , drop = FALSE]
+  }
+
+  # declared + data regions; a region with no finite bound is uncapped
+  regions <- unique(c(
+    tryCatch(stats::na.omit(object@region), error = function(e) NULL),
+    setdiff(unique(dd$region), "(all)")))
+  if (length(regions) == 0) regions <- "(all)"
+
+  a <- .supply_ava_annual(dd)
+  ava <- stats::setNames(rep(NA_real_, length(regions)), regions)
+  if (!is.null(a) && nrow(a) > 0) {
+    per_reg <- tapply(a$value, a$region, sum, na.rm = TRUE)
+    ava[names(per_reg)[names(per_reg) %in% regions]] <-
+      per_reg[names(per_reg) %in% regions]
+    if ("(all)" %in% names(per_reg) && !"(all)" %in% regions)
+      ava[] <- ifelse(is.na(ava), per_reg[["(all)"]], ava)
+  }
+  co <- dd[dd$param == "cost" & !is.na(dd$value), , drop = FALSE]
+  cost <- stats::setNames(rep(NA_real_, length(regions)), regions)
+  if (nrow(co) > 0) {
+    per_reg <- tapply(co$value, co$region, mean, na.rm = TRUE)
+    cost[names(per_reg)[names(per_reg) %in% regions]] <-
+      per_reg[names(per_reg) %in% regions]
+    if ("(all)" %in% names(per_reg) && !"(all)" %in% regions)
+      cost[] <- ifelse(is.na(cost), per_reg[["(all)"]], cost)
+  }
+  if (all(is.na(ava)) && all(is.na(cost))) {
+    message("No availability or cost data to plot for '", obj_name, "'.")
+    return(invisible(NULL))
+  }
+
+  # an uncapped region draws a full-height translucent bar in the
+  # availability panel, labelled instead of valued
+  uncapped <- is.na(ava)
+  ymax <- if (any(!uncapped)) max(ava[!uncapped]) else 1
+  pdf_ <- rbind(
+    data.frame(region = regions, measure = "availability",
+               value = ifelse(uncapped, ymax, ava),
+               uncapped = uncapped, stringsAsFactors = FALSE),
+    data.frame(region = regions, measure = "cost",
+               value = unname(cost), uncapped = FALSE,
+               stringsAsFactors = FALSE))
+  pdf_ <- pdf_[!is.na(pdf_$value), , drop = FALSE]
+
+  unit <- tryCatch(object@unit, error = function(e) "")
+  unit <- if (length(unit) == 1 && !is.na(unit) && nzchar(unit)) unit else NULL
+  lab_map <- c(
+    availability = if (is.null(unit)) "availability" else
+      paste0("availability [", unit, "/year]"),
+    cost = if (is.null(unit)) "cost" else paste0("cost [per ", unit, "]"))
+  pdf_$measure <- factor(lab_map[pdf_$measure], levels = unname(lab_map))
+
+  lab_df <- pdf_[pdf_$uncapped, , drop = FALSE]
+  p <- ggplot2::ggplot(pdf_, ggplot2::aes(x = .data$region, y = .data$value)) +
+    ggplot2::geom_col(ggplot2::aes(alpha = .data$uncapped),
+                      fill = "#4E79A7", show.legend = FALSE) +
+    ggplot2::scale_alpha_manual(values = c(`FALSE` = 1, `TRUE` = 0.35)) +
+    ggplot2::facet_wrap(~measure, scales = "free_y") +
+    ggplot2::labs(
+      x = NULL, y = NULL,
+      title = if (nzchar(obj_name)) obj_name else NULL,
+      subtitle = if (is.na(yr)) "supply by region" else
+        paste0("supply by region, ", yr),
+      caption = if (any(pdf_$uncapped))
+        "translucent full-height bars: unlimited availability" else NULL) +
+    theme_energyRt() +
+    ggplot2::theme(plot.title = ggplot2::element_text(face = "bold"),
+                   axis.text.x = ggplot2::element_text(angle = 45,
+                                                       hjust = 1))
+  if (nrow(lab_df) > 0) {
+    p <- p + ggplot2::geom_text(data = lab_df,
+                                ggplot2::aes(label = "uncapped"),
+                                vjust = -0.4, size = 3, colour = "grey30")
+  }
+  p
 }
 
 # Demand gets its own plot: a timeslice-resolved demand has too many series for the
@@ -712,10 +958,16 @@ autoplot.supply <- function(object, year = NULL, interpolate = TRUE,
 #'     region and year. Timeslices with an hour tag (`"..._h07"`) are drawn against
 #'     the hour of day (faceted season x region when a season prefix is
 #'     present); other calendars fall back to the timeslice sequence.}
+#'   \item{`style = "heatmap"`}{a calendar heatmap of the demand shape --
+#'     timeslices on `x` (in calendar order when `calendar =` is given),
+#'     one row per region, values meaned over years.}
 #' }
 #'
 #' @param object A `demand` object.
-#' @param style `"area"` (annual totals) or `"line"` (timeslice profiles).
+#' @param style `"area"` (annual totals), `"line"` (timeslice profiles) or
+#'   `"heatmap"` (calendar heatmap by region).
+#' @param calendar Optional `calendar` object ordering the heatmap's
+#'   timeslice axis.
 #' @param year Optional integer vector of years. For `"area"` these are the
 #'   interpolation targets (default: range of the given years); for `"line"`
 #'   they filter which given years are shown.
@@ -727,8 +979,9 @@ autoplot.supply <- function(object, year = NULL, interpolate = TRUE,
 #'
 #' @return A `ggplot` object (or `NULL`, invisibly, if there is nothing to plot).
 #' @keywords internal
-plot_demand <- function(object, style = c("area", "line"), year = NULL,
-                        interpolate = TRUE, palette = "D", ...) {
+plot_demand <- function(object, style = c("area", "line", "heatmap"),
+                        year = NULL, interpolate = TRUE, palette = "D",
+                        calendar = NULL, ...) {
   check_package("ggplot2")
   style <- match.arg(style)
   obj_name <- tryCatch(object@name, error = function(e) "")
@@ -740,6 +993,29 @@ plot_demand <- function(object, style = c("area", "line"), year = NULL,
   }
   if (!"region" %in% names(raw)) raw$region <- "(all)"
   raw$region[is.na(raw$region)] <- "(all)"   # aggregate() drops NA groups
+
+  if (style == "heatmap") {
+    d <- raw[!is.na(raw$timeslice), , drop = FALSE]
+    if (nrow(d) == 0) {
+      message("No timeslice-resolved demand to draw as a heatmap for '",
+              obj_name, "'.")
+      return(invisible(NULL))
+    }
+    d <- stats::aggregate(demand ~ region + timeslice, d, mean) |>
+      stats::setNames(c("region", "timeslice", "wval"))
+    u <- tryCatch(object@unit, error = function(e) NA_character_)
+    comm <- paste(tryCatch(object@commodity, error = function(e) ""),
+                  collapse = ", ")
+    return(.rows_heatmap(
+      d, "region",
+      unit_lab = if (length(u) == 1 && !is.na(u) && nzchar(u)) u else
+        "demand",
+      title = if (nzchar(obj_name)) obj_name else NULL,
+      subtitle = if (nzchar(comm)) paste0("commodity: ", comm,
+                                          " · mean over years") else
+        "mean over years",
+      calendar = calendar, palette = palette))
+  }
 
   if (style == "area") {
     # annual totals: interpolate per timeslice over the target years, sum timeslices
@@ -818,10 +1094,11 @@ plot_demand <- function(object, style = c("area", "line"), year = NULL,
 
 #' @rdname plot_demand
 #' @exportS3Method ggplot2::autoplot
-autoplot.demand <- function(object, style = c("area", "line"), year = NULL,
-                            interpolate = TRUE, palette = "D", ...) {
+autoplot.demand <- function(object, style = c("area", "line", "heatmap"),
+                            year = NULL, interpolate = TRUE, palette = "D",
+                            calendar = NULL, ...) {
   plot_demand(object, style = style, year = year, interpolate = interpolate,
-              palette = palette, ...)
+              palette = palette, calendar = calendar, ...)
 }
 
 #' @rdname autoplot.process
@@ -1330,6 +1607,89 @@ plot_weather <- function(object, style = c("heatmap", "line", "area"),
 autoplot.weather <- function(object, style = c("heatmap", "line", "area"),
                              calendar = NULL, region = NULL, ...) {
   plot_weather(object, style = style, calendar = calendar, region = region, ...)
+}
+
+# Chronological timeslice levels of a calendar (timetable row order), or NULL.
+.calendar_slice_levels <- function(calendar) {
+  tt <- tryCatch(calendar@timetable, error = function(e) NULL)
+  if (is.data.frame(tt) && "timeslice" %in% names(tt))
+    unique(as.character(tt$timeslice)) else NULL
+}
+
+# Row-per-series calendar heatmap: x = timeslices (calendar order when
+# given), y = `y_col`, fill = `wval`; optional facet column.
+.rows_heatmap <- function(d, y_col, unit_lab, title = NULL, subtitle = NULL,
+                          calendar = NULL, palette = "D", facet = NULL) {
+  sl <- as.character(d$timeslice)
+  lev <- .calendar_slice_levels(calendar)
+  lev <- if (!is.null(lev) && all(sl %in% lev)) intersect(lev, unique(sl))
+    else unique(sl)
+  d$timeslice <- factor(sl, levels = lev)
+  p <- ggplot2::ggplot(d, ggplot2::aes(x = .data$timeslice,
+                                       y = .data[[y_col]],
+                                       fill = .data$wval)) +
+    ggplot2::geom_tile() +
+    ggplot2::scale_fill_viridis_c(option = palette, name = unit_lab) +
+    ggplot2::scale_y_discrete(expand = c(0, 0)) +
+    ggplot2::scale_x_discrete(
+      expand = c(0, 0),
+      guide = ggplot2::guide_axis(angle = 90, check.overlap = TRUE)) +
+    ggplot2::labs(x = NULL, y = NULL, title = title, subtitle = subtitle) +
+    ggplot2::theme_minimal() +
+    ggplot2::theme(panel.grid = ggplot2::element_blank(),
+                   plot.title = ggplot2::element_text(face = "bold"),
+                   axis.text.x = ggplot2::element_text(size = 6))
+  if (!is.null(facet) && facet %in% names(d) &&
+      length(unique(d[[facet]])) > 1)
+    p <- p + ggplot2::facet_wrap(facet)
+  p
+}
+
+# Family key of a weather factor: the name with a trailing cluster suffix
+# ("_c3", "_cl12", "_7") stripped.
+.weather_type_key <- function(nm) {
+  sub("[_-](c|cl)?[0-9]+$", "", nm, ignore.case = TRUE)
+}
+
+# One heatmap for a family of weather factors: rows = member factors,
+# columns = timeslices, faceted by region; values are meaned over years.
+# More than `max_rows` members keep the highest- and lowest-mean halves.
+.weather_group_heatmap <- function(members, title = NULL, calendar = NULL,
+                                   max_rows = 12L) {
+  dd <- dplyr::bind_rows(lapply(members, function(w) {
+    d <- tryCatch(as.data.frame(w@weather), error = function(e) NULL)
+    if (!is.data.frame(d) || !all(c("wval", "timeslice") %in% names(d)))
+      return(NULL)
+    d <- d[is.finite(suppressWarnings(as.numeric(d$wval))) &
+             !is.na(d$timeslice), , drop = FALSE]
+    if (nrow(d) == 0) return(NULL)
+    if (!"region" %in% names(d)) d$region <- NA_character_
+    d$region[is.na(d$region)] <- "(all)"
+    data.frame(fct = w@name, region = d$region,
+               timeslice = as.character(d$timeslice),
+               wval = as.numeric(d$wval), stringsAsFactors = FALSE)
+  }))
+  if (is.null(dd) || nrow(dd) == 0) return(NULL)
+  dd <- dd |>
+    dplyr::group_by(.data$fct, .data$region, .data$timeslice) |>
+    dplyr::summarise(wval = mean(.data$wval), .groups = "drop") |>
+    as.data.frame()
+  m <- sort(tapply(dd$wval, dd$fct, mean), decreasing = TRUE)
+  sub <- NULL
+  if (length(m) > max_rows) {
+    k <- max_rows %/% 2L
+    keep <- c(utils::head(names(m), k), utils::tail(names(m), max_rows - k))
+    dd <- dd[dd$fct %in% keep, , drop = FALSE]
+    sub <- paste0(length(m), " factors; showing the ", k,
+                  " highest- and ", max_rows - k, " lowest-mean")
+  }
+  # highest mean on top
+  dd$fct <- factor(dd$fct, levels = rev(names(m)[names(m) %in% dd$fct]))
+  u <- tryCatch(members[[1]]@unit, error = function(e) NA_character_)
+  unit_lab <- if (length(u) == 1 && !is.na(u) && nzchar(u)) u else
+    "capacity factor"
+  .rows_heatmap(dd, "fct", unit_lab, title = title, subtitle = sub,
+                calendar = calendar, facet = "region")
 }
 
 
