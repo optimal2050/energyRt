@@ -1,15 +1,13 @@
-# Calendar sampling (R/solve_by_sample.R).
+# Calendar sampling (R/solve_by_sample.R). Three invariants are pinned here:
 #
-# The properties that could break silently:
 #   * samples are REPLICATES -- each is annualised and estimates the whole
-#     year, so the set is a distribution and summing it is wrong. The region
-#     driver is the opposite, which is exactly how someone gets it backwards;
-#   * a sample must keep >= 2 members at every level: dropping a collapsed
-#     level renames the leaf timeslices and the model's data silently stops
-#     matching, giving objective 0;
-#   * a sample must be a complete cross of its level members: a ragged
-#     selection is re-expanded by the calendar constructor, so the requested
-#     slices and the resulting calendar disagree.
+#     year, so the set is a distribution and must not be summed, unlike the
+#     region driver's disjoint samples;
+#   * a sample keeps >= 2 members at every level -- dropping a collapsed level
+#     renames the leaf timeslices, and the model's data stops matching them;
+#   * a sample is a complete cross of its level members -- the calendar
+#     constructor re-expands a ragged selection, so the requested slices and
+#     the resulting calendar would disagree.
 
 bs_path <- function(name) {
   gsub("[\\/]+", "/", file.path(tempdir(), "by-sample", name))

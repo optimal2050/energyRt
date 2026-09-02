@@ -183,6 +183,22 @@ map_mStorageWeatherOutAfLo <- function(scen, fmp) .value_weather(scen, "mStorage
 map_mSupWeatherUp         <- function(scen, fmp) .value_weather(scen, "mSupWeatherUp", fmp)
 map_mSupWeatherLo         <- function(scen, fmp) .value_weather(scen, "mSupWeatherLo", fmp)
 
+# Regions named in an object's own data slots. Empty when the object names
+# none, and empty when any row leaves `region` NA: an NA row is a wildcard
+# meaning every region, so the caller falls back to the full span.
+.obj_data_regions <- function(obj, slots) {
+  out <- character(0)
+  for (sl in slots) {
+    if (!.hasSlot(obj, sl)) next
+    d <- methods::slot(obj, sl)
+    if (!is.data.frame(d) || nrow(d) == 0 || !"region" %in% names(d)) next
+    r <- as.character(d$region)
+    if (any(is.na(r))) return(character(0))
+    out <- c(out, r)
+  }
+  unique(out[nzchar(out)])
+}
+
 # -- bespoke value maps ----------------------------------------------------- #
 # mSupSpan: (sup, region) operational span of each supply object (its own regions,
 # defaulting to all model regions when unspecified).
@@ -204,8 +220,17 @@ map_mSupSpan <- function(scen, fmp) {
         m <- comm_reg$region[comm_reg$comm == obj@commodity]
         if (length(m) > 0) allowed <- m
       }
-      regs <- obj@region
-      if (length(regs) == 0 || all(is.na(regs))) regs <- allowed
+      # The span must follow the DECLARATION, and a supply may be scoped
+      # either by the `@region` slot or by the `region` column of its own
+      # data. Reading the slot alone spanned a data-scoped supply across
+      # every region, and those cells carry no `pSupCost` / `pSupAva` row --
+      # so they were free and unbounded, and the solver drew from them in
+      # preference to every priced cell (objective 0, model feasible).
+      regs <- as.character(obj@region)
+      regs <- regs[!is.na(regs)]
+      if (length(regs) == 0) regs <- .obj_data_regions(obj, c("supply",
+                                                              "reserve"))
+      if (length(regs) == 0) regs <- allowed
       regs <- regs[regs %in% allowed]
       if (length(regs) == 0) return(NULL)
       out <- list()

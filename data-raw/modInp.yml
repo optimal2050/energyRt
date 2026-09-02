@@ -238,7 +238,7 @@ pSupCost:
   interpolation: back.inter.forth
   colName: cost
   class: supply
-  slot: availability
+  slot: supply
 pSupReserve:
   name: pSupReserve
   dimSets:
@@ -272,7 +272,7 @@ pSupAva:
   - back.inter.forth
   colName: ava
   class: supply
-  slot: availability
+  slot: supply
 pDemand:
   name: pDemand
   dimSets:
@@ -285,7 +285,7 @@ pDemand:
   defVal: 0.0
   interpolation: back.inter.forth
   class: demand
-  slot: dem
+  slot: demand
   colName: dem
 pExportRowPrice:
   name: pExportRowPrice
@@ -298,7 +298,7 @@ pExportRowPrice:
   defVal: 0.0
   interpolation: back.inter.forth
   class: export
-  slot: availability
+  slot: export
   colName: price
 pExportRow:
   name: pExportRow
@@ -315,7 +315,7 @@ pExportRow:
   - back.inter.forth
   - back.inter.forth
   class: export
-  slot: availability
+  slot: export
   colName: exp
 pExportRowRes:
   name: pExportRowRes
@@ -336,7 +336,7 @@ pImportRowPrice:
   defVal: 0.0
   interpolation: back.inter.forth
   class: import
-  slot: availability
+  slot: import
   colName: price
 pImportRow:
   name: pImportRow
@@ -353,7 +353,7 @@ pImportRow:
   - back.inter.forth
   - back.inter.forth
   class: import
-  slot: availability
+  slot: import
   colName: imp
 pImportRowRes:
   name: pImportRowRes

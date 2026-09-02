@@ -14,6 +14,7 @@
 #' @slot unit `r get_slot_doc("import", "unit")`
 #' @slot reserve `r get_slot_doc("import", "reserve")`
 #' @slot import `r get_slot_doc("import", "import")`
+#' @slot region `r get_slot_doc("import", "region")`
 #' @slot misc `r get_slot_doc("import", "misc")`
 #'
 #' @include class-trade.R
@@ -29,9 +30,9 @@ setClass("import",
     commodity = "character",
     unit = "character",
     reserve = "data.frame",
-    # !!! add region to export
     import = "data.frame",
     cluster = "data.frame",
+    region = "character",
     # timeframe = "character", # set to commodity@timeframe
     misc = "list"
   ),
@@ -90,6 +91,7 @@ setClass("import",
       order = integer(),
       stringsAsFactors = FALSE
     ),
+    region = character(),
     misc = list()
   ),
   S3methods = FALSE
@@ -124,6 +126,7 @@ setMethod("initialize", "import", function(.Object, ...) {
 #' @param unit `r get_slot_doc("import", "unit")`
 #' @param reserve `r get_slot_doc("import", "reserve")`
 #' @param import `r get_slot_doc("import", "import")`
+#' @param region `r get_slot_doc("import", "region")`
 #' @param misc `r get_slot_doc("import", "misc")`
 #'
 #' @return import object with given specifications.
@@ -153,6 +156,7 @@ newImport <- function(
     reserve = data.frame(),
     import = data.frame(),
     cluster = data.frame(),
+    region = character(),
     misc = list(),
     ...
     ) {
@@ -171,6 +175,7 @@ newImport <- function(
     reserve = reserve,
     import = import,
     cluster = cluster,
+    region = region,
     misc = misc,
     ...
   )

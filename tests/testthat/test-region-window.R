@@ -9,10 +9,10 @@
 #   * with no trade, per-region objectives ADD UP to the full model's -- and
 #     with a window they do not, which the result must say.
 #
-# NOTE on the fixtures: they use ONE supply object carrying per-region rows,
-# never one supply object per region. Two or more region-scoped supply objects
-# in a multi-region model make `vSupCost` come back EMPTY and the objective
-# zero -- a live defect unrelated to this feature, recorded separately.
+# NOTE on the fixtures: they use ONE supply object whose per-region rows cover
+# EVERY region of the model. A supply is priced only where its data names a
+# region and an unpriced (sup, region) cell costs nothing, so a partial set
+# would leave free energy in the regions it omits.
 
 rw_path <- function(name) {
   gsub("[\\/]+", "/", file.path(tempdir(), "region-window", name))

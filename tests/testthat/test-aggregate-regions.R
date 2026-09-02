@@ -178,4 +178,8 @@ test_that("the model's own geoscale is used when none is passed", {
   expect_setequal(get_region(a), c("G1", "G2"))
 })
 
-# @covers pTechCap pSupAva pDemand pTradeAva depth=S backends=glpk forks=geoframe
+# TODO: a dangling @covers tag stood here with no `test_that()` block under
+# it, so it claimed coverage nothing provided. The intended case was a
+# geoframe-forked aggregation over pTechCap / pSupAva / pDemand and the
+# absolute trade bound -- which is `pTradeIr` (colName `ava`), not
+# `pTradeAva`, the name the tag used and no parameter carries.

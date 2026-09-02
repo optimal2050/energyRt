@@ -12,6 +12,7 @@ newImport(
   reserve = data.frame(),
   import = data.frame(),
   cluster = data.frame(),
+  region = character(),
   misc = list(),
   ...
 )
@@ -46,6 +47,8 @@ There is deliberately no \code{region} column: adding one would turn this into a
 \item{imp.fx}{numeric. Fixed import volume, ignored if NA. This parameter overrides \code{imp.lo} and \code{imp.up}.}
 \item{price}{numeric. Price paid per unit imported.}
 }}
+
+\item{region}{character. Regions where the import process exists. Empty (or NA) means every region of the model. A region named in any other slot must be one of these; the other slots place VALUES and never change where the process exists.}
 
 \item{misc}{list. Additional information.}
 }

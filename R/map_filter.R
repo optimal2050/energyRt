@@ -26,12 +26,18 @@
 }
 
 # -- technology core ------------------------------------------------------- #
-# mvTechAct: operation window x timeslice (no commodity, so no mCommReg filter).
+# mvTechAct: operation window x timeslice. It carries no commodity, so mCommReg
+# cannot filter it directly -- instead the (tech, region) cells whose required
+# inputs are unavailable are subtracted (region_gaps.R). Without that the
+# per-commodity domains below lose the input rows while activity and output
+# remain, and the technology produces from nothing.
 map_mvTechAct <- function(scen, fmp) {
   tech_span  <- .gds(scen, "mTechSpan")
   tech_timeslice <- .filter_timeslice(scen, "technology", "tech")
   if (is.null(tech_span) || is.null(tech_timeslice)) return(scen)
-  .set_map(scen, "mvTechAct", as.data.frame(merge0(tech_span, tech_timeslice)), fmp)
+  act <- .drop_region_gaps(scen, as.data.frame(merge0(tech_span, tech_timeslice)),
+                           "tech", "technology")
+  .set_map(scen, "mvTechAct", act, fmp)
 }
 
 map_mvTechInp <- function(scen, fmp) {
@@ -93,7 +99,8 @@ map_mSupAva <- function(scen, fmp) {
   stg_span <- .gds(scen, "mStorageSpan")
   stg_timeslice <- .filter_timeslice(scen, "storage", "stg")
   if (is.null(stg_span) || is.null(stg_timeslice)) return(NULL)
-  as.data.frame(merge0(stg_span, stg_timeslice))
+  .drop_region_gaps(scen, as.data.frame(merge0(stg_span, stg_timeslice)),
+                    "stg", "storage")
 }
 
 # `role_map` is one of mStorageStgComm / mStorageInpComm / mStorageOutComm. All

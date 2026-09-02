@@ -12,6 +12,7 @@ newExport(
   reserve = data.frame(),
   export = data.frame(),
   cluster = data.frame(),
+  region = character(),
   misc = list(),
   ...
 )
@@ -47,6 +48,8 @@ There is deliberately no \code{region} column: adding one would turn this into a
 \item{price}{numeric. Price received per unit exported. Export revenue is a NEGATIVE cost -- the minus sits inside \code{eqExportRowCost} -- so a higher price is a better outcome for the objective.
 }
 }}
+
+\item{region}{character. Regions where the export process exists. Empty (or NA) means every region of the model. A region named in any other slot must be one of these; the other slots place VALUES and never change where the process exists.}
 
 \item{misc}{list. Additional information.}
 }

@@ -35,16 +35,6 @@
 # `<colName>.lo/.up/.fx` slot columns (the `.pack_bounds_long()` naming).
 .param_interp_map_cache <- new.env(parent = emptyenv())
 
-# A few YAML slot/column names predate class refactors and no longer match the
-# S4 slots they map; aliased here rather than edited in modInp.yml (the yml
-# names feed the interpolation engine's own lookups).
-.param_slot_alias <- list(
-  supply = c(availability = "supply"),
-  import = c(availability = "import"),
-  export = c(availability = "export"),
-  demand = c(dem = "demand")
-)
-
 .param_interp_map <- function() {
   if (!is.null(.param_interp_map_cache$map)) {
     return(.param_interp_map_cache$map)
@@ -62,8 +52,10 @@
       slt <- p$slot
       cn <- p$colName
       if (is.null(cls) || is.null(slt) || is.null(cn)) next
-      al <- .param_slot_alias[[cls]]
-      if (!is.null(al) && slt %in% names(al)) slt <- unname(al[[slt]])
+      # `pDemand` is catalogued with colName "dem" while the column of
+      # `demand@demand` is "demand". The catalogue name is the key of the
+      # `config@defVal` / `@interpolation` override columns, so it cannot be
+      # renamed without breaking that table; map it here instead.
       if (identical(cls, "demand") && identical(cn, "dem")) cn <- "demand"
       rule <- p$interpolation
       dv <- suppressWarnings(as.numeric(unlist(p$defVal)))

@@ -137,8 +137,15 @@ map_mWeatherRegion <- function(scen, fmp) {
   res <- apply_to_scenario_data(
     scen = scen, classes = "weather", as_list = TRUE,
     func = function(x) {
+      # scoped by the `@region` slot OR by the `region` column of its own
+      # data; reading the slot alone claimed every region, and `pWeather`
+      # defaults to 0, so the phantom cells silently zeroed availability
+      # wherever the object was never declared
       r <- as.character(x@region); r <- r[!is.na(r)]
+      if (length(r) == 0) r <- .obj_data_regions(x, "weather")
       if (length(r) == 0) r <- regs            # unset -> all regions
+      r <- r[r %in% regs]
+      if (length(r) == 0) return(NULL)
       o <- list(); o[[x@name]] <- data.frame(weather = x@name, region = r,
                                              stringsAsFactors = FALSE)
       o

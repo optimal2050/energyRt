@@ -2161,6 +2161,13 @@ class:
           description: >
             Fill order, 1 = the cheapest step (or, for export, the best paid).
             Without it labels sort alphabetically and "S10" would precede "S2".
+    region:
+      type: character
+      description: >
+        Regions where the import process exists. Empty (or NA) means every
+        region of the model. A region named in any other slot must be one of
+        these; the other slots place VALUES and never change where the
+        process exists.
     misc:
       type: list
       description: Additional information.
@@ -2269,6 +2276,13 @@ class:
           description: >
             Fill order, 1 = the cheapest step (or, for export, the best paid).
             Without it labels sort alphabetically and "S10" would precede "S2".
+    region:
+      type: character
+      description: >
+        Regions where the export process exists. Empty (or NA) means every
+        region of the model. A region named in any other slot must be one of
+        these; the other slots place VALUES and never change where the
+        process exists.
     misc:
       type: list
       description: Additional information.

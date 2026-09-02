@@ -835,6 +835,14 @@ interpolate_model <- function(mod, name = NULL, ...,
   .interp_step(verbose, "building maps: value, filter, constraint, cost")
   scen <- build_mappings(scen, fmp = fmp, recipes = "value")
 
+  # A process declared in a region where a commodity it requires is unavailable
+  # must not keep its activity domain: the per-commodity domains below would
+  # drop its input rows and keep its activity and output, and it would produce
+  # from nothing. Recorded here -- the last point where both the closure
+  # (mCommReg) and the span maps exist and the filter recipe has not yet run --
+  # and subtracted by the activity domains (region_gaps.R).
+  scen <- .record_region_gaps(scen)
+
   #============================================================================#
   # Filter / activity-domain mapping parameters ####
   #   Built after value maps because they join the operation windows, the

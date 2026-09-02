@@ -54,15 +54,17 @@
 
 ## New features
 
+* `newImport()` and `newExport()` take `region =`, like every other process
+  class; `import` and `export` objects gain the matching `@region` slot.
 * `solve_by_sample()` solves a model on samples of its calendar — consecutive
   blocks tiling the year, disjoint random draws, or bootstrap draws — storing
-  each as a variant of one scenario. Each sample is annualised, so the runs are
-  replicates of the whole year and `sample_summary()` reduces them to
-  quantiles; they are not pieces and must not be summed.
+  each as a variant of one scenario.
+* Calendar samples are replicates, not pieces: each is annualised and estimates
+  the whole year, so `sample_summary()` reduces them to quantiles and their
+  objectives must not be summed.
 * `calendar_samples()` builds the sample specification by drawing whole members
   of a calendar level (seasons, weeks, days); the table can be edited and
   passed back.
-
 * `aggregate_model_regions()` builds a coarser model from a finer one, mapping
   its regions onto a geoframe of a `geoscales::Geoscale`. Extensive quantities
   are summed, intensive ones take a mean weighted by the object's size in each
@@ -203,6 +205,13 @@
 
 ## Bug fixes
 
+* A process declared in a region where a commodity it consumes is unavailable
+  is dropped there instead of producing from nothing; the dropped cells are
+  reported and listed in `scenario@misc$region_gaps`.
+* A `supply` scoped by the `region` column of its data, rather than by
+  `@region`, is no longer available in every region of the model.
+* A `weather` object scoped the same way no longer zeroes availability in
+  regions it was never declared for.
 * **An interpolation that failed part-way left `en.bulk_param_write` set, and
   every later solve in the session silently returned objective 0.** The option
   was restored only on the normal exit path, so after one failure bulk mode
