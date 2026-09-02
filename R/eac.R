@@ -89,6 +89,23 @@
   invisible(NULL)
 }
 
+# A perpetual annuity at a zero rate is undefined, not zero. `.crf()` computes
+# it as 1/Inf, so an `invcost` with no rate and no life would silently become
+# free capital -- the charge simply leaves the objective. Checked after the
+# user-supplied EAC is coalesced in, so a row that carries its own `eac` (the
+# annuitised-upstream case) is not refused for a figure it never uses.
+.check_perpetual_annuity <- function(df, key) {
+  bad <- df$rate == 0 & !is.finite(df$life) &
+    !is.na(df$invcost) & df$invcost != 0 & is.na(df$ueac)
+  if (!any(bad)) return(invisible(NULL))
+  stop("zero discount rate and no operational life leave the annualised ",
+       "capital cost undefined, and it would be charged as 0 (", key, " ",
+       paste(unique(df[[key]][bad]), collapse = ", "), ").\n",
+       "  Set `@vintage$olife` (technical life), `@invcost$payback` ",
+       "(cost-recovery period), or a non-zero `@invcost$wacc` / model ",
+       "discount rate.", call. = FALSE)
+}
+
 # Compute one family's EAC param from its invcost / wacc / olife / payback.
 # `wacc_par` / `payback_par` may be character VECTORS tried in order (a
 # storage part passes c(part-specific, storage-wide)): the first non-NA value
@@ -145,6 +162,7 @@
   # wildcard-aware way as everything else: the seed is region-FOLDED at this
   # stage while `df` is region-explicit, so an exact join would match nothing.
   df <- .eac_join(scen, df, eac_par, "ueac", c(key, "region", "year"))
+  .check_perpetual_annuity(df, key)
   df$eac <- dplyr::coalesce(df$ueac, df$eac)
 
   dims <- P[[eac_par]]@dimSets

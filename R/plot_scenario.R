@@ -448,9 +448,37 @@ autoplot.scenario <- function(object,
 # Collect per-process availability windows from a repository/model:
 # build window  = [start, end]   (defaults: horizon range when slots are empty)
 # operation til = end + olife
+# Years over which a process carries EXOGENOUS capacity. Stock is a per-year
+# series (`pTechStock[t,r,y]`), not a lifetime, so its span is simply the years
+# it is declared for -- and a process with stock but no investment window has
+# no `@vintage` row at all, which is why reading `@vintage` alone lost it.
+#' @noRd
+.proc_stock_years <- function(p, region) {
+  cap <- tryCatch(methods::slot(p, "capacity"), error = function(e) NULL)
+  if (!is.data.frame(cap) || nrow(cap) == 0 || !"year" %in% names(cap)) {
+    return(list(NA_real_, NA_real_))
+  }
+  cols <- intersect(c("stock", "out.stock", "inp.stock", "stg.stock"),
+                    names(cap))
+  if (length(cols) == 0) return(list(NA_real_, NA_real_))
+  has <- Reduce(`|`, lapply(cols, function(cc) {
+    v <- suppressWarnings(as.numeric(cap[[cc]])); !is.na(v) & v != 0
+  }))
+  if ("region" %in% names(cap) && !identical(region, "(all)")) {
+    has <- has & (is.na(cap$region) | cap$region == region)
+  }
+  if (!any(has)) return(list(NA_real_, NA_real_))
+  yr <- suppressWarnings(as.numeric(cap$year[has]))
+  yr <- yr[is.finite(yr)]
+  if (length(yr) == 0) return(list(NA_real_, NA_real_))
+  list(min(yr), max(yr))
+}
+
 .proc_windows <- function(x, horizon = NULL) {
   hspan <- if (!is.null(horizon) && nrow(horizon@intervals) > 0)
     range(horizon@intervals$mid) else c(NA_integer_, NA_integer_)
+  hend <- if (!is.null(horizon) && nrow(horizon@intervals) > 0)
+    max(horizon@intervals$end) else NA_real_
   procs <- c(tryCatch(getObjects(x, "technology"), error = function(e) list()),
              tryCatch(getObjects(x, "storage"),    error = function(e) list()))
   rows <- list()
@@ -479,10 +507,24 @@ autoplot.scenario <- function(object,
       b0 <- pick(st, "start"); b1 <- pick(en, "end"); ll <- pick(ol, "olife")
       if (!is.finite(b0)) b0 <- hspan[1]
       if (!is.finite(b1)) b1 <- hspan[2]
+      # An `end` before the first milestone closes the investment window: the
+      # process is exogenous over this horizon. Emitting b0 > b1 would draw the
+      # bar backwards, which is how a stock plant came to look as though it
+      # expired the year before the only year solved.
+      if (is.finite(b0) && is.finite(b1) && b1 < b0) {
+        b0 <- NA_real_; b1 <- NA_real_
+      }
+      sy <- .proc_stock_years(p, r)
       rows[[length(rows) + 1L]] <- data.frame(
         process = p@name, region = r,
         build_start = b0, build_end = b1,
-        oper_end = if (is.finite(ll) && is.finite(b1)) b1 + ll else b1,
+        # No `olife` is an INFINITE life (`mTechOlifeInf`), not a zero one:
+        # run the tail to the end of the horizon rather than collapsing it
+        # onto the build year, which read as "operates for no time".
+        oper_end = if (!is.finite(b1)) NA_real_
+                   else if (is.finite(ll)) b1 + ll
+                   else if (is.finite(hend)) hend else b1,
+        stock_start = sy[[1L]], stock_end = sy[[2L]],
         stringsAsFactors = FALSE)
     }
   }
@@ -525,13 +567,23 @@ plot_process_windows <- function(object, region = NULL, horizon = NULL) {
   if (!is.null(region))
     w <- w[w$region %in% c(region, "(all)"), , drop = FALSE]
   # facet only when windows actually differ across regions
+  wcols <- c("build_start", "build_end", "oper_end", "stock_start", "stock_end")
   vary <- length(unique(w$region)) > 1 &&
-    nrow(unique(w[, c("process", "build_start", "build_end", "oper_end")])) <
-    nrow(unique(w[, c("process", "region", "build_start", "build_end",
-                      "oper_end")]))
-  w$process <- stats::reorder(w$process, w$build_start)
+    nrow(unique(w[, c("process", wcols)])) <
+    nrow(unique(w[, c("process", "region", wcols)]))
+  # A process with no investment window still has to sort somewhere: order on
+  # whichever of its bars starts first.
+  w$.ord <- pmin(w$build_start, w$stock_start, na.rm = TRUE)
+  w$process <- stats::reorder(w$process, w$.ord)
+  # Stock declared for a single year has no width to draw as a segment.
+  pt <- w[is.finite(w$stock_start) & w$stock_start == w$stock_end, ,
+          drop = FALSE]
 
   p <- ggplot2::ggplot(w) +
+    ggplot2::geom_segment(
+      ggplot2::aes(x = .data$stock_start, xend = .data$stock_end,
+                   y = .data$process, yend = .data$process),
+      linewidth = 4, colour = "grey35", na.rm = TRUE) +
     ggplot2::geom_segment(
       ggplot2::aes(x = .data$build_end, xend = .data$oper_end,
                    y = .data$process, yend = .data$process),
@@ -541,9 +593,17 @@ plot_process_windows <- function(object, region = NULL, horizon = NULL) {
                    y = .data$process, yend = .data$process),
       linewidth = 4, colour = "steelblue", na.rm = TRUE) +
     ggplot2::labs(x = "year", y = NULL,
-                  title = "Process availability windows",
-                  subtitle = "solid: new capacity can be built · translucent: last vintage operates") +
+                  title = "Process investment and operating windows",
+                  subtitle = paste("grey: exogenous stock · solid: new",
+                                   "capacity can be built · translucent:",
+                                   "last vintage operates")) +
     theme_energyRt()
+  if (nrow(pt) > 0) {
+    p <- p + ggplot2::geom_point(
+      data = pt,
+      ggplot2::aes(x = .data$stock_start, y = .data$process),
+      size = 3, colour = "grey35", na.rm = TRUE)
+  }
   if (vary) p <- p + ggplot2::facet_wrap(~region)
   p
 }
@@ -568,14 +628,29 @@ plot_process_windows <- function(object, region = NULL, horizon = NULL) {
   w$grp <- unname(map[w$process])
   w <- w[!is.na(w$grp), , drop = FALSE]
   if (nrow(w) == 0) return(NULL)
+  # An all-NA group must stay NA, not become Inf: min/max of nothing warns and
+  # returns +/-Inf, which ggplot then tries to draw.
+  rng <- function(v, f) {
+    v <- v[is.finite(v)]
+    if (length(v) == 0) NA_real_ else f(v)
+  }
   agg <- do.call(rbind, lapply(split(w, w$grp), function(d) data.frame(
     grp = d$grp[1],
-    build_start = suppressWarnings(min(d$build_start, na.rm = TRUE)),
-    build_end = suppressWarnings(max(d$build_end, na.rm = TRUE)),
-    oper_end = suppressWarnings(max(d$oper_end, na.rm = TRUE)),
+    build_start = rng(d$build_start, min),
+    build_end   = rng(d$build_end, max),
+    oper_end    = rng(d$oper_end, max),
+    stock_start = rng(d$stock_start, min),
+    stock_end   = rng(d$stock_end, max),
     stringsAsFactors = FALSE)))
-  agg$grp <- stats::reorder(agg$grp, agg$build_start)
-  ggplot2::ggplot(agg) +
+  agg$.ord <- pmin(agg$build_start, agg$stock_start, na.rm = TRUE)
+  agg$grp <- stats::reorder(agg$grp, agg$.ord)
+  pt <- agg[is.finite(agg$stock_start) & agg$stock_start == agg$stock_end, ,
+            drop = FALSE]
+  p <- ggplot2::ggplot(agg) +
+    ggplot2::geom_segment(
+      ggplot2::aes(x = .data$stock_start, xend = .data$stock_end,
+                   y = .data$grp, yend = .data$grp),
+      linewidth = 4, colour = "grey35", na.rm = TRUE) +
     ggplot2::geom_segment(
       ggplot2::aes(x = .data$build_end, xend = .data$oper_end,
                    y = .data$grp, yend = .data$grp),
@@ -585,11 +660,17 @@ plot_process_windows <- function(object, region = NULL, horizon = NULL) {
                    y = .data$grp, yend = .data$grp),
       linewidth = 4, colour = "steelblue", na.rm = TRUE) +
     ggplot2::labs(x = "year", y = NULL,
-                  title = "Process availability windows (by structure)",
-                  subtitle = paste("solid: new capacity can be built",
-                                   "· translucent: last vintage",
-                                   "operates · (n) = processes")) +
+                  title = "Process investment and operating windows (by structure)",
+                  subtitle = paste("grey: exogenous stock · solid: new",
+                                   "capacity can be built · translucent:",
+                                   "last vintage operates · (n) = processes")) +
     theme_energyRt()
+  if (nrow(pt) > 0) {
+    p <- p + ggplot2::geom_point(
+      data = pt, ggplot2::aes(x = .data$stock_start, y = .data$grp),
+      size = 3, colour = "grey35", na.rm = TRUE)
+  }
+  p
 }
 
 #' @param object a `model` / `repository` object (autoplot methods).
