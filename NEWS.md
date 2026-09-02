@@ -54,6 +54,22 @@
 
 ## New features
 
+* `solve_by_sample()` solves a model on samples of its calendar — consecutive
+  blocks tiling the year, disjoint random draws, or bootstrap draws — storing
+  each as a variant of one scenario. Each sample is annualised, so the runs are
+  replicates of the whole year and `sample_summary()` reduces them to
+  quantiles; they are not pieces and must not be summed.
+* `calendar_samples()` builds the sample specification by drawing whole members
+  of a calendar level (seasons, weeks, days); the table can be edited and
+  passed back.
+
+* `aggregate_model_regions()` builds a coarser model from a finer one, mapping
+  its regions onto a geoframe of a `geoscales::Geoscale`. Extensive quantities
+  are summed, intensive ones take a mean weighted by the object's size in each
+  region, and trade corridors that fall inside one target region are dropped
+  while the rest merge. This is the stage `interpolate_model()` named but did
+  not have; its error on a pruned geoscale now points at it. Needs geoscales
+  with `recast_pairs()` and `na_rm=`.
 * `solve_by_region()` solves a multi-region model one region, or one group of
   regions, at a time; each run is stored as a variant of one scenario. With
   `trade = "none"` the per-region objectives sum to the full model's; the

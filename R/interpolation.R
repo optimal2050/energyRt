@@ -286,10 +286,12 @@ interpolate_model <- function(mod, name = NULL, ...,
       scen@model <- mod
     } else if (identical(.spatial_mode, "pruned")) {
       stop("A pruned geoscale (coarser atom layer) requests a full-",
-           "territory solve at the parent level, which needs the region-",
-           "aggregation stage (`aggregate_model_regions()`) -- not ",
-           "implemented yet. Sample regions with ",
-           "geoscales::filter_geoscale() instead.", call. = FALSE)
+           "territory solve at the parent level. Aggregate the model first ",
+           "with aggregate_model_regions(mod, geoscale, level = ...) and ",
+           "interpolate the result, which carries the pruned geoscale ",
+           "already. To solve a sub-territory at the model's own resolution ",
+           "instead, sample regions with geoscales::filter_geoscale().",
+           call. = FALSE)
     }
   }
   if (!is.null(boundary_prices) && !identical(.spatial_mode, "filtered")) {

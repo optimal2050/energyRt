@@ -429,6 +429,36 @@ are in, and `print()` says so rather than leaving it to be discovered.
 solve, which matters at 30-odd regions: a single infeasible one should not cost
 you the rest.
 
+
+## Sampling the calendar repeatedly
+
+A single sampled calendar gives one cheap estimate. `solve_by_sample()` runs a
+whole ensemble of them — consecutive blocks tiling the year, disjoint random
+draws, or bootstrap draws — and keeps every run:
+
+```{r by-sample, eval = FALSE}
+ens <- solve_by_sample(m3, name = "ens", sample_size = 2,
+                       method = "sequential")     # two-season blocks
+ens$runs
+sample_summary(ens, "vTechCap", probs = c(0.05, 0.5, 0.95))
+```
+
+Samples are drawn as whole members of a calendar level — seasons, weeks, days —
+because a calendar sample has to be a complete cross; a ragged pick of
+individual timeslices is silently re-expanded by the calendar constructor.
+`calendar_samples()` builds that specification on its own if you want to look
+at it or edit it first.
+
+Two rules follow from how a sampled calendar works, and both are enforced
+rather than left to be discovered. A sample must keep **at least two members**
+at every level: a single season (or week, or day) collapses its level, and the
+only way to build such a calendar renames the leaf timeslices so the model's
+own data would stop matching them. And every sample is **annualised** —
+`pTimesliceWeight = 1/year_fraction` — so each one estimates the *whole year*.
+The ensemble is therefore a set of replicates whose spread is the sampling
+uncertainty; summing them is meaningless, unlike the region sweep above, whose
+disjoint pieces do add up.
+
 # See also
 
 * **Model bricks** and **UTOPIA I** — building the objects and the model.

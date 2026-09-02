@@ -12,8 +12,8 @@
 # sample's own, not an estimate of the full model's.
 #
 # A PRUNED geoscale (coarser atom layer) requests a full-territory solve at the
-# parent level; that requires aggregating object data fine->parent and is a
-# separate stage (`aggregate_model_regions()`, not yet implemented).
+# parent level; that requires aggregating object data fine->parent, which is a
+# separate stage -- `aggregate_model_regions()` in aggregate_region.R.
 #
 # Validation note, mirroring `.declaration_calendar()`: declarations are judged
 # against the MODEL's own regions and geoscale, never against the sample --
