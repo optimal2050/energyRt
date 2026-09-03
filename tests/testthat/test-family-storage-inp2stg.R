@@ -72,6 +72,13 @@ test_that("family storage-inp2stg: constructor normalisation and the ratio trian
     expect_no_warning(
       newStorage("S4", commodity = "ELC",
                  duration = 2, inp2out = 1, inp2stg = 0.5)))
+  # the standard EV pattern -- duration and inp2out OPENED around a bounded
+  # C-rate -- is not over-determined: opened sides are not edges
+  expect_no_warning(
+    newStorage("S6", commodity = "ELC",
+               duration = data.frame(duration.lo = 0, duration.up = 1e6),
+               inp2out  = data.frame(inp2out.lo = 0, inp2out.up = 1e6),
+               inp2stg  = data.frame(inp2stg.up = 0.5)))
   # three ranged edges over-determine the triangle
   expect_warning(
     newStorage("S5", commodity = "ELC",

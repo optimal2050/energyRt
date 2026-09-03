@@ -2942,6 +2942,92 @@ validate_scenario_parameters <- function(scen, fold = TRUE,
     }
   }
 
+  # Free-meal guards: a populated variable DOMAIN whose governing constraint
+  # map has no rows for an object leaves that object's variable unbounded on
+  # that side -- storage that discharges without a level chain is free
+  # energy, reported OPTIMAL. The storage-balance and trade-capacity links
+  # are structural (no legitimate model omits them); the af/power bounds are
+  # advisory, since an open (Inf) side deliberately produces no equation.
+  guards <- list(
+    list(domain = "mvStorageLevel", by = "stg", requires = "meqStorageLevel",
+         severity = "structural",
+         meaning = "no storage balance chain: level unlinked from flows (free energy)"),
+    list(domain = "mvStorageInp", by = "stg", requires = "meqStorageInpUp",
+         severity = "advisory",
+         meaning = "no charging power bound"),
+    list(domain = "mvStorageOut", by = "stg", requires = "meqStorageOutUp",
+         severity = "advisory",
+         meaning = "no discharging power bound"),
+    list(domain = "mvTradeIr", by = "trade", requires = "meqTradeCapFlow",
+         severity = "structural",
+         meaning = "no trade flow-capacity link (unbounded transmission)"),
+    list(domain = "mvTechAct", by = "tech", requires = "meqTechAfUp",
+         severity = "advisory",
+         meaning = "no activity-capacity bound")
+  )
+  .members <- function(nm, col) {
+    p <- scen@modInp@parameters[[nm]]
+    if (is.null(p)) return(NULL)
+    d <- get_data_slot(p)
+    if (is.null(d) || nrow(d) == 0 || !col %in% colnames(d)) return(character(0))
+    unique(as.character(as.data.frame(d)[[col]]))
+  }
+  for (g in guards) {
+    have <- .members(g$domain, g$by)
+    if (is.null(have) || length(have) == 0) next
+    got <- .members(g$requires, g$by)
+    if (is.null(got)) got <- character(0)
+    missing <- setdiff(have, got)
+    if (length(missing) > 0) {
+      add(g$requires, "free_meal",
+          paste0(g$meaning, " for ", length(missing), " object(s): ",
+                 paste(utils::head(missing, 5), collapse = ", ")),
+          severity = g$severity)
+    }
+  }
+
+  # Chronology guard: the storage/ramping chain AND the timeslice family are
+  # both derived from timetable ROW ORDER, so a scrambled order (hour-major
+  # rows chained the same wall-clock hour across days; cost +12.6% on a
+  # verified PyPSA comparison) stays self-consistent between them. The truth
+  # is the timetable's own COLUMNS: every child's positional parent must be a
+  # label that appears in the child's own timetable row.
+  cal <- tryCatch(scen@settings@calendar, error = function(e) NULL)
+  fam <- if (is.null(cal)) NULL else
+    tryCatch(as.data.frame(cal@timeslice_family), error = function(e) NULL)
+  tt <- if (is.null(cal)) NULL else
+    tryCatch(as.data.frame(cal@timetable), error = function(e) NULL)
+  if (!is.null(fam) && nrow(fam) > 0 && !is.null(tt) && nrow(tt) > 0 &&
+      "timeslice" %in% colnames(tt)) {
+    frame_cols <- setdiff(colnames(tt), c("timeslice", "share", "weight"))
+    # every label of the child's own row, plus the composite timeslice ids of
+    # its ancestors (family parents at intermediate levels are composites)
+    labels_of <- new.env(parent = emptyenv())
+    for (i in seq_len(nrow(tt))) {
+      row_labels <- as.character(unlist(tt[i, frame_cols], use.names = FALSE))
+      # composite prefixes: d060, d060_h00 style ancestors
+      comp <- Reduce(function(a, b) paste(a, b, sep = "_"),
+                     row_labels[-1], accumulate = TRUE)
+      assign(as.character(tt$timeslice[i]),
+             unique(c(row_labels, comp)), envir = labels_of)
+    }
+    child_ts <- as.character(fam$child)
+    ok <- vapply(seq_len(nrow(fam)), function(k) {
+      labs <- if (exists(child_ts[k], envir = labels_of, inherits = FALSE))
+        get(child_ts[k], envir = labels_of) else NULL
+      is.null(labs) || as.character(fam$parent[k]) %in% labs
+    }, logical(1))
+    n_bad <- sum(!ok)
+    if (n_bad > 0) {
+      add("timeslice_family", "chronology",
+          sprintf(paste0("%d of %d parent assignments do not match the ",
+                         "child's own timetable row; the timetable row ",
+                         "order is non-chronological (hour-major?)"),
+                  n_bad, nrow(fam)),
+          severity = "structural")
+    }
+  }
+
   res <- if (length(issues) == 0) {
     data.frame(parameter = character(0), check = character(0),
                detail = character(0), severity = character(0),

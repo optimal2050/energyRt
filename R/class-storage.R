@@ -823,10 +823,15 @@ setMethod("initialize", "storage", function(.Object, ...) {
   }
   col <- function(d, nm) if (nm %in% names(d)) as.numeric(d[[nm]]) else
     rep(NA_real_, nrow(d))
+  # A ratio side counts as CONSTRAINING only when it can bind: an opened side
+  # (lo <= 0, or up >= 1e6 -- the "switched off" convention) is not a third
+  # edge of the triangle, or every storage opening duration + inp2out around
+  # a C-rate would warn.
   bounded <- function(d, nm) {
-    rowSums(!is.na(cbind(col(d, paste0(nm, ".lo")),
-                         col(d, paste0(nm, ".up")),
-                         col(d, paste0(nm, ".fx"))))) > 0
+    lo <- col(d, paste0(nm, ".lo"))
+    up <- col(d, paste0(nm, ".up"))
+    fx <- col(d, paste0(nm, ".fx"))
+    (!is.na(fx)) | (!is.na(lo) & lo > 0) | (!is.na(up) & up < 1e6)
   }
 
   over <- FALSE

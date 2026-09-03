@@ -1376,10 +1376,10 @@ draw.storage <- function(object, ...) {
       v <- df[[k]]
       if (is.null(v)) numeric(0) else v[!is.na(v)]
     }
-    vals <- unique(c(cv(paste0(nm, ".fx")), cv(nm)))
+    vals <- unique(signif(c(cv(paste0(nm, ".fx")), cv(nm)), 4))
     if (!length(vals)) {
-      lo <- unique(cv(paste0(nm, ".lo")))
-      up <- unique(cv(paste0(nm, ".up")))
+      lo <- unique(signif(cv(paste0(nm, ".lo")), 4))
+      up <- unique(signif(cv(paste0(nm, ".up")), 4))
       if (!length(lo) && !length(up)) return(NA_character_)
       if ((!length(lo) || all(lo <= 0)) && (!length(up) || all(up >= 1e6))) {
         return(NA_character_)
