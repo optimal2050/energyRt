@@ -954,13 +954,12 @@ plot_supply_regions <- function(object, year = NULL, interpolate = TRUE,
 #'   \item{`style = "area"` (default)}{**aggregated** demand -- timeslice values are
 #'     summed to annual totals and drawn as an area over the years (stacked by
 #'     region), with the given data years marked as points.}
-#'   \item{`style = "line"`}{**profiles** -- the within-year demand shape by
-#'     region and year. Timeslices with an hour tag (`"..._h07"`) are drawn against
-#'     the hour of day (faceted season x region when a season prefix is
-#'     present); other calendars fall back to the timeslice sequence.}
+#'   \item{`style = "line"`}{**profiles** -- the within-year demand shape,
+#'     drawn by the same engine as [plot_weather()]: the finest time level on
+#'     `x`, one line per coarser level, faceted by region and year.}
 #'   \item{`style = "heatmap"`}{a calendar heatmap of the demand shape --
-#'     timeslices on `x` (in calendar order when `calendar =` is given),
-#'     one row per region, values meaned over years.}
+#'     the same layout as the [plot_weather()] heatmap (finest timeframe on
+#'     `y`, next on `x`), faceted by region and year.}
 #' }
 #'
 #' @param object A `demand` object.
@@ -970,7 +969,7 @@ plot_supply_regions <- function(object, year = NULL, interpolate = TRUE,
 #'   timeslice axis.
 #' @param year Optional integer vector of years. For `"area"` these are the
 #'   interpolation targets (default: range of the given years); for `"line"`
-#'   they filter which given years are shown.
+#'   and `"heatmap"` they filter which given years are shown.
 #' @param interpolate Logical, default `TRUE`: for `"area"`, interpolate the
 #'   annual totals over the target years; `FALSE` aggregates only the given
 #'   data years.
@@ -994,27 +993,26 @@ plot_demand <- function(object, style = c("area", "line", "heatmap"),
   if (!"region" %in% names(raw)) raw$region <- "(all)"
   raw$region[is.na(raw$region)] <- "(all)"   # aggregate() drops NA groups
 
-  if (style == "heatmap") {
+  # "line" and "heatmap" share the profile engine with plot_weather(), so a
+  # demand shape and a weather factor read identically.
+  if (style %in% c("line", "heatmap")) {
     d <- raw[!is.na(raw$timeslice), , drop = FALSE]
+    if (!is.null(year) && "year" %in% names(d)) {
+      d <- d[d$year %in% year, , drop = FALSE]
+    }
     if (nrow(d) == 0) {
-      message("No timeslice-resolved demand to draw as a heatmap for '",
-              obj_name, "'.")
+      message("No timeslice-resolved demand to draw for '", obj_name, "'.")
       return(invisible(NULL))
     }
-    d <- stats::aggregate(demand ~ region + timeslice, d, mean) |>
-      stats::setNames(c("region", "timeslice", "wval"))
+    d$wval <- d$demand
     u <- tryCatch(object@unit, error = function(e) NA_character_)
     comm <- paste(tryCatch(object@commodity, error = function(e) ""),
                   collapse = ", ")
-    return(.rows_heatmap(
-      d, "region",
-      unit_lab = if (length(u) == 1 && !is.na(u) && nzchar(u)) u else
-        "demand",
+    return(.plot_profile(
+      d, style = style, calendar = calendar, palette = palette,
+      unit_lab = if (length(u) == 1 && !is.na(u) && nzchar(u)) u else "demand",
       title = if (nzchar(obj_name)) obj_name else NULL,
-      subtitle = if (nzchar(comm)) paste0("commodity: ", comm,
-                                          " · mean over years") else
-        "mean over years",
-      calendar = calendar, palette = palette))
+      subtitle = if (nzchar(comm)) paste0("commodity: ", comm) else NULL))
   }
 
   if (style == "area") {
@@ -1050,46 +1048,7 @@ plot_demand <- function(object, style = c("area", "line", "heatmap"),
     return(p)
   }
 
-  # style = "line": within-year profiles by region and year
-  if (!"timeslice" %in% names(raw) || all(is.na(raw$timeslice))) {
-    message("No timeslice-level demand in '", obj_name,
-            "'; use style = \"area\" for annual data.")
-    return(invisible(NULL))
-  }
-  d <- raw[!is.na(raw$timeslice), , drop = FALSE]
-  if (!is.null(year) && "year" %in% names(d)) {
-    d <- d[d$year %in% year, , drop = FALSE]
-  }
-  d$year <- factor(d$year)
-  hour <- suppressWarnings(as.integer(sub(".*_h(\\d+)$", "\\1", d$timeslice)))
-  if (any(is.finite(hour))) {
-    d$hour   <- hour
-    d$season <- sub("_.*$", "", d$timeslice)
-    p <- ggplot2::ggplot(d,
-        ggplot2::aes(.data$hour, .data$demand, colour = .data$year,
-                     group = .data$year)) +
-      ggplot2::geom_line(na.rm = TRUE) +
-      ggplot2::facet_grid(season ~ region) +
-      ggplot2::scale_colour_viridis_c(option = palette, end = 0.9) +
-      ggplot2::labs(x = "hour", y = "demand per timeslice", colour = "year",
-                    title = if (nzchar(obj_name)) obj_name else NULL) +
-      theme_energyRt() +
-      ggplot2::theme(plot.title = ggplot2::element_text(face = "bold"))
-    return(p)
-  }
-  # no hour tag: timeslice sequence on x
-  d$timeslice <- factor(d$timeslice, levels = unique(d$timeslice))
-  ggplot2::ggplot(d,
-      ggplot2::aes(.data$timeslice, .data$demand, colour = .data$year,
-                   group = .data$year)) +
-    ggplot2::geom_line(na.rm = TRUE) +
-    ggplot2::facet_wrap(~region) +
-    ggplot2::scale_colour_viridis_c(option = palette, end = 0.9) +
-    ggplot2::labs(x = "timeslice", y = "demand per timeslice", colour = "year",
-                  title = if (nzchar(obj_name)) obj_name else NULL) +
-    theme_energyRt() +
-    ggplot2::theme(plot.title = ggplot2::element_text(face = "bold"),
-                   axis.text.x = ggplot2::element_text(angle = 90, vjust = 0.5))
+  invisible(NULL)
 }
 
 #' @rdname plot_demand
@@ -1409,7 +1368,8 @@ plot_heatmap <- function(object, calendar = NULL, value = NULL, facet = NULL,
 #' * `"heatmap"` (default) — a calendar heatmap (finest timeframe on `y`, next on
 #'   `x`), faceted by region; the value's unit is on the fill legend;
 #' * `"line"` — the factor against the finest time level (e.g. hour), one line per
-#'   coarser level (e.g. season), faceted by region;
+#'   coarser level (e.g. season), faceted by region; the coarse level is coloured
+#'   with a viridis `"H"` gradient (continuous when numeric, e.g. day of year);
 #' * `"area"` — the same as `"line"` with filled areas.
 #'
 #' The value axis (fill for the heatmap, `y` for line/area) is labelled with the
@@ -1482,8 +1442,26 @@ plot_weather <- function(object, style = c("heatmap", "line", "area"),
   u        <- object@unit
   unit_lab <- if (length(u) == 1 && !is.na(u) && nzchar(u)) u else "capacity factor"
 
-  reg_multi <- length(unique(d$region)) > 1
-  yr_multi  <- length(unique(d$year[!is.na(d$year)])) > 1
+  ttl <- if (nzchar(nm)) nm else NULL
+  dsc <- tryCatch(object@desc, error = function(e) "")
+  sub <- if (length(dsc) == 1 && !is.na(dsc) && nzchar(dsc)) dsc else NULL
+  return(.plot_profile(d, style = style, calendar = calendar,
+                       palette = palette, datetime = datetime, angle = angle,
+                       unit_lab = unit_lab, title = ttl, subtitle = sub))
+}
+
+# Shared sub-annual profile engine behind plot_weather() and plot_demand()
+# (styles "heatmap" / "line" / "area"): resolves the timeslice layout from the
+# calendar (or timeslice names), facets by region / year / coarser levels, and
+# draws the value in `wval`. The heatmap fill uses the `palette` option; the
+# line/area colour maps the coarse level with viridis "H", continuous when the
+# level is numeric (e.g. day of year), so long calendars read as a gradient.
+.plot_profile <- function(d, style, calendar = NULL, palette = "D",
+                          datetime = FALSE, angle = 45, unit_lab = "value",
+                          title = NULL, subtitle = NULL) {
+  reg_multi <- "region" %in% names(d) && length(unique(d$region)) > 1
+  yr_multi  <- "year" %in% names(d) &&
+    length(unique(d$year[!is.na(d$year)])) > 1
 
   # --- Layout from the timeslice structure (reuse the heatmap layout engine) --------
   pr <- tryCatch(
@@ -1544,9 +1522,8 @@ plot_weather <- function(object, style = c("heatmap", "line", "area"),
 
   facets <- c(if (reg_multi && !region_axis) "region", if (yr_multi) "year", cfac)
 
-  ttl <- if (nzchar(nm)) nm else NULL
-  dsc <- tryCatch(object@desc, error = function(e) "")
-  sub <- if (length(dsc) == 1 && !is.na(dsc) && nzchar(dsc)) dsc else NULL
+  ttl <- title
+  sub <- subtitle
 
   # friendly axis / legend titles (hide the internal .coarse/.fine/.dtm helpers)
   nice <- function(v) if (is.null(v)) NULL else
@@ -1583,6 +1560,15 @@ plot_weather <- function(object, style = c("heatmap", "line", "area"),
                     title = ttl, subtitle = sub) +
       theme_energyRt()
     if (style == "line") p <- p + ggplot2::guides(fill = "none")
+    if (!is.null(coarse)) {
+      num <- is.numeric(d[[coarse]])
+      p <- p + (if (num) ggplot2::scale_colour_viridis_c(option = "H")
+                else ggplot2::scale_colour_viridis_d(option = "H", end = 0.9))
+      if (style == "area") {
+        p <- p + (if (num) ggplot2::scale_fill_viridis_c(option = "H")
+                  else ggplot2::scale_fill_viridis_d(option = "H", end = 0.9))
+      }
+    }
     xc <- fine
   }
 

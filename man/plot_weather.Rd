@@ -63,7 +63,8 @@ of a \code{weather} object, in one of three styles:
 \item \code{"heatmap"} (default) — a calendar heatmap (finest timeframe on \code{y}, next on
 \code{x}), faceted by region; the value's unit is on the fill legend;
 \item \code{"line"} — the factor against the finest time level (e.g. hour), one line per
-coarser level (e.g. season), faceted by region;
+coarser level (e.g. season), faceted by region; the coarse level is coloured
+with a viridis \code{"H"} gradient (continuous when numeric, e.g. day of year);
 \item \code{"area"} — the same as \code{"line"} with filled areas.
 }
 

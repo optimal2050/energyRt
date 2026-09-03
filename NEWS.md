@@ -228,6 +228,13 @@
 
 ## Bug fixes
 
+* `autoplot()` of a `demand` draws its `"line"` and `"heatmap"` styles with the
+  same profile engine as `weather`, so the two read identically. The old demand
+  line view errored on any demand with years (a discrete year on a continuous
+  colour scale) and faceted one row per day on daily calendars.
+* Profile lines and areas (`demand`, `weather`) colour the coarse time level
+  with a viridis `"H"` gradient — continuous when the level is numeric (day of
+  year) — instead of the default discrete hues.
 * `plot_process_windows()` no longer draws a process backwards. A process whose
   investment window closes before the horizon -- `@vintage$end` earlier than the
   first milestone, which is how an exogenous fleet says "not investable" --
