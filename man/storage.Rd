@@ -28,6 +28,7 @@ newStorage(
   vintage = data.frame(),
   duration = NULL,
   inp2out = NULL,
+  inp2stg = NULL,
   fullYear = TRUE,
   weather = data.frame(),
   optimizeRetirement = FALSE,
@@ -124,10 +125,20 @@ so the object never carries two answers.}
 \item{stg2aout}{numeric. Storage-level-to-auxiliary-output-commodity coefficient (multiplier).}
 \item{cinp2aout}{numeric. Input-commodity-to-auxiliary-output-commodity coefficient (multiplier).}
 \item{cout2aout}{numeric. Output-commodity-to-auxiliary-output-commodity coefficient (multiplier).}
-\item{cap2ainp}{numeric. Capacity-to-auxiliary-input-commodity coefficient (multiplier).}
-\item{cap2aout}{numeric. Capacity-to-auxiliary-output-commodity coefficient (multiplier).}
-\item{ncap2ainp}{numeric. New-capacity-to-auxiliary-input-commodity coefficient (multiplier).}
-\item{ncap2aout}{numeric. New-capacity-to-auxiliary-output-commodity coefficient (multiplier).}
+\item{inp.cap2ainp}{numeric. Charging (input-part) capacity to auxiliary input, per unit of vStorageInpCap.}
+\item{inp.cap2aout}{numeric. Charging (input-part) capacity to auxiliary output, per unit of vStorageInpCap.}
+\item{inp.ncap2ainp}{numeric. NEW charging capacity to auxiliary input, per unit of vStorageInpNewCap (lands once, at construction).}
+\item{inp.ncap2aout}{numeric. NEW charging capacity to auxiliary output, per unit of vStorageInpNewCap (lands once, at construction).}
+\item{stg.cap2ainp}{numeric. Energy (storing-part) capacity to auxiliary input, per unit of vStorageStgCap.}
+\item{stg.cap2aout}{numeric. Energy (storing-part) capacity to auxiliary output, per unit of vStorageStgCap.}
+\item{stg.ncap2ainp}{numeric. NEW energy capacity to auxiliary input, per unit of vStorageStgNewCap (lands once, at construction) -- e.g. battery material per GWh of reservoir. This is what the pre-rename \code{ncap2ainp} was often ASSUMED to mean; that column actually coupled the discharger and is now \code{out.ncap2ainp}.
+}
+\item{stg.ncap2aout}{numeric. NEW energy capacity to auxiliary output, per unit of vStorageStgNewCap (lands once, at construction).}
+\item{out.cap2ainp}{numeric. Discharging (output-part) capacity to auxiliary input, per unit of vStorageOutCap. RENAMED from \code{cap2ainp}, which coupled only this part; the bare name is refused with a rename hint.
+}
+\item{out.cap2aout}{numeric. Discharging (output-part) capacity to auxiliary output, per unit of vStorageOutCap. Renamed from \code{cap2aout}.}
+\item{out.ncap2ainp}{numeric. NEW discharging capacity to auxiliary input, per unit of vStorageOutNewCap (lands once, at construction). Renamed from \code{ncap2ainp}.}
+\item{out.ncap2aout}{numeric. NEW discharging capacity to auxiliary output, per unit of vStorageOutNewCap (lands once, at construction). Renamed from \code{ncap2aout}.}
 \item{pho2ainp}{numeric. Aux commodity CONSUMED when capacity reaches the END OF ITS LIFE (demolition energy, labour). Multiplies the per-year phase-out FLOW, so the charge lands ONCE -- in the milestone where the capacity disappears -- not every year it stood. NO \code{pTimesliceShare} is applied and the aux balance is PER TIMESLICE, so a value given with \code{timeslice = NA} applies in EVERY slice and the annual total comes out multiplied by the slice count -- 8760x on an hourly calendar. Give a per-slice value, or name a single slice.
 }
 \item{pho2aout}{numeric. Aux commodity RELEASED when capacity reaches the END OF ITS LIFE (demolition waste, recovered material). Fires even when \code{optimizeRetirement} is FALSE, which is the usual case. NO \code{pTimesliceShare} is applied and the aux balance is PER TIMESLICE, so a value given with \code{timeslice = NA} applies in EVERY slice and the annual total comes out multiplied by the slice count -- 8760x on an hourly calendar. Give a per-slice value, or name a single slice.
@@ -296,6 +307,19 @@ so the object never carries two answers.}
 \item{inp2out.fx}{numeric. Fixed charge-to-discharge capacity ratio.}
 }}
 
+\item{inp2stg}{data.frame. The charging C-rate, in 1/hours: charging capacity per unit of storing (energy) capacity. \code{inp2stg.fx} ties the charger to the reservoir exactly, \code{inp2stg.lo}/\code{.up} bound the ratio, and the bare \code{inp2stg} column is the scalar shorthand, normalised to \code{.fx} at construction; a one-sided range opens the other side. Unlike \code{duration} and \code{inp2out} there is NO binding default: the constraint exists only where a finite bound is declared, and only for storages whose charging AND storing parts both carry capacity variables (priced or bounded). The three ratios form a triangle over the parts -- \code{inp2out} = inp/out, \code{inp2stg} = inp/stg, \code{duration} = stg/out -- so any two determine the third; \code{newStorage()} refuses a contradictory fixed triangle.
+
+\describe{
+\item{vintage}{character. Vintage label selecting the variant this row applies to, NA for all.}
+\item{cluster}{character. Cluster label selecting the variant this row applies to, NA for all.}
+\item{region}{character. Region the row applies to, NA for all.}
+\item{year}{integer. Year the row applies to, NA for all.}
+\item{inp2stg}{numeric. Scalar shorthand, normalised to \code{inp2stg.fx}.}
+\item{inp2stg.lo}{numeric. Lower bound on the charging C-rate, 1/hours.}
+\item{inp2stg.up}{numeric. Upper bound on the charging C-rate, 1/hours.}
+\item{inp2stg.fx}{numeric. Fixed charging C-rate, 1/hours.}
+}}
+
 \item{fullYear}{logical. Controls where the charge/discharge cycle closes. If TRUE (default), the storage operates across parent timeframes through the whole year: the preceding time-timeslice of the first time-timeslice of a group is the last time-timeslice of the PREVIOUS group, and only the last time-timeslice of the year wraps round to the first. A battery on an hourly calendar nested under days can therefore carry energy from one day into the next, and seasonal storage is representable. If FALSE, the cycle is closed within each parent timeframe: the preceding time-timeslice of the first time-timeslice of a group is the LAST time-timeslice of the SAME group, so every group is an independent loop with no energy carried between them.}
 
 \item{weather}{data.frame. Weather factors multipliers.
@@ -376,10 +400,10 @@ STG1 <- newStorage(
     stg2aout = 0.9,
     cinp2aout = 0.9,
     cout2aout = 0.9,
-    cap2ainp = 0.9,
-    cap2aout = 0.9,
-    ncap2ainp = 0.9,
-    ncap2aout = 0.9,
+    out.cap2ainp = 0.9,
+    out.cap2aout = 0.9,
+    stg.ncap2ainp = 0.9,
+    out.ncap2aout = 0.9,
     ncap2stg = 0.9
   ),
   af = data.frame(

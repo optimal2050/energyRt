@@ -1782,7 +1782,11 @@ levcost_technology_ <- function(
   # Which aux commodities are consumed as inputs?  Look for non-NA values in
   # any of the input-type @aeff columns (cinp2ainp, act2ainp, cap2ainp, etc.).
   inp_aux_cols  <- c("cinp2ainp", "cout2ainp", "act2ainp", "cap2ainp", "ncap2ainp",
-                     "sinp2ainp", "sout2ainp", "stg2ainp")
+                     "sinp2ainp", "sout2ainp", "stg2ainp",
+                     # storage per-part capacity couplings
+                     "inp.cap2ainp", "inp.ncap2ainp",
+                     "stg.cap2ainp", "stg.ncap2ainp",
+                     "out.cap2ainp", "out.ncap2ainp")
   aux_inp_comms <- character(0)
   if (.hasSlot(object, "aeff") && nrow(object@aeff) > 0 && length(aux_comms) > 0) {
     aeff_inp_cols <- intersect(inp_aux_cols, names(object@aeff))

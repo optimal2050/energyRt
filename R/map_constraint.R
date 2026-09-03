@@ -60,6 +60,8 @@ map_mStorageInpNewCapLo <- function(scen, fmp) .cjoin(scen, "mStorageInpNewCapLo
 map_mStorageInpNewCapUp <- function(scen, fmp) .cjoin(scen, "mStorageInpNewCapUp", fmp)
 map_mStorageInp2outLo <- function(scen, fmp) .cjoin(scen, "mStorageInp2outLo", fmp)
 map_mStorageInp2outUp <- function(scen, fmp) .cjoin(scen, "mStorageInp2outUp", fmp)
+map_mStorageInp2stgLo <- function(scen, fmp) .cjoin(scen, "mStorageInp2stgLo", fmp)
+map_mStorageInp2stgUp <- function(scen, fmp) .cjoin(scen, "mStorageInp2stgUp", fmp)
 map_mStorageStgCapLo    <- function(scen, fmp) .cjoin(scen, "mStorageStgCapLo", fmp)
 map_mStorageStgCapUp    <- function(scen, fmp) .cjoin(scen, "mStorageStgCapUp", fmp)
 map_mStorageStgNewCapLo <- function(scen, fmp) .cjoin(scen, "mStorageStgNewCapLo", fmp)
@@ -138,6 +140,8 @@ map_mTechAfcUp     <- function(scen, fmp) scen
   mStorageInpNewCapUp = map_mStorageInpNewCapUp,
   mStorageInp2outLo = map_mStorageInp2outLo,
   mStorageInp2outUp = map_mStorageInp2outUp,
+  mStorageInp2stgLo = map_mStorageInp2stgLo,
+  mStorageInp2stgUp = map_mStorageInp2stgUp,
   mStorageStgCapLo = map_mStorageStgCapLo, mStorageStgCapUp = map_mStorageStgCapUp,
   mStorageStgNewCapLo = map_mStorageStgNewCapLo,
   mStorageStgNewCapUp = map_mStorageStgNewCapUp,

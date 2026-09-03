@@ -96,6 +96,8 @@ interpolate_model <- function(mod, name = NULL, ...,
   # Upgrade any constraint summands serialized before the `timeframe` slot so
   # legacy models interpolate without a "no slot of name timeframe" error.
   mod <- .upgrade_model_summands(mod)
+  # Same for storages serialized before the `inp2stg` slot.
+  mod <- .upgrade_model_storages(mod)
 
   # NOTE: the `kvl` hook is NOT here. It has to run after the model is both
   # complete (objects arriving through `...` are folded in further down) and

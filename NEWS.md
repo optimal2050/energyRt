@@ -2,6 +2,12 @@
 
 ## Breaking changes
 
+* Storage aux capacity couplings are part-prefixed: `cap2ainp` / `cap2aout` /
+  `ncap2ainp` / `ncap2aout` on a storage `@aeff` are renamed `out.cap2ainp`
+  etc. — they always coupled only the DISCHARGER capacity while reading as
+  "the" capacity. The bare names are refused with a rename hint (no aliases).
+  Technology `@aeff` keeps the bare names — a technology has one capacity.
+
 * A run's solver files are written directly into `runs/<solve>/`, beside
   `run.yml`, instead of a `solver/` subfolder. The nested folder restated the
   solve name, and the Arrow exchange writes one file per symbol beneath it, so
@@ -65,6 +71,22 @@
 
 ## New features
 
+* Storage aux flows can couple EVERY part's capacity: `inp.cap2a*` /
+  `inp.ncap2a*` (charger), `stg.cap2a*` / `stg.ncap2a*` (reservoir — battery
+  material per GWh built, at last) join the renamed `out.*` couplings, in all
+  four backends. A coupling on a part with no capacity variable is dropped
+  with a warning.
+* `draw()` of a storage shows the three parts as boxes inside the glyph —
+  charger | reservoir | discharger — each with its own set parameters, the
+  ratio triangle (`inp2stg`, `duration`, `inp2out`) drawn as labelled links,
+  and `fullYear` in the header.
+* A storage gains `@inp2stg`, the charging C-rate: charging capacity per unit
+  of storing capacity, in 1/hours (`inp2stg.up = 0.5` — fills in two hours).
+  It completes the ratio triangle with `@duration` (stg/out) and `@inp2out`
+  (inp/out); any two determine the third, and `newStorage()` refuses a
+  contradictory fixed triple. Unlike the other two ratios it has no binding
+  default: the link exists only where a finite bound is declared and both
+  parts carry capacity variables. All four solver backends.
 * `newImport()` and `newExport()` take `region =`, like every other process
   class; `import` and `export` objects gain the matching `@region` slot.
 * `solve_by_sample()` solves a model on samples of its calendar — consecutive

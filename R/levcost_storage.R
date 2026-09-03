@@ -37,7 +37,7 @@
 # timeslice weight, so annual delivered energy is `vStorageOut * weight`.
 # =============================================================================
 
-#' Scalar value of a storage ratio slot (`duration`, `inp2out`)
+#' Scalar value of a storage ratio slot (`duration`, `inp2out`, `inp2stg`)
 #'
 #' A levelized cost needs a definite sizing, so a genuine range is refused: the
 #' model would pick a point on it, and which point depends on the rest of the
@@ -115,6 +115,9 @@
 
   duration <- .lcs_ratio(object@duration, "duration", years, region, 1)
   inp2out  <- .lcs_ratio(object@inp2out,  "inp2out",  years, region, 1)
+  # legacy objects predate the slot; treat an absent slot as undeclared
+  i2s_df <- tryCatch(object@inp2stg, error = function(e) data.frame())
+  inp2stg <- .lcs_ratio(i2s_df, "inp2stg", years, region, NA_real_)
   if (any(duration <= 0)) .la_unsupported("duration must be positive")
 
   # unit basis: one unit delivered per cycle
@@ -122,7 +125,18 @@
   stgCap    <- delivered / outeff
   charged   <- delivered / (outeff * inpeff)
   outCap    <- stgCap / duration
-  inpCap    <- outCap * inp2out
+  # the ratio triangle: prefer the declared inp2out route; a storage sized by
+  # its C-rate alone (inp2stg declared, inp2out not) uses inp = stg * inp2stg
+  has_i2o <- nrow(object@inp2out) > 0
+  inpCap  <- if (!has_i2o && !all(is.na(inp2stg))) stgCap * inp2stg
+             else outCap * inp2out
+  if (has_i2o && !all(is.na(inp2stg)) &&
+      any(abs(stgCap * inp2stg - outCap * inp2out) >
+            1e-6 * pmax(abs(outCap * inp2out), 1e-12))) {
+    warning("levcost(): storage '", object@name, "' declares both inp2out ",
+            "and inp2stg and they disagree; sizing the charger by inp2out.",
+            call. = FALSE)
+  }
 
   caps <- list(out = outCap, stg = stgCap, inp = inpCap)
   for (p in c("stg", "inp"))

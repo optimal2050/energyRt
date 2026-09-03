@@ -159,7 +159,9 @@ STG_ELC <- newStorage(
   ),
   aeff = data.frame(
     acomm = "LITHIUM", # track lithium use for battery production
-    ncap2ainp = convert(4 * 250, "Wh/kg", "GWh/kt") # lithium per energy capacity
+    # lithium per unit of NEW energy (reservoir) capacity -- `stg.` couples
+    # the storing part; the bare `ncap2ainp` coupled only the discharger
+    stg.ncap2ainp = convert(4 * 250, "Wh/kg", "GWh/kt")
   ),
   af = data.frame(
     # af.lo = 0., # lower bound for the capacity factor
@@ -173,7 +175,8 @@ STG_ELC <- newStorage(
   duration = 4, # four-hours of storage
   invcost = data.frame(
     region = c("R1", NA), # region R1 and all other regions
-    out.invcost = c(1e3, 1.1e3) # investment cost in MUSD/GWh of 4-hour storage
+    out.invcost = c(1e3, 1.1e3), # discharger cost, MUSD/GW
+    stg.invcost = c(120, 130) # reservoir cost, MUSD/GWh (materialises stg)
   ),
   fullYear = TRUE, # full year storage cycle
   weather = data.frame(

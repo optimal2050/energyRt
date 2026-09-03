@@ -91,23 +91,23 @@ test_that("family storage-aux-flows: coarse-timeframe aux agrees across backends
   }
 })
 
-# @covers pStorageCap2AInp pStorageNCap2AInp pStorageCinp2AOut pStorageCout2AOut pStorageStg2AOut depth=I backends=glpk
+# @covers pStorageOutCap2AInp pStorageOutNCap2AInp pStorageCinp2AOut pStorageCout2AOut pStorageStg2AOut depth=I backends=glpk
 test_that("family storage-aux-flows: remaining ratios land in modInp", {
   scen <- suppressMessages(suppressWarnings(interpolate_model(
     sa_build(rbind(
-      data.frame(acomm = "WAT", cap2ainp = 0.01, ncap2ainp = NA,
+      data.frame(acomm = "WAT", out.cap2ainp = 0.01, out.ncap2ainp = NA,
                  cinp2aout = NA, cout2aout = NA, stg2aout = NA),
-      data.frame(acomm = "WAT", cap2ainp = NA, ncap2ainp = 0.02,
+      data.frame(acomm = "WAT", out.cap2ainp = NA, out.ncap2ainp = 0.02,
                  cinp2aout = NA, cout2aout = NA, stg2aout = NA),
-      data.frame(acomm = "WAT", cap2ainp = NA, ncap2ainp = NA,
+      data.frame(acomm = "WAT", out.cap2ainp = NA, out.ncap2ainp = NA,
                  cinp2aout = 0.03, cout2aout = NA, stg2aout = NA),
-      data.frame(acomm = "WAT", cap2ainp = NA, ncap2ainp = NA,
+      data.frame(acomm = "WAT", out.cap2ainp = NA, out.ncap2ainp = NA,
                  cinp2aout = NA, cout2aout = 0.04, stg2aout = NA),
-      data.frame(acomm = "WAT", cap2ainp = NA, ncap2ainp = NA,
+      data.frame(acomm = "WAT", out.cap2ainp = NA, out.ncap2ainp = NA,
                  cinp2aout = NA, cout2aout = NA, stg2aout = 0.05))),
     name = "sa_rest", overwrite = TRUE)))
-  expect_equal(unique(ff_param(scen, "pStorageCap2AInp")$value), 0.01)
-  expect_equal(unique(ff_param(scen, "pStorageNCap2AInp")$value), 0.02)
+  expect_equal(unique(ff_param(scen, "pStorageOutCap2AInp")$value), 0.01)
+  expect_equal(unique(ff_param(scen, "pStorageOutNCap2AInp")$value), 0.02)
   expect_equal(unique(ff_param(scen, "pStorageCinp2AOut")$value), 0.03)
   expect_equal(unique(ff_param(scen, "pStorageCout2AOut")$value), 0.04)
   expect_equal(unique(ff_param(scen, "pStorageStg2AOut")$value), 0.05)

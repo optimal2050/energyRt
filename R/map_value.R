@@ -161,6 +161,20 @@ map_mStorageNoStgCap <- function(scen, fmp)
   .map_no_part_cap(scen, "mStorageNoStgCap", "mStorageStgCap", fmp)
 map_mStorageNoInpCap <- function(scen, fmp)
   .map_no_part_cap(scen, "mStorageNoInpCap", "mStorageInpCap", fmp)
+
+# The INTERSECTION of the charging and storing capacity domains: the inp2stg
+# ratio links vStorageInpCap to vStorageStgCap, so its constraint can only
+# exist where BOTH variables do. There is no inlining fallback (nothing to
+# inline the ratio onto), so an unpriced part simply drops the link. Must run
+# AFTER both parents (see the .value_builders order below).
+map_mStorageInpStgCap <- function(scen, fmp) {
+  inp <- .gds(scen, "mStorageInpCap")
+  stg <- .gds(scen, "mStorageStgCap")
+  if (is.null(inp) || !nrow(inp) || is.null(stg) || !nrow(stg)) return(scen)
+  out <- dplyr::inner_join(as.data.frame(inp), as.data.frame(stg),
+                           by = c("stg", "region", "year"))
+  .set_map(scen, "mStorageInpStgCap", as.data.frame(out), fmp)
+}
 map_mStorageVarom <- function(scen, fmp) .value_std(scen, "mStorageVarom", fmp)
 map_mTradeInv     <- function(scen, fmp) .value_std(scen, "mTradeInv", fmp)
 map_mTradeEac     <- function(scen, fmp) .value_std(scen, "mTradeEac", fmp)
@@ -299,6 +313,7 @@ map_mSubCost <- function(scen, fmp)
   mStorageInpFixom = map_mStorageInpFixom,
   mStorageInpEac = map_mStorageInpEac,
   mStorageNoStgCap = map_mStorageNoStgCap,   # AFTER mStorageStgCap: complement
+  mStorageInpStgCap = map_mStorageInpStgCap, # AFTER both parents: intersection
   mStorageStgNew = map_mStorageStgNew,
   mStorageStgFixom = map_mStorageStgFixom,
   mStorageStgEac = map_mStorageStgEac,

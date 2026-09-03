@@ -1199,6 +1199,10 @@ draw.storage <- function(object, ...) {
 
   com_inp <- role_rows(comm_inp, "inpeff", "cinp")
   com_out <- role_rows(comm_out, "outeff", "cout")
+  # the efficiencies now live in the part boxes; a grey in-box arrow label
+  # would duplicate them and clip the charger/discharger boxes
+  if (!is.null(com_inp)) com_inp$lab_par <- NA_character_
+  if (!is.null(com_out)) com_out$lab_par <- NA_character_
 
   # `duration` is deliberately NOT carried here: `@duration` is a data.frame, so
   # `mutate(duration = object@duration)` only works while it has exactly one row,
@@ -1311,36 +1315,100 @@ draw.storage <- function(object, ...) {
   }
   wea
 
-  # center labels
+  # part boxes ####
   #
-  # `@duration` is a DATA FRAME (vintage, cluster, region, year, duration) --
-  # not a scalar like technology's `@cap2act`. `paste0()` over it vectorises
-  # across COLUMNS, which printed one "duration: NA" per key column and then
-  # the real value. Take the value column, drop NAs, de-duplicate.
-  # `duration` is a BOUND now, so the number lives in .fx (or the .lo/.up
-  # pair); the bare column is only the shorthand the constructor normalises
-  # away. Reading it alone printed nothing at all once that landed.
-  .dur_col <- function(k) {
-    v <- object@duration[[k]]
-    if (is.null(v)) numeric(0) else v[!is.na(v)]
+  # The three parts as inner boxes -- charger | reservoir | discharger --
+  # each listing only its SET parameters. A part's box is drawn when it has
+  # anything to say or is materialised (structure follows data: only a
+  # priced/bounded part gets its own capacity variable; the discharger's
+  # always exists, so its box always draws).
+  .vals <- function(df, col) {
+    v <- df[[col]]
+    v <- unique(v[!is.na(v)])
+    if (!length(v)) return(NULL)
+    if (length(v) > 3) return(paste0(length(v), " values"))
+    paste(signif(v, 5), collapse = "/")
   }
-  duration_vals <- unique(c(.dur_col("duration.fx"), .dur_col("duration")))
-  if (length(duration_vals) == 0L) {
-    lo <- unique(.dur_col("duration.lo")); up <- unique(.dur_col("duration.up"))
-    if (length(lo) || length(up)) {
-      duration_vals <- paste0(
-        if (length(lo)) paste(lo, collapse = "/") else "0", "-",
-        if (length(up)) paste(up, collapse = "/") else "Inf")
+  .part_lines <- function(part) {
+    eff_col <- c(inp = "inpeff", stg = "stgeff", out = "outeff")[[part]]
+    varom_col <- c(inp = "inpcost", stg = "stgcost", out = "outcost")[[part]]
+    out <- character(0)
+    add <- function(lbl, v) {
+      if (!is.null(v)) out <<- c(out, paste0(lbl, ": ", v))
     }
+    add(eff_col, .vals(object@seff, eff_col))
+    add(paste0(part, ".invcost"), .vals(object@invcost, paste0(part, ".invcost")))
+    add(paste0(part, ".fixom"), .vals(object@fixom, paste0(part, ".fixom")))
+    add(paste0("varom.", varom_col), .vals(object@varom, varom_col))
+    for (b in c("stock", "cap.lo", "cap.up", "cap.fx",
+                "ncap.lo", "ncap.up", "ncap.fx")) {
+      cn <- paste0(part, ".", b)
+      add(cn, .vals(object@capacity, cn))
+    }
+    # availability: a per-timeslice profile compresses to a slice count
+    af_cols <- if (part == "stg") c("af.lo", "af.up", "af.fx") else
+      paste0(part, ".", c("af.lo", "af.up", "af.fx"))
+    af <- object@af
+    if (nrow(af) > 0) {
+      set_cols <- af_cols[vapply(af_cols, function(k)
+        !is.null(af[[k]]) && any(!is.na(af[[k]])), logical(1))]
+      if (length(set_cols)) {
+        has <- rowSums(!is.na(af[, set_cols, drop = FALSE])) > 0
+        sliced <- "timeslice" %in% names(af) && any(!is.na(af$timeslice[has]))
+        if (sliced) {
+          add("af", paste0(sum(has), " slices"))
+        } else {
+          for (k in set_cols) add(k, .vals(af, k))
+        }
+      }
+    }
+    if (part == "stg") add("startLevel", .vals(object@startLevel, "startLevel"))
+    out
   }
-  duration_vals <- duration_vals[!is.na(duration_vals)]
-  duration_label <- if (length(duration_vals) == 0L) NULL else
-    paste0("duration: ", paste(duration_vals, collapse = ", "))
 
-  center_labels <- c(stg_par$lab_par, duration_label)
-  # drop empties, or an unset `lab_par` leaves a blank leading line
-  center_labels <- center_labels[!is.na(center_labels) & nzchar(center_labels)]
-  center_labels <- paste(center_labels, collapse = "\n")
+  # ratio links: `.fx` (or the bare shorthand), else a lo-up band. A fully
+  # OPENED ratio (lo <= 0 and up >= 1e6) is a deliberate "switched off" --
+  # drawing "0-1e+06" is noise, so it gets no link.
+  .ratio_label <- function(nm) {
+    df <- tryCatch(methods::slot(object, nm), error = function(e) NULL)
+    if (is.null(df) || !is.data.frame(df) || nrow(df) == 0) return(NA_character_)
+    cv <- function(k) {
+      v <- df[[k]]
+      if (is.null(v)) numeric(0) else v[!is.na(v)]
+    }
+    vals <- unique(c(cv(paste0(nm, ".fx")), cv(nm)))
+    if (!length(vals)) {
+      lo <- unique(cv(paste0(nm, ".lo")))
+      up <- unique(cv(paste0(nm, ".up")))
+      if (!length(lo) && !length(up)) return(NA_character_)
+      if ((!length(lo) || all(lo <= 0)) && (!length(up) || all(up >= 1e6))) {
+        return(NA_character_)
+      }
+      vals <- paste0(if (length(lo)) paste(lo, collapse = "/") else "0", "-",
+                     if (length(up)) paste(up, collapse = "/") else "Inf")
+    }
+    paste0(nm, ": ", paste(vals, collapse = ", "))
+  }
+  part_links <- list(
+    list(from = "inp", to = "stg", label = .ratio_label("inp2stg")),
+    list(from = "stg", to = "out", label = .ratio_label("duration")),
+    list(from = "inp", to = "out", label = .ratio_label("inp2out")))
+
+  # a declared (non-opened) ratio is information about its end parts, so it
+  # forces their boxes even when the parts carry nothing else
+  linked <- unique(unlist(lapply(part_links, function(lk)
+    if (!is.na(lk$label)) c(lk$from, lk$to) else NULL)))
+  parts <- list(
+    list(id = "inp", slot = 1L, title = "charger",    lines = .part_lines("inp")),
+    list(id = "stg", slot = 2L, title = "reservoir",  lines = .part_lines("stg")),
+    list(id = "out", slot = 3L, title = "discharger", lines = .part_lines("out")))
+  keep <- vapply(parts, function(p)
+    p$id == "out" || length(p$lines) > 0 || p$id %in% linked ||
+      .lcs_has_part(object, p$id),
+    logical(1))
+  part_boxes <- parts[keep]
+
+  center_labels <- paste0("fullYear: ", isTRUE(object@fullYear))
 
   # arrow_label ####
   arrow_labels <- c(com_txt$lab_txt, aux$lab_txt, wea$lab_txt)
@@ -1357,6 +1425,8 @@ draw.storage <- function(object, ...) {
     # storage = stg_par,
     arrow_labels = arrow_labels,
     center_label = center_labels,
+    part_boxes = part_boxes,
+    part_links = part_links,
     # show_inputs = TRUE,
     # show_outputs = TRUE,
     # show_aux = TRUE,
@@ -1395,7 +1465,9 @@ draw.storage <- function(object, ...) {
 #'   ),
 #'   aeff = data.frame(
 #'     acomm = "LITHIUM", # track lithium use for battery production
-#'     ncap2ainp = convert(4 * 250, "Wh/kg", "GWh/kt") # lithium per energy capacity
+#'     # lithium per unit of NEW energy (reservoir) capacity -- `stg.` couples
+#'     # the storing part; the bare `ncap2ainp` coupled only the discharger
+#'     stg.ncap2ainp = convert(4 * 250, "Wh/kg", "GWh/kt")
 #'   ),
 #'   af = data.frame(
 #'     # af.lo = 0., # lower bound for the capacity factor
@@ -1409,7 +1481,8 @@ draw.storage <- function(object, ...) {
 #'   duration = 4, # four-hours of storage
 #'   invcost = data.frame(
 #'     region = c("R1", NA), # region R1 and all other regions
-#'     out.invcost = c(1e3, 1.1e3) # investment cost in MUSD/GWh of 4-hour storage
+#'     out.invcost = c(1e3, 1.1e3), # discharger cost, MUSD/GW
+#'     stg.invcost = c(120, 130) # reservoir cost, MUSD/GWh (materialises stg)
 #'   ),
 #'   fullYear = TRUE, # full year storage cycle
 #'   weather = data.frame(
@@ -2385,6 +2458,13 @@ if (F) {
 #' @param arrow_weather_color A character string with the color of the weather arrows
 #' @param arrow_labels A named character vector with the labels of the arrows
 #' @param center_label A character string with the label of the cap2act arrow
+#' @param part_boxes optional list of inner part boxes (used by the storage
+#'   method): each `list(id, title, lines, slot)` draws a small box inside the
+#'   process box with its own parameter lines; slots 1..3 read
+#'   charger | reservoir | discharger.
+#' @param part_links optional list of `list(from, to, label)` links between
+#'   part boxes (the storage ratio triangle); links with an empty label are
+#'   skipped.
 #' @param box_width A numeric value with the width of the process box
 #' @param box_height A numeric value with the height of the process box
 #' @param box_fill A character string with the fill color of the process box
@@ -2396,6 +2476,79 @@ if (F) {
 #' @param arrow_aux_color A character string with the color of the auxiliary arrows
 #'
 #' @noRd
+# Inner part boxes for multi-part processes (storage): up to three fixed
+# slots -- charger | reservoir | discharger -- inside the main box, each a
+# small rounded box with a bold title and its own parameter lines.
+# `part_links` draws labelled bracket links under the row (the ratio
+# triangle); slots are fixed by declaration order so position encodes the
+# role even when a part is absent (its slot stays empty). Coordinates are
+# npc within the caller's viewport, matching draw_process()'s main box.
+.draw_part_boxes <- function(part_boxes, part_links, box_width, box_height,
+                             box_border) {
+  if (is.null(part_boxes) || length(part_boxes) == 0) return(invisible(NULL))
+  ids <- vapply(part_boxes, function(b) b$id, character(1))
+  slots <- vapply(part_boxes, function(b) as.integer(b$slot %||% NA_integer_),
+                  integer(1))
+  if (anyNA(slots)) slots <- seq_along(ids)
+  slot_of <- stats::setNames(slots, ids)
+  n_slots <- max(3L, slots)
+  pad <- 0.015
+  l <- 0.5 - box_width / 2 + pad
+  r <- 0.5 + box_width / 2 - pad
+  gap <- 0.012
+  w <- (r - l - (n_slots - 1) * gap) / n_slots
+  y_mid <- 0.5 + 0.05          # leave room for the link brackets below
+  h <- box_height * 0.5
+  slot_x <- function(i) l + (i - 1) * (w + gap) + w / 2
+
+  for (k in seq_along(part_boxes)) {
+    b <- part_boxes[[k]]
+    cx <- slot_x(slot_of[[b$id]])
+    grid::grid.roundrect(
+      x = cx, y = y_mid, width = w, height = h,
+      r = grid::unit(0.8, "mm"),
+      gp = gpar(fill = grDevices::rgb(1, 1, 1, 0.65), col = box_border,
+                lwd = 1))
+    grid::grid.text(b$title, x = cx, y = y_mid + h / 2 - 0.02,
+                    gp = gpar(fontsize = 7, fontface = "bold"))
+    lines <- b$lines
+    max_lines <- 8L
+    if (length(lines) > max_lines) {
+      lines <- c(lines[seq_len(max_lines - 1L)], "...")
+    }
+    if (length(lines)) {
+      grid::grid.text(
+        paste(lines, collapse = "\n"),
+        x = cx - w / 2 + 0.006, y = y_mid + h / 2 - 0.04,
+        just = c("left", "top"),
+        gp = gpar(fontsize = 5.5, lineheight = 1.1))
+    }
+  }
+
+  # Link brackets: down from the FROM slot, across, up to the TO slot; each
+  # subsequent link one step deeper so the labels never overlap.
+  depth0 <- 0.022
+  step <- 0.026
+  li <- 0L
+  for (lk in part_links) {
+    if (is.null(lk$label) || is.na(lk$label) || !nzchar(lk$label)) next
+    i <- slot_of[lk$from]
+    j <- slot_of[lk$to]
+    if (is.na(i) || is.na(j)) next
+    li <- li + 1L
+    y_top <- y_mid - h / 2
+    y_lk <- y_top - depth0 - step * (li - 1L)
+    xa <- slot_x(i); xb <- slot_x(j)
+    grid::grid.segments(
+      x0 = c(xa, xa, xb), y0 = c(y_top, y_lk, y_lk),
+      x1 = c(xa, xb, xb), y1 = c(y_lk, y_lk, y_top),
+      gp = gpar(col = box_border, lwd = 0.8, lty = "solid"))
+    grid::grid.text(lk$label, x = (xa + xb) / 2, y = y_lk + 0.009,
+                    gp = gpar(fontsize = 5.5), just = "center")
+  }
+  invisible(TRUE)
+}
+
 draw_process <- function(
     process_name = "Process",
     process_desc = "Process Description",
@@ -2414,6 +2567,11 @@ draw_process <- function(
     # labels
     arrow_labels = NULL,
     center_label = NULL,
+    # inner part boxes (storage): list of list(id, title, lines, slot) and
+    # list of list(from, to, label) links -- see .draw_part_boxes(). When
+    # given, center_label moves to the top of the box to clear the row.
+    part_boxes = NULL,
+    part_links = NULL,
     show_inputs = any(
       !is.null(c(
         grouped_com_inputs, single_com_inputs,
@@ -3061,12 +3219,21 @@ draw_process <- function(
         } # end of (length(n_outputs) > 0)
       } # end of show_outputs
 
+      # inner part boxes (storage) ####
+      if (!is.null(part_boxes)) {
+        .draw_part_boxes(part_boxes, part_links, box_width, box_height,
+                         box_border)
+      }
+
       # cap2act ####
       if (!is.null(center_label)) {
         grid::grid.text(
           label = center_label,
           x = 0.5,
-          y = 0.5 - box_height / 2 + 0.05,
+          # with part boxes the bottom belongs to the link brackets; the
+          # label moves just under the top edge of the main box
+          y = if (is.null(part_boxes)) 0.5 - box_height / 2 + 0.05 else
+            0.5 + box_height / 2 - 0.03,
           just = "center",
           gp = gpar(fontsize = 6)
         )

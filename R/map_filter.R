@@ -292,10 +292,22 @@ map_mStorageOutTot <- function(scen, fmp) {
   mStorageCinp2AOut = list("pStorageCinp2AOut", "mvStorageAOut",  FALSE),
   mStorageCout2AInp = list("pStorageCout2AInp", "mvStorageAInp",  FALSE),
   mStorageCout2AOut = list("pStorageCout2AOut", "mvStorageAOut",  FALSE),
-  mStorageCap2AInp  = list("pStorageCap2AInp",  "mvStorageAInp",  FALSE),
-  mStorageCap2AOut  = list("pStorageCap2AOut",  "mvStorageAOut",  FALSE),
-  mStorageNCap2AInp = list("pStorageNCap2AInp", "mvStorageAInp",  FALSE),
-  mStorageNCap2AOut = list("pStorageNCap2AOut", "mvStorageAOut",  FALSE),
+  # Per-part capacity couplings. The optional 4th element names the part's
+  # capacity DOMAIN: the coupled variable exists only for materialised parts,
+  # so rows outside it must be dropped (a solver would index a variable out
+  # of its domain). The discharger's variable always exists -- no requirement.
+  mStorageInpCap2AInp  = list("pStorageInpCap2AInp",  "mvStorageAInp", FALSE, "mStorageInpCap"),
+  mStorageInpCap2AOut  = list("pStorageInpCap2AOut",  "mvStorageAOut", FALSE, "mStorageInpCap"),
+  mStorageInpNCap2AInp = list("pStorageInpNCap2AInp", "mvStorageAInp", FALSE, "mStorageInpCap"),
+  mStorageInpNCap2AOut = list("pStorageInpNCap2AOut", "mvStorageAOut", FALSE, "mStorageInpCap"),
+  mStorageStgCap2AInp  = list("pStorageStgCap2AInp",  "mvStorageAInp", FALSE, "mStorageStgCap"),
+  mStorageStgCap2AOut  = list("pStorageStgCap2AOut",  "mvStorageAOut", FALSE, "mStorageStgCap"),
+  mStorageStgNCap2AInp = list("pStorageStgNCap2AInp", "mvStorageAInp", FALSE, "mStorageStgCap"),
+  mStorageStgNCap2AOut = list("pStorageStgNCap2AOut", "mvStorageAOut", FALSE, "mStorageStgCap"),
+  mStorageOutCap2AInp  = list("pStorageOutCap2AInp",  "mvStorageAInp", FALSE),
+  mStorageOutCap2AOut  = list("pStorageOutCap2AOut",  "mvStorageAOut", FALSE),
+  mStorageOutNCap2AInp = list("pStorageOutNCap2AInp", "mvStorageAInp", FALSE),
+  mStorageOutNCap2AOut = list("pStorageOutNCap2AOut", "mvStorageAOut", FALSE),
   mTechPho2AInp    = list("pTechPho2AInp",    "mvTechAct",      FALSE),
   mTechRet2AInp    = list("pTechRet2AInp",    "mvTechAct",      FALSE),
   mTechPho2AOut    = list("pTechPho2AOut",    "mvTechAct",      FALSE),
@@ -308,6 +320,21 @@ map_mStorageOutTot <- function(scen, fmp) {
 .filter_aux_conv <- function(scen, name, fmp) {
   sp <- .aux_conv_spec[[name]]
   m <- .aux_conv_map(.gds(scen, sp[[1]]), .gds(scen, sp[[2]]), second_comm = sp[[3]])
+  # A per-part coupling can only fire where that part's capacity variable
+  # exists; a declared coefficient on an unpriced part is dropped with a
+  # warning rather than emitted (the solver would index the variable out of
+  # its domain -- and silence here would hide a costless coupling).
+  if (length(sp) >= 4L && !is.null(m) && nrow(m) > 0) {
+    req <- .gds(scen, sp[[4]])
+    n0 <- nrow(m)
+    m <- if (is.null(req) || !nrow(req)) m[0, , drop = FALSE] else
+      dplyr::semi_join(m, as.data.frame(req), by = c("stg", "region", "year"))
+    if (nrow(m) < n0) {
+      warning("Aux coupling ", sp[[1]], ": ", n0 - nrow(m), " row(s) dropped ",
+              "-- the coupled part has no capacity variable there (part not ",
+              "priced or bounded).", call. = FALSE)
+    }
+  }
   .set_map(scen, name, .filt_cr(scen, m), fmp)
 }
 map_mTechAct2AInp     <- function(scen, fmp) .filter_aux_conv(scen, "mTechAct2AInp", fmp)
@@ -326,9 +353,18 @@ map_mStorageCinp2AInp <- function(scen, fmp) .filter_aux_conv(scen, "mStorageCin
 map_mStorageCinp2AOut <- function(scen, fmp) .filter_aux_conv(scen, "mStorageCinp2AOut", fmp)
 map_mStorageCout2AInp <- function(scen, fmp) .filter_aux_conv(scen, "mStorageCout2AInp", fmp)
 map_mStorageCout2AOut <- function(scen, fmp) .filter_aux_conv(scen, "mStorageCout2AOut", fmp)
-map_mStorageCap2AInp  <- function(scen, fmp) .filter_aux_conv(scen, "mStorageCap2AInp", fmp)
-map_mStorageCap2AOut  <- function(scen, fmp) .filter_aux_conv(scen, "mStorageCap2AOut", fmp)
-map_mStorageNCap2AInp <- function(scen, fmp) .filter_aux_conv(scen, "mStorageNCap2AInp", fmp)
+map_mStorageOutCap2AInp  <- function(scen, fmp) .filter_aux_conv(scen, "mStorageOutCap2AInp", fmp)
+map_mStorageOutCap2AOut  <- function(scen, fmp) .filter_aux_conv(scen, "mStorageOutCap2AOut", fmp)
+map_mStorageOutNCap2AInp <- function(scen, fmp) .filter_aux_conv(scen, "mStorageOutNCap2AInp", fmp)
+map_mStorageOutNCap2AOut <- function(scen, fmp) .filter_aux_conv(scen, "mStorageOutNCap2AOut", fmp)
+map_mStorageInpCap2AInp  <- function(scen, fmp) .filter_aux_conv(scen, "mStorageInpCap2AInp", fmp)
+map_mStorageInpCap2AOut  <- function(scen, fmp) .filter_aux_conv(scen, "mStorageInpCap2AOut", fmp)
+map_mStorageInpNCap2AInp <- function(scen, fmp) .filter_aux_conv(scen, "mStorageInpNCap2AInp", fmp)
+map_mStorageInpNCap2AOut <- function(scen, fmp) .filter_aux_conv(scen, "mStorageInpNCap2AOut", fmp)
+map_mStorageStgCap2AInp  <- function(scen, fmp) .filter_aux_conv(scen, "mStorageStgCap2AInp", fmp)
+map_mStorageStgCap2AOut  <- function(scen, fmp) .filter_aux_conv(scen, "mStorageStgCap2AOut", fmp)
+map_mStorageStgNCap2AInp <- function(scen, fmp) .filter_aux_conv(scen, "mStorageStgNCap2AInp", fmp)
+map_mStorageStgNCap2AOut <- function(scen, fmp) .filter_aux_conv(scen, "mStorageStgNCap2AOut", fmp)
 map_mTechPho2AInp         <- function(scen, fmp) .filter_aux_conv(scen, "mTechPho2AInp", fmp)
 map_mTechPho2AOut         <- function(scen, fmp) .filter_aux_conv(scen, "mTechPho2AOut", fmp)
 map_mTechRet2AInp         <- function(scen, fmp) .filter_aux_conv(scen, "mTechRet2AInp", fmp)
@@ -337,7 +373,6 @@ map_mStoragePho2AInp      <- function(scen, fmp) .filter_aux_conv(scen, "mStorag
 map_mStoragePho2AOut      <- function(scen, fmp) .filter_aux_conv(scen, "mStoragePho2AOut", fmp)
 map_mStorageRet2AInp      <- function(scen, fmp) .filter_aux_conv(scen, "mStorageRet2AInp", fmp)
 map_mStorageRet2AOut      <- function(scen, fmp) .filter_aux_conv(scen, "mStorageRet2AOut", fmp)
-map_mStorageNCap2AOut <- function(scen, fmp) .filter_aux_conv(scen, "mStorageNCap2AOut", fmp)
 
 # -- dummy import / export slack domains ----------------------------------- #
 # (comm, region, year, timeslice) tuples with a finite dummy-slack cost (default Inf
@@ -837,10 +872,18 @@ map_mvBalance <- function(scen, fmp)
   mStorageCinp2AOut = map_mStorageCinp2AOut,
   mStorageCout2AInp = map_mStorageCout2AInp,
   mStorageCout2AOut = map_mStorageCout2AOut,
-  mStorageCap2AInp  = map_mStorageCap2AInp,
-  mStorageCap2AOut  = map_mStorageCap2AOut,
-  mStorageNCap2AInp = map_mStorageNCap2AInp,
-  mStorageNCap2AOut = map_mStorageNCap2AOut,
+  mStorageOutCap2AInp  = map_mStorageOutCap2AInp,
+  mStorageOutCap2AOut  = map_mStorageOutCap2AOut,
+  mStorageOutNCap2AInp = map_mStorageOutNCap2AInp,
+  mStorageOutNCap2AOut = map_mStorageOutNCap2AOut,
+  mStorageInpCap2AInp  = map_mStorageInpCap2AInp,
+  mStorageInpCap2AOut  = map_mStorageInpCap2AOut,
+  mStorageInpNCap2AInp = map_mStorageInpNCap2AInp,
+  mStorageInpNCap2AOut = map_mStorageInpNCap2AOut,
+  mStorageStgCap2AInp  = map_mStorageStgCap2AInp,
+  mStorageStgCap2AOut  = map_mStorageStgCap2AOut,
+  mStorageStgNCap2AInp = map_mStorageStgNCap2AInp,
+  mStorageStgNCap2AOut = map_mStorageStgNCap2AOut,
   # dummy + emission (mEmsFuelTot also builds mTechEmsFuel as a side-effect)
   mDummyImport   = map_mDummyImport,
   mDummyExport   = map_mDummyExport,

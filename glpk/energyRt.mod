@@ -163,13 +163,21 @@ set meqStorageLevel dimen 6;
 set mStorageStg2AOut dimen 5;
 set mStorageCinp2AOut dimen 5;
 set mStorageCout2AOut dimen 5;
-set mStorageCap2AOut dimen 5;
-set mStorageNCap2AOut dimen 5;
+set mStorageOutCap2AOut dimen 5;
+set mStorageOutNCap2AOut dimen 5;
+set mStorageInpCap2AInp dimen 5;
+set mStorageInpCap2AOut dimen 5;
+set mStorageInpNCap2AInp dimen 5;
+set mStorageInpNCap2AOut dimen 5;
+set mStorageStgCap2AInp dimen 5;
+set mStorageStgCap2AOut dimen 5;
+set mStorageStgNCap2AInp dimen 5;
+set mStorageStgNCap2AOut dimen 5;
 set mStorageStg2AInp dimen 5;
 set mStorageCinp2AInp dimen 5;
 set mStorageCout2AInp dimen 5;
-set mStorageCap2AInp dimen 5;
-set mStorageNCap2AInp dimen 5;
+set mStorageOutCap2AInp dimen 5;
+set mStorageOutNCap2AInp dimen 5;
 set mStorageInpCap dimen 3;
 set mStorageNoInpCap dimen 3;
 set mStorageInpNew dimen 3;
@@ -181,6 +189,9 @@ set mStorageInpFixom dimen 3;
 set mStorageInpEac dimen 3;
 set mStorageInp2outLo dimen 3;
 set mStorageInp2outUp dimen 3;
+set mStorageInpStgCap dimen 3;
+set mStorageInp2stgLo dimen 3;
+set mStorageInp2stgUp dimen 3;
 set mStorageStgCap dimen 3;
 set mStorageNoStgCap dimen 3;
 set mStorageStgNew dimen 3;
@@ -477,6 +488,8 @@ param pStorageInpNewCapLo{stg, region, year};
 param pStorageInpNewCapUp{stg, region, year};
 param pStorageInp2outLo{stg, region, year};
 param pStorageInp2outUp{stg, region, year};
+param pStorageInp2stgLo{stg, region, year};
+param pStorageInp2stgUp{stg, region, year};
 param pStorageStgStock{stg, region, year};
 param pStorageStgStockNew{stg, region, year};
 param pStorageStgStockSurv{stg, region, year};
@@ -503,14 +516,22 @@ param pStorageCinp2AInp{stg, comm, region, year, timeslice};
 param pStorageCinp2AOut{stg, comm, region, year, timeslice};
 param pStorageCout2AInp{stg, comm, region, year, timeslice};
 param pStorageCout2AOut{stg, comm, region, year, timeslice};
-param pStorageCap2AInp{stg, comm, region, year, timeslice};
-param pStorageCap2AOut{stg, comm, region, year, timeslice};
-param pStorageNCap2AInp{stg, comm, region, year, timeslice};
+param pStorageOutCap2AInp{stg, comm, region, year, timeslice};
+param pStorageOutCap2AOut{stg, comm, region, year, timeslice};
+param pStorageOutNCap2AInp{stg, comm, region, year, timeslice};
+param pStorageInpCap2AInp{stg, comm, region, year, timeslice};
+param pStorageInpCap2AOut{stg, comm, region, year, timeslice};
+param pStorageInpNCap2AInp{stg, comm, region, year, timeslice};
+param pStorageInpNCap2AOut{stg, comm, region, year, timeslice};
+param pStorageStgCap2AInp{stg, comm, region, year, timeslice};
+param pStorageStgCap2AOut{stg, comm, region, year, timeslice};
+param pStorageStgNCap2AInp{stg, comm, region, year, timeslice};
+param pStorageStgNCap2AOut{stg, comm, region, year, timeslice};
 param pStoragePho2AInp{stg, comm, region, year, timeslice};
 param pStoragePho2AOut{stg, comm, region, year, timeslice};
 param pStorageRet2AInp{stg, comm, region, year, timeslice};
 param pStorageRet2AOut{stg, comm, region, year, timeslice};
-param pStorageNCap2AOut{stg, comm, region, year, timeslice};
+param pStorageOutNCap2AOut{stg, comm, region, year, timeslice};
 param pTradeIrEff{trade, region, region, year, timeslice};
 param pTradeIrUp{trade, region, region, year, timeslice};
 param pTradeIrLo{trade, region, region, year, timeslice};
@@ -821,9 +842,9 @@ s.t.  eqAggOutTot{(c, r, y, s) in mAggOut}: vAggOutTot[c,r,y,s]  =  sum{cp in co
 
 s.t.  eqEmsFuelTot{(c, r, y, s) in mEmsFuelTot}: vEmsFuelTot[c,r,y,s]  =  sum{cp in comm:((pEmissionFactor[c,cp]>0))}(pEmissionFactor[c,cp]*sum{t in tech:((t,cp) in mTechInpComm)}(pTechEmisComm[t,cp]*sum{sp in timeslice:((c,s,sp) in mCommTimesliceOrParent)}(sum{FORIF: (t,c,cp,r,y,sp) in mTechEmsFuel} (vTechInp[t,cp,r,y,sp]))));
 
-s.t.  eqStorageAInp{(st1, c, r, y, s) in mvStorageAInp}: vStorageAInp[st1,c,r,y,s]  =  sum{cp in comm:((st1,cp) in mStorageStgComm)}(sum{FORIF: (st1,c,r,y,s) in mStorageStg2AInp} ((pStorageStg2AInp[st1,c,r,y,s]*vStorageLevel[st1,cp,r,y,s])))+sum{cp in comm:((st1,cp) in mStorageInpComm)}(sum{FORIF: (st1,c,r,y,s) in mStorageCinp2AInp} ((pStorageCinp2AInp[st1,c,r,y,s]*vStorageInp[st1,cp,r,y,s])))+sum{cp in comm:((st1,cp) in mStorageOutComm)}(sum{FORIF: (st1,c,r,y,s) in mStorageCout2AInp} ((pStorageCout2AInp[st1,c,r,y,s]*vStorageOut[st1,cp,r,y,s])))+sum{FORIF: (st1,c,r,y,s) in mStorageCap2AInp} ((pStorageCap2AInp[st1,c,r,y,s]*vStorageOutCap[st1,r,y]))+sum{FORIF: (st1,c,r,y,s) in mStorageNCap2AInp} ((pStorageNCap2AInp[st1,c,r,y,s]*vStorageOutNewCap[st1,r,y]))+sum{FORIF: (st1,c,r,y,s) in mStoragePho2AInp} ((pStoragePho2AInp[st1,c,r,y,s]*sum{FORIF: (st1,r,y) in mvStoragePhaseOut} (vStoragePhaseOut[st1,r,y])))+sum{FORIF: (st1,c,r,y,s) in mStorageRet2AInp} ((pStorageRet2AInp[st1,c,r,y,s]*(sum{FORIF: (st1,r,y) in mvStorageRetiredStock} (vStorageOutRetiredStock[st1,r,y])+sum{yp in year:((st1,r,yp,y) in mvStorageRetiredNewCap)}(vStorageOutRetiredNewCap[st1,r,yp,y]))));
+s.t.  eqStorageAInp{(st1, c, r, y, s) in mvStorageAInp}: vStorageAInp[st1,c,r,y,s]  =  sum{cp in comm:((st1,cp) in mStorageStgComm)}(sum{FORIF: (st1,c,r,y,s) in mStorageStg2AInp} ((pStorageStg2AInp[st1,c,r,y,s]*vStorageLevel[st1,cp,r,y,s])))+sum{cp in comm:((st1,cp) in mStorageInpComm)}(sum{FORIF: (st1,c,r,y,s) in mStorageCinp2AInp} ((pStorageCinp2AInp[st1,c,r,y,s]*vStorageInp[st1,cp,r,y,s])))+sum{cp in comm:((st1,cp) in mStorageOutComm)}(sum{FORIF: (st1,c,r,y,s) in mStorageCout2AInp} ((pStorageCout2AInp[st1,c,r,y,s]*vStorageOut[st1,cp,r,y,s])))+sum{FORIF: (st1,c,r,y,s) in mStorageOutCap2AInp} ((pStorageOutCap2AInp[st1,c,r,y,s]*vStorageOutCap[st1,r,y]))+sum{FORIF: (st1,c,r,y,s) in mStorageOutNCap2AInp} ((pStorageOutNCap2AInp[st1,c,r,y,s]*vStorageOutNewCap[st1,r,y]))+sum{FORIF: (st1,c,r,y,s) in mStorageInpCap2AInp} ((pStorageInpCap2AInp[st1,c,r,y,s]*vStorageInpCap[st1,r,y]))+sum{FORIF: (st1,c,r,y,s) in mStorageInpNCap2AInp} ((pStorageInpNCap2AInp[st1,c,r,y,s]*vStorageInpNewCap[st1,r,y]))+sum{FORIF: (st1,c,r,y,s) in mStorageStgCap2AInp} ((pStorageStgCap2AInp[st1,c,r,y,s]*vStorageStgCap[st1,r,y]))+sum{FORIF: (st1,c,r,y,s) in mStorageStgNCap2AInp} ((pStorageStgNCap2AInp[st1,c,r,y,s]*vStorageStgNewCap[st1,r,y]))+sum{FORIF: (st1,c,r,y,s) in mStoragePho2AInp} ((pStoragePho2AInp[st1,c,r,y,s]*sum{FORIF: (st1,r,y) in mvStoragePhaseOut} (vStoragePhaseOut[st1,r,y])))+sum{FORIF: (st1,c,r,y,s) in mStorageRet2AInp} ((pStorageRet2AInp[st1,c,r,y,s]*(sum{FORIF: (st1,r,y) in mvStorageRetiredStock} (vStorageOutRetiredStock[st1,r,y])+sum{yp in year:((st1,r,yp,y) in mvStorageRetiredNewCap)}(vStorageOutRetiredNewCap[st1,r,yp,y]))));
 
-s.t.  eqStorageAOut{(st1, c, r, y, s) in mvStorageAOut}: vStorageAOut[st1,c,r,y,s]  =  sum{cp in comm:((st1,cp) in mStorageStgComm)}(sum{FORIF: (st1,c,r,y,s) in mStorageStg2AOut} ((pStorageStg2AOut[st1,c,r,y,s]*vStorageLevel[st1,cp,r,y,s])))+sum{cp in comm:((st1,cp) in mStorageInpComm)}(sum{FORIF: (st1,c,r,y,s) in mStorageCinp2AOut} ((pStorageCinp2AOut[st1,c,r,y,s]*vStorageInp[st1,cp,r,y,s])))+sum{cp in comm:((st1,cp) in mStorageOutComm)}(sum{FORIF: (st1,c,r,y,s) in mStorageCout2AOut} ((pStorageCout2AOut[st1,c,r,y,s]*vStorageOut[st1,cp,r,y,s])))+sum{FORIF: (st1,c,r,y,s) in mStorageCap2AOut} ((pStorageCap2AOut[st1,c,r,y,s]*vStorageOutCap[st1,r,y]))+sum{FORIF: (st1,c,r,y,s) in mStorageNCap2AOut} ((pStorageNCap2AOut[st1,c,r,y,s]*vStorageOutNewCap[st1,r,y]))+sum{FORIF: (st1,c,r,y,s) in mStoragePho2AOut} ((pStoragePho2AOut[st1,c,r,y,s]*sum{FORIF: (st1,r,y) in mvStoragePhaseOut} (vStoragePhaseOut[st1,r,y])))+sum{FORIF: (st1,c,r,y,s) in mStorageRet2AOut} ((pStorageRet2AOut[st1,c,r,y,s]*(sum{FORIF: (st1,r,y) in mvStorageRetiredStock} (vStorageOutRetiredStock[st1,r,y])+sum{yp in year:((st1,r,yp,y) in mvStorageRetiredNewCap)}(vStorageOutRetiredNewCap[st1,r,yp,y]))));
+s.t.  eqStorageAOut{(st1, c, r, y, s) in mvStorageAOut}: vStorageAOut[st1,c,r,y,s]  =  sum{cp in comm:((st1,cp) in mStorageStgComm)}(sum{FORIF: (st1,c,r,y,s) in mStorageStg2AOut} ((pStorageStg2AOut[st1,c,r,y,s]*vStorageLevel[st1,cp,r,y,s])))+sum{cp in comm:((st1,cp) in mStorageInpComm)}(sum{FORIF: (st1,c,r,y,s) in mStorageCinp2AOut} ((pStorageCinp2AOut[st1,c,r,y,s]*vStorageInp[st1,cp,r,y,s])))+sum{cp in comm:((st1,cp) in mStorageOutComm)}(sum{FORIF: (st1,c,r,y,s) in mStorageCout2AOut} ((pStorageCout2AOut[st1,c,r,y,s]*vStorageOut[st1,cp,r,y,s])))+sum{FORIF: (st1,c,r,y,s) in mStorageOutCap2AOut} ((pStorageOutCap2AOut[st1,c,r,y,s]*vStorageOutCap[st1,r,y]))+sum{FORIF: (st1,c,r,y,s) in mStorageOutNCap2AOut} ((pStorageOutNCap2AOut[st1,c,r,y,s]*vStorageOutNewCap[st1,r,y]))+sum{FORIF: (st1,c,r,y,s) in mStorageInpCap2AOut} ((pStorageInpCap2AOut[st1,c,r,y,s]*vStorageInpCap[st1,r,y]))+sum{FORIF: (st1,c,r,y,s) in mStorageInpNCap2AOut} ((pStorageInpNCap2AOut[st1,c,r,y,s]*vStorageInpNewCap[st1,r,y]))+sum{FORIF: (st1,c,r,y,s) in mStorageStgCap2AOut} ((pStorageStgCap2AOut[st1,c,r,y,s]*vStorageStgCap[st1,r,y]))+sum{FORIF: (st1,c,r,y,s) in mStorageStgNCap2AOut} ((pStorageStgNCap2AOut[st1,c,r,y,s]*vStorageStgNewCap[st1,r,y]))+sum{FORIF: (st1,c,r,y,s) in mStoragePho2AOut} ((pStoragePho2AOut[st1,c,r,y,s]*sum{FORIF: (st1,r,y) in mvStoragePhaseOut} (vStoragePhaseOut[st1,r,y])))+sum{FORIF: (st1,c,r,y,s) in mStorageRet2AOut} ((pStorageRet2AOut[st1,c,r,y,s]*(sum{FORIF: (st1,r,y) in mvStorageRetiredStock} (vStorageOutRetiredStock[st1,r,y])+sum{yp in year:((st1,r,yp,y) in mvStorageRetiredNewCap)}(vStorageOutRetiredNewCap[st1,r,yp,y]))));
 
 s.t.  eqStorageLevel{(st1, c, r, y, sp, s) in meqStorageLevel}: vStorageLevel[st1,c,r,y,s]  =  pStorageStartLevel[st1,c,r,y,s]+sum{FORIF: (st1,r,y) in mStorageNew} ((pStorageNCap2Stg[st1,c,r,y,s]*vStorageOutNewCap[st1,r,y]))+sum{ci in comm:((st1,ci,r,y,sp) in mvStorageInp)}(pStorageInpEff[st1,ci,r,y,sp]*vStorageInp[st1,ci,r,y,sp])+((pStorageStgEff[st1,c,r,y,s])^(pTimesliceShare[s]))*vStorageLevel[st1,c,r,y,sp]-sum{co in comm:((st1,co,r,y,sp) in mvStorageOut)}((vStorageOut[st1,co,r,y,sp]) / (pStorageOutEff[st1,co,r,y,sp]));
 
@@ -871,6 +892,13 @@ s.t.  eqStorageInpNewCapUp{(st1, r, y) in mStorageInpNewCapUp}: vStorageInpNewCa
 s.t.  eqStorageInp2outLo{(st1, r, y) in mStorageInp2outLo}: vStorageInpCap[st1,r,y]  >=  pStorageInp2outLo[st1,r,y]*vStorageOutCap[st1,r,y];
 
 s.t.  eqStorageInp2outUp{(st1, r, y) in mStorageInp2outUp}: vStorageInpCap[st1,r,y] <=  pStorageInp2outUp[st1,r,y]*vStorageOutCap[st1,r,y];
+
+# The inp2stg LINK (charging C-rate, 1/h): charging capacity per unit of
+# storing (energy) capacity. No binding default -- emitted only where a finite
+# bound is declared and both capacity variables exist (mStorageInpStgCap).
+s.t.  eqStorageInp2stgLo{(st1, r, y) in mStorageInp2stgLo}: vStorageInpCap[st1,r,y]  >=  pStorageInp2stgLo[st1,r,y]*vStorageStgCap[st1,r,y];
+
+s.t.  eqStorageInp2stgUp{(st1, r, y) in mStorageInp2stgUp}: vStorageInpCap[st1,r,y] <=  pStorageInp2stgUp[st1,r,y]*vStorageStgCap[st1,r,y];
 
 s.t.  eqStorageStgCap{(st1, r, y) in mStorageStgCap}: vStorageStgCap[st1,r,y]  =  vStorageStgStockCap[st1,r,y]+sum{yp in year:((ordYear[y] >= ordYear[yp] and ((st1,r) in mStorageOlifeInf or ordYear[y]<pStorageOlife[st1,r]+ordYear[yp]) and (st1,r,yp) in mStorageStgNew))}(pPeriodLen[yp]*vStorageStgNewCap[st1,r,yp]-sum{ye in year:(((st1,r,yp,ye) in mvStorageRetiredNewCap and ordYear[y] >= ordYear[ye]))}(vStorageStgRetiredNewCap[st1,r,yp,ye]*pPeriodLen[ye]));
 

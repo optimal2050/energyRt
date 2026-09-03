@@ -11,7 +11,7 @@
             "value": 18
           },
           {
-            "tech": "ECOA",
+            "tech": "EWIN",
             "region": "R2",
             "year": 2020,
             "value": 24
@@ -21,7 +21,12 @@
           {
             "tech": "ECOA",
             "year": 2020,
-            "value": 42
+            "value": 18
+          },
+          {
+            "tech": "EWIN",
+            "year": 2020,
+            "value": 24
           }
         ]
       },
@@ -42,14 +47,14 @@
             "value": 18
           },
           {
-            "tech": "ECOA",
+            "tech": "EWIN",
             "comm": "ELC",
             "region": "R2",
             "year": 2020,
             "value": 17
           },
           {
-            "tech": "ECOA",
+            "tech": "EWIN",
             "comm": "ELC",
             "region": "R2",
             "year": 2025,
@@ -61,13 +66,25 @@
             "tech": "ECOA",
             "comm": "ELC",
             "year": 2020,
-            "value": 35
+            "value": 18
           },
           {
             "tech": "ECOA",
             "comm": "ELC",
             "year": 2025,
-            "value": 30
+            "value": 18
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "year": 2020,
+            "value": 17
+          },
+          {
+            "tech": "EWIN",
+            "comm": "ELC",
+            "year": 2025,
+            "value": 12
           }
         ]
       },
@@ -86,20 +103,6 @@
             "region": "R1",
             "year": 2025,
             "value": 18
-          },
-          {
-            "tech": "ECOA",
-            "comm": "COA",
-            "region": "R2",
-            "year": 2020,
-            "value": 17
-          },
-          {
-            "tech": "ECOA",
-            "comm": "COA",
-            "region": "R2",
-            "year": 2025,
-            "value": 12
           }
         ],
         "annual_total": [
@@ -107,13 +110,13 @@
             "tech": "ECOA",
             "comm": "COA",
             "year": 2020,
-            "value": 35
+            "value": 18
           },
           {
             "tech": "ECOA",
             "comm": "COA",
             "year": 2025,
-            "value": 30
+            "value": 18
           }
         ]
       },
@@ -132,20 +135,6 @@
             "region": "R1",
             "year": 2025,
             "value": 18
-          },
-          {
-            "sup": "SUP_COA",
-            "comm": "COA",
-            "region": "R2",
-            "year": 2020,
-            "value": 17
-          },
-          {
-            "sup": "SUP_COA",
-            "comm": "COA",
-            "region": "R2",
-            "year": 2025,
-            "value": 12
           }
         ],
         "annual_total": [
@@ -153,13 +142,13 @@
             "sup": "SUP_COA",
             "comm": "COA",
             "year": 2020,
-            "value": 35
+            "value": 18
           },
           {
             "sup": "SUP_COA",
             "comm": "COA",
             "year": 2025,
-            "value": 30
+            "value": 18
           }
         ]
       },
@@ -205,8 +194,8 @@
       }
     },
     "captured": {
-      "date": "2026-08-24",
-      "version": "0.87.1.9000",
+      "date": "2026-09-03",
+      "version": "0.89.3.9000",
       "solver": "glpk"
     }
   },
@@ -324,8 +313,8 @@
       }
     },
     "captured": {
-      "date": "2026-08-24",
-      "version": "0.87.1.9000",
+      "date": "2026-09-03",
+      "version": "0.89.3.9000",
       "solver": "glpk"
     }
   },
@@ -443,8 +432,8 @@
       }
     },
     "captured": {
-      "date": "2026-08-24",
-      "version": "0.87.1.9000",
+      "date": "2026-09-03",
+      "version": "0.89.3.9000",
       "solver": "glpk"
     }
   },
@@ -562,8 +551,8 @@
       }
     },
     "captured": {
-      "date": "2026-08-24",
-      "version": "0.87.1.9000",
+      "date": "2026-09-03",
+      "version": "0.89.3.9000",
       "solver": "glpk"
     }
   },
@@ -681,8 +670,8 @@
       }
     },
     "captured": {
-      "date": "2026-08-24",
-      "version": "0.87.1.9000",
+      "date": "2026-09-03",
+      "version": "0.89.3.9000",
       "solver": "glpk"
     }
   }

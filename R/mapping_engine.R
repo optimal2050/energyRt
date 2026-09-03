@@ -996,6 +996,14 @@ recipe_value <- function(scen, names, fmp) {
                              types = "lo", structural = TRUE),
   mStorageInp2outUp   = list(domain = "mStorageInpCap", source = "pStorageInp2out",
                              types = "up", structural = TRUE),
+  # inp2stg (charging C-rate) is NOT structural: its default is open, so the
+  # link exists only where a finite bound is declared -- `drop` discards the
+  # opened sides `.norm_ratio()` writes (0-lo / Inf-up). The domain is the
+  # intersection of the two capacity domains: no variable pair, no equation.
+  mStorageInp2stgLo   = list(domain = "mStorageInpStgCap", source = "pStorageInp2stg",
+                             types = "lo", drop = "lo"),
+  mStorageInp2stgUp   = list(domain = "mStorageInpStgCap", source = "pStorageInp2stg",
+                             types = "up", drop = "up"),
   mStorageDurationLo  = list(domain = "mStorageStgCap", source = "pStorageDuration",
                              types = "lo", structural = TRUE),
   mStorageDurationUp  = list(domain = "mStorageStgCap", source = "pStorageDuration",

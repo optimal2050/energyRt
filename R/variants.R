@@ -62,7 +62,8 @@
     key = "stg",
     dims = c("vintage", "cluster"),
     slots = c("vintage", "capacity", "invcost", "fixom", "varom",
-              "af", "seff", "charge", "aeff", "weather", "duration"),
+              "af", "seff", "charge", "aeff", "weather", "duration",
+              "inp2stg"),
     # A storage keeps one capacity per PART, so its `@capacity` columns read
     # `out.cap.up`, not `cap.up`, and each part has its own variable. Keyed on
     # the FULL stem: keying on `cap`/`ncap` behind a single `out.` prefix made

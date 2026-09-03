@@ -1581,6 +1581,26 @@ pStorageInp2out:
   colName: inp2out
   class: storage
   slot: inp2out
+# inp2stg = input capacity / storing capacity, 1/hours -- a charging C-rate.
+# NO binding default (unlike the [1, 1] identities above): [0, Inf] is open,
+# and the maps are conditional joins, so the link exists only where a finite
+# bound is declared and both parts carry capacity variables.
+pStorageInp2stg:
+  name: pStorageInp2stg
+  dimSets:
+  - stg
+  - region
+  - year
+  type: bounds
+  defVal:
+  - 0.0
+  - .inf
+  interpolation:
+  - inter.forth
+  - inter.forth
+  colName: inp2stg
+  class: storage
+  slot: inp2stg
 # --- capacity -> annual flow, so a capacity is a RATE ------------------------ #
 # The flow bounds read `inp.af.up * cap2act * cap * pTimesliceShare[s]`, mirroring
 # eqTechAfUp. Without the share factor `cap` meant "commodity per TIMESLICE": the
@@ -1750,8 +1770,13 @@ pStorageCout2AOut:
   colName: cout2aout
   class: storage
   slot: aeff
-pStorageCap2AInp:
-  name: pStorageCap2AInp
+# Aux capacity couplings are PER PART: each parameter multiplies its own
+# part's capacity variable (Cap = standing, NCap = newly built). The
+# pre-part-aware pStorageCap2A*/pStorageNCap2A* coupled only the discharger
+# and are renamed to the Out* four below (hard break; the constructor refuses
+# the bare column names with a rename hint).
+pStorageInpCap2AInp:
+  name: pStorageInpCap2AInp
   dimSets:
   - stg
   - acomm
@@ -1761,11 +1786,11 @@ pStorageCap2AInp:
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
-  colName: cap2ainp
+  colName: inp.cap2ainp
   class: storage
   slot: aeff
-pStorageCap2AOut:
-  name: pStorageCap2AOut
+pStorageInpCap2AOut:
+  name: pStorageInpCap2AOut
   dimSets:
   - stg
   - acomm
@@ -1775,11 +1800,11 @@ pStorageCap2AOut:
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
-  colName: cap2aout
+  colName: inp.cap2aout
   class: storage
   slot: aeff
-pStorageNCap2AInp:
-  name: pStorageNCap2AInp
+pStorageInpNCap2AInp:
+  name: pStorageInpNCap2AInp
   dimSets:
   - stg
   - acomm
@@ -1789,11 +1814,11 @@ pStorageNCap2AInp:
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
-  colName: ncap2ainp
+  colName: inp.ncap2ainp
   class: storage
   slot: aeff
-pStorageNCap2AOut:
-  name: pStorageNCap2AOut
+pStorageInpNCap2AOut:
+  name: pStorageInpNCap2AOut
   dimSets:
   - stg
   - acomm
@@ -1803,7 +1828,119 @@ pStorageNCap2AOut:
   type: numpar
   defVal: 0.0
   interpolation: back.inter.forth
-  colName: ncap2aout
+  colName: inp.ncap2aout
+  class: storage
+  slot: aeff
+pStorageStgCap2AInp:
+  name: pStorageStgCap2AInp
+  dimSets:
+  - stg
+  - acomm
+  - region
+  - year
+  - timeslice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: stg.cap2ainp
+  class: storage
+  slot: aeff
+pStorageStgCap2AOut:
+  name: pStorageStgCap2AOut
+  dimSets:
+  - stg
+  - acomm
+  - region
+  - year
+  - timeslice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: stg.cap2aout
+  class: storage
+  slot: aeff
+pStorageStgNCap2AInp:
+  name: pStorageStgNCap2AInp
+  dimSets:
+  - stg
+  - acomm
+  - region
+  - year
+  - timeslice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: stg.ncap2ainp
+  class: storage
+  slot: aeff
+pStorageStgNCap2AOut:
+  name: pStorageStgNCap2AOut
+  dimSets:
+  - stg
+  - acomm
+  - region
+  - year
+  - timeslice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: stg.ncap2aout
+  class: storage
+  slot: aeff
+pStorageOutCap2AInp:
+  name: pStorageOutCap2AInp
+  dimSets:
+  - stg
+  - acomm
+  - region
+  - year
+  - timeslice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: out.cap2ainp
+  class: storage
+  slot: aeff
+pStorageOutCap2AOut:
+  name: pStorageOutCap2AOut
+  dimSets:
+  - stg
+  - acomm
+  - region
+  - year
+  - timeslice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: out.cap2aout
+  class: storage
+  slot: aeff
+pStorageOutNCap2AInp:
+  name: pStorageOutNCap2AInp
+  dimSets:
+  - stg
+  - acomm
+  - region
+  - year
+  - timeslice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: out.ncap2ainp
+  class: storage
+  slot: aeff
+pStorageOutNCap2AOut:
+  name: pStorageOutNCap2AOut
+  dimSets:
+  - stg
+  - acomm
+  - region
+  - year
+  - timeslice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+  colName: out.ncap2aout
   class: storage
   slot: aeff
 pStorageNCap2Stg:
@@ -3194,6 +3331,27 @@ mStorageInp2outUp:
   - stg
   - region
   - year
+mStorageInpStgCap:
+  name: mStorageInpStgCap
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageInp2stgLo:
+  name: mStorageInp2stgLo
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
+mStorageInp2stgUp:
+  name: mStorageInp2stgUp
+  type: map
+  dimSets:
+  - stg
+  - region
+  - year
 mStorageFixom:
   name: mStorageFixom
   type: map
@@ -3247,8 +3405,8 @@ mStorageCout2AOut:
   - region
   - year
   - timeslice
-mStorageCap2AOut:
-  name: mStorageCap2AOut
+mStorageOutCap2AOut:
+  name: mStorageOutCap2AOut
   type: map
   dimSets:
   - stg
@@ -3256,8 +3414,80 @@ mStorageCap2AOut:
   - region
   - year
   - timeslice
-mStorageNCap2AOut:
-  name: mStorageNCap2AOut
+mStorageOutNCap2AOut:
+  name: mStorageOutNCap2AOut
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mStorageInpCap2AInp:
+  name: mStorageInpCap2AInp
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mStorageInpCap2AOut:
+  name: mStorageInpCap2AOut
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mStorageInpNCap2AInp:
+  name: mStorageInpNCap2AInp
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mStorageInpNCap2AOut:
+  name: mStorageInpNCap2AOut
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mStorageStgCap2AInp:
+  name: mStorageStgCap2AInp
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mStorageStgCap2AOut:
+  name: mStorageStgCap2AOut
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mStorageStgNCap2AInp:
+  name: mStorageStgNCap2AInp
+  type: map
+  dimSets:
+  - stg
+  - comm
+  - region
+  - year
+  - timeslice
+mStorageStgNCap2AOut:
+  name: mStorageStgNCap2AOut
   type: map
   dimSets:
   - stg
@@ -3292,8 +3522,8 @@ mStorageCout2AInp:
   - region
   - year
   - timeslice
-mStorageCap2AInp:
-  name: mStorageCap2AInp
+mStorageOutCap2AInp:
+  name: mStorageOutCap2AInp
   type: map
   dimSets:
   - stg
@@ -3301,8 +3531,8 @@ mStorageCap2AInp:
   - region
   - year
   - timeslice
-mStorageNCap2AInp:
-  name: mStorageNCap2AInp
+mStorageOutNCap2AInp:
+  name: mStorageOutNCap2AInp
   type: map
   dimSets:
   - stg

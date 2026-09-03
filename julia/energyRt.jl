@@ -2706,13 +2706,13 @@ print("eqStorageAInp(stg, comm, region, year, timeslice)...")
         init = 0
     ) +
         (
-            if (st1, c, r, y, s) in mStorageCap2AInp
+            if (st1, c, r, y, s) in mStorageOutCap2AInp
                 (
                     (
-                        if haskey(pStorageCap2AInp, (st1, c, r, y, s))
-                            pStorageCap2AInp[(st1, c, r, y, s)]
+                        if haskey(pStorageOutCap2AInp, (st1, c, r, y, s))
+                            pStorageOutCap2AInp[(st1, c, r, y, s)]
                         else
-                            pStorageCap2AInpDef
+                            pStorageOutCap2AInpDef
                         end
                     ) * vStorageOutCap[(st1, r, y)]
                 )
@@ -2721,15 +2721,75 @@ print("eqStorageAInp(stg, comm, region, year, timeslice)...")
             end
         ) +
         (
-            if (st1, c, r, y, s) in mStorageNCap2AInp
+            if (st1, c, r, y, s) in mStorageOutNCap2AInp
                 (
                     (
-                        if haskey(pStorageNCap2AInp, (st1, c, r, y, s))
-                            pStorageNCap2AInp[(st1, c, r, y, s)]
+                        if haskey(pStorageOutNCap2AInp, (st1, c, r, y, s))
+                            pStorageOutNCap2AInp[(st1, c, r, y, s)]
                         else
-                            pStorageNCap2AInpDef
+                            pStorageOutNCap2AInpDef
                         end
                     ) * vStorageOutNewCap[(st1, r, y)]
+                )
+            else
+                0
+            end
+        ) +
+        (
+            if (st1, c, r, y, s) in mStorageInpCap2AInp
+                (
+                    (
+                        if haskey(pStorageInpCap2AInp, (st1, c, r, y, s))
+                            pStorageInpCap2AInp[(st1, c, r, y, s)]
+                        else
+                            pStorageInpCap2AInpDef
+                        end
+                    ) * vStorageInpCap[(st1, r, y)]
+                )
+            else
+                0
+            end
+        ) +
+        (
+            if (st1, c, r, y, s) in mStorageInpNCap2AInp
+                (
+                    (
+                        if haskey(pStorageInpNCap2AInp, (st1, c, r, y, s))
+                            pStorageInpNCap2AInp[(st1, c, r, y, s)]
+                        else
+                            pStorageInpNCap2AInpDef
+                        end
+                    ) * vStorageInpNewCap[(st1, r, y)]
+                )
+            else
+                0
+            end
+        ) +
+        (
+            if (st1, c, r, y, s) in mStorageStgCap2AInp
+                (
+                    (
+                        if haskey(pStorageStgCap2AInp, (st1, c, r, y, s))
+                            pStorageStgCap2AInp[(st1, c, r, y, s)]
+                        else
+                            pStorageStgCap2AInpDef
+                        end
+                    ) * vStorageStgCap[(st1, r, y)]
+                )
+            else
+                0
+            end
+        ) +
+        (
+            if (st1, c, r, y, s) in mStorageStgNCap2AInp
+                (
+                    (
+                        if haskey(pStorageStgNCap2AInp, (st1, c, r, y, s))
+                            pStorageStgNCap2AInp[(st1, c, r, y, s)]
+                        else
+                            pStorageStgNCap2AInpDef
+                        end
+                    ) * vStorageStgNewCap[(st1, r, y)]
                 )
             else
                 0
@@ -2837,13 +2897,13 @@ print("eqStorageAOut(stg, comm, region, year, timeslice)...")
         init = 0
     ) +
         (
-            if (st1, c, r, y, s) in mStorageCap2AOut
+            if (st1, c, r, y, s) in mStorageOutCap2AOut
                 (
                     (
-                        if haskey(pStorageCap2AOut, (st1, c, r, y, s))
-                            pStorageCap2AOut[(st1, c, r, y, s)]
+                        if haskey(pStorageOutCap2AOut, (st1, c, r, y, s))
+                            pStorageOutCap2AOut[(st1, c, r, y, s)]
                         else
-                            pStorageCap2AOutDef
+                            pStorageOutCap2AOutDef
                         end
                     ) * vStorageOutCap[(st1, r, y)]
                 )
@@ -2852,15 +2912,75 @@ print("eqStorageAOut(stg, comm, region, year, timeslice)...")
             end
         ) +
         (
-            if (st1, c, r, y, s) in mStorageNCap2AOut
+            if (st1, c, r, y, s) in mStorageOutNCap2AOut
                 (
                     (
-                        if haskey(pStorageNCap2AOut, (st1, c, r, y, s))
-                            pStorageNCap2AOut[(st1, c, r, y, s)]
+                        if haskey(pStorageOutNCap2AOut, (st1, c, r, y, s))
+                            pStorageOutNCap2AOut[(st1, c, r, y, s)]
                         else
-                            pStorageNCap2AOutDef
+                            pStorageOutNCap2AOutDef
                         end
                     ) * vStorageOutNewCap[(st1, r, y)]
+                )
+            else
+                0
+            end
+        ) +
+        (
+            if (st1, c, r, y, s) in mStorageInpCap2AOut
+                (
+                    (
+                        if haskey(pStorageInpCap2AOut, (st1, c, r, y, s))
+                            pStorageInpCap2AOut[(st1, c, r, y, s)]
+                        else
+                            pStorageInpCap2AOutDef
+                        end
+                    ) * vStorageInpCap[(st1, r, y)]
+                )
+            else
+                0
+            end
+        ) +
+        (
+            if (st1, c, r, y, s) in mStorageInpNCap2AOut
+                (
+                    (
+                        if haskey(pStorageInpNCap2AOut, (st1, c, r, y, s))
+                            pStorageInpNCap2AOut[(st1, c, r, y, s)]
+                        else
+                            pStorageInpNCap2AOutDef
+                        end
+                    ) * vStorageInpNewCap[(st1, r, y)]
+                )
+            else
+                0
+            end
+        ) +
+        (
+            if (st1, c, r, y, s) in mStorageStgCap2AOut
+                (
+                    (
+                        if haskey(pStorageStgCap2AOut, (st1, c, r, y, s))
+                            pStorageStgCap2AOut[(st1, c, r, y, s)]
+                        else
+                            pStorageStgCap2AOutDef
+                        end
+                    ) * vStorageStgCap[(st1, r, y)]
+                )
+            else
+                0
+            end
+        ) +
+        (
+            if (st1, c, r, y, s) in mStorageStgNCap2AOut
+                (
+                    (
+                        if haskey(pStorageStgNCap2AOut, (st1, c, r, y, s))
+                            pStorageStgNCap2AOut[(st1, c, r, y, s)]
+                        else
+                            pStorageStgNCap2AOutDef
+                        end
+                    ) * vStorageStgNewCap[(st1, r, y)]
                 )
             else
                 0
@@ -3476,6 +3596,27 @@ print("eqStorageInp2outUp(stg, region, year)...")
             pStorageInp2outUpDef
         end
     ) * vStorageOutCap[(st1, r, y)]);
+# The inp2stg LINK (charging C-rate, 1/h): charging capacity per unit of
+# storing (energy) capacity. No binding default -- the maps carry only rows
+# with a declared finite bound where both capacity variables exist.
+print("eqStorageInp2stgLo(stg, region, year)...")
+@constraint(model, [(st1, r, y) in mStorageInp2stgLo],
+    vStorageInpCap[(st1, r, y)] >= (
+        if haskey(pStorageInp2stgLo, (st1, r, y))
+            pStorageInp2stgLo[(st1, r, y)]
+        else
+            pStorageInp2stgLoDef
+        end
+    ) * vStorageStgCap[(st1, r, y)]);
+print("eqStorageInp2stgUp(stg, region, year)...")
+@constraint(model, [(st1, r, y) in mStorageInp2stgUp],
+    vStorageInpCap[(st1, r, y)] <= (
+        if haskey(pStorageInp2stgUp, (st1, r, y))
+            pStorageInp2stgUp[(st1, r, y)]
+        else
+            pStorageInp2stgUpDef
+        end
+    ) * vStorageStgCap[(st1, r, y)]);
 # eqStorageStgCap(stg, region, year)$mStorageStgCap(stg, region, year)
 # [2c] the STORING side's own capacity, in ENERGY. Exists only where the storing
 # part carries data; elsewhere the af bounds inline duration * output capacity.

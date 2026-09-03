@@ -226,9 +226,9 @@ tm_STG_ELC_aux <- newStorage(
     unit  = c("Mm3", "TJ")
   ),
   aeff = rbind(
-    data.frame(acomm = "WAT", stg2ainp = 0.02, cap2ainp = 0.05,
+    data.frame(acomm = "WAT", stg2ainp = 0.02, out.cap2ainp = 0.05,
                stg2aout = NA_real_),
-    data.frame(acomm = "HET", stg2ainp = NA_real_, cap2ainp = NA_real_,
+    data.frame(acomm = "HET", stg2ainp = NA_real_, out.cap2ainp = NA_real_,
                stg2aout = 0.01)
   ),
   invcost = list(out.invcost = 50),
@@ -247,9 +247,9 @@ tm_STG_ELC_weather <- newStorage(
     unit  = c("Mm3", "TJ")
   ),
   aeff = rbind(
-    data.frame(acomm = "WAT", stg2ainp = 0.02, cap2ainp = 0.05,
+    data.frame(acomm = "WAT", stg2ainp = 0.02, out.cap2ainp = 0.05,
                stg2aout = NA_real_),
-    data.frame(acomm = "HET", stg2ainp = NA_real_, cap2ainp = NA_real_,
+    data.frame(acomm = "HET", stg2ainp = NA_real_, out.cap2ainp = NA_real_,
                stg2aout = 0.01)
   ),
   weather = data.frame(

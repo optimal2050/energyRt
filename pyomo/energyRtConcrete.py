@@ -2011,13 +2011,33 @@ model.eqStorageAInp = Constraint(
         if (st1, cp) in mStorageOutComm
     )
     + (
-            (pStorageCap2AInp.get((st1, c, r, y, s)) * model.vStorageOutCap[st1, r, y])
-            if (st1, c, r, y, s) in mStorageCap2AInp
+            (pStorageOutCap2AInp.get((st1, c, r, y, s)) * model.vStorageOutCap[st1, r, y])
+            if (st1, c, r, y, s) in mStorageOutCap2AInp
             else 0
         )
     + (
-            (pStorageNCap2AInp.get((st1, c, r, y, s)) * model.vStorageOutNewCap[st1, r, y])
-            if (st1, c, r, y, s) in mStorageNCap2AInp
+            (pStorageOutNCap2AInp.get((st1, c, r, y, s)) * model.vStorageOutNewCap[st1, r, y])
+            if (st1, c, r, y, s) in mStorageOutNCap2AInp
+            else 0
+        )
+    + (
+            (pStorageInpCap2AInp.get((st1, c, r, y, s)) * model.vStorageInpCap[st1, r, y])
+            if (st1, c, r, y, s) in mStorageInpCap2AInp
+            else 0
+        )
+    + (
+            (pStorageInpNCap2AInp.get((st1, c, r, y, s)) * model.vStorageInpNewCap[st1, r, y])
+            if (st1, c, r, y, s) in mStorageInpNCap2AInp
+            else 0
+        )
+    + (
+            (pStorageStgCap2AInp.get((st1, c, r, y, s)) * model.vStorageStgCap[st1, r, y])
+            if (st1, c, r, y, s) in mStorageStgCap2AInp
+            else 0
+        )
+    + (
+            (pStorageStgNCap2AInp.get((st1, c, r, y, s)) * model.vStorageStgNewCap[st1, r, y])
+            if (st1, c, r, y, s) in mStorageStgNCap2AInp
             else 0
         )
     + (
@@ -2088,13 +2108,33 @@ model.eqStorageAOut = Constraint(
         if (st1, cp) in mStorageOutComm
     )
     + (
-            (pStorageCap2AOut.get((st1, c, r, y, s)) * model.vStorageOutCap[st1, r, y])
-            if (st1, c, r, y, s) in mStorageCap2AOut
+            (pStorageOutCap2AOut.get((st1, c, r, y, s)) * model.vStorageOutCap[st1, r, y])
+            if (st1, c, r, y, s) in mStorageOutCap2AOut
             else 0
         )
     + (
-            (pStorageNCap2AOut.get((st1, c, r, y, s)) * model.vStorageOutNewCap[st1, r, y])
-            if (st1, c, r, y, s) in mStorageNCap2AOut
+            (pStorageOutNCap2AOut.get((st1, c, r, y, s)) * model.vStorageOutNewCap[st1, r, y])
+            if (st1, c, r, y, s) in mStorageOutNCap2AOut
+            else 0
+        )
+    + (
+            (pStorageInpCap2AOut.get((st1, c, r, y, s)) * model.vStorageInpCap[st1, r, y])
+            if (st1, c, r, y, s) in mStorageInpCap2AOut
+            else 0
+        )
+    + (
+            (pStorageInpNCap2AOut.get((st1, c, r, y, s)) * model.vStorageInpNewCap[st1, r, y])
+            if (st1, c, r, y, s) in mStorageInpNCap2AOut
+            else 0
+        )
+    + (
+            (pStorageStgCap2AOut.get((st1, c, r, y, s)) * model.vStorageStgCap[st1, r, y])
+            if (st1, c, r, y, s) in mStorageStgCap2AOut
+            else 0
+        )
+    + (
+            (pStorageStgNCap2AOut.get((st1, c, r, y, s)) * model.vStorageStgNewCap[st1, r, y])
+            if (st1, c, r, y, s) in mStorageStgNCap2AOut
             else 0
         )
     + (
@@ -2444,6 +2484,19 @@ model.eqStorageInp2outUp = Constraint(
     mStorageInp2outUp,
     rule=lambda model, st1, r, y: model.vStorageInpCap[st1, r, y]
     <= pStorageInp2outUp.get((st1, r, y)) * model.vStorageOutCap[st1, r, y],
+)
+# The inp2stg LINK (charging C-rate, 1/h): charging capacity per unit of
+# storing (energy) capacity. No binding default -- the maps carry only rows
+# with a declared finite bound where both capacity variables exist.
+model.eqStorageInp2stgLo = Constraint(
+    mStorageInp2stgLo,
+    rule=lambda model, st1, r, y: model.vStorageInpCap[st1, r, y]
+    >= pStorageInp2stgLo.get((st1, r, y)) * model.vStorageStgCap[st1, r, y],
+)
+model.eqStorageInp2stgUp = Constraint(
+    mStorageInp2stgUp,
+    rule=lambda model, st1, r, y: model.vStorageInpCap[st1, r, y]
+    <= pStorageInp2stgUp.get((st1, r, y)) * model.vStorageStgCap[st1, r, y],
 )
 # eqStorageStgCap -- the STORING side's own capacity, in ENERGY. Exists only
 # where the storing part carries data; elsewhere the af bounds inline duration.

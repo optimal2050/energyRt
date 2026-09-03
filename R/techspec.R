@@ -145,7 +145,9 @@
       cols = c("vintage", "cluster", "acomm", "region", "year", "timeslice",
                "stg2ainp", "cinp2ainp", "cout2ainp",
                "stg2aout", "cinp2aout", "cout2aout",
-               "cap2ainp", "cap2aout", "ncap2ainp", "ncap2aout",
+               "inp.cap2ainp", "inp.cap2aout", "inp.ncap2ainp", "inp.ncap2aout",
+               "stg.cap2ainp", "stg.cap2aout", "stg.ncap2ainp", "stg.ncap2aout",
+               "out.cap2ainp", "out.cap2aout", "out.ncap2ainp", "out.ncap2aout",
                "pho2ainp", "pho2aout", "ret2ainp", "ret2aout", "ncap2stg"),
       dims = c("vintage", "cluster", "region", "year", "timeslice")),
     availability = list(
@@ -168,6 +170,11 @@
       arg = "inp2out",
       cols = c("vintage", "cluster", "region", "year",
                "inp2out", "inp2out.lo", "inp2out.up", "inp2out.fx"),
+      dims = c("vintage", "cluster", "region", "year")),
+    inp2stg = list(
+      arg = "inp2stg",
+      cols = c("vintage", "cluster", "region", "year",
+               "inp2stg", "inp2stg.lo", "inp2stg.up", "inp2stg.fx"),
       dims = c("vintage", "cluster", "region", "year")),
     weather = list(
       arg = "weather",
@@ -483,12 +490,15 @@ process_spec_issues <- function(spec) {
                  "three parts) or at least one of: ",
                  paste(parts, collapse = ", ")))
     }
-    if (!is.null(spec$duration) && !is.null(spec$inp2out) &&
-        length(spec$duration) > 0 && length(spec$inp2out) > 0) {
+    n_ratios <- sum(vapply(spec[c("duration", "inp2out", "inp2stg")],
+                           function(x) !is.null(x) && length(x) > 0,
+                           logical(1)))
+    if (n_ratios >= 2) {
       add("warning", "duration",
-          paste0("both `duration` and `inp2out` are given: the three parts ",
-                 "are then fully determined by the discharger, which may ",
-                 "over-constrain the model"))
+          paste0("two or more of `duration`, `inp2out`, `inp2stg` are ",
+                 "given: the ratios form a triangle over the three parts ",
+                 "(inp2stg = inp2out / duration), so any two determine the ",
+                 "third and all three may over-constrain the model"))
     }
 
   } else if (identical(cls, "trade")) {

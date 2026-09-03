@@ -35,15 +35,17 @@ test_that("matrix rows assemble from package metadata with expected arithmetic",
   env <- load_matrix_tool()
   rows <- env$assemble_rows()
   counts <- table(rows$kind)
-  # 480 .modInp entries (13 set + 297 map + 133 numpar + 37 bounds)
-  # + 148 equations + 95 variables = 723
+  # 500 .modInp entries (13 set + 308 map + 141 numpar + 38 bounds)
+  # + 150 equations + 95 variables = 745
   # (297 = 285 + the 12 mStorage*Comm{SameTimeslice,Agg,AggTimeslice} maps
-  # added with the storage coarse-timeframe aggregation fix, 2026-08-25)
+  # added with the storage coarse-timeframe aggregation fix, 2026-08-25;
+  # 308/141/38/150 = + inp2stg (1 bound, 3 maps, 2 equations) + the per-part
+  # aux capacity couplings (12 params and maps replacing 4), 2026-09-03)
   expect_equal(unname(counts[["set"]]), 13)
-  expect_equal(unname(counts[["map"]]), 297)
-  expect_equal(unname(counts[["numpar"]]), 133)
-  expect_equal(unname(counts[["bounds"]]), 37)
-  expect_equal(unname(counts[["equation"]]), 148)
+  expect_equal(unname(counts[["map"]]), 308)
+  expect_equal(unname(counts[["numpar"]]), 141)
+  expect_equal(unname(counts[["bounds"]]), 38)
+  expect_equal(unname(counts[["equation"]]), 150)
   expect_gte(unname(counts[["variable"]]), 93)
   expect_false(any(duplicated(rows$name[rows$kind != "variable"])))
   # every bounds row expands to a Lo/Up pXxx pair

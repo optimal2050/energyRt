@@ -25,6 +25,7 @@
 #' @slot fullYear `r get_slot_doc("storage", "fullYear")`
 #' @slot duration `r get_slot_doc("storage", "duration")`
 #' @slot inp2out `r get_slot_doc("storage", "inp2out")`
+#' @slot inp2stg `r get_slot_doc("storage", "inp2stg")`
 #' @slot weather `r get_slot_doc("storage", "weather")`
 #' @slot optimizeRetirement `r get_slot_doc("storage", "optimizeRetirement")`
 #' @slot misc `r get_slot_doc("storage", "misc")`
@@ -58,6 +59,7 @@ setClass("storage",
     fullYear = "logical",
     duration = "data.frame", # energy-to-power ratio; varies by cluster (duration)
     inp2out = "data.frame",  # charge-to-discharge power ratio
+    inp2stg = "data.frame",  # charge-to-storing capacity ratio (charging C-rate)
     weather = "data.frame", # weather condisions multiplier
     optimizeRetirement = "logical",
     misc = "list" #
@@ -204,10 +206,23 @@ setClass("storage",
       stg2aout = numeric(),
       cinp2aout = numeric(),
       cout2aout = numeric(),
-      cap2ainp = numeric(),
-      cap2aout = numeric(),
-      ncap2ainp = numeric(),
-      ncap2aout = numeric(),
+      # --- capacity couplings, PER PART --------------------------------
+      # Each multiplies its own part's capacity variable (cap = standing,
+      # ncap = newly built). The pre-part-aware `cap2ainp`/`ncap2ainp` names
+      # coupled ONLY the discharger and are refused with a rename hint --
+      # they read as "the" capacity, which a three-part storage does not have.
+      inp.cap2ainp = numeric(),
+      inp.cap2aout = numeric(),
+      inp.ncap2ainp = numeric(),
+      inp.ncap2aout = numeric(),
+      stg.cap2ainp = numeric(),
+      stg.cap2aout = numeric(),
+      stg.ncap2ainp = numeric(),
+      stg.ncap2aout = numeric(),
+      out.cap2ainp = numeric(),
+      out.cap2aout = numeric(),
+      out.ncap2ainp = numeric(),
+      out.ncap2aout = numeric(),
       # --- end of life -------------------------------------------------
       # `pho2a*` fires when capacity reaches the END OF ITS LIFE, `ret2a*` when
       # it is retired EARLY. They are separate because the recovery differs:
@@ -215,10 +230,10 @@ setClass("storage",
       #
       # Both multiply the per-year retirement/phase-out FLOW, so the charge
       # lands ONCE -- in the milestone where the capacity disappears -- exactly
-      # as `ncap2ainp` lands once at construction. Multiplying a standing
-      # quantity instead would recur every year.
+      # as the `*.ncap2a*` couplings land once at construction. Multiplying a
+      # standing quantity instead would recur every year.
       #
-      # TIMESLICE WARNING, inherited deliberately from `ncap2ainp`: the term
+      # TIMESLICE WARNING, inherited deliberately from `*.ncap2a*`: the term
       # carries NO `pTimesliceShare`, and `vTechAInp`/`vTechAOut` enter a
       # PER-TIMESLICE balance. A coefficient given with `timeslice = NA`
       # therefore applies in every slice and the annual total comes out
@@ -375,6 +390,22 @@ setClass("storage",
       inp2out.lo = numeric(),
       inp2out.up = numeric(),
       inp2out.fx = numeric(),
+      stringsAsFactors = FALSE
+    ),
+    # inp2stg = input capacity / storing capacity, 1/hours -- a charging
+    # C-rate. Unlike the two ratios above there is NO binding default: the
+    # constraint exists only where a bound is declared (and only for storages
+    # whose charging AND storing parts both carry capacity variables), so a
+    # storage saying nothing keeps its charger and reservoir untied.
+    inp2stg = data.frame(
+      vintage = character(),
+      cluster = character(),
+      region = character(),
+      year = integer(),
+      inp2stg = numeric(),
+      inp2stg.lo = numeric(),
+      inp2stg.up = numeric(),
+      inp2stg.fx = numeric(),
       stringsAsFactors = FALSE
     ),
     fullYear = TRUE,
@@ -710,8 +741,126 @@ setMethod("initialize", "storage", function(.Object, ...) {
   }
   if (.given(args$duration)) args$duration <- .norm_ratio(args$duration, "duration")
   if (.given(args$inp2out))  args$inp2out  <- .norm_ratio(args$inp2out, "inp2out")
+  if (.given(args$inp2stg))  args$inp2stg  <- .norm_ratio(args$inp2stg, "inp2stg")
   args$cap2stg <- NULL
 
+  # The pre-part-aware aux capacity couplings coupled ONLY the discharger.
+  # HARD BREAK (no aliases): refuse them with the rename, so a model meaning
+  # "per unit of energy capacity" cannot silently charge per unit of power.
+  if (.given(args$aeff) && is.data.frame(args$aeff)) {
+    legacy <- intersect(names(args$aeff),
+                        c("cap2ainp", "cap2aout", "ncap2ainp", "ncap2aout"))
+    if (length(legacy)) {
+      stop("Storage '", name, "': aeff column(s) ",
+           paste0("`", legacy, "`", collapse = ", "),
+           " are renamed -- they coupled only the DISCHARGER capacity. Use ",
+           paste0("`out.", legacy, "`", collapse = ", "),
+           " for that meaning, or `inp.`/`stg.` prefixes to couple the ",
+           "charger / reservoir capacity instead.", call. = FALSE)
+    }
+  }
+
+  .check_storage_ratios(args, name)
+}
+
+# Bring a `storage` serialized before the `inp2stg` slot existed up to the
+# current class definition. Old objects lack the slot, so accessing `@inp2stg`
+# errors ("no slot of name ..."); add it (S4 slots are attributes) with the
+# prototype empty frame. Same device as `.upgrade_summand()`.
+.upgrade_storage_inp2stg <- function(s) {
+  if (!methods::is(s, "storage")) return(s)
+  if (!("inp2stg" %in% names(attributes(s)))) {
+    attr(s, "inp2stg") <- methods::new("storage")@inp2stg
+  }
+  s
+}
+
+# Upgrade every storage in a model (in each repository) so legacy models
+# serialized before the slot interpolate cleanly. Called once at the top of
+# interp_mod(), beside .upgrade_model_summands().
+.upgrade_model_storages <- function(mod) {
+  for (i in seq_along(mod@data)) {
+    rp <- mod@data[[i]]
+    if (!methods::is(rp, "repository")) next
+    objs <- rp@data
+    hit <- FALSE
+    for (j in seq_along(objs)) {
+      o <- objs[[j]]
+      if (methods::is(o, "storage") &&
+          !("inp2stg" %in% names(attributes(o)))) {
+        objs[[j]] <- .upgrade_storage_inp2stg(o)
+        hit <- TRUE
+      }
+    }
+    if (hit) mod@data[[i]]@data <- objs
+  }
+  mod
+}
+
+# Cross-check the three capacity ratios: `inp2out` = inp/out, `inp2stg` =
+# inp/stg, `duration` = stg/out. Any two determine the third
+# (inp2stg == inp2out / duration), so a fixed triangle must satisfy the
+# identity, and a triangle constrained on all three edges is over-determined.
+# Runs on the normalised args (bounds in `.lo`/`.up`/`.fx` columns); a key
+# column that is absent or NA acts as a wildcard when matching rows across
+# the three slots.
+.check_storage_ratios <- function(args, name) {
+  keys <- c("vintage", "cluster", "region", "year")
+  rows <- function(x) if (is.data.frame(x) && nrow(x) > 0) x else NULL
+  dur <- rows(args$duration)
+  i2o <- rows(args$inp2out)
+  i2s <- rows(args$inp2stg)
+  if (is.null(dur) || is.null(i2o) || is.null(i2s)) return(args)
+
+  kv <- function(d, i, k) if (k %in% names(d)) d[[k]][i] else NA
+  compat <- function(a, ia, b, ib) {
+    for (k in keys) {
+      va <- kv(a, ia, k); vb <- kv(b, ib, k)
+      if (!is.na(va) && !is.na(vb) &&
+          as.character(va) != as.character(vb)) return(FALSE)
+    }
+    TRUE
+  }
+  col <- function(d, nm) if (nm %in% names(d)) as.numeric(d[[nm]]) else
+    rep(NA_real_, nrow(d))
+  bounded <- function(d, nm) {
+    rowSums(!is.na(cbind(col(d, paste0(nm, ".lo")),
+                         col(d, paste0(nm, ".up")),
+                         col(d, paste0(nm, ".fx"))))) > 0
+  }
+
+  over <- FALSE
+  for (id in seq_len(nrow(dur))) {
+    for (io in seq_len(nrow(i2o))) {
+      if (!compat(dur, id, i2o, io)) next
+      for (is_ in seq_len(nrow(i2s))) {
+        if (!compat(dur, id, i2s, is_) || !compat(i2o, io, i2s, is_)) next
+        f_d <- col(dur, "duration.fx")[id]
+        f_o <- col(i2o, "inp2out.fx")[io]
+        f_s <- col(i2s, "inp2stg.fx")[is_]
+        if (!is.na(f_d) && !is.na(f_o) && !is.na(f_s)) {
+          if (f_d > 0 &&
+              abs(f_s - f_o / f_d) >
+                1e-6 * max(abs(f_s), abs(f_o / f_d), 1e-12)) {
+            stop("Storage '", name, "': fixed capacity ratios are ",
+                 "inconsistent -- inp2stg.fx (", f_s, ") != inp2out.fx / ",
+                 "duration.fx (", f_o, " / ", f_d, " = ",
+                 signif(f_o / f_d, 8), "). Any two of the three ratios ",
+                 "determine the third.", call. = FALSE)
+          }
+          next  # a consistent fixed triangle is exact, not over-determined
+        }
+        if (bounded(dur, "duration")[id] && bounded(i2o, "inp2out")[io] &&
+            bounded(i2s, "inp2stg")[is_]) over <- TRUE
+      }
+    }
+  }
+  if (over) {
+    warning("Storage '", name, "': all three capacity ratios (duration, ",
+            "inp2out, inp2stg) are constrained on overlapping keys. Any two ",
+            "determine the third; inconsistent ranges will surface as an ",
+            "infeasible model.", call. = FALSE)
+  }
   args
 }
 
@@ -754,6 +903,7 @@ setMethod("initialize", "storage", function(.Object, ...) {
 #' @param aeff `r get_slot_doc("storage", "aeff")`
 #' @param af `r get_slot_doc("storage", "af")`
 #' @param inp2out `r get_slot_doc("storage", "inp2out")`
+#' @param inp2stg `r get_slot_doc("storage", "inp2stg")`
 #' @param fixom `r get_slot_doc("storage", "fixom")`
 #' @param varom `r get_slot_doc("storage", "varom")`
 #' @param invcost `r get_slot_doc("storage", "invcost")`
@@ -802,10 +952,10 @@ setMethod("initialize", "storage", function(.Object, ...) {
 #'     stg2aout = 0.9,
 #'     cinp2aout = 0.9,
 #'     cout2aout = 0.9,
-#'     cap2ainp = 0.9,
-#'     cap2aout = 0.9,
-#'     ncap2ainp = 0.9,
-#'     ncap2aout = 0.9,
+#'     out.cap2ainp = 0.9,
+#'     out.cap2aout = 0.9,
+#'     stg.ncap2ainp = 0.9,
+#'     out.ncap2aout = 0.9,
 #'     ncap2stg = 0.9
 #'   ),
 #'   af = data.frame(
@@ -866,6 +1016,7 @@ newStorage <- function(
     vintage = data.frame(),
     duration = NULL,
     inp2out = NULL,
+    inp2stg = NULL,
     fullYear = TRUE,
     weather = data.frame(),
     optimizeRetirement = FALSE,
@@ -895,6 +1046,7 @@ newStorage <- function(
     capacity = capacity,
     duration = duration,
     inp2out = inp2out,
+    inp2stg = inp2stg,
     fullYear = fullYear,
     weather = weather,
     optimizeRetirement = optimizeRetirement,

@@ -146,6 +146,9 @@ subset_model_regions <- function(mod, region, boundary_prices = NULL,
 #' @noRd
 .subset_model_regions <- function(mod, keep, boundary_prices = NULL,
                                   verbose = isVerbose()) {
+  # legacy models: storages serialized before the `inp2stg` slot would error
+  # in the slot walk below ("no slot of name"); same shim as interp_mod()
+  mod <- .upgrade_model_storages(mod)
   keep <- as.character(keep)
   stubs <- list()
   # Dropping model content must never be silent: count here, report once at the end.

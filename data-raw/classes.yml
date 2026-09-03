@@ -1285,18 +1285,50 @@ class:
         cout2aout:
           type: numeric
           description: Output-commodity-to-auxiliary-output-commodity coefficient (multiplier).
-        cap2ainp:
+        inp.cap2ainp:
           type: numeric
-          description: Capacity-to-auxiliary-input-commodity coefficient (multiplier).
-        cap2aout:
+          description: Charging (input-part) capacity to auxiliary input, per unit of vStorageInpCap.
+        inp.cap2aout:
           type: numeric
-          description: Capacity-to-auxiliary-output-commodity coefficient (multiplier).
-        ncap2ainp:
+          description: Charging (input-part) capacity to auxiliary output, per unit of vStorageInpCap.
+        inp.ncap2ainp:
           type: numeric
-          description: New-capacity-to-auxiliary-input-commodity coefficient (multiplier).
-        ncap2aout:
+          description: NEW charging capacity to auxiliary input, per unit of vStorageInpNewCap (lands once, at construction).
+        inp.ncap2aout:
           type: numeric
-          description: New-capacity-to-auxiliary-output-commodity coefficient (multiplier).
+          description: NEW charging capacity to auxiliary output, per unit of vStorageInpNewCap (lands once, at construction).
+        stg.cap2ainp:
+          type: numeric
+          description: Energy (storing-part) capacity to auxiliary input, per unit of vStorageStgCap.
+        stg.cap2aout:
+          type: numeric
+          description: Energy (storing-part) capacity to auxiliary output, per unit of vStorageStgCap.
+        stg.ncap2ainp:
+          type: numeric
+          description: >
+            NEW energy capacity to auxiliary input, per unit of
+            vStorageStgNewCap (lands once, at construction) -- e.g. battery
+            material per GWh of reservoir. This is what the pre-rename
+            `ncap2ainp` was often ASSUMED to mean; that column actually
+            coupled the discharger and is now `out.ncap2ainp`.
+        stg.ncap2aout:
+          type: numeric
+          description: NEW energy capacity to auxiliary output, per unit of vStorageStgNewCap (lands once, at construction).
+        out.cap2ainp:
+          type: numeric
+          description: >
+            Discharging (output-part) capacity to auxiliary input, per unit of
+            vStorageOutCap. RENAMED from `cap2ainp`, which coupled only this
+            part; the bare name is refused with a rename hint.
+        out.cap2aout:
+          type: numeric
+          description: Discharging (output-part) capacity to auxiliary output, per unit of vStorageOutCap. Renamed from `cap2aout`.
+        out.ncap2ainp:
+          type: numeric
+          description: NEW discharging capacity to auxiliary input, per unit of vStorageOutNewCap (lands once, at construction). Renamed from `ncap2ainp`.
+        out.ncap2aout:
+          type: numeric
+          description: NEW discharging capacity to auxiliary output, per unit of vStorageOutNewCap (lands once, at construction). Renamed from `ncap2aout`.
         pho2ainp:
           type: numeric
           description: >
@@ -1550,6 +1582,46 @@ class:
         inp2out.fx:
           type: numeric
           description: Fixed charge-to-discharge capacity ratio.
+
+    inp2stg:
+      type: data.frame
+      description: >
+        The charging C-rate, in 1/hours: charging capacity per unit of storing
+        (energy) capacity. `inp2stg.fx` ties the charger to the reservoir
+        exactly, `inp2stg.lo`/`.up` bound the ratio, and the bare `inp2stg`
+        column is the scalar shorthand, normalised to `.fx` at construction; a
+        one-sided range opens the other side. Unlike `duration` and `inp2out`
+        there is NO binding default: the constraint exists only where a finite
+        bound is declared, and only for storages whose charging AND storing
+        parts both carry capacity variables (priced or bounded). The three
+        ratios form a triangle over the parts -- `inp2out` = inp/out,
+        `inp2stg` = inp/stg, `duration` = stg/out -- so any two determine the
+        third; `newStorage()` refuses a contradictory fixed triangle.
+      columns:
+        vintage:
+          type: character
+          description: Vintage label selecting the variant this row applies to, NA for all.
+        cluster:
+          type: character
+          description: Cluster label selecting the variant this row applies to, NA for all.
+        region:
+          type: character
+          description: Region the row applies to, NA for all.
+        year:
+          type: integer
+          description: Year the row applies to, NA for all.
+        inp2stg:
+          type: numeric
+          description: Scalar shorthand, normalised to `inp2stg.fx`.
+        inp2stg.lo:
+          type: numeric
+          description: Lower bound on the charging C-rate, 1/hours.
+        inp2stg.up:
+          type: numeric
+          description: Upper bound on the charging C-rate, 1/hours.
+        inp2stg.fx:
+          type: numeric
+          description: Fixed charging C-rate, 1/hours.
 
     weather:
       type: data.frame

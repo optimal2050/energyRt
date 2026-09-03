@@ -259,6 +259,8 @@ pStorageInpNewCapLo(stg, region, year)              Lower bound on new storage c
 pStorageInpNewCapUp(stg, region, year)              Upper bound on new storage charging capacity
 pStorageInp2outLo(stg, region, year)                Lower bound on the charge-to-discharge ratio
 pStorageInp2outUp(stg, region, year)                Upper bound on the charge-to-discharge ratio
+pStorageInp2stgLo(stg, region, year)                Lower bound on the charging C-rate (1 per hour)
+pStorageInp2stgUp(stg, region, year)                Upper bound on the charging C-rate (1 per hour)
 pStorageStgStock(stg, region, year)                 Storage exogenous energy capacity
 pStorageStgStockNew(stg, region, year)    Exogenous capacity commissioned at this milestone
 pStorageStgStockSurv(stg, region, year)   Share of the previous milestone stock that the schedule keeps
@@ -313,10 +315,18 @@ pStorageCinp2AInp(stg, comm, region, year, timeslice)   Storage input to auxilar
 pStorageCinp2AOut(stg, comm, region, year, timeslice)   Storage input to auxilary output
 pStorageCout2AInp(stg, comm, region, year, timeslice)   Storage output to auxilary input
 pStorageCout2AOut(stg, comm, region, year, timeslice)   Storage output to auxilary output
-pStorageCap2AInp(stg, comm, region, year, timeslice)    Storage capacity to auxilary input
-pStorageCap2AOut(stg, comm, region, year, timeslice)    Storage capacity to auxilary output
-pStorageNCap2AInp(stg, comm, region, year, timeslice)   Storage new capacity to auxilary input
-pStorageNCap2AOut(stg, comm, region, year, timeslice)   Storage new capacity to auxilary output
+pStorageOutCap2AInp(stg, comm, region, year, timeslice)   Storage discharging capacity to auxilary input
+pStorageOutCap2AOut(stg, comm, region, year, timeslice)   Storage discharging capacity to auxilary output
+pStorageOutNCap2AInp(stg, comm, region, year, timeslice)  Storage new discharging capacity to auxilary input
+pStorageOutNCap2AOut(stg, comm, region, year, timeslice)  Storage new discharging capacity to auxilary output
+pStorageInpCap2AInp(stg, comm, region, year, timeslice)   Storage charging capacity to auxilary input
+pStorageInpCap2AOut(stg, comm, region, year, timeslice)   Storage charging capacity to auxilary output
+pStorageInpNCap2AInp(stg, comm, region, year, timeslice)  Storage new charging capacity to auxilary input
+pStorageInpNCap2AOut(stg, comm, region, year, timeslice)  Storage new charging capacity to auxilary output
+pStorageStgCap2AInp(stg, comm, region, year, timeslice)   Storage energy capacity to auxilary input
+pStorageStgCap2AOut(stg, comm, region, year, timeslice)   Storage energy capacity to auxilary output
+pStorageStgNCap2AInp(stg, comm, region, year, timeslice)  Storage new energy capacity to auxilary input
+pStorageStgNCap2AOut(stg, comm, region, year, timeslice)  Storage new energy capacity to auxilary output
 ;
 * Trade parameters
 parameters
@@ -455,13 +465,21 @@ meqStorageLevel(stg, comm, region, year, timeslicep, timeslice)
 mStorageStg2AOut(stg, comm, region, year, timeslice)
 mStorageCinp2AOut(stg, comm, region, year, timeslice)
 mStorageCout2AOut(stg, comm, region, year, timeslice)
-mStorageCap2AOut(stg, comm, region, year, timeslice)
-mStorageNCap2AOut(stg, comm, region, year, timeslice)
+mStorageOutCap2AOut(stg, comm, region, year, timeslice)
+mStorageOutNCap2AOut(stg, comm, region, year, timeslice)
+mStorageInpCap2AInp(stg, comm, region, year, timeslice)
+mStorageInpCap2AOut(stg, comm, region, year, timeslice)
+mStorageInpNCap2AInp(stg, comm, region, year, timeslice)
+mStorageInpNCap2AOut(stg, comm, region, year, timeslice)
+mStorageStgCap2AInp(stg, comm, region, year, timeslice)
+mStorageStgCap2AOut(stg, comm, region, year, timeslice)
+mStorageStgNCap2AInp(stg, comm, region, year, timeslice)
+mStorageStgNCap2AOut(stg, comm, region, year, timeslice)
 mStorageStg2AInp(stg, comm, region, year, timeslice)
 mStorageCinp2AInp(stg, comm, region, year, timeslice)
 mStorageCout2AInp(stg, comm, region, year, timeslice)
-mStorageCap2AInp(stg, comm, region, year, timeslice)
-mStorageNCap2AInp(stg, comm, region, year, timeslice)
+mStorageOutCap2AInp(stg, comm, region, year, timeslice)
+mStorageOutNCap2AInp(stg, comm, region, year, timeslice)
 
 mStorageInpCap(stg, region, year)
 mStorageNoInpCap(stg, region, year)
@@ -474,6 +492,9 @@ mStorageInpFixom(stg, region, year)
 mStorageInpEac(stg, region, year)
 mStorageInp2outLo(stg, region, year)
 mStorageInp2outUp(stg, region, year)
+mStorageInpStgCap(stg, region, year)
+mStorageInp2stgLo(stg, region, year)
+mStorageInp2stgUp(stg, region, year)
 mStorageStgCap(stg, region, year)
 mStorageNoStgCap(stg, region, year)
 mStorageStgNew(stg, region, year)
@@ -1776,12 +1797,24 @@ eqStorageAInp(stg, comm, region, year, timeslice)$mvStorageAInp(stg, comm, regio
         (pStorageCout2AInp(stg, comm, region, year, timeslice)
           * vStorageOut(stg, commp, region, year, timeslice)
         )$mStorageCout2AInp(stg, comm, region, year, timeslice))
-      + (pStorageCap2AInp(stg, comm, region, year, timeslice)
+      + (pStorageOutCap2AInp(stg, comm, region, year, timeslice)
            * vStorageOutCap(stg, region, year)
-        )$mStorageCap2AInp(stg, comm, region, year, timeslice)
-      + (pStorageNCap2AInp(stg, comm, region, year, timeslice)
+        )$mStorageOutCap2AInp(stg, comm, region, year, timeslice)
+      + (pStorageOutNCap2AInp(stg, comm, region, year, timeslice)
            * vStorageOutNewCap(stg, region, year)
-        )$mStorageNCap2AInp(stg, comm, region, year, timeslice)
+        )$mStorageOutNCap2AInp(stg, comm, region, year, timeslice)
+      + (pStorageInpCap2AInp(stg, comm, region, year, timeslice)
+           * vStorageInpCap(stg, region, year)
+        )$mStorageInpCap2AInp(stg, comm, region, year, timeslice)
+      + (pStorageInpNCap2AInp(stg, comm, region, year, timeslice)
+           * vStorageInpNewCap(stg, region, year)
+        )$mStorageInpNCap2AInp(stg, comm, region, year, timeslice)
+      + (pStorageStgCap2AInp(stg, comm, region, year, timeslice)
+           * vStorageStgCap(stg, region, year)
+        )$mStorageStgCap2AInp(stg, comm, region, year, timeslice)
+      + (pStorageStgNCap2AInp(stg, comm, region, year, timeslice)
+           * vStorageStgNewCap(stg, region, year)
+        )$mStorageStgNCap2AInp(stg, comm, region, year, timeslice)
       + (pStoragePho2AInp(stg, comm, region, year, timeslice)
            * vStoragePhaseOut(stg, region, year)$mvStoragePhaseOut(stg, region, year)
         )$mStoragePho2AInp(stg, comm, region, year, timeslice)
@@ -1814,13 +1847,29 @@ eqStorageAOut(stg, comm, region, year, timeslice)$mvStorageAOut(stg, comm, regio
        * vStorageOut(stg, commp, region, year, timeslice)
       )$mStorageCout2AOut(stg, comm, region, year, timeslice))
       +
-      (pStorageCap2AOut(stg, comm, region, year, timeslice)
+      (pStorageOutCap2AOut(stg, comm, region, year, timeslice)
        * vStorageOutCap(stg, region, year)
-      )$mStorageCap2AOut(stg, comm, region, year, timeslice)
+      )$mStorageOutCap2AOut(stg, comm, region, year, timeslice)
       +
-      (pStorageNCap2AOut(stg, comm, region, year, timeslice)
+      (pStorageOutNCap2AOut(stg, comm, region, year, timeslice)
        * vStorageOutNewCap(stg, region, year)
-      )$mStorageNCap2AOut(stg, comm, region, year, timeslice)
+      )$mStorageOutNCap2AOut(stg, comm, region, year, timeslice)
+      +
+      (pStorageInpCap2AOut(stg, comm, region, year, timeslice)
+       * vStorageInpCap(stg, region, year)
+      )$mStorageInpCap2AOut(stg, comm, region, year, timeslice)
+      +
+      (pStorageInpNCap2AOut(stg, comm, region, year, timeslice)
+       * vStorageInpNewCap(stg, region, year)
+      )$mStorageInpNCap2AOut(stg, comm, region, year, timeslice)
+      +
+      (pStorageStgCap2AOut(stg, comm, region, year, timeslice)
+       * vStorageStgCap(stg, region, year)
+      )$mStorageStgCap2AOut(stg, comm, region, year, timeslice)
+      +
+      (pStorageStgNCap2AOut(stg, comm, region, year, timeslice)
+       * vStorageStgNewCap(stg, region, year)
+      )$mStorageStgNCap2AOut(stg, comm, region, year, timeslice)
       + (pStoragePho2AOut(stg, comm, region, year, timeslice)
            * vStoragePhaseOut(stg, region, year)$mvStoragePhaseOut(stg, region, year)
         )$mStoragePho2AOut(stg, comm, region, year, timeslice)
@@ -1957,6 +2006,8 @@ eqStorageInpNewCapLo(stg, region, year) Storage new charging capacity lower boun
 eqStorageInpNewCapUp(stg, region, year) Storage new charging capacity upper bound
 eqStorageInp2outLo(stg, region, year)   Storage charge-to-discharge ratio lower bound
 eqStorageInp2outUp(stg, region, year)   Storage charge-to-discharge ratio upper bound
+eqStorageInp2stgLo(stg, region, year)   Storage charging C-rate lower bound
+eqStorageInp2stgUp(stg, region, year)   Storage charging C-rate upper bound
 eqStorageStgCap(stg, region, year)      Storage energy capacity accounting
 eqStorageStgCapLo(stg, region, year)    Storage energy capacity lower bound
 eqStorageStgCapUp(stg, region, year)    Storage energy capacity upper bound
@@ -2033,6 +2084,15 @@ eqStorageInp2outLo(stg, region, year)$mStorageInp2outLo(stg, region, year)..
 
 eqStorageInp2outUp(stg, region, year)$mStorageInp2outUp(stg, region, year)..
   vStorageInpCap(stg, region, year) =l= pStorageInp2outUp(stg, region, year) * vStorageOutCap(stg, region, year);
+
+* The inp2stg LINK (charging C-rate, 1 per hour): charging capacity per unit
+* of storing (energy) capacity. No binding default -- emitted only where a
+* finite bound is declared and both capacity variables exist.
+eqStorageInp2stgLo(stg, region, year)$mStorageInp2stgLo(stg, region, year)..
+  vStorageInpCap(stg, region, year) =g= pStorageInp2stgLo(stg, region, year) * vStorageStgCap(stg, region, year);
+
+eqStorageInp2stgUp(stg, region, year)$mStorageInp2stgUp(stg, region, year)..
+  vStorageInpCap(stg, region, year) =l= pStorageInp2stgUp(stg, region, year) * vStorageStgCap(stg, region, year);
 
 * [2c] The STORING side's own capacity, in ENERGY. Emitted only where the
 * storing part carries data; elsewhere the af bounds inline duration * power.
