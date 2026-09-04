@@ -156,14 +156,20 @@ if (F) { # Check
   head(scen@modInp@parameters$pTradeIrEff@data)
 }
 
-dir_size <- function(path) {
+# Bytes held by a directory tree. `all.files` because a store can hold dotfiles
+# and a size that silently omits them is worse than no size; `na.rm` because
+# file.size() returns NA for anything that vanished between the listing and the
+# stat, which is routine on a directory another process is writing.
+dir_size <- function(path, missing = c("error", "zero")) {
+  missing <- match.arg(missing)
   if (!dir.exists(path)) {
+    if (missing == "zero") return(0)
     stop("Directory '", path, "' does not exist")
   }
-  files <- list.files(path, recursive = TRUE, full.names = TRUE)
-  sizes <- file.size(files)
-  # sum(file.info(list.files(".", all.files = TRUE, recursive = TRUE))$size)
-  return(sum(sizes))
+  files <- list.files(path, recursive = TRUE, full.names = TRUE,
+                      all.files = TRUE, no.. = TRUE)
+  if (!length(files)) return(0)
+  sum(file.size(files), na.rm = TRUE)
 }
 
 .fix_path <- function(x) {

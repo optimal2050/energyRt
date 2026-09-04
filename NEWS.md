@@ -57,6 +57,19 @@
 
 ## New features
 
+* `scenario_artifacts()` lists what each solve left on disk — whether its
+  solution was imported, what the solver scratch costs, and which runs are
+  candidates for clean-up.
+* `drop_solver_outputs()` removes the regenerable part of a solve — model
+  source, exchange input, solver logs, and the raw output once the solution has
+  been imported — keeping the run record and the solution. Dry-run by default.
+* `strip_user_info()` removes the machine a scenario was made on: stored
+  absolute paths, the solver command line, and (with the default
+  `scope = "share"`) the host and user recorded in every run. `scope = "store"`
+  keeps that provenance, which is what a shared team drive wants.
+* `prepare_for_sharing()` writes a cleaned, trimmed copy of a stored scenario
+  and reports anything that will not travel with it.
+
 * Folding works with GAMS: a dense build (`sparse = FALSE`) may be folded, and
   the GAMS writer substitutes the artificial member like the other backends.
 * `validate_scenario_parameters()` is exported and also checks that every
