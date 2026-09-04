@@ -4,9 +4,9 @@
 # missing an object) and the calendar-chronology guard (timetable row order
 # drives the storage balance chain AND the timeslice family, so a scrambled
 # order is self-consistent between them and only the timetable's own columns
-# can convict it). The chronology case reproduces the converter bug that put
-# the Belgium PyPSA comparison +12.6% off before it was caught.
-# @covers validate_scenario_parameters
+# can convict it). The chronology case scrambles a timetable hour-major,
+# which chains the storage balance across the wrong hours.
+# @covers meqStorageLevel meqTradeCapFlow mTimesliceNext depth=I
 # =========================================================================== #
 
 .vm_fixture <- function() {

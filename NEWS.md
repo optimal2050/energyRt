@@ -1,5 +1,12 @@
 # energyRt (development version)
 
+* `validate_scenario_parameters()` is exported and now also verifies that
+  every variable has its governing constraints: a storage without its
+  balance equation or a corridor without its capacity link is refused as
+  structural, missing availability bounds are reported as advisory, and a
+  calendar whose row order contradicts its own timeframe columns is
+  rejected before it can scramble the storage chain.
+
 ## Breaking changes
 
 * Storage aux capacity couplings are part-prefixed: `cap2ainp` / `cap2aout` /

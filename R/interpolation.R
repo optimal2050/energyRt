@@ -33,8 +33,9 @@
 #'   domain (and unfolds).
 #' @param prune logical; drop interpolated rows that fall outside the
 #'   equation-domain maps (no effect on the solution, smaller data).
-#' @param validate logical; run post-interpolation consistency checks (schema,
-#'   duplicate keys, map/parameter coverage).
+#' @param validate logical; run [validate_scenario_parameters()] after
+#'   interpolation (schema, duplicate keys, map/parameter coverage, missing
+#'   governing constraints, calendar chronology).
 #' @param code optional named list overriding solver source-code blocks
 #'   (`GLPK`, `GAMS`, `JuMP`, `PYOMOConcrete`, ...), each either a script-file
 #'   path or a character vector of lines. Lets a model-script version be supplied
@@ -2781,15 +2782,32 @@ trim_parameters_by_maps <- function(scen, verbose = FALSE) {
 #'   \item \strong{Parameter vs map (efficiency)}: value parameter rows lie
 #'     within the union of their maps (no orphan / out-of-domain rows). After
 #'     trimming this must hold exactly.
+#'   \item \strong{Free meals}: every object with flow variables has its
+#'     governing constraints. A storage without its balance chain, or a
+#'     trade corridor without its flow-capacity link, would supply the
+#'     balance unbounded and solve to OPTIMAL with a meaningless objective
+#'     -- structural. Missing charge/discharge or availability bounds are
+#'     advisory, since an open (`Inf`) side deliberately produces no
+#'     equation.
+#'   \item \strong{Calendar chronology}: the timeslice successor chain (the
+#'     storage balance and ramping order) is derived from the calendar's
+#'     timetable row order; a row order that contradicts the timetable's own
+#'     timeframe columns is structural.
 #' }
-#' @param scen scenario.
-#' @param fold logical; whether the scenario is folded (NA wildcards allowed in
-#'   trimmable dimensions).
-#' @param action one of `"warn"` (default), `"stop"`, `"silent"`: how to report
-#'   issues.
-#' @returns (invisibly) a data frame of issues with columns
-#'   `parameter`, `check`, `detail`.
-#' @keywords internal
+#'
+#' Structural findings always stop; `action` governs the advisory ones.
+#' [interpolate_model()] runs this automatically (`validate = TRUE`, action
+#' `"warn"`); call it directly to re-check a scenario or to collect the
+#' findings table.
+#'
+#' @param scen an interpolated scenario.
+#' @param fold logical or character; whether (or in which dimensions) the
+#'   scenario is folded, so NA wildcards are allowed there.
+#' @param action one of `"warn"` (default), `"stop"`, `"silent"`: how to
+#'   report advisory issues.
+#' @returns (invisibly) a data frame of findings with columns `parameter`,
+#'   `check`, `detail`, `severity`.
+#' @export
 validate_scenario_parameters <- function(scen, fold = TRUE,
                                           action = c("warn", "stop", "silent")) {
   action <- match.arg(action)
@@ -2944,9 +2962,9 @@ validate_scenario_parameters <- function(scen, fold = TRUE,
 
   # Free-meal guards: a populated variable DOMAIN whose governing constraint
   # map has no rows for an object leaves that object's variable unbounded on
-  # that side -- storage that discharges without a level chain is free
-  # energy, reported OPTIMAL. The storage-balance and trade-capacity links
-  # are structural (no legitimate model omits them); the af/power bounds are
+  # that side -- storage discharging without a level chain is free energy,
+  # reported OPTIMAL. The storage-balance and trade-capacity links are
+  # structural (no legitimate model omits them); the af/power bounds are
   # advisory, since an open (Inf) side deliberately produces no equation.
   guards <- list(
     list(domain = "mvStorageLevel", by = "stg", requires = "meqStorageLevel",
@@ -2988,10 +3006,10 @@ validate_scenario_parameters <- function(scen, fold = TRUE,
 
   # Chronology guard: the storage/ramping chain AND the timeslice family are
   # both derived from timetable ROW ORDER, so a scrambled order (hour-major
-  # rows chained the same wall-clock hour across days; cost +12.6% on a
-  # verified PyPSA comparison) stays self-consistent between them. The truth
-  # is the timetable's own COLUMNS: every child's positional parent must be a
-  # label that appears in the child's own timetable row.
+  # rows chain the same wall-clock hour across parent frames) stays
+  # self-consistent between them. The truth is the timetable's own COLUMNS:
+  # every child's positional parent must be a label that appears in the
+  # child's own timetable row.
   cal <- tryCatch(scen@settings@calendar, error = function(e) NULL)
   fam <- if (is.null(cal)) NULL else
     tryCatch(as.data.frame(cal@timeslice_family), error = function(e) NULL)

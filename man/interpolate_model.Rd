@@ -57,8 +57,9 @@ domain (and unfolds).}
 \item{prune}{logical; drop interpolated rows that fall outside the
 equation-domain maps (no effect on the solution, smaller data).}
 
-\item{validate}{logical; run post-interpolation consistency checks (schema,
-duplicate keys, map/parameter coverage).}
+\item{validate}{logical; run \code{\link[=validate_scenario_parameters]{validate_scenario_parameters()}} after
+interpolation (schema, duplicate keys, map/parameter coverage, missing
+governing constraints, calendar chronology).}
 
 \item{code}{optional named list overriding solver source-code blocks
 (\code{GLPK}, \code{GAMS}, \code{JuMP}, \code{PYOMOConcrete}, ...), each either a script-file

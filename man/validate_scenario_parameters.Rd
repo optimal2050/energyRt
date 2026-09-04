@@ -11,17 +11,17 @@ validate_scenario_parameters(
 )
 }
 \arguments{
-\item{scen}{scenario.}
+\item{scen}{an interpolated scenario.}
 
-\item{fold}{logical; whether the scenario is folded (NA wildcards allowed in
-trimmable dimensions).}
+\item{fold}{logical or character; whether (or in which dimensions) the
+scenario is folded, so NA wildcards are allowed there.}
 
-\item{action}{one of \code{"warn"} (default), \code{"stop"}, \code{"silent"}: how to report
-issues.}
+\item{action}{one of \code{"warn"} (default), \code{"stop"}, \code{"silent"}: how to
+report advisory issues.}
 }
 \value{
-(invisibly) a data frame of issues with columns
-\code{parameter}, \code{check}, \code{detail}.
+(invisibly) a data frame of findings with columns \code{parameter},
+\code{check}, \code{detail}, \code{severity}.
 }
 \description{
 Runs a set of post-interpolation consistency checks over the numeric / bounds
@@ -40,6 +40,22 @@ silently replaced by the solver default.
 \item \strong{Parameter vs map (efficiency)}: value parameter rows lie
 within the union of their maps (no orphan / out-of-domain rows). After
 trimming this must hold exactly.
+\item \strong{Free meals}: every object with flow variables has its
+governing constraints. A storage without its balance chain, or a
+trade corridor without its flow-capacity link, would supply the
+balance unbounded and solve to OPTIMAL with a meaningless objective
+-- structural. Missing charge/discharge or availability bounds are
+advisory, since an open (\code{Inf}) side deliberately produces no
+equation.
+\item \strong{Calendar chronology}: the timeslice successor chain (the
+storage balance and ramping order) is derived from the calendar's
+timetable row order; a row order that contradicts the timetable's own
+timeframe columns is structural.
 }
 }
-\keyword{internal}
+\details{
+Structural findings always stop; \code{action} governs the advisory ones.
+\code{\link[=interpolate_model]{interpolate_model()}} runs this automatically (\code{validate = TRUE}, action
+\code{"warn"}); call it directly to re-check a scenario or to collect the
+findings table.
+}

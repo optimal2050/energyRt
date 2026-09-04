@@ -2018,7 +2018,7 @@ print("eqTradePhaseOut...")
     vTradePhaseOut[(t1, y)] * (if haskey(pPeriodLen, (y)); pPeriodLen[(y)]; else; pPeriodLenDef; end) ==
     sum(vTradeCap[(t1, yp)] for yp in year
         if ((yp, y) in mMilestoneNext && (t1, yp) in mTradeSpan)) -
-    vTradeCap[(t1, y)] + vTradeNewCap[(t1, y)] * (if haskey(pPeriodLen, (y)); pPeriodLen[(y)]; else; pPeriodLenDef; end) -
+    vTradeCap[(t1, y)] + (if (t1, y) in mTradeNew; vTradeNewCap[(t1, y)]; else; 0; end) * (if haskey(pPeriodLen, (y)); pPeriodLen[(y)]; else; pPeriodLenDef; end) -
     ((if (t1, y) in mvTradeRetiredStock; vTradeRetiredStock[(t1, y)]; else; 0; end) +
      sum(vTradeRetiredNewCap[(t1, yp, y)] for yp in year
          if (t1, yp, y) in mvTradeRetiredNewCap)) * (if haskey(pPeriodLen, (y)); pPeriodLen[(y)]; else; pPeriodLenDef; end) +
