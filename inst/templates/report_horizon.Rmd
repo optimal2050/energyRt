@@ -47,7 +47,7 @@ tbl(params$info_df)
 ```
 
 ```{r en-hero, results='asis', eval=!is.null(params$main_plot)}
-emit_img(energyRt::report_plot_png(params$main_plot, 7.5, 2.4), 1)
+energyRt::report_fig(params$main_plot, 7.5, caption = paste("Milestone years of", params$name), output = fmt)
 ```
 
 ```{r en-intervals, results='asis', eval=!is.null(params$intervals_df)}

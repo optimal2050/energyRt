@@ -89,8 +89,8 @@ cat("## Runs\n")
 tbl(params$runs_df)
 ```
 
-```{r en-runs-plot, fig.width=6, fig.height=2.5, eval=!is.null(params$runs_plot)}
-params$runs_plot
+```{r en-runs-plot, results='asis', eval=!is.null(params$runs_plot)}
+energyRt::report_fig(params$runs_plot, 6, 2.5, caption = "Recorded runs", output = fmt)
 ```
 
 ```{r en-runs-note, results='asis', eval=!is.null(params$runs_note)}
@@ -103,26 +103,26 @@ tbl(params$run_info_df, caption = "Reported run")
 
 ## Results
 
-```{r en-gen, fig.width=8, fig.height=5.5, eval=!is.null(params$gen_plot)}
-params$gen_plot
+```{r en-gen, results='asis', eval=!is.null(params$gen_plot)}
+energyRt::report_fig(params$gen_plot, 8, caption = "Generation mix by year", output = fmt)
 ```
 
-```{r en-gen-day, fig.width=8, fig.height=5.5, eval=!is.null(params$gen_day_plot)}
-params$gen_day_plot
+```{r en-gen-day, results='asis', eval=!is.null(params$gen_day_plot)}
+energyRt::report_fig(params$gen_day_plot, 8, caption = "Dispatch profile over the calendar sample", output = fmt)
 ```
 
-```{r en-cap, fig.width=8, fig.height=5.5, eval=!is.null(params$cap_plot)}
-params$cap_plot
+```{r en-cap, results='asis', eval=!is.null(params$cap_plot)}
+energyRt::report_fig(params$cap_plot, 8, caption = "Installed capacity by year", output = fmt)
 ```
 
-```{r en-newcap, fig.width=8, fig.height=5.5, eval=!is.null(params$newcap_plot)}
-params$newcap_plot
+```{r en-newcap, results='asis', eval=!is.null(params$newcap_plot)}
+energyRt::report_fig(params$newcap_plot, 8, caption = "New capacity by year", output = fmt)
 ```
 
 ## Costs
 
-```{r en-costs-plot, fig.width=7, fig.height=4, eval=!is.null(params$costs_plot)}
-params$costs_plot
+```{r en-costs-plot, results='asis', eval=!is.null(params$costs_plot)}
+energyRt::report_fig(params$costs_plot, 7, 4, caption = "Costs by component", output = fmt)
 ```
 
 ```{r en-costs, results='asis'}
@@ -150,12 +150,13 @@ cat("## Levelized costs (ex-post)\n")
 ```
 
 ```{r en-levcost-cmp, results='asis', eval=!is.null(params$levcost_cmp_plot)}
-emit_img(energyRt::report_plot_png(params$levcost_cmp_plot, 7.5, 3.6), 1)
+energyRt::report_fig(params$levcost_cmp_plot, 7.5, caption = "Levelized cost comparison, most expensive first", output = fmt)
 ```
 
 ```{r en-levcost-groups, results='asis', eval=length(params$levcost_group_plots) > 0}
-for (p in params$levcost_group_plots)
-  emit_img(energyRt::report_plot_png(p, 6.5, 3.0), 0.9)
+for (nm in names(params$levcost_group_plots))
+  energyRt::report_fig(params$levcost_group_plots[[nm]], 6.5, 3.0,
+    caption = paste("Levelized cost, group", nm), frac = 0.9, output = fmt)
 ```
 
 ```{r en-levcost, results='asis', eval=!is.null(params$levcost_df)}

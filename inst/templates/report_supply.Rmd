@@ -65,20 +65,20 @@ if (!is.null(params$draw_file)) {
 
 ```{r en-profile, results='asis', eval=!is.null(params$main_plot)}
 energyRt::report_sec("Year profile", output = fmt)
-emit_img(energyRt::report_plot_png(params$main_plot, 7, 3.6), 1)
+energyRt::report_fig(params$main_plot, 7, caption = paste("Year profile of", params$name), output = fmt)
 ```
 
 ```{r en-byregion, results='asis', eval=!is.null(params$bar_plot) || !is.null(params$cost_plot)}
 energyRt::report_sec("Supply by region", output = fmt)
 if (!is.null(params$bar_plot))
-  emit_img(energyRt::report_plot_png(params$bar_plot, 7, 3.4), 1)
+  energyRt::report_fig(params$bar_plot, 7, caption = paste("Annual availability of", params$name, "by region"), output = fmt)
 if (!is.null(params$cost_plot))
-  emit_img(energyRt::report_plot_png(params$cost_plot, 7, 3.0), 1)
+  energyRt::report_fig(params$cost_plot, 7, caption = paste("Supply cost of", params$name, "by region"), output = fmt)
 ```
 
 ```{r en-regions, results='asis', eval=!is.null(params$regions_plot)}
 energyRt::report_sec("Across regions", output = fmt)
-emit_img(energyRt::report_plot_png(params$regions_plot, 7, 3.2), 1)
+energyRt::report_fig(params$regions_plot, 7, caption = paste("Availability and cost of", params$name, "across regions"), output = fmt)
 ```
 
 ```{r en-data, results='asis', eval=!is.null(params$supply_df)}

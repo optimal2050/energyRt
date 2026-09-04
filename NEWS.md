@@ -1,31 +1,13 @@
 # energyRt (development version)
 
-* `validate_scenario_parameters()` is exported and now also verifies that
-  every variable has its governing constraints: a storage without its
-  balance equation or a corridor without its capacity link is refused as
-  structural, missing availability bounds are reported as advisory, and a
-  calendar whose row order contradicts its own timeframe columns is
-  rejected before it can scramble the storage chain.
-
 ## Breaking changes
 
 * Storage aux capacity couplings are part-prefixed: `cap2ainp` / `cap2aout` /
-  `ncap2ainp` / `ncap2aout` on a storage `@aeff` are renamed `out.cap2ainp`
-  etc. — they always coupled only the DISCHARGER capacity while reading as
-  "the" capacity. The bare names are refused with a rename hint (no aliases).
-  Technology `@aeff` keeps the bare names — a technology has one capacity.
-
+  `ncap2ainp` / `ncap2aout` on a storage `@aeff` are now `out.cap2ainp` etc.
+  The bare names error with a rename hint; technology `@aeff` keeps them.
 * A run's solver files are written directly into `runs/<solve>/`, beside
-  `run.yml`, instead of a `solver/` subfolder. The nested folder restated the
-  solve name, and the Arrow exchange writes one file per symbol beneath it, so
-  the paths reached Windows' 260-character limit for some solvers and not
-  others -- the same model wrote fine under `julia_highs` and failed under
-  `julia_highs_barrier`. Existing scenarios still open: `solver/` and the
-  interim `script/` are both still read.
-* The per-solve metadata file is now `solver.csv`. It used to be called
-  `solver`, which after the flattening would sit exactly where the `solver/`
-  directory used to be. The old name is still read.
-
+  `run.yml`, instead of a `solver/` subfolder, and the per-solve metadata
+  file is `solver.csv`. Existing scenarios still open.
 * The Julia and Python backends exchange data as Arrow files. `data.RData` and
   `input/data.db` are opt-in through `solver_options$julia_highs_rdata` and
   `$pyomo_cbc_sqlite`; the `*_arrow` presets are retired.
@@ -37,15 +19,13 @@
   defaults to `lz4`.
 * 46 machinery helpers are no longer exported (314 → 268 exports) — the
   interpolation/mapping engine, the NEOS plumbing below `neos_ping()` and
-  `neos_list_solvers()`, and small utilities. They still exist as
-  `energyRt:::`.
+  `neos_list_solvers()`, and small utilities. They remain as `energyRt:::`.
 * `print.levcost()`, `print.levcost_list()`, `print.levcost_variants()` and
   `print.share_frontier_plots()` are registered as S3 methods; `print(x)` is
   unchanged, the direct `print.levcost(x)` call form is gone.
-* The `ert` prefix is retired in favour of `en`: the registry's S3 class tag is
-  `en_registry`, report CSS classes are `.en-*`, LaTeX colours are `en_blue` /
-  `en_gray`. Custom report templates written against the old names need
-  updating.
+* The `ert` prefix is retired for `en`: registry class tag `en_registry`,
+  report CSS `.en-*`, LaTeX colours `en_blue` / `en_gray`; custom report
+  templates written against the old names need updating.
 * Store folders are named by the object, not its hash (`models/UTOPIA/`), and
   updated in place. Old hash-named folders keep loading; `rehash = FALSE` keeps
   a recorded hash through a change you declare insignificant.
@@ -71,29 +51,26 @@
   on a `geff` row naming an input group no commodity belongs to. Both used to
   be dropped silently.
 * The UTOPIA world reuses the shared calendars: `utopia_annual`, `utopia_s4h24`
-  and `utopia_m12h24` are retired for `annual`, `s4_h24` and `m12_h24`. Only
-  `utopia_seasons` remains UTOPIA-own, relabelled `AUT` → `FAL`. Day-proportional
-  season shares shift UTOPIA objectives slightly.
+  and `utopia_m12h24` are retired for `annual`, `s4_h24` and `m12_h24`;
+  `utopia_seasons` stays, relabelled `AUT` → `FAL`. Objectives shift slightly.
 * `report_tbl()` enforces a 200-row cap in PDF/Word when no `max_rows` is given.
 
 ## New features
 
-* Storage aux flows can couple EVERY part's capacity: `inp.cap2a*` /
-  `inp.ncap2a*` (charger), `stg.cap2a*` / `stg.ncap2a*` (reservoir — battery
-  material per GWh built, at last) join the renamed `out.*` couplings, in all
-  four backends. A coupling on a part with no capacity variable is dropped
-  with a warning.
-* `draw()` of a storage shows the three parts as boxes inside the glyph —
-  charger | reservoir | discharger — each with its own set parameters, the
-  ratio triangle (`inp2stg`, `duration`, `inp2out`) drawn as labelled links,
-  and `fullYear` in the header.
-* A storage gains `@inp2stg`, the charging C-rate: charging capacity per unit
-  of storing capacity, in 1/hours (`inp2stg.up = 0.5` — fills in two hours).
-  It completes the ratio triangle with `@duration` (stg/out) and `@inp2out`
-  (inp/out); any two determine the third, and `newStorage()` refuses a
-  contradictory fixed triple. Unlike the other two ratios it has no binding
-  default: the link exists only where a finite bound is declared and both
-  parts carry capacity variables. All four solver backends.
+* Folding works with GAMS: a dense build (`sparse = FALSE`) may be folded, and
+  the GAMS writer substitutes the artificial member like the other backends.
+* `validate_scenario_parameters()` is exported and also checks that every
+  variable has its governing constraints, that availability bounds are
+  present, and that a calendar's row order agrees with its timeframe columns.
+* Storage aux flows can couple every part's capacity: `inp.cap2a*` /
+  `inp.ncap2a*` (charger) and `stg.cap2a*` / `stg.ncap2a*` (reservoir) join
+  the `out.*` couplings on all four backends.
+* `draw()` of a storage shows the charger, reservoir and discharger as boxes
+  with their own parameters, the ratio triangle (`inp2stg`, `duration`,
+  `inp2out`) as labelled links, and `fullYear` in the header.
+* A storage gains `@inp2stg`, the charging C-rate (charging per unit of
+  storing capacity, 1/hours); with `@duration` and `@inp2out` any two ratios
+  fix the third, and `newStorage()` refuses a contradictory fixed triple.
 * `newImport()` and `newExport()` take `region =`, like every other process
   class; `import` and `export` objects gain the matching `@region` slot.
 * `solve_by_sample()` solves a model on samples of its calendar — consecutive
@@ -105,38 +82,29 @@
 * `calendar_samples()` builds the sample specification by drawing whole members
   of a calendar level (seasons, weeks, days); the table can be edited and
   passed back.
-* `aggregate_model_regions()` builds a coarser model from a finer one, mapping
-  its regions onto a geoframe of a `geoscales::Geoscale`. Extensive quantities
-  are summed, intensive ones take a mean weighted by the object's size in each
-  region, and trade corridors that fall inside one target region are dropped
-  while the rest merge. This is the stage `interpolate_model()` named but did
-  not have; its error on a pruned geoscale now points at it. Needs geoscales
-  with `recast_pairs()` and `na_rm=`.
-* `solve_by_region()` solves a multi-region model one region, or one group of
-  regions, at a time; each run is stored as a variant of one scenario. With
-  `trade = "none"` the per-region objectives sum to the full model's; the
-  result's `additive` field says whether they do.
+* `aggregate_model_regions()` builds a coarser model by mapping regions onto
+  a geoframe of a `geoscales::Geoscale`: extensive quantities sum, intensive
+  ones take a size-weighted mean, intra-region trade corridors drop.
+* `solve_by_region()` solves a multi-region model one region or group at a
+  time, each run a variant of one scenario; with `trade = "none"` the
+  objectives add up to the full model's (the result's `additive` field says so).
 * A severed trade route can be replaced by a stepped price curve instead of a
   flat price: `boundary_prices` gains `nsteps`, `price_lo`, `price_hi` and
   `imp.lo`/`exp.lo` columns.
 * `boundary_window()` builds a `boundary_prices` table whose quantity is
   `share` of each region's demand per timeslice; `price` is required.
-* `solve_guided()` solves a too-large model in stages: cheap endpoint problems
-  seed capacity targets for one final full-horizon solve, and `guided_gap()`
-  reports the objective gap to perfect foresight. Composable primitives:
-  `solution_targets()`, `apply_targets()`, `guided_windows()`; stages are
-  recorded as runs of one scenario.
-* Every energyRt object now has a `report()` method: the 14 element classes
-  render one-object datasheets from per-class shipped templates,
-  `report(mod, name = )` finds an element of any class in a container
-  (`class = ` narrows), and `misc$report` sets an object's default template.
+* `solve_guided()` solves a too-large model in stages (endpoint problems seed
+  capacity targets for one final full solve); `guided_gap()` reports the gap
+  to perfect foresight; primitives `solution_targets()`, `apply_targets()`.
+* Every energyRt object has a `report()` method: 14 element classes render
+  datasheets from per-class templates; `report(mod, name = )` finds an element
+  of any class (`class = ` narrows); `misc$report` sets the default template.
 * `calendars` ships the mainstream timescales designs — `m12`, `m12a`, `q4`,
   `s4`, `s4_h24`, `m12_h24`, `wd7_h24`, `w52_h24` — plus three sampled
   calendars whose `year_fraction < 1` solves partial years natively.
-* The registry gained `newRegistry()` (the only way to create one, since
-  `load_registry()` no longer invents a missing registry), a `variant` column,
-  and generic `getScenario()` / `getObject()` methods that fetch through a
-  registry by `type/name`, with `run =` selecting the run.
+* The registry gained `newRegistry()` (`load_registry()` no longer invents a
+  missing registry), a `variant` column, and `getScenario()` / `getObject()`
+  methods fetching by `type/name` with `run =` selecting the run.
 * `levcost(x, by_variant = )` replaces `levcost_by_variant()`, taking `TRUE`,
   `"npv"` or `"components"`, either while computing or on a result in hand.
 * Store entries have a lifecycle: `seal_*()` / `unseal_*()` freeze an entry,
@@ -152,8 +120,7 @@
   hand-checkable integer.
 * UTOPIA add-on modules in every `electricity` kit — `GAS_CURVE` (3-step supply
   curve), `EWIN_SITES` (two wind site grades), `ENUC_VINT` (two nuclear
-  vintages) — each replacing its base counterpart via `add(mod, ., overwrite =
-  TRUE)`.
+  vintages) — replace their base counterpart via `add(mod, ., overwrite = TRUE)`.
 * `solve_myopic()` solves a horizon window by window. The primitives are
   composable: `horizon_windows()`, `solution_ledger()`, `apply_ledger()`.
 * A comparison layer: `compare_scenarios()` (scenarios or recorded runs, with
@@ -165,20 +132,24 @@
 * Container reports split by role: the model report documents assumptions and
   data, the scenario report the results of a solved scenario. Both render to
   HTML, PDF and Word.
-* Model reports group per-process sections by structure — one section per
-  unique topology; `template = "full"` restores per-member tables.
-* Topology groups carry a short index (G1, G2, ...) used on charts and
-  section headings, with an index table mapping it back to the structure.
+* Model and scenario reports follow user-defined process groups
+  (`report(groups = list(Coal = "_coal_"))` or `misc$report_groups`), else a
+  sample of up to 12 processes; `groups = "topology"` groups by structure.
+* Faceted autoplots cap at 16 panels (a caption says how many were dropped);
+  report figures size their height by the facet layout
+  (`report_fig_height()`).
+* Report figures carry pandoc captions instead of in-plot titles: new
+  `report_fig()` emitter (strips `title`/`subtitle`, auto height, caption)
+  and `report_img(caption = )`.
 * Supply charts: `autoplot(supply, style = "bar")` draws availability and
   cost by region (curve steps stacked in order); `style = "regions"` draws
   region bars, unlimited availability as a translucent full-height bar.
 * Levelized-cost comparison charts: `report(model)` and `report(scenario)`
   with `levcost = TRUE` add overall and per-group comparisons; a process
   datasheet reported from a container compares it with its structural peers.
-* Model reports summarise weather factors (mean/min/max per factor and
-  region) and draw calendar heatmaps per factor family (the 6 best and 6
-  last of many clusters) and per demand; `autoplot(demand, style =
-  "heatmap")` draws the demand heatmap directly.
+* Model reports summarise weather factors (mean/min/max per factor and region)
+  and draw calendar heatmaps per factor family (6 best + 6 last clusters) and
+  per demand; `autoplot(demand, style = "heatmap")` draws the latter directly.
 * Report branding: `misc$logos`, `misc$figure` and scenario `misc$badges`, with
   `report(logos = , figure = , badges = )` overrides. New helpers
   `report_img_row()` and `report_pagebreak()`.
@@ -211,13 +182,11 @@
 * `vTradeIr` and the `*RetiredNewCap` variables can be used in custom
   constraints.
 * Scenario storage: a persisted per-project registry, one folder per solve under
-  `runs/<variant>/<solve>/`, a content-addressed model store that scenarios
-  reference, a shared repository store, and several own-problem variants side by
-  side via `solve_scen(variant = )`.
+  `runs/<variant>/<solve>/`, a content-addressed model store, a shared
+  repository store, and own-problem variants via `solve_scen(variant = )`.
 * Registered objects are accessible by name — `getScenario("base")`,
-  `getModel()`, `getRepository()`, `getDataset()`, `load_scenarios()` — and
-  `getData()` takes names and environments directly. `open_project(path)`
-  anchors a session in one call.
+  `getModel()`, `getRepository()`, `getDataset()`, `load_scenarios()`;
+  `getData()` takes names and environments; `open_project(path)` anchors a session.
 * A dataset store completes the storage tiers: `save_dataset()` /
   `load_dataset()` keep a large table, a geoscale map or a recorded generating
   call in a content-addressed folder; the other savers gain `embed_datasets =`.
@@ -257,31 +226,35 @@
 
 ## Bug fixes
 
+* A solved or written folded scenario no longer carries the artificial set
+  members (`ANYREGION`, `0`); `getData()` on such a scenario unfolds every
+  folded dimension, including `year`.
+* Folding no longer depends on the order of the folded dimensions, and a
+  parameter folded on both `tech` and `region` reads back correctly.
+  `getData()` and `verify_solution()` unfold every foldable dimension.
+* Folding `trade` no longer empties a trade parameter whose route endpoints
+  are wildcards.
+* A user constraint's `rhs` is interpolated over years per region (and any
+  other key), not as one column across regions.
+* User-constraint and user-cost parameters (`pCns*`, `pCosts*`) are never
+  folded.
+* `write_script()` substitutes the folded wildcard with the artificial set
+  member, as `solve_scenario()` already did; a written folded scenario no
+  longer silently takes parameter defaults.
 * `autoplot()` of a `demand` draws its `"line"` and `"heatmap"` styles with the
-  same profile engine as `weather`, so the two read identically. The old demand
-  line view errored on any demand with years (a discrete year on a continuous
-  colour scale) and faceted one row per day on daily calendars.
+  same profile engine as `weather`; the old line view errored on demands with
+  years and faceted one row per day on daily calendars.
 * Profile lines and areas (`demand`, `weather`) colour the coarse time level
-  with a viridis `"H"` gradient — continuous when the level is numeric (day of
-  year) — instead of the default discrete hues.
-* `plot_process_windows()` no longer draws a process backwards. A process whose
-  investment window closes before the horizon -- `@vintage$end` earlier than the
-  first milestone, which is how an exogenous fleet says "not investable" --
-  produced `build_start > build_end` and was drawn as a reversed bar. Its
-  window is now empty, and its **stock** is drawn instead: `.proc_windows()`
-  reads `@capacity$stock`, which it previously ignored, so exogenous capacity
-  appears at all. A missing `olife` is also treated as the infinite life it is,
-  running the operating tail to the end of the horizon rather than collapsing
-  it onto the build year.
+  with a viridis gradient, continuous when the level is numeric.
+* `plot_process_windows()` no longer draws a process backwards: a process not
+  investable within the horizon shows its exogenous stock instead, and a
+  missing `olife` runs the operating tail to the end of the horizon.
 * A zero discount rate with no operational life is refused instead of silently
-  charging nothing. The annuity of a perpetuity at a zero rate is undefined,
-  and `.crf()` computed it as `1/Inf`, so the capital charge left the objective
-  without warning. Supplying `@invcost$eac` directly is unaffected.
+  charging nothing for capital. Supplying `@invcost$eac` directly is
+  unaffected.
 * The solver exchange checks its longest prospective file path before writing
-  and stops with the directory, the offending symbol and what to do about it,
-  rather than failing inside an Arrow writer as "cannot find the path
-  specified". `dir.create()` for the exchange directories is now recursive.
-
+  and stops with the directory and symbol at fault; exchange directories are
+  created recursively.
 * A process declared in a region where a commodity it consumes is unavailable
   is dropped there instead of producing from nothing; the dropped cells are
   reported and listed in `scenario@misc$region_gaps`.
@@ -289,46 +262,24 @@
   `@region`, is no longer available in every region of the model.
 * A `weather` object scoped the same way no longer zeroes availability in
   regions it was never declared for.
-* **An interpolation that failed part-way left `en.bulk_param_write` set, and
-  every later solve in the session silently returned objective 0.** The option
-  was restored only on the normal exit path, so after one failure bulk mode
-  never ended: parameters written by the post-loop stages stayed parked and the
-  model was written out with missing data, solving to OPTIMAL with a meaningless
-  objective. It is now restored on every exit path.
-* `verify_solution()$ok` no longer reports `TRUE` when every check was
-  *skipped*. A scenario with no solution verified clean, which is how the
-  zeroed solves above passed their invariant checks. New `n_ran` / `n_skipped`
-  fields, and `print()` says "NOTHING VERIFIED".
-* `validate_scenario_parameters()` issues carry a severity. A populated map
-  whose source parameter is empty is **structural** and now errors whatever
-  `action` says — it previously warned, and a warning around a solve is
-  routinely swallowed by `suppressWarnings()`. The issue count is always
-  announced with `message()`.
+* An interpolation that failed part-way left bulk parameter writing on, and
+  every later solve in the session silently returned objective 0; the
+  `en.bulk_param_write` option is now restored on every exit path.
+* `verify_solution()$ok` no longer reports `TRUE` when every check was skipped;
+  new `n_ran` / `n_skipped` fields, and `print()` says "NOTHING VERIFIED".
+* `validate_scenario_parameters()` issues carry a severity: a populated map
+  whose source parameter is empty is structural and errors whatever `action`
+  says; the issue count is always announced with `message()`.
 * `interpolate_model()` asserts no parameter is left unmaterialised after the
   final flush, naming the offenders.
-* `read_solution()` errors when *none* of the declared variables produced an
-  output file, naming the extension it looked for and the active
-  `import_format`. A per-variable miss is still legitimate; a total miss used
-  to yield a scenario of zeros reported OPTIMAL.
-
-* `add()` accepts a repository holding more than one object. `sapply()` over
-  the expansion simplified to a matrix whenever the expansions were the same
-  length -- one multi-object repository, or several of equal size -- and
-  `list_flatten()` rejected it with "`x` must be a node".
-
+* `read_solution()` errors when none of the declared variables produced an
+  output file, naming the extension and the active `import_format`.
+* `add()` accepts a repository holding more than one object.
 * `report(levcost = TRUE, by_variant = )` no longer drops the levelised-cost
-  section. `by_variant` fell through to `rmarkdown::render()`; forwarding it to
-  `levcost()` is equally wrong, since that returns an extracted data frame
-  rather than the object the report is built from. `report()` consumes the flag:
-  `FALSE` reports the display instance alone, the default keeps the per-variant
-  tables.
-
+  section: `FALSE` reports the display instance alone, the default keeps the
+  per-variant tables.
 * A user `constraint` whose `for.each` years all fall outside the solved
-  horizon is dropped with a warning instead of generating unusable solver
-  code. Its equation was still declared over an index domain the horizon
-  filter had emptied, and JuMP rejected the dangling reference
-  ("Unexpected error parsing reference set: eqCns<name>").
-
+  horizon is dropped with a warning instead of generating unusable solver code.
 * A `supply` at a commodity's coarse `@geoframe` level was silently costless;
   it is now priced, and rest-of-world import/export at a coarse level are
   refused loudly.
@@ -337,43 +288,33 @@
 * `add(mod, x, overwrite = TRUE)` replaces an object of the same class and name
   instead of appending a duplicate next to it; without `overwrite` the collision
   is an error.
-* Calendar chronology follows the timetable's row order.
-  `.complete_calendar()` ordered mid-level timeslices alphabetically, so
-  `@next_in_year` mis-chained any vocabulary that does not collate
-  chronologically.
+* Calendar chronology follows the timetable's row order; mid-level timeslices
+  are no longer ordered alphabetically.
 * On-disk parameter stores no longer default to CSV; they follow
   `storage_format`. Existing CSV stores keep loading.
-* A parameter write-back could make its store unreadable — both write-back paths
-  re-derived the codec from a directory listing that knew only parquet-or-csv,
-  writing CSV beside `.arrow` files. The store's recorded format is now
-  authoritative.
+* A parameter write-back could make its store unreadable by writing CSV beside
+  `.arrow` files; the store's recorded format is now authoritative.
 * An atomic (single-column) slot was always written as CSV, mixing codecs inside
   a store.
-* `import_format = "parquet"` returned an empty scenario silently: R looked for
-  `output/<var>.parquet` while both backends wrote `.arrow`. Pyomo honours
+* `import_format = "parquet"` returned an empty scenario silently. Pyomo honours
   parquet on both legs; Julia refuses it at write time.
-* Tables with no rows are no longer written — on a UTOPIA-size model roughly two
-  thirds of the tables are empty.
-* `obj2mem()` is quiet by default and reports a progress bar instead of one
-  path per table; `verbose` is now passed down the recursion, so a top-level
-  `verbose = FALSE` is no longer lost on nested objects.
+* Tables with no rows are no longer written.
+* `obj2mem()` is quiet by default and reports a progress bar; `verbose` is
+  passed down the recursion.
 * `subset_model_regions()` reports one summary line — regions kept, objects and
   routes dropped — instead of a message per item; `verbose = TRUE` lists them.
 * Interpolation no longer re-deduplicates a parameter's whole table on every
-  object that writes to it, making that stage linear rather than quadratic. On a
-  6-region full-year model (53M rows) the object stage went 3m01s → 1m19s. Set
-  `options(en.bulk_param_write = FALSE)` for the previous path.
+  object that writes to it. Set `options(en.bulk_param_write = FALSE)` for the
+  previous path.
 * The process/commodity level check no longer refuses models whose objects span
-  many regions (a data.table join-size refusal).
+  many regions.
 * Conflicting-bounds detection names the parameter again instead of dying on
   "comparison of these types is not implemented".
-* `force_cols_classes()` tested the data.frame instead of the column, re-coercing
-  every year and character column on every write.
+* Parameter writes no longer re-coerce every year and character column.
 * Variant expansion respects `verbose`; because `verbose` defaults to off, the
   generated-constraint and variant-expansion messages no longer appear by
   default. When shown, constraints are counted by family rather than listed.
-* `get_region()` returns a model's declared regions — a model carries them on
-  `@config`, which the reflective walk missed.
+* `get_region()` returns a model's declared regions.
 * `load_scenario()` on a saved-but-never-solved scenario no longer warns about
   rebasing on-disk paths.
 * `getData()` no longer returns an empty frame for a scenario whose solve was
@@ -387,22 +328,18 @@
 * `inp.fixom` / `stg.fixom` reach the objective; a storage priced only on its
   charger or reservoir paid no fixed O&M.
 * `eqTechPhaseOut` / `eqStoragePhaseOut` are gated on `mTechNew` /
-  `mStorageNew`: a phaseout window past the investment window crashed Pyomo and
-  left a stray free variable elsewhere. Objectives unchanged.
-* `scenario@status$solved` is set when the solution is read; it had no writer
-  and stayed `FALSE` after an optimal solve.
+  `mStorageNew`; a phaseout window past the investment window no longer
+  crashes Pyomo. Objectives unchanged.
+* `scenario@status$solved` is set when the solution is read.
 * Per-part `inp.` / `stg.` `wacc` and `payback` are honoured; the annuity always
   read the `out.*` columns.
-* `technology@af$rampup` / `$rampdown` reach the solver — the parameter
-  catalogue named slots that do not exist. Two template defects surfaced with
-  them and are fixed on all four backends: `cap2act` was applied twice, and the
-  Up/Down equations were orientation-swapped.
+* `technology@af$rampup` / `$rampdown` reach the solver on all four backends;
+  `cap2act` is no longer applied twice and the Up/Down equations are no longer
+  orientation-swapped.
 * Per-column `config@defVal` / `config@interpolation` overrides are read at
   interpolation instead of being copied onto the scenario and ignored.
-* The `costs` class is wired: it had no dispatching `ob2mi` method, no callers
-  for its compiler, a missing `defVal` slot, a broken list form of `subset =`,
-  and a recipe that ran before the maps it consumes existed. User cost terms now
-  reach the objective via `eqTotalUserCosts`.
+* The `costs` class is wired end to end; user cost terms reach the objective
+  via `eqTotalUserCosts`.
 * An unknown summand field in `newConstraint()` is an error instead of being
   dropped — it quietly turned a per-technology cap into a global one.
 * A storage flow into a coarser-timeframe commodity reaches the balance; the

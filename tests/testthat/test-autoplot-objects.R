@@ -98,6 +98,40 @@ test_that("supply style='regions' draws uncapped availability full-height", {
   expect_no_error(ggplot2::ggplot_build(p))
 })
 
+test_that(".facet_cap keeps 16 panels and captions the rest", {
+  d <- data.frame(region = rep(paste0("R", 1:20), each = 2), v = 1)
+  dc <- energyRt:::.facet_cap(d, "region")
+  expect_equal(attr(dc, "n_panels"), 16L)
+  expect_equal(attr(dc, "n_total"), 20L)
+  expect_equal(unique(dc$region), paste0("R", 1:16))   # first appearance
+  p <- energyRt:::.facet_caption(ggplot2::ggplot(dc), dc)
+  expect_match(p$labels$caption, "showing 16 of 20 panels")
+  # untouched below the cap: no attributes-driven caption
+  d5 <- energyRt:::.facet_cap(d[d$region %in% paste0("R", 1:5), ], "region")
+  expect_null(energyRt:::.facet_caption(ggplot2::ggplot(d5), d5)$labels$caption)
+})
+
+test_that("a 20-region weather heatmap builds with 16 panels", {
+  w <- newWeather("WBIG", unit = "1",
+    weather = data.frame(region = rep(paste0("R", 1:20), each = 2),
+                         timeslice = rep(c("s1_h01", "s1_h02"), 20),
+                         wval = runif(40)))
+  p <- ggplot2::autoplot(w)
+  b <- ggplot2::ggplot_build(p)
+  expect_equal(length(unique(b$layout$layout$PANEL)), 16L)
+  expect_match(p$labels$caption, "showing 16 of 20 panels")
+})
+
+test_that("report_fig_height follows the facet rows", {
+  d <- data.frame(g = rep(paste0("g", 1:8), each = 2), x = 1:16, y = 1)
+  p1 <- ggplot2::ggplot(d, ggplot2::aes(x, y)) + ggplot2::geom_point()
+  expect_equal(report_fig_height(p1, base = 3), 3)
+  p8 <- p1 + ggplot2::facet_wrap(~g, ncol = 4)          # 2 rows
+  expect_equal(report_fig_height(p8, base = 3, per_row = 1.5), 4.5)
+  expect_equal(report_fig_height(p8, base = 3, per_row = 1.5, max = 4), 4)
+  expect_equal(report_fig_height(NULL, base = 3), 3)
+})
+
 test_that("demand style='heatmap' draws region rows on the calendar", {
   dem <- newDemand("DEM_HM", commodity = "ELC", unit = "GWh",
     demand = data.frame(region = rep(c("R1", "R2"), each = 3),

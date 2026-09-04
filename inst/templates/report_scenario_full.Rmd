@@ -101,8 +101,8 @@ cat("## Runs\n")
 tbl(params$runs_df)
 ```
 
-```{r en-runs-plot, fig.width=6, fig.height=2.5, eval=!is.null(params$runs_plot)}
-params$runs_plot
+```{r en-runs-plot, results='asis', eval=!is.null(params$runs_plot)}
+energyRt::report_fig(params$runs_plot, 6, 2.5, caption = "Recorded runs", output = fmt)
 ```
 
 ```{r en-runs-note, results='asis', eval=!is.null(params$runs_note)}
@@ -128,16 +128,16 @@ cat("The scenario runs on a sampled calendar; the model's full calendar",
     "below.\n")
 ```
 
-```{r en-cal-model, fig.width=8, fig.height=3.6, eval=!is.null(params$calendar_model_plot)}
-params$calendar_model_plot
+```{r en-cal-model, results='asis', eval=!is.null(params$calendar_model_plot)}
+energyRt::report_fig(params$calendar_model_plot, 8, 3.6, caption = "Model calendar (sampled by the scenario)", output = fmt)
 ```
 
-```{r en-cal, fig.width=8, fig.height=3.6, eval=!is.null(params$calendar_plot)}
-params$calendar_plot
+```{r en-cal, results='asis', eval=!is.null(params$calendar_plot)}
+energyRt::report_fig(params$calendar_plot, 8, 3.6, caption = "Calendar: timeslices per timeframe", output = fmt)
 ```
 
-```{r en-horizon-plot, fig.width=8, fig.height=2.4, eval=!is.null(params$horizon_plot)}
-params$horizon_plot
+```{r en-horizon-plot, results='asis', eval=!is.null(params$horizon_plot)}
+energyRt::report_fig(params$horizon_plot, 8, 2.4, caption = "Planning horizon: milestone years and intervals", output = fmt)
 ```
 
 ```{r en-horizon-df, results='asis', eval=!is.null(params$horizon_df)}
@@ -156,12 +156,12 @@ cat("## Geography\n")
 cat(params$geo_note, "\n\n")
 ```
 
-```{r en-geo-map, fig.width=7, fig.height=5, eval=!is.null(params$geo_map)}
-params$geo_map
+```{r en-geo-map, results='asis', eval=!is.null(params$geo_map)}
+energyRt::report_fig(params$geo_map, 7, caption = "Geoscale membership map", output = fmt)
 ```
 
-```{r en-geo-stack, fig.width=7, fig.height=6, eval=!is.null(params$geo_stack)}
-params$geo_stack
+```{r en-geo-stack, results='asis', eval=!is.null(params$geo_stack)}
+energyRt::report_fig(params$geo_stack, 7, 6, caption = "Geoscale levels, coarsest at the bottom", output = fmt)
 ```
 
 ```{r en-pb3, results='asis'}
@@ -172,12 +172,12 @@ if (any_of(params$newcap_map, params$ret_map)) pb()
 cat("## Results on the map\n")
 ```
 
-```{r en-newcap-map, fig.width=8, fig.height=6, eval=!is.null(params$newcap_map)}
-params$newcap_map
+```{r en-newcap-map, results='asis', eval=!is.null(params$newcap_map)}
+energyRt::report_fig(params$newcap_map, 8, caption = "New capacity by region and milestone year", output = fmt)
 ```
 
-```{r en-ret-map, fig.width=8, fig.height=6, eval=!is.null(params$ret_map)}
-params$ret_map
+```{r en-ret-map, results='asis', eval=!is.null(params$ret_map)}
+energyRt::report_fig(params$ret_map, 8, caption = "Retirements by region", output = fmt)
 ```
 
 ```{r en-pb4, results='asis'}
@@ -189,28 +189,28 @@ if (any_of(params$cap_plot, params$newcap_plot, params$ret_bars,
 cat("## Capacity, retirements, and flows\n")
 ```
 
-```{r en-cap, fig.width=8, fig.height=5.5, eval=!is.null(params$cap_plot)}
-params$cap_plot
+```{r en-cap, results='asis', eval=!is.null(params$cap_plot)}
+energyRt::report_fig(params$cap_plot, 8, caption = "Installed capacity by year", output = fmt)
 ```
 
-```{r en-newcap, fig.width=8, fig.height=5.5, eval=!is.null(params$newcap_plot)}
-params$newcap_plot
+```{r en-newcap, results='asis', eval=!is.null(params$newcap_plot)}
+energyRt::report_fig(params$newcap_plot, 8, caption = "New capacity by year", output = fmt)
 ```
 
-```{r en-ret-bars, fig.width=7, fig.height=3.6, eval=!is.null(params$ret_bars)}
-params$ret_bars
+```{r en-ret-bars, results='asis', eval=!is.null(params$ret_bars)}
+energyRt::report_fig(params$ret_bars, 7, 3.6, caption = "Retirements by year", output = fmt)
 ```
 
-```{r en-io-bars, fig.width=8, fig.height=4.5, eval=!is.null(params$io_bars)}
-params$io_bars
+```{r en-io-bars, results='asis', eval=!is.null(params$io_bars)}
+energyRt::report_fig(params$io_bars, 8, 4.5, caption = "Process inputs and outputs", output = fmt)
 ```
 
-```{r en-gen, fig.width=8, fig.height=5.5, eval=!is.null(params$gen_plot)}
-params$gen_plot
+```{r en-gen, results='asis', eval=!is.null(params$gen_plot)}
+energyRt::report_fig(params$gen_plot, 8, caption = "Generation mix by year", output = fmt)
 ```
 
-```{r en-gen-day, fig.width=8, fig.height=5.5, eval=!is.null(params$gen_day_plot)}
-params$gen_day_plot
+```{r en-gen-day, results='asis', eval=!is.null(params$gen_day_plot)}
+energyRt::report_fig(params$gen_day_plot, 8, caption = "Dispatch profile over the calendar sample", output = fmt)
 ```
 
 ```{r en-pb5, results='asis'}
@@ -220,8 +220,8 @@ if (any_of(params$costs_plot, params$cost_df, params$emis_df,
 
 ## Costs and checks
 
-```{r en-costs-plot, fig.width=7, fig.height=4, eval=!is.null(params$costs_plot)}
-params$costs_plot
+```{r en-costs-plot, results='asis', eval=!is.null(params$costs_plot)}
+energyRt::report_fig(params$costs_plot, 7, 4, caption = "Costs by component", output = fmt)
 ```
 
 ```{r en-costs, results='asis'}
@@ -249,12 +249,13 @@ cat("### Levelized costs (ex-post)\n")
 ```
 
 ```{r en-levcost-cmp, results='asis', eval=!is.null(params$levcost_cmp_plot)}
-emit_img(energyRt::report_plot_png(params$levcost_cmp_plot, 7.5, 3.6), 1)
+energyRt::report_fig(params$levcost_cmp_plot, 7.5, caption = "Levelized cost comparison, most expensive first", output = fmt)
 ```
 
 ```{r en-levcost-groups, results='asis', eval=length(params$levcost_group_plots) > 0}
-for (p in params$levcost_group_plots)
-  emit_img(energyRt::report_plot_png(p, 6.5, 3.0), 0.9)
+for (nm in names(params$levcost_group_plots))
+  energyRt::report_fig(params$levcost_group_plots[[nm]], 6.5, 3.0,
+    caption = paste("Levelized cost, group", nm), frac = 0.9, output = fmt)
 ```
 
 ```{r en-levcost, results='asis', eval=!is.null(params$levcost_df)}

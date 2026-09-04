@@ -80,6 +80,7 @@ report(
   force = FALSE,
   logos = NULL,
   figure = NULL,
+  groups = NULL,
   ...
 )
 
@@ -96,6 +97,7 @@ report(
   force = FALSE,
   logos = NULL,
   figure = NULL,
+  groups = NULL,
   ...
 )
 
@@ -114,6 +116,7 @@ report(
   verify = TRUE,
   logos = NULL,
   badges = NULL,
+  groups = NULL,
   ...
 )
 
@@ -430,6 +433,15 @@ this call (\code{file =} still wins).}
 date.  Reports are skip-if-current: a sidecar (\code{*.report.yml})
 records a content key over the object, template, arguments, image and
 levcost identity, and an unchanged report is not rebuilt.}
+
+\item{groups}{Process groups for model and scenario reports: a named list
+whose elements are character vectors of process names or regular
+expressions over process names (\code{list(Coal = "_coal_", Wind =
+c("WIN_ON", "^R._win"))}). Defaults to \code{object@misc$report_groups}
+(a scenario falls back to its model's). \code{FALSE} disables groups,
+\code{"topology"} groups automatically by structure. Without groups
+the report shows a representative sample of up to 12 processes.
+Processes in no group form a final "Ungrouped" sample.}
 
 \item{name}{Character (container/scenario methods). Name of the technology /
 process to report.}

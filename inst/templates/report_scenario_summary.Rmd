@@ -63,8 +63,8 @@ if (length(params$badges) > 0) {
 tbl(params$status_df)
 ```
 
-```{r en-gen, fig.width=8, fig.height=5.5, eval=!is.null(params$gen_plot)}
-params$gen_plot
+```{r en-gen, results='asis', eval=!is.null(params$gen_plot)}
+energyRt::report_fig(params$gen_plot, 8, caption = "Generation mix by year", output = fmt)
 ```
 
 ```{r en-cost-total, results='asis', eval=!is.null(params$cost_total_df)}

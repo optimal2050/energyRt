@@ -503,7 +503,9 @@ if (has_vint) {
       else cat("{\\small\\color{en_gray} ", tex_esc(note),
                "}\\par\\vspace{2pt}\n", sep = "")
     }
-    emit_img(plot_png(params$frontier_plot, .LC_SIDE * 6.5, 3.0), .LC_SIDE)
+    emit_img(plot_png(params$frontier_plot +
+                        ggplot2::labs(title = NULL, subtitle = NULL),
+                      .LC_SIDE * 6.5, 3.0), .LC_SIDE)
   }
 }
 ```

@@ -60,7 +60,7 @@ if (!is.null(params$draw_file)) {
 
 ```{r en-profile, results='asis', eval=!is.null(params$main_plot)}
 energyRt::report_sec("Year profile", output = fmt)
-emit_img(energyRt::report_plot_png(params$main_plot, 7, 3.6), 1)
+energyRt::report_fig(params$main_plot, 7, caption = paste("Year profile of", params$name), output = fmt)
 ```
 
 ```{r en-data, results='asis', eval=!is.null(params$flow_df)}

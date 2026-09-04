@@ -154,6 +154,11 @@ test_that(".plot_windows_grouped labels rows by the group index", {
   p <- energyRt:::.plot_windows_grouped(w, grps)
   expect_s3_class(p, "ggplot")
   expect_true(all(grepl("^G\\d+ \\(\\d+\\)$", levels(p$data$grp))))
+  # user groups label rows by their names
+  ug <- energyRt:::.report_groups_resolve(
+    mod, list(Coal = "_coal_"), getObjects(mod, "technology"), draw = FALSE)
+  pu <- energyRt:::.plot_windows_grouped(w, ug)
+  expect_true(any(grepl("^Coal \\(", levels(pu$data$grp))))
 })
 
 test_that(".proc_groups renders one schematic per group", {
@@ -170,20 +175,96 @@ test_that(".proc_groups renders one schematic per group", {
 # renders (pandoc-gated)
 # --------------------------------------------------------------------------- #
 
-test_that("default model report shows topology groups, not processes", {
+test_that("default model report shows a sample of processes", {
+  .rs_skip_if_no_pandoc()
+  mod <- .rs_big_model(4)                        # 16 techs > the sample cap
+  f <- suppressMessages(suppressWarnings(report(
+    mod, format = "html", file = tempfile("rs_model_"), open = FALSE)))
+  h <- paste(gsub("\\s+", " ", readLines(f, warn = FALSE)), collapse = " ")
+  n_proc <- lengths(regmatches(h, gregexpr("_pp \\(technology\\)", h)))
+  expect_equal(n_proc, 12L)                      # the sample, never all 16
+  expect_match(h, "Sample of 12 of 16 processes")
+  expect_false(grepl("Process-group index", h, fixed = TRUE))
+  # pandoc figure captions: figcaption (pandoc 3) or p.caption (pandoc 2)
+  expect_match(h, "figcaption|class=\"caption\"")
+  expect_lt(file.size(f), 5e6)
+})
+
+test_that("report(groups=) renders named group sections", {
+  .rs_skip_if_no_pandoc()
+  mod <- .rs_big_model(2)
+  f <- suppressMessages(suppressWarnings(report(
+    mod, groups = list(Coal = "_coal_pp$", Gas = c("R1_gas_pp", "R2_gas_pp")),
+    format = "html", file = tempfile("rs_grp_"), open = FALSE)))
+  h <- paste(gsub("\\s+", " ", readLines(f, warn = FALSE)), collapse = " ")
+  expect_match(h, "Coal \\(technology, n = 2\\)")
+  expect_match(h, "Gas \\(technology, n = 2\\)")
+  expect_match(h, "Ungrouped \\(sample of|Ungrouped \\(technology")
+  expect_match(h, "Process-group index")
+  expect_match(h, "Members")
+})
+
+test_that("misc$report_groups is the default; groups = FALSE ignores it", {
+  .rs_skip_if_no_pandoc()
+  mod <- .rs_big_model(2)
+  mod@misc$report_groups <- list(Bio = "_bio_")
+  f <- suppressMessages(suppressWarnings(report(
+    mod, format = "html", file = tempfile("rs_misc_"), open = FALSE)))
+  h <- paste(gsub("\\s+", " ", readLines(f, warn = FALSE)), collapse = " ")
+  expect_match(h, "Bio \\(technology, n = 2\\)")
+  f2 <- suppressMessages(suppressWarnings(report(
+    mod, groups = FALSE, format = "html", file = tempfile("rs_nogrp_"),
+    open = FALSE)))
+  h2 <- paste(gsub("\\s+", " ", readLines(f2, warn = FALSE)), collapse = " ")
+  expect_false(grepl("Bio (technology", h2, fixed = TRUE))
+  # the spec is part of the render key: a different spec re-renders
+  fb <- tempfile("rs_key_")
+  suppressMessages(suppressWarnings(report(
+    mod, groups = list(A = "_coal_"), format = "html", file = fb,
+    open = FALSE)))
+  expect_message(suppressWarnings(report(
+    mod, groups = list(A = "_coal_"), format = "html", file = fb,
+    open = FALSE)), "up to date")
+  expect_no_message(suppressWarnings(report(
+    mod, groups = list(B = "_gas_"), format = "html", file = fb,
+    open = FALSE)), message = "up to date")
+})
+
+test_that("groups = 'topology' restores automatic grouping", {
   .rs_skip_if_no_pandoc()
   mod <- .rs_big_model(3)
   f <- suppressMessages(suppressWarnings(report(
-    mod, format = "html", file = tempfile("rs_model_"), open = FALSE)))
-  h <- paste(readLines(f, warn = FALSE), collapse = "\n")
-  n_h3 <- lengths(regmatches(h, gregexpr("<h3", h)))
-  expect_lte(n_h3, 6L)                          # ~4 groups, never 12
-  expect_match(h, "G1")                         # group index in headings
-  expect_match(h, "n = 3")                      # member counts in headings
-  expect_match(h, "Process-group index")        # index table
-  expect_match(h, "Members")
-  expect_match(h, "Parameter ranges across members")
-  expect_lt(file.size(f), 5e6)
+    mod, groups = "topology", format = "html", file = tempfile("rs_topo_"),
+    open = FALSE)))
+  h <- paste(gsub("\\s+", " ", readLines(f, warn = FALSE)), collapse = " ")
+  expect_match(h, "G1")
+  expect_match(h, "n = 3")
+  expect_match(h, "Process-group index")
+})
+
+test_that(".proc_sample is breadth-first over structures", {
+  mod <- .rs_big_model(4)                        # 4 structures x 4 regions
+  procs <- getObjects(mod, "technology")
+  s <- energyRt:::.proc_sample(procs, 6L)
+  expect_length(s, 6L)
+  keys <- vapply(s, energyRt:::.proc_topology_key, character(1))
+  expect_length(unique(keys), 4L)                # every structure represented
+  expect_identical(energyRt:::.proc_sample(procs[1:3], 6L), procs[1:3])
+})
+
+test_that(".report_groups_resolve matches names and patterns", {
+  mod <- .rs_big_model(2)
+  procs <- getObjects(mod, "technology")
+  g <- energyRt:::.report_groups_resolve(
+    mod, list(Coal = "_coal_", One = "R1_gas_pp"), procs, draw = FALSE)
+  expect_equal(vapply(g, function(x) x$index, character(1)),
+               c("Coal", "One", "Ungrouped"))
+  expect_setequal(g[[1]]$members, c("R1_coal_pp", "R2_coal_pp"))
+  expect_equal(g[[2]]$members, "R1_gas_pp")
+  expect_length(g[[3]]$members, 5L)              # the rest, all sampled
+  expect_warning(energyRt:::.report_groups_resolve(
+    mod, list(None = "nomatch"), procs, draw = FALSE), "matches no")
+  expect_length(energyRt:::.report_groups_resolve(mod, FALSE, procs), 0L)
 })
 
 test_that("model report renders the weather CF table and heatmaps", {
@@ -238,8 +319,8 @@ test_that("template='full' resolves the full model template", {
   .rs_skip_if_no_pandoc()
   mod <- .rs_big_model(2)
   f <- suppressMessages(suppressWarnings(report(
-    mod, template = "full", format = "html", file = tempfile("rs_full_"),
-    open = FALSE)))
+    mod, template = "full", groups = "topology", format = "html",
+    file = tempfile("rs_full_"), open = FALSE)))
   h <- paste(readLines(f, warn = FALSE), collapse = "\n")
   expect_match(h, "Per-member parameters")
 })

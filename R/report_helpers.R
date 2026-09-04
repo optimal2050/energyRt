@@ -140,11 +140,22 @@ report_fmt_val <- function(x, digits = 4L) {
 }
 
 #' @describeIn report_helpers Emit an image at a fraction of the line width;
-#'   the ONLY way images enter a report page.
+#'   the ONLY way images enter a report page. With a `caption` the image
+#'   is a pandoc markdown figure (`![caption](path)` alone in a paragraph):
+#'   `<figure>`/`<figcaption>` in HTML, a numbered `figure` environment in
+#'   LaTeX, a captioned figure in Word.
 #' @export
-report_img <- function(path, frac = 1, output = report_output()) {
+report_img <- function(path, frac = 1, output = report_output(),
+                       caption = NULL) {
   if (is.null(path) || !file.exists(path)) return(invisible(NULL))
   p <- gsub("\\\\", "/", path)
+  if (!is.null(caption) && nzchar(caption)) {
+    # markdown escaping only: pandoc renders the caption per format
+    cap <- gsub("([\\[\\]])", "\\\\\\1", caption)
+    cat("\n![", cap, "](", p, "){width=", round(frac * 100), "%}\n\n",
+        sep = "")
+    return(invisible(NULL))
+  }
   if (output == "html") {
     cat("<img src='", p, "' style='width:", round(frac * 100),
         "%;height:auto' />\n", sep = "")
@@ -214,17 +225,49 @@ report_pagebreak <- function(output = report_output()) {
   invisible(NULL)
 }
 
+#' @describeIn report_helpers Figure height (inches) from a ggplot's facet
+#'   layout: `base` for one panel row, `per_row` more for every further
+#'   row, capped at `max`. Non-ggplot input returns `base`.
+#' @export
+report_fig_height <- function(p, base = 3.2, per_row = 1.5, max = 9) {
+  rows <- 1L
+  if (inherits(p, "ggplot")) {
+    rows <- tryCatch({
+      lay <- ggplot2::ggplot_build(p)$layout$layout
+      if (is.data.frame(lay) && "ROW" %in% names(lay))
+        max(1L, max(lay$ROW, na.rm = TRUE)) else 1L
+    }, error = function(e) 1L)
+  }
+  min(max, base + per_row * (rows - 1L))
+}
+
 #' @describeIn report_helpers Rasterise a ggplot at `dpi` and return the png
 #'   path (uniform pipeline for all three formats; avoids knitr fig options,
-#'   which docx partly rejects).
+#'   which docx partly rejects). `h_in = NULL` sizes by the facet layout
+#'   via [report_fig_height()].
 #' @export
-report_plot_png <- function(p, w_in, h_in, dpi = 150) {
+report_plot_png <- function(p, w_in, h_in = NULL, dpi = 150) {
+  if (is.null(h_in)) h_in <- report_fig_height(p)
   tmp <- tempfile(fileext = ".png")
   grDevices::png(tmp, width = round(w_in * dpi), height = round(h_in * dpi),
                  res = dpi, bg = "white")
   print(p)
   grDevices::dev.off()
   tmp
+}
+
+#' @describeIn report_helpers Emit a ggplot as a report figure: in-plot
+#'   `title`/`subtitle` are dropped (the document names the figure), the
+#'   height follows the facet layout unless `h_in` is given, and `caption`
+#'   becomes a pandoc figure caption. `NULL` plots emit nothing.
+#' @export
+report_fig <- function(p, w_in = 7, h_in = NULL, caption = NULL, frac = 1,
+                       dpi = 150, output = report_output()) {
+  if (is.null(p)) return(invisible(NULL))
+  if (inherits(p, "ggplot"))
+    p <- p + ggplot2::labs(title = NULL, subtitle = NULL)
+  report_img(report_plot_png(p, w_in, h_in, dpi = dpi), frac,
+             output = output, caption = caption)
 }
 
 #' @describeIn report_helpers Section divider + bold title (+ gray note);

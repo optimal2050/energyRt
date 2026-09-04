@@ -64,7 +64,7 @@ tbl(params$discount_df, caption = "Discount rates (wacc / sdr)")
 ```{r en-horizon, results='asis', eval=!is.null(params$horizon_plot) || !is.null(params$intervals_df)}
 energyRt::report_sec("Horizon", output = fmt)
 if (!is.null(params$horizon_plot)) {
-  emit_img(energyRt::report_plot_png(params$horizon_plot, 7, 2.4), 1)
+  energyRt::report_fig(params$horizon_plot, 7, 2.4, caption = "Planning horizon: milestone years and intervals", output = fmt)
 }
 tbl(params$intervals_df, max_rows = 20)
 ```
@@ -72,12 +72,12 @@ tbl(params$intervals_df, max_rows = 20)
 ```{r en-calendar, results='asis', eval=!is.null(params$calendar_plot) || !is.null(params$frames_df)}
 energyRt::report_sec("Calendar", output = fmt)
 if (!is.null(params$calendar_plot)) {
-  emit_img(energyRt::report_plot_png(params$calendar_plot, 7, 3.4), 1)
+  energyRt::report_fig(params$calendar_plot, 7, 3.4, caption = "Calendar: timeslices per timeframe", output = fmt)
 }
 tbl(params$frames_df, caption = "Timeslices per timeframe")
 ```
 
 ```{r en-geo, results='asis', eval=!is.null(params$geo_map)}
 energyRt::report_sec("Geography", output = fmt)
-emit_img(energyRt::report_plot_png(params$geo_map, 6.5, 4.5), 0.9)
+energyRt::report_fig(params$geo_map, 6.5, caption = "Geoscale membership map", frac = 0.9, output = fmt)
 ```

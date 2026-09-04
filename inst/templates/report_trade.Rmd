@@ -90,7 +90,7 @@ tbl(params$capacity_df, caption = "Capacity", max_rows = 30)
 
 ```{r en-map, results='asis', eval=!is.null(params$map_plot)}
 energyRt::report_sec("Route map", output = fmt)
-emit_img(energyRt::report_plot_png(params$map_plot, 6.5, 4.5), 0.9)
+energyRt::report_fig(params$map_plot, 6.5, 4.5, caption = paste("Routes of", params$name), frac = 0.9, output = fmt)
 ```
 
 ```{r en-levcost, results='asis', eval=!is.null(params$levcost_df)}

@@ -88,6 +88,14 @@
 #'   peers, rendered as a comparison chart. Filled automatically when the
 #'   datasheet is requested from a container (\code{report(mod, name = )});
 #'   rarely passed by hand.
+#' @param groups Process groups for model and scenario reports: a named list
+#'   whose elements are character vectors of process names or regular
+#'   expressions over process names (\code{list(Coal = "_coal_", Wind =
+#'   c("WIN_ON", "^R._win"))}). Defaults to \code{object@misc$report_groups}
+#'   (a scenario falls back to its model's). \code{FALSE} disables groups,
+#'   \code{"topology"} groups automatically by structure. Without groups
+#'   the report shows a representative sample of up to 12 processes.
+#'   Processes in no group form a final "Ungrouped" sample.
 #' @param ... Arguments forwarded to \code{\link{levcost}} (when
 #'   \code{levcost = NULL} and levcost parameters are provided) and/or to
 #'   \code{rmarkdown::render()}.  Known \code{levcost} parameter names are
@@ -1289,54 +1297,8 @@ Levelized cost section will be omitted.")
   groups <- split(seq_along(procs), keys)
   out <- lapply(names(groups), function(k) {
     idx <- groups[[k]][order(nms[groups[[k]]])]
-    members <- procs[idx]
-    rep_ <- members[[1]]
-    draw_file <- if (isTRUE(draw)) tryCatch({
-      tf <- tempfile(pattern = "report_draw_", fileext = ".png")
-      grDevices::png(tf, width = 900, height = 600, res = 150, bg = "white")
-      draw(rep_)
-      grDevices::dev.off()
-      if (file.exists(tf) && file.info(tf)$size > 5000) tf else NULL
-    }, error = function(e) {
-      tryCatch(grDevices::dev.off(), error = function(e2) NULL)
-      NULL
-    }) else NULL
-    members_df <- data.frame(
-      name = vapply(members, function(p) p@name, character(1)),
-      desc = vapply(members, function(p)
-        tryCatch(p@desc, error = function(e) ""), character(1)),
-      stringsAsFactors = FALSE)
-    detail_df <- tryCatch({
-      dparts <- lapply(members, function(p) {
-        d <- .proc_info_df(p)
-        if (is.null(d)) return(NULL)
-        keep <- d$parameter %in% c("input", "output", "invcost", "fixom",
-                                   "varom", "olife", "start",
-                                   "stock (total)")
-        d <- d[keep, , drop = FALSE]
-        if (nrow(d) == 0) return(NULL)
-        w <- as.data.frame(as.list(stats::setNames(d$value, d$parameter)),
-                          optional = TRUE, stringsAsFactors = FALSE)
-        cbind(data.frame(name = p@name, stringsAsFactors = FALSE), w)
-      })
-      dparts <- Filter(Negate(is.null), dparts)
-      if (length(dparts) == 0) NULL else {
-        cols <- unique(unlist(lapply(dparts, names)))
-        dparts <- lapply(dparts, function(d) {
-          for (cc in setdiff(cols, names(d))) d[[cc]] <- NA
-          d[, cols, drop = FALSE]
-        })
-        do.call(rbind, dparts)
-      }
-    }, error = function(e) NULL)
-    list(key = k, class = class(rep_)[1],
-         label = .proc_topology_label(k),
-         members = members_df$name, n = length(members),
-         representative = rep_@name,
-         members_df = members_df,
-         ranges_df = .proc_ranges_df(members),
-         detail_df = detail_df,
-         draw_file = draw_file)
+    .proc_group_build(procs[idx], key = k, label = .proc_topology_label(k),
+                      draw = draw)
   })
   out <- out[order(-vapply(out, function(g) g$n, integer(1)),
                    vapply(out, function(g) g$class, character(1)),
@@ -1344,6 +1306,138 @@ Levelized cost section will be omitted.")
   # index stamped after the final sort so G1..Gn matches display order
   for (i in seq_along(out)) out[[i]]$index <- sprintf("G%d", i)
   out
+}
+
+# One report group from its member objects: schematic of the first member,
+# member table, parameter ranges and the per-member detail table.
+#' @noRd
+.proc_group_build <- function(members, key, label, draw = TRUE) {
+  rep_ <- members[[1]]
+  draw_file <- if (isTRUE(draw)) .report_draw_png(rep_) else NULL
+  members_df <- data.frame(
+    name = vapply(members, function(p) p@name, character(1)),
+    desc = vapply(members, function(p)
+      tryCatch(p@desc, error = function(e) ""), character(1)),
+    stringsAsFactors = FALSE)
+  detail_df <- tryCatch({
+    dparts <- lapply(members, function(p) {
+      d <- .proc_info_df(p)
+      if (is.null(d)) return(NULL)
+      keep <- d$parameter %in% c("input", "output", "invcost", "fixom",
+                                 "varom", "olife", "start",
+                                 "stock (total)")
+      d <- d[keep, , drop = FALSE]
+      if (nrow(d) == 0) return(NULL)
+      w <- as.data.frame(as.list(stats::setNames(d$value, d$parameter)),
+                        optional = TRUE, stringsAsFactors = FALSE)
+      cbind(data.frame(name = p@name, stringsAsFactors = FALSE), w)
+    })
+    dparts <- Filter(Negate(is.null), dparts)
+    if (length(dparts) == 0) NULL else {
+      cols <- unique(unlist(lapply(dparts, names)))
+      dparts <- lapply(dparts, function(d) {
+        for (cc in setdiff(cols, names(d))) d[[cc]] <- NA
+        d[, cols, drop = FALSE]
+      })
+      do.call(rbind, dparts)
+    }
+  }, error = function(e) NULL)
+  cls <- unique(vapply(members, function(p) class(p)[1], character(1)))
+  list(key = key, class = if (length(cls) == 1L) cls else "process",
+       label = label,
+       members = members_df$name, n = length(members),
+       representative = rep_@name,
+       members_df = members_df,
+       ranges_df = .proc_ranges_df(members),
+       detail_df = detail_df,
+       draw_file = draw_file)
+}
+
+# A representative sample of processes: one per topology first (alphabetical
+# within each), then alphabetical fill, up to `n`.
+#' @noRd
+.proc_sample <- function(procs, n = 12L) {
+  if (length(procs) <= n) return(procs)
+  nms <- vapply(procs, function(p) p@name, character(1))
+  procs <- procs[order(nms)]
+  nms <- sort(nms)
+  keys <- vapply(procs, .proc_topology_key, character(1))
+  first <- !duplicated(keys)
+  pick <- which(first)[seq_len(min(n, sum(first)))]
+  if (length(pick) < n)
+    pick <- c(pick, setdiff(seq_along(procs), pick)[seq_len(n - length(pick))])
+  procs[sort(pick)]
+}
+
+# Resolve the report's process groups. Precedence: `groups` argument >
+# `container@misc$report_groups` > a scenario's model misc. A spec is a
+# named list of character vectors; an entry equal to a process name is that
+# process, any other entry is a regex over process names. `FALSE` = no
+# groups; `"topology"` = auto-grouping by structure. Processes in no group
+# form a final "Ungrouped" sample.
+#' @noRd
+.report_groups_resolve <- function(container, groups = NULL, procs,
+                                   draw = TRUE, sample_n = 12L) {
+  spec <- groups
+  if (is.null(spec)) {
+    spec <- tryCatch(container@misc$report_groups, error = function(e) NULL)
+    if (is.null(spec) && inherits(container, "scenario"))
+      spec <- tryCatch(container@model@misc$report_groups,
+                       error = function(e) NULL)
+  }
+  if (is.null(spec) || isFALSE(spec) || length(procs) == 0) return(list())
+  if (identical(spec, "topology")) return(.proc_groups(procs, draw = draw))
+  if (!is.list(spec) || is.null(names(spec)) || any(!nzchar(names(spec)))) {
+    warning("report(): `groups` must be a named list of process names or ",
+            "patterns; ignoring it.", call. = FALSE)
+    return(list())
+  }
+  nms <- vapply(procs, function(p) p@name, character(1))
+  taken <- rep(FALSE, length(procs))
+  out <- list()
+  for (g in names(spec)) {
+    pat <- as.character(spec[[g]])
+    hit <- rep(FALSE, length(procs))
+    for (q in pat[nzchar(pat)]) {
+      hit <- hit | if (q %in% nms) nms == q else
+        grepl(q, nms, perl = TRUE)
+    }
+    idx <- which(hit & !taken)
+    if (length(idx) == 0) {
+      warning("report(): group '", g, "' matches no (unclaimed) process.",
+              call. = FALSE)
+      next
+    }
+    taken[idx] <- TRUE
+    idx <- idx[order(nms[idx])]
+    out[[length(out) + 1L]] <- .proc_group_build(procs[idx], key = g,
+                                                 label = g, draw = draw)
+  }
+  rest <- which(!taken)
+  if (length(rest) > 0) {
+    smp <- .proc_sample(procs[rest], n = sample_n)
+    lab <- if (length(rest) > length(smp))
+      paste0("Ungrouped (sample of ", length(smp), " of ", length(rest), ")")
+      else "Ungrouped"
+    out[[length(out) + 1L]] <- .proc_group_build(smp, key = "Ungrouped",
+                                                 label = lab, draw = draw)
+  }
+  for (i in seq_along(out)) out[[i]]$index <- out[[i]]$key
+  out
+}
+
+# Normalized spec for the render key: a stable, environment-free value.
+#' @noRd
+.report_groups_key <- function(container, groups = NULL) {
+  spec <- groups
+  if (is.null(spec)) {
+    spec <- tryCatch(container@misc$report_groups, error = function(e) NULL)
+    if (is.null(spec) && inherits(container, "scenario"))
+      spec <- tryCatch(container@model@misc$report_groups,
+                       error = function(e) NULL)
+  }
+  if (is.null(spec)) return(NULL)
+  if (is.list(spec)) lapply(spec, as.character) else as.character(spec)
 }
 
 # Per-(weather, region) summary of the factor values: unweighted mean /
@@ -1415,11 +1509,9 @@ Levelized cost section will be omitted.")
   }
   if (!inherits(lc, "levcost_list") || length(lc) == 0) return(none)
 
-  # a caller with its own group set (the model report's index table) passes
-  # it so indexes agree across the report
-  if (is.null(groups)) groups <- tryCatch(.proc_groups(
-    lapply(.levcost_processes(container), `[[`, "object"), draw = FALSE),
-    error = function(e) list())
+  # groups come from the report's resolved set (user-defined or topology);
+  # none means no per-group charts
+  if (is.null(groups)) groups <- list()
   idx_map <- if (length(groups) > 0) unlist(lapply(groups, function(g)
     stats::setNames(rep(g$index, length(g$members)), g$members)))
     else stats::setNames(character(0), character(0))
@@ -1451,11 +1543,11 @@ Levelized cost section will be omitted.")
       mem <- intersect(g$members, names(lc))
       if (length(mem) < 2) next
       sub <- structure(lc[mem], class = c("levcost_list", "list"))
-      p <- tryCatch(
-        ggplot2::autoplot(sub, cost_unit = cost_unit) +
-          ggplot2::ggtitle(paste0(g$index, " \u2014 ", g$label)),
-        error = function(e) NULL)
-      if (!is.null(p)) ps[[g$index]] <- p
+      p <- tryCatch(ggplot2::autoplot(sub, cost_unit = cost_unit),
+                    error = function(e) NULL)
+      # the list name is the figure caption in the templates
+      if (!is.null(p)) ps[[if (identical(g$index, g$label)) g$label else
+        paste0(g$index, " \u2014 ", g$label)]] <- p
     }
     if (length(ps) == 0) NULL else ps
   }, error = function(e) NULL) else NULL
@@ -1481,7 +1573,7 @@ Levelized cost section will be omitted.")
 .report_model <- function(object, template, file, format, dots,
                           open = interactive(), reports_path = NULL,
                           force = FALSE, logos = NULL, figure = NULL,
-                          levcost = NULL, cost_unit = NULL) {
+                          levcost = NULL, cost_unit = NULL, groups = NULL) {
   is_model <- inherits(object, "model")
   nm   <- if (nzchar(object@name)) object@name else class(object)[1]
 
@@ -1693,16 +1785,23 @@ Levelized cost section will be omitted.")
     plot_process_windows(object, horizon = horizon), error = function(e) NULL)
     else NULL
 
-  # -- topology groups: one section per process STRUCTURE ------------------
-  # (the grouped view is what the default template shows; per-process
-  # `techs` below is built only for templates that still declare it)
+  # -- process groups (user-defined) or a representative sample -------------
+  procs <- c(techs, stgs)
   need_groups <- want("proc_groups") || want("windows_group_plot") ||
     want("group_index_df") || want("levcost_group_plots")
   proc_groups <- if (need_groups) tryCatch(
-    .proc_groups(c(techs, stgs), draw = want("proc_groups")),
+    .report_groups_resolve(object, groups, procs, draw = want("proc_groups")),
     error = function(e) list()) else list()
-  windows_group_n <- length(proc_groups)
-  group_index_df <- if (want("group_index_df"))
+  grouped <- length(proc_groups) > 0
+  sample_procs <- if (!grouped && (want("techs") || want("windows_group_plot")))
+    .proc_sample(procs, 12L) else list()
+  procs_note <- if (!grouped && length(sample_procs) < length(procs))
+    paste0("Sample of ", length(sample_procs), " of ", length(procs),
+           " processes; define `misc$report_groups` or `report(groups = )` ",
+           "for a curated view.") else NULL
+  windows_group_n <- if (grouped) length(proc_groups) else
+    length(sample_procs)
+  group_index_df <- if (grouped && want("group_index_df"))
     .proc_group_index_df(proc_groups) else NULL
 
   # -- levelized costs, ex-ante (opt-in: levcost = TRUE) -------------------
@@ -1713,29 +1812,24 @@ Levelized cost section will be omitted.")
   levcost_df <- lcp$levcost_df
   levcost_cmp_plot <- lcp$levcost_cmp_plot
   levcost_group_plots <- lcp$levcost_group_plots
+  # grouped: one row per group; otherwise the sample's own windows
   windows_group_plot <- if (gg_ok && want("windows_group_plot") &&
                             windows_group_n > 0) tryCatch({
-    .plot_windows_grouped(.proc_windows(object, horizon = horizon),
-                          proc_groups)
+    w <- .proc_windows(object, horizon = horizon)
+    if (grouped) .plot_windows_grouped(w, proc_groups) else {
+      w <- w[w$process %in% vapply(sample_procs, function(p) p@name,
+                                   character(1)), , drop = FALSE]
+      if (nrow(w) == 0) NULL else .plot_windows_df(w)
+    }
   }, error = function(e) NULL) else NULL
 
-  # -- per-process sections --------------------------------------------------
+  # -- per-process sections (the sample, when no groups) --------------------
   tech_list <- if (!want("techs")) list() else
-    lapply(c(techs, stgs), function(p) {
-    draw_file <- tryCatch({
-      tf <- tempfile(pattern = "report_draw_", fileext = ".png")
-      grDevices::png(tf, width = 900, height = 600, res = 150, bg = "white")
-      draw(p)
-      grDevices::dev.off()
-      if (file.exists(tf) && file.info(tf)$size > 5000) tf else NULL
-    }, error = function(e) {
-      tryCatch(grDevices::dev.off(), error = function(e2) NULL)
-      NULL
-    })
+    lapply(sample_procs, function(p) {
     list(name = p@name,
          desc = tryCatch(p@desc, error = function(e) ""),
          class = class(p)[1],
-         draw_file = draw_file,
+         draw_file = .report_draw_png(p),
          info_df = .proc_info_df(p))
   })
 
@@ -1754,7 +1848,7 @@ Levelized cost section will be omitted.")
     weather_cf_df = weather_cf_df, weather_heatmaps = weather_heatmaps,
     demand_heatmaps = demand_heatmaps,
     policy_df = policy_df, cns_df = cns_df,
-    windows_plot = windows_plot, techs = tech_list,
+    windows_plot = windows_plot, techs = tech_list, procs_note = procs_note,
     proc_groups = proc_groups,
     windows_group_plot = windows_group_plot,
     windows_group_n = windows_group_n,
@@ -1769,14 +1863,16 @@ Levelized cost section will be omitted.")
                  class = "model", owner = object, reports_path = reports_path,
                  force = force,
                  engine = if (is_model) "report/model" else "report/repository",
-                 key_args = .branding_key(logos_r, figure_r))
+                 key_args = c(.branding_key(logos_r, figure_r),
+                              list(report_groups =
+                                     .report_groups_key(object, groups))))
 }
 
 .report_scenario <- function(scen, template, file, format, dots,
                              open = interactive(), reports_path = NULL,
                              force = FALSE, run = NULL, verify = TRUE,
                              levcost = NULL, cost_unit = NULL,
-                             logos = NULL, badges = NULL) {
+                             logos = NULL, badges = NULL, groups = NULL) {
   nm <- if (nzchar(scen@name)) scen@name else "scenario"
 
   # `levcost = TRUE` opt-in claims the levcost() arguments from `...`
@@ -1991,8 +2087,14 @@ Levelized cost section will be omitted.")
   }, error = function(e) NULL) else NULL
 
   # -- levelized costs, ex-post (opt-in: levcost = TRUE) -------------------
+  lc_groups <- if (isTRUE(levcost) && want("levcost_group_plots")) tryCatch(
+    .report_groups_resolve(
+      scen, groups,
+      lapply(.levcost_processes(scen), `[[`, "object"), draw = FALSE),
+    error = function(e) list()) else list()
   lcp <- .levcost_cmp_params(scen, want, isTRUE(levcost), gg_ok,
-                             lc_args = lc_dots, cost_unit = cost_unit)
+                             lc_args = lc_dots, cost_unit = cost_unit,
+                             groups = lc_groups)
   levcost_df <- lcp$levcost_df
   levcost_cmp_plot <- lcp$levcost_cmp_plot
   levcost_group_plots <- lcp$levcost_group_plots
@@ -2164,7 +2266,9 @@ Levelized cost section will be omitted.")
   .report_render(tmpl, params_fn, file, format, dots, nm, open = open,
                  class = "scenario", owner = scen, reports_path = reports_path,
                  force = force, engine = "report/scenario",
-                 key_args = .branding_key(logos_r, badges_r))
+                 key_args = c(.branding_key(logos_r, badges_r),
+                              list(report_groups =
+                                     .report_groups_key(scen, groups))))
 }
 
 #' @rdname report
@@ -2173,14 +2277,15 @@ setMethod("report", "repository",
   function(object, template = NULL, image_file = NULL, file = NULL,
            format = c("html", "pdf", "tex", "docx"), levcost = NULL, cost_unit = NULL,
            open = interactive(), reports_path = NULL, force = FALSE,
-           logos = NULL, figure = NULL, ...) {
+           logos = NULL, figure = NULL, groups = NULL, ...) {
     if (missing(format)) format <- "html"
     dots <- list(...); name <- dots[["name"]]; dots[["name"]] <- NULL
     if (is.null(name)) {
       return(.report_model(object, template, file, format, dots, open = open,
                            reports_path = reports_path, force = force,
                            logos = logos, figure = figure,
-                           levcost = levcost, cost_unit = cost_unit))
+                           levcost = levcost, cost_unit = cost_unit,
+                           groups = groups))
     }
     .report_container(object, object, object, template, image_file, file, format,
                       levcost, cost_unit, name, dots, open = open,
@@ -2193,14 +2298,15 @@ setMethod("report", "model",
   function(object, template = NULL, image_file = NULL, file = NULL,
            format = c("html", "pdf", "tex", "docx"), levcost = NULL, cost_unit = NULL,
            open = interactive(), reports_path = NULL, force = FALSE,
-           logos = NULL, figure = NULL, ...) {
+           logos = NULL, figure = NULL, groups = NULL, ...) {
     if (missing(format)) format <- "html"
     dots <- list(...); name <- dots[["name"]]; dots[["name"]] <- NULL
     if (is.null(name)) {
       return(.report_model(object, template, file, format, dots, open = open,
                            reports_path = reports_path, force = force,
                            logos = logos, figure = figure,
-                           levcost = levcost, cost_unit = cost_unit))
+                           levcost = levcost, cost_unit = cost_unit,
+                           groups = groups))
     }
     .report_container(object, object, object, template, image_file, file, format,
                       levcost, cost_unit, name, dots, open = open,
@@ -2213,7 +2319,8 @@ setMethod("report", "scenario",
   function(object, template = NULL, image_file = NULL, file = NULL,
            format = c("html", "pdf", "tex", "docx"), levcost = NULL, cost_unit = NULL,
            open = interactive(), reports_path = NULL, force = FALSE,
-           run = NULL, verify = TRUE, logos = NULL, badges = NULL, ...) {
+           run = NULL, verify = TRUE, logos = NULL, badges = NULL,
+           groups = NULL, ...) {
     if (missing(format)) format <- "html"
     dots <- list(...); name <- dots[["name"]]; dots[["name"]] <- NULL
     if (is.null(name)) {
@@ -2221,7 +2328,8 @@ setMethod("report", "scenario",
                               reports_path = reports_path, force = force,
                               run = run, verify = verify, levcost = levcost,
                               cost_unit = cost_unit,
-                              logos = logos, badges = badges))
+                              logos = logos, badges = badges,
+                              groups = groups))
     }
     .report_container(object, object@model, object, template, image_file, file,
                       format, levcost, cost_unit, name, dots, open = open,

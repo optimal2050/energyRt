@@ -70,17 +70,21 @@ tbl(params$config_df)
 tbl(params$counts_df)
 ```
 
-```{r en-horizon-plot, fig.width=7, fig.height=2.6, eval=!is.null(params$horizon_plot)}
-params$horizon_plot
+```{r en-horizon-plot, results='asis', eval=!is.null(params$horizon_plot)}
+energyRt::report_fig(params$horizon_plot, 7, 2.6, caption = "Planning horizon: milestone years and intervals", output = fmt)
 ```
 
-```{r en-geo-map, fig.width=6, fig.height=4, eval=!is.null(params$geo_map)}
-params$geo_map
+```{r en-geo-map, results='asis', eval=!is.null(params$geo_map)}
+energyRt::report_fig(params$geo_map, 6, caption = "Geoscale membership map", output = fmt)
 ```
 
 ```{r en-windows-grp, results='asis', eval=!is.null(params$windows_group_plot)}
-h_in <- min(5, max(2, 1 + 0.15 * params$windows_group_n))
-emit_img(energyRt::report_plot_png(params$windows_group_plot, 7.5, h_in), 1)
+energyRt::report_fig(params$windows_group_plot, 7.5,
+  h_in = min(5, max(2, 1 + 0.15 * params$windows_group_n)),
+  caption = if (is.null(params$group_index_df))
+    "Investment and operating windows of the sampled processes" else
+    "Investment and operating windows by process group",
+  output = fmt)
 ```
 
 ```{r en-group-index, results='asis', eval=!is.null(params$group_index_df)}

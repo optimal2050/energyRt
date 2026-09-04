@@ -54,7 +54,7 @@ tbl(params$info_df)
 
 ```{r en-plot, results='asis', eval=!is.null(params$main_plot)}
 energyRt::report_sec("Rate over time", output = fmt)
-emit_img(energyRt::report_plot_png(params$main_plot, 6.5, 3.2), 0.9)
+energyRt::report_fig(params$main_plot, 6.5, caption = paste("Levels over years:", params$name), frac = 0.9, output = fmt)
 ```
 
 ```{r en-rate, results='asis', eval=!is.null(params$rate_df)}

@@ -66,7 +66,7 @@ tbl(params$emis_df, max_rows = 25)
 ```
 
 ```{r en-emis-plot, results='asis', eval=!is.null(params$main_plot)}
-emit_img(energyRt::report_plot_png(params$main_plot, 6, 3.2), 0.85)
+energyRt::report_fig(params$main_plot, 6, caption = paste("Emission intensity of", params$name), frac = 0.85, output = fmt)
 ```
 
 ```{r en-agg, results='asis', eval=!is.null(params$agg_df)}

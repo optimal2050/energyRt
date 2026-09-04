@@ -120,19 +120,28 @@ report(scen, template = "full")    # comprehensive, page-broken layout
 report(scen, name = "PP")          # one process, priced in this scenario
 ```
 
-Large models group per-process sections by *structure*; each group carries
-a short index (`G1`, `G2`, ...) used on charts and headings, with an index
-table mapping it back to the topology. `levcost = TRUE` adds a
-levelized-cost comparison — an overall chart, one chart per topology
-group, and the ranked table — ex-ante on a model, ex-post on a solved
-scenario; a process datasheet requested from a container also compares the
-process with its structural peers:
+The process sections follow *your* groups: a named list of process names
+or regular expressions, passed as `groups = ` or stored once in
+`mod@misc$report_groups` (a scenario inherits its model's). Without
+groups the report shows a representative sample of up to 12 processes;
+`groups = "topology"` groups automatically by structure. `levcost = TRUE`
+adds a levelized-cost comparison — an overall chart, one chart per group,
+and the ranked table — ex-ante on a model, ex-post on a solved scenario; a
+process datasheet requested from a container also compares the process
+with its structural peers:
 
 ```{r report-levcost, eval = FALSE}
-report(mod, levcost = TRUE)        # ex-ante LCOE comparison section
+mod@misc$report_groups <- list(Coal = "_coal_", Wind = c("^R._win", "WOFF"))
+report(mod)                        # one section per group + "Ungrouped"
+report(mod, groups = FALSE)        # ignore the stored groups: sample of 12
+report(mod, levcost = TRUE)        # ex-ante LCOE comparison, per group
 report(scen, levcost = TRUE)       # ex-post, from the solved scenario
 report(mod, name = "PP")           # datasheet + "vs peers" chart
 ```
+
+Figures in reports carry captions rather than in-plot titles, and faceted
+charts cap at 16 panels with their height following the layout. Custom
+templates get the same behaviour from `report_fig(p, width, caption = )`.
 
 The shipped templates are listed by `report_templates()`; custom `.Rmd`
 templates build on the exported `report_*` helper family and are passed via

@@ -36,6 +36,8 @@ params:
   policy_df:     NULL
   cns_df:        NULL
   proc_groups:        NULL
+  techs:              NULL
+  procs_note:         NULL
   windows_group_plot: NULL
   windows_group_n:    0
   group_index_df:     NULL
@@ -89,24 +91,24 @@ tbl(params$discount_df, caption = "Discount rates (wacc / sdr)")
 tbl(params$geoscale_df, caption = "Geoscale (regions per geoframe)")
 ```
 
-```{r en-geo-map, fig.width=7, fig.height=5, eval=!is.null(params$geo_map)}
-params$geo_map
+```{r en-geo-map, results='asis', eval=!is.null(params$geo_map)}
+energyRt::report_fig(params$geo_map, 7, caption = "Geoscale membership map", output = fmt)
 ```
 
-```{r en-geo-stack, fig.width=7, fig.height=6, eval=!is.null(params$geo_stack)}
-params$geo_stack
+```{r en-geo-stack, results='asis', eval=!is.null(params$geo_stack)}
+energyRt::report_fig(params$geo_stack, 7, 6, caption = "Geoscale levels, coarsest at the bottom", output = fmt)
 ```
 
 ```{r en-calendar-df, results='asis', eval=!is.null(params$calendar_df)}
 tbl(params$calendar_df, caption = "Calendar (timeslices per timeframe)")
 ```
 
-```{r en-horizon-plot, fig.width=7, fig.height=2.6, eval=!is.null(params$horizon_plot)}
-params$horizon_plot
+```{r en-horizon-plot, results='asis', eval=!is.null(params$horizon_plot)}
+energyRt::report_fig(params$horizon_plot, 7, 2.6, caption = "Planning horizon: milestone years and intervals", output = fmt)
 ```
 
-```{r en-calendar-plot, fig.width=7, fig.height=3.4, eval=!is.null(params$calendar_plot)}
-params$calendar_plot
+```{r en-calendar-plot, results='asis', eval=!is.null(params$calendar_plot)}
+energyRt::report_fig(params$calendar_plot, 7, 3.4, caption = "Calendar: timeslices per timeframe", output = fmt)
 ```
 
 ## Contents
@@ -116,8 +118,12 @@ tbl(params$counts_df)
 ```
 
 ```{r en-windows-grp, results='asis', eval=!is.null(params$windows_group_plot)}
-h_in <- min(9, max(2.5, 1.2 + 0.18 * params$windows_group_n))
-emit_img(energyRt::report_plot_png(params$windows_group_plot, 8, h_in), 1)
+energyRt::report_fig(params$windows_group_plot, 8,
+  h_in = min(9, max(2.5, 1.2 + 0.18 * params$windows_group_n)),
+  caption = if (is.null(params$group_index_df))
+    "Investment and operating windows of the sampled processes" else
+    "Investment and operating windows by process group",
+  output = fmt)
 ```
 
 ```{r en-group-index, results='asis', eval=!is.null(params$group_index_df)}
@@ -127,9 +133,10 @@ tbl(params$group_index_df, caption = "Process-group index", max_rows = 40)
 ```{r en-levcost, results='asis', eval=!is.null(params$levcost_cmp_plot) || !is.null(params$levcost_df)}
 cat("## Levelized costs (ex-ante)\n\n")
 if (!is.null(params$levcost_cmp_plot))
-  emit_img(energyRt::report_plot_png(params$levcost_cmp_plot, 7.5, 3.6), 1)
-for (p in params$levcost_group_plots)
-  emit_img(energyRt::report_plot_png(p, 6.5, 3.0), 0.9)
+  energyRt::report_fig(params$levcost_cmp_plot, 7.5, caption = "Levelized cost comparison, most expensive first", output = fmt)
+for (nm in names(params$levcost_group_plots))
+  energyRt::report_fig(params$levcost_group_plots[[nm]], 6.5, 3.0,
+    caption = paste("Levelized cost, group", nm), frac = 0.9, output = fmt)
 if (!is.null(params$levcost_df))
   tbl(params$levcost_df, caption = "Levelized cost, most expensive first",
       max_rows = 30)
@@ -154,8 +161,9 @@ tbl(params$dem_df)
 ```
 
 ```{r en-dem-heat, results='asis', eval=length(params$demand_heatmaps) > 0}
-for (p in params$demand_heatmaps)
-  emit_img(energyRt::report_plot_png(p, 7.5, 2.8), 1)
+for (nm in names(params$demand_heatmaps))
+  energyRt::report_fig(params$demand_heatmaps[[nm]], 7.5,
+    caption = paste("Demand shape on the calendar:", nm), output = fmt)
 ```
 
 ```{r en-trd-header, results='asis', eval=!is.null(params$trd_df)}
@@ -189,8 +197,9 @@ tbl(params$weather_cf_df,
 ```
 
 ```{r en-weather-heat, results='asis', eval=length(params$weather_heatmaps) > 0}
-for (p in params$weather_heatmaps)
-  emit_img(energyRt::report_plot_png(p, 7.5, 3.2), 1)
+for (nm in names(params$weather_heatmaps))
+  energyRt::report_fig(params$weather_heatmaps[[nm]], 7.5,
+    caption = paste("Weather factors on the calendar:", nm), output = fmt)
 ```
 
 ```{r en-policy-header, results='asis', eval=!is.null(params$policy_df)}
@@ -211,17 +220,34 @@ tbl(params$cns_df)
 
 ## Processes
 
-One section per process STRUCTURE (class + input/output/aux commodities);
-the members list names every process sharing it. Per-process datasheets:
-`report(mod, name = "<process>")`.
+```{r en-proc-note, results='asis'}
+if (length(params$proc_groups) > 0) {
+  cat("One section per process group (`misc$report_groups` or ",
+      "`report(groups = )`). Per-process datasheets: ",
+      "`report(mod, name = \"<process>\")`.\n\n", sep = "")
+} else if (!is.null(params$procs_note)) {
+  cat(params$procs_note, "\n\n")
+}
+```
 
 ```{r en-proc-groups, results='asis'}
 for (g in params$proc_groups) {
-  cat("\n\n### ", g$index, " — ", g$label, " (", g$class, ", n = ", g$n,
-      ")\n\n", sep = "")
-  emit_img(g$draw_file, 0.6)
-  cat("\n")
+  hdr <- if (identical(g$index, g$label)) g$label else
+    paste0(g$index, " — ", g$label)
+  cat("\n\n### ", hdr, " (", g$class, ", n = ", g$n, ")\n\n", sep = "")
+  energyRt::report_img(g$draw_file, 0.6, output = fmt,
+                       caption = paste("Structure of", g$representative))
   tbl(g$members_df, caption = "Members", max_rows = 25)
   tbl(g$ranges_df, caption = "Parameter ranges across members")
+}
+```
+
+```{r en-proc-sample, results='asis', eval=length(params$proc_groups) == 0}
+for (t in params$techs) {
+  cat("\n\n### ", t$name, " (", t$class, ")\n\n", sep = "")
+  if (nzchar(t$desc)) cat(t$desc, "\n\n")
+  energyRt::report_img(t$draw_file, 0.6, output = fmt,
+                       caption = paste("Structure of", t$name))
+  tbl(t$info_df, caption = "Parameters")
 }
 ```
