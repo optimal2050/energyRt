@@ -20,7 +20,8 @@
 #
 # Tier mapping: check_params -> tier check; GLPK solves -> tier fast;
 # other backends -> tier cross. GAMS constraints are honoured automatically
-# (dense scenario required; folded scenarios unsupported -> cell skipped).
+# (dense scenario required; the GAMS cell is also folded, so it covers the
+# GAMS x folded combination).
 # =========================================================================== #
 
 # canonical interp cases; a family can pass a subset or extras
@@ -120,8 +121,9 @@ run_family <- function(family, build,
     test_that(paste0("family ", family, ": ", backend, " reproduces the objective"), {
       eval(spec$skip)
       skip_if_no_solver()  # the GLPK reference objective is required
-      # GAMS needs a dense scenario; folded scenarios are unsupported there
-      args <- if (backend == "gams") list(sparse = FALSE) else list()
+      # GAMS needs a dense scenario (no native parameter default); folding it
+      # makes this cell the GAMS x folded coverage
+      args <- if (backend == "gams") list(sparse = FALSE, fold = TRUE) else list()
       scen <- suppressMessages(suppressWarnings(
         .fork_interp(build, family, paste0("x_", backend), args)))
       scen <- .fork_solve(scen, eval(spec$solver))

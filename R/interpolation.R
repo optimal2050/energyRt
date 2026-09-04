@@ -26,11 +26,12 @@
 #' @param fold logical or character; whole-column "fold" of trimmable dimensions
 #'   to NA wildcards to shrink the data. `TRUE` folds `region` + `timeslice`; `FALSE`
 #'   (default) folds nothing; a character vector selects dims among
-#'   `region`, `timeslice`, `year`, `comm`, `tech`, `stg`, `trade`. A folded scenario
-#'   is expanded to solver-ready form at solve time.
-#' @param sparse logical; the storage knob. `TRUE` drops `value == defVal` rows
-#'   (and folds); `FALSE` materialises the default over each parameter's full
-#'   domain (and unfolds).
+#'   `region`, `timeslice`, `year`, `comm`, `tech`, `stg`, `trade`. The wildcards
+#'   are substituted by an artificial set member in the written model files
+#'   only; the scenario object keeps them and `getData()` expands them.
+#' @param sparse logical; the storage knob. `TRUE` drops `value == defVal` rows;
+#'   `FALSE` materialises the default over each parameter's full domain (the
+#'   form GAMS needs). Folding applies to either.
 #' @param prune logical; drop interpolated rows that fall outside the
 #'   equation-domain maps (no effect on the solution, smaller data).
 #' @param validate logical; run [validate_scenario_parameters()] after
@@ -900,12 +901,27 @@ interpolate_model <- function(mod, name = NULL, ...,
   #   across the entity's full membership of that dimension. Runs after the
   #   filter recipe so the per-object timeslice/region membership maps exist. The
   #   reverse operation (`unfold`) is applied at read time in `getData()`.
-  if (length(fold_dims) > 0 && isTRUE(sparse)) {
-    # Fold value parameters (numpar/bounds) to wildcards, but MATERIALISE the maps
-    # so every variable / equation domain stays over explicit members. Folded
-    # value parameters carry their single value at the artificial set member
-    # (ANYREGION / ANYTIMESLICE / 0 for year / ...), substituted into the model code at
-    # write time (apply_fold_artificial); the maps must never reference that member.
+  #   Folded value parameters carry their single value at the artificial set
+  #   member (ANYREGION / ANYTIMESLICE / 0 for year / ...), substituted into the
+  #   model code at write time (apply_fold_artificial); the maps must never
+  #   reference that member, so they always materialise to explicit members.
+  if (!isTRUE(sparse)) {
+    # Dense path (GAMS): materialise any source / interpolated wildcard (NA)
+    # rows in the trimmable dimensions to explicit members, then materialise
+    # each parameter's finite non-zero defVal over its domain, for backends
+    # without a native default. Runs before the clip so over-covered rows are
+    # pruned. The fold below collapses what densify materialised back to one
+    # row per entity (reg5 electricity model: 481,008 -> 37,150 rows).
+    scen <- unfold_scenario_parameters(scen, dims = .foldable_dims)
+    .interp_step(verbose, "densify: materialising defaults over the domain")
+    scen <- densify_parameters(scen)
+    # Drop value-parameter rows outside the equation-domain maps (lifespan
+    # window x membership). The maps are the minimal authority on the domain, so
+    # any remaining row no map indexes is dead data (and may still carry a stale
+    # wildcard NA that is out-of-domain in the solver).
+    scen <- trim_parameters_by_maps(scen)
+  }
+  if (length(fold_dims) > 0) {
     # Record the pre-fold value-parameter total so `model_size` can report the
     # exact rows folding saved (membership re-expansion under-counts entity dims).
     scen@misc$fold_dims <- fold_dims
@@ -916,22 +932,10 @@ interpolate_model <- function(mod, name = NULL, ...,
     # some maps carry NA wildcards (built mid-pipeline on region-folded params)
     # independently of which value-parameter dims are being folded now.
     scen <- unfold_scenario_parameters(scen, dims = .foldable_dims, types = "map")
-  } else {
+  } else if (isTRUE(sparse)) {
     # Materialise any source / interpolated wildcard (NA) rows in the trimmable
     # dimensions to explicit members, so the written model carries no NAs.
     scen <- unfold_scenario_parameters(scen, dims = .foldable_dims)
-    # Densify (sparse = FALSE): now that wildcards are explicit, materialise each
-    # parameter's finite non-zero defVal over its domain for backends without a
-    # native default (GAMS). Runs before the clip so over-covered rows are pruned.
-    if (!isTRUE(sparse)) {
-      .interp_step(verbose, "densify: materialising defaults over the domain")
-      scen <- densify_parameters(scen)
-    }
-    # Drop value-parameter rows outside the equation-domain maps (lifespan
-    # window x membership). The maps are the minimal authority on the domain, so
-    # any remaining row no map indexes is dead data (and may still carry a stale
-    # wildcard NA that is out-of-domain in the solver).
-    scen <- trim_parameters_by_maps(scen)
   }
 
   # Materialise wildcard (NA) trade route endpoints (`src` / `dst`) to the
@@ -1084,11 +1088,11 @@ interpolate_model <- function(mod, name = NULL, ...,
   # value==defVal rows -- a native-default backend (MathProg/JuMP/Pyomo) reads an
   # absent tuple as its defVal, but GAMS reads 0, so a sparse scenario must be
   # densified before a GAMS write. `folded`: the dims actually collapsed to
-  # wildcards (folding only runs on the sparse path; empty = none). `pruned`:
+  # wildcards (empty = none). `pruned`:
   # default-valued flagged rows were dropped. (Replaces the legacy
   # `status$fullsets`, which was `!sparse`.)
   scen@status$sparse <- isTRUE(sparse)
-  scen@status$folded <- if (isTRUE(sparse)) fold_dims else character(0)
+  scen@status$folded <- fold_dims
   scen@status$pruned <- isTRUE(prune)
 
   # Post-interpolation consistency checks (NA index columns, schema, duplicate
@@ -1098,9 +1102,7 @@ interpolate_model <- function(mod, name = NULL, ...,
   if (isTRUE(validate)) {
     .interp_step(verbose, "validating parameters", oneline = FALSE)
     # Permit fold wildcards (NA) only in the dimensions actually folded this run.
-    validate_scenario_parameters(
-      scen, fold = if (isTRUE(sparse)) fold_dims else character(0),
-      action = "warn")
+    validate_scenario_parameters(scen, fold = fold_dims, action = "warn")
   }
 
   .interp_footer(scen, verbose)

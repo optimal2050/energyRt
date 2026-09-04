@@ -422,6 +422,8 @@ autoplot.scenario <- function(object,
   if (identical(fill_var, "process")) {
     agg$process <- .mix_other_last(agg$process)
   }
+  if (!is.null(facet_var) && facet_var %in% names(agg))
+    agg <- .facet_cap(agg, facet_var)
   p <- ggplot2::ggplot(agg,
       ggplot2::aes(factor(.data$year), .data$value,
                    fill = .data[[fill_var]])) +
@@ -433,6 +435,9 @@ autoplot.scenario <- function(object,
     dby <- c("year", if (n_reg > 1) "region")
     dl <- stats::aggregate(dem[["value"]], by = dem[dby], FUN = sum)
     names(dl)[ncol(dl)] <- "value"
+    # the overlay must not resurrect panels the cap dropped
+    if (!is.null(facet_var) && facet_var %in% names(dl))
+      dl <- dl[dl[[facet_var]] %in% unique(agg[[facet_var]]), , drop = FALSE]
     p <- p + ggplot2::geom_point(data = dl,
       ggplot2::aes(factor(.data$year), .data$value),
       inherit.aes = FALSE, shape = 95, size = 8)
@@ -440,7 +445,7 @@ autoplot.scenario <- function(object,
   if (!is.null(facet_var) && facet_var %in% names(agg)) {
     p <- p + ggplot2::facet_wrap(stats::as.formula(paste("~", facet_var)))
   }
-  p
+  .facet_caption(p, agg)
 }
 
 # ── investment / availability windows ─────────────────────────────────────────
@@ -566,11 +571,18 @@ plot_process_windows <- function(object, region = NULL, horizon = NULL) {
     stop("No technologies/storages with availability data found.")
   if (!is.null(region))
     w <- w[w$region %in% c(region, "(all)"), , drop = FALSE]
+  .plot_windows_df(w)
+}
+
+# Draw a prepared windows frame (one row per process x region).
+#' @noRd
+.plot_windows_df <- function(w) {
   # facet only when windows actually differ across regions
   wcols <- c("build_start", "build_end", "oper_end", "stock_start", "stock_end")
   vary <- length(unique(w$region)) > 1 &&
     nrow(unique(w[, c("process", wcols)])) <
     nrow(unique(w[, c("process", "region", wcols)]))
+  if (vary) w <- .facet_cap(w, "region")
   # A process with no investment window still has to sort somewhere: order on
   # whichever of its bars starts first.
   w$.ord <- pmin(w$build_start, w$stock_start, na.rm = TRUE)
@@ -605,7 +617,7 @@ plot_process_windows <- function(object, region = NULL, horizon = NULL) {
       size = 3, colour = "grey35", na.rm = TRUE)
   }
   if (vary) p <- p + ggplot2::facet_wrap(~region)
-  p
+  .facet_caption(p, w)
 }
 
 # Availability windows collapsed to one row per process-topology group

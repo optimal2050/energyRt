@@ -370,6 +370,9 @@ autoplot.scenarios_cmp <- function(object,
         theme_energyRt())
     }
     mx$process <- .mix_other_last(mx$process)
+    n_reg <- length(unique(mx$region))
+    mx <- .facet_cap(mx, if (n_reg > 1) c("region", "scenario") else
+                       "scenario")
     p <- ggplot2::ggplot(mx,
            ggplot2::aes(factor(.data$year), .data$value,
                         fill = .data$process)) +
@@ -377,13 +380,12 @@ autoplot.scenarios_cmp <- function(object,
       ggplot2::labs(x = NULL, y = type, fill = NULL) +
       theme_energyRt()
     for (comp in .legend_compact(length(unique(mx$process)))) p <- p + comp
-    n_reg <- length(unique(mx$region))
     p <- if (n_reg > 1) {
       p + ggplot2::facet_grid(region ~ scenario)
     } else {
       p + ggplot2::facet_wrap(~scenario)
     }
-    return(p)
+    return(.facet_caption(p, mx))
   }
 
   if (type == "emissions") {

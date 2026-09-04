@@ -148,6 +148,12 @@ print.solution_verification <- function(x, ...) {
   if (is.null(p)) return(NULL)
   d <- get_data_slot(p, optional = TRUE)
   if (is.null(d)) return(NULL)
+  # A folded parameter stores NA wildcards; the identities need every member
+  # explicit, as the solver saw them.
+  fi <- p@misc[["fold_info"]]
+  if (!is.null(fi) && isTRUE(fi[["folded"]])) {
+    d <- unfold_scenario_parameter(scen, p)
+  }
   .vs_dechar(data.table::as.data.table(d))
 }
 

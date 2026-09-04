@@ -32,6 +32,11 @@
   "commp", "process", "sup", "imp", "expp", "dem", "weather", "yearp", "type"
 )
 
+# Unfold order: entity dims first (their membership is the full set), then
+# region, then the dims whose membership is keyed on entity and region.
+.unfold_order <- c("comm", "tech", "stg", "trade", "region", "timeslice",
+                   "year", "vintage")
+
 # -----------------------------------------------------------------------------#
 # .read_map: read a mapping/set parameter's data as a plain data.frame.
 # Returns NULL when the map is absent or empty.
@@ -242,6 +247,20 @@
   d <- as.data.frame(data)
   group_cols <- setdiff(names(d), c(dim, value_col))
   shared <- intersect(names(allowed), group_cols)
+  # A shared key whose column is already entirely wildcard (folded earlier)
+  # cannot join the membership. Project the membership over the remaining keys:
+  # the wildcard row stands for every member of that key, so its allowed set is
+  # the union across it. The whole-column rule below still applies, so the fold
+  # stays conservative, and the result no longer depends on the order in which
+  # the dimensions are folded (region then year, or the reverse).
+  wild_keys <- shared[vapply(shared, function(k) {
+    all(is.na(d[[k]]) | is_any(d[[k]]))
+  }, logical(1))]
+  if (length(wild_keys)) {
+    shared <- setdiff(shared, wild_keys)
+    allowed <- dplyr::distinct(
+      allowed[, setdiff(names(allowed), wild_keys), drop = FALSE])
+  }
   # Global membership: `allowed` is the full entity set (only the `dim` column, no
   # parent key). The fold then fires per group only when the group covers the
   # ENTIRE set uniformly.
@@ -442,7 +461,12 @@ unfold_parameter <- function(param, member_sets = list(), value_col = "value") {
   }
   data <- as.data.frame(data)
 
-  for (dim in names(member_sets)) {
+  # A per-entity membership joins only once its key columns are explicit, so
+  # entity dims go first, then region, then timeslice / year. Unfolding region
+  # ahead of tech would join the (NA tech) row on nothing.
+  dims_order <- c(intersect(.unfold_order, names(member_sets)),
+                  setdiff(names(member_sets), .unfold_order))
+  for (dim in dims_order) {
     if (!dim %in% names(data)) next
     allowed <- member_sets[[dim]]
     if (is.null(allowed) || !dim %in% names(allowed)) next
@@ -461,6 +485,17 @@ unfold_parameter <- function(param, member_sets = list(), value_col = "value") {
 
     other_cols <- setdiff(names(data), c(dim, value_col))
     shared <- intersect(names(allowed), other_cols)
+    # A key still entirely wild here (a source wildcard, or a dim outside this
+    # pass) cannot join: project the membership over the remaining keys, the
+    # union across the wild key.
+    wild_keys <- shared[vapply(shared, function(k) {
+      all(is.na(data[[k]]) | is_any(data[[k]]))
+    }, logical(1))]
+    if (length(wild_keys)) {
+      shared <- setdiff(shared, wild_keys)
+      allowed <- dplyr::distinct(
+        allowed[, setdiff(names(allowed), wild_keys), drop = FALSE])
+    }
 
     wild_nodim <- wild[, setdiff(names(wild), dim), drop = FALSE]
     if (length(shared) == 0) {
@@ -510,6 +545,12 @@ fold_scenario_parameters <- function(scen, dims = c("region", "timeslice"),
     p <- scen@modInp@parameters[[pn]]
     if (!inherits(p, "parameter")) next
     if (!(as.character(p@type) %in% c("numpar", "bounds"))) next
+    # User-constraint / user-cost parameters are referenced from the user
+    # equation strings (`scen@modInp@user_constraints[[i]]$equation`,
+    # `user_costs`), which no backend's write-time rewrite touches: a folded
+    # `pCnsRhs*(region, year)` would be looked up at its explicit key and read
+    # the default. Left unfolded.
+    if (grepl("^p(Cns|Costs)", pn)) next
     data <- get_data_slot(p)
     if (is.null(data) || nrow(data) == 0) next
     ms <- .fold_member_sets(scen, as.data.frame(data), dims = dims)
@@ -535,7 +576,7 @@ fold_scenario_parameters <- function(scen, dims = c("region", "timeslice"),
 # membership maps for one parameter and returns its expanded data.frame.
 # -----------------------------------------------------------------------------#
 unfold_scenario_parameter <- function(scen, param,
-                                      dims = c("region", "timeslice", "vintage")) {
+                                      dims = c(.foldable_dims, "vintage")) {
   data <- get_data_slot(param)
   if (is.null(data) || nrow(data) == 0) {
     return(as.data.frame(data))
@@ -554,7 +595,7 @@ unfold_scenario_parameter <- function(scen, param,
 # used by `interp_mod(fold = FALSE)` so the written model carries no NA
 # wildcards in the trimmable dimensions. Returns the updated scenario.
 # -----------------------------------------------------------------------------#
-unfold_scenario_parameters <- function(scen, dims = c("region", "timeslice"),
+unfold_scenario_parameters <- function(scen, dims = .foldable_dims,
                                        types = c("numpar", "bounds", "map"),
                                        verbose = FALSE) {
   dims <- .rename_slice_compat(dims, "dims")
@@ -624,10 +665,24 @@ unfold_trade_routes <- function(scen, verbose = FALSE) {
 
     explicit <- data[!wild, , drop = FALSE]
     other_cols <- setdiff(names(data), c("src", "dst"))
-    # Expand wildcard rows to one row per route pair of their trade.
+    wild_rows <- data[wild, other_cols, drop = FALSE]
+    # Expand wildcard rows to one row per route pair of their trade. A row whose
+    # `trade` is itself a wildcard (folded across every trade) stands for all
+    # trades, so it takes every route; joined on the NA key it would vanish.
+    trade_wild <- is.na(wild_rows$trade) | is_any(wild_rows$trade)
     expanded <- dplyr::inner_join(
-      data[wild, other_cols, drop = FALSE], routes, by = "trade"
+      wild_rows[!trade_wild, , drop = FALSE], routes, by = "trade"
     )
+    if (any(trade_wild)) {
+      allr <- wild_rows[trade_wild, setdiff(other_cols, "trade"), drop = FALSE]
+      allr[[".xk"]] <- 1L
+      rt <- routes
+      rt[[".xk"]] <- 1L
+      exp_all <- dplyr::inner_join(allr, rt, by = ".xk",
+                                   relationship = "many-to-many")
+      exp_all[[".xk"]] <- NULL
+      expanded <- dplyr::bind_rows(expanded, exp_all)
+    }
     # Re-order columns to the original layout.
     expanded <- expanded[, names(data), drop = FALSE]
     # Explicit endpoints win over the expansion at the same full key.
@@ -638,6 +693,14 @@ unfold_trade_routes <- function(scen, verbose = FALSE) {
     out <- dplyr::bind_rows(explicit, expanded)
     before <- nrow(data)
     p2 <- .fold_write_back(p, out)
+    # `trade` is explicit again: keep the fold record truthful
+    fi <- p2@misc[["fold_info"]]
+    if (any(trade_wild) && !is.null(fi) && "trade" %in% fi$wildcard_dims) {
+      fi$wildcard_dims <- setdiff(fi$wildcard_dims, "trade")
+      fi$folded <- length(fi$wildcard_dims) > 0
+      fi$folded_rows <- nrow(out)
+      p2@misc[["fold_info"]] <- fi
+    }
     scen@modInp@parameters[[pn]] <- p2
     if (verbose) {
       message(sprintf("  unfold_routes %-20s %d -> %d rows", pn, before,

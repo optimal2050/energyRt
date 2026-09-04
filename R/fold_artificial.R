@@ -13,7 +13,10 @@
 #
 # Substitution is position-based (the index aliases differ per equation, e.g.
 # `r`, `region`), using each parameter's dimSets to locate the folded position.
-# Declarations use `{}` and are left untouched; only `[]` usages are rewritten.
+# GLPK declarations use `{}` and only `[]` usages are rewritten; JuMP and Pyomo
+# lookups have their own call shapes; GAMS spells a declaration and a use
+# alike, so its rewrite skips declaration lines. The member is a property of the
+# WRITTEN files: `revert_fold_artificial()` takes it back out of the scenario.
 # =========================================================================== #
 
 # Map a solver language to its `.modelCode` block name.
@@ -58,8 +61,13 @@
 # the bracket that opens the index list; the char before a `prefix` match must be a
 # non-identifier (so `pX` does not match inside `vpX`). Matching close found by
 # bracket depth, so nested brackets and commas are safe.
-.subst_indexed <- function(code, prefix, open, close, pos, member) {
+#
+# `skip` (optional) is a logical vector over `code` marking lines the rewrite
+# must not touch: GAMS declaration blocks (`.gams_decl_lines`), where a use and
+# a declaration are spelled alike.
+.subst_indexed <- function(code, prefix, open, close, pos, member, skip = NULL) {
   hit <- which(vapply(code, function(l) grepl(prefix, l, fixed = TRUE), logical(1)))
+  if (!is.null(skip)) hit <- hit[!skip[hit]]
   for (li in hit) {
     line <- code[li]; res <- ""; rest <- line
     repeat {
@@ -99,7 +107,52 @@
          list(prefix = paste0("haskey(", name, ", "), open = "(", close = ")"))
   else if (grepl("PYOMO", backend))
     list(list(prefix = paste0(name, ".get("),     open = "(", close = ")"))
-  else list()  # GAMS: declaration/usage share `()`, needs section-aware handling
+  else if (backend == "GAMS")
+    # GAMS spells a declaration and a use identically (`p(tech, region, year)`
+    # is both), so the pattern is GLPK's over `()` and the rewrite is confined
+    # to non-declaration lines by `.gams_decl_lines()`.
+    list(list(prefix = name, open = "(", close = ")"))
+  else list()
+}
+
+# Lines belonging to a GAMS DECLARATION block: a block keyword at line start
+# through the terminating `;`. Declarations must be left alone -- the artificial
+# member is a real member of its set, so the declared domain
+# `p(tech, region, year, timeslice)` already covers the wildcard key, while
+# rewriting it to `p(tech, 'ANYREGION', year, timeslice)` is not a valid domain
+# (a quoted label is an element, not a set) and would also break the `$loadm`
+# GDX read that the declaration governs.
+#
+# A `*` comment inside a block may carry a `;`; treating that as the terminator
+# drops the rest of the block and every declaration after it gets rewritten.
+# `$ontext` / `$offtext` blocks likewise terminate nothing.
+.gams_decl_lines <- function(code) {
+  hdr <- paste0("^[[:space:]]*(sets?|parameters?|scalars?|table|equations?|",
+                "((free|positive|negative|binary|integer)[[:space:]]+)?",
+                "variables?)([[:space:]]|$)")
+  out <- logical(length(code))
+  inblk <- FALSE
+  intext <- FALSE
+  for (i in seq_along(code)) {
+    ln <- code[i]
+    if (grepl("^[[:space:]]*[$]ontext", ln, ignore.case = TRUE)) {
+      intext <- TRUE; out[i] <- TRUE; next
+    }
+    if (intext) {
+      out[i] <- TRUE
+      if (grepl("^[[:space:]]*[$]offtext", ln, ignore.case = TRUE)) intext <- FALSE
+      next
+    }
+    # `*` in column 1 is a full-line GAMS comment
+    if (grepl("^[*]", ln)) { out[i] <- TRUE; next }
+    if (!inblk && grepl(hdr, ln, ignore.case = TRUE)) inblk <- TRUE
+    if (inblk) {
+      out[i] <- TRUE
+      # a block ends at the first `;`, which may sit on the header line itself
+      if (grepl(";", ln, fixed = TRUE)) inblk <- FALSE
+    }
+  }
+  out
 }
 
 # Member literal as written in each backend's model code, matching how that
@@ -118,6 +171,9 @@
     if (backend == "JuMP" && !isTRUE(a$quote)) return(as.character(a$member))
     return(paste0('"', a$member, '"'))
   }
+  # GAMS: a label in an index position is always quoted, the numeric `year`
+  # wildcard included (`'0'`; a bare 0 is a number, not a label).
+  if (backend == "GAMS") return(paste0("'", a$member, "'"))
   if (!isTRUE(a$quote)) as.character(a$member) else paste0("'", a$member, "'")
 }
 
@@ -179,6 +235,9 @@ apply_fold_artificial <- function(scen, backends = "GLPK",
   for (bk in backends) {
     code <- scen@settings@sourceCode[[bk]]
     if (is.null(code)) next
+    # Computed once: substitution rewrites lines in place, so the line count --
+    # and hence the mask -- stays valid across the loop below.
+    skip <- if (bk == "GAMS") .gams_decl_lines(code) else NULL
     for (dim in names(folded)) {
       lit <- .fold_member_literal(bk, dim)
       for (nm in folded[[dim]]) {
@@ -192,12 +251,54 @@ apply_fold_artificial <- function(scen, backends = "GLPK",
           paste0(nm, c("Up", "Lo", "Fx")) else nm
         for (tg in targets) {
           for (pat in .subst_patterns(bk, tg)) {
-            code <- .subst_indexed(code, pat$prefix, pat$open, pat$close, pos, lit)
+            code <- .subst_indexed(code, pat$prefix, pat$open, pat$close, pos,
+                                   lit, skip = skip)
           }
         }
       }
     }
     scen@settings@sourceCode[[bk]] <- code
   }
+  # what `revert_fold_artificial()` has to take back out
+  scen@misc$fold_artificial <- names(folded)[lengths(folded) > 0]
+  scen
+}
+
+# Undo `apply_fold_artificial()` on the scenario object: the artificial member
+# back to the NA wildcard in every folded value parameter, and out of each set.
+# Left in, the region set reads `R1 R2 ANYREGION` and the year set `2020 0`; a
+# read-time unfold then expands the region wildcard over ANYREGION too, and the
+# year wildcard `0` (neither NA nor ANY*) is not expanded at all. Idempotent.
+# The rewritten model source stays: it is re-copied at interpolation and the
+# substitution rewrites an already substituted position to the same literal.
+revert_fold_artificial <- function(scen, dims = scen@misc$fold_artificial) {
+  dims <- intersect(dims, names(.fold_any))
+  if (length(dims) == 0) return(scen)
+  members <- lapply(.fold_any[dims], `[[`, "member")
+  for (dim in dims) {
+    setp <- scen@modInp@parameters[[dim]]
+    if (is.null(setp)) next
+    sd <- as.data.frame(get_data_slot(setp))
+    if (nrow(sd) > 0 && any(sd[[dim]] %in% members[[dim]])) {
+      scen@modInp@parameters[[dim]] <-
+        .fold_write_back(setp, sd[!sd[[dim]] %in% members[[dim]], , drop = FALSE])
+    }
+  }
+  # one pass over the value parameters, every substituted dim at once
+  for (nm in names(scen@modInp@parameters)) {
+    p <- scen@modInp@parameters[[nm]]
+    if (is.null(p) || p@type %in% c("set", "map")) next
+    d <- as.data.frame(get_data_slot(p))
+    if (is.null(d) || nrow(d) == 0) next
+    touched <- FALSE
+    for (dim in intersect(dims, names(d))) {
+      hit <- !is.na(d[[dim]]) & d[[dim]] %in% members[[dim]]
+      if (!any(hit)) next
+      d[[dim]][hit] <- NA
+      touched <- TRUE
+    }
+    if (touched) scen@modInp@parameters[[nm]] <- .fold_write_back(p, d)
+  }
+  scen@misc$fold_artificial <- NULL
   scen
 }

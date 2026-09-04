@@ -109,16 +109,16 @@ get_gdxlib_path <- function() {
   .write_inc_solver(scen, arg, "option lp = cplex;", ".gms", "cplex")
   if (is.null(scen@status$sparse)) stop("scen@status$sparse not found")
   # GAMS needs a DENSE scenario: it has no native parameter default (an absent
-  # tuple reads as 0, so omitting non-zero-default rows would be silently wrong)
-  # and it does not substitute fold wildcards. Require an explicit dense build
-  # rather than transforming here at write time -- a write-time unfold/densify
-  # cannot faithfully reproduce the full `sparse = FALSE` interpolation (notably
-  # map wildcards such as `mTradeRetUp`, which the value-parameter densify does
-  # not touch).
+  # tuple reads as 0, so omitting non-zero-default rows would be silently wrong).
+  # Require an explicit dense build rather than transforming here at write time
+  # -- a write-time unfold/densify cannot faithfully reproduce the full
+  # `sparse = FALSE` interpolation (notably map wildcards such as `mTradeRetUp`,
+  # which the value-parameter densify does not touch). A dense build may be
+  # FOLDED: the wildcards are substituted by the artificial set member on the
+  # common write path (apply_fold_artificial, R/solve.R) before this runs.
   if (isTRUE(scen@status$sparse)) {
     stop("GAMS export requires a dense scenario. Re-interpolate with ",
-         "interp_mod(..., sparse = FALSE) (which also disables folding), then ",
-         "write to GAMS.")
+         "interp_mod(..., sparse = FALSE), then write to GAMS.")
   }
   # A dense scenario is always written with the dense (full-set) GAMS form.
   .toGams <- function(x) .toGams0(x, FALSE)
@@ -184,7 +184,15 @@ get_gdxlib_path <- function() {
   zz_output <- file(fp(arg$solver.dir, "output.gms"), "w")
   cat(scen@settings@sourceCode[["GAMS_output"]], sep = "\n", file = zz_output)
   close(zz_output)
+  # Set MEMBERS go to `sets.gms`, which the template includes right after the
+  # set declarations; maps and value parameters go to `data.gms`, included
+  # after the equations. GAMS domain-checks a quoted label at compile time, and
+  # a folded parameter is looked up at the artificial member by label
+  # (`pX(tech, 'ANYREGION', year)`), so the members must be known before the
+  # equations that use them.
+  zz_sets_gms <- file(fp(arg$solver.dir, "sets.gms"), "w")
   zz_data_gms <- file(fp(arg$solver.dir, "data.gms"), "w")
+  .data_con <- function(type) if (type == "set") zz_sets_gms else zz_data_gms
   if (grepl("gdx", scen@settings@solver$export_format, ignore.case = TRUE)) {
     if (isTRUE(scen@status$sparse)) {
       # Should not happen: the sparse scenario is densified at the top of
@@ -198,7 +206,8 @@ get_gdxlib_path <- function() {
       gdxName = fp(arg$solver.dir, "input/data.gdx")
     )
 
-    # Add gdx import
+    # Add gdx import: one $gdxin block per file
+    cat("$gdxin input/data.gdx\n", file = zz_sets_gms)
     cat("$gdxin input/data.gdx\n", file = zz_data_gms)
     for (j in c("set", "map", "numpar", "bounds")) {
       for (i in names(scen@modInp@parameters)) {
@@ -206,14 +215,15 @@ get_gdxlib_path <- function() {
           (is.null(scen@modInp@parameters[[i]]@misc$weather) ||
            !scen@modInp@parameters[[i]]@misc$weather)) {
           if (scen@modInp@parameters[[i]]@type != "bounds") {
-            cat(paste0("$loadm ", i, "\n"), file = zz_data_gms)
+            cat(paste0("$loadm ", i, "\n"), file = .data_con(j))
           } else {
-            cat(paste0("$loadm ", i, "Lo\n"), file = zz_data_gms)
-            cat(paste0("$loadm ", i, "Up\n"), file = zz_data_gms)
+            cat(paste0("$loadm ", i, "Lo\n"), file = .data_con(j))
+            cat(paste0("$loadm ", i, "Up\n"), file = .data_con(j))
           }
         }
       }
     }
+    cat("$gdxin\n", file = zz_sets_gms)
     cat("$gdxin\n", file = zz_data_gms)
   } else if (arg$n.threads == 1) {
     for (j in c("set", "map", "numpar", "bounds")) {
@@ -224,12 +234,13 @@ get_gdxlib_path <- function() {
           cat(.toGams(scen@modInp@parameters[[i]]), sep = "\n",
               file = zz_data_tmp)
           close(zz_data_tmp)
-          cat(paste0("$include input/", i, ".gms\n"), file = zz_data_gms)
+          cat(paste0("$include input/", i, ".gms\n"), file = .data_con(j))
         }
       }
     }
   } else {
   }
+  close(zz_sets_gms)
   close(zz_data_gms)
   ### Model code to text
   .write_gams_project_file(arg$solver.dir)

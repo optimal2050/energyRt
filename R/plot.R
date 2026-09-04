@@ -798,12 +798,13 @@ plot_supply_bar <- function(object, type = c("availability", "cost"),
     a$year_f <- factor(ifelse(is.na(a$year), "all", as.character(a$year)))
     fill_col <- if (has_cluster && "cluster" %in% names(a)) "cluster" else
       "region"
+    if (fill_col == "cluster") a <- .facet_cap(a, "region")
     p <- ggplot2::ggplot(a, ggplot2::aes(x = .data$year_f, y = .data$value,
                                          fill = .data[[fill_col]])) +
       ggplot2::geom_col(position = "stack")
     if (fill_col == "cluster" && length(unique(a$region)) > 1)
       p <- p + ggplot2::facet_wrap(~region)
-    p + ggplot2::labs(
+    .facet_caption(p, a) + ggplot2::labs(
       x = "year",
       y = if (is.null(unit)) "availability" else
         paste0("availability [", unit, "/year]"),
@@ -1521,6 +1522,7 @@ plot_weather <- function(object, style = c("heatmap", "line", "area"),
   }
 
   facets <- c(if (reg_multi && !region_axis) "region", if (yr_multi) "year", cfac)
+  if (length(facets) > 0) d <- .facet_cap(d, facets)
 
   ttl <- title
   sub <- subtitle
@@ -1585,7 +1587,7 @@ plot_weather <- function(object, style = c("heatmap", "line", "area"),
 
   if (length(facets) > 0)
     p <- p + ggplot2::facet_wrap(facets, scales = "free_x")
-  p
+  .facet_caption(p, d)
 }
 
 #' @rdname plot_weather
@@ -1611,6 +1613,7 @@ autoplot.weather <- function(object, style = c("heatmap", "line", "area"),
   lev <- if (!is.null(lev) && all(sl %in% lev)) intersect(lev, unique(sl))
     else unique(sl)
   d$timeslice <- factor(sl, levels = lev)
+  if (!is.null(facet) && facet %in% names(d)) d <- .facet_cap(d, facet)
   p <- ggplot2::ggplot(d, ggplot2::aes(x = .data$timeslice,
                                        y = .data[[y_col]],
                                        fill = .data$wval)) +
@@ -1628,7 +1631,7 @@ autoplot.weather <- function(object, style = c("heatmap", "line", "area"),
   if (!is.null(facet) && facet %in% names(d) &&
       length(unique(d[[facet]])) > 1)
     p <- p + ggplot2::facet_wrap(facet)
-  p
+  .facet_caption(p, d)
 }
 
 # Family key of a weather factor: the name with a trailing cluster suffix
@@ -2088,6 +2091,33 @@ theme_energyRt <- function(base_size = 11, ...) {
 
 # Reorder a discrete fill column so the lump bucket stacks and lists last.
 #' @noRd
+# Cap the facet panels of a data frame: keep the first `max` distinct
+# combinations of `vars` (order of first appearance) and record the counts
+# as attributes for .facet_caption().
+.facet_cap <- function(d, vars, max = 16L) {
+  vars <- intersect(vars, names(d))
+  if (length(vars) == 0 || nrow(d) == 0) return(d)
+  key <- do.call(paste, c(lapply(vars, function(v) as.character(d[[v]])),
+                          sep = "\r"))
+  keys <- unique(key)
+  n_total <- length(keys)
+  if (n_total > max) d <- d[key %in% keys[seq_len(max)], , drop = FALSE]
+  attr(d, "n_panels") <- min(n_total, max)
+  attr(d, "n_total") <- n_total
+  d
+}
+
+# Append the "showing k of N panels" note to a plot's caption when
+# .facet_cap() dropped panels.
+.facet_caption <- function(p, d) {
+  n <- attr(d, "n_panels"); N <- attr(d, "n_total")
+  if (is.null(n) || is.null(N) || N <= n) return(p)
+  note <- paste0("showing ", n, " of ", N, " panels")
+  old <- tryCatch(p$labels$caption, error = function(e) NULL)
+  p + ggplot2::labs(caption = if (is.null(old) || !nzchar(old)) note else
+    paste(old, note, sep = " · "))
+}
+
 .mix_other_last <- function(x, other = c("Other", "Other processes")) {
   u <- unique(as.character(x))
   tail_ <- intersect(other, u)

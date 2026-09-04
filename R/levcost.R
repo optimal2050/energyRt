@@ -2826,9 +2826,12 @@ plot_share_frontier <- function(object, title = NULL, base_size = 11L) {
     }
   }
   if (length(all_plots) == 0L) return(NULL)
+  n_total <- length(all_plots)
+  if (n_total > 16L) all_plots <- all_plots[seq_len(16L)]
   n_panels <- length(all_plots)
   attr(all_plots, "n_per_row") <- min(n_panels, 4L)
   attr(all_plots, "n_panels")  <- n_panels
+  attr(all_plots, "n_total")   <- n_total
   class(all_plots) <- c("share_frontier_plots", "list")
   all_plots
 }
@@ -3191,6 +3194,7 @@ autoplot.levcost_list <- function(object,
                       g$members)))
     plot_df$group <- unname(gmap[as.character(plot_df$tech)])
     plot_df$group[is.na(plot_df$group)] <- "other"
+    plot_df <- .facet_cap(plot_df, "group")
   }
 
   # y-axis label: an explicit `cost_unit` wins; otherwise fall back to the
@@ -3221,7 +3225,7 @@ autoplot.levcost_list <- function(object,
     ggplot2::theme(axis.text.x = ggplot2::element_text(angle = 30, hjust = 1))
   if (!is.null(plot_df$group))
     p <- p + ggplot2::facet_wrap(~group, scales = "free_x")
-  p
+  .facet_caption(p, plot_df)
 }
 
 # -- plot() for the levcost S3 classes ----------------------------------------

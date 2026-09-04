@@ -38,6 +38,13 @@ alias (tech, techp), (region, regionp), (year, yearp), (year, yeare), (year, yea
 alias (timeslice, timeslicep), (timeslice, timeslicepp), (group, groupp), (comm, commp), (comm, acomm), (comm, comme), (sup, supp);
 alias (region, src), (region, dst), (region, region2), (year, year2), (timeslice, timeslice2);
 
+* Set MEMBERS are included here, ahead of the equations. GAMS domain-checks a
+* quoted label at compile time, and a folded parameter is looked up at the
+* artificial member by its quoted label (pX(tech, ANYREGION, year)), so the
+* members must be known before the equations that use them. Maps and value
+* parameters are included after the equations (data.gms).
+$include sets.gms
+
 * Mapping sets
 sets
 mCommReg(comm, region)        Commodity to region mapping (to filter out unused cases)

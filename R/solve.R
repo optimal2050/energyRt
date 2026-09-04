@@ -323,6 +323,26 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
       ))
   }
   if (arg$write) {
+    # A folded scenario keeps its wildcards as NA in the value parameters; the
+    # model source must index the artificial set member instead. Do it HERE, on
+    # the common write path, so every caller gets it -- `write_script()` reaches
+    # this function without passing through `solve_scenario()`, and writing a
+    # folded scenario without the substitution emits a model whose every folded
+    # lookup misses and silently takes the parameter default (0 for costs and
+    # discount rates; Inf for the afs upper bound, which at least fails loudly
+    # as `-Inf * vTechCap` under JuMP). Idempotent: the set member is added only
+    # if absent, NA->member touches only NAs, and re-indexing an already
+    # substituted position rewrites it to the same literal.
+    # GAMS: the `year` wildcard is materialised first. Its member would be a
+    # `0` label in the year set, which the storage equations rank with
+    # `ord(year)`; the other dims are inert there (every equation is map-gated)
+    # and their members are known at compile time via `sets.gms`.
+    .blk_w <- .fold_code_block(scen@settings@solver$lang)
+    if (.blk_w == "GAMS") {
+      scen <- unfold_scenario_parameters(scen, dims = "year",
+                                         types = c("numpar", "bounds"))
+    }
+    scen <- apply_fold_artificial(scen, backends = .blk_w)
     dir.create(arg$solver.dir, recursive = TRUE, showWarnings = FALSE)
     if (arg$echo) cat("Solver directory: ", arg$solver.dir, "\n")
     if (arg$echo) cat("Writing files: ")
@@ -371,6 +391,9 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
       flush.console()
     }
     scen@status$script <- TRUE
+    # The artificial member belongs to the WRITTEN files only: put the NA
+    # wildcard back so the returned scenario reads, and re-writes, as folded.
+    scen <- revert_fold_artificial(scen)
   }
   record <- isTRUE(arg$run.record) && isTRUE(arg[["run"]])
   if (record) .run_record_start(scen, arg)
@@ -729,19 +752,6 @@ solve_scenario <- function(obj, name = obj@name, solver = NULL, solver.dir = NUL
   # so the model would be written out empty. Load the parameter data back into
   # memory before writing.
   scen <- .materialize_modInp(scen)
-
-  # A folded scenario (interp_mod(fold = TRUE)) carries NA wildcards in the
-  # trimmable dimensions. Make it solver-ready by replacing the wildcard with the
-  # artificial set member and substituting it into the chosen backend's model
-  # code. No-op for an unfolded scenario. Substitution is implemented for GLPK
-  # (`[]`), JuMP (`[(...)]` / `haskey`) and Pyomo (`.get((...))`); GAMS still needs
-  # declaration-aware `()` handling.
-  .blk <- .fold_code_block(if (!is.null(solver)) {
-    if (is.list(solver)) solver$lang else solver
-  } else scen@settings@solver$lang)
-  if (.blk %in% c("GLPK", "JuMP", "PYOMOConcrete")) {
-    scen <- apply_fold_artificial(scen, backends = .blk)
-  }
 
   arg <- list(...)
   arg$interpolate <- FALSE

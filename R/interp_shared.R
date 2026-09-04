@@ -173,20 +173,26 @@ interpolate_slot <- interpolate_slot <- function(
     val = "value"
 ) {
   if (!is.null(x$year)) {
-    # year_seq = full_seq(c(x$year, year_seq), 1)
-    if (is.null(year_seq)) year_seq = full_seq(x$year, 1)
+    if (is.null(year_seq)) year_seq <- full_seq(x$year, 1)
+    # Every non-year key column is a group: interpolating the whole column at
+    # once collapses tied years across groups (two regions' values average
+    # into one), and a group with a single year has nothing to interpolate.
+    by <- setdiff(names(x), c("year", val))
     x <- x |>
-      group_by(
-        across(any_of(keys))
-      ) |>
-      complete(year = year_seq) |>
-      ungroup()
+      group_by(across(all_of(by))) |>
+      complete(year = year_seq)
     if (!is.null(val) && !is.na(val)) {
       x <- x |>
         mutate(
-          {{val}} := zoo::na.approx(.data[[val]], x = year)
-        )
+          {{val}} := if (sum(!is.na(.data[[val]])) >= 2) {
+            zoo::na.approx(.data[[val]], x = year, na.rm = FALSE)
+          } else {
+            .data[[val]]
+          }
+        ) |>
+        filter(!is.na(.data[[val]]))
     }
+    x <- ungroup(x)
   }
   # if (is.null(year_seq)) year_seq = full_seq(x$year, 1)
     #

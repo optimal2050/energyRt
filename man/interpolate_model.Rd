@@ -47,12 +47,13 @@ name.}
 \item{fold}{logical or character; whole-column "fold" of trimmable dimensions
 to NA wildcards to shrink the data. \code{TRUE} folds \code{region} + \code{timeslice}; \code{FALSE}
 (default) folds nothing; a character vector selects dims among
-\code{region}, \code{timeslice}, \code{year}, \code{comm}, \code{tech}, \code{stg}, \code{trade}. A folded scenario
-is expanded to solver-ready form at solve time.}
+\code{region}, \code{timeslice}, \code{year}, \code{comm}, \code{tech}, \code{stg}, \code{trade}. The wildcards
+are substituted by an artificial set member in the written model files
+only; the scenario object keeps them and \code{getData()} expands them.}
 
-\item{sparse}{logical; the storage knob. \code{TRUE} drops \code{value == defVal} rows
-(and folds); \code{FALSE} materialises the default over each parameter's full
-domain (and unfolds).}
+\item{sparse}{logical; the storage knob. \code{TRUE} drops \code{value == defVal} rows;
+\code{FALSE} materialises the default over each parameter's full domain (the
+form GAMS needs). Folding applies to either.}
 
 \item{prune}{logical; drop interpolated rows that fall outside the
 equation-domain maps (no effect on the solution, smaller data).}
