@@ -148,15 +148,18 @@ structural and not overridable.
 
 # Models and repositories: stored once, verified by hash
 
-The model is part of the scenario, and by default a saved scenario embeds
-its own copy — self-contained, but wasteful when fifty scenarios share one
-model. The **model store** removes the duplication:
+The model is part of the scenario, but fifty scenarios sharing one model do
+not need fifty copies of it. The **model store** removes the duplication,
+and `save_scenario()` uses it by default: the save above already put the
+model in `models/` and recorded a reference to it.
 
 ```{r model-store}
-mod <- save_model(mod, verbose = FALSE)      # models/SM/
-scen <- save_scenario(scen, verbose = FALSE) # now saved with a REFERENCE
 yaml::read_yaml(file.path(scen@path, "scenario.yml"))$model
+list.files(get_models_path())
 ```
+
+`save_model(mod)` does the same thing explicitly, and is how a model gets
+into the store without saving a scenario at all.
 
 The store folder is simply the model's **name** — `models/SM/` — and it
 updates *in place*: edit a parameter, re-save, same folder. The content
@@ -171,7 +174,9 @@ declare insignificant — a version tag rather than a content proof, marked
 `hash_kept:` in the manifest).
 `load_scenario()` resolves the reference back through the registry and
 errors — naming the fix — if the store is gone.
-`save_scenario(embed_model = TRUE)` keeps a folder self-contained instead.
+`save_scenario(embed_model = TRUE)` keeps a folder self-contained instead,
+and a name already holding a *different* model is never overwritten
+implicitly: that scenario embeds its model and says so.
 
 The hash logic in five lines:
 

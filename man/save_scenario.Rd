@@ -23,9 +23,12 @@ save_scenario(
 
 \item{embed_model}{\code{NULL} (default), \code{TRUE}, or \code{FALSE}. Controls whether
 the model is embedded in the saved scenario or referenced from the model
-store (see \code{\link[=save_model]{save_model()}}). \code{NULL}: reference when the identical model
-content is already in the store, embed otherwise. \code{TRUE}: always embed
-(self-contained folder). \code{FALSE}: require a store hit, error otherwise.
+store (see \code{\link[=save_model]{save_model()}}). \code{NULL}: reference the store entry, saving the
+model to the store first when nothing is stored under that name; embed
+when the name is taken by different content (store entries update in
+place, so writing would replace the version other scenarios reference).
+\code{TRUE}: always embed (self-contained folder). \code{FALSE}: require an
+existing store hit, error otherwise, and never write to the store.
 A referenced save stores only \verb{\{name, hash, path\}}; \code{\link[=load_scenario]{load_scenario()}}
 resolves it back via the registry / model store.}
 

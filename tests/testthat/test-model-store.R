@@ -36,6 +36,27 @@ test_that("object_hash generalizes model_hash to any S4 object", {
   expect_error(object_hash(list()), "isS4")
 })
 
+test_that("hashing tolerates a slot missing from a legacy instance", {
+  # objects serialized before a slot joined their class carry no such
+  # attribute: the class declares it, slot() errors. Simulate by removing
+  # `inp2stg` from a current storage, as a pre-0.89 model holds it.
+  stg <- newStorage(
+    "LEGSTG", commodity = "ELC", duration = 4,
+    fixom = data.frame(out.fixom = 1), vintage = data.frame(olife = 50L))
+  attributes(stg)[["inp2stg"]] <- NULL
+  expect_false(methods::.hasSlot(stg, "inp2stg"))
+  expect_true("inp2stg" %in% slotNames(stg))
+
+  expect_error(object_hash(stg), NA)
+  expect_identical(object_hash(stg), object_hash(stg))
+
+  # and the whole way through save_model(), which is where it surfaced
+  ms_local_store()
+  m <- sp_tech(c(100, 100, 100), optret = FALSE, name = "legacyslot")
+  m@data[[1]]@data[["LEGSTG"]] <- stg
+  expect_error(save_model(m, verbose = FALSE), NA)
+})
+
 test_that("model_hash is stable across rebuilds and blind to @misc noise", {
   m1 <- sp_tech(c(100, 100, 100), optret = FALSE, name = "msh")
   m2 <- sp_tech(c(100, 100, 100), optret = FALSE, name = "msh")
@@ -124,6 +145,88 @@ test_that("a stored model is referenced, not embedded; load resolves it", {
   expect_error(
     suppressMessages(load_scenario(saved@path, env = NULL, verbose = FALSE)),
     "model store")
+})
+
+test_that("the default stores the model, then references it", {
+  skip_if_no_solver()
+  ms_local_store()
+  mod <- sp_tech(c(60, 60, 60), optret = FALSE, name = "msauto")
+  h <- model_hash(mod)
+  # nothing in the store to start with
+  expect_null(energyRt:::.model_store_resolve("msauto", NULL))
+
+  sc <- interpolate_model(mod, name = "msauto", path = ms_root("scen-auto"))
+  sol <- solve_scenario(sc)
+  saved <- suppressMessages(save_scenario(sol, verbose = FALSE))
+
+  # the model landed in the store, under its name, with its content hash
+  store_dir <- ms_root("models", "msauto")
+  expect_true(file.exists(file.path(store_dir, "mod.RData")))
+  expect_identical(yaml::read_yaml(file.path(store_dir, "model.yml"))$hash, h)
+
+  # and the scenario references it rather than embedding a copy
+  mf <- yaml::read_yaml(file.path(saved@path, "scenario.yml"))
+  expect_identical(mf$model$source, "ref")
+  expect_identical(mf$model$hash, h)
+  expect_false(dir.exists(file.path(saved@path, "model", "data")))
+
+  back <- suppressMessages(load_scenario(saved@path, env = NULL,
+                                         verbose = FALSE))
+  expect_identical(back@model@name, "msauto")
+  expect_gt(length(back@model@data), 0L)
+
+  # a second scenario from the same model reuses the one entry
+  sc2 <- interpolate_model(mod, name = "msauto2", path = ms_root("scen-auto2"))
+  saved2 <- suppressMessages(save_scenario(solve_scenario(sc2),
+                                           verbose = FALSE))
+  expect_identical(
+    yaml::read_yaml(file.path(saved2@path, "scenario.yml"))$model$hash, h)
+  expect_identical(
+    length(list.dirs(ms_root("models"), recursive = FALSE)), 1L)
+})
+
+test_that("re-saving a referenced scenario keeps the reference", {
+  skip_if_no_solver()
+  ms_local_store()
+  mod <- sp_tech(c(65, 65, 65), optret = FALSE, name = "msagain")
+  h <- model_hash(mod)
+  sc <- interpolate_model(mod, name = "msagain", path = ms_root("scen-again"))
+  saved <- suppressMessages(save_scenario(solve_scenario(sc), verbose = FALSE))
+
+  # the model comes back thinned, carrying the hash of the entry it was
+  # written from -- the re-save must reference that entry, not re-hash an
+  # empty model and embed it
+  back <- suppressMessages(load_scenario(saved@path, env = NULL,
+                                         verbose = FALSE))
+  expect_false(isInMemory(back@model))
+  again <- suppressMessages(save_scenario(back, verbose = FALSE))
+  mf <- yaml::read_yaml(file.path(again@path, "scenario.yml"))
+  expect_identical(mf$model$source, "ref")
+  expect_identical(mf$model$hash, h)
+})
+
+test_that("an occupied model name embeds rather than replacing the entry", {
+  skip_if_no_solver()
+  ms_local_store()
+  first <- sp_tech(c(50, 50, 50), optret = FALSE, name = "msname")
+  save_model(first, verbose = FALSE)
+  h1 <- model_hash(first)
+
+  # same name, different content: the store entry updates IN PLACE, so an
+  # implicit save would replace the version other scenarios reference
+  other <- sp_tech(c(50, 50, 55), optret = FALSE, name = "msname")
+  expect_false(identical(model_hash(other), h1))
+  sc <- interpolate_model(other, name = "msname_s", path = ms_root("scen-nm"))
+  sol <- solve_scenario(sc)
+  saved <- NULL
+  expect_message(saved <- save_scenario(sol, verbose = TRUE),
+                 "already holds a different version")
+
+  mf <- yaml::read_yaml(file.path(saved@path, "scenario.yml"))
+  expect_identical(mf$model$source, "embedded")
+  # the stored entry is untouched
+  expect_identical(yaml::read_yaml(ms_root("models", "msname", "model.yml"))$hash,
+                   h1)
 })
 
 test_that("embed_model = TRUE embeds even when the store has the model", {

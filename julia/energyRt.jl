@@ -23,6 +23,146 @@ using JuMP
 println(flog, "\"load data\",,\"", Dates.format(now(), "yyyy-mm-dd HH:MM:SS"), "\"")
 include("data.jl")
 include("inc2.jl")
+
+# Mappings used as a filter over a whole set, once per constraint row, cost
+# O(rows x |set|). Grouping the mapping once makes the iteration sparse, as the
+# GAMS `$` restriction these were transliterated from already is.
+function _group(mapping, driver, val, key)
+    # Order follows `driver`, the set the unindexed filter scanned, so each sum
+    # accumulates its terms in the original sequence; floating point addition is
+    # not associative.
+    order = Dict(x => i for (i, x) in enumerate(driver))
+    ix = Dict()
+    for item in mapping
+        k = length(key) == 1 ? item[key[1]] : Tuple(item[i] for i in key)
+        push!(get!(() -> [], ix, k), item[val])
+    end
+    for (_, v) in ix
+        sort!(v, by = x -> order[x])
+    end
+    return ix
+end
+
+mTimesliceFamily_ix = _group(mTimesliceFamily, timeslice, 2, (1,));
+mRegionFamily_ix = _group(mRegionFamily, region, 2, (1,));
+mTechInpCommSameTimeslice_ix = _group(mTechInpCommSameTimeslice, tech, 1, (2,));
+mTechInpCommAgg_ix = _group(mTechInpCommAgg, tech, 1, (2,));
+mTechAInpCommSameTimeslice_ix = _group(mTechAInpCommSameTimeslice, tech, 1, (2,));
+mTechAInpCommAgg_ix = _group(mTechAInpCommAgg, tech, 1, (2,));
+mTechOutCommSameTimeslice_ix = _group(mTechOutCommSameTimeslice, tech, 1, (2,));
+mTechOutCommAgg_ix = _group(mTechOutCommAgg, tech, 1, (2,));
+mTechAOutCommSameTimeslice_ix = _group(mTechAOutCommSameTimeslice, tech, 1, (2,));
+mTechAOutCommAgg_ix = _group(mTechAOutCommAgg, tech, 1, (2,));
+mTechInpCommAggTimeslice_ix = _group(mTechInpCommAggTimeslice, timeslice, 3, (1, 2, 4));
+mTechAInpCommAggTimeslice_ix = _group(mTechAInpCommAggTimeslice, timeslice, 3, (1, 2, 4));
+mTechOutCommAggTimeslice_ix = _group(mTechOutCommAggTimeslice, timeslice, 3, (1, 2, 4));
+mTechAOutCommAggTimeslice_ix = _group(mTechAOutCommAggTimeslice, timeslice, 3, (1, 2, 4));
+
+# Indices for the remaining domain-restriction filters; see _group.
+mAggregateFactor_ix = _group(mAggregateFactor, comm, 2, (1,));
+mCommTimesliceOrParent_ix = _group(mCommTimesliceOrParent, timeslice, 3, (1, 2,));
+mCommTimeslice_ix = _group(mCommTimeslice, timeslice, 2, (1,));
+mDemComm_ix = _group(mDemComm, dem, 1, (2,));
+mDummyExportCost_ix = _group(mDummyExportCost, comm, 1, (2, 3,));
+mDummyExport_ix = _group(mDummyExport, timeslice, 4, (1, 2, 3,));
+mDummyImportCost_ix = _group(mDummyImportCost, comm, 1, (2, 3,));
+mDummyImport_ix = _group(mDummyImport, timeslice, 4, (1, 2, 3,));
+mExpComm_ix = _group(mExpComm, expp, 1, (2,));
+mExportIrCost_ix = _group(mExportIrCost, trade, 1, (2, 3,));
+mExportRowCost_ix = _group(mExportRowCost, expp, 1, (2, 3,));
+mImpComm_ix = _group(mImpComm, imp, 1, (2,));
+mImportIrCost_ix = _group(mImportIrCost, trade, 1, (2, 3,));
+mImportRowCost_ix = _group(mImportRowCost, imp, 1, (2, 3,));
+mStorageAInpCommAggTimeslice_ix = _group(mStorageAInpCommAggTimeslice, timeslice, 3, (1, 2, 4,));
+mStorageAInpCommAgg_ix = _group(mStorageAInpCommAgg, stg, 1, (2,));
+mStorageAInpCommSameTimeslice_ix = _group(mStorageAInpCommSameTimeslice, stg, 1, (2,));
+mStorageAOutCommAggTimeslice_ix = _group(mStorageAOutCommAggTimeslice, timeslice, 3, (1, 2, 4,));
+mStorageAOutCommAgg_ix = _group(mStorageAOutCommAgg, stg, 1, (2,));
+mStorageAOutCommSameTimeslice_ix = _group(mStorageAOutCommSameTimeslice, stg, 1, (2,));
+mStorageEac_ix = _group(mStorageEac, stg, 1, (2, 3,));
+mStorageFixom_ix = _group(mStorageFixom, stg, 1, (2, 3,));
+mStorageInpCommAggTimeslice_ix = _group(mStorageInpCommAggTimeslice, timeslice, 3, (1, 2, 4,));
+mStorageInpCommAgg_ix = _group(mStorageInpCommAgg, stg, 1, (2,));
+mStorageInpCommSameTimeslice_ix = _group(mStorageInpCommSameTimeslice, stg, 1, (2,));
+mStorageInpComm_ix = _group(mStorageInpComm, comm, 2, (1,));
+mStorageOutCommAggTimeslice_ix = _group(mStorageOutCommAggTimeslice, timeslice, 3, (1, 2, 4,));
+mStorageOutCommAgg_ix = _group(mStorageOutCommAgg, stg, 1, (2,));
+mStorageOutCommSameTimeslice_ix = _group(mStorageOutCommSameTimeslice, stg, 1, (2,));
+mStorageOutComm_ix = _group(mStorageOutComm, comm, 2, (1,));
+mStorageRetCost_ix = _group(mStorageRetCost, stg, 1, (2, 3,));
+mStorageStgComm_ix = _group(mStorageStgComm, comm, 2, (1,));
+mStorageVarom_ix = _group(mStorageVarom, stg, 1, (2, 3,));
+mSubCost_ix = _group(mSubCost, comm, 1, (2, 3,));
+mTaxCost_ix = _group(mTaxCost, comm, 1, (2, 3,));
+mTechEac_ix = _group(mTechEac, tech, 1, (2, 3,));
+mTechFixom_ix = _group(mTechFixom, tech, 1, (2, 3,));
+mTechGroupComm_ix = _group(mTechGroupComm, comm, 3, (1, 2,));
+mTechInpComm_ix0_1 = _group(mTechInpComm, tech, 1, (2,));
+mTechInpComm_ix1_0 = _group(mTechInpComm, comm, 2, (1,));
+mTechOutComm_ix = _group(mTechOutComm, comm, 2, (1,));
+mTechRetCost_ix = _group(mTechRetCost, tech, 1, (2, 3,));
+mTechTimeslice_ix = _group(mTechTimeslice, timeslice, 2, (1,));
+mTechVarom_ix = _group(mTechVarom, tech, 1, (2, 3,));
+mTimesliceParentChildE_ix = _group(mTimesliceParentChildE, timeslice, 2, (1,));
+mTradeComm_ix = _group(mTradeComm, comm, 2, (1,));
+mTradeEac_ix = _group(mTradeEac, trade, 1, (2, 3,));
+mTradeFixom_ix = _group(mTradeFixom, trade, 1, (2, 3,));
+mTradeIrCdst2Ainp_ix = _group(mTradeIrCdst2Ainp, region, 3, (1, 2, 4, 5, 6,));
+mTradeIrCdst2Aout_ix = _group(mTradeIrCdst2Aout, region, 3, (1, 2, 4, 5, 6,));
+mTradeIrCsrc2Ainp_ix = _group(mTradeIrCsrc2Ainp, region, 4, (1, 2, 3, 5, 6,));
+mTradeIrCsrc2Aout_ix = _group(mTradeIrCsrc2Aout, region, 4, (1, 2, 3, 5, 6,));
+mTradeRetCost_ix = _group(mTradeRetCost, trade, 1, (2, 3,));
+mTradeRoutes_ix1_02 = _group(mTradeRoutes, region, 2, (1, 3,));
+mTradeRoutes_ix2_01 = _group(mTradeRoutes, region, 3, (1, 2,));
+mTradeTimeslice_ix = _group(mTradeTimeslice, timeslice, 2, (1,));
+mvStorageOut_ix = _group(mvStorageOut, comm, 2, (1, 3, 4, 5,));
+mvStorageRetiredNewCap_ix = _group(mvStorageRetiredNewCap, year, 3, (1, 2, 4,));
+mvSupCost_ix = _group(mvSupCost, sup, 1, (2, 3,));
+mvTechAInp_ix = _group(mvTechAInp, comm, 2, (1, 3, 4, 5,));
+mvTechAOut_ix = _group(mvTechAOut, comm, 2, (1, 3, 4, 5,));
+mvTechRetiredNewCap_ix2_013 = _group(mvTechRetiredNewCap, year, 3, (1, 2, 4,));
+mvTechRetiredNewCap_ix3_012 = _group(mvTechRetiredNewCap, year, 4, (1, 2, 3,));
+mvTotalCost_ix = _group(mvTotalCost, year, 2, (1,));
+
+
+
+# A weather-dependent process carries one weather variate, or a handful; the
+# `weather` set reaches thousands on models with per-cluster profiles. The
+# equations below transliterate a GAMS `$` domain restriction, which GAMS
+# iterates sparsely, so evaluating it as a filter over the whole set makes
+# constraint construction O(rows x |weather|). Grouping each mapping once
+# restores sparse iteration.
+function _weather_index(mapping)
+    # Order follows `weather` iteration order, the one the unindexed filter
+    # produced, so each product keeps its factors in their original sequence;
+    # floating point multiplication is not associative.
+    order = Dict(w => i for (i, w) in enumerate(weather))
+    ix = Dict()
+    for item in mapping
+        key = length(item) == 2 ? item[2] : Tuple(item[2:end])
+        push!(get!(() -> [], ix, key), item[1])
+    end
+    for (_, v) in ix
+        sort!(v, by = w -> order[w])
+    end
+    return ix
+end
+
+mTechWeatherAfLo_ix = _weather_index(mTechWeatherAfLo);
+mTechWeatherAfUp_ix = _weather_index(mTechWeatherAfUp);
+mTechWeatherAfsLo_ix = _weather_index(mTechWeatherAfsLo);
+mTechWeatherAfsUp_ix = _weather_index(mTechWeatherAfsUp);
+mTechWeatherAfcLo_ix = _weather_index(mTechWeatherAfcLo);
+mTechWeatherAfcUp_ix = _weather_index(mTechWeatherAfcUp);
+mSupWeatherLo_ix = _weather_index(mSupWeatherLo);
+mSupWeatherUp_ix = _weather_index(mSupWeatherUp);
+mStorageWeatherAfLo_ix = _weather_index(mStorageWeatherAfLo);
+mStorageWeatherAfUp_ix = _weather_index(mStorageWeatherAfUp);
+mStorageWeatherInpAfLo_ix = _weather_index(mStorageWeatherInpAfLo);
+mStorageWeatherInpAfUp_ix = _weather_index(mStorageWeatherInpAfUp);
+mStorageWeatherOutAfLo_ix = _weather_index(mStorageWeatherOutAfLo);
+mStorageWeatherOutAfUp_ix = _weather_index(mStorageWeatherOutAfUp);
+
 model = Model();
 @variable(model, vTechInv[mTechInv]);
 @variable(model, vTechEac[mTechEac]);
@@ -178,7 +318,7 @@ print("eqTechGrp2Sng(tech, region, group, commp, year, timeslice)...")
             else
                 0
             end
-        ) for c in comm if (t, g, c) in mTechGroupComm
+        ) for c in get(mTechGroupComm_ix, (t, g), ())
     ) ==
     (vTechOut[(t, cp, r, y, s)]) / (
         (
@@ -236,7 +376,7 @@ print("eqTechSng2Grp(tech, region, comm, groupp, year, timeslice)...")
             else
                 0
             end
-        ) for cp in comm if (t, gp, cp) in mTechGroupComm
+        ) for cp in get(mTechGroupComm_ix, (t, gp), ())
     )
 );
 print(
@@ -271,7 +411,7 @@ print("eqTechGrp2Grp(tech, region, group, groupp, year, timeslice)...")
             else
                 0
             end
-        ) for c in comm if (t, g, c) in mTechGroupComm
+        ) for c in get(mTechGroupComm_ix, (t, g), ())
     ) == sum(
         (
             if (t, cp, r, y, s) in mvTechOut
@@ -295,7 +435,7 @@ print("eqTechGrp2Grp(tech, region, group, groupp, year, timeslice)...")
             else
                 0
             end
-        ) for cp in comm if (t, gp, cp) in mTechGroupComm
+        ) for cp in get(mTechGroupComm_ix, (t, gp), ())
     )
 );
 print(
@@ -323,7 +463,7 @@ print("eqTechShareInpLo(tech, region, group, comm, year, timeslice)...")
             else
                 0
             end
-        ) for cp in comm if (t, g, cp) in mTechGroupComm
+        ) for cp in get(mTechGroupComm_ix, (t, g), ())
     )
 );
 print(
@@ -351,7 +491,7 @@ print("eqTechShareInpUp(tech, region, group, comm, year, timeslice)...")
             else
                 0
             end
-        ) for cp in comm if (t, g, cp) in mTechGroupComm
+        ) for cp in get(mTechGroupComm_ix, (t, g), ())
     )
 );
 print(
@@ -379,7 +519,7 @@ print("eqTechShareOutLo(tech, region, group, comm, year, timeslice)...")
             else
                 0
             end
-        ) for cp in comm if (t, g, cp) in mTechGroupComm
+        ) for cp in get(mTechGroupComm_ix, (t, g), ())
     )
 );
 print(
@@ -407,7 +547,7 @@ print("eqTechShareOutUp(tech, region, group, comm, year, timeslice)...")
             else
                 0
             end
-        ) for cp in comm if (t, g, cp) in mTechGroupComm
+        ) for cp in get(mTechGroupComm_ix, (t, g), ())
     )
 );
 print(
@@ -484,7 +624,7 @@ print("eqTechAInp(tech, comm, region, year, timeslice)...")
     ) +
     (
         if (t, c, r, y, s) in mTechRet2AInp
-            (((if (t, r, y) in mvTechRetiredStock; vTechRetiredStock[(t, r, y)]; else; 0; end) + sum(vTechRetiredNewCap[(t, r, yp, y)] for yp in year if (t, r, yp, y) in mvTechRetiredNewCap)) * (
+            (((if (t, r, y) in mvTechRetiredStock; vTechRetiredStock[(t, r, y)]; else; 0; end) + sum(vTechRetiredNewCap[(t, r, yp, y)] for yp in get(mvTechRetiredNewCap_ix2_013, (t, r, y), ()))) * (
                 if haskey(pTechRet2AInp, (t, c, r, y, s))
                     pTechRet2AInp[(t, c, r, y, s)]
                 else
@@ -590,7 +730,7 @@ print("eqTechAOut(tech, comm, region, year, timeslice)...")
     ) +
     (
         if (t, c, r, y, s) in mTechRet2AOut
-            (((if (t, r, y) in mvTechRetiredStock; vTechRetiredStock[(t, r, y)]; else; 0; end) + sum(vTechRetiredNewCap[(t, r, yp, y)] for yp in year if (t, r, yp, y) in mvTechRetiredNewCap)) * (
+            (((if (t, r, y) in mvTechRetiredStock; vTechRetiredStock[(t, r, y)]; else; 0; end) + sum(vTechRetiredNewCap[(t, r, yp, y)] for yp in get(mvTechRetiredNewCap_ix2_013, (t, r, y), ()))) * (
                 if haskey(pTechRet2AOut, (t, c, r, y, s))
                     pTechRet2AOut[(t, c, r, y, s)]
                 else
@@ -668,7 +808,7 @@ print("eqTechAfLo(tech, region, year, timeslice)...")
             else
                 pWeatherDef
             end
-        ) for wth1 in weather if (wth1, t) in mTechWeatherAfLo
+        ) for wth1 in get(mTechWeatherAfLo_ix, t, ())
     ; init = 1) <= vTechAct[(t, r, y, s)]
 );
 print(
@@ -718,7 +858,7 @@ print("eqTechAfUp(tech, region, year, timeslice)...")
             else
                 pWeatherDef
             end
-        ) for wth1 in weather if (wth1, t) in mTechWeatherAfUp
+        ) for wth1 in get(mTechWeatherAfUp_ix, t, ())
     ; init = 1)
 );
 print(
@@ -767,7 +907,7 @@ print("eqTechAfsLo(tech, region, year, timeslice)...")
             else
                 pWeatherDef
             end
-        ) for wth1 in weather if (wth1, t) in mTechWeatherAfsLo
+        ) for wth1 in get(mTechWeatherAfsLo_ix, t, ())
     ; init = 1) <= sum(
         (
             if (t, r, y, sp) in mvTechAct
@@ -775,7 +915,7 @@ print("eqTechAfsLo(tech, region, year, timeslice)...")
             else
                 0
             end
-        ) for sp in timeslice if (s, sp) in mTimesliceParentChildE
+        ) for sp in get(mTimesliceParentChildE_ix, s, ())
     )
 );
 print(
@@ -796,7 +936,7 @@ print("eqTechAfsUp(tech, region, year, timeslice)...")
             else
                 0
             end
-        ) for sp in timeslice if (s, sp) in mTimesliceParentChildE
+        ) for sp in get(mTimesliceParentChildE_ix, s, ())
     ) <=
     (
         if haskey(pTechAfsUp, (t, r, y, s))
@@ -833,7 +973,7 @@ print("eqTechAfsUp(tech, region, year, timeslice)...")
             else
                 pWeatherDef
             end
-        ) for wth1 in weather if (wth1, t) in mTechWeatherAfsUp
+        ) for wth1 in get(mTechWeatherAfsUp_ix, t, ())
     ; init = 1)
 );
 print(
@@ -978,7 +1118,7 @@ print("eqTechActGrp(tech, group, region, year, timeslice)...")
             else
                 0
             end
-        ) for c in comm if (t, g, c) in mTechGroupComm
+        ) for c in get(mTechGroupComm_ix, (t, g), ())
     )
 );
 print(
@@ -1034,7 +1174,7 @@ print("eqTechAfcOutLo(tech, region, comm, year, timeslice)...")
             else
                 pWeatherDef
             end
-        ) for wth1 in weather if (wth1, t, c) in mTechWeatherAfcLo
+        ) for wth1 in get(mTechWeatherAfcLo_ix, (t, c), ())
     ; init = 1) <= vTechOut[(t, c, r, y, s)]
 );
 print(
@@ -1084,7 +1224,7 @@ print("eqTechAfcOutUp(tech, region, comm, year, timeslice)...")
             else
                 pWeatherDef
             end
-        ) for wth1 in weather if (wth1, t, c) in mTechWeatherAfcUp
+        ) for wth1 in get(mTechWeatherAfcUp_ix, (t, c), ())
     ; init = 1)
 );
 print(
@@ -1133,7 +1273,7 @@ print("eqTechAfcInpLo(tech, region, comm, year, timeslice)...")
             else
                 pWeatherDef
             end
-        ) for wth1 in weather if (wth1, t, c) in mTechWeatherAfcLo
+        ) for wth1 in get(mTechWeatherAfcLo_ix, (t, c), ())
     ; init = 1) <= vTechInp[(t, c, r, y, s)]
 );
 print(
@@ -1183,7 +1323,7 @@ print("eqTechAfcInpUp(tech, region, comm, year, timeslice)...")
             else
                 pWeatherDef
             end
-        ) for wth1 in weather if (wth1, t, c) in mTechWeatherAfcUp
+        ) for wth1 in get(mTechWeatherAfcUp_ix, (t, c), ())
     ; init = 1)
 );
 print(
@@ -1337,7 +1477,7 @@ print("eqTechRetiredNewCap(tech, region, year)...")
             else
                 pPeriodLenDef
             end
-        ) for yp in year if (t, r, y, yp) in mvTechRetiredNewCap
+        ) for yp in get(mvTechRetiredNewCap_ix3_012, (t, r, y), ())
     ) <= vTechNewCap[(t, r, y)] * (
         if haskey(pPeriodLen, (y))
             pPeriodLen[(y)]
@@ -1532,6 +1672,12 @@ print("eqStoragePhaseOut(...)...")
     ) + (if haskey(pStorageOutStockNew, (st1, r, y)); pStorageOutStockNew[(st1, r, y)]; else; pStorageOutStockNewDef; end)
 );
 # eqStorageStockPhaseOut -- what the schedule actually removed.
+print(
+    " ",
+    Dates.format(now(), "HH:MM:SS"),
+    "
+",
+)
 print("eqStorageStockPhaseOut...")
 @constraint(
     model,
@@ -2011,6 +2157,12 @@ print("eqTradeStockCap...")
     (if (t1, y) in mvTradeRetiredStock; vTradeRetiredStock[(t1, y)]; else; 0; end) * (if haskey(pPeriodLen, (y)); pPeriodLen[(y)]; else; pPeriodLenDef; end)
 );
 # eqTradePhaseOut -- end-of-life departure, read off the capacity balance.
+print(
+    " ",
+    Dates.format(now(), "HH:MM:SS"),
+    "
+",
+)
 print("eqTradePhaseOut...")
 @constraint(
     model,
@@ -2169,7 +2321,7 @@ print("eqTechRetCost(tech, region, year)...")
             else
                 0
             end
-        ) for yp in year if (t, r, yp, y) in mvTechRetiredNewCap
+        ) for yp in get(mvTechRetiredNewCap_ix2_013, (t, r, y), ())
     )
 );
 print(
@@ -2319,7 +2471,7 @@ print("eqTechVarom(tech, region, year)...")
                     pTimesliceWeightDef
                 end
             ) *
-            vTechInp[(t, c, r, y, s)] for c in comm if (t, c) in mTechInpComm
+            vTechInp[(t, c, r, y, s)] for c in get(mTechInpComm_ix1_0, t, ())
         ) +
         sum(
             (
@@ -2336,7 +2488,7 @@ print("eqTechVarom(tech, region, year)...")
                     pTimesliceWeightDef
                 end
             ) *
-            vTechOut[(t, c, r, y, s)] for c in comm if (t, c) in mTechOutComm
+            vTechOut[(t, c, r, y, s)] for c in get(mTechOutComm_ix, t, ())
         ) +
         sum(
             (
@@ -2353,7 +2505,7 @@ print("eqTechVarom(tech, region, year)...")
                     pTimesliceWeightDef
                 end
             ) *
-            vTechAOut[(t, c, r, y, s)] for c in comm if (t, c, r, y, s) in mvTechAOut
+            vTechAOut[(t, c, r, y, s)] for c in get(mvTechAOut_ix, (t, r, y, s), ())
         ) +
         sum(
             (
@@ -2370,8 +2522,8 @@ print("eqTechVarom(tech, region, year)...")
                     pTimesliceWeightDef
                 end
             ) *
-            vTechAInp[(t, c, r, y, s)] for c in comm if (t, c, r, y, s) in mvTechAInp
-        ) for s in timeslice if (t, s) in mTechTimeslice
+            vTechAInp[(t, c, r, y, s)] for c in get(mvTechAInp_ix, (t, r, y, s), ())
+        ) for s in get(mTechTimeslice_ix, t, ())
     )
 );
 print(
@@ -2405,7 +2557,7 @@ print("eqSupAvaUp(sup, comm, region, year, timeslice)...")
             else
                 pWeatherDef
             end
-        ) for wth1 in weather if (wth1, s1) in mSupWeatherUp
+        ) for wth1 in get(mSupWeatherUp_ix, s1, ())
     ; init = 1)
 );
 print(
@@ -2439,7 +2591,7 @@ print("eqSupAvaLo(sup, comm, region, year, timeslice)...")
             else
                 pWeatherDef
             end
-        ) for wth1 in weather if (wth1, s1) in mSupWeatherLo
+        ) for wth1 in get(mSupWeatherLo_ix, s1, ())
     ; init = 1)
 );
 print(
@@ -2557,7 +2709,7 @@ print("eqDemInp(comm, region, year, timeslice)...")
         else
             pDemandDef
         end
-    ) for d in dem if (d, c) in mDemComm)
+    ) for d in get(mDemComm_ix, c, ()))
 );
 print(
     " ",
@@ -2589,7 +2741,7 @@ print("eqAggOutTot(comm, region, year, timeslice)...")
                 (s, sp) in mTimesliceParentChildE &&
                 (cp, sp) in mCommTimeslice
             )
-        ) for cp in comm if (c, cp) in mAggregateFactor
+        ) for cp in get(mAggregateFactor_ix, c, ())
     )
 );
 print(
@@ -2624,8 +2776,8 @@ print("eqEmsFuelTot(comm, region, year, timeslice)...")
                     else
                         0
                     end
-                ) for sp in timeslice if (c, s, sp) in mCommTimesliceOrParent
-            ) for t in tech if (t, cp) in mTechInpComm
+                ) for sp in get(mCommTimesliceOrParent_ix, (c, s), ())
+            ) for t in get(mTechInpComm_ix0_1, cp, ())
         ) for cp in comm if ((
             if haskey(pEmissionFactor, (c, cp))
                 pEmissionFactor[(c, cp)]
@@ -2666,7 +2818,7 @@ print("eqStorageAInp(stg, comm, region, year, timeslice)...")
             else
                 0
             end
-        ) for cp in comm if (st1, cp) in mStorageStgComm;
+        ) for cp in get(mStorageStgComm_ix, st1, ());
         init = 0
     ) +
     sum(
@@ -2684,7 +2836,7 @@ print("eqStorageAInp(stg, comm, region, year, timeslice)...")
             else
                 0
             end
-        ) for cp in comm if (st1, cp) in mStorageInpComm;
+        ) for cp in get(mStorageInpComm_ix, st1, ());
         init = 0
     ) +
     sum(
@@ -2702,7 +2854,7 @@ print("eqStorageAInp(stg, comm, region, year, timeslice)...")
             else
                 0
             end
-        ) for cp in comm if (st1, cp) in mStorageOutComm;
+        ) for cp in get(mStorageOutComm_ix, st1, ());
         init = 0
     ) +
         (
@@ -2819,7 +2971,7 @@ print("eqStorageAInp(stg, comm, region, year, timeslice)...")
                         else
                             pStorageRet2AInpDef
                         end
-                    ) * ((if (st1, r, y) in mvStorageRetiredStock; vStorageOutRetiredStock[(st1, r, y)]; else; 0; end) + sum(vStorageOutRetiredNewCap[(st1, r, yp, y)] for yp in year if (st1, r, yp, y) in mvStorageRetiredNewCap))
+                    ) * ((if (st1, r, y) in mvStorageRetiredStock; vStorageOutRetiredStock[(st1, r, y)]; else; 0; end) + sum(vStorageOutRetiredNewCap[(st1, r, yp, y)] for yp in get(mvStorageRetiredNewCap_ix, (st1, r, y), ())))
                 )
             else
                 0
@@ -2857,7 +3009,7 @@ print("eqStorageAOut(stg, comm, region, year, timeslice)...")
             else
                 0
             end
-        ) for cp in comm if (st1, cp) in mStorageStgComm;
+        ) for cp in get(mStorageStgComm_ix, st1, ());
         init = 0
     ) +
     sum(
@@ -2875,7 +3027,7 @@ print("eqStorageAOut(stg, comm, region, year, timeslice)...")
             else
                 0
             end
-        ) for cp in comm if (st1, cp) in mStorageInpComm;
+        ) for cp in get(mStorageInpComm_ix, st1, ());
         init = 0
     ) +
     sum(
@@ -2893,7 +3045,7 @@ print("eqStorageAOut(stg, comm, region, year, timeslice)...")
             else
                 0
             end
-        ) for cp in comm if (st1, cp) in mStorageOutComm;
+        ) for cp in get(mStorageOutComm_ix, st1, ());
         init = 0
     ) +
         (
@@ -3010,7 +3162,7 @@ print("eqStorageAOut(stg, comm, region, year, timeslice)...")
                         else
                             pStorageRet2AOutDef
                         end
-                    ) * ((if (st1, r, y) in mvStorageRetiredStock; vStorageOutRetiredStock[(st1, r, y)]; else; 0; end) + sum(vStorageOutRetiredNewCap[(st1, r, yp, y)] for yp in year if (st1, r, yp, y) in mvStorageRetiredNewCap))
+                    ) * ((if (st1, r, y) in mvStorageRetiredStock; vStorageOutRetiredStock[(st1, r, y)]; else; 0; end) + sum(vStorageOutRetiredNewCap[(st1, r, yp, y)] for yp in get(mvStorageRetiredNewCap_ix, (st1, r, y), ())))
                 )
             else
                 0
@@ -3084,7 +3236,7 @@ print("eqStorageLevel(stg, comm, region, year, timeslicep, timeslice)...")
             else
                 pStorageOutEffDef
             end
-        )) for co in comm if (st1, co, r, y, sp) in mvStorageOut;
+        )) for co in get(mvStorageOut_ix, (st1, r, y, sp), ());
         init = 0
     )
 );
@@ -3135,7 +3287,7 @@ print("eqStorageAfLo(stg, comm, region, year, timeslice)...")
             else
                 pWeatherDef
             end
-        ) for wth1 in weather if (wth1, st1) in mStorageWeatherAfLo
+        ) for wth1 in get(mStorageWeatherAfLo_ix, st1, ())
     ; init = 1)
 );
 print(
@@ -3185,7 +3337,7 @@ print("eqStorageAfUp(stg, comm, region, year, timeslice)...")
             else
                 pWeatherDef
             end
-        ) for wth1 in weather if (wth1, st1) in mStorageWeatherAfUp
+        ) for wth1 in get(mStorageWeatherAfUp_ix, st1, ())
     ; init = 1)
 );
 print(
@@ -3206,7 +3358,7 @@ print("eqStorageOutLevel(stg, comm, region, year, timeslice)...")
             else
                 pStorageOutEffDef
             end
-        )) for co in comm if (st1, co, r, y, s) in mvStorageOut;
+        )) for co in get(mvStorageOut_ix, (st1, r, y, s), ());
         init = 0
     ) <= vStorageLevel[(st1, c, r, y, s)]
 );
@@ -3272,7 +3424,7 @@ print("eqStorageInpUp(stg, comm, region, year, timeslice)...")
             else
                 pWeatherDef
             end
-        ) for wth1 in weather if (wth1, st1) in mStorageWeatherInpAfUp
+        ) for wth1 in get(mStorageWeatherInpAfUp_ix, st1, ())
     ; init = 1)
 );
 print(
@@ -3337,7 +3489,7 @@ print("eqStorageInpLo(stg, comm, region, year, timeslice)...")
             else
                 pWeatherDef
             end
-        ) for wth1 in weather if (wth1, st1) in mStorageWeatherInpAfLo
+        ) for wth1 in get(mStorageWeatherInpAfLo_ix, st1, ())
     ; init = 1)
 );
 print(
@@ -3387,7 +3539,7 @@ print("eqStorageOutUp(stg, comm, region, year, timeslice)...")
             else
                 pWeatherDef
             end
-        ) for wth1 in weather if (wth1, st1) in mStorageWeatherOutAfUp
+        ) for wth1 in get(mStorageWeatherOutAfUp_ix, st1, ())
     ; init = 1)
 );
 print(
@@ -3437,7 +3589,7 @@ print("eqStorageOutLo(stg, comm, region, year, timeslice)...")
             else
                 pWeatherDef
             end
-        ) for wth1 in weather if (wth1, st1) in mStorageWeatherOutAfLo
+        ) for wth1 in get(mStorageWeatherOutAfLo_ix, st1, ())
     ; init = 1)
 );
 print(
@@ -3529,6 +3681,12 @@ print("eqStorageInpCap(stg, region, year)...")
         init = 0
     )
 );
+print(
+    " ",
+    Dates.format(now(), "HH:MM:SS"),
+    "
+",
+)
 print("eqStorageInpCapLo(stg, region, year)...")
 @constraint(model, [(st1, r, y) in mStorageInpCapLo],
     vStorageInpCap[(st1, r, y)] >= (
@@ -3538,6 +3696,12 @@ print("eqStorageInpCapLo(stg, region, year)...")
             pStorageInpCapLoDef
         end
     ));
+print(
+    " ",
+    Dates.format(now(), "HH:MM:SS"),
+    "
+",
+)
 print("eqStorageInpCapUp(stg, region, year)...")
 @constraint(model, [(st1, r, y) in mStorageInpCapUp],
     vStorageInpCap[(st1, r, y)] <= (
@@ -3547,6 +3711,12 @@ print("eqStorageInpCapUp(stg, region, year)...")
             pStorageInpCapUpDef
         end
     ));
+print(
+    " ",
+    Dates.format(now(), "HH:MM:SS"),
+    "
+",
+)
 print("eqStorageInpNewCapLo(stg, region, year)...")
 @constraint(model, [(st1, r, y) in mStorageInpNewCapLo],
     vStorageInpNewCap[(st1, r, y)] >= (
@@ -3562,6 +3732,12 @@ print("eqStorageInpNewCapLo(stg, region, year)...")
             pPeriodLenDef
         end
     ));
+print(
+    " ",
+    Dates.format(now(), "HH:MM:SS"),
+    "
+",
+)
 print("eqStorageInpNewCapUp(stg, region, year)...")
 @constraint(model, [(st1, r, y) in mStorageInpNewCapUp],
     vStorageInpNewCap[(st1, r, y)] <= (
@@ -3578,6 +3754,12 @@ print("eqStorageInpNewCapUp(stg, region, year)...")
         end
     ));
 # The inp2out LINK: charging capacity per unit of discharging capacity.
+print(
+    " ",
+    Dates.format(now(), "HH:MM:SS"),
+    "
+",
+)
 print("eqStorageInp2outLo(stg, region, year)...")
 @constraint(model, [(st1, r, y) in mStorageInp2outLo],
     vStorageInpCap[(st1, r, y)] >= (
@@ -3587,6 +3769,12 @@ print("eqStorageInp2outLo(stg, region, year)...")
             pStorageInp2outLoDef
         end
     ) * vStorageOutCap[(st1, r, y)]);
+print(
+    " ",
+    Dates.format(now(), "HH:MM:SS"),
+    "
+",
+)
 print("eqStorageInp2outUp(stg, region, year)...")
 @constraint(model, [(st1, r, y) in mStorageInp2outUp],
     vStorageInpCap[(st1, r, y)] <= (
@@ -3599,6 +3787,12 @@ print("eqStorageInp2outUp(stg, region, year)...")
 # The inp2stg LINK (charging C-rate, 1/h): charging capacity per unit of
 # storing (energy) capacity. No binding default -- the maps carry only rows
 # with a declared finite bound where both capacity variables exist.
+print(
+    " ",
+    Dates.format(now(), "HH:MM:SS"),
+    "
+",
+)
 print("eqStorageInp2stgLo(stg, region, year)...")
 @constraint(model, [(st1, r, y) in mStorageInp2stgLo],
     vStorageInpCap[(st1, r, y)] >= (
@@ -3608,6 +3802,12 @@ print("eqStorageInp2stgLo(stg, region, year)...")
             pStorageInp2stgLoDef
         end
     ) * vStorageStgCap[(st1, r, y)]);
+print(
+    " ",
+    Dates.format(now(), "HH:MM:SS"),
+    "
+",
+)
 print("eqStorageInp2stgUp(stg, region, year)...")
 @constraint(model, [(st1, r, y) in mStorageInp2stgUp],
     vStorageInpCap[(st1, r, y)] <= (
@@ -3620,6 +3820,12 @@ print("eqStorageInp2stgUp(stg, region, year)...")
 # eqStorageStgCap(stg, region, year)$mStorageStgCap(stg, region, year)
 # [2c] the STORING side's own capacity, in ENERGY. Exists only where the storing
 # part carries data; elsewhere the af bounds inline duration * output capacity.
+print(
+    " ",
+    Dates.format(now(), "HH:MM:SS"),
+    "
+",
+)
 print("eqStorageStgCap(stg, region, year)...")
 @constraint(
     model,
@@ -3657,6 +3863,12 @@ print("eqStorageStgCap(stg, region, year)...")
     )
 );
 # eqStorageStgCapLo / Up
+print(
+    " ",
+    Dates.format(now(), "HH:MM:SS"),
+    "
+",
+)
 print("eqStorageStgCapLo(stg, region, year)...")
 @constraint(model, [(st1, r, y) in mStorageStgCapLo],
     vStorageStgCap[(st1, r, y)] >= (
@@ -3666,6 +3878,12 @@ print("eqStorageStgCapLo(stg, region, year)...")
             pStorageStgCapLoDef
         end
     ));
+print(
+    " ",
+    Dates.format(now(), "HH:MM:SS"),
+    "
+",
+)
 print("eqStorageStgCapUp(stg, region, year)...")
 @constraint(model, [(st1, r, y) in mStorageStgCapUp],
     vStorageStgCap[(st1, r, y)] <= (
@@ -3675,6 +3893,12 @@ print("eqStorageStgCapUp(stg, region, year)...")
             pStorageStgCapUpDef
         end
     ));
+print(
+    " ",
+    Dates.format(now(), "HH:MM:SS"),
+    "
+",
+)
 print("eqStorageStgNewCapLo(stg, region, year)...")
 @constraint(model, [(st1, r, y) in mStorageStgNewCapLo],
     vStorageStgNewCap[(st1, r, y)] >= (
@@ -3690,6 +3914,12 @@ print("eqStorageStgNewCapLo(stg, region, year)...")
             pPeriodLenDef
         end
     ));
+print(
+    " ",
+    Dates.format(now(), "HH:MM:SS"),
+    "
+",
+)
 print("eqStorageStgNewCapUp(stg, region, year)...")
 @constraint(model, [(st1, r, y) in mStorageStgNewCapUp],
     vStorageStgNewCap[(st1, r, y)] <= (
@@ -3706,6 +3936,12 @@ print("eqStorageStgNewCapUp(stg, region, year)...")
         end
     ));
 # The duration LINK, in hours. `.fx` collapses these two onto each other.
+print(
+    " ",
+    Dates.format(now(), "HH:MM:SS"),
+    "
+",
+)
 print("eqStorageDurationLo(stg, region, year)...")
 @constraint(model, [(st1, r, y) in mStorageDurationLo],
     vStorageStgCap[(st1, r, y)] >= (
@@ -3715,6 +3951,12 @@ print("eqStorageDurationLo(stg, region, year)...")
             pStorageDurationLoDef
         end
     ) * vStorageOutCap[(st1, r, y)]);
+print(
+    " ",
+    Dates.format(now(), "HH:MM:SS"),
+    "
+",
+)
 print("eqStorageDurationUp(stg, region, year)...")
 @constraint(model, [(st1, r, y) in mStorageDurationUp],
     vStorageStgCap[(st1, r, y)] <= (
@@ -3725,6 +3967,12 @@ print("eqStorageDurationUp(stg, region, year)...")
         end
     ) * vStorageOutCap[(st1, r, y)]);
 # eqStorageOutCapLo(stg, region, year)$mStorageOutCapLo(stg, region, year)
+print(
+    " ",
+    Dates.format(now(), "HH:MM:SS"),
+    "
+",
+)
 print("eqStorageOutCapLo(stg, region, year)...")
 @constraint(
     model,
@@ -4024,9 +4272,9 @@ print("eqStorageVarom(stg, region, year)...")
                     pTimesliceWeightDef
                 end
             ) *
-            vStorageInp[(st1, c, r, y, s)] for s in timeslice if (c, s) in mCommTimeslice;
+            vStorageInp[(st1, c, r, y, s)] for s in get(mCommTimeslice_ix, c, ());
             init = 0
-        ) for c in comm if (st1, c) in mStorageInpComm;
+        ) for c in get(mStorageInpComm_ix, st1, ());
         init = 0
     ) +
     sum(
@@ -4045,9 +4293,9 @@ print("eqStorageVarom(stg, region, year)...")
                     pTimesliceWeightDef
                 end
             ) *
-            vStorageOut[(st1, c, r, y, s)] for s in timeslice if (c, s) in mCommTimeslice;
+            vStorageOut[(st1, c, r, y, s)] for s in get(mCommTimeslice_ix, c, ());
             init = 0
-        ) for c in comm if (st1, c) in mStorageOutComm;
+        ) for c in get(mStorageOutComm_ix, st1, ());
         init = 0
     ) +
     sum(
@@ -4066,9 +4314,9 @@ print("eqStorageVarom(stg, region, year)...")
                     pTimesliceWeightDef
                 end
             ) *
-            vStorageLevel[(st1, c, r, y, s)] for s in timeslice if (c, s) in mCommTimeslice;
+            vStorageLevel[(st1, c, r, y, s)] for s in get(mCommTimeslice_ix, c, ());
             init = 0
-        ) for c in comm if (st1, c) in mStorageStgComm;
+        ) for c in get(mStorageStgComm_ix, st1, ());
         init = 0
     )
 );
@@ -4122,7 +4370,7 @@ print("eqImportTot(comm, dst, year, timeslice)...")
         else
             0
         end
-    ) for i in imp if (i, c) in mImpComm)
+    ) for i in get(mImpComm_ix, c, ()))
 );
 print(
     " ",
@@ -4152,7 +4400,7 @@ print("eqExportTot(comm, src, year, timeslice)...")
         else
             0
         end
-    ) for e in expp if (e, c) in mExpComm)
+    ) for e in get(mExpComm_ix, c, ()))
 );
 print(
     " ",
@@ -4304,9 +4552,9 @@ print("eqImportIrCost(trade, region, year)...")
                     else
                         0
                     end
-                ) for s in timeslice if (t1, s) in mTradeTimeslice
-            ) for c in comm if (t1, c) in mTradeComm
-        ) for src in region if (t1, src, r) in mTradeRoutes
+                ) for s in get(mTradeTimeslice_ix, t1, ())
+            ) for c in get(mTradeComm_ix, t1, ())
+        ) for src in get(mTradeRoutes_ix1_02, (t1, r), ())
     )
 );
 print(
@@ -4354,9 +4602,9 @@ print("eqExportIrCost(trade, region, year)...")
                     else
                         0
                     end
-                ) for s in timeslice if (t1, s) in mTradeTimeslice
-            ) for c in comm if (t1, c) in mTradeComm
-        ) for dst in region if (t1, r, dst) in mTradeRoutes
+                ) for s in get(mTradeTimeslice_ix, t1, ())
+            ) for c in get(mTradeComm_ix, t1, ())
+        ) for dst in get(mTradeRoutes_ix2_01, (t1, r), ())
     )
 );
 print(
@@ -4876,7 +5124,7 @@ print("eqTradeIrAInp(trade, comm, region, year, timeslice)...")
             end
         ) * sum(vTradeIr[(t1, cp, r, dst, y, s)] for cp in comm
               if ((t1, cp) in mTradeComm && (t1, cp, r, dst, y, s) in mvTradeIr))
-        for dst in region if (t1, c, r, dst, y, s) in mTradeIrCsrc2Ainp
+        for dst in get(mTradeIrCsrc2Ainp_ix, (t1, c, r, y, s), ())
     ) + sum(
         (
             if haskey(pTradeIrCdst2Ainp, (t1, c, src, r, y, s))
@@ -4886,7 +5134,7 @@ print("eqTradeIrAInp(trade, comm, region, year, timeslice)...")
             end
         ) * sum(vTradeIr[(t1, cp, src, r, y, s)] for cp in comm
               if ((t1, cp) in mTradeComm && (t1, cp, src, r, y, s) in mvTradeIr))
-        for src in region if (t1, c, src, r, y, s) in mTradeIrCdst2Ainp
+        for src in get(mTradeIrCdst2Ainp_ix, (t1, c, r, y, s), ())
     )
 );
 print(
@@ -4910,7 +5158,7 @@ print("eqTradeIrAOut(trade, comm, region, year, timeslice)...")
             end
         ) * sum(vTradeIr[(t1, cp, r, dst, y, s)] for cp in comm
               if ((t1, cp) in mTradeComm && (t1, cp, r, dst, y, s) in mvTradeIr))
-        for dst in region if (t1, c, r, dst, y, s) in mTradeIrCsrc2Aout
+        for dst in get(mTradeIrCsrc2Aout_ix, (t1, c, r, y, s), ())
     ) + sum(
         (
             if haskey(pTradeIrCdst2Aout, (t1, c, src, r, y, s))
@@ -4920,7 +5168,7 @@ print("eqTradeIrAOut(trade, comm, region, year, timeslice)...")
             end
         ) * sum(vTradeIr[(t1, cp, src, r, y, s)] for cp in comm
               if ((t1, cp) in mTradeComm && (t1, cp, src, r, y, s) in mvTradeIr))
-        for src in region if (t1, c, src, r, y, s) in mTradeIrCdst2Aout
+        for src in get(mTradeIrCdst2Aout_ix, (t1, c, r, y, s), ())
     )
 );
 print(
@@ -5087,7 +5335,7 @@ print("eqOutTot(comm, region, year, timeslice)...")
                 pTimesliceAggDef
             end
         ) * vOutTot[(c, r, y, sp)]
-        for sp in timeslice if ((s, sp) in mTimesliceFamily && (c, r, y, sp) in mvOutTot);
+        for sp in get(mTimesliceFamily_ix, s, ()) if (c, r, y, sp) in mvOutTot;
         init = 0
     ) +
     # [nested-regions] up-aggregation of the immediately-finer region level.
@@ -5095,7 +5343,7 @@ print("eqOutTot(comm, region, year, timeslice)...")
     # timeslice values above.
     sum(
         vOutTot[(c, rp, y, s)]
-        for rp in region if ((r, rp) in mRegionFamily && (c, rp, y, s) in mvOutTot);
+        for rp in get(mRegionFamily_ix, r, ()) if (c, rp, y, s) in mvOutTot;
         init = 0
     )
 );
@@ -5166,7 +5414,7 @@ print("eqInpTot(comm, region, year, timeslice)...")
                 pTimesliceAggDef
             end
         ) * vInpTot[(c, r, y, sp)]
-        for sp in timeslice if ((s, sp) in mTimesliceFamily && (c, r, y, sp) in mvInpTot);
+        for sp in get(mTimesliceFamily_ix, s, ()) if (c, r, y, sp) in mvInpTot;
         init = 0
     ) +
     # [nested-regions] up-aggregation of the immediately-finer region level.
@@ -5174,7 +5422,7 @@ print("eqInpTot(comm, region, year, timeslice)...")
     # timeslice values above.
     sum(
         vInpTot[(c, rp, y, s)]
-        for rp in region if ((r, rp) in mRegionFamily && (c, rp, y, s) in mvInpTot);
+        for rp in get(mRegionFamily_ix, r, ()) if (c, rp, y, s) in mvInpTot;
         init = 0
     )
 );
@@ -5219,7 +5467,7 @@ print("eqTechInpTot(comm, region, year, timeslice)...")
             else
                 0
             end
-        ) for t in tech if (t, c) in mTechInpCommSameTimeslice
+        ) for t in get(mTechInpCommSameTimeslice_ix, c, ())
     ) +
     sum(
         sum(
@@ -5229,8 +5477,8 @@ print("eqTechInpTot(comm, region, year, timeslice)...")
                 else
                     0
                 end
-            ) for sp in timeslice if (t, c, sp, s) in mTechInpCommAggTimeslice
-        ) for t in tech if (t, c) in mTechInpCommAgg
+            ) for sp in get(mTechInpCommAggTimeslice_ix, (t, c, s), ())
+        ) for t in get(mTechInpCommAgg_ix, c, ())
     ) +
     sum(
         (
@@ -5239,7 +5487,7 @@ print("eqTechInpTot(comm, region, year, timeslice)...")
             else
                 0
             end
-        ) for t in tech if (t, c) in mTechAInpCommSameTimeslice
+        ) for t in get(mTechAInpCommSameTimeslice_ix, c, ())
     ) +
     sum(
         sum(
@@ -5249,8 +5497,8 @@ print("eqTechInpTot(comm, region, year, timeslice)...")
                 else
                     0
                 end
-            ) for sp in timeslice if (t, c, sp, s) in mTechAInpCommAggTimeslice
-        ) for t in tech if (t, c) in mTechAInpCommAgg
+            ) for sp in get(mTechAInpCommAggTimeslice_ix, (t, c, s), ())
+        ) for t in get(mTechAInpCommAgg_ix, c, ())
     )
 );
 print(
@@ -5272,7 +5520,7 @@ print("eqTechOutTot(comm, region, year, timeslice)...")
             else
                 0
             end
-        ) for t in tech if (t, c) in mTechOutCommSameTimeslice
+        ) for t in get(mTechOutCommSameTimeslice_ix, c, ())
     ) +
     sum(
         sum(
@@ -5282,8 +5530,8 @@ print("eqTechOutTot(comm, region, year, timeslice)...")
                 else
                     0
                 end
-            ) for sp in timeslice if (t, c, sp, s) in mTechOutCommAggTimeslice
-        ) for t in tech if (t, c) in mTechOutCommAgg
+            ) for sp in get(mTechOutCommAggTimeslice_ix, (t, c, s), ())
+        ) for t in get(mTechOutCommAgg_ix, c, ())
     ) +
     sum(
         (
@@ -5292,7 +5540,7 @@ print("eqTechOutTot(comm, region, year, timeslice)...")
             else
                 0
             end
-        ) for t in tech if (t, c) in mTechAOutCommSameTimeslice
+        ) for t in get(mTechAOutCommSameTimeslice_ix, c, ())
     ) +
     sum(
         sum(
@@ -5302,8 +5550,8 @@ print("eqTechOutTot(comm, region, year, timeslice)...")
                 else
                     0
                 end
-            ) for sp in timeslice if (t, c, sp, s) in mTechAOutCommAggTimeslice
-        ) for t in tech if (t, c) in mTechAOutCommAgg
+            ) for sp in get(mTechAOutCommAggTimeslice_ix, (t, c, s), ())
+        ) for t in get(mTechAOutCommAgg_ix, c, ())
     )
 );
 print(
@@ -5326,7 +5574,7 @@ print("eqStorageInpTot(comm, region, year, timeslice)...")
             else
                 0
             end
-        ) for st1 in stg if (st1, c) in mStorageInpCommSameTimeslice
+        ) for st1 in get(mStorageInpCommSameTimeslice_ix, c, ())
     ) +
     sum(
         sum(
@@ -5336,8 +5584,8 @@ print("eqStorageInpTot(comm, region, year, timeslice)...")
                 else
                     0
                 end
-            ) for sp in timeslice if (st1, c, sp, s) in mStorageInpCommAggTimeslice
-        ) for st1 in stg if (st1, c) in mStorageInpCommAgg
+            ) for sp in get(mStorageInpCommAggTimeslice_ix, (st1, c, s), ())
+        ) for st1 in get(mStorageInpCommAgg_ix, c, ())
     ) +
     sum(
         (
@@ -5346,7 +5594,7 @@ print("eqStorageInpTot(comm, region, year, timeslice)...")
             else
                 0
             end
-        ) for st1 in stg if (st1, c) in mStorageAInpCommSameTimeslice
+        ) for st1 in get(mStorageAInpCommSameTimeslice_ix, c, ())
     ) +
     sum(
         sum(
@@ -5356,8 +5604,8 @@ print("eqStorageInpTot(comm, region, year, timeslice)...")
                 else
                     0
                 end
-            ) for sp in timeslice if (st1, c, sp, s) in mStorageAInpCommAggTimeslice
-        ) for st1 in stg if (st1, c) in mStorageAInpCommAgg
+            ) for sp in get(mStorageAInpCommAggTimeslice_ix, (st1, c, s), ())
+        ) for st1 in get(mStorageAInpCommAgg_ix, c, ())
     )
 );
 print(
@@ -5379,7 +5627,7 @@ print("eqStorageOutTot(comm, region, year, timeslice)...")
             else
                 0
             end
-        ) for st1 in stg if (st1, c) in mStorageOutCommSameTimeslice
+        ) for st1 in get(mStorageOutCommSameTimeslice_ix, c, ())
     ) +
     sum(
         sum(
@@ -5389,8 +5637,8 @@ print("eqStorageOutTot(comm, region, year, timeslice)...")
                 else
                     0
                 end
-            ) for sp in timeslice if (st1, c, sp, s) in mStorageOutCommAggTimeslice
-        ) for st1 in stg if (st1, c) in mStorageOutCommAgg
+            ) for sp in get(mStorageOutCommAggTimeslice_ix, (st1, c, s), ())
+        ) for st1 in get(mStorageOutCommAgg_ix, c, ())
     ) +
     sum(
         (
@@ -5399,7 +5647,7 @@ print("eqStorageOutTot(comm, region, year, timeslice)...")
             else
                 0
             end
-        ) for st1 in stg if (st1, c) in mStorageAOutCommSameTimeslice
+        ) for st1 in get(mStorageAOutCommSameTimeslice_ix, c, ())
     ) +
     sum(
         sum(
@@ -5409,8 +5657,8 @@ print("eqStorageOutTot(comm, region, year, timeslice)...")
                 else
                     0
                 end
-            ) for sp in timeslice if (st1, c, sp, s) in mStorageAOutCommAggTimeslice
-        ) for st1 in stg if (st1, c) in mStorageAOutCommAgg
+            ) for sp in get(mStorageAOutCommAggTimeslice_ix, (st1, c, s), ())
+        ) for st1 in get(mStorageAOutCommAgg_ix, c, ())
     )
 );
 print(
@@ -5445,7 +5693,7 @@ print("eqDummyImportCost(comm, region, year)...")
             else
                 0
             end
-        ) for s in timeslice if (c, r, y, s) in mDummyImport
+        ) for s in get(mDummyImport_ix, (c, r, y), ())
     )
 );
 print(
@@ -5480,7 +5728,7 @@ print("eqDummyExportCost(comm, region, year)...")
             else
                 0
             end
-        ) for s in timeslice if (c, r, y, s) in mDummyExport
+        ) for s in get(mDummyExport_ix, (c, r, y), ())
     )
 );
 print(
@@ -5631,61 +5879,61 @@ print("eqCost(region, year)...")
         vSupCost[(s1, r, y)]
     else
         0
-    end) for s1 in sup if (s1, r, y) in mvSupCost)
+    end) for s1 in get(mvSupCost_ix, (r, y), ()))
     +sum((if (t, r, y) in mTechEac
         vTechEac[(t, r, y)]
     else
         0
-    end) for t in tech if (t, r, y) in mTechEac)
+    end) for t in get(mTechEac_ix, (r, y), ()))
     +sum((if (t, r, y) in mTechRetCost
         vTechRetCost[(t, r, y)]
     else
         0
-    end) for t in tech if (t, r, y) in mTechRetCost)
+    end) for t in get(mTechRetCost_ix, (r, y), ()))
     +sum((if (st1, r, y) in mStorageRetCost
         vStorageRetCost[(st1, r, y)]
     else
         0
-    end) for st1 in stg if (st1, r, y) in mStorageRetCost)
+    end) for st1 in get(mStorageRetCost_ix, (r, y), ()))
     +sum((if (t1, r, y) in mTradeRetCost
         vTradeRetCost[(t1, r, y)]
     else
         0
-    end) for t1 in trade if (t1, r, y) in mTradeRetCost)
+    end) for t1 in get(mTradeRetCost_ix, (r, y), ()))
     +sum((if (t, r, y) in mTechFixom
         vTechFixom[(t, r, y)]
     else
         0
-    end) for t in tech if (t, r, y) in mTechFixom)
+    end) for t in get(mTechFixom_ix, (r, y), ()))
     +sum((if (t, r, y) in mTechVarom
         vTechVarom[(t, r, y)]
     else
         0
-    end) for t in tech if (t, r, y) in mTechVarom)
+    end) for t in get(mTechVarom_ix, (r, y), ()))
     +sum((if (st1, r, y) in mStorageEac
         vStorageEac[(st1, r, y)]
     else
         0
-    end) for st1 in stg if (st1, r, y) in mStorageEac)
+    end) for st1 in get(mStorageEac_ix, (r, y), ()))
     +sum(
         (if (st1, r, y) in mStorageFixom
             vStorageFixom[(st1, r, y)]
         else
             0
-        end) for st1 in stg if (st1, r, y) in mStorageFixom
+        end) for st1 in get(mStorageFixom_ix, (r, y), ())
     )
-    + sum((if (st1,r,y) in mStorageVarom; vStorageVarom[(st1,r,y)]; else 0; end;) for st1 in stg if (st1,r,y) in mStorageVarom)
-    + sum((if (i,r,y) in mImportRowCost; vImportRowCost[(i,r,y)]; else 0; end;) for i in imp if (i,r,y) in mImportRowCost)
-    + sum((if (e,r,y) in mExportRowCost; vExportRowCost[(e,r,y)]; else 0; end;) for e in expp if (e,r,y) in mExportRowCost)
-    + sum((if (t1,r,y) in mTradeEac; vTradeEac[(t1,r,y)]; else 0; end;) for t1 in trade if (t1,r,y) in mTradeEac)
-    + sum((if (t1,r,y) in mTradeFixom; vTradeFixom[(t1,r,y)]; else 0; end;) for t1 in trade if (t1,r,y) in mTradeFixom)
-    + sum((if (t1,r,y) in mImportIrCost; vImportIrCost[(t1,r,y)]; else 0; end;) for t1 in trade if (t1,r,y) in mImportIrCost)
-    + sum((if (t1,r,y) in mExportIrCost; vExportIrCost[(t1,r,y)]; else 0; end;) for t1 in trade if (t1,r,y) in mExportIrCost)
-    + sum((if (c,r,y) in mTaxCost; vTaxCost[(c,r,y)]; else 0; end;) for c in comm if (c,r,y) in mTaxCost)
-    + sum((if (c,r,y) in mSubCost; vSubsCost[(c,r,y)]; else 0; end;) for c in comm if (c,r,y) in mSubCost)
+    + sum((if (st1,r,y) in mStorageVarom; vStorageVarom[(st1,r,y)]; else 0; end;) for st1 in get(mStorageVarom_ix, (r, y), ()))
+    + sum((if (i,r,y) in mImportRowCost; vImportRowCost[(i,r,y)]; else 0; end;) for i in get(mImportRowCost_ix, (r, y), ()))
+    + sum((if (e,r,y) in mExportRowCost; vExportRowCost[(e,r,y)]; else 0; end;) for e in get(mExportRowCost_ix, (r, y), ()))
+    + sum((if (t1,r,y) in mTradeEac; vTradeEac[(t1,r,y)]; else 0; end;) for t1 in get(mTradeEac_ix, (r, y), ()))
+    + sum((if (t1,r,y) in mTradeFixom; vTradeFixom[(t1,r,y)]; else 0; end;) for t1 in get(mTradeFixom_ix, (r, y), ()))
+    + sum((if (t1,r,y) in mImportIrCost; vImportIrCost[(t1,r,y)]; else 0; end;) for t1 in get(mImportIrCost_ix, (r, y), ()))
+    + sum((if (t1,r,y) in mExportIrCost; vExportIrCost[(t1,r,y)]; else 0; end;) for t1 in get(mExportIrCost_ix, (r, y), ()))
+    + sum((if (c,r,y) in mTaxCost; vTaxCost[(c,r,y)]; else 0; end;) for c in get(mTaxCost_ix, (r, y), ()))
+    + sum((if (c,r,y) in mSubCost; vSubsCost[(c,r,y)]; else 0; end;) for c in get(mSubCost_ix, (r, y), ()))
     + (if (r,y) in mvTotalUserCosts; vTotalUserCosts[(r,y)]; else 0; end;)
-    + sum((if (c,r,y) in mDummyImportCost; vDummyImportCost[(c,r,y)]; else 0; end;) for c in comm if (c,r,y) in mDummyImportCost)
-    + sum((if (c,r,y) in mDummyExportCost; vDummyExportCost[(c,r,y)]; else 0; end;) for c in comm if (c,r,y) in mDummyExportCost)
+    + sum((if (c,r,y) in mDummyImportCost; vDummyImportCost[(c,r,y)]; else 0; end;) for c in get(mDummyImportCost_ix, (r, y), ()))
+    + sum((if (c,r,y) in mDummyExportCost; vDummyExportCost[(c,r,y)]; else 0; end;) for c in get(mDummyExportCost_ix, (r, y), ()))
 );
 print(
     " ",
@@ -5712,7 +5960,7 @@ print("eqObjective...")
             else
                 pDiscountFactorDef
             end
-        ) for r in region for y in year if (r, y) in mvTotalCost
+        ) for r in region for y in get(mvTotalCost_ix, r, ())
     )
 );
 print(
@@ -5734,6 +5982,17 @@ hh = "-100"
 if termination_status(model) == MOI.OPTIMAL
     hh = "1"
 end
+# The solver's own termination status. A run can stop non-OPTIMAL yet still
+# carry a usable solution (time limit, tolerance violation), which "-100" alone
+# cannot distinguish from no solution at all.
+println(
+    flog,
+    "\"termination status\",\"",
+    termination_status(model),
+    "\",\"",
+    Dates.format(now(), "yyyy-mm-dd HH:MM:SS"),
+    "\"",
+)
 println(
     flog,
     "\"solution status\",",
@@ -5745,7 +6004,20 @@ println(
 include("inc4.jl")
 println(flog, "\"export results\",,\"", Dates.format(now(), "yyyy-mm-dd HH:MM:SS"), "\"")
 
-# Print solution
-include("output.jl")
+# Print solution. output.jl calls JuMP.value() unguarded; first-order methods
+# (pdlp/hipdlp) and time-limited runs can terminate with result_count == 0,
+# where value() raises instead of returning a status.
+if has_values(model)
+    include("output.jl")
+else
+    println(
+        flog,
+        "\"no primal solution\",\"",
+        termination_status(model),
+        "\",\"",
+        Dates.format(now(), "yyyy-mm-dd HH:MM:SS"),
+        "\"",
+    )
+end
 include("inc5.jl")
 println(flog, "\"done\",,\"", Dates.format(now(), "yyyy-mm-dd HH:MM:SS"), "\"")

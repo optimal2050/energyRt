@@ -114,9 +114,25 @@ read_solution <- function(obj, run = NULL, ...) {
       var_file,
       stringsAsFactors = FALSE
       )$value
-  })
+  }, silent = TRUE)
   if (inherits(vrb_list, "try-error")) {
     msg <- paste0("Solution files not found\n", var_file)
+    # A solver that terminates without a primal solution (time limit,
+    # first-order non-convergence) writes no variable files. log.csv records
+    # the reason, which is more actionable than a missing path.
+    log_file <- file.path(arg$solver.dir, "output", "log.csv")
+    if (file.exists(log_file)) {
+      lg <- try(utils::read.csv(log_file), silent = TRUE)
+      if (!inherits(lg, "try-error") && "parameter" %in% names(lg)) {
+        ts <- lg$value[lg$parameter == "termination status"]
+        if (any(lg$parameter == "no primal solution") || length(ts) > 0) {
+          msg <- paste0(
+            "The solver returned no primal solution",
+            if (length(ts) > 0) paste0(" (termination status: ", ts[1], ")") else "",
+            ". No variable files were written to ", arg$solver.dir)
+        }
+      }
+    }
     if (!is.null(arg$stop_on_error) && arg$stop_on_error) {
       stop(msg)
     } else {
@@ -154,11 +170,20 @@ read_solution <- function(obj, run = NULL, ...) {
   ss$timeslicep <- ss$timeslice
   rr$set_vec <- ss
   # Every writer records the format it produced (the JuMP/Pyomo pair through
-  # .resolve_exchange_formats(), GAMS in .write_model_GAMS). Only backends that
-  # never set one -- GLPK -- land here, and those write CSV.
+  # .resolve_exchange_formats(), GAMS in .write_model_GAMS). A scenario object
+  # can still arrive without one: a run whose read phase never happened (an MPS
+  # exported and solved elsewhere) leaves `settings@solver` empty. The run's
+  # own `solver.csv` records what the write phase actually used, so consult it
+  # before assuming CSV -- otherwise an Arrow run matches no files and reports
+  # itself unsolved. Backends that record nothing at all (GLPK) still get CSV.
   if (is.null(scen@settings@solver$import_format) ||
       !nzchar(scen@settings@solver$import_format)) {
-    scen@settings@solver$import_format <- "csv"
+    .meta <- tryCatch(.read_solver_meta(arg$solver.dir),
+                      error = function(e) NULL)
+    .v <- if (is.null(.meta)) NULL else
+      .meta$value[.meta$name == "import_format"]
+    scen@settings@solver$import_format <-
+      if (length(.v) && nzchar(.v[1])) .v[1] else "csv"
   }
   if (grepl("^gdx$", scen@settings@solver$import_format, ignore.case = TRUE)) {
     # .check_load_gdxlib()
@@ -209,7 +234,10 @@ read_solution <- function(obj, run = NULL, ...) {
     # Read variables from CSV or Arrow (feather/parquet) per import_format. The
     # solver writes one file per variable to `output/`; the per-variable post-
     # processing (column de-suffixing + factor levels) is shared across formats.
-    .imf <- tolower(scen@settings@solver$import_format)
+    # Resolved above (from the scenario, else the run's solver.csv, else csv);
+    # `%||% ""` only guards against an unset field reaching `==` as a
+    # zero-length condition.
+    .imf <- tolower(scen@settings@solver$import_format %||% "")
     .arrow_imp <- .imf %in% c("feather", "ipc", "arrow", "parquet")
     .ext <- if (.imf == "parquet") ".parquet" else if (.arrow_imp) ".arrow" else ".csv"
     # Count what was actually read. A per-variable miss is legitimate (a
@@ -474,6 +502,10 @@ read_solution <- function(obj, run = NULL, ...) {
   if (scen@modOut@stage == "solved") {
     scen@status$optimal <- TRUE
     scen@status$solved <- TRUE
+    # ... and on disk: the run record is written by `solve_scenario()`, so a
+    # run read afterwards kept `status: not-optimal` while the object said
+    # solved. See `.run_record_read()` for why it is not a full record write.
+    .run_record_read(scen, arg$solver.dir)
   }
   invisible(scen)
 }

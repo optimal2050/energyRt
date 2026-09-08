@@ -200,6 +200,51 @@
   invisible(ry)
 }
 
+# Reconcile a run's record after `read_solution()` has read an optimal solution
+# for it. `solve_scenario()` writes the record through `.run_record_finish()`,
+# but a solution read later -- a re-read of an earlier run, or one solved
+# outside energyRt and unpacked into its `output/` -- otherwise leaves the
+# record saying `not-optimal` while the returned object says solved.
+#
+# Deliberately narrower than `.run_record_finish()`: only `status`, `stage` and
+# `objective` are written. `duration_sec`, `mem_mb` and `peak_mb` describe the
+# run that produced the solution, and recomputing them from the reading session
+# would replace real measurements with meaningless ones.
+.run_record_read <- function(scen, solver_dir) {
+  if (!nzchar(scen@misc$run %||% "")) return(invisible(NULL))
+  run_dir <- tryCatch(
+    .run_dir(scen, .run_variant(scen), scen@misc$run),
+    error = function(e) NULL)
+  if (is.null(run_dir) || !dir.exists(run_dir)) return(invisible(NULL))
+  # Only the run actually read from: `solver.dir=` can point anywhere, while
+  # `scen@misc$run` may still name an unrelated run from an earlier read.
+  same <- tryCatch(identical(
+    normalizePath(.run_solver_dir(run_dir), winslash = "/", mustWork = FALSE),
+    normalizePath(solver_dir, winslash = "/", mustWork = FALSE)),
+    error = function(e) FALSE)
+  if (!same) return(invisible(NULL))
+  ry <- fp(run_dir, "run.yml")
+  if (!file.exists(ry)) return(invisible(NULL))
+  rec <- tryCatch(yaml::read_yaml(ry), error = function(e) NULL)
+  if (is.null(rec)) return(invisible(NULL))
+  obj <- tryCatch({
+    v <- get_variable(scen, "vObjective", data = TRUE)
+    if (is.data.frame(v) && nrow(v) && "value" %in% names(v)) {
+      as.numeric(v$value[1])
+    } else NA_real_
+  }, error = function(e) NA_real_)
+  if (identical(rec$status, "solved") &&
+      isTRUE(all.equal(rec$objective, obj))) {
+    return(invisible(NULL)) # already current; do not churn `updated`
+  }
+  rec$status <- "solved"
+  rec$stage <- "solved"
+  if (!is.na(obj)) rec$objective <- obj
+  rec$updated <- .registry_now()
+  yaml::write_yaml(rec, ry)
+  invisible(ry)
+}
+
 #' List, inspect, and drop a scenario's runs
 #'
 #' @description

@@ -29,6 +29,7 @@ library(energyRt)
 | **GLPK / MathProg** | `GLPK` | GLPK | open-source | Ships as the `glpsol` executable; easiest to install, slow on large models. |
 | **Python / Pyomo** | `PYOMO` | CBC, GLPK, CPLEX | open-source (CBC/GLPK) | Convenient with a conda environment. |
 | **Julia / JuMP** | `JuMP` | HiGHS, Cbc, GLPK, CPLEX | open-source (HiGHS/Cbc/GLPK) | HiGHS barrier is fast; recommended for large models. |
+| **Julia / cuOpt** (GPU) | `JuMP` | NVIDIA cuOpt | open-source | **Linux only.** First-order (PDLP) needs no factorization, so it fits models whose barrier does not; add crossover for duals. |
 | **GAMS** | `GAMS` | CPLEX, CBC | proprietary | Needs a GAMS license; supports GDX I/O and fine solver tuning. |
 | **NEOS** (remote) | `PYOMO` / `GAMS` | CPLEX, CBC, … | free service | Solve on the [NEOS server](https://neos-server.org) — no local commercial solver needed. |
 
@@ -106,6 +107,37 @@ solve_model(model, solver = solver_options$julia_highs)           # default (aut
 solve_model(model, solver = solver_options$julia_highs_barrier)   # interior point
 solve_model(model, solver = solver_options$julia_highs_parallel)  # parallel simplex
 ```
+
+## NVIDIA cuOpt (GPU)
+
+**Linux only.** cuOpt solves the same JuMP model on an NVIDIA GPU through
+[`cuOpt.jl`](https://github.com/jump-dev/cuOpt.jl). It ships no Windows build,
+so on Windows the Julia process must run inside WSL. Install cuOpt itself
+first (`pip install --extra-index-url=https://pypi.nvidia.com cuopt-cu12`),
+put `libcuopt.so` on `LD_LIBRARY_PATH`, then add the wrapper with
+`en_install_julia_pkgs("cuOpt")`. `cuOpt.jl` supports one cuOpt release at a
+time, so the installed `cuopt-cu12` must match it.
+
+```{r}
+solve_model(model, solver = solver_options$julia_cuopt_pdlp)      # first-order, GPU
+solve_model(model, solver = solver_options$julia_cuopt_crossover) # + basic solution
+solve_model(model, solver = solver_options$julia_cuopt_concurrent)# race all three
+```
+
+`method` selects the algorithm: `0` races PDLP and barrier on the GPU against
+dual simplex on the CPU and returns whichever finishes first, `1` is PDLP alone.
+Which preset to use follows from how the solution is consumed:
+
+* **`julia_cuopt_pdlp`** -- PDLP never factorizes, so GPU memory grows linearly
+  with non-zeros. This is the preset for models whose barrier factorization does
+  not fit in GPU memory. The solution carries a duality gap of about `1e-4`,
+  which is fine for capacities and dispatch but not for prices.
+* **`julia_cuopt_crossover`** -- adds a crossover to a basic solution, which is
+  what duals (and therefore shadow prices) require. Costs a little extra time
+  and recovers the exact optimum.
+* **`julia_cuopt_concurrent`** -- fastest on small and medium models, but the
+  barrier leg dominates GPU memory and the winning algorithm can differ between
+  runs, so the same model may not return byte-identical results twice.
 
 ## GAMS
 

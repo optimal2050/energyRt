@@ -158,8 +158,8 @@ Solving the same scenario with several backends (or option sets — pass
 `run = "<label>"` to `solve_scenario()`) keeps every run side by side;
 `scenario_runs(scen)` lists them with status and objective, and
 `read_solution(scen, run = "<label>")` switches the active solution.
-A scenario referencing a model saved with `save_model()` skips the embedded
-`model/` copy entirely (see `?save_scenario`, `embed_model`).
+A saved scenario references its model in the model store rather than
+embedding a copy of it (see `?save_scenario`, `embed_model`).
 
 A scenario knows whether its data is in RAM or on disk via `isInMemory()`; when
 on disk, the slots are empty and read lazily from the folder on demand. Folders

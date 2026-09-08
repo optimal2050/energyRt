@@ -111,3 +111,24 @@ test_that("print method summarises statuses", {
   expect_match(out[1], "verify_solution: scenario 'st_tm_core' -- OK")
   expect_true(any(grepl("balance\\s+ok", out)))
 })
+
+test_that("join keys of differing type are aligned, not fatal", {
+  # a parameter can carry `year` as character where its gating map has integer
+  # (pDiscountFactor vs mvTotalCost); data.table refuses such a join, which
+  # downgraded the whole objective check to "skipped"
+  d <- data.table::data.table(region = "R1", year = c("2030", "2040"),
+                              value = c(0.5, 0.25))
+  kk <- data.table::data.table(region = "R1", year = c(2030L, 2040L))
+  on_cols <- c("region", "year")
+  expect_error(d[kk, on = on_cols], "Incompatible join types")
+
+  a <- energyRt:::.vs_align_keys(d, data.table::copy(kk), on_cols)
+  expect_identical(class(a$d$year)[1], class(a$kk$year)[1])
+  m <- a$d[a$kk, on = on_cols]
+  expect_equal(m$value, c(0.5, 0.25))
+
+  # matching types are left untouched
+  kk2 <- data.table::data.table(region = "R1", year = c("2030", "2040"))
+  b <- energyRt:::.vs_align_keys(d, kk2, on_cols)
+  expect_identical(b$d$year, d$year)
+})

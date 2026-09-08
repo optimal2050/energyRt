@@ -142,8 +142,11 @@ options::define_option(
 options::define_option(
   "models_path",
   desc = paste(
-    "Root directory for the model store. save_model() writes",
-    "content-addressed model folders (<name>@<hash8>) underneath it."
+    "Root directory for the model store, a sibling of the scenarios/ store.",
+    "save_model() writes one folder per model name underneath it, updated in",
+    "place; the content hash lives in the entry's model.yml. Scenarios saved",
+    "with the default embed_model = NULL store their model here and",
+    "reference it."
   ),
   default = "models/"
 )
@@ -152,7 +155,8 @@ options::define_option(
   "repositories_path",
   desc = paste(
     "Root directory for the repository store. save_repository() writes",
-    "content-addressed repository folders (<name>@<hash8>) underneath it."
+    "one folder per repository name underneath it, updated in place; the",
+    "content hash lives in the entry's repository.yml."
   ),
   default = "repositories/"
 )
@@ -160,8 +164,9 @@ options::define_option(
 options::define_option(
   "datasets_path",
   desc = paste(
-    "Root directory for the dataset store. save_dataset() writes",
-    "content-addressed dataset folders (<name>@<hash8>) underneath it."
+    "Root directory for the dataset store. save_dataset() writes one",
+    "folder per dataset name underneath it, updated in place; the content",
+    "hash lives in the entry's dataset.yml."
   ),
   default = "datasets/"
 )

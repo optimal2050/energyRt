@@ -181,6 +181,7 @@ print.solution_verification <- function(x, ...) {
   kk <- data.table::copy(keys)
   if (!is.null(rename)) data.table::setnames(kk, names(rename), unname(rename))
   on_cols <- intersect(colnames(kk), setdiff(colnames(d), "value"))
+  .a <- .vs_align_keys(d, kk, on_cols); d <- .a$d; kk <- .a$kk
   m <- d[kk, on = on_cols]
   v <- m$value
   v[is.na(v)] <- 0
@@ -199,6 +200,22 @@ print.solution_verification <- function(x, ...) {
 }
 
 # Parameter value aligned to `keys`, missing rows -> defVal.
+# Align the types of shared join keys. A parameter can carry `year` as
+# character where its gating map has integer (folding introduces character
+# artificial members), and data.table refuses the join outright. Coerce the
+# differing key to character on both sides; keys are identifiers, so the
+# character form joins identically and no value column is touched.
+.vs_align_keys <- function(d, kk, on_cols) {
+  for (cc in on_cols) {
+    if (!identical(class(d[[cc]])[1], class(kk[[cc]])[1])) {
+      d <- data.table::copy(d)
+      data.table::set(d, j = cc, value = as.character(d[[cc]]))
+      data.table::set(kk, j = cc, value = as.character(kk[[cc]]))
+    }
+  }
+  list(d = d, kk = kk)
+}
+
 .vs_par_at <- function(scen, name, keys, rename = NULL) {
   d <- .vs_par(scen, name)
   dv <- .vs_defval(scen, name)
@@ -206,6 +223,7 @@ print.solution_verification <- function(x, ...) {
   kk <- data.table::copy(keys)
   if (!is.null(rename)) data.table::setnames(kk, names(rename), unname(rename))
   on_cols <- intersect(colnames(kk), setdiff(colnames(d), "value"))
+  .a <- .vs_align_keys(d, kk, on_cols); d <- .a$d; kk <- .a$kk
   m <- d[kk, on = on_cols]
   v <- m$value
   v[is.na(v)] <- dv

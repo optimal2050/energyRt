@@ -81,19 +81,19 @@ Path to the project registry CSV indexing saved models, scenarios and runs. Kept
 }}
 
 \item{models_path}{\describe{
-Root directory for the model store. save_model() writes content-addressed model folders (\if{html}{\out{<name>}}@\if{html}{\out{<hash8>}}) underneath it.\item{default: }{\preformatted{"models/"}}
+Root directory for the model store, a sibling of the scenarios/ store. save_model() writes one folder per model name underneath it, updated in place; the content hash lives in the entry's model.yml. Scenarios saved with the default embed_model = NULL store their model here and reference it.\item{default: }{\preformatted{"models/"}}
 \item{option: }{en.models_path}
 \item{envvar: }{ENERGYRT_MODELS_PATH (evaluated if possible, raw string otherwise)}
 }}
 
 \item{repositories_path}{\describe{
-Root directory for the repository store. save_repository() writes content-addressed repository folders (\if{html}{\out{<name>}}@\if{html}{\out{<hash8>}}) underneath it.\item{default: }{\preformatted{"repositories/"}}
+Root directory for the repository store. save_repository() writes one folder per repository name underneath it, updated in place; the content hash lives in the entry's repository.yml.\item{default: }{\preformatted{"repositories/"}}
 \item{option: }{en.repositories_path}
 \item{envvar: }{ENERGYRT_REPOSITORIES_PATH (evaluated if possible, raw string otherwise)}
 }}
 
 \item{datasets_path}{\describe{
-Root directory for the dataset store. save_dataset() writes content-addressed dataset folders (\if{html}{\out{<name>}}@\if{html}{\out{<hash8>}}) underneath it.\item{default: }{\preformatted{"datasets/"}}
+Root directory for the dataset store. save_dataset() writes one folder per dataset name underneath it, updated in place; the content hash lives in the entry's dataset.yml.\item{default: }{\preformatted{"datasets/"}}
 \item{option: }{en.datasets_path}
 \item{envvar: }{ENERGYRT_DATASETS_PATH (evaluated if possible, raw string otherwise)}
 }}

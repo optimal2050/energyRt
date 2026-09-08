@@ -21,6 +21,11 @@
     if (.hasSlot(x, "misc")) x@misc <- list()
     if (.hasSlot(x, "inMemory")) x@inMemory <- TRUE
     for (s in slotNames(x)) {
+      # an object serialized before a slot was added to its class carries no
+      # such attribute; the class declares the slot, the instance lacks it,
+      # and slot() would error. Upgrading is interp_mod()'s job, not the
+      # hasher's -- here the absent slot simply contributes nothing.
+      if (!.hasSlot(x, s)) next
       v <- .strip_volatile(slot(x, s))
       # a slot whose prototype is NULL (e.g. scenario@desc) reads back as
       # NULL, which cannot be re-assigned into a typed slot -- leave it be
@@ -430,6 +435,56 @@ save_model <- function(
 .model_store_resolve <- function(name, hash = NULL) {
   .store_resolve(name, hash, reg_type = "model", root = get_models_path(),
                  manifest = "model.yml")
+}
+
+# Put a model in the store on behalf of save_scenario(embed_model = NULL), so
+# that referencing is the default rather than something the user has to arm by
+# calling save_model() first.
+#
+# Never destructive: a store entry updates IN PLACE, so writing over an entry
+# that holds different content under the same name would replace the version
+# other scenarios reference. An occupied name is therefore left alone and the
+# caller embeds instead.
+#
+# Returns list(hash, path) on success, NULL when the caller should embed.
+.model_autostore <- function(mod, format = get_storage_format(),
+                             verbose = TRUE) {
+  if (!is(mod, "model") || !nzchar(mod@name %||% "")) return(NULL)
+  cur <- tryCatch(.model_store_resolve(mod@name, NULL),
+                  error = function(e) NULL)
+  if (!is.null(cur)) {
+    cur_h <- tryCatch(yaml::read_yaml(fp(cur, "model.yml"))$hash %||% "",
+                      error = function(e) "")
+    # A thinned model carries the hash of the entry it was written from
+    # (save_model() records misc$hash before writing mod.RData), so a scenario
+    # loaded from a reference re-references its entry without rehydrating.
+    if (!isInMemory(mod) && nzchar(cur_h) &&
+        identical(mod@misc$hash %||% "", cur_h)) {
+      return(list(hash = cur_h, path = cur))
+    }
+    if (verbose) {
+      message("Model '", mod@name, "' is embedded in this scenario: the ",
+              "model store already holds a different version (@",
+              substr(cur_h, 1, 8), ") under that name. save_model() to ",
+              "update the store, or rename the model.")
+    }
+    return(NULL)
+  }
+  st <- tryCatch(
+    save_model(mod, format = format, registry = TRUE, verbose = FALSE),
+    error = function(e) {
+      warning("Model '", mod@name, "' could not be stored (",
+              conditionMessage(e), "); embedding it in the scenario instead.",
+              call. = FALSE)
+      NULL
+    })
+  if (is.null(st)) return(NULL)
+  h <- st@misc$hash %||% ""
+  p <- st@misc$path %||% ""
+  if (!nzchar(h) || !nzchar(p)) return(NULL)
+  if (verbose) message("Model '", mod@name, "' (", substr(h, 1, 8),
+                       ") stored in '", get_models_path(), "'")
+  list(hash = h, path = p)
 }
 
 # Rebase the on-disk paths of a stored model to the directory it was actually

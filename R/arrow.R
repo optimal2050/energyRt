@@ -8,9 +8,12 @@
 #' @param path character. Path to scenario directory.
 #' @param embed_model `NULL` (default), `TRUE`, or `FALSE`. Controls whether
 #'   the model is embedded in the saved scenario or referenced from the model
-#'   store (see [save_model()]). `NULL`: reference when the identical model
-#'   content is already in the store, embed otherwise. `TRUE`: always embed
-#'   (self-contained folder). `FALSE`: require a store hit, error otherwise.
+#'   store (see [save_model()]). `NULL`: reference the store entry, saving the
+#'   model to the store first when nothing is stored under that name; embed
+#'   when the name is taken by different content (store entries update in
+#'   place, so writing would replace the version other scenarios reference).
+#'   `TRUE`: always embed (self-contained folder). `FALSE`: require an
+#'   existing store hit, error otherwise, and never write to the store.
 #'   A referenced save stores only `{name, hash, path}`; [load_scenario()]
 #'   resolves it back via the registry / model store.
 #' @param embed_datasets the same choice for the big data tables and maps —
@@ -72,12 +75,13 @@ save_scenario <- function(
   ondisk_data <- isOnDisk(scen)
 
   # Model reference vs embedding. `embed_model = NULL` (auto): reference the
-  # model store entry when this exact content is already stored (see
-  # save_model()); embed otherwise. TRUE forces embedding; FALSE requires a
-  # store hit. A referenced save replaces the model in the SAVED copy with a
-  # stub carrying `misc$model_ref`; the returned in-memory object keeps its
-  # model. Note a thinned (on-disk) model hashes differently from its
-  # in-memory original, so ondisk scenarios normally embed.
+  # model store entry, putting the model there first when the store has
+  # nothing under that name (see save_model()); embed when the name is taken
+  # by different content, since store entries update in place and writing
+  # would replace the version other scenarios reference. TRUE forces
+  # embedding; FALSE requires an existing store hit and never writes. A
+  # referenced save replaces the model in the SAVED copy with a stub carrying
+  # `misc$model_ref`; the returned in-memory object keeps its model.
   model_ref <- NULL
   model_hash_ <- ""
   if (!isTRUE(embed_model) && nzchar(scen@model@name %||% "")) {
@@ -85,6 +89,17 @@ save_scenario <- function(
     store_dir <- if (nzchar(model_hash_)) {
       tryCatch(.model_store_resolve(scen@model@name, model_hash_),
                error = function(e) NULL)
+    }
+    if (is.null(store_dir) && is.null(embed_model)) {
+      # The auto-store happens HERE, before obj2disk() below thins the model:
+      # model_hash() hashes content, so a thinned model hashes differently
+      # from its in-memory original and would be stored under one hash and
+      # referenced by another.
+      st <- .model_autostore(scen@model, format = format, verbose = verbose)
+      if (!is.null(st)) {
+        model_hash_ <- st$hash
+        store_dir <- st$path
+      }
     }
     if (!is.null(store_dir)) {
       model_ref <- list(name = scen@model@name, hash = model_hash_,

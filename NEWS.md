@@ -70,10 +70,21 @@
   alone carries a ~1e-4 duality gap.
 * `solver_options$julia_highs_pdlp` and `julia_highs_hipdlp` select the HiGHS
   first-order solvers. GPU execution requires a `libhighs` built with
-  `-DCUPDLP_GPU=ON`; a stock build runs them on the CPU.
+  `-DCUPDLP_GPU=ON`; a stock build runs them on the CPU. Neither returns a
+  basic solution or supports crossover — use the simplex or interior-point
+  presets when duals are needed.
 * The JuMP backend records the solver's `termination status` in
   `output/log.csv` and skips result export when no primal solution exists,
   instead of failing while reading variable values.
+* `solver_options$pyomo_mps` writes the problem as an MPS file with
+  energyRt's own variable and constraint names and stops before solving —
+  for handing a model to an external solver (a GPU LP solver, a remote
+  machine) whose solution comes back later.
+* `read_solution()` reads a run solved outside energyRt: a solution decoded
+  into the run's `output/` is picked up with the exchange format recorded by
+  the run itself, and the run record's status and objective are updated. A
+  run with no primal solution reports the recorded termination status
+  instead of a missing-file error.
 
 * Weather transforms: one shipped data stream can serve many derived series.
   A weather object carries named functions in `misc$transform`; a
@@ -81,10 +92,9 @@
   column and passes parameters through its own extra columns. Interpolation
   materializes each `<weather>_<transform>` series once; solvers are
   unaffected. `materialize_weather()` inspects a derived series;
-  `register_weather_transform()` adds session-wide transforms.
-* `solver_options$julia_highs_pdlp` and `$julia_highs_hipdlp` run HiGHS's
-  first-order methods through JuMP. Neither returns a basic solution or
-  supports crossover, so use the simplex or interior-point presets for duals.
+  `register_weather_transform()` adds session-wide transforms. Region
+  aggregation refuses transform-bearing weather (averaging does not commute
+  with a nonlinear transform).
 * `scenario_artifacts()` lists what each solve left on disk — whether its
   solution was imported, what the solver scratch costs, and which runs are
   candidates for clean-up.

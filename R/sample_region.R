@@ -144,6 +144,64 @@ subset_model_regions <- function(mod, region, boundary_prices = NULL,
 # Trade surgery on the (build copy of the) model: drop routes crossing the
 # boundary, filter route-level and endpoint-level rows, mint priced stubs.
 #' @noRd
+# Weather names surviving in a model, and the pruning of references to those
+# that did not.
+#
+# Dropping a region-scoped weather object leaves its NAME behind in every
+# process that referenced it (a `weather` column in one of the process's
+# data.frame slots). `.check_declared_objects()` then refuses the model before
+# it is ever interpolated: "references weather object(s) that are not in the
+# repository". For resource-cluster models this is the normal case rather than
+# an edge one -- narrowing to one region drops every other region's clusters
+# while the cluster technologies go on naming them -- so pruning the references
+# is the other half of dropping the objects.
+#
+# NA is the wildcard and stays. Returns the model and counts what it cut.
+.prune_weather_refs <- function(mod, verbose = FALSE) {
+  declared <- character(0)
+  collect <- function(r) {
+    if (!methods::is(r, "repository")) {
+      if (methods::is(r, "weather")) declared <<- c(declared, r@name)
+      return(invisible(NULL))
+    }
+    for (el in r@data) collect(el)
+  }
+  for (el in mod@data) collect(el)
+
+  n_refs <- 0L
+  dropped_names <- character(0)
+  prune <- function(el) {
+    if (methods::is(el, "repository")) {
+      for (nm in names(el@data)) el@data[[nm]] <- prune(el@data[[nm]])
+      return(el)
+    }
+    if (!isS4(el) || methods::is(el, "weather")) return(el)
+    for (sn in .instance_slots(el)) {
+      if (identical(sn, "misc")) next
+      v <- methods::slot(el, sn)
+      if (!is.data.frame(v) || !nrow(v) || !("weather" %in% colnames(v))) next
+      w <- as.character(v[["weather"]])
+      bad <- !is.na(w) & nzchar(w) & !(w %in% declared)
+      if (any(bad)) {
+        n_refs <<- n_refs + sum(bad)
+        dropped_names <<- c(dropped_names, unique(w[bad]))
+        methods::slot(el, sn) <- v[!bad, , drop = FALSE]
+      }
+    }
+    el
+  }
+  for (i in seq_along(mod@data)) mod@data[[i]] <- prune(mod@data[[i]])
+
+  if (n_refs > 0L) {
+    message("spatial sample: dropped ", n_refs, " weather reference(s) to ",
+            length(unique(dropped_names)), " object(s) outside the sample",
+            if (isTRUE(verbose))
+              paste0(": ", paste(unique(dropped_names), collapse = ", "))
+            else " (verbose = TRUE lists them)")
+  }
+  mod
+}
+
 .subset_model_regions <- function(mod, keep, boundary_prices = NULL,
                                   verbose = isVerbose()) {
   # legacy models: storages serialized before the `inp2stg` slot would error
@@ -274,6 +332,9 @@ subset_model_regions <- function(mod, region, boundary_prices = NULL,
     r
   }
   for (i in seq_along(mod@data)) mod@data[[i]] <- walk(mod@data[[i]])
+
+  # The objects are gone; now the references to them.
+  mod <- .prune_weather_refs(mod, verbose = verbose)
 
   # One line, always: what left the model. `verbose = TRUE` names each item.
   if (n_objs_dropped > 0L || n_routes_dropped > 0L) {

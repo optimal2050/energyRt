@@ -65,6 +65,19 @@ pyomo_highs_barrier$inc4 <- {
 "opt.options['solver'] = 'ipm'
 opt.options['run_crossover'] = 'off'"}
 
+## Write a named free-MPS file instead of solving. `inc4` runs after the model is
+## complete and before `opt.solve()`, so the model can be serialised and the solve
+## skipped. `symbolic_solver_labels` keeps energyRt's own variable and constraint
+## names; JuMP's `write_to_file` emits generic `c1_2`/`OBJ` labels instead, which
+## cannot be mapped back to model objects. For handing a model to an external
+## solver (e.g. NVIDIA cuOpt's `cuopt_cli`) and reading the solution back.
+pyomo_mps <- pyomo_highs
+pyomo_mps$name <- "pyomo_mps"
+pyomo_mps$inc4 <- {
+"model.write('model.mps', io_options={'symbolic_solver_labels': True})
+print('MPS written to model.mps; skipping solve', flush=True)
+raise SystemExit(0)"}
+
 ## Python/Pyomo via NEOS (remote solve; no local solver, needs env var NEOS_EMAIL)
 # The scenario is still BUILT locally (Pyomo reads the data into the
 # ConcreteModel); only the SOLVE is dispatched to NEOS, which serialises the
@@ -399,6 +412,75 @@ julia_highs_rdata$name <- "julia_highs_rdata"
 julia_highs_rdata$export_format <- "RData"
 julia_highs_rdata$import_format <- "csv"
 
+
+# First-order (PDLP) methods. GPU execution is a build-time property of
+# libhighs (-DCUPDLP_GPU=ON); with a stock HiGHS_jll these run on the CPU,
+# where the HiGHS docs note they are not competitive with ipm/simplex.
+# Neither method produces a basic solution and neither supports crossover,
+# so duals are approximate - use ipm/simplex when shadow prices matter.
+julia_highs_pdlp <- julia_highs
+julia_highs_pdlp$name <- "julia_highs_pdlp"
+julia_highs_pdlp$inc3 <- c({
+'# HiGHS cuPDLP-C (first-order), JuMP/Julia
+set_optimizer_attribute(model, "presolve", "on")
+set_optimizer_attribute(model, "solver", "pdlp")
+# set_optimizer_attribute(model, "time_limit", 3600.0)
+'})
+
+julia_highs_hipdlp <- julia_highs
+julia_highs_hipdlp$name <- "julia_highs_hipdlp"
+julia_highs_hipdlp$inc3 <- c({
+'# HiGHS native HiPDLP (first-order), JuMP/Julia
+set_optimizer_attribute(model, "presolve", "on")
+set_optimizer_attribute(model, "solver", "hipdlp")
+# set_optimizer_attribute(model, "time_limit", 3600.0)
+'})
+
+
+# NVIDIA cuOpt via cuOpt.jl (a MathOptInterface wrapper). GPU-accelerated.
+# LINUX ONLY: cuOpt ships no Windows build, and `libcuopt.so` must be on
+# LD_LIBRARY_PATH before Julia starts. cuOpt.jl pins one cuOpt release, so the
+# installed cuopt-cu12 must match the wrapper's supported version.
+# First-order (PDLP) solutions carry a ~1e-4 duality gap; `crossover` recovers
+# a basic solution when duals are needed.
+julia_cuopt <- list(
+  name = "julia_cuopt",
+  lang = "JuMP",
+  solver = "cuOpt"
+)
+
+# Concurrent (cuOpt's default): PDLP and barrier on the GPU, dual simplex on the
+# CPU, first to finish wins. Fastest on small/medium models, but barrier's
+# factorization dominates GPU memory and the winner varies between runs.
+julia_cuopt_concurrent <- julia_cuopt
+julia_cuopt_concurrent$name <- "julia_cuopt_concurrent"
+julia_cuopt_concurrent$inc3 <- c({
+'# cuOpt options in JuMP/Julia
+set_optimizer_attribute(model, "method", 0) # 0 = concurrent
+# set_optimizer_attribute(model, "time_limit", 3600.0)
+'})
+
+# PDLP only. No factorization, so memory is linear in nonzeros - the option for
+# models whose barrier factorization does not fit in GPU memory.
+julia_cuopt_pdlp <- julia_cuopt
+julia_cuopt_pdlp$name <- "julia_cuopt_pdlp"
+julia_cuopt_pdlp$inc3 <- c({
+'# cuOpt options in JuMP/Julia
+set_optimizer_attribute(model, "method", 1) # 1 = PDLP (first-order, GPU)
+# set_optimizer_attribute(model, "time_limit", 3600.0)
+'})
+
+# PDLP with crossover to a basic solution: needed for duals (shadow prices),
+# which a first-order solution alone does not provide.
+julia_cuopt_crossover <- julia_cuopt
+julia_cuopt_crossover$name <- "julia_cuopt_crossover"
+julia_cuopt_crossover$inc3 <- c({
+'# cuOpt options in JuMP/Julia
+set_optimizer_attribute(model, "method", 1) # 1 = PDLP (first-order, GPU)
+set_optimizer_attribute(model, "crossover", true) # basic solution for duals
+# set_optimizer_attribute(model, "time_limit", 3600.0)
+'})
+
 solver_options <- list(
   # GLPK
   glpk = glpk,
@@ -410,6 +492,7 @@ solver_options <- list(
   pyomo_glpk = pyomo_glpk,
   pyomo_highs = pyomo_highs,
   pyomo_highs_barrier = pyomo_highs_barrier,
+  pyomo_mps = pyomo_mps,
   # Python/Pyomo via NEOS (remote solve)
   neos_pyomo_cplex = neos_pyomo_cplex,
   neos_pyomo_cplex_barrier = neos_pyomo_cplex_barrier,
@@ -424,6 +507,12 @@ solver_options <- list(
   julia_glpk = julia_glpk,
   julia_highs_simplex = julia_highs_simplex,
   julia_highs_parallel = julia_highs_parallel,
+  julia_highs_pdlp = julia_highs_pdlp,
+  julia_highs_hipdlp = julia_highs_hipdlp,
+  julia_cuopt = julia_cuopt,
+  julia_cuopt_concurrent = julia_cuopt_concurrent,
+  julia_cuopt_pdlp = julia_cuopt_pdlp,
+  julia_cuopt_crossover = julia_cuopt_crossover,
   # GAMS
   gams_csv_cplex = gams_cplex,
   gams_gdx_cplex = gams_gdx_cplex,
