@@ -83,7 +83,7 @@
       dims = c("vintage", "cluster", "region", "year", "timeslice")),
     weather = list(
       arg = "weather",
-      cols = c("vintage", "cluster", "weather", "comm",
+      cols = c("vintage", "cluster", "weather", "transform", "comm",
                "wafc.lo", "wafc.up", "wafc.fx",
                "waf.lo", "waf.up", "waf.fx",
                "wafs.lo", "wafs.up", "wafs.fx"),
@@ -178,7 +178,7 @@
       dims = c("vintage", "cluster", "region", "year")),
     weather = list(
       arg = "weather",
-      cols = c("vintage", "cluster", "weather",
+      cols = c("vintage", "cluster", "weather", "transform",
                "waf.lo", "waf.up", "waf.fx",
                "inp.waf.lo", "inp.waf.up", "inp.waf.fx",
                "out.waf.lo", "out.waf.up", "out.waf.fx"),

@@ -301,6 +301,11 @@ aggregate_model_regions <- function(mod, geoscale = NULL, level,
                                     name = NULL, verbose = isVerbose()) {
   stopifnot(inherits(mod, "model"))
   check_package("geoscales")
+  # Weather values are mean-aggregated below, and a mean does not commute
+  # with a nonlinear transform: transform(mean(stream)) != mean(transform).
+  # Refuse rather than silently distort; materialize first if aggregation of
+  # the derived series is what is wanted.
+  .assert_no_weather_transforms(mod)
   gs <- geoscale
   if (is.null(gs)) gs <- tryCatch(mod@config@geoscale, error = function(e) NULL)
   if (is.null(gs) || !is_geoscale(gs)) {

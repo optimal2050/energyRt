@@ -2,6 +2,9 @@
 
 ## Breaking changes
 
+* `save_scenario(embed_model = NULL)`, the default, saves the model to the
+  model store and references it instead of embedding a copy in every scenario;
+  a name already holding different content is left alone and the model embedded.
 * Storage aux capacity couplings are part-prefixed: `cap2ainp` / `cap2aout` /
   `ncap2ainp` / `ncap2aout` on a storage `@aeff` are now `out.cap2ainp` etc.
   The bare names error with a rename hint; technology `@aeff` keeps them.
@@ -57,19 +60,42 @@
 
 ## New features
 
+* New solver presets for GPU-accelerated LP. `solver_options$julia_cuopt`,
+  `julia_cuopt_concurrent`, `julia_cuopt_pdlp` and `julia_cuopt_crossover`
+  solve via NVIDIA cuOpt through `cuOpt.jl`. **Linux only** -- cuOpt ships no
+  Windows build, and `libcuopt.so` must be on `LD_LIBRARY_PATH` before Julia
+  starts. `julia_cuopt_pdlp` uses a first-order method with no factorization,
+  so GPU memory grows linearly with the number of non-zeros; add crossover
+  (`julia_cuopt_crossover`) when duals are needed, as a first-order solution
+  alone carries a ~1e-4 duality gap.
+* `solver_options$julia_highs_pdlp` and `julia_highs_hipdlp` select the HiGHS
+  first-order solvers. GPU execution requires a `libhighs` built with
+  `-DCUPDLP_GPU=ON`; a stock build runs them on the CPU.
+* The JuMP backend records the solver's `termination status` in
+  `output/log.csv` and skips result export when no primal solution exists,
+  instead of failing while reading variable values.
+
+* Weather transforms: one shipped data stream can serve many derived series.
+  A weather object carries named functions in `misc$transform`; a
+  technology/storage/supply weather link selects one in its `transform`
+  column and passes parameters through its own extra columns. Interpolation
+  materializes each `<weather>_<transform>` series once; solvers are
+  unaffected. `materialize_weather()` inspects a derived series;
+  `register_weather_transform()` adds session-wide transforms.
+* `solver_options$julia_highs_pdlp` and `$julia_highs_hipdlp` run HiGHS's
+  first-order methods through JuMP. Neither returns a basic solution or
+  supports crossover, so use the simplex or interior-point presets for duals.
 * `scenario_artifacts()` lists what each solve left on disk — whether its
   solution was imported, what the solver scratch costs, and which runs are
   candidates for clean-up.
 * `drop_solver_outputs()` removes the regenerable part of a solve — model
   source, exchange input, solver logs, and the raw output once the solution has
   been imported — keeping the run record and the solution. Dry-run by default.
-* `strip_user_info()` removes the machine a scenario was made on: stored
-  absolute paths, the solver command line, and (with the default
-  `scope = "share"`) the host and user recorded in every run. `scope = "store"`
-  keeps that provenance, which is what a shared team drive wants.
+* `strip_user_info()` removes the machine a scenario was made on — stored
+  absolute paths, the solver command line, and, with the default
+  `scope = "share"`, the host and user of every run; `scope = "store"` keeps it.
 * `prepare_for_sharing()` writes a cleaned, trimmed copy of a stored scenario
   and reports anything that will not travel with it.
-
 * Folding works with GAMS: a dense build (`sparse = FALSE`) may be folded, and
   the GAMS writer substitutes the artificial member like the other backends.
 * `validate_scenario_parameters()` is exported and also checks that every
@@ -239,6 +265,15 @@
 
 ## Bug fixes
 
+* `verify_solution()`'s `objective` check no longer errors out (and is no
+  longer reported as skipped) when a parameter and its gating map disagree
+  on a key column's type, as `pDiscountFactor` and `mvTotalCost` do on `year`.
+* `save_model()`, `model_hash()` and the other store hashes accept objects
+  serialized before a slot was added to their class; a model holding a
+  pre-`inp2stg` `storage` used to fail to save.
+* `subset_model_regions()` (and so `solve_by_region()`) prunes `@weather`
+  references whose object is dropped with the regions outside the sample;
+  narrowing a clustered-resource model to one region used to fail validation.
 * A solved or written folded scenario no longer carries the artificial set
   members (`ANYREGION`, `0`); `getData()` on such a scenario unfolds every
   folded dimension, including `year`.

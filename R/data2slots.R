@@ -54,6 +54,14 @@
          ".")
 }
 
+# Slots that accept USER-DEFINED extra columns beyond the prototype. The
+# weather link tables forward such columns as arguments to the transform
+# function a row names in its `transform` column (see R/weather_transform.R),
+# so their names cannot be enumerated here. Unknown columns on any other slot
+# stay an error.
+.open_slots <- list(technology = "weather", storage = "weather",
+                    supply = "weather")
+
 .data2slots <- function(
     class_name = NULL,
     x,
@@ -134,16 +142,24 @@
             # !!! ToDo: take columns from "new()" or from the class
             # Check column names
             .bad <- colnames(dat)[!(colnames(dat) %in% colnames(slot(obj, s)))]
-            stop(paste(
-              'Unknown column "',
-              paste(.bad,
-              '"in the slot: "',
-              s,
-              collapse = '", "'),
-              '"\n',
-              .renamed_column_hint(.bad, class_name),
-              sep = ""
-            ))
+            if (s %in% .open_slots[[as.character(class_name)[1]]]) {
+              # open slot: keep the extra columns, typed from the data
+              for (cc in .bad) {
+                slot(obj, s)[[cc]] <- rep(dat[[cc]][NA_integer_],
+                                          length.out = nrow(slot(obj, s)))
+              }
+            } else {
+              stop(paste(
+                'Unknown column "',
+                paste(.bad,
+                '"in the slot: "',
+                s,
+                collapse = '", "'),
+                '"\n',
+                .renamed_column_hint(.bad, class_name),
+                sep = ""
+              ))
+            }
           }
           slot(obj, s) <- slot(obj, s)[0, , drop = FALSE] # initiate data.frame
           if (nrow(dat) != 0) {

@@ -433,6 +433,14 @@ interpolate_model <- function(mod, name = NULL, ...,
   scen@model <- mod              # ... while get_process_*() read scen@model
   .assert_variants_expanded(mod)
 
+  # Links that name a weather transform get their own derived weather object,
+  # cloned once per (weather, transform) and repointed here -- the backends
+  # only ever see plain pWeather series. Must run after `expand_variants()`
+  # (each variant owns its link rows) and before the sets below freeze
+  # `sets$weather`. Like the expansion, only the build copy is touched.
+  mod <- materialize_weather_transforms(mod, verbose = verbose)
+  scen@model <- mod
+
   # `kvl`: enforce Kirchhoff's voltage law on the AC network -- the trade routes
   # that carry a `reactance`. OFF by default, because it is a restriction: a
   # transport model chooses its flows, and KVL takes that choice away, so a
