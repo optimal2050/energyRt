@@ -67,8 +67,11 @@
 #'     m01/m04/m07/m10; `year_fraction` ~ 0.337.}
 #'   \item{m12_subset_q1}{SAMPLED: `m12` filtered to Jan-Mar;
 #'     `year_fraction` = 90/365.}
-#'   \item{d365_h24_subset_1day_per_month}{SAMPLED: one day per month at
-#'     hourly resolution (288 timeslices, `year_fraction` ~ 12/365).}
+#'   \item{d365_h24_1dpm}{SAMPLED: one day per month at hourly
+#'     resolution (288 timeslices, `year_fraction` ~ 12/365).}
+#'   \item{d365_h24_1dps}{SAMPLED: one day per season at hourly
+#'     resolution (d015/d105/d196/d288, 96 timeslices,
+#'     `year_fraction` ~ 4/365).}
 #' }
 #' The mainstream designs (`m12` .. `w52_h24` and the first three sampled
 #' entries) are generated from the `timescales` catalog at DATA-BUILD time

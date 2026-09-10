@@ -135,12 +135,19 @@ setMethod(
     # way in (`force_cols_classes()` above) and `get_data_slot()` normalises
     # on-disk reads. The on-disk branch keeps the eager behaviour -- it pays a
     # parquet round-trip per call anyway, so the dedup is not what costs there.
-    if (!isOnDisk(obj) && isTRUE(getOption("en.bulk_param_write", FALSE))) {
+    if (isTRUE(getOption("en.bulk_param_write", FALSE))) {
       # BULK MODE (the object loop of `interpolate_model()`): park the chunk and
       # return. Appending is O(chunk) instead of O(accumulated), which is what
       # takes the loop from quadratic to linear in the number of objects.
       # `get_data_slot()` merges pending chunks for any reader in the meantime,
       # and `.flush_pending_parameters()` collapses them once the loop ends.
+      # The on-disk path parks too — the eager branch below pays a FULL Arrow
+      # read-append-rewrite per call, quadratic in writes-per-parameter; the
+      # flush performs one disk write per parameter instead. The store path is
+      # kept for the flush when the object does not carry one yet.
+      if (isOnDisk(obj) && !is.null(path) && is.null(getObjPath(obj))) {
+        obj@misc[[".pending_path"]] <- path
+      }
       obj@misc[[".pending_chunks"]] <-
         c(obj@misc[[".pending_chunks"]], list(unique(data)))
       return(obj)
@@ -1497,13 +1504,34 @@ force_cols_classes <- function(dtf) {
     pend <- p@misc[[".pending_chunks"]]
     if (length(pend) == 0 && !isTRUE(p@misc[[".dedup_pending"]])) next
     if (length(pend) > 0) {
-      p@data <- unique(rbindlist(c(list(p@data), pend),
-        use.names = TRUE, ignore.attr = TRUE
-      ))
-    } else if (!is.null(p@data) && nrow(p@data) > 0) {
+      if (isOnDisk(p)) {
+        # one disk write per parameter: existing store content + all parked
+        # chunks, deduplicated once (set union is associative, so this equals
+        # the eager per-write result)
+        base <- get_data_slot(p, optional = TRUE, dedup = FALSE)
+        full <- unique(rbindlist(
+          c(if (!is.null(base) && nrow(base) > 0) list(force_cols_classes(base)),
+            pend),
+          use.names = TRUE, ignore.attr = TRUE))
+        pth <- getObjPath(p)
+        if (is.null(pth)) pth <- p@misc[[".pending_path"]]
+        if (is.null(pth)) {
+          stop("on-disk parameter '", nm, "' has no store path at flush",
+               call. = FALSE)
+        }
+        p@data <- full
+        p <- obj2disk(p, format = .store_format(fp(pth, "data")))
+        p@data <- reset_slot(p@data)
+      } else {
+        p@data <- unique(rbindlist(c(list(p@data), pend),
+          use.names = TRUE, ignore.attr = TRUE
+        ))
+      }
+    } else if (!isOnDisk(p) && !is.null(p@data) && nrow(p@data) > 0) {
       p@data <- unique(p@data)
     }
     p@misc[[".pending_chunks"]] <- NULL
+    p@misc[[".pending_path"]] <- NULL
     p@misc[[".dedup_pending"]] <- NULL
     scen@modInp@parameters[[nm]] <- p
   }
@@ -1604,88 +1632,97 @@ make_data_param <- function(
     return(.empty_param_data(scen@modInp@parameters[[par_meta$name]]))
   }
 
+  # HOT PATH: this function runs once per (object x slot x parameter) --
+  # hundreds of thousands of calls on tiny tables per interpolation -- so it is
+  # written in base subsetting. The dplyr verbs it replaces spent their time in
+  # per-call tidyselect/DataMask setup, ~2/3 of the whole ob2mi stage on the
+  # 41-node vintaged model. Selection order, melt row order (row-major, as
+  # pivot_longer) and the filter/unique sequence reproduce the verb chain
+  # exactly.
+  dim_sets <- scen@modInp@parameters[[par_meta$name]]@dimSets
+
+  # add the object-name key column (constant). Appended, not prepended: the
+  # closing dim_sets reorder fixes every column position, so the intermediate
+  # position is free and the data.frame() constructor is avoided.
+  .prepend_class_col <- function(dat) {
+    if (is.null(class_col) || !is.null(dat[[class_col]])) return(dat)
+    dat[[class_col]] <- rep.int(obj_name, nrow(dat))
+    dat
+  }
+
+  # first-occurrence dedup in row order, radix instead of the column-pasting
+  # duplicated.data.frame
+  .dedup <- function(dat) {
+    if (nrow(dat) < 2L) return(dat)
+    dat[!duplicated(data.table::as.data.table(dat)), , drop = FALSE]
+  }
+
   if (par_meta$type == "bounds") {
     bound_names <- paste0(par_meta$colName, c(".lo", ".up", ".fx"))
-    # names(bound_names) <- c("lo", "up", "fx")
 
-    dat <- slot_data |>
-      select(any_of(c(
-        scen@modInp@parameters[[par_meta$name]]@dimSets,
-        bound_names
-      )))
+    keep <- intersect(c(dim_sets, bound_names), names(slot_data))
+    dat <- slot_data[, keep, drop = FALSE]
 
-    if (!is.null(class_col) && is.null(dat[[class_col]])) {
-      dat <- dat |> mutate({{class_col}} := obj_name, .before = 1)
-    }
+    dat <- .prepend_class_col(dat)
 
     # dimension columns absent from the slot data (e.g. objects saved under an
     # older class version without a `timeslice` column) are unset -> NA wildcard
-    for (m in setdiff(scen@modInp@parameters[[par_meta$name]]@dimSets,
-                      names(dat))) {
+    for (m in setdiff(dim_sets, names(dat))) {
       dat[[m]] <- rep(NA, nrow(dat))
     }
 
-    # Pack RAW (sparse) bounds in long format with `type` in {lo, up, fx}.
-    # Interpolation is deferred to `interpolate_parameters`.
-    dat <- dat |>
-      pivot_longer(
-        cols = any_of(bound_names),
-        names_to = "type",
-        values_to = "value",
-        names_prefix = paste0(par_meta$colName, ".")
-      )
+    # Pack RAW (sparse) bounds in long format with `type` in {lo, up, fx}:
+    # row-major melt, one long row per (source row x present bound column).
+    present <- intersect(bound_names, names(dat))
+    id_cols <- setdiff(names(dat), present)
+    n <- nrow(dat)
+    k <- length(present)
+    long <- dat[rep(seq_len(n), each = k), id_cols, drop = FALSE]
+    long$type <- rep.int(
+      substring(present, nchar(par_meta$colName) + 2L), n)
+    # rbind stacks the k bound columns; column-major read = row-major melt
+    long$value <- as.vector(do.call(rbind, unname(dat[present])))
+    rownames(long) <- NULL
+    dat <- long
 
     # fixed (fx) bounds -> explicit lo + up rows (see .expand_fx_bounds)
     dat <- .expand_fx_bounds(dat)
 
-    dat <- dat |>
-      select(all_of(c(
-        scen@modInp@parameters[[par_meta$name]]@dimSets,
-        "type", "value"
-      ))) |>
-      force_cols_classes()
+    dat <- force_cols_classes(
+      dat[, c(dim_sets, "type", "value"), drop = FALSE])
 
   } else {
     # Pack RAW (sparse) numeric values. Interpolation is deferred to
     # `interpolate_parameters`.
-    dat <- slot_data |>
-      select(any_of(c(
-        scen@modInp@parameters[[par_meta$name]]@dimSets,
-        short_name
-        ))) |>
-      # `all_of()`: renaming from a character variable is a tidyselect
-      # "external vector" selection, deprecated since tidyselect 1.1.0.
-      rename(value = all_of(short_name)) |>
-      filter(!is.na(value)) |>
-      unique()
+    keep <- intersect(c(dim_sets, short_name), names(slot_data))
+    dat <- slot_data[, keep, drop = FALSE]
+    names(dat)[names(dat) == short_name] <- "value"
+    dat <- .dedup(dat[!is.na(dat$value), , drop = FALSE])
 
-    if (!is.null(class_col) && is.null(dat[[class_col]])) {
-      dat <- dat |> mutate({{class_col}} := obj_name, .before = 1)
-    }
+    dat <- .prepend_class_col(dat)
 
     # dimension columns absent from the slot data (e.g. objects saved under an
     # older class version without a `timeslice` column) are unset -> NA wildcard
-    for (m in setdiff(scen@modInp@parameters[[par_meta$name]]@dimSets,
-                      names(dat))) {
+    for (m in setdiff(dim_sets, names(dat))) {
       dat[[m]] <- rep(NA, nrow(dat))
     }
 
-    dat <- dat |>
-      select(all_of(c(
-        scen@modInp@parameters[[par_meta$name]]@dimSets,
-        "value"
-      ))) |>
-      force_cols_classes()
+    dat <- force_cols_classes(
+      dat[, c(dim_sets, "value"), drop = FALSE])
   }
 
   # !!! add optional or essential info to metadata and filter NAs for optional
-  dat <- dat |>
-    filter(!is.na(value)) |>
-    unique()
+  dat <- .dedup(dat[!is.na(dat$value), , drop = FALSE])
+  rownames(dat) <- NULL
 
   dat
 }
 # =============================================================================#
+# `.modInp` is baked package data, so the scan below is a pure function of its
+# arguments; ob2mi calls it once per (object x slot) and the linear pass over
+# ~500 registry entries added up. Process-lifetime cache, keyed on the args.
+.slot_meta_cache <- new.env(parent = emptyenv())
+
 get_slot_meta <- function(class = NULL,
                           slot = NULL,
                           type = NULL,
@@ -1697,6 +1734,12 @@ get_slot_meta <- function(class = NULL,
                           flat = length(return_names) == 1,
                           ...
                           ) {
+
+  .enc <- function(v) if (is.null(v)) "<NULL>" else paste(v, collapse = ",")
+  .key <- paste(.enc(class), .enc(slot), .enc(type), .enc(dimSets),
+                .enc(colName), .enc(return_names), isTRUE(flat), sep = "|")
+  .hit <- .slot_meta_cache[[.key]]
+  if (!is.null(.hit)) return(.hit)
 
   ll <- list()
   # for ( in seq_along(.modInp)) {
@@ -1727,6 +1770,7 @@ get_slot_meta <- function(class = NULL,
     ll[[x_name]] <- x
   }
   # names(ll)
+  .slot_meta_cache[[.key]] <- ll
   ll
 }
 

@@ -111,7 +111,7 @@ so the object never carries two answers.}
 \item{outeff}{numeric. Output efficiency rate.}
 }}
 
-\item{aeff}{data.frame. Auxiliary commodities efficiency parameters.
+\item{aeff}{data.frame. Auxiliary commodities efficiency parameters. Rows can be assigned to a single variant via the \code{vintage} and/or \code{cluster} key columns; each variant then carries only its own couplings.
 \describe{
 \item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
 \item{cluster}{character. Cluster label selecting the variant this row applies to, NA for every cluster. See the \code{cluster} slot.}

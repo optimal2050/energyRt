@@ -216,12 +216,24 @@ unseal_scenario <- function(x, verbose = TRUE) {
 #' @rdname seal
 #' @export
 mark_delete <- function(x, importance = 0, type = NULL, verbose = TRUE) {
-  .mark_set(x, type,
-            list(marked_delete = TRUE,
-                 delete_importance = as.numeric(importance),
-                 marked_at = .registry_now()),
-            verbose,
-            paste0("marked for deletion (importance ", importance, ")"))
+  p <- .mark_set(x, type,
+                 list(marked_delete = TRUE,
+                      delete_importance = as.numeric(importance),
+                      marked_at = .registry_now()),
+                 verbose,
+                 paste0("marked for deletion (importance ", importance, ")"))
+  # Marking is a queue, not a deletion: report what points at the entry, never
+  # refuse. The refusal belongs to delete_marked(), where references are
+  # re-checked against the state at sweep time.
+  if (isTRUE(verbose)) {
+    deps <- tryCatch(store_dependents(x, type), error = function(e) NULL)
+    if (!is.null(deps) && nrow(deps)) {
+      message("  ", nrow(deps), " entr", if (nrow(deps) == 1L) "y" else "ies",
+              " reference it; delete_marked() will skip it unless ",
+              "ignore_refs = TRUE. store_dependents() lists them.")
+    }
+  }
+  invisible(p)
 }
 
 #' @rdname seal
@@ -237,23 +249,41 @@ unmark_delete <- function(x, type = NULL, verbose = TRUE) {
 #' Scans the four stores for entries queued by [mark_delete()] and removes
 #' those at or below `max_importance`. **Dry-run by default**: it only
 #' lists what would go. Sealed entries are never deleted, even when marked
-#' (reported as `skipped_sealed`). After a real deletion the registry is
-#' refreshed.
+#' (reported as `skipped_sealed`), and neither are entries that something
+#' still references (`skipped_referenced`). After a real deletion the registry
+#' is refreshed.
+#'
+#' @details
+#' Since [save_scenario()] references the model store rather than embedding a
+#' copy, deleting an entry can break the entries that point at it — and the
+#' breakage would surface only later, at load time. So a marked entry with
+#' dependents is skipped: [store_dependents()] lists them, and
+#' `ignore_refs = TRUE` deletes anyway.
+#'
+#' In an **interactive** session a referenced entry is offered rather than
+#' silently skipped: the dependents are named and the deletion confirmed one
+#' entry at a time. A non-interactive session is never prompted — it takes the
+#' refusal and `ignore_refs`, so a scripted sweep cannot hang.
 #'
 #' @param types character, which stores to sweep (default: all four).
 #' @param max_importance numeric threshold; only marks at or below it are
 #'   deleted (default 0 — the least valuable tier).
 #' @param dry_run logical; `FALSE` actually deletes.
+#' @param ignore_refs logical; `TRUE` deletes referenced entries too. Named
+#'   apart from `force` because [drop_scenario_run()]'s `force` means
+#'   something else (the active run).
 #' @param verbose logical.
 #' @return a tibble of the marked entries (type, name, importance, sealed,
-#'   action, path), invisibly when deleting.
+#'   dependents, action, path), invisibly when deleting.
 #' @rdname seal
 #' @export
 delete_marked <- function(types = NULL, max_importance = 0, dry_run = TRUE,
-                          verbose = TRUE) {
+                          ignore_refs = FALSE, verbose = TRUE) {
   kinds <- .entry_kinds()
   types <- if (is.null(types)) names(kinds) else
     match.arg(types, names(kinds), several.ok = TRUE)
+  # one walk for every entry considered below, not one per entry
+  idx <- if (isTRUE(ignore_refs)) .dep_cols() else .store_dep_index()
   rows <- list()
   for (tp in types) {
     root <- kinds[[tp]]$root()
@@ -264,19 +294,28 @@ delete_marked <- function(types = NULL, max_importance = 0, dry_run = TRUE,
       if (is.null(mf) || !isTRUE(mf$marked_delete)) next
       imp <- as.numeric(mf$delete_importance %||% 0)
       sealed <- isTRUE(mf$sealed)
+      nm <- as.character(mf$name %||% basename(d))
+      deps <- .dep_of(idx, tp, nm, as.character(mf$hash %||% ""))
       action <- if (imp > max_importance) "kept_importance" else
         if (sealed) "skipped_sealed" else
+        if (nrow(deps)) "skipped_referenced" else
         if (dry_run) "would_delete" else "deleted"
+      # the dialogue, only where a person can answer it
+      if (identical(action, "skipped_referenced") && !dry_run &&
+          .dep_prompt(tp, nm, deps)) {
+        action <- "deleted"
+      }
       rows[[length(rows) + 1L]] <- tibble(
-        type = tp, name = mf$name %||% basename(d), importance = imp,
-        sealed = sealed, action = action,
+        type = tp, name = nm, importance = imp,
+        sealed = sealed, dependents = nrow(deps), action = action,
         path = gsub("[\\/]+", "/", d))
     }
   }
   out <- if (length(rows)) bind_rows(rows) else
     tibble(type = character(0), name = character(0),
            importance = numeric(0), sealed = logical(0),
-           action = character(0), path = character(0))
+           dependents = integer(0), action = character(0),
+           path = character(0))
   if (!dry_run) {
     for (p in out$path[out$action == "deleted"]) {
       unlink(p, recursive = TRUE, force = TRUE)
@@ -298,11 +337,19 @@ delete_marked <- function(types = NULL, max_importance = 0, dry_run = TRUE,
               " marked entr", if (nrow(out) == 1L) "y" else "ies",
               " within max_importance = ", max_importance,
               "; delete_marked(dry_run = FALSE) to delete.")
-      print(out[, c("type", "name", "importance", "sealed", "action")])
+      print(out[, c("type", "name", "importance", "sealed", "dependents",
+                    "action")])
     } else {
       message(sum(out$action == "deleted"), " entr",
               if (sum(out$action == "deleted") == 1L) "y" else "ies",
               " deleted.")
+    }
+    nref <- sum(out$action == "skipped_referenced")
+    if (nref > 0L) {
+      message("  ", nref, " kept because ", if (nref == 1L) "it is" else
+              "they are", " still referenced; store_dependents() lists what ",
+              "points at ", if (nref == 1L) "it" else "them",
+              ", ignore_refs = TRUE deletes anyway.")
     }
   }
   if (dry_run) out else invisible(out)

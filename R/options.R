@@ -106,6 +106,11 @@ options::define_option(
   default = "https://neos-server.org:3333"
 )
 
+# Cloud credentials are NOT options here. The `mmcloud` package owns them --
+# it is what talks to the service and what the python transfer helper inherits
+# `HF_TOKEN` from -- so defining them again would give two sources of truth for
+# one token. Use `set_hf_token()`, which forwards to mmcloud.
+
 # Defaults ####################################################################
 
 options::define_option(
@@ -177,6 +182,19 @@ options::define_option(
     "Optional operation-log CSV. Empty (default) = logging off; a path",
     "makes interpolate_model()/solve_scenario()/solve_myopic() append one",
     "line per operation. Read it back with read_log()."
+  ),
+  default = ""
+)
+
+options::define_option(
+  "profile_dir",
+  desc = paste(
+    "Directory for the interpolation profile log (interp_runs.csv,",
+    "interp_stages.csv, interp_maps.csv, interp_params.csv -- per-run",
+    "timing and memory tables, appended after every interpolation).",
+    "Empty (default) = fall back to the operation log's directory, then",
+    "to <project>/logs/ when a project registry exists; no sink = no",
+    "files written."
   ),
   default = ""
 )
@@ -765,6 +783,30 @@ set_log_file <- function(path = NULL) {
 #' @export
 get_log_file <- function() {
   options::opt("log_file")
+}
+
+#' @description
+#' `get_profile_dir()` / `set_profile_dir()` locate the interpolation
+#' profile log: four CSV files (`interp_runs.csv`, `interp_stages.csv`,
+#' `interp_maps.csv`, `interp_params.csv`) that every `interpolate_model()`
+#' call appends its per-stage / per-map / per-parameter timing and memory
+#' readings to (R heap, per-stage heap peak, OS process RSS and its
+#' process-lifetime peak). When unset, the tables land next to the
+#' operation log if one is set, else under `<project>/logs/` when a
+#' project registry exists; with no sink resolvable nothing is written.
+#'
+#' @family options
+#' @rdname log
+#' @export
+set_profile_dir <- function(path = NULL) {
+  options::opt_set("profile_dir", path)
+}
+
+#' @family options
+#' @rdname log
+#' @export
+get_profile_dir <- function() {
+  options::opt("profile_dir")
 }
 
 # Storage format ##############################################################

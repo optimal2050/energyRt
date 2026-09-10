@@ -316,17 +316,25 @@ recipe_closure <- function(scen, names, fmp) {
 
 # Timeslices of each process = the leaf timeslices of its operating (finest) timeframe.
 .process_timeslice_df <- function(scen) {
-  cal    <- scen@settings@calendar
-  frames <- cal@timeframes
-  ptf    <- get_process_timeframe(scen)  # named list: process -> timeframe
-  rows <- lapply(names(ptf), function(p) {
-    tf <- ptf[[p]]
-    if (length(tf) == 0 || is.na(tf) || tf == "") tf <- cal@default_timeframe
-    sl <- frames[[tf]]
-    if (length(sl) == 0) sl <- tf
-    data.frame(process = p, timeslice = as.character(sl), stringsAsFactors = FALSE)
-  })
-  dplyr::bind_rows(rows)
+  cal <- scen@settings@calendar
+  # Rebuilt by each calendar-family builder; the table depends only on the
+  # object roster (timeframe slots are fixed for the run) and the calendar.
+  .interp_memo(
+    key = "process_timeslice_df",
+    fingerprint = list(.interp_model_fp(scen), cal@name, cal@default_timeframe),
+    compute = function() {
+      frames <- cal@timeframes
+      ptf    <- get_process_timeframe(scen)  # named list: process -> timeframe
+      rows <- lapply(names(ptf), function(p) {
+        tf <- ptf[[p]]
+        if (length(tf) == 0 || is.na(tf) || tf == "") tf <- cal@default_timeframe
+        sl <- frames[[tf]]
+        if (length(sl) == 0) sl <- tf
+        data.frame(process = p, timeslice = as.character(sl), stringsAsFactors = FALSE)
+      })
+      dplyr::bind_rows(rows)
+    }
+  )
 }
 
 # Project the process->timeslice table onto a single object class, renaming the
@@ -552,11 +560,13 @@ recipe_calendar <- function(scen, names, fmp) scen
 # derived total / balance / cost maps.
 # --------------------------------------------------------------------------- #
 
-# Drop duplicate rows (legacy `reduce.duplicate`).
+# Drop duplicate rows (legacy `reduce.duplicate`). Radix duplicated() -- the
+# data.frame method pastes every column per row; same rows kept, same order.
 .reduce_dup <- function(x) {
   if (is.null(x)) return(x)
   x <- as.data.frame(x)
-  x[!duplicated(x), , drop = FALSE]
+  if (nrow(x) < 2L) return(x)
+  x[!duplicated(data.table::as.data.table(x)), , drop = FALSE]
 }
 
 # Project onto a set of columns (optional) and drop duplicate rows (legacy
@@ -568,7 +578,8 @@ recipe_calendar <- function(scen, names, fmp) scen
     x <- dplyr::select(x, dplyr::all_of(set)) |>
       dplyr::relocate(dplyr::all_of(set))
   }
-  x[!duplicated(x), , drop = FALSE]
+  if (nrow(x) < 2L) return(x)
+  x[!duplicated(data.table::as.data.table(x)), , drop = FALSE]
 }
 
 # Row-bind the projections of several data.frames onto a common column set and
@@ -1606,7 +1617,11 @@ build_mappings <- function(scen, fmp = NULL,
     # dependencies (e.g. filter: mvTechAct before mvTechInp) build correctly via
     # their `.<family>_builders` list order.
     reg <- intersect(names(builders), nms)
-    for (nm in reg) scen <- builders[[nm]](scen, fmp)
+    for (nm in reg) {
+      .t0 <- Sys.time()
+      scen <- builders[[nm]](scen, fmp)
+      .interp_map_tick(nm, rc, as.numeric(Sys.time() - .t0, units = "secs"))
+    }
     nms <- setdiff(nms, reg)
     if (length(nms) == 0) next
     scen <- switch(rc,

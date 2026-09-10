@@ -78,8 +78,22 @@ interpolate_model <- function(mod, name = NULL, ...,
                        verbose = isVerbose()) {
   .log_t0 <- Sys.time()
   .interp_stages_reset()
+  # data.table defaults to half the logical cores; interpolation is join-heavy
+  # enough to use them all. `options(energyRt.threads = n)` overrides.
+  .dt_prev <- data.table::setDTthreads(getOption("energyRt.threads", 0L))
+  on.exit(data.table::setDTthreads(.dt_prev), add = TRUE)
   # Accept a scenario (re-interpolate its model), matching the legacy interface.
   if (inherits(mod, "scenario")) mod <- mod@model
+  # A model loaded from the store keeps its large slots on disk (thinned).
+  # The pipeline reads object slots directly, so interpolating a thinned
+  # model would silently produce EMPTY parameters (no demand, no weather)
+  # and a plausible-looking, meaningless scenario. Rehydrate first — the
+  # same contract model hashing uses (model_store.R).
+  if (!isInMemory(mod)) {
+    if (verbose) message("Model '", mod@name,
+                         "' has on-disk slots; rehydrating with obj2mem()")
+    mod <- obj2mem(mod, verbose = FALSE)
+  }
   # `...` (after `mod`/`name`) accepts ANY energyRt objects -- settings, config,
   # calendar, horizon, whole repositories, or individual model "bricks"
   # (technology/commodity/...) -- and folds them into the model BEFORE the
@@ -400,6 +414,7 @@ interpolate_model <- function(mod, name = NULL, ...,
   # (the `.declaration_calendar()` mirror): under a spatial sample the
   # data legitimately still names the full region set; the parameter
   # filter removes the out-of-sample rows later.
+  .interp_step(verbose, "checking declarations")
   .known_regions <- .declaration_regions(scen)
   .check_declared_regions(scen@model, .known_regions)
 
@@ -427,6 +442,7 @@ interpolate_model <- function(mod, name = NULL, ...,
   # Non-destructive: only the internal build copy is expanded, the caller's model
   # object is untouched. The link back to each base object is kept in
   # `sets$variant` (see R/variants.R).
+  .interp_step(verbose, "expanding vintage/cluster variants")
   .tech_variants <- expand_variants(mod, prefix = .variant_prefix(scen@settings),
                                     verbose = verbose)
   mod <- .tech_variants$model    # the sets below are collected from `mod`
@@ -438,6 +454,7 @@ interpolate_model <- function(mod, name = NULL, ...,
   # only ever see plain pWeather series. Must run after `expand_variants()`
   # (each variant owns its link rows) and before the sets below freeze
   # `sets$weather`. Like the expansion, only the build copy is touched.
+  .interp_step(verbose, "materializing weather transforms")
   mod <- materialize_weather_transforms(mod, verbose = verbose)
   scen@model <- mod
 
@@ -499,6 +516,7 @@ interpolate_model <- function(mod, name = NULL, ...,
   # slotNames(mi)
   # names(mi@parameters)
 
+  .interp_step(verbose, "collecting sets: object names")
   sets_from_settings <- c("region", "year", "timeslice") # from settings
 
   sets_from_model <- c(
@@ -525,40 +543,49 @@ interpolate_model <- function(mod, name = NULL, ...,
   # Sets from names of declared model-objects ####
   # INFO: if a set element is not declared as individual object, error will be thrown
 
+  # ONE recursive walk over the model, subset per class below.
+  # `collect_object_names(mod, cls)` filters only as its LAST step, so ten
+  # per-class calls repeated the identical full descent (every slot of every
+  # object, nested lists included) ten times.
+  .all_obj_names <- collect_object_names(mod, classes = NULL)
+  .obj_names_of <- function(cls) {
+    .all_obj_names$name[.all_obj_names$class %in% cls]
+  }
+
   ## commodity ####
-  scen@modInp@sets$comm <- collect_object_names(mod, "commodity")$name
+  scen@modInp@sets$comm <- .obj_names_of("commodity")
   scen@modInp@parameters$comm <- d2p(scen@modInp@parameters$comm, scen@modInp@sets$comm, fmp("comm"))
 
   ## supply ####
-  scen@modInp@sets$sup <- collect_object_names(mod, "supply")$name
+  scen@modInp@sets$sup <- .obj_names_of("supply")
   scen@modInp@parameters$sup <- d2p(scen@modInp@parameters$sup, scen@modInp@sets$sup, fmp("sup"))
 
   ## demand ####
-  scen@modInp@sets$dem <- collect_object_names(mod, "demand")$name
+  scen@modInp@sets$dem <- .obj_names_of("demand")
   scen@modInp@parameters$dem <- d2p(scen@modInp@parameters$dem, scen@modInp@sets$dem, fmp("dem"))
 
   ## technology ####
-  scen@modInp@sets$tech <- collect_object_names(mod, "technology")$name
+  scen@modInp@sets$tech <- .obj_names_of("technology")
   scen@modInp@parameters$tech <- d2p(scen@modInp@parameters$tech, scen@modInp@sets$tech, fmp("tech"))
 
   ## storage ####
-  scen@modInp@sets$stg <- collect_object_names(mod, "storage")$name
+  scen@modInp@sets$stg <- .obj_names_of("storage")
   scen@modInp@parameters$stg <- d2p(scen@modInp@parameters$stg, scen@modInp@sets$stg, fmp("stg"))
 
   ## export ####
-  scen@modInp@sets$expp <- collect_object_names(mod, "export")$name
+  scen@modInp@sets$expp <- .obj_names_of("export")
   scen@modInp@parameters$expp <- d2p(scen@modInp@parameters$expp, scen@modInp@sets$expp, fmp("expp"))
 
   ## import ####
-  scen@modInp@sets$imp <- collect_object_names(mod, "import")$name
+  scen@modInp@sets$imp <- .obj_names_of("import")
   scen@modInp@parameters$imp <- d2p(scen@modInp@parameters$imp, scen@modInp@sets$imp, fmp("imp"))
 
   ## trade ####
-  scen@modInp@sets$trade <- collect_object_names(mod, "trade")$name
+  scen@modInp@sets$trade <- .obj_names_of("trade")
   scen@modInp@parameters$trade <- d2p(scen@modInp@parameters$trade, scen@modInp@sets$trade, fmp("trade"))
 
   ## weather ####
-  scen@modInp@sets$weather <- collect_object_names(mod, "weather")$name
+  scen@modInp@sets$weather <- .obj_names_of("weather")
   scen@modInp@parameters$weather <-
     d2p(scen@modInp@parameters$weather, scen@modInp@sets$weather, fmp("weather"))
 
@@ -598,6 +625,7 @@ interpolate_model <- function(mod, name = NULL, ...,
   }
 
   ## process class
+  .interp_step(verbose, "collecting sets: process classes")
   scen@modInp@sets$process_class <- get_process_class(scen)
 
   ## (keep for future use)
@@ -606,10 +634,12 @@ interpolate_model <- function(mod, name = NULL, ...,
     arrange(class, process) |> as.data.table()
 
   # !!! ToDo: adjust for subsets of regions and timeslices
+  .interp_step(verbose, "collecting sets: timeframes")
   scen@modInp@sets[["comm_timeframe"]] <- map_comm_timeframe(scen)
   scen@modInp@sets[["process_timeframe"]] <-
     get_process_timeframe(scen, comm_timeframe = scen@modInp@sets$comm_timeframe)
 
+  .interp_step(verbose, "collecting sets: process inputs/outputs")
   scen@modInp@sets[["process_inputs"]] <- get_process_inputs(scen)
   scen@modInp@sets[["process_outputs"]] <- get_process_outputs(scen)
   scen@modInp@sets[["process_aux"]] <- get_process_aux(scen)
@@ -621,6 +651,7 @@ interpolate_model <- function(mod, name = NULL, ...,
   # AOut) are built from these sets by R/map_membership.R via
   # build_mappings(recipes = "membership") below. Here we only populate the
   # `*_comm` sets that those map builders read.
+  .interp_step(verbose, "collecting sets: membership comm sets")
   scen@modInp@sets[["supply_comm"]] <- get_process_outputs(scen, classes = "supply")
   scen@modInp@sets[["import_comm"]] <- get_process_outputs(scen, classes = "import")
   scen@modInp@sets[["demand_comm"]] <- get_process_inputs(scen, classes = "demand")
@@ -651,6 +682,7 @@ interpolate_model <- function(mod, name = NULL, ...,
 
   ## ToDo: mProcessRegion ####
   # map processes to regions !!! add mapping parameter?
+  .interp_step(verbose, "collecting sets: process regions")
   scen@modInp@sets$process_region <- get_process_region(scen)
 
   # Build the membership maps then the mCommReg closure from the `*_comm` /
@@ -667,6 +699,7 @@ interpolate_model <- function(mod, name = NULL, ...,
   ## mWeatherTimeframe ####
 
   # Investment and stock windows ####
+  .interp_step(verbose, "collecting sets: invest/stock windows")
   scen@modInp@sets$process_invest_window <- get_process_invest_window(scen)
   scen@modInp@sets$process_invest_year <- get_process_invest_years(scen)
 
@@ -844,7 +877,7 @@ interpolate_model <- function(mod, name = NULL, ...,
   # Value-derived mapping parameters ####
   #   Built after interpolation because they project the (interpolated) cost /
   #   value parameters onto their lifespan windows.
-  .interp_step(verbose, "building maps: value, filter, constraint, cost")
+  .interp_step(verbose, "building maps: value")
   scen <- build_mappings(scen, fmp = fmp, recipes = "value")
 
   # A process declared in a region where a commodity it requires is unavailable
@@ -860,6 +893,7 @@ interpolate_model <- function(mod, name = NULL, ...,
   #   Built after value maps because they join the operation windows, the
   #   membership commodity maps, the per-object timeslice maps and the commodity-
   #   region closure (and reuse mSupSpan from the value recipe).
+  .interp_step(verbose, "building maps: filter")
   scen <- build_mappings(scen, fmp = fmp, recipes = "filter")
 
   #============================================================================#
@@ -880,6 +914,7 @@ interpolate_model <- function(mod, name = NULL, ...,
   #   domains to the equations that reference them. Several constraint maps that
   #   share a derivation with a filter map are built during the filter recipe;
   #   the rest are reported pending until implemented.
+  .interp_step(verbose, "building maps: constraint")
   scen <- build_mappings(scen, fmp = fmp, recipes = "constraint")
 
   #============================================================================#
@@ -964,6 +999,7 @@ interpolate_model <- function(mod, name = NULL, ...,
   #   materialised it onto its explicit regions (e.g. a supply priced at a
   #   nation through a region-less `supply` frame; before this ran post-unfold,
   #   the NAT cell was missed and the cost never reached the objective).
+  .interp_step(verbose, "building maps: cost aggregation")
   scen <- build_mappings(scen, fmp = fmp, recipes = "cost_agg")
 
   #   A cost declared at a coarse geoscale cell needs a discount factor there,
@@ -1133,6 +1169,10 @@ interpolate_model <- function(mod, name = NULL, ...,
           horizon = tryCatch(scen@settings@horizon@name,
                              error = function(e) ""),
           ondisk = isTRUE(ondisk))
+  # Always-on profile log (timing + memory per stage/map/parameter) -- the
+  # op log above needs set_log_file(); this appends whenever a sink resolves.
+  .interp_profile_log(scen, mod, ondisk,
+                      difftime(Sys.time(), .log_t0, units = "secs"))
   scen
 }
 
@@ -1399,50 +1439,67 @@ collect_object_names <- function(
   # classes - character vector of class names to search for
   # returns a character vector of process names
 
-  process_names <- list(data.frame(
-    name = character(),
-    desc = character(),
-    class = character()
-  ))
-  if (isS4(obj)) {
-    slots <- .instance_slots(obj)
-    if (.hasSlot(obj, "name")) {
-      obj_desc <- if (.hasSlot(obj, "desc") && length(obj@desc) == 1) {
-        obj@desc
-      } else {
-        NA_character_
-      }
-      process_names <- c(process_names, list(data.frame(
-        name = obj@name,
-        desc = obj_desc,
-        class = class(obj)
-      )))
+  # Accumulate (name, desc, class) into growing vectors and run the set ops
+  # (unique / arrange / class filter) ONCE at the top. The recursive
+  # formulation built a data.frame per visited node and re-sorted the
+  # accumulated rows at EVERY level of the descent, which dominated set
+  # collection on large models. Filtering only at the top is equivalent:
+  # union and filter commute, and the final arrange decides the order.
+  acc <- new.env(parent = emptyenv())
+  acc$name <- character(1024L)
+  acc$desc <- character(1024L)
+  acc$class <- character(1024L)
+  acc$n <- 0L
+  add <- function(nm, dsc, cls) {
+    n <- acc$n + 1L
+    if (n > length(acc$name)) {
+      acc$name  <- c(acc$name,  character(length(acc$name)))
+      acc$desc  <- c(acc$desc,  character(length(acc$desc)))
+      acc$class <- c(acc$class, character(length(acc$class)))
     }
-    ii <- sapply(slots, function(x) {
-      inherits(slot(obj, x), "list")
-    })
-    obj <- lapply(slots[ii], function(x) {
-      slot(obj, x)
-    })
+    acc$name[[n]]  <- nm
+    acc$desc[[n]]  <- if (length(dsc) == 1L) dsc else NA_character_
+    acc$class[[n]] <- cls
+    acc$n <- n
   }
-  if (inherits(obj, "list")) {
-    for (i in seq_along(obj)) {
-      if (isS4(obj[[i]]) && .hasSlot(obj[[i]], "name")) {
-        process_names <- c(process_names, list(data.frame(
-          name = obj[[i]]@name,
-          desc = if_else(.hasSlot(obj[[i]], "desc"), obj[[i]]@desc, NA_character_),
-          class = class(obj[[i]])
-        )))
-      } else if (inherits(obj[[i]], "list")) {
-        ll <- lapply(obj[[i]], function(x) {
-          collect_object_names(x, classes)
-        })
-        process_names <- c(process_names, ll)
+  # Two walkers, mirroring the recursion exactly: `walk_full` is the
+  # function-entry path (an S4 contributes its row AND its list slots are
+  # descended); `walk_list` is the slot-list loop, where a bare S4 element
+  # contributes its row only and a nested list re-enters walk_full per element.
+  walk_full <- function(x) {
+    if (isS4(x)) {
+      if (.hasSlot(x, "name")) {
+        dsc <- if (.hasSlot(x, "desc") && length(x@desc) == 1L) x@desc
+               else NA_character_
+        add(x@name, dsc, as.character(class(x))[[1L]])
+      }
+      for (sl in .instance_slots(x)) {
+        v <- methods::slot(x, sl)
+        if (inherits(v, "list")) walk_list(list(v))
+      }
+    } else if (inherits(x, "list")) {
+      walk_list(x)
+    }
+  }
+  walk_list <- function(l) {
+    for (el in l) {
+      if (isS4(el) && .hasSlot(el, "name")) {
+        dsc <- if (.hasSlot(el, "desc") && length(el@desc) == 1L) el@desc
+               else NA_character_
+        add(el@name, dsc, as.character(class(el))[[1L]])
+      } else if (inherits(el, "list")) {
+        for (e in el) walk_full(e)
       }
     }
   }
-  process_names <- process_names |>
-    rbindlist() |>
+  walk_full(obj)
+
+  idx <- seq_len(acc$n)
+  process_names <- data.table(
+    name = acc$name[idx],
+    desc = acc$desc[idx],
+    class = acc$class[idx]
+  ) |>
     unique() |>
     arrange(class, name) |>
     as.data.table()
@@ -1497,15 +1554,22 @@ apply_to_scenario_data <- function(
     as_list = TRUE
   ) {
 
-  rs <- list()
+  # Collect per-object results and flatten ONCE: growing with `c(rs, rr)`
+  # copies the accumulated list on every object (quadratic in object count).
+  chunks <- list()
+  n <- 0L
   for (i in seq(along = scen@model@data)) {
     for (j in seq(along = scen@model@data[[i]]@data)) {
       if (is.null(classes) || inherits(scen@model@data[[i]]@data[[j]], classes)) {
         rr <- func(scen@model@data[[i]]@data[[j]], ...)
-        rs <- c(rs, rr)
+        if (!is.null(rr)) {
+          n <- n + 1L
+          chunks[[n]] <- rr
+        }
       }
     }
   }
+  rs <- if (n) do.call(c, chunks) else list()
 
   # return as named list
   if (as_list) {
@@ -1527,13 +1591,19 @@ apply_to_parameters <- function(
     ...,
     as_list = TRUE
 ) {
-  rs <- list()
+  # Same flatten-once accumulation as apply_to_scenario_data().
+  chunks <- list()
+  n <- 0L
   for (i in seq(along = scen@modInp@parameters)) {
     if (inherits(scen@modInp@parameters[[i]], "parameter")) {
       rr <- func(scen@modInp@parameters[[i]], ...)
-      rs <- c(rs, rr)
+      if (!is.null(rr)) {
+        n <- n + 1L
+        chunks[[n]] <- rr
+      }
     }
   }
+  rs <- if (n) do.call(c, chunks) else list()
 
   # return as named list
   if (as_list) {
@@ -2896,10 +2966,11 @@ validate_scenario_parameters <- function(scen, fold = TRUE,
                                paste(missing_cols, collapse = ", ")))
     }
 
-    # Duplicate id tuples
+    # Duplicate id tuples. Radix duplicated(): the data.frame method pastes
+    # every column per row, which dominated validation on large parameters.
     if (length(id_cols) > 0) {
       key <- d[, id_cols, drop = FALSE]
-      n_dup <- sum(duplicated(key))
+      n_dup <- sum(duplicated(as.data.table(key)))
       if (n_dup > 0) {
         add(pn, "duplicate_key", paste0(n_dup, " duplicate id tuple(s)"))
       }
@@ -3121,6 +3192,7 @@ interpolate_parameters <- function(scen, drop_default = FALSE) {
 
     raw <- get_data_slot(param)
     if (is.null(raw) || nrow(raw) == 0) next
+    .tick0 <- Sys.time()
     raw <- as.data.frame(raw)
     non_year <- setdiff(param@dimSets, "year")
 
@@ -3278,6 +3350,7 @@ Declare one bound per key.
     # supersedes them, so the on-disk `data` slot is replaced with the
     # interpolated result (the in-memory `@data` is kept as the empty schema).
     scen <- .interp_write_param(scen, pn, new_data)
+    .interp_param_tick(pn, as.numeric(Sys.time() - .tick0, units = "secs"))
   }
 
   scen
@@ -3612,13 +3685,22 @@ get_process_class <- function(scen, process = NULL, classes = NULL) {
                  "trade", "export", "demand")
   }
 
-  ll <- apply_to_scenario_data(
-    scen,
-    classes = classes,
-    func = function(x) {
-      ll <- list()
-      ll[[x@name]] <- class(x) |> as.character()
-      return(ll)
+  # The walk over every model object is invariant within an interpolation run
+  # (objects are fixed once variants are expanded) yet many map builders repeat
+  # it; memoize per classes signature, fingerprinted on the object roster.
+  ll <- .interp_memo(
+    key = paste0("process_class|", paste(classes, collapse = ",")),
+    fingerprint = .interp_model_fp(scen),
+    compute = function() {
+      apply_to_scenario_data(
+        scen,
+        classes = classes,
+        func = function(x) {
+          ll <- list()
+          ll[[x@name]] <- class(x) |> as.character()
+          return(ll)
+        }
+      )
     }
   )
 
@@ -4186,6 +4268,31 @@ get_process_invest_window <- function(scen, process = NULL, classes = NULL) {
     as.data.table()
 }
 
+# Cross a (process, region, start, end) window table with the milestone
+# years in ONE keyed join, reproducing the legacy per-process loop's row
+# order exactly: processes in `procs` order, then the window table's region
+# order within each process, years innermost, multiple window rows per
+# (process, region) consecutive in table order (i-join keeps i order and
+# emits x matches in x order). The loop ran expand_grid + left_join + two
+# filters per process, which dominated the invest/stock-window stage.
+.window_years <- function(win, procs, mids) {
+  empty <- data.table(process = character(), region = character(),
+                      year = integer())
+  if (is.null(win) || NROW(win) == 0L || !length(procs)) return(empty)
+  w <- as.data.table(win)
+  w <- w[w$process %in% procs, ]
+  if (nrow(w) == 0L) return(empty)
+  w <- w[order(match(w$process, procs)), ]
+  pairs <- unique(w[, list(process, region)])
+  nY <- length(mids)
+  g <- pairs[rep(seq_len(nrow(pairs)), each = nY), ]
+  g$year <- rep(mids, nrow(pairs))
+  j <- w[g, on = c("process", "region"), allow.cartesian = TRUE]
+  j <- j[(j$year >= j$start | is.na(j$start)) &
+           (j$year <= j$end | is.na(j$end)), ]
+  unique(j[, list(process, region, year)])
+}
+
 get_process_invest_years <- function(scen, process = NULL, classes = NULL) {
   # match model years with investment window
   if (is.null(scen@modInp@sets$process_invest_window)) {
@@ -4203,30 +4310,18 @@ get_process_invest_years <- function(scen, process = NULL, classes = NULL) {
 
   process_invest_window <- scen@modInp@sets$process_invest_window
 
-  process_invest_year <- lapply(
-    scen@modInp@sets$process, function(x) {
-      xx <- process_invest_window[process == x]
-      if (nrow(xx) == 0) {
-        return(NULL)
-      }
-      yy <- expand_grid(
-        process = x,
-        region = unique(xx$region),
-        year = scen@settings@horizon@intervals$mid
-      ) |>
-        left_join(
-          xx,
-          by = c("process", "region")
-        ) |>
-        filter(year >= start | is.na(start)) |>
-        filter(year <= end | is.na(end)) |>
-        select(process, region, year) |>
-        unique() |>
-        as.data.table()
-      return(yy)
+  # Every lifespan "new"-window builder recomputes this per-process expansion;
+  # the result depends only on the frozen invest-window set, the process set
+  # and the horizon, so memoize on exactly those.
+  process_invest_year <- .interp_memo(
+    key = "process_invest_year",
+    fingerprint = list(process_invest_window, scen@modInp@sets$process,
+                       scen@settings@horizon@intervals$mid),
+    compute = function() {
+      .window_years(process_invest_window, scen@modInp@sets$process,
+                    scen@settings@horizon@intervals$mid)
     }
-  ) |>
-  rbindlist(use.names = TRUE, fill = TRUE)
+  )
 
   # Every element is NULL when no capacity-bearing process exists, and
   # `rbindlist()` then returns a table with no columns at all. Callers join and
@@ -4365,31 +4460,9 @@ get_process_stock_years <- function(scen, process = NULL, classes = NULL) {
             )
   }
 
-  process_stock_window <- scen@modInp@sets$process_stock_window
-  process_stock_year <- lapply(
-    scen@modInp@sets$process, function(x) {
-      xx <- process_stock_window[process == x]
-      if (nrow(xx) == 0) {
-        return(NULL)
-      }
-      yy <- expand_grid(
-        process = x,
-        region = unique(xx$region),
-        year = scen@settings@horizon@intervals$mid
-      ) |>
-        left_join(
-          xx,
-          by = c("process", "region")
-        ) |>
-        filter(year >= start | is.na(start)) |>
-        filter(year <= end | is.na(end)) |>
-        select(process, region, year) |>
-        unique() |>
-        as.data.table()
-      return(yy)
-    }
-  ) |>
-    rbindlist(use.names = TRUE, fill = TRUE)
+  process_stock_year <- .window_years(scen@modInp@sets$process_stock_window,
+                                      scen@modInp@sets$process,
+                                      scen@settings@horizon@intervals$mid)
 
   process_stock_year <- .empty_process_years(process_stock_year)
 

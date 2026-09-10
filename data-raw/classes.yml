@@ -427,7 +427,7 @@ class:
           description: Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.
         cluster:
           type: character
-          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `vintage` slot.
+          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `cluster` slot.
         region:
           type: character
           description: Name of region to apply the parameter, NA for every region.
@@ -452,7 +452,7 @@ class:
           description: Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.
         cluster:
           type: character
-          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `vintage` slot.
+          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `cluster` slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
@@ -507,14 +507,14 @@ class:
             This parameter overrides `afc.lo` and `afc.up`.
     aeff:
       type: data.frame
-      description: Parameters linking main commodities, activities, and capacities to auxiliary commodities.
+      description: Parameters linking main commodities, activities, and capacities to auxiliary commodities. Rows can be assigned to a single variant via the `vintage` and/or `cluster` key columns; each variant then carries only its own couplings (e.g. one land-pool input per cluster), and the auxiliary membership maps are built from these coefficient rows alone.
       columns:
         vintage:
           type: character
           description: Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.
         cluster:
           type: character
-          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `vintage` slot.
+          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `cluster` slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
@@ -618,7 +618,7 @@ class:
           description: Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.
         cluster:
           type: character
-          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `vintage` slot.
+          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `cluster` slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
@@ -659,7 +659,7 @@ class:
           description: Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.
         cluster:
           type: character
-          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `vintage` slot.
+          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `cluster` slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
@@ -689,7 +689,7 @@ class:
           description: Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.
         cluster:
           type: character
-          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `vintage` slot.
+          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `cluster` slot.
         weather:
           type: character
           description: Name of the applied weather factor, required, must match the weather factor names in a `weather` class in the model.
@@ -732,7 +732,7 @@ class:
           description: Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.
         cluster:
           type: character
-          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `vintage` slot.
+          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `cluster` slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
@@ -751,7 +751,7 @@ class:
           description: Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.
         cluster:
           type: character
-          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `vintage` slot.
+          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `cluster` slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
@@ -785,7 +785,7 @@ class:
           description: Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.
         cluster:
           type: character
-          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `vintage` slot.
+          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `cluster` slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
@@ -884,7 +884,7 @@ class:
           description: Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.
         cluster:
           type: character
-          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `vintage` slot.
+          description: Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `cluster` slot.
         region:
           type: character
           description: Region name to apply the parameter, NA for every region.
@@ -1247,7 +1247,7 @@ class:
             This parameter overrides `out.af.lo` and `out.af.up`.
     aeff:
       type: data.frame
-      description: Auxiliary commodities efficiency parameters.
+      description: Auxiliary commodities efficiency parameters. Rows can be assigned to a single variant via the `vintage` and/or `cluster` key columns; each variant then carries only its own couplings.
       columns:
         vintage:
           type: character
@@ -1919,7 +1919,7 @@ class:
           description: Unit of the auxiliary commodity.
     aeff:
       type: data.frame
-      description: Auxiliary commodity efficiency parameters.
+      description: Auxiliary commodity efficiency parameters. Rows can be assigned to a single variant via the `vintage` and/or `cluster` key columns; each variant then carries only its own couplings.
       columns:
         vintage:
           type: character

@@ -361,7 +361,7 @@ plot_calendar <- function(object, ...,
 #' autoplot(cal, fill = "share")
 #'
 #' # Subset view: show which timeslices a reduced calendar covers within the full one
-#' autoplot(calendars$d365_h24_subset_1day_per_month,
+#' autoplot(calendars$d365_h24_1dpm,
 #'          reference = calendars$d365_h24)
 #'
 #' # Zoom into specific timeslices: day 100, hours 5-10

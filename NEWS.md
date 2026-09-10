@@ -2,6 +2,15 @@
 
 ## Breaking changes
 
+* `scenario_artifacts()` gains a `kind` column and adds scenario-level rows for
+  the derived tiers (`"reports"`, `"levcost"`) beside the `"run"` rows;
+  `drop_solver_outputs()` acts on `kind == "run"` only.
+* `prepare_for_sharing()` drops rendered reports unless `keep_reports = TRUE`:
+  they re-render, and a PDF or DOCX can carry a path or user name where
+  byte-level scrubbing is not safe.
+* `delete_marked()` skips an entry that something still references, reporting
+  `skipped_referenced` beside the existing `skipped_sealed`; `ignore_refs = TRUE`
+  deletes it anyway, and an interactive session names the dependents and asks.
 * `save_scenario(embed_model = NULL)`, the default, saves the model to the
   model store and references it instead of embedding a copy in every scenario;
   a name already holding different content is left alone and the model embedded.
@@ -57,9 +66,35 @@
   and `utopia_m12h24` are retired for `annual`, `s4_h24` and `m12_h24`;
   `utopia_seasons` stays, relabelled `AUT` → `FAL`. Objectives shift slightly.
 * `report_tbl()` enforces a 200-row cap in PDF/Word when no `max_rows` is given.
+* The sampled daily calendar `calendars$d365_h24_subset_1day_per_month` is
+  renamed `d365_h24_1dpm` (solver working paths embed the calendar name);
+  existing scenario folders keep their names.
 
 ## New features
 
+* `interpolate_model()` is about 6x faster on large models (a 41-node
+  vintaged multi-year interpolation dropped from ~16 to under 3 minutes):
+  one model walk feeds all object-name sets, process lookups are memoized per
+  run, the per-object parameter builder uses base subsetting instead of
+  per-call dplyr verbs, duplicate checks use radix ordering, window-year
+  expansion is a single keyed join, and `data.table` runs on all cores for
+  the duration of the call (`options(energyRt.threads = )` to override).
+  Interpolated content is unchanged.
+* Every `interpolate_model()` call appends its per-stage / per-map /
+  per-parameter timing and memory readings (R heap, per-stage heap peak,
+  process RSS and peak via `ps`) to a profile log — `interp_runs.csv`,
+  `interp_stages.csv`, `interp_maps.csv`, `interp_params.csv` — under
+  `set_profile_dir()`, else next to the operation log, else `<project>/logs/`;
+  with no sink resolvable nothing is written.
+* On-disk interpolation writes each parameter's store once at the end of the
+  object loop instead of rewriting it on every append, removing the quadratic
+  cost that made `ondisk = TRUE` slower than in-memory on large models.
+* `clear_report_cache()` removes rendered reports — an object's own `reports/`
+  folder, or the project tier for in-memory objects — listing them by default
+  and deleting only with `dry_run = FALSE`. A sealed owner refuses.
+* `store_dependents()` lists what references a stored model, repository or
+  dataset instead of embedding a copy of it — the entries that would break if
+  it were deleted, and whether each is pinned to a superseded version.
 * New solver presets for GPU-accelerated LP. `solver_options$julia_cuopt`,
   `julia_cuopt_concurrent`, `julia_cuopt_pdlp` and `julia_cuopt_crossover`
   solve via NVIDIA cuOpt through `cuOpt.jl`. **Linux only** -- cuOpt ships no
@@ -76,6 +111,8 @@
 * The JuMP backend records the solver's `termination status` in
   `output/log.csv` and skips result export when no primal solution exists,
   instead of failing while reading variable values.
+* New sampled calendar `calendars$d365_h24_1dps`: one representative day
+  per season at hourly resolution (96 timeslices).
 * `solver_options$pyomo_mps` writes the problem as an MPS file with
   energyRt's own variable and constraint names and stops before solving —
   for handing a model to an external solver (a GPU LP solver, a remote
@@ -274,6 +311,11 @@
 * The mosox back-end experiment moved to `drafts/`; it was not functional.
 
 ## Bug fixes
+
+* `interpolate_model()` rehydrates a model whose large slots live in the
+  model store (`obj2mem()`) instead of silently interpolating the empty
+  placeholders — a store-loaded model produced a plausible-looking scenario
+  with no demand and no weather.
 
 * `verify_solution()`'s `objective` check no longer errors out (and is no
   longer reported as skipped) when a parameter and its gating map disagree

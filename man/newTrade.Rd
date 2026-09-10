@@ -127,7 +127,7 @@ Before 0.85 both columns were summed into a single term that cancelled between \
 \item{unit}{character. Unit of the auxiliary commodity.}
 }}
 
-\item{aeff}{data.frame. Auxiliary commodity efficiency parameters.
+\item{aeff}{data.frame. Auxiliary commodity efficiency parameters. Rows can be assigned to a single variant via the \code{vintage} and/or \code{cluster} key columns; each variant then carries only its own couplings.
 \describe{
 \item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
 \item{cluster}{character. Cluster (loss tranche) label selecting the tranche this row applies to, NA for every tranche. See the \code{cluster} slot.}

@@ -22,9 +22,20 @@
 # says what survived. Both are logged because the gap between them is itself
 # informative -- a stage that peaks far above what it keeps is one that
 # materialises something large and throws it away.
-.en_mem <- function() {
-  g <- tryCatch(gc(verbose = FALSE, reset = FALSE), error = function(e) NULL)
-  if (is.null(g)) return(list(mem_mb = NA_real_, peak_mb = NA_real_))
+.en_mem <- function(reset = FALSE) {
+  # gc() is the probe, but a FULL collection at every stage boundary is
+  # expensive on multi-GB heaps; a partial collection returns the same
+  # table. `options(energyRt.mem_gc_full = TRUE)` restores the old probe.
+  # `reset = TRUE` resets the heap high-water mark, so the NEXT probe's
+  # `peak_mb` covers only the interval since this call (per-stage peaks).
+  g <- tryCatch(gc(verbose = FALSE, reset = reset,
+                   full = isTRUE(getOption("energyRt.mem_gc_full", FALSE))),
+                error = function(e) NULL)
+  rss <- .en_rss()
+  if (is.null(g)) {
+    return(list(mem_mb = NA_real_, peak_mb = NA_real_,
+                rss_mb = rss$rss_mb, peak_rss_mb = rss$peak_rss_mb))
+  }
   # gc() returns: used | (Mb) | gc trigger | (Mb) | max used | (Mb)
   # The MB figure always sits in the column immediately after its counter, so
   # locate the counter by name and step one across. Matching the "(Mb)" headers
@@ -36,8 +47,33 @@
     sum(g[, j[[1]] + 1L], na.rm = TRUE)
   }
   list(mem_mb  = round(mb_after("used"), 1),
-       peak_mb = round(mb_after("max used"), 1))
+       peak_mb = round(mb_after("max used"), 1),
+       rss_mb = rss$rss_mb, peak_rss_mb = rss$peak_rss_mb)
 }
+
+# OS-level process memory, in MB, via `ps` (optional dependency). The R heap
+# misses off-heap allocations (Arrow buffers, data.table scratch), so RSS is
+# the number that answers "will this fit" for on-disk runs. `peak_rss_mb` is
+# the PROCESS-LIFETIME peak working set (Windows) -- it cannot be reset, so
+# per-stage readings show growth of the running maximum, not per-stage peaks.
+.en_rss <- local({
+  have <- NULL
+  handle <- NULL
+  function() {
+    if (is.null(have)) {
+      have <<- requireNamespace("ps", quietly = TRUE)
+      if (have) handle <<- tryCatch(ps::ps_handle(), error = function(e) NULL)
+    }
+    if (!isTRUE(have) || is.null(handle)) {
+      return(list(rss_mb = NA_real_, peak_rss_mb = NA_real_))
+    }
+    m <- tryCatch(ps::ps_memory_info(handle), error = function(e) NULL)
+    if (is.null(m)) return(list(rss_mb = NA_real_, peak_rss_mb = NA_real_))
+    pk <- if ("peak_wset" %in% names(m)) m[["peak_wset"]] else NA_real_
+    list(rss_mb = round(as.numeric(m[["rss"]]) / 2^20, 1),
+         peak_rss_mb = round(as.numeric(pk) / 2^20, 1))
+  }
+})
 
 # Append one operation line to the log file; silent no-op when logging is
 # off (empty `log_file` option) or `object` is scratch (dot-prefixed names,

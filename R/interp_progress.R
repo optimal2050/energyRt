@@ -38,6 +38,9 @@
   dt <- as.numeric(Sys.time() - .interp_clock$t, units = "secs")
 
   # Record before printing, so a non-verbose run still accounts for the stage.
+  # `peak_mb` is the PER-STAGE heap high-water mark (the mark is reset at each
+  # stage start in `.interp_step`); `rss_mb` / `peak_rss_mb` are OS process
+  # memory (see `.en_rss` -- the peak is process-lifetime, a running maximum).
   m1 <- tryCatch(.en_mem(), error = function(e) NULL)
   .interp_clock$stages <- c(.interp_clock$stages %||% list(), list(list(
     stage = .interp_clock$msg,
@@ -45,7 +48,9 @@
     mem_mb = if (is.null(m1)) NA_real_ else m1$mem_mb,
     peak_mb = if (is.null(m1)) NA_real_ else m1$peak_mb,
     d_mem_mb = if (is.null(m1) || is.null(.interp_clock$m0)) NA_real_
-               else round(m1$mem_mb - .interp_clock$m0$mem_mb, 1))))
+               else round(m1$mem_mb - .interp_clock$m0$mem_mb, 1),
+    rss_mb = if (is.null(m1)) NA_real_ else m1$rss_mb,
+    peak_rss_mb = if (is.null(m1)) NA_real_ else m1$peak_rss_mb)))
 
   if (!isTRUE(verbose)) {
     .interp_clock$open <- FALSE
@@ -97,7 +102,40 @@
 # verbose runs is no log at all.
 .interp_stages_reset <- function() {
   .interp_clock$stages <- list()
+  .interp_clock$maps <- list()
+  .interp_clock$params <- list()
+  .interp_clock$memo <- NULL
   invisible()
+}
+
+# --------------------------------------------------------------------------- #
+# Per-interpolation memoization for model-derived lookups (process classes,
+# invest-year windows, process->timeslice tables). These are recomputed by
+# dozens of map builders while the underlying model objects are fixed for the
+# whole run (variants are expanded before any builder runs). Entries are
+# guarded by a `fingerprint` compared with identical(), so a memo populated by
+# one scenario can never serve another: any change in the inputs the caller
+# fingerprints invalidates the entry. The cache lives in `.interp_clock` and
+# is dropped by `.interp_stages_reset()` at the start of every interpolation.
+# --------------------------------------------------------------------------- #
+.interp_memo <- function(key, fingerprint, compute) {
+  cache <- .interp_clock$memo
+  if (is.null(cache)) {
+    cache <- new.env(parent = emptyenv())
+    .interp_clock$memo <- cache
+  }
+  hit <- cache[[key]]
+  if (!is.null(hit) && identical(hit$fp, fingerprint)) return(hit$value)
+  value <- compute()
+  cache[[key]] <- list(fp = fingerprint, value = value)
+  value
+}
+
+# Fingerprint of the model's object roster: object names per repository.
+# Any object added, dropped, or renamed (variant expansion, transform
+# materialization) changes it.
+.interp_model_fp <- function(scen) {
+  lapply(scen@model@data, function(r) names(r@data))
 }
 
 .interp_stages <- function() {
@@ -106,11 +144,40 @@
   do.call(rbind, lapply(st, as.data.frame, stringsAsFactors = FALSE))
 }
 
+# Per-map / per-parameter tick accounting (same always-on contract as the
+# stage table). Retrieve with .interp_map_table() / .interp_param_table()
+# right after interpolate_model() in the same session.
+.interp_map_tick <- function(name, recipe, secs) {
+  .interp_clock$maps[[length(.interp_clock$maps) + 1L]] <-
+    list(map = name, recipe = recipe, secs = secs)
+  invisible()
+}
+
+.interp_param_tick <- function(name, secs) {
+  .interp_clock$params[[length(.interp_clock$params) + 1L]] <-
+    list(parameter = name, secs = secs)
+  invisible()
+}
+
+.interp_map_table <- function() {
+  x <- .interp_clock$maps
+  if (is.null(x) || !length(x)) return(NULL)
+  do.call(rbind, lapply(x, as.data.frame, stringsAsFactors = FALSE))
+}
+
+.interp_param_table <- function() {
+  x <- .interp_clock$params
+  if (is.null(x) || !length(x)) return(NULL)
+  do.call(rbind, lapply(x, as.data.frame, stringsAsFactors = FALSE))
+}
+
 .interp_step <- function(verbose, msg, oneline = TRUE) {
   .interp_step_done(verbose)          # close prior stage with its timing
   .interp_clock$t   <- Sys.time()
   .interp_clock$msg <- msg
-  .interp_clock$m0  <- tryCatch(.en_mem(), error = function(e) NULL)
+  # reset = TRUE re-arms the heap high-water mark, so this stage's closing
+  # probe reports the stage's OWN peak, not the session's.
+  .interp_clock$m0  <- tryCatch(.en_mem(reset = TRUE), error = function(e) NULL)
   if (!isTRUE(verbose)) {
     .interp_clock$open <- FALSE
     return(invisible())
@@ -125,6 +192,87 @@
     .interp_clock$open <- FALSE
   }
   invisible()
+}
+
+# --------------------------------------------------------------------------- #
+# Interpolation profile log: the stage / per-map / per-parameter timing +
+# memory tables, appended to CSV files after EVERY interpolation. The
+# in-session tables (`.interp_stages()` & co) vanish with the session; these
+# files are the record performance choices are made from. Sink resolution:
+#   1. `get_profile_dir()` when set;
+#   2. the operation log's directory (`get_log_file()`), when logging is on;
+#   3. `<project>/logs/` when a project registry EXISTS on disk.
+# No sink resolvable (plain library use, tests) = silent no-op, and a failed
+# write must never fail the interpolation.
+# --------------------------------------------------------------------------- #
+.interp_profile_dir <- function() {
+  d <- tryCatch(get_profile_dir(), error = function(e) "")
+  if (!is.null(d) && nzchar(d)) return(d)
+  lf <- tryCatch(get_log_file(), error = function(e) "")
+  if (!is.null(lf) && nzchar(lf)) return(dirname(lf))
+  rf <- tryCatch(get_registry_file(), error = function(e) "")
+  if (!is.null(rf) && nzchar(rf) && file.exists(rf)) {
+    return(file.path(dirname(rf), "logs"))
+  }
+  NULL
+}
+
+.interp_profile_append <- function(dir, file, df) {
+  if (is.null(df) || !NROW(df)) return(invisible())
+  f <- file.path(dir, file)
+  suppressWarnings(
+    utils::write.table(df, f, sep = ",", append = file.exists(f),
+                       col.names = !file.exists(f), row.names = FALSE,
+                       qmethod = "double"))
+  invisible()
+}
+
+.interp_profile_log <- function(scen, mod, ondisk, wall) {
+  tryCatch({
+    if (startsWith(scen@name %||% "", ".")) return(invisible())
+    dir <- .interp_profile_dir()
+    if (is.null(dir)) return(invisible())
+    if (!dir.exists(dir)) dir.create(dir, recursive = TRUE,
+                                     showWarnings = FALSE)
+    run_id <- paste0(format(Sys.time(), "%Y%m%d-%H%M%S"), "-", scen@name)
+    m <- .en_mem()
+    run <- data.frame(
+      run_id = run_id,
+      timestamp = format(Sys.time(), "%Y-%m-%dT%H:%M:%SZ", tz = "UTC"),
+      scenario = scen@name,
+      model = tryCatch(mod@name, error = function(e) ""),
+      calendar = tryCatch(scen@settings@calendar@name, error = function(e) ""),
+      ondisk = isTRUE(ondisk),
+      dt_threads = tryCatch(data.table::getDTthreads(),
+                            error = function(e) NA_integer_),
+      total_secs = round(as.numeric(wall), 1),
+      mem_mb = m$mem_mb,
+      rss_mb = m$rss_mb,
+      peak_rss_mb = m$peak_rss_mb,
+      energyRt = as.character(utils::packageVersion("energyRt")),
+      stringsAsFactors = FALSE)
+    .interp_profile_append(dir, "interp_runs.csv", run)
+    st <- .interp_stages()
+    if (!is.null(st)) {
+      st <- cbind(run_id = run_id, st, stringsAsFactors = FALSE)
+      .interp_profile_append(dir, "interp_stages.csv", st)
+    }
+    mp <- .interp_map_table()
+    if (!is.null(mp)) {
+      mp <- cbind(run_id = run_id, mp, stringsAsFactors = FALSE)
+      .interp_profile_append(dir, "interp_maps.csv", mp)
+    }
+    pp <- .interp_param_table()
+    if (!is.null(pp)) {
+      pp <- cbind(run_id = run_id, pp, stringsAsFactors = FALSE)
+      .interp_profile_append(dir, "interp_params.csv", pp)
+    }
+    invisible()
+  }, error = function(e) {
+    warning("Interpolation profile log could not be written: ",
+            conditionMessage(e), call. = FALSE)
+    invisible()
+  })
 }
 
 # Closing size + fold summary. The model_size() computation itself is timed as a

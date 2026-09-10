@@ -86,7 +86,7 @@ newTechnology(
 \item{geff}{data.frame. Input-commodity-group efficiency parameters.
 \describe{
 \item{vintage}{character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
-\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{vintage} slot.}
+\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
 \item{region}{character. Name of region to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{timeslice}{character. Name of timeslice to apply the parameter, NA for every timeslice.}
@@ -97,7 +97,7 @@ newTechnology(
 \item{ceff}{data.frame. Main commodity and activity efficiency parameters.
 \describe{
 \item{vintage}{character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
-\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{vintage} slot.}
+\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{timeslice}{character. Name of timeslice to apply the parameter, NA for every timeslice.}
@@ -117,10 +117,10 @@ newTechnology(
 }
 }}
 
-\item{aeff}{data.frame. Parameters linking main commodities, activities, and capacities to auxiliary commodities.
+\item{aeff}{data.frame. Parameters linking main commodities, activities, and capacities to auxiliary commodities. Rows can be assigned to a single variant via the \code{vintage} and/or \code{cluster} key columns; each variant then carries only its own couplings (e.g. one land-pool input per cluster), and the auxiliary membership maps are built from these coefficient rows alone.
 \describe{
 \item{vintage}{character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
-\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{vintage} slot.}
+\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{timeslice}{character. Name of timeslice to apply the parameter, NA for every timeslice.}
@@ -150,7 +150,7 @@ newTechnology(
 
 \describe{
 \item{vintage}{character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
-\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{vintage} slot.}
+\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{timeslice}{character. Name of timeslice to apply the parameter, NA for every timeslice.}
@@ -165,7 +165,7 @@ newTechnology(
 
 \describe{
 \item{vintage}{character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
-\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{vintage} slot.}
+\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{timeslice}{character. Name of timeslice to apply the parameter, required.}
@@ -178,7 +178,7 @@ newTechnology(
 \item{weather}{data.frame. Parameters linking \verb{weather factors} (external shocks specified by \code{weather} class) to the availability parameters \code{af}, \code{afs}, and \code{afc}.
 \describe{
 \item{vintage}{character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
-\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{vintage} slot.}
+\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
 \item{weather}{character. Name of the applied weather factor, required, must match the weather factor names in a \code{weather} class in the model.}
 \item{comm}{character. Name of the commodity with specified \verb{afc.*} to be affected by the weather factor, required if \verb{afc.*} parameters are specified.}
 \item{wafc.lo}{numeric. Multiplying coefficient to the lower bound on the commodity availability parameter \code{afc.lo}, ignored if NA.}
@@ -195,7 +195,7 @@ newTechnology(
 \item{capacity}{data.frame. Capacity of the installed technology (in units of capacity).
 \describe{
 \item{vintage}{character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
-\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{vintage} slot.}
+\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, required, values between specified years will be interpolated.}
 \item{stock}{numeric. Predefined capacity of the technology in units of capacity, default is 0. This parameter also defines the exogenous capacity retirement (age-based), or exogenous capacity additions, not optimized by the model, and not included in investment costs.
@@ -214,7 +214,7 @@ newTechnology(
 \item{invcost}{data.frame. Total overnight investment costs of the project (per unit of capacity).
 \describe{
 \item{vintage}{character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
-\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{vintage} slot.}
+\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{invcost}{numeric. Total overnight investment costs of the project (per unit of capacity), default is 0.}
@@ -227,7 +227,7 @@ newTechnology(
 \item{fixom}{data.frame. Fixed operational and maintenance cost (per unit of capacity a year).
 \describe{
 \item{vintage}{character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
-\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{vintage} slot.}
+\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{fixom}{numeric. Fixed operational and maintenance cost, default is 0.}
@@ -236,7 +236,7 @@ newTechnology(
 \item{varom}{data.frame. Variable operational and maintenance cost (per unit of activity or commodity).
 \describe{
 \item{vintage}{character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
-\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{vintage} slot.}
+\item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the \code{cluster} slot.}
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{timeslice}{character. Name of the time-timeslice or (grand-)parent timeframe to apply the parameter, NA for every time-timeslice of the technology timeframe.}

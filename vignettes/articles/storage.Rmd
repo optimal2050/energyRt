@@ -168,7 +168,7 @@ cross the boundary between the two days.
 ```{r}
 # A bundled calendar: one representative day per month, 24 hours each. Its
 # timeslices are DATED (`d015_h00`), which the reporting tools below need.
-cal <- calendars$d365_h24_subset_1day_per_month
+cal <- calendars$d365_h24_1dpm
 slices <- unique(cal@timetable$timeslice)
 jan <- grep("^d015_", slices, value = TRUE)     # the January day
 feb <- grep("^d046_", slices, value = TRUE)     # the February day

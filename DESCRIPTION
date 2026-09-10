@@ -1,8 +1,8 @@
 Package: energyRt
 Type: Package
 Title: Energy Systems Modeling Toolbox
-Version: 0.89.5.9001
-Date: 2026-09-08
+Version: 0.89.5.9005
+Date: 2026-09-09
 Authors@R: 
   c(person(given = "Oleg", 
           family = "Lugovoy", 
@@ -34,7 +34,9 @@ Imports: methods, grid, generics, data.table, DBI, RSQLite, tibble,
         glue, plyr, grDevices, utils, tools, yaml
 Suggests: shiny, DT, pak, gdxtools (== 0.7.1), knitr, rmarkdown, sf, ggplot2, testthat
         (>= 3.0.0), devtools, openxlsx, jsonlite, readxl, httr2, xml2,
-        base64enc, tinytex, patchwork, geoscales (>= 0.5.4), timescales (>= 0.5.0), waldo
+        base64enc, tinytex, patchwork, geoscales (>= 0.5.4), timescales (>= 0.5.0), waldo,
+        mmcloud
+Remotes: optimal2050/mmcloud
 SystemRequirements: Julia (>= 1.6) with JuMP or Python (>= 3.7) with
         Pyomo or GAMS (>= 24.9) or GLPK (>= 4.0)
 License: AGPL (>= 3)
@@ -67,6 +69,7 @@ Collate:
     'aggregate_region.R'
     'arrow.R'
     'arrow_filter.R'
+    'assert_conflicting_rows.R'
     'carry.R'
     'class-commodity.R'
     'class-demand.R'
@@ -85,6 +88,7 @@ Collate:
     'check.R'
     'check_levels.R'
     'class-costs.R'
+    'cloud.R'
     'combine_vintages.R'
     'commodity_properties.R'
     'compare_inputs.R'
@@ -161,6 +165,7 @@ Collate:
     'start_msg.R'
     'stock_path.R'
     'storage_duration.R'
+    'store_deps.R'
     'supply_curve.R'
     'techspec.R'
     'timeslice_walk.R'

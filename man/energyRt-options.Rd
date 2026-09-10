@@ -104,6 +104,12 @@ Optional operation-log CSV. Empty (default) = logging off; a path makes interpol
 \item{envvar: }{ENERGYRT_LOG_FILE (evaluated if possible, raw string otherwise)}
 }}
 
+\item{profile_dir}{\describe{
+Directory for the interpolation profile log (interp_runs.csv, interp_stages.csv, interp_maps.csv, interp_params.csv -- per-run timing and memory tables, appended after every interpolation). Empty (default) = fall back to the operation log's directory, then to \if{html}{\out{<project>}}/logs/ when a project registry exists; no sink = no files written.\item{default: }{\preformatted{""}}
+\item{option: }{en.profile_dir}
+\item{envvar: }{ENERGYRT_PROFILE_DIR (evaluated if possible, raw string otherwise)}
+}}
+
 \item{reports_path}{\describe{
 Default directory for rendered reports of IN-MEMORY objects (treated as temporary output). Reports of saved objects land inside the owning folder (\if{html}{\out{<scenario>}}/reports/, \if{html}{\out{<model store entry>}}/reports/) instead.\item{default: }{\preformatted{"reports/"}}
 \item{option: }{en.reports_path}

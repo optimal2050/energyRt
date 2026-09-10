@@ -78,6 +78,35 @@ pyomo_mps$inc4 <- {
 print('MPS written to model.mps; skipping solve', flush=True)
 raise SystemExit(0)"}
 
+## Cloud solve on a rented GPU (Hugging Face Jobs) ############################
+# Builds the matrix locally exactly as `pyomo_mps` does, then `backend =
+# "multimod_cloud"` makes .call_solver ship it, run cuOpt on a GPU, and decode
+# the returned solution into <solver.dir>/output/ so read_solution() is
+# unchanged. Requires a Hugging Face token (set_hf_token(), HF_TOKEN, or
+# `hf auth login`) and `huggingface_hub` in the python energyRt already uses.
+#
+# Local build, remote solve -- not the other way round: measured on the 41-node
+# full-year model, `cpu-performance` costs MORE per hour than `a10g-large`
+# ($1.90 vs $1.50), the rented cores are ~1.9x slower than a desktop, and the
+# Pyomo build is single-threaded, so building remotely is slower AND dearer.
+# Cloud building is worth it only to escape a local memory ceiling.
+multimod_cloud <- pyomo_mps
+multimod_cloud$name <- "multimod_cloud"
+multimod_cloud$backend <- "multimod_cloud"
+multimod_cloud$hf_flavor <- "a10g-large"
+multimod_cloud$hf_namespace <- NULL   # NULL = the token's own account
+multimod_cloud$hf_timeout <- "3h"
+# cuOpt PDLP. linopy defaults cuOpt to method=3 (barrier) because cuOpt's own
+# default 0 (concurrent) crashes; barrier asked for 118.9 GB of VRAM on a 36M
+# nonzero model and died on a 22 GB card. 1 is what every large model solved with.
+multimod_cloud$hf_method <- 1L
+
+multimod_cloud_crossover <- multimod_cloud
+multimod_cloud_crossover$name <- "multimod_cloud_crossover"
+# Crossover recovers the exact vertex optimum: measured 1.5e-7 relative error
+# against 2.3e-4 without, for a small extra solve.
+multimod_cloud_crossover$hf_solver_options <- "--crossover 1"
+
 ## Python/Pyomo via NEOS (remote solve; no local solver, needs env var NEOS_EMAIL)
 # The scenario is still BUILT locally (Pyomo reads the data into the
 # ConcreteModel); only the SOLVE is dispatched to NEOS, which serialises the
@@ -493,6 +522,9 @@ solver_options <- list(
   pyomo_highs = pyomo_highs,
   pyomo_highs_barrier = pyomo_highs_barrier,
   pyomo_mps = pyomo_mps,
+  # Cloud solve (matrix built locally, solved on a rented GPU)
+  multimod_cloud = multimod_cloud,
+  multimod_cloud_crossover = multimod_cloud_crossover,
   # Python/Pyomo via NEOS (remote solve)
   neos_pyomo_cplex = neos_pyomo_cplex,
   neos_pyomo_cplex_barrier = neos_pyomo_cplex_barrier,

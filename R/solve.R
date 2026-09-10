@@ -453,6 +453,17 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
     return(invisible())
   }
 
+  # Remote backend: solve on a rented GPU via Hugging Face Jobs. The WRITE phase
+  # already produced model.mps in arg$solver.dir (the preset's inc4 hook, as in
+  # pyomo_mps); .cloud_call_solver ships it, waits, and decodes the returned
+  # solution into tmp.dir/output/ so read_solution() is unchanged.
+  if (identical(scen@settings@solver$backend, "multimod_cloud")) {
+    rs <- .cloud_call_solver(arg, scen)
+    if (rs != 0) stop(paste("Cloud solve error code", rs))
+    if (arg$echo) cat("", round(proc.time()[3] - gams_run_time, 2), "s\n", sep = "")
+    return(invisible())
+  }
+
   # Restore the working directory on EVERY exit path, not just the two handlers
   # below -- an early `return()` used to leave the session sitting in the solver
   # run folder.

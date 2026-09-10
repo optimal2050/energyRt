@@ -197,7 +197,7 @@ if (!is.null(ideea)) {
 .ts_full <- c("m12", "m12a", "q4", "s4", "s4_h24", "m12_h24",
               "wd7_h24", "w52_h24")
 .ts_samples <- c("s4_h24_subset_2seasons", "m12_h24_subset_4months",
-                 "m12_subset_q1")
+                 "m12_subset_q1", "d365_h24_1dps")
 
 if (requireNamespace("timescales", quietly = TRUE)) {
   .ts_ver <- as.character(utils::packageVersion("timescales"))
@@ -254,6 +254,15 @@ if (requireNamespace("timescales", quietly = TRUE)) {
                   "(timescales ", .ts_ver, ")")
   )
 
+  calendars[["d365_h24_1dps"]] <- ts_bridge(
+    timescales::filter_calendar(timescales::calendar("d365_h24"),
+                                "YDAY", c("d015", "d105", "d196", "d288")),
+    name = "d365_h24_1dps",
+    desc = paste0("d365_h24 sampled to one day per season (d015/d105/",
+                  "d196/d288); year_fraction = the four days' share ",
+                  "(timescales ", .ts_ver, ")")
+  )
+
   # Non-collision pins for the SKIPPED catalog ids: the shipped d365 /
   # d365_h24 entries are label-identical to the timescales designs, so
   # importing them would change nothing but the desc.
@@ -280,6 +289,18 @@ if (requireNamespace("timescales", quietly = TRUE)) {
                       names(calendars))) {
     calendars[[key]] <- .prev_ts$calendars[[key]]
   }
+}
+
+# ── 2c. Short sampled names ──────────────────────────────────────────────────
+# Solver working paths embed the calendar name, so the daily samples use
+# compact names: 1dpm = one day per month, 1dps = one day per season. The
+# long-named 1dpm entry (from the IDEEA import or a carried rda) is renamed
+# here; once the rda holds the short key this block is a no-op.
+if (!is.null(calendars[["d365_h24_subset_1day_per_month"]])) {
+  .cal <- calendars[["d365_h24_subset_1day_per_month"]]
+  .cal@name <- "d365_h24_1dpm"
+  calendars[["d365_h24_1dpm"]] <- .cal
+  calendars[["d365_h24_subset_1day_per_month"]] <- NULL
 }
 
 # ── 3. Validate & store ──────────────────────────────────────────────────────

@@ -329,5 +329,17 @@
       }
     }
   }
+
+  # Refuse rows that set the same parameter twice at the same key. NA in a
+  # key column means ALL, so duplicates are an ambiguity, and the
+  # interpolation join multiplies them rather than choosing one.
+  .cls <- class(obj)[1]
+  for (.s in slotNames(obj)) {
+    .d <- slot(obj, .s)
+    if (is.data.frame(.d) && nrow(.d) > 1) {
+      .assert_no_conflicting_rows(.d, .cls, .s,
+        name = if (methods::.hasSlot(obj, "name")) obj@name else NULL)
+    }
+  }
   obj
 }

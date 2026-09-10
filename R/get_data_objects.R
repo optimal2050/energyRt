@@ -40,9 +40,10 @@
     return(.param_interp_map_cache$map)
   }
   mp <- new.env(parent = emptyenv())
-  add <- function(cls, slt, col, rule, dv, param) {
+  add <- function(cls, slt, col, rule, dv, param, dims = character(0)) {
     assign(paste(cls, slt, col, sep = "\r"),
-           list(rule = rule, defVal = dv, param = param), envir = mp)
+           list(rule = rule, defVal = dv, param = param, dims = dims),
+           envir = mp)
   }
   entries <- tryCatch(.modInp, error = function(e) NULL)
   if (is.list(entries)) {
@@ -57,18 +58,23 @@
       # `config@defVal` / `@interpolation` override columns, so it cannot be
       # renamed without breaking that table; map it here instead.
       if (identical(cls, "demand") && identical(cn, "dem")) cn <- "demand"
+      # The parameter's own dimensions -- the source of truth for which of
+      # the slot's columns are keys of THIS column. A slot-level key set is
+      # wrong: within `technology@aeff`, `act2ainp` is keyed
+      # [tech, acomm, region, year, timeslice] while `cinp2ainp` adds `comm`.
+      .dims <- as.character(unlist(p$dimSets))
       rule <- p$interpolation
       dv <- suppressWarnings(as.numeric(unlist(p$defVal)))
       if (identical(p$type, "bounds") || length(dv) >= 2) {
         r1 <- if (length(rule) >= 1) rule[[1]] else "back.inter.forth"
         r2 <- if (length(rule) >= 2) rule[[2]] else r1
-        add(cls, slt, paste0(cn, ".lo"), r1, dv[1], p$name)
+        add(cls, slt, paste0(cn, ".lo"), r1, dv[1], p$name, .dims)
         add(cls, slt, paste0(cn, ".up"), r2,
-            if (length(dv) >= 2) dv[2] else NA_real_, p$name)
-        add(cls, slt, paste0(cn, ".fx"), r1, NA_real_, p$name)
+            if (length(dv) >= 2) dv[2] else NA_real_, p$name, .dims)
+        add(cls, slt, paste0(cn, ".fx"), r1, NA_real_, p$name, .dims)
       } else {
         add(cls, slt, cn, if (is.list(rule)) rule[[1]] else rule,
-            if (length(dv) >= 1) dv[1] else NA_real_, p$name)
+            if (length(dv) >= 1) dv[1] else NA_real_, p$name, .dims)
       }
     }
   }

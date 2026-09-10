@@ -105,7 +105,7 @@ one as `reference`. The timeslices present in the subset are filled; the rest ar
 left empty.
 
 ```{r cal-subset, fig.height = 2.4}
-autoplot(calendars$d365_h24_subset_1day_per_month,
+autoplot(calendars$d365_h24_1dpm,
          reference = calendars$d365_h24)
 ```
 

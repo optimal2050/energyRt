@@ -177,31 +177,38 @@ NULL
 #'
 #' @param scen a scenario object.
 #'
-#' @return a tibble: `run`, `variant`, `solve`, `status`, `imported`,
+#' Rows for the scenario-level derived tiers are listed too, distinguished by
+#' `kind`: `"reports"` for rendered reports and `"levcost"` for cached levcost
+#' results. They sit beside `runs/` rather than inside it, and each has its own
+#' remover — [clear_report_cache()] and [clear_levcost_cache()] — so
+#' [drop_solver_outputs()], a run cleaner, leaves them alone.
+#'
+#' @return a tibble: `kind`, `run`, `variant`, `solve`, `status`, `imported`,
 #'   `scratch_mb`, `solution_mb`, `active`, `sealed`, `has_record`, `path`,
 #'   `suggest`.
-#' @seealso [drop_solver_outputs()], [scenario_runs()]
+#' @seealso [drop_solver_outputs()], [scenario_runs()],
+#'   [clear_report_cache()]
 #' @export
 scenario_artifacts <- function(scen) {
   stopifnot(is(scen, "scenario"))
   empty <- tibble(
+    kind = character(0),
     run = character(0), variant = character(0), solve = character(0),
     status = character(0), imported = logical(0), scratch_mb = numeric(0),
     solution_mb = numeric(0), active = logical(0), sealed = logical(0),
     has_record = logical(0), path = character(0), suggest = character(0)
   )
-  rd <- .run_dirs(scen)
-  if (!nrow(rd)) return(empty)
-
   sealed <- isTRUE(.art_sealed(scen))
   act_v <- .run_variant(scen)
   act_s <- scen@misc$run %||% ""
 
+  rd <- .run_dirs(scen)
   rows <- lapply(seq_len(nrow(rd)), function(i) {
     info <- .art_run_info(scen, rd$variant[i], rd$solve[i], rd$dir[i],
                           rd$has_record[i])
     active <- identical(info$variant, act_v) && identical(info$solve, act_s)
     tibble(
+      kind = "run",
       run = .run_id(info$variant, info$solve),
       variant = info$variant, solve = info$solve,
       status = info$status, imported = info$imported,
@@ -212,7 +219,37 @@ scenario_artifacts <- function(scen) {
       suggest = .art_suggest(info, active, sealed)
     )
   })
-  bind_rows(rows)
+  bind_rows(c(list(empty), rows, .art_derived_rows(scen, sealed)))
+}
+
+# The scenario-level derived tiers: rendered reports and cached levcost
+# results. They sit beside `runs/`, not inside it, so `.art_scratch_paths()`
+# never sees them -- without a row here they are absent from the disk picture
+# and nothing accounts for them.
+#
+# `kind` keeps them out of `drop_solver_outputs()`, which is a RUN cleaner:
+# each tier has its own remover (`clear_report_cache()`,
+# `clear_levcost_cache()`) and its own rule for what is safe to lose.
+.art_derived_rows <- function(scen, sealed) {
+  own <- .object_store_dir(scen)
+  if (is.null(own)) return(list())
+  spec <- list(
+    reports = "rendered reports -- regenerable from the object and template",
+    levcost = "cached levcost results -- recomputable")
+  out <- list()
+  for (nm in names(spec)) {
+    d <- fp(own, nm)
+    if (!dir.exists(d)) next
+    mb <- dir_size(d, missing = "zero") / 1024^2
+    out[[length(out) + 1L]] <- tibble(
+      kind = nm, run = NA_character_, variant = NA_character_,
+      solve = NA_character_, status = NA_character_, imported = NA,
+      scratch_mb = round(mb, 3), solution_mb = 0,
+      active = FALSE, sealed = sealed, has_record = NA,
+      path = gsub("[\\/]+", "/", d),
+      suggest = if (sealed || mb == 0) "" else spec[[nm]])
+  }
+  out
 }
 
 #' Delete the regenerable part of a solve
@@ -229,6 +266,10 @@ scenario_artifacts <- function(scen) {
 #' A run whose solution was never imported keeps its `output/` whatever is
 #' asked, because that directory is the only copy — see [scenario_artifacts()].
 #'
+#' Only runs are touched. Rendered reports and cached levcost results are
+#' scenario-level, not part of a run; [clear_report_cache()] and
+#' [clear_levcost_cache()] remove those.
+#'
 #' @param scen a scenario object.
 #' @param runs character, run identifiers (`"<solve>"` or `"<variant>/<solve>"`)
 #'   or `NULL` for every run `scenario_artifacts()` suggests.
@@ -244,7 +285,9 @@ scenario_artifacts <- function(scen) {
 drop_solver_outputs <- function(scen, runs = NULL, dry_run = TRUE,
                                 verbose = TRUE) {
   stopifnot(is(scen, "scenario"))
+  # a RUN cleaner: the scenario-level derived tiers have their own removers
   art <- scenario_artifacts(scen)
+  art <- art[art$kind == "run", , drop = FALSE]
   art$action <- character(nrow(art))
   art$freed_mb <- numeric(nrow(art))
   if (!nrow(art)) {
@@ -534,6 +577,12 @@ drop_solver_outputs <- function(scen, runs = NULL, dry_run = TRUE,
 #' which is not user-identifying and whose loss would silently return every
 #' result as zero rows.
 #'
+#' **Rendered reports are reported, not cleaned.** A report can embed an
+#' absolute path or a user name inside a PDF or DOCX, where byte-level
+#' scrubbing would corrupt the file; such files show up in `remaining`. Remove
+#' them with [clear_report_cache()] — they re-render — or let
+#' [prepare_for_sharing()] drop them, which it does by default.
+#'
 #' Passing `path` writes a cleaned copy and leaves the original working.
 #' `path = NULL` edits in place, which is irreversible, so it is a dry run
 #' unless `confirm = TRUE`.
@@ -636,6 +685,10 @@ strip_user_info <- function(scen, path = NULL, scope = c("share", "store"),
 #' @param scope `"share"` (default) or `"store"`, passed to
 #'   [strip_user_info()].
 #' @param keep_runs logical, keep the solver scratch. `FALSE` by default.
+#' @param keep_reports logical, keep rendered reports. `FALSE` by default:
+#'   they re-render from the object and the template, and are the one artifact
+#'   that can carry an absolute path or a user name inside a binary (PDF,
+#'   DOCX) where scrubbing is not reliable — so they are removed, not cleaned.
 #' @param keep_solver logical, keep the solver settings.
 #' @param verbose logical.
 #'
@@ -645,8 +698,8 @@ strip_user_info <- function(scen, path = NULL, scope = c("share", "store"),
 #' @seealso [strip_user_info()], [drop_solver_outputs()]
 #' @export
 prepare_for_sharing <- function(scen, path, scope = c("share", "store"),
-                                keep_runs = FALSE, keep_solver = FALSE,
-                                verbose = TRUE) {
+                                keep_runs = FALSE, keep_reports = FALSE,
+                                keep_solver = FALSE, verbose = TRUE) {
   scope <- match.arg(scope)
   if (missing(path) || is.null(path) || !nzchar(path)) {
     stop("`path` is required: prepare_for_sharing() writes a copy and never ",
@@ -681,6 +734,16 @@ prepare_for_sharing <- function(scen, path, scope = c("share", "store"),
       d <- suppressMessages(drop_solver_outputs(obj, dry_run = FALSE,
                                                 verbose = FALSE))
       freed <- sum(d$freed_mb[d$action == "deleted"], na.rm = TRUE)
+    }
+  }
+
+  # Rendered reports go rather than get scrubbed: byte-replacing a user name
+  # inside a PDF or DOCX corrupts the container, and they re-render anyway.
+  if (!keep_reports) {
+    rep_dir <- fp(out, "reports")
+    if (dir.exists(rep_dir)) {
+      freed <- freed + dir_size(rep_dir, missing = "zero") / 1024^2
+      unlink(rep_dir, recursive = TRUE, force = TRUE)
     }
   }
 
