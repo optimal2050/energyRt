@@ -3722,7 +3722,7 @@ model.eqOutTot = Constraint(
     + sum(
         model.vOutTot[c, rp, y, s]
         for rp in mRegionFamily_ix.get(r, ())
-        if (c, rp, y, s) in mvOutTot
+        if (c, rp, y, s) in mvOutTot and (c, s) in mCommTimeslice
     ),
 )
 if verbose:
@@ -3761,7 +3761,7 @@ model.eqInpTot = Constraint(
     + sum(
         model.vInpTot[c, rp, y, s]
         for rp in mRegionFamily_ix.get(r, ())
-        if (c, rp, y, s) in mvInpTot
+        if (c, rp, y, s) in mvInpTot and (c, s) in mCommTimeslice
     ),
 )
 if verbose:

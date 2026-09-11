@@ -266,13 +266,15 @@
 #' Flows are per-timeslice, costs are already annual: the cost equations carry
 #' the timeslice weight, the flow variables do not. So annual delivered energy is
 #' `sum(vStorageOut) * cycles`, and multiplying the costs by anything would
-#' double-count.
+#' double-count. Flows are read at `timeframe = "highest"` (raw slices): the
+#' timeframe roll-up annualizes with the child/top weight ratio, which is the
+#' same `cycles` factor — reading "lowest" AND multiplying would double-count.
 #' @noRd
 .levcost_storage_extract <- function(sc, ctx) {
   years <- ctx$hor_years
   get <- function(v) tryCatch({
     d <- getData(sc, name = v, merge = TRUE, drop.zeros = FALSE,
-                 timeframe = "lowest")
+                 timeframe = "highest")
     if (is.null(d) || nrow(d) == 0) return(NULL)
     as.data.frame(d)
   }, error = function(e) NULL)

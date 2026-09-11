@@ -107,10 +107,13 @@ test_that("attaching a geoscale widens sets$region but expands no parameter", {
 
   # The extra members are INERT: no parameter may broadcast a value onto a
   # coarse region. This is the guard that caught pSupCost / mSupSpan /
-  # mvTotalCost silently widening onto the nation.
+  # mvTotalCost silently widening onto the nation. mvOutTot/mvInpTot are
+  # exempt: the always-on totals chain gives every commodity coarse-region
+  # TOTAL cells (domain rows fed by the roll-up, not value broadcasts).
   leaked <- character()
   for (nm in names(nest@modInp@parameters)) {
-    if (nm %in% c("region", "mRegionFamily", "mCommRegion")) next
+    if (nm %in% c("region", "mRegionFamily", "mCommRegion",
+                  "mvOutTot", "mvInpTot")) next
     d <- get_data_slot(nest@modInp@parameters[[nm]])
     if (is.null(d) || nrow(d) == 0) next
     d <- as.data.frame(d)
@@ -131,6 +134,7 @@ test_that("attaching a geoscale widens sets$region but expands no parameter", {
   changed <- names(r0)[r1 != r0]
   expect_setequal(changed,
                   c("region", "mRegionFamily", "mCommRegion",
+                    "mvOutTot", "mvInpTot",
                     "pWacc", "pSdr", "pDiscountFactor"))
 })
 

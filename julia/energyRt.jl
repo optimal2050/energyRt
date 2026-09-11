@@ -5410,7 +5410,8 @@ print("eqOutTot(comm, region, year, timeslice)...")
     # timeslice values above.
     sum(
         vOutTot[(c, rp, y, s)]
-        for rp in get(mRegionFamily_ix, r, ()) if (c, rp, y, s) in mvOutTot;
+        for rp in get(mRegionFamily_ix, r, ()) if
+        ((c, rp, y, s) in mvOutTot && (c, s) in mCommTimeslice);
         init = 0
     )
 );
@@ -5489,7 +5490,8 @@ print("eqInpTot(comm, region, year, timeslice)...")
     # timeslice values above.
     sum(
         vInpTot[(c, rp, y, s)]
-        for rp in get(mRegionFamily_ix, r, ()) if (c, rp, y, s) in mvInpTot;
+        for rp in get(mRegionFamily_ix, r, ()) if
+        ((c, rp, y, s) in mvInpTot && (c, s) in mCommTimeslice);
         init = 0
     )
 );

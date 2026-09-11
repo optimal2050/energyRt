@@ -226,10 +226,20 @@ test_that("nested regions compose with the annualized top level", {
     setGeoscale(m, gs)
   }
   # ELC 80/yr + 5/yr milled to STL -> 85 units of GAS at cost 1
-  o_full <- sv_obj(sv_solve(mk(sv_cal(), "svnf"), "svnf"))
-  o_half <- sv_obj(sv_solve(mk(sv_cal(c("WIN", "SUM"), "svnh"), "svnh"),
-                            "svnh"))
-  expect_equal(o_full, 85, tolerance = 1e-6)
-  expect_equal(o_half, o_full, tolerance = 1e-6,
+  s_full <- sv_solve(mk(sv_cal(), "svnf"), "svnf")
+  s_half <- sv_solve(mk(sv_cal(c("WIN", "SUM"), "svnh"), "svnh"), "svnh")
+  expect_equal(sv_obj(s_full), 85, tolerance = 1e-6)
+  expect_equal(sv_obj(s_half), sv_obj(s_full), tolerance = 1e-6,
                info = "nation-ANNUAL corner, yf = 1/2 sample vs full")
+  # full region x timeframe lattice: ELC never declares a geoframe, yet its
+  # national annual total exists and annualizes on the sample
+  nat <- function(sol) {
+    d <- suppressMessages(getData(sol, "vOutTot", merge = TRUE,
+                                  timeframe = "all"))
+    sum(d$value[d$comm == "ELC" & d$region == "NAT" &
+                  as.character(d$timeslice) == "ANNUAL"])
+  }
+  expect_equal(nat(s_full), 85, tolerance = 1e-6)
+  expect_equal(nat(s_half), nat(s_full), tolerance = 1e-6,
+               info = "vOutTot[ELC, NAT, ANNUAL], sample vs full")
 })

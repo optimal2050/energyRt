@@ -2621,6 +2621,8 @@ eqOutTot(comm, region, year, timeslice)$mvOutTot(comm, region, year, timeslice).
          + sum(regionp$(mRegionFamily(region, regionp)
                and
                mvOutTot(comm, regionp, year, timeslice)
+               and
+               mCommTimeslice(comm, timeslice)
               ),
               vOutTot(comm, regionp, year, timeslice)
            );
@@ -2651,6 +2653,8 @@ eqInpTot(comm, region, year, timeslice)$mvInpTot(comm, region, year, timeslice).
         + sum(regionp$(mRegionFamily(region, regionp)
                     and
                     mvInpTot(comm, regionp, year, timeslice)
+                    and
+                    mCommTimeslice(comm, timeslice)
             ),
             vInpTot(comm, regionp, year, timeslice)
         );

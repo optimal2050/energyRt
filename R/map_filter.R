@@ -809,10 +809,12 @@ map_mvInpTot <- function(scen, fmp) {
     .gds(scen, "mCommTimeslice"))
   inptot <- .extend_comm_timeslice(inptot,
                                    scen@settings@calendar@timeslice_ancestry)
-  # [nested-regions] totals also exist at every level up to the commodity's own
-  # `@geoframe`, so eqInpTot has a cell to aggregate the finer ones into. A
-  # no-op unless some commodity names a coarser level.
-  inptot <- .extend_comm_region(inptot, .comm_region_chain(scen))
+  # [nested-regions] totals also exist at every ancestor region level for
+  # EVERY commodity (the full-chain twin of the timeslice extension above;
+  # supersedes the geoframe-declared subset), so eqInpTot has a cell to
+  # aggregate the finer ones into at each (level x timeframe) lattice point.
+  # A no-op without a geoscale.
+  inptot <- .extend_region_chain(inptot, .region_ancestry(scen))
   .set_map(scen, "mvInpTot", inptot, fmp)
 }
 map_mvOutTot <- function(scen, fmp) {
@@ -823,7 +825,7 @@ map_mvOutTot <- function(scen, fmp) {
     .gds(scen, "mCommTimeslice"))
   outtot <- .extend_comm_timeslice(outtot,
                                    scen@settings@calendar@timeslice_ancestry)
-  outtot <- .extend_comm_region(outtot, .comm_region_chain(scen))
+  outtot <- .extend_region_chain(outtot, .region_ancestry(scen))
   .set_map(scen, "mvOutTot", outtot, fmp)
 }
 .drop_timeslice_distinct <- function(scen, src, name, fmp) {

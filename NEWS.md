@@ -322,10 +322,12 @@
 * On a sampled calendar, ANNUAL-timeframe quantities are now full-year
   magnitude: annual caps and emission totals bind at face value (previously
   loosened by the sampling fraction), ANNUAL-timeframe processes are sized
-  correctly, and every commodity gains an annualized total at each coarser
-  timeslice level. Full calendars are unchanged. Shipped sampled calendars
-  are regenerated; a serialized calendar built under the old convention is
-  refused at interpolation — rebuild it with `newCalendar()`.
+  correctly, and every commodity gains totals at each coarser timeslice
+  level and — with a geoscale attached — each coarser region level (a
+  national annual total for any commodity, without declaring a `@geoframe`).
+  Full calendars are unchanged. Shipped sampled calendars are regenerated; a
+  serialized calendar built under the old convention is refused at
+  interpolation — rebuild it with `newCalendar()`.
   See `dev/annualized-annual-convention.md`.
 
 * Solution CSVs written by the GLPK backend carry 10 significant digits

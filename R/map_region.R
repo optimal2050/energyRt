@@ -148,6 +148,51 @@ NULL
   unique(rbind(df, add[, names(df), drop = FALSE]))
 }
 
+# Comm-free transitive region ancestry: (regionp = node, region = ancestor)
+# pairs from EVERY region at any level to each of its ancestors, on the
+# pruned model hierarchy. The spatial twin of `@timeslice_ancestry`: it
+# feeds the always-on totals chain in mvOutTot/mvInpTot, so every commodity
+# has total cells at every coarser region level (`@geoframe` keeps setting
+# only the BALANCE level). NULL without a geoscale.
+#' @noRd
+.region_ancestry <- function(scen) {
+  h <- .scen_geo_hierarchy(scen)
+  if (is.null(h) || nrow(h$family) == 0) return(NULL)
+  fam <- data.frame(child = as.character(h$family$regionp),
+                    parent = as.character(h$family$region),
+                    stringsAsFactors = FALSE)
+  base <- unique(unlist(h$members, use.names = FALSE))
+  reach <- data.frame(base = base, node = base, stringsAsFactors = FALSE)
+  acc <- list()
+  for (i in seq_along(h$levels)) {        # bounded: at most one step per level
+    step <- merge(reach, fam, by.x = "node", by.y = "child")
+    if (nrow(step) == 0) break
+    step <- unique(data.frame(base = step$base, node = step$parent,
+                              stringsAsFactors = FALSE))
+    acc[[length(acc) + 1L]] <- step
+    reach <- step
+  }
+  if (length(acc) == 0) return(NULL)
+  anc <- unique(do.call(rbind, acc))
+  data.frame(regionp = anc$base, region = anc$node, stringsAsFactors = FALSE)
+}
+
+# The region twin of `.extend_comm_timeslice()`: add each row's ancestor-
+# region cells (all commodities alike), keeping the fine ones.
+#' @noRd
+.extend_region_chain <- function(df, anc) {
+  if (is.null(df) || nrow(df) == 0 || is.null(anc) || nrow(anc) == 0) {
+    return(df)
+  }
+  df <- as.data.frame(df)
+  if (!"region" %in% names(df)) return(df)
+  add <- merge(df, anc, by.x = "region", by.y = "regionp")
+  if (nrow(add) == 0) return(df)
+  add$region <- add$region.y
+  add$region.y <- NULL
+  unique(rbind(df, add[, names(df), drop = FALSE]))
+}
+
 # Rewrite each (comm, region) pair to the commodity's OWN balancing level,
 # leaving pairs that are already there untouched.
 #
