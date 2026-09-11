@@ -192,12 +192,139 @@
   out
 }
 
+# -----------------------------------------------------------------------------#
+# .partial_wildcard_params: parameters whose wildcard column is PARTIAL, i.e.
+# NA in SOME rows and explicit in others.
+#
+# `.folded_params()` deliberately registers only WHOLE columns, and `fold.R`
+# (`.fold_one_dim`) deliberately never creates a partial one -- because the code
+# rewrite is per-PARAMETER: rewriting every `pX[...]` lookup to index
+# 'ANYREGION' would strand the explicit rows.
+#
+# But a partial column can still arrive from the SOURCE data: a wildcard that
+# `unfold_scenario_parameters()` could not materialise (no membership row for
+# that entity) and that the fold pass then correctly declined to fold. It is
+# nobody's output, so nothing converts it, nothing rewrites it, and
+# `validate_scenario_parameters()` exempts the trimmable dims from its NA check.
+# The raw NA reaches the solver, where it is not a set member, so every lookup
+# that should hit it misses and silently takes the parameter's default.
+#
+# Measured consequence (IB_PTL50_CU50_P10, fold = TRUE): pTechEac carried NA in
+# 106 of 208 region rows; only 3 of 141 mTechNew tuples found a value; capital
+# cost effectively vanished and the model returned a NEGATIVE objective.
+# -----------------------------------------------------------------------------#
+.partial_wildcard_params <- function(scen, dims = names(.fold_any)) {
+  out <- stats::setNames(vector("list", length(dims)), dims)
+  for (nm in names(scen@modInp@parameters)) {
+    p <- scen@modInp@parameters[[nm]]
+    if (is.null(p) || p@type %in% c("set", "map")) next
+    d <- as.data.frame(get_data_slot(p))
+    if (is.null(d) || nrow(d) == 0) next
+    for (dim in dims) {
+      if (!dim %in% names(d)) next
+      n <- sum(is.na(d[[dim]]))
+      if (n > 0 && n < nrow(d)) out[[dim]] <- c(out[[dim]], nm)
+    }
+  }
+  out
+}
+
+# -----------------------------------------------------------------------------#
+# .materialise_partial_wildcards: expand partial wildcard rows to explicit
+# members, so an UNREWRITTEN lookup finds them.
+#
+# This is the only correct treatment: the artificial member cannot represent a
+# partial column (see above), so the rows have to become real. Values are
+# unchanged -- one wildcard row becomes one row per allowed member.
+#
+# NOTE this is NOT undone by `revert_fold_artificial()`, and cannot be: the fold
+# pass would decline to re-fold a partial column, so there is nothing to fold
+# back to. For an on-disk parameter `.fold_write_back()` therefore leaves the
+# stored data expanded. That is deliberate and safe -- the values are identical
+# and these rows were never compressed in the first place (the fold pass refused
+# them) -- but it does mean the row count of such a parameter grows once, on the
+# first write after this fix.
+# -----------------------------------------------------------------------------#
+.materialise_partial_wildcards <- function(scen, dims = names(.fold_any),
+                                           verbose = FALSE) {
+  partial <- .partial_wildcard_params(scen, dims)
+  todo <- unique(unlist(partial, use.names = FALSE))
+  if (length(todo) == 0) return(scen)
+
+  for (nm in todo) {
+    p <- scen@modInp@parameters[[nm]]
+    d <- as.data.frame(get_data_slot(p))
+    ms <- .fold_member_sets(scen, d, dims = intersect(dims, names(d)))
+    if (length(ms) == 0) next
+    out <- tryCatch(unfold_parameter(p, ms), error = function(e) NULL)
+    if (is.null(out) || nrow(out) == 0) next
+    if (verbose) {
+      message(sprintf("  materialise partial wildcard %-22s %d -> %d rows",
+                      nm, nrow(d), nrow(out)))
+    }
+    scen@modInp@parameters[[nm]] <- .fold_write_back(p, as.data.frame(out))
+  }
+  scen
+}
+
+# -----------------------------------------------------------------------------#
+# .assert_no_raw_wildcards: nothing may reach a writer with a raw NA in a
+# foldable index column.
+#
+# NA is not a set member in any backend. GLPK/Pyomo/JuMP all resolve a missed
+# key to the parameter's default, so the model stays feasible and solves to a
+# confidently wrong answer -- there is no error to notice. This turns that into
+# a build-time failure.
+#
+# It fires only on the broken case: measured across two unfolded production runs
+# (613 and 603 written parameter files) the count of raw NAs is 0, while the
+# folded run that produced the wrong objective had exactly 4.
+# -----------------------------------------------------------------------------#
+.assert_no_raw_wildcards <- function(scen, dims = names(.fold_any)) {
+  bad <- character()
+  for (nm in names(scen@modInp@parameters)) {
+    p <- scen@modInp@parameters[[nm]]
+    if (is.null(p) || p@type %in% c("set", "map")) next
+    d <- as.data.frame(get_data_slot(p))
+    if (is.null(d) || nrow(d) == 0) next
+    for (dim in intersect(dims, names(d))) {
+      n <- sum(is.na(d[[dim]]))
+      if (n > 0) {
+        bad <- c(bad, sprintf("  %s$%s: %d of %d rows", nm, dim, n, nrow(d)))
+      }
+    }
+  }
+  if (length(bad) == 0) return(invisible(TRUE))
+  stop("fold: ", length(bad), " parameter column(s) still hold a raw NA ",
+       "wildcard and cannot be written.
+",
+       paste(bad, collapse = "
+"),
+       "
+  NA is not a set member: every lookup that should hit these rows ",
+       "would miss and silently take the parameter's default, so the model ",
+       "would solve to a wrong answer rather than fail.
+",
+       "  They could not be expanded to explicit members (no membership rows ",
+       "for those entities). Fix the source data, or re-interpolate with ",
+       "fold = FALSE.", call. = FALSE)
+}
+
 # Replace NA wildcards with the artificial set member, register the member in the
 # set, and rewrite the model code of `backends` so folded lookups index it.
 apply_fold_artificial <- function(scen, backends = "GLPK",
-                                  dims = names(.fold_any)) {
+                                  dims = names(.fold_any), verbose = FALSE) {
+  # A PARTIAL wildcard column cannot be represented by the artificial member --
+  # the rewrite is per-parameter, so pointing every lookup at 'ANYREGION' would
+  # strand the explicit rows. Expand those to real members first, leaving only
+  # the whole-column case the rewrite below is built for.
+  scen <- .materialise_partial_wildcards(scen, dims, verbose = verbose)
+
   folded <- .folded_params(scen, dims)
-  if (all(lengths(folded) == 0)) return(scen)
+  if (all(lengths(folded) == 0)) {
+    .assert_no_raw_wildcards(scen, dims)
+    return(scen)
+  }
 
   for (dim in names(folded)) {
     if (length(folded[[dim]]) == 0) next
@@ -261,6 +388,10 @@ apply_fold_artificial <- function(scen, backends = "GLPK",
   }
   # what `revert_fold_artificial()` has to take back out
   scen@misc$fold_artificial <- names(folded)[lengths(folded) > 0]
+  # Last line of defence: after the conversion above, a surviving raw NA is a
+  # wildcard nothing can represent, and writing it produces a wrong answer with
+  # no error. Fail here instead.
+  .assert_no_raw_wildcards(scen, dims)
   scen
 }
 

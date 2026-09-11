@@ -855,7 +855,10 @@ s.t.  eqTradeRetCost{(t1, r, y) in mTradeRetCost}: vTradeRetCost[t1,r,y]  =  pTr
 # boolean disjunction rather than if-then-else, which in MathProg is a numeric
 # expression and cannot stand where a logical one is expected. eqTechCap keeps
 # pTechOlife -- the technical life still governs when capacity operates.
-s.t.  eqTechEac{(t, r, y) in mTechEac}: vTechEac[t,r,y]  =  sum{yp in year:(((t,r,yp) in mTechNew and ordYear[y] >= ordYear[yp] and ((pTechPayback[t,r,yp] > 0 and ordYear[y]<pTechPayback[t,r,yp]+ordYear[yp]) or (pTechPayback[t,r,yp] <= 0 and (ordYear[y]<pTechOlife[t,r]+ordYear[yp] or (t,r) in mTechOlifeInf)))))}(pTechEac[t,r,yp]*(vTechNewCap[t,r,yp]-sum{ye in year:(((t,r,yp,ye) in mvTechRetiredNewCap and ordYear[y] >= ordYear[ye]))}(vTechRetiredNewCap[t,r,yp,ye])));
+# vTechNewCap is an annual build rate; pPeriodLen[yp] converts it to the
+# vintage's standing capacity (the same accumulation as eqTechCap), so the
+# annuity is charged per MW standing, not per MW/yr of build rate.
+s.t.  eqTechEac{(t, r, y) in mTechEac}: vTechEac[t,r,y]  =  sum{yp in year:(((t,r,yp) in mTechNew and ordYear[y] >= ordYear[yp] and ((pTechPayback[t,r,yp] > 0 and ordYear[y]<pTechPayback[t,r,yp]+ordYear[yp]) or (pTechPayback[t,r,yp] <= 0 and (ordYear[y]<pTechOlife[t,r]+ordYear[yp] or (t,r) in mTechOlifeInf)))))}(pTechEac[t,r,yp]*(pPeriodLen[yp]*vTechNewCap[t,r,yp]-sum{ye in year:(((t,r,yp,ye) in mvTechRetiredNewCap and ordYear[y] >= ordYear[ye]))}(vTechRetiredNewCap[t,r,yp,ye]*pPeriodLen[ye])));
 
 s.t.  eqTechInv{(t, r, y) in mTechInv}: vTechInv[t,r,y]  =  pTechInvcost[t,r,y]*vTechNewCap[t,r,y];
 
@@ -976,7 +979,7 @@ s.t.  eqStorageInv{(st1, r, y) in mStorageNew}: vStorageInv[st1,r,y]  =  pStorag
 # eqTechEac / eqTradeEac never carried it. pStorageOutEac defaults to 0, so a
 # vintage with no capital cost now contributes a zero-coefficient term instead
 # of being dropped from the sum.
-s.t.  eqStorageEac{(st1, r, y) in mStorageEac}: vStorageEac[st1,r,y]  =  sum{yp in year:(((st1,r,yp) in mStorageNew and ordYear[y] >= ordYear[yp] and ((pStorageOutPayback[st1,r,yp] > 0 and ordYear[y]<pStorageOutPayback[st1,r,yp]+ordYear[yp]) or (pStorageOutPayback[st1,r,yp] <= 0 and ((st1,r) in mStorageOlifeInf or ordYear[y]<pStorageOlife[st1,r]+ordYear[yp])))))}(pStorageOutEac[st1,r,yp]*vStorageOutNewCap[st1,r,yp]+sum{FORIF: (st1,r,yp) in mStorageStgNew} (pStorageStgEac[st1,r,yp]*vStorageStgNewCap[st1,r,yp])+sum{FORIF: (st1,r,yp) in mStorageInpNew} (pStorageInpEac[st1,r,yp]*vStorageInpNewCap[st1,r,yp]));
+s.t.  eqStorageEac{(st1, r, y) in mStorageEac}: vStorageEac[st1,r,y]  =  sum{yp in year:(((st1,r,yp) in mStorageNew and ordYear[y] >= ordYear[yp] and ((pStorageOutPayback[st1,r,yp] > 0 and ordYear[y]<pStorageOutPayback[st1,r,yp]+ordYear[yp]) or (pStorageOutPayback[st1,r,yp] <= 0 and ((st1,r) in mStorageOlifeInf or ordYear[y]<pStorageOlife[st1,r]+ordYear[yp])))))}(pPeriodLen[yp]*(pStorageOutEac[st1,r,yp]*vStorageOutNewCap[st1,r,yp]+sum{FORIF: (st1,r,yp) in mStorageStgNew} (pStorageStgEac[st1,r,yp]*vStorageStgNewCap[st1,r,yp])+sum{FORIF: (st1,r,yp) in mStorageInpNew} (pStorageInpEac[st1,r,yp]*vStorageInpNewCap[st1,r,yp])));
 
 s.t.  eqStorageFixom{(st1, r, y) in mStorageFixom}: vStorageFixom[st1,r,y]  =  pStorageOutFixom[st1,r,y]*vStorageOutCap[st1,r,y]+sum{FORIF: (st1,r,y) in mStorageStgFixom} (pStorageStgFixom[st1,r,y]*vStorageStgCap[st1,r,y])+sum{FORIF: (st1,r,y) in mStorageInpFixom} (pStorageInpFixom[st1,r,y]*vStorageInpCap[st1,r,y]);
 
@@ -1040,7 +1043,7 @@ s.t.  eqTradeInv{(t1, r, y) in mTradeInv}: vTradeInv[t1,r,y]  =  pTradeInvcost[t
 # OLD: s.t.  eqTradeEac{(t1, r, y) in mTradeEac}: vTradeEac[t1,r,y]  =  pTradeEac[t1,r,y]*vTradeCap[t1,y];
 # [payback] see eqTechEac. pTradePayback is region-indexed while vTradeNewCap is
 # not, so each region amortises its own share of one corridor on its own schedule.
-s.t.  eqTradeEac{(t1, r, y) in mTradeEac}: vTradeEac[t1,r,y]  =  sum{yp in year:(((t1,yp) in mTradeNew and ordYear[y] >= ordYear[yp] and ((pTradePayback[t1,r,yp] > 0 and ordYear[y]<pTradePayback[t1,r,yp]+ordYear[yp]) or (pTradePayback[t1,r,yp] <= 0 and (ordYear[y]<pTradeOlife[t1]+ordYear[yp] or t1 in mTradeOlifeInf)))))}(pTradeEac[t1,r,yp]*vTradeNewCap[t1,yp]);
+s.t.  eqTradeEac{(t1, r, y) in mTradeEac}: vTradeEac[t1,r,y]  =  sum{yp in year:(((t1,yp) in mTradeNew and ordYear[y] >= ordYear[yp] and ((pTradePayback[t1,r,yp] > 0 and ordYear[y]<pTradePayback[t1,r,yp]+ordYear[yp]) or (pTradePayback[t1,r,yp] <= 0 and (ordYear[y]<pTradeOlife[t1]+ordYear[yp] or t1 in mTradeOlifeInf)))))}(pTradeEac[t1,r,yp]*pPeriodLen[yp]*vTradeNewCap[t1,yp]);
 
 s.t.  eqTradeFixom{(t1, r, y) in mTradeFixom}: vTradeFixom[t1,r,y]  =  pTradeFixom[t1,r,y]*vTradeCap[t1,y];
 

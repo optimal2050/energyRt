@@ -1591,14 +1591,18 @@ eqTechEac(tech, region, year)$mTechEac(tech, region, year)..
                       )
                      )
                     ),
+*             vTechNewCap is an annual build rate; pPeriodLen(yearp) converts
+*             it to the vintage's standing capacity (same accumulation as
+*             eqTechCap), so the annuity is charged per unit standing.
               pTechEac(tech, region, yearp)
               * (
-                vTechNewCap(tech, region, yearp)
+                pPeriodLen(yearp) * vTechNewCap(tech, region, yearp)
                 - sum(yeare$(mvTechRetiredNewCap(tech, region, yearp, yeare)
                              and
                              ordYear(year) >= ordYear(yeare)
                              ),
                        vTechRetiredNewCap(tech, region, yearp, yeare)
+                       * pPeriodLen(yeare)
                        )
                 )
               );
@@ -2188,9 +2192,11 @@ eqStorageEac(stg, region, year)$mStorageEac(stg, region, year)..
 *                  vintage with no capital cost now contributes a zero-coefficient term instead
 *                  of being dropped from the sum.
                     ),
-*                  pYearFraction(year) *
-            (pStorageOutEac(stg, region, yearp)
-*            * pPeriodLen(yearp)
+*           New-cap variables are annual build rates; pPeriodLen(yearp)
+*           converts to the vintage's standing capacity (same accumulation
+*           as the cap equations).
+            pPeriodLen(yearp)
+            * (pStorageOutEac(stg, region, yearp)
              * vStorageOutNewCap(stg, region, yearp)
              + (pStorageStgEac(stg, region, yearp)
                 * vStorageStgNewCap(stg, region, yearp)
@@ -2470,7 +2476,10 @@ eqTradeEac(trade, region, year)$mTradeEac(trade, region, year)..
              (pTradePayback(trade, region, yearp) <= 0
               and (ordYear(year) < pTradeOlife(trade) + ordYear(yearp)
                    or mTradeOlifeInf(trade))))),
-                pTradeEac(trade, region, yearp) * vTradeNewCap(trade, yearp));
+*               vTradeNewCap is an annual build rate; pPeriodLen(yearp)
+*               converts to the vintage's standing capacity.
+                pTradeEac(trade, region, yearp) * pPeriodLen(yearp)
+                * vTradeNewCap(trade, yearp));
 * [moved] * [eac-fix] simplified "EAC for existing capacity" form disa -- see drafts/gams-disabled-equations.gms
 
 

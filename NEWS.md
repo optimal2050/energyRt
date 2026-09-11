@@ -312,6 +312,13 @@
 
 ## Bug fixes
 
+* `fold = TRUE` could silently drop capital cost from the objective: a
+  parameter whose folded dimension was only *partially* wildcard kept a raw
+  `NA`, which is not a set member, so lookups missed and took the parameter's
+  default. Partial columns are now materialised to explicit members before the
+  write, and `apply_fold_artificial()` refuses to write a surviving raw `NA`.
+  See `dev/fold-partial-wildcard-bug.md`.
+
 * `interpolate_model()` rehydrates a model whose large slots live in the
   model store (`obj2mem()`) instead of silently interpolating the empty
   placeholders — a store-loaded model produced a plausible-looking scenario

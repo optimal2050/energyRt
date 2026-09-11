@@ -2333,6 +2333,8 @@ print(
 # eqTechEac(tech, region, year)$mTechSpan(tech, region, year)
 print("eqTechEac(tech, region, year)...")
 # [eac-fix] vintaged new-capacity form (pTechEac applies to NEW capacity only)
+# vTechNewCap is an annual build rate; pPeriodLen[yp] converts it to the
+# vintage's standing capacity (the same accumulation as eqTechCap).
 @constraint(
     model,
     [(t, r, y) in mTechEac],
@@ -2344,8 +2346,20 @@ print("eqTechEac(tech, region, year)...")
                 pTechEacDef
             end
         ) * (
-            vTechNewCap[(t, r, yp)] - sum(
-                vTechRetiredNewCap[(t, r, yp, ye)] for ye in year if
+            (
+                if haskey(pPeriodLen, (yp))
+                    pPeriodLen[(yp)]
+                else
+                    pPeriodLenDef
+                end
+            ) * vTechNewCap[(t, r, yp)] - sum(
+                vTechRetiredNewCap[(t, r, yp, ye)] * (
+                    if haskey(pPeriodLen, (ye))
+                        pPeriodLen[(ye)]
+                    else
+                        pPeriodLenDef
+                    end
+                ) for ye in year if
                 ((t, r, yp, ye) in mvTechRetiredNewCap && ordYear[(y)] >= ordYear[(ye)]);
                 init = 0
             )
@@ -4116,7 +4130,16 @@ print("eqStorageEac(stg, region, year)...")
     model,
     [(st1, r, y) in mStorageEac],
     # [eac-fix] vintaged new-capacity form (pStorageOutEac applies to NEW capacity only)
+    # New-cap variables are annual build rates; pPeriodLen[yp] converts to the
+    # vintage's standing capacity (the same accumulation as the cap equations).
     vStorageEac[(st1, r, y)] == sum(
+        (
+            if haskey(pPeriodLen, (yp))
+                pPeriodLen[(yp)]
+            else
+                pPeriodLenDef
+            end
+        ) * (
         (
             if haskey(pStorageOutEac, (st1, r, yp))
                 pStorageOutEac[(st1, r, yp)]
@@ -4150,7 +4173,7 @@ print("eqStorageEac(stg, region, year)...")
             else
                 0
             end
-        ) for yp in year if (
+        )) for yp in year if (
             (st1, r, yp) in mStorageNew &&
             ordYear[(y)] >= ordYear[(yp)] &&
             # [payback] see eqTechEac.
@@ -5038,12 +5061,20 @@ print("eqTradeEac(trade, region, year)...")
     model,
     [(t1, r, y) in mTradeEac],
     # [eac-fix] vintaged new-capacity form (pTradeEac applies to NEW capacity only)
+    # vTradeNewCap is an annual build rate; pPeriodLen[yp] converts it to the
+    # vintage's standing capacity (the same accumulation as eqTradeCap).
     vTradeEac[(t1, r, y)] == sum(
         (
             if haskey(pTradeEac, (t1, r, yp))
                 pTradeEac[(t1, r, yp)]
             else
                 pTradeEacDef
+            end
+        ) * (
+            if haskey(pPeriodLen, (yp))
+                pPeriodLen[(yp)]
+            else
+                pPeriodLenDef
             end
         ) * vTradeNewCap[(t1, yp)] for yp in year if (
             (t1, yp) in mTradeNew &&

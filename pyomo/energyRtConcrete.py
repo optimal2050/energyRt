@@ -1758,15 +1758,17 @@ if verbose:
 sys.stdout.flush()
 # [eac-fix] vintaged new-capacity form (pTechEac applies to NEW capacity only);
 # reverted from the simplified pTechEac*vTechCap (which charged annuity on stock too).
+# vTechNewCap is an annual build rate; pPeriodLen[yp] converts it to the
+# vintage's standing capacity (the same accumulation as eqTechCap).
 model.eqTechEac = Constraint(
     mTechEac,
     rule=lambda model, t, r, y: model.vTechEac[t, r, y]
     == sum(
         pTechEac.get((t, r, yp))
         * (
-            model.vTechNewCap[t, r, yp]
+            pPeriodLen.get((yp)) * model.vTechNewCap[t, r, yp]
             - sum(
-                model.vTechRetiredNewCap[t, r, yp, ye]
+                model.vTechRetiredNewCap[t, r, yp, ye] * pPeriodLen.get((ye))
                 for ye in year
                 if (
                     (t, r, yp, ye) in mvTechRetiredNewCap
@@ -2760,11 +2762,14 @@ if verbose:
     print("eqStorageEac ", end="")
 sys.stdout.flush()
 # [eac-fix] vintaged new-capacity form (pStorageOutEac applies to NEW capacity only).
+# New-cap variables are annual build rates; pPeriodLen[yp] converts to the
+# vintage's standing capacity (the same accumulation as the cap equations).
 model.eqStorageEac = Constraint(
     mStorageEac,
     rule=lambda model, st1, r, y: model.vStorageEac[st1, r, y]
     == sum(
-        (
+        pPeriodLen.get((yp))
+        * (
             pStorageOutEac.get((st1, r, yp)) * model.vStorageOutNewCap[st1, r, yp]
             # [2c] the storing side annuitises separately, same lifetime.
             + (
@@ -3462,7 +3467,7 @@ model.eqTradeEac = Constraint(
     mTradeEac,
     rule=lambda model, t1, r, y: model.vTradeEac[t1, r, y]
     == sum(
-        pTradeEac.get((t1, r, yp)) * model.vTradeNewCap[t1, yp]
+        pTradeEac.get((t1, r, yp)) * pPeriodLen.get((yp)) * model.vTradeNewCap[t1, yp]
         for yp in year
         if (
             (t1, yp) in mTradeNew
