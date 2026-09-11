@@ -10,10 +10,11 @@
 #       operation stays visible and directly constrainable;
 #   (b) sums that cross into the ANNUAL timeframe carry the annualisation
 #       weight (child/parent weight ratio; a no-op on a full calendar).
-# Cost roll-ups and the cumulative Row bounds implement (b) already; the
-# annual emission total and ANNUAL-timeframe process sizing do not yet --
-# those tests assert the target contract and fail by exactly 1/yf until the
-# aggregation weights land.
+# (b) is carried by the top slice being full-year magnitude (share =
+# weight = 1) and by pTimesliceAgg -- the child/parent weight ratio, 1
+# everywhere except 1/year_fraction into the top slice -- applied in every
+# fine -> coarse aggregation; the totals chain gives each commodity cells at
+# every ancestor level, while balances stay at the commodity's own level.
 #
 # Fixture: one year, four identical seasons; sampled twin keeps two seasons
 # (year_fraction = 1/2), so any weight defect shows as an exact factor 2.
@@ -165,4 +166,70 @@ test_that("ANNUAL-timeframe processes are sampling-invariant", {
                info = "ANNUAL tech capacity, yf = 1/2 sample vs full")
   expect_equal(sv_obj(s_half), sv_obj(s_full), tolerance = 1e-9,
                info = "ANNUAL chain objective, yf = 1/2 sample vs full")
+})
+
+# ---------------------------------------------------------------------------
+test_that("sub-annual commodities carry annualized top-level totals", {
+  skip_if_no_solver()
+  # the totals chain gives every commodity coarse-level cells: the ANNUAL
+  # vOutTot row of a seasonal commodity reads the full-year total on both
+  # calendars, while the per-slice rows stay raw.
+  mk <- function(cal, nm) sv_model(
+    sv_tech(capacity = data.frame(cap.fx = 40)), cal = cal, name = nm)
+  tot <- function(sol, ts) {
+    d <- suppressMessages(getData(sol, "vOutTot", merge = TRUE,
+                                  timeframe = "all"))
+    sum(d$value[d$comm == "ELC" & as.character(d$timeslice) == ts])
+  }
+  s_full <- sv_solve(mk(sv_cal(), "svtf"), "svtf")
+  s_half <- sv_solve(mk(sv_cal(c("WIN", "SUM"), "svth"), "svth"), "svth")
+  expect_equal(tot(s_full, "ANNUAL"), 40, tolerance = 1e-6)
+  expect_equal(tot(s_half, "ANNUAL"), 40, tolerance = 1e-6,
+               info = "annualized ANNUAL companion row on the sample")
+  expect_equal(tot(s_half, "WIN"), 10, tolerance = 1e-6,
+               info = "raw per-slice row unchanged")
+})
+
+# ---------------------------------------------------------------------------
+test_that("nested regions compose with the annualized top level", {
+  skip_if_not_installed("geoscales")
+  skip_if_no_solver()
+  # region + timeslice corner: a nation-balanced ANNUAL commodity fed by a
+  # seasonal chain in one child region. Region roll-up is a plain extensive
+  # sum; the timeslice ratio must apply exactly once.
+  gs <- geoscales::geoscale_from_leaftable(
+    data.frame(nation = "NAT", region = c("R1", "R2")),
+    geoframes = c("nation", "region"), key = "region", name = "svg")
+  mk <- function(cal, nm) {
+    m <- newModel(
+      name = nm, desc = "", calendar = cal, region = c("R1", "R2"),
+      horizon = newHorizon(2020), discount = 0,
+      repo = newRepository(
+        paste0("repo_", nm),
+        newCommodity("GAS", timeframe = "ANNUAL"),
+        newCommodity("ELC", timeframe = "SEASON"),
+        newCommodity("STL", timeframe = "ANNUAL", geoframe = "nation"),
+        newSupply("SUP_GAS", commodity = "GAS",
+                  supply = data.frame(region = c("R1", "R2"), cost = 1)),
+        newDemand("DEM_ELC", commodity = "ELC",
+                  demand = data.frame(region = rep(c("R1", "R2"), each = 4),
+                                      timeslice = rep(sv_seasons, 2),
+                                      demand = 10)),
+        newDemand("DEM_STL", commodity = "STL", region = "NAT",
+                  demand = data.frame(region = "NAT", demand = 5)),
+        sv_tech(name = "E1"),
+        newTechnology("MILL", input = list(comm = "ELC"),
+                      output = list(comm = "STL"), region = "R1",
+                      ceff = data.frame(comm = "ELC", cinp2use = 1),
+                      cap2act = 1, vintage = data.frame(olife = 100L))
+      ))
+    setGeoscale(m, gs)
+  }
+  # ELC 80/yr + 5/yr milled to STL -> 85 units of GAS at cost 1
+  o_full <- sv_obj(sv_solve(mk(sv_cal(), "svnf"), "svnf"))
+  o_half <- sv_obj(sv_solve(mk(sv_cal(c("WIN", "SUM"), "svnh"), "svnh"),
+                            "svnh"))
+  expect_equal(o_full, 85, tolerance = 1e-6)
+  expect_equal(o_half, o_full, tolerance = 1e-6,
+               info = "nation-ANNUAL corner, yf = 1/2 sample vs full")
 })

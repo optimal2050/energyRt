@@ -575,9 +575,15 @@ if (F) {
     share = as.numeric(NA),
     weight = 1.
   )
+  # Timeframe contract: the top (ANNUAL) slice is FULL-YEAR magnitude --
+  # share = weight = 1 regardless of sampling -- while sub-annual slices
+  # keep their true duration shares (summing to year_fraction) and weight
+  # 1/year_fraction. Sums crossing into ANNUAL annualize via
+  # pTimesliceAgg = weight[child]/weight[parent] = 1/year_fraction; every
+  # sub-annual level keeps sum(share * weight) == 1.
   obj@timeslice_share[1, "timeslice"] <- dtf[1, 1]
-  obj@timeslice_share[1, "share"] <- year_fraction
-  obj@timeslice_share[1, "weight"] <- 1/year_fraction
+  obj@timeslice_share[1, "share"] <- 1
+  obj@timeslice_share[1, "weight"] <- 1
   k <- 1
   if (ncol(dtf) > 3) {
     for (i in 2:(ncol(dtf) - 2)) {

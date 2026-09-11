@@ -550,9 +550,10 @@ subset_model_regions <- function(mod, region, boundary_prices = NULL,
 }
 
 # Annualised demand per (region, year): each declared row weighted by its own
-# timeslice weight, which is 1 on a full calendar and 1/year_fraction on a
-# sampled one. Verified against `sum(pDemand * pTimesliceWeight)` of the
-# interpolated scenario -- see test-region-window.R.
+# timeslice weight -- 1 on a full calendar and at the top (ANNUAL) slice,
+# 1/year_fraction on the sub-annual slices of a sampled one. Verified against
+# `sum(pDemand * pTimesliceWeight)` of the interpolated scenario -- see
+# test-region-window.R.
 #' @noRd
 .region_annual_demand <- function(mod, regions = NULL, calendar = NULL) {
   prof <- .region_demand_profile(mod, regions)

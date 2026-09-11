@@ -312,6 +312,25 @@
 
 ## Bug fixes
 
+* Multi-year models understated capital charges by the milestone length:
+  annuities (from `eac` or `invcost`) were charged on the annual build rate
+  instead of each vintage's standing capacity — one fifth of their value on
+  5-year milestones. Fixed in all backends; single-year and overnight models
+  are unchanged. Re-solve multi-year scenarios solved with earlier versions.
+  See `dev/multiyear-capital-charge-bug.md`.
+
+* On a sampled calendar, ANNUAL-timeframe quantities are now full-year
+  magnitude: annual caps and emission totals bind at face value (previously
+  loosened by the sampling fraction), ANNUAL-timeframe processes are sized
+  correctly, and every commodity gains an annualized total at each coarser
+  timeslice level. Full calendars are unchanged. Shipped sampled calendars
+  are regenerated; a serialized calendar built under the old convention is
+  refused at interpolation — rebuild it with `newCalendar()`.
+  See `dev/annualized-annual-convention.md`.
+
+* Solution CSVs written by the GLPK backend carry 10 significant digits
+  (was 6 decimal places).
+
 * `fold = TRUE` could silently drop capital cost from the objective: a
   parameter whose folded dimension was only *partially* wildcard kept a raw
   `NA`, which is not a set member, so lookups missed and took the parameter's

@@ -538,6 +538,24 @@ interpolate_model <- function(mod, name = NULL, ...,
                               scen@modInp@sets$region)
   if (!is.null(.geo_hier)) scen@modInp@sets$region <- .geo_hier$region
   scen@modInp@sets$year <- as.integer(scen@settings@horizon@intervals$mid)
+  # Sampled-calendar convention guard: the top slice must be full-year
+  # magnitude (share = 1). A serialized calendar built before this
+  # contract carries share = year_fraction there and would reproduce the
+  # sample-magnitude LP silently -- refuse it at the door.
+  {
+    .cal <- scen@settings@calendar
+    .yf <- .cal@year_fraction
+    if (length(.yf) == 1 && is.finite(.yf) && .yf < 1 &&
+        nrow(.cal@timeslice_share) > 0 &&
+        !isTRUE(all.equal(as.numeric(.cal@timeslice_share$share[1]), 1))) {
+      stop("calendar '", .cal@name, "' predates the annualized-ANNUAL ",
+           "convention: its top timeslice has share = ",
+           signif(.cal@timeslice_share$share[1], 6), " instead of 1 on a ",
+           "sampled calendar (year_fraction = ", signif(.yf, 6), "). ",
+           "Rebuild it with newCalendar() (or reload the shipped ",
+           "`calendars` catalog) before interpolating.")
+    }
+  }
   scen@modInp@sets$timeslice <- scen@settings@calendar@timeslice_share$timeslice
 
   # Sets from names of declared model-objects ####

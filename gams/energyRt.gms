@@ -1120,11 +1120,13 @@ eqTechAfsLo(tech, region, year, timeslice)$meqTechAfsLo(tech, region, year, time
               )
          =l=
          sum(timeslicep$mTimesliceParentChildE(timeslice, timeslicep),
+             pTimesliceAgg(year, timeslice, timeslicep) *
              vTechAct(tech, region, year, timeslicep)$mvTechAct(tech, region, year, timeslicep));
 
 * Availability factor for sum UP
 eqTechAfsUp(tech, region, year, timeslice)$meqTechAfsUp(tech, region, year, timeslice)..
          sum(timeslicep$mTimesliceParentChildE(timeslice, timeslicep),
+         pTimesliceAgg(year, timeslice, timeslicep) *
          vTechAct(tech, region, year, timeslicep)$mvTechAct(tech, region, year, timeslicep))
          =l=
          pTechAfsUp(tech, region, year, timeslice) *
@@ -1737,6 +1739,7 @@ eqAggOutTot(comm, region, year, timeslice)$mAggOut(comm, region, year, timeslice
                            mTimesliceParentChildE(timeslice, timeslicep)
                            and mCommTimeslice(commp, timeslicep)
                            ),
+                    pTimesliceAgg(year, timeslice, timeslicep) *
                     vOutTot(commp, region, year, timeslicep)$mvOutTot(commp, region, year, timeslicep)
                     )
             );
@@ -1748,9 +1751,8 @@ eqEmsFuelTot(comm, region, year, timeslice)$mEmsFuelTot(comm, region, year, time
              pEmissionFactor(comm, commp)
              * sum(tech$mTechInpComm(tech, commp),
                    pTechEmisComm(tech, commp)
-*                   * pTimesliceWeight(year, timeslice)
                    * sum(timeslicep$mCommTimesliceOrParent(comm, timeslice, timeslicep),
-*                         pTimesliceWeight(year, timeslicep) *
+                         pTimesliceAgg(year, timeslice, timeslicep) *
                          vTechInp(tech, commp, region, year, timeslicep)$mTechEmsFuel(
                                   tech, comm, commp, region, year, timeslicep)
                          )
@@ -2542,6 +2544,7 @@ eqTradeIrAInpTot(comm, region, year, timeslice)$mvTradeIrAInpTot(comm, region, y
   sum((trade, timeslicep)$(mCommTimesliceOrParent(comm, timeslice, timeslicep)
                        and mvTradeIrAInp(trade, comm, region, year, timeslicep)
                        ),
+      pTimesliceAgg(year, timeslice, timeslicep) *
       vTradeIrAInp(trade, comm, region, year, timeslicep)
   );
 
@@ -2552,6 +2555,7 @@ eqTradeIrAOutTot(comm, region, year, timeslice)$mvTradeIrAOutTot(comm, region, y
   sum((trade, timeslicep)$(mCommTimesliceOrParent(comm, timeslice, timeslicep)
                        and mvTradeIrAOut(trade, comm, region, year, timeslicep)
                        ),
+      pTimesliceAgg(year, timeslice, timeslicep) *
       vTradeIrAOut(trade, comm, region, year, timeslicep)
   );
 
@@ -2684,6 +2688,7 @@ eqTechInpTot(comm, region, year, timeslice)$mTechInpTot(comm, region, year, time
 *        pTimesliceWeight(year, timeslice) *
         sum(tech$mTechInpCommAgg(tech, comm),
             sum(timeslicep$mTechInpCommAggTimeslice(tech, comm, timeslicep, timeslice),
+                pTimesliceAgg(year, timeslice, timeslicep) *
                 vTechInp(tech, comm, region, year, timeslicep)$mvTechInp(tech, comm, region, year, timeslicep)
             )
         )
@@ -2696,6 +2701,7 @@ eqTechInpTot(comm, region, year, timeslice)$mTechInpTot(comm, region, year, time
 *        pTimesliceWeight(year, timeslice) *
         sum(tech$mTechAInpCommAgg(tech, comm),
             sum(timeslicep$mTechAInpCommAggTimeslice(tech, comm, timeslicep, timeslice),
+            pTimesliceAgg(year, timeslice, timeslicep) *
             vTechAInp(tech, comm, region, year, timeslicep)$mvTechAInp(tech, comm, region, year, timeslicep)
             )
         );
@@ -2711,6 +2717,7 @@ eqTechOutTot(comm, region, year, timeslice)$mTechOutTot(comm, region, year, time
 *        pTimesliceWeight(year, timeslice) *
         sum(tech$mTechOutCommAgg(tech, comm),
             sum(timeslicep$mTechOutCommAggTimeslice(tech, comm, timeslicep, timeslice),
+                pTimesliceAgg(year, timeslice, timeslicep) *
                 vTechOut(tech, comm, region, year, timeslicep)$mvTechOut(tech, comm, region, year, timeslicep)
             )
         )
@@ -2723,6 +2730,7 @@ eqTechOutTot(comm, region, year, timeslice)$mTechOutTot(comm, region, year, time
 *        pTimesliceWeight(year, timeslice) *
         sum(tech$mTechAOutCommAgg(tech, comm),
             sum(timeslicep$mTechAOutCommAggTimeslice(tech, comm, timeslicep, timeslice),
+                pTimesliceAgg(year, timeslice, timeslicep) *
                 vTechAOut(tech, comm, region, year, timeslicep)$mvTechAOut(tech, comm, region, year, timeslicep)
             )
         );
@@ -2738,6 +2746,7 @@ eqStorageInpTot(comm, region, year, timeslice)$mStorageInpTot(comm, region, year
         +
         sum(stg$mStorageInpCommAgg(stg, comm),
             sum(timeslicep$mStorageInpCommAggTimeslice(stg, comm, timeslicep, timeslice),
+                pTimesliceAgg(year, timeslice, timeslicep) *
                 vStorageInp(stg, comm, region, year, timeslicep)$mvStorageInp(stg, comm, region, year, timeslicep)
             )
         )
@@ -2748,6 +2757,7 @@ eqStorageInpTot(comm, region, year, timeslice)$mStorageInpTot(comm, region, year
         +
         sum(stg$mStorageAInpCommAgg(stg, comm),
             sum(timeslicep$mStorageAInpCommAggTimeslice(stg, comm, timeslicep, timeslice),
+                pTimesliceAgg(year, timeslice, timeslicep) *
                 vStorageAInp(stg, comm, region, year, timeslicep)$mvStorageAInp(stg, comm, region, year, timeslicep)
             )
         );
@@ -2761,6 +2771,7 @@ eqStorageOutTot(comm, region, year, timeslice)$mStorageOutTot(comm, region, year
         +
         sum(stg$mStorageOutCommAgg(stg, comm),
             sum(timeslicep$mStorageOutCommAggTimeslice(stg, comm, timeslicep, timeslice),
+                pTimesliceAgg(year, timeslice, timeslicep) *
                 vStorageOut(stg, comm, region, year, timeslicep)$mvStorageOut(stg, comm, region, year, timeslicep)
             )
         )
@@ -2771,6 +2782,7 @@ eqStorageOutTot(comm, region, year, timeslice)$mStorageOutTot(comm, region, year
         +
         sum(stg$mStorageAOutCommAgg(stg, comm),
             sum(timeslicep$mStorageAOutCommAggTimeslice(stg, comm, timeslicep, timeslice),
+                pTimesliceAgg(year, timeslice, timeslicep) *
                 vStorageAOut(stg, comm, region, year, timeslicep)$mvStorageAOut(stg, comm, region, year, timeslicep)
             )
         );

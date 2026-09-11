@@ -778,9 +778,26 @@ getData.default <- function(scen, ...) {
   if (all(same)) {
     return(df) # nothing to roll up
   }
-  df$timeslice <- tgt
+  # Timeframe contract: rolled-up values carry the child/target weight ratio
+  # (1 within sub-annual levels and on full calendars; 1/year_fraction when
+  # the target is the top slice of a sampled calendar), matching the LP's own
+  # coarse-level totals (pTimesliceAgg in eqOutTot/eqInpTot). Rows ALREADY at
+  # the target level are the LP's own aggregated cells; they take precedence
+  # and their children are not rolled on top (which would double-count).
+  w <- stats::setNames(as.numeric(calendar@timeslice_share$weight),
+                       as.character(calendar@timeslice_share$timeslice))
+  ratio <- w[as.character(df$timeslice)] / w[tgt]
+  ratio[!is.finite(ratio)] <- 1
   grp <- setdiff(names(df), "value")
-  out <- df |>
+  at_tgt <- df[same, , drop = FALSE]
+  ch <- df[!same, , drop = FALSE]
+  ch$value <- ch$value * ratio[!same]
+  ch$timeslice <- tgt[!same]
+  if (nrow(at_tgt) > 0 && nrow(ch) > 0) {
+    key <- function(x) do.call(paste, c(x[, grp, drop = FALSE], sep = "\r"))
+    ch <- ch[!(key(ch) %in% key(at_tgt)), , drop = FALSE]
+  }
+  out <- rbind(at_tgt, ch) |>
     dplyr::group_by(dplyr::across(dplyr::all_of(grp))) |>
     dplyr::summarise(value = sum(value), .groups = "drop")
   as.data.frame(out)

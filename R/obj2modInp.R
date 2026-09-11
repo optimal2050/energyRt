@@ -1332,6 +1332,13 @@ setMethod(
       rename(timeslice = parent) |>
       as.data.table()
 
+    # The top (ANNUAL) slice is full-year magnitude (weight = 1) by the
+    # timeframe contract; the descendant mean reproduces the sub-annual
+    # 1/year_fraction instead, so recomputation never overrides the top
+    # row (a differing pair would both survive the unique() below).
+    .top_ts <- as.character(approxim$calendar@timeslice_share$timeslice[1])
+    ab <- ab[timeslice != .top_ts]
+
     pTimesliceWeight_tmp <- rbind(pTimesliceWeight_tmp, ab) |>
       filter(year %in% approxim$mileStoneYears) |>
       unique()
@@ -1347,10 +1354,22 @@ setMethod(
       pTimesliceWeight_tmp
     )
     # agg-rewrite: intensive timeslice-aggregation weight pTimesliceAgg[year, parent, child]
-    # = pTimesliceWeight[year, child] / pTimesliceWeight[year, parent], over IMMEDIATE
-    # parent-child pairs (@timeslice_family). Used to up-aggregate commodity totals
-    # between adjacent levels (eqOutTot/eqInpTot), replacing *2Lo disaggregation.
-    pTimesliceAgg_tmp <- dplyr::as_tibble(approxim$calendar@timeslice_family) |>
+    # = pTimesliceWeight[year, child] / pTimesliceWeight[year, parent], over SELF
+    # pairs plus ALL ancestor-descendant pairs (@timeslice_ancestry). Immediate
+    # pairs drive the one-level roll-up in eqOutTot/eqInpTot; the transitive and
+    # self pairs serve the cross-into-coarser sums (eqEmsFuelTot, the *Tot Agg
+    # branches, eqAggOutTot, eqTradeIrA*Tot, eqTechAfs*), whose pairing sets are
+    # self-or-descendant. The ratio is 1 on a full calendar and everywhere
+    # sub-annual; 1/year_fraction where the parent is the top (ANNUAL) slice.
+    .agg_pairs <- rbind(
+      data.table(
+        parent = as.character(approxim$calendar@timeslice_share$timeslice),
+        child = as.character(approxim$calendar@timeslice_share$timeslice)),
+      data.table(
+        parent = as.character(approxim$calendar@timeslice_ancestry$parent),
+        child = as.character(approxim$calendar@timeslice_ancestry$child))
+    ) |> unique()
+    pTimesliceAgg_tmp <- dplyr::as_tibble(.agg_pairs) |>
       dplyr::transmute(timeslice = as.character(parent),
                        timeslicep = as.character(child)) |>
       dplyr::left_join(dplyr::rename(pTimesliceWeight_tmp,

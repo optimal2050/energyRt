@@ -6,8 +6,9 @@
 # one scenario. Three sampling methods: consecutive blocks tiling the year,
 # disjoint random draws, and bootstrap draws with replacement.
 #
-# Samples are REPLICATES, not shards. `pTimesliceWeight = 1/year_fraction`
-# annualises each one, so every sample estimates the whole year and the set is
+# Samples are REPLICATES, not shards. Sub-annual slices carry
+# `pTimesliceWeight = 1/year_fraction` (the top slice is full-year magnitude,
+# weight 1), so every sample estimates the whole year and the set is
 # combined into a distribution. Summing across samples is wrong -- the opposite
 # of solve_by_region(), where disjoint samples add up.
 #
@@ -273,7 +274,8 @@ calendar_samples <- function(calendar, level = NULL, sample_size = NULL,
 #' distributions rather than a single point answer.
 #'
 #' @details
-#' Each sample is annualised (`pTimesliceWeight = 1/year_fraction`), so every
+#' Each sample is annualised (sub-annual slices carry
+#' `pTimesliceWeight = 1/year_fraction`), so every
 #' sample estimates the **whole year**: the runs are replicates and their spread
 #' is the sampling uncertainty. They are not pieces of a year and must not be
 #' summed — unlike [solve_by_region()], whose disjoint samples do add up.

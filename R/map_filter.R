@@ -783,12 +783,32 @@ map_mImport <- function(scen, fmp)
   if (is.null(df) || nrow(df) == 0 || is.null(comm_timeslice)) return(df)
   dplyr::distinct(as.data.frame(merge0(df, comm_timeslice)))
 }
+# [timeframe-contract] totals also exist at every ancestor timeslice level up
+# to the calendar top, so eqInpTot/eqOutTot have cells to aggregate the finer
+# ones into (chained one level at a time via mTimesliceFamily/pTimesliceAgg;
+# the top-level cell is the annualized total on a sampled calendar). The
+# timeslice twin of `.extend_comm_region`.
+.extend_comm_timeslice <- function(df, ancestry) {
+  if (is.null(df) || nrow(df) == 0 || is.null(ancestry) ||
+      nrow(ancestry) == 0) return(df)
+  df <- as.data.frame(df)
+  if (!"timeslice" %in% names(df)) return(df)
+  anc <- data.frame(parent = as.character(ancestry$parent),
+                    child = as.character(ancestry$child))
+  add <- merge(df, anc, by.x = "timeslice", by.y = "child")
+  if (nrow(add) == 0) return(df)
+  add$timeslice <- add$parent
+  add$parent <- NULL
+  unique(rbind(df, add[, names(df), drop = FALSE]))
+}
 map_mvInpTot <- function(scen, fmp) {
   inptot <- .restrict_comm_timeslice(.bind_ry(
     .gds(scen, "mvDemInp"), .gds(scen, "mDummyExport"), .gds(scen, "mTechInpTot"),
     .gds(scen, "mStorageInpTot"), .gds(scen, "mExport"),
     .gds(scen, "mvTradeIrAInpTot")),                    # [agg-rewrite] mInpSub dropped
     .gds(scen, "mCommTimeslice"))
+  inptot <- .extend_comm_timeslice(inptot,
+                                   scen@settings@calendar@timeslice_ancestry)
   # [nested-regions] totals also exist at every level up to the commodity's own
   # `@geoframe`, so eqInpTot has a cell to aggregate the finer ones into. A
   # no-op unless some commodity names a coarser level.
@@ -801,6 +821,8 @@ map_mvOutTot <- function(scen, fmp) {
     .gds(scen, "mAggOut"), .gds(scen, "mTechOutTot"), .gds(scen, "mStorageOutTot"),
     .gds(scen, "mImport"), .gds(scen, "mvTradeIrAOutTot")),  # [agg-rewrite] mOutSub dropped
     .gds(scen, "mCommTimeslice"))
+  outtot <- .extend_comm_timeslice(outtot,
+                                   scen@settings@calendar@timeslice_ancestry)
   outtot <- .extend_comm_region(outtot, .comm_region_chain(scen))
   .set_map(scen, "mvOutTot", outtot, fmp)
 }
@@ -812,13 +834,16 @@ map_mvOutTot <- function(scen, fmp) {
 }
 # [nested-regions] the balance is enforced at the commodity's OWN region level
 # only -- this is what makes steel national while electricity stays per-state.
-# The restriction lands here and nowhere else: mvOutTot/mvInpTot keep their
-# finer cells so eqOutTot/eqInpTot can still aggregate them upward.
+# [timeframe-contract] likewise the commodity's OWN timeslice level only:
+# mvOutTot/mvInpTot carry parent-level total cells (region AND timeslice) for
+# aggregation and constraint targeting, never extra balance rows.
 map_mvBalance <- function(scen, fmp)
   .set_map(scen, "mvBalance",
-           .restrict_comm_region(
-             .bind_ry(.gds(scen, "mvInpTot"), .gds(scen, "mvOutTot")),
-             .gds(scen, "mCommRegion")), fmp)
+           .restrict_comm_timeslice(
+             .restrict_comm_region(
+               .bind_ry(.gds(scen, "mvInpTot"), .gds(scen, "mvOutTot")),
+               .gds(scen, "mCommRegion")),
+             .gds(scen, "mCommTimeslice")), fmp)
 # [agg-rewrite] map_mInpTotRY/mOutTotRY/mBalanceRY removed (*RY retired)
 
 # -- registry for the filter family (dependency order) --------------------- #

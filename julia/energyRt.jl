@@ -910,6 +910,12 @@ print("eqTechAfsLo(tech, region, year, timeslice)...")
         ) for wth1 in get(mTechWeatherAfsLo_ix, t, ())
     ; init = 1) <= sum(
         (
+            if haskey(pTimesliceAgg, (y, s, sp))
+                pTimesliceAgg[(y, s, sp)]
+            else
+                pTimesliceAggDef
+            end
+        ) * (
             if (t, r, y, sp) in mvTechAct
                 vTechAct[(t, r, y, sp)]
             else
@@ -931,6 +937,12 @@ print("eqTechAfsUp(tech, region, year, timeslice)...")
     [(t, r, y, s) in meqTechAfsUp],
     sum(
         (
+            if haskey(pTimesliceAgg, (y, s, sp))
+                pTimesliceAgg[(y, s, sp)]
+            else
+                pTimesliceAggDef
+            end
+        ) * (
             if (t, r, y, sp) in mvTechAct
                 vTechAct[(t, r, y, sp)]
             else
@@ -2745,6 +2757,12 @@ print("eqAggOutTot(comm, region, year, timeslice)...")
             end
         ) * sum(
             (
+                if haskey(pTimesliceAgg, (y, s, sp))
+                    pTimesliceAgg[(y, s, sp)]
+                else
+                    pTimesliceAggDef
+                end
+            ) * (
                 if (cp, r, y, sp) in mvOutTot
                     vOutTot[(cp, r, y, sp)]
                 else
@@ -2785,6 +2803,12 @@ print("eqEmsFuelTot(comm, region, year, timeslice)...")
                 end
             ) * sum(
                 (
+                    if haskey(pTimesliceAgg, (y, s, sp))
+                        pTimesliceAgg[(y, s, sp)]
+                    else
+                        pTimesliceAggDef
+                    end
+                ) * (
                     if (t, c, cp, r, y, sp) in mTechEmsFuel
                         vTechInp[(t, cp, r, y, sp)]
                     else
@@ -5214,7 +5238,13 @@ print("eqTradeIrAInpTot(comm, region, year, timeslice)...")
     model,
     [(c, r, y, s) in mvTradeIrAInpTot],
     vTradeIrAInpTot[(c, r, y, s)] == sum(
-        vTradeIrAInp[(t1, c, r, y, sp)] for t1 in trade for sp in timeslice if
+        (
+            if haskey(pTimesliceAgg, (y, s, sp))
+                pTimesliceAgg[(y, s, sp)]
+            else
+                pTimesliceAggDef
+            end
+        ) * vTradeIrAInp[(t1, c, r, y, sp)] for t1 in trade for sp in timeslice if
         ((c, s, sp) in mCommTimesliceOrParent && (t1, c, r, y, sp) in mvTradeIrAInp)
     )
 );
@@ -5230,7 +5260,13 @@ print("eqTradeIrAOutTot(comm, region, year, timeslice)...")
     model,
     [(c, r, y, s) in mvTradeIrAOutTot],
     vTradeIrAOutTot[(c, r, y, s)] == sum(
-        vTradeIrAOut[(t1, c, r, y, sp)] for t1 in trade for sp in timeslice if
+        (
+            if haskey(pTimesliceAgg, (y, s, sp))
+                pTimesliceAgg[(y, s, sp)]
+            else
+                pTimesliceAggDef
+            end
+        ) * vTradeIrAOut[(t1, c, r, y, sp)] for t1 in trade for sp in timeslice if
         ((c, s, sp) in mCommTimesliceOrParent && (t1, c, r, y, sp) in mvTradeIrAOut)
     )
 );
@@ -5503,6 +5539,12 @@ print("eqTechInpTot(comm, region, year, timeslice)...")
     sum(
         sum(
             (
+                if haskey(pTimesliceAgg, (y, s, sp))
+                    pTimesliceAgg[(y, s, sp)]
+                else
+                    pTimesliceAggDef
+                end
+            ) * (
                 if (t, c, r, y, sp) in mvTechInp
                     vTechInp[(t, c, r, y, sp)]
                 else
@@ -5523,6 +5565,12 @@ print("eqTechInpTot(comm, region, year, timeslice)...")
     sum(
         sum(
             (
+                if haskey(pTimesliceAgg, (y, s, sp))
+                    pTimesliceAgg[(y, s, sp)]
+                else
+                    pTimesliceAggDef
+                end
+            ) * (
                 if (t, c, r, y, sp) in mvTechAInp
                     vTechAInp[(t, c, r, y, sp)]
                 else
@@ -5556,6 +5604,12 @@ print("eqTechOutTot(comm, region, year, timeslice)...")
     sum(
         sum(
             (
+                if haskey(pTimesliceAgg, (y, s, sp))
+                    pTimesliceAgg[(y, s, sp)]
+                else
+                    pTimesliceAggDef
+                end
+            ) * (
                 if (t, c, r, y, sp) in mvTechOut
                     vTechOut[(t, c, r, y, sp)]
                 else
@@ -5576,6 +5630,12 @@ print("eqTechOutTot(comm, region, year, timeslice)...")
     sum(
         sum(
             (
+                if haskey(pTimesliceAgg, (y, s, sp))
+                    pTimesliceAgg[(y, s, sp)]
+                else
+                    pTimesliceAggDef
+                end
+            ) * (
                 if (t, c, r, y, sp) in mvTechAOut
                     vTechAOut[(t, c, r, y, sp)]
                 else
@@ -5610,6 +5670,12 @@ print("eqStorageInpTot(comm, region, year, timeslice)...")
     sum(
         sum(
             (
+                if haskey(pTimesliceAgg, (y, s, sp))
+                    pTimesliceAgg[(y, s, sp)]
+                else
+                    pTimesliceAggDef
+                end
+            ) * (
                 if (st1, c, r, y, sp) in mvStorageInp
                     vStorageInp[(st1, c, r, y, sp)]
                 else
@@ -5630,6 +5696,12 @@ print("eqStorageInpTot(comm, region, year, timeslice)...")
     sum(
         sum(
             (
+                if haskey(pTimesliceAgg, (y, s, sp))
+                    pTimesliceAgg[(y, s, sp)]
+                else
+                    pTimesliceAggDef
+                end
+            ) * (
                 if (st1, c, r, y, sp) in mvStorageAInp
                     vStorageAInp[(st1, c, r, y, sp)]
                 else
@@ -5663,6 +5735,12 @@ print("eqStorageOutTot(comm, region, year, timeslice)...")
     sum(
         sum(
             (
+                if haskey(pTimesliceAgg, (y, s, sp))
+                    pTimesliceAgg[(y, s, sp)]
+                else
+                    pTimesliceAggDef
+                end
+            ) * (
                 if (st1, c, r, y, sp) in mvStorageOut
                     vStorageOut[(st1, c, r, y, sp)]
                 else
@@ -5683,6 +5761,12 @@ print("eqStorageOutTot(comm, region, year, timeslice)...")
     sum(
         sum(
             (
+                if haskey(pTimesliceAgg, (y, s, sp))
+                    pTimesliceAgg[(y, s, sp)]
+                else
+                    pTimesliceAggDef
+                end
+            ) * (
                 if (st1, c, r, y, sp) in mvStorageAOut
                     vStorageAOut[(st1, c, r, y, sp)]
                 else

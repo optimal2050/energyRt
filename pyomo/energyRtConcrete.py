@@ -918,7 +918,8 @@ model.eqTechAfsLo = Constraint(
         for wth1 in mTechWeatherAfsLo_ix.get(t, ())
     )
     <= sum(
-        (model.vTechAct[t, r, y, sp] if (t, r, y, sp) in mvTechAct else 0)
+        pTimesliceAgg.get((y, s, sp))
+        * (model.vTechAct[t, r, y, sp] if (t, r, y, sp) in mvTechAct else 0)
         for sp in mTimesliceParentChildE_ix.get(s, ())
     ),
 )
@@ -937,7 +938,8 @@ sys.stdout.flush()
 model.eqTechAfsUp = Constraint(
     meqTechAfsUp,
     rule=lambda model, t, r, y, s: sum(
-        (model.vTechAct[t, r, y, sp] if (t, r, y, sp) in mvTechAct else 0)
+        pTimesliceAgg.get((y, s, sp))
+        * (model.vTechAct[t, r, y, sp] if (t, r, y, sp) in mvTechAct else 0)
         for sp in mTimesliceParentChildE_ix.get(s, ())
     )
     <= pTechAfsUp.get((t, r, y, s))
@@ -2036,7 +2038,8 @@ model.eqAggOutTot = Constraint(
     == sum(
         pAggregateFactor.get((c, cp))
         * sum(
-            (model.vOutTot[cp, r, y, sp] if (cp, r, y, sp) in mvOutTot else 0)
+            pTimesliceAgg.get((y, s, sp))
+            * (model.vOutTot[cp, r, y, sp] if (cp, r, y, sp) in mvOutTot else 0)
             for sp in timeslice
             if (
                 (c, r, y, sp) in mvOutTot
@@ -2067,7 +2070,8 @@ model.eqEmsFuelTot = Constraint(
         * sum(
             pTechEmisComm.get((t, cp))
             * sum(
-                (
+                pTimesliceAgg.get((y, s, sp))
+                * (
                     model.vTechInp[t, cp, r, y, sp]
                     if (t, c, cp, r, y, sp) in mTechEmsFuel
                     else 0
@@ -3591,7 +3595,7 @@ model.eqTradeIrAInpTot = Constraint(
     mvTradeIrAInpTot,
     rule=lambda model, c, r, y, s: model.vTradeIrAInpTot[c, r, y, s]
     == sum(
-        model.vTradeIrAInp[t1, c, r, y, sp]
+        pTimesliceAgg.get((y, s, sp)) * model.vTradeIrAInp[t1, c, r, y, sp]
         for t1 in trade
         for sp in timeslice
         if ((c, s, sp) in mCommTimesliceOrParent and (t1, c, r, y, sp) in mvTradeIrAInp)
@@ -3613,7 +3617,7 @@ model.eqTradeIrAOutTot = Constraint(
     mvTradeIrAOutTot,
     rule=lambda model, c, r, y, s: model.vTradeIrAOutTot[c, r, y, s]
     == sum(
-        model.vTradeIrAOut[t1, c, r, y, sp]
+        pTimesliceAgg.get((y, s, sp)) * model.vTradeIrAOut[t1, c, r, y, sp]
         for t1 in trade
         for sp in timeslice
         if ((c, s, sp) in mCommTimesliceOrParent and (t1, c, r, y, sp) in mvTradeIrAOut)
@@ -3708,7 +3712,7 @@ model.eqOutTot = Constraint(
     + (model.vTradeIrAOutTot[c, r, y, s] if (c, r, y, s) in mvTradeIrAOutTot else 0)
     # [agg-rewrite] up-aggregation of immediately-finer children (replaces vOut2Lo)
     + sum(
-        pTimesliceAgg.get((y, s, sp), 0) * model.vOutTot[c, r, y, sp]
+        pTimesliceAgg.get((y, s, sp)) * model.vOutTot[c, r, y, sp]
         for sp in mTimesliceFamily_ix.get(s, ())
         if (c, r, y, sp) in mvOutTot
     )
@@ -3747,7 +3751,7 @@ model.eqInpTot = Constraint(
     + (model.vTradeIrAInpTot[c, r, y, s] if (c, r, y, s) in mvTradeIrAInpTot else 0)
     # [agg-rewrite] up-aggregation of immediately-finer children (replaces vInp2Lo)
     + sum(
-        pTimesliceAgg.get((y, s, sp), 0) * model.vInpTot[c, r, y, sp]
+        pTimesliceAgg.get((y, s, sp)) * model.vInpTot[c, r, y, sp]
         for sp in mTimesliceFamily_ix.get(s, ())
         if (c, r, y, sp) in mvInpTot
     )
@@ -3809,7 +3813,8 @@ model.eqTechInpTot = Constraint(
     )
     + sum(
         sum(
-            (model.vTechInp[t, c, r, y, sp] if (t, c, r, y, sp) in mvTechInp else 0)
+            pTimesliceAgg.get((y, s, sp))
+            * (model.vTechInp[t, c, r, y, sp] if (t, c, r, y, sp) in mvTechInp else 0)
             for sp in mTechInpCommAggTimeslice_ix.get((t, c, s), ())
         )
         for t in mTechInpCommAgg_ix.get(c, ())
@@ -3820,7 +3825,8 @@ model.eqTechInpTot = Constraint(
     )
     + sum(
         sum(
-            (model.vTechAInp[t, c, r, y, sp] if (t, c, r, y, sp) in mvTechAInp else 0)
+            pTimesliceAgg.get((y, s, sp))
+            * (model.vTechAInp[t, c, r, y, sp] if (t, c, r, y, sp) in mvTechAInp else 0)
             for sp in mTechAInpCommAggTimeslice_ix.get((t, c, s), ())
         )
         for t in mTechAInpCommAgg_ix.get(c, ())
@@ -3847,7 +3853,8 @@ model.eqTechOutTot = Constraint(
     )
     + sum(
         sum(
-            (model.vTechOut[t, c, r, y, sp] if (t, c, r, y, sp) in mvTechOut else 0)
+            pTimesliceAgg.get((y, s, sp))
+            * (model.vTechOut[t, c, r, y, sp] if (t, c, r, y, sp) in mvTechOut else 0)
             for sp in mTechOutCommAggTimeslice_ix.get((t, c, s), ())
         )
         for t in mTechOutCommAgg_ix.get(c, ())
@@ -3858,7 +3865,8 @@ model.eqTechOutTot = Constraint(
     )
     + sum(
         sum(
-            (model.vTechAOut[t, c, r, y, sp] if (t, c, r, y, sp) in mvTechAOut else 0)
+            pTimesliceAgg.get((y, s, sp))
+            * (model.vTechAOut[t, c, r, y, sp] if (t, c, r, y, sp) in mvTechAOut else 0)
             for sp in mTechAOutCommAggTimeslice_ix.get((t, c, s), ())
         )
         for t in mTechAOutCommAgg_ix.get(c, ())
@@ -3886,7 +3894,8 @@ model.eqStorageInpTot = Constraint(
     )
     + sum(
         sum(
-            (model.vStorageInp[st1, c, r, y, sp] if (st1, c, r, y, sp) in mvStorageInp else 0)
+            pTimesliceAgg.get((y, s, sp))
+            * (model.vStorageInp[st1, c, r, y, sp] if (st1, c, r, y, sp) in mvStorageInp else 0)
             for sp in mStorageInpCommAggTimeslice_ix.get((st1, c, s), ())
         )
         for st1 in mStorageInpCommAgg_ix.get(c, ())
@@ -3897,7 +3906,8 @@ model.eqStorageInpTot = Constraint(
     )
     + sum(
         sum(
-            (model.vStorageAInp[st1, c, r, y, sp] if (st1, c, r, y, sp) in mvStorageAInp else 0)
+            pTimesliceAgg.get((y, s, sp))
+            * (model.vStorageAInp[st1, c, r, y, sp] if (st1, c, r, y, sp) in mvStorageAInp else 0)
             for sp in mStorageAInpCommAggTimeslice_ix.get((st1, c, s), ())
         )
         for st1 in mStorageAInpCommAgg_ix.get(c, ())
@@ -3924,7 +3934,8 @@ model.eqStorageOutTot = Constraint(
     )
     + sum(
         sum(
-            (model.vStorageOut[st1, c, r, y, sp] if (st1, c, r, y, sp) in mvStorageOut else 0)
+            pTimesliceAgg.get((y, s, sp))
+            * (model.vStorageOut[st1, c, r, y, sp] if (st1, c, r, y, sp) in mvStorageOut else 0)
             for sp in mStorageOutCommAggTimeslice_ix.get((st1, c, s), ())
         )
         for st1 in mStorageOutCommAgg_ix.get(c, ())
@@ -3935,7 +3946,8 @@ model.eqStorageOutTot = Constraint(
     )
     + sum(
         sum(
-            (model.vStorageAOut[st1, c, r, y, sp] if (st1, c, r, y, sp) in mvStorageAOut else 0)
+            pTimesliceAgg.get((y, s, sp))
+            * (model.vStorageAOut[st1, c, r, y, sp] if (st1, c, r, y, sp) in mvStorageAOut else 0)
             for sp in mStorageAOutCommAggTimeslice_ix.get((st1, c, s), ())
         )
         for st1 in mStorageAOutCommAgg_ix.get(c, ())

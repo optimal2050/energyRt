@@ -302,6 +302,23 @@ if (!is.null(calendars[["d365_h24_subset_1day_per_month"]])) {
   calendars[["d365_h24_1dpm"]] <- .cal
   calendars[["d365_h24_subset_1day_per_month"]] <- NULL
 }
+# A carried 1dpm predates the annualized-ANNUAL convention (top-slice share/
+# weight = 1); rebuild it from the timescales design on its own sampled days
+# so the shipped object is never stale.
+if (requireNamespace("timescales", quietly = TRUE) &&
+    !is.null(calendars[["d365_h24_1dpm"]])) {
+  .days <- sort(unique(as.character(
+    calendars[["d365_h24_1dpm"]]@timetable$YDAY)))
+  calendars[["d365_h24_1dpm"]] <- ts_bridge(
+    timescales::filter_calendar(timescales::calendar("d365_h24"),
+                                "YDAY", .days),
+    name = "d365_h24_1dpm",
+    desc = paste0("d365_h24 sampled to one day per month (",
+                  paste(.days, collapse = "/"),
+                  "); year_fraction = the twelve days' share (timescales ",
+                  as.character(utils::packageVersion("timescales")), ")")
+  )
+}
 
 # ── 3. Validate & store ──────────────────────────────────────────────────────
 stopifnot(

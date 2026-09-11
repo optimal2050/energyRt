@@ -27,9 +27,10 @@
 #
 # The mini-model is one cycle, weighted up to a year, rather than 8760
 # timeslices: a calendar of two timeslices (CHG, DIS) with
-# `year_fraction = 1/cycles` gives `weight = cycles` and `share * weight == 1`,
-# so one modelled cycle IS a year. `fullYear = FALSE` closes the cycle inside
-# the representative period. Note `year_fraction` must be passed to BOTH
+# `year_fraction = 1/cycles` gives the CHG/DIS slices `weight = cycles` and
+# `share * weight == 1`, so one modelled cycle IS a year (the top slice is
+# full-year magnitude, weight 1, and carries no flows here). `fullYear = FALSE`
+# closes the cycle inside the representative period. Note `year_fraction` must be passed to BOTH
 # `make_timetable()` and `newCalendar()` -- the latter validates the shares
 # against its own default of 1 and errors otherwise.
 #
