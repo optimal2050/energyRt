@@ -95,14 +95,26 @@ value_on_window <- function(scen, name, source, window = NULL, gate = NULL, fmp)
     win_par <- scen@modInp@parameters[[window]]
     win <- if (is.null(win_par)) NULL else get_data_slot(win_par)
     if (is.null(win) || nrow(win) == 0) return(scen)
-    # The source parameter is read at recipe time while still FOLDED: a dimension
-    # that is entirely NA is a wildcard ("all members"), so it must not constrain
-    # the join with the explicit-membered window (`merge0` joins on shared columns
-    # and NA never matches an explicit member, which would wrongly empty the map).
-    # Drop fully-NA source columns; the window then supplies those dimensions.
-    keep <- vapply(src, function(col) !all(is.na(col)), logical(1))
-    src  <- src[, keep, drop = FALSE]
-    df <- merge0(as.data.frame(win), src)
+    # The source parameter is read at recipe time while still FOLDED: a NA in
+    # a key column is a wildcard ("all members") and must not constrain the
+    # join with the explicit-membered window (`merge0` joins on shared columns
+    # and NA never matches an explicit member). Wildcards are PER ROW, not per
+    # column: one object's year-NA cost row sits beside another's year-keyed
+    # rows in the same parameter, and a column-level fully-NA test silently
+    # dropped the NA rows of every mixed column (a technology's varom vanished
+    # from `mTechVarom` whenever any other technology keyed its varom by
+    # year). Split by the rows' NA pattern and join each group on its non-NA
+    # columns; the window supplies the wildcarded dimensions.
+    win <- as.data.frame(win)
+    src_df <- as.data.frame(src)
+    na_pat <- apply(is.na(src_df), 1L, paste, collapse = "")
+    df <- dplyr::distinct(dplyr::bind_rows(lapply(
+      split(src_df, na_pat),
+      function(g) {
+        keep <- vapply(g, function(col) !all(is.na(col)), logical(1))
+        merge0(win, g[, keep, drop = FALSE])
+      }
+    )))
 
     # ... but only if the window HAS that dimension. When neither side carries it
     # -- a region-folded source against a window with no region column -- `df` is

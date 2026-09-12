@@ -312,6 +312,11 @@
 
 ## Bug fixes
 
+* Value-map domains (`mTechVarom` and siblings) treat a `NA` key as a
+  per-row wildcard: a technology's year-unkeyed cost row is no longer
+  dropped from the map when another technology keys the same cost by
+  year, which silently removed the cost from the model.
+
 * `save_scenario()` no longer errors on a scenario interpolated with
   `ondisk = TRUE` and never solved (`@modOut` is `NULL` there).
 
