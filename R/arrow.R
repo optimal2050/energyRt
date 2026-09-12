@@ -310,7 +310,10 @@ save_scenario <- function(
              "the base problem. Interpolate the variant's problem in memory.")
       }
     }
-    if (!isOnDisk(scen@modOut) && length(scen@modOut@variables)) {
+    # interpolate_model(ondisk = TRUE) leaves @modOut NULL (prototype);
+    # only a materialized in-memory solution needs parking
+    if (!is.null(scen@modOut) && !isOnDisk(scen@modOut) &&
+        length(scen@modOut@variables)) {
       run_label <- scen@misc$run %||% ""
       modout_path <- if (nzchar(run_label)) {
         fp(.run_dir(scen, .run_variant(scen), run_label), "modOut")

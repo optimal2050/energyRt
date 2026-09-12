@@ -312,6 +312,15 @@
 
 ## Bug fixes
 
+* `save_scenario()` no longer errors on a scenario interpolated with
+  `ondisk = TRUE` and never solved (`@modOut` is `NULL` there).
+
+* `interpolate_model(ondisk = TRUE)` writes each parameter store under
+  `modInp/parameters/<name>`, the location `load_scenario()` rebuilds paths
+  to; previously the tables landed flat under `modInp/<name>` and were
+  unreachable after a reload. Existing flat stores still load (the rebase
+  falls back to the flat location).
+
 * Multi-year models understated capital charges by the milestone length:
   annuities (from `eac` or `invcost`) were charged on the annual build rate
   instead of each vintage's standing capacity — one fifth of their value on

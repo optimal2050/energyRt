@@ -425,13 +425,23 @@ drop_scenario_run <- function(scen, run, force = FALSE) {
 }
 
 # Rebase a thinned modInp (parameter store paths) onto its store root.
+# `<mi_root>/parameters/<name>` is the store convention; stores written by
+# interpolate_model(ondisk = TRUE) before the `fmp()` path fix hold (some)
+# tables flat at `<mi_root>/<name>` -- keep those readable by falling back to
+# the flat location when the canonical one is absent.
 .modinp_rebase <- function(mi, mi_root) {
   mi_root <- gsub("[\\/]+", "/", mi_root)
   if (length(get_ondisk_slots(mi))) mi@misc$path <- mi_root
   for (nm in names(mi@parameters)) {
     p <- mi@parameters[[nm]]
     if (isS4(p) && length(get_ondisk_slots(p))) {
-      p@misc$path <- fp(mi_root, "parameters", nm)
+      canonical <- fp(mi_root, "parameters", nm)
+      p@misc$path <- if (!dir.exists(canonical) &&
+                         dir.exists(fp(mi_root, nm))) {
+        fp(mi_root, nm)
+      } else {
+        canonical
+      }
       mi@parameters[[nm]] <- p
     }
   }

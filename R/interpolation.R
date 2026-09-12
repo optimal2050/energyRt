@@ -195,10 +195,14 @@ interpolate_model <- function(mod, name = NULL, ...,
   # isOnDisk(scen)
   # Parameter path resolver. In-memory scenarios (`ondisk = FALSE`, `mi_path`
   # NULL) must return NULL so `d2p` keeps parameters in memory rather than
-  # marking them on-disk with a bare (non-existent) path.
+  # marking them on-disk with a bare (non-existent) path. The `parameters`
+  # segment is the store convention (`obj2disk()` writes each parameter to
+  # `<modInp path>/parameters/<name>`, and `.modinp_rebase()` rebuilds paths
+  # under it on load) -- writing flat to `<modInp path>/<name>` strands the
+  # table where no loaded reader looks.
   fmp <- function(x) {
     if (is.null(mi_path)) return(NULL)
-    fp(mi_path, x)
+    fp(mi_path, "parameters", x)
   }
 
   if (F) {

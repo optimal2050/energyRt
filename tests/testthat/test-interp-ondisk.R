@@ -68,3 +68,48 @@ test_that("on-disk interpolation equals in-memory (data + solve)", {
   expect_false(is.na(od))
   expect_equal(om, od)
 })
+
+test_that("ondisk interpolation survives save_scenario + load_scenario", {
+  tm_file <- NULL
+  for (cand in c(testthat::test_path("fixtures", "testing-models.R"),
+                 "data-raw/testing-models.R",
+                 file.path("..", "..", "data-raw", "testing-models.R"))) {
+    if (file.exists(cand)) { tm_file <- cand; break }
+  }
+  skip_if(is.null(tm_file), "fixtures/testing-models.R not available")
+  source(tm_file, local = TRUE)
+  mod <- tm_weather()
+
+  store <- file.path(tempdir(), "ondisk_roundtrip")
+  unlink(store, recursive = TRUE)
+  on.exit(unlink(store, recursive = TRUE), add = TRUE)
+  disk <- suppressWarnings(suppressMessages(
+    interpolate_model(mod, name = "ondisk_rt", ondisk = TRUE, path = store,
+                      sparse = TRUE, overwrite = TRUE)))
+
+  # An unsolved ondisk interpolation leaves @modOut NULL (class prototype);
+  # the shell-refresh branch of save_scenario must tolerate it.
+  saved <- suppressMessages(save_scenario(disk, verbose = FALSE))
+  expect_s4_class(saved, "scenario")
+
+  # Reload: every on-disk parameter's recorded store path must point at a
+  # directory that exists (the writer and the load-time rebase must agree on
+  # the `parameters/` layout; legacy flat stores fall back).
+  sl <- suppressMessages(load_scenario(saved@path, env = NULL,
+                                       verbose = FALSE))
+  missing_store <- character(0)
+  for (nm in names(sl@modInp@parameters)) {
+    p <- sl@modInp@parameters[[nm]]
+    if (!isS4(p) || !length(get_ondisk_slots(p))) next
+    pth <- p@misc$path
+    if (is.null(pth) || !dir.exists(pth)) missing_store <- c(missing_store, nm)
+  }
+  expect_identical(missing_store, character(0))
+
+  # And a reloaded table is actually readable through the recorded path.
+  weather_p <- sl@modInp@parameters$pWeather
+  if (isS4(weather_p) && length(get_ondisk_slots(weather_p))) {
+    d <- get_data_slot(weather_p, optional = TRUE)
+    expect_true(!is.null(d) && nrow(d) > 0)
+  }
+})
