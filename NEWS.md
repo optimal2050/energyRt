@@ -1,5 +1,11 @@
 # energyRt (development version)
 
+* `multimod_cloud` runs persist the COMPLETE job handle in `cloud_job.yml`
+  (via `mmcloud::cloud_handle_write()`), including the output-bucket
+  reference, so a finished job's solution is fetchable from any later
+  session.
+
+
 ## Breaking changes
 
 * `scenario_artifacts()` gains a `kind` column and adds scenario-level rows for
@@ -73,13 +79,10 @@
 ## New features
 
 * `interpolate_model()` is about 6x faster on large models (a 41-node
-  vintaged multi-year interpolation dropped from ~16 to under 3 minutes):
-  one model walk feeds all object-name sets, process lookups are memoized per
-  run, the per-object parameter builder uses base subsetting instead of
-  per-call dplyr verbs, duplicate checks use radix ordering, window-year
-  expansion is a single keyed join, and `data.table` runs on all cores for
-  the duration of the call (`options(energyRt.threads = )` to override).
-  Interpolated content is unchanged.
+  vintaged multi-year interpolation dropped from ~16 to under 3 minutes) and
+  runs `data.table` on all cores for the duration of the call
+  (`options(energyRt.threads = )` to override). Interpolated content is
+  unchanged.
 * Every `interpolate_model()` call appends its per-stage / per-map /
   per-parameter timing and memory readings (R heap, per-stage heap peak,
   process RSS and peak via `ps`) to a profile log — `interp_runs.csv`,
@@ -126,12 +129,9 @@
 * Weather transforms: one shipped data stream can serve many derived series.
   A weather object carries named functions in `misc$transform`; a
   technology/storage/supply weather link selects one in its `transform`
-  column and passes parameters through its own extra columns. Interpolation
-  materializes each `<weather>_<transform>` series once; solvers are
-  unaffected. `materialize_weather()` inspects a derived series;
+  column. `materialize_weather()` inspects a derived series and
   `register_weather_transform()` adds session-wide transforms. Region
-  aggregation refuses transform-bearing weather (averaging does not commute
-  with a nonlinear transform).
+  aggregation refuses transform-bearing weather.
 * `scenario_artifacts()` lists what each solve left on disk — whether its
   solution was imported, what the solver scratch costs, and which runs are
   candidates for clean-up.
@@ -334,15 +334,12 @@
   See `dev/multiyear-capital-charge-bug.md`.
 
 * On a sampled calendar, ANNUAL-timeframe quantities are now full-year
-  magnitude: annual caps and emission totals bind at face value (previously
-  loosened by the sampling fraction), ANNUAL-timeframe processes are sized
-  correctly, and every commodity gains totals at each coarser timeslice
-  level and — with a geoscale attached — each coarser region level (a
-  national annual total for any commodity, without declaring a `@geoframe`).
-  Full calendars are unchanged. Shipped sampled calendars are regenerated; a
+  magnitude: annual caps and emission totals bind at face value, and every
+  commodity gains totals at each coarser timeslice level and, with a geoscale
+  attached, each coarser region level. Full calendars are unchanged. A
   serialized calendar built under the old convention is refused at
-  interpolation — rebuild it with `newCalendar()`.
-  See `dev/annualized-annual-convention.md`.
+  interpolation — rebuild it with `newCalendar()`. See
+  `dev/annualized-annual-convention.md`.
 
 * Solution CSVs written by the GLPK backend carry 10 significant digits
   (was 6 decimal places).

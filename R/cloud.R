@@ -193,14 +193,14 @@ set_hf_token <- function(token = NULL) {
     "ls -l /out")
 }
 
-# Record the job on the run so it can be found after the session ends.
+# Record the job on the run so it can be found after the session ends. The
+# COMPLETE handle is persisted (mmcloud::cloud_handle_write): the output
+# bucket reference is randomised at submit and cannot be recovered from the
+# job id, so without it a finished job's model.sol is unreachable.
 .cloud_note_job <- function(arg, job) {
   f <- file.path(arg$solver.dir, "cloud_job.yml")
-  tryCatch(
-    yaml::write_yaml(list(id = job$id, namespace = job$namespace,
-                          flavor = job$flavor,
-                          submitted = format(job$submitted)), f),
-    error = function(e) invisible(NULL))
+  tryCatch(mmcloud::cloud_handle_write(job, f),
+           error = function(e) invisible(NULL))
   invisible(f)
 }
 
