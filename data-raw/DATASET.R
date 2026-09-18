@@ -219,6 +219,75 @@ local({
   }
 })
 
+# Every backend must emit the SAME output header. The cross-check above only
+# asks that each column be the model dimension or *a* known alias of it, and
+# `regionp` is a listed alias of `region` -- which is why Pyomo and JuMP went on
+# emitting `trade,comm,region,regionp,...` for `vTradeIr` long after GAMS and
+# GLPK had moved to `src,dst`. Consumers read whichever backend produced the
+# file, so the headers must agree exactly, not merely be defensible. GLPK is
+# the reference because `.variable_colnames` is parsed from it.
+#
+# Each parser keys on the output FILE name, never on the file handle: JuMP
+# writes `fvStorageCap = open("output/vStorageOutCap.csv", ...)`, so the two
+# differ for some variables.
+local({
+  glpk <- function(ln) {
+    i <- grep('^printf "[^"]*value\\\\n" > "output/v[A-Za-z0-9]+[.]csv";$', ln)
+    stats::setNames(sub('^printf "([^"]*)\\\\n".*$', "\\1", ln[i]),
+                    sub('^.*output/(v[A-Za-z0-9]+)[.]csv.*$', "\\1", ln[i]))
+  }
+  pyomo <- function(ln) {
+    i <- grep('^f = open\\("output/v[A-Za-z0-9]+[.]csv", "w"\\)$', ln)
+    nm <- sub('^.*output/(v[A-Za-z0-9]+)[.]csv.*$', "\\1", ln[i])
+    ok <- grepl('^f[.]write\\("', ln[i + 1])
+    stats::setNames(sub('^f[.]write\\("([^"]*)\\\\n"\\)$', "\\1", ln[i + 1])[ok],
+                    nm[ok])
+  }
+  jump <- function(ln) {
+    o <- grep('^f[A-Za-z0-9]+ = open\\("output/v[A-Za-z0-9]+[.]csv", "w"\\);$', ln)
+    map <- stats::setNames(sub('^.*output/(v[A-Za-z0-9]+)[.]csv.*$', "\\1", ln[o]),
+                           sub('^(f[A-Za-z0-9]+) = .*$', "\\1", ln[o]))
+    # a header is a lone quoted string; data rows pass several arguments
+    p <- grep('^println\\([A-Za-z0-9_]+, "[^"]*"\\);$', ln)
+    h <- sub('^println\\([A-Za-z0-9_]+, "([^"]*)"\\);$', "\\1", ln[p])
+    hh <- sub('^println\\(([A-Za-z0-9_]+),.*$', "\\1", ln[p])
+    ok <- hh %in% names(map) & grepl("value$", h)
+    stats::setNames(h[ok], unname(map[hh[ok]]))
+  }
+  gams <- function(ln) {
+    d <- grep("^file (v[A-Za-z0-9]+)_csv / 'output/v[A-Za-z0-9]+[.]csv'/;$", ln)
+    map <- stats::setNames(sub("^.*'output/(v[A-Za-z0-9]+)[.]csv'.*$", "\\1", ln[d]),
+                           sub("^file (v[A-Za-z0-9]+)_csv .*$", "\\1", ln[d]))
+    i <- grep('^put (v[A-Za-z0-9]+)_csv;$', ln)
+    s <- sub('^put (v[A-Za-z0-9]+)_csv;$', "\\1", ln[i])
+    ok <- grepl('^put "', ln[i + 1]) & s %in% names(map)
+    stats::setNames(sub('^put "([^"]*)"/;$', "\\1", ln[i + 1])[ok],
+                    unname(map[s[ok]]))
+  }
+
+  ref <- glpk(.modelCode$GLPK)
+  got <- list(Pyomo = pyomo(.modelCode$PYOMOConcreteOutput),
+              JuMP  = jump(.modelCode$JuMPOutput),
+              GAMS  = gams(.modelCode$GAMS_output))
+  bad <- character()
+  for (k in names(got)) {
+    miss <- setdiff(names(ref), names(got[[k]]))
+    if (length(miss)) {
+      bad <- c(bad, paste0(k, ": no output header found for ",
+                           paste(miss, collapse = ", ")))
+    }
+    sh <- intersect(names(ref), names(got[[k]]))
+    for (v in sh[ref[sh] != got[[k]][sh]]) {
+      bad <- c(bad, paste0(v, ": GLPK emits \"", ref[[v]], "\" but ", k,
+                           " emits \"", got[[k]][[v]], "\""))
+    }
+  }
+  if (length(bad)) {
+    stop("backend output headers disagree with the GLPK reference:\n  ",
+         paste(bad, collapse = "\n  "))
+  }
+})
+
 # ---------------------------------------------------------------------------- #
 # `.variables` -- the composed variable specification
 #

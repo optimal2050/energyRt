@@ -1274,7 +1274,7 @@ for c, r, y, s in mExport:
 f.close()
 flist.write("vTradeIr\n")
 f = open("output/vTradeIr.csv", "w")
-f.write("trade,comm,region,regionp,year,timeslice,value\n")
+f.write("trade,comm,src,dst,year,timeslice,value\n")
 for t1, c, r, rp, y, s in mvTradeIr:
     if model.vTradeIr[(t1, c, r, rp, y, s)].value != 0:
         f.write(

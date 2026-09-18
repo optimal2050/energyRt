@@ -203,13 +203,24 @@ class PrefixDecoder:
 class VarWriter:
     """Buffered Arrow IPC writer for one variable."""
 
+    # energyRt stores year-like indices as integers, and the multimod route
+    # writes them that way. Reconstructing them as strings here made the two
+    # routes' decoded output un-joinable on `year` in nearly every table --
+    # a silent mismatch rather than an error. Keep this list in step with
+    # multimod's read_solution_mps.R.
+    INT_COLS = ("year", "yearp", "yeare", "yearn", "year2")
+
+    def _coltype(self, name):
+        return pa.int32() if name in self.INT_COLS else pa.string()
+
     def __init__(self, path, columns, chunk=500_000):
         self.path, self.columns, self.chunk = path, columns, chunk
         self.buf = [[] for _ in columns]
         self.n = 0
         self._w = None
         self._schema = pa.schema(
-            [(c, pa.string()) for c in columns[:-1]] + [(columns[-1], pa.float64())])
+            [(c, self._coltype(c)) for c in columns[:-1]]
+            + [(columns[-1], pa.float64())])
 
     def add(self, tup, value):
         for i, v in enumerate(tup):
@@ -222,7 +233,10 @@ class VarWriter:
     def flush(self):
         if not self.buf[-1]:
             return
-        arrs = [pa.array(b, type=pa.string()) for b in self.buf[:-1]]
+        # `add()` stringifies every index value, and pyarrow will not build an
+        # int array straight from strings -- build as string, then cast.
+        arrs = [pa.array(b, type=pa.string()).cast(self._coltype(c))
+                for c, b in zip(self.columns[:-1], self.buf[:-1])]
         arrs.append(pa.array(self.buf[-1], type=pa.float64()))
         batch = pa.record_batch(arrs, schema=self._schema)
         if self._w is None:
@@ -238,7 +252,8 @@ class VarWriter:
             # An empty variable is legitimate; in Arrow mode read_solution()
             # skips a missing file, so write a valid empty table for clarity.
             feather.write_feather(pa.table(
-                {c: pa.array([], type=pa.string()) for c in self.columns[:-1]}
+                {c: pa.array([], type=pa.string()).cast(self._coltype(c))
+                 for c in self.columns[:-1]}
                 | {self.columns[-1]: pa.array([], type=pa.float64())}), self.path)
 
 

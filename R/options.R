@@ -242,9 +242,13 @@ options::define_option(
 options::define_option(
   "storage_format",
   desc = paste(
-    "On-disk table storage format: 'feather' (IPC), 'parquet', or 'csv'.",
-    "Parquet is smaller, feather reads faster; both support lazy filtered",
-    "reads. The content-addressed stores pin parquet for hash stability."
+    "On-disk table storage format: 'feather' (IPC), 'parquet', or 'csv';",
+    "'arrow' and 'ipc' are aliases for feather. Both support lazy filtered",
+    "reads. Size depends far more on DICTIONARY ENCODING than on the",
+    "container: parquet dictionary-encodes repeated strings itself, feather",
+    "only if the caller passes factors. Measured on a 543k-row table with",
+    "zstd-15: plain feather 11.8 MB, parquet 1.10 MB either way, feather with",
+    "factor columns 1.03 MB and 4.5x faster to read."
   ),
   default = "feather"
 )

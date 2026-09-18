@@ -1053,7 +1053,7 @@ end;
 close(fvExportTot);
 
 fvTradeIr = open("output/vTradeIr.csv", "w");
-println(fvTradeIr, "trade,comm,region,regionp,year,timeslice,value");
+println(fvTradeIr, "trade,comm,src,dst,year,timeslice,value");
 for (t1, c, r, rp, y, s) in mvTradeIr
     if JuMP.value(vTradeIr[(t1, c, r, rp, y, s)]) != 0
         println(

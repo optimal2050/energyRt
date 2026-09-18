@@ -223,8 +223,15 @@ save_dataset <- function(
     memo = "",
     verbose = TRUE) {
   stopifnot(is.character(name), length(name) == 1L, nzchar(name))
-  format <- if (tolower(format) %in% c("feather", "arrow", "ipc")) {
-    "parquet"
+  # "arrow" and "ipc" are aliases for feather, as in save_scenario(). These
+  # stores used to pin parquet here for hash stability; they no longer do.
+  # dataset_hash()/model_hash() run .dataset_canonical() over the payload,
+  # which reduces a data.frame to class + column values + nrow, so the on-disk
+  # container cannot reach the hash: a feather and a parquet round-trip of the
+  # same frame were measured to give the identical digest. Reads sniff the
+  # extension, so stores already written as parquet keep loading.
+  format <- if (tolower(format) %in% c("arrow", "ipc")) {
+    "feather"
   } else {
     tolower(format)
   }

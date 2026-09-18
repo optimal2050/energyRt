@@ -1,5 +1,10 @@
 # energyRt (development version)
 
+* On-disk stores write ~1M-row row groups instead of one per 32k-row record
+  batch. Stored data.frames are smaller (1.3x on model-shaped data, 2.2x on
+  a sorted hourly series) and scan faster; existing stores are unaffected
+  until rewritten.
+
 * `multimod_cloud` runs persist the COMPLETE job handle in `cloud_job.yml`
   (via `mmcloud::cloud_handle_write()`), including the output-bucket
   reference, so a finished job's solution is fetchable from any later
@@ -7,6 +12,10 @@
 
 
 ## Breaking changes
+
+* Decoded `vTradeIr` names its endpoint columns `src` and `dst` on every
+  backend. Pyomo and JuMP emitted `region`/`regionp`; GAMS and GLPK already
+  used `src`/`dst`. Code reading `regionp` from a trade result needs updating.
 
 * `scenario_artifacts()` gains a `kind` column and adds scenario-level rows for
   the derived tiers (`"reports"`, `"levcost"`) beside the `"run"` rows;
@@ -312,6 +321,10 @@
 
 ## Bug fixes
 
+* A solution reconstructed from a solver `.sol` file wrote `year` (and
+  `yearp`, `yeare`, `yearn`, `year2`) as text, where every other route
+  writes integers. Output from the two routes could not be joined on the
+  year, in nearly every table, and the mismatch was silent.
 * Value-map domains (`mTechVarom` and siblings) treat a `NA` key as a
   per-row wildcard: a technology's year-unkeyed cost row is no longer
   dropped from the map when another technology keys the same cost by

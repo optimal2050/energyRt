@@ -400,6 +400,12 @@ if (F) {
 # mem_to_disk
 # disk2mem
 
+# Target rows per row group (parquet) / record batch (feather) when writing a
+# store. arrow's own default is one group per incoming batch, which for a
+# data.table is 32,768 rows regardless of table size; see the note at the
+# write_dataset() calls below for what that costs.
+.EN_ROWS_PER_GROUP <- 1000000L
+
 # Compression codec for feather/IPC datasets. `write_dataset(format = "feather")`
 # takes a Codec object as `codec`, not the `compression` string parquet uses;
 # passing the string errors. Falls back to no compression when the codec is
@@ -452,13 +458,26 @@ data2disk <- function(
     # `compression` + `compression_level`, feather/IPC takes a `codec` object.
     # csv takes neither.
     .cmp <- !identical(tolower(compression), "uncompressed")
+    # Row group size is load-bearing and the default is wrong. write_dataset()
+    # emits ONE ROW GROUP PER RECORD BATCH, and a data.table reaches arrow in
+    # 32,768-row batches, so every table written here was split into ~32k-row
+    # groups however large it was. Each group repeats the dictionary and
+    # carries its own statistics, and a group that small often spans a single
+    # run of a sorted key, which makes its dictionary 1:1 and useless.
+    # Measured on a 2.9M-row hourly table: 33.1 MB at the default against
+    # 15.1 MB here, and 1.95x across a 49 MB set. The same argument applies to
+    # feather, where a row group is a record batch.
     if (format == "parquet" && .cmp) {
       arrow::write_dataset(obj, path = path, format = "parquet",
                            compression = compression,
-                           compression_level = as.integer(compression_level))
+                           compression_level = as.integer(compression_level),
+                           min_rows_per_group = .EN_ROWS_PER_GROUP,
+                           max_rows_per_group = 2L * .EN_ROWS_PER_GROUP)
     } else if (format %in% c("feather", "arrow", "ipc") && .cmp) {
       arrow::write_dataset(obj, path = path, format = "feather",
-                           codec = .en_ipc_codec(compression, compression_level))
+                           codec = .en_ipc_codec(compression, compression_level),
+                           min_rows_per_group = .EN_ROWS_PER_GROUP,
+                           max_rows_per_group = 2L * .EN_ROWS_PER_GROUP)
     } else {
       arrow::write_dataset(obj, path = path, format = format)
     }
