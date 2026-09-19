@@ -8,7 +8,8 @@
 # imported, or by sharing a scenario, since prepare_for_sharing() drops solver
 # scratch.
 
-# @covers read_solution drop_solver_outputs depth=S backends=glpk
+# Covers the R API: read_solution(), drop_solver_outputs(), solved on glpk.
+# NOT an `@covers` tag -- see the note in test-getdata-run.R.
 
 rs_root <- function(...) {
   gsub("[\\/]+", "/", file.path(tempdir(), "run-switch-suite", ...))

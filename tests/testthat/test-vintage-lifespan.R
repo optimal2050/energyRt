@@ -18,12 +18,21 @@ test_that(".lifespan_col keeps the (vintage, region, cluster) keys", {
 })
 
 test_that(".lifespan_resolve dedups equal keys and errors on conflicts", {
+  # `newTechnology()` now refuses a repeated key outright, so these fixtures
+  # cannot be built through the constructor. `@<-` does not route through
+  # .data2slots(), which is also how the objects this layer defends arrive:
+  # loaded from a store or built by a converter, never via new*().
+  .vl_dup <- function(second_olife) {
+    t <- .vl_tech(data.frame(vintage = "2020", olife = 20L))
+    d <- rbind(t@vintage, t@vintage)
+    d$olife[2] <- second_olife
+    t@vintage <- d
+    t
+  }
   # duplicate key with the SAME value: deduplicated silently
-  t1 <- .vl_tech(data.frame(vintage = c("2020", "2020"), olife = c(20L, 20L)))
-  expect_equal(nrow(energyRt:::.lifespan_resolve(t1, "olife")), 1L)
+  expect_equal(nrow(energyRt:::.lifespan_resolve(.vl_dup(20L), "olife")), 1L)
   # duplicate key with DIFFERENT values: hard error naming the process
-  t2 <- .vl_tech(data.frame(vintage = c("2020", "2020"), olife = c(20L, 30L)))
-  expect_error(energyRt:::.lifespan_resolve(t2, "olife"),
+  expect_error(energyRt:::.lifespan_resolve(.vl_dup(30L), "olife"),
                "conflicting.*olife.*VLT")
   # broadcast + specific keys legitimately coexist
   t3 <- .vl_tech(data.frame(region = c(NA, "R1"), olife = c(20L, 30L)))

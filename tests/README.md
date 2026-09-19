@@ -22,6 +22,12 @@ test_that("ramp limits constrain dispatch", { ... })
 - Names: any row name from the matrix — a `.modInp` entry (`pSupAva`), an
   expanded bound name (`pSupAvaLo`), a map (`mTechSpan`), an equation
   (`eqTechAf`), or a variable (`vTechAct`). Space-separated, several per tag.
+  **Model vocabulary only — never an R function name.** The matrix asks which
+  of the ~745 model entities a test exercises; it has no row for
+  `read_solution()` or `solve_myopic()`, so tagging one can never resolve and
+  fails the suite. A test that covers the R API says so in a plain comment
+  (`# Covers the R API: read_solution(), save_scenario()`); function and line
+  coverage is `covr`'s job, not this matrix's.
 - `depth=` one of `C` (constructed only), `I` (interpolated, content asserted in
   modInp), `S` (solved, result asserted), `X` (solved on 2+ backends).
   Default `S`.

@@ -50,10 +50,18 @@ test_that("the dropped-constraint warning names the requested and available year
   out_year <- min(yrs) - 100L
   mod <- add(mod, .cns_over(out_year))
 
-  w <- tryCatch(
+  # Collect EVERY warning, not just the first: `tryCatch(warning=)` aborts on
+  # warning one, so an unrelated warning raised earlier in interpolation hid
+  # this one entirely.
+  w <- character(0)
+  withCallingHandlers(
     suppressMessages(interpolate_model(mod, name = "cns_msg", ondisk = FALSE)),
-    warning = function(w) conditionMessage(w)
+    warning = function(cond) {
+      w <<- c(w, conditionMessage(cond))
+      invokeRestart("muffleWarning")
+    }
   )
+  w <- paste(w, collapse = "\n")
   expect_match(w, as.character(out_year), fixed = TRUE)
   expect_match(w, as.character(min(yrs)), fixed = TRUE)
 })

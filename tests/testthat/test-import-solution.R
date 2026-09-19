@@ -11,7 +11,8 @@
 #     cleaned up;
 #   * importing must not touch output/.
 
-# @covers scenario_solutions import_solution depth=S backends=glpk
+# Covers the R API: scenario_solutions(), import_solution(), solved on glpk.
+# NOT an `@covers` tag -- see the note in test-getdata-run.R.
 
 is_root <- function(...) {
   gsub("[\\/]+", "/", file.path(tempdir(), "import-solution-suite", ...))

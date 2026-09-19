@@ -8,7 +8,9 @@
 #
 # The guard must NOT fire on a legitimate redo: same method, same settings.
 
-# @covers solve_myopic solve_by_sample solve_by_region solve_guided depth=S
+# Covers the R API: solve_myopic(), solve_by_sample(), solve_by_region(),
+# solve_guided().
+# NOT an `@covers` tag -- see the note in test-getdata-run.R.
 
 vg_yml <- function(dir, vlab, type, params, sequence = "seq") {
   d <- file.path(dir, "runs", vlab)

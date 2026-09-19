@@ -11,7 +11,10 @@
 #     technology's vintage/cluster provenance in this very function;
 #   * asking for runs must not WRITE anything.
 
-# @covers getData read_solution depth=S backends=glpk
+# Covers the R API: getData(), read_solution(), solved on glpk.
+# NOT an `@covers` tag -- that vocabulary is the model coverage matrix
+# (sets/maps/parameters/equations/variables), which has no row for an exported
+# function, so such a tag can never resolve. See tests/README.md.
 
 gr_root <- function(...) {
   gsub("[\\/]+", "/", file.path(tempdir(), "getdata-run-suite", ...))

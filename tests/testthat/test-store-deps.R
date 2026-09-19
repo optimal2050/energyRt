@@ -9,7 +9,9 @@
 #   * the prompt must never run in a non-interactive session: menu() reading
 #     EOF would abort or hang a scripted sweep.
 
-# @covers store_dependents delete_marked mark_delete depth=S
+# Covers the R API store_dependents(), delete_marked() and mark_delete().
+# Deliberately NOT an `@covers` tag -- see the note in test-report-clear.R:
+# that vocabulary is the model coverage matrix, not exported function names.
 
 sd_root <- function(...) {
   gsub("[\\/]+", "/", file.path(tempdir(), "store-deps-suite", ...))

@@ -11,7 +11,8 @@
 #     which would record dim-0 bookkeeping over a complete store;
 #   * streaming needs a run folder; an external solver.dir has none.
 
-# @covers read_solution save_scenario depth=S backends=glpk
+# Covers the R API: read_solution(), save_scenario(), solved on glpk.
+# NOT an `@covers` tag -- see the note in test-getdata-run.R.
 
 ro_root <- function(...) {
   gsub("[\\/]+", "/", file.path(tempdir(), "read-ondisk-suite", ...))

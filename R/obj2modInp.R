@@ -1311,7 +1311,10 @@ setMethod(
     #   left_join(, by = "timeslice")
 
     a <- pTimesliceWeight_tmp |>
-      left_join(approxim$calendar@timeslice_ancestry, by = c("timeslice" = "child")) |>
+      # On a multi-level calendar a child has several ancestors, and the weights
+      # carry one row per year, so the pairing is many-to-many by construction.
+      left_join(approxim$calendar@timeslice_ancestry, by = c("timeslice" = "child"),
+                relationship = "many-to-many") |>
       left_join(select(approxim$calendar@timeslice_share, -weight),
                 by = c("parent" = "timeslice")) |>
       rename(weight = value) |>
@@ -1372,9 +1375,11 @@ setMethod(
     pTimesliceAgg_tmp <- dplyr::as_tibble(.agg_pairs) |>
       dplyr::transmute(timeslice = as.character(parent),
                        timeslicep = as.character(child)) |>
+      # Joined on the child alone: each (parent, child) pair must fan out across
+      # every year before `w_parent` is attached by (year, timeslice) below.
       dplyr::left_join(dplyr::rename(pTimesliceWeight_tmp,
                                      timeslicep = timeslice, w_child = value),
-                       by = "timeslicep") |>
+                       by = "timeslicep", relationship = "many-to-many") |>
       dplyr::left_join(dplyr::rename(pTimesliceWeight_tmp, w_parent = value),
                        by = c("year", "timeslice")) |>
       dplyr::filter(!is.na(w_child) & !is.na(w_parent) & w_parent != 0) |>

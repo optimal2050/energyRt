@@ -9,7 +9,11 @@
 #   * dry-run is the default, unlike clear_levcost_cache();
 #   * a sealed owner is an archive: its reports are part of what was archived.
 
-# @covers clear_report_cache scenario_artifacts drop_solver_outputs depth=S
+# Covers the R API clear_report_cache(), scenario_artifacts() and
+# drop_solver_outputs(). Deliberately NOT an `@covers` tag: that vocabulary is
+# the model coverage matrix (sets, maps, parameters, equations, variables), and
+# check_tags() resolves names only against it, so an exported function name can
+# never resolve there.
 
 rc_root <- function(...) {
   gsub("[\\/]+", "/", file.path(tempdir(), "report-clear-suite", ...))

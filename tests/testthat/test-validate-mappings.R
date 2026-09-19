@@ -71,7 +71,7 @@ test_that("the free-meal guard reports missing storage balance as structural", {
   skip_if(is.null(p), "no storage balance map in fixture scenario")
   d <- get_data_slot(p)
   scen@modInp@parameters[["meqStorageLevel"]] <-
-    set_data_slot(p, d[0, , drop = FALSE])
+    .fold_write_back(p, d[0, , drop = FALSE])
   expect_error(validate_scenario_parameters(scen, action = "silent"),
                "free energy|free_meal|balance chain")
 })

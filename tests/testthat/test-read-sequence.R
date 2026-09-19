@@ -8,7 +8,9 @@
 # The test of a faithful rebuild is that those very methods give the same
 # answers as they did on the live object.
 
-# @covers read_sequence getData myopic_objective sample_summary depth=S backends=glpk
+# Covers the R API: read_sequence(), getData(), myopic_objective(),
+# sample_summary(), solved on glpk.
+# NOT an `@covers` tag -- see the note in test-getdata-run.R.
 
 rq_root <- function(...) {
   gsub("[\\/]+", "/", file.path(tempdir(), "read-sequence-suite", ...))
