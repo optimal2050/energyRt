@@ -185,6 +185,47 @@ read_solution <- function(obj, run = NULL, ..., ondisk = !isInMemory(obj)) {
     scen@settings@solver$import_format <-
       if (length(.v) && nzchar(.v[1])) .v[1] else "csv"
   }
+  # The solution is converted and written variable by variable, inside the read
+  # loops below: accumulating every raw table first and typing them afterwards
+  # held the whole solution twice and set the memory peak before any of it
+  # could be written. `@variables` starts pre-populated with one empty, typed
+  # `variable` per declared variable (modOut's initialize); a variable the
+  # solver skipped keeps that skeleton, so its column names stay known.
+  .mo <- new("modOut")
+  # Streaming needs a run label: an external `solver.dir` or a transient solve
+  # has no run folder to write into.
+  .stream_path <- NULL
+  if (isTRUE(ondisk)) {
+    .rl <- scen@misc$run %||% ""
+    if (nzchar(.rl)) {
+      .stream_path <- tryCatch(
+        fp(.run_dir(scen, .run_variant(scen), .rl), "modOut"),
+        error = function(e) NULL)
+    }
+    if (is.null(.stream_path)) {
+      message("read_solution(ondisk = TRUE): no run folder to stream into ",
+              "(external or transient solve); reading into memory instead.")
+    }
+  }
+  .fill_var <- function(nm, dat) {
+    v <- .mo@variables[[nm]]
+    if (is.null(v)) {
+      # `variable_list2.csv` can name variables the specification does not
+      # know. Accept them rather than dropping the solve, but say so.
+      warning("Solver returned an undeclared variable '", nm,
+              "'; add it to data-raw/variables.yml. Stored untyped.")
+      v <- newVariable(
+        nm, dimSets = intersect(setdiff(colnames(dat), "value"), .dimSets),
+        origin = "solver", declared = FALSE)
+    }
+    v <- d2v(v, dat)
+    if (!is.null(.stream_path)) {
+      v <- obj2disk(v, path = fp(.stream_path, "variables", nm),
+                    format = get_storage_format(), verbose = FALSE)
+    }
+    .mo@variables[[nm]] <<- v
+    invisible(NULL)
+  }
   if (grepl("^gdx$", scen@settings@solver$import_format, ignore.case = TRUE)) {
     # .check_load_gdxlib()
     .check_load_gdxtools()
@@ -204,7 +245,7 @@ read_solution <- function(obj, run = NULL, ..., ondisk = !isInMemory(obj)) {
       # of every duplicate-dimension variable. `d2v()` now renames positionally
       # onto the variable's declared `@colNames`, for both branches alike.
       if (ncol(vr) == 1) {
-        rr$variables[[i]] <- data.frame(value = vr[1, 1])
+        .fill_var(i, data.frame(value = vr[1, 1]))
       } else {
         for (j in seq_len(ncol(vr))[colnames(vr) != "value"]) {
           # Remove [.][:digit:] if any
@@ -227,7 +268,7 @@ read_solution <- function(obj, run = NULL, ..., ondisk = !isInMemory(obj)) {
             vr[[j]] <- as.integer(vr[[j]])
           }
         }
-        rr$variables[[i]] <- vr
+        .fill_var(i, vr)
       }
     }
   } else {
@@ -255,7 +296,7 @@ read_solution <- function(obj, run = NULL, ..., ondisk = !isInMemory(obj)) {
         vr <- arg$readOutputFunction(vfile, stringsAsFactors = FALSE)
       }
       if (ncol(vr) == 1) {
-        rr$variables[[i]] <- data.frame(value = vr[1, 1])
+        .fill_var(i, data.frame(value = vr[1, 1]))
         .n_found <- .n_found + 1L
       } else {
         for (j in seq_len(ncol(vr))[colnames(vr) != "value"]) {
@@ -270,7 +311,7 @@ read_solution <- function(obj, run = NULL, ..., ondisk = !isInMemory(obj)) {
             )
           }
         }
-        rr$variables[[i]] <- vr
+        .fill_var(i, vr)
         .n_found <- .n_found + 1L
       }
     }
@@ -285,7 +326,7 @@ read_solution <- function(obj, run = NULL, ..., ondisk = !isInMemory(obj)) {
            "'): the MathProg/GLPK backend writes CSV only.", call. = FALSE)
     }
   }
-  scen@modOut <- new("modOut")
+  scen@modOut <- .mo
   # Read solution status
   scen@modOut@solutionLogs <- read.csv(paste(arg$solver.dir, "/output/log.csv",
     sep = ""
@@ -321,48 +362,6 @@ read_solution <- function(obj, run = NULL, ..., ondisk = !isInMemory(obj)) {
   }
 
   scen@modOut@sets <- rr$set_vec
-  # Stream each variable into the run's `modOut/` store as it is converted,
-  # instead of holding the whole solution twice (raw + typed) and leaving
-  # `save_scenario()` to write it. Needs a run label: an external `solver.dir`
-  # or a transient solve has no run folder to write into.
-  .stream_path <- NULL
-  if (isTRUE(ondisk)) {
-    .rl <- scen@misc$run %||% ""
-    if (nzchar(.rl)) {
-      .stream_path <- tryCatch(
-        fp(.run_dir(scen, .run_variant(scen), .rl), "modOut"),
-        error = function(e) NULL)
-    }
-    if (is.null(.stream_path)) {
-      message("read_solution(ondisk = TRUE): no run folder to stream into ",
-              "(external or transient solve); reading into memory instead.")
-    }
-  }
-  .stream_var <- function(v, nm) {
-    if (is.null(.stream_path)) return(v)
-    obj2disk(v, path = fp(.stream_path, "variables", nm),
-             format = get_storage_format(), verbose = FALSE)
-  }
-  # `@variables` arrives pre-populated with one empty, typed `variable` per
-  # declared variable (see `modOut`'s initialize); fill in what the solver
-  # returned. Variables it skipped -- those with no non-zero values -- keep
-  # their empty skeleton, so their column names are still known.
-  for (i in names(rr$variables)) {
-    v <- scen@modOut@variables[[i]]
-    if (is.null(v)) {
-      # `variable_list2.csv` can name variables the specification does not know.
-      # Accept them rather than dropping the solve, but say so.
-      warning("Solver returned an undeclared variable '", i,
-              "'; add it to data-raw/variables.yml. Stored untyped.")
-      v <- newVariable(
-        i, dimSets = intersect(setdiff(colnames(rr$variables[[i]]), "value"),
-                               .dimSets),
-        origin = "solver", declared = FALSE)
-    }
-    scen@modOut@variables[[i]] <- .stream_var(d2v(v, rr$variables[[i]]), i)
-    # the typed copy is made; the raw one is dead weight from here
-    rr$variables[[i]] <- NULL
-  }
   ## Salvage cost calculation
   salvage_cost0 <- function(scen, par) {
     invcost <- .add_dropped_zeros(scen@modInp, paste0("p", par, "Invcost"))
@@ -529,8 +528,10 @@ read_solution <- function(obj, run = NULL, ..., ondisk = !isInMemory(obj)) {
   if (!is.null(.stream_path)) {
     for (.nm in c("vTechEmsFuel", "vUserCosts")) {
       .v <- scen@modOut@variables[[.nm]]
-      if (!is.null(.v) && !isOnDisk(.v)) {
-        scen@modOut@variables[[.nm]] <- .stream_var(.v, .nm)
+      if (!is.null(.v) && !isOnDisk(.v) && nrow(get_data_slot(.v)) > 0) {
+        scen@modOut@variables[[.nm]] <- obj2disk(
+          .v, path = fp(.stream_path, "variables", .nm),
+          format = get_storage_format(), verbose = FALSE)
       }
     }
     scen@modOut <- set_ondisk_slots(scen@modOut)
