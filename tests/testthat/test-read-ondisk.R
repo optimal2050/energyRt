@@ -89,6 +89,36 @@ test_that("a streamed solution survives a folder move", {
   expect_equal(sum(d$value), before)
 })
 
+test_that("the solver's output/ is untouched by a read, streaming or not", {
+  skip_if_no_solver()
+  ro_local()
+  # `output/` is the solver's raw dump and, until the solution is imported,
+  # the only copy of it. Streaming flips `imported` to TRUE, which makes it
+  # ELIGIBLE for drop_solver_outputs() -- it must never make it go away.
+  snap <- function(d) {
+    ff <- sort(list.files(d, recursive = TRUE, all.files = TRUE, no.. = TRUE))
+    data.frame(f = ff, size = file.size(file.path(d, ff)),
+               stringsAsFactors = FALSE)
+  }
+  sol <- ro_solve("ro_keep", ondisk = TRUE)
+  out <- file.path(.run_solver_dir(.run_dir(sol, "", sol@misc$run)), "output")
+  expect_true(dir.exists(out))
+  before <- snap(out)
+  expect_gt(nrow(before), 0L)
+
+  again <- suppressMessages(
+    read_solution(sol, run = sol@misc$run, ondisk = TRUE, echo = FALSE))
+  expect_identical(snap(out), before)
+
+  again2 <- suppressMessages(
+    read_solution(sol, run = sol@misc$run, ondisk = FALSE, echo = FALSE))
+  expect_identical(snap(out), before)
+
+  # and a save does not remove it either
+  suppressMessages(save_scenario(again, verbose = FALSE))
+  expect_identical(snap(out), before)
+})
+
 test_that("save_scenario does not rewalk an already streamed store", {
   skip_if_no_solver()
   ro_local()

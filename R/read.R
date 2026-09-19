@@ -31,6 +31,18 @@
 
 #' @param ... optional `solver.dir` (an external solver directory, replacing
 #'   the run resolution; `tmp.dir` is the deprecated alias)
+#' @param ondisk logical. `TRUE` writes each variable into the run's
+#'   `modOut/` store as it is read, instead of returning the whole solution in
+#'   memory; the returned `@modOut` is then an on-disk object read lazily.
+#'   Defaults to `!isInMemory(obj)`. Needs a run folder, so an external
+#'   `solver.dir` falls back to memory. The scenario shell still has to be
+#'   saved: [save_scenario()] records the store, and skips rewriting it.
+#'
+#' @section The solver's `output/` is never modified:
+#' Reading a solution only ever reads `output/`, whatever `ondisk` is. It is
+#' the solver's raw dump and, until the solution has been imported, the only
+#' copy of it — [drop_solver_outputs()] is the one verb that removes it, it
+#' refuses while the run is not imported, and it is dry-run by default.
 #'
 #' @return
 #' The function returns the scenario object with populated modOut slot
