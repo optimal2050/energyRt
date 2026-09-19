@@ -90,6 +90,64 @@ test_that("a streamed solution survives a folder move", {
   expect_equal(sum(d$value), before)
 })
 
+test_that("a run without solver.csv still reads", {
+  skip_if_no_solver()
+  ro_local()
+  sol <- ro_solve("ro_meta", ondisk = TRUE)
+  rd <- .run_dir(sol, "", sol@misc$run)
+  unlink(fp(rd, "modOut"), recursive = TRUE)
+  # a cloud solve or an unpacked archive can arrive without it; `code_files`
+  # is provenance and nothing in the package consumes it, so losing it must
+  # not fail a read after the whole solution has been parsed
+  unlink(fp(.run_solver_dir(rd), "solver.csv"))
+  unlink(fp(.run_solver_dir(rd), "solver"))
+  x <- suppressMessages(read_solution(sol, run = sol@misc$run, ondisk = TRUE,
+                                      echo = FALSE))
+  expect_gt(nrow(as.data.frame(getData(x, "vTechOut", merge = TRUE))), 0L)
+})
+
+test_that("a failed streaming read leaves no store, and spares the old one", {
+  skip_if_no_solver()
+  ro_local()
+  sol <- suppressMessages(save_scenario(ro_solve("ro_stage", ondisk = TRUE),
+                                        verbose = FALSE))
+  rd <- .run_dir(sol, "", sol@misc$run)
+  ref <- nrow(as.data.frame(getData(sol, "vTechOut", merge = TRUE)))
+  inc <- paste0(fp(rd, "modOut"), ".incoming")
+  # log.csv is read after the variables are written, so removing it fails the
+  # import at exactly the point that used to leave a half-written store
+  # reporting itself as imported, with output/ then offered for deletion
+  lg <- fp(.art_output_dir(.run_solver_dir(rd), rd), "log.csv")
+  bak <- paste0(lg, ".bak")
+  expect_true(file.rename(lg, bak))
+
+  # a previous good store must survive a failed re-read
+  expect_error(suppressMessages(
+    read_solution(sol, run = sol@misc$run, ondisk = TRUE, echo = FALSE)))
+  expect_true(dir.exists(fp(rd, "modOut", "variables")))
+  expect_false(dir.exists(inc))
+  back <- suppressMessages(load_scenario(sol@path, env = NULL, verbose = FALSE))
+  expect_identical(nrow(as.data.frame(getData(back, "vTechOut", merge = TRUE))),
+                   ref)
+
+  # and with no previous store, a failure must leave the run NOT imported
+  unlink(fp(rd, "modOut"), recursive = TRUE)
+  expect_error(suppressMessages(
+    read_solution(sol, run = sol@misc$run, ondisk = TRUE, echo = FALSE)))
+  expect_false(dir.exists(fp(rd, "modOut", "variables")))
+  expect_false(dir.exists(inc))
+  art <- scenario_artifacts(sol)
+  expect_false(art$imported[art$kind == "run"][1])
+  expect_identical(art$suggest[art$kind == "run"][1], "")
+
+  # and it recovers once the cause is gone
+  expect_true(file.rename(bak, lg))
+  ok <- suppressMessages(read_solution(sol, run = sol@misc$run, ondisk = TRUE,
+                                       echo = FALSE))
+  expect_identical(nrow(as.data.frame(getData(ok, "vTechOut", merge = TRUE))),
+                   ref)
+})
+
 test_that("the solver's output/ is untouched by a read, streaming or not", {
   skip_if_no_solver()
   ro_local()

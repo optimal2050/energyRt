@@ -312,19 +312,38 @@ read_solution <- function(obj, run = NULL, ..., ondisk = !isInMemory(obj)) {
   .mo <- new("modOut")
   # Streaming needs a run label: an external `solver.dir` or a transient solve
   # has no run folder to write into.
+  #
+  # Written to a STAGING directory and swapped in only once the read has
+  # finished. Streaming opened a window between "the variables are on disk"
+  # and "the import is complete": an error in between -- a missing
+  # `solver.csv`, an unreadable `log.csv`, a failure computing vTechEmsFuel --
+  # left a store that `imported` could not tell from a finished one, with the
+  # computed variables missing and `output/`, the only remaining copy, now
+  # offered for deletion. Staging also protects a PREVIOUS good store: a
+  # re-read that fails leaves it untouched.
   .stream_path <- NULL
+  .stream_final <- NULL
+  .stream_ok <- FALSE
   if (isTRUE(ondisk)) {
     .rl <- scen@misc$run %||% ""
     if (nzchar(.rl)) {
-      .stream_path <- tryCatch(
+      .stream_final <- tryCatch(
         fp(.run_dir(scen, .run_variant(scen), .rl), "modOut"),
         error = function(e) NULL)
     }
-    if (is.null(.stream_path)) {
+    if (is.null(.stream_final)) {
       message("read_solution(ondisk = TRUE): no run folder to stream into ",
               "(external or transient solve); reading into memory instead.")
+    } else {
+      .stream_path <- paste0(.stream_final, ".incoming")
+      unlink(.stream_path, recursive = TRUE, force = TRUE) # stale attempt
     }
   }
+  on.exit({
+    if (!is.null(.stream_path) && !isTRUE(.stream_ok)) {
+      unlink(.stream_path, recursive = TRUE, force = TRUE)
+    }
+  }, add = TRUE)
   .fill_var <- function(nm, dat) {
     v <- .mo@variables[[nm]]
     if (is.null(v)) {
@@ -449,13 +468,21 @@ read_solution <- function(obj, run = NULL, ..., ondisk = !isInMemory(obj)) {
   scen@modOut@solutionLogs <- read.csv(paste(arg$solver.dir, "/output/log.csv",
     sep = ""
   ))
-  solver_data <- .read_solver_meta(arg$solver.dir)
-  codes <- solver_data[grep("^code", solver_data$name), ]
   # Only the FILE NAMES are kept: the model text itself already lives in the
   # run's solver directory, and importing it here used to bloat
   # every solved scenario by the full model source (again, on top of
   # settings@sourceCode). Nothing in the package consumed `solver$code1..n`.
-  scen@settings@solver$code_files <- codes$value
+  #
+  # Wrapped, like the import_format lookup above: this is provenance, and a
+  # run that arrived without its `solver.csv` -- a cloud solve, an unpacked
+  # archive -- must not fail HERE, after the whole solution has been read,
+  # for a field nothing consumes.
+  solver_data <- tryCatch(.read_solver_meta(arg$solver.dir),
+                          error = function(e) NULL)
+  if (!is.null(solver_data)) {
+    codes <- solver_data[grep("^code", solver_data$name), ]
+    scen@settings@solver$code_files <- codes$value
+  }
   if (all(scen@modOut@solutionLogs$parameter != "solution status")) {
     scen@modOut@stage <- "Scenario is not solved"
   } else if (all(scen@modOut@solutionLogs[
@@ -652,11 +679,39 @@ read_solution <- function(obj, run = NULL, ..., ondisk = !isInMemory(obj)) {
           format = get_storage_format(), verbose = FALSE)
       }
     }
+    # The read finished, so the staged store is complete: swap it in. The
+    # previous store is moved aside first and removed only once the new one
+    # is in place, so an interrupted swap leaves one of the two, never
+    # neither.
+    .prev <- paste0(.stream_final, ".prev")
+    unlink(.prev, recursive = TRUE, force = TRUE)
+    if (dir.exists(.stream_final) && !file.rename(.stream_final, .prev)) {
+      stop("Could not replace the solution store at '", .stream_final,
+           "': the read is complete and staged at '", .stream_path,
+           "'. Something else is holding the folder open.", call. = FALSE)
+    }
+    if (!file.rename(.stream_path, .stream_final)) {
+      if (dir.exists(.prev)) file.rename(.prev, .stream_final) # put it back
+      stop("Could not move the staged solution into '", .stream_final, "'.",
+           call. = FALSE)
+    }
+    unlink(.prev, recursive = TRUE, force = TRUE)
+    .stream_ok <- TRUE
+
+    # Every variable recorded its path under the staging name; repoint them,
+    # or the next read goes looking for a directory that no longer exists.
+    for (.nm in names(scen@modOut@variables)) {
+      .v <- scen@modOut@variables[[.nm]]
+      if (isS4(.v) && length(get_ondisk_slots(.v))) {
+        scen@modOut@variables[[.nm]] <- setObjPath(
+          .v, path = fp(.stream_final, "variables", .nm))
+      }
+    }
     scen@modOut <- set_ondisk_slots(scen@modOut)
-    scen@modOut <- setObjPath(scen@modOut, path = .stream_path)
+    scen@modOut <- setObjPath(scen@modOut, path = .stream_final)
     scen@modOut <- mark_ondisk(scen@modOut)
     if (arg$echo) {
-      message("Solution written to '", .stream_path, "'. The scenario shell ",
+      message("Solution written to '", .stream_final, "'. The scenario shell ",
               "still has to be saved: save_scenario() records it, and until ",
               "then a reload will not see the solution.")
     }

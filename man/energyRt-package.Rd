@@ -25,7 +25,7 @@ Useful links:
 Authors:
 \itemize{
   \item Oleg Lugovoy \email{olugovoy@optimalsolution.dev} (\href{https://orcid.org/0000-0001-5546-9875}{ORCID})
-  \item Vladimir Potashnikov \email{potashnikov.vu@gmail.com}
+  \item Vladimir Potashnikov \email{potashnikov.vu@gmail.com} (contributed 2016-2022)
 }
 
 Other contributors:

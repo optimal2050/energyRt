@@ -151,12 +151,13 @@ setClass("trade",
     # (whose ToDo notes asked for exactly this consistency with the other
     # processes). One row per vintage; `start`/`end` = user-defined window
     # (NA side = unbounded).
-    # `region` is carried for a uniform shape across classes but is unused here:
-    # trade has no `@region` slot, its scope coming from the route endpoints.
+    # No `region` column, unlike technology and storage: a trade's lifespan
+    # belongs to the route, not to a region. `pTradeOlife` is declared
+    # `{trade}` and `mTradeSpan`/`mTradeNew` are (trade, year) in every solver
+    # template, so `start`/`end`/`olife` have nowhere to carry a region.
     # `cluster` selects a tranche declared in `@cluster` (above).
     vintage = data.frame(
       vintage = character(),
-      region = character(),
       cluster = character(),
       start = integer(),
       end = integer(),
@@ -343,7 +344,8 @@ newTrade <- function(
     ...
   )
   args <- .trade_removed_args(args)
-  args <- .tech_lifespan_args(args)
+  args <- .trade_vintage_region(args)
+  args <- .tech_lifespan_args(args, "trade")
   do.call(.data2slots, c(list("trade", name), args))
 }
 
@@ -361,6 +363,7 @@ newTrade <- function(
 #' @export
 setMethod("update", signature(object = "trade"), function(object, ...) {
   args <- .trade_removed_args(list(...))
-  args <- .tech_lifespan_args(args)
+  args <- .trade_vintage_region(args)
+  args <- .tech_lifespan_args(args, "trade")
   do.call(.data2slots, c(list("trade", object), args))
 })

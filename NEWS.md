@@ -13,6 +13,12 @@
 
 ## Breaking changes
 
+* `trade@vintage` no longer carries a `region` column: a trade's lifespan
+  belongs to the route, which is how `pTradeOlife` and the span maps have
+  always been indexed. A per-region `start`/`end`/`olife` on a trade is now
+  refused at construction, naming `invcost`/`fixom` as where per-region trade
+  costs go; an all-`NA` column is dropped, so objects written earlier still
+  load.
 * The solve drivers refuse to write over a variant that a different
   configuration produced. Variant labels are unit-derived, so re-running
   `solve_by_sample()` with another seed, or `solve_myopic()` with another

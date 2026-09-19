@@ -141,7 +141,7 @@
 # Translate legacy lifespan arguments in an argument list into `vintage`.
 # Returns the argument list with start/end/olife removed. Class-agnostic: used by
 # `newTechnology`/`newStorage`/`newTrade` and their `update` methods.
-.tech_lifespan_args <- function(args) {
+.tech_lifespan_args <- function(args, cls = NULL) {
   legacy <- c("start", "end", "olife")
   present <- intersect(legacy, names(args))
   # An all-infinite bound carries no information -- `newTrade()` defaults to
@@ -179,7 +179,38 @@
 
   vin <- .lifespan_combine(parts)
   if (is.null(vin)) return(args)
+  # `trade@vintage` has no `region` column. The combine above works on the
+  # common shape, so drop it here -- but only once it is empty: the legacy
+  # `olife = data.frame(region = , olife = )` form reaches this point with a
+  # populated column, and dropping that silently would discard user data.
+  if (identical(cls, "trade")) {
+    if ("region" %in% names(vin) && any(!is.na(vin$region))) .trade_region_stop()
+    vin$region <- NULL
+  }
   args$vintage <- vin
+  args
+}
+
+# `trade@vintage` carries no `region`: a trade's lifespan belongs to the route.
+# Reject a populated one here, where the remedy can be named, rather than let
+# `.data2slots()` report an unknown column. An all-NA column is dropped
+# silently -- that is what an object written before the column was removed, or
+# built from the common shape, carries.
+# @noRd
+.trade_region_stop <- function() {
+  stop("a trade's lifespan carries no `region`: it belongs to the route. ",
+       "`pTradeOlife` is indexed by trade alone, and `mTradeSpan`/`mTradeNew` ",
+       "are (trade, year) in every solver template, so `start`/`end`/`olife` ",
+       "have nowhere to put one. Drop the region key. Per-region trade COSTS ",
+       "are supported -- set `region` on `invcost`/`fixom` instead.",
+       call. = FALSE)
+}
+
+.trade_vintage_region <- function(args) {
+  v <- args$vintage
+  if (!is.data.frame(v) || !"region" %in% names(v)) return(args)
+  if (any(!is.na(v$region))) .trade_region_stop()
+  args$vintage$region <- NULL
   args
 }
 
