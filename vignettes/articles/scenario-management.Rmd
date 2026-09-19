@@ -95,11 +95,23 @@ scenarios/<name-model-calendar-horizon>/
     ├── glpk/                            # a base-problem run
     │   ├── run.yml     #   provenance: solver, cmdline, started/finished,
     │   │               #   duration, status, objective, host, user
-    │   ├── solver/     #   the solver working dir; the solver writes its
-    │   │               #   own solver/output/ — never restructured
+    │   ├── input/      #   the exchange tables handed to the solver
+    │   ├── output/     #   the solver's raw dump; read_solution() reads it
     │   └── modOut/variables/<var>/      #   the parsed solution store
     └── julia_highs/…                    # another backend, side by side
 ```
+
+**`output/` and `modOut/` are two tiers, not a copy.** `output/` is the
+solver's raw dump, in the backend's own naming and types; `modOut/` is the
+imported store, and the import is real work — it normalises the backend away
+(GDX, CSV, Arrow and Parquet all land in one place), synthesises the set
+aliases no solver writes, types every dimension against its declared members,
+and computes `vTechEmsFuel` and `vUserCosts`, which no solver ever produced.
+Re-deriving that on demand would also need `@modInp`, which a variant swap may
+have replaced — so the store is the answer, not a cache. See `?read_solution`.
+
+Until a solution has been imported, `output/` is the *only* copy of it, which
+is why `drop_solver_outputs()` refuses to remove it before then.
 
 Three ideas to notice:
 
@@ -289,6 +301,50 @@ swap together, in both directions — so `getData()` is always consistent
 with the run you are looking at. This is the storage substrate for the
 sequential (myopic) solver: `solve_myopic()` keeps a whole year-by-year
 sequence as one scenario with one variant per step.
+
+### Getting data out of a variant
+
+`getData(run = )` reads a run directly, tagging the rows with a `run` column:
+
+```{r variant-data, eval = FALSE}
+getData(scen, "vTechOut", merge = TRUE, run = "low/glpk")
+getData(scen, "vTechOut", merge = TRUE, run = c("glpk", "low/glpk"))
+getData(scen, "vTechOut", merge = TRUE, run = "all")
+```
+
+Each run is read on a *copy*, so the object keeps its active run, and a
+variant brings its whole problem with it — parameters included. Spanning runs
+of different problems warns: a variant has its own `modInp`, so those numbers
+are not like-for-like. Without `run`, `getData()` reads the active run and
+adds no column, exactly as before; `read_solution(scen, run = )` still
+switches the object itself when that is what you want.
+
+`compare_scenarios(scen, runs = c("glpk", "low/glpk"))` does the switching for
+you and tabulates the runs side by side — note that it compares *runs*, which
+may be variants, even though an assumption change belongs in its own scenario
+(below).
+
+A variant's solution lives with its run, at
+`runs/<variant>/<solve>/modOut/`, exactly like a base run's. Saving while a
+variant is active writes that variant's problem and leaves the others alone;
+loading re-activates whatever `default:` names.
+
+Each driver records how it produced a variant in `runs/<variant>/variant.yml`
+— `type:` naming the method and `params:` its settings. Re-running a driver
+over an existing sequence with *different* settings is refused rather than
+silently replacing it; `overwrite = TRUE` proceeds.
+
+To remove one, `drop_scenario_run(scen, "<variant>")` deletes the **whole
+variant folder** — its `modInp/`, its manifest and every solve inside it.
+Sealing is scenario-wide, not per variant.
+
+### Two unrelated things called "variant"
+
+This section is about **run variants**: own-problem folders under `runs/`.
+Unrelated to them, a technology can have vintage and cluster **variants** —
+`getVariants()`, `variantSummary()`, `getData(variants = TRUE)`,
+`levcost(by_variant = )`. Those describe processes inside one problem and have
+nothing to do with the run tree. The word is overloaded; the two never meet.
 
 ## Scenario, variant, or run?
 

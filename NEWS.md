@@ -13,6 +13,12 @@
 
 ## Breaking changes
 
+* The solve drivers refuse to write over a variant that a different
+  configuration produced. Variant labels are unit-derived, so re-running
+  `solve_by_sample()` with another seed, or `solve_myopic()` with another
+  window, used to replace the first sequence's results silently; the error
+  names what differs, and `overwrite = TRUE` proceeds. Same method, same
+  settings is still a redo.
 * Decoded `vTradeIr` names its endpoint columns `src` and `dst` on every
   backend. Pyomo and JuMP emitted `region`/`regionp`; GAMS and GLPK already
   used `src`/`dst`. Code reading `regionp` from a trade result needs updating.
@@ -87,6 +93,30 @@
 
 ## New features
 
+* `read_sequence()` rebuilds the result of `solve_myopic()`,
+  `solve_by_sample()`, `solve_by_region()` or `solve_guided()` from the
+  variants on disk, so `getData()`, `sample_summary()`,
+  `myopic_objective()` and `guided_gap()` work on a reloaded scenario and
+  not only on the live result. A driver's working state (the carry ledger,
+  capacity targets, a sampling spec) is not stored and is listed in
+  `$missing`: a rebuilt sequence can be read, not resumed.
+* `getData(run = )` reads one or more runs of a scenario in a single call,
+  or `run = "all"`, tagging the rows with a `run` column. Each run is read
+  on a copy, so the object keeps its active run, and a variant brings its
+  own problem with it. Without `run` the result is unchanged.
+* A variant's `variant.yml` records a `params:` block — how the driver was
+  configured (`solve_myopic()`'s `overlap` and `carry`, `solve_by_sample()`'s
+  `seed` and sampling spec, `solve_by_region()`'s `nsteps` and `price`,
+  `solve_guided()`'s `slack`, `basis` and `mode`) alongside the existing keys
+  saying which step, sample, region or stage the variant is.
+* `scenario_solutions()` lists what each solver attempt produced — status,
+  objective, solver and backend — recovering the objective and solution
+  status from a run's `output/` for runs that were never imported, where
+  `scenario_runs()` can only report `NA`. Read-only.
+* `import_solution()` imports one run's solution and saves it, so a solved
+  scenario keeps its results after the session ends. It restores the run's
+  solver settings (never the command line), leaves the solver's `output/`
+  alone, and refuses to save a read that produced no variables.
 * `read_solution(ondisk = )` writes each variable into the run's `modOut/`
   store as it is read, so the solution is on disk when the read returns and
   `save_scenario()` no longer rewrites it — about 30% faster end to end on a
@@ -325,6 +355,11 @@
 
 ## Bug fixes
 
+* Switching to a run whose solver `output/` is gone no longer returns the
+  previously active run's solution. `read_solution()` reads the run's
+  imported `modOut/` store instead, and errors when neither is available —
+  it used to hand back the unchanged scenario, so a cleaned-up or shared
+  scenario served another run's numbers with no warning.
 * `solve_myopic(store = "scenarios")` runs: it composed each step's
   scenario name with dashes, which the object-name rule rejects, so every
   step failed — reported as an infeasible solve.
@@ -519,6 +554,15 @@
   read.
 
 ## Documentation
+
+* `read_solution()` has a help page. Its roxygen block was detached by a
+  stray `#` comment, so the function documented nothing — the page now
+  covers `run`, `ondisk`, and why the imported `modOut/` store is not a
+  copy of the solver's `output/`.
+* The scenario-management article gains a section on getting data out of a
+  variant, where a variant's solution lives, how to remove one, and the two
+  unrelated meanings of "variant". Stale diagrams showing a nested
+  `solver/` folder are corrected to the flat run layout.
 
 * New article *Reports and levelized costs* tours the reporting layer and the
   report/levcost caches.

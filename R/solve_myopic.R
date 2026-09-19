@@ -94,7 +94,8 @@ horizon_windows <- function(horizon, step = 1L, overlap = 0L) {
 }
 
 # add/refresh driver metadata in a variant.yml written by save_scenario()
-.myopic_tag_variant <- function(scen, vlab, sequence, k, decided) {
+.myopic_tag_variant <- function(scen, vlab, sequence, k, decided,
+                               params = NULL) {
   vy <- fp(scen@path, "runs", vlab, "variant.yml")
   if (!file.exists(vy)) return(invisible(NULL))
   mf <- tryCatch(yaml::read_yaml(vy), error = function(e) NULL)
@@ -103,6 +104,7 @@ horizon_windows <- function(horizon, step = 1L, overlap = 0L) {
   mf$sequence <- sequence
   mf$step <- k
   mf$decided <- as.integer(decided)
+  if (length(params)) mf$params <- params
   yaml::write_yaml(mf, vy)
   invisible(vy)
 }
@@ -160,6 +162,7 @@ solve_myopic <- function(mod, name = NULL, ...,
                          carry = c("capacity", "budgets"),
                          solver = NULL, tolerance = 1e-6,
                          store = c("variants", "scenarios"),
+                         overwrite = FALSE,
                          keep_scenarios = TRUE,
                          on_error = c("stop", "return"),
                          verbose = TRUE) {
@@ -186,9 +189,18 @@ solve_myopic <- function(mod, name = NULL, ...,
                   objective = numeric(0))
   failed <- FALSE
 
+  vparams <- .variant_params(
+    # `step_size`, not `step`: the flat `step` key is WHICH step a variant is,
+    # and two `step:` entries meaning different things in one file is a trap
+    step_size = step, overlap = overlap, carry = carry,
+    tolerance = tolerance, store = store)
+
   for (k in seq_along(windows)) {
     w <- windows[[k]]
     vlab <- sprintf("s%02d-%d", k, min(w$decided))
+    if (store == "variants") {
+      .variant_guard(seq_path, vlab, "myopic_step", vparams, overwrite)
+    }
     scen_name <- if (store == "variants") {
       name
     } else {
@@ -262,6 +274,7 @@ solve_myopic <- function(mod, name = NULL, ...,
       save_scenario(sol, verbose = FALSE)))
     if (store == "variants") {
       .myopic_tag_variant(saved, vlab, sequence = name, k = k,
+                          params = vparams,
                           decided = w$decided)
     }
     ledger <- solution_ledger(sol, years = w$decided, ledger = ledger)

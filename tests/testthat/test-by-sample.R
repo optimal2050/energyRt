@@ -187,6 +187,11 @@ test_that("runs are stored as variants, tagged, and stacked by getData", {
   expect_identical(vy$method, "sequential")
   expect_identical(vy$slices, 48L)
   expect_lt(vy$year_fraction, 1)
+  # how the sampling was configured, not just which sample this is -- without
+  # it a reloaded sequence cannot say what produced it, and two runs of the
+  # method with different settings look identical
+  expect_true(is.list(vy$params))
+  expect_identical(vy$params$method, "sequential")
 
   d <- getData(ens, "vSupOut", merge = TRUE)
   expect_true("sample" %in% names(d))

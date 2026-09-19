@@ -146,11 +146,23 @@ findData <- function(scen,
 #' @param maps if TRUE, map-type parameters (membership mappings, no `value` column) are also returned.
 #' @param na.rm if TRUE, NA values will be dropped.
 #' @param digits if integer, indicates the number of decimal places for rounding, if NULL - no actions.
+#' @param run character, one or more runs to read (`"<solve>"` or
+#'   `"<variant>/<solve>"`), or `"all"` for every run of each scenario. The
+#'   returned rows gain a `run` column naming their source. `NULL` (default)
+#'   reads each object's ACTIVE run and adds no column, so existing calls are
+#'   unchanged. Each run is read on a COPY of the scenario, so the object you
+#'   passed keeps its active run; a variant run brings its own problem with
+#'   it, parameters included. Spanning runs of different problems warns —
+#'   their results are not like-for-like. Not to be confused with `variants`,
+#'   below, which is about technologies.
 #' @param variants logical, default `TRUE`: attach the technology-variant
 #'   provenance columns `base`, `vintage` and `cluster` (from
-#'   `scenario@modInp@sets$tech_variant`) to the returned data, so results of a
+#'   `scenario@modInp@sets$variant`) to the returned data, so results of a
 #'   vintaged / clustered technology can be grouped or rolled up by those
-#'   dimensions without parsing the variant names. Has no effect when the model
+#'   dimensions without parsing the variant names. These are TECHNOLOGY
+#'   variants — unrelated to the own-problem run variants under `runs/`, which
+#'   are selected by switching the scenario with [read_solution()].
+#'   Has no effect when the model
 #'   has no variants, so the returned shape is unchanged for such models. Set
 #'   `FALSE` to suppress the columns.
 #' @param drop.zeros logical, should rows containing zero values be filtered out.
@@ -207,6 +219,7 @@ getData.scenario <- function(
     scenNameInList = as.logical(length(scen) - 1),
     unfold = TRUE,
     variants = TRUE,
+    run = NULL,
     verbose = FALSE) {
   # if (name == "vObjective") browser()
   arg <- list(...)
@@ -252,6 +265,55 @@ getData.scenario <- function(
         if (verbose) cat("Found scenarios with identical names: ", nm[ii], "\n")
       }
     }
+  }
+
+  # Runs. `run = NULL` means each object's ACTIVE run -- today's behaviour,
+  # and no `run` column, because getData()'s output shape must not move for
+  # every existing caller. A run id positions a COPY of the scenario on that
+  # run exactly as read_solution() does, including the problem swap a variant
+  # needs: without it a variant's PARAMETERS would come from the base problem
+  # while its results came from the variant.
+  run_of <- NULL
+  if (!is.null(run) && length(run)) {
+    exp_scen <- list(); exp_run <- character(0); exp_nm <- character(0)
+    for (s in seq_along(scen)) {
+      sc0 <- scen[[s]]
+      nmi <- names(scen)[s]
+      rids <- if (identical(as.character(run)[1], "all")) {
+        rr <- tryCatch(scenario_runs(sc0)$run, error = function(e) character(0))
+        rr[nzchar(rr)]
+      } else as.character(run)
+      if (!length(rids)) {
+        warning("Scenario '", nmi, "' has no runs to read.", call. = FALSE)
+        next
+      }
+      for (rid in rids) {
+        sc1 <- tryCatch(
+          suppressMessages(read_solution(sc0, run = rid, echo = FALSE,
+                                         ondisk = FALSE)),
+          error = function(e) {
+            stop("getData(run = ): cannot read run '", rid, "' of scenario '",
+                 nmi, "': ", conditionMessage(e), call. = FALSE)
+          })
+        exp_scen[[length(exp_scen) + 1L]] <- sc1
+        exp_run <- c(exp_run, rid); exp_nm <- c(exp_nm, nmi)
+      }
+    }
+    if (!length(exp_scen)) return(.getdata_empty(merge, asTibble))
+    # A variant is a DIFFERENT problem -- its own calendar, geoscale or
+    # horizon. Stacking such runs in one frame invites a comparison that is
+    # not like-for-like, so say so; the `run` column makes it visible, but a
+    # reader has to notice it.
+    vs <- unique(vapply(strsplit(exp_run, "/", fixed = TRUE),
+                        function(x) if (length(x) > 1L) x[1] else "",
+                        character(1)))
+    if (length(vs) > 1L) {
+      warning("getData(run = ) spans runs of different problems (",
+              paste(ifelse(nzchar(vs), vs, "<base>"), collapse = ", "),
+              "). An own-problem variant has its own modInp, so these ",
+              "results are not like-for-like.", call. = FALSE)
+    }
+    scen <- exp_scen; names(scen) <- exp_nm; run_of <- exp_run
   }
 
   # Identify filters
@@ -465,16 +527,30 @@ getData.scenario <- function(
               filter(kk)
             if (!is.null(dkk) && nrow(dkk) > 0) {
               nkk <- sum(kk)
-              dat <- dplyr::bind_cols(
-                data.frame(
-                  scenario = rep(sc, nkk),
-                  name = rep(pv, nkk)
-                ),
-                dkk
+              tagcols <- data.frame(
+                scenario = rep(sc, nkk),
+                name = rep(pv, nkk)
               )
+              # `run`, not `variant`: `variant` already means a technology's
+              # vintage/cluster provenance here (modInp@sets$variant, the
+              # `variants =` argument, levcost), while `run` is free -- it is
+              # not a model dimension.
+              if (!is.null(run_of)) {
+                tagcols$run <- rep(run_of[s], nkk)
+              }
+              dat <- dplyr::bind_cols(tagcols, dkk)
               le <- length(ll) + 1
               nm_ll <- names(ll)
-              if (scenNameInList) nm_le <- paste(sc, pv, sep = ".") else nm_le <- pv
+              nm_le <- if (!is.null(run_of)) {
+                # several runs of one scenario share its name, so the run has
+                # to be in the element name or merge = FALSE returns a list
+                # whose names do not identify its elements
+                paste(sc, run_of[s], pv, sep = ".")
+              } else if (scenNameInList) {
+                paste(sc, pv, sep = ".")
+              } else {
+                pv
+              }
               ll[[le]] <- dat
               names(ll) <- c(nm_ll, nm_le)
             }

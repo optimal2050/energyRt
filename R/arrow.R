@@ -28,6 +28,13 @@
 #' @param write_log logical. Write (update) logfile.
 #' @param verbose logical. Print messages.
 #'
+#' @details
+#' This is the only writer of a run's `modOut/` store: [read_solution()] leaves
+#' the solution in memory, and without a save it does not survive the session.
+#' The store is written for the ACTIVE run — whichever `@misc$run` names — so
+#' saving while one run is active does not persist another's solution.
+#' [import_solution()] does the read and the save in one call.
+#'
 #' @return scenario object with most of the slots saved on disk.
 #' @export
 #'

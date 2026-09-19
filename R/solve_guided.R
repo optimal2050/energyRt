@@ -92,7 +92,8 @@ guided_windows <- function(horizon, direction = c("backward", "forward"),
 }
 
 # add/refresh driver metadata in a variant.yml written by save_scenario()
-.guided_tag_variant <- function(scen, vlab, sequence, stage, years) {
+.guided_tag_variant <- function(scen, vlab, sequence, stage, years,
+                               params = NULL) {
   vy <- fp(scen@path, "runs", vlab, "variant.yml")
   if (!file.exists(vy)) return(invisible(NULL))
   mf <- tryCatch(yaml::read_yaml(vy), error = function(e) NULL)
@@ -101,6 +102,7 @@ guided_windows <- function(horizon, direction = c("backward", "forward"),
   mf$sequence <- sequence
   mf$stage <- stage
   mf$years <- as.integer(years)
+  if (length(params)) mf$params <- params
   yaml::write_yaml(mf, vy)
   invisible(vy)
 }
@@ -225,6 +227,7 @@ solve_guided <- function(mod, name = NULL, ...,
                          direction = c("backward", "forward"),
                          solver = NULL,
                          on_infeasible = c("relax", "stop"),
+                         overwrite = FALSE,
                          keep_scenarios = TRUE,
                          verbose = TRUE) {
   stopifnot(is(mod, "model"))
@@ -276,7 +279,13 @@ solve_guided <- function(mod, name = NULL, ...,
       status = if (isTRUE(res$ok)) "solved" else "failed", objective = obj))
   }
 
+  vparams <- .variant_params(
+    stages = stages, slack = slack, basis = basis, mode = mode,
+    direction = direction, calendar_guide = calendar_guide,
+    on_infeasible = on_infeasible)
+
   run_stage <- function(stage, h, vlab, years, use_targets, cal) {
+    .variant_guard(seq_path, vlab, "guided_stage", vparams, overwrite)
     if (verbose) {
       message("guided stage '", stage, "': ",
               paste(years, collapse = ", "),
@@ -301,6 +310,7 @@ solve_guided <- function(mod, name = NULL, ...,
     sol <- suppressMessages(suppressWarnings(
       save_scenario(res$scenario, verbose = FALSE)))
     .guided_tag_variant(sol, vlab, sequence = name, stage = stage,
+                        params = vparams,
                         years = years)
     res$scenario <- sol
     if (keep_scenarios) scens[[vlab]] <<- sol

@@ -55,6 +55,13 @@ scenario object with most of the slots saved on disk.
 \description{
 Save scenario object on disk in parquet format using \code{arrow} package.
 }
+\details{
+This is the only writer of a run's \verb{modOut/} store: \code{\link[=read_solution]{read_solution()}} leaves
+the solution in memory, and without a save it does not survive the session.
+The store is written for the ACTIVE run — whichever \verb{@misc$run} names — so
+saving while one run is active does not persist another's solution.
+\code{\link[=import_solution]{import_solution()}} does the read and the save in one call.
+}
 \examples{
 \dontrun{
 scen_BASE@path # check the scenarion directory

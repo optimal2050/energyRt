@@ -20,7 +20,8 @@
 # =============================================================================#
 
 # add/refresh driver metadata in a variant.yml written by save_scenario()
-.by_region_tag_variant <- function(scen, vlab, sequence, regions, trade) {
+.by_region_tag_variant <- function(scen, vlab, sequence, regions, trade,
+                                   params = NULL) {
   vy <- fp(scen@path, "runs", vlab, "variant.yml")
   if (!file.exists(vy)) return(invisible(NULL))
   mf <- tryCatch(yaml::read_yaml(vy), error = function(e) NULL)
@@ -29,6 +30,7 @@
   mf$sequence <- sequence
   mf$regions <- as.character(regions)
   mf$trade <- trade
+  if (length(params)) mf$params <- params
   yaml::write_yaml(mf, vy)
   invisible(vy)
 }
@@ -92,6 +94,7 @@ solve_by_region <- function(mod, name = NULL, ...,
                             spread = 0.5,
                             solver = NULL,
                             on_error = c("stop", "continue"),
+                            overwrite = FALSE,
                             keep_scenarios = TRUE, verbose = TRUE) {
   stopifnot(is(mod, "model"))
   trade <- match.arg(trade)
@@ -132,9 +135,14 @@ solve_by_region <- function(mod, name = NULL, ...,
                  regions = list(), status = character(0),
                  objective = numeric(0), boundary = integer(0))
 
+  vparams <- .variant_params(
+    trade = trade, share = share, nsteps = nsteps, price = price,
+    spread = spread)
+
   for (k in seq_along(groups)) {
     rg <- groups[[k]]
     vlab <- .path_slug(rg)
+    .variant_guard(seq_path, vlab, "region_sample", vparams, overwrite)
     if (verbose) {
       message("region ", k, "/", length(groups), ": ",
               paste(rg, collapse = ", "))
@@ -193,6 +201,7 @@ solve_by_region <- function(mod, name = NULL, ...,
     saved <- suppressMessages(suppressWarnings(
       save_scenario(sol, verbose = FALSE)))
     .by_region_tag_variant(saved, vlab, sequence = name, regions = rg,
+                           params = vparams,
                            trade = trade)
     if (keep_scenarios) scens[[vlab]] <- saved
     runs <- bind_rows(runs, tibble(

@@ -457,6 +457,80 @@ drop_scenario_run <- function(scen, run, force = FALSE) {
 
 # variant.yml, written by save_scenario() for an own-problem variant. Extra
 # fields written by drivers (type, sequence, step, sample) are preserved.
+# The `params:` block of a driver's variant.yml: the call arguments that say
+# HOW the method was configured, as opposed to the flat keys, which say WHICH
+# unit of work the variant is (step 2, sample s01, region R1_R2).
+#
+# NULLs are dropped: an argument that was not given and one recorded as null
+# are different claims, and yaml writes the latter as an empty key.
+.variant_params <- function(...) {
+  p <- list(...)
+  p <- p[!vapply(p, is.null, logical(1))]
+  lapply(p, function(v) {
+    if (is.factor(v)) as.character(v)
+    else if (isS4(v)) tryCatch(v@name, error = function(e) NULL)
+    else v
+  })
+}
+
+# Which recorded parameters differ, formatted for the refusal below.
+# all.equal() rather than identical(): a yaml round-trip turns 1L into 1, and
+# refusing over that would make the guard useless.
+.params_fmt <- function(v) {
+  if (is.null(v) || !length(v)) return("<unset>")
+  paste(format(unlist(v)), collapse = ",")
+}
+
+.params_diff <- function(old, new) {
+  out <- character(0)
+  for (k in union(names(old), names(new))) {
+    same <- tryCatch(isTRUE(all.equal(old[[k]], new[[k]],
+                                      check.attributes = FALSE)),
+                     error = function(e) FALSE)
+    if (!same) {
+      out <- c(out, paste0(k, " (", .params_fmt(old[[k]]), " vs ",
+                           .params_fmt(new[[k]]), ")"))
+    }
+  }
+  out
+}
+
+# Refuse to write over a variant that a DIFFERENT configuration produced.
+#
+# Variant labels are unit-derived -- s01, R1_R2, s02-2030 -- so a second run of
+# the same driver with another seed, grouping or window writes straight over
+# the first sequence's variants, and nothing about the folder says so. The same
+# method with the same `params:` is a legitimate redo and passes.
+.variant_guard <- function(path, vlab, type, params, overwrite = FALSE) {
+  if (isTRUE(overwrite)) return(invisible(TRUE))
+  vy <- fp(path, "runs", vlab, "variant.yml")
+  if (!file.exists(vy)) return(invisible(TRUE))
+  mf <- tryCatch(yaml::read_yaml(vy), error = function(e) NULL)
+  if (is.null(mf)) return(invisible(TRUE))
+  otype <- as.character(mf$type %||% "")
+  d <- .params_diff(mf$params %||% list(), params %||% list())
+  if (identical(otype, as.character(type)) && !length(d)) {
+    return(invisible(TRUE))
+  }
+  stop("Variant '", vlab, "' already exists in '", path, "'",
+       if (nzchar(mf$sequence %||% "")) {
+         paste0(", from sequence '", mf$sequence, "'")
+       } else "",
+       " (", if (nzchar(otype)) otype else "unknown type", ")",
+       if (!identical(otype, as.character(type))) {
+         paste0(" -- a different method than ", type)
+       } else "",
+       if (length(d)) {
+         paste0(", with different settings: ",
+                paste(utils::head(d, 4), collapse = "; "),
+                if (length(d) > 4) ", ..." else "")
+       } else "",
+       ".
+  Solving would replace that sequence's results. Give this run a ",
+       "different `name = `, or overwrite = TRUE to replace it.",
+       call. = FALSE)
+}
+
 .write_variant_manifest <- function(scen, vdir) {
   mf_path <- fp(vdir, "variant.yml")
   prev <- if (file.exists(mf_path)) {

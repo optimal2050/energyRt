@@ -641,7 +641,7 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
 #' @param solver.dir character, an EXTERNAL solver working directory. When
 #'   set, the solve runs there verbatim and records no run; the default
 #'   (`NULL`) solves into the scenario's own run directory
-#'   `runs/[<variant>/]<label>/solver/`.
+#'   `runs/[<variant>/]<label>/`.
 #' @param transient logical, use a throwaway timestamp directory deleted
 #'   after the run (no run record).
 #' @param tmp.dir,tmp.del deprecated aliases of `solver.dir` / `transient`.

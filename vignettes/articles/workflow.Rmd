@@ -143,7 +143,8 @@ data slot as a dataset, and one folder per solver run:
 └── runs/               # one folder per solve
     ├── glpk/           #   base-problem run, named by its solve label
     │   ├── run.yml     #     provenance: solver, cmdline, times, objective
-    │   ├── solver/     #     the solver working dir (inputs + its output/)
+    │   ├── input/      #     the exchange tables handed to the solver
+    │   ├── output/     #     the solver's raw dump (read_solution() reads it)
     │   └── modOut/variables/<var>/      # the solved variables
     └── julia_highs/    #   another backend's run of the same problem
 ```

@@ -251,7 +251,8 @@ calendar_samples <- function(calendar, level = NULL, sample_size = NULL,
 }
 
 # add/refresh driver metadata in a variant.yml written by save_scenario()
-.by_sample_tag_variant <- function(scen, vlab, sequence, method, slices, yf) {
+.by_sample_tag_variant <- function(scen, vlab, sequence, method, slices, yf,
+                                   params = NULL) {
   vy <- fp(scen@path, "runs", vlab, "variant.yml")
   if (!file.exists(vy)) return(invisible(NULL))
   mf <- tryCatch(yaml::read_yaml(vy), error = function(e) NULL)
@@ -261,6 +262,7 @@ calendar_samples <- function(calendar, level = NULL, sample_size = NULL,
   mf$method <- method
   mf$slices <- as.integer(slices)
   mf$year_fraction <- as.numeric(yf)
+  if (length(params)) mf$params <- params
   yaml::write_yaml(mf, vy)
   invisible(vy)
 }
@@ -311,6 +313,7 @@ solve_by_sample <- function(mod, name = NULL, ...,
                             seed = NULL, calendar = NULL,
                             solver = NULL,
                             on_error = c("stop", "continue"),
+                            overwrite = FALSE,
                             keep_scenarios = TRUE, verbose = TRUE) {
   stopifnot(is(mod, "model"))
   method <- match.arg(method)
@@ -350,8 +353,13 @@ solve_by_sample <- function(mod, name = NULL, ...,
                  slices = integer(0), year_fraction = numeric(0),
                  status = character(0), objective = numeric(0))
 
+  vparams <- .variant_params(
+    method = method, level = level, sample_size = sample_size, n = n,
+    seed = seed, calendar = cal)
+
   for (k in seq_along(ids)) {
     sid <- ids[k]
+    .variant_guard(seq_path, sid, "calendar_sample", vparams, overwrite)
     rows <- spec[spec$sample == sid, , drop = FALSE]
     cnt <- stats::setNames(rows$count, rows$timeslice)
     if (verbose) {
@@ -399,6 +407,7 @@ solve_by_sample <- function(mod, name = NULL, ...,
     saved <- suppressMessages(suppressWarnings(
       save_scenario(sol, verbose = FALSE)))
     .by_sample_tag_variant(saved, sid, sequence = name, method = method,
+                           params = vparams,
                            slices = nrow(rows), yf = yf)
     if (keep_scenarios) scens[[sid]] <- saved
     runs <- bind_rows(runs, tibble(

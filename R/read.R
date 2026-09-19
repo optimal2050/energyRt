@@ -1,12 +1,57 @@
-#' Read solution
-#'
-#' The function and method read outputs of solved model/scenario and return the scenario object populated with variables data.
-#'
-#' @param obj scenario object
-#' @param run character, optional run to read: `"<solve>"` for a base-problem
-#'   run or `"<variant>/<solve>"` — see [scenario_runs()]. The scenario's
-#'   active run switches to it. Default `NULL` reads the active run (or, for
-#'   a freshly loaded scenario, the manifest's `default:` run).
+# Attach a run's already-imported `modOut/` store, so a run stays readable
+# after its solver scratch has been cleaned up. `drop_solver_outputs()`
+# removes `output/` precisely BECAUSE the run was imported; without this the
+# store it was cleared against could not be read back.
+#
+# Returns the scenario with `@modOut` pointing at the store, or NULL when the
+# run has none.
+.modout_attach <- function(scen, solver_dir) {
+  run_dir <- tryCatch(
+    .run_dir(scen, .run_variant(scen), scen@misc$run %||% ""),
+    error = function(e) NULL)
+  if (is.null(run_dir) || !nzchar(scen@misc$run %||% "")) return(NULL)
+  # only the run actually being read: `solver.dir=` can point anywhere
+  same <- tryCatch(identical(
+    normalizePath(.run_solver_dir(run_dir), winslash = "/", mustWork = FALSE),
+    normalizePath(solver_dir, winslash = "/", mustWork = FALSE)),
+    error = function(e) FALSE)
+  if (!same) return(NULL)
+
+  vdir <- fp(run_dir, "modOut", "variables")
+  if (!dir.exists(vdir)) return(NULL)
+  nms <- basename(list.dirs(vdir, recursive = FALSE))
+  nms <- nms[dir.exists(fp(vdir, nms, "data"))]
+  if (!length(nms)) return(NULL)
+
+  mo <- new("modOut")
+  for (nm in nms) {
+    v <- mo@variables[[nm]]
+    if (is.null(v)) {
+      v <- newVariable(nm, origin = "solver", declared = FALSE)
+    }
+    v <- set_ondisk_slots(v)
+    v <- setObjPath(v, path = fp(vdir, nm))
+    v <- mark_ondisk(v)
+    mo@variables[[nm]] <- v
+  }
+  # `@sets` is problem-level and is not part of the store, so it carries over
+  # from the scenario rather than being rebuilt from the dump.
+  mo@sets <- tryCatch(scen@modOut@sets, error = function(e) list())
+  rec <- tryCatch(yaml::read_yaml(fp(run_dir, "run.yml")),
+                  error = function(e) NULL)
+  mo@stage <- as.character(rec$stage %||% "solved")
+  mo <- set_ondisk_slots(mo)
+  mo <- setObjPath(mo, path = fp(run_dir, "modOut"))
+  mo <- mark_ondisk(mo)
+
+  scen@modOut <- mo
+  if (identical(mo@stage, "solved")) {
+    scen@status$optimal <- TRUE
+    scen@status$solved <- TRUE
+  }
+  scen
+}
+
 # The solve's own metadata (solver codes and command). Written as `solver.csv`
 # since the run folder was flattened; scenarios solved under layout 3 carry it
 # as a file simply called `solver`.
@@ -29,6 +74,43 @@
   utils::read.csv(f, stringsAsFactors = FALSE)
 }
 
+#' Read a solved run's solution into a scenario
+#'
+#' @description
+#' Reads the variables a solver wrote for one run and returns the scenario with
+#' its `@modOut` populated. This is the import step: `solve_scenario()` leaves
+#' the raw output on disk, and nothing else reads it.
+#'
+#' @details
+#' Without `run`, it reads the active run — or, for a freshly loaded scenario,
+#' the `default:` run named in `scenario.yml`. Naming a variant run switches
+#' the whole in-memory *problem*, settings and parameters together, so
+#' [getData()] stays consistent with the run you are looking at.
+#'
+#' Reading alone does not persist anything: [save_scenario()] writes the
+#' `modOut/` store, and [import_solution()] does both in one call.
+#' [scenario_solutions()] lists what each run holds before you choose.
+#'
+#' @section Why the imported store, and not just `output/`:
+#' The two are different things, and `modOut/` is not a compressed copy of
+#' `output/`. The solver's dump is untyped text in the backend's own naming;
+#' the import normalises the backend away (GDX, CSV, Arrow and Parquet all
+#' land in one store), synthesises the set aliases no solver writes (`src`,
+#' `dst`, `regionp`, `yearp`, `acomm`, `commp`, `timeslicep`), types every
+#' dimension against its declared set members rather than the values that
+#' happen to occur, keeps an empty typed skeleton for variables the solver
+#' skipped so their columns stay known, and computes two variables no solver
+#' ever wrote — `vTechEmsFuel` (emission factors against `vTechInp`) and
+#' `vUserCosts` (each cost object against the variable it is defined on).
+#'
+#' Re-deriving that on demand would also need `@modInp`, since the set members
+#' come from the problem — and a variant swap may have replaced it.
+#'
+#' @param obj scenario object.
+#' @param run character, optional run to read: `"<solve>"` for a base-problem
+#'   run or `"<variant>/<solve>"` — see [scenario_runs()]. The scenario's
+#'   active run switches to it. Default `NULL` reads the active run (or, for
+#'   a freshly loaded scenario, the manifest's `default:` run).
 #' @param ... optional `solver.dir` (an external solver directory, replacing
 #'   the run resolution; `tmp.dir` is the deprecated alias)
 #' @param ondisk logical. `TRUE` writes each variable into the run's
@@ -48,12 +130,15 @@
 #' The function returns the scenario object with populated modOut slot
 #' from the solved model directory.
 #' @export
-#' @seealso [solve()] to run the script, solve the scenario. [write_sc()] to write model inputs.
+#' @seealso [import_solution()] to read and save in one step;
+#'   [scenario_solutions()] to see what each run holds; [solve_scenario()],
+#'   [save_scenario()].
 #'
 #' @rdname read
 #' @examples
 #' \dontrun{
-#' scen <- read(scen)
+#' scen <- read_solution(scen)                    # the active run
+#' scen <- read_solution(scen, run = "low/glpk")  # a variant's run
 #' }
 read_solution <- function(obj, run = NULL, ..., ondisk = !isInMemory(obj)) {
   scen <- obj
@@ -145,12 +230,33 @@ read_solution <- function(obj, run = NULL, ..., ondisk = !isInMemory(obj)) {
         }
       }
     }
-    if (!is.null(arg$stop_on_error) && arg$stop_on_error) {
-      stop(msg)
-    } else {
-      message(msg)
-      return(invisible(obj))
+    # The run's own imported store, if it has one. A FALLBACK, never a
+    # preference: `solve_scenario()` overwrites a run's `output/` in place
+    # while the previous save's `modOut/` is still sitting there, so
+    # preferring the store would quietly serve the older solve's numbers.
+    att <- .modout_attach(scen, arg$solver.dir)
+    if (!is.null(att)) {
+      if (arg$echo) {
+        message("Run '", scen@misc$run %||% "?", "': no readable solver ",
+                "output; reading its imported modOut/ store instead.")
+      }
+      return(invisible(att))
     }
+    # Never hand back the ORIGINAL object here. It is still positioned on
+    # whatever run was active before, so a failed switch used to return
+    # another run's solution with no error at all.
+    if (nzchar(scen@misc$run %||% "")) {
+      msg <- paste0(msg, "
+  Run '", scen@misc$run,
+                    "' has neither readable output/ nor an imported modOut/ ",
+                    "store, so its solution cannot be read. ",
+                    "scenario_solutions() lists what each run holds.")
+    }
+    if (is.null(arg$stop_on_error) || !identical(arg$stop_on_error, FALSE)) {
+      stop(msg, call. = FALSE)
+    }
+    message(msg)
+    return(invisible(obj))
   }
   if (file.exists(paste(arg$solver.dir, "/output/variable_list2.csv", sep = ""))) {
     vrb_list2 <- arg$readOutputFunction(

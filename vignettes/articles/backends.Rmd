@@ -202,7 +202,7 @@ Two separate option families, easy to confuse because both once shared one
 option:
 
 * **exchange** — the files handed to a solver for one solve, in
-  `runs/<run>/solver/input|output/`. Written once, read once, deleted with the
+  `runs/[<variant>/]<solve>/input|output/`. Written once, read once, deleted with the
   run. `get_exchange_format()` (`"feather"`), `get_exchange_compression()`
   (`"lz4"` — the codec is cheap because nothing here is kept).
 * **storage** — the tables that outlive the session: a scenario's parameter and

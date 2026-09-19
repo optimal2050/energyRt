@@ -115,6 +115,14 @@ test_that("store = 'variants': one scenario, one variant per step", {
   expect_identical(vy$sequence, "vs")
   expect_identical(vy$step, 2L)
   expect_identical(vy$decided, 2021L)
+  # `params:` records HOW the method was configured, so a reloaded sequence
+  # can say what produced it; the flat keys say WHICH step this is. The window
+  # size is `step_size` there -- two `step:` keys meaning different things in
+  # one file would be a trap.
+  expect_true(is.list(vy$params))
+  expect_identical(vy$params$step_size, 1L)
+  expect_identical(vy$params$store, "variants")
+  expect_true(!is.null(vy$params$carry))
   # each step's problem is switchable after loading
   back <- suppressMessages(load_scenario(p, env = NULL, verbose = FALSE))
   runs3 <- scenario_runs(back)

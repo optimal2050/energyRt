@@ -54,7 +54,7 @@ same label: \code{"overwrite"} (default), \code{"suffix"} (append \code{-2}, \co
 \item{solver.dir}{character, an EXTERNAL solver working directory. When
 set, the solve runs there verbatim and records no run; the default
 (\code{NULL}) solves into the scenario's own run directory
-\verb{runs/[<variant>/]<label>/solver/}.}
+\verb{runs/[<variant>/]<label>/}.}
 
 \item{transient}{logical, use a throwaway timestamp directory deleted
 after the run (no run record).}

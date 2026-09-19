@@ -53,6 +53,7 @@ getData(scen, ...)
   scenNameInList = as.logical(length(scen) - 1),
   unfold = TRUE,
   variants = TRUE,
+  run = NULL,
   verbose = FALSE
 )
 
@@ -86,6 +87,7 @@ getData(scen, ...)
   scenNameInList = as.logical(length(scen) - 1),
   unfold = TRUE,
   variants = TRUE,
+  run = NULL,
   verbose = FALSE
 )
 
@@ -283,11 +285,24 @@ The default was \code{"lowest"} up to v0.80 and is now \code{"highest"}, matchin
 
 \item{variants}{logical, default \code{TRUE}: attach the technology-variant
 provenance columns \code{base}, \code{vintage} and \code{cluster} (from
-\code{scenario@modInp@sets$tech_variant}) to the returned data, so results of a
+\code{scenario@modInp@sets$variant}) to the returned data, so results of a
 vintaged / clustered technology can be grouped or rolled up by those
-dimensions without parsing the variant names. Has no effect when the model
+dimensions without parsing the variant names. These are TECHNOLOGY
+variants — unrelated to the own-problem run variants under \verb{runs/}, which
+are selected by switching the scenario with \code{\link[=read_solution]{read_solution()}}.
+Has no effect when the model
 has no variants, so the returned shape is unchanged for such models. Set
 \code{FALSE} to suppress the columns.}
+
+\item{run}{character, one or more runs to read (\code{"<solve>"} or
+\code{"<variant>/<solve>"}), or \code{"all"} for every run of each scenario. The
+returned rows gain a \code{run} column naming their source. \code{NULL} (default)
+reads each object's ACTIVE run and adds no column, so existing calls are
+unchanged. Each run is read on a COPY of the scenario, so the object you
+passed keeps its active run; a variant run brings its own problem with
+it, parameters included. Spanning runs of different problems warns —
+their results are not like-for-like. Not to be confused with \code{variants},
+below, which is about technologies.}
 
 \item{verbose}{logical, print progress and diagnostic messages.}
 
