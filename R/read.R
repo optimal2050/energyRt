@@ -43,7 +43,7 @@
 #' \dontrun{
 #' scen <- read(scen)
 #' }
-read_solution <- function(obj, run = NULL, ...) {
+read_solution <- function(obj, run = NULL, ..., ondisk = !isInMemory(obj)) {
   scen <- obj
   ## arguments
   # scen
@@ -321,6 +321,28 @@ read_solution <- function(obj, run = NULL, ...) {
   }
 
   scen@modOut@sets <- rr$set_vec
+  # Stream each variable into the run's `modOut/` store as it is converted,
+  # instead of holding the whole solution twice (raw + typed) and leaving
+  # `save_scenario()` to write it. Needs a run label: an external `solver.dir`
+  # or a transient solve has no run folder to write into.
+  .stream_path <- NULL
+  if (isTRUE(ondisk)) {
+    .rl <- scen@misc$run %||% ""
+    if (nzchar(.rl)) {
+      .stream_path <- tryCatch(
+        fp(.run_dir(scen, .run_variant(scen), .rl), "modOut"),
+        error = function(e) NULL)
+    }
+    if (is.null(.stream_path)) {
+      message("read_solution(ondisk = TRUE): no run folder to stream into ",
+              "(external or transient solve); reading into memory instead.")
+    }
+  }
+  .stream_var <- function(v, nm) {
+    if (is.null(.stream_path)) return(v)
+    obj2disk(v, path = fp(.stream_path, "variables", nm),
+             format = get_storage_format(), verbose = FALSE)
+  }
   # `@variables` arrives pre-populated with one empty, typed `variable` per
   # declared variable (see `modOut`'s initialize); fill in what the solver
   # returned. Variables it skipped -- those with no non-zero values -- keep
@@ -337,7 +359,9 @@ read_solution <- function(obj, run = NULL, ...) {
                                .dimSets),
         origin = "solver", declared = FALSE)
     }
-    scen@modOut@variables[[i]] <- d2v(v, rr$variables[[i]])
+    scen@modOut@variables[[i]] <- .stream_var(d2v(v, rr$variables[[i]]), i)
+    # the typed copy is made; the raw one is dead weight from here
+    rr$variables[[i]] <- NULL
   }
   ## Salvage cost calculation
   salvage_cost0 <- function(scen, par) {
@@ -499,6 +523,25 @@ read_solution <- function(obj, run = NULL, ...) {
   # `solved` had no writer at all (initialised FALSE at interpolation and never
   # updated), so it read FALSE even after an optimal solve. It now records that
   # the solve produced a readable optimal solution, alongside `optimal`.
+  # The two computed variables (above) are written last, then the container
+  # itself is marked -- `get_ondisk_slots()` must be non-empty or every later
+  # rebase is a silent no-op and the store reads back as zero rows.
+  if (!is.null(.stream_path)) {
+    for (.nm in c("vTechEmsFuel", "vUserCosts")) {
+      .v <- scen@modOut@variables[[.nm]]
+      if (!is.null(.v) && !isOnDisk(.v)) {
+        scen@modOut@variables[[.nm]] <- .stream_var(.v, .nm)
+      }
+    }
+    scen@modOut <- set_ondisk_slots(scen@modOut)
+    scen@modOut <- setObjPath(scen@modOut, path = .stream_path)
+    scen@modOut <- mark_ondisk(scen@modOut)
+    if (arg$echo) {
+      message("Solution written to '", .stream_path, "'. The scenario shell ",
+              "still has to be saved: save_scenario() records it, and until ",
+              "then a reload will not see the solution.")
+    }
+  }
   if (scen@modOut@stage == "solved") {
     scen@status$optimal <- TRUE
     scen@status$solved <- TRUE

@@ -279,12 +279,17 @@ save_scenario <- function(
       )
     }
     if (!is.null(mo)) {
-      scen@modOut <- obj2disk(
-        mo,
-        path = fp(.run_dir(scen, active_variant, run_label), "modOut"),
-        format = format,
-        verbose = verbose
-      )
+      .mo_path <- fp(.run_dir(scen, active_variant, run_label), "modOut")
+      # `read_solution(ondisk = TRUE)` already streamed the solution into this
+      # store; its data slots are empty, so re-running the walk would write
+      # nothing and record dim-0 bookkeeping over a complete store.
+      scen@modOut <- if (isOnDisk(mo) &&
+                         identical(gsub("[\\/]+", "/", getObjPath(mo) %||% ""),
+                                   gsub("[\\/]+", "/", .mo_path))) {
+        mo
+      } else {
+        obj2disk(mo, path = .mo_path, format = format, verbose = verbose)
+      }
     }
     # swap file for the ACTIVE problem (variant.RData / problem.RData)
     .write_problem_swap(scen, scen@modInp)

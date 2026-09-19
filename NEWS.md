@@ -87,6 +87,10 @@
 
 ## New features
 
+* `read_solution(ondisk = )` streams the solution straight into the run's
+  `modOut/` store instead of building it in memory, so a large model no
+  longer needs the whole solution in RAM to be imported. On by default for
+  a scenario that is itself on disk; in-memory scenarios are unchanged.
 * `interpolate_model()` is about 6x faster on large models (a 41-node
   vintaged multi-year interpolation dropped from ~16 to under 3 minutes) and
   runs `data.table` on all cores for the duration of the call
