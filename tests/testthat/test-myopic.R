@@ -121,6 +121,28 @@ test_that("store = 'variants': one scenario, one variant per step", {
   expect_identical(nrow(runs3[runs3$modinp == "own", ]), 3L)
 })
 
+test_that("store = 'scenarios': one scenario per step, names stay valid", {
+  skip_if_no_solver()
+  old_sp <- set_scenarios_path(my_scen_path("ss"))
+  on.exit(set_scenarios_path(old_sp), add = TRUE)
+
+  # The per-step scenario name is an OBJECT name, not a run label: dashes are
+  # legal in `vlab` but rejected by .assert_object_name(), so composing the
+  # two with "-" made this whole store mode unusable -- and the failure
+  # surfaced wrapped in the driver's infeasibility hint.
+  res <- solve_myopic(my_mod(years = 2020:2022, name = "ss"),
+                      name = "ss", store = "scenarios", verbose = FALSE)
+  expect_identical(res$steps$status, rep("solved", 3L))
+  expect_identical(res$steps$run,
+                   c("ss_s01_2020", "ss_s02_2021", "ss_s03_2022"))
+  expect_true(all(vapply(res$steps$run, energyRt:::check_name, logical(1))))
+
+  # one folder per step, and no variants: each step is its own scenario
+  expect_identical(length(res$scenarios), 3L)
+  expect_true(all(vapply(res$scenarios,
+                         function(s) !nzchar(.run_variant(s)), logical(1))))
+})
+
 test_that("stitching: each year exactly once, incl. with overlap", {
   skip_if_no_solver()
   yrs <- 2020:2022

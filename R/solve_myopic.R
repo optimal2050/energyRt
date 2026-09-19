@@ -168,6 +168,7 @@ solve_myopic <- function(mod, name = NULL, ...,
   store <- match.arg(store)
   on_error <- match.arg(on_error)
   name <- name %||% paste0(mod@name, "_myopic")
+  .assert_object_name(name, "name")
   horizon <- horizon %||% tryCatch(mod@config@horizon, error = function(e) NULL)
   if (is.null(horizon) || nrow(horizon@intervals) == 0) {
     stop("No horizon: pass `horizon =` or give the model one.")
@@ -191,7 +192,10 @@ solve_myopic <- function(mod, name = NULL, ...,
     scen_name <- if (store == "variants") {
       name
     } else {
-      sprintf("%s-%s", name, vlab)
+      # `vlab` is a run LABEL, where dashes are legal; with store =
+      # "scenarios" this becomes an OBJECT name, where they are not
+      # (.assert_object_name) -- and "-" is also the path-slug separator.
+      sprintf("%s_s%02d_%d", name, k, min(w$decided))
     }
     if (verbose) {
       message("myopic step ", k, "/", length(windows), ": ",

@@ -321,6 +321,9 @@
 
 ## Bug fixes
 
+* `solve_myopic(store = "scenarios")` runs: it composed each step's
+  scenario name with dashes, which the object-name rule rejects, so every
+  step failed — reported as an infeasible solve.
 * A solution reconstructed from a solver `.sol` file wrote `year` (and
   `yearp`, `yeare`, `yearn`, `year2`) as text, where every other route
   writes integers. Output from the two routes could not be joined on the
