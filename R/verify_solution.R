@@ -39,10 +39,21 @@
 #'   `|lhs - rhs| > tol_abs + tol_rel * max(|lhs|, |rhs|)`.
 #'
 #' @return an object of class `solution_verification`: a list with `ok`
-#'   (logical), `scenario` (name), and `checks` -- per check a list with
+#'   (logical), `scenario` (name), `checks` -- per check a list with
 #'   `status` (`"ok"`, `"violated"`, `"skipped"`), `n` (rows checked),
 #'   `violations` (data.table of offending rows with `lhs`, `rhs`, `diff`),
-#'   and `reason` when skipped.
+#'   `stats` and `reason` when skipped -- and `divergence`.
+#'
+#'   `divergence` is a data.frame, one row per check, worst first: `status`,
+#'   `n_compared`, `n_violated`, `max_abs`, `median_abs`, `mean_abs` and
+#'   `max_rel`. It summarises how far each identity came from closing **even
+#'   when the check passed**, so tolerances can be set from the noise the
+#'   backends actually produce rather than guessed. `max_abs` is what a
+#'   `tol_abs` must clear; `median_abs` beside it separates one bad cell from a
+#'   uniformly loose check. Aggregate identities (`objective`, `cost`) sum over
+#'   the whole model, so their absolute divergence grows with model size while
+#'   `max_rel` stays flat -- which is why the relative term carries the
+#'   tolerance on large models.
 #'
 #' @examples
 #' \dontrun{
@@ -90,10 +101,37 @@ verify_solution <- function(scen,
     ok = sum(.status == "violated") == 0L && .n_ran > 0L,
     n_ran = .n_ran,
     n_skipped = sum(.status == "skipped"),
-    checks = res
+    checks = res,
+    divergence = .vs_divergence(res)
   )
   class(out) <- "solution_verification"
   out
+}
+
+# One row per check, worst first. Reports how far each identity came from
+# closing EVEN WHEN IT PASSED, so the tolerances can be set from the observed
+# noise floor instead of guessed. `max_abs` orders it because that is what a
+# tolerance has to clear; `median_abs` next to it separates one bad cell from a
+# check that is uniformly loose.
+.vs_divergence <- function(res) {
+  rows <- lapply(names(res), function(nm) {
+    ck <- res[[nm]]
+    st <- ck$stats %||% .vs_stats(numeric(0))
+    data.frame(
+      check       = nm,
+      status      = ck$status %||% "skipped",
+      n_compared  = st$n_cmp,
+      n_violated  = if (is.null(ck$violations)) 0L else nrow(ck$violations),
+      max_abs     = st$max_abs,
+      median_abs  = st$median_abs,
+      mean_abs    = st$mean_abs,
+      max_rel     = st$max_rel,
+      stringsAsFactors = FALSE
+    )
+  })
+  d <- do.call(rbind, rows)
+  # NA (skipped) last, worst-diverging first
+  d[order(is.na(d$max_abs), -d$max_abs, na.last = TRUE), , drop = FALSE]
 }
 
 #' @exportS3Method base::print
@@ -230,19 +268,43 @@ print.solution_verification <- function(x, ...) {
   v
 }
 
+# Divergence summary over EVERY compared row, not just the violating ones.
+# A check that passes still says how close it came, which is what makes the
+# tolerances choosable from evidence instead of guessed: run the suite, read
+# `$divergence`, and set `tol_abs`/`tol_rel` above the noise floor the backends
+# actually produce rather than at a round number.
+.vs_stats <- function(diff, lhs = NULL, rhs = NULL) {
+  a <- abs(as.numeric(diff))
+  a <- a[is.finite(a)]
+  if (!length(a)) {
+    return(list(n_cmp = 0L, max_abs = NA_real_, median_abs = NA_real_,
+                mean_abs = NA_real_, max_rel = NA_real_))
+  }
+  rel <- NA_real_
+  if (!is.null(lhs) && !is.null(rhs)) {
+    sc <- pmax(abs(as.numeric(lhs)), abs(as.numeric(rhs)))
+    keep <- is.finite(a) & is.finite(sc) & sc > 0
+    if (any(keep)) rel <- max(a[keep] / sc[keep])
+  }
+  list(n_cmp = length(a), max_abs = max(a),
+       median_abs = stats::median(a), mean_abs = mean(a), max_rel = rel)
+}
+
 .vs_result <- function(keys, lhs, rhs, ctx, label) {
   diff <- lhs - rhs
   bad <- abs(diff) > ctx$tol_abs + ctx$tol_rel * pmax(abs(lhs), abs(rhs))
+  st <- .vs_stats(diff, lhs, rhs)
   if (any(bad)) {
     viol <- data.table::copy(keys)[, `:=`(lhs = lhs, rhs = rhs, diff = diff)]
-    list(status = "violated", n = nrow(keys), violations = viol[bad])
+    list(status = "violated", n = nrow(keys), violations = viol[bad], stats = st)
   } else {
-    list(status = "ok", n = nrow(keys), violations = NULL)
+    list(status = "ok", n = nrow(keys), violations = NULL, stats = st)
   }
 }
 
 .vs_skip <- function(reason) {
-  list(status = "skipped", n = 0L, violations = NULL, reason = reason)
+  list(status = "skipped", n = 0L, violations = NULL, reason = reason,
+       stats = .vs_stats(numeric(0)))
 }
 
 # --------------------------------------------------------------------------- #
@@ -273,6 +335,10 @@ print.solution_verification <- function(x, ...) {
   if (is.null(.vs_var(scen, "vBalance"))) return(.vs_skip("vBalance not in solution"))
   tol <- ctx$tol_abs
   pieces <- list()
+  # the signed slack of every domain row, kept for the divergence summary --
+  # a one-sided bound only diverges on its own side, so `lo` slack above zero
+  # and `up` slack below it are compliance, not error
+  slack <- list()
   for (side in names(doms)) {
     dom <- doms[[side]]
     if (is.null(dom) || nrow(dom) == 0) next
@@ -282,16 +348,20 @@ print.solution_verification <- function(x, ...) {
       up = v > tol,
       fx = abs(v) > tol
     )
+    slack[[side]] <- switch(side,
+      lo = pmin(v, 0), up = pmax(v, 0), fx = v)
     if (any(bad)) {
       pieces[[side]] <- data.table::copy(dom)[bad][, `:=`(
         limtype = toupper(side), lhs = v[bad], rhs = 0, diff = v[bad])]
     }
   }
   n <- sum(vapply(doms, function(d) if (is.null(d)) 0L else nrow(d), 0L))
+  st <- .vs_stats(unlist(slack, use.names = FALSE))
   if (length(pieces)) {
-    list(status = "violated", n = n, violations = data.table::rbindlist(pieces))
+    list(status = "violated", n = n,
+         violations = data.table::rbindlist(pieces), stats = st)
   } else {
-    list(status = "ok", n = n, violations = NULL)
+    list(status = "ok", n = n, violations = NULL, stats = st)
   }
 }
 

@@ -132,3 +132,50 @@ test_that("join keys of differing type are aligned, not fatal", {
   b <- energyRt:::.vs_align_keys(d, kk2, on_cols)
   expect_identical(b$d$year, d$year)
 })
+
+# The divergence table: how far each identity came from closing, reported even
+# when the check PASSED. Without it, tolerances can only be guessed -- the
+# numbers that justify `tol_abs`/`tol_rel` were computed and thrown away.
+test_that("divergence reports every check, worst first", {
+  skip_if_no_fixtures()
+  skip_if_no_solver()
+  vs <- verify_solution(.vs_solved("tm_core"))
+  d <- vs$divergence
+  expect_s3_class(d, "data.frame")
+  expect_setequal(d$check, names(vs$checks))
+  expect_named(d, c("check", "status", "n_compared", "n_violated",
+                    "max_abs", "median_abs", "mean_abs", "max_rel"))
+  # worst first, skipped (NA) last
+  fin <- d$max_abs[!is.na(d$max_abs)]
+  expect_false(is.unsorted(rev(fin)))
+  expect_true(all(is.na(d$max_abs[is.na(d$max_abs)])))
+  # a passing check still reports its distance -- that is the whole point
+  expect_true(all(d$n_violated[d$status == "ok"] == 0L))
+  expect_true(all(d$n_compared[d$status == "ok"] > 0L))
+  expect_true(all(d$median_abs[d$status == "ok"] <= d$max_abs[d$status == "ok"]))
+})
+
+test_that("divergence records the size of a seeded corruption", {
+  skip_if_no_fixtures()
+  skip_if_no_solver()
+  scen <- .vs_corrupt(.vs_solved("tm_core"), "vOutTot", delta = 2.5)
+  d <- verify_solution(scen)$divergence
+  bal <- d[d$check == "balance", ]
+  expect_equal(bal$status, "violated")
+  expect_gte(bal$max_abs, 2.5 - 1e-6)   # the corruption is visible in the stats
+  expect_gte(bal$n_violated, 1L)
+  # and it sorts to the top
+  expect_equal(d$check[1], "balance")
+})
+
+test_that("a skipped check contributes an NA row, not a missing one", {
+  skip_if_no_fixtures()
+  env <- .mapping_fixture_env()
+  scen <- suppressMessages(suppressWarnings(
+    interpolate_model(env$tm_core(), name = "vs_div_skip", ondisk = FALSE)))
+  d <- verify_solution(scen)$divergence
+  expect_equal(nrow(d), length(verify_solution(scen)$checks))
+  expect_true(all(d$status == "skipped"))
+  expect_true(all(is.na(d$max_abs)))
+  expect_true(all(d$n_compared == 0L))
+})
