@@ -167,6 +167,16 @@ reference:
   - solution_ledger
   - apply_ledger
   - myopic_objective
+  # by-sample, by-region and guided primitives (the drivers themselves match
+  # "solve" above)
+  - calendar_samples
+  - sample_summary
+  - boundary_window
+  - aggregate_model_regions
+  - guided_windows
+  - guided_gap
+  - solution_targets
+  - apply_targets
   # - mosox_run
   # - en_mosox_run
   - matches("mapping")
@@ -187,6 +197,21 @@ reference:
     declarations, and interpolated model inputs.
   contents:
   - starts_with("compare")
+
+- title: Scenario storage, clean-up and sharing
+  desc: >
+    What a solved scenario leaves on disk, which solution to keep, and how to
+    hand a folder to somebody else.
+  contents:
+  - scenario_solutions
+  - import_solution
+  - promote_solution
+  - scenario_artifacts
+  - drop_solver_outputs
+  - clear_report_cache
+  - store_dependents
+  - strip_user_info
+  - prepare_for_sharing
 
 - title: Example datasets
   desc: >
@@ -221,6 +246,7 @@ reference:
   - matches("^tsl")
   - matches("tsl_guess_format")
   - matches("drop_na_cols")
+  - materialize_weather
   - matches("obj2mem")
   - matches("isInMemory")
   - isOnDisk

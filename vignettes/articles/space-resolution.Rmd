@@ -102,49 +102,367 @@ intermediate cells for you.
 
 # What you can and cannot do
 
-| | |
-|---|---|
-| **commodity** at a coarse level | ✅ this is the feature |
-| **supply**, **demand**, **storage** at a coarse level | ✅ supported and priced correctly |
-| **technology** at a coarse level | ✅ *if* every commodity it touches is at that level or coarser |
-| **trade between two coarse regions** | ✅ works — see the FAQ |
-| costs (`invcost`, `fixom`) on a coarse cell | ✅ charged once, at that cell |
-| **technology** coarser than a commodity it uses | ❌ refused: `"COARSER"` |
-| **trade between atoms** for a coarse commodity | ❌ refused: `"Declared resolution does not match"` |
-| rest-of-world **import/export** at a coarse level | ❌ refused; an open capability, not a bug |
-| **weather** at a coarse level | ❌ outside the level system entirely |
-| losses or capacity limits *inside* a level | ❌ impossible by construction — that is what "free" means |
-| two **parallel** groupings (trade blocs *and* borders) | ❌ refused; see caveats |
+Every claim in this section is demonstrated with a model you can run. They share
+one setup: four regions in two nations, one year, no discounting, so each
+objective is plain arithmetic.
 
-## Strict classes must match exactly
+```{r demo-setup}
+gs <- geoscale_from_leaftable(
+  data.frame(nation = c("NA1", "NA1", "NA2", "NA2"),
+             region = c("R1",  "R2",  "R3",  "R4")),
+  geoframes = c("nation", "region"), key = "region", name = "demo"
+)
 
-`demand`, `supply`, `import`, `export`, `trade` and `storage` have no
-aggregation path of their own. Their flows enter the totals directly, so they
-must be declared at **exactly** the commodity's level:
+cal <- newCalendar(
+  timetable = make_timetable(
+    struct = list(ANNUAL = "ANNUAL", SEASON = c("WIN", "SUM"))),
+  name = "demo_cal"
+)
 
-```{r strict}
-STL <- newCommodity("STL", timeframe = "ANNUAL", geoframe = "nation")
-
-# Constructs fine, but `interpolate_model()` refuses it:
-#   "Declared resolution does not match the commodity's own level"
-bad <- newDemand("D", commodity = "STL", region = "R2",
-                 demand = data.frame(region = "R2", timeslice = "ANNUAL",
-                                     demand = 10))
-
-# Correct: declare it where STL is balanced.
-good <- newDemand("D", commodity = "STL", region = "NA1",
-                  demand = data.frame(region = "NA1", timeslice = "ANNUAL",
-                                      demand = 10))
+# Build on the four regions, attach the geoscale, solve, return the objective.
+solve_demo <- function(name, ...) {
+  mod <- newModel(name = name, calendar = cal,
+                  region = c("R1", "R2", "R3", "R4"),
+                  horizon = newHorizon(2025), discount = 0,
+                  repo = newRepository(paste0("repo_", name), ...))
+  scen <- interpolate_model(setGeoscale(mod, gs), name = name, overwrite = TRUE)
+  sol <- solve_scenario(scen, solver = solver_options$glpk, wait = TRUE)
+  sum(getData(sol, "vObjective", merge = TRUE)$value)
+}
 ```
 
-This check exists because the failure it prevents is silent. A demand written at
-R2 for a nationally-balanced commodity lands in a cell no equation reads: the
-parameter is stored, the balance is generated at the nation, the lookup misses,
-and the term evaluates to zero. The model stays feasible and reports no steel
+| | |
+|---|---|
+| **commodity** at a coarse level | ✅ demo 1 |
+| **supply**, **demand**, **storage** at a coarse level | ✅ demo 2 |
+| **technology** at a coarse level | ✅ if its commodities are at that level or coarser — demo 3 |
+| **trade between two coarse regions** | ✅ demo 4 |
+| costs (`invcost`, `fixom`) on a coarse cell | ✅ charged once — demo 5 |
+| **technology** coarser than a commodity it uses | ❌ refused — demo 3 |
+| **trade between atoms** for a coarse commodity | ❌ refused — demo 4 |
+| rest-of-world **import** / **export** at a coarse level | ❌ refused — demo 6 |
+| **weather** at a coarse region | ❌ makes the model infeasible — demo 7 |
+| losses or capacity limits *inside* a level | ❌ impossible by construction — demo 8 |
+| two **parallel** groupings of the same regions | ❌ refused — demo 9 |
+
+## Demo 1 — a commodity at a coarse level, and what it replaces
+
+A mill in R1, steel demanded across the whole of nation NA1, and **no trade
+object anywhere**:
+
+```{r d1a}
+COA  <- newCommodity("COA", timeframe = "ANNUAL")
+ELC  <- newCommodity("ELC", timeframe = "SEASON")
+SUP  <- newSupply("SUP", commodity = "COA",
+                  supply = data.frame(region = c("R1", "R2", "R3", "R4"),
+                                      cost = 1))
+ECOA <- newTechnology("ECOA", input = list(comm = "COA"),
+                      output = list(comm = "ELC"),
+                      invcost = data.frame(invcost = 0),
+                      vintage = data.frame(olife = 30L), cap2act = 1)
+MILL <- newTechnology("MILL", input = list(comm = "ELC"),
+                      output = list(comm = "STL"), region = "R1",
+                      ceff = data.frame(comm = "ELC", cinp2use = 1),
+                      invcost = data.frame(invcost = 0),
+                      vintage = data.frame(olife = 30L), cap2act = 1)
+
+solve_demo("d1a",
+  COA, ELC, newCommodity("STL", timeframe = "ANNUAL", geoframe = "nation"),
+  SUP, ECOA, MILL,
+  newDemand("D", commodity = "STL", region = "NA1",
+            demand = data.frame(region = "NA1", timeslice = "ANNUAL",
+                                demand = 10)))
+#> 10
+```
+
+The mill is in R1, the demand is national, and the two meet. The same system
+with `STL` left at the finest level and the demand in R2:
+
+```{r d1b}
+solve_demo("d1b",
+  COA, ELC, newCommodity("STL", timeframe = "ANNUAL"),
+  SUP, ECOA, MILL,
+  newDemand("D", commodity = "STL", region = "R2",
+            demand = data.frame(region = "R2", timeslice = "ANNUAL",
+                                demand = 10)))
+#> INFEASIBLE -- nothing carries steel from R1 to R2
+```
+
+Add a free, unlimited route and it comes back, at the same cost as the coarse
+version:
+
+```{r d1c}
+solve_demo("d1c",
+  COA, ELC, newCommodity("STL", timeframe = "ANNUAL"),
+  SUP, ECOA, MILL,
+  newTrade("TR", commodity = "STL",
+           routes = data.frame(src = "R1", dst = "R2"),
+           vintage = data.frame(olife = 50L),
+           trade = data.frame(timeslice = "ANNUAL", teff = 1)),
+  newDemand("D", commodity = "STL", region = "R2",
+            demand = data.frame(region = "R2", timeslice = "ANNUAL",
+                                demand = 10)))
+#> 10   -- identical to d1a
+```
+
+**That triple is the whole feature.** `geoframe = "nation"` buys exactly what a
+free unlimited route would have bought, and nothing else.
+
+## Demo 2 — supply, demand and storage at a coarse level
+
+Declared at the level the commodity is balanced at, they are honoured and
+priced:
+
+```{r d2a}
+solve_demo("d2a",
+  newCommodity("GAS", timeframe = "ANNUAL", geoframe = "nation"),
+  newSupply("S", commodity = "GAS", region = "NA1",
+            supply = data.frame(region = "NA1", cost = 2)),
+  newDemand("D", commodity = "GAS", region = "NA1",
+            demand = data.frame(region = "NA1", timeslice = "ANNUAL",
+                                demand = 10)))
+#> 20   -- 10 units x cost 2
+```
+
+Storage works there too. Gas is cheap in winter (1) and dear in summer (100), so
+it buys 10 in winter and carries 5 across, paying 5 for the out-capacity:
+
+```{r d2b}
+solve_demo("d2b",
+  newCommodity("GAS", timeframe = "SEASON", geoframe = "nation"),
+  newSupply("S", commodity = "GAS", region = "NA1",
+            supply = data.frame(region = "NA1", timeslice = c("WIN", "SUM"),
+                                cost = c(1, 100))),
+  newStorage("STG", commodity = "GAS", region = "NA1", olife = 1L,
+             cap2act = 1, invcost = list(out.invcost = 1),
+             seff = data.frame(inpeff = 1, outeff = 1)),
+  newDemand("D", commodity = "GAS", region = "NA1",
+            demand = data.frame(region = "NA1", timeslice = c("WIN", "SUM"),
+                                demand = 5)))
+#> 15   -- 10 x 1 bought in winter, + out-capacity 5 x 1
+```
+
+These are the **strict classes** (`demand`, `supply`, `import`, `export`,
+`trade`, `storage`): they have no aggregation path of their own, so they must
+name exactly the commodity's level. Writing the demand above at `R2` instead of
+`NA1` is refused by `interpolate_model()` with *"Declared resolution does not
+match the commodity's own level"*.
+
+The check exists because the failure it prevents is silent: the parameter would
+be stored in a cell no equation reads, the balance would be generated at the
+nation, the lookup would miss, and the model would solve happily with no steel
 demand at all.
 
-A `technology` is the exception — it may sit **finer** than the commodities it
-touches (a mill in one state making national steel), never coarser.
+## Demo 3 — a technology at a coarse level
+
+Allowed, as long as every commodity it touches is at that level or coarser:
+
+```{r d3a}
+solve_demo("d3a",
+  newCommodity("GAS", timeframe = "ANNUAL", geoframe = "nation"),
+  newCommodity("STL", timeframe = "ANNUAL", geoframe = "nation"),
+  newSupply("S", commodity = "GAS", region = "NA1",
+            supply = data.frame(region = "NA1", cost = 2)),
+  newTechnology("MILL", input = list(comm = "GAS"), output = list(comm = "STL"),
+                region = "NA1", invcost = data.frame(invcost = 0),
+                vintage = data.frame(olife = 30L), cap2act = 1),
+  newDemand("D", commodity = "STL", region = "NA1",
+            demand = data.frame(region = "NA1", timeslice = "ANNUAL",
+                                demand = 10)))
+#> 20
+```
+
+Give that same national mill a **region-level** input and it is refused:
+
+```{r d3b}
+solve_demo("d3b",
+  newCommodity("ELC", timeframe = "SEASON"),
+  newCommodity("STL", timeframe = "ANNUAL", geoframe = "nation"),
+  newSupply("S", commodity = "ELC",
+            supply = data.frame(region = c("R1", "R2"), cost = 2)),
+  newTechnology("MILL", input = list(comm = "ELC"), output = list(comm = "STL"),
+                region = "NA1", invcost = data.frame(invcost = 0),
+                vintage = data.frame(olife = 30L), cap2act = 1),
+  newDemand("D", commodity = "STL", region = "NA1",
+            demand = data.frame(region = "NA1", timeslice = "ANNUAL",
+                                demand = 10)))
+#> Error: Process(es) placed at a region level COARSER than a commodity they
+#> use, whose flows could never reach that commodity's balance
+```
+
+A technology may always sit *finer* than its commodities — a mill in one state
+making national steel, as in demo 1 — never coarser.
+
+## Demo 4 — trade between coarse regions, not between atoms
+
+Gas is national, supplied in NA1 and demanded in NA2, so the route joins the two
+**nations**:
+
+```{r d4}
+gas_between <- function(name, routes) solve_demo(name,
+  newCommodity("GAS", timeframe = "ANNUAL", geoframe = "nation"),
+  newSupply("S", commodity = "GAS", region = "NA1",
+            supply = data.frame(region = "NA1", cost = 2)),
+  newDemand("D", commodity = "GAS", region = "NA2",
+            demand = data.frame(region = "NA2", timeslice = "ANNUAL",
+                                demand = 10)),
+  newTrade("TR", commodity = "GAS", routes = routes,
+           vintage = data.frame(olife = 50L),
+           trade = data.frame(timeslice = "ANNUAL", teff = 1)))
+
+gas_between("d4a", data.frame(src = "NA1", dst = "NA2"))
+#> 20
+
+gas_between("d4b", data.frame(src = "R1", dst = "R3"))
+#> Error: Declared resolution does not match the commodity's own level
+```
+
+**Free inside the level, an explicit priced link between levels.** A route
+between atoms is refused, because the atoms are not where this commodity is
+balanced.
+
+## Demo 5 — a cost on a coarse cell is charged once
+
+A fixed corridor of 10 units with `fixom = 1`, and supply costing 1. The only
+thing that changes is *where* the `fixom` is declared:
+
+```{r d5}
+corridor <- function(name, fixom) solve_demo(name,
+  newCommodity("ELC", timeframe = "SEASON"),
+  newSupply("S", commodity = "ELC",
+            supply = data.frame(region = "R1", cost = 1)),
+  newTrade("TR", commodity = "ELC", routes = data.frame(src = "R1", dst = "R3"),
+           vintage = data.frame(olife = 50L), cap2act = 1,
+           capacity = data.frame(cap.fx = 10), fixom = fixom,
+           trade = data.frame(timeslice = c("WIN", "SUM"), teff = 1)),
+  newDemand("D", commodity = "ELC",
+            demand = data.frame(region = "R3", timeslice = c("WIN", "SUM"),
+                                demand = 5)))
+
+corridor("d5a", data.frame(region = "R1",  fixom = 1))   # one endpoint
+#> 20    -- supply 10, fixom 10
+
+corridor("d5b", data.frame(region = "NA1", fixom = 1))   # a COARSE cell
+#> 20    -- charged ONCE at NA1, not once per child region
+
+corridor("d5c", data.frame(fixom = 1))                   # no region named
+#> 30    -- broadcasts to BOTH endpoints: fixom 20
+```
+
+The third line is the control. When a cost really does land in two places the
+objective visibly moves, so the equality of the first two is evidence rather
+than coincidence.
+
+## Demo 6 — rest-of-world import and export
+
+```{r d6}
+solve_demo("d6",
+  newCommodity("GAS", timeframe = "ANNUAL", geoframe = "nation"),
+  newImport("IMP", commodity = "GAS", imp = data.frame(price = 2)),
+  newDemand("D", commodity = "GAS", region = "NA1",
+            demand = data.frame(region = "NA1", timeslice = "ANNUAL",
+                                demand = 10)))
+#> Error: Declared resolution does not match the commodity's own level
+```
+
+`import` and `export` carry no level of their own — their regions resolve to the
+atoms — so a coarse commodity is refused. This is a pinned refusal, an open
+capability rather than a defect. Where you only need a priced source, use a
+`supply` at the coarse level instead, as in demo 2.
+
+## Demo 7 — weather does not work at a coarse region
+
+A plant in R1 whose summer availability is halved (`wval = 0.5`). Declared at
+the atom the weather binds and the model buys more capacity; declared at the
+nation the model becomes infeasible:
+
+```{r d7}
+plant <- function(name, wreg) solve_demo(name,
+  newCommodity("ELC", timeframe = "SEASON"),
+  newCommodity("COA", timeframe = "ANNUAL"),
+  newSupply("S", commodity = "COA",
+            supply = data.frame(region = "R1", cost = 0)),
+  newWeather("WX", region = wreg, timeframe = "SEASON",
+             weather = data.frame(region = wreg, timeslice = c("WIN", "SUM"),
+                                  wval = c(1, 0.5))),
+  newTechnology("EC", input = list(comm = "COA"), output = list(comm = "ELC"),
+                region = "R1", weather = data.frame(weather = "WX", waf.up = 1),
+                invcost = data.frame(invcost = 10),
+                vintage = data.frame(olife = 30L), cap2act = 1),
+  newDemand("D", commodity = "ELC",
+            demand = data.frame(region = "R1", timeslice = c("WIN", "SUM"),
+                                demand = 5)))
+
+plant("d7a", "R1")    # the weather sits on the atom the plant is in
+#> 6.666667   -- vs 3.333333 with no weather: summer wval = 0.5 binds
+
+plant("d7b", "NA1")   # the same weather at the nation
+#> INFEASIBLE
+```
+
+`weather` is not one of the strict classes, so nothing refuses the coarse
+declaration up front — it fails later, and unhelpfully. Keep weather objects at
+the finest level.
+
+## Demo 8 — transport inside a level is free, and only free
+
+The same system three ways: a lossless route, a lossy route, and the coarse
+balance.
+
+```{r d8}
+# COA, ELC, SUP, ECOA and MILL are the objects built in demo 1.
+flat_route <- function(name, teff) solve_demo(name,
+  COA, ELC, newCommodity("STL", timeframe = "ANNUAL"), SUP, ECOA, MILL,
+  newTrade("TR", commodity = "STL", routes = data.frame(src = "R1", dst = "R2"),
+           vintage = data.frame(olife = 50L),
+           trade = data.frame(timeslice = "ANNUAL", teff = teff)),
+  newDemand("D", commodity = "STL", region = "R2",
+            demand = data.frame(region = "R2", timeslice = "ANNUAL",
+                                demand = 10)))
+
+flat_route("d8a", 1)     # lossless route
+#> 10
+
+flat_route("d8b", 0.8)   # lossy route: make 12.5 to deliver 10
+#> 12.5
+
+# and demo 1a -- STL at "nation", no route at all -- was also 10.
+```
+
+The coarse balance reproduces the **lossless** case exactly. There is no way to
+express the 12.5 — a loss, a capacity or a tariff inside the level — because a
+coarse balance has no knob for it. The moment you need one, you need a real
+`trade` object and a finer balance.
+
+## Demo 9 — parallel groupings are refused
+
+`zone` and `sync` are two different partitions of the same four regions, so each
+sync zone straddles both zones:
+
+```{r d9}
+gx <- geoscale_from_leaftable(
+  data.frame(zone   = c("W",  "W",  "E",  "E"),
+             sync   = c("S1", "S2", "S1", "S2"),
+             region = c("R1", "R2", "R3", "R4")),
+  geoframes = c("zone", "sync", "region"), key = "region", name = "xcut")
+
+mod <- newModel("x", calendar = cal, region = c("R1", "R2", "R3", "R4"),
+                horizon = newHorizon(2025), discount = 0,
+                repo = newRepository("repo_x",
+                  newCommodity("GAS", timeframe = "ANNUAL")))
+
+interpolate_model(setGeoscale(mod, gx), name = "x")
+#> Error: The geoscale's `geoframes` do not nest: 2 region(s) have more than
+#> one parent.
+#>    S1 <- E + W
+#>    S2 <- E + W
+#> Adjacent geoframes must refine one another. Parallel groupings of the same
+#> regions (e.g. trade blocs alongside national borders) are not supported in
+#> one chain: keep a single hierarchy in `geoframes`.
+```
+
+The roll-up is an unweighted sum, so a region with two parents would be added
+into both. Rather than double-count silently, energyRt refuses.
 
 # Pros and cons
 

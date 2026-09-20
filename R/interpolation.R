@@ -2692,8 +2692,21 @@ get_parameter_full_sets <- function(
 
   grid <- raw |>
     dplyr::distinct(dplyr::across(dplyr::all_of(set_cols))) |>
-    dplyr::cross_join(dplyr::tibble(year = year_seq)) |>
-    dplyr::left_join(vals, by = c(set_cols, "year"))
+    dplyr::cross_join(dplyr::tibble(year = year_seq))
+  # `grid` is unique by construction, so this join can only ADD rows when
+  # `vals` carries a repeated (set_cols, year) key. That multiplies the series
+  # instead of interpolating it and every downstream total silently doubles,
+  # which is the defect the construction-time checks exist to prevent -- fail
+  # here rather than hand the solver a multiplied parameter.
+  .n_grid <- nrow(grid)
+  grid <- dplyr::left_join(grid, vals, by = c(set_cols, "year"))
+  if (nrow(grid) != .n_grid) {
+    stop("interpolation multiplied a series: ", nrow(grid), " rows from ",
+         .n_grid, ". The data carries a repeated (",
+         paste(c(set_cols, "year"), collapse = ", "),
+         ") key; give each row a distinct key, or keep one row.",
+         call. = FALSE)
+  }
   out <- interpolate_numpar(
     data = grid, value_col = "value", set_cols = set_cols,
     int_rule = int_rule, def_val = def_val
@@ -2994,7 +3007,14 @@ validate_scenario_parameters <- function(scen, fold = TRUE,
       key <- d[, id_cols, drop = FALSE]
       n_dup <- sum(duplicated(as.data.table(key)))
       if (n_dup > 0) {
-        add(pn, "duplicate_key", paste0(n_dup, " duplicate id tuple(s)"))
+        # Structural: a repeated id tuple in a written parameter is not a
+        # warning-level oddity. The backends index by the id columns, so the
+        # solver receives one cell declared twice -- GLPK takes the last, the
+        # Arrow/data.frame paths multiply the row through later joins. The
+        # constructor refuses these, so anything arriving here came from a
+        # store, a converter, or a code path that bypassed `.data2slots()`.
+        add(pn, "duplicate_key", paste0(n_dup, " duplicate id tuple(s)"),
+            severity = "structural")
       }
     }
   }
@@ -4754,6 +4774,8 @@ if (FALSE) {
 # The `interpolate` generic''s methods, dispatching onto interpolate_model().
 # LIVE API -- kept beside the implementation, not in the deprecation file
 # (which is deleted wholesale at the sunset).
+#' @rdname interpolate_model
+#' @export
 setMethod("interpolate", signature(object = "model"),
           function(object, ...) interpolate_model(object, ...))
 

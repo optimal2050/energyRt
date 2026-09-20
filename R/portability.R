@@ -485,9 +485,14 @@ drop_solver_outputs <- function(scen, runs = NULL, dry_run = TRUE,
   TRUE
 }
 
-# Remove the named keys from every run.yml under `dir`.
-.sui_scrub_run_yml <- function(dir, keys) {
-  ff <- list.files(dir, pattern = "^run\\.yml$", recursive = TRUE,
+# Remove the named keys from every matching manifest under `dir`.
+#
+# `modOut.yml` matters as much as `run.yml`: a promoted solution copies the
+# solve's `hostname` / `user` into its own manifest PRECISELY so they survive
+# the run folder being deleted -- which is also what makes them outlive a
+# scrub aimed only at runs.
+.sui_scrub_yml <- function(dir, keys, pattern = "^run[.]yml$") {
+  ff <- list.files(dir, pattern = pattern, recursive = TRUE,
                    full.names = TRUE)
   n <- 0L
   for (f in ff) {
@@ -609,7 +614,8 @@ drop_solver_outputs <- function(scen, runs = NULL, dry_run = TRUE,
 #' @param confirm logical, required to edit in place.
 #' @param verbose logical.
 #'
-#' @return invisibly, a list with `path`, `scope`, `run_yml` (records scrubbed),
+#' @return invisibly, a list with `path`, `scope`, `run_yml` (run and solution
+#'   records scrubbed),
 #'   `solver_csv`, and `remaining` — files that still contain the home
 #'   directory or user name after the pass, which should be empty.
 #' @seealso [prepare_for_sharing()], [scenario_artifacts()]
@@ -650,7 +656,8 @@ strip_user_info <- function(scen, path = NULL, scope = c("share", "store"),
   .sui_scrub_manifest(out)
   keys <- c("cmdline", "solver")
   if (identical(scope, "share")) keys <- c(keys, "hostname", "user")
-  n_run <- .sui_scrub_run_yml(out, keys)
+  n_run <- .sui_scrub_yml(out, keys, "^run[.]yml$") +
+    .sui_scrub_yml(out, keys, "^modOut[.]yml$")
   n_csv <- .sui_scrub_solver_csv(out)
   if (identical(scope, "share")) unlink(fp(out, "logfile.csv"), force = TRUE)
 

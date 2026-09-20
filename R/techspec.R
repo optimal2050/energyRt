@@ -262,10 +262,13 @@
       cols = c("vintage", "cluster", "src", "dst", "year", "timeslice",
                "varom", "markup"),
       dims = c("vintage", "cluster", "src", "dst", "year", "timeslice")),
+    # No `region`, as for `@capacity` above: a trade's lifespan belongs to the
+    # route. `pTradeOlife` is indexed by trade alone and the span maps are
+    # (trade, year), so the slot carries no region column to write into.
     vintages = list(
       arg = "vintage",
-      cols = c("vintage", "region", "cluster", "start", "end", "olife"),
-      dims = c("region", "cluster")),
+      cols = c("vintage", "cluster", "start", "end", "olife"),
+      dims = c("cluster")),
     clusters = list(
       arg = "cluster",
       cols = c("cluster", "desc", "share", "order"),

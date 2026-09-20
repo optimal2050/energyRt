@@ -28,6 +28,17 @@
 
 ## Breaking changes
 
+* Two rows of one object slot that set the same parameter at the same key are
+  refused at construction, naming the column, the key and both values. An `NA`
+  in a key column means "all members of that dimension", so such rows claimed
+  one cell: nothing chose between them and the interpolation join repeated the
+  row once per duplicate, handing the solver a multiplied parameter. Keys are
+  per parameter, so two columns of one slot can key differently. A repeated key
+  is refused whatever the values, equal ones included.
+* A repeated id tuple in an interpolated parameter is a structural finding and
+  stops the interpolation, where it used to warn. `interpolate_model()` also
+  errors if a value series multiplies while being interpolated, rather than
+  writing out the multiplied result.
 * `trade@vintage` no longer carries a `region` column: a trade's lifespan
   belongs to the route, which is how `pTradeOlife` and the span maps have
   always been indexed. A per-region `start`/`end`/`olife` on a trade is now
@@ -383,6 +394,14 @@
 
 ## Bug fixes
 
+* `interpolate()` and `solve()` work on an installed package. Both generics
+  were documented as the recommended API but never exported, so the pipelines
+  in the README and the vignettes failed for anyone who had not loaded the
+  source tree; `read()` was already exported.
+* The shipped `utopia` storage objects can be read and printed again. They
+  were stored before `storage@inp2stg` existed, so `print()`, `o@inp2stg` and
+  `process_to_spec()` all failed on them; models built from the kits still
+  interpolated, which is why it went unnoticed.
 * `drop_scenario_run()` says so when a run holds the only copy of the
   scenario's solution, and names `promote_solution()`. Dropping it used to
   leave the scenario pointing at a store that was gone, so every read

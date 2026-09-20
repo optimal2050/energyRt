@@ -817,6 +817,8 @@ solve_scenario <- function(obj, name = obj@name, solver = NULL, solver.dir = NUL
 .solve_model_method    <- function(a, b, ...) solve_model(a, ...)
 .solve_scenario_method <- function(a, b, ...) solve_scenario(a, ...)
 
+#' @rdname solve_model
+#' @export
 setMethod("solve", signature(a = "model", b = "character"), .solve_model_method)
 setMethod("solve", signature(a = "model", b = "missing"),   .solve_model_method)
 setMethod("solve", signature(a = "scenario", b = "character"),

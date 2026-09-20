@@ -158,6 +158,49 @@ test_that("scenario_artifacts lists the solution, and never as scratch", {
   expect_true(dir.exists(fp(s@path, "modOut", "variables")))
 })
 
+test_that("re-promoting a different run replaces the store", {
+  skip_if_no_solver()
+  pr_local()
+  s <- pr_solved("pr_re", run = "runA")
+  s <- suppressMessages(save_scenario(suppressMessages(solve_scenario(
+    interpolate_model(sp_tech(c(100, 100, 100), optret = FALSE, name = "pr"),
+                      name = "pr_re", path = pr_root("scenarios", "pr_re")),
+    solver = solver_options$glpk, run = "runB", echo = FALSE)),
+    verbose = FALSE))
+
+  s <- suppressMessages(promote_solution(s, run = "runA", verbose = FALSE))
+  expect_identical(
+    yaml::read_yaml(fp(s@path, "modOut", "modOut.yml"))$from_run, "runA")
+
+  s <- suppressMessages(promote_solution(s, run = "runB", verbose = FALSE))
+  mf <- yaml::read_yaml(fp(s@path, "modOut", "modOut.yml"))
+  expect_identical(mf$from_run, "runB")
+  # replaced, not merged: no staging or set-aside directory survives
+  expect_false(dir.exists(paste0(fp(s@path, "modOut"), ".incoming")))
+  expect_false(dir.exists(paste0(fp(s@path, "modOut"), ".prev")))
+  expect_gt(nrow(as.data.frame(getData(s, "vTechOut", merge = TRUE))), 0L)
+})
+
+test_that("sharing scrubs the promoted manifest, not just run records", {
+  skip_if_no_solver()
+  pr_local()
+  s <- suppressMessages(promote_solution(pr_solved("pr_share"), verbose = FALSE))
+  out <- pr_root("shared")
+  unlink(out, recursive = TRUE)
+  res <- suppressMessages(prepare_for_sharing(s, path = out, verbose = FALSE))
+
+  # modOut.yml copies the solve's host/user so they survive the run folder
+  # being deleted -- which is exactly what would carry them past a scrub
+  # aimed only at run.yml
+  mf <- yaml::read_yaml(fp(out, "modOut", "modOut.yml"))
+  expect_identical(as.character(mf$user %||% ""), "")
+  expect_identical(as.character(mf$hostname %||% ""), "")
+  expect_false(any(grepl("modOut[.]yml", res$remaining)))
+  # and the provenance that is NOT identifying is untouched
+  expect_true(nzchar(mf$from_run))
+  expect_identical(mf$stage, "solved")
+})
+
 test_that("import_solution(promote = TRUE) chains both steps", {
   skip_if_no_solver()
   pr_local()

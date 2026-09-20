@@ -2,6 +2,7 @@
 % Please edit documentation in R/interpolation.R
 \name{interpolate_model}
 \alias{interpolate_model}
+\alias{interpolate,model-method}
 \title{Interpolate a model into a solver-ready scenario}
 \usage{
 interpolate_model(
@@ -21,6 +22,8 @@ interpolate_model(
   .prefilter = FALSE,
   verbose = isVerbose()
 )
+
+\S4method{interpolate}{model}(object, ...)
 }
 \arguments{
 \item{mod}{a \link{model} object, or a \link{scenario} (its \verb{@model} is re-interpolated).}

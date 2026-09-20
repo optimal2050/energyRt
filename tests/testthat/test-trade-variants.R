@@ -17,8 +17,9 @@ test_that("trade keeps its lifespan in @vintage and lost capacityVariable", {
   sn <- slotNames("trade")
   expect_true("vintage" %in% sn)
   expect_false(any(c("start", "end", "olife", "capacityVariable") %in% sn))
+  # no `region`: a trade's lifespan belongs to the route, not to a region
   expect_identical(names(new("trade")@vintage),
-                   c("vintage", "region", "cluster", "start", "end", "olife"))
+                   c("vintage", "cluster", "start", "end", "olife"))
 })
 
 test_that("capacityVariable errors with a migration message", {
@@ -138,11 +139,12 @@ test_that("mTradeCapacityVariable is gone from the R side", {
 
 test_that("per-region trade lifespan is refused (pTradeOlife has no region)", {
   rt <- data.frame(src = "R1", dst = "R2")
-  TRG <- newTrade(
-    "TRG_ELC", commodity = "ELC", routes = rt,
-    trade = data.frame(src = "R1", dst = "R2", teff = 0.95),
-    vintage = data.frame(region = "R1", olife = 40L),
-    cap2act = 1)
-  expect_error(vt_interp(vt_trade_model(TRG, "trg"), "trg"),
-               "region")
+  # refused at CONSTRUCTION now: `trade@vintage` has no `region` column at all,
+  # so the mistake never reaches interpolation
+  expect_error(
+    newTrade("TRG_ELC", commodity = "ELC", routes = rt,
+             trade = data.frame(src = "R1", dst = "R2", teff = 0.95),
+             vintage = data.frame(region = "R1", olife = 40L),
+             cap2act = 1),
+    "region")
 })

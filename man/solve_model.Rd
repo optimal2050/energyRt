@@ -3,6 +3,7 @@
 \name{solve_model}
 \alias{solve_model}
 \alias{solve_scenario}
+\alias{solve,model,character-method}
 \title{Solve a model or an interpolated scenario}
 \usage{
 solve_model(obj, name = NULL, solver = NULL, ondisk = FALSE, fold = FALSE, ...)
@@ -20,6 +21,8 @@ solve_scenario(
   tmp.dir = NULL,
   tmp.del = NULL
 )
+
+\S4method{solve}{model,character}(a, b, ...)
 }
 \arguments{
 \item{obj}{a model object (\code{solve_model()}) or an interpolated scenario

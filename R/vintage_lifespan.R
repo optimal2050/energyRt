@@ -60,7 +60,11 @@
 .pad_vintage_cols <- function(x) {
   miss <- setdiff(.vintage_cols, names(x))
   for (cc in miss) {
-    x[[cc]] <- if (cc %in% .vintage_val_cols) NA_integer_ else NA_character_
+    # `rep(, nrow(x))`, not a scalar: a 0-row frame rejects a length-1
+    # replacement. Reachable since `trade@vintage` stopped carrying `region`,
+    # which made `miss` non-empty for an empty trade lifespan.
+    x[[cc]] <- rep(if (cc %in% .vintage_val_cols) NA_integer_ else
+                   NA_character_, nrow(x))
   }
   x |> select(all_of(.vintage_cols))
 }
@@ -301,7 +305,11 @@
 .lifespan_resolve_df <- function(src, col, name = "?") {
   d <- src
   if (!all(.lifespan_keys %in% names(d))) {
-    for (k in setdiff(.lifespan_keys, names(d))) d[[k]] <- NA_character_
+    # `rep(, nrow(d))`: a 0-row frame rejects a length-1 replacement. Reached
+    # by a trade with an empty `@vintage`, whose slot has no `region` column.
+    for (k in setdiff(.lifespan_keys, names(d))) {
+      d[[k]] <- rep(NA_character_, nrow(d))
+    }
   }
   if (!col %in% names(d)) return(.empty_lifespan_col(col))
   d <- d[!is.na(d[[col]]), c(.lifespan_keys, col), drop = FALSE]
