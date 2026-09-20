@@ -210,6 +210,10 @@ scenario_solutions <- function(scen, peek = TRUE) {
 #' @param save logical; write the result with [save_scenario()]. `FALSE`
 #'   returns the scenario with the solution in memory only — which is the
 #'   situation this function exists to end, so it is on by default.
+#' @param promote logical; after importing, make this the scenario's own
+#'   solution with [promote_solution()] — copied to `<scenario>/modOut/` with
+#'   its provenance, after which the run tree is scratch. Off by default,
+#'   since which attempt is final is a choice.
 #' @param cleanup logical; remove the run's regenerable solver files
 #'   afterwards. Off by default.
 #' @param verbose logical.
@@ -218,7 +222,8 @@ scenario_solutions <- function(scen, peek = TRUE) {
 #' @seealso [scenario_solutions()], [read_solution()], [drop_solver_outputs()]
 #' @export
 import_solution <- function(scen, run, ..., restore_solver = TRUE,
-                            save = TRUE, cleanup = FALSE, verbose = TRUE) {
+                            save = TRUE, promote = FALSE, cleanup = FALSE,
+                            verbose = TRUE) {
   stopifnot(is(scen, "scenario"))
   if (missing(run) || !length(run) || !nzchar(run[1])) {
     stop("`run` is required: name the run to import.\n  Available runs:\n",
@@ -260,6 +265,11 @@ import_solution <- function(scen, run, ..., restore_solver = TRUE,
   }
 
   if (isTRUE(save)) out <- save_scenario(out, verbose = FALSE)
+
+  # Promotion needs the run's store on disk, so it follows the save.
+  if (isTRUE(promote)) {
+    out <- promote_solution(out, run = run, save = TRUE, verbose = verbose)
+  }
 
   if (isTRUE(cleanup)) {
     tryCatch(drop_solver_outputs(out, runs = run, dry_run = FALSE,

@@ -90,6 +90,9 @@ scenarios/<name-model-calendar-horizon>/
 ├── scen.RData          # the thin S4 shell (all big data lives beside it)
 ├── class · format · layout · logfile.csv
 ├── modInp/parameters/<param>/           # the (base) interpolated problem
+├── modOut/variables/<var>/              # the scenario's own solution, once
+│                       #   promoted — with modOut.yml recording which run
+│                       #   produced it (see "A solution of its own")
 ├── model/…             # the model's data — only when embedded (see below)
 └── runs/               # one folder per solver run
     ├── glpk/                            # a base-problem run
@@ -301,6 +304,33 @@ swap together, in both directions — so `getData()` is always consistent
 with the run you are looking at. This is the storage substrate for the
 sequential (myopic) solver: `solve_myopic()` keeps a whole year-by-year
 sequence as one scenario with one variant per step.
+
+### A solution of its own
+
+A solved scenario's results live in the run that produced them, and the object
+points there. That makes `runs/` load-bearing: delete it and every read fails,
+because the store the scenario names is gone.
+
+`promote_solution()` copies the chosen run's solution to `<scenario>/modOut/`,
+beside `modInp/`, and clears the active run so the scenario reads from there:
+
+```{r promote, eval = FALSE}
+scenario_solutions(scen)                  # which attempt to keep?
+scen <- promote_solution(scen, "glpk")    # or import_solution(..., promote = TRUE)
+drop_scenario_run(scen, "glpk", force = TRUE)   # the run is now scratch
+```
+
+After that the run tree is disposable. `modOut.yml` travels with the store and
+records which run produced the solution, its objective, stage, solver and
+timings — provenance that otherwise lives only in `run.yml` and would go with
+the run folder. Its presence is also how a complete store is told from a
+half-written one, and how `upgrade_scenario_layout()` knows not to migrate a
+promoted store back under a run.
+
+Promoting copies rather than moves, so comparing attempts keeps working until
+you drop them. A **variant** cannot be promoted: its `modInp` and settings
+live inside `runs/<variant>/`, so lifting only its solution would pair variant
+results with the base problem's parameters.
 
 ### Getting data out of a variant
 

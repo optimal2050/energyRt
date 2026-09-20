@@ -206,7 +206,16 @@ upgrade_scenario_layout <- function(path, verbose = TRUE) {
   }
 
   # -- top-level modOut/ moves under the active run --------------------------
+  #
+  # Unless it is a PROMOTED store. `promote_solution()` writes the scenario's
+  # chosen solution here deliberately and clears the active run, which is the
+  # same shape a layout-2 scenario has -- `modOut.yml` is what tells them
+  # apart. Migrating a promoted store into a run would silently undo the
+  # promotion and make runs/ load-bearing again.
   top_modout <- fp(path, "modOut")
+  if (.modout_is_promoted(top_modout)) {
+    say("Keeping the promoted modOut/ (modOut.yml present)")
+  } else
   if (is.null(scen@misc$run %||% NULL) || !nzchar(scen@misc$run %||% "")) {
     if (!is.null(migrated_active)) {
       scen@misc$variant <- ""
@@ -215,7 +224,8 @@ upgrade_scenario_layout <- function(path, verbose = TRUE) {
       scen@misc$solver.dir <- NULL
     }
   }
-  if (dir.exists(top_modout) && nzchar(scen@misc$run %||% "")) {
+  if (dir.exists(top_modout) && nzchar(scen@misc$run %||% "") &&
+      !.modout_is_promoted(top_modout)) {
     target <- fp(.run_dir(scen, .run_variant(scen), scen@misc$run), "modOut")
     if (!dir.exists(target)) {
       say("Moving modOut/ under runs/",

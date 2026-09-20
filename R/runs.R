@@ -372,8 +372,20 @@ drop_scenario_run <- function(scen, run, force = FALSE) {
   is_active <- identical(id$variant, .run_variant(scen)) &&
     identical(id$solve, scen@misc$run %||% "")
   if (is_active && !force) {
-    stop("Run '", .run_id(id$variant, id$solve), "' is the scenario's ",
-         "active run. Use force = TRUE to drop it anyway.")
+    msg <- paste0("Run '", .run_id(id$variant, id$solve),
+                  "' is the scenario's active run. ")
+    # The dangerous case, worth saying out loud: the shell points at this
+    # run's store, so dropping it leaves every read failing with "On-disk
+    # data expected but not found". Promotion is what makes a run droppable.
+    if (dir.exists(fp(run_dir, "modOut", "variables")) &&
+        !.modout_is_promoted(fp(scen@path, "modOut"))) {
+      msg <- paste0(
+        msg, "It holds the only copy of the scenario's solution: dropping it ",
+        "would leave the scenario pointing at a store that is gone. ",
+        "promote_solution(scen) copies it to <scenario>/modOut first, after ",
+        "which the run is scratch. ")
+    }
+    stop(msg, "Use force = TRUE to drop it anyway.")
   }
   if (unlink(run_dir, recursive = TRUE, force = TRUE) != 0) {
     stop("Could not delete '", run_dir, "'")

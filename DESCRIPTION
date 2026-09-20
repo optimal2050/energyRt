@@ -150,6 +150,7 @@ Collate:
     'runs.R'
     'portability.R'
     'process_designer.R'
+    'promote_solution.R'
     'prune.R'
     'read_sequence.R'
     'region_gaps.R'

@@ -236,7 +236,21 @@ scenario_artifacts <- function(scen) {
   spec <- list(
     reports = "rendered reports -- regenerable from the object and template",
     levcost = "cached levcost results -- recomputable")
-  out <- list()
+  out0 <- list()
+  # The promoted solution, if there is one. It is the OPPOSITE of scratch --
+  # listed so it appears in the disk picture and is visibly not a clean-up
+  # candidate, which is why its `suggest` stays empty.
+  sol <- fp(own, "modOut")
+  if (dir.exists(sol)) {
+    mb <- dir_size(sol, missing = "zero") / 1024^2
+    out0[[1L]] <- tibble(
+      kind = "solution", run = NA_character_, variant = NA_character_,
+      solve = NA_character_, status = NA_character_,
+      imported = TRUE, scratch_mb = 0, solution_mb = round(mb, 3),
+      active = TRUE, sealed = sealed, has_record = .modout_is_promoted(sol),
+      path = gsub("[\\/]+", "/", sol), suggest = "")
+  }
+  out <- out0
   for (nm in names(spec)) {
     d <- fp(own, nm)
     if (!dir.exists(d)) next

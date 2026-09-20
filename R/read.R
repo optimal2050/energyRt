@@ -5,6 +5,36 @@
 #
 # Returns the scenario with `@modOut` pointing at the store, or NULL when the
 # run has none.
+# Build a `modOut` by SCANNING a store directory rather than from the shell's
+# bookkeeping. The class supplies the schema: each directory name is looked up
+# in the baked variable spec, and a name the spec does not know is accepted
+# untyped rather than dropped.
+#
+# `sets` is problem-level and belongs to no store, so the caller carries it in;
+# `stage` comes from whichever manifest describes the store -- `run.yml` for a
+# run, `modOut.yml` for a promoted one.
+.modout_from_store <- function(store_dir, sets = list(), stage = "solved") {
+  vdir <- fp(store_dir, "variables")
+  if (!dir.exists(vdir)) return(NULL)
+  nms <- basename(list.dirs(vdir, recursive = FALSE))
+  nms <- nms[dir.exists(fp(vdir, nms, "data"))]
+  if (!length(nms)) return(NULL)
+  mo <- new("modOut")
+  for (nm in nms) {
+    v <- mo@variables[[nm]]
+    if (is.null(v)) v <- newVariable(nm, origin = "solver", declared = FALSE)
+    v <- set_ondisk_slots(v)
+    v <- setObjPath(v, path = fp(vdir, nm))
+    v <- mark_ondisk(v)
+    mo@variables[[nm]] <- v
+  }
+  mo@sets <- sets
+  mo@stage <- as.character(stage %||% "solved")
+  mo <- set_ondisk_slots(mo)
+  mo <- setObjPath(mo, path = store_dir)
+  mark_ondisk(mo)
+}
+
 .modout_attach <- function(scen, solver_dir) {
   run_dir <- tryCatch(
     .run_dir(scen, .run_variant(scen), scen@misc$run %||% ""),
@@ -17,33 +47,13 @@
     error = function(e) FALSE)
   if (!same) return(NULL)
 
-  vdir <- fp(run_dir, "modOut", "variables")
-  if (!dir.exists(vdir)) return(NULL)
-  nms <- basename(list.dirs(vdir, recursive = FALSE))
-  nms <- nms[dir.exists(fp(vdir, nms, "data"))]
-  if (!length(nms)) return(NULL)
-
-  mo <- new("modOut")
-  for (nm in nms) {
-    v <- mo@variables[[nm]]
-    if (is.null(v)) {
-      v <- newVariable(nm, origin = "solver", declared = FALSE)
-    }
-    v <- set_ondisk_slots(v)
-    v <- setObjPath(v, path = fp(vdir, nm))
-    v <- mark_ondisk(v)
-    mo@variables[[nm]] <- v
-  }
-  # `@sets` is problem-level and is not part of the store, so it carries over
-  # from the scenario rather than being rebuilt from the dump.
-  mo@sets <- tryCatch(scen@modOut@sets, error = function(e) list())
   rec <- tryCatch(yaml::read_yaml(fp(run_dir, "run.yml")),
                   error = function(e) NULL)
-  mo@stage <- as.character(rec$stage %||% "solved")
-  mo <- set_ondisk_slots(mo)
-  mo <- setObjPath(mo, path = fp(run_dir, "modOut"))
-  mo <- mark_ondisk(mo)
-
+  mo <- .modout_from_store(
+    fp(run_dir, "modOut"),
+    sets = tryCatch(scen@modOut@sets, error = function(e) list()),
+    stage = rec$stage %||% "solved")
+  if (is.null(mo)) return(NULL)
   scen@modOut <- mo
   if (identical(mo@stage, "solved")) {
     scen@status$optimal <- TRUE

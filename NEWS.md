@@ -114,6 +114,13 @@
 
 ## New features
 
+* `promote_solution()` makes a run's solution the scenario's own, copying it
+  to `<scenario>/modOut/` beside `modInp/` and clearing the active run —
+  after which `runs/` is scratch and can be deleted without losing the
+  solution. `import_solution(promote = TRUE)` chains both steps. The store
+  carries a `modOut.yml` recording the solve's provenance (solver,
+  objective, stage, timings), which otherwise lives only in `run.yml` and
+  would go with the run folder.
 * `read_sequence()` rebuilds the result of `solve_myopic()`,
   `solve_by_sample()`, `solve_by_region()` or `solve_guided()` from the
   variants on disk, so `getData()`, `sample_summary()`,
@@ -376,6 +383,10 @@
 
 ## Bug fixes
 
+* `drop_scenario_run()` says so when a run holds the only copy of the
+  scenario's solution, and names `promote_solution()`. Dropping it used to
+  leave the scenario pointing at a store that was gone, so every read
+  failed with "On-disk data expected but not found".
 * Switching to a run whose solver `output/` is gone no longer returns the
   previously active run's solution. `read_solution()` reads the run's
   imported `modOut/` store instead, and errors when neither is available —
