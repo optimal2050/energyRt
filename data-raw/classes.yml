@@ -34,8 +34,12 @@ class:
         level (e.g. balancing steel nationally while electricity stays
         state-level) asserts free, unlimited transport of the commodity within
         that level, so it suits goods with a genuinely integrated market and
-        never a network-constrained carrier such as electricity. Requires a
-        geoscale on the model config; GLPK and GAMS only.
+        never a network-constrained carrier such as electricity. The coarse
+        balance is the plain SUM of its children: regional quantities are
+        extensive, so no weighting is applied. Requires a geoscale on the model
+        config whose geoframes NEST -- adjacent levels must refine one another,
+        or a region would be counted into two parents. Supported by all
+        back-ends.
     unit:
       type: character
       description: The main unit of the commodity used in the model.
@@ -1970,9 +1974,9 @@ class:
           type: character
           description: >
             Endpoint region bearing this rate. NA applies the rate at every
-            endpoint of the route; name the regions to vary it between them. Must
-            be one of the model's own regions -- a coarser geoscale level is
-            accepted by validation but never reaches the objective.
+            endpoint of the route; name the regions to vary it between them. A
+            coarser geoscale level is accepted and charged ONCE at that cell,
+            not once per child region.
         year:
           type: integer
           description: Year to apply the parameter, NA for every year.
@@ -2759,9 +2763,12 @@ class:
       description: >
         Optional `geoscales::Geoscale` object describing the model's regions --
         their nesting into coarser levels, weights, and (optionally) geometry.
-        Purely additional information about the labels in `region`, which
-        remains authoritative; the geoscale is used for plotting, reporting and
-        subsetting and never changes the optimisation model. `NULL` when unset.
+        `region` remains authoritative: it is always the finest level, and the
+        geoscale adds the structure above it. Attaching one is inert on its own
+        -- it widens the model's region set with the coarser codes and enables
+        level-aware plotting, reporting and subsetting -- but it is also what
+        makes `commodity@geoframe` possible, and a commodity balanced at a
+        coarser level DOES change the optimisation model. `NULL` when unset.
         Typed `ANY` because `geoscales` is an optional (Suggests) dependency.
     horizon:
       type: horizon

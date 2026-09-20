@@ -92,7 +92,7 @@ Before 0.85 both columns were summed into a single term that cancelled between \
 \describe{
 \item{vintage}{character. Vintage label selecting the variant this row applies to, NA for every vintage. See the \code{vintage} slot.}
 \item{cluster}{character. Cluster (loss tranche) label selecting the tranche this row applies to, NA for every tranche. See the \code{cluster} slot.}
-\item{region}{character. Endpoint region bearing this rate. NA applies the rate at every endpoint of the route; name the regions to vary it between them. Must be one of the model's own regions -- a coarser geoscale level is accepted by validation but never reaches the objective.
+\item{region}{character. Endpoint region bearing this rate. NA applies the rate at every endpoint of the route; name the regions to vary it between them. A coarser geoscale level is accepted and charged ONCE at that cell, not once per child region.
 }
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{invcost}{numeric. Investment cost.}

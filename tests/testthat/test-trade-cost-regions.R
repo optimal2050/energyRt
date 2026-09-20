@@ -3,9 +3,12 @@
 # cost names, with no share factor. That is the intended convention: `invcost`
 # is what each endpoint bears, and the `region` column is how a user splits it.
 #
-# It has two edges the user cannot see, both measured here rather than asserted:
+# One edge the user cannot see is measured here rather than asserted:
 #   * an unregioned row broadcasts to every endpoint, charging the corridor twice
-#   * a coarser geoscale level passes validation but never reaches the objective
+#
+# A coarser geoscale level USED to pass validation without reaching the
+# objective; it is now charged once at that cell, which the blocks below assert
+# with absolute numbers.
 #
 # `test-eac-parity.R` compares the invcost form against the eac form, so a
 # doubling that affects both is invisible to it. These are ABSOLUTE numbers.

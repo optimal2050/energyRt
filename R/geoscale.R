@@ -10,6 +10,8 @@
 #
 #  * PRESENTATION (plot_map.R, plot.R, reporting, subsetting). Needs nothing
 #    from the optimisation model and never did.
+#    NOTE: this is the PRESENTATION half only -- see MODEL STRUCTURE below,
+#    which is emphatically not inert once a commodity names a `@geoframe`.
 #
 #  * MODEL STRUCTURE. `sets$region` becomes the union of every level, so a
 #    coarse region such as a nation is a member alongside the states, and a
@@ -33,9 +35,17 @@ NULL
 #'
 #' A geoscale describes the model's regions -- their nesting into coarser
 #' levels, their weights, and optionally their geometry. It is built with the
-#' [geoscales](https://github.com/optimal2050/geoscales) package and is used
-#' for plotting, reporting and subsetting only: attaching one never changes the
-#' optimisation model.
+#' [geoscales](https://github.com/optimal2050/geoscales) package.
+#'
+#' Attaching one is inert by itself: it widens the model's region set with the
+#' coarser codes and enables level-aware plotting, reporting and subsetting
+#' (`getData(geoframe = )`), but the extra members stay unused and the model
+#' solves exactly as before. It is also the prerequisite for
+#' `newCommodity(geoframe = )`, which balances a commodity at a coarser level
+#' and does change the optimisation model -- see
+#' `vignette("space-resolution")`. The geoframes must NEST: adjacent levels
+#' have to refine one another, or a region would be aggregated into two
+#' parents.
 #'
 #' `setGeoscale()` stores it on a `config` (and therefore on a `settings`, which
 #' inherits from `config`) or on a `model`. `getGeoscale()` reads it back;
@@ -216,17 +226,69 @@ check_geoscale_regions <- function(geoscale, region, level = NULL) {
   keep[[finest]] <- intersect(geoscales::geoscale_regions(geoscale, finest),
                               declared)
   pairs <- list()
+  selfish <- character()
   for (i in rev(seq_len(length(levels) - 1L))) {
     pl <- levels[i]
     cl <- levels[i + 1L]
     f <- fam[fam_parent_level == pl & fam_child_level == cl &
                fam$child %in% keep[[cl]], , drop = FALSE]
+    # `keep` is taken BEFORE self-pairs are dropped: a code repeated across two
+    # geoframes is still a legitimate child for the level above it.
     keep[[pl]] <- unique(f$parent)
+    # A code repeated across adjacent geoframes parents ITSELF (`LU` under `LU`,
+    # the shape Eurostat pads away as LU -> LU0 -> LU00). The pair needs no
+    # roll-up -- the coarse cell IS the atom -- and emitting it would make
+    # eqOutTot read `vOutTot[c,r] = <real terms> + vOutTot[c,r]`, which cancels
+    # the cell out of its own equation: the real terms are forced to zero and
+    # the cell is left free and costless. Silent, feasible, and wrong.
+    self <- as.character(f$parent) == as.character(f$child)
+    if (any(self)) {
+      selfish <- c(selfish, unique(as.character(f$parent)[self]))
+      f <- f[!self, , drop = FALSE]
+    }
     if (nrow(f) > 0L) {
       pairs[[length(pairs) + 1L]] <-
         data.frame(region = as.character(f$parent),
                    regionp = as.character(f$child),
                    stringsAsFactors = FALSE)
+    }
+  }
+  if (length(selfish)) {
+    selfish <- unique(selfish)
+    message("Geoscale: ", length(selfish), " region(s) carry the same code at ",
+            "two adjacent geoframes (", paste(utils::head(selfish, 5),
+                                              collapse = ", "),
+            if (length(selfish) > 5) ", ..." else "",
+            "). No aggregation is needed for them; the self-pairs are dropped.")
+  }
+
+  # Every child must have exactly ONE parent. More than one means two adjacent
+  # geoframes CROSS-CUT -- parallel groupings of the same atoms, which geoscales
+  # permits by design but this roll-up cannot represent: the up-aggregation term
+  # in eqOutTot/eqInpTot is a plain unweighted sum, so a child with two parents
+  # is added into both. Where a commodity is balanced at or above the cut that
+  # silently widens the balance into a copperplate; below it, the coarse totals
+  # overlap and no longer sum to the system total. Refuse rather than solve a
+  # different problem.
+  .fam_all <- if (length(pairs)) do.call(rbind, pairs) else NULL
+  if (!is.null(.fam_all) && nrow(.fam_all) > 0L) {
+    np <- tapply(.fam_all$region, .fam_all$regionp,
+                 function(z) length(unique(z)))
+    bad <- names(np)[np > 1L]
+    if (length(bad)) {
+      shown <- utils::head(bad, 5)
+      det <- vapply(shown, function(b) paste0(
+        b, " <- ", paste(sort(unique(.fam_all$region[.fam_all$regionp == b])),
+                         collapse = " + ")), character(1))
+      stop("The geoscale's `geoframes` do not nest: ", length(bad),
+           " region(s) have more than one parent.\n   ",
+           paste(det, collapse = "\n   "),
+           if (length(bad) > 5) "\n   ..." else "",
+           "\nAdjacent geoframes must refine one another. Parallel groupings ",
+           "of the same regions (e.g. trade blocs alongside national borders) ",
+           "are not supported in one chain: keep a single hierarchy in ",
+           "`geoframes`. Diagnose with `geoscales::geoscale_nests()`.",
+           call. = FALSE)
     }
   }
 

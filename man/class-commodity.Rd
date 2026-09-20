@@ -22,7 +22,7 @@ The creation of a commodity object is done with the \code{newCommodity} function
 
 \item{\code{timeframe}}{character. The default time-frame this commodity operates in the model. The lowest timeframe in the model is used by default.}
 
-\item{\code{geoframe}}{character. The geoscale level at which this commodity is balanced -- the spatial counterpart of \code{timeframe}. The finest level in the model is used by default, reproducing the flat, single-level behaviour. Naming a coarser level (e.g. balancing steel nationally while electricity stays state-level) asserts free, unlimited transport of the commodity within that level, so it suits goods with a genuinely integrated market and never a network-constrained carrier such as electricity. Requires a geoscale on the model config; GLPK and GAMS only.}
+\item{\code{geoframe}}{character. The geoscale level at which this commodity is balanced -- the spatial counterpart of \code{timeframe}. The finest level in the model is used by default, reproducing the flat, single-level behaviour. Naming a coarser level (e.g. balancing steel nationally while electricity stays state-level) asserts free, unlimited transport of the commodity within that level, so it suits goods with a genuinely integrated market and never a network-constrained carrier such as electricity. The coarse balance is the plain SUM of its children: regional quantities are extensive, so no weighting is applied. Requires a geoscale on the model config whose geoframes NEST -- adjacent levels must refine one another, or a region would be counted into two parents. Supported by all back-ends.}
 
 \item{\code{unit}}{character. The main unit of the commodity used in the model.}
 

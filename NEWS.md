@@ -11,6 +11,21 @@
   session.
 
 
+* New article "Space resolution: geoscales and geoframes" — what
+  `commodity@geoframe` asserts, which classes may be declared at a coarse
+  level and which may not, the nesting requirement, and when a coarse balance
+  replaces a `trade` route.
+
+* A region whose code repeats at two adjacent geoframes no longer poisons its
+  own balance. The self-pair reached `mRegionFamily`, so `eqOutTot` read
+  `vOutTot[c,r] = <terms> + vOutTot[c,r]` and forced every real term to zero;
+  such pairs are dropped with a message, and the region balances like a padded
+  one (`LU` vs Eurostat's `LU0`).
+* A geoscale whose `geoframes` do not nest is refused instead of silently
+  double-counting. Two cross-cutting frames in one chain give a region more
+  than one parent, and the roll-up is a plain unweighted sum, so the child was
+  added into both; the error names the frames and the straddling regions.
+
 ## Breaking changes
 
 * `trade@vintage` no longer carries a `region` column: a trade's lifespan
@@ -560,6 +575,16 @@
   read.
 
 ## Documentation
+
+* Three shipped statements that contradicted the multi-level region feature are
+  corrected: `setGeoscale()` and `config@geoscale` no longer claim a geoscale
+  "never changes the optimisation model" (it is inert only until a commodity
+  names a `@geoframe`); `commodity@geoframe` no longer says "GLPK and GAMS
+  only" (all four back-ends carry the roll-up) and now states that the coarse
+  balance is the plain, unweighted SUM of its children and that geoframes must
+  nest; and the `region` column of `trade@invcost`/`@fixom` no longer says a
+  coarse level "never reaches the objective" — it is charged once at that cell.
+  The roadmap no longer lists nested regions as unstarted.
 
 * `read_solution()` has a help page. Its roxygen block was detached by a
   stray `#` comment, so the function documented nothing — the page now

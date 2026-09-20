@@ -20,7 +20,7 @@ scenario settings.
 
 \item{\code{calendar}}{calendar. Calendar object with the model time parameters.}
 
-\item{\code{geoscale}}{ANY. Optional \code{geoscales::Geoscale} object describing the model's regions -- their nesting into coarser levels, weights, and (optionally) geometry. Purely additional information about the labels in \code{region}, which remains authoritative; the geoscale is used for plotting, reporting and subsetting and never changes the optimisation model. \code{NULL} when unset. Typed \code{ANY} because \code{geoscales} is an optional (Suggests) dependency.}
+\item{\code{geoscale}}{ANY. Optional \code{geoscales::Geoscale} object describing the model's regions -- their nesting into coarser levels, weights, and (optionally) geometry. \code{region} remains authoritative: it is always the finest level, and the geoscale adds the structure above it. Attaching one is inert on its own -- it widens the model's region set with the coarser codes and enables level-aware plotting, reporting and subsetting -- but it is also what makes \code{commodity@geoframe} possible, and a commodity balanced at a coarser level DOES change the optimisation model. \code{NULL} when unset. Typed \code{ANY} because \code{geoscales} is an optional (Suggests) dependency.}
 
 \item{\code{horizon}}{horizon. Horizon object with the model time parameters. The horizon defines the planning period and intervals of the model.}
 

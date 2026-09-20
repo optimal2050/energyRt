@@ -1,0 +1,288 @@
+---
+title: "Space resolution: geoscales and geoframes"
+editor_options:
+  chunk_output_type: console
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE, comment = "#>",
+  eval = FALSE,
+  message = FALSE, warning = FALSE
+)
+```
+
+```{r setup}
+library(energyRt)
+library(geoscales)
+```
+
+# Why space has a resolution too
+
+A model's `region` vector is a flat list of labels, and every commodity is
+balanced in every one of them. That is the right default for electricity: a
+megawatt-hour in one state is not a megawatt-hour in the next, and moving it
+needs a line with a capacity and a loss.
+
+It is the wrong default for a lot of other things. Steel, cement, hydrogen
+certificates, a national CO~2~ allowance, a country-wide gas market — these are
+traded at a scale where the transport inside the scale is cheap, uncongested and
+uninteresting. Modelling them per state forces you to invent a transport network
+you do not believe in, and to calibrate it.
+
+`commodity@geoframe` says so directly: **balance this commodity at a coarser
+level than the model's regions.** It is the spatial twin of
+`commodity@timeframe`, which does the same thing in time (see the
+[time resolution article](time-resolution.html)).
+
+# The geoscale: what the levels are
+
+A `Geoscale` describes how the model's regions nest. It is built from a
+**leaftable** — one row per finest region, one column per level — plus an
+ordered `geoframes` vector, coarsest first:
+
+```{r geoscale}
+gs <- geoscale_from_leaftable(
+  data.frame(
+    nation = c("NA1", "NA1", "NA2", "NA2"),
+    region = c("R1",  "R2",  "R3",  "R4")
+  ),
+  geoframes = c("nation", "region"),
+  key = "region",
+  name = "demo"
+)
+
+geoscale_geoframes(gs)
+#> [1] "nation" "region"
+```
+
+The finest geoframe holds the model's own regions; everything coarser is a
+grouping of it. Attach it to the model:
+
+```{r attach}
+mod <- newModel("demo", region = c("R1", "R2", "R3", "R4"), geoscale = gs)
+# or, on an existing model:
+mod <- setGeoscale(mod, gs)
+```
+
+Attaching a geoscale **changes nothing on its own**. It widens the model's
+region set so `NA1`/`NA2` are members alongside `R1`–`R4`, and those extra
+members stay completely inert until some commodity names a coarser level.
+
+# Declaring a commodity at a coarser level
+
+```{r declare}
+ELC <- newCommodity("ELC", timeframe = "SEASON")                      # per region
+STL <- newCommodity("STL", timeframe = "ANNUAL", geoframe = "nation")  # per nation
+```
+
+`ELC` is balanced in R1, R2, R3 and R4 separately, as always. `STL` is balanced
+in `NA1` and `NA2` only. A steel mill in R1 and a steel demand in R2 now meet in
+the same balance equation, with nothing in between.
+
+## What that actually asserts
+
+**A coarse balance is exactly equivalent to free, unlimited, lossless transport
+of that commodity inside the level.** That is not an approximation of the
+feature — it is its definition, and the package pins it: the objective of a
+model with `STL` at `"nation"` equals, to 1e-9, the objective of the same model
+with `STL` per region plus a free unlimited trade route between them.
+
+So the question to ask before using it is never "is this commodity regional?"
+but **"would I be willing to draw a costless, uncongested, lossless pipe between
+every pair of regions inside this level?"** For an integrated national steel
+market, yes. For electricity, no — and the slot documentation says so.
+
+Mechanically: the finer regions' flows are summed into the coarse cell by an
+**unweighted** sum. Regional quantities are extensive — they add up — so unlike
+the timeslice side there is no weighting parameter. Multi-level chains
+accumulate one level at a time, so with `nation > zone > region` the zone cell
+must exist for the nation cell to have anything to read; energyRt builds those
+intermediate cells for you.
+
+# What you can and cannot do
+
+| | |
+|---|---|
+| **commodity** at a coarse level | ✅ this is the feature |
+| **supply**, **demand**, **storage** at a coarse level | ✅ supported and priced correctly |
+| **technology** at a coarse level | ✅ *if* every commodity it touches is at that level or coarser |
+| **trade between two coarse regions** | ✅ works — see the FAQ |
+| costs (`invcost`, `fixom`) on a coarse cell | ✅ charged once, at that cell |
+| **technology** coarser than a commodity it uses | ❌ refused: `"COARSER"` |
+| **trade between atoms** for a coarse commodity | ❌ refused: `"Declared resolution does not match"` |
+| rest-of-world **import/export** at a coarse level | ❌ refused; an open capability, not a bug |
+| **weather** at a coarse level | ❌ outside the level system entirely |
+| losses or capacity limits *inside* a level | ❌ impossible by construction — that is what "free" means |
+| two **parallel** groupings (trade blocs *and* borders) | ❌ refused; see caveats |
+
+## Strict classes must match exactly
+
+`demand`, `supply`, `import`, `export`, `trade` and `storage` have no
+aggregation path of their own. Their flows enter the totals directly, so they
+must be declared at **exactly** the commodity's level:
+
+```{r strict}
+STL <- newCommodity("STL", timeframe = "ANNUAL", geoframe = "nation")
+
+# Constructs fine, but `interpolate_model()` refuses it:
+#   "Declared resolution does not match the commodity's own level"
+bad <- newDemand("D", commodity = "STL", region = "R2",
+                 demand = data.frame(region = "R2", timeslice = "ANNUAL",
+                                     demand = 10))
+
+# Correct: declare it where STL is balanced.
+good <- newDemand("D", commodity = "STL", region = "NA1",
+                  demand = data.frame(region = "NA1", timeslice = "ANNUAL",
+                                      demand = 10))
+```
+
+This check exists because the failure it prevents is silent. A demand written at
+R2 for a nationally-balanced commodity lands in a cell no equation reads: the
+parameter is stored, the balance is generated at the nation, the lookup misses,
+and the term evaluates to zero. The model stays feasible and reports no steel
+demand at all.
+
+A `technology` is the exception — it may sit **finer** than the commodities it
+touches (a mill in one state making national steel), never coarser.
+
+# Pros and cons
+
+**Pros**
+
+- **It removes a network you would otherwise have to invent.** No routes, no
+  capacities, no efficiencies, no calibration for transport you do not model.
+- **It is smaller.** The same four-region system, modelled as a coarse balance
+  inside each nation plus one inter-national link, versus flat regions plus three
+  routes: **24 rows / 23 columns / 46 non-zeros** against **52 / 51 / 106**. Less
+  than half the LP, for the same answer.
+- **It is per commodity.** Steel goes national while electricity stays hourly and
+  regional, in one model.
+- **Reporting is unaffected.** `getData(geoframe = "nation")` aggregates *any*
+  result up a level whether or not the commodity is balanced there.
+
+**Cons**
+
+- **The assumption is strong and invisible in the results.** A coarse balance
+  never reports congestion, because there is none. Nothing in the output says
+  "this answer assumed free transport".
+- **It is all or nothing inside a level.** You cannot make transport inside a
+  nation cheap-but-finite. The moment you need a capacity or a loss, you need a
+  real `trade` object and a finer balance.
+- **It flattens the answer.** Locational detail that would come out of a
+  congested network — where the plant gets built, what the regional price is —
+  is gone by construction.
+- **Tooling is thinner here than for the temporal twin.** Fewer worked examples,
+  and no coarse-level test coverage yet for technology, demand or tax/subsidy.
+
+# Use cases
+
+- **A national market inside a sub-national model.** Gas, coal, biomass or steel
+  at `"nation"` while electricity stays per region. The common case.
+- **A policy instrument with a legal boundary.** A CO~2~ allowance or a
+  renewable certificate is issued at a national or continental level; declaring
+  the commodity there gives you one cap instead of N caps that do not trade.
+- **Continental commodities.** A Europe-wide hydrogen or CO~2~ market in a
+  36-country model: with a root geoframe, one market; without it, 36 separate
+  ones.
+- **Cutting model size in a first pass.** Coarsen the commodities whose
+  geography you are not studying yet, and refine later — the declaration is one
+  argument, not a rewrite.
+
+# Caveats
+
+**Geoframes must nest.** Adjacent levels must refine one another. `geoscales`
+permits cross-cutting frames on purpose, but this roll-up cannot represent them:
+the sum is unweighted, so a region with two parents is added into **both**.
+energyRt refuses a non-nesting chain and names the offending frames.
+
+**Never repeat a code across adjacent levels.** A region that is its own parent
+needs no aggregation, and the pair is dropped with a message. Follow Eurostat
+and pad instead (`LU` → `LU0` → `LU00`) if you want the levels visually distinct.
+
+**Do not declare coarse codes in `newModel(region = )`.** They are derived from
+the geoscale. Declaring them yourself suppresses the hierarchy.
+
+**Never sum a multi-level result across levels.** Once a geoscale is attached,
+totals exist at every level, so `sum(vOutTot$value)` double-counts. Use
+`getData(geoframe = )` and take one level.
+
+**A coarse cell inherits its children's discount rate**, and refuses when they
+disagree — a deliberate error, not a bug.
+
+# Questions and tips
+
+**Can I avoid declaring `trade` by putting the commodity on an upper level?**
+
+Yes — inside that level, and that is the intended use. Declaring `STL` at
+`"nation"` gives you free unlimited movement between `R1` and `R2` with no trade
+object at all. What you give up is every property a `trade` carries: capacity,
+efficiency (`teff`), cost, and any reporting of the flow. If you need one of
+those, you need the route.
+
+**Then how do I move it *between* nations?**
+
+Declare the trade between the coarse regions:
+
+```{r coarse-trade}
+newTrade("TR", commodity = "STL",
+         routes = data.frame(src = "NA1", dst = "NA2"),
+         vintage = data.frame(olife = 50L),
+         trade = data.frame(timeslice = "ANNUAL", teff = 1))
+```
+
+This is the natural pattern: **free inside the level, an explicit priced link
+between levels.** A route between the *atoms* (`R1` → `R3`) is refused for a
+nationally-balanced commodity, because the atoms are not where it is balanced.
+
+**Can I put a technology on an upper level?**
+
+Yes, provided every commodity it consumes and produces is balanced at that level
+or coarser. A converter at `"nation"` turning national gas into national steel
+is fine. The same converter consuming region-level electricity is refused, and
+the message names it: the flow could never reach the finer balance.
+
+**Does attaching a geoscale change my results?**
+
+No. It widens the region set and enables coarse *reporting*; the optimisation is
+untouched until a commodity names a `@geoframe`. A flat model with a geoscale
+attached is bit-for-bit the model without one.
+
+**Can I have one commodity national and another continental?**
+
+Yes. Each commodity names its own level independently, and each gets its own
+balance rows. There is no requirement that they agree.
+
+**Can I use two different groupings of the same regions?**
+
+Not today. A model carries one `Geoscale` with one linear chain of geoframes.
+Trade blocs alongside administrative borders is a legitimate modelling need and
+is refused rather than silently double-counted; keeping the extra grouping as a
+leaftable column does not help, because a column that is not in `geoframes` is
+invisible to the model.
+
+**How do I check a geoscale before building on it?**
+
+```{r nests}
+frames <- geoscale_geoframes(gs)
+for (i in seq_len(length(frames) - 1L)) {
+  stopifnot(isTRUE(geoscale_nests(gs, frames[i], frames[i + 1L])))
+}
+```
+
+**How do I see where a commodity is actually balanced?**
+
+After interpolation, `mCommRegion` maps each commodity to the regions it is
+balanced at, and `mRegionFamily` holds the parent→child pairs the roll-up uses.
+Both are empty in a flat model.
+
+# Choosing a resolution
+
+- Start with everything at the finest level; it is the default and it is never
+  wrong, only sometimes bigger than it needs to be.
+- Raise a commodity to a coarser level when you can answer yes to the free-pipe
+  question, and when you would otherwise be inventing transport data.
+- Keep network-constrained carriers — electricity above all — at the finest
+  level, and model their transport with `trade`.
+- If you find yourself wanting "free, but only up to X", that is a `trade`
+  object with a capacity, not a `@geoframe`.

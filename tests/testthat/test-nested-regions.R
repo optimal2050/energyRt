@@ -425,3 +425,117 @@ test_that("no engine refuses a coarse commodity any more", {
   }
 })
 
+
+# --------------------------------------------------------------------------- #
+# DEGENERATE geoframe chains. `mRegionFamily` is built from adjacent geoframe
+# pairs with no validation, and two shapes `geoscales` accepts would poison the
+# roll-up. Both used to pass straight through.
+
+# `nation -> region` where FR/DE have sub-regions but LU repeats its code at
+# both levels -- the Eurostat / PyPSA-Eur shape. `pad` gives LU a distinct
+# national code, which is what Eurostat's own LU -> LU0 -> LU00 padding does,
+# and is the reference the degenerate model must reproduce.
+nr_selfscale <- function(pad = FALSE) {
+  geoscales::geoscale_from_leaftable(
+    data.frame(nation = c("FR", "FR", if (pad) "LU0" else "LU"),
+               region = c("FR1", "FR2", "LU")),
+    geoframes = c("nation", "region"), key = "region",
+    name = if (pad) "selfpad" else "self")
+}
+
+# STEEL balanced nationally, one mill per nation: MILL in FR1 reaches nation FR
+# through the family, MILL_LU sits in the nation whose code collides with its
+# own region. Demand is named at both nations explicitly -- an unregioned row
+# would fold to a wildcard and broadcast.
+nr_self_model <- function(nat_lu, name) {
+  cal <- newCalendar(timetable = make_timetable(
+    struct = list(ANNUAL = "ANNUAL", SEASON = c("WIN", "SUM"))),
+    name = paste0("cal_", name))
+  regs <- c("FR1", "FR2", "LU")
+  newModel(name = name, desc = "", calendar = cal, region = regs,
+    horizon = newHorizon(2020:2030, intervals = 10), discount = 0.05,
+    repo = newRepository(paste0("repo_", name),
+      newCommodity("COA", timeframe = "ANNUAL"),
+      newCommodity("ELC", timeframe = "SEASON"),
+      newCommodity("STEEL", timeframe = "ANNUAL", geoframe = "nation"),
+      newSupply("SUP_COA", commodity = "COA",
+                supply = data.frame(region = regs, cost = 1)),
+      newTechnology("ECOA", input = list(comm = "COA"),
+                    output = list(comm = "ELC"),
+                    invcost = data.frame(invcost = 900),
+                    vintage = data.frame(olife = 30L), cap2act = 1),
+      newTechnology("MILL", input = list(comm = "ELC"),
+                    output = list(comm = "STEEL"), region = "FR1",
+                    ceff = data.frame(comm = "ELC", cinp2use = 0.5),
+                    invcost = data.frame(invcost = 50),
+                    vintage = data.frame(olife = 30L), cap2act = 1),
+      newTechnology("MILL_LU", input = list(comm = "ELC"),
+                    output = list(comm = "STEEL"), region = "LU",
+                    ceff = data.frame(comm = "ELC", cinp2use = 0.5),
+                    invcost = data.frame(invcost = 50),
+                    vintage = data.frame(olife = 30L), cap2act = 1),
+      newDemand("DEM_ELC", commodity = "ELC",
+                demand = data.frame(region = rep(regs, each = 2),
+                                    timeslice = c("WIN", "SUM"), demand = 30)),
+      newDemand("DEM_STL", commodity = "STEEL", region = c("FR", nat_lu),
+                demand = data.frame(region = c("FR", nat_lu),
+                                    timeslice = "ANNUAL", demand = 10))))
+}
+
+test_that("a code repeated across adjacent geoframes drops its self-pair", {
+  skip_if_no_geoscales()
+  expect_message(
+    h <- .geo_hierarchy(nr_selfscale(), c("FR1", "FR2", "LU")),
+    "same code at two adjacent geoframes")
+  # The poisoned row. Left in, eqOutTot reads
+  #   vOutTot[c,LU] = <real terms> + vOutTot[c,LU]
+  # which cancels the cell out of its own equation and forces every real term
+  # to zero -- the mill in LU can never produce.
+  expect_equal(sum(h$family$region == h$family$regionp), 0L)
+  expect_setequal(paste(h$family$region, h$family$regionp),
+                  c("FR FR1", "FR FR2"))
+  # LU is still a region, and still a legitimate child for any level above it.
+  expect_true("LU" %in% h$region)
+})
+
+# @covers mRegionFamily mCommRegion depth=S backends=glpk forks=geoframe
+test_that("a self-parented nation balances exactly like a padded one", {
+  skip_if_no_geoscales()
+  skip_if_no_solver()
+  obj <- function(pad, tag) {
+    mod <- setGeoscale(nr_self_model(if (pad) "LU0" else "LU", tag),
+                       nr_selfscale(pad))
+    scen <- suppressMessages(suppressWarnings(
+      interpolate_model(mod, name = tag, fold = TRUE)))
+    sum(suppressMessages(getData(vt_solve(scen), "vObjective",
+                                 merge = TRUE))$value)
+  }
+  # With the self-pair emitted, MILL_LU's output is forced to zero and the
+  # degenerate model is INFEASIBLE; dropping it must reproduce the padded twin
+  # exactly, since the two describe the same system.
+  degenerate <- obj(FALSE, "nrLUa")
+  padded     <- obj(TRUE,  "nrLUb")
+  expect_gt(degenerate, 0)
+  expect_equal(degenerate, padded, tolerance = 1e-9)
+})
+
+test_that("cross-cutting geoframes are refused, naming the regions", {
+  skip_if_no_geoscales()
+  # `zone` and `sync` are two parallel groupings of the same four regions, so
+  # each sync zone straddles both zones. The roll-up is a plain unweighted sum,
+  # so S1 would be added into W AND E.
+  gsx <- geoscales::geoscale_from_leaftable(
+    data.frame(zone = c("W", "W", "E", "E"),
+               sync = c("S1", "S2", "S1", "S2"),
+               region = c("R1", "R2", "R3", "R4")),
+    geoframes = c("zone", "sync", "region"), key = "region", name = "xcut")
+  expect_error(.geo_hierarchy(gsx, c("R1", "R2", "R3", "R4")), "do not nest")
+  expect_error(.geo_hierarchy(gsx, c("R1", "R2", "R3", "R4")),
+               "S1 <- E [+] W")
+})
+
+test_that("well-formed chains are silent", {
+  skip_if_no_geoscales()
+  expect_silent(.geo_hierarchy(nr_geoscale(), c("R1", "R2")))
+  expect_silent(.geo_hierarchy(utopia_geoscale(), paste0("R", 1:11)))
+})

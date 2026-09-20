@@ -373,8 +373,10 @@ parent total — see `geoscales::geoscale_coverage()`), and its name is
 mangled (`"demo[region:R1+R2]"`) so different samples of one parent never
 collide in caches or joins. A **pruned** geoscale (a coarser level of the
 model's own hierarchy) requests a full-territory solve at the parent
-level instead; that requires aggregating the model's data
-(`aggregate_model_regions()`) and is not implemented yet.
+level instead. That is a different operation -- it aggregates the model's
+data rather than subsetting it -- so `interpolate_model()` refuses a pruned
+geoscale and points at `aggregate_model_regions()`, which builds the
+coarser model directly.
 
 
 ## A trade window instead of a flat price

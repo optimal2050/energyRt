@@ -47,11 +47,19 @@ a \code{geoscales::Geoscale} or \code{NULL}.
 \description{
 A geoscale describes the model's regions -- their nesting into coarser
 levels, their weights, and optionally their geometry. It is built with the
-\href{https://github.com/optimal2050/geoscales}{geoscales} package and is used
-for plotting, reporting and subsetting only: attaching one never changes the
-optimisation model.
+\href{https://github.com/optimal2050/geoscales}{geoscales} package.
 }
 \details{
+Attaching one is inert by itself: it widens the model's region set with the
+coarser codes and enables level-aware plotting, reporting and subsetting
+(\code{getData(geoframe = )}), but the extra members stay unused and the model
+solves exactly as before. It is also the prerequisite for
+\code{newCommodity(geoframe = )}, which balances a commodity at a coarser level
+and does change the optimisation model -- see
+\code{vignette("space-resolution")}. The geoframes must NEST: adjacent levels
+have to refine one another, or a region would be aggregated into two
+parents.
+
 \code{setGeoscale()} stores it on a \code{config} (and therefore on a \code{settings}, which
 inherits from \code{config}) or on a \code{model}. \code{getGeoscale()} reads it back;
 for a \code{scenario} it reads \verb{@settings} first and falls back to the model's

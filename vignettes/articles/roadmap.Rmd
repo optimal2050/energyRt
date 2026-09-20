@@ -36,11 +36,17 @@ Status legend: **[✓]** done · **[~]** in progress · **[ ]** planned.
 
 ### Model structure & scope
 
-- [ ] **Nested regions & time.** Regions are a flat set of labels today, and
-  interregional exchange is modelled as point-to-point `trade`. Add hierarchical,
-  nested regions via **[geoscales](https://github.com/optimal2050/geoscales)** and
-  nested timeframes via **[timescales](https://github.com/optimal2050/timescales)**
-  — the spatial and temporal companion packages. \
+- [~] **Nested regions & time.** Hierarchical regions via
+  **[geoscales](https://github.com/optimal2050/geoscales)** and nested
+  timeframes via **[timescales](https://github.com/optimal2050/timescales)** —
+  the spatial and temporal companion packages. Both land: a commodity can be
+  balanced at a coarser geoscale level with `newCommodity(geoframe = )`
+  (see [Space resolution](space-resolution.html)) or at a coarser timeframe
+  with `timeframe = ` (see [Time resolution](time-resolution.html)), and
+  point-to-point `trade` is no longer the only way to move a commodity between
+  regions. Still open: declaring a process at a coarse level and resolving it
+  DOWN to its commodities, rest-of-world import/export at a coarse level, and
+  parallel (cross-cutting) groupings of the same regions. \
 
 ### Model API
 
@@ -93,7 +99,7 @@ Status legend: **[✓]** done · **[~]** in progress · **[ ]** planned.
 - **v0.50** — frozen *"half-way-there"* reference release (fixes only) \
 - **v0.60.x** — current development: interpolation pipeline, scenario storage, analysis \
 - **v1.0** — CRAN release; stabilized model, classes, and API \
-- **v1.0+** — multimod integration; nested regions & time (geoscales / timescales)
+- **v1.0+** — multimod integration; completing nested regions & time (geoscales / timescales)
 
 ---
 

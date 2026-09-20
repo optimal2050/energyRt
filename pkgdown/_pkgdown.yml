@@ -80,6 +80,8 @@ navbar:
         href: articles/units.html
       - text: Time resolution
         href: articles/time-resolution.html
+      - text: Space resolution
+        href: articles/space-resolution.html
       - text: Storage
         href: articles/storage.html
       - text: "UTOPIA I: building the model"
