@@ -1,4 +1,4 @@
-#' @include zzz.R docs.R
+#' @include zzz.R utils.R
 #
 # `options::as_roxygen_docs()` hardcodes `@name options` / `@rdname options`,
 # which would give energyRt a help topic aliased `options` -- colliding with
