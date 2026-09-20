@@ -25,7 +25,7 @@
 #
 # NA / empty timeslices and regions are wildcards ("all of them") and always pass.
 
-#' @include geoscale.R map_region.R
+#' @include geoscale.R mapping-builders.R
 NULL
 
 # Timeslices appearing in an object's data.frame slots.

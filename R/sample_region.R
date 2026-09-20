@@ -20,7 +20,7 @@
 # otherwise every sampled model would flag its out-of-sample declarations.
 # =========================================================================== #
 
-#' @include geoscale.R map_region.R
+#' @include geoscale.R mapping-builders.R
 NULL
 
 # Classify the geoscale on `settings` relative to the model's own regions.

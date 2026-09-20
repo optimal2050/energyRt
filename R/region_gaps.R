@@ -16,7 +16,7 @@
 # availability, and the activity domains subtract them.
 # =========================================================================== #
 
-#' @include map_closure.R
+#' @include mapping-builders.R
 NULL
 
 # Input requirements of one technology, split into commodities that are each
