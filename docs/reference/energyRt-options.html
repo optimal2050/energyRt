@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.2.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -22,7 +22,6 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/energyRt.html">Get started</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/use-R-2026.html">Training</a></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Roadmap</a></li>
 <li class="nav-item dropdown">
@@ -32,6 +31,7 @@
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
@@ -233,7 +233,7 @@ Path to the project registry CSV indexing saved models, scenarios and runs. Kept
 
 <dt>models_path</dt>
 <dd><dl>
-Root directory for the model store. save_model() writes content-addressed model folders (html<name>@html<hash8>) underneath it.<dt>default: </dt>
+Root directory for the model store, a sibling of the scenarios/ store. save_model() writes one folder per model name underneath it, updated in place; the content hash lives in the entry's model.yml. Scenarios saved with the default embed_model = NULL store their model here and reference it.<dt>default: </dt>
 <dd><div class="sourceCode"><pre><code><span><span class="st">"models/"</span></span></code></pre></div></dd>
 
 <dt>option: </dt>
@@ -243,12 +243,12 @@ Root directory for the model store. save_model() writes content-addressed model 
 <dd><p>ENERGYRT_MODELS_PATH (evaluated if possible, raw string otherwise)</p></dd>
 
 
-</hash8></name></dl></dd>
+</dl></dd>
 
 
 <dt>repositories_path</dt>
 <dd><dl>
-Root directory for the repository store. save_repository() writes content-addressed repository folders (html<name>@html<hash8>) underneath it.<dt>default: </dt>
+Root directory for the repository store. save_repository() writes one folder per repository name underneath it, updated in place; the content hash lives in the entry's repository.yml.<dt>default: </dt>
 <dd><div class="sourceCode"><pre><code><span><span class="st">"repositories/"</span></span></code></pre></div></dd>
 
 <dt>option: </dt>
@@ -258,12 +258,12 @@ Root directory for the repository store. save_repository() writes content-addres
 <dd><p>ENERGYRT_REPOSITORIES_PATH (evaluated if possible, raw string otherwise)</p></dd>
 
 
-</hash8></name></dl></dd>
+</dl></dd>
 
 
 <dt>datasets_path</dt>
 <dd><dl>
-Root directory for the dataset store. save_dataset() writes content-addressed dataset folders (html<name>@html<hash8>) underneath it.<dt>default: </dt>
+Root directory for the dataset store. save_dataset() writes one folder per dataset name underneath it, updated in place; the content hash lives in the entry's dataset.yml.<dt>default: </dt>
 <dd><div class="sourceCode"><pre><code><span><span class="st">"datasets/"</span></span></code></pre></div></dd>
 
 <dt>option: </dt>
@@ -273,7 +273,7 @@ Root directory for the dataset store. save_dataset() writes content-addressed da
 <dd><p>ENERGYRT_DATASETS_PATH (evaluated if possible, raw string otherwise)</p></dd>
 
 
-</hash8></name></dl></dd>
+</dl></dd>
 
 
 <dt>log_file</dt>
@@ -289,6 +289,21 @@ Optional operation-log CSV. Empty (default) = logging off; a path makes interpol
 
 
 </dl></dd>
+
+
+<dt>profile_dir</dt>
+<dd><dl>
+Directory for the interpolation profile log (interp_runs.csv, interp_stages.csv, interp_maps.csv, interp_params.csv -- per-run timing and memory tables, appended after every interpolation). Empty (default) = fall back to the operation log's directory, then to html<project>/logs/ when a project registry exists; no sink = no files written.<dt>default: </dt>
+<dd><div class="sourceCode"><pre><code><span><span class="st">""</span></span></code></pre></div></dd>
+
+<dt>option: </dt>
+<dd><p>en.profile_dir</p></dd>
+
+<dt>envvar: </dt>
+<dd><p>ENERGYRT_PROFILE_DIR (evaluated if possible, raw string otherwise)</p></dd>
+
+
+</project></dl></dd>
 
 
 <dt>reports_path</dt>
@@ -338,7 +353,7 @@ Named list of user functions overriding the built-in folder-name derivations (se
 
 <dt>storage_format</dt>
 <dd><dl>
-On-disk table storage format: 'feather' (IPC), 'parquet', or 'csv'. Parquet is smaller, feather reads faster; both support lazy filtered reads. The content-addressed stores pin parquet for hash stability.<dt>default: </dt>
+On-disk table storage format: 'feather' (IPC), 'parquet', or 'csv'; 'arrow' and 'ipc' are aliases for feather. Both support lazy filtered reads. Size depends far more on DICTIONARY ENCODING than on the container: parquet dictionary-encodes repeated strings itself, feather only if the caller passes factors. Measured on a 543k-row table with zstd-15: plain feather 11.8 MB, parquet 1.10 MB either way, feather with factor columns 1.03 MB and 4.5x faster to read.<dt>default: </dt>
 <dd><div class="sourceCode"><pre><code><span><span class="st">"feather"</span></span></code></pre></div></dd>
 
 <dt>option: </dt>

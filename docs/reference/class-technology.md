@@ -129,7 +129,7 @@ costs, and exogenous shocks (weather factors).
   cluster
 
   :   character. Cluster label selecting the technology variant this row
-      applies to, NA for every cluster. See the `vintage` slot.
+      applies to, NA for every cluster. See the `cluster` slot.
 
   region
 
@@ -166,7 +166,7 @@ costs, and exogenous shocks (weather factors).
   cluster
 
   :   character. Cluster label selecting the technology variant this row
-      applies to, NA for every cluster. See the `vintage` slot.
+      applies to, NA for every cluster. See the `cluster` slot.
 
   region
 
@@ -241,7 +241,11 @@ costs, and exogenous shocks (weather factors).
 - `aeff`:
 
   data.frame. Parameters linking main commodities, activities, and
-  capacities to auxiliary commodities.
+  capacities to auxiliary commodities. Rows can be assigned to a single
+  variant via the `vintage` and/or `cluster` key columns; each variant
+  then carries only its own couplings (e.g. one land-pool input per
+  cluster), and the auxiliary membership maps are built from these
+  coefficient rows alone.
 
   vintage
 
@@ -251,7 +255,7 @@ costs, and exogenous shocks (weather factors).
   cluster
 
   :   character. Cluster label selecting the technology variant this row
-      applies to, NA for every cluster. See the `vintage` slot.
+      applies to, NA for every cluster. See the `cluster` slot.
 
   region
 
@@ -387,7 +391,7 @@ costs, and exogenous shocks (weather factors).
   cluster
 
   :   character. Cluster label selecting the technology variant this row
-      applies to, NA for every cluster. See the `vintage` slot.
+      applies to, NA for every cluster. See the `cluster` slot.
 
   region
 
@@ -444,7 +448,7 @@ costs, and exogenous shocks (weather factors).
   cluster
 
   :   character. Cluster label selecting the technology variant this row
-      applies to, NA for every cluster. See the `vintage` slot.
+      applies to, NA for every cluster. See the `cluster` slot.
 
   region
 
@@ -489,7 +493,7 @@ costs, and exogenous shocks (weather factors).
   cluster
 
   :   character. Cluster label selecting the technology variant this row
-      applies to, NA for every cluster. See the `vintage` slot.
+      applies to, NA for every cluster. See the `cluster` slot.
 
   weather
 
@@ -563,7 +567,7 @@ costs, and exogenous shocks (weather factors).
   cluster
 
   :   character. Cluster label selecting the technology variant this row
-      applies to, NA for every cluster. See the `vintage` slot.
+      applies to, NA for every cluster. See the `cluster` slot.
 
   region
 
@@ -591,7 +595,7 @@ costs, and exogenous shocks (weather factors).
   cluster
 
   :   character. Cluster label selecting the technology variant this row
-      applies to, NA for every cluster. See the `vintage` slot.
+      applies to, NA for every cluster. See the `cluster` slot.
 
   region
 
@@ -646,7 +650,7 @@ costs, and exogenous shocks (weather factors).
   cluster
 
   :   character. Cluster label selecting the technology variant this row
-      applies to, NA for every cluster. See the `vintage` slot.
+      applies to, NA for every cluster. See the `cluster` slot.
 
   region
 
@@ -778,7 +782,7 @@ costs, and exogenous shocks (weather factors).
   cluster
 
   :   character. Cluster label selecting the technology variant this row
-      applies to, NA for every cluster. See the `vintage` slot.
+      applies to, NA for every cluster. See the `cluster` slot.
 
   region
 

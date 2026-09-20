@@ -1,0 +1,11 @@
+energyRt
+Copyright 2016-2026 Oleg Lugovoy
+Copyright 2016-2022 through version 0.01.23.9000 Vladimir Potashnikov
+
+This product includes software developed by
+Oleg Lugovoy and Vladimir Potashnikov (https://github.com/energyRt).
+
+Releases up to and including v0.89 were distributed under the GNU Affero
+General Public License v3. From v0.90 the project is licensed under the
+Apache License, Version 2.0. The earlier releases remain available under
+AGPL-3; that grant cannot be and is not withdrawn.

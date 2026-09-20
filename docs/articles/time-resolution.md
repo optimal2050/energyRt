@@ -134,16 +134,13 @@ seasons are `WIN/SPR/SUM/FAL` in calendar order):
 ``` r
 
 names(calendars)
-#>  [1] "season_dn"                      "d365"                          
-#>  [3] "annual"                         "utopia_seasons"                
-#>  [5] "unit_s4"                        "unit_s4h4"                     
-#>  [7] "d365_h24"                       "d365_h24_subset_1day_per_month"
-#>  [9] "m12"                            "m12a"                          
-#> [11] "q4"                             "s4"                            
-#> [13] "s4_h24"                         "m12_h24"                       
-#> [15] "wd7_h24"                        "w52_h24"                       
-#> [17] "s4_h24_subset_2seasons"         "m12_h24_subset_4months"        
-#> [19] "m12_subset_q1"
+#>  [1] "season_dn"              "d365"                   "annual"                
+#>  [4] "utopia_seasons"         "unit_s4"                "unit_s4h4"             
+#>  [7] "d365_h24"               "m12"                    "m12a"                  
+#> [10] "q4"                     "s4"                     "s4_h24"                
+#> [13] "m12_h24"                "wd7_h24"                "w52_h24"               
+#> [16] "s4_h24_subset_2seasons" "m12_h24_subset_4months" "m12_subset_q1"         
+#> [19] "d365_h24_1dps"          "d365_h24_1dpm"
 calendars$utopia_seasons@desc
 #> [1] "UTOPIA: 4 seasons x 3 dayparts (DAY/NIGHT/PEAK), 12 timeslices"
 s4 <- as.data.frame(calendars$s4@timetable)[, c("SEASON", "share")]

@@ -107,9 +107,13 @@ test_that("the class carries the tranches, and refuses a region on them", {
     newDCLink("L", "ELC", "R1", "R2",
               cluster = data.frame(cluster = "A", region = "R1")),
     "Unknown column")
-  # `@vintage`'s column set and order are unchanged.
+  # `@vintage` carries no `region` either, and for the same reason: a trade's
+  # lifespan belongs to the route. `pTradeOlife` is indexed by trade alone and
+  # `mTradeSpan`/`mTradeNew` are (trade, year) in every solver template, so
+  # `start`/`end`/`olife` have nowhere to put one (dropped in v0.90).
   expect_equal(names(new("trade")@vintage),
-               c("vintage", "region", "cluster", "start", "end", "olife"))
+               c("vintage", "cluster", "start", "end", "olife"))
+  expect_false("region" %in% names(new("trade")@vintage))
 })
 
 # --------------------------------------------------------------------------- #

@@ -30,11 +30,14 @@ settings.
   ANY. Optional
   [`geoscales::Geoscale`](https://optimal2050.github.io/geoscales/r/reference/Geoscale.html)
   object describing the model's regions – their nesting into coarser
-  levels, weights, and (optionally) geometry. Purely additional
-  information about the labels in `region`, which remains authoritative;
-  the geoscale is used for plotting, reporting and subsetting and never
-  changes the optimisation model. `NULL` when unset. Typed `ANY` because
-  `geoscales` is an optional (Suggests) dependency.
+  levels, weights, and (optionally) geometry. `region` remains
+  authoritative: it is always the finest level, and the geoscale adds
+  the structure above it. Attaching one is inert on its own – it widens
+  the model's region set with the coarser codes and enables level-aware
+  plotting, reporting and subsetting – but it is also what makes
+  `commodity@geoframe` possible, and a commodity balanced at a coarser
+  level DOES change the optimisation model. `NULL` when unset. Typed
+  `ANY` because `geoscales` is an optional (Suggests) dependency.
 
 - `horizon`:
 

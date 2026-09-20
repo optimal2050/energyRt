@@ -16,7 +16,7 @@
 #' @include class-modOut.R class-settings.R
 #' @family class scenario
 #'
-#' @seealso `interpolate()`, `solve()`, `register()`, `summary()`, `newScenario()`
+#' @seealso `interpolate()`, `solve()`, `add_to_registry()`, `summary()`, `newScenario()`
 #'
 #' @export
 setClass("scenario",

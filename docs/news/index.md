@@ -2,46 +2,207 @@
 
 ## energyRt (development version)
 
+### License
+
+- energyRt is relicensed from AGPL-3 to **Apache-2.0**. Releases up to
+  and including v0.89 remain available under AGPL-3.
+
+- On-disk stores write ~1M-row row groups instead of one per 32k-row
+  record batch. Stored data.frames are smaller (1.3x on model-shaped
+  data, 2.2x on a sorted hourly series) and scan faster; existing stores
+  are unaffected until rewritten.
+
+- `multimod_cloud` runs persist the COMPLETE job handle in
+  `cloud_job.yml` (via
+  [`mmcloud::cloud_handle_write()`](https://rdrr.io/pkg/mmcloud/man/cloud_handle.html)),
+  including the output-bucket reference, so a finished job’s solution is
+  fetchable from any later session.
+
+- New article “Space resolution: geoscales and geoframes” — what
+  `commodity@geoframe` asserts, which classes may be declared at a
+  coarse level and which may not, the nesting requirement, and when a
+  coarse balance replaces a `trade` route.
+
+- A region whose code repeats at two adjacent geoframes no longer
+  poisons its own balance. The self-pair reached `mRegionFamily`, so
+  `eqOutTot` read `vOutTot[c,r] = <terms> + vOutTot[c,r]` and forced
+  every real term to zero; such pairs are dropped with a message, and
+  the region balances like a padded one (`LU` vs Eurostat’s `LU0`).
+
+- A geoscale whose `geoframes` do not nest is refused instead of
+  silently double-counting. Two cross-cutting frames in one chain give a
+  region more than one parent, and the roll-up is a plain unweighted
+  sum, so the child was added into both; the error names the frames and
+  the straddling regions.
+
 ### Breaking changes
+
+- The timeslice-decomposition helpers are no longer exported:
+  [`tsl2dtm()`](https://energyRt.org/reference/timeslices.md),
+  [`tsl2year()`](https://energyRt.org/reference/tsl2dtm.md),
+  [`tsl2yday()`](https://energyRt.org/reference/tsl2dtm.md),
+  [`tsl2hour()`](https://energyRt.org/reference/tsl2dtm.md),
+  [`tsl2month()`](https://energyRt.org/reference/tsl2dtm.md) and
+  [`tsl_guess_format()`](https://energyRt.org/reference/tsl_guess_format.md).
+  The time dimension is `timescales`’ domain; these stay as internals
+  only because the plotting and storage-duration code still needs them,
+  and move out once timescales provides equivalents.
+
+- The deprecation layer is removed, with its `?energyRt-deprecated` help
+  page. These names warned through the 0.8x series and are now gone:
+  [`solve_mod()`](https://energyRt.org/reference/energyRt-deprecated.html)/[`solve_scen()`](https://energyRt.org/reference/energyRt-deprecated.html)
+  (use
+  [`solve_model()`](https://energyRt.org/reference/solve_model.md)/[`solve_scenario()`](https://energyRt.org/reference/solve_model.md)),
+  [`register()`](https://energyRt.org/reference/energyRt-deprecated.html)
+  ([`add_to_registry()`](https://energyRt.org/reference/registry.md) +
+  [`save_registry()`](https://energyRt.org/reference/registry.md)),
+  [`get_registry()`](https://energyRt.org/reference/energyRt-deprecated.html)
+  ([`load_registry()`](https://energyRt.org/reference/registry.md)),
+  [`get_entry()`](https://energyRt.org/reference/energyRt-deprecated.html)/[`find_registry()`](https://energyRt.org/reference/energyRt-deprecated.html)
+  ([`find_in_registry()`](https://energyRt.org/reference/registry.md)),
+  [`get_entry_object()`](https://energyRt.org/reference/energyRt-deprecated.html)
+  ([`getScenario()`](https://energyRt.org/reference/accessors.md)),
+  [`registry_exists()`](https://energyRt.org/reference/energyRt-deprecated.html)/[`registry.exists()`](https://energyRt.org/reference/energyRt-deprecated.html)
+  (`file.exists(get_registry_file())`),
+  [`set_default_registry()`](https://energyRt.org/reference/energyRt-deprecated.html)/[`use_registry()`](https://energyRt.org/reference/energyRt-deprecated.html)
+  ([`set_registry_file()`](https://energyRt.org/reference/registry_file.md)),
+  [`which_registry()`](https://energyRt.org/reference/energyRt-deprecated.html)
+  ([`get_registry_file()`](https://energyRt.org/reference/registry_file.md)),
+  [`tech_designer()`](https://energyRt.org/reference/energyRt-deprecated.html)/[`tech_from_spec()`](https://energyRt.org/reference/energyRt-deprecated.html)/[`tech_to_spec()`](https://energyRt.org/reference/energyRt-deprecated.html)/[`tech_spec_code()`](https://energyRt.org/reference/energyRt-deprecated.html)/[`tech_spec_issues()`](https://energyRt.org/reference/energyRt-deprecated.html)
+  (the `process_*()` equivalents),
+  [`read_techspec()`](https://energyRt.org/reference/energyRt-deprecated.html)/[`read_procspec()`](https://energyRt.org/reference/energyRt-deprecated.html)
+  ([`read_process_spec()`](https://energyRt.org/reference/read_process_spec.md)),
+  [`write.sc()`](https://energyRt.org/reference/energyRt-deprecated.html)
+  ([`write_sc()`](https://energyRt.org/reference/write.md)),
+  [`make_scenario_dirname()`](https://energyRt.org/reference/energyRt-deprecated.html)
+  (`set_path_builder(scenario_dir = )`), `levcost_by_variant(x, what)`
+  (`levcost(x, by_variant = what)`),
+  [`get_data()`](https://energyRt.org/reference/getData.md)
+  ([`getData()`](https://energyRt.org/reference/getData.md)) and
+  [`get_units()`](https://energyRt.org/reference/energyRt-deprecated.html)
+  ([`getUnits()`](https://energyRt.org/reference/getUnits.md)).
+
+- The four standalone UTOPIA datasets are removed: `utopia_weather`,
+  `utopia_demand`, `utopia_stock` and `utopia_modules` are
+  `utopia$weather`, `$demand`, `$stock` and `$modules`.
+
+- The mosox back-end experiment is gone; it was never functional and now
+  lives in `drafts/`.
+
+- Two rows of one object slot that set the same parameter at the same
+  key are refused at construction, naming the column, the key and both
+  values. An `NA` in a key column means “all members of that dimension”,
+  so such rows claimed one cell: nothing chose between them and the
+  interpolation join repeated the row once per duplicate, handing the
+  solver a multiplied parameter. Keys are per parameter, so two columns
+  of one slot can key differently. A repeated key is refused whatever
+  the values, equal ones included.
+
+- A repeated id tuple in an interpolated parameter is a structural
+  finding and stops the interpolation, where it used to warn.
+  [`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md)
+  also errors if a value series multiplies while being interpolated,
+  rather than writing out the multiplied result.
+
+- `trade@vintage` no longer carries a `region` column: a trade’s
+  lifespan belongs to the route, which is how `pTradeOlife` and the span
+  maps have always been indexed. A per-region `start`/`end`/`olife` on a
+  trade is now refused at construction, naming `invcost`/`fixom` as
+  where per-region trade costs go; an all-`NA` column is dropped, so
+  objects written earlier still load.
+
+- The solve drivers refuse to write over a variant that a different
+  configuration produced. Variant labels are unit-derived, so re-running
+  [`solve_by_sample()`](https://energyRt.org/reference/solve_by_sample.md)
+  with another seed, or
+  [`solve_myopic()`](https://energyRt.org/reference/solve_myopic.md)
+  with another window, used to replace the first sequence’s results
+  silently; the error names what differs, and `overwrite = TRUE`
+  proceeds. Same method, same settings is still a redo.
+
+- Decoded `vTradeIr` names its endpoint columns `src` and `dst` on every
+  backend. Pyomo and JuMP emitted `region`/`regionp`; GAMS and GLPK
+  already used `src`/`dst`. Code reading `regionp` from a trade result
+  needs updating.
+
+- [`scenario_artifacts()`](https://energyRt.org/reference/scenario_artifacts.md)
+  gains a `kind` column and adds scenario-level rows for the derived
+  tiers (`"reports"`, `"levcost"`) beside the `"run"` rows;
+  [`drop_solver_outputs()`](https://energyRt.org/reference/drop_solver_outputs.md)
+  acts on `kind == "run"` only.
+
+- [`prepare_for_sharing()`](https://energyRt.org/reference/prepare_for_sharing.md)
+  drops rendered reports unless `keep_reports = TRUE`: they re-render,
+  and a PDF or DOCX can carry a path or user name where byte-level
+  scrubbing is not safe.
+
+- [`delete_marked()`](https://energyRt.org/reference/seal.md) skips an
+  entry that something still references, reporting `skipped_referenced`
+  beside the existing `skipped_sealed`; `ignore_refs = TRUE` deletes it
+  anyway, and an interactive session names the dependents and asks.
+
+- `save_scenario(embed_model = NULL)`, the default, saves the model to
+  the model store and references it instead of embedding a copy in every
+  scenario; a name already holding different content is left alone and
+  the model embedded.
+
+- Storage aux capacity couplings are part-prefixed: `cap2ainp` /
+  `cap2aout` / `ncap2ainp` / `ncap2aout` on a storage `@aeff` are now
+  `out.cap2ainp` etc. The bare names error with a rename hint;
+  technology `@aeff` keeps them.
+
+- A run’s solver files are written directly into `runs/<solve>/`, beside
+  `run.yml`, instead of a `solver/` subfolder, and the per-solve
+  metadata file is `solver.csv`. Existing scenarios still open.
 
 - The Julia and Python backends exchange data as Arrow files.
   `data.RData` and `input/data.db` are opt-in through
   `solver_options$julia_highs_rdata` and `$pyomo_cbc_sqlite`; the
   `*_arrow` presets are retired.
+
 - Arrow exchange needs `Arrow.jl` (Julia) and `pyarrow` (Python). Both
   are installed and checked by
   [`en_install_julia_pkgs()`](https://energyRt.org/reference/en_install_julia_pkgs.md)
   / [`en_check_pyomo()`](https://energyRt.org/reference/en_check.md);
   `CSV` and `SQLite` are dropped from the Julia install.
+
 - `arrow_format` splits into `storage_format` and `exchange_format`,
   likewise `*_compression` and `*_compression_level`. Storage keeps
   zstd-15; exchange defaults to `lz4`.
+
 - 46 machinery helpers are no longer exported (314 → 268 exports) — the
   interpolation/mapping engine, the NEOS plumbing below
   [`neos_ping()`](https://energyRt.org/reference/neos.md) and
   [`neos_list_solvers()`](https://energyRt.org/reference/neos.md), and
-  small utilities. They still exist as `energyRt:::`.
+  small utilities. They remain as `energyRt:::`.
+
 - `print.levcost()`, `print.levcost_list()`, `print.levcost_variants()`
   and `print.share_frontier_plots()` are registered as S3 methods;
   `print(x)` is unchanged, the direct `print.levcost(x)` call form is
   gone.
-- The `ert` prefix is retired in favour of `en`: the registry’s S3 class
-  tag is `en_registry`, report CSS classes are `.en-*`, LaTeX colours
-  are `en_blue` / `en_gray`. Custom report templates written against the
-  old names need updating.
+
+- The `ert` prefix is retired for `en`: registry class tag
+  `en_registry`, report CSS `.en-*`, LaTeX colours `en_blue` /
+  `en_gray`; custom report templates written against the old names need
+  updating.
+
 - Store folders are named by the object, not its hash
   (`models/UTOPIA/`), and updated in place. Old hash-named folders keep
   loading; `rehash = FALSE` keeps a recorded hash through a change you
   declare insignificant.
+
 - Object names are validated at construction — letters, digits and
   underscore, starting with a letter. Scenario folders join their parts
   with dashes (`BASE-UTOPIA-s4_h24`).
+
 - `problem.RData` is retired; `scen.RData` is the base problem’s one
   home. Legacy files are read and folded in by
   [`upgrade_scenario_layout()`](https://energyRt.org/reference/upgrade_scenario_layout.md).
+
 - A storage’s availability columns take the part prefixes: `@af$cinp.*`
   → `inp.af.*`, `cout.*` → `out.af.*`; `@weather$wcinp.*` → `inp.waf.*`,
   `wcout.*` → `out.waf.*`. Old names error and name their replacement.
+
 - `commodity@geolevel` and `summand@geolevel` are now `@geoframe`, as
   are the `geolevel =` arguments of
   [`newCommodity()`](https://energyRt.org/reference/newCommodity.md),
@@ -49,175 +210,469 @@
   [`getData()`](https://energyRt.org/reference/getData.md);
   `map_comm_geolevel()` is now
   [`map_comm_geoframe()`](https://energyRt.org/reference/map_comm_geoframe.md).
+
 - The variable-catalogue role `flow` is now `interregional`.
+
 - Scenario-management operations are verb-first with no aliases:
   `load/save/add_to/find/refresh_registry()`,
   [`drop_scenario_run()`](https://energyRt.org/reference/scenario_runs.md),
   [`upgrade_scenario_layout()`](https://energyRt.org/reference/upgrade_scenario_layout.md),
   [`apply_ledger()`](https://energyRt.org/reference/apply_ledger.md).
+
 - `modInp@set` is removed (superseded by `@sets`); `@gams.equation` is
   now `@user_constraints` and `@costs.equation` is `@user_costs`.
   Scenarios saved with the old slots migrate on load.
+
 - [`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md)
   errors on a weather profile named but not declared, and on a `geff`
   row naming an input group no commodity belongs to. Both used to be
   dropped silently.
+
 - The UTOPIA world reuses the shared calendars: `utopia_annual`,
   `utopia_s4h24` and `utopia_m12h24` are retired for `annual`, `s4_h24`
-  and `m12_h24`. Only `utopia_seasons` remains UTOPIA-own, relabelled
-  `AUT` → `FAL`. Day-proportional season shares shift UTOPIA objectives
-  slightly.
+  and `m12_h24`; `utopia_seasons` stays, relabelled `AUT` → `FAL`.
+  Objectives shift slightly.
+
 - [`report_tbl()`](https://energyRt.org/reference/report_helpers.md)
   enforces a 200-row cap in PDF/Word when no `max_rows` is given.
 
+- The sampled daily calendar `calendars$d365_h24_subset_1day_per_month`
+  is renamed `d365_h24_1dpm` (solver working paths embed the calendar
+  name); existing scenario folders keep their names.
+
 ### New features
+
+- [`promote_solution()`](https://energyRt.org/reference/promote_solution.md)
+  makes a run’s solution the scenario’s own, copying it to
+  `<scenario>/modOut/` beside `modInp/` and clearing the active run —
+  after which `runs/` is scratch and can be deleted without losing the
+  solution. `import_solution(promote = TRUE)` chains both steps. The
+  store carries a `modOut.yml` recording the solve’s provenance (solver,
+  objective, stage, timings), which otherwise lives only in `run.yml`
+  and would go with the run folder.
+
+- [`read_sequence()`](https://energyRt.org/reference/read_sequence.md)
+  rebuilds the result of
+  [`solve_myopic()`](https://energyRt.org/reference/solve_myopic.md),
+  [`solve_by_sample()`](https://energyRt.org/reference/solve_by_sample.md),
+  [`solve_by_region()`](https://energyRt.org/reference/solve_by_region.md)
+  or [`solve_guided()`](https://energyRt.org/reference/solve_guided.md)
+  from the variants on disk, so
+  [`getData()`](https://energyRt.org/reference/getData.md),
+  [`sample_summary()`](https://energyRt.org/reference/sample_summary.md),
+  [`myopic_objective()`](https://energyRt.org/reference/myopic_objective.md)
+  and [`guided_gap()`](https://energyRt.org/reference/guided_gap.md)
+  work on a reloaded scenario and not only on the live result. A
+  driver’s working state (the carry ledger, capacity targets, a sampling
+  spec) is not stored and is listed in `$missing`: a rebuilt sequence
+  can be read, not resumed.
+
+- `getData(run = )` reads one or more runs of a scenario in a single
+  call, or `run = "all"`, tagging the rows with a `run` column. Each run
+  is read on a copy, so the object keeps its active run, and a variant
+  brings its own problem with it. Without `run` the result is unchanged.
+
+- A variant’s `variant.yml` records a `params:` block — how the driver
+  was configured
+  ([`solve_myopic()`](https://energyRt.org/reference/solve_myopic.md)’s
+  `overlap` and `carry`,
+  [`solve_by_sample()`](https://energyRt.org/reference/solve_by_sample.md)’s
+  `seed` and sampling spec,
+  [`solve_by_region()`](https://energyRt.org/reference/solve_by_region.md)’s
+  `nsteps` and `price`,
+  [`solve_guided()`](https://energyRt.org/reference/solve_guided.md)’s
+  `slack`, `basis` and `mode`) alongside the existing keys saying which
+  step, sample, region or stage the variant is.
+
+- [`scenario_solutions()`](https://energyRt.org/reference/scenario_solutions.md)
+  lists what each solver attempt produced — status, objective, solver
+  and backend — recovering the objective and solution status from a
+  run’s `output/` for runs that were never imported, where
+  [`scenario_runs()`](https://energyRt.org/reference/scenario_runs.md)
+  can only report `NA`. Read-only.
+
+- [`import_solution()`](https://energyRt.org/reference/import_solution.md)
+  imports one run’s solution and saves it, so a solved scenario keeps
+  its results after the session ends. It restores the run’s solver
+  settings (never the command line), leaves the solver’s `output/`
+  alone, and refuses to save a read that produced no variables.
+
+- `read_solution(ondisk = )` writes each variable into the run’s
+  `modOut/` store as it is read, so the solution is on disk when the
+  read returns and
+  [`save_scenario()`](https://energyRt.org/reference/save_scenario.md)
+  no longer rewrites it — about 30% faster end to end on a full-year
+  model. On by default for a scenario that is itself on disk.
+
+- [`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md)
+  is about 6x faster on large models (a 41-node vintaged multi-year
+  interpolation dropped from ~16 to under 3 minutes) and runs
+  `data.table` on all cores for the duration of the call
+  (`options(energyRt.threads = )` to override). Interpolated content is
+  unchanged.
+
+- Every
+  [`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md)
+  call appends its per-stage / per-map / per-parameter timing and memory
+  readings (R heap, per-stage heap peak, process RSS and peak via `ps`)
+  to a profile log — `interp_runs.csv`, `interp_stages.csv`,
+  `interp_maps.csv`, `interp_params.csv` — under
+  [`set_profile_dir()`](https://energyRt.org/reference/log.md), else
+  next to the operation log, else `<project>/logs/`; with no sink
+  resolvable nothing is written.
+
+- On-disk interpolation writes each parameter’s store once at the end of
+  the object loop instead of rewriting it on every append, removing the
+  quadratic cost that made `ondisk = TRUE` slower than in-memory on
+  large models.
+
+- [`clear_report_cache()`](https://energyRt.org/reference/clear_report_cache.md)
+  removes rendered reports — an object’s own `reports/` folder, or the
+  project tier for in-memory objects — listing them by default and
+  deleting only with `dry_run = FALSE`. A sealed owner refuses.
+
+- [`store_dependents()`](https://energyRt.org/reference/store_dependents.md)
+  lists what references a stored model, repository or dataset instead of
+  embedding a copy of it — the entries that would break if it were
+  deleted, and whether each is pinned to a superseded version.
+
+- New solver presets for GPU-accelerated LP.
+  `solver_options$julia_cuopt`, `julia_cuopt_concurrent`,
+  `julia_cuopt_pdlp` and `julia_cuopt_crossover` solve via NVIDIA cuOpt
+  through `cuOpt.jl`. **Linux only** – cuOpt ships no Windows build, and
+  `libcuopt.so` must be on `LD_LIBRARY_PATH` before Julia starts.
+  `julia_cuopt_pdlp` uses a first-order method with no factorization, so
+  GPU memory grows linearly with the number of non-zeros; add crossover
+  (`julia_cuopt_crossover`) when duals are needed, as a first-order
+  solution alone carries a ~1e-4 duality gap.
+
+- `solver_options$julia_highs_pdlp` and `julia_highs_hipdlp` select the
+  HiGHS first-order solvers. GPU execution requires a `libhighs` built
+  with `-DCUPDLP_GPU=ON`; a stock build runs them on the CPU. Neither
+  returns a basic solution or supports crossover — use the simplex or
+  interior-point presets when duals are needed.
+
+- The JuMP backend records the solver’s `termination status` in
+  `output/log.csv` and skips result export when no primal solution
+  exists, instead of failing while reading variable values.
+
+- New sampled calendar `calendars$d365_h24_1dps`: one representative day
+  per season at hourly resolution (96 timeslices).
+
+- `solver_options$pyomo_mps` writes the problem as an MPS file with
+  energyRt’s own variable and constraint names and stops before solving
+  — for handing a model to an external solver (a GPU LP solver, a remote
+  machine) whose solution comes back later.
+
+- [`read_solution()`](https://energyRt.org/reference/read.md) reads a
+  run solved outside energyRt: a solution decoded into the run’s
+  `output/` is picked up with the exchange format recorded by the run
+  itself, and the run record’s status and objective are updated. A run
+  with no primal solution reports the recorded termination status
+  instead of a missing-file error.
+
+- Weather transforms: one shipped data stream can serve many derived
+  series. A weather object carries named functions in `misc$transform`;
+  a technology/storage/supply weather link selects one in its
+  `transform` column.
+  [`materialize_weather()`](https://energyRt.org/reference/materialize_weather.md)
+  inspects a derived series and
+  [`register_weather_transform()`](https://energyRt.org/reference/register_weather_transform.md)
+  adds session-wide transforms. Region aggregation refuses
+  transform-bearing weather.
+
+- [`scenario_artifacts()`](https://energyRt.org/reference/scenario_artifacts.md)
+  lists what each solve left on disk — whether its solution was
+  imported, what the solver scratch costs, and which runs are candidates
+  for clean-up.
+
+- [`drop_solver_outputs()`](https://energyRt.org/reference/drop_solver_outputs.md)
+  removes the regenerable part of a solve — model source, exchange
+  input, solver logs, and the raw output once the solution has been
+  imported — keeping the run record and the solution. Dry-run by
+  default.
+
+- [`strip_user_info()`](https://energyRt.org/reference/strip_user_info.md)
+  removes the machine a scenario was made on — stored absolute paths,
+  the solver command line, and, with the default `scope = "share"`, the
+  host and user of every run; `scope = "store"` keeps it.
+
+- [`prepare_for_sharing()`](https://energyRt.org/reference/prepare_for_sharing.md)
+  writes a cleaned, trimmed copy of a stored scenario and reports
+  anything that will not travel with it.
+
+- Folding works with GAMS: a dense build (`sparse = FALSE`) may be
+  folded, and the GAMS writer substitutes the artificial member like the
+  other backends.
+
+- [`validate_scenario_parameters()`](https://energyRt.org/reference/validate_scenario_parameters.md)
+  is exported and also checks that every variable has its governing
+  constraints, that availability bounds are present, and that a
+  calendar’s row order agrees with its timeframe columns.
+
+- Storage aux flows can couple every part’s capacity: `inp.cap2a*` /
+  `inp.ncap2a*` (charger) and `stg.cap2a*` / `stg.ncap2a*` (reservoir)
+  join the `out.*` couplings on all four backends.
+
+- [`draw()`](https://energyRt.org/reference/draw.md) of a storage shows
+  the charger, reservoir and discharger as boxes with their own
+  parameters, the ratio triangle (`inp2stg`, `duration`, `inp2out`) as
+  labelled links, and `fullYear` in the header.
+
+- A storage gains `@inp2stg`, the charging C-rate (charging per unit of
+  storing capacity, 1/hours); with `@duration` and `@inp2out` any two
+  ratios fix the third, and
+  [`newStorage()`](https://energyRt.org/reference/storage.md) refuses a
+  contradictory fixed triple.
+
+- [`newImport()`](https://energyRt.org/reference/newImport.md) and
+  [`newExport()`](https://energyRt.org/reference/newExport.md) take
+  `region =`, like every other process class; `import` and `export`
+  objects gain the matching `@region` slot.
+
+- [`solve_by_sample()`](https://energyRt.org/reference/solve_by_sample.md)
+  solves a model on samples of its calendar — consecutive blocks tiling
+  the year, disjoint random draws, or bootstrap draws — storing each as
+  a variant of one scenario.
+
+- Calendar samples are replicates, not pieces: each is annualised and
+  estimates the whole year, so
+  [`sample_summary()`](https://energyRt.org/reference/sample_summary.md)
+  reduces them to quantiles and their objectives must not be summed.
+
+- [`calendar_samples()`](https://energyRt.org/reference/calendar_samples.md)
+  builds the sample specification by drawing whole members of a calendar
+  level (seasons, weeks, days); the table can be edited and passed back.
+
+- [`aggregate_model_regions()`](https://energyRt.org/reference/aggregate_model_regions.md)
+  builds a coarser model by mapping regions onto a geoframe of a
+  [`geoscales::Geoscale`](https://optimal2050.github.io/geoscales/r/reference/Geoscale.html):
+  extensive quantities sum, intensive ones take a size-weighted mean,
+  intra-region trade corridors drop.
+
+- [`solve_by_region()`](https://energyRt.org/reference/solve_by_region.md)
+  solves a multi-region model one region or group at a time, each run a
+  variant of one scenario; with `trade = "none"` the objectives add up
+  to the full model’s (the result’s `additive` field says so).
+
+- A severed trade route can be replaced by a stepped price curve instead
+  of a flat price: `boundary_prices` gains `nsteps`, `price_lo`,
+  `price_hi` and `imp.lo`/`exp.lo` columns.
+
+- [`boundary_window()`](https://energyRt.org/reference/boundary_window.md)
+  builds a `boundary_prices` table whose quantity is `share` of each
+  region’s demand per timeslice; `price` is required.
+
+- [`solve_guided()`](https://energyRt.org/reference/solve_guided.md)
+  solves a too-large model in stages (endpoint problems seed capacity
+  targets for one final full solve);
+  [`guided_gap()`](https://energyRt.org/reference/guided_gap.md) reports
+  the gap to perfect foresight; primitives
+  [`solution_targets()`](https://energyRt.org/reference/solution_targets.md),
+  [`apply_targets()`](https://energyRt.org/reference/apply_targets.md).
+
+- Every energyRt object has a
+  [`report()`](https://energyRt.org/reference/report.md) method: 14
+  element classes render datasheets from per-class templates;
+  `report(mod, name = )` finds an element of any class (`class =`
+  narrows); `misc$report` sets the default template.
 
 - `calendars` ships the mainstream timescales designs — `m12`, `m12a`,
   `q4`, `s4`, `s4_h24`, `m12_h24`, `wd7_h24`, `w52_h24` — plus three
   sampled calendars whose `year_fraction < 1` solves partial years
   natively.
+
 - The registry gained
-  [`newRegistry()`](https://energyRt.org/reference/registry.md) (the
-  only way to create one, since
-  [`load_registry()`](https://energyRt.org/reference/registry.md) no
-  longer invents a missing registry), a `variant` column, and generic
+  [`newRegistry()`](https://energyRt.org/reference/registry.md)
+  ([`load_registry()`](https://energyRt.org/reference/registry.md) no
+  longer invents a missing registry), a `variant` column, and
   [`getScenario()`](https://energyRt.org/reference/accessors.md) /
   [`getObject()`](https://energyRt.org/reference/getObject.md) methods
-  that fetch through a registry by `type/name`, with `run =` selecting
-  the run.
+  fetching by `type/name` with `run =` selecting the run.
+
 - `levcost(x, by_variant = )` replaces
-  [`levcost_by_variant()`](https://energyRt.org/reference/energyRt-deprecated.md),
+  [`levcost_by_variant()`](https://energyRt.org/reference/energyRt-deprecated.html),
   taking `TRUE`, `"npv"` or `"components"`, either while computing or on
   a result in hand.
+
 - Store entries have a lifecycle: `seal_*()` / `unseal_*()` freeze an
   entry, `mark_delete(x, importance =)` queues it and
   [`delete_marked()`](https://energyRt.org/reference/seal.md) (dry-run
   by default) removes marks up to a threshold.
+
 - [`set_path_builder()`](https://energyRt.org/reference/path_builders.md)
   overrides how folder names are derived — `scenario_dir`,
   `store_entry`, `run_label`, or the `slug` primitive. See
   `?path_builders`.
+
 - [`utopia_profile()`](https://energyRt.org/reference/utopia_profile.md)
   generates deterministic synthetic shapes on any calendar — step
   staircase, sine, cosine or hexagonal trapezoid — with per-region phase
   or amplitude variation.
+
 - The “unit model”: `utopia$modules$unit` kits (`U1`, `U3`) where every
   input is 1 on the symmetric `unit_s4` calendar, so each variant’s
   objective is a small hand-checkable integer.
+
 - UTOPIA add-on modules in every `electricity` kit — `GAS_CURVE` (3-step
   supply curve), `EWIN_SITES` (two wind site grades), `ENUC_VINT` (two
-  nuclear vintages) — each replacing its base counterpart via
+  nuclear vintages) — replace their base counterpart via
   `add(mod, ., overwrite = TRUE)`.
+
 - [`solve_myopic()`](https://energyRt.org/reference/solve_myopic.md)
   solves a horizon window by window. The primitives are composable:
   [`horizon_windows()`](https://energyRt.org/reference/horizon_windows.md),
   [`solution_ledger()`](https://energyRt.org/reference/solution_ledger.md),
   [`apply_ledger()`](https://energyRt.org/reference/apply_ledger.md).
+
 - A comparison layer:
   [`compare_scenarios()`](https://energyRt.org/reference/compare_scenarios.md)
-  (across scenarios or recorded runs, with
+  (scenarios or recorded runs, with
   [`print()`](https://energyRt.org/reference/print.md),
   [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
   and [`report()`](https://energyRt.org/reference/report.md) methods),
   [`compare_models()`](https://energyRt.org/reference/compare_models.md)
-  (declaration-level diff) and
+  (declaration diff) and
   [`compare_inputs()`](https://energyRt.org/reference/compare_inputs.md)
-  (interpolated `modInp` diff, detailed with **waldo** installed).
+  (interpolated-input diff).
+
 - `report(scen, template = "full")` renders a page-broken document with
   branding, time and geography pages, result choropleths and stacked
   bars. `report(mod/scen, template = "summary")` renders one-page
   glimpses.
-- The model report is an assumptions-and-data report (discount rates,
-  horizon and calendar charts, geoscale summary, inventories per
-  storable class, per-process datasheets); the scenario report is a
-  results report with problem size, solution checks, a role-driven cost
-  breakdown and an opt-in levcost table. Both render to HTML, PDF and
-  Word.
-- Reports group per-process sections by structure — one section per
-  unique topology — so a 26-region model renders ~64 sections instead of
-  1,674. `template = "full"` restores per-member tables.
+
+- Container reports split by role: the model report documents
+  assumptions and data, the scenario report the results of a solved
+  scenario. Both render to HTML, PDF and Word.
+
+- Model and scenario reports follow user-defined process groups
+  (`report(groups = list(Coal = "_coal_"))` or `misc$report_groups`),
+  else a sample of up to 12 processes; `groups = "topology"` groups by
+  structure.
+
+- Faceted autoplots cap at 16 panels (a caption says how many were
+  dropped); report figures size their height by the facet layout
+  ([`report_fig_height()`](https://energyRt.org/reference/report_helpers.md)).
+
+- Report figures carry pandoc captions instead of in-plot titles: new
+  [`report_fig()`](https://energyRt.org/reference/report_helpers.md)
+  emitter (strips `title`/`subtitle`, auto height, caption) and
+  `report_img(caption = )`.
+
+- Supply charts: `autoplot(supply, style = "bar")` draws availability
+  and cost by region (curve steps stacked in order); `style = "regions"`
+  draws region bars, unlimited availability as a translucent full-height
+  bar.
+
+- Levelized-cost comparison charts: `report(model)` and
+  `report(scenario)` with `levcost = TRUE` add overall and per-group
+  comparisons; a process datasheet reported from a container compares it
+  with its structural peers.
+
+- Model reports summarise weather factors (mean/min/max per factor and
+  region) and draw calendar heatmaps per factor family (6 best + 6 last
+  clusters) and per demand; `autoplot(demand, style = "heatmap")` draws
+  the latter directly.
+
 - Report branding: `misc$logos`, `misc$figure` and scenario
   `misc$badges`, with `report(logos = , figure = , badges = )`
-  overrides; branding enters the render key. New helpers
+  overrides. New helpers
   [`report_img_row()`](https://energyRt.org/reference/report_helpers.md)
   and
   [`report_pagebreak()`](https://energyRt.org/reference/report_helpers.md).
-- The report-template helpers are exported as the `report_*` family, so
-  shipped and custom templates share one three-output implementation.
-  Each takes an explicit `output` argument and is testable outside a
-  render.
+
+- The report-template helpers are exported as the `report_*` family for
+  use in custom templates.
+
 - [`report_templates()`](https://energyRt.org/reference/report_templates.md)
   lists shipped templates; resolution is class-scoped, so containers and
   processes can share template names.
+
 - [`report()`](https://energyRt.org/reference/report.md) works inside a
   knitr chunk — the nested render no longer collides with the outer
   document’s chunk labels.
+
 - [`report_tbl()`](https://energyRt.org/reference/report_helpers.md)
-  gains `max_rows` and `scroll`: HTML renders large tables in a
-  scrollable box with a sticky header, PDF/Word cap with a “… K more
-  rows” footer.
+  gains `max_rows` and `scroll`: scrollable tables in HTML, a capped
+  table with a “… K more rows” footer in PDF/Word.
+
 - `getMix(top_n = )` keeps the N largest processes and lumps the rest
   into `"Other"`, mass-preserving.
   [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
   defaults to `top_n = 12`.
+
 - [`plot_map()`](https://energyRt.org/reference/plot_map.md) maps any
   solved variable carrying a region dimension via `name =` and facets by
   year. New
   [`plot_geoscale()`](https://energyRt.org/reference/plot_geoscale.md)
   draws a geoscale as a membership map, a layered cabinet stack, or an
   icicle.
+
 - [`levcost()`](https://energyRt.org/reference/levcost.md) prices
   `storage` (LCOS) and `trade` (LCOT) as well as `technology`,
   closed-form and solver engines held together by a parity test.
   Containers price all three; `classes =` narrows.
+
 - [`asSupplyCurve()`](https://energyRt.org/reference/supply-curve.md),
   [`asImportCurve()`](https://energyRt.org/reference/supply-curve.md)
   and
   [`asExportCurve()`](https://energyRt.org/reference/supply-curve.md)
   turn a single price per `(region, year, timeslice)` into a stepped
   curve.
+
 - Transmission losses can be quadratic, approximated by capacity
   tranches.
+
 - [`newACLine()`](https://energyRt.org/reference/newACLine.md) and
   [`newDCLink()`](https://energyRt.org/reference/newDCLink.md), with an
   opt-in Kirchhoff voltage law.
+
 - `@trade$af` rates a route’s flow relative to its capacity, alongside
   the absolute `ava.lo/up/fx`.
+
 - A filtered geoscale passed to
   [`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md)
   produces a sub-territory model — the spatial mirror of calendar
   sampling.
+
 - `"TOTAL"` in a `vintage` or `cluster` column works on flow bounds and
   availability factors, not only `@capacity`.
+
 - `vTradeIr` and the `*RetiredNewCap` variables can be used in custom
   constraints.
+
 - Scenario storage: a persisted per-project registry, one folder per
-  solve under `runs/<variant>/<solve>/`, a content-addressed model store
-  that scenarios reference, a shared repository store, and several
-  own-problem variants side by side via `solve_scen(variant = )`.
+  solve under `runs/<variant>/<solve>/`, a content-addressed model
+  store, a shared repository store, and own-problem variants via
+  `solve_scen(variant = )`.
+
 - Registered objects are accessible by name — `getScenario("base")`,
   [`getModel()`](https://energyRt.org/reference/accessors.md),
   [`getRepository()`](https://energyRt.org/reference/accessors.md),
   [`getDataset()`](https://energyRt.org/reference/accessors.md),
-  [`load_scenarios()`](https://energyRt.org/reference/load_scenario.md)
-  — and [`getData()`](https://energyRt.org/reference/getData.md) takes
-  names and environments directly. `open_project(path)` anchors a
-  session in one call.
+  [`load_scenarios()`](https://energyRt.org/reference/load_scenario.md);
+  [`getData()`](https://energyRt.org/reference/getData.md) takes names
+  and environments; `open_project(path)` anchors a session.
+
 - A dataset store completes the storage tiers:
   [`save_dataset()`](https://energyRt.org/reference/dataset_store.md) /
   [`load_dataset()`](https://energyRt.org/reference/dataset_store.md)
   keep a large table, a geoscale map or a recorded generating call in a
   content-addressed folder; the other savers gain `embed_datasets =`.
+
 - Reports render into the object’s own folder; an unchanged report is
   not re-rendered (`force = TRUE` overrides).
+
 - [`levcost()`](https://energyRt.org/reference/levcost.md) results are
   cached on disk, keyed by object content and assumptions;
   [`report()`](https://energyRt.org/reference/report.md) shares the
   cache.
   [`clear_levcost_cache()`](https://energyRt.org/reference/clear_levcost_cache.md)
   empties it.
+
 - [`object_hash()`](https://energyRt.org/reference/model_hash.md) works
   for any energyRt object.
+
 - An optional operation log:
   [`set_log_file()`](https://energyRt.org/reference/log.md) makes
   [`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md),
@@ -226,65 +681,219 @@
   append one CSV line each;
   [`read_log()`](https://energyRt.org/reference/log.md) reads it back.
   Off by default.
+
 - `add()` dispatches on a loaded registry, as a shorthand for
   [`add_to_registry()`](https://energyRt.org/reference/registry.md).
+
 - New [`get_weather()`](https://energyRt.org/reference/get_weather.md),
   the weather-side counterpart to
   [`get_region()`](https://energyRt.org/reference/get_region.md).
+
 - [`summary()`](https://energyRt.org/reference/summary.md) on a model
   reports its regions and its objects by class.
+
 - `run.yml` records a solve’s memory footprint (`mem_mb`/`peak_mb`) and
   `saved`/`updated` stamps, surfaced by
   [`scenario_runs()`](https://energyRt.org/reference/scenario_runs.md).
 
-### Deprecations
-
-- The UTOPIA datasets are now elements of one list — `utopia$weather`,
-  `$demand`, `$stock`, `$modules`, alongside `$map` and `$geo`. The four
-  standalone datasets still work and are removed in v0.90.
-- All deprecated names warn with the version that removes them (“won’t
-  be available starting energyRt v0.90”) and are collected under one
-  help page, `?energyRt-deprecated`.
-- [`find_registry()`](https://energyRt.org/reference/energyRt-deprecated.md)
-  is now
-  [`find_in_registry()`](https://energyRt.org/reference/registry.md) —
-  it filters rows inside a loaded registry, next to
-  [`get_registry_file()`](https://energyRt.org/reference/registry_file.md).
-- [`read_procspec()`](https://energyRt.org/reference/energyRt-deprecated.md)
-  is now
-  [`read_process_spec()`](https://energyRt.org/reference/read_process_spec.md).
-- [`registry_exists()`](https://energyRt.org/reference/energyRt-deprecated.md)
-  /
-  [`registry.exists()`](https://energyRt.org/reference/energyRt-deprecated.md)
-  now report whether the project has a registry file at all; the `name`
-  argument is accepted and ignored.
-- [`solve_mod()`](https://energyRt.org/reference/energyRt-deprecated.md)
-  /
-  [`solve_scen()`](https://energyRt.org/reference/energyRt-deprecated.md)
-  are deprecated aliases of
-  [`solve_model()`](https://energyRt.org/reference/solve_model.md) /
-  [`solve_scenario()`](https://energyRt.org/reference/solve_model.md),
-  which hold the implementations.
-- [`make_scenario_dirname()`](https://energyRt.org/reference/energyRt-deprecated.md)
-  is replaced by `set_path_builder(scenario_dir = )`, since folder
-  naming is automatic.
-- The mosox back-end experiment moved to `drafts/`; it was not
-  functional.
-
 ### Bug fixes
+
+- `interpolate()` and [`solve()`](https://rdrr.io/r/base/solve.html)
+  work on an installed package. Both generics were documented as the
+  recommended API but never exported, so the pipelines in the README and
+  the vignettes failed for anyone who had not loaded the source tree;
+  `read()` was already exported.
+
+- The shipped `utopia` storage objects can be read and printed again.
+  They were stored before `storage@inp2stg` existed, so
+  [`print()`](https://energyRt.org/reference/print.md), `o@inp2stg` and
+  [`process_to_spec()`](https://energyRt.org/reference/process_to_spec.md)
+  all failed on them; models built from the kits still interpolated,
+  which is why it went unnoticed.
+
+- [`drop_scenario_run()`](https://energyRt.org/reference/scenario_runs.md)
+  says so when a run holds the only copy of the scenario’s solution, and
+  names
+  [`promote_solution()`](https://energyRt.org/reference/promote_solution.md).
+  Dropping it used to leave the scenario pointing at a store that was
+  gone, so every read failed with “On-disk data expected but not found”.
+
+- Switching to a run whose solver `output/` is gone no longer returns
+  the previously active run’s solution.
+  [`read_solution()`](https://energyRt.org/reference/read.md) reads the
+  run’s imported `modOut/` store instead, and errors when neither is
+  available — it used to hand back the unchanged scenario, so a
+  cleaned-up or shared scenario served another run’s numbers with no
+  warning.
+
+- `solve_myopic(store = "scenarios")` runs: it composed each step’s
+  scenario name with dashes, which the object-name rule rejects, so
+  every step failed — reported as an infeasible solve.
+
+- A solution reconstructed from a solver `.sol` file wrote `year` (and
+  `yearp`, `yeare`, `yearn`, `year2`) as text, where every other route
+  writes integers. Output from the two routes could not be joined on the
+  year, in nearly every table, and the mismatch was silent.
+
+- Value-map domains (`mTechVarom` and siblings) treat a `NA` key as a
+  per-row wildcard: a technology’s year-unkeyed cost row is no longer
+  dropped from the map when another technology keys the same cost by
+  year, which silently removed the cost from the model.
+
+- [`save_scenario()`](https://energyRt.org/reference/save_scenario.md)
+  no longer errors on a scenario interpolated with `ondisk = TRUE` and
+  never solved (`@modOut` is `NULL` there).
+
+- `interpolate_model(ondisk = TRUE)` writes each parameter store under
+  `modInp/parameters/<name>`, the location
+  [`load_scenario()`](https://energyRt.org/reference/load_scenario.md)
+  rebuilds paths to; previously the tables landed flat under
+  `modInp/<name>` and were unreachable after a reload. Existing flat
+  stores still load (the rebase falls back to the flat location).
+
+- Multi-year models understated capital charges by the milestone length:
+  annuities (from `eac` or `invcost`) were charged on the annual build
+  rate instead of each vintage’s standing capacity — one fifth of their
+  value on 5-year milestones. Fixed in all backends; single-year and
+  overnight models are unchanged. Re-solve multi-year scenarios solved
+  with earlier versions. See `dev/multiyear-capital-charge-bug.md`.
+
+- On a sampled calendar, ANNUAL-timeframe quantities are now full-year
+  magnitude: annual caps and emission totals bind at face value, and
+  every commodity gains totals at each coarser timeslice level and, with
+  a geoscale attached, each coarser region level. Full calendars are
+  unchanged. A serialized calendar built under the old convention is
+  refused at interpolation — rebuild it with
+  [`newCalendar()`](https://energyRt.org/reference/newCalendar.md). See
+  `dev/annualized-annual-convention.md`.
+
+- Solution CSVs written by the GLPK backend carry 10 significant digits
+  (was 6 decimal places).
+
+- `fold = TRUE` could silently drop capital cost from the objective: a
+  parameter whose folded dimension was only *partially* wildcard kept a
+  raw `NA`, which is not a set member, so lookups missed and took the
+  parameter’s default. Partial columns are now materialised to explicit
+  members before the write, and `apply_fold_artificial()` refuses to
+  write a surviving raw `NA`. See `dev/fold-partial-wildcard-bug.md`.
+
+- [`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md)
+  rehydrates a model whose large slots live in the model store
+  ([`obj2mem()`](https://energyRt.org/reference/obj2mem.md)) instead of
+  silently interpolating the empty placeholders — a store-loaded model
+  produced a plausible-looking scenario with no demand and no weather.
+
+- [`verify_solution()`](https://energyRt.org/reference/verify_solution.md)’s
+  `objective` check no longer errors out (and is no longer reported as
+  skipped) when a parameter and its gating map disagree on a key
+  column’s type, as `pDiscountFactor` and `mvTotalCost` do on `year`.
+
+- [`save_model()`](https://energyRt.org/reference/model_store.md),
+  [`model_hash()`](https://energyRt.org/reference/model_hash.md) and the
+  other store hashes accept objects serialized before a slot was added
+  to their class; a model holding a pre-`inp2stg` `storage` used to fail
+  to save.
+
+- [`subset_model_regions()`](https://energyRt.org/reference/subset_model_regions.md)
+  (and so
+  [`solve_by_region()`](https://energyRt.org/reference/solve_by_region.md))
+  prunes `@weather` references whose object is dropped with the regions
+  outside the sample; narrowing a clustered-resource model to one region
+  used to fail validation.
+
+- A solved or written folded scenario no longer carries the artificial
+  set members (`ANYREGION`, `0`);
+  [`getData()`](https://energyRt.org/reference/getData.md) on such a
+  scenario unfolds every folded dimension, including `year`.
+
+- Folding no longer depends on the order of the folded dimensions, and a
+  parameter folded on both `tech` and `region` reads back correctly.
+  [`getData()`](https://energyRt.org/reference/getData.md) and
+  [`verify_solution()`](https://energyRt.org/reference/verify_solution.md)
+  unfold every foldable dimension.
+
+- Folding `trade` no longer empties a trade parameter whose route
+  endpoints are wildcards.
+
+- A user constraint’s `rhs` is interpolated over years per region (and
+  any other key), not as one column across regions.
+
+- User-constraint and user-cost parameters (`pCns*`, `pCosts*`) are
+  never folded.
+
+- [`write_script()`](https://energyRt.org/reference/write.md)
+  substitutes the folded wildcard with the artificial set member, as
+  [`solve_scenario()`](https://energyRt.org/reference/solve_model.md)
+  already did; a written folded scenario no longer silently takes
+  parameter defaults.
+
+- [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+  of a `demand` draws its `"line"` and `"heatmap"` styles with the same
+  profile engine as `weather`; the old line view errored on demands with
+  years and faceted one row per day on daily calendars.
+
+- Profile lines and areas (`demand`, `weather`) colour the coarse time
+  level with a viridis gradient, continuous when the level is numeric.
+
+- [`plot_process_windows()`](https://energyRt.org/reference/plot_process_windows.md)
+  no longer draws a process backwards: a process not investable within
+  the horizon shows its exogenous stock instead, and a missing `olife`
+  runs the operating tail to the end of the horizon.
+
+- A zero discount rate with no operational life is refused instead of
+  silently charging nothing for capital. Supplying `@invcost$eac`
+  directly is unaffected.
+
+- The solver exchange checks its longest prospective file path before
+  writing and stops with the directory and symbol at fault; exchange
+  directories are created recursively.
+
+- A process declared in a region where a commodity it consumes is
+  unavailable is dropped there instead of producing from nothing; the
+  dropped cells are reported and listed in `scenario@misc$region_gaps`.
+
+- A `supply` scoped by the `region` column of its data, rather than by
+  `@region`, is no longer available in every region of the model.
+
+- A `weather` object scoped the same way no longer zeroes availability
+  in regions it was never declared for.
+
+- An interpolation that failed part-way left bulk parameter writing on,
+  and every later solve in the session silently returned objective 0;
+  the `en.bulk_param_write` option is now restored on every exit path.
+
+- `verify_solution()$ok` no longer reports `TRUE` when every check was
+  skipped; new `n_ran` / `n_skipped` fields, and
+  [`print()`](https://energyRt.org/reference/print.md) says “NOTHING
+  VERIFIED”.
+
+- [`validate_scenario_parameters()`](https://energyRt.org/reference/validate_scenario_parameters.md)
+  issues carry a severity: a populated map whose source parameter is
+  empty is structural and errors whatever `action` says; the issue count
+  is always announced with
+  [`message()`](https://rdrr.io/r/base/message.html).
+
+- [`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md)
+  asserts no parameter is left unmaterialised after the final flush,
+  naming the offenders.
+
+- [`read_solution()`](https://energyRt.org/reference/read.md) errors
+  when none of the declared variables produced an output file, naming
+  the extension and the active `import_format`.
+
+- `add()` accepts a repository holding more than one object.
+
+- `report(levcost = TRUE, by_variant = )` no longer drops the
+  levelised-cost section: `FALSE` reports the display instance alone,
+  the default keeps the per-variant tables.
 
 - A user `constraint` whose `for.each` years all fall outside the solved
   horizon is dropped with a warning instead of generating unusable
-  solver code. Its equation was still declared over an index domain the
-  horizon filter had emptied, and JuMP rejected the dangling reference
-  (“Unexpected error parsing reference set: eqCns”).
+  solver code.
 
 - A `supply` at a commodity’s coarse `@geoframe` level was silently
-  costless: `mSupSpan` intersected with the atoms instead of spanning
-  the commodity’s balance regions, leaving a free `vOutTot` cell, empty
-  `vSupCost` and an objective of 0. Cost-aggregation maps are also built
-  after wildcard unfolding. Rest-of-world import/export at a coarse
-  level are refused loudly.
+  costless; it is now priced, and rest-of-world import/export at a
+  coarse level are refused loudly.
 
 - [`newCommodity()`](https://energyRt.org/reference/newCommodity.md)
   without `timeframe =` no longer crashes interpolation; the empty slot
@@ -294,52 +903,43 @@
   and name instead of appending a duplicate next to it; without
   `overwrite` the collision is an error.
 
-- Calendar chronology follows the timetable’s row order.
-  `.complete_calendar()` ordered mid-level timeslices alphabetically, so
-  `@next_in_year` mis-chained any vocabulary that does not collate
-  chronologically.
+- Calendar chronology follows the timetable’s row order; mid-level
+  timeslices are no longer ordered alphabetically.
 
 - On-disk parameter stores no longer default to CSV; they follow
   `storage_format`. Existing CSV stores keep loading.
 
-- A parameter write-back could make its store unreadable — both
-  write-back paths re-derived the codec from a directory listing that
-  knew only parquet-or-csv, writing CSV beside `.arrow` files. The
-  store’s recorded format is now authoritative.
+- A parameter write-back could make its store unreadable by writing CSV
+  beside `.arrow` files; the store’s recorded format is now
+  authoritative.
 
 - An atomic (single-column) slot was always written as CSV, mixing
   codecs inside a store.
 
-- `import_format = "parquet"` returned an empty scenario silently: R
-  looked for `output/<var>.parquet` while both backends wrote `.arrow`.
-  Pyomo honours parquet on both legs; Julia refuses it at write time.
+- `import_format = "parquet"` returned an empty scenario silently. Pyomo
+  honours parquet on both legs; Julia refuses it at write time.
 
-- Tables with no rows are no longer written — on a UTOPIA-size model
-  roughly two thirds of the tables are empty.
+- Tables with no rows are no longer written.
 
 - [`obj2mem()`](https://energyRt.org/reference/obj2mem.md) is quiet by
-  default and reports a progress bar instead of one path per table;
-  `verbose` is now passed down the recursion, so a top-level
-  `verbose = FALSE` is no longer lost on nested objects.
+  default and reports a progress bar; `verbose` is passed down the
+  recursion.
 
 - [`subset_model_regions()`](https://energyRt.org/reference/subset_model_regions.md)
   reports one summary line — regions kept, objects and routes dropped —
   instead of a message per item; `verbose = TRUE` lists them.
 
 - Interpolation no longer re-deduplicates a parameter’s whole table on
-  every object that writes to it, making that stage linear rather than
-  quadratic. On a 6-region full-year model (53M rows) the object stage
-  went 3m01s → 1m19s. Set `options(en.bulk_param_write = FALSE)` for the
-  previous path.
+  every object that writes to it. Set
+  `options(en.bulk_param_write = FALSE)` for the previous path.
 
 - The process/commodity level check no longer refuses models whose
-  objects span many regions (a data.table join-size refusal).
+  objects span many regions.
 
 - Conflicting-bounds detection names the parameter again instead of
   dying on “comparison of these types is not implemented”.
 
-- `force_cols_classes()` tested the data.frame instead of the column,
-  re-coercing every year and character column on every write.
+- Parameter writes no longer re-coerce every year and character column.
 
 - Variant expansion respects `verbose`; because `verbose` defaults to
   off, the generated-constraint and variant-expansion messages no longer
@@ -347,8 +947,7 @@
   rather than listed.
 
 - [`get_region()`](https://energyRt.org/reference/get_region.md) returns
-  a model’s declared regions — a model carries them on `@config`, which
-  the reflective walk missed.
+  a model’s declared regions.
 
 - [`load_scenario()`](https://energyRt.org/reference/load_scenario.md)
   on a saved-but-never-solved scenario no longer warns about rebasing
@@ -374,29 +973,24 @@
   on its charger or reservoir paid no fixed O&M.
 
 - `eqTechPhaseOut` / `eqStoragePhaseOut` are gated on `mTechNew` /
-  `mStorageNew`: a phaseout window past the investment window crashed
-  Pyomo and left a stray free variable elsewhere. Objectives unchanged.
+  `mStorageNew`; a phaseout window past the investment window no longer
+  crashes Pyomo. Objectives unchanged.
 
-- `scenario@status$solved` is set when the solution is read; it had no
-  writer and stayed `FALSE` after an optimal solve.
+- `scenario@status$solved` is set when the solution is read.
 
 - Per-part `inp.` / `stg.` `wacc` and `payback` are honoured; the
   annuity always read the `out.*` columns.
 
-- `technology@af$rampup` / `$rampdown` reach the solver — the parameter
-  catalogue named slots that do not exist. Two template defects surfaced
-  with them and are fixed on all four backends: `cap2act` was applied
-  twice, and the Up/Down equations were orientation-swapped.
+- `technology@af$rampup` / `$rampdown` reach the solver on all four
+  backends; `cap2act` is no longer applied twice and the Up/Down
+  equations are no longer orientation-swapped.
 
 - Per-column `config@defVal` / `config@interpolation` overrides are read
   at interpolation instead of being copied onto the scenario and
   ignored.
 
-- The `costs` class is wired: it had no dispatching `ob2mi` method, no
-  callers for its compiler, a missing `defVal` slot, a broken list form
-  of `subset =`, and a recipe that ran before the maps it consumes
-  existed. User cost terms now reach the objective via
-  `eqTotalUserCosts`.
+- The `costs` class is wired end to end; user cost terms reach the
+  objective via `eqTotalUserCosts`.
 
 - An unknown summand field in
   [`newConstraint()`](https://energyRt.org/reference/newConstraint.md)
@@ -434,11 +1028,37 @@
 
 ### Documentation
 
+- Three shipped statements that contradicted the multi-level region
+  feature are corrected:
+  [`setGeoscale()`](https://energyRt.org/reference/setGeoscale.md) and
+  `config@geoscale` no longer claim a geoscale “never changes the
+  optimisation model” (it is inert only until a commodity names a
+  `@geoframe`); `commodity@geoframe` no longer says “GLPK and GAMS only”
+  (all four back-ends carry the roll-up) and now states that the coarse
+  balance is the plain, unweighted SUM of its children and that
+  geoframes must nest; and the `region` column of
+  `trade@invcost`/`@fixom` no longer says a coarse level “never reaches
+  the objective” — it is charged once at that cell. The roadmap no
+  longer lists nested regions as unstarted.
+
+- [`read_solution()`](https://energyRt.org/reference/read.md) has a help
+  page. Its roxygen block was detached by a stray `#` comment, so the
+  function documented nothing — the page now covers `run`, `ondisk`, and
+  why the imported `modOut/` store is not a copy of the solver’s
+  `output/`.
+
+- The scenario-management article gains a section on getting data out of
+  a variant, where a variant’s solution lives, how to remove one, and
+  the two unrelated meanings of “variant”. Stale diagrams showing a
+  nested `solver/` folder are corrected to the flat run layout.
+
 - New article *Reports and levelized costs* tours the reporting layer
   and the report/levcost caches.
+
 - One `trade` object is one shared throughput budget — `eqTradeCapFlow`
   sums every route against its single capacity, so a network in one
   object is not a set of independently rated lines.
+
 - Trade costs are a rate per endpoint region: capacity is region-free,
   but `invcost`, `fixom`, `retcost` and `eac` are region-indexed and
   each named region pays its own rate on the whole capacity.
@@ -818,7 +1438,7 @@
   [`geom_sf()`](https://ggplot2.tidyverse.org/reference/ggsf.html)
   layer, which works only for a map with no CRS. Routes, centroids and
   labels are now `sf` layers whenever the map is projected.
-- [`tech_from_spec()`](https://energyRt.org/reference/energyRt-deprecated.md)
+- [`tech_from_spec()`](https://energyRt.org/reference/energyRt-deprecated.html)
   read `@input$combustion` back as character, so any technology setting
   it wrote a valid techspec that then failed to load.
 - [`size()`](https://energyRt.org/reference/size.md) regained its

@@ -19,7 +19,7 @@ template for newCalendar()."><meta property="og:image" content="https://energyRt
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.2.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -28,7 +28,6 @@ template for newCalendar()."><meta property="og:image" content="https://energyRt
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/energyRt.html">Get started</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/use-R-2026.html">Training</a></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Roadmap</a></li>
 <li class="nav-item dropdown">
@@ -38,6 +37,7 @@ template for newCalendar()."><meta property="og:image" content="https://energyRt
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
@@ -140,9 +140,14 @@ m01/m04/m07/m10; <code>year_fraction</code> ~ 0.337.</p></dd>
 <dd><p>SAMPLED: <code>m12</code> filtered to Jan-Mar;
 <code>year_fraction</code> = 90/365.</p></dd>
 
-<dt>d365_h24_subset_1day_per_month</dt>
-<dd><p>SAMPLED: one day per month at
-hourly resolution (288 timeslices, <code>year_fraction</code> ~ 12/365).</p></dd>
+<dt>d365_h24_1dpm</dt>
+<dd><p>SAMPLED: one day per month at hourly
+resolution (288 timeslices, <code>year_fraction</code> ~ 12/365).</p></dd>
+
+<dt>d365_h24_1dps</dt>
+<dd><p>SAMPLED: one day per season at hourly
+resolution (d015/d105/d196/d288, 96 timeslices,
+<code>year_fraction</code> ~ 4/365).</p></dd>
 
 
 </dl><p>The mainstream designs (<code>m12</code> .. <code>w52_h24</code> and the first three sampled
@@ -163,16 +168,13 @@ generating script.</p>
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">calendars</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [1] "season_dn"                      "d365"                          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [3] "annual"                         "utopia_seasons"                </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [5] "unit_s4"                        "unit_s4h4"                     </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [7] "d365_h24"                       "d365_h24_subset_1day_per_month"</span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [9] "m12"                            "m12a"                          </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [11] "q4"                             "s4"                            </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [13] "s4_h24"                         "m12_h24"                       </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [15] "wd7_h24"                        "w52_h24"                       </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [17] "s4_h24_subset_2seasons"         "m12_h24_subset_4months"        </span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [19] "m12_subset_q1"                 </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [1] "season_dn"              "d365"                   "annual"                </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [4] "utopia_seasons"         "unit_s4"                "unit_s4h4"             </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [7] "d365_h24"               "m12"                    "m12a"                  </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [10] "q4"                     "s4"                     "s4_h24"                </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [13] "m12_h24"                "wd7_h24"                "w52_h24"               </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [16] "s4_h24_subset_2seasons" "m12_h24_subset_4months" "m12_subset_q1"         </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span> [19] "d365_h24_1dps"          "d365_h24_1dpm"         </span>
 <span class="r-in"><span><span class="fu"><a href="draw.html">plot</a></span><span class="op">(</span><span class="va">calendars</span><span class="op">$</span><span class="va">season_dn</span><span class="op">)</span></span></span>
 <span class="r-plt img"><img src="calendars-1.png" alt="" width="700" height="433"></span>
 </code></pre></div>

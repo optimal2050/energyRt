@@ -1,7 +1,7 @@
 Package: energyRt
 Type: Package
 Title: Energy Systems Modeling Toolbox
-Version: 0.89.9.9002
+Version: 0.90.0.9000
 Date: 2026-09-20
 Authors@R: 
   c(person(given = "Oleg", 
@@ -40,7 +40,7 @@ Suggests: shiny, DT, pak, gdxtools (== 0.7.1), knitr, rmarkdown, sf, ggplot2, te
 Remotes: optimal2050/mmcloud
 SystemRequirements: Julia (>= 1.6) with JuMP or Python (>= 3.7) with
         Pyomo or GAMS (>= 24.9) or GLPK (>= 4.0)
-License: AGPL (>= 3)
+License: Apache License (>= 2)
 VignetteBuilder: knitr
 LazyData: true
 Encoding: UTF-8
@@ -122,7 +122,6 @@ Collate:
     'interp_shared.R'
     'interpolation.R'
     'interpolation_funs.R'
-    'legacy_api_shims.R'
     'solve.R'
     'levcost.R'
     'levcost_analytic.R'

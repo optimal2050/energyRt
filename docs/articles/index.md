@@ -16,12 +16,12 @@
   Roadmap](https://energyRt.org/articles/roadmap.md):
 - [Scenario management: how models, scenarios, and solutions are
   organized](https://energyRt.org/articles/scenario-management.md):
+- [Space resolution: geoscales and
+  geoframes](https://energyRt.org/articles/space-resolution.md):
 - [Storage](https://energyRt.org/articles/storage.md):
 - [Time resolution: calendars and
   timeslices](https://energyRt.org/articles/time-resolution.md):
 - [Units](https://energyRt.org/articles/units.md):
-- [Energy System Modeling with
-  R](https://energyRt.org/articles/use-R-2026.md):
 - [UTOPIA I: building the
   model](https://energyRt.org/articles/utopia-build.md):
 - [UTOPIA II: running

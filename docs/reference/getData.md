@@ -57,6 +57,7 @@ getData(
   scenNameInList = as.logical(length(scen) - 1),
   unfold = TRUE,
   variants = TRUE,
+  run = NULL,
   verbose = FALSE
 )
 
@@ -91,6 +92,7 @@ getData(
   scenNameInList = as.logical(length(scen) - 1),
   unfold = TRUE,
   variants = TRUE,
+  run = NULL,
   verbose = FALSE
 )
 
@@ -385,11 +387,26 @@ getData(
 
   logical, default `TRUE`: attach the technology-variant provenance
   columns `base`, `vintage` and `cluster` (from
-  `scenario@modInp@sets$tech_variant`) to the returned data, so results
-  of a vintaged / clustered technology can be grouped or rolled up by
-  those dimensions without parsing the variant names. Has no effect when
-  the model has no variants, so the returned shape is unchanged for such
-  models. Set `FALSE` to suppress the columns.
+  `scenario@modInp@sets$variant`) to the returned data, so results of a
+  vintaged / clustered technology can be grouped or rolled up by those
+  dimensions without parsing the variant names. These are TECHNOLOGY
+  variants — unrelated to the own-problem run variants under `runs/`,
+  which are selected by switching the scenario with
+  [`read_solution()`](https://energyRt.org/reference/read.md). Has no
+  effect when the model has no variants, so the returned shape is
+  unchanged for such models. Set `FALSE` to suppress the columns.
+
+- run:
+
+  character, one or more runs to read (`"<solve>"` or
+  `"<variant>/<solve>"`), or `"all"` for every run of each scenario. The
+  returned rows gain a `run` column naming their source. `NULL`
+  (default) reads each object's ACTIVE run and adds no column, so
+  existing calls are unchanged. Each run is read on a COPY of the
+  scenario, so the object you passed keeps its active run; a variant run
+  brings its own problem with it, parameters included. Spanning runs of
+  different problems warns — their results are not like-for-like. Not to
+  be confused with `variants`, below, which is about technologies.
 
 - verbose:
 

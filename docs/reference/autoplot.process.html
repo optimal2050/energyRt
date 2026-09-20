@@ -31,7 +31,7 @@ interpolation direction."><meta property="og:image" content="https://energyRt.or
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.2.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -40,7 +40,6 @@ interpolation direction."><meta property="og:image" content="https://energyRt.or
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/energyRt.html">Get started</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/use-R-2026.html">Training</a></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Roadmap</a></li>
 <li class="nav-item dropdown">
@@ -50,6 +49,7 @@ interpolation direction."><meta property="og:image" content="https://energyRt.or
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
@@ -102,6 +102,8 @@ interpolation direction.</p>
 <span>  interpolate <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  show_defaults <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  units <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  style <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"profile"</span>, <span class="st">"bar"</span>, <span class="st">"regions"</span><span class="op">)</span>,</span>
+<span>  type <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"availability"</span>, <span class="st">"cost"</span><span class="op">)</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -174,6 +176,20 @@ the plotted slot(s) that are mapped to the model but NOT set in the
 object are drawn as dotted lines at their default values (e.g. a supply
 without <code>ava.lo</code> shows its default of 0). Non-finite defaults (e.g.
 <code>ava.up = Inf</code>) are listed in the caption instead of drawn.</p></dd>
+
+
+<dt id="arg-style">style<a class="anchor" aria-label="anchor" href="#arg-style"></a></dt>
+<dd><p>For <code>supply</code> only: <code>"profile"</code> (default) draws the
+per-parameter year profile shared by all process classes; <code>"bar"</code> draws
+quantity or price by region over the years (stacked availability bars,
+per-region cost lines; <code>type =</code> picks the quantity); <code>"regions"</code> draws
+the across-region comparison — availability and cost bars per region,
+with an unlimited (<code>Inf</code>) availability shown as a translucent
+full-height bar labelled "uncapped".</p></dd>
+
+
+<dt id="arg-type">type<a class="anchor" aria-label="anchor" href="#arg-type"></a></dt>
+<dd><p>For <code>style = "bar"</code>: <code>"availability"</code> (default) or <code>"cost"</code>.</p></dd>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>

@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.2.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -22,7 +22,6 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/energyRt.html">Get started</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/use-R-2026.html">Training</a></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Roadmap</a></li>
 <li class="nav-item dropdown">
@@ -32,6 +31,7 @@
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
@@ -198,7 +198,7 @@ versus a cap. Becomes <code>pTradeIrMarkup</code>.</p>
 <dd><p>character. Cluster (loss tranche) label selecting the tranche this row applies to, NA for every tranche. See the <code>cluster</code> slot.</p></dd>
 
 <dt>region</dt>
-<dd><p>character. Endpoint region bearing this rate. NA applies the rate at every endpoint of the route; name the regions to vary it between them. Must be one of the model's own regions – a coarser geoscale level is accepted by validation but never reaches the objective.</p></dd>
+<dd><p>character. Endpoint region bearing this rate. NA applies the rate at every endpoint of the route; name the regions to vary it between them. A coarser geoscale level is accepted and charged ONCE at that cell, not once per child region.</p></dd>
 
 <dt>year</dt>
 <dd><p>integer. Year to apply the parameter, NA for every year.</p></dd>
@@ -273,7 +273,7 @@ versus a cap. Becomes <code>pTradeIrMarkup</code>.</p>
 
 
 <dt id="arg-aeff">aeff<a class="anchor" aria-label="anchor" href="#arg-aeff"></a></dt>
-<dd><p>data.frame. Auxiliary commodity efficiency parameters.</p><dl><dt>vintage</dt>
+<dd><p>data.frame. Auxiliary commodity efficiency parameters. Rows can be assigned to a single variant via the <code>vintage</code> and/or <code>cluster</code> key columns; each variant then carries only its own couplings.</p><dl><dt>vintage</dt>
 <dd><p>character. Vintage label selecting the variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
 
 <dt>cluster</dt>

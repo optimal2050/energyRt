@@ -24,12 +24,18 @@ library(dplyr)
 library(ggplot2)
 ```
 
-We use the packaged single-region UTOPIA kit as a running example, and keep all
-scenario files under a temporary folder.
+We use the packaged single-region UTOPIA kit as a running example, and keep
+every store — scenarios, models, repositories and the registry — under a
+temporary folder. All four matter: `save_scenario()` saves the model to the
+model store and references it, so redirecting only the scenario path leaves a
+`models/` folder beside the article.
 
 ```{r model}
-set_scenarios_path(file.path(tempdir(), "wf"))   # where scenarios are written
-set_registry_file(file.path(tempdir(), "wf", "energyRt_registry.csv"))
+wf <- file.path(tempdir(), "wf")
+set_scenarios_path(wf)                                  # where scenarios go
+set_models_path(file.path(wf, "models"))                # ... and models
+set_repositories_path(file.path(wf, "repositories"))    # ... and repositories
+set_registry_file(file.path(wf, "energyRt_registry.csv"))
 
 um  <- utopia$modules$electricity$R1
 mod <- newModel("UTOPIA", data = um$repo,

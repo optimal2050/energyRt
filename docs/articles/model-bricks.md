@@ -169,7 +169,10 @@ STG_ELC <- newStorage(
   seff = data.frame(inpeff = 0.9, outeff = 0.9, stgeff = 0.999),
   duration = 4,                                   # 4 hours of storage per unit power
   aux  = data.frame(acomm = "MAT", unit = "kt"),
-  aeff = data.frame(acomm = "MAT", ncap2ainp = 0.25))  # material per new capacity
+  # a storage has three parts, so an aux coupling must say WHICH capacity it
+  # scales with: `out.` the discharger, `inp.` the charger, `stg.` the
+  # reservoir. (A technology has one capacity and keeps the bare names.)
+  aeff = data.frame(acomm = "MAT", out.ncap2ainp = 0.25))  # per new discharge capacity
 draw(STG_ELC)
 ```
 

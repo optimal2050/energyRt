@@ -89,10 +89,15 @@ A named list of `calendar` objects:
 
   SAMPLED: `m12` filtered to Jan-Mar; `year_fraction` = 90/365.
 
-- d365_h24_subset_1day_per_month:
+- d365_h24_1dpm:
 
   SAMPLED: one day per month at hourly resolution (288 timeslices,
   `year_fraction` ~ 12/365).
+
+- d365_h24_1dps:
+
+  SAMPLED: one day per season at hourly resolution (d015/d105/d196/d288,
+  96 timeslices, `year_fraction` ~ 4/365).
 
 The mainstream designs (`m12` .. `w52_h24` and the first three sampled
 entries) are generated from the `timescales` catalog at DATA-BUILD time
@@ -114,15 +119,12 @@ would renormalise the shares) with the surviving `sum(share)` passed as
 
 ``` r
 names(calendars)
-#>  [1] "season_dn"                      "d365"                          
-#>  [3] "annual"                         "utopia_seasons"                
-#>  [5] "unit_s4"                        "unit_s4h4"                     
-#>  [7] "d365_h24"                       "d365_h24_subset_1day_per_month"
-#>  [9] "m12"                            "m12a"                          
-#> [11] "q4"                             "s4"                            
-#> [13] "s4_h24"                         "m12_h24"                       
-#> [15] "wd7_h24"                        "w52_h24"                       
-#> [17] "s4_h24_subset_2seasons"         "m12_h24_subset_4months"        
-#> [19] "m12_subset_q1"                 
+#>  [1] "season_dn"              "d365"                   "annual"                
+#>  [4] "utopia_seasons"         "unit_s4"                "unit_s4h4"             
+#>  [7] "d365_h24"               "m12"                    "m12a"                  
+#> [10] "q4"                     "s4"                     "s4_h24"                
+#> [13] "m12_h24"                "wd7_h24"                "w52_h24"               
+#> [16] "s4_h24_subset_2seasons" "m12_h24_subset_4months" "m12_subset_q1"         
+#> [19] "d365_h24_1dps"          "d365_h24_1dpm"         
 plot(calendars$season_dn)
 ```

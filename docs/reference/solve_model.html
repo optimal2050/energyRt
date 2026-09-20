@@ -27,7 +27,7 @@ deprecated aliases."><meta property="og:image" content="https://energyRt.org/log
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.2.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -36,7 +36,6 @@ deprecated aliases."><meta property="og:image" content="https://energyRt.org/log
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/energyRt.html">Get started</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/use-R-2026.html">Training</a></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Roadmap</a></li>
 <li class="nav-item dropdown">
@@ -46,6 +45,7 @@ deprecated aliases."><meta property="og:image" content="https://energyRt.org/log
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
@@ -83,7 +83,7 @@ un-interpolated one is interpolated first). <code>solve_scenario()</code> solves
 scenario that was already interpolated with <code><a href="interpolate_model.html">interpolate_model()</a></code> and
 errors otherwise. Both reuse the write / run / read framework
 (<code>.executeScenario()</code>); all solver backends (GLPK/GMPL, GAMS, Pyomo, JuMP)
-work unchanged. The transitional names <code><a href="energyRt-deprecated.html">solve_mod()</a></code> / <code><a href="energyRt-deprecated.html">solve_scen()</a></code> are
+work unchanged. The transitional names <code><a href="https://energyRt.org/reference/energyRt-deprecated.html">solve_mod()</a></code> / <code><a href="https://energyRt.org/reference/energyRt-deprecated.html">solve_scen()</a></code> are
 deprecated aliases.</p>
     </div>
 
@@ -103,7 +103,10 @@ deprecated aliases.</p>
 <span>  <span class="va">...</span>,</span>
 <span>  tmp.dir <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  tmp.del <span class="op">=</span> <span class="cn">NULL</span></span>
-<span><span class="op">)</span></span></code></pre></div>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S4 method for class 'model,character'</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/solve.html" class="external-link">solve</a></span><span class="op">(</span><span class="va">a</span>, <span class="va">b</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -152,7 +155,7 @@ same label: <code>"overwrite"</code> (default), <code>"suffix"</code> (append <c
 <dd><p>character, an EXTERNAL solver working directory. When
 set, the solve runs there verbatim and records no run; the default
 (<code>NULL</code>) solves into the scenario's own run directory
-<code>runs/[&lt;variant&gt;/]&lt;label&gt;/solver/</code>.</p></dd>
+<code>runs/[&lt;variant&gt;/]&lt;label&gt;/</code>.</p></dd>
 
 
 <dt id="arg-transient">transient<a class="anchor" aria-label="anchor" href="#arg-transient"></a></dt>

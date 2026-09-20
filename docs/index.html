@@ -35,7 +35,7 @@
 
     <a class="navbar-brand me-2" href="index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.2.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -45,7 +45,6 @@
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
 <li class="nav-item"><a class="nav-link" href="articles/energyRt.html">Get started</a></li>
-<li class="nav-item"><a class="nav-link" href="articles/use-R-2026.html">Training</a></li>
 <li class="nav-item"><a class="nav-link" href="reference/index.html">Reference</a></li>
 <li class="nav-item"><a class="nav-link" href="articles/roadmap.html">Roadmap</a></li>
 <li class="nav-item dropdown">
@@ -56,6 +55,7 @@
     <li><a class="dropdown-item" href="articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="articles/units.html">Units</a></li>
     <li><a class="dropdown-item" href="articles/time-resolution.html">Time resolution</a></li>
+    <li><a class="dropdown-item" href="articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
@@ -90,15 +90,12 @@
   <main id="main" class="col-md-9"><div class="section level2">
 <h2 id="energyrt-">energyRt <img src="reference/figures/logo.png" align="right" height="120" alt="energyRt hex logo"><a class="anchor" aria-label="anchor" href="#energyrt-"></a>
 </h2>
-<p><a href="https://lifecycle.r-lib.org/articles/stages.html" class="external-link"><img src="https://img.shields.io/badge/lifecycle-maturing-blue.svg" alt="Lifecycle: maturing"></a> <a href="https://www.gnu.org/licenses/agpl-3.0" class="external-link"><img src="https://img.shields.io/badge/License-AGPL_v3-blue.svg" alt="License: AGPL v3"></a></p>
-<blockquote>
-<p>📣 <strong>Energy System Modeling with R</strong> — a post-conference online series following useR! 2026 · four live sessions, Fridays 7–28 Aug 2026, 12:00 UTC. <a href="https://energyRt.org/use-R-2026">Details &amp; registration »</a></p>
-</blockquote>
+<p><a href="https://lifecycle.r-lib.org/articles/stages.html" class="external-link"><img src="https://img.shields.io/badge/lifecycle-maturing-blue.svg" alt="Lifecycle: maturing"></a> <a href="https://opensource.org/licenses/Apache-2.0" class="external-link"><img src="https://img.shields.io/badge/License-Apache_2.0-blue.svg" alt="License: Apache 2.0"></a></p>
 <p><strong>energyRt</strong> (<em>energy</em> system modeling <em>R-t</em>oolbox /ˈɛnərdʒi ɑrt/) is a macro-language for energy system modeling in R. You describe an energy system — its fuels, technologies, resources and demands — as R objects; <strong>energyRt</strong> compiles them into a full capacity-expansion &amp; dispatch optimization model, solves it, and returns tidy results ready for <code>dplyr</code>/<code>ggplot2</code> analysis. The technical layer (sets, equations, solver files, results parsing) is generated for you, so you concentrate on the system you are modeling, not on the code that optimizes it.</p>
 <div class="section level3">
-<h3 id="one-model-four-backends">One model, four backends<a class="anchor" aria-label="anchor" href="#one-model-four-backends"></a>
+<h3 id="one-model-many-backends">One model, many backends<a class="anchor" aria-label="anchor" href="#one-model-many-backends"></a>
 </h3>
-<p>The energyRt optimization model (~100 predefined equations, extendable with <code><a href="reference/newConstraint.html">newConstraint()</a></code>) is implemented in four mathematical-programming languages. The <em>same</em> model object solves on any of them, with consistent results:</p>
+<p>The energyRt optimization model (~150 predefined equations over 95 variables, extendable with <code><a href="reference/newConstraint.html">newConstraint()</a></code>) is written out in four mathematical- programming languages. The <em>same</em> model object solves on any of them, with consistent results:</p>
 <table class="table">
 <colgroup>
 <col width="33%">
@@ -107,33 +104,41 @@
 </colgroup>
 <thead><tr>
 <th>Backend</th>
-<th>Language</th>
+<th>Solvers</th>
 <th>License</th>
 </tr></thead>
 <tbody>
 <tr>
 <td><a href="https://www.gnu.org/software/glpk/" class="external-link">GLPK / MathProg</a></td>
-<td>(bundled with Rtools on Windows)</td>
+<td>GLPK — bundled with Rtools on Windows</td>
 <td>open source</td>
 </tr>
 <tr>
 <td><a href="https://jump.dev/" class="external-link">Julia / JuMP</a></td>
-<td>Julia + HiGHS</td>
+<td>HiGHS, CBC, GLPK, CPLEX, cuOpt (GPU)</td>
 <td>open source</td>
 </tr>
 <tr>
 <td><a href="http://www.pyomo.org/" class="external-link">Python / Pyomo</a></td>
-<td>Python + CBC/HiGHS</td>
+<td>HiGHS, CBC, GLPK, CPLEX</td>
 <td>open source</td>
 </tr>
 <tr>
 <td><a href="http://www.gams.com/" class="external-link">GAMS</a></td>
-<td>GAMS</td>
+<td>CPLEX, CBC</td>
 <td>commercial</td>
 </tr>
 </tbody>
 </table>
 <p>Start on zero-setup GLPK; switch backends later without touching your model.</p>
+<p>The same model also runs <strong>where you are not</strong>. Two routes send the solve elsewhere, reusing the formulations above rather than adding a fifth:</p>
+<ul>
+<li>
+<strong><a href="https://neos-server.org/" class="external-link">NEOS</a></strong> — <code>neos_gams_cplex</code> and friends solve on the NEOS server, so CPLEX needs no local licence. Set <code><a href="reference/neos_email.html">set_neos_email()</a></code> once.</li>
+<li>
+<strong><code>multimod_cloud</code></strong> <em>(experimental)</em> — writes the problem as MPS and solves it on a cloud GPU, for models too large for a laptop.</li>
+</ul>
+<p><code>solver_options</code> carries 38 ready presets across all of them — simplex, barrier, interior-point and first-order (PDLP, cuOpt).</p>
 </div>
 <div class="section level3">
 <h3 id="quickstart">Quickstart<a class="anchor" aria-label="anchor" href="#quickstart"></a>
@@ -181,7 +186,16 @@
 <strong>Model bricks</strong> — commodities, technologies (with efficiencies, fuel blends &amp; shares, auxiliary flows like emissions or cooling water), supply, demand, storage, weather, trade; <code><a href="reference/draw.html">draw()</a></code> sketches any technology as a diagram. → <a href="https://energyrt.org/articles/model-bricks.html" class="external-link">Model bricks</a>
 </li>
 <li>
-<strong>UTOPIA teaching model</strong> — a complete multi-region electricity model built step by step, shipped as the <code>utopia_modules</code> data kit with ready scenario levers (CO₂ cap, carbon tax, renewable share, nuclear moratorium). → <a href="https://energyrt.org/articles/utopia-build.html" class="external-link">UTOPIA I: building the model</a> · <a href="https://energyrt.org/articles/utopia-use.html" class="external-link">UTOPIA II: running scenarios</a>
+<strong>Time resolution</strong> — calendars from a single annual slice to 8760 hours, from the shipped <code>calendars</code> catalog (generated with the sibling <a href="https://github.com/optimal2050/timescales" class="external-link">timescales</a> package) or your own via <code><a href="reference/newCalendar.html">newCalendar()</a></code>. Commodities and processes declare the timeframe they balance on, so a model can mix annual fuel accounting with hourly dispatch; sampled calendars solve a representative subset and annualise it. → <a href="https://energyrt.org/articles/time-resolution.html" class="external-link">Time resolution</a>
+</li>
+<li>
+<strong>Multi-level regions</strong> — regions nest (country → zone → node) through a <a href="https://github.com/optimal2050/geoscales" class="external-link">geoscales</a> geoscale, and a commodity declares the level it balances on with <code>geoframe</code>. Coarse balances roll up automatically, so a fuel can clear nationally while electricity clears per node — without a <code>trade</code> route for every pair. → <a href="https://energyrt.org/articles/space-resolution.html" class="external-link">Space resolution</a>
+</li>
+<li>
+<strong>Storage</strong> — intra-day to seasonal, with charge/discharge efficiencies, per-part capacities and cycle closure. → <a href="https://energyrt.org/articles/storage.html" class="external-link">Storage</a>
+</li>
+<li>
+<strong>UTOPIA teaching model</strong> — a complete multi-region electricity model built step by step, shipped as <code>utopia$modules</code> with ready scenario levers (CO₂ cap, carbon tax, renewable share, nuclear moratorium). → <a href="https://energyrt.org/articles/utopia-build.html" class="external-link">UTOPIA I: building the model</a> · <a href="https://energyrt.org/articles/utopia-use.html" class="external-link">UTOPIA II: running scenarios</a>
 </li>
 <li>
 <strong>Levelized cost</strong> — <code><a href="reference/levcost.html">levcost()</a></code> prices a technology <em>a-priori</em> (screening, textbook LCOE) or <em>ex-post</em> from a solved scenario, with <code>autoplot()</code> cost breakdowns.</li>
@@ -200,8 +214,6 @@
 <a href="https://energyrt.org/articles/energyRt.html" class="external-link">Get started</a> — the core idea in ten minutes.</li>
 <li>
 <a href="https://energyrt.org/articles/" class="external-link">Tutorials</a> — installation, solver backends, model bricks, UTOPIA, workflow, plotting.</li>
-<li>
-<strong>useR! workshop</strong> — a hands-on training course built on energyRt and the UTOPIA model (Quarto book, in preparation).</li>
 <li>
 <a href="https://ideea-model.github.io/IDEEA/" class="external-link">IDEEA</a> — an open multi-region model of India’s power system, built with energyRt: a production-scale application.</li>
 </ul>
@@ -240,7 +252,7 @@
 <div class="section level3">
 <h3 id="development-status">Development status<a class="anchor" aria-label="anchor" href="#development-status"></a>
 </h3>
-<p>The current development line (<strong>v0.89.x</strong>) modernizes the interpolation pipeline, scenario storage, and analysis tools (<code>levcost</code>, <code>report</code>, <code>autoplot</code>) on the way to <strong>v1.0</strong>. The <strong>v0.50</strong> release (<em>“half-way-there”</em>) is frozen and remains available for pre-2026 modeling projects; its model code, classes and methods will receive fixes only.</p>
+<p>The current development line (<strong>v0.90.x</strong>) modernizes the interpolation pipeline, scenario storage, and analysis tools (<code>levcost</code>, <code>report</code>, <code>autoplot</code>) on the way to <strong>v1.0</strong>. v0.90 is a breaking release, and it removes the deprecation layer that the 0.8x series had been warning about — see <a href="https://energyrt.org/news/" class="external-link">NEWS</a> before upgrading.</p>
 <p>The package website: <a href="https://energyrt.org" class="external-link uri">https://energyrt.org</a></p>
 </div>
 </div>
@@ -257,7 +269,7 @@
 <h2 data-toc-skip>License</h2>
 <ul class="list-unstyled">
 <li><a href="LICENSE.html">Full license</a></li>
-<li><small>AGPL (&gt;= 3)</small></li>
+<li><small>Apache License (&gt;= 2)</small></li>
 </ul>
 </div>
 

@@ -24,6 +24,8 @@ autoplot(
   interpolate = TRUE,
   show_defaults = FALSE,
   units = NULL,
+  style = c("profile", "bar", "regions"),
+  type = c("availability", "cost"),
   ...
 )
 
@@ -97,6 +99,20 @@ autoplot(
   drawn as dotted lines at their default values (e.g. a supply without
   `ava.lo` shows its default of 0). Non-finite defaults (e.g.
   `ava.up = Inf`) are listed in the caption instead of drawn.
+
+- style:
+
+  For `supply` only: `"profile"` (default) draws the per-parameter year
+  profile shared by all process classes; `"bar"` draws quantity or price
+  by region over the years (stacked availability bars, per-region cost
+  lines; `type =` picks the quantity); `"regions"` draws the
+  across-region comparison — availability and cost bars per region, with
+  an unlimited (`Inf`) availability shown as a translucent full-height
+  bar labelled "uncapped".
+
+- type:
+
+  For `style = "bar"`: `"availability"` (default) or `"cost"`.
 
 - ...:
 

@@ -30,6 +30,7 @@ newStorage(
   vintage = data.frame(),
   duration = NULL,
   inp2out = NULL,
+  inp2stg = NULL,
   fullYear = TRUE,
   weather = data.frame(),
   optimizeRetirement = FALSE,
@@ -263,7 +264,9 @@ newStorage(
 
 - aeff:
 
-  data.frame. Auxiliary commodities efficiency parameters.
+  data.frame. Auxiliary commodities efficiency parameters. Rows can be
+  assigned to a single variant via the `vintage` and/or `cluster` key
+  columns; each variant then carries only its own couplings.
 
   vintage
 
@@ -323,25 +326,71 @@ newStorage(
   :   numeric. Output-commodity-to-auxiliary-output-commodity
       coefficient (multiplier).
 
-  cap2ainp
+  inp.cap2ainp
 
-  :   numeric. Capacity-to-auxiliary-input-commodity coefficient
-      (multiplier).
+  :   numeric. Charging (input-part) capacity to auxiliary input, per
+      unit of vStorageInpCap.
 
-  cap2aout
+  inp.cap2aout
 
-  :   numeric. Capacity-to-auxiliary-output-commodity coefficient
-      (multiplier).
+  :   numeric. Charging (input-part) capacity to auxiliary output, per
+      unit of vStorageInpCap.
 
-  ncap2ainp
+  inp.ncap2ainp
 
-  :   numeric. New-capacity-to-auxiliary-input-commodity coefficient
-      (multiplier).
+  :   numeric. NEW charging capacity to auxiliary input, per unit of
+      vStorageInpNewCap (lands once, at construction).
 
-  ncap2aout
+  inp.ncap2aout
 
-  :   numeric. New-capacity-to-auxiliary-output-commodity coefficient
-      (multiplier).
+  :   numeric. NEW charging capacity to auxiliary output, per unit of
+      vStorageInpNewCap (lands once, at construction).
+
+  stg.cap2ainp
+
+  :   numeric. Energy (storing-part) capacity to auxiliary input, per
+      unit of vStorageStgCap.
+
+  stg.cap2aout
+
+  :   numeric. Energy (storing-part) capacity to auxiliary output, per
+      unit of vStorageStgCap.
+
+  stg.ncap2ainp
+
+  :   numeric. NEW energy capacity to auxiliary input, per unit of
+      vStorageStgNewCap (lands once, at construction) – e.g. battery
+      material per GWh of reservoir. This is what the pre-rename
+      `ncap2ainp` was often ASSUMED to mean; that column actually
+      coupled the discharger and is now `out.ncap2ainp`.
+
+  stg.ncap2aout
+
+  :   numeric. NEW energy capacity to auxiliary output, per unit of
+      vStorageStgNewCap (lands once, at construction).
+
+  out.cap2ainp
+
+  :   numeric. Discharging (output-part) capacity to auxiliary input,
+      per unit of vStorageOutCap. RENAMED from `cap2ainp`, which coupled
+      only this part; the bare name is refused with a rename hint.
+
+  out.cap2aout
+
+  :   numeric. Discharging (output-part) capacity to auxiliary output,
+      per unit of vStorageOutCap. Renamed from `cap2aout`.
+
+  out.ncap2ainp
+
+  :   numeric. NEW discharging capacity to auxiliary input, per unit of
+      vStorageOutNewCap (lands once, at construction). Renamed from
+      `ncap2ainp`.
+
+  out.ncap2aout
+
+  :   numeric. NEW discharging capacity to auxiliary output, per unit of
+      vStorageOutNewCap (lands once, at construction). Renamed from
+      `ncap2aout`.
 
   pho2ainp
 
@@ -1002,6 +1051,55 @@ newStorage(
 
   :   numeric. Fixed charge-to-discharge capacity ratio.
 
+- inp2stg:
+
+  data.frame. The charging C-rate, in 1/hours: charging capacity per
+  unit of storing (energy) capacity. `inp2stg.fx` ties the charger to
+  the reservoir exactly, `inp2stg.lo`/`.up` bound the ratio, and the
+  bare `inp2stg` column is the scalar shorthand, normalised to `.fx` at
+  construction; a one-sided range opens the other side. Unlike
+  `duration` and `inp2out` there is NO binding default: the constraint
+  exists only where a finite bound is declared, and only for storages
+  whose charging AND storing parts both carry capacity variables (priced
+  or bounded). The three ratios form a triangle over the parts –
+  `inp2out` = inp/out, `inp2stg` = inp/stg, `duration` = stg/out – so
+  any two determine the third; `newStorage()` refuses a contradictory
+  fixed triangle.
+
+  vintage
+
+  :   character. Vintage label selecting the variant this row applies
+      to, NA for all.
+
+  cluster
+
+  :   character. Cluster label selecting the variant this row applies
+      to, NA for all.
+
+  region
+
+  :   character. Region the row applies to, NA for all.
+
+  year
+
+  :   integer. Year the row applies to, NA for all.
+
+  inp2stg
+
+  :   numeric. Scalar shorthand, normalised to `inp2stg.fx`.
+
+  inp2stg.lo
+
+  :   numeric. Lower bound on the charging C-rate, 1/hours.
+
+  inp2stg.up
+
+  :   numeric. Upper bound on the charging C-rate, 1/hours.
+
+  inp2stg.fx
+
+  :   numeric. Fixed charging C-rate, 1/hours.
+
 - fullYear:
 
   logical. Controls where the charge/discharge cycle closes. If TRUE
@@ -1146,10 +1244,10 @@ STG1 <- newStorage(
     stg2aout = 0.9,
     cinp2aout = 0.9,
     cout2aout = 0.9,
-    cap2ainp = 0.9,
-    cap2aout = 0.9,
-    ncap2ainp = 0.9,
-    ncap2aout = 0.9,
+    out.cap2ainp = 0.9,
+    out.cap2aout = 0.9,
+    stg.ncap2ainp = 0.9,
+    out.ncap2aout = 0.9,
     ncap2stg = 0.9
   ),
   af = data.frame(

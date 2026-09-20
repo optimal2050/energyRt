@@ -197,10 +197,9 @@ here", and for NEWS bullets longer than three lines.
 
 ## License
 
-energyRt is **AGPL-3**. Note that other packages in the stack are Apache-2.0 or
-MIT — do not copy code or data across that boundary without an explicit
-maintainer decision. By contributing you agree that your contributions are
-licensed under the AGPL-3. See [LICENSE](../LICENSE).
+energyRt is **Apache-2.0** from v0.90. By contributing you agree that your
+contributions are licensed under the same terms (inbound = outbound). See
+[LICENSE](../LICENSE).
 
 ## Code of Conduct
 

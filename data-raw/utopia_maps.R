@@ -110,5 +110,5 @@ for (nm in names(map)) {
               length(st_cast(st_union(gg), "POLYGON"))))
 }
 
-usethis::use_data(utopia, overwrite = TRUE)
+# (no use_data here: data-raw/utopia_assemble.R writes the single dataset)
 cat("utopia.rda updated\n")

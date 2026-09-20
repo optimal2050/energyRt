@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.2.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -22,7 +22,6 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="articles/energyRt.html">Get started</a></li>
-<li class="nav-item"><a class="nav-link" href="articles/use-R-2026.html">Training</a></li>
 <li class="nav-item"><a class="nav-link" href="reference/index.html">Reference</a></li>
 <li class="nav-item"><a class="nav-link" href="articles/roadmap.html">Roadmap</a></li>
 <li class="nav-item dropdown">
@@ -32,6 +31,7 @@
     <li><a class="dropdown-item" href="articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="articles/units.html">Units</a></li>
     <li><a class="dropdown-item" href="articles/time-resolution.html">Time resolution</a></li>
+    <li><a class="dropdown-item" href="articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
@@ -141,12 +141,23 @@ dev/ dev-scripts/  design notes and the mapping-pipeline docs</code></pre>
 <ul><li>Open PRs against <strong><code>dev</code></strong> — this repo’s default branch is not <code>main</code>.</li>
 <li>Conventional Commits style is encouraged but not enforced (<code>feat:</code>, <code>fix:</code>, <code>docs:</code>, <code>refactor:</code>, <code>test:</code>, <code>chore:</code>).</li>
 <li>CI must pass.</li>
-<li>User-facing changes get a bullet in <code>NEWS.md</code> under the development version, filed beneath one of <code>## Breaking changes / New features / Deprecations / Bug fixes / Documentation</code>. Keep it to the final state in one or two lines — rationale belongs in the commit message or <code>dev/</code>, not in NEWS.</li>
+<li>User-facing changes get a bullet in <code>NEWS.md</code> (rules below).</li>
 <li>Reference the sibling package’s PR when a change spans both.</li>
 </ul></div>
 <div class="section level2">
+<h2 id="news-comments-and-where-narrative-goes">NEWS, comments and where narrative goes<a class="anchor" aria-label="anchor" href="#news-comments-and-where-narrative-goes"></a></h2>
+<p>Three places carry three different kinds of text. Keep them apart.</p>
+<p><strong><code>NEWS.md</code></strong> follows the r-pkgs.org convention:</p>
+<ul><li>Every bullet sits under one of <code>## Breaking changes / New features / Deprecations / Bug fixes / Documentation</code> in the development-version section — never between the version heading and the first <code>##</code>.</li>
+<li>One change per bullet, the <strong>final state</strong> in one to three lines: what the user sees now, and for a bug fix what was wrong in a clause. No blank lines between bullets.</li>
+<li>No discovery story, no timings or measurements, no design alternatives, no internal (dot-prefixed or unexported) function names. Exported functions, arguments, slots, options and file names are the vocabulary.</li>
+<li>If a bullet needs more than three lines to be understood, the extra belongs in <code>dev/</code> (below), not in NEWS.</li>
+</ul><p><strong>Code comments</strong> state mechanism and constraints the code cannot show — “stats::aggregate drops NA by-groups”, “must enter the render key”, “the fence must sit at column 0”. They never say how a finding was made, who asked for it, what it replaced, or what it measured. Roxygen is user documentation, not commentary: no design essays there either.</p>
+<p><strong>Narrative</strong> — rationale, measurements, traps, rejected alternatives, lifted essays — goes to a topic file under <code>dev/</code> (<code>dev/notes-&lt;topic&gt;.md</code>, e.g. <code>notes-reports.md</code>, <code>notes-news-rationale.md</code>, <code>notes-dispatch-surrogate.md</code>) or into the commit message. Prose meant for users becomes a vignette or article. Before committing, check the diff for comments that answer “why did we discover this” instead of “what must hold here”, and for NEWS bullets longer than three lines.</p>
+</div>
+<div class="section level2">
 <h2 id="license">License<a class="anchor" aria-label="anchor" href="#license"></a></h2>
-<p>energyRt is <strong>AGPL-3</strong>. Note that other packages in the stack are Apache-2.0 or MIT — do not copy code or data across that boundary without an explicit maintainer decision. By contributing you agree that your contributions are licensed under the AGPL-3. See <a href="../LICENSE">LICENSE</a>.</p>
+<p>energyRt is <strong>Apache-2.0</strong> from v0.90. By contributing you agree that your contributions are licensed under the same terms (inbound = outbound). See <a href="../LICENSE">LICENSE</a>.</p>
 </div>
 <div class="section level2">
 <h2 id="code-of-conduct">Code of Conduct<a class="anchor" aria-label="anchor" href="#code-of-conduct"></a></h2>

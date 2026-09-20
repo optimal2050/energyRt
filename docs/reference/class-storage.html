@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.2.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -22,7 +22,6 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/energyRt.html">Get started</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/use-R-2026.html">Training</a></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Roadmap</a></li>
 <li class="nav-item dropdown">
@@ -32,6 +31,7 @@
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
@@ -395,7 +395,7 @@ the storage cycle will be a calendar day).</p>
 
 
 <dt><code>aeff</code></dt>
-<dd><p>data.frame. Auxiliary commodities efficiency parameters.</p><dl><dt>vintage</dt>
+<dd><p>data.frame. Auxiliary commodities efficiency parameters. Rows can be assigned to a single variant via the <code>vintage</code> and/or <code>cluster</code> key columns; each variant then carries only its own couplings.</p><dl><dt>vintage</dt>
 <dd><p>character. Vintage label selecting the variant this row applies to, NA for every vintage. See the <code>vintage</code> slot.</p></dd>
 
 <dt>cluster</dt>
@@ -431,17 +431,41 @@ the storage cycle will be a calendar day).</p>
 <dt>cout2aout</dt>
 <dd><p>numeric. Output-commodity-to-auxiliary-output-commodity coefficient (multiplier).</p></dd>
 
-<dt>cap2ainp</dt>
-<dd><p>numeric. Capacity-to-auxiliary-input-commodity coefficient (multiplier).</p></dd>
+<dt>inp.cap2ainp</dt>
+<dd><p>numeric. Charging (input-part) capacity to auxiliary input, per unit of vStorageInpCap.</p></dd>
 
-<dt>cap2aout</dt>
-<dd><p>numeric. Capacity-to-auxiliary-output-commodity coefficient (multiplier).</p></dd>
+<dt>inp.cap2aout</dt>
+<dd><p>numeric. Charging (input-part) capacity to auxiliary output, per unit of vStorageInpCap.</p></dd>
 
-<dt>ncap2ainp</dt>
-<dd><p>numeric. New-capacity-to-auxiliary-input-commodity coefficient (multiplier).</p></dd>
+<dt>inp.ncap2ainp</dt>
+<dd><p>numeric. NEW charging capacity to auxiliary input, per unit of vStorageInpNewCap (lands once, at construction).</p></dd>
 
-<dt>ncap2aout</dt>
-<dd><p>numeric. New-capacity-to-auxiliary-output-commodity coefficient (multiplier).</p></dd>
+<dt>inp.ncap2aout</dt>
+<dd><p>numeric. NEW charging capacity to auxiliary output, per unit of vStorageInpNewCap (lands once, at construction).</p></dd>
+
+<dt>stg.cap2ainp</dt>
+<dd><p>numeric. Energy (storing-part) capacity to auxiliary input, per unit of vStorageStgCap.</p></dd>
+
+<dt>stg.cap2aout</dt>
+<dd><p>numeric. Energy (storing-part) capacity to auxiliary output, per unit of vStorageStgCap.</p></dd>
+
+<dt>stg.ncap2ainp</dt>
+<dd><p>numeric. NEW energy capacity to auxiliary input, per unit of vStorageStgNewCap (lands once, at construction) – e.g. battery material per GWh of reservoir. This is what the pre-rename <code>ncap2ainp</code> was often ASSUMED to mean; that column actually coupled the discharger and is now <code>out.ncap2ainp</code>.</p></dd>
+
+<dt>stg.ncap2aout</dt>
+<dd><p>numeric. NEW energy capacity to auxiliary output, per unit of vStorageStgNewCap (lands once, at construction).</p></dd>
+
+<dt>out.cap2ainp</dt>
+<dd><p>numeric. Discharging (output-part) capacity to auxiliary input, per unit of vStorageOutCap. RENAMED from <code>cap2ainp</code>, which coupled only this part; the bare name is refused with a rename hint.</p></dd>
+
+<dt>out.cap2aout</dt>
+<dd><p>numeric. Discharging (output-part) capacity to auxiliary output, per unit of vStorageOutCap. Renamed from <code>cap2aout</code>.</p></dd>
+
+<dt>out.ncap2ainp</dt>
+<dd><p>numeric. NEW discharging capacity to auxiliary input, per unit of vStorageOutNewCap (lands once, at construction). Renamed from <code>ncap2ainp</code>.</p></dd>
+
+<dt>out.ncap2aout</dt>
+<dd><p>numeric. NEW discharging capacity to auxiliary output, per unit of vStorageOutNewCap (lands once, at construction). Renamed from <code>ncap2aout</code>.</p></dd>
 
 <dt>pho2ainp</dt>
 <dd><p>numeric. Aux commodity CONSUMED when capacity reaches the END OF ITS LIFE (demolition energy, labour). Multiplies the per-year phase-out FLOW, so the charge lands ONCE – in the milestone where the capacity disappears – not every year it stood. NO <code>pTimesliceShare</code> is applied and the aux balance is PER TIMESLICE, so a value given with <code>timeslice = NA</code> applies in EVERY slice and the annual total comes out multiplied by the slice count – 8760x on an hourly calendar. Give a per-slice value, or name a single slice.</p></dd>
@@ -638,6 +662,36 @@ the storage cycle will be a calendar day).</p>
 
 <dt>inp2out.fx</dt>
 <dd><p>numeric. Fixed charge-to-discharge capacity ratio.</p></dd>
+
+
+</dl></dd>
+
+
+<dt><code>inp2stg</code></dt>
+<dd><p>data.frame. The charging C-rate, in 1/hours: charging capacity per unit of storing (energy) capacity. <code>inp2stg.fx</code> ties the charger to the reservoir exactly, <code>inp2stg.lo</code>/<code>.up</code> bound the ratio, and the bare <code>inp2stg</code> column is the scalar shorthand, normalised to <code>.fx</code> at construction; a one-sided range opens the other side. Unlike <code>duration</code> and <code>inp2out</code> there is NO binding default: the constraint exists only where a finite bound is declared, and only for storages whose charging AND storing parts both carry capacity variables (priced or bounded). The three ratios form a triangle over the parts – <code>inp2out</code> = inp/out, <code>inp2stg</code> = inp/stg, <code>duration</code> = stg/out – so any two determine the third; <code><a href="storage.html">newStorage()</a></code> refuses a contradictory fixed triangle.</p>
+<dl><dt>vintage</dt>
+<dd><p>character. Vintage label selecting the variant this row applies to, NA for all.</p></dd>
+
+<dt>cluster</dt>
+<dd><p>character. Cluster label selecting the variant this row applies to, NA for all.</p></dd>
+
+<dt>region</dt>
+<dd><p>character. Region the row applies to, NA for all.</p></dd>
+
+<dt>year</dt>
+<dd><p>integer. Year the row applies to, NA for all.</p></dd>
+
+<dt>inp2stg</dt>
+<dd><p>numeric. Scalar shorthand, normalised to <code>inp2stg.fx</code>.</p></dd>
+
+<dt>inp2stg.lo</dt>
+<dd><p>numeric. Lower bound on the charging C-rate, 1/hours.</p></dd>
+
+<dt>inp2stg.up</dt>
+<dd><p>numeric. Upper bound on the charging C-rate, 1/hours.</p></dd>
+
+<dt>inp2stg.fx</dt>
+<dd><p>numeric. Fixed charging C-rate, 1/hours.</p></dd>
 
 
 </dl></dd>

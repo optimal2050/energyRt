@@ -99,25 +99,3 @@
 #'                  horizon = utopia$modules$horizons$unit, discount = 0)
 #' }
 "utopia"
-
-#' Deprecated UTOPIA datasets
-#'
-#' These four datasets are now elements of the single [utopia] list --
-#' `utopia$weather`, `utopia$demand`, `utopia$stock` and `utopia$modules`.
-#' They are still shipped so existing code keeps working, and will be removed
-#' in energyRt v0.90.
-#'
-#' @format See [utopia].
-#' @name utopia-deprecated-data
-#' @keywords internal
-#' @seealso [utopia]
-"utopia_weather"
-
-#' @rdname utopia-deprecated-data
-"utopia_demand"
-
-#' @rdname utopia-deprecated-data
-"utopia_stock"
-
-#' @rdname utopia-deprecated-data
-"utopia_modules"

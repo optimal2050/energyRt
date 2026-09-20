@@ -14,6 +14,17 @@ silently replaced by the solver default.
 Parameter vs map (efficiency): value parameter rows lie
 within the union of their maps (no orphan / out-of-domain rows). After
 trimming this must hold exactly.
+Free meals: every object with flow variables has its
+governing constraints. A storage without its balance chain, or a
+trade corridor without its flow-capacity link, would supply the
+balance unbounded and solve to OPTIMAL with a meaningless objective
+– structural. Missing charge/discharge or availability bounds are
+advisory, since an open (Inf) side deliberately produces no
+equation.
+Calendar chronology: the timeslice successor chain (the
+storage balance and ramping order) is derived from the calendar's
+timetable row order; a row order that contradicts the timetable's own
+timeframe columns is structural.
 
 "><meta property="og:description" content="Runs a set of post-interpolation consistency checks over the numeric / bounds
 / map parameters of a scenario and reports any issues. Checks:
@@ -30,6 +41,17 @@ silently replaced by the solver default.
 Parameter vs map (efficiency): value parameter rows lie
 within the union of their maps (no orphan / out-of-domain rows). After
 trimming this must hold exactly.
+Free meals: every object with flow variables has its
+governing constraints. A storage without its balance chain, or a
+trade corridor without its flow-capacity link, would supply the
+balance unbounded and solve to OPTIMAL with a meaningless objective
+– structural. Missing charge/discharge or availability bounds are
+advisory, since an open (Inf) side deliberately produces no
+equation.
+Calendar chronology: the timeslice successor chain (the
+storage balance and ramping order) is derived from the calendar's
+timetable row order; a row order that contradicts the timetable's own
+timeframe columns is structural.
 
 "><meta property="og:image" content="https://energyRt.org/logo.png"><!-- Google tag (gtag.js) --><script async src="https://www.googletagmanager.com/gtag/js?id=G-CYBYJ238Q5"></script><script>
   window.dataLayer = window.dataLayer || [];
@@ -45,7 +67,7 @@ trimming this must hold exactly.
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.2.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -54,7 +76,6 @@ trimming this must hold exactly.
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/energyRt.html">Get started</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/use-R-2026.html">Training</a></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Roadmap</a></li>
 <li class="nav-item dropdown">
@@ -64,6 +85,7 @@ trimming this must hold exactly.
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
@@ -90,7 +112,7 @@ trimming this must hold exactly.
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Validate interpolated scenario parameters</h1>
-      <small class="dont-index">Source: <a href="https://github.com/optimal2050/energyRt/blob/HEAD/R/interp.R" class="external-link"><code>R/interp.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/optimal2050/energyRt/blob/HEAD/R/interpolation.R" class="external-link"><code>R/interpolation.R</code></a></small>
       <div class="d-none name"><code>validate_scenario_parameters.Rd</code></div>
     </div>
 
@@ -109,6 +131,17 @@ silently replaced by the solver default.</p></li>
 <li><p><strong>Parameter vs map (efficiency)</strong>: value parameter rows lie
 within the union of their maps (no orphan / out-of-domain rows). After
 trimming this must hold exactly.</p></li>
+<li><p><strong>Free meals</strong>: every object with flow variables has its
+governing constraints. A storage without its balance chain, or a
+trade corridor without its flow-capacity link, would supply the
+balance unbounded and solve to OPTIMAL with a meaningless objective
+– structural. Missing charge/discharge or availability bounds are
+advisory, since an open (<code>Inf</code>) side deliberately produces no
+equation.</p></li>
+<li><p><strong>Calendar chronology</strong>: the timeslice successor chain (the
+storage balance and ramping order) is derived from the calendar's
+timetable row order; a row order that contradicts the timetable's own
+timeframe columns is structural.</p></li>
 </ul></div>
 
     <div class="section level2">
@@ -125,23 +158,30 @@ trimming this must hold exactly.</p></li>
 
 
 <dl><dt id="arg-scen">scen<a class="anchor" aria-label="anchor" href="#arg-scen"></a></dt>
-<dd><p>scenario.</p></dd>
+<dd><p>an interpolated scenario.</p></dd>
 
 
 <dt id="arg-fold">fold<a class="anchor" aria-label="anchor" href="#arg-fold"></a></dt>
-<dd><p>logical; whether the scenario is folded (NA wildcards allowed in
-trimmable dimensions).</p></dd>
+<dd><p>logical or character; whether (or in which dimensions) the
+scenario is folded, so NA wildcards are allowed there.</p></dd>
 
 
 <dt id="arg-action">action<a class="anchor" aria-label="anchor" href="#arg-action"></a></dt>
-<dd><p>one of <code>"warn"</code> (default), <code>"stop"</code>, <code>"silent"</code>: how to report
-issues.</p></dd>
+<dd><p>one of <code>"warn"</code> (default), <code>"stop"</code>, <code>"silent"</code>: how to
+report advisory issues.</p></dd>
 
 </dl></div>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
-    <p>(invisibly) a data frame of issues with columns
-<code>parameter</code>, <code>check</code>, <code>detail</code>.</p>
+    <p>(invisibly) a data frame of findings with columns <code>parameter</code>,
+<code>check</code>, <code>detail</code>, <code>severity</code>.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>Structural findings always stop; <code>action</code> governs the advisory ones.
+<code><a href="interpolate_model.html">interpolate_model()</a></code> runs this automatically (<code>validate = TRUE</code>, action
+<code>"warn"</code>); call it directly to re-check a scenario or to collect the
+findings table.</p>
     </div>
 
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

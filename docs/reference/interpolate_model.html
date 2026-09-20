@@ -23,7 +23,7 @@ solve_scenario()."><meta property="og:image" content="https://energyRt.org/logo.
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.2.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -32,7 +32,6 @@ solve_scenario()."><meta property="og:image" content="https://energyRt.org/logo.
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/energyRt.html">Get started</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/use-R-2026.html">Training</a></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Roadmap</a></li>
 <li class="nav-item dropdown">
@@ -42,6 +41,7 @@ solve_scenario()."><meta property="og:image" content="https://energyRt.org/logo.
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
@@ -68,7 +68,7 @@ solve_scenario()."><meta property="og:image" content="https://energyRt.org/logo.
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Interpolate a model into a solver-ready scenario</h1>
-      <small class="dont-index">Source: <a href="https://github.com/optimal2050/energyRt/blob/HEAD/R/interp.R" class="external-link"><code>R/interp.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/optimal2050/energyRt/blob/HEAD/R/interpolation.R" class="external-link"><code>R/interpolation.R</code></a></small>
       <div class="d-none name"><code>interpolate_model.Rd</code></div>
     </div>
 
@@ -99,7 +99,10 @@ and validates the result. The returned scenario is ready for <code><a href="solv
 <span>  boundary_prices <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  .prefilter <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  verbose <span class="op">=</span> <span class="fu"><a href="isVerbose.html">isVerbose</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="op">)</span></span></code></pre></div>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S4 method for class 'model'</span></span>
+<span><span class="fu">interpolate</span><span class="op">(</span><span class="va">object</span>, <span class="va">...</span><span class="op">)</span></span></code></pre></div>
     </div>
 
     <div class="section level2">
@@ -143,14 +146,15 @@ name.</p></dd>
 <dd><p>logical or character; whole-column "fold" of trimmable dimensions
 to NA wildcards to shrink the data. <code>TRUE</code> folds <code>region</code> + <code>timeslice</code>; <code>FALSE</code>
 (default) folds nothing; a character vector selects dims among
-<code>region</code>, <code>timeslice</code>, <code>year</code>, <code>comm</code>, <code>tech</code>, <code>stg</code>, <code>trade</code>. A folded scenario
-is expanded to solver-ready form at solve time.</p></dd>
+<code>region</code>, <code>timeslice</code>, <code>year</code>, <code>comm</code>, <code>tech</code>, <code>stg</code>, <code>trade</code>. The wildcards
+are substituted by an artificial set member in the written model files
+only; the scenario object keeps them and <code><a href="getData.html">getData()</a></code> expands them.</p></dd>
 
 
 <dt id="arg-sparse">sparse<a class="anchor" aria-label="anchor" href="#arg-sparse"></a></dt>
-<dd><p>logical; the storage knob. <code>TRUE</code> drops <code>value == defVal</code> rows
-(and folds); <code>FALSE</code> materialises the default over each parameter's full
-domain (and unfolds).</p></dd>
+<dd><p>logical; the storage knob. <code>TRUE</code> drops <code>value == defVal</code> rows;
+<code>FALSE</code> materialises the default over each parameter's full domain (the
+form GAMS needs). Folding applies to either.</p></dd>
 
 
 <dt id="arg-prune">prune<a class="anchor" aria-label="anchor" href="#arg-prune"></a></dt>
@@ -159,8 +163,9 @@ equation-domain maps (no effect on the solution, smaller data).</p></dd>
 
 
 <dt id="arg-validate">validate<a class="anchor" aria-label="anchor" href="#arg-validate"></a></dt>
-<dd><p>logical; run post-interpolation consistency checks (schema,
-duplicate keys, map/parameter coverage).</p></dd>
+<dd><p>logical; run <code><a href="validate_scenario_parameters.html">validate_scenario_parameters()</a></code> after
+interpolation (schema, duplicate keys, map/parameter coverage, missing
+governing constraints, calendar chronology).</p></dd>
 
 
 <dt id="arg-code">code<a class="anchor" aria-label="anchor" href="#arg-code"></a></dt>

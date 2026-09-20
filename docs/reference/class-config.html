@@ -17,7 +17,7 @@ scenario settings."><meta property="og:image" content="https://energyRt.org/logo
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.2.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -26,7 +26,6 @@ scenario settings."><meta property="og:image" content="https://energyRt.org/logo
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/energyRt.html">Get started</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/use-R-2026.html">Training</a></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Roadmap</a></li>
 <li class="nav-item dropdown">
@@ -36,6 +35,7 @@ scenario settings."><meta property="og:image" content="https://energyRt.org/logo
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
@@ -94,7 +94,7 @@ scenario settings.</p>
 
 
 <dt><code>geoscale</code></dt>
-<dd><p>ANY. Optional <code><a href="https://optimal2050.github.io/geoscales/r/reference/Geoscale.html" class="external-link">geoscales::Geoscale</a></code> object describing the model's regions – their nesting into coarser levels, weights, and (optionally) geometry. Purely additional information about the labels in <code>region</code>, which remains authoritative; the geoscale is used for plotting, reporting and subsetting and never changes the optimisation model. <code>NULL</code> when unset. Typed <code>ANY</code> because <code>geoscales</code> is an optional (Suggests) dependency.</p></dd>
+<dd><p>ANY. Optional <code><a href="https://optimal2050.github.io/geoscales/r/reference/Geoscale.html" class="external-link">geoscales::Geoscale</a></code> object describing the model's regions – their nesting into coarser levels, weights, and (optionally) geometry. <code>region</code> remains authoritative: it is always the finest level, and the geoscale adds the structure above it. Attaching one is inert on its own – it widens the model's region set with the coarser codes and enables level-aware plotting, reporting and subsetting – but it is also what makes <code>commodity@geoframe</code> possible, and a commodity balanced at a coarser level DOES change the optimisation model. <code>NULL</code> when unset. Typed <code>ANY</code> because <code>geoscales</code> is an optional (Suggests) dependency.</p></dd>
 
 
 <dt><code>horizon</code></dt>

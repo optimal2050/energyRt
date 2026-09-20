@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.2.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -22,7 +22,6 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/energyRt.html">Get started</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/use-R-2026.html">Training</a></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Roadmap</a></li>
 <li class="nav-item dropdown">
@@ -32,6 +31,7 @@
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
@@ -96,9 +96,12 @@
 <dt id="arg-embed-model">embed_model<a class="anchor" aria-label="anchor" href="#arg-embed-model"></a></dt>
 <dd><p><code>NULL</code> (default), <code>TRUE</code>, or <code>FALSE</code>. Controls whether
 the model is embedded in the saved scenario or referenced from the model
-store (see <code><a href="model_store.html">save_model()</a></code>). <code>NULL</code>: reference when the identical model
-content is already in the store, embed otherwise. <code>TRUE</code>: always embed
-(self-contained folder). <code>FALSE</code>: require a store hit, error otherwise.
+store (see <code><a href="model_store.html">save_model()</a></code>). <code>NULL</code>: reference the store entry, saving the
+model to the store first when nothing is stored under that name; embed
+when the name is taken by different content (store entries update in
+place, so writing would replace the version other scenarios reference).
+<code>TRUE</code>: always embed (self-contained folder). <code>FALSE</code>: require an
+existing store hit, error otherwise, and never write to the store.
 A referenced save stores only <code>{name, hash, path}</code>; <code><a href="load_scenario.html">load_scenario()</a></code>
 resolves it back via the registry / model store.</p></dd>
 
@@ -135,6 +138,14 @@ requires a store hit.</p></dd>
     <div class="section level2">
     <h2 id="value">Value<a class="anchor" aria-label="anchor" href="#value"></a></h2>
     <p>scenario object with most of the slots saved on disk.</p>
+    </div>
+    <div class="section level2">
+    <h2 id="details">Details<a class="anchor" aria-label="anchor" href="#details"></a></h2>
+    <p>This is the only writer of a run's <code>modOut/</code> store: <code><a href="read.html">read_solution()</a></code> leaves
+the solution in memory, and without a save it does not survive the session.
+The store is written for the ACTIVE run — whichever <code>@misc$run</code> names — so
+saving while one run is active does not persist another's solution.
+<code><a href="import_solution.html">import_solution()</a></code> does the read and the save in one call.</p>
     </div>
 
     <div class="section level2">

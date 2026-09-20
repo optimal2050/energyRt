@@ -2,12 +2,8 @@
 
 [![Lifecycle:
 maturing](https://img.shields.io/badge/lifecycle-maturing-blue.svg)](https://lifecycle.r-lib.org/articles/stages.html)
-[![License: AGPL
-v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](https://www.gnu.org/licenses/agpl-3.0)
-
-> 📣 **Energy System Modeling with R** — a post-conference online series
-> following useR! 2026 · four live sessions, Fridays 7–28 Aug 2026,
-> 12:00 UTC. [Details & registration »](https://energyRt.org/use-R-2026)
+[![License: Apache
+2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 
 **energyRt** (*energy* system modeling *R-t*oolbox /ˈɛnərdʒi ɑrt/) is a
 macro-language for energy system modeling in R. You describe an energy
@@ -18,23 +14,37 @@ optimization model, solves it, and returns tidy results ready for
 files, results parsing) is generated for you, so you concentrate on the
 system you are modeling, not on the code that optimizes it.
 
-### One model, four backends
+### One model, many backends
 
-The energyRt optimization model (~100 predefined equations, extendable
-with
+The energyRt optimization model (~150 predefined equations over 95
+variables, extendable with
 [`newConstraint()`](https://energyRt.org/reference/newConstraint.md)) is
-implemented in four mathematical-programming languages. The *same* model
-object solves on any of them, with consistent results:
+written out in four mathematical- programming languages. The *same*
+model object solves on any of them, with consistent results:
 
-| Backend | Language | License |
+| Backend | Solvers | License |
 |----|----|----|
-| [GLPK / MathProg](https://www.gnu.org/software/glpk/) | (bundled with Rtools on Windows) | open source |
-| [Julia / JuMP](https://jump.dev/) | Julia + HiGHS | open source |
-| [Python / Pyomo](http://www.pyomo.org/) | Python + CBC/HiGHS | open source |
-| [GAMS](http://www.gams.com/) | GAMS | commercial |
+| [GLPK / MathProg](https://www.gnu.org/software/glpk/) | GLPK — bundled with Rtools on Windows | open source |
+| [Julia / JuMP](https://jump.dev/) | HiGHS, CBC, GLPK, CPLEX, cuOpt (GPU) | open source |
+| [Python / Pyomo](http://www.pyomo.org/) | HiGHS, CBC, GLPK, CPLEX | open source |
+| [GAMS](http://www.gams.com/) | CPLEX, CBC | commercial |
 
 Start on zero-setup GLPK; switch backends later without touching your
 model.
+
+The same model also runs **where you are not**. Two routes send the
+solve elsewhere, reusing the formulations above rather than adding a
+fifth:
+
+- **[NEOS](https://neos-server.org/)** — `neos_gams_cplex` and friends
+  solve on the NEOS server, so CPLEX needs no local licence. Set
+  [`set_neos_email()`](https://energyRt.org/reference/neos_email.md)
+  once.
+- **`multimod_cloud`** *(experimental)* — writes the problem as MPS and
+  solves it on a cloud GPU, for models too large for a laptop.
+
+`solver_options` carries 38 ready presets across all of them — simplex,
+barrier, interior-point and first-order (PDLP, cuOpt).
 
 ### Quickstart
 
@@ -98,10 +108,29 @@ walks through this example and the ideas behind it.
   [`draw()`](https://energyRt.org/reference/draw.md) sketches any
   technology as a diagram. → [Model
   bricks](https://energyrt.org/articles/model-bricks.html)
+- **Time resolution** — calendars from a single annual slice to 8760
+  hours, from the shipped `calendars` catalog (generated with the
+  sibling [timescales](https://github.com/optimal2050/timescales)
+  package) or your own via
+  [`newCalendar()`](https://energyRt.org/reference/newCalendar.md).
+  Commodities and processes declare the timeframe they balance on, so a
+  model can mix annual fuel accounting with hourly dispatch; sampled
+  calendars solve a representative subset and annualise it. → [Time
+  resolution](https://energyrt.org/articles/time-resolution.html)
+- **Multi-level regions** — regions nest (country → zone → node) through
+  a [geoscales](https://github.com/optimal2050/geoscales) geoscale, and
+  a commodity declares the level it balances on with `geoframe`. Coarse
+  balances roll up automatically, so a fuel can clear nationally while
+  electricity clears per node — without a `trade` route for every pair.
+  → [Space
+  resolution](https://energyrt.org/articles/space-resolution.html)
+- **Storage** — intra-day to seasonal, with charge/discharge
+  efficiencies, per-part capacities and cycle closure. →
+  [Storage](https://energyrt.org/articles/storage.html)
 - **UTOPIA teaching model** — a complete multi-region electricity model
-  built step by step, shipped as the `utopia_modules` data kit with
-  ready scenario levers (CO₂ cap, carbon tax, renewable share, nuclear
-  moratorium). → [UTOPIA I: building the
+  built step by step, shipped as `utopia$modules` with ready scenario
+  levers (CO₂ cap, carbon tax, renewable share, nuclear moratorium). →
+  [UTOPIA I: building the
   model](https://energyrt.org/articles/utopia-build.html) · [UTOPIA II:
   running scenarios](https://energyrt.org/articles/utopia-use.html)
 - **Levelized cost** —
@@ -125,8 +154,6 @@ walks through this example and the ideas behind it.
   idea in ten minutes.
 - [Tutorials](https://energyrt.org/articles/) — installation, solver
   backends, model bricks, UTOPIA, workflow, plotting.
-- **useR! workshop** — a hands-on training course built on energyRt and
-  the UTOPIA model (Quarto book, in preparation).
 - [IDEEA](https://ideea-model.github.io/IDEEA/) — an open multi-region
   model of India’s power system, built with energyRt: a production-scale
   application.
@@ -190,11 +217,10 @@ pak::pkg_install("optimal2050/geoscales")
 
 ### Development status
 
-The current development line (**v0.89.x**) modernizes the interpolation
+The current development line (**v0.90.x**) modernizes the interpolation
 pipeline, scenario storage, and analysis tools (`levcost`, `report`,
-`autoplot`) on the way to **v1.0**. The **v0.50** release
-(*“half-way-there”*) is frozen and remains available for pre-2026
-modeling projects; its model code, classes and methods will receive
-fixes only.
+`autoplot`) on the way to **v1.0**. v0.90 is a breaking release, and it
+removes the deprecation layer that the 0.8x series had been warning
+about — see [NEWS](https://energyrt.org/news/) before upgrading.
 
 The package website: <https://energyrt.org>

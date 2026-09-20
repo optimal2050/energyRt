@@ -11,14 +11,14 @@ articles:
   articles/reports: reports.html
   articles/roadmap: roadmap.html
   articles/scenario-management: scenario-management.html
+  articles/space-resolution: space-resolution.html
   articles/storage: storage.html
   articles/time-resolution: time-resolution.html
   articles/units: units.html
-  articles/use-R-2026: use-R-2026.html
   utopia-build: utopia-build.html
   utopia-use: utopia-use.html
   articles/workflow: workflow.html
-last_built: 2026-09-01T01:25Z
+last_built: 2026-09-20T20:36Z
 urls:
   reference: https://energyRt.org/reference
   article: https://energyRt.org/articles

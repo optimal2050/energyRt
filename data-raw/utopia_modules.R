@@ -464,4 +464,4 @@ message("utopia_modules configs: ",
         paste(names(utopia_modules$electricity), collapse = ", "),
         " | unit: ", paste(names(utopia_modules$unit), collapse = ", "))
 
-usethis::use_data(utopia_modules, overwrite = TRUE)
+# (no use_data here: data-raw/utopia_assemble.R writes the single dataset)

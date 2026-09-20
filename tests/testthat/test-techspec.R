@@ -74,7 +74,7 @@ test_that("end-before-start vintage windows are errors", {
                     grepl("before start", iss$message)))
 })
 
-test_that("tech_to_spec round-trips losslessly", {
+test_that("process_to_spec round-trips losslessly", {
   t1 <- suppressWarnings(process_from_spec(.ex("ldv_bev.yml")))
   s  <- process_to_spec(t1)
   t2 <- suppressWarnings(process_from_spec(s))
@@ -182,12 +182,10 @@ test_that("report template scalar round-trips through misc", {
   expect_equal(nrow(process_spec_issues(spec)), 0L)
 })
 
-test_that("process_designer exists; tech_designer is a deprecated alias", {
+test_that("process_designer exists", {
+  # `tech_designer()`, the deprecated alias, was removed in v0.90; this is the
+  # only assertion the live entry point has, so it stays.
   expect_true(is.function(process_designer))
-  expect_warning(
-    tryCatch(tech_designer(dir = "definitely-missing-dir"),
-             error = function(e) invisible(NULL)),
-    "deprecated")
 })
 
 test_that("JSON is an equivalent techspec container", {
@@ -385,11 +383,3 @@ test_that("a flat cost on a storage is an error, not a silent drop", {
   expect_true(any(grepl("unknown column", iss$message)))
 })
 
-test_that("the deprecated tech_* aliases still work, with a warning", {
-  f <- ex_path("coal_power.yml")
-  skip_if(!file.exists(f), "example spec not available")
-  expect_warning(a <- tech_from_spec(f), "deprecated|process_from_spec")
-  expect_s4_class(a, "technology")
-  expect_warning(tech_spec_issues(f), "deprecated|process_spec_issues")
-  expect_warning(tech_to_spec(a), "deprecated|process_to_spec")
-})

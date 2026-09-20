@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.2.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -42,7 +42,6 @@
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
 <li class="active nav-item"><a class="nav-link" href="../articles/energyRt.html">Get started</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/use-R-2026.html">Training</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Roadmap</a></li>
 <li class="nav-item dropdown">
@@ -53,6 +52,7 @@
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
@@ -117,11 +117,11 @@ bookkeeping decisions) is generated, so your code stays at the level of
 the energy system itself.</p>
 </div>
 <div class="section level2">
-<h2 id="one-model-four-backends">One model, four backends<a class="anchor" aria-label="anchor" href="#one-model-four-backends"></a>
+<h2 id="one-model-many-backends">One model, many backends<a class="anchor" aria-label="anchor" href="#one-model-many-backends"></a>
 </h2>
-<p>The energyRt optimization model — around one hundred predefined
-equations, extendable with <code><a href="../reference/newConstraint.html">newConstraint()</a></code> — is implemented
-in four mathematical programming languages:</p>
+<p>The energyRt optimization model — about 150 predefined equations over
+95 variables, extendable with <code><a href="../reference/newConstraint.html">newConstraint()</a></code> — is
+implemented in four mathematical programming languages:</p>
 <ul>
 <li>
 <strong>GLPK / MathProg</strong> — open source; bundled with Rtools
@@ -136,6 +136,12 @@ others;</li>
 <strong>GAMS</strong> — the commercial standard in energy-systems
 work.</li>
 </ul>
+<p>Two further routes send the solve elsewhere, reusing those
+formulations rather than adding a fifth: <strong>NEOS</strong> runs
+CPLEX and friends on a free remote server (no local licence), and
+<strong><code>multimod_cloud</code></strong> (experimental) writes the
+problem as MPS and solves it on a cloud GPU for models too large for a
+laptop.</p>
 <p>The <em>same</em> model object solves on any backend with consistent
 results — start on GLPK with zero setup, switch to a faster or
 institutional solver later without touching your model. The full

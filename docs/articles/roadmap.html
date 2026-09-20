@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.2.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -42,7 +42,6 @@
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
 <li class="nav-item"><a class="nav-link" href="../articles/energyRt.html">Get started</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/use-R-2026.html">Training</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="active nav-item"><a class="nav-link" href="../articles/roadmap.html">Roadmap</a></li>
 <li class="nav-item dropdown">
@@ -53,6 +52,7 @@
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
@@ -98,7 +98,7 @@
 
     
     
-<p><strong>Version 0.60.x (development).</strong> The current line
+<p><strong>Version 0.90.x (development).</strong> The current line
 modernizes the interpolation pipeline, scenario storage, and analysis
 tools on the way to v1.0. The <strong>v0.50</strong> release
 (<em>“half-way-there”</em>) is frozen and receives fixes only.</p>
@@ -106,35 +106,63 @@ tools on the way to v1.0. The <strong>v0.50</strong> release
 progress · <strong>[ ]</strong> planned.</p>
 <hr>
 <div class="section level2">
-<h2 id="current-status-july-2026">Current status (July 2026)<a class="anchor" aria-label="anchor" href="#current-status-july-2026"></a>
+<h2 id="current-status-september-2026">Current status (September 2026)<a class="anchor" aria-label="anchor" href="#current-status-september-2026"></a>
 </h2>
 <ul>
 <li>
 <strong>v0.50</strong> — frozen reference release (fixes only)<br>
 </li>
 <li>
-<strong>v0.60.x</strong> — active development:
-<code>interp_mod()</code> pipeline, scenario storage, analysis
-tools</li>
+<strong>v0.90.x</strong> — active development. A breaking release:
+the first under <strong>Apache-2.0</strong> (earlier releases remain
+AGPL-3), and the one that removes the deprecation layer the 0.8x series
+had been warning about. See <a href="../news/index.html">NEWS</a> before
+upgrading.</li>
 </ul>
 </div>
 <div class="section level2">
 <h2 id="whats-implemented">What’s implemented<a class="anchor" aria-label="anchor" href="#whats-implemented"></a>
 </h2>
 <ul>
-<li>[✓] Four solver backends — GLPK, Julia/JuMP, Python/Pyomo,
-GAMS<br>
+<li>[✓] Four solver backends — GLPK/MathProg, Julia/JuMP, Python/Pyomo,
+GAMS — from one model object, plus remote execution: the
+<strong>NEOS</strong> server for GAMS and CPLEX without a local licence,
+and <code>multimod_cloud</code> for GPU solves of models too large for a
+laptop. <code>solver_options</code> carries presets for simplex,
+barrier, interior-point and first-order (PDLP, cuOpt) methods.<br>
 </li>
-<li>[✓] Refactored interpolation pipeline (<code>interp_mod()</code>,
-spec-driven recipe engine)<br>
+<li>[✓] Refactored interpolation pipeline
+(<code><a href="../reference/interpolate_model.html">interpolate_model()</a></code>, spec-driven recipe engine)<br>
 </li>
-<li>[✓] Scenario storage (Arrow/SQLite) and analysis
-(<code><a href="../reference/levcost.html">levcost()</a></code>, <code><a href="../reference/report.html">report()</a></code>,
-<code><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot()</a></code>)<br>
+<li>[✓] Scenario storage (Arrow) and analysis (<code><a href="../reference/levcost.html">levcost()</a></code>,
+<code><a href="../reference/report.html">report()</a></code>, <code><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot()</a></code>), including recorded
+runs, variants and myopic sequences<br>
+</li>
+<li>[✓] <strong>Nested time.</strong> Calendars from a single annual
+slice to 8760 hours, from the shipped <code>calendars</code> catalog
+(generated with <strong><a href="https://github.com/optimal2050/timescales" class="external-link">timescales</a></strong>)
+or <code><a href="../reference/newCalendar.html">newCalendar()</a></code>. Commodities and processes declare the
+timeframe they balance on, so annual fuel accounting and hourly dispatch
+coexist in one model; sampled calendars solve a representative subset
+and annualise it. (see <a href="time-resolution.html">Time
+resolution</a>)<br>
+</li>
+<li>[✓] <strong>Nested regions.</strong> Hierarchical regions via
+<strong><a href="https://github.com/optimal2050/geoscales" class="external-link">geoscales</a></strong>:
+a commodity balanced at a coarser level with
+<code>newCommodity(geoframe = )</code> rolls up automatically, so
+point-to-point <code>trade</code> is no longer the only way to move a
+commodity between regions. (see <a href="space-resolution.html">Space
+resolution</a>)<br>
 </li>
 <li>[✓] Dependency setup &amp; checks (<code><a href="../reference/en_setup.html">en_setup()</a></code>,
 <code><a href="../reference/en_check.html">en_check_dependencies()</a></code>,
 <code><a href="../reference/en_check_packages.html">en_check_packages()</a></code>)<br>
+</li>
+<li>[✓] <strong>Testing system</strong> — ~150 test files on tiers
+(<code>ENERGYRT_TEST_TIER</code>), cross-backend golden benchmarks,
+<code>@covers</code> tags feeding a parameter-level coverage matrix, and
+<code><a href="../reference/verify_solution.html">verify_solution()</a></code> identity checks on solved scenarios<br>
 </li>
 <li>[~] multimod-based equation rendering (GAMS → AST → LaTeX; proof of
 concept)</li>
@@ -147,13 +175,13 @@ concept)</li>
 <div class="section level3">
 <h3 id="model-structure-scope">Model structure &amp; scope<a class="anchor" aria-label="anchor" href="#model-structure-scope"></a>
 </h3>
-<ul class="task-list">
-<li><label><input type="checkbox"><strong>Nested regions &amp;
-time.</strong> Regions are a flat set of labels today, and interregional
-exchange is modelled as point-to-point <code>trade</code>. Add
-hierarchical, nested regions via <strong><a href="https://github.com/optimal2050/geoscales" class="external-link">geoscales</a></strong>
-and nested timeframes via <strong><a href="https://github.com/optimal2050/timescales" class="external-link">timescales</a></strong>
-— the spatial and temporal companion packages.<br></label></li>
+<ul>
+<li>[~] <strong>Finish nested regions &amp; time.</strong> The balance
+layer is in (above). Still open: declaring a <em>process</em> at a
+coarse level and resolving it DOWN to its commodities, rest-of-world
+import/export at a coarse level, and parallel (cross-cutting) groupings
+of the same regions.<br>
+</li>
 </ul>
 </div>
 <div class="section level3">
@@ -174,6 +202,23 @@ variables.<br></label></li>
 </ul>
 </div>
 <div class="section level3">
+<h3 id="validation">Validation<a class="anchor" aria-label="anchor" href="#validation"></a>
+</h3>
+<ul>
+<li>[~] <strong>Validate results against inputs.</strong> Input-side
+checks now refuse conflicting parameter rows at construction and stop an
+interpolation that would multiply a series. The output side is thinner:
+extend <code><a href="../reference/verify_solution.html">verify_solution()</a></code> so declared bounds and values can
+be traced into the solution, and so variables can be checked against
+each other (capacity vs flows, new capacity vs EAC).<br>
+</li>
+<li><label><input type="checkbox"><strong>Unit coherence.</strong>
+<code><a href="../reference/getUnits.html">getUnits()</a></code> already knows each parameter’s unit formula;
+report chains where units are undeclared, and flag coefficients whose
+units cannot compose.<br></label></li>
+</ul>
+</div>
+<div class="section level3">
 <h3 id="base-code-simplification">Base-code simplification<a class="anchor" aria-label="anchor" href="#base-code-simplification"></a>
 </h3>
 <ul>
@@ -182,9 +227,8 @@ storage / trade</strong> entity systems (the triplicated capacity / EAC
 / fixed-O&amp;M skeletons) toward a more unified, parameterized process
 form.<br>
 </li>
-<li>[~] Finish the <code>interp_mod()</code> recipe/registry engine —
-route the remaining inline mapping construction through the engine and
-retire the legacy <code><a href="../reference/interpolate_model.html">interpolate_model()</a></code>.<br>
+<li>[~] Finish the interpolation recipe/registry engine — route the
+remaining inline mapping construction through the engine.<br>
 </li>
 <li><label><input type="checkbox">Retire obsolete aggregate variables
 once all backends use up-aggregation.<br></label></li>
@@ -193,19 +237,26 @@ once all backends use up-aggregation.<br></label></li>
 <div class="section level3">
 <h3 id="renaming-cleaning-optimization">Renaming, cleaning &amp; optimization<a class="anchor" aria-label="anchor" href="#renaming-cleaning-optimization"></a>
 </h3>
-<ul class="task-list">
+<ul>
+<li>[✓] Retire the deprecation layer (v0.90) — the 0.8x aliases are gone
+and the names they forwarded to are the only spellings.<br>
+</li>
 <li><label><input type="checkbox">Consistent naming, dead-code
 removal, resolution of outstanding in-code TODOs, and namespace/import
 hygiene.<br></label></li>
+<li><label><input type="checkbox">Hand the timeslice ↔︎ datetime
+helpers to <strong>timescales</strong>, which owns the time dimension;
+they are unexported internals in energyRt until it provides them.<br></label></li>
 </ul>
 </div>
 <div class="section level3">
 <h3 id="quality-tooling">Quality &amp; tooling<a class="anchor" aria-label="anchor" href="#quality-tooling"></a>
 </h3>
 <ul class="task-list">
-<li><label><input type="checkbox"><strong>Testing &amp; CI.</strong>
-Expand the <code>testthat</code> suite, add cross-backend
-objective-consistency checks, and set up continuous integration.<br></label></li>
+<li><label><input type="checkbox"><strong>Continuous
+integration.</strong> The test suite exists and is tiered, but there are
+no CI workflows yet: the full suite is an overnight run locally. Add
+scheduled runs and per-PR checks on the cheap tiers.<br></label></li>
 <li><label><input type="checkbox"><strong>Documentation &amp; solver
 hardening.</strong> Document the remaining classes and arguments, fill
 in missing articles, and harden the GAMS writer and the NEOS remote
@@ -246,23 +297,27 @@ guard solver-dependent examples and tests.<br></label></li>
 release (fixes only)<br>
 </li>
 <li>
-<strong>v0.60.x</strong> — current development: interpolation
-pipeline, scenario storage, analysis<br>
+<strong>v0.90.x</strong> — current development: Apache-2.0,
+deprecation layer removed, nested regions &amp; time, remote and GPU
+solving<br>
 </li>
 <li>
 <strong>v1.0</strong> — CRAN release; stabilized model, classes, and
 API<br>
 </li>
 <li>
-<strong>v1.0+</strong> — multimod integration; nested regions &amp;
-time (geoscales / timescales)</li>
+<strong>v1.0+</strong> — multimod integration; completing nested
+regions &amp; time (coarse-level processes, cross-cutting
+groupings)</li>
 </ul>
 <hr>
 </div>
 <div class="section level2">
 <h2 id="contributing-support">Contributing &amp; support<a class="anchor" aria-label="anchor" href="#contributing-support"></a>
 </h2>
-<p>Contributions, issues, and ideas are welcome.</p>
+<p>Contributions, issues, and ideas are welcome. energyRt is
+<strong>Apache-2.0</strong> from v0.90; contributions are accepted under
+the same terms.</p>
 <ul>
 <li>GitHub: <a href="https://github.com/optimal2050/energyRt" class="external-link uri">https://github.com/optimal2050/energyRt</a><br>
 </li>

@@ -8,7 +8,9 @@ factor) of a `weather` object, in one of three styles:
   legend;
 
 - `"line"` — the factor against the finest time level (e.g. hour), one
-  line per coarser level (e.g. season), faceted by region;
+  line per coarser level (e.g. season), faceted by region; the coarse
+  level is coloured with a viridis `"H"` gradient (continuous when
+  numeric, e.g. day of year);
 
 - `"area"` — the same as `"line"` with filled areas.
 

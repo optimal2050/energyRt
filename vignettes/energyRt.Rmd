@@ -38,9 +38,9 @@ the solution as tidy tables. The modeling layer (hundreds of index-mapping and
 bookkeeping decisions) is generated, so your code stays at the level of the
 energy system itself.
 
-# One model, four backends
+# One model, many backends
 
-The energyRt optimization model — around one hundred predefined equations,
+The energyRt optimization model — about 150 predefined equations over 95 variables,
 extendable with `newConstraint()` — is implemented in four mathematical
 programming languages:
 
@@ -49,6 +49,11 @@ programming languages:
 * **Julia / JuMP** — open source, with fast solvers like HiGHS;
 * **Python / Pyomo** — open source, CBC/HiGHS and others;
 * **GAMS** — the commercial standard in energy-systems work.
+
+Two further routes send the solve elsewhere, reusing those formulations rather
+than adding a fifth: **NEOS** runs CPLEX and friends on a free remote server
+(no local licence), and **`multimod_cloud`** (experimental) writes the problem
+as MPS and solves it on a cloud GPU for models too large for a laptop.
 
 The *same* model object solves on any backend with consistent results — start
 on GLPK with zero setup, switch to a faster or institutional solver later

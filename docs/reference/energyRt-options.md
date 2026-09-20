@@ -217,6 +217,20 @@ package name to `env`.
 
   :   ENERGYRT_LOG_FILE (evaluated if possible, raw string otherwise)
 
+- profile_dir:
+
+  default:
+
+  :   ""
+
+  option:
+
+  :   en.profile_dir
+
+  envvar:
+
+  :   ENERGYRT_PROFILE_DIR (evaluated if possible, raw string otherwise)
+
 - reports_path:
 
   default:

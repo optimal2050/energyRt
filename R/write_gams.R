@@ -118,7 +118,7 @@ get_gdxlib_path <- function() {
   # common write path (apply_fold_artificial, R/solve.R) before this runs.
   if (isTRUE(scen@status$sparse)) {
     stop("GAMS export requires a dense scenario. Re-interpolate with ",
-         "interp_mod(..., sparse = FALSE), then write to GAMS.")
+         "interpolate_model(..., sparse = FALSE), then write to GAMS.")
   }
   # A dense scenario is always written with the dense (full-set) GAMS form.
   .toGams <- function(x) .toGams0(x, FALSE)
@@ -198,7 +198,7 @@ get_gdxlib_path <- function() {
       # Should not happen: the sparse scenario is densified at the top of
       # .write_model_GAMS. Defensive guard against a future code path.
       stop('for export_format = "gdx", the scenario must be dense ',
-           '(rebuild with interp_mod(..., sparse = FALSE))')
+           '(rebuild with interpolate_model(..., sparse = FALSE))')
     }
     # Generate gdx
     .write_gdx_list(

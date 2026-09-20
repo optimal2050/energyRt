@@ -1,5 +1,10 @@
 # energyRt (development version)
 
+## License
+
+* energyRt is relicensed from AGPL-3 to **Apache-2.0**. Releases up to and 
+  including v0.89 remain available under AGPL-3.
+
 * On-disk stores write ~1M-row row groups instead of one per 32k-row record
   batch. Stored data.frames are smaller (1.3x on model-shaped data, 2.2x on
   a sorted hourly series) and scan faster; existing stores are unaffected
@@ -27,6 +32,32 @@
   added into both; the error names the frames and the straddling regions.
 
 ## Breaking changes
+
+* The timeslice-decomposition helpers are no longer exported: `tsl2dtm()`,
+  `tsl2year()`, `tsl2yday()`, `tsl2hour()`, `tsl2month()` and
+  `tsl_guess_format()`. The time dimension is `timescales`' domain; these stay
+  as internals only because the plotting and storage-duration code still needs
+  them, and move out once timescales provides equivalents.
+
+* The deprecation layer is removed, with its `?energyRt-deprecated` help page.
+  These names warned through the 0.8x series and are now gone:
+  `solve_mod()`/`solve_scen()` (use `solve_model()`/`solve_scenario()`),
+  `register()` (`add_to_registry()` + `save_registry()`), `get_registry()`
+  (`load_registry()`), `get_entry()`/`find_registry()` (`find_in_registry()`),
+  `get_entry_object()` (`getScenario()`), `registry_exists()`/`registry.exists()`
+  (`file.exists(get_registry_file())`), `set_default_registry()`/`use_registry()`
+  (`set_registry_file()`), `which_registry()` (`get_registry_file()`),
+  `tech_designer()`/`tech_from_spec()`/`tech_to_spec()`/`tech_spec_code()`/`tech_spec_issues()`
+  (the `process_*()` equivalents), `read_techspec()`/`read_procspec()`
+  (`read_process_spec()`), `write.sc()` (`write_sc()`), `make_scenario_dirname()`
+  (`set_path_builder(scenario_dir = )`), `levcost_by_variant(x, what)`
+  (`levcost(x, by_variant = what)`), `get_data()` (`getData()`) and
+  `get_units()` (`getUnits()`).
+* The four standalone UTOPIA datasets are removed: `utopia_weather`,
+  `utopia_demand`, `utopia_stock` and `utopia_modules` are `utopia$weather`,
+  `$demand`, `$stock` and `$modules`.
+* The mosox back-end experiment is gone; it was never functional and now lives
+  in `drafts/`.
 
 * Two rows of one object slot that set the same parameter at the same key are
   refused at construction, naming the column, the key and both values. An `NA`
@@ -372,25 +403,6 @@
 * `summary()` on a model reports its regions and its objects by class.
 * `run.yml` records a solve's memory footprint (`mem_mb`/`peak_mb`) and
   `saved`/`updated` stamps, surfaced by `scenario_runs()`.
-
-## Deprecations
-
-* The UTOPIA datasets are now elements of one list — `utopia$weather`,
-  `$demand`, `$stock`, `$modules`, alongside `$map` and `$geo`. The four
-  standalone datasets still work and are removed in v0.90.
-* All deprecated names warn with the version that removes them ("won't be
-  available starting energyRt v0.90") and are collected under one help page,
-  `?energyRt-deprecated`.
-* `find_registry()` is now `find_in_registry()` — it filters rows inside a
-  loaded registry, next to `get_registry_file()`.
-* `read_procspec()` is now `read_process_spec()`.
-* `registry_exists()` / `registry.exists()` now report whether the project has a
-  registry file at all; the `name` argument is accepted and ignored.
-* `solve_mod()` / `solve_scen()` are deprecated aliases of `solve_model()` /
-  `solve_scenario()`, which hold the implementations.
-* `make_scenario_dirname()` is replaced by `set_path_builder(scenario_dir = )`,
-  since folder naming is automatic.
-* The mosox back-end experiment moved to `drafts/`; it was not functional.
 
 ## Bug fixes
 

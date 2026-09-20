@@ -1,9 +1,5 @@
 url: https://energyRt.org
 
-# clean URL for the training page: energyRt.org/use-R-2026 -> articles/use-R-2026.html
-redirects:
-  - ["use-R-2026/index.html", "articles/use-R-2026.html"]
-
 # Convention: figures are built on a SOLID background -- transparent PNGs
 # are illegible in the site's dark mode. pkgdown/extra.scss then stops the
 # dark theme inverting them (see optimal2050 CONVENTIONS.md).
@@ -53,15 +49,12 @@ development:
 navbar:
   # bg: light
   structure:
-    left:  [intro, course, reference, roadmap, articles, news]
+    left:  [intro, reference, roadmap, articles, news]
     right: [search, github, lightswitch]
   components:
     news:
       text: News
       href: news/index.html
-    course:
-      text: Training
-      href: articles/use-R-2026.html
     roadmap:
       text: Roadmap
       href: articles/roadmap.html
@@ -106,34 +99,77 @@ navbar:
     #   href: articles/logo.html
 
 reference:
-- title: Classes
-  desc:  Data structures of the key model components.
+
+# ---------------------------------------------------------------- describing -
+- title: Model components
+  desc: >
+    The S4 classes a model is made of. Each is built by its `new*()`
+    constructor below and carries its data in slots.
   contents:
-  # - calendar-class
-  # - commodity-class
-  # - demand-class
-  # - supply-class
-  # - technology-class
-  # - storage-class
-  # - trade-class
-  # - import-class
-  # - export-class
-  - ends_with("class")
-  - starts_with("class")
+  - starts_with("class-")
+  - ends_with("-class")
 
 - title: Building a model
-  desc:  Functions to create model components.
+  desc: >
+    Constructors for the objects above, the repository that holds them, and the
+    model that binds them to a calendar, regions and a horizon.
   contents:
-  - starts_with("new")
-  - starts_with("make_")
-  - matches("initialize")
-  - matches("update")
-  - starts_with("add")
+  - newModel
+  - newRepository
+  - newCommodity
+  - newTechnology
+  - newStorage
+  - newSupply
+  - newDemand
+  - newTrade
+  - newACLine
+  - newDCLink
+  - newImport
+  - newExport
+  - newWeather
+  - newConstraint
+  - newCosts
+  - newTax
+  - newSubsidy
+  - newScenario
+  - newRegistry
+  - add,repository-method
+  - update
+  - update,export-method
+  - update,supply-method
   - asSupplyCurve
   - lossTranches
+  - combine_vintages
 
-- title: Process specs
-  desc:  Portable process specifications (YAML/JSON containers) and vintage tools.
+- title: Time resolution
+  desc: >
+    Calendars and horizons. The shipped `calendars` catalog is generated with
+    the sibling *timescales* package; `newCalendar()` builds your own.
+  contents:
+  - newCalendar
+  - newHorizon
+  - calendars
+  - horizons
+  - make_timetable
+  - autoplot.calendar
+  - autoplot.horizon
+
+- title: Space resolution
+  desc: >
+    Multi-level regions. A commodity declares the level it balances on, and
+    coarse balances roll up without a `trade` route for every pair.
+  contents:
+  - setGeoscale,config-method
+  - utopia_geoscale
+  - check_geoscale_regions
+  - plot_geoscale
+  - get_region
+  - subset_model_regions
+  - aggregate_model_regions
+
+- title: Process specifications
+  desc: >
+    Portable YAML/JSON process definitions, and the interactive designer.
   contents:
   - process_from_spec
   - process_to_spec
@@ -141,55 +177,103 @@ reference:
   - process_spec_issues
   - read_process_spec
   - process_designer
-  - combine_vintages
+  - read_technology_xlsx
+  - write_technology_xlsx
 
-- title: Configuration and Settings
-  desc:  Model configuration and scenario settings
+# ------------------------------------------------------------------ solving -
+- title: Interpolating and solving
+  desc: >
+    The core pipeline. `solve_model()` does the whole sequence; the separate
+    verbs let a stage be inspected or re-run.
   contents:
-  - ends_with("onfig")
-  - ends_with("ettings")
-  - ends_with("alendar")
-  - ends_with("orizon")
-  - calendars
-  - horizons
-
-- title: Solving
-  contents:
-  - starts_with("interpolate")
-  - starts_with("write")
-  - starts_with("read")
-  - starts_with("solve")
-  - subset_model_regions
-  # solver-run options: progress log
+  - interpolate_model
+  - solve_model
+  - write_script
+  - read_solution
+  - read_sequence
   - with_solver_log
-  # myopic-solve primitives (solve_myopic itself matches "solve" above)
+
+- title: Solver configuration
+  desc: Choosing a backend and pointing energyRt at it.
+  contents:
+  - get_default_solver
+  - get_solver_path
+  - set_solver_path
+  - set_gams_path
+  - get_exchange_format
+  - get_storage_format
+
+- title: Remote and cloud solving
+  desc: >
+    Solving where you are not: the NEOS server for GAMS/CPLEX without a local
+    licence, and GPU/cloud execution for models too large for a laptop.
+  contents:
+  - starts_with("neos")
+  - get_neos_email
+  - get_hf_token
+
+- title: Solve drivers
+  desc: >
+    Sequences of solves — myopic foresight, sampled calendars, region-by-region
+    decomposition, and guided target-seeking — with their primitives.
+  contents:
+  - solve_myopic
+  - solve_by_sample
+  - solve_by_region
+  - solve_guided
   - horizon_windows
   - solution_ledger
   - apply_ledger
   - myopic_objective
-  # by-sample, by-region and guided primitives (the drivers themselves match
-  # "solve" above)
   - calendar_samples
   - sample_summary
   - boundary_window
-  - aggregate_model_regions
   - guided_windows
   - guided_gap
   - solution_targets
   - apply_targets
-  # - mosox_run
-  # - en_mosox_run
-  - matches("mapping")
-  - trim_parameters_by_maps
-  - validate_scenario_parameters
 
-- title: Remote solver (NEOS)
+# ------------------------------------------------------------------ results -
+- title: Reading results
+  desc: Getting tidy data out of a solved scenario.
   contents:
-  - starts_with("neos")
+  - getData
+  - get_variable
+  - get_weather
+  - getMix
+  - getObject
+  - getScenario
+  - getVariants
+  - variantSummary
+  - findData
+  - find_in_model
+  - findDuplicates
+  - size
+  - model_size
+
+- title: Levelized cost
+  desc: >
+    Pricing a technology a-priori (screening LCOE) or ex-post from a solved
+    scenario.
+  contents:
+  - levcost
+  - tech_share_frontier
+  - plot_share_frontier
+  - clear_levcost_cache
+  - storage_duration
 
 - title: Reporting
+  desc: Rendered datasheets for models, scenarios and processes.
   contents:
-  - starts_with("report")
+  - report
+  - report_html
+  - report_pdf
+  - report_docx
+  - report_tex
+  - report_templates
+  - report_helpers
+  - clear_report_cache
+  - set_reports_path
 
 - title: Comparison
   desc: >
@@ -198,119 +282,121 @@ reference:
   contents:
   - starts_with("compare")
 
-- title: Scenario storage, clean-up and sharing
+- title: Visualisation
+  desc: Plots and diagrams.
+  contents:
+  - starts_with("autoplot")
+  - draw
+  - plot
+  - plot_heatmap
+  - plot_map
+  - plot_trade_map
+  - object_image
+  - theme_energyRt
+  - ghost_options
+  - design
+
+# ------------------------------------------------------------------ storage -
+- title: Saving and loading
+  desc: >
+    Models, repositories and scenarios on disk — Arrow-backed, so results
+    larger than memory stay readable.
+  contents:
+  - save_model
+  - save_repository
+  - save_scenario
+  - load_scenario
+  - seal_model
+  - model_hash
+  - repository_hash
+  - dataset_hash
+  - object_hash
+  - isInMemory
+  - isOnDisk
+  - obj2mem
+  - materialize_weather
+
+- title: Scenario runs and artifacts
   desc: >
     What a solved scenario leaves on disk, which solution to keep, and how to
     hand a folder to somebody else.
   contents:
+  - scenario_runs
   - scenario_solutions
+  - scenario_artifacts
   - import_solution
   - promote_solution
-  - scenario_artifacts
+  - drop_scenario_run
   - drop_solver_outputs
-  - clear_report_cache
+  - upgrade_scenario_layout
   - store_dependents
   - strip_user_info
   - prepare_for_sharing
+  - matches("registry")
+  - matches("dataset")
+  - matches("marked")
 
-- title: Example datasets
+# --------------------------------------------------------------- validation -
+- title: Validation and diagnostics
   desc: >
-    Data bundled with the package for the examples and articles. `calendars` and
-    `horizons` are listed under Configuration above.
+    Checks on a model's inputs, on an interpolated scenario, and on a solved
+    one. `verify_solution()` re-derives the model's identities from the results.
   contents:
+  - validate_scenario_parameters
+  - verify_solution
+  - en_check
+  - en_check_packages
+  - trim_parameters_by_maps
+  - update_parameter
+
+# ----------------------------------------------------------------- the rest -
+- title: Datasets
+  desc: Data bundled with the package for the examples and articles.
+  contents:
+  - utopia
+  - utopia_profile
+  - utopia_profiles
   - vre_cf
   - vre_storage_duration
 
-- title: Data manipulation
+- title: Setup and environment
+  desc: Installing and checking the solver toolchains.
   contents:
-  - matches("convert")
-  - getUnits
-  - commodity_properties
-  - commodity_property
-  - matches("data")
-  - getObject
-  - getScenario
-  - getMix
-  - getVariants
-  - storage_duration
-  - variantSummary
-  - matches("find")
-  - matches("rename")
-  - matches("revalue")
-  - matches("size")
-  - matches("hour2HOUR")
-  - matches("yday2YDAY")
-  - matches("tsl2dtm")
-  - matches("dtm2tsl")
-  - matches("tsl_formats")
-  - matches("^tsl")
-  - matches("tsl_guess_format")
-  - matches("drop_na_cols")
-  - materialize_weather
-  - matches("obj2mem")
-  - matches("isInMemory")
-  - isOnDisk
-  - matches("register")
-  - matches("registry")
-  - matches("^save_")
-  - matches("^load_")
-  - matches("_hash$")
-  - matches("^object_hash")
-  - matches("dataset")
-  - matches("^scenario_run")
-  - matches("^drop_scenario_run")
-  - matches("^upgrade_scenario_layout")
-  - matches("^clear_levcost_cache")
-  - starts_with("utopia")
+  - en_setup
+  - starts_with("en_install")
+  - en_config_path
+  - en_config_show
 
-
-- title: Visualisation
+- title: Options and paths
+  desc: Package options, and where energyRt reads and writes.
   contents:
-  - matches("draw")
-  - matches("plot")
-  - matches("show")
-  - matches("design")
-  - object_image
-  - ghost_options
-  - theme_energyRt
-
-- title: Validation
-  contents:
-  - starts_with("check")
-  - verify_solution
-  - matches("levcost")
-  - tech_share_frontier
-
-- title: Exporting
-  contents:
-  - starts_with("print")
-  - starts_with("summary")
-
-- title: energyRt options and settings
-  contents:
-  - starts_with("set")
-  - matches("make_scenario_dirname")
   - energyRt-options
-  - starts_with("en_config")
+  - set_option
+  - set_path_builder
+  - set_scenarios_path
+  - set_registry_file
+  - set_log_file
+  - set_progress_bar
+  - get_default_value
   - isVerbose
   - isDebug
 
-- title: utils
+- title: Utilities
+  desc: Small helpers, conversions and accessors.
   contents:
-  - starts_with("en_install")
-  - starts_with("en_setup")
-  - starts_with("en_check")
-  - matches("en_obj2df")
-  - starts_with("collect_")
-  - starts_with("get_")
-  - starts_with("complete_")
-  - starts_with("expand_")
-  - matches("countdown_timer")
-  - matches("map_|named_|is_")
-  # - get_slot_info
-
-# - title: All other
-#   contents: lacks_concepts("none")
+  - starts_with("get_process")
+  - getUnits
+  - commodity_properties
+  - commodity_property
+  - convert_data
+  - convert,character-method
+  - renameSets
+  - revalueSets
+  - register_weather_transform
+  - hour2HOUR
+  - yday2YDAY
+  - print,modelData-method
+  - summary,model-method
 
 footer:
   structure:

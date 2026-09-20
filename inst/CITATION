@@ -1,0 +1,34 @@
+## Authorship is VERSION-SPECIFIC.
+##
+## Vladimir Potashnikov co-authored energyRt from 2016 to 2022; his last
+## contribution was to version 0.01.23.9000 (commit 88259a67, 2022-11-24).
+## Versions after that are authored by Oleg Lugovoy. Cite the version you
+## actually used -- `citation()` reads it from the installed package, so this
+## resolves itself.
+##
+## This governs CITATION only. Vladimir Potashnikov remains a copyright holder
+## of code still shipped today; see the Authors@R field in DESCRIPTION.
+
+.ver  <- meta$Version
+.year <- if (!is.null(meta$Date)) sub("-.*", "", meta$Date) else
+           format(Sys.Date(), "%Y")
+
+.authors <- if (package_version(.ver) <= package_version("0.01.23.9000")) {
+  c(person(given = "Oleg",     family = "Lugovoy"),
+    person(given = "Vladimir", family = "Potashnikov"))
+} else {
+  person(given = "Oleg", family = "Lugovoy")
+}
+
+citHeader(paste0(
+  "To cite energyRt in publications, cite the version you used. ",
+  "This entry is for version ", .ver, "."))
+
+bibentry(
+  bibtype = "Manual",
+  title   = paste0(meta$Package, ": ", meta$Title),
+  author  = .authors,
+  year    = .year,
+  note    = paste("R package version", .ver),
+  url     = "https://energyRt.org"
+)

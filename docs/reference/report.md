@@ -52,6 +52,7 @@ report(
   format = c("html", "pdf", "tex", "docx"),
   levcost = NULL,
   cost_unit = NULL,
+  levcost_peers = NULL,
   open = interactive(),
   reports_path = NULL,
   force = FALSE,
@@ -87,6 +88,7 @@ report(
   force = FALSE,
   logos = NULL,
   figure = NULL,
+  groups = NULL,
   ...
 )
 
@@ -104,6 +106,7 @@ report(
   force = FALSE,
   logos = NULL,
   figure = NULL,
+  groups = NULL,
   ...
 )
 
@@ -123,6 +126,7 @@ report(
   verify = TRUE,
   logos = NULL,
   badges = NULL,
+  groups = NULL,
   ...
 )
 
@@ -142,6 +146,216 @@ report(
 )
 
 # S4 method for class 'scenarios_cmp'
+report(
+  object,
+  template = NULL,
+  image_file = NULL,
+  file = NULL,
+  format = c("html", "pdf", "tex", "docx"),
+  levcost = NULL,
+  cost_unit = NULL,
+  open = interactive(),
+  reports_path = NULL,
+  force = FALSE,
+  ...
+)
+
+# S4 method for class 'commodity'
+report(
+  object,
+  template = NULL,
+  image_file = NULL,
+  file = NULL,
+  format = c("html", "pdf", "tex", "docx"),
+  levcost = NULL,
+  cost_unit = NULL,
+  open = interactive(),
+  reports_path = NULL,
+  force = FALSE,
+  ...
+)
+
+# S4 method for class 'supply'
+report(
+  object,
+  template = NULL,
+  image_file = NULL,
+  file = NULL,
+  format = c("html", "pdf", "tex", "docx"),
+  levcost = NULL,
+  cost_unit = NULL,
+  open = interactive(),
+  reports_path = NULL,
+  force = FALSE,
+  ...
+)
+
+# S4 method for class 'demand'
+report(
+  object,
+  template = NULL,
+  image_file = NULL,
+  file = NULL,
+  format = c("html", "pdf", "tex", "docx"),
+  levcost = NULL,
+  cost_unit = NULL,
+  open = interactive(),
+  reports_path = NULL,
+  force = FALSE,
+  ...
+)
+
+# S4 method for class 'trade'
+report(
+  object,
+  template = NULL,
+  image_file = NULL,
+  file = NULL,
+  format = c("html", "pdf", "tex", "docx"),
+  levcost = NULL,
+  cost_unit = NULL,
+  open = interactive(),
+  reports_path = NULL,
+  force = FALSE,
+  ...
+)
+
+# S4 method for class 'import'
+report(
+  object,
+  template = NULL,
+  image_file = NULL,
+  file = NULL,
+  format = c("html", "pdf", "tex", "docx"),
+  levcost = NULL,
+  cost_unit = NULL,
+  open = interactive(),
+  reports_path = NULL,
+  force = FALSE,
+  ...
+)
+
+# S4 method for class 'export'
+report(
+  object,
+  template = NULL,
+  image_file = NULL,
+  file = NULL,
+  format = c("html", "pdf", "tex", "docx"),
+  levcost = NULL,
+  cost_unit = NULL,
+  open = interactive(),
+  reports_path = NULL,
+  force = FALSE,
+  ...
+)
+
+# S4 method for class 'weather'
+report(
+  object,
+  template = NULL,
+  image_file = NULL,
+  file = NULL,
+  format = c("html", "pdf", "tex", "docx"),
+  levcost = NULL,
+  cost_unit = NULL,
+  open = interactive(),
+  reports_path = NULL,
+  force = FALSE,
+  ...
+)
+
+# S4 method for class 'tax'
+report(
+  object,
+  template = NULL,
+  image_file = NULL,
+  file = NULL,
+  format = c("html", "pdf", "tex", "docx"),
+  levcost = NULL,
+  cost_unit = NULL,
+  open = interactive(),
+  reports_path = NULL,
+  force = FALSE,
+  ...
+)
+
+# S4 method for class 'subsidy'
+report(
+  object,
+  template = NULL,
+  image_file = NULL,
+  file = NULL,
+  format = c("html", "pdf", "tex", "docx"),
+  levcost = NULL,
+  cost_unit = NULL,
+  open = interactive(),
+  reports_path = NULL,
+  force = FALSE,
+  ...
+)
+
+# S4 method for class 'constraint'
+report(
+  object,
+  template = NULL,
+  image_file = NULL,
+  file = NULL,
+  format = c("html", "pdf", "tex", "docx"),
+  levcost = NULL,
+  cost_unit = NULL,
+  open = interactive(),
+  reports_path = NULL,
+  force = FALSE,
+  ...
+)
+
+# S4 method for class 'calendar'
+report(
+  object,
+  template = NULL,
+  image_file = NULL,
+  file = NULL,
+  format = c("html", "pdf", "tex", "docx"),
+  levcost = NULL,
+  cost_unit = NULL,
+  open = interactive(),
+  reports_path = NULL,
+  force = FALSE,
+  ...
+)
+
+# S4 method for class 'horizon'
+report(
+  object,
+  template = NULL,
+  image_file = NULL,
+  file = NULL,
+  format = c("html", "pdf", "tex", "docx"),
+  levcost = NULL,
+  cost_unit = NULL,
+  open = interactive(),
+  reports_path = NULL,
+  force = FALSE,
+  ...
+)
+
+# S4 method for class 'config'
+report(
+  object,
+  template = NULL,
+  image_file = NULL,
+  file = NULL,
+  format = c("html", "pdf", "tex", "docx"),
+  levcost = NULL,
+  cost_unit = NULL,
+  open = interactive(),
+  reports_path = NULL,
+  force = FALSE,
+  ...
+)
+
+# S4 method for class 'costs'
 report(
   object,
   template = NULL,
@@ -205,7 +419,18 @@ report(
   (default). When `NULL` and any `levcost` keyword arguments are passed
   via `...` (e.g. `group`, `repo`, `discount`),
   [`levcost()`](https://energyRt.org/reference/levcost.md) is called
-  automatically on `object` with those arguments.
+  automatically on `object` with those arguments. On a whole-model or
+  scenario report, `levcost = TRUE` adds the levelized-cost comparison
+  section (overall and per-topology-group charts + table).
+
+  For a process declaring vintages or clusters the report carries the
+  per-variant levelised costs (a table plus a comparison chart)
+  alongside the detail figures for one display instance. Pass
+  `by_variant = FALSE` in `...` to report that single instance only.
+  `by_variant` is consumed by `report()` and deliberately not forwarded
+  to [`levcost()`](https://energyRt.org/reference/levcost.md), whose
+  `by_variant = TRUE` returns an extracted data frame rather than the
+  object the report is built from.
 
 - cost_unit:
 
@@ -249,6 +474,12 @@ report(
   enters the render key, so a changed logo re-renders an otherwise
   up-to-date report.
 
+- levcost_peers:
+
+  A `levcost_list` of the process's topology-group peers, rendered as a
+  comparison chart. Filled automatically when the datasheet is requested
+  from a container (`report(mod, name = )`); rarely passed by hand.
+
 - reports_path:
 
   Character. Redirects the default output directory for this call
@@ -261,6 +492,18 @@ report(
   content key over the object, template, arguments, image and levcost
   identity, and an unchanged report is not rebuilt.
 
+- groups:
+
+  Process groups for model and scenario reports: a named list whose
+  elements are character vectors of process names or regular expressions
+  over process names
+  (`list(Coal = "_coal_", Wind = c("WIN_ON", "^R._win"))`). Defaults to
+  `object@misc$report_groups` (a scenario falls back to its model's).
+  `FALSE` disables groups, `"topology"` groups automatically by
+  structure. Without groups the report shows a representative sample of
+  up to 12 processes. Processes in no group form a final "Ungrouped"
+  sample.
+
 - name:
 
   Character (container/scenario methods). Name of the technology /
@@ -271,6 +514,19 @@ report(
 The path(s) to the generated output file(s) (invisibly). A single string
 when one format is requested; a character vector when multiple formats
 are requested.
+
+## Functions
+
+- `report(commodity)`: Element datasheets. Every element class –
+  commodity, supply, demand, trade, import, export, weather, tax,
+  subsidy, constraint, calendar, horizon, config, costs – has a
+  `report()` method rendering a one-object datasheet from its shipped
+  `report_<class>.Rmd` template. The default template is the class name;
+  an object-level default can be stored in `misc$report` (the techspec
+  `report:` key), and an explicit `template =` always wins. From a
+  container, `report(mod, name = "X")` finds the element of any class
+  (pass `class = ` to disambiguate same-named objects); the levelized
+  cost section applies to technology, storage and trade only.
 
 ## See also
 

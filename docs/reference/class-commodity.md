@@ -40,8 +40,11 @@ commodities. The creation of a commodity object is done with the
   electricity stays state-level) asserts free, unlimited transport of
   the commodity within that level, so it suits goods with a genuinely
   integrated market and never a network-constrained carrier such as
-  electricity. Requires a geoscale on the model config; GLPK and GAMS
-  only.
+  electricity. The coarse balance is the plain SUM of its children:
+  regional quantities are extensive, so no weighting is applied.
+  Requires a geoscale on the model config whose geoframes NEST –
+  adjacent levels must refine one another, or a region would be counted
+  into two parents. Supported by all back-ends.
 
 - `unit`:
 

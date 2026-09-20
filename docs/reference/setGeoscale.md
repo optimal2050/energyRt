@@ -2,9 +2,7 @@
 
 A geoscale describes the model's regions – their nesting into coarser
 levels, their weights, and optionally their geometry. It is built with
-the [geoscales](https://github.com/optimal2050/geoscales) package and is
-used for plotting, reporting and subsetting only: attaching one never
-changes the optimisation model.
+the [geoscales](https://github.com/optimal2050/geoscales) package.
 
 ## Usage
 
@@ -60,6 +58,16 @@ getCalendar(obj)
 or `NULL`.
 
 ## Details
+
+Attaching one is inert by itself: it widens the model's region set with
+the coarser codes and enables level-aware plotting, reporting and
+subsetting (`getData(geoframe = )`), but the extra members stay unused
+and the model solves exactly as before. It is also the prerequisite for
+`newCommodity(geoframe = )`, which balances a commodity at a coarser
+level and does change the optimisation model – see
+`vignette("space-resolution")`. The geoframes must NEST: adjacent levels
+have to refine one another, or a region would be aggregated into two
+parents.
 
 `setGeoscale()` stores it on a `config` (and therefore on a `settings`,
 which inherits from `config`) or on a `model`. `getGeoscale()` reads it

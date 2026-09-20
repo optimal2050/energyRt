@@ -299,9 +299,6 @@ test_that("levcost(by_variant=) matches the result's own tables", {
   expect_identical(levcost(lc, by_variant = "components"),
                    attr(lc, "by_variant_components"))
 
-  # the deprecated extractor still agrees, and warns
-  expect_warning(old <- levcost_by_variant(lc, "npv"), "v0.90")
-  expect_identical(old, levcost(lc, by_variant = "npv"))
 
   # computing with by_variant returns the table, not the object
   direct <- suppressMessages(suppressWarnings(

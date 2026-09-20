@@ -9,8 +9,9 @@ solves a scenario that was already interpolated with
 and errors otherwise. Both reuse the write / run / read framework
 (`.executeScenario()`); all solver backends (GLPK/GMPL, GAMS, Pyomo,
 JuMP) work unchanged. The transitional names
-[`solve_mod()`](https://energyRt.org/reference/energyRt-deprecated.md) /
-[`solve_scen()`](https://energyRt.org/reference/energyRt-deprecated.md)
+[`solve_mod()`](https://energyRt.org/reference/energyRt-deprecated.html)
+/
+[`solve_scen()`](https://energyRt.org/reference/energyRt-deprecated.html)
 are deprecated aliases.
 
 ## Usage
@@ -31,6 +32,9 @@ solve_scenario(
   tmp.dir = NULL,
   tmp.del = NULL
 )
+
+# S4 method for class 'model,character'
+solve(a, b, ...)
 ```
 
 ## Arguments
@@ -86,8 +90,7 @@ solve_scenario(
 
   character, an EXTERNAL solver working directory. When set, the solve
   runs there verbatim and records no run; the default (`NULL`) solves
-  into the scenario's own run directory
-  `runs/[<variant>/]<label>/solver/`.
+  into the scenario's own run directory `runs/[<variant>/]<label>/`.
 
 - transient:
 

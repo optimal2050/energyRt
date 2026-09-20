@@ -53,7 +53,7 @@ energyRt:::get_slot_doc("technology", "capacity") |> cat()
 #> data.frame. Capacity of the installed technology (in units of capacity).
 #>   \describe{
 #>     \item{vintage}{character. Vintage label selecting the technology variant this row applies to, NA for every vintage. See the `vintage` slot.}
-#>     \item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `vintage` slot.}
+#>     \item{cluster}{character. Cluster label selecting the technology variant this row applies to, NA for every cluster. See the `cluster` slot.}
 #>     \item{region}{character. Region name to apply the parameter, NA for every region.}
 #>     \item{year}{integer. Year to apply the parameter, required, values between specified years will be interpolated.}
 #>     \item{stock}{numeric. Predefined capacity of the technology in units of capacity, default is 0. This parameter also defines the exogenous capacity retirement (age-based), or exogenous capacity additions, not optimized by the model, and not included in investment costs.

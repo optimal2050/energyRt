@@ -61,7 +61,7 @@ when the calendar has one, emissions and cost tables.
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.2.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -70,7 +70,6 @@ when the calendar has one, emissions and cost tables.
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/energyRt.html">Get started</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/use-R-2026.html">Training</a></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Roadmap</a></li>
 <li class="nav-item dropdown">
@@ -80,6 +79,7 @@ when the calendar has one, emissions and cost tables.
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
@@ -106,7 +106,7 @@ when the calendar has one, emissions and cost tables.
 <div class="row">
   <main id="main" class="col-md-9"><div class="page-header">
       <img src="../logo.png" class="logo" alt=""><h1>Generate a summary report for an energyRt object</h1>
-      <small class="dont-index">Source: <a href="https://github.com/optimal2050/energyRt/blob/HEAD/R/report.R" class="external-link"><code>R/report.R</code></a>, <a href="https://github.com/optimal2050/energyRt/blob/HEAD/R/compare_scenarios.R" class="external-link"><code>R/compare_scenarios.R</code></a></small>
+      <small class="dont-index">Source: <a href="https://github.com/optimal2050/energyRt/blob/HEAD/R/report.R" class="external-link"><code>R/report.R</code></a>, <a href="https://github.com/optimal2050/energyRt/blob/HEAD/R/compare_scenarios.R" class="external-link"><code>R/compare_scenarios.R</code></a>, <a href="https://github.com/optimal2050/energyRt/blob/HEAD/R/report_elements.R" class="external-link"><code>R/report_elements.R</code></a></small>
       <div class="d-none name"><code>report.Rd</code></div>
     </div>
 
@@ -158,6 +158,7 @@ when the calendar has one, emissions and cost tables.</p></dd>
 <span>  format <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"html"</span>, <span class="st">"pdf"</span>, <span class="st">"tex"</span>, <span class="st">"docx"</span><span class="op">)</span>,</span>
 <span>  levcost <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  cost_unit <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  levcost_peers <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  open <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/interactive.html" class="external-link">interactive</a></span><span class="op">(</span><span class="op">)</span>,</span>
 <span>  reports_path <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  force <span class="op">=</span> <span class="cn">FALSE</span>,</span>
@@ -193,6 +194,7 @@ when the calendar has one, emissions and cost tables.</p></dd>
 <span>  force <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  logos <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  figure <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  groups <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -210,6 +212,7 @@ when the calendar has one, emissions and cost tables.</p></dd>
 <span>  force <span class="op">=</span> <span class="cn">FALSE</span>,</span>
 <span>  logos <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  figure <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  groups <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -229,6 +232,7 @@ when the calendar has one, emissions and cost tables.</p></dd>
 <span>  verify <span class="op">=</span> <span class="cn">TRUE</span>,</span>
 <span>  logos <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  badges <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  groups <span class="op">=</span> <span class="cn">NULL</span>,</span>
 <span>  <span class="va">...</span></span>
 <span><span class="op">)</span></span>
 <span></span>
@@ -248,6 +252,216 @@ when the calendar has one, emissions and cost tables.</p></dd>
 <span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S4 method for class 'scenarios_cmp'</span></span>
+<span><span class="fu">report</span><span class="op">(</span></span>
+<span>  <span class="va">object</span>,</span>
+<span>  template <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  image_file <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  file <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  format <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"html"</span>, <span class="st">"pdf"</span>, <span class="st">"tex"</span>, <span class="st">"docx"</span><span class="op">)</span>,</span>
+<span>  levcost <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  cost_unit <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  open <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/interactive.html" class="external-link">interactive</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  reports_path <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  force <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  <span class="va">...</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S4 method for class 'commodity'</span></span>
+<span><span class="fu">report</span><span class="op">(</span></span>
+<span>  <span class="va">object</span>,</span>
+<span>  template <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  image_file <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  file <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  format <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"html"</span>, <span class="st">"pdf"</span>, <span class="st">"tex"</span>, <span class="st">"docx"</span><span class="op">)</span>,</span>
+<span>  levcost <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  cost_unit <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  open <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/interactive.html" class="external-link">interactive</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  reports_path <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  force <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  <span class="va">...</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S4 method for class 'supply'</span></span>
+<span><span class="fu">report</span><span class="op">(</span></span>
+<span>  <span class="va">object</span>,</span>
+<span>  template <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  image_file <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  file <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  format <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"html"</span>, <span class="st">"pdf"</span>, <span class="st">"tex"</span>, <span class="st">"docx"</span><span class="op">)</span>,</span>
+<span>  levcost <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  cost_unit <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  open <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/interactive.html" class="external-link">interactive</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  reports_path <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  force <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  <span class="va">...</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S4 method for class 'demand'</span></span>
+<span><span class="fu">report</span><span class="op">(</span></span>
+<span>  <span class="va">object</span>,</span>
+<span>  template <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  image_file <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  file <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  format <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"html"</span>, <span class="st">"pdf"</span>, <span class="st">"tex"</span>, <span class="st">"docx"</span><span class="op">)</span>,</span>
+<span>  levcost <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  cost_unit <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  open <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/interactive.html" class="external-link">interactive</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  reports_path <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  force <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  <span class="va">...</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S4 method for class 'trade'</span></span>
+<span><span class="fu">report</span><span class="op">(</span></span>
+<span>  <span class="va">object</span>,</span>
+<span>  template <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  image_file <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  file <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  format <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"html"</span>, <span class="st">"pdf"</span>, <span class="st">"tex"</span>, <span class="st">"docx"</span><span class="op">)</span>,</span>
+<span>  levcost <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  cost_unit <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  open <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/interactive.html" class="external-link">interactive</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  reports_path <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  force <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  <span class="va">...</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S4 method for class 'import'</span></span>
+<span><span class="fu">report</span><span class="op">(</span></span>
+<span>  <span class="va">object</span>,</span>
+<span>  template <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  image_file <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  file <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  format <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"html"</span>, <span class="st">"pdf"</span>, <span class="st">"tex"</span>, <span class="st">"docx"</span><span class="op">)</span>,</span>
+<span>  levcost <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  cost_unit <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  open <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/interactive.html" class="external-link">interactive</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  reports_path <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  force <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  <span class="va">...</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S4 method for class 'export'</span></span>
+<span><span class="fu">report</span><span class="op">(</span></span>
+<span>  <span class="va">object</span>,</span>
+<span>  template <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  image_file <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  file <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  format <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"html"</span>, <span class="st">"pdf"</span>, <span class="st">"tex"</span>, <span class="st">"docx"</span><span class="op">)</span>,</span>
+<span>  levcost <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  cost_unit <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  open <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/interactive.html" class="external-link">interactive</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  reports_path <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  force <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  <span class="va">...</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S4 method for class 'weather'</span></span>
+<span><span class="fu">report</span><span class="op">(</span></span>
+<span>  <span class="va">object</span>,</span>
+<span>  template <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  image_file <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  file <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  format <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"html"</span>, <span class="st">"pdf"</span>, <span class="st">"tex"</span>, <span class="st">"docx"</span><span class="op">)</span>,</span>
+<span>  levcost <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  cost_unit <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  open <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/interactive.html" class="external-link">interactive</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  reports_path <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  force <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  <span class="va">...</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S4 method for class 'tax'</span></span>
+<span><span class="fu">report</span><span class="op">(</span></span>
+<span>  <span class="va">object</span>,</span>
+<span>  template <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  image_file <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  file <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  format <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"html"</span>, <span class="st">"pdf"</span>, <span class="st">"tex"</span>, <span class="st">"docx"</span><span class="op">)</span>,</span>
+<span>  levcost <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  cost_unit <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  open <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/interactive.html" class="external-link">interactive</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  reports_path <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  force <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  <span class="va">...</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S4 method for class 'subsidy'</span></span>
+<span><span class="fu">report</span><span class="op">(</span></span>
+<span>  <span class="va">object</span>,</span>
+<span>  template <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  image_file <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  file <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  format <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"html"</span>, <span class="st">"pdf"</span>, <span class="st">"tex"</span>, <span class="st">"docx"</span><span class="op">)</span>,</span>
+<span>  levcost <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  cost_unit <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  open <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/interactive.html" class="external-link">interactive</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  reports_path <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  force <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  <span class="va">...</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S4 method for class 'constraint'</span></span>
+<span><span class="fu">report</span><span class="op">(</span></span>
+<span>  <span class="va">object</span>,</span>
+<span>  template <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  image_file <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  file <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  format <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"html"</span>, <span class="st">"pdf"</span>, <span class="st">"tex"</span>, <span class="st">"docx"</span><span class="op">)</span>,</span>
+<span>  levcost <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  cost_unit <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  open <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/interactive.html" class="external-link">interactive</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  reports_path <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  force <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  <span class="va">...</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S4 method for class 'calendar'</span></span>
+<span><span class="fu">report</span><span class="op">(</span></span>
+<span>  <span class="va">object</span>,</span>
+<span>  template <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  image_file <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  file <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  format <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"html"</span>, <span class="st">"pdf"</span>, <span class="st">"tex"</span>, <span class="st">"docx"</span><span class="op">)</span>,</span>
+<span>  levcost <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  cost_unit <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  open <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/interactive.html" class="external-link">interactive</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  reports_path <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  force <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  <span class="va">...</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S4 method for class 'horizon'</span></span>
+<span><span class="fu">report</span><span class="op">(</span></span>
+<span>  <span class="va">object</span>,</span>
+<span>  template <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  image_file <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  file <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  format <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"html"</span>, <span class="st">"pdf"</span>, <span class="st">"tex"</span>, <span class="st">"docx"</span><span class="op">)</span>,</span>
+<span>  levcost <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  cost_unit <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  open <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/interactive.html" class="external-link">interactive</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  reports_path <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  force <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  <span class="va">...</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S4 method for class 'config'</span></span>
+<span><span class="fu">report</span><span class="op">(</span></span>
+<span>  <span class="va">object</span>,</span>
+<span>  template <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  image_file <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  file <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  format <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"html"</span>, <span class="st">"pdf"</span>, <span class="st">"tex"</span>, <span class="st">"docx"</span><span class="op">)</span>,</span>
+<span>  levcost <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  cost_unit <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  open <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/interactive.html" class="external-link">interactive</a></span><span class="op">(</span><span class="op">)</span>,</span>
+<span>  reports_path <span class="op">=</span> <span class="cn">NULL</span>,</span>
+<span>  force <span class="op">=</span> <span class="cn">FALSE</span>,</span>
+<span>  <span class="va">...</span></span>
+<span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># S4 method for class 'costs'</span></span>
 <span><span class="fu">report</span><span class="op">(</span></span>
 <span>  <span class="va">object</span>,</span>
 <span>  template <span class="op">=</span> <span class="cn">NULL</span>,</span>
@@ -309,7 +523,16 @@ none is found.</p></dd>
 <code><a href="levcost.html">levcost</a></code>, or <code>NULL</code> (default).  When <code>NULL</code> and any
 <code>levcost</code> keyword arguments are passed via <code>...</code> (e.g.
 <code>group</code>, <code>repo</code>, <code>discount</code>), <code><a href="levcost.html">levcost()</a></code> is called
-automatically on <code>object</code> with those arguments.</p></dd>
+automatically on <code>object</code> with those arguments. On a whole-model or
+scenario report, <code>levcost = TRUE</code> adds the levelized-cost
+comparison section (overall and per-topology-group charts + table).</p>
+<p>For a process declaring vintages or clusters the report carries the
+per-variant levelised costs (a table plus a comparison chart) alongside
+the detail figures for one display instance. Pass <code>by_variant = FALSE</code>
+in <code>...</code> to report that single instance only. <code>by_variant</code> is
+consumed by <code>report()</code> and deliberately not forwarded to
+<code><a href="levcost.html">levcost()</a></code>, whose <code>by_variant = TRUE</code> returns an extracted
+data frame rather than the object the report is built from.</p></dd>
 
 
 <dt id="arg-cost-unit">cost_unit<a class="anchor" aria-label="anchor" href="#arg-cost-unit"></a></dt>
@@ -349,6 +572,13 @@ figure, default <code>misc$figure</code>), and the scenario method
 changed logo re-renders an otherwise up-to-date report.</p></dd>
 
 
+<dt id="arg-levcost-peers">levcost_peers<a class="anchor" aria-label="anchor" href="#arg-levcost-peers"></a></dt>
+<dd><p>A <code>levcost_list</code> of the process's topology-group
+peers, rendered as a comparison chart. Filled automatically when the
+datasheet is requested from a container (<code>report(mod, name = )</code>);
+rarely passed by hand.</p></dd>
+
+
 <dt id="arg-reports-path">reports_path<a class="anchor" aria-label="anchor" href="#arg-reports-path"></a></dt>
 <dd><p>Character.  Redirects the default output directory for
 this call (<code>file =</code> still wins).</p></dd>
@@ -359,6 +589,17 @@ this call (<code>file =</code> still wins).</p></dd>
 date.  Reports are skip-if-current: a sidecar (<code>*.report.yml</code>)
 records a content key over the object, template, arguments, image and
 levcost identity, and an unchanged report is not rebuilt.</p></dd>
+
+
+<dt id="arg-groups">groups<a class="anchor" aria-label="anchor" href="#arg-groups"></a></dt>
+<dd><p>Process groups for model and scenario reports: a named list
+whose elements are character vectors of process names or regular
+expressions over process names (<code>list(Coal = "_coal_", Wind =
+c("WIN_ON", "^R._win"))</code>). Defaults to <code>object@misc$report_groups</code>
+(a scenario falls back to its model's). <code>FALSE</code> disables groups,
+<code>"topology"</code> groups automatically by structure. Without groups
+the report shows a representative sample of up to 12 processes.
+Processes in no group form a final "Ungrouped" sample.</p></dd>
 
 
 <dt id="arg-name">name<a class="anchor" aria-label="anchor" href="#arg-name"></a></dt>
@@ -372,6 +613,20 @@ process to report.</p></dd>
 string when one format is requested; a character vector when multiple
 formats are requested.</p>
     </div>
+    <div class="section level2">
+    <h2 id="functions">Functions<a class="anchor" aria-label="anchor" href="#functions"></a></h2>
+
+<ul><li><p><code>report(commodity)</code>: Element datasheets. Every element class – commodity,
+supply, demand, trade, import, export, weather, tax, subsidy,
+constraint, calendar, horizon, config, costs – has a <code>report()</code>
+method rendering a one-object datasheet from its shipped
+<code>report_&lt;class&gt;.Rmd</code> template. The default template is the class name;
+an object-level default can be stored in <code>misc$report</code> (the techspec
+<code>report:</code> key), and an explicit <code>template =</code> always wins. From a
+container, <code>report(mod, name = "X")</code> finds the element of any class
+(pass <code>class = </code> to disambiguate same-named objects); the levelized
+cost section applies to technology, storage and trade only.</p></li>
+</ul></div>
     <div class="section level2">
     <h2 id="see-also">See also<a class="anchor" aria-label="anchor" href="#see-also"></a></h2>
     <div class="dont-index"><p><code><a href="levcost.html">levcost</a></code>, <code><a href="report_pdf.html">report_pdf</a></code>,

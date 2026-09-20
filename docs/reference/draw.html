@@ -15,7 +15,7 @@ processes-type classes."><meta property="og:image" content="https://energyRt.org
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.2.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -24,7 +24,6 @@ processes-type classes."><meta property="og:image" content="https://energyRt.org
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/energyRt.html">Get started</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/use-R-2026.html">Training</a></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Roadmap</a></li>
 <li class="nav-item dropdown">
@@ -34,6 +33,7 @@ processes-type classes."><meta property="og:image" content="https://energyRt.org
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
@@ -248,7 +248,9 @@ Default is the first node in the trade object.</p></dd>
 <span class="r-in"><span>  <span class="op">)</span>,</span></span>
 <span class="r-in"><span>  aeff <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>    acomm <span class="op">=</span> <span class="st">"LITHIUM"</span>, <span class="co"># track lithium use for battery production</span></span></span>
-<span class="r-in"><span>    ncap2ainp <span class="op">=</span> <span class="fu">convert</span><span class="op">(</span><span class="fl">4</span> <span class="op">*</span> <span class="fl">250</span>, <span class="st">"Wh/kg"</span>, <span class="st">"GWh/kt"</span><span class="op">)</span> <span class="co"># lithium per energy capacity</span></span></span>
+<span class="r-in"><span>    <span class="co"># lithium per unit of NEW energy (reservoir) capacity -- `stg.` couples</span></span></span>
+<span class="r-in"><span>    <span class="co"># the storing part; the bare `ncap2ainp` coupled only the discharger</span></span></span>
+<span class="r-in"><span>    stg.ncap2ainp <span class="op">=</span> <span class="fu">convert</span><span class="op">(</span><span class="fl">4</span> <span class="op">*</span> <span class="fl">250</span>, <span class="st">"Wh/kg"</span>, <span class="st">"GWh/kt"</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="op">)</span>,</span></span>
 <span class="r-in"><span>  af <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>    <span class="co"># af.lo = 0., # lower bound for the capacity factor</span></span></span>
@@ -262,7 +264,8 @@ Default is the first node in the trade object.</p></dd>
 <span class="r-in"><span>  duration <span class="op">=</span> <span class="fl">4</span>, <span class="co"># four-hours of storage</span></span></span>
 <span class="r-in"><span>  invcost <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>    region <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"R1"</span>, <span class="cn">NA</span><span class="op">)</span>, <span class="co"># region R1 and all other regions</span></span></span>
-<span class="r-in"><span>    out.invcost <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1e3</span>, <span class="fl">1.1e3</span><span class="op">)</span> <span class="co"># investment cost in MUSD/GWh of 4-hour storage</span></span></span>
+<span class="r-in"><span>    out.invcost <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1e3</span>, <span class="fl">1.1e3</span><span class="op">)</span>, <span class="co"># discharger cost, MUSD/GW</span></span></span>
+<span class="r-in"><span>    stg.invcost <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">120</span>, <span class="fl">130</span><span class="op">)</span> <span class="co"># reservoir cost, MUSD/GWh (materialises stg)</span></span></span>
 <span class="r-in"><span>  <span class="op">)</span>,</span></span>
 <span class="r-in"><span>  fullYear <span class="op">=</span> <span class="cn">TRUE</span>, <span class="co"># full year storage cycle</span></span></span>
 <span class="r-in"><span>  weather <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>

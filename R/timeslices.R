@@ -1,4 +1,12 @@
-# timeslices.R ##############################################################################################################
+# timeslices.R ###############################################################
+#
+# The timeslice <-> datetime decomposition helpers. The time dimension is
+# `timescales`' domain, so from v0.90 `tsl2dtm()`, `tsl2year()`, `tsl2yday()`,
+# `tsl2hour()`, `tsl2month()` and `tsl_guess_format()` are NOT exported: they
+# stay as internals because `plot.R` and `storage_duration.R` still decompose
+# timeslice labels, and timescales has no equivalent yet (it exports the other
+# direction, `datetime_to_timeslice()`). When it grows them, these go and the
+# call sites move over.
 
 #' Common formats of time-timeslices.
 #' @name tsl_formats
@@ -185,7 +193,7 @@ if (F) {
 #'
 #' @return
 #' Vector in Date-Time format
-#' @export
+#' @keywords internal
 #'
 #' @examples
 #' tsl <- c("y2007_d365_h15", NA, "d151_h22", "d001", "m10_h12")
@@ -257,7 +265,7 @@ tsl2dtm <- function(tsl, format = tsl_guess_format(tsl), tmz = "UTC",
 #' @return
 #' Integer vector of years, the same length as the input vector
 #'
-#' @export
+#' @keywords internal
 #'
 #' @examples
 #' tsl <- c("y2007_d365_h15", NA, "d151_h22", "d001", "m10_h12")
@@ -284,7 +292,7 @@ tsl2year <- function(tsl, return.null = TRUE) {
 #'
 #' @return
 #' Integer vector of days of the year, the same length as the input vector
-#' @export
+#' @keywords internal
 #'
 #' @examples
 #' tsl
@@ -308,7 +316,7 @@ tsl2yday <- function(tsl, return.null = TRUE) {
 #'
 #' @return
 #' Integer vector of hours, the same length as the input vector
-#' @export
+#' @keywords internal
 #'
 #' @examples
 #' tsl
@@ -336,7 +344,7 @@ tsl2hour <- function(tsl, return.null = TRUE, pattern = "h[0-9]++") {
 #' @return
 #' Integer vector of months, the same length as the input vector
 #'
-#' @export
+#' @keywords internal
 #'
 #' @examples
 #' tsl2month(c("d001_h00", "d151_h22", "d365_h23"))
@@ -372,7 +380,7 @@ tsl2month <- function(tsl, format = tsl_guess_format(tsl), return.null = TRUE) {
 #'
 #' @return
 #' Character vector with the guessed format of the time-timeslices
-#' @export
+#' @keywords internal
 #'
 #' @examples
 #' tsl <- c("y2007_d365_h15", NA, "d151_h22", "d001", "m10_h12")

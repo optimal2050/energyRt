@@ -33,10 +33,13 @@ save_scenario(
   `NULL` (default), `TRUE`, or `FALSE`. Controls whether the model is
   embedded in the saved scenario or referenced from the model store (see
   [`save_model()`](https://energyRt.org/reference/model_store.md)).
-  `NULL`: reference when the identical model content is already in the
-  store, embed otherwise. `TRUE`: always embed (self-contained folder).
-  `FALSE`: require a store hit, error otherwise. A referenced save
-  stores only `{name, hash, path}`;
+  `NULL`: reference the store entry, saving the model to the store first
+  when nothing is stored under that name; embed when the name is taken
+  by different content (store entries update in place, so writing would
+  replace the version other scenarios reference). `TRUE`: always embed
+  (self-contained folder). `FALSE`: require an existing store hit, error
+  otherwise, and never write to the store. A referenced save stores only
+  `{name, hash, path}`;
   [`load_scenario()`](https://energyRt.org/reference/load_scenario.md)
   resolves it back via the registry / model store.
 
@@ -73,6 +76,16 @@ save_scenario(
 ## Value
 
 scenario object with most of the slots saved on disk.
+
+## Details
+
+This is the only writer of a run's `modOut/` store:
+[`read_solution()`](https://energyRt.org/reference/read.md) leaves the
+solution in memory, and without a save it does not survive the session.
+The store is written for the ACTIVE run — whichever `@misc$run` names —
+so saving while one run is active does not persist another's solution.
+[`import_solution()`](https://energyRt.org/reference/import_solution.md)
+does the read and the save in one call.
 
 ## Examples
 

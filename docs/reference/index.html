@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.2.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -22,7 +22,6 @@
 
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/energyRt.html">Get started</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/use-R-2026.html">Training</a></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Roadmap</a></li>
 <li class="nav-item dropdown">
@@ -32,6 +31,7 @@
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
@@ -61,9 +61,9 @@
     </div>
 
     <div class="section level2">
-      <h2 id="classes">Classes<a class="anchor" aria-label="anchor" href="#classes"></a></h2>
+      <h2 id="model-components">Model components<a class="anchor" aria-label="anchor" href="#model-components"></a></h2>
 
-      <div class="section-desc"><p>Data structures of the key model components.</p></div>
+      <div class="section-desc"><p>The S4 classes a model is made of. Each is built by its <code>new*()</code> constructor below and carries its data in slots.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -71,48 +71,6 @@
 
 
       <dl><dt>
-
-          <code><a href="class-constraint.html">class-constraint</a></code> <code><a href="class-constraint.html">summand-class</a></code>
-          <span class="badge lifecycle lifecycle-experimental">experimental</span>
-        </dt>
-        <dd>An S4 class to represent a custom constraint.</dd>
-
-        <dt>
-
-          <code><a href="class-storage.html">storage-class</a></code>
-
-        </dt>
-        <dd>An S4 class to represent storage type of technological process.</dd>
-
-        <dt>
-
-          <code><a href="class-subsidy.html">subsidy-class</a></code>
-
-        </dt>
-        <dd>An S4 class to represent a commodity subsidy</dd>
-
-        <dt>
-
-          <code><a href="class-tax.html">tax-class</a></code>
-
-        </dt>
-        <dd>An S4 class to represent a commodity tax</dd>
-
-        <dt>
-
-          <code><a href="get_process_class.html">get_process_class()</a></code>
-
-        </dt>
-        <dd>Get class of processes</dd>
-
-        <dt>
-
-          <code><a href="supply-class.html">supply-class</a></code>
-
-        </dt>
-        <dd>An S4 class to represent a supply of a commodity</dd>
-
-        <dt>
 
           <code><a href="class-calendar.html">class-calendar</a></code>
 
@@ -132,6 +90,13 @@
 
         </dt>
         <dd>An S4 class to represent default model configuration.</dd>
+
+        <dt>
+
+          <code><a href="class-constraint.html">class-constraint</a></code> <code><a href="class-constraint.html">summand-class</a></code>
+          <span class="badge lifecycle lifecycle-experimental">experimental</span>
+        </dt>
+        <dd>An S4 class to represent a custom constraint.</dd>
 
         <dt>
 
@@ -251,10 +216,38 @@
 
         </dt>
         <dd>S4 class to represent weather factors</dd>
+
+        <dt>
+
+          <code><a href="class-storage.html">storage-class</a></code>
+
+        </dt>
+        <dd>An S4 class to represent storage type of technological process.</dd>
+
+        <dt>
+
+          <code><a href="class-subsidy.html">subsidy-class</a></code>
+
+        </dt>
+        <dd>An S4 class to represent a commodity subsidy</dd>
+
+        <dt>
+
+          <code><a href="class-tax.html">tax-class</a></code>
+
+        </dt>
+        <dd>An S4 class to represent a commodity tax</dd>
+
+        <dt>
+
+          <code><a href="supply-class.html">supply-class</a></code>
+
+        </dt>
+        <dd>An S4 class to represent a supply of a commodity</dd>
       </dl></div><div class="section level2">
       <h2 id="building-a-model">Building a model<a class="anchor" aria-label="anchor" href="#building-a-model"></a></h2>
 
-      <div class="section-desc"><p>Functions to create model components.</p></div>
+      <div class="section-desc"><p>Constructors for the objects above, the repository that holds them, and the model that binds them to a calendar, regions and a horizon.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -263,17 +256,17 @@
 
       <dl><dt>
 
-          <code><a href="newACLine.html">newACLine()</a></code>
-          <span class="badge lifecycle lifecycle-experimental">experimental</span>
+          <code><a href="newModel.html">newModel()</a></code> <code><a href="newModel.html">setHorizon(<i>&lt;model&gt;</i>)</a></code> <code><a href="newModel.html">getHorizon(<i>&lt;model&gt;</i>)</a></code>
+
         </dt>
-        <dd>Create an AC transmission line</dd>
+        <dd>Create new model object</dd>
 
         <dt>
 
-          <code><a href="newCalendar.html">newCalendar()</a></code>
+          <code><a href="newRepository.html">newRepository()</a></code>
 
         </dt>
-        <dd>Generate a new calendar object from</dd>
+        <dd>A constructor for the repository class</dd>
 
         <dt>
 
@@ -281,6 +274,76 @@
 
         </dt>
         <dd>Create new commodity object</dd>
+
+        <dt>
+
+          <code><a href="technology.html">newTechnology()</a></code> <code><a href="technology.html">update(<i>&lt;technology&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Create a new "technology" object.</dd>
+
+        <dt>
+
+          <code><a href="storage.html">newStorage()</a></code>
+
+        </dt>
+        <dd>Create new storage object</dd>
+
+        <dt>
+
+          <code><a href="newSupply.html">newSupply()</a></code>
+
+        </dt>
+        <dd>Constructor for supply object.</dd>
+
+        <dt>
+
+          <code><a href="newDemand.html">newDemand()</a></code> <code><a href="newDemand.html">update(<i>&lt;demand&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Create new demand object</dd>
+
+        <dt>
+
+          <code><a href="newTrade.html">newTrade()</a></code>
+
+        </dt>
+        <dd>Create new trade object</dd>
+
+        <dt>
+
+          <code><a href="newACLine.html">newACLine()</a></code>
+          <span class="badge lifecycle lifecycle-experimental">experimental</span>
+        </dt>
+        <dd>Create an AC transmission line</dd>
+
+        <dt>
+
+          <code><a href="newDCLink.html">newDCLink()</a></code>
+          <span class="badge lifecycle lifecycle-experimental">experimental</span>
+        </dt>
+        <dd>Create a DC transmission link</dd>
+
+        <dt>
+
+          <code><a href="newImport.html">newImport()</a></code>
+
+        </dt>
+        <dd>Create new export object</dd>
+
+        <dt>
+
+          <code><a href="newExport.html">newExport()</a></code>
+
+        </dt>
+        <dd>Create new export object</dd>
+
+        <dt>
+
+          <code><a href="newWeather.html">newWeather()</a></code>
+
+        </dt>
+        <dd>Create new weather object</dd>
 
         <dt>
 
@@ -298,59 +361,10 @@
 
         <dt>
 
-          <code><a href="newDCLink.html">newDCLink()</a></code>
-          <span class="badge lifecycle lifecycle-experimental">experimental</span>
-        </dt>
-        <dd>Create a DC transmission link</dd>
-
-        <dt>
-
-          <code><a href="newDemand.html">newDemand()</a></code> <code><a href="newDemand.html">update(<i>&lt;demand&gt;</i>)</a></code>
+          <code><a href="newTax.html">newTax()</a></code>
 
         </dt>
-        <dd>Create new demand object</dd>
-
-        <dt>
-
-          <code><a href="newExport.html">newExport()</a></code>
-
-        </dt>
-        <dd>Create new export object</dd>
-
-        <dt>
-
-          <code><a href="newHorizon.html">newHorizon()</a></code> <code><a href="newHorizon.html">update(<i>&lt;horizon&gt;</i>)</a></code> <code><a href="newHorizon.html">setHorizon(<i>&lt;config&gt;</i>)</a></code> <code><a href="newHorizon.html">update(<i>&lt;config&gt;</i>)</a></code>
-
-        </dt>
-        <dd>Create a new object of class 'horizon'</dd>
-
-        <dt>
-
-          <code><a href="newImport.html">newImport()</a></code>
-
-        </dt>
-        <dd>Create new export object</dd>
-
-        <dt>
-
-          <code><a href="newModel.html">newModel()</a></code> <code><a href="newModel.html">setHorizon(<i>&lt;model&gt;</i>)</a></code> <code><a href="newModel.html">getHorizon(<i>&lt;model&gt;</i>)</a></code>
-
-        </dt>
-        <dd>Create new model object</dd>
-
-        <dt>
-
-          <code><a href="newRepository.html">newRepository()</a></code>
-
-        </dt>
-        <dd>A constructor for the repository class</dd>
-
-        <dt>
-
-          <code><a href="newScenario.html">newScenario()</a></code>
-
-        </dt>
-        <dd>Generate a new scenario object</dd>
+        <dd>Create a new tax object</dd>
 
         <dt>
 
@@ -361,31 +375,10 @@
 
         <dt>
 
-          <code><a href="newSupply.html">newSupply()</a></code>
+          <code><a href="newScenario.html">newScenario()</a></code>
 
         </dt>
-        <dd>Constructor for supply object.</dd>
-
-        <dt>
-
-          <code><a href="newTax.html">newTax()</a></code>
-
-        </dt>
-        <dd>Create a new tax object</dd>
-
-        <dt>
-
-          <code><a href="newTrade.html">newTrade()</a></code>
-
-        </dt>
-        <dd>Create new trade object</dd>
-
-        <dt>
-
-          <code><a href="newWeather.html">newWeather()</a></code>
-
-        </dt>
-        <dd>Create new weather object</dd>
+        <dd>Generate a new scenario object</dd>
 
         <dt>
 
@@ -396,24 +389,17 @@
 
         <dt>
 
-          <code><a href="storage.html">newStorage()</a></code>
+          <code><a href="add.html">add(<i>&lt;repository&gt;</i>)</a></code> <code><a href="add.html">add(<i>&lt;model&gt;</i>)</a></code>
 
         </dt>
-        <dd>Create new storage object</dd>
+        <dd>Add an object to the model's repository</dd>
 
         <dt>
 
-          <code><a href="technology.html">newTechnology()</a></code> <code><a href="technology.html">update(<i>&lt;technology&gt;</i>)</a></code>
+          <code><a href="update.html">update(<i>&lt;storage&gt;</i>)</a></code> <code><a href="update.html">update(<i>&lt;trade&gt;</i>)</a></code> <code><a href="update.html">update(<i>&lt;import&gt;</i>)</a></code>
 
         </dt>
-        <dd>Create a new "technology" object.</dd>
-
-        <dt>
-
-          <code><a href="calendar.html">make_timetable()</a></code>
-
-        </dt>
-        <dd>Create timetable of time-timeslices from given structure as a list</dd>
+        <dd>Update trade object</dd>
 
         <dt>
 
@@ -431,34 +417,6 @@
 
         <dt>
 
-          <code><a href="update.html">update(<i>&lt;storage&gt;</i>)</a></code> <code><a href="update.html">update(<i>&lt;trade&gt;</i>)</a></code> <code><a href="update.html">update(<i>&lt;import&gt;</i>)</a></code>
-
-        </dt>
-        <dd>Update trade object</dd>
-
-        <dt>
-
-          <code><a href="update_parameter.html">update_parameter()</a></code>
-
-        </dt>
-        <dd>Update parameter in the scenario by adding data to it</dd>
-
-        <dt>
-
-          <code><a href="add.html">add(<i>&lt;repository&gt;</i>)</a></code> <code><a href="add.html">add(<i>&lt;model&gt;</i>)</a></code>
-
-        </dt>
-        <dd>Add an object to the model's repository</dd>
-
-        <dt>
-
-          <code><a href="convert.html">convert(<i>&lt;character&gt;</i>)</a></code> <code><a href="convert.html">convert(<i>&lt;numeric&gt;</i>)</a></code> <code><a href="convert.html">add_to_convert(<i>&lt;character&gt;</i>,<i>&lt;character&gt;</i>,<i>&lt;numeric&gt;</i>)</a></code>
-
-        </dt>
-        <dd>Convert units</dd>
-
-        <dt>
-
           <code><a href="supply-curve.html">asSupplyCurve()</a></code> <code><a href="supply-curve.html">asImportCurve()</a></code> <code><a href="supply-curve.html">asExportCurve()</a></code>
           <span class="badge lifecycle lifecycle-experimental">experimental</span>
         </dt>
@@ -470,10 +428,133 @@
           <span class="badge lifecycle lifecycle-experimental">experimental</span>
         </dt>
         <dd>Loss tranches for a transmission line</dd>
-      </dl></div><div class="section level2">
-      <h2 id="process-specs">Process specs<a class="anchor" aria-label="anchor" href="#process-specs"></a></h2>
 
-      <div class="section-desc"><p>Portable process specifications (YAML/JSON containers) and vintage tools.</p></div>
+        <dt>
+
+          <code><a href="combine_vintages.html">combine_vintages()</a></code>
+
+        </dt>
+        <dd>Combine per-vintage technology objects into one vintaged technology</dd>
+      </dl></div><div class="section level2">
+      <h2 id="time-resolution">Time resolution<a class="anchor" aria-label="anchor" href="#time-resolution"></a></h2>
+
+      <div class="section-desc"><p>Calendars and horizons. The shipped <code>calendars</code> catalog is generated with the sibling <em>timescales</em> package; <code><a href="../reference/newCalendar.html">newCalendar()</a></code> builds your own.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="newCalendar.html">newCalendar()</a></code>
+
+        </dt>
+        <dd>Generate a new calendar object from</dd>
+
+        <dt>
+
+          <code><a href="newHorizon.html">newHorizon()</a></code> <code><a href="newHorizon.html">update(<i>&lt;horizon&gt;</i>)</a></code> <code><a href="newHorizon.html">setHorizon(<i>&lt;config&gt;</i>)</a></code> <code><a href="newHorizon.html">update(<i>&lt;config&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Create a new object of class 'horizon'</dd>
+
+        <dt>
+
+          <code><a href="calendars.html">calendars</a></code>
+
+        </dt>
+        <dd>Example calendars</dd>
+
+        <dt>
+
+          <code><a href="horizons.html">horizons</a></code>
+
+        </dt>
+        <dd>Example planning horizons</dd>
+
+        <dt>
+
+          <code><a href="calendar.html">make_timetable()</a></code>
+
+        </dt>
+        <dd>Create timetable of time-timeslices from given structure as a list</dd>
+
+        <dt>
+
+          <code><a href="plot_calendar_method.html">autoplot(<i>&lt;calendar&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Visualize a Calendar object</dd>
+
+        <dt>
+
+          <code><a href="plot_horizon_method.html">autoplot(<i>&lt;horizon&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Visualize a Horizon object</dd>
+      </dl></div><div class="section level2">
+      <h2 id="space-resolution">Space resolution<a class="anchor" aria-label="anchor" href="#space-resolution"></a></h2>
+
+      <div class="section-desc"><p>Multi-level regions. A commodity declares the level it balances on, and coarse balances roll up without a <code>trade</code> route for every pair.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="setGeoscale.html">setGeoscale(<i>&lt;config&gt;</i>)</a></code> <code><a href="setGeoscale.html">getGeoscale(<i>&lt;config&gt;</i>)</a></code> <code><a href="setGeoscale.html">setGeoscale(<i>&lt;model&gt;</i>)</a></code> <code><a href="setGeoscale.html">getGeoscale(<i>&lt;model&gt;</i>)</a></code> <code><a href="setGeoscale.html">setGeoscale(<i>&lt;scenario&gt;</i>)</a></code> <code><a href="setGeoscale.html">getGeoscale(<i>&lt;scenario&gt;</i>)</a></code> <code><a href="setGeoscale.html">getCalendar(<i>&lt;config&gt;</i>)</a></code> <code><a href="setGeoscale.html">getCalendar(<i>&lt;model&gt;</i>)</a></code> <code><a href="setGeoscale.html">getCalendar(<i>&lt;scenario&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Attach or read a model's geoscale</dd>
+
+        <dt>
+
+          <code><a href="utopia_geoscale.html">utopia_geoscale()</a></code>
+
+        </dt>
+        <dd>A geoscale for the UTOPIA reference model</dd>
+
+        <dt>
+
+          <code><a href="check_geoscale_regions.html">check_geoscale_regions()</a></code>
+
+        </dt>
+        <dd>Check a geoscale against the model's declared regions</dd>
+
+        <dt>
+
+          <code><a href="plot_geoscale.html">plot_geoscale()</a></code>
+
+        </dt>
+        <dd>Draw a model's geoscale</dd>
+
+        <dt>
+
+          <code><a href="get_region.html">get_region()</a></code>
+
+        </dt>
+        <dd>Collect the regions an object operates in</dd>
+
+        <dt>
+
+          <code><a href="subset_model_regions.html">subset_model_regions()</a></code>
+
+        </dt>
+        <dd>Restrict a model to a region subset</dd>
+
+        <dt>
+
+          <code><a href="aggregate_model_regions.html">aggregate_model_regions()</a></code>
+
+        </dt>
+        <dd>Aggregate a model to a coarser set of regions</dd>
+      </dl></div><div class="section level2">
+      <h2 id="process-specifications">Process specifications<a class="anchor" aria-label="anchor" href="#process-specifications"></a></h2>
+
+      <div class="section-desc"><p>Portable YAML/JSON process definitions, and the interactive designer.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -524,14 +605,21 @@
 
         <dt>
 
-          <code><a href="combine_vintages.html">combine_vintages()</a></code>
+          <code><a href="read_technology_xlsx.html">read_technology_xlsx()</a></code>
 
         </dt>
-        <dd>Combine per-vintage technology objects into one vintaged technology</dd>
-      </dl></div><div class="section level2">
-      <h2 id="configuration-and-settings">Configuration and Settings<a class="anchor" aria-label="anchor" href="#configuration-and-settings"></a></h2>
+        <dd>Read <code>technology</code> object(s) from an Excel workbook</dd>
 
-      <div class="section-desc"><p>Model configuration and scenario settings</p></div>
+        <dt>
+
+          <code><a href="write_technology_xlsx.html">write_technology_xlsx()</a></code>
+
+        </dt>
+        <dd>Write <code>technology</code> object(s) to an Excel workbook</dd>
+      </dl></div><div class="section level2">
+      <h2 id="interpolating-and-solving">Interpolating and solving<a class="anchor" aria-label="anchor" href="#interpolating-and-solving"></a></h2>
+
+      <div class="section-desc"><p>The core pipeline. <code><a href="../reference/solve_model.html">solve_model()</a></code> does the whole sequence; the separate verbs let a stage be inspected or re-run.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -540,110 +628,17 @@
 
       <dl><dt>
 
-          <code><a href="class-config.html">class-config</a></code>
-
-        </dt>
-        <dd>An S4 class to represent default model configuration.</dd>
-
-        <dt>
-
-          <code><a href="class-settings.html">class-settings</a></code>
-
-        </dt>
-        <dd>An S4 class to represent scenario settings</dd>
-
-        <dt>
-
-          <code><a href="compare_interp_settings.html">compare_interp_settings()</a></code>
-
-        </dt>
-        <dd>Compare interpolation settings (size &amp; build time) for a model</dd>
-
-        <dt>
-
-          <code><a href="compare_solve_settings.html">compare_solve_settings()</a></code>
-
-        </dt>
-        <dd>Compare interpolation settings AND solvers for a model</dd>
-
-        <dt>
-
-          <code><a href="class-calendar.html">class-calendar</a></code>
-
-        </dt>
-        <dd>An S4 class to represent sub-annual time resolution structure.</dd>
-
-        <dt>
-
-          <code><a href="newCalendar.html">newCalendar()</a></code>
-
-        </dt>
-        <dd>Generate a new calendar object from</dd>
-
-        <dt>
-
-          <code><a href="plot_calendar_method.html">autoplot(<i>&lt;calendar&gt;</i>)</a></code>
-
-        </dt>
-        <dd>Visualize a Calendar object</dd>
-
-        <dt>
-
-          <code><a href="setGeoscale.html">setGeoscale(<i>&lt;config&gt;</i>)</a></code> <code><a href="setGeoscale.html">getGeoscale(<i>&lt;config&gt;</i>)</a></code> <code><a href="setGeoscale.html">setGeoscale(<i>&lt;model&gt;</i>)</a></code> <code><a href="setGeoscale.html">getGeoscale(<i>&lt;model&gt;</i>)</a></code> <code><a href="setGeoscale.html">setGeoscale(<i>&lt;scenario&gt;</i>)</a></code> <code><a href="setGeoscale.html">getGeoscale(<i>&lt;scenario&gt;</i>)</a></code> <code><a href="setGeoscale.html">getCalendar(<i>&lt;config&gt;</i>)</a></code> <code><a href="setGeoscale.html">getCalendar(<i>&lt;model&gt;</i>)</a></code> <code><a href="setGeoscale.html">getCalendar(<i>&lt;scenario&gt;</i>)</a></code>
-
-        </dt>
-        <dd>Attach or read a model's geoscale</dd>
-
-        <dt>
-
-          <code><a href="class-horizon.html">class-horizon</a></code>
-
-        </dt>
-        <dd>An S4 class to represent model/scenario planning horizon with intervals (year-steps)</dd>
-
-        <dt>
-
-          <code><a href="newHorizon.html">newHorizon()</a></code> <code><a href="newHorizon.html">update(<i>&lt;horizon&gt;</i>)</a></code> <code><a href="newHorizon.html">setHorizon(<i>&lt;config&gt;</i>)</a></code> <code><a href="newHorizon.html">update(<i>&lt;config&gt;</i>)</a></code>
-
-        </dt>
-        <dd>Create a new object of class 'horizon'</dd>
-
-        <dt>
-
-          <code><a href="plot_horizon_method.html">autoplot(<i>&lt;horizon&gt;</i>)</a></code>
-
-        </dt>
-        <dd>Visualize a Horizon object</dd>
-
-        <dt>
-
-          <code><a href="calendars.html">calendars</a></code>
-
-        </dt>
-        <dd>Example calendars</dd>
-
-        <dt>
-
-          <code><a href="horizons.html">horizons</a></code>
-
-        </dt>
-        <dd>Example planning horizons</dd>
-      </dl></div><div class="section level2">
-      <h2 id="solving">Solving<a class="anchor" aria-label="anchor" href="#solving"></a></h2>
-
-
-
-      <dl></dl></div><div class="section level2">
-
-
-
-
-      <dl><dt>
-
-          <code><a href="interpolate_model.html">interpolate_model()</a></code>
+          <code><a href="interpolate_model.html">interpolate_model()</a></code> <code><a href="interpolate_model.html">interpolate(<i>&lt;model&gt;</i>)</a></code>
 
         </dt>
         <dd>Interpolate a model into a solver-ready scenario</dd>
+
+        <dt>
+
+          <code><a href="solve_model.html">solve_model()</a></code> <code><a href="solve_model.html">solve_scenario()</a></code> <code><a href="solve_model.html">solve(<i>&lt;model&gt;</i>,<i>&lt;character&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Solve a model or an interpolated scenario</dd>
 
         <dt>
 
@@ -654,47 +649,109 @@
 
         <dt>
 
-          <code><a href="write_technology_xlsx.html">write_technology_xlsx()</a></code>
-
-        </dt>
-        <dd>Write <code>technology</code> object(s) to an Excel workbook</dd>
-
-        <dt>
-
-          <code><a href="log.html">set_log_file()</a></code> <code><a href="log.html">get_log_file()</a></code> <code><a href="log.html">read_log()</a></code>
-
-        </dt>
-        <dd>Read the operation log</dd>
-
-        <dt>
-
           <code><a href="read.html">read_solution()</a></code> <code><a href="read.html">read(<i>&lt;scenario&gt;</i>)</a></code>
 
         </dt>
-        <dd>Read solution</dd>
+        <dd>Read a solved run's solution into a scenario</dd>
 
         <dt>
 
-          <code><a href="read_process_spec.html">read_process_spec()</a></code>
+          <code><a href="read_sequence.html">read_sequence()</a></code>
 
         </dt>
-        <dd>Read and validate a process spec</dd>
+        <dd>Rebuild a solve sequence from the variants on disk</dd>
 
         <dt>
 
-          <code><a href="read_technology_xlsx.html">read_technology_xlsx()</a></code>
+          <code><a href="with_solver_log.html">with_solver_log()</a></code>
 
         </dt>
-        <dd>Read <code>technology</code> object(s) from an Excel workbook</dd>
+        <dd>Send the solver's progress log to a file</dd>
+      </dl></div><div class="section level2">
+      <h2 id="solver-configuration">Solver configuration<a class="anchor" aria-label="anchor" href="#solver-configuration"></a></h2>
 
-        <dt>
+      <div class="section-desc"><p>Choosing a backend and pointing energyRt at it.</p></div>
 
-          <code><a href="solve_model.html">solve_model()</a></code> <code><a href="solve_model.html">solve_scenario()</a></code>
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="default_solver.html">get_default_solver()</a></code> <code><a href="default_solver.html">set_default_solver()</a></code>
 
         </dt>
-        <dd>Solve a model or an interpolated scenario</dd>
+        <dd>Default solver</dd>
 
         <dt>
+
+          <code><a href="solver_path.html">set_solver_path()</a></code> <code><a href="solver_path.html">get_solver_path()</a></code>
+
+        </dt>
+        <dd>Set or get the path to a solver toolchain</dd>
+
+        <dt>
+
+          <code><a href="solver.html">set_gams_path()</a></code> <code><a href="solver.html">get_gams_path()</a></code> <code><a href="solver.html">set_gdxlib_path()</a></code> <code><a href="solver.html">get_gdxlib_path()</a></code> <code><a href="solver.html">set_glpk_path()</a></code> <code><a href="solver.html">get_glpk_path()</a></code> <code><a href="solver.html">set_julia_path()</a></code> <code><a href="solver.html">get_julia_path()</a></code> <code><a href="solver.html">set_python_path()</a></code> <code><a href="solver.html">get_python_path()</a></code>
+
+        </dt>
+        <dd>Set GAMS and GDX library directory</dd>
+
+        <dt>
+
+          <code><a href="exchange_format.html">get_exchange_format()</a></code> <code><a href="exchange_format.html">set_exchange_format()</a></code> <code><a href="exchange_format.html">get_exchange_compression()</a></code> <code><a href="exchange_format.html">set_exchange_compression()</a></code> <code><a href="exchange_format.html">get_exchange_compression_level()</a></code> <code><a href="exchange_format.html">set_exchange_compression_level()</a></code>
+
+        </dt>
+        <dd>Solver data-exchange options</dd>
+
+        <dt>
+
+          <code><a href="storage_format.html">get_storage_format()</a></code> <code><a href="storage_format.html">set_storage_format()</a></code> <code><a href="storage_format.html">get_storage_compression()</a></code> <code><a href="storage_format.html">set_storage_compression()</a></code> <code><a href="storage_format.html">get_storage_compression_level()</a></code> <code><a href="storage_format.html">set_storage_compression_level()</a></code>
+
+        </dt>
+        <dd>On-disk table storage options</dd>
+      </dl></div><div class="section level2">
+      <h2 id="remote-and-cloud-solving">Remote and cloud solving<a class="anchor" aria-label="anchor" href="#remote-and-cloud-solving"></a></h2>
+
+      <div class="section-desc"><p>Solving where you are not: the NEOS server for GAMS/CPLEX without a local licence, and GPU/cloud execution for models too large for a laptop.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="neos.html">neos_ping()</a></code> <code><a href="neos.html">neos_list_solvers()</a></code>
+
+        </dt>
+        <dd>NEOS Server client (query the remote solver service)</dd>
+
+        <dt>
+
+          <code><a href="neos_email.html">get_neos_email()</a></code> <code><a href="neos_email.html">set_neos_email()</a></code>
+
+        </dt>
+        <dd>NEOS submission email</dd>
+
+        <dt>
+
+          <code><a href="hf_token.html">get_hf_token()</a></code> <code><a href="hf_token.html">set_hf_token()</a></code>
+
+        </dt>
+        <dd>Hugging Face access token</dd>
+      </dl></div><div class="section level2">
+      <h2 id="solve-drivers">Solve drivers<a class="anchor" aria-label="anchor" href="#solve-drivers"></a></h2>
+
+      <div class="section-desc"><p>Sequences of solves — myopic foresight, sampled calendars, region-by-region decomposition, and guided target-seeking — with their primitives.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
 
           <code><a href="solve_myopic.html">solve_myopic()</a></code>
 
@@ -703,17 +760,24 @@
 
         <dt>
 
-          <code><a href="subset_model_regions.html">subset_model_regions()</a></code>
+          <code><a href="solve_by_sample.html">solve_by_sample()</a></code>
 
         </dt>
-        <dd>Restrict a model to a region subset</dd>
+        <dd>Solve a model on samples of its calendar</dd>
 
         <dt>
 
-          <code><a href="with_solver_log.html">with_solver_log()</a></code>
+          <code><a href="solve_by_region.html">solve_by_region()</a></code>
 
         </dt>
-        <dd>Send the solver's progress log to a file</dd>
+        <dd>Solve a model region by region</dd>
+
+        <dt>
+
+          <code><a href="solve_guided.html">solve_guided()</a></code>
+
+        </dt>
+        <dd>Solve a model with guided perfect foresight</dd>
 
         <dt>
 
@@ -745,21 +809,56 @@
 
         <dt>
 
-          <code><a href="trim_parameters_by_maps.html">trim_parameters_by_maps()</a></code>
+          <code><a href="calendar_samples.html">calendar_samples()</a></code>
 
         </dt>
-        <dd>Trim numeric/bounds parameters to the domain of the maps that index them</dd>
+        <dd>Build a calendar-sample specification</dd>
 
         <dt>
 
-          <code><a href="validate_scenario_parameters.html">validate_scenario_parameters()</a></code>
+          <code><a href="sample_summary.html">sample_summary()</a></code>
 
         </dt>
-        <dd>Validate interpolated scenario parameters</dd>
+        <dd>Summarise an ensemble across samples</dd>
+
+        <dt>
+
+          <code><a href="boundary_window.html">boundary_window()</a></code>
+
+        </dt>
+        <dd>A generic boundary trade window</dd>
+
+        <dt>
+
+          <code><a href="guided_windows.html">guided_windows()</a></code>
+
+        </dt>
+        <dd>Two-milestone windows for a guided solve</dd>
+
+        <dt>
+
+          <code><a href="guided_gap.html">guided_gap()</a></code>
+
+        </dt>
+        <dd>Cost of the guidance</dd>
+
+        <dt>
+
+          <code><a href="solution_targets.html">solution_targets()</a></code>
+
+        </dt>
+        <dd>Capacity targets from a solved scenario</dd>
+
+        <dt>
+
+          <code><a href="apply_targets.html">apply_targets()</a></code>
+
+        </dt>
+        <dd>Impose capacity targets on a model</dd>
       </dl></div><div class="section level2">
-      <h2 id="remote-solver-neos-">Remote solver (NEOS)<a class="anchor" aria-label="anchor" href="#remote-solver-neos-"></a></h2>
+      <h2 id="reading-results">Reading results<a class="anchor" aria-label="anchor" href="#reading-results"></a></h2>
 
-
+      <div class="section-desc"><p>Getting tidy data out of a solved scenario.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -768,14 +867,142 @@
 
       <dl><dt>
 
-          <code><a href="neos.html">neos_ping()</a></code> <code><a href="neos.html">neos_list_solvers()</a></code>
+          <code><a href="getData.html">getData()</a></code>
 
         </dt>
-        <dd>NEOS Server client (query the remote solver service)</dd>
+        <dd>Extract data from energyRt objects</dd>
+
+        <dt>
+
+          <code><a href="get_variable.html">get_variable()</a></code>
+
+        </dt>
+        <dd>Get one solved variable from a scenario</dd>
+
+        <dt>
+
+          <code><a href="get_weather.html">get_weather()</a></code>
+
+        </dt>
+        <dd>Collect the weather objects an object refers to</dd>
+
+        <dt>
+
+          <code><a href="getMix.html">getMix()</a></code>
+
+        </dt>
+        <dd>Extract a tidy mix (generation, capacity, fuel) from a solved scenario</dd>
+
+        <dt>
+
+          <code><a href="getObject.html">getObject()</a></code>
+
+        </dt>
+        <dd>Retrieve model objects from a repository, model or scenario</dd>
+
+        <dt>
+
+          <code><a href="accessors.html">getScenario()</a></code> <code><a href="accessors.html">getModel()</a></code> <code><a href="accessors.html">getRepository()</a></code> <code><a href="accessors.html">getDataset()</a></code> <code><a href="accessors.html">open_project()</a></code>
+
+        </dt>
+        <dd>Access registered scenarios, models, repositories, and datasets by name</dd>
+
+        <dt>
+
+          <code><a href="getVariants.html">getVariants()</a></code>
+
+        </dt>
+        <dd>Process variants of a solved (or interpolated) scenario</dd>
+
+        <dt>
+
+          <code><a href="variantSummary.html">variantSummary()</a></code>
+
+        </dt>
+        <dd>Summarise a result variable across technology variants</dd>
+
+        <dt>
+
+          <code><a href="findData.html">findData()</a></code>
+
+        </dt>
+        <dd>Performs search for available data in <em>scenario</em> object.</dd>
+
+        <dt>
+
+          <code><a href="find_in_model.html">find_in_model()</a></code>
+
+        </dt>
+        <dd>Find where value(s) are stored across a model's objects</dd>
+
+        <dt>
+
+          <code><a href="findDuplicates.html">findDuplicates()</a></code>
+
+        </dt>
+        <dd>Function to find duplicated values in interpolated scenario.</dd>
+
+        <dt>
+
+          <code><a href="size.html">size()</a></code>
+
+        </dt>
+        <dd>Size of an object</dd>
+
+        <dt>
+
+          <code><a href="model_size.html">model_size()</a></code>
+
+        </dt>
+        <dd>Size estimate of an interpolated scenario and the result of folding</dd>
+      </dl></div><div class="section level2">
+      <h2 id="levelized-cost">Levelized cost<a class="anchor" aria-label="anchor" href="#levelized-cost"></a></h2>
+
+      <div class="section-desc"><p>Pricing a technology a-priori (screening LCOE) or ex-post from a solved scenario.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="levcost.html">levcost()</a></code>
+
+        </dt>
+        <dd>Levelized cost of commodity production</dd>
+
+        <dt>
+
+          <code><a href="tech_share_frontier.html">tech_share_frontier()</a></code>
+
+        </dt>
+        <dd>Extract feasible share ranges for grouped inputs/outputs</dd>
+
+        <dt>
+
+          <code><a href="plot_share_frontier.html">plot_share_frontier()</a></code>
+
+        </dt>
+        <dd>Plot feasible share-mix diagram for technology inputs/outputs</dd>
+
+        <dt>
+
+          <code><a href="clear_levcost_cache.html">clear_levcost_cache()</a></code>
+
+        </dt>
+        <dd>Clear cached levcost results</dd>
+
+        <dt>
+
+          <code><a href="storage_duration.html">storage_duration()</a></code>
+
+        </dt>
+        <dd>Split a storage level into duration bands</dd>
       </dl></div><div class="section level2">
       <h2 id="reporting">Reporting<a class="anchor" aria-label="anchor" href="#reporting"></a></h2>
 
-
+      <div class="section-desc"><p>Rendered datasheets for models, scenarios and processes.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -788,20 +1015,6 @@
 
         </dt>
         <dd>Generate a summary report for an energyRt object</dd>
-
-        <dt>
-
-          <code><a href="report_docx.html">report_docx()</a></code>
-
-        </dt>
-        <dd>Generate a Word report for an energyRt object</dd>
-
-        <dt>
-
-          <code><a href="report_helpers.html">report_output()</a></code> <code><a href="report_helpers.html">report_setup()</a></code> <code><a href="report_helpers.html">report_layout()</a></code> <code><a href="report_helpers.html">report_esc()</a></code> <code><a href="report_helpers.html">report_fmt_val()</a></code> <code><a href="report_helpers.html">report_img()</a></code> <code><a href="report_helpers.html">report_img_row()</a></code> <code><a href="report_helpers.html">report_pagebreak()</a></code> <code><a href="report_helpers.html">report_plot_png()</a></code> <code><a href="report_helpers.html">report_sec()</a></code> <code><a href="report_helpers.html">report_tbl()</a></code> <code><a href="report_helpers.html">report_css()</a></code> <code><a href="report_helpers.html">report_header()</a></code>
-
-        </dt>
-        <dd>Report template helpers</dd>
 
         <dt>
 
@@ -819,10 +1032,10 @@
 
         <dt>
 
-          <code><a href="report_templates.html">report_templates()</a></code>
+          <code><a href="report_docx.html">report_docx()</a></code>
 
         </dt>
-        <dd>List the available report templates</dd>
+        <dd>Generate a Word report for an energyRt object</dd>
 
         <dt>
 
@@ -830,6 +1043,34 @@
 
         </dt>
         <dd>Generate a LaTeX report for an energyRt object</dd>
+
+        <dt>
+
+          <code><a href="report_templates.html">report_templates()</a></code>
+
+        </dt>
+        <dd>List the available report templates</dd>
+
+        <dt>
+
+          <code><a href="report_helpers.html">report_output()</a></code> <code><a href="report_helpers.html">report_setup()</a></code> <code><a href="report_helpers.html">report_layout()</a></code> <code><a href="report_helpers.html">report_esc()</a></code> <code><a href="report_helpers.html">report_fmt_val()</a></code> <code><a href="report_helpers.html">report_img()</a></code> <code><a href="report_helpers.html">report_img_row()</a></code> <code><a href="report_helpers.html">report_pagebreak()</a></code> <code><a href="report_helpers.html">report_fig_height()</a></code> <code><a href="report_helpers.html">report_plot_png()</a></code> <code><a href="report_helpers.html">report_fig()</a></code> <code><a href="report_helpers.html">report_sec()</a></code> <code><a href="report_helpers.html">report_tbl()</a></code> <code><a href="report_helpers.html">report_css()</a></code> <code><a href="report_helpers.html">report_header()</a></code>
+
+        </dt>
+        <dd>Report template helpers</dd>
+
+        <dt>
+
+          <code><a href="clear_report_cache.html">clear_report_cache()</a></code>
+
+        </dt>
+        <dd>Delete rendered reports</dd>
+
+        <dt>
+
+          <code><a href="reports_path.html">set_reports_path()</a></code> <code><a href="reports_path.html">get_reports_path()</a></code> <code><a href="reports_path.html">set_levcost_cache_path()</a></code> <code><a href="reports_path.html">get_levcost_cache_path()</a></code>
+
+        </dt>
+        <dd>Report and levcost output locations</dd>
       </dl></div><div class="section level2">
       <h2 id="comparison">Comparison<a class="anchor" aria-label="anchor" href="#comparison"></a></h2>
 
@@ -875,349 +1116,9 @@
         </dt>
         <dd>Compare interpolation settings AND solvers for a model</dd>
       </dl></div><div class="section level2">
-      <h2 id="example-datasets">Example datasets<a class="anchor" aria-label="anchor" href="#example-datasets"></a></h2>
-
-      <div class="section-desc"><p>Data bundled with the package for the examples and articles. <code>calendars</code> and <code>horizons</code> are listed under Configuration above.</p></div>
-
-      <dl></dl></div><div class="section level2">
-
-
-
-
-      <dl><dt>
-
-          <code><a href="vre_cf.html">vre_cf</a></code>
-
-        </dt>
-        <dd>Hourly wind and solar capacity factors, one site, one year</dd>
-
-        <dt>
-
-          <code><a href="vre_storage_duration.html">vre_storage_duration</a></code>
-
-        </dt>
-        <dd>Duration bands of a full-year battery, precomputed</dd>
-      </dl></div><div class="section level2">
-      <h2 id="data-manipulation">Data manipulation<a class="anchor" aria-label="anchor" href="#data-manipulation"></a></h2>
-
-
-
-      <dl></dl></div><div class="section level2">
-
-
-
-
-      <dl><dt>
-
-          <code><a href="convert.html">convert(<i>&lt;character&gt;</i>)</a></code> <code><a href="convert.html">convert(<i>&lt;numeric&gt;</i>)</a></code> <code><a href="convert.html">add_to_convert(<i>&lt;character&gt;</i>,<i>&lt;character&gt;</i>,<i>&lt;numeric&gt;</i>)</a></code>
-
-        </dt>
-        <dd>Convert units</dd>
-
-        <dt>
-
-          <code><a href="convert_data.html">convert_data</a></code>
-
-        </dt>
-        <dd>Basic units conversion database for <code>convert</code> methods</dd>
-
-        <dt>
-
-          <code><a href="getUnits.html">getUnits(<i>&lt;commodity&gt;</i>)</a></code> <code><a href="getUnits.html">getUnits(<i>&lt;technology&gt;</i>)</a></code> <code><a href="getUnits.html">getUnits(<i>&lt;supply&gt;</i>)</a></code> <code><a href="getUnits.html">getUnits(<i>&lt;demand&gt;</i>)</a></code> <code><a href="getUnits.html">getUnits(<i>&lt;import&gt;</i>)</a></code> <code><a href="getUnits.html">getUnits(<i>&lt;export&gt;</i>)</a></code> <code><a href="getUnits.html">getUnits(<i>&lt;storage&gt;</i>)</a></code>
-
-        </dt>
-        <dd>Get parameter units for energyRt class objects</dd>
-
-        <dt>
-
-          <code><a href="commodity_properties.html">commodity_properties()</a></code>
-
-        </dt>
-        <dd>Recognised commodity properties</dd>
-
-        <dt>
-
-          <code><a href="commodity_property.html">commodity_property()</a></code>
-
-        </dt>
-        <dd>Physical property of a commodity</dd>
-
-        <dt>
-
-          <code><a href="dataset_store.html">dataset_hash()</a></code> <code><a href="dataset_store.html">save_dataset()</a></code> <code><a href="dataset_store.html">load_dataset()</a></code>
-
-        </dt>
-        <dd>Content hash of a dataset payload</dd>
-
-        <dt>
-
-          <code><a href="getData.html">getData()</a></code>
-
-        </dt>
-        <dd>Extract data from energyRt objects</dd>
-
-        <dt>
-
-          <code><a href="registry_file.html">set_registry_file()</a></code> <code><a href="registry_file.html">get_registry_file()</a></code> <code><a href="registry_file.html">set_models_path()</a></code> <code><a href="registry_file.html">get_models_path()</a></code> <code><a href="registry_file.html">set_repositories_path()</a></code> <code><a href="registry_file.html">get_repositories_path()</a></code> <code><a href="registry_file.html">set_datasets_path()</a></code> <code><a href="registry_file.html">get_datasets_path()</a></code>
-
-        </dt>
-        <dd>Registry file and model store locations</dd>
-
-        <dt>
-
-          <code><a href="seal.html">seal_model()</a></code> <code><a href="seal.html">unseal_model()</a></code> <code><a href="seal.html">seal_repository()</a></code> <code><a href="seal.html">unseal_repository()</a></code> <code><a href="seal.html">seal_dataset()</a></code> <code><a href="seal.html">unseal_dataset()</a></code> <code><a href="seal.html">seal_scenario()</a></code> <code><a href="seal.html">unseal_scenario()</a></code> <code><a href="seal.html">mark_delete()</a></code> <code><a href="seal.html">unmark_delete()</a></code> <code><a href="seal.html">delete_marked()</a></code>
-
-        </dt>
-        <dd>Seal and unseal store entries; mark them for deletion</dd>
-
-        <dt>
-
-          <code><a href="getObject.html">getObject()</a></code>
-
-        </dt>
-        <dd>Retrieve model objects from a repository, model or scenario</dd>
-
-        <dt>
-
-          <code><a href="accessors.html">getScenario()</a></code> <code><a href="accessors.html">getModel()</a></code> <code><a href="accessors.html">getRepository()</a></code> <code><a href="accessors.html">getDataset()</a></code> <code><a href="accessors.html">open_project()</a></code>
-
-        </dt>
-        <dd>Access registered scenarios, models, repositories, and datasets by name</dd>
-
-        <dt>
-
-          <code><a href="getMix.html">getMix()</a></code>
-
-        </dt>
-        <dd>Extract a tidy mix (generation, capacity, fuel) from a solved scenario</dd>
-
-        <dt>
-
-          <code><a href="getVariants.html">getVariants()</a></code>
-
-        </dt>
-        <dd>Process variants of a solved (or interpolated) scenario</dd>
-
-        <dt>
-
-          <code><a href="storage_duration.html">storage_duration()</a></code>
-
-        </dt>
-        <dd>Split a storage level into duration bands</dd>
-
-        <dt>
-
-          <code><a href="variantSummary.html">variantSummary()</a></code>
-
-        </dt>
-        <dd>Summarise a result variable across technology variants</dd>
-
-        <dt>
-
-          <code><a href="findData.html">findData()</a></code>
-
-        </dt>
-        <dd>Performs search for available data in <em>scenario</em> object.</dd>
-
-        <dt>
-
-          <code><a href="findDuplicates.html">findDuplicates()</a></code>
-
-        </dt>
-        <dd>Function to find duplicated values in interpolated scenario.</dd>
-
-        <dt>
-
-          <code><a href="find_in_model.html">find_in_model()</a></code>
-
-        </dt>
-        <dd>Find where value(s) are stored across a model's objects</dd>
-
-        <dt>
-
-          <code><a href="registry.html">newRegistry()</a></code> <code><a href="registry.html">load_registry()</a></code> <code><a href="registry.html">save_registry()</a></code> <code><a href="registry.html">add_to_registry()</a></code> <code><a href="registry.html">add(<i>&lt;en_registry&gt;</i>)</a></code> <code><a href="registry.html">find_in_registry()</a></code> <code><a href="registry.html">refresh_registry()</a></code>
-
-        </dt>
-        <dd>Project registry of models, scenarios, and runs</dd>
-
-        <dt>
-
-          <code><a href="renameSets.html">renameSets()</a></code>
-
-        </dt>
-        <dd>Rename data.frame columns of list of data.frames.</dd>
-
-        <dt>
-
-          <code><a href="revalueSets.html">revalueSets()</a></code>
-
-        </dt>
-        <dd>Replace specified values with new values in factor or character columns of a data.frame.</dd>
-
-        <dt>
-
-          <code><a href="model_size.html">model_size()</a></code>
-
-        </dt>
-        <dd>Size estimate of an interpolated scenario and the result of folding</dd>
-
-        <dt>
-
-          <code><a href="size.html">size()</a></code>
-
-        </dt>
-        <dd>Size of an object</dd>
-
-        <dt>
-
-          <code><a href="hour2HOUR.html">hour2HOUR()</a></code>
-
-        </dt>
-        <dd>Convert hours (integer) values to HOUR set 'hNN'</dd>
-
-        <dt>
-
-          <code><a href="yday2YDAY.html">yday2YDAY()</a></code>
-
-        </dt>
-        <dd>Convert year-days to YDAY set 'dNNN'</dd>
-
-        <dt>
-
-          <code><a href="timeslices.html">tsl_formats</a></code> <code><a href="timeslices.html">tsl_sets</a></code> <code><a href="timeslices.html">dtm2tsl()</a></code> <code><a href="timeslices.html">tsl2dtm()</a></code>
-
-        </dt>
-        <dd>Common formats of time-timeslices.</dd>
-
-        <dt>
-
-          <code><a href="tsl2dtm.html">tsl2year()</a></code> <code><a href="tsl2dtm.html">tsl2yday()</a></code> <code><a href="tsl2dtm.html">tsl2hour()</a></code> <code><a href="tsl2dtm.html">tsl2month()</a></code>
-
-        </dt>
-        <dd>Mapping function between time-timeslices and day of the year</dd>
-
-        <dt>
-
-          <code><a href="tsl_guess_format.html">tsl_guess_format()</a></code>
-
-        </dt>
-        <dd>Guess format of time-timeslices</dd>
-
-        <dt>
-
-          <code><a href="obj2mem.html">obj2mem()</a></code>
-
-        </dt>
-        <dd>Loads objects from disk to memory</dd>
-
-        <dt>
-
-          <code><a href="isInMemory.html">isInMemory()</a></code>
-
-        </dt>
-        <dd>Is object stored in memory?</dd>
-
-        <dt>
-
-          <code><a href="isOnDisk.html">isOnDisk()</a></code>
-
-        </dt>
-        <dd>Is object stored on disk?</dd>
-
-        <dt>
-
-          <code><a href="model_store.html">save_model()</a></code> <code><a href="model_store.html">load_model()</a></code>
-
-        </dt>
-        <dd>Save a model to / load a model from the model store</dd>
-
-        <dt>
-
-          <code><a href="repo_store.html">save_repository()</a></code> <code><a href="repo_store.html">load_repository()</a></code>
-
-        </dt>
-        <dd>Save a repository to / load a repository from the repository store</dd>
-
-        <dt>
-
-          <code><a href="save_scenario.html">save_scenario()</a></code>
-
-        </dt>
-        <dd>Save scenario object on disk in parquet format using <code>arrow</code> package.</dd>
-
-        <dt>
-
-          <code><a href="load_scenario.html">load_scenario()</a></code> <code><a href="load_scenario.html">load_scenarios()</a></code>
-
-        </dt>
-        <dd>Load scenario (in progress)</dd>
-
-        <dt>
-
-          <code><a href="model_hash.html">model_hash()</a></code> <code><a href="model_hash.html">object_hash()</a></code>
-
-        </dt>
-        <dd>Content hash of a model</dd>
-
-        <dt>
-
-          <code><a href="repository_hash.html">repository_hash()</a></code>
-
-        </dt>
-        <dd>Content hash of a repository</dd>
-
-        <dt>
-
-          <code><a href="scenario_runs.html">scenario_runs()</a></code> <code><a href="scenario_runs.html">scenario_run_info()</a></code> <code><a href="scenario_runs.html">drop_scenario_run()</a></code>
-
-        </dt>
-        <dd>List, inspect, and drop a scenario's runs</dd>
-
-        <dt>
-
-          <code><a href="upgrade_scenario_layout.html">upgrade_scenario_layout()</a></code>
-
-        </dt>
-        <dd>Upgrade a scenario folder to the current on-disk layout</dd>
-
-        <dt>
-
-          <code><a href="clear_levcost_cache.html">clear_levcost_cache()</a></code>
-
-        </dt>
-        <dd>Clear cached levcost results</dd>
-
-        <dt>
-
-          <code><a href="utopia.html">utopia</a></code>
-
-        </dt>
-        <dd>The UTOPIA reference dataset</dd>
-
-        <dt>
-
-          <code><a href="utopia_geoscale.html">utopia_geoscale()</a></code>
-
-        </dt>
-        <dd>A geoscale for the UTOPIA reference model</dd>
-
-        <dt>
-
-          <code><a href="utopia_profile.html">utopia_profile()</a></code>
-
-        </dt>
-        <dd>Synthetic input shapes on a calendar (deterministic)</dd>
-
-        <dt>
-
-          <code><a href="utopia_profiles.html">utopia_profiles()</a></code>
-
-        </dt>
-        <dd>UTOPIA input profiles (deterministic)</dd>
-      </dl></div><div class="section level2">
       <h2 id="visualisation">Visualisation<a class="anchor" aria-label="anchor" href="#visualisation"></a></h2>
 
-
+      <div class="section-desc"><p>Plots and diagrams.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -1225,13 +1126,6 @@
 
 
       <dl><dt>
-
-          <code><a href="draw.html">draw()</a></code> <code><a href="draw.html">draw.technology()</a></code>
-
-        </dt>
-        <dd>Draw a schematic representation of a process</dd>
-
-        <dt>
 
           <code><a href="autoplot.commodity.html">autoplot(<i>&lt;commodity&gt;</i>)</a></code>
 
@@ -1275,38 +1169,10 @@
 
         <dt>
 
-          <code><a href="plot_geoscale.html">plot_geoscale()</a></code>
-
-        </dt>
-        <dd>Draw a model's geoscale</dd>
-
-        <dt>
-
-          <code><a href="plot_heatmap.html">plot_heatmap()</a></code>
-
-        </dt>
-        <dd>Heatmap of timeslice-indexed values over a calendar</dd>
-
-        <dt>
-
           <code><a href="plot_horizon_method.html">autoplot(<i>&lt;horizon&gt;</i>)</a></code>
 
         </dt>
         <dd>Visualize a Horizon object</dd>
-
-        <dt>
-
-          <code><a href="plot_map.html">plot_map()</a></code>
-
-        </dt>
-        <dd>Map model results by region</dd>
-
-        <dt>
-
-          <code><a href="plot_share_frontier.html">plot_share_frontier()</a></code>
-
-        </dt>
-        <dd>Plot feasible share-mix diagram for technology inputs/outputs</dd>
 
         <dt>
 
@@ -1317,38 +1183,24 @@
 
         <dt>
 
-          <code><a href="report_helpers.html">report_output()</a></code> <code><a href="report_helpers.html">report_setup()</a></code> <code><a href="report_helpers.html">report_layout()</a></code> <code><a href="report_helpers.html">report_esc()</a></code> <code><a href="report_helpers.html">report_fmt_val()</a></code> <code><a href="report_helpers.html">report_img()</a></code> <code><a href="report_helpers.html">report_img_row()</a></code> <code><a href="report_helpers.html">report_pagebreak()</a></code> <code><a href="report_helpers.html">report_plot_png()</a></code> <code><a href="report_helpers.html">report_sec()</a></code> <code><a href="report_helpers.html">report_tbl()</a></code> <code><a href="report_helpers.html">report_css()</a></code> <code><a href="report_helpers.html">report_header()</a></code>
+          <code><a href="draw.html">draw()</a></code> <code><a href="draw.html">draw.technology()</a></code>
 
         </dt>
-        <dd>Report template helpers</dd>
+        <dd>Draw a schematic representation of a process</dd>
 
         <dt>
 
-          <code><a href="en_config_show.html">en_config_show()</a></code>
+          <code><a href="plot_heatmap.html">plot_heatmap()</a></code>
 
         </dt>
-        <dd>Show the effective energyRt configuration</dd>
+        <dd>Heatmap of timeslice-indexed values over a calendar</dd>
 
         <dt>
 
-          <code><a href="progress.html">set_progress_bar()</a></code> <code><a href="progress.html">show_progress_bar()</a></code>
+          <code><a href="plot_map.html">plot_map()</a></code>
 
         </dt>
-        <dd>Switch on/off and select/customize progress bar</dd>
-
-        <dt>
-
-          <code><a href="design.html">design()</a></code>
-
-        </dt>
-        <dd>Generate an R script that recreates an energyRt object</dd>
-
-        <dt>
-
-          <code><a href="process_designer.html">process_designer()</a></code>
-
-        </dt>
-        <dd>Launch the process designer</dd>
+        <dd>Map model results by region</dd>
 
         <dt>
 
@@ -1359,6 +1211,13 @@
 
         <dt>
 
+          <code><a href="theme_energyRt.html">theme_energyRt()</a></code>
+
+        </dt>
+        <dd>energyRt's default ggplot theme</dd>
+
+        <dt>
+
           <code><a href="ghost_options.html">ghost_options()</a></code>
 
         </dt>
@@ -1366,14 +1225,14 @@
 
         <dt>
 
-          <code><a href="theme_energyRt.html">theme_energyRt()</a></code>
+          <code><a href="design.html">design()</a></code>
 
         </dt>
-        <dd>energyRt's default ggplot theme</dd>
+        <dd>Generate an R script that recreates an energyRt object</dd>
       </dl></div><div class="section level2">
-      <h2 id="validation">Validation<a class="anchor" aria-label="anchor" href="#validation"></a></h2>
+      <h2 id="saving-and-loading">Saving and loading<a class="anchor" aria-label="anchor" href="#saving-and-loading"></a></h2>
 
-
+      <div class="section-desc"><p>Models, repositories and scenarios on disk — Arrow-backed, so results larger than memory stay readable.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -1382,49 +1241,91 @@
 
       <dl><dt>
 
-          <code><a href="check_geoscale_regions.html">check_geoscale_regions()</a></code>
+          <code><a href="model_store.html">save_model()</a></code> <code><a href="model_store.html">load_model()</a></code>
 
         </dt>
-        <dd>Check a geoscale against the model's declared regions</dd>
+        <dd>Save a model to / load a model from the model store</dd>
 
         <dt>
 
-          <code><a href="verify_solution.html">verify_solution()</a></code>
+          <code><a href="repo_store.html">save_repository()</a></code> <code><a href="repo_store.html">load_repository()</a></code>
 
         </dt>
-        <dd>Verify accounting identities of a solved scenario</dd>
+        <dd>Save a repository to / load a repository from the repository store</dd>
 
         <dt>
 
-          <code><a href="clear_levcost_cache.html">clear_levcost_cache()</a></code>
+          <code><a href="save_scenario.html">save_scenario()</a></code>
 
         </dt>
-        <dd>Clear cached levcost results</dd>
+        <dd>Save scenario object on disk in parquet format using <code>arrow</code> package.</dd>
 
         <dt>
 
-          <code><a href="levcost.html">levcost()</a></code>
+          <code><a href="load_scenario.html">load_scenario()</a></code> <code><a href="load_scenario.html">load_scenarios()</a></code>
 
         </dt>
-        <dd>Levelized cost of commodity production</dd>
+        <dd>Load scenario (in progress)</dd>
 
         <dt>
 
-          <code><a href="reports_path.html">set_reports_path()</a></code> <code><a href="reports_path.html">get_reports_path()</a></code> <code><a href="reports_path.html">set_levcost_cache_path()</a></code> <code><a href="reports_path.html">get_levcost_cache_path()</a></code>
+          <code><a href="seal.html">seal_model()</a></code> <code><a href="seal.html">unseal_model()</a></code> <code><a href="seal.html">seal_repository()</a></code> <code><a href="seal.html">unseal_repository()</a></code> <code><a href="seal.html">seal_dataset()</a></code> <code><a href="seal.html">unseal_dataset()</a></code> <code><a href="seal.html">seal_scenario()</a></code> <code><a href="seal.html">unseal_scenario()</a></code> <code><a href="seal.html">mark_delete()</a></code> <code><a href="seal.html">unmark_delete()</a></code> <code><a href="seal.html">delete_marked()</a></code>
 
         </dt>
-        <dd>Report and levcost output locations</dd>
+        <dd>Seal and unseal store entries; mark them for deletion</dd>
 
         <dt>
 
-          <code><a href="tech_share_frontier.html">tech_share_frontier()</a></code>
+          <code><a href="model_hash.html">model_hash()</a></code> <code><a href="model_hash.html">object_hash()</a></code>
 
         </dt>
-        <dd>Extract feasible share ranges for grouped inputs/outputs</dd>
+        <dd>Content hash of a model</dd>
+
+        <dt>
+
+          <code><a href="repository_hash.html">repository_hash()</a></code>
+
+        </dt>
+        <dd>Content hash of a repository</dd>
+
+        <dt>
+
+          <code><a href="dataset_store.html">dataset_hash()</a></code> <code><a href="dataset_store.html">save_dataset()</a></code> <code><a href="dataset_store.html">load_dataset()</a></code>
+
+        </dt>
+        <dd>Content hash of a dataset payload</dd>
+
+        <dt>
+
+          <code><a href="isInMemory.html">isInMemory()</a></code>
+
+        </dt>
+        <dd>Is object stored in memory?</dd>
+
+        <dt>
+
+          <code><a href="isOnDisk.html">isOnDisk()</a></code>
+
+        </dt>
+        <dd>Is object stored on disk?</dd>
+
+        <dt>
+
+          <code><a href="obj2mem.html">obj2mem()</a></code>
+
+        </dt>
+        <dd>Loads objects from disk to memory</dd>
+
+        <dt>
+
+          <code><a href="materialize_weather.html">materialize_weather()</a></code>
+
+        </dt>
+        <dd>Materialize one weather transform</dd>
       </dl></div><div class="section level2">
-      <h2 id="exporting">Exporting<a class="anchor" aria-label="anchor" href="#exporting"></a></h2>
+      <h2 id="scenario-runs-and-artifacts">Scenario runs and artifacts<a class="anchor" aria-label="anchor" href="#scenario-runs-and-artifacts"></a></h2>
 
-
+      <div class="section-desc"><p>What a solved scenario leaves on disk, which solution to keep, and how to hand a folder to somebody else.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -1433,110 +1334,94 @@
 
       <dl><dt>
 
-          <code><a href="compare_inputs.html">compare_inputs()</a></code> <code><a href="compare_inputs.html">print(<i>&lt;inputs_cmp&gt;</i>)</a></code>
+          <code><a href="scenario_runs.html">scenario_runs()</a></code> <code><a href="scenario_runs.html">scenario_run_info()</a></code> <code><a href="scenario_runs.html">drop_scenario_run()</a></code>
 
         </dt>
-        <dd>Compare two scenarios' model inputs</dd>
+        <dd>List, inspect, and drop a scenario's runs</dd>
 
         <dt>
 
-          <code><a href="compare_models.html">compare_models()</a></code> <code><a href="compare_models.html">print(<i>&lt;models_cmp&gt;</i>)</a></code>
+          <code><a href="scenario_solutions.html">scenario_solutions()</a></code>
 
         </dt>
-        <dd>Compare two models' contents</dd>
+        <dd>What solutions does this scenario have, and which is worth importing?</dd>
 
         <dt>
 
-          <code><a href="compare_scenarios.html">compare_scenarios()</a></code> <code><a href="compare_scenarios.html">print(<i>&lt;scenarios_cmp&gt;</i>)</a></code> <code><a href="compare_scenarios.html">autoplot(<i>&lt;scenarios_cmp&gt;</i>)</a></code> <code><a href="compare_scenarios.html">plot(<i>&lt;scenarios_cmp&gt;</i>)</a></code>
+          <code><a href="scenario_artifacts.html">scenario_artifacts()</a></code>
 
         </dt>
-        <dd>Compare solved scenarios (or runs of one scenario)</dd>
+        <dd>Solver artifacts of a stored scenario</dd>
 
         <dt>
 
-          <code><a href="print.html">print()</a></code>
+          <code><a href="import_solution.html">import_solution()</a></code>
 
         </dt>
-        <dd>Print methods for the energyRt classes</dd>
+        <dd>Import a run's solution and make it stick</dd>
 
         <dt>
 
-          <code><a href="summary.html">summary(<i>&lt;model&gt;</i>)</a></code> <code><a href="summary.html">summary(<i>&lt;scenario&gt;</i>)</a></code>
+          <code><a href="promote_solution.html">promote_solution()</a></code>
 
         </dt>
-        <dd>Summarize a model or scenario</dd>
-      </dl></div><div class="section level2">
-      <h2 id="energyrt-options-and-settings">energyRt options and settings<a class="anchor" aria-label="anchor" href="#energyrt-options-and-settings"></a></h2>
-
-
-
-      <dl></dl></div><div class="section level2">
-
-
-
-
-      <dl><dt>
-
-          <code><a href="default_solver.html">get_default_solver()</a></code> <code><a href="default_solver.html">set_default_solver()</a></code>
-
-        </dt>
-        <dd>Default solver</dd>
+        <dd>Make a run's solution the scenario's own</dd>
 
         <dt>
 
-          <code><a href="en_option.html">set_option()</a></code> <code><a href="en_option.html">get_option()</a></code>
+          <code><a href="drop_solver_outputs.html">drop_solver_outputs()</a></code>
 
         </dt>
-        <dd>Get or set an energyRt option</dd>
+        <dd>Delete the regenerable part of a solve</dd>
 
         <dt>
 
-          <code><a href="exchange_format.html">get_exchange_format()</a></code> <code><a href="exchange_format.html">set_exchange_format()</a></code> <code><a href="exchange_format.html">get_exchange_compression()</a></code> <code><a href="exchange_format.html">set_exchange_compression()</a></code> <code><a href="exchange_format.html">get_exchange_compression_level()</a></code> <code><a href="exchange_format.html">set_exchange_compression_level()</a></code>
+          <code><a href="upgrade_scenario_layout.html">upgrade_scenario_layout()</a></code>
 
         </dt>
-        <dd>Solver data-exchange options</dd>
+        <dd>Upgrade a scenario folder to the current on-disk layout</dd>
 
         <dt>
 
-          <code><a href="log.html">set_log_file()</a></code> <code><a href="log.html">get_log_file()</a></code> <code><a href="log.html">read_log()</a></code>
+          <code><a href="store_dependents.html">store_dependents()</a></code>
 
         </dt>
-        <dd>Read the operation log</dd>
+        <dd>What depends on a stored model, repository or dataset</dd>
 
         <dt>
 
-          <code><a href="neos_email.html">get_neos_email()</a></code> <code><a href="neos_email.html">set_neos_email()</a></code>
+          <code><a href="strip_user_info.html">strip_user_info()</a></code>
 
         </dt>
-        <dd>NEOS submission email</dd>
+        <dd>Remove machine and user information from a stored scenario</dd>
 
         <dt>
 
-          <code><a href="newHorizon.html">newHorizon()</a></code> <code><a href="newHorizon.html">update(<i>&lt;horizon&gt;</i>)</a></code> <code><a href="newHorizon.html">setHorizon(<i>&lt;config&gt;</i>)</a></code> <code><a href="newHorizon.html">update(<i>&lt;config&gt;</i>)</a></code>
+          <code><a href="prepare_for_sharing.html">prepare_for_sharing()</a></code>
 
         </dt>
-        <dd>Create a new object of class 'horizon'</dd>
+        <dd>Prepare a stored scenario for sharing</dd>
 
         <dt>
 
-          <code><a href="newModel.html">newModel()</a></code> <code><a href="newModel.html">setHorizon(<i>&lt;model&gt;</i>)</a></code> <code><a href="newModel.html">getHorizon(<i>&lt;model&gt;</i>)</a></code>
+          <code><a href="accessors.html">getScenario()</a></code> <code><a href="accessors.html">getModel()</a></code> <code><a href="accessors.html">getRepository()</a></code> <code><a href="accessors.html">getDataset()</a></code> <code><a href="accessors.html">open_project()</a></code>
 
         </dt>
-        <dd>Create new model object</dd>
+        <dd>Access registered scenarios, models, repositories, and datasets by name</dd>
 
         <dt>
 
-          <code><a href="path_builders.html">set_path_builder()</a></code> <code><a href="path_builders.html">get_path_builder()</a></code>
+          <code><a href="getObject.html">getObject()</a></code>
 
         </dt>
-        <dd>Override how folder names are derived</dd>
+        <dd>Retrieve model objects from a repository, model or scenario</dd>
 
         <dt>
 
-          <code><a href="progress.html">set_progress_bar()</a></code> <code><a href="progress.html">show_progress_bar()</a></code>
+          <code><a href="registry.html">newRegistry()</a></code> <code><a href="registry.html">load_registry()</a></code> <code><a href="registry.html">save_registry()</a></code> <code><a href="registry.html">add_to_registry()</a></code> <code><a href="registry.html">add(<i>&lt;en_registry&gt;</i>)</a></code> <code><a href="registry.html">find_in_registry()</a></code> <code><a href="registry.html">refresh_registry()</a></code>
 
         </dt>
-        <dd>Switch on/off and select/customize progress bar</dd>
+        <dd>Project registry of models, scenarios, and runs</dd>
 
         <dt>
 
@@ -1547,77 +1432,21 @@
 
         <dt>
 
-          <code><a href="reports_path.html">set_reports_path()</a></code> <code><a href="reports_path.html">get_reports_path()</a></code> <code><a href="reports_path.html">set_levcost_cache_path()</a></code> <code><a href="reports_path.html">get_levcost_cache_path()</a></code>
+          <code><a href="dataset_store.html">dataset_hash()</a></code> <code><a href="dataset_store.html">save_dataset()</a></code> <code><a href="dataset_store.html">load_dataset()</a></code>
 
         </dt>
-        <dd>Report and levcost output locations</dd>
+        <dd>Content hash of a dataset payload</dd>
 
         <dt>
 
-          <code><a href="scenarios_path.html">set_scenarios_path()</a></code> <code><a href="scenarios_path.html">get_scenarios_path()</a></code>
+          <code><a href="seal.html">seal_model()</a></code> <code><a href="seal.html">unseal_model()</a></code> <code><a href="seal.html">seal_repository()</a></code> <code><a href="seal.html">unseal_repository()</a></code> <code><a href="seal.html">seal_dataset()</a></code> <code><a href="seal.html">unseal_dataset()</a></code> <code><a href="seal.html">seal_scenario()</a></code> <code><a href="seal.html">unseal_scenario()</a></code> <code><a href="seal.html">mark_delete()</a></code> <code><a href="seal.html">unmark_delete()</a></code> <code><a href="seal.html">delete_marked()</a></code>
 
         </dt>
-        <dd>Set or get the directory with scenarios</dd>
-
-        <dt>
-
-          <code><a href="setGeoscale.html">setGeoscale(<i>&lt;config&gt;</i>)</a></code> <code><a href="setGeoscale.html">getGeoscale(<i>&lt;config&gt;</i>)</a></code> <code><a href="setGeoscale.html">setGeoscale(<i>&lt;model&gt;</i>)</a></code> <code><a href="setGeoscale.html">getGeoscale(<i>&lt;model&gt;</i>)</a></code> <code><a href="setGeoscale.html">setGeoscale(<i>&lt;scenario&gt;</i>)</a></code> <code><a href="setGeoscale.html">getGeoscale(<i>&lt;scenario&gt;</i>)</a></code> <code><a href="setGeoscale.html">getCalendar(<i>&lt;config&gt;</i>)</a></code> <code><a href="setGeoscale.html">getCalendar(<i>&lt;model&gt;</i>)</a></code> <code><a href="setGeoscale.html">getCalendar(<i>&lt;scenario&gt;</i>)</a></code>
-
-        </dt>
-        <dd>Attach or read a model's geoscale</dd>
-
-        <dt>
-
-          <code><a href="solver.html">set_gams_path()</a></code> <code><a href="solver.html">get_gams_path()</a></code> <code><a href="solver.html">set_gdxlib_path()</a></code> <code><a href="solver.html">get_gdxlib_path()</a></code> <code><a href="solver.html">set_glpk_path()</a></code> <code><a href="solver.html">get_glpk_path()</a></code> <code><a href="solver.html">set_julia_path()</a></code> <code><a href="solver.html">get_julia_path()</a></code> <code><a href="solver.html">set_python_path()</a></code> <code><a href="solver.html">get_python_path()</a></code>
-
-        </dt>
-        <dd>Set GAMS and GDX library directory</dd>
-
-        <dt>
-
-          <code><a href="solver_path.html">set_solver_path()</a></code> <code><a href="solver_path.html">get_solver_path()</a></code>
-
-        </dt>
-        <dd>Set or get the path to a solver toolchain</dd>
-
-        <dt>
-
-          <code><a href="storage_format.html">get_storage_format()</a></code> <code><a href="storage_format.html">set_storage_format()</a></code> <code><a href="storage_format.html">get_storage_compression()</a></code> <code><a href="storage_format.html">set_storage_compression()</a></code> <code><a href="storage_format.html">get_storage_compression_level()</a></code> <code><a href="storage_format.html">set_storage_compression_level()</a></code>
-
-        </dt>
-        <dd>On-disk table storage options</dd>
-
-        <dt>
-
-          <code><a href="energyRt-options.html">energyRt-options</a></code>
-
-        </dt>
-        <dd>energyRt Options</dd>
-
-        <dt>
-
-          <code><a href="en_config.html">en_config_path()</a></code> <code><a href="en_config.html">en_config_read()</a></code> <code><a href="en_config.html">en_config_write()</a></code>
-
-        </dt>
-        <dd>The energyRt configuration file</dd>
-
-        <dt>
-
-          <code><a href="en_config_show.html">en_config_show()</a></code>
-
-        </dt>
-        <dd>Show the effective energyRt configuration</dd>
-
-        <dt>
-
-          <code><a href="isVerbose.html">isVerbose()</a></code> <code><a href="isVerbose.html">isDebug()</a></code>
-
-        </dt>
-        <dd>Verbosity and debug level</dd>
+        <dd>Seal and unseal store entries; mark them for deletion</dd>
       </dl></div><div class="section level2">
-      <h2 id="utils">utils<a class="anchor" aria-label="anchor" href="#utils"></a></h2>
+      <h2 id="validation-and-diagnostics">Validation and diagnostics<a class="anchor" aria-label="anchor" href="#validation-and-diagnostics"></a></h2>
 
-
+      <div class="section-desc"><p>Checks on a model’s inputs, on an interpolated scenario, and on a solved one. <code><a href="../reference/verify_solution.html">verify_solution()</a></code> re-derives the model’s identities from the results.</p></div>
 
       <dl></dl></div><div class="section level2">
 
@@ -1625,6 +1454,108 @@
 
 
       <dl><dt>
+
+          <code><a href="validate_scenario_parameters.html">validate_scenario_parameters()</a></code>
+
+        </dt>
+        <dd>Validate interpolated scenario parameters</dd>
+
+        <dt>
+
+          <code><a href="verify_solution.html">verify_solution()</a></code>
+
+        </dt>
+        <dd>Verify accounting identities of a solved scenario</dd>
+
+        <dt>
+
+          <code><a href="en_check.html">en_check_glpk()</a></code> <code><a href="en_check.html">en_check_julia()</a></code> <code><a href="en_check.html">en_check_python()</a></code> <code><a href="en_check.html">en_check_pyomo()</a></code> <code><a href="en_check.html">en_check_gams()</a></code> <code><a href="en_check.html">en_check_gdx()</a></code> <code><a href="en_check.html">en_check_julia_pkgs()</a></code> <code><a href="en_check.html">en_check_dependencies()</a></code>
+
+        </dt>
+        <dd>Detect external solver software and dependencies</dd>
+
+        <dt>
+
+          <code><a href="en_check_packages.html">en_check_packages()</a></code>
+
+        </dt>
+        <dd>Check R package and external-tool dependencies</dd>
+
+        <dt>
+
+          <code><a href="trim_parameters_by_maps.html">trim_parameters_by_maps()</a></code>
+
+        </dt>
+        <dd>Trim numeric/bounds parameters to the domain of the maps that index them</dd>
+
+        <dt>
+
+          <code><a href="update_parameter.html">update_parameter()</a></code>
+
+        </dt>
+        <dd>Update parameter in the scenario by adding data to it</dd>
+      </dl></div><div class="section level2">
+      <h2 id="datasets">Datasets<a class="anchor" aria-label="anchor" href="#datasets"></a></h2>
+
+      <div class="section-desc"><p>Data bundled with the package for the examples and articles.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="utopia.html">utopia</a></code>
+
+        </dt>
+        <dd>The UTOPIA reference dataset</dd>
+
+        <dt>
+
+          <code><a href="utopia_profile.html">utopia_profile()</a></code>
+
+        </dt>
+        <dd>Synthetic input shapes on a calendar (deterministic)</dd>
+
+        <dt>
+
+          <code><a href="utopia_profiles.html">utopia_profiles()</a></code>
+
+        </dt>
+        <dd>UTOPIA input profiles (deterministic)</dd>
+
+        <dt>
+
+          <code><a href="vre_cf.html">vre_cf</a></code>
+
+        </dt>
+        <dd>Hourly wind and solar capacity factors, one site, one year</dd>
+
+        <dt>
+
+          <code><a href="vre_storage_duration.html">vre_storage_duration</a></code>
+
+        </dt>
+        <dd>Duration bands of a full-year battery, precomputed</dd>
+      </dl></div><div class="section level2">
+      <h2 id="setup-and-environment">Setup and environment<a class="anchor" aria-label="anchor" href="#setup-and-environment"></a></h2>
+
+      <div class="section-desc"><p>Installing and checking the solver toolchains.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="en_setup.html">en_setup()</a></code>
+
+        </dt>
+        <dd>Set up energyRt after installation</dd>
+
+        <dt>
 
           <code><a href="en_install_deps.html">en_install_deps()</a></code>
 
@@ -1647,31 +1578,33 @@
 
         <dt>
 
-          <code><a href="en_setup.html">en_setup()</a></code>
+          <code><a href="en_config.html">en_config_path()</a></code> <code><a href="en_config.html">en_config_read()</a></code> <code><a href="en_config.html">en_config_write()</a></code>
 
         </dt>
-        <dd>Set up energyRt after installation</dd>
+        <dd>The energyRt configuration file</dd>
 
         <dt>
 
-          <code><a href="en_check.html">en_check_glpk()</a></code> <code><a href="en_check.html">en_check_julia()</a></code> <code><a href="en_check.html">en_check_python()</a></code> <code><a href="en_check.html">en_check_pyomo()</a></code> <code><a href="en_check.html">en_check_gams()</a></code> <code><a href="en_check.html">en_check_gdx()</a></code> <code><a href="en_check.html">en_check_julia_pkgs()</a></code> <code><a href="en_check.html">en_check_dependencies()</a></code>
+          <code><a href="en_config_show.html">en_config_show()</a></code>
 
         </dt>
-        <dd>Detect external solver software and dependencies</dd>
+        <dd>Show the effective energyRt configuration</dd>
+      </dl></div><div class="section level2">
+      <h2 id="options-and-paths">Options and paths<a class="anchor" aria-label="anchor" href="#options-and-paths"></a></h2>
 
-        <dt>
+      <div class="section-desc"><p>Package options, and where energyRt reads and writes.</p></div>
 
-          <code><a href="en_check_packages.html">en_check_packages()</a></code>
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="energyRt-options.html">energyRt-options</a></code>
 
         </dt>
-        <dd>Check R package and external-tool dependencies</dd>
-
-        <dt>
-
-          <code><a href="default_solver.html">get_default_solver()</a></code> <code><a href="default_solver.html">set_default_solver()</a></code>
-
-        </dt>
-        <dd>Default solver</dd>
+        <dd>energyRt Options</dd>
 
         <dt>
 
@@ -1682,17 +1615,38 @@
 
         <dt>
 
-          <code><a href="exchange_format.html">get_exchange_format()</a></code> <code><a href="exchange_format.html">set_exchange_format()</a></code> <code><a href="exchange_format.html">get_exchange_compression()</a></code> <code><a href="exchange_format.html">set_exchange_compression()</a></code> <code><a href="exchange_format.html">get_exchange_compression_level()</a></code> <code><a href="exchange_format.html">set_exchange_compression_level()</a></code>
+          <code><a href="path_builders.html">set_path_builder()</a></code> <code><a href="path_builders.html">get_path_builder()</a></code>
 
         </dt>
-        <dd>Solver data-exchange options</dd>
+        <dd>Override how folder names are derived</dd>
 
         <dt>
 
-          <code><a href="getData.html">getData()</a></code>
+          <code><a href="scenarios_path.html">set_scenarios_path()</a></code> <code><a href="scenarios_path.html">get_scenarios_path()</a></code>
 
         </dt>
-        <dd>Extract data from energyRt objects</dd>
+        <dd>Set or get the directory with scenarios</dd>
+
+        <dt>
+
+          <code><a href="registry_file.html">set_registry_file()</a></code> <code><a href="registry_file.html">get_registry_file()</a></code> <code><a href="registry_file.html">set_models_path()</a></code> <code><a href="registry_file.html">get_models_path()</a></code> <code><a href="registry_file.html">set_repositories_path()</a></code> <code><a href="registry_file.html">get_repositories_path()</a></code> <code><a href="registry_file.html">set_datasets_path()</a></code> <code><a href="registry_file.html">get_datasets_path()</a></code>
+
+        </dt>
+        <dd>Registry file and model store locations</dd>
+
+        <dt>
+
+          <code><a href="log.html">set_log_file()</a></code> <code><a href="log.html">get_log_file()</a></code> <code><a href="log.html">set_profile_dir()</a></code> <code><a href="log.html">get_profile_dir()</a></code> <code><a href="log.html">read_log()</a></code>
+
+        </dt>
+        <dd>Read the operation log</dd>
+
+        <dt>
+
+          <code><a href="progress.html">set_progress_bar()</a></code> <code><a href="progress.html">show_progress_bar()</a></code>
+
+        </dt>
+        <dd>Switch on/off and select/customize progress bar</dd>
 
         <dt>
 
@@ -1702,6 +1656,22 @@
         <dd>Return default value for one, several, or all parameters</dd>
 
         <dt>
+
+          <code><a href="isVerbose.html">isVerbose()</a></code> <code><a href="isVerbose.html">isDebug()</a></code>
+
+        </dt>
+        <dd>Verbosity and debug level</dd>
+      </dl></div><div class="section level2">
+      <h2 id="utilities">Utilities<a class="anchor" aria-label="anchor" href="#utilities"></a></h2>
+
+      <div class="section-desc"><p>Small helpers, conversions and accessors.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
 
           <code><a href="get_process_aux.html">get_process_aux()</a></code>
 
@@ -1766,87 +1736,87 @@
 
         <dt>
 
-          <code><a href="get_region.html">get_region()</a></code>
+          <code><a href="getUnits.html">getUnits(<i>&lt;commodity&gt;</i>)</a></code> <code><a href="getUnits.html">getUnits(<i>&lt;technology&gt;</i>)</a></code> <code><a href="getUnits.html">getUnits(<i>&lt;supply&gt;</i>)</a></code> <code><a href="getUnits.html">getUnits(<i>&lt;demand&gt;</i>)</a></code> <code><a href="getUnits.html">getUnits(<i>&lt;import&gt;</i>)</a></code> <code><a href="getUnits.html">getUnits(<i>&lt;export&gt;</i>)</a></code> <code><a href="getUnits.html">getUnits(<i>&lt;storage&gt;</i>)</a></code>
 
         </dt>
-        <dd>Collect the regions an object operates in</dd>
+        <dd>Get parameter units for energyRt class objects</dd>
 
         <dt>
 
-          <code><a href="get_variable.html">get_variable()</a></code>
+          <code><a href="commodity_properties.html">commodity_properties()</a></code>
 
         </dt>
-        <dd>Get one solved variable from a scenario</dd>
+        <dd>Recognised commodity properties</dd>
 
         <dt>
 
-          <code><a href="get_weather.html">get_weather()</a></code>
+          <code><a href="commodity_property.html">commodity_property()</a></code>
 
         </dt>
-        <dd>Collect the weather objects an object refers to</dd>
+        <dd>Physical property of a commodity</dd>
 
         <dt>
 
-          <code><a href="log.html">set_log_file()</a></code> <code><a href="log.html">get_log_file()</a></code> <code><a href="log.html">read_log()</a></code>
+          <code><a href="convert_data.html">convert_data</a></code>
 
         </dt>
-        <dd>Read the operation log</dd>
+        <dd>Basic units conversion database for <code>convert</code> methods</dd>
 
         <dt>
 
-          <code><a href="neos_email.html">get_neos_email()</a></code> <code><a href="neos_email.html">set_neos_email()</a></code>
+          <code><a href="convert.html">convert(<i>&lt;character&gt;</i>)</a></code> <code><a href="convert.html">convert(<i>&lt;numeric&gt;</i>)</a></code> <code><a href="convert.html">add_to_convert(<i>&lt;character&gt;</i>,<i>&lt;character&gt;</i>,<i>&lt;numeric&gt;</i>)</a></code>
 
         </dt>
-        <dd>NEOS submission email</dd>
+        <dd>Convert units</dd>
 
         <dt>
 
-          <code><a href="path_builders.html">set_path_builder()</a></code> <code><a href="path_builders.html">get_path_builder()</a></code>
+          <code><a href="renameSets.html">renameSets()</a></code>
 
         </dt>
-        <dd>Override how folder names are derived</dd>
+        <dd>Rename data.frame columns of list of data.frames.</dd>
 
         <dt>
 
-          <code><a href="registry_file.html">set_registry_file()</a></code> <code><a href="registry_file.html">get_registry_file()</a></code> <code><a href="registry_file.html">set_models_path()</a></code> <code><a href="registry_file.html">get_models_path()</a></code> <code><a href="registry_file.html">set_repositories_path()</a></code> <code><a href="registry_file.html">get_repositories_path()</a></code> <code><a href="registry_file.html">set_datasets_path()</a></code> <code><a href="registry_file.html">get_datasets_path()</a></code>
+          <code><a href="revalueSets.html">revalueSets()</a></code>
 
         </dt>
-        <dd>Registry file and model store locations</dd>
+        <dd>Replace specified values with new values in factor or character columns of a data.frame.</dd>
 
         <dt>
 
-          <code><a href="reports_path.html">set_reports_path()</a></code> <code><a href="reports_path.html">get_reports_path()</a></code> <code><a href="reports_path.html">set_levcost_cache_path()</a></code> <code><a href="reports_path.html">get_levcost_cache_path()</a></code>
+          <code><a href="register_weather_transform.html">register_weather_transform()</a></code>
 
         </dt>
-        <dd>Report and levcost output locations</dd>
+        <dd>Register a weather transform for the session</dd>
 
         <dt>
 
-          <code><a href="scenarios_path.html">set_scenarios_path()</a></code> <code><a href="scenarios_path.html">get_scenarios_path()</a></code>
+          <code><a href="hour2HOUR.html">hour2HOUR()</a></code>
 
         </dt>
-        <dd>Set or get the directory with scenarios</dd>
+        <dd>Convert hours (integer) values to HOUR set 'hNN'</dd>
 
         <dt>
 
-          <code><a href="solver.html">set_gams_path()</a></code> <code><a href="solver.html">get_gams_path()</a></code> <code><a href="solver.html">set_gdxlib_path()</a></code> <code><a href="solver.html">get_gdxlib_path()</a></code> <code><a href="solver.html">set_glpk_path()</a></code> <code><a href="solver.html">get_glpk_path()</a></code> <code><a href="solver.html">set_julia_path()</a></code> <code><a href="solver.html">get_julia_path()</a></code> <code><a href="solver.html">set_python_path()</a></code> <code><a href="solver.html">get_python_path()</a></code>
+          <code><a href="yday2YDAY.html">yday2YDAY()</a></code>
 
         </dt>
-        <dd>Set GAMS and GDX library directory</dd>
+        <dd>Convert year-days to YDAY set 'dNNN'</dd>
 
         <dt>
 
-          <code><a href="solver_path.html">set_solver_path()</a></code> <code><a href="solver_path.html">get_solver_path()</a></code>
+          <code><a href="print.html">print()</a></code>
 
         </dt>
-        <dd>Set or get the path to a solver toolchain</dd>
+        <dd>Print methods for the energyRt classes</dd>
 
         <dt>
 
-          <code><a href="storage_format.html">get_storage_format()</a></code> <code><a href="storage_format.html">set_storage_format()</a></code> <code><a href="storage_format.html">get_storage_compression()</a></code> <code><a href="storage_format.html">set_storage_compression()</a></code> <code><a href="storage_format.html">get_storage_compression_level()</a></code> <code><a href="storage_format.html">set_storage_compression_level()</a></code>
+          <code><a href="summary.html">summary(<i>&lt;model&gt;</i>)</a></code> <code><a href="summary.html">summary(<i>&lt;scenario&gt;</i>)</a></code>
 
         </dt>
-        <dd>On-disk table storage options</dd>
+        <dd>Summarize a model or scenario</dd>
       </dl></div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>

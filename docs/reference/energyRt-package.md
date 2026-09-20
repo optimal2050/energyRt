@@ -27,7 +27,8 @@ Authors:
 - Oleg Lugovoy <olugovoy@optimalsolution.dev>
   ([ORCID](https://orcid.org/0000-0001-5546-9875))
 
-- Vladimir Potashnikov <potashnikov.vu@gmail.com>
+- Vladimir Potashnikov <potashnikov.vu@gmail.com> (contributed
+  2016-2022)
 
 Other contributors:
 

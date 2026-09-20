@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.89.2.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9000</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -42,7 +42,6 @@
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto">
 <li class="nav-item"><a class="nav-link" href="../articles/energyRt.html">Get started</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/use-R-2026.html">Training</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
 <li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Roadmap</a></li>
 <li class="active nav-item dropdown">
@@ -53,6 +52,7 @@
     <li><a class="dropdown-item" href="../articles/model-bricks.html">Model bricks</a></li>
     <li><a class="dropdown-item" href="../articles/units.html">Units</a></li>
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
+    <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
@@ -283,7 +283,10 @@ charging/discharging/holding efficiencies
 <span>  seff <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>inpeff <span class="op">=</span> <span class="fl">0.9</span>, outeff <span class="op">=</span> <span class="fl">0.9</span>, stgeff <span class="op">=</span> <span class="fl">0.999</span><span class="op">)</span>,</span>
 <span>  duration <span class="op">=</span> <span class="fl">4</span>,                                   <span class="co"># 4 hours of storage per unit power</span></span>
 <span>  aux  <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>acomm <span class="op">=</span> <span class="st">"MAT"</span>, unit <span class="op">=</span> <span class="st">"kt"</span><span class="op">)</span>,</span>
-<span>  aeff <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>acomm <span class="op">=</span> <span class="st">"MAT"</span>, ncap2ainp <span class="op">=</span> <span class="fl">0.25</span><span class="op">)</span><span class="op">)</span>  <span class="co"># material per new capacity</span></span>
+<span>  <span class="co"># a storage has three parts, so an aux coupling must say WHICH capacity it</span></span>
+<span>  <span class="co"># scales with: `out.` the discharger, `inp.` the charger, `stg.` the</span></span>
+<span>  <span class="co"># reservoir. (A technology has one capacity and keeps the bare names.)</span></span>
+<span>  aeff <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>acomm <span class="op">=</span> <span class="st">"MAT"</span>, out.ncap2ainp <span class="op">=</span> <span class="fl">0.25</span><span class="op">)</span><span class="op">)</span>  <span class="co"># per new discharge capacity</span></span>
 <span><span class="fu"><a href="../reference/draw.html">draw</a></span><span class="op">(</span><span class="va">STG_ELC</span><span class="op">)</span></span></code></pre></div>
 <p><img src="model-bricks_files/figure-html/stg-1.png" class="r-plt" alt="" width="770"></p>
 </div>

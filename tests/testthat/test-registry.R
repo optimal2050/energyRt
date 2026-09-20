@@ -151,23 +151,20 @@ test_that("refresh_registry rebuilds from on-disk markers and manifests", {
   unlink(root, recursive = TRUE)
 })
 
-test_that("deprecated registry shims warn and delegate", {
+test_that("the registry file location round-trips through the live API", {
+  # `get_registry_file()` had no test of its own: its only coverage was through
+  # the deprecated `which_registry()` shim, removed in v0.90. Keep the live
+  # path covered rather than losing it with the shim.
   f <- tempfile(fileext = ".csv")
   old <- set_registry_file(f)
   on.exit(set_registry_file(old), add = TRUE)
+  expect_identical(get_registry_file(), f)
 
   reg <- add_to_registry(newRegistry(), "scenario", "S", path = "scenarios/S")
   save_registry(reg, f)
-
-  expect_warning(r <- get_registry(), "deprecated")
-  expect_identical(nrow(r), 1L)
-  expect_warning(ex <- registry_exists("S"), "deprecated")
-  expect_true(ex)
-  expect_warning(e <- get_entry("S"), "deprecated")
-  expect_identical(e$name, "S")
-  expect_warning(w <- which_registry(), "deprecated")
-  expect_identical(w$file, f)
-  expect_warning(set_default_registry(), "deprecated")
+  expect_true(file.exists(get_registry_file()))
+  expect_identical(nrow(load_registry()), 1L)
+  expect_identical(find_in_registry(load_registry(), name = "S")$name, "S")
 })
 
 test_that("newScenario returns the object and ignores registry args with a message", {

@@ -163,7 +163,9 @@ parts of the trade network (aka transmission lines).
 
 - `aeff`:
 
-  data.frame. Auxiliary commodity efficiency parameters.
+  data.frame. Auxiliary commodity efficiency parameters. Rows can be
+  assigned to a single variant via the `vintage` and/or `cluster` key
+  columns; each variant then carries only its own couplings.
 
   vintage
 
@@ -231,9 +233,8 @@ parts of the trade network (aka transmission lines).
 
   :   character. Endpoint region bearing this rate. NA applies the rate
       at every endpoint of the route; name the regions to vary it
-      between them. Must be one of the model's own regions – a coarser
-      geoscale level is accepted by validation but never reaches the
-      objective.
+      between them. A coarser geoscale level is accepted and charged
+      ONCE at that cell, not once per child region.
 
   year
 

@@ -58,7 +58,7 @@ functional, but its blocks are edited as YAML. The remaining process
 classes (supply, demand, import, export) are reserved. Requires the
 suggested packages `shiny` and `DT`.
 
-[`tech_designer()`](https://energyRt.org/reference/energyRt-deprecated.md)
+[`tech_designer()`](https://energyRt.org/reference/energyRt-deprecated.html)
 is the deprecated former name.
 
 ## Examples

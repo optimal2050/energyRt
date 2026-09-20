@@ -108,6 +108,13 @@ over the model horizon.
       NEGATIVE cost – the minus sits inside `eqExportRowCost` – so a
       higher price is a better outcome for the objective.
 
+- `region`:
+
+  character. Regions where the export process exists. Empty (or NA)
+  means every region of the model. A region named in any other slot must
+  be one of these; the other slots place VALUES and never change where
+  the process exists.
+
 - `misc`:
 
   list. Additional information.

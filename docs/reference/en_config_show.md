@@ -54,9 +54,10 @@ en_config_show()
 #>   levcost_cache_path          "levcosts/"                 [default]
 #>   log_file                    ""                          [default]
 #>   models_path                 "models/"                   [default]
-#>   neos_email                  NULL                        [default]
+#>   neos_email                  "admin@optimalsolution.dev"  [config] C:\Users\admin\AppData\Roaming/R/config/R/energyRt/config.yml
 #>   neos_endpoint               "https://neos-server.org:3333"  [default]
 #>   path_builders               list()                      [default]
+#>   profile_dir                 ""                          [default]
 #>   progress_bar                TRUE                        [default]
 #>   python_path                 "C:/Users/admin/.conda/envs/energyrt-solve/"  [config] C:\Users\admin\AppData\Roaming/R/config/R/energyRt/config.yml
 #>   registry_file               "energyRt_registry.csv"     [default]

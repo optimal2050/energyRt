@@ -14,12 +14,19 @@ library(ggplot2)
 ```
 
 We use the packaged single-region UTOPIA kit as a running example, and
-keep all scenario files under a temporary folder.
+keep every store — scenarios, models, repositories and the registry —
+under a temporary folder. All four matter:
+[`save_scenario()`](https://energyRt.org/reference/save_scenario.md)
+saves the model to the model store and references it, so redirecting
+only the scenario path leaves a `models/` folder beside the article.
 
 ``` r
 
-set_scenarios_path(file.path(tempdir(), "wf"))   # where scenarios are written
-set_registry_file(file.path(tempdir(), "wf", "energyRt_registry.csv"))
+wf <- file.path(tempdir(), "wf")
+set_scenarios_path(wf)                                  # where scenarios go
+set_models_path(file.path(wf, "models"))                # ... and models
+set_repositories_path(file.path(wf, "repositories"))    # ... and repositories
+set_registry_file(file.path(wf, "energyRt_registry.csv"))
 
 um  <- utopia$modules$electricity$R1
 mod <- newModel("UTOPIA", data = um$repo,
@@ -73,7 +80,7 @@ otherwise); every frame carries a `scenario` and a `name` column.
 ``` r
 
 getData(scen, "vObjective", merge = TRUE)$value      # total system cost, MEUR
-#> [1] 12999.41
+#> [1] 18279.84
 
 gen <- getData(scen, "vTechOut", comm = "ELC", merge = TRUE)
 head(gen[, c("scenario", "tech", "region", "year", "timeslice", "value")], 4)
@@ -167,7 +174,7 @@ scenario and model sharing a name appear once):
 ``` r
 
 get_scenarios_path()
-#> [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpkN5Cc5/wf"
+#> [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpeSQ4zy/wf"
 basename(scen@path)
 #> [1] "BASE-UTOPIA-s4_h24-base"
 ```
@@ -188,7 +195,8 @@ run:
     └── runs/               # one folder per solve
         ├── glpk/           #   base-problem run, named by its solve label
         │   ├── run.yml     #     provenance: solver, cmdline, times, objective
-        │   ├── solver/     #     the solver working dir (inputs + its output/)
+        │   ├── input/      #     the exchange tables handed to the solver
+        │   ├── output/     #     the solver's raw dump (read_solution() reads it)
         │   └── modOut/variables/<var>/      # the solved variables
         └── julia_highs/    #   another backend's run of the same problem
 
@@ -207,9 +215,8 @@ Solving the same scenario with several backends (or option sets — pass
 [`solve_scenario()`](https://energyRt.org/reference/solve_model.md))
 keeps every run side by side; `scenario_runs(scen)` lists them with
 status and objective, and `read_solution(scen, run = "<label>")`
-switches the active solution. A scenario referencing a model saved with
-[`save_model()`](https://energyRt.org/reference/model_store.md) skips
-the embedded `model/` copy entirely (see
+switches the active solution. A saved scenario references its model in
+the model store rather than embedding a copy of it (see
 [`?save_scenario`](https://energyRt.org/reference/save_scenario.md),
 `embed_model`).
 
@@ -253,7 +260,7 @@ basename(saved@path)                                 # the scenario folder
 isInMemory(saved)                                    # FALSE -- data is on disk
 #> [1] FALSE
 getData(ld, "vObjective", merge = TRUE)$value        # lazy read, no full load
-#> [1] 12999.41
+#> [1] 18279.84
 ```
 
 ``` r
@@ -321,7 +328,7 @@ emis |>
 sapply(list(BASE = scen, CO2CAP = scen_cap),
        function(s) round(getData(s, "vObjective", merge = TRUE)$value[1]))
 #>   BASE CO2CAP 
-#>  12999  13413
+#>  18280  23529
 ```
 
 To reason about **model size** rather than results,
@@ -334,14 +341,14 @@ in-memory footprint:
 
 model_size(scen)
 #> model_size: BASE
-#>   parameters : 170 value, 297 maps, 13 sets
-#>   param rows : 5,927
-#>   estimate   : ~16,178 variables, ~16,852 constraints (from gating maps)
+#>   parameters : 179 value, 308 maps, 13 sets
+#>   param rows : 6,720
+#>   estimate   : ~16,298 variables, ~16,972 constraints (from gating maps)
 #>   top parameters by rows:
 #>     pTechCinp2use      1,536
+#>     pTimesliceAgg      1,188
 #>     pWeather           1,004
 #>     pTimesliceWeight   404
-#>     pTimesliceAgg      400
 #>     pDemand            384
 #>     pExportRowPrice    384
 #>     pExportRow         384
@@ -349,12 +356,12 @@ model_size(scen)
 #>     pStorageInpEff     384
 #>     pStorageOutEff     384
 #>     pTimesliceShare    101
-#>     pTechFixom         23
+#>     pTechFixom         24
+#>     pTechInvcost       24
 #>     pTechEac           20
-#>     pTechInvcost       20
 #>     pTechStock         14
 size(scen)
-#> [1] "7 Mb"
+#> [1] "7.2 Mb"
 ```
 
 For a systematic check that a build is correct *and* efficient,
@@ -400,7 +407,7 @@ scen_t <- interpolate_model(mod, "S2", cal2) |>
 sapply(list(full = scen, sampled = scen_t),
        function(s) round(getData(s, "vObjective", merge = TRUE)$value[1]))
 #>    full sampled 
-#>   12999   13505
+#>   18280   20019
 ```
 
 Two traps: pass `year_fraction` **explicitly** (it is not recomputed
@@ -498,8 +505,113 @@ weight’s parent total — see
 and its name is mangled (`"demo[region:R1+R2]"`) so different samples of
 one parent never collide in caches or joins. A **pruned** geoscale (a
 coarser level of the model’s own hierarchy) requests a full-territory
-solve at the parent level instead; that requires aggregating the model’s
-data (`aggregate_model_regions()`) and is not implemented yet.
+solve at the parent level instead. That is a different operation – it
+aggregates the model’s data rather than subsetting it – so
+[`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md)
+refuses a pruned geoscale and points at
+[`aggregate_model_regions()`](https://energyRt.org/reference/aggregate_model_regions.md),
+which builds the coarser model directly.
+
+### A trade window instead of a flat price
+
+A stub priced with a single number is a perfectly elastic counterparty:
+the region can buy or sell any amount the bound allows without moving
+the price. For supply-curve work that is usually too generous.
+[`boundary_window()`](https://energyRt.org/reference/boundary_window.md)
+builds a **stepped curve** instead — a rising cost of imports, a falling
+revenue on exports — and sizes its quantity from the region’s own
+demand:
+
+``` r
+
+bw <- boundary_window(m3, regions = c("R1", "R2"),
+                      share = 0.1, nsteps = 3, price = 40)
+head(bw, 2)
+#>   src dst year timeslice price cap.up nsteps price_lo price_hi
+#> 1  R2  R3   NA      <NA>    40      2      3       20       40
+```
+
+`share = 0.1` caps the boundary at 10% of the region’s demand **in each
+timeslice**, which is where the import/export bound lives; summed over
+the year that is 10% of annual demand. The window deliberately refuses
+to guess a price — it can size the quantity from the model, but what the
+neighbours would charge is a judgement, so `price` is required.
+
+The result is an ordinary `boundary_prices` table with three extra
+columns (`nsteps`, `price_lo`, `price_hi`), so it goes where a flat one
+goes; omit them and you get exactly the flat stub as before.
+
+``` r
+
+m12w <- subset_model_regions(m3, c("R1", "R2"), boundary_prices = bw)
+stub <- m12w@data[["boundary_stubs"]]@data[[1]]
+as.data.frame(stub@cluster)[, c("cluster", "share", "order")]
+#>   cluster     share order
+#> 1      S1 0.3333333     1
+#> 2      S2 0.3333333     2
+#> 3      S3 0.3333333     3
+```
+
+### Region by region
+
+[`solve_by_region()`](https://energyRt.org/reference/solve_by_region.md)
+runs the whole sweep — one region at a time by default, or one group at
+a time — storing each as a variant of a single scenario:
+
+``` r
+
+br <- solve_by_region(m3, name = "sweep")           # autarky
+br <- solve_by_region(m3, name = "sweep_w",         # with a trade window
+                      trade = "auto", price = 40, share = 0.1)
+br$runs
+getData(br, "vTechCap", merge = TRUE)               # stacked, region column
+```
+
+With `trade = "none"` the regions are disjoint and nothing crosses, so
+the per-region objectives **add up** to the full model’s — the same
+property the sample objectives have above. Any trade window breaks it:
+each region then faces an exterior the others cannot see. `br$additive`
+records which case you are in, and
+[`print()`](https://energyRt.org/reference/print.md) says so rather than
+leaving it to be discovered.
+
+`on_error = "continue"` keeps the sweep going past a region that fails
+to solve, which matters at 30-odd regions: a single infeasible one
+should not cost you the rest.
+
+### Sampling the calendar repeatedly
+
+A single sampled calendar gives one cheap estimate.
+[`solve_by_sample()`](https://energyRt.org/reference/solve_by_sample.md)
+runs a whole ensemble of them — consecutive blocks tiling the year,
+disjoint random draws, or bootstrap draws — and keeps every run:
+
+``` r
+
+ens <- solve_by_sample(m3, name = "ens", sample_size = 2,
+                       method = "sequential")     # two-season blocks
+ens$runs
+sample_summary(ens, "vTechCap", probs = c(0.05, 0.5, 0.95))
+```
+
+Samples are drawn as whole members of a calendar level — seasons, weeks,
+days — because a calendar sample has to be a complete cross; a ragged
+pick of individual timeslices is silently re-expanded by the calendar
+constructor.
+[`calendar_samples()`](https://energyRt.org/reference/calendar_samples.md)
+builds that specification on its own if you want to look at it or edit
+it first.
+
+Two rules follow from how a sampled calendar works, and both are
+enforced rather than left to be discovered. A sample must keep **at
+least two members** at every level: a single season (or week, or day)
+collapses its level, and the only way to build such a calendar renames
+the leaf timeslices so the model’s own data would stop matching them.
+And every sample is **annualised** —
+`pTimesliceWeight = 1/year_fraction` — so each one estimates the *whole
+year*. The ensemble is therefore a set of replicates whose spread is the
+sampling uncertainty; summing them is meaningless, unlike the region
+sweep above, whose disjoint pieces do add up.
 
 ## See also
 

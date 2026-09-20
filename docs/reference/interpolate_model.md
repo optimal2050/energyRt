@@ -31,6 +31,9 @@ interpolate_model(
   .prefilter = FALSE,
   verbose = isVerbose()
 )
+
+# S4 method for class 'model'
+interpolate(object, ...)
 ```
 
 ## Arguments
@@ -75,14 +78,16 @@ interpolate_model(
   logical or character; whole-column "fold" of trimmable dimensions to
   NA wildcards to shrink the data. `TRUE` folds `region` + `timeslice`;
   `FALSE` (default) folds nothing; a character vector selects dims among
-  `region`, `timeslice`, `year`, `comm`, `tech`, `stg`, `trade`. A
-  folded scenario is expanded to solver-ready form at solve time.
+  `region`, `timeslice`, `year`, `comm`, `tech`, `stg`, `trade`. The
+  wildcards are substituted by an artificial set member in the written
+  model files only; the scenario object keeps them and
+  [`getData()`](https://energyRt.org/reference/getData.md) expands them.
 
 - sparse:
 
-  logical; the storage knob. `TRUE` drops `value == defVal` rows (and
-  folds); `FALSE` materialises the default over each parameter's full
-  domain (and unfolds).
+  logical; the storage knob. `TRUE` drops `value == defVal` rows;
+  `FALSE` materialises the default over each parameter's full domain
+  (the form GAMS needs). Folding applies to either.
 
 - prune:
 
@@ -91,8 +96,10 @@ interpolate_model(
 
 - validate:
 
-  logical; run post-interpolation consistency checks (schema, duplicate
-  keys, map/parameter coverage).
+  logical; run
+  [`validate_scenario_parameters()`](https://energyRt.org/reference/validate_scenario_parameters.md)
+  after interpolation (schema, duplicate keys, map/parameter coverage,
+  missing governing constraints, calendar chronology).
 
 - code:
 

@@ -50,3 +50,6 @@ dev/*
 ^AGENTS\.md$
 ^CLAUDE\.md$
 ^AUTHORS\.md$
+__pycache__
+\.pyc$
+\.bak[0-9]*$

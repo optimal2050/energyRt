@@ -33,3 +33,11 @@ dev-scripts/
 #temporary:
 man/
 docs/
+
+# python bytecode caches (inst/ ships, so these would be installed)
+__pycache__/
+*.pyc
+
+# editor/tooling backups (sysdata rebakes, etc.)
+*.bak
+*.bak[0-9]

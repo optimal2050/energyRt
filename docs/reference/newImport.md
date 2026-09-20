@@ -14,6 +14,7 @@ newImport(
   reserve = data.frame(),
   import = data.frame(),
   cluster = data.frame(),
+  region = character(),
   misc = list(),
   ...
 )
@@ -105,6 +106,13 @@ newImport(
   price
 
   :   numeric. Price paid per unit imported.
+
+- region:
+
+  character. Regions where the import process exists. Empty (or NA)
+  means every region of the model. A region named in any other slot must
+  be one of these; the other slots place VALUES and never change where
+  the process exists.
 
 - misc:
 

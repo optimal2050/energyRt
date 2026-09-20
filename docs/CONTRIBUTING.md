@@ -184,20 +184,49 @@ installed.
 - Conventional Commits style is encouraged but not enforced (`feat:`,
   `fix:`, `docs:`, `refactor:`, `test:`, `chore:`).
 - CI must pass.
-- User-facing changes get a bullet in `NEWS.md` under the development
-  version, filed beneath one of
-  `## Breaking changes / New features / Deprecations / Bug fixes / Documentation`.
-  Keep it to the final state in one or two lines — rationale belongs in
-  the commit message or `dev/`, not in NEWS.
+- User-facing changes get a bullet in `NEWS.md` (rules below).
 - Reference the sibling package’s PR when a change spans both.
+
+## NEWS, comments and where narrative goes
+
+Three places carry three different kinds of text. Keep them apart.
+
+**`NEWS.md`** follows the r-pkgs.org convention:
+
+- Every bullet sits under one of
+  `## Breaking changes / New features / Deprecations / Bug fixes / Documentation`
+  in the development-version section — never between the version heading
+  and the first `##`.
+- One change per bullet, the **final state** in one to three lines: what
+  the user sees now, and for a bug fix what was wrong in a clause. No
+  blank lines between bullets.
+- No discovery story, no timings or measurements, no design
+  alternatives, no internal (dot-prefixed or unexported) function names.
+  Exported functions, arguments, slots, options and file names are the
+  vocabulary.
+- If a bullet needs more than three lines to be understood, the extra
+  belongs in `dev/` (below), not in NEWS.
+
+**Code comments** state mechanism and constraints the code cannot show —
+“stats::aggregate drops NA by-groups”, “must enter the render key”, “the
+fence must sit at column 0”. They never say how a finding was made, who
+asked for it, what it replaced, or what it measured. Roxygen is user
+documentation, not commentary: no design essays there either.
+
+**Narrative** — rationale, measurements, traps, rejected alternatives,
+lifted essays — goes to a topic file under `dev/`
+(`dev/notes-<topic>.md`, e.g. `notes-reports.md`,
+`notes-news-rationale.md`, `notes-dispatch-surrogate.md`) or into the
+commit message. Prose meant for users becomes a vignette or article.
+Before committing, check the diff for comments that answer “why did we
+discover this” instead of “what must hold here”, and for NEWS bullets
+longer than three lines.
 
 ## License
 
-energyRt is **AGPL-3**. Note that other packages in the stack are
-Apache-2.0 or MIT — do not copy code or data across that boundary
-without an explicit maintainer decision. By contributing you agree that
-your contributions are licensed under the AGPL-3. See
-[LICENSE](https://energyRt.org/LICENSE).
+energyRt is **Apache-2.0** from v0.90. By contributing you agree that
+your contributions are licensed under the same terms (inbound =
+outbound). See [LICENSE](https://energyRt.org/LICENSE).
 
 ## Code of Conduct
 

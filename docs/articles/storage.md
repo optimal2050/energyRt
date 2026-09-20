@@ -168,7 +168,7 @@ if energy may cross the boundary between the two days.
 
 # A bundled calendar: one representative day per month, 24 hours each. Its
 # timeslices are DATED (`d015_h00`), which the reporting tools below need.
-cal <- calendars$d365_h24_subset_1day_per_month
+cal <- calendars$d365_h24_1dpm
 slices <- unique(cal@timetable$timeslice)
 jan <- grep("^d015_", slices, value = TRUE)     # the January day
 feb <- grep("^d046_", slices, value = TRUE)     # the February day
@@ -270,17 +270,17 @@ mod_day <- newModel(
 )
 
 scen_year <- solve_model(mod_year, name = "fy_year")
-#> Solver directory:  scenarios/fy_year-d365_h24_subset_1day_per_month/runs/glpk/solver 
-#> Writing files: 0.74s
-#> Starting  GLPK 
-#> 0.17s
-#> Reading solution: 0.17s
-scen_day <- solve_model(mod_day, name = "fy_day")
-#> Solver directory:  scenarios/fy_day-d365_h24_subset_1day_per_month/runs/glpk/solver 
-#> Writing files: 0.63s
+#> Solver directory:  scenarios/fy_year-d365_h24_1dpm/runs/glpk 
+#> Writing files: 0.39s
 #> Starting  GLPK 
 #> 0.14s
-#> Reading solution: 0.17s
+#> Reading solution: 0.1s
+scen_day <- solve_model(mod_day, name = "fy_day")
+#> Solver directory:  scenarios/fy_day-d365_h24_1dpm/runs/glpk 
+#> Writing files: 0.41s
+#> Starting  GLPK 
+#> 0.11s
+#> Reading solution: 0.09s
 
 getData(scen_year, "vObjective", merge = TRUE)$value
 #> [1] 9962.545
@@ -322,11 +322,14 @@ STG_HYD@startLevel
 
 ## Sizing the parts
 
-`@duration` and `@inp2out` are the two ratios that tie the three parts
-together. Both are **bounds**, on `(storage, region, year)`:
+`@duration`, `@inp2out` and `@inp2stg` are the ratios that tie the three
+parts together — the three edges of one triangle, so any two determine
+the third (`inp2stg = inp2out / duration`). All are **bounds**, on
+`(storage, region, year)`:
 
     duration = reservoir / discharger   [hours]
     inp2out  = charger   / discharger   [dimensionless]
+    inp2stg  = charger   / reservoir    [1/hours]  (charging C-rate)
 
 `duration = 6` fixes the ratio — a 6-hour battery. A range lets the
 model choose:
@@ -363,6 +366,16 @@ inside the range.
 charger is sized with the discharger; give it a range and asymmetric
 hardware — a fast charger with a slow fuel cell, or a pump smaller than
 its turbine — becomes a decision rather than an assumption.
+
+`@inp2stg` rates the charger against the **reservoir** instead — the
+standard battery spec (a 0.5C charger fills in two hours:
+`inp2stg.up = 0.5`). Unlike the other two it has **no binding default**:
+say nothing and no constraint exists; the link is emitted only where a
+finite bound is declared and both the charging and storing parts carry
+capacity variables. Declaring all three ratios over-determines the
+triangle — [`newStorage()`](https://energyRt.org/reference/storage.md)
+refuses a contradictory fixed triple and warns when all three carry
+ranges.
 
 ### Structure follows data
 
@@ -674,18 +687,26 @@ is not one of its three roles — lithium for the cells, water for a
 reservoir, land. `@aux` declares the commodity and its unit; `@aeff`
 says what it is proportional to.
 
-The `@aeff` column names read *source*`2`*target*, so `ncap2ainp` is
-auxiliary input per unit of **new** capacity, and `cout2aout` is
-auxiliary output per unit discharged:
+The `@aeff` column names read *source*`2`*target*. A storage has
+**three** capacities, so the capacity couplings carry a part prefix —
+each multiplies its own part’s capacity variable:
 
-| column                    | auxiliary flow driven by             |
-|---------------------------|--------------------------------------|
-| `ncap2ainp` / `ncap2aout` | new capacity (a build-time material) |
-| `cap2ainp` / `cap2aout`   | installed capacity (something held)  |
-| `cinp2ainp` / `cinp2aout` | charging                             |
-| `cout2ainp` / `cout2aout` | discharging                          |
-| `stg2ainp` / `stg2aout`   | the level itself                     |
-| `ncap2stg`                | new capacity, on the storing side    |
+| column | auxiliary flow driven by |
+|----|----|
+| `inp.cap2a*` / `inp.ncap2a*` | charging capacity (installed / newly built) |
+| `stg.cap2a*` / `stg.ncap2a*` | energy capacity (installed / newly built) |
+| `out.cap2a*` / `out.ncap2a*` | discharging capacity (installed / newly built) |
+| `cinp2ainp` / `cinp2aout` | charging |
+| `cout2ainp` / `cout2aout` | discharging |
+| `stg2ainp` / `stg2aout` | the level itself |
+| `ncap2stg` | new capacity, on the storing side |
+
+The bare `cap2a*` / `ncap2a*` names are **refused**: they used to couple
+only the discharger while reading as “the” capacity. A `ncap2a*`
+coupling lands once, at construction; a `cap2a*` coupling recurs on the
+standing capacity. A capacity coupling needs its part **materialised**
+(priced or bounded) — a coefficient on a part with no capacity variable
+is dropped with a warning.
 
 ``` r
 
@@ -705,14 +726,15 @@ STG_MAT <- newStorage(
     unit  = "kt"
   ),
   aeff      = data.frame(
-    acomm     = "MAT",
-    ncap2ainp = 0.25                      # kt of lithium per MW built
+    acomm         = "MAT",
+    stg.ncap2ainp = 0.25       # kt of lithium per GWh of reservoir built
   ),
+  invcost   = data.frame(stg.invcost = 8),  # materialises the storing part
   vintage   = data.frame(olife = 15L)
 )
-STG_MAT@aeff[, c("acomm", "ncap2ainp")]
-#>   acomm ncap2ainp
-#> 1   MAT      0.25
+STG_MAT@aeff[, c("acomm", "stg.ncap2ainp")]
+#>   acomm stg.ncap2ainp
+#> 1   MAT          0.25
 ```
 
 ## Weather
@@ -876,10 +898,10 @@ sol_mod <- newModel(
 )
 
 scen <- solve_model(sol_mod, name = "solar_battery")
-#> Solver directory:  scenarios/solar_battery-d365_h24_subset_1day_per_month/runs/glpk/solver 
-#> Writing files: 0.24s
+#> Solver directory:  scenarios/solar_battery-d365_h24_1dpm/runs/glpk 
+#> Writing files: 0.32s
 #> Starting  GLPK 
-#> 0.25s
+#> 0.13s
 #> Reading solution: 0.09s
 ```
 

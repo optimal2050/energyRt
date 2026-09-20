@@ -59,3 +59,4 @@ tsl2hour(tsl)
 tsl2month(c("d001_h00", "d151_h22", "d365_h23"))
 tsl2month(c("m01_h12", "m05_h02", "m10_h01"))
 }
+\keyword{internal}

@@ -53,10 +53,12 @@ if (requireNamespace("IDEEA", quietly = TRUE)) {
 # DEGENERATE -- GLPK cycles for hours on ties the real profiles never
 # produce. The curated fallback remains the last resort only.
 .prev_weather <- NULL
-if (!have_ideea && file.exists("data/utopia_weather.rda")) {
+if (!have_ideea && file.exists("data/utopia.rda")) {
   .pw <- new.env()
-  load("data/utopia_weather.rda", envir = .pw)
-  .prev_weather <- .pw$utopia_weather
+  load("data/utopia.rda", envir = .pw)
+  # v0.90: the standalone `utopia_weather` dataset is gone; the previously
+  # shipped weather now lives in the combined list.
+  .prev_weather <- .pw$utopia$weather
 }
 
 if (have_ideea) {
@@ -133,6 +135,6 @@ utopia_stock <- data.frame(
 )
 
 # ── 4. Store ──────────────────────────────────────────────────────────────────
-usethis::use_data(utopia_weather, utopia_demand, utopia_stock, overwrite = TRUE)
+# (no use_data here: data-raw/utopia_assemble.R writes the single dataset)
 message("saved: utopia_weather (", nrow(utopia_weather), "), utopia_demand (",
         nrow(utopia_demand), "), utopia_stock (", nrow(utopia_stock), ")")
