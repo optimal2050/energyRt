@@ -174,7 +174,7 @@ scenario and model sharing a name appear once):
 ``` r
 
 get_scenarios_path()
-#> [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpeSQ4zy/wf"
+#> [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpOaP0wW/wf"
 basename(scen@path)
 #> [1] "BASE-UTOPIA-s4_h24-base"
 ```
