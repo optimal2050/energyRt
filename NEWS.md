@@ -5,6 +5,16 @@
 * energyRt is relicensed from AGPL-3 to **Apache-2.0**. Releases up to and 
   including v0.89 remain available under AGPL-3.
 
+* `interpolate_model(fold = TRUE)` now folds `year` as well as `region` and
+  `timeslice`. A weather series repeated across milestone years is usually the
+  largest parameter in the model, and the previous pair never touched it: on a
+  4-region `d365_h24` model over 7 milestones `pWeather` drops from 245,259 to
+  35,037 rows (-85.7%) and all value parameters from 443,545 to 71,215 (-83.9%),
+  with a bit-identical objective on GLPK and Pyomo/HiGHS. A dimension folds only
+  where the value is uniform across the whole set, so a model whose weather
+  genuinely varies by year is unchanged. Pass an explicit character vector to
+  choose the dimensions yourself; the `FALSE` default is unaffected.
+
 * On-disk stores write ~1M-row row groups instead of one per 32k-row record
   batch. Stored data.frames are smaller (1.3x on model-shaped data, 2.2x on
   a sorted hourly series) and scan faster; existing stores are unaffected

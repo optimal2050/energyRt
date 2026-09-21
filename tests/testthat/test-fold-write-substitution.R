@@ -68,7 +68,9 @@ test_that("folding survives a dense interpolation", {
   scen <- interpolate_model(fold_model(), name = "d", fold = TRUE,
                             sparse = FALSE, verbose = FALSE)
   expect_gt(length(unlist(energyRt:::.folded_params(scen))), 0L)
-  expect_equal(scen@status$folded, c("region", "timeslice"))
+  # `fold = TRUE` is the alias for the trimmable dims; `year` joined it because
+  # a weather series repeated across milestones is where the saving actually is.
+  expect_equal(scen@status$folded, c("region", "timeslice", "year"))
 })
 
 # GAMS spells a parameter's declaration and its use identically, so the rewrite

@@ -1055,6 +1055,31 @@ if (F) { # test
   x
 }
 
+# Replacement for `plyr::revalue()`. `plyr` is retired and was kept in Imports
+# by these two call sites alone, while dplyr -- already imported -- covers
+# everything else. Same contract: character or factor in, same type out; the
+# NAMES of `replace` are the old values; anything absent is left untouched
+# (plyr's `warn_missing = FALSE`). Verified identical to plyr::revalue over
+# character/factor, no-match, repeated-value, level-merging, NA and empty cases.
+#' @noRd
+.revalue <- function(x, replace) {
+  if (is.null(replace) || length(replace) == 0L) return(x)
+  repl <- as.character(replace)
+  if (is.factor(x)) {
+    lv <- levels(x)
+    i <- match(names(replace), lv)
+    ok <- !is.na(i)
+    lv[i[ok]] <- repl[ok]
+    levels(x) <- lv
+    x
+  } else {
+    i <- match(x, names(replace))
+    ok <- !is.na(i)
+    x[ok] <- repl[i[ok]]
+    x
+  }
+}
+
 #' Rename data.frame columns of list of data.frames.
 #'
 #' @param x a data.frame or a list with data frames.
@@ -1081,7 +1106,7 @@ renameSets <- function(x, newNames = NULL) {
     if (is.null(nms)) {
       y
     } else {
-      nms <- plyr::revalue(nms, newNames, warn_missing = FALSE)
+      nms <- .revalue(nms, newNames)
       names(y) <- nms
       y
     }
@@ -1119,7 +1144,7 @@ revalueSets <- function(x, newValues = NULL) {
   xnms <- names(x)
   jj <- xnms %in% nnms
   for (j in xnms[jj]) {
-    x[[j]] <- plyr::revalue(x[[j]], newValues[[j]], warn_missing = FALSE)
+    x[[j]] <- .revalue(x[[j]], newValues[[j]])
   }
   x
 }

@@ -377,7 +377,7 @@ read_solution <- function(obj, run = NULL, ..., ondisk = !isInMemory(obj)) {
     # .check_load_gdxlib()
     .check_load_gdxtools()
     # Read variables gdx
-    gd <- gdxtools::gdx(paste(arg$solver.dir, "/output/output.gdx", sep = ""))
+    gd <- .gdx("gdx")(paste(arg$solver.dir, "/output/output.gdx", sep = ""))
     for (i in c(vrb_list, vrb_list2)) {
       # cat(i, "\n")
       # if (i == "vOutTot") browser() # debug

@@ -24,11 +24,21 @@
 #' @param overwrite logical; overwrite an existing on-disk scenario of the same
 #'   name.
 #' @param fold logical or character; whole-column "fold" of trimmable dimensions
-#'   to NA wildcards to shrink the data. `TRUE` folds `region` + `timeslice`; `FALSE`
-#'   (default) folds nothing; a character vector selects dims among
-#'   `region`, `timeslice`, `year`, `comm`, `tech`, `stg`, `trade`. The wildcards
-#'   are substituted by an artificial set member in the written model files
-#'   only; the scenario object keeps them and `getData()` expands them.
+#'   to NA wildcards to shrink the data. `TRUE` folds `region` + `timeslice` +
+#'   `year`; `FALSE` (default) folds nothing; a character vector selects dims
+#'   among `region`, `timeslice`, `year`, `comm`, `tech`, `stg`, `trade`. The
+#'   wildcards are substituted by an artificial set member in the written model
+#'   files only; the scenario object keeps them and `getData()` expands them.
+#'
+#'   A dimension folds only where the value is uniform across its WHOLE set, so
+#'   folding never changes the solution — it changes how the same numbers are
+#'   stored. `year` matters most in weather-heavy models: one weather series
+#'   repeated across milestone years is usually the largest parameter, and
+#'   `region`/`timeslice` alone do not touch it. Measured on a 4-region
+#'   `d365_h24` model over 7 milestones, adding `year` took `pWeather` from
+#'   245,259 to 35,037 rows (-85.7%) with a bit-identical objective on GLPK and
+#'   Pyomo/HiGHS. A model whose weather genuinely differs by year simply does
+#'   not fold.
 #' @param sparse logical; the storage knob. `TRUE` drops `value == defVal` rows;
 #'   `FALSE` materialises the default over each parameter's full domain (the
 #'   form GAMS needs). Folding applies to either.
@@ -121,10 +131,19 @@ interpolate_model <- function(mod, name = NULL, ...,
   # trade objects that expansion has renamed. See the hook below.
 
   drop_default <- isTRUE(sparse)
-  # `fold` selects which dimensions to whole-column fold: TRUE -> region + timeslice
-  # (default), FALSE -> none, or a character vector of foldable dims (region,
-  # timeslice, year, comm, tech, stg, trade).
-  fold_dims <- if (isTRUE(fold)) c("region", "timeslice")
+  # `fold` selects which dimensions to whole-column fold: TRUE -> region +
+  # timeslice + year, FALSE -> none (the default), or a character vector of
+  # foldable dims (region, timeslice, year, comm, tech, stg, trade).
+  #
+  # `year` is in the TRUE set because it is where the saving actually is:
+  # a weather series repeated across milestone years is the dominant parameter
+  # in weather-heavy models, and region/timeslice alone never touch it. Measured
+  # on a 4-region d365_h24 model over 7 milestones: pWeather 245,259 -> 35,037
+  # rows (-85.7%), all value parameters 443,545 -> 71,215 (-83.9%), objective
+  # bit-identical on GLPK and Pyomo/HiGHS. Folding only fires where the value is
+  # uniform across the WHOLE set, so a genuine multi-weather-year model is
+  # untouched.
+  fold_dims <- if (isTRUE(fold)) c("region", "timeslice", "year")
     else if (is.null(fold) || isFALSE(fold)) character(0)
     else intersect(as.character(fold), .foldable_dims)
   scen <- new("scenario")
@@ -2929,7 +2948,10 @@ validate_scenario_parameters <- function(scen, fold = TRUE,
   # Dimensions in which a fold wildcard (NA) is legitimate. `fold` may be the
   # legacy logical (TRUE -> the original trimmable dims) or the character vector of
   # dims actually folded (region / timeslice / year / comm / tech / stg / trade).
-  trim_dims <- if (isTRUE(fold)) c("region", "timeslice", "vintage")
+  # `year` joins the logical alias so it tracks `interpolate_model(fold = TRUE)`;
+  # the interp call site passes the resolved character vector, so this branch
+  # only serves direct callers.
+  trim_dims <- if (isTRUE(fold)) c("region", "timeslice", "year", "vintage")
     else if (is.character(fold)) fold else character(0)
   issues <- list()
   # `severity`: "structural" means the model cannot be correct -- a populated

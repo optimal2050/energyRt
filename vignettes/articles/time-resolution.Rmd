@@ -165,6 +165,13 @@ and processes whose timeframes follow it — annual bookkeeping stays cheap.
   or peak pricing matter — intra-day dynamics need real hours.
 * Full-year hourly detail (`m12_h24`, 288 or `d365`+hours) is for final
   runs; check tractability with `model_size()` first.
+* On a **multi-year** horizon, interpolate with `fold = TRUE`. A weather series
+  that is the same in every milestone year is stored once instead of once per
+  year, which is usually the single largest saving in an hourly model — on a
+  4-region `d365_h24` model over 7 milestones it cuts the interpolated data by
+  ~84%. Folding only collapses values that are uniform across the whole
+  dimension, so it never changes the solution; a model with a genuinely
+  different weather year per milestone simply does not fold.
 
 The [UTOPIA vignettes](utopia-build.html) build one model and run it on these
 calendars interchangeably — resolution is a configuration choice, not a

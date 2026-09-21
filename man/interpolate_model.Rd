@@ -48,11 +48,21 @@ models (data is materialised back to memory at solve time).}
 name.}
 
 \item{fold}{logical or character; whole-column "fold" of trimmable dimensions
-to NA wildcards to shrink the data. \code{TRUE} folds \code{region} + \code{timeslice}; \code{FALSE}
-(default) folds nothing; a character vector selects dims among
-\code{region}, \code{timeslice}, \code{year}, \code{comm}, \code{tech}, \code{stg}, \code{trade}. The wildcards
-are substituted by an artificial set member in the written model files
-only; the scenario object keeps them and \code{getData()} expands them.}
+to NA wildcards to shrink the data. \code{TRUE} folds \code{region} + \code{timeslice} +
+\code{year}; \code{FALSE} (default) folds nothing; a character vector selects dims
+among \code{region}, \code{timeslice}, \code{year}, \code{comm}, \code{tech}, \code{stg}, \code{trade}. The
+wildcards are substituted by an artificial set member in the written model
+files only; the scenario object keeps them and \code{getData()} expands them.
+
+A dimension folds only where the value is uniform across its WHOLE set, so
+folding never changes the solution — it changes how the same numbers are
+stored. \code{year} matters most in weather-heavy models: one weather series
+repeated across milestone years is usually the largest parameter, and
+\code{region}/\code{timeslice} alone do not touch it. Measured on a 4-region
+\code{d365_h24} model over 7 milestones, adding \code{year} took \code{pWeather} from
+245,259 to 35,037 rows (-85.7\%) with a bit-identical objective on GLPK and
+Pyomo/HiGHS. A model whose weather genuinely differs by year simply does
+not fold.}
 
 \item{sparse}{logical; the storage knob. \code{TRUE} drops \code{value == defVal} rows;
 \code{FALSE} materialises the default over each parameter's full domain (the

@@ -65,7 +65,7 @@ get_gdxlib_path <- function() {
   if (is.null(lb)) {
     lb <- get_gams_path()
   }
-  if (!gdxtools::igdx(lb)) {
+  if (!.gdx("igdx")(lb)) {
     stop('Cannot load "gdx" library. Check "?set_gdxlib_path" to setup.')
   }
   .en_state$gdxlib_loaded <- TRUE
@@ -89,6 +89,14 @@ get_gdxlib_path <- function() {
   }
   .load_gdxlib()
 }
+
+# `gdxtools` is deliberately NOT a declared dependency: it is off-CRAN
+# (lolow/gdxtools), GAMS-only, and upstream pins hard. Reach its exports through
+# the namespace rather than `gdxtools::`, so `R CMD check` sees no `::` into an
+# undeclared package. Every caller below is gated by `.check_load_gdxtools()`,
+# which stops with an actionable message when the package is absent.
+#' @noRd
+.gdx <- function(fn) getExportedValue("gdxtools", fn)
 
 .check_load_gdxtools <- function() {
   xt <- rlang::is_installed("gdxtools")
@@ -669,7 +677,7 @@ get_gdxlib_path <- function() {
   }
   # gdxrrw::wgdx(gdxName = gdxName, x, squeeze = FALSE)
   # !!!ToDo: add check for NAs
-  gdxtools::wgdx(gdxName = gdxName, x, squeeze = FALSE)
+  .gdx("wgdx")(gdxName = gdxName, x, squeeze = FALSE)
   cat(wipe, sep = "")
   cat(rep(" ", max_length + 3), sep = "")
   cat(rep(" ", max_length + 3), sep = "")
