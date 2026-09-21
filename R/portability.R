@@ -55,7 +55,7 @@
 # stored scenario, see `.sui_copy_tree()`.
 # =========================================================================== #
 
-#' @include arrow.R runs.R utils.R
+#' @include arrow.R store-scenario.R utils.R
 NULL
 
 # -- what a solve left behind, and dropping what regenerates --------------- #

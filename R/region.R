@@ -746,7 +746,7 @@ NULL
   setdiff(num, .AGG_ID_COLS)
 }
 
-# One weight per region per object, as PyPSA weights a cluster by `p_nom`.
+# One weight per region per object -- a single size, not a time series.
 # A year- or vintage-varying weight would make an efficiency's weighting
 # depend on which year it is read for; a single size per region does not.
 #' @noRd

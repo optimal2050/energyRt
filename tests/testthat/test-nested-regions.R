@@ -432,7 +432,7 @@ test_that("no engine refuses a coarse commodity any more", {
 # roll-up. Both used to pass straight through.
 
 # `nation -> region` where FR/DE have sub-regions but LU repeats its code at
-# both levels -- the Eurostat / PyPSA-Eur shape. `pad` gives LU a distinct
+# both levels -- the Eurostat shape. `pad` gives LU a distinct
 # national code, which is what Eurostat's own LU -> LU0 -> LU00 padding does,
 # and is the reference the degenerate model must reproduce.
 nr_selfscale <- function(pad = FALSE) {
