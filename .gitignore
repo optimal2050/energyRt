@@ -41,3 +41,6 @@ __pycache__/
 # editor/tooling backups (sysdata rebakes, etc.)
 *.bak
 *.bak[0-9]
+
+# dead code kept locally, not published
+depreciated/
