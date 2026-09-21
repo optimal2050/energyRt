@@ -4703,6 +4703,21 @@ mWeatherRegion:
   join_keys: []
   filter_by: []
   depends_on: []
+mWeatherRegionAt:
+  name: mWeatherRegionAt
+  dims:
+  - weather
+  - region
+  - regionp
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: membership
+  source: object_slot
+  predicate: .na
+  join_keys: []
+  filter_by: []
+  depends_on: []
 mWeatherTimeslice:
   name: mWeatherTimeslice
   dims:

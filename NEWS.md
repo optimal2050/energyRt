@@ -5,6 +5,20 @@
 * energyRt is relicensed from AGPL-3 to **Apache-2.0**. Releases up to and 
   including v0.89 remain available under AGPL-3.
 
+* A `weather` object can be declared at a COARSER region than the processes
+  that use it — one profile per `adm1` feeding all of its `adm2` children —
+  and is stored once instead of copied per child. A process reads the series at
+  its own region when the object serves it, otherwise at the nearest ancestor
+  that does (`mWeatherRegionAt`); a flat model resolves through identity rows to
+  exactly the previous lookup. Verified identical on GLPK, GAMS, JuMP and Pyomo.
+  A link that resolves to nothing is now an error: the factor is multiplicative
+  and `pWeather` defaults to 0, so it used to shut the process down silently.
+  `subset_model_regions()` keeps a parent profile its children still need,
+  `aggregate_model_regions()` passes one through when it already sits at the
+  target level (and refuses between two non-atom levels), and `levcost()`
+  follows it down to the technology — it previously lost the capacity factor
+  and reported a 33% lower levelised cost with no warning.
+
 * `interpolate_model(fold = TRUE)` now folds `year` as well as `region` and
   `timeslice`. A weather series repeated across milestone years is usually the
   largest parameter in the model, and the previous pair never touched it: on a
@@ -416,6 +430,12 @@
 
 ## Bug fixes
 
+* A `supply` no longer reaches regions it was never declared in. A supply
+  given `region = "R1"` also produced `mSupSpan`, `mSupAva` and `mSupOutTot`
+  entries for the model's other regions, so its commodity appeared available
+  where no supply existed. The interpolation goldens are re-frozen for this
+  and for the upper-level rows that multi-level timeframes and parent-geoframe
+  totals now add.
 * `interpolate()` and `solve()` work on an installed package. Both generics
   were documented as the recommended API but never exported, so the pipelines
   in the README and the vignettes failed for anyone who had not loaded the

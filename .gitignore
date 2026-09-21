@@ -14,10 +14,16 @@ solwork
 #doc
 Meta
 #docs
+# project stores + registry, created in the working directory by a solve or a
+# save when no open_project() has set a project root
 scenarios/
+models/
+repositories/
+datasets/
 levcost/
 levcosts/
 reports/
+energyRt_registry.csv
 .archive/
 drafts/
 .formatted/

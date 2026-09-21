@@ -193,7 +193,7 @@ save_scenario <- function(
     }
   }
 
-  tictoc::tic("save_scenario")
+  .t_start <- proc.time()[["elapsed"]]
   # clean directories
   if (clean_start) {
     if (verbose) message("Cleaning directory '", scen@path, "'")
@@ -384,8 +384,10 @@ save_scenario <- function(
   dirsize <- dir_size(scen@path)
   cat("Directory size: ", round(dirsize / 1024^2, 2), " MB\n", sep = "")
   scen@misc$dirsize <- dirsize
-  if (verbose) tictoc::toc()
-  tictoc::tic.clear()
+  if (verbose) {
+    cat(sprintf("save_scenario: %.2f sec elapsed\n",
+                proc.time()[["elapsed"]] - .t_start))
+  }
   return(invisible(scen))
 }
 

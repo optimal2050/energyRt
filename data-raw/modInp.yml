@@ -2546,6 +2546,13 @@ mWeatherRegion:
   dimSets:
   - weather
   - region
+mWeatherRegionAt:
+  name: mWeatherRegionAt
+  type: map
+  dimSets:
+  - weather
+  - region
+  - regionp
 mSupWeatherLo:
   name: mSupWeatherLo
   type: map

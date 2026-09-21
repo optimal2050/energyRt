@@ -440,6 +440,10 @@ map_mCommReg <- function(scen, fmp) {
   # populated.
   .assert_process_geoframe(scen)
 
+  # Every weather link must resolve to a region the weather actually carries a
+  # series at. Checked here for the same reason: it needs process_region.
+  .assert_weather_reachable(scen)
+
   # Declared timeslices/regions must match the commodity's own level for every
   # class that has no aggregation path (see check_levels.R). Same reason for
   # checking here: it needs the collected process/commodity relations.
@@ -1141,11 +1145,18 @@ map_mTechAOut    <- function(scen, fmp) .build_aux_membership(scen, "technology"
 map_mStorageAInp <- function(scen, fmp) .build_aux_membership(scen, "storage",    "stg",  fmp, "mStorageAInp", "mStorageAOut")
 map_mStorageAOut <- function(scen, fmp) .build_aux_membership(scen, "storage",    "stg",  fmp, "mStorageAInp", "mStorageAOut")
 
-# mWeatherRegion: (weather, region) for each weather object's regions (its
-# `@region`, or all scenario regions when unset). Faithful port of the legacy
-# weather .obj2modInp block (obj2modInp.R:170) which ob2mi(weather) leaves out.
-map_mWeatherRegion <- function(scen, fmp) {
-  regs <- as.character(scen@settings@region)
+# (weather, region) for each weather object's regions: its `@region`, else the
+# `region` column of its own data, else every scenario region. Shared by
+# `map_mWeatherRegion()` and `map_mWeatherRegionAt()` so the two can never
+# disagree about where a series lives.
+#' @noRd
+.weather_regions_served <- function(scen) {
+  # The WIDENED set: a weather may legitimately be declared at a coarser
+  # geoscale level than the model's atoms (one profile per adm1 serving its
+  # adm2 children). Filtering against `settings@region` dropped such an object
+  # silently and left both weather maps empty.
+  regs <- as.character(.known_regions(scen))
+  if (length(regs) == 0) regs <- as.character(scen@settings@region)
   res <- apply_to_scenario_data(
     scen = scen, classes = "weather", as_list = TRUE,
     func = function(x) {
@@ -1163,15 +1174,96 @@ map_mWeatherRegion <- function(scen, fmp) {
       o
     })
   df <- dplyr::distinct(dplyr::bind_rows(res))
-  if (is.null(df) || nrow(df) == 0) return(scen)
+  if (is.null(df) || nrow(df) == 0) return(NULL)
+  df
+}
+
+# mWeatherRegion: (weather, region) for each weather object's regions (its
+# `@region`, or all scenario regions when unset). Faithful port of the legacy
+# weather .obj2modInp block (obj2modInp.R:170) which ob2mi(weather) leaves out.
+map_mWeatherRegion <- function(scen, fmp) {
+  df <- .weather_regions_served(scen)
+  if (is.null(df)) return(scen)
   scen@modInp@parameters[["mWeatherRegion"]] <-
     d2p(scen@modInp@parameters[["mWeatherRegion"]], df, fmp("mWeatherRegion"))
+  scen
+}
+
+# mWeatherRegionAt: (weather, region, regionp) -- the REDIRECT. For a process
+# operating in `region`, `regionp` is the region whose `pWeather` series it
+# reads. The equations index `pWeather` through this map instead of at their
+# own region, which is what lets ONE series declared at a parent level serve
+# every child region instead of being copied per child.
+#
+# The rule: `regionp` is `region` itself when the weather serves it, else the
+# NEAREST ancestor of `region` that the weather serves. "Nearest" = finest
+# level, so a profile at adm1 loses to one at adm2 if both exist.
+#
+# Identity rows `(w, r, r)` are emitted for every region a weather already
+# serves, so a flat model (or any model whose weather sits where it is used)
+# resolves to exactly the pre-redirect lookup and is value-identical.
+#
+# EXACTLY ONE `regionp` per (weather, region) is required: the equation sums
+# over the map, so a duplicate would multiply two profiles into one factor.
+# Ties are impossible once the geoframe chain nests (one ancestor per level),
+# which `.geo_hierarchy()` now enforces -- the guard below is belt-and-braces.
+map_mWeatherRegionAt <- function(scen, fmp) {
+  served <- .weather_regions_served(scen)
+  if (is.null(served)) return(scen)
+
+  # identity: read the series where it is declared
+  cand <- data.frame(weather = served$weather, region = served$region,
+                     regionp = served$region, stringsAsFactors = FALSE)
+
+  h <- .scen_geo_hierarchy(scen)
+  anc <- .region_ancestry(scen)            # (regionp = node, region = ancestor)
+  if (!is.null(h) && !is.null(anc) && nrow(anc) > 0) {
+    # a node may read any ancestor the weather serves
+    up <- merge(anc, served, by = "region")          # region = the ancestor
+    if (nrow(up) > 0) {
+      cand <- rbind(cand, data.frame(
+        weather = up$weather, region = up$regionp, regionp = up$region,
+        stringsAsFactors = FALSE))
+    }
+  }
+  cand <- dplyr::distinct(cand)
+
+  # keep the FINEST candidate per (weather, region). `h$levels` is coarsest
+  # first, so a larger rank is finer; identity always wins because a region's
+  # own level is finer than any ancestor's.
+  if (!is.null(h) && nrow(cand) > 0) {
+    lvl_of <- unlist(lapply(names(h$members), function(lv)
+      stats::setNames(rep(lv, length(h$members[[lv]])), h$members[[lv]])))
+    rk <- stats::setNames(match(unname(lvl_of), h$levels), names(lvl_of))
+    cand$.rk <- unname(rk[cand$regionp])
+    cand$.rk[is.na(cand$.rk)] <- 0L
+    cand <- cand[order(cand$weather, cand$region, -cand$.rk), , drop = FALSE]
+    cand <- cand[!duplicated(cand[, c("weather", "region")]), , drop = FALSE]
+    cand$.rk <- NULL
+  }
+
+  dup <- duplicated(cand[, c("weather", "region")])
+  if (any(dup)) {
+    bad <- unique(cand[dup, c("weather", "region")])
+    stop("mWeatherRegionAt: ", nrow(bad), " (weather, region) pair(s) resolve ",
+         "to more than one source region, which would multiply two profiles ",
+         "into one factor:
+   ",
+         paste(utils::capture.output(print(utils::head(bad, 5))),
+               collapse = "
+   "), call. = FALSE)
+  }
+  if (nrow(cand) == 0) return(scen)
+  scen@modInp@parameters[["mWeatherRegionAt"]] <-
+    d2p(scen@modInp@parameters[["mWeatherRegionAt"]], cand,
+        fmp("mWeatherRegionAt"))
   scen
 }
 
 # -- registry for the membership family ------------------------------------ #
 .membership_builders <- list(
   mWeatherRegion = map_mWeatherRegion,
+  mWeatherRegionAt = map_mWeatherRegionAt,
   mSupComm     = map_mSupComm,
   mImpComm     = map_mImpComm,
   mDemComm     = map_mDemComm,
@@ -1453,6 +1545,73 @@ map_mCommRegion <- function(scen, fmp) {
 # state-balanced commodity would have its output stranded at a cell no balance
 # equation reads, so it simply vanishes from the model.
 #' @noRd
+# A process links a weather that has no series it can read.
+#
+# `pWeather` defaults to 0 and the factor is MULTIPLICATIVE, so an unresolved
+# link silently multiplies the availability bound by zero: the process is shut
+# down and the model still solves. Measured on a two-plant model, declaring the
+# weather one level up turned a 0.33 objective into 16.67 -- the cheap plant
+# was simply never built, with no warning. That is why this is an error.
+#
+# Resolution is `mWeatherRegionAt`: the process's own region, or the nearest
+# ancestor of it the weather serves.
+#' @noRd
+.assert_weather_reachable <- function(scen) {
+  at <- .read_map(scen, "mWeatherRegionAt")
+  preg <- named_list_to_df(scen@modInp@sets$process_region,
+                           col_names = c("process", "region"))
+  if (is.null(preg) || nrow(preg) == 0) return(invisible(NULL))
+
+  # (process, weather) links, read off the objects so this does not depend on
+  # which weather maps have been built yet.
+  res <- apply_to_scenario_data(
+    scen = scen, classes = c("technology", "storage", "supply"),
+    as_list = TRUE,
+    func = function(x) {
+      w <- get_weather(x)
+      if (length(w) == 0) return(NULL)
+      o <- list(); o[[x@name]] <- data.frame(process = x@name, weather = w,
+                                             stringsAsFactors = FALSE)
+      o
+    })
+  links <- dplyr::distinct(dplyr::bind_rows(res))
+  if (is.null(links) || nrow(links) == 0) return(invisible(NULL))
+
+  need <- dplyr::distinct(merge(links, preg, by = "process"))
+  if (nrow(need) == 0) return(invisible(NULL))
+  have <- if (is.null(at) || nrow(at) == 0) {
+    need[0, c("weather", "region"), drop = FALSE]
+  } else {
+    dplyr::distinct(as.data.frame(at)[, c("weather", "region"), drop = FALSE])
+  }
+  bad <- dplyr::anti_join(need, have, by = c("weather", "region"))
+  if (nrow(bad) == 0) return(invisible(NULL))
+
+  srv <- .weather_regions_served(scen)
+  where <- function(w) {
+    r <- if (is.null(srv)) character(0) else srv$region[srv$weather == w]
+    if (length(r) == 0) "nowhere" else paste(utils::head(sort(r), 4),
+                                             collapse = ", ")
+  }
+  bad <- unique(bad[, c("process", "region", "weather"), drop = FALSE])
+  det <- vapply(seq_len(min(nrow(bad), 5L)), function(i) sprintf(
+    "%s in %s -> weather '%s' (declared at: %s)",
+    bad$process[i], bad$region[i], bad$weather[i], where(bad$weather[i])),
+    character(1))
+  stop("Weather link(s) that cannot be resolved: ", nrow(bad),
+       " (process, region) cell(s) reference a weather object with no series ",
+       "there and no ancestor to read.
+   ",
+       paste(det, collapse = "
+   "),
+       if (nrow(bad) > 5) "
+   ..." else "",
+       "
+Declare the weather at that region, or at a COARSER region of the ",
+       "geoscale that contains it. Left unresolved the factor would be 0 and ",
+       "the process would be shut down silently.", call. = FALSE)
+}
+
 .assert_process_geoframe <- function(scen) {
   h <- .scen_geo_hierarchy(scen)
   if (is.null(h)) return(invisible(NULL))

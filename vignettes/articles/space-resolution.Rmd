@@ -141,7 +141,7 @@ solve_demo <- function(name, ...) {
 | **technology** coarser than a commodity it uses | ❌ refused — demo 3 |
 | **trade between atoms** for a coarse commodity | ❌ refused — demo 4 |
 | rest-of-world **import** / **export** at a coarse level | ❌ refused — demo 6 |
-| **weather** at a coarse region | ❌ makes the model infeasible — demo 7 |
+| **weather** at a coarse region, read by child processes | ✅ one series serves every child — demo 7 |
 | losses or capacity limits *inside* a level | ❌ impossible by construction — demo 8 |
 | two **parallel** groupings of the same regions | ❌ refused — demo 9 |
 
@@ -370,11 +370,13 @@ atoms — so a coarse commodity is refused. This is a pinned refusal, an open
 capability rather than a defect. Where you only need a priced source, use a
 `supply` at the coarse level instead, as in demo 2.
 
-## Demo 7 — weather does not work at a coarse region
+## Demo 7 — one weather series shared by a whole level
 
-A plant in R1 whose summer availability is halved (`wval = 0.5`). Declared at
-the atom the weather binds and the model buys more capacity; declared at the
-nation the model becomes infeasible:
+Weather data is usually the heaviest thing in a model, and a profile that is
+the same across a group of regions used to be copied once per region. Declare
+it at the parent instead and every child reads the one copy.
+
+A plant in R1 whose summer availability is halved (`wval = 0.5`):
 
 ```{r d7}
 plant <- function(name, wreg) solve_demo(name,
@@ -396,13 +398,32 @@ plant <- function(name, wreg) solve_demo(name,
 plant("d7a", "R1")    # the weather sits on the atom the plant is in
 #> 6.666667   -- vs 3.333333 with no weather: summer wval = 0.5 binds
 
-plant("d7b", "NA1")   # the same weather at the nation
-#> INFEASIBLE
+plant("d7b", "NA1")   # the SAME series, declared once at the nation
+#> 6.666667   -- identical; R1 reads the parent's series
 ```
 
-`weather` is not one of the strict classes, so nothing refuses the coarse
-declaration up front — it fails later, and unhelpfully. Keep weather objects at
-the finest level.
+The lookup goes through `mWeatherRegionAt`, which resolves each process to its
+own region when the weather serves it, and otherwise to the **nearest ancestor**
+that does. So a nation-level profile feeds all of that nation's regions from a
+single stored series, and a flat model resolves through identity rows to exactly
+the old behaviour.
+
+The profile has to be *reachable*, though — a weather at `NA2` is no use to a
+plant in R1:
+
+```{r d7c}
+plant("d7c", "NA2")   # a different nation: nothing to read
+#> Error: Weather link(s) that cannot be resolved: 1 (process, region) cell(s)
+#> reference a weather object with no series there and no ancestor to read.
+```
+
+That is deliberately an error. `pWeather` defaults to 0 and the factor is
+multiplicative, so an unresolved link would quietly multiply the availability
+bound by zero — the process would be shut down and the model would still solve.
+
+`pWeather` is an **input**, so it is reported at the region it is declared at
+(`getData()` returns `NA1` here), while results stay at the processes' own
+regions.
 
 ## Demo 8 — transport inside a level is free, and only free
 

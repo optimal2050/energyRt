@@ -685,7 +685,24 @@ get_gdxlib_path <- function() {
       ", ", sep = "")
 }
 
+# `DBI`/`RSQLite` are Suggests: the SQLite exchange format is opt-in
+# (`solver$export_format = "sqlite"`), and RSQLite alone adds five packages to
+# an install that the default and Arrow exchange paths never touch.
+#' @noRd
+.check_sqlite <- function() {
+  if (!requireNamespace("DBI", quietly = TRUE) ||
+      !requireNamespace("RSQLite", quietly = TRUE)) {
+    stop('packages "DBI" and "RSQLite" are required for the "sqlite" ',
+         "exchange format.\n",
+         'To install: install.packages(c("DBI", "RSQLite"))\n',
+         'Or choose another format, e.g. export_format = "feather".',
+         call. = FALSE)
+  }
+  invisible(TRUE)
+}
+
 .write_sqlite_list <- function(dat, sqlFile = "data.db") {
+  .check_sqlite()
   cat(basename(sqlFile), " ", sep = "")
   tStart <- Sys.time()
   if (file.exists(sqlFile)) file.remove(sqlFile)

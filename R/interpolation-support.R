@@ -299,6 +299,33 @@
 # setMethod(".interpolation_bound", signature(dtf = 'data.frame',
 #   parameter = 'character', defVal = 'numeric', rule = 'character'),
 
+# Replacement for `zoo::na.approx()`, which was this package's only use of zoo
+# beyond `.sd_floor()`. Linear interpolation of the NAs in `y` against `x`.
+#
+# `yleft`/`yright` override `rule` when supplied, as in `stats::approx()`.
+# Fewer than two non-NA values cannot define a line: `na.rm = TRUE` then
+# returns only the non-NA elements -- a SHORTER vector, which callers inside
+# `mutate()` rely on dplyr recycling -- while `na.rm = FALSE` returns `y`
+# unchanged. Verified element-wise against zoo over 108 case/rule combinations.
+#' @noRd
+.na_approx <- function(y, x, rule = 1, yleft = NULL, yright = NULL,
+                       na.rm = TRUE) {
+  ok <- !is.na(y)
+  if (sum(ok) < 2L) return(if (na.rm) y[ok] else y)
+  xo <- x[ok]
+  yo <- y[ok]
+  rule <- rep_len(rule, 2L)
+  if (is.null(yleft)) {
+    yleft <- if (rule[1L] == 1L) NA_real_ else yo[which.min(xo)]
+  }
+  if (is.null(yright)) {
+    yright <- if (rule[2L] == 1L) NA_real_ else yo[which.max(xo)]
+  }
+  out <- stats::approx(xo, yo, xout = x, yleft = yleft, yright = yright)$y
+  if (na.rm) out <- out[!is.na(out)]
+  out
+}
+
 #' Internal function to interpolate bounds in a given data.frame
 #'
 #' @param dtf data.frame, normally a slot of an object with parameters and sets.
@@ -745,7 +772,7 @@ interpolate_slot <- interpolate_slot <- function(
       x <- x |>
         mutate(
           {{val}} := if (sum(!is.na(.data[[val]])) >= 2) {
-            zoo::na.approx(.data[[val]], x = year, na.rm = FALSE)
+            .na_approx(.data[[val]], x = year, na.rm = FALSE)
           } else {
             .data[[val]]
           }
@@ -757,7 +784,7 @@ interpolate_slot <- interpolate_slot <- function(
   # if (is.null(year_seq)) year_seq = full_seq(x$year, 1)
     #
     # mutate(
-    #   {{val}} := zoo::na.approx(.data[[val]], x = year)
+    #   {{val}} := .na_approx(.data[[val]], x = year)
     # ) |>
     # as.data.table() |>
     # ungroup()

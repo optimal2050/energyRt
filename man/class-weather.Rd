@@ -22,7 +22,7 @@ and can be added or replaced for different scenarios.
 
 \item{\code{unit}}{character. Unit of the weather factor.}
 
-\item{\code{region}}{character. Region where the weather factor is applied.}
+\item{\code{region}}{character. Region(s) the weather factor is declared at. May be a COARSER region of the model's geoscale than the processes that use it: a process reads the series at its own region when the object serves it, otherwise at the NEAREST ancestor that does. One profile declared at a parent therefore feeds every child region from a single stored series instead of being copied per child. Unset means every region. A process whose region the object neither serves nor has an ancestor for is an error -- the factor is multiplicative and defaults to 0, so an unresolved link would shut the process down silently.}
 
 \item{\code{timeframe}}{character. Timeframe of the weather factor.}
 

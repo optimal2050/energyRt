@@ -1685,7 +1685,7 @@ apply_to_parameters <- function(
     complete(year = year_seq) |>
     mutate(
       # needs review
-      .NNN := zoo::na.approx(.data[[val]],
+      .NNN := .na_approx(.data[[val]],
         x = year, rule = .rule,
         yleft = yleft, yright = yright
       )

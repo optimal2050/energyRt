@@ -108,6 +108,11 @@ set mTradeFixom dimen 3;
 set mAggregateFactor dimen 2;
 set mWeatherTimeslice dimen 2;
 set mWeatherRegion dimen 2;
+# (weather, region, regionp): the region whose pWeather series a process
+# operating in `region` reads. Identity for a weather declared where it is
+# used; a coarser `regionp` lets ONE series serve every child region instead
+# of being copied per child. Exactly one regionp per (weather, region).
+set mWeatherRegionAt dimen 3;
 set mSupWeatherLo dimen 2;
 set mSupWeatherUp dimen 2;
 set mTechWeatherAfLo dimen 2;
@@ -754,13 +759,13 @@ s.t.  eqTechAInp{(t, c, r, y, s) in mvTechAInp}: vTechAInp[t,c,r,y,s]  =  sum{FO
 
 s.t.  eqTechAOut{(t, c, r, y, s) in mvTechAOut}: vTechAOut[t,c,r,y,s]  =  sum{FORIF: (t,c,r,y,s) in mTechAct2AOut} ((vTechAct[t,r,y,s]*pTechAct2AOut[t,c,r,y,s]))+sum{FORIF: (t,c,r,y,s) in mTechCap2AOut} (((vTechCap[t,r,y]*pTechCap2AOut[t,c,r,y,s]) / (pTechCap2act[t])))+sum{FORIF: (t,c,r,y,s) in mTechNCap2AOut} ((vTechNewCap[t,r,y]*pTechNCap2AOut[t,c,r,y,s]))+sum{FORIF: (t,c,r,y,s) in mTechPho2AOut} ((sum{FORIF: (t,r,y) in mvTechPhaseOut} (vTechPhaseOut[t,r,y])*pTechPho2AOut[t,c,r,y,s]))+sum{FORIF: (t,c,r,y,s) in mTechRet2AOut} (((sum{FORIF: (t,r,y) in mvTechRetiredStock} (vTechRetiredStock[t,r,y])+sum{yp in year:((t,r,yp,y) in mvTechRetiredNewCap)}(vTechRetiredNewCap[t,r,yp,y]))*pTechRet2AOut[t,c,r,y,s]))+sum{cp in comm:((t,c,cp,r,y,s) in mTechCinp2AOut)}(pTechCinp2AOut[t,c,cp,r,y,s]*vTechInp[t,cp,r,y,s])+sum{cp in comm:((t,c,cp,r,y,s) in mTechCout2AOut)}(pTechCout2AOut[t,c,cp,r,y,s]*vTechOut[t,cp,r,y,s]);
 
-s.t.  eqTechAfLo{(t, r, y, s) in meqTechAfLo}: pTechAfLo[t,r,y,s]*pTechCap2act[t]*vTechCap[t,r,y]*pTimesliceShare[s]*prod{wth1 in mTechWeatherAfLo_ix[t]}(pTechWeatherAfLo[wth1,t]*pWeather[wth1,r,y,s]) <=  vTechAct[t,r,y,s];
+s.t.  eqTechAfLo{(t, r, y, s) in meqTechAfLo}: pTechAfLo[t,r,y,s]*pTechCap2act[t]*vTechCap[t,r,y]*pTimesliceShare[s]*prod{wth1 in mTechWeatherAfLo_ix[t]}(pTechWeatherAfLo[wth1,t]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s])) <=  vTechAct[t,r,y,s];
 
-s.t.  eqTechAfUp{(t, r, y, s) in meqTechAfUp}: vTechAct[t,r,y,s] <=  pTechAfUp[t,r,y,s]*pTechCap2act[t]*vTechCap[t,r,y]*pTimesliceShare[s]*prod{wth1 in mTechWeatherAfUp_ix[t]}(pTechWeatherAfUp[wth1,t]*pWeather[wth1,r,y,s]);
+s.t.  eqTechAfUp{(t, r, y, s) in meqTechAfUp}: vTechAct[t,r,y,s] <=  pTechAfUp[t,r,y,s]*pTechCap2act[t]*vTechCap[t,r,y]*pTimesliceShare[s]*prod{wth1 in mTechWeatherAfUp_ix[t]}(pTechWeatherAfUp[wth1,t]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s]));
 
-s.t.  eqTechAfsLo{(t, r, y, s) in meqTechAfsLo}: pTechAfsLo[t,r,y,s]*pTechCap2act[t]*vTechCap[t,r,y]*pTimesliceShare[s]*prod{wth1 in mTechWeatherAfsLo_ix[t]}(pTechWeatherAfsLo[wth1,t]*pWeather[wth1,r,y,s]) <=  sum{sp in timeslice:((s,sp) in mTimesliceParentChildE)}(pTimesliceAgg[y,s,sp]*sum{FORIF: (t,r,y,sp) in mvTechAct} (vTechAct[t,r,y,sp]));
+s.t.  eqTechAfsLo{(t, r, y, s) in meqTechAfsLo}: pTechAfsLo[t,r,y,s]*pTechCap2act[t]*vTechCap[t,r,y]*pTimesliceShare[s]*prod{wth1 in mTechWeatherAfsLo_ix[t]}(pTechWeatherAfsLo[wth1,t]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s])) <=  sum{sp in timeslice:((s,sp) in mTimesliceParentChildE)}(pTimesliceAgg[y,s,sp]*sum{FORIF: (t,r,y,sp) in mvTechAct} (vTechAct[t,r,y,sp]));
 
-s.t.  eqTechAfsUp{(t, r, y, s) in meqTechAfsUp}: sum{sp in timeslice:((s,sp) in mTimesliceParentChildE)}(pTimesliceAgg[y,s,sp]*sum{FORIF: (t,r,y,sp) in mvTechAct} (vTechAct[t,r,y,sp])) <= pTechAfsUp[t,r,y,s]*pTechCap2act[t]*vTechCap[t,r,y]*pTimesliceShare[s]*prod{wth1 in mTechWeatherAfsUp_ix[t]}(pTechWeatherAfsUp[wth1,t]*pWeather[wth1,r,y,s]);
+s.t.  eqTechAfsUp{(t, r, y, s) in meqTechAfsUp}: sum{sp in timeslice:((s,sp) in mTimesliceParentChildE)}(pTimesliceAgg[y,s,sp]*sum{FORIF: (t,r,y,sp) in mvTechAct} (vTechAct[t,r,y,sp])) <= pTechAfsUp[t,r,y,s]*pTechCap2act[t]*vTechCap[t,r,y]*pTimesliceShare[s]*prod{wth1 in mTechWeatherAfsUp_ix[t]}(pTechWeatherAfsUp[wth1,t]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s]));
 
 s.t.  eqTechRampUp{(t, r, y, s, sp) in mTechRampUp}: (vTechAct[t,r,y,sp]) / (pTimesliceShare[sp])-(vTechAct[t,r,y,s]) / (pTimesliceShare[s]) <=  (pTimesliceShare[s]*pTechCap2act[t]*vTechCap[t,r,y]) / (pTechRampUp[t,r,y,s]);
 
@@ -770,13 +775,13 @@ s.t.  eqTechActSng{(t, c, r, y, s) in meqTechActSng}: vTechAct[t,r,y,s]  =  (vTe
 
 s.t.  eqTechActGrp{(t, g, r, y, s) in meqTechActGrp}: vTechAct[t,r,y,s]  =  sum{c in comm:((t,g,c) in mTechGroupComm)}(sum{FORIF: (t,c,r,y,s) in mvTechOut} (((vTechOut[t,c,r,y,s]) / (pTechCact2cout[t,c,r,y,s]))));
 
-s.t.  eqTechAfcOutLo{(t, r, c, y, s) in meqTechAfcOutLo}: pTechCact2cout[t,c,r,y,s]*pTechAfcLo[t,c,r,y,s]*pTechCap2act[t]*vTechCap[t,r,y]*pTimesliceShare[s]*prod{(wth1,wtt,wcc) in mTechWeatherAfcLo: wtt == t and wcc == c}(pTechWeatherAfcLo[wth1,t,c]*pWeather[wth1,r,y,s]) <=  vTechOut[t,c,r,y,s];
+s.t.  eqTechAfcOutLo{(t, r, c, y, s) in meqTechAfcOutLo}: pTechCact2cout[t,c,r,y,s]*pTechAfcLo[t,c,r,y,s]*pTechCap2act[t]*vTechCap[t,r,y]*pTimesliceShare[s]*prod{(wth1,wtt,wcc) in mTechWeatherAfcLo: wtt == t and wcc == c}(pTechWeatherAfcLo[wth1,t,c]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s])) <=  vTechOut[t,c,r,y,s];
 
-s.t.  eqTechAfcOutUp{(t, r, c, y, s) in meqTechAfcOutUp}: vTechOut[t,c,r,y,s] <=  pTechCact2cout[t,c,r,y,s]*pTechAfcUp[t,c,r,y,s]*pTechCap2act[t]*vTechCap[t,r,y]*prod{(wth1,wtt,wcc) in mTechWeatherAfcUp: wtt == t and wcc == c}(pTechWeatherAfcUp[wth1,t,c]*pWeather[wth1,r,y,s]);
+s.t.  eqTechAfcOutUp{(t, r, c, y, s) in meqTechAfcOutUp}: vTechOut[t,c,r,y,s] <=  pTechCact2cout[t,c,r,y,s]*pTechAfcUp[t,c,r,y,s]*pTechCap2act[t]*vTechCap[t,r,y]*prod{(wth1,wtt,wcc) in mTechWeatherAfcUp: wtt == t and wcc == c}(pTechWeatherAfcUp[wth1,t,c]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s]));
 
-s.t.  eqTechAfcInpLo{(t, r, c, y, s) in meqTechAfcInpLo}: pTechAfcLo[t,c,r,y,s]*pTechCap2act[t]*vTechCap[t,r,y]*pTimesliceShare[s]*prod{(wth1,wtt,wcc) in mTechWeatherAfcLo: wtt == t and wcc == c}(pTechWeatherAfcLo[wth1,t,c]*pWeather[wth1,r,y,s]) <=  vTechInp[t,c,r,y,s];
+s.t.  eqTechAfcInpLo{(t, r, c, y, s) in meqTechAfcInpLo}: pTechAfcLo[t,c,r,y,s]*pTechCap2act[t]*vTechCap[t,r,y]*pTimesliceShare[s]*prod{(wth1,wtt,wcc) in mTechWeatherAfcLo: wtt == t and wcc == c}(pTechWeatherAfcLo[wth1,t,c]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s])) <=  vTechInp[t,c,r,y,s];
 
-s.t.  eqTechAfcInpUp{(t, r, c, y, s) in meqTechAfcInpUp}: vTechInp[t,c,r,y,s] <=  pTechAfcUp[t,c,r,y,s]*pTechCap2act[t]*vTechCap[t,r,y]*pTimesliceShare[s]*prod{(wth1,wtt,wcc) in mTechWeatherAfcUp: wtt == t and wcc == c}(pTechWeatherAfcUp[wth1,t,c]*pWeather[wth1,r,y,s]);
+s.t.  eqTechAfcInpUp{(t, r, c, y, s) in meqTechAfcInpUp}: vTechInp[t,c,r,y,s] <=  pTechAfcUp[t,c,r,y,s]*pTechCap2act[t]*vTechCap[t,r,y]*pTimesliceShare[s]*prod{(wth1,wtt,wcc) in mTechWeatherAfcUp: wtt == t and wcc == c}(pTechWeatherAfcUp[wth1,t,c]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s]));
 
 s.t.  eqTechCap{(t, r, y) in mTechSpan}: vTechCap[t,r,y]  =  vTechStockCap[t,r,y]+sum{yp in year:(((t,r,yp) in mTechNew and ordYear[y] >= ordYear[yp] and (ordYear[y]<pTechOlife[t,r]+ordYear[yp] or (t,r) in mTechOlifeInf)))}(pPeriodLen[yp]*vTechNewCap[t,r,yp]-sum{ye in year:(((t,r,yp,ye) in mvTechRetiredNewCap and ordYear[y] >= ordYear[ye]))}(vTechRetiredNewCap[t,r,yp,ye]*pPeriodLen[ye]));
 
@@ -866,9 +871,9 @@ s.t.  eqTechFixom{(t, r, y) in mTechFixom}: vTechFixom[t,r,y]  =  pTechFixom[t,r
 
 s.t.  eqTechVarom{(t, r, y) in mTechVarom}: vTechVarom[t,r,y]  =  sum{s in timeslice:((t,s) in mTechTimeslice)}(pTechVarom[t,r,y,s]*pTimesliceWeight[y,s]*vTechAct[t,r,y,s]+sum{c in comm:((t,c) in mTechInpComm)}(pTechCvarom[t,c,r,y,s]*pTimesliceWeight[y,s]*vTechInp[t,c,r,y,s])+sum{c in comm:((t,c) in mTechOutComm)}(pTechCvarom[t,c,r,y,s]*pTimesliceWeight[y,s]*vTechOut[t,c,r,y,s])+sum{c in comm:((t,c,r,y,s) in mvTechAOut)}(pTechAvarom[t,c,r,y,s]*pTimesliceWeight[y,s]*vTechAOut[t,c,r,y,s])+sum{c in comm:((t,c,r,y,s) in mvTechAInp)}(pTechAvarom[t,c,r,y,s]*pTimesliceWeight[y,s]*vTechAInp[t,c,r,y,s]));
 
-s.t.  eqSupAvaUp{(s1, c, r, y, s) in mSupAvaUp}: vSupOut[s1,c,r,y,s] <=  pSupAvaUp[s1,c,r,y,s]*prod{wth1 in mSupWeatherUp_ix[s1]}(pSupWeatherUp[wth1,s1]*pWeather[wth1,r,y,s]);
+s.t.  eqSupAvaUp{(s1, c, r, y, s) in mSupAvaUp}: vSupOut[s1,c,r,y,s] <=  pSupAvaUp[s1,c,r,y,s]*prod{wth1 in mSupWeatherUp_ix[s1]}(pSupWeatherUp[wth1,s1]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s]));
 
-s.t.  eqSupAvaLo{(s1, c, r, y, s) in meqSupAvaLo}: vSupOut[s1,c,r,y,s]  >=  pSupAvaLo[s1,c,r,y,s]*prod{wth1 in mSupWeatherLo_ix[s1]}(pSupWeatherLo[wth1,s1]*pWeather[wth1,r,y,s]);
+s.t.  eqSupAvaLo{(s1, c, r, y, s) in meqSupAvaLo}: vSupOut[s1,c,r,y,s]  >=  pSupAvaLo[s1,c,r,y,s]*prod{wth1 in mSupWeatherLo_ix[s1]}(pSupWeatherLo[wth1,s1]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s]));
 
 s.t.  eqSupReserve{(s1, c, r) in mvSupReserve}: vSupReserve[s1,c,r]  =  sum{y in year,s in timeslice:((s1,c,r,y,s) in mSupAva)}(pPeriodLen[y]*pTimesliceWeight[y,s]*vSupOut[s1,c,r,y,s]);
 
@@ -892,9 +897,9 @@ s.t.  eqStorageLevel{(st1, c, r, y, sp, s) in meqStorageLevel}: vStorageLevel[st
 
 # [duration] now a BOUND on (stg, region, year): AfLo takes the LOWER ratio,
 # AfUp the UPPER. defVal [1,1] keeps a storage that says nothing tied at 1 h.
-s.t.  eqStorageAfLo{(st1, c, r, y, s) in meqStorageAfLo}: vStorageLevel[st1,c,r,y,s]  >=  pStorageAfLo[st1,r,y,s]*(sum{FORIF: (st1,r,y) in mStorageStgCap} (vStorageStgCap[st1,r,y])+sum{FORIF: (st1,r,y) in mStorageNoStgCap} (pStorageDurationLo[st1,r,y]*vStorageOutCap[st1,r,y]))*prod{wth1 in mStorageWeatherAfLo_ix[st1]}(pStorageWeatherAfLo[wth1,st1]*pWeather[wth1,r,y,s]);
+s.t.  eqStorageAfLo{(st1, c, r, y, s) in meqStorageAfLo}: vStorageLevel[st1,c,r,y,s]  >=  pStorageAfLo[st1,r,y,s]*(sum{FORIF: (st1,r,y) in mStorageStgCap} (vStorageStgCap[st1,r,y])+sum{FORIF: (st1,r,y) in mStorageNoStgCap} (pStorageDurationLo[st1,r,y]*vStorageOutCap[st1,r,y]))*prod{wth1 in mStorageWeatherAfLo_ix[st1]}(pStorageWeatherAfLo[wth1,st1]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s]));
 
-s.t.  eqStorageAfUp{(st1, c, r, y, s) in meqStorageAfUp}: vStorageLevel[st1,c,r,y,s] <=  pStorageAfUp[st1,r,y,s]*(sum{FORIF: (st1,r,y) in mStorageStgCap} (vStorageStgCap[st1,r,y])+sum{FORIF: (st1,r,y) in mStorageNoStgCap} (pStorageDurationUp[st1,r,y]*vStorageOutCap[st1,r,y]))*prod{wth1 in mStorageWeatherAfUp_ix[st1]}(pStorageWeatherAfUp[wth1,st1]*pWeather[wth1,r,y,s]);
+s.t.  eqStorageAfUp{(st1, c, r, y, s) in meqStorageAfUp}: vStorageLevel[st1,c,r,y,s] <=  pStorageAfUp[st1,r,y,s]*(sum{FORIF: (st1,r,y) in mStorageStgCap} (vStorageStgCap[st1,r,y])+sum{FORIF: (st1,r,y) in mStorageNoStgCap} (pStorageDurationUp[st1,r,y]*vStorageOutCap[st1,r,y]))*prod{wth1 in mStorageWeatherAfUp_ix[st1]}(pStorageWeatherAfUp[wth1,st1]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s]));
 
 # [rename] eqStorageClear -> eqStorageOutLevel. Draw only from what was ALREADY
 # stored: stricter than the level's non-negativity, which would also permit
@@ -902,13 +907,13 @@ s.t.  eqStorageAfUp{(st1, c, r, y, s) in meqStorageAfUp}: vStorageLevel[st1,c,r,
 # a paired bound, and this one has no partner (cf. eqTradeCapFlow).
 s.t.  eqStorageOutLevel{(st1, c, r, y, s) in mvStorageLevel}: sum{co in comm:((st1,co,r,y,s) in mvStorageOut)}((vStorageOut[st1,co,r,y,s]) / (pStorageOutEff[st1,co,r,y,s])) <=  vStorageLevel[st1,c,r,y,s];
 
-s.t.  eqStorageInpUp{(st1, c, r, y, s) in meqStorageInpUp}: vStorageInp[st1,c,r,y,s] <=  (sum{FORIF: (st1,r,y) in mStorageInpCap} (vStorageInpCap[st1,r,y])+sum{FORIF: (st1,r,y) in mStorageNoInpCap} (pStorageInp2outUp[st1,r,y]*vStorageOutCap[st1,r,y]))*pStorageInpCap2act[st1]*pTimesliceShare[s]*pStorageInpAfUp[st1,c,r,y,s]*prod{wth1 in mStorageWeatherInpAfUp_ix[st1]}(pStorageWeatherInpAfUp[wth1,st1]*pWeather[wth1,r,y,s]);
+s.t.  eqStorageInpUp{(st1, c, r, y, s) in meqStorageInpUp}: vStorageInp[st1,c,r,y,s] <=  (sum{FORIF: (st1,r,y) in mStorageInpCap} (vStorageInpCap[st1,r,y])+sum{FORIF: (st1,r,y) in mStorageNoInpCap} (pStorageInp2outUp[st1,r,y]*vStorageOutCap[st1,r,y]))*pStorageInpCap2act[st1]*pTimesliceShare[s]*pStorageInpAfUp[st1,c,r,y,s]*prod{wth1 in mStorageWeatherInpAfUp_ix[st1]}(pStorageWeatherInpAfUp[wth1,st1]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s]));
 
-s.t.  eqStorageInpLo{(st1, c, r, y, s) in meqStorageInpLo}: vStorageInp[st1,c,r,y,s]  >=  (sum{FORIF: (st1,r,y) in mStorageInpCap} (vStorageInpCap[st1,r,y])+sum{FORIF: (st1,r,y) in mStorageNoInpCap} (pStorageInp2outLo[st1,r,y]*vStorageOutCap[st1,r,y]))*pStorageInpCap2act[st1]*pTimesliceShare[s]*pStorageInpAfLo[st1,c,r,y,s]*prod{wth1 in mStorageWeatherInpAfLo_ix[st1]}(pStorageWeatherInpAfLo[wth1,st1]*pWeather[wth1,r,y,s]);
+s.t.  eqStorageInpLo{(st1, c, r, y, s) in meqStorageInpLo}: vStorageInp[st1,c,r,y,s]  >=  (sum{FORIF: (st1,r,y) in mStorageInpCap} (vStorageInpCap[st1,r,y])+sum{FORIF: (st1,r,y) in mStorageNoInpCap} (pStorageInp2outLo[st1,r,y]*vStorageOutCap[st1,r,y]))*pStorageInpCap2act[st1]*pTimesliceShare[s]*pStorageInpAfLo[st1,c,r,y,s]*prod{wth1 in mStorageWeatherInpAfLo_ix[st1]}(pStorageWeatherInpAfLo[wth1,st1]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s]));
 
-s.t.  eqStorageOutUp{(st1, c, r, y, s) in meqStorageOutUp}: vStorageOut[st1,c,r,y,s] <=  vStorageOutCap[st1,r,y]*pStorageOutCap2act[st1]*pTimesliceShare[s]*pStorageOutAfUp[st1,c,r,y,s]*prod{wth1 in mStorageWeatherOutAfUp_ix[st1]}(pStorageWeatherOutAfUp[wth1,st1]*pWeather[wth1,r,y,s]);
+s.t.  eqStorageOutUp{(st1, c, r, y, s) in meqStorageOutUp}: vStorageOut[st1,c,r,y,s] <=  vStorageOutCap[st1,r,y]*pStorageOutCap2act[st1]*pTimesliceShare[s]*pStorageOutAfUp[st1,c,r,y,s]*prod{wth1 in mStorageWeatherOutAfUp_ix[st1]}(pStorageWeatherOutAfUp[wth1,st1]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s]));
 
-s.t.  eqStorageOutLo{(st1, c, r, y, s) in meqStorageOutLo}: vStorageOut[st1,c,r,y,s]  >=  vStorageOutCap[st1,r,y]*pStorageOutCap2act[st1]*pTimesliceShare[s]*pStorageOutAfLo[st1,c,r,y,s]*prod{wth1 in mStorageWeatherOutAfLo_ix[st1]}(pStorageWeatherOutAfLo[wth1,st1]*pWeather[wth1,r,y,s]);
+s.t.  eqStorageOutLo{(st1, c, r, y, s) in meqStorageOutLo}: vStorageOut[st1,c,r,y,s]  >=  vStorageOutCap[st1,r,y]*pStorageOutCap2act[st1]*pTimesliceShare[s]*pStorageOutAfLo[st1,c,r,y,s]*prod{wth1 in mStorageWeatherOutAfLo_ix[st1]}(pStorageWeatherOutAfLo[wth1,st1]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s]));
 
 s.t.  eqStorageOutCap{(st1, r, y) in mStorageSpan}: vStorageOutCap[st1,r,y]  =  vStorageOutStockCap[st1,r,y]+sum{yp in year:((ordYear[y] >= ordYear[yp] and ((st1,r) in mStorageOlifeInf or ordYear[y]<pStorageOlife[st1,r]+ordYear[yp]) and (st1,r,yp) in mStorageNew))}(pPeriodLen[yp]*vStorageOutNewCap[st1,r,yp]-sum{ye in year:(((st1,r,yp,ye) in mvStorageRetiredNewCap and ordYear[y] >= ordYear[ye]))}(vStorageOutRetiredNewCap[st1,r,yp,ye]*pPeriodLen[ye]));
 

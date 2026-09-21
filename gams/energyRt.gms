@@ -380,6 +380,10 @@ pTradeCap2Act(trade)                                 Capacity to activity factor
 sets
 mWeatherTimeslice(weather, timeslice)
 mWeatherRegion(weather, region)
+* (weather, region, regionp): the region whose pWeather series a process
+* operating in `region` reads. Identity where the weather is declared at the
+* region that uses it; a coarser regionp lets ONE series serve every child.
+mWeatherRegionAt(weather, region, region)
 mSupWeatherLo(weather, sup)
 mSupWeatherUp(weather, sup)
 mTechWeatherAfLo(weather, tech)
@@ -1088,7 +1092,8 @@ eqTechAfLo(tech, region, year, timeslice)$meqTechAfLo(tech, region, year, timesl
          pTimesliceShare(timeslice)  *
          prod(weather$mTechWeatherAfLo(weather, tech),
               pTechWeatherAfLo(weather, tech) *
-              pWeather(weather, region, year, timeslice)
+              sum(regionp$mWeatherRegionAt(weather, region, regionp),
+                  pWeather(weather, regionp, year, timeslice))
               )
          =l=
          vTechAct(tech, region, year, timeslice);
@@ -1104,7 +1109,8 @@ eqTechAfUp(tech, region, year, timeslice)$meqTechAfUp(tech, region, year, timesl
          pTimesliceShare(timeslice) *
          prod(weather$mTechWeatherAfUp(weather, tech),
               pTechWeatherAfUp(weather, tech) *
-              pWeather(weather, region, year, timeslice)
+              sum(regionp$mWeatherRegionAt(weather, region, regionp),
+                  pWeather(weather, regionp, year, timeslice))
               );
 
 * Availability factor for sum LO
@@ -1116,7 +1122,8 @@ eqTechAfsLo(tech, region, year, timeslice)$meqTechAfsLo(tech, region, year, time
          pTimesliceShare(timeslice)  *
          prod(weather$mTechWeatherAfsLo(weather, tech),
               pTechWeatherAfsLo(weather, tech) *
-              pWeather(weather, region, year, timeslice)
+              sum(regionp$mWeatherRegionAt(weather, region, regionp),
+                  pWeather(weather, regionp, year, timeslice))
               )
          =l=
          sum(timeslicep$mTimesliceParentChildE(timeslice, timeslicep),
@@ -1134,7 +1141,8 @@ eqTechAfsUp(tech, region, year, timeslice)$meqTechAfsUp(tech, region, year, time
          pTechCap2act(tech) *
          vTechCap(tech, region, year) *
          pTimesliceShare(timeslice) *  prod(weather$mTechWeatherAfsUp(weather, tech),
-            pTechWeatherAfsUp(weather, tech) * pWeather(weather, region, year, timeslice));
+            pTechWeatherAfsUp(weather, tech) * sum(regionp$mWeatherRegionAt(weather, region, regionp),
+                  pWeather(weather, regionp, year, timeslice)));
 
 * Ramp Up factor - new mapping
 eqTechRampUp(tech, region, year, timeslice, timeslicep)$mTechRampUp(tech, region, year, timeslice, timeslicep)..
@@ -1202,7 +1210,8 @@ eqTechAfcOutLo(tech, region, comm, year, timeslice)$meqTechAfcOutLo(tech, region
          pTechCap2act(tech) *
          vTechCap(tech, region, year) *
          pTimesliceShare(timeslice) * prod(weather$mTechWeatherAfcLo(weather, tech, comm),
-            pTechWeatherAfcLo(weather, tech, comm) * pWeather(weather, region, year, timeslice))
+            pTechWeatherAfcLo(weather, tech, comm) * sum(regionp$mWeatherRegionAt(weather, region, regionp),
+                  pWeather(weather, regionp, year, timeslice)))
          =l=
          vTechOut(tech, comm, region, year, timeslice);
 
@@ -1215,7 +1224,8 @@ eqTechAfcOutUp(tech, region, comm, year, timeslice)$meqTechAfcOutUp(tech, region
 *         pYearFraction(year) *
          pTechCap2act(tech) *
          vTechCap(tech, region, year) *  prod(weather$mTechWeatherAfcUp(weather, tech, comm),
-            pTechWeatherAfcUp(weather, tech, comm) * pWeather(weather, region, year, timeslice));
+            pTechWeatherAfcUp(weather, tech, comm) * sum(regionp$mWeatherRegionAt(weather, region, regionp),
+                  pWeather(weather, regionp, year, timeslice)));
 
 * Availability commodity factor LO input equations
 eqTechAfcInpLo(tech, region, comm, year, timeslice)$meqTechAfcInpLo(tech, region, comm, year, timeslice)..
@@ -1224,7 +1234,8 @@ eqTechAfcInpLo(tech, region, comm, year, timeslice)$meqTechAfcInpLo(tech, region
          pTechCap2act(tech) *
          vTechCap(tech, region, year) *
          pTimesliceShare(timeslice)  *  prod(weather$mTechWeatherAfcLo(weather, tech, comm),
-            pTechWeatherAfcLo(weather, tech, comm) * pWeather(weather, region, year, timeslice))
+            pTechWeatherAfcLo(weather, tech, comm) * sum(regionp$mWeatherRegionAt(weather, region, regionp),
+                  pWeather(weather, regionp, year, timeslice)))
          =l=
          vTechInp(tech, comm, region, year, timeslice);
 
@@ -1237,7 +1248,8 @@ eqTechAfcInpUp(tech, region, comm, year, timeslice)$meqTechAfcInpUp(tech, region
          pTechCap2act(tech) *
          vTechCap(tech, region, year) *
          pTimesliceShare(timeslice)  *  prod(weather$mTechWeatherAfcUp(weather, tech, comm),
-            pTechWeatherAfcUp(weather, tech, comm) * pWeather(weather, region, year, timeslice));
+            pTechWeatherAfcUp(weather, tech, comm) * sum(regionp$mWeatherRegionAt(weather, region, regionp),
+                  pWeather(weather, regionp, year, timeslice)));
 
 ********************************************************************************
 *** Capacity and costs equations
@@ -1676,7 +1688,8 @@ eqSupAvaUp(sup, comm, region, year, timeslice)$mSupAvaUp(sup, comm, region, year
          pSupAvaUp(sup, comm, region, year, timeslice)
          * prod(weather$mSupWeatherUp(weather, sup),
                 pSupWeatherUp(weather, sup)
-                * pWeather(weather, region, year, timeslice));
+                * sum(regionp$mWeatherRegionAt(weather, region, regionp),
+                  pWeather(weather, regionp, year, timeslice)));
 
 eqSupAvaLo(sup, comm, region, year, timeslice)$meqSupAvaLo(sup, comm, region, year, timeslice)..
          vSupOut(sup, comm, region, year, timeslice)
@@ -1684,7 +1697,8 @@ eqSupAvaLo(sup, comm, region, year, timeslice)$meqSupAvaLo(sup, comm, region, ye
          pSupAvaLo(sup, comm, region, year, timeslice)
          * prod(weather$mSupWeatherLo(weather, sup),
                 pSupWeatherLo(weather, sup)
-                * pWeather(weather, region, year, timeslice));
+                * sum(regionp$mWeatherRegionAt(weather, region, regionp),
+                  pWeather(weather, regionp, year, timeslice)));
 
 eqSupReserve(sup, comm, region)$mvSupReserve(sup, comm, region)..
          vSupReserve(sup, comm, region)
@@ -1929,7 +1943,8 @@ eqStorageAfLo(stg, comm, region, year, timeslice)$meqStorageAfLo(stg, comm, regi
          )$mStorageNoStgCap(stg, region, year))
       * prod(weather$mStorageWeatherAfLo(weather, stg),
              pStorageWeatherAfLo(weather, stg)
-             * pWeather(weather, region, year, timeslice));
+             * sum(regionp$mWeatherRegionAt(weather, region, regionp),
+                  pWeather(weather, regionp, year, timeslice)));
 
 eqStorageAfUp(stg, comm, region, year, timeslice)$meqStorageAfUp(stg, comm, region, year, timeslice)..
     vStorageLevel(stg, comm, region, year, timeslice)
@@ -1941,7 +1956,8 @@ eqStorageAfUp(stg, comm, region, year, timeslice)$meqStorageAfUp(stg, comm, regi
          )$mStorageNoStgCap(stg, region, year))
       * prod(weather$mStorageWeatherAfUp(weather, stg),
              pStorageWeatherAfUp(weather, stg)
-             * pWeather(weather, region, year, timeslice));
+             * sum(regionp$mWeatherRegionAt(weather, region, regionp),
+                  pWeather(weather, regionp, year, timeslice)));
 
 * Draw only from what was ALREADY stored. This is stricter than the level's own
 * non-negativity, which would also permit discharging energy charged in the SAME
@@ -1968,7 +1984,8 @@ eqStorageInpUp(stg, comm, region, year, timeslice)$meqStorageInpUp(stg, comm, re
 *         * pTimesliceShare(timeslice) *
     * prod(weather$mStorageWeatherInpAfUp(weather, stg),
            pStorageWeatherInpAfUp(weather, stg)
-           * pWeather(weather, region, year, timeslice));
+           * sum(regionp$mWeatherRegionAt(weather, region, regionp),
+                  pWeather(weather, regionp, year, timeslice)));
 
 eqStorageInpLo(stg, comm, region, year, timeslice)$meqStorageInpLo(stg, comm, region, year, timeslice)..
   vStorageInp(stg, comm, region, year, timeslice) =g=
@@ -1983,7 +2000,8 @@ eqStorageInpLo(stg, comm, region, year, timeslice)$meqStorageInpLo(stg, comm, re
 *    * pTimesliceShare(timeslice)
     * prod(weather$mStorageWeatherInpAfLo(weather, stg),
            pStorageWeatherInpAfLo(weather, stg)
-           * pWeather(weather, region, year, timeslice));
+           * sum(regionp$mWeatherRegionAt(weather, region, regionp),
+                  pWeather(weather, regionp, year, timeslice)));
 
 * Output constraints
 eqStorageOutUp(stg, comm, region, year, timeslice)$meqStorageOutUp(stg, comm, region, year, timeslice)..
@@ -1994,7 +2012,8 @@ eqStorageOutUp(stg, comm, region, year, timeslice)$meqStorageOutUp(stg, comm, re
     * pStorageOutAfUp(stg, comm, region, year, timeslice)
     * prod(weather$mStorageWeatherOutAfUp(weather, stg),
            pStorageWeatherOutAfUp(weather, stg)
-           * pWeather(weather, region, year, timeslice));
+           * sum(regionp$mWeatherRegionAt(weather, region, regionp),
+                  pWeather(weather, regionp, year, timeslice)));
 
 eqStorageOutLo(stg, comm, region, year, timeslice)$meqStorageOutLo(stg, comm, region, year, timeslice)..
   vStorageOut(stg, comm, region, year, timeslice)  =g=
@@ -2004,7 +2023,8 @@ eqStorageOutLo(stg, comm, region, year, timeslice)$meqStorageOutLo(stg, comm, re
     * pStorageOutAfLo(stg, comm, region, year, timeslice)
     * prod(weather$mStorageWeatherOutAfLo(weather, stg),
            pStorageWeatherOutAfLo(weather, stg)
-           * pWeather(weather, region, year, timeslice));
+           * sum(regionp$mWeatherRegionAt(weather, region, regionp),
+                  pWeather(weather, regionp, year, timeslice)));
 
 ********************************************************************************
 *** Capacity and costs for storage

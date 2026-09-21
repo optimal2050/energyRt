@@ -227,8 +227,21 @@ subset_model_regions <- function(mod, region, boundary_prices = NULL,
       function(f) as.character(geoscales::geoscale_regions(gs, f))))))
   }
 
+  # A `weather` object may legitimately be declared at a COARSER region than
+  # the sample: one adm1 profile feeding its adm2 children (mWeatherRegionAt).
+  # Judging it by `keep` alone drops the parent, `.prune_weather_refs()` then
+  # strips the surviving child's link, and the process silently loses its
+  # availability limit altogether. Weather is therefore scoped against the
+  # sample PLUS its ancestors.
+  keep_wx <- keep
+  if (!is.null(gs) && is_geoscale(gs)) {
+    h <- tryCatch(.geo_hierarchy(gs, keep), error = function(e) NULL)
+    if (!is.null(h)) keep_wx <- unique(c(keep, as.character(h$region)))
+  }
+
   prune_obj <- function(el, nm) {
     if (!methods::is(el, "trade")) {
+      keep <- if (methods::is(el, "weather")) keep_wx else keep
       # A non-trade object declares its scope in `@region`. Narrowing the
       # scenario's region set without narrowing the DECLARATIONS leaves an
       # object claiming regions the sample no longer has, and validation
@@ -1042,9 +1055,52 @@ aggregate_model_regions <- function(mod, geoscale = NULL, level,
   cls <- vapply(objs, function(o) class(o)[1], "")
   out <- list()
 
+  # A `weather` object may sit ABOVE the atom layer: one adm1 profile shared by
+  # its adm2 children (mWeatherRegionAt). The recast below keys on the FINEST
+  # leaftable column, so such an object matches nothing and the aggregation
+  # dies with "no rows of `x` matched the Geoscale's atoms". Three cases:
+  #   * at the atoms          -> mean-aggregate, as before
+  #   * already AT `level`    -> nothing to aggregate; pass it through untouched
+  #   * anywhere else (an intermediate frame, or coarser than `level`)
+  #                           -> refuse; recasting between two non-atom frames
+  #                              needs a level-aware crosswalk we do not have
+  target_codes <- as.character(geoscales::geoscale_regions(gs, level))
+  .wx_level_case <- function(o) {
+    if (!methods::is(o, "weather")) return("agg")
+    r <- unique(c(as.character(methods::slot(o, "region")),
+                  if (.hasSlot(o, "weather") &&
+                      is.data.frame(o@weather) &&
+                      "region" %in% names(o@weather))
+                    as.character(o@weather$region)))
+    r <- r[!is.na(r) & nzchar(r)]
+    if (length(r) == 0) return("agg")          # wildcard: broadcasts either way
+    if (all(r %in% atoms)) return("agg")
+    if (all(r %in% target_codes)) return("keep")
+    "refuse"
+  }
+
   # -- objects that span regions: the object stays, its data moves ------------
   for (i in which(cls != "trade")) {
     o <- objs[[i]]
+    case <- .wx_level_case(o)
+    if (identical(case, "refuse")) {
+      r <- unique(c(as.character(methods::slot(o, "region")),
+                    as.character(o@weather$region)))
+      r <- r[!is.na(r) & nzchar(r)]
+      stop("weather '", o@name, "' is declared at region(s) that are neither ",
+           "atoms of the geoscale nor members of `level` = \"", level, "\": ",
+           paste(utils::head(sort(unique(r)), 5), collapse = ", "),
+           ".
+Aggregating between two non-atom levels needs a level-aware ",
+           "crosswalk that `aggregate_model_regions()` does not have. Declare ",
+           "the profile at the model's finest regions, or aggregate to the ",
+           "level it already sits at.", call. = FALSE)
+    }
+    if (identical(case, "keep")) {
+      # already at the target level -- nothing to aggregate
+      out[[o@name]] <- o
+      next
+    }
     w <- .agg_weight(o)
     for (sl in methods::slotNames(o)) {
       v <- methods::slot(o, sl)

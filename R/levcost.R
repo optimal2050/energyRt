@@ -423,6 +423,47 @@ setMethod("levcost", "trade", function(object, comm, name, ...) {
   tech
 }
 
+# Bring a weather object DOWN to the region levcost is costing.
+#
+# A profile may be declared at a coarser region than the technology sits in --
+# one adm1 series shared by its adm2 children (`mWeatherRegionAt`). The
+# single-region mini-model levcost builds knows only the technology's own
+# region, so subsetting to it would drop every row and the capacity factor
+# would silently vanish: measured on a 2-child fixture, levcost came out
+# 0.650514 with the profile at the parent against 0.867352 with a copy per
+# child -- the same system, 33% apart, no warning.
+#
+# The values are identical whichever label they carry, so the nearest ancestor
+# the weather serves is RELABELLED to `region`. Returns NULL when nothing
+# resolves, leaving the caller's existing behaviour untouched.
+#' @noRd
+.levcost_localize_weather <- function(w, region, gs = NULL) {
+  region <- region[1]
+  if (!.hasSlot(w, "weather") || !is.data.frame(w@weather) ||
+      nrow(w@weather) == 0 || !"region" %in% names(w@weather)) return(NULL)
+  wr <- as.character(w@weather$region)
+  if (any(is.na(wr) | wr == region)) return(NULL)   # already usable as-is
+  if (is.null(gs) || !is_geoscale(gs)) return(NULL)
+
+  h <- tryCatch(.geo_hierarchy(gs, region), error = function(e) NULL)
+  if (is.null(h)) return(NULL)
+  anc <- setdiff(as.character(h$region), region)
+  cand <- intersect(unique(wr), anc)
+  if (length(cand) == 0) return(NULL)
+  if (length(cand) > 1) {                            # nearest = finest level
+    lvl_of <- unlist(lapply(names(h$members), function(lv)
+      stats::setNames(rep(lv, length(h$members[[lv]])), h$members[[lv]])))
+    rk <- match(unname(lvl_of[cand]), h$levels)
+    cand <- cand[which.max(rk)]
+  }
+  keep <- wr == cand
+  w@weather <- w@weather[keep, , drop = FALSE]
+  w@weather$region <- region                         # relabel, values unchanged
+  if (.hasSlot(w, "region") && is.character(w@region) && length(w@region) > 0)
+    w@region <- region
+  w
+}
+
 # Subset a weather object's @region slot and @weather table to a single region.
 .levcost_subset_weather_region <- function(w, region) {
   region <- region[1]
@@ -594,7 +635,14 @@ setMethod("levcost", "trade", function(object, comm, name, ...) {
       wall <- tryCatch(getObjects(container, "weather"), error = function(e) list())
       wsel <- wall[intersect(names(wall), wneed)]
       if (length(wsel) > 0) {
-        if (!is.null(reg1)) wsel <- lapply(wsel, .levcost_subset_weather_region, region = reg1)
+        if (!is.null(reg1)) {
+          gs1 <- tryCatch(getGeoscale(container), error = function(e) NULL)
+          wsel <- lapply(wsel, function(w) {
+            loc <- .levcost_localize_weather(w, reg1, gs1)
+            if (!is.null(loc)) loc else
+              .levcost_subset_weather_region(w, region = reg1)
+          })
+        }
         dots$weather <- unname(wsel)
       }
     }

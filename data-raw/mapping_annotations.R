@@ -35,7 +35,7 @@
     "mTechInpCommAggTimeslice", "mTechOutCommAggTimeslice",
     "mTechAInpCommAggTimeslice", "mTechAOutCommAggTimeslice",
     "mTechEmsFuel",
-    "mStorageAInp", "mStorageAOut", "mWeatherRegion"
+    "mStorageAInp", "mStorageAOut", "mWeatherRegion", "mWeatherRegionAt"
   ),
   calendar = c(
     "mTimesliceNext", "mTimesliceFYearNext", "mSameRegion", "mSameTimeslice",

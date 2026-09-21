@@ -167,6 +167,11 @@ def _group(mapping, driver, val, key):
 
 
 mTimesliceFamily_ix = _group(mTimesliceFamily, timeslice, 1, (0,))
+# (weather, region) -> the region whose pWeather series to read. `_group`
+# rather than `_weather_index`: that helper keys on everything AFTER the
+# weather name and emits the weather, which is the wrong way round here.
+mWeatherRegionAt_ix = _group(mWeatherRegionAt, region, 2, (0, 1,))
+
 mRegionFamily_ix = _group(mRegionFamily, region, 1, (0,))
 mTechInpCommSameTimeslice_ix = _group(mTechInpCommSameTimeslice, tech, 0, (1,))
 mTechInpCommAgg_ix = _group(mTechInpCommAgg, tech, 0, (1,))
@@ -866,7 +871,7 @@ model.eqTechAfLo = Constraint(
     * model.vTechCap[t, r, y]
     * pTimesliceShare.get((s))
     * prod(
-        pTechWeatherAfLo.get((wth1, t)) * pWeather.get((wth1, r, y, s))
+        pTechWeatherAfLo.get((wth1, t)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mTechWeatherAfLo_ix.get(t, ())
     )
     <= model.vTechAct[t, r, y, s],
@@ -891,7 +896,7 @@ model.eqTechAfUp = Constraint(
     * model.vTechCap[t, r, y]
     * pTimesliceShare.get((s))
     * prod(
-        pTechWeatherAfUp.get((wth1, t)) * pWeather.get((wth1, r, y, s))
+        pTechWeatherAfUp.get((wth1, t)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mTechWeatherAfUp_ix.get(t, ())
     ),
 )
@@ -914,7 +919,7 @@ model.eqTechAfsLo = Constraint(
     * model.vTechCap[t, r, y]
     * pTimesliceShare.get((s))
     * prod(
-        pTechWeatherAfsLo.get((wth1, t)) * pWeather.get((wth1, r, y, s))
+        pTechWeatherAfsLo.get((wth1, t)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mTechWeatherAfsLo_ix.get(t, ())
     )
     <= sum(
@@ -947,7 +952,7 @@ model.eqTechAfsUp = Constraint(
     * model.vTechCap[t, r, y]
     * pTimesliceShare.get((s))
     * prod(
-        pTechWeatherAfsUp.get((wth1, t)) * pWeather.get((wth1, r, y, s))
+        pTechWeatherAfsUp.get((wth1, t)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mTechWeatherAfsUp_ix.get(t, ())
     ),
 )
@@ -1060,7 +1065,7 @@ model.eqTechAfcOutLo = Constraint(
     * model.vTechCap[t, r, y]
     * pTimesliceShare.get((s))
     * prod(
-        pTechWeatherAfcLo.get((wth1, t, c)) * pWeather.get((wth1, r, y, s))
+        pTechWeatherAfcLo.get((wth1, t, c)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mTechWeatherAfcLo_ix.get((t, c), ())
     )
     <= model.vTechOut[t, c, r, y, s],
@@ -1085,7 +1090,7 @@ model.eqTechAfcOutUp = Constraint(
     * pTechCap2act.get((t))
     * model.vTechCap[t, r, y]
     * prod(
-        pTechWeatherAfcUp.get((wth1, t, c)) * pWeather.get((wth1, r, y, s))
+        pTechWeatherAfcUp.get((wth1, t, c)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mTechWeatherAfcUp_ix.get((t, c), ())
     ),
 )
@@ -1108,7 +1113,7 @@ model.eqTechAfcInpLo = Constraint(
     * model.vTechCap[t, r, y]
     * pTimesliceShare.get((s))
     * prod(
-        pTechWeatherAfcLo.get((wth1, t, c)) * pWeather.get((wth1, r, y, s))
+        pTechWeatherAfcLo.get((wth1, t, c)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mTechWeatherAfcLo_ix.get((t, c), ())
     )
     <= model.vTechInp[t, c, r, y, s],
@@ -1133,7 +1138,7 @@ model.eqTechAfcInpUp = Constraint(
     * model.vTechCap[t, r, y]
     * pTimesliceShare.get((s))
     * prod(
-        pTechWeatherAfcUp.get((wth1, t, c)) * pWeather.get((wth1, r, y, s))
+        pTechWeatherAfcUp.get((wth1, t, c)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mTechWeatherAfcUp_ix.get((t, c), ())
     ),
 )
@@ -1900,7 +1905,7 @@ model.eqSupAvaUp = Constraint(
     rule=lambda model, s1, c, r, y, s: model.vSupOut[s1, c, r, y, s]
     <= pSupAvaUp.get((s1, c, r, y, s))
     * prod(
-        pSupWeatherUp.get((wth1, s1)) * pWeather.get((wth1, r, y, s))
+        pSupWeatherUp.get((wth1, s1)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mSupWeatherUp_ix.get(s1, ())
     ),
 )
@@ -1921,7 +1926,7 @@ model.eqSupAvaLo = Constraint(
     rule=lambda model, s1, c, r, y, s: model.vSupOut[s1, c, r, y, s]
     >= pSupAvaLo.get((s1, c, r, y, s))
     * prod(
-        pSupWeatherLo.get((wth1, s1)) * pWeather.get((wth1, r, y, s))
+        pSupWeatherLo.get((wth1, s1)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mSupWeatherLo_ix.get(s1, ())
     ),
 )
@@ -2333,7 +2338,7 @@ model.eqStorageAfLo = Constraint(
         else pStorageDurationLo.get((st1, r, y)) * model.vStorageOutCap[st1, r, y]
     )
     * prod(
-        pStorageWeatherAfLo.get((wth1, st1)) * pWeather.get((wth1, r, y, s))
+        pStorageWeatherAfLo.get((wth1, st1)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mStorageWeatherAfLo_ix.get(st1, ())
     ),
 )
@@ -2361,7 +2366,7 @@ model.eqStorageAfUp = Constraint(
         else pStorageDurationUp.get((st1, r, y)) * model.vStorageOutCap[st1, r, y]
     )
     * prod(
-        pStorageWeatherAfUp.get((wth1, st1)) * pWeather.get((wth1, r, y, s))
+        pStorageWeatherAfUp.get((wth1, st1)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mStorageWeatherAfUp_ix.get(st1, ())
     ),
 )
@@ -2413,7 +2418,7 @@ model.eqStorageInpUp = Constraint(
     * pTimesliceShare.get((s))
     * pStorageInpAfUp.get((st1, c, r, y, s))
     * prod(
-        pStorageWeatherInpAfUp.get((wth1, st1)) * pWeather.get((wth1, r, y, s))
+        pStorageWeatherInpAfUp.get((wth1, st1)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mStorageWeatherInpAfUp_ix.get(st1, ())
     ),
 )
@@ -2444,7 +2449,7 @@ model.eqStorageInpLo = Constraint(
     * pTimesliceShare.get((s))
     * pStorageInpAfLo.get((st1, c, r, y, s))
     * prod(
-        pStorageWeatherInpAfLo.get((wth1, st1)) * pWeather.get((wth1, r, y, s))
+        pStorageWeatherInpAfLo.get((wth1, st1)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mStorageWeatherInpAfLo_ix.get(st1, ())
     ),
 )
@@ -2468,7 +2473,7 @@ model.eqStorageOutUp = Constraint(
     * pTimesliceShare.get((s))
     * pStorageOutAfUp.get((st1, c, r, y, s))
     * prod(
-        pStorageWeatherOutAfUp.get((wth1, st1)) * pWeather.get((wth1, r, y, s))
+        pStorageWeatherOutAfUp.get((wth1, st1)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mStorageWeatherOutAfUp_ix.get(st1, ())
     ),
 )
@@ -2492,7 +2497,7 @@ model.eqStorageOutLo = Constraint(
     * pTimesliceShare.get((s))
     * pStorageOutAfLo.get((st1, c, r, y, s))
     * prod(
-        pStorageWeatherOutAfLo.get((wth1, st1)) * pWeather.get((wth1, r, y, s))
+        pStorageWeatherOutAfLo.get((wth1, st1)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mStorageWeatherOutAfLo_ix.get(st1, ())
     ),
 )

@@ -57,6 +57,40 @@
 #' @param x numeric level series, in calendar order
 #' @param w window width in points
 #' @return numeric of the same length as `x`
+# Replacements for the two `zoo::rollapply()` forms `.sd_floor()` used.
+# `.roll_min_left(x, w)[i]` is `min(x[i .. i+w-1])`, `.roll_max_right(x, w)[i]`
+# is `max(x[i-w+1 .. i], na.rm = TRUE)`; both return NA where the window runs
+# off the vector, as `fill = NA` does. An all-NA window maxes to -Inf, which is
+# what `max(na.rm = TRUE)` returns and `pmax(na.rm = TRUE)` does not, so the
+# NAs are substituted before the running comparison.
+#' @noRd
+.roll_min_left <- function(x, w) {
+  n <- length(x)
+  out <- rep(NA_real_, n)
+  m <- n - w + 1L
+  if (m < 1L) return(out)
+  i <- seq_len(m)
+  acc <- x[i]
+  for (j in seq_len(w - 1L)) acc <- pmin(acc, x[i + j])
+  out[i] <- acc
+  out
+}
+
+#' @noRd
+.roll_max_right <- function(x, w) {
+  n <- length(x)
+  out <- rep(NA_real_, n)
+  m <- n - w + 1L
+  if (m < 1L) return(out)
+  xx <- x
+  xx[is.na(xx)] <- -Inf
+  i <- seq_len(m)
+  acc <- xx[i]
+  for (j in seq_len(w - 1L)) acc <- pmax(acc, xx[i + j])
+  out[seq.int(w, n)] <- acc
+  out
+}
+
 #' @keywords internal
 #' @noRd
 .sd_floor <- function(x, w) {
@@ -64,10 +98,9 @@
   if (w <= 1L) return(x)
   if (w >= n) return(rep(min(x, na.rm = TRUE), n))
   # rmin[s] = min(x[s .. s+w-1]) -- the floor of the window STARTING at s
-  rmin <- zoo::rollapply(x, width = w, FUN = min, align = "left", fill = NA)
+  rmin <- .roll_min_left(x, w)
   # the windows containing i start at i-w+1 .. i, so take the best of those
-  out <- zoo::rollapply(rmin, width = w, FUN = function(z) max(z, na.rm = TRUE),
-                        align = "right", fill = NA)
+  out <- .roll_max_right(rmin, w)
   # `fill = NA` leaves the first w-1 positions empty; with cyclic padding these
   # are inside the pad and get trimmed, so this only matters when the caller
   # padded by edge replication.

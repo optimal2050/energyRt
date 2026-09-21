@@ -29,14 +29,13 @@ Description: A macro-language for energy system modeling in R. Describe an
     results with built-in tools for levelized costs, technology reports,
     and plotting.
 Depends: R (>= 4.3)
-Imports: methods, grid, generics, data.table, DBI, RSQLite, tibble,
-        tidyr, dplyr, rlang, stringr, lubridate, purrr, arrow,
-        progressr, tictoc, cli, zoo, options (>= 0.2.0),
-        glue, grDevices, utils, tools, yaml
-Suggests: shiny, DT, pak, knitr, rmarkdown, sf, ggplot2, testthat
-        (>= 3.0.0), devtools, openxlsx, jsonlite, readxl, httr2, xml2,
-        base64enc, tinytex, patchwork, geoscales (>= 0.5.4), timescales (>= 0.5.0), waldo,
-        mmcloud
+Imports: methods, grid, stats, generics, data.table, tibble, tidyr, dplyr, rlang,
+        stringr, lubridate, purrr, arrow, progressr, cli,
+        options (>= 0.2.0), grDevices, utils, tools, yaml
+Suggests: shiny, DT, pak, knitr, rmarkdown, sf, ggplot2,
+        testthat (>= 3.0.0), devtools, openxlsx, jsonlite, readxl,
+        httr2, xml2, base64enc, tinytex, patchwork, geoscales (>= 0.5.4),
+        timescales (>= 0.5.0), waldo, mmcloud, DBI, RSQLite
 Remotes: optimal2050/geoscales, optimal2050/timescales
 SystemRequirements: Julia (>= 1.6) with JuMP or Python (>= 3.7) with
         Pyomo or GAMS (>= 24.9) or GLPK (>= 4.0)

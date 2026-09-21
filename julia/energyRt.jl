@@ -148,6 +148,11 @@ function _weather_index(mapping)
     return ix
 end
 
+# (weather, region) -> the region whose pWeather series to read. `_group`
+# rather than `_weather_index`: that helper keys on everything AFTER the
+# weather name and emits the weather, which is the wrong way round here.
+mWeatherRegionAt_ix = _group(mWeatherRegionAt, region, 3, (1, 2,));
+
 mTechWeatherAfLo_ix = _weather_index(mTechWeatherAfLo);
 mTechWeatherAfUp_ix = _weather_index(mTechWeatherAfUp);
 mTechWeatherAfsLo_ix = _weather_index(mTechWeatherAfsLo);
@@ -803,11 +808,13 @@ print("eqTechAfLo(tech, region, year, timeslice)...")
                 pTechWeatherAfLoDef
             end
         ) * (
-            if haskey(pWeather, (wth1, r, y, s))
-                pWeather[(wth1, r, y, s)]
-            else
-                pWeatherDef
-            end
+            sum(
+                if haskey(pWeather, (wth1, rw, y, s))
+                    pWeather[(wth1, rw, y, s)]
+                else
+                    pWeatherDef
+                end for rw in get(mWeatherRegionAt_ix, (wth1, r), ())
+            ; init = 0)
         ) for wth1 in get(mTechWeatherAfLo_ix, t, ())
     ; init = 1) <= vTechAct[(t, r, y, s)]
 );
@@ -853,11 +860,13 @@ print("eqTechAfUp(tech, region, year, timeslice)...")
                 pTechWeatherAfUpDef
             end
         ) * (
-            if haskey(pWeather, (wth1, r, y, s))
-                pWeather[(wth1, r, y, s)]
-            else
-                pWeatherDef
-            end
+            sum(
+                if haskey(pWeather, (wth1, rw, y, s))
+                    pWeather[(wth1, rw, y, s)]
+                else
+                    pWeatherDef
+                end for rw in get(mWeatherRegionAt_ix, (wth1, r), ())
+            ; init = 0)
         ) for wth1 in get(mTechWeatherAfUp_ix, t, ())
     ; init = 1)
 );
@@ -902,11 +911,13 @@ print("eqTechAfsLo(tech, region, year, timeslice)...")
                 pTechWeatherAfsLoDef
             end
         ) * (
-            if haskey(pWeather, (wth1, r, y, s))
-                pWeather[(wth1, r, y, s)]
-            else
-                pWeatherDef
-            end
+            sum(
+                if haskey(pWeather, (wth1, rw, y, s))
+                    pWeather[(wth1, rw, y, s)]
+                else
+                    pWeatherDef
+                end for rw in get(mWeatherRegionAt_ix, (wth1, r), ())
+            ; init = 0)
         ) for wth1 in get(mTechWeatherAfsLo_ix, t, ())
     ; init = 1) <= sum(
         (
@@ -980,11 +991,13 @@ print("eqTechAfsUp(tech, region, year, timeslice)...")
                 pTechWeatherAfsUpDef
             end
         ) * (
-            if haskey(pWeather, (wth1, r, y, s))
-                pWeather[(wth1, r, y, s)]
-            else
-                pWeatherDef
-            end
+            sum(
+                if haskey(pWeather, (wth1, rw, y, s))
+                    pWeather[(wth1, rw, y, s)]
+                else
+                    pWeatherDef
+                end for rw in get(mWeatherRegionAt_ix, (wth1, r), ())
+            ; init = 0)
         ) for wth1 in get(mTechWeatherAfsUp_ix, t, ())
     ; init = 1)
 );
@@ -1181,11 +1194,13 @@ print("eqTechAfcOutLo(tech, region, comm, year, timeslice)...")
                 pTechWeatherAfcLoDef
             end
         ) * (
-            if haskey(pWeather, (wth1, r, y, s))
-                pWeather[(wth1, r, y, s)]
-            else
-                pWeatherDef
-            end
+            sum(
+                if haskey(pWeather, (wth1, rw, y, s))
+                    pWeather[(wth1, rw, y, s)]
+                else
+                    pWeatherDef
+                end for rw in get(mWeatherRegionAt_ix, (wth1, r), ())
+            ; init = 0)
         ) for wth1 in get(mTechWeatherAfcLo_ix, (t, c), ())
     ; init = 1) <= vTechOut[(t, c, r, y, s)]
 );
@@ -1231,11 +1246,13 @@ print("eqTechAfcOutUp(tech, region, comm, year, timeslice)...")
                 pTechWeatherAfcUpDef
             end
         ) * (
-            if haskey(pWeather, (wth1, r, y, s))
-                pWeather[(wth1, r, y, s)]
-            else
-                pWeatherDef
-            end
+            sum(
+                if haskey(pWeather, (wth1, rw, y, s))
+                    pWeather[(wth1, rw, y, s)]
+                else
+                    pWeatherDef
+                end for rw in get(mWeatherRegionAt_ix, (wth1, r), ())
+            ; init = 0)
         ) for wth1 in get(mTechWeatherAfcUp_ix, (t, c), ())
     ; init = 1)
 );
@@ -1280,11 +1297,13 @@ print("eqTechAfcInpLo(tech, region, comm, year, timeslice)...")
                 pTechWeatherAfcLoDef
             end
         ) * (
-            if haskey(pWeather, (wth1, r, y, s))
-                pWeather[(wth1, r, y, s)]
-            else
-                pWeatherDef
-            end
+            sum(
+                if haskey(pWeather, (wth1, rw, y, s))
+                    pWeather[(wth1, rw, y, s)]
+                else
+                    pWeatherDef
+                end for rw in get(mWeatherRegionAt_ix, (wth1, r), ())
+            ; init = 0)
         ) for wth1 in get(mTechWeatherAfcLo_ix, (t, c), ())
     ; init = 1) <= vTechInp[(t, c, r, y, s)]
 );
@@ -1330,11 +1349,13 @@ print("eqTechAfcInpUp(tech, region, comm, year, timeslice)...")
                 pTechWeatherAfcUpDef
             end
         ) * (
-            if haskey(pWeather, (wth1, r, y, s))
-                pWeather[(wth1, r, y, s)]
-            else
-                pWeatherDef
-            end
+            sum(
+                if haskey(pWeather, (wth1, rw, y, s))
+                    pWeather[(wth1, rw, y, s)]
+                else
+                    pWeatherDef
+                end for rw in get(mWeatherRegionAt_ix, (wth1, r), ())
+            ; init = 0)
         ) for wth1 in get(mTechWeatherAfcUp_ix, (t, c), ())
     ; init = 1)
 );
@@ -2578,11 +2599,13 @@ print("eqSupAvaUp(sup, comm, region, year, timeslice)...")
                 pSupWeatherUpDef
             end
         ) * (
-            if haskey(pWeather, (wth1, r, y, s))
-                pWeather[(wth1, r, y, s)]
-            else
-                pWeatherDef
-            end
+            sum(
+                if haskey(pWeather, (wth1, rw, y, s))
+                    pWeather[(wth1, rw, y, s)]
+                else
+                    pWeatherDef
+                end for rw in get(mWeatherRegionAt_ix, (wth1, r), ())
+            ; init = 0)
         ) for wth1 in get(mSupWeatherUp_ix, s1, ())
     ; init = 1)
 );
@@ -2612,11 +2635,13 @@ print("eqSupAvaLo(sup, comm, region, year, timeslice)...")
                 pSupWeatherLoDef
             end
         ) * (
-            if haskey(pWeather, (wth1, r, y, s))
-                pWeather[(wth1, r, y, s)]
-            else
-                pWeatherDef
-            end
+            sum(
+                if haskey(pWeather, (wth1, rw, y, s))
+                    pWeather[(wth1, rw, y, s)]
+                else
+                    pWeatherDef
+                end for rw in get(mWeatherRegionAt_ix, (wth1, r), ())
+            ; init = 0)
         ) for wth1 in get(mSupWeatherLo_ix, s1, ())
     ; init = 1)
 );
@@ -3320,11 +3345,13 @@ print("eqStorageAfLo(stg, comm, region, year, timeslice)...")
                 pStorageWeatherAfLoDef
             end
         ) * (
-            if haskey(pWeather, (wth1, r, y, s))
-                pWeather[(wth1, r, y, s)]
-            else
-                pWeatherDef
-            end
+            sum(
+                if haskey(pWeather, (wth1, rw, y, s))
+                    pWeather[(wth1, rw, y, s)]
+                else
+                    pWeatherDef
+                end for rw in get(mWeatherRegionAt_ix, (wth1, r), ())
+            ; init = 0)
         ) for wth1 in get(mStorageWeatherAfLo_ix, st1, ())
     ; init = 1)
 );
@@ -3370,11 +3397,13 @@ print("eqStorageAfUp(stg, comm, region, year, timeslice)...")
                 pStorageWeatherAfUpDef
             end
         ) * (
-            if haskey(pWeather, (wth1, r, y, s))
-                pWeather[(wth1, r, y, s)]
-            else
-                pWeatherDef
-            end
+            sum(
+                if haskey(pWeather, (wth1, rw, y, s))
+                    pWeather[(wth1, rw, y, s)]
+                else
+                    pWeatherDef
+                end for rw in get(mWeatherRegionAt_ix, (wth1, r), ())
+            ; init = 0)
         ) for wth1 in get(mStorageWeatherAfUp_ix, st1, ())
     ; init = 1)
 );
@@ -3457,11 +3486,13 @@ print("eqStorageInpUp(stg, comm, region, year, timeslice)...")
                 pStorageWeatherInpAfUpDef
             end
         ) * (
-            if haskey(pWeather, (wth1, r, y, s))
-                pWeather[(wth1, r, y, s)]
-            else
-                pWeatherDef
-            end
+            sum(
+                if haskey(pWeather, (wth1, rw, y, s))
+                    pWeather[(wth1, rw, y, s)]
+                else
+                    pWeatherDef
+                end for rw in get(mWeatherRegionAt_ix, (wth1, r), ())
+            ; init = 0)
         ) for wth1 in get(mStorageWeatherInpAfUp_ix, st1, ())
     ; init = 1)
 );
@@ -3522,11 +3553,13 @@ print("eqStorageInpLo(stg, comm, region, year, timeslice)...")
                 pStorageWeatherInpAfLoDef
             end
         ) * (
-            if haskey(pWeather, (wth1, r, y, s))
-                pWeather[(wth1, r, y, s)]
-            else
-                pWeatherDef
-            end
+            sum(
+                if haskey(pWeather, (wth1, rw, y, s))
+                    pWeather[(wth1, rw, y, s)]
+                else
+                    pWeatherDef
+                end for rw in get(mWeatherRegionAt_ix, (wth1, r), ())
+            ; init = 0)
         ) for wth1 in get(mStorageWeatherInpAfLo_ix, st1, ())
     ; init = 1)
 );
@@ -3572,11 +3605,13 @@ print("eqStorageOutUp(stg, comm, region, year, timeslice)...")
                 pStorageWeatherOutAfUpDef
             end
         ) * (
-            if haskey(pWeather, (wth1, r, y, s))
-                pWeather[(wth1, r, y, s)]
-            else
-                pWeatherDef
-            end
+            sum(
+                if haskey(pWeather, (wth1, rw, y, s))
+                    pWeather[(wth1, rw, y, s)]
+                else
+                    pWeatherDef
+                end for rw in get(mWeatherRegionAt_ix, (wth1, r), ())
+            ; init = 0)
         ) for wth1 in get(mStorageWeatherOutAfUp_ix, st1, ())
     ; init = 1)
 );
@@ -3622,11 +3657,13 @@ print("eqStorageOutLo(stg, comm, region, year, timeslice)...")
                 pStorageWeatherOutAfLoDef
             end
         ) * (
-            if haskey(pWeather, (wth1, r, y, s))
-                pWeather[(wth1, r, y, s)]
-            else
-                pWeatherDef
-            end
+            sum(
+                if haskey(pWeather, (wth1, rw, y, s))
+                    pWeather[(wth1, rw, y, s)]
+                else
+                    pWeatherDef
+                end for rw in get(mWeatherRegionAt_ix, (wth1, r), ())
+            ; init = 0)
         ) for wth1 in get(mStorageWeatherOutAfLo_ix, st1, ())
     ; init = 1)
 );

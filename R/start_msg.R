@@ -1,6 +1,8 @@
 .onAttach <- function(...) {
   packageStartupMessage(
-    glue::glue('energyRt {utils::packageVersion("energyRt")}-dev ({utils::packageDate("energyRt")})'),
+    sprintf("energyRt %s-dev (%s)",
+            utils::packageVersion("energyRt"),
+            utils::packageDate("energyRt")),
     "\nDevelopment version, please report bugs/issues:",
     "\nhttps://github.com/optimal2050/energyRt/issues"
     )
