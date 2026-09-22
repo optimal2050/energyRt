@@ -180,6 +180,29 @@
 
 ## New features
 
+* `verify_solution()` gains `checks = "default"` / `"all"`, a `verbose =`
+  progress report, and `print(detail = c("full", "issues"))`. New checks:
+  `positivity` (no negative value in a variable declared positive),
+  `inputs_present` (every declared object reaches the sets and the
+  parameters), `units` (unresolved-unit report, never fails), and the opt-in
+  `inputs_values` / `inputs_bounds`, which re-derive each object's declared
+  data independently and compare it against `modInp` and the solution.
+* Further opt-in checks: `storage_dynamics` (`eqStorageLevel`, including the
+  `fullYear` cycle closure), `capacity_accumulation` (`eqTechCap`, the
+  arithmetic the `periodLen` defect lived in), `eac` and `flow_chain`
+  (input to output through the efficiency chain, grouped inputs included).
+* The `units` report summarises coverage per class (`$coverage`), so it says
+  which classes are missing unit declarations rather than only how many
+  parameters are unresolved.
+* `$divergence` gains `max_scaled`, the divergence relative to the series
+  scale. `max_rel` degenerates to 1 wherever a value legitimately reaches zero
+  -- an emptying storage level -- so `max_scaled` is the figure that says
+  whether a check is drifting. `storage_dynamics` is toleranced against that
+  series scale for the same reason.
+* `verify_checks()` lists the checks with their group, tier and data path.
+  `path` says whether a check reads `modInp` or the model objects -- only the
+  latter can catch a mapping that was never built.
+
 * `promote_solution()` makes a run's solution the scenario's own, copying it
   to `<scenario>/modOut/` beside `modInp/` and clearing the active run —
   after which `runs/` is scratch and can be deleted without losing the
