@@ -1023,12 +1023,15 @@ eqTechAInp(tech, comm, region, year, timeslice)   Technology auxiliary commodity
 eqTechAOut(tech, comm, region, year, timeslice)   Technology auxiliary commodity output
 ;
 
+* Row scaled by pTechCap2act: the capacity term stands alone, every other
+* term is multiplied by pTechCap2act, so no coefficient is a division.
 eqTechAInp(tech, comm, region, year, timeslice)$mvTechAInp(tech, comm, region, year, timeslice)..
-  vTechAInp(tech, comm, region, year, timeslice) =e=
+  pTechCap2act(tech) * vTechAInp(tech, comm, region, year, timeslice) =e=
+  (vTechCap(tech, region, year) *
+    pTechCap2AInp(tech, comm, region, year, timeslice))$mTechCap2AInp(tech, comm, region, year, timeslice) +
+  pTechCap2act(tech) * (
   (vTechAct(tech, region, year, timeslice) *
     pTechAct2AInp(tech, comm, region, year, timeslice))$mTechAct2AInp(tech, comm, region, year, timeslice) +
-  (vTechCap(tech, region, year) *
-    pTechCap2AInp(tech, comm, region, year, timeslice) / pTechCap2act(tech))$mTechCap2AInp(tech, comm, region, year, timeslice) +
   (vTechNewCap(tech, region, year) *
     pTechNCap2AInp(tech, comm, region, year, timeslice))$mTechNCap2AInp(tech, comm, region, year, timeslice) +
   (vTechPhaseOut(tech, region, year)$mvTechPhaseOut(tech, region, year) *
@@ -1042,14 +1045,16 @@ eqTechAInp(tech, comm, region, year, timeslice)$mvTechAInp(tech, comm, region, y
          vTechInp(tech, commp, region, year, timeslice)) +
   sum(commp$mTechCout2AInp(tech, comm, commp, region, year, timeslice),
       pTechCout2AInp(tech, comm, commp, region, year, timeslice) *
-         vTechOut(tech, commp, region, year, timeslice));
+         vTechOut(tech, commp, region, year, timeslice)));
 
+* Row scaled by pTechCap2act, as eqTechAInp.
 eqTechAOut(tech, comm, region, year, timeslice)$mvTechAOut(tech, comm, region, year, timeslice)..
-  vTechAOut(tech, comm, region, year, timeslice) =e=
+  pTechCap2act(tech) * vTechAOut(tech, comm, region, year, timeslice) =e=
+  (vTechCap(tech, region, year) *
+    pTechCap2AOut(tech, comm, region, year, timeslice))$mTechCap2AOut(tech, comm, region, year, timeslice) +
+  pTechCap2act(tech) * (
   (vTechAct(tech, region, year, timeslice) *
     pTechAct2AOut(tech, comm, region, year, timeslice))$mTechAct2AOut(tech, comm, region, year, timeslice) +
-  (vTechCap(tech, region, year) *
-    pTechCap2AOut(tech, comm, region, year, timeslice) / pTechCap2act(tech))$mTechCap2AOut(tech, comm, region, year, timeslice) +
   (vTechNewCap(tech, region, year) *
     pTechNCap2AOut(tech, comm, region, year, timeslice))$mTechNCap2AOut(tech, comm, region, year, timeslice) +
   (vTechPhaseOut(tech, region, year)$mvTechPhaseOut(tech, region, year) *
@@ -1063,7 +1068,7 @@ eqTechAOut(tech, comm, region, year, timeslice)$mvTechAOut(tech, comm, region, y
          vTechInp(tech, commp, region, year, timeslice)) +
   sum(commp$mTechCout2AOut(tech, comm, commp, region, year, timeslice),
       pTechCout2AOut(tech, comm, commp, region, year, timeslice) *
-         vTechOut(tech, commp, region, year, timeslice));
+         vTechOut(tech, commp, region, year, timeslice)));
 
 ********************************************************************************
 *** Availability

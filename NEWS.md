@@ -1,5 +1,21 @@
 # energyRt (development version)
 
+* `audit_coefficients()` reports the coefficient range of a written model per
+  equation family (widest row, the variable at each end of it, counts per
+  decade), from the free-MPS form `glpsol` re-emits. `dev/coefficient-ranges.md`
+  holds the table for the test fixtures and UTOPIA.
+
+* `eqTechAInp` / `eqTechAOut` are multiplied through by `pTechCap2act` in all
+  four backends, so no coefficient in them is a division. Parameters keep
+  their meaning; the LP is the same problem with those rows scaled.
+
+* `validate_scenario_parameters()` adds the advisory `coefficient_scale`
+  check: a technology, trade or storage whose `cap2act x finest timeslice
+  share` is outside `[1e-4, 1e4]` is named with the `cap2act` that would put
+  the product near 1. On an hourly calendar with `cap2act = 1` the capacity
+  coefficient in the availability rows is 1.1e-4 against 1 on the activity.
+
+
 ## License
 
 * energyRt is relicensed from AGPL-3 to **Apache-2.0**. Releases up to and 

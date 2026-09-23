@@ -3191,6 +3191,17 @@ validate_scenario_parameters <- function(scen, fold = TRUE,
     }
   }
 
+  # Coefficient scale: the activity bounds read
+  # `af * cap2act * pTimesliceShare * capacity`, so the coefficient on the
+  # capacity variable is `cap2act x share` (times an availability <= 1). Far
+  # from 1 it sits in a row with a 1 on the activity variable, and the row
+  # ratio is what a solver has to scale away: an hourly calendar with
+  # cap2act = 1 puts 1.1e-4 there. The remedy is the unit choice, not data.
+  sc <- .vsp_coefficient_scale(scen)
+  for (i in seq_len(nrow(sc))) {
+    add(sc$parameter[i], "coefficient_scale", sc$detail[i])
+  }
+
   res <- if (length(issues) == 0) {
     data.frame(parameter = character(0), check = character(0),
                detail = character(0), severity = character(0),
@@ -4803,3 +4814,53 @@ setMethod("interpolate", signature(object = "model"),
 
 setMethod("interpolate", signature(object = "scenario"),
           function(object, ...) interpolate_model(object, ...))
+
+# Objects whose `cap2act x finest timeslice share` falls outside [lo, hi]:
+# one row per cap2act parameter with the offenders and the cap2act that would
+# put the product at 1 on that timeslice. The share is the smallest over the
+# timeslices the object operates in (`.timeslice_allowed`), falling back to
+# the calendar's smallest share.
+.vsp_coefficient_scale <- function(scen, lo = 1e-4, hi = 1e4) {
+  out <- data.frame(parameter = character(0), detail = character(0),
+                    stringsAsFactors = FALSE)
+  sh <- .read_map(scen, "pTimesliceShare")
+  if (is.null(sh) || !all(c("timeslice", "value") %in% names(sh))) return(out)
+  sh$timeslice <- as.character(sh$timeslice)
+  min_all <- min(sh$value, na.rm = TRUE)
+  specs <- list(
+    list(param = "pTechCap2act",       key = "tech"),
+    list(param = "pTradeCap2Act",      key = "trade"),
+    list(param = "pStorageInpCap2act", key = "stg"),
+    list(param = "pStorageOutCap2act", key = "stg"))
+  for (s in specs) {
+    p <- scen@modInp@parameters[[s$param]]
+    if (is.null(p)) next
+    d <- get_data_slot(p)
+    if (is.null(d) || nrow(d) == 0) next
+    d <- as.data.frame(d)
+    d[[s$key]] <- as.character(d[[s$key]])
+    allowed <- .timeslice_allowed(scen, s$key)
+    share_of <- function(obj) {
+      if (is.null(allowed)) return(min_all)
+      ts <- as.character(allowed$timeslice[as.character(allowed[[s$key]]) == obj])
+      v <- sh$value[sh$timeslice %in% ts]
+      if (length(v) == 0) min_all else min(v, na.rm = TRUE)
+    }
+    d$share <- vapply(d[[s$key]], share_of, numeric(1))
+    d$scale <- d$value * d$share
+    bad <- d[is.finite(d$scale) & (d$scale < lo | d$scale > hi), , drop = FALSE]
+    if (nrow(bad) == 0) next
+    ex <- bad[which.max(abs(log10(bad$scale))), ]
+    out <- rbind(out, data.frame(
+      parameter = s$param,
+      detail = sprintf(paste0(
+        "%d object(s) with cap2act x finest timeslice share outside ",
+        "[%.0e, %.0e], e.g. %s: %.3g x %.3g = %.2g; choose cap2act so the ",
+        "product is near 1 on the model's finest timeslice (here %.4g), ",
+        "e.g. 8760 for hourly with MW and MWh"),
+        nrow(bad), lo, hi, ex[[s$key]], ex$value, ex$share, ex$scale,
+        1 / ex$share),
+      stringsAsFactors = FALSE))
+  }
+  out
+}

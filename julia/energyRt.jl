@@ -566,7 +566,33 @@ print("eqTechAInp(tech, comm, region, year, timeslice)...")
 @constraint(
     model,
     [(t, c, r, y, s) in mvTechAInp],
-    vTechAInp[(t, c, r, y, s)] ==
+    (
+        if haskey(pTechCap2act, (t))
+            pTechCap2act[(t)]
+        else
+            pTechCap2actDef
+        end
+    ) * vTechAInp[(t, c, r, y, s)] ==
+    (
+        if (t, c, r, y, s) in mTechCap2AInp
+            (vTechCap[(t, r, y)] * (
+                if haskey(pTechCap2AInp, (t, c, r, y, s))
+                    pTechCap2AInp[(t, c, r, y, s)]
+                else
+                    pTechCap2AInpDef
+                end
+            ))
+        else
+            0
+        end
+    ) +
+    (
+        if haskey(pTechCap2act, (t))
+            pTechCap2act[(t)]
+        else
+            pTechCap2actDef
+        end
+    ) * (
     (
         if (t, c, r, y, s) in mTechAct2AInp
             (vTechAct[(t, r, y, s)] * (
@@ -576,27 +602,6 @@ print("eqTechAInp(tech, comm, region, year, timeslice)...")
                     pTechAct2AInpDef
                 end
             ))
-        else
-            0
-        end
-    ) +
-    (
-        if (t, c, r, y, s) in mTechCap2AInp
-            (
-                (vTechCap[(t, r, y)] * (
-                    if haskey(pTechCap2AInp, (t, c, r, y, s))
-                        pTechCap2AInp[(t, c, r, y, s)]
-                    else
-                        pTechCap2AInpDef
-                    end
-                )) / ((
-                    if haskey(pTechCap2act, (t))
-                        pTechCap2act[(t)]
-                    else
-                        pTechCap2actDef
-                    end
-                ))
-            )
         else
             0
         end
@@ -660,6 +665,7 @@ print("eqTechAInp(tech, comm, region, year, timeslice)...")
         ) * vTechOut[(t, cp, r, y, s)] for
         cp in comm if (t, c, cp, r, y, s) in mTechCout2AInp
     )
+    )
 );
 print(
     " ",
@@ -672,7 +678,33 @@ print("eqTechAOut(tech, comm, region, year, timeslice)...")
 @constraint(
     model,
     [(t, c, r, y, s) in mvTechAOut],
-    vTechAOut[(t, c, r, y, s)] ==
+    (
+        if haskey(pTechCap2act, (t))
+            pTechCap2act[(t)]
+        else
+            pTechCap2actDef
+        end
+    ) * vTechAOut[(t, c, r, y, s)] ==
+    (
+        if (t, c, r, y, s) in mTechCap2AOut
+            (vTechCap[(t, r, y)] * (
+                if haskey(pTechCap2AOut, (t, c, r, y, s))
+                    pTechCap2AOut[(t, c, r, y, s)]
+                else
+                    pTechCap2AOutDef
+                end
+            ))
+        else
+            0
+        end
+    ) +
+    (
+        if haskey(pTechCap2act, (t))
+            pTechCap2act[(t)]
+        else
+            pTechCap2actDef
+        end
+    ) * (
     (
         if (t, c, r, y, s) in mTechAct2AOut
             (vTechAct[(t, r, y, s)] * (
@@ -682,27 +714,6 @@ print("eqTechAOut(tech, comm, region, year, timeslice)...")
                     pTechAct2AOutDef
                 end
             ))
-        else
-            0
-        end
-    ) +
-    (
-        if (t, c, r, y, s) in mTechCap2AOut
-            (
-                (vTechCap[(t, r, y)] * (
-                    if haskey(pTechCap2AOut, (t, c, r, y, s))
-                        pTechCap2AOut[(t, c, r, y, s)]
-                    else
-                        pTechCap2AOutDef
-                    end
-                )) / ((
-                    if haskey(pTechCap2act, (t))
-                        pTechCap2act[(t)]
-                    else
-                        pTechCap2actDef
-                    end
-                ))
-            )
         else
             0
         end
@@ -765,6 +776,7 @@ print("eqTechAOut(tech, comm, region, year, timeslice)...")
             end
         ) * vTechOut[(t, cp, r, y, s)] for
         cp in comm if (t, c, cp, r, y, s) in mTechCout2AOut
+    )
     )
 );
 print(

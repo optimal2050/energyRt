@@ -75,3 +75,25 @@ test_that("the free-meal guard reports missing storage balance as structural", {
   expect_error(validate_scenario_parameters(scen, action = "silent"),
                "free energy|free_meal|balance chain")
 })
+
+# ---- coefficient_scale advisory --------------------------------------------- #
+# cap2act x finest timeslice share outside [1e-4, 1e4] is reported with the
+# cap2act that would put the product near 1; inside the band nothing fires.
+test_that("the coefficient_scale advisory fires on cap2act x share far from 1", {
+  scen <- suppressMessages(suppressWarnings(
+    interpolate_model(fold_model(), name = "vm_scale", ondisk = FALSE)))
+  # the fold fixture: cap2act 8760 on an annual calendar -> 8760, in band
+  expect_equal(nrow(energyRt:::.vsp_coefficient_scale(scen)), 0L)
+  c2 <- scen@modInp@parameters$pTechCap2act
+  d2 <- as.data.frame(get_data_slot(c2)); d2$value <- 1
+  scen@modInp@parameters$pTechCap2act <- energyRt:::.fold_write_back(c2, d2)
+  sh <- scen@modInp@parameters$pTimesliceShare
+  d <- as.data.frame(get_data_slot(sh)); d$value <- 1e-5
+  scen@modInp@parameters$pTimesliceShare <- energyRt:::.fold_write_back(sh, d)
+  sc <- energyRt:::.vsp_coefficient_scale(scen)
+  expect_equal(sc$parameter, "pTechCap2act")
+  expect_match(sc$detail, "TPP: 1 x 1e-05")
+  res <- validate_scenario_parameters(scen, action = "silent")
+  expect_true("coefficient_scale" %in% res$check)
+  expect_equal(res$severity[res$check == "coefficient_scale"], "advisory")
+})

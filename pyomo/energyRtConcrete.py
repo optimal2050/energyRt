@@ -762,18 +762,16 @@ if verbose:
 sys.stdout.flush()
 model.eqTechAInp = Constraint(
     mvTechAInp,
-    rule=lambda model, t, c, r, y, s: model.vTechAInp[t, c, r, y, s]
+    rule=lambda model, t, c, r, y, s: pTechCap2act.get((t)) * model.vTechAInp[t, c, r, y, s]
     == (
-        (model.vTechAct[t, r, y, s] * pTechAct2AInp.get((t, c, r, y, s)))
-        if (t, c, r, y, s) in mTechAct2AInp
+        (model.vTechCap[t, r, y] * pTechCap2AInp.get((t, c, r, y, s)))
+        if (t, c, r, y, s) in mTechCap2AInp
         else 0
     )
-    + (
-        (
-            (model.vTechCap[t, r, y] * pTechCap2AInp.get((t, c, r, y, s)))
-            / (pTechCap2act.get((t)))
-        )
-        if (t, c, r, y, s) in mTechCap2AInp
+    + pTechCap2act.get((t)) * (
+    (
+        (model.vTechAct[t, r, y, s] * pTechAct2AInp.get((t, c, r, y, s)))
+        if (t, c, r, y, s) in mTechAct2AInp
         else 0
     )
     + (
@@ -798,6 +796,7 @@ model.eqTechAInp = Constraint(
     + sum(
         pTechCout2AInp.get((t, c, cp, r, y, s)) * model.vTechOut[t, cp, r, y, s]
         for cp in mTechCout2AInp_ix.get((t, c, r, y, s), ())
+    )
     ),
 )
 if verbose:
@@ -814,18 +813,16 @@ if verbose:
 sys.stdout.flush()
 model.eqTechAOut = Constraint(
     mvTechAOut,
-    rule=lambda model, t, c, r, y, s: model.vTechAOut[t, c, r, y, s]
+    rule=lambda model, t, c, r, y, s: pTechCap2act.get((t)) * model.vTechAOut[t, c, r, y, s]
     == (
-        (model.vTechAct[t, r, y, s] * pTechAct2AOut.get((t, c, r, y, s)))
-        if (t, c, r, y, s) in mTechAct2AOut
+        (model.vTechCap[t, r, y] * pTechCap2AOut.get((t, c, r, y, s)))
+        if (t, c, r, y, s) in mTechCap2AOut
         else 0
     )
-    + (
-        (
-            (model.vTechCap[t, r, y] * pTechCap2AOut.get((t, c, r, y, s)))
-            / (pTechCap2act.get((t)))
-        )
-        if (t, c, r, y, s) in mTechCap2AOut
+    + pTechCap2act.get((t)) * (
+    (
+        (model.vTechAct[t, r, y, s] * pTechAct2AOut.get((t, c, r, y, s)))
+        if (t, c, r, y, s) in mTechAct2AOut
         else 0
     )
     + (
@@ -850,6 +847,7 @@ model.eqTechAOut = Constraint(
     + sum(
         pTechCout2AOut.get((t, c, cp, r, y, s)) * model.vTechOut[t, cp, r, y, s]
         for cp in mTechCout2AOut_ix.get((t, c, r, y, s), ())
+    )
     ),
 )
 if verbose:
