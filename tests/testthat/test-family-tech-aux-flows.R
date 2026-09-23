@@ -117,3 +117,79 @@ test_that("family tech-aux-flows: remaining direction ratios land in modInp", {
   expect_equal(unique(ff_param(scen, "pTechCout2AInp")$value), 0.03)
   expect_equal(unique(ff_param(scen, "pTechCinp2AOut")$value), 0.04)
 })
+
+# ---- cap2act scaling of the capacity-driven aux flow ----------------------- #
+# eqTechAInp / eqTechAOut are written multiplied through by pTechCap2act (no
+# division in any coefficient), so the solved aux input must still satisfy
+#   vTechAInp = act2ainp * vTechAct + cap2ainp / cap2act * vTechCap
+# on a technology with cap2act = 8760. The written GLPK row carries no `/`.
+ax_build_c2a <- function(cap2act = 8760) {
+  newModel("axc",
+    repo = newRepository("axc_repo",
+      newCommodity("COA", timeframe = "ANNUAL"),
+      newCommodity("ELC", timeframe = "SL"),
+      newCommodity("WAT", timeframe = "ANNUAL"),
+      newSupply("SCOA", commodity = "COA", supply = data.frame(cost = 1)),
+      newSupply("SWAT", commodity = "WAT", supply = data.frame(cost = 2)),
+      newTechnology("ECOA", input = list(comm = "COA"),
+                    output = list(comm = "ELC"),
+                    aux = data.frame(acomm = "WAT"),
+                    aeff = data.frame(acomm = "WAT", act2ainp = 0.02,
+                                      cap2ainp = 876),
+                    invcost = list(invcost = 1000), olife = list(olife = 30),
+                    cap2act = cap2act),
+      newDemand("DEM", commodity = "ELC",
+                demand = data.frame(timeslice = ax_slices, demand = 10))),
+    calendar = newCalendar(
+      timetable = make_timetable(struct = list(ANNUAL = "ANNUAL", SL = ax_slices)),
+      name = "axc_cal"),
+    region = "R1", horizon = newHorizon(2025), discount = 0)
+}
+
+test_that("the written aux-flow rows divide by nothing", {
+  scen <- suppressMessages(suppressWarnings(
+    interpolate_model(ax_build_c2a(), name = "axc_w", overwrite = TRUE)))
+  d <- withr::local_tempdir()
+  write_script(scen, solver.dir = d, solver = solver_options$glpk)
+  src <- readLines(file.path(d, "energyRt.mod"), warn = FALSE)
+  rows <- grep("^s[.]t[.]  eq(TechAInp|TechAOut)", src, value = TRUE)
+  expect_length(rows, 2L)
+  expect_false(any(grepl(") / (", rows, fixed = TRUE)))
+  # the parameter itself is untouched: cap2ainp as declared
+  p <- as.data.frame(get_data_slot(scen@modInp@parameters$pTechCap2AInp))
+  expect_equal(unique(p$value), 876)
+})
+
+.axc_backends <- list(
+  glpk = list(solver = quote(solver_options$glpk), skip = quote(skip_if_no_solver())),
+  julia_highs = list(solver = quote(solver_options$julia_highs),
+                     skip = quote(skip_if_no_julia_highs())),
+  pyomo_cbc = list(solver = quote(solver_options$pyomo_cbc),
+                   skip = quote(skip_if_no_pyomo())))
+
+for (bk in names(.axc_backends)) {
+  local({
+    spec <- .axc_backends[[bk]]; tag <- bk
+    # @covers pTechCap2AInp pTechCap2act eqTechAInp depth=X backends=glpk,julia_highs,pyomo_cbc
+    test_that(paste0("family tech-aux-flows: cap2ainp / cap2act identity on ", tag), {
+      eval(spec$skip)
+      scen <- suppressMessages(suppressWarnings(
+        interpolate_model(ax_build_c2a(), name = paste0("axc_", tag),
+                          overwrite = TRUE)))
+      scen <- suppressMessages(suppressWarnings(
+        solve_scenario(scen, solver = eval(spec$solver), force = TRUE,
+                       solver.dir = withr::local_tempdir())))
+      expect_true(verify_solution(scen)$ok)
+      act <- as.data.frame(getData(scen, "vTechAct", merge = TRUE))
+      cap <- as.data.frame(getData(scen, "vTechCap", merge = TRUE))
+      ain <- as.data.frame(getData(scen, "vTechAInp", merge = TRUE))
+      expect_gt(sum(cap$value), 0)
+      for (s in unique(ain$timeslice)) {
+        a <- sum(act$value[act$timeslice == s])
+        expect_equal(sum(ain$value[ain$timeslice == s]),
+                     0.02 * a + 876 / 8760 * sum(cap$value),
+                     tolerance = 1e-6, label = paste(tag, "aux in", s))
+      }
+    })
+  })
+}

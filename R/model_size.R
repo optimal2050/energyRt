@@ -394,3 +394,199 @@ print.solve_settings_cmp <- function(x, ...) {
   }
   invisible(x)
 }
+
+# =========================================================================== #
+# Coefficient-range audit of a written LP.
+# glpsol re-emits the written GLPK model as free MPS (`--check --wfreemps`),
+# whose row and column names keep the equation / variable family and the index
+# tuple (`eqTechAfUp[TPP,R1,2020,ANNUAL]`). The non-zeros are summarised per
+# equation family: the |a_ij| range, the widest row (max / min |a_ij| within
+# one row) and the (variable family, coefficient) pair at each end of it.
+# Solvers scale rows and columns, so the per-row ratio is what a solver has to
+# absorb; the global range is context. The objective row is reported as the
+# family "objective".
+# =========================================================================== #
+
+#' Coefficient-range audit of a written model
+#'
+#' Writes the scenario for GLPK (or reads an already written run directory /
+#' free-MPS file), has `glpsol` re-emit the constraint matrix as free MPS, and
+#' summarises the non-zero coefficients per equation family: the range of
+#' `|a_ij|`, the widest row and the variable families at each end of it. Wide
+#' rows come from unit choices (a capacity in MW against an hourly activity
+#' share, `1 / pTimesliceShare` on a ramp), and the table shows which equations
+#' carry them before a solver has to scale them away.
+#'
+#' @param x an interpolated `scenario`, a directory holding `energyRt.mod` +
+#'   `energyRt.dat`, or the path of a free-MPS file.
+#' @param solver.dir directory to write the scenario into (default: a
+#'   temporary directory). Ignored when `x` is a path.
+#' @param ratio a row whose `max |a_ij| / min |a_ij|` exceeds this is counted
+#'   as wide.
+#' @param keep keep the non-zero triplets in `$entries` (row, col, value).
+#' @return an object of class `coefficient_audit` with `$summary` (matrix
+#'   size and global range), `$families` (one row per equation family),
+#'   `$variables` (one row per variable family), `$decades` (count of
+#'   coefficients per power of ten) and `$source` (the MPS file read).
+#' @examples
+#' \dontrun{
+#' scen <- interpolate_model(mod, name = "audit")
+#' au <- audit_coefficients(scen)
+#' au
+#' au$families[order(-au$families$ratio_max), ]
+#' }
+#' @family model size
+#' @export
+audit_coefficients <- function(x, solver.dir = NULL, ratio = 1e6,
+                               keep = FALSE) {
+  mps <- if (is.character(x)) {
+    if (dir.exists(x)) .glpsol_write_mps(x)
+    else if (file.exists(x)) x
+    else stop("`x` is neither a directory nor a file: ", x, call. = FALSE)
+  } else if (is(x, "scenario")) {
+    if (!isTRUE(x@status$interpolated)) {
+      stop("The scenario must be interpolated first.", call. = FALSE)
+    }
+    d <- if (is.null(solver.dir)) tempfile("audit_") else solver.dir
+    dir.create(d, recursive = TRUE, showWarnings = FALSE)
+    write_script(x, solver.dir = d, solver = list(name = "glpk", lang = "GLPK"))
+    .glpsol_write_mps(d)
+  } else {
+    stop("`x` must be a scenario, a run directory or an MPS file.",
+         call. = FALSE)
+  }
+  m <- .read_free_mps(mps)
+  e <- m$entries
+  e$abs <- abs(e$value)
+  e$eq <- sub("[[].*$", "", e$row)
+  e$var <- sub("[[].*$", "", e$col)
+  obj <- m$rows$name[m$rows$type == "N"]
+  e$eq[e$row %in% obj] <- "objective"
+
+  # per row: range and the family at each end
+  by_row <- e |>
+    dplyr::group_by(.data$row, .data$eq) |>
+    dplyr::summarise(
+      nnz = dplyr::n(),
+      row_min = min(.data$abs), row_max = max(.data$abs),
+      var_min = .data$var[which.min(.data$abs)],
+      var_max = .data$var[which.max(.data$abs)],
+      .groups = "drop") |>
+    dplyr::mutate(ratio = .data$row_max / .data$row_min)
+
+  # the row-level columns keep their own names: a summary column defined
+  # earlier in the same summarise() call shadows the input column of that name
+  families <- by_row |>
+    dplyr::group_by(.data$eq) |>
+    dplyr::summarise(
+      rows = dplyr::n(), nnz = sum(.data$nnz),
+      min_abs = min(.data$row_min), max_abs = max(.data$row_max),
+      ratio_max = max(.data$ratio),
+      rows_wide = sum(.data$ratio > ratio),
+      widest_row = .data$row[which.max(.data$ratio)],
+      widest_min = sprintf("%s = %.6g", .data$var_min[which.max(.data$ratio)],
+                           .data$row_min[which.max(.data$ratio)]),
+      widest_max = sprintf("%s = %.6g", .data$var_max[which.max(.data$ratio)],
+                           .data$row_max[which.max(.data$ratio)]),
+      .groups = "drop") |>
+    dplyr::rename(equation = "eq") |>
+    dplyr::arrange(dplyr::desc(.data$ratio_max)) |>
+    as.data.frame()
+
+  variables <- e |>
+    dplyr::group_by(variable = .data$var) |>
+    dplyr::summarise(nnz = dplyr::n(), min_abs = min(.data$abs),
+                     max_abs = max(.data$abs), .groups = "drop") |>
+    dplyr::mutate(ratio = .data$max_abs / .data$min_abs) |>
+    dplyr::arrange(dplyr::desc(.data$ratio)) |>
+    as.data.frame()
+
+  dec <- floor(log10(e$abs))
+  decades <- as.data.frame(table(decade = dec), stringsAsFactors = FALSE)
+  decades$decade <- as.integer(as.character(decades$decade))
+  names(decades)[2] <- "n"
+
+  summary <- data.frame(
+    rows = nrow(m$rows), cols = length(unique(e$col)), nnz = nrow(e),
+    min_abs = min(e$abs), max_abs = max(e$abs),
+    ratio_global = max(e$abs) / min(e$abs),
+    rows_wide = sum(by_row$ratio > ratio), ratio_threshold = ratio)
+
+  structure(list(summary = summary, families = families,
+                 variables = variables, decades = decades,
+                 entries = if (isTRUE(keep)) e[, c("row", "col", "value")] else NULL,
+                 source = mps),
+            class = "coefficient_audit")
+}
+
+#' @method print coefficient_audit
+#' @export
+print.coefficient_audit <- function(x, n = 12L, ...) {
+  s <- x$summary
+  cat(sprintf("coefficient audit: %s rows, %s columns, %s non-zeros\n",
+              format(s$rows, big.mark = ","), format(s$cols, big.mark = ","),
+              format(s$nnz, big.mark = ",")))
+  cat(sprintf("  |a_ij| in [%.3g, %.3g] (global ratio %.2g); %d row(s) wider than %.0e\n",
+              s$min_abs, s$max_abs, s$ratio_global, s$rows_wide,
+              s$ratio_threshold))
+  cat("  per decade:",
+      paste0("1e", x$decades$decade, ":", x$decades$n, collapse = "  "), "\n")
+  cat(sprintf("  equation families by widest row (top %d):\n", n))
+  f <- utils::head(x$families, n)
+  for (i in seq_len(nrow(f))) {
+    cat(sprintf("    %-24s rows %-6d ratio %-9.3g  %s  ..  %s\n",
+                f$equation[i], f$rows[i], f$ratio_max[i],
+                f$widest_min[i], f$widest_max[i]))
+  }
+  invisible(x)
+}
+
+# Re-emit a written GLPK run directory as free MPS via `glpsol --check`.
+.glpsol_write_mps <- function(dir, file = "model.mps") {
+  mod <- file.path(dir, "energyRt.mod")
+  if (!file.exists(mod)) {
+    stop("no energyRt.mod in ", dir, call. = FALSE)
+  }
+  out <- file.path(dir, file)
+  if (file.exists(out)) unlink(out)
+  cmd <- .glpsol_cmdline(args = paste0("-m energyRt.mod -d energyRt.dat ",
+                                       "--check --wfreemps ", file))
+  old <- setwd(dir)
+  on.exit(setwd(old), add = TRUE)
+  rs <- system(cmd, ignore.stdout = TRUE, ignore.stderr = TRUE)
+  if (rs != 0 || !file.exists(out)) {
+    stop("glpsol --check failed (exit ", rs, ") in ", dir, call. = FALSE)
+  }
+  out
+}
+
+# Free-MPS reader: ROWS (type, name) and the COLUMNS non-zeros (row, col,
+# value). RHS / RANGES / BOUNDS are not coefficients and are skipped. A
+# COLUMNS line carries one or two (row, value) pairs; MARKER lines none.
+.read_free_mps <- function(path) {
+  ln <- readLines(path, warn = FALSE)
+  ln <- ln[!grepl("^[*]", ln) & nzchar(trimws(ln))]
+  hdr <- !grepl("^[[:space:]]", ln)
+  sect <- cumsum(hdr)
+  key <- toupper(sub("[[:space:]].*$", "", ln[hdr]))
+  sec_of <- key[sect]
+  rows_ln <- ln[sec_of == "ROWS" & !hdr]
+  rt <- strsplit(trimws(rows_ln), "[[:space:]]+")
+  rows <- data.frame(type = vapply(rt, `[`, "", 1L),
+                     name = vapply(rt, `[`, "", 2L),
+                     stringsAsFactors = FALSE)
+  col_ln <- ln[sec_of == "COLUMNS" & !hdr]
+  col_ln <- col_ln[!grepl("'MARKER'", col_ln, fixed = TRUE)]
+  tk <- strsplit(trimws(col_ln), "[[:space:]]+")
+  n <- lengths(tk)
+  col <- vapply(tk, `[`, "", 1L)
+  r1 <- vapply(tk, `[`, "", 2L)
+  v1 <- as.numeric(vapply(tk, `[`, "", 3L))
+  two <- n >= 5L
+  r2 <- vapply(tk[two], `[`, "", 4L)
+  v2 <- as.numeric(vapply(tk[two], `[`, "", 5L))
+  entries <- data.frame(row = c(r1, r2), col = c(col, col[two]),
+                        value = c(v1, v2), stringsAsFactors = FALSE)
+  entries <- entries[entries$value != 0, , drop = FALSE]
+  list(rows = rows, entries = entries)
+}
