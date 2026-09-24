@@ -26,6 +26,16 @@ plot_horizon <- function(object, ...) {
   y <- object@intervals |>
     dplyr::mutate(w = end - start + 1)
 
+  # Milestone ticks carry the display label; the leading tick is the first
+  # interval's start, a boundary rather than a milestone, so it stays numeric.
+  .lab <- y[["label"]]
+  if (is.null(.lab)) .lab <- as.character(y$mid)
+  .brk <- unique(c(y$start[1], y$mid))
+  .brk_lab <- as.character(.brk)
+  .mi <- match(.brk, y$mid)
+  .hit <- !is.na(.mi)
+  if (any(.hit)) .brk_lab[.hit] <- as.character(.lab)[.mi[.hit]]
+
   p <- ggplot2::ggplot(y) +
     ggplot2::geom_rect(
       ggplot2::aes(
@@ -38,7 +48,7 @@ plot_horizon <- function(object, ...) {
     ggplot2::scale_fill_viridis_c(option = "C", name = "") +
     ggplot2::labs(y = NULL, x = "milestone year") +
     ggplot2::scale_x_continuous(
-      breaks = unique(c(y$start[1], y$mid)), expand = c(0, 0),
+      breaks = .brk, labels = .brk_lab, expand = c(0, 0),
       # minor_breaks = unique(c(y$start[1], y$mid, y$mid))) +
       minor_breaks = seq(min(y$start), max(y$end), by = 1),
       guide = ggplot2::guide_axis(minor.ticks = TRUE)) +

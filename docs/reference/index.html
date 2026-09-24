@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9002</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -33,8 +33,8 @@
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
-    <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
-    <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
+    <li><a class="dropdown-item" href="../articles/topia-build.html">TOPIA I: building the model</a></li>
+    <li><a class="dropdown-item" href="../articles/topia-use.html">TOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
     <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
@@ -493,6 +493,13 @@
 
         </dt>
         <dd>Visualize a Horizon object</dd>
+
+        <dt>
+
+          <code><a href="year_label.html">year_label()</a></code>
+
+        </dt>
+        <dd>Display labels of the model's milestone years</dd>
       </dl></div><div class="section level2">
       <h2 id="space-resolution">Space resolution<a class="anchor" aria-label="anchor" href="#space-resolution"></a></h2>
 
@@ -512,10 +519,10 @@
 
         <dt>
 
-          <code><a href="utopia_geoscale.html">utopia_geoscale()</a></code>
+          <code><a href="topia_geoscale.html">topia_geoscale()</a></code>
 
         </dt>
-        <dd>A geoscale for the UTOPIA reference model</dd>
+        <dd>A geoscale for the TOPIA reference model</dd>
 
         <dt>
 
@@ -667,6 +674,50 @@
 
         </dt>
         <dd>Send the solver's progress log to a file</dd>
+      </dl></div><div class="section level2">
+      <h2 id="multimod">multimod<a class="anchor" aria-label="anchor" href="#multimod"></a></h2>
+
+      <div class="section-desc"><p>Converting an interpolated scenario into a <a href="https://github.com/optimal2050/multimod" class="external-link">multimod</a> model, which can then be rendered to any backend multimod supports or assembled straight into a matrix and solved. multimod is a suggested package; these are no-ops without it.</p></div>
+
+      <dl></dl></div><div class="section level2">
+
+
+
+
+      <dl><dt>
+
+          <code><a href="as_multimod.scenario.html">as_multimod(<i>&lt;scenario&gt;</i>)</a></code>
+
+        </dt>
+        <dd>Build a multimod model from an interpolated scenario</dd>
+
+        <dt>
+
+          <code><a href="multimod_import_data.html">multimod_import_data()</a></code>
+
+        </dt>
+        <dd>Import energyRt scenario data into a multimod model</dd>
+
+        <dt>
+
+          <code><a href="multimod_import_log.html">multimod_import_log()</a></code>
+
+        </dt>
+        <dd>Get data import log from model</dd>
+
+        <dt>
+
+          <code><a href="multimod_unmatched.html">multimod_unmatched()</a></code>
+
+        </dt>
+        <dd>Show unmatched elements</dd>
+
+        <dt>
+
+          <code><a href="multimod_from_energyRt.html">multimod_from_energyRt()</a></code>
+
+        </dt>
+        <dd>Build a multimod model from an interpolated energyRt scenario</dd>
       </dl></div><div class="section level2">
       <h2 id="solver-configuration">Solver configuration<a class="anchor" aria-label="anchor" href="#solver-configuration"></a></h2>
 
@@ -1469,6 +1520,20 @@
 
         <dt>
 
+          <code><a href="verify_checks.html">verify_checks()</a></code>
+
+        </dt>
+        <dd>Checks available to <code><a href="../reference/verify_solution.html">verify_solution()</a></code></dd>
+
+        <dt>
+
+          <code><a href="audit_coefficients.html">audit_coefficients()</a></code>
+
+        </dt>
+        <dd>Coefficient-range audit of a written model</dd>
+
+        <dt>
+
           <code><a href="en_check.html">en_check_glpk()</a></code> <code><a href="en_check.html">en_check_julia()</a></code> <code><a href="en_check.html">en_check_python()</a></code> <code><a href="en_check.html">en_check_pyomo()</a></code> <code><a href="en_check.html">en_check_gams()</a></code> <code><a href="en_check.html">en_check_gdx()</a></code> <code><a href="en_check.html">en_check_julia_pkgs()</a></code> <code><a href="en_check.html">en_check_dependencies()</a></code>
 
         </dt>
@@ -1506,24 +1571,24 @@
 
       <dl><dt>
 
-          <code><a href="utopia.html">utopia</a></code>
+          <code><a href="topia.html">topia</a></code>
 
         </dt>
-        <dd>The UTOPIA reference dataset</dd>
+        <dd>The TOPIA reference dataset</dd>
 
         <dt>
 
-          <code><a href="utopia_profile.html">utopia_profile()</a></code>
+          <code><a href="topia_profile.html">topia_profile()</a></code>
 
         </dt>
         <dd>Synthetic input shapes on a calendar (deterministic)</dd>
 
         <dt>
 
-          <code><a href="utopia_profiles.html">utopia_profiles()</a></code>
+          <code><a href="topia_profiles.html">topia_profiles()</a></code>
 
         </dt>
-        <dd>UTOPIA input profiles (deterministic)</dd>
+        <dd>TOPIA input profiles (deterministic)</dd>
 
         <dt>
 

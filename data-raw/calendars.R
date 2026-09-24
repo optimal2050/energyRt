@@ -28,6 +28,8 @@ rebuild_calendar <- function(cal) {
     # `.complete_calendar()` uses data.table semantics on @timetable
     timetable     = data.table::as.data.table(cal@timetable),
     year_fraction = cal@year_fraction,
+    year_start    = energyRt:::.year_start(cal),
+    utc_offset_minutes = energyRt:::.utc_offset(cal),
     name          = if (length(cal@name)) cal@name else "",
     desc          = if (length(cal@desc)) cal@desc else ""
   )
@@ -108,10 +110,10 @@ if (!is.null(ideea)) {
   .retired <- c("topia_annual", "topia_s4h24", "topia_m12h24")
   for (key in setdiff(names(.prev$calendars),
                       c(names(calendars), .retired))) {
-    calendars[[key]] <- .prev$calendars[[key]]
+    calendars[[key]] <- rebuild_calendar(.prev$calendars[[key]])
   }
   for (key in setdiff(names(.prev$horizons), names(horizons))) {
-    horizons[[key]] <- .prev$horizons[[key]]
+    horizons[[key]] <- rebuild_horizon(.prev$horizons[[key]])
   }
   # Minimal self-contained horizons if there was nothing to carry over.
   if (length(horizons) == 0) {
@@ -170,8 +172,14 @@ if (requireNamespace("timescales", quietly = TRUE)) {
     tt <- data.table::as.data.table(
       lv[, c("ANNUAL", tfs, "timeslice", "share")]
     )
+    smry <- summary(cal)
+    ys <- smry$year_start
+    if (is.null(ys)) ys <- list(month = 1L, day = 1L)
+    uo <- smry$utc_offset_minutes
+    if (is.null(uo)) uo <- 0L
     newCalendar(name = name, desc = desc, timetable = tt,
-                year_fraction = sum(lv$share))
+                year_fraction = sum(lv$share),
+                year_start = ys, utc_offset_minutes = uo)
   }
 
   .ts_cat <- timescales::calendar_catalog()
@@ -243,7 +251,7 @@ if (requireNamespace("timescales", quietly = TRUE)) {
   for (key in setdiff(intersect(c(.ts_full, .ts_samples),
                                 names(.prev_ts$calendars)),
                       names(calendars))) {
-    calendars[[key]] <- .prev_ts$calendars[[key]]
+    calendars[[key]] <- rebuild_calendar(.prev_ts$calendars[[key]])
   }
 }
 

@@ -127,6 +127,63 @@ calendars$s4_h24_subset_2seasons@year_fraction   # WIN + SUM
 Pick one and pass it to `newModel(calendar = ...)`; the TOPIA vignettes use
 `calendars$s4_h24` throughout.
 
+# Fiscal and non-calendar years
+
+A milestone in energyRt is an **integer** year --- `horizon@intervals$mid` ---
+and that stays true whatever the reporting convention. What changes for a
+fiscal year is where the year *begins*, which is a property of the calendar:
+
+```{r fiscal-calendar}
+cal_fy <- newCalendar(
+  timetable  = make_timetable(list(SEASON = c("WINTER", "SUMMER"))),
+  year_start = list(month = 4L, day = 1L)   # April-start, e.g. India, Japan
+)
+cal_fy@year_start
+```
+
+This follows the convention `timescales` uses: model year `y` spans
+`[year_start(y), year_start(y + 1))`, and `y` is the **starting** Gregorian
+year, so "FY 2021-22" is model year 2021.
+
+A non-January anchor changes how milestones are *displayed*. `year_label()`
+gives one label per milestone:
+
+```{r fiscal-labels}
+hor <- newHorizon(2025:2034, c(1, 4, 5))
+mod <- newModel("fy_demo", region = "R1", calendar = cal_fy, horizon = hor)
+
+year_label(mod)
+```
+
+The label is presentation only. It never reaches the solver: the sets, the
+parameter tables, the backend files and the decoded solution all keep the
+integer year. Ask for labels explicitly when you want them:
+
+```{r fiscal-getdata, eval = FALSE}
+getData(scen, "vTechCap", yearsAsFactors = TRUE)   # year as labelled factor
+getData(scen, "vTechCap")                          # year as integer (default)
+```
+
+To name periods yourself --- whether or not a fiscal calendar is involved ---
+give `intervals` a `label` column. An explicit label always wins over the
+derived one, and labels must be unique:
+
+```{r fiscal-explicit}
+newHorizon(intervals = data.frame(
+  start = c(2025, 2030),
+  mid   = c(2025, 2030),
+  end   = c(2029, 2034),
+  label = c("FY2025-26", "FY2030-31")
+))@intervals
+```
+
+One limit worth knowing: because the key is the integer `mid`, two milestones
+cannot share a calendar year. Labels rename periods; they do not add them.
+
+The anchor is currently carried and reported, not acted on --- it sets the
+default labels and travels with the calendar, but timeslice-to-timestamp
+alignment and `year_fraction` still work on the calendar year.
+
 # Timeslice-string helpers
 
 Timeslice names encode time; a few helpers translate between encodings:

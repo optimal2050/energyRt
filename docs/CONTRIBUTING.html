@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9002</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -33,8 +33,8 @@
     <li><a class="dropdown-item" href="articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="articles/storage.html">Storage</a></li>
-    <li><a class="dropdown-item" href="articles/utopia-build.html">UTOPIA I: building the model</a></li>
-    <li><a class="dropdown-item" href="articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
+    <li><a class="dropdown-item" href="articles/topia-build.html">TOPIA I: building the model</a></li>
+    <li><a class="dropdown-item" href="articles/topia-use.html">TOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="articles/workflow.html">Workflow</a></li>
     <li><a class="dropdown-item" href="articles/scenario-management.html">Scenario management</a></li>
     <li><a class="dropdown-item" href="articles/reports.html">Reports &amp; levelized costs</a></li>
@@ -125,7 +125,7 @@
 <h2 id="solver-backends">Solver backends<a class="anchor" aria-label="anchor" href="#solver-backends"></a></h2>
 <p>Models are rendered to GLPK/MathProg, JuMP (Julia), Pyomo and GAMS, and the templates in <code>glpk/</code>, <code>julia/</code>, <code>pyomo/</code> and <code>gams/</code> are baked into <code>R/sysdata.rda</code> by <code>data-raw/DATASET.R</code>. <strong>Editing a template does nothing until that script is re-run.</strong> A change to one backend almost always has to be made in all four; the golden benchmarks under <code>tests/testthat/goldens/</code> are what catch a backend left behind, because they store objectives and aggregated values rather than names.</p>
 <p>GAMS needs a license; NEOS is the practical way to exercise that backend (<code><a href="reference/neos_email.html">set_neos_email()</a></code>, then a <code>neos_gams_*</code> solver option).</p>
-<p><strong>Backend choice by model size.</strong> The default backend for <em>small</em> models is <strong>GLPK</strong> (<code>solver_options$glpk</code>): zero startup cost, no external toolchain, and faster end-to-end whenever the solve itself is under ~30 seconds — the tm/unit test fixtures and the UTOPIA <code>R1</code>/<code>R3</code> layouts all fall here. For <strong>mid-size and sampled models</strong> — the UTOPIA <code>R7</code>/<code>R11</code> layouts, hourly or full-year calendars, spatially or temporally sampled runs — use <strong>julia/HiGHS</strong> (<code>solver_options$julia_highs</code>): its presolve and dual simplex dominate once the LP is large or degenerate (a full-year 8760-slice model: ~3 minutes in glpsol vs ~2 seconds of HiGHS runtime after the one-off Julia warmup). The golden suites encode the same rule per suite (<code>SUITE_SOLVERS</code> in <code>tools/test/make_goldens.R</code>), so regenerating the mid-size goldens requires Julia with JuMP/HiGHS installed.</p>
+<p><strong>Backend choice by model size.</strong> The default backend for <em>small</em> models is <strong>GLPK</strong> (<code>solver_options$glpk</code>): zero startup cost, no external toolchain, and faster end-to-end whenever the solve itself is under ~30 seconds — the tm/unit test fixtures and the TOPIA <code>R1</code>/<code>R3</code> layouts all fall here. For <strong>mid-size and sampled models</strong> — the TOPIA <code>R7</code>/<code>R11</code> layouts, hourly or full-year calendars, spatially or temporally sampled runs — use <strong>julia/HiGHS</strong> (<code>solver_options$julia_highs</code>): its presolve and dual simplex dominate once the LP is large or degenerate (a full-year 8760-slice model: ~3 minutes in glpsol vs ~2 seconds of HiGHS runtime after the one-off Julia warmup). The golden suites encode the same rule per suite (<code>SUITE_SOLVERS</code> in <code>tools/test/make_goldens.R</code>), so regenerating the mid-size goldens requires Julia with JuMP/HiGHS installed.</p>
 </div>
 <div class="section level2">
 <h2 id="repository-layout">Repository layout<a class="anchor" aria-label="anchor" href="#repository-layout"></a></h2>

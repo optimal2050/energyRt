@@ -464,7 +464,8 @@ NULL
     .el_pair("period", paste(range(tryCatch(object@period,
       error = function(e) NA)), collapse = " - ")),
     .el_pair("intervals", NROW(iv)),
-    .el_pair("milestone years", paste(tryCatch(iv$mid,
+    .el_pair("milestone years", paste(tryCatch(
+      if (is.data.frame(iv) && !is.null(iv[["label"]])) iv[["label"]] else iv$mid,
       error = function(e) character(0)), collapse = ", "))))
   list(info_df = .report_drop_empty_cols(info),
        intervals_df = if (want("intervals_df") && is.data.frame(iv))

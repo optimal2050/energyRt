@@ -35,7 +35,7 @@
 
     <a class="navbar-brand me-2" href="index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9002</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -57,8 +57,8 @@
     <li><a class="dropdown-item" href="articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="articles/storage.html">Storage</a></li>
-    <li><a class="dropdown-item" href="articles/utopia-build.html">UTOPIA I: building the model</a></li>
-    <li><a class="dropdown-item" href="articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
+    <li><a class="dropdown-item" href="articles/topia-build.html">TOPIA I: building the model</a></li>
+    <li><a class="dropdown-item" href="articles/topia-use.html">TOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="articles/workflow.html">Workflow</a></li>
     <li><a class="dropdown-item" href="articles/scenario-management.html">Scenario management</a></li>
     <li><a class="dropdown-item" href="articles/reports.html">Reports &amp; levelized costs</a></li>
@@ -195,7 +195,7 @@
 <strong>Storage</strong> — intra-day to seasonal, with charge/discharge efficiencies, per-part capacities and cycle closure. → <a href="https://energyrt.org/articles/storage.html" class="external-link">Storage</a>
 </li>
 <li>
-<strong>UTOPIA teaching model</strong> — a complete multi-region electricity model built step by step, shipped as <code>utopia$modules</code> with ready scenario levers (CO₂ cap, carbon tax, renewable share, nuclear moratorium). → <a href="https://energyrt.org/articles/utopia-build.html" class="external-link">UTOPIA I: building the model</a> · <a href="https://energyrt.org/articles/utopia-use.html" class="external-link">UTOPIA II: running scenarios</a>
+<strong>TOPIA teaching model</strong> — a complete multi-region electricity model built step by step, shipped as <code>topia$modules</code> with ready scenario levers (CO₂ cap, carbon tax, renewable share, nuclear moratorium). → <a href="https://energyrt.org/articles/topia-build.html" class="external-link">TOPIA I: building the model</a> · <a href="https://energyrt.org/articles/topia-use.html" class="external-link">TOPIA II: running scenarios</a>
 </li>
 <li>
 <strong>Levelized cost</strong> — <code><a href="reference/levcost.html">levcost()</a></code> prices a technology <em>a-priori</em> (screening, textbook LCOE) or <em>ex-post</em> from a solved scenario, with <code>autoplot()</code> cost breakdowns.</li>
@@ -213,7 +213,7 @@
 <li>
 <a href="https://energyrt.org/articles/energyRt.html" class="external-link">Get started</a> — the core idea in ten minutes.</li>
 <li>
-<a href="https://energyrt.org/articles/" class="external-link">Tutorials</a> — installation, solver backends, model bricks, UTOPIA, workflow, plotting.</li>
+<a href="https://energyrt.org/articles/" class="external-link">Tutorials</a> — installation, solver backends, model bricks, TOPIA, workflow, plotting.</li>
 <li>
 <a href="https://ideea-model.github.io/IDEEA/" class="external-link">IDEEA</a> — an open multi-region model of India’s power system, built with energyRt: a production-scale application.</li>
 </ul>
@@ -228,7 +228,7 @@
 <span><span class="fu">remotes</span><span class="fu">::</span><span class="fu"><a href="https://remotes.r-lib.org/reference/install_github.html" class="external-link">install_github</a></span><span class="op">(</span><span class="st">"optimal2050/energyRt"</span><span class="op">)</span></span></code></pre></div>
 <p>To reproduce <strong>pre-2026 models</strong>, install the frozen legacy release instead: <code>pak::pkg_install("optimal2050/energyRt@v0.50")</code>.</p>
 <p>You will need at least one solver backend. On Windows, <strong>GLPK ships with Rtools</strong> — no extra setup. For Julia/JuMP, Python/Pyomo, or GAMS see the <a href="https://energyrt.org/articles/install.html" class="external-link">installation article</a> and the <a href="https://energyrt.org/articles/backends.html" class="external-link">solver backends article</a>.</p>
-<p>Geoscale features (<code><a href="reference/utopia_geoscale.html">utopia_geoscale()</a></code>, <code><a href="reference/plot_geoscale.html">plot_geoscale()</a></code>, multi-level regions) need the sibling package, which is not on CRAN:</p>
+<p>Geoscale features (<code><a href="reference/topia_geoscale.html">topia_geoscale()</a></code>, <code><a href="reference/plot_geoscale.html">plot_geoscale()</a></code>, multi-level regions) need the sibling package, which is not on CRAN:</p>
 <div class="sourceCode" id="cb4"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu">pak</span><span class="fu">::</span><span class="fu"><a href="https://pak.r-lib.org/reference/pkg_install.html" class="external-link">pkg_install</a></span><span class="op">(</span><span class="st">"optimal2050/geoscales"</span><span class="op">)</span></span></code></pre></div>
 <div class="section level3">
@@ -243,7 +243,7 @@
 <li>
 <a href="https://energyrt.org/articles/model-bricks.html" class="external-link">Model bricks</a> → <a href="https://energyrt.org/articles/units.html" class="external-link">Units</a> → <a href="https://energyrt.org/articles/time-resolution.html" class="external-link">Time resolution</a> — what the objects are and how they fit together.</li>
 <li>
-<a href="https://energyrt.org/articles/utopia-build.html" class="external-link">UTOPIA I: building the model</a> → <a href="https://energyrt.org/articles/utopia-use.html" class="external-link">UTOPIA II: running scenarios</a> — a full multi-region model and its scenario levers.</li>
+<a href="https://energyrt.org/articles/topia-build.html" class="external-link">TOPIA I: building the model</a> → <a href="https://energyrt.org/articles/topia-use.html" class="external-link">TOPIA II: running scenarios</a> — a full multi-region model and its scenario levers.</li>
 <li>
 <a href="https://energyrt.org/articles/workflow.html" class="external-link">Workflow</a> and <a href="https://energyrt.org/articles/scenario-management.html" class="external-link">Scenario management</a> — saving models, recorded runs, variants.</li>
 <li>Add a second backend only when models grow: <strong>julia/HiGHS</strong> for mid-size, hourly, full-year and sampled runs.</li>

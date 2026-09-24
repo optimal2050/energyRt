@@ -15,7 +15,7 @@ time-frames and time-timeslices."><meta property="og:image" content="https://ene
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9002</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -35,8 +35,8 @@ time-frames and time-timeslices."><meta property="og:image" content="https://ene
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
-    <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
-    <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
+    <li><a class="dropdown-item" href="../articles/topia-build.html">TOPIA I: building the model</a></li>
+    <li><a class="dropdown-item" href="../articles/topia-use.html">TOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
     <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
@@ -88,6 +88,14 @@ time-frames and time-timeslices.</p>
 
 <dt><code>year_fraction</code></dt>
 <dd><p>numeric. The fraction of a year covered by the calendar, e.g. 1 for annual calendar (default), 0.5 for semi-annual, 0.25 for quarterly, etc. Currently must be specified manually for subset calendars to validate the sum of the shares.</p></dd>
+
+
+<dt><code>year_start</code></dt>
+<dd><p>list. <code>list(month = , day = )</code> giving the first day of the model year; defaults to January 1. A non-January anchor makes model year <code>y</code> span <code>[year_start(y), year_start(y + 1))</code>, and <code>y</code> is the STARTING Gregorian year – Indian "FY 2021-22" is model year 2021 – which is the convention <code><a href="https://optimal2050.github.io/timescales/r/reference/calendar_build.html" class="external-link">timescales::calendar_build()</a></code> uses. The anchor is carried and reported only: it sets the default milestone labels (see <code><a href="year_label.html">year_label()</a></code>) and does NOT yet drive timeslice-to-timestamp alignment or <code>year_fraction</code>.</p></dd>
+
+
+<dt><code>utc_offset_minutes</code></dt>
+<dd><p>integer. Constant offset of local time from UTC, in minutes; defaults to 0 (UTC). E.g. 330 for IST (UTC+5:30). Carried for provenance alongside <code>year_start</code>; Olson time zones and DST are not supported.</p></dd>
 
 
 <dt><code>timetable</code></dt>

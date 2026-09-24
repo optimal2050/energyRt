@@ -2667,6 +2667,22 @@ class:
         The fraction of a year covered by the calendar, e.g. 1 for annual calendar
         (default), 0.5 for semi-annual, 0.25 for quarterly, etc. Currently must be
         specified manually for subset calendars to validate the sum of the shares.
+    year_start:
+      type: list
+      description: >
+        `list(month = , day = )` giving the first day of the model year; defaults
+        to January 1. A non-January anchor makes model year `y` span
+        `[year_start(y), year_start(y + 1))`, and `y` is the STARTING Gregorian
+        year -- Indian "FY 2021-22" is model year 2021 -- which is the convention
+        `timescales::calendar_build()` uses. The anchor is carried and reported
+        only: it sets the default milestone labels (see `year_label()`) and does
+        NOT yet drive timeslice-to-timestamp alignment or `year_fraction`.
+    utc_offset_minutes:
+      type: integer
+      description: >
+        Constant offset of local time from UTC, in minutes; defaults to 0 (UTC).
+        E.g. 330 for IST (UTC+5:30). Carried for provenance alongside
+        `year_start`; Olson time zones and DST are not supported.
     timeslice_share:
       type: data.frame
       description: >
@@ -2744,10 +2760,13 @@ class:
     intervals:
       type: data.frame
       description: >
-        Data frame with three columns, representing start, middle, and the end year
-        of every interval. The first column is the start year of the interval, the
-        second column is the middle year of the interval, the third column is the end
-        year of the interval.
+        Data frame with the start, middle, and end year of every modelled interval,
+        plus an optional display `label`. `start`, `mid` and `end` are integer years;
+        `mid` is the milestone and the model's key for the period. `label` is a
+        character display name, unique across intervals, filled from `mid` when not
+        given, and rendered fiscally (`FY2025-26`) when the calendar carries a
+        non-January `year_start`. The label is presentation only and never reaches
+        the solver -- see `year_label()`.
 ## config #######################################################################
   config:
     name:

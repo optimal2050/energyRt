@@ -9,6 +9,8 @@ newCalendar(
   desc = "",
   timetable = NULL,
   year_fraction = 1,
+  year_start = list(month = 1L, day = 1L),
+  utc_offset_minutes = 0L,
   default_timeframe = NULL,
   misc = list(pTimesliceWeight = NULL),
   ...
@@ -22,6 +24,10 @@ newCalendar(
 \item{timetable}{data.frame. Data frame with levels of timeframes in the named columns, and number of rows equal to the total number of time-timeslices on the lowest level. Every timeframe is a set of time-timeslices ("timeslices") - a named fragment of time with a year-share. Timeframes have nested structure where every timeslice serves as a parent for the lower level of time-timeslices (children). The first column is the name of the time-timeslice, the rest of the columns are the names of the timeframes. The values are the share of the year covered by the time-timeslice. The sum of the shares in every timeframe should be equal to 1. \code{weight} is an optional column with the weight of the time-timeslice in the year, used for sumpled/subset selection of the time-timeslices.}
 
 \item{year_fraction}{numeric. The fraction of a year covered by the calendar, e.g. 1 for annual calendar (default), 0.5 for semi-annual, 0.25 for quarterly, etc. Currently must be specified manually for subset calendars to validate the sum of the shares.}
+
+\item{year_start}{list. \code{list(month = , day = )} giving the first day of the model year; defaults to January 1. A non-January anchor makes model year \code{y} span \verb{[year_start(y), year_start(y + 1))}, and \code{y} is the STARTING Gregorian year -- Indian "FY 2021-22" is model year 2021 -- which is the convention \code{timescales::calendar_build()} uses. The anchor is carried and reported only: it sets the default milestone labels (see \code{year_label()}) and does NOT yet drive timeslice-to-timestamp alignment or \code{year_fraction}.}
+
+\item{utc_offset_minutes}{integer. Constant offset of local time from UTC, in minutes; defaults to 0 (UTC). E.g. 330 for IST (UTC+5:30). Carried for provenance alongside \code{year_start}; Olson time zones and DST are not supported.}
 
 \item{default_timeframe}{character. The name of the default level of the time-timeslices used in the model. If not specified, the lowest level of the timeframes is used as the default timeframe.}
 

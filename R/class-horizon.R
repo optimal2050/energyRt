@@ -27,7 +27,8 @@ setClass(
     intervals = data.table(
       start = integer(),
       mid = integer(),
-      end = integer()
+      end = integer(),
+      label = character()
     )
     # !!! Add misc
   )
@@ -47,6 +48,9 @@ setClass(
 #' the full period of the model/scenario. If not provided, the range of 'intervals' will be used. 
 #' @param intervals (optional) either data.frame or integer vector. 
 #' The data.frame must have `start`, `mid`, and `end` columns with modeled interval. 
+#' An optional `label` column gives each milestone a display name; it is filled
+#' from `mid` when absent, must be unique, and is presentation only -- the model
+#' key for a period stays the integer `mid`. See [year_label()].
 #' The vector will be considered as lengths of each modeled interval in period.
 #' @param desc `r get_slot_doc("horizon", "desc")`
 #' @param force_BY_interval_to_1_year logical, if TRUE (default), the base-year (first) interval will be forced to one year.
@@ -80,6 +84,13 @@ setClass(
 #'
 #' newHorizon(2020:2050, c(3, 2, 5, 10),
 #'            desc = "Pay attention to the length of the first interval")
+#'
+#' # Explicit display labels; `mid` remains the model key
+#' newHorizon(intervals = data.frame(
+#'   start = c(2025, 2030),
+#'   mid   = c(2025, 2030),
+#'   end   = c(2029, 2034),
+#'   label = c("FY2025-26", "FY2030-31")))
 #'
 #' newHorizon(period = 2020:2040,
 #'            intervals = data.frame(
@@ -119,8 +130,11 @@ newHorizon <- function(
     if (is.data.frame(intervals)) {
       .check_intervals(intervals)
       intervals <- as.data.table(intervals)
+      if (is.null(intervals[["label"]])) {
+        intervals$label <- rep(NA_character_, nrow(intervals))
+      }
       intervals <- intervals[order(start)]
-      int_range <- as.list(intervals) |>
+      int_range <- as.list(intervals)[c("start", "mid", "end")] |>
         unlist() |>
         range() |>
         as.integer()
@@ -154,8 +168,7 @@ newHorizon <- function(
         intervals$end[nr] <- max(period)
         intervals$mid[nr] <- round(mean(intervals$start[nr], intervals$end[nr]))
       }
-      int_range <- intervals |>
-        as.list() |>
+      int_range <- as.list(intervals)[c("start", "mid", "end")] |>
         unlist() |>
         as.vector() |>
         range() |>
@@ -164,7 +177,7 @@ newHorizon <- function(
       h@period <- period
       if (mid_is_end) intervals$mid <- intervals$end
       if (mid_is_start) intervals$mid <- intervals$start
-      h@intervals <- intervals
+      h@intervals <- .fill_interval_labels(intervals)
       return(h)
     }
   } else if (!is.null(period)) { # intervals == NULL
@@ -176,7 +189,7 @@ newHorizon <- function(
     h@period <- period
     if (mid_is_end) intervals$mid <- intervals$end
     if (mid_is_start) intervals$mid <- intervals$start
-    h@intervals <- intervals
+    h@intervals <- .fill_interval_labels(intervals)
     return(h) # one year steps
   } else if (is.null(period)) { # no data
     return(h) # empty
@@ -199,14 +212,17 @@ newHorizon <- function(
     (nrow(intervals) > 1 && diff(intervals$mid[1:2] > 1))) {
     # warning("Adjusting base-year interval to be one-year.")
     int_BY <- intervals[1, ]
-    int_BY[1, ] <- int_BY$start[1]
+    .by_start <- int_BY$start[1]
+    for (.c in c("start", "mid", "end")) int_BY[[.c]][1] <- .by_start
     intervals <- rbind(int_BY, intervals)
     intervals$start[2] <- intervals$end[1] + 1L
     intervals$mid[2] <- intervals$start[1] + 1L
+    intervals$label[2] <- NA_character_
     intervals <- data.table(
       start = as.integer(intervals$start),
       mid = as.integer(intervals$mid),
-      end = as.integer(intervals$end)
+      end = as.integer(intervals$end),
+      label = as.character(intervals$label)
     )
     intervals <- intervals[order(start)]
     .check_intervals(intervals) # double-check
@@ -214,7 +230,7 @@ newHorizon <- function(
   h@period <- period
   if (mid_is_end) intervals$mid <- intervals$end
   if (mid_is_start) intervals$mid <- intervals$start
-  h@intervals <- intervals
+  h@intervals <- .fill_interval_labels(intervals)
   # h <- .data2slots("period", x = "", period = period, intervals = intervals)
   return(h)
 }
@@ -230,9 +246,36 @@ setMethod("update", "horizon", function(object, ..., warn_nodata = TRUE) {
     # ignore_args = c("name", "desc"),
     warn_nodata = warn_nodata
   )
+  # `.data2slots()` fills the slot column-wise and never sees the label rule,
+  # so an `intervals` table given without `label` would land all-NA.
+  object@intervals <- .fill_interval_labels(object@intervals)
   object
 })
 
+
+# `label` is the display name of a milestone; the model key stays the integer
+# `mid`, so an unlabelled horizon reads exactly as before. Called after the
+# `mid_is_end` / `mid_is_start` rewrite so a derived label matches the final
+# `mid`. An explicit label is never overwritten.
+.fill_interval_labels <- function(intervals) {
+  intervals <- as.data.table(intervals)
+  if (nrow(intervals) == 0L) {
+    if (is.null(intervals[["label"]])) intervals$label <- character()
+    return(intervals[])
+  }
+  lb <- intervals[["label"]]
+  if (is.null(lb)) lb <- rep(NA_character_, nrow(intervals))
+  lb <- as.character(lb)
+  ii <- is.na(lb) | !nzchar(trimws(lb))
+  if (any(ii)) lb[ii] <- as.character(intervals[["mid"]][ii])
+  data.table::set(intervals, j = "label", value = lb)
+  data.table::setcolorder(
+    intervals,
+    c("start", "mid", "end", "label",
+      setdiff(names(intervals), c("start", "mid", "end", "label")))
+  )
+  intervals[]
+}
 
 .check_integer <- function(x, msg_end = NULL, skip_null = TRUE) {
   if (is.null(x) & skip_null) {
@@ -260,8 +303,30 @@ setMethod("update", "horizon", function(object, ..., warn_nodata = TRUE) {
   for (i in c("start", "mid", "end")) {
     .check_integer(x[[i]], paste0(": intefvals$", i))
   }
+
+  # `label` is optional on input and filled from `mid` when absent; NA is
+  # allowed here because the fill runs after the `mid_is_end`/`mid_is_start`
+  # rewrite, later than this check.
+  if (!is.null(x[["label"]])) {
+    lb <- x[["label"]]
+    if (!is.character(lb) && !all(is.na(lb))) {
+      stop("`intervals$label` must be a character column")
+    }
+    lb <- as.character(lb)
+    if (any(!is.na(lb) & !nzchar(trimws(lb)))) {
+      stop("`intervals$label` must not contain empty strings")
+    }
+    if (anyDuplicated(lb[!is.na(lb)]) != 0) {
+      stop("`intervals$label` must be unique: ",
+           paste(unique(lb[!is.na(lb)][duplicated(lb[!is.na(lb)])]),
+                 collapse = ", "))
+    }
+  }
   # NAs
-  if (any(is.na(x))) stop("NA values are not allowed in `intervals` table")
+  .num_cols <- intersect(c("start", "mid", "end"), colnames(x))
+  if (any(is.na(as.data.frame(x)[, .num_cols, drop = FALSE]))) {
+    stop("NA values are not allowed in `intervals` table")
+  }
   # consistency of the data
   if (any(x$mid - x$start < 0)) stop("intervals$mid must be >= intervals$start")
   if (any(x$end - x$mid < 0)) stop("intervals$end must be >= intervals$mid")
@@ -306,6 +371,136 @@ if (F) {
       end =   c(2032, 2034, 2040)
     )
   )
+}
+
+
+# Milestone labels ############################################################
+#
+# The model key for a period is the INTEGER milestone `intervals$mid`. `label`
+# is its display name, and nothing downstream of the horizon reads it: the set
+# members, the parameter tables, the backend files and the decoded solution all
+# stay integer. A trivial calendar anchor makes every default label
+# `as.character(mid)`, so an ordinary model renders exactly as before. The
+# anchor itself (`year_start`) lives on `calendar`, in R/class-calendar.R.
+
+# Fiscal default: with a non-January anchor, model year `y` spans
+# [year_start(y), year_start(y + 1)), and `y` is the STARTING Gregorian year --
+# the convention `timescales::calendar_build()` documents, where Indian
+# "FY 2021-22" is model year 2021.
+.default_year_labels <- function(mid, year_start = NULL) {
+  mid <- as.integer(mid)
+  if (!length(mid)) return(character())
+  ys <- if (is.null(year_start)) list(month = 1L, day = 1L) else year_start
+  if (!.is_fiscal_year_start(ys)) return(as.character(mid))
+  paste0("FY", mid, "-", sprintf("%02d", (mid + 1L) %% 100L))
+}
+
+# The horizon alone cannot derive a fiscal label -- it does not carry the
+# calendar. `newHorizon()` therefore defaults `label` to `as.character(mid)`,
+# and the fiscal form is applied here, where both objects are in reach. A label
+# the user set explicitly is left alone; "still the default" means identical to
+# `as.character(mid)`.
+.derive_labels <- function(intervals, year_start = NULL) {
+  if (is.null(intervals) || !NROW(intervals)) return(character())
+  mid <- as.integer(intervals[["mid"]])
+  lb <- intervals[["label"]]
+  lb <- if (is.null(lb)) rep(NA_character_, length(mid)) else as.character(lb)
+  ii <- is.na(lb) | !nzchar(trimws(lb)) | lb == as.character(mid)
+  if (any(ii)) lb[ii] <- .default_year_labels(mid, year_start)[ii]
+  lb
+}
+
+.horizon_of <- function(obj) {
+  if (is.null(obj)) return(NULL)
+  if (is(obj, "horizon")) return(obj)
+  if (is(obj, "scenario")) return(.horizon_of(obj@settings))
+  if (is(obj, "model")) return(.horizon_of(obj@config))
+  if (isS4(obj) && methods::.hasSlot(obj, "horizon")) return(obj@horizon)
+  if (is.list(obj)) {
+    for (e in obj) {
+      r <- .horizon_of(e)
+      if (!is.null(r)) return(r)
+    }
+  }
+  NULL
+}
+
+.calendar_of <- function(obj) {
+  if (is.null(obj)) return(NULL)
+  if (is(obj, "calendar")) return(obj)
+  if (is(obj, "scenario")) return(.calendar_of(obj@settings))
+  if (is(obj, "model")) return(.calendar_of(obj@config))
+  if (isS4(obj) && methods::.hasSlot(obj, "calendar")) return(obj@calendar)
+  if (is.list(obj)) {
+    for (e in obj) {
+      r <- .calendar_of(e)
+      if (!is.null(r)) return(r)
+    }
+  }
+  NULL
+}
+
+#' Display labels of the model's milestone years
+#'
+#' @description
+#' The milestone key in a model is the integer year (`horizon@intervals$mid`).
+#' `year_label()` returns the display name of each milestone: the year itself
+#' for an ordinary January-start calendar, or the fiscal form (`FY2025-26`) when
+#' the calendar carries a non-January `year_start`. Labels are presentation
+#' only -- they never reach the solver.
+#'
+#' Set a label explicitly with the `label` column of the `intervals` table in
+#' [newHorizon()]; an explicit label always wins over the derived one.
+#'
+#' @param obj a `horizon`, `calendar`, `config`, `settings`, `model` or
+#'   `scenario` object. A bare `horizon` has no calendar, so it never yields
+#'   fiscal labels.
+#'
+#' @return Named character vector: labels, named by the integer milestone year.
+#'
+#' @family horizon calendar
+#' @export
+#'
+#' @examples
+#' year_label(newHorizon(2020:2030, c(1, 2, 5, 10)))
+year_label <- function(obj) {
+  hor <- .horizon_of(obj)
+  if (is.null(hor) || !NROW(hor@intervals)) return(stats::setNames(character(), character()))
+  iv <- hor@intervals
+  ys <- .year_start(.calendar_of(obj))
+  stats::setNames(.derive_labels(iv, ys), as.character(as.integer(iv[["mid"]])))
+}
+
+# Replace an integer year column with its label, as an ORDERED factor whose
+# levels follow `intervals` order. Ordered-factor rather than character keeps
+# chronological sorting, grouping and discrete ggplot axes correct without a
+# numeric join -- lexical order on a label like "FY5" vs "FY25" is wrong.
+.relabel_years <- function(df, obj, col = "year") {
+  if (is.null(df) || !NROW(df) || is.null(df[[col]])) return(df)
+  if (is.factor(df[[col]])) return(df)          # already labelled
+  lut <- year_label(obj)
+  if (!length(lut)) return(df)
+  yr <- suppressWarnings(as.integer(df[[col]]))
+  key <- as.character(yr)
+  out <- unname(lut[key])
+  # A year outside the horizon keeps its own number rather than becoming NA.
+  miss <- is.na(out)
+  if (any(miss)) out[miss] <- key[miss]
+  # Levels follow the NUMERIC year, so an out-of-horizon year sorts into place
+  # instead of onto the end, and a label like "FY5" never sorts lexically.
+  lv_lab <- c(unname(lut), out[miss])
+  lv_yr <- c(suppressWarnings(as.integer(names(lut))), yr[miss])
+  keep <- !duplicated(lv_lab)
+  lv_lab <- lv_lab[keep][order(lv_yr[keep])]
+  df[[col]] <- factor(out, levels = lv_lab, ordered = TRUE)
+  df
+}
+
+# Never let labelling break a data accessor: an object with no horizon, or one
+# serialised before these slots existed, yields no labels rather than an error.
+.year_label_safe <- function(obj) {
+  tryCatch(year_label(obj),
+           error = function(e) stats::setNames(character(), character()))
 }
 
 # ToDo: write methods: ####

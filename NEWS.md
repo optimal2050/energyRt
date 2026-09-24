@@ -1,5 +1,21 @@
 # energyRt (development version)
 
+* Milestone years can carry a display label. `newHorizon()` accepts a `label`
+  column in `intervals`, and the new `year_label()` returns one label per
+  milestone. The label is presentation only: the model key for a period stays
+  the integer `mid`, and nothing reaches the solver.
+
+* `calendar` gains `year_start` (`list(month = , day = )`, default January 1)
+  and `utc_offset_minutes`. A non-January anchor makes the default milestone
+  labels fiscal (`FY2025-26`), following the `timescales` convention that the
+  anchored year is the starting Gregorian year. The anchor is carried and
+  reported; it does not yet drive timeslice-to-timestamp alignment. Calendars
+  imported from `timescales` keep both values instead of dropping them.
+
+* `getData(yearsAsFactors = TRUE)` returns `year` as an ordered factor of
+  labels, with levels in horizon order. It previously left an integer `year`
+  untouched.
+
 * `audit_coefficients()` reports the coefficient range of a written model per
   equation family (widest row, the variable at each end of it, counts per
   decade), from the free-MPS form `glpsol` re-emits. `dev/coefficient-ranges.md`
@@ -72,6 +88,11 @@
   added into both; the error names the frames and the straddling regions.
 
 ## Breaking changes
+
+* `calendar` gains two slots (`year_start`, `utc_offset_minutes`) and
+  `horizon@intervals` a `label` column. Objects saved earlier still load --
+  every read is guarded and falls back to the January-1 default -- but a
+  calendar written now cannot be read by an older energyRt.
 
 * The teaching model is renamed **UTOPIA -> TOPIA** (Latin *topia*, from Greek
   *topos*, "place"): the dataset `utopia` is now `topia`,

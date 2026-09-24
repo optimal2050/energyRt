@@ -163,6 +163,7 @@ reference:
   - make_timetable
   - autoplot.calendar
   - autoplot.horizon
+  - year_label
 
 - title: Space resolution
   desc: >
@@ -202,6 +203,20 @@ reference:
   - read_solution
   - read_sequence
   - with_solver_log
+
+- title: multimod
+  desc: >
+    Converting an interpolated scenario into a
+    [multimod](https://github.com/optimal2050/multimod) model, which can then be
+    rendered to any backend multimod supports or assembled straight into a
+    matrix and solved. multimod is a suggested package; these are no-ops
+    without it.
+  contents:
+  - as_multimod.scenario
+  - multimod_import_data
+  - multimod_import_log
+  - multimod_unmatched
+  - multimod_from_energyRt
 
 - title: Solver configuration
   desc: Choosing a backend and pointing energyRt at it.
@@ -354,6 +369,8 @@ reference:
   contents:
   - validate_scenario_parameters
   - verify_solution
+  - verify_checks
+  - audit_coefficients
   - en_check
   - en_check_packages
   - trim_parameters_by_maps

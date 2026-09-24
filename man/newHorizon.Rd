@@ -29,6 +29,9 @@ the full period of the model/scenario. If not provided, the range of 'intervals'
 
 \item{intervals}{(optional) either data.frame or integer vector.
 The data.frame must have \code{start}, \code{mid}, and \code{end} columns with modeled interval.
+An optional \code{label} column gives each milestone a display name; it is filled
+from \code{mid} when absent, must be unique, and is presentation only -- the model
+key for a period stays the integer \code{mid}. See \code{\link[=year_label]{year_label()}}.
 The vector will be considered as lengths of each modeled interval in period.}
 
 \item{mid_is_end}{logical, if TRUE, the mid-year will be set to the end of the interval.}
@@ -72,6 +75,13 @@ newHorizon(period = 2020:2050,
 
 newHorizon(2020:2050, c(3, 2, 5, 10),
            desc = "Pay attention to the length of the first interval")
+
+# Explicit display labels; `mid` remains the model key
+newHorizon(intervals = data.frame(
+  start = c(2025, 2030),
+  mid   = c(2025, 2030),
+  end   = c(2029, 2034),
+  label = c("FY2025-26", "FY2030-31")))
 
 newHorizon(period = 2020:2040,
            intervals = data.frame(

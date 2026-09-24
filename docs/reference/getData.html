@@ -47,7 +47,7 @@ observed year range) with each parameter's default interpolation rule."><meta pr
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9002</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -67,8 +67,8 @@ observed year range) with each parameter's default interpolation rule."><meta pr
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
-    <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
-    <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
+    <li><a class="dropdown-item" href="../articles/topia-build.html">TOPIA I: building the model</a></li>
+    <li><a class="dropdown-item" href="../articles/topia-use.html">TOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
     <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
@@ -486,7 +486,7 @@ for object/model/repository methods.</p></dd>
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="kw">if</span> <span class="op">(</span><span class="cn">FALSE</span><span class="op">)</span> <span class="op">{</span> <span class="co"># \dontrun{</span></span></span>
-<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"utopia_scen_BAU.RData"</span><span class="op">)</span></span></span>
+<span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/utils/data.html" class="external-link">data</a></span><span class="op">(</span><span class="st">"topia_scen_BAU.RData"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">getData</span><span class="op">(</span><span class="va">scen</span>, name <span class="op">=</span> <span class="st">"pDemand"</span>, year <span class="op">=</span> <span class="fl">2015</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">getData</span><span class="op">(</span><span class="va">scen</span>, name <span class="op">=</span> <span class="st">"vTechOut"</span>, comm <span class="op">=</span> <span class="st">"ELC"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span>, year <span class="op">=</span> <span class="fl">2015</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="va">elc2050</span> <span class="op">&lt;-</span> <span class="fu">getData</span><span class="op">(</span><span class="va">scen</span>, parameters <span class="op">=</span> <span class="cn">FALSE</span>, comm <span class="op">=</span> <span class="st">"ELC"</span>, year <span class="op">=</span> <span class="fl">2050</span><span class="op">)</span></span></span>

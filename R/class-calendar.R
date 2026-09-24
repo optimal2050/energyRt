@@ -12,6 +12,8 @@
 #' @slot desc `r get_slot_doc("calendar", "desc")`
 #' @slot timeframes `r get_slot_doc("calendar", "timeframes")`
 #' @slot year_fraction `r get_slot_doc("calendar", "year_fraction")`
+#' @slot year_start `r get_slot_doc("calendar", "year_start")`
+#' @slot utc_offset_minutes `r get_slot_doc("calendar", "utc_offset_minutes")`
 #' @slot timetable `r get_slot_doc("calendar", "timetable")`
 #' @slot timeslice_share `r get_slot_doc("calendar", "timeslice_share")`
 #' @slot default_timeframe `r get_slot_doc("calendar", "default_timeframe")`
@@ -32,6 +34,8 @@ setClass("calendar", # alt: timestructure, timescales, timescheme, timeframe, sc
     desc = "character",
     timeframes = "list", # renamed `timeslice_map` // alt.names: hierarchy, nest, ..
     year_fraction = "numeric",
+    year_start = "list", # list(month = , day = ): first day of the model year
+    utc_offset_minutes = "integer",
     timetable = "data.frame", # renames `levels`
     timeslice_share = "data.frame", # !!! rename to fraction?
     default_timeframe = "character", # renamed `default_timeslice_level`
@@ -49,6 +53,8 @@ setClass("calendar", # alt: timestructure, timescales, timescheme, timeframe, sc
     desc = character(),
     timeframes = list(), # Timeslices set by level
     year_fraction = as.numeric(1),
+    year_start = list(month = 1L, day = 1L),
+    utc_offset_minutes = 0L,
     timetable = data.frame(stringsAsFactors = FALSE),
     timeslice_share = data.frame(
       # year = integer(),
@@ -209,6 +215,8 @@ if (F) {
 #' @param desc `r get_slot_doc("calendar", "desc")`
 #' @param timetable `r get_slot_doc("calendar", "timetable")`
 #' @param year_fraction `r get_slot_doc("calendar", "year_fraction")`
+#' @param year_start `r get_slot_doc("calendar", "year_start")`
+#' @param utc_offset_minutes `r get_slot_doc("calendar", "utc_offset_minutes")`
 #' @param default_timeframe `r get_slot_doc("calendar", "default_timeframe")`
 #' @param misc `r get_slot_doc("calendar", "misc")`
 #' @param ... ignored
@@ -245,6 +253,8 @@ newCalendar <- function(
     desc = "",
     timetable = NULL,
     year_fraction = 1,
+    year_start = list(month = 1L, day = 1L),
+    utc_offset_minutes = 0L,
     default_timeframe = NULL,
     misc = list(
       pTimesliceWeight = NULL
@@ -265,6 +275,8 @@ newCalendar <- function(
   }
   if (!is.null(arg$desc)) obj@desc <- arg$desc
   if (!is.null(arg$misc)) obj@misc <- arg$misc
+  obj@year_start <- .check_year_start(year_start)
+  obj@utc_offset_minutes <- .check_utc_offset(utc_offset_minutes)
   if (!is.null(arg$default_timeframe)) {
     if (!(obj@default_timeframe %in% names(obj@timeframes))) {
       stop(
@@ -298,6 +310,67 @@ if (F) {
   newCalendar(timetable = cal_subset, year_fraction = sum(cal_subset$share))
 }
 
+# Model-year anchor ####
+# `year_start` places the first day of the model year. A nontrivial anchor makes
+# model year `y` span [year_start(y), year_start(y + 1)); the anchored year is
+# the STARTING Gregorian year, so Indian "FY 2021-22" is year 2021. The anchor
+# is carried and reported only -- it does not drive timeslice-to-timestamp
+# alignment, which stays on the calendar year. Rules mirror
+# `timescales::calendar_build()` so both packages refuse the same inputs.
+.check_year_start <- function(x) {
+  if (is.null(x)) return(list(month = 1L, day = 1L))
+  if (!is.list(x) || !all(c("month", "day") %in% names(x))) {
+    stop("`year_start` must be `list(month = , day = )`.", call. = FALSE)
+  }
+  m <- suppressWarnings(as.integer(x$month))
+  d <- suppressWarnings(as.integer(x$day))
+  if (length(m) != 1L || is.na(m) || m < 1L || m > 12L) {
+    stop("`year_start$month` must be an integer in 1:12.", call. = FALSE)
+  }
+  if (length(d) != 1L || is.na(d) || d < 1L || d > 31L) {
+    stop("`year_start$day` must be an integer in 1:31.", call. = FALSE)
+  }
+  list(month = m, day = d)
+}
+
+.check_utc_offset <- function(x) {
+  if (is.null(x)) return(0L)
+  v <- suppressWarnings(as.integer(x))
+  if (length(v) != 1L || is.na(v)) {
+    stop("`utc_offset_minutes` must be a single integer number of minutes.",
+         call. = FALSE)
+  }
+  v
+}
+
+# A calendar serialised before these slots existed does not carry them, and
+# `obj@year_start` would raise "no slot of name". Same guard pattern as
+# `R/class-config.R` (`methods::.hasSlot`).
+.year_start <- function(cal) {
+  dflt <- list(month = 1L, day = 1L)
+  if (is.null(cal) || !isS4(cal) || !methods::.hasSlot(cal, "year_start")) {
+    return(dflt)
+  }
+  ys <- cal@year_start
+  if (!is.list(ys) || !all(c("month", "day") %in% names(ys))) return(dflt)
+  ys
+}
+
+.utc_offset <- function(cal) {
+  if (is.null(cal) || !isS4(cal) ||
+      !methods::.hasSlot(cal, "utc_offset_minutes")) {
+    return(0L)
+  }
+  v <- cal@utc_offset_minutes
+  if (length(v) != 1L || is.na(v)) 0L else as.integer(v)
+}
+
+# TRUE when the anchor is anything other than January 1.
+.is_fiscal_year_start <- function(ys) {
+  ys <- if (is.list(ys)) ys else .year_start(ys)
+  !(identical(as.integer(ys$month), 1L) && identical(as.integer(ys$day), 1L))
+}
+
 .print_if_not_empty <- function(x, pref = NULL, suff = NULL) {
   x <- as.character(x)
   msg <- paste0(pref, x, suff)
@@ -309,6 +382,13 @@ setMethod("print", "calendar", function(x, ...) {
   cat('An object of class "calendar"\n')
   .print_if_not_empty(x@name, "name: ")
   .print_if_not_empty(x@desc, "desc: ")
+  ys <- .year_start(x)
+  if (.is_fiscal_year_start(ys)) {
+    cat(sprintf("year_start: month=%d, day=%d\n",
+                as.integer(ys$month), as.integer(ys$day)))
+  }
+  uo <- .utc_offset(x)
+  if (!identical(uo, 0L)) cat("utc_offset_minutes: ", uo, "\n", sep = "")
   printed_timeframes <- lapply(x@timeframes, function(y) {
     if (length(y) <= 10) return(y)
     y <- c(

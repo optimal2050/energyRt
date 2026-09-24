@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9002</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -33,8 +33,8 @@
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
-    <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
-    <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
+    <li><a class="dropdown-item" href="../articles/topia-build.html">TOPIA I: building the model</a></li>
+    <li><a class="dropdown-item" href="../articles/topia-use.html">TOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
     <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
@@ -88,17 +88,17 @@
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">tsl</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"y2007_d365_h15"</span>, <span class="cn">NA</span>, <span class="st">"d151_h22"</span>, <span class="st">"d001"</span>, <span class="st">"m10_h12"</span><span class="op">)</span></span></span>
 <span class="r-in"><span><span class="fu">tsl_guess_format</span><span class="op">(</span><span class="va">tsl</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in tsl_guess_format(tsl):</span> could not find function "tsl_guess_format"</span>
 <span class="r-in"><span><span class="fu">tsl_guess_format</span><span class="op">(</span><span class="va">tsl</span><span class="op">[</span><span class="fl">1</span><span class="op">]</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "y_d365_h24"</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in tsl_guess_format(tsl[1]):</span> could not find function "tsl_guess_format"</span>
 <span class="r-in"><span><span class="fu">tsl_guess_format</span><span class="op">(</span><span class="va">tsl</span><span class="op">[</span><span class="fl">2</span><span class="op">]</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> NULL</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in tsl_guess_format(tsl[2]):</span> could not find function "tsl_guess_format"</span>
 <span class="r-in"><span><span class="fu">tsl_guess_format</span><span class="op">(</span><span class="va">tsl</span><span class="op">[</span><span class="fl">3</span><span class="op">]</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "d365_h24"</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in tsl_guess_format(tsl[3]):</span> could not find function "tsl_guess_format"</span>
 <span class="r-in"><span><span class="fu">tsl_guess_format</span><span class="op">(</span><span class="va">tsl</span><span class="op">[</span><span class="fl">4</span><span class="op">]</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "d365"</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in tsl_guess_format(tsl[4]):</span> could not find function "tsl_guess_format"</span>
 <span class="r-in"><span><span class="fu">tsl_guess_format</span><span class="op">(</span><span class="va">tsl</span><span class="op">[</span><span class="fl">5</span><span class="op">]</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span> [1] "m12_h24"</span>
+<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in tsl_guess_format(tsl[5]):</span> could not find function "tsl_guess_format"</span>
 </code></pre></div>
     </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>

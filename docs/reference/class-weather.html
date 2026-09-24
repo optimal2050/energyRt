@@ -15,7 +15,7 @@ used to influence operation of processes in the model."><meta property="og:image
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9002</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -35,8 +35,8 @@ used to influence operation of processes in the model."><meta property="og:image
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
-    <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
-    <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
+    <li><a class="dropdown-item" href="../articles/topia-build.html">TOPIA I: building the model</a></li>
+    <li><a class="dropdown-item" href="../articles/topia-use.html">TOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
     <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
@@ -93,7 +93,7 @@ and can be added or replaced for different scenarios.
 
 
 <dt><code>region</code></dt>
-<dd><p>character. Region where the weather factor is applied.</p></dd>
+<dd><p>character. Region(s) the weather factor is declared at. May be a COARSER region of the model's geoscale than the processes that use it: a process reads the series at its own region when the object serves it, otherwise at the NEAREST ancestor that does. One profile declared at a parent therefore feeds every child region from a single stored series instead of being copied per child. Unset means every region. A process whose region the object neither serves nor has an ancestor for is an error – the factor is multiplicative and defaults to 0, so an unresolved link would shut the process down silently.</p></dd>
 
 
 <dt><code>timeframe</code></dt>

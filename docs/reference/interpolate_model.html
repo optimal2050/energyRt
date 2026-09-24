@@ -23,7 +23,7 @@ solve_scenario()."><meta property="og:image" content="https://energyRt.org/logo.
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9002</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -43,8 +43,8 @@ solve_scenario()."><meta property="og:image" content="https://energyRt.org/logo.
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
-    <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
-    <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
+    <li><a class="dropdown-item" href="../articles/topia-build.html">TOPIA I: building the model</a></li>
+    <li><a class="dropdown-item" href="../articles/topia-use.html">TOPIA II: running scenarios</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
     <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
@@ -144,11 +144,20 @@ name.</p></dd>
 
 <dt id="arg-fold">fold<a class="anchor" aria-label="anchor" href="#arg-fold"></a></dt>
 <dd><p>logical or character; whole-column "fold" of trimmable dimensions
-to NA wildcards to shrink the data. <code>TRUE</code> folds <code>region</code> + <code>timeslice</code>; <code>FALSE</code>
-(default) folds nothing; a character vector selects dims among
-<code>region</code>, <code>timeslice</code>, <code>year</code>, <code>comm</code>, <code>tech</code>, <code>stg</code>, <code>trade</code>. The wildcards
-are substituted by an artificial set member in the written model files
-only; the scenario object keeps them and <code><a href="getData.html">getData()</a></code> expands them.</p></dd>
+to NA wildcards to shrink the data. <code>TRUE</code> folds <code>region</code> + <code>timeslice</code> +
+<code>year</code>; <code>FALSE</code> (default) folds nothing; a character vector selects dims
+among <code>region</code>, <code>timeslice</code>, <code>year</code>, <code>comm</code>, <code>tech</code>, <code>stg</code>, <code>trade</code>. The
+wildcards are substituted by an artificial set member in the written model
+files only; the scenario object keeps them and <code><a href="getData.html">getData()</a></code> expands them.</p>
+<p>A dimension folds only where the value is uniform across its WHOLE set, so
+folding never changes the solution — it changes how the same numbers are
+stored. <code>year</code> matters most in weather-heavy models: one weather series
+repeated across milestone years is usually the largest parameter, and
+<code>region</code>/<code>timeslice</code> alone do not touch it. Measured on a 4-region
+<code>d365_h24</code> model over 7 milestones, adding <code>year</code> took <code>pWeather</code> from
+245,259 to 35,037 rows (-85.7%) with a bit-identical objective on GLPK and
+Pyomo/HiGHS. A model whose weather genuinely differs by year simply does
+not fold.</p></dd>
 
 
 <dt id="arg-sparse">sparse<a class="anchor" aria-label="anchor" href="#arg-sparse"></a></dt>

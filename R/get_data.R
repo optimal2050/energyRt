@@ -673,7 +673,7 @@ getData.scenario <- function(
       }
       if (!is.null(dat$year)) {
         if (yearsAsFactors) {
-          dat$year <- .crs2fct(dat$year)
+          dat$year <- .crs2fct(dat$year, labels = .year_label_safe(scen))
         } else {
           dat$year <- .crs2int(dat$year)
         }
@@ -692,7 +692,8 @@ getData.scenario <- function(
         if (!is.null(ll[[i]]$year)) {
           if (yearsAsFactors) {
             if (!is(ll[[i]]$year, "factor")) {
-              ll[[i]]$year <- .crs2fct(ll[[i]]$year)
+              ll[[i]]$year <- .crs2fct(ll[[i]]$year,
+                                       labels = .year_label_safe(scen))
             }
           } else {
             ll[[i]]$year <- .crs2int(ll[[i]]$year)
@@ -1042,16 +1043,24 @@ if (F) { # test
   x
 }
 
-.crs2fct <- function(x, levels = NULL, ordered = TRUE) {
-  # coerce to integer from factor or character
-  if (is(x, "character")) {
-    if (!is.null(levels)) {
-      x <- factor(x, levels = levels)
-    } else {
-      x <- as.factor(x)
-    }
-    if (ordered) x <- as.ordered(x)
+.crs2fct <- function(x, levels = NULL, ordered = TRUE, labels = NULL) {
+  if (!is.null(labels) && length(labels)) {
+    key <- as.character(x)
+    out <- unname(labels[key])
+    miss <- is.na(out)
+    if (any(miss)) out[miss] <- key[miss]
+    lv <- unique(c(unname(labels), out[miss]))
+    x <- factor(out, levels = lv)
+    return(if (ordered) as.ordered(x) else x)
   }
+  if (is(x, "factor")) return(x)
+  if (!is.character(x)) x <- as.character(x)
+  if (!is.null(levels)) {
+    x <- factor(x, levels = levels)
+  } else {
+    x <- as.factor(x)
+  }
+  if (ordered) x <- as.ordered(x)
   x
 }
 
