@@ -59,8 +59,16 @@
   # variable. Never fatal: a malformed config must not stop the package loading.
   try(.en_apply_config(), silent = TRUE)
 
+  # as_multimod.scenario() is registered by NAMESPACE, via
+  # `@exportS3Method multimod::as_multimod` -> `S3method(multimod::as_multimod,
+  # scenario)`. That is R's own delayed registration for a generic owned by a
+  # SUGGESTED package: dispatch works when multimod is installed, and nothing
+  # breaks when it is not. A hand-rolled setHook() lived here until
+  # 2026-09-24 and is no longer needed.
+
   invisible()
 }
+
 
 #' Check validity of object's names used in sets
 #'
