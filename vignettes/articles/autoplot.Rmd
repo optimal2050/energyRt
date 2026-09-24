@@ -50,7 +50,7 @@ names(calendars)
 rectangles sized by each timeslice's share of the year:
 
 ```{r cal-basic, fig.height = 2.2}
-autoplot(calendars$season_dn)
+autoplot(calendars$s4_hp3)
 ```
 
 ## Coloring
@@ -68,7 +68,7 @@ autoplot(calendars$d365_h24, color_pattern = "global")
 Other fill metrics are the timeslice `"share"` and `"weight"`:
 
 ```{r cal-share, fig.height = 2.2}
-autoplot(calendars$season_dn, fill = "share")
+autoplot(calendars$s4_hp3, fill = "share")
 ```
 
 ## Labels
@@ -116,7 +116,7 @@ gradient) and `palette` picks the viridis option; and because the result is a
 ggplot you can keep customizing it:
 
 ```{r cal-style, fig.height = 2.2}
-autoplot(calendars$season_dn, palette = "magma", border = "grey40") +
+autoplot(calendars$s4_hp3, palette = "magma", border = "grey40") +
   labs(title = "Four seasons, day/night") +
   theme_minimal()
 ```
@@ -158,14 +158,14 @@ for `autoplot()`.
 ## From model objects
 
 Any timeslice-indexed model data lays out the same way. Here **electricity demand**
-and a **solar capacity factor** from the packaged UTOPIA kit, on its season × hour
+and a **solar capacity factor** from the packaged TOPIA kit, on its season × hour
 calendar (`s4_h24`): pull the object with `getObject()`, take one region
 (and, for demand, one year), and pass the `timeslice` + value columns to
 `plot_heatmap()`. The `name` argument carries the value's unit onto the colour
 bar.
 
 ```{r hm-demand, fig.height = 2.6}
-repo <- utopia$modules$electricity$R3$repo
+repo <- topia$modules$electricity$R3$repo
 wcal <- calendars$s4_h24
 
 DEM <- getObject(repo, name = "DEM_ELC", drop = TRUE)
@@ -267,7 +267,7 @@ when unset) labels the value axis — the fill legend for the heatmap, the y-axi
 for line/area.
 
 ```{r wea, fig.height = 3}
-WSOL <- getObject(utopia$modules$electricity$R3$repo, name = "WSOL", drop = TRUE)
+WSOL <- getObject(topia$modules$electricity$R3$repo, name = "WSOL", drop = TRUE)
 wcal <- calendars$s4_h24
 
 autoplot(WSOL, calendar = wcal)                    # heatmap (default), faceted by region

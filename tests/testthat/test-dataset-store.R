@@ -84,11 +84,11 @@ test_that("a table round-trips through the store with column classes intact", {
 test_that("a non-tabular object (Geoscale map) stores as rds", {
   skip_if_not_installed("geoscales")
   ds_local()
-  gs <- utopia_geoscale()
-  info <- save_dataset(gs, "utopia_map", verbose = FALSE)
+  gs <- topia_geoscale()
+  info <- save_dataset(gs, "topia_map", verbose = FALSE)
   expect_identical(info$kind, "object")
   expect_true(file.exists(fp(info$path, "payload.rds")))
-  gs2 <- load_dataset("utopia_map", verbose = FALSE)
+  gs2 <- load_dataset("topia_map", verbose = FALSE)
   expect_identical(dataset_hash(gs2), info$hash)
 })
 
@@ -116,13 +116,13 @@ test_that("the registry indexes datasets and refresh_registry rescans them", {
 test_that("functional dataset: snapshot identity, drift check, call-hash mode", {
   ds_local()
   args <- list(regions = c("R1", "R2"), calendar = "s4_h24")
-  info <- save_dataset(name = "utp", fun = "energyRt::utopia_profiles",
+  info <- save_dataset(name = "utp", fun = "energyRt::topia_profiles",
                        args = args, verbose = FALSE)
   expect_identical(info$kind, "function")
   mf <- yaml::read_yaml(fp(info$path, "dataset.yml"))
   expect_identical(mf$hash_of, "content")
   expect_true(isTRUE(mf$snapshot))
-  expect_identical(mf$fun, "energyRt::utopia_profiles")
+  expect_identical(mf$fun, "energyRt::topia_profiles")
 
   # snapshot equals a fresh evaluation, and identity is the RESULT hash
   snap <- load_dataset("utp", verbose = FALSE)
@@ -140,7 +140,7 @@ test_that("functional dataset: snapshot identity, drift check, call-hash mode", 
                "no longer reproduces")
 
   # materialize = FALSE records the call only and hashes the call
-  info2 <- save_dataset(name = "utp_call", fun = "energyRt::utopia_profiles",
+  info2 <- save_dataset(name = "utp_call", fun = "energyRt::topia_profiles",
                         args = args, materialize = FALSE, verbose = FALSE)
   mf2 <- yaml::read_yaml(fp(info2$path, "dataset.yml"))
   expect_identical(mf2$hash_of, "call")

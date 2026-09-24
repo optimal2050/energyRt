@@ -29,12 +29,12 @@ count is the main dial between realism and model size:
 | calendar | structure | timeslices |
 |---|---|---:|
 | `annual` | one annual timeslice | 1 |
-| `utopia_seasons` | 4 seasons × day/night/peak | 12 |
+| `topia_seasons` | 4 seasons × day/night/peak | 12 |
 | `s4_h24` | 4 seasons × 24 hours | 96 |
 | `m12_h24` | 12 months × 24 hours | 288 |
 | `d365` | 365 days | 365 |
 
-Model variables scale roughly linearly with timeslices — the 96-timeslice UTOPIA base
+Model variables scale roughly linearly with timeslices — the 96-timeslice TOPIA base
 case solves in seconds on GLPK, the 288-timeslice variant is noticeably heavier.
 
 # The `make_timetable()` grammar
@@ -53,7 +53,7 @@ head(tt)          # 4 x 24 = 96 leaf timeslices, equal shares
 ```
 
 Unequal **shares** are given per timeslice; a nested `list(<share>, <LEVEL> = ...)`
-attaches child levels. UTOPIA's 12-timeslice calendar makes peak hours short and
+attaches child levels. TOPIA's 12-timeslice calendar makes peak hours short and
 winter nights long:
 
 ```{r tt-shares}
@@ -109,7 +109,7 @@ seasons are `WIN/SPR/SUM/FAL` in calendar order):
 
 ```{r calendars-data}
 names(calendars)
-calendars$utopia_seasons@desc
+topia$modules$calendars$topia_seasons@desc
 s4 <- as.data.frame(calendars$s4@timetable)[, c("SEASON", "share")]
 s4$share <- round(s4$share, 4)
 s4
@@ -124,7 +124,7 @@ cycles all follow the sample:
 calendars$s4_h24_subset_2seasons@year_fraction   # WIN + SUM
 ```
 
-Pick one and pass it to `newModel(calendar = ...)`; the UTOPIA vignettes use
+Pick one and pass it to `newModel(calendar = ...)`; the TOPIA vignettes use
 `calendars$s4_h24` throughout.
 
 # Timeslice-string helpers
@@ -159,7 +159,7 @@ and processes whose timeframes follow it — annual bookkeeping stays cheap.
 
 # Choosing a resolution
 
-* Start coarse (`utopia_seasons`-like, ~12 timeslices) while the model structure
+* Start coarse (`topia_seasons`-like, ~12 timeslices) while the model structure
   is in flux — solves are instant.
 * Move to hour-within-season (`s4_h24`, 96) once storage, VRE profiles
   or peak pricing matter — intra-day dynamics need real hours.
@@ -173,6 +173,6 @@ and processes whose timeframes follow it — annual bookkeeping stays cheap.
   dimension, so it never changes the solution; a model with a genuinely
   different weather year per milestone simply does not fold.
 
-The [UTOPIA vignettes](utopia-build.html) build one model and run it on these
+The [TOPIA vignettes](topia-build.html) build one model and run it on these
 calendars interchangeably — resolution is a configuration choice, not a
 rewrite.

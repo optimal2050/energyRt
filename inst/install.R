@@ -106,7 +106,7 @@ install_energyRt <- function(ref = "optimal2050/energyRt",
   }
 
   # 3b. geoscales -- an optimal2050 sibling, NOT on CRAN. It gates the geoscale
-  #     features (utopia_geoscale(), plot_geoscale(), multi-level regions) and
+  #     features (topia_geoscale(), plot_geoscale(), multi-level regions) and
   #     nothing else, so a failure here must NOT block energyRt itself.
   #     (`timescales`, the other sibling, is build-time only: the shipped
   #     `calendars` are generated from its catalog. Users never need it.)

@@ -36,7 +36,7 @@ test_that("simple within-dimension conversions are stable", {
 })
 
 test_that("compound units and the currency-per-capacity idiom are stable", {
-  # the shape used throughout vignettes/utopia-build.Rmd
+  # the shape used throughout vignettes/topia-build.Rmd
   expect_equal(convert("EUR/kW", "MEUR/GW"), 1)
   expect_equal(convert("MEUR/GW", "EUR/kW"), 1)
   expect_equal(convert("EUR/kWh", "MEUR/PJ"), 1e6 / 3600, tolerance = 1e-12)
@@ -102,9 +102,9 @@ test_that("the crore-INR family is internally consistent", {
 })
 
 test_that("vignette call sites produce their published values", {
-  # vignettes/utopia-build.Rmd :435 :482 :531 :578 :607 :617 :665 :720 and
-  # data-raw/utopia_modules.R :45 :178 -- the latter BAKES results into
-  # data/utopia_modules.rda, so drift here silently changes shipped data.
+  # vignettes/topia-build.Rmd :435 :482 :531 :578 :607 :617 :665 :720 and
+  # data-raw/topia_modules.R :45 :178 -- the latter BAKES results into
+  # data/topia_modules.rda, so drift here silently changes shipped data.
   for (v in c(2000, 900, 8000, 650, 1300, 3000, 2200)) {
     expect_equal(convert("EUR/kW", "MEUR/GW", v), v, info = v)
   }

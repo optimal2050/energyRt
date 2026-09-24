@@ -51,72 +51,22 @@ rebuild_horizon <- function(hor) {
   }
 }
 
-# ── 1. Small, self-contained calendars (always available) ────────────────────
+# ── 1. Self-contained calendars (always available) ───────────────────
+# energyRt ships GENERIC calendars only. Everything else comes from the
+# timescales catalog (Section 2b); calendars that belong to a particular model
+# travel with that model -- the TOPIA teaching calendars live in
+# `topia$modules$calendars`, and the unit kits' symmetric calendars in
+# `topia$modules$unit$calendars`.
+#
+# `annual` is the one exception: the catalog has no single-timeslice entry, and
+# it is the coarsest resolution used across the package.
+
 calendars <- list()
 
-calendars[["season_dn"]] <- newCalendar(
-  make_timetable(list(
-    SEASON = c("WINTER", "SPRING", "SUMMER", "AUTUMN"),
-    DAY    = c("DAY", "NIGHT")
-  )),
-  name = "season_dn",
-  desc = "Four seasons, day/night (8 timeslices)"
-)
-
-calendars[["d365"]] <- newCalendar(
-  make_timetable(list(YDAY = yday2YDAY(1:365))),
-  name = "d365",
-  desc = "Daily resolution, 365 days"
-)
-
-# ── 1b. Generic and UTOPIA teaching calendars ────────────────────────────────
-# UTOPIA reuses the mainstream calendars (Section 2b): `annual`, `s4_h24` and
-# `m12_h24` replaced the former utopia_annual/utopia_s4h24/utopia_m12h24
-# (2026-08 unification; seasons are WIN/SPR/SUM/FAL, day-proportional
-# shares). Only `utopia_seasons` remains UTOPIA-own -- its DAY/NGT/PK
-# daypart shares have no catalog twin.
-
-# Annual (single timeslice) — the coarsest resolution.
 calendars[["annual"]] <- newCalendar(
   make_timetable(list(ANNUAL = "ANNUAL")),
   name = "annual",
   desc = "Annual resolution (1 timeslice)"
-)
-
-# Four seasons x three dayparts (DAY/NIGHT/PEAK), with representative shares
-# (peak hours are short; night is longer in winter, day longer in summer).
-# 12 timeslices — the default UTOPIA resolution (tractable on GLPK).
-calendars[["utopia_seasons"]] <- newCalendar(
-  make_timetable(list(
-    SEASON = list(
-      WIN = list(1 / 4, HOUR = list(DAY =  9 / 24, NGT = 12 / 24, PK = 3 / 24)),
-      SPR = list(1 / 4, HOUR = list(DAY = 11 / 24, NGT = 11 / 24, PK = 2 / 24)),
-      SUM = list(1 / 4, HOUR = list(DAY = 12 / 24, NGT =  9 / 24, PK = 3 / 24)),
-      FAL = list(1 / 4, HOUR = list(DAY = 11 / 24, NGT = 11 / 24, PK = 2 / 24))
-    )
-  )),
-  name = "utopia_seasons",
-  desc = "UTOPIA: 4 seasons x 3 dayparts (DAY/NIGHT/PEAK), 12 timeslices"
-)
-
-# ── 1c. Unit calendars ───────────────────────────────────────────────────────
-# Perfectly symmetric time structures for the `utopia_modules$unit` kits: every
-# share is a power of 1/4, so weights are exactly 4 (and 16) and hand-computed
-# objectives come out as small integers. See "unit kit" in ?utopia_modules.
-
-calendars[["unit_s4"]] <- newCalendar(
-  make_timetable(list(SEASON = paste0("S", 1:4))),
-  name = "unit_s4",
-  desc = "Unit calendar: 4 equal seasons (share 1/4 each, weight 4)"
-)
-
-calendars[["unit_s4h4"]] <- newCalendar(
-  make_timetable(list(
-    SEASON = paste0("S", 1:4),
-    HOUR   = paste0("H", 1:4)
-  )),
-  name = "unit_s4h4",
-  desc = "Unit calendar: 4 seasons x 4 hours, 16 timeslices (share 1/16 each)"
 )
 
 # ── 2. Import detailed calendars & horizons from IDEEA (optional) ─────────────
@@ -154,8 +104,8 @@ if (!is.null(ideea)) {
   if (file.exists("data/calendars.rda")) load("data/calendars.rda", envir = .prev)
   if (file.exists("data/horizons.rda")) load("data/horizons.rda", envir = .prev)
   # RETIRED entries never come back through the carry-over (2026-08
-  # unification: UTOPIA reuses annual / s4_h24 / m12_h24)
-  .retired <- c("utopia_annual", "utopia_s4h24", "utopia_m12h24")
+  # unification: TOPIA reuses annual / s4_h24 / m12_h24)
+  .retired <- c("topia_annual", "topia_s4h24", "topia_m12h24")
   for (key in setdiff(names(.prev$calendars),
                       c(names(calendars), .retired))) {
     calendars[[key]] <- .prev$calendars[[key]]
@@ -187,15 +137,21 @@ if (!is.null(ideea)) {
 # `next_in_year` follows row order.
 #
 # Vocabulary note: seasons are WIN/SPR/SUM/FAL in calendar order, with
-# DAY-PROPORTIONAL shares (90/92/92/91 days) -- the UTOPIA world was
+# DAY-PROPORTIONAL shares (90/92/92/91 days) -- the TOPIA world was
 # unified onto this vocabulary in 2026-08 (the old equal-share
-# utopia_s4h24/utopia_m12h24/utopia_annual entries are retired). The
+# topia_s4h24/topia_m12h24/topia_annual entries are retired). The
 # catalog's d365/d365_h24 are NOT imported: their label sets and shares
 # are identical to the entries already shipped above (pinned by the
 # stopifnot at the end of this section).
 
 .ts_full <- c("m12", "m12a", "q4", "s4", "s4_h24", "m12_h24",
-              "wd7_h24", "w52_h24")
+              "wd7_h24", "w52_h24",
+              # were built locally until v0.90; the catalog entries are
+              # identical in labels, shares and sums (checked below)
+              "d365", "d365_h24",
+              # season x daypart: the regular twin of the retired bespoke
+              # `season_dn` and `topia_seasons`
+              "s4_hp3")
 .ts_samples <- c("s4_h24_subset_2seasons", "m12_h24_subset_4months",
                  "m12_subset_q1", "d365_h24_1dps")
 

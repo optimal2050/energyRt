@@ -24,7 +24,7 @@ test_that("registry add/save/load round-trips", {
   reg <- newRegistry()
   reg <- add_to_registry(reg, "scenario", "BASE", path = "scenarios/BASE",
                       model_hash = "abc123", memo = "first")
-  reg <- add_to_registry(reg, "model", "UTOPIA", path = "models/UTOPIA@abc12345",
+  reg <- add_to_registry(reg, "model", "TOPIA", path = "models/TOPIA@abc12345",
                       hash = "abc12345ffff")
   reg <- add_to_registry(reg, "run", "default/glpk", path = "scenarios/BASE/runs/default/glpk",
                       parent = "BASE")
@@ -115,10 +115,10 @@ test_that("refresh_registry rebuilds from on-disk markers and manifests", {
     file.path(scen_root, "NEW3", "runs", "cal-d24", "glpk", "run.yml"))
 
   # model store entry
-  dir.create(file.path(mod_root, "UTOPIA@cafe0123"), recursive = TRUE)
+  dir.create(file.path(mod_root, "TOPIA@cafe0123"), recursive = TRUE)
   yaml::write_yaml(
-    list(layout = 3L, name = "UTOPIA", hash = "cafe0123deadbeef"),
-    file.path(mod_root, "UTOPIA@cafe0123", "model.yml"))
+    list(layout = 3L, name = "TOPIA", hash = "cafe0123deadbeef"),
+    file.path(mod_root, "TOPIA@cafe0123", "model.yml"))
 
   # a directory that is NOT a scenario (no marker) must be skipped
   dir.create(file.path(scen_root, "random_dir"))
@@ -126,7 +126,7 @@ test_that("refresh_registry rebuilds from on-disk markers and manifests", {
   reg <- refresh_registry(root = root, file = reg_file, write = TRUE)
   expect_true(file.exists(reg_file))
   expect_setequal(find_in_registry(reg, type = "scenario")$name, c("OLD2", "NEW3"))
-  expect_identical(find_in_registry(reg, type = "model")$name, "UTOPIA")
+  expect_identical(find_in_registry(reg, type = "model")$name, "TOPIA")
   expect_identical(find_in_registry(reg, type = "model")$hash, "cafe0123deadbeef")
   expect_identical(find_in_registry(reg, type = "scenario", name = "NEW3")$model_hash,
                    "cafe0123deadbeef")

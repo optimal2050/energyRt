@@ -1,9 +1,9 @@
-## data-raw/utopia_modules.R
-## Build the packaged `utopia_modules` -- a kit of energyRt building blocks and
-## scenario levers for the UTOPIA teaching model, mirroring the structure of
+## data-raw/topia_modules.R
+## Build the packaged `topia_modules` -- a kit of energyRt building blocks and
+## scenario levers for the TOPIA teaching model, mirroring the structure of
 ## IDEEA::ideea_modules. Region layouts (R1/R3/R7/R11) are assembled on the
-## base `s4_h24` calendar by the local `build_utopia()` below (the same
-## explicit steps the "UTOPIA I: building the model" vignette walks through).
+## base `s4_h24` calendar by the local `build_topia()` below (the same
+## explicit steps the "TOPIA I: building the model" vignette walks through).
 ##
 ## Naming conventions (see the vignette's "Conventions" section):
 ##   * set elements (regions, commodities, technologies) are UPPER-CASE, so the
@@ -13,7 +13,7 @@
 ##     storage -> STG_* ; trade -> TRD_* (bi-directional TBD_*) ;
 ##     export -> EXP_*  ; import -> IMP_*.
 ##
-## Run: pkgload::load_all(".") ; source("data-raw/utopia_modules.R") ; devtools::document()
+## Run: pkgload::load_all(".") ; source("data-raw/topia_modules.R") ; devtools::document()
 
 if (!isNamespaceLoaded("energyRt")) library(energyRt)
 library(usethis)
@@ -32,16 +32,63 @@ res_share_lever <- function(years, growth, annual_demand, nreg,
     rhs = data.frame(year = years, rhs = sh * tot), defVal = 0)
 }
 
-# Assemble a complete UTOPIA electricity kit for `regions` on `calendar`.
-build_utopia <- function(regions = paste0("R", 1:3),
+# Assemble a complete TOPIA electricity kit for `regions` on `calendar`.
+# ── TOPIA's own calendars ────────────────────────────────────────────────────
+# energyRt ships GENERIC calendars only (data-raw/calendars.R). These two are
+# TOPIA's, so they travel with the model instead: `topia_seasons` in
+# `$calendars`, the symmetric unit calendars in `$unit$calendars`.
+#
+# `topia_seasons` is a STYLISED teaching structure, not a catalog calendar: its
+# seasons are equal quarters rather than real day counts, and the daypart split
+# varies by season (long winter nights, long summer days), which encodes a
+# latitude. The catalog's `s4_hp3` is the regular twin -- day-proportional
+# seasons, a uniform 12/8/4 split -- and carries no such assumption.
+topia_seasons <- newCalendar(
+  make_timetable(list(
+    SEASON = list(
+      WIN = list(1 / 4, HOUR = list(DAY =  9 / 24, NGT = 12 / 24, PK = 3 / 24)),
+      SPR = list(1 / 4, HOUR = list(DAY = 11 / 24, NGT = 11 / 24, PK = 2 / 24)),
+      SUM = list(1 / 4, HOUR = list(DAY = 12 / 24, NGT =  9 / 24, PK = 3 / 24)),
+      FAL = list(1 / 4, HOUR = list(DAY = 11 / 24, NGT = 11 / 24, PK = 2 / 24))
+    )
+  )),
+  name = "topia_seasons",
+  desc = "TOPIA: 4 seasons x 3 dayparts (DAY/NIGHT/PEAK), 12 timeslices"
+)
+
+# Every share is a power of 1/4, so weights are exactly 4 (and 16) and the unit
+# kits' objectives come out as small integers. No catalog entry can serve this:
+# timescales' `s4` is day-proportional (0.2466/0.2521/0.2521/0.2493).
+unit_calendars <- list(
+  unit_s4 = newCalendar(
+    make_timetable(list(SEASON = paste0("S", 1:4))),
+    name = "unit_s4",
+    desc = "Unit calendar: 4 equal seasons (share 1/4 each, weight 4)"
+  ),
+  unit_s4h4 = newCalendar(
+    make_timetable(list(
+      SEASON = paste0("S", 1:4),
+      HOUR   = paste0("H", 1:4)
+    )),
+    name = "unit_s4h4",
+    desc = "Unit calendar: 4 seasons x 4 hours, 16 timeslices (share 1/16 each)"
+  )
+)
+
+# name -> object for the builders below: the shipped generic list plus TOPIA's
+topia_calendars <- c(calendars,
+                     list(topia_seasons = topia_seasons),
+                     unit_calendars)
+
+build_topia <- function(regions = paste0("R", 1:3),
                          calendar = "s4_h24",
                          annual_demand = 100,
                          years = c(2020, 2030, 2040, 2050),
                          demand_growth = c(1, 1.2, 1.4, 1.6)) {
   stopifnot(is.character(regions), length(regions) > 0)
-  cal  <- calendars[[calendar]]
+  cal  <- topia_calendars[[calendar]]
   if (is.null(cal)) stop("unknown calendar '", calendar, "'")
-  prof <- utopia_profiles(regions, calendar = calendar)
+  prof <- topia_profiles(regions, calendar = calendar)
   mg   <- function(eur_kw) convert("EUR/kW", "MEUR/GW", eur_kw)   # -> MEUR/GW
 
   # ---- commodities ----
@@ -56,7 +103,7 @@ build_utopia <- function(regions = paste0("R", 1:3),
   HYD <- newCommodity("HYD", timeframe = "HOUR")
   ELC <- newCommodity("ELC", timeframe = "HOUR")
   CO2 <- newCommodity("CO2", timeframe = "ANNUAL")
-  repo_comm <- newRepository("utopia_comm",
+  repo_comm <- newRepository("topia_comm",
     COA, GAS, BIO, NUC, SOL, WIN, HYD, ELC, CO2)
 
   # ---- regional endowments (drive inter-regional + rest-of-world trade) ------
@@ -79,7 +126,7 @@ build_utopia <- function(regions = paste0("R", 1:3),
   supplies$RES_WIN <- sup("RES_WIN", "WIN", 0)
   if (length(hydro_regs) > 0)
     supplies$RES_HYD <- sup("RES_HYD", "HYD", 0, hydro_regs)
-  repo_supply <- newRepository("utopia_supply", supplies)
+  repo_supply <- newRepository("topia_supply", supplies)
 
   # ---- rest-of-world trade: fuel imports at a premium, capped ELC exports ----
   IMP_COA <- newImport("IMP_COA", desc = "Coal import from the rest of the world",
@@ -198,8 +245,8 @@ build_utopia <- function(regions = paste0("R", 1:3),
     }
   }
 
-  # ---- base repository (order mirrors the UTOPIA I vignette) ----
-  repo <- newRepository("utopia",
+  # ---- base repository (order mirrors the TOPIA I vignette) ----
+  repo <- newRepository("topia",
     COA, GAS, BIO, NUC, SOL, WIN, HYD, ELC, CO2,
     repo_supply,
     IMP_COA, IMP_GAS, EXP_ELC,
@@ -334,7 +381,7 @@ build_utopia <- function(regions = paste0("R", 1:3),
 #                    objective 10 when it replaces the flat supply).
 build_unit <- function(regions = "R1", calendar = "unit_s4") {
   stopifnot(is.character(regions), length(regions) > 0)
-  cal <- calendars[[calendar]]
+  cal <- topia_calendars[[calendar]]
   if (is.null(cal)) stop("unknown calendar '", calendar, "'")
   lvl <- cal@default_timeframe
   slices <- as.character(cal@timeframes[[lvl]])
@@ -373,7 +420,7 @@ build_unit <- function(regions = "R1", calendar = "unit_s4") {
   for (trd in trades) repo <- add(repo, trd)
 
   # -- SOLAR module: free on/off resource (+ storage makes it bridge) --------
-  prof <- utopia_profile("step", levels = 2, calendar = cal, regions = regions)
+  prof <- topia_profile("step", levels = 2, calendar = cal, regions = regions)
   RES_SUN <- newSupply("RES_SUN", commodity = "SUN",
     supply = data.frame(region = regions, cost = 0))
   WSUN <- newWeather("WSUN", timeframe = lvl,
@@ -412,39 +459,42 @@ base_horizon <- newHorizon(period = 2020:2050, intervals = c(1, 10, 10, 10),
 unit_horizon <- newHorizon(period = 2025, name = "unit",
                            desc = "single-year horizon (2025) for the unit kits")
 
-utopia_modules <- list(
-  info = paste("UTOPIA teaching-model modules: a kit of energyRt building blocks",
+topia_modules <- list(
+  info = paste("TOPIA teaching-model modules: a kit of energyRt building blocks",
                "(commodity/supply repositories, weather, technologies, storage, a",
                "ready base repository `$repo`), scenario levers (CO2_CAP, CT_CO2,",
                "RES_SHARE, NO_NEW_NUC, EARLY_RET) and add-on modules (GAS_CURVE,",
                "EWIN_SITES, ENUC_VINT), for region layouts under `$electricity`;",
                "all-unit-input models with hand-checkable integer objectives under",
-               "`$unit`. Built by the UTOPIA I vignette's explicit steps; mirrors",
+               "`$unit`. Built by the TOPIA I vignette's explicit steps; mirrors",
                "IDEEA::ideea_modules."),
-  maps      = utopia$map,
-  calendars = calendars[c("annual", "utopia_seasons",
-                          "s4_h24", "m12_h24",
-                          "unit_s4", "unit_s4h4")],
+  maps      = topia$map,
+  # the calendars this model uses: the generic ones it borrows, plus its own
+  calendars = c(calendars[c("annual", "s4_h24", "m12_h24")],
+                list(topia_seasons = topia_seasons)),
   horizons  = list(base = base_horizon, unit = unit_horizon),
   # Keyed `R<n>` for an n-region layout, matching the `R1`..`R11` region names
   # the maps use. `R11` covers the full map; the smaller ones are its prefixes.
   electricity = list(
-    R1  = build_utopia("R1",                 calendar = "s4_h24"),
-    R3  = build_utopia(paste0("R", 1:3),     calendar = "s4_h24"),
-    R7  = build_utopia(paste0("R", 1:7),     calendar = "s4_h24"),
-    R11 = build_utopia(paste0("R", 1:11),    calendar = "s4_h24")
+    R1  = build_topia("R1",                 calendar = "s4_h24"),
+    R3  = build_topia(paste0("R", 1:3),     calendar = "s4_h24"),
+    R7  = build_topia(paste0("R", 1:7),     calendar = "s4_h24"),
+    R11 = build_topia(paste0("R", 1:11),    calendar = "s4_h24")
   ),
   # Unit kits: `U<n>` layouts on the symmetric unit calendar; use with
   # `$horizons$unit` and `discount = 0` so the objective stays an integer.
   unit = list(
+    # the unit kits' own calendars live with the kits -- `unit_s4`/`unit_s4h4`
+    # are not shipped in `energyRt::calendars`
+    calendars = unit_calendars,
     U1 = build_unit("R1",             calendar = "unit_s4"),
     U3 = build_unit(paste0("R", 1:3), calendar = "unit_s4")
   )
 )
 
 # sanity: each config has a base repo + the five levers + the add-on modules
-for (cfg in names(utopia_modules$electricity)) {
-  k <- utopia_modules$electricity[[cfg]]
+for (cfg in names(topia_modules$electricity)) {
+  k <- topia_modules$electricity[[cfg]]
   stopifnot(methods::is(k$repo, "repository"),
             all(c("CO2_CAP", "CT_CO2", "RES_SHARE", "NO_NEW_NUC",
                   "EARLY_RET") %in% names(k)),
@@ -453,15 +503,15 @@ for (cfg in names(utopia_modules$electricity)) {
             # GAS_CURVE exists wherever the layout has a gas region (R2+)
             cfg == "R1" || methods::is(k$GAS_CURVE, "supply"))
 }
-for (cfg in names(utopia_modules$unit)) {
-  k <- utopia_modules$unit[[cfg]]
+for (cfg in names(topia_modules$unit)) {
+  k <- topia_modules$unit[[cfg]]
   stopifnot(methods::is(k$repo, "repository"),
             methods::is(k$SOLAR, "repository"),
             methods::is(k$STG_ELC, "storage"),
             methods::is(k$SUP_CURVE, "supply"))
 }
-message("utopia_modules configs: ",
-        paste(names(utopia_modules$electricity), collapse = ", "),
-        " | unit: ", paste(names(utopia_modules$unit), collapse = ", "))
+message("topia_modules configs: ",
+        paste(names(topia_modules$electricity), collapse = ", "),
+        " | unit: ", paste(names(topia_modules$unit), collapse = ", "))
 
-# (no use_data here: data-raw/utopia_assemble.R writes the single dataset)
+# (no use_data here: data-raw/topia_assemble.R writes the single dataset)

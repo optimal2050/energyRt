@@ -69,7 +69,7 @@ also skips an unlicensed install); they must never error on absence.
 
 Key shared machinery: `helper-forks.R` (`run_family()` fork harness),
 `helper-goldens.R` + `tools/test/make_goldens.R` (tracked-value benchmarks,
-capture gated by `verify_solution()`), `helper-utopia.R` (UTOPIA reference
+capture gated by `verify_solution()`), `helper-topia.R` (TOPIA reference
 suite), `fixtures/testing-models.R` (the tm_* tier models),
 `helper-mapping.R::solved_tier()` (cached GLPK solves shared across files),
 `tools/test/interp_guard.R` (tracked interpolation baselines in

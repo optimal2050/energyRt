@@ -1,9 +1,9 @@
 ---
-title: "UTOPIA I: building the model"
+title: "TOPIA I: building the model"
 date: "`r Sys.Date()`"
 output: rmarkdown::html_vignette
 vignette: >
-  %\VignetteIndexEntry{utopia-build}
+  %\VignetteIndexEntry{topia-build}
   %\VignetteEncoding{UTF-8}
   %\VignetteEngine{knitr::rmarkdown}
 editor_options:
@@ -25,13 +25,14 @@ have_sf <- FALSE
 
 # Overview
 
-UTOPIA is a teaching model for energy-system optimization -- a small
+TOPIA (Latin *topia*, Greek *tópos*, "place") is a teaching model for 
+energy-system optimization -- a small
 **Reference Energy System (RES)** mapping primary resources through conversion
 technologies to electricity demand. This vignette builds **every block**
 explicitly, one constructor call per object, so you can see exactly how a model
 is assembled -- and ends by packing the blocks into a repository and a solvable
-model. The companion vignette *UTOPIA II: running scenarios* loads a ready-made
-kit ([`utopia`]`$modules`, built by these same steps) and solves it.
+model. The companion vignette *TOPIA II: running scenarios* loads a ready-made
+kit ([`topia`]`$modules`, built by these same steps) and solves it.
 
 All inputs are **deterministic** and shipped with the package.
 
@@ -84,16 +85,16 @@ transmission (`TBD_`) and rest-of-world fuel imports / electricity exports
 
 # Regions and the map
 
-UTOPIA is a small multi-region country. The package ships four 11-region map
-layouts in `utopia$map` (`squares`, `honeycomb`, `island`, `continent`) — all
+TOPIA is a small multi-region country. The package ships four 11-region map
+layouts in `topia$map` (`squares`, `honeycomb`, `island`, `continent`) — all
 share the region names `R1`…`R11`, so a model built for one layout draws over any
 of them. Pick whichever suits the story:
 
-```{r maps, eval = have_sf, fig.width = 7, fig.height = 5.2, fig.cap = "The four UTOPIA map layouts."}
+```{r maps, eval = have_sf, fig.width = 7, fig.height = 5.2, fig.cap = "The four TOPIA map layouts."}
 library(sf)
 op <- par(mfrow = c(2, 2), mar = c(0.5, 0.5, 2, 0.5))
-for (nm in names(utopia$map)) {
-  m <- utopia$map[[nm]]
+for (nm in names(topia$map)) {
+  m <- topia$map[[nm]]
   plot(st_geometry(m), col = sf.colors(nrow(m), categorical = T), main = nm)
   text(m$x, m$y, m$region, cex = 0.75)
 }
@@ -116,13 +117,13 @@ autoplot(cal)
 ```
 
 Region names are upper-case (`R1`, `R2`, `R3`), matching the region names in the
-UTOPIA maps. Deterministic capacity-factor and load profiles come from
-[`utopia_profiles()`].
+TOPIA maps. Deterministic capacity-factor and load profiles come from
+[`topia_profiles()`].
 
 ```{r inputs}
 regions <- c("R1", "R2", "R3")
 
-prof <- utopia_profiles(regions, calendar = "s4_h24")
+prof <- topia_profiles(regions, calendar = "s4_h24")
 str(prof, max.level = 1)
 ```
 
@@ -327,7 +328,7 @@ WHYD <- make_weather("WHYD")
 `autoplot()` shows the profile structure at a glance -- the solar day/season
 shape. Custom season names (`WIN`, `SPR`, ...) are defined by the calendar, so
 pass it to resolve the timeslice layout. Note the **regional endowments**
-(`utopia_profiles()` scales the profiles deterministically): `R1` is the
+(`topia_profiles()` scales the profiles deterministically): `R1` is the
 sunniest region, `R2` the windiest -- one more reason for the regions to trade:
 
 ```{r weather-plot, fig.height = 4.5}
@@ -342,7 +343,7 @@ autoplot(WHYD, calendar = cal)
 
 ```
 
-(UTOPIA's profiles derive from the [IDEEA](https://ideea-model.github.io/IDEEA/)
+(TOPIA's profiles derive from the [IDEEA](https://ideea-model.github.io/IDEEA/)
 model of India -- note the *monsoon* signature: summer is the solar minimum,
 spring the maximum. Weather is data, not an assumption.)
 
@@ -703,7 +704,7 @@ report(
 ::: {.callout-note}
 Commodity **groups** (a fuel blend on the input side, or a product split on the
 output side) are covered structurally in the *Model bricks* article. They are
-left out of this solvable UTOPIA model pending a fix to how grouped
+left out of this solvable TOPIA model pending a fix to how grouped
 technologies enforce their input-output balance.
 :::
 
@@ -732,7 +733,7 @@ draw(STG_ELC)
 
 # Interregional trade
 
-Trade objects open **routes** between regions for a commodity. UTOPIA's three
+Trade objects open **routes** between regions for a commodity. TOPIA's three
 regions form a line, so two **bi-directional** transmission links (`TBD_`)
 connect them. Each `newTrade` lists its routes (both directions), the transfer
 efficiency (`teff` -- losses), and an endogenous capacity with investment cost,
@@ -787,7 +788,7 @@ whole network **on the map** — pass the layout to draw over. Bidirectional lin
 render as double-headed arrows:
 
 ```{r trade-map, eval = have_sf, fig.height = 4}
-plot_trade_map(list(TBD_ELC_R1_R2, TBD_ELC_R2_R3), map = utopia$map$honeycomb)
+plot_trade_map(list(TBD_ELC_R1_R2, TBD_ELC_R2_R3), map = topia$map$honeycomb)
 ```
 
 # Scenario levers
@@ -873,7 +874,7 @@ Collect every block into a base **repository**, then bind it to a region set, a
 calendar and a horizon to get a solvable **model**:
 
 ```{r repo}
-repo <- newRepository("utopia",
+repo <- newRepository("topia",
   COA, GAS, BIO, NUC, SOL, WIN, HYD, ELC, CO2,          # commodities
   SUP_COA, SUP_GAS, SUP_BIO, SUP_NUC,                   # fuel supplies
   RES_SOL, RES_WIN, RES_HYD,                            # renewable resources
@@ -890,7 +891,7 @@ summary(repo)
 ```{r model}
 hor <- newHorizon(period = 2020:2050, intervals = c(1, 10, 10, 10),
                   mid_is_end = TRUE, name = "base")
-mod <- newModel("UTOPIA", data = repo, calendar = cal,
+mod <- newModel("TOPIA", data = repo, calendar = cal,
                 region = regions, horizon = hor, discount = 0.05)
 mod
 ```
@@ -905,8 +906,8 @@ translucent tails show how long the last vintage then operates
 autoplot(mod, type = "windows")
 ```
 
-That is a complete UTOPIA model, ready for `interpolate_model()` +
-`solve_scenario()` -- the subject of *UTOPIA II*.
+That is a complete TOPIA model, ready for `interpolate_model()` +
+`solve_scenario()` -- the subject of *TOPIA II*.
 
 ## Screening technology costs
 
@@ -936,7 +937,7 @@ This *a-priori* screening ranks technologies by their stand-alone cost. It is no
 the same as their **realized** cost in a solved system -- a plant that runs only a
 few hours spreads its fixed costs over little output, and a variable renewable's
 value depends on *when* it produces. For that (`timeframe = "native"`, or the
-ex-post cost from a solved scenario) see *UTOPIA II*.
+ex-post cost from a solved scenario) see *TOPIA II*.
 
 ## Reports
 
@@ -959,7 +960,7 @@ report(mod, name = "ENUC")
 report(mod)
 
 # a solved scenario -- the results report: run provenance, solution checks,
-# generation/capacity charts and a cost breakdown (see UTOPIA II)
+# generation/capacity charts and a cost breakdown (see TOPIA II)
 # report(scen_BASE)
 
 # what templates ship, and for which class
@@ -968,17 +969,17 @@ report_templates()
 
 # The packaged kit
 
-The steps above are exactly what `data-raw/utopia_modules.R` runs for a few
-region layouts (1, 3, 7 and 11 regions) to produce the shipped [`utopia`]`$modules`
+The steps above are exactly what `data-raw/topia_modules.R` runs for a few
+region layouts (1, 3, 7 and 11 regions) to produce the shipped [`topia`]`$modules`
 kit -- a ready base repository (`$repo`), the individual blocks, and the
 levers, alongside the calendars, horizons and maps:
 
 ```{r modules}
-names(utopia$modules)
-names(utopia$modules$electricity)                 # kits by number of regions
-um <- utopia$modules$electricity$R3
+names(topia$modules)
+names(topia$modules$electricity)                 # kits by number of regions
+um <- topia$modules$electricity$R3
 identical(names(repo), names(um$repo))            # same blocks we just built
 ```
 
-Continue with *UTOPIA II: running scenarios*, which loads this kit, assembles a
+Continue with *TOPIA II: running scenarios*, which loads this kit, assembles a
 model and solves the base case and policy scenarios.

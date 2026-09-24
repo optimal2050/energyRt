@@ -6,7 +6,7 @@
 # verify_solution() on every cell.
 #
 # Models: the tm_core / tm_weather tier fixtures (storage + weather stress all
-# writers) and the UTOPIA R1 teaching layout. GAMS cells skip on a missing or
+# writers) and the TOPIA R1 teaching layout. GAMS cells skip on a missing or
 # unlicensed install; the NEOS fallback is future work (skip_if_no_neos).
 #
 # Backends are also a DATA-EXCHANGE dimension: `julia_highs` / `pyomo_cbc` run
@@ -28,7 +28,7 @@
   list(
     tm_core    = function() env$tm_core(),
     tm_weather = function() env$tm_weather(),
-    utopia_R1  = function() ut_build("R1", "s4_h24")
+    topia_R1  = function() ut_build("R1", "s4_h24")
   )
 }
 
@@ -76,7 +76,7 @@
                               nrow(m), " differ)"))
 }
 
-for (model_nm in c("tm_core", "tm_weather", "utopia_R1")) {
+for (model_nm in c("tm_core", "tm_weather", "topia_R1")) {
   for (backend in names(.xs_backends)) {
     local({
       mn <- model_nm; bk <- backend
@@ -84,7 +84,7 @@ for (model_nm in c("tm_core", "tm_weather", "utopia_R1")) {
       test_that(paste0("cross-solver: ", mn, " on ", bk, " matches GLPK"), {
         eval(spec$skip)
         skip_if_no_solver()
-        if (mn != "utopia_R1") skip_if_no_fixtures()
+        if (mn != "topia_R1") skip_if_no_fixtures()
         build <- .xs_models()[[mn]]
         ref_scen <- .xs_solve(build, paste0("xs_", mn, "_ref"),
                               solver_options$glpk)

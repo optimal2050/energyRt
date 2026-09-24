@@ -18,8 +18,8 @@ source("data-raw/maps.R")
 )
 
 # data, visible to user ####
-# usethis::use_data(utopia_continent, utopia_island,
-#                   utopia_honeycomb, utopia_squares,
+# usethis::use_data(topia_continent, topia_island,
+#                   topia_honeycomb, topia_squares,
 #                   internal = FALSE, overwrite = TRUE)
 # NOTE: saved further below, after `.variable_set` is corrected -- the `dim`
 # column of its variable rows is derived from it.

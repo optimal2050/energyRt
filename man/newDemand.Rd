@@ -56,12 +56,12 @@ DSTEEL <- newDemand(
  commodity = "STEEL",
  unit = "Mt",
  demand = data.frame(
-    region = "UTOPIA", # NA for every region
+    region = "TOPIA", # NA for every region
     year = c(2020, 2030, 2050),
     timeslice = "ANNUAL",
     demand = c(100, 200, 300)
  ),
- region = "UTOPIA", # optional, to narrow the specification of the demand
+ region = "TOPIA", # optional, to narrow the specification of the demand
  )
  class(DSTEEL)
  draw(DSTEEL)

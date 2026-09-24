@@ -81,6 +81,6 @@ Other geoscale:
 \code{\link[=check_geoscale_regions]{check_geoscale_regions()}},
 \code{\link[=plot_geoscale]{plot_geoscale()}},
 \code{\link[=plot_map]{plot_map()}},
-\code{\link[=utopia_geoscale]{utopia_geoscale()}}
+\code{\link[=topia_geoscale]{topia_geoscale()}}
 }
 \concept{geoscale}

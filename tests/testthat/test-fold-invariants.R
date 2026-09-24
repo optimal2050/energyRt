@@ -1,4 +1,4 @@
-# Solver-free invariants of the fold, on every tier fixture plus the UTOPIA R1
+# Solver-free invariants of the fold, on every tier fixture plus the TOPIA R1
 # layout and the two-region fold fixture, on the sparse and the dense path:
 #   lossless     unfolding every folded value parameter gives the data the
 #                unfolded build of the same model carries
@@ -17,7 +17,7 @@
       m[[nm]] <- local({ f <- env[[nm]]; function() f() })
     }
   }
-  m$utopia_R1 <- function() ut_build("R1", "s4_h24")
+  m$topia_R1 <- function() ut_build("R1", "s4_h24")
   m
 }
 

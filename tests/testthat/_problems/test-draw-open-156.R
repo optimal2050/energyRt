@@ -1,7 +1,7 @@
 # Extracted from test-draw-open.R:156
 
 # prequel ----------------------------------------------------------------------
-do_repo <- function() utopia$modules$electricity$R3$repo
+do_repo <- function() topia$modules$electricity$R3$repo
 do_obj  <- function(cl) {
   o <- getObject(do_repo(), class = cl, drop = FALSE)
   if (length(o) == 0L) NULL else o[[1]]

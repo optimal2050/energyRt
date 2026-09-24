@@ -72,7 +72,10 @@ test_that("the shim file and its Collate entry are gone", {
                          readLines(file.path(root, "DESCRIPTION"), warn = FALSE))))
 })
 
-test_that("the UTOPIA satellite datasets are gone, their content is not", {
+test_that("the TOPIA satellite datasets are gone, their content is not", {
+  # These are the names as they were REMOVED in v0.90, before the model was
+  # renamed utopia -> topia. They are kept verbatim: no `topia_weather` ever
+  # existed, so asserting that name were absent would prove nothing.
   sats <- c("utopia_weather", "utopia_demand", "utopia_stock", "utopia_modules")
   # removed from the package
   expect_equal(intersect(sats, utils::data(package = "energyRt")$results[, "Item"]),
@@ -80,10 +83,10 @@ test_that("the UTOPIA satellite datasets are gone, their content is not", {
   expect_equal(intersect(sats, getNamespaceExports("energyRt")), character())
   # ... and present in the combined list, which is where they went
   expect_true(all(c("map", "geo", "weather", "demand", "stock", "modules") %in%
-                    names(utopia)))
-  expect_s3_class(utopia$weather, "data.frame")
-  expect_s3_class(utopia$demand, "data.frame")
-  expect_s3_class(utopia$stock, "data.frame")
-  expect_type(utopia$modules, "list")
-  expect_gt(nrow(utopia$weather), 0L)
+                    names(topia)))
+  expect_s3_class(topia$weather, "data.frame")
+  expect_s3_class(topia$demand, "data.frame")
+  expect_s3_class(topia$stock, "data.frame")
+  expect_type(topia$modules, "list")
+  expect_gt(nrow(topia$weather), 0L)
 })

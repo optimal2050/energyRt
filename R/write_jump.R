@@ -142,7 +142,7 @@ get_julia_path <- function() {
       "feather")
     for (i in names(dat)) {
       # An empty table is never read by the generated code (see .toJuliaHead),
-      # so writing it is pure overhead -- on a UTOPIA-size model most tables
+      # so writing it is pure overhead -- on a TOPIA-size model most tables
       # are empty.
       if (!nrow(dat[[i]])) next
       .write_exchange_table(dat[[i]], fp(in_dir, i), format = "feather")

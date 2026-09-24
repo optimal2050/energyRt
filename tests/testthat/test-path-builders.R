@@ -54,11 +54,11 @@ test_that("a slug hook replaces the sanitize/join primitive; clearing restores",
   pb_reset()
   slug <- energyRt:::.path_slug
   set_path_builder(slug = function(parts) paste(tolower(parts), collapse = "."))
-  expect_identical(slug("BASE", "UTOPIA_R11"), "base.utopia_r11")
+  expect_identical(slug("BASE", "TOPIA_R11"), "base.topia_r11")
   # nothing to slug -> "" without consulting the hook (callers have fallbacks)
   expect_identical(slug("", NA), "")
   set_path_builder(slug = FALSE)
-  expect_identical(slug("BASE", "UTOPIA_R11"), "BASE-UTOPIA_R11")
+  expect_identical(slug("BASE", "TOPIA_R11"), "BASE-TOPIA_R11")
 })
 
 test_that("an invalid hook return errors naming the contract, never silently", {

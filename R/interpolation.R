@@ -228,9 +228,9 @@ interpolate_model <- function(mod, name = NULL, ...,
     # debug
     # library(energyRt)
     devtools::load_all(".")
-    (load("tmp/utopia-mod.RData"))
+    (load("tmp/topia-mod.RData"))
     # fix trade objects
-    repo <- utopia@model@data$utopia_repository
+    repo <- topia@model@data$topia_repository
     repo
     new_varom <- newTrade("")@varom
     for (o in repo@data) {
@@ -243,19 +243,19 @@ interpolate_model <- function(mod, name = NULL, ...,
       }
     }
     repo@data$TRBD_ELC_R1_R2@varom
-    utopia@model@data$utopia_repository <- repo
-    # save(utopia, file = "tmp/utopia-mod.RData")
+    topia@model@data$topia_repository <- repo
+    # save(topia, file = "tmp/topia-mod.RData")
     # end of fix
-    mod <- utopia@model
+    mod <- topia@model
     scen <- new("scenario")
-    scen@name <- "utopia_new_interpolation"
+    scen@name <- "topia_new_interpolation"
     scen@path <- fp(get_scenarios_path(), scen@name) |> .fix_path()
     slotNames(scen)
     solution_type <- "foresight"
 
     ondisk <- TRUE
 
-    ECOA <- mod@data$utopia_repository@data$ECOA
+    ECOA <- mod@data$topia_repository@data$ECOA
   }
 
   # class(mod)
@@ -1111,7 +1111,7 @@ interpolate_model <- function(mod, name = NULL, ...,
 
   # process objects one-by-one, applying ob2mi method
   # saving parameters to the modInp object or directory
-  # cmd <- utopia@model@data$utopia_repository@data$COA
+  # cmd <- topia@model@data$topia_repository@data$COA
   # ondisk
 
   # extra_params <- list()
@@ -1381,20 +1381,20 @@ interpolate_model <- function(mod, name = NULL, ...,
 
 if (F) {
   # debug
-  (utopia_on_disk <- load_scenario("utopia_on_disk",
-    path = fp(get_scenarios_path(), "utopia_on_disk"),
+  (topia_on_disk <- load_scenario("topia_on_disk",
+    path = fp(get_scenarios_path(), "topia_on_disk"),
     env = NULL, overwrite = T
   ))
 
-  # utopia_on_disk <- utopia
-  # utopia_on_disk@path <- fp(get_scenarios_path(), "utopia_on_disk")
-  # utopia_on_disk@name <- "utopia_on_disk"
-  # utopia_on_disk <- save_scenario(utopia_on_disk)
-  utopia_on_disk@modInp@parameters$pEmissionFactor
-  utopia_on_disk@modInp@parameters$pEmissionFactor@misc$onDisk
-  utopia_on_disk@modInp@parameters$pEmissionFactor@data
+  # topia_on_disk <- topia
+  # topia_on_disk@path <- fp(get_scenarios_path(), "topia_on_disk")
+  # topia_on_disk@name <- "topia_on_disk"
+  # topia_on_disk <- save_scenario(topia_on_disk)
+  topia_on_disk@modInp@parameters$pEmissionFactor
+  topia_on_disk@modInp@parameters$pEmissionFactor@misc$onDisk
+  topia_on_disk@modInp@parameters$pEmissionFactor@data
 
-  utopia_on_disk@modInp@parameters$comm@data
+  topia_on_disk@modInp@parameters$comm@data
 }
 
 
@@ -1554,22 +1554,22 @@ collect_object_names <- function(
 
 
 if (F) {
-  (load("tmp/utopia-mod.RData"))
-  class(utopia)
-  yr <- collect_set_elements(utopia, "year")
-  rg <- collect_set_elements(utopia, "region")
-  sl <- collect_set_elements(utopia, "timeslice")
-  nm <- collect_set_elements(utopia, "name")
-  wr <- collect_set_elements(utopia, "weather")
+  (load("tmp/topia-mod.RData"))
+  class(topia)
+  yr <- collect_set_elements(topia, "year")
+  rg <- collect_set_elements(topia, "region")
+  sl <- collect_set_elements(topia, "timeslice")
+  nm <- collect_set_elements(topia, "name")
+  wr <- collect_set_elements(topia, "weather")
 
-  pr <- collect_object_names(utopia)
-  collect_object_names(utopia@model, classes = NULL)
+  pr <- collect_object_names(topia)
+  collect_object_names(topia@model, classes = NULL)
 
-  class(utopia)
-  utopia@modInp@sets
+  class(topia)
+  topia@modInp@sets
 
   scen
-  obj <- utopia@model
+  obj <- topia@model
 
   getObjPath(scen)
   scen@inMemory
@@ -1808,11 +1808,11 @@ complete_set <- function(
 
 if (F) {
   # debug
-  EHYD <- scen@model@data$utopia_repository@data$EHYD
+  EHYD <- scen@model@data$topia_repository@data$EHYD
   x <- EHYD@capacity
   x$region <- NA
 
-  ECOA <- scen@model@data$utopia_repository@data$ECOA
+  ECOA <- scen@model@data$topia_repository@data$ECOA
   proc_name <- ECOA@name
   x <- ECOA@capacity |>
     filter(region %in% c("R1", "R2", "R3", "R7")) |>
@@ -3458,7 +3458,7 @@ Declare one bound per key.
 #   browser() # !!! ToDo: finish
 #   if (F) {
 #     # debug
-#     ECOA <- scen@model@data$utopia_repository@data$ECOA
+#     ECOA <- scen@model@data$topia_repository@data$ECOA
 #     # x <- ECOA@ceff; param <- "cinp2use"
 #     x <- ECOA@capacity; param <- "stock"
 #     process_name <- "ECOA"

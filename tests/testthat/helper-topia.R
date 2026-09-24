@@ -1,22 +1,22 @@
 # =========================================================================== #
-# UTOPIA golden-suite builders, shared by test-utopia-golden.R,
-# test-cross-solver.R, and tools/test/make_goldens.R (--suite=utopia).
+# TOPIA golden-suite builders, shared by test-topia-golden.R,
+# test-cross-solver.R, and tools/test/make_goldens.R (--suite=topia).
 #
-# Assembles a model from the shipped `utopia$modules` teaching kits (deterministic
-# inputs) per the documented pattern (?utopia$modules): a region layout's `repo`
+# Assembles a model from the shipped `topia$modules` teaching kits (deterministic
+# inputs) per the documented pattern (?topia$modules): a region layout's `repo`
 # + a calendar + the base horizon; scenario levers (constraints / a carbon tax)
-# are added on top. Closes the gap that the UTOPIA vignettes are `eval = FALSE`
+# are added on top. Closes the gap that the TOPIA vignettes are `eval = FALSE`
 # ("validated out-of-band"): these entries pin them to goldens.
 # =========================================================================== #
 
-ut_build <- function(layout = "R3", calendar = "utopia_seasons", lever = NULL) {
-  um <- utopia$modules$electricity[[layout]]
+ut_build <- function(layout = "R3", calendar = "topia_seasons", lever = NULL) {
+  um <- topia$modules$electricity[[layout]]
   stopifnot(!is.null(um))
   mod <- newModel(paste0("UT_", layout),
     data = um$repo,
-    calendar = utopia$modules$calendars[[calendar]],
+    calendar = topia$modules$calendars[[calendar]],
     region = um$regions,
-    horizon = utopia$modules$horizons$base,
+    horizon = topia$modules$horizons$base,
     discount = 0.05)
   if (!is.null(lever)) {
     lv <- um[[lever]]
@@ -30,7 +30,7 @@ ut_build <- function(layout = "R3", calendar = "utopia_seasons", lever = NULL) {
 # `s4_h24` (ELC lives at the HOUR level; coarser calendars lack it), so
 # all entries run on that calendar. R3 base ~seconds; the five levers run on
 # the single-region R1 layout to keep the fast tier quick. The larger R7/R11
-# layouts live in the `utopia_nightly` suite below (test-nightly-deep.R).
+# layouts live in the `topia_nightly` suite below (test-nightly-deep.R).
 ut_entries <- function() list(
   base_R1      = list(layout = "R1", calendar = "s4_h24"),
   base_R3      = list(layout = "R3", calendar = "s4_h24"),
@@ -43,24 +43,27 @@ ut_entries <- function() list(
 
 # Nightly-only entries: the two larger region layouts on the same calendar.
 # Kept out of `ut_entries()` so the fast/cross tiers stay quick; goldens are
-# frozen with make_goldens.R --suite=utopia_nightly.
+# frozen with make_goldens.R --suite=topia_nightly.
 ut_nightly_entries <- function() list(
   base_R7  = list(layout = "R7", calendar = "s4_h24"),
   base_R11 = list(layout = "R11", calendar = "s4_h24")
 )
 
-# -- unit kits (utopia$modules$unit): all-unit inputs, integer objectives ---- #
+# -- unit kits (topia$modules$unit): all-unit inputs, integer objectives ---- #
 # `module = "SOLAR_only"` builds the self-contained solar+storage model from
 # kit$SOLAR; any other module name is `add()`ed onto the base repo with
 # overwrite = TRUE (SUP_CURVE replaces the flat supply, SOLAR layers on idle).
 un_build <- function(layout = "U1", module = NULL) {
-  kit <- utopia$modules$unit[[layout]]
+  kit <- topia$modules$unit[[layout]]
   stopifnot(!is.null(kit))
   mod <- newModel(paste0("UN_", layout),
     data = if (identical(module, "SOLAR_only")) kit$SOLAR else kit$repo,
-    calendar = utopia$modules$calendars[[kit$calendar]],
+    # the unit kits carry their own calendars (`unit_s4`/`unit_s4h4` are
+    # not shipped in energyRt::calendars); fall back to the model bundle
+    calendar = topia$modules$unit$calendars[[kit$calendar]] %||%
+      topia$modules$calendars[[kit$calendar]],
     region = kit$regions,
-    horizon = utopia$modules$horizons$unit,
+    horizon = topia$modules$horizons$unit,
     discount = 0)
   if (!is.null(module) && !identical(module, "SOLAR_only")) {
     mod <- add(mod, kit[[module]], overwrite = TRUE)
@@ -69,7 +72,7 @@ un_build <- function(layout = "U1", module = NULL) {
 }
 
 # name -> builder args + the HAND-COMPUTED objective each model must hit
-# exactly (the kit's whole point); arithmetic in data-raw/utopia_modules.R.
+# exactly (the kit's whole point); arithmetic in data-raw/topia_modules.R.
 un_entries <- function() list(
   base_U1      = list(layout = "U1"),                          # 8
   trade_U3     = list(layout = "U3"),                          # 36
@@ -81,7 +84,7 @@ un_entries <- function() list(
 un_hand_objectives <- c(base_U1 = 8, trade_U3 = 36, curve_U1 = 10,
                         solar_U1 = 10, basesolar_U1 = 8)
 
-# Solve a UTOPIA entry with a chosen backend. The backend-choice convention
+# Solve a TOPIA entry with a chosen backend. The backend-choice convention
 # (dev/TESTING.md): glpsol for small models, julia/HiGHS for mid-size and
 # sampled ones -- so R1/R3 suites reference glpk, R7/R11 julia_highs
 # (matching SUITE_SOLVERS in tools/test/make_goldens.R).

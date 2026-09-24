@@ -1,8 +1,8 @@
 # =========================================================================== #
-# UTOPIA golden regression -- pins the shipped teaching model that the frozen
+# TOPIA golden regression -- pins the shipped teaching model that the frozen
 # (eval = FALSE) vignettes describe as "validated out-of-band": base layouts
 # R1 / R3 on s4_h24 and the five scenario levers on R1, each against
-# tests/testthat/goldens/utopia.json (captured by make_goldens.R, which
+# tests/testthat/goldens/topia.json (captured by make_goldens.R, which
 # refuses a benchmark that fails verify_solution()).
 #
 # Lever note: on the R1 layout only CT_CO2 (the carbon tax) shifts the base
@@ -11,9 +11,9 @@
 # =========================================================================== #
 
 # @covers vObjective vTechNewCap vTechOut depth=S backends=glpk
-test_that("UTOPIA layouts and levers reproduce their goldens (GLPK)", {
+test_that("TOPIA layouts and levers reproduce their goldens (GLPK)", {
   skip_if_no_solver()
-  g <- skip_if_no_golden("utopia")
+  g <- skip_if_no_golden("topia")
   entries <- ut_entries()
   objs <- c()
   for (nm in names(g)) {
@@ -22,7 +22,7 @@ test_that("UTOPIA layouts and levers reproduce their goldens (GLPK)", {
     vs <- verify_solution(scen)
     expect_true(vs$ok, label = paste0(nm, " invariants"))
     expect_true(isTRUE(scen@status$solved), label = paste0(nm, " solved"))
-    expect_matches_golden(scen, "utopia", nm, kind = "same_solver")
+    expect_matches_golden(scen, "topia", nm, kind = "same_solver")
     objs[nm] <- .fork_objective(scen)
   }
   # levers can only constrain (or tax): never cheaper than base

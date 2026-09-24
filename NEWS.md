@@ -3,7 +3,7 @@
 * `audit_coefficients()` reports the coefficient range of a written model per
   equation family (widest row, the variable at each end of it, counts per
   decade), from the free-MPS form `glpsol` re-emits. `dev/coefficient-ranges.md`
-  holds the table for the test fixtures and UTOPIA.
+  holds the table for the test fixtures and TOPIA.
 
 * `eqTechAInp` / `eqTechAOut` are multiplied through by `pTechCap2act` in all
   four backends, so no coefficient in them is a division. Parameters keep
@@ -73,6 +73,21 @@
 
 ## Breaking changes
 
+* The teaching model is renamed **UTOPIA -> TOPIA** (Latin *topia*, from Greek
+  *topos*, "place"): the dataset `utopia` is now `topia`,
+  `utopia_geoscale()`/`utopia_profile()`/`utopia_profiles()` are `topia_*`, and
+  the calendar `utopia_seasons` is `topia_seasons`. There are no aliases.
+  Article URLs `articles/utopia-build.html` and `utopia-use.html` redirect.
+
+* `calendars` ships GENERIC calendars only. `season_dn`, `topia_seasons`,
+  `unit_s4` and `unit_s4h4` are no longer in it: a model's own calendars now
+  travel with the model, in `topia$modules$calendars` and
+  `topia$modules$unit$calendars`. Pass those as objects -- the `calendar =`
+  name lookup resolves against the shipped list only.
+* New `calendars$s4_hp3` (four seasons x `DAY`/`NIGHT`/`PEAK`, 12 timeslices),
+  the catalog's regular twin of the retired `season_dn`/`topia_seasons`.
+  `d365` and `d365_h24` are now imported from the timescales catalog rather
+  than rebuilt locally; labels, shares and sums are unchanged.
 * The timeslice-decomposition helpers are no longer exported: `tsl2dtm()`,
   `tsl2year()`, `tsl2yday()`, `tsl2hour()`, `tsl2month()` and
   `tsl_guess_format()`. The time dimension is `timescales`' domain; these stay
@@ -93,8 +108,8 @@
   (`set_path_builder(scenario_dir = )`), `levcost_by_variant(x, what)`
   (`levcost(x, by_variant = what)`), `get_data()` (`getData()`) and
   `get_units()` (`getUnits()`).
-* The four standalone UTOPIA datasets are removed: `utopia_weather`,
-  `utopia_demand`, `utopia_stock` and `utopia_modules` are `utopia$weather`,
+* The four standalone TOPIA datasets are removed: `topia_weather`,
+  `topia_demand`, `topia_stock` and `topia_modules` are `topia$weather`,
   `$demand`, `$stock` and `$modules`.
 * The mosox back-end experiment is gone; it was never functional and now lives
   in `drafts/`.
@@ -162,12 +177,12 @@
 * The `ert` prefix is retired for `en`: registry class tag `en_registry`,
   report CSS `.en-*`, LaTeX colours `en_blue` / `en_gray`; custom report
   templates written against the old names need updating.
-* Store folders are named by the object, not its hash (`models/UTOPIA/`), and
+* Store folders are named by the object, not its hash (`models/TOPIA/`), and
   updated in place. Old hash-named folders keep loading; `rehash = FALSE` keeps
   a recorded hash through a change you declare insignificant.
 * Object names are validated at construction — letters, digits and underscore,
   starting with a letter. Scenario folders join their parts with dashes
-  (`BASE-UTOPIA-s4_h24`).
+  (`BASE-TOPIA-s4_h24`).
 * `problem.RData` is retired; `scen.RData` is the base problem's one home.
   Legacy files are read and folded in by `upgrade_scenario_layout()`.
 * A storage's availability columns take the part prefixes: `@af$cinp.*` →
@@ -186,9 +201,9 @@
 * `interpolate_model()` errors on a weather profile named but not declared, and
   on a `geff` row naming an input group no commodity belongs to. Both used to
   be dropped silently.
-* The UTOPIA world reuses the shared calendars: `utopia_annual`, `utopia_s4h24`
-  and `utopia_m12h24` are retired for `annual`, `s4_h24` and `m12_h24`;
-  `utopia_seasons` stays, relabelled `AUT` → `FAL`. Objectives shift slightly.
+* The TOPIA world reuses the shared calendars: `topia_annual`, `topia_s4h24`
+  and `topia_m12h24` are retired for `annual`, `s4_h24` and `m12_h24`;
+  `topia_seasons` stays, relabelled `AUT` → `FAL`. Objectives shift slightly.
 * `report_tbl()` enforces a 200-row cap in PDF/Word when no `max_rows` is given.
 * The sampled daily calendar `calendars$d365_h24_subset_1day_per_month` is
   renamed `d365_h24_1dpm` (solver working paths embed the calendar name);
@@ -374,13 +389,13 @@
   default) removes marks up to a threshold.
 * `set_path_builder()` overrides how folder names are derived — `scenario_dir`,
   `store_entry`, `run_label`, or the `slug` primitive. See `?path_builders`.
-* `utopia_profile()` generates deterministic synthetic shapes on any calendar —
+* `topia_profile()` generates deterministic synthetic shapes on any calendar —
   step staircase, sine, cosine or hexagonal trapezoid — with per-region phase or
   amplitude variation.
-* The "unit model": `utopia$modules$unit` kits (`U1`, `U3`) where every input is
+* The "unit model": `topia$modules$unit` kits (`U1`, `U3`) where every input is
   1 on the symmetric `unit_s4` calendar, so each variant's objective is a small
   hand-checkable integer.
-* UTOPIA add-on modules in every `electricity` kit — `GAS_CURVE` (3-step supply
+* TOPIA add-on modules in every `electricity` kit — `GAS_CURVE` (3-step supply
   curve), `EWIN_SITES` (two wind site grades), `ENUC_VINT` (two nuclear
   vintages) — replace their base counterpart via `add(mod, ., overwrite = TRUE)`.
 * `solve_myopic()` solves a horizon window by window. The primitives are
@@ -479,7 +494,7 @@
   were documented as the recommended API but never exported, so the pipelines
   in the README and the vignettes failed for anyone who had not loaded the
   source tree; `read()` was already exported.
-* The shipped `utopia` storage objects can be read and printed again. They
+* The shipped `topia` storage objects can be read and printed again. They
   were stored before `storage@inp2stg` existed, so `print()`, `o@inp2stg` and
   `process_to_spec()` all failed on them; models built from the kits still
   interpolated, which is why it went unnoticed.
@@ -759,7 +774,7 @@
   cycle. It never bound for a single-commodity storage and compared incommensurable
   units for a multi-commodity one. Archived with the measurements in
   `drafts/storage-shared-throughput.R`.
-* `data/utopia_modules.rda` was regenerated: bundled datasets serialise S4
+* `data/topia_modules.rda` was regenerated: bundled datasets serialise S4
   objects with the class definition of their time, so objects saved before the
   storage renames must be rebuilt from `data-raw/`.
 
@@ -994,9 +1009,9 @@
   model's own, and can draw at a coarser `level`.
 * Aggregation across regions is delegated to `geoscales::geo_recast()` with the
   rules read off the variable catalogue. `vTradeIr` is netted, not summed.
-* `utopia_geoscale()` builds a geoscale for the UTOPIA model
-  (`nation → zone → region`), with geometry from any of the four `utopia$map`
-  layouts. The hierarchy ships as the plain table `utopia$geo`.
+* `topia_geoscale()` builds a geoscale for the TOPIA model
+  (`nation → zone → region`), with geometry from any of the four `topia$map`
+  layouts. The hierarchy ships as the plain table `topia$geo`.
 * `levcost()` prices vintages and clusters separately, returning a
   `levcost_variants` object that `autoplot()` compares directly. Each cell is
   priced in its own region so the variants cannot serve each other's demand. New
@@ -1144,7 +1159,7 @@
 * `optimizeRetirment = TRUE` no longer retires new technologies at the same time
   as their installation.
 * `draw()` on a trade no longer repeats arrows.
-* `newCosts()` is debugged, with an example in the Utopia tutorial.
+* `newCosts()` is debugged, with an example in the Topia tutorial.
 * `tsl2hour()` identifies n-digit hours; it previously worked for two only.
 
 # energyRt 0.50.7-dev

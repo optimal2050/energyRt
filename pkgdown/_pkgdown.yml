@@ -77,10 +77,10 @@ navbar:
         href: articles/space-resolution.html
       - text: Storage
         href: articles/storage.html
-      - text: "UTOPIA I: building the model"
-        href: articles/utopia-build.html
-      - text: "UTOPIA II: running scenarios"
-        href: articles/utopia-use.html
+      - text: "TOPIA I: building the model"
+        href: articles/topia-build.html
+      - text: "TOPIA II: running scenarios"
+        href: articles/topia-use.html
       - text: Workflow
         href: articles/workflow.html
       - text: Scenario management
@@ -97,6 +97,16 @@ navbar:
     # logo:
     #   text: Logo
     #   href: articles/logo.html
+
+# The UTOPIA teaching model was renamed TOPIA in v0.90; these two article URLs
+# were live, so the old paths are kept pointing at the new ones.
+redirects:
+  - ["articles/utopia-build.html", "articles/topia-build.html"]
+  - ["articles/utopia-use.html", "articles/topia-use.html"]
+  - ["articles/utopia.html", "articles/topia-build.html"]
+  - ["reference/utopia.html", "reference/topia.html"]
+  - ["reference/utopia_geoscale.html", "reference/topia_geoscale.html"]
+  - ["reference/utopia_profiles.html", "reference/topia_profiles.html"]
 
 reference:
 
@@ -160,7 +170,7 @@ reference:
     coarse balances roll up without a `trade` route for every pair.
   contents:
   - setGeoscale,config-method
-  - utopia_geoscale
+  - topia_geoscale
   - check_geoscale_regions
   - plot_geoscale
   - get_region
@@ -353,9 +363,9 @@ reference:
 - title: Datasets
   desc: Data bundled with the package for the examples and articles.
   contents:
-  - utopia
-  - utopia_profile
-  - utopia_profiles
+  - topia
+  - topia_profile
+  - topia_profiles
   - vre_cf
   - vre_storage_duration
 

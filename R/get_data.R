@@ -179,7 +179,7 @@ findData <- function(scen,
 #'
 #' @examples
 #' \dontrun{
-#' data("utopia_scen_BAU.RData")
+#' data("topia_scen_BAU.RData")
 #' getData(scen, name = "pDemand", year = 2015, merge = TRUE)
 #' getData(scen, name = "vTechOut", comm = "ELC", merge = TRUE, year = 2015)
 #' elc2050 <- getData(scen, parameters = FALSE, comm = "ELC", year = 2050)
@@ -1028,7 +1028,7 @@ getData.default <- function(scen, ...) {
 }
 
 if (F) { # test
-  load("energyRt_tutorial/data/utopia_scen_BAU.RData")
+  load("energyRt_tutorial/data/topia_scen_BAU.RData")
   (dem <- getData(scen, name = "pDemand", year = 2015, merge = TRUE))
   (vTechOut <- getData(scen, name = "vTechOut", comm = "ELC", merge = TRUE, year = 2015))
   # Storage capacity
@@ -1554,7 +1554,7 @@ getObjects_ <- function(obj, class = c(), ...) {
 #' @seealso [getData()], [get_region()], [find_in_model()]
 #' @examples
 #' \dontrun{
-#' repo <- utopia$modules$electricity$R3$repo
+#' repo <- topia$modules$electricity$R3$repo
 #' getObject(repo, class = "technology")                 # all technologies
 #' getObject(repo, class = c("supply", "commodity"))     # two classes
 #' getObject(repo, region = "R1")                         # everything in R1
@@ -1622,7 +1622,7 @@ getObject.scenario <- .getObject_container
 # -- registry ------------------------------------------------------------------
 # A registry indexes SAVED objects, so getObject() on one loads what the rows
 # point at. Names are unique only within a type (a model and a scenario may
-# both be "UTOPIA", and run labels repeat across scenarios), so the returned
+# both be "TOPIA", and run labels repeat across scenarios), so the returned
 # list is keyed `type/name` rather than by bare name -- otherwise same-named
 # objects of different types would overwrite each other.
 

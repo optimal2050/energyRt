@@ -1,5 +1,5 @@
 # Folding must be solution-invariant: on every tier fixture, the fold fixture
-# and UTOPIA R1, a fully folded build solves to the objective of the unfolded
+# and TOPIA R1, a fully folded build solves to the objective of the unfolded
 # build, passes verify_solution(), and serves the same demand (vDemInp is
 # constraint-pinned, so it is optimum-invariant even under degeneracy).
 # GLPK anchors the fast tier; the other backends run at tier cross.
@@ -12,7 +12,7 @@
       m[[nm]] <- local({ f <- env[[nm]]; function() f() })
     }
   }
-  m$utopia_R1 <- function() ut_build("R1", "s4_h24")
+  m$topia_R1 <- function() ut_build("R1", "s4_h24")
   m
 }
 

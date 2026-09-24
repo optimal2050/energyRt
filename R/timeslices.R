@@ -47,23 +47,25 @@
 #' `setCalendar()`, inspect it with [plot()] / `autoplot()`, or use it as a
 #' template for [newCalendar()].
 #'
+#' Only GENERIC calendars are shipped. Calendars belonging to a particular
+#' model travel with it: the TOPIA teaching calendar is
+#' `topia$modules$calendars$topia_seasons`, and the unit kits' symmetric
+#' calendars are `topia$modules$unit$calendars`.
+#'
 #' @format A named list of `calendar` objects:
 #' \describe{
 #'   \item{annual}{Annual resolution (1 timeslice).}
-#'   \item{season_dn}{Four seasons x day/night (8 timeslices).}
-#'   \item{utopia_seasons}{UTOPIA: 4 seasons x 3 dayparts (DAY/NIGHT/PEAK)
-#'     with representative shares (12 timeslices).}
-#'   \item{unit_s4, unit_s4h4}{Perfectly symmetric unit calendars for the
-#'     hand-computable `utopia$modules$unit` kits.}
+#'   \item{s4_hp3}{Four seasons x three hour types `DAY/NIGHT/PEAK`,
+#'     day-proportional seasons and a uniform 12/8/4 split (12 timeslices).}
 #'   \item{m12, m12a}{Monthly resolution, day-proportional shares --
 #'     `m01..m12` and `JAN..DEC` labels respectively (12 timeslices).}
 #'   \item{q4}{Calendar quarters `Q1..Q4`, day-proportional (4 timeslices).}
 #'   \item{s4}{Meteorological seasons `WIN/SPR/SUM/FAL` in calendar order,
 #'     day-proportional 90/92/92/91 shares (4 timeslices).}
-#'   \item{s4_h24}{Seasons x 24 hours (96 timeslices) -- the UTOPIA base
+#'   \item{s4_h24}{Seasons x 24 hours (96 timeslices) -- the TOPIA base
 #'     calendar.}
 #'   \item{m12_h24}{Months x 24 hours (288 timeslices) -- the
-#'     higher-resolution UTOPIA option.}
+#'     higher-resolution TOPIA option.}
 #'   \item{wd7_h24}{Weekday (`MON..SUN`) x 24 hours (168 timeslices).}
 #'   \item{w52_h24}{Week (`w01..w52`) x 24 hours (1248 timeslices).}
 #'   \item{d365}{Daily resolution, 365 days.}
@@ -94,7 +96,7 @@
 #' @seealso [newCalendar()], [make_timetable()], [horizons]
 #' @examples
 #' names(calendars)
-#' plot(calendars$season_dn)
+#' plot(calendars$s4_hp3)
 "calendars"
 
 #' Example planning horizons

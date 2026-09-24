@@ -478,7 +478,7 @@ setMethod(
   "ob2mi",
   signature(scen = "scenario", obj = "demand", extra_params = "list"),
   function(scen, obj, extra_params = list()) {
-    # dem <- mod@data$utopia_repository@data$DEM_ELC
+    # dem <- mod@data$topia_repository@data$DEM_ELC
     dem <- obj
     dem@name <- toString(dem@name)
 
@@ -946,7 +946,7 @@ setMethod(
       if (is_empty(slot_info)) {next}
       slot_data <- get_lazy_data(obj, s)
       for (p in slot_info) {
-        # mod@data$utopia_repository@data$STGELC@seff
+        # mod@data$topia_repository@data$STGELC@seff
         #
         # Per-parameter COPY. Assigning back into `slot_data` made the first
         # parameter's commodity stick for every later one bound to the same

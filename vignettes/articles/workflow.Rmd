@@ -13,8 +13,8 @@ knitr::opts_chunk$set(
 )
 ```
 
-Once a model is **built** (see *Model bricks* and *UTOPIA I*) and **solved** (see
-*Solver backends* and *UTOPIA II*), a handful of utility functions do the rest of
+Once a model is **built** (see *Model bricks* and *TOPIA I*) and **solved** (see
+*Solver backends* and *TOPIA II*), a handful of utility functions do the rest of
 the day-to-day work: pull objects and results out, edit a piece and re-solve,
 organize scenarios on disk, and compare runs. This article tours that layer.
 
@@ -24,7 +24,7 @@ library(dplyr)
 library(ggplot2)
 ```
 
-We use the packaged single-region UTOPIA kit as a running example, and keep
+We use the packaged single-region TOPIA kit as a running example, and keep
 every store — scenarios, models, repositories and the registry — under a
 temporary folder. All four matter: `save_scenario()` saves the model to the
 model store and references it, so redirecting only the scenario path leaves a
@@ -37,11 +37,11 @@ set_models_path(file.path(wf, "models"))                # ... and models
 set_repositories_path(file.path(wf, "repositories"))    # ... and repositories
 set_registry_file(file.path(wf, "energyRt_registry.csv"))
 
-um  <- utopia$modules$electricity$R1
-mod <- newModel("UTOPIA", data = um$repo,
-                calendar = utopia$modules$calendars$s4_h24,
+um  <- topia$modules$electricity$R1
+mod <- newModel("TOPIA", data = um$repo,
+                calendar = topia$modules$calendars$s4_h24,
                 region   = um$regions,
-                horizon  = utopia$modules$horizons$base, discount = 0.05)
+                horizon  = topia$modules$horizons$base, discount = 0.05)
 ```
 
 ```{r base-solve}
@@ -108,9 +108,9 @@ ECOA <- getObject(repo, name = "ECOA", drop = TRUE)
 ECOA <- update(ECOA, invcost = data.frame(invcost = 2500))  # pricier coal capex
 repo_hi <- add(repo, ECOA, overwrite = TRUE)                # swap it back in
 
-mod_hi  <- newModel("UTOPIA_HI", data = repo_hi,
-                    calendar = utopia$modules$calendars$s4_h24,
-                    region = um$regions, horizon = utopia$modules$horizons$base,
+mod_hi  <- newModel("TOPIA_HI", data = repo_hi,
+                    calendar = topia$modules$calendars$s4_h24,
+                    region = um$regions, horizon = topia$modules$horizons$base,
                     discount = 0.05)
 ```
 
@@ -286,7 +286,7 @@ covers. Timeslice weights annualise the sample inside the solver
 slices are representative:
 
 ```{r sample-calendar}
-tt  <- utopia$modules$calendars$s4_h24@timetable
+tt  <- topia$modules$calendars$s4_h24@timetable
 tt2 <- tt[tt$SEASON %in% c("WIN", "SUM"), ]      # two of the four seasons
 cal2 <- newCalendar(timetable = tt2, name = "s2h24",
                     year_fraction = sum(tt2$share))
@@ -315,7 +315,7 @@ calendar sampling there is **no reweighting**: regional quantities are
 extensive, so the objective is the sub-territory's own, and disjoint
 samples *add up* to the full model (absent cross-boundary trade).
 
-UTOPIA is single-region, so a compact three-region demo:
+TOPIA is single-region, so a compact three-region demo:
 
 ```{r sample-regions-model}
 library(geoscales)
@@ -470,7 +470,7 @@ disjoint pieces do add up.
 
 # See also
 
-* **Model bricks** and **UTOPIA I** — building the objects and the model.
-* **Solver backends** and **UTOPIA II** — interpolating and solving.
+* **Model bricks** and **TOPIA I** — building the objects and the model.
+* **Solver backends** and **TOPIA II** — interpolating and solving.
 * `?getData`, `?getObject`, `?update`, `?save_scenario`, `?load_scenario`,
   `?model_size`, `?compare_solve_settings`, `?subset_model_regions`.

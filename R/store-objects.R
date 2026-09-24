@@ -957,7 +957,7 @@ dataset_hash <- function(x) {
   if (!is.character(fun) || length(fun) != 1L ||
       !grepl("^[A-Za-z][A-Za-z0-9.]*::[A-Za-z._][A-Za-z0-9._]*$", fun)) {
     stop("`fun` must be a namespaced function name as a string, ",
-         "e.g. \"energyRt::utopia_profiles\".")
+         "e.g. \"energyRt::topia_profiles\".")
   }
   fun
 }
@@ -1573,7 +1573,7 @@ load_dataset <- function(name, hash = NULL, path = NULL, evaluate = FALSE,
 #'
 #' @description
 #' Store entries update IN PLACE, so finished work can be locked:
-#' `seal_model("UTOPIA")` freezes the store entry — re-saving identical
+#' `seal_model("TOPIA")` freezes the store entry — re-saving identical
 #' content stays a silent no-op, but CHANGED content errors until
 #' `unseal_model()`. A sealed scenario is an archive: it loads, `getData()`s
 #' and reports freely, but refuses `save_scenario()`, new recorded solves,

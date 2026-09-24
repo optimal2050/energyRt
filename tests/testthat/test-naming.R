@@ -6,8 +6,8 @@
 test_that("path slugs keep underscores and join parts with dashes", {
   slug <- energyRt:::.path_slug
   expect_identical(slug("s4_h24"), "s4_h24")
-  expect_identical(slug("BASE", "UTOPIA_R11", "s4_h24"),
-                   "BASE-UTOPIA_R11-s4_h24")
+  expect_identical(slug("BASE", "TOPIA_R11", "s4_h24"),
+                   "BASE-TOPIA_R11-s4_h24")
   expect_identical(slug("a b.c_d"), "a_b_c_d")     # unsafe chars -> "_"
   expect_identical(slug("BASE", "BASE", "smc"), "BASE-smc")  # dedup
   expect_identical(slug("", NA, "x"), "x")
@@ -15,7 +15,7 @@ test_that("path slugs keep underscores and join parts with dashes", {
 
 test_that("check_name enforces the backend-identifier rule", {
   expect_true(energyRt:::check_name("s4_h24"))
-  expect_true(energyRt:::check_name("UTOPIA_R11"))
+  expect_true(energyRt:::check_name("TOPIA_R11"))
   expect_false(energyRt:::check_name("bad-name"))
   expect_false(energyRt:::check_name("1abc"))
   expect_false(energyRt:::check_name("a b"))

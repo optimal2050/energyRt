@@ -1646,8 +1646,8 @@ upgrade_scenario_layout <- function(path, verbose = TRUE) {
 #' @seealso [delete_marked()], [mark_delete()]
 #' @examples
 #' \dontrun{
-#' store_dependents("UTOPIA", type = "model")   # which scenarios use it
-#' nrow(store_dependents("UTOPIA", type = "model")) == 0   # an orphan?
+#' store_dependents("TOPIA", type = "model")   # which scenarios use it
+#' nrow(store_dependents("TOPIA", type = "model")) == 0   # an orphan?
 #' }
 #' @export
 store_dependents <- function(x, type = NULL) {

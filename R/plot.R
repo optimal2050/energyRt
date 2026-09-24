@@ -1402,7 +1402,7 @@ plot_heatmap <- function(object, calendar = NULL, value = NULL, facet = NULL,
 #' @examples
 #' \dontrun{
 #' data("calendars", package = "energyRt")
-#' W <- getObject(utopia$modules$electricity$R3$repo, name = "WSOL", drop = TRUE)
+#' W <- getObject(topia$modules$electricity$R3$repo, name = "WSOL", drop = TRUE)
 #' autoplot(W, calendar = calendars$s4_h24)                     # heatmap
 #' autoplot(W, style = "line", calendar = calendars$s4_h24)
 #' }
@@ -1685,7 +1685,7 @@ autoplot.weather <- function(object, style = c("heatmap", "line", "area"),
 # Trade route map --------------------------------------------------------------
 # A trade object stores inter-regional routes (src -> dst) but no geometry, so
 # the caller supplies a `map` (an sf object carrying `region` + `x`/`y` centroid
-# columns + polygon geometry, e.g. one of `utopia$map`). Routes are drawn as
+# columns + polygon geometry, e.g. one of `topia$map`). Routes are drawn as
 # arrows between region centroids over the region polygons.
 
 # Normalise `object` to a list of trade objects (single trade, list, or a
@@ -1710,12 +1710,12 @@ autoplot.weather <- function(object, style = c("heatmap", "line", "area"),
 #' no geometry, so the geometry comes either from the model's geoscale (see
 #' [setGeoscale()]) or from a `map` supplied by the caller — an `sf` object with
 #' `region`, `x`, `y` (centroid) columns and polygon `geometry`, such as one of
-#' the `utopia$map` layouts (`squares`, `honeycomb`, `island`, `continent`).
+#' the `topia$map` layouts (`squares`, `honeycomb`, `island`, `continent`).
 #'
 #' @param object A `trade`, a list of `trade` objects, or a `repository`,
 #'   `model` or `scenario` (whose trade objects are all drawn).
 #' @param map An `sf`/data.frame with `region`, `x`, `y` and polygon `geometry`
-#'   (e.g. `utopia$map$honeycomb`), or a `geoscales::Geoscale`. When `NULL`, the
+#'   (e.g. `topia$map$honeycomb`), or a `geoscales::Geoscale`. When `NULL`, the
 #'   geoscale attached to `object` is used. Region polygons need `sf`; without
 #'   it, only centroids and routes are drawn.
 #' @param labels Logical; label region centroids with their names (default `TRUE`).
@@ -1731,7 +1731,7 @@ autoplot.weather <- function(object, style = c("heatmap", "line", "area"),
 #' labels are drawn as `sf` layers rather than raw `x`/`y` ones. `geom_sf()`
 #' installs a `coord_sf()` that reprojects the polygons but would leave a
 #' `geom_segment()` untransformed, detaching every route from its regions. Maps
-#' with no CRS — including the reference `utopia$map` layouts — take the plain
+#' with no CRS — including the reference `topia$map` layouts — take the plain
 #' cartesian path, which is correct for them.
 #'
 #' @export
@@ -1739,11 +1739,11 @@ autoplot.weather <- function(object, style = c("heatmap", "line", "area"),
 #' \dontrun{
 #' TRD <- newTrade("TRD_ELC", commodity = "ELC",
 #'   routes = data.frame(src = c("R1", "R2", "R3"), dst = c("R2", "R7", "R7")))
-#' autoplot(TRD, map = utopia$map$honeycomb)
+#' autoplot(TRD, map = topia$map$honeycomb)
 #'
 #' # or from a geoscale, at any level
-#' plot_trade_map(TRD, map = utopia_geoscale())
-#' plot_trade_map(TRD, map = utopia_geoscale(), level = "zone")
+#' plot_trade_map(TRD, map = topia_geoscale())
+#' plot_trade_map(TRD, map = topia_geoscale(), level = "zone")
 #' }
 plot_trade_map <- function(object, map = NULL, labels = TRUE,
                            route_color = "steelblue", level = NULL, ...) {
@@ -1754,7 +1754,7 @@ plot_trade_map <- function(object, map = NULL, labels = TRUE,
   if (is.null(map)) {
     stop("plot_trade_map: pass a `map` (an sf object with `region`/`x`/`y` and ",
          "polygon geometry, or a `geoscales::Geoscale`), e.g. ",
-         "`utopia$map$honeycomb`.", call. = FALSE)
+         "`topia$map$honeycomb`.", call. = FALSE)
   }
   # Keep the geoscale: when a coarser level is drawn, the route endpoints have
   # to be lifted to it too, or nothing will match the map.
@@ -1829,7 +1829,7 @@ plot_trade_map <- function(object, map = NULL, labels = TRUE,
   # With a real CRS, `geom_sf()` installs a `coord_sf()` that reprojects the
   # polygons but NOT raw x/y layers, so routes drawn with `geom_segment()`
   # would detach from their regions. Draw everything as sf in that case, and
-  # keep the plain cartesian layers when there is no CRS (the reference UTOPIA
+  # keep the plain cartesian layers when there is no CRS (the reference TOPIA
   # layouts have none) or no sf.
   crs <- if (have_sf) sf::st_crs(map) else NA
   as_sf_layers <- have_sf && !is.na(crs)

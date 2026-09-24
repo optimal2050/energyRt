@@ -196,52 +196,52 @@ test_that("the src/dst shape is netted even without a variable name", {
 
 # Maps -------------------------------------------------------------------------
 
-test_that("utopia_geoscale builds, with and without geometry", {
+test_that("topia_geoscale builds, with and without geometry", {
   skip_if_no_geoscales()
-  g0 <- utopia_geoscale(layout = NULL)
+  g0 <- topia_geoscale(layout = NULL)
   expect_equal(geoscales::geoscale_geoframes(g0), c("nation", "zone", "region"))
   expect_setequal(geoscales::geoscale_regions(g0, "region"), paste0("R", 1:11))
   expect_equal(geoscales::geoscale_children(g0, "zone", "WEST"),
                c("R1", "R2", "R3"))
 
   skip_if_not_installed("sf")
-  gs <- utopia_geoscale()
+  gs <- topia_geoscale()
   expect_equal(geoscales::geoscale_weights(gs), "area")
   expect_equal(nrow(geoscales::geoscale_geometry(gs, "zone")), 3L)
 
   # every layout shares the region names, so the hierarchy fits all of them
-  for (nm in names(utopia$map)) {
-    expect_setequal(utopia$map[[nm]]$region, utopia$geo$region)
+  for (nm in names(topia$map)) {
+    expect_setequal(topia$map[[nm]]$region, topia$geo$region)
   }
 })
 
-test_that("utopia_geoscale reaches its data the way an INSTALL does", {
+test_that("topia_geoscale reaches its data the way an INSTALL does", {
   skip_if_no_geoscales()
-  # `utopia` is LazyData: under load_all() it sits in the namespace, but in an
+  # `topia` is LazyData: under load_all() it sits in the namespace, but in an
   # installed package it is in the lazy-load database instead. Reading it with
   # get(..., asNamespace()) therefore worked in dev and failed only once
   # installed -- which is how it escaped into a broken vignette build. Assert
   # the accessor the installed path actually uses.
-  expect_false(is.null(getExportedValue("energyRt", "utopia")))
+  expect_false(is.null(getExportedValue("energyRt", "topia")))
   e <- new.env(parent = emptyenv())
-  utils::data("utopia", package = "energyRt", envir = e)
-  expect_setequal(names(get("utopia", envir = e)),
+  utils::data("topia", package = "energyRt", envir = e)
+  expect_setequal(names(get("topia", envir = e)),
                   c("map", "geo", "weather", "demand", "stock", "modules"))
 
   # and the function must work with the namespace copy absent
   local({
-    ns_has <- exists("utopia", envir = asNamespace("energyRt"), inherits = FALSE)
+    ns_has <- exists("topia", envir = asNamespace("energyRt"), inherits = FALSE)
     skip_if(!ns_has, "namespace copy already absent; the data() path is covered above")
-    expect_s3_class(utopia_geoscale(layout = NULL), "geoscales::Geoscale")
+    expect_s3_class(topia_geoscale(layout = NULL), "geoscales::Geoscale")
   })
 })
 
-test_that("utopia_geoscale can be subset to a model's regions", {
+test_that("topia_geoscale can be subset to a model's regions", {
   skip_if_no_geoscales()
-  gs <- utopia_geoscale(layout = NULL, region = c("R1", "R2", "R3"))
+  gs <- topia_geoscale(layout = NULL, region = c("R1", "R2", "R3"))
   expect_setequal(geoscales::geoscale_regions(gs, "region"), c("R1", "R2", "R3"))
   expect_equal(geoscales::geoscale_regions(gs, "zone"), "WEST")
-  expect_error(utopia_geoscale(region = "R99"), "Unknown UTOPIA region")
+  expect_error(topia_geoscale(region = "R99"), "Unknown TOPIA region")
 })
 
 test_that("plot_map delegates drawing to geoscales::geoscale_plot", {
@@ -258,7 +258,7 @@ test_that("plot_map delegates drawing to geoscales::geoscale_plot", {
 
   regs <- c("R1", "R2")
   mod <- setGeoscale(vt_model(name = "gm", regions = regs),
-                     utopia_geoscale(region = regs))
+                     topia_geoscale(region = regs))
   sol <- vt_solve(vt_interp(mod, "gm"))
 
   p <- plot_map(sol, "capacity")
@@ -286,7 +286,7 @@ test_that("plot_trade_map keeps working on a CRS-less map", {
   trd <- newTrade("TRD", commodity = "ELC",
                   routes = data.frame(src = c("R1", "R2"),
                                       dst = c("R2", "R7")))
-  p <- plot_trade_map(trd, map = utopia$map$honeycomb)
+  p <- plot_trade_map(trd, map = topia$map$honeycomb)
   geoms <- vapply(p$layers, function(l) class(l$geom)[1], character(1))
   # no CRS -> the plain cartesian layers are correct and are kept
   expect_true("GeomSegment" %in% geoms)
@@ -299,7 +299,7 @@ test_that("plot_trade_map draws sf layers when the map has a CRS", {
   trd <- newTrade("TRD", commodity = "ELC",
                   routes = data.frame(src = c("R1", "R2"),
                                       dst = c("R2", "R7")))
-  m <- utopia$map$honeycomb
+  m <- topia$map$honeycomb
   sf::st_crs(m) <- 4326
   p <- plot_trade_map(trd, map = m)
   geoms <- vapply(p$layers, function(l) class(l$geom)[1], character(1))
@@ -312,7 +312,7 @@ test_that("plot_trade_map accepts a Geoscale and a coarser level", {
   skip_if_no_geoscales()
   skip_if_not_installed("sf")
   skip_if_not_installed("ggplot2")
-  gs <- utopia_geoscale()
+  gs <- topia_geoscale()
   trd <- newTrade("TRD", commodity = "ELC",
                   routes = data.frame(src = c("R1", "R4"),
                                       dst = c("R2", "R8")))

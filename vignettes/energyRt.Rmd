@@ -169,8 +169,8 @@ LCOE from a unit-demand mini-model) or *ex-post* from a solved scenario;
 technology; `autoplot()` covers calendars, commodities, weather, costs and
 more.
 
-**A complete teaching model.** The UTOPIA electricity model ships with the
-package — both as step-by-step vignettes and as the ready `utopia$modules`
+**A complete teaching model.** The TOPIA electricity model ships with the
+package — both as step-by-step vignettes and as the ready `topia$modules`
 data kit with scenario levers (CO~2~ cap, carbon tax, renewable share, nuclear
 moratorium) — so the path from "hello world" to policy analysis is paved.
 
@@ -183,9 +183,9 @@ capacity-expansion models, formulated and analyzed without leaving R.
 1. [Model bricks](https://energyrt.org/articles/model-bricks.html) — every
    object type in depth, including fuel blends, auxiliary flows, and user
    constraints.
-2. `vignette("utopia-build")` — *UTOPIA I*: build a multi-region electricity
+2. `vignette("topia-build")` — *TOPIA I*: build a multi-region electricity
    model brick by brick.
-3. `vignette("utopia-use")` — *UTOPIA II*: solve it and run policy scenarios.
+3. `vignette("topia-use")` — *TOPIA II*: solve it and run policy scenarios.
 4. [Solver backends](https://energyrt.org/articles/backends.html) — GLPK,
    JuMP, Pyomo, GAMS, and NEOS.
 5. [Workflow](https://energyrt.org/articles/workflow.html) — extracting,

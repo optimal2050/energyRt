@@ -6,7 +6,7 @@
 #   Rscript tools/test/make_goldens.R --suite=tm [--dry-run]
 #   Rscript tools/test/make_goldens.R --suite=all
 #
-# Suites: tm (fast tier), utopia (fast/cross), utopia_nightly (R7/R11, only
+# Suites: tm (fast tier), topia (fast/cross), topia_nightly (R7/R11, only
 # read at the nightly tier), unit (the all-unit-input kits with hand-computed
 # integer objectives -- test-unit-model.R also pins them analytically), interp
 # (solver-free modInp baselines -- delegated to tools/test/interp_guard.R,
@@ -29,12 +29,12 @@ suppressMessages({
   library(jsonlite)
 })
 
-# helper-goldens.R provides capture_tracked_values() etc.; helper-utopia.R the
-# UTOPIA suite builders. Helper files are self-contained enough to source
-# directly (helper-utopia's testthat::test_path fallback is bypassed by running
+# helper-goldens.R provides capture_tracked_values() etc.; helper-topia.R the
+# TOPIA suite builders. Helper files are self-contained enough to source
+# directly (helper-topia's testthat::test_path fallback is bypassed by running
 # from the package root).
 source(file.path("tests", "testthat", "helper-goldens.R"))
-source(file.path("tests", "testthat", "helper-utopia.R"))
+source(file.path("tests", "testthat", "helper-topia.R"))
 
 # --------------------------------------------------------------------------- #
 # suites: name -> list of entries; each entry builds an UNSOLVED model
@@ -58,8 +58,8 @@ SUITES <- list(
     tiers <- c("tm_core", "tm_flows", "tm_io", "tm_policy", "tm_weather")
     setNames(lapply(tiers, function(t) function() .fixture_env()[[t]]()), tiers)
   },
-  utopia = lapply(ut_entries(), function(a) function() do.call(ut_build, a)),
-  utopia_nightly = lapply(ut_nightly_entries(),
+  topia = lapply(ut_entries(), function(a) function() do.call(ut_build, a)),
+  topia_nightly = lapply(ut_nightly_entries(),
                           function(a) function() do.call(ut_build, a)),
   unit = lapply(un_entries(), function(a) function() do.call(un_build, a))
 )
@@ -68,8 +68,8 @@ SUITES <- list(
 # glpsol for small models -- zero startup, no toolchain; julia/HiGHS for
 # mid-size and sampled ones). Same-solver goldens are captured AND compared
 # with the suite's solver, so regenerating a julia suite needs Julia+HiGHS.
-SUITE_SOLVERS <- c(tm = "glpk", utopia = "glpk",
-                   utopia_nightly = "julia_highs", unit = "glpk")
+SUITE_SOLVERS <- c(tm = "glpk", topia = "glpk",
+                   topia_nightly = "julia_highs", unit = "glpk")
 
 # --------------------------------------------------------------------------- #
 

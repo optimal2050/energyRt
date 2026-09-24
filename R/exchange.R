@@ -46,7 +46,7 @@
 
 # Drop the tables with no rows. The generated model code never reads them --
 # an empty set becomes a literal `set()` / `[]` and an empty parameter a
-# default-only lookup -- so writing them is pure overhead. On a UTOPIA-size
+# default-only lookup -- so writing them is pure overhead. On a TOPIA-size
 # model roughly two thirds of the tables are empty.
 .drop_empty_tables <- function(dat) {
   keep <- vapply(dat, function(x) NROW(x) > 0L, logical(1))

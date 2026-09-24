@@ -188,7 +188,7 @@ if (F) {
     "DAY" = c("MORNING", "EVENING")
   ))
 
-  # from UTOPIA
+  # from TOPIA
   make_timetable(timeslices)
   make_timetable(timeslices1)
   make_timetable(timeslices2)

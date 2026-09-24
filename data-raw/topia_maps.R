@@ -1,5 +1,5 @@
-## data-raw/utopia_maps.R
-## Repair / regenerate the `utopia$map` reference layouts.
+## data-raw/topia_maps.R
+## Repair / regenerate the `topia$map` reference layouts.
 ##
 ## The original generation script did not survive; this one rebuilds the
 ## honeycomb layout from the SHIPPED hex centroids (so the layout and the
@@ -16,7 +16,7 @@
 ## The hierarchy is keyed by region NAME, never by geometry — coordinates
 ## are per-layout and carry no meaning beyond the picture.
 ##
-## Run: pkgload::load_all(".") ; source("data-raw/utopia_maps.R")
+## Run: pkgload::load_all(".") ; source("data-raw/topia_maps.R")
 
 library(sf)
 
@@ -26,8 +26,8 @@ grid_round <- function(g, digits = 9) {
   }), crs = st_crs(g))
 }
 
-utopia <- energyRt::utopia
-map <- utopia$map
+topia <- energyRt::topia
+map <- topia$map
 
 # -- honeycomb: rebuild each hex from its centroid ---------------------------
 hc <- map$honeycomb
@@ -91,7 +91,7 @@ for (nm in names(map)) {
   st_geometry(map[[nm]]) <- grid_round(st_geometry(map[[nm]]))
 }
 
-utopia$map <- map
+topia$map <- map
 
 # -- verification -------------------------------------------------------------
 g <- st_geometry(map$honeycomb)
@@ -110,5 +110,5 @@ for (nm in names(map)) {
               length(st_cast(st_union(gg), "POLYGON"))))
 }
 
-# (no use_data here: data-raw/utopia_assemble.R writes the single dataset)
-cat("utopia.rda updated\n")
+# (no use_data here: data-raw/topia_assemble.R writes the single dataset)
+cat("topia.rda updated\n")

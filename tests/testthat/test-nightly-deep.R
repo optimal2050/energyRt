@@ -1,7 +1,7 @@
 # =========================================================================== #
 # Nightly deep regressions (tier "nightly"; tools/test/run_nightly.R):
-#   - the larger UTOPIA layouts (R7 / R11) against their goldens,
-#   - UTOPIA R3 cross-solver parity on julia/HiGHS,
+#   - the larger TOPIA layouts (R7 / R11) against their goldens,
+#   - TOPIA R3 cross-solver parity on julia/HiGHS,
 #   - external real-world models via ENERGYRT_EXT_MODELS (opt-in): solved on
 #     julia/HiGHS and checked with verify_solution(). These are .rds files
 #     serialized by OLDER package versions, so merely loading and solving them
@@ -11,12 +11,12 @@
 # ENERGYRT_TEST_HEAVY=true (~minutes).
 # =========================================================================== #
 
-test_that("UTOPIA R7/R11 reproduce their golden tracked values (julia/HiGHS)", {
+test_that("TOPIA R7/R11 reproduce their golden tracked values (julia/HiGHS)", {
   skip_if_tier_below("nightly")
   # mid-size models reference julia/HiGHS (the backend-choice convention;
   # SUITE_SOLVERS in make_goldens.R) -- same-solver goldens, julia both sides
   skip_if_no_julia_highs()
-  g <- skip_if_no_golden("utopia_nightly")
+  g <- skip_if_no_golden("topia_nightly")
   entries <- ut_nightly_entries()
   for (nm in names(g)) {
     skip_if(is.null(entries[[nm]]), paste0(nm, " not in ut_nightly_entries()"))
@@ -24,14 +24,14 @@ test_that("UTOPIA R7/R11 reproduce their golden tracked values (julia/HiGHS)", {
                      solver = "julia_highs")
     vs <- verify_solution(scen)
     expect_true(vs$ok, label = paste0(nm, " invariants"))
-    expect_matches_golden(scen, "utopia_nightly", nm, kind = "same_solver")
+    expect_matches_golden(scen, "topia_nightly", nm, kind = "same_solver")
   }
 })
 
-test_that("UTOPIA R3 solves to the golden objective on julia/HiGHS", {
+test_that("TOPIA R3 solves to the golden objective on julia/HiGHS", {
   skip_if_tier_below("nightly")
   skip_if_no_julia_highs()
-  g <- skip_if_no_golden("utopia", "base_R3")
+  g <- skip_if_no_golden("topia", "base_R3")
   mod <- ut_build(layout = "R3", calendar = "s4_h24")
   scen <- suppressMessages(suppressWarnings(
     solve_model(mod, name = "nightly_R3_julia",

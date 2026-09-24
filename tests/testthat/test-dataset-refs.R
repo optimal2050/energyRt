@@ -133,7 +133,7 @@ test_that("save_model references the geoscale map and repo tables; load restores
   skip_if_not_installed("geoscales")
   dr_local_model()
   unlink(dr_root(), recursive = TRUE)
-  gs <- utopia_geoscale()
+  gs <- topia_geoscale()
   mod <- dr_model(geoscale = gs)
   h_full <- model_hash(mod)
 
@@ -166,7 +166,7 @@ test_that("save_scenario references the settings geoscale; load restores", {
   skip_if_not_installed("geoscales")
   dr_local_model()
   unlink(dr_root(), recursive = TRUE)
-  gs <- utopia_geoscale()
+  gs <- topia_geoscale()
   save_dataset(gs, "umap_s", verbose = FALSE)
 
   scen <- suppressMessages(interpolate_model(
