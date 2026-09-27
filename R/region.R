@@ -123,6 +123,10 @@ subset_model_regions <- function(mod, region, boundary_prices = NULL,
     stop("region(s) not declared in the model: ",
          paste(unknown, collapse = ", "), call. = FALSE)
   }
+  # Warn BEFORE the surgery, while the model still has its full geoscale and
+  # every route: a coarse-declared trade cost does not scale with the subset.
+  .warn_sampled_coarse_costs(mod, keep = region)
+
   mod <- .subset_model_regions(mod, keep = region,
                                boundary_prices = boundary_prices,
                                verbose = verbose)
@@ -1447,14 +1451,84 @@ get_weather <- function(obj) {
       "Trade cost with no `region` on a multi-endpoint route:\n  ",
       paste(sort(unique(broadcast)), collapse = "\n  "),
       "\nTrade costs are a rate borne by EACH endpoint, so an unregioned ",
-      "row applies at every endpoint of the route: a two-region corridor at ",
-      "100 costs 200 in total. Name the regions to vary the rate between ",
-      "them, e.g.\n",
+      "row applies at every endpoint of the route: a two-region corridor ",
+      "at 100 costs 200 in total.\n",
+      "  PREFER NAMING THE REGIONS. It is the only form that states what ",
+      "you meant, and it lets the rate differ between the ends:\n",
       "    invcost = data.frame(region = c(\"A\", \"B\"), invcost = c(60, 40))\n",
-      "This is reported, not corrected: the rate is the same one a region ",
-      "subset would see, so it is what makes a partial-region study bear its ",
-      "own share rather than the whole corridor.")
+      "  This is reported, not corrected. Unregioned is valid and has one ",
+      "real advantage: the rate follows whichever endpoints survive, so a ",
+      "SAMPLED sub-model bears its own share rather than the whole corridor ",
+      "-- declare a third on a three-node corridor, sample two nodes, and ",
+      "two thirds is charged.")
   }
+  invisible(NULL)
+}
+
+
+# A cost declared at a COARSE geoscale cell is charged once, in full, at that
+# cell -- it does not know how many of the cell's children are still in the
+# model. Subsetting the regions therefore changes the answer: the sub-model
+# keeps the whole corridor's cost instead of the share its remaining endpoints
+# should bear, and the sampled run stops being comparable with the full one.
+#
+# The unregioned form does not have this problem: it follows the endpoints that
+# survive, which is why it is worth keeping. Warn only when the sampling
+# actually bites -- the cell must lose at least one child and keep at least one,
+# or nothing changes.
+#' @noRd
+.warn_sampled_coarse_costs <- function(mod, keep, slots = c("invcost", "fixom")) {
+  gs <- tryCatch(mod@config@geoscale, error = function(e) NULL)
+  if (is.null(gs) || !is_geoscale(gs)) return(invisible(NULL))
+  if (!requireNamespace("geoscales", quietly = TRUE)) return(invisible(NULL))
+  keep <- as.character(keep)
+  finest <- geoscales::geoscale_geoframes(gs, finest = TRUE)
+  atoms <- as.character(geoscales::geoscale_regions(gs, finest))
+  if (!length(atoms) || all(atoms %in% keep)) return(invisible(NULL))
+  lt <- as.data.frame(geoscales::geoscale_leaftable(gs))
+  frames <- geoscales::geoscale_geoframes(gs)
+
+  hits <- character(0)
+  for (rp in mod@data) {
+    objs <- if (methods::is(rp, "repository")) rp@data else list(rp)
+    for (o in objs) {
+      if (!methods::is(o, "trade")) next
+      nm <- tryCatch(o@name, error = function(e) NA_character_)
+      for (sl in slots) {
+        rg <- .cost_slot_regions(o, sl)
+        rg <- unique(rg[!is.na(rg)])
+        coarse <- setdiff(rg, atoms)
+        for (cell in coarse) {
+          kids <- character(0)
+          for (f in setdiff(frames, finest)) {
+            if (!f %in% names(lt)) next
+            kids <- c(kids, as.character(lt[[finest]][lt[[f]] == cell]))
+          }
+          kids <- unique(kids[!is.na(kids)])
+          if (!length(kids)) next
+          lost <- setdiff(kids, keep)
+          left <- intersect(kids, keep)
+          if (length(lost) && length(left)) {
+            hits <- c(hits, paste0(
+              nm, "@", sl, " at '", cell, "' (keeps ", length(left), " of ",
+              length(kids), " region(s): dropped ",
+              paste(sort(lost), collapse = ", "), ")"))
+          }
+        }
+      }
+    }
+  }
+  if (!length(hits)) return(invisible(NULL))
+  warning(
+    "Sampling regions changes a trade cost declared at a coarse level:\n  ",
+    paste(sort(unique(hits)), collapse = "\n  "),
+    "\n  A coarse cost is charged ONCE at that cell, whatever is left under ",
+    "it, so this sub-model bears the WHOLE corridor cost rather than the ",
+    "share its remaining endpoints should -- its objective is not comparable ",
+    "with the full model's.\n",
+    "  Declare the cost on the endpoint regions instead, so it follows the ",
+    "ones that survive.",
+    call. = FALSE)
   invisible(NULL)
 }
 

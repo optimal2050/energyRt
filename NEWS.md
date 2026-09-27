@@ -33,6 +33,24 @@
   energyRt's timeframe names are matched by what their labels ARE, so a
   timeframe named `DAY` lands on timescales' `YDAY`.
 
+* **Bug fix:** a trade `invcost` with no `region` was charged once per region
+  OF THE MODEL, not once per endpoint of the route -- six charges on a
+  six-region model for a two-ended corridor, growing with the model rather than
+  the route. `fixom` was always correct. A trade's investment window carries no
+  region, so the rate reached the annuity step with nothing to carry it and the
+  dense `pTradeEac` materialised a row per region; it now expands over the
+  process's own regions, i.e. the route endpoints.
+
+* An unregioned trade cost now says so more firmly, recommending that the
+  regions be named, while noting what the unregioned form is good for: the rate
+  follows whichever endpoints survive, so a sampled sub-model bears its own
+  share.
+
+* `subset_model_regions()` warns when sampling splits a geoscale cell that a
+  trade cost is declared at. Such a cost is charged once at the cell whatever
+  remains beneath it, so the sub-model keeps the whole corridor's cost instead
+  of its share and its objective is not comparable with the full model's.
+
 * **Bug fix:** `levcost()` on a repository or model priced every process as if
   it lived in the container's *first* region. A technology anywhere else had
   its `invcost`, `fixom` and `ceff` rows subset away and reported fuel cost

@@ -131,6 +131,37 @@
   }
   if (nrow(df) == 0) return(scen)
 
+  # A cost with no region means "each place this process touches bears this
+  # rate" -- which is what lets a sampled sub-model stay consistent with the
+  # full one: declare 1/3 on a three-node corridor, sample two nodes, and the
+  # charge follows the endpoints that survive.
+  #
+  # A technology's window carries its regions, so the merge above already
+  # landed them. A TRADE's window is `(trade, year)` with no region at all, so
+  # an unregioned rate arrives here with nothing to carry it, and the dense
+  # `pTradeEac{trade, region, year}` would then materialise one row per region
+  # OF THE MODEL -- six charges on a six-region model for a two-ended corridor,
+  # growing with the model rather than with the route. Expand over the
+  # process's own regions instead: for a trade those are its route endpoints.
+  if (!"region" %in% names(df) || all(is.na(df$region))) {
+    preg <- tryCatch(get_process_region(scen, return_list = TRUE),
+                     error = function(e) NULL)
+    ends <- if (is.null(preg)) NULL else
+      do.call(rbind, lapply(unique(as.character(df[[key]])), function(k) {
+        rg <- preg[[k]]
+        rg <- rg[!is.na(rg) & nzchar(rg)]
+        if (!length(rg)) return(NULL)
+        data.frame(.proc = k, region = as.character(rg),
+                   stringsAsFactors = FALSE)
+      }))
+    if (!is.null(ends) && nrow(ends) > 0) {
+      names(ends)[1] <- key
+      df <- df[, setdiff(names(df), "region"), drop = FALSE]
+      df <- dplyr::inner_join(df, ends, by = key)
+    }
+  }
+  if (nrow(df) == 0) return(scen)
+
   # Rate: process-specific cost of capital (first supplied of the given
   # parameters, in order), else the model-wide one. NA means "not supplied" --
   # an explicit 0 is a legitimate zero-interest rate and is kept (hence

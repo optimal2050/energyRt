@@ -166,3 +166,137 @@ test_that("the trade slot docs no longer deny implemented features", {
   expect_match(energyRt:::get_slot_doc("trade", "invcost"), "endpoint")
   expect_match(energyRt:::get_slot_doc("trade", "varom"), "PER ROUTE")
 })
+
+# --- the endpoint rule, on a fixture WIDER than the route --------------------
+#
+# The blocks above use a two-region model, where "every endpoint" and "every
+# region" are the same set -- so a cost that spread over the whole model looked
+# identical to one that spread over the corridor. `invcost` did exactly that:
+# its annuity was materialised once per region OF THE MODEL, six charges on a
+# six-region model for a two-ended corridor, growing with the model rather than
+# with the route. Only a fixture with more regions than endpoints can see it.
+
+tcr_wide_gs <- function() {
+  skip_if_not_installed("geoscales")
+  geoscales::geoscale_from_leaftable(
+    data.frame(nation = c("NA1", "NA1", "NA2", "NA2", "NA3", "NA3"),
+               region = c("R1", "R2", "R3", "R4", "R5", "R6")),
+    geoframes = c("nation", "region"), key = "region", name = "tcr_wide")
+}
+
+# A corridor R1 <-> R3 in a six-region model, priced with `invcost` and nothing
+# else costing anything but the supply, so the objective reads directly.
+tcr_wide_model <- function(inv, name) {
+  regs <- c("R1", "R2", "R3", "R4", "R5", "R6")
+  m <- newModel(
+    name = name, region = regs, horizon = newHorizon(2025),
+    discount = 0, calendar = sp_cal(),
+    repo = newRepository(
+      "tcr_wide_repo",
+      newCommodity(name = "ELC", unit = "GWh", timeframe = "HOUR"),
+      newSupply(name = "S", commodity = "ELC", unit = "GWh",
+                supply = data.frame(region = "R1", cost = 1)),
+      newTrade(name = "TR", commodity = "ELC",
+               routes = data.frame(src = "R1", dst = "R3"),
+               trade = data.frame(timeslice = sprintf("t%02d", 1:4), teff = 1),
+               vintage = data.frame(olife = 50L), cap2act = 1,
+               capacity = data.frame(cap.fx = 10), invcost = inv),
+      newDemand(name = "D", commodity = "ELC",
+                demand = data.frame(region = "R3",
+                                    timeslice = sprintf("t%02d", 1:4),
+                                    demand = 2.5))))
+  setGeoscale(m, tcr_wide_gs())
+}
+
+tcr_wide_obj <- function(inv, name) {
+  sc <- suppressMessages(interpolate_model(tcr_wide_model(inv, name),
+                                           name = name, overwrite = TRUE))
+  sol <- suppressMessages(solve_scenario(sc, solver = solver_options$glpk,
+                                         wait = TRUE, echo = FALSE))
+  sum(getData(sol, name = "vObjective", merge = TRUE)$value)
+}
+
+# @covers pTradeEac
+test_that("an unregioned trade invcost is charged per ENDPOINT, not per region", {
+  skip_if_no_solver()
+  skip_if_not_installed("geoscales")
+  # supply alone, so every other number below is the trade
+  base <- tcr_wide_obj(data.frame(invcost = 0), "tcrw0")
+  expect_equal(base, 10)
+
+  one <- tcr_wide_obj(data.frame(region = "R1", invcost = 50), "tcrw1")
+  expect_equal(one, 20)                      # one endpoint bears it
+
+  both <- tcr_wide_obj(data.frame(region = c("R1", "R3"), invcost = 50), "tcrw2")
+  expect_equal(both, 30)                     # each endpoint bears it
+
+  # THE REGRESSION: unregioned means "each endpoint", so it must equal `both`.
+  # It used to equal 70 -- one charge for each of the six model regions.
+  flat <- tcr_wide_obj(data.frame(invcost = 50), "tcrw3")
+  expect_equal(flat, both)
+  expect_equal(flat, 30)
+})
+
+# @covers pTradeEac
+test_that("the unregioned rate follows the endpoints, not the model size", {
+  skip_if_not_installed("geoscales")
+  # three endpoints now, same six-region model: the annuity must land on the
+  # three regions the route touches and nowhere else
+  regs <- c("R1", "R2", "R3", "R4", "R5", "R6")
+  rt <- data.frame(src = c("R1", "R2", "R1", "R3"),
+                   dst = c("R2", "R1", "R3", "R1"))
+  m <- newModel(
+    name = "tcrhub", region = regs, horizon = newHorizon(2025),
+    discount = 0, calendar = sp_cal(),
+    repo = newRepository(
+      "tcr_hub_repo",
+      newCommodity(name = "ELC", unit = "GWh", timeframe = "HOUR"),
+      newSupply(name = "S", commodity = "ELC", unit = "GWh",
+                supply = data.frame(region = "R1", cost = 1)),
+      newTrade(name = "TR", commodity = "ELC", routes = rt,
+               trade = data.frame(src = rt$src, dst = rt$dst, teff = 1),
+               vintage = data.frame(olife = 50L), cap2act = 1,
+               capacity = data.frame(cap.fx = 10),
+               invcost = data.frame(invcost = 50 / 3)),
+      newDemand(name = "D", commodity = "ELC",
+                demand = data.frame(region = "R3",
+                                    timeslice = sprintf("t%02d", 1:4),
+                                    demand = 2.5))))
+  sc <- suppressMessages(interpolate_model(setGeoscale(m, tcr_wide_gs()),
+                                           name = "tcrhub", overwrite = TRUE))
+  eac <- as.data.frame(get_data_slot(sc@modInp@parameters[["pTradeEac"]]))
+  expect_setequal(unique(as.character(eac$region)), c("R1", "R2", "R3"))
+})
+
+# @covers subset_model_regions
+test_that("sampling warns when it splits a cell a trade cost sits on", {
+  skip_if_not_installed("geoscales")
+  # A coarse cost is charged ONCE at its cell however much is left beneath it,
+  # so a subset that keeps only part of the cell silently carries the whole
+  # corridor's cost and stops being comparable with the full model.
+  coarse <- tcr_wide_model(data.frame(region = "NA1", invcost = 50), "tcrs1")
+  expect_warning(
+    suppressMessages(subset_model_regions(coarse, region = c("R1", "R3"),
+                                          verbose = FALSE)),
+    "coarse level")
+  expect_warning(
+    suppressMessages(subset_model_regions(coarse, region = c("R1", "R3"),
+                                          verbose = FALSE)),
+    "NA1")
+
+  # silent when the whole cell survives -- nothing changes
+  expect_no_warning(
+    suppressMessages(subset_model_regions(coarse, region = c("R1", "R2", "R3"),
+                                          verbose = FALSE)))
+
+  # silent for endpoint-named and unregioned costs: both follow the endpoints
+  named <- tcr_wide_model(data.frame(region = c("R1", "R3"), invcost = 50),
+                          "tcrs2")
+  expect_no_warning(
+    suppressMessages(subset_model_regions(named, region = c("R1", "R3"),
+                                          verbose = FALSE)))
+  flat <- tcr_wide_model(data.frame(invcost = 50), "tcrs3")
+  expect_no_warning(
+    suppressMessages(subset_model_regions(flat, region = c("R1", "R3"),
+                                          verbose = FALSE)))
+})
