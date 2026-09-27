@@ -6,7 +6,7 @@
         "annual_region": [
           {
             "tech": "E1",
-            "region": "R1",
+            "region": "W1",
             "year": 2025,
             "value": 4
           }
@@ -24,7 +24,7 @@
           {
             "tech": "E1",
             "comm": "ELC",
-            "region": "R1",
+            "region": "W1",
             "year": 2025,
             "value": 4
           }
@@ -43,7 +43,7 @@
           {
             "tech": "E1",
             "comm": "PRM",
-            "region": "R1",
+            "region": "W1",
             "year": 2025,
             "value": 4
           }
@@ -62,7 +62,7 @@
           {
             "sup": "SUP_PRM",
             "comm": "PRM",
-            "region": "R1",
+            "region": "W1",
             "year": 2025,
             "value": 4
           }
@@ -80,7 +80,7 @@
         "annual_region": [
           {
             "comm": "ELC",
-            "region": "R1",
+            "region": "W1",
             "year": 2025,
             "value": 4
           }
@@ -95,8 +95,8 @@
       }
     },
     "captured": {
-      "date": "2026-08-25",
-      "version": "0.87.5.9000",
+      "date": "2026-09-25",
+      "version": "0.90.0.9003",
       "solver": "glpk"
     }
   },
@@ -107,7 +107,7 @@
         "annual_region": [
           {
             "tech": "E1",
-            "region": "R1",
+            "region": "W1",
             "year": 2025,
             "value": 12
           }
@@ -125,7 +125,7 @@
           {
             "tech": "E1",
             "comm": "ELC",
-            "region": "R1",
+            "region": "W1",
             "year": 2025,
             "value": 12
           }
@@ -144,7 +144,7 @@
           {
             "tech": "E1",
             "comm": "PRM",
-            "region": "R1",
+            "region": "W1",
             "year": 2025,
             "value": 12
           }
@@ -163,7 +163,7 @@
           {
             "sup": "SUP_PRM",
             "comm": "PRM",
-            "region": "R1",
+            "region": "W1",
             "year": 2025,
             "value": 12
           }
@@ -181,19 +181,19 @@
         "annual_region": [
           {
             "comm": "ELC",
-            "region": "R1",
+            "region": "C1",
             "year": 2025,
             "value": 4
           },
           {
             "comm": "ELC",
-            "region": "R2",
+            "region": "W1",
             "year": 2025,
             "value": 4
           },
           {
             "comm": "ELC",
-            "region": "R3",
+            "region": "W2",
             "year": 2025,
             "value": 4
           }
@@ -208,8 +208,8 @@
       }
     },
     "captured": {
-      "date": "2026-08-25",
-      "version": "0.87.5.9000",
+      "date": "2026-09-25",
+      "version": "0.90.0.9003",
       "solver": "glpk"
     }
   },
@@ -220,7 +220,7 @@
         "annual_region": [
           {
             "tech": "E1",
-            "region": "R1",
+            "region": "W1",
             "year": 2025,
             "value": 4
           }
@@ -238,7 +238,7 @@
           {
             "tech": "E1",
             "comm": "ELC",
-            "region": "R1",
+            "region": "W1",
             "year": 2025,
             "value": 4
           }
@@ -257,7 +257,7 @@
           {
             "tech": "E1",
             "comm": "PRM",
-            "region": "R1",
+            "region": "W1",
             "year": 2025,
             "value": 4
           }
@@ -276,14 +276,14 @@
           {
             "sup": "SUP_PRM_CLS1",
             "comm": "PRM",
-            "region": "R1",
+            "region": "W1",
             "year": 2025,
             "value": 2
           },
           {
             "sup": "SUP_PRM_CLS2",
             "comm": "PRM",
-            "region": "R1",
+            "region": "W1",
             "year": 2025,
             "value": 2
           }
@@ -307,7 +307,7 @@
         "annual_region": [
           {
             "comm": "ELC",
-            "region": "R1",
+            "region": "W1",
             "year": 2025,
             "value": 4
           }
@@ -322,8 +322,8 @@
       }
     },
     "captured": {
-      "date": "2026-08-25",
-      "version": "0.87.5.9000",
+      "date": "2026-09-25",
+      "version": "0.90.0.9003",
       "solver": "glpk"
     }
   },
@@ -334,7 +334,7 @@
         "annual_region": [
           {
             "tech": "ESUN",
-            "region": "R1",
+            "region": "W1",
             "year": 2025,
             "value": 8
           }
@@ -352,7 +352,7 @@
           {
             "tech": "ESUN",
             "comm": "ELC",
-            "region": "R1",
+            "region": "W1",
             "year": 2025,
             "value": 4
           }
@@ -371,7 +371,7 @@
           {
             "tech": "ESUN",
             "comm": "SUN",
-            "region": "R1",
+            "region": "W1",
             "year": 2025,
             "value": 4
           }
@@ -390,7 +390,7 @@
           {
             "sup": "RES_SUN",
             "comm": "SUN",
-            "region": "R1",
+            "region": "W1",
             "year": 2025,
             "value": 4
           }
@@ -408,7 +408,7 @@
         "annual_region": [
           {
             "comm": "ELC",
-            "region": "R1",
+            "region": "W1",
             "year": 2025,
             "value": 4
           }
@@ -423,8 +423,8 @@
       }
     },
     "captured": {
-      "date": "2026-08-25",
-      "version": "0.87.5.9000",
+      "date": "2026-09-25",
+      "version": "0.90.0.9003",
       "solver": "glpk"
     }
   },
@@ -435,7 +435,7 @@
         "annual_region": [
           {
             "tech": "E1",
-            "region": "R1",
+            "region": "W1",
             "year": 2025,
             "value": 4
           }
@@ -453,7 +453,7 @@
           {
             "tech": "E1",
             "comm": "ELC",
-            "region": "R1",
+            "region": "W1",
             "year": 2025,
             "value": 4
           }
@@ -472,7 +472,7 @@
           {
             "tech": "E1",
             "comm": "PRM",
-            "region": "R1",
+            "region": "W1",
             "year": 2025,
             "value": 4
           }
@@ -491,7 +491,7 @@
           {
             "sup": "SUP_PRM",
             "comm": "PRM",
-            "region": "R1",
+            "region": "W1",
             "year": 2025,
             "value": 4
           }
@@ -509,7 +509,7 @@
         "annual_region": [
           {
             "comm": "ELC",
-            "region": "R1",
+            "region": "W1",
             "year": 2025,
             "value": 4
           }
@@ -524,8 +524,8 @@
       }
     },
     "captured": {
-      "date": "2026-08-25",
-      "version": "0.87.5.9000",
+      "date": "2026-09-25",
+      "version": "0.90.0.9003",
       "solver": "glpk"
     }
   }

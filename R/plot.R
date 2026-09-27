@@ -1213,9 +1213,9 @@ autoplot.constraint <- function(object, year = NULL, interpolate = TRUE, ...) {
 # Calendar heatmap --------------------------------------------------------------
 # Lay timeslice-indexed values on a 2-D grid whose axes follow the calendar: the
 # finest timeframe -> y, the next -> x, any coarser level(s) -> facets. The layout
-# is read from a `calendar` object's timetable (works for any calendar) or, when
-# only timeslice names of a numeric format are available (d365_h24, m12_h24, ...), by
-# decomposing them with tsl2yday()/tsl2hour()/tsl2month()/tsl2year().
+# is read from a `calendar` object's timetable (works for any calendar), or from
+# the calendar a name such as "d365_h24" resolves to, via timescales::tsl2yday()
+# and friends. The timeslice names themselves are never parsed.
 
 .days_before_month <- c(0, 31, 59, 90, 120, 151, 181, 212, 243, 273, 304, 334)
 
@@ -1253,19 +1253,33 @@ autoplot.constraint <- function(object, year = NULL, interpolate = TRUE, ...) {
     tt  <- tt[!duplicated(tt$timeslice), c("timeslice", lev), drop = FALSE]
     df  <- merge(df, tt, by = "timeslice", all.x = TRUE)
     levels_ord <- lev                              # timetable columns are coarse->fine
-  } else {
-    fmt <- if (is.character(calendar)) calendar else tsl_guess_format(df$timeslice)
-    if (is.null(fmt)) {
-      stop("Could not determine the calendar layout. Pass a `calendar` object, ",
-           "or a format string such as \"d365_h24\".", call. = FALSE)
+    # Faceting by month over a calendar that has no MONTH column: the calendar
+    # derives it. Without this the request was silently ignored and every
+    # timeslice landed in one panel.
+    if (identical(facet, "month") && !("month" %in% names(df))) {
+      cal <- .ts_calendar(calendar)
+      mon <- if (is.null(cal)) NULL else tryCatch(
+        timescales::tsl2month(df$timeslice, cal), error = function(e) NULL)
+      if (!is.null(mon) && !all(is.na(mon))) {
+        df$month <- mon
+        levels_ord <- c("month", setdiff(levels_ord, "month"))
+      }
     }
-    if (grepl("y", fmt)) df$year  <- tsl2year(df$timeslice, return.null = FALSE)
-    if (grepl("m", fmt)) df$month <- tsl2month(df$timeslice, format = fmt)
-    if (grepl("d", fmt)) df$yday  <- tsl2yday(df$timeslice)
-    if (grepl("h", fmt)) df$hour  <- tsl2hour(df$timeslice)
+  } else {
+    cal <- .ts_calendar(calendar)
+    if (is.null(cal)) {
+      stop("`calendar` is required: the timeslice layout is read from the ",
+           "calendar, not guessed from the timeslice names. Pass a `calendar` ",
+           "object, or the name of one such as \"d365_h24\".", call. = FALSE)
+    }
+    tfs <- timescales::calendar_timeframes(cal)
+    if ("YDAY"  %in% tfs) df$yday  <- timescales::tsl2yday(df$timeslice, cal)
+    if ("HOUR"  %in% tfs) df$hour  <- timescales::tsl2hour(df$timeslice, cal)
+    if ("MONTH" %in% tfs) df$month <- timescales::tsl2month(df$timeslice, cal)
     # Facet by month over a day-of-year format -> split yday into month + mday.
+    # MONTH is not a timeframe of such a calendar; the calendar derives it.
     if (identical(facet, "month") && !("month" %in% names(df)) && "yday" %in% names(df)) {
-      df$month <- tsl2month(df$timeslice, format = fmt)
+      df$month <- timescales::tsl2month(df$timeslice, cal)
     }
     if ("yday" %in% names(df) && "month" %in% names(df) &&
         (identical(facet, "month") || !("hour" %in% names(df)))) {
@@ -1317,8 +1331,8 @@ autoplot.constraint <- function(object, year = NULL, interpolate = TRUE, ...) {
 #'   named numeric vector (names are timeslices), or a `calendar` object (then the
 #'   timeslice `share` — or `value` column — is shown).
 #' @param calendar A `calendar` object giving the layout (matched to `x` by
-#'   timeslice), or a format string (e.g. `"d365_h24"`). If `NULL`, the format is
-#'   guessed from the timeslice names with [tsl_guess_format()].
+#'   timeslice), or the name of one (e.g. `"d365_h24"`). Required: the layout is
+#'   read from the calendar, never guessed from the timeslice names.
 #' @param value Name of the value column in `x` (defaults to the single numeric
 #'   column, or `share` for a calendar).
 #' @param facet Optional timeframe level(s) to facet by. `"month"` over a
@@ -1396,8 +1410,9 @@ plot_heatmap <- function(object, calendar = NULL, value = NULL, facet = NULL,
 #'   facets.
 #' @param palette Viridis color option for the heatmap fill.
 #' @param datetime Logical (line/area only). If `TRUE`, place the profile on a
-#'   real datetime axis via [tsl2dtm()]; if the timeslice type is not yet supported
-#'   the categorical axis is kept (with a warning).
+#'   real datetime axis via [timescales::tsl2dtm()], which needs both a
+#'   `calendar` and a `year` column; without them the categorical axis is kept
+#'   (with a warning).
 #' @param region Which regions to draw. `NULL` (default) draws them all. A
 #'   character vector names them; a single number takes that many, in the order
 #'   they appear. Useful on converted continental models, where a weather factor
@@ -1518,13 +1533,18 @@ plot_weather <- function(object, style = c("heatmap", "line", "area"),
     cfac   <- pr$facet
   }
 
-  # Optional real datetime axis for line/area via tsl2dtm(); keep the categorical
-  # axis (with a warning) when the timeslice type is not yet supported.
+  # Optional real datetime axis for line/area. Timeslice labels carry no year,
+  # so this needs the data's `year` column as well as the calendar.
   if (isTRUE(datetime) && style != "heatmap") {
-    dt <- tryCatch(tsl2dtm(as.character(d$timeslice)), error = function(e) NULL)
+    cal <- .ts_calendar(calendar)
+    yr  <- if ("year" %in% names(d)) suppressWarnings(as.integer(d$year)) else NULL
+    dt <- if (is.null(cal) || is.null(yr) || anyNA(yr)) NULL else tryCatch(
+      timescales::tsl2dtm(as.character(d$timeslice), cal, year = yr),
+      error = function(e) NULL)
     if (is.null(dt) || all(is.na(dt))) {
-      warning("tsl2dtm() could not convert these timeslices to a datetime axis; ",
-              "keeping the categorical timeslice axis.", call. = FALSE)
+      warning("could not place these timeslices on a datetime axis (it needs ",
+              "a calendar and a year); keeping the categorical timeslice axis.",
+              call. = FALSE)
     } else {
       d$.dtm <- dt
       fine <- ".dtm"; coarse <- NULL      # one continuous series per panel
@@ -1694,8 +1714,8 @@ autoplot.weather <- function(object, style = c("heatmap", "line", "area"),
 
 # Trade route map --------------------------------------------------------------
 # A trade object stores inter-regional routes (src -> dst) but no geometry, so
-# the caller supplies a `map` (an sf object carrying `region` + `x`/`y` centroid
-# columns + polygon geometry, e.g. one of `topia$map`). Routes are drawn as
+# the caller supplies a `map` (an sf object carrying `region` + polygon
+# geometry, or a Geoscale, e.g. one of `topia$geoscales`). Routes are drawn as
 # arrows between region centroids over the region polygons.
 
 # Normalise `object` to a list of trade objects (single trade, list, or a
@@ -1720,12 +1740,13 @@ autoplot.weather <- function(object, style = c("heatmap", "line", "area"),
 #' no geometry, so the geometry comes either from the model's geoscale (see
 #' [setGeoscale()]) or from a `map` supplied by the caller — an `sf` object with
 #' `region`, `x`, `y` (centroid) columns and polygon `geometry`, such as one of
-#' the `topia$map` layouts (`squares`, `honeycomb`, `island`, `continent`).
+#' the `topia$geoscales` layouts (`squares`, `honeycomb`, `island`,
+#' `continent`).
 #'
 #' @param object A `trade`, a list of `trade` objects, or a `repository`,
 #'   `model` or `scenario` (whose trade objects are all drawn).
 #' @param map An `sf`/data.frame with `region`, `x`, `y` and polygon `geometry`
-#'   (e.g. `topia$map$honeycomb`), or a `geoscales::Geoscale`. When `NULL`, the
+#'   or a `geoscales::Geoscale` (e.g. `topia$geoscales$honeycomb`). When `NULL`, the
 #'   geoscale attached to `object` is used. Region polygons need `sf`; without
 #'   it, only centroids and routes are drawn.
 #' @param labels Logical; label region centroids with their names (default `TRUE`).
@@ -1741,19 +1762,18 @@ autoplot.weather <- function(object, style = c("heatmap", "line", "area"),
 #' labels are drawn as `sf` layers rather than raw `x`/`y` ones. `geom_sf()`
 #' installs a `coord_sf()` that reprojects the polygons but would leave a
 #' `geom_segment()` untransformed, detaching every route from its regions. Maps
-#' with no CRS — including the reference `topia$map` layouts — take the plain
+#' with no CRS — including the reference TOPIA layouts — take the plain
 #' cartesian path, which is correct for them.
 #'
 #' @export
 #' @examples
 #' \dontrun{
 #' TRD <- newTrade("TRD_ELC", commodity = "ELC",
-#'   routes = data.frame(src = c("R1", "R2", "R3"), dst = c("R2", "R7", "R7")))
-#' autoplot(TRD, map = topia$map$honeycomb)
+#'   routes = data.frame(src = c("W1", "W2", "C1"), dst = c("W2", "C5", "C5")))
+#' autoplot(TRD, map = topia$geoscales$honeycomb)
 #'
-#' # or from a geoscale, at any level
-#' plot_trade_map(TRD, map = topia_geoscale())
-#' plot_trade_map(TRD, map = topia_geoscale(), level = "zone")
+#' # a geoscale can be drawn at any level
+#' plot_trade_map(TRD, map = topia$geoscales$honeycomb, level = "zone")
 #' }
 plot_trade_map <- function(object, map = NULL, labels = TRUE,
                            route_color = "steelblue", level = NULL, ...) {
@@ -1764,7 +1784,7 @@ plot_trade_map <- function(object, map = NULL, labels = TRUE,
   if (is.null(map)) {
     stop("plot_trade_map: pass a `map` (an sf object with `region`/`x`/`y` and ",
          "polygon geometry, or a `geoscales::Geoscale`), e.g. ",
-         "`topia$map$honeycomb`.", call. = FALSE)
+         "`topia$geoscales$honeycomb`.", call. = FALSE)
   }
   # Keep the geoscale: when a coarser level is drawn, the route endpoints have
   # to be lifted to it too, or nothing will match the map.
@@ -1906,7 +1926,20 @@ autoplot.trade <- function(object, map = NULL, ...) {
 # given centroids), or anything already in that shape.
 #' @noRd
 .trade_map_normalise <- function(map, level = NULL) {
-  if (!is_geoscale(map)) return(map)
+  if (!is_geoscale(map)) {
+    # A plain `sf` needs `x`/`y` label anchors. TOPIA used to ship them as
+    # columns; since 0.91 the layouts live inside `topia$geoscales`, so derive
+    # them from the polygons when they are absent -- same rule as the geoscale
+    # path below.
+    if (inherits(map, "sf") && !all(c("x", "y") %in% names(map))) {
+      check_package("sf")
+      xy <- sf::st_coordinates(suppressWarnings(sf::st_point_on_surface(
+        sf::st_geometry(map))))
+      map$x <- xy[, 1]
+      map$y <- xy[, 2]
+    }
+    return(map)
+  }
   check_package("geoscales")
   check_package("sf")
   level <- level %||% .geo_default_level(map)

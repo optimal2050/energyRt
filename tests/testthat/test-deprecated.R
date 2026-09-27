@@ -81,8 +81,10 @@ test_that("the TOPIA satellite datasets are gone, their content is not", {
   expect_equal(intersect(sats, utils::data(package = "energyRt")$results[, "Item"]),
                character())
   expect_equal(intersect(sats, getNamespaceExports("energyRt")), character())
-  # ... and present in the combined list, which is where they went
-  expect_true(all(c("map", "geo", "weather", "demand", "stock", "modules") %in%
+  # ... and present in the combined list, which is where they went.
+  # `map`/`geo` left that list again in 0.91: the geometry and the hierarchy
+  # both live inside the `geoscales` entry now.
+  expect_true(all(c("geoscales", "weather", "demand", "stock", "modules") %in%
                     names(topia)))
   expect_s3_class(topia$weather, "data.frame")
   expect_s3_class(topia$demand, "data.frame")

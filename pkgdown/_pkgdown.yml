@@ -81,6 +81,8 @@ navbar:
         href: articles/topia-build.html
       - text: "TOPIA II: running scenarios"
         href: articles/topia-use.html
+      - text: "TOPIA III: multi-level region"
+        href: articles/region-clustering.html
       - text: Workflow
         href: articles/workflow.html
       - text: Scenario management
@@ -105,7 +107,7 @@ redirects:
   - ["articles/utopia-use.html", "articles/topia-use.html"]
   - ["articles/utopia.html", "articles/topia-build.html"]
   - ["reference/utopia.html", "reference/topia.html"]
-  - ["reference/utopia_geoscale.html", "reference/topia_geoscale.html"]
+  - ["reference/utopia_geoscale.html", "reference/topia.html"]
   - ["reference/utopia_profiles.html", "reference/topia_profiles.html"]
 
 reference:
@@ -160,6 +162,7 @@ reference:
   - newHorizon
   - calendars
   - horizons
+  - tsl_sets
   - make_timetable
   - autoplot.calendar
   - autoplot.horizon
@@ -171,7 +174,8 @@ reference:
     coarse balances roll up without a `trade` route for every pair.
   contents:
   - setGeoscale,config-method
-  - topia_geoscale
+  - cluster_model_regions
+  - cluster_tech_groups
   - check_geoscale_regions
   - plot_geoscale
   - get_region
@@ -420,8 +424,6 @@ reference:
   - renameSets
   - revalueSets
   - register_weather_transform
-  - hour2HOUR
-  - yday2YDAY
   - print,modelData-method
   - summary,model-method
 

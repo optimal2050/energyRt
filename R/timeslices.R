@@ -1,37 +1,13 @@
 # timeslices.R ###############################################################
 #
-# The timeslice <-> datetime decomposition helpers. The time dimension is
-# `timescales`' domain, so from v0.90 `tsl2dtm()`, `tsl2year()`, `tsl2yday()`,
-# `tsl2hour()`, `tsl2month()` and `tsl_guess_format()` are NOT exported: they
-# stay as internals because `plot.R` and `storage_duration.R` still decompose
-# timeslice labels, and timescales has no equivalent yet (it exports the other
-# direction, `datetime_to_timeslice()`). When it grows them, these go and the
-# call sites move over.
+# Calendar datasets and the chronological walk over a solved scenario.
+#
+# The timeslice <-> datetime conversions moved to timescales on 2026-09-26
+# (see drafts/deprecated-timeslice-conversions-2026-09-26.R). They read the
+# timeframe off the CALENDAR now rather than parsing the label text, so they
+# take the calendar: timescales::tsl2hour(tsl, calendar). `.ts_calendar()`
+# below turns an energyRt calendar into the one they expect.
 
-#' Common formats of time-timeslices.
-#' @name tsl_formats
-#' @rdname timeslices
-#'
-#' @format A character vector with formats:
-#' \describe{
-#'   \item{d365}{daily time-timeslices, 365 a year (leap year's 366th day is disregarded)}
-#'   \item{d365_h24}{time timeslices with year-day numbers and hours, 8760 in total}
-#'   \item{...}{etc.}
-#' }
-"tsl_formats"
-
-# tsl_formats <- c(
-#   "d365", "d366",
-#   "d365_h24", "d366_h24",
-#
-#   "y_d365", "y_d366",
-#   "y_d365_h24", "y_d366_h24",
-#
-#   "m12_h24",
-#   "y_m12_h24"
-#
-# )
-# # save(tsl_formats, file = "data/tsl_formats.RData")
 
 #' Sets of the common formats with structure
 #'
@@ -120,367 +96,6 @@
 #' plot(horizons$Y2020_2060_by_5)
 "horizons"
 
-
-
-#' @title Convert date-time objects to time-timeslice
-#' @name dtm2tsl
-#'
-#' @param dtm vector of timepoints in Date format
-#' @param format character, format of the timeslices
-#' @param d366.as.na logical, if
-#'
-#' @rdname timeslices
-#'
-#' @return
-#' Character vector with time-timeslices names
-#' @export
-#'
-#' @examples
-#' dtm2tsl(lubridate::now())
-#' dtm2tsl(lubridate::ymd("2020-12-31"))
-#' dtm2tsl(lubridate::ymd("2020-12-31"), d366.as.na = FALSE)
-#' dtm2tsl(lubridate::now(tzone = "UTC"), format = "d365")
-#' dtm2tsl(lubridate::ymd("2020-12-31"), format = "d365")
-#' dtm2tsl(lubridate::ymd("2020-12-31"), format = "d365", d366.as.na = FALSE)
-#' dtm2tsl(lubridate::ymd("2020-12-31"), format = "d366")
-dtm2tsl <- function(dtm, format = "d365_h24", d366.as.na = grepl("d365", format)) {
-  stopifnot(is.timepoint(dtm))
-  if (format == "d365_h24" | format == "d366_h24") {
-    x <- paste0(
-      "d", formatC(yday(dtm), width = 3, flag = "0"), "_",
-      "h", formatC(hour(dtm), width = 2, flag = "0")
-    )
-  } else if (format == "d365" | format == "d366") {
-    x <- paste0("d", formatC(yday(dtm), width = 3, flag = "0"))
-  } else if (format == "y_d365_h24" | format == "y_d366_h24") {
-    x <- paste0(
-      "y", formatC(year(dtm), width = 4, flag = "0"), "_",
-      "d", formatC(yday(dtm), width = 3, flag = "0"), "_",
-      "h", formatC(hour(dtm), width = 2, flag = "0")
-    )
-  } else if (format == "m12_h24") {
-    x <- paste0(
-      "m", formatC(month(dtm), width = 2, flag = "0"), "_",
-      "h", formatC(hour(dtm), width = 2, flag = "0")
-    )
-  }
-  if (d366.as.na) {
-    x[grepl("d366", x)] <- NA
-  }
-  return(x)
-}
-
-
-# check
-if (F) {
-
-}
-
-#' Mapping function between time-timeslices and date-time
-#'
-#' This set of functions converts date-time objects to model's
-#' time-timeslices in a given format, and vice versa, maps
-#' time-timeslices to date-time, and extracts year, month,
-#' day of the year, hour.
-#'
-#' @name tsl2dtm
-#'
-#' @param tsl character vector with time-timeslices
-#' @param format character, format of the timeslices
-#' @param tmz time-zone
-#' @param year year, used when time-timeslices don't store year
-#' @param mday day of month, for time timeslices without the information
-#'
-#' @rdname timeslices
-#'
-#' @return
-#' Vector in Date-Time format
-#' @keywords internal
-#'
-#' @examples
-#' tsl <- c("y2007_d365_h15", NA, "d151_h22", "d001", "m10_h12")
-#' tsl2dtm(tsl[1])
-#' tsl2dtm(tsl[1:2])
-#' tsl2dtm(tsl[2])
-#' tsl2dtm(tsl[3])
-#' tsl2dtm(tsl[4])
-#' tsl2dtm(tsl[3], year = 2010)
-#' tsl2dtm(tsl[4], year = 1900)
-#' tsl2dtm(tsl[3:4], year = 1900)
-tsl2dtm <- function(tsl, format = tsl_guess_format(tsl), tmz = "UTC",
-                    year = NULL, mday = NULL) {
-  if (is.null(format)) {
-    return(NULL)
-  }
-  y <- NULL
-  m <- NULL
-  # w <- NULL
-  d <- NULL
-  h <- NULL
-  # A format this function has no branch for (e.g. "h24", a season x hour
-  # calendar) used to fall through to `return(dtm)` with `dtm` never assigned,
-  # so the caller got "object 'dtm' not found" instead of an answer. NULL is the
-  # same "cannot date this" signal the two early returns below already use.
-  dtm <- NULL
-  if (grepl("y", format)) y <- tsl2year(tsl)
-  if (grepl("m", format)) m <- tsl2month(tsl)
-  if (grepl("d", format)) d <- tsl2yday(tsl)
-  if (grepl("h", format)) h <- tsl2hour(tsl)
-
-  # year
-  if (is.null(y) || all(is.na(y))) {
-    if (is.null(year)) {
-      return(NULL)
-    } # not enough info to create Date object
-    if (length(year) == 1) {
-      y <- rep(year, length(tsl))
-    } else if (length(tsl) == length(year)) {
-      y <- as.integer(year)
-    } else {
-      stop("length of 'year' should be equal to 1 or to the length of 'tsl'")
-    }
-  }
-
-  if (format %in% c("d365_h24", "d366_h24", "y_d365_h24", "y_d366_h24")) {
-    # yday-based
-    dtm <- lubridate::ymd_h(paste0(y, "-01-01 0"), tz = tmz) + days(d - 1) + hours(h)
-  } else if (format %in% c("d365", "d366")) {
-    # yday, no-hours
-    dtm <- lubridate::ymd_h(paste0(y, "-01-01 0"), tz = tmz) + days(d - 1)
-  } else if (format %in% c("m12_h24", "y_m12_h24")) {
-    # month-based
-    if (is.null(mday)) {
-      return(NULL)
-    } # not enough info to create Date object
-    dtm <- lubridate::ymd_h(paste0(y, "-", m, "-", mday, " ", h), tz = tmz)
-  }
-  return(dtm)
-}
-
-
-# @name tsl2year
-# @rdname timeslices
-#' @describeIn tsl2dtm Extract year from time-timeslices
-#'
-#' @param return.null logical, valid for the cased then all values are NA, then NULL will be returned if return.null = TRUE,
-#'
-#' @return
-#' Integer vector of years, the same length as the input vector
-#'
-#' @keywords internal
-#'
-#' @examples
-#' tsl <- c("y2007_d365_h15", NA, "d151_h22", "d001", "m10_h12")
-#' tsl2year(tsl)
-tsl2year <- function(tsl, return.null = TRUE) {
-  # library(stringr)
-  y <- NULL
-  y <- str_extract(tsl, "y[0-9]++")
-  if (return.null) {
-    if (all(is.na(y))) {
-      return(NULL)
-    }
-  }
-  y <- str_sub(y, 2, 5)
-  y <- as.integer(y)
-  return(y)
-}
-
-# @name tsl2yday
-#' Mapping function between time-timeslices and day of the year
-#' @describeIn tsl2dtm Extract the day of the year from time-timeslices
-#'
-#' @param return.null logical, valid for the cased then all values are NA, then NULL will be returned if return.null = TRUE,
-#'
-#' @return
-#' Integer vector of days of the year, the same length as the input vector
-#' @keywords internal
-#'
-#' @examples
-#' tsl
-#' tsl2yday(tsl)
-tsl2yday <- function(tsl, return.null = TRUE) {
-  d <- str_extract(tsl, "d[0-9]++")
-  if (return.null) {
-    if (all(is.na(d))) {
-      return(NULL)
-    }
-  }
-  d <- str_sub(d, 2, 4)
-  d <- as.integer(d)
-  return(d)
-}
-
-#' Mapping function between time-timeslices and hour
-#' @describeIn tsl2dtm Extract hour from time-timeslices
-#'
-#' @param return.null logical, valid for the cased then all values are NA, then NULL will be returned if return.null = TRUE,
-#'
-#' @return
-#' Integer vector of hours, the same length as the input vector
-#' @keywords internal
-#'
-#' @examples
-#' tsl
-#' tsl2hour(tsl)
-tsl2hour <- function(tsl, return.null = TRUE, pattern = "h[0-9]++") {
-  h <- str_extract(tsl, pattern)
-  if (return.null) {
-    if (all(is.na(h))) {
-      return(NULL)
-    }
-  }
-  # replace non-numeric characters
-  h <- str_replace_all(h, "[^0-9.]", "")
-  h <- as.integer(h)
-  return(h)
-}
-
-#' Mapping function between time-timeslices and month
-#' @describeIn tsl2dtm Extract month from time-timeslices
-#'
-#' @param return.null logical, valid for the cased then all values are NA, then NULL will be returned if return.null = TRUE,
-#' @param tsl character vector with time timeslices
-#' @param format character, the time timeslices format
-#'
-#' @return
-#' Integer vector of months, the same length as the input vector
-#'
-#' @keywords internal
-#'
-#' @examples
-#' tsl2month(c("d001_h00", "d151_h22", "d365_h23"))
-#' tsl2month(c("m01_h12", "m05_h02", "m10_h01"))
-tsl2month <- function(tsl, format = tsl_guess_format(tsl), return.null = TRUE) {
-  if (grepl("m[0-9]+", format)) { # has month
-    m <- str_extract(tsl, "m[0-9]+")
-    if (return.null) {
-      if (all(is.na(m))) {
-        return(NULL)
-      }
-    }
-    m <- str_sub(m, 2, 3)
-  } else if (format == "d365_h24") {
-    # yday2month <- function(x) {
-    dy_int <- cumsum(
-      days_in_month(ymd("2001-01-15") + days(seq(0, 349, by = 30)))
-    )
-    yd <- tsl2yday(tsl)
-    m <- cut(yd, c(0, dy_int), labels = 1:12)
-    # }
-  } else {
-    return(NULL)
-  }
-  m <- as.integer(m)
-  return(m)
-}
-
-#' Guess format of time-timeslices
-#' @name tsl_guess_format
-#'
-#' @param tsl character vector of time-timeslice names.
-#'
-#' @return
-#' Character vector with the guessed format of the time-timeslices
-#' @keywords internal
-#'
-#' @examples
-#' tsl <- c("y2007_d365_h15", NA, "d151_h22", "d001", "m10_h12")
-#' tsl_guess_format(tsl)
-#' tsl_guess_format(tsl[1])
-#' tsl_guess_format(tsl[2])
-#' tsl_guess_format(tsl[3])
-#' tsl_guess_format(tsl[4])
-#' tsl_guess_format(tsl[5])
-tsl_guess_format <- function(tsl) {
-  y <- grepl("y[0-9]+", tsl)
-  ny <- sum(y, na.rm = TRUE)
-  m <- grepl("m[0-9]+", tsl)
-  nm <- sum(m, na.rm = TRUE)
-  d <- grepl("d[0-9]+", tsl)
-  nd <- sum(d, na.rm = TRUE)
-  h <- grepl("h[0-9]+", tsl)
-  nh <- sum(h, na.rm = TRUE)
-
-  ii <- !is.na(tsl)
-  if (!any(ii)) {
-    return(NULL)
-  }
-  jj <- y | m | d | h # check
-
-  format <- NULL
-  if (ny > 0) {
-    if (!all(y == jj)) {
-      return(NULL)
-    }
-    format <- "y"
-  }
-  if (nd > 0) {
-    if (!all(d == jj)) {
-      return(NULL)
-    }
-    dd <- ifelse(any(grepl("366", tsl[ii])), 366, 365)
-    format <- paste0(format, ifelse(!is.null(format), "_", ""), "d", dd)
-  }
-  if (nm > 0) {
-    if (!all(m == jj)) {
-      return(NULL)
-    }
-    # mm <- tsl2month(tsl[ii])
-    mm <- str_extract(tsl, "m[0-9]+")
-    mm <- as.integer(gsub("m", "", mm))
-    if (min(mm) < 1 | max(mm) > 12) {
-      return(NULL)
-    }
-    format <- paste0(format, ifelse(!is.null(format), "_", ""), "m", 12)
-  }
-  if (nh > 0) {
-    if (!all(h == jj)) {
-      return(NULL)
-    }
-    hh <- tsl2hour(tsl[ii])
-    if (min(hh, na.rm = TRUE) < 0 | max(hh, na.rm = TRUE) > 23) {
-      return(NULL)
-    }
-    format <- paste0(format, ifelse(!is.null(format), "_", ""), "h", 24)
-  }
-  return(format)
-}
-
-#' Convert hours (integer) values to HOUR set 'hNN'
-#'
-#' @param x integer vector, hours (for example, 0-23 for daily data, 0-167 for weekly data,
-#' etc.)
-#' @param width integer, width of the output string
-#' @param prefix character, prefix to add to the name, default is 'h'
-#' @param flag character, flag to add to the name, default is '0'
-#'
-#' @return character vector of the same length as `x` with formatted hours to
-#' be used in the HOUR set.
-#' @export
-#'
-#' @examples
-#' hour2HOUR(0:23)
-hour2HOUR <- function(x, width = 2, prefix = "h", flag = "0") {
-  paste0(prefix, formatC(x, width = width, flag = flag))
-}
-
-#' Convert year-days to YDAY set 'dNNN'
-#'
-#' @param x integer vector, year-days (for example, 1-365 for annual data)
-#' @param width integer, width of the output string, default is 3
-#' @param prefix character, prefix to add to the name, default is 'd'
-#' @param flag character, flag to add to the name, default is '0'
-#'
-#' @return character vector of the same length as `x` with formatted year-days to
-#' be used in the YDAY set.
-#' @export
-#'
-#' @examples
-#' yday2YDAY(1:365)
-yday2YDAY <- function(x, width = 3, prefix = "d", flag = "0") {
-  paste0(prefix, formatC(x, width = width, flag = flag))
-}
 
 
 # ---------------------------------------------------------------------------
@@ -728,4 +343,75 @@ print.timeslice_walk <- function(x, ...) {
   cat("  tables: ", paste(x$tables, collapse = ", "), "\n", sep = "")
   cat("  $next_slice() for the next step, $reset() to start over\n")
   invisible(x)
+}
+
+# --------------------------------------------------------------------------
+# The bridge to timescales
+# --------------------------------------------------------------------------
+
+#' An energyRt calendar as a timescales Calendar
+#'
+#' The timeslice conversions live in timescales and take a `Calendar`.
+#' `@timetable` already IS a timescales leaftable -- one row per finest
+#' timeslice, one column per timeframe, plus `share`/`weight` -- so the
+#' conversion is a relabelling, not a rebuild.
+#'
+#' Building from the table rather than looking the name up in timescales'
+#' catalog matters: the sampled and subset calendars (`d365_h24_1dps`,
+#' `m12_h24_subset_4months`, ...) are constructed here and have no entry there.
+#' `ANNUAL` is dropped because it is a single-member column, not a timeframe
+#' the conversions can read anything off.
+#'
+#' @param calendar An energyRt [calendar][class-calendar], or `NULL`.
+#' @return A `timescales::Calendar`, or `NULL` when the calendar carries no
+#'   timeframe below `ANNUAL`.
+#' @keywords internal
+#' @noRd
+.ts_calendar <- function(calendar) {
+  if (is.null(calendar)) return(NULL)
+  if (inherits(calendar, "timescales::Calendar")) return(calendar)
+  if (is.character(calendar) && length(calendar) == 1L) {
+    return(tryCatch(timescales::calendar(calendar), error = function(e) NULL))
+  }
+  if (!methods::is(calendar, "calendar")) return(NULL)
+  tt <- as.data.frame(calendar@timetable)
+  tfs <- setdiff(names(tt), c("timeslice", "share", "weight", "ANNUAL"))
+  if (length(tfs) == 0L) return(NULL)
+  keep <- tt[, c(tfs, "timeslice", "share", "weight"), drop = FALSE]
+  # energyRt names timeframes freely -- `DAY` is common here and is timescales'
+  # `YDAY`. Rename by what the labels ARE rather than by a synonym table, so a
+  # column named anything at all still lands on the right timeframe.
+  core <- vapply(tfs, function(f) .core_timeframe(unique(keep[[f]])),
+                 character(1))
+  named <- !is.na(core) & core != tfs & !core %in% tfs
+  if (any(named)) {
+    names(keep)[match(tfs[named], names(keep))] <- core[named]
+    tfs[named] <- core[named]
+  }
+  tryCatch(
+    timescales::calendar_from_leaftable(
+      keep, timeframes = tfs,
+      name = calendar@name,
+      year_fraction = calendar@year_fraction),
+    error = function(e) NULL)
+}
+
+#' The core timeframe a set of timeslice labels belongs to
+#'
+#' Asks the token registry which vocabulary contains them, preferring an exact
+#' match over the smallest superset. `NA` when none does.
+#' @noRd
+.core_timeframe <- function(labels) {
+  labels <- unique(labels[!is.na(labels)])
+  if (!length(labels)) return(NA_character_)
+  best <- NA_character_
+  best_n <- Inf
+  for (tok in timescales::list_calendar_tokens()) {
+    e <- timescales::get_calendar_token(tok)
+    vocab <- e$expand()$label
+    if (!all(labels %in% vocab)) next
+    if (setequal(vocab, labels)) return(e$timeframe)
+    if (length(vocab) < best_n) { best <- e$timeframe; best_n <- length(vocab) }
+  }
+  best
 }

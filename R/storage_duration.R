@@ -198,23 +198,28 @@ storage_duration <- function(scen,
     error = function(e) NULL)
   fy <- if (is.null(fy) || !length(fy)) NULL else dplyr::bind_rows(fy)
 
-  fmt <- tsl_guess_format(unique(lev$timeslice))
-  if (is.null(fmt)) {
-    stop("Cannot read a calendar format from the timeslice names, so the level ",
-         "cannot be put in time order. `storage_duration()` needs a dated ",
-         "calendar (day/hour timeslices).", call. = FALSE)
+  # The scenario's own calendar, not a format read back out of the timeslice
+  # names. `@settings` and `@model@config` both carry one depending on how the
+  # scenario was built.
+  ecal <- tryCatch(scen@settings@calendar, error = function(e) NULL) %||%
+    tryCatch(scen@model@config@calendar, error = function(e) NULL)
+  cal_name <- if (methods::is(ecal, "calendar")) ecal@name else "<none>"
+  cal <- .ts_calendar(ecal)
+  if (is.null(cal)) {
+    stop("`storage_duration()` needs the scenario's calendar to put storage ",
+         "levels in time order, and this scenario carries none.", call. = FALSE)
   }
 
   keys <- c("stg", "comm", "region", "year")
   keys <- intersect(keys, names(lev))
   out <- lapply(split(lev, lev[keys], drop = TRUE), function(g) {
     if (!NROW(g)) return(NULL)
-    # `mday` matters for month-based calendars (`m12_h24`): without it
-    # `tsl2dtm()` returns NULL, every group below was dropped, and the function
-    # returned zero rows with no message -- an empty chart and nothing to say
-    # why. The 1st is arbitrary but monotonic, which is all the ordering needs.
-    dtm <- tsl2dtm(g$timeslice, format = fmt, year = g$year, tmz = tmz,
-                   mday = 1L)
+    # tsl2dtm() returns the instant each timeslice STARTS at, so a month-based
+    # calendar (`m12_h24`) lands on the 1st -- arbitrary but monotonic, which
+    # is all the ordering needs.
+    dtm <- tryCatch(
+      timescales::tsl2dtm(g$timeslice, cal, year = g$year, tz = tmz),
+      error = function(e) NULL)
     if (is.null(dtm) || all(is.na(dtm))) return(NULL)
     g$datetime <- dtm
     g <- g[order(g$datetime), , drop = FALSE]
@@ -265,8 +270,8 @@ storage_duration <- function(scen,
     # Returning `empty` here is how this looked like "storage_duration() gives
     # an empty figure" with nothing to go on; say what could not be done.
     stop("`storage_duration()` could not place the storage level in time. ",
-         "The timeslice format read as \"", paste(fmt, collapse = ", "),
-         "\", which carries no date. A dated calendar (day/hour, e.g. ",
+         "The scenario's calendar \"", cal_name,
+         "\" carries no date. A dated calendar (day/hour, e.g. ",
          "`calendars$d365_h24`, or month/hour) is required.", call. = FALSE)
   }
   out$duration <- factor(out$duration, levels = labels, ordered = TRUE)

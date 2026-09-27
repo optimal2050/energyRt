@@ -176,6 +176,14 @@
 #'   (default) returns the result object; `TRUE` (= `"levcost"`), `"npv"` or
 #'   `"components"` returns that per-variant table instead. Passing an existing
 #'   result — `levcost(lc, by_variant = "npv")` — extracts without re-solving.
+#' @param by_region `FALSE` (default) prices a process once, in one of the
+#'   regions it spans. `TRUE` prices it once PER region and returns a
+#'   `levcost_list` named by region — the ladder a technology whose costs or
+#'   efficiency vary by region actually has. levcost() builds a single-region
+#'   mini-model, so without this a multi-region process reports only its first
+#'   region's cost. On a container the entries are named `<process>@<region>`.
+#'   A `trade` is unaffected: it spans two regions by construction and is
+#'   priced across both at once.
 #' @export
 #'
 #' @include solve.R
@@ -212,11 +220,55 @@ setOldClass(c("levcost", "list"))
      paste0(.path_slug(name), "_", format(Sys.time(), "%Y%m%d%H%M%OS3")))
 }
 
+# Price a process once PER REGION it spans.
+#
+# levcost() builds a single-region mini-model whose region is synthetic
+# ("REGION"), so anything region-aware is invisible to it: a technology whose
+# parameters vary by region is priced at ONE of them, and a cluster scoped to a
+# region matches none. Pricing region by region restores both -- each run sees
+# that region's parameters and the clusters that exist there.
+#
+# Returns a `levcost_list` named by region, the class the container path
+# already returns, so print / autoplot / report handle it unchanged.
+#' @noRd
+.levcost_each_region <- function(price_one, regions, what = "process") {
+  regions <- unique(regions[!is.na(regions) & nzchar(regions)])
+  if (length(regions) == 0L) {
+    stop("`by_region = TRUE` needs a ", what, " that names its regions; this ",
+         "one names none, so there is nothing to price per region.",
+         call. = FALSE)
+  }
+  out <- lapply(regions, function(r)
+    tryCatch(price_one(r),
+             error = function(e) {
+               warning("levcost(): region '", r, "' could not be priced: ",
+                       conditionMessage(e), call. = FALSE)
+               NULL
+             }))
+  names(out) <- regions
+  out <- Filter(Negate(is.null), out)
+  class(out) <- c("levcost_list", "list")
+  out
+}
+
 setMethod("levcost", "technology",
-  function(object, comm, name, by_variant = FALSE, ...) {
+  function(object, comm, name, by_variant = FALSE, by_region = FALSE, ...) {
     comm_arg <- if (missing(comm)) NULL else comm
+    dots <- list(...)
+    if (isTRUE(by_region)) {
+      return(.levcost_each_region(
+        function(r) {
+          d <- dots
+          d$region <- r
+          res <- .levcost_with_cache("technology", object,
+                                     c(list(comm = comm_arg), d),
+                                     levcost_technology_)
+          if (isFALSE(by_variant)) res else .levcost_by_variant(res, by_variant)
+        },
+        .levcost_tech_regions(object), what = "technology"))
+    }
     res <- .levcost_with_cache("technology", object,
-                               c(list(comm = comm_arg), list(...)),
+                               c(list(comm = comm_arg), dots),
                                levcost_technology_)
     if (isFALSE(by_variant)) res else .levcost_by_variant(res, by_variant)
   })
@@ -550,7 +602,7 @@ setMethod("levcost", "trade", function(object, comm, name, ...) {
 }
 .levcost_container <- function(container, name, comm = NULL, autocomplete = FALSE,
                                fuel_costs = NULL, verbose = TRUE,
-                               classes = NULL, ...) {
+                               classes = NULL, by_region = FALSE, ...) {
   # No name: price every process the container holds that levcost() can price.
   # `classes` narrows it -- classes = "technology" is exactly the historical
   # single-class behaviour, one process at a time.
@@ -565,7 +617,8 @@ setMethod("levcost", "trade", function(object, comm, name, ...) {
       tryCatch(.levcost_container(container, name = p$name, comm = comm,
                                   autocomplete = autocomplete,
                                   fuel_costs = fuel_costs, verbose = verbose,
-                                  classes = p$class, ...),
+                                  classes = p$class, by_region = by_region,
+                                  ...),
                error = function(e) {
                  warning("levcost(): ", p$class, " '", p$name, "' could not be ",
                          "priced: ", conditionMessage(e), call. = FALSE)
@@ -573,6 +626,20 @@ setMethod("levcost", "trade", function(object, comm, name, ...) {
                }))
     names(out) <- vapply(procs, `[[`, character(1), "name")
     out <- Filter(Negate(is.null), out)
+    # `by_region` makes each entry a per-region list; flatten to one level so
+    # the result stays a plain `levcost_list`, keyed `<process>@<region>`
+    if (isTRUE(by_region)) {
+      flat <- list()
+      for (nm in names(out)) {
+        el <- out[[nm]]
+        if (inherits(el, "levcost_list")) {
+          for (r in names(el)) flat[[paste0(nm, "@", r)]] <- el[[r]]
+        } else {
+          flat[[nm]] <- el
+        }
+      }
+      out <- flat
+    }
     # `levcost_list` is the class the VARIANT path already returns, so its
     # print / autoplot / plot methods and report()'s handling of a multi-result
     # apply to this unchanged
@@ -613,11 +680,38 @@ setMethod("levcost", "trade", function(object, comm, name, ...) {
   # its data to it (a multi-region kit tech would otherwise reference regions the
   # mini-model has not declared, or mismatch demand rows)
   reg1 <- dots$region
+  tr <- .levcost_tech_regions(tech)
+  # `by_region`: one mini-model per region the process spans, rather than one
+  # for its first region. A trade is excluded -- it spans two regions by
+  # construction and is priced across both at once.
+  if (isTRUE(by_region) && !identical(cls, "trade")) {
+    rr <- if (is.null(reg1)) tr else intersect(as.character(reg1), tr)
+    if (length(rr) > 1L) {
+      return(.levcost_each_region(
+        function(r) {
+          d <- dots
+          d$region <- r
+          do.call(.levcost_container,
+                  c(list(container = container, name = name, comm = comm,
+                         autocomplete = autocomplete, fuel_costs = fuel_costs,
+                         verbose = verbose, classes = classes,
+                         by_region = FALSE), d))
+        },
+        rr, what = class(container)[1]))
+    }
+  }
   if (is.null(reg1)) {
-    tr <- .levcost_tech_regions(tech)
     reg1 <- if (length(tr) > 0) tr[1] else NULL
   } else {
-    reg1 <- reg1[1]
+    # The container methods pass the WHOLE region set (a model hands over
+    # `cfg@region`), so taking `reg1[1]` would price EVERY process as if it
+    # lived in the container's first region. One that does not then has its
+    # region-keyed rows -- invcost, fixom, ceff -- subset away below, and the
+    # result is a levelized cost carrying fuel only: about 25x too cheap, with
+    # no warning. Pick a region the process actually lives in.
+    hit <- intersect(as.character(reg1), tr)
+    reg1 <- if (length(hit) > 0) hit[1] else
+      if (length(tr) > 0) tr[1] else reg1[1]
   }
   # A trade spans two regions by construction and its costs are charged in
   # BOTH; subsetting it to one would silently halve the capital charge.
@@ -666,11 +760,13 @@ setMethod("levcost", "trade", function(object, comm, name, ...) {
 
 #' @rdname levcost
 setMethod("levcost", "repository",
-  function(object, comm, name, by_variant = FALSE, ...) {
+  function(object, comm, name, by_variant = FALSE, by_region = FALSE, ...) {
     comm_arg <- if (missing(comm)) NULL else comm
     name_arg <- if (missing(name)) NULL else name
-    res <- .levcost_container(object, name = name_arg, comm = comm_arg, ...)
-    if (isFALSE(by_variant)) res else .levcost_by_variant(res, by_variant)
+    res <- .levcost_container(object, name = name_arg, comm = comm_arg,
+                              by_region = by_region, ...)
+    if (isFALSE(by_variant) || inherits(res, "levcost_list")) res else
+      .levcost_by_variant(res, by_variant)
   })
 
 # The scalar rate a levelised cost is annuitised at: the cost of CAPITAL, not
@@ -688,7 +784,7 @@ setMethod("levcost", "repository",
 
 #' @rdname levcost
 setMethod("levcost", "model",
-          function(object, comm, name, by_variant = FALSE, ...) {
+          function(object, comm, name, by_variant = FALSE, by_region = FALSE, ...) {
   comm_arg <- if (missing(comm)) NULL else comm
   name_arg <- if (missing(name)) NULL else name
   cfg  <- object@config
@@ -711,8 +807,9 @@ setMethod("levcost", "model",
   res <- do.call(.levcost_container,
                  c(list(object, name = name_arg, comm = comm_arg,
                         calendar = cal, region = reg, horizon = hor,
-                        discount = disc), dots))
-  if (isFALSE(by_variant)) res else .levcost_by_variant(res, by_variant)
+                        discount = disc, by_region = by_region), dots))
+  if (isFALSE(by_variant) || inherits(res, "levcost_list")) res else
+    .levcost_by_variant(res, by_variant)
 })
 
 #' @rdname levcost

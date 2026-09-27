@@ -84,7 +84,7 @@ test_that("a table round-trips through the store with column classes intact", {
 test_that("a non-tabular object (Geoscale map) stores as rds", {
   skip_if_not_installed("geoscales")
   ds_local()
-  gs <- topia_geoscale()
+  gs <- topia$geoscales$honeycomb
   info <- save_dataset(gs, "topia_map", verbose = FALSE)
   expect_identical(info$kind, "object")
   expect_true(file.exists(fp(info$path, "payload.rds")))

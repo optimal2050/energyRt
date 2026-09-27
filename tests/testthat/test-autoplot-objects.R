@@ -112,14 +112,28 @@ test_that(".facet_cap keeps 16 panels and captions the rest", {
 })
 
 test_that("a 20-region weather heatmap builds with 16 panels", {
+  # The structured layout is read from the calendar, so one is passed and the
+  # timeslices are real d365_h24 labels. Without a calendar the timeslices are
+  # drawn in order and there is nothing to facet -- see the test below.
   w <- newWeather("WBIG", unit = "1",
     weather = data.frame(region = rep(paste0("R", 1:20), each = 2),
-                         timeslice = rep(c("s1_h01", "s1_h02"), 20),
+                         timeslice = rep(c("d001_h01", "d001_h02"), 20),
                          wval = runif(40)))
-  p <- ggplot2::autoplot(w)
+  p <- ggplot2::autoplot(w, calendar = calendars$d365_h24)
   b <- ggplot2::ggplot_build(p)
   expect_equal(length(unique(b$layout$layout$PANEL)), 16L)
   expect_match(p$labels$caption, "showing 16 of 20 panels")
+})
+
+test_that("without a calendar the layout degrades instead of guessing", {
+  # The timeslice names are never parsed, so labels no calendar defines get the
+  # plain in-order axis and say so. The old code read "s1_h01" as hour 1 and
+  # silently discarded the "s1".
+  w <- newWeather("WODD", unit = "1",
+    weather = data.frame(region = rep(paste0("R", 1:2), each = 2),
+                         timeslice = rep(c("s1_h01", "s1_h02"), 2),
+                         wval = runif(4)))
+  expect_message(ggplot2::autoplot(w), "pass `calendar =`")
 })
 
 test_that("report_fig_height follows the facet rows", {

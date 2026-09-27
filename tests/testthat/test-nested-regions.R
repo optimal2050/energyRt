@@ -537,5 +537,7 @@ test_that("cross-cutting geoframes are refused, naming the regions", {
 test_that("well-formed chains are silent", {
   skip_if_no_geoscales()
   expect_silent(.geo_hierarchy(nr_geoscale(), c("R1", "R2")))
-  expect_silent(.geo_hierarchy(topia_geoscale(), paste0("R", 1:11)))
+  expect_silent(.geo_hierarchy(topia$geoscales$honeycomb,
+                               geoscales::geoscale_regions(
+                                 topia$geoscales$honeycomb, "region")))
 })

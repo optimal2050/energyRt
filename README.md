@@ -1,4 +1,4 @@
-## energyRt <img src="man/figures/logo.png" align="right" height="120" alt="energyRt hex logo" /></a>
+## energyRt <img src="man/figures/logo.png" align="right" height="100" alt="energyRt hex logo" /></a>
 
 [![Lifecycle: maturing](https://img.shields.io/badge/lifecycle-maturing-blue.svg)](https://lifecycle.r-lib.org/articles/stages.html)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
@@ -152,8 +152,8 @@ Rtools** — no extra setup. For Julia/JuMP, Python/Pyomo, or GAMS see the
 [installation article](https://energyrt.org/articles/install.html) and the
 [solver backends article](https://energyrt.org/articles/backends.html).
 
-Geoscale features (`topia_geoscale()`, `plot_geoscale()`, multi-level regions)
-need the sibling package, which is not on CRAN:
+`geoscales` is a hard dependency (the `topia$geoscales` layouts are
+`geoscales::Geoscale` objects) and is not on CRAN, so install it from GitHub:
 
 ``` r
 pak::pkg_install("optimal2050/geoscales")

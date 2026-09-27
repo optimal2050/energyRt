@@ -358,3 +358,73 @@ test_that("report() consumes by_variant instead of forwarding it to levcost()", 
            file = f_def, format = "html", open = FALSE)))
   expect_equal(file.size(f_on), file.size(f_def), tolerance = 0.01)
 })
+
+# levcost() builds a SINGLE-region mini-model whose region is synthetic, so a
+# process whose costs vary by region is priced at just one of them. `by_region`
+# prices it once per region instead -- the third axis alongside vintage and
+# cluster.
+
+# @covers levcost
+test_that("by_region prices a multi-region technology once per region", {
+  regs <- c("R1", "R2", "R3")
+  eff <- c(0.30, 0.40, 0.50)
+  tech <- newTechnology(
+    name = "EMR",
+    region = regs,
+    input = list(comm = "COA", unit = "PJ"),
+    output = list(comm = "ELC", unit = "PJ"),
+    ceff = data.frame(region = regs, comm = "COA", cinp2use = eff),
+    invcost = data.frame(region = regs, invcost = c(900, 1200, 1500)),
+    af = data.frame(af.up = 0.9),
+    olife = data.frame(olife = 25))
+
+  one <- suppressMessages(levcost(tech, comm = "ELC"))
+  expect_s3_class(one, "levcost")
+
+  many <- suppressMessages(levcost(tech, comm = "ELC", by_region = TRUE))
+  expect_s3_class(many, "levcost_list")
+  expect_setequal(names(many), regs)
+
+  # each region gets ITS OWN parameters, so the costs differ -- the single
+  # result above is only one of these, which is the reason `by_region` exists
+  npv <- vapply(many, function(x) x$levcost_npv, numeric(1))
+  expect_equal(length(unique(round(npv, 6))), 3L)
+  expect_true(any(abs(npv - one$levcost_npv) < 1e-9))
+
+  # the dearest region is the one with the highest capital cost and the worst
+  # efficiency, not whichever happened to be first
+  expect_equal(names(which.max(npv)), "R3")
+  expect_equal(names(which.min(npv)), "R1")
+})
+
+# @covers levcost
+test_that("by_region needs regions, and leaves a trade alone", {
+  bare <- newTechnology(
+    name = "EBARE",
+    input = list(comm = "COA", unit = "PJ"),
+    output = list(comm = "ELC", unit = "PJ"),
+    ceff = data.frame(comm = "COA", cinp2use = 0.4),
+    invcost = data.frame(invcost = 1000),
+    olife = data.frame(olife = 25))
+  expect_error(
+    suppressMessages(levcost(bare, comm = "ELC", by_region = TRUE)),
+    "names its regions")
+
+  # a trade spans two regions by construction and is priced across both at
+  # once; splitting it per region would halve its capital charge
+  trd <- newTrade(
+    name = "TRD", commodity = "ELC",
+    routes = data.frame(src = "R1", dst = "R2"),
+    trade = data.frame(src = "R1", dst = "R2", teff = 0.95),
+    invcost = data.frame(region = c("R1", "R2"), invcost = 300),
+    olife = data.frame(olife = 30))
+  repo <- newRepository(
+    name = "tr",
+    newCommodity(name = "ELC", unit = "PJ", timeframe = "ANNUAL"),
+    newSupply(name = "SUP_ELC", commodity = "ELC", unit = "PJ",
+              supply = data.frame(region = c("R1", "R2"), cost = 1)),
+    trd)
+  res <- suppressMessages(levcost(repo, comm = "ELC", name = "TRD",
+                                  by_region = TRUE))
+  expect_s3_class(res, "levcost")          # not split per region
+})

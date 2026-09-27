@@ -1,5 +1,117 @@
 # energyRt (development version)
 
+## Timeslice conversions moved to timescales
+
+* The timeslice label conversions are gone from energyRt. `tsl2hour()`,
+  `tsl2yday()`, `tsl2month()`, `tsl2dtm()`, `dtm2tsl()`, `hour2HOUR()` and
+  `yday2YDAY()` now live in timescales, which reads the timeframe from the
+  CALENDAR instead of parsing the label text -- so they take the calendar:
+  `timescales::tsl2hour(tsl, "d365_h24")`. timescales moves from Suggests to
+  Imports. A hard break, no aliases.
+* `tsl2year()`, `tsl_guess_format()` and the `tsl_formats` dataset are removed
+  and not replaced. Guessing a layout from the label text is what the calendar
+  replaces, and no timescales calendar carries a `YEAR` timeframe -- the year
+  belongs in a column, not in the label. They are kept for reference in
+  `drafts/deprecated-timeslice-conversions-2026-09-26.R`.
+* **`calendar` is now required** wherever a timeslice layout is needed.
+  `plot_timeslices()`, `plot_heatmap()` and `autoplot()` on a timeslice-indexed
+  object take a `calendar` object or the name of one (`"d365_h24"`); without it
+  the timeslices are drawn in order rather than laid out by timeframe.
+  `storage_duration()` takes the calendar from the scenario, so it needs nothing
+  new.
+* This fixes wrong answers rather than only moving code. The old guesser read
+  `"s1_h01"` as hour 1 and silently discarded the `"s1"`, and read `h168`
+  hour-of-week labels (`"h000"`..`"h167"`) as hours of the day. It also could
+  not read `m12a` (`"JAN"`..`"DEC"`), `wd7` (`"MON"`..`"SUN"`), `q4` or `s4`
+  labels at all, returning `NULL`. All of those work now.
+* `plot_weather(datetime = TRUE)` produces a real datetime axis where it
+  previously fell back to the categorical one: dating a timeslice needs a year,
+  and the year is now taken from the data's `year` column.
+* Every energyRt calendar converts, including the sampled and subset ones
+  (`d365_h24_1dps`, `m12_h24_subset_4months`, ...) that have no entry in
+  timescales' catalog: the calendar is rebuilt from its own `@timetable`.
+  energyRt's timeframe names are matched by what their labels ARE, so a
+  timeframe named `DAY` lands on timescales' `YDAY`.
+
+* **Bug fix:** `levcost()` on a repository or model priced every process as if
+  it lived in the container's *first* region. A technology anywhere else had
+  its `invcost`, `fixom` and `ceff` rows subset away and reported fuel cost
+  only -- around 25x too cheap, with no warning.
+
+* `levcost(by_region = TRUE)` prices a process once per region it spans and
+  returns a `levcost_list` named by region, rather than once in one of them.
+  On a container the entries are named `<process>@<region>`. `trade` is
+  unaffected: it spans two regions by construction and is priced across both.
+
+* `cluster_model_regions()` and `cluster_tech_groups()` accept a technology
+  that already spans several regions -- one object whose slots carry a
+  `region` column, the idiomatic shape for region-varying parameters -- and
+  cluster it exactly as they do a family of one-object-per-region technologies.
+
+* `cluster_model_regions()` aggregates a model's regions the way
+  `aggregate_model_regions()` does, but keeps the regional spread as
+  `technology@cluster` variants instead of averaging it away. `k` runs from one
+  cluster per coarse region (identical to the old function) to one per fine
+  region (nothing averaged); `k = "auto"` picks the best average silhouette over
+  a sweep and returns the sweep table. Clusters cannot straddle a coarse region:
+  the adjacency graph has no edge crossing one.
+
+* `cluster_tech_groups()` reports which technologies may be merged into one
+  clustered object, grouped by structure -- inputs, outputs, aux commodities and
+  input groups -- so a coal plant and a gas plant are never merged.
+
+* `cluster_model_regions()` resolves a **link** column (`weather`,
+  `transform`) to the cluster **medoid**'s value. These name another object, so
+  they can be neither summed nor averaged, and treating them as keys gave one
+  cluster a row per member. A medoid is a real member, so the merged cluster
+  gets a profile some region actually had.
+
+* `cluster_model_regions()` checks `k` against the geoframe before
+  `clusterscales` sees it, so an out-of-range `k` names the level and its
+  bounds instead of reporting "the units fall into 3 group(s)".
+
+* New article, `vignette("region-clustering")`: five experiments on one model,
+  measuring when aggregating regions changes the answer and when it does not.
+  Two settings leave it untouched, three move it -- including one where the
+  aggregated model comes out **cheaper** than the model it came from, because
+  pooling granted transmission that did not exist. `clusterscales` and
+  `multiscales` are Suggests; `dev/clex-model.R` holds the shared model and
+  `dev/verify-region-clustering.R` checks every number the article prints.
+
+* **Breaking:** the `topia` dataset now carries `geoscales`, a named list of
+  four [geoscales::Geoscale] objects (`squares`, `honeycomb`, `island`,
+  `continent`) holding the region hierarchy *and* that layout's polygons.
+  `topia$map`, `topia$geo`, `topia$modules$maps` and the `topia_geoscale()`
+  function are removed: the dataset used to store the same polygons three times
+  and the hierarchy twice. Replacements:
+
+  | was | now |
+  |---|---|
+  | `topia_geoscale()` | `topia$geoscales$honeycomb` |
+  | `topia_geoscale(layout = "island")` | `topia$geoscales$island` |
+  | `topia_geoscale(region = r)` | `geoscales::filter_geoscale(gs, "region", r)` |
+  | `topia$geo` | `geoscales::geoscale_leaftable(gs)` |
+  | `topia$map$honeycomb` | `geoscales::geoscale_geometry(gs, "region")` |
+
+  `geoscales` moves from Suggests to **Imports**: deserialising an S7 `Geoscale`
+  loads the `geoscales` namespace, so it can no longer be optional.
+  `timescales` comes along as a transitive dependency of `geoscales`.
+
+* `plot_trade_map()` derives the `x`/`y` label anchors from the polygons when a
+  plain `sf` map does not carry them, so any `sf` works as a `map` argument.
+
+* `data-raw/topia_maps.R` and `data-raw/topia_data.R` are idempotent:
+  rebuilding the dataset no longer rotates the honeycomb rings or adds a
+  duplicate provenance tag to the weather `source` attribute.
+
+* TOPIA regions are renamed `W1`, `W2`, `C1`..`C6`, `E1`..`E3` (was
+  `R1`..`R11`), in west-to-east order. Each layout now
+  assigns the codes so that every zone is one contiguous block on the
+  picture; the hierarchy, the model kits (`R1`/`R3`/`R7`/`R11`) and the
+  regional endowments are unchanged. Trade objects follow the region
+  names (`TBD_ELC_R1_R2` is now `TBD_ELC_W1_W2`), and the TOPIA goldens
+  are rebaselined: all objectives are unchanged.
+
 * Milestone years can carry a display label. `newHorizon()` accepts a `label`
   column in `intervals`, and the new `year_label()` returns one label per
   milestone. The label is presentation only: the model key for a period stays

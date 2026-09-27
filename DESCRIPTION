@@ -1,8 +1,8 @@
 Package: energyRt
 Type: Package
 Title: Energy Systems Modeling Toolbox
-Version: 0.90.0.9002
-Date: 2026-09-24
+Version: 0.90.0.9004
+Date: 2026-09-25
 Authors@R: 
   c(person(given = "Oleg", 
           family = "Lugovoy", 
@@ -31,13 +31,16 @@ Description: A macro-language for energy system modeling in R. Describe an
 Depends: R (>= 4.3)
 Imports: methods, grid, stats, generics, data.table, tibble, tidyr, dplyr, rlang,
         stringr, lubridate, purrr, arrow, progressr, cli,
-        options (>= 0.2.0), grDevices, utils, tools, yaml
+        options (>= 0.2.0), grDevices, utils, tools, yaml,
+        geoscales (>= 0.5.4), timescales (>= 0.5.4)
 Suggests: shiny, DT, pak, knitr, rmarkdown, sf, ggplot2,
         testthat (>= 3.0.0), devtools, openxlsx, jsonlite, readxl,
-        httr2, xml2, base64enc, tinytex, patchwork, geoscales (>= 0.5.4),
-        timescales (>= 0.5.0), waldo, mmcloud, DBI, RSQLite, multimod
+        httr2, xml2, base64enc, tinytex, patchwork,
+        waldo, mmcloud, DBI, RSQLite, multimod,
+        clusterscales, multiscales
 Remotes: optimal2050/geoscales, optimal2050/timescales,
-        optimal2050/multimod
+        optimal2050/multimod, optimal2050/clusterscales,
+        optimal2050/multiscales
 SystemRequirements: Julia (>= 1.6) with JuMP or Python (>= 3.7) with
         Pyomo or GAMS (>= 24.9) or GLPK (>= 4.0)
 License: Apache License (>= 2)
@@ -85,6 +88,8 @@ Collate:
     'check_levels.R'
     'class-costs.R'
     'cloud.R'
+    'region.R'
+    'cluster-regions.R'
     'compare_inputs.R'
     'compare_models.R'
     'report.R'
@@ -126,7 +131,6 @@ Collate:
     'process_designer.R'
     'prune.R'
     'read_sequence.R'
-    'region.R'
     'registry.R'
     'report_cache.R'
     'report_elements.R'

@@ -12,13 +12,18 @@
 #' with [topia_profiles()]. For synthetic shapes on any calendar (rather than
 #' TOPIA's saved curves) use [topia_profile()].
 #'
-#' @format A named list of six elements:
+#' @format A named list of five elements:
 #' \describe{
-#'   \item{map}{named list of `sf` polygon layers (`squares`, `honeycomb`,
-#'     `island`, `continent`) used to lay out regions, neighbours and trade
-#'     routes.}
-#'   \item{geo}{a data.frame with columns `nation`, `zone`, `region`, `name` --
-#'     the region hierarchy behind the maps.}
+#'   \item{geoscales}{named list of four [geoscales::Geoscale] objects
+#'     (`squares`, `honeycomb`, `island`, `continent`). Each carries the same
+#'     hierarchy -- `nation TOPIA -> zone WEST/CENTRAL/EAST -> region` over
+#'     `W1`, `W2`, `C1`..`C6`, `E1`..`E3` -- and that layout's polygons, plus a
+#'     planar `area` weight. This is the dataset's ONLY copy of the geometry:
+#'     the plain `topia$map` and the `topia$geo` hierarchy table were removed in
+#'     0.91. Get either back with `geoscales::geoscale_geometry(gs, "region")`
+#'     and `geoscales::geoscale_leaftable(gs)`. Every layout draws the same
+#'     eleven regions in different places, and each assigns the codes so that a
+#'     zone is one contiguous block on that picture.}
 #'   \item{weather}{deterministic solar / wind / hydro capacity factors for the
 #'     three teaching calendars. Columns `calendar`
 #'     (`s4_h24`/`m12_h24`/`topia_seasons`), `resource`
@@ -40,7 +45,6 @@
 #' the `topia-use` vignette).
 #' \describe{
 #'   \item{info}{a description string.}
-#'   \item{maps}{`topia$map` -- the reference `sf` maps.}
 #'   \item{calendars}{the TOPIA calendars (`annual`/`topia_seasons`/
 #'     `s4_h24`/`m12_h24`) plus the symmetric unit calendars
 #'     (`unit_s4`, 4 equal seasons; `unit_s4h4`, 4x4). Note `annual`
@@ -50,38 +54,44 @@
 #'   \item{horizons}{planning horizons (`base` = 2020/2030/2040/2050;
 #'     `unit` = the single year 2025 for the unit kits).}
 #'   \item{electricity}{per region layout (`R1`, `R3`, `R7`, `R11` -- an
-#'     n-region layout is keyed `R<n>`, matching the `R1`..`R11` region names
-#'     used by the maps), each a "kit":
+#'     n-region layout is keyed `R<n>` and takes the first n regions of the
+#'     canonical west-to-east order `W1`, `W2`, `C1`..`C6`, `E1`..`E3`),
+#'     each a "kit":
 #'     `repo` (the base repository), the individual blocks (`repo_comm`,
 #'     `repo_supply`, `DEM_ELC`, `WSOL`/`WWIN`/`WHYD`, the technologies,
 #'     `STG_ELC`), the scenario levers `CO2_CAP`, `CT_CO2`, `RES_SHARE`,
 #'     `NO_NEW_NUC`, `EARLY_RET`, and the add-on modules -- re-declared
 #'     objects that REPLACE their base counterpart when added with
 #'     `add(mod, ., overwrite = TRUE)`: `GAS_CURVE` (domestic gas as a
-#'     3-step [asSupplyCurve()], absent in `R1` which has no gas region),
+#'     3-step [asSupplyCurve()], absent in the `R1` kit, whose single region
+#'     has no gas),
 #'     `EWIN_SITES` (wind in two site-grade clusters, finite GOOD +
 #'     down-rated POOR), `ENUC_VINT` (nuclear in two build vintages).}
 #'   \item{unit}{the "unit model" kits (`U1`, `U3`): every input is 1 on the
 #'     symmetric `unit_s4` calendar, single-year `unit` horizon,
 #'     `discount = 0`, so each variant's objective is a small hand-checkable
 #'     integer -- base `U1` solves to exactly 8, `U3` (trade chain from the
-#'     `R1` endowment) to 36, `SUP_CURVE` (2-step unit supply curve
+#'     `W1` endowment) to 36, `SUP_CURVE` (2-step unit supply curve
 #'     replacing the flat supply) to 10, the self-contained `SOLAR`
 #'     repository (on/off resource from [topia_profile()] + storage
 #'     bridging) to 10. The arithmetic is written out in
 #'     `data-raw/topia_modules.R` and pinned by `test-unit-model.R`.}
 #' }
 #'
-#' @seealso [topia_profiles()], [topia_profile()], [topia_geoscale()],
+#' @seealso [topia_profiles()], [topia_profile()],
 #'   [calendars], [horizons], [asSupplyCurve()], the TOPIA vignettes
 #' @family topia
 #' @examples
 #' names(topia)
-#' names(topia$map)
+#' names(topia$geoscales)
 #' head(topia$weather)
 #' topia$stock
 #'
 #' \dontrun{
+#' gs <- topia$geoscales$honeycomb          # hierarchy + that layout's polygons
+#' geoscales::geoscale_leaftable(gs)        # the region table
+#' plot_geoscale(gs, type = "map")
+#'
 #' um <- topia$modules$electricity$R3
 #' mod <- newModel("TOPIA", data = um$repo,
 #'                 calendar = topia$modules$calendars$s4_h24,
@@ -104,108 +114,6 @@
 # ---------------------------------------------------------------------------
 # (was R/topia-geoscale.R, merged 2026-09-20)
 # ---------------------------------------------------------------------------
-
-# topia-geoscale #############################################################
-# Builds a `geoscales::Geoscale` for TOPIA on demand.
-#
-# The hierarchy table ships as `topia$geo` (a plain data.frame); the Geoscale
-# is assembled here so that `data/` carries no class from a Suggests-only
-# package.
-
-#' @include geoscale.R
-NULL
-
-#' A geoscale for the TOPIA reference model
-#'
-#' Builds a [geoscales::Geoscale] over TOPIA's eleven regions, nested
-#' `nation -> zone -> region`, and attaches one of the reference map layouts.
-#'
-#' The hierarchy comes from `topia$geo` and is keyed by region name, so it is
-#' valid for every layout in `topia$map` — the layouts place `R1`…`R11`
-#' differently but share their names.
-#'
-#' @param layout Which layout in `topia$map` to take geometry from:
-#'   `"honeycomb"` (default, the one the vignettes draw), `"squares"`,
-#'   `"island"` or `"continent"`. `NULL` builds the hierarchy with no geometry,
-#'   which needs neither `sf` nor a map.
-#' @param region Optional subset of regions to keep, e.g. `c("R1","R2","R3")`
-#'   to match the three-region TOPIA model.
-#' @param area Add an `area` weight measured from the geometry. The layouts
-#'   carry no CRS, so this is planar area in the coordinates' own units.
-#'
-#' @return A `geoscales::Geoscale`.
-#'
-#' @examples
-#' \dontrun{
-#' gs <- topia_geoscale()
-#' geoscales::geoscale_children(gs, "zone", "WEST")
-#'
-#' # the three-region model used in vignette("topia-build")
-#' gs3 <- topia_geoscale(region = c("R1", "R2", "R3"))
-#' mod <- newModel("TOPIA", region = c("R1", "R2", "R3"), geoscale = gs3)
-#' }
-#'
-#' @family geoscale
-#' @family topia
-#' @export
-topia_geoscale <- function(layout = "honeycomb", region = NULL,
-                            area = TRUE) {
-  check_package("geoscales")
-  # `topia` is LazyData. Under `load_all()` it lands in the namespace, but in
-  # an INSTALLED package it lives in the lazy-load database instead, so
-  # `get(..., asNamespace())` finds nothing and the function fails only once
-  # installed. Try the namespace, then fall back to the data database.
-  topia <- get0("topia", envir = asNamespace("energyRt"), ifnotfound = NULL)
-  if (is.null(topia)) {
-    .e <- new.env(parent = emptyenv())
-    utils::data("topia", package = "energyRt", envir = .e)
-    topia <- get("topia", envir = .e)
-  }
-
-  geo <- topia$geo
-  if (!is.null(region)) {
-    unknown <- setdiff(region, geo$region)
-    if (length(unknown) > 0) {
-      stop("Unknown TOPIA region(s): ", paste(unknown, collapse = ", "),
-           call. = FALSE)
-    }
-    geo <- geo[geo$region %in% region, , drop = FALSE]
-  }
-
-  gs <- geoscales::geoscale_from_leaftable(
-    geo,
-    geoframes = c("nation", "zone", "region"),
-    key = "region",
-    weights = character(),
-    name = "topia",
-    desc = "TOPIA reference regions, nested nation -> zone -> region",
-    labels = "name"
-  )
-
-  if (is.null(layout)) return(gs)
-
-  if (!layout %in% names(topia$map)) {
-    stop("Unknown layout '", layout, "'. Available: ",
-         paste(names(topia$map), collapse = ", "), call. = FALSE)
-  }
-  check_package("sf")
-  gs <- geoscales::attach_geometry_geoscale(gs, topia$map[[layout]],
-                                            by = "region",
-                                            geoframe = "region")
-  if (isTRUE(area)) {
-    # The reference layouts carry no CRS, so `add_area_geoscale()` measures planar area
-    # and warns. That is the honest result for a synthetic map; suppress only
-    # that one warning rather than let it fire on every call.
-    withCallingHandlers(
-      gs <- geoscales::add_area_geoscale(gs, name = "area"),
-      warning = function(w) {
-        if (grepl("no CRS", conditionMessage(w))) invokeRestart("muffleWarning")
-      }
-    )
-  }
-  gs
-}
-
 
 # ---------------------------------------------------------------------------
 # (was R/topia_profiles.R, merged 2026-09-20)
@@ -320,7 +228,7 @@ topia_geoscale <- function(layout = "honeycomb", region = NULL,
 #'   "ideea"`).
 #' @param diversify logical (default `TRUE`): scale the solar and wind capacity
 #'   factors by deterministic per-region factors (defined for the TOPIA map
-#'   regions `R1`--`R11`; other names get factor 1), so regions have different
+#'   regions `W1`, `W2`, `C1`--`C6`, `E1`--`E3`; other names get factor 1), so regions have different
 #'   renewable endowments -- sunnier south, windier coast. `FALSE` replicates
 #'   identical profiles to every region.
 #'
@@ -361,15 +269,17 @@ topia_profiles <- function(regions,
   }
   weather <- rep_reg(wx)[, c("resource", "region", "timeslice", "wval")]
 
-  # deterministic regional endowments: sunnier south, windier coast (TOPIA map
-  # regions R1-R11; unknown region names keep factor 1)
+  # deterministic regional endowments: sunnier south, windier coast. Keyed by
+  # the TOPIA region codes in their canonical west-to-east order (W1, W2,
+  # C1..C6, E1..E3); each factor kept the position it had before the regions
+  # were renamed. Unknown region names keep factor 1.
   if (isTRUE(diversify)) {
-    sol_f <- c(R1 = 1.15, R2 = 1.00, R3 = 0.90, R4 = 1.10, R5 = 0.95,
-               R6 = 0.85, R7 = 1.05, R8 = 0.90, R9 = 0.80, R10 = 1.20,
-               R11 = 1.00)
-    win_f <- c(R1 = 0.85, R2 = 1.15, R3 = 1.05, R4 = 0.90, R5 = 1.10,
-               R6 = 1.20, R7 = 0.95, R8 = 1.05, R9 = 1.15, R10 = 0.80,
-               R11 = 1.00)
+    sol_f <- c(W1 = 1.15, W2 = 1.00, C1 = 0.90, C2 = 1.10, C3 = 0.95,
+               C4 = 0.85, C5 = 1.05, C6 = 0.90, E1 = 0.80, E2 = 1.20,
+               E3 = 1.00)
+    win_f <- c(W1 = 0.85, W2 = 1.15, C1 = 1.05, C2 = 0.90, C3 = 1.10,
+               C4 = 1.20, C5 = 0.95, C6 = 1.05, E1 = 1.15, E2 = 0.80,
+               E3 = 1.00)
     f <- rep(1, nrow(weather))
     i_sol <- weather$resource == "WSOL"
     i_win <- weather$resource == "WWIN"
@@ -539,7 +449,7 @@ topia_profiles <- function(regions,
 #'
 #' # a diurnal sine for every season, phased across three regions
 #' head(topia_profile("sine", calendar = "s4_h24",
-#'                     regions = paste0("R", 1:3), vary = "phase",
+#'                     regions = c("W1", "W2", "C1"), vary = "phase",
 #'                     period = "frame"))
 #' @seealso [topia_profiles()] for the realistic TOPIA curves, [topia] for
 #'   the reference dataset and the teaching kits.
