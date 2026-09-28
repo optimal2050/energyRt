@@ -33,7 +33,6 @@ Invisibly, the regions that are declared but absent from `geoscale`.
 ## See also
 
 Other geoscale:
-[`demand_recast_regions()`](https://energyRt.org/reference/demand_recast_regions.md),
 [`get_process_groups()`](https://energyRt.org/reference/get_process_groups.md),
 [`model_clusters()`](https://energyRt.org/reference/model_clusters.md),
 [`plot_geoscale()`](https://energyRt.org/reference/plot_geoscale.md),

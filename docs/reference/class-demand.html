@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9006</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9007</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -100,6 +100,30 @@
 
 <dt>demand</dt>
 <dd><p>numeric. Value of the demand.</p></dd>
+
+
+</dl></dd>
+
+
+<dt><code>cluster</code></dt>
+<dd><p>data.frame. Declaration of the demand's parallel parts. For demand a cluster is a SUB-REGIONAL SHARE: the object carries one total, declared at a coarse region, and each cluster takes a fixed fraction of it in one finer region. Variant expansion mints one <code>dem</code> set member per cluster and <code>pDemand</code> is indexed by <code>dem</code>, so <code>eqDemInp</code> sums the parts back – the coarse figure is the AGGREGATE of its children and stays the number you edit.
+LIMITATION – only <code>dem.share.fx</code>, deliberately. A <code>lo</code>/<code>up</code> split would need the LP to CHOOSE where load sits inside the region, and nothing indexed by <code>dem</code> is a variable for such a bound to act on: <code>pDemand</code> sits on the right-hand side of an equality. There is no <code>cap.share.fx</code> either (a demand has no capacity) and no <code>act.share.*</code> (same reason – no variable per demand object).
+Shares are fractions of THIS object's total and must sum to 1, so one demand object is one coarse region. Several zones are several demand objects, the same way one <code><a href="lossTranches.html">lossTranches()</a></code> object is one line.
+Note the commodity's own <code>@geoframe</code> is a different question: a commodity balanced at the coarse level cannot read region-level demand at all, and declaring both is refused. Split the demand when the commodity stays at the finer level.</p>
+<dl><dt>cluster</dt>
+<dd><p>character. Cluster label, referenced by the <code>cluster</code> column of <code>@demand</code>.</p></dd>
+
+<dt>desc</dt>
+<dd><p>character. Optional description of the share.</p></dd>
+
+<dt>region</dt>
+<dd><p>character. The finer region this share lands in. Required – it is where the share of the demand goes.</p></dd>
+
+<dt>dem.share.fx</dt>
+<dd><p>numeric. This cluster's fixed fraction of the object's total demand. Must be positive, and the shares of one object must sum to 1.</p></dd>
+
+<dt>order</dt>
+<dd><p>integer. Optional ordering for reporting. Without it labels sort alphabetically and "R10" would precede "R2".</p></dd>
 
 
 </dl></dd>

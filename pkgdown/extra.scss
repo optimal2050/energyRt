@@ -31,3 +31,39 @@
     border-radius: 0.25rem;
   }
 }
+
+// ---------------------------------------------------------------------------
+// Logo sizing: 120px wide on every page.
+//
+// pkgdown emits the logo two different ways, styled inconsistently:
+//
+//   home page   the README's own tag, `<img ... height="100">`
+//   every other `<img class="logo">`, which pkgdown sizes by WIDTH
+//
+// and `main img { max-width: 100%; height: auto }` overrides the HTML `height`
+// attribute, so the home-page logo rendered at its natural 240x269 -- correct
+// on GitHub, which has no such stylesheet, and oversized here. `!important` is
+// needed to beat that rule on the same property.
+//
+// The file is 240x269, so 120px wide is exact half-scale and stays sharp on
+// retina.
+main img[src$="figures/logo.png"] {
+  width: 120px !important;
+  height: auto !important;
+  margin-left: 1.5rem;
+}
+
+// pkgdown's own, which it sizes by width: 100px normally, and 80px below
+// 576px. Pin the normal case to 120px and KEEP its phone breakpoint -- a
+// 120px logo floated beside a title on a phone crowds it, which is why
+// pkgdown shrinks it. The home-page logo follows the same breakpoint, or the
+// two disagree on narrow screens, which is the inconsistency being fixed.
+img.logo {
+  width: 120px;
+}
+
+@media (max-width: 575.98px) {
+  main img[src$="figures/logo.png"] {
+    width: 80px !important;
+  }
+}

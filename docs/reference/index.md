@@ -205,9 +205,6 @@ coarse balances roll up without a `trade` route for every pair.
 - [`aggregate_model_regions()`](https://energyRt.org/reference/aggregate_model_regions.md)
   : Aggregate a model to a coarser set of regions
 
-- [`demand_recast_regions()`](https://energyRt.org/reference/demand_recast_regions.md)
-  : Split a coarse demand across the regions beneath it
-
 ## Process specifications
 
 Portable YAML/JSON process definitions, and the interactive designer.
