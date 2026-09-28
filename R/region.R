@@ -1001,19 +1001,76 @@ NULL
 #' @param geoscale A [geoscales::Geoscale] whose finest geoframe contains the
 #'   model's regions. `NULL` (default) uses the model's own.
 #' @param level Name of the target geoframe, coarser than the model's regions.
+#' @param clusters `NULL` (default) collapses each coarse region to one value.
+#'   Otherwise a list keyed by process group (see [get_process_groups()]) that
+#'   keeps some of the spread instead -- see the section below. A group that is
+#'   not named is aggregated plainly, so clustering is opted into one family at
+#'   a time.
+#' @param as With `clusters`, the shape of the result: `"clusters"` (default)
+#'   gives one object per family, region variants becoming
+#'   `technology@cluster` entries; `"objects"` gives one object per
+#'   (family x cluster), named with the cluster's label (`ECOA_W1`), each
+#'   keeping its own clusters. Same LP either way -- what differs is how
+#'   results are keyed.
 #' @param name Name for the aggregated model. `NULL` (default) appends
 #'   `level` to the source model's name.
 #' @param verbose Report what was aggregated, merged and dropped.
 #'
+#' @section Keeping the spread as clusters:
+#' Collapsing a zone's regions to one average technology throws away the
+#' difference between its cheap sites and its dear ones, and a model that can
+#' no longer see that difference builds the average everywhere. `clusters`
+#' keeps some of it: the fine regions are grouped into `k` connected clusters
+#' and carried into `technology@cluster`, one parallel sub-process each, with
+#' its own capacity, availability and costs.
+#'
+#' Settings are **per technology family**, because one `k` for the model is
+#' meaningless -- a coal fleet groups on cost and efficiency, a wind fleet on
+#' resource quality and profile shape:
+#'
+#' ```r
+#' get_process_groups(mod)                                   # what can be merged
+#' process_cluster_sweep(mod, "ECOA", level = "zone")     # where its structure is
+#' aggregate_model_regions(
+#'   mod, level = "zone",
+#'   clusters = list(ECOA = list(k = 3, features = c("invcost", "eff")),
+#'                   EWIN = list(k = 8, features = wind_shape)))
+#' ```
+#'
+#' Each element is a list with `k` and optionally `features`; a bare number is
+#' shorthand for `list(k = n)`. A bare number for the whole argument is
+#' accepted only when the model has ONE group. `k = "auto"` picks the best
+#' average silhouette, which is a rule rather than an answer -- sweep and look
+#' instead.
+#'
+#' `k` runs from the number of coarse regions (one cluster each -- exactly what
+#' `clusters = NULL` gives) to the number of fine regions (1:1, nothing
+#' averaged, which on a model whose fine regions already pool inside each
+#' coarse region reproduces the fine objective exactly). Clusters cannot
+#' straddle a coarse region.
+#'
+#' A family that ALREADY has clusters -- wind by site grade -- keeps them: the
+#' two groupings compose, `GOOD` in `W1` becoming `GOOD_W1`.
+#'
 #' @return A `model` declared over the coarser regions, carrying the pruned
-#'   geoscale.
+#'   geoscale. With `clusters`, the grouping is attached and readable with
+#'   [model_clusters()].
 #'
 #' @seealso [subset_model_regions()], which takes a sub-territory at the
-#'   model's own resolution instead of coarsening the whole of it.
+#'   model's own resolution instead of coarsening the whole of it;
+#'   [get_process_groups()], [process_cluster_sweep()], [model_clusters()].
 #' @export
 aggregate_model_regions <- function(mod, geoscale = NULL, level,
+                                    clusters = NULL,
+                                    as = c("clusters", "objects"),
                                     name = NULL, verbose = isVerbose()) {
   stopifnot(inherits(mod, "model"))
+  as <- match.arg(as)
+  if (!is.null(clusters)) {
+    return(.cl_cluster_model(mod, geoscale = geoscale, level = level,
+                             clusters = clusters, as = as, name = name,
+                             verbose = verbose))
+  }
   check_package("geoscales")
   # Weather values are mean-aggregated below, and a mean does not commute
   # with a nonlinear transform: transform(mean(stream)) != mean(transform).
@@ -1055,7 +1112,12 @@ aggregate_model_regions <- function(mod, geoscale = NULL, level,
             " at `", level, "`")
   }
 
-  objs <- mod@data[[1]]@data
+  # Every repository, not just the first: `add()` APPENDS a repository rather
+  # than growing one, so a model built up object by object keeps its later
+  # objects out of `@data[[1]]`. Reading only that one left them declared over
+  # the FINE regions in a model whose regions are now coarse -- silently, and
+  # the result solved a different problem than it looked like.
+  objs <- .cl_all_objects(mod)
   cls <- vapply(objs, function(o) class(o)[1], "")
   out <- list()
 
@@ -1144,6 +1206,10 @@ Aggregating between two non-atom levels needs a level-aware ",
 
   res <- mod
   res@name <- name %||% paste0(mod@name, "_", level)
+  # flattened to ONE repository, since that is where every object went. `[1]`
+  # not `list([[1]])`: the list is NAMED and expand_variants() reads
+  # `names(mod@data)[i]`.
+  res@data <- mod@data[1]
   res@data[[1]]@data <- out
   res@config@region <- coarse
   res@config@geoscale <- geoscales::prune_geoscale(gs, level)

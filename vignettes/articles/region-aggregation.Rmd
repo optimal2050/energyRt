@@ -1,0 +1,907 @@
+---
+title: "Aggregating regions without averaging them away"
+editor_options:
+  chunk_output_type: console
+---
+
+```{r, include = FALSE}
+# eval = FALSE: this article builds and solves a dozen models. The code is run
+# and every number below checked out-of-band by
+# dev/verify-region-aggregation.R; the outputs shown are those results.
+knitr::opts_chunk$set(
+  collapse = TRUE, comment = "#>",
+  eval = FALSE,
+  message = FALSE, warning = FALSE,
+  fig.width = 7, fig.height = 4
+)
+```
+
+```{r setup}
+library(energyRt)
+library(geoscales)
+library(clusterscales)
+library(dplyr)
+library(ggplot2)
+```
+
+# The problem with a weighted mean
+
+A multi-region model gets expensive in the regions. The usual answer is to
+aggregate: pick a coarser geoframe, roll the fine regions up into it, solve the
+smaller problem. `aggregate_model_regions()` does exactly that -- extensive
+quantities are summed, intensive ones take a capacity-weighted mean.
+
+That is the right move when the regions are alike, and the wrong one when they
+are not. A coal fleet built over forty years does not have *one* efficiency. Its
+regional spread is the reason the model dispatches in a merit order at all, and
+a mean erases it.
+
+The spread does not have to be lost. A technology can carry **clusters** --
+`technology@cluster` describes "a parallel sub-process of the same technology
+... with its own capacity, availability and costs" -- so a zone-level technology
+can keep several regional variants side by side. Aggregating then has a dial
+rather than a switch:
+
+| clusters per zone | what you get |
+|---|---|
+| one | `aggregate_model_regions()`: a single averaged technology |
+| several | fewer variants than regions, but the spread that matters |
+| one per region | nothing averaged at all |
+
+This article builds one model, turns one thing at a time, and measures when the
+dial matters. Two settings leave the answer untouched; three change it, and in
+one of them the aggregated model comes out *cheaper* than the truth.
+
+# The regions
+
+TOPIA's eleven regions nest into three zones.
+
+```{r regions}
+gs <- topia$geoscales$honeycomb
+regions <- geoscale_regions(gs, geoframe = "region")
+geo <- as.data.frame(geoscale_leaftable(gs))
+
+plot_geoscale(gs, type = "map")
+```
+
+# The plants
+
+Seven archetypes of coal plant, each a contiguous block inside one zone.
+Without real structure there is nothing for a clustering to find, and every
+`k` looks equally bad.
+
+```{r plants}
+plants <- tibble::tribble(
+  ~region, ~eff, ~invcost,     # efficiency, MEUR/GW
+  "W1",    0.42,     1000,
+  "W2",    0.33,     1500,
+  "C1",    0.35,     1100,
+  "C2",    0.35,     1100,
+  "C3",    0.42,     1050,
+  "C4",    0.42,     1050,
+  "C5",    0.34,     1600,
+  "C6",    0.34,     1600,
+  "E1",    0.43,      980,
+  "E2",    0.43,      980,
+  "E3",    0.32,     1450
+)
+```
+
+Real fleets are not that tidy, so the working model puts a ~1% jitter on both
+columns. `E1a` below turns it off to isolate the exact case.
+
+```{r jitter}
+set.seed(42)
+plants <- plants |>
+  mutate(
+    eff = round(eff * (1 + rnorm(n(), sd = 0.006)), 4),
+    invcost = round(invcost * (1 + rnorm(n(), sd = 0.01)))
+  )
+```
+
+# Load, and the siting limit
+
+One load shape for every region (PJ per timeslice), scaled to a level that
+rises west to east.
+
+```{r demand}
+calendar <- topia$modules$calendars$topia_seasons
+
+shape <- topia$demand |>
+  filter(calendar == "topia_seasons") |>
+  left_join(
+    as.data.frame(calendar@timetable) |> select(timeslice, share),
+    by = "timeslice"
+  ) |>
+  mutate(w = load * share / sum(load * share))
+
+demand <- plants |>
+  mutate(annual = seq(80, 120, length.out = n())) |>     # PJ/year
+  select(region, annual) |>
+  tidyr::crossing(shape |> select(timeslice, w)) |>
+  mutate(demand = annual * w) |>
+  select(region, timeslice, demand)
+```
+
+Each plant is capped near its own region's peak. Without that cap the model
+builds **three plants out of twenty-two**: once regions share a copperplate
+their plants compete for one demand and the merit order keeps only the cheapest,
+so competition erases the heterogeneity before any aggregation happens. The
+honest reason for a cap is that you cannot put a zone's entire fleet on one
+site.
+
+```{r siting}
+siting <- demand |>
+  left_join(shape |> select(timeslice, share), by = "timeslice") |>
+  group_by(region) |>
+  summarise(cap.up = max(demand / share), .groups = "drop")   # GW
+```
+
+# Two technologies, eleven regions each
+
+The region-varying parameters live in the slots, so this is **one** object per
+fuel rather than one per region -- and `aggregate_model_regions()` clusters
+either shape.
+
+```{r techs}
+ECOA <- newTechnology(
+  name = "ECOA",
+  desc = "Coal plant, one variant per region",
+  region = plants$region,
+  input = list(comm = "COA", unit = "PJ"),
+  output = list(comm = "ELC", unit = "PJ"),
+  ceff = plants |> transmute(region, comm = "COA", cinp2use = eff),
+  invcost = plants |> select(region, invcost),
+  fixom = plants |> transmute(region, fixom = 0.03 * invcost),
+  capacity = siting,
+  af = data.frame(af.up = 0.85),
+  olife = data.frame(olife = 30)
+)
+
+EGAS <- newTechnology(
+  name = "EGAS",
+  desc = "Gas plant, one variant per region",
+  region = plants$region,
+  input = list(comm = "GAS", unit = "PJ"),
+  output = list(comm = "ELC", unit = "PJ"),
+  ceff = plants |> transmute(region, comm = "GAS", cinp2use = round(eff * 1.25, 4)),
+  invcost = plants |> transmute(region, invcost = round(invcost * 0.6)),
+  fixom = plants |> transmute(region, fixom = 0.03 * round(invcost * 0.6)),
+  capacity = siting,
+  af = data.frame(af.up = 0.85),
+  olife = data.frame(olife = 30)
+)
+
+draw(ECOA)
+```
+
+# Transmission inside a zone
+
+Adjacent regions in the same zone are linked, amply and losslessly. That makes
+each zone a copperplate already -- which is the assumption a cluster
+aggregation makes anyway, so here it is made explicitly rather than smuggled in
+later. `E2a` removes it and measures what it was worth.
+
+```{r links}
+links <- gs |>
+  geoscale_geometry(geoframe = "region") |>
+  sf::st_touches() |>
+  as.data.frame() |>
+  transmute(src = regions[row.id], dst = regions[col.id]) |>
+  filter(src < dst) |>
+  left_join(geo |> select(src = region, src_zone = zone), by = "src") |>
+  left_join(geo |> select(dst = region, dst_zone = zone), by = "dst") |>
+  filter(src_zone == dst_zone) |>
+  select(src, dst)
+
+routes <- bind_rows(links, links |> rename(src = dst, dst = src))
+
+TBD_ELC <- newTrade(
+  name = "TBD_ELC",
+  commodity = "ELC",
+  routes = routes,
+  trade = routes |> mutate(teff = 1.0),
+  capacity = data.frame(stock = 1e4)             # GW: ample on purpose
+)
+```
+
+# The model
+
+```{r model}
+COA <- newCommodity(name = "COA", unit = "PJ", timeframe = "ANNUAL")
+GAS <- newCommodity(name = "GAS", unit = "PJ", timeframe = "ANNUAL")
+ELC <- newCommodity(name = "ELC", unit = "PJ", timeframe = "HOUR")
+
+SUP_COA <- newSupply(
+  name = "SUP_COA", commodity = "COA", unit = "PJ",
+  supply = data.frame(region = regions, cost = 2.0)      # MEUR/PJ
+)
+SUP_GAS <- newSupply(
+  name = "SUP_GAS", commodity = "GAS", unit = "PJ",
+  supply = data.frame(region = regions, cost = 6.0)
+)
+DEM_ELC <- newDemand(name = "DEM_ELC", commodity = "ELC", demand = demand)
+
+repo <- newRepository(
+  name = "agg",
+  COA, GAS, ELC, SUP_COA, SUP_GAS, DEM_ELC, ECOA, EGAS, TBD_ELC
+)
+
+mod <- newModel(
+  name = "AGG",
+  region = regions,
+  calendar = calendar,
+  horizon = newHorizon(2025),
+  discount = 0.05,
+  data = repo
+) |>
+  setGeoscale(gs)
+
+autoplot(mod)
+```
+
+# Solving it
+
+```{r solve}
+scen_fine <- mod |>
+  interpolate_model(name = "FINE") |>
+  solve_scenario(solver = solver_options$glpk)
+
+getData(scen_fine, name = "vObjective", merge = TRUE)$value
+#> [1] 185892.859193
+```
+
+GLPK is used throughout because every model here is small -- eleven regions and
+four timeslices -- and at that size it is the quickest way to an answer. Do not
+carry it to a real one. GLPK stops being usable well before the sizes that make
+region clustering worth doing in the first place, so at any realistic
+resolution solve with HiGHS through `julia` or `pyomo`:
+
+```{r solver-note, eval = FALSE}
+solve_scenario(scen, solver = solver_options$julia_highs)   # or $pyomo_highs
+```
+
+The clustering itself never solves anything -- `process_cluster_sweep()` and
+`levcost()` are analytic -- so the solver only matters for the runs being
+compared.
+
+# What the plants cost, before any clustering
+
+`levcost()` prices every process the model holds, analytically -- no solver.
+Sorted, the eleven coal variants fall into the seven archetypes they were built
+from, which is exactly the structure a clustering has to find.
+
+```{r levcost}
+levcost(mod, comm = "ELC", name = "ECOA", by_region = TRUE)
+#> levcost_list (11)
+#>   W1: 119.1202
+#>   W2: 171.4738
+#>   C1: 128.3743
+#>   C2: 128.5894
+#>   C3: 122.9501
+#>   C4: 121.8456
+#>   C5: 179.9411
+#>   C6: 180.4450
+#>   E1: 115.6380
+#>   E2: 113.9066
+#>   E3: 165.4407
+```
+
+`E1` is the cheapest archetype and `C6` the dearest -- 116 against 180
+MEUR/PJ, a 56% spread across plants the model would otherwise average into
+one. Priced region by region the eleven variants fall into seven steps:
+
+| region | LCOE | | region | LCOE |
+|---|---|---|---|---|
+| `E2` | 113.9 | | `C2` | 128.6 |
+| `E1` | 115.6 | | `E3` | 165.4 |
+| `W1` | 119.1 | | `W2` | 171.5 |
+| `C4` | 121.8 | | `C5` | 179.9 |
+| `C3` | 123.0 | | `C6` | 180.4 |
+| `C1` | 128.4 | | | |
+
+Those seven steps are exactly what a clustering has to find, and `levcost()`
+finds them analytically -- no solver, no scenario.
+
+Note `by_region = TRUE`. levcost() builds a single-region mini-model, so
+without it a technology spanning several regions is priced at just one of them
+and a bare `levcost(mod, comm = "ELC")` reports one number for `ECOA` rather
+than a ladder. `by_variant = TRUE` does the same along the other two axes,
+vintage and cluster -- so a fleet with build years prices per vintage.
+
+# Which processes may be merged
+
+Only structurally identical ones. A cluster is a variant of the *same* process,
+so a coal plant and a gas plant stay separate however alike their costs look.
+The class leads the signature, so a supply never joins a technology that
+happens to touch the same commodity:
+
+```{r groups}
+get_process_groups(mod)[, c("group", "class", "signature", "n")]
+#>     group      class                signature  n
+#> 1    ECOA technology in:COA|out:ELC|aux:|grp: 11
+#> 2    EGAS technology in:GAS|out:ELC|aux:|grp: 11
+#> 3 SUP_COA    supply         comm:COA|unit:PJ 11
+#> 4 SUP_GAS    supply         comm:GAS|unit:PJ 11
+```
+
+Four groups, not two: `supply`, `storage`, `import` and `export` carry a
+`@cluster` slot as well, so a region grouping can become sub-processes on them
+too. Two classes cannot and are absent by design -- `demand` has no `@cluster`
+slot, because a demand is a requirement rather than a process with archetypes
+and summing it over a zone is the right answer; and `trade` has no `@region`
+slot at all, since its regions are `src`/`dst` pairs, so grouping *its* regions
+would mean clustering corridors, which is a different operation.
+
+The supplies here are flat -- every region pays 2.0 for coal -- so there is
+nothing for a clustering to find, and asking for one says so rather than
+inventing structure:
+
+```{r groups-flat}
+aggregate_model_regions(mod, geoscale = gs, level = "zone",
+                        clusters = list(SUP_COA = 7))
+#> Error: no usable clustering features: every candidate parameter is constant
+#> or absent across the group's regions. Pass `features=`.
+```
+
+A supply whose cost really does vary by region is the case worth clustering:
+plain aggregation gives a zone one capacity-weighted average price, while
+clusters keep its cheap tranches separate from its dear ones -- the same
+argument as for the plants, one layer upstream.
+
+# The geometry constrains the clustering
+
+Two regions may be merged only if they are adjacent, and adjacency drops every
+edge that crosses a zone boundary:
+
+```{r adjacency}
+touching <- gs |>
+  geoscale_geometry(geoframe = "region") |>
+  sf::st_touches(sparse = FALSE)
+
+sum(touching) / 2                                   # pairs on the map
+#> [1] 18
+
+zone <- setNames(geo$zone, geo$region)
+sum(touching & outer(zone[regions], zone[regions], "==")) / 2
+#> [1] 12
+```
+
+A cluster has to be connected in that graph, so it **cannot straddle a zone**,
+and the graph has one component per zone -- which puts a floor under `k`.
+
+# Settings are per family, not per model
+
+`clusters` is keyed by technology group, and a single number for the whole
+model is refused when there is more than one:
+
+```{r k-scalar}
+aggregate_model_regions(mod, geoscale = gs, level = "zone", clusters = 7)
+#> Error: `clusters = 7` sets one number for all 4 process groups of this
+#> model (ECOA, EGAS, SUP_COA, SUP_GAS), which is rarely what you want: each
+#> family clusters on different parameters and has its own structure, so it has
+#> its own k. Name them:
+#>     clusters = list(ECOA = 7, EGAS = ...)
+#>   Use get_process_groups() to see what can be merged, and
+#>   process_cluster_sweep() to choose each k.
+```
+
+That is deliberate. A coal fleet groups on cost and efficiency, a wind fleet on
+resource quality and the *shape* of its availability, and the right number
+differs with both the spread and what the family is for. The error makes you
+look at `get_process_groups()` before deciding.
+
+Named, the floor shows itself:
+
+```{r k-floor}
+aggregate_model_regions(mod, geoscale = gs, level = "zone",
+                        clusters = list(ECOA = 2, EGAS = 2))
+#> Error: k = 2 is out of range for group 'ECOA': clusters cannot straddle a
+#> `zone` region, so k runs from 3 (one cluster per `zone` region -- what
+#> aggregate_model_regions() produces) to 11 (one per region, nothing averaged).
+```
+
+# Choosing k by looking
+
+`process_cluster_sweep()` clusters one family over the whole admissible range
+and reports what each `k` buys, over the same features and the same contiguity
+graph the aggregation would use. Nothing is changed -- the point is to see
+where the structure is before naming a number:
+
+```{r sweep}
+process_cluster_sweep(mod, "ECOA", geoscale = gs, level = "zone")
+#>    k      within silhouette smallest                 sizes
+#> 1  3 15.57484465 -0.1915882        2                 6,3,2
+#> 2  4 12.05414650 -0.2325999        1               6,2,2,1
+#> 3  5  8.66725287 -0.2220126        1             6,2,1,1,1
+#> 4  6  3.29096595  0.1677981        1           4,2,2,1,1,1
+#> 5  7  0.30748448  0.5461881        1         2,2,2,2,1,1,1
+#> 6  8  0.15692375  0.4535683        1       2,2,2,1,1,1,1,1
+#> 7  9  0.08150451  0.2968379        1     2,2,1,1,1,1,1,1,1
+#> 8 10  0.01604168  0.1798995        1   2,1,1,1,1,1,1,1,1,1
+#> 9 11  0.00000000  0.0000000        1 1,1,1,1,1,1,1,1,1,1,1
+```
+
+Read it as a scree plot. Dispersion falls with `k` and always will, so take the
+knee rather than the minimum: `within` drops by an order of magnitude between
+`k = 6` and `k = 7` and then only crawls, because seven is how many distinct
+archetypes the data has -- past that, `k` splits members that differ by the
+jitter alone. The silhouette peaks in the same place, and `sizes` says the
+grouping is balanced there rather than one big cluster beside a row of
+singletons.
+
+`ggplot2` makes the knee easier to see than the table does:
+
+```{r sweep-plot, fig.height = 3}
+process_cluster_sweep(mod, "ECOA", geoscale = gs, level = "zone") |>
+  select(k, within, silhouette) |>
+  pivot_longer(-k) |>
+  ggplot() +
+  aes(x = k, y = value) +
+  geom_line() +
+  geom_point() +
+  geom_vline(xintercept = 7, linetype = "dashed") +
+  facet_wrap(~name, scales = "free_y") +
+  scale_x_continuous(breaks = 3:11) +
+  labs(x = "clusters", y = NULL,
+       title = "ECOA: dispersion and silhouette by k") +
+  theme_bw()
+```
+
+`k = "auto"` applies a rule -- the best average silhouette over that sweep --
+and hands the sweep back so the judgement can be checked rather than trusted.
+`clusterscales` ships no `best_k()` deliberately: "the numbers inform a
+judgement that stays yours." Sweep and look; use `"auto"` to reconnoitre, not
+to decide.
+
+```{r clusters}
+mod_7 <- aggregate_model_regions(
+  mod,
+  geoscale = gs,
+  level = "zone",
+  clusters = list(ECOA = 7, EGAS = 7)
+)
+
+getObject(mod_7, name = "ECOA", drop = TRUE)@cluster
+#>   cluster  desc  region order
+#> 1   C1_C2 C1+C2 CENTRAL     1
+#> 2   C3_C4 C3+C4 CENTRAL     2
+#> 3   C5_C6 C5+C6 CENTRAL     3
+#> 4   E1_E2 E1+E2    EAST     4
+#> 5      E3    E3    EAST     5
+#> 6      W1    W1    WEST     6
+#> 7      W2    W2    WEST     7
+```
+
+`desc` records which regions each cluster came from, and `region` is the coarse
+region it lives in -- a cluster exists only where its members did. A cluster of
+one region takes that region's own code, so the 1:1 end reads `W1`, `C3`,
+rather than `c01`.
+
+Negative silhouettes at low `k` are normal here -- that is the contiguity
+constraint, not a failure. With unstructured data the rule degenerates: the
+silhouette climbs monotonically to `k = n` and "best" becomes "do not aggregate
+at all". A clean peak means the structure is real.
+
+# Seeing the clustering
+
+A grouping you cannot look at is a grouping you cannot check.
+`model_clusters()` hands back the crosswalk, the sweep, and a **geoscale
+carrying a `cluster` geoframe** -- so the views that already exist show the
+method with no new plotting code:
+
+```{r cluster-map, fig.height = 4}
+cl <- model_clusters(mod_7)
+
+plot_geoscale(cl$ECOA$geoscale, type = "map", geoframe = "cluster")
+```
+
+The atoms are coloured by the cluster they joined. Every cluster is one
+connected blob and none crosses a zone boundary -- that is the contiguity
+constraint, visible rather than asserted.
+
+```{r cluster-icicle, fig.height = 3}
+plot_geoscale(cl$ECOA$geoscale, type = "icicle")
+```
+
+The icicle reads `nation > zone > cluster > region`: the cluster layer is an
+extra level *inserted* between the target and the atoms, which is exactly what
+a clustered aggregation is.
+
+```{r cluster-leaftable}
+as.data.frame(geoscale_leaftable(cl$ECOA$geoscale))
+#>    nation    zone cluster region
+#> 1   TOPIA    WEST      W1     W1
+#> 2   TOPIA    WEST      W2     W2
+#> 3   TOPIA CENTRAL   C1_C2     C1
+#> 4   TOPIA CENTRAL   C1_C2     C2
+#> 5   TOPIA CENTRAL   C3_C4     C3
+#> 6   TOPIA CENTRAL   C3_C4     C4
+#> 7   TOPIA CENTRAL   C5_C6     C5
+#> 8   TOPIA CENTRAL   C5_C6     C6
+#> 9   TOPIA    EAST   E1_E2     E1
+#> 10  TOPIA    EAST   E1_E2     E2
+#> 11  TOPIA    EAST      E3     E3
+```
+
+This geoscale is a **view**, not the model's own. The aggregated model's
+geoscale is pruned to `zone`, and its atoms have to keep matching its regions or
+`interpolate_model()` misreads what resolution it is looking at.
+
+# Two families, two settings
+
+Both families have the same eleven regions and the same contiguity graph, so it
+is tempting to give them one `k`. Their sweeps even agree -- here, because
+`EGAS` was built as a scaled copy of `ECOA`, so its parameters spread the same
+way:
+
+```{r sweep-both}
+process_cluster_sweep(mod, "EGAS", geoscale = gs, level = "zone") |>
+  select(k, within, silhouette) |>
+  left_join(
+    process_cluster_sweep(mod, "ECOA", geoscale = gs, level = "zone") |>
+      select(k, within_coa = within, sil_coa = silhouette),
+    by = "k"
+  )
+#>    k      within silhouette  within_coa     sil_coa
+#> 1  3 15.57976856 -0.1919701 15.57484465 -0.1915882
+#> 2  4 12.06067920 -0.2329213 12.05414650 -0.2325999
+#> 3  5  8.67779012 -0.2236994  8.66725287 -0.2220126
+#> 4  6  3.29457713  0.1649621  3.29096595  0.1677981
+#> 5  7  0.31202956  0.5430788  0.30748448  0.5461881
+#> 6  8  0.15829511  0.4519464  0.15692375  0.4535683
+#> 7  9  0.07961517  0.2960823  0.08150451  0.2968379
+#> 8 10  0.01433427  0.1801032  0.01604168  0.1798995
+#> 9 11  0.00000000  0.0000000  0.00000000  0.0000000
+```
+
+And yet the same `k` is the wrong choice for both, because what a clustering
+costs is not how the parameters spread -- it is what the model *does* with the
+difference. Four runs settle it:
+
+```{r two-settings}
+aggregate_model_regions(mod, geoscale = gs, level = "zone",
+                        clusters = list(ECOA = 7, EGAS = 3)) |>
+  interpolate_model(name = "K73") |>
+  solve_scenario(solver = solver_options$glpk) |>
+  getData(name = "vObjective", merge = TRUE) |>
+  pull(value)
+#> [1] 186705.498894
+```
+
+| `ECOA` | `EGAS` | objective | gap to fine |
+|---|---|---|---|
+| 11 | 11 | 185892.859193 | -- (the fine model) |
+| 7 | 7 | 186063.417050 | +0.0918% |
+| 7 | 3 | 186705.498894 | +0.4372% |
+| 3 | 7 | 192627.056726 | +3.6226% |
+| 3 | 3 | 193269.138570 | +3.9680% |
+
+Read the last two rows against each other. Coarsening **gas** alone costs
+0.35 points; coarsening **coal** alone costs 3.53 -- ten times as much, from the
+same `k`, on the same regions, with the same spread in the data. Coal is on the
+margin, where a fraction of a point of efficiency decides which plant runs; gas
+sits at its siting ceiling in every zone, so averaging its cost across a zone
+changes almost nothing. One `k` for the model either wastes variants on gas or
+ruins coal.
+
+Which family deserves the resolution is an empirical question about the model,
+not a property of the data, and no rule reads it off the sweep. That is why
+`clusters` is keyed by family and why a bare number is refused.
+
+`features` is per family for the same reason. It takes the parameter names to
+cluster on, or a **function** of the member technologies returning one row per
+region -- which is how a *profile shape* enters, since scalars cannot see shape.
+`E2c` below is that case: there the clustering has to choose one availability
+profile per cluster, and it takes a real member's rather than a fabricated mean.
+
+# Plain aggregation, and the same thing said with clusters
+
+`clusters = NULL` is the plain aggregation: each zone collapses to one value per
+parameter. On this model that is *exactly* `k = 3` -- one cluster per zone,
+nothing left to distinguish:
+
+```{r plain-vs-3}
+aggregate_model_regions(mod, geoscale = gs, level = "zone") |>
+  interpolate_model(name = "PLAIN") |>
+  solve_scenario(solver = solver_options$glpk) |>
+  getData(name = "vObjective", merge = TRUE) |>
+  pull(value)
+#> [1] 193269.138570
+```
+
+Identical to the `3/3` row above, to the last digit. The floor under `k` is the
+plain aggregation, and the two are the same model written two ways -- so
+`clusters` is an argument you turn up from there, not a different function.
+
+# Comparing runs, not just cost
+
+The runs are not keyed alike: the fine model reports eleven regions, a clustered
+run three zones and one variant per cluster (`ECOA_CLC1C2` ...). No name surgery
+is needed for either, because solved output carries the object a variant came
+from in `base`, and its cluster in `cluster`. The leaftable maps region to zone.
+
+```{r align}
+getData(scen_fine, name = "vTechCap", merge = TRUE) |>
+  mutate(zone = geo$zone[match(region, geo$region)]) |>   # W1 -> WEST
+  summarise(capacity = sum(value), .by = c(zone, base)) |>
+  arrange(zone, base)
+#>      zone base capacity
+#> 1 CENTRAL ECOA  191.123
+#> 2 CENTRAL EGAS 1083.031
+#> 3    EAST ECOA  113.114
+#> 4    EAST EGAS  640.978
+#> 5    WEST ECOA   53.306
+#> 6    WEST EGAS  302.070
+```
+
+A clustered run reports zones already, so there `zone` is `region` and nothing
+but the `.by` changes. For the general case `compare_scenarios()` does this
+properly -- overview, per-variable difference counts and the largest absolute
+deltas -- once the keys are aligned.
+
+# Solving at the top level
+
+There is no way to solve a fine model at a coarse level *without* aggregating.
+`interpolate_model()` sorts a geoscale by how its atoms line up with the model's
+regions, and a geoscale whose atoms are coarser than the model is refused with a
+pointer back here. `prune_geoscale()` is what this function calls to set the
+result's geoscale -- it is not an alternative route. The two real routes upward
+are to aggregate a fine model, as below, or to declare the model coarse from the
+start, which `vignette("space-resolution")` demonstrates.
+
+TOPIA's top frame is `nation`, one region:
+
+```{r nation}
+mod_nation <- aggregate_model_regions(
+  mod,
+  geoscale = gs,
+  level = "nation",
+  clusters = list(ECOA = 11, EGAS = 11)
+)
+
+mod_nation@config@region
+#> [1] "TOPIA"
+```
+
+| level | clusters | objective | gap to fine |
+|---|---|---|---|
+| region | -- | 185892.859193 | -- (the fine model) |
+| zone | 7 / 7 | 186063.417050 | +0.0918% |
+| nation | 11 / 11 | 184380.820211 | **-0.8134%** |
+| nation | plain | 193259.899661 | +3.9631% |
+
+The third row is the one to look at. Eleven clusters over one region keeps
+**every** parameter -- nothing is averaged, the 1:1 case -- and still comes out
+0.81% **cheaper** than the model it came from. Nothing about the plants changed;
+the topology did. The fine model links regions only inside a zone, and
+collapsing the three zones into one nation hands it three copperplates joined
+into one, so `EAST`'s cheap coal can serve `WEST`'s load over a line that does
+not exist. `E2a` below is the same mechanism measured on purpose.
+
+That is the general rule for coarsening: a 1:1 clustering proves the
+**parameters** survived, never that the aggregation was safe. Whatever the
+regions were keeping apart is gone as soon as they share a balance.
+
+# Sampling a sub-territory
+
+Coarsening the whole model and taking part of it at full resolution are
+different moves. `subset_model_regions()` keeps the model's own regions and
+drops the rest, so it composes with everything above -- sample first, then
+cluster what is left:
+
+```{r subset}
+mod_sub <- subset_model_regions(
+  mod,
+  region = geo$region[geo$zone %in% c("WEST", "CENTRAL")]
+)
+#> spatial sample: kept 8 region(s); dropped 0 object(s) and 6 trade route(s)
+#>   outside the sample (verbose = TRUE lists them)
+
+get_process_groups(mod_sub)[, c("group", "n")]
+#>   group n
+#> 1  ECOA 8
+#> 2  EGAS 8
+```
+
+The families are the same families, eight regions deep instead of eleven, and
+the admissible `k` moves with them -- two zones now, so the floor is 2 and the
+ceiling 8:
+
+```{r subset-sweep}
+process_cluster_sweep(mod_sub, "ECOA", level = "zone")
+#>   k      within silhouette smallest           sizes
+#> 1 2 12.23946641 -0.1520565        2             6,2
+#> 2 3  8.74669572 -0.4145140        1           6,1,1
+#> 3 4  3.48880116  0.0952621        1         4,2,1,1
+#> 4 5  0.16577247  0.6206045        1       2,2,2,1,1
+#> 5 6  0.08257609  0.4081067        1     2,2,1,1,1,1
+#> 6 7  0.01674316  0.2475210        1   2,1,1,1,1,1,1
+#> 7 8  0.00000000  0.0000000        1 1,1,1,1,1,1,1,1
+```
+
+The knee is at `k = 5` here, not 7: `EAST` took two of the eleven archetypes
+with it. The sub-territory's structure is its own, and `k` chosen on the full
+model would be wrong for it.
+
+```{r subset-solve}
+aggregate_model_regions(mod_sub, level = "zone",
+                        clusters = list(ECOA = 5, EGAS = 5)) |>
+  interpolate_model(name = "SUB5") |>
+  solve_scenario(solver = solver_options$glpk) |>
+  getData(name = "vObjective", merge = TRUE) |>
+  pull(value)
+#> [1] 130655.145340
+```
+
+Against the sampled fine model's 130572.373965 that is +0.0634% -- the same
+order as `7/7` on the whole model, for the same reason: five clusters is the
+resolution these eight regions actually have.
+
+## One thing sampling can change under you
+
+A cost declared at a **coarse** cell is charged once, in full, at that cell --
+it does not know how many of the cell's children are still in the model. Sample
+away some of them and the sub-model carries the whole corridor's cost, so its
+objective stops being comparable with the full model's. `subset_model_regions()`
+says so:
+
+```{r subset-warn}
+TBD_PRICED <- newTrade(
+  name = "TBD_ELC", commodity = "ELC", routes = routes,
+  trade = routes |> mutate(teff = 1.0),
+  capacity = data.frame(stock = 1e4),
+  invcost = data.frame(region = "CENTRAL", invcost = 50)   # a ZONE, not a reg.
+)
+
+mod_priced <- mod |>
+  add(TBD_PRICED, overwrite = TRUE) |>     # replaces the unpriced corridor
+  subset_model_regions(region = c("C1", "C2", "C3"))
+#> Warning: Sampling regions changes a trade cost declared at a coarse level:
+#>   TBD_ELC@invcost at 'CENTRAL' (keeps 3 of 6 region(s): dropped C4, C5, C6)
+#>   A coarse cost is charged ONCE at that cell, whatever is left under it, so
+#>   this sub-model bears the WHOLE corridor cost rather than the share its
+#>   remaining endpoints should -- its objective is not comparable with the full
+#>   model's.
+#>   Declare the cost on the endpoint regions instead, so it follows the ones
+#>   that survive.
+```
+
+It is silent when the whole cell survives, and silent for endpoint-named and
+unregioned costs, which follow the endpoints that are left. Only the coarse form
+has the problem, and naming the endpoint regions is the fix.
+
+# Does aggregation change the answer?
+
+Five experiments, each solving the fine eleven-region model, aggregating it to
+the three zones, and comparing.
+
+## E1a -- members identical: exact
+
+With no jitter every member of an archetype has the *same* efficiency and
+invcost, so the capacity-weighted mean is that value and clustering at `k = 7`
+is lossless by construction. Objective identical to the last digit, capacity and
+generation identical.
+
+## E1b -- a realistic spread: near-exact
+
+With the jitter back, members differ by about 1%. Clustering what is genuinely
+alike costs the spread you chose to ignore and nothing else.
+
+## E2a -- pooling grants transmission that does not exist
+
+Drop `TBD_ELC` and each region must serve its own load, so all plants build.
+Aggregating to zones hands the model a copperplate it never had.
+
+```{r e2a}
+mod_isolated <- newModel(
+  name = "AGG_ISOLATED",
+  region = regions,
+  calendar = calendar,
+  horizon = newHorizon(2025),
+  discount = 0.05,
+  data = newRepository("agg_isolated",
+                       COA, GAS, ELC, SUP_COA, SUP_GAS, DEM_ELC, ECOA, EGAS)
+) |>
+  setGeoscale(gs)
+```
+
+Every aggregation comes out **cheaper** than the model it came from, at every
+`k` including 1:1. That is the lesson: 1:1 clusters preserve the parameters
+perfectly and the topology not at all. Capacity and generation do not move --
+both are pinned by the siting cap and the demand -- but fuel burn drops about
+9%, and with it emissions. A modeller reporting capacity sees nothing; one
+reporting emissions is wrong by a tenth.
+
+## E2b -- merging across the real structure
+
+The last two experiments need quantities chosen by economics rather than pinned
+by a ceiling, which takes one change: gas fuel at 12 instead of 6, at which
+point gas sits at 78% of its cap rather than 100%.
+
+```{r e2b}
+SUP_GAS_12 <- newSupply(
+  name = "SUP_GAS", commodity = "GAS", unit = "PJ",
+  supply = data.frame(region = regions, cost = 12.0)
+)
+mod_economic <- newModel(
+  name = "AGG_ECONOMIC",
+  region = regions,
+  calendar = calendar,
+  horizon = newHorizon(2025),
+  discount = 0.05,
+  data = newRepository("agg_economic",
+                       COA, GAS, ELC, SUP_COA, SUP_GAS_12, DEM_ELC,
+                       ECOA, EGAS, TBD_ELC)
+) |>
+  setGeoscale(gs)
+```
+
+At `k = 3` dissimilar archetypes collapse into one average plant, coal capacity
+**more than halves** and gas takes over -- because the averaged coal plant is
+worse than the good half of the fleet it replaced. `k = 7`, clustering *along*
+the structure, stays near-exact. The error is not aggregation as such; it is
+merging things that are not alike.
+
+## E2c -- one profile per cluster
+
+Give each archetype an availability profile peaking at a different slice of the
+day, so members differ in *shape* and not only in scalars. A profile is a
+**link** to another object rather than a number, so it cannot be averaged:
+`aggregate_model_regions()` gives each cluster its **medoid** member's profile --
+a real member's shape rather than a fabricated mean. That is the better of the
+two available answers and still lossy, because the other members' shapes are
+gone. Averaging them would be worse: the mean of two offset peaks is flatter
+than either, and the model would believe in availability no site ever had.
+
+## The five together
+
+| experiment | changed | mechanism | objective | quantities |
+|---|---|---|---|---|
+| E1a | no jitter | members identical | **exact** | identical |
+| E1b | -- | ~1% spread | +0.0918% | identical |
+| E2a | no `TBD_ELC` | pooling adds transmission | **-3.89%** | fuel -9% |
+| E2b | gas 12, `k = 3` | merged across structure | **+5.07%** | coal cap -55% |
+| E2c | profiles, `k = 3` | one profile per cluster | **+4.16%** | coal gen -48% |
+
+Read the last two columns rather than the middle one. E2a is the only case where
+the objective moves *down*, and the only one no choice of `k` fixes -- it is a
+topology error, not a clustering error. E2b and E2c are clustering errors, and
+both vanish at `k = 7`, the resolution the data actually has.
+
+# What the 1:1 case does and does not prove
+
+At `k = 11` the aggregated model reproduces the fine objective to the last digit
+in E1a, E1b, E2b and E2c. That is a real check -- every parameter survived the
+merge, extensive quantities were summed and intensive ones were not, and no
+variant was silently dropped.
+
+E2a keeps it honest. There `k = 11` is 3.9% cheaper than the model it came from
+with every parameter intact, because the transmission limits did not survive the
+aggregation -- and the `nation` run above is the same thing at 0.81% on the base
+model, where every parameter survives and three zones merge into one. Use the
+1:1 invariant to test the *parameter* carry-over, never as evidence that the
+aggregation as a whole is safe.
+
+# Caveats
+
+* **Clusters are not regions.** They share one balance, one demand and one set
+  of trade routes. Everything that made the regions distinct *other than* the
+  clustered parameters is gone -- which is what E2a measures.
+* **The weights matter.** Intensive parameters are averaged with one size per
+  region, taken from capacity. A group whose members declare no capacity gets
+  equal weights, which is rarely what you want.
+* **`k = "auto"` is a rule, not an answer.** Sweep with
+  `process_cluster_sweep()` and read it. If the silhouette has no peak, the
+  regions do not cluster.
+* **One `k` is not a model-wide setting.** Which family deserves the
+  resolution is an empirical question -- here coarsening coal costs ten times
+  what coarsening gas costs -- so `clusters` is keyed by family and a bare
+  number is refused when there is more than one.
+* **Only structurally identical technologies merge.** If a family should be
+  merged but is not, compare the signatures -- an aux commodity in one member is
+  enough to split it.
+* **Check the quantities, then check why.** If they do not move, find out
+  whether the aggregation is good or a constraint is doing the choosing. In the
+  base model gas builds to exactly 100% of its siting cap in all three zones,
+  which pins the build whatever the parameters say.

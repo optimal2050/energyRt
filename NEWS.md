@@ -61,40 +61,76 @@
   On a container the entries are named `<process>@<region>`. `trade` is
   unaffected: it spans two regions by construction and is priced across both.
 
-* `cluster_model_regions()` and `cluster_tech_groups()` accept a technology
-  that already spans several regions -- one object whose slots carry a
-  `region` column, the idiomatic shape for region-varying parameters -- and
-  cluster it exactly as they do a family of one-object-per-region technologies.
+* `aggregate_model_regions(clusters = )` keeps the regional spread as
+  `technology@cluster` variants instead of averaging it away. Settings are per
+  technology family -- `clusters = list(ECOA = list(k = 3), EWIN = list(k = 8))`
+  -- because one `k` for the model is meaningless: a coal fleet groups on cost
+  and efficiency, a wind fleet on resource quality and profile shape. A family
+  not named is aggregated plainly, so `clusters = NULL` is the old behaviour
+  exactly. A bare number is accepted only when the model has one family; with
+  more it is an error naming them. `k` runs from one cluster per coarse region
+  (identical to plain aggregation) to one per fine region (nothing averaged);
+  `k = "auto"` picks the best average silhouette and returns the sweep, but
+  sweeping and looking is the documented workflow. Clusters cannot straddle a
+  coarse region: the adjacency graph has no edge crossing one.
 
-* `cluster_model_regions()` aggregates a model's regions the way
-  `aggregate_model_regions()` does, but keeps the regional spread as
-  `technology@cluster` variants instead of averaging it away. `k` runs from one
-  cluster per coarse region (identical to the old function) to one per fine
-  region (nothing averaged); `k = "auto"` picks the best average silhouette over
-  a sweep and returns the sweep table. Clusters cannot straddle a coarse region:
-  the adjacency graph has no edge crossing one.
+* `aggregate_model_regions(as = "objects")` returns one technology per
+  (family x cluster), named with the cluster's label (`ECOA_W1`), instead of one
+  object carrying clusters. Same LP; what differs is how results are keyed.
 
-* `cluster_tech_groups()` reports which technologies may be merged into one
-  clustered object, grouped by structure -- inputs, outputs, aux commodities and
-  input groups -- so a coal plant and a gas plant are never merged.
+* `process_cluster_sweep()` clusters one family over the admissible range of `k`
+  and reports dispersion, silhouette and the cluster sizes, over the same
+  features and contiguity graph the aggregation would use -- so the table you
+  read is the grouping you would get. `clusterscales` ships no `best_k()`
+  deliberately, and neither does this.
 
-* `cluster_model_regions()` resolves a **link** column (`weather`,
-  `transform`) to the cluster **medoid**'s value. These name another object, so
-  they can be neither summed nor averaged, and treating them as keys gave one
-  cluster a row per member. A medoid is a real member, so the merged cluster
-  gets a profile some region actually had.
+* `model_clusters()` reports what a clustered aggregation did: the `k`, the
+  region-to-cluster crosswalk, the sweep, and a geoscale carrying a `cluster`
+  geoframe, so `plot_geoscale(type = "map", geoframe = "cluster")` and
+  `type = "icicle"` show the grouping with no new plotting code.
 
-* `cluster_model_regions()` checks `k` against the geoframe before
-  `clusterscales` sees it, so an out-of-range `k` names the level and its
-  bounds instead of reporting "the units fall into 3 group(s)".
+* `get_process_groups()` reports which technologies may be merged into one clustered
+  object, grouped by structure -- inputs, outputs, aux commodities and input
+  groups -- so a coal plant and a gas plant are never merged. It accepts a
+  technology that already spans several regions, one object whose slots carry a
+  `region` column, and clusters it exactly as it does a family of
+  one-object-per-region technologies.
 
-* New article, `vignette("region-clustering")`: five experiments on one model,
+* A technology that **already has clusters** keeps them when its regions are
+  coarsened: the two groupings compose, `GOOD` in `W1` becoming `GOOD_W1`.
+  Previously the incoming `cluster` column was dropped, so a fleet with two
+  site grades over four regions came back with four averaged variants instead
+  of eight -- silently. Clustering features are read per (cluster, region) for
+  the same reason.
+
+* A cluster of one region is labelled with that region's code, so the 1:1 end
+  reads `ECOA_CLW1` rather than `ECOA_CLc03`; several regions join with `_`
+  while that stays a legal name. `@cluster$desc` carries the membership either
+  way.
+
+* A clustered aggregation resolves a **link** column (`weather`, `transform`)
+  to the cluster **medoid**'s value. These name another object, so they can be
+  neither summed nor averaged, and treating them as keys gave one cluster a row
+  per member. A medoid is a real member, so the merged cluster gets a profile
+  some region actually had.
+
+* `k` is checked against the geoframe before `clusterscales` sees it, so an
+  out-of-range `k` names the level and its bounds instead of reporting "the
+  units fall into 3 group(s)".
+
+* **Fixed:** `aggregate_model_regions()` read only the model's first
+  repository. `add()` appends a repository rather than growing one, so a model
+  built up object by object kept its later objects out of `@data[[1]]` -- and
+  those came back declared over the FINE regions in a model whose regions were
+  now coarse, silently. It now reads every repository and returns one.
+
+* New article, `vignette("region-aggregation")`: five experiments on one model,
   measuring when aggregating regions changes the answer and when it does not.
   Two settings leave it untouched, three move it -- including one where the
   aggregated model comes out **cheaper** than the model it came from, because
   pooling granted transmission that did not exist. `clusterscales` and
-  `multiscales` are Suggests; `dev/clex-model.R` holds the shared model and
-  `dev/verify-region-clustering.R` checks every number the article prints.
+  `multiscales` are Suggests; `dev/region-aggregation-model.R` holds the shared model and
+  `dev/verify-region-aggregation.R` checks every number the article prints.
 
 * **Breaking:** the `topia` dataset now carries `geoscales`, a named list of
   four [geoscales::Geoscale] objects (`squares`, `honeycomb`, `island`,

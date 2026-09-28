@@ -14,7 +14,7 @@
 #   * upgrade_scenario_layout() migrates a top-level modOut/ INTO a run -- it
 #     must not undo a deliberate promotion.
 
-# @covers promote_solution import_solution drop_scenario_run depth=S backends=glpk
+# Covers the R API: promote_solution(), import_solution(), drop_scenario_run()
 
 pr_root <- function(...) {
   gsub("[\\\\/]+", "/", file.path(tempdir(), "promote-suite", ...))

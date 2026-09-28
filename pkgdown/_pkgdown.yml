@@ -82,7 +82,7 @@ navbar:
       - text: "TOPIA II: running scenarios"
         href: articles/topia-use.html
       - text: "TOPIA III: multi-level region"
-        href: articles/region-clustering.html
+        href: articles/region-aggregation.html
       - text: Workflow
         href: articles/workflow.html
       - text: Scenario management
@@ -174,8 +174,9 @@ reference:
     coarse balances roll up without a `trade` route for every pair.
   contents:
   - setGeoscale,config-method
-  - cluster_model_regions
-  - cluster_tech_groups
+  - get_process_groups
+  - process_cluster_sweep
+  - model_clusters
   - check_geoscale_regions
   - plot_geoscale
   - get_region

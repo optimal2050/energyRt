@@ -268,7 +268,7 @@ test_that("the unregioned rate follows the endpoints, not the model size", {
   expect_setequal(unique(as.character(eac$region)), c("R1", "R2", "R3"))
 })
 
-# @covers subset_model_regions
+# Covers the R API: subset_model_regions()
 test_that("sampling warns when it splits a cell a trade cost sits on", {
   skip_if_not_installed("geoscales")
   # A coarse cost is charged ONCE at its cell however much is left beneath it,

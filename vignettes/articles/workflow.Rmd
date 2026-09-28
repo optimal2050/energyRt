@@ -61,7 +61,7 @@ TRUE` unwraps a single match into the object itself.
 ```{r getobject}
 repo <- um$repo
 names(getObject(repo, class = "technology"))        # all technologies
-names(getObject(repo, class = "supply", region = "R1"))
+names(getObject(repo, class = "supply", region = "W1"))
 getObject(repo, name = "ECOA", drop = TRUE)@invcost # the ECOA object itself
 ```
 

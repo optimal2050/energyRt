@@ -1,8 +1,8 @@
 Package: energyRt
 Type: Package
 Title: Energy Systems Modeling Toolbox
-Version: 0.90.0.9004
-Date: 2026-09-25
+Version: 0.90.0.9005
+Date: 2026-09-27
 Authors@R: 
   c(person(given = "Oleg", 
           family = "Lugovoy", 
@@ -88,8 +88,6 @@ Collate:
     'check_levels.R'
     'class-costs.R'
     'cloud.R'
-    'region.R'
-    'cluster-regions.R'
     'compare_inputs.R'
     'compare_models.R'
     'report.R'
@@ -128,6 +126,8 @@ Collate:
     'read.R'
     'store-scenario.R'
     'portability.R'
+    'region.R'
+    'process-groups.R'
     'process_designer.R'
     'prune.R'
     'read_sequence.R'

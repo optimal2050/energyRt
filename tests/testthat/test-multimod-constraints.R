@@ -38,7 +38,7 @@ fixture_with_constraint <- function(mult = c(EBIO = 2, ECOA = 3),
   data(example_models, package = "multimod")
   m <- example_models$energyRt$multimod
 
-  span <- as.data.frame(get_data(m, "mTechSpan", type = "mapping"))
+  span <- as.data.frame(multimod::get_data(m, "mTechSpan", type = "mapping"))
   for_each <- unique(span[, c("region", "year")])
   techs <- names(mult)
 
@@ -90,7 +90,7 @@ test_that("a user-constraint IR string parses into an equation", {
   # the $-condition of the header becomes the equation's domain mapping, which
   # is what build_row_index() reads to size the row block
   expect_equal(eq$domain$name, "mCnsForEachTEST")
-  expect_equal(vapply(eq$dims, dim_binding_name, character(1)),
+  expect_equal(vapply(eq$dims, multimod:::dim_binding_name, character(1)),
                c("region", "year"))
   expect_equal(eq$rhs$name, "pCnsRhsTEST")
 })
@@ -99,8 +99,8 @@ test_that("the constraint contributes exactly its domain's rows", {
   skip_if_not_installed("multimod")
   data(example_models, package = "multimod")
   f <- fixture_with_constraint()
-  base <- build_row_index(example_models$energyRt$multimod)
-  ri <- build_row_index(f$model)
+  base <- multimod::build_row_index(example_models$energyRt$multimod)
+  ri <- multimod::build_row_index(f$model)
 
   expect_equal(nrow(ri) - nrow(base), nrow(f$for_each))
   expect_equal(sum(ri$symbol == "eqCnsTEST"), nrow(f$for_each))
@@ -159,7 +159,7 @@ test_that("a sum over a tuple of free indices carries coefficients", {
   # sum over (tech, region) -- two free indices -- gated by mTechSpan, with the
   # equation indexed by year alone. No for.sum, no pCnsMult, literal RHS: the
   # bare shape energyRt emits for `term1 = list(variable = "vTechCap")`.
-  span <- as.data.frame(get_data(m, "mTechSpan", type = "mapping"))
+  span <- as.data.frame(multimod::get_data(m, "mTechSpan", type = "mapping"))
   yrs <- unique(span[, "year", drop = FALSE])
   m$mappings$mCnsForEachTUP <- multimod::new_mapping(
     "mCnsForEachTUP", desc = "row set", dims = "year",
@@ -183,7 +183,7 @@ test_that("a sum over a tuple of free indices carries coefficients", {
 
   # and the package's own detector agrees
   expect_false("eqCnsTUP" %in%
-                 check_matrix_numbers(lp, verbose = FALSE)$empty_row_symbols)
+                 multimod::check_matrix_numbers(lp, verbose = FALSE)$empty_row_symbols)
 })
 
 test_that("model_to_lp refuses a user constraint that binds nothing", {
@@ -191,7 +191,7 @@ test_that("model_to_lp refuses a user constraint that binds nothing", {
   data(example_models, package = "multimod")
   m <- example_models$energyRt$multimod
 
-  span <- as.data.frame(get_data(m, "mTechSpan", type = "mapping"))
+  span <- as.data.frame(multimod::get_data(m, "mTechSpan", type = "mapping"))
   yrs <- unique(span[, "year", drop = FALSE])
   m$mappings$mCnsForEachVOID <- multimod::new_mapping(
     "mCnsForEachVOID", desc = "row set", dims = "year",
@@ -216,5 +216,5 @@ test_that("model_to_lp refuses a user constraint that binds nothing", {
   expect_warning(lp <- multimod::model_to_lp(m, on_empty_row = "warn"), "eqCnsVOID")
   expect_silent(lp2 <- multimod::model_to_lp(m, on_empty_row = "ignore"))
   expect_true("eqCnsVOID" %in%
-                check_matrix_numbers(lp2, verbose = FALSE)$empty_row_symbols)
+                multimod::check_matrix_numbers(lp2, verbose = FALSE)$empty_row_symbols)
 })

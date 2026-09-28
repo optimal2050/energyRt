@@ -127,8 +127,8 @@ autoplot(calendars$s4_hp3, palette = "magma", border = "grey40") +
 indexed by a *two-dimensional* calendar — day-of-year × hour, month × hour — a
 **heatmap** reads more naturally: `plot_heatmap()` puts the finest timeframe on
 `y`, the next on `x`, and any coarser levels into facets. The layout is taken
-from the calendar (pass it as `calendar =`), or guessed from the timeslice names with
-`tsl_guess_format()`.
+from the calendar, which you pass as `calendar =` -- either a calendar object or
+the name of one, such as `"d365_h24"`.
 
 Here is a synthetic hourly load profile on the `d365_h24` calendar (a daily cycle
 plus a seasonal swing). The diurnal band and the winter/summer contrast are
@@ -139,8 +139,8 @@ cal  <- calendars$d365_h24
 tt   <- cal@timetable
 prof <- data.frame(
   timeslice = tt$timeslice,
-  load  = 50 + 30 * sin(2 * pi * (tsl2hour(tt$timeslice) - 6) / 24) +
-                15 * cos(2 * pi *  tsl2yday(tt$timeslice)      / 365))
+  load  = 50 + 30 * sin(2 * pi * (timescales::tsl2hour(tt$timeslice, cal@name) - 6) / 24) +
+                15 * cos(2 * pi *  timescales::tsl2yday(tt$timeslice, cal@name)      / 365))
 
 plot_heatmap(prof, calendar = cal, value = "load")   # x = YDAY, y = HOUR
 ```
@@ -149,7 +149,7 @@ Facet a day-of-year format by `"month"` to get one day-of-month × hour panel pe
 month:
 
 ```{r hm-month, fig.height = 4.5}
-plot_heatmap(prof, value = "load", facet = "month")  # 12 monthly panels
+plot_heatmap(prof, calendar = cal, value = "load", facet = "month")  # 12 panels
 ```
 
 `palette` selects the viridis option and `name` labels the colour bar, exactly as
@@ -169,14 +169,14 @@ repo <- topia$modules$electricity$R3$repo
 wcal <- calendars$s4_h24
 
 DEM <- getObject(repo, name = "DEM_ELC", drop = TRUE)
-dem <- subset(as.data.frame(DEM@demand), region == "R1" & year == 2050)
+dem <- subset(as.data.frame(DEM@demand), region == "W1" & year == 2050)
 plot_heatmap(dem[, c("timeslice", "demand")], calendar = wcal, value = "demand",
              name = "PJ")
 ```
 
 ```{r hm-weather, fig.height = 2.6}
 WSOL <- getObject(repo, name = "WSOL", drop = TRUE)
-wsol <- subset(as.data.frame(WSOL@weather), region == "R1")
+wsol <- subset(as.data.frame(WSOL@weather), region == "W1")
 plot_heatmap(wsol[, c("timeslice", "wval")], calendar = wcal, value = "wval",
              name = "capacity factor")
 ```

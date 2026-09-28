@@ -364,7 +364,7 @@ test_that("report() consumes by_variant instead of forwarding it to levcost()", 
 # prices it once per region instead -- the third axis alongside vintage and
 # cluster.
 
-# @covers levcost
+# Covers the R API: levcost()
 test_that("by_region prices a multi-region technology once per region", {
   regs <- c("R1", "R2", "R3")
   eff <- c(0.30, 0.40, 0.50)
@@ -397,7 +397,7 @@ test_that("by_region prices a multi-region technology once per region", {
   expect_equal(names(which.min(npv)), "R1")
 })
 
-# @covers levcost
+# Covers the R API: levcost()
 test_that("by_region needs regions, and leaves a trade alone", {
   bare <- newTechnology(
     name = "EBARE",
