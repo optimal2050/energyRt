@@ -4,28 +4,29 @@
 #   Rscript tools/test/run_cross.R
 # Prints the toolchain availability first, then runs the cross-related files.
 # Missing toolchains skip; only real mismatches fail. See tests/README.md.
+#
+# Two defects fixed 2026-09-28 by routing through lib/runner.R:
+#   * the exit code was `sum(res$failed)` with no `sum(res$error)`, so a file
+#     that ONLY errored exited 0 -- the run reported success;
+#   * `aggregate()` on an empty result frame errors, so a filter matching
+#     nothing crashed instead of reporting nothing to do.
+# The run is also no longer silent: it prints each file as it finishes.
 # =========================================================================== #
 if (!file.exists("DESCRIPTION")) stop("Run from the package root.")
+source(file.path("tools", "test", "lib", "runner.R"))
 Sys.setenv(ENERGYRT_TEST_TIER = "cross")
 suppressMessages(pkgload::load_all(".", quiet = TRUE))
 
-cat("Toolchains:\n")
-for (probe in list(c("glpsol", "glpk"), c("julia", "julia"),
-                   c("python", "python"), c("gams", "gams"))) {
-  path <- tryCatch(get_option(paste0(probe[2], "_path")), error = function(e) "")
-  found <- (is.character(path) && nzchar(path) && file.exists(path)) ||
-    nzchar(Sys.which(probe[1]))
-  cat(sprintf("  %-7s %s\n", probe[1], if (found) "found" else "NOT found"))
-}
+en_toolchains()
+
+filter <- "cross-solver|one-all-solvers|family-"
+lst <- testthat::ListReporter$new()
+rep <- en_reporters(lst)
 
 t0 <- proc.time()[3]
-res <- as.data.frame(devtools::test(
-  filter = "cross-solver|one-all-solvers|family-", reporter = "silent"))
-failed <- sum(res$failed)
-agg <- aggregate(cbind(failed, skipped, passed) ~ file, res, sum)
-bad <- agg[agg$failed > 0, , drop = FALSE]
-if (nrow(bad)) print(bad, row.names = FALSE)
-cat(sprintf("[cross] failed %d | skipped %d | passed %d | %.1f min\n",
-            failed, sum(res$skipped), sum(res$passed),
-            (proc.time()[3] - t0) / 60))
-quit(status = if (failed > 0) 1L else 0L)
+devtools::test(reporter = rep, filter = filter)
+res <- as.data.frame(lst$get_results())
+mins <- (proc.time()[3] - t0) / 60
+
+broken <- en_summarise(res, "cross", mins, filter)
+quit(status = if (broken > 0) 1L else 0L)
