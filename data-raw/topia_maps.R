@@ -1,5 +1,5 @@
 ## data-raw/topia_maps.R
-## Repair / regenerate the `topia$map` reference layouts.
+## Repair / regenerate the four reference layout GEOMETRIES.
 ##
 ## The original generation script did not survive; this one rebuilds the
 ## honeycomb layout from the SHIPPED hex centroids (so the layout and the
@@ -13,8 +13,16 @@
 ## Rebuilding every hexagon from one global vertex formula and rounding
 ## coordinates to a 1e-9 grid makes shared vertices byte-identical.
 ##
-## The hierarchy is keyed by region NAME, never by geometry — coordinates
-## are per-layout and carry no meaning beyond the picture.
+## The hierarchy is keyed by region NAME, never by geometry: the model sees
+## codes, and `W1` is in WEST on every layout. Which POLYGON carries which
+## code is a per-layout choice, made in data-raw/topia_geoscale.R so that
+## each zone comes out as one contiguous block on each picture. This file
+## only fixes the geometry; it never assigns codes.
+##
+## Leaves a plain `map` list (one `sf` per layout, `region` + geometry) in the
+## builder environment. Nothing is shipped from here: `topia_geoscale.R` folds
+## these polygons into the `Geoscale` objects that `topia$geoscales` carries,
+## and that is the dataset's ONLY copy of the geometry.
 ##
 ## Run: pkgload::load_all(".") ; source("data-raw/topia_maps.R")
 
@@ -26,8 +34,18 @@ grid_round <- function(g, digits = 9) {
   }), crs = st_crs(g))
 }
 
-topia <- energyRt::topia
-map <- topia$map
+# Bootstrap from whatever the installed dataset carries. Since 0.91 the
+# geometry lives inside `topia$geoscales`; older copies still have the plain
+# `topia$map`, which is what the migrating run reads.
+map <- local({
+  shipped <- energyRt::topia
+  if (!is.null(shipped$geoscales)) {
+    lapply(shipped$geoscales, function(gs)
+      geoscales::geoscale_geometry(gs, geoframe = "region"))
+  } else {
+    lapply(shipped$map, function(m) m[, "region"])
+  }
+})
 
 # -- honeycomb: rebuild each hex from its centroid ---------------------------
 hc <- map$honeycomb
@@ -47,8 +65,13 @@ theta0 <- atan2(ctr[nn[2], 2] - ctr[nn[1], 2],
 r <- s / sqrt(3)
 
 # One global vertex formula, rounded to the grid -- every shared vertex
-# computes to the identical number from both neighboring hexes
-ang <- theta0 + pi / 6 + pi / 3 * (0:5)
+# computes to the identical number from both neighboring hexes.
+# `theta0` is reduced mod 60 degrees HERE ONLY. A hexagon is invariant under a
+# 60-degree turn, so this leaves the shapes alone, but it pins WHICH vertex the
+# ring starts at: `nn` picks one of several tied nearest-neighbour pairs, and a
+# rebuild that picks a different one would otherwise rotate every ring and churn
+# `data/topia.rda`. The lattice basis below still needs the true `theta0`.
+ang <- (theta0 %% (pi / 3)) + pi / 6 + pi / 3 * (0:5)
 hex_at <- function(cx, cy) {
   v <- cbind(round(cx + r * cos(ang), 9), round(cy + r * sin(ang), 9))
   st_polygon(list(rbind(v, v[1, , drop = FALSE])))
@@ -91,8 +114,6 @@ for (nm in names(map)) {
   st_geometry(map[[nm]]) <- grid_round(st_geometry(map[[nm]]))
 }
 
-topia$map <- map
-
 # -- verification -------------------------------------------------------------
 g <- st_geometry(map$honeycomb)
 touch_pairs <- sum(lengths(st_touches(g))) / 2
@@ -110,5 +131,6 @@ for (nm in names(map)) {
               length(st_cast(st_union(gg), "POLYGON"))))
 }
 
-# (no use_data here: data-raw/topia_assemble.R writes the single dataset)
-cat("topia.rda updated\n")
+# (no use_data here: data-raw/topia_geoscale.R folds `map` into the Geoscales,
+# and data-raw/topia_assemble.R writes the single dataset)
+cat("layout geometry rebuilt:", paste(names(map), collapse = ", "), "\n")

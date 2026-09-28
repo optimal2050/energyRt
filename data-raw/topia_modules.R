@@ -80,7 +80,7 @@ topia_calendars <- c(calendars,
                      list(topia_seasons = topia_seasons),
                      unit_calendars)
 
-build_topia <- function(regions = paste0("R", 1:3),
+build_topia <- function(regions = .topia_regions[1:3],
                          calendar = "s4_h24",
                          annual_demand = 100,
                          years = c(2020, 2030, 2040, 2050),
@@ -107,12 +107,14 @@ build_topia <- function(regions = paste0("R", 1:3),
     COA, GAS, BIO, NUC, SOL, WIN, HYD, ELC, CO2)
 
   # ---- regional endowments (drive inter-regional + rest-of-world trade) ------
-  # coal is mined in R1/R4/R7/R10, gas produced in R2/R5/R8/R11, hydro flows in
-  # R3/R6/R9; biomass and nuclear fuel are available everywhere. Regions without
-  # a domestic fuel import it (IMP_*) or buy electricity over the grid (TBD_*).
-  coal_regs  <- intersect(regions, paste0("R", c(1, 4, 7, 10)))
-  gas_regs   <- intersect(regions, paste0("R", c(2, 5, 8, 11)))
-  hydro_regs <- intersect(regions, paste0("R", c(3, 6, 9)))
+  # Every third region along the canonical west-to-east order gets the same
+  # fuel, so any PREFIX of that order (the R1/R3/R7/R11 kits) still sees a mix:
+  # coal in W1/C2/C5/E2, gas in W2/C3/C6/E3, hydro in C1/C4/E1. Biomass and
+  # nuclear fuel are available everywhere. A region with no domestic fuel
+  # imports it (IMP_*) or buys electricity over the grid (TBD_*).
+  coal_regs  <- intersect(regions, .topia_regions[c(1, 4, 7, 10)])
+  gas_regs   <- intersect(regions, .topia_regions[c(2, 5, 8, 11)])
+  hydro_regs <- intersect(regions, .topia_regions[c(3, 6, 9)])
 
   # ---- supply (fuels SUP_*, free renewable resources RES_*; EUR/GJ = MEUR/PJ) ----
   sup <- function(nm, comm, cost, reg = regions) newSupply(nm, commodity = comm,
@@ -366,7 +368,8 @@ build_topia <- function(regions = paste0("R", 1:3),
 #
 #   base repo (U1):  DEM 1/slice -> E1 activity 4, capacity 4 (peak 1 over
 #                    share 1/4 at cap2act 1), fuel 4x1 -> objective 8.
-#   U3: PRM exists only in R1; R2/R3 import ELC over a unit trade chain:
+#   U3: PRM exists only in the first region; the other two import ELC over
+#       a unit trade chain:
 #                    fuel 12 + E1 cap 12 + trade caps 8 + 4 -> objective 36.
 #   SOLAR module:    a SELF-CONTAINED solar + storage model -- free resource
 #                    ON in half the slices (step levels = 2), storage bridges
@@ -379,7 +382,7 @@ build_topia <- function(regions = paste0("R", 1:3),
 #                    merit-order lesson.
 #   SUP_CURVE:       SUP_PRM as a 2-step curve (2 units @1 + 2 @2 -> fuel 6,
 #                    objective 10 when it replaces the flat supply).
-build_unit <- function(regions = "R1", calendar = "unit_s4") {
+build_unit <- function(regions = .topia_regions[1], calendar = "unit_s4") {
   stopifnot(is.character(regions), length(regions) > 0)
   cal <- topia_calendars[[calendar]]
   if (is.null(cal)) stop("unknown calendar '", calendar, "'")
@@ -468,18 +471,19 @@ topia_modules <- list(
                "all-unit-input models with hand-checkable integer objectives under",
                "`$unit`. Built by the TOPIA I vignette's explicit steps; mirrors",
                "IDEEA::ideea_modules."),
-  maps      = topia$map,
   # the calendars this model uses: the generic ones it borrows, plus its own
   calendars = c(calendars[c("annual", "s4_h24", "m12_h24")],
                 list(topia_seasons = topia_seasons)),
   horizons  = list(base = base_horizon, unit = unit_horizon),
-  # Keyed `R<n>` for an n-region layout, matching the `R1`..`R11` region names
-  # the maps use. `R11` covers the full map; the smaller ones are its prefixes.
+  # Keyed `R<n>` for an n-region layout. `R11` covers the whole map; the
+  # smaller kits are PREFIXES of the canonical west-to-east order, so `R1` is
+  # the westernmost region and `R3` reaches the first CENTRAL one. (The kit
+  # KEYS stay `R<n>` -- they name a size, not a region.)
   electricity = list(
-    R1  = build_topia("R1",                 calendar = "s4_h24"),
-    R3  = build_topia(paste0("R", 1:3),     calendar = "s4_h24"),
-    R7  = build_topia(paste0("R", 1:7),     calendar = "s4_h24"),
-    R11 = build_topia(paste0("R", 1:11),    calendar = "s4_h24")
+    R1  = build_topia(.topia_regions[1],     calendar = "s4_h24"),
+    R3  = build_topia(.topia_regions[1:3],   calendar = "s4_h24"),
+    R7  = build_topia(.topia_regions[1:7],   calendar = "s4_h24"),
+    R11 = build_topia(.topia_regions[1:11],  calendar = "s4_h24")
   ),
   # Unit kits: `U<n>` layouts on the symmetric unit calendar; use with
   # `$horizons$unit` and `discount = 0` so the objective stays an integer.
@@ -487,8 +491,8 @@ topia_modules <- list(
     # the unit kits' own calendars live with the kits -- `unit_s4`/`unit_s4h4`
     # are not shipped in `energyRt::calendars`
     calendars = unit_calendars,
-    U1 = build_unit("R1",             calendar = "unit_s4"),
-    U3 = build_unit(paste0("R", 1:3), calendar = "unit_s4")
+    U1 = build_unit(.topia_regions[1],   calendar = "unit_s4"),
+    U3 = build_unit(.topia_regions[1:3], calendar = "unit_s4")
   )
 )
 
@@ -503,7 +507,8 @@ for (cfg in names(topia_modules$electricity)) {
             # GAS_CURVE exists wherever the layout has a gas region (R2+)
             cfg == "R1" || methods::is(k$GAS_CURVE, "supply"))
 }
-for (cfg in names(topia_modules$unit)) {
+# `unit` also carries its own `calendars` entry, which is not a kit.
+for (cfg in setdiff(names(topia_modules$unit), "calendars")) {
   k <- topia_modules$unit[[cfg]]
   stopifnot(methods::is(k$repo, "repository"),
             methods::is(k$SOLAR, "repository"),

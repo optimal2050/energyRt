@@ -80,9 +80,13 @@ if (have_ideea) {
   topia_weather$timeslice <- sub("^AUT_", "FAL_", topia_weather$timeslice)
   stopifnot(sort(unique(topia_weather$calendar)) %in%
               sort(unique(c(CALS, "annual"))))
-  attr(topia_weather, "source") <- paste0(
-    attr(.prev_weather, "source") %||% "previously shipped",
-    " [carried over; re-keyed 2026-08]")
+  # carry the tag EXACTLY once: a rebuild reads back the previously shipped
+  # weather, whose source note already ends in the tag, so appending blindly
+  # accumulated one copy per regeneration
+  .tag <- " [carried over; re-keyed 2026-08]"
+  .src <- attr(.prev_weather, "source") %||% "previously shipped"
+  attr(topia_weather, "source") <-
+    paste0(gsub(.tag, "", .src, fixed = TRUE), .tag)
 } else {
   topia_weather <- do.call(rbind, lapply(CALS, function(cal) {
     cf <- .curated_cf(cal)

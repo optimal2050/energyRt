@@ -2,7 +2,8 @@
 ## Builds the single shipped `topia` dataset. THE entry point: run this, not
 ## the builders below it.
 ##
-##   data-raw/topia_maps.R      -> topia (map, geo)
+##   data-raw/topia_maps.R      -> `map`, the four layout geometries (local)
+##   data-raw/topia_geoscale.R  -> topia$geoscales (hierarchy + those polygons)
 ##   data-raw/topia_data.R      -> topia_weather, topia_demand, topia_stock
 ##   data-raw/topia_modules.R   -> topia_modules
 ##
@@ -18,7 +19,10 @@
 
 if (!isNamespaceLoaded("energyRt")) library(energyRt)
 
+# topia_geoscale.R must follow topia_maps.R: it recodes the regions ON the
+# layouts maps.R has just repaired, and builds the matching hierarchy.
 .builders <- c("data-raw/topia_maps.R",
+               "data-raw/topia_geoscale.R",
                "data-raw/topia_data.R",
                "data-raw/topia_modules.R")
 stopifnot(all(file.exists(.builders)))
@@ -29,15 +33,16 @@ for (.f in .builders) {
   sys.source(.f, envir = .e)
 }
 
-# `topia_maps.R` leaves the map/geo pair in `topia`; the others leave one
-# object each under its pre-0.90 dataset name.
+# Each builder leaves one object behind: `topia_maps.R` a plain `map` list that
+# `topia_geoscale.R` consumes, `topia_geoscale.R` the Geoscales, the rest one
+# table each under its pre-0.90 dataset name.
 stopifnot(
-  is.list(.e$topia), all(c("map", "geo") %in% names(.e$topia)),
+  is.list(.e$topia_geoscales), length(.e$topia_geoscales) == 4L,
   !is.null(.e$topia_weather), !is.null(.e$topia_demand),
   !is.null(.e$topia_stock),   !is.null(.e$topia_modules)
 )
 
-topia <- .e$topia[c("map", "geo")]
+topia <- list(geoscales = .e$topia_geoscales)
 topia$weather <- .e$topia_weather
 topia$demand  <- .e$topia_demand
 topia$stock   <- .e$topia_stock
@@ -45,12 +50,22 @@ topia$modules <- .e$topia_modules
 
 stopifnot(
   identical(names(topia),
-            c("map", "geo", "weather", "demand", "stock", "modules")),
-  is.list(topia$map), is.data.frame(topia$geo),
+            c("geoscales", "weather", "demand", "stock", "modules")),
+  all(vapply(topia$geoscales, inherits, logical(1), "geoscales::Geoscale")),
   is.data.frame(topia$weather), is.data.frame(topia$demand),
   is.data.frame(topia$stock), is.list(topia$modules)
 )
 
+# `topia$geoscales` is the dataset's ONLY copy of the geometry: the plain
+# `topia$map`, the `topia$geo` table and the `topia$modules$maps` duplicate were
+# all removed in 0.91. The hierarchy table is still one call away --
+# `geoscales::geoscale_leaftable(topia$geoscales$honeycomb)`.
+stopifnot(!any(c("map", "geo") %in% names(topia)),
+          is.null(topia$modules$maps))
+
 usethis::use_data(topia, overwrite = TRUE)
-cat("topia.rda written:", paste(names(topia), collapse = ", "), "\n")
+cat("topia.rda written:", paste(names(topia), collapse = ", "), "|",
+    length(topia$geoscales), "layouts:",
+    paste(names(topia$geoscales), collapse = ", "), "\n")
+
 rm(.e, .f, .builders)
