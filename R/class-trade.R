@@ -18,6 +18,7 @@
 #' @slot varom `r get_slot_doc("trade", "varom")`
 #' @slot capacity `r get_slot_doc("trade", "capacity")`
 #' @slot vintage `r get_slot_doc("trade", "vintage")`
+#' @slot cluster `r get_slot_doc("trade", "cluster")`
 #' @slot cap2act `r get_slot_doc("trade", "cap2act")`
 #' @slot optimizeRetirement `r get_slot_doc("trade", "optimizeRetirement")`
 #' @slot misc `r get_slot_doc("trade", "misc")`
@@ -143,7 +144,10 @@ setClass("trade",
     cluster = data.frame(
       cluster = character(),
       desc = character(),
-      share = numeric(),
+      cap.share.fx = numeric(),
+      act.share.lo = numeric(),
+      act.share.up = numeric(),
+      act.share.fx = numeric(),
       order = integer(),
       stringsAsFactors = FALSE
     ),
@@ -236,6 +240,7 @@ setMethod("initialize", "trade", function(.Object, ...) {
 #' @param varom `r get_slot_doc("trade", "varom")`
 #' @param invcost `r get_slot_doc("trade", "invcost")`
 #' @param vintage `r get_slot_doc("trade", "vintage")`
+#' @param cluster `r get_slot_doc("trade", "cluster")`
 #' @param olife deprecated, use the `olife` column of `vintage`.
 #' @param start deprecated, use the `start` column of `vintage`.
 #' @param end deprecated, use the `end` column of `vintage`.
@@ -553,7 +558,7 @@ lossTranches <- function(shares,
 
   out <- list(
     cluster = data.frame(cluster = labels, desc = as.character(desc),
-                         share = w, order = seq_len(n),
+                         cap.share.fx = w, order = seq_len(n),
                          stringsAsFactors = FALSE),
     # No `src` / `dst`: `.line_common()` broadcasts an endpoint-free frame onto
     # both routes. No `resistance` either -- it would join the merge key there
@@ -584,7 +589,7 @@ print.loss_tranches <- function(x, ...) {
   cat("Loss tranches: ", length(lam), " segment(s), ",
       format(100 * lf, digits = 4), "% lost at rated load\n", sep = "")
   d <- data.frame(cluster = x$cluster$cluster,
-                  share = x$cluster$share,
+                  share = x$cluster$cap.share.fx,
                   from = a0, to = a1,
                   loss = lam, teff = x$trade$teff)
   if (!is.null(x$capacity)) d$cap.fx <- x$capacity$cap.fx
@@ -592,7 +597,7 @@ print.loss_tranches <- function(x, ...) {
   # The calibration identity: the flow-weighted loss at full load must come back
   # to `loss_full`, which is the one property a reviewer wants to see and cannot
   # eyeball from the table.
-  cat("check: sum(share x loss) = ", format(sum(x$cluster$share * lam)),
+  cat("check: sum(share x loss) = ", format(sum(x$cluster$cap.share.fx * lam)),
       "  (= loss at rated load, ", format(lf), ")\n", sep = "")
   invisible(x)
 }

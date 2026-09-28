@@ -323,15 +323,20 @@ get_process_groups(mod)[, c("group", "class", "signature", "n")]
 #> 2    EGAS technology in:GAS|out:ELC|aux:|grp: 11
 #> 3 SUP_COA    supply         comm:COA|unit:PJ 11
 #> 4 SUP_GAS    supply         comm:GAS|unit:PJ 11
+#> 5     TRD      trade               TRD::ELC::  1
 ```
 
-Four groups, not two: `supply`, `storage`, `import` and `export` carry a
-`@cluster` slot as well, so a region grouping can become sub-processes on them
-too. Two classes cannot and are absent by design -- `demand` has no `@cluster`
-slot, because a demand is a requirement rather than a process with archetypes
-and summing it over a zone is the right answer; and `trade` has no `@region`
-slot at all, since its regions are `src`/`dst` pairs, so grouping *its* regions
-would mean clustering corridors, which is a different operation.
+Five groups, not two. `supply`, `storage`, `import` and `export` carry a
+`@cluster` slot as well, so a region grouping becomes sub-processes on them
+too, and `n` counts the regions they span. `demand` is absent by design: it has
+no `@cluster` slot, because a demand is a requirement rather than a process
+with archetypes, and summing it over a zone is the right answer.
+
+`TRD` is the odd one. A corridor has no `@region` slot -- its regions are
+`src`/`dst` pairs -- so grouping it means partitioning *corridors* between a
+pair of coarse regions, not clustering regions, and `n` counts corridors
+rather than regions. Here there is one, so there is nothing to partition; the
+[corridor section](#grouping-corridors) uses a model where there is.
 
 The supplies here are flat -- every region pays 2.0 for coal -- so there is
 nothing for a clustering to find, and asking for one says so rather than
@@ -377,10 +382,10 @@ model is refused when there is more than one:
 
 ```{r k-scalar}
 aggregate_model_regions(mod, geoscale = gs, level = "zone", clusters = 7)
-#> Error: `clusters = 7` sets one number for all 4 process groups of this
-#> model (ECOA, EGAS, SUP_COA, SUP_GAS), which is rarely what you want: each
-#> family clusters on different parameters and has its own structure, so it has
-#> its own k. Name them:
+#> Error: `clusters = 7` sets one number for all 5 process groups of this
+#> model (ECOA, EGAS, SUP_COA, SUP_GAS, TRD), which is rarely what you want:
+#> each family clusters on different parameters and has its own structure, so
+#> it has its own k. Name them:
 #>     clusters = list(ECOA = 7, EGAS = ...)
 #>   Use get_process_groups() to see what can be merged, and
 #>   process_cluster_sweep() to choose each k.

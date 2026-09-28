@@ -96,8 +96,13 @@ test_that("`lossTranches()` refuses what it cannot calibrate", {
 
 test_that("the class carries the tranches, and refuses a region on them", {
   expect_true("cluster" %in% slotNames("trade"))
+  # One definition across all six process classes: `cluster`, `desc`, `order`
+  # always; `region` where the class has regional scope; a capacity share and
+  # an activity share, both optional. A loss tranche is not a different kind
+  # of thing -- it is a cluster whose capacity share is declared.
   expect_equal(names(new("trade")@cluster),
-               c("cluster", "desc", "share", "order"))
+               c("cluster", "desc", "cap.share.fx", "act.share.lo",
+                 "act.share.up", "act.share.fx", "order"))
   # No `region` column, deliberately: a trade object has no `@region` slot -- its
   # scope comes from the route endpoints -- so a region here could restrict
   # nothing. Its ABSENCE rejects the mistake at construction, which is earlier
@@ -228,7 +233,8 @@ test_that("shares that do not sum to 1 are refused at interpolation", {
   # `lossTranches()` cannot produce these, but a hand-written declaration can --
   # and the derived efficiencies would then be silently mis-calibrated.
   bad <- newDCLink("L", "ELC", "R1", "R2",
-                   cluster = data.frame(cluster = c("A", "B"), share = c(0.5, 0.4),
+                   cluster = data.frame(cluster = c("A", "B"),
+                                        cap.share.fx = c(0.5, 0.4),
                                         order = 1:2),
                    trade = data.frame(cluster = c("A", "B"), teff = c(0.99, 0.97)),
                    vintage = data.frame(olife = 50L),

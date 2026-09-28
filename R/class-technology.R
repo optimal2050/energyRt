@@ -133,9 +133,9 @@ setClass("technology",
       use2cact = numeric(),
       cact2cout = numeric(),
       cinp2ginp = numeric(),
-      share.lo = numeric(),
-      share.up = numeric(),
-      share.fx = numeric(),
+      grp.share.lo = numeric(),
+      grp.share.up = numeric(),
+      grp.share.fx = numeric(),
       afc.lo = numeric(), # !!! check and potentially rename avc.*
       afc.up = numeric(),
       afc.fx = numeric(),
@@ -281,6 +281,10 @@ setClass("technology",
       cluster = character(),
       desc = character(),
       region = character(),
+      cap.share.fx = numeric(),
+      act.share.lo = numeric(),
+      act.share.up = numeric(),
+      act.share.fx = numeric(),
       order = integer(),
       stringsAsFactors = FALSE
     ),
@@ -581,10 +585,14 @@ checkInpOut <- function(tech) {
   # Define technology type by parameter
   for (i in comm) {
     # Group ?
-    if (any(!is.na(tech@ceff[tech@ceff$comm == i, c(
-      "cinp2ginp", "share.lo",
-      "share.up", "share.fx"
-    )]))) {
+    # `intersect`, not a literal set: an object deserialised from a store
+    # written before these columns were renamed carries the old names, and a
+    # hard selection errors with "undefined columns selected" rather than
+    # simply finding nothing to check.
+    gcols <- intersect(c("cinp2ginp", "grp.share.lo", "grp.share.up",
+                         "grp.share.fx"), names(tech@ceff))
+    if (length(gcols) &&
+        any(!is.na(tech@ceff[tech@ceff$comm == i, gcols]))) {
       if (is.na(ctype[i, "group"])) {
         stop('Wrong commodity "', tech@name, '": "', i, '"')
       }

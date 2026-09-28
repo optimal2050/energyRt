@@ -88,13 +88,13 @@ test_that("auxiliary commodity costs are priced identically", {
                tolerance = .lc_tol)
 })
 
-test_that("grouped input with share.fx matches the solver", {
+test_that("grouped input with grp.share.fx matches the solver", {
   skip_if_no_solver()
   T5 <- newTechnology(
     "T5", input = data.frame(comm = c("COA", "BIO"), group = "FUEL"),
     output = list(comm = "ELC"),
     geff = data.frame(group = "FUEL", ginp2use = 0.4),
-    ceff = data.frame(comm = c("COA", "BIO"), share.fx = c(0.7, 0.3)),
+    ceff = data.frame(comm = c("COA", "BIO"), grp.share.fx = c(0.7, 0.3)),
     invcost = data.frame(invcost = 900),
     vintage = data.frame(olife = 30L), cap2act = 1)
   p <- .lc_pair(T5, fuel_costs = c(COA = 8, BIO = 20), discount = 0.05,
@@ -110,7 +110,7 @@ test_that("free shares resolve to the solver's merit-order corner", {
     output = list(comm = "ELC"),
     geff = data.frame(group = "FUEL", ginp2use = 0.4),
     ceff = data.frame(comm = c("COA", "BIO"),
-                      share.lo = c(0.2, 0.1), share.up = c(0.9, 0.8)),
+                      grp.share.lo = c(0.2, 0.1), grp.share.up = c(0.9, 0.8)),
     invcost = data.frame(invcost = 900),
     vintage = data.frame(olife = 30L), cap2act = 1)
   p <- .lc_pair(T6, fuel_costs = c(COA = 8, BIO = 20), discount = 0.05,
@@ -135,7 +135,7 @@ test_that("grouped output with share caps matches the solver", {
     ceff = data.frame(comm = c("GAS", "ELC", "HEAT"),
                       cinp2use = c(0.8, NA, NA),
                       cact2cout = c(NA, 0.4, 0.5),
-                      share.up = c(NA, 0.6, 0.7)),
+                      grp.share.up = c(NA, 0.6, 0.7)),
     invcost = data.frame(invcost = 1100),
     vintage = data.frame(olife = 25L), cap2act = 1)
   p <- .lc_pair(T7, fuel_costs = c(GAS = 9), discount = 0.05,

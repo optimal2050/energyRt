@@ -68,6 +68,10 @@ NULL
       paste0("aux:", paste(g("aux",    "acomm"), collapse = "+")),
       paste0("grp:", paste(g("input",  "group"), collapse = "+")),
       sep = "|"),
+    # a corridor family is exactly `.agg_trade_key()` minus its geography:
+    # anything else and `k` at its floor would stop reproducing plain
+    # aggregation
+    trade = .trade_family(o),
     # commodity + unit is the whole identity of a supply-shaped process
     supply = , import = , export = paste(
       paste0("comm:", paste(sort(unique(methods::slot(o, "commodity"))),
@@ -88,7 +92,8 @@ NULL
 # different operation. `weather` is absent because a profile has to be grouped
 # with the processes that use it.
 #' @noRd
-.cl_groupable <- c("technology", "supply", "storage", "import", "export")
+.cl_groupable <- c("technology", "supply", "storage", "import", "export",
+                   "trade")
 
 # Every region a technology names, from `@region` and from the `region` column
 # of any slot. A technology may arrive either way: one object per region (a
@@ -96,6 +101,14 @@ NULL
 # (the idiomatic shape for region-varying parameters). Both cluster.
 #' @noRd
 .tech_regions <- function(o) {
+  # A trade has no `@region` slot at all -- its scope is the route endpoints,
+  # and `@invcost`/`@fixom` name those endpoints too.
+  if (methods::is(o, "trade")) {
+    rt <- methods::slot(o, "routes")
+    r <- if (is.data.frame(rt) && nrow(rt))
+      unique(c(as.character(rt$src), as.character(rt$dst))) else character()
+    return(r[!is.na(r) & nzchar(r)])
+  }
   r <- unique(c(as.character(methods::slot(o, "region")),
                 unlist(lapply(methods::slotNames(o), function(sl) {
                   v <- methods::slot(o, sl)
@@ -169,14 +182,29 @@ get_process_groups <- function(x, regions = NULL) {
   # A technology that already spans several regions is a group on its own: its
   # rows carry the spread, so there is nothing to merge it WITH, and grouping
   # it with single-region siblings would double-count the regions they share.
-  span <- lengths(regs) > 1L
+  # A process that already spans several regions is a group on its own: its
+  # rows carry the spread, so there is nothing to merge it WITH. A corridor is
+  # the exception -- it spans two regions BY CONSTRUCTION, so the rule would
+  # put every corridor in its own group and no family could ever form.
+  is_trade <- vapply(tech, function(o) methods::is(o, "trade"), logical(1))
+  span <- lengths(regs) > 1L & !is_trade
   key <- ifelse(span, paste0("@", names(tech)), sig)
   out <- do.call(rbind, lapply(split(seq_along(tech), key), function(i) {
     r <- unique(unlist(regs[i], use.names = FALSE))
-    data.frame(group = .name_stem(names(tech)[i]),
+    # `n` counts what the family has to offer a grouping: regions for a
+    # regional process, whole corridors for a trade family, because a corridor
+    # is the unit there and its regions are not separable.
+    n_unit <- if (all(is_trade[i])) length(i) else length(r)
+    # For a corridor family the name is the trade prefix the merge key already
+    # uses, not the common stem of the object names -- two corridors named
+    # `TRD_ELC_W1__C1` and `TRD_ELC_W2__C1` share the stem `TRD_ELC_W`, which
+    # names nothing.
+    gname <- if (all(is_trade[i])) .agg_trade_prefix(tech[[i[1]]]) else
+      .name_stem(names(tech)[i])
+    data.frame(group = gname,
                class = sub("[|].*$", "", sig[i[1]]),
                signature = sub("^[^|]*[|]", "", sig[i[1]]),
-               n = length(r), members = paste(names(tech)[i], collapse = ","),
+               n = n_unit, members = paste(names(tech)[i], collapse = ","),
                regions = paste(r, collapse = ","),
                stringsAsFactors = FALSE)
   }))
@@ -613,6 +641,17 @@ process_cluster_sweep <- function(mod, group, ks = NULL, geoscale = NULL, level,
          "one of: ", paste(gdf$group, collapse = ", "), call. = FALSE)
   }
   g <- gdf[gdf$group == group, , drop = FALSE]
+  # A corridor family has no region clustering to sweep: its unit is the whole
+  # trade object and its parts can never cross a coarse pair, so the choice is
+  # a small integer between two fixed ends rather than a shape to inspect.
+  if (identical(g$class, "trade")) {
+    stop("`", group, "` is a corridor family, which has no region sweep: the ",
+         "unit is the trade object and a part cannot straddle a coarse ",
+         "region pair. `k` runs from one part per pair (plain aggregation) to ",
+         "one per corridor, and `aggregate_model_regions()` names both ends ",
+         "if you ask for something outside them. Compare the solved runs ",
+         "instead -- that is what the choice is about.", call. = FALSE)
+  }
   regs <- strsplit(g$regions, ",")[[1]]
   objs <- .cl_all_objects(mod)
   long <- .cl_features(.cl_feature_table(objs[strsplit(g$members, ",")[[1]]],
@@ -697,6 +736,225 @@ model_clusters <- function(mod) {
                   "`"))
 }
 
+# -- corridors: a different unit and a different road ------------------------
+#
+# Grouping corridors when a model's regions are coarsened.
+#
+# Plain aggregation merges EVERY corridor between the same pair of coarse
+# regions into one, provided they share a name prefix, a commodity set and a
+# tranche structure (`.agg_trade_key()`). That is right when the corridors are
+# alike and wrong when they are not: the merged corridor carries the
+# capacity-weighted mean `teff`, which is the CHORD of a delivery curve the
+# fine model traverses by filling its best corridor first. Measured on a
+# 100-unit link at 0.99 beside a 20-unit link at 0.90, merging costs 1.54% of
+# the energy delivered at every load below saturation, and nothing at all at
+# full load.
+#
+# Grouping does not introduce a new unit or a new kind of group. It
+# SUB-PARTITIONS the equivalence classes of `.agg_trade_key()` and calls
+# `.agg_trade_merge()` once per part instead of once per class. Two
+# consequences follow for free: `k` = the number of classes reproduces plain
+# aggregation by construction rather than by numerical coincidence, and a
+# cluster can never straddle a coarse pair, because the key already separates
+# them.
+#
+# THE UNIT IS THE OBJECT, NOT THE CORRIDOR. One trade object is one shared
+# capacity budget across all of its routes and both directions
+# (`eqTradeCapFlow`; see tests/testthat/helper-trade.R), and `@capacity`,
+# `@vintage` and `@cluster` carry no `src`/`dst` at all -- so an object cannot
+# be split between two parts without inventing capacity the source model never
+# had.
+#
+# `@cluster` is NOT used to carry the grouping. On a trade a cluster is a loss
+# tranche, and the parts of a group are separate physical corridors that must
+# size independently. The result is therefore separate trade OBJECTS, which is
+# cheap: vintage and cluster are expanded into separate `trade` set members
+# before interpolation anyway.
+
+# Family signature for a trade: the merge key MINUS its geography. It has to be
+# exactly that, or `k` at its floor would stop reproducing plain aggregation.
+# The name prefix stays in it -- unlike `.proc_signature()` for technologies,
+# which deliberately ignores names -- because the prefix is part of what
+# `.agg_trade_key()` separates on.
+#' @noRd
+.trade_family <- function(obj) {
+  paste(c(.agg_trade_prefix(obj),
+          paste(sort(as.character(obj@commodity)), collapse = ","),
+          .agg_tranche_sig(obj)), collapse = "::")
+}
+
+# What a corridor is measured on. Loss rather than efficiency: efficiency near
+# 1 hides the spread in its fourth decimal, while loss is what scales with
+# length and is comparable across corridors.
+#
+# Costs are SUMMED over the endpoints, never averaged. The objective charges
+# each named endpoint the full capacity -- `region = c("R1","R2")` at 1 each
+# costs exactly twice `region = "R1"` at 1, which
+# tests/testthat/test-trade-cost-regions.R pins with absolute numbers -- so a
+# corridor declaring its whole cost at one end and one splitting the same cost
+# across both are the SAME corridor, and a mean would rank them apart.
+#' @noRd
+.trade_features <- function(objs, features = NULL) {
+  num <- function(x) {
+    v <- suppressWarnings(as.numeric(x))
+    v[is.finite(v)]
+  }
+  one <- function(o) {
+    trd <- methods::slot(o, "trade")
+    teff <- if (is.data.frame(trd) && "teff" %in% names(trd))
+      num(trd$teff) else numeric(0)
+    varom <- if (methods::.hasSlot(o, "varom")) {
+      d <- methods::slot(o, "varom")
+      if (is.data.frame(d) && "varom" %in% names(d)) num(d$varom) else
+        numeric(0)
+    } else numeric(0)
+    cost <- function(sl, col) {
+      if (!methods::.hasSlot(o, sl)) return(NA_real_)
+      d <- methods::slot(o, sl)
+      if (!is.data.frame(d) || !nrow(d) || !col %in% names(d)) return(NA_real_)
+      v <- num(d[[col]])
+      if (!length(v)) return(NA_real_)
+      sum(v)                                   # per endpoint, so it sums
+    }
+    c(loss    = if (length(teff)) 1 - mean(teff) else NA_real_,
+      varom   = if (length(varom)) mean(varom) else NA_real_,
+      invcost = cost("invcost", "invcost"),
+      fixom   = cost("fixom", "fixom"))
+  }
+  ft <- do.call(rbind, lapply(objs, one))
+  ft <- as.data.frame(ft, stringsAsFactors = FALSE)
+  ft$trade <- names(objs)
+  keep <- names(ft)[vapply(ft, function(v)
+    is.numeric(v) && any(is.finite(v)) && stats::sd(v, na.rm = TRUE) > 0,
+    logical(1))]
+  if (!is.null(features)) keep <- intersect(features, keep)
+  if (!length(keep)) {
+    stop("no usable clustering features: every candidate is constant or ",
+         "absent across the corridors of this family. The corridors are ",
+         "alike, so merging them loses nothing -- or pass `features=`.",
+         call. = FALSE)
+  }
+  ft[, c("trade", keep), drop = FALSE]
+}
+
+# The size each intensive mean is weighted by, and the one a group's parts are
+# ordered on. `@capacity` first: `@trade$ava.up` is an absolute FLOW bound many
+# models never set, while the rating lives in the region-free `@capacity`.
+#' @noRd
+.trade_size <- function(o) {
+  cap <- methods::slot(o, "capacity")
+  v <- if (is.data.frame(cap) && nrow(cap))
+    suppressWarnings(as.numeric(unlist(
+      cap[intersect(c("cap.fx", "cap.up", "stock"), names(cap))]))) else
+        numeric(0)
+  v <- v[is.finite(v) & v > 0]
+  if (length(v)) return(max(v))
+  trd <- methods::slot(o, "trade")
+  v <- if (is.data.frame(trd) && nrow(trd) && "ava.up" %in% names(trd))
+    suppressWarnings(as.numeric(trd$ava.up)) else numeric(0)
+  v <- v[is.finite(v) & v > 0]
+  if (length(v)) max(v) else 1
+}
+
+# Parallel AC circuits do not split flow by optimisation, they split it by
+# impedance -- and `.kvl_lines()` refuses a corridor whose reactance appears on
+# more than one object. Keeping such corridors apart hands the LP a
+# controllability the network does not have, so refuse rather than produce a
+# model that will not interpolate.
+#' @noRd
+.trade_assert_no_reactance <- function(objs, k, kmin) {
+  if (k <= kmin) return(invisible(NULL))
+  has_x <- vapply(objs, function(o) {
+    trd <- methods::slot(o, "trade")
+    if (!is.data.frame(trd) || !nrow(trd)) return(FALSE)
+    any(vapply(intersect(c("reactance", "resistance"), names(trd)),
+               function(cl) any(is.finite(suppressWarnings(
+                 as.numeric(trd[[cl]])))), logical(1)))
+  }, logical(1))
+  if (!any(has_x)) return(invisible(NULL))
+  stop("k = ", k, " would keep ", sum(has_x), " corridor(s) carrying a ",
+       "reactance apart, but parallel AC circuits split flow by impedance, ",
+       "not by optimisation: ", paste(names(objs)[has_x], collapse = ", "),
+       ". `.kvl_lines()` refuses a line whose reactance sits on more than one ",
+       "trade object -- merge them with the equivalent reactance ",
+       "(1/x_eq = sum(1/x_i)), which is what k = ", kmin, " does. Grouping is ",
+       "for controllable corridors: DC links, pipelines, contracts.",
+       call. = FALSE)
+}
+
+# Partition one family's objects into `k` parts, never crossing a coarse pair.
+#
+# The bucket is the coarse-pair component of `.agg_trade_key()`, expressed as a
+# block-diagonal adjacency so `clusterscales` enforces it with the machinery it
+# already has. This is "contiguity" only in the mechanical sense -- there is no
+# geometry here, because a part's routes are the coarse pair and the fine
+# geography is gone by the time anything is emitted. A LINE GRAPH over
+# corridors sharing an endpoint was considered and rejected: corridors with
+# disjoint endpoints in one coarse pair would fall into separate components,
+# which forbids exactly the merges worth making and makes `kmin` a number no
+# caller can predict.
+#' @noRd
+.trade_partition <- function(objs, buckets, k, features = NULL) {
+  stopifnot(length(objs) == length(buckets))
+  nm <- names(objs)
+  kmin <- length(unique(buckets))
+  kmax <- length(objs)
+  if (identical(k, "auto")) k <- kmin
+  k <- as.integer(k)
+  if (is.na(k) || k < kmin || k > kmax) {
+    stop("k = ", if (is.na(k)) "NA" else k, " is out of range for this ",
+         "corridor family: a part cannot straddle a coarse region pair, so k ",
+         "runs from ", kmin, " (one part per pair -- what plain aggregation ",
+         "gives) to ", kmax, " (one part per corridor, nothing merged). Note ",
+         "that even at k = ", kmax, " the coarse model is NOT the fine one: ",
+         "corridors internal to a coarse region are still dropped, and ",
+         "endpoint costs still move to coarse regions.", call. = FALSE)
+  }
+  .trade_assert_no_reactance(objs, k, kmin)
+  if (k == kmin) return(stats::setNames(buckets, nm))
+
+  ft <- .trade_features(objs, features)
+  vars <- setdiff(names(ft), "trade")
+  z <- scale(as.matrix(ft[, vars, drop = FALSE]))
+  z[!is.finite(z)] <- 0
+  # spend the budget where the spread is: one extra part at a time, to the
+  # bucket whose corridors are furthest apart
+  parts <- if (k == kmax) nm else buckets
+  extra <- if (k == kmax) 0L else k - kmin
+  while (extra > 0) {
+    cand <- unique(parts)
+    spread <- vapply(cand, function(p) {
+      i <- which(parts == p)
+      if (length(i) < 2L) return(-Inf)
+      max(stats::dist(z[i, , drop = FALSE]))
+    }, numeric(1))
+    if (all(!is.finite(spread))) break
+    p <- cand[which.max(spread)]
+    i <- which(parts == p)
+    # split that part in two on its widest axis
+    d <- stats::dist(z[i, , drop = FALSE])
+    h <- stats::hclust(d, method = "complete")
+    cut <- stats::cutree(h, k = 2L)
+    parts[i] <- paste0(p, "_", cut)
+    extra <- extra - 1L
+  }
+  # stable, readable part names: G1 is the lowest-loss part of each bucket
+  out <- parts
+  for (b in unique(buckets)) {
+    i <- which(buckets == b)
+    ps <- unique(parts[i])
+    if (length(ps) == 1L) { out[i] <- b; next }
+    lo <- vapply(ps, function(p) {
+      j <- i[parts[i] == p]
+      if ("loss" %in% names(ft)) mean(ft$loss[j], na.rm = TRUE) else 0
+    }, numeric(1))
+    ord <- order(lo)
+    for (r in seq_along(ord)) out[i[parts[i] == ps[ord[r]]]] <-
+      paste0(b, "_G", r)
+  }
+  stats::setNames(out, nm)
+}
+
 # -- the driver, reached through aggregate_model_regions(clusters=) ----------
 
 # Group the fine regions of each technology family into clusters and carry them
@@ -740,6 +998,44 @@ model_clusters <- function(mod) {
          paste(get_process_groups(mod)$group, collapse = ", "), call. = FALSE)
   }
 
+  # Corridor families take a different road: they are not merged into one
+  # object carrying clusters (a trade's `@cluster` is a loss tranche), they
+  # sub-partition the merge classes and become separate objects. The partition
+  # is computed here and handed to the plain aggregation below, whose trade
+  # loop knows how to split on it.
+  diag <- list()
+  trade_parts <- NULL
+  tgdf <- gdf[gdf$class == "trade", , drop = FALSE]
+  gdf <- gdf[gdf$class != "trade", , drop = FALSE]
+  for (i in seq_len(nrow(tgdf))) {
+    gname <- tgdf$group[i]
+    tobjs <- objs[strsplit(tgdf$members[i], ",")[[1]]]
+    pr <- lapply(tobjs, .agg_trade_pair, gs = gs, level = level)
+    keep <- !vapply(pr, is.null, logical(1))
+    if (!any(keep)) next          # every corridor internal: nothing survives
+    tobjs <- tobjs[keep]; pr <- pr[keep]
+    buckets <- vapply(pr, function(d)
+      paste(sort(paste(d$src, d$dst, sep = "|")), collapse = ","),
+      character(1))
+    sp <- spec[[gname]]
+    part <- .trade_partition(tobjs, unname(buckets), sp$k %||% "auto",
+                             sp$features)
+    trade_parts <- c(trade_parts, part)
+    diag[[gname]] <- list(
+      k = length(unique(part)),
+      crosswalk = data.frame(trade = names(part), part = unname(part),
+                             bucket = unname(buckets),
+                             stringsAsFactors = FALSE),
+      sweep = NULL,
+      # no geoscale: a corridor has no territory to colour, and every part of
+      # a family sits on the same coarse pair
+      geoscale = NULL)
+    if (isTRUE(verbose)) {
+      message("  ", gname, ": ", length(tobjs), " corridor(s) -> ",
+              length(unique(part)), " part(s)")
+    }
+  }
+
   lt <- as.data.frame(geoscales::geoscale_leaftable(gs))
   adj <- .cl_adjacency(gs, level)
   sc <- .cl_scale(gs, level)
@@ -754,10 +1050,10 @@ model_clusters <- function(mod) {
   # reads `names(mod@data)[i]` -- an unnamed list makes it fail far away.
   rest@data <- mod@data[1]
   rest@data[[1]]@data <- objs[setdiff(names(objs), merged_members)]
-  agg <- aggregate_model_regions(rest, gs, level = level, verbose = FALSE)
+  agg <- aggregate_model_regions(rest, gs, level = level, verbose = FALSE,
+                                 .trade_parts = trade_parts)
   out_objs <- agg@data[[1]]@data
 
-  diag <- list()
   for (i in seq_len(nrow(gdf))) {
     gname <- gdf$group[i]
     members <- strsplit(gdf$members[i], ",")[[1]]

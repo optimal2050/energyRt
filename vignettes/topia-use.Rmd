@@ -70,10 +70,10 @@ getData(scen_BASE, "vObjective", merge = TRUE)$value    # total system cost, MEU
 
 The `R3` kit wires its regions with bi-directional transmission links
 (`TBD_ELC_*`). `plot_trade_map()` draws that network over a map layout — pass any
-of `topia$modules$maps` (here `honeycomb`); the 7-region kit shows six links:
+of `topia$geoscales` (here `honeycomb`); the 7-region kit shows six links:
 
 ```{r trade-map, eval = have_sf, fig.height = 4}
-plot_trade_map(um$repo, map = topia$modules$maps$honeycomb)
+plot_trade_map(um$repo, map = topia$geoscales$honeycomb)
 ```
 
 Electricity generation by technology:
@@ -204,6 +204,6 @@ scen7 <- interpolate_model(mod7, "BASE7") |>
 
 # Next steps
 
-Extend TOPIA with inter-regional trade (using the `topia$modules$maps`),
+Extend TOPIA with inter-regional trade (using the `topia$geoscales` layouts),
 technologies introduced via scenarios (CCS, hydrogen, CHP), and the honeycomb
 multi-region layout. See the workshop exercises for a step-by-step build.

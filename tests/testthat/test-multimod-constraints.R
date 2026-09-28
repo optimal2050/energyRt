@@ -17,8 +17,7 @@
 # `newConstraint()` objects reach a backend only as a compiled GAMS string on
 # `modInp@user_constraints`, together with the mCns*/pCns* parameters that
 # interpolation materialised. multimod parses that string with the GAMS parser
-# it already has. The string below is the shape energyRt actually emits, taken
-# verbatim from IB_2050-PYPSA_IB_RT-d365_h24 with the names shortened.
+# it already has.
 #
 # Building an S4 energyRt scenario here would pull in the whole package, so the
 # tests exercise the parse and evaluation path directly and let the real

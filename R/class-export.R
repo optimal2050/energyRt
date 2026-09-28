@@ -11,6 +11,7 @@
 #' @slot commodity `r get_slot_doc("export", "commodity")`
 #' @slot unit `r get_slot_doc("export", "unit")`
 #' @slot reserve `r get_slot_doc("export", "reserve")`
+#' @slot cluster `r get_slot_doc("export", "cluster")`
 #' @slot export `r get_slot_doc("export", "export")`
 #' @slot region `r get_slot_doc("export", "region")`
 #' @slot misc `r get_slot_doc("export", "misc")`
@@ -86,7 +87,10 @@ setClass("export",
     cluster = data.frame(
       cluster = character(),
       desc = character(),
-      share = numeric(),
+      region = character(),
+      act.share.lo = numeric(),
+      act.share.up = numeric(),
+      act.share.fx = numeric(),
       order = integer(),
       stringsAsFactors = FALSE
     ),
@@ -129,6 +133,7 @@ setMethod("initialize", "export", function(.Object, ...) {
 #' @param commodity `r get_slot_doc("export", "commodity")`
 #' @param unit `r get_slot_doc("export", "unit")`
 #' @param reserve `r get_slot_doc("export", "reserve")`
+#' @param cluster `r get_slot_doc("export", "cluster")`
 #' @param export `r get_slot_doc("export", "export")`
 #' @param region `r get_slot_doc("export", "region")`
 #' @param misc `r get_slot_doc("export", "misc")`

@@ -2581,8 +2581,8 @@ report_templates <- function(class = NULL) {
 
   ceff_df <- if (nrow(object@ceff) > 0) {
     preferred_cols <- c("comm", "vintage", "cluster", "cinp2use", "use2cact",
-                        "cact2cout", "cinp2ginp", "share.lo", "share.up",
-                        "share.fx")
+                        "cact2cout", "cinp2ginp", "grp.share.lo", "grp.share.up",
+                        "grp.share.fx")
     cc  <- intersect(preferred_cols, names(object@ceff))
     .report_drop_empty_cols(object@ceff[, cc, drop = FALSE])
   } else NULL

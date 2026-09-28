@@ -111,10 +111,11 @@ test_that("groups are formed by STRUCTURE, not by name", {
   skip_if_no_clustering()
   mod <- cr_model()
   g <- get_process_groups(mod)
-  # the coal fleet AND the coal supply: `supply` is groupable too, so the
-  # discovery reports both, each with its own class
-  expect_equal(nrow(g), 2L)
-  expect_setequal(g$group, c("ECOA", "SUP_COA"))
+  # the coal fleet, the coal supply AND the intra-zone corridors: supply and
+  # trade are groupable too, each reported with its own class
+  expect_equal(nrow(g), 3L)
+  expect_setequal(g$group, c("ECOA", "SUP_COA", "TRD"))
+  expect_equal(g$class[g$group == "TRD"], "trade")
   expect_equal(g$class[g$group == "ECOA"], "technology")
   expect_equal(g$class[g$group == "SUP_COA"], "supply")
   g <- g[g$group == "ECOA", ]
@@ -131,8 +132,8 @@ test_that("groups are formed by STRUCTURE, not by name", {
   mod2 <- add(add(mod, newCommodity("GAS", unit = "PJ")), gas)
   expect_gt(length(mod2@data), 1L)
   g2 <- get_process_groups(mod2)
-  expect_equal(nrow(g2), 3L)
-  expect_setequal(g2$group, c("ECOA", "EGAS_W1", "SUP_COA"))
+  expect_equal(nrow(g2), 4L)
+  expect_setequal(g2$group, c("ECOA", "EGAS_W1", "SUP_COA", "TRD"))
 
   # A technology that ALREADY spans several regions is a group on its own: its
   # own rows carry the spread, so there is nothing to merge it with, and
@@ -357,7 +358,7 @@ test_that("a bare k is refused when the model has more than one family", {
   skip_if_no_clustering()
   mod2 <- cr_model2()
   expect_setequal(get_process_groups(mod2)$group,
-                  c("ECOA", "EGAS", "SUP_COA", "SUP_GAS"))
+                  c("ECOA", "EGAS", "SUP_COA", "SUP_GAS", "TRD"))
   # the error must NAME the families -- that is the forcing function: it makes
   # you look at get_process_groups() before deciding
   expect_error(aggregate_model_regions(mod2, level = "zone", clusters = 3),
@@ -685,10 +686,15 @@ test_that("supply, import and export are groupable; demand and trade are not", {
   # that happens to touch the same commodity
   expect_match(g$signature, "comm:COA")
 
-  expect_true(all(c("supply", "import", "export", "storage", "technology") %in%
-                    energyRt:::.cl_groupable))
-  expect_false(any(c("demand", "trade", "weather") %in%
-                     energyRt:::.cl_groupable))
+  expect_true(all(c("supply", "import", "export", "storage", "technology",
+                    "trade") %in% energyRt:::.cl_groupable))
+  # `demand` has no @cluster slot to hold variants and `weather` is grouped
+  # with the processes that use it, not on its own
+  expect_false(any(c("demand", "weather") %in% energyRt:::.cl_groupable))
+  # trade is groupable but takes a DIFFERENT road: its parts become separate
+  # objects, because a trade's @cluster is a loss tranche
+  expect_equal(get_process_groups(cr_model())$class[
+    get_process_groups(cr_model())$group == "TRD"], "trade")
 })
 
 # Covers the R API: aggregate_model_regions(clusters=)

@@ -266,6 +266,22 @@ class:
 
         Optional. When empty, labels are harvested from the `cluster` columns of
         the other slots. When populated it is AUTHORITATIVE.
+        LIMITATION -- there is deliberately no `cap.share.fx` column. A
+        capacity share ties the variants' capacities to fixed proportions, and
+        this class has no capacity variable for the tie to act on. The column
+        is absent rather than present-and-ignored, so the mistake is rejected
+        at construction instead of silently doing nothing. Bound the split
+        with `act.share.lo/up/fx`, which acts on the quantity this class does
+        have, or fix it directly in the per-step bounds.
+        The share columns are different levers, not substitutes.
+        `cap.share.fx` fixes the ratio of the variants' CAPACITIES in every
+        year: loss tranches need it, because each tranche efficiency is
+        calibrated to its place in the capacity stack and the flow must stay
+        free to fill the cheapest first. `act.share.lo/up/fx` bounds a
+        variant share of the family THROUGHPUT instead, which is what stops a
+        clustered family collapsing to its cheapest member once regional
+        borders are aggregated away. Both are optional; a variant with
+        neither sizes and runs freely.
       columns:
         cluster:
           type: character
@@ -481,15 +497,15 @@ class:
         cinp2ginp:
           type: numeric
           description: Commodity-input-to-group-input coefficient, default is 1.
-        share.lo:
+        grp.share.lo:
           type: numeric
           description: Lower bound on a share of commodity within a group, default is 0.
-        share.up:
+        grp.share.up:
           type: numeric
           description: Upper bound on a share of commodity within a group, default is 1.
-        share.fx:
+        grp.share.fx:
           type: numeric
-          description: Fixed share of commodity within a group, ignored if NA. This parameter overrides `share.lo` and `share.up`.
+          description: Fixed share of commodity within a group, ignored if NA. This parameter overrides `grp.share.lo` and `grp.share.up`.
         afc.lo:
           type: numeric
           description: >
@@ -838,6 +854,15 @@ class:
         When populated it is authoritative -- a label used in a slot but not
         declared here raises an error instead of silently creating an extra
         technology with default (often unbounded) parameters.
+        The share columns are different levers, not substitutes.
+        `cap.share.fx` fixes the ratio of the variants' CAPACITIES in every
+        year: loss tranches need it, because each tranche efficiency is
+        calibrated to its place in the capacity stack and the flow must stay
+        free to fill the cheapest first. `act.share.lo/up/fx` bounds a
+        variant share of the family THROUGHPUT instead, which is what stops a
+        clustered family collapsing to its cheapest member once regional
+        borders are aggregated away. Both are optional; a variant with
+        neither sizes and runs freely.
       columns:
         cluster:
           type: character
@@ -1060,6 +1085,15 @@ class:
         caverns) and duration classes via a per-cluster `duration`. Optional: when
         empty, cluster labels are harvested from the other slots; when populated
         it is authoritative and an undeclared label raises an error.
+        The share columns are different levers, not substitutes.
+        `cap.share.fx` fixes the ratio of the variants' CAPACITIES in every
+        year: loss tranches need it, because each tranche efficiency is
+        calibrated to its place in the capacity stack and the flow must stay
+        free to fill the cheapest first. `act.share.lo/up/fx` bounds a
+        variant share of the family THROUGHPUT instead, which is what stops a
+        clustered family collapsing to its cheapest member once regional
+        borders are aggregated away. Both are optional; a variant with
+        neither sizes and runs freely.
       columns:
         cluster:
           type: character
@@ -2062,6 +2096,15 @@ class:
 
         Optional. When empty, tranche labels are harvested from the `cluster`
         columns of the other slots. When populated it is AUTHORITATIVE.
+        The share columns are different levers, not substitutes.
+        `cap.share.fx` fixes the ratio of the variants' CAPACITIES in every
+        year: loss tranches need it, because each tranche efficiency is
+        calibrated to its place in the capacity stack and the flow must stay
+        free to fill the cheapest first. `act.share.lo/up/fx` bounds a
+        variant share of the family THROUGHPUT instead, which is what stops a
+        clustered family collapsing to its cheapest member once regional
+        borders are aggregated away. Both are optional; a variant with
+        neither sizes and runs freely.
       columns:
         cluster:
           type: character
@@ -2218,6 +2261,22 @@ class:
 
         Optional. When empty, step labels are harvested from the `cluster`
         columns of the other slots. When populated it is AUTHORITATIVE.
+        LIMITATION -- there is deliberately no `cap.share.fx` column. A
+        capacity share ties the variants' capacities to fixed proportions, and
+        this class has no capacity variable for the tie to act on. The column
+        is absent rather than present-and-ignored, so the mistake is rejected
+        at construction instead of silently doing nothing. Bound the split
+        with `act.share.lo/up/fx`, which acts on the quantity this class does
+        have, or fix it directly in the per-step bounds.
+        The share columns are different levers, not substitutes.
+        `cap.share.fx` fixes the ratio of the variants' CAPACITIES in every
+        year: loss tranches need it, because each tranche efficiency is
+        calibrated to its place in the capacity stack and the flow must stay
+        free to fill the cheapest first. `act.share.lo/up/fx` bounds a
+        variant share of the family THROUGHPUT instead, which is what stops a
+        clustered family collapsing to its cheapest member once regional
+        borders are aggregated away. Both are optional; a variant with
+        neither sizes and runs freely.
       columns:
         cluster:
           type: character
@@ -2333,6 +2392,22 @@ class:
 
         Optional. When empty, step labels are harvested from the `cluster`
         columns of the other slots. When populated it is AUTHORITATIVE.
+        LIMITATION -- there is deliberately no `cap.share.fx` column. A
+        capacity share ties the variants' capacities to fixed proportions, and
+        this class has no capacity variable for the tie to act on. The column
+        is absent rather than present-and-ignored, so the mistake is rejected
+        at construction instead of silently doing nothing. Bound the split
+        with `act.share.lo/up/fx`, which acts on the quantity this class does
+        have, or fix it directly in the per-step bounds.
+        The share columns are different levers, not substitutes.
+        `cap.share.fx` fixes the ratio of the variants' CAPACITIES in every
+        year: loss tranches need it, because each tranche efficiency is
+        calibrated to its place in the capacity stack and the flow must stay
+        free to fill the cheapest first. `act.share.lo/up/fx` bounds a
+        variant share of the family THROUGHPUT instead, which is what stops a
+        clustered family collapsing to its cheapest member once regional
+        borders are aggregated away. Both are optional; a variant with
+        neither sizes and runs freely.
       columns:
         cluster:
           type: character

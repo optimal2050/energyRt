@@ -37,7 +37,7 @@ utils::globalVariables(
     "inp.waf.fx", "inp.waf.lo", "inp.waf.up", "out.waf.fx", "out.waf.lo", "out.waf.up",
     "src", "dst", "region", "year", "timeslice",
     "cap2act", "duration", "cap2use",
-    "io", "na.omit", "share.lo", "share.up", "share.fx",
+    "io", "na.omit", "grp.share.lo", "grp.share.up", "grp.share.fx",
     "val_lbl", "where", "ginp2use", "desc", "x", "y"
   )
 )
@@ -174,20 +174,20 @@ utils::globalVariables(
           two_lines = if_else(all(grepl("use2cact", parameter)), TRUE, FALSE),
           bracket_type = NULL
         ),
-        smin = if_else(all(is.na(share.lo)) & all(is.na(share.fx)),
+        smin = if_else(all(is.na(grp.share.lo)) & all(is.na(grp.share.fx)),
                        0,
-                       min(share.lo, share.fx, Inf, na.rm = TRUE)
+                       min(grp.share.lo, grp.share.fx, Inf, na.rm = TRUE)
         ),
-        smax = if_else(all(is.na(share.up)) & all(is.na(share.fx)),
+        smax = if_else(all(is.na(grp.share.up)) & all(is.na(grp.share.fx)),
                        1,
-                       max(share.up, share.fx, -Inf, na.rm = TRUE)
+                       max(grp.share.up, grp.share.fx, -Inf, na.rm = TRUE)
         ),
         share_lbl = paste0(
-          # paste0(round(100 * min(share.lo, share.fx, na.rm = TRUE), 2), "%,",
-          #        round(100 * max(share.up, share.fx, na.rm = TRUE), 2), "%")
+          # paste0(round(100 * min(grp.share.lo, grp.share.fx, na.rm = TRUE), 2), "%,",
+          #        round(100 * max(grp.share.up, grp.share.fx, na.rm = TRUE), 2), "%")
           # paste0(
-          #   min(share.lo, share.fx, na.rm = TRUE), ",",
-          #   max(share.up, share.fx, na.rm = TRUE)
+          #   min(grp.share.lo, grp.share.fx, na.rm = TRUE), ",",
+          #   max(grp.share.up, grp.share.fx, na.rm = TRUE)
           # )
           paste0(
             format_number(smin),
@@ -1101,8 +1101,8 @@ draw.technology <- function(object, ..., vintage = NULL, cluster = NULL,
 #'     cinp2use = c(NA, NA, .5, NA, NA, NA, rep(NA, 3)),
 #'     use2cact = c(rep(NA, 6), .36, .4, .36),
 #'     cact2cout = c(rep(NA, 6), .3, NA, .6),
-#'     share.lo = c(.01, .02, NA, .07, .08, .0, .03, NA, .06),
-#'     share.up = c(.91, .92, NA, .97, .98, 1, .83, NA, .96)
+#'     grp.share.lo = c(.01, .02, NA, .07, .08, .0, .03, NA, .06),
+#'     grp.share.up = c(.91, .92, NA, .97, .98, 1, .83, NA, .96)
 #'   ),
 #'   aeff = data.frame(
 #'     acomm = c("AUX1", "AUX2", "AUX3", "AUX4"),

@@ -990,7 +990,7 @@ pTechShare:
   - back.inter.forth
   class: technology
   slot: ceff
-  colName: share
+  colName: grp.share
 pTechAfc:
   name: pTechAfc
   type: bounds

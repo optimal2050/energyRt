@@ -14,7 +14,11 @@ test_that("storage keeps its lifespan in @vintage", {
   p <- new("storage")
   expect_identical(names(p@vintage),
                    c("vintage", "region", "cluster", "start", "end", "olife"))
-  expect_identical(names(p@cluster), c("cluster", "desc", "region", "order"))
+  # the same columns on every process class: `cluster`, `desc`, `order`
+  # always, `region` where the class has regional scope, and both shares
+  expect_identical(names(p@cluster),
+                   c("cluster", "desc", "region", "cap.share.fx",
+                     "act.share.lo", "act.share.up", "act.share.fx", "order"))
 })
 
 test_that("legacy start/end/olife arguments still work on storage", {

@@ -45,7 +45,8 @@
     dims = c("vintage", "cluster"),
     slots = c("vintage", "capacity", "ceff", "geff", "aeff",
               "af", "afs", "weather", "fixom", "varom", "invcost"),
-    bound_var = list(cap = "vTechCap", ncap = "vTechNewCap"),
+    bound_var = list(cap = "vTechCap", ncap = "vTechNewCap",
+                     act = "vTechAct"),
     bound_dims = c("region", "year"),
     # Availability factors that may be declared for a GROUP of variants: the
     # summed activity of the group against its summed capacity. `afs` sums the
@@ -73,7 +74,8 @@
     bound_var = list(
       out.cap  = "vStorageOutCap", out.ncap = "vStorageOutNewCap",
       inp.cap  = "vStorageInpCap", inp.ncap = "vStorageInpNewCap",
-      stg.cap  = "vStorageStgCap", stg.ncap = "vStorageStgNewCap"
+      stg.cap  = "vStorageStgCap", stg.ncap = "vStorageStgNewCap",
+      act      = "vStorageOut"
     ),
     # Still the discharger for `.cluster_fixed_caps()`, which needs ONE primary
     # capacity column to check share proportions against.
@@ -92,7 +94,8 @@
     dims = c("vintage", "cluster"),
     slots = c("vintage", "capacity", "invcost", "fixom", "varom", "aeff",
               "trade"),
-    bound_var = list(cap = "vTradeCap", ncap = "vTradeNewCap"),
+    bound_var = list(cap = "vTradeCap", ncap = "vTradeNewCap",
+                     act = "vTradeIr"),
     # `vTradeCap{trade, year}` has no region index, so a group bound spans years
     # only; a region on a TOTAL row errors rather than being silently replicated.
     bound_dims = "year",
@@ -130,21 +133,21 @@
     key = "sup",
     dims = "cluster",
     slots = c("supply", "reserve", "weather"),
-    bound_var = list(),
+    bound_var = list(act = "vSupOut"),
     bound_dims = character()
   ),
   export = list(
     key = "expp",
     dims = "cluster",
     slots = c("export", "reserve"),
-    bound_var = list(),
+    bound_var = list(act = "vExportRow"),
     bound_dims = character()
   ),
   import = list(
     key = "imp",
     dims = "cluster",
     slots = c("import", "reserve"),
-    bound_var = list(),
+    bound_var = list(act = "vImportRow"),
     bound_dims = character()
   )
 )
@@ -542,21 +545,33 @@
   # `lambda_t = loss_full * (alpha_{t-1} + alpha_t)` are calibrated ONLY when
   # the shares sum to 1 -- shares summing to 0.9 understate total losses by 10%
   # with no other symptom, which is why this is an error and not a warning.
-  if (!is.null(dc) && "share" %in% names(dc)) {
-    sh <- dc$share
+  if (!is.null(dc) && "cap.share.fx" %in% names(dc)) {
+    sh <- dc$cap.share.fx
     if (any(!is.na(sh))) {
+      # A capacity share can only tie a capacity. `supply`, `import` and
+      # `export` have no capacity variable at all -- their registry entries
+      # carry an empty `bound_var` -- so the tie was skipped and the
+      # declaration did nothing whatsoever. Say so rather than accept it.
+      vdef <- .variant_def(tech)
+      if (!is.null(vdef) && is.null(vdef$bound_var$cap)) {
+        stop(cls, ' "', nm, '" declares `cap.share.fx`, but a ', cls,
+             ' has no capacity variable for the shares to tie -- the ',
+             'declaration would do nothing. Use `act.share.lo/up/fx` to ',
+             'bound its share of the group activity instead.',
+             call. = FALSE)
+      }
       if (anyNA(sh)) {
         stop('Either every declared cluster of ', cls, ' "', nm, '" carries a ',
-             '`share` or none does; got ', sum(!is.na(sh)), ' of ', length(sh),
+             '`cap.share.fx` or none does; got ', sum(!is.na(sh)), ' of ', length(sh),
              '. A partly-shared set has no defensible reading.', call. = FALSE)
       }
       if (any(!is.finite(sh) | sh <= 0)) {
-        stop('The `share` values of ', cls, ' "', nm, '" must be finite and ',
+        stop('The `cap.share.fx` values of ', cls, ' "', nm, '" must be finite and ',
              'greater than zero; got ',
              paste(format(sh), collapse = ", "), '.', call. = FALSE)
       }
       if (abs(sum(sh) - 1) > 1e-8) {
-        stop('The `share` values of ', cls, ' "', nm, '" sum to ',
+        stop('The `cap.share.fx` values of ', cls, ' "', nm, '" sum to ',
              format(sum(sh)), ', not 1. Shares are FRACTIONS of a capacity, ',
              'not absolute capacities -- the tranche efficiencies were derived ',
              'from them and would be wrong.', call. = FALSE)
@@ -640,8 +655,8 @@
   def <- .variant_def(tech)
   if (is.null(def)) return(list())
   dc <- .declared_clusters(tech)
-  if (is.null(dc) || !"share" %in% names(dc)) return(list())
-  dc <- dc[!is.na(dc$share), , drop = FALSE]
+  if (is.null(dc) || !"cap.share.fx" %in% names(dc)) return(list())
+  dc <- dc[!is.na(dc$cap.share.fx), , drop = FALSE]
   if (nrow(dc) < 2L) return(list())
   bvar <- def$bound_var$cap
   if (is.null(bvar)) return(list())
@@ -661,12 +676,12 @@
            '-- fix all of them or none.', call. = FALSE)
     }
     ratio <- fx / sum(fx)
-    if (any(abs(ratio - dc$share) > 1e-6)) {
+    if (any(abs(ratio - dc$cap.share.fx) > 1e-6)) {
       stop(cls, ' "', tech@name, '": the fixed capacities ',
            paste(format(fx), collapse = ", "), ' are in proportion ',
            paste(format(round(ratio, 6)), collapse = ", "),
            ', but the declared shares are ',
-           paste(format(dc$share), collapse = ", "),
+           paste(format(dc$cap.share.fx), collapse = ", "),
            '. The tranche efficiencies were derived from the shares, so the ',
            'ratings and the losses now disagree.', call. = FALSE)
     }
@@ -694,27 +709,133 @@
     if (length(nref) != 1L) next
     for (i in seq_len(nrow(dc))[-1]) {
       nvar <- pick(dc$cluster[i])
-      if (length(nvar) != 1L) next
+      # A cluster with no variant in THIS vintage used to skip the tie in
+      # silence, leaving that tranche free while its siblings were tied -- the
+      # shares then held for some vintages and not others, with no symptom.
+      # Shares require the same cluster set in every vintage.
+      if (length(nvar) != 1L) {
+        stop(cls, ' "', tech@name, '": cluster "', dc$cluster[i],
+             '" has no variant in vintage "',
+             if (is.na(vin)) "NA" else vin,
+             '" while "', dc$cluster[1], '" does, so the capacity shares ',
+             'cannot be tied there. A shared set needs the same clusters in ',
+             'every vintage.', call. = FALSE)
+      }
       nm <- paste0(.VARIANT_SHARE_PREFIX, .variant_token(tech@name),
                    if (!is.na(vin)) .variant_token(vin) else "",
                    .variant_token(dc$cluster[i]))
       cns <- newConstraint(
         name = nm,
         desc = paste0("Capacity share tie: ", dc$cluster[i], " / ",
-                      dc$cluster[1], " = ", format(dc$share[i]), " / ",
-                      format(dc$share[1]), " for ", tech@name),
+                      dc$cluster[1], " = ", format(dc$cap.share.fx[i]), " / ",
+                      format(dc$cap.share.fx[1]), " for ", tech@name),
         eq = "==", for.each = cells, rhs = 0, defVal = 0,
         # A share ratio is exact, not a quantity to smooth between milestones.
         interpolation = "inter",
         t1 = list(variable = bvar,
                   for.sum = stats::setNames(list(nvar), def$key),
-                  mult = dc$share[1]),
+                  mult = dc$cap.share.fx[1]),
         t2 = list(variable = bvar,
                   for.sum = stats::setNames(list(nref), def$key),
-                  mult = -dc$share[i]))
+                  mult = -dc$cap.share.fx[i]))
       cns@misc$.variant_source <- tech@name
       cns@misc$.variant_class <- cls
       out[[nm]] <- cns
+    }
+  }
+  out
+}
+
+# Constraints bounding a cluster's share of its FAMILY's activity, from the
+# `act.share.lo/up/fx` columns of its `@cluster` declaration.
+#
+# This is what makes clustering mean anything once regional borders are gone.
+# Merge two regions and their plants compete on one copperplate, where the
+# merit order keeps only the cheapest variant: the spread the clustering was
+# built to preserve is present in the data and absent from the dispatch. A
+# floor on a cluster's share of the family's output is the bound that prevents
+# it.
+#
+# NOT the same lever as `afs`, which bounds activity against the cluster's OWN
+# capacity: a plant told to run at 40% of what it built can comply by building
+# less, so an `afs` floor pushes toward early retirement. A share of the family
+# can only be met by keeping capacity, which is usually what was meant.
+#
+# Unpinned dimensions of the variable -- `timeslice`, and `comm` where the
+# variable carries one -- are summed by the constraint builder, so the bound is
+# annual and across commodities. A per-timeslice or per-commodity share would
+# be a much stronger statement and needs a declaration that can carry those
+# dimensions; `@cluster` cannot.
+#' @noRd
+.variant_act_share_constraints <- function(tech, prov, regions, years) {
+  def <- .variant_def(tech)
+  if (is.null(def)) return(list())
+  avar <- def$bound_var$act
+  if (is.null(avar)) return(list())
+  dc <- .declared_clusters(tech)
+  if (is.null(dc) || nrow(dc) < 2L) return(list())
+  stems <- c(lo = "act.share.lo", up = "act.share.up", fx = "act.share.fx")
+  stems <- stems[stems %in% names(dc)]
+  if (!length(stems)) return(list())
+  if (!any(vapply(stems, function(x) any(!is.na(dc[[x]])), logical(1)))) {
+    return(list())
+  }
+  cls <- class(tech)[1]
+  dc <- dc[order(dc$order, dc$cluster, na.last = TRUE), , drop = FALSE]
+
+  cell_args <- list(year = years)
+  if ("region" %in% def$bound_dims) {
+    cell_args <- c(list(region = regions), cell_args)
+  }
+  cells <- do.call(expand.grid, c(cell_args,
+    list(KEEP.OUT.ATTRS = FALSE, stringsAsFactors = FALSE)))
+
+  vins <- unique(prov$vintage[prov$base == tech@name])
+  if (!length(vins)) vins <- NA_character_
+  out <- list()
+  for (vin in vins) {
+    pick <- function(cl) {
+      sel <- prov$base == tech@name & !is.na(prov$cluster) &
+        prov$cluster == cl &
+        (if (is.na(vin)) is.na(prov$vintage) else
+           (!is.na(prov$vintage) & prov$vintage == vin))
+      as.character(prov$name[sel])
+    }
+    all_nm <- unlist(lapply(dc$cluster, pick), use.names = FALSE)
+    # The denominator is the family, so every cluster must be present in this
+    # vintage or the share is a fraction of something other than what was
+    # declared.
+    if (length(all_nm) != nrow(dc)) next
+    for (i in seq_len(nrow(dc))) {
+      nvar <- pick(dc$cluster[i])
+      for (sfx in names(stems)) {
+        sh <- dc[[stems[[sfx]]]][i]
+        if (is.na(sh)) next
+        if (!is.finite(sh) || sh < 0 || sh > 1) {
+          stop(cls, ' "', tech@name, '": `', stems[[sfx]], '` of cluster "',
+               dc$cluster[i], '" is ', format(sh),
+               '. An activity share is a FRACTION of the group total, so it ',
+               'must lie between 0 and 1.', call. = FALSE)
+        }
+        nm <- paste0(.VARIANT_ASHARE_PREFIX, .variant_token(tech@name),
+                     if (!is.na(vin)) .variant_token(vin) else "",
+                     .variant_token(dc$cluster[i]), toupper(sfx))
+        cns <- newConstraint(
+          name = nm,
+          desc = paste0("Activity share ", sfx, ": ", dc$cluster[i], " = ",
+                        format(sh), " of ", tech@name),
+          eq = unname(.variant_bound_eq[[sfx]]), for.each = cells, rhs = 0,
+          defVal = 0, interpolation = "inter",
+          t1 = list(variable = avar,
+                    for.sum = stats::setNames(list(nvar), def$key),
+                    mult = 1),
+          t2 = list(variable = avar,
+                    for.sum = stats::setNames(list(all_nm), def$key),
+                    mult = -sh))
+        cns@misc$.variant_source <- tech@name
+        cns@misc$.variant_class <- cls
+        out[[nm]] <- cns
+      }
     }
   }
   out
@@ -727,7 +848,13 @@
   cap <- as.data.frame(tech@capacity)
   if (nrow(cap) == 0L || !"cluster" %in% names(cap)) return(NULL)
   bpre <- if (is.null(def$bound_prefix)) "" else def$bound_prefix
+  # `stock` as well as `cap.fx`: an EXISTING fleet already fixes the
+  # proportions just as a fixed bound does. The tie is on TOTAL capacity in
+  # every year, so a stock out of proportion makes the model infeasible in its
+  # first year -- and before this it did so with no message pointing at the
+  # shares, which is the hardest kind of failure to read.
   col <- paste0(bpre, "cap.fx")
+  if (!col %in% names(cap)) col <- paste0(bpre, "stock")
   if (!col %in% names(cap)) return(NULL)
   vals <- vapply(clusters, function(cl) {
     r <- cap[!is.na(cap$cluster) & cap$cluster == cl, , drop = FALSE]
@@ -1419,6 +1546,9 @@ expand_variants <- function(mod, prefix = .variant_prefix(mod),
         if (length(ab)) cns[[length(cns) + 1L]] <<- ab
         sb <- .variant_share_constraints(el, res$provenance, regions, years)
         if (length(sb)) cns[[length(cns) + 1L]] <<- sb
+        asb <- .variant_act_share_constraints(el, res$provenance, regions,
+                                              years)
+        if (length(asb)) cns[[length(cns) + 1L]] <<- asb
       } else {
         out[[nm]] <- el
       }

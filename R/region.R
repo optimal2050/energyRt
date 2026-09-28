@@ -895,10 +895,30 @@ NULL
 
 #' Group key: objects sharing one merge into a single coarse corridor
 #' @noRd
+#' Signature of a trade's loss-tranche structure
+#'
+#' Labels alone are not the structure. Two corridors can both declare `T1,T2`
+#' with different SHARE vectors; merging them averages the tranche `teff`s
+#' while only the first corridor's shares survive, so the shares and the
+#' efficiencies stop describing the same line -- and the tranche efficiencies
+#' are derived FROM the shares. With equal shares the merge is exact; with
+#' unequal ones it is silently wrong, so the shares belong in the identity.
+#' @noRd
+.agg_tranche_sig <- function(obj) {
+  cl <- methods::slot(obj, "cluster")
+  if (!is.data.frame(cl) || !nrow(cl)) return("")
+  lab <- as.character(cl$cluster)
+  shr <- if ("cap.share.fx" %in% names(cl)) cl$cap.share.fx else
+    rep(NA_real_, nrow(cl))
+  ord <- if ("order" %in% names(cl)) cl$order else rep(NA_integer_, nrow(cl))
+  paste(sort(paste0(lab, "=", format(shr, trim = TRUE), ";",
+                    format(ord, trim = TRUE))), collapse = ",")
+}
+
 .agg_trade_key <- function(obj, pair) {
   paste(c(.agg_trade_prefix(obj),
           paste(sort(as.character(obj@commodity)), collapse = ","),
-          paste(sort(as.character(obj@cluster$cluster)), collapse = ","),
+          .agg_tranche_sig(obj),
           sort(paste(pair$src, pair$dst, sep = "|"))),
         collapse = "::")
 }
@@ -924,6 +944,56 @@ NULL
   out[, intersect(names(df), names(out)), drop = FALSE]
 }
 
+#' Combine one slot that is keyed by neither `region` nor `src`/`dst`
+#'
+#' A trade's `@capacity` and `@vintage` carry no geography at all -- their keys
+#' are `(vintage, cluster, year)` and `(vintage, cluster)`. Neither
+#' `.agg_slot()` nor `.agg_pair_slot()` applies: the first needs a `region`
+#' column to recast and returns nothing without one, the second needs
+#' `src`/`dst`. Merging several corridors still has to combine them, by the
+#' ordinary rules -- capacities add, copy columns must agree.
+#' @noRd
+.agg_keyed_slot <- function(df, w) {
+  if (!is.data.frame(df) || !nrow(df)) return(df)
+  vals <- .agg_values(df)
+  if (!length(vals)) return(unique(df))
+  rules <- .agg_rules(vals)
+  keys <- setdiff(names(df), vals)
+  id <- if (length(keys))
+    do.call(paste, c(lapply(df[keys], as.character), sep = "
+")) else
+      rep("", nrow(df))
+  ww <- if (is.null(w)) rep(1, nrow(df)) else w
+  ww[!is.finite(ww) | ww <= 0] <- 1
+  out <- do.call(rbind, lapply(split(seq_len(nrow(df)), id), function(i) {
+    row <- df[i[1], , drop = FALSE]
+    for (v in vals) {
+      x <- df[[v]][i]
+      ok <- !is.na(x)
+      if (!any(ok)) { row[[v]] <- NA_real_; next }
+      row[[v]] <- switch(
+        unname(rules[[v]]),
+        sum = sum(x[ok]),
+        # `copy` is structural: a conflict is an error, not something to
+        # average -- the same reading `.agg_rules()` gives it everywhere else.
+        copy = {
+          u <- unique(x[ok])
+          if (length(u) > 1L) {
+            stop("merging corridors disagree on `", v, "`: ",
+                 paste(format(u), collapse = ", "),
+                 ". It is a structural value, not one to average.",
+                 call. = FALSE)
+          }
+          u
+        },
+        sum(x[ok] * ww[i][ok]) / sum(ww[i][ok]))
+    }
+    row
+  }))
+  rownames(out) <- NULL
+  out
+}
+
 #' Merge a group of trade objects into one coarse corridor
 #' @noRd
 .agg_trade_merge <- function(objs, gs, level, pair) {
@@ -940,6 +1010,28 @@ NULL
 
   # Corridor capacity weights the intensive quantities, the way a cluster's
   # `p_nom` weights an aggregated line.
+  #
+  # One size per corridor, from `@capacity` first: `@trade$ava.up` is an
+  # absolute FLOW bound that many models never set, while the rating lives in
+  # the region-free `@capacity`. Weighting by an absent `ava.up` collapsed the
+  # weights and made the "capacity-weighted" means unweighted.
+  sz <- vapply(objs, function(o) {
+    cap <- methods::slot(o, "capacity")
+    v <- if (is.data.frame(cap) && nrow(cap))
+      suppressWarnings(as.numeric(unlist(
+        cap[intersect(c("cap.fx", "cap.up", "stock"), names(cap))]))) else
+          numeric(0)
+    v <- v[is.finite(v) & v > 0]
+    if (length(v)) return(max(v))
+    trd <- methods::slot(o, "trade")
+    v <- if (is.data.frame(trd) && nrow(trd) && "ava.up" %in% names(trd))
+      suppressWarnings(as.numeric(trd$ava.up)) else numeric(0)
+    v <- v[is.finite(v) & v > 0]
+    if (length(v)) max(v) else NA_real_
+  }, numeric(1))
+  if (all(is.na(sz))) sz[] <- 1
+  sz[is.na(sz)] <- stats::median(sz, na.rm = TRUE)
+
   tr <- bind("trade")
   w <- NULL
   if (is.data.frame(tr) && nrow(tr) && "ava.up" %in% names(tr)) {
@@ -956,16 +1048,72 @@ NULL
   out <- base
   out@name <- paste0(.agg_trade_prefix(base), "_", pair$src[1], "__",
                      pair$dst[1])
-  out@routes <- rbind(pair, stats::setNames(pair[, c("dst", "src")],
-                                            c("src", "dst")))
+  # The DECLARED directions, mapped up -- not both. Adding the reverse
+  # unconditionally turned a one-way pipeline into a two-way interconnector.
+  dir_rt <- do.call(rbind, lapply(objs, function(o) {
+    rt <- methods::slot(o, "routes")
+    if (!is.data.frame(rt) || !nrow(rt)) return(NULL)
+    sc <- .agg_map_codes(as.character(rt$src), gs, level)
+    dc <- .agg_map_codes(as.character(rt$dst), gs, level)
+    keep <- !is.na(sc) & !is.na(dc) & sc != dc
+    if (!any(keep)) return(NULL)
+    data.frame(src = sc[keep], dst = dc[keep], stringsAsFactors = FALSE)
+  }))
+  out@routes <- if (is.null(dir_rt)) pair else unique(dir_rt)
   rownames(out@routes) <- NULL
   for (sl in c("trade", "aeff", "varom")) {
     methods::slot(out, sl) <- .agg_pair_slot(bind(sl), gs, level, w)
   }
-  rw <- NULL
-  for (sl in c("invcost", "fixom", "vintage")) {
+  # Impedances of parallel circuits combine as 1/x_eq = sum(1/x_i) -- the rule
+  # `.kvl_lines()` states in its own refusal -- not as a mean, which the
+  # generic recast would give and which is wrong by roughly the number of
+  # circuits. Recomputed from the source rows, grouped the way the recast
+  # grouped them.
+  trd <- methods::slot(out, "trade")
+  srcr <- bind("trade")
+  for (col in intersect(c("reactance", "resistance"), names(trd))) {
+    if (!is.data.frame(srcr) || !nrow(srcr) || !col %in% names(srcr)) next
+    x <- suppressWarnings(as.numeric(srcr[[col]]))
+    ok <- is.finite(x) & x > 0
+    if (!any(ok)) next
+    kc <- intersect(c("vintage", "cluster", "year", "timeslice"), names(trd))
+    gid <- function(d, sc, dc) do.call(paste, c(
+      list(as.character(d[[sc]]), as.character(d[[dc]])),
+      lapply(kc, function(k) as.character(d[[k]])), list(sep = "
+")))
+    a <- gid(data.frame(
+      s = .agg_map_codes(as.character(srcr$src), gs, level),
+      d = .agg_map_codes(as.character(srcr$dst), gs, level),
+      srcr[, kc, drop = FALSE], stringsAsFactors = FALSE), "s", "d")
+    par <- tapply(x[ok], a[ok], function(v) 1 / sum(1 / v))
+    hit <- match(gid(trd, "src", "dst"), names(par))
+    trd[[col]][!is.na(hit)] <- unname(par[hit[!is.na(hit)]])
+  }
+  methods::slot(out, "trade") <- trd
+  # A trade cost is a rate borne by each ENDPOINT, so weight each corridor's
+  # rate by that corridor's size at the regions it touches. Unweighted, a 5 MW
+  # spur counted as much as a 500 MW link.
+  ends <- do.call(rbind, lapply(seq_along(objs), function(i) {
+    rt <- methods::slot(objs[[i]], "routes")
+    if (!is.data.frame(rt) || !nrow(rt)) return(NULL)
+    data.frame(region = unique(c(as.character(rt$src), as.character(rt$dst))),
+               .agg_w = sz[[i]], stringsAsFactors = FALSE)
+  }))
+  rw <- if (is.null(ends)) NULL else
+    stats::aggregate(list(.agg_w = ends$.agg_w),
+                     by = list(region = ends$region), FUN = sum)
+  for (sl in c("invcost", "fixom")) {
     methods::slot(out, sl) <- .agg_slot(bind(sl), gs, level, rw,
                                         character(0))
+  }
+  # `@capacity` and `@vintage` carry no geography: without this they kept only
+  # the first corridor's values (capacity) or came back empty (vintage).
+  for (sl in c("capacity", "vintage")) {
+    n <- vapply(objs, function(o) {
+      v <- methods::slot(o, sl)
+      if (is.data.frame(v)) nrow(v) else 0L
+    }, integer(1))
+    methods::slot(out, sl) <- .agg_keyed_slot(bind(sl), rep(sz, n))
   }
   if (length(objs) > 1L) {
     out@desc <- paste0(base@desc, " (merged from ", length(objs),
@@ -1063,7 +1211,8 @@ NULL
 aggregate_model_regions <- function(mod, geoscale = NULL, level,
                                     clusters = NULL,
                                     as = c("clusters", "objects"),
-                                    name = NULL, verbose = isVerbose()) {
+                                    name = NULL, verbose = isVerbose(),
+                                    .trade_parts = NULL) {
   stopifnot(inherits(mod, "model"))
   as <- match.arg(as)
   if (!is.null(clusters)) {
@@ -1192,11 +1341,51 @@ Aggregating between two non-atom levels needs a level-aware ",
   for (i in which(!internal)) keys[i] <- .agg_trade_key(tr[[i]], pairs[[i]])
 
   n_merged <- 0L
-  for (k in unique(stats::na.omit(keys))) {
+  # Two different keys routinely mint the SAME name: the name carries only the
+  # prefix and the coarse pair, while the key also separates commodity and
+  # tranche structure -- so two differently-tranched corridors between one
+  # pair collide by construction. Overwriting one corridor with another is the
+  # worst failure this file could have, and refusing would make a legal model
+  # un-aggregatable, so disambiguate. Keys are sorted first, so the suffix a
+  # corridor gets does not depend on the order the objects were declared in.
+  # Corridor grouping sub-partitions the merge classes: a part becomes its own
+  # merged object instead of every corridor between a coarse pair becoming
+  # one. Appending to the key rather than replacing it keeps every separation
+  # the key already makes, so `k` at its floor is plain aggregation exactly.
+  if (!is.null(.trade_parts)) {
+    sub <- unname(.trade_parts[names(tr)])
+    keys <- ifelse(is.na(keys) | is.na(sub), keys, paste(keys, sub, sep = "##"))
+  }
+  kk <- sort(unique(stats::na.omit(keys)))
+  merged <- lapply(kk, function(k) {
     idx <- which(keys == k)
-    merged <- .agg_trade_merge(tr[idx], gs, level, pairs[[idx[1L]]])
-    if (length(idx) > 1L) n_merged <- n_merged + length(idx)
-    out[[merged@name]] <- merged
+    if (length(idx) > 1L) n_merged <<- n_merged + length(idx)
+    o <- .agg_trade_merge(tr[idx], gs, level, pairs[[idx[1L]]])
+    # A grouped corridor carries its part in the name: `_G1` is the
+    # lowest-loss part of that coarse pair. Meaningful and stable, unlike the
+    # positional suffix the collision guard would otherwise assign, which
+    # depends on how the keys happened to sort.
+    sfx <- sub("^.*##", "", k)
+    if (grepl("##", k) && grepl("_G[0-9]+$", sfx)) {
+      o@name <- paste0(o@name, regmatches(sfx, regexpr("_G[0-9]+$", sfx)))
+    }
+    o
+  })
+  nms <- vapply(merged, function(o) o@name, character(1))
+  dup <- nms %in% nms[duplicated(nms)]
+  if (any(dup)) {
+    for (n in unique(nms[dup])) {
+      i <- which(nms == n)
+      nms[i] <- paste0(n, "_", seq_along(i))
+    }
+    if (isTRUE(verbose)) {
+      message("Trade: ", sum(dup), " corridor(s) shared a coarse name and ",
+              "were suffixed; they differ in commodity or tranche structure")
+    }
+  }
+  for (i in seq_along(merged)) {
+    merged[[i]]@name <- nms[i]
+    out[[nms[i]]] <- merged[[i]]
   }
   if (isTRUE(verbose)) {
     message("Trade: ", length(tr), " corridor(s) -> ",

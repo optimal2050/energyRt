@@ -989,8 +989,8 @@ setMethod("levcost", "scenario", function(object, comm, name, ...) {
 #   share_lo_eff, share_hi_eff   – effective range after intersecting all group
 #                                  member constraints (the true feasible band)
 #
-# Only groups where at least one commodity has an explicit share.up or
-# share.lo > 0 are included (skip fully-unconstrained groups).
+# Only groups where at least one commodity has an explicit grp.share.up or
+# grp.share.lo > 0 are included (skip fully-unconstrained groups).
 
 #' Extract feasible share ranges for grouped inputs/outputs
 #'
@@ -1010,20 +1010,20 @@ tech_share_frontier <- function(object) {
     sl <- setNames(rep(0,        length(comms)), comms)
     if (nrow(object@ceff) == 0) return(list(up = su, lo = sl))
     ci <- object@ceff[object@ceff$comm %in% comms, , drop = FALSE]
-    if ("share.up" %in% names(ci))
+    if ("grp.share.up" %in% names(ci))
       for (cm in comms) {
-        r <- ci[ci$comm == cm & !is.na(ci$share.up), , drop = FALSE]
-        if (nrow(r) > 0) su[[cm]] <- r$share.up[1]
+        r <- ci[ci$comm == cm & !is.na(ci$grp.share.up), , drop = FALSE]
+        if (nrow(r) > 0) su[[cm]] <- r$grp.share.up[1]
       }
-    if ("share.lo" %in% names(ci))
+    if ("grp.share.lo" %in% names(ci))
       for (cm in comms) {
-        r <- ci[ci$comm == cm & !is.na(ci$share.lo), , drop = FALSE]
-        if (nrow(r) > 0) sl[[cm]] <- r$share.lo[1]
+        r <- ci[ci$comm == cm & !is.na(ci$grp.share.lo), , drop = FALSE]
+        if (nrow(r) > 0) sl[[cm]] <- r$grp.share.lo[1]
       }
-    if ("share.fx" %in% names(ci))
+    if ("grp.share.fx" %in% names(ci))
       for (cm in comms) {
-        r <- ci[ci$comm == cm & !is.na(ci$share.fx), , drop = FALSE]
-        if (nrow(r) > 0) { su[[cm]] <- r$share.fx[1]; sl[[cm]] <- r$share.fx[1] }
+        r <- ci[ci$comm == cm & !is.na(ci$grp.share.fx), , drop = FALSE]
+        if (nrow(r) > 0) { su[[cm]] <- r$grp.share.fx[1]; sl[[cm]] <- r$grp.share.fx[1] }
       }
     list(up = su, lo = sl)
   }
@@ -1863,14 +1863,14 @@ levcost_technology_ <- function(
   share_lo <- setNames(rep(0,        length(out_comms)), out_comms)
   if (has_grouped_output && nrow(object@ceff) > 0) {
     ceff_out <- object@ceff[object@ceff$comm %in% out_comms, , drop = FALSE]
-    for (slot_name in c("share.up", "share.lo", "share.fx")) {
+    for (slot_name in c("grp.share.up", "grp.share.lo", "grp.share.fx")) {
       if (!slot_name %in% names(ceff_out)) next
       for (cm in out_comms) {
         rows <- ceff_out[ceff_out$comm == cm & !is.na(ceff_out[[slot_name]]), , drop = FALSE]
         if (nrow(rows) == 0) next
-        if (slot_name == "share.up") share_up[[cm]] <- rows[[slot_name]][1]
-        if (slot_name == "share.lo") share_lo[[cm]] <- rows[[slot_name]][1]
-        if (slot_name == "share.fx") { share_up[[cm]] <- rows[[slot_name]][1]
+        if (slot_name == "grp.share.up") share_up[[cm]] <- rows[[slot_name]][1]
+        if (slot_name == "grp.share.lo") share_lo[[cm]] <- rows[[slot_name]][1]
+        if (slot_name == "grp.share.fx") { share_up[[cm]] <- rows[[slot_name]][1]
                                        share_lo[[cm]] <- rows[[slot_name]][1] }
       }
     }
@@ -1897,14 +1897,14 @@ levcost_technology_ <- function(
     .sl <- setNames(rep(0,        length(.gc)), .gc)
     if (nrow(object@ceff) > 0) {
       .ci <- object@ceff[object@ceff$comm %in% .gc, , drop = FALSE]
-      for (.sn in c("share.up", "share.lo", "share.fx")) {
+      for (.sn in c("grp.share.up", "grp.share.lo", "grp.share.fx")) {
         if (!.sn %in% names(.ci)) next
         for (.cm in .gc) {
           .r <- .ci[.ci$comm == .cm & !is.na(.ci[[.sn]]), , drop = FALSE]
           if (nrow(.r) == 0) next
-          if (.sn == "share.up") .su[[.cm]] <- .r[[.sn]][1]
-          if (.sn == "share.lo") .sl[[.cm]] <- .r[[.sn]][1]
-          if (.sn == "share.fx") { .su[[.cm]] <- .r[[.sn]][1]; .sl[[.cm]] <- .r[[.sn]][1] }
+          if (.sn == "grp.share.up") .su[[.cm]] <- .r[[.sn]][1]
+          if (.sn == "grp.share.lo") .sl[[.cm]] <- .r[[.sn]][1]
+          if (.sn == "grp.share.fx") { .su[[.cm]] <- .r[[.sn]][1]; .sl[[.cm]] <- .r[[.sn]][1] }
         }
       }
     }
@@ -2689,10 +2689,10 @@ levcost_technology_ <- function(
         for (grp in inp_frontier_groups) {
           grp_comms <- in_group_comms[[grp]]
           already_fixed <- character(0)
-          if ("share.fx" %in% names(original_ceff)) {
+          if ("grp.share.fx" %in% names(original_ceff)) {
             for (cm in grp_comms) {
               rf <- original_ceff[original_ceff$comm == cm &
-                !is.na(original_ceff$share.fx), , drop = FALSE]
+                !is.na(original_ceff$grp.share.fx), , drop = FALSE]
               if (nrow(rf) > 0) already_fixed <- c(already_fixed, cm)
             }
           }
@@ -2705,11 +2705,11 @@ levcost_technology_ <- function(
             fx_val  <- if (is.finite(inp_su)) inp_su else 1.0
             other_comms <- setdiff(grp_comms, prim_inp)
             other_fx    <- if (length(other_comms) > 0) (1 - fx_val) / length(other_comms) else 0
-            if (!"share.fx" %in% names(object@ceff)) object@ceff$share.fx <- NA_real_
+            if (!"grp.share.fx" %in% names(object@ceff)) object@ceff$grp.share.fx <- NA_real_
             for (cm in grp_comms) {
               rows <- which(object@ceff$comm == cm)
               if (length(rows) > 0)
-                object@ceff$share.fx[rows] <- if (cm == prim_inp) fx_val else other_fx
+                object@ceff$grp.share.fx[rows] <- if (cm == prim_inp) fx_val else other_fx
             }
             suffix   <- paste0("_fr_", prim_out, "_", prim_inp)
             scen_ifr <- build_and_solve_(dobj_ifr, suffix = suffix)
@@ -3081,7 +3081,7 @@ autoplot.levcost <- function(object,
     df <- object$frontier
     if (is.null(df) || nrow(df) == 0) {
       message("No frontier data available. Run levcost() with frontier = TRUE ",
-              "and a grouped technology with >= 2 output commodities with share.up.")
+              "and a grouped technology with >= 2 output commodities with grp.share.up.")
       return(invisible(NULL))
     }
     yr_sel <- if (!is.null(year)) as.integer(year) else min(df$year, na.rm = TRUE)
@@ -3134,7 +3134,7 @@ autoplot.levcost <- function(object,
     p  <- plot_share_frontier(df, title = paste0("Share Mix: ", names(object$levcost_npv)))
     if (is.null(p)) {
       message("No share constraint data available. The technology may have no ",
-              "grouped inputs or outputs with share.up / share.lo constraints.")
+              "grouped inputs or outputs with grp.share.up / grp.share.lo constraints.")
       return(invisible(NULL))
     }
     return(p)

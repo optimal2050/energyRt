@@ -61,6 +61,58 @@
   On a container the entries are named `<process>@<region>`. `trade` is
   unaffected: it spans two regions by construction and is priced across both.
 
+* **Breaking:** the three unrelated things called `share` are now named for
+  what they are a share OF. `@cluster$share` is `cap.share.fx` (the capacity
+  ratio, an equality), `@ceff$share.lo/up/fx` is `grp.share.lo/up/fx` (the
+  input-group mix for co-firing), and the new `act.share.lo/up/fx` bounds a
+  cluster's share of its family's throughput. `lossTranches()` emits the new
+  name. The timeslice share (`calendar@timetable$share`) is untouched.
+
+* `@cluster` is declared the same way on every process class: `cluster`,
+  `desc`, `order` always; `region` where the class has regional scope;
+  `cap.share.fx` where it has a capacity to tie; `act.share.*` everywhere.
+  `technology` and `storage` gain `cap.share.fx`, `import` and `export` gain
+  `region`. `supply`, `import` and `export` have no `cap.share.fx`: they have
+  no capacity variable, so the column is absent rather than accepted and
+  ignored -- declaring one is now an error that points at `act.share`.
+
+* `act.share.lo/up/fx` bounds a cluster's share of its family's activity.
+  Unlike `afs`, which bounds activity against the cluster's OWN capacity and
+  can be satisfied by building less, a share of the family can only be met by
+  keeping capacity. This is what stops a clustered family collapsing to its
+  cheapest member once regional borders are aggregated away. No new equation:
+  it rides the `newConstraint()` path, and binds on GLPK and multimod alike.
+
+* Cluster shares are guarded rather than silently skipped. A cluster missing a
+  variant in one vintage used to leave that vintage untied with no warning;
+  stock out of proportion used to give a bare infeasibility. Both now error and
+  name the cluster.
+
+* **Fixed:** `aggregate_model_regions()` lost data when it merged trade
+  corridors. `@capacity` was not recombined, so only the first corridor's
+  bounds survived; `@vintage` came back empty, losing `olife` on every
+  aggregated corridor, merged or not; costs took an unweighted mean; the merge
+  key saw tranche labels but not their shares, so corridors whose shares
+  differed merged and silently adopted the first one's; `reactance` was
+  averaged instead of combined as `1/x_eq = sum(1/x_i)`; a one-way corridor
+  became bidirectional; and two corridors minting the same name overwrote one
+  another. No test had ever merged two corridors.
+
+* `aggregate_model_regions(clusters = list(TRD = k))` partitions a family of
+  corridors into `k` merged objects instead of collapsing every corridor
+  between a pair of coarse regions into one. Merging unlike corridors replaces
+  a fill-the-best-first delivery curve with its chord -- on a 100-unit link at
+  0.99 beside a 20-unit link at 0.90 that costs 1.5% of the energy delivered
+  below saturation. `k` runs from one part per coarse pair (plain aggregation)
+  to one per corridor; parts become separate objects, because a trade's
+  `@cluster` is a loss tranche. `k` above the floor is refused when a corridor
+  carries a reactance: parallel AC circuits split flow by impedance, not by
+  optimisation.
+
+* `get_process_groups()` reports corridor families, with `n` counting
+  corridors rather than regions. `model_clusters()` returns their crosswalk
+  and no geoscale -- a corridor has no territory to colour.
+
 * `aggregate_model_regions(clusters = )` keeps the regional spread as
   `technology@cluster` variants instead of averaging it away. Settings are per
   technology family -- `clusters = list(ECOA = list(k = 3), EWIN = list(k = 8))`
@@ -89,12 +141,12 @@
   geoframe, so `plot_geoscale(type = "map", geoframe = "cluster")` and
   `type = "icicle"` show the grouping with no new plotting code.
 
-* `get_process_groups()` reports which technologies may be merged into one clustered
-  object, grouped by structure -- inputs, outputs, aux commodities and input
-  groups -- so a coal plant and a gas plant are never merged. It accepts a
-  technology that already spans several regions, one object whose slots carry a
-  `region` column, and clusters it exactly as it does a family of
-  one-object-per-region technologies.
+* `get_process_groups()` reports which processes may be merged into one
+  clustered object, grouped by structure -- inputs, outputs, aux commodities
+  and input groups -- so a coal plant and a gas plant are never merged. It
+  accepts a technology that already spans several regions, one object whose
+  slots carry a `region` column, and clusters it exactly as it does a family
+  of one-object-per-region technologies.
 
 * A technology that **already has clusters** keeps them when its regions are
   coarsened: the two groupings compose, `GOOD` in `W1` becoming `GOOD_W1`.
@@ -129,7 +181,8 @@
   Two settings leave it untouched, three move it -- including one where the
   aggregated model comes out **cheaper** than the model it came from, because
   pooling granted transmission that did not exist. `clusterscales` and
-  `multiscales` are Suggests; `dev/region-aggregation-model.R` holds the shared model and
+  `multiscales` are Suggests; `dev/region-aggregation-model.R` holds the
+  shared model and
   `dev/verify-region-aggregation.R` checks every number the article prints.
 
 * **Breaking:** the `topia` dataset now carries `geoscales`, a named list of

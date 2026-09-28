@@ -15,8 +15,12 @@ mk_win <- function(...) {
 
 test_that("@cluster slot exists with the declaration columns", {
   expect_true("cluster" %in% slotNames("technology"))
+  # One definition on every process class: `cluster`, `desc`, `order` always,
+  # `region` where the class has regional scope, `cap.share.fx` where it has a
+  # capacity to tie, and `act.share.*` everywhere.
   expect_identical(names(new("technology")@cluster),
-                   c("cluster", "desc", "region", "order"))
+                   c("cluster", "desc", "region", "cap.share.fx",
+                     "act.share.lo", "act.share.up", "act.share.fx", "order"))
 })
 
 test_that("declaring clusters is enough to create the variants, in `order`", {

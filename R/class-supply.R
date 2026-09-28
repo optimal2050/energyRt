@@ -6,6 +6,7 @@
 #' @slot unit `r get_slot_doc("supply", "unit")`
 #' @slot weather `r get_slot_doc("supply", "weather")`
 #' @slot reserve `r get_slot_doc("supply", "reserve")`
+#' @slot cluster `r get_slot_doc("supply", "cluster")`
 #' @slot supply `r get_slot_doc("supply", "supply")`
 #' @slot region `r get_slot_doc("supply", "region")`
 #' @slot misc `r get_slot_doc("supply", "misc")`
@@ -81,7 +82,9 @@ setClass("supply",
       cluster = character(),
       desc = character(),
       region = character(),
-      share = numeric(),
+      act.share.lo = numeric(),
+      act.share.up = numeric(),
+      act.share.fx = numeric(),
       order = integer(),
       stringsAsFactors = FALSE
     ),
@@ -111,6 +114,7 @@ setMethod("initialize", "supply", function(.Object, ...) {
 #' @param unit `r get_slot_doc("supply", "unit")`
 #' @param weather `r get_slot_doc("supply", "weather")`
 #' @param reserve `r get_slot_doc("supply", "reserve")`
+#' @param cluster `r get_slot_doc("supply", "cluster")`
 #' @param supply `r get_slot_doc("supply", "supply")`
 #' @param region `r get_slot_doc("supply", "region")`
 #' @param misc `r get_slot_doc("supply", "misc")`
@@ -173,7 +177,7 @@ newSupply <- function(
 }
 
 #' Update supply object
-#' @rdname sypply
+#' @rdname update
 #' @family supply update
 #' @export
 setMethod('update', signature(object = 'supply'), function(object, ...) {
@@ -377,8 +381,13 @@ setMethod('update', signature(object = 'supply'), function(object, ...) {
     slot(obj, resslot) <- r
   }
 
+  # No share column: the split is enforced in `ava.*` / `res.*` above, which
+  # is authoritative, and `desc` states the fraction in words. A `cap.share`
+  # would be a lie -- these classes have no capacity to tie -- and an
+  # `act.share` would need verifying against the bounds rather than applying,
+  # which earns its keep only if something reads it. Nothing does.
   slot(obj, "cluster") <- data.frame(
-    cluster = cur$label, desc = cur$desc, share = cur$share,
+    cluster = cur$label, desc = cur$desc,
     order = seq_len(n), stringsAsFactors = FALSE)
   obj
 }

@@ -50,7 +50,7 @@
       arg = "ceff",
       cols = c("vintage", "cluster", "region", "year", "timeslice", "comm",
                "cinp2use", "use2cact", "cact2cout", "cinp2ginp",
-               "share.lo", "share.up", "share.fx",
+               "grp.share.lo", "grp.share.up", "grp.share.fx",
                "afc.lo", "afc.up", "afc.fx"),
       dims = c("vintage", "cluster", "region", "year", "timeslice")),
     group_efficiency = list(
@@ -108,7 +108,8 @@
       dims = c("region", "cluster")),
     clusters = list(
       arg = "cluster",
-      cols = c("cluster", "desc", "region", "order"),
+      cols = c("cluster", "desc", "region", "cap.share.fx",
+               "act.share.lo", "act.share.up", "act.share.fx", "order"),
       dims = c("region")),
     capacity = list(
       arg = "capacity",
@@ -209,7 +210,8 @@
       dims = c("region", "cluster")),
     clusters = list(
       arg = "cluster",
-      cols = c("cluster", "desc", "region", "order"),
+      cols = c("cluster", "desc", "region", "cap.share.fx",
+               "act.share.lo", "act.share.up", "act.share.fx", "order"),
       dims = c("region")),
     capacity = list(
       arg = "capacity",
@@ -271,7 +273,8 @@
       dims = c("cluster")),
     clusters = list(
       arg = "cluster",
-      cols = c("cluster", "desc", "share", "order"),
+      cols = c("cluster", "desc", "cap.share.fx",
+               "act.share.lo", "act.share.up", "act.share.fx", "order"),
       dims = character()),
     capacity = list(
       arg = "capacity",

@@ -60,7 +60,7 @@ one backend and break (or silently merge names) on another.
 
 * **Set elements are UPPER-CASE.** Every name that appears as a set element --
   regions, commodities, technologies, groups, timeslices you define -- is written in
-  capitals (`R1`, `COA`, `ECOA`, `FUEL`). This is the rule that guarantees
+  capitals (`W1`, `COA`, `ECOA`, `FUEL`). This is the rule that guarantees
   identical behaviour across backends.
 * **Process names carry a type prefix**, so the role is obvious at a glance and
   names never collide across process families:
@@ -71,7 +71,7 @@ one backend and break (or silently merge names) on another.
   | `RES_` | supply of a renewable resource (`RES_SOL`, `RES_WIN`, `RES_HYD`) |
   | `STG_` | storage (`STG_ELC`) |
   | `TRD_` | inter-regional trade (uni-directional) |
-  | `TBD_` | inter-regional trade (bi-directional, `TBD_ELC_R1_R2`) |
+  | `TBD_` | inter-regional trade (bi-directional, `TBD_ELC_W1_W2`) |
   | `IMP_` | import from the rest of the world |
   | `EXP_` | export to the rest of the world |
 
@@ -85,25 +85,63 @@ transmission (`TBD_`) and rest-of-world fuel imports / electricity exports
 
 # Regions and the map
 
-TOPIA is a small multi-region country. The package ships four 11-region map
-layouts in `topia$map` (`squares`, `honeycomb`, `island`, `continent`) — all
-share the region names `R1`…`R11`, so a model built for one layout draws over any
-of them. Pick whichever suits the story:
+TOPIA is a small multi-region country. The package ships four 11-region layouts
+in `topia$geoscales` (`squares`, `honeycomb`, `island`, `continent`) — all share
+the region names `W1`, `W2`, `C1`…`C6`, `E1`…`E3`, so a model built for one
+layout draws over any of them. Pick whichever suits the story.
+
+Each entry is a [`geoscales::Geoscale`]: the region hierarchy with that
+layout's polygons inside it. `geoscale_geometry()` hands the polygons back as
+plain `sf`:
 
 ```{r maps, eval = have_sf, fig.width = 7, fig.height = 5.2, fig.cap = "The four TOPIA map layouts."}
 library(sf)
 op <- par(mfrow = c(2, 2), mar = c(0.5, 0.5, 2, 0.5))
-for (nm in names(topia$map)) {
-  m <- topia$map[[nm]]
+for (nm in names(topia$geoscales)) {
+  m <- geoscales::geoscale_geometry(topia$geoscales[[nm]], "region")
+  xy <- st_coordinates(st_point_on_surface(st_geometry(m)))
   plot(st_geometry(m), col = sf.colors(nrow(m), categorical = T), main = nm)
-  text(m$x, m$y, m$region, cex = 0.75)
+  text(xy[, 1], xy[, 2], m$region, cex = 0.75)
 }
 par(op)
 ```
 
 This vignette builds a **three-region** model on the first three regions
-(`R1`, `R2`, `R3`) — we draw the transmission network over the `honeycomb` layout
+(`W1`, `W2`, `C1`) — we draw the transmission network over the `honeycomb` layout
 below.
+
+## Zones: the region hierarchy
+
+The eleven regions nest into three **zones** and one **nation**. The codes carry
+the zone (`W` west, `C` central, `E` east), and every layout holds that same
+hierarchy:
+
+```{r geoscale, eval = have_sf}
+gs <- topia$geoscales$honeycomb
+geoscales::geoscale_geoframes(gs)           # nation > zone > region
+geoscales::geoscale_children(gs, "zone", "WEST")
+geoscales::geoscale_leaftable(gs)           # the region table
+
+# a model's own regions: subset, keeping the geometry and the area weight
+geoscales::filter_geoscale(gs, "region", c("W1", "W2", "C1"))
+```
+
+Each layout assigns the codes to its own polygons so that a zone is a single
+contiguous block on the picture — dissolving the regions gives one shape per
+zone:
+
+```{r zone-shapes, eval = have_sf, fig.height = 3}
+zones <- geoscales::geoscale_geometry(gs, "zone")
+plot(st_geometry(zones), col = c("#4E79A7", "#F28E2B", "#59A14F"),
+     main = "TOPIA zones (honeycomb)")
+```
+
+A coarser geoframe is also where a commodity can be **balanced**: give a
+commodity `geoframe = "zone"` and every region in the zone shares one balance
+(no transmission object needed), which is the cheapest way to coarsen part of a
+model. The [space-resolution
+article](https://energyrt.org/articles/space-resolution.html) covers what that
+does and does not allow.
 
 # Time resolution and inputs
 
@@ -116,12 +154,12 @@ cal  <- calendars$s4_h24
 autoplot(cal)
 ```
 
-Region names are upper-case (`R1`, `R2`, `R3`), matching the region names in the
+Region names are upper-case (`W1`, `W2`, `C1`), matching the region names in the
 TOPIA maps. Deterministic capacity-factor and load profiles come from
 [`topia_profiles()`].
 
 ```{r inputs}
-regions <- c("R1", "R2", "R3")
+regions <- c("W1", "W2", "C1")
 
 prof <- topia_profiles(regions, calendar = "s4_h24")
 str(prof, max.level = 1)
@@ -195,7 +233,7 @@ Fuel **supplies** (`SUP_*`) are priced in EUR/GJ (= MEUR/PJ); renewable
 **resources** (`RES_*`) are free and weather-limited.
 
 **Endowments differ by region** -- that is what makes a multi-region model
-interesting: `R1` mines coal, `R2` produces gas, `R3` has the hydro. Regions
+interesting: `W1` mines coal, `W2` produces gas, `C1` has the hydro. Regions
 without a domestic fuel must import it (next section) or buy electricity over
 the grid -- regional diversity *stimulates trade*. The `region` column of
 `availability` is where an endowment lives. The first two supplies in full:
@@ -203,11 +241,11 @@ the grid -- regional diversity *stimulates trade*. The `region` column of
 ```{r supply}
 SUP_COA <- newSupply(
   name = "SUP_COA",
-  desc = "Coal supply (mined in R1)",
+  desc = "Coal supply (mined in W1)",
   commodity = "COA",
   unit = "PJ",
   supply = data.frame(
-    region = "R1",                        # coal exists only in R1
+    region = "W1",                        # coal exists only in W1
     cost = 2.5
   )
 )
@@ -215,11 +253,11 @@ draw(SUP_COA)
 
 SUP_GAS <- newSupply(
   name = "SUP_GAS",
-  desc = "Natural gas supply (produced in R2)",
+  desc = "Natural gas supply (produced in W2)",
   commodity = "GAS",
   unit = "PJ",
   supply = data.frame(
-    region = "R2",                        # gas exists only in R2
+    region = "W2",                        # gas exists only in W2
     cost = 6.0
   )
 )
@@ -239,7 +277,7 @@ SUP_BIO <- sup("SUP_BIO", "BIO", 8.0)              # biomass: everywhere
 SUP_NUC <- sup("SUP_NUC", "NUC", 0.9)              # nuclear fuel: world market
 RES_SOL <- sup("RES_SOL", "SOL", 0)                # sun shines everywhere...
 RES_WIN <- sup("RES_WIN", "WIN", 0)                # ...wind blows everywhere
-RES_HYD <- sup("RES_HYD", "HYD", 0, reg = "R3")    # hydro inflow: only R3
+RES_HYD <- sup("RES_HYD", "HYD", 0, reg = "C1")    # hydro inflow: only C1
 ```
 
 # Rest-of-world trade: imports and exports
@@ -257,7 +295,7 @@ IMP_COA <- newImport(
   unit = "PJ",
   import = data.frame(
     region = regions,                     # available to every region
-    price = 3.5                           # vs 2.5 domestic in R1
+    price = 3.5                           # vs 2.5 domestic in W1
   )
 )
 draw(IMP_COA)
@@ -268,7 +306,7 @@ IMP_GAS <- update(IMP_COA,
   commodity = "GAS",
   import = data.frame(
     region = regions,
-    price = 9.0                           # vs 6.0 domestic in R2
+    price = 9.0                           # vs 6.0 domestic in W2
   )
 )
 
@@ -328,8 +366,8 @@ WHYD <- make_weather("WHYD")
 `autoplot()` shows the profile structure at a glance -- the solar day/season
 shape. Custom season names (`WIN`, `SPR`, ...) are defined by the calendar, so
 pass it to resolve the timeslice layout. Note the **regional endowments**
-(`topia_profiles()` scales the profiles deterministically): `R1` is the
-sunniest region, `R2` the windiest -- one more reason for the regions to trade:
+(`topia_profiles()` scales the profiles deterministically): `W1` is the
+sunniest region, `W2` the windiest -- one more reason for the regions to trade:
 
 ```{r weather-plot, fig.height = 4.5}
 autoplot(WSOL, style = "line", calendar = cal)
@@ -438,8 +476,8 @@ ECOA <- newTechnology(
   fixom = list(
     fixom = 55
   ),
-  capacity = data.frame(                  # fleet clusters near the mines (R1)
-    region = c("R1", "R2", "R3", "R1", "R2", "R3"),
+  capacity = data.frame(                  # fleet clusters near the mines (W1)
+    region = c("W1", "W2", "C1", "W1", "W2", "C1"),
     year   = c(2020, 2020, 2020, 2050, 2050, 2050),
     stock  = c(   8,    3,    3,    0,    0,    0)
   ),
@@ -485,8 +523,8 @@ EGAS <- newTechnology(
   fixom = list(
     fixom = 25
   ),
-  capacity = data.frame(                  # gas plants sit on the gas (R2)
-    region = c("R1", "R2", "R3", "R1", "R2", "R3"),
+  capacity = data.frame(                  # gas plants sit on the gas (W2)
+    region = c("W1", "W2", "C1", "W1", "W2", "C1"),
     year   = c(2020, 2020, 2020, 2050, 2050, 2050),
     stock  = c(   1,    6,    1,    0,    0,    0)
   ),
@@ -535,7 +573,7 @@ ENUC <- newTechnology(
     fixom = 120
   ),
   capacity = data.frame(
-    region = c("R1", "R2", "R3", "R1", "R2", "R3"),
+    region = c("W1", "W2", "C1", "W1", "W2", "C1"),
     year   = c(2020, 2020, 2020, 2060, 2060, 2060),
     stock  = c(   2,    2,    2,    0,    0,    0)
   ),
@@ -582,7 +620,7 @@ ESOL <- newTechnology(
     fixom = 12
   ),
   capacity = data.frame(  # young but small fleet, out by 2040
-    region = c("R1", "R2", "R3", "R1", "R2", "R3"),
+    region = c("W1", "W2", "C1", "W1", "W2", "C1"),
     year   = c(2020, 2020, 2020, 2040, 2040, 2040),
     stock  = c(   1,    1,    1,    0,    0,    0)
   ),
@@ -611,14 +649,14 @@ EWIN <- update(ESOL,
 
 EHYD <- update(EWIN,
   name = "EHYD",
-  desc = "Hydro power (only in R3, no new sites)",
+  desc = "Hydro power (only in C1, no new sites)",
   input = list(comm = "HYD", unit = "PJ"),
   ceff = data.frame(comm = "HYD", cinp2use = 1),
   weather = list(weather = "WHYD", comm = "HYD", waf.fx = 1),
   invcost = list(invcost = convert("EUR/kW", "MEUR/GW", 3000)),
   fixom = list(fixom = 45),
-  capacity = data.frame(                  # the hydro endowment sits in R3
-    region = c("R3", "R3"),
+  capacity = data.frame(                  # the hydro endowment sits in C1
+    region = c("C1", "C1"),
     year   = c(2020, 2070),
     stock  = c(  12,    0)
   ),
@@ -630,10 +668,10 @@ draw(EHYD)
 ```
 
 Note how `EWIN` inherited solar's capacity path and window untouched, while
-`EHYD` overrides them: the hydro fleet exists only in `R3` (12 GW, operating
+`EHYD` overrides them: the hydro fleet exists only in `C1` (12 GW, operating
 into the 2070s) and its **investment window is closed** -- the model can run
 the legacy dams but never build new ones. And since `RES_HYD` flows only in
-`R3`, the other regions can tap this cheap resource **only over the
+`C1`, the other regions can tap this cheap resource **only over the
 transmission lines**.
 
 ## The biomass plant
@@ -740,47 +778,47 @@ efficiency (`teff` -- losses), and an endogenous capacity with investment cost,
 so the model may expand the line:
 
 ```{r trade, fig.height = 4.5}
-TBD_ELC_R1_R2 <- newTrade(
-  name = "TBD_ELC_R1_R2",
-  desc = "Bidirectional transmission line R1-R2",
+TBD_ELC_W1_W2 <- newTrade(
+  name = "TBD_ELC_W1_W2",
+  desc = "Bidirectional transmission line W1-W2",
   commodity = "ELC",
   routes = data.frame(
-    src = c("R1", "R2"),
-    dst = c("R2", "R1")
+    src = c("W1", "W2"),
+    dst = c("W2", "W1")
   ),
   trade = data.frame(
-    src = c("R1", "R2"),
-    dst = c("R2", "R1"),
+    src = c("W1", "W2"),
+    dst = c("W2", "W1"),
     teff = 0.97                           # 3% losses per transfer
   ),
   capacity = data.frame(
     stock = 1                             # 1 GW existing interconnector
   ),
   invcost = data.frame(
-    region = c("R1", "R2"),
+    region = c("W1", "W2"),
     invcost = 350                         # MEUR/GW (per line end)
   ),
   olife = list(olife = 50)
 )
 
-TBD_ELC_R2_R3 <- update(TBD_ELC_R1_R2,
-  name = "TBD_ELC_R2_R3",
-  desc = "Bidirectional transmission line R2-R3",
+TBD_ELC_W2_C1 <- update(TBD_ELC_W1_W2,
+  name = "TBD_ELC_W2_C1",
+  desc = "Bidirectional transmission line W2-C1",
   routes = data.frame(
-    src = c("R2", "R3"),
-    dst = c("R3", "R2")
+    src = c("W2", "C1"),
+    dst = c("C1", "W2")
   ),
   trade = data.frame(
-    src = c("R2", "R3"),
-    dst = c("R3", "R2"),
+    src = c("W2", "C1"),
+    dst = c("C1", "W2"),
     teff = 0.97
   ),
   invcost = data.frame(
-    region = c("R2", "R3"),
+    region = c("W2", "C1"),
     invcost = 350
   )
 )
-draw(TBD_ELC_R1_R2)
+draw(TBD_ELC_W1_W2)
 ```
 
 `draw()` shows one link's schematic; `autoplot()` (or `plot_trade_map()`) puts the
@@ -788,7 +826,8 @@ whole network **on the map** — pass the layout to draw over. Bidirectional lin
 render as double-headed arrows:
 
 ```{r trade-map, eval = have_sf, fig.height = 4}
-plot_trade_map(list(TBD_ELC_R1_R2, TBD_ELC_R2_R3), map = topia$map$honeycomb)
+plot_trade_map(list(TBD_ELC_W1_W2, TBD_ELC_W2_C1),
+               map = topia$geoscales$honeycomb)
 ```
 
 # Scenario levers
@@ -882,7 +921,7 @@ repo <- newRepository("topia",
   WSOL, WWIN, WHYD,                                     # weather
   ECOA, EGAS, ENUC, ESOL, EWIN, EHYD, EBIO,             # technologies
   STG_ELC,                                              # storage
-  TBD_ELC_R1_R2, TBD_ELC_R2_R3,                         # interregional trade
+  TBD_ELC_W1_W2, TBD_ELC_W2_C1,                         # interregional trade
   DEM_ELC)                                              # demand
 length(repo); names(repo)
 summary(repo)

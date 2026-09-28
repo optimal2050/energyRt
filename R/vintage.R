@@ -41,6 +41,8 @@
 # the SUM over variants, a share tie fixes their RATIO -- and a name collision
 # between them would be silently overwritten at insertion.
 .VARIANT_SHARE_PREFIX <- "VS"
+# activity-share ties, distinct from the capacity ties above
+.VARIANT_ASHARE_PREFIX <- "VA"
 
 # Columns of the @vintage slot, in prototype order.
 .vintage_cols <- c("vintage", "region", "cluster", "start", "end", "olife")

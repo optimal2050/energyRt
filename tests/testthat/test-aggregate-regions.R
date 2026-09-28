@@ -183,3 +183,162 @@ test_that("the model's own geoscale is used when none is passed", {
 # geoframe-forked aggregation over pTechCap / pSupAva / pDemand and the
 # absolute trade bound -- which is `pTradeIr` (colName `ava`), not
 # `pTradeAva`, the name the tag used and no parameter carries.
+
+# -- merging two corridors ---------------------------------------------------
+
+# Until now every test here left at most ONE corridor standing, so the whole
+# merge path -- binding the slots, weighting the means, recombining the
+# region-free slots -- ran in no test at all. These two corridors both cross
+# G1|G2, so they merge, and they are deliberately unequal so a weighted mean
+# differs from a plain one.
+ag_corridor <- function(nm, s, d, ava, teff, cap, inv, olife = 50L,
+                        react = NA_real_, both = TRUE) {
+  rt <- if (both) data.frame(src = c(s, d), dst = c(d, s)) else
+    data.frame(src = s, dst = d)
+  trd <- rt
+  trd$ava.up <- ava
+  trd$teff <- teff
+  if (!is.na(react)) trd$reactance <- react
+  newTrade(name = nm, commodity = "ELC", routes = rt, trade = trd,
+           capacity = data.frame(cap.up = cap),
+           vintage = data.frame(olife = olife),
+           invcost = data.frame(region = c(s, d), invcost = inv))
+}
+
+ag_two_corridors <- function(...) {
+  cal <- newCalendar(timetable = make_timetable(
+    struct = list(ANNUAL = "ANNUAL", SEASON = c("WIN", "SUM"))),
+    name = "ag_cal")
+  mod <- newModel(
+    "AGTWO", region = c("R1", "R2", "R3", "R4"), calendar = cal,
+    horizon = newHorizon(2025), discount = 0.05,
+    data = newRepository("agtwo", c(
+      list(newCommodity("ELC", timeframe = "SEASON")), list(...))))
+  setGeoscale(mod, ag_geoscale())
+}
+
+ag_merged <- function(...) {
+  a <- suppressMessages(aggregate_model_regions(
+    ag_two_corridors(...), level = "grp", verbose = FALSE))
+  tr <- getObject(a, class = "trade")
+  expect_length(tr, 1L)
+  tr[[1]]
+}
+
+# @covers pTradeEac
+test_that("merging corridors adds the extensive and weights the intensive", {
+  skip_if_no_geoscales()
+  o <- ag_merged(
+    ag_corridor("TRD_ELC_R1__R3", "R1", "R3", ava = 100, teff = 0.99,
+                cap = 100, inv = 1000),
+    ag_corridor("TRD_ELC_R2__R4", "R2", "R4", ava = 20, teff = 0.90,
+                cap = 50, inv = 2000))
+
+  # flow capacity adds
+  expect_equal(unique(o@trade$ava.up), 120)
+  # efficiency is the ava-weighted mean, and NOT the plain mean, or this
+  # assertion could not fail
+  expect_equal(unique(o@trade$teff), (0.99 * 100 + 0.90 * 20) / 120)
+  expect_false(isTRUE(all.equal(unique(o@trade$teff), 0.945)))
+
+  # `@capacity` has no region and no src/dst, so neither recast path applies
+  # to it; it used to keep only the FIRST corridor's bounds
+  expect_equal(o@capacity$cap.up, 150)
+
+  # `@vintage` likewise -- it used to come back empty, losing the lifetime
+  expect_equal(nrow(o@vintage), 1L)
+  expect_equal(o@vintage$olife, 50L)
+
+  # a trade cost is borne per endpoint, so each corridor's rate is weighted by
+  # that corridor's size; unweighted this was 1500
+  expect_equal(unique(round(o@invcost$invcost, 4)),
+               round((1000 * 100 + 2000 * 50) / 150, 4))
+  expect_false(isTRUE(all.equal(unique(o@invcost$invcost), 1500)))
+})
+
+test_that("parallel impedances combine, they do not average", {
+  skip_if_no_geoscales()
+  o <- ag_merged(
+    ag_corridor("TRD_ELC_R1__R3", "R1", "R3", ava = 100, teff = 1, cap = 100,
+                inv = 0, react = 0.10),
+    ag_corridor("TRD_ELC_R2__R4", "R2", "R4", ava = 100, teff = 1, cap = 100,
+                inv = 0, react = 0.40))
+  # 1/x_eq = sum(1/x_i) -- the rule .kvl_lines() states in its own refusal
+  expect_equal(unique(o@trade$reactance), 1 / (1 / 0.10 + 1 / 0.40))
+  expect_false(isTRUE(all.equal(unique(o@trade$reactance), 0.25)))
+})
+
+test_that("a one-way corridor does not become an interconnector", {
+  skip_if_no_geoscales()
+  o <- ag_merged(ag_corridor("TRD_ELC_R1__R3", "R1", "R3", ava = 100,
+                             teff = 1, cap = 100, inv = 0, both = FALSE))
+  expect_equal(nrow(o@routes), 1L)
+  expect_equal(o@routes$src, "G1")
+  expect_equal(o@routes$dst, "G2")
+})
+
+test_that("corridors whose tranche shares differ do not merge", {
+  skip_if_no_geoscales()
+  # Same labels, different share vectors. The tranche efficiencies are derived
+  # FROM the shares, so merging these averages the teffs while only the first
+  # corridor's shares survive -- the ratings and the losses stop describing
+  # the same line. The key must see the shares, not only the labels.
+  tranched <- function(nm, s, d, shares) {
+    rt <- data.frame(src = c(s, d), dst = c(d, s))
+    newTrade(
+      name = nm, commodity = "ELC", routes = rt,
+      cluster = data.frame(cluster = c("T1", "T2"),
+                           cap.share.fx = shares, order = 1:2),
+      trade = data.frame(src = rep(c(s, d), each = 2),
+                         dst = rep(c(d, s), each = 2),
+                         cluster = rep(c("T1", "T2"), 2),
+                         ava.up = 50, teff = c(0.99, 0.95, 0.99, 0.95)),
+      capacity = data.frame(cap.up = 100))
+  }
+  o <- suppressMessages(aggregate_model_regions(
+    ag_two_corridors(tranched("TRD_ELC_R1__R3", "R1", "R3", c(0.5, 0.5)),
+                     tranched("TRD_ELC_R2__R4", "R2", "R4", c(0.8, 0.2))),
+    level = "grp", verbose = FALSE))
+  expect_length(getObject(o, class = "trade"), 2L)
+
+  # ... and with equal shares they do, because then the merge is exact
+  o2 <- suppressMessages(aggregate_model_regions(
+    ag_two_corridors(tranched("TRD_ELC_R1__R3", "R1", "R3", c(0.5, 0.5)),
+                     tranched("TRD_ELC_R2__R4", "R2", "R4", c(0.5, 0.5))),
+    level = "grp", verbose = FALSE))
+  expect_length(getObject(o2, class = "trade"), 1L)
+})
+
+test_that("corridors that would take one name are suffixed, not overwritten", {
+  skip_if_no_geoscales()
+  # Different tranche structures -> different keys -> two merged objects, but
+  # the name carries only the prefix and the coarse pair, so both want
+  # "TRD_ELC_G1__G2". Silently replacing one corridor with another is the
+  # worst failure this code could have; refusing would make a legal model
+  # un-aggregatable. Both must survive, under distinct names.
+  tranched <- function(nm, s, d, shares) {
+    rt <- data.frame(src = c(s, d), dst = c(d, s))
+    newTrade(
+      name = nm, commodity = "ELC", routes = rt,
+      cluster = data.frame(cluster = c("T1", "T2"),
+                           cap.share.fx = shares, order = 1:2),
+      trade = data.frame(src = rep(c(s, d), each = 2),
+                         dst = rep(c(d, s), each = 2),
+                         cluster = rep(c("T1", "T2"), 2),
+                         ava.up = 50, teff = c(0.99, 0.95, 0.99, 0.95)),
+      capacity = data.frame(cap.up = 100))
+  }
+  a <- suppressMessages(aggregate_model_regions(
+    ag_two_corridors(tranched("TRD_ELC_R1__R3", "R1", "R3", c(0.5, 0.5)),
+                     tranched("TRD_ELC_R2__R4", "R2", "R4", c(0.8, 0.2))),
+    level = "grp", verbose = FALSE))
+  tr <- getObject(a, class = "trade")
+  expect_length(tr, 2L)
+  nms <- vapply(tr, function(o) o@name, character(1))
+  expect_equal(anyDuplicated(nms), 0L)
+  expect_true(all(startsWith(nms, "TRD_ELC_G1__G2")))
+  # every surviving corridor keeps its OWN shares, not the first one's
+  expect_setequal(
+    lapply(tr, function(o) sort(o@cluster$cap.share.fx)),
+    list(c(0.5, 0.5), c(0.2, 0.8)))
+})

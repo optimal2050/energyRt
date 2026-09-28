@@ -168,7 +168,7 @@
   lo <- pmax(ifelse(is.na(lo), 0, lo), 0)
   up <- pmin(ifelse(is.na(up), 1, up), 1)
   if (any(lo > up + 1e-9))
-    stop("share.lo above share.up for: ",
+    stop("grp.share.lo above grp.share.up for: ",
          paste(nm[lo > up + 1e-9], collapse = ", "), call. = FALSE)
   if (sum(lo) > 1 + 1e-9 || sum(up) < 1 - 1e-9)
     stop("infeasible share bounds: sum(lo) = ", round(sum(lo), 4),
@@ -873,9 +873,9 @@
         for (grp in inp_groups) {
           grp_comms <- ctx$in_group_comms[[grp]]
           already_fixed <- character(0)
-          if ("share.fx" %in% names(ce0)) {
+          if ("grp.share.fx" %in% names(ce0)) {
             for (cm in grp_comms)
-              if (any(ce0$comm == cm & !is.na(ce0$share.fx)))
+              if (any(ce0$comm == cm & !is.na(ce0$grp.share.fx)))
                 already_fixed <- c(already_fixed, cm)
           }
           vary_comms <- setdiff(grp_comms, already_fixed)

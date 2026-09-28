@@ -14,7 +14,7 @@ skip_if_no_pandoc <- function() {
     output = data.frame(comm = "ELC", unit = "GWh"),
     geff = data.frame(group = "FUEL", ginp2use = 0.42),
     ceff = data.frame(comm = c("COA", "BIO"),
-                      share.lo = c(0.2, 0.1), share.up = c(0.9, 0.8)),
+                      grp.share.lo = c(0.2, 0.1), grp.share.up = c(0.9, 0.8)),
     vintage = data.frame(vintage = c("2025", "2035"),
                          start = c(2025L, 2035L), end = c(2034L, NA),
                          olife = c(25L, 30L)),
