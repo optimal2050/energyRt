@@ -17,9 +17,9 @@ levcost(object, comm, name, ...)
 
 \S4method{levcost}{trade}(object, comm, name, ...)
 
-\S4method{levcost}{repository}(object, comm, name, by_variant = FALSE, ...)
+\S4method{levcost}{repository}(object, comm, name, by_variant = FALSE, by_region = FALSE, ...)
 
-\S4method{levcost}{model}(object, comm, name, by_variant = FALSE, ...)
+\S4method{levcost}{model}(object, comm, name, by_variant = FALSE, by_region = FALSE, ...)
 
 \S4method{levcost}{scenario}(object, comm, name, ...)
 
@@ -121,6 +121,15 @@ tables attached to \code{scenario@misc}.}
 (default) returns the result object; \code{TRUE} (= \code{"levcost"}), \code{"npv"} or
 \code{"components"} returns that per-variant table instead. Passing an existing
 result — \code{levcost(lc, by_variant = "npv")} — extracts without re-solving.}
+
+\item{by_region}{\code{FALSE} (default) prices a process once, in one of the
+regions it spans. \code{TRUE} prices it once PER region and returns a
+\code{levcost_list} named by region — the ladder a technology whose costs or
+efficiency vary by region actually has. levcost() builds a single-region
+mini-model, so without this a multi-region process reports only its first
+region's cost. On a container the entries are named \verb{<process>@<region>}.
+A \code{trade} is unaffected: it spans two regions by construction and is
+priced across both at once.}
 }
 \value{
 For \code{technology} input: a list of class \code{"levcost"} with fields:

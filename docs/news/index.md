@@ -2,10 +2,344 @@
 
 ## energyRt (development version)
 
+### Timeslice conversions moved to timescales
+
+- The timeslice label conversions are gone from energyRt.
+  [`tsl2hour()`](https://optimal2050.github.io/timescales/r/reference/timeslice_conversions.html),
+  [`tsl2yday()`](https://optimal2050.github.io/timescales/r/reference/timeslice_conversions.html),
+  [`tsl2month()`](https://optimal2050.github.io/timescales/r/reference/timeslice_conversions.html),
+  [`tsl2dtm()`](https://optimal2050.github.io/timescales/r/reference/timeslice_datetime.html),
+  [`dtm2tsl()`](https://optimal2050.github.io/timescales/r/reference/timeslice_datetime.html),
+  [`hour2HOUR()`](https://optimal2050.github.io/timescales/r/reference/timeslice_conversions.html)
+  and
+  [`yday2YDAY()`](https://optimal2050.github.io/timescales/r/reference/timeslice_conversions.html)
+  now live in timescales, which reads the timeframe from the CALENDAR
+  instead of parsing the label text – so they take the calendar:
+  `timescales::tsl2hour(tsl, "d365_h24")`. timescales moves from
+  Suggests to Imports. A hard break, no aliases.
+
+- `tsl2year()`, `tsl_guess_format()` and the `tsl_formats` dataset are
+  removed and not replaced. Guessing a layout from the label text is
+  what the calendar replaces, and no timescales calendar carries a
+  `YEAR` timeframe – the year belongs in a column, not in the label.
+  They are kept for reference in
+  `drafts/deprecated-timeslice-conversions-2026-09-26.R`.
+
+- **`calendar` is now required** wherever a timeslice layout is needed.
+  `plot_timeslices()`,
+  [`plot_heatmap()`](https://energyRt.org/reference/plot_heatmap.md) and
+  [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+  on a timeslice-indexed object take a `calendar` object or the name of
+  one (`"d365_h24"`); without it the timeslices are drawn in order
+  rather than laid out by timeframe.
+  [`storage_duration()`](https://energyRt.org/reference/storage_duration.md)
+  takes the calendar from the scenario, so it needs nothing new.
+
+- This fixes wrong answers rather than only moving code. The old guesser
+  read `"s1_h01"` as hour 1 and silently discarded the `"s1"`, and read
+  `h168` hour-of-week labels (`"h000"`..`"h167"`) as hours of the day.
+  It also could not read `m12a` (`"JAN"`..`"DEC"`), `wd7`
+  (`"MON"`..`"SUN"`), `q4` or `s4` labels at all, returning `NULL`. All
+  of those work now.
+
+- `plot_weather(datetime = TRUE)` produces a real datetime axis where it
+  previously fell back to the categorical one: dating a timeslice needs
+  a year, and the year is now taken from the data’s `year` column.
+
+- Every energyRt calendar converts, including the sampled and subset
+  ones (`d365_h24_1dps`, `m12_h24_subset_4months`, …) that have no entry
+  in timescales’ catalog: the calendar is rebuilt from its own
+  `@timetable`. energyRt’s timeframe names are matched by what their
+  labels ARE, so a timeframe named `DAY` lands on timescales’ `YDAY`.
+
+- **Bug fix:** a trade `invcost` with no `region` was charged once per
+  region OF THE MODEL, not once per endpoint of the route – six charges
+  on a six-region model for a two-ended corridor, growing with the model
+  rather than the route. `fixom` was always correct. A trade’s
+  investment window carries no region, so the rate reached the annuity
+  step with nothing to carry it and the dense `pTradeEac` materialised a
+  row per region; it now expands over the process’s own regions,
+  i.e. the route endpoints.
+
+- An unregioned trade cost now says so more firmly, recommending that
+  the regions be named, while noting what the unregioned form is good
+  for: the rate follows whichever endpoints survive, so a sampled
+  sub-model bears its own share.
+
+- [`subset_model_regions()`](https://energyRt.org/reference/subset_model_regions.md)
+  warns when sampling splits a geoscale cell that a trade cost is
+  declared at. Such a cost is charged once at the cell whatever remains
+  beneath it, so the sub-model keeps the whole corridor’s cost instead
+  of its share and its objective is not comparable with the full
+  model’s.
+
+- **Bug fix:** [`levcost()`](https://energyRt.org/reference/levcost.md)
+  on a repository or model priced every process as if it lived in the
+  container’s *first* region. A technology anywhere else had its
+  `invcost`, `fixom` and `ceff` rows subset away and reported fuel cost
+  only – around 25x too cheap, with no warning.
+
+- `levcost(by_region = TRUE)` prices a process once per region it spans
+  and returns a `levcost_list` named by region, rather than once in one
+  of them. On a container the entries are named `<process>@<region>`.
+  `trade` is unaffected: it spans two regions by construction and is
+  priced across both.
+
+- **Breaking:** the three unrelated things called `share` are now named
+  for what they are a share OF. `@cluster$share` is `cap.share.fx` (the
+  capacity ratio, an equality), `@ceff$share.lo/up/fx` is
+  `grp.share.lo/up/fx` (the input-group mix for co-firing), and the new
+  `act.share.lo/up/fx` bounds a cluster’s share of its family’s
+  throughput.
+  [`lossTranches()`](https://energyRt.org/reference/lossTranches.md)
+  emits the new name. The timeslice share (`calendar@timetable$share`)
+  is untouched.
+
+- `@cluster` is declared the same way on every process class: `cluster`,
+  `desc`, `order` always; `region` where the class has regional scope;
+  `cap.share.fx` where it has a capacity to tie; `act.share.*`
+  everywhere. `technology` and `storage` gain `cap.share.fx`, `import`
+  and `export` gain `region`. `supply`, `import` and `export` have no
+  `cap.share.fx`: they have no capacity variable, so the column is
+  absent rather than accepted and ignored – declaring one is now an
+  error that points at `act.share`.
+
+- `act.share.lo/up/fx` bounds a cluster’s share of its family’s
+  activity. Unlike `afs`, which bounds activity against the cluster’s
+  OWN capacity and can be satisfied by building less, a share of the
+  family can only be met by keeping capacity. This is what stops a
+  clustered family collapsing to its cheapest member once regional
+  borders are aggregated away. No new equation: it rides the
+  [`newConstraint()`](https://energyRt.org/reference/newConstraint.md)
+  path, and binds on GLPK and multimod alike.
+
+- Cluster shares are guarded rather than silently skipped. A cluster
+  missing a variant in one vintage used to leave that vintage untied
+  with no warning; stock out of proportion used to give a bare
+  infeasibility. Both now error and name the cluster.
+
+- **Fixed:**
+  [`aggregate_model_regions()`](https://energyRt.org/reference/aggregate_model_regions.md)
+  lost data when it merged trade corridors. `@capacity` was not
+  recombined, so only the first corridor’s bounds survived; `@vintage`
+  came back empty, losing `olife` on every aggregated corridor, merged
+  or not; costs took an unweighted mean; the merge key saw tranche
+  labels but not their shares, so corridors whose shares differed merged
+  and silently adopted the first one’s; `reactance` was averaged instead
+  of combined as `1/x_eq = sum(1/x_i)`; a one-way corridor became
+  bidirectional; and two corridors minting the same name overwrote one
+  another. No test had ever merged two corridors.
+
+- `aggregate_model_regions(clusters = list(TRD = k))` partitions a
+  family of corridors into `k` merged objects instead of collapsing
+  every corridor between a pair of coarse regions into one. Merging
+  unlike corridors replaces a fill-the-best-first delivery curve with
+  its chord – on a 100-unit link at 0.99 beside a 20-unit link at 0.90
+  that costs 1.5% of the energy delivered below saturation. `k` runs
+  from one part per coarse pair (plain aggregation) to one per corridor;
+  parts become separate objects, because a trade’s `@cluster` is a loss
+  tranche. `k` above the floor is refused when a corridor carries a
+  reactance: parallel AC circuits split flow by impedance, not by
+  optimisation.
+
+- [`get_process_groups()`](https://energyRt.org/reference/get_process_groups.md)
+  reports corridor families, with `n` counting corridors rather than
+  regions.
+  [`model_clusters()`](https://energyRt.org/reference/model_clusters.md)
+  returns their crosswalk and no geoscale – a corridor has no territory
+  to colour.
+
+- `aggregate_model_regions(clusters = )` keeps the regional spread as
+  `technology@cluster` variants instead of averaging it away. Settings
+  are per technology family –
+  `clusters = list(ECOA = list(k = 3), EWIN = list(k = 8))` – because
+  one `k` for the model is meaningless: a coal fleet groups on cost and
+  efficiency, a wind fleet on resource quality and profile shape. A
+  family not named is aggregated plainly, so `clusters = NULL` is the
+  old behaviour exactly. A bare number is accepted only when the model
+  has one family; with more it is an error naming them. `k` runs from
+  one cluster per coarse region (identical to plain aggregation) to one
+  per fine region (nothing averaged); `k = "auto"` picks the best
+  average silhouette and returns the sweep, but sweeping and looking is
+  the documented workflow. Clusters cannot straddle a coarse region: the
+  adjacency graph has no edge crossing one.
+
+- `aggregate_model_regions(as = "objects")` returns one technology per
+  (family x cluster), named with the cluster’s label (`ECOA_W1`),
+  instead of one object carrying clusters. Same LP; what differs is how
+  results are keyed.
+
+- [`process_cluster_sweep()`](https://energyRt.org/reference/process_cluster_sweep.md)
+  clusters one family over the admissible range of `k` and reports
+  dispersion, silhouette and the cluster sizes, over the same features
+  and contiguity graph the aggregation would use – so the table you read
+  is the grouping you would get. `clusterscales` ships no `best_k()`
+  deliberately, and neither does this.
+
+- [`model_clusters()`](https://energyRt.org/reference/model_clusters.md)
+  reports what a clustered aggregation did: the `k`, the
+  region-to-cluster crosswalk, the sweep, and a geoscale carrying a
+  `cluster` geoframe, so
+  `plot_geoscale(type = "map", geoframe = "cluster")` and
+  `type = "icicle"` show the grouping with no new plotting code.
+
+- [`get_process_groups()`](https://energyRt.org/reference/get_process_groups.md)
+  reports which processes may be merged into one clustered object,
+  grouped by structure – inputs, outputs, aux commodities and input
+  groups – so a coal plant and a gas plant are never merged. It accepts
+  a technology that already spans several regions, one object whose
+  slots carry a `region` column, and clusters it exactly as it does a
+  family of one-object-per-region technologies.
+
+- A technology that **already has clusters** keeps them when its regions
+  are coarsened: the two groupings compose, `GOOD` in `W1` becoming
+  `GOOD_W1`. Previously the incoming `cluster` column was dropped, so a
+  fleet with two site grades over four regions came back with four
+  averaged variants instead of eight – silently. Clustering features are
+  read per (cluster, region) for the same reason.
+
+- A cluster of one region is labelled with that region’s code, so the
+  1:1 end reads `ECOA_CLW1` rather than `ECOA_CLc03`; several regions
+  join with `_` while that stays a legal name. `@cluster$desc` carries
+  the membership either way.
+
+- A clustered aggregation resolves a **link** column (`weather`,
+  `transform`) to the cluster **medoid**’s value. These name another
+  object, so they can be neither summed nor averaged, and treating them
+  as keys gave one cluster a row per member. A medoid is a real member,
+  so the merged cluster gets a profile some region actually had.
+
+- `k` is checked against the geoframe before `clusterscales` sees it, so
+  an out-of-range `k` names the level and its bounds instead of
+  reporting “the units fall into 3 group(s)”.
+
+- **Fixed:**
+  [`aggregate_model_regions()`](https://energyRt.org/reference/aggregate_model_regions.md)
+  read only the model’s first repository. `add()` appends a repository
+  rather than growing one, so a model built up object by object kept its
+  later objects out of `@data[[1]]` – and those came back declared over
+  the FINE regions in a model whose regions were now coarse, silently.
+  It now reads every repository and returns one.
+
+- New article, `vignette("region-aggregation")`: five experiments on one
+  model, measuring when aggregating regions changes the answer and when
+  it does not. Two settings leave it untouched, three move it –
+  including one where the aggregated model comes out **cheaper** than
+  the model it came from, because pooling granted transmission that did
+  not exist. `clusterscales` and `multiscales` are Suggests;
+  `dev/region-aggregation-model.R` holds the shared model and
+  `dev/verify-region-aggregation.R` checks every number the article
+  prints.
+
+- **Breaking:** the `topia` dataset now carries `geoscales`, a named
+  list of four \[geoscales::Geoscale\] objects (`squares`, `honeycomb`,
+  `island`, `continent`) holding the region hierarchy *and* that
+  layout’s polygons. `topia$map`, `topia$geo`, `topia$modules$maps` and
+  the `topia_geoscale()` function are removed: the dataset used to store
+  the same polygons three times and the hierarchy twice. Replacements:
+
+  | was | now |
+  |----|----|
+  | `topia_geoscale()` | `topia$geoscales$honeycomb` |
+  | `topia_geoscale(layout = "island")` | `topia$geoscales$island` |
+  | `topia_geoscale(region = r)` | `geoscales::filter_geoscale(gs, "region", r)` |
+  | `topia$geo` | `geoscales::geoscale_leaftable(gs)` |
+  | `topia$map$honeycomb` | `geoscales::geoscale_geometry(gs, "region")` |
+
+  `geoscales` moves from Suggests to **Imports**: deserialising an S7
+  `Geoscale` loads the `geoscales` namespace, so it can no longer be
+  optional. `timescales` comes along as a transitive dependency of
+  `geoscales`.
+
+- [`plot_trade_map()`](https://energyRt.org/reference/plot_trade_map.md)
+  derives the `x`/`y` label anchors from the polygons when a plain `sf`
+  map does not carry them, so any `sf` works as a `map` argument.
+
+- `data-raw/topia_maps.R` and `data-raw/topia_data.R` are idempotent:
+  rebuilding the dataset no longer rotates the honeycomb rings or adds a
+  duplicate provenance tag to the weather `source` attribute.
+
+- TOPIA regions are renamed `W1`, `W2`, `C1`..`C6`, `E1`..`E3` (was
+  `R1`..`R11`), in west-to-east order. Each layout now assigns the codes
+  so that every zone is one contiguous block on the picture; the
+  hierarchy, the model kits (`R1`/`R3`/`R7`/`R11`) and the regional
+  endowments are unchanged. Trade objects follow the region names
+  (`TBD_ELC_R1_R2` is now `TBD_ELC_W1_W2`), and the TOPIA goldens are
+  rebaselined: all objectives are unchanged.
+
+- Milestone years can carry a display label.
+  [`newHorizon()`](https://energyRt.org/reference/newHorizon.md) accepts
+  a `label` column in `intervals`, and the new
+  [`year_label()`](https://energyRt.org/reference/year_label.md) returns
+  one label per milestone. The label is presentation only: the model key
+  for a period stays the integer `mid`, and nothing reaches the solver.
+
+- `calendar` gains `year_start` (`list(month = , day = )`, default
+  January 1) and `utc_offset_minutes`. A non-January anchor makes the
+  default milestone labels fiscal (`FY2025-26`), following the
+  `timescales` convention that the anchored year is the starting
+  Gregorian year. The anchor is carried and reported; it does not yet
+  drive timeslice-to-timestamp alignment. Calendars imported from
+  `timescales` keep both values instead of dropping them.
+
+- `getData(yearsAsFactors = TRUE)` returns `year` as an ordered factor
+  of labels, with levels in horizon order. It previously left an integer
+  `year` untouched.
+
+- [`audit_coefficients()`](https://energyRt.org/reference/audit_coefficients.md)
+  reports the coefficient range of a written model per equation family
+  (widest row, the variable at each end of it, counts per decade), from
+  the free-MPS form `glpsol` re-emits. `dev/coefficient-ranges.md` holds
+  the table for the test fixtures and TOPIA.
+
+- `eqTechAInp` / `eqTechAOut` are multiplied through by `pTechCap2act`
+  in all four backends, so no coefficient in them is a division.
+  Parameters keep their meaning; the LP is the same problem with those
+  rows scaled.
+
+- [`validate_scenario_parameters()`](https://energyRt.org/reference/validate_scenario_parameters.md)
+  adds the advisory `coefficient_scale` check: a technology, trade or
+  storage whose `cap2act x finest timeslice share` is outside
+  `[1e-4, 1e4]` is named with the `cap2act` that would put the product
+  near 1. On an hourly calendar with `cap2act = 1` the capacity
+  coefficient in the availability rows is 1.1e-4 against 1 on the
+  activity.
+
 ### License
 
 - energyRt is relicensed from AGPL-3 to **Apache-2.0**. Releases up to
   and including v0.89 remain available under AGPL-3.
+
+- A `weather` object can be declared at a COARSER region than the
+  processes that use it — one profile per `adm1` feeding all of its
+  `adm2` children — and is stored once instead of copied per child. A
+  process reads the series at its own region when the object serves it,
+  otherwise at the nearest ancestor that does (`mWeatherRegionAt`); a
+  flat model resolves through identity rows to exactly the previous
+  lookup. Verified identical on GLPK, GAMS, JuMP and Pyomo. A link that
+  resolves to nothing is now an error: the factor is multiplicative and
+  `pWeather` defaults to 0, so it used to shut the process down
+  silently.
+  [`subset_model_regions()`](https://energyRt.org/reference/subset_model_regions.md)
+  keeps a parent profile its children still need,
+  [`aggregate_model_regions()`](https://energyRt.org/reference/aggregate_model_regions.md)
+  passes one through when it already sits at the target level (and
+  refuses between two non-atom levels), and
+  [`levcost()`](https://energyRt.org/reference/levcost.md) follows it
+  down to the technology — it previously lost the capacity factor and
+  reported a 33% lower levelised cost with no warning.
+
+- `interpolate_model(fold = TRUE)` now folds `year` as well as `region`
+  and `timeslice`. A weather series repeated across milestone years is
+  usually the largest parameter in the model, and the previous pair
+  never touched it: on a 4-region `d365_h24` model over 7 milestones
+  `pWeather` drops from 245,259 to 35,037 rows (-85.7%) and all value
+  parameters from 443,545 to 71,215 (-83.9%), with a bit-identical
+  objective on GLPK and Pyomo/HiGHS. A dimension folds only where the
+  value is uniform across the whole set, so a model whose weather
+  genuinely varies by year is unchanged. Pass an explicit character
+  vector to choose the dimensions yourself; the `FALSE` default is
+  unaffected.
 
 - On-disk stores write ~1M-row row groups instead of one per 32k-row
   record batch. Stored data.frames are smaller (1.3x on model-shaped
@@ -37,54 +371,76 @@
 
 ### Breaking changes
 
+- `calendar` gains two slots (`year_start`, `utc_offset_minutes`) and
+  `horizon@intervals` a `label` column. Objects saved earlier still load
+  – every read is guarded and falls back to the January-1 default – but
+  a calendar written now cannot be read by an older energyRt.
+
+- The teaching model is renamed **UTOPIA -\> TOPIA** (Latin *topia*,
+  from Greek *topos*, “place”): the dataset `utopia` is now `topia`,
+  `utopia_geoscale()`/`utopia_profile()`/`utopia_profiles()` are
+  `topia_*`, and the calendar `utopia_seasons` is `topia_seasons`. There
+  are no aliases. Article URLs `articles/utopia-build.html` and
+  `utopia-use.html` redirect.
+
+- `calendars` ships GENERIC calendars only. `season_dn`,
+  `topia_seasons`, `unit_s4` and `unit_s4h4` are no longer in it: a
+  model’s own calendars now travel with the model, in
+  `topia$modules$calendars` and `topia$modules$unit$calendars`. Pass
+  those as objects – the `calendar =` name lookup resolves against the
+  shipped list only.
+
+- New `calendars$s4_hp3` (four seasons x `DAY`/`NIGHT`/`PEAK`, 12
+  timeslices), the catalog’s regular twin of the retired
+  `season_dn`/`topia_seasons`. `d365` and `d365_h24` are now imported
+  from the timescales catalog rather than rebuilt locally; labels,
+  shares and sums are unchanged.
+
 - The timeslice-decomposition helpers are no longer exported:
-  [`tsl2dtm()`](https://energyRt.org/reference/timeslices.md),
-  [`tsl2year()`](https://energyRt.org/reference/tsl2dtm.md),
-  [`tsl2yday()`](https://energyRt.org/reference/tsl2dtm.md),
-  [`tsl2hour()`](https://energyRt.org/reference/tsl2dtm.md),
-  [`tsl2month()`](https://energyRt.org/reference/tsl2dtm.md) and
-  [`tsl_guess_format()`](https://energyRt.org/reference/tsl_guess_format.md).
-  The time dimension is `timescales`’ domain; these stay as internals
-  only because the plotting and storage-duration code still needs them,
-  and move out once timescales provides equivalents.
+  [`tsl2dtm()`](https://optimal2050.github.io/timescales/r/reference/timeslice_datetime.html),
+  `tsl2year()`,
+  [`tsl2yday()`](https://optimal2050.github.io/timescales/r/reference/timeslice_conversions.html),
+  [`tsl2hour()`](https://optimal2050.github.io/timescales/r/reference/timeslice_conversions.html),
+  [`tsl2month()`](https://optimal2050.github.io/timescales/r/reference/timeslice_conversions.html)
+  and `tsl_guess_format()`. The time dimension is `timescales`’ domain;
+  these stay as internals only because the plotting and storage-duration
+  code still needs them, and move out once timescales provides
+  equivalents.
 
 - The deprecation layer is removed, with its `?energyRt-deprecated` help
   page. These names warned through the 0.8x series and are now gone:
-  [`solve_mod()`](https://energyRt.org/reference/energyRt-deprecated.html)/[`solve_scen()`](https://energyRt.org/reference/energyRt-deprecated.html)
-  (use
+  `solve_mod()`/`solve_scen()` (use
   [`solve_model()`](https://energyRt.org/reference/solve_model.md)/[`solve_scenario()`](https://energyRt.org/reference/solve_model.md)),
-  [`register()`](https://energyRt.org/reference/energyRt-deprecated.html)
+  `register()`
   ([`add_to_registry()`](https://energyRt.org/reference/registry.md) +
   [`save_registry()`](https://energyRt.org/reference/registry.md)),
-  [`get_registry()`](https://energyRt.org/reference/energyRt-deprecated.html)
+  `get_registry()`
   ([`load_registry()`](https://energyRt.org/reference/registry.md)),
-  [`get_entry()`](https://energyRt.org/reference/energyRt-deprecated.html)/[`find_registry()`](https://energyRt.org/reference/energyRt-deprecated.html)
+  `get_entry()`/`find_registry()`
   ([`find_in_registry()`](https://energyRt.org/reference/registry.md)),
-  [`get_entry_object()`](https://energyRt.org/reference/energyRt-deprecated.html)
+  `get_entry_object()`
   ([`getScenario()`](https://energyRt.org/reference/accessors.md)),
-  [`registry_exists()`](https://energyRt.org/reference/energyRt-deprecated.html)/[`registry.exists()`](https://energyRt.org/reference/energyRt-deprecated.html)
+  `registry_exists()`/`registry.exists()`
   (`file.exists(get_registry_file())`),
-  [`set_default_registry()`](https://energyRt.org/reference/energyRt-deprecated.html)/[`use_registry()`](https://energyRt.org/reference/energyRt-deprecated.html)
+  `set_default_registry()`/`use_registry()`
   ([`set_registry_file()`](https://energyRt.org/reference/registry_file.md)),
-  [`which_registry()`](https://energyRt.org/reference/energyRt-deprecated.html)
+  `which_registry()`
   ([`get_registry_file()`](https://energyRt.org/reference/registry_file.md)),
-  [`tech_designer()`](https://energyRt.org/reference/energyRt-deprecated.html)/[`tech_from_spec()`](https://energyRt.org/reference/energyRt-deprecated.html)/[`tech_to_spec()`](https://energyRt.org/reference/energyRt-deprecated.html)/[`tech_spec_code()`](https://energyRt.org/reference/energyRt-deprecated.html)/[`tech_spec_issues()`](https://energyRt.org/reference/energyRt-deprecated.html)
-  (the `process_*()` equivalents),
-  [`read_techspec()`](https://energyRt.org/reference/energyRt-deprecated.html)/[`read_procspec()`](https://energyRt.org/reference/energyRt-deprecated.html)
+  `tech_designer()`/`tech_from_spec()`/`tech_to_spec()`/`tech_spec_code()`/`tech_spec_issues()`
+  (the `process_*()` equivalents), `read_techspec()`/`read_procspec()`
   ([`read_process_spec()`](https://energyRt.org/reference/read_process_spec.md)),
-  [`write.sc()`](https://energyRt.org/reference/energyRt-deprecated.html)
+  `write.sc()`
   ([`write_sc()`](https://energyRt.org/reference/write.md)),
-  [`make_scenario_dirname()`](https://energyRt.org/reference/energyRt-deprecated.html)
-  (`set_path_builder(scenario_dir = )`), `levcost_by_variant(x, what)`
-  (`levcost(x, by_variant = what)`),
+  `make_scenario_dirname()` (`set_path_builder(scenario_dir = )`),
+  `levcost_by_variant(x, what)` (`levcost(x, by_variant = what)`),
   [`get_data()`](https://energyRt.org/reference/getData.md)
   ([`getData()`](https://energyRt.org/reference/getData.md)) and
-  [`get_units()`](https://energyRt.org/reference/energyRt-deprecated.html)
+  `get_units()`
   ([`getUnits()`](https://energyRt.org/reference/getUnits.md)).
 
-- The four standalone UTOPIA datasets are removed: `utopia_weather`,
-  `utopia_demand`, `utopia_stock` and `utopia_modules` are
-  `utopia$weather`, `$demand`, `$stock` and `$modules`.
+- The four standalone TOPIA datasets are removed: `topia_weather`,
+  `topia_demand`, `topia_stock` and `topia_modules` are `topia$weather`,
+  `$demand`, `$stock` and `$modules`.
 
 - The mosox back-end experiment is gone; it was never functional and now
   lives in `drafts/`.
@@ -186,14 +542,14 @@
   `en_gray`; custom report templates written against the old names need
   updating.
 
-- Store folders are named by the object, not its hash
-  (`models/UTOPIA/`), and updated in place. Old hash-named folders keep
-  loading; `rehash = FALSE` keeps a recorded hash through a change you
-  declare insignificant.
+- Store folders are named by the object, not its hash (`models/TOPIA/`),
+  and updated in place. Old hash-named folders keep loading;
+  `rehash = FALSE` keeps a recorded hash through a change you declare
+  insignificant.
 
 - Object names are validated at construction — letters, digits and
   underscore, starting with a letter. Scenario folders join their parts
-  with dashes (`BASE-UTOPIA-s4_h24`).
+  with dashes (`BASE-TOPIA-s4_h24`).
 
 - `problem.RData` is retired; `scen.RData` is the base problem’s one
   home. Legacy files are read and folded in by
@@ -228,9 +584,9 @@
   row naming an input group no commodity belongs to. Both used to be
   dropped silently.
 
-- The UTOPIA world reuses the shared calendars: `utopia_annual`,
-  `utopia_s4h24` and `utopia_m12h24` are retired for `annual`, `s4_h24`
-  and `m12_h24`; `utopia_seasons` stays, relabelled `AUT` → `FAL`.
+- The TOPIA world reuses the shared calendars: `topia_annual`,
+  `topia_s4h24` and `topia_m12h24` are retired for `annual`, `s4_h24`
+  and `m12_h24`; `topia_seasons` stays, relabelled `AUT` → `FAL`.
   Objectives shift slightly.
 
 - [`report_tbl()`](https://energyRt.org/reference/report_helpers.md)
@@ -241,6 +597,36 @@
   name); existing scenario folders keep their names.
 
 ### New features
+
+- [`verify_solution()`](https://energyRt.org/reference/verify_solution.md)
+  gains `checks = "default"` / `"all"`, a `verbose =` progress report,
+  and `print(detail = c("full", "issues"))`. New checks: `positivity`
+  (no negative value in a variable declared positive), `inputs_present`
+  (every declared object reaches the sets and the parameters), `units`
+  (unresolved-unit report, never fails), and the opt-in `inputs_values`
+  / `inputs_bounds`, which re-derive each object’s declared data
+  independently and compare it against `modInp` and the solution.
+
+- Further opt-in checks: `storage_dynamics` (`eqStorageLevel`, including
+  the `fullYear` cycle closure), `capacity_accumulation` (`eqTechCap`,
+  the arithmetic the `periodLen` defect lived in), `eac` and
+  `flow_chain` (input to output through the efficiency chain, grouped
+  inputs included).
+
+- The `units` report summarises coverage per class (`$coverage`), so it
+  says which classes are missing unit declarations rather than only how
+  many parameters are unresolved.
+
+- `$divergence` gains `max_scaled`, the divergence relative to the
+  series scale. `max_rel` degenerates to 1 wherever a value legitimately
+  reaches zero – an emptying storage level – so `max_scaled` is the
+  figure that says whether a check is drifting. `storage_dynamics` is
+  toleranced against that series scale for the same reason.
+
+- [`verify_checks()`](https://energyRt.org/reference/verify_checks.md)
+  lists the checks with their group, tier and data path. `path` says
+  whether a check reads `modInp` or the model objects – only the latter
+  can catch a mapping that was never built.
 
 - [`promote_solution()`](https://energyRt.org/reference/promote_solution.md)
   makes a run’s solution the scenario’s own, copying it to
@@ -490,10 +876,9 @@
   [`getObject()`](https://energyRt.org/reference/getObject.md) methods
   fetching by `type/name` with `run =` selecting the run.
 
-- `levcost(x, by_variant = )` replaces
-  [`levcost_by_variant()`](https://energyRt.org/reference/energyRt-deprecated.html),
-  taking `TRUE`, `"npv"` or `"components"`, either while computing or on
-  a result in hand.
+- `levcost(x, by_variant = )` replaces `levcost_by_variant()`, taking
+  `TRUE`, `"npv"` or `"components"`, either while computing or on a
+  result in hand.
 
 - Store entries have a lifecycle: `seal_*()` / `unseal_*()` freeze an
   entry, `mark_delete(x, importance =)` queues it and
@@ -505,16 +890,16 @@
   `store_entry`, `run_label`, or the `slug` primitive. See
   `?path_builders`.
 
-- [`utopia_profile()`](https://energyRt.org/reference/utopia_profile.md)
+- [`topia_profile()`](https://energyRt.org/reference/topia_profile.md)
   generates deterministic synthetic shapes on any calendar — step
   staircase, sine, cosine or hexagonal trapezoid — with per-region phase
   or amplitude variation.
 
-- The “unit model”: `utopia$modules$unit` kits (`U1`, `U3`) where every
+- The “unit model”: `topia$modules$unit` kits (`U1`, `U3`) where every
   input is 1 on the symmetric `unit_s4` calendar, so each variant’s
   objective is a small hand-checkable integer.
 
-- UTOPIA add-on modules in every `electricity` kit — `GAS_CURVE` (3-step
+- TOPIA add-on modules in every `electricity` kit — `GAS_CURVE` (3-step
   supply curve), `EWIN_SITES` (two wind site grades), `ENUC_VINT` (two
   nuclear vintages) — replace their base counterpart via
   `add(mod, ., overwrite = TRUE)`.
@@ -698,13 +1083,20 @@
 
 ### Bug fixes
 
+- A `supply` no longer reaches regions it was never declared in. A
+  supply given `region = "R1"` also produced `mSupSpan`, `mSupAva` and
+  `mSupOutTot` entries for the model’s other regions, so its commodity
+  appeared available where no supply existed. The interpolation goldens
+  are re-frozen for this and for the upper-level rows that multi-level
+  timeframes and parent-geoframe totals now add.
+
 - `interpolate()` and [`solve()`](https://rdrr.io/r/base/solve.html)
   work on an installed package. Both generics were documented as the
   recommended API but never exported, so the pipelines in the README and
   the vignettes failed for anyone who had not loaded the source tree;
   `read()` was already exported.
 
-- The shipped `utopia` storage objects can be read and printed again.
+- The shipped `topia` storage objects can be read and printed again.
   They were stored before `storage@inp2stg` existed, so
   [`print()`](https://energyRt.org/reference/print.md), `o@inp2stg` and
   [`process_to_spec()`](https://energyRt.org/reference/process_to_spec.md)
@@ -1112,7 +1504,7 @@
   same cycle. It never bound for a single-commodity storage and compared
   incommensurable units for a multi-commodity one. Archived with the
   measurements in `drafts/storage-shared-throughput.R`.
-- `data/utopia_modules.rda` was regenerated: bundled datasets serialise
+- `data/topia_modules.rda` was regenerated: bundled datasets serialise
   S4 objects with the class definition of their time, so objects saved
   before the storage renames must be rebuilt from `data-raw/`.
 
@@ -1230,12 +1622,13 @@
   what it exchanged.
 - [`storage_duration()`](https://energyRt.org/reference/storage_duration.md)
   returned zero rows with no message on month-based calendars — it
-  called [`tsl2dtm()`](https://energyRt.org/reference/timeslices.md)
+  called
+  [`tsl2dtm()`](https://optimal2050.github.io/timescales/r/reference/timeslice_datetime.html)
   without `mday`. It now stops with the format it read when a level
   genuinely cannot be dated.
-- [`tsl2dtm()`](https://energyRt.org/reference/timeslices.md) died with
-  `object 'dtm' not found` for formats it has no branch for; it returns
-  `NULL` instead.
+- [`tsl2dtm()`](https://optimal2050.github.io/timescales/r/reference/timeslice_datetime.html)
+  died with `object 'dtm' not found` for formats it has no branch for;
+  it returns `NULL` instead.
 - [`draw()`](https://energyRt.org/reference/draw.md) on a storage drew
   no arrows unless `@seff` was populated — the commodity frame was
   cross-joined with a slot whose prototype has zero rows. Arrows now
@@ -1410,10 +1803,10 @@
 - Aggregation across regions is delegated to `geoscales::geo_recast()`
   with the rules read off the variable catalogue. `vTradeIr` is netted,
   not summed.
-- [`utopia_geoscale()`](https://energyRt.org/reference/utopia_geoscale.md)
-  builds a geoscale for the UTOPIA model (`nation → zone → region`),
-  with geometry from any of the four `utopia$map` layouts. The hierarchy
-  ships as the plain table `utopia$geo`.
+- `topia_geoscale()` builds a geoscale for the TOPIA model
+  (`nation → zone → region`), with geometry from any of the four
+  `topia$map` layouts. The hierarchy ships as the plain table
+  `topia$geo`.
 - [`levcost()`](https://energyRt.org/reference/levcost.md) prices
   vintages and clusters separately, returning a `levcost_variants`
   object that
@@ -1438,9 +1831,8 @@
   [`geom_sf()`](https://ggplot2.tidyverse.org/reference/ggsf.html)
   layer, which works only for a map with no CRS. Routes, centroids and
   labels are now `sf` layers whenever the map is projected.
-- [`tech_from_spec()`](https://energyRt.org/reference/energyRt-deprecated.html)
-  read `@input$combustion` back as character, so any technology setting
-  it wrote a valid techspec that then failed to load.
+- `tech_from_spec()` read `@input$combustion` back as character, so any
+  technology setting it wrote a valid techspec that then failed to load.
 - [`size()`](https://energyRt.org/reference/size.md) regained its
   `@export`: a helper inserted between its roxygen block and the
   function had silently taken over the block.
@@ -1592,9 +1984,9 @@
 - [`draw()`](https://energyRt.org/reference/draw.md) on a trade no
   longer repeats arrows.
 - [`newCosts()`](https://energyRt.org/reference/newCosts.md) is
-  debugged, with an example in the Utopia tutorial.
-- [`tsl2hour()`](https://energyRt.org/reference/tsl2dtm.md) identifies
-  n-digit hours; it previously worked for two only.
+  debugged, with an example in the Topia tutorial.
+- [`tsl2hour()`](https://optimal2050.github.io/timescales/r/reference/timeslice_conversions.html)
+  identifies n-digit hours; it previously worked for two only.
 
 ## energyRt 0.50.7-dev
 

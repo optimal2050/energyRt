@@ -125,6 +125,20 @@ Before 0.85 both columns were summed into a single term that cancelled between \
 \item{olife}{integer. Operational life of the trade object in years.}
 }}
 
+\item{\code{cluster}}{data.frame. Declaration of the object's parallel sub-lines. For trade a cluster is a LOSS TRANCHE: one segment of a piecewise-linear approximation of the quadratic loss curve, with its own share of the capacity and its own \code{teff}. Real losses go as \code{r * f^2}, so the loss FRACTION rises with loading -- which a single \code{teff} cannot express, since under it a half-loaded and a fully-loaded line lose the same proportion.
+This slot declares WHAT the tranches are; the per-tranche values live in the \code{cluster} column of the variant-varying slots (\code{trade}, \code{capacity}, ...). Build both with \code{lossTranches()} rather than by hand.
+There is deliberately no \code{region} column: a trade object has no \code{region} slot -- its scope comes from the route endpoints -- so a region here could restrict nothing, and its absence rejects the mistake at construction rather than deep inside variant expansion.
+Optional. When empty, tranche labels are harvested from the \code{cluster} columns of the other slots. When populated it is AUTHORITATIVE. The share columns are different levers, not substitutes. \code{cap.share.fx} fixes the ratio of the variants' CAPACITIES in every year: loss tranches need it, because each tranche efficiency is calibrated to its place in the capacity stack and the flow must stay free to fill the cheapest first. \code{act.share.lo/up/fx} bounds a variant share of the family THROUGHPUT instead, which is what stops a clustered family collapsing to its cheapest member once regional borders are aggregated away. Both are optional; a variant with neither sizes and runs freely.
+
+\describe{
+\item{cluster}{character. Tranche label, used in the expanded object name.}
+\item{desc}{character. Description of the tranche.}
+\item{share}{numeric. Fraction of the line's capacity this tranche occupies. The shares must sum to 1: the tranche efficiencies are derived from them (\code{lambda_t = loss_full * (alpha_t-1 + alpha_t)}) and are calibrated only when they do. Declaring shares is also what makes the capacities of an INVESTABLE line be tied to those proportions -- without the tie the solver would build the whole corridor as the lowest-loss tranche and the approximation would collapse.
+}
+\item{order}{integer. Fill order, 1 = the lowest-loss tranche. Without it labels sort alphabetically, so "T10" would precede "T2".
+}
+}}
+
 \item{\code{cap2act}}{numeric. Capacity to activity ratio.}
 
 \item{\code{optimizeRetirement}}{logical. Incidates if the retirement of the trade object should be optimized. Also requires the same parameter in the \code{model} or \code{scenario} class to be set to TRUE to be effective.}

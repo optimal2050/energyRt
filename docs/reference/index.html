@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9002</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9006</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -35,6 +35,7 @@
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/topia-build.html">TOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/topia-use.html">TOPIA II: running scenarios</a></li>
+    <li><a class="dropdown-item" href="../articles/region-aggregation.html">TOPIA III: multi-level region</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
     <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
@@ -396,10 +397,10 @@
 
         <dt>
 
-          <code><a href="update.html">update(<i>&lt;storage&gt;</i>)</a></code> <code><a href="update.html">update(<i>&lt;trade&gt;</i>)</a></code> <code><a href="update.html">update(<i>&lt;import&gt;</i>)</a></code>
+          <code><a href="update.html">update(<i>&lt;supply&gt;</i>)</a></code> <code><a href="update.html">update(<i>&lt;storage&gt;</i>)</a></code> <code><a href="update.html">update(<i>&lt;trade&gt;</i>)</a></code> <code><a href="update.html">update(<i>&lt;import&gt;</i>)</a></code>
 
         </dt>
-        <dd>Update trade object</dd>
+        <dd>Update supply object</dd>
 
         <dt>
 
@@ -407,13 +408,6 @@
 
         </dt>
         <dd>Update export object</dd>
-
-        <dt>
-
-          <code><a href="sypply.html">update(<i>&lt;supply&gt;</i>)</a></code>
-
-        </dt>
-        <dd>Update supply object</dd>
 
         <dt>
 
@@ -475,6 +469,13 @@
 
         <dt>
 
+          <code><a href="timeslices.html">tsl_sets</a></code>
+
+        </dt>
+        <dd>Sets of the common formats with structure</dd>
+
+        <dt>
+
           <code><a href="calendar.html">make_timetable()</a></code>
 
         </dt>
@@ -519,10 +520,24 @@
 
         <dt>
 
-          <code><a href="topia_geoscale.html">topia_geoscale()</a></code>
+          <code><a href="get_process_groups.html">get_process_groups()</a></code>
 
         </dt>
-        <dd>A geoscale for the TOPIA reference model</dd>
+        <dd>Technologies that may be merged into one clustered object</dd>
+
+        <dt>
+
+          <code><a href="process_cluster_sweep.html">process_cluster_sweep()</a></code>
+
+        </dt>
+        <dd>Sweep a technology family's clusterings, to choose <code>k</code> by looking</dd>
+
+        <dt>
+
+          <code><a href="model_clusters.html">model_clusters()</a></code>
+
+        </dt>
+        <dd>The clustering behind an aggregated model</dd>
 
         <dt>
 
@@ -558,6 +573,13 @@
 
         </dt>
         <dd>Aggregate a model to a coarser set of regions</dd>
+
+        <dt>
+
+          <code><a href="demand_recast_regions.html">demand_recast_regions()</a></code>
+
+        </dt>
+        <dd>Split a coarse demand across the regions beneath it</dd>
       </dl></div><div class="section level2">
       <h2 id="process-specifications">Process specifications<a class="anchor" aria-label="anchor" href="#process-specifications"></a></h2>
 
@@ -1759,6 +1781,13 @@
 
         <dt>
 
+          <code><a href="get_process_groups.html">get_process_groups()</a></code>
+
+        </dt>
+        <dd>Technologies that may be merged into one clustered object</dd>
+
+        <dt>
+
           <code><a href="get_process_inputs.html">get_process_inputs()</a></code>
 
         </dt>
@@ -1854,20 +1883,6 @@
 
         </dt>
         <dd>Register a weather transform for the session</dd>
-
-        <dt>
-
-          <code><a href="hour2HOUR.html">hour2HOUR()</a></code>
-
-        </dt>
-        <dd>Convert hours (integer) values to HOUR set 'hNN'</dd>
-
-        <dt>
-
-          <code><a href="yday2YDAY.html">yday2YDAY()</a></code>
-
-        </dt>
-        <dd>Convert year-days to YDAY set 'dNNN'</dd>
 
         <dt>
 

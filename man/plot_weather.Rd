@@ -39,8 +39,9 @@ facets.}
 \item{palette}{Viridis color option for the heatmap fill.}
 
 \item{datetime}{Logical (line/area only). If \code{TRUE}, place the profile on a
-real datetime axis via \code{\link[=tsl2dtm]{tsl2dtm()}}; if the timeslice type is not yet supported
-the categorical axis is kept (with a warning).}
+real datetime axis via \code{\link[timescales:tsl2dtm]{timescales::tsl2dtm()}}, which needs both a
+\code{calendar} and a \code{year} column; without them the categorical axis is kept
+(with a warning).}
 
 \item{angle}{Rotation (degrees) for the x-axis tick labels; overlapping labels
 are dropped so dense sub-annual axes stay legible. Default \code{45}; \code{0} = flat.}

@@ -1,10 +1,15 @@
-# Update trade object
+# Update supply object
+
+Update supply object
 
 Update trade object
 
 ## Usage
 
 ``` r
+# S4 method for class 'supply'
+update(object, ...)
+
 # S4 method for class 'storage'
 update(object, ...)
 

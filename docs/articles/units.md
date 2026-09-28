@@ -166,7 +166,7 @@ Chain them and a volume of coal becomes an energy. Given the properties,
 `convert()` can find that chain itself:
 
 > **Not in this build.** Commodity-aware conversion is not available in
-> energyRt 0.89.9.9000. The calls below are shown for reference; their
+> energyRt 0.90.0.9006. The calls below are shown for reference; their
 > output will appear here once the feature lands.
 
 ``` r
@@ -243,7 +243,7 @@ a year.
 Write the year into the unit:
 
 > **Not in this build.** Year-tagged currency is not available in
-> energyRt 0.89.9.9000. The calls below are shown for reference; their
+> energyRt 0.90.0.9006. The calls below are shown for reference; their
 > output will appear here once the feature lands.
 
 ``` r
@@ -294,7 +294,7 @@ well as processes. So declare it, and let interpolation do the
 arithmetic:
 
 > **Not in this build.** A model-level unit target is not available in
-> energyRt 0.89.9.9000. The calls below are shown for reference; their
+> energyRt 0.90.0.9006. The calls below are shown for reference; their
 > output will appear here once the feature lands.
 
 ``` r
@@ -330,7 +330,7 @@ nothing checks that the rate you supplied is real rather than nominal.
 
 - **Model bricks** — where `@units`, `cap2act` and the chain
   coefficients sit in a process.
-- **UTOPIA I** — a full model built in one consistent unit convention
+- **TOPIA I** — a full model built in one consistent unit convention
   (GW, PJ, MEUR, kt).
 - `?convert`, [`?getUnits`](https://energyRt.org/reference/getUnits.md),
   [`?commodity_properties`](https://energyRt.org/reference/commodity_properties.md),

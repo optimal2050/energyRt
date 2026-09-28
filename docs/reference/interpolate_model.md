@@ -76,12 +76,22 @@ interpolate(object, ...)
 - fold:
 
   logical or character; whole-column "fold" of trimmable dimensions to
-  NA wildcards to shrink the data. `TRUE` folds `region` + `timeslice`;
-  `FALSE` (default) folds nothing; a character vector selects dims among
-  `region`, `timeslice`, `year`, `comm`, `tech`, `stg`, `trade`. The
-  wildcards are substituted by an artificial set member in the written
-  model files only; the scenario object keeps them and
+  NA wildcards to shrink the data. `TRUE` folds `region` + `timeslice` +
+  `year`; `FALSE` (default) folds nothing; a character vector selects
+  dims among `region`, `timeslice`, `year`, `comm`, `tech`, `stg`,
+  `trade`. The wildcards are substituted by an artificial set member in
+  the written model files only; the scenario object keeps them and
   [`getData()`](https://energyRt.org/reference/getData.md) expands them.
+
+  A dimension folds only where the value is uniform across its WHOLE
+  set, so folding never changes the solution — it changes how the same
+  numbers are stored. `year` matters most in weather-heavy models: one
+  weather series repeated across milestone years is usually the largest
+  parameter, and `region`/`timeslice` alone do not touch it. Measured on
+  a 4-region `d365_h24` model over 7 milestones, adding `year` took
+  `pWeather` from 245,259 to 35,037 rows (-85.7%) with a bit-identical
+  objective on GLPK and Pyomo/HiGHS. A model whose weather genuinely
+  differs by year simply does not fold.
 
 - sparse:
 

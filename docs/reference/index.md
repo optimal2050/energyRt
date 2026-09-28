@@ -117,15 +117,14 @@ the model that binds them to a calendar, regions and a horizon.
 - [`add(`*`<repository>`*`)`](https://energyRt.org/reference/add.md)
   [`add(`*`<model>`*`)`](https://energyRt.org/reference/add.md) : Add an
   object to the model's repository
-- [`update(`*`<storage>`*`)`](https://energyRt.org/reference/update.md)
+- [`update(`*`<supply>`*`)`](https://energyRt.org/reference/update.md)
+  [`update(`*`<storage>`*`)`](https://energyRt.org/reference/update.md)
   [`update(`*`<trade>`*`)`](https://energyRt.org/reference/update.md)
   [`update(`*`<import>`*`)`](https://energyRt.org/reference/update.md) :
-  Update trade object
+  Update supply object
 - [`update(`*`<export>`*`)`](https://energyRt.org/reference/newTechnology.md)
   [`update(`*`<weather>`*`)`](https://energyRt.org/reference/newTechnology.md)
   : Update export object
-- [`update(`*`<supply>`*`)`](https://energyRt.org/reference/sypply.md) :
-  Update supply object
 - [`asSupplyCurve()`](https://energyRt.org/reference/supply-curve.md)
   [`asImportCurve()`](https://energyRt.org/reference/supply-curve.md)
   [`asExportCurve()`](https://energyRt.org/reference/supply-curve.md)
@@ -153,12 +152,16 @@ your own.
   calendars
 - [`horizons`](https://energyRt.org/reference/horizons.md) : Example
   planning horizons
+- [`tsl_sets`](https://energyRt.org/reference/timeslices.md) : Sets of
+  the common formats with structure
 - [`make_timetable()`](https://energyRt.org/reference/calendar.md) :
   Create timetable of time-timeslices from given structure as a list
 - [`autoplot(`*`<calendar>`*`)`](https://energyRt.org/reference/plot_calendar_method.md)
   : Visualize a Calendar object
 - [`autoplot(`*`<horizon>`*`)`](https://energyRt.org/reference/plot_horizon_method.md)
   : Visualize a Horizon object
+- [`year_label()`](https://energyRt.org/reference/year_label.md) :
+  Display labels of the model's milestone years
 
 ## Space resolution
 
@@ -175,18 +178,35 @@ coarse balances roll up without a `trade` route for every pair.
   [`getCalendar(`*`<model>`*`)`](https://energyRt.org/reference/setGeoscale.md)
   [`getCalendar(`*`<scenario>`*`)`](https://energyRt.org/reference/setGeoscale.md)
   : Attach or read a model's geoscale
-- [`utopia_geoscale()`](https://energyRt.org/reference/utopia_geoscale.md)
-  : A geoscale for the UTOPIA reference model
+
+- [`get_process_groups()`](https://energyRt.org/reference/get_process_groups.md)
+  : Technologies that may be merged into one clustered object
+
+- [`process_cluster_sweep()`](https://energyRt.org/reference/process_cluster_sweep.md)
+  :
+
+  Sweep a technology family's clusterings, to choose `k` by looking
+
+- [`model_clusters()`](https://energyRt.org/reference/model_clusters.md)
+  : The clustering behind an aggregated model
+
 - [`check_geoscale_regions()`](https://energyRt.org/reference/check_geoscale_regions.md)
   : Check a geoscale against the model's declared regions
+
 - [`plot_geoscale()`](https://energyRt.org/reference/plot_geoscale.md) :
   Draw a model's geoscale
+
 - [`get_region()`](https://energyRt.org/reference/get_region.md) :
   Collect the regions an object operates in
+
 - [`subset_model_regions()`](https://energyRt.org/reference/subset_model_regions.md)
   : Restrict a model to a region subset
+
 - [`aggregate_model_regions()`](https://energyRt.org/reference/aggregate_model_regions.md)
   : Aggregate a model to a coarser set of regions
+
+- [`demand_recast_regions()`](https://energyRt.org/reference/demand_recast_regions.md)
+  : Split a coarse demand across the regions beneath it
 
 ## Process specifications
 
@@ -245,6 +265,25 @@ re-run.
   Rebuild a solve sequence from the variants on disk
 - [`with_solver_log()`](https://energyRt.org/reference/with_solver_log.md)
   : Send the solver's progress log to a file
+
+## multimod
+
+Converting an interpolated scenario into a
+[multimod](https://github.com/optimal2050/multimod) model, which can
+then be rendered to any backend multimod supports or assembled straight
+into a matrix and solved. multimod is a suggested package; these are
+no-ops without it.
+
+- [`as_multimod(`*`<scenario>`*`)`](https://energyRt.org/reference/as_multimod.scenario.md)
+  : Build a multimod model from an interpolated scenario
+- [`multimod_import_data()`](https://energyRt.org/reference/multimod_import_data.md)
+  : Import energyRt scenario data into a multimod model
+- [`multimod_import_log()`](https://energyRt.org/reference/multimod_import_log.md)
+  : Get data import log from model
+- [`multimod_unmatched()`](https://energyRt.org/reference/multimod_unmatched.md)
+  : Show unmatched elements
+- [`multimod_from_energyRt()`](https://energyRt.org/reference/multimod_from_energyRt.md)
+  : Build a multimod model from an interpolated energyRt scenario
 
 ## Solver configuration
 
@@ -644,8 +683,18 @@ re-derives the model’s identities from the results.
 
 - [`validate_scenario_parameters()`](https://energyRt.org/reference/validate_scenario_parameters.md)
   : Validate interpolated scenario parameters
+
 - [`verify_solution()`](https://energyRt.org/reference/verify_solution.md)
   : Verify accounting identities of a solved scenario
+
+- [`verify_checks()`](https://energyRt.org/reference/verify_checks.md) :
+
+  Checks available to
+  [`verify_solution()`](https://energyRt.org/reference/verify_solution.md)
+
+- [`audit_coefficients()`](https://energyRt.org/reference/audit_coefficients.md)
+  : Coefficient-range audit of a written model
+
 - [`en_check_glpk()`](https://energyRt.org/reference/en_check.md)
   [`en_check_julia()`](https://energyRt.org/reference/en_check.md)
   [`en_check_python()`](https://energyRt.org/reference/en_check.md)
@@ -655,11 +704,14 @@ re-derives the model’s identities from the results.
   [`en_check_julia_pkgs()`](https://energyRt.org/reference/en_check.md)
   [`en_check_dependencies()`](https://energyRt.org/reference/en_check.md)
   : Detect external solver software and dependencies
+
 - [`en_check_packages()`](https://energyRt.org/reference/en_check_packages.md)
   : Check R package and external-tool dependencies
+
 - [`trim_parameters_by_maps()`](https://energyRt.org/reference/trim_parameters_by_maps.md)
   : Trim numeric/bounds parameters to the domain of the maps that index
   them
+
 - [`update_parameter()`](https://energyRt.org/reference/update_parameter.md)
   : Update parameter in the scenario by adding data to it
 
@@ -667,12 +719,12 @@ re-derives the model’s identities from the results.
 
 Data bundled with the package for the examples and articles.
 
-- [`utopia`](https://energyRt.org/reference/utopia.md) : The UTOPIA
+- [`topia`](https://energyRt.org/reference/topia.md) : The TOPIA
   reference dataset
-- [`utopia_profile()`](https://energyRt.org/reference/utopia_profile.md)
-  : Synthetic input shapes on a calendar (deterministic)
-- [`utopia_profiles()`](https://energyRt.org/reference/utopia_profiles.md)
-  : UTOPIA input profiles (deterministic)
+- [`topia_profile()`](https://energyRt.org/reference/topia_profile.md) :
+  Synthetic input shapes on a calendar (deterministic)
+- [`topia_profiles()`](https://energyRt.org/reference/topia_profiles.md)
+  : TOPIA input profiles (deterministic)
 - [`vre_cf`](https://energyRt.org/reference/vre_cf.md) : Hourly wind and
   solar capacity factors, one site, one year
 - [`vre_storage_duration`](https://energyRt.org/reference/vre_storage_duration.md)
@@ -749,6 +801,9 @@ Small helpers, conversions and accessors.
 - [`get_process_comm()`](https://energyRt.org/reference/get_process_comm.md)
   : Commodities associated with a processes
 
+- [`get_process_groups()`](https://energyRt.org/reference/get_process_groups.md)
+  : Technologies that may be merged into one clustered object
+
 - [`get_process_inputs()`](https://energyRt.org/reference/get_process_inputs.md)
   : Get inputs of processes
 
@@ -800,12 +855,6 @@ Small helpers, conversions and accessors.
 
 - [`register_weather_transform()`](https://energyRt.org/reference/register_weather_transform.md)
   : Register a weather transform for the session
-
-- [`hour2HOUR()`](https://energyRt.org/reference/hour2HOUR.md) : Convert
-  hours (integer) values to HOUR set 'hNN'
-
-- [`yday2YDAY()`](https://energyRt.org/reference/yday2YDAY.md) : Convert
-  year-days to YDAY set 'dNNN'
 
 - [`print()`](https://energyRt.org/reference/print.md) : Print methods
   for the energyRt classes

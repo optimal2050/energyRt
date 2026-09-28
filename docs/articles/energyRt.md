@@ -177,9 +177,9 @@ technology;
 [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
 covers calendars, commodities, weather, costs and more.
 
-**A complete teaching model.** The UTOPIA electricity model ships with
+**A complete teaching model.** The TOPIA electricity model ships with
 the package — both as step-by-step vignettes and as the ready
-`utopia$modules` data kit with scenario levers (CO₂ cap, carbon tax,
+`topia$modules` data kit with scenario levers (CO₂ cap, carbon tax,
 renewable share, nuclear moratorium) — so the path from “hello world” to
 policy analysis is paved.
 
@@ -193,10 +193,10 @@ leaving R.
 1.  [Model bricks](https://energyrt.org/articles/model-bricks.html) —
     every object type in depth, including fuel blends, auxiliary flows,
     and user constraints.
-2.  [`vignette("utopia-build")`](https://energyRt.org/articles/utopia-build.md)
-    — *UTOPIA I*: build a multi-region electricity model brick by brick.
-3.  [`vignette("utopia-use")`](https://energyRt.org/articles/utopia-use.md)
-    — *UTOPIA II*: solve it and run policy scenarios.
+2.  [`vignette("topia-build")`](https://energyRt.org/articles/topia-build.md)
+    — *TOPIA I*: build a multi-region electricity model brick by brick.
+3.  [`vignette("topia-use")`](https://energyRt.org/articles/topia-use.md)
+    — *TOPIA II*: solve it and run policy scenarios.
 4.  [Solver backends](https://energyrt.org/articles/backends.html) —
     GLPK, JuMP, Pyomo, GAMS, and NEOS.
 5.  [Workflow](https://energyrt.org/articles/workflow.html) —

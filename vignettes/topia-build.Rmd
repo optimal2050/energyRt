@@ -697,7 +697,7 @@ EBIO <- newTechnology(
   ceff = data.frame(
     comm = c("COA", "BIO"),
     cinp2ginp = c(.4, 0.35),     # 40% and 35% efficiency
-    share.lo = c(1, 0.2)
+    grp.share.lo = c(1, 0.2)
   ),
   cap2act = 31.536,
   invcost = list(

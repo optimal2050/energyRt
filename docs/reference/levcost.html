@@ -19,7 +19,7 @@ without re-solving: levcost(lc, by_variant = "npv").'><meta property="og:image" 
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9002</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9006</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -41,6 +41,7 @@ without re-solving: levcost(lc, by_variant = "npv").'><meta property="og:image" 
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/topia-build.html">TOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/topia-use.html">TOPIA II: running scenarios</a></li>
+    <li><a class="dropdown-item" href="../articles/region-aggregation.html">TOPIA III: multi-level region</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
     <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
@@ -86,10 +87,10 @@ without re-solving: <code>levcost(lc, by_variant = "npv")</code>.</p>
 <span><span class="fu">levcost</span><span class="op">(</span><span class="va">object</span>, <span class="va">comm</span>, <span class="va">name</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S4 method for class 'repository'</span></span>
-<span><span class="fu">levcost</span><span class="op">(</span><span class="va">object</span>, <span class="va">comm</span>, <span class="va">name</span>, by_variant <span class="op">=</span> <span class="cn">FALSE</span>, <span class="va">...</span><span class="op">)</span></span>
+<span><span class="fu">levcost</span><span class="op">(</span><span class="va">object</span>, <span class="va">comm</span>, <span class="va">name</span>, by_variant <span class="op">=</span> <span class="cn">FALSE</span>, by_region <span class="op">=</span> <span class="cn">FALSE</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S4 method for class 'model'</span></span>
-<span><span class="fu">levcost</span><span class="op">(</span><span class="va">object</span>, <span class="va">comm</span>, <span class="va">name</span>, by_variant <span class="op">=</span> <span class="cn">FALSE</span>, <span class="va">...</span><span class="op">)</span></span>
+<span><span class="fu">levcost</span><span class="op">(</span><span class="va">object</span>, <span class="va">comm</span>, <span class="va">name</span>, by_variant <span class="op">=</span> <span class="cn">FALSE</span>, by_region <span class="op">=</span> <span class="cn">FALSE</span>, <span class="va">...</span><span class="op">)</span></span>
 <span></span>
 <span><span class="co"># S4 method for class 'scenario'</span></span>
 <span><span class="fu">levcost</span><span class="op">(</span><span class="va">object</span>, <span class="va">comm</span>, <span class="va">name</span>, <span class="va">...</span><span class="op">)</span></span>
@@ -244,6 +245,17 @@ tables attached to <code>scenario@misc</code>.</p></dd>
 (default) returns the result object; <code>TRUE</code> (= <code>"levcost"</code>), <code>"npv"</code> or
 <code>"components"</code> returns that per-variant table instead. Passing an existing
 result — <code>levcost(lc, by_variant = "npv")</code> — extracts without re-solving.</p></dd>
+
+
+<dt id="arg-by-region">by_region<a class="anchor" aria-label="anchor" href="#arg-by-region"></a></dt>
+<dd><p><code>FALSE</code> (default) prices a process once, in one of the
+regions it spans. <code>TRUE</code> prices it once PER region and returns a
+<code>levcost_list</code> named by region — the ladder a technology whose costs or
+efficiency vary by region actually has. levcost() builds a single-region
+mini-model, so without this a multi-region process reports only its first
+region's cost. On a container the entries are named <code>&lt;process&gt;@&lt;region&gt;</code>.
+A <code>trade</code> is unaffected: it spans two regions by construction and is
+priced across both at once.</p></dd>
 
 </dl></div>
     <div class="section level2">

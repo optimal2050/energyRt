@@ -30,13 +30,12 @@ objects.
 
 data("calendars", package = "energyRt")
 names(calendars)
-#>  [1] "season_dn"              "d365"                   "annual"                
-#>  [4] "utopia_seasons"         "unit_s4"                "unit_s4h4"             
-#>  [7] "d365_h24"               "m12"                    "m12a"                  
-#> [10] "q4"                     "s4"                     "s4_h24"                
-#> [13] "m12_h24"                "wd7_h24"                "w52_h24"               
-#> [16] "s4_h24_subset_2seasons" "m12_h24_subset_4months" "m12_subset_q1"         
-#> [19] "d365_h24_1dps"          "d365_h24_1dpm"
+#>  [1] "annual"                 "d365"                   "d365_h24"              
+#>  [4] "m12"                    "m12a"                   "q4"                    
+#>  [7] "s4"                     "s4_h24"                 "m12_h24"               
+#> [10] "wd7_h24"                "w52_h24"                "s4_h24_subset_2seasons"
+#> [13] "m12_h24_subset_4months" "m12_subset_q1"          "d365_h24_1dps"         
+#> [16] "d365_h24_1dpm"          "s4_hp3"
 ```
 
 [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
@@ -46,7 +45,7 @@ share of the year:
 
 ``` r
 
-autoplot(calendars$season_dn)
+autoplot(calendars$s4_hp3)
 ```
 
 ![](autoplot_files/figure-html/cal-basic-1.png)
@@ -77,7 +76,7 @@ Other fill metrics are the timeslice `"share"` and `"weight"`:
 
 ``` r
 
-autoplot(calendars$season_dn, fill = "share")
+autoplot(calendars$s4_hp3, fill = "share")
 ```
 
 ![](autoplot_files/figure-html/cal-share-1.png)
@@ -145,7 +144,7 @@ result is a ggplot you can keep customizing it:
 
 ``` r
 
-autoplot(calendars$season_dn, palette = "magma", border = "grey40") +
+autoplot(calendars$s4_hp3, palette = "magma", border = "grey40") +
   labs(title = "Four seasons, day/night") +
   theme_minimal()
 ```
@@ -160,9 +159,9 @@ indexed by a *two-dimensional* calendar — day-of-year × hour, month ×
 hour — a **heatmap** reads more naturally:
 [`plot_heatmap()`](https://energyRt.org/reference/plot_heatmap.md) puts
 the finest timeframe on `y`, the next on `x`, and any coarser levels
-into facets. The layout is taken from the calendar (pass it as
-`calendar =`), or guessed from the timeslice names with
-[`tsl_guess_format()`](https://energyRt.org/reference/tsl_guess_format.md).
+into facets. The layout is taken from the calendar, which you pass as
+`calendar =` – either a calendar object or the name of one, such as
+`"d365_h24"`.
 
 Here is a synthetic hourly load profile on the `d365_h24` calendar (a
 daily cycle plus a seasonal swing). The diurnal band and the
@@ -174,8 +173,8 @@ cal  <- calendars$d365_h24
 tt   <- cal@timetable
 prof <- data.frame(
   timeslice = tt$timeslice,
-  load  = 50 + 30 * sin(2 * pi * (tsl2hour(tt$timeslice) - 6) / 24) +
-                15 * cos(2 * pi *  tsl2yday(tt$timeslice)      / 365))
+  load  = 50 + 30 * sin(2 * pi * (timescales::tsl2hour(tt$timeslice, cal@name) - 6) / 24) +
+                15 * cos(2 * pi *  timescales::tsl2yday(tt$timeslice, cal@name)      / 365))
 
 plot_heatmap(prof, calendar = cal, value = "load")   # x = YDAY, y = HOUR
 ```
@@ -187,7 +186,7 @@ panel per month:
 
 ``` r
 
-plot_heatmap(prof, value = "load", facet = "month")  # 12 monthly panels
+plot_heatmap(prof, calendar = cal, value = "load", facet = "month")  # 12 panels
 ```
 
 ![](autoplot_files/figure-html/hm-month-1.png)
@@ -200,7 +199,7 @@ exactly as for
 
 Any timeslice-indexed model data lays out the same way. Here
 **electricity demand** and a **solar capacity factor** from the packaged
-UTOPIA kit, on its season × hour calendar (`s4_h24`): pull the object
+TOPIA kit, on its season × hour calendar (`s4_h24`): pull the object
 with [`getObject()`](https://energyRt.org/reference/getObject.md), take
 one region (and, for demand, one year), and pass the `timeslice` + value
 columns to
@@ -209,11 +208,11 @@ columns to
 
 ``` r
 
-repo <- utopia$modules$electricity$R3$repo
+repo <- topia$modules$electricity$R3$repo
 wcal <- calendars$s4_h24
 
 DEM <- getObject(repo, name = "DEM_ELC", drop = TRUE)
-dem <- subset(as.data.frame(DEM@demand), region == "R1" & year == 2050)
+dem <- subset(as.data.frame(DEM@demand), region == "W1" & year == 2050)
 plot_heatmap(dem[, c("timeslice", "demand")], calendar = wcal, value = "demand",
              name = "PJ")
 ```
@@ -223,7 +222,7 @@ plot_heatmap(dem[, c("timeslice", "demand")], calendar = wcal, value = "demand",
 ``` r
 
 WSOL <- getObject(repo, name = "WSOL", drop = TRUE)
-wsol <- subset(as.data.frame(WSOL@weather), region == "R1")
+wsol <- subset(as.data.frame(WSOL@weather), region == "W1")
 plot_heatmap(wsol[, c("timeslice", "wval")], calendar = wcal, value = "wval",
              name = "capacity factor")
 ```
@@ -355,7 +354,7 @@ for the heatmap, the y-axis for line/area.
 
 ``` r
 
-WSOL <- getObject(utopia$modules$electricity$R3$repo, name = "WSOL", drop = TRUE)
+WSOL <- getObject(topia$modules$electricity$R3$repo, name = "WSOL", drop = TRUE)
 wcal <- calendars$s4_h24
 
 autoplot(WSOL, calendar = wcal)                    # heatmap (default), faceted by region

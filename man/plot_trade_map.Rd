@@ -21,7 +21,7 @@ plot_trade_map(
 \code{model} or \code{scenario} (whose trade objects are all drawn).}
 
 \item{map}{An \code{sf}/data.frame with \code{region}, \code{x}, \code{y} and polygon \code{geometry}
-(e.g. \code{topia$map$honeycomb}), or a \code{geoscales::Geoscale}. When \code{NULL}, the
+or a \code{geoscales::Geoscale} (e.g. \code{topia$geoscales$honeycomb}). When \code{NULL}, the
 geoscale attached to \code{object} is used. Region polygons need \code{sf}; without
 it, only centroids and routes are drawn.}
 
@@ -46,24 +46,24 @@ one network). Bidirectional links (both \code{src}→\code{dst} and \code{dst}�
 no geometry, so the geometry comes either from the model's geoscale (see
 \code{\link[=setGeoscale]{setGeoscale()}}) or from a \code{map} supplied by the caller — an \code{sf} object with
 \code{region}, \code{x}, \code{y} (centroid) columns and polygon \code{geometry}, such as one of
-the \code{topia$map} layouts (\code{squares}, \code{honeycomb}, \code{island}, \code{continent}).
+the \code{topia$geoscales} layouts (\code{squares}, \code{honeycomb}, \code{island},
+\code{continent}).
 }
 \details{
 When the map carries a coordinate reference system, routes, centroids and
 labels are drawn as \code{sf} layers rather than raw \code{x}/\code{y} ones. \code{geom_sf()}
 installs a \code{coord_sf()} that reprojects the polygons but would leave a
 \code{geom_segment()} untransformed, detaching every route from its regions. Maps
-with no CRS — including the reference \code{topia$map} layouts — take the plain
+with no CRS — including the reference TOPIA layouts — take the plain
 cartesian path, which is correct for them.
 }
 \examples{
 \dontrun{
 TRD <- newTrade("TRD_ELC", commodity = "ELC",
-  routes = data.frame(src = c("R1", "R2", "R3"), dst = c("R2", "R7", "R7")))
-autoplot(TRD, map = topia$map$honeycomb)
+  routes = data.frame(src = c("W1", "W2", "C1"), dst = c("W2", "C5", "C5")))
+autoplot(TRD, map = topia$geoscales$honeycomb)
 
-# or from a geoscale, at any level
-plot_trade_map(TRD, map = topia_geoscale())
-plot_trade_map(TRD, map = topia_geoscale(), level = "zone")
+# a geoscale can be drawn at any level
+plot_trade_map(TRD, map = topia$geoscales$honeycomb, level = "zone")
 }
 }

@@ -96,9 +96,12 @@ plus `sf` and `ggplot2`.
 
 Other geoscale:
 [`check_geoscale_regions()`](https://energyRt.org/reference/check_geoscale_regions.md),
+[`demand_recast_regions()`](https://energyRt.org/reference/demand_recast_regions.md),
+[`get_process_groups()`](https://energyRt.org/reference/get_process_groups.md),
+[`model_clusters()`](https://energyRt.org/reference/model_clusters.md),
 [`plot_geoscale()`](https://energyRt.org/reference/plot_geoscale.md),
-[`setGeoscale,config-method`](https://energyRt.org/reference/setGeoscale.md),
-[`utopia_geoscale()`](https://energyRt.org/reference/utopia_geoscale.md)
+[`process_cluster_sweep()`](https://energyRt.org/reference/process_cluster_sweep.md),
+[`setGeoscale,config-method`](https://energyRt.org/reference/setGeoscale.md)
 
 ## Examples
 

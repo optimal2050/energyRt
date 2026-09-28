@@ -412,7 +412,9 @@ and you get exactly the flat stub as before.
 ```{r boundary-window-stub}
 m12w <- subset_model_regions(m3, c("R1", "R2"), boundary_prices = bw)
 stub <- m12w@data[["boundary_stubs"]]@data[[1]]
-as.data.frame(stub@cluster)[, c("cluster", "share", "order")]
+# `@cluster` declares WHAT the steps are; the split itself is enforced in the
+# quantity bound, so read it there rather than from a descriptive copy
+as.data.frame(stub@cluster)[, c("cluster", "desc", "order")]
 ```
 
 ## Region by region

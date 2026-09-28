@@ -19,7 +19,7 @@ template for newCalendar()."><meta property="og:image" content="https://energyRt
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9002</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9006</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -41,6 +41,7 @@ template for newCalendar()."><meta property="og:image" content="https://energyRt
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/topia-build.html">TOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/topia-use.html">TOPIA II: running scenarios</a></li>
+    <li><a class="dropdown-item" href="../articles/region-aggregation.html">TOPIA III: multi-level region</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
     <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
@@ -168,7 +169,7 @@ calendars are <code>topia$modules$unit$calendars</code>.</p>
     <div class="section level2">
     <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
     <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">calendars</span><span class="op">)</span></span></span>
-<span class="r-out co"><span class="r-pr">#&gt;</span>  [1] "d365"                   "annual"                 "d365_h24"              </span>
+<span class="r-out co"><span class="r-pr">#&gt;</span>  [1] "annual"                 "d365"                   "d365_h24"              </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  [4] "m12"                    "m12a"                   "q4"                    </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span>  [7] "s4"                     "s4_h24"                 "m12_h24"               </span>
 <span class="r-out co"><span class="r-pr">#&gt;</span> [10] "wd7_h24"                "w52_h24"                "s4_h24_subset_2seasons"</span>

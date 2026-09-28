@@ -190,8 +190,9 @@ stages; each coefficient is printed next to the flow it scales.
 When several commodities are interchangeable on the input (or output) side, put
 them in a **group**. A group is converted to *use* once (via `ginp2use` in
 `geff`), and each member's contribution is bounded by a **share**
-(`share.lo`/`share.up`/`share.fx`). `cinp2ginp` converts each commodity into the
-group's common unit.
+(`grp.share.lo`/`grp.share.up`/`grp.share.fx` -- named for the GROUP they
+share, since `cap.share.fx` and `act.share.*` on `@cluster` are different
+things). `cinp2ginp` converts each commodity into the group's common unit.
 
 ```{r tech-group}
 CHP <- newTechnology(
@@ -205,7 +206,7 @@ CHP <- newTechnology(
   ceff  = data.frame(comm = c("COA", "BIO", "ELC"),
                     cinp2ginp = c(1, 1, NA),
                     cact2cout = c(NA, NA, 0.4),     # 40% efficiency
-                    share.up  = c(1.0, 0.3, NA)),   # at most 30% biomass
+                    grp.share.up = c(1.0, 0.3, NA)),   # max 30% biomass
   cap2act = 8760)                                   # 1 GW x 8760 h = 8760 GWh
 draw(CHP)
 ```

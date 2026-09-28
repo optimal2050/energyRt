@@ -23,15 +23,15 @@ Character vector with the guessed format of the time-timeslices
 ``` r
 tsl <- c("y2007_d365_h15", NA, "d151_h22", "d001", "m10_h12")
 tsl_guess_format(tsl)
-#> NULL
+#> Error in tsl_guess_format(tsl): could not find function "tsl_guess_format"
 tsl_guess_format(tsl[1])
-#> [1] "y_d365_h24"
+#> Error in tsl_guess_format(tsl[1]): could not find function "tsl_guess_format"
 tsl_guess_format(tsl[2])
-#> NULL
+#> Error in tsl_guess_format(tsl[2]): could not find function "tsl_guess_format"
 tsl_guess_format(tsl[3])
-#> [1] "d365_h24"
+#> Error in tsl_guess_format(tsl[3]): could not find function "tsl_guess_format"
 tsl_guess_format(tsl[4])
-#> [1] "d365"
+#> Error in tsl_guess_format(tsl[4]): could not find function "tsl_guess_format"
 tsl_guess_format(tsl[5])
-#> [1] "m12_h24"
+#> Error in tsl_guess_format(tsl[5]): could not find function "tsl_guess_format"
 ```

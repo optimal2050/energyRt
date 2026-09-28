@@ -73,8 +73,10 @@ plot_map(scen, name = "vTechRetiredStock")
 \seealso{
 Other geoscale:
 \code{\link[=check_geoscale_regions]{check_geoscale_regions()}},
+\code{\link[=get_process_groups]{get_process_groups()}},
+\code{\link[=model_clusters]{model_clusters()}},
 \code{\link[=plot_geoscale]{plot_geoscale()}},
-\code{\link{setGeoscale,config-method}},
-\code{\link[=topia_geoscale]{topia_geoscale()}}
+\code{\link[=process_cluster_sweep]{process_cluster_sweep()}},
+\code{\link{setGeoscale,config-method}}
 }
 \concept{geoscale}

@@ -35,7 +35,7 @@ object's @unit (or &quot;capacity factor&quot; if unset)."><meta property="og:im
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9002</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9006</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -57,6 +57,7 @@ object's @unit (or &quot;capacity factor&quot; if unset)."><meta property="og:im
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/topia-build.html">TOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/topia-use.html">TOPIA II: running scenarios</a></li>
+    <li><a class="dropdown-item" href="../articles/region-aggregation.html">TOPIA III: multi-level region</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
     <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
@@ -146,8 +147,9 @@ facets.</p></dd>
 
 <dt id="arg-datetime">datetime<a class="anchor" aria-label="anchor" href="#arg-datetime"></a></dt>
 <dd><p>Logical (line/area only). If <code>TRUE</code>, place the profile on a
-real datetime axis via <code><a href="timeslices.html">tsl2dtm()</a></code>; if the timeslice type is not yet supported
-the categorical axis is kept (with a warning).</p></dd>
+real datetime axis via <code><a href="https://optimal2050.github.io/timescales/r/reference/timeslice_datetime.html" class="external-link">timescales::tsl2dtm()</a></code>, which needs both a
+<code>calendar</code> and a <code>year</code> column; without them the categorical axis is kept
+(with a warning).</p></dd>
 
 
 <dt id="arg-angle">angle<a class="anchor" aria-label="anchor" href="#arg-angle"></a></dt>

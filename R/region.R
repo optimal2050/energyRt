@@ -893,8 +893,6 @@ NULL
              stringsAsFactors = FALSE) |> unique()
 }
 
-#' Group key: objects sharing one merge into a single coarse corridor
-#' @noRd
 #' Signature of a trade's loss-tranche structure
 #'
 #' Labels alone are not the structure. Two corridors can both declare `T1,T2`
@@ -915,6 +913,8 @@ NULL
                     format(ord, trim = TRUE))), collapse = ",")
 }
 
+#' Group key: objects sharing one merge into a single coarse corridor
+#' @noRd
 .agg_trade_key <- function(obj, pair) {
   paste(c(.agg_trade_prefix(obj),
           paste(sort(as.character(obj@commodity)), collapse = ","),

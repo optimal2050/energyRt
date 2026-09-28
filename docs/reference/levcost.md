@@ -18,10 +18,10 @@ levcost(object, comm, name, ...)
 levcost(object, comm, name, ...)
 
 # S4 method for class 'repository'
-levcost(object, comm, name, by_variant = FALSE, ...)
+levcost(object, comm, name, by_variant = FALSE, by_region = FALSE, ...)
 
 # S4 method for class 'model'
-levcost(object, comm, name, by_variant = FALSE, ...)
+levcost(object, comm, name, by_variant = FALSE, by_region = FALSE, ...)
 
 # S4 method for class 'scenario'
 levcost(object, comm, name, ...)
@@ -189,6 +189,17 @@ levcost(object, comm, name, by_variant = FALSE, ...)
   `"components"` returns that per-variant table instead. Passing an
   existing result — `levcost(lc, by_variant = "npv")` — extracts without
   re-solving.
+
+- by_region:
+
+  `FALSE` (default) prices a process once, in one of the regions it
+  spans. `TRUE` prices it once PER region and returns a `levcost_list`
+  named by region — the ladder a technology whose costs or efficiency
+  vary by region actually has. levcost() builds a single-region
+  mini-model, so without this a multi-region process reports only its
+  first region's cost. On a container the entries are named
+  `<process>@<region>`. A `trade` is unaffected: it spans two regions by
+  construction and is priced across both at once.
 
 ## Value
 

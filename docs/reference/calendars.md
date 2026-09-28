@@ -23,19 +23,10 @@ A named list of `calendar` objects:
 
   Annual resolution (1 timeslice).
 
-- season_dn:
+- s4_hp3:
 
-  Four seasons x day/night (8 timeslices).
-
-- utopia_seasons:
-
-  UTOPIA: 4 seasons x 3 dayparts (DAY/NIGHT/PEAK) with representative
-  shares (12 timeslices).
-
-- unit_s4, unit_s4h4:
-
-  Perfectly symmetric unit calendars for the hand-computable
-  `utopia$modules$unit` kits.
+  Four seasons x three hour types `DAY/NIGHT/PEAK`, day-proportional
+  seasons and a uniform 12/8/4 split (12 timeslices).
 
 - m12, m12a:
 
@@ -53,11 +44,11 @@ A named list of `calendar` objects:
 
 - s4_h24:
 
-  Seasons x 24 hours (96 timeslices) – the UTOPIA base calendar.
+  Seasons x 24 hours (96 timeslices) – the TOPIA base calendar.
 
 - m12_h24:
 
-  Months x 24 hours (288 timeslices) – the higher-resolution UTOPIA
+  Months x 24 hours (288 timeslices) – the higher-resolution TOPIA
   option.
 
 - wd7_h24:
@@ -109,6 +100,13 @@ would renormalise the shares) with the surviving `sum(share)` passed as
 `year_fraction`. The hourly `d365_h24*` entries come from IDEEA. See
 `data-raw/calendars.R` for the generating script.
 
+## Details
+
+Only GENERIC calendars are shipped. Calendars belonging to a particular
+model travel with it: the TOPIA teaching calendar is
+`topia$modules$calendars$topia_seasons`, and the unit kits' symmetric
+calendars are `topia$modules$unit$calendars`.
+
 ## See also
 
 [`newCalendar()`](https://energyRt.org/reference/newCalendar.md),
@@ -119,12 +117,11 @@ would renormalise the shares) with the surviving `sum(share)` passed as
 
 ``` r
 names(calendars)
-#>  [1] "season_dn"              "d365"                   "annual"                
-#>  [4] "utopia_seasons"         "unit_s4"                "unit_s4h4"             
-#>  [7] "d365_h24"               "m12"                    "m12a"                  
-#> [10] "q4"                     "s4"                     "s4_h24"                
-#> [13] "m12_h24"                "wd7_h24"                "w52_h24"               
-#> [16] "s4_h24_subset_2seasons" "m12_h24_subset_4months" "m12_subset_q1"         
-#> [19] "d365_h24_1dps"          "d365_h24_1dpm"         
-plot(calendars$season_dn)
+#>  [1] "annual"                 "d365"                   "d365_h24"              
+#>  [4] "m12"                    "m12a"                   "q4"                    
+#>  [7] "s4"                     "s4_h24"                 "m12_h24"               
+#> [10] "wd7_h24"                "w52_h24"                "s4_h24_subset_2seasons"
+#> [13] "m12_h24_subset_4months" "m12_subset_q1"          "d365_h24_1dps"         
+#> [16] "d365_h24_1dpm"          "s4_hp3"                
+plot(calendars$s4_hp3)
 ```

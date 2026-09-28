@@ -8,6 +8,7 @@
 #' @slot commodity `r get_slot_doc("demand", "commodity")`
 #' @slot unit `r get_slot_doc("demand", "unit")`
 #' @slot demand `r get_slot_doc("demand", "demand")`
+#' @slot cluster `r get_slot_doc("demand", "cluster")`
 #' @slot region `r get_slot_doc("demand", "region")`
 #' @slot misc `r get_slot_doc("demand", "misc")`
 #'
@@ -22,6 +23,7 @@ setClass("demand",
     commodity = "character",
     unit = "character",
     demand = "data.frame",
+    cluster = "data.frame",
     region = "character",
     misc = "list"
   ),
@@ -31,10 +33,34 @@ setClass("demand",
     unit = "",
     region = character(),
     demand = data.frame(
+      cluster = character(),
       region = character(),
       year = integer(),
       timeslice = character(),
       demand = numeric(),
+      stringsAsFactors = FALSE
+    ),
+    # Declaration of the demand's parallel parts. For demand a cluster is a
+    # SUB-REGIONAL SHARE: the object carries one coarse total and each cluster
+    # takes a fixed fraction of it in one finer region. Variant expansion mints
+    # one `dem` set member per cluster, and `pDemand` is indexed by `dem`, so
+    # the parts are summed back by `eqDemInp` -- the coarse figure is the
+    # AGGREGATE of its children and stays the number you edit.
+    #
+    # Only `dem.share.fx`, and deliberately so. A `lo`/`up` split would need
+    # the LP to CHOOSE where load sits, and there is no variable indexed by
+    # `dem` for such a bound to act on: `pDemand` sits on the right-hand side
+    # of an equality. Fixed is what the data supports.
+    #
+    # Shares are fractions of THIS object's total and must sum to 1, so one
+    # demand object is one coarse region -- several zones are several objects,
+    # the same way one `lossTranches()` object is one line.
+    cluster = data.frame(
+      cluster = character(),
+      desc = character(),
+      region = character(),
+      dem.share.fx = numeric(),
+      order = integer(),
       stringsAsFactors = FALSE
     ),
     misc = list()
@@ -53,6 +79,7 @@ setMethod("initialize", "demand", function(.Object, ...) {
 #' @param commodity `r get_slot_doc("demand", "commodity")`
 #' @param unit `r get_slot_doc("demand", "unit")`
 #' @param demand `r get_slot_doc("demand", "demand")`
+#' @param cluster `r get_slot_doc("demand", "cluster")`
 #' @param region `r get_slot_doc("demand", "region")`
 #' @param misc `r get_slot_doc("demand", "misc")`
 #'
@@ -84,6 +111,7 @@ newDemand <- function(
     commodity = character(),
     unit = character(),
     demand = data.frame(),
+    cluster = data.frame(),
     region = character(),
     misc = list(),
     ...)
@@ -93,6 +121,7 @@ newDemand <- function(
     commodity = commodity,
     unit = unit,
     demand = demand,
+    cluster = cluster,
     region = region,
     misc = misc,
     ...

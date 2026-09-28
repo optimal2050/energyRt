@@ -118,8 +118,8 @@ TECH01 <- newTechnology(
     cinp2use = c(NA, NA, .5, NA, NA, NA, rep(NA, 3)),
     use2cact = c(rep(NA, 6), .36, .4, .36),
     cact2cout = c(rep(NA, 6), .3, NA, .6),
-    share.lo = c(.01, .02, NA, .07, .08, .0, .03, NA, .06),
-    share.up = c(.91, .92, NA, .97, .98, 1, .83, NA, .96)
+    grp.share.lo = c(.01, .02, NA, .07, .08, .0, .03, NA, .06),
+    grp.share.up = c(.91, .92, NA, .97, .98, 1, .83, NA, .96)
   ),
   aeff = data.frame(
     acomm = c("AUX1", "AUX2", "AUX3", "AUX4"),

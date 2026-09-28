@@ -197,6 +197,56 @@ newTrade(
   declared in the GLPK and GAMS templates and read by no equation; it
   has been removed and was never this slot.)
 
+- cluster:
+
+  data.frame. Declaration of the object's parallel sub-lines. For trade
+  a cluster is a LOSS TRANCHE: one segment of a piecewise-linear
+  approximation of the quadratic loss curve, with its own share of the
+  capacity and its own `teff`. Real losses go as `r * f^2`, so the loss
+  FRACTION rises with loading – which a single `teff` cannot express,
+  since under it a half-loaded and a fully-loaded line lose the same
+  proportion. This slot declares WHAT the tranches are; the per-tranche
+  values live in the `cluster` column of the variant-varying slots
+  (`trade`, `capacity`, ...). Build both with
+  [`lossTranches()`](https://energyRt.org/reference/lossTranches.md)
+  rather than by hand. There is deliberately no `region` column: a trade
+  object has no `region` slot – its scope comes from the route endpoints
+  – so a region here could restrict nothing, and its absence rejects the
+  mistake at construction rather than deep inside variant expansion.
+  Optional. When empty, tranche labels are harvested from the `cluster`
+  columns of the other slots. When populated it is AUTHORITATIVE. The
+  share columns are different levers, not substitutes. `cap.share.fx`
+  fixes the ratio of the variants' CAPACITIES in every year: loss
+  tranches need it, because each tranche efficiency is calibrated to its
+  place in the capacity stack and the flow must stay free to fill the
+  cheapest first. `act.share.lo/up/fx` bounds a variant share of the
+  family THROUGHPUT instead, which is what stops a clustered family
+  collapsing to its cheapest member once regional borders are aggregated
+  away. Both are optional; a variant with neither sizes and runs freely.
+
+  cluster
+
+  :   character. Tranche label, used in the expanded object name.
+
+  desc
+
+  :   character. Description of the tranche.
+
+  share
+
+  :   numeric. Fraction of the line's capacity this tranche occupies.
+      The shares must sum to 1: the tranche efficiencies are derived
+      from them (`lambda_t = loss_full * (alpha_t-1 + alpha_t)`) and are
+      calibrated only when they do. Declaring shares is also what makes
+      the capacities of an INVESTABLE line be tied to those proportions
+      – without the tie the solver would build the whole corridor as the
+      lowest-loss tranche and the approximation would collapse.
+
+  order
+
+  :   integer. Fill order, 1 = the lowest-loss tranche. Without it
+      labels sort alphabetically, so "T10" would precede "T2".
+
 - invcost:
 
   data.frame. Investment cost of the trade capacity, as a RATE PER

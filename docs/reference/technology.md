@@ -242,20 +242,20 @@ update(object, ...)
 
   :   numeric. Commodity-input-to-group-input coefficient, default is 1.
 
-  share.lo
+  grp.share.lo
 
   :   numeric. Lower bound on a share of commodity within a group,
       default is 0.
 
-  share.up
+  grp.share.up
 
   :   numeric. Upper bound on a share of commodity within a group,
       default is 1.
 
-  share.fx
+  grp.share.fx
 
   :   numeric. Fixed share of commodity within a group, ignored if NA.
-      This parameter overrides `share.lo` and `share.up`.
+      This parameter overrides `grp.share.lo` and `grp.share.up`.
 
   afc.lo
 
@@ -823,7 +823,15 @@ update(object, ...)
   those columns. When populated it is authoritative – a label used in a
   slot but not declared here raises an error instead of silently
   creating an extra technology with default (often unbounded)
-  parameters.
+  parameters. The share columns are different levers, not substitutes.
+  `cap.share.fx` fixes the ratio of the variants' CAPACITIES in every
+  year: loss tranches need it, because each tranche efficiency is
+  calibrated to its place in the capacity stack and the flow must stay
+  free to fill the cheapest first. `act.share.lo/up/fx` bounds a variant
+  share of the family THROUGHPUT instead, which is what stops a
+  clustered family collapsing to its cheapest member once regional
+  borders are aggregated away. Both are optional; a variant with neither
+  sizes and runs freely.
 
   cluster
 

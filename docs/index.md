@@ -127,12 +127,12 @@ walks through this example and the ideas behind it.
 - **Storage** — intra-day to seasonal, with charge/discharge
   efficiencies, per-part capacities and cycle closure. →
   [Storage](https://energyrt.org/articles/storage.html)
-- **UTOPIA teaching model** — a complete multi-region electricity model
-  built step by step, shipped as `utopia$modules` with ready scenario
+- **TOPIA teaching model** — a complete multi-region electricity model
+  built step by step, shipped as `topia$modules` with ready scenario
   levers (CO₂ cap, carbon tax, renewable share, nuclear moratorium). →
-  [UTOPIA I: building the
-  model](https://energyrt.org/articles/utopia-build.html) · [UTOPIA II:
-  running scenarios](https://energyrt.org/articles/utopia-use.html)
+  [TOPIA I: building the
+  model](https://energyrt.org/articles/topia-build.html) · [TOPIA II:
+  running scenarios](https://energyrt.org/articles/topia-use.html)
 - **Levelized cost** —
   [`levcost()`](https://energyRt.org/reference/levcost.md) prices a
   technology *a-priori* (screening, textbook LCOE) or *ex-post* from a
@@ -153,7 +153,7 @@ walks through this example and the ideas behind it.
 - [Get started](https://energyrt.org/articles/energyRt.html) — the core
   idea in ten minutes.
 - [Tutorials](https://energyrt.org/articles/) — installation, solver
-  backends, model bricks, UTOPIA, workflow, plotting.
+  backends, model bricks, TOPIA, workflow, plotting.
 - [IDEEA](https://ideea-model.github.io/IDEEA/) — an open multi-region
   model of India’s power system, built with energyRt: a production-scale
   application.
@@ -176,10 +176,9 @@ Rtools** — no extra setup. For Julia/JuMP, Python/Pyomo, or GAMS see the
 the [solver backends
 article](https://energyrt.org/articles/backends.html).
 
-Geoscale features
-([`utopia_geoscale()`](https://energyRt.org/reference/utopia_geoscale.md),
-[`plot_geoscale()`](https://energyRt.org/reference/plot_geoscale.md),
-multi-level regions) need the sibling package, which is not on CRAN:
+`geoscales` is a hard dependency (the `topia$geoscales` layouts are
+[`geoscales::Geoscale`](https://optimal2050.github.io/geoscales/r/reference/Geoscale.html)
+objects) and is not on CRAN, so install it from GitHub:
 
 ``` r
 
@@ -203,11 +202,10 @@ pak::pkg_install("optimal2050/geoscales")
     [Units](https://energyrt.org/articles/units.html) → [Time
     resolution](https://energyrt.org/articles/time-resolution.html) —
     what the objects are and how they fit together.
-6.  [UTOPIA I: building the
-    model](https://energyrt.org/articles/utopia-build.html) → [UTOPIA
-    II: running
-    scenarios](https://energyrt.org/articles/utopia-use.html) — a full
-    multi-region model and its scenario levers.
+6.  [TOPIA I: building the
+    model](https://energyrt.org/articles/topia-build.html) → [TOPIA II:
+    running scenarios](https://energyrt.org/articles/topia-use.html) — a
+    full multi-region model and its scenario levers.
 7.  [Workflow](https://energyrt.org/articles/workflow.html) and
     [Scenario
     management](https://energyrt.org/articles/scenario-management.html)

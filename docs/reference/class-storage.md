@@ -51,7 +51,15 @@ cycle will be a calendar day).
   storage (pumped-hydro head classes, CAES caverns) and duration classes
   via a per-cluster `duration`. Optional: when empty, cluster labels are
   harvested from the other slots; when populated it is authoritative and
-  an undeclared label raises an error.
+  an undeclared label raises an error. The share columns are different
+  levers, not substitutes. `cap.share.fx` fixes the ratio of the
+  variants' CAPACITIES in every year: loss tranches need it, because
+  each tranche efficiency is calibrated to its place in the capacity
+  stack and the flow must stay free to fill the cheapest first.
+  `act.share.lo/up/fx` bounds a variant share of the family THROUGHPUT
+  instead, which is what stops a clustered family collapsing to its
+  cheapest member once regional borders are aggregated away. Both are
+  optional; a variant with neither sizes and runs freely.
 
   cluster
 

@@ -218,8 +218,10 @@ scales.
 When several commodities are interchangeable on the input (or output)
 side, put them in a **group**. A group is converted to *use* once (via
 `ginp2use` in `geff`), and each member’s contribution is bounded by a
-**share** (`share.lo`/`share.up`/`share.fx`). `cinp2ginp` converts each
-commodity into the group’s common unit.
+**share** (`grp.share.lo`/`grp.share.up`/`grp.share.fx` – named for the
+GROUP they share, since `cap.share.fx` and `act.share.*` on `@cluster`
+are different things). `cinp2ginp` converts each commodity into the
+group’s common unit.
 
 ``` r
 
@@ -234,7 +236,7 @@ CHP <- newTechnology(
   ceff  = data.frame(comm = c("COA", "BIO", "ELC"),
                     cinp2ginp = c(1, 1, NA),
                     cact2cout = c(NA, NA, 0.4),     # 40% efficiency
-                    share.up  = c(1.0, 0.3, NA)),   # at most 30% biomass
+                    grp.share.up = c(1.0, 0.3, NA)),   # max 30% biomass
   cap2act = 8760)                                   # 1 GW x 8760 h = 8760 GWh
 draw(CHP)
 ```
@@ -265,7 +267,7 @@ Everything a technology does is measured by its **activity**. Installed
   rated in `GW` running flat out for a year produces 8760 GWh, so
   `cap2act = 8760` with activity in `GWh` — and `cap2act = 31.536` for
   the same plant with activity in `PJ` (1 GW × 8760 h = 31.536 PJ),
-  which is the convention *UTOPIA I* uses.
+  which is the convention *TOPIA I* uses.
 - Capacity itself is bounded in the `capacity` slot: `stock`
   (pre-existing), `cap.lo/up/fx` (total), `ncap.lo/up/fx` (new builds)
   and `ret.lo/up/fx` (retirement). Availability factors `af`/`afs` bound
@@ -555,7 +557,7 @@ mod <- newModel(
   name     = "demo",
   data     = repo,
   region   = "R1",
-  calendar = calendars$season_dn,
+  calendar = calendars$s4_hp3,
   horizon  = newHorizon(period = 2020:2050, intervals = c(1, 10, 10, 10)))
 mod
 #> Name:  demo
@@ -602,7 +604,7 @@ pass `timeframe = "native"` to keep the model’s sub-annual calendar and
 normalise by total generation. If an input commodity has no supply in
 the container it returns `NULL` with a message unless
 `autocomplete = TRUE` (or a `fuel_costs =` price) supplies it. See
-*UTOPIA I* (a-priori screening across technologies) and *UTOPIA II*
+*TOPIA I* (a-priori screening across technologies) and *TOPIA II*
 (ex-post cost with `autoplot`) for worked numbers.
 
 ## See also

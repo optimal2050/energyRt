@@ -8,11 +8,8 @@ solves a scenario that was already interpolated with
 [`interpolate_model()`](https://energyRt.org/reference/interpolate_model.md)
 and errors otherwise. Both reuse the write / run / read framework
 (`.executeScenario()`); all solver backends (GLPK/GMPL, GAMS, Pyomo,
-JuMP) work unchanged. The transitional names
-[`solve_mod()`](https://energyRt.org/reference/energyRt-deprecated.html)
-/
-[`solve_scen()`](https://energyRt.org/reference/energyRt-deprecated.html)
-are deprecated aliases.
+JuMP) work unchanged. The transitional names `solve_mod()` /
+`solve_scen()` are deprecated aliases.
 
 ## Usage
 

@@ -1482,7 +1482,7 @@ fill_variable_domains <- function(model, prefer = c("spec", "hint"),
 #' energyRt's GAMS model code, as shipped
 #'
 #' energyRt `.Rbuildignore`s its `gams/` directory, so `system.file()` finds
-#' nothing in an *installed* energyRt and [.energyrt_gms()] returns NULL - which
+#' nothing in an *installed* energyRt and `.energyrt_gms()` returns NULL - which
 #' meant `gms = NULL` could never resolve and every caller had to point at a
 #' source checkout.
 #'
@@ -1519,7 +1519,7 @@ fill_variable_domains <- function(model, prefer = c("spec", "hint"),
 #'   energyRt ships in `.modelCode$GAMS`, which needs no source checkout and
 #'   matches the installed energyRt version. Pass a path to read a working
 #'   tree instead, or a character vector of GAMS source directly.
-#' @param prefer Passed to [fill_variable_domains()].
+#' @param prefer Passed to `fill_variable_domains()`.
 #' @param inMemory Load the scenario's data into memory. Must be `TRUE` for a
 #'   folded scenario (the lazy path cannot expand wildcards) - see
 #'   [multimod_import_data()].

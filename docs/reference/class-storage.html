@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9002</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9006</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -35,6 +35,7 @@
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/topia-build.html">TOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/topia-use.html">TOPIA II: running scenarios</a></li>
+    <li><a class="dropdown-item" href="../articles/region-aggregation.html">TOPIA III: multi-level region</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
     <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
@@ -108,7 +109,7 @@ the storage cycle will be a calendar day).</p>
 
 
 <dt><code>cluster</code></dt>
-<dd><p>data.frame. Declaration of the storage clusters – parallel sub-processes of the same storage with their own capacity, availability and costs. The motivating cases are site-constrained storage (pumped-hydro head classes, CAES caverns) and duration classes via a per-cluster <code>duration</code>. Optional: when empty, cluster labels are harvested from the other slots; when populated it is authoritative and an undeclared label raises an error.</p><dl><dt>cluster</dt>
+<dd><p>data.frame. Declaration of the storage clusters – parallel sub-processes of the same storage with their own capacity, availability and costs. The motivating cases are site-constrained storage (pumped-hydro head classes, CAES caverns) and duration classes via a per-cluster <code>duration</code>. Optional: when empty, cluster labels are harvested from the other slots; when populated it is authoritative and an undeclared label raises an error. The share columns are different levers, not substitutes. <code>cap.share.fx</code> fixes the ratio of the variants' CAPACITIES in every year: loss tranches need it, because each tranche efficiency is calibrated to its place in the capacity stack and the flow must stay free to fill the cheapest first. <code>act.share.lo/up/fx</code> bounds a variant share of the family THROUGHPUT instead, which is what stops a clustered family collapsing to its cheapest member once regional borders are aggregated away. Both are optional; a variant with neither sizes and runs freely.</p><dl><dt>cluster</dt>
 <dd><p>character. Cluster label. Must match the <code>cluster</code> column values used in the other slots.</p></dd>
 
 <dt>desc</dt>

@@ -1,7 +1,7 @@
 # Workflow: working with results and scenarios
 
-Once a model is **built** (see *Model bricks* and *UTOPIA I*) and
-**solved** (see *Solver backends* and *UTOPIA II*), a handful of utility
+Once a model is **built** (see *Model bricks* and *TOPIA I*) and
+**solved** (see *Solver backends* and *TOPIA II*), a handful of utility
 functions do the rest of the day-to-day work: pull objects and results
 out, edit a piece and re-solve, organize scenarios on disk, and compare
 runs. This article tours that layer.
@@ -13,7 +13,7 @@ library(dplyr)
 library(ggplot2)
 ```
 
-We use the packaged single-region UTOPIA kit as a running example, and
+We use the packaged single-region TOPIA kit as a running example, and
 keep every store — scenarios, models, repositories and the registry —
 under a temporary folder. All four matter:
 [`save_scenario()`](https://energyRt.org/reference/save_scenario.md)
@@ -28,11 +28,11 @@ set_models_path(file.path(wf, "models"))                # ... and models
 set_repositories_path(file.path(wf, "repositories"))    # ... and repositories
 set_registry_file(file.path(wf, "energyRt_registry.csv"))
 
-um  <- utopia$modules$electricity$R1
-mod <- newModel("UTOPIA", data = um$repo,
-                calendar = utopia$modules$calendars$s4_h24,
+um  <- topia$modules$electricity$R1
+mod <- newModel("TOPIA", data = um$repo,
+                calendar = topia$modules$calendars$s4_h24,
                 region   = um$regions,
-                horizon  = utopia$modules$horizons$base, discount = 0.05)
+                horizon  = topia$modules$horizons$base, discount = 0.05)
 ```
 
 ``` r
@@ -57,7 +57,7 @@ their data). By default it returns a named list keyed by object name;
 repo <- um$repo
 names(getObject(repo, class = "technology"))        # all technologies
 #> [1] "ECOA" "EGAS" "ENUC" "ESOL" "EWIN" "EHYD" "EBIO"
-names(getObject(repo, class = "supply", region = "R1"))
+names(getObject(repo, class = "supply", region = "W1"))
 #> [1] "SUP_COA" "SUP_BIO" "SUP_NUC" "RES_SOL" "RES_WIN"
 getObject(repo, name = "ECOA", drop = TRUE)@invcost # the ECOA object itself
 #>   vintage cluster region year invcost wacc payback eac retcost
@@ -87,10 +87,10 @@ head(gen[, c("scenario", "tech", "region", "year", "timeslice", "value")], 4)
 #> # A tibble: 4 × 6
 #>   scenario tech  region  year timeslice  value
 #>   <chr>    <chr> <chr>  <int> <chr>      <dbl>
-#> 1 BASE     ECOA  R1      2020 WIN_h00   0.151 
-#> 2 BASE     ECOA  R1      2020 WIN_h01   0.0882
-#> 3 BASE     ECOA  R1      2020 WIN_h02   0.0501
-#> 4 BASE     ECOA  R1      2020 WIN_h03   0.0253
+#> 1 BASE     ECOA  W1      2020 WIN_h00   0.151 
+#> 2 BASE     ECOA  W1      2020 WIN_h01   0.0882
+#> 3 BASE     ECOA  W1      2020 WIN_h02   0.0501
+#> 4 BASE     ECOA  W1      2020 WIN_h03   0.0253
 ```
 
 The `...` accept set filters, exact (`comm = "ELC"`) or regex
@@ -146,9 +146,9 @@ ECOA <- getObject(repo, name = "ECOA", drop = TRUE)
 ECOA <- update(ECOA, invcost = data.frame(invcost = 2500))  # pricier coal capex
 repo_hi <- add(repo, ECOA, overwrite = TRUE)                # swap it back in
 
-mod_hi  <- newModel("UTOPIA_HI", data = repo_hi,
-                    calendar = utopia$modules$calendars$s4_h24,
-                    region = um$regions, horizon = utopia$modules$horizons$base,
+mod_hi  <- newModel("TOPIA_HI", data = repo_hi,
+                    calendar = topia$modules$calendars$s4_h24,
+                    region = um$regions, horizon = topia$modules$horizons$base,
                     discount = 0.05)
 ```
 
@@ -174,9 +174,9 @@ scenario and model sharing a name appear once):
 ``` r
 
 get_scenarios_path()
-#> [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpOaP0wW/wf"
+#> [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpOsRTbt/wf"
 basename(scen@path)
-#> [1] "BASE-UTOPIA-s4_h24-base"
+#> [1] "BASE-TOPIA-s4_h24-base"
 ```
 
 Saving a scenario writes an **Arrow-backed** folder that mirrors the
@@ -256,7 +256,7 @@ identical(getScenario("BASE")@name, ld@name)
 ``` r
 
 basename(saved@path)                                 # the scenario folder
-#> [1] "BASE-UTOPIA-s4_h24-base"
+#> [1] "BASE-TOPIA-s4_h24-base"
 isInMemory(saved)                                    # FALSE -- data is on disk
 #> [1] FALSE
 getData(ld, "vObjective", merge = TRUE)$value        # lazy read, no full load
@@ -341,7 +341,7 @@ in-memory footprint:
 
 model_size(scen)
 #> model_size: BASE
-#>   parameters : 179 value, 308 maps, 13 sets
+#>   parameters : 179 value, 309 maps, 13 sets
 #>   param rows : 6,720
 #>   estimate   : ~16,298 variables, ~16,972 constraints (from gating maps)
 #>   top parameters by rows:
@@ -361,7 +361,7 @@ model_size(scen)
 #>     pTechEac           20
 #>     pTechStock         14
 size(scen)
-#> [1] "7.2 Mb"
+#> [1] "7.3 Mb"
 ```
 
 For a systematic check that a build is correct *and* efficient,
@@ -397,7 +397,7 @@ slices are representative:
 
 ``` r
 
-tt  <- utopia$modules$calendars$s4_h24@timetable
+tt  <- topia$modules$calendars$s4_h24@timetable
 tt2 <- tt[tt$SEASON %in% c("WIN", "SUM"), ]      # two of the four seasons
 cal2 <- newCalendar(timetable = tt2, name = "s2h24",
                     year_fraction = sum(tt2$share))
@@ -431,7 +431,7 @@ there is **no reweighting**: regional quantities are extensive, so the
 objective is the sub-territory’s own, and disjoint samples *add up* to
 the full model (absent cross-boundary trade).
 
-UTOPIA is single-region, so a compact three-region demo:
+TOPIA is single-region, so a compact three-region demo:
 
 ``` r
 
@@ -545,11 +545,13 @@ goes; omit them and you get exactly the flat stub as before.
 
 m12w <- subset_model_regions(m3, c("R1", "R2"), boundary_prices = bw)
 stub <- m12w@data[["boundary_stubs"]]@data[[1]]
-as.data.frame(stub@cluster)[, c("cluster", "share", "order")]
-#>   cluster     share order
-#> 1      S1 0.3333333     1
-#> 2      S2 0.3333333     2
-#> 3      S3 0.3333333     3
+# `@cluster` declares WHAT the steps are; the split itself is enforced in the
+# quantity bound, so read it there rather than from a descriptive copy
+as.data.frame(stub@cluster)[, c("cluster", "desc", "order")]
+#>   cluster                                         desc order
+#> 1      S1 step 1 of 3: 0-0.3333 of quantity at 36.6667     1
+#> 2      S2 step 2 of 3: 0.3333-0.6667 of quantity at 30     2
+#> 3      S3 step 3 of 3: 0.6667-1 of quantity at 23.3333     3
 ```
 
 ### Region by region
@@ -615,9 +617,8 @@ sweep above, whose disjoint pieces do add up.
 
 ## See also
 
-- **Model bricks** and **UTOPIA I** — building the objects and the
-  model.
-- **Solver backends** and **UTOPIA II** — interpolating and solving.
+- **Model bricks** and **TOPIA I** — building the objects and the model.
+- **Solver backends** and **TOPIA II** — interpolating and solving.
 - [`?getData`](https://energyRt.org/reference/getData.md),
   [`?getObject`](https://energyRt.org/reference/getObject.md),
   [`?update`](https://energyRt.org/reference/newDemand.html),

@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9006</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -54,8 +54,9 @@
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
-    <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
-    <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
+    <li><a class="dropdown-item" href="../articles/topia-build.html">TOPIA I: building the model</a></li>
+    <li><a class="dropdown-item" href="../articles/topia-use.html">TOPIA II: running scenarios</a></li>
+    <li><a class="dropdown-item" href="../articles/region-aggregation.html">TOPIA III: multi-level region</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
     <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
@@ -123,7 +124,7 @@ timeslice count is the main dial between realism and model size:</p>
 <td align="right">1</td>
 </tr>
 <tr class="even">
-<td><code>utopia_seasons</code></td>
+<td><code>topia_seasons</code></td>
 <td>4 seasons × day/night/peak</td>
 <td align="right">12</td>
 </tr>
@@ -145,7 +146,7 @@ timeslice count is the main dial between realism and model size:</p>
 </tbody>
 </table>
 <p>Model variables scale roughly linearly with timeslices — the
-96-timeslice UTOPIA base case solves in seconds on GLPK, the
+96-timeslice TOPIA base case solves in seconds on GLPK, the
 288-timeslice variant is noticeably heavier.</p>
 </div>
 <div class="section level2">
@@ -172,7 +173,7 @@ simplest form lists timeslice names — the year is divided equally:</p>
 <span><span class="co">#&gt; 6: ANNUAL    FAL    h05   FAL_h05 0.01041667      1</span></span></code></pre></div>
 <p>Unequal <strong>shares</strong> are given per timeslice; a nested
 <code>list(&lt;share&gt;, &lt;LEVEL&gt; = ...)</code> attaches child
-levels. UTOPIA’s 12-timeslice calendar makes peak hours short and winter
+levels. TOPIA’s 12-timeslice calendar makes peak hours short and winter
 nights long:</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">tt12</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/calendar.html">make_timetable</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span></span>
@@ -249,15 +250,14 @@ count over 365; seasons are <code>WIN/SPR/SUM/FAL</code> in calendar
 order):</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="va">calendars</span><span class="op">)</span></span>
-<span><span class="co">#&gt;  [1] "season_dn"              "d365"                   "annual"                </span></span>
-<span><span class="co">#&gt;  [4] "utopia_seasons"         "unit_s4"                "unit_s4h4"             </span></span>
-<span><span class="co">#&gt;  [7] "d365_h24"               "m12"                    "m12a"                  </span></span>
-<span><span class="co">#&gt; [10] "q4"                     "s4"                     "s4_h24"                </span></span>
-<span><span class="co">#&gt; [13] "m12_h24"                "wd7_h24"                "w52_h24"               </span></span>
-<span><span class="co">#&gt; [16] "s4_h24_subset_2seasons" "m12_h24_subset_4months" "m12_subset_q1"         </span></span>
-<span><span class="co">#&gt; [19] "d365_h24_1dps"          "d365_h24_1dpm"</span></span>
-<span><span class="va">calendars</span><span class="op">$</span><span class="va">utopia_seasons</span><span class="op">@</span><span class="va">desc</span></span>
-<span><span class="co">#&gt; [1] "UTOPIA: 4 seasons x 3 dayparts (DAY/NIGHT/PEAK), 12 timeslices"</span></span>
+<span><span class="co">#&gt;  [1] "annual"                 "d365"                   "d365_h24"              </span></span>
+<span><span class="co">#&gt;  [4] "m12"                    "m12a"                   "q4"                    </span></span>
+<span><span class="co">#&gt;  [7] "s4"                     "s4_h24"                 "m12_h24"               </span></span>
+<span><span class="co">#&gt; [10] "wd7_h24"                "w52_h24"                "s4_h24_subset_2seasons"</span></span>
+<span><span class="co">#&gt; [13] "m12_h24_subset_4months" "m12_subset_q1"          "d365_h24_1dps"         </span></span>
+<span><span class="co">#&gt; [16] "d365_h24_1dpm"          "s4_hp3"</span></span>
+<span><span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">topia_seasons</span><span class="op">@</span><span class="va">desc</span></span>
+<span><span class="co">#&gt; [1] "TOPIA: 4 seasons x 3 dayparts (DAY/NIGHT/PEAK), 12 timeslices"</span></span>
 <span><span class="va">s4</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">calendars</span><span class="op">$</span><span class="va">s4</span><span class="op">@</span><span class="va">timetable</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"SEASON"</span>, <span class="st">"share"</span><span class="op">)</span><span class="op">]</span></span>
 <span><span class="va">s4</span><span class="op">$</span><span class="va">share</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/Round.html" class="external-link">round</a></span><span class="op">(</span><span class="va">s4</span><span class="op">$</span><span class="va">share</span>, <span class="fl">4</span><span class="op">)</span></span>
 <span><span class="va">s4</span></span>
@@ -274,23 +274,108 @@ timeslices, weights, and storage cycles all follow the sample:</p>
 <code class="sourceCode R"><span><span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24_subset_2seasons</span><span class="op">@</span><span class="va">year_fraction</span>   <span class="co"># WIN + SUM</span></span>
 <span><span class="co">#&gt; [1] 0.4986301</span></span></code></pre></div>
 <p>Pick one and pass it to <code>newModel(calendar = ...)</code>; the
-UTOPIA vignettes use <code>calendars$s4_h24</code> throughout.</p>
+TOPIA vignettes use <code>calendars$s4_h24</code> throughout.</p>
 </div>
 <div class="section level2">
-<h2 id="timeslice-string-helpers">Timeslice-string helpers<a class="anchor" aria-label="anchor" href="#timeslice-string-helpers"></a>
+<h2 id="fiscal-and-non-calendar-years">Fiscal and non-calendar years<a class="anchor" aria-label="anchor" href="#fiscal-and-non-calendar-years"></a>
 </h2>
-<p>Timeslice names encode time; a few helpers translate between
-encodings:</p>
+<p>A milestone in energyRt is an <strong>integer</strong> year —
+<code>horizon@intervals$mid</code> — and that stays true whatever the
+reporting convention. What changes for a fiscal year is where the year
+<em>begins</em>, which is a property of the calendar:</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/hour2HOUR.html">hour2HOUR</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">13</span>, <span class="fl">23</span><span class="op">)</span><span class="op">)</span>        <span class="co"># hour of day -&gt; "h00" "h13" "h23"</span></span>
+<code class="sourceCode R"><span><span class="va">cal_fy</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newCalendar.html">newCalendar</a></span><span class="op">(</span></span>
+<span>  timetable  <span class="op">=</span> <span class="fu"><a href="../reference/calendar.html">make_timetable</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>SEASON <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"WINTER"</span>, <span class="st">"SUMMER"</span><span class="op">)</span><span class="op">)</span><span class="op">)</span>,</span>
+<span>  year_start <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/list.html" class="external-link">list</a></span><span class="op">(</span>month <span class="op">=</span> <span class="fl">4L</span>, day <span class="op">=</span> <span class="fl">1L</span><span class="op">)</span>   <span class="co"># April-start, e.g. India, Japan</span></span>
+<span><span class="op">)</span></span>
+<span><span class="va">cal_fy</span><span class="op">@</span><span class="va">year_start</span></span>
+<span><span class="co">#&gt; $month</span></span>
+<span><span class="co">#&gt; [1] 4</span></span>
+<span><span class="co">#&gt; </span></span>
+<span><span class="co">#&gt; $day</span></span>
+<span><span class="co">#&gt; [1] 1</span></span></code></pre></div>
+<p>This follows the convention <code>timescales</code> uses: model year
+<code>y</code> spans <code>[year_start(y), year_start(y + 1))</code>,
+and <code>y</code> is the <strong>starting</strong> Gregorian year, so
+“FY 2021-22” is model year 2021.</p>
+<p>A non-January anchor changes how milestones are <em>displayed</em>.
+<code><a href="../reference/year_label.html">year_label()</a></code> gives one label per milestone:</p>
+<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="va">hor</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newHorizon.html">newHorizon</a></span><span class="op">(</span><span class="fl">2025</span><span class="op">:</span><span class="fl">2034</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">4</span>, <span class="fl">5</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newModel.html">newModel</a></span><span class="op">(</span><span class="st">"fy_demo"</span>, region <span class="op">=</span> <span class="st">"R1"</span>, calendar <span class="op">=</span> <span class="va">cal_fy</span>, horizon <span class="op">=</span> <span class="va">hor</span><span class="op">)</span></span>
+<span></span>
+<span><span class="fu"><a href="../reference/year_label.html">year_label</a></span><span class="op">(</span><span class="va">mod</span><span class="op">)</span></span>
+<span><span class="co">#&gt;        2025        2027        2032 </span></span>
+<span><span class="co">#&gt; "FY2025-26" "FY2027-28" "FY2032-33"</span></span></code></pre></div>
+<p>The label is presentation only. It never reaches the solver: the
+sets, the parameter tables, the backend files and the decoded solution
+all keep the integer year. Ask for labels explicitly when you want
+them:</p>
+<div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen</span>, <span class="st">"vTechCap"</span>, yearsAsFactors <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>   <span class="co"># year as labelled factor</span></span>
+<span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">scen</span>, <span class="st">"vTechCap"</span><span class="op">)</span>                          <span class="co"># year as integer (default)</span></span></code></pre></div>
+<p>To name periods yourself — whether or not a fiscal calendar is
+involved — give <code>intervals</code> a <code>label</code> column. An
+explicit label always wins over the derived one, and labels must be
+unique:</p>
+<div class="sourceCode" id="cb11"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/newHorizon.html">newHorizon</a></span><span class="op">(</span>intervals <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span>
+<span>  start <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2025</span>, <span class="fl">2030</span><span class="op">)</span>,</span>
+<span>  mid   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2025</span>, <span class="fl">2030</span><span class="op">)</span>,</span>
+<span>  end   <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">2029</span>, <span class="fl">2034</span><span class="op">)</span>,</span>
+<span>  label <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"FY2025-26"</span>, <span class="st">"FY2030-31"</span><span class="op">)</span></span>
+<span><span class="op">)</span><span class="op">)</span><span class="op">@</span><span class="va">intervals</span></span>
+<span><span class="co">#&gt;    start   mid   end     label</span></span>
+<span><span class="co">#&gt;    &lt;int&gt; &lt;int&gt; &lt;int&gt;    &lt;char&gt;</span></span>
+<span><span class="co">#&gt; 1:  2025  2025  2025 FY2025-26</span></span>
+<span><span class="co">#&gt; 2:  2026  2026  2029      2026</span></span>
+<span><span class="co">#&gt; 3:  2030  2030  2034 FY2030-31</span></span></code></pre></div>
+<p>One limit worth knowing: because the key is the integer
+<code>mid</code>, two milestones cannot share a calendar year. Labels
+rename periods; they do not add them.</p>
+<p>The anchor is currently carried and reported, not acted on — it sets
+the default labels and travels with the calendar, but
+timeslice-to-timestamp alignment and <code>year_fraction</code> still
+work on the calendar year.</p>
+</div>
+<div class="section level2">
+<h2 id="reading-time-off-a-timeslice">Reading time off a timeslice<a class="anchor" aria-label="anchor" href="#reading-time-off-a-timeslice"></a>
+</h2>
+<p>A timeslice name is a label, not a data structure: what
+<code>"d100_h20"</code> means is decided by the calendar it belongs to,
+so every conversion takes that calendar. They live in <a href="https://optimal2050.github.io/timescales/" class="external-link">timescales</a>, which
+owns the calendar vocabulary:</p>
+<div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://optimal2050.github.io/timescales/r/" class="external-link">timescales</a></span><span class="op">)</span></span>
+<span></span>
+<span><span class="co"># label -&gt; number. The calendar is consulted; the text is never parsed.</span></span>
+<span><span class="fu"><a href="https://optimal2050.github.io/timescales/r/reference/timeslice_conversions.html" class="external-link">tsl2hour</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"d001_h00"</span>, <span class="st">"d100_h20"</span><span class="op">)</span>, <span class="st">"d365_h24"</span><span class="op">)</span>    <span class="co"># 0 20</span></span>
+<span><span class="co">#&gt; [1]  0 20</span></span>
+<span><span class="fu"><a href="https://optimal2050.github.io/timescales/r/reference/timeslice_conversions.html" class="external-link">tsl2yday</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"d001_h00"</span>, <span class="st">"d100_h20"</span><span class="op">)</span>, <span class="st">"d365_h24"</span><span class="op">)</span>    <span class="co"># 1 100</span></span>
+<span><span class="co">#&gt; [1]   1 100</span></span>
+<span></span>
+<span><span class="co"># MONTH is not a timeframe of d365_h24 -- it is derived from the calendar</span></span>
+<span><span class="fu"><a href="https://optimal2050.github.io/timescales/r/reference/timeslice_conversions.html" class="external-link">tsl2month</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"d001_h00"</span>, <span class="st">"d100_h20"</span><span class="op">)</span>, <span class="st">"d365_h24"</span><span class="op">)</span>   <span class="co"># 1 4</span></span>
+<span><span class="co">#&gt; [1] 1 4</span></span>
+<span></span>
+<span><span class="co"># number -&gt; label</span></span>
+<span><span class="fu"><a href="https://optimal2050.github.io/timescales/r/reference/timeslice_conversions.html" class="external-link">hour2HOUR</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">0</span>, <span class="fl">13</span>, <span class="fl">23</span><span class="op">)</span><span class="op">)</span>                            <span class="co"># "h00" "h13" "h23"</span></span>
 <span><span class="co">#&gt; [1] "h00" "h13" "h23"</span></span>
-<span><span class="fu"><a href="../reference/yday2YDAY.html">yday2YDAY</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">365</span><span class="op">)</span><span class="op">)</span>           <span class="co"># day of year -&gt; "d001" "d365"</span></span>
-<span><span class="co">#&gt; [1] "d001" "d365"</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="va">tsl_formats</span><span class="op">)</span>              <span class="co"># known timeslice-name formats (a dataset)</span></span>
-<span><span class="co">#&gt; [1] "d364"     "d365"     "d366"     "d364_h24" "d365_h24" "d366_h24"</span></span></code></pre></div>
-<p><code><a href="../reference/timeslices.html">tsl2dtm()</a></code> / <code><a href="../reference/timeslices.html">dtm2tsl()</a></code> convert timeslice
-strings to/from date-times — useful when joining model output with
-observed hourly data.</p>
+<span><span class="fu"><a href="https://optimal2050.github.io/timescales/r/reference/timeslice_conversions.html" class="external-link">yday2YDAY</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">365</span><span class="op">)</span><span class="op">)</span>                               <span class="co"># "d001" "d365"</span></span>
+<span><span class="co">#&gt; [1] "d001" "d365"</span></span></code></pre></div>
+<p>A timeframe is available when the calendar determines it.
+<code><a href="https://optimal2050.github.io/timescales/r/reference/timeslice_conversions.html" class="external-link">tsl2hour()</a></code> works on <code>"d365_h24"</code>, where each
+timeslice is one hour, and is an error on <code>"m12"</code>, where a
+month spans twenty-four of them – rather than returning a guess.</p>
+<p><code><a href="https://optimal2050.github.io/timescales/r/reference/timeslice_datetime.html" class="external-link">tsl2dtm()</a></code> / <code><a href="https://optimal2050.github.io/timescales/r/reference/timeslice_datetime.html" class="external-link">dtm2tsl()</a></code> convert between
+timeslices and date-times, which is what you want when joining model
+output with observed hourly data. Timeslice labels carry no year, so
+<code><a href="https://optimal2050.github.io/timescales/r/reference/timeslice_datetime.html" class="external-link">tsl2dtm()</a></code> asks for one:</p>
+<div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
+<code class="sourceCode R"><span><span class="fu"><a href="https://optimal2050.github.io/timescales/r/reference/timeslice_datetime.html" class="external-link">tsl2dtm</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"d001_h00"</span>, <span class="st">"d100_h20"</span><span class="op">)</span>, <span class="st">"d365_h24"</span>, year <span class="op">=</span> <span class="fl">2021</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "2021-01-01 00:00:00 UTC" "2021-04-10 20:00:00 UTC"</span></span>
+<span><span class="fu"><a href="https://optimal2050.github.io/timescales/r/reference/timeslice_datetime.html" class="external-link">dtm2tsl</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/as.POSIXlt.html" class="external-link">as.POSIXct</a></span><span class="op">(</span><span class="st">"2021-04-10 20:00"</span>, tz <span class="op">=</span> <span class="st">"UTC"</span><span class="op">)</span>, <span class="st">"d365_h24"</span><span class="op">)</span></span>
+<span><span class="co">#&gt; [1] "d100_h20"</span></span></code></pre></div>
 </div>
 <div class="section level2">
 <h2 id="timeframes-commodities-and-processes">Timeframes: commodities and processes<a class="anchor" aria-label="anchor" href="#timeframes-commodities-and-processes"></a>
@@ -298,7 +383,7 @@ observed hourly data.</p>
 <p>Every commodity carries a <code>timeframe</code> — the calendar level
 it is <strong>balanced</strong> on. Fuels are typically
 <code>ANNUAL</code>; electricity <code>HOUR</code>:</p>
-<div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
+<div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">ELC</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newCommodity.html">newCommodity</a></span><span class="op">(</span><span class="st">"ELC"</span>, timeframe <span class="op">=</span> <span class="st">"HOUR"</span><span class="op">)</span>    <span class="co"># balanced every timeslice</span></span>
 <span><span class="va">COA</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newCommodity.html">newCommodity</a></span><span class="op">(</span><span class="st">"COA"</span>, timeframe <span class="op">=</span> <span class="st">"ANNUAL"</span><span class="op">)</span>  <span class="co"># balanced once a year</span></span></code></pre></div>
 <p>A process operates at the <em>finest</em> timeframe among its
@@ -313,16 +398,25 @@ follow it — annual bookkeeping stays cheap.</p>
 <h2 id="choosing-a-resolution">Choosing a resolution<a class="anchor" aria-label="anchor" href="#choosing-a-resolution"></a>
 </h2>
 <ul>
-<li>Start coarse (<code>utopia_seasons</code>-like, ~12 timeslices)
-while the model structure is in flux — solves are instant.</li>
+<li>Start coarse (<code>topia_seasons</code>-like, ~12 timeslices) while
+the model structure is in flux — solves are instant.</li>
 <li>Move to hour-within-season (<code>s4_h24</code>, 96) once storage,
 VRE profiles or peak pricing matter — intra-day dynamics need real
 hours.</li>
 <li>Full-year hourly detail (<code>m12_h24</code>, 288 or
 <code>d365</code>+hours) is for final runs; check tractability with
 <code><a href="../reference/model_size.html">model_size()</a></code> first.</li>
+<li>On a <strong>multi-year</strong> horizon, interpolate with
+<code>fold = TRUE</code>. A weather series that is the same in every
+milestone year is stored once instead of once per year, which is usually
+the single largest saving in an hourly model — on a 4-region
+<code>d365_h24</code> model over 7 milestones it cuts the interpolated
+data by ~84%. Folding only collapses values that are uniform across the
+whole dimension, so it never changes the solution; a model with a
+genuinely different weather year per milestone simply does not
+fold.</li>
 </ul>
-<p>The <a href="utopia-build.html">UTOPIA vignettes</a> build one model
+<p>The <a href="topia-build.html">TOPIA vignettes</a> build one model
 and run it on these calendars interchangeably — resolution is a
 configuration choice, not a rewrite.</p>
 </div>

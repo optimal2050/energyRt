@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9006</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -54,8 +54,9 @@
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
-    <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
-    <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
+    <li><a class="dropdown-item" href="../articles/topia-build.html">TOPIA I: building the model</a></li>
+    <li><a class="dropdown-item" href="../articles/topia-use.html">TOPIA II: running scenarios</a></li>
+    <li><a class="dropdown-item" href="../articles/region-aggregation.html">TOPIA III: multi-level region</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
     <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
@@ -307,9 +308,9 @@ mini-model) or <em>ex-post</em> from a solved scenario;
 <code><a href="../reference/report.html">report()</a></code> renders a technology or process datasheet;
 <code><a href="../reference/draw.html">draw()</a></code> diagrams any technology; <code><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot()</a></code>
 covers calendars, commodities, weather, costs and more.</p>
-<p><strong>A complete teaching model.</strong> The UTOPIA electricity
+<p><strong>A complete teaching model.</strong> The TOPIA electricity
 model ships with the package — both as step-by-step vignettes and as the
-ready <code>utopia$modules</code> data kit with scenario levers
+ready <code>topia$modules</code> data kit with scenario levers
 (CO<sub>2</sub> cap, carbon tax, renewable share, nuclear moratorium) —
 so the path from “hello world” to policy analysis is paved.</p>
 <p>energyRt sits alongside established energy-modeling frameworks (the
@@ -326,11 +327,11 @@ leaving R.</p>
 bricks</a> — every object type in depth, including fuel blends,
 auxiliary flows, and user constraints.</li>
 <li>
-<code><a href="../articles/utopia-build.html">vignette("utopia-build")</a></code> — <em>UTOPIA I</em>: build a
+<code><a href="../articles/topia-build.html">vignette("topia-build")</a></code> — <em>TOPIA I</em>: build a
 multi-region electricity model brick by brick.</li>
 <li>
-<code><a href="../articles/utopia-use.html">vignette("utopia-use")</a></code> — <em>UTOPIA II</em>: solve it
-and run policy scenarios.</li>
+<code><a href="../articles/topia-use.html">vignette("topia-use")</a></code> — <em>TOPIA II</em>: solve it and
+run policy scenarios.</li>
 <li>
 <a href="https://energyrt.org/articles/backends.html" class="external-link">Solver
 backends</a> — GLPK, JuMP, Pyomo, GAMS, and NEOS.</li>

@@ -50,3 +50,9 @@ __pycache__/
 
 # dead code kept locally, not published
 depreciated/
+
+# stray graphics from non-interactive runs: R's default device writes
+# Rplots.pdf into the working directory, and knitr's default fig.path is
+# figure/ -- neither belongs in the repo
+Rplots.pdf
+figure/

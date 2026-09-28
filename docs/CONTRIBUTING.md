@@ -158,8 +158,8 @@ then a `neos_gams_*` solver option).
 **Backend choice by model size.** The default backend for *small* models
 is **GLPK** (`solver_options$glpk`): zero startup cost, no external
 toolchain, and faster end-to-end whenever the solve itself is under ~30
-seconds — the tm/unit test fixtures and the UTOPIA `R1`/`R3` layouts all
-fall here. For **mid-size and sampled models** — the UTOPIA `R7`/`R11`
+seconds — the tm/unit test fixtures and the TOPIA `R1`/`R3` layouts all
+fall here. For **mid-size and sampled models** — the TOPIA `R7`/`R11`
 layouts, hourly or full-year calendars, spatially or temporally sampled
 runs — use **julia/HiGHS** (`solver_options$julia_highs`): its presolve
 and dual simplex dominate once the LP is large or degenerate (a

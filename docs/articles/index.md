@@ -10,6 +10,8 @@
 - [Installation and Settings](https://energyRt.org/articles/install.md):
 - [Model bricks](https://energyRt.org/articles/model-bricks.md):
 - [energyRt model framework](https://energyRt.org/articles/model.md):
+- [Aggregating regions without averaging them
+  away](https://energyRt.org/articles/region-aggregation.md):
 - [Reports and levelized
   costs](https://energyRt.org/articles/reports.md):
 - [Development Status and
@@ -21,10 +23,10 @@
 - [Storage](https://energyRt.org/articles/storage.md):
 - [Time resolution: calendars and
   timeslices](https://energyRt.org/articles/time-resolution.md):
+- [TOPIA I: building the
+  model](https://energyRt.org/articles/topia-build.md):
+- [TOPIA II: running
+  scenarios](https://energyRt.org/articles/topia-use.md):
 - [Units](https://energyRt.org/articles/units.md):
-- [UTOPIA I: building the
-  model](https://energyRt.org/articles/utopia-build.md):
-- [UTOPIA II: running
-  scenarios](https://energyRt.org/articles/utopia-use.md):
 - [Workflow: working with results and
   scenarios](https://energyRt.org/articles/workflow.md):

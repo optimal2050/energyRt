@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9002</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9006</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -35,6 +35,7 @@
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/topia-build.html">TOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/topia-use.html">TOPIA II: running scenarios</a></li>
+    <li><a class="dropdown-item" href="../articles/region-aggregation.html">TOPIA III: multi-level region</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
     <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
@@ -119,6 +120,26 @@ There is deliberately no <code>region</code> column: adding one would turn this 
 
 <dt>res.fx</dt>
 <dd><p>numeric. Fixed cumulative volume. Overrides <code>res.lo</code> and <code>res.up</code>.</p></dd>
+
+
+</dl></dd>
+
+
+<dt><code>cluster</code></dt>
+<dd><p>data.frame. Declaration of the object's parallel sub-objects. For export a cluster is a PRICE STEP of a stepped curve: its own share of the quantity, at its own price. A single price cannot express a curve – real resource grades get dearer as they are exhausted, and a real export market pays less as more volume is pushed into it.
+This slot declares WHAT the steps are; the per-step values live in the <code>cluster</code> column of the other slots. Build both with <code><a href="supply-curve.html">asExportCurve()</a></code>, which also computes the prices and checks the direction of the curve.
+Optional. When empty, step labels are harvested from the <code>cluster</code> columns of the other slots. When populated it is AUTHORITATIVE. LIMITATION – there is deliberately no <code>cap.share.fx</code> column. A capacity share ties the variants' capacities to fixed proportions, and this class has no capacity variable for the tie to act on. The column is absent rather than present-and-ignored, so the mistake is rejected at construction instead of silently doing nothing. Bound the split with <code>act.share.lo/up/fx</code>, which acts on the quantity this class does have, or fix it directly in the per-step bounds. The share columns are different levers, not substitutes. <code>cap.share.fx</code> fixes the ratio of the variants' CAPACITIES in every year: loss tranches need it, because each tranche efficiency is calibrated to its place in the capacity stack and the flow must stay free to fill the cheapest first. <code>act.share.lo/up/fx</code> bounds a variant share of the family THROUGHPUT instead, which is what stops a clustered family collapsing to its cheapest member once regional borders are aggregated away. Both are optional; a variant with neither sizes and runs freely.</p>
+<dl><dt>cluster</dt>
+<dd><p>character. Step label, used in the expanded object name.</p></dd>
+
+<dt>desc</dt>
+<dd><p>character. Description of the step.</p></dd>
+
+<dt>share</dt>
+<dd><p>numeric. The step's fraction of the object's quantity. DESCRIPTIVE, not enforced: unlike <code>technology</code> or <code>trade</code> this class has no capacity variable to tie, so <code><a href="supply-curve.html">asExportCurve()</a></code> writes the split straight into the quantity bounds and records here what it did.</p></dd>
+
+<dt>order</dt>
+<dd><p>integer. Fill order, 1 = the cheapest step (or, for export, the best paid). Without it labels sort alphabetically and "S10" would precede "S2".</p></dd>
 
 
 </dl></dd>

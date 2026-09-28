@@ -10,7 +10,8 @@ either from the model's geoscale (see
 [`setGeoscale()`](https://energyRt.org/reference/setGeoscale.md)) or
 from a `map` supplied by the caller — an `sf` object with `region`, `x`,
 `y` (centroid) columns and polygon `geometry`, such as one of the
-`utopia$map` layouts (`squares`, `honeycomb`, `island`, `continent`).
+`topia$geoscales` layouts (`squares`, `honeycomb`, `island`,
+`continent`).
 
 ## Usage
 
@@ -37,11 +38,11 @@ autoplot(object, map = NULL, ...)
 
 - map:
 
-  An `sf`/data.frame with `region`, `x`, `y` and polygon `geometry`
-  (e.g. `utopia$map$honeycomb`), or a
-  [`geoscales::Geoscale`](https://optimal2050.github.io/geoscales/r/reference/Geoscale.html).
-  When `NULL`, the geoscale attached to `object` is used. Region
-  polygons need `sf`; without it, only centroids and routes are drawn.
+  An `sf`/data.frame with `region`, `x`, `y` and polygon `geometry` or a
+  [`geoscales::Geoscale`](https://optimal2050.github.io/geoscales/r/reference/Geoscale.html)
+  (e.g. `topia$geoscales$honeycomb`). When `NULL`, the geoscale attached
+  to `object` is used. Region polygons need `sf`; without it, only
+  centroids and routes are drawn.
 
 - labels:
 
@@ -70,19 +71,18 @@ When the map carries a coordinate reference system, routes, centroids
 and labels are drawn as `sf` layers rather than raw `x`/`y` ones.
 `geom_sf()` installs a `coord_sf()` that reprojects the polygons but
 would leave a `geom_segment()` untransformed, detaching every route from
-its regions. Maps with no CRS — including the reference `utopia$map`
-layouts — take the plain cartesian path, which is correct for them.
+its regions. Maps with no CRS — including the reference TOPIA layouts —
+take the plain cartesian path, which is correct for them.
 
 ## Examples
 
 ``` r
 if (FALSE) { # \dontrun{
 TRD <- newTrade("TRD_ELC", commodity = "ELC",
-  routes = data.frame(src = c("R1", "R2", "R3"), dst = c("R2", "R7", "R7")))
-autoplot(TRD, map = utopia$map$honeycomb)
+  routes = data.frame(src = c("W1", "W2", "C1"), dst = c("W2", "C5", "C5")))
+autoplot(TRD, map = topia$geoscales$honeycomb)
 
-# or from a geoscale, at any level
-plot_trade_map(TRD, map = utopia_geoscale())
-plot_trade_map(TRD, map = utopia_geoscale(), level = "zone")
+# a geoscale can be drawn at any level
+plot_trade_map(TRD, map = topia$geoscales$honeycomb, level = "zone")
 } # }
 ```

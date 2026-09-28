@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9006</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -54,8 +54,9 @@
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
-    <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
-    <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
+    <li><a class="dropdown-item" href="../articles/topia-build.html">TOPIA I: building the model</a></li>
+    <li><a class="dropdown-item" href="../articles/topia-use.html">TOPIA II: running scenarios</a></li>
+    <li><a class="dropdown-item" href="../articles/region-aggregation.html">TOPIA III: multi-level region</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
     <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
@@ -468,13 +469,13 @@ each gets its own repository and model:</p>
 <span></span>
 <span><span class="va">scen_year</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">mod_year</span>, name <span class="op">=</span> <span class="st">"fy_year"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Solver directory:  scenarios/fy_year-d365_h24_1dpm/runs/glpk </span></span>
-<span><span class="co">#&gt; Writing files: 0.33s</span></span>
+<span><span class="co">#&gt; Writing files: 0.37s</span></span>
 <span><span class="co">#&gt; Starting  GLPK </span></span>
-<span><span class="co">#&gt; 0.16s</span></span>
-<span><span class="co">#&gt; Reading solution: 0.09s</span></span>
+<span><span class="co">#&gt; 0.14s</span></span>
+<span><span class="co">#&gt; Reading solution: 0.11s</span></span>
 <span><span class="va">scen_day</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">mod_day</span>, name <span class="op">=</span> <span class="st">"fy_day"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; Solver directory:  scenarios/fy_day-d365_h24_1dpm/runs/glpk </span></span>
-<span><span class="co">#&gt; Writing files: 0.33s</span></span>
+<span><span class="co">#&gt; Writing files: 0.37s</span></span>
 <span><span class="co">#&gt; Starting  GLPK </span></span>
 <span><span class="co">#&gt; 0.1s</span></span>
 <span><span class="co">#&gt; Reading solution: 0.09s</span></span>
@@ -1288,8 +1289,8 @@ in the evening.</p>
 <span><span class="co">#&gt; Solver directory:  scenarios/solar_battery-d365_h24_1dpm/runs/glpk </span></span>
 <span><span class="co">#&gt; Writing files: 0.25s</span></span>
 <span><span class="co">#&gt; Starting  GLPK </span></span>
-<span><span class="co">#&gt; 0.11s</span></span>
-<span><span class="co">#&gt; Reading solution: 0.09s</span></span></code></pre></div>
+<span><span class="co">#&gt; 0.12s</span></span>
+<span><span class="co">#&gt; Reading solution: 0.11s</span></span></code></pre></div>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">d</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/storage_duration.html">storage_duration</a></span><span class="op">(</span><span class="va">scen</span><span class="op">)</span>                 <span class="co"># 12h / 1d / 1w / 30d by default</span></span>
 <span></span>

@@ -218,7 +218,7 @@ R layer — the GAMS GDX bridge (not on CRAN) plus optional I/O helpers:
 pak::pkg_install("lolow/gdxtools")   # or remotes::install_github("lolow/gdxtools")
 install.packages(c("jsonlite", "readxl", "openxlsx"))
 
-# geoscale features -- utopia_geoscale(), plot_geoscale(), multi-level regions.
+# geoscale features -- topia$geoscales, plot_geoscale(), multi-level regions.
 # A sibling optimal2050 package, not on CRAN:
 pak::pkg_install("optimal2050/geoscales")
 ```
@@ -357,7 +357,7 @@ install.packages("rmarkdown")
 install.packages("tinytex")
 tinytex::install_tinytex()
 
-# maps for plot_trade_map() / the utopia$map layouts
+# maps for plot_trade_map() / the topia$geoscales layouts
 install.packages("sf")
 
 # GAMS gdx exchange

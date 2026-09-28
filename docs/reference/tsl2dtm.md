@@ -58,19 +58,19 @@ Integer vector of months, the same length as the input vector
 ``` r
 tsl <- c("y2007_d365_h15", NA, "d151_h22", "d001", "m10_h12")
 tsl2year(tsl)
-#> [1] 2007   NA   NA   NA   NA
+#> Error in tsl2year(tsl): could not find function "tsl2year"
 tsl
 #> [1] "y2007_d365_h15" NA               "d151_h22"       "d001"          
 #> [5] "m10_h12"       
 tsl2yday(tsl)
-#> [1] 365  NA 151   1  NA
+#> Error in tsl2yday(tsl): could not find function "tsl2yday"
 tsl
 #> [1] "y2007_d365_h15" NA               "d151_h22"       "d001"          
 #> [5] "m10_h12"       
 tsl2hour(tsl)
-#> [1] 15 NA 22 NA 12
+#> Error in tsl2hour(tsl): could not find function "tsl2hour"
 tsl2month(c("d001_h00", "d151_h22", "d365_h23"))
-#> [1]  1  5 12
+#> Error in tsl2month(c("d001_h00", "d151_h22", "d365_h23")): could not find function "tsl2month"
 tsl2month(c("m01_h12", "m05_h02", "m10_h01"))
-#> [1]  1  5 10
+#> Error in tsl2month(c("m01_h12", "m05_h02", "m10_h01")): could not find function "tsl2month"
 ```

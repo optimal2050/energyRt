@@ -148,6 +148,62 @@ newSupply(
   :   numeric. Cost of the resource extraction, if not set, the resource
       is considered free.
 
+- cluster:
+
+  data.frame. Declaration of the object's parallel sub-supplies. For
+  supply a cluster is a PRICE STEP – a resource grade: its own share of
+  the availability and reserve, at its own cost. A single `cost` cannot
+  express a supply curve, where cheap grades are exhausted first and the
+  next ones cost more. This slot declares WHAT the grades are; the
+  per-grade values live in the `cluster` column of `supply`, `reserve`
+  and `weather`. Build both with
+  [`asSupplyCurve()`](https://energyRt.org/reference/supply-curve.md),
+  which also computes the costs and checks that the curve rises.
+  Optional. When empty, labels are harvested from the `cluster` columns
+  of the other slots. When populated it is AUTHORITATIVE. LIMITATION –
+  there is deliberately no `cap.share.fx` column. A capacity share ties
+  the variants' capacities to fixed proportions, and this class has no
+  capacity variable for the tie to act on. The column is absent rather
+  than present-and-ignored, so the mistake is rejected at construction
+  instead of silently doing nothing. Bound the split with
+  `act.share.lo/up/fx`, which acts on the quantity this class does have,
+  or fix it directly in the per-step bounds. The share columns are
+  different levers, not substitutes. `cap.share.fx` fixes the ratio of
+  the variants' CAPACITIES in every year: loss tranches need it, because
+  each tranche efficiency is calibrated to its place in the capacity
+  stack and the flow must stay free to fill the cheapest first.
+  `act.share.lo/up/fx` bounds a variant share of the family THROUGHPUT
+  instead, which is what stops a clustered family collapsing to its
+  cheapest member once regional borders are aggregated away. Both are
+  optional; a variant with neither sizes and runs freely.
+
+  cluster
+
+  :   character. Grade label, used in the expanded object name.
+
+  desc
+
+  :   character. Description of the grade.
+
+  region
+
+  :   character. Region(s) the grade exists in, NA for everywhere.
+      Intersected with the object's own `region` slot.
+
+  share
+
+  :   numeric. The grade's fraction of the object's quantity.
+      DESCRIPTIVE, not enforced: supply has no capacity variable to tie,
+      so
+      [`asSupplyCurve()`](https://energyRt.org/reference/supply-curve.md)
+      writes the split straight into `ava.*` / `res.*` and records here
+      what it did.
+
+  order
+
+  :   integer. Fill order, 1 = the cheapest grade. Without it labels
+      sort alphabetically and "S10" would precede "S2".
+
 - region:
 
   character. Regions where the supply process exists. Must include all

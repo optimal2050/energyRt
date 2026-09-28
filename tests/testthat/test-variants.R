@@ -260,3 +260,101 @@ test_that("an activity share must be a fraction", {
                                        name = "ASBAD", overwrite = TRUE)),
     "between 0 and 1")
 })
+
+# -- demand clusters: a sub-regional share ----------------------------------
+dr_regions <- c("W1", "W2", "C1", "C2")
+
+dr_geoscale <- function() {
+  geoscales::filter_geoscale(topia$geoscales$honeycomb, "region", dr_regions)
+}
+
+skip_if_no_geo <- function() {
+  testthat::skip_if_not_installed("geoscales")
+  testthat::skip_if_not_installed("sf")
+}
+
+
+# For demand a cluster is not a competing variant -- it is a FIXED fraction of
+# one coarse total, landing in one finer region. Variant expansion mints a
+# `dem` set member per cluster and `pDemand` is indexed by `dem`, so
+# `eqDemInp` sums the parts back: the coarse figure is the aggregate of its
+# children and stays the number you edit.
+#
+# Only `dem.share.fx` exists. A `lo`/`up` split would need the LP to choose
+# where load sits, and nothing indexed by `dem` is a variable -- `pDemand` is
+# on the right-hand side of an equality.
+dc_clustered <- function(shares = c(0.6, 0.4), region = c("W1", "W2")) {
+  newDemand(
+    "DEM_ELC", commodity = "ELC",
+    cluster = data.frame(cluster = c("W1", "W2"), region = region,
+                         dem.share.fx = shares, order = 1:2),
+    demand = data.frame(region = "WEST", timeslice = c("WIN", "SUM"),
+                        demand = c(100, 50)))
+}
+
+dc_model <- function(dem) {
+  cal <- newCalendar(timetable = make_timetable(
+    struct = list(ANNUAL = "ANNUAL", SEASON = c("WIN", "SUM"))),
+    name = "dc_cal")
+  newModel("DC", region = c("W1", "W2"), calendar = cal,
+           horizon = newHorizon(2025), discount = 0,
+           data = newRepository("dc", list(
+             newCommodity("ELC", unit = "PJ", timeframe = "SEASON"),
+             newSupply("SUP", commodity = "ELC", unit = "PJ",
+                       supply = data.frame(region = c("W1", "W2"), cost = 2)),
+             dem))) |>
+    setGeoscale(dr_geoscale())
+}
+
+test_that("demand carries the same cluster shape, with only a fixed share", {
+  expect_true("cluster" %in% slotNames("demand"))
+  # no `cap.share.fx` (no capacity variable) and no `act.share.*` (nothing
+  # indexed by `dem` is a variable, so there is nothing to bound)
+  expect_equal(names(new("demand")@cluster),
+               c("cluster", "desc", "region", "dem.share.fx", "order"))
+})
+
+# @covers pDemand
+test_that("a coarse total is scaled and relocated by its clusters", {
+  skip_if_no_geo()
+  s <- suppressMessages(interpolate_model(dc_model(dc_clustered()),
+                                          name = "DCT", overwrite = TRUE))
+  expect_setequal(s@modInp@sets$dem, c("DEM_ELC_CLW1", "DEM_ELC_CLW2"))
+
+  pd <- as.data.frame(get_data_slot(s@modInp@parameters[["pDemand"]]))
+  # scaled by the share AND moved to the cluster's own region -- the ordinary
+  # per-variant step only filters, it does neither
+  expect_equal(pd$value[pd$region == "W1" & pd$timeslice == "WIN"], 60)
+  expect_equal(pd$value[pd$region == "W2" & pd$timeslice == "WIN"], 40)
+  expect_equal(pd$value[pd$region == "W1" & pd$timeslice == "SUM"], 30)
+  expect_equal(pd$value[pd$region == "W2" & pd$timeslice == "SUM"], 20)
+  expect_false("WEST" %in% pd$region)
+  # the promise: the coarse total survives
+  expect_equal(sum(pd$value), 150)
+})
+
+# @covers vObjective depth=S backends=glpk
+test_that("the clustered split solves to the coarse total", {
+  skip_if_no_geo()
+  skip_if_no_solver()
+  s <- suppressMessages(interpolate_model(dc_model(dc_clustered()),
+                                          name = "DCS", overwrite = TRUE))
+  s <- solve_scenario(s, solver = solver_options$glpk, wait = TRUE,
+                      echo = FALSE)
+  # 150 PJ of demand at a supply cost of 2
+  expect_equal(sum(getData(s, "vObjective", merge = TRUE)$value), 300)
+})
+
+test_that("a split that would change the demand is refused", {
+  skip_if_no_geo()
+  expect_error(
+    energyRt:::.variant_validate(dc_clustered(shares = c(0.6, 0.3))),
+    "sum to 0.9, not 1")
+  expect_error(
+    energyRt:::.variant_validate(dc_clustered(shares = c(0.6, 0))),
+    "greater than zero")
+  # a cluster with no region has nowhere to put its share
+  expect_error(
+    energyRt:::.variant_validate(dc_clustered(region = c("W1", NA))),
+    "needs a `region`")
+})

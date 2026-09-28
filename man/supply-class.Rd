@@ -46,6 +46,21 @@ An S4 class to represent a supply of a commodity
 }
 }}
 
+\item{\code{cluster}}{data.frame. Declaration of the object's parallel sub-supplies. For supply a cluster is a PRICE STEP -- a resource grade: its own share of the availability and reserve, at its own cost. A single \code{cost} cannot express a supply curve, where cheap grades are exhausted first and the next ones cost more.
+This slot declares WHAT the grades are; the per-grade values live in the \code{cluster} column of \code{supply}, \code{reserve} and \code{weather}. Build both with \code{asSupplyCurve()}, which also computes the costs and checks that the curve rises.
+Optional. When empty, labels are harvested from the \code{cluster} columns of the other slots. When populated it is AUTHORITATIVE. LIMITATION -- there is deliberately no \code{cap.share.fx} column. A capacity share ties the variants' capacities to fixed proportions, and this class has no capacity variable for the tie to act on. The column is absent rather than present-and-ignored, so the mistake is rejected at construction instead of silently doing nothing. Bound the split with \code{act.share.lo/up/fx}, which acts on the quantity this class does have, or fix it directly in the per-step bounds. The share columns are different levers, not substitutes. \code{cap.share.fx} fixes the ratio of the variants' CAPACITIES in every year: loss tranches need it, because each tranche efficiency is calibrated to its place in the capacity stack and the flow must stay free to fill the cheapest first. \code{act.share.lo/up/fx} bounds a variant share of the family THROUGHPUT instead, which is what stops a clustered family collapsing to its cheapest member once regional borders are aggregated away. Both are optional; a variant with neither sizes and runs freely.
+
+\describe{
+\item{cluster}{character. Grade label, used in the expanded object name.}
+\item{desc}{character. Description of the grade.}
+\item{region}{character. Region(s) the grade exists in, NA for everywhere. Intersected with the object's own \code{region} slot.
+}
+\item{share}{numeric. The grade's fraction of the object's quantity. DESCRIPTIVE, not enforced: supply has no capacity variable to tie, so \code{asSupplyCurve()} writes the split straight into \verb{ava.*} / \verb{res.*} and records here what it did.
+}
+\item{order}{integer. Fill order, 1 = the cheapest grade. Without it labels sort alphabetically and "S10" would precede "S2".
+}
+}}
+
 \item{\code{supply}}{data.frame. Availability of the resource in physical units. Unlike the \code{af}/\code{afs} availability \emph{factors} of technologies, \verb{ava.*} is an absolute bound on the supplied quantity per timeslice: supply processes have no capacity variable, so nothing multiplies it (except weather factors, see \code{weather}). Rows here also define where and when the supply exists in the model.
 
 \describe{

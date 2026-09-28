@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9000</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9006</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -54,8 +54,9 @@
     <li><a class="dropdown-item" href="../articles/time-resolution.html">Time resolution</a></li>
     <li><a class="dropdown-item" href="../articles/space-resolution.html">Space resolution</a></li>
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
-    <li><a class="dropdown-item" href="../articles/utopia-build.html">UTOPIA I: building the model</a></li>
-    <li><a class="dropdown-item" href="../articles/utopia-use.html">UTOPIA II: running scenarios</a></li>
+    <li><a class="dropdown-item" href="../articles/topia-build.html">TOPIA I: building the model</a></li>
+    <li><a class="dropdown-item" href="../articles/topia-use.html">TOPIA II: running scenarios</a></li>
+    <li><a class="dropdown-item" href="../articles/region-aggregation.html">TOPIA III: multi-level region</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
     <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
@@ -99,8 +100,8 @@
     
     
 <p>Once a model is <strong>built</strong> (see <em>Model bricks</em> and
-<em>UTOPIA I</em>) and <strong>solved</strong> (see <em>Solver
-backends</em> and <em>UTOPIA II</em>), a handful of utility functions do
+<em>TOPIA I</em>) and <strong>solved</strong> (see <em>Solver
+backends</em> and <em>TOPIA II</em>), a handful of utility functions do
 the rest of the day-to-day work: pull objects and results out, edit a
 piece and re-solve, organize scenarios on disk, and compare runs. This
 article tours that layer.</p>
@@ -108,12 +109,12 @@ article tours that layer.</p>
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://energyRt.org">energyRt</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://dplyr.tidyverse.org" class="external-link">dplyr</a></span><span class="op">)</span></span>
 <span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://ggplot2.tidyverse.org" class="external-link">ggplot2</a></span><span class="op">)</span></span></code></pre></div>
-<p>We use the packaged single-region UTOPIA kit as a running example,
-and keep every store — scenarios, models, repositories and the registry
-— under a temporary folder. All four matter:
-<code><a href="../reference/save_scenario.html">save_scenario()</a></code> saves the model to the model store and
-references it, so redirecting only the scenario path leaves a
-<code>models/</code> folder beside the article.</p>
+<p>We use the packaged single-region TOPIA kit as a running example, and
+keep every store — scenarios, models, repositories and the registry —
+under a temporary folder. All four matter: <code><a href="../reference/save_scenario.html">save_scenario()</a></code>
+saves the model to the model store and references it, so redirecting
+only the scenario path leaves a <code>models/</code> folder beside the
+article.</p>
 <div class="sourceCode" id="cb2"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">wf</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/tempfile.html" class="external-link">tempdir</a></span><span class="op">(</span><span class="op">)</span>, <span class="st">"wf"</span><span class="op">)</span></span>
 <span><span class="fu"><a href="../reference/scenarios_path.html">set_scenarios_path</a></span><span class="op">(</span><span class="va">wf</span><span class="op">)</span>                                  <span class="co"># where scenarios go</span></span>
@@ -121,11 +122,11 @@ references it, so redirecting only the scenario path leaves a
 <span><span class="fu"><a href="../reference/registry_file.html">set_repositories_path</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">wf</span>, <span class="st">"repositories"</span><span class="op">)</span><span class="op">)</span>    <span class="co"># ... and repositories</span></span>
 <span><span class="fu"><a href="../reference/registry_file.html">set_registry_file</a></span><span class="op">(</span><span class="fu"><a href="https://rdrr.io/r/base/file.path.html" class="external-link">file.path</a></span><span class="op">(</span><span class="va">wf</span>, <span class="st">"energyRt_registry.csv"</span><span class="op">)</span><span class="op">)</span></span>
 <span></span>
-<span><span class="va">um</span>  <span class="op">&lt;-</span> <span class="va">utopia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">R1</span></span>
-<span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newModel.html">newModel</a></span><span class="op">(</span><span class="st">"UTOPIA"</span>, data <span class="op">=</span> <span class="va">um</span><span class="op">$</span><span class="va">repo</span>,</span>
-<span>                calendar <span class="op">=</span> <span class="va">utopia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24</span>,</span>
+<span><span class="va">um</span>  <span class="op">&lt;-</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">electricity</span><span class="op">$</span><span class="va">R1</span></span>
+<span><span class="va">mod</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newModel.html">newModel</a></span><span class="op">(</span><span class="st">"TOPIA"</span>, data <span class="op">=</span> <span class="va">um</span><span class="op">$</span><span class="va">repo</span>,</span>
+<span>                calendar <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24</span>,</span>
 <span>                region   <span class="op">=</span> <span class="va">um</span><span class="op">$</span><span class="va">regions</span>,</span>
-<span>                horizon  <span class="op">=</span> <span class="va">utopia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">base</span>, discount <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span></code></pre></div>
+<span>                horizon  <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">base</span>, discount <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span></code></pre></div>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="co"># interpolate + solve on the bundled GLPK; echo = FALSE keeps the log quiet</span></span>
 <span><span class="va">scen</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/interpolate_model.html">interpolate_model</a></span><span class="op">(</span><span class="va">mod</span>, name <span class="op">=</span> <span class="st">"BASE"</span><span class="op">)</span> <span class="op">|&gt;</span></span>
@@ -145,7 +146,7 @@ object itself.</p>
 <code class="sourceCode R"><span><span class="va">repo</span> <span class="op">&lt;-</span> <span class="va">um</span><span class="op">$</span><span class="va">repo</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu"><a href="../reference/getObject.html">getObject</a></span><span class="op">(</span><span class="va">repo</span>, class <span class="op">=</span> <span class="st">"technology"</span><span class="op">)</span><span class="op">)</span>        <span class="co"># all technologies</span></span>
 <span><span class="co">#&gt; [1] "ECOA" "EGAS" "ENUC" "ESOL" "EWIN" "EHYD" "EBIO"</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu"><a href="../reference/getObject.html">getObject</a></span><span class="op">(</span><span class="va">repo</span>, class <span class="op">=</span> <span class="st">"supply"</span>, region <span class="op">=</span> <span class="st">"R1"</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/names.html" class="external-link">names</a></span><span class="op">(</span><span class="fu"><a href="../reference/getObject.html">getObject</a></span><span class="op">(</span><span class="va">repo</span>, class <span class="op">=</span> <span class="st">"supply"</span>, region <span class="op">=</span> <span class="st">"W1"</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] "SUP_COA" "SUP_BIO" "SUP_NUC" "RES_SOL" "RES_WIN"</span></span>
 <span><span class="fu"><a href="../reference/getObject.html">getObject</a></span><span class="op">(</span><span class="va">repo</span>, name <span class="op">=</span> <span class="st">"ECOA"</span>, drop <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">@</span><span class="va">invcost</span> <span class="co"># the ECOA object itself</span></span>
 <span><span class="co">#&gt;   vintage cluster region year invcost wacc payback eac retcost</span></span>
@@ -174,10 +175,10 @@ otherwise); every frame carries a <code>scenario</code> and a
 <span><span class="co">#&gt; <span style="color: #949494;"># A tibble: 4 × 6</span></span></span>
 <span><span class="co">#&gt;   scenario tech  region  year timeslice  value</span></span>
 <span><span class="co">#&gt;   <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>    <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>  <span style="color: #949494; font-style: italic;">&lt;int&gt;</span> <span style="color: #949494; font-style: italic;">&lt;chr&gt;</span>      <span style="color: #949494; font-style: italic;">&lt;dbl&gt;</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> BASE     ECOA  R1      <span style="text-decoration: underline;">2</span>020 WIN_h00   0.151 </span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> BASE     ECOA  R1      <span style="text-decoration: underline;">2</span>020 WIN_h01   0.088<span style="text-decoration: underline;">2</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> BASE     ECOA  R1      <span style="text-decoration: underline;">2</span>020 WIN_h02   0.050<span style="text-decoration: underline;">1</span></span></span>
-<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> BASE     ECOA  R1      <span style="text-decoration: underline;">2</span>020 WIN_h03   0.025<span style="text-decoration: underline;">3</span></span></span></code></pre></div>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">1</span> BASE     ECOA  W1      <span style="text-decoration: underline;">2</span>020 WIN_h00   0.151 </span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">2</span> BASE     ECOA  W1      <span style="text-decoration: underline;">2</span>020 WIN_h01   0.088<span style="text-decoration: underline;">2</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">3</span> BASE     ECOA  W1      <span style="text-decoration: underline;">2</span>020 WIN_h02   0.050<span style="text-decoration: underline;">1</span></span></span>
+<span><span class="co">#&gt; <span style="color: #BCBCBC;">4</span> BASE     ECOA  W1      <span style="text-decoration: underline;">2</span>020 WIN_h03   0.025<span style="text-decoration: underline;">3</span></span></span></code></pre></div>
 <p>The <code>...</code> accept set filters, exact
 (<code>comm = "ELC"</code>) or regex (<code>comm_ = "^EL"</code>).
 <code>timeframe = c("lowest","highest","all")</code> controls how
@@ -226,9 +227,9 @@ the object, put it back into the repository with
 <span><span class="va">ECOA</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://energyRt.org/reference/newDemand.html">update</a></span><span class="op">(</span><span class="va">ECOA</span>, invcost <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span>invcost <span class="op">=</span> <span class="fl">2500</span><span class="op">)</span><span class="op">)</span>  <span class="co"># pricier coal capex</span></span>
 <span><span class="va">repo_hi</span> <span class="op">&lt;-</span> <span class="fu">add</span><span class="op">(</span><span class="va">repo</span>, <span class="va">ECOA</span>, overwrite <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span>                <span class="co"># swap it back in</span></span>
 <span></span>
-<span><span class="va">mod_hi</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newModel.html">newModel</a></span><span class="op">(</span><span class="st">"UTOPIA_HI"</span>, data <span class="op">=</span> <span class="va">repo_hi</span>,</span>
-<span>                    calendar <span class="op">=</span> <span class="va">utopia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24</span>,</span>
-<span>                    region <span class="op">=</span> <span class="va">um</span><span class="op">$</span><span class="va">regions</span>, horizon <span class="op">=</span> <span class="va">utopia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">base</span>,</span>
+<span><span class="va">mod_hi</span>  <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newModel.html">newModel</a></span><span class="op">(</span><span class="st">"TOPIA_HI"</span>, data <span class="op">=</span> <span class="va">repo_hi</span>,</span>
+<span>                    calendar <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24</span>,</span>
+<span>                    region <span class="op">=</span> <span class="va">um</span><span class="op">$</span><span class="va">regions</span>, horizon <span class="op">=</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">horizons</span><span class="op">$</span><span class="va">base</span>,</span>
 <span>                    discount <span class="op">=</span> <span class="fl">0.05</span><span class="op">)</span></span></code></pre></div>
 <p>(For an already-interpolated scenario,
 <code>update_parameter(scen, param, data)</code> writes rows straight
@@ -249,9 +250,9 @@ valid names cannot contain; duplicate parts are dropped, so a scenario
 and model sharing a name appear once):</p>
 <div class="sourceCode" id="cb8"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/scenarios_path.html">get_scenarios_path</a></span><span class="op">(</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpOaP0wW/wf"</span></span>
+<span><span class="co">#&gt; [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpOsRTbt/wf"</span></span>
 <span><span class="fu"><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename</a></span><span class="op">(</span><span class="va">scen</span><span class="op">@</span><span class="va">path</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "BASE-UTOPIA-s4_h24-base"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "BASE-TOPIA-s4_h24-base"</span></span></code></pre></div>
 <p>Saving a scenario writes an <strong>Arrow-backed</strong> folder that
 mirrors the scenario’s structure — a thin <code>scen.RData</code> shell,
 a <code>scenario.yml</code> manifest, each large data slot as a dataset,
@@ -314,7 +315,7 @@ resolves it through the project registry, and the cached accessor
 <span><span class="co">#&gt; [1] TRUE</span></span></code></pre></div>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="https://rdrr.io/r/base/basename.html" class="external-link">basename</a></span><span class="op">(</span><span class="va">saved</span><span class="op">@</span><span class="va">path</span><span class="op">)</span>                                 <span class="co"># the scenario folder</span></span>
-<span><span class="co">#&gt; [1] "BASE-UTOPIA-s4_h24-base"</span></span>
+<span><span class="co">#&gt; [1] "BASE-TOPIA-s4_h24-base"</span></span>
 <span><span class="fu"><a href="../reference/isInMemory.html">isInMemory</a></span><span class="op">(</span><span class="va">saved</span><span class="op">)</span>                                    <span class="co"># FALSE -- data is on disk</span></span>
 <span><span class="co">#&gt; [1] FALSE</span></span>
 <span><span class="fu"><a href="../reference/getData.html">getData</a></span><span class="op">(</span><span class="va">ld</span>, <span class="st">"vObjective"</span>, merge <span class="op">=</span> <span class="cn">TRUE</span><span class="op">)</span><span class="op">$</span><span class="va">value</span>        <span class="co"># lazy read, no full load</span></span>
@@ -373,7 +374,7 @@ in-memory footprint:</p>
 <div class="sourceCode" id="cb18"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="fu"><a href="../reference/model_size.html">model_size</a></span><span class="op">(</span><span class="va">scen</span><span class="op">)</span></span>
 <span><span class="co">#&gt; model_size: BASE</span></span>
-<span><span class="co">#&gt;   parameters : 179 value, 308 maps, 13 sets</span></span>
+<span><span class="co">#&gt;   parameters : 179 value, 309 maps, 13 sets</span></span>
 <span><span class="co">#&gt;   param rows : 6,720</span></span>
 <span><span class="co">#&gt;   estimate   : ~16,298 variables, ~16,972 constraints (from gating maps)</span></span>
 <span><span class="co">#&gt;   top parameters by rows:</span></span>
@@ -393,7 +394,7 @@ in-memory footprint:</p>
 <span><span class="co">#&gt;     pTechEac           20</span></span>
 <span><span class="co">#&gt;     pTechStock         14</span></span>
 <span><span class="fu"><a href="../reference/size.html">size</a></span><span class="op">(</span><span class="va">scen</span><span class="op">)</span></span>
-<span><span class="co">#&gt; [1] "7.2 Mb"</span></span></code></pre></div>
+<span><span class="co">#&gt; [1] "7.3 Mb"</span></span></code></pre></div>
 <p>For a systematic check that a build is correct <em>and</em>
 efficient, <code>compare_interp_settings(mod)</code> and
 <code>compare_solve_settings(mod, solvers = ...)</code> interpolate (and
@@ -424,7 +425,7 @@ sample inside the solver (the top slice carries weight
 of the full model’s — and exactly equals it when the sampled slices are
 representative:</p>
 <div class="sourceCode" id="cb20"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="va">tt</span>  <span class="op">&lt;-</span> <span class="va">utopia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24</span><span class="op">@</span><span class="va">timetable</span></span>
+<code class="sourceCode R"><span><span class="va">tt</span>  <span class="op">&lt;-</span> <span class="va">topia</span><span class="op">$</span><span class="va">modules</span><span class="op">$</span><span class="va">calendars</span><span class="op">$</span><span class="va">s4_h24</span><span class="op">@</span><span class="va">timetable</span></span>
 <span><span class="va">tt2</span> <span class="op">&lt;-</span> <span class="va">tt</span><span class="op">[</span><span class="va">tt</span><span class="op">$</span><span class="va">SEASON</span> <span class="op"><a href="https://rdrr.io/r/base/match.html" class="external-link">%in%</a></span> <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"WIN"</span>, <span class="st">"SUM"</span><span class="op">)</span>, <span class="op">]</span>      <span class="co"># two of the four seasons</span></span>
 <span><span class="va">cal2</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/newCalendar.html">newCalendar</a></span><span class="op">(</span>timetable <span class="op">=</span> <span class="va">tt2</span>, name <span class="op">=</span> <span class="st">"s2h24"</span>,</span>
 <span>                    year_fraction <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/sum.html" class="external-link">sum</a></span><span class="op">(</span><span class="va">tt2</span><span class="op">$</span><span class="va">share</span><span class="op">)</span><span class="op">)</span></span>
@@ -455,7 +456,7 @@ message). Unlike calendar sampling there is <strong>no
 reweighting</strong>: regional quantities are extensive, so the
 objective is the sub-territory’s own, and disjoint samples <em>add
 up</em> to the full model (absent cross-boundary trade).</p>
-<p>UTOPIA is single-region, so a compact three-region demo:</p>
+<p>TOPIA is single-region, so a compact three-region demo:</p>
 <div class="sourceCode" id="cb21"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="va"><a href="https://optimal2050.github.io/geoscales/r/" class="external-link">geoscales</a></span><span class="op">)</span></span>
 <span></span>
@@ -549,11 +550,13 @@ you get exactly the flat stub as before.</p>
 <div class="sourceCode" id="cb26"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="va">m12w</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/subset_model_regions.html">subset_model_regions</a></span><span class="op">(</span><span class="va">m3</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"R1"</span>, <span class="st">"R2"</span><span class="op">)</span>, boundary_prices <span class="op">=</span> <span class="va">bw</span><span class="op">)</span></span>
 <span><span class="va">stub</span> <span class="op">&lt;-</span> <span class="va">m12w</span><span class="op">@</span><span class="va">data</span><span class="op">[[</span><span class="st">"boundary_stubs"</span><span class="op">]</span><span class="op">]</span><span class="op">@</span><span class="va">data</span><span class="op">[[</span><span class="fl">1</span><span class="op">]</span><span class="op">]</span></span>
-<span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">stub</span><span class="op">@</span><span class="va">cluster</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"cluster"</span>, <span class="st">"share"</span>, <span class="st">"order"</span><span class="op">)</span><span class="op">]</span></span>
-<span><span class="co">#&gt;   cluster     share order</span></span>
-<span><span class="co">#&gt; 1      S1 0.3333333     1</span></span>
-<span><span class="co">#&gt; 2      S2 0.3333333     2</span></span>
-<span><span class="co">#&gt; 3      S3 0.3333333     3</span></span></code></pre></div>
+<span><span class="co"># `@cluster` declares WHAT the steps are; the split itself is enforced in the</span></span>
+<span><span class="co"># quantity bound, so read it there rather than from a descriptive copy</span></span>
+<span><span class="fu"><a href="https://rdrr.io/r/base/as.data.frame.html" class="external-link">as.data.frame</a></span><span class="op">(</span><span class="va">stub</span><span class="op">@</span><span class="va">cluster</span><span class="op">)</span><span class="op">[</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="st">"cluster"</span>, <span class="st">"desc"</span>, <span class="st">"order"</span><span class="op">)</span><span class="op">]</span></span>
+<span><span class="co">#&gt;   cluster                                         desc order</span></span>
+<span><span class="co">#&gt; 1      S1 step 1 of 3: 0-0.3333 of quantity at 36.6667     1</span></span>
+<span><span class="co">#&gt; 2      S2 step 2 of 3: 0.3333-0.6667 of quantity at 30     2</span></span>
+<span><span class="co">#&gt; 3      S3 step 3 of 3: 0.6667-1 of quantity at 23.3333     3</span></span></code></pre></div>
 </div>
 <div class="section level3">
 <h3 id="region-by-region">Region by region<a class="anchor" aria-label="anchor" href="#region-by-region"></a>
@@ -612,10 +615,10 @@ unlike the region sweep above, whose disjoint pieces do add up.</p>
 </h2>
 <ul>
 <li>
-<strong>Model bricks</strong> and <strong>UTOPIA I</strong> —
+<strong>Model bricks</strong> and <strong>TOPIA I</strong> —
 building the objects and the model.</li>
 <li>
-<strong>Solver backends</strong> and <strong>UTOPIA II</strong> —
+<strong>Solver backends</strong> and <strong>TOPIA II</strong> —
 interpolating and solving.</li>
 <li>
 <code><a href="../reference/getData.html">?getData</a></code>, <code><a href="../reference/getObject.html">?getObject</a></code>,

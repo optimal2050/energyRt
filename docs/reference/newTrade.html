@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9002</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9006</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -35,6 +35,7 @@
     <li><a class="dropdown-item" href="../articles/storage.html">Storage</a></li>
     <li><a class="dropdown-item" href="../articles/topia-build.html">TOPIA I: building the model</a></li>
     <li><a class="dropdown-item" href="../articles/topia-use.html">TOPIA II: running scenarios</a></li>
+    <li><a class="dropdown-item" href="../articles/region-aggregation.html">TOPIA III: multi-level region</a></li>
     <li><a class="dropdown-item" href="../articles/workflow.html">Workflow</a></li>
     <li><a class="dropdown-item" href="../articles/scenario-management.html">Scenario management</a></li>
     <li><a class="dropdown-item" href="../articles/reports.html">Reports &amp; levelized costs</a></li>
@@ -187,6 +188,27 @@ receives it, so it moves cost between regions and leaves
 the objective unchanged – the same distinction as a tax
 versus a cap. Becomes <code>pTradeIrMarkup</code>.</p>
 <p>Before 0.85 both columns were summed into a single term that cancelled between <code>eqImportIrCost</code> and <code>eqExportIrCost</code>, so <code>varom</code> could not express an operating cost at all; it now enters the objective once, positively, at <code>src</code>. (A separate parameter <code>pTradeVarom</code> was once declared in the GLPK and GAMS templates and read by no equation; it has been removed and was never this slot.)</p></dd>
+
+
+<dt id="arg-cluster">cluster<a class="anchor" aria-label="anchor" href="#arg-cluster"></a></dt>
+<dd><p>data.frame. Declaration of the object's parallel sub-lines. For trade a cluster is a LOSS TRANCHE: one segment of a piecewise-linear approximation of the quadratic loss curve, with its own share of the capacity and its own <code>teff</code>. Real losses go as <code>r * f^2</code>, so the loss FRACTION rises with loading – which a single <code>teff</code> cannot express, since under it a half-loaded and a fully-loaded line lose the same proportion.
+This slot declares WHAT the tranches are; the per-tranche values live in the <code>cluster</code> column of the variant-varying slots (<code>trade</code>, <code>capacity</code>, ...). Build both with <code><a href="lossTranches.html">lossTranches()</a></code> rather than by hand.
+There is deliberately no <code>region</code> column: a trade object has no <code>region</code> slot – its scope comes from the route endpoints – so a region here could restrict nothing, and its absence rejects the mistake at construction rather than deep inside variant expansion.
+Optional. When empty, tranche labels are harvested from the <code>cluster</code> columns of the other slots. When populated it is AUTHORITATIVE. The share columns are different levers, not substitutes. <code>cap.share.fx</code> fixes the ratio of the variants' CAPACITIES in every year: loss tranches need it, because each tranche efficiency is calibrated to its place in the capacity stack and the flow must stay free to fill the cheapest first. <code>act.share.lo/up/fx</code> bounds a variant share of the family THROUGHPUT instead, which is what stops a clustered family collapsing to its cheapest member once regional borders are aggregated away. Both are optional; a variant with neither sizes and runs freely.</p>
+<dl><dt>cluster</dt>
+<dd><p>character. Tranche label, used in the expanded object name.</p></dd>
+
+<dt>desc</dt>
+<dd><p>character. Description of the tranche.</p></dd>
+
+<dt>share</dt>
+<dd><p>numeric. Fraction of the line's capacity this tranche occupies. The shares must sum to 1: the tranche efficiencies are derived from them (<code>lambda_t = loss_full * (alpha_t-1 + alpha_t)</code>) and are calibrated only when they do. Declaring shares is also what makes the capacities of an INVESTABLE line be tied to those proportions – without the tie the solver would build the whole corridor as the lowest-loss tranche and the approximation would collapse.</p></dd>
+
+<dt>order</dt>
+<dd><p>integer. Fill order, 1 = the lowest-loss tranche. Without it labels sort alphabetically, so "T10" would precede "T2".</p></dd>
+
+
+</dl></dd>
 
 
 <dt id="arg-invcost">invcost<a class="anchor" aria-label="anchor" href="#arg-invcost"></a></dt>

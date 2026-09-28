@@ -41,6 +41,8 @@ newCalendar(
   desc = "",
   timetable = NULL,
   year_fraction = 1,
+  year_start = list(month = 1L, day = 1L),
+  utc_offset_minutes = 0L,
   default_timeframe = NULL,
   misc = list(pTimesliceWeight = NULL),
   ...
@@ -83,6 +85,26 @@ newCalendar(
   etc. Currently must be specified manually for subset calendars to
   validate the sum of the shares.
 
+- year_start:
+
+  list. `list(month = , day = )` giving the first day of the model year;
+  defaults to January 1. A non-January anchor makes model year `y` span
+  `[year_start(y), year_start(y + 1))`, and `y` is the STARTING
+  Gregorian year – Indian "FY 2021-22" is model year 2021 – which is the
+  convention
+  [`timescales::calendar_build()`](https://optimal2050.github.io/timescales/r/reference/calendar_build.html)
+  uses. The anchor is carried and reported only: it sets the default
+  milestone labels (see
+  [`year_label()`](https://energyRt.org/reference/year_label.md)) and
+  does NOT yet drive timeslice-to-timestamp alignment or
+  `year_fraction`.
+
+- utc_offset_minutes:
+
+  integer. Constant offset of local time from UTC, in minutes; defaults
+  to 0 (UTC). E.g. 330 for IST (UTC+5:30). Carried for provenance
+  alongside `year_start`; Olson time zones and DST are not supported.
+
 - default_timeframe:
 
   character. The name of the default level of the time-timeslices used
@@ -119,6 +141,17 @@ newCalendar()
 #> 
 #> Slot "year_fraction":
 #> [1] 1
+#> 
+#> Slot "year_start":
+#> $month
+#> [1] 1
+#> 
+#> $day
+#> [1] 1
+#> 
+#> 
+#> Slot "utc_offset_minutes":
+#> [1] 0
 #> 
 #> Slot "timetable":
 #>    ANNUAL timeslice share weight

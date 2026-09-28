@@ -143,6 +143,21 @@
     bound_var = list(act = "vExportRow"),
     bound_dims = character()
   ),
+  # A demand cluster is a SUB-REGIONAL SHARE, not a competing variant: the
+  # object holds one coarse total and each cluster takes a fixed fraction of it
+  # in one finer region. `share_scales` says which slot's quantities are scaled
+  # by the share, and `share_region` that the cluster's own region replaces the
+  # coarse one -- neither of which the ordinary per-variant FILTER does.
+  demand = list(
+    key = "dem",
+    dims = "cluster",
+    slots = "demand",
+    bound_var = list(),
+    bound_dims = character(),
+    share_col = "dem.share.fx",
+    share_scales = "demand",
+    share_region = TRUE
+  ),
   import = list(
     key = "imp",
     dims = "cluster",
@@ -545,6 +560,30 @@
   # `lambda_t = loss_full * (alpha_{t-1} + alpha_t)` are calibrated ONLY when
   # the shares sum to 1 -- shares summing to 0.9 understate total losses by 10%
   # with no other symptom, which is why this is an error and not a warning.
+  # A demand's shares are fractions of THIS object's coarse total, so they must
+  # sum to 1 or the split changes the demand -- the one promise the mechanism
+  # makes. One object is one coarse region; several zones are several objects.
+  if (!is.null(dc) && "dem.share.fx" %in% names(dc)) {
+    sh <- suppressWarnings(as.numeric(dc$dem.share.fx))
+    if (any(!is.na(sh))) {
+      if (anyNA(sh) || any(!is.finite(sh) | sh <= 0)) {
+        stop(cls, ' "', nm, '": every cluster needs a finite `dem.share.fx` ',
+             'greater than zero; got ',
+             paste(format(sh), collapse = ", "), '.', call. = FALSE)
+      }
+      if (abs(sum(sh) - 1) > 1e-8) {
+        stop(cls, ' "', nm, '": the `dem.share.fx` values sum to ',
+             format(sum(sh)), ', not 1, so the split would change the ',
+             'demand. They are FRACTIONS of this object’s total -- one ',
+             'demand object is one coarse region.', call. = FALSE)
+      }
+      if (!"region" %in% names(dc) ||
+          any(is.na(dc$region) | !nzchar(as.character(dc$region)))) {
+        stop(cls, ' "', nm, '": every cluster needs a `region` -- that is ',
+             'where its share of the demand lands.', call. = FALSE)
+      }
+    }
+  }
   if (!is.null(dc) && "cap.share.fx" %in% names(dc)) {
     sh <- dc$cap.share.fx
     if (any(!is.na(sh))) {
@@ -839,6 +878,36 @@
     }
   }
   out
+}
+
+# Apply a cluster's FIXED share to the slot it scales.
+#
+# The ordinary per-variant step filters rows and stamps the cell's label on
+# them. A share-scaled slot needs two more things: its quantities multiplied by
+# this cluster's share, and its region replaced by the cluster's own -- a coarse
+# total of 100 at `WEST` becoming 60 at `W1` and 40 at `W2`. Only classes that
+# declare `share_scales` in the registry are touched, so nothing else changes.
+#' @noRd
+.variant_share_scale <- function(d, tech, slot_name, cluster) {
+  def <- .variant_def(tech)
+  if (is.null(def) || is.null(def$share_scales)) return(d)
+  if (!identical(slot_name, def$share_scales)) return(d)
+  if (!is.data.frame(d) || !nrow(d) || is.na(cluster)) return(d)
+  dc <- .declared_clusters(tech)
+  col <- def$share_col
+  if (is.null(dc) || is.null(col) || !col %in% names(dc)) return(d)
+  i <- match(cluster, as.character(dc$cluster))
+  if (is.na(i)) return(d)
+  sh <- suppressWarnings(as.numeric(dc[[col]][i]))
+  if (!is.finite(sh)) return(d)
+  vals <- .agg_values(d)
+  for (v in vals) d[[v]] <- d[[v]] * sh
+  if (isTRUE(def$share_region) && "region" %in% names(dc) &&
+      "region" %in% names(d)) {
+    r <- as.character(dc$region[i])
+    if (length(r) == 1L && !is.na(r) && nzchar(r)) d$region <- r
+  }
+  d
 }
 
 # Per-cluster FIXED capacity, or NULL when the class/slot cannot carry one.
@@ -1372,6 +1441,7 @@
              'table, or its rows cannot be selected per variant.', call. = FALSE)
       }
       d <- .variant_timeslice(slot(tech, s), vin, clu)
+      d <- .variant_share_scale(d, tech, s, clu)
       if (s == "vintage") d <- .variant_default_window(d, vin)
       if (s == "capacity" && "stock" %in% names(d) && !is.na(vin)) {
         # stock without a vintage belongs to the earliest vintage only

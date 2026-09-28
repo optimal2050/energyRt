@@ -106,9 +106,9 @@ newTechnology(
 \item{use2cact}{numeric. Use-to-commodity-activity coefficient, default is 1.}
 \item{cact2cout}{numeric. Commodity-activity-to-commodity-output coefficient, default is 1.}
 \item{cinp2ginp}{numeric. Commodity-input-to-group-input coefficient, default is 1.}
-\item{share.lo}{numeric. Lower bound on a share of commodity within a group, default is 0.}
-\item{share.up}{numeric. Upper bound on a share of commodity within a group, default is 1.}
-\item{share.fx}{numeric. Fixed share of commodity within a group, ignored if NA. This parameter overrides \code{share.lo} and \code{share.up}.}
+\item{grp.share.lo}{numeric. Lower bound on a share of commodity within a group, default is 0.}
+\item{grp.share.up}{numeric. Upper bound on a share of commodity within a group, default is 1.}
+\item{grp.share.fx}{numeric. Fixed share of commodity within a group, ignored if NA. This parameter overrides \code{grp.share.lo} and \code{grp.share.up}.}
 \item{afc.lo}{numeric. Lower bound on the per-commodity availability factor: bounds this commodity's input or output flow relative to installed capacity (times \code{cap2act}), the commodity-level analogue of \code{af.lo}. Ignored if NA.
 }
 \item{afc.up}{numeric. Upper bound on the per-commodity availability factor: bounds this commodity's input or output flow relative to installed capacity (times \code{cap2act}), the commodity-level analogue of \code{af.up}. Ignored if NA.
@@ -247,7 +247,7 @@ newTechnology(
 \item{avarom}{numeric. Variable operational and maintenance cost per unit of auxilary commodity, default is 0.}
 }}
 
-\item{cluster}{data.frame. Declaration of the technology's clusters. A cluster is a parallel sub-process of the same technology -- a resource class, geography or fleet type -- with its own capacity, availability and costs. This slot declares WHAT the clusters are and WHERE they exist; the per-cluster values live in the \code{cluster} column of the variant-varying slots (\code{capacity}, \code{invcost}, \code{afs}, \code{weather}, ...), exactly as \code{group} declares input groups whose data lives in \code{input$group}. Optional: when empty, cluster labels are harvested from those columns. When populated it is authoritative -- a label used in a slot but not declared here raises an error instead of silently creating an extra technology with default (often unbounded) parameters.
+\item{cluster}{data.frame. Declaration of the technology's clusters. A cluster is a parallel sub-process of the same technology -- a resource class, geography or fleet type -- with its own capacity, availability and costs. This slot declares WHAT the clusters are and WHERE they exist; the per-cluster values live in the \code{cluster} column of the variant-varying slots (\code{capacity}, \code{invcost}, \code{afs}, \code{weather}, ...), exactly as \code{group} declares input groups whose data lives in \code{input$group}. Optional: when empty, cluster labels are harvested from those columns. When populated it is authoritative -- a label used in a slot but not declared here raises an error instead of silently creating an extra technology with default (often unbounded) parameters. The share columns are different levers, not substitutes. \code{cap.share.fx} fixes the ratio of the variants' CAPACITIES in every year: loss tranches need it, because each tranche efficiency is calibrated to its place in the capacity stack and the flow must stay free to fill the cheapest first. \code{act.share.lo/up/fx} bounds a variant share of the family THROUGHPUT instead, which is what stops a clustered family collapsing to its cheapest member once regional borders are aggregated away. Both are optional; a variant with neither sizes and runs freely.
 \describe{
 \item{cluster}{character. Cluster label. Must match the \code{cluster} column values used in the other slots.}
 \item{desc}{character. Human-readable description of the cluster, used in reports.}

@@ -1,7 +1,7 @@
 Package: energyRt
 Type: Package
 Title: Energy Systems Modeling Toolbox
-Version: 0.90.0.9006
+Version: 0.90.0.9007
 Date: 2026-09-28
 Authors@R: 
   c(person(given = "Oleg", 
@@ -36,11 +36,10 @@ Imports: methods, grid, stats, generics, data.table, tibble, tidyr, dplyr, rlang
 Suggests: shiny, DT, pak, knitr, rmarkdown, sf, ggplot2,
         testthat (>= 3.0.0), devtools, openxlsx, jsonlite, readxl,
         httr2, xml2, base64enc, tinytex, patchwork,
-        waldo, mmcloud, DBI, RSQLite, multimod,
+        waldo, withr, mmcloud, DBI, RSQLite, multimod,
         clusterscales, multiscales
 Remotes: optimal2050/geoscales, optimal2050/timescales,
-        optimal2050/multimod, optimal2050/clusterscales,
-        optimal2050/multiscales
+        optimal2050/clusterscales, optimal2050/multiscales
 SystemRequirements: Julia (>= 1.6) with JuMP or Python (>= 3.7) with
         Pyomo or GAMS (>= 24.9) or GLPK (>= 4.0)
 License: Apache License (>= 2)
