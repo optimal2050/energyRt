@@ -647,6 +647,12 @@ interpolate_model <- function(mod, name = NULL, ...,
     scen@modInp@sets$trade
   )
   .check_process_names(scen@modInp@sets)
+  scen@modInp@sets$process <- unique(scen@modInp@sets$process)
+  # `process` is a declared set on every backend (the parent of tech/stg/... in
+  # GAMS), so it must reach @parameters -- @sets alone never leaves R.
+  scen@modInp@parameters$process <- d2p(
+    scen@modInp@parameters$process, scen@modInp@sets$process, fmp("process")
+  )
 
   # assemble summary sets to use in interpolation
   ## variant provenance: variant name -> (class, base, vintage, cluster), for

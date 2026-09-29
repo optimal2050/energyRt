@@ -23,13 +23,14 @@ comm   commodity
 region region
 year   year
 timeslice  time timeslices
-sup    supply
-dem    demand
-tech   technology
-stg    storage
-trade  trade between regions
-expp   export to the rest of the world (ROW)
-imp    import from the ROW
+process any process - see the subsets below
+sup(process)    supply
+dem(process)    demand
+tech(process)   technology
+stg(process)    storage
+trade(process)  trade between regions
+expp(process)   export to the rest of the world (ROW)
+imp(process)    import from the ROW
 group  group of input or output commodities in technology
 weather weather
 ;

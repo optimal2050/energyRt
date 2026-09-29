@@ -527,6 +527,16 @@ get_gdxlib_path <- function() {
   obj@data <- get_data_slot(obj)
   if (obj@type == "set") {
     if (nrow(obj@data) == 0) {
+      # The `1` sentinel keeps an empty ROOT set legal in GAMS, but a
+      # domain-restricted child (`stg(process)`, ...) cannot take it: `1` is not
+      # a member of `process`, so GAMS raises $170 Domain violation. Emitting no
+      # data at all instead raises $352 Set has not been initialized, which is
+      # what the sentinel was there to prevent. `$onEmpty` is the way out: an
+      # empty data list both initialises the symbol and respects the domain.
+      if (obj@name %in% names(.gdx_parent_domain)) {
+        return(paste0("$onEmpty\nset\n", obj@name,
+                      " / /;\n$offEmpty\n"))
+      }
       return(paste0("set\n", obj@name, " / 1 /;\n"))
     } else {
       return(c(
@@ -602,7 +612,16 @@ get_gdxlib_path <- function() {
   return(gx)
 }
 
-.df2uels <- function(df, name = "x", value = "value") {
+# The seven process classes are declared in the GAMS template as subsets of
+# `process` (`tech(process)`, `stg(process)`, ...). A GDX symbol carries its own
+# domain, and `$loadm tech` into a domain-restricted declaration is refused
+# unless that domain matches, so these seven export with domain "process".
+.gdx_parent_domain <- c(
+  sup = "process", dem = "process", tech = "process", stg = "process",
+  expp = "process", imp = "process", trade = "process"
+)
+
+.df2uels <- function(df, name = "x", value = "value", gdx_domains = NULL) {
   # The function takes data.frame or character vector and returns
   # named list for exporting to GDX-file using gdxrrw
   if (!is.data.frame(df)) {
@@ -632,6 +651,10 @@ get_gdxlib_path <- function() {
     }
     dd
   }
+  # What the GDX symbol DECLARES as its domain. Defaults to the column names;
+  # the seven process children declare "process" instead, because the template
+  # restricts them (`tech(process)`) and `$loadm` rejects a domain mismatch.
+  decl <- if (is.null(gdx_domains)) domains[v] else gdx_domains
   if (nr > 0) {
     for (j in domains[v]) {
       # df[, j] <- factor(df[, j]) # add levels from sets!
@@ -641,7 +664,7 @@ get_gdxlib_path <- function() {
       name = name,
       type = type,
       dim = nc,
-      domains = domains[v],
+      domains = decl,
       # uels = lapply(domains[v], function(x) levels(df[, x])),
       uels = lapply(domains[v], function(x) levels(df[[x]])),
       val = df2val(df),
@@ -652,7 +675,7 @@ get_gdxlib_path <- function() {
       name = name,
       type = type,
       dim = nc,
-      domains = domains[v],
+      domains = decl,
       uels = lapply(domains[v], function(x) "1"),
       val = df2val(df), # matrix(nrow = 0, ncol = nc),
       form = "sparse"
@@ -673,7 +696,12 @@ get_gdxlib_path <- function() {
   for (i in nms) {
     cat(wipe, "(", i, ")", rep(" ", max_length - nchar(i) + 1), sep = "")
     wipe <- paste0(rep("\b", max_length + 3), collapse = "")
-    x <- c(x, list(.df2uels(data.frame(dat[[i]]), i)))
+    .dom <- if (i %in% names(.gdx_parent_domain)) {
+      unname(.gdx_parent_domain[i])
+    } else {
+      NULL
+    }
+    x <- c(x, list(.df2uels(data.frame(dat[[i]]), i, gdx_domains = .dom)))
   }
   # gdxrrw::wgdx(gdxName = gdxName, x, squeeze = FALSE)
   # !!!ToDo: add check for NAs

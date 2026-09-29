@@ -14,6 +14,10 @@ comm:
   name: comm
   type: set
   dimSets: comm
+process:
+  name: process
+  type: set
+  dimSets: process
 sup:
   name: sup
   type: set

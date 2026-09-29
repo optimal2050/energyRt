@@ -52,6 +52,7 @@ styler::style_file("R/defaults.R")
   "tech", "techp", "dem", "sup", "weather", "acomm", "comm", "commp",
   "group", "region", "regionp", "src", "dst",
   "year", "yearp", "timeslice", "timeslicep", "stg", "expp", "imp", "trade",
+  "process", # union of the seven process classes; parent of tech/stg/... in GAMS
   "costs" # user-cost object names; the `vUserCosts` dimension
 )
 

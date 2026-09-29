@@ -9,6 +9,7 @@ set comm;
 set region;
 set year;
 set timeslice;
+set process;
 set sup;
 set dem;
 set tech;

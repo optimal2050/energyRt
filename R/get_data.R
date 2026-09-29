@@ -140,7 +140,12 @@ findData <- function(scen,
 #' @param timeframe controls sub-annual time aggregation of results that carry a `timeslice` column. One of `"highest"` (default, native/finest resolution, as stored), `"lowest"` (aggregate/sum flows up to the coarsest level, normally `ANNUAL`), `"all"` (return every timeframe level stacked), or an explicit calendar level name (e.g. `"SEASON"`, `"YDAY"`) to aggregate to that level. Non-timeslice data, and state/level variables (e.g. `vStorageLevel`) for which summing over timeslices is meaningless, are returned unchanged.
 #'
 #'   The default was `"lowest"` up to v0.80 and is now `"highest"`, matching the spatial twin `geoframe`, whose default `"finest"` has always meant "as stored". Returning data at native resolution unless asked otherwise is the safer default: the old one silently summed an 8760-slice hourly series into a single annual number, which reads as a plausible value rather than as an error, and is indistinguishable from a genuine annual result. Aggregation is easy to ask for and hard to notice when it is not wanted. Code that relied on annual totals must now pass `timeframe = "lowest"` explicitly.
-#' @param process if TRUE, dimensions "tech", "stg", "trade", "imp", "expp", "dem", and "sup" will be renamed with "process".
+#' @param process `TRUE` renames the process-class id dimension ("tech", "stg",
+#'   "trade", "sup", "dem", "imp", "impp", "expp") to "process", so results from
+#'   different classes stack into one frame. A character value instead SELECTS
+#'   the named process(es) and renames -- `process = "COAL"`. Use `process_` for
+#'   a regex, e.g. `process_ = "^E"`. A character value is always a selection,
+#'   so "T"/"TRUE" are read as process names, not logicals.
 #' @param parameters if TRUE, parameters will be included in the search and returned if found.
 #' @param variables if TRUE, variables will be included in the search and returned if found.
 #' @param maps if TRUE, map-type parameters (membership mappings, no `value` column) are also returned.
@@ -225,13 +230,21 @@ getData.scenario <- function(
   arg <- list(...)
   argnam <- names(arg)
   stopifnot(!any(duplicated(argnam)))
-  if (process) {
+  # `process` takes either a logical -- rename the class id column to `process`
+  # -- or process name(s), which select AND rename. A character value is always
+  # a selection, so "T"/"TRUE"/"F"/"FALSE" are read as process names, not
+  # logicals. The regex form is `process_ =`, which reaches `...` untouched.
+  process_flt <- NULL
+  if (is.character(process)) {
+    process_flt <- process
+    process <- TRUE
+  }
+  process_rx <- any(grepl("^process_$", names(arg)))
+  if (process_rx) process <- TRUE
+  if (isTRUE(process)) {
     stopifnot(length(newNames) == length(unique(newNames)))
-    newNamesDefault <- c(
-      tech = "process", stg = "process",
-      trade = "process", impp = "process",
-      imp = "process", expp = "process",
-      dem = "process", sup = "process"
+    newNamesDefault <- stats::setNames(
+      rep("process", length(.process_dims)), .process_dims
     )
     if (!is.null(newNames)) {
       ii <- names(newNamesDefault) %in% names(newNames)
@@ -325,6 +338,12 @@ getData.scenario <- function(
   } else {
     name_ <- NULL
   }
+  # A `process = "<name>"` selection becomes an ordinary exact filter on the
+  # `process` column, which the per-parameter loop below creates by renaming.
+  if (!is.null(process_flt)) {
+    if ("process" %in% names(arg)) stop("Duplicated parameters process")
+    arg$process <- process_flt
+  }
   ii <- grepl("_$", names(arg), ignore.case = ignore.case)
   flt_ <- arg[ii]
   flt <- arg[!ii]
@@ -389,8 +408,12 @@ getData.scenario <- function(
         next
       }
       if (verbose) cat("Extracting data from", datype, "\n")
-      if (length(nflt1) > 0) {
-        sets_names <- paste0("^", nflt1, "$")
+      # `process` is not a dimension of any parameter or variable -- it is the
+      # class id column, renamed per frame below -- so pre-selecting on it would
+      # match nothing and silently empty the result.
+      nflt_find <- setdiff(nflt1, "process")
+      if (length(nflt_find) > 0) {
+        sets_names <- paste0("^", nflt_find, "$")
       } else {
         sets_names <- NULL
       }
@@ -429,18 +452,18 @@ getData.scenario <- function(
       }
       clNames <- unique(purrr::flatten_chr(lapply(lt, function(x) x$names))) # All par/var df-columns names
       # Filter for columns/sets
-      if (length(nflt1) > 0 & length(clNames) > 0) {
+      if (length(nflt_find) > 0 & length(clNames) > 0) {
         # Check if provided sets/filters exist
-        ii <- nflt1 %in% clNames
+        ii <- nflt_find %in% clNames
         if (!all(ii)) {
           warning(
-            "Sets '", paste(nflt1, collapse = "', '"),
+            "Sets '", paste(nflt_find[!ii], collapse = "', '"),
             "' have not been found in scenario '", sc, "',", datype, "'."
           )
         }
         # find all matching names of columns
         ii <- sapply(clNames, function(x) {
-          any(grepl(x, nflt1, ignore.case = ignore.case))
+          any(grepl(x, nflt_find, ignore.case = ignore.case))
         })
         clNames <- clNames[ii]
         if (length(clNames) == 0) {
@@ -496,6 +519,22 @@ getData.scenario <- function(
           dim1 <- dim(dat)[1]
           if (is.null(dim1)) dim1 <- 0
           kk <- rep(TRUE, dim1)
+          # A `process` filter -- and `process = TRUE` -- needs the class id
+          # column to BE `process` while filtering; the generic rename at the end
+          # of the scenario loop runs too late. At most one process-class column
+          # can occur in one frame, which is what makes the union unambiguous.
+          if (isTRUE(process) && !is.null(dat)) {
+            pc <- intersect(names(dat), .process_dims)
+            if (length(pc) == 1L) {
+              names(dat)[names(dat) == pc] <- "process"
+            }
+            if ((!is.null(process_flt) || process_rx) &&
+                !("process" %in% names(dat))) {
+              # a selection cannot be honoured on a frame with no process
+              # dimension: drop it rather than return it unfiltered
+              kk <- rep(FALSE, dim1)
+            }
+          }
           if (length(nflt1) > 0) { # the data should be filtered
             if (dim1 > 0) { # data exists
               prcl <- names(dat)
@@ -821,8 +860,7 @@ getData.default <- function(scen, ...) {
 .attach_variants <- function(x, tv) {
   # Native id column first, `process` last: getData(process = TRUE) renames
   # them all to `process`, so the specific names must win when present.
-  col <- intersect(c("tech", "stg", "trade", "sup", "expp", "imp",
-                     "process"), names(x))
+  col <- intersect(c(.process_dims, "process"), names(x))
   if (length(col) == 0L) return(x)
   col <- col[1]
   if (any(c("base", "vintage", "cluster") %in% names(x))) return(x)
@@ -1035,6 +1073,16 @@ if (F) { # test
   # Storage capacity
   getData(scen, name = "vStorageOutCap", merge = TRUE)
 }
+
+# The id column each of the seven process classes contributes. `process` is the
+# union of exactly these classes (`sets$process`, R/interpolation.R), so at most
+# one of these columns occurs in any one frame -- which is what lets them all
+# rename to `process`. `impp` is the alias spelling of `imp`.
+#
+# This is MEMBERSHIP. Do not fold purpose-built subsets into it: e.g.
+# `.cl_groupable` (R/process-groups.R) omits `demand` because demand is not
+# clusterable, which is correct for that job and wrong here.
+.process_dims <- c("tech", "stg", "trade", "sup", "dem", "imp", "impp", "expp")
 
 .crs2int <- function(x) {
   # coerce to integer from factor or character
@@ -1922,6 +1970,23 @@ getObject.en_registry <- function(x, type = NULL, name = NULL, hash = NULL,
   df_slots <- names(sl_types)[sl_types == "data.frame"]
   if (!is.null(name)) df_slots <- df_slots[df_slots %in% name]
   flt <- list(...)
+  # Same contract as the scenario method: a character `process` selects and
+  # renames; TRUE only renames. Translated onto the object's own id column,
+  # since that is what `.filter_object_df()` sees.
+  if (is.character(process)) {
+    if (!is.na(dim_nm)) flt[[dim_nm]] <- process
+    process <- TRUE
+  }
+  if (!is.null(flt$process) && !is.na(dim_nm)) {
+    flt[[dim_nm]] <- flt$process
+    flt$process <- NULL
+    process <- TRUE
+  }
+  if (!is.null(flt$process_) && !is.na(dim_nm)) {
+    flt[[paste0(dim_nm, "_")]] <- flt$process_
+    flt$process_ <- NULL
+    process <- TRUE
+  }
 
   out <- list()
   for (s in df_slots) {

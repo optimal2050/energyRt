@@ -1,5 +1,18 @@
 # energyRt (development version)
 
+## `process` is a model set
+
+* `process` — the union of `supply`, `demand`, `technology`, `storage`,
+  `export`, `import` and `trade` — is now a declared set on every backend, not
+  just an internal R grouping. In GAMS the seven classes are declared as subsets
+  of it (`tech(process)`), so the compiler domain-checks membership. Nothing is
+  indexed over `process` yet, so no solution changes.
+
+* `getData(process = "<name>")` selects a process by name, and
+  `getData(process_ = "<regex>")` by pattern, across all seven classes at once.
+  `process = TRUE` still only renames the class id column, as before.
+
+
 ## Timeslice conversions moved to timescales
 
 * The timeslice label conversions are gone from energyRt. `tsl2hour()`,
@@ -307,6 +320,11 @@
   added into both; the error names the frames and the straddling regions.
 
 ## Breaking changes
+
+* `getData(process =)` now accepts a character value, which SELECTS the named
+  process(es) rather than being read as a logical. A character value is always a
+  selection, so `process = "TRUE"` is a process named `TRUE`, not `TRUE`. The
+  logical form is unchanged.
 
 * `calendar` gains two slots (`year_start`, `utc_offset_minutes`) and
   `horizon@intervals` a `label` column. Objects saved earlier still load --

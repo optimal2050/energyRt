@@ -255,7 +255,12 @@ The default was \code{"lowest"} up to v0.80 and is now \code{"highest"}, matchin
 
 \item{geoframe}{controls spatial aggregation of results that carry a \code{region} column, the spatial twin of \code{timeframe}. One of \code{"finest"} (default, native resolution as stored), \code{"coarsest"} (aggregate up to the top geoscale level), \code{"all"} (return every level stacked), or an explicit geoscale level name (e.g. \code{"zone"}, \code{"nation"}). Requires a geoscale on the model; without one this is inert. Inter-regional flow variables (e.g. \code{vTradeIr}) are returned unchanged, because summing a flow across regions double-counts it — the spatial counterpart of leaving state variables alone under \code{timeframe}.}
 
-\item{process}{if TRUE, dimensions "tech", "stg", "trade", "imp", "expp", "dem", and "sup" will be renamed with "process".}
+\item{process}{\code{TRUE} renames the process-class id dimension ("tech", "stg",
+"trade", "sup", "dem", "imp", "impp", "expp") to "process", so results from
+different classes stack into one frame. A character value instead SELECTS
+the named process(es) and renames -- \code{process = "COAL"}. Use \code{process_} for
+a regex, e.g. \code{process_ = "^E"}. A character value is always a selection,
+so "T"/"TRUE" are read as process names, not logicals.}
 
 \item{parameters}{if TRUE, parameters will be included in the search and returned if found.}
 
