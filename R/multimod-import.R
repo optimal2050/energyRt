@@ -379,29 +379,29 @@ populate_defvals <- function(model) {
 
 #' Convert energyRt parameter to multimod format
 #'
-#' @param ert_param An energyRt parameter object
+#' @param en_param An energyRt parameter object
 #' @param orig_param Original multimod parameter structure (optional)
 #' @param inMemory Logical. Embed data in-memory?
 #' @return Updated parameter with data reference
 #' @keywords internal
-convert_parameter <- function(ert_param, orig_param = NULL, inMemory = FALSE,
+convert_parameter <- function(en_param, orig_param = NULL, inMemory = FALSE,
                                        scenario = NULL) {
   # Start with original parameter structure if available
   result <- if (!is.null(orig_param)) {
     orig_param
   } else {
     list(
-      name = ert_param@name,
-      dims = ert_param@dimSets
+      name = en_param@name,
+      dims = en_param@dimSets
     )
   }
 
   # Add default value if available
-  if (!is.null(ert_param@defVal)) {
-    result$defVal <- ert_param@defVal
+  if (!is.null(en_param@defVal)) {
+    result$defVal <- en_param@defVal
   }
 
-  param_misc <- ert_param@misc
+  param_misc <- en_param@misc
   source_path <- if (!is.null(param_misc$path)) param_misc$path else NULL
   source_on_disk <- if (!is.null(param_misc$onDisk)) param_misc$onDisk else NULL
   source_in_memory <- if (!is.null(param_misc$inMemory)) param_misc$inMemory else FALSE
@@ -413,7 +413,7 @@ convert_parameter <- function(ert_param, orig_param = NULL, inMemory = FALSE,
   )
 
   if (isTRUE(inMemory)) {
-    loaded <- collect_scenario_parameter_data(ert_param, scenario = scenario)
+    loaded <- collect_scenario_parameter_data(en_param, scenario = scenario)
     result$data <- loaded
     result$misc$inMemory <- TRUE
     result$misc$path <- NULL
@@ -504,18 +504,18 @@ convert_parameter <- function(ert_param, orig_param = NULL, inMemory = FALSE,
 #' when the helper is unavailable.
 #'
 #' @param data The parameter's data, as loaded.
-#' @param ert_param The energyRt parameter object.
+#' @param en_param The energyRt parameter object.
 #' @param scenario The energyRt scenario (needed for the membership maps).
 #' @keywords internal
 #' @noRd
-.unfold_param_data <- function(data, ert_param, scenario) {
+.unfold_param_data <- function(data, en_param, scenario) {
   if (is.null(scenario) || !.has_wildcard(data)) return(data)
   unfold1 <- tryCatch(
     unfold_scenario_parameter,
     error = function(e) NULL
   )
   if (is.null(unfold1)) {
-    stop("Parameter '", ert_param@name, "' carries wildcard (NA) index values, ",
+    stop("Parameter '", en_param@name, "' carries wildcard (NA) index values, ",
          "which means the scenario was interpolated with fold = TRUE, but ",
          "energyRt::unfold_scenario_parameter() is not available to expand ",
          "them.\n  Joining on an NA key silently drops the row and substitutes ",
@@ -523,15 +523,15 @@ convert_parameter <- function(ert_param, orig_param = NULL, inMemory = FALSE,
          "an error.\n  Re-interpolate with fold = FALSE, or install an ",
          "energyRt that provides the helper.", call. = FALSE)
   }
-  out <- tryCatch(unfold1(scenario, ert_param), error = function(e) {
-    stop("Could not unfold folded parameter '", ert_param@name, "': ",
+  out <- tryCatch(unfold1(scenario, en_param), error = function(e) {
+    stop("Could not unfold folded parameter '", en_param@name, "': ",
          conditionMessage(e), call. = FALSE)
   })
   out <- as.data.frame(out)
   if (.has_wildcard(out)) {
     left <- .index_cols(out)[vapply(.index_cols(out),
                                     function(k) anyNA(out[[k]]), logical(1))]
-    warning("Parameter '", ert_param@name, "' still carries wildcard values in ",
+    warning("Parameter '", en_param@name, "' still carries wildcard values in ",
             paste(left, collapse = ", "), " after unfolding.", call. = FALSE)
   }
   out
@@ -545,37 +545,37 @@ convert_parameter <- function(ert_param, orig_param = NULL, inMemory = FALSE,
 #' A detached (on-disk) parameter keeps its row count in the `misc$onDisk`
 #' summary; its `@data` slot is empty by design.
 #' @keywords internal
-.ert_n_rows <- function(ert_param) {
-  if (!is.null(ert_param@data) && nrow(ert_param@data) > 0) {
-    return(nrow(ert_param@data))
+.en_n_rows <- function(en_param) {
+  if (!is.null(en_param@data) && nrow(en_param@data) > 0) {
+    return(nrow(en_param@data))
   }
-  d <- .ondisk_dim(ert_param@misc$onDisk)
+  d <- .ondisk_dim(en_param@misc$onDisk)
   if (!is.null(d)) return(as.integer(d[1]))
   0L
 }
 
 #' Collect scenario parameter data into memory
 #'
-#' @param ert_param energyRt parameter object
+#' @param en_param energyRt parameter object
 #' @return data.frame with parameter values (may be empty)
 #'
 #' @keywords internal
-collect_scenario_parameter_data <- function(ert_param, scenario = NULL) {
-  if (!is.null(ert_param@data) && nrow(ert_param@data) > 0) {
-    return(.unfold_param_data(as.data.frame(ert_param@data), ert_param, scenario))
+collect_scenario_parameter_data <- function(en_param, scenario = NULL) {
+  if (!is.null(en_param@data) && nrow(en_param@data) > 0) {
+    return(.unfold_param_data(as.data.frame(en_param@data), en_param, scenario))
   }
 
-  param_path <- ert_param@misc$path
+  param_path <- en_param@misc$path
   if (!is.null(param_path) && (dir.exists(param_path) || file.exists(param_path))) {
     data <- tryCatch(
       multimod::load_arrow_data(param_path, collect = TRUE),
       error = function(e) {
-        warning("Failed to load data for ", ert_param@name, ": ", conditionMessage(e))
+        warning("Failed to load data for ", en_param@name, ": ", conditionMessage(e))
         NULL
       }
     )
     if (!is.null(data) && nrow(data) > 0) {
-      return(.unfold_param_data(as.data.frame(data), ert_param, scenario))
+      return(.unfold_param_data(as.data.frame(data), en_param, scenario))
     }
   }
 
@@ -586,28 +586,28 @@ collect_scenario_parameter_data <- function(ert_param, scenario = NULL) {
 #'
 #' @keywords internal
 create_link_log_entry <- function(multimod_name, scenario_name, type, status,
-                                   ert_param, inMemory) {
+                                   en_param, inMemory) {
   list(
     multimod_name = multimod_name,
     scenario_name = scenario_name,
     type = type,
     status = status,
-    dims = paste(ert_param@dimSets, collapse = ", "),
-    n_dims = length(ert_param@dimSets),
-    defVal = if (!is.null(ert_param@defVal)) paste(ert_param@defVal, collapse = ", ") else NA,
-    has_data = .ert_n_rows(ert_param) > 0,
+    dims = paste(en_param@dimSets, collapse = ", "),
+    n_dims = length(en_param@dimSets),
+    defVal = if (!is.null(en_param@defVal)) paste(en_param@defVal, collapse = ", ") else NA,
+    has_data = .en_n_rows(en_param) > 0,
     # Row count as stored, not as attached. An on-disk parameter's @data slot is
     # detached and always reports 0, which made the import summary announce
     # "0 rows, all empty" for a scenario whose data was entirely readable - and
     # so made the real version of that failure impossible to notice.
-    n_rows = .ert_n_rows(ert_param),
-    path = if (!is.null(ert_param@misc$path)) ert_param@misc$path else NA,
+    n_rows = .en_n_rows(en_param),
+    path = if (!is.null(en_param@misc$path)) en_param@misc$path else NA,
     # Whether the data can be reached at all - in memory now, or on disk via
     # the per-object reference that get_lazy_data() resolves. An on-disk
     # scenario legitimately reports n_rows = 0 here while being perfectly
     # readable, so row counts alone cannot tell a lazy link from a lost one.
-    resolvable = (!is.null(ert_param@data) && nrow(ert_param@data) > 0) ||
-      !is.null(ert_param@misc$path) || isTRUE(ert_param@misc$onDisk),
+    resolvable = (!is.null(en_param@data) && nrow(en_param@data) > 0) ||
+      !is.null(en_param@misc$path) || isTRUE(en_param@misc$onDisk),
     inMemory = inMemory
   )
 }
@@ -727,8 +727,8 @@ link_scenario_data_with_log <- function(model, scenario, inMemory = FALSE) {
   mapping_log <- list()
   
   for (pname in param_names) {
-    ert_param <- scenario@modInp@parameters[[pname]]
-    param_type <- as.character(ert_param@type)
+    en_param <- scenario@modInp@parameters[[pname]]
+    param_type <- as.character(en_param@type)
     
     # Skip bounds - they'll be handled separately
     if (param_type == "bounds") {
@@ -739,7 +739,7 @@ link_scenario_data_with_log <- function(model, scenario, inMemory = FALSE) {
       # Mapping
       if (pname %in% names(model$mappings)) {
         model$mappings[[pname]] <- convert_parameter(
-          ert_param,
+          en_param,
           model$mappings[[pname]],
           inMemory = inMemory,
           scenario = scenario
@@ -750,7 +750,7 @@ link_scenario_data_with_log <- function(model, scenario, inMemory = FALSE) {
           scenario_name = pname,
           type = "mapping",
           status = "linked",
-          ert_param = ert_param,
+          en_param = en_param,
           inMemory = inMemory
         )
       } else {
@@ -759,7 +759,7 @@ link_scenario_data_with_log <- function(model, scenario, inMemory = FALSE) {
           scenario_name = pname,
           type = "mapping",
           status = "unmatched_in_multimod",
-          ert_param = ert_param,
+          en_param = en_param,
           inMemory = inMemory
         )
       }
@@ -767,7 +767,7 @@ link_scenario_data_with_log <- function(model, scenario, inMemory = FALSE) {
       # Numeric parameter
       if (pname %in% names(model$parameters)) {
         model$parameters[[pname]] <- convert_parameter(
-          ert_param,
+          en_param,
           model$parameters[[pname]],
           inMemory = inMemory,
           scenario = scenario
@@ -778,7 +778,7 @@ link_scenario_data_with_log <- function(model, scenario, inMemory = FALSE) {
           scenario_name = pname,
           type = "parameter",
           status = "linked",
-          ert_param = ert_param,
+          en_param = en_param,
           inMemory = inMemory
         )
       } else {
@@ -787,7 +787,7 @@ link_scenario_data_with_log <- function(model, scenario, inMemory = FALSE) {
           scenario_name = pname,
           type = "parameter",
           status = "unmatched_in_multimod",
-          ert_param = ert_param,
+          en_param = en_param,
           inMemory = inMemory
         )
       }
@@ -834,14 +834,14 @@ populate_sets_with_log <- function(model, scenario) {
   cat("  Scanning", length(param_names), "parameters...\n")
   
   for (pname in param_names) {
-    ert_param <- scenario@modInp@parameters[[pname]]
+    en_param <- scenario@modInp@parameters[[pname]]
     
     # Get dimension names
-    dims <- ert_param@dimSets
+    dims <- en_param@dimSets
     if (length(dims) == 0) next
     
     # Load data if available
-    path <- ert_param@misc$path
+    path <- en_param@misc$path
     data <- NULL
     
     if (!is.null(path) && (dir.exists(path) || file.exists(path))) {
@@ -852,8 +852,8 @@ populate_sets_with_log <- function(model, scenario) {
           NULL
         }
       )
-    } else if (!is.null(ert_param@data) && nrow(ert_param@data) > 0) {
-      data <- ert_param@data
+    } else if (!is.null(en_param@data) && nrow(en_param@data) > 0) {
+      data <- en_param@data
     }
     
     # Extract members for each dimension
@@ -911,8 +911,8 @@ process_bounds_with_log <- function(model, scenario_params, bounds_names,
   missing_targets <- list()
   
   for (pname in bounds_names) {
-    ert_param <- scenario_params[[pname]]
-    result <- apply_bounds_to_model(model, ert_param, pname, scenario = scenario)
+    en_param <- scenario_params[[pname]]
+    result <- apply_bounds_to_model(model, en_param, pname, scenario = scenario)
     model <- result$model
     
     # Create log entry for this bounds parameter
@@ -926,11 +926,11 @@ process_bounds_with_log <- function(model, scenario_params, bounds_names,
       multimod_up = up_name,
       status_lo = if (lo_name %in% result$attached) "split_linked" else "unmatched_in_multimod",
       status_up = if (up_name %in% result$attached) "split_linked" else "unmatched_in_multimod",
-      dims = paste(ert_param@dimSets, collapse = ", "),
-      n_dims = length(ert_param@dimSets),
-      defVal_lo = if (length(ert_param@defVal) >= 1) ert_param@defVal[1] else NA,
-      defVal_up = if (length(ert_param@defVal) >= 2) ert_param@defVal[2] else ert_param@defVal[1],
-      path = if (!is.null(ert_param@misc$path)) ert_param@misc$path else NA,
+      dims = paste(en_param@dimSets, collapse = ", "),
+      n_dims = length(en_param@dimSets),
+      defVal_lo = if (length(en_param@defVal) >= 1) en_param@defVal[1] else NA,
+      defVal_up = if (length(en_param@defVal) >= 2) en_param@defVal[2] else en_param@defVal[1],
+      path = if (!is.null(en_param@misc$path)) en_param@misc$path else NA,
       issues = if (length(result$issues) > 0) paste(result$issues, collapse = "; ") else NA
     )
     
@@ -950,27 +950,27 @@ process_bounds_with_log <- function(model, scenario_params, bounds_names,
 
 #' Split bounds-style parameter into low/high tables
 #'
-#' @param ert_param energyRt parameter object of type "bounds"
+#' @param en_param energyRt parameter object of type "bounds"
 #' @return List with lo/up data.frames (each containing dims + value)
 #'
 #' @keywords internal
-split_bounds_parameter_data <- function(ert_param, scenario = NULL) {
+split_bounds_parameter_data <- function(en_param, scenario = NULL) {
   # Bounds take their own import path, so the unfold has to be threaded here
   # too - a folded pTechAf reaches the matrix as pTechAfLo / pTechAfUp.
-  data <- collect_scenario_parameter_data(ert_param, scenario = scenario)
+  data <- collect_scenario_parameter_data(en_param, scenario = scenario)
   if (nrow(data) == 0) {
     return(NULL)
   }
 
   if (!"type" %in% names(data)) {
-    warning("Bounds parameter ", ert_param@name, " lacks a 'type' column")
+    warning("Bounds parameter ", en_param@name, " lacks a 'type' column")
     return(NULL)
   }
 
-  dims <- as.character(ert_param@dimSets)
+  dims <- as.character(en_param@dimSets)
   available_dims <- intersect(dims, names(data))
   if (length(available_dims) == 0) {
-    warning("Bounds parameter ", ert_param@name, " has no matching dimension columns")
+    warning("Bounds parameter ", en_param@name, " has no matching dimension columns")
     return(NULL)
   }
 
