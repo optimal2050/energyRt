@@ -1338,6 +1338,7 @@ draw.storage <- function(object, ...) {
     }
     add(eff_col, .vals(object@seff, eff_col))
     add(paste0(part, ".invcost"), .vals(object@invcost, paste0(part, ".invcost")))
+    add(paste0(part, ".eac"), .vals(object@invcost, paste0(part, ".eac")))
     add(paste0(part, ".fixom"), .vals(object@fixom, paste0(part, ".fixom")))
     add(paste0("varom.", varom_col), .vals(object@varom, varom_col))
     for (b in c("stock", "cap.lo", "cap.up", "cap.fx",
@@ -1402,8 +1403,12 @@ draw.storage <- function(object, ...) {
     list(id = "inp", slot = 1L, title = "charger",    lines = .part_lines("inp")),
     list(id = "stg", slot = 2L, title = "reservoir",  lines = .part_lines("stg")),
     list(id = "out", slot = 3L, title = "discharger", lines = .part_lines("out")))
+  # the reservoir is drawn whenever the storage declares a stored commodity:
+  # a store with no reservoir box reads as a converter
+  has_stg_comm <- nrow(object@storage) > 0 && any(!is.na(object@storage$comm))
   keep <- vapply(parts, function(p)
-    p$id == "out" || length(p$lines) > 0 || p$id %in% linked ||
+    p$id == "out" || (p$id == "stg" && has_stg_comm) ||
+      length(p$lines) > 0 || p$id %in% linked ||
       .lcs_has_part(object, p$id),
     logical(1))
   part_boxes <- parts[keep]
