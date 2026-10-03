@@ -1,5 +1,46 @@
 # energyRt (development version)
 
+## Variant levelized-cost figures in `report()`
+
+* `autoplot()` on a variant fan-out gains `x` and `facet`, so a vintage x
+  cluster x region grid can be compared along any of its axes:
+  `autoplot(lc, x = "cluster", facet = "vintage")`. The dimensions come from the
+  fan-out's own provenance, not from parsing variant names. A dimension left off
+  both `x` and `facet` is AVERAGED, never summed -- a levelized cost is a rate --
+  and the figure caption says so.
+
+* `report()` on a technology with variants now adds a figure per varying
+  dimension beside the combined chart: clusters within each vintage, vintages
+  within each cluster, and regions when they vary (including the nested
+  `by_region = TRUE` shape). A dimension that does not vary is skipped rather
+  than drawn as a panel that says nothing, panel counts are capped, and x labels
+  rotate once they would collide.
+
+## `levcost()` pricing timeframe
+
+* `levcost(method = "solve")` could not price a technology declaring a
+  sub-annual `@timeframe` (hourly wind or solar, typically): the model failed
+  with `pTechAfLo[...,HOUR] out of domain`. The default ANNUAL collapse rewrote
+  the weather profile and the commodity timeframe but left the process itself
+  declaring its sub-annual timeframe, so the timeslice domain stayed hourly
+  while the calendar held a single ANNUAL slice. Both now collapse together.
+  The analytic engine was unaffected, so `method = "auto"` usually hid this.
+
+* `timeframe` gains `"auto"`, now the default, and `levcost()` no longer
+  annualizes a process when the collapse would misrepresent it. Two cases are
+  detected: more than one `@weather` factor on one process (the annual mean of a
+  product is not the product of the annual means, so the pair has no single
+  annual equivalent), and parameter rows pinned to a named sub-annual timeslice
+  (the slice stops existing). `"auto"` prices such a process on its native
+  timeframe and says so; an explicit `timeframe = "ANNUAL"` now declines with
+  the reason instead of returning a number built on an invalid collapse.
+
+* `levcost(timeframe = "native")` on a sub-annual process now requires an
+  explicit `calendar = ` instead of silently defaulting to an annual calendar
+  its timeslices do not fit -- which previously surfaced as an out-of-domain
+  solver error. `levcost()` does not choose a sub-annual calendar for you: the
+  choice changes both the problem size and the numbers.
+
 ## `levcost()` bug fixes for vintaged and clustered technologies
 
 * `levcost()` returned `NA` for every variant of a technology whose `@invcost`,

@@ -359,6 +359,10 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
       scen <- .write_model_PYOMO(arg, scen)
     } else if (any(grep("^jump$", scen@settings@solver$lang, ignore.case = TRUE))) {
       scen <- .write_model_JuMP(arg, scen)
+    } else if (any(grep("^(mm|multimod)$", scen@settings@solver$lang,
+      ignore.case = TRUE
+    ))) {
+      scen <- .write_model_MM(arg, scen)
     } else {
       stop("Unknown solver ", scen@settings@solver$lang)
     }
@@ -453,11 +457,22 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
     return(invisible())
   }
 
+  # Local backend, no solver process: the matrix written by multimod is solved
+  # in this session by HiGHS and decoded through the index files into
+  # tmp.dir/output/, so read_solution() is unchanged.
+  if (identical(scen@settings@solver$backend, "mm")) {
+    rs <- .mm_call_solver(arg, scen)
+    if (rs != 0) stop(paste("multimod solve error code", rs))
+    if (arg$echo) cat("", round(proc.time()[3] - gams_run_time, 2), "s\n", sep = "")
+    return(invisible())
+  }
+
   # Remote backend: solve on a rented GPU via Hugging Face Jobs. The WRITE phase
-  # already produced model.mps in arg$solver.dir (the preset's inc4 hook, as in
-  # pyomo_mps); .cloud_call_solver ships it, waits, and decodes the returned
-  # solution into tmp.dir/output/ so read_solution() is unchanged.
-  if (identical(scen@settings@solver$backend, "multimod_cloud")) {
+  # already produced model.mps in arg$solver.dir -- by multimod for lang = "mm",
+  # or by the preset's inc4 hook for lang = "PYOMO". .cloud_call_solver ships
+  # it, waits, and decodes the returned solution into tmp.dir/output/ so
+  # read_solution() is unchanged.
+  if (identical(scen@settings@solver$backend, "mmcloud")) {
     rs <- .cloud_call_solver(arg, scen)
     if (rs != 0) stop(paste("Cloud solve error code", rs))
     if (arg$echo) cat("", round(proc.time()[3] - gams_run_time, 2), "s\n", sep = "")

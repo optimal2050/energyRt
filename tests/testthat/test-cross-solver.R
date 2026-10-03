@@ -46,7 +46,13 @@
   pyomo_cbc_sqlite = list(solver = quote(solver_options$pyomo_cbc_sqlite),
                           skip = quote(skip_if_no_pyomo())),
   gams = list(solver = quote(solver_options$gams_gdx_cplex),
-              skip = quote(skip_if_no_gams()))
+              skip = quote(skip_if_no_gams())),
+  # The matrix route: no model script and no solver process -- multimod builds
+  # the LP from the AST and HiGHS solves it in process. It reaches the solver
+  # by a different path from every other entry here, so parity against the
+  # GLPK reference is the only thing that catches a drift in the matrix.
+  mm_highs = list(solver = quote(solver_options$mm_highs),
+                  skip = quote(skip_if_no_multimod()))
 )
 
 .xs_solve <- function(build, tag, solver, dense = FALSE) {

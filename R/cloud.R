@@ -55,14 +55,25 @@ set_hf_token <- function(token = NULL) {
 .cloud_call_solver <- function(arg, scen) {
   .cloud_check_deps()
   s <- scen@settings@solver
+  .cloud_reject_legacy_fields(s)
 
-  if (!identical(toupper(s$lang), "PYOMO")) {
-    stop("backend = 'multimod_cloud' currently ships a matrix written by Pyomo ",
-         "(solver_options$multimod_cloud). Got lang = ", s$lang, ".",
+  # Who wrote the matrix decides how the returned solution is read back: Pyomo
+  # emits symbolic row and column names, multimod emits positional ones that
+  # only the index files resolve. The index files stay local -- the GPU is sent
+  # the matrix alone.
+  writer <- if (identical(toupper(s$lang), "PYOMO")) {
+    "pyomo"
+  } else if (any(grep("^(mm|multimod)$", s$lang, ignore.case = TRUE))) {
+    "mm"
+  } else {
+    stop("backend = 'mmcloud' ships a matrix written by Pyomo (lang = ",
+         "'PYOMO') or by multimod (lang = 'mm'). Got lang = ", s$lang, ".",
          call. = FALSE)
   }
 
-  mps <- .cloud_matrix(arg, scen)
+  mps <- if (identical(writer, "mm")) .mm_cloud_matrix(arg) else {
+    .cloud_matrix(arg, scen)
+  }
   gz <- .cloud_compress(mps, arg)
 
   if (arg$echo) {
@@ -72,10 +83,10 @@ set_hf_token <- function(token = NULL) {
     inputs    = gz,
     outputs   = "model.sol",
     script    = .cloud_worker_script(s),
-    flavor    = s$hf_flavor %||% "a10g-large",
-    timeout   = s$hf_timeout %||% "3h",
-    namespace = s$hf_namespace,
-    image     = s$hf_image %||% "python:3.12",
+    flavor    = s$cloud_flavor %||% "a10g-large",
+    timeout   = s$cloud_timeout %||% "3h",
+    namespace = s$cloud_namespace,
+    image     = s$cloud_image %||% "python:3.12",
     name      = paste0("energyrt-", scen@name),
     echo      = isTRUE(arg$echo))
 
@@ -84,8 +95,8 @@ set_hf_token <- function(token = NULL) {
   # killed R session can still poll or cancel the job.
   .cloud_note_job(arg, job)
 
-  stage <- mmcloud::cloud_wait(job, poll = s$hf_poll %||% 15,
-                               max_wait = s$hf_max_wait %||% Inf,
+  stage <- mmcloud::cloud_wait(job, poll = s$cloud_poll %||% 15,
+                               max_wait = s$cloud_max_wait %||% Inf,
                                echo = isTRUE(arg$echo))
 
   ok <- tryCatch({
@@ -97,29 +108,73 @@ set_hf_token <- function(token = NULL) {
     # conclusion rather than blaming the transport for a missing file.
     v <- tryCatch(mmcloud::cloud_verdict(job), error = function(e2) NULL)
     if (!is.null(v) && !identical(v$verdict, "ok")) {
-      warning("multimod_cloud: ", v$message, " (job ", job$id, ").",
+      warning("mmcloud: ", v$message, " (job ", job$id, ").",
               if (!is.na(v$evidence)) paste0("\n  ", v$evidence) else "",
               call. = FALSE)
     } else {
-      warning("multimod_cloud: no solution returned (job ", job$id,
+      warning("mmcloud: no solution returned (job ", job$id,
               " ended ", stage, "): ", conditionMessage(e), call. = FALSE)
     }
     FALSE
   })
   if (!ok || !identical(stage, "COMPLETED")) return(1L)
 
-  .cloud_decode_solution(arg$solver.dir, echo = isTRUE(arg$echo))
+  if (identical(writer, "mm")) {
+    # cuOpt returns primals only: the duals in the decoded solution are NA.
+    .mm_decode_solution(arg$solver.dir, fp(arg$solver.dir, "model.sol"),
+                        solver = "cuopt", echo = isTRUE(arg$echo))
+  } else {
+    .cloud_decode_solution(arg$solver.dir, echo = isTRUE(arg$echo))
+  }
   0L
 }
 
-# The matrix, built here unless one is already on disk and `hf_reuse_matrix`
+# The `hf_*` option names are gone: transport settings are `cloud_*` and solver
+# settings are `gpu_*`, because `hf_method` and friends were never Hugging Face
+# settings at all -- they are cuOpt flags. An unrecognised field on a solver
+# spec is SILENTLY IGNORED, and the defaults it falls back to are not benign:
+# an unset namespace resolves to the token's personal account (HTTP 402), an
+# unset time limit lets cuopt_cli stop after its own 60 s, and the default
+# flavor is 24 GB of VRAM against the ~63 GB a full-year case needs. So a stale
+# name is refused rather than dropped.
+.cloud_legacy_fields <- c(
+  hf_flavor = "cloud_flavor", hf_namespace = "cloud_namespace",
+  hf_timeout = "cloud_timeout", hf_image = "cloud_image",
+  hf_poll = "cloud_poll", hf_max_wait = "cloud_max_wait",
+  hf_reuse_matrix = "cloud_reuse_matrix", hf_method = "gpu_method",
+  hf_time_limit = "gpu_time_limit", hf_solver_options = "gpu_solver_options"
+)
+
+.cloud_reject_legacy_fields <- function(s) {
+  found <- intersect(names(.cloud_legacy_fields), names(s))
+  if (!length(found)) return(invisible())
+  stop("solver spec carries renamed field(s):\n",
+       paste0("  ", found, " -> ", .cloud_legacy_fields[found],
+              collapse = "\n"),
+       "\n`hf_*` became `cloud_*` for transport and `gpu_*` for solver ",
+       "options. An unknown field would be ignored and the job would run at ",
+       "the defaults, so it is refused instead.", call. = FALSE)
+}
+
+# The matrix for the mm route is already on disk: `.write_model_MM()` wrote it,
+# together with the index files the solution is decoded against.
+.mm_cloud_matrix <- function(arg) {
+  mps <- fp(arg$solver.dir, "model.mps")
+  if (!file.exists(mps)) {
+    stop("mmcloud: no model.mps in ", arg$solver.dir,
+         " - was the model written?", call. = FALSE)
+  }
+  mps
+}
+
+# The matrix, built here unless one is already on disk and `cloud_reuse_matrix`
 # says to keep it. Re-solving with different solver options should not pay for
 # the build again.
 .cloud_matrix <- function(arg, scen) {
   s <- scen@settings@solver
   mps <- file.path(arg$solver.dir, "model.mps")
 
-  if (isTRUE(s$hf_reuse_matrix) && file.exists(mps)) {
+  if (isTRUE(s$cloud_reuse_matrix) && file.exists(mps)) {
     if (arg$echo) {
       cat(sprintf("Reusing the matrix already built (%.2f GB, %s)\n",
                   file.size(mps) / 1e9,
@@ -132,10 +187,10 @@ set_hf_token <- function(token = NULL) {
   if (arg$echo) cat("Building the matrix locally ...\n")
   rs <- .cloud_build_matrix(arg, scen)
   if (!identical(as.integer(rs), 0L)) {
-    stop("multimod_cloud: the local build failed with code ", rs, call. = FALSE)
+    stop("mmcloud: the local build failed with code ", rs, call. = FALSE)
   }
   if (!file.exists(mps)) {
-    stop("multimod_cloud: the local build produced no 'model.mps' in ",
+    stop("mmcloud: the local build produced no 'model.mps' in ",
          arg$solver.dir, ". The preset must carry the inc4 hook that writes it ",
          "(see solver_options$pyomo_mps).", call. = FALSE)
   }
@@ -176,11 +231,11 @@ set_hf_token <- function(token = NULL) {
 # is the only live progress signal, and cuOpt's own --log-file is buffered for
 # tens of minutes.
 .cloud_worker_script <- function(s) {
-  opts <- c(sprintf("--method %s", s$hf_method %||% 1L))
-  if (!is.null(s$hf_time_limit)) {
-    opts <- c(opts, sprintf("--time-limit %s", s$hf_time_limit))
+  opts <- c(sprintf("--method %s", s$gpu_method %||% 1L))
+  if (!is.null(s$gpu_time_limit)) {
+    opts <- c(opts, sprintf("--time-limit %s", s$gpu_time_limit))
   }
-  if (!is.null(s$hf_solver_options)) opts <- c(opts, s$hf_solver_options)
+  if (!is.null(s$gpu_solver_options)) opts <- c(opts, s$gpu_solver_options)
   c("set -e",
     "nvidia-smi || true",
     # cuOpt's wheels bundle their own CUDA runtime, so a plain python image and
@@ -219,7 +274,7 @@ set_hf_token <- function(token = NULL) {
   py <- mmcloud::cloud_python(python)
   sol <- file.path(solver.dir, "model.sol")
   if (!file.exists(sol)) {
-    stop("multimod_cloud: no model.sol to decode in ", solver.dir, call. = FALSE)
+    stop("mmcloud: no model.sol to decode in ", solver.dir, call. = FALSE)
   }
   if (isTRUE(echo)) cat("Decoding solution ...\n")
   out <- suppressWarnings(system2(

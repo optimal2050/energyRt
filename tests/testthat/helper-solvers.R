@@ -101,3 +101,42 @@ skip_if_no_neos <- function() {
     testthat::skip("NEOS tests are opt-in (set ENERGYRT_TEST_NEOS=true)")
   }
 }
+
+# `lang = "mm"` needs no external binary -- the matrix is built in R and solved
+# by HiGHS in process -- so the guard is a package check, not a path check.
+has_multimod <- function() {
+  .toolchain("multimod", function() {
+    requireNamespace("multimod", quietly = TRUE) &&
+      requireNamespace("highs", quietly = TRUE)
+  })
+}
+
+# Unlike the other probes this one runs the reader, because a version check
+# cannot tell these builds apart: the GAMS template declares `sup(process)` and
+# friends as SUBSETS, and a multimod whose reader registers a subset only as a
+# mapping fails to convert every equation that sums over one. The failure is at
+# model build, far from its cause, so a stale dependency must skip rather than
+# fail. Milliseconds on a 6-symbol model, and memoised like the rest.
+has_multimod_subsets <- function() {
+  .toolchain("multimod_subsets", function() {
+    if (!has_multimod()) return(FALSE)
+    gms <- c("sets", "a  alpha", "p  parent", "s(p)  subset", ";",
+             "sets", "m(s, a)  map", ";",
+             "parameters", "pv(s, a)  val", ";",
+             "variables", "vx(a)  x", ";",
+             "equations", "eq(a)  e", ";",
+             "eq(a).. vx(a) =e= sum(s$m(s, a), pv(s, a));")
+    ms <- multimod::read_gams(gms, include = FALSE, verbose = FALSE)
+    "s" %in% names(ms$sets) && !is.null(multimod::as_multimod(ms))
+  })
+}
+
+skip_if_no_multimod <- function() {
+  skip_if_tier_below("cross")
+  if (!has_multimod()) {
+    testthat::skip("multimod and/or highs not installed")
+  }
+  if (!has_multimod_subsets()) {
+    testthat::skip("installed multimod does not resolve GAMS subsets")
+  }
+}

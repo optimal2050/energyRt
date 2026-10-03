@@ -1,8 +1,8 @@
 Package: energyRt
 Type: Package
 Title: Energy Systems Modeling Toolbox
-Version: 0.90.0.9007
-Date: 2026-09-28
+Version: 0.90.0.9009
+Date: 2026-10-03
 Authors@R: 
   c(person(given = "Oleg", 
           family = "Lugovoy", 
@@ -155,6 +155,7 @@ Collate:
     'write_gams.R'
     'write_glpk.R'
     'write_jump.R'
+    'write_mm.R'
     'write_pyomo.R'
     'xlsx-technology.R'
 Config/testthat/edition: 3

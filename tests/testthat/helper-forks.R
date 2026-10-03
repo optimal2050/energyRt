@@ -41,7 +41,9 @@ fork_interp_cases <- function() {
   pyomo_cbc = list(solver = quote(solver_options$pyomo_cbc),
                    skip = quote(skip_if_no_pyomo())),
   gams = list(solver = quote(solver_options$gams_gdx_cplex),
-              skip = quote(skip_if_no_gams()))
+              skip = quote(skip_if_no_gams())),
+  mm_highs = list(solver = quote(solver_options$mm_highs),
+                  skip = quote(skip_if_no_multimod()))
 )
 
 .fork_interp <- function(build, family, case_name, args) {
@@ -77,7 +79,8 @@ run_family <- function(family, build,
                        check_params = NULL,
                        check_solution = NULL,
                        interp_cases = fork_interp_cases(),
-                       backends = c("glpk", "julia_highs", "pyomo_cbc", "gams"),
+                       backends = c("glpk", "julia_highs", "pyomo_cbc", "gams",
+                                    "mm_highs"),
                        solve_cases = names(interp_cases)) {
 
   # ---- depth I: every interp case, solver-free ---------------------------- #

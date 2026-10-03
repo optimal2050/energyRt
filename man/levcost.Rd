@@ -59,14 +59,24 @@ commodities without a supply in the container are auto-supplied
 \item{\code{horizon}}{A \code{horizon} object, numeric year vector, or
 \code{NULL} (derives from \code{@olife}).}
 \item{\code{calendar}}{A \code{calendar} object or \code{NULL}.}
-\item{\code{timeframe}}{\code{"ANNUAL"} (default) or \code{"native"}.
+\item{\code{timeframe}}{\code{"auto"} (default), \code{"ANNUAL"} or
+\code{"native"}.
 \code{"ANNUAL"} prices the technology on a single annual time-timeslice: any
 weather profile is collapsed to an annual capacity factor (applied as the
 technology's annual availability), so capacity is sized to serve unit
 annual demand at that factor (textbook LCOE). \code{"native"} keeps the
 supplied (sub-annual) calendar and normalises by total generation --
 useful when the technology is analysed together with storage or
-transmission, where sub-annual dispatch matters.}
+transmission, where sub-annual dispatch matters; it requires a
+\code{calendar} holding the process's timeslices and will not choose one
+for you.
+\code{"auto"} annualizes when that collapse is sound and prices natively
+when it is not. It is unsound when a process carries more than one
+\code{@weather} factor (the annual mean of a product is not the product of
+the annual means, so the pair has no single annual equivalent) or has
+parameter rows pinned to a named sub-annual timeslice (the slice stops
+existing). An explicit \code{"ANNUAL"} declines in those cases rather than
+return a number built on an invalid collapse.}
 \item{\code{backstop}}{Logical, default \code{TRUE}. Enables a very
 expensive dummy-import slack on the output commodity balance so the
 mini-model always solves even when the technology cannot serve a timeslice on

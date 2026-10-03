@@ -909,7 +909,10 @@ scenario_solutions <- function(scen, peek = TRUE) {
 .solver_identity <- function(solver_dir) {
   m <- tryCatch(.read_solver_meta(solver_dir), error = function(e) NULL)
   if (is.null(m) || !all(c("name", "value") %in% names(m))) return(NULL)
-  keep <- c("name", "lang", "solver", "method", "import_format",
+  # `backend` is part of the identity: it is what `.call_solver()` dispatches
+  # on, so a run restored without it falls through to the local
+  # `system(cmdline)` path -- with an empty `cmdline` for the matrix routes.
+  keep <- c("name", "lang", "solver", "method", "backend", "import_format",
             "export_format")
   out <- list()
   for (k in keep) {

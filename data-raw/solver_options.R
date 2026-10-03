@@ -78,34 +78,77 @@ pyomo_mps$inc4 <- {
 print('MPS written to model.mps; skipping solve', flush=True)
 raise SystemExit(0)"}
 
+## The matrix routes #########################################################
+# Three ways to reach a solver through an MPS file, differing in WHO WRITES THE
+# MATRIX -- which is also what decides how the solution is read back:
+#
+#   writer    row/col names in the MPS      decoded by
+#   Pyomo     symbolic, ~67 chars           inst/python/sol_to_energyrt.py
+#   multimod  positional (c0, r0)           the _col_index / _row_index files
+#
+# Positional naming is why the multimod matrix is small -- in a Pyomo MPS the
+# labels are the bulk of the file (~188 B per nonzero against ~35). The cost is
+# that the `.mps` means nothing without the index files written beside it, so
+# they must never be separated. They stay local: the solver is sent the matrix
+# alone and returns positional names, which are resolved here.
+#
+# `lang = "mm"` builds the matrix with multimod, straight from the AST: no
+# Pyomo model is ever constructed, which is the point. The Pyomo BUILD is the
+# memory wall on large models (~1 KB per nonzero), and multimod measured 1.6x
+# faster and 5.4x smaller at 19.85M nonzeros.
+
+## multimod matrix, solved locally by HiGHS, in-process ######################
+mm_highs <- list(
+  name = "mm_highs",
+  lang = "mm",
+  solver = "HiGHS",
+  backend = "mm"
+)
+
 ## Cloud solve on a rented GPU (Hugging Face Jobs) ############################
-# Builds the matrix locally exactly as `pyomo_mps` does, then `backend =
-# "multimod_cloud"` makes .call_solver ship it, run cuOpt on a GPU, and decode
-# the returned solution into <solver.dir>/output/ so read_solution() is
-# unchanged. Requires a Hugging Face token (set_hf_token(), HF_TOKEN, or
-# `hf auth login`) and `huggingface_hub` in the python energyRt already uses.
+# `backend = "mmcloud"` makes .call_solver ship the locally written matrix, run
+# cuOpt on a GPU, and decode the returned solution into <solver.dir>/output/ so
+# read_solution() is unchanged. Requires a Hugging Face token (set_hf_token(),
+# HF_TOKEN, or `hf auth login`) and `huggingface_hub` in the python energyRt
+# already uses.
 #
 # Local build, remote solve -- not the other way round: measured on the 41-node
 # full-year model, `cpu-performance` costs MORE per hour than `a10g-large`
 # ($1.90 vs $1.50), the rented cores are ~1.9x slower than a desktop, and the
-# Pyomo build is single-threaded, so building remotely is slower AND dearer.
-# Cloud building is worth it only to escape a local memory ceiling.
-multimod_cloud <- pyomo_mps
-multimod_cloud$name <- "multimod_cloud"
-multimod_cloud$backend <- "multimod_cloud"
-multimod_cloud$hf_flavor <- "a10g-large"
-multimod_cloud$hf_namespace <- NULL   # NULL = the token's own account
-multimod_cloud$hf_timeout <- "3h"
+# build is single-threaded, so building remotely is slower AND dearer. Cloud
+# building is worth it only to escape a local memory ceiling.
+#
+# cuOpt returns PRIMALS ONLY -- the duals in a decoded solution are NA.
+mmcloud <- mm_highs
+mmcloud$name <- "mmcloud"
+mmcloud$backend <- "mmcloud"
+mmcloud$cloud_flavor <- "a10g-large"
+mmcloud$cloud_timeout <- "3h"
 # cuOpt PDLP. linopy defaults cuOpt to method=3 (barrier) because cuOpt's own
 # default 0 (concurrent) crashes; barrier asked for 118.9 GB of VRAM on a 36M
 # nonzero model and died on a 22 GB card. 1 is what every large model solved with.
-multimod_cloud$hf_method <- 1L
+mmcloud$gpu_method <- 1L
 
-multimod_cloud_crossover <- multimod_cloud
-multimod_cloud_crossover$name <- "multimod_cloud_crossover"
+mmcloud_crossover <- mmcloud
+mmcloud_crossover$name <- "mmcloud_crossover"
 # Crossover recovers the exact vertex optimum: measured 1.5e-7 relative error
 # against 2.3e-4 without, for a small extra solve.
-multimod_cloud_crossover$hf_solver_options <- "--crossover 1"
+mmcloud_crossover$gpu_solver_options <- "--crossover 1"
+
+## Pyomo-written matrix, same GPU transport ###################################
+# Kept because it is the route every large model solved with before the
+# multimod writer existed, and because its decoder tolerates a matrix whose
+# index files were lost. Prefer `mmcloud` for new work.
+mmcloud_pyomo <- pyomo_mps
+mmcloud_pyomo$name <- "mmcloud_pyomo"
+mmcloud_pyomo$backend <- "mmcloud"
+mmcloud_pyomo$cloud_flavor <- "a10g-large"
+mmcloud_pyomo$cloud_timeout <- "3h"
+mmcloud_pyomo$gpu_method <- 1L
+
+mmcloud_pyomo_crossover <- mmcloud_pyomo
+mmcloud_pyomo_crossover$name <- "mmcloud_pyomo_crossover"
+mmcloud_pyomo_crossover$gpu_solver_options <- "--crossover 1"
 
 ## Python/Pyomo via NEOS (remote solve; no local solver, needs env var NEOS_EMAIL)
 # The scenario is still BUILT locally (Pyomo reads the data into the
@@ -522,9 +565,13 @@ solver_options <- list(
   pyomo_highs = pyomo_highs,
   pyomo_highs_barrier = pyomo_highs_barrier,
   pyomo_mps = pyomo_mps,
-  # Cloud solve (matrix built locally, solved on a rented GPU)
-  multimod_cloud = multimod_cloud,
-  multimod_cloud_crossover = multimod_cloud_crossover,
+  # multimod-written matrix (lang = "mm"): local HiGHS, or a rented GPU
+  mm_highs = mm_highs,
+  mmcloud = mmcloud,
+  mmcloud_crossover = mmcloud_crossover,
+  # Pyomo-written matrix on the same GPU transport
+  mmcloud_pyomo = mmcloud_pyomo,
+  mmcloud_pyomo_crossover = mmcloud_pyomo_crossover,
   # Python/Pyomo via NEOS (remote solve)
   neos_pyomo_cplex = neos_pyomo_cplex,
   neos_pyomo_cplex_barrier = neos_pyomo_cplex_barrier,
