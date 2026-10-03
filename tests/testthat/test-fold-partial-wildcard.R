@@ -7,7 +7,7 @@
 # never creates a partial column for the same reason.
 #
 # But one can still arrive from the SOURCE data -- a wildcard that
-# `unfold_scenario_parameters()` could not materialise and that the fold pass
+# `unfold_parameters()` could not materialise and that the fold pass
 # then declined to fold. Nothing converted it, nothing rewrote it, and
 # `validate_scenario_parameters()` exempts the trimmable dims from its NA
 # check, so the raw NA reached the solver. NA is not a set member, so every

@@ -37,7 +37,6 @@ dev/
 dev-scripts/
 .positai
 #temporary:
-man/
 docs/
 inst/templates/*.pdf
 tests/testthat/*.pdf

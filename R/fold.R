@@ -558,10 +558,10 @@ unfold_parameter <- function(param, member_sets = list(), value_col = "value") {
 }
 
 # -----------------------------------------------------------------------------#
-# fold_scenario_parameters: fold all numpar/bounds parameters of a scenario.
+# fold_parameters: fold all numpar/bounds parameters of a scenario.
 # Used during interpolation (interp_mod). Returns the updated scenario.
 # -----------------------------------------------------------------------------#
-fold_scenario_parameters <- function(scen, dims = c("region", "timeslice"),
+fold_parameters <- function(scen, dims = c("region", "timeslice"),
                                      tol = 1e-10, verbose = FALSE) {
   dims <- .rename_slice_compat(dims, "dims")
   pnames <- names(scen@modInp@parameters)
@@ -614,13 +614,13 @@ unfold_scenario_parameter <- function(scen, param,
 }
 
 # -----------------------------------------------------------------------------#
-# unfold_scenario_parameters: materialise wildcard (NA) rows of all
+# unfold_parameters: materialise wildcard (NA) rows of all
 # numpar/bounds parameters back to explicit members and write the expanded data
-# into each parameter. The in-place counterpart of `fold_scenario_parameters`,
+# into each parameter. The in-place counterpart of `fold_parameters`,
 # used by `interp_mod(fold = FALSE)` so the written model carries no NA
 # wildcards in the trimmable dimensions. Returns the updated scenario.
 # -----------------------------------------------------------------------------#
-unfold_scenario_parameters <- function(scen, dims = .foldable_dims,
+unfold_parameters <- function(scen, dims = .foldable_dims,
                                        types = c("numpar", "bounds", "map"),
                                        verbose = FALSE) {
   dims <- .rename_slice_compat(dims, "dims")
@@ -950,7 +950,7 @@ unfold_trade_routes <- function(scen, verbose = FALSE) {
 # 'ANYREGION' would strand the explicit rows.
 #
 # But a partial column can still arrive from the SOURCE data: a wildcard that
-# `unfold_scenario_parameters()` could not materialise (no membership row for
+# `unfold_parameters()` could not materialise (no membership row for
 # that entity) and that the fold pass then correctly declined to fold. It is
 # nobody's output, so nothing converts it, nothing rewrites it, and
 # `validate_scenario_parameters()` exempts the trimmable dims from its NA check.

@@ -589,7 +589,7 @@ map_mTradeIr <- function(scen, fmp) {
   if (length(trade_info) == 0) return(scen)
   # mTradeRoutes (constraint-recipe intermediate): the per-trade (src, dst)
   # pairs. Built here because the inter-regional flow maps below depend on it AND
-  # fold_scenario_parameters() reads it to fold the trade aux-coefficient params.
+  # fold_parameters() reads it to fold the trade aux-coefficient params.
   # recipe_constraint skips it (.constraint_maps_built_elsewhere).
   routes_all <- do.call(rbind, lapply(trade_info, `[[`, "routes"))
   rownames(routes_all) <- NULL

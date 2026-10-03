@@ -64,7 +64,7 @@ for (model_nm in names(.fi_models())) {
           }
         }
         # idempotent
-        again <- fold_scenario_parameters(fo, dims = FOLD_ALL)
+        again <- fold_parameters(fo, dims = FOLD_ALL)
         expect_equal(energyRt:::.value_param_rows(again),
                      energyRt:::.value_param_rows(fo), label = paste(lab, "idempotent"))
         # accounted: the fold step's saving is what fold_info sums to, less the

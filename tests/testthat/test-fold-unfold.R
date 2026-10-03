@@ -32,10 +32,10 @@ test_that("fold -> unfold + densify recovers the dense build for full-set params
                fold = c("region", "timeslice", "year"))))
 
   # The GAMS-write transform: unfold value params, densify defaults, trim.
-  tr <- unfold_scenario_parameters(fo, dims = energyRt:::.foldable_dims,
+  tr <- unfold_parameters(fo, dims = energyRt:::.foldable_dims,
                                    types = c("numpar", "bounds"))
-  tr <- densify_parameters(tr)
-  tr <- trim_parameters_by_maps(tr)
+  tr <- expand_default_values(tr)
+  tr <- trim_parameters(tr)
 
   sorted <- function(s, p) {
     d <- as.data.frame(get_data_slot(s@modInp@parameters[[p]]))

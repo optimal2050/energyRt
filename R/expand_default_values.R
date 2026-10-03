@@ -5,7 +5,7 @@
 # parameter's `defVal`. Backends with a native default (MathProg / JuMP / Pyomo)
 # handle that; GAMS has no default and reads an absent tuple as 0, so any
 # parameter with a non-zero `defVal` must be MATERIALISED over its domain before a
-# GAMS write. `densify_parameters()` does that — the live-path reconnection of the
+# GAMS write. `expand_default_values()` does that — the live-path reconnection of the
 # legacy `fullsets` behaviour (`interpolation_funs.R`), which the `ob2mi` rewrite
 # dropped.
 #
@@ -139,7 +139,7 @@
 
 # Materialise every densifiable parameter (finite non-zero defVal). Runs only on
 # the `sparse = FALSE` path, after interpolation + maps, before writing.
-densify_parameters <- function(scen, verbose = FALSE) {
+expand_default_values <- function(scen, verbose = FALSE) {
   pool <- .densify_map_pool(scen)
   for (pn in names(scen@modInp@parameters)) {
     p <- scen@modInp@parameters[[pn]]

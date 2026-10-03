@@ -130,7 +130,6 @@ newDemand <- function(
 
 #' Update data in a demand object
 #'
-#' @name update
 #' @param object demand object
 #'
 #' @rdname newDemand

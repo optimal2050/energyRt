@@ -339,7 +339,7 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
     # and their members are known at compile time via `sets.gms`.
     .blk_w <- .fold_code_block(scen@settings@solver$lang)
     if (.blk_w == "GAMS") {
-      scen <- unfold_scenario_parameters(scen, dims = "year",
+      scen <- unfold_parameters(scen, dims = "year",
                                          types = c("numpar", "bounds"))
     }
     scen <- apply_fold_artificial(scen, backends = .blk_w)

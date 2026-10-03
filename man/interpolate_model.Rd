@@ -64,12 +64,18 @@ repeated across milestone years is usually the largest parameter, and
 Pyomo/HiGHS. A model whose weather genuinely differs by year simply does
 not fold.}
 
-\item{sparse}{logical; the storage knob. \code{TRUE} drops \code{value == defVal} rows;
-\code{FALSE} materialises the default over each parameter's full domain (the
-form GAMS needs). Folding applies to either.}
+\item{sparse}{logical; the storage knob, and the user-facing switch between
+\code{\link[=drop_default_values]{drop_default_values()}} and \code{\link[=expand_default_values]{expand_default_values()}}. \code{TRUE} drops
+\code{value == defVal} rows; \code{FALSE} materialises the default over each
+parameter's full domain (the form GAMS needs) and then trims rows no map
+indexes. Folding applies to either.}
 
-\item{prune}{logical; drop interpolated rows that fall outside the
-equation-domain maps (no effect on the solution, smaller data).}
+\item{prune}{logical; apply the per-parameter \code{misc$prune$value} filter via
+\code{\link[=drop_default_values]{drop_default_values()}} - rows whose interpolated value equals that
+parameter's flagged value are dropped (lossless: an absent tuple reads as
+the default, which equals the dropped value). One parameter is flagged
+today (\code{pWeather}). Superseded by \code{sparse}'s \verb{value =} form; retained for
+compatibility.}
 
 \item{validate}{logical; run \code{\link[=validate_scenario_parameters]{validate_scenario_parameters()}} after
 interpolation (schema, duplicate keys, map/parameter coverage, missing

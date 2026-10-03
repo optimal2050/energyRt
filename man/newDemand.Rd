@@ -2,7 +2,7 @@
 % Please edit documentation in R/class-demand.R
 \name{newDemand}
 \alias{newDemand}
-\alias{update}
+\alias{update,demand-method}
 \title{Create new demand object}
 \usage{
 newDemand(

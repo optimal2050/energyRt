@@ -39,11 +39,17 @@
 #'   245,259 to 35,037 rows (-85.7%) with a bit-identical objective on GLPK and
 #'   Pyomo/HiGHS. A model whose weather genuinely differs by year simply does
 #'   not fold.
-#' @param sparse logical; the storage knob. `TRUE` drops `value == defVal` rows;
-#'   `FALSE` materialises the default over each parameter's full domain (the
-#'   form GAMS needs). Folding applies to either.
-#' @param prune logical; drop interpolated rows that fall outside the
-#'   equation-domain maps (no effect on the solution, smaller data).
+#' @param sparse logical; the storage knob, and the user-facing switch between
+#'   [drop_default_values()] and [expand_default_values()]. `TRUE` drops
+#'   `value == defVal` rows; `FALSE` materialises the default over each
+#'   parameter's full domain (the form GAMS needs) and then trims rows no map
+#'   indexes. Folding applies to either.
+#' @param prune logical; apply the per-parameter `misc$prune$value` filter via
+#'   [drop_default_values()] - rows whose interpolated value equals that
+#'   parameter's flagged value are dropped (lossless: an absent tuple reads as
+#'   the default, which equals the dropped value). One parameter is flagged
+#'   today (`pWeather`). Superseded by `sparse`'s `value =` form; retained for
+#'   compatibility.
 #' @param validate logical; run [validate_scenario_parameters()] after
 #'   interpolation (schema, duplicate keys, map/parameter coverage, missing
 #'   governing constraints, calendar chronology).
@@ -981,7 +987,7 @@ interpolate_model <- function(mod, name = NULL, ...,
   #   `prune` argument is a global on/off over the per-parameter flags.
   if (isTRUE(prune)) {
     .interp_step(verbose, "prune: dropping flagged default-valued rows")
-    scen <- prune_parameters(scen)
+    scen <- drop_default_values(scen)
   }
 
   #============================================================================#
@@ -1002,14 +1008,14 @@ interpolate_model <- function(mod, name = NULL, ...,
     # without a native default. Runs before the clip so over-covered rows are
     # pruned. The fold below collapses what densify materialised back to one
     # row per entity (reg5 electricity model: 481,008 -> 37,150 rows).
-    scen <- unfold_scenario_parameters(scen, dims = .foldable_dims)
+    scen <- unfold_parameters(scen, dims = .foldable_dims)
     .interp_step(verbose, "densify: materialising defaults over the domain")
-    scen <- densify_parameters(scen)
+    scen <- expand_default_values(scen)
     # Drop value-parameter rows outside the equation-domain maps (lifespan
     # window x membership). The maps are the minimal authority on the domain, so
     # any remaining row no map indexes is dead data (and may still carry a stale
     # wildcard NA that is out-of-domain in the solver).
-    scen <- trim_parameters_by_maps(scen)
+    scen <- trim_parameters(scen)
   }
   if (length(fold_dims) > 0) {
     # Record the pre-fold value-parameter total so `model_size` can report the
@@ -1017,15 +1023,15 @@ interpolate_model <- function(mod, name = NULL, ...,
     scen@misc$fold_dims <- fold_dims
     scen@misc$fold_rows_before <- .value_param_rows(scen)
     .interp_step(verbose, paste0("fold: folding ", paste(fold_dims, collapse = ", ")))
-    scen <- fold_scenario_parameters(scen, dims = fold_dims)
+    scen <- fold_parameters(scen, dims = fold_dims)
     # Maps must ALWAYS materialise to explicit members on every foldable dim --
     # some maps carry NA wildcards (built mid-pipeline on region-folded params)
     # independently of which value-parameter dims are being folded now.
-    scen <- unfold_scenario_parameters(scen, dims = .foldable_dims, types = "map")
+    scen <- unfold_parameters(scen, dims = .foldable_dims, types = "map")
   } else if (isTRUE(sparse)) {
     # Materialise any source / interpolated wildcard (NA) rows in the trimmable
     # dimensions to explicit members, so the written model carries no NAs.
-    scen <- unfold_scenario_parameters(scen, dims = .foldable_dims)
+    scen <- unfold_parameters(scen, dims = .foldable_dims)
   }
 
   # Materialise wildcard (NA) trade route endpoints (`src` / `dst`) to the
@@ -2819,7 +2825,7 @@ get_parameter_full_sets <- function(
 #' @param verbose logical; report per-parameter trim counts.
 #' @returns scenario with trimmed parameter slots.
 #' @export
-trim_parameters_by_maps <- function(scen, verbose = FALSE) {
+trim_parameters <- function(scen, verbose = FALSE) {
   reg <- .param_value_maps()
   for (pn in names(reg)) {
     param <- scen@modInp@parameters[[pn]]

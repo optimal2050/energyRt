@@ -1,7 +1,7 @@
 Package: energyRt
 Type: Package
 Title: Energy Systems Modeling Toolbox
-Version: 0.90.0.9009
+Version: 0.90.0.9010
 Date: 2026-10-03
 Authors@R: 
   c(person(given = "Oleg", 
@@ -95,13 +95,14 @@ Collate:
     'config_file.R'
     'convert.R'
     'data2slots.R'
-    'densify.R'
     'design.R'
     'discount_rates.R'
     'draw.R'
+    'drop_default_values.R'
     'eac.R'
     'energyRt-package.R'
     'exchange.R'
+    'expand_default_values.R'
     'fold.R'
     'get_data.R'
     'install.R'
@@ -128,7 +129,6 @@ Collate:
     'region.R'
     'process-groups.R'
     'process_designer.R'
-    'prune.R'
     'read_sequence.R'
     'registry.R'
     'report_cache.R'
