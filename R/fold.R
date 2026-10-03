@@ -74,6 +74,11 @@
     imp   = pick(.read_map(scen, "mImpTimeslice"), c("imp", "timeslice")),
     expp  = pick(.read_map(scen, "mExpTimeslice"), c("expp", "timeslice")),
     comm  = pick(.read_map(scen, "mCommTimeslice"), c("comm", "timeslice")),
+    acomm = {
+      x <- pick(.read_map(scen, "mCommTimeslice"), c("comm", "timeslice"))
+      if (!is.null(x)) names(x)[names(x) == "comm"] <- "acomm"
+      x
+    },
     stg   = {
       sc <- .read_map(scen, "mStorageComm")
       cs <- .read_map(scen, "mCommTimeslice")
@@ -163,12 +168,31 @@
 # data. Picks the most specific identity key present for each trimmable dim.
 # Returns a named list: dim -> data.frame(<key>, <dim>).
 # -----------------------------------------------------------------------------#
-.fold_member_sets <- function(scen, data, dims = .fold_trim_dims) {
+# Aux coefficients that live at the AUX COMMODITY's slices: the capacity-type
+# terms (per-year quantities booked as the slice's share of the year) and the
+# aux variable cost. A wildcard timeslice on these expands over the aux
+# commodity's own slices; the flow-type coefficients (act, cinp, cout; storage
+# level / charge / discharge) stay at the process's slices.
+.aux_at_comm_params <- c(
+  paste0("pTech", rep(c("Cap", "NCap", "Pho", "Ret"), each = 2), "2A",
+         c("Inp", "Out")),
+  "pTechAvarom",
+  paste0("pStorage", rep(c("OutCap", "OutNCap", "InpCap", "InpNCap", "StgCap",
+                           "StgNCap", "Pho", "Ret"), each = 2), "2A",
+         c("Inp", "Out"))
+)
+
+.fold_member_sets <- function(scen, data, dims = .fold_trim_dims,
+                              pname = NULL) {
   ms <- list()
   cols <- names(data)
 
   if ("timeslice" %in% dims && "timeslice" %in% cols) {
-    for (k in c("tech", "sup", "stg", "trade", "imp", "expp", "comm")) {
+    keys <- c("tech", "sup", "stg", "trade", "imp", "expp", "comm")
+    if (!is.null(pname) && pname %in% .aux_at_comm_params && "acomm" %in% cols) {
+      keys <- c("acomm", keys)
+    }
+    for (k in keys) {
       if (!k %in% cols) next
       a <- .timeslice_allowed(scen, k)
       if (!is.null(a)) {
@@ -553,7 +577,7 @@ fold_scenario_parameters <- function(scen, dims = c("region", "timeslice"),
     if (grepl("^p(Cns|Costs)", pn)) next
     data <- get_data_slot(p)
     if (is.null(data) || nrow(data) == 0) next
-    ms <- .fold_member_sets(scen, as.data.frame(data), dims = dims)
+    ms <- .fold_member_sets(scen, as.data.frame(data), dims = dims, pname = pn)
     if (length(ms) == 0) next
     before <- nrow(data)
     p2 <- fold_parameter(p, ms, dims = dims, tol = tol)
@@ -581,7 +605,8 @@ unfold_scenario_parameter <- function(scen, param,
   if (is.null(data) || nrow(data) == 0) {
     return(as.data.frame(data))
   }
-  ms <- .fold_member_sets(scen, as.data.frame(data), dims = dims)
+  ms <- .fold_member_sets(scen, as.data.frame(data), dims = dims,
+                          pname = param@name)
   if (length(ms) == 0) {
     return(as.data.frame(data))
   }
@@ -614,7 +639,7 @@ unfold_scenario_parameters <- function(scen, dims = .foldable_dims,
       any(is.na(x) | is_any(x))
     }, logical(1)))
     if (!has_wild) next
-    ms <- .fold_member_sets(scen, data, dims = dims)
+    ms <- .fold_member_sets(scen, data, dims = dims, pname = pn)
     if (length(ms) == 0) next
     before <- nrow(data)
     expanded <- unfold_parameter(p, ms)
@@ -977,7 +1002,8 @@ unfold_trade_routes <- function(scen, verbose = FALSE) {
   for (nm in todo) {
     p <- scen@modInp@parameters[[nm]]
     d <- as.data.frame(get_data_slot(p))
-    ms <- .fold_member_sets(scen, d, dims = intersect(dims, names(d)))
+    ms <- .fold_member_sets(scen, d, dims = intersect(dims, names(d)),
+                            pname = nm)
     if (length(ms) == 0) next
     out <- tryCatch(unfold_parameter(p, ms), error = function(e) NULL)
     if (is.null(out) || nrow(out) == 0) next

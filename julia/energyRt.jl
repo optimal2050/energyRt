@@ -120,6 +120,8 @@ mvStorageRetiredNewCap_ix = _group(mvStorageRetiredNewCap, year, 3, (1, 2, 4,));
 mvSupCost_ix = _group(mvSupCost, sup, 1, (2, 3,));
 mvTechAInp_ix = _group(mvTechAInp, comm, 2, (1, 3, 4, 5,));
 mvTechAOut_ix = _group(mvTechAOut, comm, 2, (1, 3, 4, 5,));
+mvTechAInp_ix3 = Dict(); for (t, c, r, y, s) in mvTechAInp; push!(get!(() -> [], mvTechAInp_ix3, (t, r, y)), (c, s)); end
+mvTechAOut_ix3 = Dict(); for (t, c, r, y, s) in mvTechAOut; push!(get!(() -> [], mvTechAOut_ix3, (t, r, y)), (c, s)); end
 mvTechRetiredNewCap_ix2_013 = _group(mvTechRetiredNewCap, year, 3, (1, 2, 4,));
 mvTechRetiredNewCap_ix3_012 = _group(mvTechRetiredNewCap, year, 4, (1, 2, 3,));
 mvTotalCost_ix = _group(mvTotalCost, year, 2, (1,));
@@ -562,109 +564,26 @@ print(
 ",
 )
 # eqTechAInp(tech, comm, region, year, timeslice)$mvTechAInp(tech, comm, region, year, timeslice)
+# aux flow at the AUX COMMODITY's slice s; capacity terms are per year x share,
+# flow terms are summed over the technology's own slices sp (self or children)
 print("eqTechAInp(tech, comm, region, year, timeslice)...")
 @constraint(
     model,
     [(t, c, r, y, s) in mvTechAInp],
-    (
-        if haskey(pTechCap2act, (t))
-            pTechCap2act[(t)]
-        else
-            pTechCap2actDef
-        end
-    ) * vTechAInp[(t, c, r, y, s)] ==
-    (
-        if (t, c, r, y, s) in mTechCap2AInp
-            (vTechCap[(t, r, y)] * (
-                if haskey(pTechCap2AInp, (t, c, r, y, s))
-                    pTechCap2AInp[(t, c, r, y, s)]
-                else
-                    pTechCap2AInpDef
-                end
-            ))
-        else
-            0
-        end
-    ) +
-    (
-        if haskey(pTechCap2act, (t))
-            pTechCap2act[(t)]
-        else
-            pTechCap2actDef
-        end
-    ) * (
-    (
-        if (t, c, r, y, s) in mTechAct2AInp
-            (vTechAct[(t, r, y, s)] * (
-                if haskey(pTechAct2AInp, (t, c, r, y, s))
-                    pTechAct2AInp[(t, c, r, y, s)]
-                else
-                    pTechAct2AInpDef
-                end
-            ))
-        else
-            0
-        end
-    ) +
-    (
-        if (t, c, r, y, s) in mTechNCap2AInp
-            (vTechNewCap[(t, r, y)] * (
-                if haskey(pTechNCap2AInp, (t, c, r, y, s))
-                    pTechNCap2AInp[(t, c, r, y, s)]
-                else
-                    pTechNCap2AInpDef
-                end
-            ))
-        else
-            0
-        end
-    ) +
-    (
-        if (t, c, r, y, s) in mTechPho2AInp
-            ((if (t, r, y) in mvTechPhaseOut; vTechPhaseOut[(t, r, y)]; else; 0; end) * (
-                if haskey(pTechPho2AInp, (t, c, r, y, s))
-                    pTechPho2AInp[(t, c, r, y, s)]
-                else
-                    pTechPho2AInpDef
-                end
-            ))
-        else
-            0
-        end
-    ) +
-    (
-        if (t, c, r, y, s) in mTechRet2AInp
-            (((if (t, r, y) in mvTechRetiredStock; vTechRetiredStock[(t, r, y)]; else; 0; end) + sum(vTechRetiredNewCap[(t, r, yp, y)] for yp in get(mvTechRetiredNewCap_ix2_013, (t, r, y), ()))) * (
-                if haskey(pTechRet2AInp, (t, c, r, y, s))
-                    pTechRet2AInp[(t, c, r, y, s)]
-                else
-                    pTechRet2AInpDef
-                end
-            ))
-        else
-            0
-        end
+    vTechAInp[(t, c, r, y, s)] ==
+    (if haskey(pTimesliceShare, (s)) pTimesliceShare[(s)] else pTimesliceShareDef end) * (
+        (if (t, c, r, y, s) in mTechCap2AInp; vTechCap[(t, r, y)] * (if haskey(pTechCap2AInp, (t, c, r, y, s)) pTechCap2AInp[(t, c, r, y, s)] else pTechCap2AInpDef end); else; 0; end) +
+        (if (t, c, r, y, s) in mTechNCap2AInp; vTechNewCap[(t, r, y)] * (if haskey(pTechNCap2AInp, (t, c, r, y, s)) pTechNCap2AInp[(t, c, r, y, s)] else pTechNCap2AInpDef end); else; 0; end) +
+        (if (t, c, r, y, s) in mTechPho2AInp; (if (t, r, y) in mvTechPhaseOut; vTechPhaseOut[(t, r, y)]; else; 0; end) * (if haskey(pTechPho2AInp, (t, c, r, y, s)) pTechPho2AInp[(t, c, r, y, s)] else pTechPho2AInpDef end); else; 0; end) +
+        (if (t, c, r, y, s) in mTechRet2AInp; ((if (t, r, y) in mvTechRetiredStock; vTechRetiredStock[(t, r, y)]; else; 0; end) + sum(vTechRetiredNewCap[(t, r, yp, y)] for yp in get(mvTechRetiredNewCap_ix2_013, (t, r, y), ()); init = 0)) * (if haskey(pTechRet2AInp, (t, c, r, y, s)) pTechRet2AInp[(t, c, r, y, s)] else pTechRet2AInpDef end); else; 0; end)
     ) +
     sum(
-        (
-            if haskey(pTechCinp2AInp, (t, c, cp, r, y, s))
-                pTechCinp2AInp[(t, c, cp, r, y, s)]
-            else
-                pTechCinp2AInpDef
-            end
-        ) * vTechInp[(t, cp, r, y, s)] for
-        cp in comm if (t, c, cp, r, y, s) in mTechCinp2AInp
-    ) +
-    sum(
-        (
-            if haskey(pTechCout2AInp, (t, c, cp, r, y, s))
-                pTechCout2AInp[(t, c, cp, r, y, s)]
-            else
-                pTechCout2AInpDef
-            end
-        ) * vTechOut[(t, cp, r, y, s)] for
-        cp in comm if (t, c, cp, r, y, s) in mTechCout2AInp
-    )
+        (if haskey(pTimesliceAgg, (y, s, sp)) pTimesliceAgg[(y, s, sp)] else pTimesliceAggDef end) * (
+            (if (t, c, r, y, sp) in mTechAct2AInp; vTechAct[(t, r, y, sp)] * (if haskey(pTechAct2AInp, (t, c, r, y, sp)) pTechAct2AInp[(t, c, r, y, sp)] else pTechAct2AInpDef end); else; 0; end) +
+            sum((if haskey(pTechCinp2AInp, (t, c, cp, r, y, sp)) pTechCinp2AInp[(t, c, cp, r, y, sp)] else pTechCinp2AInpDef end) * vTechInp[(t, cp, r, y, sp)] for cp in comm if (t, c, cp, r, y, sp) in mTechCinp2AInp; init = 0) +
+            sum((if haskey(pTechCout2AInp, (t, c, cp, r, y, sp)) pTechCout2AInp[(t, c, cp, r, y, sp)] else pTechCout2AInpDef end) * vTechOut[(t, cp, r, y, sp)] for cp in comm if (t, c, cp, r, y, sp) in mTechCout2AInp; init = 0)
+        ) for sp in get(mCommTimesliceOrParent_ix, (c, s), ());
+        init = 0
     )
 );
 print(
@@ -674,109 +593,26 @@ print(
 ",
 )
 # eqTechAOut(tech, comm, region, year, timeslice)$mvTechAOut(tech, comm, region, year, timeslice)
+# aux flow at the AUX COMMODITY's slice s; capacity terms are per year x share,
+# flow terms are summed over the technology's own slices sp (self or children)
 print("eqTechAOut(tech, comm, region, year, timeslice)...")
 @constraint(
     model,
     [(t, c, r, y, s) in mvTechAOut],
-    (
-        if haskey(pTechCap2act, (t))
-            pTechCap2act[(t)]
-        else
-            pTechCap2actDef
-        end
-    ) * vTechAOut[(t, c, r, y, s)] ==
-    (
-        if (t, c, r, y, s) in mTechCap2AOut
-            (vTechCap[(t, r, y)] * (
-                if haskey(pTechCap2AOut, (t, c, r, y, s))
-                    pTechCap2AOut[(t, c, r, y, s)]
-                else
-                    pTechCap2AOutDef
-                end
-            ))
-        else
-            0
-        end
-    ) +
-    (
-        if haskey(pTechCap2act, (t))
-            pTechCap2act[(t)]
-        else
-            pTechCap2actDef
-        end
-    ) * (
-    (
-        if (t, c, r, y, s) in mTechAct2AOut
-            (vTechAct[(t, r, y, s)] * (
-                if haskey(pTechAct2AOut, (t, c, r, y, s))
-                    pTechAct2AOut[(t, c, r, y, s)]
-                else
-                    pTechAct2AOutDef
-                end
-            ))
-        else
-            0
-        end
-    ) +
-    (
-        if (t, c, r, y, s) in mTechNCap2AOut
-            (vTechNewCap[(t, r, y)] * (
-                if haskey(pTechNCap2AOut, (t, c, r, y, s))
-                    pTechNCap2AOut[(t, c, r, y, s)]
-                else
-                    pTechNCap2AOutDef
-                end
-            ))
-        else
-            0
-        end
-    ) +
-    (
-        if (t, c, r, y, s) in mTechPho2AOut
-            ((if (t, r, y) in mvTechPhaseOut; vTechPhaseOut[(t, r, y)]; else; 0; end) * (
-                if haskey(pTechPho2AOut, (t, c, r, y, s))
-                    pTechPho2AOut[(t, c, r, y, s)]
-                else
-                    pTechPho2AOutDef
-                end
-            ))
-        else
-            0
-        end
-    ) +
-    (
-        if (t, c, r, y, s) in mTechRet2AOut
-            (((if (t, r, y) in mvTechRetiredStock; vTechRetiredStock[(t, r, y)]; else; 0; end) + sum(vTechRetiredNewCap[(t, r, yp, y)] for yp in get(mvTechRetiredNewCap_ix2_013, (t, r, y), ()))) * (
-                if haskey(pTechRet2AOut, (t, c, r, y, s))
-                    pTechRet2AOut[(t, c, r, y, s)]
-                else
-                    pTechRet2AOutDef
-                end
-            ))
-        else
-            0
-        end
+    vTechAOut[(t, c, r, y, s)] ==
+    (if haskey(pTimesliceShare, (s)) pTimesliceShare[(s)] else pTimesliceShareDef end) * (
+        (if (t, c, r, y, s) in mTechCap2AOut; vTechCap[(t, r, y)] * (if haskey(pTechCap2AOut, (t, c, r, y, s)) pTechCap2AOut[(t, c, r, y, s)] else pTechCap2AOutDef end); else; 0; end) +
+        (if (t, c, r, y, s) in mTechNCap2AOut; vTechNewCap[(t, r, y)] * (if haskey(pTechNCap2AOut, (t, c, r, y, s)) pTechNCap2AOut[(t, c, r, y, s)] else pTechNCap2AOutDef end); else; 0; end) +
+        (if (t, c, r, y, s) in mTechPho2AOut; (if (t, r, y) in mvTechPhaseOut; vTechPhaseOut[(t, r, y)]; else; 0; end) * (if haskey(pTechPho2AOut, (t, c, r, y, s)) pTechPho2AOut[(t, c, r, y, s)] else pTechPho2AOutDef end); else; 0; end) +
+        (if (t, c, r, y, s) in mTechRet2AOut; ((if (t, r, y) in mvTechRetiredStock; vTechRetiredStock[(t, r, y)]; else; 0; end) + sum(vTechRetiredNewCap[(t, r, yp, y)] for yp in get(mvTechRetiredNewCap_ix2_013, (t, r, y), ()); init = 0)) * (if haskey(pTechRet2AOut, (t, c, r, y, s)) pTechRet2AOut[(t, c, r, y, s)] else pTechRet2AOutDef end); else; 0; end)
     ) +
     sum(
-        (
-            if haskey(pTechCinp2AOut, (t, c, cp, r, y, s))
-                pTechCinp2AOut[(t, c, cp, r, y, s)]
-            else
-                pTechCinp2AOutDef
-            end
-        ) * vTechInp[(t, cp, r, y, s)] for
-        cp in comm if (t, c, cp, r, y, s) in mTechCinp2AOut
-    ) +
-    sum(
-        (
-            if haskey(pTechCout2AOut, (t, c, cp, r, y, s))
-                pTechCout2AOut[(t, c, cp, r, y, s)]
-            else
-                pTechCout2AOutDef
-            end
-        ) * vTechOut[(t, cp, r, y, s)] for
-        cp in comm if (t, c, cp, r, y, s) in mTechCout2AOut
-    )
+        (if haskey(pTimesliceAgg, (y, s, sp)) pTimesliceAgg[(y, s, sp)] else pTimesliceAggDef end) * (
+            (if (t, c, r, y, sp) in mTechAct2AOut; vTechAct[(t, r, y, sp)] * (if haskey(pTechAct2AOut, (t, c, r, y, sp)) pTechAct2AOut[(t, c, r, y, sp)] else pTechAct2AOutDef end); else; 0; end) +
+            sum((if haskey(pTechCinp2AOut, (t, c, cp, r, y, sp)) pTechCinp2AOut[(t, c, cp, r, y, sp)] else pTechCinp2AOutDef end) * vTechInp[(t, cp, r, y, sp)] for cp in comm if (t, c, cp, r, y, sp) in mTechCinp2AOut; init = 0) +
+            sum((if haskey(pTechCout2AOut, (t, c, cp, r, y, sp)) pTechCout2AOut[(t, c, cp, r, y, sp)] else pTechCout2AOutDef end) * vTechOut[(t, cp, r, y, sp)] for cp in comm if (t, c, cp, r, y, sp) in mTechCout2AOut; init = 0)
+        ) for sp in get(mCommTimesliceOrParent_ix, (c, s), ());
+        init = 0
     )
 );
 print(
@@ -2548,41 +2384,20 @@ print("eqTechVarom(tech, region, year)...")
                 end
             ) *
             vTechOut[(t, c, r, y, s)] for c in get(mTechOutComm_ix, t, ())
-        ) +
-        sum(
-            (
-                if haskey(pTechAvarom, (t, c, r, y, s))
-                    pTechAvarom[(t, c, r, y, s)]
-                else
-                    pTechAvaromDef
-                end
-            ) *
-            (
-                if haskey(pTimesliceWeight, (y, s))
-                    pTimesliceWeight[(y, s)]
-                else
-                    pTimesliceWeightDef
-                end
-            ) *
-            vTechAOut[(t, c, r, y, s)] for c in get(mvTechAOut_ix, (t, r, y, s), ())
-        ) +
-        sum(
-            (
-                if haskey(pTechAvarom, (t, c, r, y, s))
-                    pTechAvarom[(t, c, r, y, s)]
-                else
-                    pTechAvaromDef
-                end
-            ) *
-            (
-                if haskey(pTimesliceWeight, (y, s))
-                    pTimesliceWeight[(y, s)]
-                else
-                    pTimesliceWeightDef
-                end
-            ) *
-            vTechAInp[(t, c, r, y, s)] for c in get(mvTechAInp_ix, (t, r, y, s), ())
         ) for s in get(mTechTimeslice_ix, t, ())
+    ) +
+    # aux flows sit at their commodity's slices, not the technology's
+    sum(
+        (if haskey(pTechAvarom, (t, c, r, y, s)) pTechAvarom[(t, c, r, y, s)] else pTechAvaromDef end) *
+        (if haskey(pTimesliceWeight, (y, s)) pTimesliceWeight[(y, s)] else pTimesliceWeightDef end) *
+        vTechAOut[(t, c, r, y, s)] for (c, s) in get(mvTechAOut_ix3, (t, r, y), ());
+        init = 0
+    ) +
+    sum(
+        (if haskey(pTechAvarom, (t, c, r, y, s)) pTechAvarom[(t, c, r, y, s)] else pTechAvaromDef end) *
+        (if haskey(pTimesliceWeight, (y, s)) pTimesliceWeight[(y, s)] else pTimesliceWeightDef end) *
+        vTechAInp[(t, c, r, y, s)] for (c, s) in get(mvTechAInp_ix3, (t, r, y), ());
+        init = 0
     )
 );
 print(
@@ -2869,189 +2684,32 @@ print(
 ",
 )
 # eqStorageAInp(stg, comm, region, year, timeslice)$mvStorageAInp(stg, comm, region, year, timeslice)
+# aux flow at the AUX COMMODITY's slice s: part capacities are per year x share,
+# level/charge/discharge summed over the storage's own slices sp; each flow
+# follows its OWN role's commodity set
 print("eqStorageAInp(stg, comm, region, year, timeslice)...")
 @constraint(
     model,
     [(st1, c, r, y, s) in mvStorageAInp],
     vStorageAInp[(st1, c, r, y, s)] ==
-# [multi-commodity] each referenced flow follows its OWN role's commodity set, and
-# the two capacity terms leave the commodity sum -- inside it they were multiplied
-# by 1 for a single-commodity storage but would be counted once per commodity now
-# that the roles can differ.
-    sum(
-        (
-            if (st1, c, r, y, s) in mStorageStg2AInp
-                (
-                    (
-                        if haskey(pStorageStg2AInp, (st1, c, r, y, s))
-                            pStorageStg2AInp[(st1, c, r, y, s)]
-                        else
-                            pStorageStg2AInpDef
-                        end
-                    ) * vStorageLevel[(st1, cp, r, y, s)]
-                )
-            else
-                0
-            end
-        ) for cp in get(mStorageStgComm_ix, st1, ());
-        init = 0
+    (if haskey(pTimesliceShare, (s)) pTimesliceShare[(s)] else pTimesliceShareDef end) * (
+        (if (st1, c, r, y, s) in mStorageOutCap2AInp; (if haskey(pStorageOutCap2AInp, (st1, c, r, y, s)) pStorageOutCap2AInp[(st1, c, r, y, s)] else pStorageOutCap2AInpDef end) * vStorageOutCap[(st1, r, y)]; else; 0; end) +
+        (if (st1, c, r, y, s) in mStorageOutNCap2AInp; (if haskey(pStorageOutNCap2AInp, (st1, c, r, y, s)) pStorageOutNCap2AInp[(st1, c, r, y, s)] else pStorageOutNCap2AInpDef end) * vStorageOutNewCap[(st1, r, y)]; else; 0; end) +
+        (if (st1, c, r, y, s) in mStorageInpCap2AInp; (if haskey(pStorageInpCap2AInp, (st1, c, r, y, s)) pStorageInpCap2AInp[(st1, c, r, y, s)] else pStorageInpCap2AInpDef end) * vStorageInpCap[(st1, r, y)]; else; 0; end) +
+        (if (st1, c, r, y, s) in mStorageInpNCap2AInp; (if haskey(pStorageInpNCap2AInp, (st1, c, r, y, s)) pStorageInpNCap2AInp[(st1, c, r, y, s)] else pStorageInpNCap2AInpDef end) * vStorageInpNewCap[(st1, r, y)]; else; 0; end) +
+        (if (st1, c, r, y, s) in mStorageStgCap2AInp; (if haskey(pStorageStgCap2AInp, (st1, c, r, y, s)) pStorageStgCap2AInp[(st1, c, r, y, s)] else pStorageStgCap2AInpDef end) * vStorageStgCap[(st1, r, y)]; else; 0; end) +
+        (if (st1, c, r, y, s) in mStorageStgNCap2AInp; (if haskey(pStorageStgNCap2AInp, (st1, c, r, y, s)) pStorageStgNCap2AInp[(st1, c, r, y, s)] else pStorageStgNCap2AInpDef end) * vStorageStgNewCap[(st1, r, y)]; else; 0; end) +
+        (if (st1, c, r, y, s) in mStoragePho2AInp; (if haskey(pStoragePho2AInp, (st1, c, r, y, s)) pStoragePho2AInp[(st1, c, r, y, s)] else pStoragePho2AInpDef end) * (if (st1, r, y) in mvStoragePhaseOut; vStoragePhaseOut[(st1, r, y)]; else; 0; end); else; 0; end) +
+        (if (st1, c, r, y, s) in mStorageRet2AInp; (if haskey(pStorageRet2AInp, (st1, c, r, y, s)) pStorageRet2AInp[(st1, c, r, y, s)] else pStorageRet2AInpDef end) * ((if (st1, r, y) in mvStorageRetiredStock; vStorageOutRetiredStock[(st1, r, y)]; else; 0; end) + sum(vStorageOutRetiredNewCap[(st1, r, yp, y)] for yp in get(mvStorageRetiredNewCap_ix, (st1, r, y), ()); init = 0)); else; 0; end)
     ) +
     sum(
-        (
-            if (st1, c, r, y, s) in mStorageCinp2AInp
-                (
-                    (
-                        if haskey(pStorageCinp2AInp, (st1, c, r, y, s))
-                            pStorageCinp2AInp[(st1, c, r, y, s)]
-                        else
-                            pStorageCinp2AInpDef
-                        end
-                    ) * vStorageInp[(st1, cp, r, y, s)]
-                )
-            else
-                0
-            end
-        ) for cp in get(mStorageInpComm_ix, st1, ());
+        (if haskey(pTimesliceAgg, (y, s, sp)) pTimesliceAgg[(y, s, sp)] else pTimesliceAggDef end) * (
+            sum((if (st1, c, r, y, sp) in mStorageStg2AInp; (if haskey(pStorageStg2AInp, (st1, c, r, y, sp)) pStorageStg2AInp[(st1, c, r, y, sp)] else pStorageStg2AInpDef end) * vStorageLevel[(st1, cp, r, y, sp)]; else; 0; end) for cp in get(mStorageStgComm_ix, st1, ()); init = 0) +
+            sum((if (st1, c, r, y, sp) in mStorageCinp2AInp; (if haskey(pStorageCinp2AInp, (st1, c, r, y, sp)) pStorageCinp2AInp[(st1, c, r, y, sp)] else pStorageCinp2AInpDef end) * vStorageInp[(st1, cp, r, y, sp)]; else; 0; end) for cp in get(mStorageInpComm_ix, st1, ()); init = 0) +
+            sum((if (st1, c, r, y, sp) in mStorageCout2AInp; (if haskey(pStorageCout2AInp, (st1, c, r, y, sp)) pStorageCout2AInp[(st1, c, r, y, sp)] else pStorageCout2AInpDef end) * vStorageOut[(st1, cp, r, y, sp)]; else; 0; end) for cp in get(mStorageOutComm_ix, st1, ()); init = 0)
+        ) for sp in get(mCommTimesliceOrParent_ix, (c, s), ());
         init = 0
-    ) +
-    sum(
-        (
-            if (st1, c, r, y, s) in mStorageCout2AInp
-                (
-                    (
-                        if haskey(pStorageCout2AInp, (st1, c, r, y, s))
-                            pStorageCout2AInp[(st1, c, r, y, s)]
-                        else
-                            pStorageCout2AInpDef
-                        end
-                    ) * vStorageOut[(st1, cp, r, y, s)]
-                )
-            else
-                0
-            end
-        ) for cp in get(mStorageOutComm_ix, st1, ());
-        init = 0
-    ) +
-        (
-            if (st1, c, r, y, s) in mStorageOutCap2AInp
-                (
-                    (
-                        if haskey(pStorageOutCap2AInp, (st1, c, r, y, s))
-                            pStorageOutCap2AInp[(st1, c, r, y, s)]
-                        else
-                            pStorageOutCap2AInpDef
-                        end
-                    ) * vStorageOutCap[(st1, r, y)]
-                )
-            else
-                0
-            end
-        ) +
-        (
-            if (st1, c, r, y, s) in mStorageOutNCap2AInp
-                (
-                    (
-                        if haskey(pStorageOutNCap2AInp, (st1, c, r, y, s))
-                            pStorageOutNCap2AInp[(st1, c, r, y, s)]
-                        else
-                            pStorageOutNCap2AInpDef
-                        end
-                    ) * vStorageOutNewCap[(st1, r, y)]
-                )
-            else
-                0
-            end
-        ) +
-        (
-            if (st1, c, r, y, s) in mStorageInpCap2AInp
-                (
-                    (
-                        if haskey(pStorageInpCap2AInp, (st1, c, r, y, s))
-                            pStorageInpCap2AInp[(st1, c, r, y, s)]
-                        else
-                            pStorageInpCap2AInpDef
-                        end
-                    ) * vStorageInpCap[(st1, r, y)]
-                )
-            else
-                0
-            end
-        ) +
-        (
-            if (st1, c, r, y, s) in mStorageInpNCap2AInp
-                (
-                    (
-                        if haskey(pStorageInpNCap2AInp, (st1, c, r, y, s))
-                            pStorageInpNCap2AInp[(st1, c, r, y, s)]
-                        else
-                            pStorageInpNCap2AInpDef
-                        end
-                    ) * vStorageInpNewCap[(st1, r, y)]
-                )
-            else
-                0
-            end
-        ) +
-        (
-            if (st1, c, r, y, s) in mStorageStgCap2AInp
-                (
-                    (
-                        if haskey(pStorageStgCap2AInp, (st1, c, r, y, s))
-                            pStorageStgCap2AInp[(st1, c, r, y, s)]
-                        else
-                            pStorageStgCap2AInpDef
-                        end
-                    ) * vStorageStgCap[(st1, r, y)]
-                )
-            else
-                0
-            end
-        ) +
-        (
-            if (st1, c, r, y, s) in mStorageStgNCap2AInp
-                (
-                    (
-                        if haskey(pStorageStgNCap2AInp, (st1, c, r, y, s))
-                            pStorageStgNCap2AInp[(st1, c, r, y, s)]
-                        else
-                            pStorageStgNCap2AInpDef
-                        end
-                    ) * vStorageStgNewCap[(st1, r, y)]
-                )
-            else
-                0
-            end
-        ) +
-        (
-            if (st1, c, r, y, s) in mStoragePho2AInp
-                (
-                    (
-                        if haskey(pStoragePho2AInp, (st1, c, r, y, s))
-                            pStoragePho2AInp[(st1, c, r, y, s)]
-                        else
-                            pStoragePho2AInpDef
-                        end
-                    ) * (if (st1, r, y) in mvStoragePhaseOut; vStoragePhaseOut[(st1, r, y)]; else; 0; end)
-                )
-            else
-                0
-            end
-        ) +
-        (
-            if (st1, c, r, y, s) in mStorageRet2AInp
-                (
-                    (
-                        if haskey(pStorageRet2AInp, (st1, c, r, y, s))
-                            pStorageRet2AInp[(st1, c, r, y, s)]
-                        else
-                            pStorageRet2AInpDef
-                        end
-                    ) * ((if (st1, r, y) in mvStorageRetiredStock; vStorageOutRetiredStock[(st1, r, y)]; else; 0; end) + sum(vStorageOutRetiredNewCap[(st1, r, yp, y)] for yp in get(mvStorageRetiredNewCap_ix, (st1, r, y), ())))
-                )
-            else
-                0
-            end
-        )
+    )
 );
 print(
     " ",
@@ -3060,189 +2718,32 @@ print(
 ",
 )
 # eqStorageAOut(stg, comm, region, year, timeslice)$mvStorageAOut(stg, comm, region, year, timeslice)
+# aux flow at the AUX COMMODITY's slice s: part capacities are per year x share,
+# level/charge/discharge summed over the storage's own slices sp; each flow
+# follows its OWN role's commodity set
 print("eqStorageAOut(stg, comm, region, year, timeslice)...")
 @constraint(
     model,
     [(st1, c, r, y, s) in mvStorageAOut],
     vStorageAOut[(st1, c, r, y, s)] ==
-# [multi-commodity] each referenced flow follows its OWN role's commodity set, and
-# the two capacity terms leave the commodity sum -- inside it they were multiplied
-# by 1 for a single-commodity storage but would be counted once per commodity now
-# that the roles can differ.
-    sum(
-        (
-            if (st1, c, r, y, s) in mStorageStg2AOut
-                (
-                    (
-                        if haskey(pStorageStg2AOut, (st1, c, r, y, s))
-                            pStorageStg2AOut[(st1, c, r, y, s)]
-                        else
-                            pStorageStg2AOutDef
-                        end
-                    ) * vStorageLevel[(st1, cp, r, y, s)]
-                )
-            else
-                0
-            end
-        ) for cp in get(mStorageStgComm_ix, st1, ());
-        init = 0
+    (if haskey(pTimesliceShare, (s)) pTimesliceShare[(s)] else pTimesliceShareDef end) * (
+        (if (st1, c, r, y, s) in mStorageOutCap2AOut; (if haskey(pStorageOutCap2AOut, (st1, c, r, y, s)) pStorageOutCap2AOut[(st1, c, r, y, s)] else pStorageOutCap2AOutDef end) * vStorageOutCap[(st1, r, y)]; else; 0; end) +
+        (if (st1, c, r, y, s) in mStorageOutNCap2AOut; (if haskey(pStorageOutNCap2AOut, (st1, c, r, y, s)) pStorageOutNCap2AOut[(st1, c, r, y, s)] else pStorageOutNCap2AOutDef end) * vStorageOutNewCap[(st1, r, y)]; else; 0; end) +
+        (if (st1, c, r, y, s) in mStorageInpCap2AOut; (if haskey(pStorageInpCap2AOut, (st1, c, r, y, s)) pStorageInpCap2AOut[(st1, c, r, y, s)] else pStorageInpCap2AOutDef end) * vStorageInpCap[(st1, r, y)]; else; 0; end) +
+        (if (st1, c, r, y, s) in mStorageInpNCap2AOut; (if haskey(pStorageInpNCap2AOut, (st1, c, r, y, s)) pStorageInpNCap2AOut[(st1, c, r, y, s)] else pStorageInpNCap2AOutDef end) * vStorageInpNewCap[(st1, r, y)]; else; 0; end) +
+        (if (st1, c, r, y, s) in mStorageStgCap2AOut; (if haskey(pStorageStgCap2AOut, (st1, c, r, y, s)) pStorageStgCap2AOut[(st1, c, r, y, s)] else pStorageStgCap2AOutDef end) * vStorageStgCap[(st1, r, y)]; else; 0; end) +
+        (if (st1, c, r, y, s) in mStorageStgNCap2AOut; (if haskey(pStorageStgNCap2AOut, (st1, c, r, y, s)) pStorageStgNCap2AOut[(st1, c, r, y, s)] else pStorageStgNCap2AOutDef end) * vStorageStgNewCap[(st1, r, y)]; else; 0; end) +
+        (if (st1, c, r, y, s) in mStoragePho2AOut; (if haskey(pStoragePho2AOut, (st1, c, r, y, s)) pStoragePho2AOut[(st1, c, r, y, s)] else pStoragePho2AOutDef end) * (if (st1, r, y) in mvStoragePhaseOut; vStoragePhaseOut[(st1, r, y)]; else; 0; end); else; 0; end) +
+        (if (st1, c, r, y, s) in mStorageRet2AOut; (if haskey(pStorageRet2AOut, (st1, c, r, y, s)) pStorageRet2AOut[(st1, c, r, y, s)] else pStorageRet2AOutDef end) * ((if (st1, r, y) in mvStorageRetiredStock; vStorageOutRetiredStock[(st1, r, y)]; else; 0; end) + sum(vStorageOutRetiredNewCap[(st1, r, yp, y)] for yp in get(mvStorageRetiredNewCap_ix, (st1, r, y), ()); init = 0)); else; 0; end)
     ) +
     sum(
-        (
-            if (st1, c, r, y, s) in mStorageCinp2AOut
-                (
-                    (
-                        if haskey(pStorageCinp2AOut, (st1, c, r, y, s))
-                            pStorageCinp2AOut[(st1, c, r, y, s)]
-                        else
-                            pStorageCinp2AOutDef
-                        end
-                    ) * vStorageInp[(st1, cp, r, y, s)]
-                )
-            else
-                0
-            end
-        ) for cp in get(mStorageInpComm_ix, st1, ());
+        (if haskey(pTimesliceAgg, (y, s, sp)) pTimesliceAgg[(y, s, sp)] else pTimesliceAggDef end) * (
+            sum((if (st1, c, r, y, sp) in mStorageStg2AOut; (if haskey(pStorageStg2AOut, (st1, c, r, y, sp)) pStorageStg2AOut[(st1, c, r, y, sp)] else pStorageStg2AOutDef end) * vStorageLevel[(st1, cp, r, y, sp)]; else; 0; end) for cp in get(mStorageStgComm_ix, st1, ()); init = 0) +
+            sum((if (st1, c, r, y, sp) in mStorageCinp2AOut; (if haskey(pStorageCinp2AOut, (st1, c, r, y, sp)) pStorageCinp2AOut[(st1, c, r, y, sp)] else pStorageCinp2AOutDef end) * vStorageInp[(st1, cp, r, y, sp)]; else; 0; end) for cp in get(mStorageInpComm_ix, st1, ()); init = 0) +
+            sum((if (st1, c, r, y, sp) in mStorageCout2AOut; (if haskey(pStorageCout2AOut, (st1, c, r, y, sp)) pStorageCout2AOut[(st1, c, r, y, sp)] else pStorageCout2AOutDef end) * vStorageOut[(st1, cp, r, y, sp)]; else; 0; end) for cp in get(mStorageOutComm_ix, st1, ()); init = 0)
+        ) for sp in get(mCommTimesliceOrParent_ix, (c, s), ());
         init = 0
-    ) +
-    sum(
-        (
-            if (st1, c, r, y, s) in mStorageCout2AOut
-                (
-                    (
-                        if haskey(pStorageCout2AOut, (st1, c, r, y, s))
-                            pStorageCout2AOut[(st1, c, r, y, s)]
-                        else
-                            pStorageCout2AOutDef
-                        end
-                    ) * vStorageOut[(st1, cp, r, y, s)]
-                )
-            else
-                0
-            end
-        ) for cp in get(mStorageOutComm_ix, st1, ());
-        init = 0
-    ) +
-        (
-            if (st1, c, r, y, s) in mStorageOutCap2AOut
-                (
-                    (
-                        if haskey(pStorageOutCap2AOut, (st1, c, r, y, s))
-                            pStorageOutCap2AOut[(st1, c, r, y, s)]
-                        else
-                            pStorageOutCap2AOutDef
-                        end
-                    ) * vStorageOutCap[(st1, r, y)]
-                )
-            else
-                0
-            end
-        ) +
-        (
-            if (st1, c, r, y, s) in mStorageOutNCap2AOut
-                (
-                    (
-                        if haskey(pStorageOutNCap2AOut, (st1, c, r, y, s))
-                            pStorageOutNCap2AOut[(st1, c, r, y, s)]
-                        else
-                            pStorageOutNCap2AOutDef
-                        end
-                    ) * vStorageOutNewCap[(st1, r, y)]
-                )
-            else
-                0
-            end
-        ) +
-        (
-            if (st1, c, r, y, s) in mStorageInpCap2AOut
-                (
-                    (
-                        if haskey(pStorageInpCap2AOut, (st1, c, r, y, s))
-                            pStorageInpCap2AOut[(st1, c, r, y, s)]
-                        else
-                            pStorageInpCap2AOutDef
-                        end
-                    ) * vStorageInpCap[(st1, r, y)]
-                )
-            else
-                0
-            end
-        ) +
-        (
-            if (st1, c, r, y, s) in mStorageInpNCap2AOut
-                (
-                    (
-                        if haskey(pStorageInpNCap2AOut, (st1, c, r, y, s))
-                            pStorageInpNCap2AOut[(st1, c, r, y, s)]
-                        else
-                            pStorageInpNCap2AOutDef
-                        end
-                    ) * vStorageInpNewCap[(st1, r, y)]
-                )
-            else
-                0
-            end
-        ) +
-        (
-            if (st1, c, r, y, s) in mStorageStgCap2AOut
-                (
-                    (
-                        if haskey(pStorageStgCap2AOut, (st1, c, r, y, s))
-                            pStorageStgCap2AOut[(st1, c, r, y, s)]
-                        else
-                            pStorageStgCap2AOutDef
-                        end
-                    ) * vStorageStgCap[(st1, r, y)]
-                )
-            else
-                0
-            end
-        ) +
-        (
-            if (st1, c, r, y, s) in mStorageStgNCap2AOut
-                (
-                    (
-                        if haskey(pStorageStgNCap2AOut, (st1, c, r, y, s))
-                            pStorageStgNCap2AOut[(st1, c, r, y, s)]
-                        else
-                            pStorageStgNCap2AOutDef
-                        end
-                    ) * vStorageStgNewCap[(st1, r, y)]
-                )
-            else
-                0
-            end
-        ) +
-        (
-            if (st1, c, r, y, s) in mStoragePho2AOut
-                (
-                    (
-                        if haskey(pStoragePho2AOut, (st1, c, r, y, s))
-                            pStoragePho2AOut[(st1, c, r, y, s)]
-                        else
-                            pStoragePho2AOutDef
-                        end
-                    ) * (if (st1, r, y) in mvStoragePhaseOut; vStoragePhaseOut[(st1, r, y)]; else; 0; end)
-                )
-            else
-                0
-            end
-        ) +
-        (
-            if (st1, c, r, y, s) in mStorageRet2AOut
-                (
-                    (
-                        if haskey(pStorageRet2AOut, (st1, c, r, y, s))
-                            pStorageRet2AOut[(st1, c, r, y, s)]
-                        else
-                            pStorageRet2AOutDef
-                        end
-                    ) * ((if (st1, r, y) in mvStorageRetiredStock; vStorageOutRetiredStock[(st1, r, y)]; else; 0; end) + sum(vStorageOutRetiredNewCap[(st1, r, yp, y)] for yp in get(mvStorageRetiredNewCap_ix, (st1, r, y), ())))
-                )
-            else
-                0
-            end
-        )
+    )
 );
 print(
     " ",

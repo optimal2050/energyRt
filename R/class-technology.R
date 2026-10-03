@@ -170,12 +170,12 @@ setClass("technology",
       # as `ncap2ainp` lands once at construction. Multiplying a standing
       # quantity instead would recur every year.
       #
-      # TIMESLICE WARNING, inherited deliberately from `ncap2ainp`: the term
-      # carries NO `pTimesliceShare`, and `vTechAInp`/`vTechAOut` enter a
-      # PER-TIMESLICE balance. A coefficient given with `timeslice = NA`
-      # therefore applies in every slice and the annual total comes out
-      # multiplied by the slice count -- 8760x on an hourly calendar. Give a
-      # per-slice value, or name one slice.
+      # AUX TIMESLICE: every aux flow sits at the AUX COMMODITY's timeslices.
+      # The capacity-type couplings (cap, ncap, pho, ret) are PER-YEAR
+      # coefficients, booked into each aux slice as its share of the year, so
+      # `timeslice = NA` gives the annual total on any calendar; the flow-type
+      # couplings (act, cinp, cout) are summed over the process's own slices
+      # inside each aux slice.
       pho2ainp = numeric(),
       pho2aout = numeric(),
       ret2ainp = numeric(),

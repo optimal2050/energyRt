@@ -1024,15 +1024,16 @@ eqTechAInp(tech, comm, region, year, timeslice)   Technology auxiliary commodity
 eqTechAOut(tech, comm, region, year, timeslice)   Technology auxiliary commodity output
 ;
 
-* Row scaled by pTechCap2act: the capacity term stands alone, every other
-* term is multiplied by pTechCap2act, so no coefficient is a division.
+* Aux flow at the AUX COMMODITY's slice (`timeslice`); the technology's own
+* slices are `timeslicep` (self or children, mCommTimesliceOrParent). Capacity-
+* type terms are per-YEAR coefficients booked as the slice's share of the year;
+* flow-type terms are summed over the child slices (intensive weight
+* pTimesliceAgg, 1 on a full calendar). No coefficient is a division.
 eqTechAInp(tech, comm, region, year, timeslice)$mvTechAInp(tech, comm, region, year, timeslice)..
-  pTechCap2act(tech) * vTechAInp(tech, comm, region, year, timeslice) =e=
+  vTechAInp(tech, comm, region, year, timeslice) =e=
+  pTimesliceShare(timeslice) * (
   (vTechCap(tech, region, year) *
     pTechCap2AInp(tech, comm, region, year, timeslice))$mTechCap2AInp(tech, comm, region, year, timeslice) +
-  pTechCap2act(tech) * (
-  (vTechAct(tech, region, year, timeslice) *
-    pTechAct2AInp(tech, comm, region, year, timeslice))$mTechAct2AInp(tech, comm, region, year, timeslice) +
   (vTechNewCap(tech, region, year) *
     pTechNCap2AInp(tech, comm, region, year, timeslice))$mTechNCap2AInp(tech, comm, region, year, timeslice) +
   (vTechPhaseOut(tech, region, year)$mvTechPhaseOut(tech, region, year) *
@@ -1040,22 +1041,29 @@ eqTechAInp(tech, comm, region, year, timeslice)$mvTechAInp(tech, comm, region, y
   (( vTechRetiredStock(tech, region, year)$mvTechRetiredStock(tech, region, year)
      + sum(yearp$mvTechRetiredNewCap(tech, region, yearp, year),
            vTechRetiredNewCap(tech, region, yearp, year)) ) *
-    pTechRet2AInp(tech, comm, region, year, timeslice))$mTechRet2AInp(tech, comm, region, year, timeslice) +
-  sum(commp$mTechCinp2AInp(tech, comm, commp, region, year, timeslice),
-      pTechCinp2AInp(tech, comm, commp, region, year, timeslice) *
-         vTechInp(tech, commp, region, year, timeslice)) +
-  sum(commp$mTechCout2AInp(tech, comm, commp, region, year, timeslice),
-      pTechCout2AInp(tech, comm, commp, region, year, timeslice) *
-         vTechOut(tech, commp, region, year, timeslice)));
+    pTechRet2AInp(tech, comm, region, year, timeslice))$mTechRet2AInp(tech, comm, region, year, timeslice)
+  ) +
+  sum(timeslicep$mCommTimesliceOrParent(comm, timeslice, timeslicep),
+      pTimesliceAgg(year, timeslice, timeslicep) * (
+      (vTechAct(tech, region, year, timeslicep) *
+        pTechAct2AInp(tech, comm, region, year, timeslicep))$mTechAct2AInp(tech, comm, region, year, timeslicep) +
+      sum(commp$mTechCinp2AInp(tech, comm, commp, region, year, timeslicep),
+          pTechCinp2AInp(tech, comm, commp, region, year, timeslicep) *
+             vTechInp(tech, commp, region, year, timeslicep)) +
+      sum(commp$mTechCout2AInp(tech, comm, commp, region, year, timeslicep),
+          pTechCout2AInp(tech, comm, commp, region, year, timeslicep) *
+             vTechOut(tech, commp, region, year, timeslicep))));
 
-* Row scaled by pTechCap2act, as eqTechAInp.
+* Aux flow at the AUX COMMODITY's slice (`timeslice`); the technology's own
+* slices are `timeslicep` (self or children, mCommTimesliceOrParent). Capacity-
+* type terms are per-YEAR coefficients booked as the slice's share of the year;
+* flow-type terms are summed over the child slices (intensive weight
+* pTimesliceAgg, 1 on a full calendar). No coefficient is a division.
 eqTechAOut(tech, comm, region, year, timeslice)$mvTechAOut(tech, comm, region, year, timeslice)..
-  pTechCap2act(tech) * vTechAOut(tech, comm, region, year, timeslice) =e=
+  vTechAOut(tech, comm, region, year, timeslice) =e=
+  pTimesliceShare(timeslice) * (
   (vTechCap(tech, region, year) *
     pTechCap2AOut(tech, comm, region, year, timeslice))$mTechCap2AOut(tech, comm, region, year, timeslice) +
-  pTechCap2act(tech) * (
-  (vTechAct(tech, region, year, timeslice) *
-    pTechAct2AOut(tech, comm, region, year, timeslice))$mTechAct2AOut(tech, comm, region, year, timeslice) +
   (vTechNewCap(tech, region, year) *
     pTechNCap2AOut(tech, comm, region, year, timeslice))$mTechNCap2AOut(tech, comm, region, year, timeslice) +
   (vTechPhaseOut(tech, region, year)$mvTechPhaseOut(tech, region, year) *
@@ -1063,13 +1071,18 @@ eqTechAOut(tech, comm, region, year, timeslice)$mvTechAOut(tech, comm, region, y
   (( vTechRetiredStock(tech, region, year)$mvTechRetiredStock(tech, region, year)
      + sum(yearp$mvTechRetiredNewCap(tech, region, yearp, year),
            vTechRetiredNewCap(tech, region, yearp, year)) ) *
-    pTechRet2AOut(tech, comm, region, year, timeslice))$mTechRet2AOut(tech, comm, region, year, timeslice) +
-  sum(commp$mTechCinp2AOut(tech, comm, commp, region, year, timeslice),
-      pTechCinp2AOut(tech, comm, commp, region, year, timeslice) *
-         vTechInp(tech, commp, region, year, timeslice)) +
-  sum(commp$mTechCout2AOut(tech, comm, commp, region, year, timeslice),
-      pTechCout2AOut(tech, comm, commp, region, year, timeslice) *
-         vTechOut(tech, commp, region, year, timeslice)));
+    pTechRet2AOut(tech, comm, region, year, timeslice))$mTechRet2AOut(tech, comm, region, year, timeslice)
+  ) +
+  sum(timeslicep$mCommTimesliceOrParent(comm, timeslice, timeslicep),
+      pTimesliceAgg(year, timeslice, timeslicep) * (
+      (vTechAct(tech, region, year, timeslicep) *
+        pTechAct2AOut(tech, comm, region, year, timeslicep))$mTechAct2AOut(tech, comm, region, year, timeslicep) +
+      sum(commp$mTechCinp2AOut(tech, comm, commp, region, year, timeslicep),
+          pTechCinp2AOut(tech, comm, commp, region, year, timeslicep) *
+             vTechInp(tech, commp, region, year, timeslicep)) +
+      sum(commp$mTechCout2AOut(tech, comm, commp, region, year, timeslicep),
+          pTechCout2AOut(tech, comm, commp, region, year, timeslicep) *
+             vTechOut(tech, commp, region, year, timeslicep))));
 
 ********************************************************************************
 *** Availability
@@ -1663,17 +1676,18 @@ eqTechVarom(tech, region, year)$mTechVarom(tech, region, year)..
                 pTechCvarom(tech, comm, region, year, timeslice)
                 * pTimesliceWeight(year, timeslice)
                 * vTechOut(tech, comm, region, year, timeslice))
-            +
-            sum(comm$mvTechAOut(tech, comm, region, year, timeslice),
-                pTechAvarom(tech, comm, region, year, timeslice)
-                * pTimesliceWeight(year, timeslice)
-                * vTechAOut(tech, comm, region, year, timeslice))
-            +
-            sum(comm$mvTechAInp(tech, comm, region, year, timeslice),
-                pTechAvarom(tech, comm, region, year, timeslice)
-                * pTimesliceWeight(year, timeslice)
-                * vTechAInp(tech, comm, region, year, timeslice))
-        );
+        )
+* aux flows sit at their commodity's slices, not the technology's
+        +
+        sum((comm, timeslice)$mvTechAOut(tech, comm, region, year, timeslice),
+            pTechAvarom(tech, comm, region, year, timeslice)
+            * pTimesliceWeight(year, timeslice)
+            * vTechAOut(tech, comm, region, year, timeslice))
+        +
+        sum((comm, timeslice)$mvTechAInp(tech, comm, region, year, timeslice),
+            pTechAvarom(tech, comm, region, year, timeslice)
+            * pTimesliceWeight(year, timeslice)
+            * vTechAInp(tech, comm, region, year, timeslice));
 
 
 **************************************
@@ -1812,106 +1826,117 @@ eqStorageOutUp(stg, comm, region, year, timeslice)  Storage output upper constra
 eqStorageOutLo(stg, comm, region, year, timeslice)  Storage output lower constraint
 ;
 
+* Aux flow at the AUX COMMODITY's slice, as eqTechAInp: the part-capacity
+* terms are per-YEAR (x pTimesliceShare), the flows (level, charge, discharge)
+* are summed over the storage's own child slices with pTimesliceAgg. Each flow
+* follows its OWN role's commodity set; the capacity terms sit outside the sums.
 eqStorageAInp(stg, comm, region, year, timeslice)$mvStorageAInp(stg, comm, region, year, timeslice)..
   vStorageAInp(stg, comm, region, year, timeslice) =e=
-* [multi-commodity] each referenced flow follows its OWN role's commodity set,
-* and the two capacity terms sit OUTSIDE the commodity sum -- inside it they were
-* multiplied by 1 for a single-commodity storage but would be counted once per
-* commodity now that the roles can differ.
-    sum(commp$mStorageStgComm(stg, commp),
-        (pStorageStg2AInp(stg, comm, region, year, timeslice)
-        * vStorageLevel(stg, commp, region, year, timeslice)
-        )$mStorageStg2AInp(stg, comm, region, year, timeslice))
-      + sum(commp$mStorageInpComm(stg, commp),
-        (pStorageCinp2AInp(stg, comm, region, year, timeslice)
-          * vStorageInp(stg, commp, region, year, timeslice)
-        )$mStorageCinp2AInp(stg, comm, region, year, timeslice))
-      + sum(commp$mStorageOutComm(stg, commp),
-        (pStorageCout2AInp(stg, comm, region, year, timeslice)
-          * vStorageOut(stg, commp, region, year, timeslice)
-        )$mStorageCout2AInp(stg, comm, region, year, timeslice))
-      + (pStorageOutCap2AInp(stg, comm, region, year, timeslice)
-           * vStorageOutCap(stg, region, year)
-        )$mStorageOutCap2AInp(stg, comm, region, year, timeslice)
-      + (pStorageOutNCap2AInp(stg, comm, region, year, timeslice)
-           * vStorageOutNewCap(stg, region, year)
-        )$mStorageOutNCap2AInp(stg, comm, region, year, timeslice)
-      + (pStorageInpCap2AInp(stg, comm, region, year, timeslice)
-           * vStorageInpCap(stg, region, year)
-        )$mStorageInpCap2AInp(stg, comm, region, year, timeslice)
-      + (pStorageInpNCap2AInp(stg, comm, region, year, timeslice)
-           * vStorageInpNewCap(stg, region, year)
-        )$mStorageInpNCap2AInp(stg, comm, region, year, timeslice)
-      + (pStorageStgCap2AInp(stg, comm, region, year, timeslice)
-           * vStorageStgCap(stg, region, year)
-        )$mStorageStgCap2AInp(stg, comm, region, year, timeslice)
-      + (pStorageStgNCap2AInp(stg, comm, region, year, timeslice)
-           * vStorageStgNewCap(stg, region, year)
-        )$mStorageStgNCap2AInp(stg, comm, region, year, timeslice)
-      + (pStoragePho2AInp(stg, comm, region, year, timeslice)
-           * vStoragePhaseOut(stg, region, year)$mvStoragePhaseOut(stg, region, year)
-        )$mStoragePho2AInp(stg, comm, region, year, timeslice)
-      + (pStorageRet2AInp(stg, comm, region, year, timeslice)
-           * ( vStorageOutRetiredStock(stg, region, year)$mvStorageRetiredStock(stg, region, year)
-       + sum(yearp$mvStorageRetiredNewCap(stg, region, yearp, year),
-             vStorageOutRetiredNewCap(stg, region, yearp, year)) )
-        )$mStorageRet2AInp(stg, comm, region, year, timeslice)
-    ;
-
-eqStorageAOut(stg, comm, region, year, timeslice)$mvStorageAOut(stg, comm, region, year, timeslice)..
-  vStorageAOut(stg, comm, region, year, timeslice)
-  =e=
-* [multi-commodity] each referenced flow follows its OWN role's commodity set,
-* and the two capacity terms sit OUTSIDE the commodity sum -- inside it they were
-* multiplied by 1 for a single-commodity storage but would be counted once per
-* commodity now that the roles can differ.
-  sum(commp$mStorageStgComm(stg, commp),
-      (pStorageStg2AOut(stg, comm, region, year, timeslice)
-       * vStorageLevel(stg, commp, region, year, timeslice)
-      )$mStorageStg2AOut(stg, comm, region, year, timeslice))
-      +
-      sum(commp$mStorageInpComm(stg, commp),
-      (pStorageCinp2AOut(stg, comm, region, year, timeslice)
-       * vStorageInp(stg, commp, region, year, timeslice)
-      )$mStorageCinp2AOut(stg, comm, region, year, timeslice))
-      +
-      sum(commp$mStorageOutComm(stg, commp),
-      (pStorageCout2AOut(stg, comm, region, year, timeslice)
-       * vStorageOut(stg, commp, region, year, timeslice)
-      )$mStorageCout2AOut(stg, comm, region, year, timeslice))
-      +
-      (pStorageOutCap2AOut(stg, comm, region, year, timeslice)
+  pTimesliceShare(timeslice) * (
+    (pStorageOutCap2AInp(stg, comm, region, year, timeslice)
        * vStorageOutCap(stg, region, year)
-      )$mStorageOutCap2AOut(stg, comm, region, year, timeslice)
-      +
-      (pStorageOutNCap2AOut(stg, comm, region, year, timeslice)
+    )$mStorageOutCap2AInp(stg, comm, region, year, timeslice)
+    +
+    (pStorageOutNCap2AInp(stg, comm, region, year, timeslice)
        * vStorageOutNewCap(stg, region, year)
-      )$mStorageOutNCap2AOut(stg, comm, region, year, timeslice)
-      +
-      (pStorageInpCap2AOut(stg, comm, region, year, timeslice)
+    )$mStorageOutNCap2AInp(stg, comm, region, year, timeslice)
+    +
+    (pStorageInpCap2AInp(stg, comm, region, year, timeslice)
        * vStorageInpCap(stg, region, year)
-      )$mStorageInpCap2AOut(stg, comm, region, year, timeslice)
-      +
-      (pStorageInpNCap2AOut(stg, comm, region, year, timeslice)
+    )$mStorageInpCap2AInp(stg, comm, region, year, timeslice)
+    +
+    (pStorageInpNCap2AInp(stg, comm, region, year, timeslice)
        * vStorageInpNewCap(stg, region, year)
-      )$mStorageInpNCap2AOut(stg, comm, region, year, timeslice)
-      +
-      (pStorageStgCap2AOut(stg, comm, region, year, timeslice)
+    )$mStorageInpNCap2AInp(stg, comm, region, year, timeslice)
+    +
+    (pStorageStgCap2AInp(stg, comm, region, year, timeslice)
        * vStorageStgCap(stg, region, year)
-      )$mStorageStgCap2AOut(stg, comm, region, year, timeslice)
-      +
-      (pStorageStgNCap2AOut(stg, comm, region, year, timeslice)
+    )$mStorageStgCap2AInp(stg, comm, region, year, timeslice)
+    +
+    (pStorageStgNCap2AInp(stg, comm, region, year, timeslice)
        * vStorageStgNewCap(stg, region, year)
-      )$mStorageStgNCap2AOut(stg, comm, region, year, timeslice)
-      + (pStoragePho2AOut(stg, comm, region, year, timeslice)
-           * vStoragePhaseOut(stg, region, year)$mvStoragePhaseOut(stg, region, year)
-        )$mStoragePho2AOut(stg, comm, region, year, timeslice)
-      + (pStorageRet2AOut(stg, comm, region, year, timeslice)
-           * ( vStorageOutRetiredStock(stg, region, year)$mvStorageRetiredStock(stg, region, year)
-       + sum(yearp$mvStorageRetiredNewCap(stg, region, yearp, year),
-             vStorageOutRetiredNewCap(stg, region, yearp, year)) )
-        )$mStorageRet2AOut(stg, comm, region, year, timeslice)
-;
+    )$mStorageStgNCap2AInp(stg, comm, region, year, timeslice)
+    +
+    (pStoragePho2AInp(stg, comm, region, year, timeslice)
+       * vStoragePhaseOut(stg, region, year)$mvStoragePhaseOut(stg, region, year)
+    )$mStoragePho2AInp(stg, comm, region, year, timeslice)
+    +
+    (pStorageRet2AInp(stg, comm, region, year, timeslice)
+       * ( vStorageOutRetiredStock(stg, region, year)$mvStorageRetiredStock(stg, region, year)
+         + sum(yearp$mvStorageRetiredNewCap(stg, region, yearp, year),
+               vStorageOutRetiredNewCap(stg, region, yearp, year)) )
+    )$mStorageRet2AInp(stg, comm, region, year, timeslice)
+  ) +
+  sum(timeslicep$mCommTimesliceOrParent(comm, timeslice, timeslicep),
+      pTimesliceAgg(year, timeslice, timeslicep) * (
+      sum(commp$mStorageStgComm(stg, commp),
+          (pStorageStg2AInp(stg, comm, region, year, timeslicep)
+           * vStorageLevel(stg, commp, region, year, timeslicep)
+          )$mStorageStg2AInp(stg, comm, region, year, timeslicep))
+      + sum(commp$mStorageInpComm(stg, commp),
+          (pStorageCinp2AInp(stg, comm, region, year, timeslicep)
+           * vStorageInp(stg, commp, region, year, timeslicep)
+          )$mStorageCinp2AInp(stg, comm, region, year, timeslicep))
+      + sum(commp$mStorageOutComm(stg, commp),
+          (pStorageCout2AInp(stg, comm, region, year, timeslicep)
+           * vStorageOut(stg, commp, region, year, timeslicep)
+          )$mStorageCout2AInp(stg, comm, region, year, timeslicep))));
+
+* Aux flow at the AUX COMMODITY's slice, as eqTechAInp: the part-capacity
+* terms are per-YEAR (x pTimesliceShare), the flows (level, charge, discharge)
+* are summed over the storage's own child slices with pTimesliceAgg. Each flow
+* follows its OWN role's commodity set; the capacity terms sit outside the sums.
+eqStorageAOut(stg, comm, region, year, timeslice)$mvStorageAOut(stg, comm, region, year, timeslice)..
+  vStorageAOut(stg, comm, region, year, timeslice) =e=
+  pTimesliceShare(timeslice) * (
+    (pStorageOutCap2AOut(stg, comm, region, year, timeslice)
+       * vStorageOutCap(stg, region, year)
+    )$mStorageOutCap2AOut(stg, comm, region, year, timeslice)
+    +
+    (pStorageOutNCap2AOut(stg, comm, region, year, timeslice)
+       * vStorageOutNewCap(stg, region, year)
+    )$mStorageOutNCap2AOut(stg, comm, region, year, timeslice)
+    +
+    (pStorageInpCap2AOut(stg, comm, region, year, timeslice)
+       * vStorageInpCap(stg, region, year)
+    )$mStorageInpCap2AOut(stg, comm, region, year, timeslice)
+    +
+    (pStorageInpNCap2AOut(stg, comm, region, year, timeslice)
+       * vStorageInpNewCap(stg, region, year)
+    )$mStorageInpNCap2AOut(stg, comm, region, year, timeslice)
+    +
+    (pStorageStgCap2AOut(stg, comm, region, year, timeslice)
+       * vStorageStgCap(stg, region, year)
+    )$mStorageStgCap2AOut(stg, comm, region, year, timeslice)
+    +
+    (pStorageStgNCap2AOut(stg, comm, region, year, timeslice)
+       * vStorageStgNewCap(stg, region, year)
+    )$mStorageStgNCap2AOut(stg, comm, region, year, timeslice)
+    +
+    (pStoragePho2AOut(stg, comm, region, year, timeslice)
+       * vStoragePhaseOut(stg, region, year)$mvStoragePhaseOut(stg, region, year)
+    )$mStoragePho2AOut(stg, comm, region, year, timeslice)
+    +
+    (pStorageRet2AOut(stg, comm, region, year, timeslice)
+       * ( vStorageOutRetiredStock(stg, region, year)$mvStorageRetiredStock(stg, region, year)
+         + sum(yearp$mvStorageRetiredNewCap(stg, region, yearp, year),
+               vStorageOutRetiredNewCap(stg, region, yearp, year)) )
+    )$mStorageRet2AOut(stg, comm, region, year, timeslice)
+  ) +
+  sum(timeslicep$mCommTimesliceOrParent(comm, timeslice, timeslicep),
+      pTimesliceAgg(year, timeslice, timeslicep) * (
+      sum(commp$mStorageStgComm(stg, commp),
+          (pStorageStg2AOut(stg, comm, region, year, timeslicep)
+           * vStorageLevel(stg, commp, region, year, timeslicep)
+          )$mStorageStg2AOut(stg, comm, region, year, timeslicep))
+      + sum(commp$mStorageInpComm(stg, commp),
+          (pStorageCinp2AOut(stg, comm, region, year, timeslicep)
+           * vStorageInp(stg, commp, region, year, timeslicep)
+          )$mStorageCinp2AOut(stg, comm, region, year, timeslicep))
+      + sum(commp$mStorageOutComm(stg, commp),
+          (pStorageCout2AOut(stg, comm, region, year, timeslicep)
+           * vStorageOut(stg, commp, region, year, timeslicep)
+          )$mStorageCout2AOut(stg, comm, region, year, timeslicep))));
 
 * timeslicep == timeslice[-1]
 eqStorageLevel(stg, comm, region, year, timeslicep, timeslice)$meqStorageLevel(stg, comm, region, year, timeslicep, timeslice)..

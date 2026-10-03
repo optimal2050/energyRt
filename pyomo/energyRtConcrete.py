@@ -259,6 +259,12 @@ mvStorageRetiredNewCap_ix3_012 = _group(mvStorageRetiredNewCap, year, 3, (0, 1, 
 mvSupCost_ix = _group(mvSupCost, sup, 0, (1, 2,))
 mvTechAInp_ix = _group(mvTechAInp, comm, 1, (0, 2, 3, 4,))
 mvTechAOut_ix = _group(mvTechAOut, comm, 1, (0, 2, 3, 4,))
+mvTechAInp_ix3 = {}
+for (t, c, r, y, s) in mvTechAInp:
+    mvTechAInp_ix3.setdefault((t, r, y), []).append((c, s))
+mvTechAOut_ix3 = {}
+for (t, c, r, y, s) in mvTechAOut:
+    mvTechAOut_ix3.setdefault((t, r, y), []).append((c, s))
 mvTechRetiredNewCap_ix2_013 = _group(mvTechRetiredNewCap, year, 2, (0, 1, 3,))
 mvTechRetiredNewCap_ix3_012 = _group(mvTechRetiredNewCap, year, 3, (0, 1, 2,))
 mvTotalCost_ix = _group(mvTotalCost, year, 1, (0,))
@@ -757,46 +763,27 @@ if verbose:
         sep="",
     )
 # eqTechAInp(tech, comm, region, year, timeslice)$mvTechAInp(tech, comm, region, year, timeslice)
+# aux flow at the AUX COMMODITY's slice s; capacity terms are per year x share,
+# flow terms are summed over the technology's own slices sp (self or children)
 if verbose:
     print("eqTechAInp ", end="")
 sys.stdout.flush()
 model.eqTechAInp = Constraint(
     mvTechAInp,
-    rule=lambda model, t, c, r, y, s: pTechCap2act.get((t)) * model.vTechAInp[t, c, r, y, s]
-    == (
-        (model.vTechCap[t, r, y] * pTechCap2AInp.get((t, c, r, y, s)))
-        if (t, c, r, y, s) in mTechCap2AInp
-        else 0
-    )
-    + pTechCap2act.get((t)) * (
-    (
-        (model.vTechAct[t, r, y, s] * pTechAct2AInp.get((t, c, r, y, s)))
-        if (t, c, r, y, s) in mTechAct2AInp
-        else 0
-    )
-    + (
-        (model.vTechNewCap[t, r, y] * pTechNCap2AInp.get((t, c, r, y, s)))
-        if (t, c, r, y, s) in mTechNCap2AInp
-        else 0
-    )
-    + (
-        ((model.vTechPhaseOut[t, r, y] if (t, r, y) in mvTechPhaseOut else 0) * pTechPho2AInp.get((t, c, r, y, s)))
-        if (t, c, r, y, s) in mTechPho2AInp
-        else 0
-    )
-    + (
-        (((model.vTechRetiredStock[t, r, y] if (t, r, y) in mvTechRetiredStock else 0) + sum(model.vTechRetiredNewCap[t, r, yp, y] for yp in year if (t, r, yp, y) in mvTechRetiredNewCap)) * pTechRet2AInp.get((t, c, r, y, s)))
-        if (t, c, r, y, s) in mTechRet2AInp
-        else 0
+    rule=lambda model, t, c, r, y, s: model.vTechAInp[t, c, r, y, s]
+    == pTimesliceShare.get((s)) * (
+        ((model.vTechCap[t, r, y] * pTechCap2AInp.get((t, c, r, y, s))) if (t, c, r, y, s) in mTechCap2AInp else 0)
+        + ((model.vTechNewCap[t, r, y] * pTechNCap2AInp.get((t, c, r, y, s))) if (t, c, r, y, s) in mTechNCap2AInp else 0)
+        + (((model.vTechPhaseOut[t, r, y] if (t, r, y) in mvTechPhaseOut else 0) * pTechPho2AInp.get((t, c, r, y, s))) if (t, c, r, y, s) in mTechPho2AInp else 0)
+        + ((((model.vTechRetiredStock[t, r, y] if (t, r, y) in mvTechRetiredStock else 0) + sum(model.vTechRetiredNewCap[t, r, yp, y] for yp in year if (t, r, yp, y) in mvTechRetiredNewCap)) * pTechRet2AInp.get((t, c, r, y, s))) if (t, c, r, y, s) in mTechRet2AInp else 0)
     )
     + sum(
-        pTechCinp2AInp.get((t, c, cp, r, y, s)) * model.vTechInp[t, cp, r, y, s]
-        for cp in mTechCinp2AInp_ix.get((t, c, r, y, s), ())
-    )
-    + sum(
-        pTechCout2AInp.get((t, c, cp, r, y, s)) * model.vTechOut[t, cp, r, y, s]
-        for cp in mTechCout2AInp_ix.get((t, c, r, y, s), ())
-    )
+        pTimesliceAgg.get((y, s, sp)) * (
+            ((model.vTechAct[t, r, y, sp] * pTechAct2AInp.get((t, c, r, y, sp))) if (t, c, r, y, sp) in mTechAct2AInp else 0)
+            + sum(pTechCinp2AInp.get((t, c, cp, r, y, sp)) * model.vTechInp[t, cp, r, y, sp] for cp in mTechCinp2AInp_ix.get((t, c, r, y, sp), ()))
+            + sum(pTechCout2AInp.get((t, c, cp, r, y, sp)) * model.vTechOut[t, cp, r, y, sp] for cp in mTechCout2AInp_ix.get((t, c, r, y, sp), ()))
+        )
+        for sp in mCommTimesliceOrParent_ix.get((c, s), ())
     ),
 )
 if verbose:
@@ -808,46 +795,27 @@ if verbose:
         sep="",
     )
 # eqTechAOut(tech, comm, region, year, timeslice)$mvTechAOut(tech, comm, region, year, timeslice)
+# aux flow at the AUX COMMODITY's slice s; capacity terms are per year x share,
+# flow terms are summed over the technology's own slices sp (self or children)
 if verbose:
     print("eqTechAOut ", end="")
 sys.stdout.flush()
 model.eqTechAOut = Constraint(
     mvTechAOut,
-    rule=lambda model, t, c, r, y, s: pTechCap2act.get((t)) * model.vTechAOut[t, c, r, y, s]
-    == (
-        (model.vTechCap[t, r, y] * pTechCap2AOut.get((t, c, r, y, s)))
-        if (t, c, r, y, s) in mTechCap2AOut
-        else 0
-    )
-    + pTechCap2act.get((t)) * (
-    (
-        (model.vTechAct[t, r, y, s] * pTechAct2AOut.get((t, c, r, y, s)))
-        if (t, c, r, y, s) in mTechAct2AOut
-        else 0
-    )
-    + (
-        (model.vTechNewCap[t, r, y] * pTechNCap2AOut.get((t, c, r, y, s)))
-        if (t, c, r, y, s) in mTechNCap2AOut
-        else 0
-    )
-    + (
-        ((model.vTechPhaseOut[t, r, y] if (t, r, y) in mvTechPhaseOut else 0) * pTechPho2AOut.get((t, c, r, y, s)))
-        if (t, c, r, y, s) in mTechPho2AOut
-        else 0
-    )
-    + (
-        (((model.vTechRetiredStock[t, r, y] if (t, r, y) in mvTechRetiredStock else 0) + sum(model.vTechRetiredNewCap[t, r, yp, y] for yp in year if (t, r, yp, y) in mvTechRetiredNewCap)) * pTechRet2AOut.get((t, c, r, y, s)))
-        if (t, c, r, y, s) in mTechRet2AOut
-        else 0
+    rule=lambda model, t, c, r, y, s: model.vTechAOut[t, c, r, y, s]
+    == pTimesliceShare.get((s)) * (
+        ((model.vTechCap[t, r, y] * pTechCap2AOut.get((t, c, r, y, s))) if (t, c, r, y, s) in mTechCap2AOut else 0)
+        + ((model.vTechNewCap[t, r, y] * pTechNCap2AOut.get((t, c, r, y, s))) if (t, c, r, y, s) in mTechNCap2AOut else 0)
+        + (((model.vTechPhaseOut[t, r, y] if (t, r, y) in mvTechPhaseOut else 0) * pTechPho2AOut.get((t, c, r, y, s))) if (t, c, r, y, s) in mTechPho2AOut else 0)
+        + ((((model.vTechRetiredStock[t, r, y] if (t, r, y) in mvTechRetiredStock else 0) + sum(model.vTechRetiredNewCap[t, r, yp, y] for yp in year if (t, r, yp, y) in mvTechRetiredNewCap)) * pTechRet2AOut.get((t, c, r, y, s))) if (t, c, r, y, s) in mTechRet2AOut else 0)
     )
     + sum(
-        pTechCinp2AOut.get((t, c, cp, r, y, s)) * model.vTechInp[t, cp, r, y, s]
-        for cp in mTechCinp2AOut_ix.get((t, c, r, y, s), ())
-    )
-    + sum(
-        pTechCout2AOut.get((t, c, cp, r, y, s)) * model.vTechOut[t, cp, r, y, s]
-        for cp in mTechCout2AOut_ix.get((t, c, r, y, s), ())
-    )
+        pTimesliceAgg.get((y, s, sp)) * (
+            ((model.vTechAct[t, r, y, sp] * pTechAct2AOut.get((t, c, r, y, sp))) if (t, c, r, y, sp) in mTechAct2AOut else 0)
+            + sum(pTechCinp2AOut.get((t, c, cp, r, y, sp)) * model.vTechInp[t, cp, r, y, sp] for cp in mTechCinp2AOut_ix.get((t, c, r, y, sp), ()))
+            + sum(pTechCout2AOut.get((t, c, cp, r, y, sp)) * model.vTechOut[t, cp, r, y, sp] for cp in mTechCout2AOut_ix.get((t, c, r, y, sp), ()))
+        )
+        for sp in mCommTimesliceOrParent_ix.get((c, s), ())
     ),
 )
 if verbose:
@@ -1871,19 +1839,20 @@ model.eqTechVarom = Constraint(
             * model.vTechOut[t, c, r, y, s]
             for c in mTechOutComm_ix.get(t, ())
         )
-        + sum(
-            pTechAvarom.get((t, c, r, y, s))
-            * pTimesliceWeight.get((y, s))
-            * model.vTechAOut[t, c, r, y, s]
-            for c in mvTechAOut_ix.get((t, r, y, s), ())
-        )
-        + sum(
-            pTechAvarom.get((t, c, r, y, s))
-            * pTimesliceWeight.get((y, s))
-            * model.vTechAInp[t, c, r, y, s]
-            for c in mvTechAInp_ix.get((t, r, y, s), ())
-        )
         for s in mTechTimeslice_ix.get(t, ())
+    )
+    # aux flows sit at their commodity's slices, not the technology's
+    + sum(
+        pTechAvarom.get((t, c, r, y, s))
+        * pTimesliceWeight.get((y, s))
+        * model.vTechAOut[t, c, r, y, s]
+        for (c, s) in mvTechAOut_ix3.get((t, r, y), ())
+    )
+    + sum(
+        pTechAvarom.get((t, c, r, y, s))
+        * pTimesliceWeight.get((y, s))
+        * model.vTechAInp[t, c, r, y, s]
+        for (c, s) in mvTechAInp_ix3.get((t, r, y), ())
     ),
 )
 if verbose:
@@ -2096,90 +2065,33 @@ if verbose:
         sep="",
     )
 # eqStorageAInp(stg, comm, region, year, timeslice)$mvStorageAInp(stg, comm, region, year, timeslice)
+# aux flow at the AUX COMMODITY's slice s: part capacities are per year x share,
+# level/charge/discharge summed over the storage's own slices sp; each flow
+# follows its OWN role's commodity set
 if verbose:
     print("eqStorageAInp ", end="")
 sys.stdout.flush()
 model.eqStorageAInp = Constraint(
     mvStorageAInp,
     rule=lambda model, st1, c, r, y, s: model.vStorageAInp[st1, c, r, y, s]
-    ==
-    # [multi-commodity] each referenced flow follows its OWN role's commodity set,
-    # and the two capacity terms leave the commodity sum -- inside it they were
-    # multiplied by 1 for a single-commodity storage but would be counted once per
-    # commodity now that the roles can differ.
-    sum(
-        (
-            (
-                pStorageStg2AInp.get((st1, c, r, y, s))
-                * model.vStorageLevel[st1, cp, r, y, s]
-            )
-            if (st1, c, r, y, s) in mStorageStg2AInp
-            else 0
-        )
-        for cp in mStorageStgComm_ix.get(st1, ())
+    == pTimesliceShare.get((s)) * (
+        ((pStorageOutCap2AInp.get((st1, c, r, y, s)) * model.vStorageOutCap[st1, r, y]) if (st1, c, r, y, s) in mStorageOutCap2AInp else 0)
+        + ((pStorageOutNCap2AInp.get((st1, c, r, y, s)) * model.vStorageOutNewCap[st1, r, y]) if (st1, c, r, y, s) in mStorageOutNCap2AInp else 0)
+        + ((pStorageInpCap2AInp.get((st1, c, r, y, s)) * model.vStorageInpCap[st1, r, y]) if (st1, c, r, y, s) in mStorageInpCap2AInp else 0)
+        + ((pStorageInpNCap2AInp.get((st1, c, r, y, s)) * model.vStorageInpNewCap[st1, r, y]) if (st1, c, r, y, s) in mStorageInpNCap2AInp else 0)
+        + ((pStorageStgCap2AInp.get((st1, c, r, y, s)) * model.vStorageStgCap[st1, r, y]) if (st1, c, r, y, s) in mStorageStgCap2AInp else 0)
+        + ((pStorageStgNCap2AInp.get((st1, c, r, y, s)) * model.vStorageStgNewCap[st1, r, y]) if (st1, c, r, y, s) in mStorageStgNCap2AInp else 0)
+        + ((pStoragePho2AInp.get((st1, c, r, y, s)) * (model.vStoragePhaseOut[st1, r, y] if (st1, r, y) in mvStoragePhaseOut else 0)) if (st1, c, r, y, s) in mStoragePho2AInp else 0)
+        + ((pStorageRet2AInp.get((st1, c, r, y, s)) * ((model.vStorageOutRetiredStock[st1, r, y] if (st1, r, y) in mvStorageRetiredStock else 0) + sum(model.vStorageOutRetiredNewCap[st1, r, yp, y] for yp in year if (st1, r, yp, y) in mvStorageRetiredNewCap))) if (st1, c, r, y, s) in mStorageRet2AInp else 0)
     )
     + sum(
-        (
-            (
-                pStorageCinp2AInp.get((st1, c, r, y, s))
-                * model.vStorageInp[st1, cp, r, y, s]
-            )
-            if (st1, c, r, y, s) in mStorageCinp2AInp
-            else 0
+        pTimesliceAgg.get((y, s, sp)) * (
+            sum(((pStorageStg2AInp.get((st1, c, r, y, sp)) * model.vStorageLevel[st1, cp, r, y, sp]) if (st1, c, r, y, sp) in mStorageStg2AInp else 0) for cp in mStorageStgComm_ix.get(st1, ()))
+            + sum(((pStorageCinp2AInp.get((st1, c, r, y, sp)) * model.vStorageInp[st1, cp, r, y, sp]) if (st1, c, r, y, sp) in mStorageCinp2AInp else 0) for cp in mStorageInpComm_ix.get(st1, ()))
+            + sum(((pStorageCout2AInp.get((st1, c, r, y, sp)) * model.vStorageOut[st1, cp, r, y, sp]) if (st1, c, r, y, sp) in mStorageCout2AInp else 0) for cp in mStorageOutComm_ix.get(st1, ()))
         )
-        for cp in mStorageInpComm_ix.get(st1, ())
-    )
-    + sum(
-        (
-            (
-                pStorageCout2AInp.get((st1, c, r, y, s))
-                * model.vStorageOut[st1, cp, r, y, s]
-            )
-            if (st1, c, r, y, s) in mStorageCout2AInp
-            else 0
-        )
-        for cp in mStorageOutComm_ix.get(st1, ())
-    )
-    + (
-            (pStorageOutCap2AInp.get((st1, c, r, y, s)) * model.vStorageOutCap[st1, r, y])
-            if (st1, c, r, y, s) in mStorageOutCap2AInp
-            else 0
-        )
-    + (
-            (pStorageOutNCap2AInp.get((st1, c, r, y, s)) * model.vStorageOutNewCap[st1, r, y])
-            if (st1, c, r, y, s) in mStorageOutNCap2AInp
-            else 0
-        )
-    + (
-            (pStorageInpCap2AInp.get((st1, c, r, y, s)) * model.vStorageInpCap[st1, r, y])
-            if (st1, c, r, y, s) in mStorageInpCap2AInp
-            else 0
-        )
-    + (
-            (pStorageInpNCap2AInp.get((st1, c, r, y, s)) * model.vStorageInpNewCap[st1, r, y])
-            if (st1, c, r, y, s) in mStorageInpNCap2AInp
-            else 0
-        )
-    + (
-            (pStorageStgCap2AInp.get((st1, c, r, y, s)) * model.vStorageStgCap[st1, r, y])
-            if (st1, c, r, y, s) in mStorageStgCap2AInp
-            else 0
-        )
-    + (
-            (pStorageStgNCap2AInp.get((st1, c, r, y, s)) * model.vStorageStgNewCap[st1, r, y])
-            if (st1, c, r, y, s) in mStorageStgNCap2AInp
-            else 0
-        )
-    + (
-            (pStoragePho2AInp.get((st1, c, r, y, s)) * (model.vStoragePhaseOut[st1, r, y] if (st1, r, y) in mvStoragePhaseOut else 0))
-            if (st1, c, r, y, s) in mStoragePho2AInp
-            else 0
-        )
-    + (
-            (pStorageRet2AInp.get((st1, c, r, y, s)) * ((model.vStorageOutRetiredStock[st1, r, y] if (st1, r, y) in mvStorageRetiredStock else 0) + sum(model.vStorageOutRetiredNewCap[st1, r, yp, y] for yp in year if (st1, r, yp, y) in mvStorageRetiredNewCap)))
-            if (st1, c, r, y, s) in mStorageRet2AInp
-            else 0
-        ),
+        for sp in mCommTimesliceOrParent_ix.get((c, s), ())
+    ),
 )
 if verbose:
     print(
@@ -2190,90 +2102,33 @@ if verbose:
         sep="",
     )
 # eqStorageAOut(stg, comm, region, year, timeslice)$mvStorageAOut(stg, comm, region, year, timeslice)
+# aux flow at the AUX COMMODITY's slice s: part capacities are per year x share,
+# level/charge/discharge summed over the storage's own slices sp; each flow
+# follows its OWN role's commodity set
 if verbose:
     print("eqStorageAOut ", end="")
 sys.stdout.flush()
 model.eqStorageAOut = Constraint(
     mvStorageAOut,
     rule=lambda model, st1, c, r, y, s: model.vStorageAOut[st1, c, r, y, s]
-    ==
-    # [multi-commodity] each referenced flow follows its OWN role's commodity set,
-    # and the two capacity terms leave the commodity sum -- inside it they were
-    # multiplied by 1 for a single-commodity storage but would be counted once per
-    # commodity now that the roles can differ.
-    sum(
-        (
-            (
-                pStorageStg2AOut.get((st1, c, r, y, s))
-                * model.vStorageLevel[st1, cp, r, y, s]
-            )
-            if (st1, c, r, y, s) in mStorageStg2AOut
-            else 0
-        )
-        for cp in mStorageStgComm_ix.get(st1, ())
+    == pTimesliceShare.get((s)) * (
+        ((pStorageOutCap2AOut.get((st1, c, r, y, s)) * model.vStorageOutCap[st1, r, y]) if (st1, c, r, y, s) in mStorageOutCap2AOut else 0)
+        + ((pStorageOutNCap2AOut.get((st1, c, r, y, s)) * model.vStorageOutNewCap[st1, r, y]) if (st1, c, r, y, s) in mStorageOutNCap2AOut else 0)
+        + ((pStorageInpCap2AOut.get((st1, c, r, y, s)) * model.vStorageInpCap[st1, r, y]) if (st1, c, r, y, s) in mStorageInpCap2AOut else 0)
+        + ((pStorageInpNCap2AOut.get((st1, c, r, y, s)) * model.vStorageInpNewCap[st1, r, y]) if (st1, c, r, y, s) in mStorageInpNCap2AOut else 0)
+        + ((pStorageStgCap2AOut.get((st1, c, r, y, s)) * model.vStorageStgCap[st1, r, y]) if (st1, c, r, y, s) in mStorageStgCap2AOut else 0)
+        + ((pStorageStgNCap2AOut.get((st1, c, r, y, s)) * model.vStorageStgNewCap[st1, r, y]) if (st1, c, r, y, s) in mStorageStgNCap2AOut else 0)
+        + ((pStoragePho2AOut.get((st1, c, r, y, s)) * (model.vStoragePhaseOut[st1, r, y] if (st1, r, y) in mvStoragePhaseOut else 0)) if (st1, c, r, y, s) in mStoragePho2AOut else 0)
+        + ((pStorageRet2AOut.get((st1, c, r, y, s)) * ((model.vStorageOutRetiredStock[st1, r, y] if (st1, r, y) in mvStorageRetiredStock else 0) + sum(model.vStorageOutRetiredNewCap[st1, r, yp, y] for yp in year if (st1, r, yp, y) in mvStorageRetiredNewCap))) if (st1, c, r, y, s) in mStorageRet2AOut else 0)
     )
     + sum(
-        (
-            (
-                pStorageCinp2AOut.get((st1, c, r, y, s))
-                * model.vStorageInp[st1, cp, r, y, s]
-            )
-            if (st1, c, r, y, s) in mStorageCinp2AOut
-            else 0
+        pTimesliceAgg.get((y, s, sp)) * (
+            sum(((pStorageStg2AOut.get((st1, c, r, y, sp)) * model.vStorageLevel[st1, cp, r, y, sp]) if (st1, c, r, y, sp) in mStorageStg2AOut else 0) for cp in mStorageStgComm_ix.get(st1, ()))
+            + sum(((pStorageCinp2AOut.get((st1, c, r, y, sp)) * model.vStorageInp[st1, cp, r, y, sp]) if (st1, c, r, y, sp) in mStorageCinp2AOut else 0) for cp in mStorageInpComm_ix.get(st1, ()))
+            + sum(((pStorageCout2AOut.get((st1, c, r, y, sp)) * model.vStorageOut[st1, cp, r, y, sp]) if (st1, c, r, y, sp) in mStorageCout2AOut else 0) for cp in mStorageOutComm_ix.get(st1, ()))
         )
-        for cp in mStorageInpComm_ix.get(st1, ())
-    )
-    + sum(
-        (
-            (
-                pStorageCout2AOut.get((st1, c, r, y, s))
-                * model.vStorageOut[st1, cp, r, y, s]
-            )
-            if (st1, c, r, y, s) in mStorageCout2AOut
-            else 0
-        )
-        for cp in mStorageOutComm_ix.get(st1, ())
-    )
-    + (
-            (pStorageOutCap2AOut.get((st1, c, r, y, s)) * model.vStorageOutCap[st1, r, y])
-            if (st1, c, r, y, s) in mStorageOutCap2AOut
-            else 0
-        )
-    + (
-            (pStorageOutNCap2AOut.get((st1, c, r, y, s)) * model.vStorageOutNewCap[st1, r, y])
-            if (st1, c, r, y, s) in mStorageOutNCap2AOut
-            else 0
-        )
-    + (
-            (pStorageInpCap2AOut.get((st1, c, r, y, s)) * model.vStorageInpCap[st1, r, y])
-            if (st1, c, r, y, s) in mStorageInpCap2AOut
-            else 0
-        )
-    + (
-            (pStorageInpNCap2AOut.get((st1, c, r, y, s)) * model.vStorageInpNewCap[st1, r, y])
-            if (st1, c, r, y, s) in mStorageInpNCap2AOut
-            else 0
-        )
-    + (
-            (pStorageStgCap2AOut.get((st1, c, r, y, s)) * model.vStorageStgCap[st1, r, y])
-            if (st1, c, r, y, s) in mStorageStgCap2AOut
-            else 0
-        )
-    + (
-            (pStorageStgNCap2AOut.get((st1, c, r, y, s)) * model.vStorageStgNewCap[st1, r, y])
-            if (st1, c, r, y, s) in mStorageStgNCap2AOut
-            else 0
-        )
-    + (
-            (pStoragePho2AOut.get((st1, c, r, y, s)) * (model.vStoragePhaseOut[st1, r, y] if (st1, r, y) in mvStoragePhaseOut else 0))
-            if (st1, c, r, y, s) in mStoragePho2AOut
-            else 0
-        )
-    + (
-            (pStorageRet2AOut.get((st1, c, r, y, s)) * ((model.vStorageOutRetiredStock[st1, r, y] if (st1, r, y) in mvStorageRetiredStock else 0) + sum(model.vStorageOutRetiredNewCap[st1, r, yp, y] for yp in year if (st1, r, yp, y) in mvStorageRetiredNewCap)))
-            if (st1, c, r, y, s) in mStorageRet2AOut
-            else 0
-        ),
+        for sp in mCommTimesliceOrParent_ix.get((c, s), ())
+    ),
 )
 if verbose:
     print(

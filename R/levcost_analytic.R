@@ -431,8 +431,9 @@
           co <- .la_series_key(ae, "acomm", a, col, years, region,
                                default = 0, what = col)
           if (all(co == 0)) next
-          base <- switch(spec[2], act = act, ncap = newcap,
-                         cap = cap / cap2act)
+          # capacity-type couplings are per-year coefficients (the aux
+          # equation books them as each aux slice's share of the year)
+          base <- switch(spec[2], act = act, ncap = newcap, cap = cap)
           tgt <- if (grepl("ainp$", col)) "in" else "out"
           if (tgt == "in") ax_in[, a] <- ax_in[, a] + co * base
           else             ax_out[, a] <- ax_out[, a] + co * base

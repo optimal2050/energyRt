@@ -11,10 +11,11 @@
 # storing part priced (stg.invcost 30, olife 30, discount 0 -> reservoir EAC
 # 1/unit; level 10 held s1->s3 -> StgCap = StgNewCap = 10):
 #   base                                   obj = 10 + 10          = 20
-#   stg.ncap2ainp 0.1 @ s1: aux 0.1*10=1,  obj = 20 + 2*1         = 22
-#   stg.cap2ainp 0.05 @ s2: aux 0.5,       obj = 20 + 2*0.5       = 21
-# (couplings name ONE timeslice: the term carries no share, so a wildcard
-# would fire in every slice -- the documented aeff timeslice warning.)
+#   stg.ncap2ainp 0.1: aux 0.1*10 = 1 a year,  obj = 20 + 2*1   = 22
+#   stg.cap2ainp 0.05: aux 0.05*10 = 0.5,      obj = 20 + 2*0.5 = 21
+# (capacity couplings are per-YEAR coefficients: with no timeslice the term
+# lands in each of WAT's four slices as a quarter of the year, summing to the
+# annual figure.)
 # =========================================================================== #
 
 sc_slices <- paste0("s", 1:4)
@@ -57,7 +58,7 @@ test_that("family storage-aux-caps: the bare legacy names are refused with a hin
 # @covers pStorageStgNCap2AInp pStorageStgCap2AInp depth=I backends=glpk
 test_that("family storage-aux-caps: stg couplings land iff the part is materialised", {
   scen <- suppressMessages(suppressWarnings(interpolate_model(
-    sc_build(data.frame(acomm = "WAT", timeslice = "s1", stg.ncap2ainp = 0.1)),
+    sc_build(data.frame(acomm = "WAT", stg.ncap2ainp = 0.1)),
     name = "sc_i", overwrite = TRUE)))
   expect_equal(unique(ff_param(scen, "pStorageStgNCap2AInp")$value), 0.1)
   expect_gte(nrow(ff_param(scen, "mStorageStgNCap2AInp")), 1)
@@ -65,8 +66,7 @@ test_that("family storage-aux-caps: stg couplings land iff the part is materiali
   # (with a warning) and no map rows are emitted
   expect_warning(
     scen2 <- suppressMessages(interpolate_model(
-      sc_build(data.frame(acomm = "WAT", timeslice = "s1",
-                          stg.ncap2ainp = 0.1),
+      sc_build(data.frame(acomm = "WAT", stg.ncap2ainp = 0.1),
                stg_priced = FALSE),
       name = "sc_i2", overwrite = TRUE)),
     "no capacity variable")
@@ -84,7 +84,7 @@ test_that("family storage-aux-caps: build-time material scales with the reservoi
   expect_equal(.fork_objective(base), 20, tolerance = 1e-6)
 
   scen <- suppressMessages(suppressWarnings(interpolate_model(
-    sc_build(data.frame(acomm = "WAT", timeslice = "s1", stg.ncap2ainp = 0.1)),
+    sc_build(data.frame(acomm = "WAT", stg.ncap2ainp = 0.1)),
     name = "sc_ncap", overwrite = TRUE)))
   scen <- .fork_solve(scen, solver_options$glpk)
   expect_true(verify_solution(scen)$ok)
@@ -96,7 +96,7 @@ test_that("family storage-aux-caps: build-time material scales with the reservoi
 test_that("family storage-aux-caps: standing-capacity coupling recurs on the stock", {
   skip_if_no_solver()
   scen <- suppressMessages(suppressWarnings(interpolate_model(
-    sc_build(data.frame(acomm = "WAT", timeslice = "s2", stg.cap2ainp = 0.05)),
+    sc_build(data.frame(acomm = "WAT", stg.cap2ainp = 0.05)),
     name = "sc_cap", overwrite = TRUE)))
   scen <- .fork_solve(scen, solver_options$glpk)
   expect_true(verify_solution(scen)$ok)
@@ -109,7 +109,7 @@ test_that("family storage-aux-caps: the reservoir coupling agrees on julia", {
   skip_if_no_solver()
   skip_if_no_julia_highs()
   scen <- suppressMessages(suppressWarnings(interpolate_model(
-    sc_build(data.frame(acomm = "WAT", timeslice = "s1", stg.ncap2ainp = 0.1)),
+    sc_build(data.frame(acomm = "WAT", stg.ncap2ainp = 0.1)),
     name = "sc_jl", overwrite = TRUE)))
   scen <- .fork_solve(scen, solver_options$julia_highs)
   expect_true(verify_solution(scen)$ok)

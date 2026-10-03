@@ -1,5 +1,23 @@
 # energyRt (development version)
 
+## Auxiliary flows at the auxiliary commodity's timeframe (breaking)
+
+* Auxiliary flows (`@aux` / `@aeff` on technologies and storages) now sit at
+  the AUXILIARY commodity's timeslices, not the process's. An ANNUAL aux
+  commodity gets one row per year instead of one per process slice, which
+  removes most aux rows from hourly models.
+
+* Capacity-type couplings (`cap2ainp`, `ncap2ainp`, `pho2a*`, `ret2a*` and the
+  storage `out.`/`inp.`/`stg.` part couplings) are now PER-YEAR coefficients,
+  booked into each aux slice as its share of the year. Previously they applied
+  in every slice divided by `cap2act`, which equalled the annual figure only
+  on a full hourly calendar with `cap2act = 8760`. A coupling that named one
+  slice to avoid that multiplication should now drop the `timeslice`.
+
+* Flow-type couplings (`act2a*`, `cinp2a*`, `cout2a*`, storage level, charge
+  and discharge) are summed over the process's slices inside each aux slice;
+  their annual totals are unchanged.
+
 ## Variant levelized-cost figures in `report()`
 
 * `autoplot()` on a variant fan-out gains `x` and `facet`, so a vintage x

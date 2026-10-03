@@ -54,16 +54,37 @@ map_mvTechOut <- function(scen, fmp) {
 
 # [agg-rewrite] map_mTechOutRY removed (*RY retired — dead reporting)
 
+# AUX FLOWS LIVE AT THE AUX COMMODITY'S SLICES. A process slice is lifted to
+# the commodity's own slice that is itself or its ancestor
+# (mCommTimesliceOrParent); a commodity finer than the process keeps the
+# process slice. An ANNUAL aux commodity therefore gets one row per
+# (process, comm, region, year) -- eqTechAInp/AOut and eqStorageAInp/AOut sum
+# the process's flows over the child slices themselves.
+.lift_to_comm_slice <- function(scen, d) {
+  if (is.null(d) || !nrow(d)) return(d)
+  d <- as.data.frame(d)
+  cp <- .gds(scen, "mCommTimesliceOrParent")
+  if (is.null(cp) || !nrow(cp)) return(d)
+  cp <- as.data.frame(cp)[, c("comm", "timeslice", "timeslicep")]
+  names(cp) <- c("comm", ".parent", "timeslice")
+  x <- dplyr::left_join(d, cp, by = c("comm", "timeslice"), relationship = "many-to-many")
+  x$timeslice <- ifelse(is.na(x$.parent), x$timeslice, x$.parent)
+  x$.parent <- NULL
+  dplyr::distinct(x)
+}
+
 map_mvTechAInp <- function(scen, fmp) {
   act <- .gds(scen, "mvTechAct"); ainp <- .gds(scen, "mTechAInp")
   if (is.null(act) || is.null(ainp)) return(scen)
-  .set_map(scen, "mvTechAInp", .filt_cr(scen, as.data.frame(merge0(act, ainp))), fmp)
+  d <- .lift_to_comm_slice(scen, as.data.frame(merge0(act, ainp)))
+  .set_map(scen, "mvTechAInp", .filt_cr(scen, d), fmp)
 }
 
 map_mvTechAOut <- function(scen, fmp) {
   act <- .gds(scen, "mvTechAct"); aout <- .gds(scen, "mTechAOut")
   if (is.null(act) || is.null(aout)) return(scen)
-  .set_map(scen, "mvTechAOut", .filt_cr(scen, as.data.frame(merge0(act, aout))), fmp)
+  d <- .lift_to_comm_slice(scen, as.data.frame(merge0(act, aout)))
+  .set_map(scen, "mvTechAOut", .filt_cr(scen, d), fmp)
 }
 
 # -- supply core ----------------------------------------------------------- #
@@ -136,22 +157,27 @@ map_mvStorageOut <- function(scen, fmp) {
   .set_map(scen, "mvStorageOut", .filt_cr(scen, d), fmp)
 }
 
-map_mvStorageAInp <- function(scen, fmp) {
+# the storage's aux pairs at the STORAGE's own slices: the domain of the
+# flow-type couplings (level, charge, discharge), summed in the equation
+.storage_aux_proc <- function(scen, which = c("AInp", "AOut")) {
+  which <- match.arg(which)
   store <- .filter_storage_store(scen)
-  sa_inp <- .gds(scen, "mStorageAInp")
-  if (is.null(store) || is.null(sa_inp)) return(scen)
+  sa <- .gds(scen, paste0("mStorage", which))
+  if (is.null(store) || is.null(sa)) return(NULL)
   base <- dplyr::select(store, -dplyr::any_of("comm"))
-  .set_map(scen, "mvStorageAInp",
-           .filt_cr(scen, as.data.frame(merge0(base, sa_inp))), fmp)
+  .filt_cr(scen, as.data.frame(merge0(base, sa)))
+}
+
+map_mvStorageAInp <- function(scen, fmp) {
+  d <- .storage_aux_proc(scen, "AInp")
+  if (is.null(d)) return(scen)
+  .set_map(scen, "mvStorageAInp", .lift_to_comm_slice(scen, d), fmp)
 }
 
 map_mvStorageAOut <- function(scen, fmp) {
-  store <- .filter_storage_store(scen)
-  sa_out <- .gds(scen, "mStorageAOut")
-  if (is.null(store) || is.null(sa_out)) return(scen)
-  base <- dplyr::select(store, -dplyr::any_of("comm"))
-  .set_map(scen, "mvStorageAOut",
-           .filt_cr(scen, as.data.frame(merge0(base, sa_out))), fmp)
+  d <- .storage_aux_proc(scen, "AOut")
+  if (is.null(d)) return(scen)
+  .set_map(scen, "mvStorageAOut", .lift_to_comm_slice(scen, d), fmp)
 }
 
 # =========================================================================== #
@@ -278,20 +304,20 @@ map_mStorageOutTot <- function(scen, fmp) {
 .aux_conv_spec <- list(
   mTechAct2AInp     = list("pTechAct2AInp",     "mvTechAct",      FALSE),
   mTechAct2AOut     = list("pTechAct2AOut",     "mvTechAct",      FALSE),
-  mTechCap2AInp     = list("pTechCap2AInp",     "mvTechAct",      FALSE),
-  mTechCap2AOut     = list("pTechCap2AOut",     "mvTechAct",      FALSE),
-  mTechNCap2AInp    = list("pTechNCap2AInp",    "mvTechAct",      FALSE),
-  mTechNCap2AOut    = list("pTechNCap2AOut",    "mvTechAct",      FALSE),
+  mTechCap2AInp     = list("pTechCap2AInp",     "mvTechAInp",      FALSE),
+  mTechCap2AOut     = list("pTechCap2AOut",     "mvTechAOut",      FALSE),
+  mTechNCap2AInp    = list("pTechNCap2AInp",    "mvTechAInp",      FALSE),
+  mTechNCap2AOut    = list("pTechNCap2AOut",    "mvTechAOut",      FALSE),
   mTechCinp2AInp    = list("pTechCinp2AInp",    "mvTechInp",      TRUE),
   mTechCinp2AOut    = list("pTechCinp2AOut",    "mvTechOut",      TRUE),
   mTechCout2AInp    = list("pTechCout2AInp",    "mvTechInp",      TRUE),
   mTechCout2AOut    = list("pTechCout2AOut",    "mvTechOut",      TRUE),
-  mStorageStg2AInp  = list("pStorageStg2AInp",  "mvStorageAInp",  FALSE),
-  mStorageStg2AOut  = list("pStorageStg2AOut",  "mvStorageAOut",  FALSE),
-  mStorageCinp2AInp = list("pStorageCinp2AInp", "mvStorageAInp",  FALSE),
-  mStorageCinp2AOut = list("pStorageCinp2AOut", "mvStorageAOut",  FALSE),
-  mStorageCout2AInp = list("pStorageCout2AInp", "mvStorageAInp",  FALSE),
-  mStorageCout2AOut = list("pStorageCout2AOut", "mvStorageAOut",  FALSE),
+  mStorageStg2AInp  = list("pStorageStg2AInp",  ".storage_aux_proc_AInp",  FALSE),
+  mStorageStg2AOut  = list("pStorageStg2AOut",  ".storage_aux_proc_AOut",  FALSE),
+  mStorageCinp2AInp = list("pStorageCinp2AInp", ".storage_aux_proc_AInp",  FALSE),
+  mStorageCinp2AOut = list("pStorageCinp2AOut", ".storage_aux_proc_AOut",  FALSE),
+  mStorageCout2AInp = list("pStorageCout2AInp", ".storage_aux_proc_AInp",  FALSE),
+  mStorageCout2AOut = list("pStorageCout2AOut", ".storage_aux_proc_AOut",  FALSE),
   # Per-part capacity couplings. The optional 4th element names the part's
   # capacity DOMAIN: the coupled variable exists only for materialised parts,
   # so rows outside it must be dropped (a solver would index a variable out
@@ -308,10 +334,10 @@ map_mStorageOutTot <- function(scen, fmp) {
   mStorageOutCap2AOut  = list("pStorageOutCap2AOut",  "mvStorageAOut", FALSE),
   mStorageOutNCap2AInp = list("pStorageOutNCap2AInp", "mvStorageAInp", FALSE),
   mStorageOutNCap2AOut = list("pStorageOutNCap2AOut", "mvStorageAOut", FALSE),
-  mTechPho2AInp    = list("pTechPho2AInp",    "mvTechAct",      FALSE),
-  mTechRet2AInp    = list("pTechRet2AInp",    "mvTechAct",      FALSE),
-  mTechPho2AOut    = list("pTechPho2AOut",    "mvTechAct",      FALSE),
-  mTechRet2AOut    = list("pTechRet2AOut",    "mvTechAct",      FALSE),
+  mTechPho2AInp    = list("pTechPho2AInp",    "mvTechAInp",      FALSE),
+  mTechRet2AInp    = list("pTechRet2AInp",    "mvTechAInp",      FALSE),
+  mTechPho2AOut    = list("pTechPho2AOut",    "mvTechAOut",      FALSE),
+  mTechRet2AOut    = list("pTechRet2AOut",    "mvTechAOut",      FALSE),
   mStoragePho2AInp = list("pStoragePho2AInp", "mvStorageAInp",  FALSE),
   mStorageRet2AInp = list("pStorageRet2AInp", "mvStorageAInp",  FALSE),
   mStoragePho2AOut = list("pStoragePho2AOut", "mvStorageAOut",  FALSE),
@@ -319,7 +345,11 @@ map_mStorageOutTot <- function(scen, fmp) {
 )
 .filter_aux_conv <- function(scen, name, fmp) {
   sp <- .aux_conv_spec[[name]]
-  m <- .aux_conv_map(.gds(scen, sp[[1]]), .gds(scen, sp[[2]]), second_comm = sp[[3]])
+  # a flow domain named `.storage_aux_proc_<AInp|AOut>` is computed, not read:
+  # the storage flow couplings stay at the storage's own slices
+  dom <- if (startsWith(sp[[2]], ".storage_aux_proc_"))
+    .storage_aux_proc(scen, sub(".storage_aux_proc_", "", sp[[2]], fixed = TRUE)) else .gds(scen, sp[[2]])
+  m <- .aux_conv_map(.gds(scen, sp[[1]]), dom, second_comm = sp[[3]])
   # A per-part coupling can only fire where that part's capacity variable
   # exists; a declared coefficient on an unpriced part is dropped with a
   # warning rather than emitted (the solver would index the variable out of
