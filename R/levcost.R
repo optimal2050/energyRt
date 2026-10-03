@@ -424,6 +424,56 @@ setMethod("levcost", "trade", function(object, comm, name, ...) {
 # Each @weather row (weather name + waf.lo/up/fx coefficient) is turned into the
 # matching af.lo/up/fx = coefficient x annual-CF row on @af; the @weather slot is
 # then cleared so the mini-model needs no weather object or sub-annual calendar.
+# Can a process be priced on a collapsed ANNUAL timeframe?
+#
+# Annualization replaces the calendar with a single ANNUAL slice and rewrites
+# each weather profile as one annual capacity factor. Two things make that
+# substitution invalid rather than merely approximate:
+#
+#   * MORE THAN ONE weather factor on one process. `.levcost_weatherize_annual()`
+#     emits one `@af` row per `@weather` row, all at `timeslice = NA`, so they
+#     collide on a single key. Pre-combining them does not help either: the
+#     annual mean of a product is not the product of the annual means unless the
+#     series are uncorrelated, so two factors have no single annual equivalent.
+#   * SUB-ANNUAL parameter rows. A row pinned to a named timeslice refers to a
+#     slice the collapsed calendar no longer contains, so the model either fails
+#     its domain check or silently drops the row.
+#
+# Returns the reasons, empty when the collapse is sound. `auto` falls back to the
+# native timeframe on a non-empty result; an explicit `"ANNUAL"` declines.
+#' @noRd
+.levcost_annual_blockers <- function(techs) {
+  if (!is.list(techs)) techs <- list(techs)
+  multi <- FALSE
+  sub   <- character()
+  for (t in techs) {
+    if (methods::.hasSlot(t, "weather") && NROW(t@weather) > 1L) multi <- TRUE
+    for (sl in methods::slotNames(t)) {
+      if (sl == "weather") next
+      d <- methods::slot(t, sl)
+      if (!is.data.frame(d) || nrow(d) == 0) next
+      for (k in intersect(c("timeslice", "slice"), names(d))) {
+        v <- unique(as.character(d[[k]]))
+        v <- v[!is.na(v) & nzchar(v) & v != "ANNUAL"]
+        if (length(v) > 0)
+          sub <- c(sub, paste0("@", sl, " (", paste(utils::head(v, 3),
+                                                    collapse = ", "), ")"))
+      }
+    }
+  }
+  reasons <- character()
+  if (multi)
+    reasons <- c(reasons, paste0(
+      "more than one @weather factor on a single process -- each would become ",
+      "its own annual availability row and they collide, and the annual mean of ",
+      "a product is not the product of the annual means"))
+  if (length(sub) > 0)
+    reasons <- c(reasons, paste0(
+      "sub-annual parameter rows the collapsed calendar would not contain: ",
+      paste(unique(sub), collapse = "; ")))
+  reasons
+}
+
 .levcost_weatherize_annual <- function(tech, weather_objects, timeslice_share,
                                        verbose = TRUE) {
   wdf <- tech@weather
@@ -1448,7 +1498,7 @@ levcost_chain_ <- function(
 # `@vintage`; left as-is `expand_variants()` inside `interpolate_model()` would
 # expand them a second time and suffix the names twice.
 #' @noRd
-.levcost_devintage <- function(obj, region) {
+.levcost_devintage <- function(obj, region, real_region = NULL) {
   # Collapse the cell's rows to ONE region-blanked row, column by column:
   # a broadcast olife row and a window row legitimately coexist after
   # expansion, and the old `vt[1, ]` lost whichever was not first. Each
@@ -1476,20 +1526,73 @@ levcost_chain_ <- function(
 
   # Rows are already timesliced to this cell, so the selectors carry no information;
   # blanking them is what stops a second expansion.
+  #
+  # The `region` COLUMN moves with the pin below. The technology path gives each
+  # cell its own artificial region, so a cost row left keyed to the REAL region
+  # matches nothing downstream: `.la_series()` drops it for a default of 0, the
+  # mini-model's parameter lookup does the same, and the cell then prices at zero
+  # and reports NA. Storage and trade pin the real region, so there it is a no-op.
+  #
+  # `real_region` says which region the rows currently speak for. `@region` is
+  # often empty (a technology with no declared region exists everywhere), so the
+  # caller passes the region levcost resolved; with neither, nothing is
+  # relabelled rather than guess and collide two regions' rows onto one key.
+  has_reg <- methods::.hasSlot(obj, "region")
+  old_reg <- if (!is.null(real_region)) as.character(real_region)
+             else if (has_reg) as.character(obj@region) else character()
+  old_reg <- old_reg[!is.na(old_reg) & nzchar(old_reg)]
   for (sl in methods::slotNames(obj)) {
     if (sl %in% c("vintage", "cluster")) next
     d <- methods::slot(obj, sl)
     if (!is.data.frame(d) || nrow(d) == 0) next
+    touched <- FALSE
     hit <- intersect(.variant_dims, names(d))
-    if (length(hit) == 0) next
-    for (cc in hit) d[[cc]] <- NA_character_
-    methods::slot(obj, sl) <- d
+    if (length(hit) > 0) {
+      for (cc in hit) d[[cc]] <- NA_character_
+      touched <- TRUE
+    }
+    if (has_reg && length(region) > 0 && length(old_reg) > 0 &&
+        "region" %in% names(d)) {
+      # Only the cell's own region is relabelled: overwriting every row would
+      # promote a foreign region's row into the cell and duplicate the key.
+      # An NA row is a broadcast and already applies, so it is left alone.
+      rr <- as.character(d$region)
+      pin <- !is.na(rr) & rr %in% old_reg
+      if (any(pin)) {
+        rr[pin] <- region[1]
+        d$region <- rr
+        touched <- TRUE
+      }
+    }
+    if (touched) methods::slot(obj, sl) <- d
   }
 
   # A `trade` has no `region` slot at all -- its geography is `@routes` (src/dst)
   # and its capacity carries no region index -- so pinning one is both
   # impossible and meaningless. Technology and storage both have it.
   if (methods::.hasSlot(obj, "region")) obj@region <- region
+  obj
+}
+
+#' Drop a devintaged cell's build window, keeping its lifetime
+#'
+#' `.levcost_devintage()` carries `start`/`end` through, and for a levelized
+#' cost they are actively wrong: the question is what a unit of THIS vintage
+#' costs, not whether it could have been built inside the priced horizon.
+#' Left in, a vintage whose window falls outside the priced horizon cannot be
+#' built at all: the mini-model goes infeasible, and the closed form prices it
+#' to ZERO via the backstop -- which reads as a free technology. Both engines
+#' read the window (`levcost_analytic.R` resolves it in `.la_eval()`), so
+#' neither is safe without this. `olife` is untouched; it is what drives the
+#' annuity.
+#'
+#' Shared by all three fan-out paths: technology, storage and trade.
+#' @noRd
+.levcost_unwindow <- function(obj) {
+  v <- obj@vintage
+  if (NROW(v) == 0) return(obj)
+  for (cc in intersect(c("start", "end"), names(v))) v[[cc]] <- NA_integer_
+  obj@vintage <- v
   obj
 }
 
@@ -1705,7 +1808,7 @@ levcost_technology_ <- function(
     base_year      = NULL,
     horizon        = NULL,
     calendar       = NULL,
-    timeframe      = c("ANNUAL", "native"),
+    timeframe      = c("auto", "ANNUAL", "native"),
     region         = NULL,
     weather        = NULL,
     frontier       = TRUE,
@@ -1799,7 +1902,13 @@ levcost_technology_ <- function(
     vprov  <- vinfo$prov
     reg_v  <- .levcost_variant_regions(region, vprov, .variant_prefix_default())
     # One devintaged copy per cell, each pinned to its own artificial region.
-    tech_objects <- Map(.levcost_devintage, vinfo$objects, reg_v)
+    # `.levcost_unwindow()` as on the storage and trade paths: the build window
+    # is not part of what a unit of this vintage costs, and a window outside the
+    # priced horizon otherwise prices the cell to zero.
+    tech_objects <- Map(function(o, r)
+                          .levcost_unwindow(.levcost_devintage(o, r,
+                                                               real_region = region)),
+                        vinfo$objects, reg_v)
     names(tech_objects) <- vapply(tech_objects, function(o) o@name, character(1))
     # Structural attributes (@input/@output/@aux/@units) are variant-invariant,
     # but @ceff is not: derive shares, commodities and units from the FIRST cell
@@ -1961,6 +2070,9 @@ levcost_technology_ <- function(
   if (is.null(base_year)) base_year <- min(hor_years)
 
   # ── 6. Calendar ─────────────────────────────────────────────────────────────
+  # Tracked because the ANNUAL path legitimately defaults to a single-slice
+  # calendar, while the native path must not: see the timeframe resolution below.
+  calendar_supplied <- !is.null(calendar)
   if (is.null(calendar)) calendar <- newCalendar()
 
   # ── 7. Pull supplies / commodities from repo ─────────────────────────────────
@@ -2007,7 +2119,44 @@ levcost_technology_ <- function(
     else stop("`weather` must be a 'weather' object or a list of 'weather' objects.")
   }
 
-  # ── 7b. Annual timeframe (default) ──────────────────────────────────────────
+  # ── 7b. Resolve the pricing timeframe ───────────────────────────────────────
+  # `auto` annualizes when the collapse is sound and prices on the native
+  # calendar when it is not; an explicit `"ANNUAL"` declines rather than price
+  # something the collapse would misrepresent. The cells are scanned, not the
+  # parent: a per-cluster weather row is one factor per cell, which is fine.
+  annual_blockers <- .levcost_annual_blockers(tech_objects)
+  if (identical(timeframe, "auto")) {
+    timeframe <- if (length(annual_blockers) > 0) "native" else "ANNUAL"
+    if (identical(timeframe, "native") && verbose)
+      message("levcost(): pricing '", tech_name, "' on its native timeframe; it ",
+              "cannot be annualized -- ",
+              paste(annual_blockers, collapse = "; "), ".")
+  } else if (identical(timeframe, "ANNUAL") && length(annual_blockers) > 0) {
+    stop("levcost(timeframe = \"ANNUAL\") cannot price '", tech_name, "': ",
+         paste(annual_blockers, collapse = "; "), ".",
+         "
+Price it with `timeframe = \"native\"` and a matching `calendar = `.",
+         call. = FALSE)
+  }
+
+  # A native sub-annual process needs a calendar holding its timeslices, and
+  # levcost() will not choose one: the choice changes both the problem size and
+  # the numbers, so it belongs to the caller.
+  if (identical(timeframe, "native") && !calendar_supplied) {
+    tf_need <- unique(unlist(lapply(tech_objects, function(t)
+      if (methods::.hasSlot(t, "timeframe")) as.character(t@timeframe)
+      else character())))
+    tf_need <- tf_need[!is.na(tf_need) & nzchar(tf_need) & tf_need != "ANNUAL"]
+    if (length(tf_need) > 0 || length(weather_objects) > 0)
+      stop("levcost(timeframe = \"native\") needs a `calendar = ` containing the ",
+           "timeslices of '", tech_name, "'",
+           if (length(tf_need) > 0)
+             paste0(" (timeframe ", paste(tf_need, collapse = "/"), ")") else "",
+           ". None was supplied, and levcost() does not pick one for you.",
+           call. = FALSE)
+  }
+
+  # ── 7c. Annual timeframe collapse ───────────────────────────────────────────
   # `levcost` measures the cost of dispatchable generation, so by default it
   # prices the technology on an ANNUAL timeframe: any weather profile is
   # collapsed to an annual capacity factor (share-weighted mean, applied as the
@@ -2041,6 +2190,16 @@ levcost_technology_ <- function(
     }
     weather_objects <- list()
     calendar <- newCalendar()          # annual, single ANNUAL timeslice
+    # ... and the process's own timeframe. `get_process_timeframe()` reads
+    # `@timeframe` to build the timeslice domain, so a process left declaring a
+    # sub-annual timeframe is indexed at slices this calendar does not contain
+    # (`pTechAfLo[...,HOUR] out of domain`). The commodity gets the same
+    # treatment below; both halves are needed.
+    if (methods::.hasSlot(object, "timeframe")) object@timeframe <- "ANNUAL"
+    tech_objects <- lapply(tech_objects, function(t) {
+      if (methods::.hasSlot(t, "timeframe")) t@timeframe <- "ANNUAL"
+      t
+    })
   }
 
   # ── 8. Auto-create commodity objects ─────────────────────────────────────────

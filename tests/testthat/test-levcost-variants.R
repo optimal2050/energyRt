@@ -428,3 +428,139 @@ test_that("by_region needs regions, and leaves a trade alone", {
                                   by_region = TRUE))
   expect_s3_class(res, "levcost")          # not split per region
 })
+
+# =========================================================================== #
+# Region-keyed cost slots, and build windows, under the variant fan-out.
+#
+# Both guards added 2026-10-03 after `levcost(by_variant=)` returned NA for
+# every cell of a vintaged + clustered wind technology translated from PyPSA.
+# The fixtures above never carried a `region` column on a cost slot, so the
+# fan-out's region pinning was only ever exercised against region-NA
+# (broadcast) rows -- which match everywhere and hid both defects.
+# =========================================================================== #
+
+# Stamp a real region onto cost slots, as any translated model carries.
+lv_stamp <- function(tech, region = "R1",
+                     slots = c("invcost", "fixom", "varom")) {
+  for (s in slots) {
+    d <- methods::slot(tech, s)
+    if (NROW(d) == 0) next
+    d$region <- region
+    methods::slot(tech, s) <- d
+  }
+  tech
+}
+
+# Covers the R API: levcost()
+test_that("region-keyed cost slots survive the variant fan-out", {
+  tech <- lv_tech(c(2020, 2030, 2040), invcost = c(300, 200, 100))
+  a <- levcost(lv_run(lv_stamp(tech), method = "analytic"),
+               by_variant = "npv")
+  b <- levcost(lv_run(tech, method = "analytic"), by_variant = "npv")
+
+  # The regression: the cell is pinned to an artificial region (`R1_VIN2030`)
+  # while its capex row still said `R1`, so every region filter downstream
+  # dropped it, the cell cost zero and the npv came back NA.
+  expect_true(all(is.finite(a$levcost_npv)))
+  expect_equal(a$variant, b$variant)
+  expect_equal(a$levcost_npv, b$levcost_npv, tolerance = 1e-10)
+})
+
+# Covers the R API: levcost()
+test_that("region-keyed costs survive a vintage x cluster grid", {
+  tech <- lv_tech(c(2020, 2030), invcost = 300, clusters = c("A", "B"))
+  a <- levcost(lv_run(lv_stamp(tech), method = "analytic"),
+               by_variant = "npv")
+
+  expect_equal(nrow(a), 4L)
+  expect_true(all(is.finite(a$levcost_npv)))
+})
+
+# Covers the R API: levcost()
+test_that("each region-keyed cell priced alone reproduces its fan-out value", {
+  tech <- lv_tech(c(2020, 2030, 2040), invcost = c(300, 200, 100))
+  tech <- lv_stamp(tech)
+  fan  <- levcost(lv_run(tech, method = "analytic"), by_variant = "npv")
+
+  vinfo <- getFromNamespace(".tech_variants", "energyRt")(tech)
+  dv    <- getFromNamespace(".levcost_devintage", "energyRt")
+  uw    <- getFromNamespace(".levcost_unwindow", "energyRt")
+  for (i in seq_along(vinfo$objects)) {
+    cell <- uw(dv(vinfo$objects[[i]], "R1", real_region = "R1"))
+    one  <- lv_run(cell, method = "analytic")
+    expect_equal(unname(one$levcost_npv),
+                 fan$levcost_npv[fan$variant == cell@name],
+                 tolerance = 1e-10, info = cell@name)
+  }
+})
+
+test_that(".levcost_devintage() relabels the region column, not just the slot", {
+  tech <- lv_stamp(lv_tech(c(2020, 2030, 2040), invcost = c(300, 200, 100)))
+  ex   <- getFromNamespace(".expand_one_process", "energyRt")(tech)
+  dv   <- getFromNamespace(".levcost_devintage", "energyRt")(
+            ex$objects[[2]], "R1_VIN2030", real_region = "R1")
+
+  expect_equal(dv@region, "R1_VIN2030")
+  # the column has to move with the slot, or the row matches nothing
+  expect_equal(unique(dv@invcost$region), "R1_VIN2030")
+  expect_equal(unique(dv@fixom$region), "R1_VIN2030")
+  expect_equal(dv@invcost$invcost, 200)
+})
+
+test_that(".levcost_devintage() does not promote a foreign region's row", {
+  tech <- lv_tech(c(2020, 2030), invcost = 300)
+  # two capex rows: the cell's own region and a region the mini-model never
+  # declares. Relabelling both would collide them onto one key.
+  tech@invcost <- rbind(
+    transform(tech@invcost, region = "R1"),
+    transform(tech@invcost, region = "R2"))
+  ex <- getFromNamespace(".expand_one_process", "energyRt")(tech)
+  dv <- getFromNamespace(".levcost_devintage", "energyRt")(
+          ex$objects[[1]], "R1_VIN2020", real_region = "R1")
+
+  expect_true("R1_VIN2020" %in% dv@invcost$region)
+  expect_true("R2" %in% dv@invcost$region)
+  expect_false(any(duplicated(dv@invcost$region)))
+})
+
+test_that("an NA (broadcast) region row is left alone, not pinned", {
+  tech <- lv_tech(c(2020, 2030), invcost = 300)
+  ex   <- getFromNamespace(".expand_one_process", "energyRt")(tech)
+  dv   <- getFromNamespace(".levcost_devintage", "energyRt")(ex$objects[[1]],
+                                                             "R1_VIN2020")
+  # `lv_tech()` leaves `region` NA; a broadcast row already applies everywhere
+  # and must stay broadcast
+  expect_true(all(is.na(dv@invcost$region)))
+  expect_equal(dv@region, "R1_VIN2020")
+})
+
+# Covers the R API: levcost()
+test_that("a build window outside the horizon is still priced", {
+  # `.levcost_unwindow()` is applied on the technology path as it already was
+  # on storage and trade: a levelized cost asks what a unit of THIS vintage
+  # costs, not whether it could have been built inside the priced horizon.
+  # Left in, the window makes the cell unbuildable and it priced to ZERO --
+  # worse than NA, because zero reads as a free technology.
+  tech <- lv_tech(c(2020, 2030), invcost = 300)
+  tech@vintage$start <- c(NA_integer_, 2065L)   # lv_hor() ends 2060
+
+  a <- levcost(lv_run(tech, method = "analytic"), by_variant = "npv")
+  expect_true(all(is.finite(a$levcost_npv)))
+  expect_true(all(a$levcost_npv > 0))
+
+  # and it matches the same technology with no window declared at all
+  b <- levcost(lv_run(lv_tech(c(2020, 2030), invcost = 300),
+                      method = "analytic"), by_variant = "npv")
+  expect_equal(a$levcost_npv, b$levcost_npv, tolerance = 1e-10)
+})
+
+# Covers the R API: levcost()
+test_that("analytic and solve agree on region-keyed variants", {
+  skip_if_no_solver()
+  tech <- lv_stamp(lv_tech(c(2020, 2030, 2040), invcost = c(300, 200, 100)))
+  a <- levcost(lv_run(tech, method = "analytic"), by_variant = "npv")
+  s <- levcost(lv_run(tech, method = "solve"), by_variant = "npv")
+
+  expect_equal(a$variant, s$variant)
+  expect_equal(a$levcost_npv, s$levcost_npv, tolerance = 5e-5)
+})

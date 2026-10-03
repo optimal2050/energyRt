@@ -1,5 +1,21 @@
 # energyRt (development version)
 
+## `levcost()` bug fixes for vintaged and clustered technologies
+
+* `levcost()` returned `NA` for every variant of a technology whose `@invcost`,
+  `@fixom` or `@varom` carried a `region` column. Each variant cell is priced in
+  its own artificial region, but the cost rows kept the real region name and so
+  matched nothing: the cell was costed at zero and reported `NA` on the analytic
+  path, and failed to solve on the solver path. The region column now moves with
+  the cell. Technologies translated from other frameworks almost always carry
+  that column, so any vintage or cluster fan-out over them was affected.
+
+* A vintage whose `@vintage` build window falls outside the priced horizon was
+  reported at a levelised cost of **zero** instead of being priced. `levcost()`
+  now drops the build window on the technology path, as it already did for
+  storage and trade -- the question is what a unit of that vintage costs, not
+  whether it could have been built inside the horizon.
+
 ## `process` is a model set
 
 * `process` — the union of `supply`, `demand`, `technology`, `storage`,

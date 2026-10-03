@@ -326,24 +326,6 @@
   object
 }
 
-#' Drop a devintaged cell's build window, keeping its lifetime
-#'
-#' `.levcost_devintage()` carries `start`/`end` through, and for a levelized
-#' cost they are actively wrong: the question is what a unit of THIS vintage
-#' costs, not whether it could have been built inside the priced horizon. Left
-#' in, the two engines disagree -- the closed form never reads the window and
-#' returns a number, while the mini-model honours it and a vintage whose window
-#' falls outside the horizon goes INFEASIBLE. `olife` is untouched; it is what
-#' drives the annuity.
-#' @noRd
-.levcost_unwindow <- function(obj) {
-  v <- obj@vintage
-  if (NROW(v) == 0) return(obj)
-  for (cc in intersect(c("start", "end"), names(v))) v[[cc]] <- NA_integer_
-  obj@vintage <- v
-  obj
-}
-
 #' Turn per-year totals and an output series into a `levcost` object
 #'
 #' One assembler for both classes, and deliberately the same list shape as

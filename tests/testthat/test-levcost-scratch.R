@@ -58,8 +58,15 @@ test_that("levcost storage/trade mini-solves leave the store untouched", {
 
 test_that("refresh_registry skips dot-prefixed scenario dirs", {
   root <- file.path(tempdir(), paste0("lc-reg", as.integer(runif(1, 1, 1e6))))
-  scen_root <- file.path(root, get_scenarios_path())
+  # Set the store explicitly, as the two tests above do, rather than composing
+  # `root` with get_scenarios_path(): the suite redirects that option to an
+  # ABSOLUTE tempdir (setup-registry.R), and refresh_registry() deliberately
+  # does not prefix `root` onto an absolute store root (R/registry.R root_join).
+  scen_root <- file.path(root, "scenarios")
   reg_file <- file.path(root, "energyRt_registry.csv")
+  dir.create(scen_root, recursive = TRUE, showWarnings = FALSE)
+  old <- set_scenarios_path(scen_root)
+  on.exit(set_scenarios_path(old), add = TRUE)
 
   dir.create(file.path(scen_root, "REAL"), recursive = TRUE)
   writeLines("scenario", file.path(scen_root, "REAL", "class"))
