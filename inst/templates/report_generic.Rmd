@@ -40,6 +40,7 @@ params:
   share_frontier_plot: NULL
   levcost_npv:        NULL
   levcost_variants_plot: NULL
+  levcost_dim_plots:  NULL
   levcost_by_vintage_df: NULL
   levcost_instance_label: NULL
   levcost_peers_plot: NULL
@@ -506,6 +507,44 @@ if (has_vint) {
     emit_img(plot_png(params$frontier_plot +
                         ggplot2::labs(title = NULL, subtitle = NULL),
                       .LC_SIDE * 6.5, 3.0), .LC_SIDE)
+  }
+}
+```
+
+```{r en-levcost_dims, results='asis'}
+# ------------------------------------------------------------------------------
+#  LEVELIZED COST ACROSS THE VARIANT GRID -- one figure per varying dimension.
+#  The combined chart above puts every cell on one axis, which hides WHICH
+#  dimension drives the spread; these show the same NPV components along each
+#  axis in turn. `report()` passes only the informative ones, so an empty list
+#  means nothing varied and the whole section is skipped.
+# ------------------------------------------------------------------------------
+dim_plots <- params$levcost_dim_plots
+if (!is.null(dim_plots) && length(dim_plots) > 0) {
+  sec(paste0(lc_title, ", across variants"),
+      if (nzchar(lcoe_unit)) paste0("[", lcoe_unit, "]") else NULL)
+
+  fig_note <- function(txt) {
+    if (is_html) cat("<p class='en-gray' style='margin:6px 0 0'><small>",
+                     html_esc(txt), "</small></p>\n", sep = "")
+    else if (is_word) cat("*", txt, "*\n\n", sep = "")
+    # The textcolor form is what pandoc passes through as raw LaTeX; a block
+    # opening with a bare brace gets its braces escaped instead.
+    else cat("\\textcolor{en_gray}{\\small ", tex_esc(txt),
+             "}\\par\\vspace{2pt}\n", sep = "")
+  }
+
+  for (nm in names(dim_plots)) {
+    p <- dim_plots[[nm]]
+    if (is.null(p)) next
+    # width follows the panel / category count on the shared sizing rule: wide
+    # enough that neither the facet strips nor the bottom legend crop
+    n_p <- attr(p, "n_panels"); if (is.null(n_p)) n_p <- 1L
+    n_x <- attr(p, "n_x");      if (is.null(n_x)) n_x <- 1L
+    w_in <- min(6.5, max(4.8, 2.2 + 1.0 * max(n_p, n_x / 2)))
+    h_in <- if (n_p > 6L) 4.0 else if (n_p > 3L) 3.4 else 2.8
+    fig_note(nm)
+    emit_img(plot_png(p, w_in, h_in), w_in / 6.5)
   }
 }
 ```

@@ -221,6 +221,76 @@ setGeneric(
 
 # ── technology method ──────────────────────────────────────────────────────────
 
+# Dimension figures for a variant fan-out.
+#
+# The fan-out is a grid (vintage x cluster x region), and one chart with every
+# cell on the x axis hides which dimension drives the spread. These are the
+# same NPV components seen along each axis in turn: clusters compared within a
+# vintage, vintages within a cluster, and -- only when it actually varies --
+# region as a further facet. A dimension that does not vary is skipped rather
+# than drawn as a single-panel figure that says nothing.
+#
+# Returns a named list of ggplots; the names become the subsection headings.
+#' @noRd
+.levcost_report_dim_plots <- function(object, cost_unit = NULL,
+                                      compact_theme = NULL) {
+  if (!requireNamespace("ggplot2", quietly = TRUE)) return(list())
+  df <- .levcost_variants_long(object)
+  if (is.null(df) || nrow(df) == 0) return(list())
+  dims <- .levcost_variant_dims(df)
+  if (length(dims) == 0) return(list())
+
+  units <- NULL
+  first <- if (inherits(object, "levcost_variants")) object[[1]] else
+    tryCatch(object[[1]][[1]], error = function(e) NULL)
+  if (!is.null(first)) units <- first$units
+  base <- if (inherits(object, "levcost_variants")) attr(object, "base_tech") else
+    attr(object[[1]], "base_tech")
+
+  by_region <- "region" %in% dims
+  specs <- list()
+  if ("cluster" %in% dims && "vintage" %in% dims) {
+    specs[["Clusters, by vintage"]] <-
+      list(x = "cluster", facet = c("vintage", if (by_region) "region"))
+    specs[["Vintages, by cluster"]] <-
+      list(x = "vintage", facet = c("cluster", if (by_region) "region"))
+  } else if ("cluster" %in% dims) {
+    specs[["Clusters"]] <- list(x = "cluster",
+                                facet = if (by_region) "region" else NULL)
+  } else if ("vintage" %in% dims) {
+    specs[["Vintages"]] <- list(x = "vintage",
+                                facet = if (by_region) "region" else NULL)
+  }
+  if (by_region) {
+    # region on its own axis, so a regional spread is readable directly
+    inner <- intersect(c("cluster", "vintage"), dims)
+    specs[["Regions"]] <- list(x = "region",
+                               facet = if (length(inner)) inner[1] else NULL)
+  }
+
+  out <- lapply(names(specs), function(nm) {
+    sp <- specs[[nm]]
+    tryCatch({
+      p <- .levcost_variant_plot(df, x = sp$x, facet = sp$facet,
+                                 cost_unit = cost_unit, units = units,
+                                 title = NULL)
+      if (is.null(p)) return(NULL)
+      keep <- attributes(p)[c("n_panels", "n_x")]
+      if (!is.null(compact_theme)) p <- p + compact_theme
+      p <- p + ggplot2::labs(title = NULL)
+      attr(p, "n_panels") <- keep$n_panels
+      attr(p, "n_x") <- keep$n_x
+      p
+    }, error = function(e) {
+      warning("levcost ", nm, " plot failed: ", conditionMessage(e),
+              call. = FALSE)
+      NULL
+    })
+  })
+  names(out) <- names(specs)
+  Filter(Negate(is.null), out)
+}
+
 # The `...` names report() claims for levcost() instead of the renderer.
 .report_levcost_params <- c("comm", "group", "repo", "fuel_costs",
                             "discount", "base_year",
@@ -425,6 +495,7 @@ setMethod(
     levcost_plot  <- NULL
     frontier_plot <- NULL
     levcost_variants_plot <- NULL
+    levcost_dim_plots     <- list()
     levcost_peers_plot <- NULL
     if (!is.null(levcost_peers) &&
         requireNamespace("ggplot2", quietly = TRUE)) {
@@ -503,6 +574,12 @@ setMethod(
             NULL
           })
         }
+        # One figure per varying dimension, beside the combined chart. Handled
+        # outside the branch above because `by_region = TRUE` returns a
+        # levcost_list of fan-outs, not a levcost_variants -- and that nested
+        # shape is the only one where region varies at all.
+        levcost_dim_plots <- .levcost_report_dim_plots(
+          levcost, cost_unit = cost_unit, compact_theme = compact_theme)
       }
     }
 
@@ -512,6 +589,7 @@ setMethod(
     params$frontier_plot          <- frontier_plot
     params$share_frontier_plot    <- share_frontier_plot
     params$levcost_variants_plot  <- levcost_variants_plot
+    params$levcost_dim_plots      <- levcost_dim_plots
     params$levcost_peers_plot     <- levcost_peers_plot
     params$levcost_by_vintage_df  <- levcost_by_vintage_df
     params$levcost_instance_label <- levcost_instance_label

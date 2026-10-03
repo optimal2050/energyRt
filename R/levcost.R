@@ -80,14 +80,24 @@
 #'     \item{\code{horizon}}{A \code{horizon} object, numeric year vector, or
 #'       \code{NULL} (derives from \code{@olife}).}
 #'     \item{\code{calendar}}{A \code{calendar} object or \code{NULL}.}
-#'     \item{\code{timeframe}}{\code{"ANNUAL"} (default) or \code{"native"}.
+#'     \item{\code{timeframe}}{\code{"auto"} (default), \code{"ANNUAL"} or
+#'       \code{"native"}.
 #'       \code{"ANNUAL"} prices the technology on a single annual time-timeslice: any
 #'       weather profile is collapsed to an annual capacity factor (applied as the
 #'       technology's annual availability), so capacity is sized to serve unit
 #'       annual demand at that factor (textbook LCOE). \code{"native"} keeps the
 #'       supplied (sub-annual) calendar and normalises by total generation --
 #'       useful when the technology is analysed together with storage or
-#'       transmission, where sub-annual dispatch matters.}
+#'       transmission, where sub-annual dispatch matters; it requires a
+#'       \code{calendar} holding the process's timeslices and will not choose one
+#'       for you.
+#'       \code{"auto"} annualizes when that collapse is sound and prices natively
+#'       when it is not. It is unsound when a process carries more than one
+#'       \code{@weather} factor (the annual mean of a product is not the product of
+#'       the annual means, so the pair has no single annual equivalent) or has
+#'       parameter rows pinned to a named sub-annual timeslice (the slice stops
+#'       existing). An explicit \code{"ANNUAL"} declines in those cases rather than
+#'       return a number built on an invalid collapse.}
 #'     \item{\code{backstop}}{Logical, default \code{TRUE}. Enables a very
 #'       expensive dummy-import slack on the output commodity balance so the
 #'       mini-model always solves even when the technology cannot serve a timeslice on
@@ -3505,18 +3515,7 @@ autoplot.levcost_list <- function(object,
   # units the levcost results carry (same contract as autoplot.levcost) --
   # every element shares the source object's units, so the first one speaks
   # for the list
-  y_lbl <- "Levelized Cost"
-  if (!is.null(cost_unit) && nzchar(cost_unit)) {
-    y_lbl <- paste0("Levelized cost [", cost_unit, "]")
-  } else {
-    u <- object[[1]]$units
-    cu <- if (!is.null(u$costs) && nzchar(u$costs)) u$costs else ""
-    au <- if (!is.null(u$activity) && nzchar(u$activity)) u$activity else ""
-    if (nzchar(cu)) {
-      y_lbl <- paste0("Levelized cost [",
-                      if (nzchar(au)) paste0(cu, " / ", au) else cu, "]")
-    }
-  }
+  y_lbl <- .levcost_cost_axis_label(cost_unit, object[[1]]$units)
 
   p <- ggplot2::ggplot(plot_df,
                        ggplot2::aes(x = tech, y = value, fill = component)) +
@@ -3530,6 +3529,213 @@ autoplot.levcost_list <- function(object,
   if (!is.null(plot_df$group))
     p <- p + ggplot2::facet_wrap(~group, scales = "free_x")
   .facet_caption(p, plot_df)
+}
+
+# ── Variant figures: comparing cells across vintage / cluster / region ───────
+# A variant fan-out is a GRID, but `autoplot.levcost_list()` only knows `tech`,
+# so it can only put raw cell names (`PWR_VIN2030_CLT3`) on one axis. These
+# helpers recover the grid so one dimension can go on x and another into facets.
+# The dimensions come from the fan-out's own provenance (the `variants`
+# attribute), never from parsing a cell name.
+
+# Shared with the `levcost_list` method: an explicit `cost_unit` wins, else the
+# units the result carries.
+#' @noRd
+.levcost_cost_axis_label <- function(cost_unit = NULL, units = NULL) {
+  if (!is.null(cost_unit) && nzchar(cost_unit))
+    return(paste0("Levelized cost [", cost_unit, "]"))
+  cu <- if (!is.null(units$costs) && nzchar(units$costs)) units$costs else ""
+  au <- if (!is.null(units$activity) && nzchar(units$activity)) units$activity else ""
+  if (nzchar(cu))
+    return(paste0("Levelized cost [",
+                  if (nzchar(au)) paste0(cu, " / ", au) else cu, "]"))
+  "Levelized Cost"
+}
+
+#' @noRd
+.levcost_dim_label <- function(d) {
+  lbl <- c(variant = "Variant", vintage = "Vintage", cluster = "Cluster",
+           region = "Region")[d]
+  unname(ifelse(is.na(lbl), d, lbl))
+}
+
+# Long NPV-component frame for one fan-out, or for a `by_region = TRUE` list of
+# them. One row per (cell, component).
+#' @noRd
+.levcost_variants_long <- function(object) {
+  one <- function(obj, region_hint = NA_character_) {
+    key <- attr(obj, "variants")
+    if (is.null(key) || nrow(key) == 0) return(NULL)
+    parts <- lapply(names(obj), function(nm) {
+      lc <- obj[[nm]]
+      if (is.null(lc)) return(NULL)
+      k <- key[key$variant == nm, , drop = FALSE]
+      if (nrow(k) == 0) return(NULL)
+      cbd <- lc$cost_breakdown_npv
+      cmp <- if (is.null(cbd) || nrow(cbd) == 0 ||
+                 !all(c("component", "value") %in% names(cbd))) {
+        data.frame(component = "total", value = as.numeric(lc$levcost_npv),
+                   stringsAsFactors = FALSE)
+      } else {
+        cbd[, c("component", "value"), drop = FALSE]
+      }
+      # the REAL region, as extraction rewrote it -- never the artificial one
+      reg <- region_hint
+      if (!is.null(lc$levcost) && "region" %in% names(lc$levcost) &&
+          nrow(lc$levcost) > 0) {
+        r <- unique(as.character(lc$levcost$region))
+        r <- r[!is.na(r)]
+        if (length(r) == 1L) reg <- r
+      }
+      data.frame(variant = nm,
+                 vintage = as.character(k$vintage[1]),
+                 cluster = as.character(k$cluster[1]),
+                 region  = as.character(reg),
+                 cmp, stringsAsFactors = FALSE)
+    })
+    do.call(rbind, Filter(Negate(is.null), parts))
+  }
+
+  df <- if (inherits(object, "levcost_variants")) {
+    one(object)
+  } else if (is.list(object) &&
+             any(vapply(object, inherits, logical(1), "levcost_variants"))) {
+    # `by_region = TRUE` nests region -> fan-out; the list names are the regions
+    nms <- names(object)
+    do.call(rbind, Filter(Negate(is.null), lapply(seq_along(object), function(i) {
+      o <- object[[i]]
+      if (!inherits(o, "levcost_variants")) return(NULL)
+      one(o, region_hint = if (!is.null(nms)) nms[i] else NA_character_)
+    })))
+  } else NULL
+
+  if (is.null(df) || nrow(df) == 0) return(NULL)
+  rownames(df) <- NULL
+  df
+}
+
+# Which variant dimensions actually distinguish cells. A figure keyed on a
+# constant dimension says nothing, so `report()` asks this before drawing.
+#' @noRd
+.levcost_variant_dims <- function(df) {
+  if (is.null(df) || nrow(df) == 0) return(character())
+  Filter(function(d) {
+    v <- unique(df[[d]][!is.na(df[[d]]) & nzchar(df[[d]])])
+    length(v) > 1L
+  }, intersect(c("vintage", "cluster", "region"), names(df)))
+}
+
+# `x` carries one dimension, `facet` the others; anything left over is AVERAGED,
+# never summed -- a levelized cost is a rate, so adding two cells is meaningless.
+# The caption says when that happened, and when panels were capped.
+#' @noRd
+.levcost_variant_plot <- function(df, x = "variant", facet = NULL,
+                                  cost_unit = NULL, units = NULL,
+                                  title = NULL, angle = NULL) {
+  check_package("ggplot2")
+  keep <- unique(c(x, facet))
+  dims <- intersect(c("vintage", "cluster", "region"), names(df))
+  drop <- setdiff(dims, keep)
+  grp  <- c(keep, "component")
+  fml  <- stats::as.formula(paste("value ~", paste(grp, collapse = " + ")))
+  sub  <- df[, c(grp, "value"), drop = FALSE]
+  collapsed <- any(stats::aggregate(fml, sub, length)$value > 1)
+  d <- stats::aggregate(fml, sub, mean, na.rm = TRUE)
+
+  comp_ord <- intersect(.levcost_comp_order, unique(d$component))
+  d$component <- factor(d$component,
+                        levels = c(comp_ord,
+                                   setdiff(unique(d$component), comp_ord)))
+  # a plain column name keeps aes() out of rlang territory
+  d$.xv <- factor(as.character(d[[x]]), levels = unique(as.character(df[[x]])))
+
+  if (!is.null(facet)) d <- .facet_cap(d, facet)
+  n_panel <- attr(d, "n_panels")
+  n_total <- attr(d, "n_total")
+  if (is.null(n_panel)) n_panel <- 1L
+  if (is.null(n_total)) n_total <- 1L
+  d$.xv <- droplevels(d$.xv)
+
+  cap <- character()
+  if (collapsed && length(drop) > 0)
+    cap <- c(cap, paste0("averaged over ", paste(drop, collapse = ", ")))
+  if (!is.null(facet) && n_total > n_panel)
+    cap <- c(cap, paste0("showing ", n_panel, " of ", n_total, " panels"))
+
+  # A cell label is long, so rotate once there are more than a handful and let
+  # ggplot drop colliding labels rather than overprint them.
+  n_x <- length(levels(d$.xv))
+  ang <- if (!is.null(angle)) angle else
+    if (identical(x, "variant") || n_x > 6L) 45 else 0
+
+  p <- ggplot2::ggplot(d, ggplot2::aes(x = .xv, y = value, fill = component)) +
+    ggplot2::geom_col(position = "stack") +
+    ggplot2::scale_x_discrete(
+      guide = ggplot2::guide_axis(angle = ang, check.overlap = n_x > 12L)) +
+    ggplot2::scale_fill_brewer(
+      palette = "Set2",
+      labels = .levcost_comp_labels[levels(d$component)]) +
+    ggplot2::labs(title = title,
+                  caption = if (length(cap)) paste(cap, collapse = "; ") else NULL,
+                  x = .levcost_dim_label(x),
+                  y = .levcost_cost_axis_label(cost_unit, units),
+                  fill = "Component") +
+    theme_energyRt()
+  if (!is.null(facet)) {
+    p <- p + ggplot2::facet_wrap(facet) +
+      ggplot2::labs(subtitle = paste0(
+        "by ", paste(.levcost_dim_label(facet), collapse = " + ")))
+  }
+  attr(p, "n_panels") <- n_panel
+  attr(p, "n_x") <- n_x
+  p
+}
+
+#' Compare levelized cost across a technology's variant grid
+#'
+#' `autoplot()` for a variant fan-out -- the result of `levcost()` on a
+#' technology declaring `@vintage` or `@cluster`. The fan-out is a grid, so `x`
+#' and `facet` pick which dimension goes where; any dimension left out is
+#' averaged, because a levelized cost is a rate and cells cannot be summed.
+#'
+#' @param object A `levcost_variants` object.
+#' @param type `"npv"` (default) draws the variant comparison; any other value
+#'   is passed to the `levcost_list` method.
+#' @param x Dimension on the x axis: `"auto"` (the full cell label, same as
+#'   `"variant"`), `"variant"`, `"vintage"`, `"cluster"` or `"region"`.
+#' @param facet Dimensions to facet by, or `NULL`. The panel count is capped and
+#'   the caption reports the cap.
+#' @param cost_unit Cost unit for the y axis; defaults to the units carried by
+#'   the result.
+#' @param angle x-label angle. By default labels rotate once they would collide.
+#' @param ... Passed to the `levcost_list` method for other `type`s.
+#' @returns A `ggplot` object.
+#' @exportS3Method ggplot2::autoplot
+autoplot.levcost_variants <- function(object,
+                                      type = c("npv", "components", "totals",
+                                               "frontier", "input_frontier"),
+                                      x = c("auto", "variant", "vintage",
+                                            "cluster", "region"),
+                                      facet = NULL, cost_unit = NULL,
+                                      angle = NULL, ...) {
+  type <- match.arg(type)
+  x    <- match.arg(x)
+  if (!identical(type, "npv"))
+    return(autoplot.levcost_list(object, type = type, cost_unit = cost_unit, ...))
+
+  # Without provenance the grid cannot be recovered -- an object built by hand,
+  # or serialized before the `variants` attribute existed. Fall back to the
+  # list method, which needs only the elements themselves.
+  df <- .levcost_variants_long(object)
+  if (is.null(df) || nrow(df) == 0)
+    return(autoplot.levcost_list(object, type = "npv",
+                                 cost_unit = cost_unit, ...))
+  if (identical(x, "auto")) x <- "variant"
+  facet <- intersect(facet, c("vintage", "cluster", "region"))
+  if (length(facet) == 0) facet <- NULL
+  .levcost_variant_plot(df, x = x, facet = facet, cost_unit = cost_unit,
+                        units = object[[1]]$units,
+                        title = attr(object, "base_tech"), angle = angle)
 }
 
 # -- plot() for the levcost S3 classes ----------------------------------------

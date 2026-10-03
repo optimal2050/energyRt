@@ -39,6 +39,8 @@ dev-scripts/
 #temporary:
 man/
 docs/
+inst/templates/*.pdf
+tests/testthat/*.pdf
 
 # python bytecode caches (inst/ ships, so these would be installed)
 __pycache__/
