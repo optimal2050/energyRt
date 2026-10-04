@@ -80,7 +80,13 @@
     stop("lang = 'mm': no model.mps in ", arg$solver.dir,
          " - was the model written?", call. = FALSE)
   }
-  r <- multimod::solve_mps(mps, require_optimal = FALSE,
+  # `highs_options` on the preset: named HiGHS options, e.g. list(presolve = "off")
+  control <- scen@settings@solver$highs_options
+  if (is.null(control)) control <- list()
+  if (length(control) && (!is.list(control) || is.null(names(control)) || any(!nzchar(names(control))))) {
+    stop("solver `highs_options` must be a named list of HiGHS options", call. = FALSE)
+  }
+  r <- multimod::solve_mps(mps, control = control, require_optimal = FALSE,
                            verbose = isTRUE(arg$echo))
   if (isTRUE(arg$echo)) {
     cat("  HiGHS: ", r$status_message, ", objective ",

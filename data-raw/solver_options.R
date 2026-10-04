@@ -98,6 +98,8 @@ raise SystemExit(0)"}
 # faster and 5.4x smaller at 19.85M nonzeros.
 
 ## multimod matrix, solved locally by HiGHS, in-process ######################
+# An optional `highs_options` field (named list) is passed to HiGHS as is,
+# e.g. `solver$highs_options <- list(presolve = "off")`.
 mm_highs <- list(
   name = "mm_highs",
   lang = "mm",

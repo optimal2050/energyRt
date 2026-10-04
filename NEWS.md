@@ -1,5 +1,9 @@
 # energyRt (development version)
 
+* The `lang = "mm"` backend now forwards solver options: a preset's
+  `highs_options` (a named list, e.g. `list(presolve = "off")`) is passed to
+  HiGHS.
+
 * The scales core is now `modelscales`. `multiscales` was renamed and
   `clusterscales` merged into it, so region clustering and the scale it is
   built on come from one package: `modelscales` replaces both in `Suggests`.

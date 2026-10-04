@@ -52,7 +52,12 @@
   # by a different path from every other entry here, so parity against the
   # GLPK reference is the only thing that catches a drift in the matrix.
   mm_highs = list(solver = quote(solver_options$mm_highs),
-                  skip = quote(skip_if_no_multimod()))
+                  skip = quote(skip_if_no_multimod())),
+  # the same route with a forwarded HiGHS option: presolve off must reach the
+  # same optimum
+  mm_highs_nopresolve = list(solver = quote(within(solver_options$mm_highs,
+                                                   highs_options <- list(presolve = "off"))),
+                             skip = quote(skip_if_no_multimod()))
 )
 
 .xs_solve <- function(build, tag, solver, dense = FALSE) {
