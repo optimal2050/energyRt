@@ -1369,7 +1369,7 @@ eqTechStockCap(tech, region, year)$mTechSpan(tech, region, year)..
          pTechStockSurv(tech, region, year) *
          sum(yearp$(mMilestoneNext(yearp, year) and mTechSpan(tech, region, yearp)),
              vTechStockCap(tech, region, yearp))
-         + pTechStockNew(tech, region, year)
+         + (pTechStockNew(tech, region, year) + pTechStock(tech, region, year)$mMilestoneFirst(year))
          - vTechRetiredStock(tech, region, year)$mvTechRetiredStock(tech, region, year)
            * pPeriodLen(year);
 
@@ -1418,7 +1418,7 @@ eqTechPhaseOut(tech, region, year)$mvTechPhaseOut(tech, region, year)..
         + sum(yearp$mvTechRetiredNewCap(tech, region, yearp, year),
               vTechRetiredNewCap(tech, region, yearp, year))
       ) * pPeriodLen(year)
-    + pTechStockNew(tech, region, year);
+    + (pTechStockNew(tech, region, year) + pTechStock(tech, region, year)$mMilestoneFirst(year));
 
 eqStoragePhaseOut(stg, region, year)$mvStoragePhaseOut(stg, region, year)..
     vStoragePhaseOut(stg, region, year) * pPeriodLen(year) =e=
@@ -1430,7 +1430,7 @@ eqStoragePhaseOut(stg, region, year)$mvStoragePhaseOut(stg, region, year)..
         + sum(yearp$mvStorageRetiredNewCap(stg, region, yearp, year),
               vStorageOutRetiredNewCap(stg, region, yearp, year))
       ) * pPeriodLen(year)
-    + pStorageOutStockNew(stg, region, year);
+    + (pStorageOutStockNew(stg, region, year) + pStorageOutStock(stg, region, year)$mMilestoneFirst(year));
 
 eqStorageStockPhaseOut(stg, region, year)$mvStoragePhaseOut(stg, region, year)..
          vStorageStockPhaseOut(stg, region, year) * pPeriodLen(year) =e=
@@ -1451,7 +1451,7 @@ eqStorageOutStockCap(stg, region, year)$mStorageSpan(stg, region, year)..
          pStorageOutStockSurv(stg, region, year) *
          sum(yearp$(mMilestoneNext(yearp, year) and mStorageSpan(stg, region, yearp)),
              vStorageOutStockCap(stg, region, yearp))
-         + pStorageOutStockNew(stg, region, year)
+         + (pStorageOutStockNew(stg, region, year) + pStorageOutStock(stg, region, year)$mMilestoneFirst(year))
          - vStorageOutRetiredStock(stg, region, year)$mvStorageRetiredStock(stg, region, year)
            * pPeriodLen(year);
 
@@ -1479,7 +1479,7 @@ eqStorageInpStockCap(stg, region, year)$mStorageInpCap(stg, region, year)..
          pStorageInpStockSurv(stg, region, year) *
          sum(yearp$(mMilestoneNext(yearp, year) and mStorageInpCap(stg, region, yearp)),
              vStorageInpStockCap(stg, region, yearp))
-         + pStorageInpStockNew(stg, region, year)
+         + (pStorageInpStockNew(stg, region, year) + pStorageInpStock(stg, region, year)$mMilestoneFirst(year))
          - vStorageInpRetiredStock(stg, region, year)$mvStorageRetiredStock(stg, region, year)
            * pPeriodLen(year);
 
@@ -1507,7 +1507,7 @@ eqStorageStgStockCap(stg, region, year)$mStorageStgCap(stg, region, year)..
          pStorageStgStockSurv(stg, region, year) *
          sum(yearp$(mMilestoneNext(yearp, year) and mStorageStgCap(stg, region, yearp)),
              vStorageStgStockCap(stg, region, yearp))
-         + pStorageStgStockNew(stg, region, year)
+         + (pStorageStgStockNew(stg, region, year) + pStorageStgStock(stg, region, year)$mMilestoneFirst(year))
          - vStorageStgRetiredStock(stg, region, year)$mvStorageRetiredStock(stg, region, year)
            * pPeriodLen(year);
 
@@ -1553,7 +1553,7 @@ eqTradeStockCap(trade, year)$mTradeSpan(trade, year)..
          pTradeStockSurv(trade, year) *
          sum(yearp$(mMilestoneNext(yearp, year) and mTradeSpan(trade, yearp)),
              vTradeStockCap(trade, yearp))
-         + pTradeStockNew(trade, year)
+         + (pTradeStockNew(trade, year) + pTradeStock(trade, year)$mMilestoneFirst(year))
          - vTradeRetiredStock(trade, year)$mvTradeRetiredStock(trade, year)
            * pPeriodLen(year);
 
@@ -1567,7 +1567,7 @@ eqTradePhaseOut(trade, year)$mvTradePhaseOut(trade, year)..
         + sum(yearp$mvTradeRetiredNewCap(trade, yearp, year),
               vTradeRetiredNewCap(trade, yearp, year))
       ) * pPeriodLen(year)
-    + pTradeStockNew(trade, year);
+    + (pTradeStockNew(trade, year) + pTradeStock(trade, year)$mMilestoneFirst(year));
 
 eqTradeStockPhaseOut(trade, year)$mvTradePhaseOut(trade, year)..
     vTradeStockPhaseOut(trade, year) * pPeriodLen(year) =e=

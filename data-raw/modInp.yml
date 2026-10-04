@@ -534,7 +534,7 @@ pTechStockNew:
   - region
   - year
   defVal: 0.0
-  interpolation: back.inter.forth
+  interpolation: ""
 # Share of the PREVIOUS milestone's surviving stock that the exogenous
 # decommissioning schedule keeps. 1 = nothing scheduled to leave. Derived
 # from pTechStock; depends only on CONSECUTIVE years, so it is invariant
@@ -547,7 +547,7 @@ pTechStockSurv:
   - region
   - year
   defVal: 1.0
-  interpolation: back.inter.forth
+  interpolation: ""
 pTechVarom:
   name: pTechVarom
   type: numpar
@@ -1152,7 +1152,7 @@ pStorageOutStockNew:
   - region
   - year
   defVal: 0.0
-  interpolation: .inter.
+  interpolation: ""
 # Share of the previous milestone's surviving stock that the exogenous
 # schedule keeps (1 = nothing scheduled to leave). Derived from `pStorageOutStock`
 # by compute_stock_parameters(); not written by the user.
@@ -1164,7 +1164,7 @@ pStorageOutStockSurv:
   - region
   - year
   defVal: 1.0
-  interpolation: .inter.
+  interpolation: ""
 pStorageOutFixom:
   name: pStorageOutFixom
   dimSets:
@@ -1374,7 +1374,7 @@ pStorageStgStockNew:
   - region
   - year
   defVal: 0.0
-  interpolation: .inter.
+  interpolation: ""
 # Share of the previous milestone's surviving stock that the exogenous
 # schedule keeps (1 = nothing scheduled to leave). Derived from `pStorageStgStock`
 # by compute_stock_parameters(); not written by the user.
@@ -1386,7 +1386,7 @@ pStorageStgStockSurv:
   - region
   - year
   defVal: 1.0
-  interpolation: .inter.
+  interpolation: ""
 pStorageStgInvcost:
   name: pStorageStgInvcost
   dimSets:
@@ -1485,7 +1485,7 @@ pStorageInpStockNew:
   - region
   - year
   defVal: 0.0
-  interpolation: .inter.
+  interpolation: ""
 # Share of the previous milestone's surviving stock that the exogenous
 # schedule keeps (1 = nothing scheduled to leave). Derived from `pStorageInpStock`
 # by compute_stock_parameters(); not written by the user.
@@ -1497,7 +1497,7 @@ pStorageInpStockSurv:
   - region
   - year
   defVal: 1.0
-  interpolation: .inter.
+  interpolation: ""
 pStorageInpInvcost:
   name: pStorageInpInvcost
   dimSets:
@@ -2304,7 +2304,7 @@ pTradeStockNew:
   - trade
   - year
   defVal: 0.0
-  interpolation: .inter.
+  interpolation: ""
 # Share of the previous milestone's surviving stock that the exogenous
 # schedule keeps (1 = nothing scheduled to leave). Derived from `pTradeStock`
 # by compute_stock_parameters(); not written by the user.
@@ -2315,7 +2315,7 @@ pTradeStockSurv:
   - trade
   - year
   defVal: 1.0
-  interpolation: .inter.
+  interpolation: ""
 pTradeOlife:
   name: pTradeOlife
   dimSets: trade

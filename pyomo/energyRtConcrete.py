@@ -1255,7 +1255,7 @@ model.eqTechStockCap = Constraint(
         for yp in year
         if ((yp, y) in mMilestoneNext and (t, r, yp) in mTechSpan)
     )
-    + pTechStockNew.get((t, r, y))
+    + (pTechStockNew.get((t, r, y)) + (pTechStock.get((t, r, y)) if y in mMilestoneFirst else 0))
     - (model.vTechRetiredStock[t, r, y] if (t, r, y) in mvTechRetiredStock else 0)
     * pPeriodLen.get((y)),
 )
@@ -1358,7 +1358,7 @@ model.eqStorageOutStockCap = Constraint(
         for yp in year
         if ((yp, y) in mMilestoneNext and (st1, r, yp) in mStorageSpan)
     )
-    + pStorageOutStockNew.get((st1, r, y))
+    + (pStorageOutStockNew.get((st1, r, y)) + (pStorageOutStock.get((st1, r, y)) if y in mMilestoneFirst else 0))
     - (model.vStorageOutRetiredStock[st1, r, y] if (st1, r, y) in mvStorageRetiredStock else 0)
     * pPeriodLen.get((y)),
 )
@@ -1413,7 +1413,7 @@ model.eqStorageInpStockCap = Constraint(
         for yp in year
         if ((yp, y) in mMilestoneNext and (st1, r, yp) in mStorageInpCap)
     )
-    + pStorageInpStockNew.get((st1, r, y))
+    + (pStorageInpStockNew.get((st1, r, y)) + (pStorageInpStock.get((st1, r, y)) if y in mMilestoneFirst else 0))
     - (model.vStorageInpRetiredStock[st1, r, y] if (st1, r, y) in mvStorageRetiredStock else 0)
     * pPeriodLen.get((y)),
 )
@@ -1468,7 +1468,7 @@ model.eqStorageStgStockCap = Constraint(
         for yp in year
         if ((yp, y) in mMilestoneNext and (st1, r, yp) in mStorageStgCap)
     )
-    + pStorageStgStockNew.get((st1, r, y))
+    + (pStorageStgStockNew.get((st1, r, y)) + (pStorageStgStock.get((st1, r, y)) if y in mMilestoneFirst else 0))
     - (model.vStorageStgRetiredStock[st1, r, y] if (st1, r, y) in mvStorageRetiredStock else 0)
     * pPeriodLen.get((y)),
 )
@@ -1564,7 +1564,7 @@ model.eqTradeStockCap = Constraint(
         for yp in year
         if ((yp, y) in mMilestoneNext and (t1, yp) in mTradeSpan)
     )
-    + pTradeStockNew.get((t1, y))
+    + (pTradeStockNew.get((t1, y)) + (pTradeStock.get((t1, y)) if y in mMilestoneFirst else 0))
     - (model.vTradeRetiredStock[t1, y] if (t1, y) in mvTradeRetiredStock else 0)
     * pPeriodLen.get((y)),
 )
@@ -1588,7 +1588,7 @@ model.eqTradePhaseOut = Constraint(
         )
     )
     * pPeriodLen.get((y))
-    + pTradeStockNew.get((t1, y)),
+    + (pTradeStockNew.get((t1, y)) + (pTradeStock.get((t1, y)) if y in mMilestoneFirst else 0)),
 )
 # eqTradeStockPhaseOut -- what the schedule actually removed.
 model.eqTradeStockPhaseOut = Constraint(
@@ -1660,7 +1660,7 @@ model.eqTechPhaseOut = Constraint(
         )
     )
     * pPeriodLen.get((y))
-    + pTechStockNew.get((t, r, y)),
+    + (pTechStockNew.get((t, r, y)) + (pTechStock.get((t, r, y)) if y in mMilestoneFirst else 0)),
 )
 # eqStoragePhaseOut -- end-of-life departure, read off the capacity balance.
 # `max(0, dStock)` covers exogenous stock APPEARING mid-horizon: an inflow, not
@@ -1684,7 +1684,7 @@ model.eqStoragePhaseOut = Constraint(
         )
     )
     * pPeriodLen.get((y))
-    + pStorageOutStockNew.get((st1, r, y)),
+    + (pStorageOutStockNew.get((st1, r, y)) + (pStorageOutStock.get((st1, r, y)) if y in mMilestoneFirst else 0)),
 )
 # eqStorageStockPhaseOut -- what the schedule actually removed.
 model.eqStorageStockPhaseOut = Constraint(

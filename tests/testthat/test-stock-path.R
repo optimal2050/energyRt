@@ -1,12 +1,12 @@
 # The exogenous stock path: `pXStockNew` / `pXStockSurv` and the recursive
 # `eqXStockCap` balance that replaced the cumulative retirement form.
 
-test_that("a fixed fleet is untouched: surv = 1, new only in the first year", {
+test_that("a fixed fleet is untouched: surv = 1, nothing commissioned", {
   skip_if_no_solver()
   sc <- sp_interp(sp_tech(c(100, 100, 100), optret = FALSE, name = "spb1"))
-  # Both parameters carry their neutral value as the default and are written
-  # sparsely, so a constant fleet leaves `Surv` empty entirely.
-  expect_equal(unname(sp_by_year(sc, "pTechStockNew")), c(100, 0, 0))
+  # `New` carries commissioning only, so a fleet that never grows leaves it
+  # empty; the level enters the balance from `stock` under $mMilestoneFirst.
+  expect_length(rt_val(sc, "pTechStockNew"), 0L)
   expect_length(rt_val(sc, "pTechStockSurv"), 0L)
 
   sol <- solve_scenario(sc)
@@ -22,7 +22,7 @@ test_that("a declining schedule is read off consecutive milestones", {
   # neighbouring years is what makes both parameters invariant under a change
   # of base year; a share of the FIRST year's stock would not be.
   sc <- sp_interp(sp_tech(c(100, 80, 0), optret = FALSE, name = "spb2"))
-  expect_equal(unname(sp_by_year(sc, "pTechStockNew")),  c(100, 0, 0))
+  expect_length(rt_val(sc, "pTechStockNew"), 0L)
   expect_equal(unname(sp_by_year(sc, "pTechStockSurv")), c(0, 0.8, 0))
 
   sol <- solve_scenario(sc)
@@ -34,7 +34,7 @@ test_that("a declining schedule is read off consecutive milestones", {
 test_that("a rising schedule is commissioning, not a negative phase-out", {
   skip_if_no_solver()
   sc <- sp_interp(sp_tech(c(50, 80, 120), optret = FALSE, name = "spb3"))
-  expect_equal(unname(sp_by_year(sc, "pTechStockNew")), c(50, 30, 40))
+  expect_equal(unname(sp_by_year(sc, "pTechStockNew")), c(0, 30, 40))
   expect_length(rt_val(sc, "pTechStockSurv"), 0L)
   sol <- solve_scenario(sc)
   expect_equal(unname(sp_by_year(sol, "vTechStockCap")), c(50, 80, 120))

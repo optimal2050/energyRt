@@ -685,8 +685,10 @@ combine_vintages <- function(techs, vintages = NULL, name = NULL,
     dplyr::group_by(dplyr::across(dplyr::all_of(grp))) |>
     dplyr::mutate(
       .prev = dplyr::lag(.data$stock),
-      # first milestone of the span: the whole fleet is commissioned there
-      .new  = ifelse(is.na(.data$.prev), .data$stock,
+      # Commissioning only, i.e. growth. The level at the first milestone is
+      # an initial condition, not a commissioning event, and the equations
+      # read it straight from `stock` under $mMilestoneFirst.
+      .new  = ifelse(is.na(.data$.prev), 0,
                      pmax(0, .data$stock - .data$.prev)),
       # nothing to survive from an empty (or absent) previous fleet
       .surv = ifelse(is.na(.data$.prev) | .data$.prev <= 0, 1,

@@ -1384,7 +1384,7 @@ print("eqTechStockCap(tech, region, year)...")
     (if haskey(pTechStockSurv, (t, r, y)); pTechStockSurv[(t, r, y)]; else; pTechStockSurvDef; end) *
     sum(vTechStockCap[(t, r, yp)] for yp in year
         if ((yp, y) in mMilestoneNext && (t, r, yp) in mTechSpan)) +
-    (if haskey(pTechStockNew, (t, r, y)); pTechStockNew[(t, r, y)]; else; pTechStockNewDef; end) -
+    ((if haskey(pTechStockNew, (t, r, y)); pTechStockNew[(t, r, y)]; else; pTechStockNewDef; end) + (if y in mMilestoneFirst && haskey(pTechStock, (t, r, y)); pTechStock[(t, r, y)]; else; 0; end)) -
     (if (t, r, y) in mvTechRetiredStock; vTechRetiredStock[(t, r, y)]; else; 0; end) *
     (if haskey(pPeriodLen, (y)); pPeriodLen[(y)]; else; pPeriodLenDef; end)
 );
@@ -1506,7 +1506,7 @@ print("eqTechPhaseOut(...)...")
         else
             pPeriodLenDef
         end
-    ) + (if haskey(pTechStockNew, (t, r, y)); pTechStockNew[(t, r, y)]; else; pTechStockNewDef; end)
+    ) + ((if haskey(pTechStockNew, (t, r, y)); pTechStockNew[(t, r, y)]; else; pTechStockNewDef; end) + (if y in mMilestoneFirst && haskey(pTechStock, (t, r, y)); pTechStock[(t, r, y)]; else; 0; end))
 );
 print(
     " ",
@@ -1550,7 +1550,7 @@ print("eqStoragePhaseOut(...)...")
         else
             pPeriodLenDef
         end
-    ) + (if haskey(pStorageOutStockNew, (st1, r, y)); pStorageOutStockNew[(st1, r, y)]; else; pStorageOutStockNewDef; end)
+    ) + ((if haskey(pStorageOutStockNew, (st1, r, y)); pStorageOutStockNew[(st1, r, y)]; else; pStorageOutStockNewDef; end) + (if y in mMilestoneFirst && haskey(pStorageOutStock, (st1, r, y)); pStorageOutStock[(st1, r, y)]; else; 0; end))
 );
 # eqStorageStockPhaseOut -- what the schedule actually removed.
 print(
@@ -1619,7 +1619,7 @@ print("eqStorageOutStockCap...")
     (if haskey(pStorageOutStockSurv, (st1, r, y)); pStorageOutStockSurv[(st1, r, y)]; else; pStorageOutStockSurvDef; end) *
     sum(vStorageOutStockCap[(st1, r, yp)] for yp in year
         if ((yp, y) in mMilestoneNext && (st1, r, yp) in mStorageSpan)) +
-    (if haskey(pStorageOutStockNew, (st1, r, y)); pStorageOutStockNew[(st1, r, y)]; else; pStorageOutStockNewDef; end) -
+    ((if haskey(pStorageOutStockNew, (st1, r, y)); pStorageOutStockNew[(st1, r, y)]; else; pStorageOutStockNewDef; end) + (if y in mMilestoneFirst && haskey(pStorageOutStock, (st1, r, y)); pStorageOutStock[(st1, r, y)]; else; 0; end)) -
     (if (st1, r, y) in mvStorageRetiredStock; vStorageOutRetiredStock[(st1, r, y)]; else; 0; end) * (if haskey(pPeriodLen, (y)); pPeriodLen[(y)]; else; pPeriodLenDef; end)
 );
 print(" ", Dates.format(now(), "HH:MM:SS"), "
@@ -1735,7 +1735,7 @@ print("eqStorageInpStockCap...")
     (if haskey(pStorageInpStockSurv, (st1, r, y)); pStorageInpStockSurv[(st1, r, y)]; else; pStorageInpStockSurvDef; end) *
     sum(vStorageInpStockCap[(st1, r, yp)] for yp in year
         if ((yp, y) in mMilestoneNext && (st1, r, yp) in mStorageInpCap)) +
-    (if haskey(pStorageInpStockNew, (st1, r, y)); pStorageInpStockNew[(st1, r, y)]; else; pStorageInpStockNewDef; end) -
+    ((if haskey(pStorageInpStockNew, (st1, r, y)); pStorageInpStockNew[(st1, r, y)]; else; pStorageInpStockNewDef; end) + (if y in mMilestoneFirst && haskey(pStorageInpStock, (st1, r, y)); pStorageInpStock[(st1, r, y)]; else; 0; end)) -
     (if (st1, r, y) in mvStorageRetiredStock; vStorageInpRetiredStock[(st1, r, y)]; else; 0; end) * (if haskey(pPeriodLen, (y)); pPeriodLen[(y)]; else; pPeriodLenDef; end)
 );
 print(" ", Dates.format(now(), "HH:MM:SS"), "
@@ -1851,7 +1851,7 @@ print("eqStorageStgStockCap...")
     (if haskey(pStorageStgStockSurv, (st1, r, y)); pStorageStgStockSurv[(st1, r, y)]; else; pStorageStgStockSurvDef; end) *
     sum(vStorageStgStockCap[(st1, r, yp)] for yp in year
         if ((yp, y) in mMilestoneNext && (st1, r, yp) in mStorageStgCap)) +
-    (if haskey(pStorageStgStockNew, (st1, r, y)); pStorageStgStockNew[(st1, r, y)]; else; pStorageStgStockNewDef; end) -
+    ((if haskey(pStorageStgStockNew, (st1, r, y)); pStorageStgStockNew[(st1, r, y)]; else; pStorageStgStockNewDef; end) + (if y in mMilestoneFirst && haskey(pStorageStgStock, (st1, r, y)); pStorageStgStock[(st1, r, y)]; else; 0; end)) -
     (if (st1, r, y) in mvStorageRetiredStock; vStorageStgRetiredStock[(st1, r, y)]; else; 0; end) * (if haskey(pPeriodLen, (y)); pPeriodLen[(y)]; else; pPeriodLenDef; end)
 );
 print(" ", Dates.format(now(), "HH:MM:SS"), "
@@ -2034,7 +2034,7 @@ print("eqTradeStockCap...")
     (if haskey(pTradeStockSurv, (t1, y)); pTradeStockSurv[(t1, y)]; else; pTradeStockSurvDef; end) *
     sum(vTradeStockCap[(t1, yp)] for yp in year
         if ((yp, y) in mMilestoneNext && (t1, yp) in mTradeSpan)) +
-    (if haskey(pTradeStockNew, (t1, y)); pTradeStockNew[(t1, y)]; else; pTradeStockNewDef; end) -
+    ((if haskey(pTradeStockNew, (t1, y)); pTradeStockNew[(t1, y)]; else; pTradeStockNewDef; end) + (if y in mMilestoneFirst && haskey(pTradeStock, (t1, y)); pTradeStock[(t1, y)]; else; 0; end)) -
     (if (t1, y) in mvTradeRetiredStock; vTradeRetiredStock[(t1, y)]; else; 0; end) * (if haskey(pPeriodLen, (y)); pPeriodLen[(y)]; else; pPeriodLenDef; end)
 );
 # eqTradePhaseOut -- end-of-life departure, read off the capacity balance.
@@ -2055,7 +2055,7 @@ print("eqTradePhaseOut...")
     ((if (t1, y) in mvTradeRetiredStock; vTradeRetiredStock[(t1, y)]; else; 0; end) +
      sum(vTradeRetiredNewCap[(t1, yp, y)] for yp in year
          if (t1, yp, y) in mvTradeRetiredNewCap)) * (if haskey(pPeriodLen, (y)); pPeriodLen[(y)]; else; pPeriodLenDef; end) +
-    (if haskey(pTradeStockNew, (t1, y)); pTradeStockNew[(t1, y)]; else; pTradeStockNewDef; end)
+    ((if haskey(pTradeStockNew, (t1, y)); pTradeStockNew[(t1, y)]; else; pTradeStockNewDef; end) + (if y in mMilestoneFirst && haskey(pTradeStock, (t1, y)); pTradeStock[(t1, y)]; else; 0; end))
 );
 print(" ", Dates.format(now(), "HH:MM:SS"), "
 ")

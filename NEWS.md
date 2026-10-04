@@ -1,5 +1,12 @@
 # energyRt (development version)
 
+* Exogenous stock: `pXStockNew` now records commissioning only. The level at
+  the first milestone is an initial condition, and `eqXStockCap` /
+  `eqXPhaseOut` read it from `pXStock` under `$mMilestoneFirst` instead of
+  folding it into `pXStockNew`. Solutions are unchanged. The derived
+  `pXStockNew` / `pXStockSurv` also no longer declare an interpolation rule,
+  which never applied to them -- they are computed after interpolation.
+
 * The `lang = "mm"` backend now forwards solver options: a preset's
   `highs_options` (a named list, e.g. `list(presolve = "off")`) is passed to
   HiGHS.
