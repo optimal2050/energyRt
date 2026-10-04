@@ -112,6 +112,55 @@ recipe_membership <- function(scen, names, fmp) scen
 # is available in a region if it is a primary (supply/import) output there, an
 # output of a process whose inputs are all available there, or reachable by
 # trade from a region where it is available.
+# Availability within a commodity's BALANCING CELL. A commodity with a coarse
+# `@geoframe` is balanced per cell of that level: whatever a supply, import or
+# process provides in any region of the cell -- the cell itself or a region
+# below it -- can be DRAWN by a technology anywhere in the cell. Without this, a
+# plant in a NUTS3 region burning a fuel supplied at NUTS0 was judged to have no
+# input and dropped (`.drop_region_gaps()`). A commodity at the finest level is
+# left alone: its cells are the regions themselves, so nothing spreads.
+#
+# Used ONLY where a technology's inputs are gated (`mvTechInp`, the region-gap
+# check). `mCommReg` itself is NOT widened: it also bounds the import, supply
+# and totals domains, and spreading it put unpriced import rows (unserved load
+# among them) in every sub-region.
+#' @noRd
+.commreg_geo_spreader <- function(scen) {
+  h <- tryCatch(.scen_geo_hierarchy(scen), error = function(e) NULL)
+  if (is.null(h) || is.null(h$family) || !nrow(h$family)) return(function(avail) avail)
+  cgl <- map_comm_geoframe(scen)
+  fam <- as.data.frame(h$family)
+  up <- stats::setNames(as.character(fam$region), as.character(fam$regionp))
+  all_regs <- unique(c(as.character(fam$region), as.character(fam$regionp)))
+  # each region's ancestor-or-self at the commodity's level; NA above it
+  anc_at <- function(r, cells) {
+    vapply(r, function(x) {
+      while (!is.na(x) && !(x %in% cells)) x <- unname(up[x])
+      if (is.null(x) || length(x) == 0L) NA_character_ else x
+    }, character(1), USE.NAMES = FALSE)
+  }
+  cells_of <- list()
+  for (cm in names(cgl)) {
+    lv <- cgl[[cm]]
+    if (length(lv) == 0L || is.na(lv[1]) || !nzchar(lv[1]) || identical(lv[1], h$finest)) next
+    cells <- as.character(.geo_level_regions(h, lv[1]))
+    if (length(cells)) {
+      cells_of[[cm]] <- list(cells = cells, anc = anc_at(all_regs, cells))
+    }
+  }
+  if (!length(cells_of)) return(function(avail) avail)
+  function(avail) {
+    add <- lapply(intersect(names(cells_of), unique(avail$comm)), function(cm) {
+      cc <- cells_of[[cm]]
+      have <- unique(anc_at(avail$region[avail$comm == cm], cc$cells))
+      have <- have[!is.na(have)]
+      if (!length(have)) return(NULL)
+      dplyr::tibble(comm = cm, region = all_regs[cc$anc %in% have])
+    })
+    dplyr::bind_rows(avail, add) |> dplyr::distinct()
+  }
+}
+
 .commreg_closure <- function(scen) {
   preg <- get_process_region(scen, return_list = FALSE) |>
     dplyr::as_tibble()
@@ -1680,11 +1729,14 @@ build_mappings <- function(scen, fmp = NULL,
 # the commodity-region closure map mCommReg. Empty mCommReg -> empty result (no
 # commodity is reachable). `region_col` names the region column when it is not
 # literally "region" (e.g. trade `src`/`dst`).
-.filt_cr <- function(scen, df, region_col = "region") {
+# `spread = TRUE`: a technology input -- availability within the commodity's
+# balancing cell (`.commreg_geo_spreader()`), not mCommReg's own regions.
+.filt_cr <- function(scen, df, region_col = "region", spread = FALSE) {
   if (is.null(df) || nrow(df) == 0) return(df)
   df <- as.data.frame(df)
   cr <- .gds(scen, "mCommReg")
   if (is.null(cr) || nrow(cr) == 0) return(df[0, , drop = FALSE])
+  if (isTRUE(spread)) cr <- as.data.frame(.commreg_geo_spreader(scen)(dplyr::as_tibble(as.data.frame(cr)[, c("comm", "region")])))
   by <- if (region_col == "region") {
     c("comm", "region")
   } else {

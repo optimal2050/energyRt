@@ -1,5 +1,17 @@
 # energyRt (development version)
 
+## Commodities balanced at a coarse geoframe reach the regions below
+
+* A commodity with a coarse `@geoframe` is now available in every region of
+  the cell it is supplied or produced in. A plant in a NUTS3 region burning a
+  fuel supplied at NUTS0 used to be judged without input and dropped from the
+  model; it now runs. A commodity at the finest level still does not spread
+  to neighbouring regions.
+
+* `verify_solution()` no longer double-counts the totals of a coarse region at
+  a timeslice coarser than the commodity's own: the region roll-up applies at
+  the commodity's timeslice only, as in the model equations.
+
 ## Auxiliary flows at the auxiliary commodity's timeframe (breaking)
 
 * Auxiliary flows (`@aux` / `@aeff` on technologies and storages) now sit at

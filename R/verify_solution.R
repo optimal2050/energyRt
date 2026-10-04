@@ -609,9 +609,16 @@ print.solution_verification <- function(x, detail = c("full", "issues"), ...) {
   }
 
   # region-family roll-up: (r, rp) in mRegionFamily, rhs[c,r,y,s] += vTot[c,rp,y,s]
+  # -- only at the commodity's OWN timeslice (mCommTimeslice), as the equation
+  # has it; a coarser timeslice cell rolls up over time instead, and adding
+  # both would count the children twice
   rfam <- .vs_par(scen, "mRegionFamily")
   if (!is.null(rfam) && nrow(rfam) > 0) {
     rf <- rfam[dom, on = "region", allow.cartesian = TRUE, nomatch = NULL]
+    cts <- .vs_par(scen, "mCommTimeslice")
+    if (!is.null(cts) && nrow(cts) > 0 && nrow(rf) > 0) {
+      rf <- rf[cts, on = c("comm", "timeslice"), nomatch = NULL]
+    }
     if (nrow(rf) > 0) {
       rfk <- data.table::copy(rf)[, region := NULL]
       data.table::setnames(rfk, "regionp", "region")

@@ -1845,6 +1845,8 @@ NULL
   cr <- .gds(scen, "mCommReg")
   if (is.null(cr) || nrow(cr) == 0) return(NULL)
   cr <- dplyr::distinct(as.data.frame(cr)[, c("comm", "region")])
+  # an input balanced at a coarse geoframe is reachable anywhere in its cell
+  cr <- as.data.frame(.commreg_geo_spreader(scen)(dplyr::as_tibble(cr)))
 
   # `have`: the cells that DO work. A cell is missing when its span row has no
   # match here.

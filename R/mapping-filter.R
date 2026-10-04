@@ -43,7 +43,8 @@ map_mvTechAct <- function(scen, fmp) {
 map_mvTechInp <- function(scen, fmp) {
   act <- .gds(scen, "mvTechAct"); inp <- .gds(scen, "mTechInpComm")
   if (is.null(act) || is.null(inp)) return(scen)
-  .set_map(scen, "mvTechInp", .filt_cr(scen, as.data.frame(merge0(act, inp))), fmp)
+  # a technology may draw a coarse-geoframe input anywhere in its cell
+  .set_map(scen, "mvTechInp", .filt_cr(scen, as.data.frame(merge0(act, inp)), spread = TRUE), fmp)
 }
 
 map_mvTechOut <- function(scen, fmp) {
@@ -211,14 +212,14 @@ map_mvDemInp <- function(scen, fmp) {
 
 # Per-process input/output total = union of the (a)main + aux flow domains with
 # the process key dropped, reduced to the commodity's native timeslice, mCommReg-cut.
-.filter_proc_tot <- function(scen, name, main, aux, key, fmp) {
+.filter_proc_tot <- function(scen, name, main, aux, key, fmp, spread = FALSE) {
   m <- .gds(scen, main); a <- .gds(scen, aux)
   if (is.null(m) && is.null(a)) return(scen)
   pieces <- lapply(Filter(Negate(is.null), list(m, a)),
                    function(x) dplyr::select(x, -dplyr::any_of(key)))
   tot <- .reduce_total_map(.reduce_sect(dplyr::bind_rows(pieces)),
                            .gds(scen, "mCommTimesliceOrParent"))
-  .set_map(scen, name, .filt_cr(scen, tot), fmp)
+  .set_map(scen, name, .filt_cr(scen, tot, spread = spread), fmp)
 }
 # Commodity-timeslice classification of a flow domain: join the flow's (key, comm,
 # timeslice) to mCommTimesliceOrParent (timeslicep = the flow's child timeslice, timeslice = the
@@ -243,7 +244,10 @@ map_mvDemInp <- function(scen, fmp) {
 }
 
 map_mTechInpTot <- function(scen, fmp) {
-  scen <- .filter_proc_tot(scen, "mTechInpTot", "mvTechInp", "mvTechAInp", "tech", fmp)
+  # a technology's inputs are drawn anywhere in the commodity's cell
+  # (mvTechInp); their totals must exist there too, or the flow is counted in
+  # no balance and the input is free
+  scen <- .filter_proc_tot(scen, "mTechInpTot", "mvTechInp", "mvTechAInp", "tech", fmp, spread = TRUE)
   scen <- .comm_timeslice_class_maps(scen, "mvTechInp",  "mTechInpComm",  fmp)
   .comm_timeslice_class_maps(scen, "mvTechAInp", "mTechAInpComm", fmp)
 }
@@ -494,17 +498,24 @@ map_mSupAvaUp <- function(scen, fmp) {
 # -- import / export row flow domains -------------------------------------- #
 # .io_row_maps returns {row, up, lo, cumup}; map_m*Row persists row + the lo/cumup
 # constraint siblings (meq*RowLo, m*RowCumUp) as side-effects, map_m*RowUp the up.
+# The model's regions PLUS the coarse geoscale cells (`sets$region`): an import
+# or export of a commodity balanced at a coarse level sits at that level, which
+# the finest regions alone cannot express. `.filt_comm_level()` then keeps each
+# row at its commodity's own level only.
+.row_regions <- function(scen) {
+  unique(c(as.character(scen@settings@region), as.character(scen@modInp@sets[["region"]])))
+}
 .filter_row_bundle <- function(scen, key, timeslice_m, comm_m, prow, pres) {
   .io_row_maps(key, .gds(scen, timeslice_m), .gds(scen, comm_m),
                .gds(scen, prow), .gds(scen, pres),
-               as.character(scen@settings@region),
+               .row_regions(scen),
                as.integer(scen@settings@horizon@intervals$mid))
 }
 # m*RowCost (value-recipe sibling): unique (key, region, year) of the row flow
 # domain, intersected with the model's region x year grid (recipe_value skips it).
 .cost_row <- function(scen, src_nm, nm, fmp) {
   d <- .gds(scen, src_nm); p <- scen@modInp@parameters[[nm]]
-  regions    <- as.character(scen@settings@region)
+  regions    <- .row_regions(scen)
   milestones <- as.integer(scen@settings@horizon@intervals$mid)
   if (is.null(d) || is.null(p) ||
       length(regions) == 0 || length(milestones) == 0) return(scen)
@@ -513,33 +524,48 @@ map_mSupAvaUp <- function(scen, fmp) {
   x <- .reduce_sect(d, p@dimSets)
   .set_map(scen, nm, as.data.frame(merge0(x, dregionyear)), fmp)
 }
+# Imports and exports have no aggregation path of their own: their rows exist
+# only at the commodity's BALANCING level (mCommRegion). Without this, a coarse
+# commodity that is also produced in sub-regions (electricity from NUTS3 plants
+# under a NUTS0 balance) got an import row in every sub-region -- unpriced, as
+# the price is declared at the coarse region, so unserved load became free
+# there and the model stopped generating. No geoscale: no mCommRegion, no-op.
+.filt_comm_level <- function(scen, df) {
+  if (is.null(df) || nrow(df) == 0) return(df)
+  cr <- .gds(scen, "mCommRegion")
+  if (is.null(cr) || nrow(cr) == 0) return(df)
+  as.data.frame(dplyr::semi_join(as.data.frame(df),
+                                 as.data.frame(cr)[, c("comm", "region")],
+                                 by = c("comm", "region")))
+}
+
 # map_mImportRow / map_mExportRow build the row domain AND its constraint-recipe
 # siblings (meq*RowLo, m*RowCumUp) and value-recipe cost (m*RowCost). The lo/cumup
 # maps share .io_row_maps; cumup is NOT mCommReg-filtered (legacy parity).
 map_mImportRow <- function(scen, fmp) {
   b <- .filter_row_bundle(scen, "imp", "mImpTimeslice", "mImpComm",
                           "pImportRow", "pImportRowRes")
-  scen <- .set_map(scen, "mImportRow", .filt_cr(scen, b$row), fmp)
-  scen <- .set_map(scen, "meqImportRowLo", .filt_cr(scen, b$lo), fmp)
+  scen <- .set_map(scen, "mImportRow", .filt_comm_level(scen, .filt_cr(scen, b$row)), fmp)
+  scen <- .set_map(scen, "meqImportRowLo", .filt_comm_level(scen, .filt_cr(scen, b$lo)), fmp)
   scen <- .set_map(scen, "mImportRowCumUp", b$cumup, fmp)
   .cost_row(scen, "mImportRow", "mImportRowCost", fmp)
 }
 map_mImportRowUp <- function(scen, fmp)
   .set_map(scen, "mImportRowUp",
-           .filt_cr(scen, .filter_row_bundle(scen, "imp", "mImpTimeslice", "mImpComm",
-                                             "pImportRow", "pImportRowRes")$up), fmp)
+           .filt_comm_level(scen, .filt_cr(scen, .filter_row_bundle(scen, "imp", "mImpTimeslice", "mImpComm",
+                                             "pImportRow", "pImportRowRes")$up)), fmp)
 map_mExportRow <- function(scen, fmp) {
   b <- .filter_row_bundle(scen, "expp", "mExpTimeslice", "mExpComm",
                           "pExportRow", "pExportRowRes")
-  scen <- .set_map(scen, "mExportRow", .filt_cr(scen, b$row), fmp)
-  scen <- .set_map(scen, "meqExportRowLo", .filt_cr(scen, b$lo), fmp)
+  scen <- .set_map(scen, "mExportRow", .filt_comm_level(scen, .filt_cr(scen, b$row)), fmp)
+  scen <- .set_map(scen, "meqExportRowLo", .filt_comm_level(scen, .filt_cr(scen, b$lo)), fmp)
   scen <- .set_map(scen, "mExportRowCumUp", b$cumup, fmp)
   .cost_row(scen, "mExportRow", "mExportRowCost", fmp)
 }
 map_mExportRowUp <- function(scen, fmp)
   .set_map(scen, "mExportRowUp",
-           .filt_cr(scen, .filter_row_bundle(scen, "expp", "mExpTimeslice", "mExpComm",
-                                             "pExportRow", "pExportRowRes")$up), fmp)
+           .filt_comm_level(scen, .filt_cr(scen, .filter_row_bundle(scen, "expp", "mExpTimeslice", "mExpComm",
+                                             "pExportRow", "pExportRowRes")$up)), fmp)
 
 # -- inter-regional trade flow domains (mTradeIr family) ------------------- #
 # Faithful port of the recipe_filter trade block (mapping_engine.R L1295-1438).
