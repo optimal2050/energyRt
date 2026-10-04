@@ -66,84 +66,54 @@ en_install_julia_pkgs <- function(pkgs = NULL, update = FALSE) {
 }
 
 
-#' Install Python/Pyomo dependencies
+#' Install Python/Pyomo dependencies (deprecated)
 #'
-#' @description
-#' Installs the Python library layer energyRt needs for the Pyomo backend. When
-#' a conda/mamba executable is available (the recommended route) it creates or
-#' reuses a named environment and installs `pyomo`, a solver (`coincbc`), and the
-#' result-IO helpers from conda-forge. Otherwise it falls back to `pip` into the
-#' configured Python (see [set_python_path()]); note that `pip` cannot supply the
-#' CBC solver binary, which must then be installed separately.
+#' Superseded by `multimod::mm_setup_python()`, which owns the one conda
+#' environment shared by energyRt and multimod. This forwards to it and will be
+#' removed.
 #'
-#' This installs *libraries only*. It does not install Python or conda
-#' themselves --- see [en_check_dependencies()] for guidance on the system layer.
+#' `solver`, `channel` and `use_conda` are no longer honoured: the replacement
+#' installs with `pip` inside a conda environment, so it cannot supply the CBC
+#' binary. Install a shell solver separately if you still need one; `highspy`
+#' is part of the default package set.
 #'
-#' @section HiGHS version:
-#' `highspy` supplies HiGHS in-process and is the only Pyomo route to it;
-#' `SolverFactory("highs")` resolves to a shell solver requiring a `highs`
-#' executable. `solver_options$pyomo_highs_barrier` needs **HiGHS >= 1.13**: on
-#' 1.7.2 the `solver = "ipm"` option hangs before the solver starts and is not
-#' interruptible by a time limit. Check the installed version with
-#' `en_check_pyomo()`.
-#'
-#' @param env character. Name of the conda environment to create/use.
+#' @param env character. Forwarded as `env_name`.
 #' @param packages character vector of Python packages to install.
-#' @param solver character. Conda solver package to install (e.g. `"coincbc"`).
-#' @param channel character. Conda channel.
-#' @param use_conda logical or NULL. Force conda (`TRUE`) or pip (`FALSE`); `NULL`
-#'   auto-detects (conda if found, else pip).
+#' @param solver,channel,use_conda Ignored, with a warning when set.
 #'
 #' @return NULL, invisibly. Verify with [en_check_pyomo()].
 #' @family solver
 #' @export
-#'
-#' @examples
-#' \dontrun{
-#' en_install_python_deps()                 # conda env with pyomo + highspy + cbc
-#' en_install_python_deps(use_conda = FALSE) # pip into current python
-#' }
-en_install_python_deps <- function(env = "energyRt",
-                                   packages = c("pyomo", "pandas", "pyarrow",
-                                                "highspy"),
-                                   solver = "coincbc",
-                                   channel = "conda-forge",
+en_install_python_deps <- function(env = "multimod",
+                                   packages = NULL,
+                                   solver = NULL,
+                                   channel = NULL,
                                    use_conda = NULL) {
-  conda <- .en_which("mamba")
-  if (is.na(conda)) conda <- .en_which("conda")
-  want_conda <- if (is.null(use_conda)) !is.na(conda) else isTRUE(use_conda)
+  lifecycle_msg <- paste0(
+    "en_install_python_deps() is deprecated. Use ",
+    "multimod::mm_setup_python() instead - energyRt and multimod now share ",
+    "one conda environment.")
+  warning(lifecycle_msg, call. = FALSE)
 
-  if (want_conda) {
-    if (is.na(conda)) {
-      stop("conda/mamba not found on PATH. Install miniforge ",
-           "(https://conda-forge.org/) or call with use_conda = FALSE for pip.",
-           call. = FALSE)
-    }
-    message("Using ", conda, " to install into conda env '", env, "'")
-    envs <- tryCatch(system2(conda, c("env", "list"), stdout = TRUE),
-                     error = function(e) character(0))
-    has_env <- any(grepl(paste0("^", env, "([ ]|$)"), trimws(envs)))
-    if (!has_env) {
-      message("Creating conda env '", env, "' ...")
-      system2(conda, c("create", "-y", "-n", env, "python"))
-    }
-    system2(conda, c("install", "-y", "-n", env, "-c", channel,
-                     unique(c(packages, solver))))
-  } else {
-    py <- .en_which("python", get_python_path())
-    if (is.na(py)) py <- .en_which("python3", get_python_path())
-    if (is.na(py)) {
-      stop("python not found. Call set_python_path() or install Python first.",
-           call. = FALSE)
-    }
-    message("Using pip via ", py)
-    system2(py, c("-m", "pip", "install", "--upgrade", packages))
-    # `highspy` ships HiGHS as a wheel, so the pip route still yields a solver.
-    message("Note: pip cannot provide the CBC binary. `highspy` (installed ",
-            "above) supplies HiGHS -- see solver_options$pyomo_highs_barrier. ",
-            "Install CBC separately, or use conda, if CBC is required.")
+  ignored <- c("solver", "channel", "use_conda")[
+    !vapply(list(solver, channel, use_conda), is.null, logical(1))]
+  if (length(ignored) > 0) {
+    warning("Ignored by mm_setup_python(): ", paste(ignored, collapse = ", "),
+            ". It installs with pip and cannot supply a solver binary.",
+            call. = FALSE)
   }
-  return(invisible())
+
+  if (!requireNamespace("multimod", quietly = TRUE)) {
+    stop("This needs the 'multimod' package.
+",
+         '  pak::pak("optimal2050/multimod")', call. = FALSE)
+  }
+
+  args <- list(env_name = env)
+  # NULL would mean "install nothing"; omit so mm_setup_python()'s list wins.
+  if (!is.null(packages)) args$packages <- packages
+  do.call(multimod::mm_setup_python, args)
+  invisible(NULL)
 }
 
 
@@ -152,7 +122,7 @@ en_install_python_deps <- function(env = "energyRt",
 #' @description
 #' Orchestrator that auto-installs the *safe* library layer: optional R packages,
 #' Julia solver packages (via [en_install_julia_pkgs()]) when Julia is present,
-#' and Python/Pyomo packages (via [en_install_python_deps()]) when Python or
+#' and Python/Pyomo packages (via [multimod::mm_setup_python()]) when Python or
 #' conda is present. System software that is missing (Julia, Python, conda, GAMS)
 #' is *not* auto-installed --- the function reports it and points to the
 #' platform-specific instructions printed by [en_check_dependencies()].
@@ -206,7 +176,7 @@ en_install_deps <- function(julia = TRUE, python = TRUE, r = TRUE, recheck = TRU
     has_conda <- !is.na(.en_which("mamba")) || !is.na(.en_which("conda"))
     if (has_py || has_conda) {
       message("Installing Python/Pyomo dependencies ...")
-      try(en_install_python_deps(), silent = TRUE)
+      try(multimod::mm_setup_python(), silent = TRUE)
     } else {
       cli::cli_alert_warning(
         "Python/conda not found; skipping. Install miniforge first.")

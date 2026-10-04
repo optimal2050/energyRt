@@ -175,7 +175,7 @@ en_check_python <- function() {
                     "install real Python via miniforge/conda")))
   }
   .en_status_row("Python", required = FALSE, pr,
-    note = if (!pr$found) "install via miniforge/conda; then en_install_python_deps()" else NA_character_)
+    note = if (!pr$found) "install via miniforge/conda; then multimod::mm_setup_python()" else NA_character_)
 }
 
 # A working python --version prints "Python X.Y.Z"; the Store-alias stub does not.
@@ -219,8 +219,8 @@ en_check_pyomo <- function() {
   .en_status_row("Pyomo", required = FALSE,
     list(found = ok, path = if (ok) py else NA_character_,
          version = if (ok) ver[length(ver)] else NA_character_),
-    note = if (!ok) "en_install_python_deps()" else
-      if (!pa) "Pyomo ok; pyarrow MISSING -> en_install_python_deps()" else
+    note = if (!ok) "multimod::mm_setup_python()" else
+      if (!pa) "Pyomo ok; pyarrow MISSING -> multimod::mm_setup_python()" else
       if (is.na(cbc)) "Pyomo ok; no 'cbc' solver on PATH" else
         paste0("solver cbc: ", cbc))
 }
@@ -307,7 +307,7 @@ en_check_dependencies <- function(solver_pkgs = FALSE) {
     cli::cli_ul(c(
       "GLPK   - open-source; https://www.gnu.org/software/glpk/ then set_glpk_path()",
       "Julia  - https://github.com/JuliaLang/juliaup then en_install_julia_pkgs()",
-      "Python - https://conda-forge.org/ (miniforge) then en_install_python_deps()",
+      "Python - https://conda-forge.org/ (miniforge) then multimod::mm_setup_python()",
       "GAMS   - proprietary; https://www.gams.com/ then set_gams_path()"
     ))
   }

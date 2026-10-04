@@ -17,7 +17,7 @@ NULL, invisibly.
 \description{
 Orchestrator that auto-installs the \emph{safe} library layer: optional R packages,
 Julia solver packages (via \code{\link[=en_install_julia_pkgs]{en_install_julia_pkgs()}}) when Julia is present,
-and Python/Pyomo packages (via \code{\link[=en_install_python_deps]{en_install_python_deps()}}) when Python or
+and Python/Pyomo packages (via \code{\link[multimod:mm_setup_python]{multimod::mm_setup_python()}}) when Python or
 conda is present. System software that is missing (Julia, Python, conda, GAMS)
 is \emph{not} auto-installed --- the function reports it and points to the
 platform-specific instructions printed by \code{\link[=en_check_dependencies]{en_check_dependencies()}}.
