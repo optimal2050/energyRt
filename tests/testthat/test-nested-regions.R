@@ -124,9 +124,11 @@ test_that("attaching a geoscale widens sets$region but expands no parameter", {
   expect_equal(unique(leaked), character())
 
   # Only the region set itself and the two new maps may differ structurally.
-  # Row counts of the RATE parameters do change: `ANYREGION` would now also
-  # cover NAT, so folding correctly declines and pWacc/pSdr/pDiscountFactor stay
-  # explicit. Same values, same LP -- just unfolded.
+  # pDiscountFactor's row count changes: `ANYREGION` would also cover NAT, which
+  # has no factor of its own, so folding declines and it stays explicit. The
+  # rates pWacc / pSdr are given to NAT too (a process declared there must
+  # annuitise at its children's rate, `.extend_rate_to_coarse()`), so they cover
+  # every region and fold exactly as in the flat model. Same values, same LP.
   rows <- function(s) vapply(s@modInp@parameters,
                              function(p) nrow(get_data_slot(p)), integer(1))
   r0 <- rows(flat)
@@ -134,8 +136,7 @@ test_that("attaching a geoscale widens sets$region but expands no parameter", {
   changed <- names(r0)[r1 != r0]
   expect_setequal(changed,
                   c("region", "mRegionFamily", "mCommRegion",
-                    "mvOutTot", "mvInpTot",
-                    "pWacc", "pSdr", "pDiscountFactor"))
+                    "mvOutTot", "mvInpTot", "pDiscountFactor"))
 })
 
 test_that("mCommRegion / mRegionFamily / mvBalance have the right shape", {

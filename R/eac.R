@@ -42,7 +42,44 @@
       if (k %in% names(df)) df <- df[, setdiff(names(df), k), drop = FALSE]
     }
   }
-  dplyr::left_join(df, src[, unique(src_keep), drop = FALSE], by = use)
+  src <- src[, unique(src_keep), drop = FALSE]
+  # A key can be PARTLY wild: one process's cost explicit at a region, another's
+  # folded to NA ("every region"). An exact join on that key silently drops the
+  # wildcard rows -- measured: a technology with a region-less invcost beside
+  # one at a coarse region got no EAC at all, i.e. free capital. Join each row
+  # pattern on the keys it actually holds, most specific first, so an explicit
+  # row wins and a wildcard fills what is left.
+  wild <- if (length(use)) vapply(use, function(k) any(is.na(src[[k]])), logical(1)) else logical(0)
+  if (!any(wild)) {
+    return(dplyr::left_join(df, src, by = use))
+  }
+  pat <- do.call(paste, c(lapply(use, function(k) ifelse(is.na(src[[k]]), "0", "1")), sep = ""))
+  pats <- unique(pat)
+  pats <- pats[order(-nchar(gsub("0", "", pats)))]          # most explicit keys first
+  df$.eac_row <- seq_len(nrow(df))
+  done <- integer(0)
+  parts <- list()
+  for (p in pats) {
+    ek <- use[strsplit(p, "")[[1]] == "1"]
+    sp <- src[pat == p, setdiff(names(src), setdiff(use, ek)), drop = FALSE]
+    rest <- df[!df$.eac_row %in% done, , drop = FALSE]
+    if (!nrow(rest)) break
+    j <- if (length(ek)) dplyr::inner_join(rest, sp, by = ek) else
+      dplyr::cross_join(rest, sp)
+    if (nrow(j)) {
+      parts[[length(parts) + 1L]] <- j
+      done <- c(done, unique(j$.eac_row))
+    }
+  }
+  rest <- df[!df$.eac_row %in% done, , drop = FALSE]
+  if (nrow(rest)) {
+    for (v in setdiff(names(src), names(rest))) rest[[v]] <- NA
+    parts[[length(parts) + 1L]] <- rest
+  }
+  out <- dplyr::bind_rows(parts)
+  out <- out[order(out$.eac_row), setdiff(names(out), ".eac_row"), drop = FALSE]
+  rownames(out) <- NULL
+  out
 }
 
 # Join one parameter's values onto `df` under `nm`, or fill NA if it is absent.
@@ -171,6 +208,22 @@
     df <- .eac_join(scen, df, wacc_par[i], wacc_cols[i], c(key, "region", "year"))
   }
   df <- .eac_join(scen, df, "pWacc", "mwacc", c("region", "year"))
+  # A process at a coarse geoscale cell whose children declare different rates,
+  # with no rate declared for the cell itself and none of its own, has no
+  # defensible rate: refuse rather than annuitise at 0.
+  atoms <- as.character(scen@settings@region)
+  no_rate <- is.na(df$mwacc) & !is.na(df$region) & !(as.character(df$region) %in% atoms)
+  for (wc in wacc_cols) no_rate <- no_rate & is.na(df[[wc]])
+  if (any(no_rate)) {
+    bad <- unique(df[no_rate, c(key, "region"), drop = FALSE])
+    stop("No investment rate for ", paste(sprintf("'%s' at '%s'", bad[[key]], bad$region),
+                                          collapse = ", "),
+         ": the coarse region declares no `wacc` and its child regions do not ",
+         "share one.
+  Declare a rate for the coarse region in `discount` ",
+         "(a row with `region` = it), give the process its own `wacc` in ",
+         "`@invcost`, or give the child regions a common rate.", call. = FALSE)
+  }
   df$rate <- dplyr::coalesce(!!!df[c(wacc_cols, "mwacc")], 0)
 
   # Period: cost-recovery life if given (first supplied, in order), else

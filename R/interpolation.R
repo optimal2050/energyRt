@@ -923,6 +923,9 @@ interpolate_model <- function(mod, name = NULL, ...,
   #   value recipe (mTradeEac reads pTradeEac's value domain). The generic ob2mi
   #   slot loop leaves these equal to the raw invcost.
   .interp_step(verbose, "computing equivalent annual costs (EAC)")
+  # a process at a coarse geoscale cell annuitises at its children's rate
+  scen <- .extend_rate_to_coarse(scen, "pWacc")
+  scen <- .extend_rate_to_coarse(scen, "pSdr")
   scen <- compute_eac_parameters(scen)
   scen <- compute_stock_parameters(scen)
 

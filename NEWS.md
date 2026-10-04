@@ -8,6 +8,19 @@
   model; it now runs. A commodity at the finest level still does not spread
   to neighbouring regions.
 
+* Discount rates can be declared at any geoscale level: a `discount` row with
+  `region` = a country applies to every region below it, and a region's own
+  rows override its parent's. A process declared at a coarse cell (a
+  substation builder, a VRE technology at NUTS0 over NUTS3 regions) uses the
+  rate declared for that cell, else the rate its children share. It used to
+  find no `wacc` and annuitise at 0% (`invcost / olife`). Where the children
+  differ and the cell declares none, the process is refused by name -- and only
+  then: differing children are not an error by themselves.
+
+* A technology's investment cost given without a region was dropped from the
+  annualised cost when another technology's cost named a region: the region-less
+  rows matched nothing, and the capital was free in the solver. Both now land.
+
 * `verify_solution()` no longer double-counts the totals of a coarse region at
   a timeslice coarser than the commodity's own: the region roll-up applies at
   the commodity's timeslice only, as in the model equations.

@@ -146,3 +146,85 @@ test_that("an import at the nation is priced: with no plant, demand costs its pr
   # 60 MWh a year at 10,000 EUR over the horizon: the cost reaches the objective
   expect_gt(.fork_objective(scen), 6e5)
 })
+
+# --- a process at a coarse cell annuitises at its children's rate ----------- #
+# The rates are interpolated for the model's own regions; a technology declared
+# at NAT found none and was annuitised at 0 (1/olife). It must use the rate its
+# regions share: 5% here.
+test_that("a technology at the nation is annuitised at the model rate", {
+  skip_if_not_installed("geoscales")
+  m <- gc_import_model("gci_e")
+  m@data[[1]]@data$ESOL <- newTechnology(
+    "ESOL", output = list(comm = "ELC"), region = "NAT",
+    invcost = data.frame(region = "NAT", invcost = 1000),
+    vintage = data.frame(olife = 20L), cap2act = 1)
+  scen <- gc_interp(m, "gci_e")
+  eac <- as.data.frame(get_data_slot(scen@modInp@parameters$pTechEac))
+  v <- unique(round(eac$value[eac$tech == "ESOL"], 6))
+  crf <- 0.05 / (1 - 1.05^-20)
+  expect_equal(v, round(1000 * crf, 6))
+  expect_false(isTRUE(all.equal(v, 1000 / 20)))       # the old, silent 0% annuity
+})
+
+# --- rates declared at a parent level; children override ------------------ #
+gc_rate_model <- function(name, discount, nat_tech = TRUE) {
+  gs <- geoscales::geoscale_from_leaftable(
+    data.frame(nation = "NAT", region = c("R1", "R2")),
+    geoframes = c("nation", "region"), key = "region", name = paste0("gs_", name))
+  cal <- newCalendar(timetable = make_timetable(
+    struct = list(ANNUAL = "ANNUAL", SEASON = c("WIN", "SUM"))), name = paste0("cal_", name))
+  objs <- list(
+    newCommodity("ELC", timeframe = "SEASON", geoframe = "nation"),
+    newTechnology("EGEN", output = list(comm = "ELC"), region = c("R1", "R2"),
+                  invcost = data.frame(invcost = 1000),
+                  vintage = data.frame(olife = 20L), cap2act = 1),
+    newDemand("DEM_ELC", commodity = "ELC", region = "NAT",
+              demand = data.frame(region = "NAT", timeslice = c("WIN", "SUM"), demand = 30)))
+  if (nat_tech) objs <- c(objs, list(newTechnology(
+    "ENAT", output = list(comm = "ELC"), region = "NAT",
+    invcost = data.frame(region = "NAT", invcost = 1000),
+    vintage = data.frame(olife = 20L), cap2act = 1)))
+  m <- newModel(name = name, desc = "", calendar = cal, region = c("R1", "R2"),
+                horizon = newHorizon(2020:2030, intervals = 10), discount = discount,
+                repo = do.call(newRepository, c(list(paste0("repo_", name)), objs)))
+  setGeoscale(m, gs)
+}
+gc_eac <- function(scen, tech) {
+  e <- as.data.frame(get_data_slot(scen@modInp@parameters$pTechEac))
+  e <- e[e$tech == tech, , drop = FALSE]
+  if ("region" %in% names(e) && any(!is.na(e$region))) {
+    stats::setNames(round(e$value, 6), e$region)[!duplicated(e$region)]
+  } else round(unique(e$value), 6)
+}
+crf <- function(r, n = 20) round(1000 * r / (1 - (1 + r)^-n), 6)
+
+test_that("a rate declared at the nation is inherited by its regions", {
+  skip_if_not_installed("geoscales")
+  scen <- gc_interp(gc_rate_model("gcr_a", data.frame(region = c(NA, "NAT"), discount = c(0.05, 0.08))), "gcr_a")
+  w <- as.data.frame(get_data_slot(scen@modInp@parameters$pWacc))
+  expect_equal(unique(round(w$value[w$region %in% c("R1", "R2")], 6)), 0.08)
+  e <- gc_eac(scen, "EGEN")
+  expect_equal(unname(unique(e)), crf(0.08))
+  expect_equal(unname(gc_eac(scen, "ENAT")), crf(0.08))
+})
+
+test_that("a region's own rate overrides the nation's; the nation's process keeps it", {
+  skip_if_not_installed("geoscales")
+  scen <- gc_interp(gc_rate_model("gcr_b", data.frame(region = c("NAT", "R2"), discount = c(0.08, 0.03))), "gcr_b")
+  e <- gc_eac(scen, "EGEN")
+  expect_equal(unname(e[["R1"]]), crf(0.08))
+  expect_equal(unname(e[["R2"]]), crf(0.03))
+  expect_equal(unname(gc_eac(scen, "ENAT")), crf(0.08))   # declared at NAT, not averaged
+})
+
+test_that("children that disagree are an error only where a process needs the rate", {
+  skip_if_not_installed("geoscales")
+  d <- data.frame(region = c("R1", "R2"), discount = c(0.08, 0.03))
+  # no process at NAT: fine
+  scen <- gc_interp(gc_rate_model("gcr_c", d, nat_tech = FALSE), "gcr_c")
+  expect_equal(unname(gc_eac(scen, "EGEN")[["R2"]]), crf(0.03))
+  # a process at NAT with no rate of its own: refused, and named
+  expect_error(suppressMessages(suppressWarnings(
+    interpolate_model(gc_rate_model("gcr_d", d), name = "gcr_d", overwrite = TRUE))),
+    "No investment rate for 'ENAT' at 'NAT'")
+})

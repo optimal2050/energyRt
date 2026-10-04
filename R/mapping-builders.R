@@ -752,6 +752,49 @@ map_mvTotalUserCosts <- function(scen, fmp) {
 )
 
 
+# A per-region rate (`pWacc`, `pSdr`) for the coarse geoscale cells.
+#
+# A coarse cell uses, in order: the rate DECLARED for it in the model's
+# `discount` table (interpolated with the model regions, `.inherit_rates()`);
+# else the rate its children share, walking up one level at a time. Where the
+# children differ and nothing is declared the cell gets no rate, and that is an
+# error only where a process actually needs one -- `.eac_one()` names it.
+# (Before any of this, a process at a coarse cell found no rate and was
+# annuitised at 0: a 60-year asset at 1/60 instead of 2.88% at SDR 2%.)
+#' @noRd
+.extend_rate_to_coarse <- function(scen, pname) {
+  p <- scen@modInp@parameters[[pname]]
+  if (is.null(p)) return(scen)
+  df <- as.data.frame(get_data_slot(p))
+  if (is.null(df) || NROW(df) == 0L || !"region" %in% names(df)) return(scen)
+  h <- tryCatch(.scen_geo_hierarchy(scen), error = function(e) NULL)
+  if (is.null(h) || is.null(h$family) || NROW(h$family) == 0L) return(scen)
+  fam <- as.data.frame(h$family)   # region = parent, regionp = child
+  have <- df
+  new_rows <- list()
+  repeat {
+    todo <- setdiff(unique(as.character(fam$region)), unique(as.character(have$region)))
+    added <- FALSE
+    for (r in todo) {
+      kids <- as.character(fam$regionp[as.character(fam$region) == r])
+      sub <- have[as.character(have$region) %in% kids, , drop = FALSE]
+      if (!NROW(sub) || !all(kids %in% sub$region)) next   # a child not yet resolved
+      by_year <- split(sub, sub$year)
+      bad <- names(by_year)[vapply(by_year, function(d) length(unique(round(d$value, 12))) > 1L, logical(1))]
+      if (length(bad)) next   # no common rate: left unset, checked where used
+      rows <- do.call(rbind, lapply(by_year, function(d) data.frame(region = r, year = d$year[1], value = d$value[1])))
+      have <- rbind(have[, c("region", "year", "value")], rows)
+      new_rows[[length(new_rows) + 1L]] <- rows
+      added <- TRUE
+    }
+    if (!added) break
+  }
+  if (!length(new_rows)) return(scen)
+  # `.dat2par()` appends: pass only the new rows
+  scen@modInp@parameters[[pname]] <- .dat2par(p, unique(do.call(rbind, new_rows)))
+  scen
+}
+
 # Discount factor for a coarse cost cell.
 #
 # `eqObjective` weights every `mvTotalCost` row by `pDiscountFactor[r,y]`, which
@@ -777,6 +820,8 @@ map_mvTotalUserCosts <- function(scen, fmp) {
 
   add <- list()
   for (r in unique(cells$region)) {
+    # a coarse cell that declares its own `sdr` already has its factor
+    if (any(as.character(df$region) == r)) next
     kids <- fam$regionp[as.character(fam$region) == r]
     if (!length(kids)) next
     yrs <- unique(cells$year[cells$region == r])

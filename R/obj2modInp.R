@@ -1220,6 +1220,15 @@ setMethod(
       obj@parameters[[i]] <- .resetParameter(obj@parameters[[i]])
     }
     obj <- .drop_config_param(obj)
+    # Rates declared at a coarse geoscale level are inherited by the regions
+    # below them -- a region's own rows override -- BEFORE the region filter
+    # would drop them. The coarse rows are interpolated on their own below: a
+    # process declared at the coarse region annuitises at that rate.
+    .rate_inh <- .inherit_rates(
+      as.data.frame(app@discount),
+      .geo_hierarchy(tryCatch(getGeoscale(app), error = function(e) NULL), approxim$region),
+      as.character(approxim$region))
+    app@discount <- .rate_inh$rates
     app <- .filter_data_in_slots(app, approxim$region, "region")
     obj@parameters[["mTimesliceParentChild"]] <- .dat2par(
       obj@parameters[["mTimesliceParentChild"]],
@@ -1263,6 +1272,14 @@ setMethod(
                             obj@parameters[["pWacc"]], approxim_no_mileStone_Year,
                             all.val = TRUE
     )
+    if (nrow(.rate_inh$coarse) > 0L) {
+      .apx_c <- approxim_no_mileStone_Year
+      .apx_c$region <- unique(as.character(.rate_inh$coarse$region))
+      pSdr <- rbind(pSdr, .interp_numpar(.rate_inh$coarse, "sdr", obj@parameters[["pSdr"]],
+                                         .apx_c, all.val = TRUE))
+      pWacc <- rbind(pWacc, .interp_numpar(.rate_inh$coarse, "wacc", obj@parameters[["pWacc"]],
+                                           .apx_c, all.val = TRUE))
+    }
     for (.r in list(list("pSdr", pSdr), list("pWacc", pWacc))) {
       obj@parameters[[.r[[1]]]] <-
         .dat2par(obj@parameters[[.r[[1]]]],
