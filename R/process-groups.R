@@ -35,7 +35,7 @@
 # processes that use it, not on its own, so the merge resolves a weather link to
 # the cluster medoid's instead.
 #
-# The clustering itself is `clusterscales`, over a `multiscales` scale built
+# The clustering itself is `modelscales`, over a `modelscales` scale built
 # from the geoscale. Contiguity does the confinement: with no adjacency edge
 # crossing a boundary of the target geoframe, a connected cluster cannot
 # straddle one, so the groups fall inside their parent by construction.
@@ -280,16 +280,16 @@ get_process_groups <- function(x, regions = NULL) {
 
 #' @noRd
 .cl_scale <- function(gs, level) {
-  check_package("multiscales")
+  check_package("modelscales")
   lt <- as.data.frame(geoscales::geoscale_leaftable(gs))
   frames <- geoscales::geoscale_geoframes(gs)
   frames <- frames[seq_len(match(level, frames))]
-  multiscales::scale_from_leaftable(
+  modelscales::scale_from_leaftable(
     lt[, c(frames, "region"), drop = FALSE],
     frames = c(frames, "region"), key = "region", name = "cluster_regions")
 }
 
-# Features -> the long table clusterscales reads. Each feature is z-scored, so
+# Features -> the long table modelscales reads. Each feature is z-scored, so
 # an invcost in the hundreds does not drown an efficiency in [0, 1]; a constant
 # feature contributes nothing rather than NaN.
 #' @noRd
@@ -305,7 +305,7 @@ get_process_groups <- function(x, regions = NULL) {
   }))
 }
 
-# `k = "auto"`: sweep and take the best average silhouette. clusterscales ships
+# `k = "auto"`: sweep and take the best average silhouette. modelscales ships
 # no `best_k()` ON PURPOSE -- "the numbers inform a judgement that stays yours"
 # -- so the rule lives here, and the sweep table is returned rather than hidden
 # so the judgement can be checked. Under a contiguity constraint the silhouette
@@ -313,9 +313,9 @@ get_process_groups <- function(x, regions = NULL) {
 #' @noRd
 .cl_choose_k <- function(long, sc, adj, kmin, kmax) {
   if (kmax <= kmin) return(list(k = kmin, sweep = NULL))
-  sw <- as.data.frame(clusterscales::cluster_sweep(
+  sw <- as.data.frame(modelscales::cluster_sweep(
     long, sc, ks = kmin:kmax, frame = "region", key = "region", value = "v",
-    FUN = clusterscales::cluster_contiguous, adjacency = adj))
+    FUN = modelscales::cluster_contiguous, adjacency = adj))
   list(k = sw$k[which.max(sw$silhouette)], sweep = sw)
 }
 
@@ -341,7 +341,7 @@ get_process_groups <- function(x, regions = NULL) {
 
 #' @noRd
 .cl_crosswalk <- function(long, sc, adj, k, lt, level) {
-  cl <- clusterscales::cluster_contiguous(
+  cl <- modelscales::cluster_contiguous(
     long, sc, k = k, frame = "region", key = "region", value = "v",
     adjacency = adj)
   a <- as.data.frame(attr(cl, "clustering"))
@@ -607,7 +607,7 @@ get_process_groups <- function(x, regions = NULL) {
 #' Read it as a scree plot: dispersion falls with `k` and always will, so take
 #' the knee rather than the minimum, and prefer a `k` whose silhouette is high
 #' and whose sizes are not one big cluster and a row of singletons. There is
-#' deliberately no "best k" here, and none in `clusterscales` either -- the
+#' deliberately no "best k" here, and none in `modelscales` either -- the
 #' number depends on what the model is for.
 #'
 #' @param mod a `model`.
@@ -620,7 +620,7 @@ get_process_groups <- function(x, regions = NULL) {
 #' @param features feature spec, as in [aggregate_model_regions()].
 #'
 #' @return A data.frame, one row per `k`, with the dispersion and silhouette
-#'   columns `clusterscales::cluster_sweep()` returns plus `sizes`, the cluster
+#'   columns `modelscales::cluster_sweep()` returns plus `sizes`, the cluster
 #'   sizes as a comma-separated string.
 #'
 #' @seealso [get_process_groups()], [aggregate_model_regions()]
@@ -629,7 +629,7 @@ get_process_groups <- function(x, regions = NULL) {
 process_cluster_sweep <- function(mod, group, ks = NULL, geoscale = NULL, level,
                                features = NULL) {
   stopifnot(inherits(mod, "model"))
-  check_package("clusterscales")
+  check_package("modelscales")
   gs <- geoscale %||% tryCatch(mod@config@geoscale, error = function(e) NULL)
   if (is.null(gs) || !is_geoscale(gs)) {
     stop("no geoscale: pass `geoscale=`, or attach one with setGeoscale().",
@@ -667,9 +667,9 @@ process_cluster_sweep <- function(mod, group, ks = NULL, geoscale = NULL, level,
   }
   adj <- .cl_adjacency(gs, level)
   sc <- .cl_scale(gs, level)
-  sw <- as.data.frame(clusterscales::cluster_sweep(
+  sw <- as.data.frame(modelscales::cluster_sweep(
     long, sc, ks = ks, frame = "region", key = "region", value = "v",
-    FUN = clusterscales::cluster_contiguous, adjacency = adj))
+    FUN = modelscales::cluster_contiguous, adjacency = adj))
   sw$sizes <- vapply(ks, function(k)
     paste(sort(table(.cl_crosswalk(long, sc, adj, k, lt, level)$cluster),
                decreasing = TRUE), collapse = ","), character(1))
@@ -885,7 +885,7 @@ model_clusters <- function(mod) {
 # Partition one family's objects into `k` parts, never crossing a coarse pair.
 #
 # The bucket is the coarse-pair component of `.agg_trade_key()`, expressed as a
-# block-diagonal adjacency so `clusterscales` enforces it with the machinery it
+# block-diagonal adjacency so `modelscales` enforces it with the machinery it
 # already has. This is "contiguity" only in the mechanical sense -- there is no
 # geometry here, because a part's routes are the coarse pair and the fine
 # geography is gone by the time anything is emitted. A LINE GRAPH over
@@ -967,8 +967,7 @@ model_clusters <- function(mod) {
                               verbose = isVerbose()) {
   stopifnot(inherits(mod, "model"))
   check_package("geoscales")
-  check_package("clusterscales")
-  check_package("multiscales")
+  check_package("modelscales")
   gs <- geoscale %||% tryCatch(mod@config@geoscale, error = function(e) NULL)
   if (is.null(gs) || !is_geoscale(gs)) {
     stop("no geoscale: pass `geoscale=`, or attach one with setGeoscale().",
@@ -1070,7 +1069,7 @@ model_clusters <- function(mod) {
       sw <- ch$sweep
     }
     kk <- as.integer(kk)
-    # Check `k` HERE rather than letting clusterscales refuse it: its message
+    # Check `k` HERE rather than letting modelscales refuse it: its message
     # is in its own vocabulary ("units", "groups", "the constraint") and names
     # neither the geoframe nor the way out.
     if (is.na(kk) || kk < kmin || kk > length(regs)) {

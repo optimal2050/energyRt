@@ -1,5 +1,11 @@
 # energyRt (development version)
 
+* The scales core is now `modelscales`. `multiscales` was renamed and
+  `clusterscales` merged into it, so region clustering and the scale it is
+  built on come from one package: `modelscales` replaces both in `Suggests`.
+  `get_process_groups()`, `process_cluster_sweep()` and `model_clusters()` are
+  unchanged for callers.
+
 ## Commodities balanced at a coarse geoframe reach the regions below
 
 * A commodity with a coarse `@geoframe` is now available in every region of

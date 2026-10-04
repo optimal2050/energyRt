@@ -19,7 +19,7 @@ knitr::opts_chunk$set(
 ```{r setup}
 library(energyRt)
 library(geoscales)
-library(clusterscales)
+library(modelscales)
 library(dplyr)
 library(ggplot2)
 ```
@@ -455,7 +455,7 @@ process_cluster_sweep(mod, "ECOA", geoscale = gs, level = "zone") |>
 
 `k = "auto"` applies a rule -- the best average silhouette over that sweep --
 and hands the sweep back so the judgement can be checked rather than trusted.
-`clusterscales` ships no `best_k()` deliberately: "the numbers inform a
+`modelscales` ships no `best_k()` deliberately: "the numbers inform a
 judgement that stays yours." Sweep and look; use `"auto"` to reconnoitre, not
 to decide.
 
