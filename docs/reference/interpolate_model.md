@@ -95,14 +95,20 @@ interpolate(object, ...)
 
 - sparse:
 
-  logical; the storage knob. `TRUE` drops `value == defVal` rows;
-  `FALSE` materialises the default over each parameter's full domain
-  (the form GAMS needs). Folding applies to either.
+  logical; the storage knob, and the user-facing switch between
+  `drop_default_values()` and `expand_default_values()`. `TRUE` drops
+  `value == defVal` rows; `FALSE` materialises the default over each
+  parameter's full domain (the form GAMS needs) and then trims rows no
+  map indexes. Folding applies to either.
 
 - prune:
 
-  logical; drop interpolated rows that fall outside the equation-domain
-  maps (no effect on the solution, smaller data).
+  logical; apply the per-parameter `misc$prune$value` filter via
+  `drop_default_values()` - rows whose interpolated value equals that
+  parameter's flagged value are dropped (lossless: an absent tuple reads
+  as the default, which equals the dropped value). One parameter is
+  flagged today (`pWeather`). Superseded by `sparse`'s `value =` form;
+  retained for compatibility.
 
 - validate:
 

@@ -1,27 +1,18 @@
-# Install Python/Pyomo dependencies
+# Install Python/Pyomo dependencies (deprecated)
 
-Installs the Python library layer energyRt needs for the Pyomo backend.
-When a conda/mamba executable is available (the recommended route) it
-creates or reuses a named environment and installs `pyomo`, a solver
-(`coincbc`), and the result-IO helpers from conda-forge. Otherwise it
-falls back to `pip` into the configured Python (see
-[`set_python_path()`](https://energyRt.org/reference/solver.md)); note
-that `pip` cannot supply the CBC solver binary, which must then be
-installed separately.
-
-This installs *libraries only*. It does not install Python or conda
-themselves — see
-[`en_check_dependencies()`](https://energyRt.org/reference/en_check.md)
-for guidance on the system layer.
+Superseded by
+[`multimod::mm_setup_python()`](https://optimal2050.github.io/multimod/reference/mm_setup_python.html),
+which owns the one conda environment shared by energyRt and multimod.
+This forwards to it and will be removed.
 
 ## Usage
 
 ``` r
 en_install_python_deps(
-  env = "energyRt",
-  packages = c("pyomo", "pandas", "pyarrow", "highspy"),
-  solver = "coincbc",
-  channel = "conda-forge",
+  env = "multimod",
+  packages = NULL,
+  solver = NULL,
+  channel = NULL,
   use_conda = NULL
 )
 ```
@@ -30,39 +21,27 @@ en_install_python_deps(
 
 - env:
 
-  character. Name of the conda environment to create/use.
+  character. Forwarded as `env_name`.
 
 - packages:
 
   character vector of Python packages to install.
 
-- solver:
+- solver, channel, use_conda:
 
-  character. Conda solver package to install (e.g. `"coincbc"`).
-
-- channel:
-
-  character. Conda channel.
-
-- use_conda:
-
-  logical or NULL. Force conda (`TRUE`) or pip (`FALSE`); `NULL`
-  auto-detects (conda if found, else pip).
+  Ignored, with a warning when set.
 
 ## Value
 
 NULL, invisibly. Verify with
 [`en_check_pyomo()`](https://energyRt.org/reference/en_check.md).
 
-## HiGHS version
+## Details
 
-`highspy` supplies HiGHS in-process and is the only Pyomo route to it;
-`SolverFactory("highs")` resolves to a shell solver requiring a `highs`
-executable. `solver_options$pyomo_highs_barrier` needs **HiGHS \>=
-1.13**: on 1.7.2 the `solver = "ipm"` option hangs before the solver
-starts and is not interruptible by a time limit. Check the installed
-version with
-[`en_check_pyomo()`](https://energyRt.org/reference/en_check.md).
+`solver`, `channel` and `use_conda` are no longer honoured: the
+replacement installs with `pip` inside a conda environment, so it cannot
+supply the CBC binary. Install a shell solver separately if you still
+need one; `highspy` is part of the default package set.
 
 ## See also
 
@@ -78,12 +57,3 @@ Other solver: [`en_check`](https://energyRt.org/reference/en_check.md),
 [`neos_gams_inline()`](https://energyRt.org/reference/neos_gams_inline.md),
 [`neos_job`](https://energyRt.org/reference/neos_job.md),
 [`set_solver_path()`](https://energyRt.org/reference/solver_path.md)
-
-## Examples
-
-``` r
-if (FALSE) { # \dontrun{
-en_install_python_deps()                 # conda env with pyomo + highspy + cbc
-en_install_python_deps(use_conda = FALSE) # pip into current python
-} # }
-```

@@ -23,7 +23,7 @@ solve_scenario()."><meta property="og:image" content="https://energyRt.org/logo.
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9007</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9014</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -162,14 +162,20 @@ not fold.</p></dd>
 
 
 <dt id="arg-sparse">sparse<a class="anchor" aria-label="anchor" href="#arg-sparse"></a></dt>
-<dd><p>logical; the storage knob. <code>TRUE</code> drops <code>value == defVal</code> rows;
-<code>FALSE</code> materialises the default over each parameter's full domain (the
-form GAMS needs). Folding applies to either.</p></dd>
+<dd><p>logical; the storage knob, and the user-facing switch between
+<code>drop_default_values()</code> and <code>expand_default_values()</code>. <code>TRUE</code> drops
+<code>value == defVal</code> rows; <code>FALSE</code> materialises the default over each
+parameter's full domain (the form GAMS needs) and then trims rows no map
+indexes. Folding applies to either.</p></dd>
 
 
 <dt id="arg-prune">prune<a class="anchor" aria-label="anchor" href="#arg-prune"></a></dt>
-<dd><p>logical; drop interpolated rows that fall outside the
-equation-domain maps (no effect on the solution, smaller data).</p></dd>
+<dd><p>logical; apply the per-parameter <code>misc$prune$value</code> filter via
+<code>drop_default_values()</code> - rows whose interpolated value equals that
+parameter's flagged value are dropped (lossless: an absent tuple reads as
+the default, which equals the dropped value). One parameter is flagged
+today (<code>pWeather</code>). Superseded by <code>sparse</code>'s <code>value =</code> form; retained for
+compatibility.</p></dd>
 
 
 <dt id="arg-validate">validate<a class="anchor" aria-label="anchor" href="#arg-validate"></a></dt>

@@ -59,128 +59,136 @@ levcost(object, comm, name, by_variant = FALSE, ...)
 
   `group`
 
-  :   Character or `NULL`. Output group name.
+  : Character or `NULL`. Output group name.
 
   `repo`
 
-  :   A `repository` or list of energyRt objects (supplies, commodities,
-      weather) to supplement the mini-model.
+  : A `repository` or list of energyRt objects (supplies, commodities,
+    weather) to supplement the mini-model.
 
   `fuel_costs`
 
-  :   Named numeric vector `[commodity -> cost]` for input commodities
-      not found in `repo`. Auxiliary commodities consumed by the process
-      (aux inputs) can be priced the same way; unnamed ones are supplied
-      at zero cost.
+  : Named numeric vector `[commodity -> cost]` for input commodities not
+    found in `repo`. Auxiliary commodities consumed by the process (aux
+    inputs) can be priced the same way; unnamed ones are supplied at
+    zero cost.
 
   `autocomplete`
 
-  :   Logical, default `FALSE` (`repository`/`model` methods). When
-      `TRUE`, input commodities without a supply in the container are
-      auto-supplied (zero-cost, or priced via `fuel_costs`) instead of
-      returning `NULL`.
+  : Logical, default `FALSE` (`repository`/`model` methods). When
+    `TRUE`, input commodities without a supply in the container are
+    auto-supplied (zero-cost, or priced via `fuel_costs`) instead of
+    returning `NULL`.
 
   `discount`
 
-  :   Numeric (0–1), default `0.05`.
+  : Numeric (0–1), default `0.05`.
 
   `base_year`
 
-  :   Integer or `NULL`.
+  : Integer or `NULL`.
 
   `horizon`
 
-  :   A `horizon` object, numeric year vector, or `NULL` (derives from
-      `@olife`).
+  : A `horizon` object, numeric year vector, or `NULL` (derives from
+    `@olife`).
 
   `calendar`
 
-  :   A `calendar` object or `NULL`.
+  : A `calendar` object or `NULL`.
 
   `timeframe`
 
-  :   `"ANNUAL"` (default) or `"native"`. `"ANNUAL"` prices the
-      technology on a single annual time-timeslice: any weather profile
-      is collapsed to an annual capacity factor (applied as the
-      technology's annual availability), so capacity is sized to serve
-      unit annual demand at that factor (textbook LCOE). `"native"`
-      keeps the supplied (sub-annual) calendar and normalises by total
-      generation – useful when the technology is analysed together with
-      storage or transmission, where sub-annual dispatch matters.
+  : `"auto"` (default), `"ANNUAL"` or `"native"`. `"ANNUAL"` prices the
+    technology on a single annual time-timeslice: any weather profile is
+    collapsed to an annual capacity factor (applied as the technology's
+    annual availability), so capacity is sized to serve unit annual
+    demand at that factor (textbook LCOE). `"native"` keeps the supplied
+    (sub-annual) calendar and normalises by total generation – useful
+    when the technology is analysed together with storage or
+    transmission, where sub-annual dispatch matters; it requires a
+    `calendar` holding the process's timeslices and will not choose one
+    for you. `"auto"` annualizes when that collapse is sound and prices
+    natively when it is not. It is unsound when a process carries more
+    than one `@weather` factor (the annual mean of a product is not the
+    product of the annual means, so the pair has no single annual
+    equivalent) or has parameter rows pinned to a named sub-annual
+    timeslice (the slice stops existing). An explicit `"ANNUAL"`
+    declines in those cases rather than return a number built on an
+    invalid collapse.
 
   `backstop`
 
-  :   Logical, default `TRUE`. Enables a very expensive dummy-import
-      slack on the output commodity balance so the mini-model always
-      solves even when the technology cannot serve a timeslice on its
-      own; the slack cost is excluded from the LCOE.
+  : Logical, default `TRUE`. Enables a very expensive dummy-import slack
+    on the output commodity balance so the mini-model always solves even
+    when the technology cannot serve a timeslice on its own; the slack
+    cost is excluded from the LCOE.
 
   `region`
 
-  :   Character or `NULL`.
+  : Character or `NULL`.
 
   `weather`
 
-  :   A `weather` object, list of weather objects, or `NULL`.
+  : A `weather` object, list of weather objects, or `NULL`.
 
   `frontier`
 
-  :   Logical, default `TRUE`. When `TRUE` additional solves are
-      performed to map the production frontier for technologies with
-      multi-commodity grouped output and share constraints (one solve
-      per output / input corner solution). Has no effect for
-      single-output or unconstrained technologies (the frontier is not
-      meaningful, so only the base solve runs). Set `FALSE` to skip the
-      extra solves.
+  : Logical, default `TRUE`. When `TRUE` additional solves are performed
+    to map the production frontier for technologies with multi-commodity
+    grouped output and share constraints (one solve per output / input
+    corner solution). Has no effect for single-output or unconstrained
+    technologies (the frontier is not meaningful, so only the base solve
+    runs). Set `FALSE` to skip the extra solves.
 
   `solver`
 
-  :   Solver spec list, default `solver_options$glpk`.
+  : Solver spec list, default `solver_options$glpk`.
 
   `method`
 
-  :   `"auto"` (default), `"analytic"`, or `"solve"`. The unit-demand
-      annual mini-model has a closed-form optimum for most technologies;
-      `"auto"` computes it analytically (no solver needed) whenever the
-      technology qualifies and falls back to the solver otherwise, with
-      a message naming the reason. `"analytic"` refuses non-qualifying
-      technologies instead of falling back; `"solve"` always builds and
-      solves the mini-model. The analytic result carries the same fields
-      (plus `$method = "analytic"` and `$frontier_vertices`, which
-      reports EVERY corner of the input/output share polytopes with its
-      per-activity NPV cost breakdown and an `optimal` flag);
-      `$scenario` is `NULL` on this path. Not analytically representable
-      (solver required): technology chains, `timeframe = "native"`,
-      `afc.*` bounds, availability lower bounds, `optimizeRetirement`,
-      year-varying `invcost`, reserve- or availability-constrained
-      supplies, and group substitution combined with year-varying prices
-      or efficiencies.
+  : `"auto"` (default), `"analytic"`, or `"solve"`. The unit-demand
+    annual mini-model has a closed-form optimum for most technologies;
+    `"auto"` computes it analytically (no solver needed) whenever the
+    technology qualifies and falls back to the solver otherwise, with a
+    message naming the reason. `"analytic"` refuses non-qualifying
+    technologies instead of falling back; `"solve"` always builds and
+    solves the mini-model. The analytic result carries the same fields
+    (plus `$method = "analytic"` and `$frontier_vertices`, which reports
+    EVERY corner of the input/output share polytopes with its
+    per-activity NPV cost breakdown and an `optimal` flag); `$scenario`
+    is `NULL` on this path. Not analytically representable (solver
+    required): technology chains, `timeframe = "native"`, `afc.*`
+    bounds, availability lower bounds, `optimizeRetirement`,
+    year-varying `invcost`, reserve- or availability-constrained
+    supplies, and group substitution combined with year-varying prices
+    or efficiencies.
 
   `run`
 
-  :   `"single"` (default) or `"sequential"` – only meaningful for a
-      technology declaring vintages or clusters. `"single"` prices every
-      variant in one model (each in its own region, so they cannot
-      compete); if that model does not solve it is retried with the
-      dummy-import slack enabled and then, failing that, falls back to
-      one model per variant. `"sequential"` goes straight to one model
-      per variant, so a single non-converging variant cannot take the
-      rest down.
+  : `"single"` (default) or `"sequential"` – only meaningful for a
+    technology declaring vintages or clusters. `"single"` prices every
+    variant in one model (each in its own region, so they cannot
+    compete); if that model does not solve it is retried with the
+    dummy-import slack enabled and then, failing that, falls back to one
+    model per variant. `"sequential"` goes straight to one model per
+    variant, so a single non-converging variant cannot take the rest
+    down.
 
   `max_failures`
 
-  :   Integer, default `10`. Abort the sequential fallback after this
-      many consecutive failed variant solves, to bound the time spent on
-      a technology whose variants all fail.
+  : Integer, default `10`. Abort the sequential fallback after this many
+    consecutive failed variant solves, to bound the time spent on a
+    technology whose variants all fail.
 
   `as_scenario`
 
-  :   Logical, default `FALSE`. When `TRUE` the full solved `scenario`
-      is returned with LCOE tables attached to `scenario@misc`.
+  : Logical, default `FALSE`. When `TRUE` the full solved `scenario` is
+    returned with LCOE tables attached to `scenario@misc`.
 
   `verbose`
 
-  :   Logical, default `TRUE`.
+  : Logical, default `TRUE`.
 
 - by_variant:
 

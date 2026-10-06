@@ -48,21 +48,20 @@ or replaced for different scenarios. !!!Additional details...
 
   region
 
-  :   character. Region name to apply the parameter, NA for every
-      region.
+  : character. Region name to apply the parameter, NA for every region.
 
   year
 
-  :   integer. Year to apply the parameter, NA for every year.
+  : integer. Year to apply the parameter, NA for every year.
 
   timeslice
 
-  :   character. Time timeslice to apply the parameter, NA for every
-      timeslice.
+  : character. Time timeslice to apply the parameter, NA for every
+    timeslice.
 
   wval
 
-  :   numeric. Weather factor value.
+  : numeric. Weather factor value.
 
 - `misc`:
 

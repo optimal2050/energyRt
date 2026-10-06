@@ -30,29 +30,29 @@ supply object with given specifications.
 
   cluster
 
-  :   character. Price step this row applies to, NA for every step. See
-      the `cluster` slot.
+  : character. Price step this row applies to, NA for every step. See
+    the `cluster` slot.
 
   weather
 
-  :   character. Name of the weather factor to apply. Must match the
-      weather factor names in a `weather` class in the model.
+  : character. Name of the weather factor to apply. Must match the
+    weather factor names in a `weather` class in the model.
 
   wava.lo
 
-  :   numeric. Coefficient that links the weather factor with the lower
-      bound of the availability factor `ava.lo`.
+  : numeric. Coefficient that links the weather factor with the lower
+    bound of the availability factor `ava.lo`.
 
   wava.up
 
-  :   numeric. Coefficient that links the weather factor with the upper
-      bound of the availability factor `ava.up`.
+  : numeric. Coefficient that links the weather factor with the upper
+    bound of the availability factor `ava.up`.
 
   wava.fx
 
-  :   numeric. Coefficient that links the weather factor with the fixed
-      value of the availability factor `ava.fx`. This parameter
-      overrides `wava.lo` and `wava.up`.
+  : numeric. Coefficient that links the weather factor with the fixed
+    value of the availability factor `ava.fx`. This parameter overrides
+    `wava.lo` and `wava.up`.
 
 - `reserve`:
 
@@ -62,26 +62,26 @@ supply object with given specifications.
 
   cluster
 
-  :   character. Price step this row applies to, NA for every step. See
-      the `cluster` slot.
+  : character. Price step this row applies to, NA for every step. See
+    the `cluster` slot.
 
   region
 
-  :   character. Region name to apply the parameter. Use NA to apply to
-      all regions.
+  : character. Region name to apply the parameter. Use NA to apply to
+    all regions.
 
   res.lo
 
-  :   numeric. Lower bound of the total available resource.
+  : numeric. Lower bound of the total available resource.
 
   res.up
 
-  :   numeric. Upper bound of the total available resource.
+  : numeric. Upper bound of the total available resource.
 
   res.fx
 
-  :   numeric. Fixed value of the total available resource. This
-      parameter overrides `res.lo` and `res.up`.
+  : numeric. Fixed value of the total available resource. This parameter
+    overrides `res.lo` and `res.up`.
 
 - `cluster`:
 
@@ -114,30 +114,29 @@ supply object with given specifications.
 
   cluster
 
-  :   character. Grade label, used in the expanded object name.
+  : character. Grade label, used in the expanded object name.
 
   desc
 
-  :   character. Description of the grade.
+  : character. Description of the grade.
 
   region
 
-  :   character. Region(s) the grade exists in, NA for everywhere.
-      Intersected with the object's own `region` slot.
+  : character. Region(s) the grade exists in, NA for everywhere.
+    Intersected with the object's own `region` slot.
 
   share
 
-  :   numeric. The grade's fraction of the object's quantity.
-      DESCRIPTIVE, not enforced: supply has no capacity variable to tie,
-      so
-      [`asSupplyCurve()`](https://energyRt.org/reference/supply-curve.md)
-      writes the split straight into `ava.*` / `res.*` and records here
-      what it did.
+  : numeric. The grade's fraction of the object's quantity. DESCRIPTIVE,
+    not enforced: supply has no capacity variable to tie, so
+    [`asSupplyCurve()`](https://energyRt.org/reference/supply-curve.md)
+    writes the split straight into `ava.*` / `res.*` and records here
+    what it did.
 
   order
 
-  :   integer. Fill order, 1 = the cheapest grade. Without it labels
-      sort alphabetically and "S10" would precede "S2".
+  : integer. Fill order, 1 = the cheapest grade. Without it labels sort
+    alphabetically and "S10" would precede "S2".
 
 - `supply`:
 
@@ -150,44 +149,42 @@ supply object with given specifications.
 
   cluster
 
-  :   character. Price step this row applies to, NA for every step. See
-      the `cluster` slot.
+  : character. Price step this row applies to, NA for every step. See
+    the `cluster` slot.
 
   region
 
-  :   character. Region name to apply the parameter. Use NA to apply to
-      all regions.
+  : character. Region name to apply the parameter. Use NA to apply to
+    all regions.
 
   year
 
-  :   integer. Year to apply the parameter. Use NA to apply to all
-      years.
+  : integer. Year to apply the parameter. Use NA to apply to all years.
 
   timeslice
 
-  :   character. Time timeslice to apply the parameter. Use NA to apply
-      to all timeslices.
+  : character. Time timeslice to apply the parameter. Use NA to apply to
+    all timeslices.
 
   ava.lo
 
-  :   numeric. Lower bound on the supplied quantity, in physical
-      commodity units per timeslice.
+  : numeric. Lower bound on the supplied quantity, in physical commodity
+    units per timeslice.
 
   ava.up
 
-  :   numeric. Upper bound on the supplied quantity, in physical
-      commodity units per timeslice.
+  : numeric. Upper bound on the supplied quantity, in physical commodity
+    units per timeslice.
 
   ava.fx
 
-  :   numeric. Fixed value of the supplied quantity, in physical
-      commodity units per timeslice. This parameter overrides `ava.lo`
-      and `ava.up`.
+  : numeric. Fixed value of the supplied quantity, in physical commodity
+    units per timeslice. This parameter overrides `ava.lo` and `ava.up`.
 
   cost
 
-  :   numeric. Cost of the resource extraction, if not set, the resource
-      is considered free.
+  : numeric. Cost of the resource extraction, if not set, the resource
+    is considered free.
 
 - `region`:
 

@@ -7,9 +7,9 @@ An energy system model optimizes technological chains to meet a given
 given resources (e.g. fuels, renewable energy sources, etc.) and
 available technological options (e.g. power plants, heat pumps, etc.).
 The minimal model must have a definition of the final demand and
-available resources.  
+available resources.\
 Let’s start with the package settings and continue with the minimal
-model definition.  
+model definition.\
 
 ``` r
 
@@ -34,7 +34,7 @@ set_default_solver(solver_options$julia_highs)
 ```
 
 Check/set directory to store scenarios using the `set_scenarios_path`
-and `get_scenarios_path` functions.  
+and `get_scenarios_path` functions.\
 
 ``` r
 
@@ -42,7 +42,7 @@ get_scenarios_path()
 ```
 
 The following minimal model consists of a commodity, a supply, and a
-demand object.  
+demand object.\
 The commodity object is defined using the `newCommodity`
 constructor-function. The commodity object has a name and a
 description. 
@@ -56,7 +56,7 @@ COM <- newCommodity("COM")
 The supply object is defined using the `newSupply` constructor-function.
 The supply object has a name, a description, a commodity it supplies,
 and availability data. The availability data is a data frame with a
-time-series of costs or prices of the commodity.  
+time-series of costs or prices of the commodity.\
 
 ``` r
 
@@ -72,11 +72,11 @@ SUP <- newSupply(
 ```
 
 This simple supply object sets no physical limits on the availability of
-the commodity. Only the price is set.  
+the commodity. Only the price is set.\
 
 Schematic representation of the supply object shows an output arrow with
 the name of the supply object and the commodity it supplies. No inputs
-are required to “produce” the commodity in the model.  
+are required to “produce” the commodity in the model.\
 
 ``` r
 
@@ -105,24 +105,24 @@ commodity that is supplied and demanded. The commodity has a price, and
 the demand is exogenously set. The optimization problem is quite simple:
 minimize the costs of supplying the demand. No technological
 alternatives are available yet in the model to choose from. No
-constraints are set on resources.  
+constraints are set on resources.\
 
 Let’s create a model object and solve it. Several settings are required
-to parameterize the model and create a model object:  
+to parameterize the model and create a model object:\
 - `region` - a name of a geographical region where the model is
-defined.  
+defined.\
 - `data` - a repository object that stores all data objects used in the
-model.  
+model.\
 - `calendar` - a calendar object that defines the time structure of the
-model.  
+model.\
 - `horizon` - a horizon object that defines the time horizon of the
-model.  
+model.\
 - `discount` - a discount rate used to compute the present value of
-costs in different time periods.  
+costs in different time periods.\
 
 The repository object is created by combining all data objects used in
 the model in all scenarios or a group of scenarios. Additional data
-(model objects and settings) can be added to a particular scenario.  
+(model objects and settings) can be added to a particular scenario.\
 
 ``` r
 
@@ -148,7 +148,7 @@ hello_calendar <- newCalendar() # default calendar with no sub-annual resolution
 
 Horizon object defines the time horizon of the model. It is a sequence
 of milestone years and periods for each milestone. The example below
-defines a planning horizon from 2025 to 2050 with 5-year intervals.  
+defines a planning horizon from 2025 to 2050 with 5-year intervals.\
 One-year horizon:
 
 ``` r
@@ -169,7 +169,7 @@ planning_horizon
 ```
 
 The `newModel` constructor-function combines all the configuration and
-data objects to create a model object.  
+data objects to create a model object.\
 
 ``` r
 
@@ -186,7 +186,7 @@ class(mod)
 
 Once the model object is created, it can be solved using the `solve`
 function. The solved (or interpolated) model object becomes a scenario
-object.  
+object.\
 
 ``` r
 
@@ -197,7 +197,7 @@ summary(scen_2025)
 
 Solving for multiple years assumes the perferct foresight of the all
 given data for the future. Since we haven’t defined any years for the
-data, it is extrapolated by default for demand and supply objects.  
+data, it is extrapolated by default for demand and supply objects.\
 
 ``` r
 

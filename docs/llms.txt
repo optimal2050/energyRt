@@ -727,6 +727,8 @@ Plots and diagrams.
 
 - [`autoplot(`*`<commodity>`*`)`](https://energyRt.org/reference/autoplot.commodity.md)
   : Visualize a Commodity object
+- [`autoplot(`*`<levcost_variants>`*`)`](https://energyRt.org/reference/autoplot.levcost_variants.md)
+  : Compare levelized cost across a technology's variant grid
 - [`autoplot(`*`<tax>`*`)`](https://energyRt.org/reference/autoplot.lever.md)
   [`autoplot(`*`<subsidy>`*`)`](https://energyRt.org/reference/autoplot.lever.md)
   [`autoplot(`*`<constraint>`*`)`](https://energyRt.org/reference/autoplot.lever.md)
@@ -930,7 +932,7 @@ re-derives the model’s identities from the results.
 - [`en_check_packages()`](https://energyRt.org/reference/en_check_packages.md)
   : Check R package and external-tool dependencies
 
-- [`trim_parameters_by_maps()`](https://energyRt.org/reference/trim_parameters_by_maps.md)
+- [`trim_parameters()`](https://energyRt.org/reference/trim_parameters.md)
   : Trim numeric/bounds parameters to the domain of the maps that index
   them
 
@@ -963,7 +965,7 @@ Installing and checking the solver toolchains.
 - [`en_install_julia_pkgs()`](https://energyRt.org/reference/en_install_julia_pkgs.md)
   : Install Julia packages
 - [`en_install_python_deps()`](https://energyRt.org/reference/en_install_python_deps.md)
-  : Install Python/Pyomo dependencies
+  : Install Python/Pyomo dependencies (deprecated)
 - [`en_config_path()`](https://energyRt.org/reference/en_config.md)
   [`en_config_read()`](https://energyRt.org/reference/en_config.md)
   [`en_config_write()`](https://energyRt.org/reference/en_config.md) :

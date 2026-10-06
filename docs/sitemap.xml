@@ -60,6 +60,7 @@
 <url><loc>https://energyRt.org/reference/autoplot.calendar.html</loc></url>
 <url><loc>https://energyRt.org/reference/autoplot.commodity.html</loc></url>
 <url><loc>https://energyRt.org/reference/autoplot.horizon.html</loc></url>
+<url><loc>https://energyRt.org/reference/autoplot.levcost_variants.html</loc></url>
 <url><loc>https://energyRt.org/reference/autoplot.lever.html</loc></url>
 <url><loc>https://energyRt.org/reference/autoplot.process.html</loc></url>
 <url><loc>https://energyRt.org/reference/autoplot.scenario.html</loc></url>
@@ -142,6 +143,7 @@
 <url><loc>https://energyRt.org/reference/dot-build_aux_membership.html</loc></url>
 <url><loc>https://energyRt.org/reference/dot-cycle_first_slices.html</loc></url>
 <url><loc>https://energyRt.org/reference/dot-discount_arg_to_rates.html</loc></url>
+<url><loc>https://energyRt.org/reference/dot-en_n_rows.html</loc></url>
 <url><loc>https://energyRt.org/reference/dot-ert_n_rows.html</loc></url>
 <url><loc>https://energyRt.org/reference/dot-value_maps_built_in_filter.html</loc></url>
 <url><loc>https://energyRt.org/reference/draw-technology-method.html</loc></url>
@@ -443,6 +445,7 @@
 <url><loc>https://energyRt.org/reference/topia_profiles.html</loc></url>
 <url><loc>https://energyRt.org/reference/trade,.html</loc></url>
 <url><loc>https://energyRt.org/reference/trade-class.html</loc></url>
+<url><loc>https://energyRt.org/reference/trim_parameters.html</loc></url>
 <url><loc>https://energyRt.org/reference/trim_parameters_by_maps.html</loc></url>
 <url><loc>https://energyRt.org/reference/tsl2dtm.html</loc></url>
 <url><loc>https://energyRt.org/reference/tsl2hour.html</loc></url>

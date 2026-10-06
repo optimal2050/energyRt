@@ -2,6 +2,155 @@
 
 ## energyRt (development version)
 
+- Exogenous stock: `pXStockNew` now records commissioning only. The
+  level at the first milestone is an initial condition, and
+  `eqXStockCap` / `eqXPhaseOut` read it from `pXStock` under
+  `$mMilestoneFirst` instead of folding it into `pXStockNew`. Solutions
+  are unchanged. The derived `pXStockNew` / `pXStockSurv` also no longer
+  declare an interpolation rule, which never applied to them – they are
+  computed after interpolation.
+
+- The `lang = "mm"` backend now forwards solver options: a preset’s
+  `highs_options` (a named list, e.g. `list(presolve = "off")`) is
+  passed to HiGHS.
+
+- `clusterscales` is merged into `multiscales`, so region clustering and
+  the scale it is built on come from one package: `multiscales` replaces
+  both in `Suggests`.
+  [`get_process_groups()`](https://energyRt.org/reference/get_process_groups.md),
+  [`process_cluster_sweep()`](https://energyRt.org/reference/process_cluster_sweep.md)
+  and
+  [`model_clusters()`](https://energyRt.org/reference/model_clusters.md)
+  are unchanged for callers.
+
+### Commodities balanced at a coarse geoframe reach the regions below
+
+- A commodity with a coarse `@geoframe` is now available in every region
+  of the cell it is supplied or produced in. A plant in a NUTS3 region
+  burning a fuel supplied at NUTS0 used to be judged without input and
+  dropped from the model; it now runs. A commodity at the finest level
+  still does not spread to neighbouring regions.
+
+- Discount rates can be declared at any geoscale level: a `discount` row
+  with `region` = a country applies to every region below it, and a
+  region’s own rows override its parent’s. A process declared at a
+  coarse cell (a substation builder, a VRE technology at NUTS0 over
+  NUTS3 regions) uses the rate declared for that cell, else the rate its
+  children share. It used to find no `wacc` and annuitise at 0%
+  (`invcost / olife`). Where the children differ and the cell declares
+  none, the process is refused by name – and only then: differing
+  children are not an error by themselves.
+
+- A technology’s investment cost given without a region was dropped from
+  the annualised cost when another technology’s cost named a region: the
+  region-less rows matched nothing, and the capital was free in the
+  solver. Both now land.
+
+- [`verify_solution()`](https://energyRt.org/reference/verify_solution.md)
+  no longer double-counts the totals of a coarse region at a timeslice
+  coarser than the commodity’s own: the region roll-up applies at the
+  commodity’s timeslice only, as in the model equations.
+
+### Auxiliary flows at the auxiliary commodity’s timeframe (breaking)
+
+- Auxiliary flows (`@aux` / `@aeff` on technologies and storages) now
+  sit at the AUXILIARY commodity’s timeslices, not the process’s. An
+  ANNUAL aux commodity gets one row per year instead of one per process
+  slice, which removes most aux rows from hourly models.
+
+- Capacity-type couplings (`cap2ainp`, `ncap2ainp`, `pho2a*`, `ret2a*`
+  and the storage `out.`/`inp.`/`stg.` part couplings) are now PER-YEAR
+  coefficients, booked into each aux slice as its share of the year.
+  Previously they applied in every slice divided by `cap2act`, which
+  equalled the annual figure only on a full hourly calendar with
+  `cap2act = 8760`. A coupling that named one slice to avoid that
+  multiplication should now drop the `timeslice`.
+
+- Flow-type couplings (`act2a*`, `cinp2a*`, `cout2a*`, storage level,
+  charge and discharge) are summed over the process’s slices inside each
+  aux slice; their annual totals are unchanged.
+
+### Variant levelized-cost figures in `report()`
+
+- [`autoplot()`](https://ggplot2.tidyverse.org/reference/autoplot.html)
+  on a variant fan-out gains `x` and `facet`, so a vintage x cluster x
+  region grid can be compared along any of its axes:
+  `autoplot(lc, x = "cluster", facet = "vintage")`. The dimensions come
+  from the fan-out’s own provenance, not from parsing variant names. A
+  dimension left off both `x` and `facet` is AVERAGED, never summed – a
+  levelized cost is a rate – and the figure caption says so.
+
+- [`report()`](https://energyRt.org/reference/report.md) on a technology
+  with variants now adds a figure per varying dimension beside the
+  combined chart: clusters within each vintage, vintages within each
+  cluster, and regions when they vary (including the nested
+  `by_region = TRUE` shape). A dimension that does not vary is skipped
+  rather than drawn as a panel that says nothing, panel counts are
+  capped, and x labels rotate once they would collide.
+
+### `levcost()` pricing timeframe
+
+- `levcost(method = "solve")` could not price a technology declaring a
+  sub-annual `@timeframe` (hourly wind or solar, typically): the model
+  failed with `pTechAfLo[...,HOUR] out of domain`. The default ANNUAL
+  collapse rewrote the weather profile and the commodity timeframe but
+  left the process itself declaring its sub-annual timeframe, so the
+  timeslice domain stayed hourly while the calendar held a single ANNUAL
+  slice. Both now collapse together. The analytic engine was unaffected,
+  so `method = "auto"` usually hid this.
+
+- `timeframe` gains `"auto"`, now the default, and
+  [`levcost()`](https://energyRt.org/reference/levcost.md) no longer
+  annualizes a process when the collapse would misrepresent it. Two
+  cases are detected: more than one `@weather` factor on one process
+  (the annual mean of a product is not the product of the annual means,
+  so the pair has no single annual equivalent), and parameter rows
+  pinned to a named sub-annual timeslice (the slice stops existing).
+  `"auto"` prices such a process on its native timeframe and says so; an
+  explicit `timeframe = "ANNUAL"` now declines with the reason instead
+  of returning a number built on an invalid collapse.
+
+- `levcost(timeframe = "native")` on a sub-annual process now requires
+  an explicit `calendar =` instead of silently defaulting to an annual
+  calendar its timeslices do not fit – which previously surfaced as an
+  out-of-domain solver error.
+  [`levcost()`](https://energyRt.org/reference/levcost.md) does not
+  choose a sub-annual calendar for you: the choice changes both the
+  problem size and the numbers.
+
+### `levcost()` bug fixes for vintaged and clustered technologies
+
+- [`levcost()`](https://energyRt.org/reference/levcost.md) returned `NA`
+  for every variant of a technology whose `@invcost`, `@fixom` or
+  `@varom` carried a `region` column. Each variant cell is priced in its
+  own artificial region, but the cost rows kept the real region name and
+  so matched nothing: the cell was costed at zero and reported `NA` on
+  the analytic path, and failed to solve on the solver path. The region
+  column now moves with the cell. Technologies translated from other
+  frameworks almost always carry that column, so any vintage or cluster
+  fan-out over them was affected.
+
+- A vintage whose `@vintage` build window falls outside the priced
+  horizon was reported at a levelised cost of **zero** instead of being
+  priced. [`levcost()`](https://energyRt.org/reference/levcost.md) now
+  drops the build window on the technology path, as it already did for
+  storage and trade – the question is what a unit of that vintage costs,
+  not whether it could have been built inside the horizon.
+
+### `process` is a model set
+
+- `process` — the union of `supply`, `demand`, `technology`, `storage`,
+  `export`, `import` and `trade` — is now a declared set on every
+  backend, not just an internal R grouping. In GAMS the seven classes
+  are declared as subsets of it (`tech(process)`), so the compiler
+  domain-checks membership. Nothing is indexed over `process` yet, so no
+  solution changes.
+
+- `getData(process = "<name>")` selects a process by name, and
+  `getData(process_ = "<regex>")` by pattern, across all seven classes
+  at once. `process = TRUE` still only renames the class id column, as
+  before.
+
 ### Timeslice conversions moved to timescales
 
 - The timeslice label conversions are gone from energyRt.
@@ -370,6 +519,11 @@
   the straddling regions.
 
 ### Breaking changes
+
+- `getData(process =)` now accepts a character value, which SELECTS the
+  named process(es) rather than being read as a logical. A character
+  value is always a selection, so `process = "TRUE"` is a process named
+  `TRUE`, not `TRUE`. The logical form is unchanged.
 
 - `calendar` gains two slots (`year_start`, `utc_offset_minutes`) and
   `horizon@intervals` a `label` column. Objects saved earlier still load

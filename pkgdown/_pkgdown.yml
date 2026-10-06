@@ -378,7 +378,7 @@ reference:
   - audit_coefficients
   - en_check
   - en_check_packages
-  - trim_parameters_by_maps
+  - trim_parameters
   - update_parameter
 
 # ----------------------------------------------------------------- the rest -

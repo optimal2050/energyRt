@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9007</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9014</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -180,7 +180,7 @@ local commercial solver needed.</td>
 </tr>
 <tr class="odd">
 <td>
-<strong>multimod_cloud</strong> (cloud GPU)</td>
+<strong>mmcloud_pyomo</strong> (cloud GPU)</td>
 <td>
 <code>PYOMO</code> (as MPS)</td>
 <td>HiGHS / cuOpt on a cloud GPU</td>
@@ -344,7 +344,7 @@ one energyRt setting whose environment variable is <em>not</em> prefixed
 functions.</p>
 </div>
 <div class="section level3">
-<h3 id="multimod_cloud-cloud-gpu">multimod_cloud (cloud GPU)<a class="anchor" aria-label="anchor" href="#multimod_cloud-cloud-gpu"></a>
+<h3 id="mmcloud_pyomo-cloud-gpu">mmcloud_pyomo (cloud GPU)<a class="anchor" aria-label="anchor" href="#mmcloud_pyomo-cloud-gpu"></a>
 </h3>
 <p><strong>Experimental — in testing.</strong> Where NEOS dispatches the
 <em>model text</em>, this route writes the problem as an <strong>MPS
@@ -353,9 +353,9 @@ decoding the solution back into the scenario. It exists for models whose
 build or solve does not fit a laptop: the MPS is produced by the Pyomo
 formulation, so nothing new has to be written for the model itself.</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">multimod_cloud</span><span class="op">)</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">mmcloud_pyomo</span><span class="op">)</span></span>
 <span><span class="co"># or, to recover duals from a first-order solve:</span></span>
-<span><span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">multimod_cloud_crossover</span><span class="op">)</span></span></code></pre></div>
+<span><span class="fu"><a href="../reference/solve_model.html">solve_model</a></span><span class="op">(</span><span class="va">model</span>, solver <span class="op">=</span> <span class="va">solver_options</span><span class="op">$</span><span class="va">mmcloud_pyomo_crossover</span><span class="op">)</span></span></code></pre></div>
 <p>Being experimental, treat results as provisional and cross-check a
 smaller variant against a local backend before relying on them. Access
 is via a token (<code><a href="../reference/hf_token.html">get_hf_token()</a></code>), and the preset carries the
@@ -368,13 +368,13 @@ returns nothing rather than partial results.</p>
 </h2>
 <p>The presets shipped with the package (generated from the installed
 data):</p>
-<table class="table">
+<table style="width:100%;" class="table">
 <colgroup>
-<col width="33%">
-<col width="18%">
+<col width="34%">
+<col width="19%">
 <col width="16%">
-<col width="13%">
-<col width="18%">
+<col width="9%">
+<col width="19%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">preset</th>
@@ -448,202 +448,223 @@ data):</p>
 <td align="left">default</td>
 </tr>
 <tr class="even">
-<td align="left">multimod_cloud</td>
-<td align="left">Python/Pyomo</td>
-<td align="left">appsi_highs</td>
-<td align="left">cloud GPU</td>
+<td align="left">mm_highs</td>
+<td align="left">NA</td>
+<td align="left">HiGHS</td>
+<td align="left"></td>
 <td align="left">default</td>
 </tr>
 <tr class="odd">
-<td align="left">multimod_cloud_crossover</td>
-<td align="left">Python/Pyomo</td>
-<td align="left">appsi_highs</td>
-<td align="left">cloud GPU</td>
+<td align="left">mmcloud</td>
+<td align="left">NA</td>
+<td align="left">HiGHS</td>
+<td align="left"></td>
 <td align="left">default</td>
 </tr>
 <tr class="even">
+<td align="left">mmcloud_crossover</td>
+<td align="left">NA</td>
+<td align="left">HiGHS</td>
+<td align="left"></td>
+<td align="left">default</td>
+</tr>
+<tr class="odd">
+<td align="left">mmcloud_pyomo</td>
+<td align="left">Python/Pyomo</td>
+<td align="left">appsi_highs</td>
+<td align="left"></td>
+<td align="left">default</td>
+</tr>
+<tr class="even">
+<td align="left">mmcloud_pyomo_crossover</td>
+<td align="left">Python/Pyomo</td>
+<td align="left">appsi_highs</td>
+<td align="left"></td>
+<td align="left">default</td>
+</tr>
+<tr class="odd">
 <td align="left">neos_pyomo_cplex</td>
 <td align="left">Python/Pyomo</td>
 <td align="left">—</td>
 <td align="left">NEOS</td>
 <td align="left">default</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">neos_pyomo_cplex_barrier</td>
 <td align="left">Python/Pyomo</td>
 <td align="left">—</td>
 <td align="left">NEOS</td>
 <td align="left">default</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">neos_pyomo_cbc</td>
 <td align="left">Python/Pyomo</td>
 <td align="left">—</td>
 <td align="left">NEOS</td>
 <td align="left">default</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">julia_cbc</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">Cbc</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">julia_cplex</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">CPLEX</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">julia_cplex_barrier</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">CPLEX</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">julia_highs</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">HiGHS</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">julia_highs_rdata</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">HiGHS</td>
 <td align="left"></td>
 <td align="left">RData</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">julia_highs_barrier</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">HiGHS</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">julia_glpk</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">GLPK</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">julia_highs_simplex</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">HiGHS</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">julia_highs_parallel</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">HiGHS</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">julia_highs_pdlp</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">HiGHS</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">julia_highs_hipdlp</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">HiGHS</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">julia_cuopt</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">cuOpt</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">julia_cuopt_concurrent</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">cuOpt</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">julia_cuopt_pdlp</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">cuOpt</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">julia_cuopt_crossover</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">cuOpt</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">gams_cplex</td>
 <td align="left">GAMS</td>
 <td align="left">CPLEX</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">gams_gdx_cplex</td>
 <td align="left">GAMS</td>
 <td align="left">CPLEX</td>
 <td align="left"></td>
 <td align="left">GDX</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">gams_gdx_cplex_barrier</td>
 <td align="left">GAMS</td>
 <td align="left">CPLEX</td>
 <td align="left"></td>
 <td align="left">GDX</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">gams_gdx_cplex_parallel</td>
 <td align="left">GAMS</td>
 <td align="left">CPLEX</td>
 <td align="left"></td>
 <td align="left">GDX</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">gams_cbc</td>
 <td align="left">GAMS</td>
 <td align="left">CBC</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">gams_gdx_cbc</td>
 <td align="left">GAMS</td>
 <td align="left">CBC</td>
 <td align="left"></td>
 <td align="left">GDX</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">neos_gams_cplex</td>
 <td align="left">GAMS</td>
 <td align="left">CPLEX</td>
 <td align="left">NEOS</td>
 <td align="left">default</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">neos_gams_cplex_barrier</td>
 <td align="left">GAMS</td>
 <td align="left">CPLEX</td>
 <td align="left">NEOS</td>
 <td align="left">default</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">neos_gams_cbc</td>
 <td align="left">GAMS</td>
 <td align="left">CBC</td>

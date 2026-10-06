@@ -134,9 +134,9 @@ names(findData(scen, setsNames_ = "tech"))           # parameters indexed by 'te
 
 ## Editing an object: `update()`
 
-[`update()`](https://energyRt.org/reference/newDemand.html) edits the
-slots of a **single** model object (a technology, commodity, demand, …).
-It does **not** operate on a whole model or scenario — you update the
+[`update()`](https://energyRt.org/reference/update.md) edits the slots
+of a **single** model object (a technology, commodity, demand, …). It
+does **not** operate on a whole model or scenario — you update the
 object, put it back into the repository with
 `add(..., overwrite = TRUE)`, and re-interpolate/solve.
 
@@ -174,7 +174,7 @@ scenario and model sharing a name appear once):
 ``` r
 
 get_scenarios_path()
-#> [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\Rtmpec9rUB/wf"
+#> [1] "C:\\Users\\admin\\AppData\\Local\\Temp\\RtmpAzJOTV/wf"
 basename(scen@path)
 #> [1] "BASE-TOPIA-s4_h24-base"
 ```
@@ -341,8 +341,8 @@ in-memory footprint:
 
 model_size(scen)
 #> model_size: BASE
-#>   parameters : 179 value, 309 maps, 13 sets
-#>   param rows : 6,720
+#>   parameters : 179 value, 309 maps, 14 sets
+#>   param rows : 6,715
 #>   estimate   : ~16,298 variables, ~16,972 constraints (from gating maps)
 #>   top parameters by rows:
 #>     pTechCinp2use      1,536
@@ -361,7 +361,7 @@ model_size(scen)
 #>     pTechEac           20
 #>     pTechStock         14
 size(scen)
-#> [1] "7.3 Mb"
+#> [1] "7.2 Mb"
 ```
 
 For a systematic check that a build is correct *and* efficient,
@@ -621,7 +621,7 @@ sweep above, whose disjoint pieces do add up.
 - **Solver backends** and **TOPIA II** — interpolating and solving.
 - [`?getData`](https://energyRt.org/reference/getData.md),
   [`?getObject`](https://energyRt.org/reference/getObject.md),
-  [`?update`](https://energyRt.org/reference/newDemand.html),
+  [`?update`](https://energyRt.org/reference/update.md),
   [`?save_scenario`](https://energyRt.org/reference/save_scenario.md),
   [`?load_scenario`](https://energyRt.org/reference/load_scenario.md),
   [`?model_size`](https://energyRt.org/reference/model_size.md),

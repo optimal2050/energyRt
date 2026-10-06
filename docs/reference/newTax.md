@@ -47,32 +47,31 @@ newTax(
 
   region
 
-  :   character. Region name to apply the parameter, NA for every
-      region.
+  : character. Region name to apply the parameter, NA for every region.
 
   year
 
-  :   integer. Year to apply the parameter, NA for every year.
+  : integer. Year to apply the parameter, NA for every year.
 
   timeslice
 
-  :   character. Time timeslice to apply the parameter, NA for every
-      timeslice.
+  : character. Time timeslice to apply the parameter, NA for every
+    timeslice.
 
   inp
 
-  :   numeric. Input tax, e.g., per unit of commodity consumed by all
-      processes.
+  : numeric. Input tax, e.g., per unit of commodity consumed by all
+    processes.
 
   out
 
-  :   numeric. Output tax, e.g., per unit of commodity produced by all
-      processes.
+  : numeric. Output tax, e.g., per unit of commodity produced by all
+    processes.
 
   bal
 
-  :   numeric. Balance tax, e.g., per unit of commodity balance
-      (production - consumption).
+  : numeric. Balance tax, e.g., per unit of commodity balance
+    (production - consumption).
 
 - misc:
 

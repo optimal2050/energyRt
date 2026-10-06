@@ -28,15 +28,30 @@ consistent results:
 
 Start on zero-setup GLPK; switch backends later without touching your model.
 
+A fifth route is taking shape. **[multimod](https://github.com/optimal2050/multimod)**
+*(experimental)* reads energyRt's own GAMS template into an abstract syntax
+tree, from which it can re-emit the model in any of the languages above — or
+skip the symbolic layer entirely and assemble the LP matrix directly, writing
+MPS for the solver:
+
+``` r
+solve_scenario(scen, solver = solver_options$mm_highs)   # lang = "mm"
+```
+
+Because the matrix is built from the AST rather than from generated model text,
+this route avoids the model-build step that dominates time and memory on large
+models. It is expected to become the default for linear problems; for now treat
+it as experimental and check results against GLPK.
+
 The same model also runs **where you are not**. Two routes send the solve
-elsewhere, reusing the formulations above rather than adding a fifth:
+elsewhere, reusing the formulations above rather than defining a new one:
 
 - **[NEOS](https://neos-server.org/)** — `neos_gams_cplex` and friends solve on
   the NEOS server, so CPLEX needs no local licence. Set `set_neos_email()` once.
-- **`multimod_cloud`** *(experimental)* — writes the problem as MPS and solves
-  it on a cloud GPU, for models too large for a laptop.
+- **`mmcloud`** *(experimental)* — writes the problem as MPS and solves it on a
+  cloud GPU, for models too large for a laptop.
 
-`solver_options` carries 38 ready presets across all of them — simplex,
+`solver_options` carries 41 ready presets across all of them — simplex,
 barrier, interior-point and first-order (PDLP, cuOpt).
 
 ### Quickstart

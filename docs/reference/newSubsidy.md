@@ -46,32 +46,31 @@ newSub(
 
   region
 
-  :   character. Region name to apply the parameter, NA for every
-      region.
+  : character. Region name to apply the parameter, NA for every region.
 
   year
 
-  :   integer. Year to apply the parameter, NA for every year.
+  : integer. Year to apply the parameter, NA for every year.
 
   timeslice
 
-  :   character. Time timeslice to apply the parameter, NA for every
-      timeslice.
+  : character. Time timeslice to apply the parameter, NA for every
+    timeslice.
 
   inp
 
-  :   numeric. Input subsidy, e.g., per unit of commodity consumed by
-      all processes.
+  : numeric. Input subsidy, e.g., per unit of commodity consumed by all
+    processes.
 
   out
 
-  :   numeric. Output subsidy, e.g., per unit of commodity produced by
-      all processes.
+  : numeric. Output subsidy, e.g., per unit of commodity produced by all
+    processes.
 
   bal
 
-  :   numeric. Balance subsidy, e.g., per unit of commodity balance
-      (production - consumption).
+  : numeric. Balance subsidy, e.g., per unit of commodity balance
+    (production - consumption).
 
 - misc:
 

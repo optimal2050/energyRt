@@ -51,19 +51,19 @@ newExport(
 
   cluster
 
-  :   character. Price step this row applies to, NA for every step.
+  : character. Price step this row applies to, NA for every step.
 
   res.lo
 
-  :   numeric. Lower bound on the cumulative volume.
+  : numeric. Lower bound on the cumulative volume.
 
   res.up
 
-  :   numeric. Upper bound on the cumulative volume.
+  : numeric. Upper bound on the cumulative volume.
 
   res.fx
 
-  :   numeric. Fixed cumulative volume. Overrides `res.lo` and `res.up`.
+  : numeric. Fixed cumulative volume. Overrides `res.lo` and `res.up`.
 
 - export:
 
@@ -71,42 +71,41 @@ newExport(
 
   cluster
 
-  :   character. Price step this row applies to, NA for every step. See
-      the `cluster` slot.
+  : character. Price step this row applies to, NA for every step. See
+    the `cluster` slot.
 
   region
 
-  :   character. Region name to apply the parameter; use NA to apply to
-      all regions.
+  : character. Region name to apply the parameter; use NA to apply to
+    all regions.
 
   year
 
-  :   integer. Year to apply the parameter; use NA to apply to all
-      years.
+  : integer. Year to apply the parameter; use NA to apply to all years.
 
   timeslice
 
-  :   character. Time timeslice to apply the parameter; use NA to apply
-      to all timeslices.
+  : character. Time timeslice to apply the parameter; use NA to apply to
+    all timeslices.
 
   exp.lo
 
-  :   numeric. Export lower bound.
+  : numeric. Export lower bound.
 
   exp.up
 
-  :   numeric. Export upper bound.
+  : numeric. Export upper bound.
 
   exp.fx
 
-  :   numeric. Fixed export volume, ignored if NA. This parameter
-      overrides `exp.lo` and `exp.up`.
+  : numeric. Fixed export volume, ignored if NA. This parameter
+    overrides `exp.lo` and `exp.up`.
 
   price
 
-  :   numeric. Price received per unit exported. Export revenue is a
-      NEGATIVE cost – the minus sits inside `eqExportRowCost` – so a
-      higher price is a better outcome for the objective.
+  : numeric. Price received per unit exported. Export revenue is a
+    NEGATIVE cost – the minus sits inside `eqExportRowCost` – so a
+    higher price is a better outcome for the objective.
 
 - cluster:
 
@@ -139,26 +138,26 @@ newExport(
 
   cluster
 
-  :   character. Step label, used in the expanded object name.
+  : character. Step label, used in the expanded object name.
 
   desc
 
-  :   character. Description of the step.
+  : character. Description of the step.
 
   share
 
-  :   numeric. The step's fraction of the object's quantity.
-      DESCRIPTIVE, not enforced: unlike `technology` or `trade` this
-      class has no capacity variable to tie, so
-      [`asExportCurve()`](https://energyRt.org/reference/supply-curve.md)
-      writes the split straight into the quantity bounds and records
-      here what it did.
+  : numeric. The step's fraction of the object's quantity. DESCRIPTIVE,
+    not enforced: unlike `technology` or `trade` this class has no
+    capacity variable to tie, so
+    [`asExportCurve()`](https://energyRt.org/reference/supply-curve.md)
+    writes the split straight into the quantity bounds and records here
+    what it did.
 
   order
 
-  :   integer. Fill order, 1 = the cheapest step (or, for export, the
-      best paid). Without it labels sort alphabetically and "S10" would
-      precede "S2".
+  : integer. Fill order, 1 = the cheapest step (or, for export, the best
+    paid). Without it labels sort alphabetically and "S10" would precede
+    "S2".
 
 - region:
 

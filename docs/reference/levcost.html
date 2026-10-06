@@ -19,7 +19,7 @@ without re-solving: levcost(lc, by_variant = "npv").'><meta property="og:image" 
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9007</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9014</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -159,14 +159,24 @@ commodities without a supply in the container are auto-supplied
 <dd><p>A <code>calendar</code> object or <code>NULL</code>.</p></dd>
 
 <dt><code>timeframe</code></dt>
-<dd><p><code>"ANNUAL"</code> (default) or <code>"native"</code>.
+<dd><p><code>"auto"</code> (default), <code>"ANNUAL"</code> or
+<code>"native"</code>.
 <code>"ANNUAL"</code> prices the technology on a single annual time-timeslice: any
 weather profile is collapsed to an annual capacity factor (applied as the
 technology's annual availability), so capacity is sized to serve unit
 annual demand at that factor (textbook LCOE). <code>"native"</code> keeps the
 supplied (sub-annual) calendar and normalises by total generation –
 useful when the technology is analysed together with storage or
-transmission, where sub-annual dispatch matters.</p></dd>
+transmission, where sub-annual dispatch matters; it requires a
+<code>calendar</code> holding the process's timeslices and will not choose one
+for you.
+<code>"auto"</code> annualizes when that collapse is sound and prices natively
+when it is not. It is unsound when a process carries more than one
+<code>@weather</code> factor (the annual mean of a product is not the product of
+the annual means, so the pair has no single annual equivalent) or has
+parameter rows pinned to a named sub-annual timeslice (the slice stops
+existing). An explicit <code>"ANNUAL"</code> declines in those cases rather than
+return a number built on an invalid collapse.</p></dd>
 
 <dt><code>backstop</code></dt>
 <dd><p>Logical, default <code>TRUE</code>. Enables a very

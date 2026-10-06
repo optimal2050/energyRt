@@ -316,8 +316,13 @@ getData(
 
 - process:
 
-  if TRUE, dimensions "tech", "stg", "trade", "imp", "expp", "dem", and
-  "sup" will be renamed with "process".
+  `TRUE` renames the process-class id dimension ("tech", "stg", "trade",
+  "sup", "dem", "imp", "impp", "expp") to "process", so results from
+  different classes stack into one frame. A character value instead
+  SELECTS the named process(es) and renames – `process = "COAL"`. Use
+  `process_` for a regex, e.g. `process_ = "^E"`. A character value is
+  always a selection, so "T"/"TRUE" are read as process names, not
+  logicals.
 
 - parameters:
 

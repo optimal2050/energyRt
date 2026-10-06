@@ -20,394 +20,388 @@ package name to `env`.
 
   default:
 
-  :   NULL
+  :     NULL
 
   option:
 
-  :   en.gams_path
+  : en.gams_path
 
   envvar:
 
-  :   ENERGYRT_GAMS_PATH (evaluated if possible, raw string otherwise)
+  : ENERGYRT_GAMS_PATH (evaluated if possible, raw string otherwise)
 
 - gdxlib_path:
 
   default:
 
-  :   NULL
+  :     NULL
 
   option:
 
-  :   en.gdxlib_path
+  : en.gdxlib_path
 
   envvar:
 
-  :   ENERGYRT_GDXLIB_PATH (evaluated if possible, raw string otherwise)
+  : ENERGYRT_GDXLIB_PATH (evaluated if possible, raw string otherwise)
 
 - python_path:
 
   default:
 
-  :   NULL
+  :     NULL
 
   option:
 
-  :   en.python_path
+  : en.python_path
 
   envvar:
 
-  :   ENERGYRT_PYTHON_PATH (evaluated if possible, raw string otherwise)
+  : ENERGYRT_PYTHON_PATH (evaluated if possible, raw string otherwise)
 
 - julia_path:
 
   default:
 
-  :   NULL
+  :     NULL
 
   option:
 
-  :   en.julia_path
+  : en.julia_path
 
   envvar:
 
-  :   ENERGYRT_JULIA_PATH (evaluated if possible, raw string otherwise)
+  : ENERGYRT_JULIA_PATH (evaluated if possible, raw string otherwise)
 
 - glpk_path:
 
   default:
 
-  :   NULL
+  :     NULL
 
   option:
 
-  :   en.glpk_path
+  : en.glpk_path
 
   envvar:
 
-  :   ENERGYRT_GLPK_PATH (evaluated if possible, raw string otherwise)
+  : ENERGYRT_GLPK_PATH (evaluated if possible, raw string otherwise)
 
 - neos_email:
 
   default:
 
-  :   NULL
+  :     NULL
 
   option:
 
-  :   en.neos_email
+  : en.neos_email
 
   envvar:
 
-  :   NEOS_EMAIL (evaluated if possible, raw string otherwise)
+  : NEOS_EMAIL (evaluated if possible, raw string otherwise)
 
 - neos_endpoint:
 
   default:
 
-  :   "https://neos-server.org:3333"
+  :     "https://neos-server.org:3333"
 
   option:
 
-  :   en.neos_endpoint
+  : en.neos_endpoint
 
   envvar:
 
-  :   ENERGYRT_NEOS_ENDPOINT (evaluated if possible, raw string
-      otherwise)
+  : ENERGYRT_NEOS_ENDPOINT (evaluated if possible, raw string otherwise)
 
 - solver:
 
   default:
 
-  :   list(name = "glpk", lang = "GLPK")
+  :     list(name = "glpk", lang = "GLPK")
 
   option:
 
-  :   en.solver
+  : en.solver
 
   envvar:
 
-  :   ENERGYRT_SOLVER (evaluated if possible, raw string otherwise)
+  : ENERGYRT_SOLVER (evaluated if possible, raw string otherwise)
 
 - scenarios_path:
 
   default:
 
-  :   "scenarios/"
+  :     "scenarios/"
 
   option:
 
-  :   en.scenarios_path
+  : en.scenarios_path
 
   envvar:
 
-  :   ENERGYRT_SCENARIOS_PATH (evaluated if possible, raw string
-      otherwise)
+  : ENERGYRT_SCENARIOS_PATH (evaluated if possible, raw string
+    otherwise)
 
 - registry_file:
 
   default:
 
-  :   "energyRt_registry.csv"
+  :     "energyRt_registry.csv"
 
   option:
 
-  :   en.registry_file
+  : en.registry_file
 
   envvar:
 
-  :   ENERGYRT_REGISTRY_FILE (evaluated if possible, raw string
-      otherwise)
+  : ENERGYRT_REGISTRY_FILE (evaluated if possible, raw string otherwise)
 
 - models_path:
 
   default:
 
-  :   "models/"
+  :     "models/"
 
   option:
 
-  :   en.models_path
+  : en.models_path
 
   envvar:
 
-  :   ENERGYRT_MODELS_PATH (evaluated if possible, raw string otherwise)
+  : ENERGYRT_MODELS_PATH (evaluated if possible, raw string otherwise)
 
 - repositories_path:
 
   default:
 
-  :   "repositories/"
+  :     "repositories/"
 
   option:
 
-  :   en.repositories_path
+  : en.repositories_path
 
   envvar:
 
-  :   ENERGYRT_REPOSITORIES_PATH (evaluated if possible, raw string
-      otherwise)
+  : ENERGYRT_REPOSITORIES_PATH (evaluated if possible, raw string
+    otherwise)
 
 - datasets_path:
 
   default:
 
-  :   "datasets/"
+  :     "datasets/"
 
   option:
 
-  :   en.datasets_path
+  : en.datasets_path
 
   envvar:
 
-  :   ENERGYRT_DATASETS_PATH (evaluated if possible, raw string
-      otherwise)
+  : ENERGYRT_DATASETS_PATH (evaluated if possible, raw string otherwise)
 
 - log_file:
 
   default:
 
-  :   ""
+  :     ""
 
   option:
 
-  :   en.log_file
+  : en.log_file
 
   envvar:
 
-  :   ENERGYRT_LOG_FILE (evaluated if possible, raw string otherwise)
+  : ENERGYRT_LOG_FILE (evaluated if possible, raw string otherwise)
 
 - profile_dir:
 
   default:
 
-  :   ""
+  :     ""
 
   option:
 
-  :   en.profile_dir
+  : en.profile_dir
 
   envvar:
 
-  :   ENERGYRT_PROFILE_DIR (evaluated if possible, raw string otherwise)
+  : ENERGYRT_PROFILE_DIR (evaluated if possible, raw string otherwise)
 
 - reports_path:
 
   default:
 
-  :   "reports/"
+  :     "reports/"
 
   option:
 
-  :   en.reports_path
+  : en.reports_path
 
   envvar:
 
-  :   ENERGYRT_REPORTS_PATH (evaluated if possible, raw string
-      otherwise)
+  : ENERGYRT_REPORTS_PATH (evaluated if possible, raw string otherwise)
 
 - levcost_cache_path:
 
   default:
 
-  :   "levcosts/"
+  :     "levcosts/"
 
   option:
 
-  :   en.levcost_cache_path
+  : en.levcost_cache_path
 
   envvar:
 
-  :   ENERGYRT_LEVCOST_CACHE_PATH (evaluated if possible, raw string
-      otherwise)
+  : ENERGYRT_LEVCOST_CACHE_PATH (evaluated if possible, raw string
+    otherwise)
 
 - path_builders:
 
   default:
 
-  :   list()
+  :     list()
 
   option:
 
-  :   en.path_builders
+  : en.path_builders
 
   envvar:
 
-  :   ENERGYRT_PATH_BUILDERS (evaluated if possible, raw string
-      otherwise)
+  : ENERGYRT_PATH_BUILDERS (evaluated if possible, raw string otherwise)
 
 - storage_format:
 
   default:
 
-  :   "feather"
+  :     "feather"
 
   option:
 
-  :   en.storage_format
+  : en.storage_format
 
   envvar:
 
-  :   ENERGYRT_STORAGE_FORMAT (evaluated if possible, raw string
-      otherwise)
+  : ENERGYRT_STORAGE_FORMAT (evaluated if possible, raw string
+    otherwise)
 
 - storage_compression:
 
   default:
 
-  :   "zstd"
+  :     "zstd"
 
   option:
 
-  :   en.storage_compression
+  : en.storage_compression
 
   envvar:
 
-  :   ENERGYRT_STORAGE_COMPRESSION (evaluated if possible, raw string
-      otherwise)
+  : ENERGYRT_STORAGE_COMPRESSION (evaluated if possible, raw string
+    otherwise)
 
 - storage_compression_level:
 
   default:
 
-  :   15L
+  :     15L
 
   option:
 
-  :   en.storage_compression_level
+  : en.storage_compression_level
 
   envvar:
 
-  :   ENERGYRT_STORAGE_COMPRESSION_LEVEL (evaluated if possible, raw
-      string otherwise)
+  : ENERGYRT_STORAGE_COMPRESSION_LEVEL (evaluated if possible, raw
+    string otherwise)
 
 - exchange_format:
 
   default:
 
-  :   "feather"
+  :     "feather"
 
   option:
 
-  :   en.exchange_format
+  : en.exchange_format
 
   envvar:
 
-  :   ENERGYRT_EXCHANGE_FORMAT (evaluated if possible, raw string
-      otherwise)
+  : ENERGYRT_EXCHANGE_FORMAT (evaluated if possible, raw string
+    otherwise)
 
 - exchange_compression:
 
   default:
 
-  :   "lz4"
+  :     "lz4"
 
   option:
 
-  :   en.exchange_compression
+  : en.exchange_compression
 
   envvar:
 
-  :   ENERGYRT_EXCHANGE_COMPRESSION (evaluated if possible, raw string
-      otherwise)
+  : ENERGYRT_EXCHANGE_COMPRESSION (evaluated if possible, raw string
+    otherwise)
 
 - exchange_compression_level:
 
   default:
 
-  :   15L
+  :     15L
 
   option:
 
-  :   en.exchange_compression_level
+  : en.exchange_compression_level
 
   envvar:
 
-  :   ENERGYRT_EXCHANGE_COMPRESSION_LEVEL (evaluated if possible, raw
-      string otherwise)
+  : ENERGYRT_EXCHANGE_COMPRESSION_LEVEL (evaluated if possible, raw
+    string otherwise)
 
 - verbose:
 
   default:
 
-  :   0
+  :     0
 
   option:
 
-  :   en.verbose
+  : en.verbose
 
   envvar:
 
-  :   ENERGYRT_VERBOSE (evaluated if possible, raw string otherwise)
+  : ENERGYRT_VERBOSE (evaluated if possible, raw string otherwise)
 
 - debug:
 
   default:
 
-  :   0
+  :     0
 
   option:
 
-  :   en.debug
+  : en.debug
 
   envvar:
 
-  :   ENERGYRT_DEBUG (evaluated if possible, raw string otherwise)
+  : ENERGYRT_DEBUG (evaluated if possible, raw string otherwise)
 
 - progress_bar:
 
   default:
 
-  :   TRUE
+  :     TRUE
 
   option:
 
-  :   en.progress_bar
+  : en.progress_bar
 
   envvar:
 
-  :   ENERGYRT_PROGRESS_BAR (evaluated if possible, raw string
-      otherwise)
+  : ENERGYRT_PROGRESS_BAR (evaluated if possible, raw string otherwise)
 
 ## See also
 
