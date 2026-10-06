@@ -73,8 +73,14 @@ get_glpk_path <- function() {
 }
 
 # Build a `glpsol` command line, quoting the executable if its path has spaces.
+# `--log` keeps a copy of glpsol's terminal output in the run directory.
+# MathProg aborts the whole script when `solve` fails, so nothing after `solve;`
+# runs -- not even the "solution status" row the other backends write. glpsol
+# also exits 0 on an infeasible model, so its own log is the only place its
+# verdict survives. `.solver_verdict()` reads it.
 .glpsol_cmdline <- function(exe = .find_glpsol(),
-                            args = "-m energyRt.mod -d energyRt.dat") {
+                            args = paste("-m energyRt.mod -d energyRt.dat",
+                                         "--log output/solver.log")) {
   if (grepl(" ", exe, fixed = TRUE)) exe <- shQuote(exe)
   paste(exe, args)
 }

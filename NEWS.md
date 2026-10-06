@@ -1,5 +1,21 @@
 # energyRt (development version)
 
+## An infeasible solve is a result, not a crash
+
+* `solve_scenario()` raised `"Solution files not found"` when the solver
+  concluded that a model has no solution. An infeasible or unbounded model is an
+  answer, so it now returns the scenario with an empty `modOut` and warns with
+  the solver's own verdict; the objective reads as `NA`. Missing output files
+  with **no** verdict still raise an error -- that is a solver that never ran,
+  not a model without a solution.
+
+* GLPK could not report this at all. GNU MathProg aborts the whole script when
+  `solve` fails, so no post-solve statement runs, and `glpsol` exits 0 either
+  way. Its command line now carries `--log output/solver.log`, which keeps a copy
+  of the solver's terminal output in the run directory -- the only place its
+  verdict survives. Pyomo and GAMS already recorded a real solution status;
+  nothing read it.
+
 ## `pTradeIrCost` renamed to `pTradeIrVarom`
 
 * The parameter behind `trade@varom$varom` is now `pTradeIrVarom`. Its old name

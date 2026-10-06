@@ -150,6 +150,58 @@
 #' scen <- read_solution(scen)                    # the active run
 #' scen <- read_solution(scen, run = "low/glpk")  # a variant's run
 #' }
+# Did the solver reach a DEFINITE conclusion that there is no solution?
+#
+# Distinguishes "the model is infeasible/unbounded" -- a legitimate answer a
+# caller may want to act on -- from "the files are missing for reasons unknown",
+# which is a broken toolchain and must stay loud. Two sources, because the
+# backends differ:
+#
+#   * `output/log.csv` -- the structured route. Julia writes a "termination
+#     status" and a "no primal solution" row; Pyomo and GAMS write a numeric
+#     "solution status". GLPK cannot: MathProg aborts on a failed `solve`, so no
+#     post-solve statement ever runs.
+#   * `output/solver.log` -- glpsol's own terminal copy (see `.glpsol_cmdline()`).
+#     Its verdict lines are the only evidence GLPK leaves, and it exits 0 either
+#     way, so the exit code cannot be used.
+#
+# Returns a one-line verdict, or NULL when nothing definite was found.
+#' @noRd
+.solver_verdict <- function(solver.dir) {
+  if (is.null(solver.dir) || !nzchar(solver.dir)) return(NULL)
+  odir <- file.path(solver.dir, "output")
+
+  lf <- file.path(odir, "log.csv")
+  if (file.exists(lf)) {
+    lg <- tryCatch(utils::read.csv(lf, stringsAsFactors = FALSE),
+                   error = function(e) NULL)
+    if (!is.null(lg) && all(c("parameter", "value") %in% names(lg))) {
+      ts <- lg$value[lg$parameter == "termination status"]
+      if (any(lg$parameter == "no primal solution") || length(ts) > 0)
+        return(paste0("the solver returned no primal solution",
+                      if (length(ts) > 0)
+                        paste0(" (termination status: ", ts[1], ")") else ""))
+      ss <- lg$value[lg$parameter == "solution status"]
+      if (length(ss) > 0 && !identical(as.character(ss[1]), "1"))
+        return(paste0("the solver reported solution status ", ss[1],
+                      " (1 == optimal)"))
+    }
+  }
+
+  sl <- file.path(odir, "solver.log")
+  if (file.exists(sl)) {
+    txt <- tryCatch(readLines(sl, warn = FALSE), error = function(e) character())
+    pat <- c("NO PRIMAL FEASIBLE SOLUTION" = "the model is INFEASIBLE",
+             "UNBOUNDED SOLUTION"          = "the model is UNBOUNDED",
+             "NO DUAL FEASIBLE SOLUTION"   = "the model has no dual feasible solution")
+    for (k in names(pat))
+      if (any(grepl(k, txt, fixed = TRUE)))
+        return(paste0(pat[[k]], " (glpsol: ",
+                      trimws(grep(k, txt, fixed = TRUE, value = TRUE)[1]), ")"))
+  }
+  NULL
+}
+
 read_solution <- function(obj, run = NULL, ..., ondisk = !isInMemory(obj)) {
   scen <- obj
   ## arguments
@@ -224,21 +276,17 @@ read_solution <- function(obj, run = NULL, ..., ondisk = !isInMemory(obj)) {
   }, silent = TRUE)
   if (inherits(vrb_list, "try-error")) {
     msg <- paste0("Solution files not found\n", var_file)
-    # A solver that terminates without a primal solution (time limit,
-    # first-order non-convergence) writes no variable files. log.csv records
-    # the reason, which is more actionable than a missing path.
-    log_file <- file.path(arg$solver.dir, "output", "log.csv")
-    if (file.exists(log_file)) {
-      lg <- try(utils::read.csv(log_file), silent = TRUE)
-      if (!inherits(lg, "try-error") && "parameter" %in% names(lg)) {
-        ts <- lg$value[lg$parameter == "termination status"]
-        if (any(lg$parameter == "no primal solution") || length(ts) > 0) {
-          msg <- paste0(
-            "The solver returned no primal solution",
-            if (length(ts) > 0) paste0(" (termination status: ", ts[1], ")") else "",
-            ". No variable files were written to ", arg$solver.dir)
-        }
-      }
+    # A solver that reaches a definite "there is no solution" conclusion --
+    # infeasible, unbounded, a time limit -- writes no variable files. That is
+    # an ANSWER, not a broken toolchain, so it is reported and the scenario
+    # comes back with an empty `modOut` (callers read the objective as NA).
+    # Missing files with NO verdict still stop: that is a solver that never ran.
+    verdict <- .solver_verdict(arg$solver.dir)
+    if (!is.null(verdict)) {
+      warning("Scenario '", scen@name, "': ", verdict,
+              ". No solution was written to ", arg$solver.dir,
+              call. = FALSE)
+      return(invisible(obj))
     }
     # The run's own imported store, if it has one. A FALLBACK, never a
     # preference: `solve_scenario()` overwrites a run's `output/` in place
