@@ -38,17 +38,25 @@ get_glpk_path <- function() {
 #
 # Priority:
 #   1. a directory configured via `set_glpk_path()` (standalone GLPK install);
-#   2. `glpsol` on the session PATH via `Sys.which()` - on Windows this picks up
+#   2. the `glpsol` PACKAGE, which ships the executable - its version is known
+#      and it needs no separate GLPK install, so it is preferred over whatever
+#      happens to be on the machine;
+#   3. `glpsol` on the session PATH via `Sys.which()` - on Windows this picks up
 #      the copy BUNDLED WITH RTOOLS (rtools bundles the full GLPK dev kit), so an
 #      Rtools user needs no separate GLPK install;
-#   3. known Rtools toolchain locations (in case Rtools is installed but not on
+#   4. known Rtools toolchain locations (in case Rtools is installed but not on
 #      the session PATH);
-#   4. a bare `"glpsol"` resolved by the OS at run time (last resort).
+#   5. a bare `"glpsol"` resolved by the OS at run time (last resort).
 #
 # Returns the executable path (or bare command) as a length-1 character.
 .find_glpsol <- function() {
   gp <- get_glpk_path()
   if (!is.null(gp) && nzchar(gp)) return(file.path(gp, "glpsol"))
+
+  if (requireNamespace("glpsol", quietly = TRUE)) {
+    hit <- tryCatch(glpsol::glpsol_path(), error = function(e) NULL)
+    if (!is.null(hit) && nzchar(hit) && file.exists(hit)) return(hit)
+  }
 
   found <- Sys.which("glpsol")
   if (nzchar(found)) return(unname(found))
