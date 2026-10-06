@@ -177,34 +177,6 @@ make_timetable <- function(struct = list(ANNUAL = "ANNUAL"),
   return(dtf)
 }
 
-if (F) {
-  ### tests ####
-  make_timetable()
-  make_timetable(list("SEASON" = c("WINTER", "SUMMER")))
-  make_timetable(list("SEASON" = c("WINTER" = .6, "SUMMER" = .4)))
-  make_timetable(list(
-    "SEASON" = list(
-      "WINTER" = list(.3, DAY = c("MORNING", "EVENING")),
-      "SUMMER" = list(.7, DAY = c("MORNING", "EVENING"))
-    )
-  ))
-
-  make_timetable(list(
-    "SEASON" = list("WINTER" = .3, "SUMMER" = .7),
-    "DAY" = c("MORNING", "EVENING")
-  ))
-
-  # from TOPIA
-  make_timetable(timeslices)
-  make_timetable(timeslices1)
-  make_timetable(timeslices2)
-  make_timetable(timeslices2, year_fraction = .5)
-  make_timetable(timeslices3)
-
-  dtf <- make_timetable(timeslices2)
-  # obj <- new("calendar")
-  # obj@timetable <- dtf
-}
 
 #' Generate a new calendar object from
 #'
@@ -290,25 +262,6 @@ newCalendar <- function(
   obj
 }
 
-if (F) {
-  ## tests ####
-  newCalendar()
-  newCalendar(timetable = make_timetable(timeslices))
-  newCalendar(timetable = make_timetable(timeslices2),
-    name = "WRSA_DN",
-    desc = "Four Seasons, day-night"
-  )
-  newCalendar(make_timetable(timeslices3),
-    name = "m12h24",
-    desc = "One day per month, 24 hours per day"
-  )
-
-  cal <- make_timetable(timeslices3)
-  cal_subset <- cal[grepl("h0[12]", HOUR)]
-  cal$share |> sum()
-  cal_subset$share |> sum()
-  newCalendar(timetable = cal_subset, year_fraction = sum(cal_subset$share))
-}
 
 # Model-year anchor ####
 # `year_start` places the first day of the model year. A nontrivial anchor makes
@@ -402,11 +355,6 @@ setMethod("print", "calendar", function(x, ...) {
 
 })
 
-if (F) {
-  tmtbl <- make_timetable(timeslices::tsl_sets$d365_h24)
-  calend <- newCalendar(tmtbl, name = "d365_h24")
-  print(calend)
-}
 
 # internal functions ####
 # validation of names of individual time-timeslices
@@ -820,117 +768,13 @@ if (F) {
   .complete_calendar(tsl, year_fraction = year_fraction)
 }
 
-if (F) {
-  ## tests ####
-  .init_calendar()
-  .init_calendar(struct = timeslices2)
-  .init_calendar(struct = timeslices2, year_fraction = .5)
-  .init_calendar(struct = timeslices3)
-  make_timetable(timeslices2)
-  make_timetable(timeslices3)
-  .init_calendar(timetable = make_timetable(timeslices2))
-  .init_calendar(timetable = make_timetable(timeslices3))
-  # .init_calendar(timetable = tsl@timetable)
-}
 
 #### migrated from class-timeslice ####
 # the functions below to be review/rewritten
 
-# =============================================================================#
-# Check if timeslice level exist ####
-# =============================================================================#
-# !!! superceded by .check_timeframe
-.checkTimesliceLevel <- function(app, approxim) {
-  timeframes <- names(approxim$calendar@timeframe_rank)
-  # if (length(app@timeslice) != 0 &&
-  #     all(app@timeslice != colnames(approxim$calendar@timetable)[
-  #       -ncol(approxim$calendar@timetable)])) {
-  if (.hasSlot(app, "timeframe")) {
-    if (!is_empty(app@timeframe) && !any(app@timeframe %in% timeframes)) {
-      stop(paste0(
-        'Unrecognized timeframe level "', app@timeframe, '" in ',
-        class(app), ': "', app@name, '"'
-      ))
-    }
-  }
-}
-
-.check_timeframe <- function(obj, scen) {
-  # the function checks if the given timeframe is valid
-  # ...
-}
 
 
-# =============================================================================#
-# Disaggregate timeslice ####
-# e.g. from WINTER to WINTER_DAY and WINTER_NIGHT
-# =============================================================================#
-.disaggregateTimesliceLevel <- function(app, approxim) {
-  slt <- getSlots(class(app))
-  slt <- names(slt)[slt %in% c("data.frame", "data.table")]
-  if (is(app, "technology")) slt <- slt[slt != "afs"]
-  for (ss in slt) {
-    if (any(colnames(slot(app, ss)) == "timeslice")) {
-      tmp <- slot(app, ss) |> as.data.frame() # !!! rewrite
-      fl <- (!is.na(tmp$timeslice) & !(tmp$timeslice %in% approxim$timeslice)) # !!! @calendar?
-      if (any(fl)) {
-        mark_col <- (sapply(tmp, is.character) | colnames(tmp) == "year")
-        mark_coli <- colnames(tmp)[mark_col]
-        t1 <- tmp[fl, , drop = FALSE] |> as.data.frame() # !!! rewrite
-        t2 <- tmp[!fl, , drop = FALSE] |> as.data.frame() # !!! rewrite
-        # Sort from lowest level to largest
-        ff <- approxim$parent_child$parent[
-          !duplicated(approxim$parent_child$parent)
-        ]
-        f1 <- seq_along(ff)
-        names(f1) <- ff
-        if (!all(t1$timeslice %in% ff)) {
-          stop(paste0(
-            'Unknown timeslice or timeslice is not parrent timeslice, for "',
-            app@name, '" (class ', class(app), '), slot: "', ss, '", timeslice: "',
-            paste0(t1$timeslice[!(t1$timeslice %in% ff)], collapse = '", "'), '"'
-          ))
-        }
-        t1 <- t1[
-          sort(f1[t1$timeslice], index.return = TRUE, decreasing = TRUE)$ix, ,
-          drop = FALSE
-        ]
-        # Add child disaggregation
-        for (i in seq_len(nrow(t1))) {
-          # ll <- approxim$parent_child[
-          #   approxim$parent_child$parent == t1[i, "timeslice"], "child"
-          # ]
-          ll <- approxim$parent_child |>
-            filter(parent == t1$timeslice[i]) |>
-            select(child) |> purrr::simplify()
 
-          t0 <- t1[rep(i, length(ll)), , drop = FALSE]
-          t0$timeslice <- ll
-          # tes <- t0[, mark_coli, drop = FALSE]
-          tes <- select(t0, all_of(mark_coli)) |> as.matrix()
-          tes[is.na(tes)] <- "-"
-          z1 <- apply(tes, 1, paste0, collapse = "##")
-          # tes <- t2[, mark_coli, drop = FALSE]
-          tes <- select(t2, all_of(mark_coli)) |> as.matrix()
-          tes[is.na(tes)] <- "-"
-          z2 <- apply(tes, 1, paste0, collapse = "##")
-          # If there are the same row, after splititng
-          if (any(z1 %in% z2)) {
-            merge_col <- merge0(t0, t2, by = mark_coli)
-            colnames(merge_col)[seq_len(ncol(t0))] <- colnames(t0)
-            for (j in colnames(tmp)[!mark_col]) {
-              merge_col[!is.na(merge_col[, paste0(j, ".y")]), j] <- NA
-            }
-            t0 <- rbind(t0[!((z1 %in% z2)), ], merge_col[, 1:ncol(t0)])
-          }
-          t2 <- rbind(t2, t0)
-        }
-        slot(app, ss) <- t2
-      }
-    }
-  }
-  app
-}
 
 
 # ToDo: write methods: ####

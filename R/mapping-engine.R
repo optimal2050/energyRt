@@ -69,7 +69,7 @@ mappings_by_recipe <- function(spec = load_mapping_spec()) {
 
 # `recipe_membership` + `.membership_map_def` + `.build_membership_map` (the
 # never-wired engine membership impl) ARCHIVED to drafts/legacy-mapping/membership.R.
-# The core membership maps are built by R/map_membership.R (registry): the `*_comm`
+# The core membership maps are built by R/mapping-builders.R (registry): the `*_comm`
 # maps read the `*_comm` sets populated in interp_mod, and the input/output-group
 # maps (mTechInpGroup / mTechOutGroup / mTechGroupComm) derive from checkInpOut() —
 # these feed .build_tech_group_maps in the constraint recipe. This no-op fallback
@@ -400,7 +400,7 @@ recipe_closure <- function(scen, names, fmp) {
   df
 }
 
-# `recipe_calendar` superseded by R/map_calendar.R (registry) and ARCHIVED to
+# `recipe_calendar` superseded by R/mapping-builders.R (registry) and ARCHIVED to
 # drafts/legacy-mapping/calendar.R. Retained as a no-op fallback for the three
 # calendar-tagged maps (mWeatherTimeslice, mStorageFullYear, mTechFullYear) that are
 # built in later recipes; the calendar timeslice helpers above remain live.
@@ -416,9 +416,9 @@ recipe_calendar <- function(scen, names, fmp) scen
 # (= invest-years UNION stock-years = Span). The early-amortisation ("Eac")
 # window equals Span (legacy behaviour). These are interpolation-independent.
 #
-# NOTE: `.lifespan_family_def` moved to R/map_lifespan.R (authoritative). The
+# NOTE: `.lifespan_family_def` moved to R/mapping-builders.R (authoritative). The
 # lifespan window/retirement helpers below remain shared infrastructure used by
-# the per-mapping builders in R/map_lifespan.R.
+# the per-mapping builders in R/mapping-builders.R.
 
 # Store a derived lifespan map: drop region for region-free families, reorder
 # columns to the parameter's dimSets, and write via `d2p`.
@@ -600,7 +600,7 @@ recipe_calendar <- function(scen, names, fmp) scen
   .lifespan_retirement(scen, names, fmp, new_df, span_df, regions, "technology")
 }
 
-# NOTE: `recipe_lifespan` superseded by R/map_lifespan.R and ARCHIVED to
+# NOTE: `recipe_lifespan` superseded by R/mapping-builders.R and ARCHIVED to
 # drafts/legacy-mapping/lifespan.R. The shared lifespan helpers above remain.
 
 # --------------------------------------------------------------------------- #
@@ -827,7 +827,7 @@ recipe_calendar <- function(scen, names, fmp) scen
 # --------------------------------------------------------------------------- #
 
 # NOTE: `.value_map_def` (value map -> source p* params + window) moved to
-# R/map_value.R, which is now authoritative (it backs the per-mapping map_*
+# R/mapping-builders.R, which is now authoritative (it backs the per-mapping map_*
 # builders and is read by interp.R `.param_value_maps()` for parameter trimming).
 
 # Generic writer for derived maps: keep the columns present in the parameter's
@@ -850,7 +850,7 @@ recipe_calendar <- function(scen, names, fmp) scen
 # NOTE: the value-family builders (.build_value_map_std, .build_mSupSpan,
 # .build_mTechRetirement, .build_policy_cost, .build_mTaxCost, .build_mSubCost,
 # .build_weather_map, .value_map_builders) were superseded by the per-mapping
-# functions in R/map_value.R and ARCHIVED to drafts/legacy-mapping/value.R.
+# functions in R/mapping-builders.R and ARCHIVED to drafts/legacy-mapping/value.R.
 
 #' Build value mappings (recipe 5)
 #'
@@ -860,7 +860,7 @@ recipe_calendar <- function(scen, names, fmp) scen
 #' @returns updated scenario object.
 #' @keywords internal
 # Value maps whose derivation depends on filter-recipe maps and are therefore
-# emitted as side-effects of their filter `map_*` siblings in R/map_filter.R
+# emitted as side-effects of their filter `map_*` siblings in R/mapping-filter.R
 # (recipe_value runs before filter, so the source maps are absent there). Listed
 # here so recipe_value does not report them as pending.
 .value_maps_built_in_filter <- c(
@@ -875,7 +875,7 @@ recipe_calendar <- function(scen, names, fmp) scen
 # mTechUpgrade (technology@upgrade.technology). Skipped silently.
 .value_maps_unsupported <- c("mTechUpgrade")
 
-# Fallback for value-family names NOT handled by the registry (R/map_value.R):
+# Fallback for value-family names NOT handled by the registry (R/mapping-builders.R):
 # the filter-deferred maps and unsupported ones are intentional no-ops; anything
 # else is reported pending. (The real value maps are built by their map_*().)
 recipe_value <- function(scen, names, fmp) {
@@ -892,14 +892,14 @@ recipe_value <- function(scen, names, fmp) {
 # --------------------------------------------------------------------------- #
 # Recipe "filter": activity / flow domains (variable index sets)
 #
-# FULLY MIGRATED to R/map_filter.R (per-mapping registry). Every filter-recipe
+# FULLY MIGRATED to R/mapping-filter.R (per-mapping registry). Every filter-recipe
 # map is registry-backed, so build_mappings() never routes a name to a filter
 # fallback; the legacy `.build_filter_core` / `.build_filter_derived` /
 # `recipe_filter` builders were ARCHIVED to drafts/legacy-mapping/filter.R.
 # The shared helpers they used (.trade_aux_derived, .io_row_maps, .aux_conv_map)
 # stay live above; the setm_any side-effect maps (meqSupAvaLo, meq*RowLo,
 # m*RowCumUp, mInpSub/mOutSub, *Cost, mTradeRoutes) are now emitted as
-# side-effects of their filter siblings in R/map_filter.R.
+# side-effects of their filter siblings in R/mapping-filter.R.
 # --------------------------------------------------------------------------- #
 
 # --------------------------------------------------------------------------- #
@@ -909,7 +909,7 @@ recipe_value <- function(scen, names, fmp) {
 
 # Constraint-recipe maps whose derivation is shared with a filter-recipe map and
 # are therefore emitted as side-effects of their filter `map_*` siblings in
-# R/map_filter.R (map_mSupAvaUp, map_mImportRow, map_mExportRow), which run before
+# R/mapping-filter.R (map_mSupAvaUp, map_mImportRow, map_mExportRow), which run before
 # recipe_constraint. Listed here so recipe_constraint does not report them as pending.
 .constraint_maps_built_in_filter <- c(
   "meqImportRowLo", "meqExportRowLo",
@@ -1634,7 +1634,7 @@ recipe_constraint <- function(scen, names, fmp) {
 # --------------------------------------------------------------------------- #
 
 # NOTE: `recipe_cost_agg` + `.cost_agg_maps_empty_legacy` superseded by
-# R/map_costagg.R (registry) and ARCHIVED to drafts/legacy-mapping/costagg.R.
+# R/mapping-builders.R (registry) and ARCHIVED to drafts/legacy-mapping/costagg.R.
 
 # --------------------------------------------------------------------------- #
 # Driver
@@ -1677,11 +1677,11 @@ build_mappings <- function(scen, fmp = NULL,
       membership = recipe_membership(scen, nms, fmp),
       closure    = recipe_closure(scen, nms, fmp),
       calendar   = recipe_calendar(scen, nms, fmp),
-      # lifespan fully migrated to R/map_lifespan.R (registry); no fallback.
+      # lifespan fully migrated to R/mapping-builders.R (registry); no fallback.
       value      = recipe_value(scen, nms, fmp),
-      # filter fully migrated to R/map_filter.R (registry); no fallback.
+      # filter fully migrated to R/mapping-filter.R (registry); no fallback.
       constraint = recipe_constraint(scen, nms, fmp),
-      # cost_agg fully migrated to R/map_costagg.R (registry); no fallback.
+      # cost_agg fully migrated to R/mapping-builders.R (registry); no fallback.
       # The remaining recipes are implemented incrementally; until each is
       # wired in, report the pending mappings rather than failing the pipeline.
       {
@@ -1828,7 +1828,7 @@ value_on_window <- function(scen, name, source, window = NULL, gate = NULL, fmp)
     # region-explicitly), and mTradeNew is (trade, year), so the annuity domain
     # came out empty and the trade capital cost vanished from the objective.
     # Expand any such dimension over its set members, as .policy_cost_map()
-    # already does for a NA region (R/map_value.R:151-158).
+    # already does for a NA region (R/mapping-builders.R).
     for (d in setdiff(dims, names(df))) {
       members <- scen@modInp@sets[[d]]
       if (length(members) == 0) next

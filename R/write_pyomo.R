@@ -361,9 +361,6 @@ get_python_path <- function() {
       return(kk)
     }
   }
-  # The whole materialised slot is written. This used to truncate to the
-  # `@misc$nValues` row-count cache, so a stale count silently made this engine
-  # write less data than GLPK, which never truncated.
   obj@data <- get_data_slot(obj)
   if (obj@type == "set") {
     tmp <- ""
@@ -436,9 +433,6 @@ get_python_path <- function() {
       return(kk)
     }
   }
-  # The whole materialised slot is written. This used to truncate to the
-  # `@misc$nValues` row-count cache, so a stale count silently made this engine
-  # write less data than GLPK, which never truncated.
   obj@data <- get_data_slot(obj)
   if (obj@type == "set") {
     tmp <- ""
@@ -502,9 +496,6 @@ get_python_path <- function() {
       return(kk)
     }
   }
-  # The whole materialised slot is written. This used to truncate to the
-  # `@misc$nValues` row-count cache, so a stale count silently made this engine
-  # write less data than GLPK, which never truncated.
   obj@data <- get_data_slot(obj)
   if (obj@type == "set") {
     tmp <- ""

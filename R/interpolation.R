@@ -230,39 +230,6 @@ interpolate_model <- function(mod, name = NULL, ...,
     fp(mi_path, "parameters", x)
   }
 
-  if (F) {
-    # debug
-    # library(energyRt)
-    devtools::load_all(".")
-    (load("tmp/topia-mod.RData"))
-    # fix trade objects
-    repo <- topia@model@data$topia_repository
-    repo
-    new_varom <- newTrade("")@varom
-    for (o in repo@data) {
-      if (inherits(o, "trade")) {
-        # !!! ToDo: modify update function to check columns
-        # varom <- newTrade("")@varom |> full_join(o@varom)
-        # o <- update(o, varom = varom)
-        o@varom <- full_join(new_varom, o@varom)
-        repo@data[[o@name]] <- o
-      }
-    }
-    repo@data$TRBD_ELC_R1_R2@varom
-    topia@model@data$topia_repository <- repo
-    # save(topia, file = "tmp/topia-mod.RData")
-    # end of fix
-    mod <- topia@model
-    scen <- new("scenario")
-    scen@name <- "topia_new_interpolation"
-    scen@path <- fp(get_scenarios_path(), scen@name) |> .fix_path()
-    slotNames(scen)
-    solution_type <- "foresight"
-
-    ondisk <- TRUE
-
-    ECOA <- mod@data$topia_repository@data$ECOA
-  }
 
   # class(mod)
   scen@model <- mod
@@ -302,7 +269,7 @@ interpolate_model <- function(mod, name = NULL, ...,
   # reporting), the geoscale is read for the region hierarchy
   # (`.geo_hierarchy()` below) and, when it is a SAMPLE of the model's
   # regions, it switches on spatial sampling -- the region mirror of the
-  # sampled calendar above (see R/sample_region.R).
+  # sampled calendar above (see the header of R/region.R).
   .spatial_mode <- NULL
   ii <- vapply(args, is_geoscale, logical(1))
   if (sum(ii) > 1) {
@@ -701,7 +668,7 @@ interpolate_model <- function(mod, name = NULL, ...,
   # Mapping sets ####
   # The membership MAPS (mSupComm, mImpComm, mDemComm, mExpComm, mTradeComm,
   # mStorageComm, mTechInpComm, mTechOutComm and the aux maps mTech/StorageAInp/
-  # AOut) are built from these sets by R/map_membership.R via
+  # AOut) are built from these sets by R/mapping-builders.R via
   # build_mappings(recipes = "membership") below. Here we only populate the
   # `*_comm` sets that those map builders read.
   .interp_step(verbose, "collecting sets: membership comm sets")
@@ -739,7 +706,7 @@ interpolate_model <- function(mod, name = NULL, ...,
   scen@modInp@sets$process_region <- get_process_region(scen)
 
   # Build the membership maps then the mCommReg closure from the `*_comm` /
-  # process sets above (R/map_membership.R, R/map_closure.R). The closure also
+  # process sets above (R/mapping-builders.R, R/mapping-builders.R). The closure also
   # populates the primary/secondary/comm_region sets and validates commodity
   # reachability. Formerly built inline here (archived: drafts/legacy-mapping/).
   .interp_step(verbose, "building maps: membership + closure")
@@ -805,27 +772,20 @@ interpolate_model <- function(mod, name = NULL, ...,
   #   of `scen@model@data`, so they are not dispatched here.
   classes <- NULL
 
-  # Parameter writes inside the loop below append O(chunk) instead of rebuilding
-  # the accumulated table per write; `.flush_pending_parameters()` collapses them
-  # afterwards. Scoped to this loop so that any other caller of
-  # `update_parameter()` keeps the original eager behaviour.
-  # (set `options(en.bulk_param_write = FALSE)` to force the original
-  # write-and-deduplicate-on-every-append path, e.g. to A/B the two.)
-  # Scoped to the object loop ONLY: it is the sole place that appends to the
-  # same parameter once per object. Later stages (`build_mappings()`) write each
-  # parameter in a single call, so they never had the accumulation cost and stay
-  # on the eager path -- which also keeps `@data` valid for anything that reads
-  # it directly.
-  # Bulk mode is an INTERNAL optimisation for the object loop only, so it is
-  # enabled here unless the caller opted out with FALSE, and the caller's own
-  # value is restored on EVERY exit path. Restoring only on the normal path (as
-  # this did) leaks `en.bulk_param_write = TRUE` out of any interpolation that
-  # errors inside the loop -- after which every later interpolation in the
-  # session sees a non-NULL option, never leaves bulk mode, and ships a scenario
-  # whose parameters are still parked in `@misc$.pending_chunks`. That model
-  # writes out with missing data and solves to OPTIMAL with objective 0, with no
-  # warning anywhere. Same class as the `.call_solver()` working-directory leak
-  # fixed in 0.74.
+  # Bulk mode: writes inside the loop below append O(chunk) instead of rebuilding
+  # the accumulated table per write, and `.flush_pending_parameters()` collapses
+  # them afterwards. `options(en.bulk_param_write = FALSE)` forces the eager path.
+  #
+  # Scoped to THIS loop, which is the only place that appends to the same
+  # parameter once per object. Later stages (`build_mappings()`) write each
+  # parameter in one call, so they never paid the accumulation cost and stay
+  # eager -- which also keeps `@data` valid for anything reading it directly.
+  #
+  # The caller's value is restored on EVERY exit path. Leaking TRUE out of an
+  # interpolation that errors inside the loop leaves every later interpolation in
+  # the session in bulk mode, shipping a scenario whose parameters are still
+  # parked in `@misc$.pending_chunks`: it writes out with missing data and solves
+  # to OPTIMAL with objective 0, silently.
   .bulk_prev <- getOption("en.bulk_param_write")
   if (!identical(.bulk_prev, FALSE)) options(en.bulk_param_write = TRUE)
   on.exit(options(en.bulk_param_write = .bulk_prev), add = TRUE)
@@ -1394,23 +1354,6 @@ interpolate_model <- function(mod, name = NULL, ...,
   scen
 }
 
-if (F) {
-  # debug
-  (topia_on_disk <- load_scenario("topia_on_disk",
-    path = fp(get_scenarios_path(), "topia_on_disk"),
-    env = NULL, overwrite = T
-  ))
-
-  # topia_on_disk <- topia
-  # topia_on_disk@path <- fp(get_scenarios_path(), "topia_on_disk")
-  # topia_on_disk@name <- "topia_on_disk"
-  # topia_on_disk <- save_scenario(topia_on_disk)
-  topia_on_disk@modInp@parameters$pEmissionFactor
-  topia_on_disk@modInp@parameters$pEmissionFactor@misc$onDisk
-  topia_on_disk@modInp@parameters$pEmissionFactor@data
-
-  topia_on_disk@modInp@parameters$comm@data
-}
 
 
 interp_slot <- function(obj, slot, overrides) {
@@ -1568,27 +1511,6 @@ collect_object_names <- function(
 }
 
 
-if (F) {
-  (load("tmp/topia-mod.RData"))
-  class(topia)
-  yr <- collect_set_elements(topia, "year")
-  rg <- collect_set_elements(topia, "region")
-  sl <- collect_set_elements(topia, "timeslice")
-  nm <- collect_set_elements(topia, "name")
-  wr <- collect_set_elements(topia, "weather")
-
-  pr <- collect_object_names(topia)
-  collect_object_names(topia@model, classes = NULL)
-
-  class(topia)
-  topia@modInp@sets
-
-  scen
-  obj <- topia@model
-
-  getObjPath(scen)
-  scen@inMemory
-}
 
 #' Apply function to scenario data
 #'
@@ -1678,104 +1600,7 @@ apply_to_parameters <- function(
 # }
 
 
-.interp_slot <- function(
-    x,
-    keys = c(
-      "region", "timeslice", "comm", "acomm", "tech", "process",
-      "vintage",
-      "weather", "stg", "sub", "dst", "src"
-    ),
-    year_seq = NULL,
-    val = "value",
-    int_rule = "inter",
-    yleft = 0, yright = 0) {
-  if (is.null(year_seq)) year_seq <- full_seq(x$year, 1)
-  .rule <- c(1, 1)
-  if (!grepl("int", int_rule, ignore.case = T)) stop("Not implemented")
-  if (grepl("for", int_rule, ignore.case = T)) .rule[2] <- 2
-  if (grepl("back", int_rule, ignore.case = T)) .rule[1] <- 2
 
-  x <- x |>
-    group_by(across(any_of(keys))) |>
-    complete(year = year_seq) |>
-    mutate(
-      # needs review
-      .NNN := .na_approx(.data[[val]],
-        x = year, rule = .rule,
-        yleft = yleft, yright = yright
-      )
-    ) |>
-    # as.data.table() |>
-    ungroup()
-  x[[val]] <- x[[".NNN"]]
-  x[[".NNN"]] <- NULL
-  return(x)
-}
-
-# superseded
-.complete_set <- function(x,
-                         set_name, full_set,
-                         par_name = NULL,
-                         par_dims = NULL
-                         ) {
-  if (is.null(all_sets)) {
-    # all_sets <- c("region", "year", "timeslice")
-    all_sets <- c("region", "year", "timeslice", "comm", "tech", "process",
-                  "vintage", "weather", "stg", "sub", "dst", "src",
-                  "acomm", "sup", "dem", "expp", "imp", "trade")
-  }
-  invisible()  # browser() disabled
-  col_ord <- colnames(x)
-
-  if (!is.null(par_name)) {
-    x <- filter(x, !is.na(.data[[par_name]]))
-  }
-
-  # split set_name to NAs and non-NAs
-  x_na <- x[is.na(x[[set_name]]), ]
-
-  # complete set with NAs
-  group_cols <- c(
-    par_dims[!(par_dims %in% set_name)],
-    par_name # make sure the value is
-  )
-  full_set_na <- full_set[!(full_set %in% x[[set_name]])]
-
-
-  if (nrow(x_na) > 0) {
-    x_na <- x_na |>
-      # filter(is.na(.data[[set_name]])) |>
-      group_by(across(any_of(group_cols))) |>
-      rename(.NNN = !!set_name) |>
-      complete(.NNN = full_set_na) |>
-      rename(!!set_name := .NNN) |>
-      ungroup() |>
-      filter(!is.na(.data[[set_name]])) |>
-      select(col_ord) |>
-      as.data.table()
-
-    x <- x |>
-      filter(!is.na(.data[[set_name]])) |>
-      select(col_ord) |>
-      rbind(x_na) |>
-      unique() |>
-      arrange(across(any_of(c("region", "year", "timeslice")))) |>
-      as.data.table()
-  }
-
-  if (set_name == "year") {
-    # add missing milestone-years even if there is no NA values in year column
-    x <- x |>
-      group_by(across(any_of(group_cols))) |>
-      complete(year = full_set) |>
-      ungroup() |>
-      arrange(across(any_of(c("region", "year", "timeslice")))) |>
-      as.data.table()
-  }
-
-
-  return(x)
-}
 
 #' Complete a data frame with missing set elements
 #'
@@ -1821,40 +1646,6 @@ complete_set <- function(
 
 }
 
-if (F) {
-  # debug
-  EHYD <- scen@model@data$topia_repository@data$EHYD
-  x <- EHYD@capacity
-  x$region <- NA
-
-  ECOA <- scen@model@data$topia_repository@data$ECOA
-  proc_name <- ECOA@name
-  x <- ECOA@capacity |>
-    filter(region %in% c("R1", "R2", "R3", "R7")) |>
-    select(region, year, stock)
-
-  ii <- x$region %in% c("R7")
-  x$region[ii] <- NA
-  x
-  x$stock[1] <- NA
-  x
-
-
-  x
-  x <- complete_set(x,
-                    set_name = "region",
-                    full_set = scen@modInp@sets$process_region[[proc_name]],
-                    par_name = "stock",
-                    par_dims = c("region", "year"))
-  x |>
-    complete_set("year",
-                  full_set = scen@modInp@sets$year,
-                  par_name = NULL,
-                  par_dims = c("region", "year"))
-
-
-
-}
 
 # Info ####
 ## Interpolation of NA values in parameter values ####
@@ -2237,96 +2028,6 @@ expand_sets <- function(
   return(d)
 }
 
-if (F) {
-  dt <- ECOA@capacity |>
-    filter(region %in% c("R1", "R2", "R3")) |>
-    # mutate(region = NA)
-    select(region, year, stock)
-
-  # dt[dt$region == "R1" & dt$year == 2015, c("region", "year")] <- NA
-  dt$region[dt$region == "R1"] <- NA
-  dt
-
-  expand_na_rows(
-    data = dt,
-    column = "region",
-    all_values = scen@modInp@sets$process_region[[ECOA@name]],
-    group_cols = c("year")
-  )
-
-  expand_sets(
-    # data = ECOA@capacity,
-    data = dt,
-    # process = ECOA@name,
-    # region = c("R1", "R2", "R3"),
-    full_sets = filter(scen@modInp@sets$process_years, process == ECOA@name),
-    value_col = "stock"
-  ) |>
-    # pivot_wider(
-    #   names_from = year,
-    #   values_from = stock
-    # ) |>
-    as.data.frame()
-
-
-  # check 'skip_na_dims' option
-  dt <- ECOA@capacity |>
-    filter(region %in% c("R1")) |>
-    mutate(region = NA) |>
-    select(region, year, stock)
-  dt
-  expand_sets(
-    data = dt,
-    full_sets = filter(scen@modInp@sets$process_years, process == ECOA@name),
-    value_col = "stock",
-    skip_na_dims = TRUE
-  )
-
-  # check 'add_missing_dims' option
-  expand_sets(
-    data = dt,
-    full_sets = filter(scen@modInp@sets$process_years, process == ECOA@name),
-    value_col = "stock",
-    add_missing_dims = TRUE
-  )
-
-  # check 'skip_na_dims' and 'add_missing_dims' options
-  expand_sets(
-    data = dt,
-    full_sets = filter(scen@modInp@sets$process_years, process == ECOA@name),
-    value_col = "stock",
-    add_missing_dims = TRUE,
-    skip_na_dims = TRUE
-  )
-  dt <- ECOA@capacity |>
-    filter(region %in% c("R1"), year == 2015) |>
-    mutate(region = NA_character_, year = NA_integer_) |>
-    mutate(stock = 10) |>
-    select(region, year, stock)
-  dt
-  expand_sets(
-    data = dt,
-    full_sets = filter(scen@modInp@sets$process_years, process == ECOA@name),
-    value_col = "stock",
-    add_missing_dims = TRUE,
-    skip_na_dims = TRUE
-  )
-
-  # check umbiguous assignment
-  dt <- ECOA@capacity |>
-    filter(region %in% c("R1", "R2")) |>
-    mutate(region = NA) |>
-    select(region, year, stock)
-  dt
-  expand_sets(
-    data = dt,
-    full_sets = filter(scen@modInp@sets$process_years, process == ECOA@name),
-    value_col = "stock",
-    add_missing_dims = TRUE,
-    skip_na_dims = TRUE
-  )
-
-}
 
 
 #' Interpolate numerical parameter for missing years
@@ -2350,50 +2051,6 @@ interpolate_numpar <- function(
     int_rule = "inter",
     def_val = NULL
   ) {
-  if (F) {
-    # data
-    set_cols <- scen@modInp@sets$set_names
-    dt <- ECOA@capacity |>
-      filter(region %in% c("R1", "R2", "R3")) |>
-      select(region, year, stock) |>
-      expand_sets(
-        full_sets = filter(scen@modInp@sets$process_years, process == ECOA@name),
-        value_col = "stock"
-      )
-    dt
-    # test
-    interpolate_numpar(
-      data = dt,
-      value_col = "stock",
-      set_cols = c("region"),
-      # int_rule = "inter"
-      # int_rule = "forw"
-      # int_rule = "back"
-      int_rule = "bwd.mid.fwd"
-      # def_val = 100
-    )
-
-    # one value
-    dt <- data.frame(
-      region = c("R1", "R2", "R3"),
-      year = c(2015, 2020, 2025),
-      stock = c(NA, 10, NA)
-    ) |>
-      expand_sets(
-        full_sets = filter(scen@modInp@sets$process_years, process == ECOA@name),
-        value_col = "stock"
-      )
-    dt
-
-    interpolate_numpar(
-      data = dt,
-      value_col = "stock",
-      set_cols = c("region"),
-      # int_rule = "inter"
-      int_rule = "forw"
-    )
-
-  }
 
   if (nrow(data) == 0) {
     return(data)
@@ -2597,68 +2254,6 @@ interpolate_bounds <- function(
 
 }
 
-if (F) {
-  data <- ECOA@afs |>
-    expand_sets(
-      full_sets = filter(scen@modInp@sets$process_years, process == ECOA@name),
-      skip_na_dims = TRUE
-      # value_col = "stock"
-    )
-  ECOA@af
-  dt <- data.table(
-    region = NA_character_,
-    year = c(2015, 2020, 2025, 2030, 2050),
-    timeslice = NA_character_,
-    af.lo = c(.75, NA, NA, .25, NA),
-    af.up = c(.8, NA, .2, NA, .8),
-    af.fx = c(NA, .5, NA, NA, NA)
-  ) |>
-    force_cols_classes()
-  dt
-
-  interpolate_bounds(
-    data = dt,
-    value_col = "af",
-    set_cols = c("region", "year", "timeslice"),
-    int_rule = "mid"
-    # def_val = 0.5
-  )
-
-  # conflicts
-  dt <- data.table(
-    region = NA_character_,
-    year = c(2015, 2020, 2025, 2030, 2050),
-    timeslice = NA_character_,
-    af.lo = c(.75, NA, NA, .25, NA),
-    af.up = c(.8, NA, .2, NA, .8),
-    af.fx = c(NA, .5, NA, NA, .8)
-  ) |>
-    force_cols_classes()
-  interpolate_bounds(
-    data = dt,
-    value_col = "af",
-    set_cols = c("region", "year", "timeslice"),
-    int_rule = "mid"
-  )
-
-  dt <- data.table(
-    region = NA_character_,
-    year = c(2015, 2020, 2025, 2030, 2050),
-    timeslice = NA_character_,
-    af.lo = c(.75, NA, NA, .25, .85),
-    af.up = c(.8, NA, .2, NA, .8),
-    af.fx = c(NA, .5, NA, NA, NA)
-  ) |>
-    force_cols_classes()
-
-  interpolate_bounds(
-    data = dt,
-    value_col = "af",
-    set_cols = c("region", "year", "timeslice"),
-    int_rule = "mid"
-  )
-
-}
 
 
 
@@ -4729,14 +4324,6 @@ get_default_value <- function(
 
 }
 
-if (FALSE) {
-  get_default_value(pname = "pWeather")
-  get_default_value(sname = "wval")
-  get_default_value(sname = "cinp2use")
-  get_default_value(sname = "af", class = "technology", bound = "lo")
-  get_default_value(sname = "af", class = "technology", bound = "lo", one_value = TRUE)
-
-}
 
 get_interpolation_rule <- function(
     scen = NULL,
@@ -4807,13 +4394,6 @@ get_interpolation_rule <- function(
 
 }
 
-if (FALSE) {
-  # debug
-  get_interpolation_rule(pname = "pWeather")
-  get_interpolation_rule(sname = "wval")
-  get_interpolation_rule(sname = "cinp2use")
-  get_interpolation_rule(sname = "af", class = "technology", bound = "lo")
-}
 
 
 

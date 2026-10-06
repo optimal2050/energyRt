@@ -800,8 +800,6 @@ getData.default <- function(scen, ...) {
   )
 }
 
-# get_data() is deprecated -> R/legacy_api_shims.R
-
 # ---- getData helpers: empty result + timeframe (timeslice) aggregation ----------
 
 # Uniform "nothing found" return: an (empty) data.frame when merge = TRUE,
@@ -1066,13 +1064,6 @@ getData.default <- function(scen, ...) {
   lapply(ll, function(df) .aggregate_timeframe_df(df, calendar, target_rank))
 }
 
-if (F) { # test
-  load("energyRt_tutorial/data/topia_scen_BAU.RData")
-  (dem <- getData(scen, name = "pDemand", year = 2015, merge = TRUE))
-  (vTechOut <- getData(scen, name = "vTechOut", comm = "ELC", merge = TRUE, year = 2015))
-  # Storage capacity
-  getData(scen, name = "vStorageOutCap", merge = TRUE)
-}
 
 # The id column each of the seven process classes contributes. `process` is the
 # union of exactly these classes (`sets$process`, R/interpolation.R), so at most
@@ -1206,26 +1197,6 @@ revalueSets <- function(x, newValues = NULL) {
   x
 }
 
-if (F) { # Check
-  library(tidyverse)
-  # renameSets
-  x <- tibble(a = letters, n = as.character(1:length(letters)))
-  x
-  renameSets(x, c(a = "A", n = "N"))
-
-  d <- as.data.frame(x)
-  renameSets(d, c(a = "A", n = "N"))
-
-  # revalueSets
-  nw1 <- LETTERS[1:10]
-  names(nw1) <- letters[1:10]
-  nw2 <- formatC(1:9, width = 3, flag = "0")
-  names(nw2) <- 1:9
-  newValues <- list(a = nw1, n = nw2)
-  newValues
-  revalueSets(x, newValues)
-  revalueSets(d, newValues)
-}
 
 .getNames <- function(
     obj, cls, regex = NULL, ignore.case = FALSE,

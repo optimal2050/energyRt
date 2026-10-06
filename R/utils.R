@@ -147,14 +147,6 @@ size <- function(x, level1 = FALSE, units = "auto", sort = TRUE,
   }
 }
 
-if (F) { # Check
-  size(scen, 1, "Mb", byteTol = 1024)
-  size(scen@modInp, 1, "Mb", byteTol = 1024)
-  size(scen@modInp@parameters, 1, "Mb", byteTol = 1024 * 1000)
-  size(scen@modInp@parameters$pTradeIrEff, 1, "Mb", byteTol = 1024 * 1000)
-  size(scen@modInp@parameters$pTradeIrEff@data, 1, "Mb", byteTol = 0, asNumeric = TRUE)
-  head(scen@modInp@parameters$pTradeIrEff@data)
-}
 
 # Bytes held by a directory tree. `all.files` because a store can hold dotfiles
 # and a size that silently omits them is worse than no size; `na.rm` because
@@ -418,8 +410,6 @@ drop_na_cols <- function(x, unique = TRUE) {
   x
 }
 
-# make_scenario_dirname() is deprecated -> R/legacy_api_shims.R
-
 fEAC <- function(invcost, discount, olife) {
   stopifnot(olife > 0)
   stopifnot(invcost > 0)
@@ -451,20 +441,6 @@ is_any <- function(x, na = TRUE, any_mask = "^ANY_?[A-Z]*$") {
   return(ii)
 }
 
-if (F) {
-  # year as factor
-  y <- seq(2000, 2020, 5)
-  yy <- factor(y, ordered = TRUE)
-  yy <- factor(y, levels = y, ordered = TRUE)
-  yy <- factor(y, levels = y, labels = y, ordered = TRUE)
-  yy
-  labels(yy)
-  levels(yy)
-  as.character(yy)
-  as.integer(yy)
-  as.integer(levels(yy))
-
-}
 
 # Flatten a model's repository list into a single named list of its objects'
 # `@data`. Used by `model` `[` indexing (R/class-model.R). Relocated here from the

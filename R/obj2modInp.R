@@ -1,6 +1,10 @@
 setGeneric("ob2mi", function(scen, obj, extra_params) standardGeneric("ob2mi"))
 setGeneric("d2p", function(obj, data, path) standardGeneric("d2p"))
 
+# Returns the WHOLE materialised data slot. Every writer reads a parameter's
+# data through here: they used to truncate to the `@misc$nValues` row-count
+# cache instead, so a stale count silently made an engine write less data than
+# GLPK, which never truncated.
 get_data_slot <- function(obj, optional = FALSE, dedup = TRUE) {
   data <- NULL
   if (isOnDisk(obj)) {
@@ -416,8 +420,6 @@ setMethod(
   "ob2mi",
   signature(scen = "scenario", obj = "commodity", extra_params = "list"),
   function(scen, obj, extra_params = list()) {
-    # .checkTimesliceLevel(obj, extra_params)
-    # .check_timeframe(obj, scen)
 
     obj@name <- toString(obj@name)
     # obj <- .filter_data_in_slots(obj, extra_params$region, "region")
@@ -507,7 +509,6 @@ setMethod(
 
     # dem <- .filter_data_in_slots(dem, approxim$region, "region")
     # approxim <- .fix_approximation_list(approxim, comm = dem@commodity)
-    # dem <- .disaggregateTimesliceLevel(dem, approxim)
 
     ## pDemand ####
     dat <- data.table(
@@ -553,7 +554,6 @@ setMethod(
   "ob2mi",
   signature(scen = "scenario", obj = "export", extra_params = "list"),
   function(scen, obj, extra_params = list()) {
-    # .checkTimesliceLevel(app, approxim)
     exp <- obj
     exp@name <- toString(exp@name)
     if (length(exp@commodity) != 1) {
@@ -634,7 +634,6 @@ setMethod(
   "ob2mi",
   signature(scen = "scenario", obj = "import", extra_params = "list"),
   function(scen, obj, extra_params = list()) {
-    # .checkTimesliceLevel(app, approxim)
     # imp <- .upper_case(app)
     imp <- obj
     imp@name <- toString(imp@name)
@@ -1180,7 +1179,7 @@ setMethod(
 
 # The unwired ob2mi("horizon") and ob2mi("calendar") methods were archived to
 # depreciated/R/ob2mi-horizon-calendar.R (never dispatched; ob2mi("horizon") was
-# the sole consumer of the `fn` list in the archived R/fn.R). Horizon/calendar
+# the sole consumer of the `fn` list in depreciated/R/fn.R). Horizon/calendar
 # parameters are built by ob2mi("settings") below and the `calendar` recipe.
 
 # =============================================================================#
@@ -1815,37 +1814,6 @@ get_slot_meta <- function(class = NULL,
   ll
 }
 
-if (FALSE) {
-  # test
-  ll <- get_slot_meta("technology", slot = "cap2act", return_names = "slot")
-  names(ll)
-  ll |> unlist()
-  flatten(ll)
-  as.data.frame(ll)
-  ll <- get_slot_meta(class = "technology",
-                      type = "numpar",
-                      return_names = "slot")
-  ll
-  str(ll)
-  names(ll)
-  # ll[["pTechEac"]]
-  get_slot_meta(class = "technology",
-                # slot = "tech",
-                type = "numpar",
-                dimSets = c("region", "year", "timeslice")
-                )
-  get_slot_meta(class = "tech", slot = "tech", type = "numpar",
-                dimSets = c("region", "year", "timeslice"), return_names = "slot")
-  ll <- get_slot_meta(colName = "wval", return_names = "defVal", flat = TRUE)
-  ll <- get_slot_meta(colName = "waf", return_names = "defVal")
-  ll <- get_slot_meta(colName = "waf")
-  class(ll)
-  ll
-  ll |> as.data.table()
-  ll |> unlist()
-  ll |> flatten()
-
-}
 # =============================================================================#
 
 

@@ -586,8 +586,6 @@ print.energyRtUnits <- function(x, ...) {
   invisible(x)
 }
 
-# get_units() is deprecated -> R/legacy_api_shims.R
-
 # ── Facet labels for plot_process_year() ───────────────────────────────────────
 
 # A ggplot2 labeller turning facet keys ("ava", "cost", "invcost") into

@@ -89,13 +89,6 @@ newRepository <- function(
   return(obj)
 }
 
-if (F) {
-  newRepository() #|> print()
-  newRepository("repo", ELC, GAS) #|> print()
-  newRepository("repo", ELC, GAS, ECOA) |> print()
-  newRepository("repo", ELC, GAS, ECOA, TRBD_ELC) |> print()
-
-}
 
 
 # Methods ####

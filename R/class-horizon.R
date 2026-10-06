@@ -337,41 +337,6 @@ setMethod("update", "horizon", function(object, ..., warn_nodata = TRUE) {
 }
 
 ## tests ####
-if (F) {
-  newHorizon()
-  newHorizon(2020:2030)
-  newHorizon(2020:2030, c(1, 2, 5, 10))
-  newHorizon(2020:2035, c(1, 2, 5, 5, 5))
-  newHorizon(2020:2050, c(1, 2, 5, 7, 1))
-
-  newHorizon(
-    intervals = data.frame(
-      start = c(2030, 2031, 2034),
-      mid =   c(2030, 2032, 2037),
-      end =   c(2030, 2033, 2040)
-    )
-  )
-
-  newHorizon(
-    period = 2020:2050,
-    intervals = data.frame(
-      start = c(2030, 2031, 2034),
-      mid =   c(2030, 2032, 2037),
-      end =   c(2030, 2033, 2040)
-    )
-  )
-
-  newHorizon(2020:2050, c(3, 2, 5, 10), desc = "")
-
-  newHorizon(
-    period = 2020:2040,
-    intervals = data.frame(
-      start = c(2030, 2032, 2035),
-      mid =   c(2031, 2033, 2037),
-      end =   c(2032, 2034, 2040)
-    )
-  )
-}
 
 
 # Milestone labels ############################################################

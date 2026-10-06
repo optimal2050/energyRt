@@ -689,7 +689,7 @@ drop_scenario_run <- function(scen, run, force = FALSE) {
   )
   mf$model <- model %||% prev$model
   mf$datasets <- datasets %||% prev$datasets
-  # lifecycle state (seal/mark, R/seal.R) survives re-saves
+  # lifecycle state (seal/mark, R/store-objects.R) survives re-saves
   for (k in c("sealed", "sealed_at", "sealed_hash",
               "marked_delete", "delete_importance", "marked_at")) {
     if (!is.null(prev[[k]])) mf[[k]] <- prev[[k]]

@@ -565,62 +565,7 @@ read_solution <- function(obj, run = NULL, ..., ondisk = !isInMemory(obj)) {
   }
 
   scen@modOut@sets <- rr$set_vec
-  ## Salvage cost calculation
-  salvage_cost0 <- function(scen, par) {
-    invcost <- .add_dropped_zeros(scen@modInp, paste0("p", par, "Invcost"))
-    olife <- .add_dropped_zeros(scen@modInp, paste0("p", par, "Olife"))
-    # Salvage value of capital not yet recovered -- a financing calculation, so
-    # it discounts at the cost of capital, not at the social rate.
-    discount <- .add_dropped_zeros(scen@modInp, "pWacc")
-    newcap <- get_variable(scen, paste0("v", par, "NewCap"))
-    invcost$invcost <- invcost$value
-    invcost$value <- NULL
-    olife$olife <- olife$value
-    olife$value <- NULL
-    discount$discount <- discount$value
-    discount$value <- NULL
-    newcap$newcap <- newcap$value
-    newcap$value <- NULL
-
-    salvage <-
-      merge0(
-        merge0(
-          newcap,
-          merge0(olife, invcost)
-        ),
-        discount,
-        all.x = TRUE
-      )
-    end_year <- max(.get_data_slot(scen@modInp@parameters$mEndMilestone)$yearp)
-    salvage <- merge0(
-      salvage,
-      .get_data_slot(scen@modInp@parameters$mStartMilestone)
-    )
-    salvage$start <- salvage$yearp
-    salvage$yearp <- NULL
-    # if (F) {
-    # !!! unfinished
-    salvage <- salvage[salvage$start + salvage$olife > end_year, ]
-
-    salvage$value <- salvage$newcap * salvage$invcost *
-      ((1 + salvage$discount)^(salvage$olife) -
-        (1 + salvage$discount)^(end_year - salvage$start + 1)) /
-      ((1 + salvage$discount)^salvage$olife - 1)
-
-    fl <- (salvage$discount == 0)
-    salvage$value[fl] <- (salvage$newcap * salvage$invcost *
-      (salvage$olife - (end_year - salvage$start + 1)) /
-      salvage$olife)[fl]
-
-    salvage[, c(3, 2, 1, 9)]
-    # }
-    # NULL # temporary
-  }
   if (scen@modOut@stage == "solved") {
-    # Postprocessing
-    # scen@modOut@variables$vTechSalv <- salvage_cost0(scen, "Tech")
-    # scen@modOut@variables$vStorageSalv <- salvage_cost0(scen, "Storage")
-    # scen@modOut@variables$vTradeSalv <- salvage_cost0(scen, "Trade")
     # `vDummyImportCost` / `vDummyExportCost` are SOLVER variables: the model
     # declares them and `eqDummyImportCost` computes them weighted over timeslices
     # (glpk/energyRt.mod), and `read_solution` has already stored those values.

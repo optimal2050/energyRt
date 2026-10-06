@@ -413,7 +413,7 @@ setMethod(
     }
     format <- format[!current]
 
-    # -- auto-run levcost (cache-backed, see R/levcost_cache.R) --------------
+    # -- auto-run levcost (cache-backed, see R/levcost.R) --------------
     if (auto_levcost) {
       levcost <- tryCatch(
         do.call(energyRt::levcost, c(list(object = object), lc_dots)),

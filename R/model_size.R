@@ -88,7 +88,7 @@ model_size <- function(scen, top_n = 15L) {
   }
   folded_total <- sum(rows[is_val])
   # Exact saving of the fold STEP: interp_mod records the value-parameter total
-  # just before `fold_parameters` (R/interp.R). NULL for an unfolded build
+  # just before `fold_parameters` (R/fold.R). NULL for an unfolded build
   # or a scenario loaded without the record -> report no saving.
   rb <- scen@misc$fold_rows_before
   before_fold <- if (!is.null(rb) && length(rb) == 1L && !is.na(rb) && rb >= folded_total)

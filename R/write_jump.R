@@ -306,9 +306,6 @@ get_julia_path <- function() {
       return(c(rtt, kk))
     }
   }
-  # The whole materialised slot is written. This used to truncate to the
-  # `@misc$nValues` row-count cache, so a stale count silently made this engine
-  # write less data than GLPK, which never truncated.
   obj@data <- get_data_slot(obj)
   if (obj@type == "set") {
     tmp <- ""
@@ -391,9 +388,6 @@ get_julia_path <- function() {
       ))
     }
   }
-  # The whole materialised slot is written. This used to truncate to the
-  # `@misc$nValues` row-count cache, so a stale count silently made this engine
-  # write less data than GLPK, which never truncated.
   obj@data <- get_data_slot(obj)
   if (obj@type == "map" || obj@type == "set") {
     ret <- paste0("# ", obj@name)

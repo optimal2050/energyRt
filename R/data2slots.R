@@ -56,7 +56,7 @@
 
 # Slots that accept USER-DEFINED extra columns beyond the prototype. The
 # weather link tables forward such columns as arguments to the transform
-# function a row names in its `transform` column (see R/weather_transform.R),
+# function a row names in its `transform` column (see R/class-weather.R),
 # so their names cannot be enumerated here. Unknown columns on any other slot
 # stay an error.
 .open_slots <- list(technology = "weather", storage = "weather",

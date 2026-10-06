@@ -391,24 +391,6 @@ save_scenario <- function(
   return(invisible(scen))
 }
 
-if (F) {
-  getObjPath(scen)
-  scen_ondisk <- save_scenario(
-    scen = scen,
-    path = fp("tmp/scenarios", scen@name),
-    verbose = T
-  )
-  isInMemory(scen_ondisk)
-  isOnDisk(scen_ondisk)
-  getObjPath(scen_ondisk)
-  getObjPath(scen_ondisk@model)
-  getObjPath(scen_ondisk@model@data$repo)
-  getObjPath(scen_ondisk@model@data[[1]])
-  getObjPath(scen_ondisk@modOut)
-  scen_ondisk@modOut@misc
-  scen_ondisk@modInp@misc
-  scen_ondisk@modInp@parameters$region@misc
-}
 
 # mem2disk
 # mem_to_disk
@@ -661,22 +643,6 @@ reset_slot <- function(x) {
   return(x)
 }
 
-if (F) {
-  isOnDisk(scen)
-  isInMemory(scen)
-  scen_ondisk <- obj2disk(scen, fp("scenarios", scen@name), verbose = FALSE)
-  isOnDisk(scen_ondisk)
-  isInMemory(scen_ondisk)
-  size(scen)
-  size(scen_ondisk)
-  fs::dir_info(fp("scenarios", scen@name), recurse = TRUE)$size |> sum()
-  scen_ondisk2 <- obj2disk(scen_ondisk, fp("scenarios", scen@name),
-    verbose = T
-  )
-  isInMemory(scen_ondisk2)
-  fs::dir_info(fp("scenarios", scen@name), recurse = TRUE)$size |> sum()
-  # obj2disk(scen@modOut, fp("scenarios", scen@name), verbose = TRUE)
-}
 
 rename_duplicated_sets <- function(x) {
   # x - table
@@ -808,15 +774,6 @@ en_open_dataset <- function(path, format = NULL, engine = "arrow") {
   }
 }
 
-if (F) {
-  p <- "scenarios/base/sets/comm/"
-  en_open_dataset(p)
-  en_open_dataset("scenarios/base/variables/")
-  a <- en_open_dataset("scenarios/base/variables/vTechOut")
-  a |>
-    filter(value > 0.1) |>
-    collect()
-}
 
 #' Is object stored in memory?
 #'
@@ -874,12 +831,6 @@ isOnDisk <- function(obj) {
   !isInMemory(obj)
 }
 
-if (F) {
-  isInMemory(scen)
-  isInMemory(scen@model)
-  scen@model@misc$inMemory <- FALSE
-  isInMemory(scen@model)
-}
 
 getObjPath <- function(obj, path = NULL) {
   if (!isS4(obj)) {
@@ -912,12 +863,6 @@ setObjPath <- function(obj, path = NULL) {
   return(obj)
 }
 
-if (F) {
-  getObjPath(scen)
-  getObjPath(scen@model)
-  scen@model@misc$path <- "scenarios/base/model"
-  getObjPath(scen@model)
-}
 
 get_lazy_data <- function(obj,
                           slot = NULL, element = NULL,
@@ -1037,26 +982,6 @@ get_lazy_dim_names <- function(obj, slot = NULL, element = NULL,
 }
 
 
-if (F) {
-  get_lazy_data(obj = scen, slot = "name")
-  get_lazy_data(scen@modOut,
-    slot = "variables",
-    element = "vTechOut",
-    InMemory = FALSE,
-    path = "scenarios/base"
-  ) |>
-    collect() |>
-    as.data.table()
-
-  get_lazy_data(scen@modOut@variables, element = "vObjective", InMemory = TRUE) |>
-    collect()
-  get_lazy_data(scen@modOut@variables,
-    element = "vObjective",
-    InMemory = FALSE,
-    path = "scenarios/base/variables"
-  ) |>
-    collect()
-}
 
 # On-disk directory layout version, written to `<scen>/layout` by
 # `save_scenario()` and checked by `load_scenario()`.
@@ -1149,20 +1074,11 @@ mark_inMemory <- function(obj) {
   return(obj)
 }
 
-if (F) {
-  mi <- scen@model
-  mi@misc
-  mi <- set_ondisk_slots(mi)
-  mi@misc
-}
 
 # load_scenario <- function(path, inMemory = FALSE) {
 #
 # }
 
-if (F) {
-  findData(scen, "")
-}
 
 #' Load scenario (in progress)
 #'
@@ -1569,26 +1485,6 @@ get_element <- function(obj, element) {
 #
 # }
 
-if (F) {
-  x <- scen_BASE@modOut@variables
-  y <- obj2mem(scen_ondisk@modOut)@variables
-
-  object.size(x)
-  object.size(y)
-
-  for (i in names(x)) {
-    if (!all(dim(x[[i]]) == dim(y[[i]]))) {
-      print(i)
-      stop()
-    }
-    stopifnot(
-      compare::compare(x[[i]], y[[i]], allowAll = TRUE)$result
-      )
-  }
-
-  scen_inmem <- obj2mem(scen_ondisk)
-
-}
 
 
 

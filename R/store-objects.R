@@ -631,7 +631,8 @@ load_model <- function(name, hash = NULL, path = NULL, env = NULL,
 #
 # `repositories/<name>/` holds one saved repository (hash in the manifest):
 # `repository.yml`, the thinned `repo.RData`, and parquet stores for the big
-# data slots — the model store's pattern (R/model_store.R) one level down.
+# data slots — the model store's pattern (`.model_store_resolve()` above) one
+# level down.
 # Repositories are where real sharing happens: many models differing only in
 # config carry identical repos, and `save_model(embed_repos=)` can reference
 # a stored repository instead of embedding its data into every model entry.

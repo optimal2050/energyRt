@@ -494,7 +494,6 @@ addSummand <- function(
     stm@for.each <- interpolate_slot(stm@for.each, val = NULL)
   }
 
-  # !!! end
   stop.constr <- function(x) {
     stop(paste0('Constraint "', stm@name, '" error: ', x))
   }
@@ -904,12 +903,9 @@ addSummand <- function(
     need.set0 <- for.each.set[for.each.set %in% colnames(stm@rhs)]
     xx <- newParameter(paste0("pCnsRhs", stm@name), need.set0, "numpar",
       defVal = stm@defVal,
-      # interpolation = "back.inter.forth",
-      # interpolation = .defInt[["rhs"]], #!!! ToDO: add @defInt slot
       interpolation = stm@interpolation,
       colName = "rhs"
     )
-    # !!! Similar interpolation for LHS is needed
     yy <- .interp_numpar(stm@rhs, "rhs", xx, approxim2)
     n1 <- colnames(yy)[colnames(yy) != "value"]
     # yy <- yy[
@@ -1036,8 +1032,6 @@ addSummand <- function(
         need.set,
         "numpar",
         defVal = stm@lhs[[i]]@defVal, # !!! Check
-        # interpolation = "back.inter.forth"
-        # interpolation = .defInt[["rhs"]] # !!! Temporary fix
         interpolation = stm@interpolation
       )
       prec@parameters[[xx@name]] <-

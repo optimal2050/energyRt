@@ -2,9 +2,9 @@
 # solve.R -- solver framework (write / run / read) + the interp_mod pipeline
 # entry points solve_model()/solve_scenario() (merged here from the former solve_new.R).
 # The shared framework (.executeScenario) is also used by the archived legacy
-# entry points (depreciated/R/solve_legacy.R). The public legacy names
-# interpolate_model()/solve_model()/solve_scenario()/`solve` are repurposed in
-# R/legacy_api_shims.R.
+# entry points (depreciated/R/solve_legacy.R). The public names
+# interpolate_model()/solve_model()/solve_scenario()/`solve` are defined in this
+# file; the shim layer that once held them went at the deprecation sunset.
 # =============================================================================#
 
 # ---- "smart" path helpers ----------------------------------------------------

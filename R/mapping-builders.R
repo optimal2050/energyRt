@@ -211,12 +211,6 @@ map_mWeatherTimeslice <- function(scen, fmp) {
 # helper sets primary_comm_region / secondary_comm_region / comm_region and runs
 # the declared-commodity / served-demand validation. Built via
 # build_mappings(recipes = "closure") in interp_mod, after the membership maps.
-#
-# NOTE: the traded-primary-commodity branch (a primary supply/import commodity
-# that is also traded across regions) carried a pre-existing `browser()` debug
-# stop from the legacy inline block. The test models never reach it; an older
-# model with a traded primary commodity does. The `browser()` was removed so such
-# models run -- the branch already adds the shipped-to regions to `comm_region`.
 # =========================================================================== #
 
 map_mCommReg <- function(scen, fmp) {

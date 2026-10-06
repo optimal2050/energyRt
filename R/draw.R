@@ -2347,9 +2347,6 @@ en_obj2df <- function(object, sets = NULL, verbose = FALSE) {
   # !!! ToDO: process list slots (1st level at least)
 }
 
-if (F) {
-  x <- en_obj2df(TECH01)
-}
 
 #' An internal function to pivot a data frame by column type
 #'
@@ -2444,9 +2441,6 @@ pivot_by_type <- function(x, sets = NULL, slot_name = NULL) {
   return(x)
 }
 
-if (F) {
-  pivot_by_type(tech@ceff)
-}
 
 # draw_process ####
 

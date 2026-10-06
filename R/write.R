@@ -27,8 +27,6 @@ write_sc <- function(x, solver.dir = NULL, solver = NULL, ...) {
   write_script(x, solver.dir, solver, ...)
 }
 
-# write.sc() is deprecated -> R/legacy_api_shims.R
-
 # @method write scenario
 # @family write scenario
 # @rdname write

@@ -3,8 +3,9 @@
 # =============================================================================
 #
 # This file was moved here from multimod on 2026-09-24. It used to live in
-# multimod as R/energyrt_pipeline.R, R/import_energyrt.R, R/energyrt_unfold.R,
-# R/energyrt_index_aliases.R and the energyRt half of R/data_management.R.
+# multimod as its R/energyrt_pipeline.R, R/import_energyrt.R,
+# R/energyrt_unfold.R, R/energyrt_index_aliases.R and the energyRt half of
+# multimod's R/data_management.R.
 #
 # It belongs here, not there: multimod is a general engine for algebraic models
 # and energyRt is one consumer of it. Having the consumer-specific code live in

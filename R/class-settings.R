@@ -68,7 +68,3 @@ setMethod("initialize", "settings", function(.Object, ...) {
   return(stt)
 }
 
-if (F) {
-  cfg <- .config_to_settings(mdl@config)
-
-}
