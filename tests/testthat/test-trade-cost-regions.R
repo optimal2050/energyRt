@@ -157,7 +157,7 @@ test_that("the trade slot docs no longer deny implemented features", {
   # All three of `@capacity`, `@fixom` and `@varom` were documented as
   # "(not implemented!)" while all three were live. `@varom` took the longest to
   # pin down: a dead parameter `pTradeVarom` shared its name, and the slot is
-  # implemented under `pTradeIrCost` / `pTradeIrMarkup`.
+  # implemented under `pTradeIrVarom` / `pTradeIrMarkup`.
   for (slot in c("capacity", "fixom", "varom")) {
     expect_false(grepl("not implemented", energyRt:::get_slot_doc("trade", slot),
                        fixed = TRUE), info = slot)

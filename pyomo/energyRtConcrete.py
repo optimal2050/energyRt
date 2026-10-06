@@ -2962,7 +2962,7 @@ model.eqExportIrCost = Constraint(
                 (
                     (
                         (
-                            pTradeIrCost.get((t1, r, dst, y, s))
+                            pTradeIrVarom.get((t1, r, dst, y, s))
                             - pTradeIrMarkup.get((t1, r, dst, y, s))
                         )
                         * model.vTradeIr[t1, c, r, dst, y, s]

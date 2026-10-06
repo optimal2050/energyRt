@@ -1,5 +1,44 @@
 # energyRt (development version)
 
+## `pTradeIrCost` renamed to `pTradeIrVarom`
+
+* The parameter behind `trade@varom$varom` is now `pTradeIrVarom`. Its old name
+  was the only one in the `pTradeIr*` family that contradicted its own
+  registration -- `modInp.yml` has always recorded `colName: varom` -- and the
+  pair `Cost`/`Markup` gave no hint that one is a resource cost and the other a
+  transfer. `Varom`/`Markup` does, and it matches `pTechVarom` and
+  `pStorageVarom`. The `Ir` prefix still marks every route-indexed
+  (`src`, `dst`) parameter.
+
+* **A hard break, with no alias.** A `modInp` serialized under the old name must
+  be rebuilt from source; the interpolation goldens were re-frozen in this
+  commit. `pTradeIrMarkup` and the `vImportIrCost`/`vExportIrCost` variables are
+  unchanged -- those variables each combine BOTH parameters, so naming either of
+  them after one would be wrong.
+
+* Not to be confused with `pTradeVarom`, a different parameter that no equation
+  ever read and that was removed earlier.
+
+## `levcost()` prices a corridor's variable O&M
+
+* `levcost()` on a `trade` object ignored `@varom`, so a corridor with a
+  variable O&M rate was priced below what the model actually pays. Both engines
+  dropped it: the closed form had no varom term, and the solve path read only
+  `vTradeEac`/`vTradeFixom` while the mini-model's objective charged
+  `pTradeIrCost` through `eqExportIrCost`. `@varom$varom` is now priced on the
+  quantity SENT -- the contribution to the levelized cost is `varom / teff`,
+  since the rate is paid at `src` and the metric divides by what arrives.
+
+* `@varom$markup` is deliberately not priced. A markup is a transfer: the
+  importing region pays it and the exporting region receives it, so it cancels
+  between `eqImportIrCost` and `eqExportIrCost` and leaves the objective
+  unchanged. `levcost()` says so once instead of warning, and the previous
+  warning -- which claimed no backend reads either column -- is gone, because
+  three backends read both.
+
+* A `@varom` carrying sub-annual `timeslice` rows is refused by the closed form
+  rather than averaged, so `method = "auto"` falls back to the solver.
+
 * Exogenous stock: `pXStockNew` now records commissioning only. The level at
   the first milestone is an initial condition, and `eqXStockCap` /
   `eqXPhaseOut` read it from `pXStock` under `$mMilestoneFirst` instead of

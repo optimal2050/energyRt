@@ -2199,8 +2199,8 @@ pTradeIrCdst2Ainp:
   colName: cdst2ainp
   class: trade
   slot: aeff
-pTradeIrCost:
-  name: pTradeIrCost
+pTradeIrVarom:
+  name: pTradeIrVarom
   dimSets:
   - trade
   - src

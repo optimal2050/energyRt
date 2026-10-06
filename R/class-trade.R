@@ -39,14 +39,13 @@ setClass("trade",
     aux = "data.frame", #
     aeff = "data.frame", #  Commodity efficiency
     invcost = "data.frame",
-    fixom = "data.frame", # !!!ToDo: add fixom
-    varom = "data.frame", # !!!ToDO: add varom
+    fixom = "data.frame",
+    varom = "data.frame", # -> pTradeIrVarom / pTradeIrMarkup
     cluster = "data.frame", # parallel sub-lines (loss tranches)
     vintage = "data.frame",
-    # stock = "data.frame", # !!!ToDo: deprecate (move to @capacity)
-    capacity = "data.frame", # !!!ToDo: not implemented yet
+    capacity = "data.frame",
     cap2act = "numeric", #
-    optimizeRetirement = "logical", # !!!ToDo: add early retirement
+    optimizeRetirement = "logical",
     misc = "list"
   ),
   # Default values and structure of slots
@@ -77,8 +76,6 @@ setClass("trade",
       af.up = numeric(),
       af.fx = numeric(),
       af.lo = numeric(),
-      # cost = numeric(), # !!!ToDo: move to varom
-      # markup = numeric(), # !!!ToDo: move to varom
       teff = numeric(),
       # Electrical characteristics of the line. Inert unless the model is
       # interpolated with `kvl = TRUE`; a finite `reactance` is what marks a

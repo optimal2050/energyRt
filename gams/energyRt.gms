@@ -343,7 +343,7 @@ pTradeIrUp(trade, region, region, year, timeslice)      Upper bound on trade flo
 pTradeIrLo(trade, region, region, year, timeslice)      Lower bound on trade flow
 pTradeIrAfUp(trade, region, region, year, timeslice)    Upper availability factor of trade flow
 pTradeIrAfLo(trade, region, region, year, timeslice)    Lower availability factor of trade flow
-pTradeIrCost(trade, region, region, year, timeslice)    Costs of trade flow
+pTradeIrVarom(trade, region, region, year, timeslice)    Costs of trade flow
 pTradeIrMarkup(trade, region, region, year, timeslice)  Markup of trade flow
 * Aux input and output
 pTradeIrCsrc2Ainp(trade, comm, region, region, year, timeslice)   Auxiliary input commodity in source region
@@ -372,8 +372,8 @@ pTradeInvcost(trade, region, year)                   Overnight investment costs
 pTradeEac(trade, region, year)                       Equivalent annual costs
 pTradeRetCost(trade, region, year)                   Early retirement costs
 pTradeFixom(trade, region, year)                             Fixed O&M costs
-* [removed] pTradeVarom -- trade @varom is not implemented: no equation read it,
-* it was absent from Julia and Pyomo, and it is unregistered in modInp.yml.
+* [removed] pTradeVarom -- a dead parameter no equation ever read. NOT the
+* `trade@varom` slot, which IS priced, as pTradeIrVarom (see eqExportIrCost).
 pTradeCap2Act(trade)                                 Capacity to activity factor
 ;
 
@@ -2410,7 +2410,7 @@ eqExportIrCost(trade, region, year)$mExportIrCost(trade, region, year)..
     sum((dst)$mTradeRoutes(trade, region, dst),
         sum(comm$mTradeComm(trade, comm),
             sum(timeslice$mTradeTimeslice(trade, timeslice),
-                ((pTradeIrCost(trade, region, dst, year, timeslice)
+                ((pTradeIrVarom(trade, region, dst, year, timeslice)
                   - pTradeIrMarkup(trade, region, dst, year, timeslice)
                   ) * vTradeIr(trade, comm, region, dst, year, timeslice) * pTimesliceWeight(year, timeslice)
                  )$mvTradeIr(trade, comm, region, dst, year, timeslice)

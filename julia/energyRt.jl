@@ -4174,10 +4174,10 @@ print("eqExportIrCost(trade, region, year)...")
                         (
                             (
                                 (
-                                    if haskey(pTradeIrCost, (t1, r, dst, y, s))
-                                        pTradeIrCost[(t1, r, dst, y, s)]
+                                    if haskey(pTradeIrVarom, (t1, r, dst, y, s))
+                                        pTradeIrVarom[(t1, r, dst, y, s)]
                                     else
-                                        pTradeIrCostDef
+                                        pTradeIrVaromDef
                                     end
                                 ) - (
                                     if haskey(pTradeIrMarkup, (t1, r, dst, y, s))

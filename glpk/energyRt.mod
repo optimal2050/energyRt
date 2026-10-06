@@ -582,7 +582,7 @@ param pTradeIrUp{trade, region, region, year, timeslice};
 param pTradeIrLo{trade, region, region, year, timeslice};
 param pTradeIrAfUp{trade, region, region, year, timeslice};
 param pTradeIrAfLo{trade, region, region, year, timeslice};
-param pTradeIrCost{trade, region, region, year, timeslice};
+param pTradeIrVarom{trade, region, region, year, timeslice};
 param pTradeIrMarkup{trade, region, region, year, timeslice};
 param pTradeIrCsrc2Ainp{trade, comm, region, region, year, timeslice};
 param pTradeIrCsrc2Aout{trade, comm, region, region, year, timeslice};
@@ -610,8 +610,8 @@ param pTradeInvcost{trade, region, year};
 param pTradeEac{trade, region, year};
 param pTradeRetCost{trade, region, year};
 param pTradeFixom{trade, region, year};
-# [removed] pTradeVarom -- trade @varom is not implemented: no equation read it,
-# it was absent from Julia and Pyomo, and it is unregistered in modInp.yml.
+# [removed] pTradeVarom -- a dead parameter no equation ever read. NOT the
+# `trade@varom` slot, which IS priced, as pTradeIrVarom (see eqExportIrCost).
 param pTradeCap2Act{trade};
 param pWeather{weather, region, year, timeslice};
 param pSupWeatherUp{weather, sup};
@@ -1009,7 +1009,7 @@ s.t.  eqTradeIrAfLo{(t1, c, src, dst, y, s) in meqTradeIrAfLo}: vTradeIr[t1,c,sr
 
 s.t.  eqImportIrCost{(t1, r, y) in mImportIrCost}: vImportIrCost[t1,r,y]  =  sum{src in region:((t1,src,r) in mTradeRoutes)}(sum{c in comm:((t1,c) in mTradeComm)}(sum{s in timeslice:((t1,s) in mTradeTimeslice)}(sum{FORIF: (t1,c,src,r,y,s) in mvTradeIr} (((pTradeIrMarkup[t1,src,r,y,s])*vTradeIr[t1,c,src,r,y,s]*pTimesliceWeight[y,s])))));
 
-s.t.  eqExportIrCost{(t1, r, y) in mExportIrCost}: vExportIrCost[t1,r,y]  =  sum{dst in region:((t1,r,dst) in mTradeRoutes)}(sum{c in comm:((t1,c) in mTradeComm)}(sum{s in timeslice:((t1,s) in mTradeTimeslice)}(sum{FORIF: (t1,c,r,dst,y,s) in mvTradeIr} (((pTradeIrCost[t1,r,dst,y,s]-pTradeIrMarkup[t1,r,dst,y,s])*vTradeIr[t1,c,r,dst,y,s]*pTimesliceWeight[y,s])))));
+s.t.  eqExportIrCost{(t1, r, y) in mExportIrCost}: vExportIrCost[t1,r,y]  =  sum{dst in region:((t1,r,dst) in mTradeRoutes)}(sum{c in comm:((t1,c) in mTradeComm)}(sum{s in timeslice:((t1,s) in mTradeTimeslice)}(sum{FORIF: (t1,c,r,dst,y,s) in mvTradeIr} (((pTradeIrVarom[t1,r,dst,y,s]-pTradeIrMarkup[t1,r,dst,y,s])*vTradeIr[t1,c,r,dst,y,s]*pTimesliceWeight[y,s])))));
 
 s.t.  eqExportRowUp{(e, c, r, y, s) in mExportRowUp}: vExportRow[e,c,r,y,s] <=  pExportRowUp[e,r,y,s];
 
