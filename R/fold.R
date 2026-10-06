@@ -767,13 +767,22 @@ unfold_trade_routes <- function(scen, verbose = FALSE) {
 # WRITTEN files: `revert_fold_artificial()` takes it back out of the scenario.
 # =========================================================================== #
 
-# Map a solver language to its `.modelCode` block name.
+# Map a solver language to its `.modelCode` block name, or NA for a route that
+# must NOT get the artificial-member substitution at all.
+#
+# `mm` is NA: multimod builds the matrix from the GAMS template plus the
+# scenario parameters and expands the fold wildcards itself on import, so both
+# sides end up unfolded and consistent. Substituting artificial members into
+# the data instead leaves every equation gating on a real dim while the data
+# carries `ANY*` / year `0` labels; measured on TOPIA R1, 864 of 5994
+# coefficients vanish and the solve returns Optimal at objective 0.
 .fold_code_block <- function(lang) {
   lang <- tolower(as.character(lang))
   if (length(lang) == 0 || is.na(lang)) return("GLPK")
   if (grepl("gams", lang)) "GAMS"
   else if (grepl("jump", lang)) "JuMP"
   else if (grepl("pyomo", lang)) "PYOMOConcrete"
+  else if (grepl("^(mm|multimod)$", lang)) NA_character_
   else "GLPK"
 }
 

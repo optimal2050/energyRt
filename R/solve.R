@@ -337,12 +337,17 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
     # `0` label in the year set, which the storage equations rank with
     # `ord(year)`; the other dims are inert there (every equation is map-gated)
     # and their members are known at compile time via `sets.gms`.
+    # `NA` means the route takes the folded parameters as they are and resolves
+    # the wildcards itself (`mm`); substituting here would desynchronise its
+    # model text from its data. See `.fold_code_block()`.
     .blk_w <- .fold_code_block(scen@settings@solver$lang)
-    if (.blk_w == "GAMS") {
-      scen <- unfold_parameters(scen, dims = "year",
-                                         types = c("numpar", "bounds"))
+    if (!is.na(.blk_w)) {
+      if (.blk_w == "GAMS") {
+        scen <- unfold_parameters(scen, dims = "year",
+                                           types = c("numpar", "bounds"))
+      }
+      scen <- apply_fold_artificial(scen, backends = .blk_w)
     }
-    scen <- apply_fold_artificial(scen, backends = .blk_w)
     dir.create(arg$solver.dir, recursive = TRUE, showWarnings = FALSE)
     if (arg$echo) cat("Solver directory: ", arg$solver.dir, "\n")
     if (arg$echo) cat("Writing files: ")

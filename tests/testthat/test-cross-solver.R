@@ -57,11 +57,21 @@
   # same optimum
   mm_highs_nopresolve = list(solver = quote(within(solver_options$mm_highs,
                                                    highs_options <- list(presolve = "off"))),
-                             skip = quote(skip_if_no_multimod()))
+                             skip = quote(skip_if_no_multimod())),
+  # the same route on a FOLDED scenario. multimod takes the folded parameters
+  # as they are and resolves the wildcards on import, so `.fold_code_block()`
+  # returns NA for this lang and the artificial-member substitution is skipped.
+  # When it was not skipped the data carried `ANY*` / year `0` labels that the
+  # template equations never gate on: 864 of 5994 coefficients were dropped on
+  # topia_R1 and HiGHS reported Optimal at objective 0.
+  mm_highs_folded = list(solver = quote(solver_options$mm_highs),
+                         skip = quote(skip_if_no_multimod()),
+                         fold = TRUE)
 )
 
-.xs_solve <- function(build, tag, solver, dense = FALSE) {
-  args <- if (dense) list(sparse = FALSE) else list()
+.xs_solve <- function(build, tag, solver, dense = FALSE, fold = FALSE) {
+  args <- c(if (dense) list(sparse = FALSE) else list(),
+            if (fold) list(fold = TRUE) else list())
   scen <- suppressMessages(suppressWarnings(do.call(interpolate_model,
     c(list(build(), name = tag, overwrite = TRUE), args))))
   suppressMessages(suppressWarnings(
@@ -103,7 +113,8 @@ for (model_nm in c("tm_core", "tm_weather", "topia_R1")) {
                     label = paste0(mn, " glpk invariants"))
         ref <- capture_tracked_values(ref_scen)
         alt_scen <- .xs_solve(build, paste0("xs_", mn, "_", bk),
-                              eval(spec$solver), dense = identical(bk, "gams"))
+                              eval(spec$solver), dense = identical(bk, "gams"),
+                              fold = isTRUE(spec$fold))
         expect_true(verify_solution(alt_scen)$ok,
                     label = paste0(mn, " ", bk, " invariants"))
         alt <- capture_tracked_values(alt_scen)

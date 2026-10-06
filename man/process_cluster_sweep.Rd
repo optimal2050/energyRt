@@ -30,7 +30,7 @@ region.}
 }
 \value{
 A data.frame, one row per \code{k}, with the dispersion and silhouette
-columns \code{clusterscales::cluster_sweep()} returns plus \code{sizes}, the cluster
+columns \code{multiscales::cluster_sweep()} returns plus \code{sizes}, the cluster
 sizes as a comma-separated string.
 }
 \description{
@@ -48,7 +48,7 @@ set per family and not once for the model.
 Read it as a scree plot: dispersion falls with \code{k} and always will, so take
 the knee rather than the minimum, and prefer a \code{k} whose silhouette is high
 and whose sizes are not one big cluster and a row of singletons. There is
-deliberately no "best k" here, and none in \code{clusterscales} either -- the
+deliberately no "best k" here, and none in \code{multiscales} either -- the
 number depends on what the model is for.
 }
 \seealso{

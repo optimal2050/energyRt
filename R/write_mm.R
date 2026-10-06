@@ -24,6 +24,21 @@
   dir.create(fp(arg$solver.dir, "output"), recursive = TRUE,
              showWarnings = FALSE)
 
+  # The artificial-member substitution must not have run: it replaces the fold
+  # wildcards with `ANY*` / year `0` labels in the DATA while the equations read
+  # from the GAMS template still gate on the real dims, so the folded lookups
+  # match nothing. The symptom is a smaller matrix that solves to Optimal at
+  # objective 0 rather than an error, which is why this is checked rather than
+  # trusted.
+  if (length(scen@misc$fold_artificial) > 0) {
+    stop("This scenario carries artificial fold members (",
+         paste(scen@misc$fold_artificial, collapse = ", "),
+         "), which the 'mm' route cannot read: its equations come from the ",
+         "GAMS template and index the real dimensions.\n",
+         "  `.fold_code_block()` returns NA for 'mm' so the substitution is ",
+         "skipped; something re-enabled it.", call. = FALSE)
+  }
+
   m <- multimod_from_energyRt(scen, verbose = isTRUE(arg$echo))
 
   # `on_empty_row` defaults to "user_constraints": a `^eqCns` row with no

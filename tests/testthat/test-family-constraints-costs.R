@@ -99,3 +99,72 @@ test_that("family constraints-costs: a costs object adds its term to the objecti
   expect_equal(ff_solution_sum(scen, "vTotalUserCosts"), 80, tolerance = 1e-6)
   expect_equal(.fork_objective(scen), 440 + 80, tolerance = 1e-6)
 })
+
+# @covers vTechNewCap vTotalUserCosts depth=S backends=mm_highs
+test_that("family constraints-costs: a user constraint binds on the multimod route", {
+  skip_if_no_multimod()
+
+  # The GLPK cases above fix the arithmetic: 440 unconstrained, 1790 capped,
+  # 520 with the fee. Re-solving them on the matrix route checks that a user
+  # constraint arrives with COEFFICIENTS, not just a row and an rhs: a row
+  # carrying the right rhs and no coefficients constrains nothing and solves
+  # to the unconstrained 440 with status Optimal.
+  base <- .fork_solve(suppressMessages(suppressWarnings(interpolate_model(
+    cc_build(), name = "cc_mm_base", overwrite = TRUE))),
+    solver_options$mm_highs)
+  expect_true(verify_solution(base)$ok)
+  expect_equal(.fork_objective(base), 440, tolerance = 1e-6)
+
+  cns <- newConstraint(
+    name = "CHEAPCAP", eq = "<=",
+    for.each = data.frame(year = 2025),
+    term1 = list(variable = "vTechNewCap", for.sum = list(tech = "ECHEAP")),
+    defVal = 25)
+  capped <- .fork_solve(suppressMessages(suppressWarnings(interpolate_model(
+    cc_build(cns), name = "cc_mm_cns", overwrite = TRUE))),
+    solver_options$mm_highs)
+  expect_true(verify_solution(capped)$ok)
+  ncap <- ff_solution_sum(capped, "vTechNewCap", by = "tech")
+  expect_equal(ncap[ncap$tech == "ECHEAP"]$value, 25, tolerance = 1e-6)
+  expect_equal(ncap[ncap$tech == "EEXP"]$value, 15, tolerance = 1e-6)
+  expect_equal(.fork_objective(capped), 1790, tolerance = 1e-6)
+  expect_gt(.fork_objective(capped), .fork_objective(base))
+
+  uc <- newCosts(name = "ACTFEE", variable = "vTechAct",
+                 mult = 2, subset = list(tech = "ECHEAP"))
+  fee <- .fork_solve(suppressMessages(suppressWarnings(interpolate_model(
+    cc_build(uc), name = "cc_mm_costs", overwrite = TRUE))),
+    solver_options$mm_highs)
+  expect_true(verify_solution(fee)$ok)
+  expect_equal(ff_solution_sum(fee, "vTotalUserCosts"), 80, tolerance = 1e-6)
+  expect_equal(.fork_objective(fee), 520, tolerance = 1e-6)
+})
+
+# A term with no for.sum and no subset: vTechNewCap(tech, region, year) against
+# for.each = year, so the row sums over tech AND region - a multi-index free
+# sum. That is the shape that once emitted the row with its rhs and no
+# coefficients at all, solving to the unconstrained 440 and reporting Optimal.
+# Total new capacity >= 50 overbuilds past the 40 the demand needs:
+#   40 fuel + 50 * 10 EAC = 540, against 440 unconstrained.
+# @covers vTechNewCap depth=S backends=glpk,mm_highs
+test_that("family constraints-costs: an implicit multi-index sum carries coefficients", {
+  skip_if_no_multimod()
+  cns <- newConstraint(name = "TOTCAP", eq = ">=",
+                       for.each = data.frame(year = 2025),
+                       term1 = list(variable = "vTechNewCap"),
+                       defVal = 50)
+  mm <- .fork_solve(suppressMessages(suppressWarnings(interpolate_model(
+    cc_build(cns), name = "cc_mm_totcap", overwrite = TRUE))),
+    solver_options$mm_highs)
+  expect_true(verify_solution(mm)$ok)
+  expect_equal(.fork_objective(mm), 540, tolerance = 1e-6)
+
+  # the same model on GLPK, which never touches multimod
+  gl <- .fork_solve(suppressMessages(suppressWarnings(interpolate_model(
+    cc_build(cns), name = "cc_gl_totcap", overwrite = TRUE))),
+    solver_options$glpk)
+  expect_equal(.fork_objective(mm), .fork_objective(gl), tolerance = 1e-6)
+
+  ncap <- ff_solution_sum(mm, "vTechNewCap")
+  expect_equal(ncap, 50, tolerance = 1e-6)
+})

@@ -11,9 +11,9 @@
   `highs_options` (a named list, e.g. `list(presolve = "off")`) is passed to
   HiGHS.
 
-* The scales core is now `modelscales`. `multiscales` was renamed and
-  `clusterscales` merged into it, so region clustering and the scale it is
-  built on come from one package: `modelscales` replaces both in `Suggests`.
+* `clusterscales` is merged into `multiscales`, so region clustering and the
+  scale it is built on come from one package: `multiscales` replaces both in
+  `Suggests`.
   `get_process_groups()`, `process_cluster_sweep()` and `model_clusters()` are
   unchanged for callers.
 

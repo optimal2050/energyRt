@@ -24,7 +24,13 @@
   pyomo_cbc = list(solver = quote(solver_options$pyomo_cbc),
                    skip = quote(skip_if_no_pyomo()), dense = FALSE),
   gams = list(solver = quote(solver_options$gams_gdx_cplex),
-              skip = quote(skip_if_no_gams()), dense = TRUE)
+              skip = quote(skip_if_no_gams()), dense = TRUE),
+  # The matrix route takes the folded parameters as they are: `.fold_code_block()`
+  # returns NA for this lang, so the artificial-member substitution is skipped
+  # and multimod expands the wildcards on import. Sparse, and `ondisk = FALSE`
+  # above is required - the lazy path cannot expand them.
+  mm_highs = list(solver = quote(solver_options$mm_highs),
+                  skip = quote(skip_if_no_multimod()), dense = FALSE)
 )
 
 .fe_solve <- function(build, tag, fold, solver, dense) {
