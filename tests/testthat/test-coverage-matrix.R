@@ -35,16 +35,19 @@ test_that("matrix rows assemble from package metadata with expected arithmetic",
   env <- load_matrix_tool()
   rows <- env$assemble_rows()
   counts <- table(rows$kind)
-  # 501 .modInp entries (14 set + 308 map + 141 numpar + 38 bounds)
-  # + 150 equations + 95 variables = 746
+  # 502 .modInp entries (14 set + 309 map + 141 numpar + 38 bounds)
+  # + 150 equations + 95 variables = 747
   # (14 sets = 13 + `process`, the union of the seven process classes, declared
   # on every backend and the GAMS parent of tech/stg/sup/dem/expp/imp/trade)
   # (297 = 285 + the 12 mStorage*Comm{SameTimeslice,Agg,AggTimeslice} maps
   # added with the storage coarse-timeframe aggregation fix, 2026-08-25;
   # 308/141/38/150 = + inp2stg (1 bound, 3 maps, 2 equations) + the per-part
-  # aux capacity couplings (12 params and maps replacing 4), 2026-09-03)
+  # aux capacity couplings (12 params and maps replacing 4), 2026-09-03;
+  # 309 maps = + mWeatherRegionAt, which shares a parent-level weather series
+  # down to its child regions -- read by the af/afs/afc equations on all four
+  # backends, 2026-09-21)
   expect_equal(unname(counts[["set"]]), 14)
-  expect_equal(unname(counts[["map"]]), 308)
+  expect_equal(unname(counts[["map"]]), 309)
   expect_equal(unname(counts[["numpar"]]), 141)
   expect_equal(unname(counts[["bounds"]]), 38)
   expect_equal(unname(counts[["equation"]]), 150)

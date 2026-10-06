@@ -1,6 +1,6 @@
 # Coverage matrix summary
 
-Generated: 2026-09-21 13:13 | energyRt 0.90.0.9001
+Generated: 2026-10-06 14:22 | energyRt 0.90.0.9014
 
 ## Rows by kind x depth
 
@@ -8,12 +8,12 @@ Generated: 2026-09-21 13:13 | energyRt 0.90.0.9001
 Key: <kind>
      kind  none     C     I     S     X
    <char> <int> <int> <int> <int> <int>
-   bounds     3     2     3    19    11
- equation   113     0     1    26    10
-      map   223     1    46    27    12
-   numpar    29     2    23    53    34
-      set     0     0     0     2    11
- variable    26     0     3    39    27
+   bounds     4     2     3    19    10
+ equation   109     2     1    27    11
+      map   217     1    45    31    15
+   numpar    29     2    23    52    35
+      set     0     0     0     1    13
+ variable    26     0     0    42    27
 ```
 
 ## Numeric parameters: family x depth
@@ -22,7 +22,7 @@ Key: <kind>
 Key: <family>
                       family  none     C     I     S     X
                       <char> <int> <int> <int> <int> <int>
-         calendar-timeslices     0     0     0     4     0
+         calendar-timeslices     0     0     0     3     1
                    commodity     0     0     0     2     0
                       demand     0     0     0     1     0
                  discounting     0     0     0     0     3
@@ -41,17 +41,17 @@ Key: <family>
              storage-weather     1     1     0     1     0
                       supply     0     0     1     3     0
                  tax-subsidy     0     0     2     4     0
-              tech-aux-flows     4     0     4     6     0
+              tech-aux-flows     4     0     4     5     1
            tech-availability     0     0     1     1     2
         tech-capacity-bounds     0     1     0     1     1
                   tech-costs     0     2     0     1     2
        tech-eac-wacc-payback     0     0     0     1     2
              tech-efficiency     0     0     2     3     1
                    tech-emis     0     0     0     1     0
-           tech-share-bounds     0     0     0     0     1
+           tech-share-bounds     1     0     0     0     0
        tech-stock-retirement     0     0     1     0     5
                 tech-weather     0     0     2     1     0
-      trade-capacity-vintage     2     0     1     3     8
+      trade-capacity-vintage     2     0     1     4     7
                   trade-core     0     0     0     2     1
                  trade-costs     0     0     2     2     2
                weather-class     0     0     0     1     0
@@ -59,7 +59,7 @@ Key: <family>
                       <char> <int> <int> <int> <int> <int>
 ```
 
-## Zero-coverage numeric parameters (32)
+## Zero-coverage numeric parameters (33)
 
 ```
                  name                   family      class     slot
@@ -94,6 +94,7 @@ Key: <family>
         pTechPho2AOut           tech-aux-flows technology     aeff
         pTechRet2AInp           tech-aux-flows technology     aeff
         pTechRet2AOut           tech-aux-flows technology     aeff
+           pTechShare        tech-share-bounds technology     ceff
        pTradeStockNew   trade-capacity-vintage                    
       pTradeStockSurv   trade-capacity-vintage                    
                  name                   family      class     slot
@@ -130,10 +131,11 @@ Key: <family>
       pho2aout
       ret2ainp
       ret2aout
+     grp.share
               
               
        colName
         <char>
 ```
 
-Tagged rows: 183 | inferred: 169 | uncovered: 394 of 746
+Tagged rows: 184 | inferred: 178 | uncovered: 385 of 747
