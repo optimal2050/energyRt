@@ -397,7 +397,7 @@ get_glpk_path <- function() {
     rs <- paste0(c(rs, paste0(.aliasName(rest_slice), " in ", rest_slice)), collapse = ", ")
   }
   if (any(grep("^[,]", rs))) {
-    browser()
+    stop("Internal: the slice list starts with a comma: ", rs, call. = FALSE)
   }
   list(first = rs, end = tend)
 }
@@ -481,7 +481,8 @@ get_glpk_path <- function() {
       rs <- paste0(rs, ";")
       tmp <- substr(tmp, 2, nchar(tmp))
     } else {
-      browser()
+      stop("Cannot parse the equation template; unrecognised token at: ",
+           substr(tmp, 1, 40), call. = FALSE)
     }
   }
   rs

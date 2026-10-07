@@ -769,7 +769,8 @@ en_open_dataset <- function(path, format = NULL, engine = "arrow") {
   }
   if (format == "RData") {
     # load
-    browser() # not implemented yet
+    stop("Reading an on-disk dataset in RData format is not implemented.",
+         call. = FALSE)
     return(NULL)
   }
 }
@@ -1437,7 +1438,8 @@ obj2mem <- function(obj, verbose = isVerbose()) {
     stop("Object of class ", class(obj), " has no 'misc' slot")
   }
   sls <- names(obj@misc$onDisk)
-  if (length(sls) == 0) browser()
+  if (isDebug() && length(sls) == 0)
+    cli::cli_warn("{obj@name}: marked on-disk but @misc$onDisk lists no slots.")
   obj_pth <- getObjPath(obj)
   for (s in sls) {
     pth <- fp(obj_pth, s)

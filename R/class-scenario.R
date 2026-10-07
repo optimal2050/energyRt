@@ -188,16 +188,3 @@ setMethod("getHorizon", signature(obj = "scenario"), function(obj) {
 })
 
 
-# @method add scenario
-# @rdname add
-#
-# @return scenario object with added objects.
-# @export
-# setMethod(
-#   "add",
-#   "scenario",
-#   function(obj, ..., overwrite = FALSE, repo_name = NULL) {
-#     stop("'add' method is not implemented yet for scenario.\n",
-#          "You can add objects to a new scenario on 'interpolation' stage.")
-#   }
-# )

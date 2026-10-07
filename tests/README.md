@@ -7,7 +7,7 @@ numeric parameter, map, equation, and variable of the model is a row in
 structured tags; the generator joins tags with the metadata and reports gaps.
 
 Full contributor recipes (adding tests for new parameters/variables/constraints,
-regenerating benchmarks): see `dev/TESTING.md`.
+regenerating benchmarks): see `tests/TESTING.md`.
 
 ## The `@covers` tag
 
@@ -23,7 +23,7 @@ test_that("ramp limits constrain dispatch", { ... })
   expanded bound name (`pSupAvaLo`), a map (`mTechSpan`), an equation
   (`eqTechAf`), or a variable (`vTechAct`). Space-separated, several per tag.
   **Model vocabulary only — never an R function name.** The matrix asks which
-  of the ~745 model entities a test exercises; it has no row for
+  of the 747 model entities a test exercises; it has no row for
   `read_solution()` or `solve_myopic()`, so tagging one can never resolve and
   fails the suite. A test that covers the R API says so in a plain comment
   (`# Covers the R API: read_solution(), save_scenario()`); function and line
@@ -55,7 +55,7 @@ them — the summary diff is the review artifact. Never edit the CSV by hand.
 ## Test tiers (execution frame)
 
 Selected via the `ENERGYRT_TEST_TIER` environment variable
-(`check < fast < cross < nightly`); see `dev/TESTING.md` for the full guide.
+(`check < fast < cross < nightly`); see `tests/TESTING.md` for the full guide.
 
 | Tier | Needs | Typical use |
 |---|---|---|
@@ -79,7 +79,7 @@ suite), `fixtures/testing-models.R` (the tm_* tier models),
 
 `Rscript tools/test/run_nightly.R` runs the interp-goldens check plus the FULL
 suite at tier `nightly` (a superset of fast and cross) and writes a markdown
-report to `tmp/test-reports/nightly-YYYYMMDD-HHMM.md`. Opt-in extras via the
+report to `tmp/test-reports/nightly-YYYYMMDD-HHMMSS-<pid>.md`. Opt-in extras via the
 environment:
 
 - `ENERGYRT_EXT_MODELS=<dir>` — directory with external real-world models

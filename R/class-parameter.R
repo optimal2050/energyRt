@@ -91,7 +91,6 @@ setMethod("initialize", signature = "parameter",
     }
     if (any(!is.character(dimSets)) || # length(dimSets) == 0 ||
       any(!(dimSets %in% .dimSets))) {
-      browser()
       stop("Unknown dimSets: ", dimSets, "\nParameter: ", name)
     }
     if (all(type != levels(.Object@type))) stop("Wrong type")
@@ -227,7 +226,6 @@ setMethod(
       # class2 <- function(x) if (inherits(x, "integer")) "numeric" else class(x)
       if (nrow(obj@data) > 0 && # !!! rewrite with exact match
           any(sapply(data, class) != sapply(obj@data, class))) {
-        browser()
         stop("Column classes mismatch: ", obj@name, "\n",
              "Expected: ", paste(sapply(obj@data, class), collapse = ", "),
              "\nGot: ", paste(sapply(data, class), collapse = ", "),
@@ -270,8 +268,10 @@ setMethod(
     # obj@data[nn, ] <- data
     obj@data <- rbindlist(list(as.data.table(obj@data), as.data.table(data)),
                           use.names = FALSE)
-    if (ncol(obj@data) != 1) browser()
-    if (is.factor(obj@data[[1]])) browser()
+    if (isDebug() && ncol(obj@data) != 1)
+      cli::cli_warn("Set {obj@name}: expected one column, got {ncol(obj@data)}.")
+    if (isDebug() && is.factor(obj@data[[1]]))
+      cli::cli_warn("Set {obj@name}: column is a factor, not character.")
     obj
   }
 )
@@ -327,7 +327,8 @@ setMethod(
   }
   # obj@data <- obj@data[!(obj@data[, dimSets] %in% value), , drop = FALSE]
   ii <- obj@data[[dimSets]] %in% value
-  if (length(dimSets) > 1) browser() # check filter below
+  if (isDebug() && length(dimSets) > 1)
+    cli::cli_warn("drop_set_value(): the filter assumes ONE dimSet, got {length(dimSets)}.")
   obj@data <- obj@data |> filter(!ii)
   obj
 }

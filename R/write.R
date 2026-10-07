@@ -974,7 +974,8 @@ write_sc <- function(x, solver.dir = NULL, solver = NULL, ...) {
                    function(x) {
     xx <- .get_data_slot(prec@parameters[[x]])
     # xx <- unique(xx[, colnames(xx) %in% c("region", "year"), drop = FALSE])
-    if (sum(colnames(xx) %in% c("region", "year")) > 2) browser() # rewrite for multiple columns
+    if (isDebug() && sum(colnames(xx) %in% c("region", "year")) > 2)
+      cli::cli_warn("More than region/year index columns; the select keeps only those two.")
     xx <- select(xx, any_of(c("region", "year"))) |> unique()
     if (nrow(xx) == nrow(dregionyear) || ncol(xx) == 0) {
       return(dregionyear)
@@ -1117,7 +1118,6 @@ write_sc <- function(x, solver.dir = NULL, solver = NULL, ...) {
       inner_join(prec@parameters$mCommReg@data, by = c("comm", "region")) |>
       unique() |> dim()
     if (!all(dim_mvInpTot == dim(mvInpTot))) {
-      if (F) browser() # Debug
       x <- merge0(dregionyear, mCommTimeslice) |>
         inner_join(prec@parameters$mCommReg@data, by = c("comm", "region")) |>
         unique()
@@ -1184,7 +1184,6 @@ names(.alias_set) <- .set_al
 .aliasName <- function(x) {
   if (!all(x %in% .set_al)) {
     cat("Unknown .set_al\n")
-    browser()
     stop("Unknown set")
   }
   .alias_set[x]

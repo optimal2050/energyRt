@@ -101,6 +101,15 @@
   if (length(control) && (!is.list(control) || is.null(names(control)) || any(!nzchar(names(control))))) {
     stop("solver `highs_options` must be a named list of HiGHS options", call. = FALSE)
   }
+  # `mm_engine = "julia"`: the MPS is solved by Julia's HiGHS (HiGHS.jl), whose
+  # build carries the HiPO interior point solver and writes the `.sol` itself
+  if (identical(scen@settings@solver$mm_engine, "julia")) {
+    rs <- .mm_julia_solve(arg, mps, control)
+    if (rs != 0) return(rs)
+    .mm_decode_solution(arg$solver.dir, fp(arg$solver.dir, "model.sol"),
+                        solver = "highs", echo = isTRUE(arg$echo))
+    return(0L)
+  }
   r <- multimod::solve_mps(mps, control = control, require_optimal = FALSE,
                            verbose = isTRUE(arg$echo))
   if (isTRUE(arg$echo)) {
@@ -110,4 +119,38 @@
   .mm_decode_solution(arg$solver.dir, r$sol_file, solver = "highs",
                       echo = isTRUE(arg$echo))
   0L
+}
+
+# Solve model.mps with HiGHS through HiGHS.jl's C API: no JuMP model is built.
+# Writes solve_mps.jl into the solver directory (the options typed from R) and
+# runs it with the Julia found by get_julia_path(); HiGHS writes model.sol.
+.mm_julia_solve <- function(arg, mps, control) {
+  setter <- function(nm, v) {
+    if (is.logical(v)) sprintf('HiGHS.Highs_setBoolOptionValue(h, "%s", %s)', nm, if (isTRUE(v)) "1" else "0")
+    else if (is.integer(v)) sprintf('HiGHS.Highs_setIntOptionValue(h, "%s", %d)', nm, v)
+    else if (is.numeric(v)) sprintf('HiGHS.Highs_setDoubleOptionValue(h, "%s", %s)', nm, format(v, digits = 17))
+    else sprintf('HiGHS.Highs_setStringOptionValue(h, "%s", "%s")', nm, as.character(v))
+  }
+  jl <- c(
+    "using HiGHS",
+    "h = HiGHS.Highs_create()",
+    "t0 = time()",
+    "HiGHS.Highs_readModel(h, ARGS[1]) == 0 || error(\"HiGHS could not read \" * ARGS[1])",
+    vapply(names(control), function(nm) setter(nm, control[[nm]]), ""),
+    "HiGHS.Highs_run(h)",
+    "t1 = time()",
+    "HiGHS.Highs_writeSolution(h, ARGS[2])",
+    "st = HiGHS.Highs_getModelStatus(h)",
+    "println(\"HiGHS (Julia): model status \", st, \", objective \", HiGHS.Highs_getObjectiveValue(h), \", \", round(t1 - t0, digits = 1), \" s\")",
+    "HiGHS.Highs_destroy(h)")
+  writeLines(jl, fp(arg$solver.dir, "solve_mps.jl"))
+  jpath <- get_julia_path()
+  julia <- if (is.null(jpath) || !nzchar(jpath)) "julia" else fp(jpath, "julia")
+  rs <- system2(julia, c(shQuote(fp(arg$solver.dir, "solve_mps.jl")), shQuote(mps),
+                         shQuote(fp(arg$solver.dir, "model.sol"))),
+                stdout = if (isTRUE(arg$echo)) "" else FALSE)
+  if (!file.exists(fp(arg$solver.dir, "model.sol"))) {
+    stop("lang = 'mm', mm_engine = 'julia': HiGHS wrote no solution (Julia exit ", rs, ")", call. = FALSE)
+  }
+  as.integer(rs)
 }

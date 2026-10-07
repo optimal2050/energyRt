@@ -8,7 +8,6 @@
 #' @noRd
 .interpolation0 <- function(dtf, parameter, defVal, arg) {
   if (length(defVal) != 1 || is.na(defVal) || is.null(defVal)) {
-    invisible()  # browser() disabled
     stop("defVal value is not defined")
   }
   if (arg$approxim$fullsets && defVal != 0 && is.finite(defVal)) arg$all <- TRUE
@@ -42,7 +41,8 @@
   approxim <- approxim[names(approxim) %in% prior]
   # drop excess columns
   # dtf <- dtf[, colnames(dtf) %in% c(prior, parameter), drop = FALSE]
-  if (anyDuplicated(c(prior, parameter))) invisible()  # browser() disabled # DEBUG-
+  if (isDebug() && anyDuplicated(c(prior, parameter)))
+    cli::cli_warn("Duplicated columns in c(prior, parameter): {paste(c(prior, parameter)[duplicated(c(prior, parameter))], collapse = ', ')}")
   dtf <- select(dtf, all_of(c(prior, parameter)))
   # Sort column
   # dtf <- dtf[, c(
@@ -105,7 +105,8 @@
     f2 <- apply(tmp_nona, 2, all)
     if (all(f1 == f2)) { # Could be small appr
       # obj2 <- dtf[, c(f1, TRUE), drop = FALSE]
-      if (anyDuplicated(colnames(dtf))) invisible()  # browser() disabled # mappings check
+      if (isDebug() && anyDuplicated(colnames(dtf)))
+        cli::cli_warn("Duplicated column names in dtf: {paste(colnames(dtf)[duplicated(colnames(dtf))], collapse = ', ')}")
       obj2 <- dtf |> select(all_of(colnames(dtf)[c(f1, TRUE)]))
       for (i in colnames(obj2)[-ncol(obj2)]) {
         obj2 <- obj2[obj2[[i]] %in% approxim2[[i]], , drop = FALSE]
@@ -117,7 +118,8 @@
           obj2 <- merge0(obj2, approxim2[i])
         }
         # return(obj2[, colnames(dtf)])
-        if (anyDuplicated(colnames(dtf))) invisible()  # browser() disabled # mappings check
+        if (isDebug() && anyDuplicated(colnames(dtf)))
+          cli::cli_warn("Duplicated column names in dtf before select.")
         return(select(obj2, all_of(colnames(dtf))))
       }
     }
@@ -138,7 +140,8 @@
       array(NA, dim = sapply(apr, length), dimnames = apr),
       stringsAsFactors = FALSE, responseName = parameter)
     # dd <- dd[, c(prior, parameter), drop = FALSE]
-    if (anyDuplicated(c(prior, parameter))) invisible()  # browser() disabled # mappings check
+    if (isDebug() && anyDuplicated(c(prior, parameter)))
+      cli::cli_warn("Duplicated columns in c(prior, parameter) before select.")
     dd <- dd |> select(all_of(c(prior, parameter)))
   } else {
     dd <- as.data.frame.table(
@@ -150,7 +153,8 @@
     # KK <- colSums(ii * t(is.na(dtf[, true_prior[true_prior %in% prior],
     #                                drop = FALSE])))
     sel_col <- true_prior[true_prior %in% prior]
-    if (anyDuplicated(sel_col)) invisible()  # browser() disabled # mappings check
+    if (isDebug() && anyDuplicated(sel_col))
+      cli::cli_warn("Duplicated columns in sel_col: {paste(sel_col[duplicated(sel_col)], collapse = ', ')}")
     KK <- colSums(ii * t(is.na(select(dtf, all_of(sel_col)))))
     # dobj <- as.matrix(dtf[, -ncol(dtf), drop = FALSE])
     dobj <- as.matrix(select(dtf, -ncol(dtf)))
@@ -462,7 +466,6 @@
       stnd <- c(stnd[stnd != "src" & stnd != "dst"], "region")
     }
     stnd <- stnd[!(stnd %in% mtp@misc$not_need_interpolate)]
-    if (any(ls(globalenv()) == "kstat")) invisible()  # browser() disabled
     # dd <- cbind(d3, dd[, c(stnd, "value"), drop = FALSE])
     dd <- cbind(d3, select(dd, all_of(c(stnd, "value"))))
   }
@@ -555,7 +558,8 @@
       cbind(d3, select(dd, all_of(c(stnd, "type", "value"))))
     }, silent = TRUE)
     if (inherits(dd, "try-error")) { #!!! Debug
-      invisible()  # browser() disabled
+      stop("Cannot assemble the bound table: ",
+           conditionMessage(attr(dd, "condition")), call. = FALSE)
     }
 
 
@@ -564,7 +568,6 @@
   if (!is.null(remove_duplicate) && nrow(dd) != 0) {
     fl <- rep(TRUE, nrow(dd))
     for (i in seq_along(remove_duplicate)) {
-      invisible()  # browser() disabled # duplicated columns?
       fl <- (fl & dd[, remove_duplicate[[i]][1]] != dd[, remove_duplicate[[i]][2]])
     }
     dd <- dd[fl, , drop = FALSE]
@@ -594,7 +597,7 @@
 # =============================================================================#
 
 # ---- from add2set.R ----
-.drop_config_param <- .drop_config_param <- function(modInp) {
+.drop_config_param <- function(modInp) {
   for (i in c("pWacc", "pSdr", "pDummyImportCost", "pDummyExportCost")) {
     modInp@parameters[[i]] <- .resetParameter(modInp@parameters[[i]])
   }
@@ -602,7 +605,7 @@
 }
 
 # ---- from interpolate.R ----
-.apply_to_code_ret_list <- .apply_to_code_ret_list <- function(scen, func, ..., clss = NULL,
+.apply_to_code_ret_list <- function(scen, func, ..., clss = NULL,
                                     need.name = TRUE) {
   rs <- list()
   for (i in seq(along = scen@model@data)) {
@@ -620,7 +623,7 @@
   rs
 }
 
-.check_scen_par <- .check_scen_par <- function(scen) {
+.check_scen_par <- function(scen) {
   # Check for non negative parameters, all except 'pAggregateFactor', 'pTechCvarom', 'pTechAvarom', 'pTechVarom', 'pTechInvcost'
   non_negative <- unique(c(
     "pTimesliceShare", "pTimesliceWeight", "pTechOlife", "pTechCinp2ginp",
@@ -705,7 +708,7 @@
   scen
 }
 
-.get_map_commodity_timeslice_map <- .get_map_commodity_timeslice_map <- function(scen) {
+.get_map_commodity_timeslice_map <- function(scen) {
   .apply_to_code_ret_list(
     scen = scen,
     clss = "commodity",
@@ -715,7 +718,7 @@
   )
 }
 
-.get_map_commodity_timeslice_map_obj <- .get_map_commodity_timeslice_map_obj <- function(obj) {
+.get_map_commodity_timeslice_map_obj <- function(obj) {
   xx <- list()
   for (i in seq(along = obj@data)) {
     for (j in seq(along = obj@data[[i]]@data)) { #
@@ -735,7 +738,7 @@
   }
 }
 
-.interpolation_message <- .interpolation_message <- function(name, num, interpolation_count,
+.interpolation_message <- function(name, num, interpolation_count,
                                    interpolation_start_time, len_name) {
   jj <- paste0(
     num, " (", interpolation_count, "),",
@@ -752,7 +755,7 @@
   # cat(rep_len("\b", len_name), jj, sep = "") # , rep(' ', 100), rep('\b', 100)
 }
 
-interpolate_slot <- interpolate_slot <- function(
+interpolate_slot <- function(
     x,
     keys = c("region", "timeslice", "comm", "acomm", "tech", "process",
              "weather", "stg", "sub", "dst", "src"),
@@ -792,7 +795,7 @@ interpolate_slot <- interpolate_slot <- function(
 }
 
 # ---- from obj2modInp.R ----
-.add_ramp0 <- .add_ramp0 <- function(obj, name, tech, mact, approxim) {
+.add_ramp0 <- function(obj, name, tech, mact, approxim) {
   if (any(!is.na(tech@af[[name]]))) {
     pname <- paste0(
       "p", c("technology" = "Tech", "storage" = "Storage")[class(tech)],
@@ -832,7 +835,7 @@ interpolate_slot <- interpolate_slot <- function(
   obj
 }
 
-.filter_data_in_slots <- .filter_data_in_slots <- function(obj, lst, coln) {
+.filter_data_in_slots <- function(obj, lst, coln) {
   # filter out
   # by INSTANCE, not by class definition: an object saved before a slot was
   # added still deserialises, and `slot()` on the missing name errors
@@ -856,7 +859,7 @@ interpolate_slot <- interpolate_slot <- function(
   obj
 }
 
-.fix_approximation_list <- .fix_approximation_list <- function(approxim, lev = NULL, comm = NULL) {
+.fix_approximation_list <- function(approxim, lev = NULL, comm = NULL) {
   # better name?
   if (length(lev) == 0) {
     if (length(comm) == 0) {
@@ -875,8 +878,9 @@ interpolate_slot <- interpolate_slot <- function(
   approxim
 }
 
-.force_value_class_df <- .force_value_class_df <- function(dtf) {
-  if (!is.data.frame(dtf) & !is.list(dtf)) invisible()  # browser() disabled
+.force_value_class_df <- function(dtf) {
+  if (isDebug() && !is.data.frame(dtf) && !is.list(dtf))
+    cli::cli_warn(".force_value_class_df(): expected a data.frame or list, got {class(dtf)[1]}.")
   # return(dtf)
   # temporary solution to avoid merging conflicts
   # `inherits(x, "numeric")` is FALSE for an integer vector, so a solution whose
@@ -894,7 +898,7 @@ interpolate_slot <- interpolate_slot <- function(
   as.data.table(dtf)
 }
 
-.force_year_class_df <- .force_year_class_df <- function(dtf) {
+.force_year_class_df <- function(dtf) {
   # if (!is.data.frame(dtf) & !is.list(dtf)) browser()
   # return(dtf)
   # temporary solution to avoid merging conflicts
@@ -902,14 +906,14 @@ interpolate_slot <- interpolate_slot <- function(
   force_class <- "integer"
   # force_class <- "numeric"
   for (y in year_vars) {
-    if (!is.null(dtf[[y]]) && !inherits(dtf, force_class)) {
+    if (!is.null(dtf[[y]]) && !inherits(dtf[[y]], force_class)) {
       dtf[[y]] <- as(dtf[[y]], force_class)
     }
   }
   as.data.table(dtf)
 }
 
-.null_to_empty_param <- .null_to_empty_param <- function(pname, pp) {
+.null_to_empty_param <- function(pname, pp) {
   # pp - podInp@parameters
   # pp <- get(pp, envir = parent.frame())
   p <- get(pname, envir = parent.frame())
@@ -918,7 +922,7 @@ interpolate_slot <- interpolate_slot <- function(
   # p
 }
 
-.toWeatherImply <- .toWeatherImply <- function(dtf, val, add_set, add_val, sets = NULL) {
+.toWeatherImply <- function(dtf, val, add_set, add_val, sets = NULL) {
   dtf <- as.data.table(dtf)
   # browser() ### !!! ToDo: dplyr
   # f1 <- dtf[!is.na(dtf[, paste0(val, ".up")]),
@@ -1029,7 +1033,7 @@ interpolate_slot <- interpolate_slot <- function(
   scen
 }
 
-merge0 <- merge0 <- function(x, y,
+merge0 <- function(x, y,
                    by = intersect(
                      colnames(as.data.table(x)),
                      colnames(as.data.table(y))

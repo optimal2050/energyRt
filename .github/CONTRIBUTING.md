@@ -34,7 +34,7 @@ Two things about the test suite that catch everyone once:
   `ENERGYRT_TEST_TIER` (`check < fast < cross < nightly`; unset resolves to
   `fast` locally and `check` under `R CMD check`), so a plain run solves
   whenever `glpsol` is present. For a standalone `testthat::test_file()`,
-  `pkgload::load_all(".")` first. See `tests/README.md` and `dev/TESTING.md`.
+  `pkgload::load_all(".")` first. See `tests/README.md` and `tests/TESTING.md`.
 - A run that **aborted early is not a passing run**. Check the totals.
 
 ## Naming (digest — the full rule lives in the stack doc)

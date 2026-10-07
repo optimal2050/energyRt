@@ -467,7 +467,6 @@ names(.alias_set) <- .set_al
 .aliasName <- function(x) {
   if (!all(x %in% .set_al)) {
     cat("Unknown .set_al\n")
-    browser()
     stop("Unknown set")
   }
   .alias_set[x]
@@ -622,7 +621,8 @@ names(.alias_set) <- .set_al
       rs <- paste0(rs, ");")
       tmp <- substr(tmp, 2, nchar(tmp))
     } else {
-      browser()
+      stop("Cannot parse the equation template; unrecognised token at: ",
+           substr(tmp, 1, 40), call. = FALSE)
     }
   }
   rs

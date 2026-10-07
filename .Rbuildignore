@@ -25,22 +25,17 @@ dev-scripts/
 ^glpk$
 ^pyomo$
 ^drafts$
-^scenarios$
 vignettes/scenarios/
-tmp/
 .archive$
 .formatted$
 .unformatted$
 \.~gm$
 \.log$
 \.lst$
-\.~gm$
 \.lxi$
 \.pdf$
 
 \.vs$
-depreciated/*
-dev/*
 
 ^tools$
 ^tests/testthat/goldens/interp$

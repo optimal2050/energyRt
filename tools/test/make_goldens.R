@@ -19,7 +19,7 @@
 # diffed against the fresh capture before overwriting.
 #
 # Policy: regenerate goldens only for an INTENDED behavior change, in the same
-# commit as the change, with a NEWS bullet. See dev/TESTING.md §4.
+# commit as the change, with a NEWS bullet. See tests/TESTING.md §4.
 # =========================================================================== #
 
 suppressMessages({
@@ -64,7 +64,7 @@ SUITES <- list(
   unit = lapply(un_entries(), function(a) function() do.call(un_build, a))
 )
 
-# Reference solver PER SUITE (the backend-choice convention, dev/TESTING.md:
+# Reference solver PER SUITE (the backend-choice convention, tests/TESTING.md:
 # glpsol for small models -- zero startup, no toolchain; julia/HiGHS for
 # mid-size and sampled ones). Same-solver goldens are captured AND compared
 # with the suite's solver, so regenerating a julia suite needs Julia+HiGHS.

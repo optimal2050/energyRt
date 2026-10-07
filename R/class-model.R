@@ -481,6 +481,9 @@ add.model <- function(obj, ..., overwrite = FALSE, repo_name = NULL) {
 #' @rdname add
 #'
 #' @return model object with added elements to the repository
+#'
+#' @details There is no `add` method for a `scenario`: a scenario's inputs are
+#'   already interpolated. Add objects to the model and interpolate again.
 #' @export
 setMethod("add", "model", add.model)
 

@@ -2271,7 +2271,8 @@ make_label <- function(
     }
   } else {
     in_brackets <- unique(in_brackets)
-    if (length(in_brackets) > 1) browser()
+    if (isDebug() && length(in_brackets) > 1)
+      cli::cli_warn("Expected one bracketed expression, got {length(in_brackets)}.")
     # stopifnot(length(in_brackets) == 1)
     if (is.null(in_brackets) || is.na(in_brackets)) {
       in_brackets <- NULL

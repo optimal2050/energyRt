@@ -13,7 +13,7 @@
 # `Rscript -e "testthat::test_file(...)"` (no NOT_CRAN set) used to skip every
 # solver test silently -- now it solves whenever glpsol is present.
 #
-# See tests/README.md and dev/TESTING.md.
+# See tests/README.md and tests/TESTING.md.
 # =========================================================================== #
 
 .tier_levels <- c(check = 0L, fast = 1L, cross = 2L, nightly = 3L)

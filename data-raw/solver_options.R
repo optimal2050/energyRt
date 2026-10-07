@@ -107,6 +107,30 @@ mm_highs <- list(
   backend = "mm"
 )
 
+# the same, solved by HiGHS's interior point method without crossover --
+# the counterpart of julia_highs_barrier on the multimod matrix route
+mm_highs_barrier <- mm_highs
+mm_highs_barrier$name <- "mm_highs_barrier"
+mm_highs_barrier$highs_options <- list(presolve = "on", solver = "ipm", run_crossover = "off")
+
+# bounds and right-hand sides scaled by 2^-3 inside HiGHS (unscaled on return):
+# for models in MW/MWh/EUR, where HiGHS warns of excessively large row bounds and
+# HiPO can stall into an IPX restart. Not for models already in GW/GWh/MEUR.
+mm_highs_barrier_bs3 <- mm_highs_barrier
+mm_highs_barrier_bs3$name <- "mm_highs_barrier_bs3"
+mm_highs_barrier_bs3$highs_options$user_bound_scale <- -3L
+
+# the multimod matrix solved by Julia's HiGHS (HiGHS.jl): its build carries the
+# HiPO interior point solver, which the R `highs` package and pip `highspy` lack,
+# and HiGHS writes the solution file itself. Needs Julia with HiGHS.jl, as the
+# julia_* presets do.
+mm_julia_highs_barrier <- mm_highs_barrier
+mm_julia_highs_barrier$name <- "mm_julia_highs_barrier"
+mm_julia_highs_barrier$mm_engine <- "julia"
+mm_julia_highs_barrier_bs3 <- mm_highs_barrier_bs3
+mm_julia_highs_barrier_bs3$name <- "mm_julia_highs_barrier_bs3"
+mm_julia_highs_barrier_bs3$mm_engine <- "julia"
+
 ## Cloud solve on a rented GPU (Hugging Face Jobs) ############################
 # `backend = "mmcloud"` makes .call_solver ship the locally written matrix, run
 # cuOpt on a GPU, and decode the returned solution into <solver.dir>/output/ so
@@ -260,6 +284,13 @@ set_optimizer_attribute(model, "solver", "ipm") # barrier "Interior Point Method
 set_optimizer_attribute(model, "run_crossover", "off") # polishing the solution
 '
 })
+
+# the same with bounds and right-hand sides scaled by 2^-3 (see mm_highs_barrier_bs3)
+julia_highs_barrier_bs3 <- julia_highs_barrier
+julia_highs_barrier_bs3$name <- "julia_highs_barrier_bs3"
+julia_highs_barrier_bs3$inc3 <- paste0(julia_highs_barrier$inc3,
+  'set_optimizer_attribute(model, "user_bound_scale", -3) # bounds x 2^-3 (MW/MWh/EUR models)
+')
 
 julia_highs_simplex <- julia_highs
 julia_highs_simplex$name <- "julia_highs_simplex"
@@ -569,6 +600,10 @@ solver_options <- list(
   pyomo_mps = pyomo_mps,
   # multimod-written matrix (lang = "mm"): local HiGHS, or a rented GPU
   mm_highs = mm_highs,
+  mm_highs_barrier = mm_highs_barrier,
+  mm_highs_barrier_bs3 = mm_highs_barrier_bs3,
+  mm_julia_highs_barrier = mm_julia_highs_barrier,
+  mm_julia_highs_barrier_bs3 = mm_julia_highs_barrier_bs3,
   mmcloud = mmcloud,
   mmcloud_crossover = mmcloud_crossover,
   # Pyomo-written matrix on the same GPU transport
@@ -585,6 +620,7 @@ solver_options <- list(
   julia_highs = julia_highs,
   julia_highs_rdata = julia_highs_rdata,
   julia_highs_barrier = julia_highs_barrier,
+  julia_highs_barrier_bs3 = julia_highs_barrier_bs3,
   julia_glpk = julia_glpk,
   julia_highs_simplex = julia_highs_simplex,
   julia_highs_parallel = julia_highs_parallel,

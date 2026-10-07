@@ -22,7 +22,7 @@ set_repositories_path(file.path(tempdir(), "energyRt_repositories_tests"))
 set_datasets_path(file.path(tempdir(), "energyRt_datasets_tests"))
 
 # Scenarios: the one shared write target the redirects above missed, and the
-# reason `dev/TESTING.md` forbade running two test processes at once. Scenario
+# reason `tests/TESTING.md` forbade running two test processes at once. Scenario
 # names are deterministic per test (`ff_<family>_<case>`, `st_<tier>`) and the
 # fork helpers pass overwrite = TRUE / force = TRUE, so two processes silently
 # overwrote each other's scenario directory mid-solve -- the documented

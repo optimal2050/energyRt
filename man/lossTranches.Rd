@@ -54,7 +54,7 @@ frame splitting a fixed rating between them.
 The tranches are declared as \strong{fractions} of the line's capacity rather than
 absolute quantities. That is what makes them invariant under parallel-circuit
 expansion, so they need no recomputation when capacity is optimised; see the
-note at the top of \code{R/trade_losses.R}.
+loss-tranche note at the top of this file.
 
 \code{loss} is the documented input: the dimensionless fraction of the sent flow
 lost when the line runs at its rating. It is the quantity the arithmetic

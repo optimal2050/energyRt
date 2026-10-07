@@ -231,7 +231,8 @@ setMethod("initialize", "modInp", function(.Object) {
         gg <- rbind(dtt, tmp)
       } else {
         # gg <- rbind(dtt, unique(tmp[, colnames(dtt), drop = FALSE]))
-        if (anyDuplicated(colnames(dtt))) browser() # mappings check
+        if (isDebug() && anyDuplicated(colnames(dtt)))
+          cli::cli_warn("Duplicated column names binding a mapping: {paste(colnames(dtt), collapse = ', ')}")
         gg <- rbind(dtt, unique(select(tmp, all_of(colnames(dtt)))))
       }
       if (ncol(gg) == 1) {

@@ -481,7 +481,6 @@ get_python_path <- function() {
   as_numpar <- function(data, name, name2, def) {
     if (def == Inf) def <- 0
     if (ncol(obj@data) == 1) {
-      browser()
       stop(".toPyomSQLite: check @data in ", obj@name)
     } else {
       data <- data[data$value != Inf & data$value != def, , drop = F]
@@ -774,7 +773,8 @@ get_python_path <- function() {
       rs <- paste0(rs, ");")
       tmp <- substr(tmp, 2, nchar(tmp))
     } else {
-      browser()
+      stop("Cannot parse the equation template; unrecognised token at: ",
+           substr(tmp, 1, 40), call. = FALSE)
     }
   }
   rs
@@ -987,7 +987,8 @@ get_python_path <- function() {
       rs <- paste0(rs, ");")
       tmp <- substr(tmp, 2, nchar(tmp))
     } else {
-      browser()
+      stop("Cannot parse the equation template; unrecognised token at: ",
+           substr(tmp, 1, 40), call. = FALSE)
     }
   }
   rs

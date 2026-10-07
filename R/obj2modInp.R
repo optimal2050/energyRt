@@ -274,8 +274,10 @@ setMethod(
     }
 
 
-    if (ncol(obj@data) != 1) invisible()  # browser() disabled
-    if (is.factor(obj@data[[1]])) invisible()  # browser() disabled
+    if (isDebug() && ncol(obj@data) != 1)
+      cli::cli_warn("Set {obj@name}: expected one column, got {ncol(obj@data)}.")
+    if (isDebug() && is.factor(obj@data[[1]]))
+      cli::cli_warn("Set {obj@name}: column is a factor, not character.")
     obj
   }
 )
@@ -1407,7 +1409,6 @@ setMethod(
     rm(a, b, ab, pTimesliceWeight_tmp)
 
     if (nrow(app@horizon@intervals) == 0) { # ???
-      invisible()  # browser() disabled
       app <- setHorizon(app,
                         horizon = app@horizon@period,
                         intervals = rep(1, length(app@horizon@period)))

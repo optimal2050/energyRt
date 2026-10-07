@@ -77,7 +77,7 @@ newTrade(
 Charged where the flow ORIGINATES (\code{src}) and added to
 total system cost, exactly as \code{technology@varom} is. Use
 it for wheeling fees, transit taxes or any real charge per
-unit shipped. Becomes \code{pTradeIrCost}.
+unit shipped. Becomes \code{pTradeIrVarom}.
 
 \code{markup} -- a border price or bilateral charge: a TRANSFER. The
 importing region pays it and the exporting region

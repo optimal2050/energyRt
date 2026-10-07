@@ -20,7 +20,7 @@
 #      S = solves, X = names >= 2 solver backends).
 #
 # Outputs: tests/coverage/parameter-matrix.csv, tests/coverage/matrix-summary.md
-# Tag convention documented in tests/README.md; recipes in dev/TESTING.md.
+# Tag convention documented in tests/README.md; recipes in tests/TESTING.md.
 # =========================================================================== #
 
 suppressMessages({

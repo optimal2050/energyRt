@@ -39,7 +39,7 @@ test_that("TOPIA R3 solves to the golden objective on julia/HiGHS", {
                 tmp.del = TRUE, wait = TRUE)))
   vs <- verify_solution(scen)
   expect_true(vs$ok, label = "base_R3 julia invariants")
-  # degenerate optima make per-path flows solver-dependent (dev/TESTING.md);
+  # degenerate optima make per-path flows solver-dependent (tests/TESTING.md);
   # across solvers only the objective (and the invariants above) are pinned
   fresh <- capture_tracked_values(scen)
   expect_equal(fresh$objective, as.numeric(g$base_R3$objective),

@@ -1,5 +1,65 @@
 # energyRt (development version)
 
+## TOPIA's transmission links now carry a flow cost
+
+* The `TBD_ELC_*` corridors in `topia$modules$electricity` (R3/R7/R11) set
+  `@varom$varom` to 2 EUR/MWh, via `convert("EUR/MWh", "MEUR/PJ", 2)`. They had
+  no flow cost at all, so a built corridor was free to use and only the 3%
+  `teff` loss discouraged trade -- regional prices converged further than they
+  should. `@markup` is deliberately left unset: it is a transfer between the two
+  regions, not a resource cost, and cancels in the objective.
+
+* `base_R3` moves from 51233.34 to 51246.75 (+0.026%). The direction is the
+  check that matters: adding a cost to a feasible solution cannot lower the
+  optimum. Dispatch shifts more than investment, as a variable cost should --
+  coal output in the exporting region W1 falls 1.1% while new capacity moves by
+  0.01%. R1 is single-region and unchanged.
+
+* Solved goldens re-frozen for it. `topia.json` is attributable to this change
+  alone -- every R1 entry is unchanged and `base_R3`'s whole delta is the
+  13.41 above. `topia_nightly.json` follows: `base_R7` 121197.70 -> 121236.78
+  (+39.09), `base_R11` 190905.19 -> 190970.63 (+65.44). Per corridor that is
+  6.70 / 6.51 / 6.54 across the three layouts -- flat, as a per-unit wheeling
+  charge on a scaled-up network should be.
+
+## Basecode cleanup
+
+* `browser()` is gone from shipped code. Twenty calls remained, each of which
+  halted a non-interactive run -- `Rscript`, CI, a `callr` child -- instead of
+  erroring. Five sat immediately in front of a `stop()` that already did the
+  right thing; four marked an unparsable equation template and now say so;
+  the rest became internal consistency warnings reported under
+  `options(en.debug = 1)`, the mechanism that option was declared for.
+
+* Fourteen internal assertions had been disabled by a find-and-replace that left
+  `invisible()` where `browser()` had been: the condition still ran and its
+  result was discarded. One of them swallowed a `try-error`, letting a corrupted
+  table flow on and fail later with an unrelated message; it now reports the
+  original error.
+
+* `.force_year_class_df()` tested `inherits(dtf, "integer")` on a data frame,
+  which is never true, so every year column was coerced unconditionally. The test
+  now applies to the column, as its sibling `force_cols_classes()` always did.
+
+* About 8,900 lines of dead weight left `R/` and `data-raw/`: two superseded
+  `modInp` specs that nothing read (verified -- `sysdata.rda` is byte-identical
+  without them), 32 `if (F)` REPL scratchpads, and six functions no caller
+  reached, one of which could not run at all. All archived under `drafts/`.
+
+* Comment hygiene: 32 `R/<file>.R` references pointed at files deleted in the
+  Sept-Oct regrouping, including a line citation into a deleted file. A note
+  duplicated across six writers is now stated once on `get_data_slot()`. New test
+  `test-comment-refs.R` fails if a comment names an `R/` file that does not
+  exist, excluding provenance markers and paths in other trees.
+
+## A testing-strategy article
+
+* New article, *Testing strategy* (`vignettes/articles/testing.Rmd`), on a new
+  **Development** navbar menu beside the roadmap. It covers why coverage is
+  tracked over model vocabulary rather than lines, why tiers replaced
+  `skip_on_cran()`, why goldens are gated on `verify_solution()`, and -- at
+  length -- what the suite deliberately does not test.
+
 ## An infeasible solve is a result, not a crash
 
 * `solve_scenario()` raised `"Solution files not found"` when the solver

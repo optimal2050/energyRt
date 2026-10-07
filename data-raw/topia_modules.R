@@ -243,6 +243,13 @@ build_topia <- function(regions = .topia_regions[1:3],
         # because a trade's capacity is ALWAYS a decision variable now, so TRUE
         # is simply the behaviour
         invcost = data.frame(region = c(r1, r2), invcost = 350),
+        # A wheeling charge on the flow, per direction. Without it a built
+        # corridor is free to use and only the 3% `teff` loss discourages
+        # trade, so regional prices converge further than they should.
+        # `markup` is deliberately unset: it is a transfer between the two
+        # regions, not a resource cost, and cancels in the objective.
+        varom = data.frame(src = c(r1, r2), dst = c(r2, r1),
+                           varom = convert("EUR/MWh", "MEUR/PJ", 2)),
         olife = list(olife = 50))
     }
   }

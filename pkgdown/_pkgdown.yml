@@ -49,15 +49,19 @@ development:
 navbar:
   # bg: light
   structure:
-    left:  [intro, reference, roadmap, articles, news]
+    left:  [intro, reference, develop, articles, news]
     right: [search, github, lightswitch]
   components:
     news:
       text: News
       href: news/index.html
-    roadmap:
-      text: Roadmap
-      href: articles/roadmap.html
+    develop:
+      text: Development
+      menu:
+      - text: Roadmap
+        href: articles/roadmap.html
+      - text: Testing strategy
+        href: articles/testing.html
     articles:
       text: Tutorials
       menu:

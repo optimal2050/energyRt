@@ -203,7 +203,8 @@ newCosts <- function(
     if (!is.null(approxim2$timeslice)) approxim2$timeslice <- approxim2$calendar@timeslice_share$timeslice
     if (!is.null(approxim2$timeslice2)) {
       # approxim2$timeslice2 <- approxim2$timeslice@all__timeslice2 #???
-      browser()
+      if (isDebug())
+        cli::cli_warn("timeslice2 approximation path taken; see the ??? notes here.")
       approxim2$timeslice2 <- approxim2$calendar@timeslice_share$timeslice #???
     }
     if (nrow(stm@subset) != 0) {
