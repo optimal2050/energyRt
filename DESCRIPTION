@@ -1,8 +1,8 @@
 Package: energyRt
 Type: Package
 Title: Energy Systems Modeling Toolbox
-Version: 0.90.0.9015
-Date: 2026-10-06
+Version: 0.90.0.9016
+Date: 2026-10-07
 Authors@R: 
   c(person(given = "Oleg", 
           family = "Lugovoy", 
@@ -32,14 +32,14 @@ Depends: R (>= 4.3)
 Imports: methods, grid, stats, generics, data.table, tibble, tidyr, dplyr, rlang,
         stringr, lubridate, purrr, arrow, progressr, cli,
         options (>= 0.2.0), grDevices, utils, tools, yaml,
-        geoscales (>= 0.5.4), timescales (>= 0.5.4)
+        geoscales (>= 0.6.0), timescales (>= 0.6.0)
 Suggests: shiny, DT, pak, knitr, rmarkdown, sf, ggplot2,
         testthat (>= 3.0.0), devtools, openxlsx, jsonlite, readxl,
         httr2, xml2, base64enc, tinytex, patchwork,
         waldo, withr, mmcloud, DBI, RSQLite, multimod,
-        multiscales, glpsol
+        discretescales, glpsol
 Remotes: optimal2050/geoscales, optimal2050/timescales,
-        optimal2050/multiscales
+        optimal2050/discretescales
 SystemRequirements: Julia (>= 1.6) with JuMP or Python (>= 3.7) with
         Pyomo or GAMS (>= 24.9) or GLPK (>= 4.0)
 License: Apache License (>= 2)
@@ -123,6 +123,7 @@ Collate:
     'obj2modInp.R'
     'plot_scenario.R'
     'plot_map.R'
+    'plot_trade_network.R'
     'read.R'
     'store-scenario.R'
     'portability.R'

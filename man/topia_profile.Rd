@@ -24,7 +24,7 @@ ramp/plateau/ramp in equal thirds).}
 \item{levels}{integer >= 2, number of plateaus for \code{shape = "step"}
 (ignored otherwise). \code{levels = 2} is the on/off case.}
 
-\item{calendar}{a \link{calendar} object, the name of a shipped calendar (see
+\item{calendar}{a \link[timescales:calendar]{calendar} object, the name of a shipped calendar (see
 \link{calendars}), or a timetable \code{data.frame}.}
 
 \item{regions}{optional character vector. \code{NULL} returns the bare shape

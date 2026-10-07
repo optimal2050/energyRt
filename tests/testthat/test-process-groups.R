@@ -5,7 +5,7 @@
 
 skip_if_no_clustering <- function() {
   testthat::skip_if_not_installed("geoscales")
-  testthat::skip_if_not_installed("multiscales")
+  testthat::skip_if_not_installed("discretescales")
   testthat::skip_if_not_installed("sf")
 }
 
@@ -194,7 +194,7 @@ test_that("one multi-region technology clusters like a family of objects", {
 test_that("clusters never straddle the target geoframe, and k has a floor", {
   skip_if_no_clustering()
   mod <- cr_model()
-  # the adjacency graph has one component per zone, so `multiscales` cannot
+  # the adjacency graph has one component per zone, so `discretescales` cannot
   # merge below the number of zones -- and says so rather than quietly
   # violating the constraint
   expect_error(aggregate_model_regions(mod, level = "zone", clusters = list(ECOA = 1)),

@@ -1,5 +1,11 @@
 # energyRt (development version)
 
+## Scales core renamed
+
+* The scales core is now `discretescales` (formerly `multiscales`), and
+  `geoscales`/`timescales` 0.6.0 are required. `topia$geoscales` were
+  re-stamped against the renamed class.
+
 ## TOPIA's transmission links now carry a flow cost
 
 * The `TBD_ELC_*` corridors in `topia$modules$electricity` (R3/R7/R11) set
@@ -135,8 +141,8 @@
   `highs_options` (a named list, e.g. `list(presolve = "off")`) is passed to
   HiGHS.
 
-* `clusterscales` is merged into `multiscales`, so region clustering and the
-  scale it is built on come from one package: `multiscales` replaces both in
+* `clusterscales` is merged into `discretescales`, so region clustering and the
+  scale it is built on come from one package: `discretescales` replaces both in
   `Suggests`.
   `get_process_groups()`, `process_cluster_sweep()` and `model_clusters()` are
   unchanged for callers.
@@ -435,7 +441,7 @@
   Two settings leave it untouched, three move it -- including one where the
   aggregated model comes out **cheaper** than the model it came from, because
   pooling granted transmission that did not exist. `clusterscales` and
-  `multiscales` are Suggests; `dev/region-aggregation-model.R` holds the
+  `discretescales` are Suggests; `dev/region-aggregation-model.R` holds the
   shared model and
   `dev/verify-region-aggregation.R` checks every number the article prints.
 
