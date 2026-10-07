@@ -987,9 +987,6 @@ dataset_hash <- function(x) {
   do.call(getExportedValue(parts[1], parts[2]), args %||% list())
 }
 
-# What kind of payload this is, and how it is stored.
-.dataset_kind <- function(x) if (is.data.frame(x)) "table" else "object"
-
 # Write a payload into a store entry (tables -> data/ parquet; anything
 # else -> payload.rds). Returns the manifest fields describing it.
 .dataset_write_payload <- function(x, path, format) {

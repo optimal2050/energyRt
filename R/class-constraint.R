@@ -327,15 +327,6 @@ newConstraint <- function(
   obj
 }
 
-#' Check if an object is of class `constraint`.
-#'
-#' @param object any R object
-#' @return TRUE if the object inherits class `constraint`, FALSE otherwise.
-#' @noRd
-isConstraint <- function(object) {
-  inherits(object, "constraint")
-}
-
 # @describeIn newConstraint
 # @family constraint
 # @export

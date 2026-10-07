@@ -199,13 +199,6 @@ neos_ping <- function(timeout = 30) {
   invisible(alive)
 }
 
-#' List the NEOS solver categories (abbrev -> full name).
-#' @noRd
-neos_list_categories <- function(timeout = 30) {
-  res <- .neos_call("listCategories", timeout = timeout)
-  unlist(res)   # struct: abbrev -> full name
-}
-
 #' @rdname neos
 #' @export
 neos_list_solvers <- function(category, timeout = 30) {
@@ -235,15 +228,6 @@ neos_get_template <- function(category, solver, inputMethod = "GAMS",
     stop("NEOS result retrieval needs 'base64enc'. ",
          'install.packages("base64enc").', call. = FALSE)
   }
-}
-
-# Encode a binary input file (e.g. a GDX) for the NEOS XML-RPC <gdx> field. The
-# content goes inside a nested <base64> tag: <gdx><base64>...</base64></gdx>.
-# NEOS base64-decodes that tag to produce `in.gdx`; it does NOT gunzip (unlike
-# the AMPL <nlfile> path, which is gzipped) -- so base64 the raw bytes directly.
-.neos_encode_binary <- function(path) {
-  .neos_need_base64()
-  base64enc::base64encode(path)
 }
 
 # Build a GAMS <document> job XML from the template fields confirmed live via

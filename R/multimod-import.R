@@ -1260,53 +1260,6 @@ multimod_import_log <- function(model) {
   model$misc$data_import_log
 }
 
-#' Export import log to CSV
-#'
-#' @param model Multimod model with import log
-#' @param file Path to CSV file
-#' @keywords internal
-#' @noRd
-export_import_log_from_model <- function(model, file) {
-  log <- multimod_import_log(model)
-  if (is.null(log)) {
-    stop("No import log available")
-  }
-  multimod::export_import_log(log, file)
-  cat("Import log exported to:", file, "\n")
-  invisible(file)
-}
-
-#' Show bounds parameter mapping
-#'
-#' @param model Multimod model with import log
-#' @return Data frame showing bounds parameter splits
-#' @keywords internal
-#' @noRd
-show_bounds_mapping <- function(model) {
-  log <- multimod_import_log(model)
-  if (is.null(log) || is.null(log$bounds)) {
-    message("No bounds mapping found")
-    return(NULL)
-  }
-  
-  rows <- lapply(names(log$bounds), function(name) {
-    entry <- log$bounds[[name]]
-    data.frame(
-      scenario_param = entry$scenario_name,
-      multimod_lo = entry$multimod_lo,
-      multimod_up = entry$multimod_up,
-      status_lo = entry$status_lo,
-      status_up = entry$status_up,
-      dims = entry$dims,
-      defVal_lo = entry$defVal_lo,
-      defVal_up = entry$defVal_up,
-      stringsAsFactors = FALSE
-    )
-  })
-  
-  do.call(rbind, rows)
-}
-
 #' Show unmatched elements
 #'
 #' @param model Multimod model with import log
@@ -1351,17 +1304,6 @@ multimod_unmatched <- function(model) {
 }
 
 # --- the entry point ---------------------------------------------------------
-
-#' Fail with an actionable message when energyRt is absent
-#' @keywords internal
-#' @noRd
-.need_energyRt <- function(what) {
-  if (!requireNamespace("energyRt", quietly = TRUE)) {
-    stop(what, " needs the 'energyRt' package.\n",
-         '  pak::pak("optimal2050/energyRt")', call. = FALSE)
-  }
-  invisible(TRUE)
-}
 
 #' Variable -> gating-map table from energyRt's mapping spec
 #'

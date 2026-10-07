@@ -884,12 +884,6 @@ map_mvOutTot <- function(scen, fmp) {
   outtot <- .extend_region_chain(outtot, .region_ancestry(scen))
   .set_map(scen, "mvOutTot", outtot, fmp)
 }
-.drop_timeslice_distinct <- function(scen, src, name, fmp) {
-  d <- .gds(scen, src)
-  if (is.null(d)) return(scen)
-  .set_map(scen, name,
-           dplyr::distinct(dplyr::select(d, -dplyr::any_of("timeslice"))), fmp)
-}
 # [nested-regions] the balance is enforced at the commodity's OWN region level
 # only -- this is what makes steel national while electricity stays per-state.
 # [timeframe-contract] likewise the commodity's OWN timeslice level only:

@@ -46,6 +46,15 @@
   without them), 32 `if (F)` REPL scratchpads, and six functions no caller
   reached, one of which could not run at all. All archived under `drafts/`.
 
+* A further 27 internal functions no caller reached left `R/` (381 lines across
+  14 files), among them a superseded 79-line Julia code generator that
+  `.toJuliaHead()` and the Arrow data path replaced, a stand-alone EAC formula
+  the model templates already carry, and a function with an empty body. Each was
+  checked for a quoted-name or `do.call()` reference, for `S3method()`
+  registration, for export, and for `energyRt:::` access from the sibling
+  packages before removal; none is documented, so no help topic changed.
+  Archived under `drafts/`.
+
 * Comment hygiene: 32 `R/<file>.R` references pointed at files deleted in the
   Sept-Oct regrouping, including a line citation into a deleted file. A note
   duplicated across six writers is now stated once on `get_data_slot()`. New test

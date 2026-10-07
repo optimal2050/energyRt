@@ -708,16 +708,6 @@
   scen
 }
 
-.get_map_commodity_timeslice_map <- function(scen) {
-  .apply_to_code_ret_list(
-    scen = scen,
-    clss = "commodity",
-    func = function(x) {
-      list(name = x@name, val = x@timeframe)
-    }
-  )
-}
-
 .get_map_commodity_timeslice_map_obj <- function(obj) {
   xx <- list()
   for (i in seq(along = obj@data)) {

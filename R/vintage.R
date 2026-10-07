@@ -246,14 +246,6 @@
 # consumer works with one shape, whichever class it is handed.
 # -------------------------------------------------------------------------- #
 
-# Full lifespan table for a `technology` (which keeps everything in @vintage).
-.proc_lifespan <- function(obj) {
-  if (!.hasSlot(obj, "vintage")) return(.empty_lifespan())
-  v <- as.data.frame(obj@vintage)
-  if (nrow(v) == 0L) return(.empty_lifespan())
-  .pad_vintage_cols(v)
-}
-
 .lifespan_keys <- c("vintage", "region", "cluster")
 
 .empty_lifespan_col <- function(col) {

@@ -1356,13 +1356,6 @@ interpolate_model <- function(mod, name = NULL, ...,
 
 
 
-interp_slot <- function(obj, slot, overrides) {
-
-
-
-
-}
-
 
 
 #' Search through model data for set elements
@@ -1563,38 +1556,6 @@ apply_to_scenario_data <- function(
 }
 
 
-apply_to_parameters <- function(
-    scen,
-    func,
-    ...,
-    as_list = TRUE
-) {
-  # Same flatten-once accumulation as apply_to_scenario_data().
-  chunks <- list()
-  n <- 0L
-  for (i in seq(along = scen@modInp@parameters)) {
-    if (inherits(scen@modInp@parameters[[i]], "parameter")) {
-      rr <- func(scen@modInp@parameters[[i]], ...)
-      if (!is.null(rr)) {
-        n <- n + 1L
-        chunks[[n]] <- rr
-      }
-    }
-  }
-  rs <- if (n) do.call(c, chunks) else list()
-
-  # return as named list
-  if (as_list) {
-    return(rs)
-  }
-  dd <- try(rbindlist(rs, use.names = TRUE, fill = TRUE), silent = TRUE)
-  if (inherits(dd, "try-error")) {
-    # add log/message
-    stop("Function returns inconsistent results. Cannot merge into data.frame.\n", print(func))
-  }
-  return(dd)
-}
-
 # en_rapply <- function(object, f, classes = "ANY", ...) {
 #
 # }
@@ -1663,38 +1624,6 @@ complete_set <- function(
 # replaced with the full set of elements for each unique combination of
 # other columns.
 
-# identify sets by name or by class
-is_set <- function(x, scen = NULL) {
-  # check if x is a set
-  # x - character vector or list
-  # scen - scenario object
-
-  if (is.null(scen)) {
-    # !!! ToDo: finish
-    stop("Scenario object is required")
-  }
-
-  if (is.null(scen@modInp@sets$set_names)) {
-    stop("No set names found in the scenario object.\n",
-         "Not interpolated scenario object?")
-  }
-
-  if (inherits(x, "data.frame")) {
-    x <- names(x)
-  } else if (inherits(x, "list")) {
-    x <- names(x)
-  } else if (!inherits(x, "character")) {
-    stop("x must be a character vector, list, or data frame")
-  }
-
-  sn <- x %in% scen@modInp@sets$set_names
-  names(sn) <- x
-
-  return(sn)
-}
-
-
-guess_sets <- function(x) {}
 
 
 # expand_dim <- function(
@@ -2256,17 +2185,6 @@ interpolate_bounds <- function(
 
 
 
-
-get_parameter_full_sets <- function(
-    scen, # scenario object
-    param_name # name of the parameter
-) {
-  # returns data frame with all possible combinations of sets for the parameter,
-  # considering the parameter's timeframe, region, years.
-  #
-
-
-}
 
 # =========================================================================== #
 # Per-parameter interpolation pass ####

@@ -1518,16 +1518,8 @@ getNames <- function(obj, class = c(), regex = NULL, ...) {
   names(.getNames(obj, cls = class, regex = regex, ...))
 }
 
-getNames_ <- function(obj, class = c(), ...) {
-  names(.getNames(obj, cls = class, regex = TRUE, ...))
-}
-
 getObjects <- function(obj, class = c(), regex = NULL, ...) {
   .getNames(obj, cls = class, regex = regex, ...)
-}
-
-getObjects_ <- function(obj, class = c(), ...) {
-  .getNames(obj, cls = class, regex = TRUE, ...)
 }
 
 

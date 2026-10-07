@@ -111,12 +111,6 @@
   args
 }
 
-# Model-wide rate accessors. Both columns are guaranteed populated once the
-# argument has been through `.discount_arg_to_rates()`, so these are plain
-# lookups with no fallback logic.
-.model_wacc <- function(cfg) .rate_column(cfg, "wacc")
-.model_sdr  <- function(cfg) .rate_column(cfg, "sdr")
-
 .rate_column <- function(cfg, col) {
   d <- tryCatch(cfg@discount, error = function(e) NULL)
   if (!is.data.frame(d) || nrow(d) == 0 || !col %in% names(d)) return(numeric())

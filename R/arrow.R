@@ -1474,14 +1474,6 @@ obj2mem <- function(obj, verbose = isVerbose()) {
   invisible(obj)
 }
 
-get_element <- function(obj, element) {
-  if (isS4(obj)) {
-    return(slot(obj, element))
-  } else {
-    return(obj[[element]])
-  }
-}
-
 
 # compare_slots <- function(obj1, obj2) {
 #
@@ -1538,16 +1530,3 @@ get_element <- function(obj, element) {
   out
 }
 
-# Build a filter list from the sets a scenario actually requested, dropping
-# entries that would not restrict anything.
-#
-# `declared` is the full set of values present in the data and `wanted` the
-# subset asked for; when they match, the column is left out so the query stays
-# unfiltered rather than carrying a no-op `%in%` over every value.
-.en_build_filter <- function(...) {
-  spec <- list(...)
-  spec <- spec[!vapply(spec, is.null, logical(1))]
-  spec <- spec[vapply(spec, length, integer(1)) > 0]
-  if (!length(spec)) return(NULL)
-  spec
-}

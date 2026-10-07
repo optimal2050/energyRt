@@ -1,6 +1,6 @@
 # Coverage matrix summary
 
-Generated: 2026-10-06 14:22 | energyRt 0.90.0.9014
+Generated: 2026-10-07 11:10 | energyRt 0.90.0.9015
 
 ## Rows by kind x depth
 
@@ -138,4 +138,4 @@ Key: <family>
         <char>
 ```
 
-Tagged rows: 184 | inferred: 178 | uncovered: 385 of 747
+Tagged rows: 185 | inferred: 177 | uncovered: 385 of 747

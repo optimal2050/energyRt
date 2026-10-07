@@ -11,6 +11,9 @@
 # ENERGYRT_TEST_HEAVY=true (~minutes).
 # =========================================================================== #
 
+# R7 / R11 have 6 and 10 trade corridors, each carrying a `varom` flow
+# cost, so their frozen objectives pin it on a second backend.
+# @covers pTradeIrVarom depth=X backends=julia
 test_that("TOPIA R7/R11 reproduce their golden tracked values (julia/HiGHS)", {
   skip_if_tier_below("nightly")
   # mid-size models reference julia/HiGHS (the backend-choice convention;

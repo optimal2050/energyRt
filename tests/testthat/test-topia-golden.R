@@ -11,6 +11,9 @@
 # =========================================================================== #
 
 # @covers vObjective vTechNewCap vTechOut depth=S backends=glpk
+# The R3 corridors carry a flow cost, so the frozen objective moves with
+# `trade@varom`: this entry is what pins it to a number.
+# @covers pTradeIrVarom depth=X backends=glpk
 test_that("TOPIA layouts and levers reproduce their goldens (GLPK)", {
   skip_if_no_solver()
   g <- skip_if_no_golden("topia")

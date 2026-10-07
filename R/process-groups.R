@@ -837,25 +837,6 @@ model_clusters <- function(mod) {
   ft[, c("trade", keep), drop = FALSE]
 }
 
-# The size each intensive mean is weighted by, and the one a group's parts are
-# ordered on. `@capacity` first: `@trade$ava.up` is an absolute FLOW bound many
-# models never set, while the rating lives in the region-free `@capacity`.
-#' @noRd
-.trade_size <- function(o) {
-  cap <- methods::slot(o, "capacity")
-  v <- if (is.data.frame(cap) && nrow(cap))
-    suppressWarnings(as.numeric(unlist(
-      cap[intersect(c("cap.fx", "cap.up", "stock"), names(cap))]))) else
-        numeric(0)
-  v <- v[is.finite(v) & v > 0]
-  if (length(v)) return(max(v))
-  trd <- methods::slot(o, "trade")
-  v <- if (is.data.frame(trd) && nrow(trd) && "ava.up" %in% names(trd))
-    suppressWarnings(as.numeric(trd$ava.up)) else numeric(0)
-  v <- v[is.finite(v) & v > 0]
-  if (length(v)) max(v) else 1
-}
-
 # Parallel AC circuits do not split flow by optimisation, they split it by
 # impedance -- and `.kvl_lines()` refuses a corridor whose reactance appears on
 # more than one object. Keeping such corridors apart hands the LP a

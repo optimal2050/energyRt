@@ -53,13 +53,6 @@ countdown_timer <- function(
 # countdown_timer(10)
 
 
-factors_in_params <- function(x) {
-  # x - list
-  # if (inherits(x, "list")) y <- lapply()
-  y <- lapply(x, function(y) any(sapply(y@data, class) == "factors"))
-  y[unlist(y)]
-}
-
 # factors_in_prams(scen_BASE_int@modInp@parameters)
 
 nonchar_in_sets <- function(x) {
@@ -303,16 +296,6 @@ findDuplicates <- function(x) {
 
 }
 
-fact2char <- function(df, asTibble = TRUE) {
-  stopifnot(is.data.frame(df))
-  jj <- sapply(df, is.factor)
-  for (j in names(df)[jj]) {
-    df[[j]] <- as.character(df[[j]])
-  }
-  if (asTibble) {df <- as_tibble(df)}
-  df
-}
-
 #' Switch on/off and select/customize progress bar
 #'
 #' @param type character, type of the progress bar to display. Existing options:
@@ -408,15 +391,6 @@ drop_na_cols <- function(x, unique = TRUE) {
   x <- select(x, where(~ !all(is.na(.))))
   if (unique) x <- unique(x)
   x
-}
-
-fEAC <- function(invcost, discount, olife) {
-  stopifnot(olife > 0)
-  stopifnot(invcost > 0)
-  if (round(discount, 7) == 0) {
-    return(invcost/olife)
-  }
-  (invcost * discount) / (1 - (1 + discount) ^ (-olife))
 }
 
 
@@ -553,58 +527,6 @@ find_in_model <- function(x, pattern, fixed = TRUE, slots = NULL,
 # ---------------------------------------------------------------------------
 # (was R/docs.R, merged 2026-09-20)
 # ---------------------------------------------------------------------------
-
-## Functions to generate roxygen2 documentation for large classes/methods ######
-# generate roxygen2 script from a data.frame
-roxygen_slots <- function(df, roxy_par = "slot") {
-
-  roxygen_script <- c()
-
-  # Get unique slot names to avoid duplicating them
-  unique_slots <- unique(df$slotname)
-
-  # Loop through each unique slot and create roxygen comments
-  for (slot in unique_slots) {
-    # Extract slot information
-    slot_data <- df |> filter(slotname == slot)
-    slot_name <- slot_data$slotname[1]
-    slot_type <- slot_data$type[1]
-    slot_description <- slot_data$description[1]
-
-    # Start creating the roxygen script for the slot
-    slot_entry <- paste0("#' @", roxy_par," ", slot_name, " ", slot_type,
-                         ", ", slot_description)
-    roxygen_script <- c(roxygen_script, slot_entry)
-
-    # Check if the slot is a data.frame and contains column information
-    if (slot_type == "data.frame") {
-      describe_start <- "#' \\describe{"
-      roxygen_script <- c(roxygen_script, describe_start)
-
-      # Loop through each row where slotname matches and generate column descriptions
-      slot_columns <- slot_data |> filter(!is.na(col.name))
-
-      for (j in 1:nrow(slot_columns)) {
-        col_name <- slot_columns$col.name[j]
-        col_type <- slot_columns$col.type[j]
-        col_description <- slot_columns$col.description[j]
-
-        # Properly format the description, ensuring multiline content is handled
-        wrapped_description <- paste(strwrap(col_description, width = 80), collapse = "\n#'   ")
-
-        item_entry <- paste0("#'   \\item{", col_name, "}{", col_type, ", ", wrapped_description, "}")
-        roxygen_script <- c(roxygen_script, item_entry)
-      }
-
-      # Add the closing brace for describe block with the correct roxygen2 formatting
-      describe_end <- "#' }"
-      roxygen_script <- c(roxygen_script, describe_end)
-    }
-  }
-
-  # Join the roxygen script lines into a single string with no trailing or empty lines
-  return(paste0(roxygen_script, collapse = "\n"))
-}
 
 #' Retrieve slot details in rd-format
 #'
