@@ -400,26 +400,8 @@ session, stays quiet in scripts and knits).}
 \code{levcost = NULL} and levcost parameters are provided) and/or to
 \code{rmarkdown::render()}.  Known \code{levcost} parameter names are
 intercepted automatically; everything else is passed to the renderer.
-
-The \code{scenario} method additionally accepts \code{run} (character or
-\code{NULL}): the run id to report, as listed by
-\code{\link{scenario_runs}} (\code{"<solve>"} or
-\code{"<variant>/<solve>"}).  The default \code{NULL} reports the active
-run; a different run is read into a local copy, so the caller's scenario
-keeps its active run.  It also accepts \code{verify} (logical, default
-\code{TRUE}): include the \code{\link{verify_solution}} checks section.
 For a whole-scenario report, \code{levcost = TRUE} adds an ex-post
-levelized-cost table via \code{levcost(scenario)}.
-
-The model, repository and scenario methods accept branding arguments:
-\code{logos} (character vector of image paths rendered as a banner
-row; default from \code{misc$logos}, then the scalar \code{misc$logo}
-/ \code{misc$image} -- a scenario shows its model's logos first, then
-its own), the model method \code{figure} (an optional half-page hero
-figure, default \code{misc$figure}), and the scenario method
-\code{badges} (small property-indicator images, default
-\code{misc$badges}). Branding content enters the render key, so a
-changed logo re-renders an otherwise up-to-date report.}
+levelized-cost table via \code{levcost(scenario)}.}
 
 \item{levcost_peers}{A \code{levcost_list} of the process's topology-group
 peers, rendered as a comparison chart. Filled automatically when the
@@ -434,6 +416,17 @@ date.  Reports are skip-if-current: a sidecar (\code{*.report.yml})
 records a content key over the object, template, arguments, image and
 levcost identity, and an unchanged report is not rebuilt.}
 
+\item{logos}{Character vector of image paths rendered as a banner row
+(\code{model} / \code{repository} / \code{scenario} methods). Given
+explicitly it REPLACES the \code{misc}-derived set entirely and every file
+must exist; \code{NULL} (default) takes \code{misc$logos}, then the scalar
+\code{misc$logo} / \code{misc$image} -- a scenario shows its model's logos
+first, then its own.}
+
+\item{figure}{An optional half-page hero figure (\code{model} /
+\code{repository} methods); \code{NULL} (default) takes
+\code{misc$figure}.}
+
 \item{groups}{Process groups for model and scenario reports: a named list
 whose elements are character vectors of process names or regular
 expressions over process names (\code{list(Coal = "_coal_", Wind =
@@ -443,8 +436,20 @@ c("WIN_ON", "^R._win"))}). Defaults to \code{object@misc$report_groups}
 the report shows a representative sample of up to 12 processes.
 Processes in no group form a final "Ungrouped" sample.}
 
-\item{name}{Character (container/scenario methods). Name of the technology /
-process to report.}
+\item{run}{Character or \code{NULL} (\code{scenario} method). The run id to
+report, as listed by \code{\link{scenario_runs}} (\code{"<solve>"} or
+\code{"<variant>/<solve>"}).  The default \code{NULL} reports the active
+run; a different run is read into a local copy, so the caller's scenario
+keeps its active run.}
+
+\item{verify}{Logical (\code{scenario} method), default \code{TRUE}:
+include the \code{\link{verify_solution}} checks section.}
+
+\item{badges}{Small property-indicator images (\code{scenario} method);
+\code{NULL} (default) takes \code{misc$badges}.
+
+Branding content enters the render key, so a changed logo or figure
+re-renders an otherwise up-to-date report.}
 }
 \value{
 The path(s) to the generated output file(s) (invisibly).  A single

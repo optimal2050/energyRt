@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9014</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9016</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -23,7 +23,11 @@
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/energyRt.html">Get started</a></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Roadmap</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-development" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Development</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-development"><li><a class="dropdown-item" href="../articles/roadmap.html">Roadmap</a></li>
+    <li><a class="dropdown-item" href="../articles/testing.html">Testing strategy</a></li>
+  </ul></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-tutorials" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Tutorials</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials"><li><a class="dropdown-item" href="../articles/install.html">Installation</a></li>
@@ -94,7 +98,7 @@
 
         <dt>
 
-          <code><a href="class-constraint.html">class-constraint</a></code> <code><a href="class-constraint.html">summand-class</a></code>
+          <code><a href="class-constraint.html">class-constraint</a></code> <code><a href="class-constraint.html">class-summand</a></code> <code><a href="class-constraint.html">summand-class</a></code>
           <span class="badge lifecycle lifecycle-experimental">experimental</span>
         </dt>
         <dd>An S4 class to represent a custom constraint.</dd>
@@ -182,13 +186,6 @@
 
         </dt>
         <dd>An S4 class to represent scenario settings</dd>
-
-        <dt>
-
-          <code><a href="class-summand.html">.upgrade_summand()</a></code>
-
-        </dt>
-        <dd>An S4 class to represent a summand in a constraint.</dd>
 
         <dt>
 
@@ -334,14 +331,14 @@
 
         <dt>
 
-          <code><a href="newExport.html">newExport()</a></code>
+          <code><a href="newExport.html">newExport()</a></code> <code><a href="newExport.html">update(<i>&lt;export&gt;</i>)</a></code>
 
         </dt>
         <dd>Create new export object</dd>
 
         <dt>
 
-          <code><a href="newWeather.html">newWeather()</a></code>
+          <code><a href="newWeather.html">newWeather()</a></code> <code><a href="newWeather.html">update(<i>&lt;weather&gt;</i>)</a></code>
 
         </dt>
         <dd>Create new weather object</dd>
@@ -404,13 +401,6 @@
 
         <dt>
 
-          <code><a href="newTechnology.html">update(<i>&lt;export&gt;</i>)</a></code> <code><a href="newTechnology.html">update(<i>&lt;weather&gt;</i>)</a></code>
-
-        </dt>
-        <dd>Update export object</dd>
-
-        <dt>
-
           <code><a href="supply-curve.html">asSupplyCurve()</a></code> <code><a href="supply-curve.html">asImportCurve()</a></code> <code><a href="supply-curve.html">asExportCurve()</a></code>
           <span class="badge lifecycle lifecycle-experimental">experimental</span>
         </dt>
@@ -469,7 +459,7 @@
 
         <dt>
 
-          <code><a href="timeslices.html">tsl_sets</a></code>
+          <code><a href="timeslices.html">tsl_sets</a></code> <code><a href="timeslices.html">tsl_levels</a></code>
 
         </dt>
         <dd>Sets of the common formats with structure</dd>
@@ -1277,6 +1267,13 @@
 
         <dt>
 
+          <code><a href="plot_trade_network.html">plot_trade_network()</a></code>
+
+        </dt>
+        <dd>Plot trade as a network: capacities and flows between regions</dd>
+
+        <dt>
+
           <code><a href="object_image.html">object_image()</a></code>
 
         </dt>
@@ -1611,6 +1608,27 @@
 
         </dt>
         <dd>TOPIA input profiles (deterministic)</dd>
+
+        <dt>
+
+          <code><a href="model_structure.html">model_structure</a></code>
+
+        </dt>
+        <dd>Catalogue of the model vocabulary</dd>
+
+        <dt>
+
+          <code><a href="prefix.html">prefix</a></code> <code><a href="prefix.html">prefix_longname</a></code>
+
+        </dt>
+        <dd>Unit prefix multipliers</dd>
+
+        <dt>
+
+          <code><a href="solver_options.html">solver_options</a></code>
+
+        </dt>
+        <dd>Solver presets</dd>
 
         <dt>
 

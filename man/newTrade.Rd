@@ -158,6 +158,8 @@ Optional. When empty, tranche labels are harvested from the \code{cluster} colum
 \item{optimizeRetirement}{logical. Incidates if the retirement of the trade object should be optimized. Also requires the same parameter in the \code{model} or \code{scenario} class to be set to TRUE to be effective.}
 
 \item{misc}{list. Additional information.}
+
+\item{...}{further named slots of the class, set on the new object.}
 }
 \value{
 trade object with given specifications.

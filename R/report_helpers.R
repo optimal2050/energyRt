@@ -225,6 +225,9 @@ report_pagebreak <- function(output = report_output()) {
   invisible(NULL)
 }
 
+#' @param base numeric, figure height in inches for a single panel row.
+#' @param per_row numeric, inches added for every further panel row.
+#' @param max numeric, cap on the returned height in inches.
 #' @describeIn report_helpers Figure height (inches) from a ggplot's facet
 #'   layout: `base` for one panel row, `per_row` more for every further
 #'   row, capped at `max`. Non-ggplot input returns `base`.

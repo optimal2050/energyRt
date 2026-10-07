@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9014</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9016</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -23,7 +23,11 @@
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/energyRt.html">Get started</a></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Roadmap</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-development" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Development</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-development"><li><a class="dropdown-item" href="../articles/roadmap.html">Roadmap</a></li>
+    <li><a class="dropdown-item" href="../articles/testing.html">Testing strategy</a></li>
+  </ul></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-tutorials" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Tutorials</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials"><li><a class="dropdown-item" href="../articles/install.html">Installation</a></li>
@@ -156,7 +160,7 @@ so the object never carries two answers.</p></dd>
 <dd><p>character. Commodity consumed to fill the store.</p></dd>
 
 <dt>unit</dt>
-<dd><p>character. Unit of <code>comm</code> on this side, exactly as on <code>technology@input</code>/ <code>@output</code>. Descriptive only: it is carried for reporting and <code>convert()</code> and never reaches the solver. It is the unit of the COMMODITY (e.g. MWh), not of the capacity – capacity units follow from <code>cap2act</code>, and the storing side has no <code>cap2act</code> because a reservoir is an amount rather than a rate.</p></dd>
+<dd><p>character. Unit of <code>comm</code> on this side, exactly as on <code>technology@input</code>/ <code>@output</code>. Descriptive only: it is carried for reporting and <code><a href="convert.html">convert()</a></code> and never reaches the solver. It is the unit of the COMMODITY (e.g. MWh), not of the capacity – capacity units follow from <code>cap2act</code>, and the storing side has no <code>cap2act</code> because a reservoir is an amount rather than a rate.</p></dd>
 
 <dt>cap2act</dt>
 <dd><p>numeric. Capacity to ANNUAL flow, exactly as <code>technology@cap2act</code>. The flow bound is <code>inp.af.up * cap2act * cap * pTimesliceShare</code>, so <code>cap</code> is a RATE and means the same physical thing on any calendar. Defaults to 8760 (hours in a year), which makes <code>cap</code> read as commodity per HOUR; an hourly full-year model is unchanged because 8760 * (1/8760) = 1. Assumes commodity unit = capacity unit x hour (GW with GWh); GW with TWh wants 8.76. The STORING side has no cap2act – energy is energy at any resolution.</p></dd>
@@ -171,7 +175,7 @@ so the object never carries two answers.</p></dd>
 <dd><p>character. Commodity produced when the store discharges.</p></dd>
 
 <dt>unit</dt>
-<dd><p>character. Unit of <code>comm</code> on this side, exactly as on <code>technology@input</code>/ <code>@output</code>. Descriptive only: it is carried for reporting and <code>convert()</code> and never reaches the solver. It is the unit of the COMMODITY (e.g. MWh), not of the capacity – capacity units follow from <code>cap2act</code>, and the storing side has no <code>cap2act</code> because a reservoir is an amount rather than a rate.</p></dd>
+<dd><p>character. Unit of <code>comm</code> on this side, exactly as on <code>technology@input</code>/ <code>@output</code>. Descriptive only: it is carried for reporting and <code><a href="convert.html">convert()</a></code> and never reaches the solver. It is the unit of the COMMODITY (e.g. MWh), not of the capacity – capacity units follow from <code>cap2act</code>, and the storing side has no <code>cap2act</code> because a reservoir is an amount rather than a rate.</p></dd>
 
 <dt>cap2act</dt>
 <dd><p>numeric. Capacity to ANNUAL flow, exactly as <code>technology@cap2act</code>. The flow bound is <code>inp.af.up * cap2act * cap * pTimesliceShare</code>, so <code>cap</code> is a RATE and means the same physical thing on any calendar. Defaults to 8760 (hours in a year), which makes <code>cap</code> read as commodity per HOUR; an hourly full-year model is unchanged because 8760 * (1/8760) = 1. Assumes commodity unit = capacity unit x hour (GW with GWh); GW with TWh wants 8.76. The STORING side has no cap2act – energy is energy at any resolution.</p></dd>
@@ -186,7 +190,7 @@ so the object never carries two answers.</p></dd>
 <dd><p>character. Commodity the store HOLDS – what <code>vStorageLevel</code> is measured in.</p></dd>
 
 <dt>unit</dt>
-<dd><p>character. Unit of <code>comm</code>. Descriptive only, carried for reporting and <code>convert()</code> and never reaching the solver. There is no <code>cap2act</code> on this side – energy is energy at any resolution.</p></dd>
+<dd><p>character. Unit of <code>comm</code>. Descriptive only, carried for reporting and <code><a href="convert.html">convert()</a></code> and never reaching the solver. There is no <code>cap2act</code> on this side – energy is energy at any resolution.</p></dd>
 
 
 </dl></dd>
@@ -787,6 +791,10 @@ so the object never carries two answers.</p></dd>
 
 <dt id="arg-misc">misc<a class="anchor" aria-label="anchor" href="#arg-misc"></a></dt>
 <dd><p>list. List of additional parameters that are not used in the model but can be used for reference or user-defined functions. For example, links to the source of the storage data, or other metadata.</p></dd>
+
+
+<dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
+<dd><p>further named slots of the class, set on the new object.</p></dd>
 
 </dl></div>
     <div class="section level2">

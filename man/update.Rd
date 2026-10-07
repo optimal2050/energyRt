@@ -4,6 +4,8 @@
 \name{update,supply-method}
 \alias{update,supply-method}
 \alias{update}
+\alias{update,storage-method}
+\alias{update,trade-method}
 \alias{update,import-method}
 \title{Update supply object}
 \usage{

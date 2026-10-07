@@ -47,7 +47,7 @@ observed year range) with each parameter's default interpolation rule."><meta pr
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9014</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9016</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -57,7 +57,11 @@ observed year range) with each parameter's default interpolation rule."><meta pr
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/energyRt.html">Get started</a></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Roadmap</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-development" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Development</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-development"><li><a class="dropdown-item" href="../articles/roadmap.html">Roadmap</a></li>
+    <li><a class="dropdown-item" href="../articles/testing.html">Testing strategy</a></li>
+  </ul></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-tutorials" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Tutorials</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials"><li><a class="dropdown-item" href="../articles/install.html">Installation</a></li>
@@ -399,6 +403,11 @@ so "T"/"TRUE" are read as process names, not logicals.</p></dd>
 <dd><p>if TRUE, variables will be included in the search and returned if found.</p></dd>
 
 
+<dt id="arg-sets">sets<a class="anchor" aria-label="anchor" href="#arg-sets"></a></dt>
+<dd><p>logical, include set-type parameters in the result (by default
+only value-bearing parameters are returned).</p></dd>
+
+
 <dt id="arg-maps">maps<a class="anchor" aria-label="anchor" href="#arg-maps"></a></dt>
 <dd><p>if TRUE, map-type parameters (membership mappings, no <code>value</code> column) are also returned.</p></dd>
 
@@ -427,6 +436,10 @@ so "T"/"TRUE" are read as process names, not logicals.</p></dd>
 <dd><p>logical, should rows containing zero values be filtered out.</p></dd>
 
 
+<dt id="arg-add-weights-add-period-length-apply-weights-apply-period-length-as-data-table">add_weights, add_period_length, apply_weights, apply_period_length, as_data_table<a class="anchor" aria-label="anchor" href="#arg-add-weights-add-period-length-apply-weights-apply-period-length-as-data-table"></a></dt>
+<dd><p>accepted and currently ignored.</p></dd>
+
+
 <dt id="arg-astibble">asTibble<a class="anchor" aria-label="anchor" href="#arg-astibble"></a></dt>
 <dd><p>logical, if the data.frames should be converted into tibbles.</p></dd>
 
@@ -439,8 +452,18 @@ so "T"/"TRUE" are read as process names, not logicals.</p></dd>
 <dd><p>logical, should <code>year</code> be converted to factors? Set 'year' is integer by default.</p></dd>
 
 
+<dt id="arg-drop-duplicated-scenarios">drop_duplicated_scenarios<a class="anchor" aria-label="anchor" href="#arg-drop-duplicated-scenarios"></a></dt>
+<dd><p>logical, when several scenarios carry the
+same name, keep only the first.</p></dd>
+
+
 <dt id="arg-scennameinlist">scenNameInList<a class="anchor" aria-label="anchor" href="#arg-scennameinlist"></a></dt>
 <dd><p>logical, should the name of the scenarios be used if not provided in the list with several scenarios?</p></dd>
+
+
+<dt id="arg-unfold">unfold<a class="anchor" aria-label="anchor" href="#arg-unfold"></a></dt>
+<dd><p>logical, expand a stored parameter back over its full domain
+before returning it.</p></dd>
 
 
 <dt id="arg-variants">variants<a class="anchor" aria-label="anchor" href="#arg-variants"></a></dt>
@@ -470,6 +493,11 @@ below, which is about technologies.</p></dd>
 
 <dt id="arg-verbose">verbose<a class="anchor" aria-label="anchor" href="#arg-verbose"></a></dt>
 <dd><p>logical, print progress and diagnostic messages.</p></dd>
+
+
+<dt id="arg-obj">obj<a class="anchor" aria-label="anchor" href="#arg-obj"></a></dt>
+<dd><p>the object whose data is returned, for the per-class methods
+(<code>technology</code>, <code>commodity</code>, <code>storage</code>, ...).</p></dd>
 
 
 <dt id="arg-interpolate">interpolate<a class="anchor" aria-label="anchor" href="#arg-interpolate"></a></dt>

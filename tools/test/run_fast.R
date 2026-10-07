@@ -13,7 +13,7 @@
 # names, without the `test-` prefix ("process" matches test-process-groups.R).
 #
 # The reporter pair and the end-of-run tables now live in lib/runner.R, where
-# run_cross.R and run_nightly.R can reach them too; both used to be silent and
+# run_cross.R and run_full.R can reach them too; both used to be silent and
 # to undercount error-only files. Behaviour here is unchanged.
 # =========================================================================== #
 if (!file.exists("DESCRIPTION")) stop("Run from the package root.")

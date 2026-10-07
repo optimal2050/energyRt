@@ -1,6 +1,7 @@
 #' Write scenario object as a Python, Julia, GAMS, or MathProg script with data files to a directory
 #'
 #' @param scen scenario object, must be interpolated
+#' @param x scenario object, as `scen` (the `write_sc()` spelling).
 #' @param solver.dir character, an external directory to write into; default
 #'   (`NULL`) writes into the run's `solver/` directory under the scenario
 #'   (`tmp.dir` is the deprecated alias).

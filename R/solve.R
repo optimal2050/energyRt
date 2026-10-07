@@ -654,6 +654,12 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
 #' @param obj a model object (`solve_model()`) or an interpolated scenario
 #'   object (`solve_scenario()`).
 #' @param name character name of the scenario to create / return.
+#' @param kvl logical or `NULL`; what the caller expects of Kirchhoff's
+#'   voltage law. It GUARDS rather than builds -- the cycle constraints are
+#'   baked in at interpolation time, so this is the last chance to notice that
+#'   a solve is about to differ from what was asked for. `NULL` reports what
+#'   the scenario actually carries.
+#' @param a,b the `solve()` S4 signature: `a` the model, `b` the scenario name.
 #' @param solver a character or list with solver settings. When `NULL`, the
 #'   scenario's own solver settings or `get_default_solver()` are used.
 #' @param ondisk,fold passed to [interpolate_model()]. Defaults (`FALSE`/`FALSE`) keep

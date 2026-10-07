@@ -100,6 +100,11 @@ autoplot(
   `ava.lo` shows its default of 0). Non-finite defaults (e.g.
   `ava.up = Inf`) are listed in the caption instead of drawn.
 
+- units:
+
+  named list of base units passed to the unit resolver for the axis
+  label; `NULL` (default) resolves them from the object.
+
 - style:
 
   For `supply` only: `"profile"` (default) draws the per-parameter year

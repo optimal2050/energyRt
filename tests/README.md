@@ -55,14 +55,14 @@ them — the summary diff is the review artifact. Never edit the CSV by hand.
 ## Test tiers (execution frame)
 
 Selected via the `ENERGYRT_TEST_TIER` environment variable
-(`check < fast < cross < nightly`); see `tests/TESTING.md` for the full guide.
+(`check < fast < cross < full`); see `tests/TESTING.md` for the full guide.
 
 | Tier | Needs | Typical use |
 |---|---|---|
 | check | R only | `R CMD check` / CRAN — no solver, fixtures ship in `tests/` |
 | fast | + glpsol | default for `devtools::test()`; `Rscript tools/test/run_fast.R` before commit |
 | cross | + julia / pyomo / gams (any) | `Rscript tools/test/run_cross.R` — cross-backend parity |
-| nightly | + external model repos | `Rscript tools/test/run_nightly.R` — deep regression, interp goldens, external models |
+| full | + external model repos | `Rscript tools/test/run_full.R` — deep regression, interp goldens, external models |
 
 Solver tests always skip cleanly when a toolchain is missing (the GAMS guard
 also skips an unlicensed install); they must never error on absence.
@@ -73,13 +73,13 @@ capture gated by `verify_solution()`), `helper-topia.R` (TOPIA reference
 suite), `fixtures/testing-models.R` (the tm_* tier models),
 `helper-mapping.R::solved_tier()` (cached GLPK solves shared across files),
 `tools/test/interp_guard.R` (tracked interpolation baselines in
-`goldens/interp/`, checked nightly by `test-interp-golden.R`).
+`goldens/interp/`, checked at the full tier by `test-interp-golden.R`).
 
-## The nightly run
+## The full run
 
-`Rscript tools/test/run_nightly.R` runs the interp-goldens check plus the FULL
-suite at tier `nightly` (a superset of fast and cross) and writes a markdown
-report to `tmp/test-reports/nightly-YYYYMMDD-HHMMSS-<pid>.md`. Opt-in extras via the
+`Rscript tools/test/run_full.R` runs the interp-goldens check plus the whole
+suite at tier `full` (a superset of fast and cross) and writes a markdown
+report to `tmp/test-reports/full-YYYYMMDD-HHMMSS-<pid>.md`. Opt-in extras via the
 environment:
 
 - `ENERGYRT_EXT_MODELS=<dir>` — directory with external real-world models
@@ -94,7 +94,7 @@ environment:
 To schedule on Windows (daily 02:30, from the package root):
 
 ```powershell
-schtasks /Create /TN energyRt-nightly /SC DAILY /ST 02:30 /TR "pwsh -NoProfile -Command `"Set-Location 'C:\Users\admin\Documents\R\energyRt'; `$env:ENERGYRT_EXT_MODELS='C:\Users\admin\Documents\R\useR2026_ensys\data'; Rscript tools/test/run_nightly.R`""
+schtasks /Create /TN energyRt-nightly /SC DAILY /ST 02:30 /TR "pwsh -NoProfile -Command `"Set-Location 'C:\Users\admin\Documents\R\energyRt'; `$env:ENERGYRT_EXT_MODELS='C:\Users\admin\Documents\R\useR2026_ensys\data'; Rscript tools/test/run_full.R`""
 ```
 
 ## GitHub Actions (sketch — not set up)
@@ -115,4 +115,4 @@ zero test-code changes whenever it is. The intended shape, all on
    email in a repo secret, ideally on a schedule rather than per-push.
 
 Missing toolchains skip rather than fail by design, so partial jobs degrade
-gracefully. The nightly tier stays local (external model repos + wall time).
+gracefully. The full tier stays local (external model repos + wall time).

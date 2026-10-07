@@ -248,6 +248,7 @@ setMethod("initialize", "trade", function(.Object, ...) {
 #' @param optimizeRetirement `r get_slot_doc("trade", "optimizeRetirement")`
 #' @param misc `r get_slot_doc("trade", "misc")`
 #'
+#' @param ... further named slots of the class, set on the new object.
 #' @return trade object with given specifications.
 #' @export
 #' @rdname newTrade
@@ -357,11 +358,9 @@ newTrade <- function(
 ## Methods ####################################################################
 #' Update trade object
 #' @rdname update
-#' @name update
 #'
 #' @family trade update
 #' @keywords trade update
-#' @method trade update
 #' @export
 setMethod("update", signature(object = "trade"), function(object, ...) {
   args <- .trade_removed_args(list(...))

@@ -23,6 +23,11 @@ newScenario(
   character. Name of the scenario object, for reference, also used in
   scenario path-functions.
 
+- model:
+
+  the `model` object the scenario is built from; `NULL` leaves it unset,
+  to be assigned later.
+
 - path:
 
   character. Path to the scenario folder with the model data and

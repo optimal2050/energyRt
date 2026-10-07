@@ -3,12 +3,12 @@
 # must reproduce a frozen baseline bit-for-bit (order/rounding-insensitive).
 # Successor of dev-scripts/refactor_guard.R, now on energyRt::compare_inputs()
 # and with baselines TRACKED in git (tests/testthat/goldens/interp/<tier>.rds,
-# xz-compressed; Rbuildignored -- nightly-tier only, not in the tarball).
+# xz-compressed; Rbuildignored -- full-tier only, not in the tarball).
 #
 #   Rscript tools/test/interp_guard.R baseline   # (re)freeze the baselines
 #   Rscript tools/test/interp_guard.R check      # rebuild + diff vs baselines
 #
-# make_goldens.R --suite=interp delegates to `baseline`; the nightly tier
+# make_goldens.R --suite=interp delegates to `baseline`; the full tier
 # replays `check` through tests/testthat/test-interp-golden.R.
 #
 # Policy (same as the solved goldens, tests/TESTING.md §4): re-freeze only for

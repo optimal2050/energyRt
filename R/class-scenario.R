@@ -64,6 +64,8 @@ setMethod("initialize", "scenario", function(.Object, ...) {
 #'
 #' @param name `r get_slot_doc("scenario", "name")`
 #' @param path `r get_slot_doc("scenario", "path")`
+#' @param model the `model` object the scenario is built from; `NULL` leaves
+#'   it unset, to be assigned later.
 #' @param ... any model objects or settings to be assigned to the scenario.
 #' @param env_name,registry,replace deprecated and ignored — the in-memory
 #'   registry has been replaced by the persisted project registry (see
@@ -141,9 +143,7 @@ summary.scenario <- function(object, ...) {
 #' @param object a `model` or `scenario` object.
 #' @param ... additional arguments (currently unused).
 #' @return The `object`, invisibly; called for its printed summary.
-#' @name summary
 #' @rdname summary
-#' @method summary scenario
 #' @export
 setMethod("summary", signature(object = "scenario"),
           definition = summary.scenario)

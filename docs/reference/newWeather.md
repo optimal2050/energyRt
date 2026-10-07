@@ -17,6 +17,9 @@ newWeather(
   misc = list(),
   ...
 )
+
+# S4 method for class 'weather'
+update(object, ...)
 ```
 
 ## Arguments
@@ -73,6 +76,18 @@ newWeather(
   wval
 
   : numeric. Weather factor value.
+
+- misc:
+
+  list. Additional information.
+
+- ...:
+
+  slot-names with data to update (see `newWeather`)
+
+- object:
+
+  object of class weather
 
 ## Value
 

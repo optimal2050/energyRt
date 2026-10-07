@@ -46,7 +46,7 @@ ignores this sheet.}
 (Invisibly) \code{path}.
 }
 \description{
-Serialises one or more \link{technology} objects to a \code{.xlsx} file, one technology
+Serialises one or more \link{class-technology} objects to a \code{.xlsx} file, one technology
 per worksheet. Each slot of the class is written as a labelled mini-table
 whose header row matches the columns of the corresponding data.frame slot
 (\code{names(slot(tech, s))}). Scalar slots (\code{name}, \code{desc}, \code{cap2act}, \code{region},

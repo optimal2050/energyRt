@@ -71,6 +71,7 @@ setClass("subsidy",
 #' @return An object of class `subsidy`
 #' @family class constraint policy
 #' @export
+#' @param ... further named slots of the class, set on the new object.
 #' @aliases newSubsidy
 #' @rdname newSubsidy
 #'

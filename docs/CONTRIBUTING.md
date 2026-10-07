@@ -34,12 +34,12 @@ devtools::check()
 Two things about the test suite that catch everyone once:
 
 - **Tiers, not `skip_on_cran()`.** Solver tests are gated by
-  `ENERGYRT_TEST_TIER` (`check < fast < cross < nightly`; unset resolves
-  to `fast` locally and `check` under `R CMD check`), so a plain run
-  solves whenever `glpsol` is present. For a standalone
+  `ENERGYRT_TEST_TIER` (`check < fast < cross < full`; unset resolves to
+  `fast` locally and `check` under `R CMD check`), so a plain run solves
+  whenever `glpsol` is present. For a standalone
   [`testthat::test_file()`](https://testthat.r-lib.org/reference/test_file.html),
   `pkgload::load_all(".")` first. See `tests/README.md` and
-  `dev/TESTING.md`.
+  `tests/TESTING.md`.
 - A run that **aborted early is not a passing run**. Check the totals.
 
 ## Naming (digest — the full rule lives in the stack doc)

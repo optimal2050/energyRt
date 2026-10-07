@@ -15,7 +15,7 @@ to add custom constraints to the model."><meta property="og:image" content="http
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9014</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9016</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -25,7 +25,11 @@ to add custom constraints to the model."><meta property="og:image" content="http
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/energyRt.html">Get started</a></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Roadmap</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-development" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Development</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-development"><li><a class="dropdown-item" href="../articles/roadmap.html">Roadmap</a></li>
+    <li><a class="dropdown-item" href="../articles/testing.html">Testing strategy</a></li>
+  </ul></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-tutorials" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Tutorials</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials"><li><a class="dropdown-item" href="../articles/install.html">Installation</a></li>
@@ -148,6 +152,38 @@ Note: zero values will be replaced with <code>replace_zerros</code> to avoid dro
 
 <dt id="arg-replace-zerros">replace_zerros<a class="anchor" aria-label="anchor" href="#arg-replace-zerros"></a></dt>
 <dd><p>numeric value to replace zero values in <code>rhs</code> and <code>defVal</code>. Default is <code>1e-20</code>.</p></dd>
+
+
+<dt id="arg-type">type<a class="anchor" aria-label="anchor" href="#arg-type"></a></dt>
+<dd><p>character; the constraint kind, which selects the variable the
+left-hand side is built from: a name containing <code>"inp"</code> or <code>"out"</code>
+constrains technology input or output, <code>"capacity"</code> / <code>"newcapacity"</code> the
+capacity variables, and <code>"balance"</code> the commodity balance. The two special
+values <code>"tax"</code> and <code>"subs"</code> instead delegate to <code><a href="newTax.html">newTax()</a></code> / <code><a href="newSubsidy.html">newSubsidy()</a></code>.</p></dd>
+
+
+<dt id="arg-for-sum">for.sum<a class="anchor" aria-label="anchor" href="#arg-for-sum"></a></dt>
+<dd><p>named list of sets to SUM the left-hand side over, as opposed
+to <code>for.each</code>, whose sets index one constraint row each.</p></dd>
+
+
+<dt id="arg-rule">rule<a class="anchor" aria-label="anchor" href="#arg-rule"></a></dt>
+<dd><p>accepted for backward compatibility and currently unused.</p></dd>
+
+
+<dt id="arg-comm">comm<a class="anchor" aria-label="anchor" href="#arg-comm"></a></dt>
+<dd><p>commodity name; read only by the <code>"tax"</code> and <code>"subs"</code> types,
+which pass it on to <code><a href="newTax.html">newTax()</a></code> / <code><a href="newSubsidy.html">newSubsidy()</a></code>.</p></dd>
+
+
+<dt id="arg-cout-aout">cout, aout<a class="anchor" aria-label="anchor" href="#arg-cout-aout"></a></dt>
+<dd><p>logical; for an output-type constraint, include the main
+(<code>vTechOut</code>) and the auxiliary (<code>vTechAOut</code>) output variables.</p></dd>
+
+
+<dt id="arg-cinp-ainp">cinp, ainp<a class="anchor" aria-label="anchor" href="#arg-cinp-ainp"></a></dt>
+<dd><p>logical; for an input-type constraint, include the main
+(<code>vTechInp</code>) and the auxiliary (<code>vTechAInp</code>) input variables.</p></dd>
 
 </dl></div>
     <div class="section level2">

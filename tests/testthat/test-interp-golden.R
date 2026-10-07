@@ -1,5 +1,5 @@
 # =========================================================================== #
-# Interpolation goldens (nightly, solver-free): each tm tier model's modInp
+# Interpolation goldens (full, solver-free): each tm tier model's modInp
 # must reproduce its tracked baseline in tests/testthat/goldens/interp/
 # (frozen by tools/test/interp_guard.R / make_goldens.R --suite=interp).
 # Solved goldens pin what the OPTIMIZER returns; this pins what the
@@ -8,7 +8,7 @@
 # =========================================================================== #
 
 test_that("tm tier modInp reproduces the tracked interp baselines", {
-  skip_if_tier_below("nightly")
+  skip_if_tier_below("full")
   skip_if_no_fixtures()
   dir <- testthat::test_path("goldens", "interp")
   skip_if(!dir.exists(dir), paste(

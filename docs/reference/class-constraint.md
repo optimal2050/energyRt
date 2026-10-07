@@ -3,6 +3,11 @@
 Class `constraint` is used to define custom constraints in the
 optimization problem. **\[experimental\]**
 
+Class `summand` stores information about linear terms (a multiplier and
+a variable) in the `lhs` of the constraint class. It is auto-created by
+`newConstraint` function and is not intended to be used directly by the
+user.
+
 ## Details
 
 Custom constraints extend the functionality of the model by adding
@@ -72,6 +77,31 @@ multiplier, and a set of sets for which the summand is defined.
 
   list. Any additional information or parameters to store in the
   constraint object.
+
+- `desc`:
+
+  character. Description of the linear term.
+
+- `variable`:
+
+  character. Name of the variable.
+
+- `for.sum`:
+
+  list. List of sets for which the summand will be created.
+
+- `mult`:
+
+  data.frame. Multiplying coefficients to the variable for each set in
+  the `for.sum` slot.
+
+- `defVal`:
+
+  numeric. Default value for the summand.
+
+- `misc`:
+
+  list. Additional information.
 
 ## See also
 

@@ -30,7 +30,7 @@ ut_build <- function(layout = "R3", calendar = "topia_seasons", lever = NULL) {
 # `s4_h24` (ELC lives at the HOUR level; coarser calendars lack it), so
 # all entries run on that calendar. R3 base ~seconds; the five levers run on
 # the single-region R1 layout to keep the fast tier quick. The larger R7/R11
-# layouts live in the `topia_nightly` suite below (test-nightly-deep.R).
+# layouts live in the `topia_full` suite below (test-full-deep.R).
 ut_entries <- function() list(
   base_R1      = list(layout = "R1", calendar = "s4_h24"),
   base_R3      = list(layout = "R3", calendar = "s4_h24"),
@@ -41,10 +41,10 @@ ut_entries <- function() list(
   earlyret_R1  = list(layout = "R1", calendar = "s4_h24", lever = "EARLY_RET")
 )
 
-# Nightly-only entries: the two larger region layouts on the same calendar.
+# Full-only entries: the two larger region layouts on the same calendar.
 # Kept out of `ut_entries()` so the fast/cross tiers stay quick; goldens are
-# frozen with make_goldens.R --suite=topia_nightly.
-ut_nightly_entries <- function() list(
+# frozen with make_goldens.R --suite=topia_full.
+ut_full_entries <- function() list(
   base_R7  = list(layout = "R7", calendar = "s4_h24"),
   base_R11 = list(layout = "R11", calendar = "s4_h24")
 )

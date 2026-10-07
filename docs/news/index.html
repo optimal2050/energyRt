@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9014</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9016</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -23,7 +23,11 @@
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/energyRt.html">Get started</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Roadmap</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-development" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Development</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-development"><li><a class="dropdown-item" href="../articles/roadmap.html">Roadmap</a></li>
+    <li><a class="dropdown-item" href="../articles/testing.html">Testing strategy</a></li>
+  </ul></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-tutorials" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Tutorials</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials"><li><a class="dropdown-item" href="../articles/install.html">Installation</a></li>
@@ -64,10 +68,66 @@
 
     <div class="section level2">
 <h2 class="pkg-version" data-toc-text="development version" id="energyrt-development-version">energyRt (development version)<a class="anchor" aria-label="anchor" href="#energyrt-development-version"></a></h2>
-<ul><li><p>Exogenous stock: <code>pXStockNew</code> now records commissioning only. The level at the first milestone is an initial condition, and <code>eqXStockCap</code> / <code>eqXPhaseOut</code> read it from <code>pXStock</code> under <code>$mMilestoneFirst</code> instead of folding it into <code>pXStockNew</code>. Solutions are unchanged. The derived <code>pXStockNew</code> / <code>pXStockSurv</code> also no longer declare an interpolation rule, which never applied to them – they are computed after interpolation.</p></li>
+<div class="section level3">
+<h3 id="test-tier-nightly-renamed-to-full-development-version">Test tier <code>nightly</code> renamed to <code>full</code>
+<a class="anchor" aria-label="anchor" href="#test-tier-nightly-renamed-to-full-development-version"></a></h3>
+<ul><li><p><code>ENERGYRT_TEST_TIER=nightly</code> is now <code>full</code> (<code>check &lt; fast &lt; cross &lt; full</code>). The old value is <strong>rejected</strong>, not aliased: the tier named a schedule that does not exist – there is no CI and the tier has only ever been run by hand – while <code>full</code> names what it is, the whole suite with nothing excluded. A scheduled job may still be called “nightly” and run <code>ENERGYRT_TEST_TIER=full</code>.</p></li>
+<li><p>Renamed with it: <code>tools/test/run_nightly.R</code> -&gt; <code>run_full.R</code>, <code>test-nightly-deep.R</code> -&gt; <code>test-full-deep.R</code>, and the golden suite <code>topia_nightly</code> -&gt; <code>topia_full</code> (file, suite key and <code>ut_full_entries()</code> together – a golden whose name does not match is SKIPPED, not failed, so a partial rename would have gone unnoticed).</p></li>
+<li><p>Reports now land in <code>tmp/test-reports/full-&lt;timestamp&gt;-&lt;pid&gt;.md</code>.</p></li>
+</ul></div>
+<div class="section level3">
+<h3 id="print-works-on-energyrt-objects-development-version">
+<code>print()</code> works on energyRt objects<a class="anchor" aria-label="anchor" href="#print-works-on-energyrt-objects-development-version"></a></h3>
+<ul><li><p>The hand-written printers for <code>technology</code>, <code>demand</code>, <code>supply</code>, <code>config</code>, <code>model</code> and <code>scenario</code> were never <code>S3method()</code>-registered, so <code>print(obj)</code> from user code never reached them and fell back to the default S4 slot dump. They are registered now. The five that took only <code>(x)</code> gained <code>...</code> to match the generic’s signature.</p></li>
+<li><p><code>print.region</code> was removed instead: nothing in the package defines a <code>region</code> class any more (regions are plain character vectors), so its <code>x@name</code> could never resolve. Archived under <code>drafts/</code>.</p></li>
+</ul></div>
+<div class="section level3">
+<h3 id="scales-core-renamed-development-version">Scales core renamed<a class="anchor" aria-label="anchor" href="#scales-core-renamed-development-version"></a></h3>
+<ul><li>The scales core is now <code>discretescales</code> (formerly <code>multiscales</code>), and <code>geoscales</code>/<code>timescales</code> 0.6.0 are required. <code>topia$geoscales</code> were re-stamped against the renamed class.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="topias-transmission-links-now-carry-a-flow-cost-development-version">TOPIA’s transmission links now carry a flow cost<a class="anchor" aria-label="anchor" href="#topias-transmission-links-now-carry-a-flow-cost-development-version"></a></h3>
+<ul><li><p>The <code>TBD_ELC_*</code> corridors in <code>topia$modules$electricity</code> (R3/R7/R11) set <code>@varom$varom</code> to 2 EUR/MWh, via <code>convert("EUR/MWh", "MEUR/PJ", 2)</code>. They had no flow cost at all, so a built corridor was free to use and only the 3% <code>teff</code> loss discouraged trade – regional prices converged further than they should. <code>@markup</code> is deliberately left unset: it is a transfer between the two regions, not a resource cost, and cancels in the objective.</p></li>
+<li><p><code>base_R3</code> moves from 51233.34 to 51246.75 (+0.026%). The direction is the check that matters: adding a cost to a feasible solution cannot lower the optimum. Dispatch shifts more than investment, as a variable cost should – coal output in the exporting region W1 falls 1.1% while new capacity moves by 0.01%. R1 is single-region and unchanged.</p></li>
+<li><p>Solved goldens re-frozen for it. <code>topia.json</code> is attributable to this change alone – every R1 entry is unchanged and <code>base_R3</code>’s whole delta is the 13.41 above. <code>topia_nightly.json</code> follows: <code>base_R7</code> 121197.70 -&gt; 121236.78 (+39.09), <code>base_R11</code> 190905.19 -&gt; 190970.63 (+65.44). Per corridor that is 6.70 / 6.51 / 6.54 across the three layouts – flat, as a per-unit wheeling charge on a scaled-up network should be.</p></li>
+</ul></div>
+<div class="section level3">
+<h3 id="basecode-cleanup-development-version">Basecode cleanup<a class="anchor" aria-label="anchor" href="#basecode-cleanup-development-version"></a></h3>
+<ul><li><p><code><a href="https://rdrr.io/r/base/browser.html" class="external-link">browser()</a></code> is gone from shipped code. Twenty calls remained, each of which halted a non-interactive run – <code>Rscript</code>, CI, a <code>callr</code> child – instead of erroring. Five sat immediately in front of a <code><a href="https://rdrr.io/r/base/stop.html" class="external-link">stop()</a></code> that already did the right thing; four marked an unparsable equation template and now say so; the rest became internal consistency warnings reported under <code>options(en.debug = 1)</code>, the mechanism that option was declared for.</p></li>
+<li><p>Fourteen internal assertions had been disabled by a find-and-replace that left <code><a href="https://rdrr.io/r/base/invisible.html" class="external-link">invisible()</a></code> where <code><a href="https://rdrr.io/r/base/browser.html" class="external-link">browser()</a></code> had been: the condition still ran and its result was discarded. One of them swallowed a <code>try-error</code>, letting a corrupted table flow on and fail later with an unrelated message; it now reports the original error.</p></li>
+<li><p><code>.force_year_class_df()</code> tested <code>inherits(dtf, "integer")</code> on a data frame, which is never true, so every year column was coerced unconditionally. The test now applies to the column, as its sibling <code>force_cols_classes()</code> always did.</p></li>
+<li><p>About 8,900 lines of dead weight left <code>R/</code> and <code>data-raw/</code>: two superseded <code>modInp</code> specs that nothing read (verified – <code>sysdata.rda</code> is byte-identical without them), 32 <code>if (F)</code> REPL scratchpads, and six functions no caller reached, one of which could not run at all. All archived under <code>drafts/</code>.</p></li>
+<li><p>A further 27 internal functions no caller reached left <code>R/</code> (381 lines across 14 files), among them a superseded 79-line Julia code generator that <code>.toJuliaHead()</code> and the Arrow data path replaced, a stand-alone EAC formula the model templates already carry, and a function with an empty body. Each was checked for a quoted-name or <code><a href="https://rdrr.io/r/base/do.call.html" class="external-link">do.call()</a></code> reference, for <code>S3method()</code> registration, for export, and for <code>energyRt:::</code> access from the sibling packages before removal; none is documented, so no help topic changed. Archived under <code>drafts/</code>.</p></li>
+<li><p>Comment hygiene: 32 <code>R/&lt;file&gt;.R</code> references pointed at files deleted in the Sept-Oct regrouping, including a line citation into a deleted file. A note duplicated across six writers is now stated once on <code>get_data_slot()</code>. New test <code>test-comment-refs.R</code> fails if a comment names an <code>R/</code> file that does not exist, excluding provenance markers and paths in other trees.</p></li>
+</ul></div>
+<div class="section level3">
+<h3 id="a-testing-strategy-article-development-version">A testing-strategy article<a class="anchor" aria-label="anchor" href="#a-testing-strategy-article-development-version"></a></h3>
+<ul><li>New article, <em>Testing strategy</em> (<code>vignettes/articles/testing.Rmd</code>), on a new <strong>Development</strong> navbar menu beside the roadmap. It covers why coverage is tracked over model vocabulary rather than lines, why tiers replaced <code>skip_on_cran()</code>, why goldens are gated on <code><a href="../reference/verify_solution.html">verify_solution()</a></code>, and – at length – what the suite deliberately does not test.</li>
+</ul></div>
+<div class="section level3">
+<h3 id="an-infeasible-solve-is-a-result-not-a-crash-development-version">An infeasible solve is a result, not a crash<a class="anchor" aria-label="anchor" href="#an-infeasible-solve-is-a-result-not-a-crash-development-version"></a></h3>
+<ul><li><p><code><a href="../reference/solve_model.html">solve_scenario()</a></code> raised <code>"Solution files not found"</code> when the solver concluded that a model has no solution. An infeasible or unbounded model is an answer, so it now returns the scenario with an empty <code>modOut</code> and warns with the solver’s own verdict; the objective reads as <code>NA</code>. Missing output files with <strong>no</strong> verdict still raise an error – that is a solver that never ran, not a model without a solution.</p></li>
+<li><p>GLPK could not report this at all. GNU MathProg aborts the whole script when <code>solve</code> fails, so no post-solve statement runs, and <code>glpsol</code> exits 0 either way. Its command line now carries <code>--log output/solver.log</code>, which keeps a copy of the solver’s terminal output in the run directory – the only place its verdict survives. Pyomo and GAMS already recorded a real solution status; nothing read it.</p></li>
+</ul></div>
+<div class="section level3">
+<h3 id="ptradeircost-renamed-to-ptradeirvarom-development-version">
+<code>pTradeIrCost</code> renamed to <code>pTradeIrVarom</code>
+<a class="anchor" aria-label="anchor" href="#ptradeircost-renamed-to-ptradeirvarom-development-version"></a></h3>
+<ul><li><p>The parameter behind <code>trade@varom$varom</code> is now <code>pTradeIrVarom</code>. Its old name was the only one in the <code>pTradeIr*</code> family that contradicted its own registration – <code>modInp.yml</code> has always recorded <code>colName: varom</code> – and the pair <code>Cost</code>/<code>Markup</code> gave no hint that one is a resource cost and the other a transfer. <code>Varom</code>/<code>Markup</code> does, and it matches <code>pTechVarom</code> and <code>pStorageVarom</code>. The <code>Ir</code> prefix still marks every route-indexed (<code>src</code>, <code>dst</code>) parameter.</p></li>
+<li><p><strong>A hard break, with no alias.</strong> A <code>modInp</code> serialized under the old name must be rebuilt from source; the interpolation goldens were re-frozen in this commit. <code>pTradeIrMarkup</code> and the <code>vImportIrCost</code>/<code>vExportIrCost</code> variables are unchanged – those variables each combine BOTH parameters, so naming either of them after one would be wrong.</p></li>
+<li><p>Not to be confused with <code>pTradeVarom</code>, a different parameter that no equation ever read and that was removed earlier.</p></li>
+</ul></div>
+<div class="section level3">
+<h3 id="levcost-prices-a-corridors-variable-om-development-version">
+<code>levcost()</code> prices a corridor’s variable O&amp;M<a class="anchor" aria-label="anchor" href="#levcost-prices-a-corridors-variable-om-development-version"></a></h3>
+<ul><li><p><code><a href="../reference/levcost.html">levcost()</a></code> on a <code>trade</code> object ignored <code>@varom</code>, so a corridor with a variable O&amp;M rate was priced below what the model actually pays. Both engines dropped it: the closed form had no varom term, and the solve path read only <code>vTradeEac</code>/<code>vTradeFixom</code> while the mini-model’s objective charged <code>pTradeIrCost</code> through <code>eqExportIrCost</code>. <code>@varom$varom</code> is now priced on the quantity SENT – the contribution to the levelized cost is <code>varom / teff</code>, since the rate is paid at <code>src</code> and the metric divides by what arrives.</p></li>
+<li><p><code>@varom$markup</code> is deliberately not priced. A markup is a transfer: the importing region pays it and the exporting region receives it, so it cancels between <code>eqImportIrCost</code> and <code>eqExportIrCost</code> and leaves the objective unchanged. <code><a href="../reference/levcost.html">levcost()</a></code> says so once instead of warning, and the previous warning – which claimed no backend reads either column – is gone, because three backends read both.</p></li>
+<li><p>A <code>@varom</code> carrying sub-annual <code>timeslice</code> rows is refused by the closed form rather than averaged, so <code>method = "auto"</code> falls back to the solver.</p></li>
+<li><p>Exogenous stock: <code>pXStockNew</code> now records commissioning only. The level at the first milestone is an initial condition, and <code>eqXStockCap</code> / <code>eqXPhaseOut</code> read it from <code>pXStock</code> under <code>$mMilestoneFirst</code> instead of folding it into <code>pXStockNew</code>. Solutions are unchanged. The derived <code>pXStockNew</code> / <code>pXStockSurv</code> also no longer declare an interpolation rule, which never applied to them – they are computed after interpolation.</p></li>
 <li><p>The <code>lang = "mm"</code> backend now forwards solver options: a preset’s <code>highs_options</code> (a named list, e.g. <code>list(presolve = "off")</code>) is passed to HiGHS.</p></li>
-<li><p><code>clusterscales</code> is merged into <code>multiscales</code>, so region clustering and the scale it is built on come from one package: <code>multiscales</code> replaces both in <code>Suggests</code>. <code><a href="../reference/get_process_groups.html">get_process_groups()</a></code>, <code><a href="../reference/process_cluster_sweep.html">process_cluster_sweep()</a></code> and <code><a href="../reference/model_clusters.html">model_clusters()</a></code> are unchanged for callers.</p></li>
-</ul><div class="section level3">
+<li><p><code>clusterscales</code> is merged into <code>discretescales</code>, so region clustering and the scale it is built on come from one package: <code>discretescales</code> replaces both in <code>Suggests</code>. <code><a href="../reference/get_process_groups.html">get_process_groups()</a></code>, <code><a href="../reference/process_cluster_sweep.html">process_cluster_sweep()</a></code> and <code><a href="../reference/model_clusters.html">model_clusters()</a></code> are unchanged for callers.</p></li>
+</ul></div>
+<div class="section level3">
 <h3 id="commodities-balanced-at-a-coarse-geoframe-reach-the-regions-below-development-version">Commodities balanced at a coarse geoframe reach the regions below<a class="anchor" aria-label="anchor" href="#commodities-balanced-at-a-coarse-geoframe-reach-the-regions-below-development-version"></a></h3>
 <ul><li><p>A commodity with a coarse <code>@geoframe</code> is now available in every region of the cell it is supplied or produced in. A plant in a NUTS3 region burning a fuel supplied at NUTS0 used to be judged without input and dropped from the model; it now runs. A commodity at the finest level still does not spread to neighbouring regions.</p></li>
 <li><p>Discount rates can be declared at any geoscale level: a <code>discount</code> row with <code>region</code> = a country applies to every region below it, and a region’s own rows override its parent’s. A process declared at a coarse cell (a substation builder, a VRE technology at NUTS0 over NUTS3 regions) uses the rate declared for that cell, else the rate its children share. It used to find no <code>wacc</code> and annuitise at 0% (<code>invcost / olife</code>). Where the children differ and the cell declares none, the process is refused by name – and only then: differing children are not an error by themselves.</p></li>
@@ -135,7 +195,7 @@
 <li><p>A clustered aggregation resolves a <strong>link</strong> column (<code>weather</code>, <code>transform</code>) to the cluster <strong>medoid</strong>’s value. These name another object, so they can be neither summed nor averaged, and treating them as keys gave one cluster a row per member. A medoid is a real member, so the merged cluster gets a profile some region actually had.</p></li>
 <li><p><code>k</code> is checked against the geoframe before <code>clusterscales</code> sees it, so an out-of-range <code>k</code> names the level and its bounds instead of reporting “the units fall into 3 group(s)”.</p></li>
 <li><p><strong>Fixed:</strong> <code><a href="../reference/aggregate_model_regions.html">aggregate_model_regions()</a></code> read only the model’s first repository. <code>add()</code> appends a repository rather than growing one, so a model built up object by object kept its later objects out of <code>@data[[1]]</code> – and those came back declared over the FINE regions in a model whose regions were now coarse, silently. It now reads every repository and returns one.</p></li>
-<li><p>New article, <code>vignette("region-aggregation")</code>: five experiments on one model, measuring when aggregating regions changes the answer and when it does not. Two settings leave it untouched, three move it – including one where the aggregated model comes out <strong>cheaper</strong> than the model it came from, because pooling granted transmission that did not exist. <code>clusterscales</code> and <code>multiscales</code> are Suggests; <code>dev/region-aggregation-model.R</code> holds the shared model and <code>dev/verify-region-aggregation.R</code> checks every number the article prints.</p></li>
+<li><p>New article, <code>vignette("region-aggregation")</code>: five experiments on one model, measuring when aggregating regions changes the answer and when it does not. Two settings leave it untouched, three move it – including one where the aggregated model comes out <strong>cheaper</strong> than the model it came from, because pooling granted transmission that did not exist. <code>clusterscales</code> and <code>discretescales</code> are Suggests; <code>dev/region-aggregation-model.R</code> holds the shared model and <code>dev/verify-region-aggregation.R</code> checks every number the article prints.</p></li>
 <li>
 <p><strong>Breaking:</strong> the <code>topia</code> dataset now carries <code>geoscales</code>, a named list of four [geoscales::Geoscale] objects (<code>squares</code>, <code>honeycomb</code>, <code>island</code>, <code>continent</code>) holding the region hierarchy <em>and</em> that layout’s polygons. <code>topia$map</code>, <code>topia$geo</code>, <code>topia$modules$maps</code> and the <code>topia_geoscale()</code> function are removed: the dataset used to store the same polygons three times and the hierarchy twice. Replacements:</p>
 <table class="table"><colgroup><col width="50%"><col width="50%"></colgroup><thead><tr><th>was</th>
@@ -301,7 +361,7 @@
 <li><p>An optional operation log: <code><a href="../reference/log.html">set_log_file()</a></code> makes <code><a href="../reference/interpolate_model.html">interpolate_model()</a></code>, <code><a href="../reference/solve_model.html">solve_scenario()</a></code> and <code><a href="../reference/solve_myopic.html">solve_myopic()</a></code> append one CSV line each; <code><a href="../reference/log.html">read_log()</a></code> reads it back. Off by default.</p></li>
 <li><p><code>add()</code> dispatches on a loaded registry, as a shorthand for <code><a href="../reference/registry.html">add_to_registry()</a></code>.</p></li>
 <li><p>New <code><a href="../reference/get_weather.html">get_weather()</a></code>, the weather-side counterpart to <code><a href="../reference/get_region.html">get_region()</a></code>.</p></li>
-<li><p><code><a href="../reference/summary.html">summary()</a></code> on a model reports its regions and its objects by class.</p></li>
+<li><p><code><a href="https://energyRt.org/reference/summary.html">summary()</a></code> on a model reports its regions and its objects by class.</p></li>
 <li><p><code>run.yml</code> records a solve’s memory footprint (<code>mem_mb</code>/<code>peak_mb</code>) and <code>saved</code>/<code>updated</code> stamps, surfaced by <code><a href="../reference/scenario_runs.html">scenario_runs()</a></code>.</p></li>
 </ul></div>
 <div class="section level3">
@@ -457,7 +517,7 @@
 <li>
 <code>techspec</code> reads and writes JSON as well as YAML; the process designer gained a “Save JSON” button.</li>
 <li>
-<code>storage@input</code>, <code>@output</code> and <code>@storage</code> take a <code>unit</code> column, carried for reporting and <code>convert()</code>. It never reaches the solver.</li>
+<code>storage@input</code>, <code>@output</code> and <code>@storage</code> take a <code>unit</code> column, carried for reporting and <code><a href="../reference/convert.html">convert()</a></code>. It never reaches the solver.</li>
 <li>New data <code>vre_cf</code> — 8760 hourly capacity factors for one wind and one solar resource from MERRA-2 via <code>merra2ools</code>, keyed in the <code>d365_h24</code> vocabulary — and <code>vre_storage_duration</code>, the precomputed decomposition of a battery in a full-year hourly model.</li>
 <li>New <code><a href="../reference/theme_energyRt.html">theme_energyRt()</a></code>, and <code><a href="../reference/draw.html">plot()</a></code> delegates to <code><a href="https://ggplot2.tidyverse.org/reference/autoplot.html" class="external-link">autoplot()</a></code> for every class that has one.</li>
 </ul></div>
@@ -503,7 +563,7 @@
 </ul></div>
 <div class="section level3">
 <h3 id="documentation-0-80">Documentation<a class="anchor" aria-label="anchor" href="#documentation-0-80"></a></h3>
-<ul><li>New article <strong>Units</strong>: where each unit is declared, how <code>convert()</code> moves between dimensions, how <code>commodity@property</code> lets a conversion cross them, and why money needs a year attached.</li>
+<ul><li>New article <strong>Units</strong>: where each unit is declared, how <code><a href="../reference/convert.html">convert()</a></code> moves between dimensions, how <code>commodity@property</code> lets a conversion cross them, and why money needs a year attached.</li>
 <li>The <strong>Storage</strong> article is restyled to the modelling convention and extended to the slots it previously skipped, with a slot map of the whole object.</li>
 <li>
 <strong>Model bricks</strong> corrected: <code>cap2act = 8.76</code> was documented as 8.76 GWh per GW per year, wrong by a factor of 1000. The text now states the unit basis explicitly.</li>
@@ -613,7 +673,7 @@
 <div class="section level3">
 <h3 id="bug-fixes-0-70-4-9000">Bug fixes<a class="anchor" aria-label="anchor" href="#bug-fixes-0-70-4-9000"></a></h3>
 <ul><li>
-<code><a href="../reference/summary.html">summary()</a></code> on a solved scenario never reported dummy import/export costs — it read a variable name that has never existed. Dummy flows mask infeasibility.</li>
+<code><a href="https://energyRt.org/reference/summary.html">summary()</a></code> on a solved scenario never reported dummy import/export costs — it read a variable name that has never existed. Dummy flows mask infeasibility.</li>
 <li>
 <code>model_structure</code> attached each variable’s dimensions and gating map to the wrong variable: names came from one generated table and dims from another.</li>
 <li>

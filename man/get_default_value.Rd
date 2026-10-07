@@ -22,6 +22,9 @@ get_default_value(
 
 \item{sname}{character, short name of the parameter, as it appears in classes}
 
+\item{oname}{character, object name; accepted for symmetry with the other
+selectors and currently unused.}
+
 \item{class}{character, class of the parameter to search for}
 
 \item{bound}{character, name of the bound to retrieve, \code{lo} or \code{up}.

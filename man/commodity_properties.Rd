@@ -12,7 +12,7 @@ A data.frame with columns \code{property}, \code{quantity}, \code{default_unit},
 }
 \description{
 The registry of physical properties understood by \code{commodity@property} and,
-in turn, by \code{\link[=convert]{convert()}}. \code{quantity} declares which dimension pair a property
+in turn, by \code{convert()}. \code{quantity} declares which dimension pair a property
 relates, which is what lets a conversion cross between measures of the same
 commodity -- \code{lhv} in "GJ/t" links Energy and Mass, \code{density} in "t/m3" links
 Mass and Volume.

@@ -8,6 +8,7 @@
 #'  the default data exchange (see [get_exchange_format()]).
 #'  If you have pre-installed CPLEX or Gurobi, you can add them to the list.
 #'
+#' @param update logical; also run `Pkg.update()` before installing.
 #' @return NULL if the completion is successful. The verification of the installation is
 #' done by the user or by the function \code{en_check_julia()}.
 #' @export

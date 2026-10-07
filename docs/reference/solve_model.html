@@ -27,7 +27,7 @@ deprecated aliases."><meta property="og:image" content="https://energyRt.org/log
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9014</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9016</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -37,7 +37,11 @@ deprecated aliases."><meta property="og:image" content="https://energyRt.org/log
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/energyRt.html">Get started</a></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Roadmap</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-development" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Development</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-development"><li><a class="dropdown-item" href="../articles/roadmap.html">Roadmap</a></li>
+    <li><a class="dropdown-item" href="../articles/testing.html">Testing strategy</a></li>
+  </ul></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-tutorials" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Tutorials</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials"><li><a class="dropdown-item" href="../articles/install.html">Installation</a></li>
@@ -168,6 +172,14 @@ after the run (no run record).</p></dd>
 <dd><p>logical, re-solve a scenario already solved to optimal.</p></dd>
 
 
+<dt id="arg-kvl">kvl<a class="anchor" aria-label="anchor" href="#arg-kvl"></a></dt>
+<dd><p>logical or <code>NULL</code>; what the caller expects of Kirchhoff's
+voltage law. It GUARDS rather than builds – the cycle constraints are
+baked in at interpolation time, so this is the last chance to notice that
+a solve is about to differ from what was asked for. <code>NULL</code> reports what
+the scenario actually carries.</p></dd>
+
+
 <dt id="arg-variant">variant<a class="anchor" aria-label="anchor" href="#arg-variant"></a></dt>
 <dd><p>character (<code>solve_scenario()</code> only): declare the scenario's
 interpolated problem an OWN-PROBLEM VARIANT of this name. Its solves
@@ -180,6 +192,10 @@ scenario-level (base) problem untouched. Switch between problems with
 
 <dt id="arg-tmp-dir-tmp-del">tmp.dir, tmp.del<a class="anchor" aria-label="anchor" href="#arg-tmp-dir-tmp-del"></a></dt>
 <dd><p>deprecated aliases of <code>solver.dir</code> / <code>transient</code>.</p></dd>
+
+
+<dt id="arg-a-b">a, b<a class="anchor" aria-label="anchor" href="#arg-a-b"></a></dt>
+<dd><p>the <code><a href="https://rdrr.io/r/base/solve.html" class="external-link">solve()</a></code> S4 signature: <code>a</code> the model, <code>b</code> the scenario name.</p></dd>
 
 </dl></div>
     <div class="section level2">

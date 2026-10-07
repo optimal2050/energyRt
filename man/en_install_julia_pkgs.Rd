@@ -12,6 +12,8 @@ en_install_julia_pkgs(pkgs = NULL, update = FALSE)
 "CodecBzip2", "Gadfly", "DataFrames", "Dates")}. \code{Arrow} is required for
 the default data exchange (see \code{\link[=get_exchange_format]{get_exchange_format()}}).
 If you have pre-installed CPLEX or Gurobi, you can add them to the list.}
+
+\item{update}{logical; also run \code{Pkg.update()} before installing.}
 }
 \value{
 NULL if the completion is successful. The verification of the installation is

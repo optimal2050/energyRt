@@ -220,49 +220,54 @@ run that exceeds it returns nothing rather than partial results.
 The presets shipped with the package (generated from the installed
 data):
 
-| preset                   | backend       | solver      | remote | data exchange |
-|:-------------------------|:--------------|:------------|:-------|:--------------|
-| glpk                     | GLPK/MathProg | —           |        | default       |
-| pyomo_cbc                | Python/Pyomo  | cbc         |        | default       |
-| pyomo_cbc_sqlite         | Python/Pyomo  | cbc         |        | SQLite        |
-| pyomo_cplex              | Python/Pyomo  | cplex       |        | default       |
-| pyomo_cplex_barrier      | Python/Pyomo  | cplex       |        | default       |
-| pyomo_glpk               | Python/Pyomo  | glpk        |        | default       |
-| pyomo_highs              | Python/Pyomo  | appsi_highs |        | default       |
-| pyomo_highs_barrier      | Python/Pyomo  | appsi_highs |        | default       |
-| pyomo_mps                | Python/Pyomo  | appsi_highs |        | default       |
-| mm_highs                 | NA            | HiGHS       |        | default       |
-| mmcloud                  | NA            | HiGHS       |        | default       |
-| mmcloud_crossover        | NA            | HiGHS       |        | default       |
-| mmcloud_pyomo            | Python/Pyomo  | appsi_highs |        | default       |
-| mmcloud_pyomo_crossover  | Python/Pyomo  | appsi_highs |        | default       |
-| neos_pyomo_cplex         | Python/Pyomo  | —           | NEOS   | default       |
-| neos_pyomo_cplex_barrier | Python/Pyomo  | —           | NEOS   | default       |
-| neos_pyomo_cbc           | Python/Pyomo  | —           | NEOS   | default       |
-| julia_cbc                | Julia/JuMP    | Cbc         |        | default       |
-| julia_cplex              | Julia/JuMP    | CPLEX       |        | default       |
-| julia_cplex_barrier      | Julia/JuMP    | CPLEX       |        | default       |
-| julia_highs              | Julia/JuMP    | HiGHS       |        | default       |
-| julia_highs_rdata        | Julia/JuMP    | HiGHS       |        | RData         |
-| julia_highs_barrier      | Julia/JuMP    | HiGHS       |        | default       |
-| julia_glpk               | Julia/JuMP    | GLPK        |        | default       |
-| julia_highs_simplex      | Julia/JuMP    | HiGHS       |        | default       |
-| julia_highs_parallel     | Julia/JuMP    | HiGHS       |        | default       |
-| julia_highs_pdlp         | Julia/JuMP    | HiGHS       |        | default       |
-| julia_highs_hipdlp       | Julia/JuMP    | HiGHS       |        | default       |
-| julia_cuopt              | Julia/JuMP    | cuOpt       |        | default       |
-| julia_cuopt_concurrent   | Julia/JuMP    | cuOpt       |        | default       |
-| julia_cuopt_pdlp         | Julia/JuMP    | cuOpt       |        | default       |
-| julia_cuopt_crossover    | Julia/JuMP    | cuOpt       |        | default       |
-| gams_cplex               | GAMS          | CPLEX       |        | default       |
-| gams_gdx_cplex           | GAMS          | CPLEX       |        | GDX           |
-| gams_gdx_cplex_barrier   | GAMS          | CPLEX       |        | GDX           |
-| gams_gdx_cplex_parallel  | GAMS          | CPLEX       |        | GDX           |
-| gams_cbc                 | GAMS          | CBC         |        | default       |
-| gams_gdx_cbc             | GAMS          | CBC         |        | GDX           |
-| neos_gams_cplex          | GAMS          | CPLEX       | NEOS   | default       |
-| neos_gams_cplex_barrier  | GAMS          | CPLEX       | NEOS   | default       |
-| neos_gams_cbc            | GAMS          | CBC         | NEOS   | default       |
+| preset                     | backend       | solver      | remote | data exchange |
+|:---------------------------|:--------------|:------------|:-------|:--------------|
+| glpk                       | GLPK/MathProg | —           |        | default       |
+| pyomo_cbc                  | Python/Pyomo  | cbc         |        | default       |
+| pyomo_cbc_sqlite           | Python/Pyomo  | cbc         |        | SQLite        |
+| pyomo_cplex                | Python/Pyomo  | cplex       |        | default       |
+| pyomo_cplex_barrier        | Python/Pyomo  | cplex       |        | default       |
+| pyomo_glpk                 | Python/Pyomo  | glpk        |        | default       |
+| pyomo_highs                | Python/Pyomo  | appsi_highs |        | default       |
+| pyomo_highs_barrier        | Python/Pyomo  | appsi_highs |        | default       |
+| pyomo_mps                  | Python/Pyomo  | appsi_highs |        | default       |
+| mm_highs                   | NA            | HiGHS       |        | default       |
+| mm_highs_barrier           | NA            | HiGHS       |        | default       |
+| mm_highs_barrier_bs3       | NA            | HiGHS       |        | default       |
+| mm_julia_highs_barrier     | NA            | HiGHS       |        | default       |
+| mm_julia_highs_barrier_bs3 | NA            | HiGHS       |        | default       |
+| mmcloud                    | NA            | HiGHS       |        | default       |
+| mmcloud_crossover          | NA            | HiGHS       |        | default       |
+| mmcloud_pyomo              | Python/Pyomo  | appsi_highs |        | default       |
+| mmcloud_pyomo_crossover    | Python/Pyomo  | appsi_highs |        | default       |
+| neos_pyomo_cplex           | Python/Pyomo  | —           | NEOS   | default       |
+| neos_pyomo_cplex_barrier   | Python/Pyomo  | —           | NEOS   | default       |
+| neos_pyomo_cbc             | Python/Pyomo  | —           | NEOS   | default       |
+| julia_cbc                  | Julia/JuMP    | Cbc         |        | default       |
+| julia_cplex                | Julia/JuMP    | CPLEX       |        | default       |
+| julia_cplex_barrier        | Julia/JuMP    | CPLEX       |        | default       |
+| julia_highs                | Julia/JuMP    | HiGHS       |        | default       |
+| julia_highs_rdata          | Julia/JuMP    | HiGHS       |        | RData         |
+| julia_highs_barrier        | Julia/JuMP    | HiGHS       |        | default       |
+| julia_highs_barrier_bs3    | Julia/JuMP    | HiGHS       |        | default       |
+| julia_glpk                 | Julia/JuMP    | GLPK        |        | default       |
+| julia_highs_simplex        | Julia/JuMP    | HiGHS       |        | default       |
+| julia_highs_parallel       | Julia/JuMP    | HiGHS       |        | default       |
+| julia_highs_pdlp           | Julia/JuMP    | HiGHS       |        | default       |
+| julia_highs_hipdlp         | Julia/JuMP    | HiGHS       |        | default       |
+| julia_cuopt                | Julia/JuMP    | cuOpt       |        | default       |
+| julia_cuopt_concurrent     | Julia/JuMP    | cuOpt       |        | default       |
+| julia_cuopt_pdlp           | Julia/JuMP    | cuOpt       |        | default       |
+| julia_cuopt_crossover      | Julia/JuMP    | cuOpt       |        | default       |
+| gams_cplex                 | GAMS          | CPLEX       |        | default       |
+| gams_gdx_cplex             | GAMS          | CPLEX       |        | GDX           |
+| gams_gdx_cplex_barrier     | GAMS          | CPLEX       |        | GDX           |
+| gams_gdx_cplex_parallel    | GAMS          | CPLEX       |        | GDX           |
+| gams_cbc                   | GAMS          | CBC         |        | default       |
+| gams_gdx_cbc               | GAMS          | CBC         |        | GDX           |
+| neos_gams_cplex            | GAMS          | CPLEX       | NEOS   | default       |
+| neos_gams_cplex_barrier    | GAMS          | CPLEX       | NEOS   | default       |
+| neos_gams_cbc              | GAMS          | CBC         | NEOS   | default       |
 
 A `default` in the last column means the preset names no format and
 follows the `exchange_format` option — Arrow IPC unless you change it.

@@ -31,6 +31,11 @@ get_default_value(
 
   character, short name of the parameter, as it appears in classes
 
+- oname:
+
+  character, object name; accepted for symmetry with the other selectors
+  and currently unused.
+
 - class:
 
   character, class of the parameter to search for

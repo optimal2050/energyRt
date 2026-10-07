@@ -2,6 +2,182 @@
 
 ## energyRt (development version)
 
+### Test tier `nightly` renamed to `full`
+
+- `ENERGYRT_TEST_TIER=nightly` is now `full`
+  (`check < fast < cross < full`). The old value is **rejected**, not
+  aliased: the tier named a schedule that does not exist – there is no
+  CI and the tier has only ever been run by hand – while `full` names
+  what it is, the whole suite with nothing excluded. A scheduled job may
+  still be called “nightly” and run `ENERGYRT_TEST_TIER=full`.
+
+- Renamed with it: `tools/test/run_nightly.R` -\> `run_full.R`,
+  `test-nightly-deep.R` -\> `test-full-deep.R`, and the golden suite
+  `topia_nightly` -\> `topia_full` (file, suite key and
+  `ut_full_entries()` together – a golden whose name does not match is
+  SKIPPED, not failed, so a partial rename would have gone unnoticed).
+
+- Reports now land in `tmp/test-reports/full-<timestamp>-<pid>.md`.
+
+### `print()` works on energyRt objects
+
+- The hand-written printers for `technology`, `demand`, `supply`,
+  `config`, `model` and `scenario` were never `S3method()`-registered,
+  so `print(obj)` from user code never reached them and fell back to the
+  default S4 slot dump. They are registered now. The five that took only
+  `(x)` gained `...` to match the generic’s signature.
+
+- `print.region` was removed instead: nothing in the package defines a
+  `region` class any more (regions are plain character vectors), so its
+  `x@name` could never resolve. Archived under `drafts/`.
+
+### Scales core renamed
+
+- The scales core is now `discretescales` (formerly `multiscales`), and
+  `geoscales`/`timescales` 0.6.0 are required. `topia$geoscales` were
+  re-stamped against the renamed class.
+
+### TOPIA’s transmission links now carry a flow cost
+
+- The `TBD_ELC_*` corridors in `topia$modules$electricity` (R3/R7/R11)
+  set `@varom$varom` to 2 EUR/MWh, via
+  `convert("EUR/MWh", "MEUR/PJ", 2)`. They had no flow cost at all, so a
+  built corridor was free to use and only the 3% `teff` loss discouraged
+  trade – regional prices converged further than they should. `@markup`
+  is deliberately left unset: it is a transfer between the two regions,
+  not a resource cost, and cancels in the objective.
+
+- `base_R3` moves from 51233.34 to 51246.75 (+0.026%). The direction is
+  the check that matters: adding a cost to a feasible solution cannot
+  lower the optimum. Dispatch shifts more than investment, as a variable
+  cost should – coal output in the exporting region W1 falls 1.1% while
+  new capacity moves by 0.01%. R1 is single-region and unchanged.
+
+- Solved goldens re-frozen for it. `topia.json` is attributable to this
+  change alone – every R1 entry is unchanged and `base_R3`’s whole delta
+  is the 13.41 above. `topia_nightly.json` follows: `base_R7` 121197.70
+  -\> 121236.78 (+39.09), `base_R11` 190905.19 -\> 190970.63 (+65.44).
+  Per corridor that is 6.70 / 6.51 / 6.54 across the three layouts –
+  flat, as a per-unit wheeling charge on a scaled-up network should be.
+
+### Basecode cleanup
+
+- [`browser()`](https://rdrr.io/r/base/browser.html) is gone from
+  shipped code. Twenty calls remained, each of which halted a
+  non-interactive run – `Rscript`, CI, a `callr` child – instead of
+  erroring. Five sat immediately in front of a
+  [`stop()`](https://rdrr.io/r/base/stop.html) that already did the
+  right thing; four marked an unparsable equation template and now say
+  so; the rest became internal consistency warnings reported under
+  `options(en.debug = 1)`, the mechanism that option was declared for.
+
+- Fourteen internal assertions had been disabled by a find-and-replace
+  that left [`invisible()`](https://rdrr.io/r/base/invisible.html) where
+  [`browser()`](https://rdrr.io/r/base/browser.html) had been: the
+  condition still ran and its result was discarded. One of them
+  swallowed a `try-error`, letting a corrupted table flow on and fail
+  later with an unrelated message; it now reports the original error.
+
+- `.force_year_class_df()` tested `inherits(dtf, "integer")` on a data
+  frame, which is never true, so every year column was coerced
+  unconditionally. The test now applies to the column, as its sibling
+  `force_cols_classes()` always did.
+
+- About 8,900 lines of dead weight left `R/` and `data-raw/`: two
+  superseded `modInp` specs that nothing read (verified – `sysdata.rda`
+  is byte-identical without them), 32 `if (F)` REPL scratchpads, and six
+  functions no caller reached, one of which could not run at all. All
+  archived under `drafts/`.
+
+- A further 27 internal functions no caller reached left `R/` (381 lines
+  across 14 files), among them a superseded 79-line Julia code generator
+  that `.toJuliaHead()` and the Arrow data path replaced, a stand-alone
+  EAC formula the model templates already carry, and a function with an
+  empty body. Each was checked for a quoted-name or
+  [`do.call()`](https://rdrr.io/r/base/do.call.html) reference, for
+  `S3method()` registration, for export, and for `energyRt:::` access
+  from the sibling packages before removal; none is documented, so no
+  help topic changed. Archived under `drafts/`.
+
+- Comment hygiene: 32 `R/<file>.R` references pointed at files deleted
+  in the Sept-Oct regrouping, including a line citation into a deleted
+  file. A note duplicated across six writers is now stated once on
+  `get_data_slot()`. New test `test-comment-refs.R` fails if a comment
+  names an `R/` file that does not exist, excluding provenance markers
+  and paths in other trees.
+
+### A testing-strategy article
+
+- New article, *Testing strategy* (`vignettes/articles/testing.Rmd`), on
+  a new **Development** navbar menu beside the roadmap. It covers why
+  coverage is tracked over model vocabulary rather than lines, why tiers
+  replaced `skip_on_cran()`, why goldens are gated on
+  [`verify_solution()`](https://energyRt.org/reference/verify_solution.md),
+  and – at length – what the suite deliberately does not test.
+
+### An infeasible solve is a result, not a crash
+
+- [`solve_scenario()`](https://energyRt.org/reference/solve_model.md)
+  raised `"Solution files not found"` when the solver concluded that a
+  model has no solution. An infeasible or unbounded model is an answer,
+  so it now returns the scenario with an empty `modOut` and warns with
+  the solver’s own verdict; the objective reads as `NA`. Missing output
+  files with **no** verdict still raise an error – that is a solver that
+  never ran, not a model without a solution.
+
+- GLPK could not report this at all. GNU MathProg aborts the whole
+  script when `solve` fails, so no post-solve statement runs, and
+  `glpsol` exits 0 either way. Its command line now carries
+  `--log output/solver.log`, which keeps a copy of the solver’s terminal
+  output in the run directory – the only place its verdict survives.
+  Pyomo and GAMS already recorded a real solution status; nothing read
+  it.
+
+### `pTradeIrCost` renamed to `pTradeIrVarom`
+
+- The parameter behind `trade@varom$varom` is now `pTradeIrVarom`. Its
+  old name was the only one in the `pTradeIr*` family that contradicted
+  its own registration – `modInp.yml` has always recorded
+  `colName: varom` – and the pair `Cost`/`Markup` gave no hint that one
+  is a resource cost and the other a transfer. `Varom`/`Markup` does,
+  and it matches `pTechVarom` and `pStorageVarom`. The `Ir` prefix still
+  marks every route-indexed (`src`, `dst`) parameter.
+
+- **A hard break, with no alias.** A `modInp` serialized under the old
+  name must be rebuilt from source; the interpolation goldens were
+  re-frozen in this commit. `pTradeIrMarkup` and the
+  `vImportIrCost`/`vExportIrCost` variables are unchanged – those
+  variables each combine BOTH parameters, so naming either of them after
+  one would be wrong.
+
+- Not to be confused with `pTradeVarom`, a different parameter that no
+  equation ever read and that was removed earlier.
+
+### `levcost()` prices a corridor’s variable O&M
+
+- [`levcost()`](https://energyRt.org/reference/levcost.md) on a `trade`
+  object ignored `@varom`, so a corridor with a variable O&M rate was
+  priced below what the model actually pays. Both engines dropped it:
+  the closed form had no varom term, and the solve path read only
+  `vTradeEac`/`vTradeFixom` while the mini-model’s objective charged
+  `pTradeIrCost` through `eqExportIrCost`. `@varom$varom` is now priced
+  on the quantity SENT – the contribution to the levelized cost is
+  `varom / teff`, since the rate is paid at `src` and the metric divides
+  by what arrives.
+
+- `@varom$markup` is deliberately not priced. A markup is a transfer:
+  the importing region pays it and the exporting region receives it, so
+  it cancels between `eqImportIrCost` and `eqExportIrCost` and leaves
+  the objective unchanged.
+  [`levcost()`](https://energyRt.org/reference/levcost.md) says so once
+  instead of warning, and the previous warning – which claimed no
+  backend reads either column – is gone, because three backends read
+  both.
+
+- A `@varom` carrying sub-annual `timeslice` rows is refused by the
+  closed form rather than averaged, so `method = "auto"` falls back to
+  the solver.
+
 - Exogenous stock: `pXStockNew` now records commissioning only. The
   level at the first milestone is an initial condition, and
   `eqXStockCap` / `eqXPhaseOut` read it from `pXStock` under
@@ -14,9 +190,9 @@
   `highs_options` (a named list, e.g. `list(presolve = "off")`) is
   passed to HiGHS.
 
-- `clusterscales` is merged into `multiscales`, so region clustering and
-  the scale it is built on come from one package: `multiscales` replaces
-  both in `Suggests`.
+- `clusterscales` is merged into `discretescales`, so region clustering
+  and the scale it is built on come from one package: `discretescales`
+  replaces both in `Suggests`.
   [`get_process_groups()`](https://energyRt.org/reference/get_process_groups.md),
   [`process_cluster_sweep()`](https://energyRt.org/reference/process_cluster_sweep.md)
   and
@@ -375,7 +551,7 @@
   it does not. Two settings leave it untouched, three move it –
   including one where the aggregated model comes out **cheaper** than
   the model it came from, because pooling granted transmission that did
-  not exist. `clusterscales` and `multiscales` are Suggests;
+  not exist. `clusterscales` and `discretescales` are Suggests;
   `dev/region-aggregation-model.R` holds the shared model and
   `dev/verify-region-aggregation.R` checks every number the article
   prints.
@@ -1228,7 +1404,7 @@
   the weather-side counterpart to
   [`get_region()`](https://energyRt.org/reference/get_region.md).
 
-- [`summary()`](https://energyRt.org/reference/summary.md) on a model
+- [`summary()`](https://energyRt.org/reference/summary.html) on a model
   reports its regions and its objects by class.
 
 - `run.yml` records a solve’s memory footprint (`mem_mb`/`peak_mb`) and
@@ -1737,7 +1913,9 @@
 - `techspec` reads and writes JSON as well as YAML; the process designer
   gained a “Save JSON” button.
 - `storage@input`, `@output` and `@storage` take a `unit` column,
-  carried for reporting and `convert()`. It never reaches the solver.
+  carried for reporting and
+  [`convert()`](https://energyRt.org/reference/convert.md). It never
+  reaches the solver.
 - New data `vre_cf` — 8760 hourly capacity factors for one wind and one
   solar resource from MERRA-2 via `merra2ools`, keyed in the `d365_h24`
   vocabulary — and `vre_storage_duration`, the precomputed decomposition
@@ -1832,9 +2010,10 @@
 
 ### Documentation
 
-- New article **Units**: where each unit is declared, how `convert()`
-  moves between dimensions, how `commodity@property` lets a conversion
-  cross them, and why money needs a year attached.
+- New article **Units**: where each unit is declared, how
+  [`convert()`](https://energyRt.org/reference/convert.md) moves between
+  dimensions, how `commodity@property` lets a conversion cross them, and
+  why money needs a year attached.
 - The **Storage** article is restyled to the modelling convention and
   extended to the slots it previously skipped, with a slot map of the
   whole object.
@@ -2036,7 +2215,7 @@
 
 ### Bug fixes
 
-- [`summary()`](https://energyRt.org/reference/summary.md) on a solved
+- [`summary()`](https://energyRt.org/reference/summary.html) on a solved
   scenario never reported dummy import/export costs — it read a variable
   name that has never existed. Dummy flows mask infeasibility.
 - `model_structure` attached each variable’s dimensions and gating map

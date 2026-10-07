@@ -15,7 +15,7 @@ processes-type classes."><meta property="og:image" content="https://energyRt.org
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9014</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9016</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -25,7 +25,11 @@ processes-type classes."><meta property="og:image" content="https://energyRt.org
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/energyRt.html">Get started</a></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Roadmap</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-development" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Development</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-development"><li><a class="dropdown-item" href="../articles/roadmap.html">Roadmap</a></li>
+    <li><a class="dropdown-item" href="../articles/testing.html">Testing strategy</a></li>
+  </ul></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-tutorials" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Tutorials</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials"><li><a class="dropdown-item" href="../articles/install.html">Installation</a></li>
@@ -117,7 +121,9 @@ processes-type classes.</p>
 
 
 <dt id="arg--">...<a class="anchor" aria-label="anchor" href="#arg--"></a></dt>
-<dd><p>Additional arguments passed to the specific method.</p></dd>
+<dd><p>Additional arguments passed to the specific method. The <code>trade</code>
+method takes <code>region</code> (alias <code>node</code>), the node to draw the trade process
+for, defaulting to the first node in the trade object.</p></dd>
 
 
 <dt id="arg-vintage">vintage<a class="anchor" aria-label="anchor" href="#arg-vintage"></a></dt>
@@ -147,16 +153,14 @@ strip of ticks with the selection filled, <code>"deck"</code> slivers at the box
 suggesting a stack of cards, or <code>"none"</code>.</p></dd>
 
 
+<dt id="arg-box-width">box_width<a class="anchor" aria-label="anchor" href="#arg-box-width"></a></dt>
+<dd><p>width of the process box, in plot units.</p></dd>
+
+
 <dt id="arg-max-facets">max_facets<a class="anchor" aria-label="anchor" href="#arg-max-facets"></a></dt>
 <dd><p>refuse to lay out more than this many panels for
 <code>vintage = "all"</code> / <code>cluster = "all"</code>. A full 11 x 4 grid is unreadable, and
 silently drawing it is worse than saying so.</p></dd>
-
-
-<dt id="arg-region">region<a class="anchor" aria-label="anchor" href="#arg-region"></a></dt>
-<dd><p>A node to draw the trade process for.
-<code>node</code> is an alias for <code>region</code>.
-Default is the first node in the trade object.</p></dd>
 
 </dl></div>
     <div class="section level2">
@@ -251,7 +255,7 @@ Default is the first node in the trade object.</p></dd>
 <span class="r-in"><span>    acomm <span class="op">=</span> <span class="st">"LITHIUM"</span>, <span class="co"># track lithium use for battery production</span></span></span>
 <span class="r-in"><span>    <span class="co"># lithium per unit of NEW energy (reservoir) capacity -- `stg.` couples</span></span></span>
 <span class="r-in"><span>    <span class="co"># the storing part; the bare `ncap2ainp` coupled only the discharger</span></span></span>
-<span class="r-in"><span>    stg.ncap2ainp <span class="op">=</span> <span class="fu">convert</span><span class="op">(</span><span class="fl">4</span> <span class="op">*</span> <span class="fl">250</span>, <span class="st">"Wh/kg"</span>, <span class="st">"GWh/kt"</span><span class="op">)</span></span></span>
+<span class="r-in"><span>    stg.ncap2ainp <span class="op">=</span> <span class="fu"><a href="convert.html">convert</a></span><span class="op">(</span><span class="fl">4</span> <span class="op">*</span> <span class="fl">250</span>, <span class="st">"Wh/kg"</span>, <span class="st">"GWh/kt"</span><span class="op">)</span></span></span>
 <span class="r-in"><span>  <span class="op">)</span>,</span></span>
 <span class="r-in"><span>  af <span class="op">=</span> <span class="fu"><a href="https://rdrr.io/r/base/data.frame.html" class="external-link">data.frame</a></span><span class="op">(</span></span></span>
 <span class="r-in"><span>    <span class="co"># af.lo = 0., # lower bound for the capacity factor</span></span></span>

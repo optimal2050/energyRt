@@ -75,7 +75,7 @@
 # write ######################################################################
 #' Write `technology` object(s) to an Excel workbook
 #'
-#' Serialises one or more [technology] objects to a `.xlsx` file, one technology
+#' Serialises one or more [class-technology] objects to a `.xlsx` file, one technology
 #' per worksheet. Each slot of the class is written as a labelled mini-table
 #' whose header row matches the columns of the corresponding data.frame slot
 #' (`names(slot(tech, s))`). Scalar slots (`name`, `desc`, `cap2act`, `region`,
@@ -291,7 +291,7 @@ write_technology_xlsx <- function(x, path, include_empty = TRUE,
 #' Read `technology` object(s) from an Excel workbook
 #'
 #' Inverse of [write_technology_xlsx()]. Reads the block-structured worksheets
-#' produced by that function and rebuilds [technology] objects, coercing each
+#' produced by that function and rebuilds [class-technology] objects, coercing each
 #' mini-table's columns back to the types declared by the class.
 #'
 #' @param path Path to the `.xlsx` file.

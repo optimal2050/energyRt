@@ -107,6 +107,8 @@ object itself instead of a one-element list (default \code{FALSE}).}
 keeps the scenario's own run, a character selects that run, and \code{NULL},
 \code{NA} or \code{"ALL"} returns one entry per recorded run, keyed
 \verb{scenario/<name>:<variant>/<label>}.}
+
+\item{verbose}{logical; report progress (the \code{en_registry} method).}
 }
 \value{
 A named list of model objects keyed by \verb{@name} (empty list if none

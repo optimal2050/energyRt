@@ -125,6 +125,12 @@ interpolate(object, ...)
   supplied at interpolation time without rebuilding `sysdata` (handy to
   A/B templates).
 
+- kvl:
+
+  logical or `NULL`; build the Kirchhoff voltage-law cycle constraints
+  for meshed trade networks. `NULL` (default) engages them when the
+  network has cycles and reactances to use.
+
 - boundary_prices:
 
   optional `data.frame` pricing import/export stubs for trade routes
@@ -160,6 +166,10 @@ interpolate(object, ...)
   constraints themselves are retrievable with
   `getObject(scen, class = "constraint")`; each carries a readable
   `desc` and, in `misc$.variant_source`, the object it was derived from.
+
+- object:
+
+  as `mod`, for the method dispatched on a scenario.
 
 ## Value
 

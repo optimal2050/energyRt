@@ -266,6 +266,9 @@ so "T"/"TRUE" are read as process names, not logicals.}
 
 \item{variables}{if TRUE, variables will be included in the search and returned if found.}
 
+\item{sets}{logical, include set-type parameters in the result (by default
+only value-bearing parameters are returned).}
+
 \item{maps}{if TRUE, map-type parameters (membership mappings, no \code{value} column) are also returned.}
 
 \item{ignore.case}{grepl parameter if regular expressions are used in '...' or 'name_'.}
@@ -280,13 +283,21 @@ so "T"/"TRUE" are read as process names, not logicals.}
 
 \item{drop.zeros}{logical, should rows containing zero values be filtered out.}
 
+\item{add_weights, add_period_length, apply_weights, apply_period_length, as_data_table}{accepted and currently ignored.}
+
 \item{asTibble}{logical, if the data.frames should be converted into tibbles.}
 
 \item{stringsAsFactors}{logical, should the sets values be converted to factors?}
 
 \item{yearsAsFactors}{logical, should \code{year} be converted to factors? Set 'year' is integer by default.}
 
+\item{drop_duplicated_scenarios}{logical, when several scenarios carry the
+same name, keep only the first.}
+
 \item{scenNameInList}{logical, should the name of the scenarios be used if not provided in the list with several scenarios?}
+
+\item{unfold}{logical, expand a stored parameter back over its full domain
+before returning it.}
 
 \item{variants}{logical, default \code{TRUE}: attach the technology-variant
 provenance columns \code{base}, \code{vintage} and \code{cluster} (from
@@ -310,6 +321,9 @@ their results are not like-for-like. Not to be confused with \code{variants},
 below, which is about technologies.}
 
 \item{verbose}{logical, print progress and diagnostic messages.}
+
+\item{obj}{the object whose data is returned, for the per-class methods
+(\code{technology}, \code{commodity}, \code{storage}, ...).}
 
 \item{interpolate}{if TRUE, expand year-bearing object slots over the target
 years using each parameter's default interpolation rule (for quick

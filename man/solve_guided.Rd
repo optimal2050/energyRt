@@ -53,6 +53,10 @@ stage.}
 \item{on_infeasible}{\code{"relax"} (default) retries a stage with progressively
 looser guidance before giving up; \code{"stop"} fails immediately.}
 
+\item{overwrite}{logical; \code{FALSE} (default) refuses to run when a
+variant of the same label already exists on disk with a different type
+or different parameters. \code{TRUE} skips that guard and writes into it.}
+
 \item{keep_scenarios}{logical, keep each stage's scenario object in the
 result.}
 

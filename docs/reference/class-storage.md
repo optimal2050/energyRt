@@ -304,10 +304,12 @@ cycle will be a calendar day).
 
   : character. Unit of `comm` on this side, exactly as on
     `technology@input`/ `@output`. Descriptive only: it is carried for
-    reporting and `convert()` and never reaches the solver. It is the
-    unit of the COMMODITY (e.g. MWh), not of the capacity – capacity
-    units follow from `cap2act`, and the storing side has no `cap2act`
-    because a reservoir is an amount rather than a rate.
+    reporting and
+    [`convert()`](https://energyRt.org/reference/convert.md) and never
+    reaches the solver. It is the unit of the COMMODITY (e.g. MWh), not
+    of the capacity – capacity units follow from `cap2act`, and the
+    storing side has no `cap2act` because a reservoir is an amount
+    rather than a rate.
 
   cap2act
 
@@ -334,10 +336,12 @@ cycle will be a calendar day).
 
   : character. Unit of `comm` on this side, exactly as on
     `technology@input`/ `@output`. Descriptive only: it is carried for
-    reporting and `convert()` and never reaches the solver. It is the
-    unit of the COMMODITY (e.g. MWh), not of the capacity – capacity
-    units follow from `cap2act`, and the storing side has no `cap2act`
-    because a reservoir is an amount rather than a rate.
+    reporting and
+    [`convert()`](https://energyRt.org/reference/convert.md) and never
+    reaches the solver. It is the unit of the COMMODITY (e.g. MWh), not
+    of the capacity – capacity units follow from `cap2act`, and the
+    storing side has no `cap2act` because a reservoir is an amount
+    rather than a rate.
 
   cap2act
 
@@ -375,8 +379,9 @@ cycle will be a calendar day).
   unit
 
   : character. Unit of `comm`. Descriptive only, carried for reporting
-    and `convert()` and never reaching the solver. There is no `cap2act`
-    on this side – energy is energy at any resolution.
+    and [`convert()`](https://energyRt.org/reference/convert.md) and
+    never reaching the solver. There is no `cap2act` on this side –
+    energy is energy at any resolution.
 
 - `startLevel`:
 

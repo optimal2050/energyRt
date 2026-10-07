@@ -2,6 +2,7 @@
 % Please edit documentation in R/class-export.R
 \name{newExport}
 \alias{newExport}
+\alias{update,export-method}
 \title{Create new export object}
 \usage{
 newExport(
@@ -16,6 +17,8 @@ newExport(
   misc = list(),
   ...
 )
+
+\S4method{update}{export}(object, ...)
 }
 \arguments{
 \item{name}{character. Name of the export object, used in sets.}
@@ -65,12 +68,18 @@ Optional. When empty, step labels are harvested from the \code{cluster} columns 
 \item{region}{character. Regions where the export process exists. Empty (or NA) means every region of the model. A region named in any other slot must be one of these; the other slots place VALUES and never change where the process exists.}
 
 \item{misc}{list. Additional information.}
+
+\item{...}{arguments-slots (see \code{newExport}) with updated values to replace.}
+
+\item{object}{object of class export}
 }
 \value{
 export object with given specifications.
 }
 \description{
 Export object represent commodity export to the Rest of the World (RoW).
+
+The method replaces slots of the export object with new values.
 }
 \details{
 \code{export} is a type of process that adds an "external" source to a commodity
@@ -106,3 +115,4 @@ EXPOIL <- newExport(
 draw(EXPOIL)
 }
 \concept{create export}
+\concept{update export}

@@ -6,8 +6,8 @@
 #   Rscript tools/test/make_goldens.R --suite=tm [--dry-run]
 #   Rscript tools/test/make_goldens.R --suite=all
 #
-# Suites: tm (fast tier), topia (fast/cross), topia_nightly (R7/R11, only
-# read at the nightly tier), unit (the all-unit-input kits with hand-computed
+# Suites: tm (fast tier), topia (fast/cross), topia_full (R7/R11, only
+# read at the full tier), unit (the all-unit-input kits with hand-computed
 # integer objectives -- test-unit-model.R also pins them analytically), interp
 # (solver-free modInp baselines -- delegated to tools/test/interp_guard.R,
 # stored as goldens/interp/*.rds).
@@ -59,7 +59,7 @@ SUITES <- list(
     setNames(lapply(tiers, function(t) function() .fixture_env()[[t]]()), tiers)
   },
   topia = lapply(ut_entries(), function(a) function() do.call(ut_build, a)),
-  topia_nightly = lapply(ut_nightly_entries(),
+  topia_full = lapply(ut_full_entries(),
                           function(a) function() do.call(ut_build, a)),
   unit = lapply(un_entries(), function(a) function() do.call(un_build, a))
 )
@@ -69,7 +69,7 @@ SUITES <- list(
 # mid-size and sampled ones). Same-solver goldens are captured AND compared
 # with the suite's solver, so regenerating a julia suite needs Julia+HiGHS.
 SUITE_SOLVERS <- c(tm = "glpk", topia = "glpk",
-                   topia_nightly = "julia_highs", unit = "glpk")
+                   topia_full = "julia_highs", unit = "glpk")
 
 # --------------------------------------------------------------------------- #
 

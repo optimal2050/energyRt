@@ -1163,6 +1163,9 @@ NULL
 #' @param name Name for the aggregated model. `NULL` (default) appends
 #'   `level` to the source model's name.
 #' @param verbose Report what was aggregated, merged and dropped.
+#' @param .trade_parts internal; a named vector mapping trade names to a part
+#'   label, appended to the merge key so corridors in different parts stay
+#'   separate instead of collapsing into one merged object.
 #'
 #' @section Keeping the spread as clusters:
 #' Collapsing a zone's regions to one average technology throws away the

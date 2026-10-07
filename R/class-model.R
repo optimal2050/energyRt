@@ -45,6 +45,8 @@ setMethod("initialize", "model", function(.Object, ...) {
 #' Create new model object
 #'
 #' @param name name of the model
+#' @param desc free-text description of the model.
+#' @param obj a `model` object (the `setHorizon` / `getHorizon` methods).
 #' @param ... configuration parameters (see class config) and model elements (classes commodity, technology, etc.)
 #'
 #' @return model object containing model elements (`@data`) and configuration (`@config`)

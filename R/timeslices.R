@@ -16,6 +16,23 @@
 #'
 "tsl_sets"
 
+#' Timeslice labels by level for the common calendar formats
+#'
+#' For each shipped timeslice format, the labels of every level it is built
+#' from, outermost first. `d365_h24` for example holds the 365 day labels
+#' (`d001`..`d365`) and the 24 hour labels (`h00`..`h23`); the timeslice names
+#' themselves are their cross-product.
+#'
+#' @format A named list of 7 formats -- `d364`, `d365`, `d366`, `d364_h24`,
+#'   `d365_h24`, `d366_h24`, `m12_h24` -- each a list of character vectors, one
+#'   per level.
+#' @name tsl_levels
+#' @rdname timeslices
+#' @examples
+#' names(tsl_levels)
+#' lengths(tsl_levels$d365_h24)
+"tsl_levels"
+
 #' Example calendars
 #'
 #' A named list of ready-to-use [calendar][class-calendar] objects covering

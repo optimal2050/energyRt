@@ -31,6 +31,10 @@ write_sc(x, solver.dir = NULL, solver = NULL, ...)
 
   additional solver parameters
 
+- x:
+
+  scenario object, as `scen` (the `write_sc()` spelling).
+
 ## See also
 
 [`solve()`](https://rdrr.io/r/base/solve.html) to run the script, solve

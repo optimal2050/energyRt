@@ -254,7 +254,7 @@ place for it. Here the fuels are PJ and electricity is GWh:
 *operates* in GWh), and `cap2act = 8760` matches (1 GW × 8760 h). You do
 not have to work the factor out by hand: `convert("PJ", "GWh", 1)` gives
 it. See the *Units* article for where each unit is declared and how
-`convert()` finds a factor.
+[`convert()`](https://energyRt.org/reference/convert.md) finds a factor.
 
 #### Activity, capacity and units
 
@@ -609,7 +609,8 @@ the container it returns `NULL` with a message unless
 
 ## See also
 
-- **Units** — where each unit is declared, how `convert()` moves between
+- **Units** — where each unit is declared, how
+  [`convert()`](https://energyRt.org/reference/convert.md) moves between
   them, and what the model checks.
 - **Autoplot** — plots of calendars, horizons, commodity emissions and
   the by-year `supply`/`demand`/`import`/`export` parameters.
@@ -620,5 +621,6 @@ the container it returns `NULL` with a message unless
   [`?newConstraint`](https://energyRt.org/reference/newConstraint.md),
   [`?newRepository`](https://energyRt.org/reference/newRepository.md),
   [`?newModel`](https://energyRt.org/reference/newModel.md),
-  [`?levcost`](https://energyRt.org/reference/levcost.md), `?convert`,
+  [`?levcost`](https://energyRt.org/reference/levcost.md),
+  [`?convert`](https://energyRt.org/reference/convert.md),
   [`?getUnits`](https://energyRt.org/reference/getUnits.md).

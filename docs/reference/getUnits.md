@@ -58,6 +58,12 @@ getUnits(object, slots = NULL, complete = FALSE, units = NULL, ...)
   placeholder tokens otherwise. Default `FALSE` (populated parameters
   only).
 
+- units:
+
+  named list of base units (`capacity`, `activity`, `use`, `costs`) for
+  the classes that carry no `@units` slot. `NULL` (default) resolves
+  what it can from the object and leaves the rest as placeholder tokens.
+
 ## Value
 
 A data.frame with columns `slot`, `parameter`, `comm`, `description`,

@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9014</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9016</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -43,7 +43,13 @@
       <ul class="navbar-nav me-auto">
 <li class="nav-item"><a class="nav-link" href="../articles/energyRt.html">Get started</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Roadmap</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-development" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Development</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-development">
+<li><a class="dropdown-item" href="../articles/roadmap.html">Roadmap</a></li>
+    <li><a class="dropdown-item" href="../articles/testing.html">Testing strategy</a></li>
+  </ul>
+</li>
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-tutorials" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Tutorials</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials">
@@ -368,13 +374,13 @@ returns nothing rather than partial results.</p>
 </h2>
 <p>The presets shipped with the package (generated from the installed
 data):</p>
-<table style="width:100%;" class="table">
+<table class="table">
 <colgroup>
-<col width="34%">
-<col width="19%">
+<col width="36%">
+<col width="18%">
 <col width="16%">
 <col width="9%">
-<col width="19%">
+<col width="18%">
 </colgroup>
 <thead><tr class="header">
 <th align="left">preset</th>
@@ -449,6 +455,34 @@ data):</p>
 </tr>
 <tr class="even">
 <td align="left">mm_highs</td>
+<td align="left">NA</td>
+<td align="left">HiGHS</td>
+<td align="left"></td>
+<td align="left">default</td>
+</tr>
+<tr class="odd">
+<td align="left">mm_highs_barrier</td>
+<td align="left">NA</td>
+<td align="left">HiGHS</td>
+<td align="left"></td>
+<td align="left">default</td>
+</tr>
+<tr class="even">
+<td align="left">mm_highs_barrier_bs3</td>
+<td align="left">NA</td>
+<td align="left">HiGHS</td>
+<td align="left"></td>
+<td align="left">default</td>
+</tr>
+<tr class="odd">
+<td align="left">mm_julia_highs_barrier</td>
+<td align="left">NA</td>
+<td align="left">HiGHS</td>
+<td align="left"></td>
+<td align="left">default</td>
+</tr>
+<tr class="even">
+<td align="left">mm_julia_highs_barrier_bs3</td>
 <td align="left">NA</td>
 <td align="left">HiGHS</td>
 <td align="left"></td>
@@ -546,125 +580,132 @@ data):</p>
 <td align="left">default</td>
 </tr>
 <tr class="even">
+<td align="left">julia_highs_barrier_bs3</td>
+<td align="left">Julia/JuMP</td>
+<td align="left">HiGHS</td>
+<td align="left"></td>
+<td align="left">default</td>
+</tr>
+<tr class="odd">
 <td align="left">julia_glpk</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">GLPK</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">julia_highs_simplex</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">HiGHS</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">julia_highs_parallel</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">HiGHS</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">julia_highs_pdlp</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">HiGHS</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">julia_highs_hipdlp</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">HiGHS</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">julia_cuopt</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">cuOpt</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">julia_cuopt_concurrent</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">cuOpt</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">julia_cuopt_pdlp</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">cuOpt</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">julia_cuopt_crossover</td>
 <td align="left">Julia/JuMP</td>
 <td align="left">cuOpt</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">gams_cplex</td>
 <td align="left">GAMS</td>
 <td align="left">CPLEX</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">gams_gdx_cplex</td>
 <td align="left">GAMS</td>
 <td align="left">CPLEX</td>
 <td align="left"></td>
 <td align="left">GDX</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">gams_gdx_cplex_barrier</td>
 <td align="left">GAMS</td>
 <td align="left">CPLEX</td>
 <td align="left"></td>
 <td align="left">GDX</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">gams_gdx_cplex_parallel</td>
 <td align="left">GAMS</td>
 <td align="left">CPLEX</td>
 <td align="left"></td>
 <td align="left">GDX</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">gams_cbc</td>
 <td align="left">GAMS</td>
 <td align="left">CBC</td>
 <td align="left"></td>
 <td align="left">default</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">gams_gdx_cbc</td>
 <td align="left">GAMS</td>
 <td align="left">CBC</td>
 <td align="left"></td>
 <td align="left">GDX</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">neos_gams_cplex</td>
 <td align="left">GAMS</td>
 <td align="left">CPLEX</td>
 <td align="left">NEOS</td>
 <td align="left">default</td>
 </tr>
-<tr class="even">
+<tr class="odd">
 <td align="left">neos_gams_cplex_barrier</td>
 <td align="left">GAMS</td>
 <td align="left">CPLEX</td>
 <td align="left">NEOS</td>
 <td align="left">default</td>
 </tr>
-<tr class="odd">
+<tr class="even">
 <td align="left">neos_gams_cbc</td>
 <td align="left">GAMS</td>
 <td align="left">CBC</td>

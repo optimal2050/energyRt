@@ -13,9 +13,11 @@ newCosts(name, variable, desc = "", mult = NULL, subset = NULL, misc = NULL)
 
 \item{desc}{\code{get_slot_doc("costs", "desc")}}
 
-\item{mult}{\code{get_slot_doc("costs", "mult")}}
+\item{mult}{data.frame. Named list or data frame with numeric values for the variable included in the costs-constraint. A constant or a data frame with the same dimensions as the subseted variable.}
 
-\item{subset}{\code{get_slot_doc("costs", "subset")}}
+\item{subset}{data.frame. Named list or data frame with set-values for each dimension of the variable. This slot subsets the variable to the specified set values.}
+
+\item{misc}{list. Additional information.}
 }
 \value{
 costs object with given specifications.

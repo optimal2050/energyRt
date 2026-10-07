@@ -56,6 +56,9 @@ Note the commodity's own \verb{@geoframe} is a different question: a commodity b
 
 \item{misc}{list. Optional list of additional information.}
 
+\item{...}{further named slots of the class -- set on the new object by
+\code{newDemand()}, replacing the current values in \code{update()}.}
+
 \item{object}{demand object}
 }
 \value{

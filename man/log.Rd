@@ -19,6 +19,9 @@ get_profile_dir()
 read_log(file = get_log_file())
 }
 \arguments{
+\item{path}{character, the file or directory to use; \code{NULL} clears the
+setting and restores the default.}
+
 \item{file}{character, the log file (default: the \code{log_file} option).}
 }
 \value{

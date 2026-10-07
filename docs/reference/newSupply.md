@@ -213,6 +213,10 @@ newSupply(
   can be used for reference or user-defined functions. For example,
   links to the source of the supply data, or other metadata.
 
+- ...:
+
+  further named slots of the class, set on the new object.
+
 ## Value
 
 supply object with given specifications.

@@ -134,6 +134,9 @@
 #' @param root character, project root to rescan (the directory holding the
 #'   `scenarios/` and `models/` stores).
 #' @param write logical, save the refreshed registry to `file`.
+#' @param variant character, for run rows: the variant the run belongs to.
+#' @param obj the object a registry row is derived from.
+#' @param ... further columns to set on the registry row.
 #'
 #' @return `load_registry()`, `add_to_registry()`, `find_in_registry()`, and
 #'   `refresh_registry()` return the registry tibble; `save_registry()`

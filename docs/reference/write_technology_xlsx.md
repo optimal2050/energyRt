@@ -1,12 +1,13 @@
 # Write `technology` object(s) to an Excel workbook
 
-Serialises one or more technology objects to a `.xlsx` file, one
-technology per worksheet. Each slot of the class is written as a
-labelled mini-table whose header row matches the columns of the
-corresponding data.frame slot (`names(slot(tech, s))`). Scalar slots
-(`name`, `desc`, `cap2act`, `region`, `timeframe`, `fullYear`,
-`optimizeRetirement`, `misc`) are written into a leading `meta` block.
-The workbook can be read back with
+Serialises one or more
+[class-technology](https://energyRt.org/reference/class-technology.md)
+objects to a `.xlsx` file, one technology per worksheet. Each slot of
+the class is written as a labelled mini-table whose header row matches
+the columns of the corresponding data.frame slot
+(`names(slot(tech, s))`). Scalar slots (`name`, `desc`, `cap2act`,
+`region`, `timeframe`, `fullYear`, `optimizeRetirement`, `misc`) are
+written into a leading `meta` block. The workbook can be read back with
 [`read_technology_xlsx()`](https://energyRt.org/reference/read_technology_xlsx.md).
 
 ## Usage

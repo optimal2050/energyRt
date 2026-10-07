@@ -19,6 +19,10 @@ en_install_julia_pkgs(pkgs = NULL, update = FALSE)
   If you have pre-installed CPLEX or Gurobi, you can add them to the
   list.
 
+- update:
+
+  logical; also run `Pkg.update()` before installing.
+
 ## Value
 
 NULL if the completion is successful. The verification of the

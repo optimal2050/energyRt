@@ -86,7 +86,7 @@ Tiers replace it (`tests/testthat/helper-solvers.R`):
 | `check` | 0 | no solver, no network -- what `R CMD check` gets |
 | `fast` | 1 | GLPK only; the default in a dev session |
 | `cross` | 2 | Julia, Pyomo, GAMS, NEOS -- backend parity |
-| `nightly` | 3 | the full suite, including the slowest models |
+| `full` | 3 | the whole suite, including the slowest models |
 
 Two details carry the design:
 
@@ -188,10 +188,10 @@ an accepted snapshot were not -- so a generated artefact and its own guard
 disagreed for two weeks. Prefer a regenerated, tracked file to an integer typed
 into a test.
 
-**A nightly-only guard is only as good as the nightly.** `interp_guard` correctly
-reported drift for 15 days across five commits and nobody saw it, because the
-test that runs it is nightly-tier and no nightly had run. A guard nobody executes
-is documentation.
+**A full-tier guard is only as good as how often that tier runs.** `interp_guard`
+correctly reported drift for 15 days across five commits and nobody saw it,
+because the test that runs it is gated at the `full` tier and no full run had
+happened. A guard nobody executes is documentation.
 
 # Conventions
 

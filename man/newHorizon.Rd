@@ -44,6 +44,14 @@ The vector will be considered as lengths of each modeled interval in period.}
 
 \item{name}{character. Name of the horizon object. Used to distinguish between different horizons in the model or scenario, including the automatic creation of the folder name for the model/scenario scripts.}
 
+\item{object}{the \code{horizon} or \code{config} object to update.}
+
+\item{...}{named slots with new values.}
+
+\item{warn_nodata}{logical; warn when the update is called with no data.}
+
+\item{obj}{the \code{config} object, for the \code{setHorizon} method.}
+
 \item{horizon}{a new horizon object to be set.}
 }
 \value{

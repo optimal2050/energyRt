@@ -42,6 +42,8 @@ open_project(path = ".", verbose = TRUE)
 \item{name}{character, the object's registered name. Scenarios accept a
 name only; models/repositories/datasets also accept \code{"name@hash8"}.}
 
+\item{...}{passed to the dispatched accessor.}
+
 \item{registry}{an \code{en_registry} tibble to resolve against (default:
 \code{\link[=load_registry]{load_registry()}}).}
 

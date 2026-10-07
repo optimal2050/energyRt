@@ -49,6 +49,10 @@ together instead of one at a time; overrides \code{regions}.}
 region that fails to solve is recorded and the run carries on, so one bad
 region does not lose the rest.}
 
+\item{overwrite}{logical; \code{FALSE} (default) refuses to run when a
+variant of the same label already exists on disk with a different type
+or different parameters. \code{TRUE} skips that guard and writes into it.}
+
 \item{keep_scenarios}{logical, keep each region's scenario object.}
 
 \item{verbose}{logical.}

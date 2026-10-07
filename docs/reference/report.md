@@ -451,28 +451,9 @@ report(
   `levcost = NULL` and levcost parameters are provided) and/or to
   [`rmarkdown::render()`](https://pkgs.rstudio.com/rmarkdown/reference/render.html).
   Known `levcost` parameter names are intercepted automatically;
-  everything else is passed to the renderer.
-
-  The `scenario` method additionally accepts `run` (character or
-  `NULL`): the run id to report, as listed by
-  [`scenario_runs`](https://energyRt.org/reference/scenario_runs.md)
-  (`"<solve>"` or `"<variant>/<solve>"`). The default `NULL` reports the
-  active run; a different run is read into a local copy, so the caller's
-  scenario keeps its active run. It also accepts `verify` (logical,
-  default `TRUE`): include the
-  [`verify_solution`](https://energyRt.org/reference/verify_solution.md)
-  checks section. For a whole-scenario report, `levcost = TRUE` adds an
-  ex-post levelized-cost table via `levcost(scenario)`.
-
-  The model, repository and scenario methods accept branding arguments:
-  `logos` (character vector of image paths rendered as a banner row;
-  default from `misc$logos`, then the scalar `misc$logo` / `misc$image`
-  – a scenario shows its model's logos first, then its own), the model
-  method `figure` (an optional half-page hero figure, default
-  `misc$figure`), and the scenario method `badges` (small
-  property-indicator images, default `misc$badges`). Branding content
-  enters the render key, so a changed logo re-renders an otherwise
-  up-to-date report.
+  everything else is passed to the renderer. For a whole-scenario
+  report, `levcost = TRUE` adds an ex-post levelized-cost table via
+  `levcost(scenario)`.
 
 - levcost_peers:
 
@@ -492,6 +473,19 @@ report(
   content key over the object, template, arguments, image and levcost
   identity, and an unchanged report is not rebuilt.
 
+- logos:
+
+  Character vector of image paths rendered as a banner row (`model` /
+  `repository` / `scenario` methods). Given explicitly it REPLACES the
+  `misc`-derived set entirely and every file must exist; `NULL`
+  (default) takes `misc$logos`, then the scalar `misc$logo` /
+  `misc$image` – a scenario shows its model's logos first, then its own.
+
+- figure:
+
+  An optional half-page hero figure (`model` / `repository` methods);
+  `NULL` (default) takes `misc$figure`.
+
 - groups:
 
   Process groups for model and scenario reports: a named list whose
@@ -504,10 +498,28 @@ report(
   up to 12 processes. Processes in no group form a final "Ungrouped"
   sample.
 
-- name:
+- run:
 
-  Character (container/scenario methods). Name of the technology /
-  process to report.
+  Character or `NULL` (`scenario` method). The run id to report, as
+  listed by
+  [`scenario_runs`](https://energyRt.org/reference/scenario_runs.md)
+  (`"<solve>"` or `"<variant>/<solve>"`). The default `NULL` reports the
+  active run; a different run is read into a local copy, so the caller's
+  scenario keeps its active run.
+
+- verify:
+
+  Logical (`scenario` method), default `TRUE`: include the
+  [`verify_solution`](https://energyRt.org/reference/verify_solution.md)
+  checks section.
+
+- badges:
+
+  Small property-indicator images (`scenario` method); `NULL` (default)
+  takes `misc$badges`.
+
+  Branding content enters the render key, so a changed logo or figure
+  re-renders an otherwise up-to-date report.
 
 ## Value
 

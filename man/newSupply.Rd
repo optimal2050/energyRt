@@ -90,6 +90,8 @@ Optional. When empty, labels are harvested from the \code{cluster} columns of th
 \item{region}{character. Regions where the supply process exists. Must include all regions used in other slots. \code{availability} and \code{reserve} slots also limit possible regions.}
 
 \item{misc}{list. List of additional parameters that are not used in the model but can be used for reference or user-defined functions. For example, links to the source of the supply data, or other metadata.}
+
+\item{...}{further named slots of the class, set on the new object.}
 }
 \value{
 supply object with given specifications.

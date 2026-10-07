@@ -43,6 +43,10 @@ or a calendar carrying a \code{sample} column. When \code{NULL}, built by
 \item{on_error}{\code{"stop"} (default) or \code{"continue"} — with \code{"continue"} a
 sample that fails to solve is recorded and the ensemble carries on.}
 
+\item{overwrite}{logical; \code{FALSE} (default) refuses to run when a
+variant of the same label already exists on disk with a different type
+or different parameters. \code{TRUE} skips that guard and writes into it.}
+
 \item{keep_scenarios}{logical, keep each sample's scenario object.}
 
 \item{verbose}{logical.}

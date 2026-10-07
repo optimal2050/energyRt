@@ -94,6 +94,7 @@ Collate:
     'compare_values.R'
     'config_file.R'
     'convert.R'
+    'data.R'
     'data2slots.R'
     'design.R'
     'discount_rates.R'

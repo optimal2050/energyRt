@@ -82,6 +82,8 @@ setMethod("initialize", "demand", function(.Object, ...) {
 #' @param cluster `r get_slot_doc("demand", "cluster")`
 #' @param region `r get_slot_doc("demand", "region")`
 #' @param misc `r get_slot_doc("demand", "misc")`
+#' @param ... further named slots of the class -- set on the new object by
+#'   `newDemand()`, replacing the current values in `update()`.
 #'
 #' @rdname newDemand
 #' @order 1

@@ -77,6 +77,10 @@ newTax(
 
   list. Additional information.
 
+- ...:
+
+  further named slots of the class, set on the new object.
+
 ## Value
 
 An object of class `tax`

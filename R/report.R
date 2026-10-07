@@ -35,8 +35,6 @@
 #'
 #' @param object An energyRt S4 object: \code{technology}, \code{repository},
 #'   \code{model}, or solved \code{scenario}.
-#' @param name Character (container/scenario methods). Name of the technology /
-#'   process to report.
 #' @param template Character.  Template name that defines which parameters to
 #'   display.  Currently \code{"generic"} is built into the package.  Pass the
 #'   absolute path to a custom \code{.Rmd} file to use your own template.
@@ -100,26 +98,29 @@
 #'   \code{levcost = NULL} and levcost parameters are provided) and/or to
 #'   \code{rmarkdown::render()}.  Known \code{levcost} parameter names are
 #'   intercepted automatically; everything else is passed to the renderer.
-#'
-#'   The \code{scenario} method additionally accepts \code{run} (character or
-#'   \code{NULL}): the run id to report, as listed by
-#'   \code{\link{scenario_runs}} (\code{"<solve>"} or
-#'   \code{"<variant>/<solve>"}).  The default \code{NULL} reports the active
-#'   run; a different run is read into a local copy, so the caller's scenario
-#'   keeps its active run.  It also accepts \code{verify} (logical, default
-#'   \code{TRUE}): include the \code{\link{verify_solution}} checks section.
 #'   For a whole-scenario report, \code{levcost = TRUE} adds an ex-post
 #'   levelized-cost table via \code{levcost(scenario)}.
+#' @param run Character or \code{NULL} (\code{scenario} method). The run id to
+#'   report, as listed by \code{\link{scenario_runs}} (\code{"<solve>"} or
+#'   \code{"<variant>/<solve>"}).  The default \code{NULL} reports the active
+#'   run; a different run is read into a local copy, so the caller's scenario
+#'   keeps its active run.
+#' @param verify Logical (\code{scenario} method), default \code{TRUE}:
+#'   include the \code{\link{verify_solution}} checks section.
+#' @param logos Character vector of image paths rendered as a banner row
+#'   (\code{model} / \code{repository} / \code{scenario} methods). Given
+#'   explicitly it REPLACES the \code{misc}-derived set entirely and every file
+#'   must exist; \code{NULL} (default) takes \code{misc$logos}, then the scalar
+#'   \code{misc$logo} / \code{misc$image} -- a scenario shows its model's logos
+#'   first, then its own.
+#' @param figure An optional half-page hero figure (\code{model} /
+#'   \code{repository} methods); \code{NULL} (default) takes
+#'   \code{misc$figure}.
+#' @param badges Small property-indicator images (\code{scenario} method);
+#'   \code{NULL} (default) takes \code{misc$badges}.
 #'
-#'   The model, repository and scenario methods accept branding arguments:
-#'   \code{logos} (character vector of image paths rendered as a banner
-#'   row; default from \code{misc$logos}, then the scalar \code{misc$logo}
-#'   / \code{misc$image} -- a scenario shows its model's logos first, then
-#'   its own), the model method \code{figure} (an optional half-page hero
-#'   figure, default \code{misc$figure}), and the scenario method
-#'   \code{badges} (small property-indicator images, default
-#'   \code{misc$badges}). Branding content enters the render key, so a
-#'   changed logo re-renders an otherwise up-to-date report.
+#'   Branding content enters the render key, so a changed logo or figure
+#'   re-renders an otherwise up-to-date report.
 #'
 #' @return The path(s) to the generated output file(s) (invisibly).  A single
 #'   string when one format is requested; a character vector when multiple

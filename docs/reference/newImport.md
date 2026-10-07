@@ -169,6 +169,10 @@ newImport(
 
   list. Additional information.
 
+- ...:
+
+  further named slots of the class, set on the new object.
+
 ## Value
 
 import object with given specifications.

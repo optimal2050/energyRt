@@ -64,6 +64,12 @@ after the run (no run record).}
 
 \item{force}{logical, re-solve a scenario already solved to optimal.}
 
+\item{kvl}{logical or \code{NULL}; what the caller expects of Kirchhoff's
+voltage law. It GUARDS rather than builds -- the cycle constraints are
+baked in at interpolation time, so this is the last chance to notice that
+a solve is about to differ from what was asked for. \code{NULL} reports what
+the scenario actually carries.}
+
 \item{variant}{character (\code{solve_scenario()} only): declare the scenario's
 interpolated problem an OWN-PROBLEM VARIANT of this name. Its solves
 land in \verb{runs/<variant>/<solve>/}, and \code{\link[=save_scenario]{save_scenario()}} stores the
@@ -73,6 +79,8 @@ scenario-level (base) problem untouched. Switch between problems with
 \code{\link[=read_solution]{read_solution()}} (\code{run = "<variant>/<solve>"} vs \code{run = "<solve>"}).}
 
 \item{tmp.dir, tmp.del}{deprecated aliases of \code{solver.dir} / \code{transient}.}
+
+\item{a, b}{the \code{solve()} S4 signature: \code{a} the model, \code{b} the scenario name.}
 }
 \value{
 a scenario object with the solution.

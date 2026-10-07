@@ -69,6 +69,7 @@
 #' @param hash character, content hash to pin a stored version.
 #' @param path character, project root directory (must exist).
 #' @param verbose logical.
+#' @param ... passed to the dispatched accessor.
 #'
 #' @return the requested object; `open_project()` returns the previous
 #'   option values, invisibly.

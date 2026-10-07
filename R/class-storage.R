@@ -923,6 +923,7 @@ setMethod("initialize", "storage", function(.Object, ...) {
 #' @param weather `r get_slot_doc("storage", "weather")`
 #' @param optimizeRetirement `r get_slot_doc("storage", "optimizeRetirement")`
 #' @param misc `r get_slot_doc("storage", "misc")`
+#' @param ... further named slots of the class, set on the new object.
 #' @return storage object
 #'
 #' @name newStorage
@@ -1073,7 +1074,6 @@ newStorage <- function(
 #' @param object storage object.
 #'
 #' @rdname update
-#' @name update
 #'
 #' @family storage update
 #' @keywords storage update

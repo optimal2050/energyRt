@@ -3,7 +3,7 @@
 #
 # Extracted from run_fast.R, which had the only correct implementations: the
 # TTY-aware reporter pair and the failed+error aggregation. run_cross.R and
-# run_nightly.R each had their own, both silent and both undercounting, and the
+# run_full.R each had their own, both silent and both undercounting, and the
 # toolchain probe was copied verbatim into both. One home for all three.
 #
 # Sourced, never run:  source(file.path("tools", "test", "lib", "runner.R"))
@@ -75,7 +75,7 @@ en_reporters <- function(list_reporter, extra = NULL) {
 # errors has failed == 0. Aggregating on `failed` alone drops it from the table
 # while the headline still counts it -- silence that reads as success. That is
 # exactly the bug run_cross.R shipped (its exit code ignored `error`
-# altogether) and the reason run_nightly.R's report said 16 where its own
+# altogether) and the reason run_full.R's report said 16 where its own
 # headline said 22.
 en_summarise <- function(res, label, mins, filter = NULL) {
   broken <- sum(res$failed) + sum(res$error)
@@ -104,7 +104,7 @@ en_summarise <- function(res, label, mins, filter = NULL) {
 }
 
 # Where a run's artifacts go. Second resolution plus the pid, because the old
-# nightly path was minute-resolution and two runs in one minute overwrote each
+# full-tier report path was minute-resolution and two runs in one minute overwrote each
 # other's report.
 en_run_dir <- function(tier, given = NULL, create = TRUE) {
   dir <- if (!is.null(given) && nzchar(given)) {

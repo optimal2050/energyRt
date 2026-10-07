@@ -2,6 +2,7 @@
 % Please edit documentation in R/class-weather.R
 \name{newWeather}
 \alias{newWeather}
+\alias{update,weather-method}
 \title{Create new weather object}
 \usage{
 newWeather(
@@ -15,6 +16,8 @@ newWeather(
   misc = list(),
   ...
 )
+
+\S4method{update}{weather}(object, ...)
 }
 \arguments{
 \item{name}{character. Name of the weather factor, used in sets.}
@@ -36,6 +39,12 @@ newWeather(
 \item{timeslice}{character. Time timeslice to apply the parameter, NA for every timeslice.}
 \item{wval}{numeric. Weather factor value.}
 }}
+
+\item{misc}{list. Additional information.}
+
+\item{...}{slot-names with data to update (see \code{newWeather})}
+
+\item{object}{object of class weather}
 }
 \value{
 weather object with given specifications.
@@ -70,4 +79,5 @@ WSOL <- newWeather(
 )
 }
 }
+\concept{update weather}
 \concept{weather}

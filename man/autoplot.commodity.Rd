@@ -9,9 +9,9 @@
 \arguments{
 \item{object}{A \code{commodity} object.}
 
-\item{...}{Optional further \code{commodity} objects to include in the comparison.}
-
-\item{palette}{Viridis color option for the emission-species fill scale.}
+\item{...}{Optional further \code{commodity} objects to include in the
+comparison, and arguments passed on to \code{plot_commodity()} -- notably
+\code{palette}, the viridis colour option for the emission-species fill scale.}
 }
 \value{
 A \code{ggplot} object, or \code{NULL} (invisibly) if there is nothing to plot.

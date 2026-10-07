@@ -212,7 +212,7 @@ verify_solution <- function(scen,
 .vs_check_names <- function() names(.vs_registry())
 
 # "default" and "all" are sentinels, so the cheap set can grow without every
-# caller restating it and the nightly tier can ask for everything by name.
+# caller restating it and the full tier can ask for everything by name.
 # Explicit check names keep working exactly as before.
 .vs_expand_checks <- function(checks) {
   reg <- .vs_registry()

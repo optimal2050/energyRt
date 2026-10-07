@@ -1,8 +1,8 @@
 # =========================================================================== #
-# run_nightly.R -- the deep tier: the FULL suite at tier "nightly" (which
+# run_full.R -- the deep tier: the whole suite at tier "full" (which
 # includes everything the fast and cross tiers run) plus the interpolation
 # goldens check, with a markdown report left in tmp/test-reports/.
-#   Rscript tools/test/run_nightly.R
+#   Rscript tools/test/run_full.R
 # Opt-in extras picked up from the environment (see tests/README.md):
 #   ENERGYRT_EXT_MODELS=<dir>   external real-world models (belgium_*.rds)
 #   ENERGYRT_TEST_HEAVY=true    full-year external models (~minutes)
@@ -16,7 +16,7 @@
 # =========================================================================== #
 if (!file.exists("DESCRIPTION")) stop("Run from the package root.")
 source(file.path("tools", "test", "lib", "runner.R"))
-Sys.setenv(ENERGYRT_TEST_TIER = "nightly")
+Sys.setenv(ENERGYRT_TEST_TIER = "full")
 suppressMessages(pkgload::load_all(".", quiet = TRUE))
 t0 <- proc.time()[3]
 started <- Sys.time()
@@ -33,15 +33,15 @@ ig_ok <- tryCatch(
     message = function(m) invokeRestart("muffleMessage"))),
   error = function(e) { cat("interp guard ERROR:", conditionMessage(e), "\n"); FALSE })
 
-# --- full suite at tier nightly --------------------------------------------- #
-cat("\n== full suite (tier nightly) ==\n")
+# --- whole suite at tier full -------------------------------------------- #
+cat("\n== whole suite (tier full) ==\n")
 lst <- testthat::ListReporter$new()
 rep <- en_reporters(lst)
 devtools::test(reporter = rep)
 res <- as.data.frame(lst$get_results())
 mins <- (proc.time()[3] - t0) / 60
 
-broken <- en_summarise(res, "nightly", mins)
+broken <- en_summarise(res, "full", mins)
 
 # --- markdown report -------------------------------------------------------- #
 # `broken` per file, so an error-only file is visible. The old table showed
@@ -55,10 +55,10 @@ dir.create(file.path("tmp", "test-reports"), recursive = TRUE, showWarnings = FA
 # Second resolution plus the pid: the old %H%M stamp meant two runs started in
 # the same minute overwrote each other's report.
 report <- file.path("tmp", "test-reports",
-                    sprintf("nightly-%s-%d.md",
+                    sprintf("full-%s-%d.md",
                             format(started, "%Y%m%d-%H%M%S"), Sys.getpid()))
 md <- c(
-  "# energyRt nightly test report",
+  "# energyRt full test report",
   "",
   sprintf("- date: %s", format(started, "%Y-%m-%d %H:%M:%S")),
   sprintf("- version: %s", as.character(utils::packageVersion("energyRt"))),
@@ -92,6 +92,6 @@ if (nrow(fails)) {
 }
 writeLines(md, report)
 
-cat(sprintf("[nightly] interp %s | report %s\n",
+cat(sprintf("[full] interp %s | report %s\n",
             if (ig_ok) "PASS" else "FAIL", report))
 quit(status = if (broken > 0 || !ig_ok) 1L else 0L)

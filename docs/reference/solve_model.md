@@ -98,6 +98,14 @@ solve(a, b, ...)
 
   logical, re-solve a scenario already solved to optimal.
 
+- kvl:
+
+  logical or `NULL`; what the caller expects of Kirchhoff's voltage law.
+  It GUARDS rather than builds – the cycle constraints are baked in at
+  interpolation time, so this is the last chance to notice that a solve
+  is about to differ from what was asked for. `NULL` reports what the
+  scenario actually carries.
+
 - variant:
 
   character (`solve_scenario()` only): declare the scenario's
@@ -114,6 +122,11 @@ solve(a, b, ...)
 - tmp.dir, tmp.del:
 
   deprecated aliases of `solver.dir` / `transient`.
+
+- a, b:
+
+  the [`solve()`](https://rdrr.io/r/base/solve.html) S4 signature: `a`
+  the model, `b` the scenario name.
 
 ## Value
 

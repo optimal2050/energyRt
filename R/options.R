@@ -775,6 +775,8 @@ get_path_builder <- function(kind = NULL) {
   if (is.null(kind)) cur else cur[[kind]]
 }
 
+#' @param path character, the file or directory to use; `NULL` clears the
+#'   setting and restores the default.
 #' @family options
 #' @rdname log
 #' @export

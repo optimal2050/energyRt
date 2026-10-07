@@ -75,6 +75,9 @@ object are drawn as dotted lines at their default values (e.g. a supply
 without \code{ava.lo} shows its default of 0). Non-finite defaults (e.g.
 \code{ava.up = Inf}) are listed in the caption instead of drawn.}
 
+\item{units}{named list of base units passed to the unit resolver for the
+axis label; \code{NULL} (default) resolves them from the object.}
+
 \item{style}{For \code{supply} only: \code{"profile"} (default) draws the
 per-parameter year profile shared by all process classes; \code{"bar"} draws
 quantity or price by region over the years (stacked availability bars,

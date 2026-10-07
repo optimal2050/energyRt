@@ -19,13 +19,13 @@ Companion machinery:
 
 | Piece | Where | What it gives you |
 |---|---|---|
-| Tier system | `tests/testthat/helper-solvers.R` | `ENERGYRT_TEST_TIER`: `check < fast < cross < nightly`; per-backend skip guards |
+| Tier system | `tests/testthat/helper-solvers.R` | `ENERGYRT_TEST_TIER`: `check < fast < cross < full`; per-backend skip guards |
 | Fork harness | `tests/testthat/helper-forks.R` | `run_family()`: interp-mode invariance, cross-backend parity, invariants per solved cell |
 | Invariant checker | `R/verify_solution.R` (exported) | balance / totals / cost / objective identities on any solved scenario |
 | Goldens | `tests/testthat/helper-goldens.R`, `tools/test/make_goldens.R` | tracked-value benchmarks, capture gated by the invariants |
 | Reference models | `tests/testthat/fixtures/testing-models.R` (tm_* tiers), `helper-topia.R` (TOPIA kits) | deterministic solve fixtures |
-| Interp goldens | `tools/test/interp_guard.R`, `tests/testthat/goldens/interp/` | tracked modInp baselines diffed with `compare_inputs()` (nightly) |
-| Runners | `tools/test/run_fast.R`, `run_cross.R`, `run_nightly.R` | tier runs with a summary line and non-zero exit on failure; nightly writes a markdown report |
+| Interp goldens | `tools/test/interp_guard.R`, `tests/testthat/goldens/interp/` | tracked modInp baselines diffed with `compare_inputs()` (full tier) |
+| Runners | `tools/test/run_fast.R`, `run_cross.R`, `run_full.R` | tier runs with a summary line and non-zero exit on failure; the full run writes a markdown report |
 
 ## 1. Adding a test for a new parameter
 
@@ -116,7 +116,7 @@ optima make them solver-specific). Tolerances live in
 
 1. Only regenerate when a behavior change is **intended**.
 2. `Rscript tools/test/make_goldens.R
-   --suite=<tm|topia|topia_nightly|unit|interp|all> [--dry-run]` — prints
+   --suite=<tm|topia|topia_full|unit|interp|all> [--dry-run]` — prints
    an old-vs-new diff and **refuses** to freeze a baseline that fails
    `verify_solution()`. The `unit` suite pins the all-unit-input kits
    (`topia_modules$unit`) whose objectives are small integers computed BY
@@ -126,12 +126,12 @@ optima make them solver-specific). Tolerances live in
    (`SUITE_SOLVERS` in `make_goldens.R`), following the backend-choice
    convention — glpsol for small models, julia/HiGHS for mid-size and
    sampled ones (expected solve over ~30 s: startup no longer dominates and
-   HiGHS's presolve/dual simplex win). `topia_nightly` (R7/R11) references
+   HiGHS's presolve/dual simplex win). `topia_full` (R7/R11) references
    `julia_highs`; same-solver goldens are captured and compared with the
    suite's solver, so regenerating those needs Julia + JuMP/HiGHS. The `interp` suite is different in kind: solver-free
    **modInp baselines** (`goldens/interp/<tier>.rds`, xz, tracked in git but
    Rbuildignored), frozen by `tools/test/interp_guard.R baseline` and checked
-   by `interp_guard.R check` / `test-interp-golden.R` (nightly tier) with
+   by `interp_guard.R check` / `test-interp-golden.R` (full tier) with
    `compare_inputs()`. They pin what interpolation HANDS the optimizer, so a
    representation change that still solves to the same objective fails there
    instead of slipping through the solved goldens.
@@ -159,7 +159,7 @@ TOPIA kits):
 - **deterministic inputs** (no RNG; TOPIA ships curated profiles);
 - documented **size and runtime**, and a **tier assignment** that matches it
   (tm_* seconds → fast; TOPIA R1/R3 × `topia_s4h24` seconds → fast;
-  R7/R11 and `topia_m12h24` → nightly);
+  R7/R11 and `topia_m12h24` → full);
 - **goldens captured** via a `make_goldens.R` suite entry (which enforces the
   invariants) and a test comparing with `expect_matches_golden()`;
 - **cross-solver cells declared or explicitly excluded** — an exclusion is an
@@ -182,7 +182,7 @@ the objective, the accounting invariants, and constraint-pinned quantities
 ## 6. Running the tiers
 
 Tier resolution lives in `tests/testthat/helper-solvers.R`
-(`ENERGYRT_TEST_TIER`, `check < fast < cross < nightly`; unset → `check` under
+(`ENERGYRT_TEST_TIER`, `check < fast < cross < full`; unset → `check` under
 R CMD check, `fast` otherwise — the old `skip_on_cran()` silent-skip trap is
 gone, a bare `Rscript` run now solves whenever glpsol is present).
 
@@ -191,7 +191,7 @@ devtools::check()                          # tier check (solver-free, auto-detec
 devtools::test()                           # tier fast (glpsol)
 Rscript tools/test/run_fast.R              # tier fast, summary + exit code
 Rscript tools/test/run_cross.R             # tier cross, availability table first
-Rscript tools/test/run_nightly.R           # tier nightly: full suite + interp
+Rscript tools/test/run_full.R              # tier full: whole suite + interp
                                            #   goldens; report in tmp/test-reports/
 Rscript tools/coverage/build_matrix.R --check   # tag validation
 Rscript tools/test/make_goldens.R --suite=tm    # deliberate rebaseline
@@ -203,9 +203,9 @@ cross; the GAMS guard also skips an unlicensed install — no `gamslice.txt`
 next to the executable) and `skip_if_no_neos()` (additionally requires
 `ENERGYRT_TEST_NEOS=true`).
 
-The nightly tier adds: the interp goldens (`test-interp-golden.R`), the
+The full tier adds: the interp goldens (`test-interp-golden.R`), the
 TOPIA R7/R11 goldens plus an R3 julia/HiGHS parity check
-(`test-nightly-deep.R`), and external real-world models — opt-in via
+(`test-full-deep.R`), and external real-world models — opt-in via
 `ENERGYRT_EXT_MODELS=<dir>` (the useR2026 course models), each loaded
 through the serialization upgrade path, solved on julia/HiGHS, and gated by
 `verify_solution()`; the full-year copperplate and the 41-node European

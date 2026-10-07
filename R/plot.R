@@ -483,8 +483,9 @@ plot_commodity <- function(object, ..., palette = "D") {
 #' no emission factors produce a message and return `NULL` invisibly.
 #'
 #' @param object A `commodity` object.
-#' @param ... Optional further `commodity` objects to include in the comparison.
-#' @param palette Viridis color option for the emission-species fill scale.
+#' @param ... Optional further `commodity` objects to include in the
+#'   comparison, and arguments passed on to `plot_commodity()` -- notably
+#'   `palette`, the viridis colour option for the emission-species fill scale.
 #'
 #' @return A `ggplot` object, or `NULL` (invisibly) if there is nothing to plot.
 #' @rdname autoplot.commodity
@@ -692,6 +693,8 @@ plot_process_year <- function(object, year = NULL, interpolate = TRUE,
 #' @param interpolate Logical, default `TRUE`: draw the interpolated series
 #'   (lines) alongside the given data (points), using each parameter's own
 #'   interpolation rule via [getData()]. `FALSE` shows the given data only.
+#' @param units named list of base units passed to the unit resolver for the
+#'   axis label; `NULL` (default) resolves them from the object.
 #' @param show_defaults Logical, default `FALSE`. When `TRUE`, parameters of
 #'   the plotted slot(s) that are mapped to the model but NOT set in the
 #'   object are drawn as dotted lines at their default values (e.g. a supply

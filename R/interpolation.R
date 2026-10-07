@@ -9,6 +9,10 @@
 #' [solve_scenario()].
 #'
 #' @param mod a [model] object, or a [scenario] (its `@model` is re-interpolated).
+#' @param object as `mod`, for the method dispatched on a scenario.
+#' @param kvl logical or `NULL`; build the Kirchhoff voltage-law cycle
+#'   constraints for meshed trade networks. `NULL` (default) engages them when
+#'   the network has cycles and reactances to use.
 #' @param name character scenario name. If `NULL`, a default `scen_<model>` is
 #'   used (with a warning).
 #' @param ... additional energyRt objects folded into the model BEFORE the
@@ -40,12 +44,12 @@
 #'   Pyomo/HiGHS. A model whose weather genuinely differs by year simply does
 #'   not fold.
 #' @param sparse logical; the storage knob, and the user-facing switch between
-#'   [drop_default_values()] and [expand_default_values()]. `TRUE` drops
+#'   `drop_default_values()` and `expand_default_values()`. `TRUE` drops
 #'   `value == defVal` rows; `FALSE` materialises the default over each
 #'   parameter's full domain (the form GAMS needs) and then trims rows no map
 #'   indexes. Folding applies to either.
 #' @param prune logical; apply the per-parameter `misc$prune$value` filter via
-#'   [drop_default_values()] - rows whose interpolated value equals that
+#'   `drop_default_values()` - rows whose interpolated value equals that
 #'   parameter's flagged value are dropped (lossless: an absent tuple reads as
 #'   the default, which equals the dropped value). One parameter is flagged
 #'   today (`pWeather`). Superseded by `sparse`'s `value =` form; retained for
@@ -1512,7 +1516,7 @@ collect_object_names <- function(
 #' in the scenario's model data
 #' @param ... additional arguments passed to `func`.
 #' @param classes character vector of class names to apply the function to
-#' @param return_list logical, if TRUE, return a list of results, otherwise
+#' @param as_list logical, if TRUE, return a list of results, otherwise
 #' return a vector of results
 #'
 #' @returns a list or vector of `func` results, one per matching object.
@@ -4154,6 +4158,8 @@ get_process_years <- function(scen, process = NULL, classes = NULL) {
 #' @param scen scenario object
 #' @param pname character, parameter name, as it appears in the model
 #' @param sname character, short name of the parameter, as it appears in classes
+#' @param oname character, object name; accepted for symmetry with the other
+#'   selectors and currently unused.
 #' @param class character, class of the parameter to search for
 #' @param bound character, name of the bound to retrieve, `lo` or `up`.
 #' If `NULL`, the function will return the default value for both upper and

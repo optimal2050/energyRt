@@ -20,7 +20,7 @@ objects, or a \code{repository} (when \code{as_repository = TRUE}).
 }
 \description{
 Inverse of \code{\link[=write_technology_xlsx]{write_technology_xlsx()}}. Reads the block-structured worksheets
-produced by that function and rebuilds \link{technology} objects, coercing each
+produced by that function and rebuilds \link{class-technology} objects, coercing each
 mini-table's columns back to the types declared by the class.
 }
 \seealso{

@@ -2,6 +2,8 @@
 
 Export object represent commodity export to the Rest of the World (RoW).
 
+The method replaces slots of the export object with new values.
+
 ## Usage
 
 ``` r
@@ -17,6 +19,9 @@ newExport(
   misc = list(),
   ...
 )
+
+# S4 method for class 'export'
+update(object, ...)
 ```
 
 ## Arguments
@@ -169,6 +174,14 @@ newExport(
 - misc:
 
   list. Additional information.
+
+- ...:
+
+  arguments-slots (see `newExport`) with updated values to replace.
+
+- object:
+
+  object of class export
 
 ## Value
 

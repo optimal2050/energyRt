@@ -334,6 +334,11 @@ getData(
   if TRUE, variables will be included in the search and returned if
   found.
 
+- sets:
+
+  logical, include set-type parameters in the result (by default only
+  value-bearing parameters are returned).
+
 - maps:
 
   if TRUE, map-type parameters (membership mappings, no `value` column)
@@ -370,6 +375,11 @@ getData(
 
   logical, should rows containing zero values be filtered out.
 
+- add_weights, add_period_length, apply_weights, apply_period_length,
+  as_data_table:
+
+  accepted and currently ignored.
+
 - asTibble:
 
   logical, if the data.frames should be converted into tibbles.
@@ -383,10 +393,20 @@ getData(
   logical, should `year` be converted to factors? Set 'year' is integer
   by default.
 
+- drop_duplicated_scenarios:
+
+  logical, when several scenarios carry the same name, keep only the
+  first.
+
 - scenNameInList:
 
   logical, should the name of the scenarios be used if not provided in
   the list with several scenarios?
+
+- unfold:
+
+  logical, expand a stored parameter back over its full domain before
+  returning it.
 
 - variants:
 
@@ -416,6 +436,11 @@ getData(
 - verbose:
 
   logical, print progress and diagnostic messages.
+
+- obj:
+
+  the object whose data is returned, for the per-class methods
+  (`technology`, `commodity`, `storage`, ...).
 
 - interpolate:
 

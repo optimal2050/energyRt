@@ -181,7 +181,7 @@ newTrade(
   Charged where the flow ORIGINATES (`src`) and added to total system
   cost, exactly as `technology@varom` is. Use it for wheeling fees,
   transit taxes or any real charge per unit shipped. Becomes
-  `pTradeIrCost`.
+  `pTradeIrVarom`.
 
   `markup` – a border price or bilateral charge: a TRANSFER. The
   importing region pays it and the exporting region receives it, so it
@@ -441,6 +441,10 @@ newTrade(
 - misc:
 
   list. Additional information.
+
+- ...:
+
+  further named slots of the class, set on the new object.
 
 ## Value
 

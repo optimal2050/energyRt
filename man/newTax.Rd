@@ -37,6 +37,8 @@ newTax(
 }}
 
 \item{misc}{list. Additional information.}
+
+\item{...}{further named slots of the class, set on the new object.}
 }
 \value{
 An object of class \code{tax}

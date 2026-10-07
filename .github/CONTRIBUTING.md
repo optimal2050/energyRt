@@ -31,7 +31,7 @@ devtools::check()
 Two things about the test suite that catch everyone once:
 
 - **Tiers, not `skip_on_cran()`.** Solver tests are gated by
-  `ENERGYRT_TEST_TIER` (`check < fast < cross < nightly`; unset resolves to
+  `ENERGYRT_TEST_TIER` (`check < fast < cross < full`; unset resolves to
   `fast` locally and `check` under `R CMD check`), so a plain run solves
   whenever `glpsol` is present. For a standalone `testthat::test_file()`,
   `pkgload::load_all(".")` first. See `tests/README.md` and `tests/TESTING.md`.

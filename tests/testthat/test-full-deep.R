@@ -1,5 +1,5 @@
 # =========================================================================== #
-# Nightly deep regressions (tier "nightly"; tools/test/run_nightly.R):
+# Full deep regressions (tier "full"; tools/test/run_full.R):
 #   - the larger TOPIA layouts (R7 / R11) against their goldens,
 #   - TOPIA R3 cross-solver parity on julia/HiGHS,
 #   - external real-world models via ENERGYRT_EXT_MODELS (opt-in): solved on
@@ -15,29 +15,29 @@
 # cost, so their frozen objectives pin it on a second backend.
 # @covers pTradeIrVarom depth=X backends=julia
 test_that("TOPIA R7/R11 reproduce their golden tracked values (julia/HiGHS)", {
-  skip_if_tier_below("nightly")
+  skip_if_tier_below("full")
   # mid-size models reference julia/HiGHS (the backend-choice convention;
   # SUITE_SOLVERS in make_goldens.R) -- same-solver goldens, julia both sides
   skip_if_no_julia_highs()
-  g <- skip_if_no_golden("topia_nightly")
-  entries <- ut_nightly_entries()
+  g <- skip_if_no_golden("topia_full")
+  entries <- ut_full_entries()
   for (nm in names(g)) {
-    skip_if(is.null(entries[[nm]]), paste0(nm, " not in ut_nightly_entries()"))
-    scen <- ut_solve(entries[[nm]], paste0("nightly_", nm),
+    skip_if(is.null(entries[[nm]]), paste0(nm, " not in ut_full_entries()"))
+    scen <- ut_solve(entries[[nm]], paste0("full_", nm),
                      solver = "julia_highs")
     vs <- verify_solution(scen)
     expect_true(vs$ok, label = paste0(nm, " invariants"))
-    expect_matches_golden(scen, "topia_nightly", nm, kind = "same_solver")
+    expect_matches_golden(scen, "topia_full", nm, kind = "same_solver")
   }
 })
 
 test_that("TOPIA R3 solves to the golden objective on julia/HiGHS", {
-  skip_if_tier_below("nightly")
+  skip_if_tier_below("full")
   skip_if_no_julia_highs()
   g <- skip_if_no_golden("topia", "base_R3")
   mod <- ut_build(layout = "R3", calendar = "s4_h24")
   scen <- suppressMessages(suppressWarnings(
-    solve_model(mod, name = "nightly_R3_julia",
+    solve_model(mod, name = "full_R3_julia",
                 solver = solver_options$julia_highs,
                 tmp.del = TRUE, wait = TRUE)))
   vs <- verify_solution(scen)
@@ -66,9 +66,9 @@ test_that("TOPIA R3 solves to the golden objective on julia/HiGHS", {
 
 # Load an externally-serialized model/scenario, solve on julia/HiGHS, verify.
 # A readRDS/validity failure on these old objects is the forward-compat
-# signal: skip with the error text so the nightly report surfaces it.
+# signal: skip with the error text so the full report surfaces it.
 .ext_model_check <- function(file) {
-  skip_if_tier_below("nightly")
+  skip_if_tier_below("full")
   skip_if_no_julia_highs()
   p <- .ext_model_path(file)
   obj <- tryCatch(suppressWarnings(readRDS(p)), error = function(e) e)

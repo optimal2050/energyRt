@@ -28,6 +28,7 @@ getData <- function(scen, ...) UseMethod("getData")
 #' @param dfNames logical, when TRUE returns names of the data frame column.
 #' @param asMatrix return results as a matrix (not implemented).
 #' @param setsNames_ regular expression pattern for names of sets which will be included in search.
+#' @param add_weights accepted and currently ignored.
 #' @param allSets logical, if TRUE _and_ operator should be used in search the sets, _or_ will be used if FALSE.
 #' @param ignore.case grepl parameter for matching names.
 #'
@@ -179,6 +180,16 @@ findData <- function(scen,
 #' @param yearsAsFactors logical, should `year` be converted to factors? Set 'year' is integer by default.
 #' @param scenNameInList logical, should the name of the scenarios be used if not provided in the list with several scenarios?
 #' @param verbose logical, print progress and diagnostic messages.
+#' @param sets logical, include set-type parameters in the result (by default
+#'   only value-bearing parameters are returned).
+#' @param obj the object whose data is returned, for the per-class methods
+#'   (`technology`, `commodity`, `storage`, ...).
+#' @param unfold logical, expand a stored parameter back over its full domain
+#'   before returning it.
+#' @param add_weights,add_period_length,apply_weights,apply_period_length,as_data_table
+#'   accepted and currently ignored.
+#' @param drop_duplicated_scenarios logical, when several scenarios carry the
+#'   same name, keep only the first.
 #'
 #' @aliases getData get_data
 #'
@@ -1568,6 +1579,7 @@ getObjects <- function(obj, class = c(), regex = NULL, ...) {
 #'   satisfy a `region` filter (default `TRUE`).
 #' @param drop logical; if `TRUE` and exactly one object matches, return that
 #'   object itself instead of a one-element list (default `FALSE`).
+#' @param verbose logical; report progress (the `en_registry` method).
 #'
 #' @return A named list of model objects keyed by `@name` (empty list if none
 #'   match); or a single object when `drop = TRUE` and exactly one matches.

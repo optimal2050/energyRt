@@ -264,7 +264,7 @@ setMethod("update", signature(object = "commodity"), function(object, ...) {
 #'
 #' @description
 #' The registry of physical properties understood by `commodity@property` and,
-#' in turn, by [convert()]. `quantity` declares which dimension pair a property
+#' in turn, by `convert()`. `quantity` declares which dimension pair a property
 #' relates, which is what lets a conversion cross between measures of the same
 #' commodity -- `lhv` in "GJ/t" links Energy and Mass, `density` in "t/m3" links
 #' Mass and Volume.

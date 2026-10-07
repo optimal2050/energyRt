@@ -64,6 +64,7 @@ setClass("tax",
 #' @param tax `r get_slot_doc("tax", "tax")`
 #' @param misc `r get_slot_doc("tax", "misc")`
 #'
+#' @param ... further named slots of the class, set on the new object.
 #' @return An object of class `tax`
 #' @family class constraint policy
 #' @rdname newTax

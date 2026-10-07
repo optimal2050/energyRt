@@ -19,6 +19,10 @@
 #'   left as placeholder tokens otherwise. Default `FALSE` (populated
 #'   parameters only).
 #' @param ...    Reserved for future use.
+#' @param units named list of base units (`capacity`, `activity`, `use`,
+#'   `costs`) for the classes that carry no `@units` slot. `NULL` (default)
+#'   resolves what it can from the object and leaves the rest as placeholder
+#'   tokens.
 #'
 #' @return A data.frame with columns `slot`, `parameter`, `comm`, `description`,
 #'   and `unit`.

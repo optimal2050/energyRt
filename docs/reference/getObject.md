@@ -144,6 +144,10 @@ getObject(
   or `"ALL"` returns one entry per recorded run, keyed
   `scenario/<name>:<variant>/<label>`.
 
+- verbose:
+
+  logical; report progress (the `en_registry` method).
+
 ## Value
 
 A named list of model objects keyed by `@name` (empty list if none

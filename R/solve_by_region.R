@@ -80,6 +80,9 @@
 #'   region does not lose the rest.
 #' @param keep_scenarios logical, keep each region's scenario object.
 #' @param verbose logical.
+#' @param overwrite logical; `FALSE` (default) refuses to run when a
+#'   variant of the same label already exists on disk with a different type
+#'   or different parameters. `TRUE` skips that guard and writes into it.
 #'
 #' @return a `by_region` object: `runs` (a tibble of what ran, with
 #'   `boundary` counting the boundary objects each region faces -- a k-step

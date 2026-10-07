@@ -62,8 +62,9 @@ setMethod("initialize", "costs", function(.Object, ...) {
 #'
 #' @param variable `get_slot_doc("costs", "variable")`
 #' @param desc `get_slot_doc("costs", "desc")`
-#' @param mult `get_slot_doc("costs", "mult")`
-#' @param subset `get_slot_doc("costs", "subset")`
+#' @param mult `r get_slot_doc("costs", "mult")`
+#' @param subset `r get_slot_doc("costs", "subset")`
+#' @param misc `r get_slot_doc("costs", "misc")`
 #'
 #' @return costs object with given specifications.
 #' @family class constraint policy

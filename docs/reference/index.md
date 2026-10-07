@@ -12,6 +12,7 @@ constructor below and carries its data in slots.
 - [`class-config`](https://energyRt.org/reference/class-config.md) : An
   S4 class to represent default model configuration.
 - [`class-constraint`](https://energyRt.org/reference/class-constraint.md)
+  [`class-summand`](https://energyRt.org/reference/class-constraint.md)
   [`summand-class`](https://energyRt.org/reference/class-constraint.md)
   **\[experimental\]** : An S4 class to represent a custom constraint.
 - [`class-costs`](https://energyRt.org/reference/class-costs.md)
@@ -41,8 +42,6 @@ constructor below and carries its data in slots.
   class to represent scenario, an interpolated and/or solved model.
 - [`class-settings`](https://energyRt.org/reference/class-settings.md) :
   An S4 class to represent scenario settings
-- [`.upgrade_summand()`](https://energyRt.org/reference/class-summand.md)
-  : An S4 class to represent a summand in a constraint.
 - [`class-technology`](https://energyRt.org/reference/class-technology.md)
   : An S4 class to represent technology
 - [`class-trade`](https://energyRt.org/reference/class-trade.md) : An S4
@@ -91,10 +90,12 @@ the model that binds them to a calendar, regions and a horizon.
   **\[experimental\]** : Create a DC transmission link
 - [`newImport()`](https://energyRt.org/reference/newImport.md) : Create
   new export object
-- [`newExport()`](https://energyRt.org/reference/newExport.md) : Create
-  new export object
-- [`newWeather()`](https://energyRt.org/reference/newWeather.md) :
-  Create new weather object
+- [`newExport()`](https://energyRt.org/reference/newExport.md)
+  [`update(`*`<export>`*`)`](https://energyRt.org/reference/newExport.md)
+  : Create new export object
+- [`newWeather()`](https://energyRt.org/reference/newWeather.md)
+  [`update(`*`<weather>`*`)`](https://energyRt.org/reference/newWeather.md)
+  : Create new weather object
 - [`newConstraint()`](https://energyRt.org/reference/newConstraint.md)
   [`newConstraintS()`](https://energyRt.org/reference/newConstraint.md)
   : Create constraint object to add custom constraints to the model.
@@ -122,9 +123,6 @@ the model that binds them to a calendar, regions and a horizon.
   [`update(`*`<trade>`*`)`](https://energyRt.org/reference/update.md)
   [`update(`*`<import>`*`)`](https://energyRt.org/reference/update.md) :
   Update supply object
-- [`update(`*`<export>`*`)`](https://energyRt.org/reference/newTechnology.md)
-  [`update(`*`<weather>`*`)`](https://energyRt.org/reference/newTechnology.md)
-  : Update export object
 - [`asSupplyCurve()`](https://energyRt.org/reference/supply-curve.md)
   [`asImportCurve()`](https://energyRt.org/reference/supply-curve.md)
   [`asExportCurve()`](https://energyRt.org/reference/supply-curve.md)
@@ -152,7 +150,8 @@ your own.
   calendars
 - [`horizons`](https://energyRt.org/reference/horizons.md) : Example
   planning horizons
-- [`tsl_sets`](https://energyRt.org/reference/timeslices.md) : Sets of
+- [`tsl_sets`](https://energyRt.org/reference/timeslices.md)
+  [`tsl_levels`](https://energyRt.org/reference/timeslices.md) : Sets of
   the common formats with structure
 - [`make_timetable()`](https://energyRt.org/reference/calendar.md) :
   Create timetable of time-timeslices from given structure as a list
@@ -535,6 +534,8 @@ Plots and diagrams.
   Heatmap of timeslice-indexed values over a calendar
 - [`plot_map()`](https://energyRt.org/reference/plot_map.md) : Map model
   results by region
+- [`plot_trade_network()`](https://energyRt.org/reference/plot_trade_network.md)
+  : Plot trade as a network: capacities and flows between regions
 - [`object_image()`](https://energyRt.org/reference/object_image.md) :
   Image or icon attached to a model object
 - [`theme_energyRt()`](https://energyRt.org/reference/theme_energyRt.md)
@@ -724,6 +725,13 @@ Data bundled with the package for the examples and articles.
   Synthetic input shapes on a calendar (deterministic)
 - [`topia_profiles()`](https://energyRt.org/reference/topia_profiles.md)
   : TOPIA input profiles (deterministic)
+- [`model_structure`](https://energyRt.org/reference/model_structure.md)
+  : Catalogue of the model vocabulary
+- [`prefix`](https://energyRt.org/reference/prefix.md)
+  [`prefix_longname`](https://energyRt.org/reference/prefix.md) : Unit
+  prefix multipliers
+- [`solver_options`](https://energyRt.org/reference/solver_options.md) :
+  Solver presets
 - [`vre_cf`](https://energyRt.org/reference/vre_cf.md) : Hourly wind and
   solar capacity factors, one site, one year
 - [`vre_storage_duration`](https://energyRt.org/reference/vre_storage_duration.md)

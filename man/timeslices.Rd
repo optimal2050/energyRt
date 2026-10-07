@@ -3,14 +3,28 @@
 \docType{data}
 \name{tsl_sets}
 \alias{tsl_sets}
+\alias{tsl_levels}
 \title{Sets of the common formats with structure}
 \format{
 An object of class \code{list} of length 1.
+
+A named list of 7 formats -- \code{d364}, \code{d365}, \code{d366}, \code{d364_h24},
+\code{d365_h24}, \code{d366_h24}, \code{m12_h24} -- each a list of character vectors, one
+per level.
 }
 \usage{
 tsl_sets
+
+tsl_levels
 }
 \description{
-Sets of the common formats with structure
+For each shipped timeslice format, the labels of every level it is built
+from, outermost first. \code{d365_h24} for example holds the 365 day labels
+(\code{d001}..\code{d365}) and the 24 hour labels (\code{h00}..\code{h23}); the timeslice names
+themselves are their cross-product.
+}
+\examples{
+names(tsl_levels)
+lengths(tsl_levels$d365_h24)
 }
 \keyword{datasets}

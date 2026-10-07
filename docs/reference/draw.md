@@ -50,7 +50,9 @@ draw(object, ...)
 
 - ...:
 
-  Additional arguments passed to the specific method.
+  Additional arguments passed to the specific method. The `trade` method
+  takes `region` (alias `node`), the node to draw the trade process for,
+  defaulting to the first node in the trade object.
 
 - vintage:
 
@@ -80,16 +82,15 @@ draw(object, ...)
   with the selection filled, `"deck"` slivers at the box edge suggesting
   a stack of cards, or `"none"`.
 
+- box_width:
+
+  width of the process box, in plot units.
+
 - max_facets:
 
   refuse to lay out more than this many panels for `vintage = "all"` /
   `cluster = "all"`. A full 11 x 4 grid is unreadable, and silently
   drawing it is worse than saying so.
-
-- region:
-
-  A node to draw the trade process for. `node` is an alias for `region`.
-  Default is the first node in the trade object.
 
 ## Value
 

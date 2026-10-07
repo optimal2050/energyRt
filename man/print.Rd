@@ -3,11 +3,34 @@
 \name{print,modelData-method}
 \alias{print,modelData-method}
 \alias{print}
+\alias{print.demand}
+\alias{print.model}
+\alias{print.scenario}
+\alias{print.supply}
+\alias{print.technology}
+\alias{print.config}
 \title{Print methods for the energyRt classes}
 \usage{
 \S4method{print}{modelData}(x, ...)
 
 print(x, ...)
+
+\method{print}{demand}(x, ...)
+
+\method{print}{model}(x, ...)
+
+\method{print}{scenario}(x, ...)
+
+\method{print}{supply}(x, ...)
+
+\method{print}{technology}(x, ...)
+
+\method{print}{config}(x, ...)
+}
+\arguments{
+\item{x}{the object to print.}
+
+\item{...}{passed to the dispatched print method.}
 }
 \description{
 Print methods for the energyRt classes

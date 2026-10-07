@@ -16,7 +16,7 @@ in the scenario's model data}
 
 \item{classes}{character vector of class names to apply the function to}
 
-\item{return_list}{logical, if TRUE, return a list of results, otherwise
+\item{as_list}{logical, if TRUE, return a list of results, otherwise
 return a vector of results}
 }
 \value{

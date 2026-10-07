@@ -852,13 +852,6 @@ recipe_calendar <- function(scen, names, fmp) scen
 # .build_weather_map, .value_map_builders) were superseded by the per-mapping
 # functions in R/mapping-builders.R and ARCHIVED to drafts/legacy-mapping/value.R.
 
-#' Build value mappings (recipe 5)
-#'
-#' @param scen scenario object.
-#' @param names character vector of value mapping names to build.
-#' @param fmp function mapping a parameter name to its on-disk path.
-#' @returns updated scenario object.
-#' @keywords internal
 # Value maps whose derivation depends on filter-recipe maps and are therefore
 # emitted as side-effects of their filter `map_*` siblings in R/mapping-filter.R
 # (recipe_value runs before filter, so the source maps are absent there). Listed

@@ -212,6 +212,9 @@ guided_windows <- function(horizon, direction = c("backward", "forward"),
 #' @param keep_scenarios logical, keep each stage's scenario object in the
 #'   result.
 #' @param verbose logical.
+#' @param overwrite logical; `FALSE` (default) refuses to run when a
+#'   variant of the same label already exists on disk with a different type
+#'   or different parameters. `TRUE` skips that guard and writes into it.
 #'
 #' @return a `guided` object: `stages` (a tibble of what ran), `scenarios`,
 #'   `targets`, `ledger`, and `final` — the full-horizon solved scenario.

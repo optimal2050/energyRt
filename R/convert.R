@@ -58,6 +58,27 @@ setMethod("convert", c("numeric"), convert.numeric)
 #' Basic units conversion database for `convert` methods
 "convert_data"
 
+#' Unit prefix multipliers
+#'
+#' The multiplier each unit prefix stands for, used by `convert()` to strip a
+#' prefix off a unit string before looking the unit itself up. `prefix` is keyed
+#' by prefix SYMBOL and `prefix_longname` by the written-out name; the two carry
+#' identical values and differ only in their names.
+#'
+#' Note `m` is the symbol for *micro* (1e-06) here, not milli.
+#'
+#' @format A named numeric array of 11 multipliers, from `p`/`pico` (1e-12) to
+#'   `Z`/`zetta` (1e+21).
+#' @name prefix
+#' @rdname prefix
+#' @examples
+#' prefix[["k"]]
+#' prefix_longname[["kilo"]]
+"prefix"
+
+#' @rdname prefix
+"prefix_longname"
+
 setGeneric("add_to_convert", function(type, unit, coef, ...) {
                     # alias,
                     # SI_prefixes, database, update,
@@ -73,9 +94,12 @@ setGeneric("add_to_convert", function(type, unit, coef, ...) {
 #' @param SI_prefixes logical, can be used with `SI` prefixes, FALSE by default.
 #' @param alias character vector, alternative name(s) for the same unit.
 #' @param database character name of a database with units (`base` by default, other options are not implemented yet).
+#' @param update logical; when the unit already exists with different values,
+#'   `TRUE` (default) replaces them and `FALSE` raises an error instead.
 #'
 #' @return updated `convert_data` in the `.GlobalEnv`, the values will not update the package data.
 #'
+#' @aliases convert
 #' @rdname convert
 #' @export
 #'

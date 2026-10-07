@@ -101,6 +101,7 @@ setMethod("initialize", "calendar", function(.Object, ...) {
 #'
 #' @param struct named list of timeframes with sets of timeslices and optional shares of every timeslice or frame in the nest
 #' @param warn logical, if TRUE, warning will be issued if `ANNUAL` level does not exists in the given structure. The level will be auto-created to complete the time-structure.
+#' @param year_fraction `r get_slot_doc("calendar", "year_fraction")`
 #'
 #' @return an data.frame with the specified structure.
 #' @order 2

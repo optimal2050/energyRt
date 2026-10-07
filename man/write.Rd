@@ -19,6 +19,8 @@ write_sc(x, solver.dir = NULL, solver = NULL, ...)
 \item{solver}{list of character with solver specification.}
 
 \item{...}{additional solver parameters}
+
+\item{x}{scenario object, as \code{scen} (the \code{write_sc()} spelling).}
 }
 \description{
 Write scenario object as a Python, Julia, GAMS, or MathProg script with data files to a directory

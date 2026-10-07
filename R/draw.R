@@ -7,7 +7,9 @@
 #'
 #' @param object The object to draw: `technology`, `storage`, `trade`, `demand`, `supply`,
 #' `export`, or `import`.
-#' @param ... Additional arguments passed to the specific method.
+#' @param ... Additional arguments passed to the specific method. The `trade`
+#'   method takes `region` (alias `node`), the node to draw the trade process
+#'   for, defaulting to the first node in the trade object.
 #'
 #' @family draw
 #' @rdname draw
@@ -755,6 +757,7 @@ ghost_options <- function(alpha = 0.45, alpha_min = 0.12, scale = 0.72,
 #' @param max_facets refuse to lay out more than this many panels for
 #'   `vintage = "all"` / `cluster = "all"`. A full 11 x 4 grid is unreadable, and
 #'   silently drawing it is worse than saying so.
+#' @param box_width width of the process box, in plot units.
 draw.technology <- function(object, ..., vintage = NULL, cluster = NULL,
                             ghost = ghost_options(),
                             cluster_style = c("rail", "deck", "none"),
@@ -2169,10 +2172,6 @@ draw.trade <- function(object, ...) {
     box_height = .4 * 1.5
   )
 }
-#' @param region A node to draw the trade process for.
-#' `node` is an alias for `region`.
-#' Default is the first node in the trade object.
-#'
 #' @export
 #'
 #' @exportMethod draw

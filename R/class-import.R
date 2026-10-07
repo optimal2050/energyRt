@@ -134,6 +134,7 @@ setMethod("initialize", "import", function(.Object, ...) {
 #' @param region `r get_slot_doc("import", "region")`
 #' @param misc `r get_slot_doc("import", "misc")`
 #'
+#' @param ... further named slots of the class, set on the new object.
 #' @return import object with given specifications.
 #' @rdname newImport
 #' @export

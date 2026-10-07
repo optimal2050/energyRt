@@ -118,6 +118,7 @@ setMethod("initialize", "supply", function(.Object, ...) {
 #' @param supply `r get_slot_doc("supply", "supply")`
 #' @param region `r get_slot_doc("supply", "region")`
 #' @param misc `r get_slot_doc("supply", "misc")`
+#' @param ... further named slots of the class, set on the new object.
 #'
 #' @rdname newSupply
 #' @order 1
@@ -177,6 +178,7 @@ newSupply <- function(
 }
 
 #' Update supply object
+#' @aliases update
 #' @rdname update
 #' @family supply update
 #' @export

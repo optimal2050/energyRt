@@ -94,6 +94,12 @@ spans.}
 
 \item{p}{a ggplot object.}
 
+\item{base}{numeric, figure height in inches for a single panel row.}
+
+\item{per_row}{numeric, inches added for every further panel row.}
+
+\item{max}{numeric, cap on the returned height in inches.}
+
 \item{w_in, h_in}{numeric, plot size in inches.}
 
 \item{dpi}{integer, raster resolution.}

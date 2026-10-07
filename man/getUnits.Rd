@@ -38,6 +38,11 @@ formula are reported even when they carry no data yet; commodity-linked
 units are then resolved from the declared ports when unambiguous and
 left as placeholder tokens otherwise. Default \code{FALSE} (populated
 parameters only).}
+
+\item{units}{named list of base units (\code{capacity}, \code{activity}, \code{use},
+\code{costs}) for the classes that carry no \verb{@units} slot. \code{NULL} (default)
+resolves what it can from the object and leaves the rest as placeholder
+tokens.}
 }
 \value{
 A data.frame with columns \code{slot}, \code{parameter}, \code{comm}, \code{description},

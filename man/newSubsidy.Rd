@@ -38,6 +38,8 @@ newSub(
 }}
 
 \item{misc}{list. Any additional information or data to store in the subsidy object.}
+
+\item{...}{further named slots of the class, set on the new object.}
 }
 \value{
 An object of class \code{subsidy}

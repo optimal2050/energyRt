@@ -64,9 +64,10 @@ as `@output` and `@storage` are named above, overrides the shorthand for
 that role only.
 
 `unit` is descriptive: it is the unit of the **commodity** on that side,
-carried for reporting and `convert()`, and never reaches the solver.
-Capacity units are not declared — they follow from `cap2act`, which is
-why the storing side has none.
+carried for reporting and
+[`convert()`](https://energyRt.org/reference/convert.md), and never
+reaches the solver. Capacity units are not declared — they follow from
+`cap2act`, which is why the storing side has none.
 
 ## The three commodities need not be the same
 
@@ -271,16 +272,16 @@ mod_day <- newModel(
 
 scen_year <- solve_model(mod_year, name = "fy_year")
 #> Solver directory:  scenarios/fy_year-d365_h24_1dpm/runs/glpk 
-#> Writing files: 0.31s
+#> Writing files: 0.45s
 #> Starting  GLPK 
-#> 0.14s
-#> Reading solution: 0.11s
+#> 0.16s
+#> Reading solution: 0.2s
 scen_day <- solve_model(mod_day, name = "fy_day")
 #> Solver directory:  scenarios/fy_day-d365_h24_1dpm/runs/glpk 
-#> Writing files: 0.33s
+#> Writing files: 0.46s
 #> Starting  GLPK 
-#> 0.1s
-#> Reading solution: 0.11s
+#> 0.09s
+#> Reading solution: 0.21s
 
 getData(scen_year, "vObjective", merge = TRUE)$value
 #> [1] 9962.545
@@ -899,10 +900,10 @@ sol_mod <- newModel(
 
 scen <- solve_model(sol_mod, name = "solar_battery")
 #> Solver directory:  scenarios/solar_battery-d365_h24_1dpm/runs/glpk 
-#> Writing files: 0.25s
+#> Writing files: 0.59s
 #> Starting  GLPK 
-#> 0.12s
-#> Reading solution: 0.13s
+#> 0.13s
+#> Reading solution: 0.2s
 ```
 
 ``` r

@@ -62,7 +62,13 @@ embedded model.}
 
 \item{parent}{character, for run rows: the scenario name.}
 
+\item{variant}{character, for run rows: the variant the run belongs to.}
+
 \item{memo}{character, optional free-form note.}
+
+\item{obj}{the object a registry row is derived from.}
+
+\item{...}{further columns to set on the registry row.}
 
 \item{root}{character, project root to rescan (the directory holding the
 \verb{scenarios/} and \verb{models/} stores).}

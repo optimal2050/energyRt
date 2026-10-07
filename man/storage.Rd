@@ -348,6 +348,8 @@ so the object never carries two answers.}
 \item{optimizeRetirement}{logical. Incidates if the retirement of the storage should be optimized. Also requires the same parameter in the \code{model} or \code{scenario} class to be set to TRUE to be effective.}
 
 \item{misc}{list. List of additional parameters that are not used in the model but can be used for reference or user-defined functions. For example, links to the source of the storage data, or other metadata.}
+
+\item{...}{further named slots of the class, set on the new object.}
 }
 \value{
 storage object

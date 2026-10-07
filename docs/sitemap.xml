@@ -25,6 +25,7 @@
 <url><loc>https://energyRt.org/articles/scenario-management.html</loc></url>
 <url><loc>https://energyRt.org/articles/space-resolution.html</loc></url>
 <url><loc>https://energyRt.org/articles/storage.html</loc></url>
+<url><loc>https://energyRt.org/articles/testing.html</loc></url>
 <url><loc>https://energyRt.org/articles/time-resolution.html</loc></url>
 <url><loc>https://energyRt.org/articles/topia-build.html</loc></url>
 <url><loc>https://energyRt.org/articles/topia-use.html</loc></url>
@@ -92,7 +93,6 @@
 <url><loc>https://energyRt.org/reference/class-settings.html</loc></url>
 <url><loc>https://energyRt.org/reference/class-storage.html</loc></url>
 <url><loc>https://energyRt.org/reference/class-subsidy.html</loc></url>
-<url><loc>https://energyRt.org/reference/class-summand.html</loc></url>
 <url><loc>https://energyRt.org/reference/class-tax.html</loc></url>
 <url><loc>https://energyRt.org/reference/class-technology.html</loc></url>
 <url><loc>https://energyRt.org/reference/class-trade.html</loc></url>
@@ -263,6 +263,7 @@
 <url><loc>https://energyRt.org/reference/model_hash.html</loc></url>
 <url><loc>https://energyRt.org/reference/model_size.html</loc></url>
 <url><loc>https://energyRt.org/reference/model_store.html</loc></url>
+<url><loc>https://energyRt.org/reference/model_structure.html</loc></url>
 <url><loc>https://energyRt.org/reference/modInp-class.html</loc></url>
 <url><loc>https://energyRt.org/reference/modInp.html</loc></url>
 <url><loc>https://energyRt.org/reference/modOut-class.html</loc></url>
@@ -330,8 +331,10 @@
 <url><loc>https://energyRt.org/reference/plot_process_windows.html</loc></url>
 <url><loc>https://energyRt.org/reference/plot_share_frontier.html</loc></url>
 <url><loc>https://energyRt.org/reference/plot_trade_map.html</loc></url>
+<url><loc>https://energyRt.org/reference/plot_trade_network.html</loc></url>
 <url><loc>https://energyRt.org/reference/plot_weather.html</loc></url>
 <url><loc>https://energyRt.org/reference/populate_sets_with_log.html</loc></url>
+<url><loc>https://energyRt.org/reference/prefix.html</loc></url>
 <url><loc>https://energyRt.org/reference/prepare_for_sharing.html</loc></url>
 <url><loc>https://energyRt.org/reference/print.html</loc></url>
 <url><loc>https://energyRt.org/reference/print_import_summary.html</loc></url>
@@ -402,6 +405,7 @@
 <url><loc>https://energyRt.org/reference/solve,scenario,character-method.html</loc></url>
 <url><loc>https://energyRt.org/reference/solve.html</loc></url>
 <url><loc>https://energyRt.org/reference/solver.html</loc></url>
+<url><loc>https://energyRt.org/reference/solver_options.html</loc></url>
 <url><loc>https://energyRt.org/reference/solver_path.html</loc></url>
 <url><loc>https://energyRt.org/reference/solve_by_region.html</loc></url>
 <url><loc>https://energyRt.org/reference/solve_by_sample.html</loc></url>

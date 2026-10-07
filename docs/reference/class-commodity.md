@@ -91,10 +91,11 @@ commodities. The creation of a commodity object is done with the
 
   data.frame. Physical properties of the commodity – heating values,
   density, molar mass, composition. Reference data: it is never written
-  to the model input, but it gives `convert()` the physics needed to
-  move between measures of the same commodity (energy, mass, volume,
-  amount). A property whose unit is a ratio of two dimensions, such as
-  `lhv` in "GJ/t", acts as a conversion edge between them. Only
+  to the model input, but it gives
+  [`convert()`](https://energyRt.org/reference/convert.md) the physics
+  needed to move between measures of the same commodity (energy, mass,
+  volume, amount). A property whose unit is a ratio of two dimensions,
+  such as `lhv` in "GJ/t", acts as a conversion edge between them. Only
   properties of the commodity itself belong here – anything whose
   numerator is a *different* commodity, such as a CO2 emission factor,
   belongs in `emis`. See
@@ -112,7 +113,7 @@ commodities. The creation of a commodity object is done with the
   : numeric. The value of the property, in `unit`. Always the
     deterministic point estimate – the mean, mode or best guess; `min`,
     `max` and `sd` describe uncertainty around it and are never read by
-    `convert()`.
+    [`convert()`](https://energyRt.org/reference/convert.md).
 
   min
 

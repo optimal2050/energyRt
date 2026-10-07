@@ -121,6 +121,12 @@ update(object, ...)
 
   list. Optional list of additional information.
 
+- ...:
+
+  further named slots of the class – set on the new object by
+  `newDemand()`, replacing the current values in
+  [`update()`](https://energyRt.org/reference/update.md).
+
 - object:
 
   demand object

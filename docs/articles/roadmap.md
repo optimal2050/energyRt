@@ -137,11 +137,23 @@ NEOS remote backend.\
 
 ### Integration with multimod
 
-- \[~\] **Single-source model.** Drive both the equation documentation
-  and the executable model code (LaTeX / GLPK / JuMP / Pyomo) from one
-  definition via [multimod](https://github.com/optimal2050/multimod)’s
-  read → AST → write chain, replacing the manual cross-engine mirroring
-  of the model templates.\
+\[~\] **Single-source model.** Drive both the equation documentation and
+the executable model code (LaTeX / GLPK / JuMP / Pyomo) from one
+definition via [multimod](https://github.com/optimal2050/multimod)’s
+read → AST → write chain, replacing the manual cross-engine mirroring of
+the model templates.\
+
+\[~\] **`lang = "mm"` backend** *(experimental)*. multimod reads
+energyRt’s own GAMS template into an AST and assembles the LP matrix
+from it, with no generated model text in between, writing MPS for the
+solver: `solve_scenario(scen, solver = solver_options$mm_highs)`.
+Because there is no model-build step, it avoids the time and memory wall
+that dominates large models. Verified against GLPK on the cross-solver
+models, folded and unfolded.\
+
+**Make it the default for linear problems.** Pending wider validation
+and a decision on what the symbolic backends are then for —
+interoperability, inspection and documentation rather than solving.\
 
 ### v1.0 & CRAN
 

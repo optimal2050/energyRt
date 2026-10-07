@@ -74,6 +74,7 @@ setMethod("initialize", "weather", function(.Object, ...) {
 #' @param timeframe `r get_slot_doc("weather", "timeframe")`
 #' @param defVal `r get_slot_doc("weather", "defVal")`
 #' @param weather `r get_slot_doc("weather", "weather")`
+#' @param misc `r get_slot_doc("weather", "misc")`
 #'
 #' @return weather object with given specifications.
 #' @export
@@ -124,11 +125,11 @@ newWeather <- function(
     )
   }
 
-#' @param object object of class export
+#' @param object object of class weather
 #'
 #' @param ... slot-names with data to update (see `newWeather`)
 #'
-#' @rdname newTechnology
+#' @rdname newWeather
 #' @family update weather
 #' @method update weather
 #' @export

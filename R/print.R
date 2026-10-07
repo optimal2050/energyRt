@@ -3,7 +3,8 @@
 
 #' Print methods for the energyRt classes
 #'
-#' @inheritParams print
+#' @param x the object to print.
+#' @param ... passed to the dispatched print method.
 #'
 #' @include class-model.R class-modInp.R
 #' @export
@@ -57,7 +58,10 @@ print.commodity <- function(x, ...) {
   invisible(x)
 }
 
-print.demand <- function(x) {
+#' @method print demand
+#' @rdname print
+#' @export
+print.demand <- function(x, ...) {
   # print demand
   if_print_data_frame <- function(x, sl) {
     if (nrow(slot(x, sl)) != 0) {
@@ -128,6 +132,9 @@ print.summand <- function(x) {
 }
 
 #------------------------------------------------------------------------------
+#' @method print model
+#' @rdname print
+#' @export
 print.model <- function(x, ...) {
   # print model
   if_print_data_frame <- function(x, sl) {
@@ -159,14 +166,11 @@ setMethod("show", "model", function(object) {
 })
 
 #------------------------------------------------------------------------------
-print.region <- function(x) {
-  cat("Name: ", x@name, "\n")
-  # if (x@type != '') cat('type: ', x@type, '\n')
-  if (length(x@desc) != 0 && x@desc != "") cat("desc: ", x@desc, "\n")
-  if (!is.null(x@misc$color)) cat("color: ", x@misc$color, "\n")
-}
 
-print.scenario <- function(x) {
+#' @method print scenario
+#' @rdname print
+#' @export
+print.scenario <- function(x, ...) {
   cat("Name: ", x@name, "\n")
   if (length(x@desc) != 0 && x@desc != "") cat("desc: ", x@desc, "\n")
   if (!is.null(x@model)) {
@@ -176,7 +180,10 @@ print.scenario <- function(x) {
 }
 
 #------------------------------------------------------------------------------
-print.supply <- function(x) {
+#' @method print supply
+#' @rdname print
+#' @export
+print.supply <- function(x, ...) {
   # print supply
   if_print_data_frame <- function(x, sl) {
     if (nrow(slot(x, sl)) != 0) {
@@ -199,6 +206,9 @@ print.supply <- function(x) {
 }
 
 #------------------------------------------------------------------------------
+#' @method print technology
+#' @rdname print
+#' @export
 print.technology <- function(x, ...) {
   # print technology
   if_print_data_frame <- function(x, sl) {
@@ -218,7 +228,10 @@ print.technology <- function(x, ...) {
 }
 
 #------------------------------------------------------------------------------
-print.config <- function(x) {
+#' @method print config
+#' @rdname print
+#' @export
+print.config <- function(x, ...) {
   # print model
   if_print_data_frame <- function(x, sl) {
     if (nrow(slot(x, sl)) != 0) {

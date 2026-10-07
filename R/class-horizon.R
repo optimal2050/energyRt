@@ -53,6 +53,10 @@ setClass(
 #' key for a period stays the integer `mid`. See [year_label()].
 #' The vector will be considered as lengths of each modeled interval in period.
 #' @param desc `r get_slot_doc("horizon", "desc")`
+#' @param object the `horizon` or `config` object to update.
+#' @param obj the `config` object, for the `setHorizon` method.
+#' @param ... named slots with new values.
+#' @param warn_nodata logical; warn when the update is called with no data.
 #' @param force_BY_interval_to_1_year logical, if TRUE (default), the base-year (first) interval will be forced to one year.
 #' @param mid_is_end logical, if TRUE, the mid-year will be set to the end of the interval.
 #' @param mid_is_start logical, if TRUE, the mid-year will be set to the start of the interval.

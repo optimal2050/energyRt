@@ -49,6 +49,10 @@ findData(
 
   grepl parameter for matching names.
 
+- add_weights:
+
+  accepted and currently ignored.
+
 - dropEmpty:
 
   logical, if TRUE drops parameters and variables with zero length.

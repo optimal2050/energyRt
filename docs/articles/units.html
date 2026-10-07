@@ -32,7 +32,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9014</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9016</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -43,7 +43,13 @@
       <ul class="navbar-nav me-auto">
 <li class="nav-item"><a class="nav-link" href="../articles/energyRt.html">Get started</a></li>
 <li class="nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Roadmap</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-development" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Development</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-development">
+<li><a class="dropdown-item" href="../articles/roadmap.html">Roadmap</a></li>
+    <li><a class="dropdown-item" href="../articles/testing.html">Testing strategy</a></li>
+  </ul>
+</li>
 <li class="active nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-tutorials" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Tutorials</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials">
@@ -105,7 +111,7 @@
 numbers. A coal plant costing <code>2000</code> is meaningless until you
 know whether that is EUR per kW or MEUR per GW, and whether the coal it
 burns is counted in PJ or in tonnes. This article covers where each unit
-is declared, how <code>convert()</code> moves between them, and what the
+is declared, how <code><a href="../reference/convert.html">convert()</a></code> moves between them, and what the
 model checks for you.</p>
 <div class="section level2">
 <h2 id="where-units-live">Where units live<a class="anchor" aria-label="anchor" href="#where-units-live"></a>
@@ -181,21 +187,21 @@ guessing.</p>
 </h2>
 <p>Every unit belongs to a <strong>dimension</strong> — energy, mass,
 volume, time, currency and so on. Two units are interconvertible when
-they share one, and <code>convert()</code> is the function that does
+they share one, and <code><a href="../reference/convert.html">convert()</a></code> is the function that does
 it:</p>
 <div class="sourceCode" id="cb5"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">convert</span><span class="op">(</span><span class="st">"PJ"</span>, <span class="st">"GWh"</span><span class="op">)</span>        <span class="co"># 1 PJ is how many GWh?</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/convert.html">convert</a></span><span class="op">(</span><span class="st">"PJ"</span>, <span class="st">"GWh"</span><span class="op">)</span>        <span class="co"># 1 PJ is how many GWh?</span></span>
 <span><span class="co">#&gt; [1] 277.7778</span></span>
-<span><span class="fu">convert</span><span class="op">(</span><span class="st">"kWh"</span>, <span class="st">"MJ"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/convert.html">convert</a></span><span class="op">(</span><span class="st">"kWh"</span>, <span class="st">"MJ"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 3.6</span></span>
-<span><span class="fu">convert</span><span class="op">(</span><span class="st">"toe"</span>, <span class="st">"GJ"</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/convert.html">convert</a></span><span class="op">(</span><span class="st">"toe"</span>, <span class="st">"GJ"</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1] 41.868</span></span></code></pre></div>
 <p>The third argument is the value to convert, so a whole column can go
 through at once:</p>
 <div class="sourceCode" id="cb6"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">convert</span><span class="op">(</span><span class="st">"EUR/kW"</span>, <span class="st">"MEUR/GW"</span>, <span class="fl">2000</span><span class="op">)</span>     <span class="co"># capex catalogue value -&gt; model units</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/convert.html">convert</a></span><span class="op">(</span><span class="st">"EUR/kW"</span>, <span class="st">"MEUR/GW"</span>, <span class="fl">2000</span><span class="op">)</span>     <span class="co"># capex catalogue value -&gt; model units</span></span>
 <span><span class="co">#&gt; [1] 2000</span></span>
-<span><span class="fu">convert</span><span class="op">(</span><span class="st">"MMBtu"</span>, <span class="st">"MWh"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">10</span>, <span class="fl">100</span><span class="op">)</span><span class="op">)</span></span>
+<span><span class="fu"><a href="../reference/convert.html">convert</a></span><span class="op">(</span><span class="st">"MMBtu"</span>, <span class="st">"MWh"</span>, <span class="fu"><a href="https://rdrr.io/r/base/c.html" class="external-link">c</a></span><span class="op">(</span><span class="fl">1</span>, <span class="fl">10</span>, <span class="fl">100</span><span class="op">)</span><span class="op">)</span></span>
 <span><span class="co">#&gt; [1]  0.2930711  2.9307111 29.3071111</span></span></code></pre></div>
 <p>Compound units are built from <code>/</code>, <code>*</code> and
 <code>^</code>, and SI prefixes attach to the symbols that accept them.
@@ -260,27 +266,27 @@ dimensions is a conversion factor between them</strong>.
 <code>lhv = 25.8 GJ/t</code> is an energy-to-mass edge;
 <code>density = 0.85 t/m3</code> is a mass-to-volume edge. Chain them
 and a volume of coal becomes an energy. Given the properties,
-<code>convert()</code> can find that chain itself:</p>
+<code><a href="../reference/convert.html">convert()</a></code> can find that chain itself:</p>
 <blockquote>
 <p><strong>Not in this build.</strong> Commodity-aware conversion is not
-available in energyRt 0.90.0.9014. The calls below are shown for
+available in energyRt 0.90.0.9016. The calls below are shown for
 reference; their output will appear here once the feature lands.</p>
 </blockquote>
 <div class="sourceCode" id="cb9"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">convert</span><span class="op">(</span><span class="fl">1</span>, <span class="st">"t"</span>,  <span class="st">"GJ"</span>, commodity <span class="op">=</span> <span class="va">COA</span><span class="op">)</span>   <span class="co"># 25.8   — via lhv</span></span>
-<span><span class="fu">convert</span><span class="op">(</span><span class="fl">1</span>, <span class="st">"m3"</span>, <span class="st">"GJ"</span>, commodity <span class="op">=</span> <span class="va">COA</span><span class="op">)</span>   <span class="co"># 21.93  — via density, then lhv</span></span>
-<span><span class="fu">convert</span><span class="op">(</span><span class="fl">1</span>, <span class="va">COA</span>, <span class="st">"Mt"</span><span class="op">)</span>                     <span class="co"># 0.03876 — COA's native PJ into Mt</span></span>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/convert.html">convert</a></span><span class="op">(</span><span class="fl">1</span>, <span class="st">"t"</span>,  <span class="st">"GJ"</span>, commodity <span class="op">=</span> <span class="va">COA</span><span class="op">)</span>   <span class="co"># 25.8   — via lhv</span></span>
+<span><span class="fu"><a href="../reference/convert.html">convert</a></span><span class="op">(</span><span class="fl">1</span>, <span class="st">"m3"</span>, <span class="st">"GJ"</span>, commodity <span class="op">=</span> <span class="va">COA</span><span class="op">)</span>   <span class="co"># 21.93  — via density, then lhv</span></span>
+<span><span class="fu"><a href="../reference/convert.html">convert</a></span><span class="op">(</span><span class="fl">1</span>, <span class="va">COA</span>, <span class="st">"Mt"</span><span class="op">)</span>                     <span class="co"># 0.03876 — COA's native PJ into Mt</span></span>
 <span><span class="fu">convert_path</span><span class="op">(</span><span class="st">"m3"</span>, <span class="st">"GJ"</span>, commodity <span class="op">=</span> <span class="va">COA</span><span class="op">)</span> <span class="co"># which properties it used</span></span></code></pre></div>
 <p>Because a commodity can stand wherever a unit string can, two
 commodities can be compared directly — but only once you say
 <strong>what is being held constant</strong>:</p>
 <div class="sourceCode" id="cb10"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">convert</span><span class="op">(</span><span class="fl">1</span>, <span class="va">COA</span>, <span class="va">ELC</span>, <span class="st">"energy"</span><span class="op">)</span>   <span class="co"># 1 PJ of coal as GWh of electricity</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/convert.html">convert</a></span><span class="op">(</span><span class="fl">1</span>, <span class="va">COA</span>, <span class="va">ELC</span>, <span class="st">"energy"</span><span class="op">)</span>   <span class="co"># 1 PJ of coal as GWh of electricity</span></span></code></pre></div>
 <p>That fourth argument is not decoration. Coal and electricity are not
 physically interconvertible; the only thing that can carry across is a
 shared dimension, and which one is a modelling choice rather than a
 fact. Where the choice is unambiguous it is inferred, and where it is
-not <code>convert()</code> reports the candidates and the number each
+not <code><a href="../reference/convert.html">convert()</a></code> reports the candidates and the number each
 would give rather than picking one.</p>
 <div class="section level3">
 <h3 id="when-a-property-is-ambiguous">When a property is ambiguous<a class="anchor" aria-label="anchor" href="#when-a-property-is-ambiguous"></a>
@@ -303,9 +309,9 @@ magnitude:</p>
 name a variant. The same holds for <code>lhv</code> against
 <code>hhv</code>:</p>
 <div class="sourceCode" id="cb12"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">convert</span><span class="op">(</span><span class="fl">1</span>, <span class="st">"m3"</span>, <span class="st">"MJ"</span>, commodity <span class="op">=</span> <span class="va">H2</span><span class="op">)</span>                          <span class="co"># 10.79, NTP gas</span></span>
-<span><span class="fu">convert</span><span class="op">(</span><span class="fl">1</span>, <span class="st">"m3"</span>, <span class="st">"MJ"</span>, commodity <span class="op">=</span> <span class="va">H2</span>, via <span class="op">=</span> <span class="st">"density_liquid"</span><span class="op">)</span>  <span class="co"># 8502</span></span>
-<span><span class="fu">convert</span><span class="op">(</span><span class="fl">1</span>, <span class="st">"t"</span>,  <span class="st">"GJ"</span>, commodity <span class="op">=</span> <span class="va">H2</span>, via <span class="op">=</span> <span class="st">"hhv"</span><span class="op">)</span>             <span class="co"># 141.8</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/convert.html">convert</a></span><span class="op">(</span><span class="fl">1</span>, <span class="st">"m3"</span>, <span class="st">"MJ"</span>, commodity <span class="op">=</span> <span class="va">H2</span><span class="op">)</span>                          <span class="co"># 10.79, NTP gas</span></span>
+<span><span class="fu"><a href="../reference/convert.html">convert</a></span><span class="op">(</span><span class="fl">1</span>, <span class="st">"m3"</span>, <span class="st">"MJ"</span>, commodity <span class="op">=</span> <span class="va">H2</span>, via <span class="op">=</span> <span class="st">"density_liquid"</span><span class="op">)</span>  <span class="co"># 8502</span></span>
+<span><span class="fu"><a href="../reference/convert.html">convert</a></span><span class="op">(</span><span class="fl">1</span>, <span class="st">"t"</span>,  <span class="st">"GJ"</span>, commodity <span class="op">=</span> <span class="va">H2</span>, via <span class="op">=</span> <span class="st">"hhv"</span><span class="op">)</span>             <span class="co"># 141.8</span></span></code></pre></div>
 <p>The first two differ by a factor of 788, which is exactly why the
 state has to be named rather than assumed.</p>
 <div class="callout-note">
@@ -329,12 +335,12 @@ of 1000 EUR is not one number, it is one number and a year.</p>
 <p>Write the year into the unit:</p>
 <blockquote>
 <p><strong>Not in this build.</strong> Year-tagged currency is not
-available in energyRt 0.90.0.9014. The calls below are shown for
+available in energyRt 0.90.0.9016. The calls below are shown for
 reference; their output will appear here once the feature lands.</p>
 </blockquote>
 <div class="sourceCode" id="cb13"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">convert</span><span class="op">(</span><span class="fl">1</span>, <span class="st">"MEUR2020"</span>, <span class="st">"MUSD2020"</span><span class="op">)</span>   <span class="co"># an exchange-rate question</span></span>
-<span><span class="fu">convert</span><span class="op">(</span><span class="fl">1</span>, <span class="st">"MUSD2015"</span>, <span class="st">"MUSD2020"</span><span class="op">)</span>   <span class="co"># an inflation question</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/convert.html">convert</a></span><span class="op">(</span><span class="fl">1</span>, <span class="st">"MEUR2020"</span>, <span class="st">"MUSD2020"</span><span class="op">)</span>   <span class="co"># an exchange-rate question</span></span>
+<span><span class="fu"><a href="../reference/convert.html">convert</a></span><span class="op">(</span><span class="fl">1</span>, <span class="st">"MUSD2015"</span>, <span class="st">"MUSD2020"</span><span class="op">)</span>   <span class="co"># an inflation question</span></span></code></pre></div>
 <p>Those are two different problems and they need two different kinds of
 data: <strong>exchange rates</strong> move between currencies at one
 point in time, <strong>deflators</strong> move between points in time
@@ -380,8 +386,8 @@ IPCC convention — deflate in the source currency, then convert at the
 target year — and you are warned when the routes disagree
 materially:</p>
 <div class="sourceCode" id="cb14"><pre class="downlit sourceCode r">
-<code class="sourceCode R"><span><span class="fu">convert</span><span class="op">(</span><span class="fl">1</span>, <span class="st">"MJPY2012"</span>, <span class="st">"MUSD2023"</span><span class="op">)</span>                              <span class="co"># default route</span></span>
-<span><span class="fu">convert</span><span class="op">(</span><span class="fl">1</span>, <span class="st">"MJPY2012"</span>, <span class="st">"MUSD2023"</span>, currency_route <span class="op">=</span> <span class="st">"both"</span><span class="op">)</span>     <span class="co"># see both</span></span></code></pre></div>
+<code class="sourceCode R"><span><span class="fu"><a href="../reference/convert.html">convert</a></span><span class="op">(</span><span class="fl">1</span>, <span class="st">"MJPY2012"</span>, <span class="st">"MUSD2023"</span><span class="op">)</span>                              <span class="co"># default route</span></span>
+<span><span class="fu"><a href="../reference/convert.html">convert</a></span><span class="op">(</span><span class="fl">1</span>, <span class="st">"MJPY2012"</span>, <span class="st">"MUSD2023"</span>, currency_route <span class="op">=</span> <span class="st">"both"</span><span class="op">)</span>     <span class="co"># see both</span></span></code></pre></div>
 <p><strong>Untagged money is left alone.</strong> A conversion where
 neither side carries a year never consults an exchange-rate table, never
 warns, and returns exactly what it always did — so
@@ -397,7 +403,7 @@ well as processes. So declare it, and let interpolation do the
 arithmetic:</p>
 <blockquote>
 <p><strong>Not in this build.</strong> A model-level unit target is not
-available in energyRt 0.90.0.9014. The calls below are shown for
+available in energyRt 0.90.0.9016. The calls below are shown for
 reference; their output will appear here once the feature lands.</p>
 </blockquote>
 <div class="sourceCode" id="cb15"><pre class="downlit sourceCode r">
@@ -435,7 +441,7 @@ that the rate you supplied is real rather than nominal.</p>
 <strong>TOPIA I</strong> — a full model built in one consistent unit
 convention (GW, PJ, MEUR, kt).</li>
 <li>
-<code>?convert</code>, <code><a href="../reference/getUnits.html">?getUnits</a></code>,
+<code><a href="../reference/convert.html">?convert</a></code>, <code><a href="../reference/getUnits.html">?getUnits</a></code>,
 <code><a href="../reference/commodity_properties.html">?commodity_properties</a></code>, <code><a href="../reference/commodity_property.html">?commodity_property</a></code>,
 <code><a href="../reference/newCommodity.html">?newCommodity</a></code>.</li>
 </ul>

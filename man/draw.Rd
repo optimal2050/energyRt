@@ -44,7 +44,9 @@ draw.technology(
 \item{object}{The object to draw: \code{technology}, \code{storage}, \code{trade}, \code{demand}, \code{supply},
 \code{export}, or \code{import}.}
 
-\item{...}{Additional arguments passed to the specific method.}
+\item{...}{Additional arguments passed to the specific method. The \code{trade}
+method takes \code{region} (alias \code{node}), the node to draw the trade process
+for, defaulting to the first node in the trade object.}
 
 \item{vintage}{which vintage to draw in full for a vintaged technology: a
 level name, an index, \code{NULL} (the default, the newest one), or \code{"all"} to
@@ -65,13 +67,11 @@ named list of overrides.}
 strip of ticks with the selection filled, \code{"deck"} slivers at the box edge
 suggesting a stack of cards, or \code{"none"}.}
 
+\item{box_width}{width of the process box, in plot units.}
+
 \item{max_facets}{refuse to lay out more than this many panels for
 \code{vintage = "all"} / \code{cluster = "all"}. A full 11 x 4 grid is unreadable, and
 silently drawing it is worse than saying so.}
-
-\item{region}{A node to draw the trade process for.
-\code{node} is an alias for \code{region}.
-Default is the first node in the trade object.}
 }
 \value{
 displays a schematic representation of the process, returns \code{NULL}.

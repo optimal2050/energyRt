@@ -200,7 +200,7 @@ newExport <- function(
 #'
 #' @param ... arguments-slots (see `newExport`) with updated values to replace.
 #'
-#' @rdname newTechnology
+#' @rdname newExport
 #' @family update export
 #' @method update export
 #' @export

@@ -64,6 +64,8 @@ Optional. When empty, step labels are harvested from the \code{cluster} columns 
 \item{region}{character. Regions where the import process exists. Empty (or NA) means every region of the model. A region named in any other slot must be one of these; the other slots place VALUES and never change where the process exists.}
 
 \item{misc}{list. Additional information.}
+
+\item{...}{further named slots of the class, set on the new object.}
 }
 \value{
 import object with given specifications.

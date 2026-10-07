@@ -9,8 +9,8 @@ A model is arithmetic on numbers whose meaning lives outside the
 numbers. A coal plant costing `2000` is meaningless until you know
 whether that is EUR per kW or MEUR per GW, and whether the coal it burns
 is counted in PJ or in tonnes. This article covers where each unit is
-declared, how `convert()` moves between them, and what the model checks
-for you.
+declared, how [`convert()`](https://energyRt.org/reference/convert.md)
+moves between them, and what the model checks for you.
 
 ## Where units live
 
@@ -73,7 +73,8 @@ guessing.
 
 Every unit belongs to a **dimension** — energy, mass, volume, time,
 currency and so on. Two units are interconvertible when they share one,
-and `convert()` is the function that does it:
+and [`convert()`](https://energyRt.org/reference/convert.md) is the
+function that does it:
 
 ``` r
 
@@ -163,10 +164,11 @@ The key idea is that **a property whose unit is a ratio of two
 dimensions is a conversion factor between them**. `lhv = 25.8 GJ/t` is
 an energy-to-mass edge; `density = 0.85 t/m3` is a mass-to-volume edge.
 Chain them and a volume of coal becomes an energy. Given the properties,
-`convert()` can find that chain itself:
+[`convert()`](https://energyRt.org/reference/convert.md) can find that
+chain itself:
 
 > **Not in this build.** Commodity-aware conversion is not available in
-> energyRt 0.90.0.9014. The calls below are shown for reference; their
+> energyRt 0.90.0.9016. The calls below are shown for reference; their
 > output will appear here once the feature lands.
 
 ``` r
@@ -190,8 +192,8 @@ That fourth argument is not decoration. Coal and electricity are not
 physically interconvertible; the only thing that can carry across is a
 shared dimension, and which one is a modelling choice rather than a
 fact. Where the choice is unambiguous it is inferred, and where it is
-not `convert()` reports the candidates and the number each would give
-rather than picking one.
+not [`convert()`](https://energyRt.org/reference/convert.md) reports the
+candidates and the number each would give rather than picking one.
 
 ### When a property is ambiguous
 
@@ -243,7 +245,7 @@ a year.
 Write the year into the unit:
 
 > **Not in this build.** Year-tagged currency is not available in
-> energyRt 0.90.0.9014. The calls below are shown for reference; their
+> energyRt 0.90.0.9016. The calls below are shown for reference; their
 > output will appear here once the feature lands.
 
 ``` r
@@ -294,7 +296,7 @@ well as processes. So declare it, and let interpolation do the
 arithmetic:
 
 > **Not in this build.** A model-level unit target is not available in
-> energyRt 0.90.0.9014. The calls below are shown for reference; their
+> energyRt 0.90.0.9016. The calls below are shown for reference; their
 > output will appear here once the feature lands.
 
 ``` r
@@ -332,7 +334,8 @@ nothing checks that the rate you supplied is real rather than nominal.
   coefficients sit in a process.
 - **TOPIA I** — a full model built in one consistent unit convention
   (GW, PJ, MEUR, kt).
-- `?convert`, [`?getUnits`](https://energyRt.org/reference/getUnits.md),
+- [`?convert`](https://energyRt.org/reference/convert.md),
+  [`?getUnits`](https://energyRt.org/reference/getUnits.md),
   [`?commodity_properties`](https://energyRt.org/reference/commodity_properties.md),
   [`?commodity_property`](https://energyRt.org/reference/commodity_property.md),
   [`?newCommodity`](https://energyRt.org/reference/newCommodity.md).

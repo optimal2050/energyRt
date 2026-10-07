@@ -21,6 +21,7 @@
 - [Space resolution: geoscales and
   geoframes](https://energyRt.org/articles/space-resolution.md):
 - [Storage](https://energyRt.org/articles/storage.md):
+- [Testing strategy](https://energyRt.org/articles/testing.md):
 - [Time resolution: calendars and
   timeslices](https://energyRt.org/articles/time-resolution.md):
 - [TOPIA I: building the

@@ -43,6 +43,10 @@ calendar / config overrides).}
 \item{store}{\code{"variants"} (one scenario, steps as own-problem variants)
 or \code{"scenarios"} (one scenario folder per step).}
 
+\item{overwrite}{logical; \code{FALSE} (default) refuses to run when a
+variant of the same label already exists on disk with a different type
+or different parameters. \code{TRUE} skips that guard and writes into it.}
+
 \item{keep_scenarios}{logical, keep each step's solved scenario object in
 the result (needed by \code{getData()} on the result).}
 

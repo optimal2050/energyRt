@@ -31,6 +31,8 @@ findData(
 
 \item{ignore.case}{grepl parameter for matching names.}
 
+\item{add_weights}{accepted and currently ignored.}
+
 \item{dropEmpty}{logical, if TRUE drops parameters and variables with zero length.}
 
 \item{dfDim}{logical, if TRUE returns dimension \emph{dim}.}

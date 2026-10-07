@@ -301,6 +301,9 @@ calendar_samples <- function(calendar, level = NULL, sample_size = NULL,
 #'   sample that fails to solve is recorded and the ensemble carries on.
 #' @param keep_scenarios logical, keep each sample's scenario object.
 #' @param verbose logical.
+#' @param overwrite logical; `FALSE` (default) refuses to run when a
+#'   variant of the same label already exists on disk with a different type
+#'   or different parameters. `TRUE` skips that guard and writes into it.
 #'
 #' @return a `by_sample` object: `runs` (a tibble of what ran), `scenarios`,
 #'   `samples` and `method`.

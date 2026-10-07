@@ -1,11 +1,11 @@
 # =========================================================================== #
 # Test-tier resolution and per-backend skip guards.
 #
-# Tiers (check < fast < cross < nightly), selected via ENERGYRT_TEST_TIER:
+# Tiers (check < fast < cross < full), selected via ENERGYRT_TEST_TIER:
 #   check   - solver-free; what R CMD check / CRAN runs
 #   fast    - + glpsol; the default for local devtools::test()
 #   cross   - + julia / pyomo / gams cross-backend parity tests
-#   nightly - + deep regression, external models, full fork grids
+#   full    - + deep regression, external models, complete fork grids
 #
 # When ENERGYRT_TEST_TIER is unset the tier defaults to "check" under
 # R CMD check (detected via _R_CHECK_PACKAGE_NAME_) and to "fast" everywhere
@@ -16,7 +16,7 @@
 # See tests/README.md and tests/TESTING.md.
 # =========================================================================== #
 
-.tier_levels <- c(check = 0L, fast = 1L, cross = 2L, nightly = 3L)
+.tier_levels <- c(check = 0L, fast = 1L, cross = 2L, full = 3L)
 
 en_test_tier <- function() {
   t <- tolower(Sys.getenv("ENERGYRT_TEST_TIER", ""))

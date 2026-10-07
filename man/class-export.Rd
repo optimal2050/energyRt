@@ -6,6 +6,8 @@
 \title{An S4 class to represent commodity export to the rest of the world.}
 \description{
 Export object represent commodity export to the Rest of the World (RoW).
+
+The method replaces slots of the export object with new values.
 }
 \details{
 \code{export} is a type of process that adds an "external" source to a commodity

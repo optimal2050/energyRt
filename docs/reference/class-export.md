@@ -2,6 +2,8 @@
 
 Export object represent commodity export to the Rest of the World (RoW).
 
+The method replaces slots of the export object with new values.
+
 ## Details
 
 `export` is a type of process that adds an "external" source to a

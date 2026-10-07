@@ -325,6 +325,7 @@ reference:
   - plot_heatmap
   - plot_map
   - plot_trade_map
+  - plot_trade_network
   - object_image
   - theme_energyRt
   - ghost_options
@@ -392,6 +393,9 @@ reference:
   - topia
   - topia_profile
   - topia_profiles
+  - model_structure
+  - prefix
+  - solver_options
   - vre_cf
   - vre_storage_duration
 

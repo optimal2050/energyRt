@@ -1,5 +1,34 @@
 # energyRt (development version)
 
+## Test tier `nightly` renamed to `full`
+
+* `ENERGYRT_TEST_TIER=nightly` is now `full` (`check < fast < cross < full`).
+  The old value is **rejected**, not aliased: the tier named a schedule that
+  does not exist -- there is no CI and the tier has only ever been run by hand
+  -- while `full` names what it is, the whole suite with nothing excluded. A
+  scheduled job may still be called "nightly" and run `ENERGYRT_TEST_TIER=full`.
+
+* Renamed with it: `tools/test/run_nightly.R` -> `run_full.R`,
+  `test-nightly-deep.R` -> `test-full-deep.R`, and the golden suite
+  `topia_nightly` -> `topia_full` (file, suite key and `ut_full_entries()`
+  together -- a golden whose name does not match is SKIPPED, not failed, so a
+  partial rename would have gone unnoticed).
+
+* Reports now land in `tmp/test-reports/full-<timestamp>-<pid>.md`.
+
+## `print()` works on energyRt objects
+
+* The hand-written printers for `technology`, `demand`, `supply`, `config`,
+  `model` and `scenario` were never `S3method()`-registered, so `print(obj)`
+  from user code never reached them and fell back to the default S4 slot dump.
+  They are registered now. The five that took only `(x)` gained `...` to match
+  the generic's signature.
+
+* `print.region` was removed instead: nothing in the package defines a `region`
+  class any more (regions are plain character vectors), so its `x@name` could
+  never resolve. Archived under `drafts/`.
+
+
 ## Scales core renamed
 
 * The scales core is now `discretescales` (formerly `multiscales`), and

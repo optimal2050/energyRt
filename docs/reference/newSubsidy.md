@@ -77,6 +77,10 @@ newSub(
   list. Any additional information or data to store in the subsidy
   object.
 
+- ...:
+
+  further named slots of the class, set on the new object.
+
 ## Value
 
 An object of class `subsidy`

@@ -25,11 +25,19 @@ newCosts(name, variable, desc = "", mult = NULL, subset = NULL, misc = NULL)
 
 - mult:
 
-  `get_slot_doc("costs", "mult")`
+  data.frame. Named list or data frame with numeric values for the
+  variable included in the costs-constraint. A constant or a data frame
+  with the same dimensions as the subseted variable.
 
 - subset:
 
-  `get_slot_doc("costs", "subset")`
+  data.frame. Named list or data frame with set-values for each
+  dimension of the variable. This slot subsets the variable to the
+  specified set values.
+
+- misc:
+
+  list. Additional information.
 
 ## Value
 

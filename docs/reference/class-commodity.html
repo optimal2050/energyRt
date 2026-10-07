@@ -21,7 +21,7 @@ The creation of a commodity object is done with the newCommodity function."><met
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9014</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9016</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -31,7 +31,11 @@ The creation of a commodity object is done with the newCommodity function."><met
     <div id="navbar" class="collapse navbar-collapse ms-3">
       <ul class="navbar-nav me-auto"><li class="nav-item"><a class="nav-link" href="../articles/energyRt.html">Get started</a></li>
 <li class="active nav-item"><a class="nav-link" href="../reference/index.html">Reference</a></li>
-<li class="nav-item"><a class="nav-link" href="../articles/roadmap.html">Roadmap</a></li>
+<li class="nav-item dropdown">
+  <button class="nav-link dropdown-toggle" type="button" id="dropdown-development" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Development</button>
+  <ul class="dropdown-menu" aria-labelledby="dropdown-development"><li><a class="dropdown-item" href="../articles/roadmap.html">Roadmap</a></li>
+    <li><a class="dropdown-item" href="../articles/testing.html">Testing strategy</a></li>
+  </ul></li>
 <li class="nav-item dropdown">
   <button class="nav-link dropdown-toggle" type="button" id="dropdown-tutorials" data-bs-toggle="dropdown" aria-expanded="false" aria-haspopup="true">Tutorials</button>
   <ul class="dropdown-menu" aria-labelledby="dropdown-tutorials"><li><a class="dropdown-item" href="../articles/install.html">Installation</a></li>
@@ -139,12 +143,12 @@ The creation of a commodity object is done with the <code>newCommodity</code> fu
 
 
 <dt><code>property</code></dt>
-<dd><p>data.frame. Physical properties of the commodity – heating values, density, molar mass, composition. Reference data: it is never written to the model input, but it gives <code>convert()</code> the physics needed to move between measures of the same commodity (energy, mass, volume, amount). A property whose unit is a ratio of two dimensions, such as <code>lhv</code> in "GJ/t", acts as a conversion edge between them. Only properties of the commodity itself belong here – anything whose numerator is a <em>different</em> commodity, such as a CO2 emission factor, belongs in <code>emis</code>. See <code><a href="commodity_properties.html">commodity_properties()</a></code> for the recognised names.</p>
+<dd><p>data.frame. Physical properties of the commodity – heating values, density, molar mass, composition. Reference data: it is never written to the model input, but it gives <code><a href="convert.html">convert()</a></code> the physics needed to move between measures of the same commodity (energy, mass, volume, amount). A property whose unit is a ratio of two dimensions, such as <code>lhv</code> in "GJ/t", acts as a conversion edge between them. Only properties of the commodity itself belong here – anything whose numerator is a <em>different</em> commodity, such as a CO2 emission factor, belongs in <code>emis</code>. See <code><a href="commodity_properties.html">commodity_properties()</a></code> for the recognised names.</p>
 <dl><dt>property</dt>
 <dd><p>character. Name of the property, e.g. "lhv", "hhv", "density", "molar_mass", or "frac_C" for an element mass fraction. Unrecognised names are kept with a warning.</p></dd>
 
 <dt>value</dt>
-<dd><p>numeric. The value of the property, in <code>unit</code>. Always the deterministic point estimate – the mean, mode or best guess; <code>min</code>, <code>max</code> and <code>sd</code> describe uncertainty around it and are never read by <code>convert()</code>.</p></dd>
+<dd><p>numeric. The value of the property, in <code>unit</code>. Always the deterministic point estimate – the mean, mode or best guess; <code>min</code>, <code>max</code> and <code>sd</code> describe uncertainty around it and are never read by <code><a href="convert.html">convert()</a></code>.</p></dd>
 
 <dt>min</dt>
 <dd><p>numeric. Lower bound of the value, for sensitivity analysis. Optional.</p></dd>

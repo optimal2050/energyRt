@@ -65,13 +65,13 @@ Pyomo/HiGHS. A model whose weather genuinely differs by year simply does
 not fold.}
 
 \item{sparse}{logical; the storage knob, and the user-facing switch between
-\code{\link[=drop_default_values]{drop_default_values()}} and \code{\link[=expand_default_values]{expand_default_values()}}. \code{TRUE} drops
+\code{drop_default_values()} and \code{expand_default_values()}. \code{TRUE} drops
 \code{value == defVal} rows; \code{FALSE} materialises the default over each
 parameter's full domain (the form GAMS needs) and then trims rows no map
 indexes. Folding applies to either.}
 
 \item{prune}{logical; apply the per-parameter \code{misc$prune$value} filter via
-\code{\link[=drop_default_values]{drop_default_values()}} - rows whose interpolated value equals that
+\code{drop_default_values()} - rows whose interpolated value equals that
 parameter's flagged value are dropped (lossless: an absent tuple reads as
 the default, which equals the dropped value). One parameter is flagged
 today (\code{pWeather}). Superseded by \code{sparse}'s \verb{value =} form; retained for
@@ -85,6 +85,10 @@ governing constraints, calendar chronology).}
 (\code{GLPK}, \code{GAMS}, \code{JuMP}, \code{PYOMOConcrete}, ...), each either a script-file
 path or a character vector of lines. Lets a model-script version be supplied
 at interpolation time without rebuilding \code{sysdata} (handy to A/B templates).}
+
+\item{kvl}{logical or \code{NULL}; build the Kirchhoff voltage-law cycle
+constraints for meshed trade networks. \code{NULL} (default) engages them when
+the network has cycles and reactances to use.}
 
 \item{boundary_prices}{optional \code{data.frame} pricing import/export stubs
 for trade routes dropped by a SPATIAL SAMPLE (a
@@ -112,6 +116,8 @@ many constraints were generated for them. The generated constraints
 themselves are retrievable with \code{getObject(scen, class = "constraint")};
 each carries a readable \code{desc} and, in \code{misc$.variant_source}, the object
 it was derived from.}
+
+\item{object}{as \code{mod}, for the method dispatched on a scenario.}
 }
 \value{
 an interpolated \link{scenario} object.

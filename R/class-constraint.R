@@ -83,8 +83,10 @@ setMethod("initialize", "constraint", function(.Object, ...) {
 #' @slot defVal `r get_slot_doc("summand", "defVal")`
 #' @slot misc `r get_slot_doc("summand", "misc")`
 #'
-#' @family class constraint
+#' @rdname class-constraint
 #' @order 2
+NULL
+
 # Bring a `summand` created before the `timeframe` slot existed up to the
 # current class definition. Old serialized objects lack the slot, so accessing
 # `@timeframe` errors ("no slot of name ..."); add it (S4 slots are attributes)
@@ -1174,6 +1176,20 @@ addSummand <- function(
 
 #  .getSetEquation(prec, stm, approxim)@user_constraints
 
+#' @param type character; the constraint kind, which selects the variable the
+#'   left-hand side is built from: a name containing `"inp"` or `"out"`
+#'   constrains technology input or output, `"capacity"` / `"newcapacity"` the
+#'   capacity variables, and `"balance"` the commodity balance. The two special
+#'   values `"tax"` and `"subs"` instead delegate to [newTax()] / [newSubsidy()].
+#' @param for.sum named list of sets to SUM the left-hand side over, as opposed
+#'   to `for.each`, whose sets index one constraint row each.
+#' @param rule accepted for backward compatibility and currently unused.
+#' @param comm commodity name; read only by the `"tax"` and `"subs"` types,
+#'   which pass it on to [newTax()] / [newSubsidy()].
+#' @param cinp,ainp logical; for an input-type constraint, include the main
+#'   (`vTechInp`) and the auxiliary (`vTechAInp`) input variables.
+#' @param cout,aout logical; for an output-type constraint, include the main
+#'   (`vTechOut`) and the auxiliary (`vTechAOut`) output variables.
 #' @export
 #' @family constraint policy
 #' @rdname newConstraint

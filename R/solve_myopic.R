@@ -147,6 +147,9 @@ horizon_windows <- function(horizon, step = 1L, overlap = 0L) {
 #' @param on_error `"stop"` (default) or `"return"` (return the partial
 #'   result with the failed step recorded).
 #' @param verbose logical.
+#' @param overwrite logical; `FALSE` (default) refuses to run when a
+#'   variant of the same label already exists on disk with a different type
+#'   or different parameters. `TRUE` skips that guard and writes into it.
 #'
 #' @return an object of class `myopic`: `steps` (one row per step: step,
 #'   run id, decided years, status, objective), `scenarios` (the solved

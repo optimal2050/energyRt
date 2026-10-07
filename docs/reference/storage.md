@@ -101,10 +101,12 @@ newStorage(
 
   : character. Unit of `comm` on this side, exactly as on
     `technology@input`/ `@output`. Descriptive only: it is carried for
-    reporting and `convert()` and never reaches the solver. It is the
-    unit of the COMMODITY (e.g. MWh), not of the capacity – capacity
-    units follow from `cap2act`, and the storing side has no `cap2act`
-    because a reservoir is an amount rather than a rate.
+    reporting and
+    [`convert()`](https://energyRt.org/reference/convert.md) and never
+    reaches the solver. It is the unit of the COMMODITY (e.g. MWh), not
+    of the capacity – capacity units follow from `cap2act`, and the
+    storing side has no `cap2act` because a reservoir is an amount
+    rather than a rate.
 
   cap2act
 
@@ -131,10 +133,12 @@ newStorage(
 
   : character. Unit of `comm` on this side, exactly as on
     `technology@input`/ `@output`. Descriptive only: it is carried for
-    reporting and `convert()` and never reaches the solver. It is the
-    unit of the COMMODITY (e.g. MWh), not of the capacity – capacity
-    units follow from `cap2act`, and the storing side has no `cap2act`
-    because a reservoir is an amount rather than a rate.
+    reporting and
+    [`convert()`](https://energyRt.org/reference/convert.md) and never
+    reaches the solver. It is the unit of the COMMODITY (e.g. MWh), not
+    of the capacity – capacity units follow from `cap2act`, and the
+    storing side has no `cap2act` because a reservoir is an amount
+    rather than a rate.
 
   cap2act
 
@@ -172,8 +176,9 @@ newStorage(
   unit
 
   : character. Unit of `comm`. Descriptive only, carried for reporting
-    and `convert()` and never reaching the solver. There is no `cap2act`
-    on this side – energy is energy at any resolution.
+    and [`convert()`](https://energyRt.org/reference/convert.md) and
+    never reaching the solver. There is no `cap2act` on this side –
+    energy is energy at any resolution.
 
 - startLevel:
 
@@ -1179,6 +1184,10 @@ newStorage(
   list. List of additional parameters that are not used in the model but
   can be used for reference or user-defined functions. For example,
   links to the source of the storage data, or other metadata.
+
+- ...:
+
+  further named slots of the class, set on the new object.
 
 ## Value
 
