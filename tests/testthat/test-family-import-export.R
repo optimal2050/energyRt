@@ -107,3 +107,30 @@ test_that("family import-export: import reserve lands in modInp", {
     ie_build(imp_reserve = data.frame(res.up = 500)), name = "ie_impres")))
   expect_equal(unique(ff_param(scen, "pImportRowRes")$value), 500)
 })
+
+# ---- per-slice fixed exchange: a zero slice must not remove the others ----- #
+# @covers pImportRow pExportRow vImportRow vExportRow depth=S backends=glpk forks=fx
+test_that("family import-export: per-slice imp.fx/exp.fx with zero slices", {
+  skip_if_no_solver()
+  cal <- newCalendar(
+    timetable = make_timetable(struct = list(ANNUAL = "ANNUAL", HOUR = c("h1", "h2"))),
+    name = "ie_cal2")
+  mod <- newModel("ie2",
+    repo = newRepository("ie2_repo",
+      newCommodity("ELC"),
+      newDemand("DEM_ELC", commodity = "ELC",
+                demand = data.frame(timeslice = c("h1", "h2"), demand = c(10, 10))),
+      newSupply("SUP_ELC", commodity = "ELC", supply = data.frame(cost = 1)),
+      newImport("IMP_ELC", commodity = "ELC",
+                import = data.frame(timeslice = c("h1", "h2"), imp.fx = c(0, 4), price = 0)),
+      newExport("EXP_ELC", commodity = "ELC",
+                export = data.frame(timeslice = c("h1", "h2"), exp.fx = c(3, 0), price = 0))),
+    calendar = cal, region = "R1", horizon = newHorizon(2025), discount = 0)
+  scen <- suppressMessages(suppressWarnings(interpolate_model(mod, name = "ie_slice")))
+  scen <- .fork_solve(scen, solver_options$glpk)
+  expect_true(verify_solution(scen)$ok)
+  expect_equal(ff_solution_sum(scen, "vImportRow"), 4, tolerance = 1e-6)
+  expect_equal(ff_solution_sum(scen, "vExportRow"), 3, tolerance = 1e-6)
+  # supply covers demand 20 - import 4 + export 3
+  expect_equal(.fork_objective(scen), 19, tolerance = 1e-6)
+})

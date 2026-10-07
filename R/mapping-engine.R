@@ -722,7 +722,7 @@ recipe_calendar <- function(scen, names, fmp) scen
   zero_keys <- up_keys <- lo_keys <- NULL
   if (!is.null(prow)) {
     prow <- as.data.frame(prow)
-    kc   <- intersect(c(key, "region", "year"), colnames(prow))
+    kc   <- intersect(c(key, "region", "year", "timeslice"), colnames(prow))
     is_up <- prow$type == "up" & !is.na(prow$value)
     is_lo <- prow$type == "lo" & !is.na(prow$value)
     z <- unique(prow[is_up & prow$value == 0, kc, drop = FALSE])
@@ -733,21 +733,36 @@ recipe_calendar <- function(scen, names, fmp) scen
     if (nrow(u) > 0) up_keys   <- u
     if (nrow(l) > 0) lo_keys   <- l
   }
+  # A bound row naming a timeslice of its own row domain acts on that slice
+  # only; a row with NA or another level's slice acts on every slice.
+  by_slice <- function(d) {
+    if (is.null(d) || !"timeslice" %in% colnames(d)) return(list(d))
+    own <- !is.na(d$timeslice) &
+      paste(d[[key]], d$timeslice) %in% paste(base[[key]], base$timeslice)
+    Filter(Negate(is.null), list(
+      if (any(own)) d[own, , drop = FALSE],
+      if (any(!own)) unique(d[!own, setdiff(colnames(d), "timeslice"), drop = FALSE])))
+  }
+  join_keys <- function(m, keys) {
+    j <- dplyr::bind_rows(lapply(by_slice(keys), function(k)
+      dplyr::inner_join(m, k, by = colnames(k))))
+    dplyr::distinct(j)
+  }
 
   m_row <- base
   if (!is.null(zero_keys)) {
-    m_row <- dplyr::anti_join(m_row, zero_keys, by = colnames(zero_keys))
+    for (k in by_slice(zero_keys)) m_row <- dplyr::anti_join(m_row, k, by = colnames(k))
   }
   m_row <- .reduce_dup(m_row[, intersect(out_cols, colnames(m_row)),
                             drop = FALSE])
 
   m_up <- meq_lo <- m_cumup <- NULL
   if (!is.null(up_keys) && nrow(m_row) > 0) {
-    j <- dplyr::inner_join(m_row, up_keys, by = colnames(up_keys))
+    j <- join_keys(m_row, up_keys)
     if (nrow(j) > 0) m_up <- j
   }
   if (!is.null(lo_keys) && nrow(m_row) > 0) {
-    j <- dplyr::inner_join(m_row, lo_keys, by = colnames(lo_keys))
+    j <- join_keys(m_row, lo_keys)
     if (nrow(j) > 0) meq_lo <- j
   }
   if (!is.null(pres)) {
