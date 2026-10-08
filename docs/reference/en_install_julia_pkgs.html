@@ -13,7 +13,7 @@
 
     <a class="navbar-brand me-2" href="../index.html">energyRt</a>
 
-    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9016</small>
+    <small class="nav-text text-danger me-auto" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Unreleased version">0.90.0.9017</small>
 
 
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbar" aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation">
@@ -82,14 +82,17 @@
 
 <dl><dt id="arg-pkgs">pkgs<a class="anchor" aria-label="anchor" href="#arg-pkgs"></a></dt>
 <dd><p>A character vector of Julia packages to install. The default is
-<code>c("JuMP", "HiGHS", "Cbc", "Clp", "Arrow", "RData", "RCall",
-"CodecBzip2", "Gadfly", "DataFrames", "Dates")</code>. <code>Arrow</code> is required for
-the default data exchange (see <code><a href="exchange_format.html">get_exchange_format()</a></code>).
-If you have pre-installed CPLEX or Gurobi, you can add them to the list.</p></dd>
+<code>c("JuMP", "HiGHS", "GLPK", "Cbc", "Arrow", "RData", "DataFrames")</code>:
+the solvers the shipped <code>julia_*</code> presets name, plus <code>Arrow</code> for the default
+data exchange (see <code><a href="exchange_format.html">get_exchange_format()</a></code>), <code>RData</code> for the
+<code>julia_highs_rdata</code> preset, and <code>DataFrames</code>, which the generated code uses.
+The <code>julia_cplex*</code> and <code>julia_cuopt*</code> presets need <code>CPLEX</code> / <code>cuOpt</code>, which
+are licensed or GPU-specific and so are not installed by default – add them
+to <code>pkgs</code> yourself. <code>Dates</code> is a Julia standard library and needs no install.</p></dd>
 
 
 <dt id="arg-update">update<a class="anchor" aria-label="anchor" href="#arg-update"></a></dt>
-<dd><p>logical; also run <code>Pkg.update()</code> before installing.</p></dd>
+<dd><p>logical; also run <code>Pkg.update()</code> after adding the packages.</p></dd>
 
 </dl></div>
     <div class="section level2">

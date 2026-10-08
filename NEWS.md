@@ -1,295 +1,33 @@
 # energyRt (development version)
 
-## Test tier `nightly` renamed to `full`
+## License
 
-* `ENERGYRT_TEST_TIER=nightly` is now `full` (`check < fast < cross < full`).
-  The old value is **rejected**, not aliased: the tier named a schedule that
-  does not exist -- there is no CI and the tier has only ever been run by hand
-  -- while `full` names what it is, the whole suite with nothing excluded. A
-  scheduled job may still be called "nightly" and run `ENERGYRT_TEST_TIER=full`.
+* energyRt is relicensed from AGPL-3 to **Apache-2.0**. Releases up to and 
+  including v0.89 remain available under AGPL-3.
 
-* Renamed with it: `tools/test/run_nightly.R` -> `run_full.R`,
-  `test-nightly-deep.R` -> `test-full-deep.R`, and the golden suite
-  `topia_nightly` -> `topia_full` (file, suite key and `ut_full_entries()`
-  together -- a golden whose name does not match is SKIPPED, not failed, so a
-  partial rename would have gone unnoticed).
+## Breaking changes
 
-* Reports now land in `tmp/test-reports/full-<timestamp>-<pid>.md`.
+* The test tier `nightly` is renamed `full` (`check < fast < cross < full`).
+  `ENERGYRT_TEST_TIER=nightly` is rejected rather than aliased, and the report
+  of a full run is written to `tmp/test-reports/full-<timestamp>-<pid>.md`.
 
-## `print()` works on energyRt objects
+* The parameter behind `trade@varom$varom` is renamed `pTradeIrCost` ->
+  `pTradeIrVarom`, with no alias: a `modInp` saved under the old name must be
+  rebuilt from source. `pTradeIrMarkup` and the import/export cost variables
+  keep their names, because each of those variables combines both parameters.
 
-* The hand-written printers for `technology`, `demand`, `supply`, `config`,
-  `model` and `scenario` were never `S3method()`-registered, so `print(obj)`
-  from user code never reached them and fell back to the default S4 slot dump.
-  They are registered now. The five that took only `(x)` gained `...` to match
-  the generic's signature.
+* Auxiliary flows (`@aux` / `@aeff` on technologies and storages) sit at the
+  AUXILIARY commodity's timeslices rather than the process's, so an ANNUAL aux
+  commodity gets one row per year. Capacity-type couplings (`cap2ainp`,
+  `ncap2ainp`, `pho2a*`, `ret2a*`, and the storage part couplings) are now
+  per-year coefficients booked into each aux slice as its share of the year; a
+  coupling that named a single `timeslice` to work around the old per-slice
+  division should drop it.
 
-* `print.region` was removed instead: nothing in the package defines a `region`
-  class any more (regions are plain character vectors), so its `x@name` could
-  never resolve. Archived under `drafts/`.
-
-
-## Scales core renamed
-
-* The scales core is now `discretescales` (formerly `multiscales`), and
-  `geoscales`/`timescales` 0.6.0 are required. `topia$geoscales` were
-  re-stamped against the renamed class.
-
-## TOPIA's transmission links now carry a flow cost
-
-* The `TBD_ELC_*` corridors in `topia$modules$electricity` (R3/R7/R11) set
-  `@varom$varom` to 2 EUR/MWh, via `convert("EUR/MWh", "MEUR/PJ", 2)`. They had
-  no flow cost at all, so a built corridor was free to use and only the 3%
-  `teff` loss discouraged trade -- regional prices converged further than they
-  should. `@markup` is deliberately left unset: it is a transfer between the two
-  regions, not a resource cost, and cancels in the objective.
-
-* `base_R3` moves from 51233.34 to 51246.75 (+0.026%). The direction is the
-  check that matters: adding a cost to a feasible solution cannot lower the
-  optimum. Dispatch shifts more than investment, as a variable cost should --
-  coal output in the exporting region W1 falls 1.1% while new capacity moves by
-  0.01%. R1 is single-region and unchanged.
-
-* Solved goldens re-frozen for it. `topia.json` is attributable to this change
-  alone -- every R1 entry is unchanged and `base_R3`'s whole delta is the
-  13.41 above. `topia_nightly.json` follows: `base_R7` 121197.70 -> 121236.78
-  (+39.09), `base_R11` 190905.19 -> 190970.63 (+65.44). Per corridor that is
-  6.70 / 6.51 / 6.54 across the three layouts -- flat, as a per-unit wheeling
-  charge on a scaled-up network should be.
-
-## Basecode cleanup
-
-* `browser()` is gone from shipped code. Twenty calls remained, each of which
-  halted a non-interactive run -- `Rscript`, CI, a `callr` child -- instead of
-  erroring. Five sat immediately in front of a `stop()` that already did the
-  right thing; four marked an unparsable equation template and now say so;
-  the rest became internal consistency warnings reported under
-  `options(en.debug = 1)`, the mechanism that option was declared for.
-
-* Fourteen internal assertions had been disabled by a find-and-replace that left
-  `invisible()` where `browser()` had been: the condition still ran and its
-  result was discarded. One of them swallowed a `try-error`, letting a corrupted
-  table flow on and fail later with an unrelated message; it now reports the
-  original error.
-
-* `.force_year_class_df()` tested `inherits(dtf, "integer")` on a data frame,
-  which is never true, so every year column was coerced unconditionally. The test
-  now applies to the column, as its sibling `force_cols_classes()` always did.
-
-* About 8,900 lines of dead weight left `R/` and `data-raw/`: two superseded
-  `modInp` specs that nothing read (verified -- `sysdata.rda` is byte-identical
-  without them), 32 `if (F)` REPL scratchpads, and six functions no caller
-  reached, one of which could not run at all. All archived under `drafts/`.
-
-* A further 27 internal functions no caller reached left `R/` (381 lines across
-  14 files), among them a superseded 79-line Julia code generator that
-  `.toJuliaHead()` and the Arrow data path replaced, a stand-alone EAC formula
-  the model templates already carry, and a function with an empty body. Each was
-  checked for a quoted-name or `do.call()` reference, for `S3method()`
-  registration, for export, and for `energyRt:::` access from the sibling
-  packages before removal; none is documented, so no help topic changed.
-  Archived under `drafts/`.
-
-* Comment hygiene: 32 `R/<file>.R` references pointed at files deleted in the
-  Sept-Oct regrouping, including a line citation into a deleted file. A note
-  duplicated across six writers is now stated once on `get_data_slot()`. New test
-  `test-comment-refs.R` fails if a comment names an `R/` file that does not
-  exist, excluding provenance markers and paths in other trees.
-
-## A testing-strategy article
-
-* New article, *Testing strategy* (`vignettes/articles/testing.Rmd`), on a new
-  **Development** navbar menu beside the roadmap. It covers why coverage is
-  tracked over model vocabulary rather than lines, why tiers replaced
-  `skip_on_cran()`, why goldens are gated on `verify_solution()`, and -- at
-  length -- what the suite deliberately does not test.
-
-## An infeasible solve is a result, not a crash
-
-* `solve_scenario()` raised `"Solution files not found"` when the solver
-  concluded that a model has no solution. An infeasible or unbounded model is an
-  answer, so it now returns the scenario with an empty `modOut` and warns with
-  the solver's own verdict; the objective reads as `NA`. Missing output files
-  with **no** verdict still raise an error -- that is a solver that never ran,
-  not a model without a solution.
-
-* GLPK could not report this at all. GNU MathProg aborts the whole script when
-  `solve` fails, so no post-solve statement runs, and `glpsol` exits 0 either
-  way. Its command line now carries `--log output/solver.log`, which keeps a copy
-  of the solver's terminal output in the run directory -- the only place its
-  verdict survives. Pyomo and GAMS already recorded a real solution status;
-  nothing read it.
-
-## `pTradeIrCost` renamed to `pTradeIrVarom`
-
-* The parameter behind `trade@varom$varom` is now `pTradeIrVarom`. Its old name
-  was the only one in the `pTradeIr*` family that contradicted its own
-  registration -- `modInp.yml` has always recorded `colName: varom` -- and the
-  pair `Cost`/`Markup` gave no hint that one is a resource cost and the other a
-  transfer. `Varom`/`Markup` does, and it matches `pTechVarom` and
-  `pStorageVarom`. The `Ir` prefix still marks every route-indexed
-  (`src`, `dst`) parameter.
-
-* **A hard break, with no alias.** A `modInp` serialized under the old name must
-  be rebuilt from source; the interpolation goldens were re-frozen in this
-  commit. `pTradeIrMarkup` and the `vImportIrCost`/`vExportIrCost` variables are
-  unchanged -- those variables each combine BOTH parameters, so naming either of
-  them after one would be wrong.
-
-* Not to be confused with `pTradeVarom`, a different parameter that no equation
-  ever read and that was removed earlier.
-
-## `levcost()` prices a corridor's variable O&M
-
-* `levcost()` on a `trade` object ignored `@varom`, so a corridor with a
-  variable O&M rate was priced below what the model actually pays. Both engines
-  dropped it: the closed form had no varom term, and the solve path read only
-  `vTradeEac`/`vTradeFixom` while the mini-model's objective charged
-  `pTradeIrCost` through `eqExportIrCost`. `@varom$varom` is now priced on the
-  quantity SENT -- the contribution to the levelized cost is `varom / teff`,
-  since the rate is paid at `src` and the metric divides by what arrives.
-
-* `@varom$markup` is deliberately not priced. A markup is a transfer: the
-  importing region pays it and the exporting region receives it, so it cancels
-  between `eqImportIrCost` and `eqExportIrCost` and leaves the objective
-  unchanged. `levcost()` says so once instead of warning, and the previous
-  warning -- which claimed no backend reads either column -- is gone, because
-  three backends read both.
-
-* A `@varom` carrying sub-annual `timeslice` rows is refused by the closed form
-  rather than averaged, so `method = "auto"` falls back to the solver.
-
-* Exogenous stock: `pXStockNew` now records commissioning only. The level at
-  the first milestone is an initial condition, and `eqXStockCap` /
-  `eqXPhaseOut` read it from `pXStock` under `$mMilestoneFirst` instead of
-  folding it into `pXStockNew`. Solutions are unchanged. The derived
-  `pXStockNew` / `pXStockSurv` also no longer declare an interpolation rule,
-  which never applied to them -- they are computed after interpolation.
-
-* The `lang = "mm"` backend now forwards solver options: a preset's
-  `highs_options` (a named list, e.g. `list(presolve = "off")`) is passed to
-  HiGHS.
-
-* `clusterscales` is merged into `discretescales`, so region clustering and the
-  scale it is built on come from one package: `discretescales` replaces both in
-  `Suggests`.
+* The scales core is `nestedscales` (formerly `multiscales`), `clusterscales` is
+  merged into it, and `geoscales` / `timescales` (>= 0.6.0) are required.
   `get_process_groups()`, `process_cluster_sweep()` and `model_clusters()` are
   unchanged for callers.
-
-## Commodities balanced at a coarse geoframe reach the regions below
-
-* A commodity with a coarse `@geoframe` is now available in every region of
-  the cell it is supplied or produced in. A plant in a NUTS3 region burning a
-  fuel supplied at NUTS0 used to be judged without input and dropped from the
-  model; it now runs. A commodity at the finest level still does not spread
-  to neighbouring regions.
-
-* Discount rates can be declared at any geoscale level: a `discount` row with
-  `region` = a country applies to every region below it, and a region's own
-  rows override its parent's. A process declared at a coarse cell (a
-  substation builder, a VRE technology at NUTS0 over NUTS3 regions) uses the
-  rate declared for that cell, else the rate its children share. It used to
-  find no `wacc` and annuitise at 0% (`invcost / olife`). Where the children
-  differ and the cell declares none, the process is refused by name -- and only
-  then: differing children are not an error by themselves.
-
-* A technology's investment cost given without a region was dropped from the
-  annualised cost when another technology's cost named a region: the region-less
-  rows matched nothing, and the capital was free in the solver. Both now land.
-
-* `verify_solution()` no longer double-counts the totals of a coarse region at
-  a timeslice coarser than the commodity's own: the region roll-up applies at
-  the commodity's timeslice only, as in the model equations.
-
-## Auxiliary flows at the auxiliary commodity's timeframe (breaking)
-
-* Auxiliary flows (`@aux` / `@aeff` on technologies and storages) now sit at
-  the AUXILIARY commodity's timeslices, not the process's. An ANNUAL aux
-  commodity gets one row per year instead of one per process slice, which
-  removes most aux rows from hourly models.
-
-* Capacity-type couplings (`cap2ainp`, `ncap2ainp`, `pho2a*`, `ret2a*` and the
-  storage `out.`/`inp.`/`stg.` part couplings) are now PER-YEAR coefficients,
-  booked into each aux slice as its share of the year. Previously they applied
-  in every slice divided by `cap2act`, which equalled the annual figure only
-  on a full hourly calendar with `cap2act = 8760`. A coupling that named one
-  slice to avoid that multiplication should now drop the `timeslice`.
-
-* Flow-type couplings (`act2a*`, `cinp2a*`, `cout2a*`, storage level, charge
-  and discharge) are summed over the process's slices inside each aux slice;
-  their annual totals are unchanged.
-
-## Variant levelized-cost figures in `report()`
-
-* `autoplot()` on a variant fan-out gains `x` and `facet`, so a vintage x
-  cluster x region grid can be compared along any of its axes:
-  `autoplot(lc, x = "cluster", facet = "vintage")`. The dimensions come from the
-  fan-out's own provenance, not from parsing variant names. A dimension left off
-  both `x` and `facet` is AVERAGED, never summed -- a levelized cost is a rate --
-  and the figure caption says so.
-
-* `report()` on a technology with variants now adds a figure per varying
-  dimension beside the combined chart: clusters within each vintage, vintages
-  within each cluster, and regions when they vary (including the nested
-  `by_region = TRUE` shape). A dimension that does not vary is skipped rather
-  than drawn as a panel that says nothing, panel counts are capped, and x labels
-  rotate once they would collide.
-
-## `levcost()` pricing timeframe
-
-* `levcost(method = "solve")` could not price a technology declaring a
-  sub-annual `@timeframe` (hourly wind or solar, typically): the model failed
-  with `pTechAfLo[...,HOUR] out of domain`. The default ANNUAL collapse rewrote
-  the weather profile and the commodity timeframe but left the process itself
-  declaring its sub-annual timeframe, so the timeslice domain stayed hourly
-  while the calendar held a single ANNUAL slice. Both now collapse together.
-  The analytic engine was unaffected, so `method = "auto"` usually hid this.
-
-* `timeframe` gains `"auto"`, now the default, and `levcost()` no longer
-  annualizes a process when the collapse would misrepresent it. Two cases are
-  detected: more than one `@weather` factor on one process (the annual mean of a
-  product is not the product of the annual means, so the pair has no single
-  annual equivalent), and parameter rows pinned to a named sub-annual timeslice
-  (the slice stops existing). `"auto"` prices such a process on its native
-  timeframe and says so; an explicit `timeframe = "ANNUAL"` now declines with
-  the reason instead of returning a number built on an invalid collapse.
-
-* `levcost(timeframe = "native")` on a sub-annual process now requires an
-  explicit `calendar = ` instead of silently defaulting to an annual calendar
-  its timeslices do not fit -- which previously surfaced as an out-of-domain
-  solver error. `levcost()` does not choose a sub-annual calendar for you: the
-  choice changes both the problem size and the numbers.
-
-## `levcost()` bug fixes for vintaged and clustered technologies
-
-* `levcost()` returned `NA` for every variant of a technology whose `@invcost`,
-  `@fixom` or `@varom` carried a `region` column. Each variant cell is priced in
-  its own artificial region, but the cost rows kept the real region name and so
-  matched nothing: the cell was costed at zero and reported `NA` on the analytic
-  path, and failed to solve on the solver path. The region column now moves with
-  the cell. Technologies translated from other frameworks almost always carry
-  that column, so any vintage or cluster fan-out over them was affected.
-
-* A vintage whose `@vintage` build window falls outside the priced horizon was
-  reported at a levelised cost of **zero** instead of being priced. `levcost()`
-  now drops the build window on the technology path, as it already did for
-  storage and trade -- the question is what a unit of that vintage costs, not
-  whether it could have been built inside the horizon.
-
-## `process` is a model set
-
-* `process` — the union of `supply`, `demand`, `technology`, `storage`,
-  `export`, `import` and `trade` — is now a declared set on every backend, not
-  just an internal R grouping. In GAMS the seven classes are declared as subsets
-  of it (`tech(process)`), so the compiler domain-checks membership. Nothing is
-  indexed over `process` yet, so no solution changes.
-
-* `getData(process = "<name>")` selects a process by name, and
-  `getData(process_ = "<regex>")` by pattern, across all seven classes at once.
-  `process = TRUE` still only renames the class id column, as before.
-
-
-## Timeslice conversions moved to timescales
 
 * The timeslice label conversions are gone from energyRt. `tsl2hour()`,
   `tsl2yday()`, `tsl2month()`, `tsl2dtm()`, `dtm2tsl()`, `hour2HOUR()` and
@@ -297,184 +35,28 @@
   CALENDAR instead of parsing the label text -- so they take the calendar:
   `timescales::tsl2hour(tsl, "d365_h24")`. timescales moves from Suggests to
   Imports. A hard break, no aliases.
+
 * `tsl2year()`, `tsl_guess_format()` and the `tsl_formats` dataset are removed
   and not replaced. Guessing a layout from the label text is what the calendar
   replaces, and no timescales calendar carries a `YEAR` timeframe -- the year
   belongs in a column, not in the label. They are kept for reference in
   `drafts/deprecated-timeslice-conversions-2026-09-26.R`.
+
 * **`calendar` is now required** wherever a timeslice layout is needed.
   `plot_timeslices()`, `plot_heatmap()` and `autoplot()` on a timeslice-indexed
   object take a `calendar` object or the name of one (`"d365_h24"`); without it
   the timeslices are drawn in order rather than laid out by timeframe.
   `storage_duration()` takes the calendar from the scenario, so it needs nothing
   new.
-* This fixes wrong answers rather than only moving code. The old guesser read
-  `"s1_h01"` as hour 1 and silently discarded the `"s1"`, and read `h168`
-  hour-of-week labels (`"h000"`..`"h167"`) as hours of the day. It also could
-  not read `m12a` (`"JAN"`..`"DEC"`), `wd7` (`"MON"`..`"SUN"`), `q4` or `s4`
-  labels at all, returning `NULL`. All of those work now.
-* `plot_weather(datetime = TRUE)` produces a real datetime axis where it
-  previously fell back to the categorical one: dating a timeslice needs a year,
-  and the year is now taken from the data's `year` column.
-* Every energyRt calendar converts, including the sampled and subset ones
-  (`d365_h24_1dps`, `m12_h24_subset_4months`, ...) that have no entry in
-  timescales' catalog: the calendar is rebuilt from its own `@timetable`.
-  energyRt's timeframe names are matched by what their labels ARE, so a
-  timeframe named `DAY` lands on timescales' `YDAY`.
 
-* **Bug fix:** a trade `invcost` with no `region` was charged once per region
-  OF THE MODEL, not once per endpoint of the route -- six charges on a
-  six-region model for a two-ended corridor, growing with the model rather than
-  the route. `fixom` was always correct. A trade's investment window carries no
-  region, so the rate reached the annuity step with nothing to carry it and the
-  dense `pTradeEac` materialised a row per region; it now expands over the
-  process's own regions, i.e. the route endpoints.
-
-* An unregioned trade cost now says so more firmly, recommending that the
-  regions be named, while noting what the unregioned form is good for: the rate
-  follows whichever endpoints survive, so a sampled sub-model bears its own
-  share.
-
-* `subset_model_regions()` warns when sampling splits a geoscale cell that a
-  trade cost is declared at. Such a cost is charged once at the cell whatever
-  remains beneath it, so the sub-model keeps the whole corridor's cost instead
-  of its share and its objective is not comparable with the full model's.
-
-* **Bug fix:** `levcost()` on a repository or model priced every process as if
-  it lived in the container's *first* region. A technology anywhere else had
-  its `invcost`, `fixom` and `ceff` rows subset away and reported fuel cost
-  only -- around 25x too cheap, with no warning.
-
-* `levcost(by_region = TRUE)` prices a process once per region it spans and
-  returns a `levcost_list` named by region, rather than once in one of them.
-  On a container the entries are named `<process>@<region>`. `trade` is
-  unaffected: it spans two regions by construction and is priced across both.
-
-* **Breaking:** the three unrelated things called `share` are now named for
+* The three unrelated things called `share` are now named for
   what they are a share OF. `@cluster$share` is `cap.share.fx` (the capacity
   ratio, an equality), `@ceff$share.lo/up/fx` is `grp.share.lo/up/fx` (the
   input-group mix for co-firing), and the new `act.share.lo/up/fx` bounds a
   cluster's share of its family's throughput. `lossTranches()` emits the new
   name. The timeslice share (`calendar@timetable$share`) is untouched.
 
-* `@cluster` is declared the same way on every process class: `cluster`,
-  `desc`, `order` always; `region` where the class has regional scope;
-  `cap.share.fx` where it has a capacity to tie; `act.share.*` everywhere.
-  `technology` and `storage` gain `cap.share.fx`, `import` and `export` gain
-  `region`. `supply`, `import` and `export` have no `cap.share.fx`: they have
-  no capacity variable, so the column is absent rather than accepted and
-  ignored -- declaring one is now an error that points at `act.share`.
-
-* `act.share.lo/up/fx` bounds a cluster's share of its family's activity.
-  Unlike `afs`, which bounds activity against the cluster's OWN capacity and
-  can be satisfied by building less, a share of the family can only be met by
-  keeping capacity. This is what stops a clustered family collapsing to its
-  cheapest member once regional borders are aggregated away. No new equation:
-  it rides the `newConstraint()` path, and binds on GLPK and multimod alike.
-
-* Cluster shares are guarded rather than silently skipped. A cluster missing a
-  variant in one vintage used to leave that vintage untied with no warning;
-  stock out of proportion used to give a bare infeasibility. Both now error and
-  name the cluster.
-
-* **Fixed:** `aggregate_model_regions()` lost data when it merged trade
-  corridors. `@capacity` was not recombined, so only the first corridor's
-  bounds survived; `@vintage` came back empty, losing `olife` on every
-  aggregated corridor, merged or not; costs took an unweighted mean; the merge
-  key saw tranche labels but not their shares, so corridors whose shares
-  differed merged and silently adopted the first one's; `reactance` was
-  averaged instead of combined as `1/x_eq = sum(1/x_i)`; a one-way corridor
-  became bidirectional; and two corridors minting the same name overwrote one
-  another. No test had ever merged two corridors.
-
-* `aggregate_model_regions(clusters = list(TRD = k))` partitions a family of
-  corridors into `k` merged objects instead of collapsing every corridor
-  between a pair of coarse regions into one. Merging unlike corridors replaces
-  a fill-the-best-first delivery curve with its chord -- on a 100-unit link at
-  0.99 beside a 20-unit link at 0.90 that costs 1.5% of the energy delivered
-  below saturation. `k` runs from one part per coarse pair (plain aggregation)
-  to one per corridor; parts become separate objects, because a trade's
-  `@cluster` is a loss tranche. `k` above the floor is refused when a corridor
-  carries a reactance: parallel AC circuits split flow by impedance, not by
-  optimisation.
-
-* `get_process_groups()` reports corridor families, with `n` counting
-  corridors rather than regions. `model_clusters()` returns their crosswalk
-  and no geoscale -- a corridor has no territory to colour.
-
-* `aggregate_model_regions(clusters = )` keeps the regional spread as
-  `technology@cluster` variants instead of averaging it away. Settings are per
-  technology family -- `clusters = list(ECOA = list(k = 3), EWIN = list(k = 8))`
-  -- because one `k` for the model is meaningless: a coal fleet groups on cost
-  and efficiency, a wind fleet on resource quality and profile shape. A family
-  not named is aggregated plainly, so `clusters = NULL` is the old behaviour
-  exactly. A bare number is accepted only when the model has one family; with
-  more it is an error naming them. `k` runs from one cluster per coarse region
-  (identical to plain aggregation) to one per fine region (nothing averaged);
-  `k = "auto"` picks the best average silhouette and returns the sweep, but
-  sweeping and looking is the documented workflow. Clusters cannot straddle a
-  coarse region: the adjacency graph has no edge crossing one.
-
-* `aggregate_model_regions(as = "objects")` returns one technology per
-  (family x cluster), named with the cluster's label (`ECOA_W1`), instead of one
-  object carrying clusters. Same LP; what differs is how results are keyed.
-
-* `process_cluster_sweep()` clusters one family over the admissible range of `k`
-  and reports dispersion, silhouette and the cluster sizes, over the same
-  features and contiguity graph the aggregation would use -- so the table you
-  read is the grouping you would get. `clusterscales` ships no `best_k()`
-  deliberately, and neither does this.
-
-* `model_clusters()` reports what a clustered aggregation did: the `k`, the
-  region-to-cluster crosswalk, the sweep, and a geoscale carrying a `cluster`
-  geoframe, so `plot_geoscale(type = "map", geoframe = "cluster")` and
-  `type = "icicle"` show the grouping with no new plotting code.
-
-* `get_process_groups()` reports which processes may be merged into one
-  clustered object, grouped by structure -- inputs, outputs, aux commodities
-  and input groups -- so a coal plant and a gas plant are never merged. It
-  accepts a technology that already spans several regions, one object whose
-  slots carry a `region` column, and clusters it exactly as it does a family
-  of one-object-per-region technologies.
-
-* A technology that **already has clusters** keeps them when its regions are
-  coarsened: the two groupings compose, `GOOD` in `W1` becoming `GOOD_W1`.
-  Previously the incoming `cluster` column was dropped, so a fleet with two
-  site grades over four regions came back with four averaged variants instead
-  of eight -- silently. Clustering features are read per (cluster, region) for
-  the same reason.
-
-* A cluster of one region is labelled with that region's code, so the 1:1 end
-  reads `ECOA_CLW1` rather than `ECOA_CLc03`; several regions join with `_`
-  while that stays a legal name. `@cluster$desc` carries the membership either
-  way.
-
-* A clustered aggregation resolves a **link** column (`weather`, `transform`)
-  to the cluster **medoid**'s value. These name another object, so they can be
-  neither summed nor averaged, and treating them as keys gave one cluster a row
-  per member. A medoid is a real member, so the merged cluster gets a profile
-  some region actually had.
-
-* `k` is checked against the geoframe before `clusterscales` sees it, so an
-  out-of-range `k` names the level and its bounds instead of reporting "the
-  units fall into 3 group(s)".
-
-* **Fixed:** `aggregate_model_regions()` read only the model's first
-  repository. `add()` appends a repository rather than growing one, so a model
-  built up object by object kept its later objects out of `@data[[1]]` -- and
-  those came back declared over the FINE regions in a model whose regions were
-  now coarse, silently. It now reads every repository and returns one.
-
-* New article, `vignette("region-aggregation")`: five experiments on one model,
-  measuring when aggregating regions changes the answer and when it does not.
-  Two settings leave it untouched, three move it -- including one where the
-  aggregated model comes out **cheaper** than the model it came from, because
-  pooling granted transmission that did not exist. `clusterscales` and
-  `discretescales` are Suggests; `dev/region-aggregation-model.R` holds the
-  shared model and
-  `dev/verify-region-aggregation.R` checks every number the article prints.
-
-* **Breaking:** the `topia` dataset now carries `geoscales`, a named list of
+* The `topia` dataset now carries `geoscales`, a named list of
   four [geoscales::Geoscale] objects (`squares`, `honeycomb`, `island`,
   `continent`) holding the region hierarchy *and* that layout's polygons.
   `topia$map`, `topia$geo`, `topia$modules$maps` and the `topia_geoscale()`
@@ -493,13 +75,6 @@
   loads the `geoscales` namespace, so it can no longer be optional.
   `timescales` comes along as a transitive dependency of `geoscales`.
 
-* `plot_trade_map()` derives the `x`/`y` label anchors from the polygons when a
-  plain `sf` map does not carry them, so any `sf` works as a `map` argument.
-
-* `data-raw/topia_maps.R` and `data-raw/topia_data.R` are idempotent:
-  rebuilding the dataset no longer rotates the honeycomb rings or adds a
-  duplicate provenance tag to the weather `source` attribute.
-
 * TOPIA regions are renamed `W1`, `W2`, `C1`..`C6`, `E1`..`E3` (was
   `R1`..`R11`), in west-to-east order. Each layout now
   assigns the codes so that every zone is one contiguous block on the
@@ -507,95 +82,6 @@
   regional endowments are unchanged. Trade objects follow the region
   names (`TBD_ELC_R1_R2` is now `TBD_ELC_W1_W2`), and the TOPIA goldens
   are rebaselined: all objectives are unchanged.
-
-* Milestone years can carry a display label. `newHorizon()` accepts a `label`
-  column in `intervals`, and the new `year_label()` returns one label per
-  milestone. The label is presentation only: the model key for a period stays
-  the integer `mid`, and nothing reaches the solver.
-
-* `calendar` gains `year_start` (`list(month = , day = )`, default January 1)
-  and `utc_offset_minutes`. A non-January anchor makes the default milestone
-  labels fiscal (`FY2025-26`), following the `timescales` convention that the
-  anchored year is the starting Gregorian year. The anchor is carried and
-  reported; it does not yet drive timeslice-to-timestamp alignment. Calendars
-  imported from `timescales` keep both values instead of dropping them.
-
-* `getData(yearsAsFactors = TRUE)` returns `year` as an ordered factor of
-  labels, with levels in horizon order. It previously left an integer `year`
-  untouched.
-
-* `audit_coefficients()` reports the coefficient range of a written model per
-  equation family (widest row, the variable at each end of it, counts per
-  decade), from the free-MPS form `glpsol` re-emits. `dev/coefficient-ranges.md`
-  holds the table for the test fixtures and TOPIA.
-
-* `eqTechAInp` / `eqTechAOut` are multiplied through by `pTechCap2act` in all
-  four backends, so no coefficient in them is a division. Parameters keep
-  their meaning; the LP is the same problem with those rows scaled.
-
-* `validate_scenario_parameters()` adds the advisory `coefficient_scale`
-  check: a technology, trade or storage whose `cap2act x finest timeslice
-  share` is outside `[1e-4, 1e4]` is named with the `cap2act` that would put
-  the product near 1. On an hourly calendar with `cap2act = 1` the capacity
-  coefficient in the availability rows is 1.1e-4 against 1 on the activity.
-
-
-## License
-
-* energyRt is relicensed from AGPL-3 to **Apache-2.0**. Releases up to and 
-  including v0.89 remain available under AGPL-3.
-
-* A `weather` object can be declared at a COARSER region than the processes
-  that use it — one profile per `adm1` feeding all of its `adm2` children —
-  and is stored once instead of copied per child. A process reads the series at
-  its own region when the object serves it, otherwise at the nearest ancestor
-  that does (`mWeatherRegionAt`); a flat model resolves through identity rows to
-  exactly the previous lookup. Verified identical on GLPK, GAMS, JuMP and Pyomo.
-  A link that resolves to nothing is now an error: the factor is multiplicative
-  and `pWeather` defaults to 0, so it used to shut the process down silently.
-  `subset_model_regions()` keeps a parent profile its children still need,
-  `aggregate_model_regions()` passes one through when it already sits at the
-  target level (and refuses between two non-atom levels), and `levcost()`
-  follows it down to the technology — it previously lost the capacity factor
-  and reported a 33% lower levelised cost with no warning.
-
-* `interpolate_model(fold = TRUE)` now folds `year` as well as `region` and
-  `timeslice`. A weather series repeated across milestone years is usually the
-  largest parameter in the model, and the previous pair never touched it: on a
-  4-region `d365_h24` model over 7 milestones `pWeather` drops from 245,259 to
-  35,037 rows (-85.7%) and all value parameters from 443,545 to 71,215 (-83.9%),
-  with a bit-identical objective on GLPK and Pyomo/HiGHS. A dimension folds only
-  where the value is uniform across the whole set, so a model whose weather
-  genuinely varies by year is unchanged. Pass an explicit character vector to
-  choose the dimensions yourself; the `FALSE` default is unaffected.
-
-* On-disk stores write ~1M-row row groups instead of one per 32k-row record
-  batch. Stored data.frames are smaller (1.3x on model-shaped data, 2.2x on
-  a sorted hourly series) and scan faster; existing stores are unaffected
-  until rewritten.
-
-* `multimod_cloud` runs persist the COMPLETE job handle in `cloud_job.yml`
-  (via `mmcloud::cloud_handle_write()`), including the output-bucket
-  reference, so a finished job's solution is fetchable from any later
-  session.
-
-
-* New article "Space resolution: geoscales and geoframes" — what
-  `commodity@geoframe` asserts, which classes may be declared at a coarse
-  level and which may not, the nesting requirement, and when a coarse balance
-  replaces a `trade` route.
-
-* A region whose code repeats at two adjacent geoframes no longer poisons its
-  own balance. The self-pair reached `mRegionFamily`, so `eqOutTot` read
-  `vOutTot[c,r] = <terms> + vOutTot[c,r]` and forced every real term to zero;
-  such pairs are dropped with a message, and the region balances like a padded
-  one (`LU` vs Eurostat's `LU0`).
-* A geoscale whose `geoframes` do not nest is refused instead of silently
-  double-counting. Two cross-cutting frames in one chain give a region more
-  than one parent, and the roll-up is a plain unweighted sum, so the child was
-  added into both; the error names the frames and the straddling regions.
-
-## Breaking changes
 
 * `getData(process =)` now accepts a character value, which SELECTS the named
   process(es) rather than being read as a logical. A character value is always a
@@ -743,7 +229,255 @@
   renamed `d365_h24_1dpm` (solver working paths embed the calendar name);
   existing scenario folders keep their names.
 
+## Deprecations
+
+* `en_install_python_deps()` is deprecated. The Python environment is
+  set up by multimod, which energyRt and multimod now share.
+
 ## New features
+
+* A `weather` object can be declared at a COARSER region than the processes
+  that use it — one profile per `adm1` feeding all of its `adm2` children —
+  and is stored once instead of copied per child. A process reads the series at
+  its own region when the object serves it, otherwise at the nearest ancestor
+  that does (`mWeatherRegionAt`); a flat model resolves through identity rows to
+  exactly the previous lookup. Verified identical on GLPK, GAMS, JuMP and Pyomo.
+  A link that resolves to nothing is now an error: the factor is multiplicative
+  and `pWeather` defaults to 0, so it used to shut the process down silently.
+  `subset_model_regions()` keeps a parent profile its children still need,
+  `aggregate_model_regions()` passes one through when it already sits at the
+  target level (and refuses between two non-atom levels), and `levcost()`
+  follows it down to the technology — it previously lost the capacity factor
+  and reported a 33% lower levelised cost with no warning.
+
+* `interpolate_model(fold = TRUE)` now folds `year` as well as `region` and
+  `timeslice`. A weather series repeated across milestone years is usually the
+  largest parameter in the model, and the previous pair never touched it: on a
+  4-region `d365_h24` model over 7 milestones `pWeather` drops from 245,259 to
+  35,037 rows (-85.7%) and all value parameters from 443,545 to 71,215 (-83.9%),
+  with a bit-identical objective on GLPK and Pyomo/HiGHS. A dimension folds only
+  where the value is uniform across the whole set, so a model whose weather
+  genuinely varies by year is unchanged. Pass an explicit character vector to
+  choose the dimensions yourself; the `FALSE` default is unaffected.
+
+* On-disk stores write ~1M-row row groups instead of one per 32k-row record
+  batch. Stored data.frames are smaller (1.3x on model-shaped data, 2.2x on
+  a sorted hourly series) and scan faster; existing stores are unaffected
+  until rewritten.
+
+* `multimod_cloud` runs persist the COMPLETE job handle in `cloud_job.yml`
+  (via `mmcloud::cloud_handle_write()`), including the output-bucket
+  reference, so a finished job's solution is fetchable from any later
+  session.
+
+* `print()` shows the formatted summary for `technology`, `demand`, `supply`,
+  `config`, `model` and `scenario` objects. The printers existed but were never
+  registered, so `print(obj)` fell back to a raw slot dump.
+
+* `autoplot()` on a variant fan-out gains `x` and `facet`, so a vintage x
+  cluster x region grid can be compared along any axis, e.g.
+  `autoplot(lc, x = "cluster", facet = "vintage")`. A dimension left off both is
+  averaged, never summed, and the caption says so.
+
+* `report()` on a technology with variants adds a figure per varying dimension
+  beside the combined chart -- clusters within each vintage, vintages within
+  each cluster, and regions where they vary. Dimensions that do not vary are
+  skipped, panel counts are capped, and x labels rotate before they collide.
+
+* `levcost(timeframe = )` gains `"auto"`, now the default. A process that cannot
+  be annualised without misrepresenting it -- two `@weather` factors, or rows
+  pinned to a named sub-annual timeslice -- is priced on its native timeframe
+  instead, and an explicit `timeframe = "ANNUAL"` declines with the reason.
+  `timeframe = "native"` requires an explicit `calendar =`.
+
+* `process` -- the union of `supply`, `demand`, `technology`, `storage`,
+  `export`, `import` and `trade` -- is a declared set on every backend, so GAMS
+  domain-checks class membership. Nothing is indexed over it yet, so no solution
+  changes.
+
+* A commodity with a coarse `@geoframe` is available in every region of the cell
+  it is supplied or produced in. A plant in a NUTS3 region burning a fuel
+  supplied at NUTS0 used to be judged to have no input and dropped from the
+  model.
+
+* Discount rates can be declared at any geoscale level: a `discount` row naming
+  a country applies to every region below it, and a region's own rows override
+  its parent's. A process declared at a coarse cell takes that cell's rate, else
+  the rate its children share; where they differ and the cell declares none, the
+  process is refused by name.
+
+* The `lang = "mm"` backend forwards a preset's `highs_options` (a named list,
+  e.g. `list(presolve = "off")`) to HiGHS.
+
+* The TOPIA transmission corridors carry a 2 EUR/MWh flow cost. They had none,
+  so a built corridor was free to use and regional prices converged further than
+  they should; the solved reference values move by +0.03% or less.
+
+* `en_install_deps()` and `en_check_packages()` read the package list from
+  `DESCRIPTION` instead of a hard-coded copy, and install or report the
+  dependencies that are not on CRAN (`nestedscales`, `timescales`, `geoscales`,
+  `glpsol`, `multimod`, `mmcloud`) with their source. The one-line installer
+  does the same, so a fresh install now has a solver to work with.
+
+* `en_install_julia_pkgs()` installs the solvers the shipped `julia_*` presets
+  name -- `HiGHS`, `GLPK` and `Cbc` -- and no longer installs four packages the
+  model code never loads. `CPLEX` and `cuOpt` stay opt-in, one being licensed
+  and the other GPU-only.
+
+* `plot_weather(datetime = TRUE)` produces a real datetime axis where it
+  previously fell back to the categorical one: dating a timeslice needs a year,
+  and the year is now taken from the data's `year` column.
+
+* Every energyRt calendar converts, including the sampled and subset ones
+  (`d365_h24_1dps`, `m12_h24_subset_4months`, ...) that have no entry in
+  timescales' catalog: the calendar is rebuilt from its own `@timetable`.
+  energyRt's timeframe names are matched by what their labels ARE, so a
+  timeframe named `DAY` lands on timescales' `YDAY`.
+
+* An unregioned trade cost now says so more firmly, recommending that the
+  regions be named, while noting what the unregioned form is good for: the rate
+  follows whichever endpoints survive, so a sampled sub-model bears its own
+  share.
+
+* `subset_model_regions()` warns when sampling splits a geoscale cell that a
+  trade cost is declared at. Such a cost is charged once at the cell whatever
+  remains beneath it, so the sub-model keeps the whole corridor's cost instead
+  of its share and its objective is not comparable with the full model's.
+
+* `levcost(by_region = TRUE)` prices a process once per region it spans and
+  returns a `levcost_list` named by region, rather than once in one of them.
+  On a container the entries are named `<process>@<region>`. `trade` is
+  unaffected: it spans two regions by construction and is priced across both.
+
+* `@cluster` is declared the same way on every process class: `cluster`,
+  `desc`, `order` always; `region` where the class has regional scope;
+  `cap.share.fx` where it has a capacity to tie; `act.share.*` everywhere.
+  `technology` and `storage` gain `cap.share.fx`, `import` and `export` gain
+  `region`. `supply`, `import` and `export` have no `cap.share.fx`: they have
+  no capacity variable, so the column is absent rather than accepted and
+  ignored -- declaring one is now an error that points at `act.share`.
+
+* `act.share.lo/up/fx` bounds a cluster's share of its family's activity.
+  Unlike `afs`, which bounds activity against the cluster's OWN capacity and
+  can be satisfied by building less, a share of the family can only be met by
+  keeping capacity. This is what stops a clustered family collapsing to its
+  cheapest member once regional borders are aggregated away. No new equation:
+  it rides the `newConstraint()` path, and binds on GLPK and multimod alike.
+
+* Cluster shares are guarded rather than silently skipped. A cluster missing a
+  variant in one vintage used to leave that vintage untied with no warning;
+  stock out of proportion used to give a bare infeasibility. Both now error and
+  name the cluster.
+
+* `aggregate_model_regions(clusters = list(TRD = k))` partitions a family of
+  corridors into `k` merged objects instead of collapsing every corridor
+  between a pair of coarse regions into one. Merging unlike corridors replaces
+  a fill-the-best-first delivery curve with its chord -- on a 100-unit link at
+  0.99 beside a 20-unit link at 0.90 that costs 1.5% of the energy delivered
+  below saturation. `k` runs from one part per coarse pair (plain aggregation)
+  to one per corridor; parts become separate objects, because a trade's
+  `@cluster` is a loss tranche. `k` above the floor is refused when a corridor
+  carries a reactance: parallel AC circuits split flow by impedance, not by
+  optimisation.
+
+* `get_process_groups()` reports corridor families, with `n` counting
+  corridors rather than regions. `model_clusters()` returns their crosswalk
+  and no geoscale -- a corridor has no territory to colour.
+
+* `aggregate_model_regions(clusters = )` keeps the regional spread as
+  `technology@cluster` variants instead of averaging it away. Settings are per
+  technology family -- `clusters = list(ECOA = list(k = 3), EWIN = list(k = 8))`
+  -- because one `k` for the model is meaningless: a coal fleet groups on cost
+  and efficiency, a wind fleet on resource quality and profile shape. A family
+  not named is aggregated plainly, so `clusters = NULL` is the old behaviour
+  exactly. A bare number is accepted only when the model has one family; with
+  more it is an error naming them. `k` runs from one cluster per coarse region
+  (identical to plain aggregation) to one per fine region (nothing averaged);
+  `k = "auto"` picks the best average silhouette and returns the sweep, but
+  sweeping and looking is the documented workflow. Clusters cannot straddle a
+  coarse region: the adjacency graph has no edge crossing one.
+
+* `aggregate_model_regions(as = "objects")` returns one technology per
+  (family x cluster), named with the cluster's label (`ECOA_W1`), instead of one
+  object carrying clusters. Same LP; what differs is how results are keyed.
+
+* `process_cluster_sweep()` clusters one family over the admissible range of `k`
+  and reports dispersion, silhouette and the cluster sizes, over the same
+  features and contiguity graph the aggregation would use -- so the table you
+  read is the grouping you would get. `nestedscales` ships no `best_k()`
+  deliberately, and neither does this.
+
+* `model_clusters()` reports what a clustered aggregation did: the `k`, the
+  region-to-cluster crosswalk, the sweep, and a geoscale carrying a `cluster`
+  geoframe, so `plot_geoscale(type = "map", geoframe = "cluster")` and
+  `type = "icicle"` show the grouping with no new plotting code.
+
+* `get_process_groups()` reports which processes may be merged into one
+  clustered object, grouped by structure -- inputs, outputs, aux commodities
+  and input groups -- so a coal plant and a gas plant are never merged. It
+  accepts a technology that already spans several regions, one object whose
+  slots carry a `region` column, and clusters it exactly as it does a family
+  of one-object-per-region technologies.
+
+* A technology that **already has clusters** keeps them when its regions are
+  coarsened: the two groupings compose, `GOOD` in `W1` becoming `GOOD_W1`.
+  Previously the incoming `cluster` column was dropped, so a fleet with two
+  site grades over four regions came back with four averaged variants instead
+  of eight -- silently. Clustering features are read per (cluster, region) for
+  the same reason.
+
+* A cluster of one region is labelled with that region's code, so the 1:1 end
+  reads `ECOA_CLW1` rather than `ECOA_CLc03`; several regions join with `_`
+  while that stays a legal name. `@cluster$desc` carries the membership either
+  way.
+
+* A clustered aggregation resolves a **link** column (`weather`, `transform`)
+  to the cluster **medoid**'s value. These name another object, so they can be
+  neither summed nor averaged, and treating them as keys gave one cluster a row
+  per member. A medoid is a real member, so the merged cluster gets a profile
+  some region actually had.
+
+* `k` is checked against the geoframe before `nestedscales` sees it, so an
+  out-of-range `k` names the level and its bounds instead of reporting "the
+  units fall into 3 group(s)".
+
+* `plot_trade_map()` derives the `x`/`y` label anchors from the polygons when a
+  plain `sf` map does not carry them, so any `sf` works as a `map` argument.
+
+* `data-raw/topia_maps.R` and `data-raw/topia_data.R` are idempotent:
+  rebuilding the dataset no longer rotates the honeycomb rings or adds a
+  duplicate provenance tag to the weather `source` attribute.
+
+* Milestone years can carry a display label. `newHorizon()` accepts a `label`
+  column in `intervals`, and the new `year_label()` returns one label per
+  milestone. The label is presentation only: the model key for a period stays
+  the integer `mid`, and nothing reaches the solver.
+
+* `calendar` gains `year_start` (`list(month = , day = )`, default January 1)
+  and `utc_offset_minutes`. A non-January anchor makes the default milestone
+  labels fiscal (`FY2025-26`), following the `timescales` convention that the
+  anchored year is the starting Gregorian year. The anchor is carried and
+  reported; it does not yet drive timeslice-to-timestamp alignment. Calendars
+  imported from `timescales` keep both values instead of dropping them.
+
+* `getData(yearsAsFactors = TRUE)` returns `year` as an ordered factor of
+  labels, with levels in horizon order. It previously left an integer `year`
+  untouched.
+
+* `audit_coefficients()` reports the coefficient range of a written model per
+  equation family (widest row, the variable at each end of it, counts per
+  decade), from the free-MPS form `glpsol` re-emits. `dev/coefficient-ranges.md`
+  holds the table for the test fixtures and TOPIA.
+
+* `eqTechAInp` / `eqTechAOut` are multiplied through by `pTechCap2act` in all
+  four backends, so no coefficient in them is a division. Parameters keep
+  their meaning; the LP is the same problem with those rows scaled.
+
+* `validate_scenario_parameters()` adds the advisory `coefficient_scale`
+  check: a technology, trade or storage whose `cap2act x finest timeslice
+  share` is outside `[1e-4, 1e4]` is named with the `cap2act` that would put
+  the product near 1. On an hourly calendar with `cap2act = 1` the capacity
+  coefficient in the availability rows is 1.1e-4 against 1 on the activity.
 
 * `verify_solution()` gains `checks = "default"` / `"all"`, a `verbose =`
   progress report, and `print(detail = c("full", "issues"))`. New checks:
@@ -1018,6 +752,98 @@
 
 ## Bug fixes
 
+* A region whose code repeats at two adjacent geoframes no longer poisons its
+  own balance. The self-pair reached `mRegionFamily`, so `eqOutTot` read
+  `vOutTot[c,r] = <terms> + vOutTot[c,r]` and forced every real term to zero;
+  such pairs are dropped with a message, and the region balances like a padded
+  one (`LU` vs Eurostat's `LU0`).
+
+* A geoscale whose `geoframes` do not nest is refused instead of silently
+  double-counting. Two cross-cutting frames in one chain give a region more
+  than one parent, and the roll-up is a plain unweighted sum, so the child was
+  added into both; the error names the frames and the straddling regions.
+
+* An infeasible or unbounded model is reported as a result rather than an error.
+  `solve_scenario()` raised "Solution files not found" when the solver had
+  concluded there is no solution; it now returns the scenario with an empty
+  `modOut`, an `NA` objective and the solver's own verdict as a warning. Missing
+  output with no verdict is still an error. On GLPK the verdict is kept in
+  `output/solver.log`, the only place it survives.
+
+* `levcost()` returned `NA` for every variant of a technology whose `@invcost`,
+  `@fixom` or `@varom` carried a `region` column: the cost rows kept the real
+  region name and matched nothing, so the variant was costed at zero. Any
+  vintage or cluster fan-out over a technology translated from another framework
+  was affected.
+
+* A vintage whose build window falls outside the priced horizon is priced
+  instead of being reported at a levelised cost of zero.
+
+* `levcost()` on a `trade` object priced a corridor below what the model pays:
+  `@varom$varom` was ignored by both engines and is now charged on the quantity
+  sent. `@varom$markup` is deliberately not priced -- it is a transfer between
+  the two regions and cancels in the objective -- and `levcost()` says so once
+  instead of warning.
+
+* `levcost(method = "solve")` could not price a technology declaring a
+  sub-annual `@timeframe`, failing with an out-of-domain error: the annual
+  collapse rewrote the weather profile and the commodity timeframe but left the
+  process on its sub-annual one.
+
+* A technology's `@invcost` given without a region was dropped from the
+  annualised cost whenever another technology's cost named a region, leaving
+  that capital free in the solver.
+
+* `verify_solution()` no longer double-counts the totals of a coarse region at a
+  timeslice coarser than the commodity's own.
+
+* A non-interactive run no longer stops at a debugger prompt inside the package.
+  Internal consistency problems are reported as warnings under
+  `options(en.debug = 1)`, and an assertion that had been silently swallowing a
+  failed conversion now reports the original error.
+
+* Year columns are no longer coerced on every pass through interpolation; the
+  check that was meant to skip the work was testing the wrong object.
+
+* Exogenous stock records commissioning only. The level at the first milestone
+  is an initial condition and is read as one, rather than folded into the
+  commissioning series. Solutions are unchanged.
+
+* This fixes wrong answers rather than only moving code. The old guesser read
+  `"s1_h01"` as hour 1 and silently discarded the `"s1"`, and read `h168`
+  hour-of-week labels (`"h000"`..`"h167"`) as hours of the day. It also could
+  not read `m12a` (`"JAN"`..`"DEC"`), `wd7` (`"MON"`..`"SUN"`), `q4` or `s4`
+  labels at all, returning `NULL`. All of those work now.
+
+* A trade `invcost` with no `region` was charged once per region
+  OF THE MODEL, not once per endpoint of the route -- six charges on a
+  six-region model for a two-ended corridor, growing with the model rather than
+  the route. `fixom` was always correct. A trade's investment window carries no
+  region, so the rate reached the annuity step with nothing to carry it and the
+  dense `pTradeEac` materialised a row per region; it now expands over the
+  process's own regions, i.e. the route endpoints.
+
+* `levcost()` on a repository or model priced every process as if
+  it lived in the container's *first* region. A technology anywhere else had
+  its `invcost`, `fixom` and `ceff` rows subset away and reported fuel cost
+  only -- around 25x too cheap, with no warning.
+
+* `aggregate_model_regions()` lost data when it merged trade
+  corridors. `@capacity` was not recombined, so only the first corridor's
+  bounds survived; `@vintage` came back empty, losing `olife` on every
+  aggregated corridor, merged or not; costs took an unweighted mean; the merge
+  key saw tranche labels but not their shares, so corridors whose shares
+  differed merged and silently adopted the first one's; `reactance` was
+  averaged instead of combined as `1/x_eq = sum(1/x_i)`; a one-way corridor
+  became bidirectional; and two corridors minting the same name overwrote one
+  another. No test had ever merged two corridors.
+
+* `aggregate_model_regions()` read only the model's first
+  repository. `add()` appends a repository rather than growing one, so a model
+  built up object by object kept its later objects out of `@data[[1]]` -- and
+  those came back declared over the FINE regions in a model whose regions were
+  now coarse, silently. It now reads every repository and returns one.
+
 * A `supply` no longer reaches regions it was never declared in. A supply
   given `region = "R1"` also produced `mSupSpan`, `mSupAva` and `mSupOutTot`
   entries for the model's other regions, so its commodity appeared available
@@ -1235,6 +1061,32 @@
   read.
 
 ## Documentation
+
+* New article "Space resolution: geoscales and geoframes" — what
+  `commodity@geoframe` asserts, which classes may be declared at a coarse
+  level and which may not, the nesting requirement, and when a coarse balance
+  replaces a `trade` route.
+
+* New article, *Testing strategy*, on a new **Development** navbar menu beside
+  the roadmap: why coverage is tracked over model vocabulary rather than lines,
+  why test tiers replaced `skip_on_cran()`, why reference solutions are gated on
+  `verify_solution()`, and what the suite deliberately does not test.
+
+* Help pages gained the argument descriptions they were missing, and the
+  `model_structure`, `prefix`, `prefix_longname`, `solver_options` and
+  `tsl_levels` datasets are now documented.
+
+* About 9,300 lines of superseded code and specification files left the package,
+  archived rather than deleted. No exported function changed.
+
+* New article, `vignette("region-aggregation")`: five experiments on one model,
+  measuring when aggregating regions changes the answer and when it does not.
+  Two settings leave it untouched, three move it -- including one where the
+  aggregated model comes out **cheaper** than the model it came from, because
+  pooling granted transmission that did not exist. `nestedscales` and
+  `nestedscales` are Suggests; `dev/region-aggregation-model.R` holds the
+  shared model and
+  `dev/verify-region-aggregation.R` checks every number the article prints.
 
 * Three shipped statements that contradicted the multi-level region feature are
   corrected: `setGeoscale()` and `config@geoscale` no longer claim a geoscale

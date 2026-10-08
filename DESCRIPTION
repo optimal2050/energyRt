@@ -37,9 +37,9 @@ Suggests: shiny, DT, pak, knitr, rmarkdown, sf, ggplot2,
         testthat (>= 3.0.0), devtools, openxlsx, jsonlite, readxl,
         httr2, xml2, base64enc, tinytex, patchwork,
         waldo, withr, mmcloud, DBI, RSQLite, multimod,
-        discretescales, glpsol
+        nestedscales, glpsol
 Remotes: optimal2050/geoscales, optimal2050/timescales,
-        optimal2050/discretescales
+        optimal2050/nestedscales
 SystemRequirements: Julia (>= 1.6) with JuMP or Python (>= 3.7) with
         Pyomo or GAMS (>= 24.9) or GLPK (>= 4.0)
 License: Apache License (>= 2)

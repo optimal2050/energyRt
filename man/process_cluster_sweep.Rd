@@ -30,7 +30,7 @@ region.}
 }
 \value{
 A data.frame, one row per \code{k}, with the dispersion and silhouette
-columns \code{discretescales::cluster_sweep()} returns plus \code{sizes}, the cluster
+columns \code{nestedscales::cluster_sweep()} returns plus \code{sizes}, the cluster
 sizes as a comma-separated string.
 }
 \description{
@@ -48,7 +48,7 @@ set per family and not once for the model.
 Read it as a scree plot: dispersion falls with \code{k} and always will, so take
 the knee rather than the minimum, and prefer a \code{k} whose silhouette is high
 and whose sizes are not one big cluster and a row of singletons. There is
-deliberately no "best k" here, and none in \code{discretescales} either -- the
+deliberately no "best k" here, and none in \code{nestedscales} either -- the
 number depends on what the model is for.
 }
 \seealso{
