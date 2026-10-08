@@ -4,13 +4,13 @@
 \alias{en_check_packages}
 \title{Check R package and external-tool dependencies}
 \usage{
-en_check_packages(
-  extras = c("ggplot2", "patchwork", "knitr", "rmarkdown", "tinytex", "sf", "gm"),
-  external = TRUE
-)
+en_check_packages(extras = NULL, external = TRUE)
 }
 \arguments{
-\item{extras}{character vector of optional / training R packages to check.}
+\item{extras}{character vector of optional R packages to check. \code{NULL}
+(default) reads them off the package's own \code{Suggests}, so the list cannot
+drift from DESCRIPTION; dev-only tooling is left out. \code{gm} is appended
+because the (parked) score export uses it and it is not a dependency.}
 
 \item{external}{logical; also probe external tools (LaTeX engine, MuseScore).}
 }

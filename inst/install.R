@@ -10,7 +10,8 @@
 #
 # It installs `pak`, detects the OS, reports (does not run) any Linux system
 # libraries to install, pre-installs energyRt's CRAN dependencies one by one
-# with a pass/fail report, then installs energyRt itself. Finish with:
+# with a pass/fail report, then the optimal2050 siblings and the bundled
+# glpsol solver from GitHub, then energyRt itself. Finish with:
 #
 #   library(energyRt); en_setup()
 #
@@ -72,8 +73,8 @@ install_energyRt <- function(ref = "optimal2050/energyRt",
   #    (Base packages are omitted; a single failure is isolated, not fatal.)
   deps <- c(
     "generics", "data.table", "DBI", "RSQLite", "tibble", "tidyr", "dplyr",
-    "rlang", "stringr", "lubridate", "purrr", "arrow", "progressr", "tictoc",
-    "cli", "zoo", "options", "glue", "plyr", "yaml",
+    "rlang", "stringr", "lubridate", "purrr", "arrow", "progressr",
+    "cli", "options", "yaml",
     # suggested -- plots and reports (optional but recommended):
     "ggplot2", "patchwork", "knitr", "rmarkdown", "tinytex", "sf",
     # optional -- the process-designer GUI (process_designer()):
@@ -105,19 +106,43 @@ install_energyRt <- function(ref = "optimal2050/energyRt",
     }
   }
 
-  # 3b. geoscales -- an optimal2050 sibling, NOT on CRAN. It gates the geoscale
-  #     features (topia$geoscales, plot_geoscale(), multi-level regions) and
-  #     nothing else, so a failure here must NOT block energyRt itself.
-  #     (`timescales`, the other sibling, is build-time only: the shipped
-  #     `calendars` are generated from its catalog. Users never need it.)
-  tryCatch({
-    pak::pkg_install("optimal2050/geoscales", ask = FALSE)
-    message("  [ok]   geoscales (optional, geoscale features)")
-  }, error = function(e) {
-    message("  [skip] geoscales: ", conditionMessage(e),
-            "\n         Optional -- energyRt works without it; geoscale ",
-            "features will be unavailable.")
-  })
+  # 3b. The optimal2050 siblings and the solver binary. None is on CRAN, so
+  #     each installs from GitHub. energyRt's own `Remotes:` would pull the
+  #     required ones at step 4 anyway; doing it here names the culprit when
+  #     one fails. `timescales` is in Imports -- a hard dependency, not a
+  #     build-time extra -- so a failure blocks the install; the rest gate
+  #     optional features and must not.
+  siblings <- list(
+    list(ref = "optimal2050/nestedscales", required = FALSE,
+         what = "Scale core; region and cluster grouping"),
+    list(ref = "optimal2050/timescales",     required = TRUE,
+         what = "calendars and timeslice conversions"),
+    list(ref = "optimal2050/geoscales",      required = FALSE,
+         what = "geoscale features: multi-level regions, plot_geoscale()"),
+    list(ref = "optimal2050/glpsol",         required = FALSE,
+         what = "the bundled glpsol binary, energyRt's default solver"),
+    list(ref = "optimal2050/multimod",       required = FALSE,
+         what = "Python/Pyomo setup and the lang = mm backend"),
+    list(ref = "optimal2050/mmcloud",        required = FALSE,
+         what = "cloud solve transport")
+  )
+  for (sib in siblings) {
+    nm <- sub(".*/", "", sib$ref)
+    ok <- tryCatch({
+      pak::pkg_install(sib$ref, ask = FALSE)
+      message("  [ok]   ", nm, " (", sib$what, ")")
+      TRUE
+    }, error = function(e) {
+      message("  [", if (sib$required) "FAIL" else "skip", "] ", nm, ": ",
+              conditionMessage(e))
+      if (!sib$required) {
+        message("         Optional -- energyRt works without it; ",
+                sib$what, " will be unavailable.")
+      }
+      FALSE
+    })
+    if (!ok && isTRUE(sib$required)) failed <- c(failed, nm)
+  }
 
   # 4. Install energyRt itself (only if the dependency layer is clean).
   if (length(failed) == 0) {

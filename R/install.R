@@ -1,14 +1,31 @@
-# Functions t install external packages and libraries
+# Functions to install external packages and libraries
+
+# The optimal2050 siblings and the bundled solver binary: every energyRt
+# dependency that is NOT on CRAN. `geoscales` and `timescales` are in Imports,
+# the rest in Suggests. Two consumers read this: `en_install_deps()`, which
+# installs them and subtracts them from the CRAN set, and `en_check_packages()`.
+# `inst/install.R` carries the same list because it must run BEFORE energyRt
+# exists -- keep the two in step.
+.en_sibling_refs <- function() {
+  c("optimal2050/nestedscales", "optimal2050/timescales",
+    "optimal2050/geoscales", "optimal2050/glpsol",
+    "optimal2050/multimod", "optimal2050/mmcloud")
+}
+
+.en_sibling_pkgs <- function() sub(".*/", "", .en_sibling_refs())
 
 #' Install Julia packages
 #'
 #' @param pkgs A character vector of Julia packages to install. The default is
-#'  \code{c("JuMP", "HiGHS", "Cbc", "Clp", "Arrow", "RData", "RCall",
-#'  "CodecBzip2", "Gadfly", "DataFrames", "Dates")}. `Arrow` is required for
-#'  the default data exchange (see [get_exchange_format()]).
-#'  If you have pre-installed CPLEX or Gurobi, you can add them to the list.
+#'  \code{c("JuMP", "HiGHS", "GLPK", "Cbc", "Arrow", "RData", "DataFrames")}:
+#'  the solvers the shipped `julia_*` presets name, plus `Arrow` for the default
+#'  data exchange (see [get_exchange_format()]), `RData` for the
+#'  `julia_highs_rdata` preset, and `DataFrames`, which the generated code uses.
+#'  The `julia_cplex*` and `julia_cuopt*` presets need `CPLEX` / `cuOpt`, which
+#'  are licensed or GPU-specific and so are not installed by default -- add them
+#'  to `pkgs` yourself. `Dates` is a Julia standard library and needs no install.
 #'
-#' @param update logical; also run `Pkg.update()` before installing.
+#' @param update logical; also run `Pkg.update()` after adding the packages.
 #' @return NULL if the completion is successful. The verification of the installation is
 #' done by the user or by the function \code{en_check_julia()}.
 #' @export
@@ -20,26 +37,29 @@
 en_install_julia_pkgs <- function(pkgs = NULL, update = FALSE) {
 
   if (is.null(pkgs)) {
-    # `Arrow` reads the model data and writes the solution (the default
-    # exchange); `RData` serves the legacy `julia_highs_rdata` preset. Neither
-    # `CSV` nor `SQLite` is used by the Julia path -- the generated code writes
-    # csv with plain `println` and never opens a database.
-    pkgs <- c("JuMP", "HiGHS", "Cbc", "Clp", "Arrow", "RData", "RCall",
-              "CodecBzip2", "Gadfly", "DataFrames", "Dates")
+    # One entry per Julia package the shipped presets actually name: HiGHS,
+    # GLPK and Cbc are the solvers behind `julia_highs*`, `julia_glpk` and
+    # `julia_cbc`. `Arrow` reads the model data and writes the solution (the
+    # default exchange); `RData` serves the `julia_highs_rdata` preset;
+    # `DataFrames` is used by the generated code. Neither `CSV` nor `SQLite` is
+    # used by the Julia path -- the generated code writes csv with plain
+    # `println` and never opens a database.
+    pkgs <- c("JuMP", "HiGHS", "GLPK", "Cbc", "Arrow", "RData", "DataFrames")
   }
 
-  # check if Julia is installed and available on the path
-  
-  jp <- get_julia_path() |> paste0("julia")
-  if (!file.exists(jp)) {
-    # try default path
-    jp <- Sys.which("julia")
+  # Locate the julia executable. `.en_which()` is the same resolver
+  # `en_check_dependencies()` uses: it tries the energyRt-configured path
+  # (which carries a trailing /) with and without the `.exe` suffix, then the
+  # system PATH. Resolving it by hand here used to miss `julia.exe` on Windows
+  # and, with no path configured, tested the RELATIVE name `julia` -- which
+  # matches any file or directory of that name in the working directory.
+  jp <- .en_which("julia", get_julia_path())
+  if (is.na(jp)) {
+    stop("Cannot locate the julia executable on the path. If Julia is not ",
+         "installed, download it from https://julialang.org/downloads/",
+         call. = FALSE)
   }
-  if (!file.exists(jp)) {
-    stop("\nCannot locate julia executable on the path.", 
-         "In Julia is not installed, download and install from https://julialang.org/downloads/")
-  }
-  
+
   message("Using Julia at ", jp, "\n")
   
   # create a temporary file to install Julia packages
@@ -57,11 +77,19 @@ en_install_julia_pkgs <- function(pkgs = NULL, update = FALSE) {
   }
   close(tmp_con)
 
-  # run Julia with the script
-  system2(jp, c("--color=yes", tmp_file))
+  # run Julia with the script. The exit status is the only signal that
+  # `Pkg.add()` worked: discarding it let this function report success for a
+  # failed install, which its own @return promised it would not.
+  status <- system2(jp, c("--color=yes", tmp_file))
 
   # remove the temporary file
   unlink(tmp_file)
+
+  if (!identical(as.integer(status), 0L)) {
+    stop("Julia exited with status ", status,
+         " -- the packages were not installed. The Julia output above says why.",
+         call. = FALSE)
+  }
 
   return(invisible())
 }
@@ -153,11 +181,43 @@ en_install_deps <- function(julia = TRUE, python = TRUE, r = TRUE, recheck = TRU
           "gdxtools missing; install pak then pak::pkg_install('lolow/gdxtools').")
       }
     }
-    r_opt <- c("jsonlite", "readxl", "openxlsx")
+    # The optional CRAN layer is read off Suggests rather than hard-coded, so it
+    # cannot drift from DESCRIPTION the way a copied list does. Dev-only tools
+    # and the siblings (handled below, none of which is on CRAN) are excluded.
+    sug <- tryCatch(
+      trimws(gsub("[(][^)]*[)]", "", strsplit(
+        utils::packageDescription("energyRt", fields = "Suggests"), ",")[[1]])),
+      error = function(e) character(0))
+    sug <- sug[nzchar(sug)]
+    r_opt <- setdiff(sug, c("pak", "testthat", "devtools", "withr",
+                            .en_sibling_pkgs()))
     r_missing <- r_opt[!vapply(r_opt, requireNamespace, logical(1), quietly = TRUE)]
     if (length(r_missing)) {
       message("Installing optional R packages: ", paste(r_missing, collapse = ", "))
-      try(utils::install.packages(r_missing), silent = TRUE)
+      tryCatch(utils::install.packages(r_missing),
+               error = function(e) message("  failed: ", conditionMessage(e)))
+      # requireNamespace() is the verdict, not install.packages()' own return:
+      # it warns rather than errors for a package it cannot reach.
+      still <- r_missing[!vapply(r_missing, requireNamespace, logical(1), quietly = TRUE)]
+      if (length(still)) {
+        cli::cli_alert_warning(
+          "Still missing after install: {paste(still, collapse = ', ')}")
+      }
+    }
+
+    # The optimal2050 siblings and the bundled solver binary -- GitHub, not CRAN.
+    for (sib in .en_sibling_refs()) {
+      nm <- sub(".*/", "", sib)
+      if (requireNamespace(nm, quietly = TRUE)) next
+      if (!requireNamespace("pak", quietly = TRUE)) {
+        cli::cli_alert_info(
+          "{nm} missing; install pak then pak::pkg_install('{sib}').")
+        next
+      }
+      message("Installing ", nm, " ...")
+      tryCatch(pak::pkg_install(sib),
+               error = function(e)
+                 cli::cli_alert_warning("{nm}: {conditionMessage(e)}"))
     }
   }
 
@@ -175,9 +235,15 @@ en_install_deps <- function(julia = TRUE, python = TRUE, r = TRUE, recheck = TRU
     has_py <- !is.na(.en_which("python", get_python_path())) ||
       !is.na(.en_which("python3", get_python_path()))
     has_conda <- !is.na(.en_which("mamba")) || !is.na(.en_which("conda"))
-    if (has_py || has_conda) {
+    if (!requireNamespace("multimod", quietly = TRUE)) {
+      cli::cli_alert_warning(paste(
+        "Python setup is owned by multimod, which is not installed; skipping.",
+        "Install it with pak::pkg_install('optimal2050/multimod')."))
+    } else if (has_py || has_conda) {
       message("Installing Python/Pyomo dependencies ...")
-      try(multimod::mm_setup_python(), silent = TRUE)
+      tryCatch(multimod::mm_setup_python(),
+               error = function(e)
+                 cli::cli_alert_warning("mm_setup_python(): {conditionMessage(e)}"))
     } else {
       cli::cli_alert_warning(
         "Python/conda not found; skipping. Install miniforge first.")

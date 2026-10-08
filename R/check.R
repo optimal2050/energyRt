@@ -327,7 +327,10 @@ en_check_dependencies <- function(solver_pkgs = FALSE) {
 #' MuseScore for the `gm` music output. Like [en_check_dependencies()] it prints a
 #' status table and returns the underlying tibble invisibly.
 #'
-#' @param extras character vector of optional / training R packages to check.
+#' @param extras character vector of optional R packages to check. `NULL`
+#'   (default) reads them off the package's own `Suggests`, so the list cannot
+#'   drift from DESCRIPTION; dev-only tooling is left out. `gm` is appended
+#'   because the (parked) score export uses it and it is not a dependency.
 #' @param external logical; also probe external tools (LaTeX engine, MuseScore).
 #'
 #' @return A tibble (`component`, `required`, `found`, `version`, `path`, `note`),
@@ -338,9 +341,17 @@ en_check_dependencies <- function(solver_pkgs = FALSE) {
 #' \dontrun{
 #' en_check_packages()
 #' }
-en_check_packages <- function(
-    extras = c("ggplot2", "patchwork", "knitr", "rmarkdown", "tinytex", "sf", "gm"),
-    external = TRUE) {
+en_check_packages <- function(extras = NULL, external = TRUE) {
+
+  if (is.null(extras)) {
+    sug <- tryCatch(
+      trimws(gsub("[(][^)]*[)]", "", strsplit(
+        utils::packageDescription("energyRt", fields = "Suggests"), ",")[[1]])),
+      error = function(e) character(0))
+    sug <- sug[nzchar(sug)]
+    # Dev-only tooling is not something a user needs to be told is missing.
+    extras <- c(setdiff(sug, c("pak", "testthat", "devtools", "withr")), "gm")
+  }
 
   # energyRt's own CRAN imports (from DESCRIPTION), minus base/recommended pkgs.
   imports <- tryCatch(
@@ -351,11 +362,17 @@ en_check_packages <- function(
   base_pkgs <- rownames(utils::installed.packages(priority = "base"))
   imports <- setdiff(imports, base_pkgs)
 
+  # The non-CRAN siblings need their GitHub ref in the hint; a bare
+  # `pak::pkg_install('glpsol')` would send the user to CRAN, where none of
+  # them is published.
+  sib_ref <- stats::setNames(.en_sibling_refs(), .en_sibling_pkgs())
+
   mk_rows <- function(pkgs, required) {
     lapply(pkgs, function(p) {
       pr <- .en_pkg_probe(p)
+      src <- if (p %in% names(sib_ref)) sib_ref[[p]] else p
       .en_status_row(p, required = required, pr,
-        note = if (!pr$found) paste0("install: pak::pkg_install('", p, "')") else NA_character_)
+        note = if (!pr$found) paste0("install: pak::pkg_install('", src, "')") else NA_character_)
     })
   }
 
