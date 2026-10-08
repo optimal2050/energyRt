@@ -551,9 +551,10 @@ model.vTradeInv = Var(
 model.vTradeNewCap = Var(
     mTradeNew, domain=pyo.NonNegativeReals, doc="New trade capacity"
 )
+# a user cost term may be NEGATIVE (a subsidy), and eqTotalUserCosts is an equality -- bounding this at 0 made such a model infeasible
 model.vTotalUserCosts = Var(
     mvTotalUserCosts,
-    domain=pyo.NonNegativeReals,
+    domain=pyo.Reals,
     doc="Total additional costs (set by user)",
 )
 exec(open("inc2.py").read())

@@ -733,7 +733,8 @@ var vImportRow{imp, comm, region, year, timeslice} >= 0;
 var vTradeCap{trade, year} >= 0;
 var vTradeInv{trade, region, year} >= 0;
 var vTradeNewCap{trade, year} >= 0;
-var vTotalUserCosts{region, year} >= 0;
+# a user cost term may be NEGATIVE (a subsidy), and eqTotalUserCosts is an equality -- bounding this at 0 made such a model infeasible
+var vTotalUserCosts{region, year};
 
 
 

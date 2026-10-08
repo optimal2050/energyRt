@@ -264,7 +264,8 @@ model = Model();
 @variable(model, vTradeCap[mTradeSpan] >= 0);
 @variable(model, vTradeInv[mTradeEac] >= 0);
 @variable(model, vTradeNewCap[mTradeNew] >= 0);
-@variable(model, vTotalUserCosts[mvTotalUserCosts] >= 0);
+# a user cost term may be NEGATIVE (a subsidy), and eqTotalUserCosts is an equality -- bounding this at 0 made such a model infeasible
+@variable(model, vTotalUserCosts[mvTotalUserCosts]);
 # eqTechSng2Sng(tech, region, comm, commp, year, timeslice)$meqTechSng2Sng(tech, region, comm, commp, year, timeslice)
 print("eqTechSng2Sng(tech, region, comm, commp, year, timeslice)...")
 @constraint(

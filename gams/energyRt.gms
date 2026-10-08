@@ -769,6 +769,9 @@ vTradeCap(trade, year)                               Trade capacity
 vTradeInv(trade, region, year)                       Investment in trade capacity (overnight)
 *@ mTradeNew(trade, year)
 vTradeNewCap(trade, year)                            New trade capacity
+;
+variable
+* a user cost term may be NEGATIVE (a subsidy), and eqTotalUserCosts is an equality -- bounding this at 0 made such a model infeasible
 *@ mvTotalUserCosts(region, year)
 vTotalUserCosts(region, year)                        Total additional costs (set by user)
 ;

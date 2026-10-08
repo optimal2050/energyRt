@@ -646,6 +646,21 @@ read_solution <- function(obj, run = NULL, ..., ondisk = !isInMemory(obj)) {
           # lives in the cost object's @defVal (same as the model equation)
           in_dat$value <- in_dat$value * tmp@defVal
         }
+        # Mirror of the generated equation: a per-timeslice variable is a rate,
+        # so it is weighted to the year before the annual aggregation. The
+        # equation carries the same factor (R/class-costs.R).
+        if (nrow(in_dat) != 0 && "timeslice" %in% colnames(in_dat)) {
+          wp <- scen@modInp@parameters[["pTimesliceWeight"]]
+          if (!is.null(wp)) {
+            wd <- .get_data_slot(wp)
+            if (!is.null(wd) && nrow(wd) > 0) {
+              colnames(wd)[ncol(wd)] <- "wgt"
+              in_dat <- merge0(in_dat, wd)
+              in_dat$value <- in_dat$value * in_dat$wgt
+              in_dat$wgt <- NULL
+            }
+          }
+        }
         if (nrow(in_dat) != 0) {
           in_dat <- aggregate(
             in_dat[, "value", drop = FALSE],

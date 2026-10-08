@@ -442,8 +442,19 @@ drop_solver_outputs <- function(scen, runs = NULL, dry_run = TRUE,
 
   if (identical(scope, "share") && !keep_solver) {
     # user-authored solver templates and constraint code can carry anything
+    n_cns <- length(scen@modInp@user_constraints)
+    n_cst <- length(scen@modInp@user_costs)
     scen@modInp@user_constraints <- list()
     scen@modInp@user_costs <- character()
+    # Dropping these changes the OPTIMUM: a shared scenario re-solves without
+    # the user constraints and without the user cost terms, so silence here
+    # reads as "the model got cheaper for no reason".
+    if (n_cns + n_cst > 0) {
+      cli::cli_warn(c(
+        "Shared scenario drops user-authored model code.",
+        "i" = "{n_cns} user constraint(s) and {n_cst} user cost term(s) removed; the shared copy will solve to a different objective.",
+        "i" = "Use {.code keep_solver = TRUE} to retain them."))
+    }
   }
   scen
 }

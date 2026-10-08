@@ -167,6 +167,10 @@ verify_solution <- function(scen,
     cost = list(
       run = .vs_check_cost, group = "equations", path = "modInp",
       tier = "default", needs_solution = TRUE, desc = "vTotalCost = sum of cost-role variables"),
+    user_costs = list(
+      run = .vs_check_user_costs, group = "equations", path = "modInp",
+      tier = "default", needs_solution = TRUE,
+      desc = "sum of vUserCosts = vTotalUserCosts"),
     objective = list(
       run = .vs_check_objective, group = "equations", path = "modInp",
       tier = "default", needs_solution = TRUE, desc = "discounted objective"),
@@ -659,6 +663,31 @@ print.solution_verification <- function(x, detail = c("full", "issues"), ...) {
     rhs <- rhs + .vs_sum_at(scen, nm, dom, by = c("region", "year"))
   }
   .vs_result(dom, lhs, rhs, ctx, "cost")
+}
+
+# The per-object breakdown must reconcile with the single term the objective
+# actually carries: sum_over_costs vUserCosts[c, r, y] == vTotalUserCosts[r, y].
+#
+# `.vs_check_cost` EXCLUDES vUserCosts on the grounds that it is "already
+# aggregated into vTotalUserCosts" -- an assumption nothing verified. The two
+# are computed by different code: vTotalUserCosts is solved from the generated
+# equation, vUserCosts is reconstructed in R (R/read.R). They drifted once
+# already, when the equation applied `pTimesliceWeight` and the reconstruction
+# did not. This check is what makes such a drift fail loudly.
+.vs_check_user_costs <- function(ctx) {
+  scen <- ctx$scen
+  tot <- .vs_var(scen, "vTotalUserCosts")
+  if (is.null(tot) || nrow(tot) == 0) {
+    return(.vs_skip("vTotalUserCosts not in solution"))
+  }
+  brk <- .vs_var(scen, "vUserCosts")
+  if (is.null(brk) || nrow(brk) == 0) {
+    return(.vs_skip("vUserCosts not in solution"))
+  }
+  dom <- unique(tot[, c("region", "year"), drop = FALSE])
+  lhs <- .vs_sum_at(scen, "vTotalUserCosts", dom, by = c("region", "year"))
+  rhs <- .vs_sum_at(scen, "vUserCosts", dom, by = c("region", "year"))
+  .vs_result(dom, lhs, rhs, ctx, "user_costs")
 }
 
 # eqObjective: vObjective = sum vTotalCost * pPeriodLen[y] * pDiscountFactor[r, y].
