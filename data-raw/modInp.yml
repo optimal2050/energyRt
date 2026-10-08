@@ -54,6 +54,10 @@ weather:
   name: weather
   type: set
   dimSets: weather
+levy:
+  name: levy
+  type: set
+  dimSets: levy
 pPeriodLen:
   name: pPeriodLen
   dimSets: year
@@ -2457,6 +2461,7 @@ pTradeRetCost:
 pTaxCostInp:
   name: pTaxCostInp
   dimSets:
+  - levy
   - comm
   - region
   - year
@@ -2470,6 +2475,7 @@ pTaxCostInp:
 pTaxCostOut:
   name: pTaxCostOut
   dimSets:
+  - levy
   - comm
   - region
   - year
@@ -2483,6 +2489,7 @@ pTaxCostOut:
 pTaxCostBal:
   name: pTaxCostBal
   dimSets:
+  - levy
   - comm
   - region
   - year
@@ -2496,6 +2503,7 @@ pTaxCostBal:
 pSubCostInp:
   name: pSubCostInp
   dimSets:
+  - levy
   - comm
   - region
   - year
@@ -2509,6 +2517,7 @@ pSubCostInp:
 pSubCostOut:
   name: pSubCostOut
   dimSets:
+  - levy
   - comm
   - region
   - year
@@ -2522,6 +2531,7 @@ pSubCostOut:
 pSubCostBal:
   name: pSubCostBal
   dimSets:
+  - levy
   - comm
   - region
   - year
@@ -3948,14 +3958,14 @@ mTaxCost:
   name: mTaxCost
   type: map
   dimSets:
-  - comm
+  - levy
   - region
   - year
 mSubCost:
   name: mSubCost
   type: map
   dimSets:
-  - comm
+  - levy
   - region
   - year
 mAggOut:

@@ -1977,9 +1977,14 @@ map_mTechRetirement <- function(scen, fmp) {
            data.frame(tech = techs, stringsAsFactors = FALSE), fmp)
 }
 
-# mTaxCost / mSubCost: (comm, region, year) domains where a tax / subsidy applies,
-# aggregated over timeslice from the three cost components (inp/out/bal). NA region in
-# the source means "all regions" and is expanded to every model region.
+# mTaxCost / mSubCost: (levy, region, year) domains where a tax / subsidy applies,
+# projected from the three rate tables (inp/out/bal) -- the commodity and the
+# timeslice are summed over inside eqTaxCost/eqSubsCost, so neither is a domain
+# of the map. The levy dimension is what keeps two instruments on one commodity
+# from overwriting each other. NA region in the source means "all regions" and is
+# expanded to every model region.
+# The dims come from the parameter's own @dimSets, so re-dimensioning the map in
+# data-raw/modInp.yml is enough; nothing here is positional.
 .policy_cost_map <- function(scen, name, sources, fmp) {
   p <- scen@modInp@parameters[[name]]
   if (is.null(p)) return(scen)

@@ -148,33 +148,33 @@ f.write("value\n" + str(model.vObjective.value) + "\n")
 f.close()
 flist.write("vTaxCost\n")
 f = open("output/vTaxCost.csv", "w")
-f.write("comm,region,year,value\n")
-for c, r, y in mTaxCost:
-    if model.vTaxCost[(c, r, y)].value != 0:
+f.write("levy,region,year,value\n")
+for lv, r, y in mTaxCost:
+    if model.vTaxCost[(lv, r, y)].value != 0:
         f.write(
-            str(c)
+            str(lv)
             + ","
             + str(r)
             + ","
             + str(y)
             + ","
-            + str(model.vTaxCost[(c, r, y)].value)
+            + str(model.vTaxCost[(lv, r, y)].value)
             + "\n"
         )
 f.close()
 flist.write("vSubsCost\n")
 f = open("output/vSubsCost.csv", "w")
-f.write("comm,region,year,value\n")
-for c, r, y in mSubCost:
-    if model.vSubsCost[(c, r, y)].value != 0:
+f.write("levy,region,year,value\n")
+for lv, r, y in mSubCost:
+    if model.vSubsCost[(lv, r, y)].value != 0:
         f.write(
-            str(c)
+            str(lv)
             + ","
             + str(r)
             + ","
             + str(y)
             + ","
-            + str(model.vSubsCost[(c, r, y)].value)
+            + str(model.vSubsCost[(lv, r, y)].value)
             + "\n"
         )
 f.close()
@@ -1504,5 +1504,7 @@ for i in group:
     f.write("group," + str(i) + "\n")
 for i in weather:
     f.write("weather," + str(i) + "\n")
+for i in levy:
+    f.write("levy," + str(i) + "\n")
 f.close()
 flist.close()

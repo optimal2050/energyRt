@@ -760,7 +760,8 @@ print.solution_verification <- function(x, detail = c("full", "issues"), ...) {
 .vs_obj_set_map <- c(
   commodity = "comm", supply = "sup", demand = "dem", technology = "tech",
   storage = "stg", trade = "trade", weather = "weather", import = "imp",
-  export = "expp", group = "group")
+  export = "expp", group = "group",
+  tax = "levy", subsidy = "levy")
 
 .vs_check_inputs_present <- function(ctx) {
   scen <- ctx$scen

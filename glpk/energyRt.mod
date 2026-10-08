@@ -19,6 +19,7 @@ set expp;
 set imp;
 set group;
 set weather;
+set levy;
 set FORIF;
 
 
@@ -470,12 +471,12 @@ param pDemand{dem, comm, region, year, timeslice};
 param pEmissionFactor{comm, comm};
 param pDummyImportCost{comm, region, year, timeslice};
 param pDummyExportCost{comm, region, year, timeslice};
-param pTaxCostInp{comm, region, year, timeslice};
-param pTaxCostOut{comm, region, year, timeslice};
-param pTaxCostBal{comm, region, year, timeslice};
-param pSubCostInp{comm, region, year, timeslice};
-param pSubCostOut{comm, region, year, timeslice};
-param pSubCostBal{comm, region, year, timeslice};
+param pTaxCostInp{levy, comm, region, year, timeslice};
+param pTaxCostOut{levy, comm, region, year, timeslice};
+param pTaxCostBal{levy, comm, region, year, timeslice};
+param pSubCostInp{levy, comm, region, year, timeslice};
+param pSubCostOut{levy, comm, region, year, timeslice};
+param pSubCostBal{levy, comm, region, year, timeslice};
 param pAggregateFactor{comm, comm};
 param pPeriodLen{year};
 param pTimesliceShare{timeslice};
@@ -642,8 +643,8 @@ var vEmsFuelTot{comm, region, year, timeslice};
 var vBalance{comm, region, year, timeslice};
 var vTotalCost{region, year};
 var vObjective;
-var vTaxCost{comm, region, year};
-var vSubsCost{comm, region, year};
+var vTaxCost{levy, region, year};
+var vSubsCost{levy, region, year};
 var vAggOutTot{comm, region, year, timeslice};
 var vDummyImportCost{comm, region, year};
 var vDummyExportCost{comm, region, year};
@@ -1113,11 +1114,11 @@ s.t.  eqDummyImportCost{(c, r, y) in mDummyImportCost}: vDummyImportCost[c,r,y] 
 
 s.t.  eqDummyExportCost{(c, r, y) in mDummyExportCost}: vDummyExportCost[c,r,y]  =  sum{s in timeslice:((c,r,y,s) in mDummyExport)}(pTimesliceWeight[y,s]*pDummyExportCost[c,r,y,s]*sum{FORIF: (c,r,y,s) in mDummyExport} (vDummyExport[c,r,y,s]));
 
-s.t.  eqTaxCost{(c, r, y) in mTaxCost}: vTaxCost[c,r,y]  =  sum{s in timeslice:(((c,r,y,s) in mvOutTot and (c,s) in mCommTimeslice))}(pTaxCostOut[c,r,y,s]*pTimesliceWeight[y,s]*vOutTot[c,r,y,s])+sum{s in timeslice:(((c,r,y,s) in mvInpTot and (c,s) in mCommTimeslice))}(pTaxCostInp[c,r,y,s]*pTimesliceWeight[y,s]*vInpTot[c,r,y,s])+sum{s in timeslice:(((c,r,y,s) in mvBalance and (c,s) in mCommTimeslice))}(pTaxCostBal[c,r,y,s]*pTimesliceWeight[y,s]*vBalance[c,r,y,s]);
+s.t.  eqTaxCost{(lv, r, y) in mTaxCost}: vTaxCost[lv,r,y]  =  sum{c in comm, s in timeslice:(((c,r,y,s) in mvOutTot and (c,s) in mCommTimeslice and pTaxCostOut[lv,c,r,y,s] <> 0))}(pTaxCostOut[lv,c,r,y,s]*pTimesliceWeight[y,s]*vOutTot[c,r,y,s])+sum{c in comm, s in timeslice:(((c,r,y,s) in mvInpTot and (c,s) in mCommTimeslice and pTaxCostInp[lv,c,r,y,s] <> 0))}(pTaxCostInp[lv,c,r,y,s]*pTimesliceWeight[y,s]*vInpTot[c,r,y,s])+sum{c in comm, s in timeslice:(((c,r,y,s) in mvBalance and (c,s) in mCommTimeslice and pTaxCostBal[lv,c,r,y,s] <> 0))}(pTaxCostBal[lv,c,r,y,s]*pTimesliceWeight[y,s]*vBalance[c,r,y,s]);
 
-s.t.  eqSubsCost{(c, r, y) in mSubCost}: vSubsCost[c,r,y]  =  -sum{s in timeslice:(((c,r,y,s) in mvOutTot and (c,s) in mCommTimeslice))}(pSubCostOut[c,r,y,s]*pTimesliceWeight[y,s]*vOutTot[c,r,y,s])-sum{s in timeslice:(((c,r,y,s) in mvInpTot and (c,s) in mCommTimeslice))}(pSubCostInp[c,r,y,s]*pTimesliceWeight[y,s]*vInpTot[c,r,y,s])-sum{s in timeslice:(((c,r,y,s) in mvBalance and (c,s) in mCommTimeslice))}(pSubCostBal[c,r,y,s]*pTimesliceWeight[y,s]*vBalance[c,r,y,s]);
+s.t.  eqSubsCost{(lv, r, y) in mSubCost}: vSubsCost[lv,r,y]  =  -sum{c in comm, s in timeslice:(((c,r,y,s) in mvOutTot and (c,s) in mCommTimeslice and pSubCostOut[lv,c,r,y,s] <> 0))}(pSubCostOut[lv,c,r,y,s]*pTimesliceWeight[y,s]*vOutTot[c,r,y,s])-sum{c in comm, s in timeslice:(((c,r,y,s) in mvInpTot and (c,s) in mCommTimeslice and pSubCostInp[lv,c,r,y,s] <> 0))}(pSubCostInp[lv,c,r,y,s]*pTimesliceWeight[y,s]*vInpTot[c,r,y,s])-sum{c in comm, s in timeslice:(((c,r,y,s) in mvBalance and (c,s) in mCommTimeslice and pSubCostBal[lv,c,r,y,s] <> 0))}(pSubCostBal[lv,c,r,y,s]*pTimesliceWeight[y,s]*vBalance[c,r,y,s]);
 
-s.t.  eqCost{(r, y) in mvTotalCost}: vTotalCost[r,y]  =  +sum{s1 in sup:((s1,r,y) in mvSupCost)}(sum{FORIF: (s1,r,y) in mvSupCost} (vSupCost[s1,r,y]))+sum{t in tech:((t,r,y) in mTechEac)}(sum{FORIF: (t,r,y) in mTechEac} (vTechEac[t,r,y]))+sum{t in tech:((t,r,y) in mTechRetCost)}(sum{FORIF: (t,r,y) in mTechRetCost} (vTechRetCost[t,r,y]))+sum{st1 in stg:((st1,r,y) in mStorageRetCost)}(sum{FORIF: (st1,r,y) in mStorageRetCost} (vStorageRetCost[st1,r,y]))+sum{t1 in trade:((t1,r,y) in mTradeRetCost)}(sum{FORIF: (t1,r,y) in mTradeRetCost} (vTradeRetCost[t1,r,y]))+sum{t in tech:((t,r,y) in mTechFixom)}(sum{FORIF: (t,r,y) in mTechFixom} (vTechFixom[t,r,y]))+sum{t in tech:((t,r,y) in mTechVarom)}(sum{FORIF: (t,r,y) in mTechVarom} (vTechVarom[t,r,y]))+sum{st1 in stg:((st1,r,y) in mStorageEac)}(sum{FORIF: (st1,r,y) in mStorageEac} (vStorageEac[st1,r,y]))+sum{st1 in stg:((st1,r,y) in mStorageFixom)}(sum{FORIF: (st1,r,y) in mStorageFixom} (vStorageFixom[st1,r,y]))+sum{st1 in stg:((st1,r,y) in mStorageVarom)}(sum{FORIF: (st1,r,y) in mStorageVarom} (vStorageVarom[st1,r,y]))+sum{i in imp:((i,r,y) in mImportRowCost)}(sum{FORIF: (i,r,y) in mImportRowCost} (vImportRowCost[i,r,y]))+sum{e in expp:((e,r,y) in mExportRowCost)}(sum{FORIF: (e,r,y) in mExportRowCost} (vExportRowCost[e,r,y]))+sum{t1 in trade:((t1,r,y) in mTradeEac)}(sum{FORIF: (t1,r,y) in mTradeEac} (vTradeEac[t1,r,y]))+sum{t1 in trade:((t1,r,y) in mTradeFixom)}(sum{FORIF: (t1,r,y) in mTradeFixom} (vTradeFixom[t1,r,y]))+sum{t1 in trade:((t1,r,y) in mImportIrCost)}(sum{FORIF: (t1,r,y) in mImportIrCost} (vImportIrCost[t1,r,y]))+sum{t1 in trade:((t1,r,y) in mExportIrCost)}(sum{FORIF: (t1,r,y) in mExportIrCost} (vExportIrCost[t1,r,y]))+sum{c in comm:((c,r,y) in mTaxCost)}(sum{FORIF: (c,r,y) in mTaxCost} (vTaxCost[c,r,y]))+sum{c in comm:((c,r,y) in mSubCost)}(sum{FORIF: (c,r,y) in mSubCost} (vSubsCost[c,r,y]))+sum{FORIF: (r,y) in mvTotalUserCosts} (vTotalUserCosts[r,y])+sum{c in comm:((c,r,y) in mDummyImportCost)}(sum{FORIF: (c,r,y) in mDummyImportCost} (vDummyImportCost[c,r,y]))+sum{c in comm:((c,r,y) in mDummyExportCost)}(sum{FORIF: (c,r,y) in mDummyExportCost} (vDummyExportCost[c,r,y]));
+s.t.  eqCost{(r, y) in mvTotalCost}: vTotalCost[r,y]  =  +sum{s1 in sup:((s1,r,y) in mvSupCost)}(sum{FORIF: (s1,r,y) in mvSupCost} (vSupCost[s1,r,y]))+sum{t in tech:((t,r,y) in mTechEac)}(sum{FORIF: (t,r,y) in mTechEac} (vTechEac[t,r,y]))+sum{t in tech:((t,r,y) in mTechRetCost)}(sum{FORIF: (t,r,y) in mTechRetCost} (vTechRetCost[t,r,y]))+sum{st1 in stg:((st1,r,y) in mStorageRetCost)}(sum{FORIF: (st1,r,y) in mStorageRetCost} (vStorageRetCost[st1,r,y]))+sum{t1 in trade:((t1,r,y) in mTradeRetCost)}(sum{FORIF: (t1,r,y) in mTradeRetCost} (vTradeRetCost[t1,r,y]))+sum{t in tech:((t,r,y) in mTechFixom)}(sum{FORIF: (t,r,y) in mTechFixom} (vTechFixom[t,r,y]))+sum{t in tech:((t,r,y) in mTechVarom)}(sum{FORIF: (t,r,y) in mTechVarom} (vTechVarom[t,r,y]))+sum{st1 in stg:((st1,r,y) in mStorageEac)}(sum{FORIF: (st1,r,y) in mStorageEac} (vStorageEac[st1,r,y]))+sum{st1 in stg:((st1,r,y) in mStorageFixom)}(sum{FORIF: (st1,r,y) in mStorageFixom} (vStorageFixom[st1,r,y]))+sum{st1 in stg:((st1,r,y) in mStorageVarom)}(sum{FORIF: (st1,r,y) in mStorageVarom} (vStorageVarom[st1,r,y]))+sum{i in imp:((i,r,y) in mImportRowCost)}(sum{FORIF: (i,r,y) in mImportRowCost} (vImportRowCost[i,r,y]))+sum{e in expp:((e,r,y) in mExportRowCost)}(sum{FORIF: (e,r,y) in mExportRowCost} (vExportRowCost[e,r,y]))+sum{t1 in trade:((t1,r,y) in mTradeEac)}(sum{FORIF: (t1,r,y) in mTradeEac} (vTradeEac[t1,r,y]))+sum{t1 in trade:((t1,r,y) in mTradeFixom)}(sum{FORIF: (t1,r,y) in mTradeFixom} (vTradeFixom[t1,r,y]))+sum{t1 in trade:((t1,r,y) in mImportIrCost)}(sum{FORIF: (t1,r,y) in mImportIrCost} (vImportIrCost[t1,r,y]))+sum{t1 in trade:((t1,r,y) in mExportIrCost)}(sum{FORIF: (t1,r,y) in mExportIrCost} (vExportIrCost[t1,r,y]))+sum{lv in levy:((lv,r,y) in mTaxCost)}(sum{FORIF: (lv,r,y) in mTaxCost} (vTaxCost[lv,r,y]))+sum{lv in levy:((lv,r,y) in mSubCost)}(sum{FORIF: (lv,r,y) in mSubCost} (vSubsCost[lv,r,y]))+sum{FORIF: (r,y) in mvTotalUserCosts} (vTotalUserCosts[r,y])+sum{c in comm:((c,r,y) in mDummyImportCost)}(sum{FORIF: (c,r,y) in mDummyImportCost} (vDummyImportCost[c,r,y]))+sum{c in comm:((c,r,y) in mDummyExportCost)}(sum{FORIF: (c,r,y) in mDummyExportCost} (vDummyExportCost[c,r,y]));
 
 s.t.  eqObjective: vObjective  =  sum{r in region,y in year:((r,y) in mvTotalCost)}(vTotalCost[r,y]*pPeriodLen[y]*pDiscountFactor[r,y]);
 
@@ -1351,13 +1352,13 @@ printf "comm,region,year,timeslice,value\n" > "output/vDummyExport.csv";
 for{(c, r, y, s) in mDummyExport : vDummyExport[c,r,y,s] <> 0} {
   printf "%s,%s,%s,%s,%.10g\n", c,r,y,s,vDummyExport[c,r,y,s] >> "output/vDummyExport.csv";
 }
-printf "comm,region,year,value\n" > "output/vTaxCost.csv";
-for{(c, r, y) in mTaxCost : vTaxCost[c,r,y] <> 0} {
-  printf "%s,%s,%s,%.10g\n", c,r,y,vTaxCost[c,r,y] >> "output/vTaxCost.csv";
+printf "levy,region,year,value\n" > "output/vTaxCost.csv";
+for{(lv, r, y) in mTaxCost : vTaxCost[lv,r,y] <> 0} {
+  printf "%s,%s,%s,%.10g\n", lv,r,y,vTaxCost[lv,r,y] >> "output/vTaxCost.csv";
 }
-printf "comm,region,year,value\n" > "output/vSubsCost.csv";
-for{(c, r, y) in mSubCost : vSubsCost[c,r,y] <> 0} {
-  printf "%s,%s,%s,%.10g\n", c,r,y,vSubsCost[c,r,y] >> "output/vSubsCost.csv";
+printf "levy,region,year,value\n" > "output/vSubsCost.csv";
+for{(lv, r, y) in mSubCost : vSubsCost[lv,r,y] <> 0} {
+  printf "%s,%s,%s,%.10g\n", lv,r,y,vSubsCost[lv,r,y] >> "output/vSubsCost.csv";
 }
 printf "comm,region,year,timeslice,value\n" > "output/vAggOutTot.csv";
 for{(c, r, y, s) in mAggOut : vAggOutTot[c,r,y,s] <> 0} {
@@ -1648,6 +1649,9 @@ for {g in group} {
 }
 for {wth1 in weather} {
     printf "weather,%s\n", wth1 >> "output/raw_data_set.csv";
+}
+for {lv in levy} {
+    printf "levy,%s\n", lv >> "output/raw_data_set.csv";
 }
 printf  '"done",,"%s"\n', time2str(gmtime(), "%Y-%m-%d %M:%H:S %TZ") >> "output/log.csv";
 end;

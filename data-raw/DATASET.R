@@ -53,7 +53,8 @@ styler::style_file("R/defaults.R")
   "group", "region", "regionp", "src", "dst",
   "year", "yearp", "timeslice", "timeslicep", "stg", "expp", "imp", "trade",
   "process", # union of the seven process classes; parent of tech/stg/... in GAMS
-  "costs" # user-cost object names; the `vUserCosts` dimension
+  "costs", # user-cost object names; the `vUserCosts` dimension
+  "levy" # tax/subsidy object names; one shared label space for both classes
 )
 
 # `.variable_set` (data-raw/maps.R) derives dims from `.variable_mapping` by

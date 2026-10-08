@@ -1051,7 +1051,7 @@ setMethod(
           obj_name = obj@name,
           slot_data = slot_data,
           par_meta = p,
-          class_col = "tax"
+          class_col = "levy"
         )
         scen <- update_parameter(scen, p$name, dat)
       }
@@ -1088,7 +1088,7 @@ setMethod(
           obj_name = obj@name,
           slot_data = slot_data,
           par_meta = p,
-          class_col = "sub"
+          class_col = "levy"
         )
         scen <- update_parameter(scen, p$name, dat)
       }

@@ -224,9 +224,9 @@ mStorageOutComm_ix = _group(mStorageOutComm, comm, 1, (0,))
 mStorageRetCost_ix = _group(mStorageRetCost, stg, 0, (1, 2,))
 mStorageStgComm_ix = _group(mStorageStgComm, comm, 1, (0,))
 mStorageVarom_ix = _group(mStorageVarom, stg, 0, (1, 2,))
-mSubCost_ix = _group(mSubCost, comm, 0, (1, 2,))
+mSubCost_ix = _group(mSubCost, levy, 0, (1, 2,))
 mSupAva_ix = _group(mSupAva, timeslice, 4, (0, 1, 2, 3,))
-mTaxCost_ix = _group(mTaxCost, comm, 0, (1, 2,))
+mTaxCost_ix = _group(mTaxCost, levy, 0, (1, 2,))
 mTechCinp2AInp_ix = _group(mTechCinp2AInp, comm, 2, (0, 1, 3, 4, 5,))
 mTechCinp2AOut_ix = _group(mTechCinp2AOut, comm, 2, (0, 1, 3, 4, 5,))
 mTechCout2AInp_ix = _group(mTechCout2AInp, comm, 2, (0, 1, 3, 4, 5,))
@@ -3864,33 +3864,36 @@ if verbose:
         " s)",
         sep="",
     )
-# eqTaxCost(comm, region, year)$mTaxCost(comm, region, year)
+# eqTaxCost(levy, region, year)$mTaxCost(levy, region, year)
 if verbose:
     print("eqTaxCost ", end="")
 sys.stdout.flush()
 model.eqTaxCost = Constraint(
     mTaxCost,
-    rule=lambda model, c, r, y: model.vTaxCost[c, r, y]
+    rule=lambda model, lv, r, y: model.vTaxCost[lv, r, y]
     == sum(
-        pTaxCostOut.get((c, r, y, s))
+        pTaxCostOut.get((lv, c, r, y, s))
         * pTimesliceWeight.get((y, s))
         * model.vOutTot[c, r, y, s]
+        for c in comm
         for s in timeslice
-        if ((c, r, y, s) in mvOutTot and (c, s) in mCommTimeslice)
+        if ((c, r, y, s) in mvOutTot and (c, s) in mCommTimeslice and pTaxCostOut.get((lv, c, r, y, s)) != 0)
     )
     + sum(
-        pTaxCostInp.get((c, r, y, s))
+        pTaxCostInp.get((lv, c, r, y, s))
         * pTimesliceWeight.get((y, s))
         * model.vInpTot[c, r, y, s]
+        for c in comm
         for s in timeslice
-        if ((c, r, y, s) in mvInpTot and (c, s) in mCommTimeslice)
+        if ((c, r, y, s) in mvInpTot and (c, s) in mCommTimeslice and pTaxCostInp.get((lv, c, r, y, s)) != 0)
     )
     + sum(
-        pTaxCostBal.get((c, r, y, s))
+        pTaxCostBal.get((lv, c, r, y, s))
         * pTimesliceWeight.get((y, s))
         * model.vBalance[c, r, y, s]
+        for c in comm
         for s in timeslice
-        if ((c, r, y, s) in mvBalance and (c, s) in mCommTimeslice)
+        if ((c, r, y, s) in mvBalance and (c, s) in mCommTimeslice and pTaxCostBal.get((lv, c, r, y, s)) != 0)
     ),
 )
 if verbose:
@@ -3901,33 +3904,36 @@ if verbose:
         " s)",
         sep="",
     )
-# eqSubsCost(comm, region, year)$mSubCost(comm, region, year)
+# eqSubsCost(levy, region, year)$mSubCost(levy, region, year)
 if verbose:
     print("eqSubsCost ", end="")
 sys.stdout.flush()
 model.eqSubsCost = Constraint(
     mSubCost,
-    rule=lambda model, c, r, y: model.vSubsCost[c, r, y]
+    rule=lambda model, lv, r, y: model.vSubsCost[lv, r, y]
     == -sum(
-        pSubCostOut.get((c, r, y, s))
+        pSubCostOut.get((lv, c, r, y, s))
         * pTimesliceWeight.get((y, s))
         * model.vOutTot[c, r, y, s]
+        for c in comm
         for s in timeslice
-        if ((c, r, y, s) in mvOutTot and (c, s) in mCommTimeslice)
+        if ((c, r, y, s) in mvOutTot and (c, s) in mCommTimeslice and pSubCostOut.get((lv, c, r, y, s)) != 0)
     )
     - sum(
-        pSubCostInp.get((c, r, y, s))
+        pSubCostInp.get((lv, c, r, y, s))
         * pTimesliceWeight.get((y, s))
         * model.vInpTot[c, r, y, s]
+        for c in comm
         for s in timeslice
-        if ((c, r, y, s) in mvInpTot and (c, s) in mCommTimeslice)
+        if ((c, r, y, s) in mvInpTot and (c, s) in mCommTimeslice and pSubCostInp.get((lv, c, r, y, s)) != 0)
     )
     - sum(
-        pSubCostBal.get((c, r, y, s))
+        pSubCostBal.get((lv, c, r, y, s))
         * pTimesliceWeight.get((y, s))
         * model.vBalance[c, r, y, s]
+        for c in comm
         for s in timeslice
-        if ((c, r, y, s) in mvBalance and (c, s) in mCommTimeslice)
+        if ((c, r, y, s) in mvBalance and (c, s) in mCommTimeslice and pSubCostBal.get((lv, c, r, y, s)) != 0)
     ),
 )
 if verbose:
@@ -4010,12 +4016,12 @@ model.eqCost = Constraint(
         for t1 in mExportIrCost_ix.get((r, y), ())
     )
     + sum(
-        (model.vTaxCost[c, r, y] if (c, r, y) in mTaxCost else 0)
-        for c in mTaxCost_ix.get((r, y), ())
+        (model.vTaxCost[lv, r, y] if (lv, r, y) in mTaxCost else 0)
+        for lv in mTaxCost_ix.get((r, y), ())
     )
     + sum(
-        (model.vSubsCost[c, r, y] if (c, r, y) in mSubCost else 0)
-        for c in mSubCost_ix.get((r, y), ())
+        (model.vSubsCost[lv, r, y] if (lv, r, y) in mSubCost else 0)
+        for lv in mSubCost_ix.get((r, y), ())
     )
     + (model.vTotalUserCosts[r, y] if (r, y) in mvTotalUserCosts else 0)
     + sum(

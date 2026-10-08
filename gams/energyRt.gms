@@ -33,6 +33,7 @@ expp(process)   export to the rest of the world (ROW)
 imp(process)    import from the ROW
 group  group of input or output commodities in technology
 weather weather
+levy   tax or subsidy instrument
 ;
 
 alias (tech, techp), (region, regionp), (year, yearp), (year, yeare), (year, yearn);
@@ -227,12 +228,12 @@ pEmissionFactor(comm, comm)                         Emission factor
 pDummyImportCost(comm, region, year, timeslice)         Dummy costs parameters (for debugging)
 pDummyExportCost(comm, region, year, timeslice)         Dummy costs parameters (for debuging)
 * Taxes and subsidies
-pTaxCostInp(comm, region, year, timeslice)              Commodity taxes for input
-pTaxCostOut(comm, region, year, timeslice)              Commodity taxes for output
-pTaxCostBal(comm, region, year, timeslice)              Commodity taxes for balance
-pSubCostInp(comm, region, year, timeslice)              Commodity subsidies for input
-pSubCostOut(comm, region, year, timeslice)              Commodity subsidies for output
-pSubCostBal(comm, region, year, timeslice)              Commodity subsidies for balance
+pTaxCostInp(levy, comm, region, year, timeslice)              Commodity taxes for input
+pTaxCostOut(levy, comm, region, year, timeslice)              Commodity taxes for output
+pTaxCostBal(levy, comm, region, year, timeslice)              Commodity taxes for balance
+pSubCostInp(levy, comm, region, year, timeslice)              Commodity subsidies for input
+pSubCostOut(levy, comm, region, year, timeslice)              Commodity subsidies for output
+pSubCostBal(levy, comm, region, year, timeslice)              Commodity subsidies for balance
 * Aggregation
 pAggregateFactor(comm, comm)                        Aggregation factor of commodities
 * System parameters
@@ -677,11 +678,11 @@ vDummyExport(comm, region, year, timeslice)               Dummy export (for debu
 ;
 variable
 * Taxes
-*@ mTaxCost(comm, region, year)
-vTaxCost(comm, region, year)                         Total tax levies (tax costs)
+*@ mTaxCost(levy, region, year)
+vTaxCost(levy, region, year)                         Total tax levies (tax costs)
 * Subsidies
-*@ mSubCost(comm, region, year)
-vSubsCost(comm, region, year)                        Total subsidies (substracted from costs)
+*@ mSubCost(levy, region, year)
+vSubsCost(levy, region, year)                        Total subsidies (substracted from costs)
 *@ mAggOut(comm, region, year, timeslice)
 vAggOutTot(comm, region, year, timeslice)                Aggregated commodity output (weighted)
 *@ mDummyImportCost(comm, region, year)
@@ -834,8 +835,8 @@ mStorageOutCommAggTimeslice(stg, comm, timeslice, timeslicep)
 mStorageAOutCommSameTimeslice(stg, comm)
 mStorageAOutCommAgg(stg, comm)
 mStorageAOutCommAggTimeslice(stg, comm, timeslice, timeslicep)
-mTaxCost(comm, region, year)
-mSubCost(comm, region, year)
+mTaxCost(levy, region, year)
+mSubCost(levy, region, year)
 mAggOut(comm, region, year, timeslice)
 mTechAfUp(tech, region, year, timeslice)
 mTechFullYear(tech)
@@ -2851,8 +2852,8 @@ eqStorageOutTot(comm, region, year, timeslice)$mStorageOutTot(comm, region, year
 Equation
 eqDummyImportCost(comm, region, year)   Dummy import costs (weighted)
 eqDummyExportCost(comm, region, year)   Dummy export costs (weighted)
-eqTaxCost(comm, region, year)       Commodity taxes (weighted)
-eqSubsCost(comm, region, year)      Commodity subsidy (weighted)
+eqTaxCost(levy, region, year)       Levy taxes (weighted)
+eqSubsCost(levy, region, year)      Levy subsidy (weighted)
 eqCost(region, year)                Total costs (weighted)
 eqObjective                         Objective equation NPV of total costs
 ;
@@ -2880,41 +2881,41 @@ eqDummyExportCost(comm, region, year)$mDummyExportCost(comm, region, year)..
             );
 
 * tax levies
-eqTaxCost(comm, region, year)$mTaxCost(comm, region, year)..
-         vTaxCost(comm, region, year)
+eqTaxCost(levy, region, year)$mTaxCost(levy, region, year)..
+         vTaxCost(levy, region, year)
          =e=
-         sum(timeslice$(mvOutTot(comm, region, year, timeslice) and mCommTimeslice(comm, timeslice)),
-             pTaxCostOut(comm, region, year, timeslice)
+         sum((comm, timeslice)$(mvOutTot(comm, region, year, timeslice) and mCommTimeslice(comm, timeslice) and pTaxCostOut(levy, comm, region, year, timeslice) <> 0),
+             pTaxCostOut(levy, comm, region, year, timeslice)
              * pTimesliceWeight(year, timeslice)
              * vOutTot(comm, region, year, timeslice)
              )
-       + sum(timeslice$(mvInpTot(comm, region, year, timeslice) and mCommTimeslice(comm, timeslice)),
-             pTaxCostInp(comm, region, year, timeslice)
+       + sum((comm, timeslice)$(mvInpTot(comm, region, year, timeslice) and mCommTimeslice(comm, timeslice) and pTaxCostInp(levy, comm, region, year, timeslice) <> 0),
+             pTaxCostInp(levy, comm, region, year, timeslice)
              * pTimesliceWeight(year, timeslice)
              * vInpTot(comm, region, year, timeslice)
              )
-       + sum(timeslice$(mvBalance(comm, region, year, timeslice) and mCommTimeslice(comm, timeslice)),
-             pTaxCostBal(comm, region, year, timeslice)
+       + sum((comm, timeslice)$(mvBalance(comm, region, year, timeslice) and mCommTimeslice(comm, timeslice) and pTaxCostBal(levy, comm, region, year, timeslice) <> 0),
+             pTaxCostBal(levy, comm, region, year, timeslice)
              * pTimesliceWeight(year, timeslice)
              * vBalance(comm, region, year, timeslice)
              );
 
 * subsidies
-eqSubsCost(comm, region, year)$mSubCost(comm, region, year)..
-        vSubsCost(comm, region, year)
+eqSubsCost(levy, region, year)$mSubCost(levy, region, year)..
+        vSubsCost(levy, region, year)
         =e=
-      - sum(timeslice$(mvOutTot(comm, region, year, timeslice) and mCommTimeslice(comm, timeslice)),
-            pSubCostOut(comm, region, year, timeslice)
+      - sum((comm, timeslice)$(mvOutTot(comm, region, year, timeslice) and mCommTimeslice(comm, timeslice) and pSubCostOut(levy, comm, region, year, timeslice) <> 0),
+            pSubCostOut(levy, comm, region, year, timeslice)
             * pTimesliceWeight(year, timeslice)
             * vOutTot(comm, region, year, timeslice)
         )
-      - sum(timeslice$(mvInpTot(comm, region, year, timeslice) and mCommTimeslice(comm, timeslice)),
-            pSubCostInp(comm, region, year, timeslice)
+      - sum((comm, timeslice)$(mvInpTot(comm, region, year, timeslice) and mCommTimeslice(comm, timeslice) and pSubCostInp(levy, comm, region, year, timeslice) <> 0),
+            pSubCostInp(levy, comm, region, year, timeslice)
             * pTimesliceWeight(year, timeslice)
             * vInpTot(comm, region, year, timeslice)
         )
-      - sum(timeslice$(mvBalance(comm, region, year, timeslice) and mCommTimeslice(comm, timeslice)),
-            pSubCostBal(comm, region, year, timeslice)
+      - sum((comm, timeslice)$(mvBalance(comm, region, year, timeslice) and mCommTimeslice(comm, timeslice) and pSubCostBal(levy, comm, region, year, timeslice) <> 0),
+            pSubCostBal(levy, comm, region, year, timeslice)
             * pTimesliceWeight(year, timeslice)
             * vBalance(comm, region, year, timeslice));
 *==============================================================================*
@@ -2952,9 +2953,9 @@ eqCost(region, year)$mvTotalCost(region, year)..
 * IR trade export costs
         + sum(trade$mExportIrCost(trade, region, year), vExportIrCost(trade, region, year)$mExportIrCost(trade, region, year))
 * commodity taxes
-        + sum(comm$mTaxCost(comm, region, year), vTaxCost(comm, region, year)$mTaxCost(comm, region, year))
+        + sum(levy$mTaxCost(levy, region, year), vTaxCost(levy, region, year)$mTaxCost(levy, region, year))
 * commodity subsidies
-        + sum(comm$mSubCost(comm, region, year), vSubsCost(comm, region, year)$mSubCost(comm, region, year))
+        + sum(levy$mSubCost(levy, region, year), vSubsCost(levy, region, year)$mSubCost(levy, region, year))
 * custom user costs
         + vTotalUserCosts(region, year)$mvTotalUserCosts(region, year)
 * "dummy" import costs for debugging

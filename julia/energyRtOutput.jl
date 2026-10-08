@@ -137,11 +137,11 @@ close(fvObjective);
 
 fvTaxCost = open("output/vTaxCost.csv", "w");
 
-println(fvTaxCost, "comm,region,year,value");
+println(fvTaxCost, "levy,region,year,value");
 
-for (c, r, y) in mTaxCost
-    if JuMP.value(vTaxCost[(c, r, y)]) != 0
-        println(fvTaxCost, c, ",", r, ",", y, ",", JuMP.value(vTaxCost[(c, r, y)]))
+for (lv, r, y) in mTaxCost
+    if JuMP.value(vTaxCost[(lv, r, y)]) != 0
+        println(fvTaxCost, lv, ",", r, ",", y, ",", JuMP.value(vTaxCost[(lv, r, y)]))
     end
 end;
 
@@ -149,11 +149,11 @@ close(fvTaxCost);
 
 fvSubsCost = open("output/vSubsCost.csv", "w");
 
-println(fvSubsCost, "comm,region,year,value");
+println(fvSubsCost, "levy,region,year,value");
 
-for (c, r, y) in mSubCost
-    if JuMP.value(vSubsCost[(c, r, y)]) != 0
-        println(fvSubsCost, c, ",", r, ",", y, ",", JuMP.value(vSubsCost[(c, r, y)]))
+for (lv, r, y) in mSubCost
+    if JuMP.value(vSubsCost[(lv, r, y)]) != 0
+        println(fvSubsCost, lv, ",", r, ",", y, ",", JuMP.value(vSubsCost[(lv, r, y)]))
     end
 end;
 
@@ -1550,6 +1550,9 @@ for rr in group
 end
 for rr in weather
     println(raw_data, "weather,", rr)
+end
+for rr in levy
+    println(raw_data, "levy,", rr)
 end
 
 close(raw_data);

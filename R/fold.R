@@ -29,7 +29,9 @@
 
 # Identity / axis dimensions that must NEVER be folded.
 .fold_protected_dims <- c(
-  "commp", "process", "sup", "imp", "expp", "dem", "weather", "yearp", "type"
+  "commp", "process", "sup", "imp", "expp", "dem", "weather", "yearp", "type",
+  # the instrument's identity: folding it would merge two levies into one
+  "levy"
 )
 
 # Unfold order: entity dims first (their membership is the full set), then

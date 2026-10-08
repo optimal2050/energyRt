@@ -607,6 +607,25 @@ interpolate_model <- function(mod, name = NULL, ...,
   scen@modInp@parameters$weather <-
     d2p(scen@modInp@parameters$weather, scen@modInp@sets$weather, fmp("weather"))
 
+  ## levy - tax and subsidy instrument names ####
+  # One shared label space for both policy classes: a tax and a subsidy are the
+  # same kind of object (an instrument with a signed rate) and they share one
+  # reporting dimension, so a name must be unique across BOTH. Carrying the
+  # name as a dimension is what stops two instruments on the same cell from
+  # overwriting each other -- previously the name was attached by `class_col`
+  # and then dropped, because no such set existed.
+  scen@modInp@sets$levy <- c(.obj_names_of("tax"), .obj_names_of("subsidy"))
+  dup <- unique(scen@modInp@sets$levy[duplicated(scen@modInp@sets$levy)])
+  if (length(dup) > 0) {
+    stop("tax/subsidy name(s) used twice: ",
+         paste0('"', dup, '"', collapse = ", "),
+         ". Names must be unique across both classes -- they share one ",
+         "reporting dimension.", call. = FALSE)
+  }
+  # `@sets` never leaves R; the writers read `@parameters`.
+  scen@modInp@parameters$levy <-
+    d2p(scen@modInp@parameters$levy, scen@modInp@sets$levy, fmp("levy"))
+
   # Other sets (not from model objects) ####
   ## group - groups of commodities
   scen@modInp@sets$group <- collect_set_elements(mod, "group")

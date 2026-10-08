@@ -92,8 +92,8 @@ mStorageOutComm_ix = _group(mStorageOutComm, comm, 2, (1,));
 mStorageRetCost_ix = _group(mStorageRetCost, stg, 1, (2, 3,));
 mStorageStgComm_ix = _group(mStorageStgComm, comm, 2, (1,));
 mStorageVarom_ix = _group(mStorageVarom, stg, 1, (2, 3,));
-mSubCost_ix = _group(mSubCost, comm, 1, (2, 3,));
-mTaxCost_ix = _group(mTaxCost, comm, 1, (2, 3,));
+mSubCost_ix = _group(mSubCost, levy, 1, (2, 3,));
+mTaxCost_ix = _group(mTaxCost, levy, 1, (2, 3,));
 mTechEac_ix = _group(mTechEac, tech, 1, (2, 3,));
 mTechFixom_ix = _group(mTechFixom, tech, 1, (2, 3,));
 mTechGroupComm_ix = _group(mTechGroupComm, comm, 3, (1, 2,));
@@ -5405,16 +5405,16 @@ print(
     "
 ",
 )
-# eqTaxCost(comm, region, year)$mTaxCost(comm, region, year)
-print("eqTaxCost(comm, region, year)...")
+# eqTaxCost(levy, region, year)$mTaxCost(levy, region, year)
+print("eqTaxCost(levy, region, year)...")
 @constraint(
     model,
-    [(c, r, y) in mTaxCost],
-    vTaxCost[(c, r, y)] ==
+    [(lv, r, y) in mTaxCost],
+    vTaxCost[(lv, r, y)] ==
     sum(
         (
-            if haskey(pTaxCostOut, (c, r, y, s))
-                pTaxCostOut[(c, r, y, s)]
+            if haskey(pTaxCostOut, (lv, c, r, y, s))
+                pTaxCostOut[(lv, c, r, y, s)]
             else
                 pTaxCostOutDef
             end
@@ -5427,12 +5427,12 @@ print("eqTaxCost(comm, region, year)...")
             end
         ) *
         vOutTot[(c, r, y, s)] for
-        s in timeslice if ((c, r, y, s) in mvOutTot && (c, s) in mCommTimeslice)
+        c in comm, s in timeslice if ((c, r, y, s) in mvOutTot && (c, s) in mCommTimeslice && get(pTaxCostOut, (lv, c, r, y, s), pTaxCostOutDef) != 0)
     ) +
     sum(
         (
-            if haskey(pTaxCostInp, (c, r, y, s))
-                pTaxCostInp[(c, r, y, s)]
+            if haskey(pTaxCostInp, (lv, c, r, y, s))
+                pTaxCostInp[(lv, c, r, y, s)]
             else
                 pTaxCostInpDef
             end
@@ -5445,12 +5445,12 @@ print("eqTaxCost(comm, region, year)...")
             end
         ) *
         vInpTot[(c, r, y, s)] for
-        s in timeslice if ((c, r, y, s) in mvInpTot && (c, s) in mCommTimeslice)
+        c in comm, s in timeslice if ((c, r, y, s) in mvInpTot && (c, s) in mCommTimeslice && get(pTaxCostInp, (lv, c, r, y, s), pTaxCostInpDef) != 0)
     ) +
     sum(
         (
-            if haskey(pTaxCostBal, (c, r, y, s))
-                pTaxCostBal[(c, r, y, s)]
+            if haskey(pTaxCostBal, (lv, c, r, y, s))
+                pTaxCostBal[(lv, c, r, y, s)]
             else
                 pTaxCostBalDef
             end
@@ -5463,7 +5463,7 @@ print("eqTaxCost(comm, region, year)...")
             end
         ) *
         vBalance[(c, r, y, s)] for
-        s in timeslice if ((c, r, y, s) in mvBalance && (c, s) in mCommTimeslice)
+        c in comm, s in timeslice if ((c, r, y, s) in mvBalance && (c, s) in mCommTimeslice && get(pTaxCostBal, (lv, c, r, y, s), pTaxCostBalDef) != 0)
     )
 );
 print(
@@ -5472,16 +5472,16 @@ print(
     "
 ",
 )
-# eqSubsCost(comm, region, year)$mSubCost(comm, region, year)
-print("eqSubsCost(comm, region, year)...")
+# eqSubsCost(levy, region, year)$mSubCost(levy, region, year)
+print("eqSubsCost(levy, region, year)...")
 @constraint(
     model,
-    [(c, r, y) in mSubCost],
-    vSubsCost[(c, r, y)] ==
+    [(lv, r, y) in mSubCost],
+    vSubsCost[(lv, r, y)] ==
     -sum(
         (
-            if haskey(pSubCostOut, (c, r, y, s))
-                pSubCostOut[(c, r, y, s)]
+            if haskey(pSubCostOut, (lv, c, r, y, s))
+                pSubCostOut[(lv, c, r, y, s)]
             else
                 pSubCostOutDef
             end
@@ -5494,11 +5494,11 @@ print("eqSubsCost(comm, region, year)...")
             end
         ) *
         vOutTot[(c, r, y, s)] for
-        s in timeslice if ((c, r, y, s) in mvOutTot && (c, s) in mCommTimeslice)
+        c in comm, s in timeslice if ((c, r, y, s) in mvOutTot && (c, s) in mCommTimeslice && get(pSubCostOut, (lv, c, r, y, s), pSubCostOutDef) != 0)
     ) - sum(
         (
-            if haskey(pSubCostInp, (c, r, y, s))
-                pSubCostInp[(c, r, y, s)]
+            if haskey(pSubCostInp, (lv, c, r, y, s))
+                pSubCostInp[(lv, c, r, y, s)]
             else
                 pSubCostInpDef
             end
@@ -5511,11 +5511,11 @@ print("eqSubsCost(comm, region, year)...")
             end
         ) *
         vInpTot[(c, r, y, s)] for
-        s in timeslice if ((c, r, y, s) in mvInpTot && (c, s) in mCommTimeslice)
+        c in comm, s in timeslice if ((c, r, y, s) in mvInpTot && (c, s) in mCommTimeslice && get(pSubCostInp, (lv, c, r, y, s), pSubCostInpDef) != 0)
     ) - sum(
         (
-            if haskey(pSubCostBal, (c, r, y, s))
-                pSubCostBal[(c, r, y, s)]
+            if haskey(pSubCostBal, (lv, c, r, y, s))
+                pSubCostBal[(lv, c, r, y, s)]
             else
                 pSubCostBalDef
             end
@@ -5528,7 +5528,7 @@ print("eqSubsCost(comm, region, year)...")
             end
         ) *
         vBalance[(c, r, y, s)] for
-        s in timeslice if ((c, r, y, s) in mvBalance && (c, s) in mCommTimeslice)
+        c in comm, s in timeslice if ((c, r, y, s) in mvBalance && (c, s) in mCommTimeslice && get(pSubCostBal, (lv, c, r, y, s), pSubCostBalDef) != 0)
     )
 );
 print(
@@ -5597,8 +5597,8 @@ print("eqCost(region, year)...")
     + sum((if (t1,r,y) in mTradeFixom; vTradeFixom[(t1,r,y)]; else 0; end;) for t1 in get(mTradeFixom_ix, (r, y), ()))
     + sum((if (t1,r,y) in mImportIrCost; vImportIrCost[(t1,r,y)]; else 0; end;) for t1 in get(mImportIrCost_ix, (r, y), ()))
     + sum((if (t1,r,y) in mExportIrCost; vExportIrCost[(t1,r,y)]; else 0; end;) for t1 in get(mExportIrCost_ix, (r, y), ()))
-    + sum((if (c,r,y) in mTaxCost; vTaxCost[(c,r,y)]; else 0; end;) for c in get(mTaxCost_ix, (r, y), ()))
-    + sum((if (c,r,y) in mSubCost; vSubsCost[(c,r,y)]; else 0; end;) for c in get(mSubCost_ix, (r, y), ()))
+    + sum((if (lv,r,y) in mTaxCost; vTaxCost[(lv,r,y)]; else 0; end;) for lv in get(mTaxCost_ix, (r, y), ()))
+    + sum((if (lv,r,y) in mSubCost; vSubsCost[(lv,r,y)]; else 0; end;) for lv in get(mSubCost_ix, (r, y), ()))
     + (if (r,y) in mvTotalUserCosts; vTotalUserCosts[(r,y)]; else 0; end;)
     + sum((if (c,r,y) in mDummyImportCost; vDummyImportCost[(c,r,y)]; else 0; end;) for c in get(mDummyImportCost_ix, (r, y), ()))
     + sum((if (c,r,y) in mDummyExportCost; vDummyExportCost[(c,r,y)]; else 0; end;) for c in get(mDummyExportCost_ix, (r, y), ()))

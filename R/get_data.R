@@ -1743,14 +1743,16 @@ getObject.en_registry <- function(x, type = NULL, name = NULL, hash = NULL,
 .class_set_dim <- c(
   technology = "tech", commodity = "comm", storage = "stg",
   supply = "sup", demand = "dem", trade = "trade",
-  import = "imp", export = "expp", weather = "weather"
+  import = "imp", export = "expp", weather = "weather",
+  # both policy classes share one label space
+  tax = "levy", subsidy = "levy"
 )
 
 # Known set (index) dimensions -- everything else numeric is a "value" column.
 .known_set_dims <- c(
   "region", "regionp", "year", "yearp", "timeslice", "timeslicep", "comm", "commp",
   "acomm", "group", "tech", "techp", "stg", "sup", "dem", "trade", "expp",
-  "imp", "impp", "weather", "src", "dst", "process"
+  "imp", "impp", "weather", "src", "dst", "process", "levy"
 )
 
 # Reverse map (memoised): "class\rslot\rcolName" -> list(rule, defVal, param).
