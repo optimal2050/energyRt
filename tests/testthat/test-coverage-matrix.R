@@ -35,8 +35,8 @@ test_that("matrix rows assemble from package metadata with expected arithmetic",
   env <- load_matrix_tool()
   rows <- env$assemble_rows()
   counts <- table(rows$kind)
-  # 503 .modInp entries (15 set + 309 map + 141 numpar + 38 bounds)
-  # + 150 equations + 95 variables = 748
+  # 513 .modInp entries (15 set + 309 map + 151 numpar + 38 bounds)
+  # + 150 equations + 95 variables = 758
   # (15 sets = 13 + `process`, the union of the seven process classes, declared
   # on every backend and the GAMS parent of tech/stg/sup/dem/expp/imp/trade)
   # (297 = 285 + the 12 mStorage*Comm{SameTimeslice,Agg,AggTimeslice} maps
@@ -47,11 +47,14 @@ test_that("matrix rows assemble from package metadata with expected arithmetic",
   # down to its child regions -- read by the af/afs/afc equations on all four
   # backends, 2026-09-21)
   # (15 sets = + `levy`, the shared index of tax and subsidy instruments; it
-  # re-dimensions the six pTaxCost*/pSubCost* parameters rather than adding any,
-  # so numpar stays 141 -- 2026-10-08)
+  # re-dimensions the six pTaxCost*/pSubCost* parameters rather than adding any
+  # -- 2026-10-08)
+  # (151 numpar = 141 + the ten pTaxProc*/pSubProc* rate tables that carry a
+  # levy onto a process: act/inp/out/cap/ncap for each of tax and subsidy,
+  # 2026-10-08)
   expect_equal(unname(counts[["set"]]), 15)
   expect_equal(unname(counts[["map"]]), 309)
-  expect_equal(unname(counts[["numpar"]]), 141)
+  expect_equal(unname(counts[["numpar"]]), 151)
   expect_equal(unname(counts[["bounds"]]), 38)
   expect_equal(unname(counts[["equation"]]), 150)
   expect_gte(unname(counts[["variable"]]), 93)

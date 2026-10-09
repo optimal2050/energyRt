@@ -7,6 +7,18 @@
 
 ## Breaking changes
 
+* Taxes and subsidies are indexed by the instrument, not the commodity.
+  `vTaxCost` / `vSubsCost` and `eqTaxCost` / `eqSubsCost` move from
+  `(comm, region, year)` to `(levy, region, year)`, where `levy` is a new set
+  holding every `newTax()` and `newSub()` name, and the six `pTaxCost*` /
+  `pSubCost*` rate tables gain it as a leading dimension. Two instruments on one
+  commodity used to overwrite each other silently; they now sum, and each is
+  reported under its own name. A tax and a subsidy may not share a name.
+
+* `newConstraintS(type = "tax"|"subs")` no longer builds a levy and errors with
+  a pointer to `newTax()` / `newSub()`. It forwarded `year` and `timeslice` as
+  slots neither class has, so it failed for every input it was given.
+
 * The test tier `nightly` is renamed `full` (`check < fast < cross < full`).
   `ENERGYRT_TEST_TIER=nightly` is rejected rather than aliased, and the report
   of a full run is written to `tmp/test-reports/full-<timestamp>-<pid>.md`.
@@ -235,6 +247,26 @@
   set up by multimod, which energyRt and multimod now share.
 
 ## New features
+
+* A tax or subsidy can be levied on a PROCESS, not only on a commodity total.
+  `newTax()` / `newSub()` take `process`, `process_` (regex), `classes`,
+  `vintage`, `vintage_`, `cluster` and `cluster_` to say what is charged, and
+  the rate table takes `act`, `cap` and `ncap` beside `inp`, `out` and `bal`.
+  Technology and storage are supported; `cap` / `ncap` on a storage charge its
+  output capacity. `process` matches the declared name as well as the realized
+  variant, so naming a vintaged process selects all of its variants, and
+  `vintage` / `cluster` resolve from the variant table rather than from the
+  mangled name.
+
+  `inp` and `out` reach the commodity totals when no process is named and the
+  process's own flows when one is, never both. Every filter that resolves to
+  nothing is an error rather than a silent zero, and `bal` with a process
+  filter, `act` on storage, and an unsupported `classes` are each refused with
+  the reason.
+
+* `autoplot()` on a tax or subsidy draws whichever rate columns the instrument
+  actually sets, and names the targeted process in the subtitle. It was pinned
+  to `bal`, so an `act`-, `cap`- or `ncap`-only instrument plotted nothing.
 
 * A `weather` object can be declared at a COARSER region than the processes
   that use it — one profile per `adm1` feeding all of its `adm2` children —
@@ -751,6 +783,9 @@
   `saved`/`updated` stamps, surfaced by `scenario_runs()`.
 
 ## Bug fixes
+
+* A levy on a timeslice-indexed base is weighted by `pTimesliceWeight`, so a
+  sampled calendar scales it to the full year like every other cost.
 
 * A region whose code repeats at two adjacent geoframes no longer poisons its
   own balance. The self-pair reached `mRegionFamily`, so `eqOutTot` read

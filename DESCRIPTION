@@ -114,6 +114,7 @@ Collate:
     'levcost_analytic.R'
     'levcost_storage.R'
     'levcost_trade.R'
+    'levy.R'
     'log.R'
     'mapping-engine.R'
     'mapping-filter.R'

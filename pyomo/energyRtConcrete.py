@@ -3894,6 +3894,74 @@ model.eqTaxCost = Constraint(
         for c in comm
         for s in timeslice
         if ((c, r, y, s) in mvBalance and (c, s) in mCommTimeslice and pTaxCostBal.get((lv, c, r, y, s)) != 0)
+    )
+    + sum(
+        pTaxProcAct.get((lv, t, r, y, s))
+        * pTimesliceWeight.get((y, s))
+        * model.vTechAct[t, r, y, s]
+        for t in tech
+        for s in timeslice
+        if ((t, r, y, s) in mvTechAct and pTaxProcAct.get((lv, t, r, y, s)) != 0)
+    )
+    + sum(
+        pTaxProcInp.get((lv, t, c, r, y, s))
+        * pTimesliceWeight.get((y, s))
+        * model.vTechInp[t, c, r, y, s]
+        for t in tech
+        for c in comm
+        for s in timeslice
+        if ((t, c, r, y, s) in mvTechInp and pTaxProcInp.get((lv, t, c, r, y, s)) != 0)
+    )
+    + sum(
+        pTaxProcOut.get((lv, t, c, r, y, s))
+        * pTimesliceWeight.get((y, s))
+        * model.vTechOut[t, c, r, y, s]
+        for t in tech
+        for c in comm
+        for s in timeslice
+        if ((t, c, r, y, s) in mvTechOut and pTaxProcOut.get((lv, t, c, r, y, s)) != 0)
+    )
+    + sum(
+        pTaxProcCap.get((lv, t, r, y))
+        * model.vTechCap[t, r, y]
+        for t in tech
+        if ((t, r, y) in mTechSpan and pTaxProcCap.get((lv, t, r, y)) != 0)
+    )
+    + sum(
+        pTaxProcNcap.get((lv, t, r, y))
+        * model.vTechNewCap[t, r, y]
+        for t in tech
+        if ((t, r, y) in mTechNew and pTaxProcNcap.get((lv, t, r, y)) != 0)
+    )
+    + sum(
+        pTaxProcInp.get((lv, st1, c, r, y, s))
+        * pTimesliceWeight.get((y, s))
+        * model.vStorageInp[st1, c, r, y, s]
+        for st1 in stg
+        for c in comm
+        for s in timeslice
+        if ((st1, c) in mStorageInpComm and (c, s) in mCommTimeslice and pTaxProcInp.get((lv, st1, c, r, y, s)) != 0)
+    )
+    + sum(
+        pTaxProcOut.get((lv, st1, c, r, y, s))
+        * pTimesliceWeight.get((y, s))
+        * model.vStorageOut[st1, c, r, y, s]
+        for st1 in stg
+        for c in comm
+        for s in timeslice
+        if ((st1, c) in mStorageOutComm and (c, s) in mCommTimeslice and pTaxProcOut.get((lv, st1, c, r, y, s)) != 0)
+    )
+    + sum(
+        pTaxProcCap.get((lv, st1, r, y))
+        * model.vStorageOutCap[st1, r, y]
+        for st1 in stg
+        if ((st1, r, y) in mStorageSpan and pTaxProcCap.get((lv, st1, r, y)) != 0)
+    )
+    + sum(
+        pTaxProcNcap.get((lv, st1, r, y))
+        * model.vStorageOutNewCap[st1, r, y]
+        for st1 in stg
+        if ((st1, r, y) in mStorageNew and pTaxProcNcap.get((lv, st1, r, y)) != 0)
     ),
 )
 if verbose:
@@ -3934,6 +4002,74 @@ model.eqSubsCost = Constraint(
         for c in comm
         for s in timeslice
         if ((c, r, y, s) in mvBalance and (c, s) in mCommTimeslice and pSubCostBal.get((lv, c, r, y, s)) != 0)
+    )
+    - sum(
+        pSubProcAct.get((lv, t, r, y, s))
+        * pTimesliceWeight.get((y, s))
+        * model.vTechAct[t, r, y, s]
+        for t in tech
+        for s in timeslice
+        if ((t, r, y, s) in mvTechAct and pSubProcAct.get((lv, t, r, y, s)) != 0)
+    )
+    - sum(
+        pSubProcInp.get((lv, t, c, r, y, s))
+        * pTimesliceWeight.get((y, s))
+        * model.vTechInp[t, c, r, y, s]
+        for t in tech
+        for c in comm
+        for s in timeslice
+        if ((t, c, r, y, s) in mvTechInp and pSubProcInp.get((lv, t, c, r, y, s)) != 0)
+    )
+    - sum(
+        pSubProcOut.get((lv, t, c, r, y, s))
+        * pTimesliceWeight.get((y, s))
+        * model.vTechOut[t, c, r, y, s]
+        for t in tech
+        for c in comm
+        for s in timeslice
+        if ((t, c, r, y, s) in mvTechOut and pSubProcOut.get((lv, t, c, r, y, s)) != 0)
+    )
+    - sum(
+        pSubProcCap.get((lv, t, r, y))
+        * model.vTechCap[t, r, y]
+        for t in tech
+        if ((t, r, y) in mTechSpan and pSubProcCap.get((lv, t, r, y)) != 0)
+    )
+    - sum(
+        pSubProcNcap.get((lv, t, r, y))
+        * model.vTechNewCap[t, r, y]
+        for t in tech
+        if ((t, r, y) in mTechNew and pSubProcNcap.get((lv, t, r, y)) != 0)
+    )
+    - sum(
+        pSubProcInp.get((lv, st1, c, r, y, s))
+        * pTimesliceWeight.get((y, s))
+        * model.vStorageInp[st1, c, r, y, s]
+        for st1 in stg
+        for c in comm
+        for s in timeslice
+        if ((st1, c) in mStorageInpComm and (c, s) in mCommTimeslice and pSubProcInp.get((lv, st1, c, r, y, s)) != 0)
+    )
+    - sum(
+        pSubProcOut.get((lv, st1, c, r, y, s))
+        * pTimesliceWeight.get((y, s))
+        * model.vStorageOut[st1, c, r, y, s]
+        for st1 in stg
+        for c in comm
+        for s in timeslice
+        if ((st1, c) in mStorageOutComm and (c, s) in mCommTimeslice and pSubProcOut.get((lv, st1, c, r, y, s)) != 0)
+    )
+    - sum(
+        pSubProcCap.get((lv, st1, r, y))
+        * model.vStorageOutCap[st1, r, y]
+        for st1 in stg
+        if ((st1, r, y) in mStorageSpan and pSubProcCap.get((lv, st1, r, y)) != 0)
+    )
+    - sum(
+        pSubProcNcap.get((lv, st1, r, y))
+        * model.vStorageOutNewCap[st1, r, y]
+        for st1 in stg
+        if ((st1, r, y) in mStorageNew and pSubProcNcap.get((lv, st1, r, y)) != 0)
     ),
 )
 if verbose:

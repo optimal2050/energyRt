@@ -2673,11 +2673,12 @@ class:
         Process filter, as a regular expression over process names (the `_`
         suffix convention of `getData()`). Matched against the base name as
         well as the realized one. A pattern that matches nothing is an error.
-    class:
+    classes:
       type: character
       description: >
         Process class filter, e.g. "technology" or "storage". Restricts the
-        levy to processes of these classes.
+        levy to processes of these classes. Spelled `classes` to match the
+        `get_process_*()` family; `class` is a reserved S4 slot name.
     vintage:
       type: character
       description: >
@@ -2797,11 +2798,12 @@ class:
         Process filter, as a regular expression over process names (the `_`
         suffix convention of `getData()`). Matched against the base name as
         well as the realized one. A pattern that matches nothing is an error.
-    class:
+    classes:
       type: character
       description: >
         Process class filter, e.g. "technology" or "storage". Restricts the
-        levy to processes of these classes.
+        levy to processes of these classes. Spelled `classes` to match the
+        `get_process_*()` family; `class` is a reserved S4 slot name.
     vintage:
       type: character
       description: >

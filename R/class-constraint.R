@@ -1180,12 +1180,13 @@ addSummand <- function(
 #'   left-hand side is built from: a name containing `"inp"` or `"out"`
 #'   constrains technology input or output, `"capacity"` / `"newcapacity"` the
 #'   capacity variables, and `"balance"` the commodity balance. The two special
-#'   values `"tax"` and `"subs"` instead delegate to [newTax()] / [newSubsidy()].
+#'   values `"tax"` and `"subs"` are not built here; use [newTax()] / [newSub()].
 #' @param for.sum named list of sets to SUM the left-hand side over, as opposed
 #'   to `for.each`, whose sets index one constraint row each.
 #' @param rule accepted for backward compatibility and currently unused.
-#' @param comm commodity name; read only by the `"tax"` and `"subs"` types,
-#'   which pass it on to [newTax()] / [newSubsidy()].
+#' @param comm commodity name, for the commodity-indexed constraint types.
+#'   The `"tax"` and `"subs"` types are no longer built here -- use [newTax()]
+#'   or [newSub()].
 #' @param cinp,ainp logical; for an input-type constraint, include the main
 #'   (`vTechInp`) and the auxiliary (`vTechAInp`) input variables.
 #' @param cout,aout logical; for an output-type constraint, include the main
@@ -1212,11 +1213,17 @@ newConstraintS <- function(
     stop(paste0('Constraint "', name, '" error: ', x))
   }
 
-  if (type == "tax") {
-    return(newTax(name, tax = rhs, comm = comm, region = for.each$region, year = for.each$year, timeslice = for.each$timeslice))
-  }
-  if (type == "subs") {
-    return(newSubsidy(name, subsidy = rhs, comm = comm, region = for.each$region, year = for.each$year, timeslice = for.each$timeslice))
+  # `type = "tax"` / `"subs"` used to forward here, passing `year` and
+  # `timeslice` as slots that neither class has; it errored for every input it
+  # was given. A levy also now carries targeting and base columns a constraint
+  # has no way to express, so point at the constructors instead of guessing.
+  if (type %in% c("tax", "subs")) {
+    stop.newconstr(paste0(
+      'type = "', type, '" is no longer handled here. Build the instrument ',
+      'directly with ', if (type == "tax") "newTax()" else "newSub()",
+      ': the rate goes in its `', if (type == "tax") "tax" else "subsidy",
+      '` table (columns inp/out/bal/act/cap/ncap), and the target in ',
+      '`comm`/`region`/`process`/`classes`.'))
   }
   # if (any(grep('(share|growth)', type))) stop.newconstr(paste(type, 'have to do'))
   # For wich kind of variables (capacity, newcapacity, input or output)

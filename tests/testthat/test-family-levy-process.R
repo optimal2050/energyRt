@@ -1,0 +1,266 @@
+# =========================================================================== #
+# Feature family: levy-process (taxes and subsidies on a PROCESS, not just a
+# commodity). See R/levy.R for the routing rules.
+#
+# Mini-model, 1 region, ANNUAL, discount 0:
+#   SUP COA at cost 1; TA (invcost 300, olife 30) and TB (invcost 3000) both
+#   convert COA -> ELC 1:1; DEM 40 of ELC.
+# TA is the cheap build, so the primal is pinned and closed-form:
+#   vTechAct[TA] = vTechInp[TA,COA] = vTechOut[TA,ELC] = 40,
+#   vTechCap[TA] = vTechNewCap[TA] = 40, base objective 440.
+# A rate k on any of those bases therefore moves the objective by exactly 40k,
+# which makes a wrong answer a clean ratio (2 for a double count, pPeriodLen
+# for a period-scaling error) rather than an opaque number.
+# =========================================================================== #
+
+lp_build <- function(..., demand = 40) {
+  objs <- list(
+    newCommodity("COA", timeframe = "ANNUAL"),
+    newCommodity("ELC", timeframe = "ANNUAL"),
+    newSupply("SUP", commodity = "COA", supply = data.frame(cost = 1)),
+    newTechnology("TA", input = list(comm = "COA"), output = list(comm = "ELC"),
+                  invcost = list(invcost = 300), olife = list(olife = 30),
+                  cap2act = 1),
+    newTechnology("TB", input = list(comm = "COA"), output = list(comm = "ELC"),
+                  invcost = list(invcost = 3000), olife = list(olife = 30),
+                  cap2act = 1),
+    newDemand("DEM", commodity = "ELC", demand = data.frame(demand = demand)),
+    ...)
+  newModel("lp",
+    repo = do.call(newRepository, c(list("lp_repo"), objs)),
+    calendar = newCalendar(
+      timetable = make_timetable(struct = list(ANNUAL = "ANNUAL")),
+      name = "lp_cal"),
+    region = "R1", horizon = newHorizon(2025), discount = 0)
+}
+
+# two 10-year periods: the only shape that separates `cap` (charged in every
+# standing year) from `ncap` (charged once on commissioning)
+lp_build_mp <- function(..., demand = c(40, 40)) {
+  objs <- list(
+    newCommodity("COA", timeframe = "ANNUAL"),
+    newCommodity("ELC", timeframe = "ANNUAL"),
+    newSupply("SUP", commodity = "COA", supply = data.frame(cost = 1)),
+    newTechnology("TA", input = list(comm = "COA"), output = list(comm = "ELC"),
+                  invcost = list(invcost = 300), olife = list(olife = 30),
+                  cap2act = 1),
+    newDemand("DEM", commodity = "ELC",
+              demand = data.frame(year = c(2025, 2039), demand = demand)), ...)
+  newModel("lpm",
+    repo = do.call(newRepository, c(list("lpm_repo"), objs)),
+    calendar = newCalendar(
+      timetable = make_timetable(struct = list(ANNUAL = "ANNUAL")),
+      name = "lpm_cal"),
+    region = "R1", horizon = newHorizon(2025:2044, intervals = c(10, 10)),
+    discount = 0)
+}
+
+lp_interp <- function(mod, tag) {
+  suppressMessages(suppressWarnings(
+    interpolate_model(mod, name = tag, overwrite = TRUE)))
+}
+lp_solve <- function(mod, tag) {
+  .fork_solve(lp_interp(mod, tag), solver_options$glpk)
+}
+lp_rows <- function(scen, par) {
+  d <- tryCatch(get_data_slot(scen@modInp@parameters[[par]]),
+                error = function(e) NULL)
+  if (is.null(d)) 0L else nrow(d)
+}
+
+LP_BASE <- 440
+
+# --------------------------------------------------------------------------- #
+# the five bases, each against a hand-computed quantity
+# --------------------------------------------------------------------------- #
+
+# @covers pTaxProcAct vTaxCost eqTaxCost depth=S backends=glpk
+test_that("family levy-process: act tax charges the process's own activity", {
+  skip_if_no_solver()
+  scen <- lp_solve(lp_build(newTax("LACT", process = "TA",
+                                   tax = data.frame(act = 0.5))), "lp_act")
+  expect_true(verify_solution(scen)$ok)
+  expect_equal(ff_solution_sum(scen, "vTaxCost"), 20, tolerance = 1e-6)
+  expect_equal(.fork_objective(scen), LP_BASE + 20, tolerance = 1e-6)
+})
+
+# @covers pTaxProcOut depth=S backends=glpk
+test_that("family levy-process: out tax charges the process's own output", {
+  skip_if_no_solver()
+  scen <- lp_solve(lp_build(newTax("LOUT", process = "TA", comm = "ELC",
+                                   tax = data.frame(out = 0.5))), "lp_out")
+  expect_true(verify_solution(scen)$ok)
+  expect_equal(ff_solution_sum(scen, "vTaxCost"), 20, tolerance = 1e-6)
+  expect_equal(.fork_objective(scen), LP_BASE + 20, tolerance = 1e-6)
+})
+
+# @covers pTaxProcInp depth=S backends=glpk
+test_that("family levy-process: inp tax charges the process's own input", {
+  skip_if_no_solver()
+  scen <- lp_solve(lp_build(newTax("LINP", process = "TA", comm = "COA",
+                                   tax = data.frame(inp = 0.25))), "lp_inp")
+  expect_true(verify_solution(scen)$ok)
+  expect_equal(ff_solution_sum(scen, "vTaxCost"), 10, tolerance = 1e-6)
+  expect_equal(.fork_objective(scen), LP_BASE + 10, tolerance = 1e-6)
+})
+
+# @covers pTaxProcCap depth=S backends=glpk
+test_that("family levy-process: cap tax charges installed capacity", {
+  skip_if_no_solver()
+  scen <- lp_solve(lp_build(newTax("LCAP", process = "TA",
+                                   tax = data.frame(cap = 2))), "lp_cap")
+  expect_true(verify_solution(scen)$ok)
+  expect_equal(ff_solution_sum(scen, "vTaxCost"), 80, tolerance = 1e-6)
+  expect_equal(.fork_objective(scen), LP_BASE + 80, tolerance = 1e-6)
+})
+
+# @covers pSubProcNcap vSubsCost eqSubsCost depth=S backends=glpk
+test_that("family levy-process: ncap subsidy credits capacity added", {
+  skip_if_no_solver()
+  scen <- lp_solve(lp_build(newSub("LNCAP", process = "TA",
+                                   subsidy = data.frame(ncap = 1))), "lp_ncap")
+  expect_true(verify_solution(scen)$ok)
+  expect_equal(ff_solution_sum(scen, "vSubsCost"), -40, tolerance = 1e-6)
+  expect_equal(.fork_objective(scen), LP_BASE - 40, tolerance = 1e-6)
+})
+
+# --------------------------------------------------------------------------- #
+# period scaling: `cap` recurs, `ncap` does not. A single-year horizon has
+# pPeriodLen 1 and cannot tell the two apart, nor catch an L^2 error.
+# --------------------------------------------------------------------------- #
+
+# @covers pTaxProcCap pPeriodLen depth=X backends=glpk
+test_that("family levy-process: cap recurs in every standing year", {
+  skip_if_no_solver()
+  b <- lp_solve(lp_build_mp(), "lpm_b")
+  s <- lp_solve(lp_build_mp(newTax("MCAP", process = "TA",
+                                   tax = data.frame(cap = 2))), "lpm_cap")
+  expect_true(verify_solution(s)$ok)
+  # milestone years 2025/2030/2039 have pPeriodLen 1/9/10 and 40 units stand
+  # throughout: 2 * 40 * (1 + 9 + 10) = 1600
+  expect_equal(.fork_objective(s) - .fork_objective(b), 1600, tolerance = 1e-6)
+})
+
+# @covers pTaxProcNcap depth=X backends=glpk
+test_that("family levy-process: ncap charges each unit added exactly once", {
+  skip_if_no_solver()
+  # demand grows, so capacity is added in a 10-year period too -- the case a
+  # pPeriodLen error would scale by 10 while leaving the first period right
+  b <- lp_solve(lp_build_mp(demand = c(40, 80)), "lpm_g")
+  s <- lp_solve(lp_build_mp(newTax("MNCAP", process = "TA",
+                                   tax = data.frame(ncap = 2)),
+                            demand = c(40, 80)), "lpm_gn")
+  expect_true(verify_solution(s)$ok)
+  bi <- lp_interp(lp_build_mp(demand = c(40, 80)), "lpm_gi")
+  plen <- get_data_slot(bi@modInp@parameters$pPeriodLen)
+  nc <- get_data_slot(b@modOut@variables[["vTechNewCap"]])
+  # vTechNewCap is a per-YEAR rate, so capacity added = sum(rate * pPeriodLen)
+  added <- sum(nc$value * plen$value[match(nc$year, plen$year)])
+  expect_equal(added, 80, tolerance = 1e-6)
+  expect_equal(.fork_objective(s) - .fork_objective(b), 2 * added,
+               tolerance = 1e-6)
+})
+
+# --------------------------------------------------------------------------- #
+# routing: `inp`/`out` reach the commodity parameters or the process ones,
+# never both. This is the double-count guard; the linearity identity alone
+# would hold even if both were charged.
+# --------------------------------------------------------------------------- #
+
+# @covers pTaxCostOut pTaxProcOut depth=X backends=glpk
+test_that("family levy-process: out routes to exactly one parameter", {
+  skip_if_no_solver()
+  cm <- lp_interp(lp_build(newTax("C", comm = "ELC",
+                                  tax = data.frame(out = 0.5))), "lp_rc")
+  pr <- lp_interp(lp_build(newTax("P", comm = "ELC", process = "TA",
+                                  tax = data.frame(out = 0.5))), "lp_rp")
+  # no process filter -> commodity total only
+  expect_equal(lp_rows(cm, "pTaxCostOut"), 1L)
+  expect_equal(lp_rows(cm, "pTaxProcOut"), 0L)
+  # process filter -> the process's own output only
+  expect_equal(lp_rows(pr, "pTaxCostOut"), 0L)
+  expect_equal(lp_rows(pr, "pTaxProcOut"), 1L)
+
+  # and the two instruments are additive, each worth its own 20
+  bo <- lp_solve(lp_build(newTax("C", comm = "ELC", tax = data.frame(out = 0.5)),
+                          newTax("P", comm = "ELC", process = "TA",
+                                 tax = data.frame(out = 0.5))), "lp_rb")
+  expect_true(verify_solution(bo)$ok)
+  expect_equal(.fork_objective(bo), LP_BASE + 40, tolerance = 1e-6)
+  expect_equal(nrow(get_data_slot(bo@modOut@variables[["vTaxCost"]])), 2L)
+})
+
+# @covers pTaxProcAct depth=S backends=glpk
+test_that("family levy-process: a zero rate is a bit-for-bit no-op", {
+  skip_if_no_solver()
+  b <- lp_solve(lp_build(), "lp_z0")
+  z <- lp_solve(lp_build(newTax("Z", process = "TA",
+                                tax = data.frame(act = 0))), "lp_z1")
+  expect_equal(.fork_objective(z), .fork_objective(b))
+  expect_equal(lp_rows(z, "pTaxProcAct"), 0L)
+})
+
+# --------------------------------------------------------------------------- #
+# targeting
+# --------------------------------------------------------------------------- #
+
+# @covers pTaxProcAct depth=S backends=glpk
+test_that("family levy-process: classes and regex select the same technology", {
+  skip_if_no_solver()
+  byc <- lp_solve(lp_build(newTax("BC", classes = "technology",
+                                  tax = data.frame(act = 0.5))), "lp_tc")
+  byr <- lp_solve(lp_build(newTax("BR", process_ = "^T",
+                                  tax = data.frame(act = 0.5))), "lp_tr")
+  # only TA runs, so both select TA+TB but charge 40 units of activity
+  expect_equal(.fork_objective(byc), LP_BASE + 20, tolerance = 1e-6)
+  expect_equal(.fork_objective(byr), LP_BASE + 20, tolerance = 1e-6)
+})
+
+# @covers pTaxProcAct depth=I backends=glpk
+test_that("family levy-process: a per-process rate row overrides the roster", {
+  scen <- lp_interp(lp_build(newTax("PR", process_ = "^T",
+    tax = data.frame(process = c("TA", "TB"), act = c(0.5, 0.25)))), "lp_pr")
+  d <- get_data_slot(scen@modInp@parameters$pTaxProcAct)
+  expect_equal(nrow(d), 2L)
+  expect_equal(d$value[match(c("TA", "TB"), d$process)], c(0.5, 0.25))
+})
+
+# --------------------------------------------------------------------------- #
+# refusals: every one of these would otherwise be a silent zero or a double
+# charge, which is the failure mode this family exists to prevent
+# --------------------------------------------------------------------------- #
+
+test_that("family levy-process: meaningless rate/target combinations refuse", {
+  expect_error(
+    lp_interp(lp_build(newTax("E1", comm = "ELC", process = "TA",
+                              tax = data.frame(bal = 1))), "lp_e1"),
+    "`bal` cannot be combined with process targeting")
+  expect_error(
+    lp_interp(lp_build(newTax("E2", process = "NOPE",
+                              tax = data.frame(act = 1))), "lp_e2"),
+    "selects no process")
+  expect_error(
+    lp_interp(lp_build(newTax("E3", process_ = "^ZZZ",
+                              tax = data.frame(act = 1))), "lp_e3"),
+    "selects no process")
+  expect_error(
+    lp_interp(lp_build(newTax("E4", classes = "supply",
+                              tax = data.frame(act = 1))), "lp_e4"),
+    "is not supported yet")
+  expect_error(
+    lp_interp(lp_build(newTax("E5", vintage = "2099",
+                              tax = data.frame(act = 1))), "lp_e5"),
+    "selects no process")
+  expect_error(
+    lp_interp(lp_build(newTax("E6", classes = "storage",
+                              tax = data.frame(act = 1))), "lp_e6"),
+    "`act` is not defined for storage")
+  expect_error(
+    lp_interp(lp_build(newTax("E7", variable = "vTechAct",
+                              tax = data.frame(rate = 1))), "lp_e7"),
+    "is not implemented yet")
+  expect_error(
+    lp_interp(lp_build(newTax("E8", process = "TA",
+                              tax = data.frame(year = 2025))), "lp_e8"),
+    "sets no rate")
+})

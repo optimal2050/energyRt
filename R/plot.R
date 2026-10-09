@@ -1114,8 +1114,14 @@ autoplot.storage <- function(object, year = NULL, interpolate = TRUE,
 # years, connected by the linear interpolation the model uses between them.
 
 .lever_spec <- list(
-  tax        = list(slot = "tax", val = "bal", ylab = "tax"),
-  subsidy    = list(slot = "subsidy", val = "bal", ylab = "subsidy"),
+  # `val` lists the candidate value columns; the ones the object actually sets
+  # are what gets drawn. A levy can be written on any of its bases, so pinning
+  # this to `bal` drew nothing at all for an act-, cap- or ncap-only
+  # instrument.
+  tax        = list(slot = "tax", ylab = "tax",
+                    val = c("bal", "inp", "out", "act", "cap", "ncap", "rate")),
+  subsidy    = list(slot = "subsidy", ylab = "subsidy",
+                    val = c("bal", "inp", "out", "act", "cap", "ncap", "rate")),
   constraint = list(slot = "rhs", val = "rhs", ylab = "rhs")
 )
 
@@ -1126,20 +1132,35 @@ plot_lever_year <- function(object, year = NULL, interpolate = TRUE, ...) {
   if (is.null(spec)) stop("plot_lever_year: unsupported class '", cls, "'.", call. = FALSE)
   nm <- tryCatch(object@name, error = function(e) "")
   d  <- tryCatch(as.data.frame(methods::slot(object, spec$slot)), error = function(e) NULL)
-  if (is.null(d) || nrow(d) == 0 || !all(c("year", spec$val) %in% names(d))) {
+  .none <- function() {
     message("No year-indexed data to plot for '", nm, "'.")
-    return(invisible(NULL))
+    invisible(NULL)
   }
-  d <- d[!is.na(d$year) & !is.na(d[[spec$val]]), , drop = FALSE]
-  if (nrow(d) == 0) {
-    message("No year-indexed data to plot for '", nm, "'.")
-    return(invisible(NULL))
-  }
-  d$year <- as.integer(d$year)
-  d$.val <- as.numeric(d[[spec$val]])
+  if (is.null(d) || nrow(d) == 0 || !("year" %in% names(d))) return(.none())
+  vals <- intersect(spec$val, names(d))
+  vals <- vals[vapply(vals, function(v) any(!is.na(d[[v]])), logical(1))]
+  if (length(vals) == 0) return(.none())
 
-  has_reg <- "region" %in% names(d) && length(unique(d$region[!is.na(d$region)])) > 1
-  grp <- if (has_reg) "region" else NULL
+  # one row per (source row x set base), so an instrument carrying two bases
+  # draws both instead of only the first
+  keep <- setdiff(names(d), spec$val)
+  d <- do.call(rbind, lapply(vals, function(v) {
+    z <- d[!is.na(d$year) & !is.na(d[[v]]), keep, drop = FALSE]
+    if (nrow(z) == 0) return(NULL)
+    z$base <- v
+    z$.val <- as.numeric(d[[v]][!is.na(d$year) & !is.na(d[[v]])])
+    z
+  }))
+  if (is.null(d) || nrow(d) == 0) return(.none())
+  rownames(d) <- NULL
+  d$year <- as.integer(d$year)
+
+  has_reg <- "region" %in% names(d) &&
+    length(unique(d$region[!is.na(d$region)])) > 1
+  has_base <- length(unique(d$base)) > 1
+  grp <- if (has_reg && has_base) {
+    d$.series <- paste(d$base, d$region, sep = " / "); ".series"
+  } else if (has_base) "base" else if (has_reg) "region" else NULL
 
   # linear interpolation between the given control years (what the model uses)
   mkline <- function(s) {
@@ -1149,8 +1170,8 @@ plot_lever_year <- function(object, year = NULL, interpolate = TRUE, ...) {
     else data.frame(year = xs, .val = stats::approx(s$year, s$.val, xout = xs, rule = 2)$y)
   }
   line_df <- if (!isTRUE(interpolate)) NULL else if (is.null(grp)) mkline(d) else
-    do.call(rbind, lapply(split(d, d$region),
-                          function(s) { L <- mkline(s); L$region <- s$region[1]; L }))
+    do.call(rbind, lapply(split(d, d[[grp]]),
+                          function(s) { L <- mkline(s); L[[grp]] <- s[[grp]][1]; L }))
 
   if (cls == "constraint") {
     sub_txt <- c("<=" = "upper bound (≤)", ">=" = "lower bound (≥)",
@@ -1158,7 +1179,14 @@ plot_lever_year <- function(object, year = NULL, interpolate = TRUE, ...) {
     if (is.na(sub_txt)) sub_txt <- NULL
   } else {
     cc <- tryCatch(object@comm, error = function(e) character())
-    sub_txt <- if (length(cc) && nzchar(cc[1])) paste0("on ", paste(cc, collapse = ", ")) else NULL
+    cc <- cc[nzchar(cc)]
+    pp <- tryCatch(.levy_slot(object, "process"), error = function(e) character())
+    pp <- pp[nzchar(pp)]
+    sub_txt <- paste(c(
+      if (length(cc)) paste0("on ", paste(cc, collapse = ", ")),
+      if (length(pp)) paste0("process ", paste(pp, collapse = ", "))),
+      collapse = "; ")
+    if (!nzchar(sub_txt)) sub_txt <- NULL
   }
 
   aes_xy <- if (is.null(grp))

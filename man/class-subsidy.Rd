@@ -11,24 +11,53 @@ production, consumption, or balance of a commodity.
 \section{Slots}{
 
 \describe{
-\item{\code{name}}{character. Name of the subsidy object, used in sets.}
+\item{\code{name}}{character. Name of the subsidy object. It is the instrument's own identity and is reported against, so two subsidy objects never merge.}
 
 \item{\code{desc}}{character. Description of the subsidy object.}
 
-\item{\code{comm}}{character. Name of the subsidized commodity.}
+\item{\code{comm}}{character. Commodity filter: the commodity or commodities the levy applies to. Empty means every commodity the chosen base reaches.}
 
-\item{\code{region}}{character. Region where the subsidy is applied.}
+\item{\code{region}}{character. Region filter. Empty means every region; otherwise the levy is restricted to the named regions.}
 
-\item{\code{defVal}}{numeric. Default value of the subsidy.}
+\item{\code{process}}{character. Process filter, by name. Matched against both the declared (base) name and the realized variant name, so naming a vintaged or clustered process selects all of its variants. A name that matches nothing is an error, never a silent zero.}
 
-\item{\code{subsidy}}{data.frame. Subsidy values.
+\item{\code{process_}}{character. Process filter, as a regular expression over process names (the \verb{_} suffix convention of \code{getData()}). Matched against the base name as well as the realized one. A pattern that matches nothing is an error.}
+
+\item{\code{classes}}{character. Process class filter, e.g. "technology" or "storage". Restricts the levy to processes of these classes. Spelled \code{classes} to match the \verb{get_process_*()} family; \code{class} is a reserved S4 slot name.}
+
+\item{\code{vintage}}{character. Vintage filter for vintaged processes. Resolved by joining the variant provenance table, NOT by parsing the mangled variant name -- the name separator is configurable, so a pattern over names is not stable.}
+
+\item{\code{vintage_}}{character. Vintage filter as a regular expression.}
+
+\item{\code{cluster}}{character. Cluster filter for clustered processes, resolved from the variant provenance table in the same way as \code{vintage}.}
+
+\item{\code{cluster_}}{character. Cluster filter as a regular expression.}
+
+\item{\code{variable}}{character. Escape hatch: the name of a model variable to levy directly, for a target no base shorthand reaches. Mutually exclusive with the base rate columns; the rate then goes in the data slot's \code{rate} column.}
+
+\item{\code{defVal}}{numeric. Default value of the subsidy for not specified sets, 0 if not specified.}
+
+\item{\code{subsidy}}{data.frame. Rate table. The key columns filter, the rate columns say what is levied; a row carries one or more rates.
+
 \describe{
 \item{region}{character. Region name to apply the parameter, NA for every region.}
 \item{year}{integer. Year to apply the parameter, NA for every year.}
 \item{timeslice}{character. Time timeslice to apply the parameter, NA for every timeslice.}
-\item{inp}{numeric. Input subsidy, e.g., per unit of commodity consumed by all processes.}
-\item{out}{numeric. Output subsidy, e.g., per unit of commodity produced by all processes.}
-\item{bal}{numeric. Balance subsidy, e.g., per unit of commodity balance (production - consumption).}
+\item{process}{character. Process name to apply the parameter to, NA for every selected process.}
+\item{comm}{character. Commodity to apply the parameter to, NA for every selected commodity.}
+\item{inp}{numeric. Per unit of commodity consumed. Without a process filter this is the commodity total over every process; with one it is that process's own input.
+}
+\item{out}{numeric. Per unit of commodity produced. Without a process filter this is the commodity total over every process; with one it is that process's own output.
+}
+\item{bal}{numeric. Per unit of commodity balance (production - consumption). Commodity level only: the balance belongs to no single process, so \code{bal} cannot be combined with a process filter.
+}
+\item{act}{numeric. Per unit of process activity.}
+\item{cap}{numeric. Per unit of installed capacity, charged in every year the capacity stands.
+}
+\item{ncap}{numeric. Per unit of capacity added in a period, charged once at commissioning rather than annualised.
+}
+\item{rate}{numeric. Per unit of the variable named in \code{variable}. Used only with the escape hatch.
+}
 }}
 
 \item{\code{misc}}{list. Any additional information or data to store in the subsidy object.}

@@ -234,6 +234,16 @@ pTaxCostBal(levy, comm, region, year, timeslice)              Commodity taxes fo
 pSubCostInp(levy, comm, region, year, timeslice)              Commodity subsidies for input
 pSubCostOut(levy, comm, region, year, timeslice)              Commodity subsidies for output
 pSubCostBal(levy, comm, region, year, timeslice)              Commodity subsidies for balance
+pTaxProcAct(levy, process, region, year, timeslice)        Process tax per unit of activity
+pTaxProcInp(levy, process, comm, region, year, timeslice)  Process tax per unit consumed
+pTaxProcOut(levy, process, comm, region, year, timeslice)  Process tax per unit produced
+pTaxProcCap(levy, process, region, year)                   Process tax per unit of capacity
+pTaxProcNcap(levy, process, region, year)                  Process tax per unit of new capacity
+pSubProcAct(levy, process, region, year, timeslice)        Process subsidy per unit of activity
+pSubProcInp(levy, process, comm, region, year, timeslice)  Process subsidy per unit consumed
+pSubProcOut(levy, process, comm, region, year, timeslice)  Process subsidy per unit produced
+pSubProcCap(levy, process, region, year)                   Process subsidy per unit of capacity
+pSubProcNcap(levy, process, region, year)                  Process subsidy per unit of new capacity
 * Aggregation
 pAggregateFactor(comm, comm)                        Aggregation factor of commodities
 * System parameters
@@ -2898,6 +2908,47 @@ eqTaxCost(levy, region, year)$mTaxCost(levy, region, year)..
              pTaxCostBal(levy, comm, region, year, timeslice)
              * pTimesliceWeight(year, timeslice)
              * vBalance(comm, region, year, timeslice)
+             )
+       + sum((tech, timeslice)$(mvTechAct(tech, region, year, timeslice) and pTaxProcAct(levy, tech, region, year, timeslice) <> 0),
+             pTaxProcAct(levy, tech, region, year, timeslice)
+             * pTimesliceWeight(year, timeslice)
+             * vTechAct(tech, region, year, timeslice)
+             )
+       + sum((tech, comm, timeslice)$(mvTechInp(tech, comm, region, year, timeslice) and pTaxProcInp(levy, tech, comm, region, year, timeslice) <> 0),
+             pTaxProcInp(levy, tech, comm, region, year, timeslice)
+             * pTimesliceWeight(year, timeslice)
+             * vTechInp(tech, comm, region, year, timeslice)
+             )
+       + sum((tech, comm, timeslice)$(mvTechOut(tech, comm, region, year, timeslice) and pTaxProcOut(levy, tech, comm, region, year, timeslice) <> 0),
+             pTaxProcOut(levy, tech, comm, region, year, timeslice)
+             * pTimesliceWeight(year, timeslice)
+             * vTechOut(tech, comm, region, year, timeslice)
+             )
+       + sum((tech)$(mTechSpan(tech, region, year) and pTaxProcCap(levy, tech, region, year) <> 0),
+             pTaxProcCap(levy, tech, region, year)
+             * vTechCap(tech, region, year)
+             )
+       + sum((tech)$(mTechNew(tech, region, year) and pTaxProcNcap(levy, tech, region, year) <> 0),
+             pTaxProcNcap(levy, tech, region, year)
+             * vTechNewCap(tech, region, year)
+             )
+       + sum((stg, comm, timeslice)$(mStorageInpComm(stg, comm) and mCommTimeslice(comm, timeslice) and pTaxProcInp(levy, stg, comm, region, year, timeslice) <> 0),
+             pTaxProcInp(levy, stg, comm, region, year, timeslice)
+             * pTimesliceWeight(year, timeslice)
+             * vStorageInp(stg, comm, region, year, timeslice)
+             )
+       + sum((stg, comm, timeslice)$(mStorageOutComm(stg, comm) and mCommTimeslice(comm, timeslice) and pTaxProcOut(levy, stg, comm, region, year, timeslice) <> 0),
+             pTaxProcOut(levy, stg, comm, region, year, timeslice)
+             * pTimesliceWeight(year, timeslice)
+             * vStorageOut(stg, comm, region, year, timeslice)
+             )
+       + sum((stg)$(mStorageSpan(stg, region, year) and pTaxProcCap(levy, stg, region, year) <> 0),
+             pTaxProcCap(levy, stg, region, year)
+             * vStorageOutCap(stg, region, year)
+             )
+       + sum((stg)$(mStorageNew(stg, region, year) and pTaxProcNcap(levy, stg, region, year) <> 0),
+             pTaxProcNcap(levy, stg, region, year)
+             * vStorageOutNewCap(stg, region, year)
              );
 
 * subsidies
@@ -2917,7 +2968,48 @@ eqSubsCost(levy, region, year)$mSubCost(levy, region, year)..
       - sum((comm, timeslice)$(mvBalance(comm, region, year, timeslice) and mCommTimeslice(comm, timeslice) and pSubCostBal(levy, comm, region, year, timeslice) <> 0),
             pSubCostBal(levy, comm, region, year, timeslice)
             * pTimesliceWeight(year, timeslice)
-            * vBalance(comm, region, year, timeslice));
+            * vBalance(comm, region, year, timeslice))
+       - sum((tech, timeslice)$(mvTechAct(tech, region, year, timeslice) and pSubProcAct(levy, tech, region, year, timeslice) <> 0),
+             pSubProcAct(levy, tech, region, year, timeslice)
+             * pTimesliceWeight(year, timeslice)
+             * vTechAct(tech, region, year, timeslice)
+             )
+       - sum((tech, comm, timeslice)$(mvTechInp(tech, comm, region, year, timeslice) and pSubProcInp(levy, tech, comm, region, year, timeslice) <> 0),
+             pSubProcInp(levy, tech, comm, region, year, timeslice)
+             * pTimesliceWeight(year, timeslice)
+             * vTechInp(tech, comm, region, year, timeslice)
+             )
+       - sum((tech, comm, timeslice)$(mvTechOut(tech, comm, region, year, timeslice) and pSubProcOut(levy, tech, comm, region, year, timeslice) <> 0),
+             pSubProcOut(levy, tech, comm, region, year, timeslice)
+             * pTimesliceWeight(year, timeslice)
+             * vTechOut(tech, comm, region, year, timeslice)
+             )
+       - sum((tech)$(mTechSpan(tech, region, year) and pSubProcCap(levy, tech, region, year) <> 0),
+             pSubProcCap(levy, tech, region, year)
+             * vTechCap(tech, region, year)
+             )
+       - sum((tech)$(mTechNew(tech, region, year) and pSubProcNcap(levy, tech, region, year) <> 0),
+             pSubProcNcap(levy, tech, region, year)
+             * vTechNewCap(tech, region, year)
+             )
+       - sum((stg, comm, timeslice)$(mStorageInpComm(stg, comm) and mCommTimeslice(comm, timeslice) and pSubProcInp(levy, stg, comm, region, year, timeslice) <> 0),
+             pSubProcInp(levy, stg, comm, region, year, timeslice)
+             * pTimesliceWeight(year, timeslice)
+             * vStorageInp(stg, comm, region, year, timeslice)
+             )
+       - sum((stg, comm, timeslice)$(mStorageOutComm(stg, comm) and mCommTimeslice(comm, timeslice) and pSubProcOut(levy, stg, comm, region, year, timeslice) <> 0),
+             pSubProcOut(levy, stg, comm, region, year, timeslice)
+             * pTimesliceWeight(year, timeslice)
+             * vStorageOut(stg, comm, region, year, timeslice)
+             )
+       - sum((stg)$(mStorageSpan(stg, region, year) and pSubProcCap(levy, stg, region, year) <> 0),
+             pSubProcCap(levy, stg, region, year)
+             * vStorageOutCap(stg, region, year)
+             )
+       - sum((stg)$(mStorageNew(stg, region, year) and pSubProcNcap(levy, stg, region, year) <> 0),
+             pSubProcNcap(levy, stg, region, year)
+             * vStorageOutNewCap(stg, region, year)
+             );
 *==============================================================================*
 eqCost(region, year)$mvTotalCost(region, year)..
         vTotalCost(region, year)

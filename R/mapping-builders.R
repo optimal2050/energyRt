@@ -2008,10 +2008,20 @@ map_mTechRetirement <- function(scen, fmp) {
   }
   .set_map(scen, name, df, fmp)
 }
+# Every rate table the levy can be written in, commodity and process alike: a
+# process-only levy has no pTaxCost* rows at all, and leaving its parameters out
+# here would give it an empty (levy, region, year) domain -- eqTaxCost would not
+# be generated for it and the rate would be silently ignored.
 map_mTaxCost <- function(scen, fmp)
-  .policy_cost_map(scen, "mTaxCost", c("pTaxCostInp", "pTaxCostOut", "pTaxCostBal"), fmp)
+  .policy_cost_map(scen, "mTaxCost",
+                   c("pTaxCostInp", "pTaxCostOut", "pTaxCostBal",
+                     "pTaxProcAct", "pTaxProcInp", "pTaxProcOut",
+                     "pTaxProcCap", "pTaxProcNcap"), fmp)
 map_mSubCost <- function(scen, fmp)
-  .policy_cost_map(scen, "mSubCost", c("pSubCostInp", "pSubCostOut", "pSubCostBal"), fmp)
+  .policy_cost_map(scen, "mSubCost",
+                   c("pSubCostInp", "pSubCostOut", "pSubCostBal",
+                     "pSubProcAct", "pSubProcInp", "pSubProcOut",
+                     "pSubProcCap", "pSubProcNcap"), fmp)
 
 # -- registry for the value family ----------------------------------------- #
 .value_builders <- list(

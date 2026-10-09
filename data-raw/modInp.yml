@@ -2542,6 +2542,116 @@ pSubCostBal:
   class: subsidy
   slot: subsidy
   colName: bal
+pTaxProcAct:
+  name: pTaxProcAct
+  dimSets:
+  - levy
+  - process
+  - region
+  - year
+  - timeslice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+pTaxProcInp:
+  name: pTaxProcInp
+  dimSets:
+  - levy
+  - process
+  - comm
+  - region
+  - year
+  - timeslice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+pTaxProcOut:
+  name: pTaxProcOut
+  dimSets:
+  - levy
+  - process
+  - comm
+  - region
+  - year
+  - timeslice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+pTaxProcCap:
+  name: pTaxProcCap
+  dimSets:
+  - levy
+  - process
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+pTaxProcNcap:
+  name: pTaxProcNcap
+  dimSets:
+  - levy
+  - process
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+pSubProcAct:
+  name: pSubProcAct
+  dimSets:
+  - levy
+  - process
+  - region
+  - year
+  - timeslice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+pSubProcInp:
+  name: pSubProcInp
+  dimSets:
+  - levy
+  - process
+  - comm
+  - region
+  - year
+  - timeslice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+pSubProcOut:
+  name: pSubProcOut
+  dimSets:
+  - levy
+  - process
+  - comm
+  - region
+  - year
+  - timeslice
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+pSubProcCap:
+  name: pSubProcCap
+  dimSets:
+  - levy
+  - process
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
+pSubProcNcap:
+  name: pSubProcNcap
+  dimSets:
+  - levy
+  - process
+  - region
+  - year
+  type: numpar
+  defVal: 0.0
+  interpolation: back.inter.forth
 mCommReg:
   name: mCommReg
   type: map

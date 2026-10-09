@@ -9,6 +9,14 @@
 #' @slot desc `r get_slot_doc("subsidy", "desc")`
 #' @slot comm `r get_slot_doc("subsidy", "comm")`
 #' @slot region `r get_slot_doc("subsidy", "region")`
+#' @slot process `r get_slot_doc("subsidy", "process")`
+#' @slot process_ `r get_slot_doc("subsidy", "process_")`
+#' @slot classes `r get_slot_doc("subsidy", "classes")`
+#' @slot vintage `r get_slot_doc("subsidy", "vintage")`
+#' @slot vintage_ `r get_slot_doc("subsidy", "vintage_")`
+#' @slot cluster `r get_slot_doc("subsidy", "cluster")`
+#' @slot cluster_ `r get_slot_doc("subsidy", "cluster_")`
+#' @slot variable `r get_slot_doc("subsidy", "variable")`
 #' @slot defVal `r get_slot_doc("subsidy", "defVal")`
 #' @slot subsidy `r get_slot_doc("subsidy", "subsidy")`
 #' @slot misc `r get_slot_doc("subsidy", "misc")`
@@ -26,24 +34,45 @@ setClass("subsidy",
     desc = "character",
     comm = "character",
     region = "character",
+    process = "character",
+    process_ = "character",
+    classes = "character",
+    vintage = "character",
+    vintage_ = "character",
+    cluster = "character",
+    cluster_ = "character",
+    variable = "character",
     defVal = "numeric",
     subsidy = "data.frame",
     misc = "list"
   ),
-  # !!! add slot @variable = factor("output", "balance")
   prototype(
     name = "", # Short name
     comm = "",
     desc = "",
     region = character(), #
+    process = character(), #
+    process_ = character(), #
+    classes = character(), #
+    vintage = character(), #
+    vintage_ = character(), #
+    cluster = character(), #
+    cluster_ = character(), #
+    variable = character(), #
     defVal = 0, #
     subsidy = data.frame(
       region = character(),
       year = integer(),
       timeslice = character(),
+      process = character(),
+      comm = character(),
       inp = numeric(),
       out = numeric(),
       bal = numeric(),
+      act = numeric(),
+      cap = numeric(),
+      ncap = numeric(),
+      rate = numeric(),
       stringsAsFactors = FALSE
     ),
     misc = list()
@@ -64,6 +93,14 @@ setClass("subsidy",
 #' @param desc `r get_slot_doc("subsidy", "desc")`
 #' @param comm `r get_slot_doc("subsidy", "comm")`
 #' @param region `r get_slot_doc("subsidy", "region")`
+#' @param process `r get_slot_doc("subsidy", "process")`
+#' @param process_ `r get_slot_doc("subsidy", "process_")`
+#' @param classes `r get_slot_doc("subsidy", "classes")`
+#' @param vintage `r get_slot_doc("subsidy", "vintage")`
+#' @param vintage_ `r get_slot_doc("subsidy", "vintage_")`
+#' @param cluster `r get_slot_doc("subsidy", "cluster")`
+#' @param cluster_ `r get_slot_doc("subsidy", "cluster_")`
+#' @param variable `r get_slot_doc("subsidy", "variable")`
 #' @param defVal `r get_slot_doc("subsidy", "defVal")`
 #' @param subsidy `r get_slot_doc("subsidy", "subsidy")`
 #' @param misc `r get_slot_doc("subsidy", "misc")`
@@ -93,6 +130,14 @@ newSub <- function(
   desc = "",
   comm = "",
   region = character(),
+  process = character(),
+  process_ = character(),
+  classes = character(),
+  vintage = character(),
+  vintage_ = character(),
+  cluster = character(),
+  cluster_ = character(),
+  variable = character(),
   defVal = 0,
   subsidy = data.frame(),
   misc = list(),
@@ -104,6 +149,14 @@ newSub <- function(
     desc = desc,
     comm = comm,
     region = region,
+    process = process,
+    process_ = process_,
+    classes = classes,
+    vintage = vintage,
+    vintage_ = vintage_,
+    cluster = cluster,
+    cluster_ = cluster_,
+    variable = variable,
     defVal = defVal,
     subsidy = subsidy,
     misc = misc,

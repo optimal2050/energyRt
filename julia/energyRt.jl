@@ -5465,6 +5465,56 @@ print("eqTaxCost(levy, region, year)...")
         vBalance[(c, r, y, s)] for
         c in comm, s in timeslice if ((c, r, y, s) in mvBalance && (c, s) in mCommTimeslice && get(pTaxCostBal, (lv, c, r, y, s), pTaxCostBalDef) != 0)
     )
+    + sum(
+        get(pTaxProcAct, (lv, t, r, y, s), pTaxProcActDef) *
+        get(pTimesliceWeight, (y, s), pTimesliceWeightDef) *
+        vTechAct[(t, r, y, s)] for
+        t in tech, s in timeslice if ((t, r, y, s) in mvTechAct && get(pTaxProcAct, (lv, t, r, y, s), pTaxProcActDef) != 0)
+    )
+    + sum(
+        get(pTaxProcInp, (lv, t, c, r, y, s), pTaxProcInpDef) *
+        get(pTimesliceWeight, (y, s), pTimesliceWeightDef) *
+        vTechInp[(t, c, r, y, s)] for
+        t in tech, c in comm, s in timeslice if ((t, c, r, y, s) in mvTechInp && get(pTaxProcInp, (lv, t, c, r, y, s), pTaxProcInpDef) != 0)
+    )
+    + sum(
+        get(pTaxProcOut, (lv, t, c, r, y, s), pTaxProcOutDef) *
+        get(pTimesliceWeight, (y, s), pTimesliceWeightDef) *
+        vTechOut[(t, c, r, y, s)] for
+        t in tech, c in comm, s in timeslice if ((t, c, r, y, s) in mvTechOut && get(pTaxProcOut, (lv, t, c, r, y, s), pTaxProcOutDef) != 0)
+    )
+    + sum(
+        get(pTaxProcCap, (lv, t, r, y), pTaxProcCapDef) *
+        vTechCap[(t, r, y)] for
+        t in tech if ((t, r, y) in mTechSpan && get(pTaxProcCap, (lv, t, r, y), pTaxProcCapDef) != 0)
+    )
+    + sum(
+        get(pTaxProcNcap, (lv, t, r, y), pTaxProcNcapDef) *
+        vTechNewCap[(t, r, y)] for
+        t in tech if ((t, r, y) in mTechNew && get(pTaxProcNcap, (lv, t, r, y), pTaxProcNcapDef) != 0)
+    )
+    + sum(
+        get(pTaxProcInp, (lv, st1, c, r, y, s), pTaxProcInpDef) *
+        get(pTimesliceWeight, (y, s), pTimesliceWeightDef) *
+        vStorageInp[(st1, c, r, y, s)] for
+        st1 in stg, c in comm, s in timeslice if ((st1, c) in mStorageInpComm && (c, s) in mCommTimeslice && get(pTaxProcInp, (lv, st1, c, r, y, s), pTaxProcInpDef) != 0)
+    )
+    + sum(
+        get(pTaxProcOut, (lv, st1, c, r, y, s), pTaxProcOutDef) *
+        get(pTimesliceWeight, (y, s), pTimesliceWeightDef) *
+        vStorageOut[(st1, c, r, y, s)] for
+        st1 in stg, c in comm, s in timeslice if ((st1, c) in mStorageOutComm && (c, s) in mCommTimeslice && get(pTaxProcOut, (lv, st1, c, r, y, s), pTaxProcOutDef) != 0)
+    )
+    + sum(
+        get(pTaxProcCap, (lv, st1, r, y), pTaxProcCapDef) *
+        vStorageOutCap[(st1, r, y)] for
+        st1 in stg if ((st1, r, y) in mStorageSpan && get(pTaxProcCap, (lv, st1, r, y), pTaxProcCapDef) != 0)
+    )
+    + sum(
+        get(pTaxProcNcap, (lv, st1, r, y), pTaxProcNcapDef) *
+        vStorageOutNewCap[(st1, r, y)] for
+        st1 in stg if ((st1, r, y) in mStorageNew && get(pTaxProcNcap, (lv, st1, r, y), pTaxProcNcapDef) != 0)
+    )
 );
 print(
     " ",
@@ -5529,6 +5579,56 @@ print("eqSubsCost(levy, region, year)...")
         ) *
         vBalance[(c, r, y, s)] for
         c in comm, s in timeslice if ((c, r, y, s) in mvBalance && (c, s) in mCommTimeslice && get(pSubCostBal, (lv, c, r, y, s), pSubCostBalDef) != 0)
+    )
+    - sum(
+        get(pSubProcAct, (lv, t, r, y, s), pSubProcActDef) *
+        get(pTimesliceWeight, (y, s), pTimesliceWeightDef) *
+        vTechAct[(t, r, y, s)] for
+        t in tech, s in timeslice if ((t, r, y, s) in mvTechAct && get(pSubProcAct, (lv, t, r, y, s), pSubProcActDef) != 0)
+    )
+    - sum(
+        get(pSubProcInp, (lv, t, c, r, y, s), pSubProcInpDef) *
+        get(pTimesliceWeight, (y, s), pTimesliceWeightDef) *
+        vTechInp[(t, c, r, y, s)] for
+        t in tech, c in comm, s in timeslice if ((t, c, r, y, s) in mvTechInp && get(pSubProcInp, (lv, t, c, r, y, s), pSubProcInpDef) != 0)
+    )
+    - sum(
+        get(pSubProcOut, (lv, t, c, r, y, s), pSubProcOutDef) *
+        get(pTimesliceWeight, (y, s), pTimesliceWeightDef) *
+        vTechOut[(t, c, r, y, s)] for
+        t in tech, c in comm, s in timeslice if ((t, c, r, y, s) in mvTechOut && get(pSubProcOut, (lv, t, c, r, y, s), pSubProcOutDef) != 0)
+    )
+    - sum(
+        get(pSubProcCap, (lv, t, r, y), pSubProcCapDef) *
+        vTechCap[(t, r, y)] for
+        t in tech if ((t, r, y) in mTechSpan && get(pSubProcCap, (lv, t, r, y), pSubProcCapDef) != 0)
+    )
+    - sum(
+        get(pSubProcNcap, (lv, t, r, y), pSubProcNcapDef) *
+        vTechNewCap[(t, r, y)] for
+        t in tech if ((t, r, y) in mTechNew && get(pSubProcNcap, (lv, t, r, y), pSubProcNcapDef) != 0)
+    )
+    - sum(
+        get(pSubProcInp, (lv, st1, c, r, y, s), pSubProcInpDef) *
+        get(pTimesliceWeight, (y, s), pTimesliceWeightDef) *
+        vStorageInp[(st1, c, r, y, s)] for
+        st1 in stg, c in comm, s in timeslice if ((st1, c) in mStorageInpComm && (c, s) in mCommTimeslice && get(pSubProcInp, (lv, st1, c, r, y, s), pSubProcInpDef) != 0)
+    )
+    - sum(
+        get(pSubProcOut, (lv, st1, c, r, y, s), pSubProcOutDef) *
+        get(pTimesliceWeight, (y, s), pTimesliceWeightDef) *
+        vStorageOut[(st1, c, r, y, s)] for
+        st1 in stg, c in comm, s in timeslice if ((st1, c) in mStorageOutComm && (c, s) in mCommTimeslice && get(pSubProcOut, (lv, st1, c, r, y, s), pSubProcOutDef) != 0)
+    )
+    - sum(
+        get(pSubProcCap, (lv, st1, r, y), pSubProcCapDef) *
+        vStorageOutCap[(st1, r, y)] for
+        st1 in stg if ((st1, r, y) in mStorageSpan && get(pSubProcCap, (lv, st1, r, y), pSubProcCapDef) != 0)
+    )
+    - sum(
+        get(pSubProcNcap, (lv, st1, r, y), pSubProcNcapDef) *
+        vStorageOutNewCap[(st1, r, y)] for
+        st1 in stg if ((st1, r, y) in mStorageNew && get(pSubProcNcap, (lv, st1, r, y), pSubProcNcapDef) != 0)
     )
 );
 print(

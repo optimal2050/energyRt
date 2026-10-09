@@ -67,15 +67,16 @@ Note: zero values will be replaced with \code{replace_zerros} to avoid dropping 
 left-hand side is built from: a name containing \code{"inp"} or \code{"out"}
 constrains technology input or output, \code{"capacity"} / \code{"newcapacity"} the
 capacity variables, and \code{"balance"} the commodity balance. The two special
-values \code{"tax"} and \code{"subs"} instead delegate to \code{\link[=newTax]{newTax()}} / \code{\link[=newSubsidy]{newSubsidy()}}.}
+values \code{"tax"} and \code{"subs"} are not built here; use \code{\link[=newTax]{newTax()}} / \code{\link[=newSub]{newSub()}}.}
 
 \item{for.sum}{named list of sets to SUM the left-hand side over, as opposed
 to \code{for.each}, whose sets index one constraint row each.}
 
 \item{rule}{accepted for backward compatibility and currently unused.}
 
-\item{comm}{commodity name; read only by the \code{"tax"} and \code{"subs"} types,
-which pass it on to \code{\link[=newTax]{newTax()}} / \code{\link[=newSubsidy]{newSubsidy()}}.}
+\item{comm}{commodity name, for the commodity-indexed constraint types.
+The \code{"tax"} and \code{"subs"} types are no longer built here -- use \code{\link[=newTax]{newTax()}}
+or \code{\link[=newSub]{newSub()}}.}
 
 \item{cout, aout}{logical; for an output-type constraint, include the main
 (\code{vTechOut}) and the auxiliary (\code{vTechAOut}) output variables.}

@@ -1030,32 +1030,12 @@ setMethod(
   "ob2mi",
   signature(scen = "scenario", obj = "tax", extra_params = "list"),
   function(scen, obj, extra_params = list()) {
-    for (s in slotNames(obj)) {
-      if (s %in% c("name", "timeframe", "commodity", "region")) {next}
-      slot_info <- get_slot_meta(class(obj), s)
-      if (is_empty(slot_info)) {next}
-      slot_data <- get_lazy_data(obj, s)
-      # The commodity is carried on the object (@comm), not in the data slot.
-      # An empty @region means the tax applies to all regions (kept as NA and
-      # expanded when the mTaxCost map is built); a non-empty @region restricts
-      # the tax to those regions.
-      slot_data <- slot_data |> mutate(comm = obj@comm, .before = 1)
-      if (length(obj@region) > 0) {
-        slot_data <- slot_data |>
-          select(-any_of("region")) |>
-          tidyr::crossing(region = obj@region)
-      }
-      for (p in slot_info) {
-        dat <- make_data_param(
-          scen = scen,
-          obj_name = obj@name,
-          slot_data = slot_data,
-          par_meta = p,
-          class_col = "levy"
-        )
-        scen <- update_parameter(scen, p$name, dat)
-      }
-    }
+    # Routing (which rate column reaches which parameter) is not expressible in
+    # the declarative `get_slot_meta()` mapping: `inp`/`out` belong to the
+    # commodity parameters or to the process parameters depending on whether
+    # the instrument carries process targeting, and feeding both would charge
+    # one unit of flow twice. See R/levy.R.
+    scen <- .levy_emit(scen, obj, "tax")
     return(scen)
   }
 )
@@ -1067,32 +1047,12 @@ setMethod(
   "ob2mi",
   signature(scen = "scenario", obj = "subsidy", extra_params = "list"),
   function(scen, obj, extra_params = list()) {
-    for (s in slotNames(obj)) {
-      if (s %in% c("name", "timeframe", "commodity", "region")) {next}
-      slot_info <- get_slot_meta("subsidy", s)
-      if (is_empty(slot_info)) {next}
-      slot_data <- get_lazy_data(obj, s)
-      # The commodity is carried on the object (@comm), not in the data slot.
-      # An empty @region means the subsidy applies to all regions (kept as NA
-      # and expanded when the mSubCost map is built); a non-empty @region
-      # restricts the subsidy to those regions.
-      slot_data <- slot_data |> mutate(comm = obj@comm, .before = 1)
-      if (length(obj@region) > 0) {
-        slot_data <- slot_data |>
-          select(-any_of("region")) |>
-          tidyr::crossing(region = obj@region)
-      }
-      for (p in slot_info) {
-        dat <- make_data_param(
-          scen = scen,
-          obj_name = obj@name,
-          slot_data = slot_data,
-          par_meta = p,
-          class_col = "levy"
-        )
-        scen <- update_parameter(scen, p$name, dat)
-      }
-    }
+    # Routing (which rate column reaches which parameter) is not expressible in
+    # the declarative `get_slot_meta()` mapping: `inp`/`out` belong to the
+    # commodity parameters or to the process parameters depending on whether
+    # the instrument carries process targeting, and feeding both would charge
+    # one unit of flow twice. See R/levy.R.
+    scen <- .levy_emit(scen, obj, "subsidy")
     return(scen)
   }
 )
