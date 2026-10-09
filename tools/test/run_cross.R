@@ -19,7 +19,11 @@ suppressMessages(pkgload::load_all(".", quiet = TRUE))
 
 en_toolchains()
 
-filter <- "cross-solver|one-all-solvers|family-"
+# `fold-solve-equivalence` declares "the other backends run at tier cross" in
+# its own header, but was never matched here -- so its julia/pyomo/gams cases
+# only ever ran at the full tier. A fold regression in the Julia template
+# therefore survived a green cross run (2026-10-09).
+filter <- "cross-solver|one-all-solvers|family-|fold-solve-equivalence"
 lst <- testthat::ListReporter$new()
 rep <- en_reporters(lst)
 

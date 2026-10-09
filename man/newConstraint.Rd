@@ -2,7 +2,6 @@
 % Please edit documentation in R/class-constraint.R
 \name{newConstraint}
 \alias{newConstraint}
-\alias{newConstraintS}
 \title{Create constraint object to add custom constraints to the model.}
 \usage{
 newConstraint(
@@ -15,22 +14,6 @@ newConstraint(
   defVal = NULL,
   interpolation = "inter",
   replace_zerros = 1e-20
-)
-
-newConstraintS(
-  name,
-  type,
-  eq = "==",
-  rhs = 0,
-  for.sum = list(),
-  for.each = list(),
-  defVal = 0,
-  rule = NULL,
-  comm = NULL,
-  cout = TRUE,
-  cinp = TRUE,
-  aout = TRUE,
-  ainp = TRUE
 )
 }
 \arguments{
@@ -62,27 +45,6 @@ Note: zero values will be replaced with \code{replace_zerros} to avoid dropping 
 \item{interpolation}{character. Interpolation rule for the constraint. Recognized values, any combination of "back", "inter", "forth", e.g., "back.inter" or "forth.inter", indicating the direction of interpolation. The default value is "inter", meaning that the interpolation is done for years between the specified values. The "back" and "forth" values induce backward and forward interpolation of the \code{rhs} values, respectively.}
 
 \item{replace_zerros}{numeric value to replace zero values in \code{rhs} and \code{defVal}. Default is \code{1e-20}.}
-
-\item{type}{character; the constraint kind, which selects the variable the
-left-hand side is built from: a name containing \code{"inp"} or \code{"out"}
-constrains technology input or output, \code{"capacity"} / \code{"newcapacity"} the
-capacity variables, and \code{"balance"} the commodity balance. The two special
-values \code{"tax"} and \code{"subs"} are not built here; use \code{\link[=newTax]{newTax()}} / \code{\link[=newSub]{newSub()}}.}
-
-\item{for.sum}{named list of sets to SUM the left-hand side over, as opposed
-to \code{for.each}, whose sets index one constraint row each.}
-
-\item{rule}{accepted for backward compatibility and currently unused.}
-
-\item{comm}{commodity name, for the commodity-indexed constraint types.
-The \code{"tax"} and \code{"subs"} types are no longer built here -- use \code{\link[=newTax]{newTax()}}
-or \code{\link[=newSub]{newSub()}}.}
-
-\item{cout, aout}{logical; for an output-type constraint, include the main
-(\code{vTechOut}) and the auxiliary (\code{vTechAOut}) output variables.}
-
-\item{cinp, ainp}{logical; for an input-type constraint, include the main
-(\code{vTechInp}) and the auxiliary (\code{vTechAInp}) input variables.}
 }
 \value{
 Object of class \code{constraint}.
@@ -133,4 +95,3 @@ Other class constraint policy:
 \code{\link{tax-class}}
 }
 \concept{class constraint policy}
-\concept{constraint policy}

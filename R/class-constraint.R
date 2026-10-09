@@ -79,6 +79,14 @@ setMethod("initialize", "constraint", function(.Object, ...) {
 #' @slot desc `r get_slot_doc("summand", "desc")`
 #' @slot variable `r get_slot_doc("summand", "variable")`
 #' @slot for.sum `r get_slot_doc("summand", "for.sum")`
+#' @slot timeframe `r get_slot_doc("summand", "timeframe")`
+#' @slot geoframe `r get_slot_doc("summand", "geoframe")`
+#' @slot process_ `r get_slot_doc("summand", "process_")`
+#' @slot classes `r get_slot_doc("summand", "classes")`
+#' @slot vintage `r get_slot_doc("summand", "vintage")`
+#' @slot vintage_ `r get_slot_doc("summand", "vintage_")`
+#' @slot cluster `r get_slot_doc("summand", "cluster")`
+#' @slot cluster_ `r get_slot_doc("summand", "cluster_")`
 #' @slot mult `r get_slot_doc("summand", "mult")`
 #' @slot defVal `r get_slot_doc("summand", "defVal")`
 #' @slot misc `r get_slot_doc("summand", "misc")`
@@ -86,6 +94,50 @@ setMethod("initialize", "constraint", function(.Object, ...) {
 #' @rdname class-constraint
 #' @order 2
 NULL
+
+# Process-targeting slots on a summand. `classes` (not `class`) matches the
+# `get_process_*(process=, classes=)` family, and `class` is a reserved S4 slot
+# name. Exact names stay in `for.sum`, where a base name expands to its
+# variants; these cover what `for.sum` cannot say.
+.summand_target_slots <- c("process_", "classes",
+                           "vintage", "vintage_", "cluster", "cluster_")
+
+# Dimension NAMES of a variable (positions, not sets -- six variables index one
+# set twice). `for.sum` is keyed by these.
+#' @noRd
+.summand_dims <- function(variable) {
+  d <- .variable_dim[[variable]]
+  s0 <- .variable_set[[variable]]
+  if (is.null(d) || length(d) != length(s0)) s0 else d
+}
+
+# The one process-ish dimension of a variable, or NULL. Targeting filters act
+# on this dimension.
+#' @noRd
+.summand_process_dim <- function(variable) {
+  d <- intersect(.summand_dims(variable),
+                 c("tech", "stg", "trade", "sup", "dem", "imp", "expp",
+                   "process"))
+  if (length(d) == 1) d else NULL
+}
+
+# `addSummand()` pre-fills every dimension the caller did not name with an
+# unrestricted NA, so an entry that is NULL, empty or all-NA means "every
+# member" -- not "no member". Intersecting against it without this check turns
+# any filter into an empty selection.
+#' @noRd
+.for_sum_unrestricted <- function(v) {
+  is.null(v) || length(v) == 0 || all(is.na(v))
+}
+
+# Read a targeting slot from a summand that may predate it (see
+# `.upgrade_summand`); an absent slot reads as "no targeting".
+#' @noRd
+.summand_slot <- function(sm, name) {
+  if (!methods::.hasSlot(sm, name)) return(character())
+  v <- methods::slot(sm, name)
+  if (is.null(v)) character() else v[!is.na(v) & nzchar(v)]
+}
 
 # Bring a `summand` created before the `timeframe` slot existed up to the
 # current class definition. Old serialized objects lack the slot, so accessing
@@ -98,6 +150,11 @@ NULL
   # `geoframe` is the spatial twin and post-dates `timeframe`, so an object
   # serialized between the two carries one and not the other.
   if (!("geoframe" %in% a)) attr(s, "geoframe") <- NA_character_
+  # The process-targeting filters post-date both; a summand serialized before
+  # them carries none, which reads as "no targeting" and behaves as before.
+  for (sl in .summand_target_slots) {
+    if (!(sl %in% a)) attr(s, sl) <- character()
+  }
   s
 }
 
@@ -132,6 +189,12 @@ setClass("summand",
     for.sum = "list",
     timeframe = "character",
     geoframe = "character",
+    process_ = "character",
+    classes = "character",
+    vintage = "character",
+    vintage_ = "character",
+    cluster = "character",
+    cluster_ = "character",
     mult = "data.frame",
     defVal = "numeric",
     misc = "list"
@@ -152,6 +215,15 @@ setClass("summand",
     # dimension to that level's regions. NA = no restriction (sum the
     # variable's native regions). Requires a geoscale on the model config.
     geoframe = NA_character_,
+    # Process targeting, resolved against the variable's own domain by
+    # `.target_filter()` (R/levy.R) -- the same resolver the levy classes use,
+    # so a regex or a vintage means the same thing in both places.
+    process_ = character(),
+    classes = character(),
+    vintage = character(),
+    vintage_ = character(),
+    cluster = character(),
+    cluster_ = character(),
     mult = data.frame(),
     defVal = 1,
     misc = list()
@@ -339,13 +411,19 @@ addSummand <- function(
     for.sum = list(),
     timeframe = NA_character_,
     geoframe = NA_character_,
+    process_ = character(),
+    classes = character(),
+    vintage = character(),
+    vintage_ = character(),
+    cluster = character(),
+    cluster_ = character(),
     arg) {
   if (!is.null(names(arg))) {
     # An unknown field used to be dropped SILENTLY -- e.g. `tech = "X"`
     # (instead of `for.sum = list(tech = "X")`) quietly turned a per-tech
     # cap into a global one. Refuse rather than mislead.
     known <- c("variable", "mult", "for.sum", "defVal", "timeframe",
-               "geoframe", "for.each", "desc")
+               "geoframe", "for.each", "desc", .summand_target_slots)
     bad <- setdiff(names(arg), known)
     if (length(bad) > 0) {
       stop("Unknown summand field(s) in constraint '", eqt@name, "': ",
@@ -359,6 +437,9 @@ addSummand <- function(
     if (any(names(arg) == "defVal")) defVal <- arg$defVal
     if (any(names(arg) == "timeframe")) timeframe <- arg$timeframe
     if (any(names(arg) == "geoframe")) geoframe <- arg$geoframe
+    for (sl in .summand_target_slots) {
+      if (any(names(arg) == sl)) assign(sl, arg[[sl]])
+    }
     if (any(names(arg) == "for.each")) {
       stop(
         "The 'for.each' parameter is set of the entire constraint and",
@@ -402,6 +483,13 @@ addSummand <- function(
     NA_character_
   } else {
     as.character(geoframe)[1]
+  }
+  # Targeting filters keep every value the caller gave: unlike timeframe and
+  # geoframe (one level each) a filter may name several processes or vintages.
+  for (sl in .summand_target_slots) {
+    v <- get(sl)
+    v <- if (is.null(v)) character() else as.character(v)
+    methods::slot(st, sl) <- v[!is.na(v) & nzchar(v)]
   }
   if (all(names(.variable_set) != variable)) {
     stop(paste0('Unknown variable "', variable, '"in summand "', eqt@name, '"'))
@@ -659,6 +747,135 @@ addSummand <- function(
         stm@lhs[[i]]@for.sum$timeslice, dom,
         function(s) as.character(anc$child[as.character(anc$parent) == s]),
         "timeslice", v, stop.constr)
+    }
+  }
+
+  # `<dim>_` keys: a regular expression over that dimension, resolved here to
+  # explicit members so everything downstream sees an ordinary `for.sum`. Must
+  # run before the key filter further down, which drops any name that is not a
+  # dimension of the variable -- silently, which is how a `tech_` key written
+  # before this existed was ignored rather than refused.
+  for (i in seq_along(stm@lhs)) {
+    v <- stm@lhs[[i]]@variable
+    dims <- .summand_dims(v)
+    fs <- stm@lhs[[i]]@for.sum
+    rx_keys <- grep("_$", names(fs), value = TRUE)
+    rx_keys <- setdiff(rx_keys, c("lag.year", "lead.year"))
+    for (k in rx_keys) {
+      d <- sub("_$", "", k)
+      if (!(d %in% dims)) {
+        stop.constr(paste0(
+          'the `for.sum` key "', k, '" is a regular expression over "', d,
+          '", which variable "', v, '" is not indexed by.',
+          "
+  Available: ", paste(dims, collapse = ", ")))
+      }
+      pats <- as.character(fs[[k]])
+      pats <- pats[!is.na(pats) & nzchar(pats)]
+      fs[[k]] <- NULL
+      if (length(pats) == 0) next
+      dom <- .variable_domain_values(prec, v, d)
+      hit <- unique(dom[Reduce(`|`, lapply(pats, function(pt) grepl(pt, dom)))])
+      if (length(hit) == 0) {
+        .stop_target_filter(paste0('constraint "', stm@name, '", variable "', v, '"'),
+                            k, pats, dom)
+      }
+      fs[[d]] <- if (.for_sum_unrestricted(fs[[d]])) hit else {
+        intersect(as.character(fs[[d]]), hit)
+      }
+      if (length(fs[[d]]) == 0) {
+        stop.constr(paste0(
+          'the `for.sum` key "', k, '" and "', d,
+          '" together select nothing for variable "', v, '".'))
+      }
+    }
+    stm@lhs[[i]]@for.sum <- fs
+  }
+
+  # Summand targeting filters (`process_`, `classes`, `vintage`, `cluster`, ...)
+  # resolved by the SAME resolver the levy classes use (`.target_filter()` in
+  # R/levy.R), against the variable's own process dimension. Exact names stay in
+  # `for.sum`; these say what `for.sum` cannot.
+  for (i in seq_along(stm@lhs)) {
+    sm <- stm@lhs[[i]]
+    f <- stats::setNames(
+      lapply(.summand_target_slots, function(sl) .summand_slot(sm, sl)),
+      .summand_target_slots)
+    if (!any(vapply(f, function(x) length(x) > 0, logical(1)))) next
+    v <- sm@variable
+    pdim <- .summand_process_dim(v)
+    if (is.null(pdim)) {
+      stop.constr(paste0(
+        'process targeting (', paste0("`", names(f)[vapply(f, length, integer(1)) > 0],
+                                      "`", collapse = ", "),
+        ') is set on variable "', v, '", which has no process dimension.'))
+    }
+    label <- paste0('constraint "', stm@name, '", variable "', v, '"')
+    pool <- .variable_domain_values(prec, v, pdim)
+    cls <- f$classes
+    if (length(cls) > 0) {
+      keep <- .class_members(approxim, cls, label = label)
+      pool2 <- intersect(pool, keep)
+      if (length(pool2) == 0) .stop_target_filter(label, "classes", cls, pool)
+      pool <- pool2
+    }
+    f$classes <- NULL
+    got <- .target_filter(pool, approxim$variant, f, label)
+    sm@for.sum[[pdim]] <- if (.for_sum_unrestricted(sm@for.sum[[pdim]])) got else {
+      both <- intersect(as.character(sm@for.sum[[pdim]]), got)
+      if (length(both) == 0) {
+        stop.constr(paste0(
+          'the targeting filters and `for.sum = list(', pdim,
+          ' = ...)` select nothing in common for variable "', v, '".'))
+      }
+      both
+    }
+    stm@lhs[[i]] <- sm
+  }
+
+  # Every remaining `for.sum` value must be a MEMBER OF ITS SET. Only region and
+  # timeslice were checked before, so a name in any other dimension contributed
+  # ZERO in silence -- `for.sum = list(tech = "ECOA")` against a vintaged
+  # ECOA_VIN2030 dropped the term and still solved. A declared (base) name
+  # expands to its variants, the same way a coarse region expands to its
+  # children.
+  #
+  # The SET, not the variable's domain, is the reference: a declared process
+  # that happens to have no rows in THIS variable is a legitimate thing to name.
+  # TOPIA's RES_SHARE sums `c("ESOL", "EWIN", "EHYD")` where EHYD is a real
+  # technology with no hydro resource in that layout -- it contributes nothing
+  # and should. What is refused is a name the model does not have at all.
+  for (i in seq_along(stm@lhs)) {
+    v <- stm@lhs[[i]]@variable
+    prov <- approxim$variant
+    dims <- .summand_dims(v)
+    sets <- .variable_set[[v]]
+    for (d in intersect(names(stm@lhs[[i]]@for.sum), dims)) {
+      if (d %in% c("region", "timeslice")) next   # handled above, with hierarchy
+      vals <- stm@lhs[[i]]@for.sum[[d]]
+      if (.for_sum_unrestricted(vals)) next
+      sn <- sets[match(d, dims)]
+      members <- as.character(prec@sets[[sn]])
+      if (length(members) == 0) next
+      vals <- .expand_for_sum(
+        vals, members,
+        function(x) {
+          if (is.null(prov) || nrow(prov) == 0) return(character())
+          as.character(prov$name[as.character(prov$base) == x])
+        },
+        d, v, stop.constr)
+      # ... but a term in which NONE of the named members reaches the variable
+      # can only ever be zero, which is the failure this check exists to stop.
+      dom <- .variable_domain_values(prec, v, d)
+      if (!is.null(dom) && length(dom) > 0 &&
+          length(intersect(vals, dom)) == 0) {
+        stop.constr(paste0(
+          d, ' = "', paste(vals, collapse = '", "'),
+          '" names no member that variable "', v, '" is defined for, so the ',
+          'term would be zero for every row. It exists at: ',
+          paste(utils::head(sort(dom), 6), collapse = ", "), "."))
+      }
+      stm@lhs[[i]]@for.sum[[d]] <- vals
     }
   }
 
@@ -1176,155 +1393,3 @@ addSummand <- function(
 
 #  .getSetEquation(prec, stm, approxim)@user_constraints
 
-#' @param type character; the constraint kind, which selects the variable the
-#'   left-hand side is built from: a name containing `"inp"` or `"out"`
-#'   constrains technology input or output, `"capacity"` / `"newcapacity"` the
-#'   capacity variables, and `"balance"` the commodity balance. The two special
-#'   values `"tax"` and `"subs"` are not built here; use [newTax()] / [newSub()].
-#' @param for.sum named list of sets to SUM the left-hand side over, as opposed
-#'   to `for.each`, whose sets index one constraint row each.
-#' @param rule accepted for backward compatibility and currently unused.
-#' @param comm commodity name, for the commodity-indexed constraint types.
-#'   The `"tax"` and `"subs"` types are no longer built here -- use [newTax()]
-#'   or [newSub()].
-#' @param cinp,ainp logical; for an input-type constraint, include the main
-#'   (`vTechInp`) and the auxiliary (`vTechAInp`) input variables.
-#' @param cout,aout logical; for an output-type constraint, include the main
-#'   (`vTechOut`) and the auxiliary (`vTechAOut`) output variables.
-#' @export
-#' @family constraint policy
-#' @rdname newConstraint
-newConstraintS <- function(
-    name,
-    type,
-    eq = "==",
-    rhs = 0,
-    for.sum = list(),
-    for.each = list(),
-    defVal = 0,
-    rule = NULL,
-    comm = NULL,
-    cout = TRUE,
-    cinp = TRUE,
-    aout = TRUE,
-    ainp = TRUE
-  ) { # , emis = TRUE
-  stop.newconstr <- function(x) {
-    stop(paste0('Constraint "', name, '" error: ', x))
-  }
-
-  # `type = "tax"` / `"subs"` used to forward here, passing `year` and
-  # `timeslice` as slots that neither class has; it errored for every input it
-  # was given. A levy also now carries targeting and base columns a constraint
-  # has no way to express, so point at the constructors instead of guessing.
-  if (type %in% c("tax", "subs")) {
-    stop.newconstr(paste0(
-      'type = "', type, '" is no longer handled here. Build the instrument ',
-      'directly with ', if (type == "tax") "newTax()" else "newSub()",
-      ': the rate goes in its `', if (type == "tax") "tax" else "subsidy",
-      '` table (columns inp/out/bal/act/cap/ncap), and the target in ',
-      '`comm`/`region`/`process`/`classes`.'))
-  }
-  # if (any(grep('(share|growth)', type))) stop.newconstr(paste(type, 'have to do'))
-  # For wich kind of variables (capacity, newcapacity, input or output)
-  if (any(grep("inp", type))) {
-    inpout <- "Inp"
-  } else if (any(grep("out", type))) {
-    inpout <- "Out"
-  } else if (type == "capacity") {
-    inpout <- "Cap"
-  } else if (type == "newcapacity") {
-    inpout <- "NewCap"
-  } else if ("balance" == type) {
-    inpout <- "Balance"
-  } else {
-    stop.newconstr(paste0("Unknown type: ", type))
-  }
-  #
-  set.vec <- c(names(for.each), names(for.sum))
-  psb.vec <- c("sup", "stg", "tech", "imp", "expp")
-  psb.vec.tp <- c(
-    sup = "Sup", stg = "Storage", tech = "Tech",
-    imp = "Import", expp = "Export"
-  )
-  names(psb.vec) <- psb.vec
-  is.set <- psb.vec[psb.vec %in% set.vec]
-  if (length(is.set) > 1) {
-    stop.newconstr(paste0("There are more than one subsets"))
-  }
-  vec.tp <- psb.vec.tp[is.set]
-  if (length(is.set) == 0) {
-    if (all(inpout != c("Inp", "Out", "Balance"))) {
-      stop.newconstr(paste0("For ", type, " have to define some subsets"))
-    }
-    vrb <- paste0("v", inpout, "Tot"[inpout != "Balance"])
-  } else {
-    if (is.set == "tech" && inpout == "Inp") {
-      vrb <- paste0("vTech", c("", "A")[c(cinp, ainp)], "Inp")
-    } else if (is.set == "tech" && inpout == "Out") {
-      vrb <- paste0("vTech", c("Out", "AOut")[c(cout, aout)]) # , 'EmsFuel' , emis
-    } else if (any(type == c("newcapacity", "capacity"))) {
-      if (all(is.set != c("stg", "tech"))) {
-        stop.newconstr(paste0("For ", type, " could be define only for tech and storage"))
-      }
-      vrb <- paste0("v", vec.tp, c(capacity = "Cap", newcapacity = "NewCap")[type])
-    } else {
-      vrb <- paste0("v", vec.tp, inpout)
-    }
-  }
-  term <- list(for.sum = for.sum, variable = vrb[1])
-  arg <- list(term)
-  for (i in vrb[-1]) {
-    term$variable <- i
-    arg[[length(arg) + 1]] <- term
-  }
-  # To share
-  if (any(grep("share", type))) {
-    if (length(c(rhs, recursive = TRUE)) == 0) {
-      rhs <- (-defVal)
-    } else if (is.list(rhs)) {
-      rhs$value <- (-rhs$rhs)
-      rhs$rhs <- NULL
-    } else {
-      rhs <- (-rhs)
-    }
-    # for (i in seq_along(arg)) {
-    #   arg[[i]]$mult <- rhs
-    # }
-    term <- list(
-      for.sum = for.sum[!(names(for.sum) %in% psb.vec)],
-      variable = paste0("v", inpout, "Tot"), mult = rhs
-    )
-    rhs <- 0
-    defVal <- 0
-    arg[[length(arg) + 1]] <- term
-  }
-  # To growth
-  if (any(grep("growth", type))) {
-    if (length(c(rhs, recursive = TRUE)) == 0) {
-      rhs <- (1 / defVal)
-    } else {
-      if (is.numeric(rhs)) {
-        rhs <- (1 / rhs)
-      } else {
-        rhs$value <- (1 / rhs$rhs)
-        rhs$rhs <- NULL
-      }
-    }
-    nn <- seq_along(arg)
-    nk <- length(arg)
-    for (i in nn) {
-      arg[[i + nk]] <- arg[[i]]
-      arg[[i + nk]]$mult <- rhs
-      arg[[i + nk]]$for.sum["lead.year"] <- list(NULL)
-      arg[[i + nk]]$for.sum$year <- NULL
-      arg[[i]]$mult <- (-1)
-    }
-    rhs <- 0
-    defVal <- 0
-  }
-  newConstraint(name,
-    eq = eq, for.each = for.each, defVal = defVal,
-    rhs = rhs, arg = arg
-  )
-}

@@ -1121,6 +1121,11 @@ setMethod(
     # regions of that level (the spatial twin of `calendar@timeframes`).
     # NULL when no geoscale is attached.
     geo_hierarchy = .scen_geo_hierarchy(scen),
+    # variant provenance (name, class, base, vintage, cluster), so a summand's
+    # `vintage` / `cluster` filter resolves by JOIN rather than by parsing the
+    # mangled variant name -- the separator is user-configurable. NULL when no
+    # process has variants.
+    variant = scen@modInp@sets$variant,
     year = ss@horizon@period,
     timeslice = scen@modInp@sets$timeslice,
     calendar = ss@calendar,

@@ -7,6 +7,21 @@
 
 ## Breaking changes
 
+* `newConstraintS()` is removed. It failed for every input it was given --
+  all nine `type` values error with `assignment of an object of class "NULL"
+  is not valid for @'variable'`, because `newConstraint()`'s `arg =` parameter
+  was commented out and the closing call passed its summand list into `...` as
+  one malformed term. It also still named `vStorageCap` / `vStorageNewCap`,
+  which do not exist. Build the instrument with `newConstraint()` directly;
+  the body is kept in `drafts/newConstraintS-retired-2026-10-09.R`.
+
+* A `for.sum` value that is not an index of the summand's variable is now an
+  error. Only `region` and `timeslice` were checked before, so
+  `for.sum = list(tech = "ECOA")` against a vintaged `ECOA_VIN2030` dropped the
+  term and the model still solved -- reporting a constraint it never imposed. A
+  declared (base) name now expands to its realized variants, the way a coarse
+  region expands to its children, so that spelling keeps working.
+
 * Taxes and subsidies are indexed by the instrument, not the commodity.
   `vTaxCost` / `vSubsCost` and `eqTaxCost` / `eqSubsCost` move from
   `(comm, region, year)` to `(levy, region, year)`, where `levy` is a new set
@@ -247,6 +262,15 @@
   set up by multimod, which energyRt and multimod now share.
 
 ## New features
+
+* A constraint summand can target processes the way a levy does: `process_`
+  (regex over process names, matched against the declared name as well as the
+  realized variant), `vintage`, `vintage_`, `cluster`, `cluster_` (joined from
+  the variant provenance table, never parsed out of the mangled name) and
+  `classes`. `for.sum` additionally accepts a `<dim>_` key as a regular
+  expression over that dimension. Both routes use the same resolver as
+  `newTax()` / `newSub()`, so a filter means the same thing in either place,
+  and any filter that resolves to nothing is an error.
 
 * A tax or subsidy can be levied on a PROCESS, not only on a commodity total.
   `newTax()` / `newSub()` take `process`, `process_` (regex), `classes`,
@@ -796,6 +820,23 @@
   0.5.0 renamed its classes to `mm_model`/`mm_equation`; afterwards it matched
   an energyRt model only, so passing one slipped past the check and failed
   later with an unrelated error.
+
+* A folded scenario written for Julia no longer loses its commodity taxes and
+  subsidies. The sparsity guard on the levy terms was written with
+  `get(p, key, default)`, a form the fold's artificial-member substitution does
+  not rewrite, so in a folded build the guard read an unfolded key, missed, and
+  excluded the term -- while the term's own body, written in the `haskey`/`[]`
+  form, would have found the folded value. `tm_policy` lost its whole
+  `SUB_ELC` credit and solved 298.56 too expensive. Every levy lookup now uses
+  the `haskey`/`[]` form the substitution understands.
+
+* The tracked interpolation baselines
+  (`tests/testthat/goldens/interp/*.rds`) are re-frozen for the `levy`
+  re-dimensioning. Every difference is structural -- the six `pTaxCost*` /
+  `pSubCost*` tables gained the `levy` column, `mTaxCost` / `mSubCost` swapped
+  `comm` for it, and the `levy` set plus the ten `pTaxProc*` / `pSubProc*`
+  tables are new. No value moved and no symbol was lost, and the solved goldens
+  are unchanged.
 
 * `topia`'s four `CT_CO2` levers are re-baked under the current class, so their
   targeting slots are readable. An instrument saved before those slots existed

@@ -37,6 +37,11 @@
 .levy_filter_slots <- c("process", "process_", "classes",
                         "vintage", "vintage_", "cluster", "cluster_")
 
+# The subset `.target_filter()` resolves; `classes` is applied by each caller
+# when it builds the pool.
+.levy_target_slots <- c("process", "process_",
+                        "vintage", "vintage_", "cluster", "cluster_")
+
 # parameter per (base, route), keyed by the object's class
 .levy_proc_params <- list(
   tax     = c(act = "pTaxProcAct", inp = "pTaxProcInp", out = "pTaxProcOut",
@@ -73,6 +78,133 @@
                length(v) > 0 && any(nzchar(v))
              },
              logical(1)))
+}
+
+# =========================================================================== #
+# Shared process targeting. Used by levies (below) and by constraint summands
+# (R/class-constraint.R). Both resolve AFTER `expand_variants()`, so the pool
+# holds REALIZED names (`ECOA_VIN2030_CL1`) -- which is why `process` matches
+# the base name as well, and why `vintage`/`cluster` join the provenance table
+# instead of parsing the mangled name (the separator is user-configurable).
+# =========================================================================== #
+
+# Members of the named process classes, for the `classes` filter. Each caller
+# applies this to its own pool: a levy pools `sets$tech`/`sets$stg`, a
+# constraint pools the variable's own domain.
+#' @noRd
+.class_set_key <- c(technology = "tech", storage = "stg", supply = "sup",
+                    demand = "dem", trade = "trade", import = "imp",
+                    export = "expp")
+
+.class_members <- function(sets, classes, label = "classes") {
+  classes <- classes[!is.na(classes) & nzchar(classes)]
+  if (length(classes) == 0) return(NULL)
+  k <- unname(.class_set_key[classes])
+  # `.class_set_key[["nope"]]` errors rather than returning NULL, so an unknown
+  # class must be caught here or it surfaces as "subscript out of bounds".
+  if (anyNA(k)) {
+    stop(label, ": unknown class ",
+         paste0('"', classes[is.na(k)], '"', collapse = ", "),
+         ". Available: ", paste(names(.class_set_key), collapse = ", "),
+         call. = FALSE)
+  }
+  out <- unlist(lapply(k, function(x) as.character(sets[[x]])), use.names = FALSE)
+  unique(out[!is.na(out) & nzchar(out)])
+}
+
+# A target that resolves to nothing is an error, never a silent zero: the rate
+# or coefficient was written down to be applied, and quietly ignoring it
+# reports a policy that was never imposed.
+#' @noRd
+.stop_target_filter <- function(label, which, asked, available) {
+  asked <- unique(as.character(asked[!is.na(asked)]))
+  avail <- unique(as.character(available))
+  stop(label, ": `", which, "` = ",
+       paste0('"', asked, '"', collapse = ", "),
+       " selects no process, so it would be silently ignored.",
+       if (length(avail)) paste0(
+         " Available: ", paste0('"', utils::head(avail, 8), '"', collapse = ", "),
+         if (length(avail) > 8) ", ..." else "") else "",
+       call. = FALSE)
+}
+
+#' Filter a pool of realized process names by the targeting filters
+#'
+#' @param pool character, realized process names to filter.
+#' @param prov `modInp@sets$variant`: data.frame(name, class, base, vintage,
+#'   cluster), or NULL when no process has variants.
+#' @param f named list with any of `process`, `process_`, `vintage`,
+#'   `vintage_`, `cluster`, `cluster_`; absent or empty entries do not filter.
+#' @param label how to name the owner in an error, e.g. `"levy 'CO2TAX'"`.
+#' @return the kept subset of `pool`, never empty (errors instead).
+#' @keywords internal
+#' @noRd
+.target_filter <- function(pool, prov, f, label) {
+  pool <- unique(as.character(pool))
+  pool <- pool[nzchar(pool)]
+  if (length(pool) == 0) return(pool)
+  get_f <- function(n) {
+    v <- f[[n]]
+    if (is.null(v)) return(character())
+    v <- as.character(v)
+    v[!is.na(v) & nzchar(v)]
+  }
+
+  # base / vintage / cluster per pooled name; a process with no variants is its
+  # own base and carries neither
+  base <- pool
+  vin <- rep(NA_character_, length(pool))
+  clu <- rep(NA_character_, length(pool))
+  if (!is.null(prov) && nrow(prov) > 0) {
+    i <- match(pool, prov$name)
+    hit <- !is.na(i)
+    base[hit] <- as.character(prov$base[i[hit]])
+    vin[hit] <- as.character(prov$vintage[i[hit]])
+    clu[hit] <- as.character(prov$cluster[i[hit]])
+  }
+
+  keep <- rep(TRUE, length(pool))
+  # `process` matches the realized OR the base name, so naming a vintaged
+  # process selects all of its variants -- what a user means by "tax ECOA".
+  ask <- get_f("process")
+  if (length(ask) > 0) {
+    k <- pool %in% ask | base %in% ask
+    if (!any(k)) .stop_target_filter(label, "process", ask, unique(c(pool, base)))
+    keep <- keep & k
+  }
+  ask <- get_f("process_")
+  if (length(ask) > 0) {
+    rx <- function(v) Reduce(`|`, lapply(ask, function(p) grepl(p, v)))
+    k <- rx(pool) | rx(base)
+    if (!any(k)) .stop_target_filter(label, "process_", ask, unique(c(pool, base)))
+    keep <- keep & k
+  }
+  for (sl in c("vintage", "cluster")) {
+    ask <- get_f(sl)
+    if (length(ask) == 0) next
+    v <- if (sl == "vintage") vin else clu
+    k <- !is.na(v) & v %in% ask
+    if (!any(k)) .stop_target_filter(label, sl, ask, stats::na.omit(unique(v)))
+    keep <- keep & k
+  }
+  for (sl in c("vintage_", "cluster_")) {
+    ask <- get_f(sl)
+    if (length(ask) == 0) next
+    v <- if (sl == "vintage_") vin else clu
+    k <- !is.na(v) &
+      Reduce(`|`, lapply(ask, function(p) grepl(p, ifelse(is.na(v), "", v))))
+    if (!any(k)) .stop_target_filter(label, sl, ask, stats::na.omit(unique(v)))
+    keep <- keep & k
+  }
+
+  out <- pool[keep]
+  if (length(out) == 0) {
+    set <- names(f)[vapply(names(f), function(n) length(get_f(n)) > 0, logical(1))]
+    stop(label, ": the combination of ",
+         paste0("`", set, "`", collapse = " + "),
+         " selects no process, so it would be silently ignored.", call. = FALSE)
+  }
+  out
 }
 
 # A levy that resolves to nothing is an error, never a silent zero: the rate was
@@ -113,79 +245,17 @@
          call. = FALSE)
   }
 
-  pool <- character()
-  if ("technology" %in% want) pool <- c(pool, as.character(sets$tech))
-  if ("storage" %in% want) pool <- c(pool, as.character(sets$stg))
-  pool <- unique(pool[nzchar(pool)])
+  pool <- .class_members(sets, want)
   if (length(pool) == 0) {
     stop("levy '", obj@name, "': the model has no ",
          paste(want, collapse = " or "), " to charge.", call. = FALSE)
   }
 
-  # base / vintage / cluster per pooled name. A process with no variants is its
-  # own base and carries no vintage or cluster.
-  base <- pool
-  vin <- rep(NA_character_, length(pool))
-  clu <- rep(NA_character_, length(pool))
-  prov <- sets$variant
-  if (!is.null(prov) && nrow(prov) > 0) {
-    i <- match(pool, prov$name)
-    hit <- !is.na(i)
-    base[hit] <- as.character(prov$base[i[hit]])
-    vin[hit] <- as.character(prov$vintage[i[hit]])
-    clu[hit] <- as.character(prov$cluster[i[hit]])
-  }
-
-  keep <- rep(TRUE, length(pool))
-  # `process` matches the realized OR the base name, so naming a vintaged
-  # process selects all of its variants -- what a user means by "tax ECOA".
-  ask <- .levy_slot(obj, "process")
-  if (length(ask) > 0 && any(nzchar(ask))) {
-    ask <- ask[nzchar(ask)]
-    k <- pool %in% ask | base %in% ask
-    if (!any(k)) .stop_levy_filter(obj, "process", ask, unique(c(pool, base)))
-    keep <- keep & k
-  }
-  ask <- .levy_slot(obj, "process_")
-  if (length(ask) > 0 && any(nzchar(ask))) {
-    ask <- ask[nzchar(ask)]
-    rx <- function(v) Reduce(`|`, lapply(ask, function(p) grepl(p, v)))
-    k <- rx(pool) | rx(base)
-    if (!any(k)) .stop_levy_filter(obj, "process_", ask, unique(c(pool, base)))
-    keep <- keep & k
-  }
-  for (sl in c("vintage", "cluster")) {
-    ask <- .levy_slot(obj, sl)
-    ask <- ask[nzchar(ask)]
-    if (length(ask) == 0) next
-    v <- if (sl == "vintage") vin else clu
-    k <- !is.na(v) & v %in% ask
-    if (!any(k)) .stop_levy_filter(obj, sl, ask, stats::na.omit(unique(v)))
-    keep <- keep & k
-  }
-  for (sl in c("vintage_", "cluster_")) {
-    ask <- .levy_slot(obj, sl)
-    ask <- ask[nzchar(ask)]
-    if (length(ask) == 0) next
-    v <- if (sl == "vintage_") vin else clu
-    k <- !is.na(v) &
-      Reduce(`|`, lapply(ask, function(p) grepl(p, ifelse(is.na(v), "", v))))
-    if (!any(k)) .stop_levy_filter(obj, sl, ask, stats::na.omit(unique(v)))
-    keep <- keep & k
-  }
-
-  out <- pool[keep]
-  if (length(out) == 0) {
-    # every individual filter matched something, their intersection did not
-    stop("levy '", obj@name, "': the combination of ",
-         paste0("`", .levy_filter_slots[vapply(.levy_filter_slots,
-           function(s) length(.levy_slot(obj, s)) > 0 &&
-             any(nzchar(.levy_slot(obj, s))),
-           logical(1))], "`", collapse = " + "),
-         " selects no process, so the rate would be silently zero.",
-         call. = FALSE)
-  }
-  out
+  .target_filter(
+    pool, sets$variant,
+    f = stats::setNames(lapply(.levy_target_slots, function(s) .levy_slot(obj, s)),
+                        .levy_target_slots),
+    label = paste0("levy '", obj@name, "'"))
 }
 
 #' Refuse the rate/target combinations that have no meaning

@@ -613,19 +613,6 @@ create_link_log_entry <- function(multimod_name, scenario_name, type, status,
   )
 }
 
-#' Import energyRt scenario data into a multimod model
-#'
-#' Combines set population, parameter linking, and special handling for
-#' bounds-style parameters (stored as single objects in energyRt but split
-#' into *Lo/*Up entries inside multimod models). Creates a detailed import
-#' log stored in model$misc$data_import_log.
-#'
-#' @param model Multimod model
-#' @param scenario energyRt scenario object
-#' @param inMemory Logical. Load parameter data into memory?
-#' @param log_file Optional path to export import log as CSV
-#' @return Modified model with scenario data linked and import log
-#' @export
 # Guard for the functions that take a MULTIMOD model.
 #
 # These used to accept `inherits(model, "model")` as well, because before
@@ -643,6 +630,19 @@ create_link_log_entry <- function(multimod_name, scenario_name, type, status,
   invisible(model)
 }
 
+#' Import energyRt scenario data into a multimod model
+#'
+#' Combines set population, parameter linking, and special handling for
+#' bounds-style parameters (stored as single objects in energyRt but split
+#' into *Lo/*Up entries inside multimod models). Creates a detailed import
+#' log stored in model$misc$data_import_log.
+#'
+#' @param model Multimod model
+#' @param scenario energyRt scenario object
+#' @param inMemory Logical. Load parameter data into memory?
+#' @param log_file Optional path to export import log as CSV
+#' @return Modified model with scenario data linked and import log
+#' @export
 multimod_import_data <- function(model, scenario, inMemory = scenario@inMemory, log_file = NULL) {
   .stop_not_multimod(model)
   if (!inherits(scenario, "scenario")) {
