@@ -22,11 +22,19 @@
 # annual-only.
 #
 #   every participating group has a row AT the level -> PIN
-#   none does                                        -> SUM the finer rows
-#   some do and some do not                          -> ERROR naming the groups
+#   no group holds rows at TWO levels under it       -> SUM; each group
+#                                                       contributes its own
+#                                                       rows exactly once
+#   some group holds rows at two levels under it     -> ERROR naming it
+#
+# The middle branch is why heterogeneity alone is not an error: groups that
+# disagree about which level they occupy still each contribute once, so the sum
+# is right. Only a group spanning two levels can be counted twice, and that is
+# the one case a flat `for.sum` cannot express -- pinning drops the finer-only
+# groups, summing double-counts the spanning one.
 #
 # A STATE is refused outright where a flow would be summed: the sum of hourly
-# storage levels is not an annual level (`.variable_state_dims`).
+# storage levels is not an annual level (`role: stock`).
 # =========================================================================== #
 
 lr_cns <- function(variable, tf = NULL, gf = NULL, name = "LR") {
@@ -93,13 +101,14 @@ test_that("family level-resolution: a group above the level is not required to h
 # duplicated here.
 
 # --------------------------------------------------------------------------- #
-# ERROR: the case that used to under-count in silence.
+# HETEROGENEITY: the case that used to under-count in silence, and then briefly
+# errored. It sums.
 # --------------------------------------------------------------------------- #
 
 # One ANNUAL commodity and one sub-annual one, a technology on each. No single
 # (tech, comm) pair spans levels, but the POOLED timeslice column does -- which
-# is what the old test read, so it pinned to ANNUAL and dropped the seasonal
-# technology's output from the sum without saying so.
+# is what the original test read, so it pinned to ANNUAL and dropped the
+# seasonal technology's output from the sum without saying so.
 lr_mixed <- function(...) {
   newModel("lrm",
     repo = newRepository("lrm_repo",
@@ -125,17 +134,98 @@ lr_mixed <- function(...) {
 }
 
 # @covers vTechOut depth=I backends=glpk
-test_that("family level-resolution: a mixed-level request is refused, not under-counted", {
+test_that("family level-resolution: heterogeneous levels sum, they do not error", {
+  # No (tech, comm) pair spans two levels here -- THEAT is annual-only and TELC
+  # seasonal-only -- so each contributes its own rows once and the sum is the
+  # true total. The request must therefore resolve, not be refused: refusing it
+  # was the over-strict first cut of this family.
   cns <- newConstraint("LRM", eq = "<=", for.each = data.frame(year = 2025),
                        out = list(variable = "vTechOut", timeframe = "ANNUAL"),
                        rhs = 1e6, defVal = 0)
-  expect_error(lr_interp(lr_mixed(cns), "lr_mixed"),
-               "is ambiguous for variable")
-  # the message must name the group that would have been dropped, so the
-  # modeller can see which process the constraint was quietly missing
-  err <- tryCatch(lr_interp(lr_mixed(cns), "lr_mixed2"),
+  expect_s4_class(lr_interp(lr_mixed(cns), "lr_mixed"), "scenario")
+})
+
+# @covers vTechOut depth=I backends=glpk
+test_that("family level-resolution: the automatic sum equals the explicit for.sum", {
+  # the escape hatch the error message used to offer is the reference answer:
+  # resolving `timeframe` automatically must produce the same compiled
+  # constraint as naming every timeslice by hand
+  mk <- function(term) newConstraint("LRM", eq = "<=",
+                                     for.each = data.frame(year = 2025),
+                                     out = term, rhs = 1e6, defVal = 0)
+  auto <- mk(list(variable = "vTechOut", timeframe = "ANNUAL"))
+  manual <- mk(list(variable = "vTechOut",
+                    for.sum = list(timeslice = c("ANNUAL", paste0("s", 1:4)))))
+  cns_params <- function(scen) {
+    ps <- sort(grep("Cns", names(scen@modInp@parameters), value = TRUE))
+    lapply(setNames(ps, ps), function(n)
+      tryCatch(as.data.frame(get_data_slot(scen@modInp@parameters[[n]])),
+               error = function(e) NULL))
+  }
+  expect_identical(cns_params(lr_interp(lr_mixed(auto), "lr_eq_auto")),
+                   cns_params(lr_interp(lr_mixed(manual), "lr_eq_man")))
+})
+
+# --------------------------------------------------------------------------- #
+# The resolver itself. The three branches are decided per group, which no model
+# fixture can exercise exhaustively -- a commodity's parent cells are built up
+# to the top of the hierarchy (`.extend_comm_timeslice`), so a model variable
+# either has every ancestor row or none, and the SPANNING case only becomes
+# reachable once `parent_levels` builds them for a subset. So the branches are
+# pinned directly on the function.
+# --------------------------------------------------------------------------- #
+
+test_that("family level-resolution: the resolver decides per group", {
+  mem <- list(ANNUAL = "ANNUAL", SEASON = c("WIN", "SUM"),
+              HOUR = c("h1", "h2", "h3", "h4"))
+  desc <- c(mem$SEASON, mem$HOUR)          # SEASON's own members and below
+  dom <- c("ANNUAL", desc)
+  res <- function(rows) energyRt:::.resolve_level_indices(
+    dom, "SEASON", mem, desc, rows = rows, dim = "timeslice")
+
+  # every participating group has a SEASON row -> pin
+  r <- res(data.frame(g = c("A", "A", "B"), timeslice = c("WIN", "h1", "SUM")))
+  expect_identical(r$mode, "pin")
+  expect_setequal(r$values, mem$SEASON)
+
+  # no group does -> sum everything at or under SEASON
+  r <- res(data.frame(g = c("A", "B"), timeslice = c("h1", "h2")))
+  expect_identical(r$mode, "sum")
+  expect_setequal(r$values, desc)
+
+  # groups at DIFFERENT single levels still sum: each contributes once
+  r <- res(data.frame(g = c("A", "B"), timeslice = c("WIN", "h2")))
+  expect_identical(r$mode, "sum")
+  expect_setequal(r$values, desc)
+
+  # a group COARSER than the level has nothing at that resolution and must not
+  # make the request ambiguous (this is what keeps SEASON legal on tm_core)
+  r <- res(data.frame(g = c("A", "B"), timeslice = c("ANNUAL", "WIN")))
+  expect_identical(r$mode, "pin")
+})
+
+test_that("family level-resolution: a group spanning two levels is refused", {
+  mem <- list(ANNUAL = "ANNUAL", SEASON = c("WIN", "SUM"),
+              HOUR = c("h1", "h2", "h3", "h4"))
+  desc <- c(mem$SEASON, mem$HOUR)
+  # A holds WIN *and* h1 -- summing counts its winter twice; B holds only h2 --
+  # pinning drops it. No flat `for.sum` can do both, so this is the error.
+  r <- energyRt:::.resolve_level_indices(
+    c("ANNUAL", desc), "SEASON", mem, desc,
+    rows = data.frame(g = c("A", "A", "B"),
+                      timeslice = c("WIN", "h1", "h2")),
+    dim = "timeslice")
+  expect_identical(r$mode, "mixed")
+  expect_identical(r$missing, "A")          # the SPANNING group, not B
+
+  # and the message names it, says why, and offers the two ways out
+  err <- tryCatch(energyRt:::.stop_level_mixed(r, "timeframe", "SEASON",
+                                              "vTechOut", stop),
                   error = function(e) conditionMessage(e))
-  expect_match(err, "TELC")
+  expect_match(err, "is ambiguous for variable")
+  expect_match(err, '"A"')
+  expect_match(err, "double-count")
+  expect_match(err, "for.sum")
   expect_match(err, "parent_levels")
 })
 

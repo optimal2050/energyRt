@@ -7,12 +7,15 @@
 
 ## Breaking changes
 
-* A summand `timeframe` / `geoframe` that is unambiguous for some members of the
-  variable and not others is now an error naming them. It used to pin to the
-  named level, which silently dropped every member whose rows lie below it: in a
-  model with one annual and one sub-annual commodity, `timeframe = "ANNUAL"` on
-  `vTechOut` covered only the annual technology. Name the timeslices or regions
-  in `for.sum`, or split the constraint per level.
+* A summand `timeframe` / `geoframe` is resolved per member rather than from the
+  pooled index column. It used to pin to the named level, silently dropping
+  every member whose rows lie below it: in a model with one annual and one
+  sub-annual commodity, `timeframe = "ANNUAL"` on `vTechOut` covered only the
+  annual technology. Members sitting at different levels now sum, each counted
+  once. It is an error only where one member carries rows at two levels at or
+  under the requested one -- summing would double-count that member and pinning
+  would drop the others. Name the timeslices or regions in `for.sum`, or split
+  the constraint per level.
 
 * `timeframe` is refused on a variable declared `role: stock` in
   `data-raw/variables.yml` -- a level at a point in time, whose sum over
@@ -275,6 +278,16 @@
   set up by multimod, which energyRt and multimod now share.
 
 ## New features
+
+* `interpolate_model(parent_levels = )` gives a variable rows at the timeslice
+  and region levels coarser than the one it occupies, each defined by a roll-up
+  of its finer rows, so a constraint can be written at a level the variable does
+  not natively carry. `FALSE` (the default, from
+  `getOption("energyRt.parent_levels")`) builds none; `TRUE` builds them for
+  every supported variable; a character vector selects among those. No variable
+  supports them yet, so the switch is currently a no-op -- naming one without a
+  roll-up equation is an error, because its parent rows would be free variables.
+  `vOutTot` / `vInpTot` carry theirs unconditionally and are unaffected.
 
 * A constraint summand can target processes the way a levy does: `process_`
   (regex over process names, matched against the declared name as well as the

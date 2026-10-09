@@ -54,6 +54,20 @@
 #'   the default, which equals the dropped value). One parameter is flagged
 #'   today (`pWeather`). Superseded by `sparse`'s `value =` form; retained for
 #'   compatibility.
+#' @param parent_levels logical or character; give a variable rows at every
+#'   timeslice / region level COARSER than the one it occupies, each defined by a
+#'   roll-up of its finer rows, so a constraint can be written at a level the
+#'   variable does not natively carry (`summand@timeframe` / `@geoframe`).
+#'   `FALSE` (default) builds none; `TRUE` builds them for every SUPPORTED
+#'   variable; a character vector selects among those. Naming an unsupported
+#'   variable is an error listing what is supported -- a parent row with no
+#'   equation to define it would be a free variable.
+#'
+#'   `vOutTot` / `vInpTot` carry their parent rows unconditionally and are not
+#'   affected: `eqOutTot` / `eqInpTot` are written against them.
+#'
+#'   Defaults to `getOption("energyRt.parent_levels", FALSE)`, so a whole run or
+#'   test suite can be switched in one place.
 #' @param validate logical; run [validate_scenario_parameters()] after
 #'   interpolation (schema, duplicate keys, map/parameter coverage, missing
 #'   governing constraints, calendar chronology).
@@ -95,6 +109,8 @@ interpolate_model <- function(mod, name = NULL, ...,
                        fold = FALSE, sparse = TRUE, prune = TRUE,
                        validate = TRUE, code = NULL, kvl = FALSE,
                        boundary_prices = NULL, .prefilter = FALSE,
+                       parent_levels = getOption("energyRt.parent_levels",
+                                                 FALSE),
                        verbose = isVerbose()) {
   .log_t0 <- Sys.time()
   .interp_stages_reset()
@@ -102,6 +118,14 @@ interpolate_model <- function(mod, name = NULL, ...,
   # enough to use them all. `options(energyRt.threads = n)` overrides.
   .dt_prev <- data.table::setDTthreads(getOption("energyRt.threads", 0L))
   on.exit(data.table::setDTthreads(.dt_prev), add = TRUE)
+  # The mapping builders are dispatched as `f(scen, fmp)` from a registry, so
+  # there is no argument channel into them. Publish the resolved setting as the
+  # option they read, for this call only -- the same borrow-and-restore shape as
+  # `setDTthreads()` above.
+  parent_levels <- .parent_levels_resolve(parent_levels)
+  .pl_prev <- getOption("energyRt.parent_levels", FALSE)
+  options(energyRt.parent_levels = parent_levels)
+  on.exit(options(energyRt.parent_levels = .pl_prev), add = TRUE)
   # Accept a scenario (re-interpolate its model), matching the legacy interface.
   if (inherits(mod, "scenario")) mod <- mod@model
   # A model loaded from the store keeps its large slots on disk (thinned).
@@ -1177,6 +1201,7 @@ interpolate_model <- function(mod, name = NULL, ...,
   scen@status$sparse <- isTRUE(sparse)
   scen@status$folded <- fold_dims
   scen@status$pruned <- isTRUE(prune)
+  scen@status$parent_levels <- parent_levels
 
   # Post-interpolation consistency checks (NA index columns, schema, duplicate
   # keys, and bidirectional map <-> parameter coverage). Reports issues without

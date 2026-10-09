@@ -20,6 +20,7 @@ interpolate_model(
   kvl = FALSE,
   boundary_prices = NULL,
   .prefilter = FALSE,
+  parent_levels = getOption("energyRt.parent_levels", FALSE),
   verbose = isVerbose()
 )
 
@@ -109,6 +110,21 @@ in \code{ob2mi} and then keeps 96. The parameter filters that follow are cheap
 Off by default because it is not obviously safe: anything deriving a
 relation from the full declared grid rather than from the calendar would
 see a narrower input. Compare objectives before relying on it.}
+
+\item{parent_levels}{logical or character; give a variable rows at every
+timeslice / region level COARSER than the one it occupies, each defined by a
+roll-up of its finer rows, so a constraint can be written at a level the
+variable does not natively carry (\code{summand@timeframe} / \verb{@geoframe}).
+\code{FALSE} (default) builds none; \code{TRUE} builds them for every SUPPORTED
+variable; a character vector selects among those. Naming an unsupported
+variable is an error listing what is supported -- a parent row with no
+equation to define it would be a free variable.
+
+\code{vOutTot} / \code{vInpTot} carry their parent rows unconditionally and are not
+affected: \code{eqOutTot} / \code{eqInpTot} are written against them.
+
+Defaults to \code{getOption("energyRt.parent_levels", FALSE)}, so a whole run or
+test suite can be switched in one place.}
 
 \item{verbose}{logical; print per-step progress. This also governs the
 variant-expansion report -- how many process objects were expanded and how

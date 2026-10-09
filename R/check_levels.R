@@ -297,13 +297,34 @@ NULL
 
   vals <- as.character(rows[[dim]])
   key <- do.call(paste, c(lapply(rows[other], as.character), list(sep = " / ")))
-  part <- unique(key[vals %in% descendants])   # groups at `level` or finer
+  keep <- vals %in% descendants
+  part <- unique(key[keep])                    # groups at `level` or finer
   at <- unique(key[vals %in% own])             # groups with a row AT `level`
   if (length(part) == 0) return(.sum)          # nothing there; caller errors
+
+  # Pinning is right for a group that HAS a row at the level: by the roll-up
+  # that row already equals its finer ones. So if every participating group has
+  # one, pin -- and never sum across the two, which would double count.
   if (all(part %in% at)) return(.pin)
-  if (!any(part %in% at)) return(.sum)
+
+  # Otherwise summing the whole descendant set is right UNLESS some group holds
+  # rows at two levels within it, which is the only way a sum can count the same
+  # quantity twice. A group sitting at exactly one level contributes its own
+  # rows once, whatever level that is -- so a variable whose members each live
+  # at a single level aggregates correctly even when the members disagree about
+  # which level that is. That is the common case for a per-process variable in a
+  # model mixing annual and sub-annual commodities, and it needs no parent rows.
+  lvl_of <- rep(NA_character_, length(vals))
+  for (lv in names(members)) lvl_of[vals %in% members[[lv]]] <- lv
+  spans <- tapply(lvl_of[keep], key[keep],
+                  function(z) length(unique(z[!is.na(z)])) > 1L)
+  if (!any(spans, na.rm = TRUE)) return(.sum)
+
+  # Some group has only finer rows while another holds several levels: pinning
+  # drops the first, summing double counts the second, and a flat `for.sum`
+  # cannot do both.
   list(mode = "mixed", values = character(),
-       missing = utils::head(sort(setdiff(part, at)), 8))
+       missing = utils::head(sort(names(spans)[which(spans)]), 8))
 }
 
 # Expand coarse indices named in `for.sum` down to the variable's own.

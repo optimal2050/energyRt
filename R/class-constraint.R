@@ -139,10 +139,10 @@ NULL
   if (!identical(res$mode, "mixed")) return(invisible(NULL))
   stop_fn(paste0(
     arg, ' = "', level, '" is ambiguous for variable "', variable,
-    '": these have rows at a FINER level but none at that level itself -- ',
+    '": these carry rows at MORE THAN ONE level at or under it -- ',
     paste0('"', res$missing, '"', collapse = ", "),
-    '.\n  Pinning would drop them; summing would double-count the members ',
-    'that do have a row there. Name the ',
+    '.\n  Summing would double-count them; pinning would drop the members ',
+    'that have only finer rows. Name the ',
     if (identical(arg, "timeframe")) "timeslices" else "regions",
     ' explicitly in `for.sum`, split the constraint per level, or build the ',
     'level with `interpolate_model(parent_levels = ...)`.'))
