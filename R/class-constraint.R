@@ -130,6 +130,48 @@ NULL
   is.null(v) || length(v) == 0 || all(is.na(v))
 }
 
+# A level request that is unambiguous for some members of the variable and not
+# others has no single right answer: pinning drops the members that only have
+# FINER rows, summing double counts the ones that already have a row at the
+# level. Refuse and name them.
+#' @noRd
+.stop_level_mixed <- function(res, arg, level, variable, stop_fn) {
+  if (!identical(res$mode, "mixed")) return(invisible(NULL))
+  stop_fn(paste0(
+    arg, ' = "', level, '" is ambiguous for variable "', variable,
+    '": these have rows at a FINER level but none at that level itself -- ',
+    paste0('"', res$missing, '"', collapse = ", "),
+    '.\n  Pinning would drop them; summing would double-count the members ',
+    'that do have a row there. Name the ',
+    if (identical(arg, "timeframe")) "timeslices" else "regions",
+    ' explicitly in `for.sum`, split the constraint per level, or build the ',
+    'level with `interpolate_model(parent_levels = ...)`.'))
+}
+
+# Summing a STATE over TIME is meaningless rather than merely absent: the sum of
+# hourly storage levels is not an annual level. Pinning to the level the
+# variable already occupies stays legal; summing does not.
+#
+# Which variables those are is declared, not listed here: `role: stock` in
+# `data-raw/variables.yml` already means "a LEVEL at a point in time -- never
+# summed over timeslices", and `.is_state_var()` (R/get_data.R) reads it for the
+# reporting roll-up. Declaring the role covers both at once, which is the point
+# of the field -- it replaced a hard-coded `.timeframe_state_vars` once already.
+#
+# TIME only. A stock does add across space (total energy stored in a zone, total
+# reserve), and nothing declares otherwise, so `geoframe` keeps summing.
+#' @noRd
+.stop_level_state <- function(res, arg, level, variable, dim, stop_fn) {
+  if (!identical(res$mode, "sum")) return(invisible(NULL))
+  if (!identical(dim, "timeslice")) return(invisible(NULL))
+  if (!isTRUE(.is_state_var(variable))) return(invisible(NULL))
+  stop_fn(paste0(
+    arg, ' = "', level, '" would sum variable "', variable,
+    '" over timeslices, but it is declared `role: stock` -- a level at a point ',
+    'in time, not a flow, so its sum has no meaning.\n  Name the ',
+    'timeslices explicitly in `for.sum` and apply the statistic you mean.'))
+}
+
 # Read a targeting slot from a summand that may predate it (see
 # `.upgrade_summand`); an absent slot reads as "no targeting".
 #' @noRd
@@ -673,12 +715,18 @@ addSummand <- function(
                      if (!is.null(anc) && nrow(anc) > 0) {
                        as.character(anc$child[as.character(anc$parent) %in% lev])
                      }))
-    dom <- .variable_domain_values(prec, stm@lhs[[i]]@variable, "timeslice")
-    got <- .resolve_level_indices(dom, tf, tfs, desc)
+    v <- stm@lhs[[i]]@variable
+    dom <- .variable_domain_values(prec, v, "timeslice")
+    res <- .resolve_level_indices(dom, tf, tfs, desc,
+                                  rows = .variable_domain_rows(prec, v),
+                                  dim = "timeslice")
+    .stop_level_mixed(res, "timeframe", tf, v, stop.constr)
+    .stop_level_state(res, "timeframe", tf, v, "timeslice", stop.constr)
+    got <- res$values
     if (length(got) == 0) {
       stop.constr(paste0(
         'timeframe = "', tf, '" does not resolve to any timeslice of variable "',
-        stm@lhs[[i]]@variable, '". It exists at: ',
+        v, '". It exists at: ',
         paste(utils::head(sort(dom), 6), collapse = ", "),
         '.\n  Write the sum explicitly in `for.sum` instead.'
       ))
@@ -715,12 +763,18 @@ addSummand <- function(
     # Regions AT that level plus every region beneath them, so constraining
     # "province P" works without knowing which level the commodity balances at.
     desc <- .geo_descendants(hier, gl)
-    dom <- .variable_domain_values(prec, stm@lhs[[i]]@variable, "region")
-    got <- .resolve_level_indices(dom, gl, hier$members, desc)
+    v <- stm@lhs[[i]]@variable
+    dom <- .variable_domain_values(prec, v, "region")
+    res <- .resolve_level_indices(dom, gl, hier$members, desc,
+                                  rows = .variable_domain_rows(prec, v),
+                                  dim = "region")
+    .stop_level_mixed(res, "geoframe", gl, v, stop.constr)
+    .stop_level_state(res, "geoframe", gl, v, "region", stop.constr)
+    got <- res$values
     if (length(got) == 0) {
       stop.constr(paste0(
         'geoframe = "', gl, '" does not resolve to any region of variable "',
-        stm@lhs[[i]]@variable, '". It exists at: ',
+        v, '". It exists at: ',
         paste(utils::head(sort(dom), 6), collapse = ", "),
         '.\n  Write the sum explicitly in `for.sum` instead.'
       ))

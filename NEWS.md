@@ -7,6 +7,19 @@
 
 ## Breaking changes
 
+* A summand `timeframe` / `geoframe` that is unambiguous for some members of the
+  variable and not others is now an error naming them. It used to pin to the
+  named level, which silently dropped every member whose rows lie below it: in a
+  model with one annual and one sub-annual commodity, `timeframe = "ANNUAL"` on
+  `vTechOut` covered only the annual technology. Name the timeslices or regions
+  in `for.sum`, or split the constraint per level.
+
+* `timeframe` is refused on a variable declared `role: stock` in
+  `data-raw/variables.yml` -- a level at a point in time, whose sum over
+  timeslices is not an annual level. Declaring the role is the control point, so
+  it covers the reporting roll-up and this check at once. `geoframe` is
+  unaffected: a stock does add across regions.
+
 * `newConstraintS()` is removed. It failed for every input it was given --
   all nine `type` values error with `assignment of an object of class "NULL"
   is not valid for @'variable'`, because `newConstraint()`'s `arg =` parameter
@@ -810,6 +823,14 @@
   `saved`/`updated` stamps, surfaced by `scenario_runs()`.
 
 ## Bug fixes
+
+* `summand@timeframe` / `@geoframe` decide between taking a level's own rows and
+  summing its finer ones **per member**, rather than from the variable's pooled
+  domain column, which could not tell a real aggregate (`vOutTot`, whose coarse
+  row is the roll-up of its finer ones) from unrelated objects sharing a column.
+  A member that sits only at a COARSER level than the one requested is ignored
+  rather than making the request ambiguous, so asking at a sub-annual level
+  still works on a model with annual-only commodities.
 
 * A levy on a timeslice-indexed base is weighted by `pTimesliceWeight`, so a
   sampled calendar scales it to the full year like every other cost.

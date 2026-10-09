@@ -242,24 +242,68 @@ NULL
   unique(as.character(as.data.frame(d)[[dim]]))
 }
 
+# Rows of a variable's domain (its gate map), as already built.
+#' @noRd
+.variable_domain_rows <- function(prec, variable) {
+  nm <- .variable_gate_map(variable)
+  if (is.null(nm)) return(NULL)
+  p <- prec@parameters[[nm]]
+  if (is.null(p)) return(NULL)
+  d <- get_data_slot(p)
+  if (is.null(d) || nrow(d) == 0) return(NULL)
+  as.data.frame(d)
+}
+
 # Resolve `level` to the indices of `variable`'s `dim` that represent it.
 #
 # `members` is a named list level -> its own members (coarsest first);
-# `descend` maps any index to the set of levels it belongs to.
+# `descendants` is `level`'s own members plus everything beneath them.
+#
+# The decision is made PER GROUP -- the distinct combinations of the variable's
+# OTHER dimensions -- because the pooled column cannot tell two situations
+# apart. `mvOutTot` for one commodity carries rows at several levels and the
+# coarse row IS the roll-up, so pinning is right and summing both levels would
+# double count. `mvTechOut` in a model with one annual and one seasonal
+# commodity carries both levels too, but across DIFFERENT technologies, where
+# nothing aggregates anything and pinning silently drops the seasonal one.
+#
+# Only groups with a row AT `level` OR FINER take part. "Finer" means deeper in
+# the hierarchy -- with ANNUAL < SEASON < HOUR, the set for SEASON is the seasons
+# and the hours under them, NOT the annual slice. A group sitting entirely
+# COARSER than `level` has nothing at that resolution and correctly contributes
+# nothing: `tm_core` asked at SEASON has no seasonal coal, which is not an error.
+#
+#   every participating group has a row AT `level` -> pin
+#   none does                                      -> sum what lies beneath
+#   some do and some do not                        -> ambiguous; caller errors
+#
+# Returns `list(mode, values, missing)`; `missing` names the groups that lack a
+# row at `level` so the caller can report them.
 #' @noRd
-.resolve_level_indices <- function(domain, level, members, descendants) {
+.resolve_level_indices <- function(domain, level, members, descendants,
+                                   rows = NULL, dim = NULL) {
   own <- members[[level]]
-  if (is.null(own)) return(NULL)
-  if (is.null(domain)) return(own)          # domain unknown: take the level as-is
-
-  occupied <- names(members)[vapply(members, function(m) any(domain %in% m),
-                                    logical(1))]
-  if (length(occupied) > 1L && level %in% occupied) {
-    # multi-level variable: pin to the named level, never sum across levels
-    return(intersect(own, domain))
+  if (is.null(own)) return(list(mode = "pin", values = NULL, missing = character()))
+  if (is.null(domain)) {
+    return(list(mode = "pin", values = own, missing = character()))
   }
-  # single-level variable: everything under the named level, summed
-  intersect(descendants, domain)
+  .pin <- list(mode = "pin", values = intersect(own, domain), missing = character())
+  .sum <- list(mode = "sum", values = intersect(descendants, domain),
+               missing = character())
+
+  if (is.null(rows) || is.null(dim) || !(dim %in% names(rows))) return(.sum)
+  other <- setdiff(names(rows), c(dim, "value"))
+  if (length(other) == 0) return(.pin)
+
+  vals <- as.character(rows[[dim]])
+  key <- do.call(paste, c(lapply(rows[other], as.character), list(sep = " / ")))
+  part <- unique(key[vals %in% descendants])   # groups at `level` or finer
+  at <- unique(key[vals %in% own])             # groups with a row AT `level`
+  if (length(part) == 0) return(.sum)          # nothing there; caller errors
+  if (all(part %in% at)) return(.pin)
+  if (!any(part %in% at)) return(.sum)
+  list(mode = "mixed", values = character(),
+       missing = utils::head(sort(setdiff(part, at)), 8))
 }
 
 # Expand coarse indices named in `for.sum` down to the variable's own.
