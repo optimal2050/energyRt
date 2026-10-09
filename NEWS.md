@@ -268,6 +268,9 @@
   actually sets, and names the targeted process in the subtitle. It was pinned
   to `bal`, so an `act`-, `cap`- or `ncap`-only instrument plotted nothing.
 
+* The element report for a tax or subsidy lists the targeting slots it uses and
+  the bases its rate table prices, instead of commodity and region alone.
+
 * A `weather` object can be declared at a COARSER region than the processes
   that use it — one profile per `adm1` feeding all of its `adm2` children —
   and is stored once instead of copied per child. A process reads the series at
@@ -786,6 +789,18 @@
 
 * A levy on a timeslice-indexed base is weighted by `pTimesliceWeight`, so a
   sampled calendar scales it to the full year like every other cost.
+
+* `multimod_import_data()` and the user-constraint declaration helpers reject a
+  non-multimod model instead of accepting it. Their guard also allowed
+  `inherits(model, "model")`, which matched a multimod model before multimod
+  0.5.0 renamed its classes to `mm_model`/`mm_equation`; afterwards it matched
+  an energyRt model only, so passing one slipped past the check and failed
+  later with an unrelated error.
+
+* `topia`'s four `CT_CO2` levers are re-baked under the current class, so their
+  targeting slots are readable. An instrument saved before those slots existed
+  still interpolates -- an absent slot reads as empty and takes the commodity
+  route, as it did before.
 
 * A region whose code repeats at two adjacent geoframes no longer poisons its
   own balance. The self-pair reached `mRegionFamily`, so `eqOutTot` read

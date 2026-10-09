@@ -72,3 +72,60 @@ test_that("all @covers tags in the suite resolve to known names", {
   env <- load_matrix_tool()
   expect_true(isTRUE(env$check_tags(dir = testthat::test_path("."))))
 })
+
+# --------------------------------------------------------------------------- #
+# Registry <-> template agreement.
+#
+# `.variable_mapping` (from data-raw/maps.R) says which variables exist and what
+# guards their domain; the backend templates declare them. Nothing checked that
+# the two agree, and the failure is silent in both directions: a registered name
+# with no declaration reads back as an all-zero variable, and a declared name
+# with no registration is written by the solver and never read.
+#
+# This is not hypothetical. `data-raw/variable_mapping.yml` is a dump that
+# nothing reads (see data-raw/variables.yml), and reverse-engineering the
+# storage capacity variables from equation text produced four invented names in
+# place of six correct registrations. Either direction of this check catches
+# that immediately.
+# --------------------------------------------------------------------------- #
+
+# Names declared by `var <name>{...}` / `var <name> >= 0;` in a MathProg model.
+# Deliberately backreference-free: split on the characters that may follow a
+# declared name instead.
+.mp_declared_vars <- function(code) {
+  l <- grep("^var ", code, value = TRUE)
+  nm <- vapply(strsplit(trimws(substring(l, 5L)), "[{;, >=]"),
+               function(x) x[nzchar(x)][1], character(1))
+  unique(nm[!is.na(nm)])
+}
+
+test_that("every registered variable is declared in the GLPK template, and back", {
+  registered <- names(energyRt:::.variable_mapping)
+  declared <- .mp_declared_vars(energyRt:::.modelCode$GLPK)
+  expect_gt(length(registered), 50L)   # guard against an empty-vs-empty pass
+  expect_gt(length(declared), 50L)
+  expect_equal(sort(setdiff(registered, declared)), character(0),
+               label = "registered in .variable_mapping but not declared in GLPK")
+  expect_equal(sort(setdiff(declared, registered)), character(0),
+               label = "declared in GLPK but absent from .variable_mapping")
+})
+
+test_that("each registered variable's guard mapping is a declared set", {
+  # `vX( dims ) $ mY( dims )` -- the guard `mY` must be a set the template
+  # declares, or the variable's domain silently never resolves.
+  mp <- energyRt:::.variable_mapping
+  code <- energyRt:::.modelCode$GLPK
+  sets <- vapply(strsplit(trimws(substring(
+    grep("^set ", code, value = TRUE), 5L)), "[{;, ]"),
+    function(x) x[nzchar(x)][1], character(1))
+  sets <- unique(sets[!is.na(sets)])
+  guards <- vapply(mp, function(s) {
+    p <- strsplit(s, " $ ", fixed = TRUE)[[1]]
+    if (length(p) < 2) return(NA_character_)
+    trimws(strsplit(p[2], "(", fixed = TRUE)[[1]][1])
+  }, character(1))
+  guards <- guards[!is.na(guards) & nzchar(guards)]
+  expect_gt(length(guards), 50L)
+  expect_equal(sort(unique(setdiff(guards, sets))), character(0),
+               label = "guard mappings named in .variable_mapping but never declared")
+})

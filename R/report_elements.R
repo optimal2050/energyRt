@@ -327,11 +327,37 @@ NULL
        map_plot = map_plot, levcost_df = lc_df)
 }
 
+# Levy targeting slots, reported in the order `newTax()` takes them. Only the
+# ones actually set are listed: a levy uses one or two, so a row per slot would
+# be mostly blank. `.slot_chr_report()` returns "" for a slot the object does
+# not carry, which is what an instrument saved before they existed looks like.
+.levy_report_slots <- c("process", "process_", "classes",
+                        "vintage", "vintage_", "cluster", "cluster_",
+                        "variable")
+
 .el_params_lever <- function(object, want, slot_name) {
-  info <- do.call(rbind, list(
+  rows <- list(
     .el_pair("commodity", .slot_chr_report(object, "comm")),
-    .el_pair("regions", .slot_chr_report(object, "region")),
-    .el_pair("default value", .slot_chr_report(object, "defVal"))))
+    .el_pair("regions", .slot_chr_report(object, "region")))
+  for (sl in .levy_report_slots) {
+    v <- .slot_chr_report(object, sl)
+    if (nzchar(v)) rows[[length(rows) + 1L]] <- .el_pair(sl, v)
+  }
+  # which bases the rate table actually prices -- the thing that says whether
+  # this instrument charges a flow, an activity or a capacity
+  rt <- tryCatch(as.data.frame(methods::slot(object, slot_name)),
+                 error = function(e) NULL)
+  if (!is.null(rt) && nrow(rt) > 0) {
+    bases <- intersect(c("inp", "out", "bal", "act", "cap", "ncap", "rate"),
+                       names(rt))
+    bases <- bases[vapply(bases, function(b) any(!is.na(rt[[b]])), logical(1))]
+    if (length(bases)) {
+      rows[[length(rows) + 1L]] <- .el_pair("bases", paste(bases, collapse = ", "))
+    }
+  }
+  rows[[length(rows) + 1L]] <-
+    .el_pair("default value", .slot_chr_report(object, "defVal"))
+  info <- do.call(rbind, rows)
   list(info_df = .report_drop_empty_cols(info),
        rate_df = if (want("rate_df")) .el_slot_df(object, slot_name))
 }

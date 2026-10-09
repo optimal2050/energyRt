@@ -83,7 +83,10 @@ test_that("a user-constraint IR string parses into an equation", {
   m <- fixture_with_constraint()$model
   eq <- m$equations$eqCnsTEST
 
-  expect_s3_class(eq, "equation")
+  # multimod 0.5.0 prefixed its S3 model classes (`mm_equation`, `mm_model`,
+  # ...) precisely because the bare names collided with energyRt's own
+  # `model`/`variable` classes and cross-dispatched.
+  expect_s3_class(eq, "mm_equation")
   expect_equal(eq$name, "eqCnsTEST")
   expect_equal(eq$relation, "<=")
   # the $-condition of the header becomes the equation's domain mapping, which

@@ -56,7 +56,7 @@
 #' @keywords internal
 #' @noRd
 declare_user_constraint_symbols <- function(model, scenario, verbose = FALSE) {
-  stopifnot(inherits(model, "multimod") || inherits(model, "model"))
+  .stop_not_multimod(model)
   params <- scenario@modInp@parameters
   nms <- grep(.cns_symbol_regex, names(params), value = TRUE)
   n_map <- 0L
@@ -155,7 +155,7 @@ declare_user_constraint_symbols <- function(model, scenario, verbose = FALSE) {
 #' @keywords internal
 #' @noRd
 add_user_constraints <- function(model, scenario, verbose = FALSE) {
-  stopifnot(inherits(model, "multimod") || inherits(model, "model"))
+  .stop_not_multimod(model)
   ucns <- scenario@modInp@user_constraints
   ucost <- scenario@modInp@user_costs
   has_cns <- length(ucns) > 0L

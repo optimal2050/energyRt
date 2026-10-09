@@ -626,8 +626,25 @@ create_link_log_entry <- function(multimod_name, scenario_name, type, status,
 #' @param log_file Optional path to export import log as CSV
 #' @return Modified model with scenario data linked and import log
 #' @export
+# Guard for the functions that take a MULTIMOD model.
+#
+# These used to accept `inherits(model, "model")` as well, because before
+# multimod 0.5.0 a multimod model carried the bare class `model`. It now carries
+# `mm_model`/`multimod`, so that disjunct no longer matches a multimod model at
+# all -- it matches an energyRt `model` instead, letting the wrong object type
+# past a guard meant to catch it. Every multimod node keeps the `multimod` tag,
+# so one test covers models and their parts alike.
+#' @noRd
+.stop_not_multimod <- function(model, arg = "model") {
+  if (!inherits(model, "multimod")) {
+    stop("`", arg, "` must be a multimod model (class `mm_model`), not ",
+         paste(class(model), collapse = "/"), ".", call. = FALSE)
+  }
+  invisible(model)
+}
+
 multimod_import_data <- function(model, scenario, inMemory = scenario@inMemory, log_file = NULL) {
-  stopifnot(inherits(model, "multimod") || inherits(model, "model"))
+  .stop_not_multimod(model)
   if (!inherits(scenario, "scenario")) {
     stop("scenario must be an energyRt scenario object")
   }
@@ -1366,7 +1383,7 @@ multimod_unmatched <- function(model) {
 #' @noRd
 fill_variable_domains <- function(model, prefer = c("spec", "hint"),
                                   scalars = "vObjective", verbose = TRUE) {
-  stopifnot(inherits(model, "multimod") || inherits(model, "model"))
+  .stop_not_multimod(model)
   prefer <- match.arg(prefer)
   inv <- .energyrt_gates_var()
 
