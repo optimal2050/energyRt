@@ -1,8 +1,8 @@
 Package: energyRt
 Type: Package
 Title: Energy Systems Modeling Toolbox
-Version: 0.90.0.9019
-Date: 2026-10-09
+Version: 0.90.0.9020
+Date: 2026-10-10
 Authors@R: 
   c(person(given = "Oleg", 
           family = "Lugovoy", 

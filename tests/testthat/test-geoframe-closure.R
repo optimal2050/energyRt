@@ -228,3 +228,42 @@ test_that("children that disagree are an error only where a process needs the ra
     interpolate_model(gc_rate_model("gcr_d", d), name = "gcr_d", overwrite = TRUE))),
     "No investment rate for 'ENAT' at 'NAT'")
 })
+
+# --- a producer with no inputs makes its output available in its region ------- #
+# Run-of-river and rooftop PV have no input commodity. `map_mCommReg()` built the
+# secondary availability from process_inputs only, so a no-input plant alone in
+# a sub-region left ELC absent there; its output rows were cut and it ran
+# producing nothing. Free plant in R2 (stock 50), coal plant in R1 (fuel 5),
+# national demand 80: the free plant runs flat out, coal covers 30 -> 150.
+# @covers mCommReg mvTechOut depth=S backends=glpk
+test_that("a no-input plant in a sub-region keeps its output", {
+  skip_if_not_installed("geoscales")
+  gs <- geoscales::geoscale_from_leaftable(
+    data.frame(nation = "NAT", region = c("R1", "R2")),
+    geoframes = c("nation", "region"), key = "region", name = "gs_ni")
+  cal <- newCalendar(timetable = make_timetable(struct = list(ANNUAL = "ANNUAL")),
+                     name = "cal_ni")
+  m <- newModel(name = "ni", calendar = cal, region = c("R1", "R2"),
+    horizon = newHorizon(2025), discount = 0,
+    repo = newRepository("repo_ni",
+      newCommodity("COA", timeframe = "ANNUAL", geoframe = "nation"),
+      newCommodity("ELC", timeframe = "ANNUAL", geoframe = "nation"),
+      newSupply("SUP_COA", commodity = "COA", region = "NAT",
+                supply = data.frame(region = "NAT", cost = 5)),
+      newTechnology("ECOA", input = list(comm = "COA"),
+                    output = list(comm = "ELC"), region = "R1",
+                    capacity = data.frame(stock = 100, cap.up = 100), cap2act = 1),
+      newTechnology("EFREE", output = list(comm = "ELC"), region = "R2",
+                    capacity = data.frame(stock = 50, cap.up = 50), cap2act = 1),
+      newDemand("DEM_ELC", commodity = "ELC", region = "NAT",
+                demand = data.frame(region = "NAT", demand = 80))))
+  m <- setGeoscale(m, gs)
+  scen <- gc_interp(m, "ni")
+  out <- as.data.frame(.gds(scen, "mvTechOut"))
+  expect_setequal(unique(out$region[out$tech == "EFREE"]), "R2")
+
+  skip_if_no_solver()
+  scen <- .fork_solve(scen, solver_options$glpk)
+  expect_true(verify_solution(scen)$ok)
+  expect_equal(.fork_objective(scen), 150, tolerance = 1e-6)
+})

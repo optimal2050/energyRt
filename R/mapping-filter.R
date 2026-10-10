@@ -609,33 +609,61 @@ map_mSupAvaUp <- function(scen, fmp) {
                                  by = c("comm", "region")))
 }
 
+# An import or export with a populated `@region` exists only there (the uniform
+# scope rule of get_process_region()); an empty `@region` means every region.
+# The row domain is built over all regions, so the scope is applied here: rows of
+# a scoped object outside its `@region` are dropped. Without it an import declared
+# for one region was open in every other region of the same balancing level.
+.filt_io_span <- function(scen, df, class, key) {
+  if (is.null(df) || nrow(df) == 0) return(df)
+  span <- apply_to_scenario_data(
+    scen = scen, classes = class, as_list = TRUE,
+    func = function(obj) {
+      regs <- unique(as.character(obj@region))
+      regs <- regs[!is.na(regs) & nzchar(regs)]
+      if (length(regs) == 0) return(list())
+      out <- list()
+      out[[obj@name]] <- stats::setNames(
+        data.frame(obj@name, regs, stringsAsFactors = FALSE), c(key, "region"))
+      out
+    }
+  )
+  if (length(span) == 0) return(df)
+  span <- dplyr::bind_rows(span)
+  df <- as.data.frame(df)
+  scoped <- df[[key]] %in% span[[key]]
+  keep <- !scoped |
+    paste(df[[key]], df$region) %in% paste(span[[key]], span$region)
+  df[keep, , drop = FALSE]
+}
+
 # map_mImportRow / map_mExportRow build the row domain AND its constraint-recipe
 # siblings (meq*RowLo, m*RowCumUp) and value-recipe cost (m*RowCost). The lo/cumup
 # maps share .io_row_maps; cumup is NOT mCommReg-filtered (legacy parity).
 map_mImportRow <- function(scen, fmp) {
   b <- .filter_row_bundle(scen, "imp", "mImpTimeslice", "mImpComm",
                           "pImportRow", "pImportRowRes")
-  scen <- .set_map(scen, "mImportRow", .filt_comm_level(scen, .filt_cr(scen, b$row)), fmp)
-  scen <- .set_map(scen, "meqImportRowLo", .filt_comm_level(scen, .filt_cr(scen, b$lo)), fmp)
+  scen <- .set_map(scen, "mImportRow", .filt_io_span(scen, .filt_comm_level(scen, .filt_cr(scen, b$row)), "import", "imp"), fmp)
+  scen <- .set_map(scen, "meqImportRowLo", .filt_io_span(scen, .filt_comm_level(scen, .filt_cr(scen, b$lo)), "import", "imp"), fmp)
   scen <- .set_map(scen, "mImportRowCumUp", b$cumup, fmp)
   .cost_row(scen, "mImportRow", "mImportRowCost", fmp)
 }
 map_mImportRowUp <- function(scen, fmp)
   .set_map(scen, "mImportRowUp",
-           .filt_comm_level(scen, .filt_cr(scen, .filter_row_bundle(scen, "imp", "mImpTimeslice", "mImpComm",
-                                             "pImportRow", "pImportRowRes")$up)), fmp)
+           .filt_io_span(scen, .filt_comm_level(scen, .filt_cr(scen, .filter_row_bundle(scen, "imp", "mImpTimeslice", "mImpComm",
+                                             "pImportRow", "pImportRowRes")$up)), "import", "imp"), fmp)
 map_mExportRow <- function(scen, fmp) {
   b <- .filter_row_bundle(scen, "expp", "mExpTimeslice", "mExpComm",
                           "pExportRow", "pExportRowRes")
-  scen <- .set_map(scen, "mExportRow", .filt_comm_level(scen, .filt_cr(scen, b$row)), fmp)
-  scen <- .set_map(scen, "meqExportRowLo", .filt_comm_level(scen, .filt_cr(scen, b$lo)), fmp)
+  scen <- .set_map(scen, "mExportRow", .filt_io_span(scen, .filt_comm_level(scen, .filt_cr(scen, b$row)), "export", "expp"), fmp)
+  scen <- .set_map(scen, "meqExportRowLo", .filt_io_span(scen, .filt_comm_level(scen, .filt_cr(scen, b$lo)), "export", "expp"), fmp)
   scen <- .set_map(scen, "mExportRowCumUp", b$cumup, fmp)
   .cost_row(scen, "mExportRow", "mExportRowCost", fmp)
 }
 map_mExportRowUp <- function(scen, fmp)
   .set_map(scen, "mExportRowUp",
-           .filt_comm_level(scen, .filt_cr(scen, .filter_row_bundle(scen, "expp", "mExpTimeslice", "mExpComm",
-                                             "pExportRow", "pExportRowRes")$up)), fmp)
+           .filt_io_span(scen, .filt_comm_level(scen, .filt_cr(scen, .filter_row_bundle(scen, "expp", "mExpTimeslice", "mExpComm",
+                                             "pExportRow", "pExportRowRes")$up)), "export", "expp"), fmp)
 
 # -- inter-regional trade flow domains (mTradeIr family) ------------------- #
 # Faithful port of the recipe_filter trade block (mapping_engine.R L1295-1438).

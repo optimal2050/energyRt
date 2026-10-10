@@ -276,6 +276,30 @@ map_mCommReg <- function(scen, fmp) {
     rename(comm = output) |>
     unique()
 
+  # A process with NO inputs (run-of-river, rooftop PV: weather only) is absent
+  # from process_inputs, so the join above never sees its outputs. Where it is
+  # the only producer in a region, the output commodity was missing there,
+  # `.filt_cr()` emptied its output rows, and the plant ran producing nothing.
+  free_out <- get_process_outputs(scen, classes = c("technology", "storage",
+                                                    "process"))
+  has_inp <- names(Filter(length, scen@modInp@sets$process_inputs))
+  free_out <- free_out[!names(free_out) %in% has_inp]
+  if (length(free_out) > 0) {
+    free_comm_region <- named_list_to_df(free_out,
+                                         col_names = c("process", "comm")) |>
+      left_join(
+        named_list_to_df(scen@modInp@sets$process_region,
+          col_names = c("process", "region")
+        ),
+        by = "process", relationship = "many-to-many"
+      ) |>
+      select(comm, region) |>
+      filter(!is.na(comm), !is.na(region)) |>
+      unique()
+    secondary_comm_region <- rbind(secondary_comm_region, free_comm_region) |>
+      unique()
+  }
+
   scen@modInp@sets$secondary_comm_region <-
     split(secondary_comm_region$region, secondary_comm_region$comm)
 
