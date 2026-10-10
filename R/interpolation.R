@@ -3313,6 +3313,27 @@ get_process_timeframe <- function(scen, process = NULL,
   }
   check_timeframe <- as.data.table(check_timeframe)
 
+  # A commodity FINER than the process is permitted when it is only an INPUT
+  # (the no-disaggregation rule, R/process-levels.R): the input is drawn from
+  # the finer slices beneath the process and summed with `pTimesliceAgg`. An
+  # output or stored commodity keeps the refusal -- it would have to be
+  # disaggregated. Gated per class and per axis, so a class whose equations do
+  # not carry the branch yet still errors.
+  if (nrow(check_timeframe) > 0 && .coarse_axis_ready("timeslice")) {
+    .cls <- get_process_class(scen)
+    .ins <- tryCatch(get_process_inputs(scen), error = function(e) list())
+    .out <- tryCatch(get_process_outputs(scen), error = function(e) list())
+    .stg <- tryCatch(get_process_stored(scen), error = function(e) list())
+    ok <- vapply(seq_len(nrow(check_timeframe)), function(i) {
+      pr <- as.character(check_timeframe$process[i])
+      cm <- as.character(check_timeframe$comm[i])
+      if (!unname(.cls[[pr]]) %in% .coarse_classes_supported) return(FALSE)
+      cm %in% as.character(.ins[[pr]]) &&
+        !(cm %in% c(as.character(.out[[pr]]), as.character(.stg[[pr]])))
+    }, logical(1))
+    check_timeframe <- check_timeframe[!ok, , drop = FALSE]
+  }
+
   if (nrow(check_timeframe) > 0) {
     # A technology (the only class with a `@timeframe` slot) may run at a
     # different resolution from its commodities, but never a COARSER one: the

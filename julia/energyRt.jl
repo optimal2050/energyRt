@@ -59,6 +59,7 @@ mTechOutCommAggTimeslice_ix = _group(mTechOutCommAggTimeslice, timeslice, 3, (1,
 mTechAOutCommAggTimeslice_ix = _group(mTechAOutCommAggTimeslice, timeslice, 3, (1, 2, 4));
 mTechProcAggRegion_ix = _group(mTechProcAggRegion, region, 4, (1, 2, 3));
 mStorageProcAggRegion_ix = _group(mStorageProcAggRegion, region, 4, (1, 2, 3));
+mTechProcAggTimeslice_ix = _group(mTechProcAggTimeslice, timeslice, 4, (1, 2, 3));
 
 # Indices for the remaining domain-restriction filters; see _group.
 mAggregateFactor_ix = _group(mAggregateFactor, comm, 2, (1,));
@@ -294,6 +295,21 @@ print("eqTechSng2Sng(tech, region, comm, commp, year, timeslice)...")
                 pTechCinp2useDef
             end
         ) for rp in get(mTechProcAggRegion_ix, (t, c, r), ())
+    ) +
+    sum(
+        (
+            if haskey(pTimesliceAgg, (y, s, sp))
+                pTimesliceAgg[(y, s, sp)]
+            else
+                pTimesliceAggDef
+            end
+        ) * vTechInp[(t, c, r, y, sp)] * (
+            if haskey(pTechCinp2use, (t, c, r, y, sp))
+                pTechCinp2use[(t, c, r, y, sp)]
+            else
+                pTechCinp2useDef
+            end
+        ) for sp in get(mTechProcAggTimeslice_ix, (t, c, s), ())
     ) ==
     (vTechOut[(t, cp, r, y, s)]) / (
         (
@@ -2406,6 +2422,22 @@ print("eqTechVarom(tech, region, year)...")
                     end
                 ) * vTechInp[(t, c, rp, y, s)] for
                 rp in get(mTechProcAggRegion_ix, (t, c, r), ())
+            ) +
+            sum(
+                (
+                    if haskey(pTechCvarom, (t, c, r, y, sp))
+                        pTechCvarom[(t, c, r, y, sp)]
+                    else
+                        pTechCvaromDef
+                    end
+                ) * (
+                    if haskey(pTimesliceWeight, (y, sp))
+                        pTimesliceWeight[(y, sp)]
+                    else
+                        pTimesliceWeightDef
+                    end
+                ) * vTechInp[(t, c, r, y, sp)] for
+                sp in get(mTechProcAggTimeslice_ix, (t, c, s), ())
             ) for c in get(mTechInpComm_ix1_0, t, ())
         ) +
         sum(

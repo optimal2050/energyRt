@@ -238,9 +238,13 @@ test_that("family process-levels: the region axis is a no-op without a geoscale"
 # and the model is INFEASIBLE -- loud, but for the wrong reason.
 # --------------------------------------------------------------------------- #
 
-test_that("family process-levels: region is enabled, timeslice is not", {
+test_that("family process-levels: both axes are enabled", {
   expect_true(energyRt:::.coarse_axis_ready("region"))
-  expect_false(energyRt:::.coarse_axis_ready("timeslice"))
+  expect_true(energyRt:::.coarse_axis_ready("timeslice"))
+  # storage is space-only by decision: its chronology and C-rate logic are
+  # written against its own time resolution
+  expect_setequal(energyRt:::.coarse_classes_supported,
+                  c("technology", "storage"))
 })
 
 test_that("family process-levels: a coarse technology in space is accepted", {

@@ -3406,6 +3406,18 @@ mTechProcAggRegion:
   unreferenced: yes
   recipe: filter
   source: derived
+mTechProcAggTimeslice:
+  name: mTechProcAggTimeslice
+  dims:
+  - tech
+  - comm
+  - timeslice
+  - timeslicep
+  gates_var: []
+  gates_eq: []
+  unreferenced: yes
+  recipe: filter
+  source: derived
 mStorageProcAggRegion:
   name: mStorageProcAggRegion
   dims:

@@ -187,6 +187,7 @@ mTechAOutCommAgg_ix = _group(mTechAOutCommAgg, tech, 0, (1,))
 mTechOutCommAggTimeslice_ix = _group(mTechOutCommAggTimeslice, timeslice, 2, (0, 1, 3))
 mTechProcAggRegion_ix = _group(mTechProcAggRegion, region, 3, (0, 1, 2))
 mStorageProcAggRegion_ix = _group(mStorageProcAggRegion, region, 3, (0, 1, 2))
+mTechProcAggTimeslice_ix = _group(mTechProcAggTimeslice, timeslice, 3, (0, 1, 2))
 mTechAOutCommAggTimeslice_ix = _group(
     mTechAOutCommAggTimeslice, timeslice, 2, (0, 1, 3))
 
@@ -582,6 +583,13 @@ model.eqTechSng2Sng = Constraint(
     + sum(
         model.vTechInp[t, c, rp, y, s] * pTechCinp2use.get((t, c, rp, y, s))
         for rp in mTechProcAggRegion_ix.get((t, c, r), ())
+    )
+    # ... and the TIME twin: pTimesliceAgg renormalises the intensive rate
+    + sum(
+        pTimesliceAgg.get((y, s, sp))
+        * model.vTechInp[t, c, r, y, sp]
+        * pTechCinp2use.get((t, c, r, y, sp))
+        for sp in mTechProcAggTimeslice_ix.get((t, c, s), ())
     )
     == (model.vTechOut[t, cp, r, y, s])
     / (pTechUse2cact.get((t, cp, r, y, s)) * pTechCact2cout.get((t, cp, r, y, s))),
@@ -1847,6 +1855,12 @@ model.eqTechVarom = Constraint(
                 * pTimesliceWeight.get((y, s))
                 * model.vTechInp[t, c, rp, y, s]
                 for rp in mTechProcAggRegion_ix.get((t, c, r), ())
+            )
+            + sum(
+                pTechCvarom.get((t, c, r, y, sp))
+                * pTimesliceWeight.get((y, sp))
+                * model.vTechInp[t, c, r, y, sp]
+                for sp in mTechProcAggTimeslice_ix.get((t, c, s), ())
             )
             for c in mTechInpComm_ix1_0.get(t, ())
         )

@@ -2961,6 +2961,14 @@ mTechProcAggRegion:
   - comm
   - region
   - regionp
+mTechProcAggTimeslice:
+  name: mTechProcAggTimeslice
+  type: map
+  dimSets:
+  - tech
+  - comm
+  - timeslice
+  - timeslicep
 mStorageProcAggRegion:
   name: mStorageProcAggRegion
   type: map

@@ -131,7 +131,7 @@
 #
 # Grows one axis at a time as the template work lands; empty means a coarse
 # process is refused everywhere, exactly as before this feature existed.
-.coarse_axes_supported <- "region"      # "timeslice" follows
+.coarse_axes_supported <- c("region", "timeslice")
 
 # Classes whose coarse form is VERIFIED end to end. Storage's map, flow domain
 # and equation branches are built, but a single-commodity storage cannot be
@@ -437,4 +437,107 @@
   unique(data.frame(process = as.character(d[[key]]),
                     comm = as.character(d$comm),
                     stringsAsFactors = FALSE))
+}
+
+#' Coarse-process timeslice pairs: (process slice, the flow's finer slices)
+#'
+#' The time twin of [.flow_region_agg()]. Where [.flow_levels()] says a flow
+#' sits FINER than its process, the process's own equations must sum the flow
+#' over the finer slices inside its own -- weighted by `pTimesliceAgg`, because
+#' timeslice values are intensive RATES and summing them needs renormalising by
+#' duration (unlike regions, which are extensive and simply add).
+#'
+#' Rows exist ONLY for the coarse-process case, so the map is empty in every
+#' model that is legal without this feature.
+#'
+#' @return data.frame `(process, comm, timeslice, timeslicep)` -- `timeslice` is
+#'   the process's own (coarse) slice, `timeslicep` a commodity slice beneath
+#'   it -- or `NULL` when no process is coarser.
+#' @keywords internal
+#' @noRd
+.flow_timeslice_agg <- function(scen) {
+  lv <- .flow_levels(scen, "timeslice")
+  if (is.null(lv) || nrow(lv) == 0) return(NULL)
+  coarse <- lv[!is.na(lv$flow) & !is.na(lv$process_level) &
+                 lv$flow != lv$process_level, , drop = FALSE]
+  if (nrow(coarse) == 0) return(NULL)
+
+  cal <- scen@settings@calendar
+  anc <- as.data.frame(cal@timeslice_ancestry)   # (parent, child), transitive
+  if (is.null(anc) || nrow(anc) == 0) return(NULL)
+  frames <- cal@timeframes
+  # slice -> its level, so a three-level calendar does not also pick up the
+  # intermediate cells
+  lvl_of <- unlist(lapply(names(frames), function(lv2)
+    stats::setNames(rep(lv2, length(frames[[lv2]])), frames[[lv2]])))
+  desc <- split(as.character(anc$child), as.character(anc$parent))
+  ptf <- get_process_timeframe(scen)
+
+  out <- lapply(seq_len(nrow(coarse)), function(i) {
+    p <- coarse$process[i]
+    cm <- coarse$comm[i]
+    flow_lv <- coarse$flow[i]
+    own <- frames[[as.character(ptf[[p]])]]
+    if (length(own) == 0) return(NULL)
+    rows <- lapply(as.character(own), function(sl) {
+      cand <- desc[[sl]]
+      cand <- cand[!is.na(lvl_of[cand]) & lvl_of[cand] == flow_lv]
+      if (length(cand) == 0) return(NULL)
+      data.frame(process = p, comm = cm, timeslice = sl, timeslicep = cand,
+                 stringsAsFactors = FALSE)
+    })
+    do.call(rbind, rows[!vapply(rows, is.null, logical(1))])
+  })
+  out <- out[!vapply(out, is.null, logical(1))]
+  if (length(out) == 0) return(NULL)
+  res <- do.call(rbind, out)
+  rownames(res) <- NULL
+  unique(res)
+}
+
+#' Move a coarse process's flow rows down to the commodity's timeslices
+#'
+#' The time twin of [.flow_region_spread()]. The activity domain stays at the
+#' process's own slice; only the flows move.
+#' @keywords internal
+#' @noRd
+.flow_timeslice_spread <- function(scen, df, key) {
+  if (!.coarse_axis_ready("timeslice")) return(df)
+  if (is.null(df) || nrow(df) == 0) return(df)
+  df <- as.data.frame(df)
+  if (!all(c(key, "comm", "timeslice") %in% names(df))) return(df)
+  ag <- .flow_timeslice_agg(scen)
+  if (is.null(ag) || nrow(ag) == 0) return(df)
+
+  m <- data.frame(ag$process, ag$comm, ag$timeslice, ag$timeslicep,
+                  stringsAsFactors = FALSE)
+  names(m) <- c(key, "comm", "timeslice", ".tsp")
+  by <- c(key, "comm", "timeslice")
+  hit <- merge(df, m, by = by)
+  if (nrow(hit) == 0) return(df)
+  keep <- dplyr::anti_join(df, unique(m[, by, drop = FALSE]), by = by)
+  hit$timeslice <- hit$.tsp
+  hit$.tsp <- NULL
+  unique(rbind(as.data.frame(keep), hit[, names(df), drop = FALSE]))
+}
+
+#' Lift a coarse process's flow rows back up to its own timeslice
+#' @keywords internal
+#' @noRd
+.lift_flow_to_proc_timeslice <- function(scen, df, key) {
+  if (!.coarse_axis_ready("timeslice")) return(df)
+  if (is.null(df) || nrow(df) == 0) return(df)
+  df <- as.data.frame(df)
+  if (!all(c(key, "timeslice") %in% names(df))) return(df)
+  ag <- .flow_timeslice_agg(scen)
+  if (is.null(ag) || nrow(ag) == 0) return(df)
+  m <- unique(data.frame(ag$process, ag$timeslicep, ag$timeslice,
+                         stringsAsFactors = FALSE))
+  names(m) <- c(key, "timeslice", ".coarse")
+  m <- m[!duplicated(m[, c(key, "timeslice")]), , drop = FALSE]
+  out <- merge(df, m, by = c(key, "timeslice"), all.x = TRUE)
+  hit <- !is.na(out$.coarse)
+  if (any(hit)) out$timeslice[hit] <- out$.coarse[hit]
+  out$.coarse <- NULL
+  unique(out[, names(df), drop = FALSE])
 }

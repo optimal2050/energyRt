@@ -53,7 +53,7 @@ test_that("matrix rows assemble from package metadata with expected arithmetic",
   # levy onto a process: act/inp/out/cap/ncap for each of tax and subsidy,
   # 2026-10-08)
   expect_equal(unname(counts[["set"]]), 15)
-  expect_equal(unname(counts[["map"]]), 311)
+  expect_equal(unname(counts[["map"]]), 312)
   expect_equal(unname(counts[["numpar"]]), 151)
   expect_equal(unname(counts[["bounds"]]), 38)
   expect_equal(unname(counts[["equation"]]), 150)

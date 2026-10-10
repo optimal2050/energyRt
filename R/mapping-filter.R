@@ -46,6 +46,7 @@ map_mvTechInp <- function(scen, fmp) {
   # a technology may draw a coarse-geoframe input anywhere in its cell, and a
   # technology COARSER than its input draws at the input's own regions
   dom <- .flow_region_spread(scen, as.data.frame(merge0(act, inp)), "tech")
+  dom <- .flow_timeslice_spread(scen, dom, "tech")
   .set_map(scen, "mvTechInp", .filt_cr(scen, dom, reach = TRUE), fmp)
 }
 
@@ -91,6 +92,34 @@ map_mTechProcAggRegion <- function(scen, fmp)
 
 map_mStorageProcAggRegion <- function(scen, fmp)
   .set_proc_agg_region(scen, fmp, "mStorageProcAggRegion", "stg", "storage")
+
+# The TIME twin. Same contract: always set, empty when no process is coarser.
+.set_proc_agg_timeslice <- function(scen, fmp, nm, key, cls_want) {
+  empty <- stats::setNames(
+    data.frame(character(), character(), character(), character(),
+               stringsAsFactors = FALSE),
+    c(key, "comm", "timeslice", "timeslicep"))
+  ag <- .flow_timeslice_agg(scen)
+  if (!is.null(ag) && nrow(ag) > 0) {
+    cls <- get_process_class(scen)
+    keep <- vapply(ag$process, function(p)
+      identical(unname(cls[[p]]), cls_want), logical(1))
+    ag <- ag[keep, , drop = FALSE]
+  }
+  df <- if (is.null(ag) || nrow(ag) == 0) {
+    empty
+  } else {
+    stats::setNames(
+      data.frame(ag$process, ag$comm, ag$timeslice, ag$timeslicep,
+                 stringsAsFactors = FALSE),
+      c(key, "comm", "timeslice", "timeslicep"))
+  }
+  .set_map(scen, nm, df, fmp)
+}
+
+map_mTechProcAggTimeslice <- function(scen, fmp)
+  .set_proc_agg_timeslice(scen, fmp, "mTechProcAggTimeslice", "tech",
+                          "technology")
 
 # [agg-rewrite] map_mTechOutRY removed (*RY retired — dead reporting)
 
@@ -951,6 +980,7 @@ map_mvBalance <- function(scen, fmp)
   mvTechInp      = map_mvTechInp,
   mvTechOut      = map_mvTechOut,
   mTechProcAggRegion = map_mTechProcAggRegion,
+  mTechProcAggTimeslice = map_mTechProcAggTimeslice,
   mStorageProcAggRegion = map_mStorageProcAggRegion,
   mvTechAInp     = map_mvTechAInp,
   mvTechAOut     = map_mvTechAOut,

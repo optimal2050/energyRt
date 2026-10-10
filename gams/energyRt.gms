@@ -806,6 +806,7 @@ mTechOutCommAgg(tech, comm)
 mTechOutCommAggTimeslice(tech, comm, timeslice, timeslicep)
 mTechProcAggRegion(tech, comm, region, regionp)  Coarse technology: its region and the finer commodity regions beneath it
 mStorageProcAggRegion(stg, comm, region, regionp)  Coarse storage: its region and the finer commodity regions beneath it
+mTechProcAggTimeslice(tech, comm, timeslice, timeslicep)  Coarse technology: its timeslice and the finer commodity timeslices beneath it
 mTechAOutCommSameTimeslice(tech, comm)
 mTechAOutCommAgg(tech, comm)
 mTechAOutCommAggTimeslice(tech, comm, timeslice, timeslicep)
@@ -950,6 +951,11 @@ eqTechSng2Sng(tech, region, comm, commp, year, timeslice)$meqTechSng2Sng(tech, r
      + sum(regionp$mTechProcAggRegion(tech, comm, region, regionp),
            pTechCinp2use(tech, comm, regionp, year, timeslice)
            * vTechInp(tech, comm, regionp, year, timeslice))
+* ... and the TIME twin: pTimesliceAgg renormalises the intensive rate
+     + sum(timeslicep$mTechProcAggTimeslice(tech, comm, timeslice, timeslicep),
+           pTimesliceAgg(year, timeslice, timeslicep)
+           * pTechCinp2use(tech, comm, region, year, timeslicep)
+           * vTechInp(tech, comm, region, year, timeslicep))
    )
 ;
 
@@ -1698,6 +1704,11 @@ eqTechVarom(tech, region, year)$mTechVarom(tech, region, year)..
                 pTechCvarom(tech, comm, regionp, year, timeslice)
                 * pTimesliceWeight(year, timeslice)
                 * vTechInp(tech, comm, regionp, year, timeslice))
+            +
+            sum((comm, timeslicep)$mTechProcAggTimeslice(tech, comm, timeslice, timeslicep),
+                pTechCvarom(tech, comm, region, year, timeslicep)
+                * pTimesliceWeight(year, timeslicep)
+                * vTechInp(tech, comm, region, year, timeslicep))
             +
             sum(comm$mTechOutComm(tech, comm),
                 pTechCvarom(tech, comm, region, year, timeslice)

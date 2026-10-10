@@ -1453,7 +1453,9 @@ recipe_value <- function(scen, names, fmp) {
   # A coarse process's equations are indexed at ITS cell, so a domain built
   # from flow maps is lifted back onto that cell. Identity when no process is
   # coarser than its commodities, which is every model today.
-  lift <- function(df) .lift_flow_to_proc_region(scen, df, "tech")
+  lift <- function(df)
+    .lift_flow_to_proc_timeslice(
+      scen, .lift_flow_to_proc_region(scen, df, "tech"), "tech")
 
   # Activity index maps.
   scen <- set_if(scen, "meqTechActSng", lift(techSingOut))

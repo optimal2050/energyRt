@@ -102,11 +102,36 @@ test_that("demand at the commodity's own geoframe is accepted", {
   expect_s4_class(lc_interp(mod, "t4"), "scenario")
 })
 
-test_that("a technology coarser than a commodity it uses is refused", {
-  # MILL consumes SEASON electricity; pinning it to ANNUAL strands the flow.
-  # This used to warn and silently substitute the finest timeframe.
+test_that("a technology coarser than an INPUT commodity is accepted", {
+  # MILL consumes SEASON electricity and produces ANNUAL steel. Pinning it to
+  # ANNUAL used to strand the flow at a slice no balance reads -- silently free
+  # electricity. It is now supported: the input is drawn from the seasons
+  # beneath the year and summed with `pTimesliceAgg` (mTechProcAggTimeslice),
+  # while activity, capacity and output stay annual.
+  scen <- lc_interp(lc_model(mill_tf = "ANNUAL", name = "t5"), "t5")
+  expect_s4_class(scen, "scenario")
+  expect_equal(get_process_timeframe(scen)[["MILL"]], "ANNUAL")
+
+  # the ELC flow moved DOWN to the commodity's own slices ...
+  inp <- as.data.frame(get_data_slot(scen@modInp@parameters[["mvTechInp"]]))
+  expect_setequal(unique(as.character(inp$timeslice[inp$tech == "MILL"])),
+                  c("WIN", "SUM"))
+  # ... and the Agg map pairs the process slice with the slices beneath it
+  ag <- as.data.frame(get_data_slot(
+    scen@modInp@parameters[["mTechProcAggTimeslice"]]))
+  expect_setequal(unique(as.character(ag$timeslice)), "ANNUAL")
+  expect_setequal(unique(as.character(ag$timeslicep)), c("WIN", "SUM"))
+})
+
+test_that("a technology coarser than an OUTPUT commodity is refused", {
+  # the no-disaggregation rule: STEEL at SEASON while MILL is pinned to ANNUAL
+  # would require splitting one annual decision across seasons
   expect_error(
-    lc_interp(lc_model(mill_tf = "ANNUAL", name = "t5"), "t5"),
+    lc_interp(lc_model(mill_tf = "ANNUAL", steel_tf = "SEASON",
+                       demand = data.frame(region = "R1",
+                                           timeslice = c("WIN", "SUM"),
+                                           demand = 12),
+                       name = "t5b"), "t5b"),
     "COARSER"
   )
 })
