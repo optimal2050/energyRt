@@ -793,7 +793,7 @@ s.t.  eqTechActGrp{(t, g, r, y, s) in meqTechActGrp}: vTechAct[t,r,y,s]  =  sum{
 
 s.t.  eqTechAfcOutLo{(t, r, c, y, s) in meqTechAfcOutLo}: pTechCact2cout[t,c,r,y,s]*pTechAfcLo[t,c,r,y,s]*pTechCap2act[t]*vTechCap[t,r,y]*pTimesliceShare[s]*prod{(wth1,wtt,wcc) in mTechWeatherAfcLo: wtt == t and wcc == c}(pTechWeatherAfcLo[wth1,t,c]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s])) <=  vTechOut[t,c,r,y,s];
 
-s.t.  eqTechAfcOutUp{(t, r, c, y, s) in meqTechAfcOutUp}: vTechOut[t,c,r,y,s] <=  pTechCact2cout[t,c,r,y,s]*pTechAfcUp[t,c,r,y,s]*pTechCap2act[t]*vTechCap[t,r,y]*prod{(wth1,wtt,wcc) in mTechWeatherAfcUp: wtt == t and wcc == c}(pTechWeatherAfcUp[wth1,t,c]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s]));
+s.t.  eqTechAfcOutUp{(t, r, c, y, s) in meqTechAfcOutUp}: vTechOut[t,c,r,y,s] <=  pTechCact2cout[t,c,r,y,s]*pTechAfcUp[t,c,r,y,s]*pTechCap2act[t]*vTechCap[t,r,y]*pTimesliceShare[s]*prod{(wth1,wtt,wcc) in mTechWeatherAfcUp: wtt == t and wcc == c}(pTechWeatherAfcUp[wth1,t,c]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s]));
 
 s.t.  eqTechAfcInpLo{(t, r, c, y, s) in meqTechAfcInpLo}: pTechAfcLo[t,c,r,y,s]*pTechCap2act[t]*vTechCap[t,r,y]*pTimesliceShare[s]*prod{(wth1,wtt,wcc) in mTechWeatherAfcLo: wtt == t and wcc == c}(pTechWeatherAfcLo[wth1,t,c]*sum{rw in region:((wth1,r,rw) in mWeatherRegionAt)}(pWeather[wth1,rw,y,s])) <=  vTechInp[t,c,r,y,s];
 

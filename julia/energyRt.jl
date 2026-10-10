@@ -1224,6 +1224,13 @@ print("eqTechAfcOutUp(tech, region, comm, year, timeslice)...")
         end
     ) *
     vTechCap[(t, r, y)] *
+    (
+        if haskey(pTimesliceShare, (s))
+            pTimesliceShare[(s)]
+        else
+            pTimesliceShareDef
+        end
+    ) *
     prod(
         (
             if haskey(pTechWeatherAfcUp, (wth1, t, c))

@@ -1314,7 +1314,8 @@ eqTechAfcOutUp(tech, region, comm, year, timeslice)$meqTechAfcOutUp(tech, region
          pTechAfcUp(tech, comm, region, year, timeslice) *
 *         pYearFraction(year) *
          pTechCap2act(tech) *
-         vTechCap(tech, region, year) *  prod(weather$mTechWeatherAfcUp(weather, tech, comm),
+         vTechCap(tech, region, year) *
+         pTimesliceShare(timeslice) *  prod(weather$mTechWeatherAfcUp(weather, tech, comm),
             pTechWeatherAfcUp(weather, tech, comm) * sum(regionp$mWeatherRegionAt(weather, region, regionp),
                   pWeather(weather, regionp, year, timeslice)));
 

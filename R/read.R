@@ -122,6 +122,27 @@
     }
   }
 
+  # GAMS's own listing, as a SECOND source beside `log.csv`. The csv's
+  # "solution status" is written by a template `put energyRt.Modelstat`, i.e. by
+  # the model; the listing is the solver's. A GAMS run that ends non-optimal
+  # still exports an all-zero solution, which reads back as a complete answer
+  # at objective 0, so a missed verdict here is a silent wrong result.
+  lst <- c(Sys.glob(file.path(solver.dir, "*.lst")),
+           Sys.glob(file.path(solver.dir, "_neos_unzip", "*.lst")))
+  for (f in lst) {
+    txt <- tryCatch(readLines(f, warn = FALSE), error = function(e) character())
+    ms <- grep("^[*]{4}[[:space:]]+MODEL STATUS", txt, value = TRUE)
+    if (length(ms) == 0) next
+    tail_txt <- sub(".*MODEL STATUS", "", ms[1])
+    code <- suppressWarnings(as.integer(
+      regmatches(tail_txt, regexpr("[0-9]+", tail_txt))))
+    # 1 optimal, 2 locally optimal, 7 feasible, 8 integer solution
+    if (length(code) == 1 && !is.na(code) && !code %in% c(1L, 2L, 7L, 8L)) {
+      return(paste0("GAMS reported ", trimws(sub("^[*]+", "", ms[1])),
+                    " (listing: ", basename(f), ")"))
+    }
+  }
+
   sl <- file.path(odir, "solver.log")
   if (file.exists(sl)) {
     txt <- tryCatch(readLines(sl, warn = FALSE), error = function(e) character())

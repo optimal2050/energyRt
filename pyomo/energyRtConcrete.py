@@ -1141,6 +1141,7 @@ model.eqTechAfcOutUp = Constraint(
     * pTechAfcUp.get((t, c, r, y, s))
     * pTechCap2act.get((t))
     * model.vTechCap[t, r, y]
+    * pTimesliceShare.get((s))
     * prod(
         pTechWeatherAfcUp.get((wth1, t, c)) * sum(pWeather.get((wth1, rw, y, s)) for rw in mWeatherRegionAt_ix.get((wth1, r), ()))
         for wth1 in mTechWeatherAfcUp_ix.get((t, c), ())

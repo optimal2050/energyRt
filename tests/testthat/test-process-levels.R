@@ -549,3 +549,46 @@ test_that("family process-levels: group conversion coefficients are read at the 
   expect_setequal(mill@ceff$cinp2ginp, c(2, 3))
   expect_false(any(mill@ceff$cinp2ginp == 1))
 })
+
+# --------------------------------------------------------------------------- #
+# `afc` on an OUTPUT: the availability bound must scale with the slice, as its
+# three siblings do. eqTechAfcOutUp was the only one of the four missing
+# `pTimesliceShare[s]`, consistently in all four templates, which made the
+# bound too loose by 1/share -- 2x on two equal seasons. Measured before the
+# fix: 5.0 per slice against a correct cap of 2.5.
+# --------------------------------------------------------------------------- #
+
+test_that("family process-levels: afc.up on an output scales with the slice", {
+  skip_if_no_solver()
+  mod <- newModel("plafc", repo = newRepository("r",
+      newCommodity("COA", timeframe = "ANNUAL"),
+      newCommodity("ELC", timeframe = "SEASON"),
+      newSupply("SUP", commodity = "COA", supply = data.frame(cost = 1)),
+      newTechnology("PP", input = list(comm = "COA"),
+        output = list(comm = "ELC"),
+        ceff = data.frame(comm = "ELC", afc.up = 0.5),
+        capacity = data.frame(cap.up = 10), cap2act = 1,
+        invcost = data.frame(invcost = 1),
+        vintage = data.frame(olife = 30L)),
+      # an expensive backstop keeps the model feasible once PP is capped
+      newImport("IMP", commodity = "ELC", import = data.frame(price = 500)),
+      newDemand("DE", commodity = "ELC",
+                demand = data.frame(timeslice = c("WIN", "SUM"), demand = 50))),
+    calendar = newCalendar(timetable = make_timetable(
+      struct = list(ANNUAL = "ANNUAL", SEASON = c("WIN", "SUM"))),
+      name = "plafcc"),
+    region = "R1", horizon = newHorizon(2025), discount = 0)
+  s <- suppressMessages(suppressWarnings(solve_model(
+    mod, name = "pl_afc", ondisk = FALSE, overwrite = TRUE)))
+  out <- suppressWarnings(getData(s, "vTechOut", merge = TRUE))
+  cap <- suppressWarnings(getData(s, "vTechCap", merge = TRUE))
+  shares <- as.data.frame(s@settings@calendar@timeslice_share)
+
+  pp_cap <- max(cap$value[cap$tech == "PP"])
+  sh <- shares$share[shares$timeslice == "WIN"]
+  # cact2cout * afc.up * cap2act * cap * share
+  expected <- 1 * 0.5 * 1 * pp_cap * sh
+  expect_equal(max(out$value[out$tech == "PP"]), expected, tolerance = 1e-6)
+  # and the bound must actually bite, or the test proves nothing
+  expect_lt(expected, pp_cap * 0.5)
+})

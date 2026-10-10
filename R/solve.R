@@ -580,7 +580,12 @@ get_tmp_dir <- function(scen = NULL, arg = NULL) {
   ux <- file.path(arg$solver.dir, "_neos_unzip")
   unlink(ux, recursive = TRUE); dir.create(ux, showWarnings = FALSE)
   utils::unzip(zf, exdir = ux)
+  # Clear `output/` first. `file.copy(overwrite = TRUE)` only replaces what the
+  # NEW payload contains, so a per-variable CSV (or log.csv) from a PREVIOUS
+  # solve of the same scenario survives and is read back as part of this one --
+  # a stale mixture that looks like a complete solution.
   outdir <- file.path(arg$solver.dir, "output")
+  unlink(outdir, recursive = TRUE)
   dir.create(outdir, showWarnings = FALSE, recursive = TRUE)
   csvs <- list.files(ux, pattern = "\\.csv$", full.names = TRUE, recursive = TRUE)
   if (!length(csvs)) {

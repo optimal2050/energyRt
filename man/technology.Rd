@@ -267,7 +267,8 @@ newTechnology(
 
 \item{olife}{deprecated, use the \code{olife} column of \code{vintage}.}
 
-\item{region}{character. Vector of regions where the technology exists or can be installed. Optional. If not specified, the technology is applied to all regions. If specified, must include all regions used in other slots.}
+\item{region}{character. Vector of regions where the technology exists or can be installed. Optional. If not specified, the technology is applied to all regions. A region coarser than the finest geoscale level is allowed, and makes the object operate at that coarser cell: its capacity, activity and output live there, while an INPUT balanced at a finer level is drawn from the cells beneath it and summed. A commodity the object PRODUCES or STORES may never be finer than the object itself -- that would require disaggregating one coarse decision into several fine ones, which energyRt does not do, and is refused.
+Coarsening is a MODEL CHANGE, not a re-representation. The object's own constraints bind at its own frame, so they are WEAKER than a finer declaration's and the model is cheaper: the input/output ratio and the \verb{@ceff} group shares hold only in aggregate over the coarse cell, and availability is sized against that longer slice. If a blend limit must hold within the period, declare the object at that finer frame; an annual mandate on a finely-operated object belongs in a user constraint with an explicit \code{timeframe}. Coarsening also does NOT reduce flow variables -- those stay at the commodity's level; it removes activity variables and equation rows. If specified, must include all regions used in other slots.}
 
 \item{start}{deprecated, use the \code{start} column of \code{vintage}.}
 
